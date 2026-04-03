@@ -185,8 +185,8 @@ const onSortChange = (key: string) => {
   align-items: center;
   gap: 1rem;
   padding: 0.875rem 1rem;
-  border: 1px solid var(--card-border-color);
-  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--bs-border-radius-lg);
   cursor: pointer;
   transition:
     border-color 0.15s,
@@ -206,7 +206,7 @@ const onSortChange = (key: string) => {
   gap: 0.1rem;
   padding: 0.5rem 0.75rem;
   background: var(--color-primary-light);
-  border-radius: var(--radius-md);
+  border-radius: var(--bs-border-radius-lg);
   min-width: 60px;
   flex-shrink: 0;
 }
@@ -265,7 +265,7 @@ const onSortChange = (key: string) => {
   align-items: center;
   gap: 0.1rem;
   padding: 0.4rem 0.6rem;
-  border-radius: var(--radius-base);
+  border-radius: var(--bs-border-radius);
   min-width: 40px;
   background: rgba(230, 55, 87, 0.1);
 }

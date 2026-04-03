@@ -49,46 +49,6 @@
 // No props needed for this static information component
 </script>
 
-<style scoped>
-.container-not-available-state {
-  margin: 2rem;
-}
-
-.alert {
-  border: 1px solid #ffeaa7;
-  border-left: 4px solid #ffc107;
-  background: linear-gradient(135deg, #fffbf0, #ffffff);
-}
-
-.alert-heading {
-  color: #b7791f;
-  font-weight: 600;
-}
-
-.feature-benefits ul {
-  padding-left: 1.5rem;
-}
-
-.feature-benefits li,
-.next-steps li {
-  margin-bottom: 0.5rem;
-}
-
-.next-steps ol {
-  padding-left: 1.5rem;
-}
-
-.text-warning {
-  color: #b7791f !important;
-}
-
-.automatic-note {
-  padding-left: 0.5rem;
-  margin-top: 0.25rem;
-}
-
-.automatic-note small {
-  display: flex;
-  align-items: center;
-}
+<style>
+@import '@/styles/shared-components.css';
 </style>

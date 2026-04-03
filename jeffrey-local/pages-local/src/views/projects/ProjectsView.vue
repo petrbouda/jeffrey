@@ -30,10 +30,7 @@
     <MainCard>
       <template #header>
         <!-- Compact Workspace Context Bar (sticky header) -->
-        <div
-          v-if="isWorkspaceScoped || getSelectedWorkspace()"
-          class="workspace-context-bar"
-        >
+        <div v-if="isWorkspaceScoped || getSelectedWorkspace()" class="workspace-context-bar">
           <div class="context-bar-info">
             <span class="workspace-name">{{
               getSelectedWorkspace()?.name ?? getSelectedWorkspace()?.id
@@ -99,7 +96,7 @@
                       :class="{
                         'active-inherited':
                           getSelectedWorkspace()?.streamingEnabled === null ||
-                          getSelectedWorkspace()?.streamingEnabled === undefined,
+                          getSelectedWorkspace()?.streamingEnabled === undefined
                       }"
                       @click="setWorkspaceStreaming(null)"
                     >
@@ -607,7 +604,7 @@ const confirmDeleteWorkspace = async () => {
 }
 
 .unavailable-banner {
-  background: linear-gradient(135deg, #f9fafb, #f3f4f6);
+  background: linear-gradient(135deg, var(--color-light), var(--color-border));
   border-color: rgba(156, 163, 175, 0.25);
   color: var(--color-text);
 }
@@ -617,13 +614,13 @@ const confirmDeleteWorkspace = async () => {
 }
 
 .offline-banner {
-  background: linear-gradient(135deg, #fffbeb, #fef3c7);
-  border-color: rgba(245, 158, 11, 0.2);
-  color: #92400e;
+  background: linear-gradient(135deg, var(--color-amber-bg), var(--color-amber-light));
+  border-color: var(--color-amber-border);
+  color: var(--color-amber-text);
 }
 
 .offline-banner .banner-icon {
-  color: #f59e0b;
+  color: var(--color-amber);
 }
 
 .btn-action-secondary {
@@ -636,7 +633,7 @@ const confirmDeleteWorkspace = async () => {
   border: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: 8px;
   cursor: pointer;
-  background: white;
+  background: var(--bs-white);
   color: var(--color-text);
   transition: all 0.2s ease;
   white-space: nowrap;
@@ -656,8 +653,8 @@ const confirmDeleteWorkspace = async () => {
   align-items: center;
   justify-content: space-between;
   padding: 12px 16px;
-  background: #fff;
-  border-bottom: 1px solid #e5e7eb;
+  background: var(--bs-white);
+  border-bottom: 1px solid var(--color-border);
   border-radius: 16px 16px 0 0;
   gap: 16px;
   flex-wrap: wrap;
@@ -690,8 +687,8 @@ const confirmDeleteWorkspace = async () => {
 }
 
 .badge-remote {
-  background: linear-gradient(135deg, #e6fffa, #b2f5ea);
-  color: #234e52;
+  background: linear-gradient(135deg, var(--color-teal-light), var(--color-teal-lighter));
+  color: var(--color-teal-900);
 }
 
 .workspace-name {
@@ -718,7 +715,7 @@ const confirmDeleteWorkspace = async () => {
 }
 
 .context-divider {
-  color: #d1d5db;
+  color: var(--color-muted-separator);
   font-weight: bold;
 }
 
@@ -733,7 +730,7 @@ const confirmDeleteWorkspace = async () => {
   display: flex;
   align-items: center;
   background: var(--color-light);
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--color-border);
   border-radius: 6px;
   padding: 6px 10px;
   width: 200px;
@@ -741,13 +738,13 @@ const confirmDeleteWorkspace = async () => {
 }
 
 .context-search:hover {
-  border-color: #d1d5db;
+  border-color: var(--color-muted-separator);
 }
 
 .context-search:focus-within {
   border-color: var(--color-primary);
   box-shadow: 0 0 0 2px rgba(94, 100, 255, 0.1);
-  background: #fff;
+  background: var(--bs-white);
 }
 
 .context-search i {
@@ -789,13 +786,13 @@ const confirmDeleteWorkspace = async () => {
 }
 
 .context-btn.danger {
-  background: linear-gradient(135deg, #fef2f2, #fee2e2);
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.04), rgba(239, 68, 68, 0.08));
   border-color: rgba(239, 68, 68, 0.3);
   color: var(--color-danger-hover);
 
   &:hover:not(:disabled) {
     background: linear-gradient(135deg, var(--color-danger), var(--color-danger-hover));
-    color: white;
+    color: var(--bs-white);
     border-color: var(--color-danger-hover);
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25);
@@ -806,7 +803,7 @@ const confirmDeleteWorkspace = async () => {
     cursor: not-allowed;
 
     &:hover {
-      background: linear-gradient(135deg, #fef2f2, #fee2e2);
+      background: linear-gradient(135deg, rgba(239, 68, 68, 0.04), rgba(239, 68, 68, 0.08));
       color: var(--color-danger-hover);
       transform: none;
       box-shadow: none;
@@ -825,7 +822,7 @@ const confirmDeleteWorkspace = async () => {
   top: calc(100% + 8px);
   right: 0;
   z-index: 20;
-  background: var(--color-white);
+  background: var(--bs-white);
   border: 1px solid var(--color-border);
   border-radius: 10px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
@@ -882,18 +879,18 @@ const confirmDeleteWorkspace = async () => {
 }
 
 .stream-seg.active-on {
-  background: #ecfdf5;
-  color: #059669;
+  background: var(--color-success-bg);
+  color: var(--color-emerald);
 }
 
 .stream-seg.active-off {
-  background: #f3f4f6;
-  color: #6b7280;
+  background: var(--color-light);
+  color: var(--color-text-muted);
 }
 
 .stream-seg.active-inherited {
-  background: #eff6ff;
-  color: #3b82f6;
+  background: rgba(59, 130, 246, 0.06);
+  color: var(--color-blue-500);
 }
 
 .context-btn i {
@@ -908,7 +905,7 @@ const confirmDeleteWorkspace = async () => {
   gap: 10px;
   padding: 16px 20px;
   background: var(--color-light);
-  border-bottom: 1px dashed #d1d5db;
+  border-bottom: 1px dashed var(--color-muted-separator);
   border-radius: 16px 16px 0 0;
   color: var(--color-text-light);
   font-size: 0.9rem;

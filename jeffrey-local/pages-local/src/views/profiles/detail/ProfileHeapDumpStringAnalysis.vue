@@ -842,10 +842,10 @@ onMounted(() => {
 }
 
 .table-card {
-  background: var(--card-bg);
-  border: 1px solid var(--card-border-color);
-  border-radius: var(--card-border-radius);
-  box-shadow: var(--card-shadow);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--bs-border-radius-lg);
+  box-shadow: var(--shadow-base);
   overflow: hidden;
 }
 
@@ -857,14 +857,14 @@ onMounted(() => {
   text-transform: uppercase;
   letter-spacing: 0.3px;
   padding: 0.75rem;
-  border-bottom: 1px solid var(--card-border-color);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .table td {
   font-size: 0.8rem;
   padding: 0.6rem 0.75rem;
   vertical-align: middle;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--color-border-row);
 }
 
 .table tbody tr:hover {
@@ -878,11 +878,11 @@ onMounted(() => {
 .filter-controls {
   background-color: var(--color-light);
   padding: 0.75rem 1rem;
-  border: 1px solid var(--card-border-color);
+  border: 1px solid var(--color-border);
 }
 
 .progress {
-  background-color: var(--card-border-color);
+  background-color: var(--color-border);
 }
 
 .progress-bar {
@@ -906,13 +906,17 @@ onMounted(() => {
   gap: 1rem;
   margin-bottom: 1.5rem;
   padding-bottom: 1rem;
-  border-bottom: 1px solid var(--card-border-color);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .about-header-icon {
   width: 48px;
   height: 48px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(
+    135deg,
+    var(--color-gradient-start) 0%,
+    var(--color-gradient-end) 100%
+  );
   border-radius: 12px;
   display: flex;
   align-items: center;
@@ -938,11 +942,11 @@ onMounted(() => {
 }
 
 .about-intro code {
-  background-color: var(--card-border-color);
+  background-color: var(--color-border);
   padding: 0.15rem 0.4rem;
   border-radius: 3px;
   font-size: 0.85em;
-  color: #d63384;
+  color: var(--bs-pink);
 }
 
 .section-title {
@@ -976,7 +980,7 @@ onMounted(() => {
   gap: 0.875rem;
   padding: 1rem;
   background: white;
-  border: 1px solid var(--card-border-color);
+  border: 1px solid var(--color-border);
   border-radius: 8px;
   transition:
     box-shadow 0.2s ease,
@@ -984,7 +988,7 @@ onMounted(() => {
 }
 
 .feature-card:hover {
-  border-color: var(--card-border-color);
+  border-color: var(--color-border);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
@@ -1015,11 +1019,11 @@ onMounted(() => {
 }
 
 .feature-content code {
-  background-color: #f1f3f4;
+  background-color: var(--color-code-bg);
   padding: 0.1rem 0.35rem;
   border-radius: 3px;
   font-size: 0.85em;
-  color: #d63384;
+  color: var(--bs-pink);
 }
 
 .flag-cards {
@@ -1030,8 +1034,8 @@ onMounted(() => {
 }
 
 .flag-card {
-  background: linear-gradient(135deg, var(--color-light) 0%, #ffffff 100%);
-  border: 1px solid var(--card-border-color);
+  background: linear-gradient(135deg, var(--color-light) 0%, var(--bs-white) 100%);
+  border: 1px solid var(--color-border);
   border-radius: 8px;
   overflow: hidden;
 }
@@ -1042,16 +1046,16 @@ onMounted(() => {
   gap: 0.75rem;
   padding: 0.875rem 1rem;
   background: var(--color-light);
-  border-bottom: 1px solid var(--card-border-color);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .flag-code {
   font-size: 0.85rem;
-  color: var(--color-accent-blue);
+  color: var(--bs-blue);
   background: white;
   padding: 0.35rem 0.65rem;
   border-radius: 4px;
-  border: 1px solid var(--card-border-color);
+  border: 1px solid var(--color-border);
 }
 
 .flag-badge {
@@ -1060,7 +1064,7 @@ onMounted(() => {
   text-transform: uppercase;
   letter-spacing: 0.3px;
   color: var(--color-text-muted);
-  background: var(--card-border-color);
+  background: var(--color-border);
   padding: 0.25rem 0.5rem;
   border-radius: 4px;
 }
@@ -1073,11 +1077,11 @@ onMounted(() => {
 }
 
 .flag-body code {
-  background-color: #f1f3f4;
+  background-color: var(--color-code-bg);
   padding: 0.1rem 0.35rem;
   border-radius: 3px;
   font-size: 0.9em;
-  color: #d63384;
+  color: var(--bs-pink);
 }
 
 .flag-details {
@@ -1115,8 +1119,8 @@ onMounted(() => {
 
 .gc-tag {
   font-size: 0.75rem;
-  background: #e7f1ff;
-  color: var(--color-accent-blue);
+  background: var(--color-blue-info-bg);
+  color: var(--bs-blue);
   padding: 0.2rem 0.5rem;
   border-radius: 4px;
   font-weight: 500;
@@ -1146,14 +1150,14 @@ onMounted(() => {
 .about-note {
   display: flex;
   gap: 1rem;
-  background: linear-gradient(135deg, #fff8e1 0%, #fffde7 100%);
-  border: 1px solid #ffe082;
+  background: linear-gradient(135deg, var(--color-warning-bg) 0%, var(--color-amber-bg) 100%);
+  border: 1px solid var(--color-warning-border);
   border-radius: 8px;
   padding: 1rem;
 }
 
 .note-icon {
-  color: #f9a825;
+  color: var(--color-amber);
   font-size: 1.25rem;
   flex-shrink: 0;
 }
@@ -1161,11 +1165,11 @@ onMounted(() => {
 .note-content {
   font-size: 0.85rem;
   line-height: 1.6;
-  color: #5d4037;
+  color: var(--color-brown-text);
 }
 
 .note-content strong {
-  color: #4e342e;
+  color: var(--color-brown-dark);
 }
 
 .note-content code {
@@ -1173,16 +1177,16 @@ onMounted(() => {
   padding: 0.1rem 0.35rem;
   border-radius: 3px;
   font-size: 0.9em;
-  color: #bf360c;
+  color: var(--color-brown-accent);
 }
 
 /* Darker warning colors for opportunities */
 .text-warning {
-  color: var(--color-retained) !important;
+  color: var(--color-goldenrod) !important;
 }
 
 .bg-warning {
-  background-color: #daa520 !important;
+  background-color: var(--color-goldenrod-dark) !important;
 }
 
 /* Larger badges in JVM Configuration table */

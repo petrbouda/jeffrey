@@ -443,8 +443,8 @@ onMounted(async () => {
 }
 
 .list-group-item.active {
-  background-color: #d1e5ff;
-  border-color: #b8d8ff;
+  background-color: var(--color-accent-blue-light-bg);
+  border-color: var(--color-accent-blue-light-border);
   color: var(--color-dark);
 }
 
@@ -453,7 +453,7 @@ onMounted(async () => {
 }
 
 .list-group-item.active:hover {
-  background-color: #c2ddff;
+  background-color: var(--color-accent-blue-light-bg-hover);
   color: var(--color-dark);
 }
 
@@ -482,7 +482,7 @@ onMounted(async () => {
 }
 
 .sortable:hover {
-  color: var(--color-accent-blue);
+  color: var(--bs-blue);
 }
 
 .event-cell {
@@ -510,7 +510,7 @@ th {
 
 .filter-input:focus {
   box-shadow: none;
-  border-color: var(--color-accent-blue);
+  border-color: var(--bs-blue);
 }
 
 /* Dropdown styles */

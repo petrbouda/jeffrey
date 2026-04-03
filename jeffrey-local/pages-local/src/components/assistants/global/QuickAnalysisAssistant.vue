@@ -33,7 +33,7 @@
     :is-open="isOpen"
     :is-expanded="isExpanded"
     width="460px"
-    header-gradient="linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
+    header-gradient="linear-gradient(135deg, var(--color-gradient-start) 0%, var(--color-gradient-end) 100%)"
     :show-backdrop="true"
     @close="$emit('close')"
   >
@@ -324,7 +324,7 @@ const handleButtonClick = () => {
 }
 
 .dropzone.drag-over {
-  border-color: #667eea;
+  border-color: var(--color-gradient-start);
   background: linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.15) 100%);
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
 }
@@ -347,7 +347,7 @@ const handleButtonClick = () => {
 
 .dropzone-icon {
   font-size: 2.5rem;
-  color: #667eea;
+  color: var(--color-gradient-start);
 }
 
 .dropzone-text {
@@ -363,7 +363,7 @@ const handleButtonClick = () => {
 
 .file-icon {
   font-size: 2rem;
-  color: #667eea;
+  color: var(--color-gradient-start);
 }
 
 .file-name {
@@ -381,7 +381,11 @@ const handleButtonClick = () => {
 
 .btn-start {
   margin-top: 8px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(
+    135deg,
+    var(--color-gradient-start) 0%,
+    var(--color-gradient-end) 100%
+  );
   color: white;
   border: none;
   padding: 8px 20px;
@@ -424,7 +428,7 @@ const handleButtonClick = () => {
   width: 48px;
   height: 48px;
   border: 3px solid rgba(102, 126, 234, 0.2);
-  border-top-color: #667eea;
+  border-top-color: var(--color-gradient-start);
   border-radius: 50%;
   animation: spinner-rotate 0.8s linear infinite;
 }
@@ -455,10 +459,10 @@ const handleButtonClick = () => {
 /* Error Message */
 .error-message {
   padding: 0.75rem;
-  background: #fff5f5;
-  border: 1px solid #fed7d7;
+  background: var(--color-danger-bg-light);
+  border: 1px solid var(--color-danger-border-light);
   border-radius: 8px;
-  color: #c53030;
+  color: var(--color-danger-dark);
   font-size: 0.9rem;
 }
 
@@ -491,7 +495,11 @@ const handleButtonClick = () => {
 }
 
 .recent-count {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(
+    135deg,
+    var(--color-gradient-start) 0%,
+    var(--color-gradient-end) 100%
+  );
   color: white;
   padding: 2px 10px;
   border-radius: 10px;
@@ -513,15 +521,15 @@ const handleButtonClick = () => {
   justify-content: space-between;
   padding: 10px 12px;
   background: var(--color-light);
-  border: 1px solid var(--card-border-color);
+  border: 1px solid var(--color-border);
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .recent-item:hover {
-  background: var(--card-border-color);
-  border-color: var(--card-border-color);
+  background: var(--color-border);
+  border-color: var(--color-border);
 }
 
 .item-info {
@@ -534,7 +542,7 @@ const handleButtonClick = () => {
 
 .item-icon {
   font-size: 1.1rem;
-  color: #667eea;
+  color: var(--color-gradient-start);
 }
 
 .item-details {
@@ -590,7 +598,7 @@ const handleButtonClick = () => {
 
 .btn-open:hover {
   background: rgba(102, 126, 234, 0.1);
-  color: #667eea;
+  color: var(--color-gradient-start);
 }
 
 .btn-delete:hover {

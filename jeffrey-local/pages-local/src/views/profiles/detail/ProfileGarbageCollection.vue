@@ -637,7 +637,7 @@ onUnmounted(() => {
 /* GC Events Table */
 .gc-events-table,
 .concurrent-cycles-table {
-  background-color: #fff;
+  background-color: var(--bs-white);
   border-radius: 8px;
 }
 

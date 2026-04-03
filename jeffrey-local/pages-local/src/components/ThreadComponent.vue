@@ -372,7 +372,7 @@ function createContextMenuItems() {
   <!-- Thread Information Modal -->
   <div v-if="showInfoModal" class="modal-overlay" @click="showInfoModal = false">
     <div class="modal-container tooltip-style-modal" @click.stop>
-      <div class="tooltip-header p-3 d-flex justify-content-between align-items-center">
+      <div class="tooltip-header d-flex justify-content-between align-items-center" style="padding: 0.75rem">
         <h5 class="m-0 text-dark fw-bold text-truncate" style="max-width: 85%">
           {{ threadInfo.name }}
         </h5>
@@ -566,7 +566,7 @@ function createContextMenuItems() {
           <h5 class="modal-title" id="flamegraphModalLabel">{{ selectedEventCode }}</h5>
           <button type="button" class="btn-close" @click="closeModal" aria-label="Close"></button>
         </div>
-        <div id="scrollable-wrapper" class="modal-body p-3" v-if="showFlamegraphDialog">
+        <div id="scrollable-wrapper" class="modal-body" style="padding: 0.75rem" v-if="showFlamegraphDialog">
           <SearchBarComponent :graph-updater="graphUpdater" :with-timeseries="true" />
           <TimeSeriesChart
             :graph-updater="graphUpdater"
@@ -600,7 +600,7 @@ function createContextMenuItems() {
 
 .thread-card {
   background: white;
-  border: 1px solid var(--card-border-color);
+  border: 1px solid var(--color-border);
   overflow: hidden;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
   transition: box-shadow 0.15s ease;
@@ -615,7 +615,7 @@ function createContextMenuItems() {
   align-items: center;
   padding: 6px 10px;
   background-color: var(--color-light);
-  border-bottom: 1px solid var(--card-border-color);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .thread-actions {
@@ -640,7 +640,7 @@ function createContextMenuItems() {
 }
 
 .flame-btn {
-  color: #3f51b5;
+  color: var(--color-indigo-text);
 }
 
 .flame-btn:hover {
@@ -648,7 +648,7 @@ function createContextMenuItems() {
 }
 
 .info-btn {
-  color: #2196f3;
+  color: var(--color-info);
 }
 
 .info-btn:hover {
@@ -659,7 +659,7 @@ function createContextMenuItems() {
   margin: 0;
   font-size: 0.8rem;
   font-weight: 500;
-  color: #424242;
+  color: var(--color-grey-text);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -678,7 +678,7 @@ function createContextMenuItems() {
 .flamegraph-menu {
   position: fixed;
   background: white;
-  border: 1px solid var(--card-border-color);
+  border: 1px solid var(--color-border);
   min-width: 170px;
   padding: 0 0 3px 0;
   z-index: 9999;
@@ -690,7 +690,7 @@ function createContextMenuItems() {
   display: flex;
   justify-content: flex-end;
   padding: 3px 6px;
-  border-bottom: 1px solid var(--card-border-color);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .flamegraph-menu .menu-close {
@@ -723,7 +723,7 @@ function createContextMenuItems() {
 
 .flamegraph-menu .menu-item:hover {
   background-color: rgba(63, 81, 181, 0.08);
-  color: #3f51b5;
+  color: var(--color-indigo-text);
 }
 
 .flamegraph-menu .menu-item:active {
@@ -765,7 +765,7 @@ function createContextMenuItems() {
 
 .modal-container {
   background-color: white;
-  border: 1px solid var(--card-border-color);
+  border: 1px solid var(--color-border);
   width: 90%;
   max-width: 480px;
   max-height: 80vh;
@@ -778,7 +778,7 @@ function createContextMenuItems() {
 }
 
 .tooltip-style-modal {
-  border: 1px solid var(--card-border-color);
+  border: 1px solid var(--color-border);
   max-width: 420px;
   font-family:
     -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
@@ -802,14 +802,14 @@ function createContextMenuItems() {
   align-items: center;
   justify-content: space-between;
   padding: 10px 12px;
-  border-bottom: 1px solid var(--card-border-color);
+  border-bottom: 1px solid var(--color-border);
   background-color: var(--color-light);
 }
 
 .modal-title {
   margin: 0;
   font-size: 0.95rem;
-  color: #3f51b5;
+  color: var(--color-indigo-text);
   font-weight: 600;
   display: flex;
   align-items: center;
@@ -844,7 +844,7 @@ function createContextMenuItems() {
   display: flex;
   justify-content: flex-end;
   padding: 8px 12px;
-  border-top: 1px solid var(--card-border-color);
+  border-top: 1px solid var(--color-border);
   background-color: var(--color-light);
 }
 
@@ -857,7 +857,7 @@ function createContextMenuItems() {
 /* Section header for Thread Details */
 .section-header {
   font-size: 0.8rem;
-  color: #424242;
+  color: var(--color-grey-text);
   letter-spacing: 0.01em;
 }
 
@@ -867,9 +867,9 @@ function createContextMenuItems() {
 
 /* Info cards */
 .info-card {
-  background-color: #fff;
+  background-color: var(--bs-white);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-  border: 1px solid var(--card-border-color);
+  border: 1px solid var(--color-border);
   overflow: hidden;
 }
 
@@ -877,9 +877,9 @@ function createContextMenuItems() {
   background-color: var(--color-light);
   padding: 8px 12px;
   font-size: 0.85rem;
-  color: #3f51b5;
+  color: var(--color-indigo-text);
   font-weight: 600;
-  border-bottom: 1px solid var(--card-border-color);
+  border-bottom: 1px solid var(--color-border);
   display: flex;
   align-items: center;
 }
@@ -893,7 +893,7 @@ function createContextMenuItems() {
   justify-content: space-between;
   align-items: center;
   padding: 5px 0;
-  border-bottom: 1px solid #f5f5f5;
+  border-bottom: 1px solid var(--color-border-row);
 }
 
 .info-row:last-child {
@@ -936,7 +936,7 @@ function createContextMenuItems() {
 /* Custom header styling */
 .modal-header {
   background-color: var(--color-light);
-  border-bottom: 1px solid var(--card-border-color);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .modal-title {

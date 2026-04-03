@@ -350,7 +350,7 @@ const getStatusClass = (download: DownloadProgress): string => {
 /* Download Card */
 .download-card {
   background: var(--color-light);
-  border: 1px solid var(--card-border-color);
+  border: 1px solid var(--color-border);
   border-radius: 10px;
   padding: 1rem;
   margin-bottom: 0.75rem;
@@ -362,8 +362,8 @@ const getStatusClass = (download: DownloadProgress): string => {
 }
 
 .download-card.download-complete {
-  background: linear-gradient(180deg, #f0fdf4 0%, #dcfce7 100%);
-  border-color: #86efac;
+  background: linear-gradient(180deg, var(--color-success-bg) 0%, var(--color-success-100) 100%);
+  border-color: var(--color-success);
 }
 
 .download-card-header {
@@ -422,7 +422,7 @@ const getStatusClass = (download: DownloadProgress): string => {
 .download-progress {
   height: 8px;
   border-radius: 4px;
-  background-color: var(--card-border-color);
+  background-color: var(--color-border);
   margin-bottom: 0.75rem;
 }
 
@@ -451,7 +451,7 @@ const getStatusClass = (download: DownloadProgress): string => {
   content: '';
   flex: 1;
   height: 1px;
-  background: var(--card-border-color);
+  background: var(--color-border);
 }
 
 .file-divider-text {
@@ -477,7 +477,7 @@ const getStatusClass = (download: DownloadProgress): string => {
 }
 
 .file-size-active {
-  color: var(--color-accent-blue);
+  color: var(--bs-blue);
   font-weight: 500;
   font-size: 0.75rem;
   margin-left: 0.5rem;
@@ -496,7 +496,7 @@ const getStatusClass = (download: DownloadProgress): string => {
 }
 
 .file-size {
-  color: #198754;
+  color: var(--color-success);
   margin-left: 0.5rem;
   font-weight: 500;
 }
@@ -508,7 +508,7 @@ const getStatusClass = (download: DownloadProgress): string => {
   justify-content: space-between;
   margin-top: 0.5rem;
   padding-top: 0.5rem;
-  border-top: 1px solid var(--card-border-color);
+  border-top: 1px solid var(--color-border);
 }
 
 .download-status {
@@ -525,17 +525,17 @@ const getStatusClass = (download: DownloadProgress): string => {
 
 .recording-note {
   font-size: 0.7rem;
-  color: #166534;
+  color: var(--color-success-dark);
   opacity: 0.8;
 }
 
 .download-error {
   margin-top: 0.75rem;
   padding: 0.5rem;
-  background: #fff5f5;
-  border: 1px solid #fed7d7;
+  background: var(--color-danger-bg-light);
+  border: 1px solid var(--color-danger-border-light);
   border-radius: 6px;
-  color: #c53030;
+  color: var(--color-danger-dark);
   font-size: 0.8rem;
 }
 

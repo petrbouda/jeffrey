@@ -103,14 +103,14 @@ const isOutsideClicked = (event: Event) => {
   max-width: 280px;
   flex: 0 0 280px;
   z-index: 1030;
-  background-color: #fff;
-  border-right: 1px solid #eaedf1;
+  background-color: var(--bs-white);
+  border-right: 1px solid var(--color-border);
   box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
 }
 
 .content-container {
   min-height: calc(100vh - 64px); // Adjust based on navbar height
-  background-color: #edf2f9;
+  background-color: var(--color-bg-body);
   padding: 1rem;
 }
 

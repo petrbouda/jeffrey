@@ -7,15 +7,9 @@
     />
 
     <div v-else>
-      <div v-if="isLoading" class="p-4 text-center">
-        <div class="spinner-border" role="status">
-          <span class="visually-hidden">Loading...</span>
-        </div>
-      </div>
+      <LoadingState v-if="isLoading" />
 
-      <div v-else-if="error" class="p-4 text-center">
-        <div class="alert alert-danger" role="alert">Error loading HTTP data: {{ error }}</div>
-      </div>
+      <ErrorState v-else-if="error" :message="error" />
 
       <div v-if="httpOverviewData" class="dashboard-container">
         <HttpOverviewStats :header="httpOverviewData.header" />
@@ -37,14 +31,17 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref } from 'vue';
+import { computed } from 'vue';
 import { useRoute } from 'vue-router';
 import HttpDistributionCharts from '@/components/http/HttpDistributionCharts.vue';
 import ProfileHttpClient from '@/services/api/ProfileHttpClient';
 import HttpOverviewData from '@/services/api/model/HttpOverviewData';
 import HttpOverviewStats from '@/components/http/HttpOverviewStats.vue';
+import LoadingState from '@/components/LoadingState.vue';
+import ErrorState from '@/components/ErrorState.vue';
 import CustomDisabledFeatureAlert from '@/components/alerts/CustomDisabledFeatureAlert.vue';
 import FeatureType from '@/services/api/model/FeatureType';
+import { useTechnologyData } from '@/composables/useTechnologyData';
 
 interface Props {
   disabledFeatures?: FeatureType[];
@@ -55,9 +52,6 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const route = useRoute();
-const httpOverviewData = ref<HttpOverviewData | null>(null);
-const isLoading = ref(true);
-const error = ref<string | null>(null);
 
 const mode = (route.query.mode as 'client' | 'server') || 'server';
 
@@ -69,16 +63,9 @@ const isHttpDashboardDisabled = computed(() => {
 
 const client = new ProfileHttpClient(mode, route.params.profileId as string);
 
-onMounted(async () => {
-  if (isHttpDashboardDisabled.value) return;
-  try {
-    isLoading.value = true;
-    httpOverviewData.value = await client.getOverview();
-    await nextTick();
-  } catch (err) {
-    error.value = err instanceof Error ? err.message : 'Unknown error occurred';
-  } finally {
-    isLoading.value = false;
-  }
-});
+const {
+  data: httpOverviewData,
+  isLoading,
+  error
+} = useTechnologyData<HttpOverviewData>(() => client.getOverview(), isHttpDashboardDisabled);
 </script>

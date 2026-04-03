@@ -40,9 +40,9 @@ defineProps<Props>();
 <style scoped>
 .config-section {
   background: var(--color-bg-card);
-  border-radius: var(--card-border-radius);
-  box-shadow: var(--shadow-sm);
-  border: 1px solid var(--card-border-color);
+  border-radius: var(--bs-border-radius-lg);
+  box-shadow: var(--bs-box-shadow-sm);
+  border: 1px solid var(--color-border);
   overflow: hidden;
   transition:
     box-shadow var(--transition-base),

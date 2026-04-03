@@ -170,7 +170,7 @@ const selectSection = () => {
 
 <style scoped>
 .config-container {
-  background-color: #fff;
+  background-color: var(--bs-white);
   border-radius: 0.4rem;
 }
 
@@ -178,7 +178,7 @@ const selectSection = () => {
 .config-tabs {
   display: flex;
   gap: 0;
-  border-bottom: 2px solid var(--color-border, #eaedf1);
+  border-bottom: 2px solid var(--color-border);
   overflow-x: auto;
   scrollbar-width: none;
   -ms-overflow-style: none;
@@ -192,7 +192,7 @@ const selectSection = () => {
   padding: 10px 20px;
   font-size: 13px;
   font-weight: 500;
-  color: var(--color-text-muted, #748194);
+  color: var(--color-text-muted);
   background: none;
   border: none;
   cursor: pointer;
@@ -213,7 +213,7 @@ const selectSection = () => {
 }
 
 .config-tab:hover {
-  color: var(--color-dark, #0b1727);
+  color: var(--color-dark);
 }
 
 .config-tab.active {

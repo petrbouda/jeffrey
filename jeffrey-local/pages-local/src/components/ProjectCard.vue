@@ -104,9 +104,9 @@ const formatStatus = (status: RecordingStatus): string => {
 <style scoped>
 /* Compact Project Card */
 .project-card-compact {
-  background: #ffffff;
+  background: var(--bs-white);
   border-radius: 8px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--color-border);
   border-left: 3px solid var(--color-primary);
   padding: 12px 14px;
   cursor: pointer;
@@ -121,7 +121,7 @@ const formatStatus = (status: RecordingStatus): string => {
   transform: translateY(-2px);
   box-shadow: 0 6px 16px rgba(94, 100, 255, 0.12);
   border-color: rgba(94, 100, 255, 0.25);
-  border-left-color: #4c52ff;
+  border-left-color: var(--color-primary-hover);
 }
 
 /* Border Color Classes */
@@ -160,7 +160,7 @@ const formatStatus = (status: RecordingStatus): string => {
   display: flex;
   align-items: center;
   cursor: help;
-  color: #f97316;
+  color: var(--color-warning);
   font-size: 0.8rem;
   flex-shrink: 0;
 }
@@ -176,7 +176,7 @@ const formatStatus = (status: RecordingStatus): string => {
 }
 
 .metrics-row .dot {
-  color: #d1d5db;
+  color: var(--color-muted-separator);
   font-weight: bold;
 }
 
@@ -216,7 +216,7 @@ const formatStatus = (status: RecordingStatus): string => {
   border-radius: 4px;
   font-size: 0.65rem;
   font-weight: 600;
-  background: #fef2f2;
+  background: var(--color-danger-bg-lighter);
   color: var(--color-danger-hover);
 }
 

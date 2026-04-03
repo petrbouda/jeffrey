@@ -30,30 +30,30 @@ h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
 
 // Custom Card styles using design tokens
 .card {
-  box-shadow: var(--card-shadow);
+  box-shadow: var(--shadow-base);
   border: 0;
   margin-bottom: var(--spacing-6);
-  border-radius: var(--card-border-radius);
-  background-color: var(--card-bg);
+  border-radius: var(--bs-border-radius-lg);
+  background-color: var(--color-bg-card);
 
   .card-header {
     font-weight: var(--font-weight-semibold);
     border-bottom: 1px solid var(--color-border);
     background-color: transparent;
-    padding: var(--card-header-padding);
+    padding: var(--spacing-4) var(--spacing-5);
   }
   
   .card-body {
-    padding: var(--card-body-padding);
+    padding: var(--spacing-5);
   }
 }
 
 // Button styles using design tokens
 .btn {
-  border-radius: var(--btn-border-radius);
-  font-weight: var(--btn-font-weight);
-  padding: var(--btn-padding-y) var(--btn-padding-x);
-  font-size: var(--btn-font-size);
+  border-radius: var(--bs-border-radius-sm);
+  font-weight: var(--font-weight-medium);
+  padding: var(--spacing-2) var(--spacing-4);
+  font-size: var(--font-size-base);
   box-shadow: none;
   transition: all var(--transition-base);
 
@@ -69,8 +69,8 @@ h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
   }
   
   &.btn-sm {
-    padding: var(--btn-padding-sm-y) var(--btn-padding-sm-x);
-    font-size: var(--btn-font-size-sm);
+    padding: var(--spacing-1) var(--spacing-3);
+    font-size: var(--font-size-sm);
   }
 }
 
@@ -118,34 +118,34 @@ h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
 // Table styles using design tokens
 .table {
   color: var(--color-text);
-  background-color: var(--table-bg);
+  background-color: var(--color-bg-card);
   
   thead {
-    background-color: var(--table-header-bg);
+    background-color: var(--color-light);
     
     th {
       font-weight: var(--font-weight-semibold);
       border-top: none;
-      color: var(--table-header-color);
+      color: var(--color-text-muted);
       text-transform: uppercase;
       font-size: var(--font-size-sm);
       letter-spacing: 0.02em;
-      padding: var(--table-header-padding);
-      border-bottom: 1px solid var(--table-border-color);
+      padding: var(--spacing-4);
+      border-bottom: 1px solid var(--color-border-light);
     }
   }
   
   tbody {
     tr {
-      border-bottom: 1px solid var(--table-border-color);
+      border-bottom: 1px solid var(--color-border-light);
       
       td {
-        padding: var(--table-cell-padding);
+        padding: var(--spacing-4);
         vertical-align: middle;
       }
       
       &:hover {
-        background-color: var(--table-row-hover-bg);
+        background-color: var(--color-bg-hover);
       }
     }
   }

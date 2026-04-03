@@ -223,7 +223,7 @@ onMounted(() => {
 
 .chart-description-separator {
   margin: 0 0.75rem;
-  color: var(--card-border-color);
+  color: var(--color-border);
 }
 
 /* Responsive Design */

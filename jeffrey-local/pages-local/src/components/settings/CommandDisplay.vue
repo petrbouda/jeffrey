@@ -88,9 +88,9 @@ async function copy() {
 
 <style scoped>
 .command-display {
-  background: var(--color-light, #f9fafd);
-  border: 1px solid var(--color-border, #eaedf1);
-  border-radius: var(--radius-md, 8px);
+  background: var(--color-light);
+  border: 1px solid var(--color-border);
+  border-radius: var(--bs-border-radius-lg);
   overflow: hidden;
   cursor: pointer;
   transition: all 0.2s ease-in-out;
@@ -108,13 +108,13 @@ async function copy() {
 }
 
 .command-display--empty:hover {
-  border-color: var(--color-border, #eaedf1);
+  border-color: var(--color-border);
   box-shadow: none;
 }
 
 .command-display-header {
-  background: var(--color-bg-hover, #f9fafd);
-  border-bottom: 1px solid var(--color-border, #eaedf1);
+  background: var(--color-bg-hover);
+  border-bottom: 1px solid var(--color-border);
   padding: 8px 14px;
   display: flex;
   align-items: center;
@@ -129,9 +129,9 @@ async function copy() {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: var(--font-size-sm, 0.7rem);
+  font-size: var(--font-size-sm);
   font-weight: 700;
-  color: var(--color-text, #5e6e82);
+  color: var(--color-text);
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
@@ -152,21 +152,21 @@ async function copy() {
   justify-content: center;
   width: 28px;
   height: 28px;
-  background: var(--color-white, #ffffff);
-  border: 1px solid var(--color-border, #eaedf1);
-  border-radius: var(--radius-sm, 4px);
-  color: var(--color-text-muted, #748194);
+  background: var(--bs-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--bs-border-radius-sm);
+  color: var(--color-text-muted);
   font-size: 0.8rem;
   cursor: pointer;
   transition: all 0.15s ease-in-out;
 }
 
 .command-display-btn:hover:not(:disabled) {
-  background: var(--color-bg-hover, #f9fafd);
+  background: var(--color-bg-hover);
 }
 
 .command-display-btn--danger {
-  color: var(--color-danger, #e63757);
+  color: var(--color-danger);
   border-color: rgba(230, 55, 87, 0.2);
 }
 
@@ -181,7 +181,7 @@ async function copy() {
 }
 
 .command-display-copy {
-  color: var(--color-text-muted, #748194);
+  color: var(--color-text-muted);
   font-size: 0.85rem;
   opacity: 0.5;
   transition: all 0.15s ease-in-out;
@@ -194,10 +194,10 @@ async function copy() {
 
 .command-display-content {
   padding: 12px 14px;
-  font-size: var(--font-size-sm, 0.7rem);
+  font-size: var(--font-size-sm);
   font-family: SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
   font-weight: 500;
-  color: var(--color-text, #374151);
+  color: var(--color-text);
   overflow-wrap: anywhere;
   word-break: break-all;
   line-height: 1.6;
@@ -214,26 +214,26 @@ async function copy() {
   text-transform: uppercase;
   letter-spacing: 0.04em;
   padding: 2px 7px;
-  border-radius: var(--radius-sm, 4px);
+  border-radius: var(--bs-border-radius-sm);
 }
 
 .settings-level-global {
   background: rgba(107, 114, 128, 0.1);
-  color: var(--color-text, #5e6e82);
+  color: var(--color-text);
 }
 
 .settings-level-workspace {
   background: rgba(57, 175, 209, 0.1);
-  color: var(--color-info, #39afd1);
+  color: var(--color-info);
 }
 
 .settings-level-project {
   background: rgba(0, 210, 122, 0.1);
-  color: #0a6640;
+  color: var(--color-emerald);
 }
 
 .settings-level-none {
   background: rgba(107, 114, 128, 0.1);
-  color: var(--color-text-muted, #748194);
+  color: var(--color-text-muted);
 }
 </style>

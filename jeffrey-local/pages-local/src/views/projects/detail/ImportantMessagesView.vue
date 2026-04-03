@@ -371,8 +371,12 @@ const getMessageKey = (msg: ImportantMessage, index: number): string => {
 .filter-bar {
   display: flex;
   align-items: center;
-  background: linear-gradient(135deg, #f8fafc, #f1f5f9);
-  border: 1px solid #e2e8f0;
+  background: linear-gradient(
+    135deg,
+    var(--color-neutral-bg),
+    var(--color-neutral-light)
+  );
+  border: 1px solid var(--color-slate-lighter);
   border-radius: 8px;
   padding: 0.5rem;
   gap: 0.25rem;
@@ -448,7 +452,7 @@ const getMessageKey = (msg: ImportantMessage, index: number): string => {
   justify-content: center;
   gap: 0.75rem;
   padding: 0.6rem;
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid var(--color-border);
 }
 
 .load-more-count {

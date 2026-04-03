@@ -277,9 +277,9 @@ const handleApply = async () => {
   align-items: center;
   gap: 10px;
   padding: 8px 12px;
-  border: 1px solid var(--card-border-color);
+  border: 1px solid var(--color-border);
   border-radius: 6px;
-  background: #fff;
+  background: var(--bs-white);
 }
 
 .sample-card:hover {
@@ -288,7 +288,7 @@ const handleApply = async () => {
 
 .sample-original {
   font-size: 0.82rem;
-  color: #b02a37;
+  color: var(--color-danger-dark);
   background: rgba(220, 53, 69, 0.08);
   padding: 2px 8px;
   border-radius: 4px;
@@ -302,7 +302,7 @@ const handleApply = async () => {
 
 .sample-renamed {
   font-size: 0.82rem;
-  color: #146c43;
+  color: var(--color-success-dark);
   background: rgba(25, 135, 84, 0.08);
   padding: 2px 8px;
   border-radius: 4px;
@@ -328,7 +328,7 @@ const handleApply = async () => {
 
 .success-icon-wrapper i {
   font-size: 2rem;
-  color: #198754;
+  color: var(--color-success);
 }
 
 @keyframes successPulse {

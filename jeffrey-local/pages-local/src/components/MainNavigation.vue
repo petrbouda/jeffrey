@@ -65,7 +65,7 @@
   border: none;
   background: transparent;
   position: relative;
-  color: #718096;
+  color: var(--color-slate-muted);
   font-size: 0.85rem;
   font-weight: 500;
   min-width: 100px;
@@ -96,7 +96,7 @@
   }
 
   &:hover {
-    color: #4a5568;
+    color: var(--color-slate-text);
 
     i {
       transform: translateY(-2px);

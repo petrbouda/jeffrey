@@ -116,111 +116,111 @@ const uppercaseClass = computed(() => (props.uppercase ? '' : 'badge-no-uppercas
 }
 
 .badge-light {
-  background-color: #fafafa;
-  color: rgba(76, 61, 61, 0.63);
-  border-color: #e0e0e0;
+  background-color: var(--color-neutral-lightest);
+  color: var(--color-neutral-text);
+  border-color: var(--color-neutral-border);
 }
 
 .badge-dark {
-  background-color: #424242;
-  color: #ffffff;
-  border-color: #616161;
+  background-color: var(--color-dark-bg);
+  color: var(--bs-white);
+  border-color: var(--color-dark-border);
 }
 
 /* Color variants */
 .badge-blue {
-  background-color: #e3f2fd;
-  color: #1565c0;
-  border-color: #90caf9;
+  background-color: var(--color-info-bg);
+  color: var(--color-info-text);
+  border-color: var(--color-info-border);
 }
 
 .badge-green {
-  background-color: #e8f5e8;
-  color: #2e7d32;
-  border-color: #81c784;
+  background-color: var(--color-green-bg);
+  color: var(--color-green-text);
+  border-color: var(--color-green-border);
 }
 
 .badge-orange {
-  background-color: #fff3e0;
-  color: #ef6c00;
-  border-color: #ffb74d;
+  background-color: var(--color-orange-bg);
+  color: var(--color-orange-text);
+  border-color: var(--color-orange-border);
 }
 
 .badge-red {
-  background-color: #ffebee;
-  color: #c62828;
-  border-color: #ef5350;
+  background-color: var(--color-red-bg);
+  color: var(--color-red-text);
+  border-color: var(--color-red-border);
 }
 
 .badge-purple {
-  background-color: #f3e5f5;
-  color: #7b1fa2;
-  border-color: #ba68c8;
+  background-color: var(--color-purple-bg);
+  color: var(--color-purple-text);
+  border-color: var(--color-purple-border);
 }
 
 .badge-violet {
-  background-color: #ede7f6;
-  color: #512da8;
-  border-color: #9575cd;
+  background-color: var(--color-violet-lightest-bg);
+  color: var(--color-violet-text);
+  border-color: var(--color-violet-border-medium);
 }
 
 .badge-grey {
-  background-color: #f5f5f5;
-  color: #424242;
-  border-color: #bdbdbd;
+  background-color: var(--color-grey-bg);
+  color: var(--color-grey-text);
+  border-color: var(--color-grey-border);
 }
 
 .badge-pink {
-  background-color: #fce4ec;
-  color: #c2185b;
-  border-color: #f48fb1;
+  background-color: var(--color-pink-bg);
+  color: var(--color-pink-text);
+  border-color: var(--color-pink-border);
 }
 
 .badge-yellow {
-  background-color: #fffde7;
-  color: #f57f17;
-  border-color: #fff176;
+  background-color: var(--color-amber-bg);
+  color: var(--color-yellow-text);
+  border-color: var(--color-yellow-border);
 }
 
 .badge-cyan {
-  background-color: #e0f7fa;
-  color: #00695c;
-  border-color: #4dd0e1;
+  background-color: var(--color-cyan-bg);
+  color: var(--color-cyan-text);
+  border-color: var(--color-cyan-border);
 }
 
 .badge-indigo {
-  background-color: #e8eaf6;
-  color: #3f51b5;
-  border-color: #9fa8da;
+  background-color: var(--color-indigo-bg);
+  color: var(--color-indigo-text);
+  border-color: var(--color-indigo-border);
 }
 
 .badge-teal {
-  background-color: #e0f2f1;
-  color: #00695c;
-  border-color: #4db6ac;
+  background-color: var(--color-teal-bg);
+  color: var(--color-teal-text);
+  border-color: var(--color-teal-border);
 }
 
 .badge-lime {
-  background-color: #f9fbe7;
-  color: #689f38;
-  border-color: #aed581;
+  background-color: var(--color-lime-bg);
+  color: var(--color-lime-text);
+  border-color: var(--color-lime-border);
 }
 
 .badge-brown {
-  background-color: #efebe9;
-  color: #5d4037;
-  border-color: #a1887f;
+  background-color: var(--color-brown-bg);
+  color: var(--color-brown-text);
+  border-color: var(--color-brown-border);
 }
 
 /* Status variants */
 .badge-status-active {
-  background-color: #fef3c7;
-  color: #d97706;
+  background-color: var(--color-amber-light);
+  color: var(--color-amber-highlight);
 }
 
 .badge-status-finished {
-  background-color: #d1fae5;
-  color: #059669;
+  background-color: var(--color-success-100);
+  color: var(--color-emerald);
 }
 
 .badge-status-blocked {
@@ -235,61 +235,61 @@ const uppercaseClass = computed(() => (props.uppercase ? '' : 'badge-no-uppercas
 
 /* Badge variants - matching MetricsList styles */
 .badge-primary {
-  background: #e2e7fd;
-  border: 1px solid #9ba8ff;
-  color: #1565c0;
+  background: var(--color-primary-bg);
+  border: 1px solid var(--color-primary-border);
+  color: var(--color-info-text);
 }
 
 .badge-info {
-  background: #ddf2f6;
-  border: 1px solid #7dd3e8;
-  color: #00838f;
+  background: var(--color-info-bg-alt);
+  border: 1px solid var(--color-info-border-alt);
+  color: var(--color-info-text-dark);
 }
 
 .badge-secondary {
-  background: #e7eafd;
-  border: 1px solid #9ba3d4;
+  background: var(--color-secondary-bg);
+  border: 1px solid var(--color-secondary-border);
   color: var(--color-text-muted);
 }
 
 .badge-success {
-  background-color: var(--color-success-light, #e8f5e8);
-  border-color: var(--color-success, #2e7d32);
-  color: var(--color-success, #2e7d32);
+  background-color: var(--color-success-light);
+  border-color: var(--color-success);
+  color: var(--color-success);
 }
 
 .badge-success .badge-value {
-  color: var(--color-success, #2e7d32);
+  color: var(--color-success);
 }
 
 .badge-warning {
-  background-color: var(--color-warning-light, #fff8e1);
-  border-color: var(--color-warning, #f57c00);
-  color: var(--color-warning, #f57c00);
+  background-color: var(--color-warning-light);
+  border-color: var(--color-warning);
+  color: var(--color-warning);
 }
 
 .badge-warning .badge-value {
-  color: var(--color-warning, #f57c00);
+  color: var(--color-warning);
 }
 
 .badge-danger {
-  background-color: var(--color-danger-light, #ffebee);
-  border-color: var(--color-danger, #d32f2f);
-  color: var(--color-danger, #d32f2f);
+  background-color: var(--color-danger-light);
+  border-color: var(--color-danger);
+  color: var(--color-danger);
 }
 
 .badge-danger .badge-value {
-  color: var(--color-danger, #d32f2f);
+  color: var(--color-danger);
 }
 
 /* Key-value badge styling - matching original MetricsList */
 .badge-key {
-  color: var(--color-text-muted, #6c757d);
+  color: var(--color-text-muted);
   font-weight: 500;
 }
 
 .badge-value {
-  color: var(--color-dark, #212529);
+  color: var(--color-dark);
   font-weight: 600;
 }
 
@@ -298,9 +298,9 @@ const uppercaseClass = computed(() => (props.uppercase ? '' : 'badge-no-uppercas
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
-  background-color: var(--color-light, #f8f9fa);
+  background-color: var(--color-light);
   border-radius: 0.25rem;
-  border: 1px solid var(--color-border-light, var(--card-border-color));
+  border: 1px solid var(--color-border-light);
   text-transform: none;
   font-weight: 500;
   justify-content: flex-start;
@@ -345,45 +345,45 @@ const uppercaseClass = computed(() => (props.uppercase ? '' : 'badge-no-uppercas
 
 /* Variant overrides for key-value badges */
 .badge.badge-key-value.badge-success {
-  background-color: var(--color-success-light, #e8f5e8);
-  border-color: var(--color-success, #2e7d32);
+  background-color: var(--color-success-light);
+  border-color: var(--color-success);
 }
 
 .badge.badge-key-value.badge-success .badge-value {
-  color: var(--color-success, #2e7d32);
+  color: var(--color-success);
 }
 
 .badge.badge-key-value.badge-warning {
-  background-color: var(--color-warning-light, #fff8e1);
-  border-color: var(--color-warning, #f57c00);
+  background-color: var(--color-warning-light);
+  border-color: var(--color-warning);
 }
 
 .badge.badge-key-value.badge-warning .badge-value {
-  color: var(--color-warning, #f57c00);
+  color: var(--color-warning);
 }
 
 .badge.badge-key-value.badge-danger {
-  background-color: var(--color-danger-light, #ffebee);
-  border-color: var(--color-danger, #d32f2f);
+  background-color: var(--color-danger-light);
+  border-color: var(--color-danger);
 }
 
 .badge.badge-key-value.badge-danger .badge-value {
-  color: var(--color-danger, #d32f2f);
+  color: var(--color-danger);
 }
 
 .badge.badge-key-value.badge-primary {
-  background: #e2e7fd;
-  border: 1px solid #9ba8ff;
+  background: var(--color-primary-bg);
+  border: 1px solid var(--color-primary-border);
 }
 
 .badge.badge-key-value.badge-info {
-  background: #ddf2f6;
-  border: 1px solid #7dd3e8;
+  background: var(--color-info-bg-alt);
+  border: 1px solid var(--color-info-border-alt);
 }
 
 .badge.badge-key-value.badge-secondary {
-  background: #e7eafd;
-  border: 1px solid #9ba3d4;
+  background: var(--color-secondary-bg);
+  border: 1px solid var(--color-secondary-border);
 }
 
 /* Icon styling */

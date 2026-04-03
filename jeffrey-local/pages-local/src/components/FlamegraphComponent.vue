@@ -335,7 +335,7 @@ function search(value: string | null) {
 
 .view-toggle {
   display: inline-flex;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--color-slate-lighter);
   border-radius: 4px;
   overflow: hidden;
 }
@@ -346,7 +346,7 @@ function search(value: string | null) {
   justify-content: center;
   height: 26px;
   border: none;
-  background: #fff;
+  background: var(--bs-white);
   color: var(--color-text-light);
   cursor: pointer;
   font-size: 13px;
@@ -360,16 +360,16 @@ function search(value: string | null) {
 }
 
 .toggle-btn:not(:last-child) {
-  border-right: 1px solid #e2e8f0;
+  border-right: 1px solid var(--color-slate-lighter);
 }
 
 .toggle-btn:hover {
-  background: #f1f5f9;
+  background: var(--color-neutral-light);
   color: var(--color-text);
 }
 
 .toggle-btn.active {
-  background: #eef2ff;
+  background: var(--color-blue-bg-lighter);
   color: var(--color-primary);
 }
 
@@ -382,7 +382,7 @@ function search(value: string | null) {
   font-size: 0.875rem;
   color: var(--color-dark);
   text-align: left;
-  background-color: #fff;
+  background-color: var(--bs-white);
   background-clip: padding-box;
   border: 1px solid rgba(0, 0, 0, 0.15);
   border-radius: 0.25rem;
@@ -406,7 +406,7 @@ function search(value: string | null) {
 
 .custom-context-menu .dropdown-item:hover,
 .custom-context-menu .dropdown-item:focus {
-  color: #16181b;
+  color: var(--color-dark);
   text-decoration: none;
   background-color: var(--color-light);
 }

@@ -99,7 +99,7 @@ defineProps<Props>();
 
 .tl-icon-badge--primary {
   background: rgba(59, 130, 246, 0.1);
-  color: #2563eb;
+  color: var(--color-accent-blue-dark);
 }
 
 .tl-label {

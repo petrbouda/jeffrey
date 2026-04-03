@@ -354,8 +354,12 @@ const getAlertKey = (alert: ImportantMessage, index: number): string => {
 .severity-bar {
   display: flex;
   align-items: center;
-  background: linear-gradient(135deg, #f8fafc, #f1f5f9);
-  border: 1px solid #e2e8f0;
+  background: linear-gradient(
+    135deg,
+    var(--color-neutral-bg),
+    var(--color-neutral-light)
+  );
+  border: 1px solid var(--color-slate-lighter);
   border-radius: 8px;
   padding: 0.5rem;
   gap: 0.25rem;
@@ -366,7 +370,7 @@ const getAlertKey = (alert: ImportantMessage, index: number): string => {
   align-items: center;
   gap: 0.4rem;
   padding: 0.35rem 0.75rem;
-  border-radius: var(--radius-base);
+  border-radius: var(--bs-border-radius);
   transition: background var(--transition-fast);
 }
 
@@ -383,13 +387,13 @@ const getAlertKey = (alert: ImportantMessage, index: number): string => {
   color: var(--color-danger-hover);
 }
 .severity-card.high .card-count {
-  color: #ea580c;
+  color: var(--color-warning-hover);
 }
 .severity-card.medium .card-count {
-  color: #ca8a04;
+  color: var(--color-amber);
 }
 .severity-card.low .card-count {
-  color: #0891b2;
+  color: var(--color-info);
 }
 
 .card-count {
@@ -442,7 +446,7 @@ const getAlertKey = (alert: ImportantMessage, index: number): string => {
   justify-content: center;
   gap: 0.75rem;
   padding: 0.6rem;
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid var(--color-border);
 }
 
 .load-more-count {

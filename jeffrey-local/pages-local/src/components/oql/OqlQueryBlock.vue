@@ -49,7 +49,7 @@ const copyToClipboard = async () => {
 
 <style scoped>
 .oql-query-block {
-  background-color: #1e1e1e;
+  background-color: var(--color-editor-bg);
   border-radius: 6px;
   overflow: hidden;
   margin: 0.75rem 0;
@@ -60,14 +60,14 @@ const copyToClipboard = async () => {
   justify-content: space-between;
   align-items: center;
   padding: 0.5rem 0.75rem;
-  background-color: #2d2d2d;
-  border-bottom: 1px solid #3d3d3d;
+  background-color: var(--color-editor-surface);
+  border-bottom: 1px solid var(--color-editor-border);
 }
 
 .query-label {
   font-size: 0.7rem;
   font-weight: 600;
-  color: #9d9d9d;
+  color: var(--color-editor-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -75,21 +75,21 @@ const copyToClipboard = async () => {
 .btn-icon {
   background: none;
   border: none;
-  color: #9d9d9d;
+  color: var(--color-editor-muted);
   padding: 0.25rem;
   cursor: pointer;
   transition: color 0.2s ease;
 }
 
 .btn-icon:hover {
-  color: #fff;
+  color: var(--bs-white);
 }
 
 .query-code {
   margin: 0;
   padding: 1rem;
-  background-color: #1e1e1e;
-  color: #d4d4d4;
+  background-color: var(--color-editor-bg);
+  color: var(--color-editor-text);
   font-size: 0.8rem;
   line-height: 1.5;
   white-space: pre-wrap;
@@ -98,15 +98,15 @@ const copyToClipboard = async () => {
 }
 
 .query-code code {
-  color: #9cdcfe;
+  color: var(--color-editor-variable);
 }
 
 .query-actions {
   display: flex;
   gap: 0.5rem;
   padding: 0.75rem;
-  background-color: #2d2d2d;
-  border-top: 1px solid #3d3d3d;
+  background-color: var(--color-editor-surface);
+  border-top: 1px solid var(--color-editor-border);
 }
 
 .query-actions .btn {
@@ -116,15 +116,15 @@ const copyToClipboard = async () => {
 }
 
 .btn-outline-purple {
-  border-color: #9d7ee8;
-  color: #9d7ee8;
+  border-color: var(--color-editor-keyword);
+  color: var(--color-editor-keyword);
   font-size: 0.75rem;
 }
 
 .btn-outline-purple:hover {
-  background-color: #9d7ee8;
-  border-color: #9d7ee8;
-  color: white;
+  background-color: var(--color-editor-keyword);
+  border-color: var(--color-editor-keyword);
+  color: var(--bs-white);
 }
 
 .query-actions .btn-primary {

@@ -72,14 +72,14 @@ const formattedContent = computed(() => {
   display: flex;
   gap: 0.75rem;
   padding: 1rem;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--color-border-row);
 }
 
 .chat-message.user {
   align-items: center;
   padding: 0.625rem 1rem;
   background-color: var(--color-light);
-  border-left: 2px solid #0969da;
+  border-left: 2px solid var(--bs-blue);
 }
 
 .chat-message.assistant {
@@ -97,7 +97,7 @@ const formattedContent = computed(() => {
 }
 
 .chat-message.assistant {
-  background-color: #fff;
+  background-color: var(--bs-white);
 }
 
 .message-avatar {
@@ -115,13 +115,13 @@ const formattedContent = computed(() => {
   width: 26px;
   height: 26px;
   font-size: 0.75rem;
-  background-color: var(--card-border-color);
+  background-color: var(--color-border);
   color: var(--color-text-muted);
 }
 
 .chat-message.assistant .message-avatar {
-  background-color: #e8f4fd;
-  color: #0969da;
+  background-color: var(--color-sky-bg);
+  color: var(--bs-blue);
 }
 
 .message-content {
@@ -152,7 +152,7 @@ const formattedContent = computed(() => {
 .message-text :deep(h4) {
   margin: 0.75rem 0 0.25rem 0;
   font-weight: 600;
-  color: #1f2328;
+  color: var(--color-heading-dark);
 }
 
 .message-text :deep(h1) {
@@ -177,11 +177,11 @@ const formattedContent = computed(() => {
 
 /* Inline code */
 .message-text :deep(code) {
-  background-color: #f1f3f5;
+  background-color: var(--color-code-bg);
   padding: 0.1rem 0.3rem;
   border-radius: 3px;
   font-size: 0.75rem;
-  color: #0969da;
+  color: var(--bs-blue);
   font-family:
     ui-monospace,
     SFMono-Regular,
@@ -193,8 +193,8 @@ const formattedContent = computed(() => {
 
 /* Code blocks */
 .message-text :deep(pre) {
-  background-color: #f6f8fa;
-  border: 1px solid #d0d7de;
+  background-color: var(--color-neutral-bg);
+  border: 1px solid var(--color-slate-light);
   border-radius: 4px;
   padding: 0.5rem 0.75rem;
   margin: 0.5rem 0;
@@ -206,7 +206,7 @@ const formattedContent = computed(() => {
 .message-text :deep(pre code) {
   background: none;
   padding: 0;
-  color: #24292f;
+  color: var(--color-heading-dark);
   white-space: pre;
   display: block;
 }
@@ -237,13 +237,13 @@ const formattedContent = computed(() => {
 
 .message-text :deep(th),
 .message-text :deep(td) {
-  border: 1px solid #d0d7de;
+  border: 1px solid var(--color-slate-light);
   padding: 0.35rem 0.5rem;
   text-align: left;
 }
 
 .message-text :deep(th) {
-  background-color: #f6f8fa;
+  background-color: var(--color-neutral-bg);
   font-weight: 600;
 }
 
@@ -255,14 +255,14 @@ const formattedContent = computed(() => {
 .message-text :deep(blockquote) {
   margin: 0.5rem 0;
   padding: 0.25rem 0.75rem;
-  border-left: 3px solid #d0d7de;
-  color: #656d76;
+  border-left: 3px solid var(--color-slate-light);
+  color: var(--bs-gray-600);
 }
 
 /* Horizontal rules */
 .message-text :deep(hr) {
   border: none;
-  border-top: 1px solid #d0d7de;
+  border-top: 1px solid var(--color-slate-light);
   margin: 0.75rem 0;
 }
 
@@ -281,10 +281,10 @@ const formattedContent = computed(() => {
   gap: 0.25rem;
   padding: 0.2rem 0.5rem;
   font-size: 0.65rem;
-  color: #8c959f;
-  background-color: #f6f8fa;
+  color: var(--color-slate-muted);
+  background-color: var(--color-neutral-bg);
   border-radius: 4px;
-  border: 1px solid #e1e4e8;
+  border: 1px solid var(--color-slate-lighter);
 }
 
 .response-duration i {
@@ -307,16 +307,16 @@ const formattedContent = computed(() => {
 .tool-badge {
   font-size: 0.65rem;
   padding: 0.2rem 0.5rem;
-  background-color: #e8f4fd;
+  background-color: var(--color-sky-bg);
   border-radius: 4px;
-  color: #0969da;
+  color: var(--bs-blue);
   font-weight: 500;
 }
 
 .suggestions {
   margin-top: 1rem;
   padding-top: 0.75rem;
-  border-top: 1px solid var(--card-border-color);
+  border-top: 1px solid var(--color-border);
 }
 
 .suggestions-label {
@@ -338,17 +338,17 @@ const formattedContent = computed(() => {
 .suggestion-chip {
   font-size: 0.75rem;
   padding: 0.375rem 0.75rem;
-  background-color: #e8f4fd;
-  border: 1px solid #b6d4f8;
+  background-color: var(--color-sky-bg);
+  border: 1px solid var(--color-sky-border);
   border-radius: 20px;
-  color: #0969da;
+  color: var(--bs-blue);
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .suggestion-chip:hover {
-  background-color: #0969da;
-  border-color: #0969da;
+  background-color: var(--bs-blue);
+  border-color: var(--bs-blue);
   color: white;
 }
 </style>

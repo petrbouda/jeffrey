@@ -229,7 +229,7 @@
       :show-footer="false"
       @update:show="showFlamegraphDialog = $event"
     >
-      <div id="scrollable-wrapper" class="p-3" v-if="showFlamegraphDialog">
+      <div id="scrollable-wrapper" style="padding: 0.75rem" v-if="showFlamegraphDialog">
         <TimeSeriesChart
           :graph-updater="graphUpdater"
           :primary-axis-type="AxisFormatType.NUMBER"
@@ -622,7 +622,7 @@ const filterEvents = () => {
 }
 
 .event-types-container {
-  background-color: #fff;
+  background-color: var(--bs-white);
   border-radius: 0.4rem;
 }
 
@@ -684,7 +684,7 @@ const filterEvents = () => {
 }
 
 .expand-btn:hover {
-  color: var(--color-accent-blue);
+  color: var(--bs-blue);
 }
 
 .event-name {

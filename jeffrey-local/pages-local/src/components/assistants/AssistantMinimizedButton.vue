@@ -111,7 +111,11 @@ const progressRingStyle = computed(() => {
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(
+    135deg,
+    var(--color-gradient-start) 0%,
+    var(--color-gradient-end) 100%
+  );
   box-shadow:
     0 4px 16px rgba(102, 126, 234, 0.4),
     0 2px 8px rgba(118, 75, 162, 0.3);
@@ -157,15 +161,15 @@ const progressRingStyle = computed(() => {
 }
 
 .status-completed .progress-ring-bar {
-  stroke: #86efac;
+  stroke: var(--color-success);
 }
 
 .status-failed .progress-ring-bar {
-  stroke: #fca5a5;
+  stroke: var(--color-danger-border-light);
 }
 
 .status-cancelled .progress-ring-bar {
-  stroke: #fde047;
+  stroke: var(--color-amber-badge-border);
 }
 
 /* Icon */
@@ -180,15 +184,15 @@ const progressRingStyle = computed(() => {
 }
 
 .status-completed .indicator-icon {
-  color: #86efac;
+  color: var(--color-success);
 }
 
 .status-failed .indicator-icon {
-  color: #fca5a5;
+  color: var(--color-danger-border-light);
 }
 
 .status-cancelled .indicator-icon {
-  color: #fde047;
+  color: var(--color-amber-badge-border);
 }
 
 /* Badge */
@@ -199,34 +203,34 @@ const progressRingStyle = computed(() => {
   transform: translateX(-50%);
   font-size: 0.65rem;
   font-weight: 700;
-  background: #7c3aed;
+  background: var(--color-violet-dark);
   padding: 3px 8px;
   border-radius: 10px;
   box-shadow: 0 2px 6px rgba(124, 58, 237, 0.3);
-  color: white;
-  border: 2px solid white;
+  color: var(--bs-white);
+  border: 2px solid var(--bs-white);
 }
 
 .badge-primary,
 .badge-purple,
 .badge-default {
-  background: #7c3aed;
-  color: white;
+  background: var(--color-violet-dark);
+  color: var(--bs-white);
 }
 
 .badge-success {
-  background: #16a34a;
-  color: white;
+  background: var(--color-success-hover);
+  color: var(--bs-white);
 }
 
 .badge-danger {
   background: var(--color-danger-hover);
-  color: white;
+  color: var(--bs-white);
 }
 
 .badge-warning {
-  background: #ca8a04;
-  color: white;
+  background: var(--color-amber);
+  color: var(--bs-white);
 }
 
 /* Animations */
@@ -248,12 +252,12 @@ const progressRingStyle = computed(() => {
   100% {
     transform: scale(1);
     box-shadow: 0 4px 12px rgba(139, 92, 246, 0.25);
-    border-color: #a78bfa;
+    border-color: var(--color-indigo-accent);
   }
   50% {
     transform: scale(1.05);
     box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4);
-    border-color: #8b5cf6;
+    border-color: var(--color-violet);
   }
 }
 

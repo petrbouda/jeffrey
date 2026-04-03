@@ -1,7 +1,7 @@
 <template>
   <div class="sidebar">
     <div class="scrollbar" style="height: 100%">
-      <div class="p-3 border-bottom">
+      <div class="border-bottom" style="padding: 0.75rem">
         <div v-if="isLoading" class="d-flex align-items-center">
           <div class="spinner-border spinner-border-sm text-primary me-2" role="status">
             <span class="visually-hidden">Loading...</span>
@@ -212,7 +212,7 @@ const getBadgeVariant = (type: string): Variant => {
   min-width: 280px;
   max-width: 280px;
   overflow: hidden;
-  background-color: #fff;
+  background-color: var(--bs-white);
 }
 
 .scrollbar {
@@ -234,7 +234,7 @@ const getBadgeVariant = (type: string): Variant => {
 }
 
 .nav-category {
-  color: #748194;
+  color: var(--color-text-muted);
   font-weight: 700;
   text-transform: uppercase;
   font-size: 0.7rem;
@@ -242,19 +242,19 @@ const getBadgeVariant = (type: string): Variant => {
 }
 
 .nav-link {
-  color: #5e6e82;
+  color: var(--color-text);
   font-weight: 500;
   font-size: 0.9rem;
   border-radius: 0.25rem;
 
   &:hover {
     color: var(--color-primary);
-    background-color: #edf2f9;
+    background-color: var(--color-lighter);
   }
 
   &.active {
     color: var(--color-primary);
-    background-color: #eaebff;
+    background-color: var(--color-primary-light);
 
     i {
       color: var(--color-primary);
@@ -262,7 +262,7 @@ const getBadgeVariant = (type: string): Variant => {
   }
 
   i {
-    color: #7d899b;
+    color: var(--color-text-muted);
     font-size: 0.9rem;
     width: 1rem;
     text-align: center;

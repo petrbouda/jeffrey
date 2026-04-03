@@ -323,8 +323,8 @@ const switchIdleSamples = () => {
 
 <style scoped>
 .flamegraph-card {
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
+  background: var(--bs-white);
+  border: 1px solid var(--color-border);
   border-radius: 8px;
   padding: 1rem;
   transition: all 0.2s ease;
@@ -343,11 +343,11 @@ const switchIdleSamples = () => {
 
 /* Category-specific styling */
 .flamegraph-card--blue {
-  border-left: 3px solid #3b82f6;
+  border-left: 3px solid var(--color-blue-500);
 }
 
 .flamegraph-card--purple {
-  border-left: 3px solid #8b5cf6;
+  border-left: 3px solid var(--color-violet);
 }
 
 .flamegraph-card--green {
@@ -355,7 +355,7 @@ const switchIdleSamples = () => {
 }
 
 .flamegraph-card--pink {
-  border-left: 3px solid #f59e0b;
+  border-left: 3px solid var(--color-amber);
 }
 
 .flamegraph-card--red {
@@ -424,14 +424,14 @@ const switchIdleSamples = () => {
 }
 
 .btn-primary {
-  background-color: #3b82f6;
+  background-color: var(--color-blue-500);
   color: white;
-  border-color: #3b82f6;
+  border-color: var(--color-blue-500);
 }
 
 .btn-primary:hover:not(:disabled) {
-  background-color: #2563eb;
-  border-color: #2563eb;
+  background-color: var(--color-accent-blue-dark);
+  border-color: var(--color-accent-blue-dark);
 }
 
 .btn-full {
@@ -447,7 +447,7 @@ const switchIdleSamples = () => {
 
 /* Information Panel */
 .settings-panel {
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid var(--color-border);
   padding-top: 0.75rem;
   flex-shrink: 0;
 }
@@ -483,7 +483,7 @@ const switchIdleSamples = () => {
 }
 
 .primary-value {
-  color: #3b82f6;
+  color: var(--color-blue-500);
 }
 
 .secondary-value {
@@ -497,7 +497,7 @@ const switchIdleSamples = () => {
 }
 
 .calculated-indicator {
-  color: #f59e0b;
+  color: var(--color-amber);
   font-size: 0.65rem;
   margin-left: 0.25rem;
 }

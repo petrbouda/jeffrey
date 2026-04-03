@@ -294,11 +294,11 @@ onMounted(() => {
 }
 
 .suspect-card {
-  border: 1px solid var(--card-border-color);
-  border-radius: var(--card-border-radius);
-  box-shadow: var(--card-shadow);
+  border: 1px solid var(--color-border);
+  border-radius: var(--bs-border-radius-lg);
+  box-shadow: var(--shadow-base);
   overflow: hidden;
-  background: var(--card-bg);
+  background: var(--color-bg-card);
 }
 
 .suspect-header {
@@ -307,7 +307,7 @@ onMounted(() => {
   gap: 1rem;
   padding: 1rem 1.25rem;
   background: var(--color-light);
-  border-bottom: 1px solid var(--card-border-color);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .suspect-rank {
@@ -323,18 +323,18 @@ onMounted(() => {
 }
 
 .severity-critical {
-  background: #fee2e2;
+  background: var(--color-danger-bg-lighter);
   color: var(--color-danger-hover);
 }
 
 .severity-warning {
-  background: #fef3c7;
-  color: #d97706;
+  background: var(--color-amber-light);
+  color: var(--color-amber-highlight);
 }
 
 .severity-info {
-  background: #dbeafe;
-  color: #2563eb;
+  background: var(--color-blue-bg);
+  color: var(--bs-blue);
 }
 
 .suspect-title {
@@ -404,8 +404,8 @@ onMounted(() => {
   font-size: 0.85rem;
   color: var(--color-text);
   padding: 0.75rem;
-  background: #fffbeb;
-  border: 1px solid #fde68a;
+  background: var(--color-amber-bg);
+  border: 1px solid var(--color-amber-border);
   border-radius: 6px;
   margin-bottom: 0.75rem;
 }
@@ -420,7 +420,7 @@ onMounted(() => {
 }
 
 .progress {
-  background-color: var(--card-border-color);
+  background-color: var(--color-border);
 }
 
 .progress-bar {

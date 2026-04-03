@@ -1425,7 +1425,7 @@ onUnmounted(() => {
   justify-content: center;
   width: 28px;
   height: 28px;
-  border-radius: var(--radius-md);
+  border-radius: var(--bs-border-radius-lg);
   color: var(--color-primary);
   cursor: pointer;
   transition: background var(--transition-fast);
@@ -1459,7 +1459,7 @@ onUnmounted(() => {
   margin: 0 1rem;
   background: var(--color-bg-card);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--bs-border-radius-lg);
   font-size: var(--font-size-sm);
   color: var(--color-text-muted);
 }
@@ -1500,10 +1500,10 @@ onUnmounted(() => {
   display: flex;
   align-items: stretch;
   padding: 0.75rem 1rem;
-  background: var(--card-bg);
-  border: 1px solid var(--card-border-color);
-  border-radius: var(--card-border-radius);
-  box-shadow: var(--card-shadow);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--bs-border-radius-lg);
+  box-shadow: var(--shadow-base);
   flex: 1;
   min-width: 0;
   transition: all var(--transition-base);
@@ -1523,15 +1523,15 @@ onUnmounted(() => {
 }
 
 .compact-card.primary {
-  border-left: 3px solid #2e93fa;
+  border-left: 3px solid var(--bs-blue);
 }
 
 .compact-card.secondary:not(.empty) {
-  border-left: 3px solid #e53935;
+  border-left: 3px solid var(--color-danger);
 }
 
 .compact-card.secondary.empty {
-  border-left: 3px dashed #6c757d;
+  border-left: 3px dashed var(--color-text-muted);
   background: var(--color-light);
 }
 
@@ -1589,15 +1589,15 @@ onUnmounted(() => {
 }
 
 .card-label.modified {
-  color: #92400e;
-  background: #fef3c7;
+  color: var(--color-amber-text);
+  background: var(--color-amber-light);
 }
 
 .vs-divider {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, var(--color-primary), #4c52ff);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-hover));
   color: white;
   font-weight: 700;
   font-size: 0.7rem;
@@ -1625,7 +1625,7 @@ onUnmounted(() => {
   justify-content: center;
   width: 28px;
   height: 28px;
-  border: 1px solid var(--card-border-color);
+  border: 1px solid var(--color-border);
   background: white;
   border-radius: 4px;
   font-size: 0.7rem;
@@ -1636,7 +1636,7 @@ onUnmounted(() => {
 
 .action-btn:hover {
   background: var(--color-light);
-  border-color: var(--card-border-color);
+  border-color: var(--color-border);
   transform: translateY(-1px);
 }
 
@@ -1656,7 +1656,7 @@ onUnmounted(() => {
   justify-content: center;
   width: 32px;
   height: 32px;
-  border: 2px dashed #6c757d;
+  border: 2px dashed var(--color-text-muted);
   background: transparent;
   border-radius: 6px;
   font-size: 0.9rem;
@@ -1703,8 +1703,8 @@ onUnmounted(() => {
 
 /* Feature Mode Switcher */
 .feature-mode-switcher {
-  background: linear-gradient(135deg, #f8f9fb, #ffffff);
-  border-bottom: 1px solid var(--card-border-color);
+  background: linear-gradient(135deg, var(--color-light), var(--bs-white));
+  border-bottom: 1px solid var(--color-border);
   margin: 0 0.5rem;
   border-radius: 8px;
 }
@@ -1742,10 +1742,10 @@ onUnmounted(() => {
   cursor: pointer;
   height: 48px;
   width: 100%;
-  background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
+  background: linear-gradient(135deg, var(--color-neutral-light), var(--color-slate-lighter));
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
-  border: 2px solid #e2e8f0;
+  border: 2px solid var(--color-slate-lighter);
   padding: 3px;
   box-shadow:
     0 2px 8px rgba(0, 0, 0, 0.04),
@@ -1766,7 +1766,7 @@ onUnmounted(() => {
   left: 3px;
   height: calc(100% - 6px);
   width: calc(50% - 6px);
-  background: linear-gradient(135deg, var(--color-primary), #4338ca);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-indigo-light));
   border-radius: 7px;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 1;
@@ -1823,7 +1823,7 @@ onUnmounted(() => {
   }
 
   &.active {
-    color: #ffffff;
+    color: var(--bs-white);
     font-weight: 700;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 
@@ -1862,7 +1862,7 @@ onUnmounted(() => {
   position: relative;
   box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.05);
   z-index: 10;
-  border-bottom: 1px solid var(--card-border-color);
+  border-bottom: 1px solid var(--color-border);
   margin-bottom: 1rem;
 }
 
@@ -1873,8 +1873,8 @@ onUnmounted(() => {
   width: 100%;
   margin-left: 0;
   margin-right: 0;
-  border-top: 1px solid var(--card-border-color);
-  border-bottom: 1px solid var(--card-border-color);
+  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
   background-color: white;
 }
 
@@ -1909,7 +1909,7 @@ onUnmounted(() => {
   border: none;
   background: transparent;
   position: relative;
-  color: #718096;
+  color: var(--color-slate-muted);
   font-size: 0.85rem;
   font-weight: 500;
   min-width: 140px;
@@ -1964,7 +1964,7 @@ onUnmounted(() => {
   }
 
   &:hover {
-    color: #4a5568;
+    color: var(--color-slate-text);
 
     i {
       transform: translateY(-2px);
@@ -2043,7 +2043,7 @@ onUnmounted(() => {
   border-radius: 4px;
   font-size: 0.8rem;
   font-weight: 500;
-  color: #718096;
+  color: var(--color-slate-muted);
   cursor: pointer;
   transition: all 0.2s ease;
   white-space: nowrap;
@@ -2058,7 +2058,7 @@ onUnmounted(() => {
   transform: translateY(-50%);
   width: 3px;
   height: 60%;
-  background: #cbd5e1;
+  background: var(--color-slate-light);
   border-radius: 2px;
   transition: all 0.2s ease;
 }
@@ -2069,7 +2069,7 @@ onUnmounted(() => {
 }
 
 .comparison-toggle-btn:hover::before {
-  background: #a5b4fc;
+  background: var(--color-indigo-accent);
 }
 
 .comparison-toggle-btn.active {
@@ -2102,13 +2102,13 @@ onUnmounted(() => {
   letter-spacing: 0.03em;
   padding: 0.15rem 0.4rem;
   border-radius: 2px;
-  background: #fef3c7;
-  color: #b45309;
+  background: var(--color-amber-light);
+  color: var(--color-amber-darkest);
   transition: all 0.2s ease;
 }
 
 .comparison-toggle-btn .toggle-status.set {
-  background: #d1fae5;
+  background: var(--color-success-100);
   color: var(--color-success-hover);
 }
 

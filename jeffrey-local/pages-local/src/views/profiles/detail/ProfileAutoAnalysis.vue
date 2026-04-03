@@ -447,15 +447,15 @@ function getSeverityColor(severity: string): string {
   margin: 48px auto;
   text-align: center;
   padding: 48px 40px;
-  background: var(--color-bg-card, #fff);
-  border-radius: var(--radius-lg, 12px);
-  box-shadow: var(--shadow-base, 0 0 6px rgba(0, 0, 0, 0.1));
+  background: var(--color-bg-card);
+  border-radius: var(--bs-border-radius-lg);
+  box-shadow: var(--shadow-base);
 }
 
 .hero-icon {
   width: 64px;
   height: 64px;
-  background: var(--color-primary-light, rgba(94, 100, 255, 0.1));
+  background: var(--color-primary-light);
   border-radius: 16px;
   display: flex;
   align-items: center;
@@ -466,20 +466,20 @@ function getSeverityColor(severity: string): string {
 }
 
 .hero-icon-error {
-  background: var(--color-danger-light, rgba(230, 55, 87, 0.1));
-  color: var(--color-danger, #e63757);
+  background: var(--color-danger-light);
+  color: var(--color-danger);
 }
 
 .hero-title {
   font-size: 20px;
   font-weight: 700;
-  color: var(--color-dark, #0b1727);
+  color: var(--color-dark);
   margin-bottom: 8px;
 }
 
 .hero-desc {
   font-size: 13px;
-  color: var(--color-text-muted, #748194);
+  color: var(--color-text-muted);
   line-height: 1.6;
   margin-bottom: 28px;
   max-width: 360px;
@@ -493,7 +493,7 @@ function getSeverityColor(severity: string): string {
   gap: 8px;
   padding: 10px 28px;
   background: var(--color-primary);
-  color: #fff;
+  color: var(--bs-white);
   border: none;
   border-radius: 6px;
   font-size: 13px;
@@ -504,7 +504,7 @@ function getSeverityColor(severity: string): string {
 }
 
 .btn-run:hover {
-  background: var(--color-primary-hover, #4c52db);
+  background: var(--color-primary-hover);
 }
 
 .btn-run i {
@@ -517,9 +517,9 @@ function getSeverityColor(severity: string): string {
   margin: 48px auto;
   text-align: center;
   padding: 48px 40px;
-  background: var(--color-bg-card, #fff);
-  border-radius: var(--radius-lg, 12px);
-  box-shadow: var(--shadow-base, 0 0 6px rgba(0, 0, 0, 0.1));
+  background: var(--color-bg-card);
+  border-radius: var(--bs-border-radius-lg);
+  box-shadow: var(--shadow-base);
 }
 
 .running-icon {
@@ -535,13 +535,13 @@ function getSeverityColor(severity: string): string {
 .running-title {
   font-size: 16px;
   font-weight: 600;
-  color: var(--color-dark, #0b1727);
+  color: var(--color-dark);
   margin-bottom: 4px;
 }
 
 .running-subtitle {
   font-size: 12px;
-  color: var(--color-text-muted, #748194);
+  color: var(--color-text-muted);
   margin-bottom: 0;
 }
 
@@ -562,7 +562,7 @@ function getSeverityColor(severity: string): string {
 
 .progress-track {
   height: 4px;
-  background: var(--color-border, #eaedf1);
+  background: var(--color-border);
   border-radius: 4px;
   overflow: hidden;
   margin-top: 24px;
@@ -577,9 +577,9 @@ function getSeverityColor(severity: string): string {
 
 /* Summary Card */
 .summary-card {
-  background: #fff;
+  background: var(--bs-white);
   border-radius: 0.75rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--bs-box-shadow-sm);
   overflow: hidden;
 }
 
@@ -604,7 +604,7 @@ function getSeverityColor(severity: string): string {
 
 .legend-section {
   height: 100%;
-  border-left: 1px solid #f0f0f0;
+  border-left: 1px solid var(--color-border);
   padding-left: 1.25rem;
 }
 
@@ -649,7 +649,7 @@ function getSeverityColor(severity: string): string {
   justify-content: space-between;
   align-items: center;
   gap: 1rem;
-  background: #fff;
+  background: var(--bs-white);
   padding: 0.75rem 1rem;
   border-radius: 0.5rem;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
@@ -718,14 +718,14 @@ function getSeverityColor(severity: string): string {
   border-left: 3px solid var(--color-danger);
 }
 .rule-row.severity-info {
-  border-left: 3px solid #0d6efd;
+  border-left: 3px solid var(--bs-blue);
 }
 .rule-row.severity-ok {
   border-left: 3px solid var(--color-success);
 }
 .rule-row.severity-na,
 .rule-row.severity-ignore {
-  border-left: 3px solid #6c757d;
+  border-left: 3px solid var(--color-text-muted);
 }
 
 .rule-name {
@@ -742,7 +742,7 @@ function getSeverityColor(severity: string): string {
 .severity-bar-track {
   flex: 1;
   height: 8px;
-  background: #e5e7eb;
+  background: var(--color-border);
   border-radius: 4px;
   overflow: hidden;
 }
@@ -777,7 +777,7 @@ function getSeverityColor(severity: string): string {
 .row-details {
   background: var(--color-light);
   padding: 1rem 1.5rem;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .details-grid {
@@ -854,7 +854,7 @@ function getSeverityColor(severity: string): string {
 @media (max-width: 992px) {
   .legend-section {
     border-left: none;
-    border-top: 1px solid #f0f0f0;
+    border-top: 1px solid var(--color-border);
     padding-left: 0;
     padding-top: 1rem;
     margin-top: 1rem;

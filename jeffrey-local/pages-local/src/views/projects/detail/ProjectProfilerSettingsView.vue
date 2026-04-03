@@ -181,13 +181,13 @@ onMounted(() => {
   justify-content: center;
   align-items: center;
   padding: 3rem;
-  color: var(--phoenix-text-muted, #6b7280);
+  color: var(--color-text-muted);
 }
 
 /* Tab Bar */
 .tab-bar {
   display: flex;
-  border-bottom: 1px solid var(--phoenix-border-main, #eaedf1);
+  border-bottom: 1px solid var(--color-border);
   padding: 0;
   margin-top: 16px;
 }
@@ -196,21 +196,21 @@ onMounted(() => {
   padding: 10px 20px;
   font-size: var(--font-size-base);
   font-weight: 600;
-  color: var(--phoenix-text-muted, #9ca3af);
+  color: var(--color-text-muted);
   background: none;
   border: none;
   border-bottom: 2px solid transparent;
   cursor: pointer;
-  transition: all var(--phoenix-transition-fast, 0.15s ease-in-out);
+  transition: all var(--transition-fast);
 }
 
 .tab-item:hover {
-  color: var(--phoenix-text, #5e6e82);
+  color: var(--color-text);
 }
 
 .tab-item--active {
-  color: var(--phoenix-primary, var(--color-primary));
-  border-bottom-color: var(--phoenix-primary, var(--color-primary));
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
 }
 
 /* Tab Content */

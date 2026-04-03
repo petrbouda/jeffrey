@@ -92,9 +92,9 @@ onMounted(async () => {
 .topbar {
   background: linear-gradient(
     135deg,
-    #1e1b4b 0%,
-    #312e81 40%,
-    #4338ca 70%,
+    var(--color-indigo-dark) 0%,
+    var(--color-indigo) 40%,
+    var(--color-indigo-light) 70%,
     var(--color-primary) 100%
   );
   height: 50px;
@@ -175,7 +175,7 @@ onMounted(async () => {
   border-radius: 10px;
   font-size: 0.5rem;
   font-weight: 600;
-  color: #6ee7b7;
+  color: var(--color-emerald-text);
   letter-spacing: 0.3px;
   white-space: nowrap;
 }

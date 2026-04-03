@@ -36,10 +36,10 @@ defineProps<{
 
 <style scoped>
 .dual-panel {
-  background: var(--card-bg);
-  border: 1px solid var(--card-border-color);
-  border-radius: var(--card-border-radius);
-  box-shadow: var(--card-shadow);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--bs-border-radius-lg);
+  box-shadow: var(--shadow-base);
   overflow: hidden;
 }
 
@@ -53,7 +53,7 @@ defineProps<{
   display: flex;
   align-items: center;
   padding: 0.85rem 1.25rem;
-  border-bottom: 1px solid var(--card-border-color);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .dual-panel-header h4 {
@@ -80,7 +80,7 @@ defineProps<{
 
 .dual-panel-divider {
   width: 1px;
-  background: var(--card-border-color);
+  background: var(--color-border);
   align-self: stretch;
 }
 

@@ -54,9 +54,9 @@ onMounted(async () => {
 .hero-header {
   background: linear-gradient(
     135deg,
-    #1e1b4b 0%,
-    #312e81 40%,
-    #4338ca 70%,
+    var(--color-indigo-dark) 0%,
+    var(--color-indigo) 40%,
+    var(--color-indigo-light) 70%,
     var(--color-primary) 100%
   );
   padding: 16px 0;
@@ -112,7 +112,7 @@ onMounted(async () => {
   border-radius: 12px;
   font-size: 0.6rem;
   font-weight: 600;
-  color: #6ee7b7;
+  color: var(--color-emerald-text);
   letter-spacing: 0.3px;
   white-space: nowrap;
 }

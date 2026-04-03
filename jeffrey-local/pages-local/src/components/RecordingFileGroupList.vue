@@ -213,7 +213,7 @@ const getStandaloneFiles = (files: RecordingFile[]): RecordingFile[] => {
 }
 
 .type-panel-body {
-  border-left: 1px solid var(--card-border-color);
+  border-left: 1px solid var(--color-border);
   margin-left: 32px;
   padding-left: 20px;
   padding-top: 6px;

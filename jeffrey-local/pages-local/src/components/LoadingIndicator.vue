@@ -39,7 +39,7 @@ defineProps<{
   margin-bottom: 8px;
   background-color: var(--color-light);
   border-radius: 4px;
-  border: 1px solid var(--card-border-color);
+  border: 1px solid var(--color-border);
 }
 
 .loading-text {

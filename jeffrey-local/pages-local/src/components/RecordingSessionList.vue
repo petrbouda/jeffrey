@@ -1254,13 +1254,13 @@ code {
 }
 
 .btn-primary:hover {
-  background-color: #4a51eb;
-  border-color: #4a51eb;
+  background-color: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
 }
 
 .btn-outline-danger:hover {
-  background-color: #e63757;
-  border-color: #e63757;
+  background-color: var(--color-danger);
+  border-color: var(--color-danger);
 }
 
 .folder-row {
@@ -1279,7 +1279,7 @@ code {
 }
 
 .folder-row.session-active {
-  border-left: 3px solid #ffc107;
+  border-left: 3px solid var(--color-amber);
 }
 
 .folder-row.session-finished {
@@ -1287,7 +1287,7 @@ code {
 }
 
 .folder-row.session-unknown {
-  border-left: 3px solid #6f42c1;
+  border-left: 3px solid var(--bs-purple);
 }
 
 /* Rotation group styles */
@@ -1315,7 +1315,7 @@ code {
 
 .rotated-child-row {
   margin-left: 28px;
-  border-left: 2px solid var(--card-border-color);
+  border-left: 2px solid var(--color-border);
   padding-left: 10px;
   position: relative;
 }
@@ -1327,7 +1327,7 @@ code {
   top: 50%;
   width: 10px;
   height: 0;
-  border-top: 1px solid var(--card-border-color);
+  border-top: 1px solid var(--color-border);
 }
 
 .text-primary {
@@ -1374,7 +1374,7 @@ code {
 
 .action-menu-btn.active {
   background-color: var(--color-primary);
-  color: #fff;
+  color: var(--bs-white);
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
   transform: translateY(-1px);
 }
@@ -1450,11 +1450,11 @@ code {
 
 .instance-link:hover {
   text-decoration: underline;
-  color: #4a51eb;
+  color: var(--color-primary-hover);
 }
 
 .session-separator {
-  color: #d1d5db;
+  color: var(--color-muted-separator);
   margin: 0 8px;
   font-weight: 400;
 }
@@ -1479,7 +1479,7 @@ code {
 
 .session-icon-active {
   background-color: rgba(255, 193, 7, 0.12);
-  color: #d97706;
+  color: var(--color-amber-highlight);
 }
 
 .session-icon-finished {
@@ -1489,7 +1489,7 @@ code {
 
 .session-icon-unknown {
   background-color: rgba(111, 66, 193, 0.12);
-  color: var(--color-purple);
+  color: var(--bs-purple);
 }
 
 /* Session meta (matching instance-meta) */
@@ -1516,7 +1516,7 @@ code {
 .show-more-btn:hover {
   background-color: rgba(94, 100, 255, 0.1);
   border-color: rgba(94, 100, 255, 0.3);
-  color: #4a51eb;
+  color: var(--color-primary-hover);
   transform: translateY(-1px);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
@@ -1538,7 +1538,7 @@ code {
   font-size: 0.75rem;
   word-break: break-all;
   color: var(--color-dark);
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--color-slate-lighter);
   font-family: 'Monaco', 'Consolas', monospace;
   line-height: 1.6;
   max-height: 100px;
@@ -1569,7 +1569,7 @@ code {
 }
 
 .type-panel-body {
-  border-left: 1px solid var(--card-border-color);
+  border-left: 1px solid var(--color-border);
   margin-left: 32px;
   padding-left: 20px;
   padding-top: 6px;

@@ -334,7 +334,7 @@ function clearFilter() {
   justify-content: center;
   padding: 1.5rem;
   background-color: var(--color-light);
-  border: 1px solid var(--card-border-color);
+  border: 1px solid var(--color-border);
   font-size: 0.85rem;
   color: var(--color-text-muted);
 }
@@ -346,18 +346,18 @@ function clearFilter() {
 
 /* Modal styles */
 .modal-content {
-  border: 1px solid var(--card-border-color);
+  border: 1px solid var(--color-border);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .modal-header {
-  border-bottom: 1px solid var(--card-border-color);
+  border-bottom: 1px solid var(--color-border);
   background-color: var(--color-light);
   padding: 10px 16px;
 }
 
 .modal-footer {
-  border-top: 1px solid var(--card-border-color);
+  border-top: 1px solid var(--color-border);
   background-color: var(--color-light);
   padding: 8px 16px;
 }

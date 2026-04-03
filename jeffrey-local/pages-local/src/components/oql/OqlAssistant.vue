@@ -275,8 +275,8 @@ onMounted(async () => {
   width: 64px;
   height: 64px;
   border-radius: 50%;
-  background-color: #f3e8ff;
-  color: #7c3aed;
+  background-color: var(--color-violet-lighter-bg);
+  color: var(--color-violet-dark);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -306,7 +306,7 @@ onMounted(async () => {
   font-size: 0.8rem;
   padding: 0.625rem 1rem;
   background-color: var(--color-light);
-  border: 1px solid var(--card-border-color);
+  border: 1px solid var(--color-border);
   border-radius: 8px;
   color: var(--color-text);
   cursor: pointer;
@@ -315,9 +315,9 @@ onMounted(async () => {
 }
 
 .example-prompt:hover {
-  background-color: #f3e8ff;
-  border-color: #d8b4fe;
-  color: #7c3aed;
+  background-color: var(--color-violet-lighter-bg);
+  border-color: var(--color-violet-border);
+  color: var(--color-violet-dark);
 }
 
 /* Loading Message */
@@ -325,7 +325,7 @@ onMounted(async () => {
   display: flex;
   gap: 0.75rem;
   padding: 1rem;
-  background-color: #fff;
+  background-color: var(--bs-white);
 }
 
 .loading-message .message-avatar {
@@ -337,8 +337,8 @@ onMounted(async () => {
   align-items: center;
   justify-content: center;
   font-size: 0.9rem;
-  background-color: #f3e8ff;
-  color: #7c3aed;
+  background-color: var(--color-violet-lighter-bg);
+  color: var(--color-violet-dark);
 }
 
 /* Typing Indicator */
@@ -353,7 +353,7 @@ onMounted(async () => {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background-color: #c4b5fd;
+  background-color: var(--color-violet-border-light);
   animation: typing 1.4s infinite ease-in-out;
 }
 
@@ -386,10 +386,10 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   padding: 1rem;
-  background-color: #fff5f5;
-  color: #c53030;
+  background-color: var(--color-danger-bg-light);
+  color: var(--color-danger-dark);
   font-size: 0.875rem;
-  border-bottom: 1px solid #fed7d7;
+  border-bottom: 1px solid var(--color-danger-border-light);
 }
 
 /* Input Area */
@@ -403,7 +403,7 @@ onMounted(async () => {
 .message-input {
   flex: 1;
   padding: 0.75rem;
-  border: 1px solid var(--card-border-color);
+  border: 1px solid var(--color-border);
   border-radius: 8px;
   font-size: 0.875rem;
   resize: none;
@@ -415,12 +415,12 @@ onMounted(async () => {
 
 .message-input:focus {
   outline: none;
-  border-color: #7c3aed;
+  border-color: var(--color-violet-dark);
   box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
 }
 
 .message-input:disabled {
-  background-color: var(--card-border-color);
+  background-color: var(--color-border);
   cursor: not-allowed;
 }
 
@@ -430,8 +430,8 @@ onMounted(async () => {
   height: 44px;
   border: none;
   border-radius: 8px;
-  background-color: #7c3aed;
-  color: white;
+  background-color: var(--color-violet-dark);
+  color: var(--bs-white);
   cursor: pointer;
   transition: all 0.2s ease;
   display: flex;
@@ -440,11 +440,11 @@ onMounted(async () => {
 }
 
 .send-button:hover:not(:disabled) {
-  background-color: #6d28d9;
+  background-color: var(--color-violet-deeper);
 }
 
 .send-button:disabled {
-  background-color: #d1d5db;
+  background-color: var(--color-muted-separator);
   cursor: not-allowed;
 }
 </style>

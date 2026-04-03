@@ -343,7 +343,7 @@ const handleHidden = () => {
 <style scoped>
 /* Description card (inlined from BaseModal) */
 .modal-description-card {
-  background: linear-gradient(135deg, var(--color-light), #ffffff);
+  background: linear-gradient(135deg, var(--color-light), var(--bs-white));
   border: 1px solid rgba(94, 100, 255, 0.08);
   border-radius: 12px;
   padding: 0;
@@ -369,18 +369,18 @@ const handleHidden = () => {
 
 /* gRPC info callout */
 .grpc-info-callout {
-  background: linear-gradient(135deg, #f0fdfa, #ccfbf1);
+  background: linear-gradient(135deg, var(--color-teal-light), var(--color-teal-100));
   border: 1px solid rgba(56, 178, 172, 0.2);
   border-radius: 8px;
   padding: 10px 14px;
   font-size: 0.8rem;
-  color: #285e61;
+  color: var(--color-teal-800);
   display: flex;
   align-items: center;
 }
 
 .grpc-info-callout i {
-  color: #38b2ac;
+  color: var(--color-teal-600);
   font-size: 0.9rem;
 }
 
@@ -388,8 +388,8 @@ const handleHidden = () => {
 .hostname-input-group {
   border-radius: 0.25rem;
   overflow: hidden;
-  border: 1px solid #d8e2ef;
-  background: #ffffff;
+  border: 1px solid var(--color-border-input);
+  background: var(--bs-white);
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   flex-wrap: nowrap;
   height: calc(1.5em + 0.75rem + 2px);
@@ -403,7 +403,7 @@ const handleHidden = () => {
 .hostname-input-group .input-group-text {
   border: none;
   background: transparent;
-  color: #748194;
+  color: var(--color-text-muted);
   padding: 0 10px;
 }
 
@@ -456,7 +456,7 @@ const handleHidden = () => {
 }
 
 .remote-workspace-card {
-  background: linear-gradient(135deg, #f0fdfa, #ccfbf1);
+  background: linear-gradient(135deg, var(--color-teal-light), var(--color-teal-100));
   border: 2px solid rgba(56, 178, 172, 0.2);
   border-radius: 10px;
   padding: 12px;
@@ -475,8 +475,8 @@ const handleHidden = () => {
   }
 
   &.selected {
-    background: linear-gradient(135deg, #38b2ac, #319795);
-    border-color: #319795;
+    background: linear-gradient(135deg, var(--color-teal-600), var(--color-teal-700));
+    border-color: var(--color-teal-700);
     transform: translateY(-1px);
     box-shadow:
       0 6px 20px rgba(56, 178, 172, 0.3),
@@ -529,7 +529,7 @@ const handleHidden = () => {
 
 .selection-icon {
   font-size: 1rem;
-  color: #38b2ac;
+  color: var(--color-teal-600);
   transition: all 0.2s ease;
 }
 
@@ -552,21 +552,21 @@ const handleHidden = () => {
 
 .external-icon {
   font-size: 0.8rem;
-  color: #38b2ac;
+  color: var(--color-teal-600);
   opacity: 0.8;
 }
 
 .workspace-name {
   font-size: 0.9rem;
   font-weight: 600;
-  color: #234e52;
+  color: var(--color-teal-900);
   margin: 0;
   letter-spacing: 0.01em;
 }
 
 .workspace-card-description {
   font-size: 0.7rem;
-  color: #285e61;
+  color: var(--color-teal-800);
   line-height: 1.3;
   margin: 0;
   margin-left: 26px; /* Align with workspace name, accounting for icon + gap */
@@ -576,14 +576,14 @@ const handleHidden = () => {
 .btn-outline-info {
   background: linear-gradient(135deg, transparent, rgba(56, 178, 172, 0.05));
   border: 1px solid rgba(56, 178, 172, 0.3);
-  color: #38b2ac;
+  color: var(--color-teal-600);
   font-weight: 500;
   border-radius: 8px;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 
   &:hover:not(:disabled) {
-    background: linear-gradient(135deg, #38b2ac, #319795);
-    border-color: #319795;
+    background: linear-gradient(135deg, var(--color-teal-600), var(--color-teal-700));
+    border-color: var(--color-teal-700);
     color: white;
     transform: translateY(-1px);
     box-shadow: 0 2px 8px rgba(56, 178, 172, 0.2);
@@ -601,7 +601,7 @@ const handleHidden = () => {
 }
 
 .remote-workspaces-grid::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: var(--color-light);
   border-radius: 3px;
 }
 

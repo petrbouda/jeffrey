@@ -90,7 +90,7 @@ const handleHeaderClick = () => {
 <style scoped>
 /* Configuration Card Styling */
 .config-card {
-  background: linear-gradient(135deg, #ffffff, #fafbff);
+  background: linear-gradient(135deg, var(--bs-white), var(--color-blue-bg-light));
   border: 1px solid rgba(94, 100, 255, 0.08);
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
@@ -107,7 +107,7 @@ const handleHeaderClick = () => {
 
 .required-card {
   border-color: rgba(239, 68, 68, 0.12);
-  background: linear-gradient(135deg, #fefefe, #fef8f8);
+  background: linear-gradient(135deg, var(--bs-white), var(--color-danger-bg-subtle));
 }
 
 .required-card:hover {
@@ -116,7 +116,7 @@ const handleHeaderClick = () => {
 
 .optional-card {
   border-color: rgba(16, 185, 129, 0.12);
-  background: linear-gradient(135deg, #fefefe, #f0fdf4);
+  background: linear-gradient(135deg, var(--bs-white), var(--color-success-bg-light));
 }
 
 .optional-card:hover {
@@ -268,7 +268,7 @@ const handleHeaderClick = () => {
 
 .card-enabled {
   border-color: rgba(16, 185, 129, 0.3);
-  background: linear-gradient(135deg, #fefefe, #ecfdf5);
+  background: linear-gradient(135deg, var(--bs-white), var(--color-success-bg));
 }
 
 .card-collapsed {
@@ -312,7 +312,7 @@ const handleHeaderClick = () => {
 /* Blue Theme Styling */
 .theme-blue.required-card {
   border-color: rgba(2, 132, 199, 0.15);
-  background: linear-gradient(135deg, #fefefe, #f0f9ff);
+  background: linear-gradient(135deg, var(--bs-white), var(--color-blue-bg-lighter));
 }
 
 .theme-blue.required-card:hover {
@@ -329,17 +329,17 @@ const handleHeaderClick = () => {
 }
 
 .theme-blue.required-card .card-icon {
-  color: #0284c7;
+  color: var(--color-info-text);
 }
 
 .theme-blue.required-card .required-label {
-  background: linear-gradient(135deg, #0284c7, #0369a1);
+  background: linear-gradient(135deg, var(--color-info-text), var(--color-info-dark));
 }
 
 /* Yellow Theme Styling */
 .theme-yellow.required-card {
   border-color: rgba(245, 158, 11, 0.15);
-  background: linear-gradient(135deg, #fefefe, #fffbeb);
+  background: linear-gradient(135deg, var(--bs-white), var(--color-amber-bg));
 }
 
 .theme-yellow.required-card:hover {
@@ -356,10 +356,10 @@ const handleHeaderClick = () => {
 }
 
 .theme-yellow.required-card .card-icon {
-  color: #d97706;
+  color: var(--color-amber-highlight);
 }
 
 .theme-yellow.required-card .required-label {
-  background: linear-gradient(135deg, #f59e0b, #d97706);
+  background: linear-gradient(135deg, var(--color-amber), var(--color-amber-highlight));
 }
 </style>

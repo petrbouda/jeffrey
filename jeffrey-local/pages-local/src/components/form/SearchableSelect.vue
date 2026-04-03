@@ -17,11 +17,7 @@
       ></i>
     </div>
 
-    <div
-      v-if="isOpen"
-      class="searchable-select-dropdown"
-      ref="dropdownRef"
-    >
+    <div v-if="isOpen" class="searchable-select-dropdown" ref="dropdownRef">
       <div class="dropdown-search">
         <i class="bi bi-search"></i>
         <input
@@ -169,7 +165,7 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 8px;
   padding: 6px 14px;
-  border-radius: var(--radius-base, 6px);
+  border-radius: var(--bs-border-radius);
   border: 1px solid rgba(94, 100, 255, 0.2);
   background: var(--color-light);
   cursor: pointer;
@@ -177,17 +173,17 @@ onBeforeUnmount(() => {
   font-weight: 500;
   color: var(--color-dark);
   min-width: 200px;
-  transition: all var(--transition-fast, 0.15s) ease;
+  transition: all var(--transition-fast) ease;
 }
 
 .searchable-select-trigger:hover {
   border-color: rgba(94, 100, 255, 0.4);
-  background: var(--card-bg, #fff);
+  background: var(--color-bg-card);
 }
 
 .searchable-select-trigger.open {
   border-color: rgba(94, 100, 255, 0.4);
-  background: var(--card-bg, #fff);
+  background: var(--color-bg-card);
   box-shadow: 0 0 0 3px rgba(94, 100, 255, 0.08);
 }
 
@@ -216,24 +212,24 @@ onBeforeUnmount(() => {
   top: calc(100% + 4px);
   left: 0;
   min-width: 300px;
-  background: var(--card-bg, #fff);
-  border-radius: var(--radius-md, 8px);
-  border: 1px solid var(--card-border-color, #eaedf1);
-  box-shadow: var(--shadow-lg, 0 8px 24px rgba(0, 0, 0, 0.12));
-  z-index: var(--z-index-dropdown, 1000);
+  background: var(--color-bg-card);
+  border-radius: var(--bs-border-radius-lg);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-lg);
+  z-index: var(--z-dropdown);
   overflow: hidden;
 }
 
 .searchable-select-dropdown .dropdown-search {
   padding: 10px 12px;
-  border-bottom: 1px solid var(--card-border-color, #eaedf1);
+  border-bottom: 1px solid var(--color-border);
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
 .searchable-select-dropdown .dropdown-search i {
-  color: var(--color-text-muted, #748194);
+  color: var(--color-text-muted);
   font-size: 0.8rem;
 }
 
@@ -243,21 +239,21 @@ onBeforeUnmount(() => {
   padding: 0;
   border: none;
   outline: none;
-  font-family: var(--font-family-base, 'Poppins', sans-serif);
-  color: var(--color-dark, #0b1727);
+  font-family: var(--font-family-base);
+  color: var(--color-dark);
   background: transparent;
 }
 
 .searchable-select-dropdown .dropdown-search input::placeholder {
-  color: var(--color-text-muted, #748194);
+  color: var(--color-text-muted);
 }
 
 .searchable-select-dropdown .dropdown-hint {
   font-size: 0.65rem;
-  color: var(--color-text-muted, #748194);
+  color: var(--color-text-muted);
   padding: 4px 12px;
-  background: var(--color-light, #f9fafd);
-  border-bottom: 1px solid var(--card-border-color, #eaedf1);
+  background: var(--color-light);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .searchable-select-dropdown .dropdown-list {
@@ -270,7 +266,7 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  border-bottom: 1px solid var(--color-border-lighter, #edf2f9);
+  border-bottom: 1px solid var(--color-border-light);
   cursor: pointer;
   transition: background 0.1s;
 }
@@ -280,7 +276,7 @@ onBeforeUnmount(() => {
 }
 
 .searchable-select-dropdown .dropdown-item:hover {
-  background: var(--color-light, #f9fafd);
+  background: var(--color-light);
 }
 
 .searchable-select-dropdown .dropdown-item.active {
@@ -291,7 +287,7 @@ onBeforeUnmount(() => {
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  border: 2px solid var(--card-border-color, #eaedf1);
+  border: 2px solid var(--color-border);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -302,8 +298,8 @@ onBeforeUnmount(() => {
 }
 
 .searchable-select-dropdown .dropdown-item.active .item-check {
-  background: var(--color-primary, #5e64ff);
-  border-color: var(--color-primary, #5e64ff);
+  background: var(--color-primary);
+  border-color: var(--color-primary);
 }
 
 .searchable-select-dropdown .item-content {
@@ -314,18 +310,18 @@ onBeforeUnmount(() => {
 .searchable-select-dropdown .item-label {
   font-size: 0.8rem;
   font-weight: 500;
-  color: var(--color-dark, #0b1727);
+  color: var(--color-dark);
 }
 
 :deep(.highlight) {
-  color: var(--color-primary, #5e64ff);
+  color: var(--color-primary);
   font-weight: 700;
 }
 
 .searchable-select-dropdown .dropdown-empty {
   padding: 16px 12px;
   text-align: center;
-  color: var(--color-text-muted, #748194);
+  color: var(--color-text-muted);
   font-size: 0.8rem;
 }
 </style>

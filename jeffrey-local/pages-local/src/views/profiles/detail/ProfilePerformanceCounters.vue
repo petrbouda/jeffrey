@@ -536,7 +536,7 @@ onMounted(() => {
 }
 
 .expand-btn:hover {
-  color: var(--color-accent-blue);
+  color: var(--bs-blue);
 }
 
 .counter-category {
@@ -587,11 +587,11 @@ onMounted(() => {
 
 /* Custom badge colors */
 .bg-dark-green {
-  background-color: #006400; /* Dark green color */
+  background-color: var(--color-green-dark); /* Dark green color */
 }
 
 .bg-orange {
-  background-color: #ffa500; /* Orange color */
+  background-color: var(--bs-orange); /* Orange color */
 }
 
 /* Description icon style */
@@ -603,7 +603,7 @@ onMounted(() => {
 }
 
 .description-icon:hover {
-  color: var(--color-accent-blue);
+  color: var(--bs-blue);
 }
 
 /* Responsive adjustments */

@@ -189,7 +189,7 @@ const copyParameters = async () => {
   background: var(--color-light);
   padding: 1rem;
   border-radius: 8px;
-  border: 1px solid var(--card-border-color);
+  border: 1px solid var(--color-border);
 }
 
 .statement-metrics {
@@ -236,7 +236,7 @@ const copyParameters = async () => {
 .sql-container,
 .parameters-container {
   background: var(--color-light);
-  border: 1px solid var(--card-border-color);
+  border: 1px solid var(--color-border);
   border-radius: 6px;
   overflow: hidden;
 }
@@ -245,8 +245,8 @@ const copyParameters = async () => {
 .parameters-content {
   margin: 0;
   padding: 1rem;
-  background: #2d3748;
-  color: #e2e8f0;
+  background: var(--color-editor-surface);
+  color: var(--color-editor-text);
   font-size: 0.85rem;
   line-height: 1.4;
   white-space: pre-wrap;
@@ -261,7 +261,7 @@ const copyParameters = async () => {
   color: var(--color-text-muted);
   font-style: italic;
   background: var(--color-light);
-  border: 1px solid var(--card-border-color);
+  border: 1px solid var(--color-border);
   border-radius: 6px;
 }
 

@@ -330,31 +330,35 @@ const toggleSidebar = () => {
   gap: 8px;
   padding: 10px 16px;
   margin-bottom: 16px;
-  background: linear-gradient(135deg, #fffbeb, #fef3c7);
+  background: linear-gradient(135deg, var(--color-amber-bg), var(--color-amber-light));
   border: 1px solid rgba(245, 158, 11, 0.2);
   border-radius: 8px;
-  color: #92400e;
+  color: var(--color-amber-text);
   font-size: 0.85rem;
   font-weight: 500;
 }
 
 .blocked-banner i {
   font-size: 1rem;
-  color: #f59e0b;
+  color: var(--color-amber);
 }
 
 /* Sidebar Header - Light Tinted with Accent Border */
 .sidebar-header {
   padding: 1rem;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--color-border);
   border-left: 4px solid var(--color-primary);
-  background: linear-gradient(135deg, #f0f0ff, #e8e8ff);
+  background: linear-gradient(
+    135deg,
+    var(--color-indigo-lightest),
+    var(--color-indigo-lighter)
+  );
 }
 
 .project-name {
   font-size: 0.9375rem;
   font-weight: 600;
-  color: #111827;
+  color: var(--color-dark);
   margin: 0;
   white-space: nowrap;
   overflow: hidden;

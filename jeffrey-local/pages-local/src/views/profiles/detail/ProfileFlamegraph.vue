@@ -157,7 +157,7 @@
         <h5 class="card-title mb-0">Method Details</h5>
       </div>
       <div class="card-body p-0">
-        <div class="method-details p-3 border-bottom" v-if="selectedMethod">
+        <div class="method-details border-bottom" style="padding: 0.75rem" v-if="selectedMethod">
           <h6>{{ selectedMethod.name }}</h6>
           <div class="text-muted small mb-2">{{ selectedMethod.className }}</div>
 
@@ -181,7 +181,7 @@
           </div>
         </div>
 
-        <div class="p-3" v-else>
+        <div style="padding: 0.75rem" v-else>
           <p class="text-muted mb-0">Click on a frame in the flamegraph to view method details</p>
         </div>
 
@@ -390,24 +390,24 @@ const selectMethod = (method: any) => {
   height: 150px;
   background-image: linear-gradient(
     to right,
-    #ff9d9d,
-    #ff9d9d 20%,
-    #ffbf9d 20%,
-    #ffbf9d 25%,
-    #ffd19d 25%,
-    #ffd19d 30%,
-    #c9e7a5 30%,
-    #c9e7a5 40%,
-    #9dddff 40%,
-    #9dddff 50%,
-    #9db5ff 50%,
-    #9db5ff 60%,
-    #cc99ff 60%,
-    #cc99ff 70%,
-    #ff9dce 70%,
-    #ff9dce 85%,
-    #9dffee 85%,
-    #9dffee 100%
+    var(--flamegraph-color-red),
+    var(--flamegraph-color-red) 20%,
+    var(--flamegraph-color-orange) 20%,
+    var(--flamegraph-color-orange) 25%,
+    var(--flamegraph-color-peach) 25%,
+    var(--flamegraph-color-peach) 30%,
+    var(--flamegraph-color-green) 30%,
+    var(--flamegraph-color-green) 40%,
+    var(--flamegraph-color-cyan) 40%,
+    var(--flamegraph-color-cyan) 50%,
+    var(--flamegraph-color-blue) 50%,
+    var(--flamegraph-color-blue) 60%,
+    var(--flamegraph-color-purple) 60%,
+    var(--flamegraph-color-purple) 70%,
+    var(--flamegraph-color-pink) 70%,
+    var(--flamegraph-color-pink) 85%,
+    var(--flamegraph-color-teal) 85%,
+    var(--flamegraph-color-teal) 100%
   );
   border-radius: 4px;
   position: relative;
@@ -431,11 +431,11 @@ const selectMethod = (method: any) => {
 }
 
 .progress {
-  background-color: var(--card-border-color);
+  background-color: var(--color-border);
 }
 
 .progress-bar {
-  background-color: #3f51b5;
+  background-color: var(--color-indigo-text);
 }
 
 .status-icon {

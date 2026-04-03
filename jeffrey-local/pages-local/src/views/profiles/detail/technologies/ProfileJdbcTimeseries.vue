@@ -9,16 +9,10 @@
 
     <div v-else>
       <!-- Loading state -->
-      <div v-if="isLoading" class="p-4 text-center">
-        <div class="spinner-border" role="status">
-          <span class="visually-hidden">Loading...</span>
-        </div>
-      </div>
+      <LoadingState v-if="isLoading" />
 
       <!-- Error state -->
-      <div v-else-if="error" class="p-4 text-center">
-        <div class="alert alert-danger" role="alert">Error loading JDBC data: {{ error }}</div>
-      </div>
+      <ErrorState v-else-if="error" :message="error" />
 
       <!-- Dashboard content -->
       <div v-if="jdbcOverviewData" class="dashboard-container">
@@ -55,16 +49,19 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref } from 'vue';
+import { computed } from 'vue';
 import { useRoute } from 'vue-router';
 import JdbcOverviewStats from '@/components/jdbc/JdbcOverviewStats.vue';
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
 import ChartSection from '@/components/ChartSection.vue';
 import ProfileJdbcStatementClient from '@/services/api/ProfileJdbcStatementClient.ts';
 import JdbcOverviewData from '@/services/api/model/JdbcOverviewData.ts';
+import LoadingState from '@/components/LoadingState.vue';
+import ErrorState from '@/components/ErrorState.vue';
 import CustomDisabledFeatureAlert from '@/components/alerts/CustomDisabledFeatureAlert.vue';
 import FeatureType from '@/services/api/model/FeatureType';
 import AxisFormatType from '@/services/timeseries/AxisFormatType.ts';
+import { useTechnologyData } from '@/composables/useTechnologyData';
 
 // Define props
 interface Props {
@@ -77,11 +74,6 @@ const props = withDefaults(defineProps<Props>(), {
 
 const route = useRoute();
 
-// Reactive state
-const jdbcOverviewData = ref<JdbcOverviewData | null>(null);
-const isLoading = ref(true);
-const error = ref<string | null>(null);
-
 // Check if JDBC statements dashboard is disabled
 const isJdbcStatementsDisabled = computed(() => {
   return props.disabledFeatures.includes(FeatureType.JDBC_STATEMENTS_DASHBOARD);
@@ -90,31 +82,11 @@ const isJdbcStatementsDisabled = computed(() => {
 // Client initialization
 const client = new ProfileJdbcStatementClient(route.params.profileId as string);
 
-// Lifecycle methods
-const loadJdbcData = async () => {
-  try {
-    isLoading.value = true;
-    error.value = null;
-
-    // Load data from API
-    jdbcOverviewData.value = await client.getOverview();
-
-    // Wait for DOM updates
-    await nextTick();
-  } catch (err) {
-    error.value = err instanceof Error ? err.message : 'Unknown error occurred';
-    console.error('Error loading JDBC data:', err);
-  } finally {
-    isLoading.value = false;
-  }
-};
-
-onMounted(() => {
-  // Only load data if the feature is not disabled
-  if (!isJdbcStatementsDisabled.value) {
-    loadJdbcData();
-  }
-});
+const {
+  data: jdbcOverviewData,
+  isLoading,
+  error
+} = useTechnologyData<JdbcOverviewData>(() => client.getOverview(), isJdbcStatementsDisabled);
 </script>
 
 <style scoped>

@@ -234,7 +234,7 @@ const getMemoryPercentage = (used: number, total: number) => {
   background: var(--color-light);
   padding: 1rem;
   border-radius: 8px;
-  border: 1px solid var(--card-border-color);
+  border: 1px solid var(--color-border);
 }
 
 .pause-metrics {
@@ -284,7 +284,7 @@ const getMemoryPercentage = (used: number, total: number) => {
   background: var(--color-light);
   padding: 1rem;
   border-radius: 6px;
-  border: 1px solid var(--card-border-color);
+  border: 1px solid var(--color-border);
 }
 
 .gc-info-grid {

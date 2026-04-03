@@ -20,18 +20,10 @@
       </DetailBreadcrumb>
 
       <!-- Loading state -->
-      <div v-if="isLoading" class="p-4 text-center">
-        <div class="spinner-border" role="status">
-          <span class="visually-hidden">Loading...</span>
-        </div>
-      </div>
+      <LoadingState v-if="isLoading" />
 
       <!-- Error state -->
-      <div v-else-if="error" class="p-4 text-center">
-        <div class="alert alert-danger" role="alert">
-          Error loading JDBC statement groups: {{ error }}
-        </div>
-      </div>
+      <ErrorState v-else-if="error" :message="error" />
 
       <!-- Main content based on state -->
       <div v-if="!isLoading && !error">
@@ -131,6 +123,8 @@ import ProfileJdbcStatementClient from '@/services/api/ProfileJdbcStatementClien
 import JdbcOverviewData from '@/services/api/model/JdbcOverviewData.ts';
 import JdbcSlowStatement from '@/services/api/model/JdbcSlowStatement.ts';
 import JdbcGroup from '@/services/api/model/JdbcGroup.ts';
+import LoadingState from '@/components/LoadingState.vue';
+import ErrorState from '@/components/ErrorState.vue';
 import CustomDisabledFeatureAlert from '@/components/alerts/CustomDisabledFeatureAlert.vue';
 import FeatureType from '@/services/api/model/FeatureType';
 import AxisFormatType from '@/services/timeseries/AxisFormatType.ts';
@@ -272,7 +266,6 @@ const getSortedSlowStatements = () => {
   );
 };
 
-
 const showSqlModal = (statement: JdbcSlowStatement) => {
   selectedStatement.value = statement;
   showModal.value = true;
@@ -388,5 +381,4 @@ watch(
   min-height: 200px;
   font-size: 0.8rem;
 }
-
 </style>

@@ -9,16 +9,10 @@
 
     <div v-else>
       <!-- Loading state -->
-      <div v-if="isLoading" class="p-4 text-center">
-        <div class="spinner-border" role="status">
-          <span class="visually-hidden">Loading...</span>
-        </div>
-      </div>
+      <LoadingState v-if="isLoading" />
 
       <!-- Error state -->
-      <div v-else-if="error" class="p-4 text-center">
-        <div class="alert alert-danger" role="alert">Error loading JDBC data: {{ error }}</div>
-      </div>
+      <ErrorState v-else-if="error" :message="error" />
 
       <!-- Dashboard content -->
       <div v-if="jdbcOverviewData" class="dashboard-container">
@@ -50,7 +44,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref } from 'vue';
+import { computed, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import JdbcOverviewStats from '@/components/jdbc/JdbcOverviewStats.vue';
 import JdbcSlowestStatements from '@/components/jdbc/JdbcSlowestStatements.vue';
@@ -58,8 +52,11 @@ import JdbcStatementModal from '@/components/jdbc/JdbcStatementModal.vue';
 import ProfileJdbcStatementClient from '@/services/api/ProfileJdbcStatementClient.ts';
 import JdbcOverviewData from '@/services/api/model/JdbcOverviewData.ts';
 import JdbcSlowStatement from '@/services/api/model/JdbcSlowStatement.ts';
+import LoadingState from '@/components/LoadingState.vue';
+import ErrorState from '@/components/ErrorState.vue';
 import CustomDisabledFeatureAlert from '@/components/alerts/CustomDisabledFeatureAlert.vue';
 import FeatureType from '@/services/api/model/FeatureType';
+import { useTechnologyData } from '@/composables/useTechnologyData';
 
 // Define props
 interface Props {
@@ -73,9 +70,6 @@ const props = withDefaults(defineProps<Props>(), {
 const route = useRoute();
 
 // Reactive state
-const jdbcOverviewData = ref<JdbcOverviewData | null>(null);
-const isLoading = ref(true);
-const error = ref<string | null>(null);
 const selectedStatement = ref<JdbcSlowStatement | null>(null);
 const showModal = ref(false);
 
@@ -87,36 +81,16 @@ const isJdbcStatementsDisabled = computed(() => {
 // Client initialization
 const client = new ProfileJdbcStatementClient(route.params.profileId as string);
 
+const {
+  data: jdbcOverviewData,
+  isLoading,
+  error
+} = useTechnologyData<JdbcOverviewData>(() => client.getOverview(), isJdbcStatementsDisabled);
+
 const showSqlModal = (statement: JdbcSlowStatement) => {
   selectedStatement.value = statement;
   showModal.value = true;
 };
-
-// Lifecycle methods
-const loadJdbcData = async () => {
-  try {
-    isLoading.value = true;
-    error.value = null;
-
-    // Load data from API
-    jdbcOverviewData.value = await client.getOverview();
-
-    // Wait for DOM updates
-    await nextTick();
-  } catch (err) {
-    error.value = err instanceof Error ? err.message : 'Unknown error occurred';
-    console.error('Error loading JDBC data:', err);
-  } finally {
-    isLoading.value = false;
-  }
-};
-
-onMounted(() => {
-  // Only load data if the feature is not disabled
-  if (!isJdbcStatementsDisabled.value) {
-    loadJdbcData();
-  }
-});
 </script>
 
 <style scoped>

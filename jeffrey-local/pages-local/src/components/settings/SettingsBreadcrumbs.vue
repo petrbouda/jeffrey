@@ -41,10 +41,10 @@ defineProps<{
   align-items: center;
   gap: 6px;
   padding: 4px 10px;
-  border-radius: var(--radius-base, 6px);
-  font-size: var(--font-size-sm, 0.7rem);
+  border-radius: var(--bs-border-radius);
+  font-size: var(--font-size-sm);
   font-weight: 500;
-  color: var(--color-text-muted, #748194);
+  color: var(--color-text-muted);
   white-space: nowrap;
   transition: all 0.15s ease-in-out;
 }
@@ -61,8 +61,8 @@ defineProps<{
 }
 
 .breadcrumb-item:not(.active):hover {
-  background: var(--color-primary-light, rgba(94, 100, 255, 0.1));
-  color: var(--color-text, #5e6e82);
+  background: var(--color-primary-light);
+  color: var(--color-text);
 }
 
 .breadcrumb-item:not(.active):hover i {
@@ -70,10 +70,10 @@ defineProps<{
 }
 
 .breadcrumb-item.active {
-  color: var(--color-dark, #0b1727);
+  color: var(--color-dark);
   font-weight: 600;
   cursor: default;
-  background: var(--color-primary-light, rgba(94, 100, 255, 0.1));
+  background: var(--color-primary-light);
 }
 
 .breadcrumb-item.active i {
@@ -82,6 +82,6 @@ defineProps<{
 
 .breadcrumb-separator {
   font-size: 0.7rem;
-  color: var(--color-text-light, #b6c1d2);
+  color: var(--color-text-light);
 }
 </style>

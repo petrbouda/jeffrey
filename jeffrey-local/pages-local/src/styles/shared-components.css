@@ -4,22 +4,22 @@
    Modern Card Containers
    =========================================== */
 .main-card {
-  background: var(--card-bg);
-  border: 1px solid var(--card-border-color);
-  border-radius: var(--card-border-radius);
-  box-shadow: var(--card-shadow);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--bs-border-radius-lg);
+  box-shadow: var(--shadow-base);
   overflow: hidden;
 }
 
 .main-card-content {
-  padding: var(--card-body-padding);
+  padding: var(--spacing-5);
 }
 
 /* Card Header Variant */
 .main-card-header {
   background: var(--color-light);
-  border-bottom: 1px solid var(--card-border-color);
-  border-radius: var(--card-border-radius) var(--card-border-radius) 0 0;
+  border-bottom: 1px solid var(--color-border);
+  border-radius: var(--bs-border-radius-lg) var(--bs-border-radius-lg) 0 0;
   padding: 16px 24px;
   display: flex;
   align-items: center;
@@ -28,13 +28,13 @@
 
 .main-card-header-icon {
   font-size: 1.25rem;
-  color: var(--color-primary, #5e64ff);
+  color: var(--color-primary);
 }
 
 .main-card-header-title {
   font-size: 1rem;
   font-weight: 600;
-  color: var(--color-text, #1f2937);
+  color: var(--color-text);
   margin: 0;
 }
 
@@ -46,7 +46,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 12px 20px;
-  background: linear-gradient(135deg, var(--color-light), #ffffff);
+  background: linear-gradient(135deg, var(--color-light), var(--bs-white));
   border-bottom: 1px solid rgba(94, 100, 255, 0.08);
   gap: 12px;
 }
@@ -59,18 +59,18 @@
 
 .page-header-icon {
   font-size: 1.1rem;
-  color: var(--color-primary, #5e64ff);
+  color: var(--color-primary);
 }
 
 .page-header-title {
   font-size: 0.95rem;
   font-weight: 600;
-  color: var(--color-text, #374151);
+  color: var(--color-text);
 }
 
 .page-header-badge {
-  background: linear-gradient(135deg, #5e64ff, #4c52ff);
-  color: white;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-hover));
+  color: var(--bs-white);
   padding: 1px 8px;
   border-radius: 10px;
   font-size: 0.7rem;
@@ -84,8 +84,8 @@
 }
 
 .page-header-btn {
-  background: linear-gradient(135deg, #5e64ff, #4c52ff);
-  color: white;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-hover));
+  color: var(--bs-white);
   border: none;
   padding: 5px 12px;
   border-radius: 6px;
@@ -105,12 +105,12 @@
 }
 
 .page-filter-select {
-  background: #f3f4f6;
-  border: 1px solid #e5e7eb;
+  background: var(--color-light);
+  border: 1px solid var(--color-border);
   border-radius: 6px;
   padding: 4px 24px 4px 10px;
   font-size: 0.75rem;
-  color: #374151;
+  color: var(--color-text);
   cursor: pointer;
   height: 30px;
   transition: border-color 0.15s ease;
@@ -118,7 +118,7 @@
 }
 
 .page-filter-select:focus {
-  border-color: #5e64ff;
+  border-color: var(--color-primary);
   box-shadow: 0 0 0 2px rgba(94, 100, 255, 0.1);
   outline: none;
 }
@@ -126,8 +126,8 @@
 .page-search {
   display: flex;
   align-items: center;
-  background: #f3f4f6;
-  border: 1px solid #e5e7eb;
+  background: var(--color-light);
+  border: 1px solid var(--color-border);
   border-radius: 6px;
   padding: 4px 10px;
   width: 160px;
@@ -136,14 +136,14 @@
 }
 
 .page-search:focus-within {
-  border-color: #5e64ff;
+  border-color: var(--color-primary);
   box-shadow: 0 0 0 2px rgba(94, 100, 255, 0.1);
-  background: white;
+  background: var(--bs-white);
 }
 
 .page-search i {
   font-size: 0.7rem;
-  color: #9ca3af;
+  color: var(--color-text-light);
   margin-right: 6px;
 }
 
@@ -152,7 +152,7 @@
   outline: none;
   background: transparent;
   font-size: 0.75rem;
-  color: #374151;
+  color: var(--color-text);
   width: 100%;
 }
 
@@ -165,7 +165,7 @@
 
 /* Danger Zone Card Variant */
 .danger-card {
-  background: linear-gradient(135deg, #ffffff, #fff8f8);
+  background: linear-gradient(135deg, var(--bs-white), #fff8f8);
   border: 1px solid rgba(239, 68, 68, 0.12);
   border-radius: 16px;
   box-shadow:
@@ -174,7 +174,7 @@
 }
 
 .danger-card-header {
-  background: linear-gradient(135deg, #fef2f2, #ffffff);
+  background: linear-gradient(135deg, #fef2f2, var(--bs-white));
   border-bottom: 1px solid rgba(239, 68, 68, 0.12);
   border-radius: 16px 16px 0 0;
   padding: 16px 24px;
@@ -201,29 +201,29 @@
    =========================================== */
 .search-container {
   box-shadow: var(--search-shadow);
-  border: 1px solid var(--search-border-color);
-  border-radius: var(--input-border-radius);
+  border: 1px solid var(--color-border);
+  border-radius: var(--bs-border-radius-sm);
   overflow: hidden;
 }
 
 .search-container .input-group-text {
-  background-color: var(--input-bg);
+  background-color: var(--bs-white);
   border: none;
   padding: 0 0.6rem;
   display: flex;
   align-items: center;
-  height: var(--input-height-sm);
+  height: 32px;
 }
 
 .search-container .search-icon {
-  font-size: var(--input-font-size-sm);
+  font-size: 0.8rem;
   color: var(--color-text-muted);
 }
 
 .search-container .search-input {
   border: none;
-  font-size: var(--input-font-size-sm);
-  height: var(--input-height-sm);
+  font-size: 0.8rem;
+  height: 32px;
   padding: 0.25rem 0.6rem;
   line-height: 1.4;
 }
@@ -235,12 +235,12 @@
 
 .search-container .clear-btn {
   border: none;
-  background-color: var(--input-bg);
+  background-color: var(--bs-white);
   padding: 0 0.6rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  height: var(--input-height-sm);
+  height: 32px;
 }
 
 .search-container .clear-btn:hover {
@@ -257,22 +257,22 @@
 .compact-btn {
   padding: 0.25rem 0.6rem;
   font-size: 0.75rem;
-  height: var(--input-height-sm);
+  height: 32px;
   display: flex;
   align-items: center;
-  border: 1px solid var(--search-border-color);
+  border: 1px solid var(--color-border);
 }
 
 /* ===========================================
    Icon Info Button (single icon action button)
    =========================================== */
 .icon-info-btn {
-  border: 1px solid var(--search-border-color);
-  background-color: var(--input-bg);
+  border: 1px solid var(--color-border);
+  background-color: var(--bs-white);
   padding: 0 0.6rem;
   font-size: 0.9rem;
   color: var(--color-text-muted);
-  height: var(--input-height-sm);
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -318,7 +318,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: var(--toggle-bg-off);
+  background: var(--color-border);
   border-radius: var(--toggle-height);
   transition: background var(--transition-base);
 }
@@ -330,14 +330,14 @@
   width: var(--toggle-thumb-size);
   left: 2px;
   bottom: 2px;
-  background: var(--color-white);
+  background: var(--bs-white);
   border-radius: 50%;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
   transition: transform var(--transition-base);
 }
 
 .toggle-switch .toggle-input:checked + .toggle-slider {
-  background: var(--toggle-bg-on);
+  background: var(--color-primary);
 }
 
 .toggle-switch .toggle-input:checked + .toggle-slider:before {
@@ -356,7 +356,7 @@
 .setting-checkbox {
   width: 14px;
   height: 14px;
-  border: 1px solid var(--card-border-color);
+  border: 1px solid var(--color-border);
   border-radius: 3px;
   cursor: pointer;
   accent-color: var(--color-primary);
@@ -387,12 +387,12 @@
 }
 
 .loading-container .spinner-border {
-  color: var(--color-primary, #5e64ff);
+  color: var(--color-primary);
 }
 
 .loading-container p {
   margin-top: 0.5rem;
-  color: var(--color-text-muted, #6b7280);
+  color: var(--color-text-muted);
   font-size: 0.9rem;
 }
 
@@ -406,18 +406,18 @@
 
 .empty-state i {
   font-size: 3rem;
-  color: var(--color-text-muted, #9ca3af);
+  color: var(--color-text-muted);
   margin-bottom: 1rem;
 }
 
 .empty-state h5 {
-  color: var(--color-text, #374151);
+  color: var(--color-text);
   font-weight: 600;
   margin-bottom: 0.5rem;
 }
 
 .empty-state p {
-  color: var(--color-text-muted, #6b7280);
+  color: var(--color-text-muted);
   margin-bottom: 0;
 }
 
@@ -425,7 +425,7 @@
    Button Variants
    =========================================== */
 .btn-primary-gradient {
-  background: linear-gradient(135deg, #5e64ff, #4c52ff);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-hover));
   border: none;
   font-weight: 600;
   border-radius: 10px;
@@ -436,7 +436,7 @@
 }
 
 .btn-primary-gradient:hover {
-  background: linear-gradient(135deg, #4c52ff, #3f46ff);
+  background: linear-gradient(135deg, var(--color-primary-hover), #3f46ff);
   transform: translateY(-2px);
   box-shadow:
     0 6px 16px rgba(94, 100, 255, 0.4),
@@ -473,14 +473,14 @@
   border-radius: 0.125rem;
   padding: 0.25rem 0.5rem;
   font-size: 0.75rem;
-  color: var(--color-text, #495057);
-  border: 1px solid var(--color-border, #e9ecef);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
 }
 
 .param-key {
   font-weight: 600;
   margin-right: 0.25rem;
-  color: var(--color-text-muted, #6c757d);
+  color: var(--color-text-muted);
 }
 
 .param-value {
@@ -494,12 +494,12 @@
 }
 
 .disabled-job td {
-  color: #6c757d;
+  color: var(--color-text-muted);
 }
 
 .disabled-job .param-badge {
-  background-color: #f1f3f5;
-  border-color: #dee2e6;
+  background-color: var(--color-light);
+  border-color: var(--color-border);
 }
 
 /* Job icon color variants */
@@ -516,7 +516,7 @@
 }
 
 .text-blue {
-  color: #0d6efd;
+  color: var(--bs-blue);
 }
 
 .bg-purple-soft {
@@ -524,7 +524,7 @@
 }
 
 .text-purple {
-  color: #6f42c1;
+  color: var(--bs-purple);
 }
 
 .bg-orange-soft {
@@ -548,6 +548,120 @@
 }
 
 /* ===========================================
+   Feature Disabled Alert (amber warning variant)
+   Used by: CustomDisabledFeatureAlert, AiDisabledFeatureAlert,
+   ContainerNotAvailableAlert, TracingDisabledFeatureAlert,
+   PerformanceCountersNotAvailableAlert
+   =========================================== */
+.feature-disabled-state,
+.container-not-available-state,
+.performance-counters-not-available-state {
+  margin: 2rem;
+}
+
+.feature-disabled-state .alert,
+.container-not-available-state .alert,
+.performance-counters-not-available-state .alert {
+  border: 1px solid var(--color-warning-border);
+  border-left: 4px solid var(--color-amber);
+  background: linear-gradient(135deg, var(--color-amber-bg), var(--bs-white));
+}
+
+.feature-disabled-state .alert-heading,
+.container-not-available-state .alert-heading,
+.performance-counters-not-available-state .alert-heading {
+  color: var(--color-amber-text);
+  font-weight: 600;
+}
+
+.feature-disabled-state .feature-benefits ul,
+.feature-disabled-state .feature-benefits ol,
+.container-not-available-state .feature-benefits ul,
+.performance-counters-not-available-state .feature-benefits ul {
+  padding-left: 1.5rem;
+}
+
+.feature-disabled-state .feature-benefits li,
+.feature-disabled-state .next-steps li,
+.container-not-available-state .feature-benefits li,
+.container-not-available-state .next-steps li,
+.performance-counters-not-available-state .feature-benefits li,
+.performance-counters-not-available-state .next-steps li {
+  margin-bottom: 0.5rem;
+}
+
+.feature-disabled-state .next-steps ol,
+.container-not-available-state .next-steps ol,
+.performance-counters-not-available-state .next-steps ol {
+  padding-left: 1.5rem;
+}
+
+.feature-disabled-state .text-warning,
+.container-not-available-state .text-warning,
+.performance-counters-not-available-state .text-warning {
+  color: var(--color-amber-text) !important;
+}
+
+.feature-disabled-state pre,
+.container-not-available-state pre,
+.performance-counters-not-available-state pre {
+  font-size: 0.8rem;
+  border: 1px solid var(--color-border);
+}
+
+.feature-disabled-state code,
+.container-not-available-state code,
+.performance-counters-not-available-state code {
+  color: var(--color-text);
+}
+
+.feature-disabled-state a,
+.container-not-available-state a,
+.performance-counters-not-available-state a {
+  color: var(--bs-blue);
+}
+
+.feature-disabled-state a:hover,
+.container-not-available-state a:hover,
+.performance-counters-not-available-state a:hover {
+  color: var(--color-primary-hover);
+}
+
+.feature-disabled-state .automatic-note,
+.container-not-available-state .automatic-note,
+.performance-counters-not-available-state .automatic-note {
+  padding-left: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.feature-disabled-state .automatic-note small,
+.container-not-available-state .automatic-note small,
+.performance-counters-not-available-state .automatic-note small {
+  display: flex;
+  align-items: center;
+}
+
+.feature-disabled-state .example-link {
+  padding-left: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.feature-disabled-state .example-link small {
+  display: flex;
+  align-items: center;
+}
+
+.feature-disabled-state .example-link a {
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+}
+
+.feature-disabled-state .example-link a:hover {
+  text-decoration: underline !important;
+}
+
+/* ===========================================
    Error States
    =========================================== */
 .error-state {
@@ -557,19 +671,19 @@
 
 .error-state i {
   font-size: 3rem;
-  color: var(--color-warning, #ffc107);
+  color: var(--color-warning);
   margin-bottom: 1rem;
   display: block;
 }
 
 .error-state h5 {
-  color: var(--color-text, #374151);
+  color: var(--color-text);
   font-weight: 600;
   margin-bottom: 0.5rem;
 }
 
 .error-state p {
-  color: var(--color-text-muted, #6b7280);
+  color: var(--color-text-muted);
   margin-bottom: 1rem;
 }
 
@@ -588,38 +702,38 @@
 }
 
 .recording-group-header:hover {
-  background: #f3f4f6;
+  background: var(--color-light);
 }
 
 .recording-group-drop-target {
   background: rgba(94, 100, 255, 0.06);
-  outline: 2px dashed #5e64ff;
+  outline: 2px dashed var(--color-primary);
   outline-offset: -2px;
   border-radius: 6px;
 }
 
 .recording-group-drop-target .recording-group-name {
-  color: #5e64ff;
+  color: var(--color-primary);
 }
 
 .recording-group-chevron {
   font-size: 0.65rem;
-  color: #9ca3af;
+  color: var(--color-text-light);
   transition: transform 0.15s ease;
 }
 
 .recording-group-name {
   font-size: 0.75rem;
   font-weight: 600;
-  color: #374151;
+  color: var(--color-text);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
 
 .recording-group-count {
   font-size: 0.65rem;
-  color: #9ca3af;
-  background: #f3f4f6;
+  color: var(--color-text-light);
+  background: var(--color-light);
   padding: 0 6px;
   border-radius: 8px;
 }
@@ -627,7 +741,7 @@
 .recording-group-empty {
   padding: 8px 8px 8px 20px;
   font-size: 0.72rem;
-  color: #b6c1d2;
+  color: var(--color-text-light);
   font-style: italic;
 }
 
@@ -665,7 +779,7 @@
   border-radius: 4px;
   padding: 2px 6px;
   font-size: 0.7rem;
-  color: #9ca3af;
+  color: var(--color-text-light);
   cursor: pointer;
   transition: all 0.15s ease;
 }

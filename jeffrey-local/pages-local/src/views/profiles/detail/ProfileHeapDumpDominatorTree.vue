@@ -539,7 +539,7 @@ onMounted(() => {
 
 .field-name {
   font-size: 0.8rem;
-  color: var(--color-purple);
+  color: var(--bs-purple);
   font-style: italic;
   white-space: nowrap;
 }
@@ -558,7 +558,7 @@ onMounted(() => {
   display: inline-block;
   font-size: 0.65rem;
   font-weight: 600;
-  color: var(--color-accent-blue);
+  color: var(--bs-blue);
   background-color: rgba(13, 110, 253, 0.1);
   border: 1px solid rgba(13, 110, 253, 0.25);
   border-radius: 3px;
@@ -584,10 +584,10 @@ onMounted(() => {
 }
 
 .table-card {
-  background: var(--card-bg);
-  border: 1px solid var(--card-border-color);
-  border-radius: var(--card-border-radius);
-  box-shadow: var(--card-shadow);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--bs-border-radius-lg);
+  box-shadow: var(--shadow-base);
   overflow: hidden;
 }
 
@@ -599,14 +599,14 @@ onMounted(() => {
   text-transform: uppercase;
   letter-spacing: 0.3px;
   padding: 0.75rem;
-  border-bottom: 1px solid var(--card-border-color);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .table td {
   font-size: 0.8rem;
   padding: 0.6rem 0.75rem;
   vertical-align: middle;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--color-border-row);
 }
 
 .table tbody tr:hover {
@@ -634,7 +634,7 @@ onMounted(() => {
 
 .btn-expand:hover:not(:disabled) {
   background-color: rgba(111, 66, 193, 0.1);
-  color: var(--color-purple);
+  color: var(--bs-purple);
 }
 
 .btn-expand:disabled {
@@ -664,7 +664,7 @@ onMounted(() => {
   align-items: center;
   border: none;
   background: transparent;
-  color: var(--color-purple);
+  color: var(--bs-purple);
   font-size: 0.8rem;
   font-weight: 500;
   padding: 0.2rem 0.5rem;
@@ -682,7 +682,7 @@ onMounted(() => {
 }
 
 .progress {
-  background-color: var(--card-border-color);
+  background-color: var(--color-border);
 }
 
 .progress-bar {
@@ -695,6 +695,6 @@ onMounted(() => {
 
 /* Darker warning color for better readability */
 .text-warning {
-  color: var(--color-retained) !important;
+  color: var(--color-goldenrod) !important;
 }
 </style>

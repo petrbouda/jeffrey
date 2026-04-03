@@ -130,7 +130,7 @@ defineEmits(['update:show']);
   background: var(--color-light);
   padding: 1rem;
   border-radius: 8px;
-  border: 1px solid var(--card-border-color);
+  border: 1px solid var(--color-border);
 }
 
 .event-metrics {
@@ -176,7 +176,7 @@ defineEmits(['update:show']);
 
 .phases-table-container {
   background: var(--color-light);
-  border: 1px solid var(--card-border-color);
+  border: 1px solid var(--color-border);
   border-radius: 6px;
   overflow: hidden;
 }
@@ -186,12 +186,12 @@ defineEmits(['update:show']);
 }
 
 .phases-table-container .table thead th {
-  background-color: var(--card-border-color);
+  background-color: var(--color-border);
   font-weight: 600;
   color: var(--color-text);
   font-size: 0.8rem;
   padding: 0.75rem 0.5rem;
-  border-bottom: 1px solid var(--card-border-color);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .phases-table-container .table td {
@@ -210,7 +210,7 @@ defineEmits(['update:show']);
   color: var(--color-text-muted);
   font-style: italic;
   background: var(--color-light);
-  border: 1px solid var(--card-border-color);
+  border: 1px solid var(--color-border);
   border-radius: 6px;
 }
 

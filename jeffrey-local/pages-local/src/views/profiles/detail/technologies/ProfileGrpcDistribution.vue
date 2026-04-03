@@ -7,15 +7,9 @@
     />
 
     <div v-else>
-      <div v-if="isLoading" class="p-4 text-center">
-        <div class="spinner-border" role="status">
-          <span class="visually-hidden">Loading...</span>
-        </div>
-      </div>
+      <LoadingState v-if="isLoading" />
 
-      <div v-else-if="error" class="p-4 text-center">
-        <div class="alert alert-danger" role="alert">Error loading gRPC data: {{ error }}</div>
-      </div>
+      <ErrorState v-else-if="error" :message="error" />
 
       <div v-if="grpcOverviewData" class="dashboard-container">
         <GrpcOverviewStats :header="grpcOverviewData.header" />
@@ -37,14 +31,17 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref } from 'vue';
+import { computed } from 'vue';
 import { useRoute } from 'vue-router';
 import GrpcDistributionCharts from '@/components/grpc/GrpcDistributionCharts.vue';
 import ProfileGrpcClient from '@/services/api/ProfileGrpcClient';
 import type { GrpcOverviewData } from '@/services/api/ProfileGrpcClient';
 import GrpcOverviewStats from '@/components/grpc/GrpcOverviewStats.vue';
+import LoadingState from '@/components/LoadingState.vue';
+import ErrorState from '@/components/ErrorState.vue';
 import CustomDisabledFeatureAlert from '@/components/alerts/CustomDisabledFeatureAlert.vue';
 import FeatureType from '@/services/api/model/FeatureType';
+import { useTechnologyData } from '@/composables/useTechnologyData';
 
 interface Props {
   disabledFeatures?: FeatureType[];
@@ -55,9 +52,6 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const route = useRoute();
-const grpcOverviewData = ref<GrpcOverviewData | null>(null);
-const isLoading = ref(true);
-const error = ref<string | null>(null);
 
 const mode = (route.query.mode as 'client' | 'server') || 'server';
 
@@ -69,16 +63,9 @@ const isGrpcDashboardDisabled = computed(() => {
 
 const client = new ProfileGrpcClient(mode, route.params.profileId as string);
 
-onMounted(async () => {
-  if (isGrpcDashboardDisabled.value) return;
-  try {
-    isLoading.value = true;
-    grpcOverviewData.value = await client.getOverview();
-    await nextTick();
-  } catch (err) {
-    error.value = err instanceof Error ? err.message : 'Unknown error occurred';
-  } finally {
-    isLoading.value = false;
-  }
-});
+const {
+  data: grpcOverviewData,
+  isLoading,
+  error
+} = useTechnologyData<GrpcOverviewData>(() => client.getOverview(), isGrpcDashboardDisabled);
 </script>

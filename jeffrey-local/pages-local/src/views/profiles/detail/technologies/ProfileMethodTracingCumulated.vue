@@ -265,7 +265,7 @@ onMounted(() => {
 
 .segmented-control {
   display: inline-flex;
-  background: #f1f3f4;
+  background: var(--color-code-bg);
   border-radius: 8px;
   padding: 4px;
   gap: 4px;
@@ -281,19 +281,19 @@ onMounted(() => {
   border-radius: 6px;
   font-size: 0.85rem;
   font-weight: 500;
-  color: #5f6368;
+  color: var(--color-slate-text);
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .segmented-control .segment:hover:not(.active) {
   background: rgba(0, 0, 0, 0.04);
-  color: #202124;
+  color: var(--color-heading-dark);
 }
 
 .segmented-control .segment.active {
-  background: #fff;
-  color: #1a73e8;
+  background: var(--bs-white);
+  color: var(--bs-blue);
   box-shadow:
     0 1px 3px rgba(0, 0, 0, 0.1),
     0 1px 2px rgba(0, 0, 0, 0.06);
@@ -337,7 +337,7 @@ onMounted(() => {
   font-weight: 600;
   text-transform: uppercase;
   color: var(--color-text-muted);
-  border-bottom: 2px solid var(--card-border-color);
+  border-bottom: 2px solid var(--color-border);
   padding: 0.5rem 0.75rem;
 }
 

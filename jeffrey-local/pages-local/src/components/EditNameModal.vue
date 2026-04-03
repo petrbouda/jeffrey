@@ -83,7 +83,7 @@ onMounted(() => {
 <style scoped>
 .enm-input {
   width: 100%;
-  border: 1px solid var(--input-border-color);
+  border: 1px solid var(--color-border-input);
   border-radius: 6px;
   padding: 8px 12px;
   font-size: 0.8rem;
@@ -92,7 +92,7 @@ onMounted(() => {
 
 .enm-input:focus {
   outline: none;
-  border-color: var(--input-focus-border-color);
-  box-shadow: var(--input-focus-shadow);
+  border-color: var(--color-primary);
+  box-shadow: var(--focus-ring);
 }
 </style>

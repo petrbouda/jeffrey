@@ -72,7 +72,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed } from 'vue';
 import { useRoute } from 'vue-router';
 
 import DualPanel from '@/components/DualPanel.vue';
@@ -87,6 +87,7 @@ import FormattingService from '@/services/FormattingService';
 import ProfileMethodTracingClient from '@/services/api/ProfileMethodTracingClient';
 import type MethodTracingOverviewData from '@/services/api/model/MethodTracingOverviewData';
 import FeatureType from '@/services/api/model/FeatureType';
+import { useTechnologyData } from '@/composables/useTechnologyData';
 
 // Define props
 interface Props {
@@ -107,10 +108,14 @@ const isTracingDisabled = computed(() => {
   return props.disabledFeatures.includes(FeatureType.TRACING_DASHBOARD);
 });
 
-// State
-const loading = ref(true);
-const error = ref<string | null>(null);
-const overviewData = ref<MethodTracingOverviewData | null>(null);
+const client = new ProfileMethodTracingClient(profileId);
+
+const {
+  data: overviewData,
+  isLoading: loading,
+  error,
+  reload: loadData
+} = useTechnologyData<MethodTracingOverviewData>(() => client.getOverview(), isTracingDisabled);
 
 // Chart colors palette
 const CHART_COLORS = ['#5a9fd4', '#5cb85c', '#f0ad4e', '#d9534f', '#9b59b6', '#6c757d'];
@@ -156,29 +161,6 @@ function getShortMethodName(className: string, methodName: string): string {
   const shortClassName = classParts[classParts.length - 1];
   return methodName ? `${shortClassName}#${methodName}` : shortClassName;
 }
-
-// Load data
-async function loadData() {
-  loading.value = true;
-  error.value = null;
-
-  try {
-    const client = new ProfileMethodTracingClient(profileId);
-    overviewData.value = await client.getOverview();
-  } catch (e: unknown) {
-    console.error('Failed to load method tracing data:', e);
-    error.value = 'Failed to load method tracing data. Please try again.';
-  } finally {
-    loading.value = false;
-  }
-}
-
-onMounted(() => {
-  // Only load data if the feature is not disabled
-  if (!isTracingDisabled.value) {
-    loadData();
-  }
-});
 </script>
 
 <style scoped>

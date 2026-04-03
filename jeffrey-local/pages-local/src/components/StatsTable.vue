@@ -102,7 +102,7 @@ const getVariantColor = (variant?: string): string => {
 
 <style scoped>
 .stats-table-container {
-  background: #fff;
+  background: var(--bs-white);
   overflow: hidden;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
@@ -126,7 +126,7 @@ const getVariantColor = (variant?: string): string => {
   gap: 0.875rem;
   align-items: center;
   padding: 0.75rem 1rem;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--color-border-row);
   transition: background-color 0.2s ease;
 }
 
@@ -137,11 +137,11 @@ const getVariantColor = (variant?: string): string => {
 /* Large screen 2-column layout adjustments */
 @media (min-width: 1200px) {
   .stats-row {
-    border-right: 1px solid #f0f0f0;
+    border-right: 1px solid var(--color-border-row);
   }
 
   .stats-row:nth-child(odd) {
-    border-bottom: 1px solid #f0f0f0;
+    border-bottom: 1px solid var(--color-border-row);
   }
 
   .stats-row:nth-child(even) {
@@ -154,7 +154,7 @@ const getVariantColor = (variant?: string): string => {
 }
 
 .stats-row:hover {
-  background-color: var(--table-row-hover-bg);
+  background-color: var(--color-bg-hover);
 }
 
 /* Icon Column */
@@ -179,7 +179,7 @@ const getVariantColor = (variant?: string): string => {
 .stats-title {
   font-size: 0.7rem;
   font-weight: 600;
-  color: #666;
+  color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.4px;
   display: flex;
@@ -191,7 +191,7 @@ const getVariantColor = (variant?: string): string => {
 .stats-value {
   font-size: 1rem;
   font-weight: 700;
-  color: #111;
+  color: var(--color-dark);
   line-height: 1.1;
 }
 
@@ -216,7 +216,7 @@ const getVariantColor = (variant?: string): string => {
 .breakdown-label {
   font-size: 0.7rem;
   font-weight: 600;
-  color: #888;
+  color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.3px;
   line-height: 1.2;

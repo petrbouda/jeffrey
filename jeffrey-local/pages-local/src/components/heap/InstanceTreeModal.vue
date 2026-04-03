@@ -295,7 +295,7 @@ onMounted(() => {
   align-items: flex-start;
   padding: 0.75rem 1rem;
   background-color: var(--color-light);
-  border-bottom: 1px solid var(--card-border-color);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .header-content {
@@ -317,7 +317,7 @@ onMounted(() => {
 
 .class-name {
   font-size: 0.8rem;
-  color: var(--color-purple);
+  color: var(--bs-purple);
   background: transparent;
 }
 
@@ -333,9 +333,9 @@ onMounted(() => {
   width: 32px;
   height: 32px;
   padding: 0;
-  border: 1px solid var(--card-border-color);
+  border: 1px solid var(--color-border);
   border-radius: 6px;
-  background-color: #fff;
+  background-color: var(--bs-white);
   color: var(--color-text-muted);
   cursor: pointer;
   transition: all 0.15s ease-in-out;
@@ -344,7 +344,7 @@ onMounted(() => {
 .close-btn:hover {
   background-color: var(--color-danger);
   border-color: var(--color-danger);
-  color: #fff;
+  color: var(--bs-white);
 }
 
 .close-btn:focus {
@@ -388,7 +388,7 @@ onMounted(() => {
   align-items: center;
   padding: 0.5rem 1rem;
   background-color: var(--color-light);
-  border-bottom: 1px solid var(--card-border-color);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .tree-stats {
@@ -414,6 +414,6 @@ onMounted(() => {
 
 .modal-footer {
   padding: 0.75rem 1rem;
-  border-top: 1px solid var(--card-border-color);
+  border-top: 1px solid var(--color-border);
 }
 </style>

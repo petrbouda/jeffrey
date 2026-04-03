@@ -386,9 +386,9 @@ const handleApply = async () => {
 
 .preset-card {
   padding: 12px 14px;
-  border: 1px solid var(--card-border-color);
-  border-radius: var(--card-border-radius);
-  background: var(--card-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--bs-border-radius-lg);
+  background: var(--color-bg-card);
   cursor: pointer;
   transition: all var(--transition-fast);
 }
@@ -405,7 +405,7 @@ const handleApply = async () => {
 .preset-card-title {
   font-size: 0.82rem;
   font-weight: 600;
-  color: var(--color-text, #1a202c);
+  color: var(--color-text);
   display: flex;
   align-items: center;
   gap: 6px;
@@ -425,13 +425,13 @@ const handleApply = async () => {
 
 .preset-card-desc {
   font-size: 0.72rem;
-  color: var(--color-text-muted, #64748b);
+  color: var(--color-text-muted);
   margin-top: 6px;
 }
 
 .preset-card-count {
   font-size: 0.68rem;
-  color: var(--color-text-light, #94a3b8);
+  color: var(--color-text-light);
   margin-top: 3px;
 }
 
@@ -440,9 +440,9 @@ const handleApply = async () => {
   align-items: center;
   gap: 10px;
   padding: 8px 12px;
-  border: 1px solid var(--card-border-color);
-  border-radius: var(--card-border-radius);
-  background: var(--card-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--bs-border-radius-lg);
+  background: var(--color-bg-card);
 }
 
 .sample-card:hover {
@@ -451,7 +451,7 @@ const handleApply = async () => {
 
 .sample-original {
   font-size: 0.82rem;
-  color: #b02a37;
+  color: var(--color-danger-dark);
   background: rgba(220, 53, 69, 0.08);
   padding: 2px 8px;
   border-radius: 4px;

@@ -50,7 +50,7 @@ defineEmits<{
 
 <style scoped>
 .profiler-selection-card {
-  background: linear-gradient(135deg, #ffffff, #fafbff);
+  background: linear-gradient(135deg, var(--bs-white), var(--color-blue-bg-light));
   border: 2px solid rgba(94, 100, 255, 0.15);
   border-radius: 10px;
   padding: 14px;
@@ -68,7 +68,7 @@ defineEmits<{
 }
 
 .profiler-selection-card.selected {
-  background: linear-gradient(135deg, #f3f4ff, #e8eaf6);
+  background: linear-gradient(135deg, var(--color-violet-light-bg), var(--color-indigo-bg));
   border-color: var(--color-primary);
   box-shadow: 0 4px 16px rgba(94, 100, 255, 0.2);
 }
@@ -119,7 +119,7 @@ defineEmits<{
 }
 
 .badge-custom {
-  background: linear-gradient(135deg, var(--color-primary), #4c52ff);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-hover));
   color: white;
 }
 
@@ -152,7 +152,7 @@ defineEmits<{
 }
 
 .delete-button:hover {
-  background: linear-gradient(135deg, var(--color-danger-hover), #b91c1c);
+  background: linear-gradient(135deg, var(--color-danger-hover), var(--color-danger-dark));
   transform: scale(1.05);
 }
 

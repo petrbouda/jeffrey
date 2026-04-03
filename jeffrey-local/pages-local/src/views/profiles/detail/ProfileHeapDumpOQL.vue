@@ -649,7 +649,7 @@ onMounted(() => {
 /* Examples Card */
 .examples-card {
   background: white;
-  border: 1px solid var(--card-border-color);
+  border: 1px solid var(--color-border);
   overflow: hidden;
 }
 
@@ -659,11 +659,11 @@ onMounted(() => {
   align-items: center;
   padding: 0.75rem 1rem;
   background-color: var(--color-light);
-  border-bottom: 1px solid var(--card-border-color);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .examples-header h6 {
-  color: var(--color-purple);
+  color: var(--bs-purple);
   font-size: 0.875rem;
   font-weight: 600;
 }
@@ -682,11 +682,11 @@ onMounted(() => {
   grid-column: 1 / -1;
   font-size: 0.7rem;
   font-weight: 700;
-  color: var(--color-purple);
+  color: var(--bs-purple);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   padding: 0.5rem 0.5rem 0.25rem;
-  border-bottom: 1px solid var(--card-border-color);
+  border-bottom: 1px solid var(--color-border);
   margin-top: 0.25rem;
 }
 
@@ -696,14 +696,14 @@ onMounted(() => {
 
 .example-item {
   padding: 0.5rem 0.75rem;
-  border: 1px solid var(--card-border-color);
+  border: 1px solid var(--color-border);
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .example-item:hover {
   background-color: var(--color-light);
-  border-color: var(--color-purple);
+  border-color: var(--bs-purple);
 }
 
 .example-title {
@@ -727,7 +727,7 @@ onMounted(() => {
 /* Query Editor - Compact Design */
 .query-editor {
   background: white;
-  border: 1px solid var(--card-border-color);
+  border: 1px solid var(--color-border);
   overflow: hidden;
 }
 
@@ -735,7 +735,7 @@ onMounted(() => {
   width: 100%;
   padding: 1rem 1.25rem;
   border: none;
-  border-bottom: 1px solid var(--card-border-color);
+  border-bottom: 1px solid var(--color-border);
   background-color: var(--color-light);
   font-family: var(--font-family-base);
   font-size: 0.875rem;
@@ -752,8 +752,8 @@ onMounted(() => {
 
 .query-input:focus {
   outline: none;
-  background-color: #fff;
-  border-bottom: 2px solid #4285f4;
+  background-color: var(--bs-white);
+  border-bottom: 2px solid var(--color-blue-500);
 }
 
 .query-toolbar {
@@ -761,7 +761,7 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 0.5rem 1rem;
-  background-color: #fff;
+  background-color: var(--bs-white);
 }
 
 .query-toolbar .btn {
@@ -775,7 +775,7 @@ onMounted(() => {
 .toolbar-divider {
   width: 1px;
   height: 20px;
-  background-color: var(--card-border-color);
+  background-color: var(--color-border);
   margin: 0 0.25rem;
 }
 
@@ -785,10 +785,10 @@ onMounted(() => {
 
 /* Table Card */
 .table-card {
-  background: var(--card-bg);
-  border: 1px solid var(--card-border-color);
-  border-radius: var(--card-border-radius);
-  box-shadow: var(--card-shadow);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--bs-border-radius-lg);
+  box-shadow: var(--shadow-base);
   overflow: hidden;
 }
 
@@ -798,7 +798,7 @@ onMounted(() => {
   align-items: center;
   padding: 0.5rem 1rem;
   background-color: var(--color-light);
-  border-bottom: 1px solid var(--card-border-color);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .results-info {
@@ -821,7 +821,7 @@ onMounted(() => {
   font-size: 0.75rem;
   font-weight: 500;
   color: var(--color-text-muted);
-  background-color: var(--card-border-color);
+  background-color: var(--color-border);
   padding: 0.125rem 0.5rem;
 }
 
@@ -830,8 +830,8 @@ onMounted(() => {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  color: #856404;
-  background-color: #fff3cd;
+  color: var(--color-warning-text);
+  background-color: var(--color-warning-bg);
   padding: 0.125rem 0.375rem;
 }
 
@@ -855,14 +855,14 @@ onMounted(() => {
   text-transform: uppercase;
   letter-spacing: 0.3px;
   padding: 0.75rem;
-  border-bottom: 1px solid var(--card-border-color);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .table td {
   font-size: 0.8rem;
   padding: 0.6rem 0.75rem;
   vertical-align: middle;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--color-border-row);
 }
 
 .table tbody tr:hover {
@@ -876,7 +876,7 @@ onMounted(() => {
 .class-name {
   font-size: 0.8rem;
   font-weight: 500;
-  color: var(--color-purple);
+  color: var(--bs-purple);
   word-break: break-all;
   line-height: 1.4;
 }
@@ -895,7 +895,7 @@ onMounted(() => {
 
 .empty-state {
   background: white;
-  border: 1px solid var(--card-border-color);
+  border: 1px solid var(--color-border);
 }
 
 .empty-state .btn-ai-assistant {
@@ -914,31 +914,36 @@ onMounted(() => {
 }
 
 .btn-purple {
-  background-color: var(--color-purple);
-  border-color: var(--color-purple);
+  background-color: var(--bs-purple);
+  border-color: var(--bs-purple);
   color: white;
 }
 
 .btn-purple:hover {
-  background-color: #5a32a3;
-  border-color: #5a32a3;
+  background-color: var(--color-purple-hover);
+  border-color: var(--color-purple-hover);
   color: white;
 }
 
 .btn-outline-purple {
-  border-color: var(--color-purple);
-  color: var(--color-purple);
+  border-color: var(--bs-purple);
+  color: var(--bs-purple);
 }
 
 .btn-outline-purple:hover {
-  background-color: var(--color-purple);
-  border-color: var(--color-purple);
+  background-color: var(--bs-purple);
+  border-color: var(--bs-purple);
   color: white;
 }
 
 /* AI Assistant Button - Eye-catching design */
 .btn-ai-assistant {
-  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 50%, #6d28d9 100%);
+  background: linear-gradient(
+    135deg,
+    var(--color-violet) 0%,
+    var(--color-violet-dark) 50%,
+    var(--color-violet-deeper) 100%
+  );
   border: none;
   color: white;
   font-weight: 500;
@@ -966,7 +971,12 @@ onMounted(() => {
 }
 
 .btn-ai-assistant:hover {
-  background: linear-gradient(135deg, #a78bfa 0%, #8b5cf6 50%, #7c3aed 100%);
+  background: linear-gradient(
+    135deg,
+    var(--color-violet-border-light) 0%,
+    var(--color-violet) 50%,
+    var(--color-violet-dark) 100%
+  );
   box-shadow: 0 4px 16px rgba(124, 58, 237, 0.5);
   transform: translateY(-1px);
   color: white;
@@ -1012,8 +1022,13 @@ onMounted(() => {
 /* AI Configuration Panel - Attractive Design */
 .ai-config-panel {
   position: relative;
-  background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 50%, #ede9fe 100%);
-  border: 1px solid #e9d5ff;
+  background: linear-gradient(
+    135deg,
+    var(--color-violet-light-bg) 0%,
+    var(--color-violet-lighter-bg) 50%,
+    var(--color-violet-lightest-bg) 100%
+  );
+  border: 1px solid var(--color-violet-border);
   border-radius: 12px;
   padding: 1.5rem 2rem;
   margin-top: 1rem;
@@ -1030,9 +1045,9 @@ onMounted(() => {
   top: 0.75rem;
   right: 0.75rem;
   padding: 0.375rem 0.75rem;
-  border: 1px solid #c4b5fd;
+  border: 1px solid var(--color-violet-border-light);
   background: white;
-  color: #7c3aed;
+  color: var(--color-violet-dark);
   border-radius: 6px;
   cursor: pointer;
   display: flex;
@@ -1046,9 +1061,9 @@ onMounted(() => {
 }
 
 .ai-config-toggle:hover {
-  background: #f5f3ff;
-  border-color: #a78bfa;
-  color: #6d28d9;
+  background: var(--color-violet-hover-bg);
+  border-color: var(--color-violet-border-light);
+  color: var(--color-violet-deeper);
   box-shadow: 0 2px 6px rgba(124, 58, 237, 0.15);
 }
 
@@ -1067,7 +1082,7 @@ onMounted(() => {
 .ai-config-minimized-icon {
   width: 32px;
   height: 32px;
-  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  background: linear-gradient(135deg, var(--color-violet) 0%, var(--color-violet-dark) 100%);
   border-radius: 8px;
   display: flex;
   align-items: center;
@@ -1084,7 +1099,7 @@ onMounted(() => {
 .ai-config-minimized-text {
   font-size: 0.85rem;
   font-weight: 500;
-  color: #6d28d9;
+  color: var(--color-violet-deeper);
 }
 
 .ai-config-content {
@@ -1099,7 +1114,12 @@ onMounted(() => {
 .ai-config-icon {
   width: 64px;
   height: 64px;
-  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 50%, #6d28d9 100%);
+  background: linear-gradient(
+    135deg,
+    var(--color-violet) 0%,
+    var(--color-violet-dark) 50%,
+    var(--color-violet-deeper) 100%
+  );
   border-radius: 16px;
   display: flex;
   align-items: center;
@@ -1122,7 +1142,7 @@ onMounted(() => {
 .ai-config-title {
   font-size: 1.125rem;
   font-weight: 700;
-  color: #5b21b6;
+  color: var(--color-violet-darkest);
   margin-bottom: 0.5rem;
 }
 
@@ -1161,12 +1181,12 @@ onMounted(() => {
   align-items: center;
   gap: 0.5rem;
   font-size: 0.8rem;
-  color: #7c3aed;
+  color: var(--color-violet-dark);
   background: white;
   padding: 0.5rem 1rem;
   border-radius: 20px;
   box-shadow: 0 2px 8px rgba(124, 58, 237, 0.1);
-  border: 1px solid #e9d5ff;
+  border: 1px solid var(--color-violet-border);
 }
 
 .ai-feature i {
@@ -1184,7 +1204,7 @@ onMounted(() => {
 
 .config-section {
   background: white;
-  border: 1px solid #e9d5ff;
+  border: 1px solid var(--color-violet-border);
   border-radius: 8px;
   padding: 1rem 1.25rem;
   min-width: 280px;
@@ -1195,7 +1215,7 @@ onMounted(() => {
 .config-section-title {
   font-size: 0.75rem;
   font-weight: 600;
-  color: #7c3aed;
+  color: var(--color-violet-dark);
   margin-bottom: 0.75rem;
   display: flex;
   align-items: center;
@@ -1211,14 +1231,14 @@ onMounted(() => {
   display: block;
   font-size: 0.75rem;
   color: var(--color-text);
-  background: #f8f5ff;
+  background: var(--color-violet-light-bg);
   padding: 0.375rem 0.625rem;
   border-radius: 4px;
-  border: 1px solid #ede9fe;
+  border: 1px solid var(--color-violet-lightest-bg);
 }
 
 .config-code .code-value {
-  color: #7c3aed;
+  color: var(--color-violet-dark);
   font-weight: 600;
 }
 
@@ -1229,7 +1249,7 @@ onMounted(() => {
 }
 
 .config-hint-text a {
-  color: #7c3aed;
+  color: var(--color-violet-dark);
   text-decoration: none;
   font-weight: 500;
 }
@@ -1258,7 +1278,7 @@ onMounted(() => {
 .circle-1 {
   width: 200px;
   height: 200px;
-  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+  background: linear-gradient(135deg, var(--color-violet), var(--color-violet-dark));
   top: -80px;
   right: -60px;
   animation: float 8s ease-in-out infinite;
@@ -1267,7 +1287,7 @@ onMounted(() => {
 .circle-2 {
   width: 120px;
   height: 120px;
-  background: linear-gradient(135deg, #a78bfa, #8b5cf6);
+  background: linear-gradient(135deg, var(--color-violet-border-light), var(--color-violet));
   bottom: -40px;
   left: -30px;
   animation: float 6s ease-in-out infinite reverse;
@@ -1276,7 +1296,11 @@ onMounted(() => {
 .circle-3 {
   width: 80px;
   height: 80px;
-  background: linear-gradient(135deg, #c4b5fd, #a78bfa);
+  background: linear-gradient(
+    135deg,
+    var(--color-violet-border-light),
+    var(--color-violet-border-light)
+  );
   top: 50%;
   left: 15%;
   animation: float 10s ease-in-out infinite;

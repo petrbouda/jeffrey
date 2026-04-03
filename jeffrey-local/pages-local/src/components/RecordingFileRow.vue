@@ -208,7 +208,7 @@ const formatTimestamp = (millis: number | null | undefined): string => {
 /* HEAP_DUMP file styling - purple theme */
 .recording-file-row.file-type-heap-dump {
   background-color: rgba(111, 66, 193, 0.08);
-  border-left: 3px solid #6f42c1;
+  border-left: 3px solid var(--bs-purple);
   border-top: 1px solid rgba(111, 66, 193, 0.2);
   border-right: 1px solid rgba(111, 66, 193, 0.2);
   border-bottom: 1px solid rgba(111, 66, 193, 0.2);
@@ -221,13 +221,13 @@ const formatTimestamp = (millis: number | null | undefined): string => {
 
 .recording-file-row.file-type-heap-dump .recording-file-icon-medium {
   background-color: rgba(111, 66, 193, 0.15);
-  color: var(--color-purple);
+  color: var(--bs-purple);
 }
 
 /* HEAP_DUMP_GZ file styling - deeper purple/violet theme */
 .recording-file-row.file-type-heap-dump-gz {
   background-color: rgba(81, 45, 168, 0.08);
-  border-left: 3px solid #512da8;
+  border-left: 3px solid var(--color-violet-text);
   border-top: 1px solid rgba(81, 45, 168, 0.2);
   border-right: 1px solid rgba(81, 45, 168, 0.2);
   border-bottom: 1px solid rgba(81, 45, 168, 0.2);
@@ -240,13 +240,13 @@ const formatTimestamp = (millis: number | null | undefined): string => {
 
 .recording-file-row.file-type-heap-dump-gz .recording-file-icon-medium {
   background-color: rgba(81, 45, 168, 0.15);
-  color: #512da8;
+  color: var(--color-violet-text);
 }
 
 /* PERF_COUNTERS file styling - sky blue theme */
 .recording-file-row.file-type-perf-counters {
   background-color: rgba(14, 165, 233, 0.08);
-  border-left: 3px solid #0ea5e9;
+  border-left: 3px solid var(--color-sky);
   border-top: 1px solid rgba(14, 165, 233, 0.2);
   border-right: 1px solid rgba(14, 165, 233, 0.2);
   border-bottom: 1px solid rgba(14, 165, 233, 0.2);
@@ -259,13 +259,13 @@ const formatTimestamp = (millis: number | null | undefined): string => {
 
 .recording-file-row.file-type-perf-counters .recording-file-icon-medium {
   background-color: rgba(14, 165, 233, 0.15);
-  color: #0ea5e9;
+  color: var(--color-sky);
 }
 
 /* JVM_LOG file styling - green theme */
 .recording-file-row.file-type-jvm-log {
   background-color: rgba(22, 163, 74, 0.08);
-  border-left: 3px solid #16a34a;
+  border-left: 3px solid var(--color-green-accent);
   border-top: 1px solid rgba(22, 163, 74, 0.2);
   border-right: 1px solid rgba(22, 163, 74, 0.2);
   border-bottom: 1px solid rgba(22, 163, 74, 0.2);
@@ -278,13 +278,13 @@ const formatTimestamp = (millis: number | null | undefined): string => {
 
 .recording-file-row.file-type-jvm-log .recording-file-icon-medium {
   background-color: rgba(22, 163, 74, 0.15);
-  color: #16a34a;
+  color: var(--color-green-accent);
 }
 
 /* APP_LOG file styling - brown theme */
 .recording-file-row.file-type-app-log {
   background-color: rgba(120, 53, 15, 0.08);
-  border-left: 3px solid #78350f;
+  border-left: 3px solid var(--color-amber-dark);
   border-top: 1px solid rgba(120, 53, 15, 0.2);
   border-right: 1px solid rgba(120, 53, 15, 0.2);
   border-bottom: 1px solid rgba(120, 53, 15, 0.2);
@@ -297,13 +297,13 @@ const formatTimestamp = (millis: number | null | undefined): string => {
 
 .recording-file-row.file-type-app-log .recording-file-icon-medium {
   background-color: rgba(120, 53, 15, 0.15);
-  color: #78350f;
+  color: var(--color-amber-dark);
 }
 
 /* HS_JVM_ERROR_LOG file styling - red theme */
 .recording-file-row.file-type-hs-jvm-error-log {
   background-color: rgba(198, 40, 40, 0.08);
-  border-left: 3px solid #c62828;
+  border-left: 3px solid var(--color-red-text);
   border-top: 1px solid rgba(198, 40, 40, 0.2);
   border-right: 1px solid rgba(198, 40, 40, 0.2);
   border-bottom: 1px solid rgba(198, 40, 40, 0.2);
@@ -316,13 +316,13 @@ const formatTimestamp = (millis: number | null | undefined): string => {
 
 .recording-file-row.file-type-hs-jvm-error-log .recording-file-icon-medium {
   background-color: rgba(198, 40, 40, 0.15);
-  color: #c62828;
+  color: var(--color-red-text);
 }
 
 /* ASPROF_TEMP file styling - orange theme with dashed border */
 .recording-file-row.file-type-asprof-temp {
   background-color: rgba(255, 142, 51, 0.08);
-  border-left: 3px solid #ff8e33;
+  border-left: 3px solid var(--color-orange-accent);
   border-top: 1px dashed rgba(255, 142, 51, 0.4);
   border-right: 1px dashed rgba(255, 142, 51, 0.4);
   border-bottom: 1px dashed rgba(255, 142, 51, 0.4);
@@ -335,13 +335,13 @@ const formatTimestamp = (millis: number | null | undefined): string => {
 
 .recording-file-row.file-type-asprof-temp .recording-file-icon-medium {
   background-color: rgba(255, 142, 51, 0.15);
-  color: #ff8e33;
+  color: var(--color-orange-accent);
 }
 
 /* ACTIVE status styling - orange theme, overrides file-type */
 .recording-file-row.status-active {
   background-color: rgba(255, 142, 51, 0.08);
-  border-left: 3px solid #ff8e33;
+  border-left: 3px solid var(--color-orange-accent);
   border-top: 1px solid rgba(255, 142, 51, 0.25);
   border-right: 1px solid rgba(255, 142, 51, 0.25);
   border-bottom: 1px solid rgba(255, 142, 51, 0.25);
@@ -355,13 +355,13 @@ const formatTimestamp = (millis: number | null | undefined): string => {
 
 .recording-file-row.status-active .recording-file-icon-medium {
   background-color: rgba(255, 142, 51, 0.15);
-  color: #ff8e33;
+  color: var(--color-orange-accent);
 }
 
 /* UNKNOWN file styling - gray theme */
 .recording-file-row.file-type-unknown {
   background-color: rgba(108, 117, 125, 0.08);
-  border-left: 3px solid #6c757d;
+  border-left: 3px solid var(--bs-gray-600);
   border-top: 1px solid rgba(108, 117, 125, 0.2);
   border-right: 1px solid rgba(108, 117, 125, 0.2);
   border-bottom: 1px solid rgba(108, 117, 125, 0.2);
@@ -410,42 +410,42 @@ const formatTimestamp = (millis: number | null | undefined): string => {
 
 .recording-file-row.file-type-heap-dump .recording-file-icon-small {
   background-color: rgba(111, 66, 193, 0.15);
-  color: var(--color-purple);
+  color: var(--bs-purple);
 }
 
 .recording-file-row.file-type-heap-dump-gz .recording-file-icon-small {
   background-color: rgba(81, 45, 168, 0.15);
-  color: #512da8;
+  color: var(--color-violet-text);
 }
 
 .recording-file-row.file-type-perf-counters .recording-file-icon-small {
   background-color: rgba(14, 165, 233, 0.15);
-  color: #0ea5e9;
+  color: var(--color-sky);
 }
 
 .recording-file-row.file-type-jvm-log .recording-file-icon-small {
   background-color: rgba(22, 163, 74, 0.15);
-  color: #16a34a;
+  color: var(--color-green-accent);
 }
 
 .recording-file-row.file-type-app-log .recording-file-icon-small {
   background-color: rgba(120, 53, 15, 0.15);
-  color: #78350f;
+  color: var(--color-amber-dark);
 }
 
 .recording-file-row.file-type-hs-jvm-error-log .recording-file-icon-small {
   background-color: rgba(198, 40, 40, 0.15);
-  color: #c62828;
+  color: var(--color-red-text);
 }
 
 .recording-file-row.file-type-asprof-temp .recording-file-icon-small {
   background-color: rgba(255, 142, 51, 0.15);
-  color: #ff8e33;
+  color: var(--color-orange-accent);
 }
 
 .recording-file-row.status-active .recording-file-icon-small {
   background-color: rgba(255, 142, 51, 0.15);
-  color: #ff8e33;
+  color: var(--color-orange-accent);
 }
 
 .recording-file-row.file-type-unknown .recording-file-icon-small {
@@ -465,7 +465,7 @@ const formatTimestamp = (millis: number | null | undefined): string => {
 
 .recording-file-description {
   font-size: 0.75rem;
-  color: #5e6e82;
+  color: var(--color-text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -474,7 +474,7 @@ const formatTimestamp = (millis: number | null | undefined): string => {
 
 .recording-file-size {
   font-size: 0.75rem;
-  color: #5e6e82;
+  color: var(--color-text);
   white-space: nowrap;
   display: inline-flex;
   align-items: center;
@@ -482,7 +482,7 @@ const formatTimestamp = (millis: number | null | undefined): string => {
 
 .recording-file-timestamp {
   font-size: 0.75rem;
-  color: #5e6e82;
+  color: var(--color-text);
   white-space: nowrap;
   display: inline-flex;
   align-items: center;

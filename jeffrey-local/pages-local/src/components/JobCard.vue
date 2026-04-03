@@ -95,21 +95,21 @@ const getVariantFromColor = (color: string): Variant => {
 /* Job Card Styles */
 .job-card {
   transition: all 0.2s ease;
-  border-color: var(--card-border-color) !important;
+  border-color: var(--color-border) !important;
   border-radius: 0.25rem;
 }
 
 .job-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.08) !important;
-  border-color: var(--card-border-color) !important;
+  border-color: var(--color-border) !important;
 }
 
 /* Coming Soon job cards */
 .coming-soon-card {
   background-color: var(--color-light);
   opacity: 0.7;
-  border-color: var(--card-border-color) !important;
+  border-color: var(--color-border) !important;
 }
 
 /* Job icons */
@@ -130,7 +130,7 @@ const getVariantFromColor = (color: string): Variant => {
 }
 
 .text-teal {
-  color: #20c997;
+  color: var(--color-teal);
 }
 
 .bg-blue-soft {
@@ -138,7 +138,7 @@ const getVariantFromColor = (color: string): Variant => {
 }
 
 .text-blue {
-  color: var(--color-accent-blue);
+  color: var(--bs-blue);
 }
 
 .bg-purple-soft {
@@ -146,7 +146,7 @@ const getVariantFromColor = (color: string): Variant => {
 }
 
 .text-purple {
-  color: var(--color-purple);
+  color: var(--bs-purple);
 }
 
 .bg-orange-soft {
@@ -154,7 +154,7 @@ const getVariantFromColor = (color: string): Variant => {
 }
 
 .text-orange {
-  color: #fd7e14;
+  color: var(--bs-orange);
 }
 
 .bg-cyan-soft {
@@ -162,7 +162,7 @@ const getVariantFromColor = (color: string): Variant => {
 }
 
 .text-cyan {
-  color: #0dcaf0;
+  color: var(--color-info);
 }
 
 /* Button styling */
@@ -174,8 +174,8 @@ const getVariantFromColor = (color: string): Variant => {
 
 .btn-primary:hover,
 .btn-primary:active {
-  background-color: #4a51eb !important;
-  border-color: #4a51eb !important;
+  background-color: var(--color-primary-hover) !important;
+  border-color: var(--color-primary-hover) !important;
 }
 
 /* Typography utilities */
@@ -193,6 +193,6 @@ const getVariantFromColor = (color: string): Variant => {
 }
 
 .border {
-  border-color: var(--card-border-color) !important;
+  border-color: var(--color-border) !important;
 }
 </style>

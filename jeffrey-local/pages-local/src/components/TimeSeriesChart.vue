@@ -1065,7 +1065,7 @@ defineExpose({
   padding: 2px;
   position: relative;
   overflow: hidden;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--color-border);
 }
 
 .brush-chart-container :deep(.apexcharts-canvas) {
@@ -1077,7 +1077,7 @@ defineExpose({
   display: flex;
   justify-content: space-between;
   font-size: 11px;
-  color: #666;
+  color: var(--color-text-muted);
   margin-top: 4px;
   width: 100%;
 }
@@ -1122,15 +1122,15 @@ defineExpose({
 
 .graph-title-text {
   font-size: 11px;
-  color: #555;
+  color: var(--color-text);
   font-weight: 500;
 }
 
 .reset-zoom-btn {
   background: var(--color-light);
-  border: 1px solid var(--card-border-color);
+  border: 1px solid var(--color-border);
   border-radius: 4px;
-  color: #666;
+  color: var(--color-text-muted);
   cursor: pointer;
   font-size: 14px;
   padding: 2px 6px;
@@ -1143,13 +1143,13 @@ defineExpose({
 }
 
 .reset-zoom-btn:hover {
-  background: var(--card-border-color);
+  background: var(--color-border);
   border-color: var(--color-text-light);
   color: var(--color-text);
 }
 
 .reset-zoom-btn:active {
-  background: var(--card-border-color);
+  background: var(--color-border);
   transform: translateY(1px);
 }
 

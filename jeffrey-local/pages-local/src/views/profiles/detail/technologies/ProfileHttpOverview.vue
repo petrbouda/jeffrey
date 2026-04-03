@@ -9,16 +9,10 @@
 
     <div v-else>
       <!-- Loading state -->
-      <div v-if="isLoading" class="p-4 text-center">
-        <div class="spinner-border" role="status">
-          <span class="visually-hidden">Loading...</span>
-        </div>
-      </div>
+      <LoadingState v-if="isLoading" />
 
       <!-- Error state -->
-      <div v-else-if="error" class="p-4 text-center">
-        <div class="alert alert-danger" role="alert">Error loading HTTP data: {{ error }}</div>
-      </div>
+      <ErrorState v-else-if="error" :message="error" />
 
       <!-- Dashboard content -->
       <div v-if="httpOverviewData" class="dashboard-container">
@@ -66,7 +60,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref } from 'vue';
+import { computed, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import HttpTimeseries from '@/components/http/HttpTimeseries.vue';
 import HttpDistributionCharts from '@/components/http/HttpDistributionCharts.vue';
@@ -75,9 +69,12 @@ import HttpSlowestRequests from '@/components/http/HttpSlowestRequests.vue';
 import ProfileHttpClient from '@/services/api/ProfileHttpClient.ts';
 import HttpOverviewData from '@/services/api/model/HttpOverviewData.ts';
 import StatsTable from '@/components/StatsTable.vue';
+import LoadingState from '@/components/LoadingState.vue';
+import ErrorState from '@/components/ErrorState.vue';
 import CustomDisabledFeatureAlert from '@/components/alerts/CustomDisabledFeatureAlert.vue';
 import FeatureType from '@/services/api/model/FeatureType';
 import FormattingService from '@/services/FormattingService';
+import { useTechnologyData } from '@/composables/useTechnologyData';
 
 // Define props
 interface Props {
@@ -92,9 +89,6 @@ const route = useRoute();
 const router = useRouter();
 
 // Reactive state
-const httpOverviewData = ref<HttpOverviewData | null>(null);
-const isLoading = ref(true);
-const error = ref<string | null>(null);
 const selectedEndpoint = ref<string | null>(null);
 
 // Get mode from query parameter, default to 'server'
@@ -197,6 +191,12 @@ const metricsData = computed(() => {
 // Client initialization
 const client = new ProfileHttpClient(mode, route.params.profileId as string);
 
+const {
+  data: httpOverviewData,
+  isLoading,
+  error
+} = useTechnologyData<HttpOverviewData>(() => client.getOverview(), isHttpDashboardDisabled);
+
 // Helper functions
 const getSortedSlowRequests = () => {
   if (!httpOverviewData.value) return [];
@@ -212,32 +212,6 @@ const navigateToUri = (uri: string) => {
     query: { uri: encodeURIComponent(uri), mode: mode }
   });
 };
-
-// Lifecycle methods
-const loadHttpData = async () => {
-  try {
-    isLoading.value = true;
-    error.value = null;
-
-    // Load data from API
-    httpOverviewData.value = await client.getOverview();
-
-    // Wait for DOM updates
-    await nextTick();
-  } catch (err) {
-    error.value = err instanceof Error ? err.message : 'Unknown error occurred';
-    console.error('Error loading HTTP data:', err);
-  } finally {
-    isLoading.value = false;
-  }
-};
-
-onMounted(() => {
-  // Only load data if the feature is not disabled
-  if (!isHttpDashboardDisabled.value) {
-    loadHttpData();
-  }
-});
 </script>
 
 <style scoped></style>

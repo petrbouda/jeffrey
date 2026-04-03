@@ -135,13 +135,13 @@ onMounted(() => {
   align-items: center;
   gap: 0.5rem;
   font-size: 0.75rem;
-  color: #656d76;
+  color: var(--bs-gray-600);
   user-select: none;
 }
 
 /* Amber on-color override for the modifications toggle */
 .modify-toggle .toggle-input:checked + .toggle-slider {
-  background: var(--color-retained);
+  background: var(--color-goldenrod);
 }
 
 .modify-toggle .toggle-input:disabled + .toggle-slider {
@@ -156,11 +156,11 @@ onMounted(() => {
 }
 
 .modify-toggle.active .toggle-text {
-  color: #9a6700;
+  color: var(--color-warning-text);
   font-weight: 500;
 }
 
 .modify-toggle.active .toggle-text i {
-  color: var(--color-retained);
+  color: var(--color-goldenrod);
 }
 </style>

@@ -123,15 +123,7 @@
                       }}</span>
                     </div>
                   </td>
-                  <td>
-                    <div class="d-flex align-items-center">
-                      <div
-                        class="tier-indicator"
-                        :class="getTierClass(compilation.compileLevel)"
-                      ></div>
-                      {{ compilation.compileLevel }}
-                    </div>
-                  </td>
+                  <td>{{ compilation.compileLevel }}</td>
                   <td>{{ FormattingService.formatDuration2Units(compilation.duration) }}</td>
                   <td>{{ FormattingService.formatBytes(compilation.codeSize) }}</td>
                   <td>
@@ -503,19 +495,12 @@ const getPackage = (method: string): string => {
   return segments.slice(0, segments.length - 1).join('.');
 };
 
-// Tier class helper
-const getTierClass = (level: number): string => {
-  if (level <= 1) return 'tier-bronze';
-  if (level <= 3) return 'tier-silver';
-  if (level === 4) return 'tier-green';
-  return 'tier-gold';
-};
 </script>
 
 <style scoped>
 .jit-compilation-container {
   width: 100%;
-  color: #333;
+  color: var(--color-text);
   font-family:
     -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans',
     'Helvetica Neue', sans-serif;
@@ -530,7 +515,7 @@ const getTierClass = (level: number): string => {
 /* Data Table Card */
 .data-table-card,
 .chart-card {
-  background: #fff;
+  background: var(--bs-white);
   border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
@@ -546,14 +531,14 @@ const getTierClass = (level: number): string => {
   justify-content: space-between;
   align-items: center;
   padding: 1rem 1.5rem;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--color-border-row);
 }
 
 .chart-card-header h5 {
   margin: 0;
   font-size: 1.1rem;
   font-weight: 600;
-  color: #333;
+  color: var(--color-text);
 }
 
 .chart-controls {
@@ -569,7 +554,7 @@ const getTierClass = (level: number): string => {
   background: var(--color-light);
   font-weight: 600;
   font-size: 0.9rem;
-  color: #555;
+  color: var(--color-text-muted);
   border-top: none;
   border-bottom-width: 1px;
 }
@@ -596,29 +581,6 @@ const getTierClass = (level: number): string => {
   text-overflow: ellipsis;
   white-space: nowrap;
   max-width: 250px;
-}
-
-.tier-indicator {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  margin-right: 0.5rem;
-}
-
-.tier-bronze {
-  background-color: #cd7f32;
-}
-
-.tier-silver {
-  background-color: #c0c0c0;
-}
-
-.tier-gold {
-  background-color: #ffd700;
-}
-
-.tier-green {
-  background-color: #4caf50;
 }
 
 .table-hover tbody tr:hover {
@@ -663,7 +625,7 @@ const getTierClass = (level: number): string => {
   font-weight: 600;
   margin-bottom: 0.75rem;
   padding-bottom: 0.5rem;
-  border-bottom: 2px solid var(--card-border-color);
+  border-bottom: 2px solid var(--color-border);
   display: flex;
   align-items: center;
 }

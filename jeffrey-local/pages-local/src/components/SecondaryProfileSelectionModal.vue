@@ -556,7 +556,7 @@ const isPrimaryProfile = (profile: ProfileListResponse) => {
 }
 
 :deep(.profile-selection-modal .modal-content) {
-  background: linear-gradient(135deg, #ffffff, #fafbff);
+  background: linear-gradient(135deg, var(--bs-white), var(--color-light));
   border: 1px solid rgba(94, 100, 255, 0.08);
   border-radius: 16px;
   box-shadow:
@@ -584,7 +584,7 @@ const isPrimaryProfile = (profile: ProfileListResponse) => {
 :deep(.profile-selection-modal .modal-header .modal-title) {
   font-weight: 700;
   font-size: 1.1rem;
-  color: #1a1a2e;
+  color: var(--color-dark);
 }
 
 :deep(.profile-selection-modal .modal-header .bi-layers-half),
@@ -599,7 +599,7 @@ const isPrimaryProfile = (profile: ProfileListResponse) => {
 :deep(.profile-selection-modal .modal-footer) {
   padding: 1rem 1.5rem;
   border-top: 1px solid rgba(94, 100, 255, 0.08);
-  background: linear-gradient(135deg, #fafbff, #ffffff);
+  background: linear-gradient(135deg, var(--color-light), var(--bs-white));
 }
 
 /* ============================================================
@@ -607,7 +607,7 @@ const isPrimaryProfile = (profile: ProfileListResponse) => {
    ============================================================ */
 .search-wrapper {
   padding: 0.75rem 1.5rem;
-  background: linear-gradient(135deg, var(--color-light), #ffffff);
+  background: linear-gradient(135deg, var(--color-light), var(--bs-white));
   border-bottom: 1px solid rgba(94, 100, 255, 0.06);
 }
 
@@ -634,7 +634,7 @@ const isPrimaryProfile = (profile: ProfileListResponse) => {
   padding-left: 2.5rem;
   border-radius: 10px;
   border: 1px solid rgba(94, 100, 255, 0.12);
-  background: #ffffff;
+  background: var(--bs-white);
   font-size: 0.875rem;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.03);
@@ -675,7 +675,7 @@ const isPrimaryProfile = (profile: ProfileListResponse) => {
 }
 
 .loading-text {
-  color: #7c8db0;
+  color: var(--color-text-muted);
   font-size: 0.85rem;
   margin-top: 1rem;
 }
@@ -689,7 +689,7 @@ const isPrimaryProfile = (profile: ProfileListResponse) => {
 }
 
 .empty-state h5 {
-  color: #5e6e82;
+  color: var(--color-text);
   font-weight: 600;
   margin-bottom: 0.25rem;
 }
@@ -713,7 +713,7 @@ const isPrimaryProfile = (profile: ProfileListResponse) => {
 
 .empty-state-icon-wrapper i {
   font-size: 1.6rem;
-  color: #7c8db0;
+  color: var(--color-text-muted);
 }
 
 .empty-state-icon-wrapper.small {
@@ -742,7 +742,7 @@ const isPrimaryProfile = (profile: ProfileListResponse) => {
 .tree-sidebar {
   width: 350px;
   min-width: 350px;
-  background: #f8f9fb;
+  background: var(--color-light);
   border-right: 1px solid rgba(94, 100, 255, 0.08);
   overflow-y: auto;
   padding: 0.5rem 0;
@@ -831,7 +831,7 @@ const isPrimaryProfile = (profile: ProfileListResponse) => {
 
 .tree-node-icon-quick {
   font-size: 0.82rem;
-  color: #667eea;
+  color: var(--color-primary);
   flex-shrink: 0;
 }
 
@@ -867,7 +867,7 @@ const isPrimaryProfile = (profile: ProfileListResponse) => {
 
 .tree-child-name {
   font-size: 0.85rem;
-  color: #5e6e82;
+  color: var(--color-text);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -910,11 +910,11 @@ const isPrimaryProfile = (profile: ProfileListResponse) => {
   justify-content: center;
   height: 100%;
   padding: 2rem;
-  color: #7c8db0;
+  color: var(--color-text-muted);
 }
 
 .profile-content-header {
-  color: #8e99a8;
+  color: var(--color-text-muted);
   font-weight: 700;
   font-size: 0.75rem;
   letter-spacing: 0.06em;
@@ -943,7 +943,7 @@ const isPrimaryProfile = (profile: ProfileListResponse) => {
   padding: 0.75rem 1rem;
   border-radius: 10px;
   border: 2px solid rgba(94, 100, 255, 0.1);
-  background: linear-gradient(135deg, #ffffff, #fafbff);
+  background: linear-gradient(135deg, var(--bs-white), var(--color-light));
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -956,22 +956,22 @@ const isPrimaryProfile = (profile: ProfileListResponse) => {
 
 .profile-card.selected {
   border-color: var(--color-primary);
-  background: linear-gradient(135deg, #f3f4ff, #e8eaf6);
+  background: linear-gradient(135deg, rgba(94, 100, 255, 0.06), rgba(94, 100, 255, 0.1));
   box-shadow: 0 4px 12px rgba(94, 100, 255, 0.15);
 }
 
 .profile-card.primary {
   opacity: 0.55;
   pointer-events: none;
-  background: #fef9ec;
-  border-color: rgba(245, 158, 11, 0.2);
+  background: var(--color-amber-bg);
+  border-color: var(--color-amber-border);
 }
 
 .profile-card-indicator {
   padding-top: 0.15rem;
   flex-shrink: 0;
   font-size: 1rem;
-  color: #c8cdd5;
+  color: var(--color-slate-light);
 }
 
 .profile-card.selected .profile-card-indicator {
@@ -1006,7 +1006,7 @@ const isPrimaryProfile = (profile: ProfileListResponse) => {
   width: 3px;
   height: 3px;
   border-radius: 50%;
-  background: #d1d5db;
+  background: var(--color-muted-separator);
   flex-shrink: 0;
 }
 
@@ -1015,7 +1015,7 @@ const isPrimaryProfile = (profile: ProfileListResponse) => {
   align-items: center;
   font-size: 0.65rem;
   font-weight: 600;
-  color: #92400e;
+  color: var(--color-amber-text);
   background: rgba(245, 158, 11, 0.15);
   padding: 0.1rem 0.45rem;
   border-radius: 6px;
@@ -1035,7 +1035,7 @@ const isPrimaryProfile = (profile: ProfileListResponse) => {
   align-items: center;
   gap: 0.35rem;
   background: linear-gradient(135deg, rgba(94, 100, 255, 0.08), rgba(94, 100, 255, 0.12));
-  color: #4c52ff;
+  color: var(--color-primary-hover);
   font-weight: 600;
   font-size: 0.82rem;
   padding: 0.35rem 0.75rem;
@@ -1078,7 +1078,7 @@ const isPrimaryProfile = (profile: ProfileListResponse) => {
 }
 
 .btn-cancel:hover {
-  background: linear-gradient(135deg, var(--card-border-color), var(--card-border-color));
+  background: linear-gradient(135deg, var(--color-border), var(--color-border));
   color: var(--color-text);
   transform: translateY(-1px);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
@@ -1094,9 +1094,9 @@ const isPrimaryProfile = (profile: ProfileListResponse) => {
 }
 
 .btn-select-profile {
-  background: linear-gradient(135deg, var(--color-primary), #4c52ff);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-hover));
   border: none;
-  color: #ffffff;
+  color: var(--bs-white);
   font-weight: 600;
   box-shadow:
     0 4px 12px rgba(94, 100, 255, 0.3),
@@ -1104,8 +1104,8 @@ const isPrimaryProfile = (profile: ProfileListResponse) => {
 }
 
 .btn-select-profile:hover:not(:disabled) {
-  background: linear-gradient(135deg, #4c52ff, #3f46ff);
-  color: #ffffff;
+  background: linear-gradient(135deg, var(--color-primary-hover), var(--color-primary-hover));
+  color: var(--bs-white);
   transform: translateY(-2px);
   box-shadow:
     0 6px 16px rgba(94, 100, 255, 0.4),

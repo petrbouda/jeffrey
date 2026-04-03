@@ -62,15 +62,15 @@ onMounted(async () => {
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: var(--color-light);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #ccc;
+  background: var(--color-text-light);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #aaa;
+  background: var(--color-text-muted);
 }
 </style>

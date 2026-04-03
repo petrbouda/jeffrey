@@ -468,10 +468,10 @@ async function deleteProject() {
 
 /* Card */
 .settings-card {
-  background: var(--card-bg);
-  border: 1px solid var(--card-border-color);
-  border-radius: var(--card-border-radius);
-  box-shadow: var(--card-shadow);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--bs-border-radius-lg);
+  box-shadow: var(--shadow-base);
   padding: 20px;
 }
 
@@ -515,11 +515,11 @@ async function deleteProject() {
 
 .field-input {
   width: 100%;
-  padding: var(--input-padding-y) var(--input-padding-x);
-  border: 1px solid var(--input-border-color);
-  border-radius: var(--input-border-radius);
-  font-size: var(--input-font-size);
-  background: var(--input-bg);
+  padding: var(--spacing-2) var(--spacing-3);
+  border: 1px solid var(--color-border-input);
+  border-radius: var(--bs-border-radius-sm);
+  font-size: var(--font-size-base);
+  background: var(--bs-white);
   color: var(--color-text);
   outline: none;
   transition:
@@ -529,8 +529,8 @@ async function deleteProject() {
 }
 
 .field-input:focus {
-  border-color: var(--input-focus-border-color);
-  box-shadow: var(--input-focus-shadow);
+  border-color: var(--color-primary);
+  box-shadow: var(--focus-ring);
 }
 
 /* Buttons */
@@ -542,7 +542,7 @@ async function deleteProject() {
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
   border: none;
-  border-radius: var(--radius-base);
+  border-radius: var(--bs-border-radius);
   cursor: pointer;
   transition: all var(--transition-fast);
 }
@@ -554,7 +554,7 @@ async function deleteProject() {
 
 .settings-btn-primary {
   background: var(--color-primary);
-  color: var(--color-white);
+  color: var(--bs-white);
 }
 
 .settings-btn-primary:hover:not(:disabled) {
@@ -562,7 +562,7 @@ async function deleteProject() {
 }
 
 .settings-btn-outline {
-  background: var(--color-white);
+  background: var(--bs-white);
   color: var(--color-text);
   border: 1px solid var(--color-border);
 }
@@ -574,7 +574,7 @@ async function deleteProject() {
 
 .settings-btn-danger {
   background: var(--color-danger);
-  color: var(--color-white);
+  color: var(--bs-white);
 }
 
 .settings-btn-danger:hover:not(:disabled) {
@@ -630,8 +630,8 @@ async function deleteProject() {
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: var(--color-white);
-  box-shadow: var(--shadow-sm);
+  background: var(--bs-white);
+  box-shadow: var(--bs-box-shadow-sm);
   transition: transform var(--transition-fast);
   pointer-events: none;
 }
@@ -650,7 +650,7 @@ async function deleteProject() {
   align-items: center;
   gap: 8px;
   padding: 10px 14px;
-  border-radius: var(--radius-base);
+  border-radius: var(--bs-border-radius);
   font-size: var(--font-size-sm);
   margin-bottom: 14px;
 }
@@ -658,13 +658,13 @@ async function deleteProject() {
 .streaming-status-on {
   background: var(--color-success-light);
   border: 1px solid rgba(0, 210, 122, 0.2);
-  color: #0a6640;
+  color: var(--color-success-dark);
 }
 
 .streaming-status-off {
   background: var(--color-danger-light);
   border: 1px solid rgba(230, 55, 87, 0.2);
-  color: #8b1a2b;
+  color: var(--color-danger-title);
 }
 
 .streaming-dot {
@@ -688,7 +688,7 @@ async function deleteProject() {
   text-transform: uppercase;
   letter-spacing: 0.04em;
   padding: 2px 7px;
-  border-radius: var(--radius-sm);
+  border-radius: var(--bs-border-radius-sm);
   margin-left: 4px;
 }
 
@@ -704,7 +704,7 @@ async function deleteProject() {
 
 .streaming-badge-project {
   background: var(--color-success-light);
-  color: #0a6640;
+  color: var(--color-success-dark);
 }
 
 .streaming-actions {
@@ -717,7 +717,7 @@ async function deleteProject() {
 .danger-bar {
   background: var(--color-bg-card);
   border: 1px solid rgba(230, 55, 87, 0.15);
-  border-radius: var(--radius-md);
+  border-radius: var(--bs-border-radius-lg);
   padding: 14px 20px;
   display: flex;
   align-items: center;
@@ -740,7 +740,7 @@ async function deleteProject() {
   display: block;
   font-size: var(--font-size-base);
   font-weight: var(--font-weight-semibold);
-  color: #8b1a2b;
+  color: var(--color-danger-title);
 }
 
 .danger-bar-desc {

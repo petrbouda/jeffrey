@@ -96,10 +96,10 @@ const setActiveTab = (index: number) => {
 }
 
 .chart-card {
-  background: var(--card-bg);
-  border: 1px solid var(--card-border-color);
-  border-radius: var(--card-border-radius);
-  box-shadow: var(--card-shadow);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--bs-border-radius-lg);
+  box-shadow: var(--shadow-base);
   overflow: hidden;
 }
 
@@ -109,7 +109,7 @@ const setActiveTab = (index: number) => {
 
 .chart-header {
   padding: 0.75rem 1rem;
-  border-bottom: 1px solid var(--card-border-color);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .chart-header h4 {
@@ -124,12 +124,12 @@ const setActiveTab = (index: number) => {
 }
 
 .dashboard-tabs {
-  background-color: var(--card-bg);
-  border-radius: 0 0 var(--card-border-radius) var(--card-border-radius);
+  background-color: var(--color-bg-card);
+  border-radius: 0 0 var(--bs-border-radius-lg) var(--bs-border-radius-lg);
 }
 
 .nav-tabs {
-  border-bottom: 2px solid var(--color-border, #e2e8f0);
+  border-bottom: 2px solid var(--color-border);
   padding: 0;
   gap: 0;
   margin: 0;
@@ -141,7 +141,7 @@ const setActiveTab = (index: number) => {
   padding: 0.5rem 1rem;
   font-size: 0.8rem;
   font-weight: 600;
-  color: var(--color-text-muted, #718096);
+  color: var(--color-text-muted);
   border: none;
   background: none;
   position: relative;
@@ -177,7 +177,7 @@ const setActiveTab = (index: number) => {
 
 .nav-tabs .nav-link:hover:not(.active) {
   border-color: transparent;
-  color: var(--color-text, #4a5568);
+  color: var(--color-text);
 }
 
 .tab-content {

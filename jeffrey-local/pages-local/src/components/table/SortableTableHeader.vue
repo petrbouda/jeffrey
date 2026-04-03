@@ -44,14 +44,14 @@ const sortIcon = computed(() => {
   cursor: pointer;
   user-select: none;
   transition: background-color var(--transition-fast);
-  background-color: var(--table-header-bg);
+  background-color: var(--color-light);
   font-weight: var(--font-weight-semibold);
-  color: var(--table-header-color);
+  color: var(--color-text-muted);
   font-size: var(--font-size-sm);
   text-transform: uppercase;
   letter-spacing: 0.3px;
-  padding: var(--table-header-padding);
-  border-bottom: 1px solid var(--table-border-color);
+  padding: var(--spacing-4);
+  border-bottom: 1px solid var(--color-border-light);
 }
 
 .sortable-header:hover {

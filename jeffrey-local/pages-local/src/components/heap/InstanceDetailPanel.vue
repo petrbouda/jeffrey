@@ -481,7 +481,7 @@ watch(
   justify-content: space-between;
   align-items: center;
   padding: 0.75rem 1rem;
-  border-bottom: 1px solid var(--card-border-color);
+  border-bottom: 1px solid var(--color-border);
   background-color: var(--color-light);
 }
 
@@ -502,7 +502,7 @@ watch(
 }
 
 .btn-icon:hover {
-  background-color: var(--card-border-color);
+  background-color: var(--color-border);
   color: var(--color-dark);
 }
 
@@ -510,8 +510,8 @@ watch(
   display: flex;
   align-items: center;
   padding: 0.5rem 0.75rem;
-  background-color: var(--color-light, #f9fafd);
-  border-bottom: 1px solid var(--color-border, #eaedf1);
+  background-color: var(--color-light);
+  border-bottom: 1px solid var(--color-border);
   font-size: 0.8rem;
   min-height: 0;
 }
@@ -541,12 +541,12 @@ watch(
 }
 
 .instance-breadcrumb .breadcrumb-item a:hover {
-  color: var(--color-primary-hover, #4c52db);
+  color: var(--color-primary-hover);
   text-decoration: underline !important;
 }
 
 .instance-breadcrumb .breadcrumb-item.active {
-  color: var(--color-text, #5e6e82);
+  color: var(--color-text);
   font-weight: 600;
 }
 
@@ -571,7 +571,7 @@ watch(
 .instance-info {
   padding: 1rem;
   background-color: var(--color-light);
-  border-bottom: 1px solid var(--card-border-color);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .info-row {
@@ -617,7 +617,7 @@ watch(
 }
 
 .value-section {
-  border-bottom: 1px solid var(--card-border-color);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .value-section .section-header {
@@ -653,8 +653,8 @@ watch(
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.3px;
-  color: #856404;
-  background-color: #fff3cd;
+  color: var(--color-warning-text);
+  background-color: var(--color-warning-bg);
   padding: 0.1rem 0.35rem;
   border-radius: 3px;
   vertical-align: middle;
@@ -662,7 +662,7 @@ watch(
 
 .fields-section,
 .static-fields-section {
-  border-bottom: 1px solid var(--card-border-color);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .section-header {
@@ -670,7 +670,7 @@ watch(
   align-items: center;
   padding: 0.75rem 1rem;
   background-color: var(--color-light);
-  border-bottom: 1px solid var(--card-border-color);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .section-header h6 {
@@ -697,7 +697,7 @@ watch(
   color: var(--color-text-muted);
   background-color: var(--color-light);
   padding: 0.5rem 0.75rem;
-  border-bottom: 1px solid var(--card-border-color);
+  border-bottom: 1px solid var(--color-border);
   position: sticky;
   top: 0;
 }
@@ -706,7 +706,7 @@ watch(
   font-size: 0.75rem;
   padding: 0.4rem 0.75rem;
   vertical-align: top;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--color-border-row);
 }
 
 .field-name-cell {
@@ -741,7 +741,7 @@ watch(
 
 .field-name {
   font-size: 0.75rem;
-  color: var(--color-purple);
+  color: var(--bs-purple);
   font-style: italic;
   white-space: nowrap;
 }
@@ -795,7 +795,7 @@ watch(
 }
 
 .nav-icon-link:hover {
-  color: var(--color-accent-blue);
+  color: var(--bs-blue);
 }
 
 .empty-section {

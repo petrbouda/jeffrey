@@ -65,7 +65,6 @@
             <table class="table table-sm table-hover mb-0">
               <thead>
                 <tr>
-                  <th class="rank-col">#</th>
                   <th>Method</th>
                   <th class="text-end">Duration</th>
                   <th>Thread</th>
@@ -74,11 +73,6 @@
               </thead>
               <tbody>
                 <tr v-for="(trace, index) in filteredTraces" :key="index" class="trace-row">
-                  <td class="rank-col">
-                    <span class="rank-badge" :class="getRankClass(trace.originalIndex)">{{
-                      trace.originalIndex + 1
-                    }}</span>
-                  </td>
                   <td class="method-cell">
                     <span class="method-name">{{ trace.methodName || '&lt;init&gt;' }}</span>
                     <span class="class-name">{{ trace.className }}</span>
@@ -176,13 +170,6 @@ const filteredTraces = computed(() => {
 
 const getPercentOfMax = (duration: number) => (duration / maxDuration.value) * 100;
 
-const getRankClass = (index: number) => {
-  if (index === 0) return 'rank-1';
-  if (index === 1) return 'rank-2';
-  if (index === 2) return 'rank-3';
-  return 'rank-default';
-};
-
 const getDurationClass = (duration: number) => {
   if (duration >= 100_000_000) return 'duration-critical';
   if (duration >= 50_000_000) return 'duration-warning';
@@ -219,41 +206,6 @@ onMounted(() => {
 <style scoped>
 .dashboard-container {
   padding: 0;
-}
-
-.rank-col {
-  width: 40px;
-}
-
-.rank-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  font-size: 0.65rem;
-  font-weight: 700;
-}
-
-.rank-1 {
-  background: linear-gradient(135deg, #ffd700, #ffb800);
-  color: #000;
-}
-
-.rank-2 {
-  background: linear-gradient(135deg, #c0c0c0, #a8a8a8);
-  color: #000;
-}
-
-.rank-3 {
-  background: linear-gradient(135deg, #cd7f32, #b87333);
-  color: #fff;
-}
-
-.rank-default {
-  background: #f0f0f0;
-  color: #666;
 }
 
 .method-cell {
@@ -296,11 +248,11 @@ onMounted(() => {
 }
 
 .duration-warning {
-  color: #fd7e14;
+  color: var(--bs-orange);
 }
 
 .duration-slow {
-  color: #ffc107;
+  color: var(--color-alert-warning-accent);
 }
 
 .duration-normal {
@@ -326,7 +278,7 @@ onMounted(() => {
   font-weight: 600;
   text-transform: uppercase;
   color: var(--color-text-muted);
-  border-bottom: 2px solid var(--card-border-color);
+  border-bottom: 2px solid var(--color-border);
   padding: 0.5rem 0.75rem;
 }
 

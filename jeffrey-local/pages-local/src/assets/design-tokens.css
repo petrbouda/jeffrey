@@ -11,8 +11,6 @@
   --color-primary-lighter: rgba(94, 100, 255, 0.05);
   
   --color-secondary: #7780bf;
-  --color-secondary-hover: #626ead;
-  --color-secondary-light: rgba(119, 128, 191, 0.1);
   
   --color-success: #00d27a;
   --color-success-hover: #00b368;
@@ -31,14 +29,230 @@
   --color-info-light: rgba(57, 175, 209, 0.1);
 
   /* Accent Colors */
-  --color-purple: #6f42c1;
-  --color-purple-light: rgba(111, 66, 193, 0.1);
-  --color-accent-blue: #0d6efd;
-  --color-accent-blue-light: rgba(13, 110, 253, 0.1);
-  --color-retained: #b8860b;
+  --color-accent-blue-light-bg: #d1e5ff;
+  --color-accent-blue-light-bg-hover: #c2ddff;
+  --color-accent-blue-light-border: #b8d8ff;
+  --color-goldenrod: #b8860b;
+  --color-goldenrod-dark: #daa520;
+
+  /* Flamegraph demo palette */
+  --flamegraph-color-red: #ff9d9d;
+  --flamegraph-color-orange: #ffbf9d;
+  --flamegraph-color-peach: #ffd19d;
+  --flamegraph-color-green: #c9e7a5;
+  --flamegraph-color-cyan: #9dddff;
+  --flamegraph-color-blue: #9db5ff;
+  --flamegraph-color-purple: #cc99ff;
+  --flamegraph-color-pink: #ff9dce;
+  --flamegraph-color-teal: #9dffee;
+
+  /* Indigo palette (hero gradients) */
+  --color-indigo-dark: #1e1b4b;
+  --color-indigo: #312e81;
+  --color-indigo-light: #4338ca;
+
+  /* Teal palette */
+  --color-teal: #0d9488;
+  --color-teal-light: #e6fffa;
+
+  /* Semantic background colors */
+  --color-warning-bg: #fff8e1;
+  --color-warning-border: #ffe082;
+  --color-warning-text: #8d6e00;
+  --color-info-bg: #e3f2fd;
+  --color-info-border: #90caf9;
+  --color-info-text: #1565c0;
+  --color-success-bg: #ecfdf5;
+  --color-amber-bg: #fffbeb;
+  --color-amber-border: rgba(245, 158, 11, 0.2);
+  --color-amber-text: #92400e;
+  --color-amber: #f59e0b;
+  --color-success-bg-light: #f0fdf4;
+  --color-neutral-bg: #f9fafb;
+  --color-neutral-light: #f1f5f9;
+  --color-blue-text: #1e40af;
+  --color-blue-bg: #dbeafe;
+  --color-orange-bg: #fff3e0;
+  --color-emerald: #059669;
+  --color-emerald-text: #6ee7b7;
+  --color-violet: #8b5cf6;
+  --color-violet-dark: #7c3aed;
+  --color-violet-border-light: #c4b5fd;
+  --color-code-bg: #f1f3f4;
+  --color-brown-dark: #4e342e;
+  --color-brown-accent: #bf360c;
+  --color-muted-separator: #d1d5db;
+  --color-amber-light: #fef3c7;
+  --color-teal-lighter: #b2f5ea;
+  --color-blue-500: #3b82f6;
+  --color-blue-border-light: #93c5fd;
+  --color-blue-link-hover: #93bbfd;
+
+  /* Table row border */
+  --color-border-row: #f0f0f0;
+
+  /* About / feature header gradient */
+  --color-gradient-start: #667eea;
+  --color-gradient-end: #764ba2;
+
+  /* Heading on dark backgrounds */
+  --color-heading-dark: #1a1a2e;
+
+  /* Purple hover (darker) */
+  --color-purple-hover: #5a32a3;
+
+  /* Violet palette extensions */
+  --color-violet-deeper: #6d28d9;
+  --color-violet-darkest: #5b21b6;
+  --color-violet-light-bg: #faf5ff;
+  --color-violet-lighter-bg: #f3e8ff;
+  --color-violet-lightest-bg: #ede9fe;
+  --color-violet-border: #e9d5ff;
+  --color-violet-hover-bg: #f5f3ff;
+
+  /* Danger panel colors */
+  --color-danger-title: #991b1b;
+  --color-danger-border-light: #fecaca;
+  --color-danger-bg-light: #fff5f5;
+  --color-danger-bg-lighter: #fef2f2;
+
+  /* Amber panel colors */
+  --color-amber-message: #a16207;
+  --color-amber-dark: #78350f;
+  --color-amber-darkest: #b45309;
+  --color-amber-highlight: #d97706;
+  --color-amber-badge-border: #fcd34d;
+
+  /* Status / slate colors */
+  --color-slate-muted: #718096;
+  --color-slate-text: #4a5568;
+  --color-slate-light: #cbd5e1;
+  --color-slate-lighter: #e2e8f0;
+  --color-indigo-accent: #a5b4fc;
+
+  --color-indigo-lightest: #f0f0ff;
+  --color-indigo-lighter: #e8e8ff;
+  --color-indigo-bg-light: #f0f2ff;
+
+  /* Blue-tinted backgrounds */
+  --color-blue-bg-light: #f8fbff;
+  --color-blue-bg-lighter: #eef5ff;
+  --color-blue-info-bg: #e7f1ff;
+
+  /* Magenta (search highlight) */
+  --color-magenta-bg: #fad4fa;
+  --color-magenta: #af00af;
+  --color-magenta-border: #cc00cc;
+  --color-magenta-dark: #a800a8;
+
+  --color-green-dark: #006400;
+
+  /* Accent blue variants */
+  --color-accent-blue-dark: #0b5ed7;
+  --color-accent-blue-darker: #084298;
+
+  /* Gradient accent colors */
+  --color-emerald-light: #34d399;
+  --color-cyan-accent: #67e8f9;
+  --color-indigo-pastel: #818cf8;
+  --color-orange-light: #fb923c;
+
+  /* Sky (light blue accent) */
+  --color-sky-bg: #e8f4fd;
+  --color-sky-border: #b6d4f8;
+
+  /* Red accent (error indicators) */
+  --color-red-accent: #cf222e;
+  --color-red-border-light: #ff8182;
+
+  /* Amber accent */
+  --color-amber-accent: #d4a106;
+
+  /* Additional accent colors */
+  --color-sky: #0ea5e9;
+  --color-green-accent: #16a34a;
+  --color-orange-accent: #ff8e33;
+
+  /* Gradient endpoints */
+  --color-teal-100: #ccfbf1;
+  --color-danger-100: #fee2e2;
+  --color-success-dark: #065f46;
+  --color-info-dark: #0369a1;
+  --color-danger-dark: #b91c1c;
+  --color-danger-bg-subtle: #fef8f8;
+
+  --color-success-100: #dcfce7;
+
+  /* Teal shades */
+  --color-teal-600: #38b2ac;
+  --color-teal-700: #319795;
+  --color-teal-800: #285e61;
+  --color-teal-900: #234e52;
+
+  /* Dark code editor theme */
+  --color-editor-bg: #1e1e1e;
+  --color-editor-surface: #2d2d2d;
+  --color-editor-border: #3d3d3d;
+  --color-editor-muted: #9d9d9d;
+  --color-editor-text: #d4d4d4;
+  --color-editor-variable: #9cdcfe;
+  --color-editor-keyword: #9d7ee8;
+
+  /* Material Design color palette (used by badges, status indicators, etc.) */
+  --color-green-bg: #e8f5e8;
+  --color-green-text: #2e7d32;
+  --color-green-border: #81c784;
+  --color-orange-text: #ef6c00;
+  --color-orange-border: #ffb74d;
+  --color-red-bg: #ffebee;
+  --color-red-text: #c62828;
+  --color-red-border: #ef5350;
+  --color-purple-bg: #f3e5f5;
+  --color-purple-text: #7b1fa2;
+  --color-purple-border: #ba68c8;
+  --color-violet-text: #512da8;
+  --color-violet-border-medium: #9575cd;
+  --color-grey-bg: #f5f5f5;
+  --color-grey-text: #424242;
+  --color-grey-border: #bdbdbd;
+  --color-pink-bg: #fce4ec;
+  --color-pink-text: #c2185b;
+  --color-pink-border: #f48fb1;
+  --color-yellow-text: #f57f17;
+  --color-yellow-border: #fff176;
+  --color-cyan-bg: #e0f7fa;
+  --color-cyan-text: #00695c;
+  --color-cyan-border: #4dd0e1;
+  --color-indigo-bg: #e8eaf6;
+  --color-indigo-text: #3f51b5;
+  --color-indigo-border: #9fa8da;
+  --color-teal-bg: #e0f2f1;
+  --color-teal-text: #00695c;
+  --color-teal-border: #4db6ac;
+  --color-lime-bg: #f9fbe7;
+  --color-lime-text: #689f38;
+  --color-lime-border: #aed581;
+  --color-brown-bg: #efebe9;
+  --color-brown-text: #5d4037;
+  --color-brown-border: #a1887f;
+
+  /* Neutral / light-dark palette */
+  --color-neutral-lightest: #fafafa;
+  --color-neutral-text: rgba(76, 61, 61, 0.63);
+  --color-neutral-border: #e0e0e0;
+  --color-dark-bg: #424242;
+  --color-dark-border: #616161;
+
+  /* Extended semantic palette (primary/info/secondary backgrounds) */
+  --color-primary-bg: #e2e7fd;
+  --color-primary-border: #9ba8ff;
+  --color-info-bg-alt: #ddf2f6;
+  --color-info-border-alt: #7dd3e8;
+  --color-info-text-dark: #00838f;
+  --color-secondary-bg: #e7eafd;
+  --color-secondary-border: #9ba3d4;
 
   /* Neutral Colors */
-  --color-white: #ffffff;
   --color-light: #f9fafd;
   --color-lighter: #edf2f9;
   --color-dark: #0b1727;
@@ -56,8 +270,6 @@
   --color-bg-card: #ffffff;
   --color-bg-hover: #f9fafd;
   --color-bg-hover-alt: #f2f5fc;
-  --color-bg-sidebar: #ffffff;
-  --color-bg-input: #f9fafd;
   
   /* Typography Scale */
   --font-family-base: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
@@ -88,25 +300,13 @@
   --spacing-4: 1rem;     /* 16px */
   --spacing-5: 1.25rem;  /* 20px */
   --spacing-6: 1.5rem;   /* 24px */
-  --spacing-7: 1.75rem;  /* 28px */
   --spacing-8: 2rem;     /* 32px */
-  --spacing-10: 2.5rem;  /* 40px */
   --spacing-12: 3rem;    /* 48px */
   
-  /* Border Radius */
-  --radius-sm: 0.25rem;  /* 4px */
-  --radius-base: 0.375rem; /* 6px */
-  --radius-md: 0.5rem;   /* 8px */
-  --radius-lg: 0.75rem;  /* 12px */
-  --radius-xl: 1rem;     /* 16px */
-  
   /* Shadows */
-  --shadow-xs: 0 0 0 1px rgba(0, 0, 0, 0.05);
-  --shadow-sm: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
   --shadow-base: 0 0 0.375rem 0 rgba(0, 0, 0, 0.1);
   --shadow-md: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.1);
   --shadow-lg: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
-  --shadow-xl: 0 1rem 2rem rgba(0, 0, 0, 0.15);
   
   /* Focus Ring */
   --focus-ring: 0 0 0 0.2rem rgba(94, 100, 255, 0.25);
@@ -114,126 +314,15 @@
   /* Transitions */
   --transition-fast: 0.15s ease-in-out;
   --transition-base: 0.2s ease-in-out;
-  --transition-slow: 0.3s ease-in-out;
   
   /* Z-Index Scale */
   --z-dropdown: 1000;
-  --z-sticky: 1020;
-  --z-fixed: 1030;
-  --z-modal-backdrop: 1040;
-  --z-modal: 1050;
-  --z-popover: 1060;
-  --z-tooltip: 1070;
   
-  /* Table-specific tokens */
-  --table-bg: var(--color-bg-card);
-  --table-header-bg: var(--color-light);
-  --table-header-color: var(--color-text-muted);
-  --table-row-hover-bg: var(--color-bg-hover);
-  --table-border-color: var(--color-border-light);
-  --table-cell-padding: var(--spacing-4);
-  --table-header-padding: var(--spacing-4);
-  
-  /* Button-specific tokens */
-  --btn-padding-y: var(--spacing-2);
-  --btn-padding-x: var(--spacing-4);
-  --btn-padding-sm-y: var(--spacing-1);
-  --btn-padding-sm-x: var(--spacing-3);
-  --btn-font-size: var(--font-size-base);
-  --btn-font-size-sm: var(--font-size-sm);
-  --btn-font-weight: var(--font-weight-medium);
-  --btn-border-radius: var(--radius-sm);
-  
-  /* Card-specific tokens */
-  --card-bg: var(--color-bg-card);
-  --card-border-radius: var(--radius-md);
-  --card-shadow: var(--shadow-base);
-  --card-header-padding: var(--spacing-4) var(--spacing-5);
-  --card-body-padding: var(--spacing-5);
-  --card-border-color: var(--color-border);
-  
-  /* Badge-specific tokens */
-  --badge-padding-y: 0.4em;
-  --badge-padding-x: 0.7em;
-  --badge-font-size: var(--font-size-sm);
-  --badge-font-weight: var(--font-weight-medium);
-  --badge-border-radius: var(--radius-sm);
-  
-  /* Form-specific tokens */
-  --input-height-sm: 32px;
-  --input-height-base: 38px;
-  --input-bg: var(--color-white);
-  --input-border-color: var(--color-border-input);
-  --input-border-radius: var(--radius-sm);
-  --input-padding-y: var(--spacing-2);
-  --input-padding-x: var(--spacing-3);
-  --input-font-size: var(--font-size-base);
-  --input-font-size-sm: 0.8rem;
-  --input-placeholder-color: var(--color-text-light);
-  --input-focus-border-color: var(--color-primary);
-  --input-focus-shadow: var(--focus-ring);
-
   /* Search-specific tokens */
   --search-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-  --search-border-color: var(--card-border-color);
 
   /* Toggle switch tokens */
   --toggle-width: 40px;
   --toggle-height: 22px;
   --toggle-thumb-size: 18px;
-  --toggle-bg-off: var(--color-border);
-  --toggle-bg-on: var(--color-primary);
 }
-
-/* Utility classes using design tokens */
-.text-xs { font-size: var(--font-size-xs); }
-.text-sm { font-size: var(--font-size-sm); }
-.text-base { font-size: var(--font-size-base); }
-.text-md { font-size: var(--font-size-md); }
-.text-lg { font-size: var(--font-size-lg); }
-.text-xl { font-size: var(--font-size-xl); }
-.text-xxl { font-size: var(--font-size-xxl); }
-.text-xxxl { font-size: var(--font-size-xxxl); }
-
-.font-normal { font-weight: var(--font-weight-normal); }
-.font-medium { font-weight: var(--font-weight-medium); }
-.font-semibold { font-weight: var(--font-weight-semibold); }
-.font-bold { font-weight: var(--font-weight-bold); }
-
-.leading-tight { line-height: var(--line-height-tight); }
-.leading-base { line-height: var(--line-height-base); }
-.leading-relaxed { line-height: var(--line-height-relaxed); }
-
-/* Spacing utilities using tokens */
-.p-0 { padding: var(--spacing-0); }
-.p-1 { padding: var(--spacing-1); }
-.p-2 { padding: var(--spacing-2); }
-.p-3 { padding: var(--spacing-3); }
-.p-4 { padding: var(--spacing-4); }
-.p-5 { padding: var(--spacing-5); }
-.p-6 { padding: var(--spacing-6); }
-.p-8 { padding: var(--spacing-8); }
-
-.m-0 { margin: var(--spacing-0); }
-.m-1 { margin: var(--spacing-1); }
-.m-2 { margin: var(--spacing-2); }
-.m-3 { margin: var(--spacing-3); }
-.m-4 { margin: var(--spacing-4); }
-.m-5 { margin: var(--spacing-5); }
-.m-6 { margin: var(--spacing-6); }
-.m-8 { margin: var(--spacing-8); }
-
-/* Color utilities using tokens */
-.text-primary { color: var(--color-primary); }
-.text-secondary { color: var(--color-secondary); }
-.text-success { color: var(--color-success); }
-.text-danger { color: var(--color-danger); }
-.text-warning { color: var(--color-warning); }
-.text-info { color: var(--color-info); }
-.text-muted { color: var(--color-text-muted); }
-
-.bg-primary-light { background-color: var(--color-primary-light); }
-.bg-success-light { background-color: var(--color-success-light); }
-.bg-danger-light { background-color: var(--color-danger-light); }
-.bg-warning-light { background-color: var(--color-warning-light); }
-.bg-info-light { background-color: var(--color-info-light); }

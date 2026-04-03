@@ -51,23 +51,23 @@ function formatTime(createdAt: number): string {
 }
 
 .message-card.severity-bg-critical {
-  background-color: #fef2f2;
+  background-color: var(--color-danger-bg-lighter);
   border-left-color: var(--color-danger);
 }
 
 .message-card.severity-bg-high {
-  background-color: #fff7ed;
-  border-left-color: #fd7e14;
+  background-color: var(--color-warning-bg);
+  border-left-color: var(--bs-orange);
 }
 
 .message-card.severity-bg-medium {
-  background-color: #fffbeb;
-  border-left-color: #eab308;
+  background-color: var(--color-amber-bg);
+  border-left-color: var(--color-amber);
 }
 
 .message-card.severity-bg-low {
-  background-color: #f0fdfa;
-  border-left-color: #0891b2;
+  background-color: var(--color-success-bg);
+  border-left-color: var(--color-info);
 }
 
 .message-card-title {
@@ -101,20 +101,20 @@ function formatTime(createdAt: number): string {
 }
 
 .severity-badge-high {
-  color: #ea580c;
-  border-color: #ea580c;
+  color: var(--color-warning-hover);
+  border-color: var(--color-warning-hover);
   background-color: rgba(234, 88, 12, 0.08);
 }
 
 .severity-badge-medium {
-  color: #ca8a04;
-  border-color: #ca8a04;
+  color: var(--color-amber);
+  border-color: var(--color-amber);
   background-color: rgba(202, 138, 4, 0.08);
 }
 
 .severity-badge-low {
-  color: #0891b2;
-  border-color: #0891b2;
+  color: var(--color-info);
+  border-color: var(--color-info);
   background-color: rgba(8, 145, 178, 0.08);
 }
 

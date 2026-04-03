@@ -440,7 +440,7 @@ onMounted(async () => {
 }
 
 .event-row {
-  background: linear-gradient(135deg, #ffffff, #fafbff);
+  background: linear-gradient(135deg, var(--bs-white), var(--color-blue-bg-light));
   border-radius: 8px;
   border: 1px solid rgba(94, 100, 255, 0.08);
   box-shadow:
@@ -479,7 +479,7 @@ onMounted(async () => {
 
 .event-ids {
   font-size: 0.65rem;
-  color: var(--color-text-muted, #8b95a7);
+  color: var(--color-text-muted);
   font-weight: 400;
   opacity: 0.8;
   letter-spacing: 0.1px;
@@ -496,14 +496,14 @@ onMounted(async () => {
 
 .event-time-relative {
   font-size: 0.7rem;
-  color: var(--color-text, #374151);
+  color: var(--color-text);
   font-weight: 500;
   white-space: nowrap;
 }
 
 .event-time-full {
   font-size: 0.7rem;
-  color: var(--color-text-muted, #9ca3af);
+  color: var(--color-text-muted);
   font-weight: 400;
   opacity: 0.8;
   white-space: nowrap;
@@ -515,7 +515,7 @@ onMounted(async () => {
 
 .event-created-by {
   font-size: 0.7rem;
-  color: var(--color-text-muted, #6b7280);
+  color: var(--color-text-muted);
   font-weight: 500;
 }
 
@@ -533,19 +533,19 @@ onMounted(async () => {
 .content-pair {
   display: inline;
   font-size: 0.7rem;
-  color: var(--color-text-muted, #6b7280);
+  color: var(--color-text-muted);
   margin-right: 12px;
   white-space: nowrap;
 }
 
 .content-key {
-  color: var(--color-text-muted, #9ca3af);
+  color: var(--color-text-muted);
   font-weight: 500;
   margin-right: 4px;
 }
 
 .content-value {
-  color: var(--color-text, #374151);
+  color: var(--color-text);
   font-weight: 500;
   max-width: 120px;
   overflow: hidden;
@@ -554,12 +554,12 @@ onMounted(async () => {
 
 .attribute-pair {
   .content-key {
-    color: var(--color-text-muted, #9ca3af);
+    color: var(--color-text-muted);
     font-style: italic;
   }
 
   .content-value {
-    color: var(--color-text-muted, #6b7280);
+    color: var(--color-text-muted);
   }
 }
 
@@ -571,7 +571,7 @@ onMounted(async () => {
 }
 
 .info-section {
-  background: linear-gradient(135deg, var(--color-light), #ffffff);
+  background: linear-gradient(135deg, var(--color-light), var(--bs-white));
   border: 1px solid rgba(94, 100, 255, 0.08);
   border-radius: 12px;
   padding: 16px;
@@ -599,7 +599,7 @@ onMounted(async () => {
 
 .label {
   font-size: 0.7rem;
-  color: var(--color-text-muted, #9ca3af);
+  color: var(--color-text-muted);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -608,7 +608,7 @@ onMounted(async () => {
 .value {
   font-family: SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
   font-size: 0.8rem;
-  color: var(--color-text, #374151);
+  color: var(--color-text);
   font-weight: 500;
   word-break: break-all;
   background: rgba(94, 100, 255, 0.06);
@@ -622,7 +622,7 @@ onMounted(async () => {
 }
 
 .content-header {
-  color: var(--color-text-muted, #6b7280);
+  color: var(--color-text-muted);
   font-size: 0.75rem;
   font-weight: 600;
   margin-bottom: 8px;
@@ -632,11 +632,11 @@ onMounted(async () => {
 
 .content-json {
   background: var(--color-light);
-  border: 1px solid var(--card-border-color);
+  border: 1px solid var(--color-border);
   border-radius: 6px;
   padding: 12px;
   font-size: 0.75rem;
-  color: var(--color-text, #374151);
+  color: var(--color-text);
   max-height: 250px;
   overflow-y: auto;
   margin: 0;

@@ -308,10 +308,10 @@ onMounted(() => {
 }
 
 .table-card {
-  background: var(--card-bg);
-  border: 1px solid var(--card-border-color);
-  border-radius: var(--card-border-radius);
-  box-shadow: var(--card-shadow);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--bs-border-radius-lg);
+  box-shadow: var(--shadow-base);
   overflow: hidden;
 }
 
@@ -323,14 +323,14 @@ onMounted(() => {
   text-transform: uppercase;
   letter-spacing: 0.3px;
   padding: 0.75rem;
-  border-bottom: 1px solid var(--card-border-color);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .table td {
   font-size: 0.8rem;
   padding: 0.6rem 0.75rem;
   vertical-align: middle;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--color-border-row);
 }
 
 .table tbody tr:hover {
@@ -344,7 +344,7 @@ onMounted(() => {
 .filter-controls {
   background-color: var(--color-light);
   padding: 0.75rem 1rem;
-  border: 1px solid var(--card-border-color);
+  border: 1px solid var(--color-border);
 }
 
 .select-narrow {
@@ -352,7 +352,7 @@ onMounted(() => {
 }
 
 .progress {
-  background-color: var(--card-border-color);
+  background-color: var(--color-border);
 }
 
 .progress-bar {
@@ -365,6 +365,6 @@ onMounted(() => {
 
 /* Darker warning color for better readability */
 .text-warning {
-  color: var(--color-retained) !important;
+  color: var(--color-goldenrod) !important;
 }
 </style>

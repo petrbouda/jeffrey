@@ -21,16 +21,48 @@
       </template>
     </SearchableSelect>
     <div class="filter-info">
-      <Badge :value="items.length + ' ' + itemsLabel" variant="blue" size="xs" :uppercase="false" :borderless="true" />
+      <Badge
+        :value="items.length + ' ' + itemsLabel"
+        variant="blue"
+        size="xs"
+        :uppercase="false"
+        :borderless="true"
+      />
       <template v-if="modelValue && selectedItem">
-        <Badge :value="selectedItem.count.toLocaleString() + ' exec'" variant="blue" size="xs" :uppercase="false" :borderless="true" />
-        <Badge :key-label="'P99'" :value="formatP99(selectedItem.p99)" variant="orange" size="xs" :uppercase="false" :borderless="true" />
+        <Badge
+          :value="selectedItem.count.toLocaleString() + ' exec'"
+          variant="blue"
+          size="xs"
+          :uppercase="false"
+          :borderless="true"
+        />
+        <Badge
+          :key-label="'P99'"
+          :value="formatP99(selectedItem.p99)"
+          variant="orange"
+          size="xs"
+          :uppercase="false"
+          :borderless="true"
+        />
       </template>
       <template v-else>
-        <Badge :value="totalCount.toLocaleString() + ' total'" variant="blue" size="xs" :uppercase="false" :borderless="true" />
+        <Badge
+          :value="totalCount.toLocaleString() + ' total'"
+          variant="blue"
+          size="xs"
+          :uppercase="false"
+          :borderless="true"
+        />
       </template>
     </div>
-    <button v-if="modelValue" @click="$emit('update:modelValue', null); $emit('clear')" class="filter-clear-btn">
+    <button
+      v-if="modelValue"
+      @click="
+        $emit('update:modelValue', null);
+        $emit('clear');
+      "
+      class="filter-clear-btn"
+    >
       <i class="bi bi-x-lg"></i> Clear
     </button>
   </div>
@@ -86,10 +118,10 @@ const formatP99 = (nanos: number): string => {
   gap: 12px;
   margin-bottom: 1.5rem;
   padding: 10px 16px;
-  background: var(--card-bg);
-  border-radius: var(--card-border-radius);
-  border: 1px solid var(--card-border-color);
-  box-shadow: var(--card-shadow);
+  background: var(--color-bg-card);
+  border-radius: var(--bs-border-radius-lg);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-base);
   flex-wrap: wrap;
 }
 
@@ -125,8 +157,8 @@ const formatP99 = (nanos: number): string => {
   font-size: 0.7rem;
   padding: 4px 10px;
   border-radius: var(--radius-sm, 4px);
-  border: 1px solid var(--card-border-color);
-  background: var(--card-bg);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-card);
   color: var(--color-text-muted);
   cursor: pointer;
   display: flex;

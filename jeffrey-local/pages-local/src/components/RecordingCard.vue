@@ -247,8 +247,8 @@ const formatRelativeTime = (timestamp: number) => {
 .rec-card {
   padding: 10px 14px;
   border-radius: 8px;
-  border: 1px solid #e5e7eb;
-  border-left: 3px dashed #93c5fd;
+  border: 1px solid var(--color-border);
+  border-left: 3px dashed var(--color-blue-border-light);
   background: var(--color-light);
   transition: all 0.2s ease;
   cursor: pointer;
@@ -256,22 +256,22 @@ const formatRelativeTime = (timestamp: number) => {
 
 .rec-card:hover {
   border-color: rgba(59, 130, 246, 0.3);
-  border-left-color: #3b82f6;
+  border-left-color: rgba(59, 130, 246, 1);
   border-left-style: solid;
-  background: linear-gradient(135deg, #eff6ff, #f0f7ff);
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.04), rgba(59, 130, 246, 0.03));
   box-shadow: 0 2px 8px rgba(59, 130, 246, 0.12);
 }
 
 /* Analyzed state */
 .rec-card--analyzed {
-  border-left: 3px solid #00d27a;
-  background: linear-gradient(135deg, #f7fdf9, #ffffff);
+  border-left: 3px solid var(--color-success);
+  background: linear-gradient(135deg, rgba(0, 210, 122, 0.03), var(--bs-white));
 }
 
 .rec-card--analyzed:hover {
   border-color: rgba(0, 210, 122, 0.3);
-  border-left-color: #00b368;
-  background: linear-gradient(135deg, #ecfaf0, #f0fbf4);
+  border-left-color: var(--color-success-hover);
+  background: linear-gradient(135deg, rgba(0, 210, 122, 0.06), rgba(0, 210, 122, 0.04));
   box-shadow: 0 2px 8px rgba(0, 210, 122, 0.15);
 }
 
@@ -302,47 +302,47 @@ const formatRelativeTime = (timestamp: number) => {
 
 /* Heap dump: not analyzed */
 .rec-card--heap-dump {
-  border-left: 3px dashed #c4b5fd;
+  border-left: 3px dashed var(--color-violet-border-light);
 }
 
 .rec-card--heap-dump:hover {
   border-color: rgba(139, 92, 246, 0.3);
-  border-left-color: #8b5cf6;
+  border-left-color: var(--color-violet);
   border-left-style: solid;
-  background: linear-gradient(135deg, #f5f3ff, #faf5ff);
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.04), rgba(139, 92, 246, 0.02));
   box-shadow: 0 2px 8px rgba(139, 92, 246, 0.12);
 }
 
 /* Heap dump: analyzed */
 .rec-card--heap-dump.rec-card--analyzed {
-  border-left: 3px solid #8b5cf6;
-  background: linear-gradient(135deg, #faf5ff, #ffffff);
+  border-left: 3px solid var(--color-violet);
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.03), var(--bs-white));
 }
 
 .rec-card--heap-dump.rec-card--analyzed:hover {
   border-color: rgba(139, 92, 246, 0.3);
-  border-left-color: #7c3aed;
-  background: linear-gradient(135deg, #f3e8ff, #f5f3ff);
+  border-left-color: var(--color-violet-dark);
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.08), rgba(139, 92, 246, 0.04));
   box-shadow: 0 2px 8px rgba(139, 92, 246, 0.15);
 }
 
 .rec-card--heap-dump.rec-card--analyzed .rec-card__icon {
-  color: #8b5cf6;
+  color: var(--color-violet);
 }
 
 .rec-card--heap-dump.rec-card--analyzed .rec-card__btn--open {
-  color: #8b5cf6;
+  color: var(--color-violet);
   border-color: rgba(139, 92, 246, 0.3);
 }
 
 .rec-card--heap-dump:hover .rec-card__btn--open {
-  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
-  color: white;
+  background: linear-gradient(135deg, var(--color-violet), var(--color-violet-dark));
+  color: var(--bs-white);
   border-color: transparent;
 }
 
 .rec-card--heap-dump.rec-card--analyzed .rec-card__profile-info {
-  color: #8b5cf6;
+  color: var(--color-violet);
 }
 
 @keyframes rec-card-pulse {
@@ -351,7 +351,7 @@ const formatRelativeTime = (timestamp: number) => {
     background: var(--color-light);
   }
   50% {
-    background: #f0f2ff;
+    background: rgba(94, 100, 255, 0.06);
   }
 }
 
@@ -382,7 +382,7 @@ const formatRelativeTime = (timestamp: number) => {
 }
 
 .rec-card--analyzed .rec-card__icon {
-  color: #00b368;
+  color: var(--color-success-hover);
 }
 
 .rec-card__name {
@@ -418,7 +418,7 @@ const formatRelativeTime = (timestamp: number) => {
 }
 
 .rec-card__sep {
-  color: #d1d5db;
+  color: var(--color-muted-separator);
   font-size: 0.65rem;
 }
 
@@ -428,7 +428,7 @@ const formatRelativeTime = (timestamp: number) => {
   gap: 4px;
   font-size: 0.75rem;
   font-weight: 500;
-  color: #00b368;
+  color: var(--color-success-hover);
 }
 
 .rec-card__profile-info i {
@@ -441,7 +441,7 @@ const formatRelativeTime = (timestamp: number) => {
   gap: 4px;
   font-size: 0.75rem;
   font-weight: 500;
-  color: #dc6803;
+  color: var(--color-warning);
 }
 
 .rec-card__modified i {
@@ -455,7 +455,7 @@ const formatRelativeTime = (timestamp: number) => {
   gap: 5px;
   padding: 6px 14px;
   border-radius: 6px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--color-border);
   background: var(--color-light);
   color: var(--color-text-muted);
   font-size: 0.8rem;
@@ -465,13 +465,13 @@ const formatRelativeTime = (timestamp: number) => {
 }
 
 .rec-card__files-toggle:hover {
-  background: #f0f2ff;
+  background: rgba(94, 100, 255, 0.06);
   border-color: rgba(94, 100, 255, 0.3);
   color: var(--color-primary);
 }
 
 .rec-card__files-toggle--active {
-  background: #f0f2ff;
+  background: rgba(94, 100, 255, 0.06);
   border-color: rgba(94, 100, 255, 0.25);
   color: var(--color-primary);
 }
@@ -502,20 +502,20 @@ const formatRelativeTime = (timestamp: number) => {
 }
 
 .rec-card:hover .rec-card__btn--analyze {
-  background: linear-gradient(135deg, var(--color-primary), #4c52ff);
-  color: white;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-hover));
+  color: var(--bs-white);
   border-color: transparent;
 }
 
 .rec-card__btn--open {
   background: transparent;
-  color: #00b368;
+  color: var(--color-success-hover);
   border: 1px solid rgba(0, 210, 122, 0.3);
 }
 
 .rec-card:not(.rec-card--heap-dump):hover .rec-card__btn--open {
-  background: linear-gradient(135deg, #00d27a, #00b368);
-  color: white;
+  background: linear-gradient(135deg, var(--color-success), var(--color-success-hover));
+  color: var(--bs-white);
   border-color: transparent;
 }
 
@@ -555,7 +555,7 @@ const formatRelativeTime = (timestamp: number) => {
 .rec-card__action-btn {
   background: transparent;
   border: none;
-  color: #c8ccd4;
+  color: var(--color-slate-light);
   width: 34px;
   height: 34px;
   border-radius: 6px;
@@ -589,7 +589,7 @@ const formatRelativeTime = (timestamp: number) => {
   width: 34px;
   height: 34px;
   border-radius: 6px;
-  color: #c8ccd4;
+  color: var(--color-slate-light);
   cursor: grab;
   transition: all 0.15s ease;
   font-size: 1rem;
@@ -609,7 +609,7 @@ const formatRelativeTime = (timestamp: number) => {
   margin-top: 8px;
   padding-top: 8px;
   padding-left: 12px;
-  border-left: 2px solid #e5e7eb;
+  border-left: 2px solid var(--color-border);
   margin-left: 10px;
 }
 </style>

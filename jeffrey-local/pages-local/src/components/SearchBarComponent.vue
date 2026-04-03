@@ -202,7 +202,7 @@ function resetTimeseriesZoom() {
 .input-group .btn,
 .input-group .form-control,
 .input-group .input-group-text {
-  height: var(--input-height-sm);
+  height: 32px;
   line-height: 1.5;
   border-radius: 5px;
 }
@@ -217,14 +217,14 @@ function resetTimeseriesZoom() {
 
 /* Matched percentage badge */
 .matched-badge {
-  background-color: #fad4fa;
-  color: #af00af;
-  border: 1px solid #cc00cc;
+  background-color: var(--color-magenta-bg);
+  color: var(--color-magenta);
+  border: 1px solid var(--color-magenta-border);
   border-radius: 5px;
   cursor: pointer;
   font-weight: 500;
   font-size: 0.85rem;
-  height: var(--input-height-sm);
+  height: 32px;
   padding: 0 10px;
   display: inline-flex;
   align-items: center;
@@ -232,14 +232,14 @@ function resetTimeseriesZoom() {
 }
 
 .matched-badge:hover {
-  background-color: #a800a8;
-  border-color: #a800a8;
-  color: #ffffff;
+  background-color: var(--color-magenta-dark);
+  border-color: var(--color-magenta-dark);
+  color: var(--bs-white);
 }
 
 /* Remove blue border and shadow from search input on focus */
 .input-group .form-control:focus {
-  border-color: var(--input-border-color) !important;
+  border-color: var(--color-border-input) !important;
   box-shadow: none !important;
 }
 
@@ -250,8 +250,8 @@ function resetTimeseriesZoom() {
   justify-content: center;
   width: 28px;
   height: 28px;
-  border: 1px solid var(--card-border-color);
-  background-color: var(--input-bg);
+  border: 1px solid var(--color-border);
+  background-color: var(--bs-white);
   color: var(--color-text-muted);
   border-radius: 4px;
   cursor: pointer;
@@ -260,7 +260,7 @@ function resetTimeseriesZoom() {
 
 .icon-btn:hover {
   background-color: var(--color-light);
-  border-color: var(--card-border-color);
+  border-color: var(--color-border);
   color: var(--color-text);
 }
 

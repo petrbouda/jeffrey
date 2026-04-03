@@ -49,7 +49,7 @@ withDefaults(defineProps<Props>(), {
 
 .loading-message {
   margin-top: 1rem;
-  color: var(--color-text-muted, #6b7280);
+  color: var(--color-text-muted);
   font-size: 0.9rem;
   margin-bottom: 0;
 }

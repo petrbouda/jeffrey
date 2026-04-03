@@ -569,12 +569,12 @@ async function saveVisualizationSettings() {
   display: flex;
   align-items: center;
   gap: 10px;
-  background: #fff8e1;
-  border: 1px solid #ffe082;
+  background: var(--color-warning-bg);
+  border: 1px solid var(--color-warning-border);
   border-radius: 8px;
   padding: 12px 16px;
   margin-bottom: 20px;
-  color: #8d6e00;
+  color: var(--color-warning-text);
   font-size: 13px;
   font-weight: 500;
 }
@@ -583,12 +583,12 @@ async function saveVisualizationSettings() {
   display: flex;
   align-items: center;
   gap: 10px;
-  background: #e3f2fd;
-  border: 1px solid #90caf9;
+  background: var(--color-info-bg);
+  border: 1px solid var(--color-info-border);
   border-radius: 8px;
   padding: 12px 16px;
   margin-bottom: 20px;
-  color: #1565c0;
+  color: var(--color-info-text);
   font-size: 13px;
   font-weight: 500;
 }
@@ -596,7 +596,7 @@ async function saveVisualizationSettings() {
 .settings-tabs {
   display: flex;
   gap: 0;
-  border-bottom: 2px solid var(--color-border, #e2e8f0);
+  border-bottom: 2px solid var(--color-border);
   margin-bottom: 24px;
 }
 
@@ -604,7 +604,7 @@ async function saveVisualizationSettings() {
   padding: 12px 24px;
   font-size: 13px;
   font-weight: 600;
-  color: var(--color-text-muted, #718096);
+  color: var(--color-text-muted);
   cursor: pointer;
   border: none;
   background: none;
@@ -639,7 +639,7 @@ async function saveVisualizationSettings() {
 }
 
 .settings-tab:hover {
-  color: var(--color-text, #4a5568);
+  color: var(--color-text);
 }
 
 .settings-content {
@@ -658,7 +658,7 @@ async function saveVisualizationSettings() {
 
 .content-header p {
   font-size: 12px;
-  color: var(--color-text-muted, #718096);
+  color: var(--color-text-muted);
   margin: 0;
 }
 
@@ -676,14 +676,14 @@ async function saveVisualizationSettings() {
 .settings-label {
   font-size: 13px;
   font-weight: 600;
-  color: var(--color-dark, #0b1727);
+  color: var(--color-dark);
   margin-bottom: 6px;
   display: block;
 }
 
 .settings-hint {
   font-size: 11px;
-  color: var(--color-text-muted, #748194);
+  color: var(--color-text-muted);
   margin-top: 4px;
 }
 
@@ -702,7 +702,7 @@ async function saveVisualizationSettings() {
   transform: translateY(-50%);
   background: none;
   border: none;
-  color: var(--color-text-muted, #748194);
+  color: var(--color-text-muted);
   cursor: pointer;
   font-size: 16px;
   padding: 4px;
@@ -728,7 +728,7 @@ async function saveVisualizationSettings() {
 
 .content-header-with-toggle p {
   font-size: 12px;
-  color: var(--color-text-muted, #718096);
+  color: var(--color-text-muted);
   margin: 0;
 }
 
@@ -742,7 +742,7 @@ async function saveVisualizationSettings() {
 .toggle-label {
   font-size: 13px;
   font-weight: 600;
-  color: var(--color-text, #5e6e82);
+  color: var(--color-text);
 }
 
 .settings-form-disabled {
@@ -753,7 +753,7 @@ async function saveVisualizationSettings() {
 .btn-primary {
   padding: 9px 24px;
   background: var(--color-primary);
-  color: #fff;
+  color: var(--bs-white);
   border: none;
   border-radius: 6px;
   font-size: 13px;
@@ -763,7 +763,7 @@ async function saveVisualizationSettings() {
 }
 
 .btn-primary:hover {
-  background: var(--color-primary-hover, #4c52db);
+  background: var(--color-primary-hover);
 }
 
 .btn-primary:disabled {
@@ -772,7 +772,7 @@ async function saveVisualizationSettings() {
 }
 
 .form-control:disabled {
-  background: var(--color-bg-hover, #f9fafd);
+  background: var(--color-bg-hover);
   cursor: not-allowed;
   opacity: 0.7;
 }
@@ -784,7 +784,7 @@ async function saveVisualizationSettings() {
 .models-reference-title {
   font-size: 13px;
   font-weight: 600;
-  color: var(--color-text-muted, #718096);
+  color: var(--color-text-muted);
   margin-bottom: 8px;
 }
 
@@ -798,13 +798,13 @@ async function saveVisualizationSettings() {
   text-align: left;
   padding: 8px 12px;
   font-weight: 600;
-  color: var(--color-text-muted, #718096);
-  border-bottom: 1px solid var(--color-border, #e2e8f0);
+  color: var(--color-text-muted);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .models-table td {
   padding: 8px 12px;
-  border-bottom: 1px solid var(--color-border, #e2e8f0);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .model-row {
@@ -813,11 +813,11 @@ async function saveVisualizationSettings() {
 }
 
 .model-row:hover {
-  background: var(--color-bg-hover, #f0f4ff);
+  background: var(--color-bg-hover);
 }
 
 .model-row-selected {
-  background: var(--color-bg-hover, #f0f4ff);
+  background: var(--color-bg-hover);
   font-weight: 600;
 }
 
@@ -827,16 +827,16 @@ async function saveVisualizationSettings() {
 }
 
 .frame-mode-card {
-  border: 2px solid var(--card-border-color);
-  border-radius: var(--card-border-radius);
+  border: 2px solid var(--color-border);
+  border-radius: var(--bs-border-radius-lg);
   padding: 10px;
   cursor: pointer;
   transition: all var(--transition-fast);
-  background: var(--card-bg);
+  background: var(--color-bg-card);
 }
 
 .frame-mode-card:hover {
-  border-color: var(--color-text-muted, #748194);
+  border-color: var(--color-text-muted);
 }
 
 .frame-mode-card.selected {
@@ -852,7 +852,7 @@ async function saveVisualizationSettings() {
 .frame-mode-label {
   font-size: 12px;
   font-weight: 600;
-  color: var(--color-dark, #0b1727);
+  color: var(--color-dark);
   margin-top: 8px;
   text-align: center;
 }

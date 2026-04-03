@@ -9,18 +9,10 @@
 
     <div v-else>
       <!-- Loading state -->
-      <div v-if="isLoading" class="p-4 text-center">
-        <div class="spinner-border" role="status">
-          <span class="visually-hidden">Loading...</span>
-        </div>
-      </div>
+      <LoadingState v-if="isLoading" />
 
       <!-- Error state -->
-      <div v-else-if="error" class="p-4 text-center">
-        <div class="alert alert-danger" role="alert">
-          Error loading gRPC traffic data: {{ error }}
-        </div>
-      </div>
+      <ErrorState v-else-if="error" :message="error" />
 
       <!-- Dashboard content -->
       <div v-if="trafficData" class="dashboard-container">
@@ -37,14 +29,17 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref } from 'vue';
+import { computed } from 'vue';
 import { useRoute } from 'vue-router';
 import ProfileGrpcClient from '@/services/api/ProfileGrpcClient';
 import type { GrpcTrafficData } from '@/services/api/ProfileGrpcClient';
 import StatsTable from '@/components/StatsTable.vue';
+import LoadingState from '@/components/LoadingState.vue';
+import ErrorState from '@/components/ErrorState.vue';
 import CustomDisabledFeatureAlert from '@/components/alerts/CustomDisabledFeatureAlert.vue';
 import FeatureType from '@/services/api/model/FeatureType';
 import FormattingService from '@/services/FormattingService';
+import { useTechnologyData } from '@/composables/useTechnologyData';
 
 // Define props
 interface Props {
@@ -56,11 +51,6 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const route = useRoute();
-
-// Reactive state
-const trafficData = ref<GrpcTrafficData | null>(null);
-const isLoading = ref(true);
-const error = ref<string | null>(null);
 
 // Get mode from query parameter, default to 'server'
 const mode = (route.query.mode as 'client' | 'server') || 'server';
@@ -141,31 +131,11 @@ const metricsData = computed(() => {
 // Client initialization
 const client = new ProfileGrpcClient(mode, route.params.profileId as string);
 
-// Lifecycle methods
-const loadTrafficData = async () => {
-  try {
-    isLoading.value = true;
-    error.value = null;
-
-    // Load data from API
-    trafficData.value = await client.getTraffic();
-
-    // Wait for DOM updates
-    await nextTick();
-  } catch (err) {
-    error.value = err instanceof Error ? err.message : 'Unknown error occurred';
-    console.error('Error loading gRPC traffic data:', err);
-  } finally {
-    isLoading.value = false;
-  }
-};
-
-onMounted(() => {
-  // Only load data if the feature is not disabled
-  if (!isGrpcDashboardDisabled.value) {
-    loadTrafficData();
-  }
-});
+const {
+  data: trafficData,
+  isLoading,
+  error
+} = useTechnologyData<GrpcTrafficData>(() => client.getTraffic(), isGrpcDashboardDisabled);
 </script>
 
 <style scoped></style>

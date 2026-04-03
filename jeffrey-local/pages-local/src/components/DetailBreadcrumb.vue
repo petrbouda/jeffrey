@@ -24,7 +24,7 @@ defineEmits<{ back: [] }>();
 .detail-breadcrumb {
   background: rgba(94, 100, 255, 0.03);
   border: 1px solid rgba(94, 100, 255, 0.15);
-  border-radius: var(--card-border-radius);
+  border-radius: var(--bs-border-radius-lg);
   padding: 10px 16px;
   display: flex;
   align-items: center;
@@ -69,7 +69,7 @@ defineEmits<{ back: [] }>();
 }
 
 .breadcrumb-sep {
-  color: var(--card-border-color);
+  color: var(--color-border);
   font-size: 0.7rem;
 }
 

@@ -272,7 +272,7 @@ const getFileIcon = (filename: string): string => {
 }
 
 .upload-file-count {
-  background: linear-gradient(135deg, var(--color-primary), #4c52ff);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-hover));
   color: white;
   padding: 0 7px;
   border-radius: 10px;
@@ -330,7 +330,7 @@ const getFileIcon = (filename: string): string => {
 }
 
 .upload-group-select {
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--color-border);
   border-radius: 6px;
   padding: 4px 24px 4px 10px;
   font-size: 0.75rem;
@@ -432,7 +432,7 @@ const getFileIcon = (filename: string): string => {
 
 .upload-btn-add {
   background: transparent;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--color-border);
   color: var(--color-text);
   padding: 3px 10px;
   border-radius: 5px;
@@ -452,7 +452,7 @@ const getFileIcon = (filename: string): string => {
 
 .upload-btn-clear {
   background: transparent;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--color-border);
   color: var(--color-text-muted);
   padding: 3px 10px;
   border-radius: 5px;
@@ -467,7 +467,7 @@ const getFileIcon = (filename: string): string => {
 }
 
 .upload-btn-upload {
-  background: linear-gradient(135deg, var(--color-primary), #4c52ff);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-hover));
   color: white;
   border: none;
   padding: 4px 12px;
@@ -509,7 +509,7 @@ const getFileIcon = (filename: string): string => {
 }
 
 .upload-file-item:hover {
-  background: #f0f3ff;
+  background: var(--color-indigo-bg-light);
 }
 
 .upload-file-icon {
@@ -560,7 +560,7 @@ const getFileIcon = (filename: string): string => {
 
 .upload-progress-track {
   height: 4px;
-  background: #e5e7eb;
+  background: var(--color-border);
   border-radius: 2px;
   overflow: hidden;
 }
@@ -573,12 +573,12 @@ const getFileIcon = (filename: string): string => {
 }
 
 .upload-progress-fill.uploading {
-  background: linear-gradient(90deg, var(--color-primary), #764ba2);
+  background: linear-gradient(90deg, var(--color-primary), var(--color-gradient-end));
   animation: progressPulse 1.5s ease-in-out infinite;
 }
 
 .upload-progress-fill.complete {
-  background: #00d27a;
+  background: var(--color-success);
 }
 
 .upload-progress-fill.error {
@@ -612,7 +612,7 @@ const getFileIcon = (filename: string): string => {
 }
 
 .upload-status.status-complete {
-  color: #00d27a;
+  color: var(--color-success);
 }
 
 .upload-status.status-error {

@@ -282,7 +282,7 @@ watch(
 
 .node-row.root-node {
   background-color: rgba(111, 66, 193, 0.05);
-  border-left-color: var(--color-purple);
+  border-left-color: var(--bs-purple);
 }
 
 .expand-btn {
@@ -321,18 +321,18 @@ watch(
 }
 
 .relationship-badge.referrer {
-  background-color: #fff3cd;
-  color: #856404;
+  background-color: var(--color-warning-bg);
+  color: var(--color-warning-text);
 }
 
 .relationship-badge.reachable {
-  background-color: #cce5ff;
-  color: #004085;
+  background-color: var(--color-accent-blue-light-bg);
+  color: var(--color-accent-blue-darker);
 }
 
 .relationship-badge.root {
-  background-color: #e2d9f3;
-  color: var(--color-purple);
+  background-color: var(--color-violet-lightest-bg);
+  color: var(--bs-purple);
 }
 
 .field-name {
@@ -341,7 +341,7 @@ watch(
 }
 
 .class-name {
-  color: var(--color-purple);
+  color: var(--bs-purple);
   font-size: 0.75rem;
   background: transparent;
   font-weight: 500;
@@ -363,13 +363,13 @@ watch(
   font-size: 0.75rem;
   font-weight: 600;
   margin-left: auto;
-  background-color: var(--card-border-color);
+  background-color: var(--color-border);
   padding: 0.1rem 0.4rem;
   border-radius: 3px;
 }
 
 .node-children {
-  border-left: 1px solid var(--card-border-color);
+  border-left: 1px solid var(--color-border);
   margin-left: 10px;
 }
 

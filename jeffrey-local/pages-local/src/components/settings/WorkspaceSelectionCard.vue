@@ -73,7 +73,7 @@ const iconClass = computed(() => {
 
 <style scoped>
 .workspace-selection-card {
-  background: linear-gradient(135deg, #ffffff, #fafbff);
+  background: linear-gradient(135deg, var(--bs-white), var(--color-blue-bg-light));
   border: 2px solid rgba(94, 100, 255, 0.15);
   border-radius: 10px;
   padding: 16px;
@@ -89,7 +89,7 @@ const iconClass = computed(() => {
 }
 
 .workspace-selection-card.active {
-  background: linear-gradient(135deg, #f3f4ff, #e8eaf6);
+  background: linear-gradient(135deg, var(--color-indigo-bg-light), var(--color-indigo-bg));
   border-color: var(--color-primary);
   box-shadow: 0 4px 16px rgba(94, 100, 255, 0.2);
 }
@@ -103,7 +103,7 @@ const iconClass = computed(() => {
 }
 
 .workspace-selection-card.active .workspace-badge {
-  background: linear-gradient(135deg, var(--color-primary), #4c52ff);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-hover));
   color: white;
 }
 
@@ -113,7 +113,7 @@ const iconClass = computed(() => {
 
 /* UNAVAILABLE — workspace removed from server */
 .workspace-selection-card.status-unavailable {
-  background: linear-gradient(135deg, #f9fafb, #f3f4f6);
+  background: linear-gradient(135deg, var(--color-neutral-bg), var(--color-light));
   border-color: rgba(156, 163, 175, 0.3);
   opacity: 0.75;
 }
@@ -129,12 +129,12 @@ const iconClass = computed(() => {
 
 /* OFFLINE — server unreachable */
 .workspace-selection-card.status-offline {
-  background: linear-gradient(135deg, #fffbeb, #fef3c7);
+  background: linear-gradient(135deg, var(--color-amber-bg), var(--color-amber-light));
   border-color: rgba(245, 158, 11, 0.25);
 }
 
 .workspace-selection-card.status-offline .workspace-icon {
-  color: #f59e0b;
+  color: var(--color-amber);
 }
 
 /* Card Content */

@@ -163,11 +163,11 @@ const framePackagePart = (frame: string): string => {
 
 <style scoped>
 .path-card {
-  border: 1px solid #e0e4e8;
+  border: 1px solid var(--color-border);
   border-radius: 10px;
   padding: 1.25rem;
   margin-bottom: 1.25rem;
-  background: #ffffff;
+  background: var(--bs-white);
 }
 
 .path-header {
@@ -190,11 +190,11 @@ const framePackagePart = (frame: string): string => {
 
 /* GC Root block — same shape as step-node + step-node-target, green */
 .gc-root-block {
-  border: 1px solid var(--card-border-color);
-  border-left: 4px solid #2b8a3e;
+  border: 1px solid var(--color-border);
+  border-left: 4px solid var(--color-success-dark);
   border-radius: 6px;
   padding: 0.5rem 0.75rem;
-  background: #f1f8f3;
+  background: var(--color-success-bg);
   margin-bottom: 0.5rem;
 }
 
@@ -209,7 +209,7 @@ const framePackagePart = (frame: string): string => {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: #2b8a3e;
+  color: var(--color-success-dark);
 }
 
 .gc-root-type {
@@ -282,27 +282,27 @@ const framePackagePart = (frame: string): string => {
 .connector-line {
   width: 2px;
   height: 10px;
-  background: #ced4da;
+  background: var(--color-muted-separator);
 }
 
 .connector-field {
   font-size: 0.75rem;
   font-family: monospace;
-  color: var(--color-purple);
-  background: #f3eeff;
+  color: var(--bs-purple);
+  background: var(--color-violet-lighter-bg);
   padding: 0.1rem 0.5rem;
   border-radius: 3px;
 }
 
 .connector-arrow {
   font-size: 0.55rem;
-  color: #ced4da;
+  color: var(--color-muted-separator);
 }
 
 /* Step node */
 .step-node {
   position: relative;
-  border: 1px solid var(--card-border-color);
+  border: 1px solid var(--color-border);
   border-radius: 6px;
   padding: 0.5rem 0.75rem;
   background: var(--color-light);
@@ -313,13 +313,13 @@ const framePackagePart = (frame: string): string => {
 }
 
 .step-node:hover {
-  border-color: #c5d2de;
+  border-color: var(--color-slate-light);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
 }
 
 .step-node-target {
-  border-left: 4px solid #1971c2;
-  background: #f0f6ff;
+  border-left: 4px solid var(--color-info-text);
+  background: var(--color-blue-bg-lighter);
 }
 
 .step-class-line {
@@ -390,7 +390,7 @@ const framePackagePart = (frame: string): string => {
 }
 
 .step-size-retained .step-size-value {
-  color: var(--color-retained);
+  color: var(--color-goldenrod);
 }
 
 .step-display-value {

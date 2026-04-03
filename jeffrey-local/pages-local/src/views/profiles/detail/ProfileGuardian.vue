@@ -622,10 +622,10 @@ function scrollToTop() {
 <style scoped>
 /* Summary Card */
 .summary-card {
-  background: var(--card-bg);
-  border: 1px solid var(--card-border-color);
-  border-radius: var(--card-border-radius);
-  box-shadow: var(--card-shadow);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--bs-border-radius-lg);
+  box-shadow: var(--shadow-base);
   overflow: hidden;
 }
 
@@ -667,7 +667,7 @@ function scrollToTop() {
 /* Legend Section */
 .legend-section {
   height: 100%;
-  border-left: 1px solid #f0f0f0;
+  border-left: 1px solid var(--color-border);
   padding-left: 1.25rem;
 }
 
@@ -715,7 +715,7 @@ function scrollToTop() {
 /* Prerequisites Section */
 .prerequisites-section {
   height: 100%;
-  border-left: 1px solid #f0f0f0;
+  border-left: 1px solid var(--color-border);
   padding-left: 1.25rem;
 }
 
@@ -734,12 +734,16 @@ function scrollToTop() {
 
 .prereq-item.prereq-ok {
   border-left-color: var(--color-success);
-  background: linear-gradient(135deg, #f0fdf4, #f9fafb);
+  background: linear-gradient(
+    135deg,
+    var(--color-success-bg-light),
+    var(--color-neutral-bg)
+  );
 }
 
 .prereq-item.prereq-warning {
-  border-left-color: #f59e0b;
-  background: linear-gradient(135deg, #fffbeb, #f9fafb);
+  border-left-color: var(--color-amber);
+  background: linear-gradient(135deg, var(--color-amber-bg), var(--color-neutral-bg));
 }
 
 .prereq-header {
@@ -777,7 +781,7 @@ function scrollToTop() {
   justify-content: space-between;
   align-items: center;
   gap: 1rem;
-  background: #fff;
+  background: var(--bs-white);
   padding: 0.75rem 1rem;
   border-radius: 0.5rem;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
@@ -816,7 +820,7 @@ function scrollToTop() {
 
 /* Rules Table */
 .rules-table-container {
-  background: #fff;
+  background: var(--bs-white);
   border-radius: 0.75rem;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   overflow: hidden;
@@ -832,8 +836,12 @@ function scrollToTop() {
   grid-template-columns: 60px 1fr 140px 150px 120px 80px;
   gap: 0.5rem;
   padding: 0.75rem 1rem;
-  background: linear-gradient(135deg, #f8fafc, #f1f5f9);
-  border-bottom: 1px solid #e5e7eb;
+  background: linear-gradient(
+    135deg,
+    var(--color-neutral-bg),
+    var(--color-neutral-light)
+  );
+  border-bottom: 1px solid var(--color-border);
   font-size: 0.7rem;
   font-weight: 600;
   text-transform: uppercase;
@@ -856,7 +864,7 @@ function scrollToTop() {
   padding: 0.75rem 1rem;
   align-items: center;
   cursor: pointer;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid var(--color-border);
   transition: background-color 0.15s ease;
 }
 
@@ -869,7 +877,7 @@ function scrollToTop() {
 }
 
 .table-row.severity-info {
-  border-left: 3px solid #0d6efd;
+  border-left: 3px solid var(--bs-blue);
 }
 
 .table-row.severity-ok {
@@ -878,7 +886,7 @@ function scrollToTop() {
 
 .table-row.severity-na,
 .table-row.severity-ignore {
-  border-left: 3px solid #6c757d;
+  border-left: 3px solid var(--color-text-muted);
 }
 
 /* Column Styles */
@@ -901,8 +909,8 @@ function scrollToTop() {
   display: inline-block;
   font-size: 0.7rem;
   font-weight: 500;
-  color: #1e40af;
-  background: #dbeafe;
+  color: var(--color-blue-text);
+  background: var(--color-blue-bg);
   padding: 0.2rem 0.5rem;
   border-radius: 0.25rem;
   white-space: nowrap;
@@ -922,7 +930,7 @@ function scrollToTop() {
   font-size: 0.7rem;
   font-weight: 500;
   color: var(--color-text);
-  background: #e5e7eb;
+  background: var(--color-border);
   padding: 0.2rem 0.5rem;
   border-radius: 0.25rem;
   white-space: nowrap;
@@ -968,7 +976,7 @@ function scrollToTop() {
   width: 100%;
   max-width: 80px;
   height: 4px;
-  background: #e5e7eb;
+  background: var(--color-border);
   border-radius: 2px;
   overflow: hidden;
 }
@@ -996,14 +1004,14 @@ function scrollToTop() {
   border: none;
   font-size: 0.8rem;
   transition: all 0.15s ease-in-out;
-  background-color: #fff3e0;
+  background-color: var(--color-orange-bg);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   padding: 0;
-  color: #fd7e14;
+  color: var(--bs-orange);
 }
 
 .flame-btn:hover {
-  background-color: #fd7e14;
+  background-color: var(--bs-orange);
   color: white;
   box-shadow: 0 2px 8px rgba(253, 126, 20, 0.25);
 }
@@ -1018,7 +1026,7 @@ function scrollToTop() {
 .row-details {
   background: var(--color-light);
   padding: 1rem 1.5rem;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .details-grid {
@@ -1101,7 +1109,7 @@ function scrollToTop() {
   .legend-section,
   .prerequisites-section {
     border-left: none;
-    border-top: 1px solid #f0f0f0;
+    border-top: 1px solid var(--color-border);
     padding-left: 0;
     padding-top: 1rem;
     margin-top: 1rem;

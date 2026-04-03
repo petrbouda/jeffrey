@@ -7,17 +7,9 @@
     />
 
     <div v-else>
-      <div v-if="isLoading" class="p-4 text-center">
-        <div class="spinner-border" role="status">
-          <span class="visually-hidden">Loading...</span>
-        </div>
-      </div>
+      <LoadingState v-if="isLoading" />
 
-      <div v-else-if="error" class="p-4 text-center">
-        <div class="alert alert-danger" role="alert">
-          Error loading gRPC traffic data: {{ error }}
-        </div>
-      </div>
+      <ErrorState v-else-if="error" :message="error" />
 
       <div v-if="trafficData" class="dashboard-container">
         <GrpcTrafficStats :header="trafficData.header" />
@@ -36,14 +28,17 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref } from 'vue';
+import { computed } from 'vue';
 import { useRoute } from 'vue-router';
 import GrpcLargestCalls from '@/components/grpc/GrpcLargestCalls.vue';
 import ProfileGrpcClient from '@/services/api/ProfileGrpcClient';
 import type { GrpcTrafficData } from '@/services/api/ProfileGrpcClient';
 import GrpcTrafficStats from '@/components/grpc/GrpcTrafficStats.vue';
+import LoadingState from '@/components/LoadingState.vue';
+import ErrorState from '@/components/ErrorState.vue';
 import CustomDisabledFeatureAlert from '@/components/alerts/CustomDisabledFeatureAlert.vue';
 import FeatureType from '@/services/api/model/FeatureType';
+import { useTechnologyData } from '@/composables/useTechnologyData';
 
 interface Props {
   disabledFeatures?: FeatureType[];
@@ -54,9 +49,6 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const route = useRoute();
-const trafficData = ref<GrpcTrafficData | null>(null);
-const isLoading = ref(true);
-const error = ref<string | null>(null);
 
 const mode = (route.query.mode as 'client' | 'server') || 'server';
 
@@ -66,23 +58,16 @@ const isGrpcDashboardDisabled = computed(() => {
   return props.disabledFeatures.includes(featureType);
 });
 
+const client = new ProfileGrpcClient(mode, route.params.profileId as string);
+
+const {
+  data: trafficData,
+  isLoading,
+  error
+} = useTechnologyData<GrpcTrafficData>(() => client.getTraffic(), isGrpcDashboardDisabled);
+
 const sortedLargestCalls = computed(() => {
   if (!trafficData.value) return [];
   return [...trafficData.value.largestCalls].sort((a, b) => b.totalSize - a.totalSize);
-});
-
-const client = new ProfileGrpcClient(mode, route.params.profileId as string);
-
-onMounted(async () => {
-  if (isGrpcDashboardDisabled.value) return;
-  try {
-    isLoading.value = true;
-    trafficData.value = await client.getTraffic();
-    await nextTick();
-  } catch (err) {
-    error.value = err instanceof Error ? err.message : 'Unknown error occurred';
-  } finally {
-    isLoading.value = false;
-  }
 });
 </script>

@@ -422,13 +422,17 @@ onMounted(() => {
   gap: 1rem;
   margin-bottom: 1.5rem;
   padding-bottom: 1rem;
-  border-bottom: 1px solid var(--card-border-color);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .about-header-icon {
   width: 48px;
   height: 48px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(
+    135deg,
+    var(--color-gradient-start) 0%,
+    var(--color-gradient-end) 100%
+  );
   border-radius: 12px;
   display: flex;
   align-items: center;
@@ -484,7 +488,7 @@ onMounted(() => {
   gap: 0.875rem;
   padding: 1rem;
   background: white;
-  border: 1px solid var(--card-border-color);
+  border: 1px solid var(--color-border);
   border-radius: 8px;
   transition:
     box-shadow 0.2s ease,
@@ -492,7 +496,7 @@ onMounted(() => {
 }
 
 .feature-card:hover {
-  border-color: var(--card-border-color);
+  border-color: var(--color-border);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
@@ -523,11 +527,11 @@ onMounted(() => {
 }
 
 .feature-content code {
-  background-color: #f1f3f4;
+  background-color: var(--color-code-bg);
   padding: 0.1rem 0.35rem;
   border-radius: 3px;
   font-size: 0.85em;
-  color: #d63384;
+  color: var(--bs-pink);
 }
 
 .benefits-list {
@@ -554,14 +558,14 @@ onMounted(() => {
 .about-note {
   display: flex;
   gap: 1rem;
-  background: linear-gradient(135deg, #fff8e1 0%, #fffde7 100%);
-  border: 1px solid #ffe082;
+  background: linear-gradient(135deg, var(--color-warning-bg) 0%, var(--color-amber-bg) 100%);
+  border: 1px solid var(--color-warning-border);
   border-radius: 8px;
   padding: 1rem;
 }
 
 .note-icon {
-  color: #f9a825;
+  color: var(--color-amber);
   font-size: 1.25rem;
   flex-shrink: 0;
 }
@@ -569,11 +573,11 @@ onMounted(() => {
 .note-content {
   font-size: 0.85rem;
   line-height: 1.6;
-  color: #5d4037;
+  color: var(--color-brown-text);
 }
 
 .note-content strong {
-  color: #4e342e;
+  color: var(--color-brown-dark);
 }
 
 .note-content code {
@@ -581,6 +585,6 @@ onMounted(() => {
   padding: 0.1rem 0.35rem;
   border-radius: 3px;
   font-size: 0.9em;
-  color: #bf360c;
+  color: var(--color-brown-accent);
 }
 </style>

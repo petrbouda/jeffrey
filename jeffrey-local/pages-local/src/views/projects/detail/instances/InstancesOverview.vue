@@ -373,13 +373,13 @@ onMounted(async () => {
 <style scoped>
 /* Compact Stat Cards (matching RepositoryStatistics.vue) */
 .compact-stat-card {
-  background: var(--card-bg);
-  border: 1px solid var(--card-border-color);
-  border-radius: var(--card-border-radius);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--bs-border-radius-lg);
   padding: 12px 16px;
   height: 100%;
   transition: all var(--transition-base);
-  box-shadow: var(--card-shadow);
+  box-shadow: var(--shadow-base);
 }
 
 .compact-stat-card:hover {
@@ -483,12 +483,12 @@ onMounted(async () => {
 
 /* Instance cards */
 .instance-card {
-  background-color: var(--card-bg);
-  border: 1px solid var(--card-border-color);
-  border-radius: var(--card-border-radius);
+  background-color: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--bs-border-radius-lg);
   transition: all var(--transition-fast);
   color: inherit;
-  box-shadow: var(--card-shadow);
+  box-shadow: var(--shadow-base);
   overflow: hidden;
 }
 
@@ -498,11 +498,11 @@ onMounted(async () => {
 }
 
 .instance-pending {
-  border-left: 3px solid #3b82f6;
+  border-left: 3px solid var(--color-blue-500);
 }
 
 .instance-active {
-  border-left: 3px solid #f59e0b;
+  border-left: 3px solid var(--color-amber);
 }
 
 .instance-finished {
@@ -510,7 +510,7 @@ onMounted(async () => {
 }
 
 .instance-expired {
-  border-left: 3px solid #9ca3af;
+  border-left: 3px solid var(--color-text-light);
 }
 
 .instance-identity {
@@ -546,12 +546,12 @@ onMounted(async () => {
 
 .icon-pending {
   background-color: rgba(59, 130, 246, 0.12);
-  color: #2563eb;
+  color: var(--bs-blue);
 }
 
 .icon-active {
   background-color: rgba(245, 158, 11, 0.12);
-  color: #d97706;
+  color: var(--color-amber-highlight);
 }
 
 .icon-finished {

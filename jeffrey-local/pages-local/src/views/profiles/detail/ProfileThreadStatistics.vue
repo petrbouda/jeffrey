@@ -152,7 +152,7 @@
             aria-label="Close"
           ></button>
         </template>
-        <div id="scrollable-wrapper" class="p-3" v-if="showFlamegraphModal">
+        <div id="scrollable-wrapper" style="padding: 0.75rem" v-if="showFlamegraphModal">
           <SearchBarComponent :graph-updater="graphUpdater" :with-timeseries="true" />
           <TimeSeriesChart
             :graph-updater="graphUpdater"
@@ -399,7 +399,7 @@ onMounted(() => {
 <style scoped>
 .threads-container {
   width: 100%;
-  color: #333;
+  color: var(--color-dark);
   font-family:
     -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans',
     'Helvetica Neue', sans-serif;
@@ -414,13 +414,13 @@ onMounted(() => {
 
 /* Card Container */
 .data-table-card {
-  background: var(--card-bg);
+  background: var(--color-bg-card);
   overflow: hidden;
-  box-shadow: var(--card-shadow);
-  border-radius: var(--card-border-radius);
+  box-shadow: var(--shadow-base);
+  border-radius: var(--bs-border-radius-lg);
   transition: all var(--transition-base);
-  border: 1px solid var(--card-border-color);
-  border-left: 3px solid #4285f4;
+  border: 1px solid var(--color-border);
+  border-left: 3px solid var(--color-blue-500);
 }
 
 .data-table-card:hover {
@@ -432,20 +432,20 @@ onMounted(() => {
   align-items: center;
   padding: 0.6rem 1rem;
   background-color: var(--color-light);
-  border-bottom: 1px solid var(--card-border-color);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .data-table-card .chart-card-header h5 {
   margin: 0;
   font-size: 0.9rem;
   font-weight: 600;
-  color: #333;
+  color: var(--color-dark);
   display: flex;
   align-items: center;
 }
 
 .data-table-card .chart-card-header h5 i {
-  color: #4285f4;
+  color: var(--color-blue-500);
   font-size: 1rem;
 }
 
@@ -459,7 +459,7 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 0.5rem 1rem;
-  border-bottom: 1px solid #f1f3f5;
+  border-bottom: 1px solid var(--color-border-row);
   transition: all 0.15s ease;
 }
 
@@ -522,7 +522,7 @@ onMounted(() => {
 .timestamp-badge {
   padding: 0.15rem 0.5rem;
   background-color: var(--color-light);
-  border: 1px solid var(--card-border-color);
+  border: 1px solid var(--color-border);
   font-family: SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
   font-size: 0.65rem;
   color: var(--color-text-muted);
@@ -538,17 +538,17 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   padding: 0;
-  border: 1px solid var(--card-border-color);
+  border: 1px solid var(--color-border);
   background-color: white;
-  color: #4285f4;
+  color: var(--color-blue-500);
   font-size: 0.8rem;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .flame-btn:hover:not(:disabled) {
-  background-color: #4285f4;
-  border-color: #4285f4;
+  background-color: var(--color-blue-500);
+  border-color: var(--color-blue-500);
   color: white;
   box-shadow: 0 1px 3px rgba(66, 133, 244, 0.3);
 }
@@ -569,7 +569,7 @@ onMounted(() => {
 }
 
 .cpu-section:not(:last-child) {
-  border-bottom: 1px solid var(--card-border-color);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .section-header {
@@ -578,15 +578,15 @@ onMounted(() => {
   gap: 0.4rem;
   padding: 0.45rem 1rem;
   background-color: var(--color-light);
-  border-bottom: 1px solid var(--card-border-color);
+  border-bottom: 1px solid var(--color-border);
   font-weight: 600;
   font-size: 0.75rem;
-  color: #555;
+  color: var(--color-text-muted);
   letter-spacing: 0.02em;
 }
 
 .section-header i {
-  color: #4285f4;
+  color: var(--color-blue-500);
   font-size: 0.85rem;
 }
 
@@ -612,7 +612,7 @@ onMounted(() => {
 
 .empty-message i {
   font-size: 1.5rem;
-  color: var(--card-border-color);
+  color: var(--color-border);
 }
 
 /* Responsive Adjustments */

@@ -9,16 +9,10 @@
 
     <div v-else>
       <!-- Loading state -->
-      <div v-if="isLoading" class="p-4 text-center">
-        <div class="spinner-border" role="status">
-          <span class="visually-hidden">Loading...</span>
-        </div>
-      </div>
+      <LoadingState v-if="isLoading" />
 
       <!-- Error state -->
-      <div v-else-if="error" class="p-4 text-center">
-        <div class="alert alert-danger" role="alert">Error loading pool data: {{ error }}</div>
-      </div>
+      <ErrorState v-else-if="error" :message="error" />
 
       <!-- Dashboard content -->
       <div v-else-if="poolDataList.length > 0" class="dashboard-container">
@@ -177,6 +171,8 @@ import PoolData from '@/services/api/model/PoolData.ts';
 import PoolEventStatistics from '@/services/api/model/PoolEventStatistics.ts';
 import ProfileJdbcPoolClient from '@/services/api/ProfileJdbcPoolClient.ts';
 import FormattingService from '@/services/FormattingService.ts';
+import LoadingState from '@/components/LoadingState.vue';
+import ErrorState from '@/components/ErrorState.vue';
 import CustomDisabledFeatureAlert from '@/components/alerts/CustomDisabledFeatureAlert.vue';
 import FeatureType from '@/services/api/model/FeatureType';
 import AxisFormatType from '@/services/timeseries/AxisFormatType.ts';
@@ -451,7 +447,7 @@ onMounted(() => {
 
 .pool-selector-card {
   background: white;
-  border: 2px solid var(--card-border-color);
+  border: 2px solid var(--color-border);
   border-radius: 12px;
   padding: 1rem;
   cursor: pointer;
@@ -462,12 +458,12 @@ onMounted(() => {
 .pool-selector-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  border-color: #667eea;
+  border-color: var(--color-gradient-start);
 }
 
 .pool-selector-card.selected {
-  border-color: #667eea;
-  background: #f8f9ff;
+  border-color: var(--color-gradient-start);
+  background: var(--color-blue-bg-light);
   color: var(--color-dark);
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
 }
@@ -494,33 +490,33 @@ onMounted(() => {
 }
 
 .badge-success {
-  background-color: #d4edda;
-  color: #155724;
+  background-color: var(--color-success-bg);
+  color: var(--color-success-dark);
 }
 
 .badge-warning {
-  background-color: #fff3cd;
-  color: #856404;
+  background-color: var(--color-warning-bg);
+  color: var(--color-warning-text);
 }
 
 .badge-danger {
-  background-color: #f8d7da;
-  color: #721c24;
+  background-color: var(--color-danger-100);
+  color: var(--color-danger-title);
 }
 
 .pool-selector-card.selected .badge-success {
-  background-color: #d4edda;
-  color: #155724;
+  background-color: var(--color-success-bg);
+  color: var(--color-success-dark);
 }
 
 .pool-selector-card.selected .badge-warning {
-  background-color: #fff3cd;
-  color: #856404;
+  background-color: var(--color-warning-bg);
+  color: var(--color-warning-text);
 }
 
 .pool-selector-card.selected .badge-danger {
-  background-color: #f8d7da;
-  color: #721c24;
+  background-color: var(--color-danger-100);
+  color: var(--color-danger-title);
 }
 
 .pool-card-info {
@@ -549,8 +545,8 @@ onMounted(() => {
 }
 
 .selected-pool-header-spacious {
-  background: #f8f9ff;
-  border: 1px solid var(--card-border-color);
+  background: var(--color-blue-bg-light);
+  border: 1px solid var(--color-border);
   border-radius: 8px;
   margin: 1.5rem 0;
   padding: 1rem 0;
@@ -613,7 +609,7 @@ onMounted(() => {
 }
 
 .leaf-row {
-  background-color: #fff;
+  background-color: var(--bs-white);
 }
 
 /* Chart Container */

@@ -438,6 +438,9 @@
                       </div>
                       <div class="form-help">Java Methods: java.lang.Thread.*, *.&lt;init&gt;</div>
                       <div class="form-help">
+                        All in Package: pbouda.jeffrey.server.core.grpc.*.*
+                      </div>
+                      <div class="form-help">
                         Native Methods: Java_java_lang_Throwable_fillInStackTrace
                       </div>
                       <div class="form-help">
@@ -699,7 +702,7 @@
           <div class="warning-content">
             <div class="warning-message">
               <span class="warning-text"
-                ><span class="font-bold">Chunk Size</span> helps with parallelization of JFR
+                ><span class="fw-bold">Chunk Size</span> helps with parallelization of JFR
                 processing with multiple threads</span
               >
             </div>
@@ -725,7 +728,7 @@
           <div class="warning-content">
             <div class="warning-message">
               <span class="warning-text"
-                ><span class="font-bold">JFR Synchronization</span> merges AsyncProfiler events with
+                ><span class="fw-bold">JFR Synchronization</span> merges AsyncProfiler events with
                 JDK's JFR recording for richer profiling data</span
               >
             </div>
@@ -898,10 +901,10 @@ generateConfig();
 
 /* Step Header Styling - Matching ProjectsView */
 .step-header {
-  background: #ffffff;
+  background: var(--bs-white);
   border-radius: 12px;
   overflow: hidden;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--color-border);
   box-shadow:
     0 1px 3px rgba(0, 0, 0, 0.1),
     0 1px 2px rgba(0, 0, 0, 0.06);
@@ -929,12 +932,12 @@ generateConfig();
 }
 
 .step-header-status.clickable-header:hover {
-  background: linear-gradient(135deg, #4c52ff, #3f46ff);
+  background: linear-gradient(135deg, var(--color-primary-hover), var(--color-primary-hover));
   box-shadow: 0 2px 8px rgba(94, 100, 255, 0.3);
 }
 
 .header-primary {
-  background: linear-gradient(135deg, var(--color-primary), #4c52ff);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-hover));
 }
 
 .header-secondary {
@@ -942,11 +945,11 @@ generateConfig();
 }
 
 .header-tertiary {
-  background: linear-gradient(135deg, #f59e0b, #d97706);
+  background: linear-gradient(135deg, var(--color-amber), var(--color-amber-highlight));
 }
 
 .header-warning {
-  background: linear-gradient(135deg, #f59e0b, #d97706);
+  background: linear-gradient(135deg, var(--color-amber), var(--color-amber-highlight));
 }
 
 .step-type-info {
@@ -1114,7 +1117,7 @@ generateConfig();
   justify-content: center;
   width: 28px;
   height: 28px;
-  background: linear-gradient(135deg, #f8faff, #f1f5ff);
+  background: linear-gradient(135deg, var(--color-blue-bg-light), var(--color-blue-bg-lighter));
   border: 1px solid rgba(94, 100, 255, 0.2);
   border-radius: 6px;
   color: var(--color-primary);
@@ -1124,7 +1127,7 @@ generateConfig();
 }
 
 .help-panel-toggle:hover {
-  background: linear-gradient(135deg, var(--color-primary), #4c52ff);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-hover));
   color: white;
   transform: translateY(-1px);
   box-shadow: 0 2px 8px rgba(94, 100, 255, 0.25);
@@ -1151,7 +1154,7 @@ generateConfig();
 .help-section {
   margin-top: 20px;
   padding-top: 20px;
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid var(--color-border);
   animation: slideDown 0.3s ease-out;
 }
 
@@ -1167,7 +1170,7 @@ generateConfig();
 }
 
 .help-content {
-  background: linear-gradient(135deg, #f8faff, #f1f5ff);
+  background: linear-gradient(135deg, var(--color-blue-bg-light), var(--color-blue-bg-lighter));
   border: 1px solid rgba(94, 100, 255, 0.1);
   border-radius: 12px;
   padding: 24px;
@@ -1184,7 +1187,7 @@ generateConfig();
 }
 
 .help-title i {
-  color: #f59e0b;
+  color: var(--color-amber);
   font-size: 1.2rem;
 }
 
@@ -1316,7 +1319,7 @@ generateConfig();
   content: '';
   width: 3px;
   height: 14px;
-  background: linear-gradient(135deg, var(--color-primary), #4c52ff);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-hover));
   border-radius: 2px;
 }
 
@@ -1341,7 +1344,7 @@ generateConfig();
 .interval-label {
   font-size: 0.78rem;
   font-weight: 600;
-  color: #3949ab;
+  color: var(--color-indigo-text);
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -1387,12 +1390,12 @@ generateConfig();
   text-transform: uppercase;
   font-size: 0.7rem;
   letter-spacing: 0.05em;
-  color: #3949ab;
+  color: var(--color-indigo-text);
 }
 
 .event-extra-hint .hint-text {
   flex: 1;
-  color: #454f63;
+  color: var(--color-text);
   line-height: 1.4;
 }
 
@@ -1419,7 +1422,7 @@ generateConfig();
 }
 
 .agent-mode-selector .form-check-input:checked + .form-check-label {
-  color: #0284c7;
+  color: var(--color-info-text);
   font-weight: 600;
 }
 
@@ -1651,7 +1654,7 @@ generateConfig();
 }
 
 .btn-cancel-builder {
-  background: linear-gradient(135deg, #fef2f2, #fee2e2);
+  background: linear-gradient(135deg, var(--color-danger-bg-lighter), var(--color-danger-100));
   border: 1px solid rgba(239, 68, 68, 0.3);
   color: var(--color-danger-hover);
   font-size: 0.8rem;
@@ -1660,7 +1663,7 @@ generateConfig();
 }
 
 .btn-cancel-builder:hover {
-  background: linear-gradient(135deg, var(--color-danger-hover), #b91c1c);
+  background: linear-gradient(135deg, var(--color-danger-hover), var(--color-danger-dark));
   color: white;
   transform: translateY(-1px);
   box-shadow: 0 2px 6px rgba(220, 38, 38, 0.3);
@@ -1676,7 +1679,7 @@ generateConfig();
 }
 
 .btn-accept-command:hover {
-  background: linear-gradient(135deg, var(--color-success-hover), #065f46);
+  background: linear-gradient(135deg, var(--color-success-hover), var(--color-success-dark));
   transform: translateY(-1px);
   box-shadow: 0 3px 8px rgba(16, 185, 129, 0.35);
 }
@@ -1714,10 +1717,10 @@ generateConfig();
 /* Warning Panel Styles */
 .warning-panel {
   margin-top: 16px;
-  background: #ffffff;
+  background: var(--bs-white);
   border-radius: 12px;
   overflow: hidden;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--color-border);
   box-shadow:
     0 1px 3px rgba(0, 0, 0, 0.1),
     0 1px 2px rgba(0, 0, 0, 0.06);
@@ -1736,7 +1739,7 @@ generateConfig();
 }
 
 .clickable-warning:hover .step-header-status {
-  background: linear-gradient(135deg, #d97706, #b45309);
+  background: linear-gradient(135deg, var(--color-amber-highlight), var(--color-amber-darkest));
 }
 
 .clickable-warning:hover .configure-icon {

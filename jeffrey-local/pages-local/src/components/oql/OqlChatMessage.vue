@@ -75,7 +75,7 @@ const formattedContent = computed(() => {
   display: flex;
   gap: 0.75rem;
   padding: 1rem;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--color-border-row);
 }
 
 .chat-message:last-child {
@@ -87,7 +87,7 @@ const formattedContent = computed(() => {
 }
 
 .chat-message.assistant {
-  background-color: #fff;
+  background-color: var(--bs-white);
 }
 
 .message-avatar {
@@ -102,13 +102,13 @@ const formattedContent = computed(() => {
 }
 
 .chat-message.user .message-avatar {
-  background-color: #e3e8ef;
+  background-color: var(--color-lighter);
   color: var(--color-text);
 }
 
 .chat-message.assistant .message-avatar {
-  background-color: #f3e8ff;
-  color: #7c3aed;
+  background-color: var(--color-violet-lighter-bg);
+  color: var(--color-violet-dark);
 }
 
 .message-content {
@@ -124,11 +124,11 @@ const formattedContent = computed(() => {
 }
 
 .message-text :deep(code) {
-  background-color: #f1f3f5;
+  background-color: var(--color-code-bg);
   padding: 0.125rem 0.375rem;
   border-radius: 3px;
   font-size: 0.8rem;
-  color: var(--color-purple);
+  color: var(--bs-purple);
 }
 
 .message-text :deep(strong) {
@@ -138,7 +138,7 @@ const formattedContent = computed(() => {
 .suggestions {
   margin-top: 1rem;
   padding-top: 0.75rem;
-  border-top: 1px solid var(--card-border-color);
+  border-top: 1px solid var(--color-border);
 }
 
 .suggestions-label {
@@ -160,17 +160,17 @@ const formattedContent = computed(() => {
 .suggestion-chip {
   font-size: 0.75rem;
   padding: 0.375rem 0.75rem;
-  background-color: #f3e8ff;
-  border: 1px solid #d8b4fe;
+  background-color: var(--color-violet-lighter-bg);
+  border: 1px solid var(--color-violet-border);
   border-radius: 20px;
-  color: #7c3aed;
+  color: var(--color-violet-dark);
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .suggestion-chip:hover {
-  background-color: #7c3aed;
-  border-color: #7c3aed;
-  color: white;
+  background-color: var(--color-violet-dark);
+  border-color: var(--color-violet-dark);
+  color: var(--bs-white);
 }
 </style>

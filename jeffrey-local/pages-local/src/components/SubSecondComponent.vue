@@ -359,7 +359,7 @@ function renderDifferenceHeatmap(primaryData: SubSecondData, secondaryData: SubS
 <style scoped lang="scss">
 /* Bootstrap preloader styles */
 #preloaderComponent {
-  background-color: #fff;
+  background-color: var(--bs-white);
   min-height: 200px;
   transition: all 0.3s ease;
 }
@@ -371,7 +371,7 @@ function renderDifferenceHeatmap(primaryData: SubSecondData, secondaryData: SubS
 }
 
 #preloaderComponent span {
-  color: #5e6e82;
+  color: var(--color-text);
   font-weight: 500;
 }
 
@@ -381,7 +381,7 @@ function renderDifferenceHeatmap(primaryData: SubSecondData, secondaryData: SubS
   align-items: center;
   gap: 20px;
   padding: 12px 0;
-  background-color: #fff;
+  background-color: var(--bs-white);
   position: sticky;
   left: 0;
 }
@@ -401,7 +401,7 @@ function renderDifferenceHeatmap(primaryData: SubSecondData, secondaryData: SubS
 
 .legend-label {
   font-size: 0.8rem;
-  color: #5e6e82;
+  color: var(--color-text);
   white-space: nowrap;
 }
 </style>

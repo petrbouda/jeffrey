@@ -75,53 +75,6 @@ jeffrey.ai.api-key=sk-ant-...
   </div>
 </template>
 
-<style scoped>
-.feature-disabled-state {
-  margin: 2rem;
-}
-
-.alert {
-  border: 1px solid #ffeaa7;
-  border-left: 4px solid #ffc107;
-  background: linear-gradient(135deg, #fffbf0, #ffffff);
-}
-
-.alert-heading {
-  color: #b7791f;
-  font-weight: 600;
-}
-
-.feature-benefits ul,
-.feature-benefits ol {
-  padding-left: 1.5rem;
-}
-
-.feature-benefits li {
-  margin-bottom: 0.5rem;
-}
-
-.next-steps ol {
-  padding-left: 1.5rem;
-}
-
-.text-warning {
-  color: #b7791f !important;
-}
-
-pre {
-  font-size: 0.8rem;
-  border: 1px solid var(--card-border-color);
-}
-
-code {
-  color: var(--color-text);
-}
-
-a {
-  color: var(--color-accent-blue);
-}
-
-a:hover {
-  color: #0a58ca;
-}
+<style>
+@import '@/styles/shared-components.css';
 </style>

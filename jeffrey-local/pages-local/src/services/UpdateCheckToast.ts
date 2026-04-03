@@ -177,7 +177,7 @@ export function showUpdateCheckToast(info: UpdateCheckResponse): void {
       const bsToast = new bootstrap.Toast(toast, {
         autohide: true,
         delay: delay,
-        animation: true,
+        animation: true
       });
 
       toast.addEventListener('hidden.bs.toast', () => {

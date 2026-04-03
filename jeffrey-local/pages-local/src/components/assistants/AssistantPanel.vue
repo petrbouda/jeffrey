@@ -201,7 +201,7 @@ const headerStyles = computed(() => ({
 /* Footer */
 .panel-footer {
   flex-shrink: 0;
-  border-top: 1px solid var(--card-border-color);
+  border-top: 1px solid var(--color-border);
   background-color: var(--color-light);
 }
 </style>

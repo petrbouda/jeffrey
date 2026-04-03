@@ -389,7 +389,7 @@ const getJobDisplayInfo = (job: JobInfo): JobDisplayInfo | null => {
   />
 
   <!-- Bootstrap toast container will be added by the ToastService -->
-  <div class="toast-container position-fixed top-0 end-0 p-3">
+  <div class="toast-container position-fixed top-0 end-0" style="padding: 0.75rem">
     <!-- Toast notifications will be dynamically inserted here -->
   </div>
 </template>

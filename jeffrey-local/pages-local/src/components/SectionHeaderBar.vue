@@ -15,8 +15,8 @@ defineProps<{
 
 <style scoped>
 .section-header-bar {
-  background: linear-gradient(135deg, var(--color-primary) 0%, #4a50e2 100%);
-  border: 1px solid #4a50e2;
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%);
+  border: 1px solid var(--color-primary-hover);
   border-radius: 6px;
   box-shadow: 0 2px 6px rgba(94, 100, 255, 0.25);
   height: 31px;

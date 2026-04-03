@@ -8,7 +8,10 @@
     />
 
     <div v-else>
-      <HttpOverviewStats v-if="httpOverviewData && !selectedUriForDetail" :header="httpOverviewData.header" />
+      <HttpOverviewStats
+        v-if="httpOverviewData && !selectedUriForDetail"
+        :header="httpOverviewData.header"
+      />
 
       <!-- URI Display with Navigation -->
       <DetailBreadcrumb
@@ -30,16 +33,10 @@
       </DetailBreadcrumb>
 
       <!-- Loading state -->
-      <div v-if="isLoading" class="p-4 text-center">
-        <div class="spinner-border" role="status">
-          <span class="visually-hidden">Loading...</span>
-        </div>
-      </div>
+      <LoadingState v-if="isLoading" />
 
       <!-- Error state -->
-      <div v-else-if="error" class="p-4 text-center">
-        <div class="alert alert-danger" role="alert">Error loading HTTP data: {{ error }}</div>
-      </div>
+      <ErrorState v-else-if="error" :message="error" />
 
       <!-- Single URI Dashboard content -->
       <div v-if="selectedUriForDetail && singleUriData" class="dashboard-container">
@@ -121,6 +118,8 @@ import ProfileHttpClient from '@/services/api/ProfileHttpClient.ts';
 import HttpOverviewData from '@/services/api/model/HttpOverviewData.ts';
 import HttpSingleUriData from '@/services/api/model/HttpSingleUriData.ts';
 import HttpSlowRequest from '@/services/api/model/HttpSlowRequest.ts';
+import LoadingState from '@/components/LoadingState.vue';
+import ErrorState from '@/components/ErrorState.vue';
 import CustomDisabledFeatureAlert from '@/components/alerts/CustomDisabledFeatureAlert.vue';
 import FeatureType from '@/services/api/model/FeatureType';
 import AxisFormatType from '@/services/timeseries/AxisFormatType.ts';

@@ -451,7 +451,7 @@ onMounted(async () => {
   color: var(--color-text-muted);
   font-size: 0.75rem;
   padding-bottom: 0.5rem;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid var(--color-slate-lighter);
 }
 
 .timeline-container {
@@ -506,11 +506,11 @@ onMounted(async () => {
 }
 
 .status-dot.pending {
-  background-color: #3b82f6;
+  background-color: var(--color-blue-500);
 }
 
 .status-dot.active {
-  background-color: #f59e0b;
+  background-color: var(--color-amber);
 }
 
 .status-dot.finished {
@@ -524,7 +524,7 @@ onMounted(async () => {
 .instance-bar-container {
   width: 100%;
   height: 32px;
-  background-color: #f1f5f9;
+  background-color: var(--color-neutral-light);
   border-radius: 4px;
   position: relative;
   overflow: hidden;
@@ -578,7 +578,7 @@ onMounted(async () => {
 }
 
 .session-bar.active {
-  background: linear-gradient(135deg, #f59e0b, #d97706);
+  background: linear-gradient(135deg, var(--color-amber), var(--color-amber-highlight));
   animation: session-pulse-active 2s ease-in-out infinite;
 }
 
@@ -685,7 +685,7 @@ onMounted(async () => {
 }
 
 .legend-bar.session.active {
-  background: linear-gradient(135deg, #f59e0b, #d97706);
+  background: linear-gradient(135deg, var(--color-amber), var(--color-amber-highlight));
 }
 
 .legend-bar.session.finished {
@@ -693,8 +693,8 @@ onMounted(async () => {
 }
 
 .legend-bar.gap {
-  background: #f1f5f9;
-  border: 1px dashed #cbd5e1;
+  background: var(--color-neutral-light);
+  border: 1px dashed var(--color-slate-light);
 }
 
 .btn-group .btn {
@@ -708,8 +708,8 @@ onMounted(async () => {
 .timeline-tooltip-container {
   position: fixed;
   z-index: 9999;
-  background: #1f2937;
-  color: #f9fafb;
+  background: var(--color-dark);
+  color: var(--color-neutral-bg);
   border-radius: 8px;
   padding: 0;
   min-width: 260px;
@@ -771,7 +771,7 @@ onMounted(async () => {
   display: block;
   padding: 0.5rem 0.75rem;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
-  color: #60a5fa;
+  color: var(--color-blue-500);
   text-decoration: none;
   font-size: 0.75rem;
   font-weight: 500;
@@ -780,6 +780,6 @@ onMounted(async () => {
 
 .timeline-tooltip-link:hover {
   background: rgba(255, 255, 255, 0.05);
-  color: #93bbfd;
+  color: var(--color-blue-link-hover);
 }
 </style>

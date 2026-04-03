@@ -104,7 +104,7 @@ const clearCommand = () => {
   content: '';
   width: 3px;
   height: 14px;
-  background: linear-gradient(135deg, var(--color-primary), #4c52ff);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-hover));
   border-radius: 2px;
 }
 
@@ -115,7 +115,7 @@ const clearCommand = () => {
   border-radius: 8px;
   font-size: 0.85rem;
   font-family: SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
-  background: #ffffff;
+  background: var(--bs-white);
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   color: var(--color-text);
   resize: vertical;
@@ -156,7 +156,7 @@ const clearCommand = () => {
 }
 
 .btn-clear-command {
-  background: linear-gradient(135deg, #fef2f2, #fee2e2);
+  background: linear-gradient(135deg, var(--color-danger-bg-lighter), var(--color-danger-100));
   border: 1px solid rgba(239, 68, 68, 0.3);
   color: var(--color-danger-hover);
 }
@@ -174,12 +174,12 @@ const clearCommand = () => {
 }
 
 .btn-next-step {
-  background: linear-gradient(135deg, var(--color-primary), #4c52ff);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-hover));
   color: white;
 }
 
 .btn-next-step:hover:not(:disabled) {
-  background: linear-gradient(135deg, #4c52ff, #3f46ff);
+  background: linear-gradient(135deg, var(--color-primary-hover), var(--color-primary-hover));
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(94, 100, 255, 0.4);
 }

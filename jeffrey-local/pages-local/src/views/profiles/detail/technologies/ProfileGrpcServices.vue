@@ -8,7 +8,10 @@
     />
 
     <div v-else>
-      <GrpcOverviewStats v-if="grpcOverviewData && !selectedServiceForDetail" :header="grpcOverviewData.header" />
+      <GrpcOverviewStats
+        v-if="grpcOverviewData && !selectedServiceForDetail"
+        :header="grpcOverviewData.header"
+      />
 
       <!-- Service Display with Navigation -->
       <DetailBreadcrumb
@@ -17,21 +20,18 @@
         @back="clearServiceSelection"
       >
         <span class="grpc-service-name">
-          <span class="grpc-package">{{ getPackageName(decodeURIComponent(selectedServiceForDetail)) }}</span>{{ getSimpleName(decodeURIComponent(selectedServiceForDetail)) }}
+          <span class="grpc-package">{{
+            getPackageName(decodeURIComponent(selectedServiceForDetail))
+          }}</span
+          >{{ getSimpleName(decodeURIComponent(selectedServiceForDetail)) }}
         </span>
       </DetailBreadcrumb>
 
       <!-- Loading state -->
-      <div v-if="isLoading" class="p-4 text-center">
-        <div class="spinner-border" role="status">
-          <span class="visually-hidden">Loading...</span>
-        </div>
-      </div>
+      <LoadingState v-if="isLoading" />
 
       <!-- Error state -->
-      <div v-else-if="error" class="p-4 text-center">
-        <div class="alert alert-danger" role="alert">Error loading gRPC data: {{ error }}</div>
-      </div>
+      <ErrorState v-else-if="error" :message="error" />
 
       <!-- Single Service Dashboard content -->
       <div v-if="selectedServiceForDetail && serviceDetailData" class="dashboard-container">
@@ -107,6 +107,8 @@ import DonutWithLegend from '@/components/DonutWithLegend.vue';
 import type { DonutChartData } from '@/components/DonutWithLegend.vue';
 import ProfileGrpcClient from '@/services/api/ProfileGrpcClient';
 import type { GrpcOverviewData, GrpcServiceDetailData } from '@/services/api/ProfileGrpcClient';
+import LoadingState from '@/components/LoadingState.vue';
+import ErrorState from '@/components/ErrorState.vue';
 import CustomDisabledFeatureAlert from '@/components/alerts/CustomDisabledFeatureAlert.vue';
 import FeatureType from '@/services/api/model/FeatureType';
 import FormattingService from '@/services/FormattingService';

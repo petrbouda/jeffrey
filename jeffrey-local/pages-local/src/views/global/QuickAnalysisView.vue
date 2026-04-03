@@ -551,8 +551,8 @@ const onDragEnd = () => {
 .qa-error {
   margin-bottom: 8px;
   padding: 8px 12px;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
+  background: var(--color-danger-bg-lighter);
+  border: 1px solid var(--color-danger-border-light);
   border-radius: 6px;
   color: var(--color-danger-hover);
   font-size: 0.78rem;

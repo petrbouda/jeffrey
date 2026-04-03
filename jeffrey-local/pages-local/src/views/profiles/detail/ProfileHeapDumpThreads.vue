@@ -421,10 +421,10 @@ onMounted(() => {
 
 /* Table Card */
 .table-card {
-  background: var(--card-bg);
-  border: 1px solid var(--card-border-color);
-  border-radius: var(--card-border-radius);
-  box-shadow: var(--card-shadow);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--bs-border-radius-lg);
+  box-shadow: var(--shadow-base);
   overflow: hidden;
 }
 
@@ -435,7 +435,7 @@ onMounted(() => {
   align-items: center;
   padding: 0.5rem 1rem;
   background-color: var(--color-light);
-  border-bottom: 1px solid var(--card-border-color);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .results-info {
@@ -454,7 +454,7 @@ onMounted(() => {
   font-size: 0.75rem;
   font-weight: 500;
   color: var(--color-text-muted);
-  background-color: var(--card-border-color);
+  background-color: var(--color-border);
   padding: 0.125rem 0.5rem;
 }
 
@@ -463,8 +463,8 @@ onMounted(() => {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  color: #856404;
-  background-color: #fff3cd;
+  color: var(--color-warning-text);
+  background-color: var(--color-warning-bg);
   padding: 0.125rem 0.375rem;
 }
 
@@ -481,14 +481,14 @@ onMounted(() => {
   text-transform: uppercase;
   letter-spacing: 0.3px;
   padding: 0.75rem;
-  border-bottom: 1px solid var(--card-border-color);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .table td {
   font-size: 0.8rem;
   padding: 0.6rem 0.75rem;
   vertical-align: middle;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--color-border-row);
 }
 
 .table tbody tr:hover {
@@ -513,7 +513,7 @@ onMounted(() => {
 .thread-name {
   font-size: 0.8rem;
   font-weight: 500;
-  color: var(--color-purple);
+  color: var(--bs-purple);
   word-break: break-all;
   line-height: 1.4;
 }
@@ -536,7 +536,7 @@ onMounted(() => {
 }
 
 .meta-label.priority-normal {
-  color: #856404;
+  color: var(--color-warning-text);
 }
 
 .meta-label.priority-low {
@@ -544,7 +544,7 @@ onMounted(() => {
 }
 
 .meta-separator {
-  color: var(--card-border-color);
+  color: var(--color-border);
   font-size: 0.5rem;
 }
 
@@ -554,7 +554,7 @@ onMounted(() => {
 
 .empty-state {
   background: white;
-  border: 1px solid var(--card-border-color);
+  border: 1px solid var(--color-border);
 }
 
 /* Stack Expansion */
@@ -569,7 +569,7 @@ onMounted(() => {
 
 .stack-container {
   padding: 0.75rem 1rem 0.75rem 2.5rem;
-  border-top: 1px solid var(--card-border-color);
+  border-top: 1px solid var(--color-border);
 }
 
 .stack-frames {
@@ -602,7 +602,7 @@ onMounted(() => {
 }
 
 .frame-method-name {
-  color: var(--color-purple);
+  color: var(--bs-purple);
   font-weight: 600;
   background-color: transparent;
   font-size: 0.75rem;
@@ -630,7 +630,7 @@ onMounted(() => {
 }
 
 .local-field {
-  color: var(--color-accent-blue);
+  color: var(--bs-blue);
   font-weight: 500;
 }
 
@@ -643,6 +643,6 @@ onMounted(() => {
 }
 
 .text-warning {
-  color: var(--color-retained) !important;
+  color: var(--color-goldenrod) !important;
 }
 </style>

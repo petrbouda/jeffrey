@@ -573,13 +573,13 @@ onMounted(async () => {
 .info-message strong {
   display: block;
   font-size: var(--font-size-base, 0.875rem);
-  color: var(--color-dark, #0b1727);
+  color: var(--color-dark);
   margin-bottom: 4px;
 }
 
 .info-message p {
   font-size: var(--font-size-sm, 0.7rem);
-  color: var(--color-text-muted, #748194);
+  color: var(--color-text-muted);
   line-height: 1.5;
   margin: 0;
 }
@@ -606,7 +606,7 @@ onMounted(async () => {
   content: '';
   width: 3px;
   height: 14px;
-  background: linear-gradient(135deg, var(--color-primary), #4c52ff);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-hover));
   border-radius: 2px;
 }
 
@@ -617,7 +617,7 @@ onMounted(async () => {
 }
 
 .scope-option-card {
-  background: linear-gradient(135deg, var(--color-light), #ffffff);
+  background: linear-gradient(135deg, var(--color-light), var(--bs-white));
   border: 2px solid rgba(94, 100, 255, 0.1);
   border-radius: 12px;
   padding: 16px;
@@ -632,7 +632,7 @@ onMounted(async () => {
 }
 
 .scope-option-card.selected {
-  background: linear-gradient(135deg, #f3f4ff, #e8eaf6);
+  background: linear-gradient(135deg, var(--color-violet-light-bg), var(--color-indigo-bg));
   border-color: var(--color-primary);
   box-shadow: 0 4px 16px rgba(94, 100, 255, 0.2);
 }
@@ -691,7 +691,7 @@ onMounted(async () => {
   content: '';
   width: 3px;
   height: 14px;
-  background: linear-gradient(135deg, var(--color-primary), #4c52ff);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-hover));
   border-radius: 2px;
 }
 

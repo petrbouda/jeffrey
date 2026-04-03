@@ -226,7 +226,7 @@ onMounted(() => {
 
 .search-bar {
   background: var(--color-light);
-  border: 1px solid var(--card-border-color);
+  border: 1px solid var(--color-border);
   border-radius: 8px;
   padding: 0.6rem 1rem;
 }
@@ -239,7 +239,7 @@ onMounted(() => {
 }
 
 .search-input-group .input-group-text {
-  background: #fff;
+  background: var(--bs-white);
   border-right: none;
   padding: 0 0.6rem;
 }
@@ -257,6 +257,6 @@ onMounted(() => {
 
 .search-input-group .form-control:focus {
   box-shadow: none;
-  border-color: #ced4da;
+  border-color: var(--color-muted-separator);
 }
 </style>

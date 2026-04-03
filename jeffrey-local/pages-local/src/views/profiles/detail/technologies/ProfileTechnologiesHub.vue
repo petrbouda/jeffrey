@@ -210,7 +210,7 @@ const navigateTo = (tech: TechnologyCard) => {
 }
 
 .tech-card.disabled .card-accent {
-  background: #e5e7eb;
+  background: var(--color-slate-lighter);
 }
 
 .tech-card.disabled .card-icon {
@@ -231,19 +231,19 @@ const navigateTo = (tech: TechnologyCard) => {
 }
 
 .card-accent.color-http {
-  background: linear-gradient(90deg, var(--color-primary), #818cf8);
+  background: linear-gradient(90deg, var(--color-primary), var(--color-indigo-pastel));
 }
 
 .card-accent.color-grpc {
-  background: linear-gradient(90deg, #00d27a, #34d399);
+  background: linear-gradient(90deg, var(--color-success), var(--color-emerald-light));
 }
 
 .card-accent.color-db {
-  background: linear-gradient(90deg, #f5803e, #fb923c);
+  background: linear-gradient(90deg, var(--color-warning), var(--color-orange-light));
 }
 
 .card-accent.color-tracing {
-  background: linear-gradient(90deg, #39afd1, #67e8f9);
+  background: linear-gradient(90deg, var(--color-info), var(--color-cyan-accent));
 }
 
 /* Card body */
@@ -351,7 +351,7 @@ const navigateTo = (tech: TechnologyCard) => {
 
 .info-strip-accent {
   height: 5px;
-  background: linear-gradient(90deg, #f5803e, #fb923c);
+  background: linear-gradient(90deg, var(--color-warning), var(--color-orange-light));
 }
 
 .info-strip-body {
@@ -385,7 +385,7 @@ const navigateTo = (tech: TechnologyCard) => {
 .info-strip-heading {
   font-size: var(--font-size-md);
   font-weight: var(--font-weight-semibold);
-  color: #0b1727;
+  color: var(--color-dark);
   margin-bottom: 2px;
 }
 
@@ -424,7 +424,7 @@ const navigateTo = (tech: TechnologyCard) => {
 
 .info-strip-btn-primary {
   background: var(--color-primary);
-  color: #fff;
+  color: var(--bs-white);
 }
 
 .info-strip-btn-primary:hover {
