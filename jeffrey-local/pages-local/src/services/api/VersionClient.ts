@@ -24,6 +24,7 @@ export interface UpdateCheckResponse {
   updateAvailable: boolean;
   majorUpdate: boolean;
   releaseUrl: string;
+  downloadUrl: string | null;
 }
 
 export default class VersionClient extends BasePlatformClient {

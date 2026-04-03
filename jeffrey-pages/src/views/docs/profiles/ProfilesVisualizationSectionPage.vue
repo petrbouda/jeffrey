@@ -30,6 +30,7 @@ const headings = [
   { id: 'overview', text: 'Overview', level: 2 },
   { id: 'flamegraphs', text: 'Flamegraphs', level: 2 },
   { id: 'subsecond', text: 'Sub-Second Analysis', level: 2 },
+  { id: 'flamegraph-settings', text: 'Flamegraph Settings', level: 2 },
   { id: 'differential', text: 'Differential Analysis', level: 2 }
 ];
 
@@ -111,6 +112,20 @@ onMounted(() => {
         <DocsCallout type="tip">
           <strong>Search and filter:</strong> Use the search feature to highlight specific method patterns in flamegraphs. You can filter by package name, class name, or method signature to focus on relevant code paths.
         </DocsCallout>
+
+        <h2 id="flamegraph-settings">Flamegraph Settings</h2>
+        <p>Each flamegraph has configurable settings accessible via the settings panel:</p>
+
+        <h3>Frame Pruning</h3>
+        <p>Frames below a minimum threshold are pruned (hidden) to reduce visual noise. The default threshold is <strong>0.05%</strong> of total samples. You can adjust this per flamegraph to show more or fewer small frames.</p>
+
+        <h3>Text Rendering</h3>
+        <p>Choose how frame labels are displayed:</p>
+        <ul>
+          <li><strong>Single-line</strong> — Compact view showing the method name on one line</li>
+          <li><strong>Two-line</strong> — Shows class/package on one line and method name on the second, useful for wide flamegraphs</li>
+        </ul>
+        <p>The default text rendering mode can be configured globally in <strong>Settings &gt; Visualization</strong>.</p>
 
         <h2 id="subsecond">Sub-Second Analysis</h2>
         <p>Sub-second analysis lets you examine specific time windows within your recording:</p>

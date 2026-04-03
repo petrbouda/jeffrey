@@ -27,7 +27,15 @@ function isDismissed(latestVersion: string): boolean {
 }
 
 function dismiss(latestVersion: string): void {
+  clearOldDismissals(latestVersion);
   localStorage.setItem(DISMISS_KEY_PREFIX + latestVersion, 'true');
+}
+
+function clearOldDismissals(currentVersion: string): void {
+  const currentKey = DISMISS_KEY_PREFIX + currentVersion;
+  Object.keys(localStorage)
+    .filter(k => k.startsWith(DISMISS_KEY_PREFIX) && k !== currentKey)
+    .forEach(k => localStorage.removeItem(k));
 }
 
 function getOrCreateContainer(): HTMLElement {
@@ -99,7 +107,9 @@ function buildToast(info: UpdateCheckResponse): HTMLElement {
 
   // Version cards
   const cards = document.createElement('div');
-  cards.className = 'update-version-cards';
+  cards.className = info.downloadUrl
+    ? 'update-version-cards update-version-cards-with-download'
+    : 'update-version-cards';
 
   const currentCard = document.createElement('div');
   currentCard.className = 'update-card update-card-current';
@@ -120,6 +130,16 @@ function buildToast(info: UpdateCheckResponse): HTMLElement {
   cards.appendChild(currentCard);
   cards.appendChild(chevron);
   cards.appendChild(latestCard);
+
+  if (info.downloadUrl) {
+    const downloadBtn = document.createElement('a');
+    downloadBtn.href = info.downloadUrl;
+    downloadBtn.className = `update-download-btn ${isMajor ? 'update-download-btn-warning' : 'update-download-btn-info'}`;
+    downloadBtn.title = 'Download jeffrey.jar';
+    downloadBtn.innerHTML = '<i class="bi bi-download"></i>';
+    cards.appendChild(downloadBtn);
+  }
+
   body.appendChild(cards);
 
   // GitHub link

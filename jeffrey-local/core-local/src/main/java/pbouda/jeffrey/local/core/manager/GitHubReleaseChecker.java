@@ -29,6 +29,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.net.http.HttpResponse.BodyHandlers;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -40,8 +41,18 @@ public class GitHubReleaseChecker {
 
     private static final String GITHUB_API_URL =
             "https://api.github.com/repos/petrbouda/jeffrey/releases/latest";
+
+    private static final String GITHUB_DOWNLOAD_ASSET = "jeffrey.jar";
+
     private static final Duration CACHE_TTL = Duration.ofHours(24);
     private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(5);
+
+    private static final HttpRequest GITHUB_RELEASE_LATEST = HttpRequest.newBuilder()
+            .uri(URI.create(GITHUB_API_URL))
+            .header("Accept", "application/vnd.github+json")
+            .timeout(REQUEST_TIMEOUT)
+            .GET()
+            .build();
 
     private final ObjectMapper objectMapper;
     private final Clock clock;
@@ -83,14 +94,7 @@ public class GitHubReleaseChecker {
     }
 
     private Optional<UpdateCheckResult> fetchAndCompare(String currentVersion, Instant now) throws Exception {
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(GITHUB_API_URL))
-                .header("Accept", "application/vnd.github+json")
-                .timeout(REQUEST_TIMEOUT)
-                .GET()
-                .build();
-
-        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        HttpResponse<String> response = httpClient.send(GITHUB_RELEASE_LATEST, BodyHandlers.ofString());
         if (response.statusCode() != 200) {
             LOG.debug("GitHub API returned non-200 status: status={}", response.statusCode());
             return Optional.empty();
@@ -99,6 +103,7 @@ public class GitHubReleaseChecker {
         JsonNode root = objectMapper.readTree(response.body());
         String tagName = root.path("tag_name").asText("");
         String htmlUrl = root.path("html_url").asText("");
+        String downloadUrl = findJarDownloadUrl(root);
 
         Optional<SemanticVersion> currentParsed = SemanticVersion.parse(currentVersion);
         Optional<SemanticVersion> latestParsed = SemanticVersion.parse(tagName);
@@ -118,7 +123,8 @@ public class GitHubReleaseChecker {
                 latest.toString(),
                 updateAvailable,
                 majorUpdate,
-                htmlUrl);
+                htmlUrl,
+                downloadUrl);
 
         if (updateAvailable) {
             cachedResult = result;
@@ -126,5 +132,18 @@ public class GitHubReleaseChecker {
         }
 
         return updateAvailable ? Optional.of(result) : Optional.empty();
+    }
+
+    private static String findJarDownloadUrl(JsonNode root) {
+        JsonNode assets = root.path("assets");
+        if (assets.isArray()) {
+            for (JsonNode asset : assets) {
+                String name = asset.path("name").asText("");
+                if (GITHUB_DOWNLOAD_ASSET.equals(name)) {
+                    return asset.path("browser_download_url").asText(null);
+                }
+            }
+        }
+        return null;
     }
 }

@@ -265,6 +265,41 @@
   text-decoration: underline;
 }
 
+.update-version-cards-with-download {
+  grid-template-columns: 1fr auto 1fr auto;
+}
+
+.update-download-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  border: 1.5px solid;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  font-size: 14px;
+}
+
+.update-download-btn-info {
+  color: #0284c7;
+  border-color: #bae6fd;
+  background: #f0f9ff;
+}
+
+.update-download-btn-warning {
+  color: #ea580c;
+  border-color: #fed7aa;
+  background: #fff7ed;
+}
+
+.update-download-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
 /* Flamegraph Grid - Shared responsive grid layout */
 .flamegraph-grid {
   display: grid;

@@ -23,5 +23,6 @@ public record UpdateCheckResult(
         String latestVersion,
         boolean updateAvailable,
         boolean majorUpdate,
-        String releaseUrl) {
+        String releaseUrl,
+        String downloadUrl) {
 }

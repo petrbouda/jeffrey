@@ -196,7 +196,7 @@ onMounted(() => {
             Individual SQL executions sorted by duration. Click to view the full SQL text.
           </DocsFeatureItem>
           <DocsFeatureItem icon="bi bi-collection" title="Statement Groups">
-            SQL statements grouped by normalized query pattern. Similar queries with different parameters are aggregated together, making it easy to identify problematic query patterns.
+            SQL statements grouped by normalized query pattern. Similar queries with different parameters are aggregated together, making it easy to identify problematic query patterns. Use the <strong>searchable filter bar</strong> at the top to quickly find specific statement groups by keyword.
           </DocsFeatureItem>
           <DocsFeatureItem icon="bi bi-diagram-3" title="Connection Pools">
             Connection pool metrics showing active connections, wait times, and pool utilization. Identify connection exhaustion or misconfigured pool sizes.

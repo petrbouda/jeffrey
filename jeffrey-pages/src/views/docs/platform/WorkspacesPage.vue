@@ -30,6 +30,7 @@ const headings = [
   { id: 'how-it-works', text: 'How It Works', level: 2 },
   { id: 'key-benefits', text: 'Key Benefits', level: 2 },
   { id: 'how-to-create', text: 'How to Create', level: 2 },
+  { id: 'streaming', text: 'Streaming Control', level: 2 },
   { id: 'blocking', text: 'Workspace & Project Blocking', level: 2 },
   { id: 'recommended-workflow', text: 'Recommended Workflow', level: 2 }
 ];
@@ -91,6 +92,38 @@ onMounted(() => {
 
         <DocsCallout type="tip">
           <strong>Quick Analysis alternative:</strong> If you just want to analyze a local JFR file without connecting to a server, use <router-link to="/docs/platform/quick-analysis">Quick Analysis</router-link> instead.
+        </DocsCallout>
+
+        <h2 id="streaming">Streaming Control</h2>
+        <p>Each workspace has a <strong>JFR streaming</strong> setting that controls whether Jeffrey Server continuously streams JFR data from connected application instances. You can configure this per workspace using the settings popover in the workspace context bar.</p>
+
+        <p>Click the <strong>gear icon</strong> in the workspace header to open the settings popover, then use the segmented toggle to choose a streaming mode:</p>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Mode</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>On</strong></td>
+              <td>Streaming is explicitly enabled for this workspace. JFR data is continuously streamed from connected instances.</td>
+            </tr>
+            <tr>
+              <td><strong>Off</strong></td>
+              <td>Streaming is explicitly disabled. No JFR data is streamed, regardless of the global setting.</td>
+            </tr>
+            <tr>
+              <td><strong>Inherited</strong></td>
+              <td>Uses the global streaming setting configured on the server. This is the default for new workspaces.</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <DocsCallout type="tip">
+          <strong>Cost control:</strong> Disabling streaming for workspaces you're not actively investigating reduces resource consumption on both the server and connected application instances.
         </DocsCallout>
 
         <h2 id="blocking">Workspace & Project Blocking</h2>

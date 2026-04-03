@@ -27,7 +27,8 @@ const { setHeadings } = useDocHeadings();
 const headings = [
   { id: 'what-is-jeffrey', text: 'What is Jeffrey?', level: 2 },
   { id: 'key-features', text: 'Key Features', level: 2 },
-  { id: 'why-jeffrey', text: 'Why Jeffrey?', level: 2 }
+  { id: 'why-jeffrey', text: 'Why Jeffrey?', level: 2 },
+  { id: 'update-notifications', text: 'Update Notifications', level: 2 }
 ];
 
 onMounted(() => {
@@ -106,6 +107,17 @@ onMounted(() => {
           <li><strong>Enabling comparison</strong> - Easily compare before/after performance with differential analysis</li>
           <li><strong>Supporting modern workflows</strong> - Web-based interface, Docker-ready, no complex installation</li>
         </ol>
+        <h2 id="update-notifications">Update Notifications</h2>
+        <p>Jeffrey automatically checks for new releases on GitHub. When a newer version is available, a toast notification appears in the top-right corner showing your current version and the latest version available.</p>
+        <ul>
+          <li><strong>Minor updates</strong> appear as a blue notification</li>
+          <li><strong>Major updates</strong> appear as an orange warning, indicating potential breaking changes</li>
+        </ul>
+        <p>The notification includes a link to the release notes on GitHub and a download button for <code>jeffrey.jar</code> when the release includes it as an asset. Dismissing the notification stores the preference per version, so it won't reappear for the same release.</p>
+
+        <DocsCallout type="info">
+          <strong>Disable update checks:</strong> Set <code>jeffrey.local.update-check.enabled=false</code> in your configuration to turn off automatic version checks.
+        </DocsCallout>
       </div>
 
       <DocsNavFooter />
