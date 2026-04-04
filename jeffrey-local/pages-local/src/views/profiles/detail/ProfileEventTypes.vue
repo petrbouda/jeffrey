@@ -55,9 +55,7 @@
           </div>
 
           <!-- Event tree table -->
-          <div class="card mb-4">
-            <div class="card-body p-0">
-              <table class="table table-sm table-hover mb-0 event-tree-table">
+          <DataTable table-class="event-tree-table">
                 <thead>
                   <tr>
                     <th>Event Type</th>
@@ -208,9 +206,7 @@
                     </tr>
                   </template>
                 </tbody>
-              </table>
-            </div>
-          </div>
+          </DataTable>
 
           <!-- No Results message -->
           <div v-if="filteredEvents.length === 0" class="alert alert-info">
@@ -270,6 +266,7 @@ import PageHeader from '@/components/layout/PageHeader.vue';
 import AxisFormatType from '@/services/timeseries/AxisFormatType.ts';
 import EventTypes from '@/services/EventTypes';
 import StatsTable from '@/components/StatsTable.vue';
+import DataTable from '@/components/table/DataTable.vue';
 import '@/styles/shared-components.css';
 
 // Props definition
@@ -622,7 +619,7 @@ const filterEvents = () => {
 }
 
 .event-types-container {
-  background-color: var(--bs-white);
+  background-color: var(--color-white);
   border-radius: 0.4rem;
 }
 
@@ -684,7 +681,7 @@ const filterEvents = () => {
 }
 
 .expand-btn:hover {
-  color: var(--bs-blue);
+  color: var(--color-accent-blue);
 }
 
 .event-name {

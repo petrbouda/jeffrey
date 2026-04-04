@@ -617,7 +617,7 @@ onMounted(async () => {
 }
 
 .scope-option-card {
-  background: linear-gradient(135deg, var(--color-light), var(--bs-white));
+  background: linear-gradient(135deg, var(--color-light), var(--color-white));
   border: 2px solid rgba(94, 100, 255, 0.1);
   border-radius: 12px;
   padding: 16px;

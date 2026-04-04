@@ -123,7 +123,7 @@ const uppercaseClass = computed(() => (props.uppercase ? '' : 'badge-no-uppercas
 
 .badge-dark {
   background-color: var(--color-dark-bg);
-  color: var(--bs-white);
+  color: var(--color-white);
   border-color: var(--color-dark-border);
 }
 

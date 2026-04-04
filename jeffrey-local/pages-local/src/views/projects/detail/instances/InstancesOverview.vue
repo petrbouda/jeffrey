@@ -375,7 +375,7 @@ onMounted(async () => {
 .compact-stat-card {
   background: var(--color-bg-card);
   border: 1px solid var(--color-border);
-  border-radius: var(--bs-border-radius-lg);
+  border-radius: var(--radius-md);
   padding: 12px 16px;
   height: 100%;
   transition: all var(--transition-base);
@@ -485,7 +485,7 @@ onMounted(async () => {
 .instance-card {
   background-color: var(--color-bg-card);
   border: 1px solid var(--color-border);
-  border-radius: var(--bs-border-radius-lg);
+  border-radius: var(--radius-md);
   transition: all var(--transition-fast);
   color: inherit;
   box-shadow: var(--shadow-base);
@@ -546,7 +546,7 @@ onMounted(async () => {
 
 .icon-pending {
   background-color: rgba(59, 130, 246, 0.12);
-  color: var(--bs-blue);
+  color: var(--color-accent-blue);
 }
 
 .icon-active {

@@ -87,7 +87,7 @@ const formattedContent = computed(() => {
 }
 
 .chat-message.assistant {
-  background-color: var(--bs-white);
+  background-color: var(--color-white);
 }
 
 .message-avatar {
@@ -128,7 +128,7 @@ const formattedContent = computed(() => {
   padding: 0.125rem 0.375rem;
   border-radius: 3px;
   font-size: 0.8rem;
-  color: var(--bs-purple);
+  color: var(--color-purple);
 }
 
 .message-text :deep(strong) {
@@ -171,6 +171,6 @@ const formattedContent = computed(() => {
 .suggestion-chip:hover {
   background-color: var(--color-violet-dark);
   border-color: var(--color-violet-dark);
-  color: var(--bs-white);
+  color: var(--color-white);
 }
 </style>

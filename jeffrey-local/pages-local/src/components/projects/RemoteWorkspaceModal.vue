@@ -343,7 +343,7 @@ const handleHidden = () => {
 <style scoped>
 /* Description card (inlined from BaseModal) */
 .modal-description-card {
-  background: linear-gradient(135deg, var(--color-light), var(--bs-white));
+  background: linear-gradient(135deg, var(--color-light), var(--color-white));
   border: 1px solid rgba(94, 100, 255, 0.08);
   border-radius: 12px;
   padding: 0;
@@ -389,7 +389,7 @@ const handleHidden = () => {
   border-radius: 0.25rem;
   overflow: hidden;
   border: 1px solid var(--color-border-input);
-  background: var(--bs-white);
+  background: var(--color-white);
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   flex-wrap: nowrap;
   height: calc(1.5em + 0.75rem + 2px);

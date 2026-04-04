@@ -102,7 +102,7 @@ const getVariantColor = (variant?: string): string => {
 
 <style scoped>
 .stats-table-container {
-  background: var(--bs-white);
+  background: var(--color-white);
   overflow: hidden;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }

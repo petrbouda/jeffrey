@@ -395,13 +395,6 @@ const getJobDisplayInfo = (job: JobInfo): JobDisplayInfo | null => {
 </template>
 
 <style scoped>
-/* Table styling */
-.table th {
-  font-weight: 500;
-  font-size: 0.875rem;
-  color: var(--color-text);
-}
-
 .table td {
   vertical-align: middle;
 }

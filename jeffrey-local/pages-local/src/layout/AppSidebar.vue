@@ -212,7 +212,7 @@ const getBadgeVariant = (type: string): Variant => {
   min-width: 280px;
   max-width: 280px;
   overflow: hidden;
-  background-color: var(--bs-white);
+  background-color: var(--color-white);
 }
 
 .scrollbar {

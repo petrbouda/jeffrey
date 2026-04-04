@@ -24,6 +24,7 @@ import { useRoute } from 'vue-router';
 
 import PageHeader from '@/components/layout/PageHeader.vue';
 import EmptyState from '@/components/EmptyState.vue';
+import DataTable from '@/components/table/DataTable.vue';
 
 interface SectionRow {
   key: string;
@@ -142,9 +143,7 @@ const selectSection = () => {
       </div>
 
       <!-- Configuration table -->
-      <div class="card mb-4">
-        <div class="card-body p-0">
-          <table class="table table-sm table-hover mb-0 config-tree-table">
+      <DataTable table-class="config-tree-table">
             <thead>
               <tr>
                 <th>Configuration Key</th>
@@ -161,16 +160,14 @@ const selectSection = () => {
                 </td>
               </tr>
             </tbody>
-          </table>
-        </div>
-      </div>
+      </DataTable>
     </div>
   </PageHeader>
 </template>
 
 <style scoped>
 .config-container {
-  background-color: var(--bs-white);
+  background-color: var(--color-white);
   border-radius: 0.4rem;
 }
 

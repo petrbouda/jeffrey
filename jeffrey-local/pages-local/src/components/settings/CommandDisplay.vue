@@ -90,7 +90,7 @@ async function copy() {
 .command-display {
   background: var(--color-light);
   border: 1px solid var(--color-border);
-  border-radius: var(--bs-border-radius-lg);
+  border-radius: var(--radius-md);
   overflow: hidden;
   cursor: pointer;
   transition: all 0.2s ease-in-out;
@@ -152,9 +152,9 @@ async function copy() {
   justify-content: center;
   width: 28px;
   height: 28px;
-  background: var(--bs-white);
+  background: var(--color-white);
   border: 1px solid var(--color-border);
-  border-radius: var(--bs-border-radius-sm);
+  border-radius: var(--radius-sm);
   color: var(--color-text-muted);
   font-size: 0.8rem;
   cursor: pointer;
@@ -214,7 +214,7 @@ async function copy() {
   text-transform: uppercase;
   letter-spacing: 0.04em;
   padding: 2px 7px;
-  border-radius: var(--bs-border-radius-sm);
+  border-radius: var(--radius-sm);
 }
 
 .settings-level-global {

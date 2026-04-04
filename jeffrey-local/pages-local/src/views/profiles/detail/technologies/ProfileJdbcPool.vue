@@ -108,8 +108,7 @@
             icon="table"
             :full-width="true"
           >
-            <div class="table-responsive">
-              <table class="table table-sm table-hover mb-0 event-tree-table">
+            <DataTable table-class="event-tree-table">
                 <thead>
                   <tr>
                     <th>Event Type</th>
@@ -145,8 +144,7 @@
                     </td>
                   </tr>
                 </tbody>
-              </table>
-            </div>
+            </DataTable>
           </ChartSection>
         </div>
       </div>
@@ -173,6 +171,7 @@ import ProfileJdbcPoolClient from '@/services/api/ProfileJdbcPoolClient.ts';
 import FormattingService from '@/services/FormattingService.ts';
 import LoadingState from '@/components/LoadingState.vue';
 import ErrorState from '@/components/ErrorState.vue';
+import DataTable from '@/components/table/DataTable.vue';
 import CustomDisabledFeatureAlert from '@/components/alerts/CustomDisabledFeatureAlert.vue';
 import FeatureType from '@/services/api/model/FeatureType';
 import AxisFormatType from '@/services/timeseries/AxisFormatType.ts';
@@ -609,7 +608,7 @@ onMounted(() => {
 }
 
 .leaf-row {
-  background-color: var(--bs-white);
+  background-color: var(--color-white);
 }
 
 /* Chart Container */

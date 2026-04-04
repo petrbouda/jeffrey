@@ -66,83 +66,33 @@
 
       <!-- Results State -->
       <template v-else-if="phase === 'results'">
-        <!-- Summary Card with Chart -->
-        <div class="summary-card mb-4" v-if="rules.length > 0">
-          <div class="summary-card-body">
-            <div class="row align-items-stretch">
-              <!-- Donut Chart -->
-              <div class="col-lg-5 col-md-6">
-                <div class="chart-section">
-                  <h6 class="section-title">
-                    <i class="bi bi-pie-chart me-2"></i>Results Overview
-                  </h6>
-                  <apexchart
-                    v-if="rules.length > 0"
-                    type="donut"
-                    :options="chartOptions"
-                    :series="chartSeries"
-                    height="200"
-                  />
-                </div>
-              </div>
-
-              <!-- Analysis Results Legend -->
-              <div class="col-lg-7 col-md-6">
-                <div class="legend-section">
-                  <h6 class="section-title">Analysis Results</h6>
-                  <div class="severity-legend">
-                    <div class="legend-item" v-if="severityCounts.ok > 0">
-                      <i class="bi bi-check-circle-fill text-success"></i>
-                      <span class="legend-label">Passed</span>
-                      <span class="legend-value">{{ severityCounts.ok }}</span>
-                    </div>
-                    <div class="legend-item" v-if="severityCounts.warning > 0">
-                      <i class="bi bi-exclamation-triangle-fill text-danger"></i>
-                      <span class="legend-label">Warnings</span>
-                      <span class="legend-value">{{ severityCounts.warning }}</span>
-                    </div>
-                    <div class="legend-item" v-if="severityCounts.info > 0">
-                      <i class="bi bi-info-circle-fill text-primary"></i>
-                      <span class="legend-label">Information</span>
-                      <span class="legend-value">{{ severityCounts.info }}</span>
-                    </div>
-                    <div class="legend-item" v-if="severityCounts.na > 0">
-                      <i class="bi bi-slash-circle-fill text-secondary"></i>
-                      <span class="legend-label">Skipped</span>
-                      <span class="legend-value">{{ severityCounts.na }}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Filter Bar -->
-        <div class="filter-bar mb-3" v-if="rules.length > 0">
-          <div class="filter-group">
-            <select v-model="severityFilter" class="form-select form-select-sm">
-              <option value="">All Severities</option>
-              <option value="WARNING">Warnings</option>
-              <option value="INFO">Information</option>
-              <option value="OK">Passed</option>
-            </select>
-          </div>
-          <div class="search-group">
-            <i class="bi bi-search"></i>
-            <input
-              v-model="searchQuery"
-              type="text"
-              class="form-control form-control-sm"
-              placeholder="Search rules..."
+        <!-- Summary Panel -->
+        <DualPanel v-if="rules.length > 0" class="mb-4" left-title="Results Overview">
+          <template #left>
+            <DonutWithLegend
+              :data="chartData"
+              :tooltip-formatter="(val: number) => val + ' rules'"
+              legend-position="right"
             />
-          </div>
-        </div>
+          </template>
+        </DualPanel>
 
-        <!-- Unified Rules Table -->
-        <div class="card mb-4" v-if="filteredAndSortedRules.length > 0">
-          <div class="card-body p-0">
-            <table class="table table-sm table-hover mb-0 rules-table">
+        <!-- Rules Table -->
+        <DataTable v-if="filteredAndSortedRules.length > 0" table-class="rules-table">
+          <template #toolbar>
+            <TableToolbar v-model="searchQuery" search-placeholder="Search rules...">
+              <span class="toolbar-count">{{ filteredAndSortedRules.length }} rules</span>
+              <Badge v-if="severityCounts.warning > 0" :value="severityCounts.warning + ' warnings'" variant="danger" size="xs" />
+              <template #filters>
+                <select v-model="severityFilter" class="form-select form-select-sm">
+                  <option value="">All Severities</option>
+                  <option value="WARNING">Warnings</option>
+                  <option value="INFO">Information</option>
+                  <option value="OK">Passed</option>
+                </select>
+              </template>
+            </TableToolbar>
+          </template>
               <thead>
                 <tr>
                   <th class="col-rule">Rule</th>
@@ -223,9 +173,7 @@
                   </tr>
                 </template>
               </tbody>
-            </table>
-          </div>
-        </div>
+        </DataTable>
 
         <!-- No Results After Filter -->
         <div v-else-if="rules.length > 0" class="empty-state">
@@ -253,6 +201,12 @@ import AutoAnalysisClient from '@/services/api/AutoAnalysisClient';
 import AnalysisResult from '@/services/api/model/AnalysisResult';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import LoadingState from '@/components/LoadingState.vue';
+import DataTable from '@/components/table/DataTable.vue';
+import TableToolbar from '@/components/table/TableToolbar.vue';
+import Badge from '@/components/Badge.vue';
+import DualPanel from '@/components/DualPanel.vue';
+import DonutWithLegend from '@/components/DonutWithLegend.vue';
+import type { DonutChartData } from '@/components/DonutWithLegend.vue';
 
 const route = useRoute();
 
@@ -301,49 +255,27 @@ const severityCounts = computed(() => ({
   na: rules.value.filter(r => r.severity === 'NA' || r.severity === 'IGNORE').length
 }));
 
-const chartOptions = computed(() => ({
-  chart: {
-    type: 'donut' as const,
-    fontFamily: 'inherit',
-    animations: { enabled: false }
-  },
-  labels: ['Passed', 'Warnings', 'Info', 'N/A'],
-  colors: ['#28a745', '#dc3545', '#0d6efd', '#6c757d'],
-  plotOptions: {
-    pie: {
-      donut: {
-        size: '65%',
-        labels: {
-          show: true,
-          name: { show: true, fontSize: '12px', fontWeight: 600 },
-          value: { show: true, fontSize: '18px', fontWeight: 700 },
-          total: {
-            show: true,
-            label: 'Passed',
-            fontSize: '11px',
-            fontWeight: 500,
-            color: '#6c757d',
-            formatter: () => `${severityCounts.value.ok}/${rules.value.length}`
-          }
-        }
-      }
-    }
-  },
-  dataLabels: { enabled: false },
-  legend: { show: false },
-  stroke: { width: 2, colors: ['#fff'] },
-  tooltip: {
-    enabled: true,
-    y: { formatter: (val: number) => `${val} rules` }
-  }
-}));
+const chartData = computed<DonutChartData>(() => {
+  const items = [
+    { label: 'Passed', count: severityCounts.value.ok, color: '#28a745' },
+    { label: 'Warnings', count: severityCounts.value.warning, color: '#dc3545' },
+    { label: 'Info', count: severityCounts.value.info, color: '#0d6efd' },
+    { label: 'N/A', count: severityCounts.value.na, color: '#6c757d' }
+  ].filter(i => i.count > 0);
 
-const chartSeries = computed(() => [
-  severityCounts.value.ok,
-  severityCounts.value.warning,
-  severityCounts.value.info,
-  severityCounts.value.na
-]);
+  return {
+    series: items.map(i => i.count),
+    labels: items.map(i => i.label),
+    colors: items.map(i => i.color),
+    totalLabel: 'Passed',
+    totalValue: `${severityCounts.value.ok}/${rules.value.length}`,
+    legendItems: items.map(i => ({
+      color: i.color,
+      label: i.label,
+      value: i.count.toString()
+    }))
+  };
+});
 
 const client = new AutoAnalysisClient(route.params.profileId as string);
 
@@ -448,7 +380,7 @@ function getSeverityColor(severity: string): string {
   text-align: center;
   padding: 48px 40px;
   background: var(--color-bg-card);
-  border-radius: var(--bs-border-radius-lg);
+  border-radius: var(--radius-md);
   box-shadow: var(--shadow-base);
 }
 
@@ -493,7 +425,7 @@ function getSeverityColor(severity: string): string {
   gap: 8px;
   padding: 10px 28px;
   background: var(--color-primary);
-  color: var(--bs-white);
+  color: var(--color-white);
   border: none;
   border-radius: 6px;
   font-size: 13px;
@@ -518,7 +450,7 @@ function getSeverityColor(severity: string): string {
   text-align: center;
   padding: 48px 40px;
   background: var(--color-bg-card);
-  border-radius: var(--bs-border-radius-lg);
+  border-radius: var(--radius-md);
   box-shadow: var(--shadow-base);
 }
 
@@ -575,110 +507,10 @@ function getSeverityColor(severity: string): string {
   animation: progress-indeterminate 2s ease-in-out infinite;
 }
 
-/* Summary Card */
-.summary-card {
-  background: var(--bs-white);
-  border-radius: 0.75rem;
-  box-shadow: var(--bs-box-shadow-sm);
-  overflow: hidden;
-}
-
-.summary-card-body {
-  padding: 1.25rem;
-}
-
-.section-title {
+.toolbar-count {
   font-size: 0.8rem;
   font-weight: 600;
   color: var(--color-text);
-  margin-bottom: 1rem;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-}
-
-.chart-section {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-}
-
-.legend-section {
-  height: 100%;
-  border-left: 1px solid var(--color-border);
-  padding-left: 1.25rem;
-}
-
-.severity-legend {
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-}
-
-.legend-item {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-}
-
-.legend-item i {
-  font-size: 0.9rem;
-  flex-shrink: 0;
-}
-
-.legend-label {
-  font-size: 0.85rem;
-  font-weight: 500;
-  color: var(--color-text);
-  flex: 1;
-}
-
-.legend-value {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--color-dark);
-  background: var(--color-light);
-  padding: 0.15rem 0.5rem;
-  border-radius: 0.25rem;
-  min-width: 24px;
-  text-align: center;
-}
-
-/* Filter Bar */
-.filter-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 1rem;
-  background: var(--bs-white);
-  padding: 0.75rem 1rem;
-  border-radius: 0.5rem;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
-}
-
-.filter-group .form-select {
-  width: auto;
-  min-width: 140px;
-  font-size: 0.8rem;
-}
-
-.search-group {
-  position: relative;
-  flex: 1;
-  max-width: 280px;
-}
-
-.search-group i {
-  position: absolute;
-  left: 0.75rem;
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--color-text-light);
-  font-size: 0.8rem;
-}
-
-.search-group .form-control {
-  padding-left: 2rem;
-  font-size: 0.8rem;
 }
 
 /* Rules Table */
@@ -718,7 +550,7 @@ function getSeverityColor(severity: string): string {
   border-left: 3px solid var(--color-danger);
 }
 .rule-row.severity-info {
-  border-left: 3px solid var(--bs-blue);
+  border-left: 3px solid var(--color-accent-blue);
 }
 .rule-row.severity-ok {
   border-left: 3px solid var(--color-success);
@@ -861,14 +693,4 @@ function getSeverityColor(severity: string): string {
   }
 }
 
-@media (max-width: 768px) {
-  .filter-bar {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .search-group {
-    max-width: none;
-  }
-}
 </style>

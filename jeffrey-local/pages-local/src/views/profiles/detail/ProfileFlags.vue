@@ -45,8 +45,7 @@
           </div>
 
           <!-- Flags Table -->
-          <div class="flags-table-container">
-            <table class="table table-sm table-hover mb-0" v-if="filteredFlags.length > 0">
+          <DataTable v-if="filteredFlags.length > 0">
               <thead>
                 <tr>
                   <SortableTableHeader
@@ -171,13 +170,12 @@
                   </tr>
                 </template>
               </tbody>
-            </table>
+          </DataTable>
 
-            <div v-else class="no-results">
+            <div v-if="filteredFlags.length === 0" class="no-results">
               <i class="bi bi-funnel"></i>
               <p>No flags match "{{ searchTerm }}"</p>
             </div>
-          </div>
         </template>
 
         <!-- About Tab -->
@@ -377,6 +375,7 @@ import StatsTable from '@/components/StatsTable.vue';
 import ChartSectionWithTabs from '@/components/ChartSectionWithTabs.vue';
 import SortableTableHeader from '@/components/table/SortableTableHeader.vue';
 import Badge from '@/components/Badge.vue';
+import DataTable from '@/components/table/DataTable.vue';
 import FlagsClient from '@/services/api/FlagsClient';
 import '@/styles/shared-components.css';
 import FlagsData from '@/services/api/model/FlagsData';
@@ -568,38 +567,6 @@ onMounted(() => {
   color: var(--color-text-muted);
 }
 
-/* Flags Table */
-.flags-table-container {
-  background: white;
-}
-
-.table thead th {
-  background-color: var(--color-light);
-  font-weight: 600;
-  color: var(--color-text);
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid var(--color-border);
-  white-space: nowrap;
-}
-
-.table td {
-  font-size: 0.85rem;
-  padding: 0.625rem 1rem;
-  vertical-align: middle;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.table tbody tr:hover {
-  background-color: rgba(94, 100, 255, 0.04);
-}
-
-.table tbody tr:last-child td {
-  border-bottom: none;
-}
-
 .flag-name-cell {
   min-width: 280px;
 }
@@ -772,7 +739,7 @@ onMounted(() => {
   padding: 0.1rem 0.35rem;
   border-radius: 3px;
   font-size: 0.85em;
-  color: var(--bs-pink);
+  color: var(--color-code-text);
 }
 
 /* Type List in About */
@@ -798,7 +765,7 @@ onMounted(() => {
   padding: 0.1rem 0.35rem;
   border-radius: 3px;
   font-size: 0.9em;
-  color: var(--bs-pink);
+  color: var(--color-code-text);
 }
 
 .benefits-list {

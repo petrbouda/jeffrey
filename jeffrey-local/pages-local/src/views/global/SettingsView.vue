@@ -136,7 +136,7 @@
           :class="{ 'settings-form-disabled': !aiEnabled }"
         >
           <h4 class="models-reference-title">Available Models</h4>
-          <table class="models-table">
+          <DataTable>
             <thead>
               <tr>
                 <th>Model</th>
@@ -157,7 +157,7 @@
                 <td>{{ model.maxTokens.toLocaleString() }}</td>
               </tr>
             </tbody>
-          </table>
+          </DataTable>
         </div>
 
         <div class="settings-actions">
@@ -273,6 +273,7 @@ import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue';
 import SettingsClient from '@/services/api/SettingsClient';
 import MainCard from '@/components/MainCard.vue';
 import MainCardHeader from '@/components/MainCardHeader.vue';
+import DataTable from '@/components/table/DataTable.vue';
 
 interface ModelInfo {
   id: string;
@@ -753,7 +754,7 @@ async function saveVisualizationSettings() {
 .btn-primary {
   padding: 9px 24px;
   background: var(--color-primary);
-  color: var(--bs-white);
+  color: var(--color-white);
   border: none;
   border-radius: 6px;
   font-size: 13px;
@@ -788,25 +789,6 @@ async function saveVisualizationSettings() {
   margin-bottom: 8px;
 }
 
-.models-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 13px;
-}
-
-.models-table th {
-  text-align: left;
-  padding: 8px 12px;
-  font-weight: 600;
-  color: var(--color-text-muted);
-  border-bottom: 1px solid var(--color-border);
-}
-
-.models-table td {
-  padding: 8px 12px;
-  border-bottom: 1px solid var(--color-border);
-}
-
 .model-row {
   cursor: pointer;
   transition: background 0.15s;
@@ -828,7 +810,7 @@ async function saveVisualizationSettings() {
 
 .frame-mode-card {
   border: 2px solid var(--color-border);
-  border-radius: var(--bs-border-radius-lg);
+  border-radius: var(--radius-md);
   padding: 10px;
   cursor: pointer;
   transition: all var(--transition-fast);

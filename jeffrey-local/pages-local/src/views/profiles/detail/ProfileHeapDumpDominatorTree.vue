@@ -38,9 +38,7 @@
       icon="bi-diagram-3"
       title="No dominator tree data available"
     />
-    <div v-else class="table-card">
-      <div class="table-responsive">
-        <table class="table table-sm table-hover mb-0">
+    <DataTable v-else>
           <thead>
             <tr>
               <th style="width: 40%">Class Name</th>
@@ -166,9 +164,7 @@
               </template>
             </tr>
           </tbody>
-        </table>
-      </div>
-    </div>
+    </DataTable>
 
     <!-- Instance Tree Modal -->
     <InstanceTreeModal
@@ -192,6 +188,7 @@ import HeapDumpNotInitialized from '@/components/HeapDumpNotInitialized.vue';
 import InstanceActionButtons from '@/components/heap/InstanceActionButtons.vue';
 import InstanceTreeModal from '@/components/heap/InstanceTreeModal.vue';
 import EmptyState from '@/components/EmptyState.vue';
+import DataTable from '@/components/table/DataTable.vue';
 import HeapDumpClient from '@/services/api/HeapDumpClient';
 import type DominatorTreeResponse from '@/services/api/model/DominatorTreeResponse';
 import type { DominatorNode } from '@/services/api/model/DominatorTreeResponse';
@@ -539,7 +536,7 @@ onMounted(() => {
 
 .field-name {
   font-size: 0.8rem;
-  color: var(--bs-purple);
+  color: var(--color-purple);
   font-style: italic;
   white-space: nowrap;
 }
@@ -558,7 +555,7 @@ onMounted(() => {
   display: inline-block;
   font-size: 0.65rem;
   font-weight: 600;
-  color: var(--bs-blue);
+  color: var(--color-accent-blue);
   background-color: rgba(13, 110, 253, 0.1);
   border: 1px solid rgba(13, 110, 253, 0.25);
   border-radius: 3px;
@@ -583,40 +580,6 @@ onMounted(() => {
   text-overflow: ellipsis;
 }
 
-.table-card {
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border);
-  border-radius: var(--bs-border-radius-lg);
-  box-shadow: var(--shadow-base);
-  overflow: hidden;
-}
-
-.table thead th {
-  background-color: var(--color-light);
-  font-weight: 600;
-  color: var(--color-text);
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  padding: 0.75rem;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.table td {
-  font-size: 0.8rem;
-  padding: 0.6rem 0.75rem;
-  vertical-align: middle;
-  border-bottom: 1px solid var(--color-border-row);
-}
-
-.table tbody tr:hover {
-  background-color: rgba(66, 133, 244, 0.04);
-}
-
-.table tbody tr:last-child td {
-  border-bottom: none;
-}
-
 .btn-expand {
   display: inline-flex;
   align-items: center;
@@ -634,7 +597,7 @@ onMounted(() => {
 
 .btn-expand:hover:not(:disabled) {
   background-color: rgba(111, 66, 193, 0.1);
-  color: var(--bs-purple);
+  color: var(--color-purple);
 }
 
 .btn-expand:disabled {
@@ -664,7 +627,7 @@ onMounted(() => {
   align-items: center;
   border: none;
   background: transparent;
-  color: var(--bs-purple);
+  color: var(--color-purple);
   font-size: 0.8rem;
   font-weight: 500;
   padding: 0.2rem 0.5rem;

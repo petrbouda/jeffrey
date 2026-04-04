@@ -165,7 +165,7 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 8px;
   padding: 6px 14px;
-  border-radius: var(--bs-border-radius);
+  border-radius: var(--radius-base);
   border: 1px solid rgba(94, 100, 255, 0.2);
   background: var(--color-light);
   cursor: pointer;
@@ -213,7 +213,7 @@ onBeforeUnmount(() => {
   left: 0;
   min-width: 300px;
   background: var(--color-bg-card);
-  border-radius: var(--bs-border-radius-lg);
+  border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
   box-shadow: var(--shadow-lg);
   z-index: var(--z-dropdown);

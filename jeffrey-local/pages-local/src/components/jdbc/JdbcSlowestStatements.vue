@@ -137,7 +137,7 @@ const handleSqlButtonClick = (statement: JdbcSlowStatement) => {
   background: var(--color-danger);
 }
 .accent-purple {
-  background: var(--bs-purple);
+  background: var(--color-purple);
 }
 
 .row-content {

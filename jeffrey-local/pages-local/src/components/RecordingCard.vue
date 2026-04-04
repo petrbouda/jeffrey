@@ -265,7 +265,7 @@ const formatRelativeTime = (timestamp: number) => {
 /* Analyzed state */
 .rec-card--analyzed {
   border-left: 3px solid var(--color-success);
-  background: linear-gradient(135deg, rgba(0, 210, 122, 0.03), var(--bs-white));
+  background: linear-gradient(135deg, rgba(0, 210, 122, 0.03), var(--color-white));
 }
 
 .rec-card--analyzed:hover {
@@ -316,7 +316,7 @@ const formatRelativeTime = (timestamp: number) => {
 /* Heap dump: analyzed */
 .rec-card--heap-dump.rec-card--analyzed {
   border-left: 3px solid var(--color-violet);
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.03), var(--bs-white));
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.03), var(--color-white));
 }
 
 .rec-card--heap-dump.rec-card--analyzed:hover {
@@ -337,7 +337,7 @@ const formatRelativeTime = (timestamp: number) => {
 
 .rec-card--heap-dump:hover .rec-card__btn--open {
   background: linear-gradient(135deg, var(--color-violet), var(--color-violet-dark));
-  color: var(--bs-white);
+  color: var(--color-white);
   border-color: transparent;
 }
 
@@ -503,7 +503,7 @@ const formatRelativeTime = (timestamp: number) => {
 
 .rec-card:hover .rec-card__btn--analyze {
   background: linear-gradient(135deg, var(--color-primary), var(--color-primary-hover));
-  color: var(--bs-white);
+  color: var(--color-white);
   border-color: transparent;
 }
 
@@ -515,7 +515,7 @@ const formatRelativeTime = (timestamp: number) => {
 
 .rec-card:not(.rec-card--heap-dump):hover .rec-card__btn--open {
   background: linear-gradient(135deg, var(--color-success), var(--color-success-hover));
-  color: var(--bs-white);
+  color: var(--color-white);
   border-color: transparent;
 }
 

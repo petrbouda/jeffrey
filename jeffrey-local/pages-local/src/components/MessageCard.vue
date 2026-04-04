@@ -57,7 +57,7 @@ function formatTime(createdAt: number): string {
 
 .message-card.severity-bg-high {
   background-color: var(--color-warning-bg);
-  border-left-color: var(--bs-orange);
+  border-left-color: var(--color-orange);
 }
 
 .message-card.severity-bg-medium {

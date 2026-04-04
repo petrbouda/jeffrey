@@ -317,7 +317,7 @@ onMounted(() => {
 
 .class-name {
   font-size: 0.8rem;
-  color: var(--bs-purple);
+  color: var(--color-purple);
   background: transparent;
 }
 
@@ -335,7 +335,7 @@ onMounted(() => {
   padding: 0;
   border: 1px solid var(--color-border);
   border-radius: 6px;
-  background-color: var(--bs-white);
+  background-color: var(--color-white);
   color: var(--color-text-muted);
   cursor: pointer;
   transition: all 0.15s ease-in-out;
@@ -344,7 +344,7 @@ onMounted(() => {
 .close-btn:hover {
   background-color: var(--color-danger);
   border-color: var(--color-danger);
-  color: var(--bs-white);
+  color: var(--color-white);
 }
 
 .close-btn:focus {

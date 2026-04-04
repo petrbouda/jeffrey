@@ -89,8 +89,7 @@
             icon="bi-lightning"
             title="No long compilations recorded"
           />
-          <div v-else class="table-responsive">
-            <table class="table table-sm table-hover mb-0">
+          <DataTable v-else>
               <thead>
                 <tr>
                   <th>ID</th>
@@ -132,8 +131,7 @@
                   </td>
                 </tr>
               </tbody>
-            </table>
-          </div>
+          </DataTable>
         </div>
       </div>
     </div>
@@ -319,6 +317,7 @@ import ProfileCompilationClient from '@/services/api/ProfileCompilationClient.ts
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
 import Badge from '@/components/Badge.vue';
 import EmptyState from '@/components/EmptyState.vue';
+import DataTable from '@/components/table/DataTable.vue';
 import Serie from '@/services/timeseries/model/Serie.ts';
 import JITLongCompilation from '@/services/api/model/JITLongCompilation.ts';
 import { computed } from 'vue';
@@ -515,7 +514,7 @@ const getPackage = (method: string): string => {
 /* Data Table Card */
 .data-table-card,
 .chart-card {
-  background: var(--bs-white);
+  background: var(--color-white);
   border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
@@ -546,25 +545,6 @@ const getPackage = (method: string): string => {
   align-items: center;
 }
 
-.table {
-  margin-bottom: 0;
-}
-
-.table thead th {
-  background: var(--color-light);
-  font-weight: 600;
-  font-size: 0.9rem;
-  color: var(--color-text-muted);
-  border-top: none;
-  border-bottom-width: 1px;
-}
-
-.table tbody td {
-  font-size: 0.9rem;
-  padding: 0.75rem 1.5rem;
-  vertical-align: middle;
-}
-
 /* Long Compilation Table Styles */
 .method-cell {
   display: flex;
@@ -581,15 +561,6 @@ const getPackage = (method: string): string => {
   text-overflow: ellipsis;
   white-space: nowrap;
   max-width: 250px;
-}
-
-.table-hover tbody tr:hover {
-  background-color: rgba(0, 0, 0, 0.02);
-}
-
-.table-responsive {
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
 }
 
 .mb-4 {

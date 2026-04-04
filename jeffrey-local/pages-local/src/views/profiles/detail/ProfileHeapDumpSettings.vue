@@ -908,7 +908,7 @@ onMounted(() => {
 }
 
 .step-item.in_progress .step-label {
-  color: var(--bs-blue);
+  color: var(--color-accent-blue);
   font-weight: 500;
 }
 
@@ -970,7 +970,7 @@ onMounted(() => {
 
 .init-header-icon i {
   font-size: 1.5rem;
-  color: var(--bs-purple);
+  color: var(--color-purple);
 }
 
 .init-header h4 {
@@ -994,8 +994,8 @@ onMounted(() => {
   border: none !important;
   background: linear-gradient(
     135deg,
-    var(--bs-blue) 0%,
-    var(--bs-link-hover-color) 100%
+    var(--color-accent-blue) 0%,
+    var(--color-accent-blue-hover) 100%
   ) !important;
   box-shadow: 0 4px 12px rgba(13, 110, 253, 0.3);
 }
@@ -1056,7 +1056,7 @@ onMounted(() => {
 }
 
 .ready-card.action.danger:hover {
-  border-color: var(--bs-danger-border-subtle);
+  border-color: var(--color-danger-input-border);
   background-color: var(--color-danger-bg-light);
 }
 
@@ -1089,7 +1089,7 @@ onMounted(() => {
 }
 
 .ready-card-icon.info i {
-  color: var(--bs-purple);
+  color: var(--color-purple);
 }
 
 .ready-card-icon.primary {
@@ -1097,7 +1097,7 @@ onMounted(() => {
 }
 
 .ready-card-icon.primary i {
-  color: var(--bs-blue);
+  color: var(--color-accent-blue);
 }
 
 .ready-card-icon.danger {
@@ -1116,7 +1116,7 @@ onMounted(() => {
 /* Dominant button style */
 .ready-card.action.dominant {
   flex: 2;
-  border-color: var(--bs-blue);
+  border-color: var(--color-accent-blue);
   background-color: var(--color-blue-bg-light);
 }
 
@@ -1125,7 +1125,7 @@ onMounted(() => {
 }
 
 .ready-card.action.dominant .ready-card-content h6 {
-  color: var(--bs-blue);
+  color: var(--color-accent-blue);
 }
 
 .ready-card-icon.large {
@@ -1151,13 +1151,13 @@ onMounted(() => {
 }
 
 .btn-outline-purple {
-  border-color: var(--bs-purple);
-  color: var(--bs-purple);
+  border-color: var(--color-purple);
+  color: var(--color-purple);
 }
 
 .btn-outline-purple:hover {
-  background-color: var(--bs-purple);
-  border-color: var(--bs-purple);
+  background-color: var(--color-purple);
+  border-color: var(--color-purple);
   color: white;
 }
 
@@ -1185,7 +1185,7 @@ onMounted(() => {
 }
 
 .upload-dropzone.clickable:hover {
-  border-color: var(--bs-blue);
+  border-color: var(--color-accent-blue);
   background-color: var(--color-blue-bg-light);
 }
 

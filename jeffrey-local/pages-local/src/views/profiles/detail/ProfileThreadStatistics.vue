@@ -417,7 +417,7 @@ onMounted(() => {
   background: var(--color-bg-card);
   overflow: hidden;
   box-shadow: var(--shadow-base);
-  border-radius: var(--bs-border-radius-lg);
+  border-radius: var(--radius-md);
   transition: all var(--transition-base);
   border: 1px solid var(--color-border);
   border-left: 3px solid var(--color-blue-500);

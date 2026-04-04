@@ -15,7 +15,7 @@ defineProps<{
 .base-panel {
   background: var(--color-bg-card);
   border: 1px solid var(--color-border);
-  border-radius: var(--bs-border-radius-lg);
+  border-radius: var(--radius-md);
   box-shadow: var(--shadow-base);
   padding: 1rem 1.25rem;
   height: 100%;

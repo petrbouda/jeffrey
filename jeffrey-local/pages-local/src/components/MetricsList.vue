@@ -404,7 +404,7 @@ const formatBytes = (bytes: number): string => {
 .metrics-item {
   background-color: var(--color-bg-card);
   border: 1px solid var(--color-border);
-  border-radius: var(--bs-border-radius-lg);
+  border-radius: var(--radius-md);
   padding: var(--spacing-4) var(--spacing-5);
   transition: all var(--transition-fast);
   cursor: default;
@@ -416,7 +416,7 @@ const formatBytes = (bytes: number): string => {
 
 .metrics-item:hover {
   border-color: var(--color-primary-light);
-  box-shadow: var(--bs-box-shadow-sm);
+  box-shadow: var(--shadow-sm);
 }
 
 .metrics-item.selected {
@@ -473,8 +473,8 @@ const formatBytes = (bytes: number): string => {
   align-items: center;
   gap: var(--spacing-3);
   padding: var(--spacing-4) var(--spacing-6);
-  background-color: var(--bs-white);
-  border-radius: var(--bs-border-radius-lg);
+  background-color: var(--color-white);
+  border-radius: var(--radius-md);
   box-shadow: var(--shadow-md);
 }
 

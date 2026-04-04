@@ -194,7 +194,7 @@ watch(
 .modal-description-card {
   background: linear-gradient(135deg, var(--color-light), var(--color-bg-card));
   border: 1px solid var(--color-border);
-  border-radius: var(--bs-border-radius-lg);
+  border-radius: var(--radius-md);
   padding: 0;
 }
 

@@ -633,7 +633,7 @@ const confirmDeleteWorkspace = async () => {
   border: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: 8px;
   cursor: pointer;
-  background: var(--bs-white);
+  background: var(--color-white);
   color: var(--color-text);
   transition: all 0.2s ease;
   white-space: nowrap;
@@ -653,7 +653,7 @@ const confirmDeleteWorkspace = async () => {
   align-items: center;
   justify-content: space-between;
   padding: 12px 16px;
-  background: var(--bs-white);
+  background: var(--color-white);
   border-bottom: 1px solid var(--color-border);
   border-radius: 16px 16px 0 0;
   gap: 16px;
@@ -744,7 +744,7 @@ const confirmDeleteWorkspace = async () => {
 .context-search:focus-within {
   border-color: var(--color-primary);
   box-shadow: 0 0 0 2px rgba(94, 100, 255, 0.1);
-  background: var(--bs-white);
+  background: var(--color-white);
 }
 
 .context-search i {
@@ -792,7 +792,7 @@ const confirmDeleteWorkspace = async () => {
 
   &:hover:not(:disabled) {
     background: linear-gradient(135deg, var(--color-danger), var(--color-danger-hover));
-    color: var(--bs-white);
+    color: var(--color-white);
     border-color: var(--color-danger-hover);
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25);
@@ -822,7 +822,7 @@ const confirmDeleteWorkspace = async () => {
   top: calc(100% + 8px);
   right: 0;
   z-index: 20;
-  background: var(--bs-white);
+  background: var(--color-white);
   border: 1px solid var(--color-border);
   border-radius: 10px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);

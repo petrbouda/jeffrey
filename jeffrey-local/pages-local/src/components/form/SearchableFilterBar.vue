@@ -119,7 +119,7 @@ const formatP99 = (nanos: number): string => {
   margin-bottom: 1.5rem;
   padding: 10px 16px;
   background: var(--color-bg-card);
-  border-radius: var(--bs-border-radius-lg);
+  border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
   box-shadow: var(--shadow-base);
   flex-wrap: wrap;

@@ -469,7 +469,7 @@ onMounted(() => {
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
   border: none;
-  border-radius: var(--bs-border-radius);
+  border-radius: var(--radius-base);
   cursor: pointer;
   transition: all var(--transition-fast);
 }
@@ -481,7 +481,7 @@ onMounted(() => {
 
 .settings-btn-primary {
   background: var(--color-primary);
-  color: var(--bs-white);
+  color: var(--color-white);
 }
 
 .settings-btn-primary:hover:not(:disabled) {
@@ -489,7 +489,7 @@ onMounted(() => {
 }
 
 .settings-btn-outline {
-  background: var(--bs-white);
+  background: var(--color-white);
   color: var(--color-text);
   border: 1px solid var(--color-border);
 }
@@ -534,7 +534,7 @@ onMounted(() => {
 .scope-option-card {
   background: var(--color-light);
   border: 2px solid var(--color-border);
-  border-radius: var(--bs-border-radius-lg);
+  border-radius: var(--radius-md);
   padding: 16px;
   cursor: pointer;
   transition: all var(--transition-fast);
@@ -603,7 +603,7 @@ onMounted(() => {
   padding: 12px 16px;
   background: var(--color-primary-lighter);
   border: 1px dashed rgba(94, 100, 255, 0.2);
-  border-radius: var(--bs-border-radius);
+  border-radius: var(--radius-base);
   color: var(--color-text-muted);
   font-size: var(--font-size-sm);
 }
@@ -625,7 +625,7 @@ onMounted(() => {
   padding: 12px 16px;
   background: var(--color-primary-lighter);
   border: 1px solid var(--color-border);
-  border-radius: var(--bs-border-radius);
+  border-radius: var(--radius-base);
   color: var(--color-text-muted);
   font-size: var(--font-size-sm);
 }
@@ -642,7 +642,7 @@ onMounted(() => {
   padding: 8px 12px;
   background: var(--color-primary-lighter);
   border: 1px solid rgba(94, 100, 255, 0.15);
-  border-radius: var(--bs-border-radius);
+  border-radius: var(--radius-base);
   margin-bottom: 10px;
 }
 
@@ -667,7 +667,7 @@ onMounted(() => {
   padding: 4px 10px;
   background: var(--color-primary-light);
   border: 1px solid rgba(94, 100, 255, 0.3);
-  border-radius: var(--bs-border-radius);
+  border-radius: var(--radius-base);
   color: var(--color-primary);
   font-size: 0.75rem;
   font-weight: var(--font-weight-semibold);

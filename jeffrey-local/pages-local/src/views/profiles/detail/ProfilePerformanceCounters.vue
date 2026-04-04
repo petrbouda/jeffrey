@@ -77,9 +77,7 @@
           </div>
 
           <!-- Performance Counters Tree -->
-          <div class="card mb-4">
-            <div class="card-body p-0">
-              <table class="table table-sm table-hover mb-0 counter-tree-table">
+          <DataTable table-class="counter-tree-table">
                 <thead>
                   <tr>
                     <th>Counter</th>
@@ -191,9 +189,7 @@
                     </template>
                   </template>
                 </tbody>
-              </table>
-            </div>
-          </div>
+          </DataTable>
 
           <!-- No Results message -->
           <div v-if="organizedCounters.length === 0" class="alert alert-info">
@@ -225,6 +221,7 @@ import PerformanceCounterEnhanced from '@/services/api/model/PerformanceCounterE
 import FeatureType from '@/services/api/model/FeatureType';
 import PerformanceCountersNotAvailableAlert from '@/components/alerts/PerformanceCountersNotAvailableAlert.vue';
 import EmptyState from '@/components/EmptyState.vue';
+import DataTable from '@/components/table/DataTable.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import type { PropType } from 'vue';
 import '@/styles/shared-components.css';
@@ -536,7 +533,7 @@ onMounted(() => {
 }
 
 .expand-btn:hover {
-  color: var(--bs-blue);
+  color: var(--color-accent-blue);
 }
 
 .counter-category {
@@ -591,7 +588,7 @@ onMounted(() => {
 }
 
 .bg-orange {
-  background-color: var(--bs-orange); /* Orange color */
+  background-color: var(--color-orange); /* Orange color */
 }
 
 /* Description icon style */
@@ -603,7 +600,7 @@ onMounted(() => {
 }
 
 .description-icon:hover {
-  color: var(--bs-blue);
+  color: var(--color-accent-blue);
 }
 
 /* Responsive adjustments */

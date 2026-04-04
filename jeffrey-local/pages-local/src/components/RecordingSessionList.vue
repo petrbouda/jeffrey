@@ -1287,7 +1287,7 @@ code {
 }
 
 .folder-row.session-unknown {
-  border-left: 3px solid var(--bs-purple);
+  border-left: 3px solid var(--color-purple);
 }
 
 /* Rotation group styles */
@@ -1374,7 +1374,7 @@ code {
 
 .action-menu-btn.active {
   background-color: var(--color-primary);
-  color: var(--bs-white);
+  color: var(--color-white);
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
   transform: translateY(-1px);
 }
@@ -1489,7 +1489,7 @@ code {
 
 .session-icon-unknown {
   background-color: rgba(111, 66, 193, 0.12);
-  color: var(--bs-purple);
+  color: var(--color-purple);
 }
 
 /* Session meta (matching instance-meta) */

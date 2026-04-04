@@ -323,7 +323,7 @@ const switchIdleSamples = () => {
 
 <style scoped>
 .flamegraph-card {
-  background: var(--bs-white);
+  background: var(--color-white);
   border: 1px solid var(--color-border);
   border-radius: 8px;
   padding: 1rem;

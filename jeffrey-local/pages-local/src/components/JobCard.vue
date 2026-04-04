@@ -138,7 +138,7 @@ const getVariantFromColor = (color: string): Variant => {
 }
 
 .text-blue {
-  color: var(--bs-blue);
+  color: var(--color-accent-blue);
 }
 
 .bg-purple-soft {
@@ -146,7 +146,7 @@ const getVariantFromColor = (color: string): Variant => {
 }
 
 .text-purple {
-  color: var(--bs-purple);
+  color: var(--color-purple);
 }
 
 .bg-orange-soft {
@@ -154,7 +154,7 @@ const getVariantFromColor = (color: string): Variant => {
 }
 
 .text-orange {
-  color: var(--bs-orange);
+  color: var(--color-orange);
 }
 
 .bg-cyan-soft {

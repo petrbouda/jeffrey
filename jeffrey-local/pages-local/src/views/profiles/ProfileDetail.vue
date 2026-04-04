@@ -1425,7 +1425,7 @@ onUnmounted(() => {
   justify-content: center;
   width: 28px;
   height: 28px;
-  border-radius: var(--bs-border-radius-lg);
+  border-radius: var(--radius-md);
   color: var(--color-primary);
   cursor: pointer;
   transition: background var(--transition-fast);
@@ -1459,7 +1459,7 @@ onUnmounted(() => {
   margin: 0 1rem;
   background: var(--color-bg-card);
   border: 1px solid var(--color-border);
-  border-radius: var(--bs-border-radius-lg);
+  border-radius: var(--radius-md);
   font-size: var(--font-size-sm);
   color: var(--color-text-muted);
 }
@@ -1502,7 +1502,7 @@ onUnmounted(() => {
   padding: 0.75rem 1rem;
   background: var(--color-bg-card);
   border: 1px solid var(--color-border);
-  border-radius: var(--bs-border-radius-lg);
+  border-radius: var(--radius-md);
   box-shadow: var(--shadow-base);
   flex: 1;
   min-width: 0;
@@ -1523,7 +1523,7 @@ onUnmounted(() => {
 }
 
 .compact-card.primary {
-  border-left: 3px solid var(--bs-blue);
+  border-left: 3px solid var(--color-accent-blue);
 }
 
 .compact-card.secondary:not(.empty) {
@@ -1703,7 +1703,7 @@ onUnmounted(() => {
 
 /* Feature Mode Switcher */
 .feature-mode-switcher {
-  background: linear-gradient(135deg, var(--color-light), var(--bs-white));
+  background: linear-gradient(135deg, var(--color-light), var(--color-white));
   border-bottom: 1px solid var(--color-border);
   margin: 0 0.5rem;
   border-radius: 8px;
@@ -1823,7 +1823,7 @@ onUnmounted(() => {
   }
 
   &.active {
-    color: var(--bs-white);
+    color: var(--color-white);
     font-weight: 700;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 

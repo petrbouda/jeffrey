@@ -239,7 +239,7 @@ onMounted(() => {
 }
 
 .search-input-group .input-group-text {
-  background: var(--bs-white);
+  background: var(--color-white);
   border-right: none;
   padding: 0 0.6rem;
 }

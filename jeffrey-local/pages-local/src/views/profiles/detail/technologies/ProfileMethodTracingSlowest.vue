@@ -61,8 +61,7 @@
               </button>
             </div>
           </template>
-          <div class="table-responsive">
-            <table class="table table-sm table-hover mb-0">
+          <DataTable>
               <thead>
                 <tr>
                   <th>Method</th>
@@ -92,8 +91,7 @@
                   </td>
                 </tr>
               </tbody>
-            </table>
-          </div>
+          </DataTable>
         </ChartSection>
       </div>
     </div>
@@ -111,6 +109,7 @@ import ErrorState from '@/components/ErrorState.vue';
 import EmptyState from '@/components/EmptyState.vue';
 import TracingDisabledFeatureAlert from '@/components/alerts/TracingDisabledFeatureAlert.vue';
 import ChartSection from '@/components/ChartSection.vue';
+import DataTable from '@/components/table/DataTable.vue';
 import FormattingService from '@/services/FormattingService';
 import ProfileMethodTracingClient from '@/services/api/ProfileMethodTracingClient';
 import '@/styles/shared-components.css';
@@ -248,7 +247,7 @@ onMounted(() => {
 }
 
 .duration-warning {
-  color: var(--bs-orange);
+  color: var(--color-orange);
 }
 
 .duration-slow {
@@ -273,18 +272,5 @@ onMounted(() => {
   font-size: 0.7rem;
 }
 
-.table th {
-  font-size: 0.7rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  color: var(--color-text-muted);
-  border-bottom: 2px solid var(--color-border);
-  padding: 0.5rem 0.75rem;
-}
 
-.table td {
-  vertical-align: middle;
-  font-size: 0.8rem;
-  padding: 0.5rem 0.75rem;
-}
 </style>

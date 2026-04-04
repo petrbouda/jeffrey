@@ -470,7 +470,7 @@ async function deleteProject() {
 .settings-card {
   background: var(--color-bg-card);
   border: 1px solid var(--color-border);
-  border-radius: var(--bs-border-radius-lg);
+  border-radius: var(--radius-md);
   box-shadow: var(--shadow-base);
   padding: 20px;
 }
@@ -517,9 +517,9 @@ async function deleteProject() {
   width: 100%;
   padding: var(--spacing-2) var(--spacing-3);
   border: 1px solid var(--color-border-input);
-  border-radius: var(--bs-border-radius-sm);
+  border-radius: var(--radius-sm);
   font-size: var(--font-size-base);
-  background: var(--bs-white);
+  background: var(--color-white);
   color: var(--color-text);
   outline: none;
   transition:
@@ -542,7 +542,7 @@ async function deleteProject() {
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
   border: none;
-  border-radius: var(--bs-border-radius);
+  border-radius: var(--radius-base);
   cursor: pointer;
   transition: all var(--transition-fast);
 }
@@ -554,7 +554,7 @@ async function deleteProject() {
 
 .settings-btn-primary {
   background: var(--color-primary);
-  color: var(--bs-white);
+  color: var(--color-white);
 }
 
 .settings-btn-primary:hover:not(:disabled) {
@@ -562,7 +562,7 @@ async function deleteProject() {
 }
 
 .settings-btn-outline {
-  background: var(--bs-white);
+  background: var(--color-white);
   color: var(--color-text);
   border: 1px solid var(--color-border);
 }
@@ -574,7 +574,7 @@ async function deleteProject() {
 
 .settings-btn-danger {
   background: var(--color-danger);
-  color: var(--bs-white);
+  color: var(--color-white);
 }
 
 .settings-btn-danger:hover:not(:disabled) {
@@ -630,8 +630,8 @@ async function deleteProject() {
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: var(--bs-white);
-  box-shadow: var(--bs-box-shadow-sm);
+  background: var(--color-white);
+  box-shadow: var(--shadow-sm);
   transition: transform var(--transition-fast);
   pointer-events: none;
 }
@@ -650,7 +650,7 @@ async function deleteProject() {
   align-items: center;
   gap: 8px;
   padding: 10px 14px;
-  border-radius: var(--bs-border-radius);
+  border-radius: var(--radius-base);
   font-size: var(--font-size-sm);
   margin-bottom: 14px;
 }
@@ -688,7 +688,7 @@ async function deleteProject() {
   text-transform: uppercase;
   letter-spacing: 0.04em;
   padding: 2px 7px;
-  border-radius: var(--bs-border-radius-sm);
+  border-radius: var(--radius-sm);
   margin-left: 4px;
 }
 
@@ -717,7 +717,7 @@ async function deleteProject() {
 .danger-bar {
   background: var(--color-bg-card);
   border: 1px solid rgba(230, 55, 87, 0.15);
-  border-radius: var(--bs-border-radius-lg);
+  border-radius: var(--radius-md);
   padding: 14px 20px;
   display: flex;
   align-items: center;

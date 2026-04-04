@@ -50,7 +50,7 @@ defineEmits<{
 
 <style scoped>
 .profiler-selection-card {
-  background: linear-gradient(135deg, var(--bs-white), var(--color-blue-bg-light));
+  background: linear-gradient(135deg, var(--color-white), var(--color-blue-bg-light));
   border: 2px solid rgba(94, 100, 255, 0.15);
   border-radius: 10px;
   padding: 14px;

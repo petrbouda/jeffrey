@@ -424,7 +424,7 @@ const navigateTo = (tech: TechnologyCard) => {
 
 .info-strip-btn-primary {
   background: var(--color-primary);
-  color: var(--bs-white);
+  color: var(--color-white);
 }
 
 .info-strip-btn-primary:hover {

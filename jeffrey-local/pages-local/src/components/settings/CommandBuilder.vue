@@ -901,7 +901,7 @@ generateConfig();
 
 /* Step Header Styling - Matching ProjectsView */
 .step-header {
-  background: var(--bs-white);
+  background: var(--color-white);
   border-radius: 12px;
   overflow: hidden;
   border: 1px solid var(--color-border);
@@ -1717,7 +1717,7 @@ generateConfig();
 /* Warning Panel Styles */
 .warning-panel {
   margin-top: 16px;
-  background: var(--bs-white);
+  background: var(--color-white);
   border-radius: 12px;
   overflow: hidden;
   border: 1px solid var(--color-border);

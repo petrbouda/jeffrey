@@ -135,7 +135,7 @@ onMounted(() => {
   align-items: center;
   gap: 0.5rem;
   font-size: 0.75rem;
-  color: var(--bs-gray-600);
+  color: var(--color-grey-muted);
   user-select: none;
 }
 

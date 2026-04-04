@@ -81,18 +81,12 @@
       <!-- By Element Count Tab -->
       <template #by-element-count>
         <div v-if="report.byElementCount.length > 0">
-          <div class="filter-controls mb-3">
-            <div class="row align-items-center">
-              <div class="col-auto ms-auto">
-                <small class="text-muted"
-                  >Showing {{ report.byElementCount.length }} collections</small
-                >
-              </div>
-            </div>
-          </div>
-          <div class="table-card">
-            <div class="table-responsive">
-              <table class="table table-sm table-hover mb-0">
+          <DataTable>
+            <template #toolbar>
+              <TableToolbar :show-search="false">
+                <span class="toolbar-info">Showing {{ report.byElementCount.length }} collections</span>
+              </TableToolbar>
+            </template>
                 <thead>
                   <tr>
                     <th style="width: 50px">#</th>
@@ -146,9 +140,7 @@
                     </td>
                   </tr>
                 </tbody>
-              </table>
-            </div>
-          </div>
+          </DataTable>
         </div>
         <div v-else class="text-center text-muted py-5">
           <i class="bi bi-collection-fill fs-1 mb-3 d-block"></i>
@@ -159,18 +151,12 @@
       <!-- By Retained Size Tab -->
       <template #by-retained-size>
         <div v-if="report.byRetainedSize.length > 0">
-          <div class="filter-controls mb-3">
-            <div class="row align-items-center">
-              <div class="col-auto ms-auto">
-                <small class="text-muted"
-                  >Showing {{ report.byRetainedSize.length }} collections</small
-                >
-              </div>
-            </div>
-          </div>
-          <div class="table-card">
-            <div class="table-responsive">
-              <table class="table table-sm table-hover mb-0">
+          <DataTable>
+            <template #toolbar>
+              <TableToolbar :show-search="false">
+                <span class="toolbar-info">Showing {{ report.byRetainedSize.length }} collections</span>
+              </TableToolbar>
+            </template>
                 <thead>
                   <tr>
                     <th style="width: 50px">#</th>
@@ -224,9 +210,7 @@
                     </td>
                   </tr>
                 </tbody>
-              </table>
-            </div>
-          </div>
+          </DataTable>
         </div>
         <div v-else class="text-center text-muted py-5">
           <i class="bi bi-collection-fill fs-1 mb-3 d-block"></i>
@@ -247,6 +231,8 @@ import ErrorState from '@/components/ErrorState.vue';
 import StatsTable from '@/components/StatsTable.vue';
 import HeapDumpNotInitialized from '@/components/HeapDumpNotInitialized.vue';
 import ChartSectionWithTabs from '@/components/ChartSectionWithTabs.vue';
+import DataTable from '@/components/table/DataTable.vue';
+import TableToolbar from '@/components/table/TableToolbar.vue';
 import HeapDumpClient from '@/services/api/HeapDumpClient';
 import type BiggestCollectionsReport from '@/services/api/model/BiggestCollectionsReport';
 import FormattingService from '@/services/FormattingService';
@@ -443,7 +429,7 @@ onMounted(() => {
 }
 
 .field-tag {
-  color: var(--bs-purple);
+  color: var(--color-purple);
   font-style: italic;
 }
 
@@ -492,44 +478,9 @@ onMounted(() => {
   min-width: 35px;
 }
 
-.table-card {
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border);
-  border-radius: var(--bs-border-radius-lg);
-  box-shadow: var(--shadow-base);
-  overflow: hidden;
-}
-
-.table thead th {
-  background-color: var(--color-light);
-  font-weight: 600;
-  color: var(--color-text);
+.toolbar-info {
   font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  padding: 0.75rem;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.table td {
-  font-size: 0.8rem;
-  padding: 0.6rem 0.75rem;
-  vertical-align: middle;
-  border-bottom: 1px solid var(--color-border-row);
-}
-
-.table tbody tr:hover {
-  background-color: rgba(66, 133, 244, 0.04);
-}
-
-.table tbody tr:last-child td {
-  border-bottom: none;
-}
-
-.filter-controls {
-  background-color: var(--color-light);
-  padding: 0.75rem 1rem;
-  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
 }
 
 .font-monospace {

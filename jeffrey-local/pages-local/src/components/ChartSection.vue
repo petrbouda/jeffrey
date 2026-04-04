@@ -47,7 +47,7 @@ const props = withDefaults(defineProps<Props>(), {
 .chart-card {
   background: var(--color-bg-card);
   border: 1px solid var(--color-border);
-  border-radius: var(--bs-border-radius-lg);
+  border-radius: var(--radius-md);
   box-shadow: var(--shadow-base);
   overflow: hidden;
 }

@@ -690,16 +690,9 @@ watch(
 }
 
 .table th {
-  font-size: 0.7rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  color: var(--color-text-muted);
-  background-color: var(--color-light);
-  padding: 0.5rem 0.75rem;
-  border-bottom: 1px solid var(--color-border);
   position: sticky;
   top: 0;
+  z-index: 1;
 }
 
 .table td {
@@ -741,7 +734,7 @@ watch(
 
 .field-name {
   font-size: 0.75rem;
-  color: var(--bs-purple);
+  color: var(--color-purple);
   font-style: italic;
   white-space: nowrap;
 }
@@ -795,7 +788,7 @@ watch(
 }
 
 .nav-icon-link:hover {
-  color: var(--bs-blue);
+  color: var(--color-accent-blue);
 }
 
 .empty-section {

@@ -41,7 +41,7 @@ defineProps<{
   align-items: center;
   gap: 6px;
   padding: 4px 10px;
-  border-radius: var(--bs-border-radius);
+  border-radius: var(--radius-base);
   font-size: var(--font-size-sm);
   font-weight: 500;
   color: var(--color-text-muted);

@@ -94,8 +94,7 @@
 
       <div class="info-section mt-4">
         <h5 class="section-title">Event Types</h5>
-        <div class="table-responsive">
-          <table class="table table-sm table-hover mb-0 event-type-table">
+        <DataTable table-class="event-type-table">
             <tbody>
               <tr>
                 <td class="color-cell">
@@ -182,8 +181,7 @@
                 <td>Blocking writes to a File (e.g. <b>FileOutputStream#write</b>)</td>
               </tr>
             </tbody>
-          </table>
-        </div>
+        </DataTable>
       </div>
     </template>
   </GenericModal>
@@ -201,6 +199,7 @@ import Konva from 'konva';
 import ThreadRow from '@/services/thread/ThreadRow';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import GenericModal from '@/components/GenericModal.vue';
+import DataTable from '@/components/table/DataTable.vue';
 import type { PropType } from 'vue';
 import '@/styles/shared-components.css';
 

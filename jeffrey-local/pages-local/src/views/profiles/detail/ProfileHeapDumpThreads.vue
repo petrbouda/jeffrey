@@ -34,41 +34,22 @@
       <StatsTable :metrics="summaryMetrics" class="mb-4" />
 
       <!-- Results Toolbar -->
-      <div class="table-card">
-        <div class="results-toolbar">
-          <div class="results-info">
-            <span class="results-count">{{ filteredThreads.length }} threads</span>
-            <span v-if="filteredThreads.length !== threadsData.length" class="filtered-badge">
+      <DataTable>
+        <template #toolbar>
+          <TableToolbar v-model="searchQuery" search-placeholder="Filter...">
+            <span class="toolbar-count">{{ filteredThreads.length }} threads</span>
+            <span v-if="filteredThreads.length !== threadsData.length" class="toolbar-badge-filtered">
               filtered from {{ threadsData.length }}
             </span>
-          </div>
-          <div class="results-controls">
-            <div class="input-group search-container">
-              <span class="input-group-text"><i class="bi bi-search search-icon"></i></span>
-              <input
-                type="text"
-                v-model="searchQuery"
-                class="form-control search-input"
-                placeholder="Filter..."
-              />
-              <button
-                v-if="searchQuery"
-                class="btn btn-outline-secondary clear-btn"
-                type="button"
-                @click="searchQuery = ''"
-              >
-                <i class="bi bi-x-lg"></i>
-              </button>
-            </div>
-            <select v-model="daemonFilter" class="form-select form-select-sm type-select">
-              <option value="all">All Threads</option>
-              <option value="daemon">Daemon Only</option>
-              <option value="non-daemon">Non-Daemon Only</option>
-            </select>
-          </div>
-        </div>
-        <div class="table-responsive">
-          <table class="table table-sm table-hover mb-0">
+            <template #filters>
+              <select v-model="daemonFilter" class="form-select form-select-sm">
+                <option value="all">All Threads</option>
+                <option value="daemon">Daemon Only</option>
+                <option value="non-daemon">Non-Daemon Only</option>
+              </select>
+            </template>
+          </TableToolbar>
+        </template>
             <thead>
               <tr>
                 <th style="width: 50px">#</th>
@@ -194,9 +175,7 @@
                 </tr>
               </template>
             </tbody>
-          </table>
-        </div>
-      </div>
+      </DataTable>
     </div>
 
     <div v-else class="empty-state">
@@ -229,6 +208,8 @@ import HeapDumpNotInitialized from '@/components/HeapDumpNotInitialized.vue';
 import InstanceTreeModal from '@/components/heap/InstanceTreeModal.vue';
 import InstanceActionButtons from '@/components/heap/InstanceActionButtons.vue';
 import SortableTableHeader from '@/components/table/SortableTableHeader.vue';
+import DataTable from '@/components/table/DataTable.vue';
+import TableToolbar from '@/components/table/TableToolbar.vue';
 import HeapDumpClient from '@/services/api/HeapDumpClient';
 import '@/styles/shared-components.css';
 import HeapThreadInfo from '@/services/api/model/HeapThreadInfo';
@@ -419,84 +400,20 @@ onMounted(() => {
   padding: 2rem;
 }
 
-/* Table Card */
-.table-card {
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border);
-  border-radius: var(--bs-border-radius-lg);
-  box-shadow: var(--shadow-base);
-  overflow: hidden;
-}
-
-/* Results Toolbar - matching OQL style */
-.results-toolbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.5rem 1rem;
-  background-color: var(--color-light);
-  border-bottom: 1px solid var(--color-border);
-}
-
-.results-info {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.results-controls {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.results-count {
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: var(--color-text-muted);
-  background-color: var(--color-border);
-  padding: 0.125rem 0.5rem;
-}
-
-.filtered-badge {
-  font-size: 0.65rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--color-warning-text);
-  background-color: var(--color-warning-bg);
-  padding: 0.125rem 0.375rem;
-}
-
-.type-select {
-  width: 130px;
-}
-
-/* Table Styles - matching OQL */
-.table thead th {
-  background-color: var(--color-light);
+/* Toolbar badges */
+.toolbar-count {
+  font-size: 0.8rem;
   font-weight: 600;
   color: var(--color-text);
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  padding: 0.75rem;
-  border-bottom: 1px solid var(--color-border);
 }
 
-.table td {
-  font-size: 0.8rem;
-  padding: 0.6rem 0.75rem;
-  vertical-align: middle;
-  border-bottom: 1px solid var(--color-border-row);
-}
-
-.table tbody tr:hover {
-  background-color: rgba(66, 133, 244, 0.02);
-}
-
-.table tbody tr:last-child td {
-  border-bottom: none;
+.toolbar-badge-filtered {
+  font-size: 0.65rem;
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-weight: 500;
 }
 
 /* Thread Cell - Two-line layout */
@@ -513,7 +430,7 @@ onMounted(() => {
 .thread-name {
   font-size: 0.8rem;
   font-weight: 500;
-  color: var(--bs-purple);
+  color: var(--color-purple);
   word-break: break-all;
   line-height: 1.4;
 }
@@ -602,7 +519,7 @@ onMounted(() => {
 }
 
 .frame-method-name {
-  color: var(--bs-purple);
+  color: var(--color-purple);
   font-weight: 600;
   background-color: transparent;
   font-size: 0.75rem;
@@ -630,7 +547,7 @@ onMounted(() => {
 }
 
 .local-field {
-  color: var(--bs-blue);
+  color: var(--color-accent-blue);
   font-weight: 500;
 }
 

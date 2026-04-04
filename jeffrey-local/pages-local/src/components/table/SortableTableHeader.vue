@@ -46,12 +46,12 @@ const sortIcon = computed(() => {
   transition: background-color var(--transition-fast);
   background-color: var(--color-light);
   font-weight: var(--font-weight-semibold);
-  color: var(--color-text-muted);
-  font-size: var(--font-size-sm);
+  color: var(--color-text);
+  font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.3px;
-  padding: var(--spacing-4);
-  border-bottom: 1px solid var(--color-border-light);
+  padding: 0.75rem;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .sortable-header:hover {

@@ -29,6 +29,8 @@
   --color-info-light: rgba(57, 175, 209, 0.1);
 
   /* Accent Colors */
+  --color-purple: #6f42c1;
+  --color-accent-blue: #0d6efd;
   --color-accent-blue-light-bg: #d1e5ff;
   --color-accent-blue-light-bg-hover: #c2ddff;
   --color-accent-blue-light-border: #b8d8ff;
@@ -72,6 +74,7 @@
   --color-neutral-light: #f1f5f9;
   --color-blue-text: #1e40af;
   --color-blue-bg: #dbeafe;
+  --color-orange: #fd7e14;
   --color-orange-bg: #fff3e0;
   --color-emerald: #059669;
   --color-emerald-text: #6ee7b7;
@@ -79,6 +82,7 @@
   --color-violet-dark: #7c3aed;
   --color-violet-border-light: #c4b5fd;
   --color-code-bg: #f1f3f4;
+  --color-code-text: #d63384;
   --color-brown-dark: #4e342e;
   --color-brown-accent: #bf360c;
   --color-muted-separator: #d1d5db;
@@ -115,6 +119,7 @@
   --color-danger-border-light: #fecaca;
   --color-danger-bg-light: #fff5f5;
   --color-danger-bg-lighter: #fef2f2;
+  --color-danger-input-border: #f1aeb5;
 
   /* Amber panel colors */
   --color-amber-message: #a16207;
@@ -148,6 +153,7 @@
   --color-green-dark: #006400;
 
   /* Accent blue variants */
+  --color-accent-blue-hover: #0a58ca;
   --color-accent-blue-dark: #0b5ed7;
   --color-accent-blue-darker: #084298;
 
@@ -172,6 +178,7 @@
   --color-sky: #0ea5e9;
   --color-green-accent: #16a34a;
   --color-orange-accent: #ff8e33;
+  --color-grey-muted: #6c757d;
 
   /* Gradient endpoints */
   --color-teal-100: #ccfbf1;
@@ -253,6 +260,7 @@
   --color-secondary-border: #9ba3d4;
 
   /* Neutral Colors */
+  --color-white: #ffffff;
   --color-light: #f9fafd;
   --color-lighter: #edf2f9;
   --color-dark: #0b1727;
@@ -303,7 +311,14 @@
   --spacing-8: 2rem;     /* 32px */
   --spacing-12: 3rem;    /* 48px */
   
+  /* Border Radius */
+  --radius-sm: 0.25rem;  /* 4px */
+  --radius-base: 0.375rem; /* 6px */
+  --radius-md: 0.5rem;   /* 8px */
+  --radius-lg: 0.75rem;  /* 12px */
+
   /* Shadows */
+  --shadow-sm: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
   --shadow-base: 0 0 0.375rem 0 rgba(0, 0, 0, 0.1);
   --shadow-md: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.1);
   --shadow-lg: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);

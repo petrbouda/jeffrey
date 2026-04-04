@@ -279,7 +279,7 @@ const handleApply = async () => {
   padding: 8px 12px;
   border: 1px solid var(--color-border);
   border-radius: 6px;
-  background: var(--bs-white);
+  background: var(--color-white);
 }
 
 .sample-card:hover {

@@ -25,149 +25,96 @@
       description="Automated analysis and recommendations for your profile based on traversing Flamegraphs"
       icon="bi-shield-check"
     >
-      <!-- Summary Card with Chart and Prerequisites -->
-      <div
-        class="summary-card mb-4"
+      <!-- Summary Panel -->
+      <DualPanel
         v-if="analysisRulesFlat.length > 0 || prerequisites.length > 0"
+        class="mb-4"
+        left-title="Results Overview"
+        right-title="Data Quality"
       >
-        <div class="summary-card-body">
-          <div class="row align-items-stretch">
-            <!-- Donut Chart -->
-            <div class="col-lg-4 col-md-5">
-              <div class="chart-section">
-                <h6 class="section-title"><i class="bi bi-pie-chart me-2"></i>Results Overview</h6>
-                <apexchart
-                  v-if="analysisRulesFlat.length > 0"
-                  type="donut"
-                  :options="chartOptions"
-                  :series="chartSeries"
-                  height="200"
-                />
-                <div v-else class="no-analysis-data">
-                  <i class="bi bi-slash-circle"></i>
-                  <span>No analysis data</span>
-                </div>
-              </div>
-            </div>
-
-            <!-- Analysis Results Legend -->
-            <div class="col-lg-4 col-md-4">
-              <div class="legend-section">
-                <h6 class="section-title">Analysis Results</h6>
-                <div class="severity-legend">
-                  <div class="legend-item" v-if="severityCounts.ok > 0">
-                    <i class="bi bi-check-circle-fill text-success"></i>
-                    <span class="legend-label">Passed</span>
-                    <span class="legend-value">{{ severityCounts.ok }}</span>
-                  </div>
-                  <div class="legend-item" v-if="severityCounts.warning > 0">
-                    <i class="bi bi-exclamation-triangle-fill text-danger"></i>
-                    <span class="legend-label">Warnings</span>
-                    <span class="legend-value">{{ severityCounts.warning }}</span>
-                  </div>
-                  <div class="legend-item" v-if="severityCounts.info > 0">
-                    <i class="bi bi-info-circle-fill text-primary"></i>
-                    <span class="legend-label">Information</span>
-                    <span class="legend-value">{{ severityCounts.info }}</span>
-                  </div>
-                  <div class="legend-item" v-if="severityCounts.na > 0">
-                    <i class="bi bi-slash-circle-fill text-secondary"></i>
-                    <span class="legend-label">Skipped</span>
-                    <span class="legend-value">{{ severityCounts.na }}</span>
-                  </div>
-                  <div v-if="analysisRulesFlat.length === 0" class="no-results-msg">
-                    No analysis rules executed
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Data Quality / Prerequisites -->
-            <div class="col-lg-4 col-md-3">
-              <div class="prerequisites-section">
-                <h6 class="section-title">Data Quality</h6>
-                <div class="prerequisites-list">
-                  <div
-                    v-for="prereq in prerequisites"
-                    :key="prereq.rule"
-                    class="prereq-item"
-                    :class="prereq.severity === 'OK' ? 'prereq-ok' : 'prereq-warning'"
-                  >
-                    <div class="prereq-header">
-                      <i
-                        class="bi"
-                        :class="
-                          prereq.severity === 'OK'
-                            ? 'bi-check-circle-fill text-success'
-                            : 'bi-exclamation-triangle-fill text-warning'
-                        "
-                      ></i>
-                      <span class="prereq-name">{{ prereq.rule }}</span>
-                    </div>
-                    <div class="prereq-value" v-if="prereq.score">
-                      {{ prereq.score }}
-                    </div>
-                  </div>
-                  <div v-if="prerequisites.length === 0" class="no-prereq-msg">
-                    No prerequisites data
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Filter Bar -->
-      <div class="filter-bar mb-3" v-if="analysisRulesFlat.length > 0">
-        <div class="filter-group">
-          <select v-model="groupFilter" class="form-select form-select-sm">
-            <option value="">All Groups</option>
-            <option v-for="g in groups" :key="g" :value="g">{{ g }}</option>
-          </select>
-          <select v-model="categoryFilter" class="form-select form-select-sm">
-            <option value="">All Categories</option>
-            <option v-for="cat in categories" :key="cat" :value="cat">{{ cat }}</option>
-          </select>
-          <select v-model="severityFilter" class="form-select form-select-sm">
-            <option value="">All Severities</option>
-            <option value="WARNING">Warnings</option>
-            <option value="INFO">Information</option>
-            <option value="OK">Passed</option>
-          </select>
-        </div>
-        <div class="search-group">
-          <i class="bi bi-search"></i>
-          <input
-            v-model="searchQuery"
-            type="text"
-            class="form-control form-control-sm"
-            placeholder="Search rules..."
+        <template #left>
+          <DonutWithLegend
+            v-if="analysisRulesFlat.length > 0"
+            :data="chartData"
+            :tooltip-formatter="(val: number) => val + ' rules'"
           />
-        </div>
-      </div>
-
-      <!-- Unified Rules Table -->
-      <div class="rules-table-container" v-if="filteredAndSortedRules.length > 0">
-        <div class="rules-table">
-          <!-- Table Header -->
-          <div class="table-header">
-            <div class="col-status">Status</div>
-            <div class="col-rule">Rule</div>
-            <div class="col-group">Group</div>
-            <div class="col-category">Category</div>
-            <div class="col-score">Score</div>
-            <div class="col-actions">Actions</div>
+          <div v-else class="no-analysis-data">
+            <i class="bi bi-slash-circle"></i>
+            <span>No analysis data</span>
           </div>
-
-          <!-- Table Rows -->
-          <div v-for="rule in filteredAndSortedRules" :key="rule.id" class="table-row-wrapper">
+        </template>
+        <template #right>
+          <div class="prerequisites-list">
             <div
-              class="table-row"
+              v-for="prereq in prerequisites"
+              :key="prereq.rule"
+              class="prereq-item"
+              :class="prereq.severity === 'OK' ? 'prereq-ok' : 'prereq-warning'"
+            >
+              <div class="prereq-header">
+                <i
+                  class="bi"
+                  :class="
+                    prereq.severity === 'OK'
+                      ? 'bi-check-circle-fill text-success'
+                      : 'bi-exclamation-triangle-fill text-warning'
+                  "
+                ></i>
+                <span class="prereq-name">{{ prereq.rule }}</span>
+              </div>
+              <div class="prereq-value" v-if="prereq.score">
+                {{ prereq.score }}
+              </div>
+            </div>
+            <div v-if="prerequisites.length === 0" class="no-prereq-msg">
+              No prerequisites data
+            </div>
+          </div>
+        </template>
+      </DualPanel>
+
+      <!-- Rules Table -->
+      <DataTable v-if="filteredAndSortedRules.length > 0" table-class="guardian-table">
+        <template #toolbar>
+          <TableToolbar v-model="searchQuery" search-placeholder="Search rules...">
+            <span class="toolbar-count">{{ filteredAndSortedRules.length }} rules</span>
+            <Badge v-if="severityCounts.warning > 0" :value="severityCounts.warning + ' warnings'" variant="danger" size="xs" />
+            <template #filters>
+              <select v-model="groupFilter" class="form-select form-select-sm">
+                <option value="">All Groups</option>
+                <option v-for="g in groups" :key="g" :value="g">{{ g }}</option>
+              </select>
+              <select v-model="categoryFilter" class="form-select form-select-sm">
+                <option value="">All Categories</option>
+                <option v-for="cat in categories" :key="cat" :value="cat">{{ cat }}</option>
+              </select>
+              <select v-model="severityFilter" class="form-select form-select-sm">
+                <option value="">All Severities</option>
+                <option value="WARNING">Warnings</option>
+                <option value="INFO">Information</option>
+                <option value="OK">Passed</option>
+              </select>
+            </template>
+          </TableToolbar>
+        </template>
+        <thead>
+          <tr>
+            <th style="width: 60px">Status</th>
+            <th>Rule</th>
+            <th style="width: 140px">Group</th>
+            <th style="width: 150px">Category</th>
+            <th style="width: 120px">Score</th>
+            <th style="width: 80px">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <template v-for="rule in filteredAndSortedRules" :key="rule.id">
+            <tr
+              class="rule-row"
               :class="[`severity-${rule.severity?.toLowerCase() || 'default'}`]"
               @click="toggleRow(rule.id)"
             >
-              <div class="col-status">
+              <td class="text-center">
                 <i
                   class="bi"
                   :class="[
@@ -175,16 +122,16 @@
                     getSeverityTextClass(rule.severity)
                   ]"
                 ></i>
-              </div>
-              <div class="col-rule">{{ rule.rule }}</div>
-              <div class="col-group">
+              </td>
+              <td>{{ rule.rule }}</td>
+              <td>
                 <span class="group-badge" v-if="rule.group">{{ rule.group }}</span>
                 <span v-else class="no-score">-</span>
-              </div>
-              <div class="col-category">
+              </td>
+              <td>
                 <span class="category-badge">{{ rule.category }}</span>
-              </div>
-              <div class="col-score">
+              </td>
+              <td>
                 <div class="score-wrapper" v-if="rule.score">
                   <span class="score-text">{{ rule.score }}</span>
                   <div v-if="isPercentageScore(rule.score)" class="mini-progress">
@@ -198,8 +145,8 @@
                   </div>
                 </div>
                 <span v-else class="no-score">-</span>
-              </div>
-              <div class="col-actions">
+              </td>
+              <td class="text-end">
                 <button
                   v-if="rule.visualization"
                   class="flame-btn"
@@ -212,31 +159,33 @@
                   class="bi expand-icon"
                   :class="expandedRows.has(rule.id) ? 'bi-chevron-up' : 'bi-chevron-down'"
                 ></i>
-              </div>
-            </div>
+              </td>
+            </tr>
 
             <!-- Expandable Row Details -->
-            <transition name="expand">
-              <div v-if="expandedRows.has(rule.id)" class="row-details">
-                <div class="details-grid">
-                  <div v-if="rule.summary" class="detail-item">
-                    <span class="detail-label">Summary</span>
-                    <p class="detail-text" v-html="rule.summary"></p>
-                  </div>
-                  <div v-if="rule.explanation" class="detail-item">
-                    <span class="detail-label">Explanation</span>
-                    <p class="detail-text" v-html="rule.explanation"></p>
-                  </div>
-                  <div v-if="rule.solution" class="detail-item">
-                    <span class="detail-label">Solution</span>
-                    <p class="detail-text" v-html="rule.solution"></p>
+            <tr v-if="expandedRows.has(rule.id)" class="details-row">
+              <td colspan="6" class="p-0">
+                <div class="row-details">
+                  <div class="details-grid">
+                    <div v-if="rule.summary" class="detail-item">
+                      <span class="detail-label">Summary</span>
+                      <p class="detail-text" v-html="rule.summary"></p>
+                    </div>
+                    <div v-if="rule.explanation" class="detail-item">
+                      <span class="detail-label">Explanation</span>
+                      <p class="detail-text" v-html="rule.explanation"></p>
+                    </div>
+                    <div v-if="rule.solution" class="detail-item">
+                      <span class="detail-label">Solution</span>
+                      <p class="detail-text" v-html="rule.solution"></p>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </transition>
-          </div>
-        </div>
-      </div>
+              </td>
+            </tr>
+          </template>
+        </tbody>
+      </DataTable>
 
       <!-- No Results After Filter -->
       <div v-else-if="analysisRulesFlat.length > 0" class="empty-state">
@@ -321,6 +270,12 @@ import TimeseriesEventAxeFormatter from '@/services/timeseries/TimeseriesEventAx
 import PageHeader from '@/components/layout/PageHeader.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import GenericModal from '@/components/GenericModal.vue';
+import DualPanel from '@/components/DualPanel.vue';
+import DonutWithLegend from '@/components/DonutWithLegend.vue';
+import DataTable from '@/components/table/DataTable.vue';
+import TableToolbar from '@/components/table/TableToolbar.vue';
+import Badge from '@/components/Badge.vue';
+import type { DonutChartData } from '@/components/DonutWithLegend.vue';
 
 // Constants
 const PREREQUISITES_CATEGORY = 'Prerequisites';
@@ -440,70 +395,28 @@ const severityCounts = computed(() => ({
   na: allRulesFlat.value.filter(r => r.severity === 'NA' || r.severity === 'IGNORE').length
 }));
 
-// Computed: Chart options
-const chartOptions = computed(() => ({
-  chart: {
-    type: 'donut' as const,
-    fontFamily: 'inherit',
-    animations: {
-      enabled: false
-    }
-  },
-  labels: ['Passed', 'Warnings', 'Info', 'N/A'],
-  colors: ['#28a745', '#dc3545', '#0d6efd', '#6c757d'],
-  plotOptions: {
-    pie: {
-      donut: {
-        size: '65%',
-        labels: {
-          show: true,
-          name: {
-            show: true,
-            fontSize: '12px',
-            fontWeight: 600
-          },
-          value: {
-            show: true,
-            fontSize: '18px',
-            fontWeight: 700
-          },
-          total: {
-            show: true,
-            label: 'Passed',
-            fontSize: '11px',
-            fontWeight: 500,
-            color: '#6c757d',
-            formatter: () => `${severityCounts.value.ok}/${allRulesFlat.value.length}`
-          }
-        }
-      }
-    }
-  },
-  dataLabels: {
-    enabled: false
-  },
-  legend: {
-    show: false
-  },
-  stroke: {
-    width: 2,
-    colors: ['#fff']
-  },
-  tooltip: {
-    enabled: true,
-    y: {
-      formatter: (val: number) => `${val} rules`
-    }
-  }
-}));
+// Computed: Chart data for DonutWithLegend
+const chartData = computed<DonutChartData>(() => {
+  const items = [
+    { label: 'Passed', count: severityCounts.value.ok, color: '#28a745' },
+    { label: 'Warnings', count: severityCounts.value.warning, color: '#dc3545' },
+    { label: 'Info', count: severityCounts.value.info, color: '#0d6efd' },
+    { label: 'N/A', count: severityCounts.value.na, color: '#6c757d' }
+  ].filter(i => i.count > 0);
 
-// Computed: Chart series
-const chartSeries = computed(() => [
-  severityCounts.value.ok,
-  severityCounts.value.warning,
-  severityCounts.value.info,
-  severityCounts.value.na
-]);
+  return {
+    series: items.map(i => i.count),
+    labels: items.map(i => i.label),
+    colors: items.map(i => i.color),
+    totalLabel: 'Passed',
+    totalValue: `${severityCounts.value.ok}/${allRulesFlat.value.length}`,
+    legendItems: items.map(i => ({
+      color: i.color,
+      label: i.label,
+      value: i.count.toString()
+    }))
+  };
+});
 
 // Lifecycle
 onMounted(() => {
@@ -620,35 +533,6 @@ function scrollToTop() {
 </script>
 
 <style scoped>
-/* Summary Card */
-.summary-card {
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border);
-  border-radius: var(--bs-border-radius-lg);
-  box-shadow: var(--shadow-base);
-  overflow: hidden;
-}
-
-.summary-card-body {
-  padding: 1.25rem;
-}
-
-.section-title {
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--color-text);
-  margin-bottom: 1rem;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-}
-
-/* Chart Section */
-.chart-section {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-}
-
 .no-analysis-data {
   display: flex;
   flex-direction: column;
@@ -664,61 +548,7 @@ function scrollToTop() {
   opacity: 0.5;
 }
 
-/* Legend Section */
-.legend-section {
-  height: 100%;
-  border-left: 1px solid var(--color-border);
-  padding-left: 1.25rem;
-}
-
-.severity-legend {
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-}
-
-.legend-item {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-}
-
-.legend-item i {
-  font-size: 0.9rem;
-  flex-shrink: 0;
-}
-
-.legend-label {
-  font-size: 0.85rem;
-  font-weight: 500;
-  color: var(--color-text);
-  flex: 1;
-}
-
-.legend-value {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--color-dark);
-  background: var(--color-light);
-  padding: 0.15rem 0.5rem;
-  border-radius: 0.25rem;
-  min-width: 24px;
-  text-align: center;
-}
-
-.no-results-msg {
-  font-size: 0.8rem;
-  color: var(--color-text-light);
-  font-style: italic;
-}
-
-/* Prerequisites Section */
-.prerequisites-section {
-  height: 100%;
-  border-left: 1px solid var(--color-border);
-  padding-left: 1.25rem;
-}
-
+/* Prerequisites */
 .prerequisites-list {
   display: flex;
   flex-direction: column;
@@ -775,136 +605,36 @@ function scrollToTop() {
   font-style: italic;
 }
 
-/* Filter Bar */
-.filter-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 1rem;
-  background: var(--bs-white);
-  padding: 0.75rem 1rem;
-  border-radius: 0.5rem;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
-}
-
-.filter-group {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.filter-group .form-select {
-  width: auto;
-  min-width: 140px;
-  font-size: 0.8rem;
-}
-
-.search-group {
-  position: relative;
-  flex: 1;
-  max-width: 280px;
-}
-
-.search-group i {
-  position: absolute;
-  left: 0.75rem;
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--color-text-light);
-  font-size: 0.8rem;
-}
-
-.search-group .form-control {
-  padding-left: 2rem;
-  font-size: 0.8rem;
-}
-
-/* Rules Table */
-.rules-table-container {
-  background: var(--bs-white);
-  border-radius: 0.75rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  overflow: hidden;
-}
-
-.rules-table {
-  width: 100%;
-}
-
-/* Table Header */
-.table-header {
-  display: grid;
-  grid-template-columns: 60px 1fr 140px 150px 120px 80px;
-  gap: 0.5rem;
-  padding: 0.75rem 1rem;
-  background: linear-gradient(
-    135deg,
-    var(--color-neutral-bg),
-    var(--color-neutral-light)
-  );
-  border-bottom: 1px solid var(--color-border);
-  font-size: 0.7rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--color-text-muted);
-}
-
-/* Header columns should inherit header font styles */
-.table-header > div {
-  font-size: inherit;
-  font-weight: inherit;
-  color: inherit;
-}
-
-/* Table Row */
-.table-row {
-  display: grid;
-  grid-template-columns: 60px 1fr 140px 150px 120px 80px;
-  gap: 0.5rem;
-  padding: 0.75rem 1rem;
-  align-items: center;
+/* Rule Rows */
+.rule-row {
   cursor: pointer;
-  border-bottom: 1px solid var(--color-border);
-  transition: background-color 0.15s ease;
 }
 
-.table-row:hover {
-  background-color: var(--color-light);
-}
-
-.table-row.severity-warning {
+.rule-row.severity-warning {
   border-left: 3px solid var(--color-danger);
 }
 
-.table-row.severity-info {
-  border-left: 3px solid var(--bs-blue);
+.rule-row.severity-info {
+  border-left: 3px solid var(--color-accent-blue);
 }
 
-.table-row.severity-ok {
+.rule-row.severity-ok {
   border-left: 3px solid var(--color-success);
 }
 
-.table-row.severity-na,
-.table-row.severity-ignore {
+.rule-row.severity-na,
+.rule-row.severity-ignore {
   border-left: 3px solid var(--color-text-muted);
 }
 
-/* Column Styles */
-.col-status {
-  display: flex;
-  justify-content: center;
+/* Toolbar */
+.toolbar-count {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text);
 }
 
-.col-status i {
-  font-size: 1rem;
-}
-
-.col-group {
-  display: flex;
-  justify-content: flex-start;
-  overflow: hidden;
-}
-
+/* Badges */
 .group-badge {
   display: inline-block;
   font-size: 0.7rem;
@@ -919,12 +649,6 @@ function scrollToTop() {
   max-width: 100%;
 }
 
-.col-category {
-  display: flex;
-  justify-content: flex-start;
-  overflow: hidden;
-}
-
 .category-badge {
   display: inline-block;
   font-size: 0.7rem;
@@ -937,20 +661,6 @@ function scrollToTop() {
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 100%;
-}
-
-.col-rule {
-  font-size: 0.85rem;
-  font-weight: 500;
-  color: var(--color-dark);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.col-score {
-  display: flex;
-  justify-content: center;
 }
 
 .score-wrapper {
@@ -987,13 +697,6 @@ function scrollToTop() {
   transition: width 0.3s ease;
 }
 
-.col-actions {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 0.5rem;
-}
-
 .flame-btn {
   width: 1.6rem;
   height: 1.6rem;
@@ -1007,11 +710,11 @@ function scrollToTop() {
   background-color: var(--color-orange-bg);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   padding: 0;
-  color: var(--bs-orange);
+  color: var(--color-orange);
 }
 
 .flame-btn:hover {
-  background-color: var(--bs-orange);
+  background-color: var(--color-orange);
   color: white;
   box-shadow: 0 2px 8px rgba(253, 126, 20, 0.25);
 }
@@ -1078,99 +781,8 @@ function scrollToTop() {
   font-size: 0.9rem;
 }
 
-/* Transitions */
-.expand-enter-active,
-.expand-leave-active {
-  transition: all 0.2s ease;
-  overflow: hidden;
-}
-
-.expand-enter-from,
-.expand-leave-to {
-  opacity: 0;
-  max-height: 0;
-  padding-top: 0;
-  padding-bottom: 0;
-}
-
-.expand-enter-to,
-.expand-leave-from {
-  opacity: 1;
-  max-height: 500px;
-}
-
-/* Responsive */
-@media (max-width: 992px) {
-  .table-header,
-  .table-row {
-    grid-template-columns: 50px 1fr 110px 120px 100px 70px;
-  }
-
-  .legend-section,
-  .prerequisites-section {
-    border-left: none;
-    border-top: 1px solid var(--color-border);
-    padding-left: 0;
-    padding-top: 1rem;
-    margin-top: 1rem;
-  }
-}
-
-@media (max-width: 768px) {
-  .filter-bar {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .filter-group {
-    flex-wrap: wrap;
-  }
-
-  .search-group {
-    max-width: none;
-  }
-
-  .table-header {
-    display: none;
-  }
-
-  .table-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    padding: 0.75rem;
-  }
-
-  .col-status {
-    order: 1;
-    width: auto;
-  }
-
-  .col-rule {
-    order: 2;
-    flex: 1;
-    white-space: normal;
-  }
-
-  .col-actions {
-    order: 3;
-    width: auto;
-  }
-
-  .col-group {
-    order: 4;
-    width: auto;
-  }
-
-  .col-category {
-    order: 5;
-    width: auto;
-  }
-
-  .col-score {
-    order: 6;
-    width: auto;
-    justify-content: flex-start;
-  }
+/* Details row should not have hover effect */
+.details-row:hover {
+  background: transparent !important;
 }
 </style>

@@ -80,18 +80,12 @@
 
     <!-- Duplicates Table -->
     <div v-else>
-      <div class="filter-controls mb-3">
-        <div class="row align-items-center">
-          <div class="col-auto ms-auto">
-            <small class="text-muted"
-              >Showing {{ report.duplicates.length }} duplicate groups</small
-            >
-          </div>
-        </div>
-      </div>
-      <div class="table-card">
-        <div class="table-responsive">
-          <table class="table table-sm table-hover mb-0">
+      <DataTable>
+        <template #toolbar>
+          <TableToolbar :show-search="false">
+            <span class="toolbar-info">Showing {{ report.duplicates.length }} duplicate groups</span>
+          </TableToolbar>
+        </template>
             <thead>
               <tr>
                 <th style="width: 50px">#</th>
@@ -157,9 +151,7 @@
                 </td>
               </tr>
             </tbody>
-          </table>
-        </div>
-      </div>
+      </DataTable>
     </div>
   </div>
 </template>
@@ -174,6 +166,8 @@ import ErrorState from '@/components/ErrorState.vue';
 import StatsTable from '@/components/StatsTable.vue';
 import HeapDumpNotInitialized from '@/components/HeapDumpNotInitialized.vue';
 import SortableTableHeader from '@/components/table/SortableTableHeader.vue';
+import DataTable from '@/components/table/DataTable.vue';
+import TableToolbar from '@/components/table/TableToolbar.vue';
 import HeapDumpClient from '@/services/api/HeapDumpClient';
 import type DuplicateObjectsReport from '@/services/api/model/DuplicateObjectsReport';
 import FormattingService from '@/services/FormattingService';
@@ -355,44 +349,9 @@ onMounted(() => {
   white-space: nowrap;
 }
 
-.table-card {
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border);
-  border-radius: var(--bs-border-radius-lg);
-  box-shadow: var(--shadow-base);
-  overflow: hidden;
-}
-
-.table thead th {
-  background-color: var(--color-light);
-  font-weight: 600;
-  color: var(--color-text);
+.toolbar-info {
   font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  padding: 0.75rem;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.table td {
-  font-size: 0.8rem;
-  padding: 0.6rem 0.75rem;
-  vertical-align: middle;
-  border-bottom: 1px solid var(--color-border-row);
-}
-
-.table tbody tr:hover {
-  background-color: rgba(66, 133, 244, 0.04);
-}
-
-.table tbody tr:last-child td {
-  border-bottom: none;
-}
-
-.filter-controls {
-  background-color: var(--color-light);
-  padding: 0.75rem 1rem;
-  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
 }
 
 .font-monospace {

@@ -6,7 +6,7 @@
 .main-card {
   background: var(--color-bg-card);
   border: 1px solid var(--color-border);
-  border-radius: var(--bs-border-radius-lg);
+  border-radius: var(--radius-md);
   box-shadow: var(--shadow-base);
   overflow: hidden;
 }
@@ -19,7 +19,7 @@
 .main-card-header {
   background: var(--color-light);
   border-bottom: 1px solid var(--color-border);
-  border-radius: var(--bs-border-radius-lg) var(--bs-border-radius-lg) 0 0;
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
   padding: 16px 24px;
   display: flex;
   align-items: center;
@@ -46,7 +46,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 12px 20px;
-  background: linear-gradient(135deg, var(--color-light), var(--bs-white));
+  background: linear-gradient(135deg, var(--color-light), var(--color-white));
   border-bottom: 1px solid rgba(94, 100, 255, 0.08);
   gap: 12px;
 }
@@ -70,7 +70,7 @@
 
 .page-header-badge {
   background: linear-gradient(135deg, var(--color-primary), var(--color-primary-hover));
-  color: var(--bs-white);
+  color: var(--color-white);
   padding: 1px 8px;
   border-radius: 10px;
   font-size: 0.7rem;
@@ -85,7 +85,7 @@
 
 .page-header-btn {
   background: linear-gradient(135deg, var(--color-primary), var(--color-primary-hover));
-  color: var(--bs-white);
+  color: var(--color-white);
   border: none;
   padding: 5px 12px;
   border-radius: 6px;
@@ -138,7 +138,7 @@
 .page-search:focus-within {
   border-color: var(--color-primary);
   box-shadow: 0 0 0 2px rgba(94, 100, 255, 0.1);
-  background: var(--bs-white);
+  background: var(--color-white);
 }
 
 .page-search i {
@@ -165,7 +165,7 @@
 
 /* Danger Zone Card Variant */
 .danger-card {
-  background: linear-gradient(135deg, var(--bs-white), #fff8f8);
+  background: linear-gradient(135deg, var(--color-white), #fff8f8);
   border: 1px solid rgba(239, 68, 68, 0.12);
   border-radius: 16px;
   box-shadow:
@@ -174,7 +174,7 @@
 }
 
 .danger-card-header {
-  background: linear-gradient(135deg, #fef2f2, var(--bs-white));
+  background: linear-gradient(135deg, #fef2f2, var(--color-white));
   border-bottom: 1px solid rgba(239, 68, 68, 0.12);
   border-radius: 16px 16px 0 0;
   padding: 16px 24px;
@@ -202,12 +202,12 @@
 .search-container {
   box-shadow: var(--search-shadow);
   border: 1px solid var(--color-border);
-  border-radius: var(--bs-border-radius-sm);
+  border-radius: var(--radius-sm);
   overflow: hidden;
 }
 
 .search-container .input-group-text {
-  background-color: var(--bs-white);
+  background-color: var(--color-white);
   border: none;
   padding: 0 0.6rem;
   display: flex;
@@ -235,7 +235,7 @@
 
 .search-container .clear-btn {
   border: none;
-  background-color: var(--bs-white);
+  background-color: var(--color-white);
   padding: 0 0.6rem;
   display: flex;
   align-items: center;
@@ -268,7 +268,7 @@
    =========================================== */
 .icon-info-btn {
   border: 1px solid var(--color-border);
-  background-color: var(--bs-white);
+  background-color: var(--color-white);
   padding: 0 0.6rem;
   font-size: 0.9rem;
   color: var(--color-text-muted);
@@ -330,7 +330,7 @@
   width: var(--toggle-thumb-size);
   left: 2px;
   bottom: 2px;
-  background: var(--bs-white);
+  background: var(--color-white);
   border-radius: 50%;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
   transition: transform var(--transition-base);
@@ -516,7 +516,7 @@
 }
 
 .text-blue {
-  color: var(--bs-blue);
+  color: var(--color-accent-blue);
 }
 
 .bg-purple-soft {
@@ -524,7 +524,7 @@
 }
 
 .text-purple {
-  color: var(--bs-purple);
+  color: var(--color-purple);
 }
 
 .bg-orange-soft {
@@ -564,7 +564,7 @@
 .performance-counters-not-available-state .alert {
   border: 1px solid var(--color-warning-border);
   border-left: 4px solid var(--color-amber);
-  background: linear-gradient(135deg, var(--color-amber-bg), var(--bs-white));
+  background: linear-gradient(135deg, var(--color-amber-bg), var(--color-white));
 }
 
 .feature-disabled-state .alert-heading,
@@ -618,7 +618,7 @@
 .feature-disabled-state a,
 .container-not-available-state a,
 .performance-counters-not-available-state a {
-  color: var(--bs-blue);
+  color: var(--color-accent-blue);
 }
 
 .feature-disabled-state a:hover,

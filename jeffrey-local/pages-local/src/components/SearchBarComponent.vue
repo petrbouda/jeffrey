@@ -234,7 +234,7 @@ function resetTimeseriesZoom() {
 .matched-badge:hover {
   background-color: var(--color-magenta-dark);
   border-color: var(--color-magenta-dark);
-  color: var(--bs-white);
+  color: var(--color-white);
 }
 
 /* Remove blue border and shadow from search input on focus */
@@ -251,7 +251,7 @@ function resetTimeseriesZoom() {
   width: 28px;
   height: 28px;
   border: 1px solid var(--color-border);
-  background-color: var(--bs-white);
+  background-color: var(--color-white);
   color: var(--color-text-muted);
   border-radius: 4px;
   cursor: pointer;

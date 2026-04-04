@@ -103,18 +103,12 @@
       <!-- By Type Tab -->
       <template #by-type>
         <div v-if="report && report.byType.length > 0">
-          <div class="filter-controls mb-3">
-            <div class="row align-items-center">
-              <div class="col-auto ms-auto">
-                <small class="text-muted"
-                  >Showing {{ report.byType.length }} collection types</small
-                >
-              </div>
-            </div>
-          </div>
-          <div class="table-card">
-            <div class="table-responsive">
-              <table class="table table-sm table-hover mb-0">
+          <DataTable>
+            <template #toolbar>
+              <TableToolbar :show-search="false">
+                <span class="toolbar-info">Showing {{ report.byType.length }} collection types</span>
+              </TableToolbar>
+            </template>
                 <thead>
                   <tr>
                     <th style="width: 50px">#</th>
@@ -200,9 +194,7 @@
                     </td>
                   </tr>
                 </tbody>
-              </table>
-            </div>
-          </div>
+          </DataTable>
         </div>
         <div v-else class="text-center text-muted py-5">
           <i class="bi bi-collection fs-1 mb-3 d-block"></i>
@@ -213,18 +205,12 @@
       <!-- Waste by Class Tab -->
       <template #waste-by-class>
         <div v-if="report && report.wasteByClass && report.wasteByClass.length > 0">
-          <div class="filter-controls mb-3">
-            <div class="row align-items-center">
-              <div class="col-auto ms-auto">
-                <small class="text-muted"
-                  >Showing {{ report.wasteByClass.length }} owner classes</small
-                >
-              </div>
-            </div>
-          </div>
-          <div class="table-card">
-            <div class="table-responsive">
-              <table class="table table-sm table-hover mb-0">
+          <DataTable>
+            <template #toolbar>
+              <TableToolbar :show-search="false">
+                <span class="toolbar-info">Showing {{ report.wasteByClass.length }} owner classes</span>
+              </TableToolbar>
+            </template>
                 <thead>
                   <tr>
                     <th style="width: 50px">#</th>
@@ -278,9 +264,7 @@
                     </td>
                   </tr>
                 </tbody>
-              </table>
-            </div>
-          </div>
+          </DataTable>
         </div>
         <div v-else class="text-center text-muted py-5">
           <i class="bi bi-building fs-1 mb-3 d-block"></i>
@@ -514,6 +498,8 @@ import StatsTable from '@/components/StatsTable.vue';
 import HeapDumpNotInitialized from '@/components/HeapDumpNotInitialized.vue';
 import ChartSectionWithTabs from '@/components/ChartSectionWithTabs.vue';
 import SortableTableHeader from '@/components/table/SortableTableHeader.vue';
+import DataTable from '@/components/table/DataTable.vue';
+import TableToolbar from '@/components/table/TableToolbar.vue';
 import DualPanel from '@/components/DualPanel.vue';
 import DonutWithLegend from '@/components/DonutWithLegend.vue';
 import type { DonutChartData } from '@/components/DonutWithLegend.vue';
@@ -815,7 +801,7 @@ onMounted(() => {
 }
 
 .field-tag {
-  color: var(--bs-purple);
+  color: var(--color-purple);
   font-style: italic;
 }
 
@@ -835,44 +821,9 @@ onMounted(() => {
   text-overflow: ellipsis;
 }
 
-.table-card {
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border);
-  border-radius: var(--bs-border-radius-lg);
-  box-shadow: var(--shadow-base);
-  overflow: hidden;
-}
-
-.table thead th {
-  background-color: var(--color-light);
-  font-weight: 600;
-  color: var(--color-text);
+.toolbar-info {
   font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  padding: 0.75rem;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.table td {
-  font-size: 0.8rem;
-  padding: 0.6rem 0.75rem;
-  vertical-align: middle;
-  border-bottom: 1px solid var(--color-border-row);
-}
-
-.table tbody tr:hover {
-  background-color: rgba(66, 133, 244, 0.04);
-}
-
-.table tbody tr:last-child td {
-  border-bottom: none;
-}
-
-.filter-controls {
-  background-color: var(--color-light);
-  padding: 0.75rem 1rem;
-  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
 }
 
 .progress {
@@ -940,7 +891,7 @@ onMounted(() => {
   padding: 0.15rem 0.4rem;
   border-radius: 3px;
   font-size: 0.85em;
-  color: var(--bs-pink);
+  color: var(--color-code-text);
 }
 
 .section-title {
@@ -1017,7 +968,7 @@ onMounted(() => {
   padding: 0.1rem 0.35rem;
   border-radius: 3px;
   font-size: 0.85em;
-  color: var(--bs-pink);
+  color: var(--color-code-text);
 }
 
 .flag-cards {
@@ -1028,7 +979,7 @@ onMounted(() => {
 }
 
 .flag-card {
-  background: linear-gradient(135deg, var(--color-light) 0%, var(--bs-white) 100%);
+  background: linear-gradient(135deg, var(--color-light) 0%, var(--color-white) 100%);
   border: 1px solid var(--color-border);
   border-radius: 8px;
   overflow: hidden;
@@ -1045,7 +996,7 @@ onMounted(() => {
 
 .flag-code {
   font-size: 0.85rem;
-  color: var(--bs-blue);
+  color: var(--color-accent-blue);
   background: white;
   padding: 0.35rem 0.65rem;
   border-radius: 4px;
@@ -1075,7 +1026,7 @@ onMounted(() => {
   padding: 0.1rem 0.35rem;
   border-radius: 3px;
   font-size: 0.9em;
-  color: var(--bs-pink);
+  color: var(--color-code-text);
 }
 
 .benefits-list {
@@ -1104,7 +1055,7 @@ onMounted(() => {
   padding: 0.1rem 0.35rem;
   border-radius: 3px;
   font-size: 0.85em;
-  color: var(--bs-pink);
+  color: var(--color-code-text);
 }
 
 .about-note {

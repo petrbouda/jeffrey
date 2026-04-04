@@ -103,7 +103,7 @@ const isOutsideClicked = (event: Event) => {
   max-width: 280px;
   flex: 0 0 280px;
   z-index: 1030;
-  background-color: var(--bs-white);
+  background-color: var(--color-white);
   border-right: 1px solid var(--color-border);
   box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
 }

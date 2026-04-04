@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div :class="{ 'layout-side': legendPosition === 'right' }">
     <div ref="chartRef" :style="{ height: chartHeight + 'px' }"></div>
     <table v-if="data.legendItems.length > 0" class="legend-table">
       <tbody>
@@ -38,11 +38,13 @@ const props = withDefaults(
     tooltipFormatter?: (val: number) => string;
     valueFormatter?: (val: string) => string;
     chartHeight?: number;
+    legendPosition?: 'bottom' | 'right';
   }>(),
   {
     tooltipFormatter: (val: number) => val + ' items',
     valueFormatter: (val: string) => val,
-    chartHeight: 300
+    chartHeight: 300,
+    legendPosition: 'bottom'
   }
 );
 
@@ -112,6 +114,16 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+.layout-side {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.layout-side .legend-table {
+  margin-top: 0;
+}
+
 .legend-table {
   width: 100%;
   border-collapse: collapse;

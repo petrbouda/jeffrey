@@ -72,7 +72,7 @@ const profileId = route.params.profileId as string;
 
 .init-icon i {
   font-size: 1.5rem;
-  color: var(--bs-purple);
+  color: var(--color-purple);
 }
 
 .init-required-card h5 {

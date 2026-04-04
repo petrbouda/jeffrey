@@ -18,8 +18,7 @@
 
 <template>
   <EmptyState v-if="jobs.length === 0" icon="bi-calendar-check" title="No jobs configured" />
-  <div v-else class="table-responsive">
-    <table class="table table-sm table-hover mb-0">
+  <DataTable v-else>
       <thead>
         <tr>
           <th scope="col" style="width: 30%">Job Type</th>
@@ -104,13 +103,13 @@
           </td>
         </tr>
       </tbody>
-    </table>
-  </div>
+  </DataTable>
 </template>
 
 <script setup lang="ts">
 import Badge from '@/components/Badge.vue';
 import EmptyState from '@/components/EmptyState.vue';
+import DataTable from '@/components/table/DataTable.vue';
 import JobInfo from '@/services/api/model/JobInfo';
 import '@/styles/shared-components.css';
 

@@ -79,7 +79,7 @@ const formattedContent = computed(() => {
   align-items: center;
   padding: 0.625rem 1rem;
   background-color: var(--color-light);
-  border-left: 2px solid var(--bs-blue);
+  border-left: 2px solid var(--color-accent-blue);
 }
 
 .chat-message.assistant {
@@ -97,7 +97,7 @@ const formattedContent = computed(() => {
 }
 
 .chat-message.assistant {
-  background-color: var(--bs-white);
+  background-color: var(--color-white);
 }
 
 .message-avatar {
@@ -121,7 +121,7 @@ const formattedContent = computed(() => {
 
 .chat-message.assistant .message-avatar {
   background-color: var(--color-sky-bg);
-  color: var(--bs-blue);
+  color: var(--color-accent-blue);
 }
 
 .message-content {
@@ -181,7 +181,7 @@ const formattedContent = computed(() => {
   padding: 0.1rem 0.3rem;
   border-radius: 3px;
   font-size: 0.75rem;
-  color: var(--bs-blue);
+  color: var(--color-accent-blue);
   font-family:
     ui-monospace,
     SFMono-Regular,
@@ -256,7 +256,7 @@ const formattedContent = computed(() => {
   margin: 0.5rem 0;
   padding: 0.25rem 0.75rem;
   border-left: 3px solid var(--color-slate-light);
-  color: var(--bs-gray-600);
+  color: var(--color-grey-muted);
 }
 
 /* Horizontal rules */
@@ -309,7 +309,7 @@ const formattedContent = computed(() => {
   padding: 0.2rem 0.5rem;
   background-color: var(--color-sky-bg);
   border-radius: 4px;
-  color: var(--bs-blue);
+  color: var(--color-accent-blue);
   font-weight: 500;
 }
 
@@ -341,14 +341,14 @@ const formattedContent = computed(() => {
   background-color: var(--color-sky-bg);
   border: 1px solid var(--color-sky-border);
   border-radius: 20px;
-  color: var(--bs-blue);
+  color: var(--color-accent-blue);
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .suggestion-chip:hover {
-  background-color: var(--bs-blue);
-  border-color: var(--bs-blue);
+  background-color: var(--color-accent-blue);
+  border-color: var(--color-accent-blue);
   color: white;
 }
 </style>

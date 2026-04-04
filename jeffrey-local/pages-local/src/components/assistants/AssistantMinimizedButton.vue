@@ -207,30 +207,30 @@ const progressRingStyle = computed(() => {
   padding: 3px 8px;
   border-radius: 10px;
   box-shadow: 0 2px 6px rgba(124, 58, 237, 0.3);
-  color: var(--bs-white);
-  border: 2px solid var(--bs-white);
+  color: var(--color-white);
+  border: 2px solid var(--color-white);
 }
 
 .badge-primary,
 .badge-purple,
 .badge-default {
   background: var(--color-violet-dark);
-  color: var(--bs-white);
+  color: var(--color-white);
 }
 
 .badge-success {
   background: var(--color-success-hover);
-  color: var(--bs-white);
+  color: var(--color-white);
 }
 
 .badge-danger {
   background: var(--color-danger-hover);
-  color: var(--bs-white);
+  color: var(--color-white);
 }
 
 .badge-warning {
   background: var(--color-amber);
-  color: var(--bs-white);
+  color: var(--color-white);
 }
 
 /* Animations */

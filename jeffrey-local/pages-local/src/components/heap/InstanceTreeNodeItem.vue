@@ -282,7 +282,7 @@ watch(
 
 .node-row.root-node {
   background-color: rgba(111, 66, 193, 0.05);
-  border-left-color: var(--bs-purple);
+  border-left-color: var(--color-purple);
 }
 
 .expand-btn {
@@ -332,7 +332,7 @@ watch(
 
 .relationship-badge.root {
   background-color: var(--color-violet-lightest-bg);
-  color: var(--bs-purple);
+  color: var(--color-purple);
 }
 
 .field-name {
@@ -341,7 +341,7 @@ watch(
 }
 
 .class-name {
-  color: var(--bs-purple);
+  color: var(--color-purple);
   font-size: 0.75rem;
   background: transparent;
   font-weight: 500;

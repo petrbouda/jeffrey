@@ -477,7 +477,7 @@ const getStatusClass = (download: DownloadProgress): string => {
 }
 
 .file-size-active {
-  color: var(--bs-blue);
+  color: var(--color-accent-blue);
   font-weight: 500;
   font-size: 0.75rem;
   margin-left: 0.5rem;

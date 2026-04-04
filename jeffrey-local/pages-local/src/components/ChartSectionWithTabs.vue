@@ -98,7 +98,7 @@ const setActiveTab = (index: number) => {
 .chart-card {
   background: var(--color-bg-card);
   border: 1px solid var(--color-border);
-  border-radius: var(--bs-border-radius-lg);
+  border-radius: var(--radius-md);
   box-shadow: var(--shadow-base);
   overflow: hidden;
 }
@@ -125,7 +125,7 @@ const setActiveTab = (index: number) => {
 
 .dashboard-tabs {
   background-color: var(--color-bg-card);
-  border-radius: 0 0 var(--bs-border-radius-lg) var(--bs-border-radius-lg);
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
 }
 
 .nav-tabs {

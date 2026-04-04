@@ -364,7 +364,7 @@ onMounted(async () => {
   display: flex;
   gap: 0.75rem;
   padding: 1rem;
-  background-color: var(--bs-white);
+  background-color: var(--color-white);
 }
 
 .loading-message .message-avatar {
@@ -468,7 +468,7 @@ onMounted(async () => {
   border: none;
   border-radius: 8px;
   background-color: var(--color-violet-dark);
-  color: var(--bs-white);
+  color: var(--color-white);
   cursor: pointer;
   transition: all 0.2s ease;
   display: flex;

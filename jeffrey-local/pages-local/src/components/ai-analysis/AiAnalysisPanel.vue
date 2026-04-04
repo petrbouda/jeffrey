@@ -244,7 +244,7 @@ defineExpose({ prefillInput });
 .ai-analysis-container {
   display: flex;
   flex-direction: column;
-  background-color: var(--bs-white);
+  background-color: var(--color-white);
   border-radius: 8px;
   border: 1px solid var(--color-slate-lighter);
 }
@@ -276,12 +276,12 @@ defineExpose({ prefillInput });
   padding: 0.25rem 0.5rem;
   border-radius: 4px;
   background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-violet) 100%);
-  color: var(--bs-white) !important;
+  color: var(--color-white) !important;
 }
 
 .provider-badge i {
   font-size: 0.65rem;
-  color: var(--bs-white) !important;
+  color: var(--color-white) !important;
 }
 
 .model-badge {
@@ -372,7 +372,7 @@ defineExpose({ prefillInput });
 .prompt-section-label {
   font-size: 0.8rem;
   font-weight: 500;
-  color: var(--bs-blue);
+  color: var(--color-accent-blue);
   display: flex;
   align-items: center;
   gap: 0.3rem;
@@ -397,14 +397,14 @@ defineExpose({ prefillInput });
   background-color: var(--color-sky-bg);
   border: 1px solid var(--color-sky-border);
   border-radius: 20px;
-  color: var(--bs-blue);
+  color: var(--color-accent-blue);
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .prompt-chip:hover {
-  background-color: var(--bs-blue);
-  border-color: var(--bs-blue);
+  background-color: var(--color-accent-blue);
+  border-color: var(--color-accent-blue);
   color: white;
 }
 
@@ -448,7 +448,7 @@ defineExpose({ prefillInput });
   height: 32px;
   border-radius: 50%;
   background-color: var(--color-sky-bg);
-  color: var(--bs-blue);
+  color: var(--color-accent-blue);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -463,7 +463,7 @@ defineExpose({ prefillInput });
 .typing-indicator span {
   width: 8px;
   height: 8px;
-  background-color: var(--bs-blue);
+  background-color: var(--color-accent-blue);
   border-radius: 50%;
   animation: typing 1.4s infinite ease-in-out both;
 }
@@ -566,7 +566,7 @@ defineExpose({ prefillInput });
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  background-color: var(--bs-white);
+  background-color: var(--color-white);
   border: 1px solid var(--color-slate-light);
   border-radius: 6px;
   padding: 0.375rem;
@@ -574,7 +574,7 @@ defineExpose({ prefillInput });
 }
 
 .input-wrapper:focus-within {
-  border-color: var(--bs-blue);
+  border-color: var(--color-accent-blue);
   box-shadow: 0 0 0 3px rgba(9, 105, 218, 0.1);
 }
 
@@ -605,7 +605,7 @@ defineExpose({ prefillInput });
   width: 28px;
   height: 28px;
   border-radius: 4px;
-  background-color: var(--bs-blue);
+  background-color: var(--color-accent-blue);
   border: none;
   color: white;
   cursor: pointer;
@@ -617,7 +617,7 @@ defineExpose({ prefillInput });
 }
 
 .send-button:hover:not(:disabled) {
-  background-color: var(--bs-link-hover-color);
+  background-color: var(--color-accent-blue-hover);
 }
 
 .send-button:disabled {

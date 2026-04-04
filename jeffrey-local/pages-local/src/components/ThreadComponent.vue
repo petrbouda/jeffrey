@@ -867,7 +867,7 @@ function createContextMenuItems() {
 
 /* Info cards */
 .info-card {
-  background-color: var(--bs-white);
+  background-color: var(--color-white);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
   border: 1px solid var(--color-border);
   overflow: hidden;

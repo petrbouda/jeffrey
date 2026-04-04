@@ -185,15 +185,6 @@ defineEmits(['update:show']);
   margin-bottom: 0;
 }
 
-.phases-table-container .table thead th {
-  background-color: var(--color-border);
-  font-weight: 600;
-  color: var(--color-text);
-  font-size: 0.8rem;
-  padding: 0.75rem 0.5rem;
-  border-bottom: 1px solid var(--color-border);
-}
-
 .phases-table-container .table td {
   font-size: 0.8rem;
   padding: 0.5rem;

@@ -359,7 +359,7 @@ function renderDifferenceHeatmap(primaryData: SubSecondData, secondaryData: SubS
 <style scoped lang="scss">
 /* Bootstrap preloader styles */
 #preloaderComponent {
-  background-color: var(--bs-white);
+  background-color: var(--color-white);
   min-height: 200px;
   transition: all 0.3s ease;
 }
@@ -381,7 +381,7 @@ function renderDifferenceHeatmap(primaryData: SubSecondData, secondaryData: SubS
   align-items: center;
   gap: 20px;
   padding: 12px 0;
-  background-color: var(--bs-white);
+  background-color: var(--color-white);
   position: sticky;
   left: 0;
 }

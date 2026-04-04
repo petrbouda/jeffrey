@@ -167,7 +167,7 @@ const framePackagePart = (frame: string): string => {
   border-radius: 10px;
   padding: 1.25rem;
   margin-bottom: 1.25rem;
-  background: var(--bs-white);
+  background: var(--color-white);
 }
 
 .path-header {
@@ -288,7 +288,7 @@ const framePackagePart = (frame: string): string => {
 .connector-field {
   font-size: 0.75rem;
   font-family: monospace;
-  color: var(--bs-purple);
+  color: var(--color-purple);
   background: var(--color-violet-lighter-bg);
   padding: 0.1rem 0.5rem;
   border-radius: 3px;

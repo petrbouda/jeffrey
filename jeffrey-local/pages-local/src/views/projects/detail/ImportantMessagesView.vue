@@ -25,6 +25,7 @@ import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import EmptyState from '@/components/EmptyState.vue';
 import MessageCard from '@/components/MessageCard.vue';
+import TableToolbar from '@/components/table/TableToolbar.vue';
 import AxisFormatType from '@/services/timeseries/AxisFormatType';
 import type { ImportantMessage, Severity } from '@/services/api/model/ImportantMessage';
 import ProjectMessagesClient from '@/services/api/ProjectMessagesClient';
@@ -282,84 +283,64 @@ const getMessageKey = (msg: ImportantMessage, index: number): string => {
       </div>
 
       <!-- Messages List Card -->
-      <div class="card mb-4">
-        <div class="card-header d-flex justify-content-between align-items-center">
-          <div class="d-flex align-items-center gap-2">
-            <select v-model="selectedSeverity" class="form-select form-select-sm filter-select">
+      <div class="messages-card">
+        <TableToolbar v-model="searchQuery" search-placeholder="Search messages...">
+          <Badge
+            :value="
+              'Showing ' +
+              displayedMessages.length +
+              ' of ' +
+              filteredMessages.length +
+              ' messages'
+            "
+            variant="cyan"
+            size="xs"
+            icon="bi bi-info-circle"
+            :uppercase="false"
+          />
+          <template #filters>
+            <select v-model="selectedSeverity" class="form-select form-select-sm">
               <option value="">All Severities</option>
               <option value="CRITICAL">Critical</option>
               <option value="HIGH">High</option>
               <option value="MEDIUM">Medium</option>
               <option value="LOW">Low</option>
             </select>
-            <select v-model="selectedType" class="form-select form-select-sm filter-select">
+            <select v-model="selectedType" class="form-select form-select-sm">
               <option value="">All Types</option>
               <option v-for="type in messageTypes" :key="type" :value="type">
                 {{ type.replace(/_/g, ' ') }}
               </option>
             </select>
-            <div class="input-group search-container">
-              <span class="input-group-text"><i class="bi bi-search search-icon"></i></span>
-              <input
-                v-model="searchQuery"
-                type="text"
-                class="form-control search-input"
-                placeholder="Search messages..."
-              />
-              <button
-                v-if="searchQuery"
-                class="btn btn-outline-secondary clear-btn"
-                type="button"
-                @click="searchQuery = ''"
-              >
-                <i class="bi bi-x-lg"></i>
-              </button>
-            </div>
-          </div>
-          <div class="d-flex align-items-center">
-            <Badge
-              :value="
-                'Showing ' +
-                displayedMessages.length +
-                ' of ' +
-                filteredMessages.length +
-                ' messages'
-              "
-              variant="cyan"
-              size="xs"
-              icon="bi bi-info-circle"
-              :uppercase="false"
-            />
-          </div>
-        </div>
-        <div class="card-body p-0">
-          <!-- Messages List -->
-          <div v-if="filteredMessages.length > 0" class="message-list">
-            <MessageCard
-              v-for="(msg, index) in displayedMessages"
-              :key="getMessageKey(msg, index)"
-              :message="msg"
-            />
-          </div>
+          </template>
+        </TableToolbar>
 
-          <!-- Empty State -->
-          <EmptyState
-            v-else
-            icon="bi-chat-square-text"
-            title="No Messages"
-            description="No messages match your current filters."
+        <!-- Messages List -->
+        <div v-if="filteredMessages.length > 0" class="message-list">
+          <MessageCard
+            v-for="(msg, index) in displayedMessages"
+            :key="getMessageKey(msg, index)"
+            :message="msg"
           />
+        </div>
 
-          <!-- Load More Footer -->
-          <div v-if="filteredMessages.length > 0" class="load-more-footer">
-            <button v-if="hasMore" class="btn btn-sm btn-outline-secondary" @click="loadMore">
-              Load More
-            </button>
-            <span class="load-more-count"
-              >Showing {{ displayedMessages.length }} of
-              {{ filteredMessages.length }} messages</span
-            >
-          </div>
+        <!-- Empty State -->
+        <EmptyState
+          v-else
+          icon="bi-chat-square-text"
+          title="No Messages"
+          description="No messages match your current filters."
+        />
+
+        <!-- Load More Footer -->
+        <div v-if="filteredMessages.length > 0" class="load-more-footer">
+          <button v-if="hasMore" class="btn btn-sm btn-outline-secondary" @click="loadMore">
+            Load More
+          </button>
+          <span class="load-more-count"
+            >Showing {{ displayedMessages.length }} of
+            {{ filteredMessages.length }} messages</span
+          >
         </div>
       </div>
     </template>
@@ -431,10 +412,13 @@ const getMessageKey = (msg: ImportantMessage, index: number): string => {
   outline: none;
 }
 
-/* Filters */
-.filter-select {
-  width: auto;
-  min-width: 140px;
+/* Messages Card */
+.messages-card {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-base);
+  overflow: hidden;
 }
 
 /* Message List */
@@ -464,12 +448,6 @@ const getMessageKey = (msg: ImportantMessage, index: number): string => {
 @media (max-width: 768px) {
   .filter-bar {
     flex-wrap: wrap;
-  }
-
-  .filter-select,
-  .search-container {
-    width: 100%;
-    max-width: none;
   }
 }
 </style>

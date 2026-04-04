@@ -80,64 +80,56 @@
 
     <!-- Suspect cards -->
     <div v-else class="suspects-list">
-      <div v-for="suspect in report.suspects" :key="suspect.rank" class="suspect-card">
-        <div class="suspect-header">
-          <div class="suspect-rank" :class="getSeverityClass(suspect)">#{{ suspect.rank }}</div>
-          <div class="suspect-title">
-            <h6 class="mb-0">{{ simpleClassName(suspect.className) }}</h6>
-            <span class="text-muted small">{{ suspect.className }}</span>
+      <div v-for="suspect in report.suspects" :key="suspect.rank" class="va-card">
+        <div class="va-top-bar" :class="getSeverityClass(suspect)"></div>
+        <div class="va-content">
+          <div
+            class="va-severity-ring"
+            :class="getSeverityClass(suspect)"
+            :style="ringGradientStyle(suspect)"
+          >
+            <div class="va-ring-inner">#{{ suspect.rank }}</div>
           </div>
-          <div class="suspect-percent">
-            <span class="percent-value">{{ suspect.heapPercentage.toFixed(1) }}%</span>
-            <span class="percent-label">of heap</span>
+          <div class="va-info">
+            <div class="va-classname">{{ simpleClassName(suspect.className) }}</div>
+            <div class="va-fqn">{{ suspect.className }}</div>
+            <div class="va-stats">
+              <div class="va-stat">
+                <span class="va-stat-label">Retained Size</span>
+                <span class="va-stat-value font-monospace">{{
+                  FormattingService.formatBytes(suspect.retainedSize)
+                }}</span>
+              </div>
+              <div class="va-stat">
+                <span class="va-stat-label">Instances</span>
+                <span class="va-stat-value font-monospace">{{
+                  FormattingService.formatNumber(suspect.instanceCount)
+                }}</span>
+              </div>
+              <div class="va-stat">
+                <span class="va-stat-label">Accumulation</span>
+                <span class="va-stat-value">{{ suspect.accumulationPoint }}</span>
+              </div>
+            </div>
+          </div>
+          <div class="va-percent">
+            <span class="va-percent-value" :class="getSeverityClass(suspect)">{{
+              suspect.heapPercentage.toFixed(1)
+            }}%</span>
+            <span class="va-percent-label">of heap</span>
           </div>
         </div>
-
-        <div class="suspect-body">
-          <div class="suspect-stats">
-            <div class="stat-item">
-              <span class="stat-label">Retained Size</span>
-              <span class="stat-value font-monospace">{{
-                FormattingService.formatBytes(suspect.retainedSize)
-              }}</span>
-            </div>
-            <div class="stat-item">
-              <span class="stat-label">Instances</span>
-              <span class="stat-value font-monospace">{{
-                FormattingService.formatNumber(suspect.instanceCount)
-              }}</span>
-            </div>
-            <div class="stat-item">
-              <span class="stat-label">Accumulation</span>
-              <span class="stat-value">{{ suspect.accumulationPoint }}</span>
-            </div>
-          </div>
-
-          <div class="suspect-reason">
-            <i class="bi bi-lightbulb me-2 text-warning"></i>
-            {{ suspect.reason }}
-          </div>
-
-          <!-- Heap percentage bar -->
-          <div class="suspect-bar">
-            <div class="progress" style="height: 8px">
-              <div
-                class="progress-bar"
-                :class="getBarClass(suspect)"
-                :style="{ width: Math.min(suspect.heapPercentage, 100) + '%' }"
-              ></div>
-            </div>
-          </div>
-
-          <!-- Actions -->
-          <div class="suspect-actions" v-if="suspect.objectId">
-            <InstanceActionButtons
-              :object-id="suspect.objectId"
-              @show-referrers="openTreeModal($event, 'REFERRERS')"
-              @show-reachables="openTreeModal($event, 'REACHABLES')"
-              @show-g-c-root-path="openGCRootPath"
-            />
-          </div>
+        <div class="va-footer">
+          <i class="bi bi-lightbulb-fill"></i>
+          {{ suspect.reason }}
+        </div>
+        <div class="va-actions" v-if="suspect.objectId">
+          <InstanceActionButtons
+            :object-id="suspect.objectId"
+            @show-referrers="openTreeModal($event, 'REFERRERS')"
+            @show-reachables="openTreeModal($event, 'REACHABLES')"
+            @show-g-c-root-path="openGCRootPath"
+          />
         </div>
       </div>
     </div>
@@ -209,15 +201,28 @@ const simpleClassName = (name: string): string => {
 };
 
 const getSeverityClass = (suspect: LeakSuspect): string => {
-  if (suspect.heapPercentage >= 30) return 'severity-critical';
-  if (suspect.heapPercentage >= 15) return 'severity-warning';
-  return 'severity-info';
+  if (suspect.heapPercentage >= 30) return 'critical';
+  if (suspect.heapPercentage >= 15) return 'warning';
+  return 'info';
 };
 
-const getBarClass = (suspect: LeakSuspect): string => {
-  if (suspect.heapPercentage >= 30) return 'bg-danger';
-  if (suspect.heapPercentage >= 15) return 'bg-warning';
-  return 'bg-info';
+const ringGradientStyle = (suspect: LeakSuspect): Record<string, string> => {
+  const pct = Math.min(suspect.heapPercentage, 100);
+  const colorVar =
+    suspect.heapPercentage >= 30
+      ? 'var(--color-danger)'
+      : suspect.heapPercentage >= 15
+        ? 'var(--color-warning)'
+        : 'var(--color-info)';
+  const bgVar =
+    suspect.heapPercentage >= 30
+      ? 'rgba(230, 55, 87, 0.12)'
+      : suspect.heapPercentage >= 15
+        ? 'rgba(245, 128, 62, 0.12)'
+        : 'rgba(57, 175, 209, 0.12)';
+  return {
+    background: `conic-gradient(${colorVar} 0% ${pct}%, ${bgVar} ${pct}% 100%)`
+  };
 };
 
 const openTreeModal = (objectId: number, mode: 'REFERRERS' | 'REACHABLES') => {
@@ -293,141 +298,171 @@ onMounted(() => {
   gap: 1rem;
 }
 
-.suspect-card {
-  border: 1px solid var(--color-border);
-  border-radius: var(--bs-border-radius-lg);
-  box-shadow: var(--shadow-base);
+/* Glass Morphism Card */
+.va-card {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 16px;
   overflow: hidden;
-  background: var(--color-bg-card);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.06),
+    0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: all 0.25s ease;
 }
 
-.suspect-header {
+.va-card:hover {
+  box-shadow:
+    0 12px 40px rgba(0, 0, 0, 0.1),
+    0 2px 6px rgba(0, 0, 0, 0.06);
+  transform: translateY(-2px);
+}
+
+/* Top bar */
+.va-top-bar {
+  height: 4px;
+  background: var(--color-danger);
+}
+
+.va-top-bar.warning {
+  background: var(--color-warning);
+}
+
+.va-top-bar.info {
+  background: var(--color-info);
+}
+
+/* Content grid: ring | info | percent */
+.va-content {
+  padding: 1.25rem 1.5rem;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 1.25rem;
+  align-items: start;
+}
+
+/* Severity ring with conic-gradient */
+.va-severity-ring {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
-  gap: 1rem;
-  padding: 1rem 1.25rem;
-  background: var(--color-light);
-  border-bottom: 1px solid var(--color-border);
+  justify-content: center;
+  flex-shrink: 0;
 }
 
-.suspect-rank {
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
+.va-ring-inner {
+  background: var(--color-white);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 700;
   font-size: 0.85rem;
-  flex-shrink: 0;
+  color: var(--color-dark);
 }
 
-.severity-critical {
-  background: var(--color-danger-bg-lighter);
-  color: var(--color-danger-hover);
-}
-
-.severity-warning {
-  background: var(--color-amber-light);
-  color: var(--color-amber-highlight);
-}
-
-.severity-info {
-  background: var(--color-blue-bg);
-  color: var(--bs-blue);
-}
-
-.suspect-title {
-  flex: 1;
+/* Info section */
+.va-info {
   min-width: 0;
 }
 
-.suspect-title h6 {
-  font-size: 0.95rem;
+.va-classname {
+  font-size: 1rem;
   font-weight: 600;
-}
-
-.suspect-title span {
-  font-size: 0.75rem;
-  word-break: break-all;
-}
-
-.suspect-percent {
-  text-align: right;
-  flex-shrink: 0;
-}
-
-.percent-value {
-  display: block;
-  font-size: 1.25rem;
-  font-weight: 700;
   color: var(--color-dark);
-  font-family: monospace;
+  margin-bottom: 0.15rem;
 }
 
-.percent-label {
-  font-size: 0.7rem;
+.va-fqn {
+  font-size: 0.72rem;
   color: var(--color-text-muted);
-  text-transform: uppercase;
-}
-
-.suspect-body {
-  padding: 1rem 1.25rem;
-}
-
-.suspect-stats {
-  display: flex;
-  gap: 2rem;
+  word-break: break-all;
   margin-bottom: 0.75rem;
+}
+
+.va-stats {
+  display: flex;
+  gap: 1.5rem;
   flex-wrap: wrap;
 }
 
-.stat-item {
+.va-stat {
   display: flex;
   flex-direction: column;
-  gap: 0.15rem;
+  gap: 0.1rem;
 }
 
-.stat-label {
-  font-size: 0.7rem;
+.va-stat-label {
+  font-size: 0.65rem;
   text-transform: uppercase;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.5px;
   color: var(--color-text-muted);
 }
 
-.stat-value {
+.va-stat-value {
   font-size: 0.85rem;
+  font-weight: 500;
   color: var(--color-dark);
 }
 
-.suspect-reason {
-  font-size: 0.85rem;
-  color: var(--color-text);
-  padding: 0.75rem;
+/* Percentage display */
+.va-percent {
+  text-align: center;
+  min-width: 70px;
+}
+
+.va-percent-value {
+  display: block;
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1;
+  font-family: monospace;
+}
+
+.va-percent-value.critical {
+  color: var(--color-danger-hover);
+}
+
+.va-percent-value.warning {
+  color: var(--color-warning);
+}
+
+.va-percent-value.info {
+  color: var(--color-info);
+}
+
+.va-percent-label {
+  font-size: 0.65rem;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+/* Reason footer */
+.va-footer {
+  padding: 0.75rem 1.5rem;
   background: var(--color-amber-bg);
-  border: 1px solid var(--color-amber-border);
-  border-radius: 6px;
-  margin-bottom: 0.75rem;
-}
-
-.suspect-bar {
-  margin-bottom: 0.75rem;
-}
-
-.suspect-actions {
+  border-top: 1px solid rgba(245, 158, 11, 0.1);
   display: flex;
+  align-items: flex-start;
   gap: 0.5rem;
+  font-size: 0.82rem;
+  color: var(--color-text);
 }
 
-.progress {
-  background-color: var(--color-border);
+.va-footer i {
+  color: var(--color-amber-highlight);
+  margin-top: 0.15rem;
+  flex-shrink: 0;
 }
 
-.progress-bar {
-  transition: width 0.3s ease;
-}
-
-.font-monospace {
-  font-size: 0.85rem;
+/* Actions row */
+.va-actions {
+  padding: 0.75rem 1.5rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.04);
 }
 </style>

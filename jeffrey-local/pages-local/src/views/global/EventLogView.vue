@@ -440,7 +440,7 @@ onMounted(async () => {
 }
 
 .event-row {
-  background: linear-gradient(135deg, var(--bs-white), var(--color-blue-bg-light));
+  background: linear-gradient(135deg, var(--color-white), var(--color-blue-bg-light));
   border-radius: 8px;
   border: 1px solid rgba(94, 100, 255, 0.08);
   box-shadow:
@@ -571,7 +571,7 @@ onMounted(async () => {
 }
 
 .info-section {
-  background: linear-gradient(135deg, var(--color-light), var(--bs-white));
+  background: linear-gradient(135deg, var(--color-light), var(--color-white));
   border: 1px solid rgba(94, 100, 255, 0.08);
   border-radius: 12px;
   padding: 16px;

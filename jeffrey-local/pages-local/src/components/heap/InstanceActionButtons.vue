@@ -62,7 +62,7 @@ defineEmits<{
 
 .btn-action:hover {
   background-color: rgba(111, 66, 193, 0.15);
-  color: var(--bs-purple);
+  color: var(--color-purple);
 }
 
 .btn-action i {

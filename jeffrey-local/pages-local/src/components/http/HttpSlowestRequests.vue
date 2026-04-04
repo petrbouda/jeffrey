@@ -220,7 +220,7 @@ const getStatusVariant = (status: number): Variant => {
 }
 
 .uri-var {
-  color: var(--bs-purple);
+  color: var(--color-purple);
   font-weight: 400;
 }
 

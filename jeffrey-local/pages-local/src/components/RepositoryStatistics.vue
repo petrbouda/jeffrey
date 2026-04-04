@@ -174,7 +174,7 @@ const lastActivityTime = computed(() => {
 <style scoped>
 /* Compact Repository Statistics Cards Styling */
 .compact-stat-card {
-  background: linear-gradient(135deg, var(--color-light), var(--bs-white));
+  background: linear-gradient(135deg, var(--color-light), var(--color-white));
   border: 1px solid rgba(94, 100, 255, 0.08);
   border-radius: 8px;
   padding: 12px 16px;

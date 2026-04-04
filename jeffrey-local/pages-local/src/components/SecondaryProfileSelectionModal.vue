@@ -556,7 +556,7 @@ const isPrimaryProfile = (profile: ProfileListResponse) => {
 }
 
 :deep(.profile-selection-modal .modal-content) {
-  background: linear-gradient(135deg, var(--bs-white), var(--color-light));
+  background: linear-gradient(135deg, var(--color-white), var(--color-light));
   border: 1px solid rgba(94, 100, 255, 0.08);
   border-radius: 16px;
   box-shadow:
@@ -599,7 +599,7 @@ const isPrimaryProfile = (profile: ProfileListResponse) => {
 :deep(.profile-selection-modal .modal-footer) {
   padding: 1rem 1.5rem;
   border-top: 1px solid rgba(94, 100, 255, 0.08);
-  background: linear-gradient(135deg, var(--color-light), var(--bs-white));
+  background: linear-gradient(135deg, var(--color-light), var(--color-white));
 }
 
 /* ============================================================
@@ -607,7 +607,7 @@ const isPrimaryProfile = (profile: ProfileListResponse) => {
    ============================================================ */
 .search-wrapper {
   padding: 0.75rem 1.5rem;
-  background: linear-gradient(135deg, var(--color-light), var(--bs-white));
+  background: linear-gradient(135deg, var(--color-light), var(--color-white));
   border-bottom: 1px solid rgba(94, 100, 255, 0.06);
 }
 
@@ -634,7 +634,7 @@ const isPrimaryProfile = (profile: ProfileListResponse) => {
   padding-left: 2.5rem;
   border-radius: 10px;
   border: 1px solid rgba(94, 100, 255, 0.12);
-  background: var(--bs-white);
+  background: var(--color-white);
   font-size: 0.875rem;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.03);
@@ -943,7 +943,7 @@ const isPrimaryProfile = (profile: ProfileListResponse) => {
   padding: 0.75rem 1rem;
   border-radius: 10px;
   border: 2px solid rgba(94, 100, 255, 0.1);
-  background: linear-gradient(135deg, var(--bs-white), var(--color-light));
+  background: linear-gradient(135deg, var(--color-white), var(--color-light));
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -1096,7 +1096,7 @@ const isPrimaryProfile = (profile: ProfileListResponse) => {
 .btn-select-profile {
   background: linear-gradient(135deg, var(--color-primary), var(--color-primary-hover));
   border: none;
-  color: var(--bs-white);
+  color: var(--color-white);
   font-weight: 600;
   box-shadow:
     0 4px 12px rgba(94, 100, 255, 0.3),
@@ -1105,7 +1105,7 @@ const isPrimaryProfile = (profile: ProfileListResponse) => {
 
 .btn-select-profile:hover:not(:disabled) {
   background: linear-gradient(135deg, var(--color-primary-hover), var(--color-primary-hover));
-  color: var(--bs-white);
+  color: var(--color-white);
   transform: translateY(-2px);
   box-shadow:
     0 6px 16px rgba(94, 100, 255, 0.4),

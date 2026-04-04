@@ -370,7 +370,7 @@ const getAlertKey = (alert: ImportantMessage, index: number): string => {
   align-items: center;
   gap: 0.4rem;
   padding: 0.35rem 0.75rem;
-  border-radius: var(--bs-border-radius);
+  border-radius: var(--radius-base);
   transition: background var(--transition-fast);
 }
 

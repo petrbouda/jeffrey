@@ -346,7 +346,7 @@ function search(value: string | null) {
   justify-content: center;
   height: 26px;
   border: none;
-  background: var(--bs-white);
+  background: var(--color-white);
   color: var(--color-text-light);
   cursor: pointer;
   font-size: 13px;
@@ -382,7 +382,7 @@ function search(value: string | null) {
   font-size: 0.875rem;
   color: var(--color-dark);
   text-align: left;
-  background-color: var(--bs-white);
+  background-color: var(--color-white);
   background-clip: padding-box;
   border: 1px solid rgba(0, 0, 0, 0.15);
   border-radius: 0.25rem;

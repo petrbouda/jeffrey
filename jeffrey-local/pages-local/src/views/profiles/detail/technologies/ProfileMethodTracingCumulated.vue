@@ -88,8 +88,7 @@
               </button>
             </div>
           </template>
-          <div class="table-responsive">
-            <table class="table table-sm table-hover mb-0">
+          <DataTable>
               <thead>
                 <tr>
                   <th>{{ mode === 'method' ? 'Method' : 'Class' }}</th>
@@ -129,8 +128,7 @@
                   </td>
                 </tr>
               </tbody>
-            </table>
-          </div>
+          </DataTable>
         </ChartSection>
       </div>
     </div>
@@ -148,6 +146,7 @@ import ErrorState from '@/components/ErrorState.vue';
 import EmptyState from '@/components/EmptyState.vue';
 import TracingDisabledFeatureAlert from '@/components/alerts/TracingDisabledFeatureAlert.vue';
 import ChartSection from '@/components/ChartSection.vue';
+import DataTable from '@/components/table/DataTable.vue';
 import FormattingService from '@/services/FormattingService';
 import ProfileMethodTracingClient from '@/services/api/ProfileMethodTracingClient';
 import '@/styles/shared-components.css';
@@ -292,8 +291,8 @@ onMounted(() => {
 }
 
 .segmented-control .segment.active {
-  background: var(--bs-white);
-  color: var(--bs-blue);
+  background: var(--color-white);
+  color: var(--color-accent-blue);
   box-shadow:
     0 1px 3px rgba(0, 0, 0, 0.1),
     0 1px 2px rgba(0, 0, 0, 0.06);
@@ -330,21 +329,6 @@ onMounted(() => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.table th {
-  font-size: 0.7rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  color: var(--color-text-muted);
-  border-bottom: 2px solid var(--color-border);
-  padding: 0.5rem 0.75rem;
-}
-
-.table td {
-  vertical-align: middle;
-  font-size: 0.8rem;
-  padding: 0.5rem 0.75rem;
 }
 
 .badge {

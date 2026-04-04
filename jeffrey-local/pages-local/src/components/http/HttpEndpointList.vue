@@ -226,7 +226,7 @@ const onSortChange = (key: string) => {
   gap: 1rem;
   padding: 0.875rem 1rem;
   border: 1px solid var(--color-border);
-  border-radius: var(--bs-border-radius-lg);
+  border-radius: var(--radius-md);
   cursor: pointer;
   transition:
     border-color 0.15s,
@@ -246,7 +246,7 @@ const onSortChange = (key: string) => {
   gap: 0.1rem;
   padding: 0.5rem 0.75rem;
   background: var(--color-primary-light);
-  border-radius: var(--bs-border-radius-lg);
+  border-radius: var(--radius-md);
   min-width: 60px;
   flex-shrink: 0;
 }
@@ -291,7 +291,7 @@ const onSortChange = (key: string) => {
 }
 
 .uri-var {
-  color: var(--bs-purple);
+  color: var(--color-purple);
   font-weight: 400;
 }
 
@@ -320,7 +320,7 @@ const onSortChange = (key: string) => {
   align-items: center;
   gap: 0.1rem;
   padding: 0.4rem 0.6rem;
-  border-radius: var(--bs-border-radius);
+  border-radius: var(--radius-base);
   min-width: 40px;
 }
 

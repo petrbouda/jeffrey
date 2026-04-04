@@ -78,9 +78,7 @@
           icon="bi-recycle"
           title="No garbage collection pause events"
         />
-        <div v-else class="gc-events-table">
-          <div class="table-responsive">
-            <table class="table table-sm table-hover mb-0">
+        <DataTable v-else>
               <thead>
                 <tr>
                   <th>ID</th>
@@ -160,9 +158,7 @@
                   </td>
                 </tr>
               </tbody>
-            </table>
-          </div>
-        </div>
+        </DataTable>
       </template>
 
       <!-- Concurrent Cycles Tab -->
@@ -176,9 +172,7 @@
           icon="bi-recycle"
           title="No concurrent cycle events"
         />
-        <div v-else class="concurrent-cycles-table">
-          <div class="table-responsive">
-            <table class="table table-sm table-hover mb-0">
+        <DataTable v-else>
               <thead>
                 <tr>
                   <th>ID</th>
@@ -210,9 +204,7 @@
                   <td>{{ FormattingService.formatDuration2Units(event.sumOfPauses) }}</td>
                 </tr>
               </tbody>
-            </table>
-          </div>
-        </div>
+        </DataTable>
       </template>
     </ChartSectionWithTabs>
 
@@ -245,6 +237,7 @@ import ErrorState from '@/components/ErrorState.vue';
 import ChartSectionWithTabs from '@/components/ChartSectionWithTabs.vue';
 import EmptyState from '@/components/EmptyState.vue';
 import Badge from '@/components/Badge.vue';
+import DataTable from '@/components/table/DataTable.vue';
 import type { Variant } from '@/types/ui';
 import GCEventDetailsModal from '@/components/gc/GCEventDetailsModal.vue';
 import GCPauseDetailsModal from '@/components/gc/GCPauseDetailsModal.vue';
@@ -632,35 +625,6 @@ onUnmounted(() => {
 .progress {
   height: 6px;
   border-radius: 3px;
-}
-
-/* GC Events Table */
-.gc-events-table,
-.concurrent-cycles-table {
-  background-color: var(--bs-white);
-  border-radius: 8px;
-}
-
-.table {
-  margin-bottom: 0;
-}
-
-.table thead th {
-  background-color: var(--color-light);
-  font-weight: 600;
-  color: var(--color-text);
-  font-size: 0.8rem;
-  padding: 0.5rem;
-}
-
-.table td {
-  font-size: 0.8rem;
-  padding: 0.5rem;
-  vertical-align: middle;
-}
-
-.table tbody tr:hover {
-  background-color: rgba(0, 123, 255, 0.05);
 }
 
 /* GC Cause Tooltips */

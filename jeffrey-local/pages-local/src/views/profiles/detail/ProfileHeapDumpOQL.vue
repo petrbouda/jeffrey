@@ -130,26 +130,14 @@
     <!-- Results Section -->
     <div v-if="oqlResult" class="results-section">
       <!-- Results Table -->
-      <div class="table-card">
-        <div class="results-toolbar">
-          <div class="results-info">
-            <span class="results-count">{{ filteredResults.length }} results</span>
-            <span v-if="oqlResult.hasMore" class="truncated-badge">limit reached</span>
-            <span class="meta-item"
-              ><i class="bi bi-stopwatch me-1"></i>{{ oqlResult.executionTimeMs }}ms</span
-            >
-          </div>
-          <div class="results-controls">
-            <input
-              type="text"
-              v-model="resultFilter"
-              class="form-control form-control-sm filter-input"
-              placeholder="Filter..."
-            />
-          </div>
-        </div>
-        <div class="table-responsive">
-          <table class="table table-sm table-hover mb-0">
+      <DataTable>
+        <template #toolbar>
+          <TableToolbar v-model="resultFilter" search-placeholder="Filter...">
+            <span class="toolbar-count">{{ filteredResults.length }} results</span>
+            <span v-if="oqlResult.hasMore" class="toolbar-badge-warning">limit reached</span>
+            <span class="toolbar-meta"><i class="bi bi-stopwatch me-1"></i>{{ oqlResult.executionTimeMs }}ms</span>
+          </TableToolbar>
+        </template>
             <thead>
               <tr>
                 <th style="width: 50px">#</th>
@@ -200,9 +188,7 @@
                 </td>
               </tr>
             </tbody>
-          </table>
-        </div>
-      </div>
+      </DataTable>
     </div>
 
     <!-- Empty State -->
@@ -355,6 +341,8 @@ import OqlAssistant from '@/components/oql/OqlAssistant.vue';
 import InstanceTreeModal from '@/components/heap/InstanceTreeModal.vue';
 import InstanceActionButtons from '@/components/heap/InstanceActionButtons.vue';
 import SortableTableHeader from '@/components/table/SortableTableHeader.vue';
+import DataTable from '@/components/table/DataTable.vue';
+import TableToolbar from '@/components/table/TableToolbar.vue';
 import HeapDumpClient from '@/services/api/HeapDumpClient';
 import OqlAssistantClient from '@/services/api/OqlAssistantClient';
 import OQLQueryResult from '@/services/api/model/OQLQueryResult';
@@ -663,7 +651,7 @@ onMounted(() => {
 }
 
 .examples-header h6 {
-  color: var(--bs-purple);
+  color: var(--color-purple);
   font-size: 0.875rem;
   font-weight: 600;
 }
@@ -682,7 +670,7 @@ onMounted(() => {
   grid-column: 1 / -1;
   font-size: 0.7rem;
   font-weight: 700;
-  color: var(--bs-purple);
+  color: var(--color-purple);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   padding: 0.5rem 0.5rem 0.25rem;
@@ -703,7 +691,7 @@ onMounted(() => {
 
 .example-item:hover {
   background-color: var(--color-light);
-  border-color: var(--bs-purple);
+  border-color: var(--color-purple);
 }
 
 .example-title {
@@ -752,7 +740,7 @@ onMounted(() => {
 
 .query-input:focus {
   outline: none;
-  background-color: var(--bs-white);
+  background-color: var(--color-white);
   border-bottom: 2px solid var(--color-blue-500);
 }
 
@@ -761,7 +749,7 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 0.5rem 1rem;
-  background-color: var(--bs-white);
+  background-color: var(--color-white);
 }
 
 .query-toolbar .btn {
@@ -783,100 +771,31 @@ onMounted(() => {
   width: 80px;
 }
 
-/* Table Card */
-.table-card {
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border);
-  border-radius: var(--bs-border-radius-lg);
-  box-shadow: var(--shadow-base);
-  overflow: hidden;
-}
-
-.results-toolbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.5rem 1rem;
-  background-color: var(--color-light);
-  border-bottom: 1px solid var(--color-border);
-}
-
-.results-info {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.results-controls {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.filter-input {
-  width: 140px;
-}
-
-.results-count {
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: var(--color-text-muted);
-  background-color: var(--color-border);
-  padding: 0.125rem 0.5rem;
-}
-
-.truncated-badge {
-  font-size: 0.65rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--color-warning-text);
-  background-color: var(--color-warning-bg);
-  padding: 0.125rem 0.375rem;
-}
-
-.results-meta {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.meta-item {
-  font-size: 0.75rem;
-  color: var(--color-text-muted);
-}
-
-/* Table Styles - matching Class Histogram */
-.table thead th {
-  background-color: var(--color-light);
+/* Toolbar badges */
+.toolbar-count {
+  font-size: 0.8rem;
   font-weight: 600;
   color: var(--color-text);
+}
+
+.toolbar-badge-warning {
+  font-size: 0.65rem;
+  background: var(--color-warning-bg);
+  color: var(--color-warning-text, #856404);
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-weight: 500;
+}
+
+.toolbar-meta {
   font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  padding: 0.75rem;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.table td {
-  font-size: 0.8rem;
-  padding: 0.6rem 0.75rem;
-  vertical-align: middle;
-  border-bottom: 1px solid var(--color-border-row);
-}
-
-.table tbody tr:hover {
-  background-color: rgba(66, 133, 244, 0.04);
-}
-
-.table tbody tr:last-child td {
-  border-bottom: none;
+  color: var(--color-text-muted);
 }
 
 .class-name {
   font-size: 0.8rem;
   font-weight: 500;
-  color: var(--bs-purple);
+  color: var(--color-purple);
   word-break: break-all;
   line-height: 1.4;
 }
@@ -914,8 +833,8 @@ onMounted(() => {
 }
 
 .btn-purple {
-  background-color: var(--bs-purple);
-  border-color: var(--bs-purple);
+  background-color: var(--color-purple);
+  border-color: var(--color-purple);
   color: white;
 }
 
@@ -926,13 +845,13 @@ onMounted(() => {
 }
 
 .btn-outline-purple {
-  border-color: var(--bs-purple);
-  color: var(--bs-purple);
+  border-color: var(--color-purple);
+  color: var(--color-purple);
 }
 
 .btn-outline-purple:hover {
-  background-color: var(--bs-purple);
-  border-color: var(--bs-purple);
+  background-color: var(--color-purple);
+  border-color: var(--color-purple);
   color: white;
 }
 

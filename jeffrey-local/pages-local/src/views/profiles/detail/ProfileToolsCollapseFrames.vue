@@ -387,7 +387,7 @@ const handleApply = async () => {
 .preset-card {
   padding: 12px 14px;
   border: 1px solid var(--color-border);
-  border-radius: var(--bs-border-radius-lg);
+  border-radius: var(--radius-md);
   background: var(--color-bg-card);
   cursor: pointer;
   transition: all var(--transition-fast);
@@ -441,7 +441,7 @@ const handleApply = async () => {
   gap: 10px;
   padding: 8px 12px;
   border: 1px solid var(--color-border);
-  border-radius: var(--bs-border-radius-lg);
+  border-radius: var(--radius-md);
   background: var(--color-bg-card);
 }
 

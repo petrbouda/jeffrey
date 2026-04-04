@@ -531,7 +531,7 @@ onMounted(() => {
   padding: 0.1rem 0.35rem;
   border-radius: 3px;
   font-size: 0.85em;
-  color: var(--bs-pink);
+  color: var(--color-code-text);
 }
 
 .benefits-list {

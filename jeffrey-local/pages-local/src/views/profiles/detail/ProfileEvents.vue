@@ -106,8 +106,7 @@
           No event data found for this event type
         </div>
         <div v-else>
-          <div class="table-responsive">
-            <table class="table table-sm table-hover mb-0 event-tree-table">
+          <DataTable table-class="event-tree-table">
               <thead>
                 <tr>
                   <th v-for="column in eventColumns" :key="column.field">
@@ -156,8 +155,7 @@
                   </td>
                 </tr>
               </tbody>
-            </table>
-          </div>
+          </DataTable>
         </div>
       </div>
     </div>
@@ -174,6 +172,7 @@ import { useRoute } from 'vue-router';
 
 import PageHeader from '@/components/layout/PageHeader.vue';
 import Badge from '@/components/Badge.vue';
+import DataTable from '@/components/table/DataTable.vue';
 import '@/styles/shared-components.css';
 
 const route = useRoute();
@@ -482,7 +481,7 @@ onMounted(async () => {
 }
 
 .sortable:hover {
-  color: var(--bs-blue);
+  color: var(--color-accent-blue);
 }
 
 .event-cell {
@@ -510,7 +509,7 @@ th {
 
 .filter-input:focus {
   box-shadow: none;
-  border-color: var(--bs-blue);
+  border-color: var(--color-accent-blue);
 }
 
 /* Dropdown styles */

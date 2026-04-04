@@ -115,7 +115,7 @@ const clearCommand = () => {
   border-radius: 8px;
   font-size: 0.85rem;
   font-family: SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
-  background: var(--bs-white);
+  background: var(--color-white);
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   color: var(--color-text);
   resize: vertical;

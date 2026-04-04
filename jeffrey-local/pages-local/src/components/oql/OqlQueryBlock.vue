@@ -82,7 +82,7 @@ const copyToClipboard = async () => {
 }
 
 .btn-icon:hover {
-  color: var(--bs-white);
+  color: var(--color-white);
 }
 
 .query-code {
@@ -124,7 +124,7 @@ const copyToClipboard = async () => {
 .btn-outline-purple:hover {
   background-color: var(--color-editor-keyword);
   border-color: var(--color-editor-keyword);
-  color: var(--bs-white);
+  color: var(--color-white);
 }
 
 .query-actions .btn-primary {

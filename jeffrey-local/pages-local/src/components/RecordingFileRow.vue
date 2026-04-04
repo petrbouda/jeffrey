@@ -208,7 +208,7 @@ const formatTimestamp = (millis: number | null | undefined): string => {
 /* HEAP_DUMP file styling - purple theme */
 .recording-file-row.file-type-heap-dump {
   background-color: rgba(111, 66, 193, 0.08);
-  border-left: 3px solid var(--bs-purple);
+  border-left: 3px solid var(--color-purple);
   border-top: 1px solid rgba(111, 66, 193, 0.2);
   border-right: 1px solid rgba(111, 66, 193, 0.2);
   border-bottom: 1px solid rgba(111, 66, 193, 0.2);
@@ -221,7 +221,7 @@ const formatTimestamp = (millis: number | null | undefined): string => {
 
 .recording-file-row.file-type-heap-dump .recording-file-icon-medium {
   background-color: rgba(111, 66, 193, 0.15);
-  color: var(--bs-purple);
+  color: var(--color-purple);
 }
 
 /* HEAP_DUMP_GZ file styling - deeper purple/violet theme */
@@ -361,7 +361,7 @@ const formatTimestamp = (millis: number | null | undefined): string => {
 /* UNKNOWN file styling - gray theme */
 .recording-file-row.file-type-unknown {
   background-color: rgba(108, 117, 125, 0.08);
-  border-left: 3px solid var(--bs-gray-600);
+  border-left: 3px solid var(--color-grey-muted);
   border-top: 1px solid rgba(108, 117, 125, 0.2);
   border-right: 1px solid rgba(108, 117, 125, 0.2);
   border-bottom: 1px solid rgba(108, 117, 125, 0.2);
@@ -410,7 +410,7 @@ const formatTimestamp = (millis: number | null | undefined): string => {
 
 .recording-file-row.file-type-heap-dump .recording-file-icon-small {
   background-color: rgba(111, 66, 193, 0.15);
-  color: var(--bs-purple);
+  color: var(--color-purple);
 }
 
 .recording-file-row.file-type-heap-dump-gz .recording-file-icon-small {
