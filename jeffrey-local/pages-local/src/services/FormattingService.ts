@@ -66,6 +66,13 @@ export default class FormattingService {
     return percentage + '%';
   }
 
+  static formatSuccessRate(rate: number): string {
+    const pct = rate * 100;
+    // Floor to 1 decimal so it never rounds up to 100% when there are errors
+    const floored = Math.floor(pct * 10) / 10;
+    return floored.toFixed(1) + '%';
+  }
+
   static formatClass(value: string | null): string {
     if (value === null) {
       return '-';

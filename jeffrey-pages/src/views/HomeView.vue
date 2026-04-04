@@ -84,12 +84,12 @@ const introCards = ref<IntroCard[]>([
     route: '/docs'
   },
   {
-    title: 'Upcoming Features',
-    content: 'Check out the roadmap showing completed and planned features for upcoming Jeffrey versions.',
-    file: 'new_features.md',
-    icon: 'bi-calendar-check',
+    title: 'Release Notes',
+    content: 'See what\'s new in the latest Jeffrey release — features, improvements, and highlights.',
+    file: 'release_notes.md',
+    icon: 'bi-megaphone',
     colorClass: 'bg-info-gradient',
-    route: '/new-features'
+    route: '/release-notes'
   }
 ]);
 

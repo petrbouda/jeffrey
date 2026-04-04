@@ -40,9 +40,9 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/TourWithExamplesView.vue')
   },
   {
-    path: '/new-features',
-    name: 'NewFeatures',
-    component: () => import('@/views/NewFeaturesView.vue')
+    path: '/release-notes',
+    name: 'ReleaseNotes',
+    component: () => import('@/views/ReleaseNotesView.vue')
   },
   {
     path: '/blog',

@@ -49,7 +49,7 @@ const metricsData = computed(() => {
       breakdown: [
         {
           label: 'Success',
-          value: `${((header.successRate || 0) * 100).toFixed(1)}%`,
+          value: FormattingService.formatSuccessRate(header.successRate || 0),
           color: (header.successRate || 0) >= 0.99 ? '#34A853' : '#FBBC05'
         },
         {

@@ -43,7 +43,7 @@ const metricsData = computed(() => {
     {
       icon: 'check-circle',
       title: 'Success Rate',
-      value: `${((header.successRate || 0) * 100).toFixed(1)}%`,
+      value: FormattingService.formatSuccessRate(header.successRate || 0),
       variant: ((header.successRate || 0) === 1
         ? 'success'
         : header.count5xx > 0

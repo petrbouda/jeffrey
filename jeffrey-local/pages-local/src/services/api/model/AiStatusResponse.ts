@@ -17,7 +17,12 @@
  */
 
 export default interface AiStatusResponse {
-  enabled: boolean;
+  // OQL assistant format
+  enabled?: boolean;
+  configured?: boolean;
+  // JFR/Heap Dump AI format
+  available?: boolean;
+  model?: string | null;
+  // Common
   provider: string | null;
-  configured: boolean;
 }

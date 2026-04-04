@@ -52,7 +52,7 @@ const closeMenu = () => {
             <router-link to="/docs" class="nav-link" @click="closeMenu">Documentation</router-link>
           </li>
           <li class="nav-item">
-            <router-link to="/new-features" class="nav-link" @click="closeMenu">New Features</router-link>
+            <router-link to="/release-notes" class="nav-link" @click="closeMenu">Release Notes</router-link>
           </li>
           <li class="nav-item">
             <router-link to="/blog" class="nav-link" @click="closeMenu">Blog</router-link>
