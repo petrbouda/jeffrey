@@ -1,6 +1,6 @@
 <!--
   - Jeffrey
-  - Copyright (C) 2025 Petr Bouda
+  - Copyright (C) 2026 Petr Bouda
   -
   - This program is free software: you can redistribute it and/or modify
   - it under the terms of the GNU Affero General Public License as published by
@@ -19,6 +19,8 @@
 <script setup lang="ts">
 import { onMounted } from 'vue';
 import DocsCallout from '@/components/docs/DocsCallout.vue';
+import DocsFeatureCard from '@/components/docs/DocsFeatureCard.vue';
+import DocsLinkCard from '@/components/docs/DocsLinkCard.vue';
 import DocsNavFooter from '@/components/docs/DocsNavFooter.vue';
 import DocsPageHeader from '@/components/docs/DocsPageHeader.vue';
 import { useDocHeadings } from '@/composables/useDocHeadings';
@@ -26,8 +28,10 @@ const { setHeadings } = useDocHeadings();
 
 const headings = [
   { id: 'what-is-jeffrey', text: 'What is Jeffrey?', level: 2 },
+  { id: 'core-objectives', text: 'Core Objectives', level: 2 },
   { id: 'key-features', text: 'Key Features', level: 2 },
   { id: 'why-jeffrey', text: 'Why Jeffrey?', level: 2 },
+  { id: 'components', text: 'Jeffrey Components', level: 2 },
   { id: 'update-notifications', text: 'Update Notifications', level: 2 }
 ];
 
@@ -43,7 +47,6 @@ onMounted(() => {
         icon="bi bi-file-earmark-text"
       />
 
-      <!-- Content -->
       <div class="docs-content">
         <p>Jeffrey is a powerful <strong>Java profiling and diagnostics tool</strong> designed to help developers identify and resolve performance bottlenecks in Java applications quickly and efficiently. It analyzes both <strong>JFR (Java Flight Recorder) recordings</strong> and <strong>Heap Dumps</strong>.</p>
 
@@ -53,7 +56,29 @@ onMounted(() => {
 
         <h2 id="what-is-jeffrey">What is Jeffrey?</h2>
         <p>Jeffrey provides advanced visualization and analysis capabilities for JFR recordings and Heap Dumps. It transforms complex performance data into intuitive flamegraphs, timeseries charts, and actionable insights.</p>
+        <p>Jeffrey is designed for <strong>small and medium-sized projects and companies</strong> that need a solution that can be quickly deployed and ready to use immediately — no complex infrastructure requirements or lengthy setup processes. Self-hosted profiling without dependency on external services.</p>
         <p>Visit the official website at <a href="https://www.jeffrey-analyst.cafe/" target="_blank">jeffrey-analyst.cafe</a> or check out the <a href="https://github.com/petrbouda/jeffrey" target="_blank">GitHub repository</a>.</p>
+
+        <h2 id="core-objectives">Core Objectives</h2>
+        <p>Jeffrey addresses three distinct profiling workflows:</p>
+
+        <div class="docs-grid docs-grid-stack">
+          <DocsFeatureCard
+            icon="bi bi-house"
+            title="Quick Local Analysis"
+            description="Quickly analyze locally available JFR recordings. Upload a file and start investigating within seconds — no workspace or project setup required."
+          />
+          <DocsFeatureCard
+            icon="bi bi-cloud"
+            title="Recording Collection Infrastructure"
+            description="Conveniently collect JFR recordings and artifacts from running applications, especially in containerized cloud environments like Kubernetes."
+          />
+          <DocsFeatureCard
+            icon="bi bi-pc-display"
+            title="Avoid Cloud Computation Costs"
+            description="Offload expensive profile processing from cloud infrastructure to local machines. Download recordings remotely and analyze them locally."
+          />
+        </div>
 
         <h2 id="key-features">Key Features</h2>
         <p>Jeffrey organizes analysis into four main modes:</p>
@@ -100,13 +125,76 @@ onMounted(() => {
         </ul>
 
         <h2 id="why-jeffrey">Why Jeffrey?</h2>
-        <p>Traditional Java profiling tools can be complex and overwhelming. Jeffrey simplifies this process by:</p>
-        <ol>
-          <li><strong>Providing clear visualizations</strong> - See exactly where your application spends time</li>
-          <li><strong>Offering automated insights</strong> - Get recommendations without being an expert</li>
-          <li><strong>Enabling comparison</strong> - Easily compare before/after performance with differential analysis</li>
-          <li><strong>Supporting modern workflows</strong> - Web-based interface, Docker-ready, no complex installation</li>
-        </ol>
+
+        <div class="docs-grid docs-grid-stack">
+          <DocsFeatureCard
+            icon="bi bi-hdd"
+            title="Filesystem & Blob Storage"
+            description="Use cheaper storage systems instead of expensive managed databases. Recordings are stored on disk or blob storage."
+            color="neutral"
+          />
+          <DocsFeatureCard
+            icon="bi bi-database"
+            title="In-Process Database (DuckDB)"
+            description="Use file-based, in-process databases to avoid deploying and maintaining separate database servers."
+            color="neutral"
+          />
+          <DocsFeatureCard
+            icon="bi bi-box-seam"
+            title="Minimal Components"
+            description="No additional services to deploy. Jeffrey runs as a single application with everything included."
+            color="neutral"
+          />
+        </div>
+
+        <p>Jeffrey provides visualizations that are clear for <strong>all developer levels</strong> — from junior to senior. Minimal JVM knowledge required to start analyzing, with explanations of JVM internals provided where needed. Progressive disclosure: start with overviews, drill down into details as needed.</p>
+
+        <h3>Auto Analysis</h3>
+        <p>Tools for quick insights <strong>before</strong> deep and time-consuming investigation:</p>
+
+        <div class="docs-grid docs-grid-2">
+          <DocsFeatureCard
+            icon="bi bi-shield-check"
+            title="Guardian"
+            description="Automated analysis of flamegraphs. Traverses stacktraces to find suspicious patterns — infinite loops, excessive locking, problematic allocations."
+          />
+          <DocsFeatureCard
+            icon="bi bi-graph-up"
+            title="Auto-Analysis"
+            description="Basic analysis of JFR recording data. Rule-based insights with color-coded results (OK, Warning, Critical) about application behavior."
+          />
+        </div>
+
+        <h2 id="components">Jeffrey Components</h2>
+        <p>Jeffrey consists of several components that work together. Choose the one that fits your workflow:</p>
+
+        <div class="docs-grid docs-grid-2">
+          <DocsLinkCard
+            title="Jeffrey Local"
+            description="The standalone analysis tool. Run on your machine to analyze JFR recordings and heap dumps with full visualization and AI features."
+            to="/docs/local/overview"
+            icon="bi bi-pc-display"
+          />
+          <DocsLinkCard
+            title="Jeffrey Server"
+            description="The recording collection server for production/cloud environments. Continuously collects JFR recordings from running applications."
+            to="/docs/server/overview"
+            icon="bi bi-cloud"
+          />
+          <DocsLinkCard
+            title="Jeffrey CLI"
+            description="Command-line tool for automated container profiling. Initializes profiler agent configuration for containerized Java applications."
+            to="/docs/cli/overview"
+            icon="bi bi-terminal"
+          />
+          <DocsLinkCard
+            title="Jeffrey Events"
+            description="JFR event library for your applications. Emit custom events for HTTP, JDBC, and gRPC monitoring dashboards in Jeffrey."
+            to="/docs/events/overview"
+            icon="bi bi-activity"
+          />
+        </div>
+
         <h2 id="update-notifications">Update Notifications</h2>
         <p>Jeffrey automatically checks for new releases on GitHub. When a newer version is available, a toast notification appears in the top-right corner showing your current version and the latest version available.</p>
         <ul>

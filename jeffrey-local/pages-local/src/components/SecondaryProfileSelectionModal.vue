@@ -457,10 +457,15 @@ const initializeModal = async () => {
     }
   }
 
-  // Default: select current workspace + current project, expand current workspace
-  selectedProjectKey.value = { workspaceId: props.workspaceId, projectId: props.currentProjectId };
+  // Default: select Quick Analysis if it has profiles, otherwise current workspace + project
   selectedProfile.value = null;
-  expandedWorkspaces.value.add(props.workspaceId);
+  const hasQuickAnalysis = allProfiles.value.some(p => p.workspaceId === QUICK_ANALYSIS_WORKSPACE_ID);
+  if (hasQuickAnalysis) {
+    selectedProjectKey.value = { workspaceId: QUICK_ANALYSIS_WORKSPACE_ID, projectId: QUICK_ANALYSIS_WORKSPACE_ID };
+  } else {
+    selectedProjectKey.value = { workspaceId: props.workspaceId, projectId: props.currentProjectId };
+    expandedWorkspaces.value.add(props.workspaceId);
+  }
 };
 
 const loadAllProfiles = async () => {

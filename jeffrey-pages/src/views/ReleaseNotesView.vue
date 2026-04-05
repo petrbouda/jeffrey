@@ -45,6 +45,7 @@ const techStackImages: GalleryImage[] = [
 
 const serverRecordingImages: GalleryImage[] = [
   { src: '/images/release-notes/server-recording/01-architecture.png', caption: 'Jeffrey Local + Server architecture' },
+  { src: '/images/release-notes/server-recording/02-workspaces.png', caption: 'Workspaces & projects' },
   { src: '/images/release-notes/server-recording/02-instances-overview.png', caption: 'Instances overview & lifecycle' },
   { src: '/images/release-notes/server-recording/03-instance-timeline.png', caption: 'Instance timeline' },
   { src: '/images/release-notes/server-recording/04-session-detail.png', caption: 'Session detail & artifacts' },
@@ -189,7 +190,7 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
               <div class="gs-cmd-icon java"><i class="bi bi-cup-hot"></i></div>
               <div>
                 <div class="gs-cmd-label">Plain Java</div>
-                <div class="gs-cmd-sub"><a href="https://github.com/petrbouda/jeffrey/releases" target="_blank">Download jeffrey.jar</a> &middot; Java 25+</div>
+                <div class="gs-cmd-sub"><a href="https://github.com/petrbouda/jeffrey/releases/download/v0.7.0/jeffrey.jar">Download jeffrey.jar</a> &middot; Java 25+</div>
               </div>
             </div>
             <div class="gs-code"><span class="dollar">$</span> <span class="text">java -jar jeffrey.jar</span></div>

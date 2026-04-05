@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -27,14 +27,6 @@ export interface BreadcrumbItem {
 
 export const docsNavigation: DocSection[] = [
   {
-    title: 'Goals',
-    path: 'goals',
-    icon: 'bi-bullseye',
-    children: [
-      { title: 'Overview', path: 'overview' }
-    ]
-  },
-  {
     title: 'Getting Started',
     path: 'getting-started',
     icon: 'bi-rocket-takeoff',
@@ -50,18 +42,18 @@ export const docsNavigation: DocSection[] = [
     icon: 'bi-diagram-3',
     children: [
       { title: 'Overview', path: 'overview' },
-      { title: 'gRPC API', path: 'public-api' },
       { title: 'Storage', path: 'storage' }
     ]
   },
   {
-    title: 'Platform',
-    path: 'platform',
-    icon: 'bi-layers',
+    title: 'Jeffrey Local',
+    path: 'local',
+    icon: 'bi-pc-display',
     children: [
-      { title: 'Workspaces', path: 'workspaces' },
+      { title: 'Overview', path: 'overview' },
       { title: 'Quick Analysis', path: 'quick-analysis' },
-      { title: 'Event Log', path: 'event-log' },
+      { title: 'Profiles', path: 'profiles' },
+      { title: 'Workspaces', path: 'workspaces' },
       {
         title: 'Projects',
         path: 'projects',
@@ -76,7 +68,43 @@ export const docsNavigation: DocSection[] = [
           { title: 'Alerts & Messages', path: 'projects/alerts-messages' }
         ]
       },
-{
+      { title: 'Event Log', path: 'event-log' },
+      {
+        title: 'Deployment',
+        path: 'deployment',
+        children: [
+          { title: 'JAR Execution', path: 'deployment/jar-execution' },
+          { title: 'Docker Container', path: 'deployment/docker-container' },
+          { title: 'Container with Examples', path: 'deployment/container-examples' }
+        ]
+      },
+      {
+        title: 'Configuration',
+        path: 'configuration',
+        children: [
+          { title: 'Application Properties', path: 'configuration/application-properties' },
+          { title: 'Advanced Properties', path: 'configuration/advanced-properties' },
+          { title: 'Secrets', path: 'configuration/secrets' }
+        ]
+      }
+    ]
+  },
+  {
+    title: 'Jeffrey Server',
+    path: 'server',
+    icon: 'bi-cloud',
+    children: [
+      { title: 'Overview', path: 'overview' },
+      {
+        title: 'Continuous Recording',
+        path: 'continuous-recording',
+        children: [
+          { title: 'Overview', path: 'continuous-recording/overview' },
+          { title: 'Jeffrey Deployment', path: 'continuous-recording/jeffrey-deployment' },
+          { title: 'Service Deployment', path: 'continuous-recording/service-deployment' }
+        ]
+      },
+      {
         title: 'Recording Sessions',
         path: 'recording-sessions',
         children: [
@@ -84,20 +112,17 @@ export const docsNavigation: DocSection[] = [
           { title: 'Configuration', path: 'recording-sessions/configuration' },
           { title: 'Lifecycle', path: 'recording-sessions/lifecycle' }
         ]
+      },
+      { title: 'gRPC API', path: 'grpc-api' },
+      { title: 'Deployment', path: 'deployment' },
+      {
+        title: 'Configuration',
+        path: 'configuration',
+        children: [
+          { title: 'Application Properties', path: 'configuration/application-properties' },
+          { title: 'Advanced Properties', path: 'configuration/advanced-properties' }
+        ]
       }
-    ]
-  },
-  {
-    title: 'Profiles',
-    path: 'profiles',
-    icon: 'bi-speedometer2',
-    children: [
-      { title: 'Overview', path: 'overview' },
-      { title: 'JVM Internals Section', path: 'jvm-internals' },
-      { title: 'Technologies Section', path: 'application' },
-      { title: 'Visualization Section', path: 'visualization' },
-      { title: 'Heap Dump Section', path: 'heap-dump-analysis' },
-      { title: 'Tools Section', path: 'tools' }
     ]
   },
   {
@@ -112,57 +137,22 @@ export const docsNavigation: DocSection[] = [
     ]
   },
   {
-    title: 'Configuration',
-    path: 'configuration',
-    icon: 'bi-gear',
-    children: [
-      { title: 'Overview', path: 'overview' },
-      { title: 'Application Properties', path: 'application-properties' },
-      { title: 'Advanced Properties', path: 'advanced-properties' },
-      { title: 'Secrets', path: 'secrets' }
-    ]
-  },
-  {
-    title: 'Deployments',
-    path: 'deployments',
-    icon: 'bi-cloud-upload',
-    children: [
-      { title: 'Overview', path: 'overview' },
-      { title: 'Simple JAR Execution', path: 'simple-jar' },
-      { title: 'Simple as a Container', path: 'simple-container' },
-      { title: 'Container with Examples', path: 'container-examples' }
-    ]
-  },
-  {
-    title: 'Live Recording',
-    path: 'live-recording',
-    icon: 'bi-broadcast-pin',
-    children: [
-      { title: 'Live Recording Overview', path: 'overview' },
-      {
-        title: 'Kubernetes',
-        path: 'kubernetes',
-        children: [
-          { title: 'Jeffrey Deployment', path: 'jeffrey-deployment' },
-          { title: 'Service Deployment', path: 'service-deployment' }
-        ]
-      }
-    ]
-  },
-  {
-    title: 'Jeffrey JFR Events',
-    path: 'jeffrey-jfr-events',
+    title: 'Jeffrey Events',
+    path: 'events',
     icon: 'bi-activity',
     children: [
       { title: 'Overview', path: 'overview' }
     ]
   },
   {
-    title: 'Highlighted Features',
-    path: 'features',
-    icon: 'bi-stars',
+    title: 'AI Analysis',
+    path: 'ai',
+    icon: 'bi-robot',
     children: [
-      { title: 'Highlighted Features', path: 'overview' }
+      { title: 'Overview & Configuration', path: 'overview' },
+      { title: 'JFR Analysis', path: 'jfr-analysis' },
+      { title: 'Heap Dump Analysis', path: 'heap-dump-analysis' },
+      { title: 'OQL Assistant', path: 'oql-assistant' }
     ]
   }
 ];

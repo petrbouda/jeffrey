@@ -169,7 +169,6 @@
     icon="bi-exclamation-triangle-fill"
     size="md"
     modal-dialog-class="modal-dialog-centered"
-    :show-footer="false"
     @update:show="closeDeleteConfirmation"
   >
     <template #header>
@@ -189,7 +188,7 @@
         Are you sure you want to delete this project? This action <strong>cannot</strong> be undone.
       </p>
       <p class="mb-0">
-        Please type <strong>{{ projectName }}</strong> to confirm:
+        Please type <strong>delete</strong> to confirm:
       </p>
     </div>
     <div class="form-group">
@@ -197,7 +196,7 @@
         type="text"
         class="form-control"
         v-model="deleteConfirmText"
-        placeholder="Type project name here"
+        placeholder="Type delete to confirm"
         :disabled="isDeleting"
       />
     </div>
@@ -214,7 +213,7 @@
         type="button"
         class="btn btn-danger"
         @click="deleteProject"
-        :disabled="deleteConfirmText !== projectName || isDeleting"
+        :disabled="deleteConfirmText !== 'delete' || isDeleting"
       >
         <span
           v-if="isDeleting"
@@ -435,7 +434,7 @@ function closeDeleteConfirmation() {
 
 // Delete project
 async function deleteProject() {
-  if (deleteConfirmText.value !== projectName.value) return;
+  if (deleteConfirmText.value !== 'delete') return;
 
   try {
     isDeleting.value = true;

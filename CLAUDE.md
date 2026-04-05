@@ -313,6 +313,9 @@ jeffrey/
 - JSON data exchange format for REST, Protobuf for gRPC
 - Multi-part file uploads for JFR files
 
+## Git Commits
+- Never add `Co-Authored-By: Claude` or any AI co-author trailer to commit messages
+
 ## Development Workflow
 1. Backend development in Java with Spring Boot (two deployment targets: local and server)
 2. Frontend development with Vue 3 and TypeScript (primary UI in `jeffrey-local/pages-local/`)
