@@ -58,6 +58,7 @@ CREATE TABLE IF NOT EXISTS projects
     graph_visualization     VARCHAR NOT NULL,
     blocked                 BOOLEAN NOT NULL DEFAULT false,
     streaming_enabled       BOOLEAN,
+    deleted_at              TIMESTAMPTZ,
     PRIMARY KEY (project_id)
 );
 

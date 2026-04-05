@@ -28,7 +28,9 @@ import pbouda.jeffrey.test.DuckDBTest;
 import pbouda.jeffrey.test.TestUtils;
 
 import javax.sql.DataSource;
+import java.sql.Connection;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -238,6 +240,96 @@ class JdbcProjectsRepositoryTest {
             Optional<ProjectInfo> result = repository.findByOriginProjectId("any-origin");
 
             assertTrue(result.isEmpty());
+        }
+    }
+
+    @Nested
+    class SoftDeleteFiltering {
+
+        private void softDeleteProject(DataSource dataSource, String projectId) throws SQLException {
+            try (Connection conn = dataSource.getConnection();
+                 Statement stmt = conn.createStatement()) {
+                stmt.executeUpdate(
+                        "UPDATE projects SET deleted_at = CURRENT_TIMESTAMP WHERE project_id = '" + projectId + "'");
+            }
+        }
+
+        @Test
+        void findAllProjects_excludesSoftDeleted(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
+            TestUtils.executeSql(dataSource, "sql/projects/insert-workspace-with-projects.sql");
+            JdbcProjectsRepository repository = new JdbcProjectsRepository(provider);
+
+            softDeleteProject(dataSource, "proj-001");
+
+            List<ProjectInfo> result = repository.findAllProjects();
+            assertEquals(1, result.size());
+            assertEquals("Project Two", result.getFirst().name());
+        }
+
+        @Test
+        void findAllProjectsByWorkspace_excludesSoftDeleted(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
+            TestUtils.executeSql(dataSource, "sql/projects/insert-workspace-with-projects.sql");
+            JdbcProjectsRepository repository = new JdbcProjectsRepository(provider);
+
+            softDeleteProject(dataSource, "proj-001");
+
+            List<ProjectInfo> result = repository.findAllProjects("ws-001");
+            assertEquals(1, result.size());
+            assertEquals("Project Two", result.getFirst().name());
+        }
+
+        @Test
+        void findByOriginProjectId_excludesSoftDeleted(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
+            TestUtils.executeSql(dataSource, "sql/projects/insert-workspace-with-projects.sql");
+            JdbcProjectsRepository repository = new JdbcProjectsRepository(provider);
+
+            softDeleteProject(dataSource, "proj-002");
+
+            Optional<ProjectInfo> result = repository.findByOriginProjectId("origin-002");
+            assertTrue(result.isEmpty());
+        }
+
+        @Test
+        void findAllNamespaces_excludesSoftDeleted(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
+            TestUtils.executeSql(dataSource, "sql/projects/insert-projects-with-namespaces.sql");
+            JdbcProjectsRepository repository = new JdbcProjectsRepository(provider);
+
+            // Soft-delete the project with "frontend" namespace
+            softDeleteProject(dataSource, "proj-002");
+
+            List<String> result = repository.findAllNamespaces();
+            assertEquals(1, result.size());
+            assertEquals("backend", result.getFirst());
+        }
+
+        @Test
+        void create_allowsReCreationAfterSoftDelete(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
+            TestUtils.executeSql(dataSource, "sql/projects/insert-workspace-with-projects.sql");
+            JdbcProjectsRepository repository = new JdbcProjectsRepository(provider);
+
+            // Soft-delete proj-002 which has origin_project_id = "origin-002"
+            softDeleteProject(dataSource, "proj-002");
+
+            // Creating a new project with same origin_project_id should succeed
+            ProjectInfo newProject = new ProjectInfo(
+                    "proj-003", "origin-002", "Recreated Project", null, null,
+                    "ws-001", Instant.parse("2025-06-15T12:00:00Z"), null, Map.of(), false, null);
+            CreateProject createProject = new CreateProject(newProject, new GraphVisualization(0.1));
+
+            ProjectInfo result = repository.create(createProject);
+
+            assertEquals("Recreated Project", result.name());
+            assertEquals("origin-002", result.originId());
+
+            // Both old (soft-deleted) and new should exist in DB, but only the new one is visible
+            Optional<ProjectInfo> visible = repository.findByOriginProjectId("origin-002");
+            assertTrue(visible.isPresent());
+            assertEquals("proj-003", visible.get().id());
         }
     }
 }

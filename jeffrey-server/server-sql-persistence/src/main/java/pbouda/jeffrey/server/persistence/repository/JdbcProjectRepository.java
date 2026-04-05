@@ -33,7 +33,8 @@ public class JdbcProjectRepository implements ProjectRepository {
     private static final String SELECT_SINGLE_PROJECT = """
             SELECT * FROM projects p
             JOIN workspaces w ON p.workspace_id = w.workspace_id
-            WHERE p.project_id = :project_id""";
+            WHERE p.project_id = :project_id AND p.deleted_at IS NULL""";
+
 
     //language=SQL
     private static final String UPDATE_PROJECTS_NAME =
@@ -60,7 +61,7 @@ public class JdbcProjectRepository implements ProjectRepository {
             DELETE FROM profiler_settings WHERE project_id = '%project_id%';
             DELETE FROM messages WHERE project_id = '%project_id%';
             DELETE FROM alerts WHERE project_id = '%project_id%';
-            DELETE FROM projects WHERE project_id = '%project_id%'""";
+            UPDATE projects SET deleted_at = CURRENT_TIMESTAMP WHERE project_id = '%project_id%'""";
 
     private final String projectId;
     private final DatabaseClient databaseClient;

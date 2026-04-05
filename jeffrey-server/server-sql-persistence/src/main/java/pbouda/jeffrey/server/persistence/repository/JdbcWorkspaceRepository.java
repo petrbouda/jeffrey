@@ -52,7 +52,7 @@ public class JdbcWorkspaceRepository implements WorkspaceRepository {
     private static final String SELECT_PROJECTS_BY_WORKSPACE_ID = """
             SELECT * FROM projects p
             JOIN workspaces w ON p.workspace_id = w.workspace_id
-            WHERE w.workspace_id = :workspace_id""";
+            WHERE w.workspace_id = :workspace_id AND p.deleted_at IS NULL""";
 
     private final String workspaceId;
     private final DatabaseClient databaseClient;

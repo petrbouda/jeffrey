@@ -26,7 +26,10 @@ import pbouda.jeffrey.test.DuckDBTest;
 import pbouda.jeffrey.test.TestUtils;
 
 import javax.sql.DataSource;
+import java.sql.Connection;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.List;
 import java.util.Optional;
 
@@ -82,15 +85,39 @@ class JdbcProjectRepositoryTest {
     class DeleteMethod {
 
         @Test
-        void deletesProject_andRelatedData(DataSource dataSource) throws SQLException {
+        void softDeletesProject_andHardDeletesRelatedData(DataSource dataSource) throws SQLException {
             var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/project/insert-project-with-profiles.sql");
             JdbcProjectRepository repository = new JdbcProjectRepository("proj-001", provider);
 
             repository.delete();
 
-            Optional<ProjectInfo> result = repository.find();
-            assertTrue(result.isEmpty());
+            // Project not visible via find() (filtered by deleted_at IS NULL)
+            assertTrue(repository.find().isEmpty());
+
+            // But the row still exists in the database with deleted_at set
+            try (Connection conn = dataSource.getConnection();
+                 Statement stmt = conn.createStatement();
+                 ResultSet rs = stmt.executeQuery(
+                         "SELECT deleted_at FROM projects WHERE project_id = 'proj-001'")) {
+                assertTrue(rs.next(), "Soft-deleted project row should still exist");
+                assertNotNull(rs.getTimestamp("deleted_at"), "deleted_at should be set");
+            }
+
+            // Related data should be hard-deleted
+            try (Connection conn = dataSource.getConnection();
+                 Statement stmt = conn.createStatement()) {
+                try (ResultSet rs = stmt.executeQuery(
+                        "SELECT COUNT(*) FROM schedulers WHERE project_id = 'proj-001'")) {
+                    rs.next();
+                    assertEquals(0, rs.getInt(1), "Schedulers should be hard-deleted");
+                }
+                try (ResultSet rs = stmt.executeQuery(
+                        "SELECT COUNT(*) FROM profiler_settings WHERE project_id = 'proj-001'")) {
+                    rs.next();
+                    assertEquals(0, rs.getInt(1), "Profiler settings should be hard-deleted");
+                }
+            }
         }
     }
 }

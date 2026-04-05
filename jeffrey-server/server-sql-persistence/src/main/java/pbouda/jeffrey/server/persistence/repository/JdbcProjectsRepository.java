@@ -37,24 +37,25 @@ public class JdbcProjectsRepository implements ProjectsRepository {
     private static final String SELECT_PROJECT_BY_ORIGIN_ID = """
             SELECT * FROM projects p
             JOIN workspaces w ON p.workspace_id = w.workspace_id
-            WHERE p.origin_project_id = :origin_project_id""";
+            WHERE p.origin_project_id = :origin_project_id AND p.deleted_at IS NULL""";
 
     //language=SQL
     private static final String SELECT_ALL_PROJECTS = """
             SELECT * FROM projects p
-            JOIN workspaces w ON p.workspace_id = w.workspace_id""";
+            JOIN workspaces w ON p.workspace_id = w.workspace_id
+            WHERE p.deleted_at IS NULL""";
 
     //language=SQL
     private static final String SELECT_PROJECTS_BY_WORKSPACE = """
             SELECT * FROM projects p
             JOIN workspaces w ON p.workspace_id = w.workspace_id
-            WHERE p.workspace_id = :workspace_id""";
+            WHERE p.workspace_id = :workspace_id AND p.deleted_at IS NULL""";
 
     //language=SQL
     private static final String SELECT_ACTIVE_PROJECTS_BY_WORKSPACE = """
             SELECT * FROM projects p
             JOIN workspaces w ON p.workspace_id = w.workspace_id
-            WHERE p.workspace_id = :workspace_id AND p.blocked = false""";
+            WHERE p.workspace_id = :workspace_id AND p.blocked = false AND p.deleted_at IS NULL""";
 
     //language=SQL
     private static final String INSERT_PROJECT = """
@@ -70,13 +71,13 @@ public class JdbcProjectsRepository implements ProjectsRepository {
                  attributes,
                  graph_visualization)
                 SELECT :project_id, :origin_project_id, :project_name, :project_label, :namespace, :workspace_id, :created_at, :origin_created_at, :attributes, :graph_visualization
-                WHERE NOT EXISTS (SELECT 1 FROM projects WHERE origin_project_id = :origin_project_id AND origin_project_id IS NOT NULL)
+                WHERE NOT EXISTS (SELECT 1 FROM projects WHERE origin_project_id = :origin_project_id AND origin_project_id IS NOT NULL AND deleted_at IS NULL)
                 ON CONFLICT DO NOTHING""";
 
     //language=SQL
     private static final String SELECT_ALL_NAMESPACES = """
             SELECT DISTINCT namespace FROM projects
-            WHERE namespace IS NOT NULL
+            WHERE namespace IS NOT NULL AND deleted_at IS NULL
             ORDER BY namespace""";
 
     private final DatabaseClient databaseClient;

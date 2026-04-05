@@ -37,17 +37,17 @@ public class JdbcWorkspacesRepository implements WorkspacesRepository {
 
     //language=SQL
     private static final String SELECT_ALL_WORKSPACES = """
-            SELECT w.*, (SELECT COUNT(*) FROM projects p WHERE p.workspace_id = w.workspace_id) as project_count
+            SELECT w.*, (SELECT COUNT(*) FROM projects p WHERE p.workspace_id = w.workspace_id AND p.deleted_at IS NULL) as project_count
             FROM workspaces w""";
 
     //language=SQL
     private static final String SELECT_WORKSPACE_BY_ID = """
-            SELECT w.*, (SELECT COUNT(*) FROM projects p WHERE p.workspace_id = w.workspace_id) as project_count
+            SELECT w.*, (SELECT COUNT(*) FROM projects p WHERE p.workspace_id = w.workspace_id AND p.deleted_at IS NULL) as project_count
             FROM workspaces w WHERE w.workspace_id = :workspace_id""";
 
     //language=SQL
     private static final String SELECT_WORKSPACE_BY_ORIGIN_ID = """
-            SELECT w.*, (SELECT COUNT(*) FROM projects p WHERE p.workspace_id = w.workspace_id) as project_count
+            SELECT w.*, (SELECT COUNT(*) FROM projects p WHERE p.workspace_id = w.workspace_id AND p.deleted_at IS NULL) as project_count
             FROM workspaces w WHERE w.workspace_origin_id = :workspace_origin_id""";
 
     //language=SQL
@@ -57,7 +57,7 @@ public class JdbcWorkspacesRepository implements WorkspacesRepository {
 
     //language=SQL
     private static final String SELECT_ALL_ACTIVE_WORKSPACES = """
-            SELECT w.*, (SELECT COUNT(*) FROM projects p WHERE p.workspace_id = w.workspace_id) as project_count
+            SELECT w.*, (SELECT COUNT(*) FROM projects p WHERE p.workspace_id = w.workspace_id AND p.deleted_at IS NULL) as project_count
             FROM workspaces w WHERE w.blocked = false""";
 
     //language=SQL

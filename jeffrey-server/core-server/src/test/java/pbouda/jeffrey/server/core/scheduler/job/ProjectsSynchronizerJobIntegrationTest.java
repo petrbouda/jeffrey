@@ -393,6 +393,64 @@ class ProjectsSynchronizerJobIntegrationTest {
     }
 
     @Nested
+    class DeletedProjectSkipping {
+
+        @Mock
+        WorkspaceManager workspaceManager;
+
+        @Mock
+        JfrStreamingConsumerManager streamingConsumerManager;
+
+        @Mock
+        SessionFinisher sessionFinisher;
+
+        @Mock
+        RepositoryStorage.Factory remoteRepositoryStorageFactory;
+
+        @Mock
+        ProjectsManager projectsManager;
+
+        @Test
+        void eventsForDeletedProject_skippedAndAcknowledged(DataSource dataSource) throws SQLException {
+            TestUtils.executeSql(dataSource, "sql/consumer/insert-workspace-and-project.sql");
+            var provider = new DatabaseClientProvider(dataSource);
+            var platformRepositories = new JdbcServerPlatformRepositories(provider, FIXED_CLOCK);
+
+            var queue = createQueue(dataSource);
+            // Events for a project that no longer exists (simulating soft-deleted)
+            queue.append(WORKSPACE_ID, instanceCreatedEvent("deleted-proj", "inst-ghost"));
+            queue.append(WORKSPACE_ID, sessionCreatedEvent("deleted-proj", "session-ghost"));
+
+            WorkspaceInfo wsInfo = new WorkspaceInfo(
+                    WORKSPACE_ID, null, null, "Test Workspace", null, null, null,
+                    Instant.parse("2025-01-01T10:00:00Z"), WorkspaceStatus.AVAILABLE, 0, false, null);
+            when(workspaceManager.resolveInfo()).thenReturn(wsInfo);
+            when(workspaceManager.projectsManager()).thenReturn(projectsManager);
+
+            // findByOriginProjectId returns empty for deleted project
+            when(projectsManager.findByOriginProjectId("deleted-proj")).thenReturn(Optional.empty());
+
+            var consumers = createConsumers(
+                    platformRepositories, remoteRepositoryStorageFactory,
+                    streamingConsumerManager, sessionFinisher);
+            var job = new ProjectsSynchronizerJob(
+                    consumers, queue, null, null, null,
+                    Duration.ofMinutes(5));
+
+            job.executeOnWorkspace(workspaceManager, JOB_DESCRIPTOR, JobContext.EMPTY);
+
+            // No instance should be created (events were skipped, not processed by consumers)
+            var instanceRepo = platformRepositories.newProjectInstanceRepository(PROJECT_ID);
+            assertTrue(instanceRepo.find("inst-ghost").isEmpty());
+
+            // Queue should still be fully acknowledged
+            List<QueueEntry<WorkspaceEvent>> remaining = queue.poll(
+                    WORKSPACE_ID, WorkspaceEventConsumerType.PROJECT_SYNCHRONIZER_CONSUMER.name());
+            assertTrue(remaining.isEmpty());
+        }
+    }
+
+    @Nested
     class EventOrdering {
 
         @Mock

@@ -90,8 +90,8 @@ public class ProjectsSynchronizerJob extends WorkspaceJob<ProjectsSynchronizerJo
         for (QueueEntry<WorkspaceEvent> entry : sortedEntries) {
             WorkspaceEvent event = fromQueueEntry(entry);
             try {
-                if (isProjectBlocked(event, projectsManager)) {
-                    LOG.debug("Skipping event for blocked project: event_type={} project_id={}",
+                if (shouldSkipEvent(event, projectsManager)) {
+                    LOG.debug("Skipping event for blocked or deleted project: event_type={} project_id={}",
                             event.eventType(), event.projectId());
                     latestOffset = entry.offset();
                     continue;
@@ -136,20 +136,21 @@ public class ProjectsSynchronizerJob extends WorkspaceJob<ProjectsSynchronizerJo
         return JobType.PROJECTS_SYNCHRONIZER;
     }
 
-    private static boolean isProjectBlocked(WorkspaceEvent event, ProjectsManager projectsManager) {
+    private static boolean shouldSkipEvent(WorkspaceEvent event, ProjectsManager projectsManager) {
         if (event.projectId() == null) {
             return false;
         }
 
-        // Never block project creation or deletion events
+        // Never skip project creation or deletion events
         if (event.eventType() == WorkspaceEventType.PROJECT_CREATED
                 || event.eventType() == WorkspaceEventType.PROJECT_DELETED) {
             return false;
         }
 
+        // Skip if project is blocked or not found (soft-deleted/unknown)
         return projectsManager.findByOriginProjectId(event.projectId())
                 .map(pm -> pm.info().blocked())
-                .orElse(false);
+                .orElse(true);
     }
 
     private static WorkspaceEvent fromQueueEntry(QueueEntry<WorkspaceEvent> entry) {
