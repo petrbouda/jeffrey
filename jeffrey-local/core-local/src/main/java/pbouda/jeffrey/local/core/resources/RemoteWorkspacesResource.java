@@ -18,6 +18,7 @@
 
 package pbouda.jeffrey.local.core.resources;
 
+import io.grpc.StatusRuntimeException;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.core.Response;
@@ -56,11 +57,23 @@ public class RemoteWorkspacesResource {
 
         WorkspaceAddress address = new WorkspaceAddress(request.hostname(), request.port());
         RemoteClients remoteClients = remoteClientsFactory.apply(address);
-        var result = remoteClients.discovery().allWorkspaces().stream()
-                .map(this::toRemoteWorkspaceResponse)
-                .toList();
-        LOG.debug("Listed remote workspaces: address={} count={}", address, result.size());
-        return result;
+        try {
+            var result = remoteClients.discovery().allWorkspaces().stream()
+                    .map(this::toRemoteWorkspaceResponse)
+                    .toList();
+            LOG.debug("Listed remote workspaces: address={} count={}", address, result.size());
+            return result;
+        } catch (StatusRuntimeException e) {
+            LOG.warn("Failed to connect to remote Jeffrey Server: address={} status={}", address, e.getStatus());
+            String message = switch (e.getStatus().getCode()) {
+                case UNAVAILABLE -> "Cannot connect to %s:%d. Check that Jeffrey Server is running and the gRPC port (default: 9090) is correct.".formatted(request.hostname(), request.port());
+                case DEADLINE_EXCEEDED -> "Connection to %s:%d timed out. The server may be unreachable.".formatted(request.hostname(), request.port());
+                case UNKNOWN -> "The endpoint %s:%d does not appear to be a valid Jeffrey Server gRPC service. Make sure you are connecting to the gRPC port, not the HTTP port.".formatted(request.hostname(), request.port());
+                case UNIMPLEMENTED -> "The server at %s:%d does not support the required Jeffrey gRPC services. It may be an incompatible version.".formatted(request.hostname(), request.port());
+                default -> "Failed to connect to Jeffrey Server at %s:%d: %s".formatted(request.hostname(), request.port(), e.getStatus().getCode());
+            };
+            throw Exceptions.invalidRequest(message);
+        }
     }
 
     @POST
