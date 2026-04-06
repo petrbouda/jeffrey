@@ -76,7 +76,7 @@ export default class EventStreamingClient {
     if (eventTypes.length > 0) {
       params.set('eventTypes', eventTypes.join(','))
     }
-    if (options?.startTime) {
+    if (options?.startTime != null) {
       params.set('startTime', String(options.startTime))
     }
     if (options?.endTime) {

@@ -25,16 +25,6 @@ import java.util.List;
 public interface WorkspaceRepository {
 
     /**
-     * Block the workspace — stops all event processing and periodic jobs.
-     */
-    void block();
-
-    /**
-     * Unblock the workspace — resumes event processing and periodic jobs.
-     */
-    void unblock();
-
-    /**
      * Delete the workspace row and all workspace-scoped data from the database.
      */
     void delete();

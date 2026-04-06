@@ -33,7 +33,9 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -57,6 +59,9 @@ public class SubscriberEventStream implements Closeable {
     private final boolean sendEmptyBatches;
     private final StreamObserver<EventBatch> observer;
     private final List<StreamingEvent> buffer = new ArrayList<>();
+    private final Map<String, Integer> debugEventCounts = new HashMap<>();
+    private long latestEventTimestamp = Long.MIN_VALUE;
+    private boolean closing;
 
     private EventStream eventStream;
 
@@ -87,7 +92,8 @@ public class SubscriberEventStream implements Closeable {
     public void start() throws IOException {
         Path streamingRepoPath = sessionPath.resolve(STREAMING_REPO_DIR);
 
-        LOG.debug("Starting subscriber event stream: sessionId={} path={}", sessionId, streamingRepoPath);
+        LOG.info("Starting subscriber event stream: sessionId={} path={} eventTypes={} startTime={} endTime={}",
+                sessionId, streamingRepoPath, eventTypes, startTime, endTime);
 
         this.eventStream = EventStream.openRepository(streamingRepoPath);
 
@@ -97,6 +103,10 @@ public class SubscriberEventStream implements Closeable {
         if (endTime != null) {
             eventStream.setEndTime(endTime);
         }
+
+        // Diagnostic: count ALL events flowing through the repository
+        eventStream.onEvent(event ->
+                debugEventCounts.merge(event.getEventType().getName(), 1, Integer::sum));
 
         if (eventTypes.isEmpty()) {
             eventStream.onEvent(this::bufferEvent);
@@ -130,19 +140,46 @@ public class SubscriberEventStream implements Closeable {
     }
 
     private void bufferEvent(RecordedEvent event) {
-        buffer.add(RecordedEventMapper.toStreamingEvent(sessionId, event));
+        try {
+            StreamingEvent streamingEvent = RecordedEventMapper.toStreamingEvent(sessionId, event);
+            buffer.add(streamingEvent);
+            if (streamingEvent.getTimestamp() > latestEventTimestamp) {
+                latestEventTimestamp = streamingEvent.getTimestamp();
+            }
+        } catch (Exception e) {
+            LOG.error("Failed to map event: sessionId={} eventType={}", sessionId, event.getEventType().getName(), e);
+        }
     }
 
     private void flush() {
+        if (closing) {
+            return;
+        }
+        if (!debugEventCounts.isEmpty()) {
+            LOG.info("Repository event counts: sessionId={} buffered={} counts={}", sessionId, buffer.size(), debugEventCounts);
+            debugEventCounts.clear();
+        }
         if (!buffer.isEmpty() || sendEmptyBatches) {
             try {
                 observer.onNext(EventBatch.newBuilder().addAllEvents(buffer).build());
             } catch (Exception e) {
                 LOG.debug("Failed to send batch, closing stream: sessionId={}", sessionId);
-                eventStream.close();
+                closeStream();
                 return;
             }
             buffer.clear();
+        }
+        if (endTime != null && latestEventTimestamp >= endTime.toEpochMilli()) {
+            LOG.debug("End time reached, closing stream: sessionId={} latestEventTimestamp={} endTime={}",
+                    sessionId, latestEventTimestamp, endTime.toEpochMilli());
+            closeStream();
+        }
+    }
+
+    private void closeStream() {
+        if (!closing) {
+            closing = true;
+            eventStream.close();
         }
     }
 

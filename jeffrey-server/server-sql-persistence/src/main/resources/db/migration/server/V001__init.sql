@@ -35,8 +35,7 @@ CREATE TABLE IF NOT EXISTS workspaces
     description         VARCHAR,
     location            VARCHAR,
     base_location       VARCHAR,
-    created_at          TIMESTAMPTZ NOT NULL,
-    blocked             BOOLEAN NOT NULL DEFAULT false
+    created_at          TIMESTAMPTZ NOT NULL
 );
 
 --

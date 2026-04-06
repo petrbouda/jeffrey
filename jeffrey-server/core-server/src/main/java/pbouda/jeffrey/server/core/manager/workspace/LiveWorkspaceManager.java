@@ -93,33 +93,12 @@ public class LiveWorkspaceManager implements WorkspaceManager {
     }
 
     @Override
-    public void block() {
-        workspaceRepository.block();
-        LOG.info("Blocked workspace: workspaceId={}", workspaceInfo.id());
-    }
-
-    @Override
-    public void blockAndDeleteData() {
-        for (ProjectManager project : projectsManager().findAll()) {
-            platformRepositories.newProjectRepository(project.info().id()).delete();
-        }
-        workspaceRepository.block();
-        LOG.info("Blocked workspace and deleted data: workspaceId={}", workspaceInfo.id());
-    }
-
-    @Override
     public void delete() {
         for (ProjectManager project : projectsManager().findAll()) {
             platformRepositories.newProjectRepository(project.info().id()).delete();
         }
         workspaceRepository.delete();
         LOG.info("Deleted workspace: workspaceId={}", workspaceInfo.id());
-    }
-
-    @Override
-    public void unblock() {
-        workspaceRepository.unblock();
-        LOG.info("Unblocked workspace: workspaceId={}", workspaceInfo.id());
     }
 
     @Override

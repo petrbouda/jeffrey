@@ -142,7 +142,7 @@ class WorkspaceEventsReplicatorJobTest {
 
         private static final WorkspaceInfo WORKSPACE_INFO = new WorkspaceInfo(
                 INTERNAL_WORKSPACE_ID, WORKSPACE_ID, WORKSPACE_ID, "Test Workspace", null,
-                null, null, NOW, WorkspaceStatus.UNKNOWN, 0, false);
+                null, null, NOW, WorkspaceStatus.UNKNOWN, 0);
 
         @Test
         void instanceCreatedEvent_replicatedWithInternalWorkspaceId() throws Exception {
@@ -212,7 +212,7 @@ class WorkspaceEventsReplicatorJobTest {
         private static final String AUTO_CREATED_WORKSPACE_ID = "auto-created-uuid-001";
         private static final WorkspaceInfo AUTO_CREATED_INFO = new WorkspaceInfo(
                 AUTO_CREATED_WORKSPACE_ID, WORKSPACE_ID, WORKSPACE_ID, WORKSPACE_ID, null,
-                null, null, NOW, WorkspaceStatus.UNKNOWN, 0, false);
+                null, null, NOW, WorkspaceStatus.UNKNOWN, 0);
 
         @Test
         void unknownWorkspace_autoCreateEnabled_workspaceCreatedAndEventReplicated() throws Exception {
@@ -362,7 +362,7 @@ class WorkspaceEventsReplicatorJobTest {
 
         private static final WorkspaceInfo WORKSPACE_INFO = new WorkspaceInfo(
                 INTERNAL_WORKSPACE_ID, WORKSPACE_ID, WORKSPACE_ID, "Test Workspace", null,
-                null, null, NOW, WorkspaceStatus.UNKNOWN, 0, false);
+                null, null, NOW, WorkspaceStatus.UNKNOWN, 0);
 
         @Test
         void mixedWorkspaces_autoCreateDisabled_onlyKnownWorkspaceEventsReplicated() throws Exception {

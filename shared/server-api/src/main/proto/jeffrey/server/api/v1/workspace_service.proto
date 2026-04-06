@@ -5,27 +5,22 @@ package jeffrey.server.api.v1;
 option java_package = "pbouda.jeffrey.server.api.v1";
 option java_multiple_files = true;
 
-// Manages workspace discovery, lifecycle, and blocking.
+// Manages workspace discovery and lifecycle.
 // Workspaces are top-level containers that group projects. They are auto-created
 // from filesystem events and represent a connection to a monitored environment.
 service WorkspaceService {
   // Returns the Jeffrey server version and API version for compatibility checks.
   rpc GetApiInfo(GetApiInfoRequest) returns (GetApiInfoResponse);
 
-  // Lists all workspaces registered on this server, including blocked ones.
+  // Lists all workspaces registered on this server.
   rpc ListWorkspaces(ListWorkspacesRequest) returns (ListWorkspacesResponse);
 
   // Gets a single workspace by its internal ID.
   rpc GetWorkspace(GetWorkspaceRequest) returns (GetWorkspaceResponse);
 
-  // Blocks a workspace with a configurable mode: block only, block and delete data,
-  // or fully delete. Blocked workspaces stop all event processing, streaming,
-  // and periodic jobs. Events arriving for a blocked workspace are silently discarded.
-  rpc BlockWorkspace(BlockWorkspaceRequest) returns (BlockWorkspaceResponse);
-
-  // Unblocks a previously blocked workspace, resuming event processing and periodic jobs.
-  // Events that arrived while blocked were discarded and will not be replayed.
-  rpc UnblockWorkspace(UnblockWorkspaceRequest) returns (UnblockWorkspaceResponse);
+  // Deletes a workspace and all its data.
+  // The workspace can be automatically recreated if new CLI events arrive.
+  rpc DeleteWorkspace(DeleteWorkspaceRequest) returns (DeleteWorkspaceResponse);
 }
 
 message GetApiInfoRequest {}
@@ -40,7 +35,6 @@ message GetApiInfoResponse {
 message ListWorkspacesRequest {}
 
 message ListWorkspacesResponse {
-  // All workspaces on this server, including blocked ones.
   repeated WorkspaceInfo workspaces = 1;
 }
 
@@ -53,38 +47,12 @@ message GetWorkspaceResponse {
   WorkspaceInfo workspace = 1;
 }
 
-// Controls what happens when blocking a workspace.
-enum BlockWorkspaceMode {
-  // Block the workspace but keep all project data intact.
-  // All processing stops; data can be accessed read-only.
-  BLOCK = 0;
-
-  // Block the workspace and cascade-delete all project data
-  // (instances, sessions, recordings, messages, alerts, etc.).
-  // The workspace row is kept with blocked=true to prevent re-creation by the synchronizer.
-  BLOCK_AND_DELETE_DATA = 1;
-
-  // Cascade-delete everything including the workspace row itself.
-  // The workspace can be re-created automatically by the synchronizer
-  // if new filesystem events arrive for this workspace.
-  DELETE = 2;
-}
-
-message BlockWorkspaceRequest {
-  // The workspace to block or delete.
-  string workspace_id = 1;
-  // The blocking mode that determines data retention.
-  BlockWorkspaceMode mode = 2;
-}
-
-message BlockWorkspaceResponse {}
-
-message UnblockWorkspaceRequest {
-  // The workspace to unblock.
+message DeleteWorkspaceRequest {
+  // The workspace to delete.
   string workspace_id = 1;
 }
 
-message UnblockWorkspaceResponse {}
+message DeleteWorkspaceResponse {}
 
 // Represents a workspace — a top-level container for projects.
 // Workspaces correspond to monitored environments and are typically
@@ -102,9 +70,6 @@ message WorkspaceInfo {
   int32 project_count = 5;
   // Current availability status of the workspace.
   WorkspaceStatus status = 6;
-  // Whether the workspace is blocked. Blocked workspaces do not process
-  // any events, run periodic jobs, or accept new project data.
-  bool is_blocked = 7;
 }
 
 // Availability status of a workspace.

@@ -116,14 +116,16 @@ public class EventStreamingManager {
         return array;
     }
 
-    private static void putTypedValue(ObjectNode node, String key, TypedValue tv) {
+    private static void putTypedValue(ObjectNode fields, String key, TypedValue tv) {
+        ObjectNode wrapper = Json.createObject();
         switch (tv.getValueCase()) {
-            case STRING_VALUE -> node.put(key, tv.getStringValue());
-            case LONG_VALUE -> node.put(key, tv.getLongValue());
-            case DOUBLE_VALUE -> node.put(key, tv.getDoubleValue());
-            case BOOL_VALUE -> node.put(key, tv.getBoolValue());
-            case FLOAT_VALUE -> node.put(key, tv.getFloatValue());
-            case VALUE_NOT_SET -> node.putNull(key);
+            case STRING_VALUE -> wrapper.put("stringValue", tv.getStringValue());
+            case LONG_VALUE -> wrapper.put("longValue", tv.getLongValue());
+            case DOUBLE_VALUE -> wrapper.put("doubleValue", tv.getDoubleValue());
+            case BOOL_VALUE -> wrapper.put("boolValue", tv.getBoolValue());
+            case FLOAT_VALUE -> wrapper.put("floatValue", tv.getFloatValue());
+            case VALUE_NOT_SET -> { }
         }
+        fields.set(key, wrapper);
     }
 }

@@ -56,11 +56,6 @@ public class JdbcWorkspacesRepository implements WorkspacesRepository {
             VALUES (:workspace_id, :workspace_origin_id, :repository_id, :name, :description, :location, :base_location, :created_at)""";
 
     //language=SQL
-    private static final String SELECT_ALL_ACTIVE_WORKSPACES = """
-            SELECT w.*, (SELECT COUNT(*) FROM projects p WHERE p.workspace_id = w.workspace_id AND p.deleted_at IS NULL) as project_count
-            FROM workspaces w WHERE w.blocked = false""";
-
-    //language=SQL
     private static final String CHECK_NAME_EXISTS =
             "SELECT COUNT(*) FROM workspaces WHERE name = :name";
 
@@ -75,15 +70,6 @@ public class JdbcWorkspacesRepository implements WorkspacesRepository {
         return databaseClient.query(
                 StatementLabel.FIND_ALL_WORKSPACES,
                 SELECT_ALL_WORKSPACES,
-                new MapSqlParameterSource(),
-                workspaceMapper());
-    }
-
-    @Override
-    public List<WorkspaceInfo> findAllActive() {
-        return databaseClient.query(
-                StatementLabel.FIND_ALL_WORKSPACES,
-                SELECT_ALL_ACTIVE_WORKSPACES,
                 new MapSqlParameterSource(),
                 workspaceMapper());
     }
@@ -159,8 +145,7 @@ public class JdbcWorkspacesRepository implements WorkspacesRepository {
                     baseLocation != null ? WorkspaceLocation.of(baseLocation) : null,
                     ServerMappers.instant(rs, "created_at"),
                     WorkspaceStatus.UNKNOWN,
-                    rs.getInt("project_count"),
-                    rs.getBoolean("blocked")
+                    rs.getInt("project_count")
             );
         };
     }

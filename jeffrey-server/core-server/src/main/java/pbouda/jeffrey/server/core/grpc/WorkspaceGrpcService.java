@@ -105,45 +105,19 @@ public class WorkspaceGrpcService extends WorkspaceServiceGrpc.WorkspaceServiceI
     }
 
     @Override
-    public void blockWorkspace(BlockWorkspaceRequest request, StreamObserver<BlockWorkspaceResponse> responseObserver) {
+    public void deleteWorkspace(DeleteWorkspaceRequest request, StreamObserver<DeleteWorkspaceResponse> responseObserver) {
         try {
             WorkspaceManager workspace = findWorkspace(request.getWorkspaceId());
+            workspace.delete();
 
-            switch (request.getMode()) {
-                case BLOCK -> workspace.block();
-                case BLOCK_AND_DELETE_DATA -> workspace.blockAndDeleteData();
-                case DELETE -> workspace.delete();
-                default -> throw Status.INVALID_ARGUMENT
-                        .withDescription("Unknown block mode: " + request.getMode())
-                        .asRuntimeException();
-            }
+            LOG.info("Deleted workspace via gRPC: workspaceId={}", request.getWorkspaceId());
 
-            LOG.info("Blocked workspace via gRPC: workspaceId={} mode={}", request.getWorkspaceId(), request.getMode());
-
-            responseObserver.onNext(BlockWorkspaceResponse.getDefaultInstance());
+            responseObserver.onNext(DeleteWorkspaceResponse.getDefaultInstance());
             responseObserver.onCompleted();
         } catch (io.grpc.StatusRuntimeException e) {
             responseObserver.onError(e);
         } catch (Exception e) {
-            LOG.error("Failed to block workspace: workspaceId={}", request.getWorkspaceId(), e);
-            responseObserver.onError(Status.INTERNAL.withDescription(e.getMessage()).asRuntimeException());
-        }
-    }
-
-    @Override
-    public void unblockWorkspace(UnblockWorkspaceRequest request, StreamObserver<UnblockWorkspaceResponse> responseObserver) {
-        try {
-            WorkspaceManager workspace = findWorkspace(request.getWorkspaceId());
-            workspace.unblock();
-
-            LOG.info("Unblocked workspace via gRPC: workspaceId={}", request.getWorkspaceId());
-
-            responseObserver.onNext(UnblockWorkspaceResponse.getDefaultInstance());
-            responseObserver.onCompleted();
-        } catch (io.grpc.StatusRuntimeException e) {
-            responseObserver.onError(e);
-        } catch (Exception e) {
-            LOG.error("Failed to unblock workspace: workspaceId={}", request.getWorkspaceId(), e);
+            LOG.error("Failed to delete workspace: workspaceId={}", request.getWorkspaceId(), e);
             responseObserver.onError(Status.INTERNAL.withDescription(e.getMessage()).asRuntimeException());
         }
     }
@@ -162,8 +136,7 @@ public class WorkspaceGrpcService extends WorkspaceServiceGrpc.WorkspaceServiceI
                 .setDescription(info.description() != null ? info.description() : "")
                 .setCreatedAt(info.createdAt().toEpochMilli())
                 .setProjectCount(info.projectCount())
-                .setStatus(toProtoStatus(info.status()))
-                .setIsBlocked(info.blocked());
+                .setStatus(toProtoStatus(info.status()));
 
         return builder.build();
     }

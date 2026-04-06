@@ -22,8 +22,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.server.core.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.server.core.manager.workspace.WorkspacesManager;
-import pbouda.jeffrey.shared.persistentqueue.PersistentQueue;
-import pbouda.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.server.core.scheduler.Job;
 import pbouda.jeffrey.server.core.scheduler.JobContext;
 import pbouda.jeffrey.server.core.scheduler.SchedulerTrigger;
@@ -32,9 +30,11 @@ import pbouda.jeffrey.shared.common.Json;
 import pbouda.jeffrey.shared.common.model.job.JobType;
 import pbouda.jeffrey.shared.common.model.workspace.CLIWorkspaceEvent;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEvent;
+import pbouda.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.shared.folderqueue.FolderQueue;
 import pbouda.jeffrey.shared.folderqueue.FolderQueueEntry;
 import pbouda.jeffrey.shared.folderqueue.FolderQueueEntryParser;
+import pbouda.jeffrey.shared.persistentqueue.PersistentQueue;
 
 import java.time.Clock;
 import java.time.Duration;
@@ -133,14 +133,7 @@ public class WorkspaceEventsReplicatorJob implements Job {
                     LOG.info("Auto-created workspace for CLI event: origin_id={} workspace_id={}",
                             event.workspaceId(), internalWorkspaceId);
                 } else {
-                    WorkspaceInfo workspaceInfo = workspaceOpt.get().localInfo();
-                    if (workspaceInfo.blocked()) {
-                        LOG.debug("Skipping event for blocked workspace: workspace_id={} event_type={}",
-                                event.workspaceId(), event.eventType());
-                        folderQueue.acknowledge(entry.filePath());
-                        continue;
-                    }
-                    internalWorkspaceId = workspaceInfo.id();
+                    internalWorkspaceId = workspaceOpt.get().localInfo().id();
                 }
 
                 workspaceEventQueue.append(internalWorkspaceId, event);

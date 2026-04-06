@@ -110,10 +110,16 @@
               </div>
               <div class="scm-session-meta">
                 <span>Started {{ FormattingService.formatRelativeTime(session.createdAt) }}</span>
-                <span>Duration: {{ FormattingService.formatDurationFromMillis(session.createdAt, session.finishedAt) }}</span>
+                <span v-if="session.finishedAt">Duration: {{ FormattingService.formatDurationFromMillis(session.createdAt, session.finishedAt) }}</span>
               </div>
             </div>
           </template>
+
+          <div v-if="hasMoreInstances" class="scm-load-more">
+            <button class="scm-load-more-btn" @click="maxVisibleInstances += 5">
+              Show {{ hiddenInstanceCount }} more instance{{ hiddenInstanceCount > 1 ? 's' : '' }}
+            </button>
+          </div>
 
           <div v-if="filteredGroups.length === 0" class="scm-no-results">
             No sessions matching "{{ sessionSearchQuery }}"
@@ -205,6 +211,22 @@
           <div class="scm-toggle-desc">Keep stream open for new events after initial replay</div>
         </div>
       </div>
+
+      <div class="scm-max-events-row">
+        <label class="scm-label">Event Buffer Size</label>
+        <div class="scm-max-events-options">
+          <button
+            v-for="option in maxEventsOptions"
+            :key="option"
+            class="scm-option-btn"
+            :class="{ active: localMaxEvents === option }"
+            @click="localMaxEvents = option"
+          >
+            {{ option.toLocaleString() }}
+          </button>
+        </div>
+        <div class="scm-toggle-desc">Maximum number of events kept in the table. Oldest events are discarded when the limit is reached.</div>
+      </div>
     </div>
   </GenericModal>
 </template>
@@ -240,6 +262,7 @@ export interface StreamingConfig {
   endMode: EndMode
   endTime: string
   continuous: boolean
+  maxEvents: number
 }
 
 const props = defineProps<{
@@ -292,6 +315,7 @@ function goToStep(step: number) {
 const sessionsLoading = ref(false)
 const sessionSearchQuery = ref('')
 const instanceGroups = ref<InstanceGroup[]>([])
+const maxVisibleInstances = ref(5)
 
 // Config state
 const localSessionId = ref('')
@@ -302,8 +326,10 @@ const localStartTime = ref('')
 const endMode = ref<EndMode>('now')
 const localEndTime = ref('')
 const localContinuous = ref(false)
+const localMaxEvents = ref(1000)
+const maxEventsOptions = [500, 1000, 5000, 10000]
 
-const filteredGroups = computed(() => {
+const allFilteredGroups = computed(() => {
   if (!sessionSearchQuery.value) return instanceGroups.value
 
   const q = sessionSearchQuery.value.toLowerCase()
@@ -317,12 +343,25 @@ const filteredGroups = computed(() => {
     .filter((group) => group.sessions.length > 0)
 })
 
+const filteredGroups = computed(() => {
+  return allFilteredGroups.value.slice(0, maxVisibleInstances.value)
+})
+
+const hasMoreInstances = computed(() => {
+  return allFilteredGroups.value.length > maxVisibleInstances.value
+})
+
+const hiddenInstanceCount = computed(() => {
+  return allFilteredGroups.value.length - maxVisibleInstances.value
+})
+
 // Sync local state + load sessions when modal opens
 watch(
   () => props.show,
   (visible) => {
     if (visible) {
       currentStep.value = 1
+      maxVisibleInstances.value = 5
       localSessionId.value = props.config.sessionId
       localHostname.value = props.config.sessionHostname
       localEventTypes.value = [...props.config.eventTypes]
@@ -331,6 +370,7 @@ watch(
       endMode.value = props.config.endMode
       localEndTime.value = props.config.endTime
       localContinuous.value = props.config.continuous
+      localMaxEvents.value = props.config.maxEvents
       sessionSearchQuery.value = ''
       loadSessions()
     }
@@ -408,7 +448,8 @@ function apply() {
     startTime: localStartTime.value,
     endMode: endMode.value,
     endTime: localEndTime.value,
-    continuous: localContinuous.value
+    continuous: localContinuous.value,
+    maxEvents: localMaxEvents.value
   })
   emit('update:show', false)
 }
@@ -613,6 +654,29 @@ function apply() {
   50% { box-shadow: 0 0 0 4px rgba(0, 210, 122, 0); }
 }
 
+.scm-load-more {
+  text-align: center;
+  padding: 8px 0;
+}
+
+.scm-load-more-btn {
+  padding: 6px 16px;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-primary);
+  font-size: 0.78rem;
+  font-weight: 500;
+  font-family: var(--font-base);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.scm-load-more-btn:hover {
+  border-color: var(--color-primary);
+  background: var(--color-primary-light);
+}
+
 .scm-no-results {
   text-align: center;
   padding: 20px;
@@ -763,5 +827,18 @@ function apply() {
   font-size: 0.75rem;
   color: var(--color-muted);
   margin-top: 2px;
+}
+
+/* ===== Max Events ===== */
+.scm-max-events-row {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--color-border-light);
+}
+
+.scm-max-events-options {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 6px;
 }
 </style>

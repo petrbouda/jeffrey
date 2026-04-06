@@ -30,24 +30,23 @@ public record WorkspaceInfo(
         WorkspaceLocation baseLocation,
         Instant createdAt,
         WorkspaceStatus status,
-        int projectCount,
-        boolean blocked) {
+        int projectCount) {
 
     public WorkspaceInfo withId(String newId) {
         return new WorkspaceInfo(
                 newId, originId, repositoryId, name, description,
-                location, baseLocation, createdAt, status, projectCount, blocked);
+                location, baseLocation, createdAt, status, projectCount);
     }
 
     public WorkspaceInfo withLocation(WorkspaceLocation newLocation) {
         return new WorkspaceInfo(
                 id, originId, repositoryId, name, description,
-                newLocation, baseLocation, createdAt, status, projectCount, blocked);
+                newLocation, baseLocation, createdAt, status, projectCount);
     }
 
     public WorkspaceInfo withStatus(WorkspaceStatus newStatus) {
         return new WorkspaceInfo(
                 id, originId, repositoryId, name, description,
-                location, baseLocation, createdAt, newStatus, projectCount, blocked);
+                location, baseLocation, createdAt, newStatus, projectCount);
     }
 }

@@ -129,12 +129,6 @@
 
     <!-- Main Content -->
     <div class="detail-main-content">
-      <!-- Blocked Project Banner -->
-      <div v-if="projectInfo?.isBlocked" class="blocked-banner">
-        <i class="bi bi-slash-circle"></i>
-        <span>This project is blocked. No events are being processed.</span>
-      </div>
-
       <!-- Content Area without tabs -->
       <div class="detail-content-container mb-4">
         <div class="card">
@@ -314,26 +308,6 @@ const toggleSidebar = () => {
 <style scoped>
 /* ProjectDetail-specific styles */
 /* Common sidebar styles are in @/assets/_sidebar-menu.scss */
-
-/* Blocked Project Banner */
-.blocked-banner {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 16px;
-  margin-bottom: 16px;
-  background: linear-gradient(135deg, var(--color-amber-bg), var(--color-amber-light));
-  border: 1px solid rgba(245, 158, 11, 0.2);
-  border-radius: 8px;
-  color: var(--color-amber-text);
-  font-size: 0.85rem;
-  font-weight: 500;
-}
-
-.blocked-banner i {
-  font-size: 1rem;
-  color: var(--color-amber);
-}
 
 /* Sidebar Header - Light Tinted with Accent Border */
 .sidebar-header {

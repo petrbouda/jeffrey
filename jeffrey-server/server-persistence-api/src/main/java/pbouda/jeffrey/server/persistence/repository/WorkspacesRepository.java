@@ -33,13 +33,6 @@ public interface WorkspacesRepository {
     List<WorkspaceInfo> findAll();
 
     /**
-     * Find all active (non-blocked) workspaces.
-     *
-     * @return list of active workspaces
-     */
-    List<WorkspaceInfo> findAllActive();
-
-    /**
      * Find the workspace by ID.
      *
      * @param workspaceId the workspace ID

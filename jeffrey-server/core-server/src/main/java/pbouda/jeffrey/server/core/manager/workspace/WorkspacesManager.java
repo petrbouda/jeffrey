@@ -126,13 +126,6 @@ public interface WorkspacesManager {
     List<? extends WorkspaceManager> findAll();
 
     /**
-     * Get all active (non-blocked) workspaces.
-     *
-     * @return list of active workspaces
-     */
-    List<? extends WorkspaceManager> findAllActive();
-
-    /**
      * Get a workspace by its ID.
      *
      * @param workspaceId the workspace ID

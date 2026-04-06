@@ -94,7 +94,8 @@
                   class="summary-tag"
                   :class="'summary-tag--' + getEventTypePrefix(et)"
                 >{{ et }}</span>
-                <span v-if="overflowCount > 0" class="summary-overflow">+{{ overflowCount }} more</span>
+                <a v-if="overflowCount > 0 && !eventTagsExpanded" href="#" class="summary-overflow" @click.prevent="eventTagsExpanded = true">+{{ overflowCount }} more</a>
+                <a v-if="eventTagsExpanded && overflowCount > 0" href="#" class="summary-overflow" @click.prevent="eventTagsExpanded = false">Show less</a>
               </div>
             </div>
           </div>
@@ -219,6 +220,7 @@ const MAX_VISIBLE_TAGS = 3
 const { workspaceId, projectId } = useNavigation()
 
 const showConfigDrawer = ref(false)
+const eventTagsExpanded = ref(false)
 const sessionId = ref('')
 const sessionHostname = ref('')
 const eventTypes = ref<string[]>([])
@@ -232,6 +234,7 @@ const events = ref<StreamingEvent[]>([])
 const batchCount = ref(0)
 const lastBatchTime = ref<number | null>(null)
 const maxDisplayed = ref(200)
+const maxEvents = ref(1000)
 
 let client: EventStreamingClient | null = null
 
@@ -243,10 +246,13 @@ const currentConfig = computed<StreamingConfig>(() => ({
   startTime: startTimeInput.value,
   endMode: endMode.value,
   endTime: endTimeInput.value,
-  continuous: continuous.value
+  continuous: continuous.value,
+  maxEvents: maxEvents.value
 }))
 
-const visibleEventTags = computed(() => eventTypes.value.slice(0, MAX_VISIBLE_TAGS))
+const visibleEventTags = computed(() =>
+  eventTagsExpanded.value ? eventTypes.value : eventTypes.value.slice(0, MAX_VISIBLE_TAGS)
+)
 const overflowCount = computed(() => Math.max(0, eventTypes.value.length - MAX_VISIBLE_TAGS))
 
 function datetimeLocalToMillis(value: string): number {
@@ -282,6 +288,7 @@ function onConfigApply(config: StreamingConfig) {
   endMode.value = config.endMode
   endTimeInput.value = config.endTime
   continuous.value = config.continuous
+  maxEvents.value = config.maxEvents
 }
 
 function startStreaming() {
@@ -309,6 +316,10 @@ function startStreaming() {
       batchCount.value++
       lastBatchTime.value = Date.now()
       events.value.push(...batch)
+      const limit = maxEvents.value
+      if (events.value.length > limit) {
+        events.value = events.value.slice(-limit)
+      }
     },
     () => {
       connected.value = false
@@ -342,6 +353,7 @@ function clearAll() {
   batchCount.value = 0
   lastBatchTime.value = null
   maxDisplayed.value = 200
+  maxEvents.value = 1000
 }
 
 onUnmounted(() => {
@@ -526,8 +538,14 @@ onUnmounted(() => {
 
 .summary-overflow {
   font-size: 0.75rem;
-  color: var(--color-muted);
+  color: var(--color-primary);
   white-space: nowrap;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.summary-overflow:hover {
+  text-decoration: underline;
 }
 
 .summary-seg-arrow {

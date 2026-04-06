@@ -30,14 +30,6 @@ import java.util.List;
 public class JdbcWorkspaceRepository implements WorkspaceRepository {
 
     //language=SQL
-    private static final String BLOCK_WORKSPACE =
-            "UPDATE workspaces SET blocked = true WHERE workspace_id = :workspace_id";
-
-    //language=SQL
-    private static final String UNBLOCK_WORKSPACE =
-            "UPDATE workspaces SET blocked = false WHERE workspace_id = :workspace_id";
-
-    //language=SQL
     private static final String DELETE_WORKSPACE = """
             DELETE FROM profiler_settings WHERE workspace_id = '%workspace_id%' AND project_id IS NULL;
             DELETE FROM persistent_queue_consumers WHERE scope_id = '%workspace_id%';
@@ -56,20 +48,6 @@ public class JdbcWorkspaceRepository implements WorkspaceRepository {
     public JdbcWorkspaceRepository(String workspaceId, DatabaseClientProvider databaseClientProvider) {
         this.workspaceId = workspaceId;
         this.databaseClient = databaseClientProvider.provide(GroupLabel.WORKSPACES);
-    }
-
-    @Override
-    public void block() {
-        MapSqlParameterSource params = new MapSqlParameterSource()
-                .addValue("workspace_id", this.workspaceId);
-        databaseClient.update(StatementLabel.BLOCK_WORKSPACE, BLOCK_WORKSPACE, params);
-    }
-
-    @Override
-    public void unblock() {
-        MapSqlParameterSource params = new MapSqlParameterSource()
-                .addValue("workspace_id", this.workspaceId);
-        databaseClient.update(StatementLabel.UNBLOCK_WORKSPACE, UNBLOCK_WORKSPACE, params);
     }
 
     @Override

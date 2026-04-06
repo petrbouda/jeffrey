@@ -26,11 +26,6 @@ service ProjectService {
   // Restores a previously soft-deleted project, clearing the deleted_at
   // timestamp and making the project active again.
   rpc RestoreProject(RestoreProjectRequest) returns (RestoreProjectResponse);
-
-  // Updates the streaming enabled flag for a project.
-  // Setting streaming_enabled overrides the workspace/global setting for this project.
-  // Omitting streaming_enabled resets to inherit from workspace/global.
-  rpc UpdateProjectStreaming(UpdateProjectStreamingRequest) returns (UpdateProjectStreamingResponse);
 }
 
 message ListProjectsRequest {
@@ -67,15 +62,6 @@ message RestoreProjectRequest {
 
 message RestoreProjectResponse {}
 
-message UpdateProjectStreamingRequest {
-  string workspace_id = 1;
-  string project_id = 2;
-  // The streaming override. If not set, resets to inherit from workspace/global.
-  optional bool streaming_enabled = 3;
-}
-
-message UpdateProjectStreamingResponse {}
-
 // Detailed information about a project and its current state.
 message ProjectInfo {
   // Internal unique identifier for the project.
@@ -96,10 +82,6 @@ message ProjectInfo {
   RecordingStatus status = 8;
   // Number of active and finished recording sessions.
   int32 session_count = 9;
-  reserved 10; // was is_blocked (removed)
-  // Project-level streaming override. If not set, inherits from the workspace/global setting.
-  // If set to true/false, overrides the workspace and global settings for this project.
-  optional bool streaming_enabled = 11;
   // Soft-deletion timestamp (epoch millis). Present only for deleted projects.
-  optional int64 deleted_at = 12;
+  optional int64 deleted_at = 10;
 }

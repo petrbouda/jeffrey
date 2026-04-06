@@ -31,7 +31,6 @@ const headings = [
   { id: 'key-benefits', text: 'Key Benefits', level: 2 },
   { id: 'how-to-create', text: 'How to Create', level: 2 },
   { id: 'streaming', text: 'Streaming Control', level: 2 },
-  { id: 'blocking', text: 'Workspace & Project Blocking', level: 2 },
   { id: 'recommended-workflow', text: 'Recommended Workflow', level: 2 }
 ];
 
@@ -124,40 +123,6 @@ onMounted(() => {
 
         <DocsCallout type="tip">
           <strong>Cost control:</strong> Disabling streaming for workspaces you're not actively investigating reduces resource consumption on both the server and connected application instances.
-        </DocsCallout>
-
-        <h2 id="blocking">Workspace & Project Blocking</h2>
-        <p>Jeffrey Server supports <strong>blocking</strong> workspaces and projects to temporarily or permanently stop processing. This is useful for maintenance, cost control, or retiring old workspaces.</p>
-
-        <h3>Workspace Blocking Modes</h3>
-        <table>
-          <thead>
-            <tr>
-              <th>Mode</th>
-              <th>Description</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td><strong>Block</strong></td>
-              <td>Pauses all processing while keeping data intact. The workspace can be unblocked to resume.</td>
-            </tr>
-            <tr>
-              <td><strong>Block & Delete Data</strong></td>
-              <td>Stops processing and removes all project data, but keeps the workspace entry. If new events arrive after unblocking, projects are recreated automatically.</td>
-            </tr>
-            <tr>
-              <td><strong>Delete</strong></td>
-              <td>Completely removes the workspace. It can be automatically recreated if new CLI events arrive for the same workspace.</td>
-            </tr>
-          </tbody>
-        </table>
-
-        <h3>Project Blocking</h3>
-        <p>Individual projects can also be blocked independently. Blocking a project stops event processing, JFR streaming, and periodic jobs for that specific project without affecting other projects in the workspace.</p>
-
-        <DocsCallout type="info">
-          <strong>Cascading effect:</strong> Blocking a workspace affects all projects within it. Blocking at the project level provides finer-grained control when you only want to pause specific projects.
         </DocsCallout>
 
         <h2 id="recommended-workflow">Recommended Workflow</h2>

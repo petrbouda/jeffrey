@@ -157,7 +157,7 @@ class ProjectsSynchronizerJobIntegrationTest {
             var queue = createQueue(dataSource);
             WorkspaceInfo wsInfo = new WorkspaceInfo(
                     WORKSPACE_ID, null, null, "Test Workspace", null, null, null,
-                    Instant.parse("2025-01-01T10:00:00Z"), WorkspaceStatus.AVAILABLE, 0, false);
+                    Instant.parse("2025-01-01T10:00:00Z"), WorkspaceStatus.AVAILABLE, 0);
             when(workspaceManager.resolveInfo()).thenReturn(wsInfo);
             when(workspaceManager.projectsManager()).thenReturn(projectsManager);
 
@@ -209,7 +209,7 @@ class ProjectsSynchronizerJobIntegrationTest {
 
             WorkspaceInfo wsInfo = new WorkspaceInfo(
                     WORKSPACE_ID, null, null, "Test Workspace", null, null, null,
-                    Instant.parse("2025-01-01T10:00:00Z"), WorkspaceStatus.AVAILABLE, 0, false);
+                    Instant.parse("2025-01-01T10:00:00Z"), WorkspaceStatus.AVAILABLE, 0);
             when(workspaceManager.resolveInfo()).thenReturn(wsInfo);
             when(workspaceManager.projectsManager()).thenReturn(projectsManager);
             when(projectsManager.findByOriginProjectId(ORIGIN_PROJECT_ID)).thenReturn(Optional.of(projectManager));
@@ -274,7 +274,7 @@ class ProjectsSynchronizerJobIntegrationTest {
 
             WorkspaceInfo wsInfo = new WorkspaceInfo(
                     WORKSPACE_ID, null, null, "Test Workspace", null, null, null,
-                    Instant.parse("2025-01-01T10:00:00Z"), WorkspaceStatus.AVAILABLE, 0, false);
+                    Instant.parse("2025-01-01T10:00:00Z"), WorkspaceStatus.AVAILABLE, 0);
             when(workspaceManager.resolveInfo()).thenReturn(wsInfo);
             when(workspaceManager.projectsManager()).thenReturn(projectsManager);
 
@@ -339,7 +339,7 @@ class ProjectsSynchronizerJobIntegrationTest {
 
             WorkspaceInfo wsInfo = new WorkspaceInfo(
                     WORKSPACE_ID, null, null, "Test Workspace", null, null, null,
-                    Instant.parse("2025-01-01T10:00:00Z"), WorkspaceStatus.AVAILABLE, 0, false);
+                    Instant.parse("2025-01-01T10:00:00Z"), WorkspaceStatus.AVAILABLE, 0);
             when(workspaceManager.resolveInfo()).thenReturn(wsInfo);
             when(workspaceManager.projectsManager()).thenReturn(projectsManager);
 
@@ -404,7 +404,7 @@ class ProjectsSynchronizerJobIntegrationTest {
 
             WorkspaceInfo wsInfo = new WorkspaceInfo(
                     WORKSPACE_ID, null, null, "Test Workspace", null, null, null,
-                    Instant.parse("2025-01-01T10:00:00Z"), WorkspaceStatus.AVAILABLE, 0, false);
+                    Instant.parse("2025-01-01T10:00:00Z"), WorkspaceStatus.AVAILABLE, 0);
             when(workspaceManager.resolveInfo()).thenReturn(wsInfo);
             when(workspaceManager.projectsManager()).thenReturn(projectsManager);
 
@@ -466,7 +466,7 @@ class ProjectsSynchronizerJobIntegrationTest {
 
             WorkspaceInfo wsInfo = new WorkspaceInfo(
                     WORKSPACE_ID, null, null, "Test Workspace", null, null, null,
-                    Instant.parse("2025-01-01T10:00:00Z"), WorkspaceStatus.AVAILABLE, 0, false);
+                    Instant.parse("2025-01-01T10:00:00Z"), WorkspaceStatus.AVAILABLE, 0);
             when(workspaceManager.resolveInfo()).thenReturn(wsInfo);
             when(workspaceManager.projectsManager()).thenReturn(projectsManager);
             when(projectsManager.findByOriginProjectId(ORIGIN_PROJECT_ID)).thenReturn(Optional.of(projectManager));
