@@ -20,11 +20,9 @@ package pbouda.jeffrey.local.core.client;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.server.api.v1.BlockProjectRequest;
 import pbouda.jeffrey.server.api.v1.DeleteProjectRequest;
 import pbouda.jeffrey.server.api.v1.ProjectServiceGrpc;
-import pbouda.jeffrey.server.api.v1.UnblockProjectRequest;
-import pbouda.jeffrey.server.api.v1.UpdateProjectStreamingRequest;
+import pbouda.jeffrey.server.api.v1.RestoreProjectRequest;
 
 public class RemoteProjectsClient {
 
@@ -45,35 +43,13 @@ public class RemoteProjectsClient {
         LOG.debug("Deleted project via gRPC: workspaceId={} projectId={}", workspaceId, projectId);
     }
 
-    public void blockProject(String workspaceId, String projectId) {
-        stub.blockProject(BlockProjectRequest.newBuilder()
+    public void restoreProject(String workspaceId, String projectId) {
+        stub.restoreProject(RestoreProjectRequest.newBuilder()
                 .setWorkspaceId(workspaceId)
                 .setProjectId(projectId)
                 .build());
 
-        LOG.debug("Blocked project via gRPC: workspaceId={} projectId={}", workspaceId, projectId);
+        LOG.debug("Restored project via gRPC: workspaceId={} projectId={}", workspaceId, projectId);
     }
 
-    public void unblockProject(String workspaceId, String projectId) {
-        stub.unblockProject(UnblockProjectRequest.newBuilder()
-                .setWorkspaceId(workspaceId)
-                .setProjectId(projectId)
-                .build());
-
-        LOG.debug("Unblocked project via gRPC: workspaceId={} projectId={}", workspaceId, projectId);
-    }
-
-    public void updateStreamingEnabled(String workspaceId, String projectId, Boolean streamingEnabled) {
-        UpdateProjectStreamingRequest.Builder builder = UpdateProjectStreamingRequest.newBuilder()
-                .setWorkspaceId(workspaceId)
-                .setProjectId(projectId);
-
-        if (streamingEnabled != null) {
-            builder.setStreamingEnabled(streamingEnabled);
-        }
-
-        stub.updateProjectStreaming(builder.build());
-
-        LOG.debug("Updated project streaming via gRPC: workspaceId={} projectId={} streamingEnabled={}", workspaceId, projectId, streamingEnabled);
-    }
 }

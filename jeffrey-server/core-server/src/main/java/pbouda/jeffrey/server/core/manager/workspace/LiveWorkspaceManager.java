@@ -94,9 +94,6 @@ public class LiveWorkspaceManager implements WorkspaceManager {
 
     @Override
     public void block() {
-        for (ProjectManager project : projectsManager().findAll()) {
-            project.block();
-        }
         workspaceRepository.block();
         LOG.info("Blocked workspace: workspaceId={}", workspaceInfo.id());
     }
@@ -104,7 +101,6 @@ public class LiveWorkspaceManager implements WorkspaceManager {
     @Override
     public void blockAndDeleteData() {
         for (ProjectManager project : projectsManager().findAll()) {
-            project.block();
             platformRepositories.newProjectRepository(project.info().id()).delete();
         }
         workspaceRepository.block();
@@ -114,7 +110,6 @@ public class LiveWorkspaceManager implements WorkspaceManager {
     @Override
     public void delete() {
         for (ProjectManager project : projectsManager().findAll()) {
-            project.block();
             platformRepositories.newProjectRepository(project.info().id()).delete();
         }
         workspaceRepository.delete();
@@ -125,12 +120,6 @@ public class LiveWorkspaceManager implements WorkspaceManager {
     public void unblock() {
         workspaceRepository.unblock();
         LOG.info("Unblocked workspace: workspaceId={}", workspaceInfo.id());
-    }
-
-    @Override
-    public void updateStreamingEnabled(Boolean enabled) {
-        workspaceRepository.updateStreamingEnabled(enabled);
-        LOG.info("Updated workspace streaming: workspaceId={} enabled={}", workspaceInfo.id(), enabled);
     }
 
     @Override

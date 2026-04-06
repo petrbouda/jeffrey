@@ -24,8 +24,6 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import pbouda.jeffrey.shared.persistentqueue.DuckDBPersistentQueue;
 import pbouda.jeffrey.shared.persistentqueue.EventSerializer;
 import pbouda.jeffrey.server.core.scheduler.JobContext;
-import pbouda.jeffrey.server.persistence.repository.JdbcAlertRepository;
-import pbouda.jeffrey.server.persistence.repository.JdbcMessageRepository;
 import pbouda.jeffrey.shared.persistence.client.DatabaseClientProvider;
 import pbouda.jeffrey.test.DuckDBTest;
 import pbouda.jeffrey.test.TestUtils;
@@ -71,13 +69,9 @@ class DataRetentionJobTest {
                 }, FIXED_CLOCK);
 
         return new DataRetentionJob(
-                new JdbcMessageRepository(null, provider),
-                new JdbcAlertRepository(null, provider),
                 queue,
                 FIXED_CLOCK,
                 PERIOD,
-                RETENTION,
-                RETENTION,
                 RETENTION);
     }
 
@@ -103,36 +97,6 @@ class DataRetentionJobTest {
     }
 
     @Nested
-    class DeletesOldMessages {
-
-        @Test
-        void deletesMessagesOlderThanRetentionPeriod(DataSource dataSource) throws SQLException {
-            TestUtils.executeSql(dataSource, "sql/retention/insert-test-data.sql");
-
-            assertEquals(3, countRows(dataSource, "messages"));
-
-            createJob(dataSource).execute(JobContext.EMPTY);
-
-            assertEquals(1, countRows(dataSource, "messages"));
-        }
-    }
-
-    @Nested
-    class DeletesOldAlerts {
-
-        @Test
-        void deletesAlertsOlderThanRetentionPeriod(DataSource dataSource) throws SQLException {
-            TestUtils.executeSql(dataSource, "sql/retention/insert-test-data.sql");
-
-            assertEquals(3, countRows(dataSource, "alerts"));
-
-            createJob(dataSource).execute(JobContext.EMPTY);
-
-            assertEquals(1, countRows(dataSource, "alerts"));
-        }
-    }
-
-    @Nested
     class KeepsRecentData {
 
         @Test
@@ -140,14 +104,10 @@ class DataRetentionJobTest {
             TestUtils.executeSql(dataSource, "sql/retention/insert-recent-data-only.sql");
 
             assertEquals(2, countRows(dataSource, "persistent_queue_events"));
-            assertEquals(2, countRows(dataSource, "messages"));
-            assertEquals(2, countRows(dataSource, "alerts"));
 
             createJob(dataSource).execute(JobContext.EMPTY);
 
             assertEquals(2, countRows(dataSource, "persistent_queue_events"));
-            assertEquals(2, countRows(dataSource, "messages"));
-            assertEquals(2, countRows(dataSource, "alerts"));
         }
     }
 
@@ -159,8 +119,6 @@ class DataRetentionJobTest {
             createJob(dataSource).execute(JobContext.EMPTY);
 
             assertEquals(0, countRows(dataSource, "persistent_queue_events"));
-            assertEquals(0, countRows(dataSource, "messages"));
-            assertEquals(0, countRows(dataSource, "alerts"));
         }
     }
 }

@@ -28,7 +28,9 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.event.ContextClosedEvent;
 import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.context.event.EventListener;
+import pbouda.jeffrey.server.core.ServerJeffreyDirs;
 import pbouda.jeffrey.server.core.manager.workspace.WorkspacesManager;
+import pbouda.jeffrey.server.core.streaming.EventStreamingSubscriptionManager;
 import pbouda.jeffrey.server.core.workspace.WorkspaceEventReader;
 import pbouda.jeffrey.server.persistence.repository.ServerPlatformRepositories;
 
@@ -53,6 +55,8 @@ public class GrpcServerConfiguration {
             WorkspacesManager workspacesManager,
             WorkspaceEventReader workspaceEventReader,
             ServerPlatformRepositories platformRepositories,
+            ServerJeffreyDirs jeffreyDirs,
+            EventStreamingSubscriptionManager eventStreamingSubscriptionManager,
             Clock clock) {
 
         return ServerBuilder.forPort(grpcPort)
@@ -60,11 +64,11 @@ public class GrpcServerConfiguration {
                 .addService(new WorkspaceGrpcService(workspacesManager, clock))
                 .addService(new ProjectGrpcService(workspacesManager))
                 .addService(new InstanceGrpcService(workspacesManager, clock))
-                .addService(new MessagesGrpcService(workspacesManager))
                 .addService(new ProfilerSettingsGrpcService(workspacesManager, platformRepositories))
                 .addService(new RepositoryGrpcService(workspacesManager, clock))
                 .addService(new RecordingDownloadGrpcService(workspacesManager))
                 .addService(new WorkspaceEventsGrpcService(workspaceEventReader))
+                .addService(new EventStreamingGrpcService(jeffreyDirs, platformRepositories, eventStreamingSubscriptionManager))
                 .build();
     }
 

@@ -11,12 +11,3 @@ VALUES ('test-queue', 'ws-001', '{"type":"RECENT_EVENT_1"}', '2025-06-25T10:00:0
 INSERT INTO persistent_queue_events (queue_name, scope_id, payload, created_at)
 VALUES ('test-queue', 'ws-001', '{"type":"RECENT_EVENT_2"}', '2025-06-28T10:00:00Z');
 
-INSERT INTO messages (id, project_id, type, title, message, severity, category, source, created_at_us)
-VALUES ('msg-recent-1', 'proj-001', 'INFO', 'Recent Message 1', 'This is recent', 'INFO', 'GENERAL', 'SYSTEM', '2025-06-25T10:00:00Z');
-INSERT INTO messages (id, project_id, type, title, message, severity, category, source, created_at_us)
-VALUES ('msg-recent-2', 'proj-001', 'INFO', 'Recent Message 2', 'Also recent', 'INFO', 'GENERAL', 'SYSTEM', '2025-06-28T10:00:00Z');
-
-INSERT INTO alerts (id, project_id, type, title, message, severity, category, source, created_at_us)
-VALUES ('alert-recent-1', 'proj-001', 'WARNING', 'Recent Alert 1', 'This is recent', 'WARNING', 'GENERAL', 'SYSTEM', '2025-06-25T10:00:00Z');
-INSERT INTO alerts (id, project_id, type, title, message, severity, category, source, created_at_us)
-VALUES ('alert-recent-2', 'proj-001', 'WARNING', 'Recent Alert 2', 'Also recent', 'WARNING', 'GENERAL', 'SYSTEM', '2025-06-28T10:00:00Z');

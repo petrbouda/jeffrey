@@ -30,8 +30,8 @@ import pbouda.jeffrey.server.core.scheduler.PeriodicalScheduler;
 import pbouda.jeffrey.server.core.scheduler.Scheduler;
 import pbouda.jeffrey.server.core.scheduler.job.*;
 import pbouda.jeffrey.server.core.scheduler.job.descriptor.JobDescriptorFactory;
+import pbouda.jeffrey.server.core.streaming.EventStreamingSubscriptionManager;
 import pbouda.jeffrey.server.core.streaming.FileHeartbeatReader;
-import pbouda.jeffrey.server.core.streaming.JfrStreamingConsumerManager;
 import pbouda.jeffrey.server.core.streaming.SessionFinisher;
 import pbouda.jeffrey.server.persistence.repository.ServerPlatformRepositories;
 import pbouda.jeffrey.server.core.ServerJeffreyDirs;
@@ -128,10 +128,10 @@ public class ProjectJobsConfiguration {
             Clock clock,
             SessionFinishEventEmitter sessionFinishEventEmitter,
             FileHeartbeatReader fileHeartbeatReader,
-            JfrStreamingConsumerManager jfrStreamingConsumerManager,
+            EventStreamingSubscriptionManager eventStreamingSubscriptionManager,
             ServerPlatformRepositories platformRepositories) {
 
-        return new SessionFinisher(clock, sessionFinishEventEmitter, fileHeartbeatReader, jfrStreamingConsumerManager, platformRepositories);
+        return new SessionFinisher(clock, sessionFinishEventEmitter, fileHeartbeatReader, eventStreamingSubscriptionManager, platformRepositories);
     }
 
     @Bean

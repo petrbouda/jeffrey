@@ -46,9 +46,8 @@ import pbouda.jeffrey.server.core.project.repository.file.AsprofFileInfoProcesso
 import pbouda.jeffrey.server.core.project.template.ProjectTemplatesLoader;
 import pbouda.jeffrey.server.core.scheduler.JobDefinitionLoader;
 import pbouda.jeffrey.server.core.scheduler.SchedulerTrigger;
+import pbouda.jeffrey.server.core.streaming.EventStreamingSubscriptionManager;
 import pbouda.jeffrey.server.core.streaming.FileHeartbeatReader;
-import pbouda.jeffrey.server.core.streaming.JfrStreamingConsumerManager;
-import pbouda.jeffrey.server.core.streaming.JfrStreamingInitializer;
 import pbouda.jeffrey.server.core.workspace.WorkspaceEventPublisher;
 import pbouda.jeffrey.server.persistence.DuckDBServerPersistenceProvider;
 import pbouda.jeffrey.server.persistence.ServerPersistenceProvider;
@@ -144,7 +143,7 @@ public class ServerAppConfiguration {
             RepositoryStorage.Factory repositoryStorageFactory,
             ServerPlatformRepositories platformRepositories,
             WorkspaceEventPublisher workspaceEventPublisher,
-            JfrStreamingConsumerManager jfrStreamingConsumerManager) {
+            EventStreamingSubscriptionManager eventStreamingSubscriptionManager) {
         return projectInfo -> new ServerProjectManager(
                 applicationClock,
                 projectInfo,
@@ -152,7 +151,7 @@ public class ServerAppConfiguration {
                 platformRepositories,
                 repositoryStorageFactory.apply(projectInfo),
                 workspaceEventPublisher,
-                jfrStreamingConsumerManager);
+                eventStreamingSubscriptionManager);
     }
 
     @Bean
@@ -200,26 +199,8 @@ public class ServerAppConfiguration {
     }
 
     @Bean(destroyMethod = "close")
-    public JfrStreamingConsumerManager jfrStreamingConsumerManager(
-            ServerJeffreyDirs jeffreyDirs,
-            ServerPlatformRepositories platformRepositories,
-            Clock clock,
-            FileHeartbeatReader fileHeartbeatReader,
-            @Value("${jeffrey.server.platform.streaming.enabled:true}") boolean streamingEnabled) {
-
-        return new JfrStreamingConsumerManager(
-                jeffreyDirs, platformRepositories, clock, fileHeartbeatReader, streamingEnabled);
-    }
-
-    @Bean
-    public JfrStreamingInitializer jfrStreamingInitializer(
-            JfrStreamingConsumerManager jfrStreamingConsumerManager,
-            WorkspacesManager workspacesManager,
-            ServerPlatformRepositories platformRepositories,
-            @Value("${jeffrey.server.platform.streaming.enabled:true}") boolean streamingEnabled) {
-
-        return new JfrStreamingInitializer(
-                jfrStreamingConsumerManager, workspacesManager, platformRepositories, streamingEnabled);
+    public EventStreamingSubscriptionManager eventStreamingSubscriptionManager() {
+        return new EventStreamingSubscriptionManager();
     }
 
     @Bean

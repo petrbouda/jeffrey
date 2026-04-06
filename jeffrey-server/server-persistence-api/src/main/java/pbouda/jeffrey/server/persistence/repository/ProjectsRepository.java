@@ -50,12 +50,12 @@ public interface ProjectsRepository {
     List<ProjectInfo> findAllProjects(String workspaceId);
 
     /**
-     * Find all active (non-blocked) projects by workspace ID.
+     * Find all projects by workspace ID, including soft-deleted ones.
      *
      * @param workspaceId workspace ID to filter by
-     * @return list of active projects in the specified workspace.
+     * @return list of all projects in the specified workspace, including deleted.
      */
-    List<ProjectInfo> findAllActiveProjects(String workspaceId);
+    List<ProjectInfo> findAllProjectsIncludingDeleted(String workspaceId);
 
     /**
      * Find a project by its origin project ID.

@@ -54,13 +54,13 @@
               />
             </div>
             <button
-              v-if="hasBlockedProjects"
+              v-if="hasDeletedProjects"
               class="context-btn"
-              :class="{ active: showBlockedProjects }"
-              @click="toggleBlockedProjects"
-              :title="showBlockedProjects ? 'Hide blocked projects' : 'Show blocked projects'"
+              :class="{ active: showDeletedProjects }"
+              @click="toggleDeletedProjects"
+              :title="showDeletedProjects ? 'Hide deleted projects' : 'Show deleted projects'"
             >
-              <i class="bi bi-eye-slash"></i>
+              <i class="bi bi-trash"></i>
             </button>
             <div class="settings-popover-wrapper">
               <button
@@ -72,38 +72,6 @@
                 <i class="bi bi-gear"></i>
               </button>
               <div v-if="showSettingsPopover" class="settings-popover">
-                <div class="settings-section">
-                  <div class="settings-section-title">
-                    <i class="bi bi-broadcast"></i> Streaming
-                  </div>
-                  <div class="stream-segmented">
-                    <button
-                      class="stream-seg"
-                      :class="{ 'active-on': getSelectedWorkspace()?.streamingEnabled === true }"
-                      @click="setWorkspaceStreaming(true)"
-                    >
-                      On
-                    </button>
-                    <button
-                      class="stream-seg"
-                      :class="{ 'active-off': getSelectedWorkspace()?.streamingEnabled === false }"
-                      @click="setWorkspaceStreaming(false)"
-                    >
-                      Off
-                    </button>
-                    <button
-                      class="stream-seg"
-                      :class="{
-                        'active-inherited':
-                          getSelectedWorkspace()?.streamingEnabled === null ||
-                          getSelectedWorkspace()?.streamingEnabled === undefined
-                      }"
-                      @click="setWorkspaceStreaming(null)"
-                    >
-                      Inherited
-                    </button>
-                  </div>
-                </div>
               </div>
             </div>
             <button
@@ -205,6 +173,7 @@
           <ProjectCard
             :project="project"
             :workspace-id="isWorkspaceScoped ? workspaceId : selectedWorkspace"
+            @restore="handleRestoreProject"
           />
         </div>
       </div>
@@ -252,6 +221,7 @@ import EmptyState from '@/components/EmptyState.vue';
 import ToastService from '@/services/ToastService';
 import FormattingService from '@/services/FormattingService';
 import ProjectsClient from '@/services/api/ProjectsClient.ts';
+import ProjectClient from '@/services/api/ProjectClient.ts';
 import WorkspaceProjectsClient from '@/services/api/WorkspaceProjectsClient.ts';
 import Project from '@/services/api/model/Project.ts';
 import WorkspaceClient from '@/services/api/WorkspaceClient.ts';
@@ -277,8 +247,8 @@ const selectedWorkspace = ref<string>('');
 const projects = ref<Project[]>([]);
 const filteredProjects = ref<Project[]>([]);
 const searchQuery = ref('');
-const showBlockedProjects = ref(false);
-const hasBlockedProjects = computed(() => projects.value.some(p => p.isBlocked));
+const showDeletedProjects = ref(false);
+const hasDeletedProjects = computed(() => projects.value.some(p => p.isDeleted));
 const errorMessage = ref('');
 const loading = ref(true);
 
@@ -454,9 +424,9 @@ onBeforeUnmount(() => {
 const filterProjects = () => {
   let result = projects.value;
 
-  // Filter blocked projects unless toggle is on
-  if (!showBlockedProjects.value) {
-    result = result.filter(project => !project.isBlocked);
+  // Filter deleted projects unless toggle is on
+  if (!showDeletedProjects.value) {
+    result = result.filter(project => !project.isDeleted);
   }
 
   // Apply search filter
@@ -468,9 +438,24 @@ const filterProjects = () => {
   filteredProjects.value = result;
 };
 
-const toggleBlockedProjects = () => {
-  showBlockedProjects.value = !showBlockedProjects.value;
+const toggleDeletedProjects = () => {
+  showDeletedProjects.value = !showDeletedProjects.value;
   filterProjects();
+};
+
+const handleRestoreProject = async (projectId: string) => {
+  const targetWorkspaceId = isWorkspaceScoped.value ? workspaceId.value : selectedWorkspace.value;
+  if (!targetWorkspaceId) return;
+
+  try {
+    const projectClient = new ProjectClient(targetWorkspaceId, projectId);
+    await projectClient.restore();
+    ToastService.success('Project Restored', 'Project has been restored successfully.');
+    await refreshProjects();
+  } catch (error) {
+    console.error('Failed to restore project:', error);
+    ToastService.error('Error', 'Failed to restore project.');
+  }
 };
 
 const handleWorkspaceClick = (workspaceId: string) => {
@@ -518,29 +503,6 @@ const handleDeleteWorkspace = () => {
   deleteWorkspaceSubMessage.value = `This will remove the local reference but won't affect the remote source.`;
 
   showDeleteWorkspaceModal.value = true;
-};
-
-// Set workspace streaming to a specific state
-const setWorkspaceStreaming = async (state: boolean | null) => {
-  const workspace = getSelectedWorkspace();
-  if (!workspace) return;
-  if (workspace.streamingEnabled === state) return;
-
-  try {
-    await workspaceClient.updateStreaming(workspace.id, state);
-    workspace.streamingEnabled = state;
-
-    if (state === true) {
-      ToastService.success('Streaming Enabled', 'Workspace streaming has been enabled.');
-    } else if (state === false) {
-      ToastService.success('Streaming Disabled', 'Workspace streaming has been disabled.');
-    } else {
-      ToastService.success('Streaming Reset', 'Workspace streaming reset to inherit from global.');
-    }
-  } catch (error) {
-    console.error('Failed to update workspace streaming:', error);
-    ToastService.error('Error', 'Failed to update workspace streaming setting.');
-  }
 };
 
 // Confirm workspace deletion
@@ -828,69 +790,6 @@ const confirmDeleteWorkspace = async () => {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
   padding: 16px 20px;
   min-width: 260px;
-}
-
-.settings-section-title {
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: var(--color-text);
-  margin-bottom: 12px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.settings-section-title i {
-  font-size: 0.85rem;
-  color: var(--color-primary);
-}
-
-/* Segmented control */
-.stream-segmented {
-  display: flex;
-  align-items: center;
-  border: 1.5px solid var(--color-border);
-  border-radius: 8px;
-  overflow: hidden;
-  background: var(--color-light);
-  width: 100%;
-}
-
-.stream-seg {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex: 1;
-  gap: 5px;
-  padding: 7px 12px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  color: var(--color-text-light);
-  border: none;
-  background: transparent;
-  letter-spacing: 0.02em;
-  white-space: nowrap;
-}
-
-.stream-seg + .stream-seg {
-  border-left: 1px solid var(--color-border);
-}
-
-.stream-seg.active-on {
-  background: var(--color-success-bg);
-  color: var(--color-emerald);
-}
-
-.stream-seg.active-off {
-  background: var(--color-light);
-  color: var(--color-text-muted);
-}
-
-.stream-seg.active-inherited {
-  background: rgba(59, 130, 246, 0.06);
-  color: var(--color-blue-500);
 }
 
 .context-btn i {

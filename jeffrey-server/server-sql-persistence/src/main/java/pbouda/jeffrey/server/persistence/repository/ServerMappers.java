@@ -98,13 +98,7 @@ public abstract class ServerMappers {
                     ServerMappers.instant(rs, "created_at"),
                     ServerMappers.instant(rs, "origin_created_at"),
                     Json.toMap(rs.getString("attributes")),
-                    rs.getBoolean("blocked"),
-                    nullableBoolean(rs, "streaming_enabled"));
+                    ServerMappers.instant(rs, "deleted_at"));
         };
-    }
-
-    public static Boolean nullableBoolean(ResultSet rs, String columnName) throws SQLException {
-        boolean value = rs.getBoolean(columnName);
-        return rs.wasNull() ? null : value;
     }
 }

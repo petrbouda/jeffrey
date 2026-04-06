@@ -205,7 +205,7 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
               </div>
               <span class="gs-cmd-badge">Recommended</span>
             </div>
-            <div class="gs-code"><span class="dollar">$</span> <span class="text">docker run -it --network host petrbouda/jeffrey-examples</span></div>
+            <div class="gs-code"><span class="dollar">$</span> <span class="text">docker run -it --network host petrbouda/jeffrey-examples:0.7.0</span></div>
             <p class="gs-open">Then open <a href="http://localhost:8080" target="_blank">localhost:8080</a></p>
           </div>
         </div>

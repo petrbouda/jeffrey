@@ -26,11 +26,6 @@ service WorkspaceService {
   // Unblocks a previously blocked workspace, resuming event processing and periodic jobs.
   // Events that arrived while blocked were discarded and will not be replayed.
   rpc UnblockWorkspace(UnblockWorkspaceRequest) returns (UnblockWorkspaceResponse);
-
-  // Updates the streaming enabled flag for a workspace.
-  // Setting streaming_enabled overrides the global setting for this workspace.
-  // Omitting streaming_enabled resets to inherit from the global setting.
-  rpc UpdateWorkspaceStreaming(UpdateWorkspaceStreamingRequest) returns (UpdateWorkspaceStreamingResponse);
 }
 
 message GetApiInfoRequest {}
@@ -91,15 +86,6 @@ message UnblockWorkspaceRequest {
 
 message UnblockWorkspaceResponse {}
 
-message UpdateWorkspaceStreamingRequest {
-  // The workspace to update.
-  string workspace_id = 1;
-  // The streaming override. If not set, resets to inherit from global.
-  optional bool streaming_enabled = 2;
-}
-
-message UpdateWorkspaceStreamingResponse {}
-
 // Represents a workspace — a top-level container for projects.
 // Workspaces correspond to monitored environments and are typically
 // auto-created when the CLI starts sending profiling events.
@@ -119,9 +105,6 @@ message WorkspaceInfo {
   // Whether the workspace is blocked. Blocked workspaces do not process
   // any events, run periodic jobs, or accept new project data.
   bool is_blocked = 7;
-  // Workspace-level streaming override. If not set, inherits from the global setting.
-  // If set to true/false, overrides the global setting for this workspace.
-  optional bool streaming_enabled = 8;
 }
 
 // Availability status of a workspace.

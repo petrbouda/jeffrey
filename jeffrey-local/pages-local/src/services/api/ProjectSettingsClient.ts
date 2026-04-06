@@ -32,15 +32,4 @@ export default class ProjectSettingsClient extends BasePlatformClient {
     return super.get<SettingsResponse>();
   }
 
-  block(): Promise<void> {
-    return super.post<void>('/block', {});
-  }
-
-  unblock(): Promise<void> {
-    return super.post<void>('/unblock', {});
-  }
-
-  updateStreaming(streamingEnabled: boolean | null): Promise<void> {
-    return super.post<void>('/streaming', { streamingEnabled });
-  }
 }

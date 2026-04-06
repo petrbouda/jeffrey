@@ -1,0 +1,63 @@
+syntax = "proto3";
+
+package jeffrey.server.api.v1;
+
+option java_package = "pbouda.jeffrey.server.api.v1";
+option java_multiple_files = true;
+
+// Provides server-streaming RPC for subscribing to live JFR events from a session's
+// streaming repository. Each subscriber gets their own EventStream with independent
+// start time and event type filtering. Events are micro-batched using JFR's own
+// flush cycle (~1s) and delivered as EventBatch messages.
+service EventStreamingService {
+  // Subscribe to live JFR events for a session.
+  // The stream stays open until the client disconnects or the session ends.
+  rpc SubscribeEvents(SubscribeEventsRequest) returns (stream EventBatch);
+}
+
+message SubscribeEventsRequest {
+  string workspace_id = 1;
+  string project_id = 2;
+  string session_id = 3;
+  // JFR event types to receive (e.g. "jdk.GCHeapSummary", "jdk.CPULoad").
+  // Empty = all events.
+  repeated string event_types = 4;
+  // Optional start time (epoch millis). Enables replaying historical events
+  // from the preserved streaming repository. Omit for live-only.
+  optional int64 start_time = 5;
+  // Send empty batches as implicit heartbeats (default: false).
+  // When true, a batch is sent every flush interval even if no events arrived.
+  // Useful for client-side connection liveness detection.
+  bool send_empty_batches = 6;
+}
+
+// A batch of JFR events delivered on each JFR flush cycle (~1s).
+// May be empty when send_empty_batches is true (acts as heartbeat).
+message EventBatch {
+  repeated StreamingEvent events = 1;
+}
+
+// A single JFR event with typed fields.
+message StreamingEvent {
+  // JFR event type name (e.g. "jdk.GCHeapSummary", "jdk.CPULoad").
+  string event_type = 1;
+  // The session this event belongs to.
+  string session_id = 2;
+  // Event timestamp (epoch millis).
+  int64 timestamp = 3;
+  // Event fields with preserved types.
+  map<string, TypedValue> fields = 4;
+}
+
+// A value with its type preserved from the JFR event.
+// Annotations like @Timestamp, @Percentage, @Timespan are resolved:
+// timestamps become epoch millis, timespans become nanoseconds, percentages stay as floats.
+message TypedValue {
+  oneof value {
+    string string_value = 1;
+    int64 long_value = 2;
+    double double_value = 3;
+    bool bool_value = 4;
+    float float_value = 5;
+  }
+}

@@ -31,24 +31,23 @@ public record WorkspaceInfo(
         Instant createdAt,
         WorkspaceStatus status,
         int projectCount,
-        boolean blocked,
-        Boolean streamingEnabled) {
+        boolean blocked) {
 
     public WorkspaceInfo withId(String newId) {
         return new WorkspaceInfo(
                 newId, originId, repositoryId, name, description,
-                location, baseLocation, createdAt, status, projectCount, blocked, streamingEnabled);
+                location, baseLocation, createdAt, status, projectCount, blocked);
     }
 
     public WorkspaceInfo withLocation(WorkspaceLocation newLocation) {
         return new WorkspaceInfo(
                 id, originId, repositoryId, name, description,
-                newLocation, baseLocation, createdAt, status, projectCount, blocked, streamingEnabled);
+                newLocation, baseLocation, createdAt, status, projectCount, blocked);
     }
 
     public WorkspaceInfo withStatus(WorkspaceStatus newStatus) {
         return new WorkspaceInfo(
                 id, originId, repositoryId, name, description,
-                location, baseLocation, createdAt, newStatus, projectCount, blocked, streamingEnabled);
+                location, baseLocation, createdAt, newStatus, projectCount, blocked);
     }
 }

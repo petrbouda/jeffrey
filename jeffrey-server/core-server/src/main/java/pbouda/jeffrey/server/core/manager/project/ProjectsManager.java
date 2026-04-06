@@ -36,9 +36,9 @@ public interface ProjectsManager {
     List<ProjectManager> findAll();
 
     /**
-     * Find all active (non-blocked) projects.
+     * Find all projects including soft-deleted ones.
      */
-    List<ProjectManager> findAllActive();
+    List<ProjectManager> findAllIncludingDeleted();
 
     Optional<ProjectManager> project(String projectId);
 

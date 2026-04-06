@@ -35,102 +35,6 @@
           </form>
         </div>
 
-        <div class="settings-card">
-          <div class="settings-card-header">
-            <i class="bi bi-slash-circle settings-icon-amber"></i>
-            <h6>Blocking</h6>
-          </div>
-          <div class="toggle-row">
-            <div class="toggle-row-label">
-              <span class="toggle-row-title">Block project</span>
-              <span class="toggle-row-desc">Stops all event processing</span>
-            </div>
-            <button
-              class="toggle-track"
-              :class="{ on: isBlocked }"
-              @click="isBlocked ? unblockProject() : blockProject()"
-              :disabled="isBlockingAction"
-              type="button"
-            >
-              <span class="toggle-thumb"></span>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Streaming Section (full width) -->
-      <div class="settings-card streaming-card">
-        <div class="settings-card-header">
-          <i class="bi bi-broadcast settings-icon-blue"></i>
-          <h6>Streaming</h6>
-        </div>
-        <div
-          class="streaming-status"
-          :class="effectiveStreamingEnabled ? 'streaming-status-on' : 'streaming-status-off'"
-        >
-          <span
-            class="streaming-dot"
-            :class="effectiveStreamingEnabled ? 'dot-on' : 'dot-off'"
-          ></span>
-          <span>
-            Streaming is <strong>{{ effectiveStreamingEnabled ? 'enabled' : 'disabled' }}</strong>
-          </span>
-          <span
-            v-if="effectiveStreamingLevel"
-            class="streaming-badge"
-            :class="'streaming-badge-' + effectiveStreamingLevel.toLowerCase()"
-          >
-            {{ effectiveStreamingLevel }}
-          </span>
-        </div>
-        <div class="streaming-actions">
-          <button
-            type="button"
-            class="settings-btn settings-btn-primary"
-            @click="enableStreaming"
-            :disabled="isStreamingAction || streamingEnabled === true"
-          >
-            <span
-              v-if="isStreamingAction && pendingStreamingState === true"
-              class="spinner-border spinner-border-sm"
-              role="status"
-              aria-hidden="true"
-            ></span>
-            <i v-else class="bi bi-broadcast"></i>
-            Enable
-          </button>
-          <button
-            type="button"
-            class="settings-btn settings-btn-outline"
-            @click="disableStreaming"
-            :disabled="isStreamingAction || streamingEnabled === false"
-          >
-            <span
-              v-if="isStreamingAction && pendingStreamingState === false"
-              class="spinner-border spinner-border-sm"
-              role="status"
-              aria-hidden="true"
-            ></span>
-            <i v-else class="bi bi-broadcast"></i>
-            Disable
-          </button>
-          <button
-            v-if="streamingEnabled !== null && streamingEnabled !== undefined"
-            type="button"
-            class="settings-btn settings-btn-outline"
-            @click="resetStreaming"
-            :disabled="isStreamingAction"
-          >
-            <span
-              v-if="isStreamingAction && pendingStreamingState === null"
-              class="spinner-border spinner-border-sm"
-              role="status"
-              aria-hidden="true"
-            ></span>
-            <i v-else class="bi bi-arrow-counterclockwise"></i>
-            Reset to Inherited
-          </button>
-        </div>
       </div>
 
       <!-- Danger Zone Bar -->
@@ -254,17 +158,6 @@ const isLoading = ref(true);
 const isSaving = ref(false);
 const hasChanges = ref(false);
 
-// Block/unblock state
-const isBlocked = ref(false);
-const isBlockingAction = ref(false);
-
-// Streaming state
-const streamingEnabled = ref<boolean | null | undefined>(undefined);
-const effectiveStreamingEnabled = ref(true);
-const effectiveStreamingLevel = ref<string | undefined>(undefined);
-const isStreamingAction = ref(false);
-const pendingStreamingState = ref<boolean | null>(null);
-
 // Delete project state
 const isDeleting = ref(false);
 const showDeleteConfirmation = ref(false);
@@ -277,10 +170,6 @@ onMounted(async () => {
     const settings = await settingsClient.get();
     originalProjectName.value = settings.name;
     projectName.value = settings.name;
-    isBlocked.value = settings.blocked;
-    streamingEnabled.value = settings.streamingEnabled;
-    effectiveStreamingEnabled.value = settings.effectiveStreamingEnabled ?? true;
-    effectiveStreamingLevel.value = settings.effectiveStreamingLevel;
     isLoading.value = false;
   } catch (error) {
     console.error('Failed to load project settings:', error);
@@ -313,110 +202,6 @@ async function saveChanges() {
     ToastService.error('Error', 'Failed to update project name');
   } finally {
     isSaving.value = false;
-  }
-}
-
-// Block project
-async function blockProject() {
-  try {
-    isBlockingAction.value = true;
-    await settingsClient.block();
-    isBlocked.value = true;
-    ToastService.success(
-      'Project Blocked',
-      'Project has been blocked. No events will be processed.'
-    );
-  } catch (error) {
-    console.error('Failed to block project:', error);
-    ToastService.error('Error', 'Failed to block project');
-  } finally {
-    isBlockingAction.value = false;
-  }
-}
-
-// Unblock project
-async function unblockProject() {
-  try {
-    isBlockingAction.value = true;
-    await settingsClient.unblock();
-    isBlocked.value = false;
-    ToastService.success(
-      'Project Unblocked',
-      'Project has been unblocked. Event processing will resume.'
-    );
-  } catch (error) {
-    console.error('Failed to unblock project:', error);
-    ToastService.error('Error', 'Failed to unblock project');
-  } finally {
-    isBlockingAction.value = false;
-  }
-}
-
-// Enable streaming
-async function enableStreaming() {
-  try {
-    isStreamingAction.value = true;
-    pendingStreamingState.value = true;
-    await settingsClient.updateStreaming(true);
-    streamingEnabled.value = true;
-    effectiveStreamingEnabled.value = true;
-    effectiveStreamingLevel.value = 'PROJECT';
-    ToastService.success(
-      'Streaming Enabled',
-      'Streaming has been explicitly enabled for this project.'
-    );
-  } catch (error) {
-    console.error('Failed to enable streaming:', error);
-    ToastService.error('Error', 'Failed to enable streaming');
-  } finally {
-    isStreamingAction.value = false;
-    pendingStreamingState.value = null;
-  }
-}
-
-// Disable streaming
-async function disableStreaming() {
-  try {
-    isStreamingAction.value = true;
-    pendingStreamingState.value = false;
-    await settingsClient.updateStreaming(false);
-    streamingEnabled.value = false;
-    effectiveStreamingEnabled.value = false;
-    effectiveStreamingLevel.value = 'PROJECT';
-    ToastService.success(
-      'Streaming Disabled',
-      'Streaming has been explicitly disabled for this project.'
-    );
-  } catch (error) {
-    console.error('Failed to disable streaming:', error);
-    ToastService.error('Error', 'Failed to disable streaming');
-  } finally {
-    isStreamingAction.value = false;
-    pendingStreamingState.value = null;
-  }
-}
-
-// Reset streaming to inherited
-async function resetStreaming() {
-  try {
-    isStreamingAction.value = true;
-    pendingStreamingState.value = null;
-    await settingsClient.updateStreaming(null);
-    streamingEnabled.value = null;
-    // Re-fetch to get the correct effective state after reset
-    const settings = await settingsClient.get();
-    effectiveStreamingEnabled.value = settings.effectiveStreamingEnabled ?? true;
-    effectiveStreamingLevel.value = settings.effectiveStreamingLevel;
-    ToastService.success(
-      'Streaming Reset',
-      'Streaming setting has been reset to inherit from workspace/global.'
-    );
-  } catch (error) {
-    console.error('Failed to reset streaming:', error);
-    ToastService.error('Error', 'Failed to reset streaming setting');
-  } finally {
-    isStreamingAction.value = false;
-    pendingStreamingState.value = null;
   }
 }
 
@@ -460,7 +245,7 @@ async function deleteProject() {
 /* Grid layout */
 .settings-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: 16px;
   margin-bottom: 16px;
 }
@@ -493,14 +278,6 @@ async function deleteProject() {
   letter-spacing: 0.04em;
   color: var(--color-text-muted);
   margin: 0;
-}
-
-.settings-icon-amber {
-  color: var(--color-warning) !important;
-}
-
-.settings-icon-blue {
-  color: var(--color-info) !important;
 }
 
 /* Form */
@@ -578,138 +355,6 @@ async function deleteProject() {
 
 .settings-btn-danger:hover:not(:disabled) {
   background: var(--color-danger-hover);
-}
-
-/* Toggle */
-.toggle-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.toggle-row-title {
-  display: block;
-  font-size: var(--font-size-base);
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-text);
-}
-
-.toggle-row-desc {
-  display: block;
-  font-size: var(--font-size-sm);
-  color: var(--color-text-muted);
-}
-
-.toggle-track {
-  width: 44px;
-  height: 24px;
-  border-radius: 12px;
-  background: var(--color-border-input);
-  position: relative;
-  cursor: pointer;
-  transition: background var(--transition-fast);
-  flex-shrink: 0;
-  border: none;
-  padding: 0;
-}
-
-.toggle-track.on {
-  background: var(--color-warning);
-}
-
-.toggle-track:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.toggle-thumb {
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: var(--color-white);
-  box-shadow: var(--shadow-sm);
-  transition: transform var(--transition-fast);
-  pointer-events: none;
-}
-
-.toggle-track.on .toggle-thumb {
-  transform: translateX(20px);
-}
-
-/* Streaming card */
-.streaming-card {
-  margin-bottom: 16px;
-}
-
-.streaming-status {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 14px;
-  border-radius: var(--radius-base);
-  font-size: var(--font-size-sm);
-  margin-bottom: 14px;
-}
-
-.streaming-status-on {
-  background: var(--color-success-light);
-  border: 1px solid rgba(0, 210, 122, 0.2);
-  color: var(--color-success-dark);
-}
-
-.streaming-status-off {
-  background: var(--color-danger-light);
-  border: 1px solid rgba(230, 55, 87, 0.2);
-  color: var(--color-danger-title);
-}
-
-.streaming-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.dot-on {
-  background: var(--color-success);
-}
-
-.dot-off {
-  background: var(--color-danger);
-}
-
-.streaming-badge {
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-bold);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  padding: 2px 7px;
-  border-radius: var(--radius-sm);
-  margin-left: 4px;
-}
-
-.streaming-badge-global {
-  background: rgba(107, 114, 128, 0.1);
-  color: var(--color-text);
-}
-
-.streaming-badge-workspace {
-  background: rgba(57, 175, 209, 0.1);
-  color: var(--color-info-hover);
-}
-
-.streaming-badge-project {
-  background: var(--color-success-light);
-  color: var(--color-success-dark);
-}
-
-.streaming-actions {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
 }
 
 /* Danger bar */

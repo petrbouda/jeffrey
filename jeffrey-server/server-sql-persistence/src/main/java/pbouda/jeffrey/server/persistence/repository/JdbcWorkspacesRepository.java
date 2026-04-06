@@ -160,8 +160,7 @@ public class JdbcWorkspacesRepository implements WorkspacesRepository {
                     ServerMappers.instant(rs, "created_at"),
                     WorkspaceStatus.UNKNOWN,
                     rs.getInt("project_count"),
-                    rs.getBoolean("blocked"),
-                    ServerMappers.nullableBoolean(rs, "streaming_enabled")
+                    rs.getBoolean("blocked")
             );
         };
     }

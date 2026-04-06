@@ -64,7 +64,7 @@ class DeleteSessionWorkspaceEventConsumerIntegrationTest {
 
     private static final ProjectInfo PROJECT_INFO = new ProjectInfo(
             PROJECT_ID, ORIGIN_PROJECT_ID, "Test Project", "Label 1", null,
-            WORKSPACE_ID, Instant.parse("2025-01-01T11:00:00Z"), null, Map.of(), false, null);
+            WORKSPACE_ID, Instant.parse("2025-01-01T11:00:00Z"), null, Map.of(), null);
 
     private static final ProjectsSynchronizerJobDescriptor JOB_DESCRIPTOR =
             new ProjectsSynchronizerJobDescriptor("test-template");

@@ -100,8 +100,7 @@ public class JdbcWorkspacesRepository implements WorkspacesRepository {
                     new WorkspaceAddress(rs.getString("hostname"), rs.getInt("port")),
                     Instant.EPOCH,
                     WorkspaceStatus.UNKNOWN,
-                    0,
-                    null);
+                    0);
         };
     }
 }

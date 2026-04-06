@@ -1,11 +1,16 @@
 <template>
-  <div class="project-card-compact" :class="getBorderClass" @click="moveToProject(project.id)">
+  <div class="project-card-compact" :class="getBorderClass" @click="handleClick">
     <!-- Project Name Row -->
     <div class="name-row">
       <span class="project-name">{{ Project.displayName(project) }}</span>
-      <span v-if="showCriticalWarning" class="warning-icon" :title="getCriticalWarningTooltip">
-        <i :class="getCriticalWarningIcon"></i>
-      </span>
+      <button
+        v-if="project.isDeleted"
+        class="restore-btn"
+        title="Restore project"
+        @click.stop="$emit('restore', project.id)"
+      >
+        <i class="bi bi-arrow-counterclockwise"></i>
+      </button>
     </div>
 
     <!-- Metrics Row -->
@@ -21,7 +26,7 @@
     <div class="footer-row">
       <span class="date"><i class="bi bi-clock"></i>{{ formatDate(project.createdAt) }}</span>
       <div class="badges">
-        <Badge v-if="project.isBlocked" value="Blocked" variant="status-blocked" size="xs" />
+        <Badge v-if="project.isDeleted" value="Deleted" variant="grey" size="xs" />
         <Badge
           v-else-if="project.status"
           :value="formatStatus(project.status)"
@@ -34,7 +39,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, defineProps } from 'vue';
+import { computed, defineProps, defineEmits } from 'vue';
 import Project from '@/services/api/model/Project.ts';
 import RecordingStatus from '@/services/api/model/RecordingStatus.ts';
 import { useNavigation } from '@/composables/useNavigation';
@@ -46,31 +51,22 @@ const props = defineProps<{
   workspaceId: string;
 }>();
 
+defineEmits<{
+  restore: [projectId: string];
+}>();
+
 const { navigateToProject } = useNavigation();
 
-const moveToProject = (projectId: string) => {
-  navigateToProject(projectId, props.workspaceId);
+const handleClick = () => {
+  if (!props.project.isDeleted) {
+    navigateToProject(props.project.id, props.workspaceId);
+  }
 };
 
 // Border color class
 const getBorderClass = computed(() => {
-  if (props.project.isBlocked) return 'border-blocked';
+  if (props.project.isDeleted) return 'border-deleted';
   return 'border-default';
-});
-
-// Show warning icon for blocked projects
-const showCriticalWarning = computed(() => {
-  return props.project.isBlocked;
-});
-
-const getCriticalWarningIcon = computed(() => {
-  if (props.project.isBlocked) return 'bi bi-slash-circle-fill';
-  return '';
-});
-
-const getCriticalWarningTooltip = computed(() => {
-  if (props.project.isBlocked) return 'Project is blocked - no events are being processed';
-  return '';
 });
 
 // Status badge variant
@@ -129,9 +125,17 @@ const formatStatus = (status: RecordingStatus): string => {
   border-left-color: var(--color-primary);
 }
 
-.border-blocked {
+.border-deleted {
   border-left-color: var(--color-text-light);
   opacity: 0.65;
+  cursor: default;
+}
+
+.border-deleted:hover {
+  transform: none;
+  box-shadow: none;
+  border-color: var(--color-border);
+  border-left-color: var(--color-text-light);
 }
 
 /* Name Row */
@@ -155,14 +159,27 @@ const formatStatus = (status: RecordingStatus): string => {
   min-width: 0;
 }
 
-/* Warning Icon */
-.warning-icon {
+/* Restore Button */
+.restore-btn {
   display: flex;
   align-items: center;
-  cursor: help;
-  color: var(--color-warning);
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  background: var(--color-white);
+  color: var(--color-text-light);
+  cursor: pointer;
   font-size: 0.8rem;
   flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.restore-btn:hover {
+  background: var(--color-success-bg);
+  border-color: var(--color-emerald);
+  color: var(--color-emerald);
 }
 
 /* Metrics Row */
@@ -205,22 +222,5 @@ const formatStatus = (status: RecordingStatus): string => {
   display: flex;
   align-items: center;
   gap: 6px;
-}
-
-/* Alert Badge */
-.alert-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 0.65rem;
-  font-weight: 600;
-  background: var(--color-danger-bg-lighter);
-  color: var(--color-danger-hover);
-}
-
-.alert-badge i {
-  font-size: 0.6rem;
 }
 </style>

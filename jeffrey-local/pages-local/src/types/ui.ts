@@ -44,4 +44,5 @@ export type Variant =
   | 'status-active'
   | 'status-finished'
   | 'status-blocked'
+  | 'status-deleted'
   | 'status-unknown';

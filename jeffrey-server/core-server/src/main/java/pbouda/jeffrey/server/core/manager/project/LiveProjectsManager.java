@@ -69,8 +69,8 @@ public class LiveProjectsManager implements ProjectsManager {
     }
 
     @Override
-    public List<ProjectManager> findAllActive() {
-        return projectsRepository.findAllActiveProjects(workspaceInfo.id()).stream()
+    public List<ProjectManager> findAllIncludingDeleted() {
+        return projectsRepository.findAllProjectsIncludingDeleted(workspaceInfo.id()).stream()
                 .map(projectManagerFactory)
                 .toList();
     }

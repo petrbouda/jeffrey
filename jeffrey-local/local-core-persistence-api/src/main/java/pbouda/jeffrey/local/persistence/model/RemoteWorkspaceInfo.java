@@ -29,11 +29,10 @@ public record RemoteWorkspaceInfo(
         WorkspaceAddress address,
         Instant createdAt,
         WorkspaceStatus status,
-        int projectCount,
-        Boolean streamingEnabled) {
+        int projectCount) {
 
     public RemoteWorkspaceInfo withStatus(WorkspaceStatus newStatus) {
         return new RemoteWorkspaceInfo(
-                id, name, description, address, createdAt, newStatus, projectCount, streamingEnabled);
+                id, name, description, address, createdAt, newStatus, projectCount);
     }
 }

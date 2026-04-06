@@ -27,10 +27,10 @@ public record RemoteClients(
         RemoteRepositoryClient repository,
         RemoteRecordingStreamClient recordings,
         RemoteProfilerClient profiler,
-        RemoteMessagesClient messages,
         RemoteInstancesClient instances,
         RemoteProjectsClient projects,
-        RemoteWorkspaceEventsClient workspaceEvents
+        RemoteWorkspaceEventsClient workspaceEvents,
+        RemoteEventStreamingClient eventStreaming
 ) {
 
     @FunctionalInterface

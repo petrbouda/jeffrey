@@ -36,8 +36,7 @@ public abstract class Mappers {
                 info.description(),
                 info.createdAt().toEpochMilli(),
                 info.projectCount(),
-                info.status(),
-                info.streamingEnabled());
+                info.status());
     }
 
     public static WorkspaceEventResponse toEventResponse(WorkspaceEvent event) {
@@ -69,6 +68,7 @@ public abstract class Mappers {
                 detail.recordingCount(),
                 detail.sessionCount(),
                 detail.eventSource(),
-                detail.isBlocked());
+                detail.isDeleted(),
+                projectInfo.deletedAt() != null ? projectInfo.deletedAt().toEpochMilli() : null);
     }
 }

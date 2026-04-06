@@ -32,6 +32,8 @@ public interface ProjectsManager {
 
     List<ProjectManager> findAll();
 
+    List<ProjectManager> findAllIncludingDeleted();
+
     Optional<ProjectManager> project(String projectId);
 
     /**

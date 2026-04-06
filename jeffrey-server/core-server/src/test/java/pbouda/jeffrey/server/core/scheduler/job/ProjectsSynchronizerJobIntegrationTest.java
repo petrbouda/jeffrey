@@ -32,7 +32,6 @@ import pbouda.jeffrey.shared.persistentqueue.DuckDBPersistentQueue;
 import pbouda.jeffrey.shared.persistentqueue.QueueEntry;
 import pbouda.jeffrey.server.core.scheduler.JobContext;
 import pbouda.jeffrey.server.core.scheduler.job.descriptor.ProjectsSynchronizerJobDescriptor;
-import pbouda.jeffrey.server.core.streaming.JfrStreamingConsumerManager;
 import pbouda.jeffrey.server.core.streaming.SessionFinisher;
 import pbouda.jeffrey.server.core.workspace.WorkspaceEventConsumerType;
 import pbouda.jeffrey.server.core.workspace.WorkspaceEventSerializer;
@@ -88,7 +87,7 @@ class ProjectsSynchronizerJobIntegrationTest {
 
     private static final ProjectInfo PROJECT_INFO = new ProjectInfo(
             PROJECT_ID, ORIGIN_PROJECT_ID, "Test Project", "Label 1", null,
-            WORKSPACE_ID, Instant.parse("2025-01-01T11:00:00Z"), null, Map.of(), false, null);
+            WORKSPACE_ID, Instant.parse("2025-01-01T11:00:00Z"), null, Map.of(), null);
 
     private static final RepositoryInfo REPO_INFO = new RepositoryInfo(
             "repo-001", RepositoryType.ASYNC_PROFILER, "/workspaces", "ws-001", "proj-001");
@@ -101,15 +100,12 @@ class ProjectsSynchronizerJobIntegrationTest {
     private static List<WorkspaceEventConsumer> createConsumers(
             ServerPlatformRepositories platformRepositories,
             RepositoryStorage.Factory remoteRepositoryStorageFactory,
-            JfrStreamingConsumerManager streamingConsumerManager,
             SessionFinisher sessionFinisher) {
 
         return List.of(
                 new CreateProjectWorkspaceEventConsumer(),
                 new InstanceCreatedWorkspaceEventConsumer(),
                 new CreateSessionWorkspaceEventConsumer(platformRepositories, JEFFREY_DIRS, sessionFinisher),
-                new StartStreamingWorkspaceEventConsumer(streamingConsumerManager, platformRepositories),
-                new StopStreamingWorkspaceEventConsumer(streamingConsumerManager),
                 new DeleteSessionWorkspaceEventConsumer(platformRepositories, remoteRepositoryStorageFactory, FIXED_CLOCK),
                 new DeleteProjectWorkspaceEventConsumer(platformRepositories, remoteRepositoryStorageFactory));
     }
@@ -145,9 +141,6 @@ class ProjectsSynchronizerJobIntegrationTest {
         WorkspaceManager workspaceManager;
 
         @Mock
-        JfrStreamingConsumerManager streamingConsumerManager;
-
-        @Mock
         SessionFinisher sessionFinisher;
 
         @Mock
@@ -164,13 +157,13 @@ class ProjectsSynchronizerJobIntegrationTest {
             var queue = createQueue(dataSource);
             WorkspaceInfo wsInfo = new WorkspaceInfo(
                     WORKSPACE_ID, null, null, "Test Workspace", null, null, null,
-                    Instant.parse("2025-01-01T10:00:00Z"), WorkspaceStatus.AVAILABLE, 0, false, null);
+                    Instant.parse("2025-01-01T10:00:00Z"), WorkspaceStatus.AVAILABLE, 0, false);
             when(workspaceManager.resolveInfo()).thenReturn(wsInfo);
             when(workspaceManager.projectsManager()).thenReturn(projectsManager);
 
             var consumers = createConsumers(
                     platformRepositories, remoteRepositoryStorageFactory,
-                    streamingConsumerManager, sessionFinisher);
+                    sessionFinisher);
             var job = new ProjectsSynchronizerJob(
                     consumers, queue, null, null, null,
                     Duration.ofMinutes(5));
@@ -189,9 +182,6 @@ class ProjectsSynchronizerJobIntegrationTest {
 
         @Mock
         WorkspaceManager workspaceManager;
-
-        @Mock
-        JfrStreamingConsumerManager streamingConsumerManager;
 
         @Mock
         SessionFinisher sessionFinisher;
@@ -219,7 +209,7 @@ class ProjectsSynchronizerJobIntegrationTest {
 
             WorkspaceInfo wsInfo = new WorkspaceInfo(
                     WORKSPACE_ID, null, null, "Test Workspace", null, null, null,
-                    Instant.parse("2025-01-01T10:00:00Z"), WorkspaceStatus.AVAILABLE, 0, false, null);
+                    Instant.parse("2025-01-01T10:00:00Z"), WorkspaceStatus.AVAILABLE, 0, false);
             when(workspaceManager.resolveInfo()).thenReturn(wsInfo);
             when(workspaceManager.projectsManager()).thenReturn(projectsManager);
             when(projectsManager.findByOriginProjectId(ORIGIN_PROJECT_ID)).thenReturn(Optional.of(projectManager));
@@ -229,7 +219,7 @@ class ProjectsSynchronizerJobIntegrationTest {
 
             var consumers = createConsumers(
                     platformRepositories, remoteRepositoryStorageFactory,
-                    streamingConsumerManager, sessionFinisher);
+                    sessionFinisher);
             var job = new ProjectsSynchronizerJob(
                     consumers, queue, null, null, null,
                     Duration.ofMinutes(5));
@@ -255,9 +245,6 @@ class ProjectsSynchronizerJobIntegrationTest {
 
         @Mock
         WorkspaceManager workspaceManager;
-
-        @Mock
-        JfrStreamingConsumerManager streamingConsumerManager;
 
         @Mock
         SessionFinisher sessionFinisher;
@@ -287,7 +274,7 @@ class ProjectsSynchronizerJobIntegrationTest {
 
             WorkspaceInfo wsInfo = new WorkspaceInfo(
                     WORKSPACE_ID, null, null, "Test Workspace", null, null, null,
-                    Instant.parse("2025-01-01T10:00:00Z"), WorkspaceStatus.AVAILABLE, 0, false, null);
+                    Instant.parse("2025-01-01T10:00:00Z"), WorkspaceStatus.AVAILABLE, 0, false);
             when(workspaceManager.resolveInfo()).thenReturn(wsInfo);
             when(workspaceManager.projectsManager()).thenReturn(projectsManager);
 
@@ -303,7 +290,7 @@ class ProjectsSynchronizerJobIntegrationTest {
 
             var consumers = createConsumers(
                     platformRepositories, remoteRepositoryStorageFactory,
-                    streamingConsumerManager, sessionFinisher);
+                    sessionFinisher);
             var job = new ProjectsSynchronizerJob(
                     consumers, queue, null, null, null,
                     Duration.ofMinutes(5));
@@ -322,9 +309,6 @@ class ProjectsSynchronizerJobIntegrationTest {
 
         @Mock
         WorkspaceManager workspaceManager;
-
-        @Mock
-        JfrStreamingConsumerManager streamingConsumerManager;
 
         @Mock
         SessionFinisher sessionFinisher;
@@ -355,7 +339,7 @@ class ProjectsSynchronizerJobIntegrationTest {
 
             WorkspaceInfo wsInfo = new WorkspaceInfo(
                     WORKSPACE_ID, null, null, "Test Workspace", null, null, null,
-                    Instant.parse("2025-01-01T10:00:00Z"), WorkspaceStatus.AVAILABLE, 0, false, null);
+                    Instant.parse("2025-01-01T10:00:00Z"), WorkspaceStatus.AVAILABLE, 0, false);
             when(workspaceManager.resolveInfo()).thenReturn(wsInfo);
             when(workspaceManager.projectsManager()).thenReturn(projectsManager);
 
@@ -371,7 +355,7 @@ class ProjectsSynchronizerJobIntegrationTest {
 
             var consumers = createConsumers(
                     platformRepositories, remoteRepositoryStorageFactory,
-                    streamingConsumerManager, sessionFinisher);
+                    sessionFinisher);
             var job = new ProjectsSynchronizerJob(
                     consumers, queue, null, null, null,
                     Duration.ofMinutes(5));
@@ -399,9 +383,6 @@ class ProjectsSynchronizerJobIntegrationTest {
         WorkspaceManager workspaceManager;
 
         @Mock
-        JfrStreamingConsumerManager streamingConsumerManager;
-
-        @Mock
         SessionFinisher sessionFinisher;
 
         @Mock
@@ -423,7 +404,7 @@ class ProjectsSynchronizerJobIntegrationTest {
 
             WorkspaceInfo wsInfo = new WorkspaceInfo(
                     WORKSPACE_ID, null, null, "Test Workspace", null, null, null,
-                    Instant.parse("2025-01-01T10:00:00Z"), WorkspaceStatus.AVAILABLE, 0, false, null);
+                    Instant.parse("2025-01-01T10:00:00Z"), WorkspaceStatus.AVAILABLE, 0, false);
             when(workspaceManager.resolveInfo()).thenReturn(wsInfo);
             when(workspaceManager.projectsManager()).thenReturn(projectsManager);
 
@@ -432,7 +413,7 @@ class ProjectsSynchronizerJobIntegrationTest {
 
             var consumers = createConsumers(
                     platformRepositories, remoteRepositoryStorageFactory,
-                    streamingConsumerManager, sessionFinisher);
+                    sessionFinisher);
             var job = new ProjectsSynchronizerJob(
                     consumers, queue, null, null, null,
                     Duration.ofMinutes(5));
@@ -455,9 +436,6 @@ class ProjectsSynchronizerJobIntegrationTest {
 
         @Mock
         WorkspaceManager workspaceManager;
-
-        @Mock
-        JfrStreamingConsumerManager streamingConsumerManager;
 
         @Mock
         SessionFinisher sessionFinisher;
@@ -488,7 +466,7 @@ class ProjectsSynchronizerJobIntegrationTest {
 
             WorkspaceInfo wsInfo = new WorkspaceInfo(
                     WORKSPACE_ID, null, null, "Test Workspace", null, null, null,
-                    Instant.parse("2025-01-01T10:00:00Z"), WorkspaceStatus.AVAILABLE, 0, false, null);
+                    Instant.parse("2025-01-01T10:00:00Z"), WorkspaceStatus.AVAILABLE, 0, false);
             when(workspaceManager.resolveInfo()).thenReturn(wsInfo);
             when(workspaceManager.projectsManager()).thenReturn(projectsManager);
             when(projectsManager.findByOriginProjectId(ORIGIN_PROJECT_ID)).thenReturn(Optional.of(projectManager));
@@ -500,7 +478,7 @@ class ProjectsSynchronizerJobIntegrationTest {
 
             var consumers = createConsumers(
                     platformRepositories, remoteRepositoryStorageFactory,
-                    streamingConsumerManager, sessionFinisher);
+                    sessionFinisher);
             var job = new ProjectsSynchronizerJob(
                     consumers, queue, null, null, null,
                     Duration.ofMinutes(5));

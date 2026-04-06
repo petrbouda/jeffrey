@@ -541,15 +541,10 @@ const router = createRouter({
                   meta: { layout: 'project' }
                 },
                 {
-                  path: 'alerts',
-                  name: 'project-alerts',
-                  component: () => import('@/views/projects/detail/AlertsView.vue'),
-                  meta: { layout: 'project' }
-                },
-                {
-                  path: 'messages',
-                  name: 'project-messages',
-                  component: () => import('@/views/projects/detail/ImportantMessagesView.vue'),
+                  path: 'event-streaming',
+                  name: 'project-event-streaming',
+                  component: () =>
+                    import('@/views/projects/detail/EventStreamingDashboard.vue'),
                   meta: { layout: 'project' }
                 },
                 {

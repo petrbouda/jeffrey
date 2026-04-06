@@ -33,7 +33,7 @@ public abstract class RemoteMappers {
                 0,
                 response.sessionCount(),
                 null,
-                response.isBlocked());
+                response.deletedAt() != null);
     }
 
     private static ProjectInfo toProjectInfo(RemoteProjectResponse response) {
@@ -47,8 +47,7 @@ public abstract class RemoteMappers {
                 InstantUtils.parseInstant(response.createdAt()),
                 null,
                 null,
-                response.isBlocked(),
-                response.streamingEnabled()
+                response.deletedAt()
         );
     }
 }

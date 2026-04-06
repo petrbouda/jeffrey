@@ -18,10 +18,12 @@
 
 package pbouda.jeffrey.local.core.resources.workspace;
 
+import jakarta.ws.rs.DefaultValue;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.QueryParam;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.local.core.manager.project.ProjectManager;
@@ -103,12 +105,16 @@ public class WorkspaceProjectsResource {
     }
 
     @GET
-    public List<ProjectResponse> projects() {
-        var result = projectsManager.findAll().stream()
+    public List<ProjectResponse> projects(
+            @QueryParam("includeDeleted") @DefaultValue("false") boolean includeDeleted) {
+        var managers = includeDeleted
+                ? projectsManager.findAllIncludingDeleted()
+                : projectsManager.findAll();
+        var result = managers.stream()
                 .map(ProjectManager::detailedInfo)
                 .map(Mappers::toProjectResponse)
                 .toList();
-        LOG.debug("Listed projects: workspaceId={} count={}", workspaceInfo.id(), result.size());
+        LOG.debug("Listed projects: workspaceId={} includeDeleted={} count={}", workspaceInfo.id(), includeDeleted, result.size());
         return result;
     }
 

@@ -50,7 +50,7 @@ class ProfilesManagerImplTest {
     private static final Clock FIXED_CLOCK = Clock.fixed(NOW, ZoneOffset.UTC);
     private static final ProjectInfo PROJECT_INFO = new ProjectInfo(
             "proj-1", null, "Test Project", null, null,
-            "ws-1", NOW, null, Map.of(), false, null);
+            "ws-1", NOW, null, Map.of(), null);
 
     @Mock
     private LocalCoreRepositories localCoreRepositories;

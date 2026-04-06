@@ -35,7 +35,6 @@ public interface EventFieldsMapper {
 
     /**
      * Maps the fields of the {@link RecordedEvent} to the JSON object.
-     * TODO: change to byte[] to support binary encoding
      *
      * @param event the event to be mapped
      * @return the JSON object with the fields of the event

@@ -67,7 +67,23 @@ public class RemoteProjectsManager implements ProjectsManager {
     public List<ProjectManager> findAll() {
         List<RemoteProjectResponse> remoteProjects;
         try {
-            remoteProjects = remoteClients.discovery().allProjects(workspaceInfo.id());
+            remoteProjects = remoteClients.discovery().allProjects(workspaceInfo.id(), false);
+        } catch (Exception e) {
+            LOG.error("Failed to fetch projects from remote workspace: {}", workspaceInfo, e);
+            remoteProjects = List.of();
+        }
+
+        return remoteProjects.stream()
+                .map(remoteProject -> toRemoteProjectManager(
+                        RemoteMappers.toDetailedProjectInfo(remoteProject)))
+                .toList();
+    }
+
+    @Override
+    public List<ProjectManager> findAllIncludingDeleted() {
+        List<RemoteProjectResponse> remoteProjects;
+        try {
+            remoteProjects = remoteClients.discovery().allProjects(workspaceInfo.id(), true);
         } catch (Exception e) {
             LOG.error("Failed to fetch projects from remote workspace: {}", workspaceInfo, e);
             remoteProjects = List.of();
@@ -82,9 +98,10 @@ public class RemoteProjectsManager implements ProjectsManager {
     @Override
     public Optional<ProjectManager> project(String projectId) {
         // In remote-only mode, we look up the project from the remote server
+        // Include deleted projects so restore/management lookups work
         List<RemoteProjectResponse> remoteProjects;
         try {
-            remoteProjects = remoteClients.discovery().allProjects(workspaceInfo.id());
+            remoteProjects = remoteClients.discovery().allProjects(workspaceInfo.id(), true);
         } catch (Exception e) {
             LOG.error("Failed to fetch projects from remote workspace: {}", workspaceInfo, e);
             return Optional.empty();

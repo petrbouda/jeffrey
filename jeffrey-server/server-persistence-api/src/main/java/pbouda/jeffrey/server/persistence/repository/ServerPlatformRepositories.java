@@ -21,7 +21,7 @@ package pbouda.jeffrey.server.persistence.repository;
 /**
  * Factory interface for server-level platform repositories.
  * Provides access to server-specific repositories (workspaces, projects, instances,
- * sessions, scheduler, messages, alerts, profiler settings).
+ * sessions, scheduler, profiler settings).
  */
 public interface ServerPlatformRepositories {
 
@@ -41,7 +41,4 @@ public interface ServerPlatformRepositories {
 
     ProjectInstanceRepository newProjectInstanceRepository(String projectId);
 
-    MessageRepository newMessageRepository(String projectId);
-
-    AlertRepository newAlertRepository(String projectId);
 }

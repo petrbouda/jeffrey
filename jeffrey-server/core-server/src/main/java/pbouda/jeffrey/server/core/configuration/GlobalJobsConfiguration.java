@@ -35,12 +35,9 @@ import pbouda.jeffrey.server.core.scheduler.job.WorkspaceEventsReplicatorJob;
 import pbouda.jeffrey.server.core.scheduler.job.WorkspaceProfilerSettingsSynchronizerJob;
 import pbouda.jeffrey.server.core.scheduler.job.descriptor.JobDescriptorFactory;
 import pbouda.jeffrey.server.core.workspace.consumer.WorkspaceEventConsumer;
-import pbouda.jeffrey.server.persistence.repository.JdbcAlertRepository;
-import pbouda.jeffrey.server.persistence.repository.JdbcMessageRepository;
 import pbouda.jeffrey.server.persistence.repository.ServerPlatformRepositories;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEvent;
 import pbouda.jeffrey.shared.folderqueue.FolderQueue;
-import pbouda.jeffrey.shared.persistence.client.DatabaseClientProvider;
 import pbouda.jeffrey.shared.persistentqueue.PersistentQueue;
 
 import java.time.Clock;
@@ -133,22 +130,15 @@ public class GlobalJobsConfiguration {
 
     @Bean
     public DataRetentionJob dataRetentionJob(
-            DatabaseClientProvider databaseClientProvider,
             PersistentQueue<WorkspaceEvent> workspaceEventQueue,
             Clock clock,
-            @Value("${jeffrey.server.platform.retention.queue-events:31d}") Duration queueEventsRetention,
-            @Value("${jeffrey.server.platform.retention.messages:31d}") Duration messagesRetention,
-            @Value("${jeffrey.server.platform.retention.alerts:31d}") Duration alertsRetention) {
+            @Value("${jeffrey.server.platform.retention.queue-events:31d}") Duration queueEventsRetention) {
 
         return new DataRetentionJob(
-                new JdbcMessageRepository(null, databaseClientProvider),
-                new JdbcAlertRepository(null, databaseClientProvider),
                 workspaceEventQueue,
                 clock,
                 jobProperties.resolvePeriod("data-retention", Duration.ofDays(1)),
-                queueEventsRetention,
-                messagesRetention,
-                alertsRetention);
+                queueEventsRetention);
     }
 
     @Bean(PROJECTS_SYNCHRONIZER_TRIGGER)

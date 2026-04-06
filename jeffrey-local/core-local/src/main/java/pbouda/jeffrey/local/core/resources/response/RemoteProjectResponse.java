@@ -20,6 +20,8 @@ package pbouda.jeffrey.local.core.resources.response;
 
 import pbouda.jeffrey.shared.common.model.repository.RecordingStatus;
 
+import java.time.Instant;
+
 public record RemoteProjectResponse(
         String id,
         String originId,
@@ -30,6 +32,5 @@ public record RemoteProjectResponse(
         String workspaceId,
         RecordingStatus status,
         int sessionCount,
-        boolean isBlocked,
-        Boolean streamingEnabled) {
+        Instant deletedAt) {
 }

@@ -131,7 +131,6 @@ class JdbcProjectsRepositoryTest {
                     Instant.parse("2025-01-15T12:00:00Z"),
                     null,
                     Map.of(),
-                    false,
                     null
             );
             CreateProject createProject = new CreateProject(projectInfo, new GraphVisualization(0.1));
@@ -164,7 +163,6 @@ class JdbcProjectsRepositoryTest {
                     Instant.parse("2025-01-15T12:00:00Z"),
                     null,
                     Map.of(),
-                    false,
                     null
             );
             CreateProject createProject = new CreateProject(projectInfo, new GraphVisualization(0.1));
@@ -318,7 +316,7 @@ class JdbcProjectsRepositoryTest {
             // Creating a new project with same origin_project_id should succeed
             ProjectInfo newProject = new ProjectInfo(
                     "proj-003", "origin-002", "Recreated Project", null, null,
-                    "ws-001", Instant.parse("2025-06-15T12:00:00Z"), null, Map.of(), false, null);
+                    "ws-001", Instant.parse("2025-06-15T12:00:00Z"), null, Map.of(), null);
             CreateProject createProject = new CreateProject(newProject, new GraphVisualization(0.1));
 
             ProjectInfo result = repository.create(createProject);

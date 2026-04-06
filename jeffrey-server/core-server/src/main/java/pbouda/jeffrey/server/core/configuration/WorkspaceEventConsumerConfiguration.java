@@ -21,7 +21,6 @@ package pbouda.jeffrey.server.core.configuration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import pbouda.jeffrey.server.core.project.repository.RepositoryStorage;
-import pbouda.jeffrey.server.core.streaming.JfrStreamingConsumerManager;
 import pbouda.jeffrey.server.core.streaming.SessionFinisher;
 import pbouda.jeffrey.server.core.workspace.consumer.*;
 import pbouda.jeffrey.server.persistence.repository.ServerPlatformRepositories;
@@ -49,21 +48,6 @@ public class WorkspaceEventConsumerConfiguration {
             SessionFinisher sessionFinisher) {
 
         return new CreateSessionWorkspaceEventConsumer(platformRepositories, jeffreyDirs, sessionFinisher);
-    }
-
-    @Bean
-    public StartStreamingWorkspaceEventConsumer startStreamingWorkspaceEventConsumer(
-            JfrStreamingConsumerManager jfrStreamingConsumerManager,
-            ServerPlatformRepositories platformRepositories) {
-
-        return new StartStreamingWorkspaceEventConsumer(jfrStreamingConsumerManager, platformRepositories);
-    }
-
-    @Bean
-    public StopStreamingWorkspaceEventConsumer stopStreamingWorkspaceEventConsumer(
-            JfrStreamingConsumerManager jfrStreamingConsumerManager) {
-
-        return new StopStreamingWorkspaceEventConsumer(jfrStreamingConsumerManager);
     }
 
     @Bean

@@ -23,7 +23,6 @@ import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.shared.persistentqueue.PersistentQueue;
 import pbouda.jeffrey.server.core.scheduler.Job;
 import pbouda.jeffrey.server.core.scheduler.JobContext;
-import pbouda.jeffrey.server.persistence.repository.RetentionCleanup;
 import pbouda.jeffrey.shared.common.model.job.JobType;
 
 import java.time.Clock;
@@ -34,61 +33,33 @@ public class DataRetentionJob implements Job {
 
     private static final Logger LOG = LoggerFactory.getLogger(DataRetentionJob.class);
 
-    private final RetentionCleanup messageRetention;
-    private final RetentionCleanup alertRetention;
     private final PersistentQueue<?> persistentQueue;
     private final Clock clock;
     private final Duration period;
     private final Duration queueEventsRetention;
-    private final Duration messagesRetention;
-    private final Duration alertsRetention;
 
     public DataRetentionJob(
-            RetentionCleanup messageRetention,
-            RetentionCleanup alertRetention,
             PersistentQueue<?> persistentQueue,
             Clock clock,
             Duration period,
-            Duration queueEventsRetention,
-            Duration messagesRetention,
-            Duration alertsRetention) {
+            Duration queueEventsRetention) {
 
-        this.messageRetention = messageRetention;
-        this.alertRetention = alertRetention;
         this.persistentQueue = persistentQueue;
         this.clock = clock;
         this.period = period;
         this.queueEventsRetention = queueEventsRetention;
-        this.messagesRetention = messagesRetention;
-        this.alertsRetention = alertsRetention;
     }
 
     @Override
     public void execute(JobContext context) {
         Instant now = clock.instant();
         deleteOldQueueEvents(now);
-        deleteOldMessages(now);
-        deleteOldAlerts(now);
     }
 
     private void deleteOldQueueEvents(Instant now) {
         int deleted = persistentQueue.deleteEventsOlderThan(now.minus(queueEventsRetention));
         if (deleted > 0) {
             LOG.info("Deleted old queue events: count={} retention={}", deleted, queueEventsRetention);
-        }
-    }
-
-    private void deleteOldMessages(Instant now) {
-        int deleted = messageRetention.deleteOlderThan(now.minus(messagesRetention));
-        if (deleted > 0) {
-            LOG.info("Deleted old messages: count={} retention={}", deleted, messagesRetention);
-        }
-    }
-
-    private void deleteOldAlerts(Instant now) {
-        int deleted = alertRetention.deleteOlderThan(now.minus(alertsRetention));
-        if (deleted > 0) {
-            LOG.info("Deleted old alerts: count={} retention={}", deleted, alertsRetention);
         }
     }
 

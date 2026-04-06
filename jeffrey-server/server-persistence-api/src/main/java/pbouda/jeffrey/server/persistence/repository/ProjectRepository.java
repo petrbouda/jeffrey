@@ -44,20 +44,8 @@ public interface ProjectRepository {
     void updateProjectName(String name);
 
     /**
-     * Block the project — stops all event processing, streaming, and periodic jobs.
+     * Restore a previously soft-deleted project, clearing the deleted_at timestamp.
      */
-    void block();
+    void restore();
 
-    /**
-     * Unblock the project — resumes event processing and periodic jobs.
-     */
-    void unblock();
-
-    /**
-     * Update the streaming enabled flag for this project.
-     *
-     * @param enabled {@code true} to force-enable, {@code false} to force-disable,
-     *                {@code null} to inherit from workspace/global setting.
-     */
-    void updateStreamingEnabled(Boolean enabled);
 }

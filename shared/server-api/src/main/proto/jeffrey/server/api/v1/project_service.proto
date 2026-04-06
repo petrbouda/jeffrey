@@ -7,11 +7,13 @@ option java_multiple_files = true;
 
 import "jeffrey/server/api/v1/common.proto";
 
-// Manages projects within a workspace — listing, deletion, and blocking.
+// Manages projects within a workspace — listing, deletion, and restoration.
 // Projects represent monitored applications and are auto-created from
 // workspace events when the CLI detects a new application.
 service ProjectService {
-  // Lists all projects in a workspace, including blocked ones.
+  // Lists all projects in a workspace.
+  // By default, soft-deleted projects are excluded. Set include_deleted
+  // to true to include them (e.g., for UI toggles).
   rpc ListProjects(ListProjectsRequest) returns (ListProjectsResponse);
 
   // Gets detailed information about a single project.
@@ -21,15 +23,9 @@ service ProjectService {
   // The actual deletion is processed asynchronously by the event pipeline.
   rpc DeleteProject(DeleteProjectRequest) returns (DeleteProjectResponse);
 
-  // Blocks a project — stops all event processing, JFR streaming, and periodic jobs.
-  // Active streaming consumers are immediately stopped. Events arriving for
-  // a blocked project are silently consumed and discarded.
-  rpc BlockProject(BlockProjectRequest) returns (BlockProjectResponse);
-
-  // Unblocks a previously blocked project, resuming event processing.
-  // Events that arrived while blocked were discarded and will not be replayed.
-  // Active streaming does not automatically resume for previously stopped sessions.
-  rpc UnblockProject(UnblockProjectRequest) returns (UnblockProjectResponse);
+  // Restores a previously soft-deleted project, clearing the deleted_at
+  // timestamp and making the project active again.
+  rpc RestoreProject(RestoreProjectRequest) returns (RestoreProjectResponse);
 
   // Updates the streaming enabled flag for a project.
   // Setting streaming_enabled overrides the workspace/global setting for this project.
@@ -40,6 +36,8 @@ service ProjectService {
 message ListProjectsRequest {
   // The workspace containing the projects.
   string workspace_id = 1;
+  // When true, includes soft-deleted projects in the response.
+  bool include_deleted = 2;
 }
 
 message ListProjectsResponse {
@@ -62,19 +60,12 @@ message DeleteProjectRequest {
 
 message DeleteProjectResponse {}
 
-message BlockProjectRequest {
+message RestoreProjectRequest {
   string workspace_id = 1;
   string project_id = 2;
 }
 
-message BlockProjectResponse {}
-
-message UnblockProjectRequest {
-  string workspace_id = 1;
-  string project_id = 2;
-}
-
-message UnblockProjectResponse {}
+message RestoreProjectResponse {}
 
 message UpdateProjectStreamingRequest {
   string workspace_id = 1;
@@ -105,10 +96,10 @@ message ProjectInfo {
   RecordingStatus status = 8;
   // Number of active and finished recording sessions.
   int32 session_count = 9;
-  // Whether the project is blocked. Blocked projects do not process events,
-  // run streaming, or execute periodic jobs.
-  bool is_blocked = 10;
+  reserved 10; // was is_blocked (removed)
   // Project-level streaming override. If not set, inherits from the workspace/global setting.
   // If set to true/false, overrides the workspace and global settings for this project.
   optional bool streaming_enabled = 11;
+  // Soft-deletion timestamp (epoch millis). Present only for deleted projects.
+  optional int64 deleted_at = 12;
 }

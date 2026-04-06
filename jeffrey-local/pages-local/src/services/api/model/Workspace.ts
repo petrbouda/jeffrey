@@ -25,5 +25,4 @@ export default interface Workspace {
   createdAt: number;
   projectCount: number;
   status: WorkspaceStatus;
-  streamingEnabled?: boolean | null;
 }

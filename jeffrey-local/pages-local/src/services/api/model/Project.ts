@@ -29,7 +29,8 @@ export default class Project {
     public status: RecordingStatus,
     public recordingCount: number,
     public sessionCount: number,
-    public isBlocked: boolean
+    public isDeleted: boolean,
+    public deletedAt: number | null
   ) {}
 
   static displayName(project: Project): string {

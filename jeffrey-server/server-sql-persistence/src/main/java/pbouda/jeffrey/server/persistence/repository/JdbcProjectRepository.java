@@ -35,22 +35,13 @@ public class JdbcProjectRepository implements ProjectRepository {
             JOIN workspaces w ON p.workspace_id = w.workspace_id
             WHERE p.project_id = :project_id AND p.deleted_at IS NULL""";
 
-
     //language=SQL
     private static final String UPDATE_PROJECTS_NAME =
             "UPDATE projects SET project_name = :project_name WHERE project_id = :project_id";
 
     //language=SQL
-    private static final String BLOCK_PROJECT =
-            "UPDATE projects SET blocked = true WHERE project_id = :project_id";
-
-    //language=SQL
-    private static final String UNBLOCK_PROJECT =
-            "UPDATE projects SET blocked = false WHERE project_id = :project_id";
-
-    //language=SQL
-    private static final String UPDATE_STREAMING_ENABLED =
-            "UPDATE projects SET streaming_enabled = :streaming_enabled WHERE project_id = :project_id";
+    private static final String RESTORE_PROJECT =
+            "UPDATE projects SET deleted_at = NULL WHERE project_id = :project_id";
 
     //language=SQL
     private static final String DELETE_PROJECT_CASCADE = """
@@ -59,8 +50,6 @@ public class JdbcProjectRepository implements ProjectRepository {
             DELETE FROM project_instances WHERE project_id = '%project_id%';
             DELETE FROM repositories WHERE project_id = '%project_id%';
             DELETE FROM profiler_settings WHERE project_id = '%project_id%';
-            DELETE FROM messages WHERE project_id = '%project_id%';
-            DELETE FROM alerts WHERE project_id = '%project_id%';
             UPDATE projects SET deleted_at = CURRENT_TIMESTAMP WHERE project_id = '%project_id%'""";
 
     private final String projectId;
@@ -96,27 +85,11 @@ public class JdbcProjectRepository implements ProjectRepository {
     }
 
     @Override
-    public void block() {
+    public void restore() {
         MapSqlParameterSource paramSource = new MapSqlParameterSource()
                 .addValue("project_id", projectId);
 
-        databaseClient.update(StatementLabel.BLOCK_PROJECT, BLOCK_PROJECT, paramSource);
+        databaseClient.update(StatementLabel.RESTORE_PROJECT, RESTORE_PROJECT, paramSource);
     }
 
-    @Override
-    public void unblock() {
-        MapSqlParameterSource paramSource = new MapSqlParameterSource()
-                .addValue("project_id", projectId);
-
-        databaseClient.update(StatementLabel.UNBLOCK_PROJECT, UNBLOCK_PROJECT, paramSource);
-    }
-
-    @Override
-    public void updateStreamingEnabled(Boolean enabled) {
-        MapSqlParameterSource paramSource = new MapSqlParameterSource()
-                .addValue("project_id", projectId)
-                .addValue("streaming_enabled", enabled);
-
-        databaseClient.update(StatementLabel.UPDATE_PROJECT_STREAMING, UPDATE_STREAMING_ENABLED, paramSource);
-    }
 }

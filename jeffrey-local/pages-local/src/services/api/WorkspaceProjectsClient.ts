@@ -25,7 +25,7 @@ export default class WorkspaceProjectsClient extends BasePlatformClient {
   }
 
   async list(): Promise<Project[]> {
-    return super.get<Project[]>();
+    return super.get<Project[]>('?includeDeleted=true');
   }
 
   async create(name: string, templateId?: string): Promise<Project> {

@@ -18,14 +18,12 @@
 
 package pbouda.jeffrey.server.core.manager.project;
 
-import pbouda.jeffrey.server.core.manager.MessagesManager;
 import pbouda.jeffrey.server.core.manager.ProfilerSettingsManager;
 import pbouda.jeffrey.server.core.manager.RepositoryManager;
 import pbouda.jeffrey.server.core.manager.SchedulerManager;
 import pbouda.jeffrey.server.core.project.repository.RepositoryStorage;
 import pbouda.jeffrey.server.persistence.repository.ProjectInstanceRepository;
 import pbouda.jeffrey.shared.common.model.ProjectInfo;
-import pbouda.jeffrey.shared.common.model.RecordingEventSource;
 import pbouda.jeffrey.shared.common.model.repository.RecordingStatus;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEventCreator;
 
@@ -41,14 +39,12 @@ public interface ProjectManager {
             ProjectInfo projectInfo,
             RecordingStatus status,
             int sessionCount,
-            boolean isBlocked) {
+            boolean isDeleted) {
     }
 
     @FunctionalInterface
     interface Factory extends Function<ProjectInfo, ProjectManager> {
     }
-
-    MessagesManager messagesManager();
 
     RepositoryStorage repositoryStorage();
 
@@ -64,17 +60,7 @@ public interface ProjectManager {
 
     DetailedProjectInfo detailedInfo();
 
-    void block();
-
-    void unblock();
-
-    /**
-     * Updates the streaming enabled flag for this project.
-     *
-     * @param enabled {@code true} to force-enable, {@code false} to force-disable,
-     *                {@code null} to inherit from workspace/global setting.
-     */
-    void updateStreamingEnabled(Boolean enabled);
+    void restore();
 
     void delete(WorkspaceEventCreator createdBy);
 }

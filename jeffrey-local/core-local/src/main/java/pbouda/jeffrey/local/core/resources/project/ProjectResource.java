@@ -20,6 +20,7 @@ package pbouda.jeffrey.local.core.resources.project;
 
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
+import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,11 +58,7 @@ public class ProjectResource {
     public ProjectSettingsResource settingsResource() {
         return new ProjectSettingsResource(
                 projectManager.info(),
-                projectManager::updateName,
-                projectManager::block,
-                projectManager::unblock,
-                projectManager::updateStreamingEnabled,
-                projectManager.workspaceStreamingEnabled());
+                projectManager::updateName);
     }
 
     @Path("/profiles")
@@ -99,9 +96,9 @@ public class ProjectResource {
                 projectManager.recordingsDownloadManager());
     }
 
-    @Path("/messages")
-    public ProjectMessagesResource messagesResource() {
-        return new ProjectMessagesResource(projectManager.messagesManager());
+    @Path("/event-streaming")
+    public ProjectEventStreamingResource eventStreamingResource() {
+        return new ProjectEventStreamingResource(projectManager.eventStreamingManager());
     }
 
     @Path("/instances")
@@ -113,6 +110,13 @@ public class ProjectResource {
     @Path("/initializing")
     public boolean initializing() {
         return false;
+    }
+
+    @POST
+    @Path("/restore")
+    public void restore() {
+        LOG.debug("Restoring project: projectId={}", projectManager.info().id());
+        projectManager.restore();
     }
 
     @GET

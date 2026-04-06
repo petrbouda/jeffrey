@@ -17,6 +17,7 @@
  */
 
 import TimeRange from '@/services/api/model/TimeRange';
+import type { TypedValue } from '@/services/api/EventStreamingClient';
 import type { Variant } from '@/types/ui';
 
 export default class Utils {
@@ -95,6 +96,18 @@ export default class Utils {
       default:
         return 'grey';
     }
+  }
+
+  /**
+   * Extracts the display value from a TypedValue (typed JFR event field).
+   */
+  static typedValueToDisplay(tv: TypedValue): string {
+    if (tv.stringValue !== undefined) return tv.stringValue
+    if (tv.longValue !== undefined) return String(tv.longValue)
+    if (tv.doubleValue !== undefined) return String(tv.doubleValue)
+    if (tv.floatValue !== undefined) return String(tv.floatValue)
+    if (tv.boolValue !== undefined) return String(tv.boolValue)
+    return ''
   }
 
   static formatFileType(fileType: string): string {

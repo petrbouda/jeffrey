@@ -44,6 +44,7 @@ public class CachedRemoteClientsFactory implements RemoteClients.Factory, Closea
     public void evict(WorkspaceAddress address) {
         CachedEntry entry = cache.remove(address);
         if (entry != null) {
+            entry.clients().eventStreaming().close();
             entry.connection().close();
             LOG.info("Evicted cached gRPC connection: address={}", address);
         }
@@ -52,6 +53,7 @@ public class CachedRemoteClientsFactory implements RemoteClients.Factory, Closea
     @Override
     public void close() {
         for (Map.Entry<WorkspaceAddress, CachedEntry> entry : cache.entrySet()) {
+            entry.getValue().clients().eventStreaming().close();
             entry.getValue().connection().close();
         }
         cache.clear();
@@ -65,10 +67,10 @@ public class CachedRemoteClientsFactory implements RemoteClients.Factory, Closea
                 new RemoteRepositoryClient(connection),
                 new RemoteRecordingStreamClient(connection),
                 new RemoteProfilerClient(connection),
-                new RemoteMessagesClient(connection),
                 new RemoteInstancesClient(connection),
                 new RemoteProjectsClient(connection),
-                new RemoteWorkspaceEventsClient(connection));
+                new RemoteWorkspaceEventsClient(connection),
+                new RemoteEventStreamingClient(connection));
 
         return new CachedEntry(connection, clients);
     }

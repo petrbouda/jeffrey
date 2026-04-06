@@ -30,5 +30,6 @@ public record ProjectResponse(
         String workspaceId,
         RecordingStatus status,
         int sessionCount,
-        boolean isBlocked) {
+        boolean isDeleted,
+        Long deletedAt) {
 }

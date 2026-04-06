@@ -49,6 +49,7 @@ public abstract class Mappers {
                 projectInfo.workspaceId(),
                 detail.status(),
                 detail.sessionCount(),
-                detail.isBlocked());
+                detail.isDeleted(),
+                projectInfo.deletedAt() != null ? projectInfo.deletedAt().toEpochMilli() : null);
     }
 }

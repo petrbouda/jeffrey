@@ -93,10 +93,11 @@ public class RemoteDiscoveryClient {
         }
     }
 
-    public List<RemoteProjectResponse> allProjects(String workspaceId) {
+    public List<RemoteProjectResponse> allProjects(String workspaceId, boolean includeDeleted) {
         ListProjectsResponse response = projectStub.listProjects(
                 ListProjectsRequest.newBuilder()
                         .setWorkspaceId(workspaceId)
+                        .setIncludeDeleted(includeDeleted)
                         .build());
 
         return response.getProjectsList().stream()
@@ -112,8 +113,7 @@ public class RemoteDiscoveryClient {
                 connection.address(),
                 Instant.ofEpochMilli(proto.getCreatedAt()),
                 fromProtoStatus(proto.getStatus()),
-                proto.getProjectCount(),
-                proto.hasStreamingEnabled() ? proto.getStreamingEnabled() : null);
+                proto.getProjectCount());
     }
 
     private static WorkspaceResponse toWorkspaceResponse(pbouda.jeffrey.server.api.v1.WorkspaceInfo proto) {
@@ -123,8 +123,7 @@ public class RemoteDiscoveryClient {
                 proto.getDescription(),
                 proto.getCreatedAt(),
                 proto.getProjectCount(),
-                fromProtoStatus(proto.getStatus()),
-                proto.hasStreamingEnabled() ? proto.getStreamingEnabled() : null);
+                fromProtoStatus(proto.getStatus()));
     }
 
     private static RemoteProjectResponse toRemoteProjectResponse(ProjectInfo proto) {
@@ -138,8 +137,7 @@ public class RemoteDiscoveryClient {
                 proto.getWorkspaceId(),
                 fromProtoRecordingStatus(proto.getStatus()),
                 proto.getSessionCount(),
-                proto.getIsBlocked(),
-                proto.hasStreamingEnabled() ? proto.getStreamingEnabled() : null);
+                proto.hasDeletedAt() ? Instant.ofEpochMilli(proto.getDeletedAt()) : null);
     }
 
     private static RecordingStatus fromProtoRecordingStatus(pbouda.jeffrey.server.api.v1.RecordingStatus status) {
@@ -148,19 +146,6 @@ public class RemoteDiscoveryClient {
             case RECORDING_STATUS_FINISHED -> RecordingStatus.FINISHED;
             default -> RecordingStatus.UNKNOWN;
         };
-    }
-
-    public void updateWorkspaceStreaming(String workspaceId, Boolean streamingEnabled) {
-        UpdateWorkspaceStreamingRequest.Builder builder = UpdateWorkspaceStreamingRequest.newBuilder()
-                .setWorkspaceId(workspaceId);
-
-        if (streamingEnabled != null) {
-            builder.setStreamingEnabled(streamingEnabled);
-        }
-
-        workspaceStub.updateWorkspaceStreaming(builder.build());
-
-        LOG.debug("Updated workspace streaming via gRPC: workspaceId={} streamingEnabled={}", workspaceId, streamingEnabled);
     }
 
     private static WorkspaceStatus fromProtoStatus(pbouda.jeffrey.server.api.v1.WorkspaceStatus status) {

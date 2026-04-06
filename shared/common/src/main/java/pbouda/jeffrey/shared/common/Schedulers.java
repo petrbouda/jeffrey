@@ -49,9 +49,6 @@ public abstract class Schedulers {
     private static final ScheduledExecutorService SINGLE_SCHEDULED =
             Executors.newSingleThreadScheduledExecutor(platformThreadfactory("single-scheduled"));
 
-    private static final ScheduledExecutorService WATCHDOG_SCHEDULED =
-            Executors.newSingleThreadScheduledExecutor(virtualThreadfactory("watchdog"));
-
     private static final ExecutorService STREAMING =
             Executors.newThreadPerTaskExecutor(virtualThreadfactory("streaming"));
 
@@ -72,10 +69,6 @@ public abstract class Schedulers {
 
     public static ScheduledExecutorService sharedSingleScheduled() {
         return SINGLE_SCHEDULED;
-    }
-
-    public static ScheduledExecutorService watchdogScheduled() {
-        return WATCHDOG_SCHEDULED;
     }
 
     public static ExecutorService streamingExecutor() {
@@ -107,7 +100,6 @@ public abstract class Schedulers {
             SINGLE.close();
             VIRTUAL.close();
             SINGLE_SCHEDULED.close();
-            WATCHDOG_SCHEDULED.close();
             STREAMING.close();
             DB_WRITER.close();
         }));

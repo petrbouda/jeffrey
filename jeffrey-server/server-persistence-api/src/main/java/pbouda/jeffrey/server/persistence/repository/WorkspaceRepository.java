@@ -40,14 +40,6 @@ public interface WorkspaceRepository {
     void delete();
 
     /**
-     * Update the streaming enabled flag for this workspace.
-     *
-     * @param enabled {@code true} to force-enable, {@code false} to force-disable,
-     *                {@code null} to inherit from global setting.
-     */
-    void updateStreamingEnabled(Boolean enabled);
-
-    /**
      * Find all projects in the workspace.
      *
      * @return list of projects in the workspace.

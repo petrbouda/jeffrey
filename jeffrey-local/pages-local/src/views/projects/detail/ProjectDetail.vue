@@ -105,20 +105,12 @@
                   <span>Scheduler</span>
                 </router-link>
                 <router-link
-                  :to="generateProjectUrl('alerts')"
+                  :to="generateProjectUrl('event-streaming')"
                   class="nav-item"
                   active-class="active"
                 >
-                  <i class="bi bi-bell"></i>
-                  <span>Alerts</span>
-                </router-link>
-                <router-link
-                  :to="generateProjectUrl('messages')"
-                  class="nav-item"
-                  active-class="active"
-                >
-                  <i class="bi bi-chat-square-text"></i>
-                  <span>Messages</span>
+                  <i class="bi bi-broadcast"></i>
+                  <span>Event Streaming</span>
                 </router-link>
                 <router-link
                   :to="generateProjectUrl('settings')"

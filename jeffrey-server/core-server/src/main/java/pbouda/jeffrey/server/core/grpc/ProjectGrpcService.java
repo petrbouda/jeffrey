@@ -47,7 +47,12 @@ public class ProjectGrpcService extends ProjectServiceGrpc.ProjectServiceImplBas
         try {
             WorkspaceManager workspace = findWorkspace(request.getWorkspaceId());
 
-            List<ProjectInfo> projects = workspace.projectsManager().findAll().stream()
+            var projectsManager = workspace.projectsManager();
+            var managers = request.getIncludeDeleted()
+                    ? projectsManager.findAllIncludingDeleted()
+                    : projectsManager.findAll();
+
+            List<ProjectInfo> projects = managers.stream()
                     .map(ProjectManager::detailedInfo)
                     .map(ProjectGrpcService::toProto)
                     .toList();
@@ -110,61 +115,20 @@ public class ProjectGrpcService extends ProjectServiceGrpc.ProjectServiceImplBas
     }
 
     @Override
-    public void blockProject(BlockProjectRequest request, StreamObserver<BlockProjectResponse> responseObserver) {
+    public void restoreProject(RestoreProjectRequest request, StreamObserver<RestoreProjectResponse> responseObserver) {
         try {
             ProjectManager project = findProject(request.getWorkspaceId(), request.getProjectId());
-            project.block();
+            project.restore();
 
-            LOG.info("Blocked project via gRPC: workspaceId={} projectId={}",
+            LOG.info("Restored project via gRPC: workspaceId={} projectId={}",
                     request.getWorkspaceId(), request.getProjectId());
 
-            responseObserver.onNext(BlockProjectResponse.getDefaultInstance());
+            responseObserver.onNext(RestoreProjectResponse.getDefaultInstance());
             responseObserver.onCompleted();
         } catch (io.grpc.StatusRuntimeException e) {
             responseObserver.onError(e);
         } catch (Exception e) {
-            LOG.error("Failed to block project: workspaceId={} projectId={}",
-                    request.getWorkspaceId(), request.getProjectId(), e);
-            responseObserver.onError(Status.INTERNAL.withDescription(e.getMessage()).asRuntimeException());
-        }
-    }
-
-    @Override
-    public void unblockProject(UnblockProjectRequest request, StreamObserver<UnblockProjectResponse> responseObserver) {
-        try {
-            ProjectManager project = findProject(request.getWorkspaceId(), request.getProjectId());
-            project.unblock();
-
-            LOG.info("Unblocked project via gRPC: workspaceId={} projectId={}",
-                    request.getWorkspaceId(), request.getProjectId());
-
-            responseObserver.onNext(UnblockProjectResponse.getDefaultInstance());
-            responseObserver.onCompleted();
-        } catch (io.grpc.StatusRuntimeException e) {
-            responseObserver.onError(e);
-        } catch (Exception e) {
-            LOG.error("Failed to unblock project: workspaceId={} projectId={}",
-                    request.getWorkspaceId(), request.getProjectId(), e);
-            responseObserver.onError(Status.INTERNAL.withDescription(e.getMessage()).asRuntimeException());
-        }
-    }
-
-    @Override
-    public void updateProjectStreaming(UpdateProjectStreamingRequest request, StreamObserver<UpdateProjectStreamingResponse> responseObserver) {
-        try {
-            ProjectManager project = findProject(request.getWorkspaceId(), request.getProjectId());
-            Boolean streamingEnabled = request.hasStreamingEnabled() ? request.getStreamingEnabled() : null;
-            project.updateStreamingEnabled(streamingEnabled);
-
-            LOG.info("Updated project streaming via gRPC: workspaceId={} projectId={} streamingEnabled={}",
-                    request.getWorkspaceId(), request.getProjectId(), streamingEnabled);
-
-            responseObserver.onNext(UpdateProjectStreamingResponse.getDefaultInstance());
-            responseObserver.onCompleted();
-        } catch (io.grpc.StatusRuntimeException e) {
-            responseObserver.onError(e);
-        } catch (Exception e) {
-            LOG.error("Failed to update project streaming: workspaceId={} projectId={}",
+            LOG.error("Failed to restore project: workspaceId={} projectId={}",
                     request.getWorkspaceId(), request.getProjectId(), e);
             responseObserver.onError(Status.INTERNAL.withDescription(e.getMessage()).asRuntimeException());
         }
@@ -197,11 +161,10 @@ public class ProjectGrpcService extends ProjectServiceGrpc.ProjectServiceImplBas
                 .setCreatedAt(info.createdAt() != null ? info.createdAt().toEpochMilli() : 0)
                 .setWorkspaceId(info.workspaceId())
                 .setStatus(toProtoRecordingStatus(detail.status()))
-                .setSessionCount(detail.sessionCount())
-                .setIsBlocked(detail.isBlocked());
+                .setSessionCount(detail.sessionCount());
 
-        if (info.streamingEnabled() != null) {
-            builder.setStreamingEnabled(info.streamingEnabled());
+        if (info.deletedAt() != null) {
+            builder.setDeletedAt(info.deletedAt().toEpochMilli());
         }
 
         return builder.build();

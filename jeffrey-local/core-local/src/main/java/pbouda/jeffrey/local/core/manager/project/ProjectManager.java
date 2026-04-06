@@ -18,11 +18,11 @@
 
 package pbouda.jeffrey.local.core.manager.project;
 
+import pbouda.jeffrey.local.core.manager.EventStreamingManager;
 import pbouda.jeffrey.shared.common.model.ProjectInfo;
 import pbouda.jeffrey.shared.common.model.RecordingEventSource;
 import pbouda.jeffrey.shared.common.model.repository.RecordingStatus;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEventCreator;
-import pbouda.jeffrey.local.core.manager.MessagesManager;
 import pbouda.jeffrey.local.core.manager.ProfilerSettingsManager;
 import pbouda.jeffrey.local.core.manager.ProfilesManager;
 import pbouda.jeffrey.local.core.manager.RecordingsDownloadManager;
@@ -39,7 +39,7 @@ public interface ProjectManager {
             int recordingCount,
             int sessionCount,
             RecordingEventSource eventSource,
-            boolean isBlocked) {
+            boolean isDeleted) {
     }
 
     @FunctionalInterface
@@ -49,8 +49,6 @@ public interface ProjectManager {
     ProfilesManager profilesManager();
 
     RecordingsManager recordingsManager();
-
-    MessagesManager messagesManager();
 
     RecordingsDownloadManager recordingsDownloadManager();
 
@@ -66,19 +64,17 @@ public interface ProjectManager {
 
     void updateName(String name);
 
-    void block();
-
-    void unblock();
-
-    void updateStreamingEnabled(Boolean streamingEnabled);
-
-    /**
-     * Returns the workspace-level streaming enabled override for the workspace
-     * that contains this project.
-     *
-     * @return workspace streaming flag, or null if not set (inherit from global)
-     */
-    Boolean workspaceStreamingEnabled();
+    void restore();
 
     void delete(WorkspaceEventCreator createdBy);
+
+    /**
+     * Returns the event streaming manager for subscribing to live JFR events
+     * from the remote server. Only available for remote workspace projects.
+     *
+     * @return the event streaming manager, or null for local projects
+     */
+    default EventStreamingManager eventStreamingManager() {
+        return null;
+    }
 }

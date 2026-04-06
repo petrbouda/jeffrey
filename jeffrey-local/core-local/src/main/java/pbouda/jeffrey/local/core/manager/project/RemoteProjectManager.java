@@ -81,14 +81,6 @@ public class RemoteProjectManager implements ProjectManager {
     }
 
     @Override
-    public MessagesManager messagesManager() {
-        return new RemoteMessagesManager(
-                remoteClients.messages(),
-                workspaceInfo.id(),
-                detailedProjectInfo.projectInfo().id());
-    }
-
-    @Override
     public RecordingsDownloadManager recordingsDownloadManager() {
         ProjectInfo projectInfo = detailedProjectInfo.projectInfo();
         ProjectRecordingInitializer recordingInitializer = recordingInitializerFactory.apply(projectInfo);
@@ -134,30 +126,10 @@ public class RemoteProjectManager implements ProjectManager {
     }
 
     @Override
-    public void block() {
-        remoteClients.projects().blockProject(
+    public void restore() {
+        remoteClients.projects().restoreProject(
                 workspaceInfo.id(),
                 detailedProjectInfo.projectInfo().id());
-    }
-
-    @Override
-    public void unblock() {
-        remoteClients.projects().unblockProject(
-                workspaceInfo.id(),
-                detailedProjectInfo.projectInfo().id());
-    }
-
-    @Override
-    public Boolean workspaceStreamingEnabled() {
-        return workspaceInfo.streamingEnabled();
-    }
-
-    @Override
-    public void updateStreamingEnabled(Boolean streamingEnabled) {
-        remoteClients.projects().updateStreamingEnabled(
-                workspaceInfo.id(),
-                detailedProjectInfo.projectInfo().id(),
-                streamingEnabled);
     }
 
     @Override
@@ -165,5 +137,13 @@ public class RemoteProjectManager implements ProjectManager {
         remoteClients.projects().deleteProject(
                 workspaceInfo.id(),
                 detailedProjectInfo.projectInfo().id());
+    }
+
+    @Override
+    public EventStreamingManager eventStreamingManager() {
+        return new EventStreamingManager(
+                workspaceInfo.id(),
+                detailedProjectInfo.projectInfo().id(),
+                remoteClients.eventStreaming());
     }
 }

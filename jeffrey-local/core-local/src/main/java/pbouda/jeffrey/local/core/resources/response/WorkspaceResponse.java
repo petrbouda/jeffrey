@@ -26,6 +26,5 @@ public record WorkspaceResponse(
         String description,
         long createdAt,
         int projectCount,
-        WorkspaceStatus status,
-        Boolean streamingEnabled) {
+        WorkspaceStatus status) {
 }
