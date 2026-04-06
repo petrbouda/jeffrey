@@ -33,16 +33,18 @@ Remove old files from the GitHub Pages repository:
 ```bash
 cd ../
 rm -f ../petrbouda.github.io/index.html
+rm -f ../petrbouda.github.io/404.html
 rm -rf ../petrbouda.github.io/assets
 rm -rf ../petrbouda.github.io/images
 ```
 
 ### 4. Copy New Files
 
-Copy the built files to the destination:
+Copy the built files to the destination. The `404.html` must be identical to `index.html` — GitHub Pages serves it as the SPA fallback for client-side routes (direct URL access, page refresh).
 
 ```bash
 cp jeffrey-pages/dist/index.html ../petrbouda.github.io/
+cp jeffrey-pages/dist/index.html ../petrbouda.github.io/404.html
 cp -r jeffrey-pages/dist/assets ../petrbouda.github.io/
 cp -r jeffrey-pages/dist/images ../petrbouda.github.io/
 ```
