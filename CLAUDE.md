@@ -275,6 +275,7 @@ jeffrey/
   - Always check shared CSS files before adding new scoped styles
   - Add commonly reused styles to shared files to avoid duplication
 - **File Organization**: Feature-based grouping with shared components
+- **Timestamps**: All timestamps are UTC epoch millis (numbers). Never use `new Date()` for parsing or formatting — always use `FormattingService` methods. Never propagate date strings from the backend; always use numeric UTC timestamps. Frontend form inputs like `datetime-local` must be converted to/from epoch millis at the boundary.
 - Formatting values use FormattingService, which provides consistent formatting across the application, propose a new function if you miss something
 - Always try to use Vue Components first. If you need create a new to deduplicate code, suggest it and create it.
 - **Reuse before creating**: Before creating new components or styling, always search for existing shared components (`src/components/`), shared CSS (`src/styles/shared-components.css`), and design tokens (`src/assets/design-tokens.css`) that can be reused or extended. Only create new shared components/styles when no suitable existing pattern exists. When you do create new shared patterns, add them to shared CSS or create a component — never leave reusable patterns only in scoped styles.

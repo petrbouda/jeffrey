@@ -37,6 +37,7 @@ import pbouda.jeffrey.shared.common.model.RepositoryInfo;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.time.Clock;
 import java.time.Instant;
 import java.util.HashSet;
 import java.util.List;
@@ -54,15 +55,18 @@ public class EventStreamingGrpcService extends EventStreamingServiceGrpc.EventSt
     private final ServerJeffreyDirs jeffreyDirs;
     private final ServerPlatformRepositories platformRepositories;
     private final EventStreamingSubscriptionManager subscriptionManager;
+    private final Clock clock;
 
     public EventStreamingGrpcService(
             ServerJeffreyDirs jeffreyDirs,
             ServerPlatformRepositories platformRepositories,
-            EventStreamingSubscriptionManager subscriptionManager) {
+            EventStreamingSubscriptionManager subscriptionManager,
+            Clock clock) {
 
         this.jeffreyDirs = jeffreyDirs;
         this.platformRepositories = platformRepositories;
         this.subscriptionManager = subscriptionManager;
+        this.clock = clock;
     }
 
     @Override
@@ -98,17 +102,28 @@ public class EventStreamingGrpcService extends EventStreamingServiceGrpc.EventSt
             Instant startTime = request.hasStartTime()
                     ? Instant.ofEpochMilli(request.getStartTime())
                     : null;
+            // When not continuous, set endTime to bound the stream
+            // (use explicit endTime if provided, otherwise current time)
+            Instant endTime;
+            if (request.getContinuous()) {
+                endTime = null;
+            } else if (request.hasEndTime()) {
+                endTime = Instant.ofEpochMilli(request.getEndTime());
+            } else {
+                endTime = clock.instant();
+            }
 
             SubscriberEventStream stream = subscriptionManager.subscribe(
                     sessionId,
                     sessionPath,
                     eventTypes,
                     startTime,
+                    endTime,
                     request.getSendEmptyBatches(),
                     responseObserver);
 
             // Clean up on client disconnect
-            Context.current().addListener(context -> {
+            Context.current().addListener(_ -> {
                 LOG.debug("Client disconnected, closing subscriber stream: sessionId={}", sessionId);
                 subscriptionManager.unsubscribe(sessionId, stream);
             }, Runnable::run);

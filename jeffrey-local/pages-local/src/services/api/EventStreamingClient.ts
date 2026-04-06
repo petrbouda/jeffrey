@@ -60,7 +60,7 @@ export default class EventStreamingClient {
    * @param onEvents - Callback for each batch of events (~1/sec)
    * @param _onComplete - Called when the stream ends (session finished)
    * @param onError - Called on stream errors
-   * @param options - Optional: startTime (epoch millis for historical replay), heartbeat (send empty batches)
+   * @param options - Optional: startTime/endTime (epoch millis), continuous (keep stream open)
    */
   subscribe(
     sessionId: string,
@@ -68,7 +68,7 @@ export default class EventStreamingClient {
     onEvents: (events: StreamingEvent[]) => void,
     _onComplete: () => void,
     onError: (error: string) => void,
-    options?: { startTime?: number; heartbeat?: boolean }
+    options?: { startTime?: number; endTime?: number; continuous?: boolean }
   ): void {
     this.unsubscribe()
 
@@ -79,8 +79,11 @@ export default class EventStreamingClient {
     if (options?.startTime) {
       params.set('startTime', String(options.startTime))
     }
-    if (options?.heartbeat) {
-      params.set('heartbeat', 'true')
+    if (options?.endTime) {
+      params.set('endTime', String(options.endTime))
+    }
+    if (options?.continuous) {
+      params.set('continuous', 'true')
     }
 
     const url = `${this.baseUrl}/${sessionId}/subscribe?${params.toString()}`

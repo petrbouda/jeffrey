@@ -51,6 +51,14 @@
                   <i class="bi bi-record-circle"></i>
                   <span>Recordings</span>
                 </div>
+                <router-link
+                  :to="generateProjectUrl('event-streaming')"
+                  class="nav-item"
+                  active-class="active"
+                >
+                  <i class="bi bi-broadcast"></i>
+                  <span>Event Streaming</span>
+                </router-link>
                 <!-- Instances with 2-level submenu -->
                 <div class="nav-item-group">
                   <div
@@ -103,14 +111,6 @@
                 >
                   <i class="bi bi-calendar-check"></i>
                   <span>Scheduler</span>
-                </router-link>
-                <router-link
-                  :to="generateProjectUrl('event-streaming')"
-                  class="nav-item"
-                  active-class="active"
-                >
-                  <i class="bi bi-broadcast"></i>
-                  <span>Event Streaming</span>
                 </router-link>
                 <router-link
                   :to="generateProjectUrl('settings')"

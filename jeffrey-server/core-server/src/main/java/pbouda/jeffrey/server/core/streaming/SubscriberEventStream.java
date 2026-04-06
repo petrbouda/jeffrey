@@ -53,6 +53,7 @@ public class SubscriberEventStream implements Closeable {
     private final Path sessionPath;
     private final Set<String> eventTypes;
     private final Instant startTime;
+    private final Instant endTime;
     private final boolean sendEmptyBatches;
     private final StreamObserver<EventBatch> observer;
     private final List<StreamingEvent> buffer = new ArrayList<>();
@@ -64,6 +65,7 @@ public class SubscriberEventStream implements Closeable {
             Path sessionPath,
             Set<String> eventTypes,
             Instant startTime,
+            Instant endTime,
             boolean sendEmptyBatches,
             StreamObserver<EventBatch> observer) {
 
@@ -71,6 +73,7 @@ public class SubscriberEventStream implements Closeable {
         this.sessionPath = sessionPath;
         this.eventTypes = eventTypes;
         this.startTime = startTime;
+        this.endTime = endTime;
         this.sendEmptyBatches = sendEmptyBatches;
         this.observer = observer;
     }
@@ -90,6 +93,9 @@ public class SubscriberEventStream implements Closeable {
 
         if (startTime != null) {
             eventStream.setStartTime(startTime);
+        }
+        if (endTime != null) {
+            eventStream.setEndTime(endTime);
         }
 
         if (eventTypes.isEmpty()) {

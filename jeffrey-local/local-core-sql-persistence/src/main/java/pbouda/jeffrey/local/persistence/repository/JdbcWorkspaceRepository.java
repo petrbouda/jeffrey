@@ -59,7 +59,6 @@ public class JdbcWorkspaceRepository implements WorkspaceRepository {
                 StatementLabel.FIND_ALL_PROFILES, SELECT_PROFILE_IDS, params,
                 (rs, _) -> rs.getString("profile_id"));
 
-        // Cascade delete all local data
         String sql = DELETE_WORKSPACE_CASCADE.replaceAll("%workspace_id%", workspaceId);
         databaseClient.delete(StatementLabel.DELETE_WORKSPACE, sql);
 

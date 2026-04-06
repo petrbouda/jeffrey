@@ -30,9 +30,9 @@ import pbouda.jeffrey.local.core.client.RemoteEventStreamingClient.EventStreamin
 import pbouda.jeffrey.local.core.manager.EventStreamingManager;
 
 import java.io.IOException;
-import java.util.LinkedHashSet;
-import java.util.List;
+import java.util.Arrays;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * REST resource that bridges event streaming to SSE for frontend consumption.
@@ -54,19 +54,24 @@ public class ProjectEventStreamingResource {
             @PathParam("sessionId") String sessionId,
             @QueryParam("eventTypes") @DefaultValue("") String eventTypes,
             @QueryParam("startTime") Long startTime,
-            @QueryParam("heartbeat") @DefaultValue("false") boolean heartbeat,
+            @QueryParam("endTime") Long endTime,
+            @QueryParam("continuous") @DefaultValue("false") boolean continuous,
             @Context SseEventSink eventSink,
             @Context Sse sse) {
 
-        Set<String> eventTypeSet = eventTypes.isEmpty()
+        Set<String> eventTypeSet = eventTypes.isBlank()
                 ? Set.of()
-                : new LinkedHashSet<>(List.of(eventTypes.split(",")));
+                : Arrays.stream(eventTypes.split(","))
+                        .map(String::strip)
+                        .filter(s -> !s.isEmpty())
+                        .collect(Collectors.toSet());
 
         EventStreamingSubscription subscription = eventStreamingManager.subscribe(
                 sessionId,
                 eventTypeSet,
                 startTime,
-                heartbeat,
+                endTime,
+                continuous,
                 batch -> sendSseEvent(eventSink, sse, batch),
                 () -> closeSink(eventSink),
                 error -> closeSink(eventSink));

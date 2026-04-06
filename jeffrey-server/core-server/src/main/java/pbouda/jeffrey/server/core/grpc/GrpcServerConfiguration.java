@@ -68,7 +68,7 @@ public class GrpcServerConfiguration {
                 .addService(new RepositoryGrpcService(workspacesManager, clock))
                 .addService(new RecordingDownloadGrpcService(workspacesManager))
                 .addService(new WorkspaceEventsGrpcService(workspaceEventReader))
-                .addService(new EventStreamingGrpcService(jeffreyDirs, platformRepositories, eventStreamingSubscriptionManager))
+                .addService(new EventStreamingGrpcService(jeffreyDirs, platformRepositories, eventStreamingSubscriptionManager, clock))
                 .build();
     }
 

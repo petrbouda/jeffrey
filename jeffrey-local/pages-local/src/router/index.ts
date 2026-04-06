@@ -544,7 +544,7 @@ const router = createRouter({
                   path: 'event-streaming',
                   name: 'project-event-streaming',
                   component: () =>
-                    import('@/views/projects/detail/EventStreamingDashboard.vue'),
+                    import('@/views/projects/detail/ProjectEventStreamingView.vue'),
                   meta: { layout: 'project' }
                 },
                 {

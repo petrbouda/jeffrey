@@ -58,26 +58,28 @@ public class EventStreamingManager {
      * Subscribes to live JFR events from a remote session.
      * Event batches are converted to JSON and delivered via the provided callback.
      *
-     * @param sessionId        the session ID
-     * @param eventTypes       JFR event types to receive (empty = all)
-     * @param startTime        optional start time in epoch millis for historical replay
-     * @param sendEmptyBatches whether to send empty batches as heartbeats
-     * @param onBatch          callback receiving event batches as JSON array nodes
-     * @param onComplete       called when the stream ends
-     * @param onError          called on stream errors
+     * @param sessionId  the session ID
+     * @param eventTypes JFR event types to receive (empty = all)
+     * @param startTime  optional start time in epoch millis for historical replay
+     * @param endTime    optional end time in epoch millis to stop streaming
+     * @param continuous when true, stream stays open waiting for new events
+     * @param onBatch    callback receiving event batches as JSON array nodes
+     * @param onComplete called when the stream ends
+     * @param onError    called on stream errors
      * @return a cancellation handle
      */
     public EventStreamingSubscription subscribe(
             String sessionId,
             Set<String> eventTypes,
             Long startTime,
-            boolean sendEmptyBatches,
+            Long endTime,
+            boolean continuous,
             Consumer<ArrayNode> onBatch,
             Runnable onComplete,
             Consumer<Throwable> onError) {
 
-        LOG.info("Subscribing to event stream: sessionId={} eventTypes={} startTime={}",
-                sessionId, eventTypes, startTime);
+        LOG.info("Subscribing to event stream: sessionId={} eventTypes={} startTime={} endTime={} continuous={}",
+                sessionId, eventTypes, startTime, endTime, continuous);
 
         return eventStreamingClient.subscribe(
                 workspaceId,
@@ -85,7 +87,8 @@ public class EventStreamingManager {
                 sessionId,
                 eventTypes,
                 startTime,
-                sendEmptyBatches,
+                endTime,
+                continuous,
                 batch -> onBatch.accept(batchToJson(batch)),
                 onComplete,
                 onError);

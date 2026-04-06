@@ -49,15 +49,16 @@ public class RemoteEventStreamingClient implements Closeable {
     /**
      * Subscribes to live JFR events from a session on the remote server.
      *
-     * @param workspaceId      the workspace ID
-     * @param projectId        the project ID
-     * @param sessionId        the session ID
-     * @param eventTypes       JFR event types to receive (empty = all events)
-     * @param startTimeMillis  optional start time in epoch millis (null for live-only)
-     * @param sendEmptyBatches whether to send empty batches as heartbeats
-     * @param onBatch          callback for each received event batch
-     * @param onComplete       callback when the stream ends (session finished or server closes)
-     * @param onError          callback for stream errors
+     * @param workspaceId     the workspace ID
+     * @param projectId       the project ID
+     * @param sessionId       the session ID
+     * @param eventTypes      JFR event types to receive (empty = all events)
+     * @param startTimeMillis optional start time in epoch millis (null for live-only)
+     * @param endTimeMillis   optional end time in epoch millis (null for no limit)
+     * @param continuous      when true, stream stays open waiting for new events
+     * @param onBatch         callback for each received event batch
+     * @param onComplete      callback when the stream ends (session finished or server closes)
+     * @param onError         callback for stream errors
      * @return a cancellation handle to stop the subscription
      */
     public EventStreamingSubscription subscribe(
@@ -66,7 +67,8 @@ public class RemoteEventStreamingClient implements Closeable {
             String sessionId,
             Set<String> eventTypes,
             Long startTimeMillis,
-            boolean sendEmptyBatches,
+            Long endTimeMillis,
+            boolean continuous,
             Consumer<EventBatch> onBatch,
             Runnable onComplete,
             Consumer<Throwable> onError) {
@@ -76,10 +78,14 @@ public class RemoteEventStreamingClient implements Closeable {
                 .setProjectId(projectId)
                 .setSessionId(sessionId)
                 .addAllEventTypes(eventTypes)
-                .setSendEmptyBatches(sendEmptyBatches);
+                .setSendEmptyBatches(true)
+                .setContinuous(continuous);
 
         if (startTimeMillis != null) {
             requestBuilder.setStartTime(startTimeMillis);
+        }
+        if (endTimeMillis != null) {
+            requestBuilder.setEndTime(endTimeMillis);
         }
 
         Context.CancellableContext cancellableContext = Context.current().withCancellation();

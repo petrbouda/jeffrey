@@ -51,6 +51,7 @@ public class EventStreamingSubscriptionManager implements Closeable {
      * @param sessionPath       the filesystem path to the session directory
      * @param eventTypes        JFR event types to subscribe to (empty = all)
      * @param startTime         optional start time for historical replay
+     * @param endTime           optional end time to stop streaming
      * @param sendEmptyBatches  whether to send empty batches as heartbeats
      * @param observer          the gRPC stream observer to send batches to
      * @return the created subscriber event stream
@@ -61,11 +62,12 @@ public class EventStreamingSubscriptionManager implements Closeable {
             Path sessionPath,
             Set<String> eventTypes,
             Instant startTime,
+            Instant endTime,
             boolean sendEmptyBatches,
             StreamObserver<EventBatch> observer) throws IOException {
 
         SubscriberEventStream stream = new SubscriberEventStream(
-                sessionId, sessionPath, eventTypes, startTime, sendEmptyBatches, observer);
+                sessionId, sessionPath, eventTypes, startTime, endTime, sendEmptyBatches, observer);
 
         subscriptions.computeIfAbsent(sessionId, k -> new CopyOnWriteArrayList<>()).add(stream);
         stream.start();
