@@ -97,6 +97,13 @@ public class EventStreamingGrpcService extends EventStreamingServiceGrpc.EventSt
                 return;
             }
 
+            if (request.getEventTypesList().isEmpty()) {
+                responseObserver.onError(Status.INVALID_ARGUMENT
+                        .withDescription("At least one event type must be specified")
+                        .asRuntimeException());
+                return;
+            }
+
             Path sessionPath = SessionPaths.resolve(jeffreyDirs, repositoryInfo, sessionInfo);
             Set<String> eventTypes = new HashSet<>(request.getEventTypesList());
             Instant startTime = request.hasStartTime()
@@ -124,7 +131,7 @@ public class EventStreamingGrpcService extends EventStreamingServiceGrpc.EventSt
 
             // Clean up on client disconnect
             Context.current().addListener(_ -> {
-                LOG.debug("Client disconnected, closing subscriber stream: sessionId={}", sessionId);
+                LOG.info("Client disconnected, closing subscriber stream: sessionId={}", sessionId);
                 subscriptionManager.unsubscribe(sessionId, stream);
             }, Runnable::run);
 

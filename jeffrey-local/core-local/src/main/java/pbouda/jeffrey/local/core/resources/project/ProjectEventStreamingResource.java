@@ -32,6 +32,7 @@ import pbouda.jeffrey.local.core.manager.EventStreamingManager;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 /**
@@ -66,15 +67,31 @@ public class ProjectEventStreamingResource {
                         .filter(s -> !s.isEmpty())
                         .collect(Collectors.toSet());
 
+        var subscriptionRef = new AtomicReference<EventStreamingSubscription>();
+
         EventStreamingSubscription subscription = eventStreamingManager.subscribe(
                 sessionId,
                 eventTypeSet,
                 startTime,
                 endTime,
                 continuous,
-                batch -> sendSseEvent(eventSink, sse, batch),
+                batch -> {
+                    if (eventSink.isClosed()) {
+                        EventStreamingSubscription sub = subscriptionRef.get();
+                        if (sub != null) {
+                            sub.cancel();
+                        }
+                        return;
+                    }
+                    sendSseEvent(eventSink, sse, batch);
+                },
                 () -> closeSink(eventSink),
-                error -> closeSink(eventSink));
+                error -> {
+                    LOG.warn("Event streaming error, closing SSE sink: sessionId={} error={}", sessionId, error.getMessage());
+                    closeSink(eventSink);
+                });
+
+        subscriptionRef.set(subscription);
 
         eventSink.send(sse.newEventBuilder().comment("connected").build())
                 .whenComplete((__, error) -> {
@@ -94,7 +111,7 @@ public class ProjectEventStreamingResource {
                     .data(batch.toString())
                     .build());
         } catch (Exception e) {
-            LOG.debug("Failed to send SSE event, client likely disconnected: {}", e.getMessage());
+            LOG.warn("Failed to send SSE event, client likely disconnected: {}", e.getMessage());
         }
     }
 
@@ -104,7 +121,7 @@ public class ProjectEventStreamingResource {
                 eventSink.close();
             }
         } catch (IOException e) {
-            LOG.debug("Error closing SSE sink");
+            LOG.warn("Error closing SSE sink");
         }
     }
 }

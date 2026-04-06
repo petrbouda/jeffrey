@@ -33,9 +33,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 /**
@@ -59,7 +57,6 @@ public class SubscriberEventStream implements Closeable {
     private final boolean sendEmptyBatches;
     private final StreamObserver<EventBatch> observer;
     private final List<StreamingEvent> buffer = new ArrayList<>();
-    private final Map<String, Integer> debugEventCounts = new HashMap<>();
     private long latestEventTimestamp = Long.MIN_VALUE;
     private boolean closing;
 
@@ -92,7 +89,7 @@ public class SubscriberEventStream implements Closeable {
     public void start() throws IOException {
         Path streamingRepoPath = sessionPath.resolve(STREAMING_REPO_DIR);
 
-        LOG.info("Starting subscriber event stream: sessionId={} path={} eventTypes={} startTime={} endTime={}",
+        LOG.debug("Starting subscriber event stream: sessionId={} path={} eventTypes={} startTime={} endTime={}",
                 sessionId, streamingRepoPath, eventTypes, startTime, endTime);
 
         this.eventStream = EventStream.openRepository(streamingRepoPath);
@@ -104,16 +101,11 @@ public class SubscriberEventStream implements Closeable {
             eventStream.setEndTime(endTime);
         }
 
-        // Diagnostic: count ALL events flowing through the repository
-        eventStream.onEvent(event ->
-                debugEventCounts.merge(event.getEventType().getName(), 1, Integer::sum));
-
         if (eventTypes.isEmpty()) {
-            eventStream.onEvent(this::bufferEvent);
-        } else {
-            for (String eventType : eventTypes) {
-                eventStream.onEvent(eventType, this::bufferEvent);
-            }
+            throw new IllegalArgumentException("At least one event type must be specified");
+        }
+        for (String eventType : eventTypes) {
+            eventStream.onEvent(eventType, this::bufferEvent);
         }
 
         eventStream.onFlush(this::flush);
@@ -123,7 +115,7 @@ public class SubscriberEventStream implements Closeable {
             try {
                 observer.onCompleted();
             } catch (Exception e) {
-                LOG.debug("Observer already closed on stream end: sessionId={}", sessionId);
+                LOG.info("Observer already closed on stream end: sessionId={}", sessionId);
             }
         });
 
@@ -132,7 +124,7 @@ public class SubscriberEventStream implements Closeable {
             try {
                 observer.onError(Status.INTERNAL.withDescription(t.getMessage()).asRuntimeException());
             } catch (Exception e) {
-                LOG.debug("Observer already closed on error: sessionId={}", sessionId);
+                LOG.warn("Observer already closed on error: sessionId={}", sessionId);
             }
         });
 
@@ -155,22 +147,18 @@ public class SubscriberEventStream implements Closeable {
         if (closing) {
             return;
         }
-        if (!debugEventCounts.isEmpty()) {
-            LOG.info("Repository event counts: sessionId={} buffered={} counts={}", sessionId, buffer.size(), debugEventCounts);
-            debugEventCounts.clear();
-        }
         if (!buffer.isEmpty() || sendEmptyBatches) {
             try {
                 observer.onNext(EventBatch.newBuilder().addAllEvents(buffer).build());
             } catch (Exception e) {
-                LOG.debug("Failed to send batch, closing stream: sessionId={}", sessionId);
+                LOG.warn("Failed to send batch, closing stream: sessionId={}", sessionId);
                 closeStream();
                 return;
             }
             buffer.clear();
         }
         if (endTime != null && latestEventTimestamp >= endTime.toEpochMilli()) {
-            LOG.debug("End time reached, closing stream: sessionId={} latestEventTimestamp={} endTime={}",
+            LOG.info("End time reached, closing stream: sessionId={} latestEventTimestamp={} endTime={}",
                     sessionId, latestEventTimestamp, endTime.toEpochMilli());
             closeStream();
         }
@@ -185,7 +173,7 @@ public class SubscriberEventStream implements Closeable {
 
     @Override
     public void close() {
-        LOG.debug("Closing subscriber event stream: sessionId={}", sessionId);
+        LOG.info("Closing subscriber event stream: sessionId={}", sessionId);
         if (eventStream != null) {
             eventStream.close();
         }

@@ -130,6 +130,12 @@
 
     <!-- Step 2: Event Types -->
     <div v-if="currentStep === 2" class="scm-step-content">
+      <div class="scm-note">
+        <i class="bi bi-info-circle"></i>
+        Only events committed by the JVM's JFR in real-time are available.
+        CPU profiling events (e.g. jdk.ExecutionSample) collected by async-profiler
+        are merged at dump time and do not appear in the live stream.
+      </div>
       <EventTypeSelector v-model="localEventTypes" />
     </div>
 
@@ -526,6 +532,21 @@ function apply() {
 /* ===== Step Content ===== */
 .scm-step-content {
   min-height: 300px;
+}
+
+.scm-note {
+  font-size: 0.72rem;
+  color: var(--color-muted);
+  margin-bottom: 10px;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  line-height: 1.4;
+}
+
+.scm-note i {
+  font-size: 0.7rem;
+  flex-shrink: 0;
 }
 
 /* ===== Session Search ===== */

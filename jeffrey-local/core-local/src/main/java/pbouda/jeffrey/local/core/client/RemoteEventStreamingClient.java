@@ -19,6 +19,7 @@
 package pbouda.jeffrey.local.core.client;
 
 import io.grpc.Context;
+import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -102,7 +103,11 @@ public class RemoteEventStreamingClient implements Closeable {
                     @Override
                     public void onError(Throwable t) {
                         activeSubscriptions.remove(subscription);
-                        LOG.debug("Event streaming error: sessionId={}", sessionId, t);
+                        if (Status.fromThrowable(t).getCode() == Status.Code.CANCELLED) {
+                            LOG.info("Event streaming cancelled: sessionId={}", sessionId);
+                        } else {
+                            LOG.warn("Event streaming error: sessionId={}", sessionId, t);
+                        }
                         onError.accept(t);
                     }
 
