@@ -141,9 +141,6 @@ public class RemoteProjectManager implements ProjectManager {
 
     @Override
     public EventStreamingManager eventStreamingManager() {
-        return new EventStreamingManager(
-                workspaceInfo.id(),
-                detailedProjectInfo.projectInfo().id(),
-                remoteClients.eventStreaming());
+        return new EventStreamingManager(remoteClients.eventStreaming());
     }
 }

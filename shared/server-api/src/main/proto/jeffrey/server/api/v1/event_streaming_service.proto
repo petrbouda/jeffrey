@@ -16,26 +16,24 @@ service EventStreamingService {
 }
 
 message SubscribeEventsRequest {
-  string workspace_id = 1;
-  string project_id = 2;
-  string session_id = 3;
+  string session_id = 1;
   // JFR event types to receive (e.g. "jdk.GCHeapSummary", "jdk.CPULoad").
   // Empty = all events.
-  repeated string event_types = 4;
+  repeated string event_types = 2;
   // Optional start time (epoch millis). Enables replaying historical events
   // from the preserved streaming repository. Omit for live-only.
-  optional int64 start_time = 5;
+  optional int64 start_time = 3;
   // Send empty batches as implicit heartbeats (default: false).
   // When true, a batch is sent every flush interval even if no events arrived.
   // Useful for client-side connection liveness detection.
-  bool send_empty_batches = 6;
+  optional bool send_empty_batches = 4;
   // Optional end time (epoch millis). When set, the stream will stop after
   // delivering all events up to this timestamp. Ignored when continuous is true.
-  optional int64 end_time = 7;
+  optional int64 end_time = 5;
   // When true, the stream stays open waiting for new events indefinitely.
   // When false (default), the stream ends after delivering all existing events
   // (uses end_time if set, otherwise current time as the cutoff).
-  bool continuous = 8;
+  optional bool continuous = 6;
 }
 
 // A batch of JFR events delivered on each JFR flush cycle (~1s).

@@ -30,7 +30,7 @@ import pbouda.jeffrey.server.core.ServerJeffreyDirs;
 import pbouda.jeffrey.server.core.streaming.EventStreamingSubscriptionManager;
 import pbouda.jeffrey.server.core.streaming.SessionPaths;
 import pbouda.jeffrey.server.core.streaming.SubscriberEventStream;
-import pbouda.jeffrey.server.persistence.repository.ProjectRepositoryRepository;
+import pbouda.jeffrey.server.persistence.model.SessionWithRepository;
 import pbouda.jeffrey.server.persistence.repository.ServerPlatformRepositories;
 import pbouda.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
 import pbouda.jeffrey.shared.common.model.RepositoryInfo;
@@ -40,7 +40,7 @@ import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.HashSet;
-import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -72,30 +72,20 @@ public class EventStreamingGrpcService extends EventStreamingServiceGrpc.EventSt
     @Override
     public void subscribeEvents(SubscribeEventsRequest request, StreamObserver<EventBatch> responseObserver) {
         String sessionId = request.getSessionId();
-        String projectId = request.getProjectId();
 
         try {
-            ProjectRepositoryRepository repoRepository =
-                    platformRepositories.newProjectRepositoryRepository(projectId);
+            Optional<SessionWithRepository> result =
+                    platformRepositories.findSessionWithRepositoryById(sessionId);
 
-            List<RepositoryInfo> repos = repoRepository.getAll();
-            if (repos.isEmpty()) {
-                responseObserver.onError(Status.NOT_FOUND
-                        .withDescription("No repository found for project: " + projectId)
-                        .asRuntimeException());
-                return;
-            }
-
-            RepositoryInfo repositoryInfo = repos.getFirst();
-            ProjectInstanceSessionInfo sessionInfo = repoRepository.findSessionById(sessionId)
-                    .orElse(null);
-
-            if (sessionInfo == null) {
+            if (result.isEmpty()) {
                 responseObserver.onError(Status.NOT_FOUND
                         .withDescription("Session not found: " + sessionId)
                         .asRuntimeException());
                 return;
             }
+
+            RepositoryInfo repositoryInfo = result.get().repositoryInfo();
+            ProjectInstanceSessionInfo sessionInfo = result.get().sessionInfo();
 
             if (request.getEventTypesList().isEmpty()) {
                 responseObserver.onError(Status.INVALID_ARGUMENT
@@ -133,7 +123,6 @@ public class EventStreamingGrpcService extends EventStreamingServiceGrpc.EventSt
 
             Path sessionPath = SessionPaths.resolve(jeffreyDirs, repositoryInfo, sessionInfo);
             Set<String> eventTypes = new HashSet<>(request.getEventTypesList());
-            Instant startTime = requestedStart;
             // When not continuous, set endTime to bound the stream
             // (use explicit endTime if provided, otherwise current time)
             Instant endTime;
@@ -149,7 +138,7 @@ public class EventStreamingGrpcService extends EventStreamingServiceGrpc.EventSt
                     sessionId,
                     sessionPath,
                     eventTypes,
-                    startTime,
+                    requestedStart,
                     endTime,
                     request.getSendEmptyBatches(),
                     responseObserver);

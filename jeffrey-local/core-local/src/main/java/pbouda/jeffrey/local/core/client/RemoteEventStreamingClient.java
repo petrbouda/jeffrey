@@ -50,8 +50,6 @@ public class RemoteEventStreamingClient implements Closeable {
     /**
      * Subscribes to live JFR events from a session on the remote server.
      *
-     * @param workspaceId     the workspace ID
-     * @param projectId       the project ID
      * @param sessionId       the session ID
      * @param eventTypes      JFR event types to receive (empty = all events)
      * @param startTimeMillis optional start time in epoch millis (null for live-only)
@@ -63,8 +61,6 @@ public class RemoteEventStreamingClient implements Closeable {
      * @return a cancellation handle to stop the subscription
      */
     public EventStreamingSubscription subscribe(
-            String workspaceId,
-            String projectId,
             String sessionId,
             Set<String> eventTypes,
             Long startTimeMillis,
@@ -75,8 +71,6 @@ public class RemoteEventStreamingClient implements Closeable {
             Consumer<Throwable> onError) {
 
         SubscribeEventsRequest.Builder requestBuilder = SubscribeEventsRequest.newBuilder()
-                .setWorkspaceId(workspaceId)
-                .setProjectId(projectId)
                 .setSessionId(sessionId)
                 .addAllEventTypes(eventTypes)
                 .setSendEmptyBatches(true)
@@ -119,8 +113,7 @@ public class RemoteEventStreamingClient implements Closeable {
                     }
                 }));
 
-        LOG.info("Subscribed to event stream: workspaceId={} projectId={} sessionId={} eventTypes={}",
-                workspaceId, projectId, sessionId, eventTypes);
+        LOG.info("Subscribed to event stream: sessionId={} eventTypes={}", sessionId, eventTypes);
 
         return subscription;
     }

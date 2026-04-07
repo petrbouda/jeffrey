@@ -18,7 +18,6 @@
 
 package pbouda.jeffrey.server.persistence.repository;
 
-import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import pbouda.jeffrey.shared.common.IDGenerator;
@@ -29,7 +28,6 @@ import pbouda.jeffrey.shared.persistence.StatementLabel;
 import pbouda.jeffrey.shared.persistence.client.DatabaseClient;
 import pbouda.jeffrey.shared.persistence.client.DatabaseClientProvider;
 
-import java.nio.file.Path;
 import java.time.Clock;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -192,7 +190,7 @@ public class JdbcProjectRepositoryRepository implements ProjectRepositoryReposit
                 StatementLabel.FIND_SESSIONS_BY_PROJECT_ID,
                 SELECT_SESSIONS_BY_PROJECT_ID,
                 paramSource,
-                projectInstanceSessionMapper());
+                ServerMappers.projectInstanceSessionMapper());
     }
 
     @Override
@@ -205,7 +203,7 @@ public class JdbcProjectRepositoryRepository implements ProjectRepositoryReposit
                 StatementLabel.FIND_SESSION_BY_PROJECT_AND_SESSION_ID,
                 SELECT_SESSION_BY_PROJECT_AND_SESSION_ID,
                 paramSource,
-                projectInstanceSessionMapper());
+                ServerMappers.projectInstanceSessionMapper());
     }
 
     @Override
@@ -217,7 +215,7 @@ public class JdbcProjectRepositoryRepository implements ProjectRepositoryReposit
                 StatementLabel.FIND_UNFINISHED_SESSIONS,
                 SELECT_UNFINISHED_SESSIONS,
                 paramSource,
-                projectInstanceSessionMapper());
+                ServerMappers.projectInstanceSessionMapper());
     }
 
     @Override
@@ -230,7 +228,7 @@ public class JdbcProjectRepositoryRepository implements ProjectRepositoryReposit
                 StatementLabel.FIND_UNFINISHED_SESSIONS_BY_INSTANCE_ID,
                 SELECT_UNFINISHED_SESSIONS_BY_INSTANCE_ID,
                 paramSource,
-                projectInstanceSessionMapper());
+                ServerMappers.projectInstanceSessionMapper());
     }
 
     @Override
@@ -255,19 +253,4 @@ public class JdbcProjectRepositoryRepository implements ProjectRepositoryReposit
                 (rs, _) -> rs.getString("session_id"));
     }
 
-    private static RowMapper<ProjectInstanceSessionInfo> projectInstanceSessionMapper() {
-        return (rs, _) -> {
-            return new ProjectInstanceSessionInfo(
-                    rs.getString("session_id"),
-                    rs.getString("repository_id"),
-                    rs.getString("instance_id"),
-                    rs.getInt("session_order"),
-                    Path.of(rs.getString("relative_session_path")),
-                    rs.getString("profiler_settings"),
-                    ServerMappers.instant(rs, "origin_created_at"),
-                    ServerMappers.instant(rs, "created_at"),
-                    ServerMappers.instant(rs, "finished_at")
-            );
-        };
-    }
 }

@@ -18,6 +18,10 @@
 
 package pbouda.jeffrey.server.persistence.repository;
 
+import pbouda.jeffrey.server.persistence.model.SessionWithRepository;
+
+import java.util.Optional;
+
 /**
  * Factory interface for server-level platform repositories.
  * Provides access to server-specific repositories (workspaces, projects, instances,
@@ -40,5 +44,15 @@ public interface ServerPlatformRepositories {
     WorkspacesRepository newWorkspacesRepository();
 
     ProjectInstanceRepository newProjectInstanceRepository(String projectId);
+
+    /**
+     * Resolves a session by id alone, returning both the session and its parent
+     * repository in a single query. Used by flows that only have a session id and
+     * need the repository context to compute filesystem paths (e.g. event streaming).
+     *
+     * @param sessionId the session id
+     * @return the session joined with its repository, or empty if no session matches
+     */
+    Optional<SessionWithRepository> findSessionWithRepositoryById(String sessionId);
 
 }

@@ -22,12 +22,14 @@ import org.springframework.jdbc.core.RowMapper;
 import pbouda.jeffrey.shared.common.Json;
 import pbouda.jeffrey.shared.common.model.ProfileInfo;
 import pbouda.jeffrey.shared.common.model.ProjectInfo;
+import pbouda.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
 import pbouda.jeffrey.shared.common.model.RecordingEventSource;
 import pbouda.jeffrey.shared.common.model.RepositoryInfo;
 import pbouda.jeffrey.shared.common.model.RepositoryType;
 import pbouda.jeffrey.shared.common.model.job.JobInfo;
 import pbouda.jeffrey.shared.common.model.job.JobType;
 
+import java.nio.file.Path;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Instant;
@@ -83,6 +85,22 @@ public abstract class ServerMappers {
                     rs.getString("workspaces_path"),
                     rs.getString("relative_workspace_path"),
                     rs.getString("relative_project_path"));
+        };
+    }
+
+    public static RowMapper<ProjectInstanceSessionInfo> projectInstanceSessionMapper() {
+        return (rs, _) -> {
+            return new ProjectInstanceSessionInfo(
+                    rs.getString("session_id"),
+                    rs.getString("repository_id"),
+                    rs.getString("instance_id"),
+                    rs.getInt("session_order"),
+                    Path.of(rs.getString("relative_session_path")),
+                    rs.getString("profiler_settings"),
+                    ServerMappers.instant(rs, "origin_created_at"),
+                    ServerMappers.instant(rs, "created_at"),
+                    ServerMappers.instant(rs, "finished_at")
+            );
         };
     }
 

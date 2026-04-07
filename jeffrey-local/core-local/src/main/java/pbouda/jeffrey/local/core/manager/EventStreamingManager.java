@@ -43,17 +43,9 @@ import java.util.function.Consumer;
 public class EventStreamingManager {
 
     private static final Logger LOG = LoggerFactory.getLogger(EventStreamingManager.class);
-    private final String workspaceId;
-    private final String projectId;
     private final RemoteEventStreamingClient eventStreamingClient;
 
-    public EventStreamingManager(
-            String workspaceId,
-            String projectId,
-            RemoteEventStreamingClient eventStreamingClient) {
-
-        this.workspaceId = workspaceId;
-        this.projectId = projectId;
+    public EventStreamingManager(RemoteEventStreamingClient eventStreamingClient) {
         this.eventStreamingClient = eventStreamingClient;
     }
 
@@ -92,8 +84,6 @@ public class EventStreamingManager {
 
         for (String sessionId : sessionIds) {
             EventStreamingSubscription sub = eventStreamingClient.subscribe(
-                    workspaceId,
-                    projectId,
                     sessionId,
                     eventTypes,
                     startTime,
