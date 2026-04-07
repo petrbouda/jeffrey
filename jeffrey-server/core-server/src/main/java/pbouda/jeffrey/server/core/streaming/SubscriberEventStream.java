@@ -31,10 +31,14 @@ import pbouda.jeffrey.shared.common.Schedulers;
 import java.io.Closeable;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 
 /**
  * Per-subscriber JFR EventStream that opens its own repository, filters by event types,
@@ -56,8 +60,10 @@ public class SubscriberEventStream implements Closeable {
     private final Instant endTime;
     private final boolean sendEmptyBatches;
     private final StreamObserver<EventBatch> observer;
+    private final Clock clock;
+    private final Consumer<SubscriberEventStream> onCompletion;
     private final List<StreamingEvent> buffer = new ArrayList<>();
-    private long latestEventTimestamp = Long.MIN_VALUE;
+    private final AtomicBoolean completed = new AtomicBoolean(false);
     private boolean closing;
 
     private EventStream eventStream;
@@ -69,7 +75,9 @@ public class SubscriberEventStream implements Closeable {
             Instant startTime,
             Instant endTime,
             boolean sendEmptyBatches,
-            StreamObserver<EventBatch> observer) {
+            StreamObserver<EventBatch> observer,
+            Clock clock,
+            Consumer<SubscriberEventStream> onCompletion) {
 
         this.sessionId = sessionId;
         this.sessionPath = sessionPath;
@@ -78,6 +86,12 @@ public class SubscriberEventStream implements Closeable {
         this.endTime = endTime;
         this.sendEmptyBatches = sendEmptyBatches;
         this.observer = observer;
+        this.clock = Objects.requireNonNull(clock, "clock");
+        this.onCompletion = Objects.requireNonNull(onCompletion, "onCompletion");
+    }
+
+    public String sessionId() {
+        return sessionId;
     }
 
     /**
@@ -117,6 +131,7 @@ public class SubscriberEventStream implements Closeable {
             } catch (Exception e) {
                 LOG.info("Observer already closed on stream end: sessionId={}", sessionId);
             }
+            fireCompletionOnce();
         });
 
         eventStream.onError(t -> {
@@ -126,6 +141,7 @@ public class SubscriberEventStream implements Closeable {
             } catch (Exception e) {
                 LOG.warn("Observer already closed on error: sessionId={}", sessionId);
             }
+            fireCompletionOnce();
         });
 
         Schedulers.streamingExecutor().execute(eventStream::start);
@@ -135,9 +151,6 @@ public class SubscriberEventStream implements Closeable {
         try {
             StreamingEvent streamingEvent = RecordedEventMapper.toStreamingEvent(sessionId, event);
             buffer.add(streamingEvent);
-            if (streamingEvent.getTimestamp() > latestEventTimestamp) {
-                latestEventTimestamp = streamingEvent.getTimestamp();
-            }
         } catch (Exception e) {
             LOG.error("Failed to map event: sessionId={} eventType={}", sessionId, event.getEventType().getName(), e);
         }
@@ -157,9 +170,8 @@ public class SubscriberEventStream implements Closeable {
             }
             buffer.clear();
         }
-        if (endTime != null && latestEventTimestamp >= endTime.toEpochMilli()) {
-            LOG.info("End time reached, closing stream: sessionId={} latestEventTimestamp={} endTime={}",
-                    sessionId, latestEventTimestamp, endTime.toEpochMilli());
+        if (endTime != null && clock.instant().isAfter(endTime)) {
+            LOG.info("End time reached (wall-clock), closing stream: sessionId={} endTime={}", sessionId, endTime);
             closeStream();
         }
     }
@@ -171,11 +183,22 @@ public class SubscriberEventStream implements Closeable {
         }
     }
 
+    private void fireCompletionOnce() {
+        if (completed.compareAndSet(false, true)) {
+            try {
+                onCompletion.accept(this);
+            } catch (Exception e) {
+                LOG.warn("onCompletion callback threw: sessionId={}", sessionId, e);
+            }
+        }
+    }
+
     @Override
     public void close() {
         LOG.info("Closing subscriber event stream: sessionId={}", sessionId);
         if (eventStream != null) {
             eventStream.close();
         }
+        fireCompletionOnce();
     }
 }

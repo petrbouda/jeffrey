@@ -125,10 +125,10 @@ interface TypeGroupPanel {
 }
 
 // --- Utility functions ---
-const parseSessionName = (name: string): { hostname: string; sessionId: string } => {
+const parseSessionName = (name: string): { sessionInstance: string; sessionId: string } => {
   const slashIndex = name.indexOf('/');
-  if (slashIndex === -1) return { hostname: name, sessionId: '' };
-  return { hostname: name.substring(0, slashIndex), sessionId: name.substring(slashIndex + 1) };
+  if (slashIndex === -1) return { sessionInstance: name, sessionId: '' };
+  return { sessionInstance: name.substring(0, slashIndex), sessionId: name.substring(slashIndex + 1) };
 };
 
 // --- Computed ---
@@ -338,11 +338,11 @@ const downloadFile = async (sessionId: string, fileId: string) => {
 };
 
 // --- Operations ---
-const copyAndMerge = async (sessionId: string) => {
+const downloadSession = async (sessionId: string) => {
   try {
     const session = props.sessions.find(s => s.id === sessionId);
     if (!session) {
-      toast.error('Merge & Copy', 'Session not found');
+      toast.error('Download', 'Session not found');
       return;
     }
 
@@ -359,16 +359,16 @@ const copyAndMerge = async (sessionId: string) => {
       );
     } else {
       await repositoryService.value.copyRecordingSession(session, true);
-      toast.success('Merge & Copy', `Successfully merged and copied session ${session.id}`);
+      toast.success('Download', `Successfully downloaded session ${session.id}`);
       emit('refresh');
     }
   } catch (error: any) {
-    console.error('Error merging and copying session:', error);
-    toast.error('Merge & Copy', error.message || 'Failed to merge and copy recording session');
+    console.error('Error downloading session:', error);
+    toast.error('Download', error.message || 'Failed to download recording session');
   }
 };
 
-const downloadSelectedSources = async (sessionId: string, merge: boolean) => {
+const downloadSelectedSources = async (sessionId: string) => {
   try {
     const session = props.sessions.find(s => s.id === sessionId);
     if (!session) return;
@@ -378,7 +378,7 @@ const downloadSelectedSources = async (sessionId: string, merge: boolean) => {
     );
 
     if (selectedSources.length === 0) {
-      toast.info(merge ? 'Merge & Copy' : 'Copy Selected', 'No recordings selected');
+      toast.info('Download', 'No recordings selected');
       return;
     }
 
@@ -395,20 +395,17 @@ const downloadSelectedSources = async (sessionId: string, merge: boolean) => {
         }
       );
     } else {
-      await repositoryService.value.copySelectedRepositoryFile(session.id, selectedSources, merge);
+      await repositoryService.value.copySelectedRepositoryFile(session.id, selectedSources, true);
       toast.success(
-        merge ? 'Merge & Copy' : 'Copy Selected',
-        `Successfully ${merge ? 'merged and copied' : 'copied'} ${selectedSources.length} recording(s)`
+        'Download',
+        `Successfully downloaded ${selectedSources.length} recording(s)`
       );
       emit('refresh');
       toggleSelectAllSources(sessionId, false);
     }
   } catch (error: any) {
-    console.error('Error processing selected recordings:', error);
-    toast.error(
-      merge ? 'Merge & Copy' : 'Copy Selected',
-      error.message || `Failed to ${merge ? 'merge and copy' : 'copy'} selected recordings`
-    );
+    console.error('Error downloading selected recordings:', error);
+    toast.error('Download', error.message || 'Failed to download selected recordings');
   }
 };
 
@@ -720,7 +717,7 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
                       class="instance-link"
                       @click.stop
                     >
-                      {{ parseSessionName(session.name).hostname }}
+                      {{ parseSessionName(session.name).sessionInstance }}
                     </router-link>
                     <span class="session-separator">/</span>
                     <span class="session-name-label">Session:</span>
@@ -742,10 +739,10 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
                 v-if="!isCollectorOnly"
                 class="btn btn-sm btn-outline-primary"
                 type="button"
-                title="Merge and Copy Recordings"
-                @click.stop="copyAndMerge(session.id)"
+                title="Download Recordings"
+                @click.stop="downloadSession(session.id)"
               >
-                <i class="bi bi-folder-symlink me-1"></i>Merge &amp; Copy
+                <i class="bi bi-folder-symlink me-1"></i>Download
               </button>
               <button
                 v-if="session.status === RecordingStatus.FINISHED"
@@ -844,11 +841,11 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
             <button
               v-if="!isCollectorOnly"
               class="btn btn-sm btn-outline-primary"
-              @click.stop="downloadSelectedSources(session.id, true)"
+              @click.stop="downloadSelectedSources(session.id)"
               :disabled="getSelectedCount(session.id) === 0"
-              title="Merge and copy selected recordings"
+              title="Download selected recordings"
             >
-              <i class="bi bi-folder-symlink me-1"></i>Merge &amp; Copy
+              <i class="bi bi-folder-symlink me-1"></i>Download
             </button>
             <button
               v-if="!isRemoteWorkspace"

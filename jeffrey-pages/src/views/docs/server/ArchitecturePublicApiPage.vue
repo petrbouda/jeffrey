@@ -315,26 +315,20 @@ onMounted(() => {
             </div>
           </div>
 
-          <!-- MessagesService -->
+          <!-- EventStreamingService -->
           <div class="endpoint-group">
             <div class="group-header">
-              <i class="bi bi-chat-left-text"></i>
-              <h4>MessagesService</h4>
+              <i class="bi bi-broadcast"></i>
+              <h4>EventStreamingService</h4>
             </div>
             <div class="group-body">
               <div class="endpoint-item">
                 <div class="endpoint-line">
                   <span class="method rpc">RPC</span>
-                  <code>GetMessages</code>
+                  <code>SubscribeEvents</code>
+                  <span class="rpc-type">server-streaming</span>
                 </div>
-                <p>Get project messages with optional time filter</p>
-              </div>
-              <div class="endpoint-item">
-                <div class="endpoint-line">
-                  <span class="method rpc">RPC</span>
-                  <code>GetAlerts</code>
-                </div>
-                <p>Get alert messages</p>
+                <p>Subscribe to live JFR events from a session's streaming repository with event type filtering and time range</p>
               </div>
             </div>
           </div>

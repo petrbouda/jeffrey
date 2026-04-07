@@ -92,10 +92,10 @@ onMounted(() => {
             <h4>Scheduler</h4>
             <p>Automated background jobs</p>
           </router-link>
-          <router-link to="/docs/local/projects/alerts-messages" class="feature-card alerts">
-            <div class="feature-icon"><i class="bi bi-bell"></i></div>
-            <h4>Alerts & Messages</h4>
-            <p>Important events from recordings</p>
+          <router-link to="/docs/local/projects/event-streaming" class="feature-card streaming">
+            <div class="feature-icon"><i class="bi bi-broadcast"></i></div>
+            <h4>Event Streaming</h4>
+            <p>Live JFR events from remote sessions</p>
           </router-link>
         </div>
 
@@ -127,8 +127,8 @@ onMounted(() => {
               <td>Async-Profiler agent configuration on the remote server</td>
             </tr>
             <tr>
-              <td><i class="bi bi-bell me-2"></i>Alerts & Messages</td>
-              <td>Important events from recordings on the remote server</td>
+              <td><i class="bi bi-broadcast me-2"></i>Event Streaming</td>
+              <td>Live JFR events from remote session streaming repositories</td>
             </tr>
           </tbody>
         </table>
@@ -258,13 +258,13 @@ onMounted(() => {
   background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
 }
 
-.feature-card.alerts {
-  background: linear-gradient(135deg, rgba(236, 72, 153, 0.06) 0%, rgba(236, 72, 153, 0.02) 100%);
-  border-color: rgba(236, 72, 153, 0.25);
+.feature-card.streaming {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.06) 0%, rgba(16, 185, 129, 0.02) 100%);
+  border-color: rgba(16, 185, 129, 0.25);
 }
 
-.feature-card.alerts .feature-icon {
-  background: linear-gradient(135deg, #ec4899 0%, #db2777 100%);
+.feature-card.streaming .feature-icon {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
 }
 
 /* Responsive */

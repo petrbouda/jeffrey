@@ -199,8 +199,8 @@ public class ServerAppConfiguration {
     }
 
     @Bean(destroyMethod = "close")
-    public EventStreamingSubscriptionManager eventStreamingSubscriptionManager() {
-        return new EventStreamingSubscriptionManager();
+    public EventStreamingSubscriptionManager eventStreamingSubscriptionManager(Clock applicationClock) {
+        return new EventStreamingSubscriptionManager(applicationClock);
     }
 
     @Bean

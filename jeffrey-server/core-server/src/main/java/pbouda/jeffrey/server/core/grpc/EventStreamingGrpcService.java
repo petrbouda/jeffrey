@@ -104,20 +104,45 @@ public class EventStreamingGrpcService extends EventStreamingServiceGrpc.EventSt
                 return;
             }
 
-            Path sessionPath = SessionPaths.resolve(jeffreyDirs, repositoryInfo, sessionInfo);
-            Set<String> eventTypes = new HashSet<>(request.getEventTypesList());
-            Instant startTime = request.hasStartTime()
+            Instant now = clock.instant();
+            Instant requestedStart = request.hasStartTime()
                     ? Instant.ofEpochMilli(request.getStartTime())
                     : null;
+            Instant requestedEnd = request.hasEndTime()
+                    ? Instant.ofEpochMilli(request.getEndTime())
+                    : null;
+
+            if (request.getContinuous() && requestedEnd != null) {
+                responseObserver.onError(Status.INVALID_ARGUMENT
+                        .withDescription("endTime must not be set when continuous=true; use continuous mode without an endTime or set continuous=false")
+                        .asRuntimeException());
+                return;
+            }
+            if (requestedEnd != null && requestedEnd.isAfter(now)) {
+                responseObserver.onError(Status.INVALID_ARGUMENT
+                        .withDescription("endTime must not be in the future; for future endTime, switch to continuous mode")
+                        .asRuntimeException());
+                return;
+            }
+            if (requestedStart != null && requestedEnd != null && !requestedStart.isBefore(requestedEnd)) {
+                responseObserver.onError(Status.INVALID_ARGUMENT
+                        .withDescription("startTime must be strictly before endTime")
+                        .asRuntimeException());
+                return;
+            }
+
+            Path sessionPath = SessionPaths.resolve(jeffreyDirs, repositoryInfo, sessionInfo);
+            Set<String> eventTypes = new HashSet<>(request.getEventTypesList());
+            Instant startTime = requestedStart;
             // When not continuous, set endTime to bound the stream
             // (use explicit endTime if provided, otherwise current time)
             Instant endTime;
             if (request.getContinuous()) {
                 endTime = null;
-            } else if (request.hasEndTime()) {
-                endTime = Instant.ofEpochMilli(request.getEndTime());
+            } else if (requestedEnd != null) {
+                endTime = requestedEnd;
             } else {
-                endTime = clock.instant();
+                endTime = now;
             }
 
             SubscriberEventStream stream = subscriptionManager.subscribe(
@@ -132,7 +157,7 @@ public class EventStreamingGrpcService extends EventStreamingServiceGrpc.EventSt
             // Clean up on client disconnect
             Context.current().addListener(_ -> {
                 LOG.info("Client disconnected, closing subscriber stream: sessionId={}", sessionId);
-                subscriptionManager.unsubscribe(sessionId, stream);
+                subscriptionManager.unsubscribe(stream);
             }, Runnable::run);
 
         } catch (IOException e) {

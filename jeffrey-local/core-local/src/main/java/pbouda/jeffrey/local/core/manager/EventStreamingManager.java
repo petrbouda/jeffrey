@@ -29,8 +29,11 @@ import pbouda.jeffrey.server.api.v1.StreamingEvent;
 import pbouda.jeffrey.server.api.v1.TypedValue;
 import pbouda.jeffrey.shared.common.Json;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
 /**
@@ -55,43 +58,74 @@ public class EventStreamingManager {
     }
 
     /**
-     * Subscribes to live JFR events from a remote session.
-     * Event batches are converted to JSON and delivered via the provided callback.
+     * Subscribes to live JFR events from multiple remote sessions with the same filter and time range.
+     * All event batches are converted to JSON and delivered via a single callback.
+     * Each session runs as an independent gRPC subscription — a failure in one does not affect the others.
      *
-     * @param sessionId  the session ID
-     * @param eventTypes JFR event types to receive (empty = all)
-     * @param startTime  optional start time in epoch millis for historical replay
-     * @param endTime    optional end time in epoch millis to stop streaming
-     * @param continuous when true, stream stays open waiting for new events
-     * @param onBatch    callback receiving event batches as JSON array nodes
-     * @param onComplete called when the stream ends
-     * @param onError    called on stream errors
-     * @return a cancellation handle
+     * @param sessionIds      the session IDs to subscribe to (must be non-empty)
+     * @param eventTypes      JFR event types to receive (empty = all)
+     * @param startTime       optional start time in epoch millis for historical replay
+     * @param endTime         optional end time in epoch millis to stop streaming
+     * @param continuous      when true, streams stay open waiting for new events
+     * @param onBatch         callback receiving event batches as JSON array nodes
+     *                        (invoked concurrently from multiple gRPC threads — callers must serialize)
+     * @param onSessionError  callback receiving the sessionId of a session whose stream errored;
+     *                        other sessions keep streaming
+     * @param onAllComplete   called once when every session's stream has ended
+     * @return a cancellation handle for all subscriptions
      */
-    public EventStreamingSubscription subscribe(
-            String sessionId,
+    public CompositeSubscription subscribeMulti(
+            List<String> sessionIds,
             Set<String> eventTypes,
             Long startTime,
             Long endTime,
             boolean continuous,
             Consumer<ArrayNode> onBatch,
-            Runnable onComplete,
-            Consumer<Throwable> onError) {
+            Consumer<String> onSessionError,
+            Runnable onAllComplete) {
 
-        LOG.info("Subscribing to event stream: sessionId={} eventTypes={} startTime={} endTime={} continuous={}",
-                sessionId, eventTypes, startTime, endTime, continuous);
+        LOG.info("Subscribing to multi-session event stream: sessionIds={} eventTypes={} startTime={} endTime={} continuous={}",
+                sessionIds, eventTypes, startTime, endTime, continuous);
 
-        return eventStreamingClient.subscribe(
-                workspaceId,
-                projectId,
-                sessionId,
-                eventTypes,
-                startTime,
-                endTime,
-                continuous,
-                batch -> onBatch.accept(batchToJson(batch)),
-                onComplete,
-                onError);
+        AtomicInteger remaining = new AtomicInteger(sessionIds.size());
+        List<EventStreamingSubscription> subs = new ArrayList<>(sessionIds.size());
+
+        for (String sessionId : sessionIds) {
+            EventStreamingSubscription sub = eventStreamingClient.subscribe(
+                    workspaceId,
+                    projectId,
+                    sessionId,
+                    eventTypes,
+                    startTime,
+                    endTime,
+                    continuous,
+                    batch -> onBatch.accept(batchToJson(batch)),
+                    () -> {
+                        if (remaining.decrementAndGet() == 0) {
+                            onAllComplete.run();
+                        }
+                    },
+                    error -> {
+                        onSessionError.accept(sessionId);
+                        if (remaining.decrementAndGet() == 0) {
+                            onAllComplete.run();
+                        }
+                    });
+            subs.add(sub);
+        }
+
+        return new CompositeSubscription(subs);
+    }
+
+    /**
+     * Handle that cancels a fan-in of per-session subscriptions as a single unit.
+     */
+    public record CompositeSubscription(List<EventStreamingSubscription> subscriptions) {
+        public void cancel() {
+            for (EventStreamingSubscription sub : subscriptions) {
+                sub.cancel();
+            }
+        }
     }
 
     /**

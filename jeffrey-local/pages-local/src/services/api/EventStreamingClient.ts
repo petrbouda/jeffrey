@@ -53,26 +53,30 @@ export default class EventStreamingClient {
   }
 
   /**
-   * Subscribes to live JFR events for a session.
+   * Subscribes to live JFR events for one or more sessions with the same filter.
    *
-   * @param sessionId - The session to stream events from
+   * @param sessionIds - The sessions to stream events from (must be non-empty)
    * @param eventTypes - JFR event types to receive (empty array = all events)
-   * @param onEvents - Callback for each batch of events (~1/sec)
-   * @param _onComplete - Called when the stream ends (session finished)
-   * @param onError - Called on stream errors
+   * @param onEvents - Callback for each batch of events (~1/sec). Each event carries its sessionId.
+   * @param _onComplete - Called when every session's stream has ended
+   * @param onError - Called when the SSE connection itself is lost
+   * @param onSessionError - Called with the sessionId of a session whose server-side stream errored;
+   *                         other sessions keep streaming
    * @param options - Optional: startTime/endTime (epoch millis), continuous (keep stream open)
    */
   subscribe(
-    sessionId: string,
+    sessionIds: string[],
     eventTypes: string[],
     onEvents: (events: StreamingEvent[]) => void,
     _onComplete: () => void,
     onError: (error: string) => void,
+    onSessionError: (sessionId: string) => void,
     options?: { startTime?: number; endTime?: number; continuous?: boolean }
   ): void {
     this.unsubscribe()
 
     const params = new URLSearchParams()
+    params.set('sessionIds', sessionIds.join(','))
     if (eventTypes.length > 0) {
       params.set('eventTypes', eventTypes.join(','))
     }
@@ -86,13 +90,22 @@ export default class EventStreamingClient {
       params.set('continuous', 'true')
     }
 
-    const url = `${this.baseUrl}/${sessionId}/subscribe?${params.toString()}`
+    const url = `${this.baseUrl}/subscribe?${params.toString()}`
 
     this.eventSource = new EventSource(url)
 
     this.eventSource.addEventListener('events', (event: MessageEvent) => {
       const events: StreamingEvent[] = JSON.parse(event.data)
       onEvents(events)
+    })
+
+    this.eventSource.addEventListener('sessionError', (event: MessageEvent) => {
+      try {
+        const payload: { sessionId: string } = JSON.parse(event.data)
+        onSessionError(payload.sessionId)
+      } catch {
+        // malformed payload — ignore
+      }
     })
 
     this.eventSource.onerror = () => {

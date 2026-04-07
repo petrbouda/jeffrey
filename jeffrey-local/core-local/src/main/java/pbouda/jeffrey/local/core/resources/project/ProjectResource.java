@@ -98,7 +98,7 @@ public class ProjectResource {
 
     @Path("/event-streaming")
     public ProjectEventStreamingResource eventStreamingResource() {
-        return new ProjectEventStreamingResource(projectManager.eventStreamingManager());
+        return new ProjectEventStreamingResource(projectManager.eventStreamingManager(), clock);
     }
 
     @Path("/instances")

@@ -22,37 +22,44 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.sse.Sse;
 import jakarta.ws.rs.sse.SseEventSink;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.local.core.client.RemoteEventStreamingClient.EventStreamingSubscription;
 import pbouda.jeffrey.local.core.manager.EventStreamingManager;
+import pbouda.jeffrey.local.core.manager.EventStreamingManager.CompositeSubscription;
 
 import java.io.IOException;
+import java.time.Clock;
 import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 /**
- * REST resource that bridges event streaming to SSE for frontend consumption.
+ * REST resource that bridges multi-session event streaming to SSE for frontend consumption.
+ * A single SSE connection can subscribe to N sessions with the same event-type filter and time range.
  */
 public class ProjectEventStreamingResource {
 
     private static final Logger LOG = LoggerFactory.getLogger(ProjectEventStreamingResource.class);
 
     private final EventStreamingManager eventStreamingManager;
+    private final Clock clock;
 
-    public ProjectEventStreamingResource(EventStreamingManager eventStreamingManager) {
+    public ProjectEventStreamingResource(EventStreamingManager eventStreamingManager, Clock clock) {
         this.eventStreamingManager = eventStreamingManager;
+        this.clock = Objects.requireNonNull(clock, "clock");
     }
 
     @GET
-    @Path("/{sessionId}/subscribe")
+    @Path("/subscribe")
     @Produces(MediaType.SERVER_SENT_EVENTS)
     public void subscribe(
-            @PathParam("sessionId") String sessionId,
+            @QueryParam("sessionIds") @DefaultValue("") String sessionIds,
             @QueryParam("eventTypes") @DefaultValue("") String eventTypes,
             @QueryParam("startTime") Long startTime,
             @QueryParam("endTime") Long endTime,
@@ -60,58 +67,112 @@ public class ProjectEventStreamingResource {
             @Context SseEventSink eventSink,
             @Context Sse sse) {
 
-        Set<String> eventTypeSet = eventTypes.isBlank()
-                ? Set.of()
-                : Arrays.stream(eventTypes.split(","))
-                        .map(String::strip)
-                        .filter(s -> !s.isEmpty())
-                        .collect(Collectors.toSet());
+        List<String> sessionIdList = parseCsv(sessionIds);
+        if (sessionIdList.isEmpty()) {
+            throw new WebApplicationException(
+                    "At least one sessionId is required", Response.Status.BAD_REQUEST);
+        }
 
-        var subscriptionRef = new AtomicReference<EventStreamingSubscription>();
+        validateTimeRange(startTime, endTime, continuous);
 
-        EventStreamingSubscription subscription = eventStreamingManager.subscribe(
-                sessionId,
+        Set<String> eventTypeSet = parseCsv(eventTypes).stream().collect(Collectors.toUnmodifiableSet());
+
+        // Guard: SseEventSink.send() must be serialized across the N concurrent gRPC batch callbacks.
+        Object sinkLock = new Object();
+
+        var subscriptionRef = new AtomicReference<CompositeSubscription>();
+
+        CompositeSubscription subscription = eventStreamingManager.subscribeMulti(
+                sessionIdList,
                 eventTypeSet,
                 startTime,
                 endTime,
                 continuous,
                 batch -> {
                     if (eventSink.isClosed()) {
-                        EventStreamingSubscription sub = subscriptionRef.get();
+                        CompositeSubscription sub = subscriptionRef.get();
                         if (sub != null) {
                             sub.cancel();
                         }
                         return;
                     }
-                    sendSseEvent(eventSink, sse, batch);
+                    sendSseBatch(eventSink, sse, batch, sinkLock);
                 },
-                () -> closeSink(eventSink),
-                error -> {
-                    LOG.warn("Event streaming error, closing SSE sink: sessionId={} error={}", sessionId, error.getMessage());
-                    closeSink(eventSink);
-                });
+                sessionId -> {
+                    LOG.warn("Session stream errored, notifying client: sessionId={}", sessionId);
+                    sendSessionError(eventSink, sse, sessionId, sinkLock);
+                },
+                () -> closeSink(eventSink));
 
         subscriptionRef.set(subscription);
 
-        eventSink.send(sse.newEventBuilder().comment("connected").build())
-                .whenComplete((__, error) -> {
-                    if (error != null) {
-                        subscription.cancel();
-                    }
-                });
+        synchronized (sinkLock) {
+            eventSink.send(sse.newEventBuilder().comment("connected").build())
+                    .whenComplete((__, error) -> {
+                        if (error != null) {
+                            subscription.cancel();
+                        }
+                    });
+        }
     }
 
-    private static void sendSseEvent(SseEventSink eventSink, Sse sse, ArrayNode batch) {
-        if (eventSink.isClosed()) {
-            return;
+    private void validateTimeRange(Long startTime, Long endTime, boolean continuous) {
+        if (continuous && endTime != null) {
+            throw new WebApplicationException(
+                    "endTime must not be set when continuous=true; use continuous mode without an endTime or set continuous=false",
+                    Response.Status.BAD_REQUEST);
         }
-        try {
-            eventSink.send(sse.newEventBuilder()
-                    .name("events")
-                    .data(batch.toString())
-                    .build());
-        } catch (Exception e) {
-            LOG.warn("Failed to send SSE event, client likely disconnected: {}", e.getMessage());
+        if (endTime != null && endTime > clock.millis()) {
+            throw new WebApplicationException(
+                    "endTime must not be in the future; for future endTime, switch to continuous mode",
+                    Response.Status.BAD_REQUEST);
+        }
+        if (startTime != null && endTime != null && startTime >= endTime) {
+            throw new WebApplicationException(
+                    "startTime must be strictly before endTime",
+                    Response.Status.BAD_REQUEST);
+        }
+    }
+
+    private static List<String> parseCsv(String csv) {
+        if (csv == null || csv.isBlank()) {
+            return List.of();
+        }
+        return Arrays.stream(csv.split(","))
+                .map(String::strip)
+                .filter(s -> !s.isEmpty())
+                .toList();
+    }
+
+    private static void sendSseBatch(SseEventSink eventSink, Sse sse, ArrayNode batch, Object sinkLock) {
+        synchronized (sinkLock) {
+            if (eventSink.isClosed()) {
+                return;
+            }
+            try {
+                eventSink.send(sse.newEventBuilder()
+                        .name("events")
+                        .data(batch.toString())
+                        .build());
+            } catch (Exception e) {
+                LOG.warn("Failed to send SSE event, client likely disconnected: {}", e.getMessage());
+            }
+        }
+    }
+
+    private static void sendSessionError(SseEventSink eventSink, Sse sse, String sessionId, Object sinkLock) {
+        synchronized (sinkLock) {
+            if (eventSink.isClosed()) {
+                return;
+            }
+            try {
+                eventSink.send(sse.newEventBuilder()
+                        .name("sessionError")
+                        .data("{\"sessionId\":\"" + sessionId + "\"}")
+                        .build());
+            } catch (Exception e) {
+                LOG.warn("Failed to send sessionError SSE event: {}", e.getMessage());
+            }
         }
     }
 

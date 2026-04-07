@@ -130,6 +130,16 @@ const routes: RouteRecordRaw[] = [
         name: 'DocsEventLog',
         component: () => import('@/views/docs/local/EventLogPage.vue')
       },
+      {
+        path: 'local/profiler-settings',
+        name: 'DocsLocalProfilerSettings',
+        component: () => import('@/views/docs/local/LocalProfilerSettingsPage.vue')
+      },
+      {
+        path: 'local/settings',
+        name: 'DocsLocalSettings',
+        component: () => import('@/views/docs/local/LocalSettingsPage.vue')
+      },
       // Projects
       {
         path: 'local/projects',
@@ -167,9 +177,9 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/docs/local/projects/ProjectsSchedulerPage.vue')
       },
       {
-        path: 'local/projects/alerts-messages',
-        name: 'DocsProjectsAlertsMessages',
-        component: () => import('@/views/docs/local/projects/ProjectsAlertsMessagesPage.vue')
+        path: 'local/projects/event-streaming',
+        name: 'DocsProjectsEventStreaming',
+        component: () => import('@/views/docs/local/projects/ProjectsEventStreamingPage.vue')
       },
       // Local Deployment
       {
@@ -329,7 +339,7 @@ const routes: RouteRecordRaw[] = [
       { path: 'platform/projects/instances', redirect: '/docs/local/projects/instances' },
       { path: 'platform/projects/profiler-settings', redirect: '/docs/local/projects/profiler-settings' },
       { path: 'platform/projects/scheduler', redirect: '/docs/local/projects/scheduler' },
-      { path: 'platform/projects/alerts-messages', redirect: '/docs/local/projects/alerts-messages' },
+      { path: 'platform/projects/alerts-messages', redirect: '/docs/local/projects/event-streaming' },
       { path: 'platform/recording-sessions/overview', redirect: '/docs/server/recording-sessions/overview' },
       { path: 'platform/recording-sessions/configuration', redirect: '/docs/server/recording-sessions/configuration' },
       { path: 'platform/recording-sessions/lifecycle', redirect: '/docs/server/recording-sessions/lifecycle' },

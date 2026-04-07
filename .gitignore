@@ -68,3 +68,6 @@ jmh-tests/dependency-reduced-pom.xml
 **/secrets.properties
 .worktrees
 .superpowers
+
+# Local IntelliJ HTTP Client test files
+jeffrey-server/http-client/

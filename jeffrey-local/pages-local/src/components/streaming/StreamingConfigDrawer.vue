@@ -72,6 +72,13 @@
           placeholder="Search by session ID..."
         />
       </div>
+      <div v-if="localSessions.length > 0" class="scm-selection-bar">
+        <span>
+          <strong>{{ localSessions.length }}</strong>
+          session{{ localSessions.length === 1 ? '' : 's' }} selected
+        </span>
+        <a href="#" class="scm-clear-link" @click.prevent="clearSelectedSessions">Clear</a>
+      </div>
       <div class="scm-session-list">
         <LoadingState v-if="sessionsLoading" message="Loading sessions..." />
 
@@ -95,11 +102,15 @@
               class="scm-session-card"
               :class="{
                 'scm-session-active': session.isActive,
-                'scm-session-selected': localSessionId === session.id
+                'scm-session-selected': isSessionSelected(session.id)
               }"
-              @click="selectSession(session, group.instance)"
+              @click="toggleSession(session, group.instance)"
             >
               <div class="scm-session-top">
+                <i
+                  class="bi scm-check"
+                  :class="isSessionSelected(session.id) ? 'bi-check-square-fill' : 'bi-square'"
+                ></i>
                 <span class="scm-dot" :class="session.isActive ? 'dot-active dot-pulse' : 'dot-inactive'"></span>
                 <span class="scm-session-id">{{ session.id }}</span>
                 <Badge
@@ -259,9 +270,13 @@ interface InstanceGroup {
 export type StartMode = 'beginning' | 'now' | 'custom'
 export type EndMode = 'now' | 'custom'
 
+export interface SelectedSession {
+  id: string
+  sessionInstance: string
+}
+
 export interface StreamingConfig {
-  sessionId: string
-  sessionHostname: string
+  sessions: SelectedSession[]
   eventTypes: string[]
   startMode: StartMode
   startTime: string
@@ -293,15 +308,24 @@ const wizardSteps = [
 ]
 
 const canAdvance = computed(() => {
-  if (currentStep.value === 1) return !!localSessionId.value
+  if (currentStep.value === 1) return localSessions.value.length > 0
   if (currentStep.value === 2) return localEventTypes.value.length > 0
   return true
 })
 
 const applyEnabled = computed(() => {
-  if (!localSessionId.value || localEventTypes.value.length === 0) return false
+  if (localSessions.value.length === 0 || localEventTypes.value.length === 0) return false
   if (startMode.value === 'custom' && !localStartTime.value) return false
   if (!localContinuous.value && endMode.value === 'custom' && !localEndTime.value) return false
+
+  if (!localContinuous.value && endMode.value === 'custom') {
+    const endMs = Date.parse(localEndTime.value)
+    if (Number.isNaN(endMs) || endMs > Date.now()) return false
+    if (startMode.value === 'custom') {
+      const startMs = Date.parse(localStartTime.value)
+      if (!Number.isNaN(startMs) && startMs >= endMs) return false
+    }
+  }
   return true
 })
 
@@ -324,8 +348,7 @@ const instanceGroups = ref<InstanceGroup[]>([])
 const maxVisibleInstances = ref(5)
 
 // Config state
-const localSessionId = ref('')
-const localHostname = ref('')
+const localSessions = ref<SelectedSession[]>([])
 const localEventTypes = ref<string[]>([])
 const startMode = ref<StartMode>('beginning')
 const localStartTime = ref('')
@@ -368,8 +391,7 @@ watch(
     if (visible) {
       currentStep.value = 1
       maxVisibleInstances.value = 5
-      localSessionId.value = props.config.sessionId
-      localHostname.value = props.config.sessionHostname
+      localSessions.value = props.config.sessions.map((s) => ({ ...s }))
       localEventTypes.value = [...props.config.eventTypes]
       startMode.value = props.config.startMode
       localStartTime.value = props.config.startTime
@@ -409,9 +431,21 @@ async function loadSessions() {
   }
 }
 
-function selectSession(session: ProjectInstanceSession, instance: ProjectInstance) {
-  localSessionId.value = session.id
-  localHostname.value = instance.hostname
+function isSessionSelected(sessionId: string): boolean {
+  return localSessions.value.some((s) => s.id === sessionId)
+}
+
+function toggleSession(session: ProjectInstanceSession, instance: ProjectInstance) {
+  const idx = localSessions.value.findIndex((s) => s.id === session.id)
+  if (idx >= 0) {
+    localSessions.value.splice(idx, 1)
+  } else {
+    localSessions.value.push({ id: session.id, sessionInstance: instance.hostname })
+  }
+}
+
+function clearSelectedSessions() {
+  localSessions.value = []
 }
 
 watch(localContinuous, (on) => {
@@ -447,8 +481,7 @@ function statusVariant(status: ProjectInstanceStatus): Variant {
 
 function apply() {
   emit('apply', {
-    sessionId: localSessionId.value,
-    sessionHostname: localHostname.value,
+    sessions: localSessions.value.map((s) => ({ ...s })),
     eventTypes: localEventTypes.value,
     startMode: startMode.value,
     startTime: localStartTime.value,
@@ -572,6 +605,30 @@ function apply() {
   box-shadow: 0 0 0 3px var(--color-primary-light);
 }
 
+/* ===== Selection Bar ===== */
+.scm-selection-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  margin-bottom: 8px;
+  background: var(--color-primary-light);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 0.78rem;
+  color: var(--color-body);
+}
+
+.scm-clear-link {
+  font-size: 0.75rem;
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.scm-clear-link:hover {
+  text-decoration: underline;
+}
+
 /* ===== Session List ===== */
 .scm-session-list {
   overflow-y: auto;
@@ -632,6 +689,16 @@ function apply() {
   margin-bottom: 3px;
 }
 
+.scm-check {
+  font-size: 0.95rem;
+  color: var(--color-text-light);
+  flex-shrink: 0;
+}
+
+.scm-session-selected .scm-check {
+  color: var(--color-primary);
+}
+
 .scm-session-id {
   font-family: var(--font-monospace);
   font-size: 0.78rem;
@@ -647,7 +714,7 @@ function apply() {
   gap: 10px;
   font-size: 0.67rem;
   color: var(--color-muted);
-  padding-left: 16px;
+  padding-left: 37px;
 }
 
 .scm-dot {

@@ -87,7 +87,7 @@ interface InstanceGroup {
 
 export interface SessionSelection {
   sessionId: string
-  hostname: string
+  sessionInstance: string
   isActive: boolean
 }
 
@@ -164,7 +164,7 @@ function selectSession(session: ProjectInstanceSession, instance: ProjectInstanc
   selectedSessionId.value = session.id
   emit('select', {
     sessionId: session.id,
-    hostname: instance.hostname,
+    sessionInstance: instance.hostname,
     isActive: session.isActive ?? false
   })
   close()

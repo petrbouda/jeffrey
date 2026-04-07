@@ -65,10 +65,12 @@ export const docsNavigation: DocSection[] = [
           { title: 'Instances', path: 'projects/instances' },
           { title: 'Profiler Settings', path: 'projects/profiler-settings' },
           { title: 'Scheduler', path: 'projects/scheduler' },
-          { title: 'Alerts & Messages', path: 'projects/alerts-messages' }
+          { title: 'Event Streaming', path: 'projects/event-streaming' }
         ]
       },
       { title: 'Event Log', path: 'event-log' },
+      { title: 'Profiler Settings', path: 'profiler-settings' },
+      { title: 'Settings', path: 'settings' },
       {
         title: 'Deployment',
         path: 'deployment',

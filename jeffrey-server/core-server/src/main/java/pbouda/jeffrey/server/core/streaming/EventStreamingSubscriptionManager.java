@@ -26,23 +26,32 @@ import pbouda.jeffrey.server.api.v1.EventBatch;
 import java.io.Closeable;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
- * Tracks active per-subscriber {@link SubscriberEventStream} instances per session.
- * Provides lifecycle management: subscribe, unsubscribe, close all for a session,
- * and close all on server shutdown.
+ * Tracks active {@link SubscriberEventStream} instances and provides lifecycle
+ * management: subscribe, unsubscribe, close all for a session, and close on shutdown.
+ *
+ * <p>Subscribers register themselves into a flat concurrent set. Each stream is wired
+ * with a completion callback that removes itself from the set on any terminal event
+ * (natural end, error, or explicit close), so the set is always symmetric across
+ * lifecycle exits.</p>
  */
 public class EventStreamingSubscriptionManager implements Closeable {
 
     private static final Logger LOG = LoggerFactory.getLogger(EventStreamingSubscriptionManager.class);
 
-    private final ConcurrentHashMap<String, CopyOnWriteArrayList<SubscriberEventStream>> subscriptions =
-            new ConcurrentHashMap<>();
+    private final Set<SubscriberEventStream> subscriptions = ConcurrentHashMap.newKeySet();
+    private final Clock clock;
+
+    public EventStreamingSubscriptionManager(Clock clock) {
+        this.clock = Objects.requireNonNull(clock, "clock");
+    }
 
     /**
      * Creates and starts a new subscriber event stream for the given session.
@@ -67,9 +76,10 @@ public class EventStreamingSubscriptionManager implements Closeable {
             StreamObserver<EventBatch> observer) throws IOException {
 
         SubscriberEventStream stream = new SubscriberEventStream(
-                sessionId, sessionPath, eventTypes, startTime, endTime, sendEmptyBatches, observer);
+                sessionId, sessionPath, eventTypes, startTime, endTime,
+                sendEmptyBatches, observer, clock, this::removeSubscription);
 
-        subscriptions.computeIfAbsent(sessionId, k -> new CopyOnWriteArrayList<>()).add(stream);
+        subscriptions.add(stream);
         stream.start();
 
         LOG.info("Subscribed to event stream: sessionId={} eventTypes={}", sessionId, eventTypes);
@@ -77,38 +87,38 @@ public class EventStreamingSubscriptionManager implements Closeable {
     }
 
     /**
-     * Removes and closes a specific subscriber event stream.
+     * Closes a specific subscriber stream. The stream's completion callback removes
+     * the entry from the subscription set.
      */
-    public void unsubscribe(String sessionId, SubscriberEventStream stream) {
-        CopyOnWriteArrayList<SubscriberEventStream> streams = subscriptions.get(sessionId);
-        if (streams != null) {
-            streams.remove(stream);
-            if (streams.isEmpty()) {
-                subscriptions.remove(sessionId, streams);
-            }
-        }
+    public void unsubscribe(SubscriberEventStream stream) {
         stream.close();
-        LOG.debug("Unsubscribed from event stream: sessionId={}", sessionId);
+        LOG.debug("Unsubscribed from event stream: sessionId={}", stream.sessionId());
     }
 
     /**
-     * Closes all subscriber event streams for a given session.
-     * Called when a session finishes.
+     * Closes all subscriber streams belonging to the given session. Called when a
+     * session finishes.
      */
     public void closeAllForSession(String sessionId) {
-        CopyOnWriteArrayList<SubscriberEventStream> streams = subscriptions.remove(sessionId);
-        if (streams != null && !streams.isEmpty()) {
-            LOG.info("Closing all subscriber streams for session: sessionId={} count={}", sessionId, streams.size());
-            streams.forEach(SubscriberEventStream::close);
+        List<SubscriberEventStream> matching = subscriptions.stream()
+                .filter(s -> s.sessionId().equals(sessionId))
+                .toList();
+        if (!matching.isEmpty()) {
+            LOG.info("Closing all subscriber streams for session: sessionId={} count={}", sessionId, matching.size());
+            matching.forEach(SubscriberEventStream::close);
         }
     }
 
     @Override
     public void close() {
-        LOG.info("Closing all subscriber event streams: sessionCount={}", subscriptions.size());
-        for (List<SubscriberEventStream> streams : subscriptions.values()) {
-            streams.forEach(SubscriberEventStream::close);
-        }
+        LOG.info("Closing all subscriber event streams: count={}", subscriptions.size());
+        List.copyOf(subscriptions).forEach(SubscriberEventStream::close);
         subscriptions.clear();
+    }
+
+    private void removeSubscription(SubscriberEventStream stream) {
+        if (subscriptions.remove(stream)) {
+            LOG.debug("Removed completed subscriber stream: sessionId={}", stream.sessionId());
+        }
     }
 }

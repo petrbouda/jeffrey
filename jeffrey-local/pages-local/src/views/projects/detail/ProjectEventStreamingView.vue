@@ -1,23 +1,23 @@
 <template>
   <PageHeader
     title="Event Streaming"
-    description="Subscribe to live JFR events from a remote session's streaming repository."
+    description="Subscribe to live JFR events from one or more remote sessions' streaming repositories."
     icon="bi-broadcast"
   >
     <!-- Summary Panel -->
     <div
       class="summary-panel mb-3"
       :class="{
-        'summary-panel--empty': !sessionId,
+        'summary-panel--empty': sessions.length === 0,
         'summary-panel--connected': connected
       }"
     >
       <!-- Empty state -->
-      <template v-if="!sessionId">
+      <template v-if="sessions.length === 0">
         <div class="summary-row">
           <i class="bi bi-gear summary-bar-icon"></i>
           <span class="summary-bar-placeholder">
-            No streaming configured — click Configure to select a session and event types
+            No streaming configured — click Configure to select sessions and event types
           </span>
           <div class="summary-actions">
             <button class="summary-btn summary-btn--configure" @click="showConfigDrawer = true">
@@ -49,7 +49,7 @@
             <button
               v-if="!connected"
               class="summary-btn summary-btn--primary"
-              :disabled="eventTypes.length === 0"
+              :disabled="eventTypes.length === 0 || sessions.length === 0"
               @click="startStreaming"
             >
               <i class="bi bi-play-fill"></i> Subscribe
@@ -63,7 +63,7 @@
             </button>
             <button
               class="summary-btn summary-btn--ghost"
-              :disabled="events.length === 0 && !sessionId"
+              :disabled="events.length === 0 && sessions.length === 0"
               @click="clearAll"
             >
               <i class="bi bi-arrow-counterclockwise"></i>
@@ -76,9 +76,22 @@
           <div class="summary-detail-card">
             <div class="summary-detail-icon"><i class="bi bi-broadcast"></i></div>
             <div class="summary-detail-body">
-              <div class="summary-detail-label">Session</div>
-              <div class="summary-detail-value">{{ sessionId }}</div>
-              <div v-if="sessionHostname" class="summary-detail-sub">{{ sessionHostname }}</div>
+              <div class="summary-detail-label">Sessions</div>
+              <div class="summary-detail-value">{{ sessionsSummaryLabel }}</div>
+              <div class="summary-session-chips">
+                <span
+                  v-for="s in sessions"
+                  :key="s.id"
+                  class="session-chip"
+                  :class="{ 'session-chip--failed': failedSessions.has(s.id) }"
+                  :data-session-slot="sessionSlot(s.id)"
+                  :title="s.sessionInstance ? `${s.id}\n${s.sessionInstance}` : s.id"
+                >
+                  <span class="session-chip-dot"></span>
+                  {{ s.id }}
+                  <i v-if="failedSessions.has(s.id)" class="bi bi-exclamation-triangle-fill session-chip-warn"></i>
+                </span>
+              </div>
             </div>
           </div>
 
@@ -145,7 +158,7 @@
       :description="
         connected
           ? 'Waiting for events from the streaming repository...'
-          : 'Select a session and click Subscribe to start receiving events.'
+          : 'Select one or more sessions and click Subscribe to start receiving events.'
       "
       icon="bi-broadcast"
     />
@@ -160,7 +173,12 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="(event, index) in displayedEvents" :key="index">
+          <tr
+            v-for="(event, index) in displayedEvents"
+            :key="index"
+            :data-session-slot="sessionSlot(event.sessionId)"
+            :title="event.sessionId"
+          >
             <td class="text-nowrap">
               <code>{{ FormattingService.formatTimestamp(event.timestamp) }}</code>
             </td>
@@ -208,7 +226,7 @@ import PageHeader from '@/components/layout/PageHeader.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import Badge from '@/components/Badge.vue'
 import StreamingConfigDrawer from '@/components/streaming/StreamingConfigDrawer.vue'
-import type { StreamingConfig, StartMode, EndMode } from '@/components/streaming/StreamingConfigDrawer.vue'
+import type { StreamingConfig, StartMode, EndMode, SelectedSession } from '@/components/streaming/StreamingConfigDrawer.vue'
 import FormattingService from '@/services/FormattingService'
 import EventStreamingClient, { type StreamingEvent } from '@/services/api/EventStreamingClient'
 import { getEventTypePrefix } from '@/services/EventTypeCatalog'
@@ -216,13 +234,15 @@ import Utils from '@/services/Utils'
 import { useNavigation } from '@/composables/useNavigation'
 
 const MAX_VISIBLE_TAGS = 3
+const SESSION_PALETTE_SIZE = 6
 
 const { workspaceId, projectId } = useNavigation()
 
 const showConfigDrawer = ref(false)
 const eventTagsExpanded = ref(false)
-const sessionId = ref('')
-const sessionHostname = ref('')
+const sessions = ref<SelectedSession[]>([])
+const sessionIndexMap = ref<Record<string, number>>({})
+const failedSessions = ref<Set<string>>(new Set())
 const eventTypes = ref<string[]>([])
 const startMode = ref<StartMode>('beginning')
 const startTimeInput = ref('')
@@ -239,8 +259,7 @@ const maxEvents = ref(1000)
 let client: EventStreamingClient | null = null
 
 const currentConfig = computed<StreamingConfig>(() => ({
-  sessionId: sessionId.value,
-  sessionHostname: sessionHostname.value,
+  sessions: sessions.value.map((s) => ({ ...s })),
   eventTypes: eventTypes.value,
   startMode: startMode.value,
   startTime: startTimeInput.value,
@@ -250,10 +269,22 @@ const currentConfig = computed<StreamingConfig>(() => ({
   maxEvents: maxEvents.value
 }))
 
+function sessionSlot(sessionId: string): number {
+  const idx = sessionIndexMap.value[sessionId]
+  return idx == null ? 0 : idx % SESSION_PALETTE_SIZE
+}
+
 const visibleEventTags = computed(() =>
   eventTagsExpanded.value ? eventTypes.value : eventTypes.value.slice(0, MAX_VISIBLE_TAGS)
 )
 const overflowCount = computed(() => Math.max(0, eventTypes.value.length - MAX_VISIBLE_TAGS))
+
+const sessionsSummaryLabel = computed(() => {
+  const count = sessions.value.length
+  if (count === 0) return ''
+  if (count === 1) return '1 session'
+  return `${count} sessions`
+})
 
 function datetimeLocalToMillis(value: string): number {
   return new Date(value).getTime()
@@ -280,8 +311,16 @@ const displayedEvents = computed(() => {
 })
 
 function onConfigApply(config: StreamingConfig) {
-  sessionId.value = config.sessionId
-  sessionHostname.value = config.sessionHostname
+  sessions.value = config.sessions.map((s) => ({ ...s }))
+  // Refresh index map: stable slot assignment in selection order.
+  // Existing sessions keep their slot; new sessions get the next free index.
+  const newMap: Record<string, number> = {}
+  sessions.value.forEach((s, idx) => {
+    const existing = sessionIndexMap.value[s.id]
+    newMap[s.id] = existing != null ? existing : idx
+  })
+  sessionIndexMap.value = newMap
+  failedSessions.value = new Set()
   eventTypes.value = config.eventTypes
   startMode.value = config.startMode
   startTimeInput.value = config.startTime
@@ -292,7 +331,7 @@ function onConfigApply(config: StreamingConfig) {
 }
 
 function startStreaming() {
-  if (!sessionId.value || !workspaceId.value || !projectId.value) return
+  if (sessions.value.length === 0 || !workspaceId.value || !projectId.value) return
 
   client = new EventStreamingClient(workspaceId.value, projectId.value)
 
@@ -309,8 +348,14 @@ function startStreaming() {
     options.continuous = true
   }
 
+  // Fresh subscription → clean slate
+  events.value = []
+  batchCount.value = 0
+  lastBatchTime.value = null
+  failedSessions.value = new Set()
+
   client.subscribe(
-    sessionId.value,
+    sessions.value.map((s) => s.id),
     eventTypes.value,
     (batch) => {
       batchCount.value++
@@ -327,6 +372,9 @@ function startStreaming() {
     () => {
       connected.value = false
     },
+    (failedSessionId) => {
+      failedSessions.value = new Set([...failedSessions.value, failedSessionId])
+    },
     options
   )
 
@@ -341,8 +389,9 @@ function stopStreaming() {
 
 function clearAll() {
   stopStreaming()
-  sessionId.value = ''
-  sessionHostname.value = ''
+  sessions.value = []
+  sessionIndexMap.value = {}
+  failedSessions.value = new Set()
   eventTypes.value = []
   startMode.value = 'beginning'
   startTimeInput.value = ''
@@ -691,6 +740,73 @@ onUnmounted(() => {
   color: var(--color-success);
   font-weight: 500;
 }
+
+/* ===== Session chips (summary panel) ===== */
+.summary-session-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.session-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 0.72rem;
+  font-family: var(--font-monospace);
+  font-weight: 500;
+  background: var(--color-light);
+  border: 1px solid var(--color-border);
+  color: var(--color-body);
+  white-space: nowrap;
+}
+
+.session-chip-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--color-muted);
+}
+
+.session-chip-warn {
+  color: var(--color-danger);
+  font-size: 0.7rem;
+  margin-left: 2px;
+}
+
+.session-chip--failed {
+  opacity: 0.55;
+  text-decoration: line-through;
+}
+
+/* ===== Session palette — chip dot + row left border =====
+   Only the 3px left border on the first cell signals the session.
+   No row background tint. Border lives on the first <td> because
+   box-shadow / background on a <tr> (display: table-row) is unreliable.
+*/
+.session-chip[data-session-slot="0"] .session-chip-dot { background: var(--color-primary); }
+.session-chip[data-session-slot="1"] .session-chip-dot { background: var(--color-amber); }
+.session-chip[data-session-slot="2"] .session-chip-dot { background: var(--color-violet); }
+.session-chip[data-session-slot="3"] .session-chip-dot { background: var(--color-teal); }
+.session-chip[data-session-slot="4"] .session-chip-dot { background: var(--color-danger); }
+.session-chip[data-session-slot="5"] .session-chip-dot { background: var(--color-info); }
+
+tbody tr[data-session-slot] td:first-child {
+  border-left-width: 3px;
+  border-left-style: solid;
+  padding-left: 9px;
+}
+
+tbody tr[data-session-slot="0"] td:first-child { border-left-color: var(--color-primary); }
+tbody tr[data-session-slot="1"] td:first-child { border-left-color: var(--color-amber); }
+tbody tr[data-session-slot="2"] td:first-child { border-left-color: var(--color-violet); }
+tbody tr[data-session-slot="3"] td:first-child { border-left-color: var(--color-teal); }
+tbody tr[data-session-slot="4"] td:first-child { border-left-color: var(--color-danger); }
+tbody tr[data-session-slot="5"] td:first-child { border-left-color: var(--color-info); }
 
 /* ===== Events Table Fields ===== */
 .fields-container {
