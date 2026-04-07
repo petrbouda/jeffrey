@@ -4,7 +4,8 @@
     :show="show"
     title="Streaming Configuration"
     icon="bi-gear"
-    size="lg"
+    size="md"
+    modal-dialog-class="scm-dialog"
     :show-footer="true"
     @update:show="emit('update:show', $event)"
   >
@@ -66,11 +67,7 @@
     <!-- Step 1: Session -->
     <div v-if="currentStep === 1" class="scm-step-content">
       <div class="scm-session-search">
-        <input
-          v-model="sessionSearchQuery"
-          type="text"
-          placeholder="Search by session ID..."
-        />
+        <SearchInput v-model="sessionSearchQuery" placeholder="Search by session ID..." />
       </div>
       <div v-if="localSessions.length > 0" class="scm-selection-bar">
         <span>
@@ -94,34 +91,47 @@
             <div class="scm-instance-header">
               <span class="scm-dot" :class="group.instance.status === 'ACTIVE' ? 'dot-active' : 'dot-inactive'"></span>
               <span class="scm-instance-host">{{ group.instance.hostname }}</span>
-              <Badge :value="group.instance.status" :variant="statusVariant(group.instance.status)" size="xs" />
             </div>
             <div
               v-for="session in group.sessions"
               :key="session.id"
-              class="scm-session-card"
-              :class="{
-                'scm-session-active': session.isActive,
-                'scm-session-selected': isSessionSelected(session.id)
-              }"
+              class="session-card scm-session-card-spacing"
+              :class="[
+                session.isActive ? 'session-card--active' : 'session-card--finished',
+                { 'scm-session-selected': isSessionSelected(session.id) }
+              ]"
               @click="toggleSession(session, group.instance)"
             >
-              <div class="scm-session-top">
-                <i
-                  class="bi scm-check"
-                  :class="isSessionSelected(session.id) ? 'bi-check-square-fill' : 'bi-square'"
-                ></i>
-                <span class="scm-dot" :class="session.isActive ? 'dot-active dot-pulse' : 'dot-inactive'"></span>
-                <span class="scm-session-id">{{ session.id }}</span>
-                <Badge
-                  :value="session.isActive ? 'Active' : 'Finished'"
-                  :variant="session.isActive ? 'status-active' : 'status-finished'"
-                  size="xxs"
-                />
-              </div>
-              <div class="scm-session-meta">
-                <span>Started {{ FormattingService.formatRelativeTime(session.createdAt) }}</span>
-                <span v-if="session.finishedAt">Duration: {{ FormattingService.formatDurationFromMillis(session.createdAt, session.finishedAt) }}</span>
+              <div class="session-card-body session-card-body--compact">
+                <div class="d-flex align-items-center justify-content-between gap-2">
+                  <div class="d-flex align-items-center gap-2 flex-grow-1 scm-min-width-0">
+                    <i
+                      class="bi scm-check"
+                      :class="isSessionSelected(session.id) ? 'bi-check-square-fill' : 'bi-square'"
+                    ></i>
+                    <div
+                      class="session-card-icon session-card-icon--compact"
+                      :class="session.isActive ? 'session-card-icon--active' : 'session-card-icon--finished'"
+                    >
+                      <i class="bi bi-folder2"></i>
+                    </div>
+                    <div class="flex-grow-1 scm-min-width-0">
+                      <div class="scm-session-id-line">
+                        <span class="scm-session-id-label">Session:</span>
+                        <span class="scm-session-id">{{ session.id }}</span>
+                      </div>
+                      <div class="scm-session-meta">
+                        <span><i class="bi bi-clock me-1"></i>Started {{ FormattingService.formatRelativeTime(session.createdAt) }}</span>
+                        <span v-if="session.finishedAt"><i class="bi bi-stopwatch me-1"></i>{{ FormattingService.formatDurationFromMillis(session.createdAt, session.finishedAt) }}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <Badge
+                    :value="session.isActive ? 'Active' : 'Finished'"
+                    :variant="session.isActive ? 'status-active' : 'status-finished'"
+                    size="xs"
+                  />
+                </div>
               </div>
             </div>
           </template>
@@ -254,13 +264,13 @@ import GenericModal from '@/components/GenericModal.vue'
 import Badge from '@/components/Badge.vue'
 import LoadingState from '@/components/LoadingState.vue'
 import EmptyState from '@/components/EmptyState.vue'
+import SearchInput from '@/components/form/SearchInput.vue'
 import EventTypeSelector from '@/components/streaming/EventTypeSelector.vue'
+import '@/styles/shared-components.css'
 import FormattingService from '@/services/FormattingService'
 import ProjectInstanceClient from '@/services/api/ProjectInstanceClient'
 import type ProjectInstance from '@/services/api/model/ProjectInstance'
-import type { ProjectInstanceStatus } from '@/services/api/model/ProjectInstance'
 import type ProjectInstanceSession from '@/services/api/model/ProjectInstanceSession'
-import type { Variant } from '@/types/ui'
 
 interface InstanceGroup {
   instance: ProjectInstance
@@ -469,16 +479,6 @@ function setEndMode(mode: EndMode) {
   }
 }
 
-function statusVariant(status: ProjectInstanceStatus): Variant {
-  switch (status) {
-    case 'ACTIVE': return 'status-active'
-    case 'FINISHED': return 'status-finished'
-    case 'PENDING': return 'warning'
-    case 'EXPIRED': return 'grey'
-    default: return 'secondary'
-  }
-}
-
 function apply() {
   emit('apply', {
     sessions: localSessions.value.map((s) => ({ ...s })),
@@ -495,6 +495,27 @@ function apply() {
 </script>
 
 <style scoped>
+/* ===== Modal sizing override ===== */
+:deep(.scm-dialog) {
+  max-width: min(1400px, 90vw);
+  width: min(1400px, 90vw);
+  height: 90vh;
+  margin: 5vh auto;
+}
+
+:deep(.scm-dialog) .modal-content {
+  height: 100%;
+  max-height: 100%;
+}
+
+:deep(.scm-dialog) .modal-body {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+}
+
 /* ===== Wizard Steps ===== */
 .scm-wizard-steps {
   display: flex;
@@ -564,7 +585,10 @@ function apply() {
 
 /* ===== Step Content ===== */
 .scm-step-content {
-  min-height: 300px;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .scm-note {
@@ -585,24 +609,6 @@ function apply() {
 /* ===== Session Search ===== */
 .scm-session-search {
   margin-bottom: 10px;
-}
-
-.scm-session-search input {
-  width: 100%;
-  height: 40px;
-  padding: 10px 14px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  font-size: 0.9rem;
-  font-family: inherit;
-  color: var(--color-body);
-  outline: none;
-  transition: all var(--transition-fast);
-}
-
-.scm-session-search input:focus {
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px var(--color-primary-light);
 }
 
 /* ===== Selection Bar ===== */
@@ -631,8 +637,9 @@ function apply() {
 
 /* ===== Session List ===== */
 .scm-session-list {
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
-  max-height: 340px;
 }
 
 .scm-instance-header {
@@ -657,36 +664,13 @@ function apply() {
   white-space: nowrap;
 }
 
-/* ===== Session Cards ===== */
-.scm-session-card {
-  padding: 10px 12px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
+/* ===== Session Cards (uses shared .session-card utilities) ===== */
+.scm-session-card-spacing {
   margin-bottom: 6px;
-  cursor: pointer;
-  transition: var(--transition-fast);
 }
 
-.scm-session-card:hover {
-  border-color: var(--color-primary);
-  box-shadow: var(--shadow-sm);
-}
-
-.scm-session-active {
-  border-left: 3px solid var(--color-success);
-}
-
-.scm-session-selected {
-  border-color: var(--color-primary);
-  background: var(--color-primary-light);
-  box-shadow: 0 0 0 2px rgba(94, 100, 255, 0.12);
-}
-
-.scm-session-top {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 3px;
+.scm-session-selected .scm-check {
+  color: var(--color-primary);
 }
 
 .scm-check {
@@ -695,14 +679,25 @@ function apply() {
   flex-shrink: 0;
 }
 
-.scm-session-selected .scm-check {
-  color: var(--color-primary);
+.scm-session-id-line {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  overflow: hidden;
+}
+
+.scm-session-id-label {
+  font-size: 0.68rem;
+  color: var(--color-text-light);
+  font-weight: 500;
+  flex-shrink: 0;
 }
 
 .scm-session-id {
   font-family: var(--font-monospace);
   font-size: 0.78rem;
   font-weight: 500;
+  color: var(--color-body);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -711,12 +706,17 @@ function apply() {
 .scm-session-meta {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   font-size: 0.67rem;
-  color: var(--color-muted);
-  padding-left: 37px;
+  color: var(--color-text-muted);
+  margin-top: 2px;
 }
 
+.scm-min-width-0 {
+  min-width: 0;
+}
+
+/* Instance header dots: green = JVM online, grey = JVM offline */
 .scm-dot {
   width: 8px;
   height: 8px;
@@ -731,15 +731,6 @@ function apply() {
 
 .dot-inactive {
   background-color: var(--color-muted);
-}
-
-.dot-pulse {
-  animation: dotPulse 2s infinite;
-}
-
-@keyframes dotPulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(0, 210, 122, 0.4); }
-  50% { box-shadow: 0 0 0 4px rgba(0, 210, 122, 0); }
 }
 
 .scm-load-more {

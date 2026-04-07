@@ -170,10 +170,6 @@ public class SubscriberEventStream implements Closeable {
             }
             buffer.clear();
         }
-        if (endTime != null && clock.instant().isAfter(endTime)) {
-            LOG.info("End time reached (wall-clock), closing stream: sessionId={} endTime={}", sessionId, endTime);
-            closeStream();
-        }
     }
 
     private void closeStream() {

@@ -20,10 +20,14 @@ package pbouda.jeffrey.server.core.resources;
 
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import pbouda.jeffrey.server.core.manager.workspace.WorkspacesManager;
+import pbouda.jeffrey.shared.common.JeffreyVersion;
+
+import java.util.Map;
 
 @Path("/internal")
 @Produces(MediaType.APPLICATION_JSON)
@@ -45,5 +49,11 @@ public class RootInternalResource {
     @Path("/grpc-docs")
     public GrpcDocsResource grpcDocsResource() {
         return new GrpcDocsResource();
+    }
+
+    @GET
+    @Path("/version")
+    public Map<String, String> version() {
+        return Map.of("version", JeffreyVersion.resolveJeffreyVersion());
     }
 }

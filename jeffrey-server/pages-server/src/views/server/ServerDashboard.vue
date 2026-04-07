@@ -23,6 +23,7 @@
       <div class="header-left">
         <img src="/jeffrey-icon.svg" alt="Jeffrey" class="header-logo">
         <h4>Jeffrey Server</h4>
+        <span v-if="version" class="version-badge">{{ version }}</span>
       </div>
       <nav class="header-nav">
         <router-link to="/" class="nav-tab">Workspaces</router-link>
@@ -95,6 +96,7 @@
 import { computed, onMounted, ref } from 'vue';
 import WorkspaceClient from '@/services/api/WorkspaceClient';
 import WorkspaceProjectsClient from '@/services/api/WorkspaceProjectsClient';
+import VersionClient from '@/services/api/VersionClient';
 import type Workspace from '@/services/api/model/Workspace';
 import type Project from '@/services/api/model/Project';
 import ProjectModel from '@/services/api/model/Project';
@@ -105,10 +107,12 @@ interface WorkspaceWithProjects {
 }
 
 const workspaceClient = new WorkspaceClient();
+const versionClient = new VersionClient();
 const loading = ref(true);
 const workspaces = ref<WorkspaceWithProjects[]>([]);
 const searchQuery = ref('');
 const expandedWorkspaces = ref(new Set<string>());
+const version = ref<string>('');
 
 const displayName = (project: Project) => ProjectModel.displayName(project);
 const isActive = (project: Project) => project.status === 'ACTIVE';
@@ -168,6 +172,9 @@ const loadDashboard = async () => {
 
 onMounted(() => {
   loadDashboard();
+  versionClient.getVersion()
+      .then(v => { version.value = v; })
+      .catch(err => console.error('Failed to load version:', err));
 });
 </script>
 
@@ -201,6 +208,16 @@ onMounted(() => {
   margin: 0;
   font-weight: 600;
   color: #1f2937;
+}
+
+.version-badge {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: #6b7280;
+  background: #f3f4f6;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-variant-numeric: tabular-nums;
 }
 
 .header-nav {

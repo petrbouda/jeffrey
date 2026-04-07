@@ -23,6 +23,7 @@
       <div class="header-left">
         <img src="/jeffrey-icon.svg" alt="Jeffrey" class="header-logo">
         <h4>Jeffrey Server</h4>
+        <span v-if="version" class="version-badge">{{ version }}</span>
       </div>
       <nav class="header-nav">
         <router-link to="/" class="nav-tab">Workspaces</router-link>
@@ -228,15 +229,18 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import GrpcDocsClient from '@/services/api/GrpcDocsClient';
+import VersionClient from '@/services/api/VersionClient';
 import type { GrpcDocs, GrpcField, GrpcMessage, GrpcService, GrpcEnum } from '@/services/api/GrpcDocsClient';
 
 const client = new GrpcDocsClient();
+const versionClient = new VersionClient();
 const loading = ref(true);
 const error = ref<string | null>(null);
 const docs = ref<GrpcDocs | null>(null);
 const expandedMethods = ref<Set<string>>(new Set());
 const activeService = ref<string>('');
 const highlightedMessage = ref<string | null>(null);
+const version = ref<string>('');
 
 const SCALAR_TYPES = new Set([
   'double', 'float', 'int32', 'int64', 'uint32', 'uint64',
@@ -312,6 +316,9 @@ const expandNestedMessage = (typeName: string) => {
 };
 
 onMounted(async () => {
+  versionClient.getVersion()
+      .then(v => { version.value = v; })
+      .catch(err => console.error('Failed to load version:', err));
   try {
     docs.value = await client.getDocs();
     if (allServices.value.length > 0) {
@@ -356,6 +363,16 @@ onMounted(async () => {
   margin: 0;
   font-weight: 600;
   color: #1f2937;
+}
+
+.version-badge {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: #6b7280;
+  background: #f3f4f6;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-variant-numeric: tabular-nums;
 }
 
 .header-nav {

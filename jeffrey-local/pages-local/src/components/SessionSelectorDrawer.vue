@@ -31,30 +31,43 @@
               <div class="drawer-instance-header">
                 <span class="instance-dot" :class="group.instance.status === 'ACTIVE' ? 'dot-active' : 'dot-inactive'"></span>
                 <span class="instance-hostname">{{ group.instance.hostname }}</span>
-                <Badge :value="group.instance.status" :variant="statusVariant(group.instance.status)" size="xs" />
               </div>
               <div
                 v-for="session in group.sessions"
                 :key="session.id"
-                class="drawer-session-card"
-                :class="{
-                  'active-session': session.isActive,
-                  'selected': selectedSessionId === session.id
-                }"
+                class="session-card drawer-session-card-spacing"
+                :class="[
+                  session.isActive ? 'session-card--active' : 'session-card--finished',
+                  { 'drawer-session-selected': selectedSessionId === session.id }
+                ]"
                 @click="selectSession(session, group.instance)"
               >
-                <div class="session-top">
-                  <span class="session-dot" :class="session.isActive ? 'dot-active dot-pulse' : 'dot-inactive'"></span>
-                  <span class="session-id">{{ session.id }}</span>
-                  <Badge
-                    :value="session.isActive ? 'Active' : 'Finished'"
-                    :variant="session.isActive ? 'active' : 'finished'"
-                    size="xxs"
-                  />
-                </div>
-                <div class="session-bottom">
-                  <span>Started {{ FormattingService.formatRelativeTime(session.createdAt) }}</span>
-                  <span>Duration: {{ FormattingService.formatDurationFromMillis(session.createdAt, session.finishedAt) }}</span>
+                <div class="session-card-body session-card-body--compact">
+                  <div class="d-flex align-items-center justify-content-between gap-2">
+                    <div class="d-flex align-items-center gap-2 flex-grow-1 drawer-min-width-0">
+                      <div
+                        class="session-card-icon session-card-icon--compact"
+                        :class="session.isActive ? 'session-card-icon--active' : 'session-card-icon--finished'"
+                      >
+                        <i class="bi bi-folder2"></i>
+                      </div>
+                      <div class="flex-grow-1 drawer-min-width-0">
+                        <div class="drawer-session-id-line">
+                          <span class="drawer-session-id-label">Session:</span>
+                          <span class="drawer-session-id">{{ session.id }}</span>
+                        </div>
+                        <div class="drawer-session-meta">
+                          <span><i class="bi bi-clock me-1"></i>Started {{ FormattingService.formatRelativeTime(session.createdAt) }}</span>
+                          <span v-if="session.finishedAt"><i class="bi bi-stopwatch me-1"></i>{{ FormattingService.formatDurationFromMillis(session.createdAt, session.finishedAt) }}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <Badge
+                      :value="session.isActive ? 'Active' : 'Finished'"
+                      :variant="session.isActive ? 'status-active' : 'status-finished'"
+                      size="xs"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
@@ -76,8 +89,8 @@ import LoadingState from '@/components/LoadingState.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import FormattingService from '@/services/FormattingService'
 import ProjectInstanceClient from '@/services/api/ProjectInstanceClient'
+import '@/styles/shared-components.css'
 import type ProjectInstance from '@/services/api/model/ProjectInstance'
-import type { ProjectInstanceStatus } from '@/services/api/model/ProjectInstance'
 import type ProjectInstanceSession from '@/services/api/model/ProjectInstanceSession'
 
 interface InstanceGroup {
@@ -174,20 +187,6 @@ function close() {
   emit('update:show', false)
 }
 
-function statusVariant(status: ProjectInstanceStatus): string {
-  switch (status) {
-    case 'ACTIVE':
-      return 'active'
-    case 'FINISHED':
-      return 'finished'
-    case 'PENDING':
-      return 'warning'
-    case 'EXPIRED':
-      return 'grey'
-    default:
-      return 'secondary'
-  }
-}
 </script>
 
 <style scoped>
@@ -293,8 +292,8 @@ function statusVariant(status: ProjectInstanceStatus): string {
   flex: 1;
 }
 
-.instance-dot,
-.session-dot {
+/* Instance header dots: green = JVM online, grey = JVM offline */
+.instance-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
@@ -310,64 +309,51 @@ function statusVariant(status: ProjectInstanceStatus): string {
   background-color: var(--color-muted);
 }
 
-.dot-pulse {
-  animation: dotPulse 2s infinite;
-}
-
-@keyframes dotPulse {
-  0%,
-  100% {
-    box-shadow: 0 0 0 0 rgba(0, 210, 122, 0.4);
-  }
-  50% {
-    box-shadow: 0 0 0 4px rgba(0, 210, 122, 0);
-  }
-}
-
-.drawer-session-card {
-  padding: 12px 14px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
+/* Session card spacing + selected glow (uses shared .session-card utilities) */
+.drawer-session-card-spacing {
   margin-bottom: 8px;
-  cursor: pointer;
-  transition: var(--transition-fast);
 }
 
-.drawer-session-card:hover {
+.drawer-session-selected {
   border-color: var(--color-primary);
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 0 0 2px rgba(94, 100, 255, 0.18);
 }
 
-.drawer-session-card.active-session {
-  border-left: 3px solid var(--color-success);
-}
-
-.drawer-session-card.selected {
-  border-color: var(--color-primary);
-  background: var(--color-primary-light);
-  box-shadow: 0 0 0 3px rgba(94, 100, 255, 0.1);
-}
-
-.session-top {
+.drawer-session-id-line {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 4px;
+  align-items: baseline;
+  gap: 6px;
+  overflow: hidden;
 }
 
-.session-id {
-  font-family: var(--font-monospace);
-  font-size: 0.8125rem;
+.drawer-session-id-label {
+  font-size: 0.68rem;
+  color: var(--color-text-light);
   font-weight: 500;
+  flex-shrink: 0;
 }
 
-.session-bottom {
+.drawer-session-id {
+  font-family: var(--font-monospace);
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--color-body);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.drawer-session-meta {
   display: flex;
   align-items: center;
   gap: 12px;
-  font-size: 0.6875rem;
-  color: var(--color-muted);
-  padding-left: 16px;
+  font-size: 0.67rem;
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}
+
+.drawer-min-width-0 {
+  min-width: 0;
 }
 
 .no-results {
