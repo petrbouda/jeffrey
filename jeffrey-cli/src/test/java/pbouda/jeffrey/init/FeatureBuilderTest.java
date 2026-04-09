@@ -175,7 +175,7 @@ class FeatureBuilderTest {
 
             assertTrue(result.contains("-javaagent:/path/to/jeffrey-agent.jar=heartbeat.dir="));
             assertTrue(result.contains(SESSION_PATH.resolve(FeatureBuilder.HEARTBEAT_DIR).toString()));
-            assertTrue(result.contains("-XX:FlightRecorderOptions:repository="));
+            assertTrue(result.contains("-XX:FlightRecorderOptions=repository="));
             assertTrue(result.contains(FeatureBuilder.STREAMING_REPO_DIR));
             assertTrue(result.contains("preserve-repository=true"));
         }
@@ -186,7 +186,7 @@ class FeatureBuilderTest {
                     .build(SESSION_PATH);
 
             assertFalse(result.contains("-javaagent:"));
-            assertFalse(result.contains("-XX:FlightRecorderOptions:repository="));
+            assertFalse(result.contains("-XX:FlightRecorderOptions=repository="));
         }
 
     }
@@ -241,7 +241,7 @@ class FeatureBuilderTest {
             assertTrue(result.contains("-XX:+CrashOnOutOfMemoryError"));
             assertTrue(result.contains("-Xlog:"));
             assertTrue(result.contains("-javaagent:/path/to/jeffrey-agent.jar=heartbeat.dir="));
-            assertTrue(result.contains("-XX:FlightRecorderOptions:repository="));
+            assertTrue(result.contains("-XX:FlightRecorderOptions=repository="));
             assertTrue(result.contains("-Xmx1200m"));
         }
 

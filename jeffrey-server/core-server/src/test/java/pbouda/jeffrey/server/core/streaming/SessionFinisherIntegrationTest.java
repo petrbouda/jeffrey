@@ -24,8 +24,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import pbouda.jeffrey.server.core.project.repository.SessionFinishEventEmitter;
-import pbouda.jeffrey.shared.persistentqueue.DuckDBPersistentQueue;
-import pbouda.jeffrey.shared.persistentqueue.QueueEntry;
 import pbouda.jeffrey.server.core.workspace.QueueWorkspaceEventPublisher;
 import pbouda.jeffrey.server.core.workspace.WorkspaceEventSerializer;
 import pbouda.jeffrey.server.persistence.JdbcServerPlatformRepositories;
@@ -36,6 +34,8 @@ import pbouda.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEvent;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEventType;
 import pbouda.jeffrey.shared.persistence.client.DatabaseClientProvider;
+import pbouda.jeffrey.shared.persistentqueue.DuckDBPersistentQueue;
+import pbouda.jeffrey.shared.persistentqueue.QueueEntry;
 import pbouda.jeffrey.test.DuckDBTest;
 import pbouda.jeffrey.test.MutableClock;
 import pbouda.jeffrey.test.TestUtils;
@@ -59,9 +59,6 @@ class SessionFinisherIntegrationTest {
     private static final String PROJECT_ID = "proj-001";
     private static final String WORKSPACE_ID = "ws-001";
     private static final String SESSION_ID = "session-001";
-    private static final String INSTANCE_ID = "inst-001";
-
-    private static final Instant SESSION_ORIGIN_CREATED_AT = Instant.parse("2025-06-15T08:00:00Z");
     private static final Instant NOW = Instant.parse("2025-06-15T12:00:00Z");
 
     private static final Duration HEARTBEAT_THRESHOLD = Duration.ofMinutes(5);
@@ -93,9 +90,6 @@ class SessionFinisherIntegrationTest {
         @Mock
         FileHeartbeatReader fileHeartbeatReader;
 
-        @Mock
-        EventStreamingSubscriptionManager streamingSubscriptionManager;
-
         @Test
         void setsFinishedAt(DataSource dataSource) throws SQLException {
             TestUtils.executeSql(dataSource, "sql/session-finisher/insert-project-with-unfinished-session.sql");
@@ -104,7 +98,7 @@ class SessionFinisherIntegrationTest {
             var queue = createQueue(clock, dataSource);
             var emitter = new SessionFinishEventEmitter(clock, new QueueWorkspaceEventPublisher(queue));
             var platformRepositories = createServerPlatformRepositories(clock, dataSource);
-            var finisher = new SessionFinisher(clock, emitter, fileHeartbeatReader, streamingSubscriptionManager, platformRepositories);
+            var finisher = new SessionFinisher(clock, emitter, fileHeartbeatReader, platformRepositories);
 
             ProjectInstanceSessionInfo sessionInfo = repository.findSessionById(SESSION_ID).orElseThrow();
             Instant finishedAt = Instant.parse("2025-06-15T11:50:00Z");
@@ -123,7 +117,7 @@ class SessionFinisherIntegrationTest {
             var queue = createQueue(clock, dataSource);
             var emitter = new SessionFinishEventEmitter(clock, new QueueWorkspaceEventPublisher(queue));
             var platformRepositories = createServerPlatformRepositories(clock, dataSource);
-            var finisher = new SessionFinisher(clock, emitter, fileHeartbeatReader, streamingSubscriptionManager, platformRepositories);
+            var finisher = new SessionFinisher(clock, emitter, fileHeartbeatReader, platformRepositories);
 
             ProjectInstanceSessionInfo sessionInfo = repository.findSessionById(SESSION_ID).orElseThrow();
             Instant finishedAt = Instant.parse("2025-06-15T11:50:00Z");
@@ -149,9 +143,6 @@ class SessionFinisherIntegrationTest {
         @Mock
         FileHeartbeatReader fileHeartbeatReader;
 
-        @Mock
-        EventStreamingSubscriptionManager streamingSubscriptionManager;
-
         @Test
         void usesHeartbeatTimestamp_whenHeartbeatPresent(DataSource dataSource) throws SQLException {
             TestUtils.executeSql(dataSource, "sql/session-finisher/insert-project-with-unfinished-session.sql");
@@ -160,7 +151,7 @@ class SessionFinisherIntegrationTest {
             var queue = createQueue(clock, dataSource);
             var emitter = new SessionFinishEventEmitter(clock, new QueueWorkspaceEventPublisher(queue));
             var platformRepositories = createServerPlatformRepositories(clock, dataSource);
-            var finisher = new SessionFinisher(clock, emitter, fileHeartbeatReader, streamingSubscriptionManager, platformRepositories);
+            var finisher = new SessionFinisher(clock, emitter, fileHeartbeatReader, platformRepositories);
 
             Instant heartbeatTimestamp = Instant.parse("2025-06-15T11:30:00Z");
             when(fileHeartbeatReader.readLastHeartbeat(SESSION_PATH))
@@ -183,7 +174,7 @@ class SessionFinisherIntegrationTest {
             var queue = createQueue(clock, dataSource);
             var emitter = new SessionFinishEventEmitter(clock, new QueueWorkspaceEventPublisher(queue));
             var platformRepositories = createServerPlatformRepositories(clock, dataSource);
-            var finisher = new SessionFinisher(clock, emitter, fileHeartbeatReader, streamingSubscriptionManager, platformRepositories);
+            var finisher = new SessionFinisher(clock, emitter, fileHeartbeatReader, platformRepositories);
 
             when(fileHeartbeatReader.readLastHeartbeat(SESSION_PATH))
                     .thenReturn(Optional.empty());
@@ -204,9 +195,6 @@ class SessionFinisherIntegrationTest {
         @Mock
         FileHeartbeatReader fileHeartbeatReader;
 
-        @Mock
-        EventStreamingSubscriptionManager streamingSubscriptionManager;
-
         @Nested
         class HeartbeatFileExists {
 
@@ -218,7 +206,7 @@ class SessionFinisherIntegrationTest {
                 var queue = createQueue(clock, dataSource);
                 var emitter = new SessionFinishEventEmitter(clock, new QueueWorkspaceEventPublisher(queue));
                 var platformRepositories = createServerPlatformRepositories(clock, dataSource);
-            var finisher = new SessionFinisher(clock, emitter, fileHeartbeatReader, streamingSubscriptionManager, platformRepositories);
+                var finisher = new SessionFinisher(clock, emitter, fileHeartbeatReader, platformRepositories);
 
                 // Heartbeat file returns a stale heartbeat: 10 minutes before NOW, threshold is 5 minutes
                 Instant staleHeartbeat = NOW.minus(Duration.ofMinutes(10));
@@ -244,7 +232,7 @@ class SessionFinisherIntegrationTest {
                 var queue = createQueue(clock, dataSource);
                 var emitter = new SessionFinishEventEmitter(clock, new QueueWorkspaceEventPublisher(queue));
                 var platformRepositories = createServerPlatformRepositories(clock, dataSource);
-            var finisher = new SessionFinisher(clock, emitter, fileHeartbeatReader, streamingSubscriptionManager, platformRepositories);
+                var finisher = new SessionFinisher(clock, emitter, fileHeartbeatReader, platformRepositories);
 
                 // Heartbeat file returns a fresh heartbeat: 2 minutes before NOW, threshold is 5 minutes
                 Instant freshHeartbeat = NOW.minus(Duration.ofMinutes(2));
@@ -274,7 +262,7 @@ class SessionFinisherIntegrationTest {
                 var queue = createQueue(clock, dataSource);
                 var emitter = new SessionFinishEventEmitter(clock, new QueueWorkspaceEventPublisher(queue));
                 var platformRepositories = createServerPlatformRepositories(clock, dataSource);
-            var finisher = new SessionFinisher(clock, emitter, fileHeartbeatReader, streamingSubscriptionManager, platformRepositories);
+                var finisher = new SessionFinisher(clock, emitter, fileHeartbeatReader, platformRepositories);
 
                 // Heartbeat file does not exist
                 when(fileHeartbeatReader.readLastHeartbeat(SESSION_PATH))
@@ -307,7 +295,7 @@ class SessionFinisherIntegrationTest {
                 var queue = createQueue(clock, dataSource);
                 var emitter = new SessionFinishEventEmitter(clock, new QueueWorkspaceEventPublisher(queue));
                 var platformRepositories = createServerPlatformRepositories(clock, dataSource);
-            var finisher = new SessionFinisher(clock, emitter, fileHeartbeatReader, streamingSubscriptionManager, platformRepositories);
+                var finisher = new SessionFinisher(clock, emitter, fileHeartbeatReader, platformRepositories);
 
                 // No heartbeat file
                 when(fileHeartbeatReader.readLastHeartbeat(SESSION_PATH))
@@ -335,9 +323,6 @@ class SessionFinisherIntegrationTest {
         @Mock
         FileHeartbeatReader fileHeartbeatReader;
 
-        @Mock
-        EventStreamingSubscriptionManager streamingSubscriptionManager;
-
         @Test
         void emitsSessionFinished_toWorkspaceQueue(DataSource dataSource) throws SQLException {
             TestUtils.executeSql(dataSource, "sql/session-finisher/insert-project-with-unfinished-session.sql");
@@ -346,7 +331,7 @@ class SessionFinisherIntegrationTest {
             var queue = createQueue(clock, dataSource);
             var emitter = new SessionFinishEventEmitter(clock, new QueueWorkspaceEventPublisher(queue));
             var platformRepositories = createServerPlatformRepositories(clock, dataSource);
-            var finisher = new SessionFinisher(clock, emitter, fileHeartbeatReader, streamingSubscriptionManager, platformRepositories);
+            var finisher = new SessionFinisher(clock, emitter, fileHeartbeatReader, platformRepositories);
 
             // Heartbeat file returns a stale heartbeat so tryFinishFromHeartbeat marks it finished and emits event
             Instant staleHeartbeat = NOW.minus(Duration.ofMinutes(10));
@@ -373,7 +358,7 @@ class SessionFinisherIntegrationTest {
             var queue = createQueue(clock, dataSource);
             var emitter = new SessionFinishEventEmitter(clock, new QueueWorkspaceEventPublisher(queue));
             var platformRepositories = createServerPlatformRepositories(clock, dataSource);
-            var finisher = new SessionFinisher(clock, emitter, fileHeartbeatReader, streamingSubscriptionManager, platformRepositories);
+            var finisher = new SessionFinisher(clock, emitter, fileHeartbeatReader, platformRepositories);
 
             ProjectInstanceSessionInfo sessionInfo = repository.findSessionById(SESSION_ID).orElseThrow();
             Instant finishedAt = Instant.parse("2025-06-15T11:50:00Z");

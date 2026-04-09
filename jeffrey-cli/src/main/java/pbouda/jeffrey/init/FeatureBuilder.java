@@ -32,7 +32,7 @@ public class FeatureBuilder {
 
     /* Streaming JFR options (used by Jeffrey Agent for repository location) */
     private static final String STREAMING_FLIGHT_RECORDER_OPTIONS =
-            "-XX:FlightRecorderOptions:repository=" + AgentConstants.CURRENT_SESSION + "/" + STREAMING_REPO_DIR + ",preserve-repository=true";
+            "-XX:FlightRecorderOptions=repository=" + AgentConstants.CURRENT_SESSION + "/" + STREAMING_REPO_DIR + ",preserve-repository=true";
 
     /* Agent JVM option template (passes heartbeat directory as agent argument) */
     private static final String AGENT_OPTION_TEMPLATE = "-javaagent:%s=" + HeartbeatConstants.PARAM_DIR + "=%s";

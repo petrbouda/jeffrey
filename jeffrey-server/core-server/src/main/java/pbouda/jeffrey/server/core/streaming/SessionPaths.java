@@ -19,6 +19,7 @@
 package pbouda.jeffrey.server.core.streaming;
 
 import pbouda.jeffrey.server.core.ServerJeffreyDirs;
+import pbouda.jeffrey.server.persistence.model.SessionWithRepository;
 import pbouda.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
 import pbouda.jeffrey.shared.common.model.RepositoryInfo;
 
@@ -27,24 +28,19 @@ import java.nio.file.Path;
 /**
  * Utility for resolving session filesystem paths from repository and session info.
  */
-public final class SessionPaths {
+public abstract class SessionPaths {
 
-    private SessionPaths() {
+    public static Path resolve(ServerJeffreyDirs jeffreyDirs, SessionWithRepository session) {
+        return  resolve(jeffreyDirs, session.repositoryInfo(), session.sessionInfo());
     }
 
-    /**
-     * Resolves the full filesystem path for a session directory.
-     *
-     * @param jeffreyDirs    Jeffrey directory configuration
-     * @param repositoryInfo repository info containing workspace and project paths
-     * @param sessionInfo    session info containing the relative session path
-     * @return the resolved session path
-     */
-    public static Path resolve(ServerJeffreyDirs jeffreyDirs, RepositoryInfo repositoryInfo, ProjectInstanceSessionInfo sessionInfo) {
+    public static Path resolve(
+            ServerJeffreyDirs jeffreyDirs, RepositoryInfo repositoryInfo, ProjectInstanceSessionInfo sessionInfo) {
         String workspacesPath = repositoryInfo.workspacesPath();
         Path resolvedWorkspacesPath = workspacesPath == null
                 ? jeffreyDirs.workspaces()
                 : Path.of(workspacesPath);
+
         return resolvedWorkspacesPath
                 .resolve(repositoryInfo.relativeWorkspacePath())
                 .resolve(repositoryInfo.relativeProjectPath())

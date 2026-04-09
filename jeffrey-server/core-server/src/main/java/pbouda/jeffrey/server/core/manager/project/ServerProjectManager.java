@@ -29,7 +29,6 @@ import pbouda.jeffrey.server.core.manager.SchedulerManager;
 import pbouda.jeffrey.server.core.manager.SchedulerManagerImpl;
 import pbouda.jeffrey.server.core.project.repository.RepositoryStorage;
 import pbouda.jeffrey.server.core.scheduler.SchedulerTrigger;
-import pbouda.jeffrey.server.core.streaming.EventStreamingSubscriptionManager;
 import pbouda.jeffrey.server.core.workspace.WorkspaceEventConverter;
 import pbouda.jeffrey.server.core.workspace.WorkspaceEventPublisher;
 import pbouda.jeffrey.server.persistence.repository.ServerPlatformRepositories;
@@ -59,7 +58,6 @@ public class ServerProjectManager implements ProjectManager {
     private final ServerPlatformRepositories platformRepositories;
     private final RepositoryStorage repositoryStorage;
     private final WorkspaceEventPublisher workspaceEventPublisher;
-    private final EventStreamingSubscriptionManager eventStreamingSubscriptionManager;
     private final Clock clock;
     private final ObjectFactory<SchedulerTrigger> projectsSynchronizerTrigger;
 
@@ -69,8 +67,7 @@ public class ServerProjectManager implements ProjectManager {
             ObjectFactory<SchedulerTrigger> projectsSynchronizerTrigger,
             ServerPlatformRepositories platformRepositories,
             RepositoryStorage repositoryStorage,
-            WorkspaceEventPublisher workspaceEventPublisher,
-            EventStreamingSubscriptionManager eventStreamingSubscriptionManager) {
+            WorkspaceEventPublisher workspaceEventPublisher) {
 
         this.clock = clock;
         String projectId = projectInfo.id();
@@ -81,7 +78,6 @@ public class ServerProjectManager implements ProjectManager {
         this.platformRepositories = platformRepositories;
         this.repositoryStorage = repositoryStorage;
         this.workspaceEventPublisher = workspaceEventPublisher;
-        this.eventStreamingSubscriptionManager = eventStreamingSubscriptionManager;
     }
 
     @Override

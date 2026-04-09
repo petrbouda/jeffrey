@@ -142,16 +142,14 @@ public class ServerAppConfiguration {
             ObjectFactory<SchedulerTrigger> projectsSynchronizerTrigger,
             RepositoryStorage.Factory repositoryStorageFactory,
             ServerPlatformRepositories platformRepositories,
-            WorkspaceEventPublisher workspaceEventPublisher,
-            EventStreamingSubscriptionManager eventStreamingSubscriptionManager) {
+            WorkspaceEventPublisher workspaceEventPublisher) {
         return projectInfo -> new ServerProjectManager(
                 applicationClock,
                 projectInfo,
                 projectsSynchronizerTrigger,
                 platformRepositories,
                 repositoryStorageFactory.apply(projectInfo),
-                workspaceEventPublisher,
-                eventStreamingSubscriptionManager);
+                workspaceEventPublisher);
     }
 
     @Bean
@@ -199,8 +197,8 @@ public class ServerAppConfiguration {
     }
 
     @Bean(destroyMethod = "close")
-    public EventStreamingSubscriptionManager eventStreamingSubscriptionManager(Clock applicationClock) {
-        return new EventStreamingSubscriptionManager(applicationClock);
+    public EventStreamingSubscriptionManager eventStreamingSubscriptionManager() {
+        return new EventStreamingSubscriptionManager();
     }
 
     @Bean

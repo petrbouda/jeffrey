@@ -27,16 +27,14 @@ import pbouda.jeffrey.server.api.v1.EventBatch;
 import pbouda.jeffrey.server.api.v1.EventStreamingServiceGrpc;
 import pbouda.jeffrey.server.api.v1.SubscribeEventsRequest;
 import pbouda.jeffrey.server.core.ServerJeffreyDirs;
+import pbouda.jeffrey.server.core.streaming.EventStreamSubscription;
 import pbouda.jeffrey.server.core.streaming.EventStreamingSubscriptionManager;
 import pbouda.jeffrey.server.core.streaming.SessionPaths;
-import pbouda.jeffrey.server.core.streaming.SubscriberEventStream;
+import pbouda.jeffrey.server.core.streaming.EventStreamSubscriber;
 import pbouda.jeffrey.server.persistence.model.SessionWithRepository;
 import pbouda.jeffrey.server.persistence.repository.ServerPlatformRepositories;
-import pbouda.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
-import pbouda.jeffrey.shared.common.model.RepositoryInfo;
 
 import java.io.IOException;
-import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.HashSet;
@@ -45,7 +43,7 @@ import java.util.Set;
 
 /**
  * gRPC service that allows clients to subscribe to live JFR events from a session's
- * streaming repository. Each subscriber gets their own {@link SubscriberEventStream}
+ * streaming repository. Each subscriber gets their own {@link EventStreamSubscriber}
  * with independent start time and event type filtering.
  */
 public class EventStreamingGrpcService extends EventStreamingServiceGrpc.EventStreamingServiceImplBase {
@@ -70,25 +68,22 @@ public class EventStreamingGrpcService extends EventStreamingServiceGrpc.EventSt
     }
 
     @Override
-    public void subscribeEvents(SubscribeEventsRequest request, StreamObserver<EventBatch> responseObserver) {
+    public void subscribeEvents(SubscribeEventsRequest request, StreamObserver<EventBatch> observer) {
         String sessionId = request.getSessionId();
 
         try {
-            Optional<SessionWithRepository> result =
+            Optional<SessionWithRepository> session =
                     platformRepositories.findSessionWithRepositoryById(sessionId);
 
-            if (result.isEmpty()) {
-                responseObserver.onError(Status.NOT_FOUND
+            if (session.isEmpty()) {
+                observer.onError(Status.NOT_FOUND
                         .withDescription("Session not found: " + sessionId)
                         .asRuntimeException());
                 return;
             }
 
-            RepositoryInfo repositoryInfo = result.get().repositoryInfo();
-            ProjectInstanceSessionInfo sessionInfo = result.get().sessionInfo();
-
             if (request.getEventTypesList().isEmpty()) {
-                responseObserver.onError(Status.INVALID_ARGUMENT
+                observer.onError(Status.INVALID_ARGUMENT
                         .withDescription("At least one event type must be specified")
                         .asRuntimeException());
                 return;
@@ -103,25 +98,24 @@ public class EventStreamingGrpcService extends EventStreamingServiceGrpc.EventSt
                     : null;
 
             if (request.getContinuous() && requestedEnd != null) {
-                responseObserver.onError(Status.INVALID_ARGUMENT
+                observer.onError(Status.INVALID_ARGUMENT
                         .withDescription("endTime must not be set when continuous=true; use continuous mode without an endTime or set continuous=false")
                         .asRuntimeException());
                 return;
             }
             if (requestedEnd != null && requestedEnd.isAfter(now)) {
-                responseObserver.onError(Status.INVALID_ARGUMENT
+                observer.onError(Status.INVALID_ARGUMENT
                         .withDescription("endTime must not be in the future; for future endTime, switch to continuous mode")
                         .asRuntimeException());
                 return;
             }
             if (requestedStart != null && requestedEnd != null && !requestedStart.isBefore(requestedEnd)) {
-                responseObserver.onError(Status.INVALID_ARGUMENT
+                observer.onError(Status.INVALID_ARGUMENT
                         .withDescription("startTime must be strictly before endTime")
                         .asRuntimeException());
                 return;
             }
 
-            Path sessionPath = SessionPaths.resolve(jeffreyDirs, repositoryInfo, sessionInfo);
             Set<String> eventTypes = new HashSet<>(request.getEventTypesList());
             // When not continuous, set endTime to bound the stream
             // (use explicit endTime if provided, otherwise current time)
@@ -134,29 +128,34 @@ public class EventStreamingGrpcService extends EventStreamingServiceGrpc.EventSt
                 endTime = now;
             }
 
-            SubscriberEventStream stream = subscriptionManager.subscribe(
+            EventStreamSubscription subscription = new EventStreamSubscription(
                     sessionId,
-                    sessionPath,
+                    SessionPaths.resolve(jeffreyDirs, session.get()),
                     eventTypes,
                     requestedStart,
                     endTime,
-                    request.getSendEmptyBatches(),
-                    responseObserver);
+                    request.getSendEmptyBatches());
+
+            String subscriptionId = subscriptionManager.subscribe(
+                    subscription,
+                    observer::onNext,
+                    observer::onCompleted,
+                    t -> observer.onError(Status.INTERNAL.withDescription(t.getMessage()).asRuntimeException()));
 
             // Clean up on client disconnect
             Context.current().addListener(_ -> {
                 LOG.info("Client disconnected, closing subscriber stream: sessionId={}", sessionId);
-                subscriptionManager.unsubscribe(stream);
+                subscriptionManager.unsubscribe(subscriptionId);
             }, Runnable::run);
 
         } catch (IOException e) {
             LOG.error("Failed to open streaming repository: sessionId={}", sessionId, e);
-            responseObserver.onError(Status.INTERNAL
+            observer.onError(Status.INTERNAL
                     .withDescription("Failed to open streaming repository: " + e.getMessage())
                     .asRuntimeException());
         } catch (Exception e) {
             LOG.error("Failed to subscribe to events: sessionId={}", sessionId, e);
-            responseObserver.onError(Status.INTERNAL
+            observer.onError(Status.INTERNAL
                     .withDescription(e.getMessage())
                     .asRuntimeException());
         }

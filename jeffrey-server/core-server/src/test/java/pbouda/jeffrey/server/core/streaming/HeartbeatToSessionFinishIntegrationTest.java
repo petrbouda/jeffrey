@@ -103,10 +103,6 @@ class HeartbeatToSessionFinishIntegrationTest {
 
     @Nested
     class GracefulShutdownScenario {
-
-        @Mock
-        EventStreamingSubscriptionManager streamingSubscriptionManager;
-
         @Test
         void heartbeatsArrive_thenStop_sessionFinishedByPolling(
                 DataSource dataSource, @TempDir Path tempDir) throws SQLException, IOException {
@@ -119,7 +115,7 @@ class HeartbeatToSessionFinishIntegrationTest {
             var emitter = new SessionFinishEventEmitter(clock, new QueueWorkspaceEventPublisher(queue));
             var fileHeartbeatReader = new FileHeartbeatReader();
             var platformRepositories = createServerPlatformRepositories(clock, dataSource);
-            var finisher = new SessionFinisher(clock, emitter, fileHeartbeatReader, streamingSubscriptionManager, platformRepositories);
+            var finisher = new SessionFinisher(clock, emitter, fileHeartbeatReader, platformRepositories);
 
             // Step 1: Write a heartbeat file (simulates agent writing heartbeats)
             Path sessionDir = tempDir.resolve("session-2025-06-15");
@@ -159,9 +155,6 @@ class HeartbeatToSessionFinishIntegrationTest {
     @Nested
     class MultiSessionInstanceScenario {
 
-        @Mock
-        EventStreamingSubscriptionManager streamingSubscriptionManager;
-
         @Test
         void firstSession_finishes_instanceStaysActive_secondSessionStillRunning(
                 DataSource dataSource, @TempDir Path tempDir) throws SQLException, IOException {
@@ -175,7 +168,7 @@ class HeartbeatToSessionFinishIntegrationTest {
             var emitter = new SessionFinishEventEmitter(clock, new QueueWorkspaceEventPublisher(queue));
             var fileHeartbeatReader = new FileHeartbeatReader();
             var platformRepositories = createServerPlatformRepositories(clock, dataSource);
-            var finisher = new SessionFinisher(clock, emitter, fileHeartbeatReader, streamingSubscriptionManager, platformRepositories);
+            var finisher = new SessionFinisher(clock, emitter, fileHeartbeatReader, platformRepositories);
 
             // Write heartbeat file for session-001
             Path session1Dir = tempDir.resolve("session-001");
@@ -223,7 +216,7 @@ class HeartbeatToSessionFinishIntegrationTest {
             var emitter = new SessionFinishEventEmitter(clock, new QueueWorkspaceEventPublisher(queue));
             var fileHeartbeatReader = new FileHeartbeatReader();
             var platformRepositories = createServerPlatformRepositories(clock, dataSource);
-            var finisher = new SessionFinisher(clock, emitter, fileHeartbeatReader, streamingSubscriptionManager, platformRepositories);
+            var finisher = new SessionFinisher(clock, emitter, fileHeartbeatReader, platformRepositories);
 
             // Write heartbeat files for both sessions
             Path session1Dir = tempDir.resolve("session-001");
@@ -265,9 +258,6 @@ class HeartbeatToSessionFinishIntegrationTest {
     @Nested
     class JeffreyRestartRecoveryScenario {
 
-        @Mock
-        EventStreamingSubscriptionManager streamingSubscriptionManager;
-
         @Test
         void unfinishedSession_withHeartbeatFile_finishedOnRestart(
                 DataSource dataSource, @TempDir Path tempDir) throws SQLException, IOException {
@@ -280,7 +270,7 @@ class HeartbeatToSessionFinishIntegrationTest {
             var emitter = new SessionFinishEventEmitter(clock, new QueueWorkspaceEventPublisher(queue));
             var fileHeartbeatReader = new FileHeartbeatReader();
             var platformRepositories = createServerPlatformRepositories(clock, dataSource);
-            var finisher = new SessionFinisher(clock, emitter, fileHeartbeatReader, streamingSubscriptionManager, platformRepositories);
+            var finisher = new SessionFinisher(clock, emitter, fileHeartbeatReader, platformRepositories);
 
             // Write a stale heartbeat file (simulates agent that stopped long ago)
             Path sessionDir = tempDir.resolve("session-2025-06-15");
@@ -312,7 +302,7 @@ class HeartbeatToSessionFinishIntegrationTest {
             var emitter = new SessionFinishEventEmitter(clock, new QueueWorkspaceEventPublisher(queue));
             var fileHeartbeatReader = new FileHeartbeatReader();
             var platformRepositories = createServerPlatformRepositories(clock, dataSource);
-            var finisher = new SessionFinisher(clock, emitter, fileHeartbeatReader, streamingSubscriptionManager, platformRepositories);
+            var finisher = new SessionFinisher(clock, emitter, fileHeartbeatReader, platformRepositories);
 
             // No heartbeat file written - directory is empty
             Path sessionDir = tempDir.resolve("session-2025-06-15");
@@ -335,9 +325,6 @@ class HeartbeatToSessionFinishIntegrationTest {
     @Nested
     class FullPipeline {
 
-        @Mock
-        EventStreamingSubscriptionManager streamingSubscriptionManager;
-
         @Test
         void heartbeatFileWritten_thenDetectedStale_thenSessionFinished(
                 DataSource dataSource, @TempDir Path tempDir) throws SQLException, IOException {
@@ -350,7 +337,7 @@ class HeartbeatToSessionFinishIntegrationTest {
             var emitter = new SessionFinishEventEmitter(clock, new QueueWorkspaceEventPublisher(queue));
             var fileHeartbeatReader = new FileHeartbeatReader();
             var platformRepositories = createServerPlatformRepositories(clock, dataSource);
-            var finisher = new SessionFinisher(clock, emitter, fileHeartbeatReader, streamingSubscriptionManager, platformRepositories);
+            var finisher = new SessionFinisher(clock, emitter, fileHeartbeatReader, platformRepositories);
 
             // Step 1: Write heartbeat file (simulates agent writing heartbeat)
             Path sessionDir = tempDir.resolve("session-2025-06-15");

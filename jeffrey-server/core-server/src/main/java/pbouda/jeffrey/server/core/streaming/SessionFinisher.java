@@ -47,20 +47,17 @@ public class SessionFinisher {
     private final Clock clock;
     private final SessionFinishEventEmitter eventEmitter;
     private final FileHeartbeatReader fileHeartbeatReader;
-    private final EventStreamingSubscriptionManager subscriptionManager;
     private final ServerPlatformRepositories platformRepositories;
 
     public SessionFinisher(
             Clock clock,
             SessionFinishEventEmitter eventEmitter,
             FileHeartbeatReader fileHeartbeatReader,
-            EventStreamingSubscriptionManager subscriptionManager,
             ServerPlatformRepositories platformRepositories) {
 
         this.clock = clock;
         this.eventEmitter = eventEmitter;
         this.fileHeartbeatReader = fileHeartbeatReader;
-        this.subscriptionManager = subscriptionManager;
         this.platformRepositories = platformRepositories;
     }
 
@@ -75,7 +72,6 @@ public class SessionFinisher {
             Instant finishedAt) {
 
         repositoryRepository.markSessionFinished(sessionInfo.sessionId(), finishedAt);
-        subscriptionManager.closeAllForSession(sessionInfo.sessionId());
 
         LOG.info("Session marked as FINISHED: sessionId={} projectId={} finishedAt={}",
                 sessionInfo.sessionId(), projectInfo.id(), finishedAt);

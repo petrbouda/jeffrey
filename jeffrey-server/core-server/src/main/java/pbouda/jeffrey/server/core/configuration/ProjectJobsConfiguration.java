@@ -21,20 +21,19 @@ package pbouda.jeffrey.server.core.configuration;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import pbouda.jeffrey.server.core.ServerJeffreyDirs;
 import pbouda.jeffrey.server.core.configuration.properties.JobProperties;
 import pbouda.jeffrey.server.core.manager.workspace.WorkspacesManager;
 import pbouda.jeffrey.server.core.project.repository.RepositoryStorage;
 import pbouda.jeffrey.server.core.project.repository.SessionFinishEventEmitter;
-import pbouda.jeffrey.server.core.workspace.WorkspaceEventPublisher;
 import pbouda.jeffrey.server.core.scheduler.PeriodicalScheduler;
 import pbouda.jeffrey.server.core.scheduler.Scheduler;
 import pbouda.jeffrey.server.core.scheduler.job.*;
 import pbouda.jeffrey.server.core.scheduler.job.descriptor.JobDescriptorFactory;
-import pbouda.jeffrey.server.core.streaming.EventStreamingSubscriptionManager;
 import pbouda.jeffrey.server.core.streaming.FileHeartbeatReader;
 import pbouda.jeffrey.server.core.streaming.SessionFinisher;
+import pbouda.jeffrey.server.core.workspace.WorkspaceEventPublisher;
 import pbouda.jeffrey.server.persistence.repository.ServerPlatformRepositories;
-import pbouda.jeffrey.server.core.ServerJeffreyDirs;
 
 import java.time.Clock;
 import java.time.Duration;
@@ -128,10 +127,9 @@ public class ProjectJobsConfiguration {
             Clock clock,
             SessionFinishEventEmitter sessionFinishEventEmitter,
             FileHeartbeatReader fileHeartbeatReader,
-            EventStreamingSubscriptionManager eventStreamingSubscriptionManager,
             ServerPlatformRepositories platformRepositories) {
 
-        return new SessionFinisher(clock, sessionFinishEventEmitter, fileHeartbeatReader, eventStreamingSubscriptionManager, platformRepositories);
+        return new SessionFinisher(clock, sessionFinishEventEmitter, fileHeartbeatReader, platformRepositories);
     }
 
     @Bean
