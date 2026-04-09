@@ -30,6 +30,7 @@ public class ServerJeffreyDirs implements TempDirFactory {
     private static final String TMP_DIR = "tmp";
     private static final String LIBS_DIR = "libs";
     private static final String EVENTS_DIR = ".events";
+    private static final String STREAMING_REPO_DIR = "streaming-repo";
 
     private final Path homeDir;
     private final Path tempDir;
@@ -47,6 +48,10 @@ public class ServerJeffreyDirs implements TempDirFactory {
         FileSystemUtils.createDirectories(homeDir);
         FileSystemUtils.removeAndCreateDirectories(tempDir);
         return homeDir;
+    }
+
+    public Path resolveStreamingRepo(Path sessionPath) {
+        return sessionPath.resolve(STREAMING_REPO_DIR);
     }
 
     public Path workspaces() {

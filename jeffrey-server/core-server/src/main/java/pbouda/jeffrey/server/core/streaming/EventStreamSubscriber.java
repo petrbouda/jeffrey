@@ -28,7 +28,6 @@ import pbouda.jeffrey.shared.common.Schedulers;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -44,8 +43,6 @@ import java.util.function.Consumer;
 public class EventStreamSubscriber implements Closeable {
 
     private static final Logger LOG = LoggerFactory.getLogger(EventStreamSubscriber.class);
-
-    private static final String STREAMING_REPO_DIR = "streaming-repo";
 
     private final EventStreamSubscription subscription;
     private final Consumer<EventBatch> consumer;
@@ -78,10 +75,8 @@ public class EventStreamSubscriber implements Closeable {
      * @throws IOException if the streaming repository cannot be opened
      */
     public void start() throws IOException {
-        Path streamingRepoPath = subscription.sessionPath().resolve(STREAMING_REPO_DIR);
-
         LOG.info("Starting subscriber event stream: subscription={}", subscription);
-        this.eventStream = EventStream.openRepository(streamingRepoPath);
+        this.eventStream = EventStream.openRepository(subscription.sessionPath());
 
         if (subscription.startTime() != null) {
             eventStream.setStartTime(subscription.startTime());

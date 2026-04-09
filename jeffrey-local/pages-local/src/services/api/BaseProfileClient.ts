@@ -19,6 +19,7 @@
 import axios from 'axios';
 import GlobalVars from '@/services/GlobalVars';
 import HttpUtils from '@/services/HttpUtils';
+import type { RequestOptions } from '@/services/api/BasePlatformClient';
 
 /**
  * Base class for profile feature API clients.
@@ -37,18 +38,22 @@ export default abstract class BaseProfileClient {
     this.baseUrl = `${GlobalVars.internalUrl}/profiles/${profileId}/${featurePath}`;
   }
 
+  private static applyOptions(config: Record<string, any>, options?: RequestOptions): Record<string, any> {
+    return options?.suppressToast ? { ...config, suppressToast: true } : config;
+  }
+
   /**
    * Makes a GET request to the specified path.
    * @param path - The path relative to the base URL (should start with '/' or be empty)
    * @param params - Optional query parameters
    * @returns Promise resolving to the response data
    */
-  protected get<T>(path: string, params?: Record<string, any>): Promise<T> {
+  protected get<T>(path: string, params?: Record<string, any>, options?: RequestOptions): Promise<T> {
     const url = path ? `${this.baseUrl}${path}` : this.baseUrl;
     const config = params
       ? HttpUtils.JSON_ACCEPT_WITH_PARAMS(params)
       : HttpUtils.JSON_ACCEPT_HEADER;
-    return axios.get<T>(url, config).then(HttpUtils.RETURN_DATA);
+    return axios.get<T>(url, BaseProfileClient.applyOptions(config, options)).then(HttpUtils.RETURN_DATA);
   }
 
   /**
@@ -57,8 +62,8 @@ export default abstract class BaseProfileClient {
    * @param body - The request body
    * @returns Promise resolving to the response data
    */
-  protected post<T>(path: string, body: Record<string, any>): Promise<T> {
+  protected post<T>(path: string, body: Record<string, any>, options?: RequestOptions): Promise<T> {
     const url = path ? `${this.baseUrl}${path}` : this.baseUrl;
-    return axios.post<T>(url, body, HttpUtils.JSON_CONTENT_TYPE_HEADER).then(HttpUtils.RETURN_DATA);
+    return axios.post<T>(url, body, BaseProfileClient.applyOptions(HttpUtils.JSON_CONTENT_TYPE_HEADER, options)).then(HttpUtils.RETURN_DATA);
   }
 }

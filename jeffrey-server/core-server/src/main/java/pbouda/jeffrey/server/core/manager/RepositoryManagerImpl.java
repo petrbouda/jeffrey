@@ -27,6 +27,7 @@ import pbouda.jeffrey.server.core.workspace.WorkspaceEventConverter;
 import pbouda.jeffrey.server.core.workspace.WorkspaceEventPublisher;
 import pbouda.jeffrey.shared.common.model.repository.RepositoryStatistics;
 import pbouda.jeffrey.shared.common.model.repository.RepositoryStatistics.FileTypeStats;
+import pbouda.jeffrey.shared.common.model.repository.RepositoryStatistics.StatsCategory;
 import pbouda.jeffrey.shared.common.model.repository.StreamedRecordingFile;
 import pbouda.jeffrey.server.persistence.repository.ProjectRepositoryRepository;
 import pbouda.jeffrey.shared.common.model.ProjectInfo;
@@ -42,8 +43,12 @@ import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEventCreator;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 public class RepositoryManagerImpl implements RepositoryManager {
 
@@ -111,77 +116,48 @@ public class RepositoryManagerImpl implements RepositoryManager {
     @Override
     public RepositoryStatistics calculateRepositoryStatistics() {
         List<RecordingSession> sessions = this.listRecordingSessions(true);
-
         if (sessions.isEmpty()) {
-            return new RepositoryStatistics(
-                    0, RecordingStatus.UNKNOWN, 0L, 0L, 0, 0L,
-                    FileTypeStats.EMPTY, FileTypeStats.EMPTY, FileTypeStats.EMPTY,
-                    FileTypeStats.EMPTY, FileTypeStats.EMPTY, FileTypeStats.EMPTY);
+            return RepositoryStatistics.EMPTY;
         }
 
-        // Sessions are already sorted by date (newest first) from listSessions()
-        RecordingSession latestSession = sessions.getFirst();
+        List<RepositoryFile> allFiles = sessions.stream()
+                .flatMap(s -> s.files().stream())
+                .toList();
 
-        // Calculate aggregated statistics in a single pass
-        long totalSize = 0;
-        int totalFiles = 0;
-        int jfrFiles = 0;
-        long jfrSize = 0;
-        int heapDumpFiles = 0;
-        long heapDumpSize = 0;
-        int logFiles = 0;
-        long logSize = 0;
-        int appLogFiles = 0;
-        long appLogSize = 0;
-        int errorLogFiles = 0;
-        long errorLogSize = 0;
-        int otherFiles = 0;
-        long otherSize = 0;
-        long biggestSessionSize = 0;
-        long lastActivityTime = 0L;
+        Map<StatsCategory, FileTypeStats> byCategory = allFiles.stream()
+                .collect(Collectors.groupingBy(
+                        f -> StatsCategory.of(f.fileType()),
+                        Collectors.teeing(
+                                Collectors.counting(),
+                                Collectors.summingLong(f -> fileSize(f)),
+                                (count, size) -> new FileTypeStats(count.intValue(), size))));
 
-        for (RecordingSession session : sessions) {
-            long sessionSize = 0;
+        long totalSize = allFiles.stream().mapToLong(this::fileSize).sum();
 
-            for (RepositoryFile file : session.files()) {
-                totalFiles++;
-                long fileSize = file.size() != null ? file.size() : 0L;
-                totalSize += fileSize;
-                sessionSize += fileSize;
+        long lastActivity = allFiles.stream()
+                .map(RepositoryFile::createdAt)
+                .filter(Objects::nonNull)
+                .mapToLong(Instant::toEpochMilli)
+                .max()
+                .orElse(0L);
 
-                // Track the most recent file timestamp (true last activity)
-                if (file.createdAt() != null) {
-                    lastActivityTime = Math.max(lastActivityTime, file.createdAt().toEpochMilli());
-                }
+        long biggestSession = sessions.stream()
+                .mapToLong(s -> s.files().stream().mapToLong(this::fileSize).sum())
+                .max()
+                .orElse(0L);
 
-                // Count and sum size by file type
-                switch (file.fileType()) {
-                    case JFR, JFR_LZ4 -> { jfrFiles++; jfrSize += fileSize; }
-                    case HEAP_DUMP, HEAP_DUMP_GZ -> { heapDumpFiles++; heapDumpSize += fileSize; }
-                    case JVM_LOG -> { logFiles++; logSize += fileSize; }
-                    case APP_LOG -> { appLogFiles++; appLogSize += fileSize; }
-                    case HS_JVM_ERROR_LOG -> { errorLogFiles++; errorLogSize += fileSize; }
-                    default -> { otherFiles++; otherSize += fileSize; }
-                }
-            }
-
-            biggestSessionSize = Math.max(biggestSessionSize, sessionSize);
-        }
-
-        return new RepositoryStatistics(
+        return RepositoryStatistics.fromCategoryMap(
                 sessions.size(),
-                latestSession.status(),
-                lastActivityTime,
+                sessions.getFirst().status(),
+                lastActivity,
                 totalSize,
-                totalFiles,
-                biggestSessionSize,
-                new FileTypeStats(jfrFiles, jfrSize),
-                new FileTypeStats(heapDumpFiles, heapDumpSize),
-                new FileTypeStats(logFiles, logSize),
-                new FileTypeStats(appLogFiles, appLogSize),
-                new FileTypeStats(errorLogFiles, errorLogSize),
-                new FileTypeStats(otherFiles, otherSize)
-        );
+                allFiles.size(),
+                biggestSession,
+                byCategory);
+    }
+
+    private long fileSize(RepositoryFile file) {
+        return file.size() != null ? file.size() : 0L;
     }
 
     @Override

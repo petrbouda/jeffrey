@@ -26,14 +26,13 @@ import pbouda.jeffrey.shared.common.compression.Lz4Compressor;
 import pbouda.jeffrey.shared.common.exception.Exceptions;
 import pbouda.jeffrey.shared.common.filesystem.FileSystemUtils;
 import pbouda.jeffrey.shared.common.model.ProjectInfo;
+import pbouda.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
 import pbouda.jeffrey.shared.common.model.RepositoryInfo;
 import pbouda.jeffrey.shared.common.model.RepositoryType;
-import pbouda.jeffrey.shared.common.model.repository.FileCategory;
 import pbouda.jeffrey.shared.common.model.repository.RecordingSession;
 import pbouda.jeffrey.shared.common.model.repository.RecordingStatus;
 import pbouda.jeffrey.shared.common.model.repository.RepositoryFile;
 import pbouda.jeffrey.shared.common.model.repository.SupportedRecordingFile;
-import pbouda.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -246,11 +245,6 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
     // ========== Recording Files ==========
 
     @Override
-    public List<Path> recordings(String sessionId) {
-        return recordings(sessionId, null);
-    }
-
-    @Override
     public List<Path> recordings(String sessionId, List<String> recordingIds) {
         RecordingSession session = resolveSession(sessionId);
 
@@ -266,11 +260,6 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
     }
 
     // ========== Merge Recordings ==========
-
-    @Override
-    public MergedRecording mergeRecordings(String sessionId) {
-        return mergeRecordings(sessionId, null);
-    }
 
     @Override
     public MergedRecording mergeRecordings(String sessionId, List<String> recordingIds) {
@@ -317,11 +306,6 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
     }
 
     // ========== Artifact Files ==========
-
-    @Override
-    public List<Path> artifacts(String sessionId) {
-        return artifacts(sessionId, null);
-    }
 
     @Override
     public List<Path> artifacts(String sessionId, List<String> artifactIds) {

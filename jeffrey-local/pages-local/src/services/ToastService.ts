@@ -1,12 +1,16 @@
 /**
- * A service to manage Bootstrap toasts for modern notifications
+ * Toast notification service — accent bar style with progress countdown.
  */
 export class ToastService {
-  private static readonly AUTO_HIDE_DELAY = 3000; // 3 seconds
+  private static readonly AUTO_HIDE_DELAY = 3000;
 
-  /**
-   * Create a toast element styled like repository rows
-   */
+  private static readonly ICONS: Record<string, string> = {
+    'toast-success': '✓',
+    'toast-info': 'ⓘ',
+    'toast-warning': '⚠',
+    'toast-danger': '✕',
+  };
+
   private static createToast(
     summary: string,
     detail: string | undefined,
@@ -20,70 +24,60 @@ export class ToastService {
     toast.setAttribute('aria-live', 'assertive');
     toast.setAttribute('aria-atomic', 'true');
 
-    // Create toast header
-    const header = document.createElement('div');
-    header.className = 'toast-header';
+    // Accent bar
+    const accent = document.createElement('div');
+    accent.className = 'toast-accent';
+    toast.appendChild(accent);
 
-    // Get icon based on toast type
-    let icon = '';
-    switch (toastClass) {
-      case 'toast-success':
-        icon = '✓';
-        break;
-      case 'toast-info':
-        icon = 'ⓘ';
-        break;
-      case 'toast-warning':
-        icon = '⚠';
-        break;
-      case 'toast-danger':
-        icon = '✕';
-        break;
-    }
+    // Content wrapper
+    const content = document.createElement('div');
+    content.className = 'toast-content';
 
-    // Add title with optional icon
-    const title = document.createElement('strong');
-    title.className = 'me-auto';
+    // Icon
+    const icon = document.createElement('div');
+    icon.className = 'toast-icon';
+    icon.textContent = this.ICONS[toastClass] ?? '';
+    content.appendChild(icon);
 
-    if (icon) {
-      const iconSpan = document.createElement('span');
-      iconSpan.className = 'toast-icon';
-      iconSpan.textContent = icon;
+    // Text block
+    const text = document.createElement('div');
+    text.className = 'toast-text';
 
-      title.appendChild(iconSpan);
-      title.appendChild(document.createTextNode(' ' + summary));
-    } else {
-      title.textContent = summary;
-    }
+    const title = document.createElement('div');
+    title.className = 'toast-title';
+    title.textContent = summary;
+    text.appendChild(title);
 
-    header.appendChild(title);
-
-    // Add close button
-    const closeBtn = document.createElement('button');
-    closeBtn.type = 'button';
-    closeBtn.className = 'btn-close';
-    closeBtn.setAttribute('data-bs-dismiss', 'toast');
-    closeBtn.setAttribute('aria-label', 'Close');
-    header.appendChild(closeBtn);
-
-    toast.appendChild(header);
-
-    // Add body if detail is provided
     if (detail) {
-      const body = document.createElement('div');
-      body.className = 'toast-body';
-      body.textContent = detail;
-      toast.appendChild(body);
+      const detailEl = document.createElement('div');
+      detailEl.className = 'toast-detail';
+      detailEl.textContent = detail;
+      text.appendChild(detailEl);
     }
+
+    content.appendChild(text);
+
+    // Close button
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'toast-close';
+    closeBtn.setAttribute('aria-label', 'Close');
+    closeBtn.innerHTML = '&times;';
+    content.appendChild(closeBtn);
+
+    toast.appendChild(content);
+
+    // Progress bar
+    const progress = document.createElement('div');
+    progress.className = 'toast-progress';
+    const fill = document.createElement('div');
+    fill.className = 'toast-progress-fill';
+    progress.appendChild(fill);
+    toast.appendChild(progress);
 
     return toast;
   }
 
-  /**
-   * Show a toast notification
-   */
   private static showToast(summary: string, detail: string | undefined, toastClass: string): void {
-    // Get or create container
     let container = document.getElementById('toast-container');
     if (!container) {
       container = document.createElement('div');
@@ -92,85 +86,46 @@ export class ToastService {
       document.body.appendChild(container);
     }
 
-    // Create toast
     const toast = this.createToast(summary, detail, toastClass);
     container.appendChild(toast);
 
-    // Initialize toast with Bootstrap
-    import('bootstrap')
-      .then(bootstrap => {
-        const bsToast = new bootstrap.Toast(toast, {
-          autohide: true,
-          delay: this.AUTO_HIDE_DELAY,
-          animation: true
-        });
-
-        // Add event listener for remove from DOM after hiding
-        toast.addEventListener('hidden.bs.toast', () => {
-          setTimeout(() => {
-            toast.remove();
-          }, 100); // Small delay to allow for animation completion
-        });
-
-        // Show the toast
-        bsToast.show();
-      })
-      .catch(() => {
-        console.error('Failed to load Bootstrap for toast notifications');
-        // Fallback - simple display and remove after delay
-        toast.style.display = 'block';
-        setTimeout(() => {
-          toast.classList.add('hide');
-          setTimeout(() => toast.remove(), 100);
-        }, this.AUTO_HIDE_DELAY);
-      });
-  }
-
-  /**
-   * Show a success toast message
-   */
-  static success(summary: string, detail?: string): void {
-    console.log(`%c✓ ${summary}`, 'color: #28a745; font-weight: bold');
-    if (detail) {
-      console.log(`   ${detail}`);
+    // Close button handler
+    const closeBtn = toast.querySelector('.toast-close');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', () => dismissToast(toast));
     }
 
+    // Auto-hide after delay
+    const timer = setTimeout(() => dismissToast(toast), this.AUTO_HIDE_DELAY);
+
+    function dismissToast(el: HTMLElement) {
+      clearTimeout(timer);
+      el.classList.add('hide');
+      setTimeout(() => el.remove(), 300);
+    }
+  }
+
+  static success(summary: string, detail?: string): void {
+    console.log(`%c✓ ${summary}`, 'color: #00d27a; font-weight: bold');
+    if (detail) console.log(`   ${detail}`);
     this.showToast(summary, detail, 'toast-success');
   }
 
-  /**
-   * Show an information toast message
-   */
   static info(summary: string, detail?: string): void {
-    console.log(`%cⓘ ${summary}`, 'color: #17a2b8; font-weight: bold');
-    if (detail) {
-      console.log(`   ${detail}`);
-    }
-
+    console.log(`%cⓘ ${summary}`, 'color: #0ea5e9; font-weight: bold');
+    if (detail) console.log(`   ${detail}`);
     this.showToast(summary, detail, 'toast-info');
   }
 
-  /**
-   * Show a warning toast message
-   */
   static warn(summary: string, detail?: string): void {
-    console.log(`%c⚠ ${summary}`, 'color: #ffc107; font-weight: bold');
-    if (detail) {
-      console.log(`   ${detail}`);
-    }
-
+    console.log(`%c⚠ ${summary}`, 'color: #f5803e; font-weight: bold');
+    if (detail) console.log(`   ${detail}`);
     this.showToast(summary, detail, 'toast-warning');
   }
 
-  /**
-   * Show an error toast message
-   */
   static error(summary: string, detail?: string): void {
-    console.log(`%c✕ ${summary}`, 'color: #dc3545; font-weight: bold');
-    if (detail) {
-      console.log(`   ${detail}`);
-    }
-
+    console.log(`%c✕ ${summary}`, 'color: #e63757; font-weight: bold');
+    if (detail) console.log(`   ${detail}`);
     this.showToast(summary, detail, 'toast-danger');
   }
 }

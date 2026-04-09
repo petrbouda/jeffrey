@@ -30,16 +30,15 @@ import java.nio.file.Path;
  */
 public abstract class SessionPaths {
 
-    public static Path resolve(ServerJeffreyDirs jeffreyDirs, SessionWithRepository session) {
-        return  resolve(jeffreyDirs, session.repositoryInfo(), session.sessionInfo());
+    public static Path resolveStreamingRepo(ServerJeffreyDirs jeffreyDirs, SessionWithRepository session) {
+        Path sessionPath = resolve(jeffreyDirs, session.repositoryInfo(), session.sessionInfo());
+        return jeffreyDirs.resolveStreamingRepo(sessionPath);
     }
 
     public static Path resolve(
             ServerJeffreyDirs jeffreyDirs, RepositoryInfo repositoryInfo, ProjectInstanceSessionInfo sessionInfo) {
         String workspacesPath = repositoryInfo.workspacesPath();
-        Path resolvedWorkspacesPath = workspacesPath == null
-                ? jeffreyDirs.workspaces()
-                : Path.of(workspacesPath);
+        Path resolvedWorkspacesPath = workspacesPath == null ? jeffreyDirs.workspaces() : Path.of(workspacesPath);
 
         return resolvedWorkspacesPath
                 .resolve(repositoryInfo.relativeWorkspacePath())

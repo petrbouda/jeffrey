@@ -17,6 +17,7 @@
  */
 
 import BasePlatformClient from '@/services/api/BasePlatformClient';
+import type { RequestOptions } from '@/services/api/BasePlatformClient';
 import Workspace from '@/services/api/model/Workspace';
 import CreateWorkspaceRequest from '@/services/api/model/CreateWorkspaceRequest';
 import WorkspaceEvent from '@/services/api/model/WorkspaceEvent';
@@ -30,8 +31,8 @@ export default class WorkspaceClient extends BasePlatformClient {
    * Get all workspaces
    * GET /api/workspaces
    */
-  async list(excludeRemote: boolean = false): Promise<Workspace[]> {
-    return super.get<Workspace[]>('', { excludeRemote: excludeRemote });
+  async list(excludeRemote: boolean = false, options?: RequestOptions): Promise<Workspace[]> {
+    return super.get<Workspace[]>('', { excludeRemote: excludeRemote }, options);
   }
 
   /**

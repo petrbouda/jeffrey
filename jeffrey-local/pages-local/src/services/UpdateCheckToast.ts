@@ -49,6 +49,11 @@ function getOrCreateContainer(): HTMLElement {
   return container;
 }
 
+function hideToast(toast: HTMLElement): void {
+  toast.classList.add('hide');
+  setTimeout(() => toast.remove(), 300);
+}
+
 function buildToast(info: UpdateCheckResponse): HTMLElement {
   const isMajor = info.majorUpdate;
   const toastClass = isMajor ? 'toast-warning' : 'toast-info';
@@ -61,35 +66,43 @@ function buildToast(info: UpdateCheckResponse): HTMLElement {
   toast.setAttribute('aria-live', 'assertive');
   toast.setAttribute('aria-atomic', 'true');
 
-  // Header
-  const header = document.createElement('div');
-  header.className = 'toast-header';
+  // Accent bar
+  const accent = document.createElement('div');
+  accent.className = 'toast-accent';
+  toast.appendChild(accent);
 
-  const titleEl = document.createElement('strong');
-  titleEl.className = 'me-auto';
+  // Content wrapper
+  const content = document.createElement('div');
+  content.className = 'toast-content';
+  content.style.flexDirection = 'column';
+  content.style.gap = '8px';
 
-  const iconSpan = document.createElement('span');
-  iconSpan.className = 'toast-icon';
-  iconSpan.textContent = iconText;
-  titleEl.appendChild(iconSpan);
-  titleEl.appendChild(document.createTextNode(' ' + title));
-  header.appendChild(titleEl);
+  // Title row (icon + title + close)
+  const titleRow = document.createElement('div');
+  titleRow.style.cssText = 'display:flex;align-items:center;gap:10px;width:100%';
+
+  const icon = document.createElement('div');
+  icon.className = 'toast-icon';
+  icon.textContent = iconText;
+  titleRow.appendChild(icon);
+
+  const titleEl = document.createElement('div');
+  titleEl.className = 'toast-title';
+  titleEl.style.flex = '1';
+  titleEl.textContent = title;
+  titleRow.appendChild(titleEl);
 
   const closeBtn = document.createElement('button');
-  closeBtn.type = 'button';
-  closeBtn.className = 'btn-close';
+  closeBtn.className = 'toast-close';
   closeBtn.setAttribute('aria-label', 'Close');
+  closeBtn.innerHTML = '&times;';
   closeBtn.addEventListener('click', () => {
     dismiss(info.latestVersion);
     hideToast(toast);
   });
-  header.appendChild(closeBtn);
+  titleRow.appendChild(closeBtn);
 
-  toast.appendChild(header);
-
-  // Body
-  const body = document.createElement('div');
-  body.className = 'toast-body';
+  content.appendChild(titleRow);
 
   // Warning note (major only)
   if (isMajor) {
@@ -97,12 +110,12 @@ function buildToast(info: UpdateCheckResponse): HTMLElement {
     warningNote.className = 'update-warning-note';
     warningNote.innerHTML =
       '<i class="bi bi-exclamation-triangle-fill"></i> May include breaking changes';
-    body.appendChild(warningNote);
+    content.appendChild(warningNote);
   } else {
     const desc = document.createElement('div');
     desc.className = 'update-desc';
     desc.textContent = 'A newer version of Jeffrey is available.';
-    body.appendChild(desc);
+    content.appendChild(desc);
   }
 
   // Version cards
@@ -140,7 +153,7 @@ function buildToast(info: UpdateCheckResponse): HTMLElement {
     cards.appendChild(downloadBtn);
   }
 
-  body.appendChild(cards);
+  content.appendChild(cards);
 
   // GitHub link
   const link = document.createElement('a');
@@ -149,16 +162,11 @@ function buildToast(info: UpdateCheckResponse): HTMLElement {
   link.rel = 'noopener noreferrer';
   link.className = `update-link ${isMajor ? 'update-link-warning' : 'update-link-info'}`;
   link.innerHTML = '<i class="bi bi-box-arrow-up-right"></i> View release notes on GitHub';
-  body.appendChild(link);
+  content.appendChild(link);
 
-  toast.appendChild(body);
+  toast.appendChild(content);
 
   return toast;
-}
-
-function hideToast(toast: HTMLElement): void {
-  toast.classList.add('hide');
-  setTimeout(() => toast.remove(), 300);
 }
 
 export function showUpdateCheckToast(info: UpdateCheckResponse): void {
@@ -171,23 +179,8 @@ export function showUpdateCheckToast(info: UpdateCheckResponse): void {
   container.appendChild(toast);
 
   const delay = info.majorUpdate ? WARNING_AUTO_HIDE_DELAY : INFO_AUTO_HIDE_DELAY;
+  const timer = setTimeout(() => hideToast(toast), delay);
 
-  import('bootstrap')
-    .then(bootstrap => {
-      const bsToast = new bootstrap.Toast(toast, {
-        autohide: true,
-        delay: delay,
-        animation: true
-      });
-
-      toast.addEventListener('hidden.bs.toast', () => {
-        setTimeout(() => toast.remove(), 100);
-      });
-
-      bsToast.show();
-    })
-    .catch(() => {
-      toast.style.display = 'block';
-      setTimeout(() => hideToast(toast), delay);
-    });
+  // Allow close button to cancel auto-hide
+  toast.querySelector('.toast-close')?.addEventListener('click', () => clearTimeout(timer));
 }

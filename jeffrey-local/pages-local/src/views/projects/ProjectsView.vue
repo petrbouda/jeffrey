@@ -270,7 +270,7 @@ const getTypeBadgeClass = computed(() => 'badge-remote');
 const refreshWorkspaces = async () => {
   try {
     // All workspaces come from the backend now
-    workspaces.value = await workspaceClient.list();
+    workspaces.value = await workspaceClient.list(false, { suppressToast: true });
 
     // Set selected workspace: first workspace in the list
     if (!selectedWorkspace.value && workspaces.value.length > 0) {

@@ -86,18 +86,6 @@ public interface RepositoryStorage {
     // ========== Recording Files ==========
 
     /**
-     * Get all recordings from a session as compressed files.
-     * <p>
-     * Compresses JFR → JFR_LZ4 if needed, stores persistently to avoid re-compression.
-     * Only returns recordings with FINISHED status.
-     * </p>
-     *
-     * @param sessionId the session ID
-     * @return list of paths to compressed recording files
-     */
-    List<Path> recordings(String sessionId);
-
-    /**
      * Get specific recordings from a session as compressed files.
      * <p>
      * Compresses JFR → JFR_LZ4 if needed, stores persistently to avoid re-compression.
@@ -113,18 +101,6 @@ public interface RepositoryStorage {
     // ========== Merge Recordings ==========
 
     /**
-     * Merge all recordings from a session into a single compressed file.
-     * <p>
-     * Compresses if needed, then merges to temp file.
-     * The returned MergedRecording auto-deletes the temp file on close.
-     * </p>
-     *
-     * @param sessionId the session ID
-     * @return MergedRecording wrapper (auto-deletes temp file on close)
-     */
-    MergedRecording mergeRecordings(String sessionId);
-
-    /**
      * Merge specific recordings from a session into a single compressed file.
      * <p>
      * Compresses if needed, then merges to temp file.
@@ -138,17 +114,6 @@ public interface RepositoryStorage {
     MergedRecording mergeRecordings(String sessionId, List<String> recordingIds);
 
     // ========== Artifact Files ==========
-
-    /**
-     * Get all artifacts (non-recording files) from a session.
-     * <p>
-     * Artifacts include files like heap dumps, logs, and other non-JFR files.
-     * </p>
-     *
-     * @param sessionId the session ID
-     * @return list of paths to artifact files
-     */
-    List<Path> artifacts(String sessionId);
 
     /**
      * Get specific artifacts from a session.

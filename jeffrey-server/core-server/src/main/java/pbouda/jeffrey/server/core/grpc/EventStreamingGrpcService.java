@@ -33,8 +33,10 @@ import pbouda.jeffrey.server.core.streaming.SessionPaths;
 import pbouda.jeffrey.server.core.streaming.EventStreamSubscriber;
 import pbouda.jeffrey.server.persistence.model.SessionWithRepository;
 import pbouda.jeffrey.server.persistence.repository.ServerPlatformRepositories;
+import pbouda.jeffrey.shared.common.filesystem.FileSystemUtils;
 
 import java.io.IOException;
+import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.HashSet;
@@ -78,6 +80,14 @@ public class EventStreamingGrpcService extends EventStreamingServiceGrpc.EventSt
             if (session.isEmpty()) {
                 observer.onError(Status.NOT_FOUND
                         .withDescription("Session not found: " + sessionId)
+                        .asRuntimeException());
+                return;
+            }
+
+            Path streamingRepoPath = SessionPaths.resolveStreamingRepo(jeffreyDirs, session.get());
+            if (!FileSystemUtils.isDirectory(streamingRepoPath)) {
+                observer.onError(Status.UNAVAILABLE
+                        .withDescription("Session repository for streaming is not available: " + sessionId)
                         .asRuntimeException());
                 return;
             }
@@ -130,7 +140,7 @@ public class EventStreamingGrpcService extends EventStreamingServiceGrpc.EventSt
 
             EventStreamSubscription subscription = new EventStreamSubscription(
                     sessionId,
-                    SessionPaths.resolve(jeffreyDirs, session.get()),
+                    streamingRepoPath,
                     eventTypes,
                     requestedStart,
                     endTime,
