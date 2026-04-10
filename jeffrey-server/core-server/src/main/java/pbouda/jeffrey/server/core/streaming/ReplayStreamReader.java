@@ -73,7 +73,11 @@ public class ReplayStreamReader implements Closeable {
                 if (closed.get()) {
                     break;
                 }
-                fileReader.read(file);
+                try {
+                    fileReader.read(file);
+                } catch (Exception e) {
+                    LOG.warn("Skipping corrupted recording file: file={} subscription={}", file.getFileName(), subscription, e);
+                }
             }
 
             if (!closed.get()) {
