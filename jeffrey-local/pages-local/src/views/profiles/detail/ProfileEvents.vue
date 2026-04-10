@@ -1,7 +1,7 @@
 <template>
   <PageHeader title="Events" description="View and analyze profile events" icon="bi-collection">
     <!-- Event Type Selector -->
-    <div class="mb-4">
+    <div>
       <div v-if="!selectedEventType || showEventTypeList">
         <div class="mb-3">
           <div class="input-group search-container">
@@ -60,7 +60,7 @@
     </div>
 
     <!-- Selected Event Type Config Panel -->
-    <div v-if="selectedEventType" class="event-config-card mb-3">
+    <div v-if="selectedEventType" class="event-config-card mb-2">
       <div class="event-config-main">
         <div class="event-config-icon"><i class="bi bi-cpu"></i></div>
         <div class="event-config-info">

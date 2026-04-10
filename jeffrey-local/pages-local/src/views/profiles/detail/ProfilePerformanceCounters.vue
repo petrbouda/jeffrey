@@ -31,26 +31,7 @@
       <div class="col-12">
         <div class="performance-counters-container">
           <!-- Counter summary -->
-          <div class="counter-summary mb-3">
-            <div class="card">
-              <div class="card-body">
-                <div class="row">
-                  <div class="col-md-6">
-                    <div class="summary-item">
-                      <h5 class="summary-value">{{ allCounters.length }}</h5>
-                      <p class="summary-label">Total Counters</p>
-                    </div>
-                  </div>
-                  <div class="col-md-6">
-                    <div class="summary-item">
-                      <h5 class="summary-value">{{ categories.length }}</h5>
-                      <p class="summary-label">Categories</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+          <StatsTable :metrics="summaryMetrics" class="mb-3" />
 
           <!-- Search/Filter control -->
           <div class="mb-3">
@@ -166,13 +147,13 @@
                             </i>
 
                             <!-- JVM and Java badges -->
-                            <span
+                            <Badge
                               v-if="getBadgeForKey(counter.key)"
-                              class="badge ms-3"
-                              :class="getBadgeClass(counter.key)"
-                            >
-                              {{ getBadgeForKey(counter.key) }}
-                            </span>
+                              :value="getBadgeForKey(counter.key)!"
+                              :variant="getBadgeVariant(counter.key)"
+                              size="xxs"
+                              class="ms-3"
+                            />
                           </div>
                         </td>
                         <td>
@@ -221,7 +202,9 @@ import PerformanceCounterEnhanced from '@/services/api/model/PerformanceCounterE
 import FeatureType from '@/services/api/model/FeatureType';
 import PerformanceCountersNotAvailableAlert from '@/components/alerts/PerformanceCountersNotAvailableAlert.vue';
 import EmptyState from '@/components/EmptyState.vue';
+import Badge from '@/components/Badge.vue';
 import DataTable from '@/components/table/DataTable.vue';
+import StatsTable from '@/components/StatsTable.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import type { PropType } from 'vue';
 import '@/styles/shared-components.css';
@@ -259,6 +242,21 @@ const categories = computed(() => {
 
   return Array.from(uniqueCategories).sort();
 });
+
+const summaryMetrics = computed(() => [
+  {
+    icon: 'speedometer2',
+    title: 'Total Counters',
+    value: allCounters.value.length.toLocaleString(),
+    variant: 'highlight' as const
+  },
+  {
+    icon: 'folder',
+    title: 'Categories',
+    value: categories.value.length.toLocaleString(),
+    variant: 'info' as const
+  }
+]);
 
 // Organized counters by category
 const organizedCounters = computed(() => {
@@ -399,14 +397,12 @@ const getBadgeForKey = (key: string): string | null => {
   return null;
 };
 
-const getBadgeClass = (key: string): string => {
+const getBadgeVariant = (key: string): string => {
   const prefix = extractKeyPrefix(key);
-  if (prefix === 'sun') {
-    return 'bg-orange text-white'; // JVM badge style - changed to orange
-  } else if (prefix === 'java') {
-    return 'bg-dark-green text-white'; // Java badge style - dark green
+  if (prefix === 'java') {
+    return 'green';
   }
-  return 'bg-secondary text-white';
+  return 'grey';
 };
 
 // Toggle expand/collapse of category nodes
@@ -541,8 +537,8 @@ onMounted(() => {
 }
 
 .counter-key {
-  font-family: monospace;
-  font-size: 0.9rem;
+  font-family: var(--font-monospace);
+  font-size: 0.82rem;
 }
 
 .counter-value {
@@ -551,44 +547,6 @@ onMounted(() => {
 
 .parent-row {
   background-color: var(--color-light);
-}
-
-.badge {
-  font-size: 0.8rem;
-  font-weight: 500;
-  padding: 0.3em 0.6em;
-}
-
-/* Summary styles */
-.counter-summary .card {
-  border: none;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-}
-
-.summary-item {
-  text-align: center;
-  padding: 0.5rem;
-}
-
-.summary-value {
-  margin-bottom: 0.25rem;
-  font-weight: 600;
-  color: var(--color-text);
-}
-
-.summary-label {
-  margin-bottom: 0;
-  font-size: 0.875rem;
-  color: var(--color-text-muted);
-}
-
-/* Custom badge colors */
-.bg-dark-green {
-  background-color: var(--color-green-dark); /* Dark green color */
-}
-
-.bg-orange {
-  background-color: var(--color-orange); /* Orange color */
 }
 
 /* Description icon style */
