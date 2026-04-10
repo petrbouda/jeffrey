@@ -108,14 +108,14 @@ class SingleReplyStreamingSubscriberTest {
     class BatchSize {
 
         @Test
-        void eachBatchHasAtMost100Events(@TempDir Path tempDir) throws IOException {
+        void eachBatchHasAtMostBatchSizeEvents(@TempDir Path tempDir) throws IOException {
             var batches = readFile(JfrTestFiles.PROFILE_1, Set.of("jdk.CPULoad"),
                     StreamingWindow.UNBOUNDED, tempDir);
 
-            assertTrue(batches.size() > 1, "Should produce multiple batches");
+            assertFalse(batches.isEmpty(), "Should produce at least one batch");
             for (EventBatch batch : batches) {
-                assertTrue(batch.getEventsCount() <= 100,
-                        "Batch has " + batch.getEventsCount() + " events, expected <= 100");
+                assertTrue(batch.getEventsCount() <= 1000,
+                        "Batch has " + batch.getEventsCount() + " events, expected <= 1000");
             }
         }
     }

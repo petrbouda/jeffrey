@@ -148,11 +148,6 @@
 
     <!-- Step 2: Event Types -->
     <div v-if="currentStep === 2" class="scm-step-content">
-      <div class="scm-note">
-        <i class="bi bi-info-circle"></i>
-        Events are read from dumped recording files. All event types including
-        CPU profiling events collected by async-profiler are available.
-      </div>
       <EventTypeSelector v-model="localEventTypes" />
     </div>
 

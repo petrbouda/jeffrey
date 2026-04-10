@@ -45,10 +45,7 @@ public class ReplayStreamingSubscriber implements Closeable {
     private final Path replayTempDir;
     private final AtomicBoolean closed = new AtomicBoolean(false);
 
-    public ReplayStreamingSubscriber(
-            ReplayStreamSubscription subscription,
-            StreamingCallbacks callbacks) {
-
+    public ReplayStreamingSubscriber(ReplayStreamSubscription subscription, StreamingCallbacks callbacks) {
         this.subscription = subscription;
         this.callbacks = callbacks;
         this.replayTempDir = subscription.tempDir()

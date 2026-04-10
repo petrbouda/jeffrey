@@ -20,7 +20,6 @@ package pbouda.jeffrey.server.core.grpc;
 
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
-import io.grpc.protobuf.services.ProtoReflectionServiceV1;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -78,8 +77,7 @@ public class GrpcServerConfiguration {
                 .addService(new RecordingDownloadGrpcService(platformRepositories, repositoryManagerFactory))
                 .addService(new WorkspaceEventsGrpcService(workspaceEventReader))
                 .addService(new EventStreamingGrpcService(jeffreyDirs, platformRepositories, liveStreamingManager, replayStreamingManager, repositoryStorageFactory))
-                .addService(ProtoReflectionServiceV1.newInstance())
-                .build();
+                 .build();
     }
 
     @EventListener(ContextRefreshedEvent.class)

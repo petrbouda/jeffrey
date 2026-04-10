@@ -253,6 +253,7 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
                 .filter(RepositoryFile::isRecordingFile)
                 .filter(file -> file.status() == RecordingStatus.FINISHED)
                 .filter(file -> recordingIds == null || recordingIds.contains(file.id()))
+                .sorted(Comparator.comparing(RepositoryFile::createdAt))
                 .map(file -> ensureCompressed(sessionId, file))
                 .filter(Objects::nonNull)
                 .distinct()

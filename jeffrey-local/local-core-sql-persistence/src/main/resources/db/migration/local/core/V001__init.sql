@@ -60,7 +60,6 @@ CREATE TABLE IF NOT EXISTS recording_files
     size_in_bytes  BIGINT  NOT NULL
 );
 
-CREATE INDEX IF NOT EXISTS idx_recording_files_recording_id ON recording_files(recording_id);
 
 CREATE TABLE IF NOT EXISTS recording_groups
 (

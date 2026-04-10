@@ -93,9 +93,10 @@ public class JdbcWorkspacesRepository implements WorkspacesRepository {
      */
     private static RowMapper<RemoteWorkspaceInfo> connectionMapper() {
         return (rs, _) -> {
+            String workspaceId = rs.getString("workspace_id");
             return new RemoteWorkspaceInfo(
-                    rs.getString("workspace_id"),
-                    null,
+                    workspaceId,
+                    workspaceId,
                     null,
                     new WorkspaceAddress(rs.getString("hostname"), rs.getInt("port")),
                     Instant.EPOCH,

@@ -123,7 +123,7 @@
         <span :class="connected ? 'status-strip-connected' : ''">{{ connected ? 'Connected' : 'Disconnected' }}</span>
       </div>
       <span class="status-strip-item">
-        <i class="bi bi-collection"></i> {{ events.length }} events
+        <i class="bi bi-collection"></i> {{ totalEventsReceived }} events
       </span>
       <span class="status-strip-item">
         <i class="bi bi-stack"></i> {{ batchCount }} batches
@@ -232,6 +232,7 @@ const batchCount = ref(0)
 const lastBatchTime = ref<number | null>(null)
 const maxDisplayed = ref(200)
 const maxEvents = ref(1000)
+const totalEventsReceived = ref(0)
 
 let client: EventStreamingClient | null = null
 
@@ -283,6 +284,7 @@ function startStreaming() {
   // Fresh subscription → clean slate
   events.value = []
   batchCount.value = 0
+  totalEventsReceived.value = 0
   lastBatchTime.value = null
   failedSessions.value = new Set()
 
@@ -291,6 +293,7 @@ function startStreaming() {
     eventTypes.value,
     (batch) => {
       batchCount.value++
+      totalEventsReceived.value += batch.length
       lastBatchTime.value = Date.now()
       events.value.push(...batch)
       const limit = maxEvents.value
@@ -326,6 +329,7 @@ function clearAll() {
   eventTypes.value = []
   events.value = []
   batchCount.value = 0
+  totalEventsReceived.value = 0
   lastBatchTime.value = null
   maxDisplayed.value = 200
   maxEvents.value = 1000

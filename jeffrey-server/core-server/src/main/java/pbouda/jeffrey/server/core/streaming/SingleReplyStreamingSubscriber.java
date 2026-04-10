@@ -46,7 +46,7 @@ public class SingleReplyStreamingSubscriber {
 
     private static final Logger LOG = LoggerFactory.getLogger(SingleReplyStreamingSubscriber.class);
 
-    private static final int BATCH_SIZE = 100;
+    private static final int BATCH_SIZE = 1000;
 
     private final ReplayStreamSubscription subscription;
     private final Path tempDir;
@@ -93,23 +93,19 @@ public class SingleReplyStreamingSubscriber {
                 stream.onEvent(eventType, event -> bufferEvent(event, buffer));
             }
 
-            stream.onFlush(() -> {
-                if (!buffer.isEmpty() && !isClosed.get()) {
-                    flush(buffer);
-                }
-            });
-
             stream.onError(t -> {
                 LOG.warn("Error in recording file, skipping chunk: file={} error={}",
                         file.getFileName(), t.getMessage());
                 onError.accept(t);
             });
 
-            stream.start();
-        }
+            stream.onClose(() -> {
+                if (!buffer.isEmpty() && !isClosed.get()) {
+                    flush(buffer);
+                }
+            });
 
-        if (!buffer.isEmpty() && !isClosed.get()) {
-            flush(buffer);
+            stream.start();
         }
     }
 

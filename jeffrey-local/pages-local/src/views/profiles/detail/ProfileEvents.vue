@@ -59,104 +59,103 @@
       </div>
     </div>
 
-    <!-- Selecteadd d Event Type Content -->
-    <div v-if="selectedEventType" class="card mb-4">
-      <div class="card-header d-flex justify-content-between align-items-center">
-        <span>
-          <strong>{{ selectedEventType.name }}</strong>
-          <span class="text-muted ms-2">({{ selectedEventType.code }})</span>
-        </span>
-        <div class="d-flex align-items-center">
-          <Badge
-            :value="`${selectedEventType.count} samples`"
-            variant="blue"
-            size="xs"
-            class="me-2"
-          />
-          <Badge
-            v-if="eventData.length > 200"
-            :value="`Showing 200 of ${eventData.length} rows`"
-            variant="cyan"
-            size="xs"
-            icon="bi-info-circle"
-            class="me-3"
-          />
-          <button
-            v-if="!showEventTypeList"
-            class="btn btn-sm btn-outline-secondary"
-            @click="toggleEventTypeList"
-          >
-            <i class="bi bi-pencil"></i> Change
-          </button>
+    <!-- Selected Event Type Config Panel -->
+    <div v-if="selectedEventType" class="event-config-card mb-3">
+      <div class="event-config-main">
+        <div class="event-config-icon"><i class="bi bi-cpu"></i></div>
+        <div class="event-config-info">
+          <div class="event-config-name">{{ selectedEventType.name }}</div>
+          <div class="event-config-code">{{ selectedEventType.code }}</div>
         </div>
       </div>
-      <div class="card-body p-0">
-        <div v-if="loadingEventData" class="p-4 text-center">
-          <div class="spinner-border spinner-border-sm" role="status">
-            <span class="visually-hidden">Loading...</span>
-          </div>
-          <span class="ms-2">Loading event data...</span>
+      <div class="event-config-stats">
+        <div class="event-config-stat">
+          <div class="event-config-stat-value">{{ FormattingService.formatNumber(selectedEventType.count) }}</div>
+          <div class="event-config-stat-label">Total Samples</div>
         </div>
-        <div v-else-if="eventColumns.length === 0" class="p-4 text-center">
-          <i class="bi bi-exclamation-triangle me-2"></i>
-          No event columns found for this event type
+        <div class="event-config-stat">
+          <div class="event-config-stat-value">{{ FormattingService.formatNumber(Math.min(200, filteredEventData.length)) }}</div>
+          <div class="event-config-stat-label">Showing</div>
         </div>
-        <div v-else-if="eventData.length === 0" class="p-4 text-center">
-          <i class="bi bi-info-circle me-2"></i>
-          No event data found for this event type
-        </div>
-        <div v-else>
-          <DataTable table-class="event-tree-table">
-              <thead>
-                <tr>
-                  <th v-for="column in eventColumns" :key="column.field">
-                    <div class="d-flex flex-column">
-                      <!-- Column header -->
-                      <div
-                        class="d-flex align-items-center mb-1"
-                        :class="{ sortable: isSortableField(column.type) }"
-                        @click="isSortableField(column.type) && toggleSort(column.field)"
-                      >
-                        <span>{{ column.header }}</span>
-                        <span v-if="isSortableField(column.type)" class="ms-1">
-                          <i
-                            v-if="sortConfig && sortConfig.field === column.field"
-                            :class="
-                              sortConfig.direction === 'asc' ? 'bi bi-sort-up' : 'bi bi-sort-down'
-                            "
-                          ></i>
-                          <i v-else class="bi bi-sort text-muted"></i>
-                        </span>
-                      </div>
+      </div>
+      <div class="event-config-actions">
+        <button
+          v-if="!showEventTypeList"
+          class="event-config-btn"
+          @click="toggleEventTypeList"
+        >
+          <i class="bi bi-pencil"></i> Change
+        </button>
+      </div>
+    </div>
 
-                      <!-- Filter input for string columns -->
-                      <div v-if="isStringField(column.field, column.type)" class="column-filter">
-                        <input
-                          type="text"
-                          class="form-control form-control-sm filter-input"
-                          :placeholder="'Filter...'"
-                          v-model="columnFilters[column.field]"
-                          @click.stop
-                          @input="applyFilters"
-                        />
-                      </div>
-                    </div>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr class="leaf-row" v-for="(event, index) in limitedEventData" :key="index">
-                  <td v-for="column in eventColumns" :key="column.field" class="event-cell">
-                    <div class="event-name-cell">
-                      <span class="event-value">{{
-                        FormattingService.format(event[column.field], column.type || '')
-                      }}</span>
-                    </div>
-                  </td>
-                </tr>
-              </tbody>
-          </DataTable>
+    <!-- Event Data Table -->
+    <div v-if="selectedEventType">
+      <div v-if="loadingEventData" class="p-4 text-center">
+        <div class="spinner-border spinner-border-sm" role="status">
+          <span class="visually-hidden">Loading...</span>
         </div>
+        <span class="ms-2">Loading event data...</span>
+      </div>
+      <div v-else-if="eventColumns.length === 0" class="p-4 text-center">
+        <i class="bi bi-exclamation-triangle me-2"></i>
+        No event columns found for this event type
+      </div>
+      <div v-else-if="eventData.length === 0" class="p-4 text-center">
+        <i class="bi bi-info-circle me-2"></i>
+        No event data found for this event type
+      </div>
+      <div v-else>
+        <DataTable table-class="event-tree-table">
+            <thead>
+              <tr>
+                <th v-for="column in eventColumns" :key="column.field">
+                  <div class="d-flex flex-column">
+                    <!-- Column header -->
+                    <div
+                      class="d-flex align-items-center mb-1"
+                      :class="{ sortable: isSortableField(column.type) }"
+                      @click="isSortableField(column.type) && toggleSort(column.field)"
+                    >
+                      <span>{{ column.header }}</span>
+                      <span v-if="isSortableField(column.type)" class="ms-1">
+                        <i
+                          v-if="sortConfig && sortConfig.field === column.field"
+                          :class="
+                            sortConfig.direction === 'asc' ? 'bi bi-sort-up' : 'bi bi-sort-down'
+                          "
+                        ></i>
+                        <i v-else class="bi bi-sort text-muted"></i>
+                      </span>
+                    </div>
+
+                    <!-- Filter input for string columns -->
+                    <div v-if="isStringField(column.field, column.type)" class="column-filter">
+                      <input
+                        type="text"
+                        class="form-control form-control-sm filter-input"
+                        :placeholder="'Filter...'"
+                        v-model="columnFilters[column.field]"
+                        @click.stop
+                        @input="applyFilters"
+                      />
+                    </div>
+                  </div>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="leaf-row" v-for="(event, index) in limitedEventData" :key="index">
+                <td v-for="column in eventColumns" :key="column.field" class="event-cell">
+                  <div class="event-name-cell">
+                    <span class="event-value">{{
+                      FormattingService.format(event[column.field], column.type || '')
+                    }}</span>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+        </DataTable>
       </div>
     </div>
   </PageHeader>
@@ -424,15 +423,7 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.events-title {
-  font-size: 1.75rem;
-  font-weight: 600;
-  color: var(--color-dark);
-  margin-bottom: 0.5rem;
-  display: flex;
-  align-items: center;
-}
-
+/* Event type list */
 .event-type-list {
   overflow-y: auto;
 }
@@ -456,7 +447,113 @@ onMounted(async () => {
   color: var(--color-dark);
 }
 
-/* Table styles */
+/* ===== Event Config Card (Option D) ===== */
+.event-config-card {
+  display: flex;
+  align-items: stretch;
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.event-config-main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+}
+
+.event-config-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-base);
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95rem;
+  flex-shrink: 0;
+}
+
+.event-config-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.event-config-name {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--color-dark);
+}
+
+.event-config-code {
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+}
+
+.event-config-stats {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 0 18px;
+  border-left: 1px solid var(--color-border-light);
+}
+
+.event-config-stat {
+  text-align: center;
+}
+
+.event-config-stat-value {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-dark);
+  line-height: 1.2;
+}
+
+.event-config-stat-label {
+  font-size: 0.62rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+}
+
+.event-config-actions {
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  border-left: 1px solid var(--color-border-light);
+}
+
+.event-config-btn {
+  height: 30px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-white);
+  font-family: var(--font-family-base);
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: var(--transition-fast);
+  white-space: nowrap;
+}
+
+.event-config-btn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: var(--color-primary-light);
+}
+
+/* ===== Table styles ===== */
 .event-tree-table {
   width: 100%;
   table-layout: auto;
@@ -510,11 +607,5 @@ th {
 .filter-input:focus {
   box-shadow: none;
   border-color: var(--color-accent-blue);
-}
-
-/* Dropdown styles */
-.bi-empty {
-  width: 1em;
-  display: inline-block;
 }
 </style>

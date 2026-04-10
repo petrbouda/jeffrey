@@ -129,7 +129,7 @@
         <span :class="replaying ? 'status-strip-connected' : ''">{{ statusText }}</span>
       </div>
       <span class="status-strip-item">
-        <i class="bi bi-collection"></i> {{ events.length }} events
+        <i class="bi bi-collection"></i> {{ totalEventsReceived }} events
       </span>
       <span class="status-strip-item">
         <i class="bi bi-stack"></i> {{ batchCount }} batches
@@ -239,6 +239,7 @@ const batchCount = ref(0)
 const lastBatchTime = ref<number | null>(null)
 const maxDisplayed = ref(200)
 const maxEvents = ref(1000)
+const totalEventsReceived = ref(0)
 
 let client: ReplayStreamClient | null = null
 
@@ -314,6 +315,7 @@ function startReplay() {
   // Fresh replay → clean slate
   events.value = []
   batchCount.value = 0
+  totalEventsReceived.value = 0
   lastBatchTime.value = null
   completed.value = false
 
@@ -322,6 +324,7 @@ function startReplay() {
     eventTypes.value,
     (batch) => {
       batchCount.value++
+      totalEventsReceived.value += batch.length
       lastBatchTime.value = Date.now()
       events.value.push(...batch)
       const limit = maxEvents.value
@@ -359,6 +362,7 @@ function clearAll() {
   endTimeInput.value = ''
   events.value = []
   batchCount.value = 0
+  totalEventsReceived.value = 0
   lastBatchTime.value = null
   maxDisplayed.value = 200
   maxEvents.value = 1000
