@@ -94,7 +94,7 @@
                   v-for="et in visibleEventTags"
                   :key="et"
                   class="summary-tag"
-                  :class="'summary-tag--' + getEventTypePrefix(et)"
+                  :style="{ backgroundColor: eventTypeColor(et) + '18', color: eventTypeColor(et), borderColor: eventTypeColor(et) + '40' }"
                 >{{ et }}</span>
                 <a v-if="overflowCount > 0 && !eventTagsExpanded" href="#" class="summary-overflow" @click.prevent="eventTagsExpanded = true">+{{ overflowCount }} more</a>
                 <a v-if="eventTagsExpanded && overflowCount > 0" href="#" class="summary-overflow" @click.prevent="eventTagsExpanded = false">Show less</a>
@@ -124,10 +124,6 @@
 
     <!-- Status Strip (visible when replaying or has events) -->
     <div v-if="replaying || events.length > 0" class="status-strip mb-3">
-      <div class="status-strip-item">
-        <span class="status-strip-dot" :class="replaying ? 'dot-active' : completed ? 'dot-completed' : 'dot-idle'"></span>
-        <span :class="replaying ? 'status-strip-connected' : ''">{{ statusText }}</span>
-      </div>
       <span class="status-strip-item">
         <i class="bi bi-collection"></i> {{ totalEventsReceived }} events
       </span>
@@ -140,60 +136,22 @@
     </div>
 
     <!-- Events Table -->
-    <EmptyState
-      v-if="events.length === 0"
-      title="No events"
-      :description="
-        replaying
-          ? 'Reading events from recording files...'
-          : 'Select a session and click Start Replay to read historical events.'
-      "
-      icon="bi-collection-play"
-    />
-
-    <div v-else class="table-responsive">
-      <table class="table table-sm table-hover mb-0">
-        <thead>
-          <tr>
-            <th style="width: 180px">Timestamp</th>
-            <th style="width: 250px">Event Type</th>
-            <th>Fields</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr
-            v-for="(event, index) in displayedEvents"
-            :key="index"
-          >
-            <td class="text-nowrap">
-              <code>{{ FormattingService.formatTimestamp(event.timestamp) }}</code>
-            </td>
-            <td>
-              <Badge :value="event.eventType" variant="primary" size="s" />
-            </td>
-            <td>
-              <div class="fields-container">
-                <span
-                  v-for="(value, key) in event.fields"
-                  :key="key"
-                  class="field-tag"
-                >
-                  <span class="field-key">{{ key }}</span>=<span class="field-value">{{ Utils.typedValueToDisplay(value) }}</span>
-                </span>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <!-- Show More -->
-    <div v-if="events.length > maxDisplayed" class="text-center mt-2">
-      <small class="text-muted">
-        Showing {{ maxDisplayed }} of {{ events.length }} events.
-        <a href="#" @click.prevent="maxDisplayed += 200">Show more</a>
-      </small>
-    </div>
+    <StreamingEventsTable
+      :events="events"
+      :event-types="eventTypes"
+    >
+      <template #empty>
+        <EmptyState
+          title="No events"
+          :description="
+            replaying
+              ? 'Reading events from recording files...'
+              : 'Select a session and click Start Replay to read historical events.'
+          "
+          icon="bi-collection-play"
+        />
+      </template>
+    </StreamingEventsTable>
   </PageHeader>
 
   <ReplayConfigDrawer
@@ -210,17 +168,20 @@
 import { computed, onUnmounted, ref } from 'vue'
 import PageHeader from '@/components/layout/PageHeader.vue'
 import EmptyState from '@/components/EmptyState.vue'
-import Badge from '@/components/Badge.vue'
+import StreamingEventsTable from '@/components/streaming/StreamingEventsTable.vue'
 import ReplayConfigDrawer from '@/components/streaming/ReplayConfigDrawer.vue'
 import type { ReplayStreamConfig, ReplayStartMode, ReplayEndMode, SelectedSession } from '@/components/streaming/ReplayConfigDrawer.vue'
 import FormattingService from '@/services/FormattingService'
 import ReplayStreamClient from '@/services/api/ReplayStreamClient'
 import type { StreamingEvent } from '@/services/api/EventStreamingClient'
-import { getEventTypePrefix } from '@/services/EventTypeCatalog'
-import Utils from '@/services/Utils'
+import ToastService from '@/services/ToastService'
 import { useNavigation } from '@/composables/useNavigation'
 
 const MAX_VISIBLE_TAGS = 3
+const EVENT_TYPE_COLORS = [
+  '#5e64ff', '#0d9488', '#f59e0b', '#8b5cf6', '#e63757',
+  '#39afd1', '#fd7e14', '#00d27a', '#6f42c1', '#daa520'
+]
 
 const { workspaceId, projectId } = useNavigation()
 
@@ -237,7 +198,6 @@ const completed = ref(false)
 const events = ref<StreamingEvent[]>([])
 const batchCount = ref(0)
 const lastBatchTime = ref<number | null>(null)
-const maxDisplayed = ref(200)
 const maxEvents = ref(1000)
 const totalEventsReceived = ref(0)
 
@@ -264,6 +224,16 @@ const visibleEventTags = computed(() =>
 )
 const overflowCount = computed(() => Math.max(0, eventTypes.value.length - MAX_VISIBLE_TAGS))
 
+const eventTypeColorMap = computed(() => {
+  const map: Record<string, number> = {}
+  eventTypes.value.forEach((et, i) => { map[et] = i % EVENT_TYPE_COLORS.length })
+  return map
+})
+
+function eventTypeColor(et: string): string {
+  return EVENT_TYPE_COLORS[eventTypeColorMap.value[et] ?? 0]
+}
+
 function datetimeLocalToMillis(value: string): number {
   return new Date(value).getTime()
 }
@@ -282,10 +252,6 @@ const timeSummaryEnd = computed(() => {
     return FormattingService.formatDateTime(new Date(endTimeInput.value))
   }
   return 'Latest'
-})
-
-const displayedEvents = computed(() => {
-  return events.value.slice(-maxDisplayed.value).reverse()
 })
 
 function onConfigApply(config: ReplayStreamConfig) {
@@ -336,9 +302,10 @@ function startReplay() {
       replaying.value = false
       completed.value = true
     },
-    () => {
+    (error) => {
       replaying.value = false
       completed.value = true
+      ToastService.error('Replay failed', error)
     },
     options
   )
@@ -364,7 +331,6 @@ function clearAll() {
   batchCount.value = 0
   totalEventsReceived.value = 0
   lastBatchTime.value = null
-  maxDisplayed.value = 200
   maxEvents.value = 1000
   completed.value = false
 }
@@ -535,16 +501,12 @@ onUnmounted(() => {
   align-items: center;
   padding: 3px 10px;
   border-radius: var(--radius-sm);
+  border: 1px solid transparent;
   font-size: 0.75rem;
   font-weight: 500;
   font-family: var(--font-monospace);
   white-space: nowrap;
 }
-
-.summary-tag--jdk { background: var(--color-blue-bg); color: var(--color-blue-text); }
-.summary-tag--jeffrey { background: var(--color-violet-light); color: var(--color-violet); }
-.summary-tag--profiler { background: var(--color-teal-light); color: var(--color-teal); }
-.summary-tag--custom { background: var(--color-amber-light); color: var(--color-amber-text); }
 
 .summary-overflow {
   font-size: 0.75rem;
@@ -677,42 +639,4 @@ onUnmounted(() => {
   font-size: 0.7rem;
 }
 
-.status-strip-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  display: inline-block;
-}
-
-.status-strip-connected {
-  color: var(--color-success);
-  font-weight: 500;
-}
-
-/* ===== Events Table Fields ===== */
-.fields-container {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-
-.field-tag {
-  display: inline-flex;
-  align-items: center;
-  padding: 1px 6px;
-  background: var(--color-light);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-xs);
-  font-size: 0.75rem;
-  font-family: var(--font-monospace);
-}
-
-.field-key {
-  color: var(--color-primary);
-  font-weight: 500;
-}
-
-.field-value {
-  color: var(--color-body);
-}
 </style>

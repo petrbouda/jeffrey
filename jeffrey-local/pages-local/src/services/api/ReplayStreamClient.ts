@@ -64,6 +64,8 @@ export default class ReplayStreamClient {
 
     const url = `${this.baseUrl}/subscribe?${params.toString()}`
 
+    let finished = false
+
     this.eventSource = new EventSource(url)
 
     this.eventSource.addEventListener('events', (event: MessageEvent) => {
@@ -71,9 +73,25 @@ export default class ReplayStreamClient {
       onEvents(events)
     })
 
+    this.eventSource.addEventListener('complete', () => {
+      if (finished) return
+      finished = true
+      this.cancel()
+      onComplete()
+    })
+
+    this.eventSource.addEventListener('replayError', (event: MessageEvent) => {
+      if (finished) return
+      finished = true
+      this.cancel()
+      onError(event.data || 'Replay error')
+    })
+
     this.eventSource.onerror = () => {
       this.cancel()
-      onError('Replay connection lost')
+      if (finished) return
+      finished = true
+      onComplete()
     }
   }
 

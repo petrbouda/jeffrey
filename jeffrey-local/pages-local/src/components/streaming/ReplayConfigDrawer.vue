@@ -213,11 +213,25 @@
             v-for="option in maxEventsOptions"
             :key="option"
             class="scm-option-btn"
-            :class="{ active: localMaxEvents === option }"
-            @click="localMaxEvents = option"
+            :class="{ active: !customMaxEvents && localMaxEvents === option }"
+            @click="selectPresetMaxEvents(option)"
           >
             {{ option.toLocaleString() }}
           </button>
+          <button
+            class="scm-option-btn"
+            :class="{ active: customMaxEvents }"
+            @click="enableCustomMaxEvents"
+          >
+            Custom
+          </button>
+          <input
+            v-if="customMaxEvents"
+            v-model.number="localMaxEvents"
+            type="number"
+            class="scm-input"
+            style="width: 140px"
+          />
         </div>
         <div class="scm-toggle-desc">Maximum number of events kept in the table. Oldest events are discarded when the limit is reached.</div>
       </div>
@@ -327,6 +341,7 @@ const localStartTime = ref('')
 const endMode = ref<ReplayEndMode>('latest')
 const localEndTime = ref('')
 const localMaxEvents = ref(1000)
+const customMaxEvents = ref(false)
 const maxEventsOptions = [500, 1000, 5000, 10000]
 
 const allFilteredGroups = computed(() => {
@@ -368,6 +383,7 @@ watch(
       endMode.value = props.config.endMode
       localEndTime.value = props.config.endTime
       localMaxEvents.value = props.config.maxEvents
+      customMaxEvents.value = !maxEventsOptions.includes(props.config.maxEvents)
       sessionSearchQuery.value = ''
       loadSessions()
     }
@@ -419,6 +435,18 @@ function setEndMode(mode: ReplayEndMode) {
   endMode.value = mode
   if (mode !== 'custom') {
     localEndTime.value = ''
+  }
+}
+
+function selectPresetMaxEvents(option: number) {
+  customMaxEvents.value = false
+  localMaxEvents.value = option
+}
+
+function enableCustomMaxEvents() {
+  customMaxEvents.value = true
+  if (maxEventsOptions.includes(localMaxEvents.value)) {
+    localMaxEvents.value = localMaxEvents.value
   }
 }
 

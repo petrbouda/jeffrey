@@ -89,9 +89,13 @@ public class ProjectReplayStreamResource {
                     }
                     sendSseBatch(eventSink, sse, batch);
                 },
-                () -> closeSink(eventSink),
+                () -> {
+                    sendSseComplete(eventSink, sse);
+                    closeSink(eventSink);
+                },
                 error -> {
-                    LOG.warn("Session replay errored: sessionId={}", sessionId);
+                    LOG.warn("Session replay errored: sessionId={}", sessionId, error);
+                    sendSseError(eventSink, sse, error);
                     closeSink(eventSink);
                 });
 
@@ -134,6 +138,35 @@ public class ProjectReplayStreamResource {
                     .build());
         } catch (Exception e) {
             LOG.warn("Failed to send SSE event, client likely disconnected: {}", e.getMessage());
+        }
+    }
+
+    private static void sendSseComplete(SseEventSink eventSink, Sse sse) {
+        if (eventSink.isClosed()) {
+            return;
+        }
+        try {
+            eventSink.send(sse.newEventBuilder()
+                    .name("complete")
+                    .data("")
+                    .build());
+        } catch (Exception e) {
+            LOG.warn("Failed to send SSE complete event: {}", e.getMessage());
+        }
+    }
+
+    private static void sendSseError(SseEventSink eventSink, Sse sse, Throwable error) {
+        if (eventSink.isClosed()) {
+            return;
+        }
+        try {
+            String message = error.getMessage() != null ? error.getMessage() : "Unknown error";
+            eventSink.send(sse.newEventBuilder()
+                    .name("replayError")
+                    .data(message)
+                    .build());
+        } catch (Exception e) {
+            LOG.warn("Failed to send SSE error event: {}", e.getMessage());
         }
     }
 

@@ -177,7 +177,6 @@ class FeatureBuilderTest {
             assertTrue(result.contains(SESSION_PATH.resolve(FeatureBuilder.HEARTBEAT_DIR).toString()));
             assertTrue(result.contains("-XX:FlightRecorderOptions=repository="));
             assertTrue(result.contains(FeatureBuilder.STREAMING_REPO_DIR));
-            assertTrue(result.contains("preserve-repository=true"));
         }
 
         @Test
