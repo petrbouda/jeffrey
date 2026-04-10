@@ -36,47 +36,40 @@ public class RemoteInstancesClient {
         this.stub = InstanceServiceGrpc.newBlockingStub(connection.getChannel());
     }
 
-    public List<InstanceResponse> projectInstances(String workspaceId, String projectId) {
+    public List<InstanceResponse> projectInstances(String projectId) {
         ListInstancesResponse response = stub.listInstances(
                 ListInstancesRequest.newBuilder()
-                        .setWorkspaceId(workspaceId)
                         .setProjectId(projectId)
                         .build());
 
-        LOG.debug("Listed instances via gRPC: workspaceId={} projectId={} count={}",
-                workspaceId, projectId, response.getInstancesCount());
+        LOG.debug("Listed instances via gRPC: projectId={} count={}",
+                projectId, response.getInstancesCount());
 
         return response.getInstancesList().stream()
                 .map(RemoteInstancesClient::toInstanceResponse)
                 .toList();
     }
 
-    public InstanceResponse projectInstance(String workspaceId, String projectId, String instanceId) {
+    public InstanceResponse projectInstance(String instanceId) {
         GetInstanceResponse response = stub.getInstance(
                 GetInstanceRequest.newBuilder()
-                        .setWorkspaceId(workspaceId)
-                        .setProjectId(projectId)
                         .setInstanceId(instanceId)
                         .build());
 
-        LOG.debug("Fetched instance via gRPC: workspaceId={} projectId={} instanceId={}",
-                workspaceId, projectId, instanceId);
+        LOG.debug("Fetched instance via gRPC: instanceId={}", instanceId);
 
         return toInstanceResponse(response.getInstance());
     }
 
-    public List<InstanceSessionResponse> projectInstanceSessions(
-            String workspaceId, String projectId, String instanceId) {
+    public List<InstanceSessionResponse> projectInstanceSessions(String instanceId) {
 
         ListInstanceSessionsResponse response = stub.listInstanceSessions(
                 ListInstanceSessionsRequest.newBuilder()
-                        .setWorkspaceId(workspaceId)
-                        .setProjectId(projectId)
                         .setInstanceId(instanceId)
                         .build());
 
-        LOG.debug("Listed instance sessions via gRPC: workspaceId={} projectId={} instanceId={} count={}",
-                workspaceId, projectId, instanceId, response.getSessionsCount());
+        LOG.debug("Listed instance sessions via gRPC: instanceId={} count={}",
+                instanceId, response.getSessionsCount());
 
         return response.getSessionsList().stream()
                 .map(RemoteInstancesClient::toSessionResponse)
@@ -86,7 +79,7 @@ public class RemoteInstancesClient {
     private static InstanceResponse toInstanceResponse(InstanceInfo proto) {
         return new InstanceResponse(
                 proto.getId(),
-                proto.getHostname().isEmpty() ? null : proto.getHostname(),
+                proto.getInstanceName().isEmpty() ? null : proto.getInstanceName(),
                 fromProtoInstanceStatus(proto.getStatus()),
                 proto.getCreatedAt(),
                 proto.hasFinishedAt() ? proto.getFinishedAt() : null,

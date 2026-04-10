@@ -39,10 +39,9 @@ public class RemoteRepositoryClient {
         this.stub = RepositoryServiceGrpc.newBlockingStub(connection.getChannel());
     }
 
-    public List<RecordingSessionResponse> recordingSessions(String workspaceId, String projectId) {
+    public List<RecordingSessionResponse> recordingSessions(String projectId) {
         ListSessionsResponse response = stub.listSessions(
                 ListSessionsRequest.newBuilder()
-                        .setWorkspaceId(workspaceId)
                         .setProjectId(projectId)
                         .build());
 
@@ -51,21 +50,18 @@ public class RemoteRepositoryClient {
                 .toList();
     }
 
-    public RecordingSessionResponse recordingSession(String workspaceId, String projectId, String sessionId) {
+    public RecordingSessionResponse recordingSession(String sessionId) {
         GetSessionResponse response = stub.getSession(
                 GetSessionRequest.newBuilder()
-                        .setWorkspaceId(workspaceId)
-                        .setProjectId(projectId)
                         .setSessionId(sessionId)
                         .build());
 
         return toSessionResponse(response.getSession());
     }
 
-    public RepositoryStatisticsResponse repositoryStatistics(String workspaceId, String projectId) {
+    public RepositoryStatisticsResponse repositoryStatistics(String projectId) {
         GetRepositoryStatisticsResponse response = stub.getRepositoryStatistics(
                 GetRepositoryStatisticsRequest.newBuilder()
-                        .setWorkspaceId(workspaceId)
                         .setProjectId(projectId)
                         .build());
 
@@ -90,29 +86,24 @@ public class RemoteRepositoryClient {
                 response.getOtherSize());
     }
 
-    public void deleteSession(String workspaceId, String projectId, String sessionId) {
+    public void deleteSession(String sessionId) {
         stub.deleteSession(
                 DeleteSessionRequest.newBuilder()
-                        .setWorkspaceId(workspaceId)
-                        .setProjectId(projectId)
                         .setSessionId(sessionId)
                         .build());
 
-        LOG.debug("Deleted session via gRPC: workspaceId={} projectId={} sessionId={}",
-                workspaceId, projectId, sessionId);
+        LOG.debug("Deleted session via gRPC: sessionId={}", sessionId);
     }
 
-    public void deleteFilesInSession(String workspaceId, String projectId, String sessionId, List<String> fileIds) {
+    public void deleteFilesInSession(String sessionId, List<String> fileIds) {
         stub.deleteFilesInSession(
                 DeleteFilesInSessionRequest.newBuilder()
-                        .setWorkspaceId(workspaceId)
-                        .setProjectId(projectId)
                         .setSessionId(sessionId)
                         .addAllFileIds(fileIds)
                         .build());
 
-        LOG.debug("Deleted files in session via gRPC: workspaceId={} projectId={} sessionId={} fileCount={}",
-                workspaceId, projectId, sessionId, fileIds.size());
+        LOG.debug("Deleted files in session via gRPC: sessionId={} fileCount={}",
+                sessionId, fileIds.size());
     }
 
     private static RecordingSessionResponse toSessionResponse(RecordingSession proto) {

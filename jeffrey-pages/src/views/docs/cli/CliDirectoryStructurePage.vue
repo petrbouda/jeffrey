@@ -57,7 +57,7 @@ onMounted(() => {
         │   └── settings-2025-01-15T....json
         └── &lt;project-name&gt;/
             ├── .project-info.json           # Project metadata
-            └── &lt;instance-id&gt;/
+            └── &lt;instance-name&gt;/
                 ├── .instance-info.json      # Instance metadata
                 └── &lt;session-id&gt;/
                     ├── .session-info.json   # Session metadata

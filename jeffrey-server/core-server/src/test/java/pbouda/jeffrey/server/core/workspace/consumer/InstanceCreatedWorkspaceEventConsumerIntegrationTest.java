@@ -97,7 +97,7 @@ class InstanceCreatedWorkspaceEventConsumerIntegrationTest {
             assertAll(
                     () -> assertEquals("inst-new-001", instance.get().id()),
                     () -> assertEquals(PROJECT_ID, instance.get().projectId()),
-                    () -> assertEquals("inst-new-001", instance.get().hostname()),
+                    () -> assertEquals("inst-new-001", instance.get().instanceName()),
                     () -> assertEquals(ProjectInstanceStatus.PENDING, instance.get().status()),
                     () -> assertEquals(Instant.parse("2025-06-15T10:00:00Z"), instance.get().startedAt()),
                     () -> assertNull(instance.get().finishedAt())

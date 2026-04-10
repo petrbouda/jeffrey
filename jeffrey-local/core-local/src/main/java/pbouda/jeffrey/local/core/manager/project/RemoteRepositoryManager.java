@@ -32,7 +32,6 @@ import pbouda.jeffrey.shared.common.model.repository.RecordingSession;
 import pbouda.jeffrey.shared.common.model.repository.RepositoryStatistics;
 import pbouda.jeffrey.shared.common.model.repository.StreamedRecordingFile;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEventCreator;
-import pbouda.jeffrey.local.persistence.model.RemoteWorkspaceInfo;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -43,27 +42,24 @@ public class RemoteRepositoryManager implements RepositoryManager {
 
     private final LocalJeffreyDirs jeffreyDirs;
     private final ProjectInfo projectInfo;
-    private final RemoteWorkspaceInfo workspaceInfo;
     private final RemoteRepositoryClient repositoryClient;
     private final RemoteRecordingStreamClient recordingStreamClient;
 
     public RemoteRepositoryManager(
             LocalJeffreyDirs jeffreyDirs,
             ProjectInfo projectInfo,
-            RemoteWorkspaceInfo workspaceInfo,
             RemoteRepositoryClient repositoryClient,
             RemoteRecordingStreamClient recordingStreamClient) {
 
         this.jeffreyDirs = jeffreyDirs;
         this.projectInfo = projectInfo;
-        this.workspaceInfo = workspaceInfo;
         this.repositoryClient = repositoryClient;
         this.recordingStreamClient = recordingStreamClient;
     }
 
     @Override
     public List<RecordingSession> listRecordingSessions(boolean withFiles) {
-        return repositoryClient.recordingSessions(workspaceInfo.id(), projectInfo.id()).stream()
+        return repositoryClient.recordingSessions(projectInfo.id()).stream()
                 .map(RecordingSessionResponse::from)
                 .toList();
     }
@@ -71,14 +67,13 @@ public class RemoteRepositoryManager implements RepositoryManager {
     @Override
     public RepositoryStatistics calculateRepositoryStatistics() {
         RepositoryStatisticsResponse response =
-                repositoryClient.repositoryStatistics(workspaceInfo.id(), projectInfo.id());
+                repositoryClient.repositoryStatistics(projectInfo.id());
         return RepositoryStatisticsResponse.from(response);
     }
 
     @Override
     public StreamedRecordingFile streamFile(String sessionId, String fileId) {
-        RecordingSessionResponse session = repositoryClient.recordingSession(
-                workspaceInfo.id(), projectInfo.id(), sessionId);
+        RecordingSessionResponse session = repositoryClient.recordingSession(sessionId);
 
         RepositoryFileResponse fileResponse = session.files().stream()
                 .filter(f -> f.id().equals(fileId))
@@ -94,11 +89,9 @@ public class RemoteRepositoryManager implements RepositoryManager {
             };
 
             if (fileResponse.fileType().fileCategory() == FileCategory.RECORDING) {
-                recordingStreamClient.streamRecordingFile(
-                        workspaceInfo.id(), projectInfo.id(), sessionId, fileId, consumer);
+                recordingStreamClient.streamRecordingFile(sessionId, fileId, consumer);
             } else {
-                recordingStreamClient.streamArtifactFile(
-                        workspaceInfo.id(), projectInfo.id(), sessionId, fileId, consumer);
+                recordingStreamClient.streamArtifactFile(sessionId, fileId, consumer);
             }
         } catch (Exception e) {
             tempDir.close();
@@ -110,12 +103,11 @@ public class RemoteRepositoryManager implements RepositoryManager {
 
     @Override
     public void deleteRecordingSession(String recordingSessionId, WorkspaceEventCreator createdBy) {
-        repositoryClient.deleteSession(workspaceInfo.id(), projectInfo.id(), recordingSessionId);
+        repositoryClient.deleteSession(recordingSessionId);
     }
 
     @Override
     public void deleteFilesInSession(String recordingSessionId, List<String> fileIds) {
-        repositoryClient.deleteFilesInSession(
-                workspaceInfo.id(), projectInfo.id(), recordingSessionId, fileIds);
+        repositoryClient.deleteFilesInSession(recordingSessionId, fileIds);
     }
 }

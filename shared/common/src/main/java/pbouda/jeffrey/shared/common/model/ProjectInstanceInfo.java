@@ -24,7 +24,7 @@ import java.util.Set;
 public record ProjectInstanceInfo(
         String id,
         String projectId,
-        String hostname,
+        String instanceName,
         ProjectInstanceStatus status,
         Instant startedAt,
         Instant finishedAt,
@@ -47,20 +47,6 @@ public record ProjectInstanceInfo(
                 case FINISHED -> Set.of(ACTIVE);
                 case EXPIRED -> Set.of(FINISHED);
             };
-        }
-
-        /**
-         * Validates that transitioning from the given status to this status is allowed.
-         *
-         * @throws IllegalStateException if the transition is invalid
-         */
-        public void validateTransitionFrom(ProjectInstanceStatus currentStatus) {
-            Set<ProjectInstanceStatus> valid = validFromStatuses();
-            if (!valid.contains(currentStatus)) {
-                throw new IllegalStateException(
-                        "Invalid instance status transition: " + currentStatus + " -> " + this
-                                + " (valid sources: " + valid + ")");
-            }
         }
     }
 }

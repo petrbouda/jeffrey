@@ -35,7 +35,7 @@ class InitConfigTest {
 
     // Base config template with all required fields for ConfigBeanFactory
     private static final String BASE_CONFIG = """
-            project { workspace-id = "", name = "", label = "", instance-id = "" }
+            project { workspace-id = "", name = "", label = "", instance-name = "" }
             perf-counters { enabled = false }
             heap-dump { enabled = false }
             jvm-logging { enabled = false }

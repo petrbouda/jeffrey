@@ -106,7 +106,7 @@ public class InitExecutor {
         }
 
         // Create instance folder (from config, HOSTNAME env var, or generated UUID)
-        String instanceId = config.getInstanceId();
+        String instanceId = config.getInstanceName();
         Path instancePath = projectPath.resolve(instanceId);
         Optional<RemoteProjectInstance> instanceOpt = repository.findInstance(instancePath);
         if (instanceOpt.isEmpty()) {

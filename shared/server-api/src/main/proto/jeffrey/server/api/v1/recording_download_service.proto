@@ -24,28 +24,22 @@ service RecordingDownloadService {
 }
 
 message DownloadMergedRecordingsRequest {
-  string workspace_id = 1;
-  string project_id = 2;
   // The recording session containing the files to merge.
-  string session_id = 3;
+  string session_id = 1;
   // Specific file IDs to merge. If empty, all finished recordings are merged.
-  repeated string file_ids = 4;
+  repeated string file_ids = 2;
 }
 
 message DownloadArtifactFileRequest {
-  string workspace_id = 1;
-  string project_id = 2;
-  string session_id = 3;
+  string session_id = 1;
   // The ID of the artifact file to download.
-  string file_id = 4;
+  string file_id = 2;
 }
 
 message DownloadRecordingFileRequest {
-  string workspace_id = 1;
-  string project_id = 2;
-  string session_id = 3;
+  string session_id = 1;
   // The ID of the JFR recording file to download.
-  string file_id = 4;
+  string file_id = 2;
 }
 
 // A chunk of binary data for streaming file transfers.

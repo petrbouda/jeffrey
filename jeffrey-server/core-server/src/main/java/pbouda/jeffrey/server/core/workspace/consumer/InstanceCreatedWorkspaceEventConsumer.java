@@ -64,7 +64,7 @@ public class InstanceCreatedWorkspaceEventConsumer implements WorkspaceEventCons
         ProjectInstanceInfo instanceInfo = new ProjectInstanceInfo(
                 event.originEventId(), // instanceId
                 projectManager.info().id(),
-                event.originEventId(), // hostname (same as instanceId for filesystem-based instances)
+                event.originEventId(), // instanceName (same as instanceId for filesystem-based instances)
                 ProjectInstanceStatus.PENDING,
                 event.originCreatedAt(), // startedAt
                 null, // finishedAt

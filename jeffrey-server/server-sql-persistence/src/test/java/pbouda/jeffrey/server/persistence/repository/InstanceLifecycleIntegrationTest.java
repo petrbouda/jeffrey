@@ -63,7 +63,7 @@ class InstanceLifecycleIntegrationTest {
             assertAll(
                     () -> assertEquals("inst-new", found.get().id()),
                     () -> assertEquals(PROJECT_ID, found.get().projectId()),
-                    () -> assertEquals("new-host.example.com", found.get().hostname()),
+                    () -> assertEquals("new-host.example.com", found.get().instanceName()),
                     () -> assertEquals(ProjectInstanceStatus.PENDING, found.get().status()),
                     () -> assertNull(found.get().finishedAt())
             );

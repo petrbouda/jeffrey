@@ -44,8 +44,6 @@ import java.util.stream.Stream;
 public abstract class FileSystemUtils {
 
     private static final Logger LOG = LoggerFactory.getLogger(FileSystemUtils.class);
-    private static final Comparator<Path> DEFAULT_FILE_COMPARATOR =
-            Comparator.comparing(FileSystemUtils::modifiedAt).reversed();
 
     public static String filenameWithoutExtension(Path path) {
         String fileName = path.getFileName().toString();
@@ -79,13 +77,6 @@ public abstract class FileSystemUtils {
         } catch (IOException e) {
             throw new RuntimeException("Cannot read the last modification time: " + path, e);
         }
-    }
-
-    public static Optional<Instant> directoryModification(Path directory) {
-        return sortedFilesInDirectory(directory, DEFAULT_FILE_COMPARATOR).stream()
-                .filter(file -> Files.isRegularFile(file) && FileSystemUtils.isNotHidden(file))
-                .findFirst()
-                .map(FileSystemUtils::modifiedAt);
     }
 
     public static List<Path> sortedFilesInDirectory(Path directory, Comparator<Path> comparator) {

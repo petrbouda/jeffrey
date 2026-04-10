@@ -20,7 +20,6 @@ package pbouda.jeffrey.local.core.manager;
 
 import pbouda.jeffrey.local.core.client.RemoteProfilerClient;
 import pbouda.jeffrey.shared.common.model.EffectiveProfilerSettings;
-import pbouda.jeffrey.local.persistence.model.RemoteWorkspaceInfo;
 
 /**
  * Remote implementation of ProfilerSettingsManager that calls the remote Jeffrey.
@@ -29,31 +28,28 @@ import pbouda.jeffrey.local.persistence.model.RemoteWorkspaceInfo;
 public class RemoteProfilerSettingsManager implements ProfilerSettingsManager {
 
     private final RemoteProfilerClient profilerClient;
-    private final RemoteWorkspaceInfo workspaceInfo;
     private final String projectId;
 
     public RemoteProfilerSettingsManager(
             RemoteProfilerClient profilerClient,
-            RemoteWorkspaceInfo workspaceInfo,
             String projectId) {
 
         this.profilerClient = profilerClient;
-        this.workspaceInfo = workspaceInfo;
         this.projectId = projectId;
     }
 
     @Override
     public EffectiveProfilerSettings fetchEffectiveSettings() {
-        return profilerClient.fetchProfilerSettings(workspaceInfo.id(), projectId);
+        return profilerClient.fetchProfilerSettings(projectId);
     }
 
     @Override
     public void upsertSettings(String agentSettings) {
-        profilerClient.upsertProfilerSettings(workspaceInfo.id(), projectId, agentSettings);
+        profilerClient.upsertProfilerSettings(projectId, agentSettings);
     }
 
     @Override
     public void deleteSettings() {
-        profilerClient.deleteProfilerSettings(workspaceInfo.id(), projectId);
+        profilerClient.deleteProfilerSettings(projectId);
     }
 }

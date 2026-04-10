@@ -107,6 +107,11 @@
 
         <!-- Test -->
         <dependency>
+            <groupId>io.grpc</groupId>
+            <artifactId>grpc-inprocess</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>test</artifactId>
             <scope>test</scope>

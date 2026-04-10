@@ -44,9 +44,13 @@ public record StreamingCallbacks(
     }
 
     /**
-     * Returns a copy with the given {@code onClose} callback attached.
+     * Returns a copy that runs the existing {@code onClose} first, then the given one.
      */
-    public StreamingCallbacks withOnClose(Runnable onClose) {
-        return new StreamingCallbacks(onNext, onComplete, onError, onClose);
+    public StreamingCallbacks withOnClose(Runnable additionalOnClose) {
+        Runnable previous = this.onClose;
+        return new StreamingCallbacks(onNext, onComplete, onError, () -> {
+            previous.run();
+            additionalOnClose.run();
+        });
     }
 }

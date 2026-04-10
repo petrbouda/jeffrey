@@ -33,6 +33,8 @@ import pbouda.jeffrey.server.core.scheduler.job.descriptor.JobDescriptorFactory;
 import pbouda.jeffrey.shared.common.JeffreyVersion;
 import pbouda.jeffrey.server.core.appinitializer.CopyLibsInitializer;
 import pbouda.jeffrey.server.core.configuration.properties.ProjectProperties;
+import pbouda.jeffrey.server.core.manager.RepositoryManager;
+import pbouda.jeffrey.server.core.manager.RepositoryManagerImpl;
 import pbouda.jeffrey.server.core.manager.SchedulerManager;
 import pbouda.jeffrey.server.core.manager.SchedulerManagerImpl;
 import pbouda.jeffrey.server.core.manager.project.ProjectManager;
@@ -149,6 +151,23 @@ public class ServerAppConfiguration {
                 projectInfo,
                 projectsSynchronizerTrigger,
                 platformRepositories,
+                repositoryStorageFactory.apply(projectInfo),
+                workspaceEventPublisher);
+    }
+
+    @Bean
+    public RepositoryManager.Factory repositoryManagerFactory(
+            Clock applicationClock,
+            @Qualifier(PROJECTS_SYNCHRONIZER_TRIGGER)
+            ObjectFactory<SchedulerTrigger> projectsSynchronizerTrigger,
+            RepositoryStorage.Factory repositoryStorageFactory,
+            ServerPlatformRepositories platformRepositories,
+            WorkspaceEventPublisher workspaceEventPublisher) {
+        return projectInfo -> new RepositoryManagerImpl(
+                applicationClock,
+                projectInfo,
+                projectsSynchronizerTrigger.getObject(),
+                platformRepositories.newProjectRepositoryRepository(projectInfo.id()),
                 repositoryStorageFactory.apply(projectInfo),
                 workspaceEventPublisher);
     }

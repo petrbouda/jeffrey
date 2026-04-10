@@ -58,8 +58,8 @@
                 expired: instance.status === 'EXPIRED'
               }"
             ></span>
-            <router-link :to="generateInstanceUrl(instance.id)" class="hostname-link">{{
-              instance.hostname
+            <router-link :to="generateInstanceUrl(instance.id)" class="instance-name-link">{{
+              instance.instanceName
             }}</router-link>
             <Badge :value="instance.sessionCount" size="xxs" variant="grey" :uppercase="false" />
           </div>
@@ -148,7 +148,7 @@
         @mouseleave="hideTooltip"
       >
         <div class="timeline-tooltip-header">
-          <span class="timeline-tooltip-hostname">{{ hoveredInstance.hostname }}</span>
+          <span class="timeline-tooltip-instance-name">{{ hoveredInstance.instanceName }}</span>
           <Badge
             :value="hoveredInstance.status"
             size="xxs"
@@ -482,7 +482,7 @@ onMounted(async () => {
   margin-bottom: 0.25rem;
 }
 
-.hostname-link {
+.instance-name-link {
   font-size: 0.8rem;
   color: var(--color-text);
   white-space: nowrap;
@@ -493,7 +493,7 @@ onMounted(async () => {
   transition: color 0.15s ease;
 }
 
-.hostname-link:hover {
+.instance-name-link:hover {
   color: var(--color-primary);
   text-decoration: underline;
 }
@@ -729,7 +729,7 @@ onMounted(async () => {
   gap: 0.5rem;
 }
 
-.timeline-tooltip-hostname {
+.timeline-tooltip-instance-name {
   font-weight: 600;
   font-size: 0.82rem;
   white-space: nowrap;

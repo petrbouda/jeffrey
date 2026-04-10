@@ -30,6 +30,8 @@ import org.springframework.context.event.ContextClosedEvent;
 import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.context.event.EventListener;
 import pbouda.jeffrey.server.core.ServerJeffreyDirs;
+import pbouda.jeffrey.server.core.manager.RepositoryManager;
+import pbouda.jeffrey.server.core.manager.project.ProjectManager;
 import pbouda.jeffrey.server.core.manager.workspace.WorkspacesManager;
 import pbouda.jeffrey.server.core.project.repository.RepositoryStorage;
 import pbouda.jeffrey.server.core.streaming.LiveStreamingManager;
@@ -58,6 +60,8 @@ public class GrpcServerConfiguration {
             WorkspacesManager workspacesManager,
             WorkspaceEventReader workspaceEventReader,
             ServerPlatformRepositories platformRepositories,
+            ProjectManager.Factory projectManagerFactory,
+            RepositoryManager.Factory repositoryManagerFactory,
             ServerJeffreyDirs jeffreyDirs,
             LiveStreamingManager liveStreamingManager,
             ReplayStreamingManager replayStreamingManager,
@@ -67,11 +71,11 @@ public class GrpcServerConfiguration {
         return ServerBuilder.forPort(grpcPort)
                 .intercept(new JfrGrpcServerInterceptor())
                 .addService(new WorkspaceGrpcService(workspacesManager, clock))
-                .addService(new ProjectGrpcService(workspacesManager))
-                .addService(new InstanceGrpcService(workspacesManager, clock))
-                .addService(new ProfilerSettingsGrpcService(workspacesManager, platformRepositories))
-                .addService(new RepositoryGrpcService(workspacesManager, clock))
-                .addService(new RecordingDownloadGrpcService(workspacesManager))
+                .addService(new ProjectGrpcService(workspacesManager, platformRepositories, projectManagerFactory))
+                .addService(new InstanceGrpcService(platformRepositories, clock))
+                .addService(new ProfilerSettingsGrpcService(platformRepositories, projectManagerFactory))
+                .addService(new RepositoryGrpcService(platformRepositories, repositoryManagerFactory, clock))
+                .addService(new RecordingDownloadGrpcService(platformRepositories, repositoryManagerFactory))
                 .addService(new WorkspaceEventsGrpcService(workspaceEventReader))
                 .addService(new EventStreamingGrpcService(jeffreyDirs, platformRepositories, liveStreamingManager, replayStreamingManager, repositoryStorageFactory))
                 .addService(ProtoReflectionServiceV1.newInstance())

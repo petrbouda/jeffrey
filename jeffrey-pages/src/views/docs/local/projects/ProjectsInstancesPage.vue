@@ -53,7 +53,7 @@ onMounted(() => {
 
         <div class="docs-feature-list">
           <DocsFeatureItem icon="bi bi-list-ul" title="Instances Overview">
-            View all instances with statistics including instance counts by status, storage usage, and file type breakdown. Filter and search instances by hostname or status.
+            View all instances with statistics including instance counts by status, storage usage, and file type breakdown. Filter and search instances by name or status.
           </DocsFeatureItem>
           <DocsFeatureItem icon="bi bi-calendar-range" title="Instances Timeline">
             Visual timeline showing when instances and their recording sessions were active. Select different time ranges (1H, 6H, 24H, 7D, 30D) to zoom in on specific periods.
@@ -102,7 +102,7 @@ onMounted(() => {
           <li><strong>File Types</strong> - Breakdown by type: JFR recordings, heap dumps, JVM logs, application logs, JVM error logs</li>
         </ul>
 
-        <p>Below the stats, instances are listed as cards with color-coded left borders indicating their status. Use the search box to filter by hostname, or the status buttons to show only instances in a specific state.</p>
+        <p>Below the stats, instances are listed as cards with color-coded left borders indicating their status. Use the search box to filter by instance name, or the status buttons to show only instances in a specific state.</p>
 
         <h2 id="instances-timeline">Instances Timeline</h2>
         <p>The timeline provides a visual representation of instance and session activity over time:</p>

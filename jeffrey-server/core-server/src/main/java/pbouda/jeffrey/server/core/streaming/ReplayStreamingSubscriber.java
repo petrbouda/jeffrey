@@ -30,22 +30,22 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Composite reader that iterates over all recording files in a {@link ReplayStreamSubscription}
- * and delegates each file to a {@link SingleRecordingFileReader}.
+ * and delegates each file to a {@link SingleReplyStreamingSubscriber}.
  * Runs asynchronously on a virtual thread from {@link Schedulers#streamingExecutor()}.
  *
  * <p>Creates a dedicated temp directory for decompressed files and removes
  * the entire directory on {@link #close()}.</p>
  */
-public class ReplayStreamReader implements Closeable {
+public class ReplayStreamingSubscriber implements Closeable {
 
-    private static final Logger LOG = LoggerFactory.getLogger(ReplayStreamReader.class);
+    private static final Logger LOG = LoggerFactory.getLogger(ReplayStreamingSubscriber.class);
 
     private final ReplayStreamSubscription subscription;
     private final StreamingCallbacks callbacks;
     private final Path replayTempDir;
     private final AtomicBoolean closed = new AtomicBoolean(false);
 
-    public ReplayStreamReader(
+    public ReplayStreamingSubscriber(
             ReplayStreamSubscription subscription,
             StreamingCallbacks callbacks) {
 
@@ -65,8 +65,8 @@ public class ReplayStreamReader implements Closeable {
     }
 
     private void readAllFiles() {
-        SingleRecordingFileReader fileReader =
-                new SingleRecordingFileReader(subscription, replayTempDir, callbacks.onNext(), closed::get);
+        SingleReplyStreamingSubscriber fileReader =
+                new SingleReplyStreamingSubscriber(subscription, replayTempDir, callbacks.onNext(), callbacks.onError(), closed::get);
 
         try {
             for (Path file : subscription.recordingFiles()) {
@@ -77,6 +77,7 @@ public class ReplayStreamReader implements Closeable {
                     fileReader.read(file);
                 } catch (Exception e) {
                     LOG.warn("Skipping corrupted recording file: file={} subscription={}", file.getFileName(), subscription, e);
+                    callbacks.onError().accept(e);
                 }
             }
 
@@ -98,6 +99,7 @@ public class ReplayStreamReader implements Closeable {
         if (closed.compareAndSet(false, true)) {
             LOG.info("Closing replay stream reader: subscription={}", subscription);
             FileSystemUtils.removeDirectory(replayTempDir);
+            callbacks.onClose().run();
         }
     }
 }

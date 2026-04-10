@@ -24,9 +24,9 @@ import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.server.api.v1.*;
-import pbouda.jeffrey.server.core.manager.project.ProjectManager;
-import pbouda.jeffrey.server.core.manager.workspace.WorkspaceManager;
-import pbouda.jeffrey.server.core.manager.workspace.WorkspacesManager;
+import pbouda.jeffrey.server.core.manager.RepositoryManager;
+import pbouda.jeffrey.server.persistence.model.SessionWithRepository;
+import pbouda.jeffrey.server.persistence.repository.ServerPlatformRepositories;
 import pbouda.jeffrey.shared.common.model.repository.StreamedRecordingFile;
 
 import java.io.IOException;
@@ -38,21 +38,26 @@ public class RecordingDownloadGrpcService extends RecordingDownloadServiceGrpc.R
     private static final Logger LOG = LoggerFactory.getLogger(RecordingDownloadGrpcService.class);
     private static final int CHUNK_SIZE = 64 * 1024; // 64KB
 
-    private final WorkspacesManager workspacesManager;
+    private final ServerPlatformRepositories platformRepositories;
+    private final RepositoryManager.Factory repositoryManagerFactory;
 
-    public RecordingDownloadGrpcService(WorkspacesManager workspacesManager) {
-        this.workspacesManager = workspacesManager;
+    public RecordingDownloadGrpcService(
+            ServerPlatformRepositories platformRepositories,
+            RepositoryManager.Factory repositoryManagerFactory) {
+
+        this.platformRepositories = platformRepositories;
+        this.repositoryManagerFactory = repositoryManagerFactory;
     }
 
     @Override
     public void downloadMergedRecordings(DownloadMergedRecordingsRequest request, StreamObserver<DataChunk> responseObserver) {
         try {
-            ProjectManager project = findProject(request.getWorkspaceId(), request.getProjectId());
+            RepositoryManager repoManager = repositoryManagerForSession(request.getSessionId());
 
             LOG.debug("Streaming merged recordings via gRPC: sessionId={} fileCount={}",
                     request.getSessionId(), request.getFileIdsList().size());
 
-            StreamedRecordingFile recordingFile = project.repositoryManager()
+            StreamedRecordingFile recordingFile = repoManager
                     .mergeAndStreamRecordings(request.getSessionId(), request.getFileIdsList());
 
             streamFile(recordingFile, responseObserver);
@@ -67,12 +72,12 @@ public class RecordingDownloadGrpcService extends RecordingDownloadServiceGrpc.R
     @Override
     public void downloadArtifactFile(DownloadArtifactFileRequest request, StreamObserver<DataChunk> responseObserver) {
         try {
-            ProjectManager project = findProject(request.getWorkspaceId(), request.getProjectId());
+            RepositoryManager repoManager = repositoryManagerForSession(request.getSessionId());
 
             LOG.debug("Streaming artifact file via gRPC: sessionId={} fileId={}",
                     request.getSessionId(), request.getFileId());
 
-            StreamedRecordingFile file = project.repositoryManager()
+            StreamedRecordingFile file = repoManager
                     .streamArtifactFile(request.getSessionId(), request.getFileId());
 
             streamFile(file, responseObserver);
@@ -88,12 +93,12 @@ public class RecordingDownloadGrpcService extends RecordingDownloadServiceGrpc.R
     @Override
     public void downloadRecordingFile(DownloadRecordingFileRequest request, StreamObserver<DataChunk> responseObserver) {
         try {
-            ProjectManager project = findProject(request.getWorkspaceId(), request.getProjectId());
+            RepositoryManager repoManager = repositoryManagerForSession(request.getSessionId());
 
             LOG.debug("Streaming recording file via gRPC: sessionId={} fileId={}",
                     request.getSessionId(), request.getFileId());
 
-            StreamedRecordingFile file = project.repositoryManager()
+            StreamedRecordingFile file = repoManager
                     .streamRecordingFile(request.getSessionId(), request.getFileId());
 
             streamFile(file, responseObserver);
@@ -106,15 +111,10 @@ public class RecordingDownloadGrpcService extends RecordingDownloadServiceGrpc.R
         }
     }
 
-    private ProjectManager findProject(String workspaceId, String projectId) {
-        WorkspaceManager workspace = workspacesManager.findById(workspaceId)
-                .orElseThrow(() -> Status.NOT_FOUND
-                        .withDescription("Workspace not found: " + workspaceId)
-                        .asRuntimeException());
-        return workspace.projectsManager().project(projectId)
-                .orElseThrow(() -> Status.NOT_FOUND
-                        .withDescription("Project not found: " + projectId)
-                        .asRuntimeException());
+    private RepositoryManager repositoryManagerForSession(String sessionId) {
+        SessionWithRepository session = platformRepositories.findSessionWithRepositoryById(sessionId)
+                .orElseThrow(() -> GrpcExceptions.notFound("Session not found: " + sessionId));
+        return repositoryManagerFactory.apply(session.projectInfo());
     }
 
     private static void streamFile(StreamedRecordingFile recordingFile, StreamObserver<DataChunk> responseObserver)

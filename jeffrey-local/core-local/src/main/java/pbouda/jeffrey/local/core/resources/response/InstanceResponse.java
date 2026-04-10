@@ -26,7 +26,7 @@ import java.time.Instant;
 
 public record InstanceResponse(
         String id,
-        String hostname,
+        String instanceName,
         String status,
         Long createdAt,
         Long finishedAt,
@@ -42,7 +42,7 @@ public record InstanceResponse(
 
         return new InstanceResponse(
                 info.id(),
-                info.hostname(),
+                info.instanceName(),
                 info.status().name(),
                 InstantUtils.toEpochMilli(info.startedAt()),
                 InstantUtils.toEpochMilli(info.finishedAt()),

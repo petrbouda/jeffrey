@@ -21,6 +21,8 @@ package pbouda.jeffrey.server.persistence;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import pbouda.jeffrey.server.persistence.model.SessionWithRepository;
 import pbouda.jeffrey.server.persistence.repository.*;
+import pbouda.jeffrey.shared.common.model.ProjectInstanceInfo;
+import pbouda.jeffrey.shared.common.model.ProjectInstanceInfo.ProjectInstanceStatus;
 import pbouda.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
 import pbouda.jeffrey.shared.common.model.RepositoryInfo;
 import pbouda.jeffrey.shared.persistence.GroupLabel;
@@ -29,9 +31,29 @@ import pbouda.jeffrey.shared.persistence.client.DatabaseClient;
 import pbouda.jeffrey.shared.persistence.client.DatabaseClientProvider;
 
 import java.time.Clock;
+import java.util.List;
 import java.util.Optional;
 
 public class JdbcServerPlatformRepositories implements ServerPlatformRepositories {
+
+    //language=SQL
+    private static final String SELECT_INSTANCE_BY_ID = """
+            SELECT i.*,
+                   COUNT(rs.session_id) as session_count,
+                   (SELECT rs2.session_id FROM project_instance_sessions rs2
+                    WHERE rs2.instance_id = i.instance_id AND rs2.finished_at IS NULL
+                    ORDER BY rs2.created_at DESC LIMIT 1) as active_session_id
+            FROM project_instances i
+            LEFT JOIN project_instance_sessions rs ON rs.instance_id = i.instance_id
+            WHERE i.instance_id = :instance_id
+            GROUP BY i.instance_id, i.project_id, i.instance_name, i.status,
+                     i.started_at, i.finished_at, i.expiring_at, i.expired_at""";
+
+    //language=SQL
+    private static final String SELECT_SESSIONS_BY_INSTANCE_ID = """
+            SELECT rs.* FROM project_instance_sessions rs
+            WHERE rs.instance_id = :instance_id
+            ORDER BY rs.created_at DESC""";
 
     //language=SQL
     private static final String SELECT_SESSION_WITH_REPOSITORY = """
@@ -119,6 +141,45 @@ public class JdbcServerPlatformRepositories implements ServerPlatformRepositorie
                     ProjectInstanceSessionInfo sessionInfo = ServerMappers.projectInstanceSessionMapper().mapRow(rs, rowNum);
                     return new SessionWithRepository(projectId, repositoryInfo, sessionInfo);
                 });
+    }
+
+    @Override
+    public Optional<ProjectInstanceInfo> findInstanceById(String instanceId) {
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("instance_id", instanceId);
+
+        return databaseClient.querySingle(
+                StatementLabel.FIND_INSTANCE_BY_ID,
+                SELECT_INSTANCE_BY_ID,
+                paramSource,
+                (rs, _) -> {
+                    String statusStr = rs.getString("status");
+                    ProjectInstanceStatus status = ProjectInstanceStatus.valueOf(statusStr);
+
+                    return new ProjectInstanceInfo(
+                            rs.getString("instance_id"),
+                            rs.getString("project_id"),
+                            rs.getString("instance_name"),
+                            status,
+                            ServerMappers.instant(rs, "started_at"),
+                            ServerMappers.instant(rs, "finished_at"),
+                            ServerMappers.instant(rs, "expiring_at"),
+                            ServerMappers.instant(rs, "expired_at"),
+                            rs.getInt("session_count"),
+                            rs.getString("active_session_id"));
+                });
+    }
+
+    @Override
+    public List<ProjectInstanceSessionInfo> findSessionsByInstanceId(String instanceId) {
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("instance_id", instanceId);
+
+        return databaseClient.query(
+                StatementLabel.FIND_SESSIONS_BY_INSTANCE_ID,
+                SELECT_SESSIONS_BY_INSTANCE_ID,
+                paramSource,
+                ServerMappers.projectInstanceSessionMapper());
     }
 
 }

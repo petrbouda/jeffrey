@@ -18,8 +18,10 @@
 
 package pbouda.jeffrey.server.core.streaming;
 
+import jdk.jfr.consumer.EventStream;
 import jdk.jfr.consumer.RecordedEvent;
-import jdk.jfr.consumer.RecordingFile;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.server.api.v1.EventBatch;
 import pbouda.jeffrey.server.api.v1.StreamingEvent;
 import pbouda.jeffrey.shared.common.compression.Lz4Compressor;
@@ -33,27 +35,36 @@ import java.util.function.Supplier;
 
 /**
  * Reads events from a single JFR recording file (.jfr / .jfr.lz4) and delivers them
- * as batched {@link EventBatch} messages. LZ4-compressed files are decompressed
- * to the provided temp directory before reading.
+ * as batched {@link EventBatch} messages using {@link EventStream#openFile(Path)}.
+ * LZ4-compressed files are decompressed to the provided temp directory before reading.
+ *
+ * <p>Uses EventStream instead of RecordingFile for better resilience against
+ * corrupted JFR chunks — EventStream reports errors via {@code onError()} and
+ * can continue processing subsequent chunks.</p>
  */
-public class SingleRecordingFileReader {
+public class SingleReplyStreamingSubscriber {
+
+    private static final Logger LOG = LoggerFactory.getLogger(SingleReplyStreamingSubscriber.class);
 
     private static final int BATCH_SIZE = 100;
 
     private final ReplayStreamSubscription subscription;
     private final Path tempDir;
     private final Consumer<EventBatch> consumer;
+    private final Consumer<Throwable> onError;
     private final Supplier<Boolean> isClosed;
 
-    public SingleRecordingFileReader(
+    public SingleReplyStreamingSubscriber(
             ReplayStreamSubscription subscription,
             Path tempDir,
             Consumer<EventBatch> consumer,
+            Consumer<Throwable> onError,
             Supplier<Boolean> isClosed) {
 
         this.subscription = subscription;
         this.tempDir = tempDir;
         this.consumer = consumer;
+        this.onError = onError;
         this.isClosed = isClosed;
     }
 
@@ -70,20 +81,31 @@ public class SingleRecordingFileReader {
 
         List<StreamingEvent> buffer = new ArrayList<>(BATCH_SIZE);
 
-        try (RecordingFile recordingFile = new RecordingFile(readPath)) {
-            while (recordingFile.hasMoreEvents() && !isClosed.get()) {
-                RecordedEvent event = recordingFile.readEvent();
+        try (EventStream stream = EventStream.openFile(readPath)) {
+            if (subscription.window().startTime() != null) {
+                stream.setStartTime(subscription.window().startTime());
+            }
+            if (subscription.window().endTime() != null) {
+                stream.setEndTime(subscription.window().endTime());
+            }
 
-                if (!matchesEventType(event) || !inStreamingWindow(event)) {
-                    continue;
-                }
+            for (String eventType : subscription.eventTypes()) {
+                stream.onEvent(eventType, event -> bufferEvent(event, buffer));
+            }
 
-                buffer.add(RecordedEventMapper.toStreamingEvent(subscription.sessionId(), event));
-
-                if (buffer.size() >= BATCH_SIZE) {
+            stream.onFlush(() -> {
+                if (!buffer.isEmpty() && !isClosed.get()) {
                     flush(buffer);
                 }
-            }
+            });
+
+            stream.onError(t -> {
+                LOG.warn("Error in recording file, skipping chunk: file={} error={}",
+                        file.getFileName(), t.getMessage());
+                onError.accept(t);
+            });
+
+            stream.start();
         }
 
         if (!buffer.isEmpty() && !isClosed.get()) {
@@ -91,13 +113,20 @@ public class SingleRecordingFileReader {
         }
     }
 
-    private boolean matchesEventType(RecordedEvent event) {
-        return subscription.eventTypes().isEmpty()
-                || subscription.eventTypes().contains(event.getEventType().getName());
-    }
+    private void bufferEvent(RecordedEvent event, List<StreamingEvent> buffer) {
+        if (isClosed.get()) {
+            return;
+        }
 
-    private boolean inStreamingWindow(RecordedEvent event) {
-        return subscription.window().contains(event.getStartTime());
+        try {
+            buffer.add(RecordedEventMapper.toStreamingEvent(subscription.sessionId(), event));
+
+            if (buffer.size() >= BATCH_SIZE) {
+                flush(buffer);
+            }
+        } catch (Exception e) {
+            LOG.warn("Failed to map event: eventType={}", event.getEventType().getName(), e);
+        }
     }
 
     private void flush(List<StreamingEvent> buffer) {

@@ -1,6 +1,6 @@
 <template>
   <PageHeader
-    :title="instance?.hostname || 'Instance'"
+    :title="instance?.instanceName || 'Instance'"
     description="View instance details and recording sessions"
     icon="bi-box"
   >

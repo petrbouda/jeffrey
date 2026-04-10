@@ -39,9 +39,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * <p>{@code onEvent()} and {@code onFlush()} are called on the same EventStream thread,
  * so no concurrency control is needed — a plain {@link ArrayList} is used as the buffer.</p>
  */
-public class EventStreamSubscriber implements Closeable {
+public class LiveStreamingSubscriber implements Closeable {
 
-    private static final Logger LOG = LoggerFactory.getLogger(EventStreamSubscriber.class);
+    private static final Logger LOG = LoggerFactory.getLogger(LiveStreamingSubscriber.class);
 
     private final LiveStreamSubscription subscription;
     private final StreamingCallbacks callbacks;
@@ -50,10 +50,7 @@ public class EventStreamSubscriber implements Closeable {
 
     private EventStream eventStream;
 
-    public EventStreamSubscriber(
-            LiveStreamSubscription subscription,
-            StreamingCallbacks callbacks) {
-
+    public LiveStreamingSubscriber(LiveStreamSubscription subscription, StreamingCallbacks callbacks) {
         this.subscription = subscription;
         this.callbacks = callbacks;
     }

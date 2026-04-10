@@ -34,22 +34,20 @@ public class RemoteProjectsClient {
         this.stub = ProjectServiceGrpc.newBlockingStub(connection.getChannel());
     }
 
-    public void deleteProject(String workspaceId, String projectId) {
+    public void deleteProject(String projectId) {
         stub.deleteProject(DeleteProjectRequest.newBuilder()
-                .setWorkspaceId(workspaceId)
                 .setProjectId(projectId)
                 .build());
 
-        LOG.debug("Deleted project via gRPC: workspaceId={} projectId={}", workspaceId, projectId);
+        LOG.debug("Deleted project via gRPC: projectId={}", projectId);
     }
 
-    public void restoreProject(String workspaceId, String projectId) {
+    public void restoreProject(String projectId) {
         stub.restoreProject(RestoreProjectRequest.newBuilder()
-                .setWorkspaceId(workspaceId)
                 .setProjectId(projectId)
                 .build());
 
-        LOG.debug("Restored project via gRPC: workspaceId={} projectId={}", workspaceId, projectId);
+        LOG.debug("Restored project via gRPC: projectId={}", projectId);
     }
 
 }

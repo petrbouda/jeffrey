@@ -117,7 +117,6 @@ public class RemoteProjectsManager implements ProjectsManager {
     private ProjectManager toRemoteProjectManager(DetailedProjectInfo projectInfo) {
         return new RemoteProjectManager(
                 jeffreyDirs,
-                workspaceInfo,
                 projectInfo,
                 remoteClients,
                 profilesManagerFactory,

@@ -40,8 +40,7 @@ message ListProjectsResponse {
 }
 
 message GetProjectRequest {
-  string workspace_id = 1;
-  string project_id = 2;
+  string project_id = 1;
 }
 
 message GetProjectResponse {
@@ -49,15 +48,13 @@ message GetProjectResponse {
 }
 
 message DeleteProjectRequest {
-  string workspace_id = 1;
-  string project_id = 2;
+  string project_id = 1;
 }
 
 message DeleteProjectResponse {}
 
 message RestoreProjectRequest {
-  string workspace_id = 1;
-  string project_id = 2;
+  string project_id = 1;
 }
 
 message RestoreProjectResponse {}

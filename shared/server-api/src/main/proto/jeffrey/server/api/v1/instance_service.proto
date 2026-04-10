@@ -22,8 +22,7 @@ service InstanceService {
 }
 
 message ListInstancesRequest {
-  string workspace_id = 1;
-  string project_id = 2;
+  string project_id = 1;
 }
 
 message ListInstancesResponse {
@@ -31,9 +30,7 @@ message ListInstancesResponse {
 }
 
 message GetInstanceRequest {
-  string workspace_id = 1;
-  string project_id = 2;
-  string instance_id = 3;
+  string instance_id = 1;
 }
 
 message GetInstanceResponse {
@@ -41,9 +38,7 @@ message GetInstanceResponse {
 }
 
 message ListInstanceSessionsRequest {
-  string workspace_id = 1;
-  string project_id = 2;
-  string instance_id = 3;
+  string instance_id = 1;
 }
 
 message ListInstanceSessionsResponse {
@@ -55,8 +50,8 @@ message ListInstanceSessionsResponse {
 message InstanceInfo {
   // Unique identifier for the instance.
   string id = 1;
-  // Hostname of the machine running this JVM instance.
-  string hostname = 2;
+  // Human-readable display name for this instance.
+  string instance_name = 2;
   // Current lifecycle status.
   InstanceStatus status = 3;
   // Timestamp when the instance was first detected (epoch millis).

@@ -62,7 +62,7 @@
                     }"
                   >
                     <i class="bi bi-lightning"></i>
-                    <span>Events</span>
+                    <span>Event Streaming</span>
                     <i
                       class="bi bi-chevron-right submenu-arrow"
                       :class="{ rotated: eventsSubmenuExpanded }"

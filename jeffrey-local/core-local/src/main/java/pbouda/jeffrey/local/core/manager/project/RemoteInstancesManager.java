@@ -26,7 +26,6 @@ import pbouda.jeffrey.shared.common.model.ProjectInfo;
 import pbouda.jeffrey.shared.common.model.ProjectInstanceInfo;
 import pbouda.jeffrey.shared.common.model.ProjectInstanceInfo.ProjectInstanceStatus;
 import pbouda.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
-import pbouda.jeffrey.local.persistence.model.RemoteWorkspaceInfo;
 
 import java.util.List;
 import java.util.Optional;
@@ -34,34 +33,29 @@ import java.util.Optional;
 public class RemoteInstancesManager {
 
     private final ProjectInfo projectInfo;
-    private final RemoteWorkspaceInfo workspaceInfo;
     private final RemoteInstancesClient instancesClient;
 
     public RemoteInstancesManager(
             ProjectInfo projectInfo,
-            RemoteWorkspaceInfo workspaceInfo,
             RemoteInstancesClient instancesClient) {
 
         this.projectInfo = projectInfo;
-        this.workspaceInfo = workspaceInfo;
         this.instancesClient = instancesClient;
     }
 
     public List<ProjectInstanceInfo> findAll() {
-        return instancesClient.projectInstances(workspaceInfo.id(), projectInfo.id()).stream()
+        return instancesClient.projectInstances(projectInfo.id()).stream()
                 .map(this::toProjectInstanceInfo)
                 .toList();
     }
 
     public Optional<ProjectInstanceInfo> find(String instanceId) {
-        InstanceResponse response = instancesClient.projectInstance(
-                workspaceInfo.id(), projectInfo.id(), instanceId);
+        InstanceResponse response = instancesClient.projectInstance(instanceId);
         return Optional.ofNullable(response).map(this::toProjectInstanceInfo);
     }
 
     public List<ProjectInstanceSessionInfo> findSessions(String instanceId) {
-        return instancesClient.projectInstanceSessions(
-                        workspaceInfo.id(), projectInfo.id(), instanceId).stream()
+        return instancesClient.projectInstanceSessions(instanceId).stream()
                 .map(RemoteInstancesManager::toProjectInstanceSessionInfo)
                 .toList();
     }
@@ -70,7 +64,7 @@ public class RemoteInstancesManager {
         return new ProjectInstanceInfo(
                 response.id(),
                 projectInfo.id(),
-                response.hostname(),
+                response.instanceName(),
                 ProjectInstanceStatus.valueOf(response.status()),
                 InstantUtils.fromEpochMilli(response.createdAt()),
                 InstantUtils.fromEpochMilli(response.finishedAt()),

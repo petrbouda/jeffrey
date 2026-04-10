@@ -236,7 +236,7 @@
           class="instance-card d-block text-decoration-none mb-2"
           :class="instanceCardClass(instance.status)"
         >
-          <!-- Top section: hostname + badge + sessions + chevron -->
+          <!-- Top section: instance name + badge + sessions + chevron -->
           <div class="instance-identity" :class="instanceIdentityClass(instance.status)">
             <div class="d-flex align-items-center">
               <div class="instance-icon-square me-3" :class="instanceIconClass(instance.status)">
@@ -244,7 +244,7 @@
               </div>
               <div class="flex-grow-1 min-width-0">
                 <div class="d-flex align-items-center">
-                  <span class="fw-bold text-dark">{{ instance.hostname }}</span>
+                  <span class="fw-bold text-dark">{{ instance.instanceName }}</span>
                   <Badge
                     class="ms-2"
                     :value="instance.status"
@@ -354,7 +354,7 @@ const filteredInstances = computed(() => {
 
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase();
-    result = result.filter(instance => instance.hostname.toLowerCase().includes(query));
+    result = result.filter(instance => instance.instanceName.toLowerCase().includes(query));
   }
 
   return result;

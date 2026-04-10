@@ -54,12 +54,10 @@ public class RemoteRecordingStreamClient {
     }
 
     public CompletableFuture<Resource> downloadRecordings(
-            String workspaceId, String projectId, String sessionId, List<String> recordingIds) {
+            String sessionId, List<String> recordingIds) {
 
         return CompletableFuture.supplyAsync(() -> {
             DownloadMergedRecordingsRequest request = DownloadMergedRecordingsRequest.newBuilder()
-                    .setWorkspaceId(workspaceId)
-                    .setProjectId(projectId)
                     .setSessionId(sessionId)
                     .addAllFileIds(recordingIds)
                     .build();
@@ -70,12 +68,10 @@ public class RemoteRecordingStreamClient {
     }
 
     public CompletableFuture<Resource> downloadArtifactFile(
-            String workspaceId, String projectId, String sessionId, String fileId) {
+            String sessionId, String fileId) {
 
         return CompletableFuture.supplyAsync(() -> {
             DownloadArtifactFileRequest request = DownloadArtifactFileRequest.newBuilder()
-                    .setWorkspaceId(workspaceId)
-                    .setProjectId(projectId)
                     .setSessionId(sessionId)
                     .setFileId(fileId)
                     .build();
@@ -86,12 +82,9 @@ public class RemoteRecordingStreamClient {
     }
 
     public void streamRecordings(
-            String workspaceId, String projectId, String sessionId,
-            List<String> recordingIds, InputStreamConsumer consumer) {
+            String sessionId, List<String> recordingIds, InputStreamConsumer consumer) {
 
         DownloadMergedRecordingsRequest request = DownloadMergedRecordingsRequest.newBuilder()
-                .setWorkspaceId(workspaceId)
-                .setProjectId(projectId)
                 .setSessionId(sessionId)
                 .addAllFileIds(recordingIds)
                 .build();
@@ -101,12 +94,9 @@ public class RemoteRecordingStreamClient {
     }
 
     public void streamArtifactFile(
-            String workspaceId, String projectId, String sessionId,
-            String fileId, InputStreamConsumer consumer) {
+            String sessionId, String fileId, InputStreamConsumer consumer) {
 
         DownloadArtifactFileRequest request = DownloadArtifactFileRequest.newBuilder()
-                .setWorkspaceId(workspaceId)
-                .setProjectId(projectId)
                 .setSessionId(sessionId)
                 .setFileId(fileId)
                 .build();
@@ -116,12 +106,9 @@ public class RemoteRecordingStreamClient {
     }
 
     public void streamRecordingFile(
-            String workspaceId, String projectId, String sessionId,
-            String fileId, InputStreamConsumer consumer) {
+            String sessionId, String fileId, InputStreamConsumer consumer) {
 
         DownloadRecordingFileRequest request = DownloadRecordingFileRequest.newBuilder()
-                .setWorkspaceId(workspaceId)
-                .setProjectId(projectId)
                 .setSessionId(sessionId)
                 .setFileId(fileId)
                 .build();

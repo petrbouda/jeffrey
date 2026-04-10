@@ -21,7 +21,5 @@ package pbouda.jeffrey.local.core.client;
 import java.util.List;
 import java.util.Set;
 
-public record LiveSubscriptionRequest(
-        List<String> sessionIds,
-        Set<String> eventTypes) {
+public record LiveSubscriptionRequest(List<String> sessionIds, Set<String> eventTypes) {
 }

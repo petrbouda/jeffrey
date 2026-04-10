@@ -34,8 +34,7 @@ service ProfilerSettingsService {
 }
 
 message GetProfilerSettingsRequest {
-  string workspace_id = 1;
-  string project_id = 2;
+  string project_id = 1;
 }
 
 message GetProfilerSettingsResponse {
@@ -46,17 +45,15 @@ message GetProfilerSettingsResponse {
 }
 
 message UpsertProfilerSettingsRequest {
-  string workspace_id = 1;
-  string project_id = 2;
+  string project_id = 1;
   // The profiler agent command/settings string to set.
-  string agent_settings = 3;
+  string agent_settings = 2;
 }
 
 message UpsertProfilerSettingsResponse {}
 
 message DeleteProfilerSettingsRequest {
-  string workspace_id = 1;
-  string project_id = 2;
+  string project_id = 1;
 }
 
 message DeleteProfilerSettingsResponse {}

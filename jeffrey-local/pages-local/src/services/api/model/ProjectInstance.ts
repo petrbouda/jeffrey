@@ -21,7 +21,7 @@ export type ProjectInstanceStatus = 'PENDING' | 'ACTIVE' | 'FINISHED' | 'EXPIRED
 export default class ProjectInstance {
   constructor(
     public id: string,
-    public hostname: string,
+    public instanceName: string,
     public projectId: string,
     public status: ProjectInstanceStatus,
     public createdAt: number,

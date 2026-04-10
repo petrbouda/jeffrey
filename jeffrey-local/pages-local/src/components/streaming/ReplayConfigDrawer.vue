@@ -87,7 +87,7 @@
           <template v-for="group in filteredGroups" :key="group.instance.id">
             <div class="scm-instance-header">
               <span class="scm-dot" :class="group.instance.status === 'ACTIVE' ? 'dot-active' : 'dot-inactive'"></span>
-              <span class="scm-instance-host">{{ group.instance.hostname }}</span>
+              <span class="scm-instance-host">{{ group.instance.instanceName }}</span>
             </div>
             <div
               v-for="session in group.sessions"
@@ -176,13 +176,13 @@
             >
               Custom
             </button>
+            <input
+              v-if="startMode === 'custom'"
+              v-model="localStartTime"
+              type="datetime-local"
+              class="scm-input"
+            />
           </div>
-          <input
-            v-if="startMode === 'custom'"
-            v-model="localStartTime"
-            type="datetime-local"
-            class="scm-input"
-          />
         </div>
         <div>
           <label class="scm-label">End</label>
@@ -192,7 +192,7 @@
               :class="{ active: endMode === 'latest' }"
               @click="setEndMode('latest')"
             >
-              To latest event
+              To latest
             </button>
             <button
               class="scm-option-btn"
@@ -201,13 +201,13 @@
             >
               Custom
             </button>
+            <input
+              v-if="endMode === 'custom'"
+              v-model="localEndTime"
+              type="datetime-local"
+              class="scm-input"
+            />
           </div>
-          <input
-            v-if="endMode === 'custom'"
-            v-model="localEndTime"
-            type="datetime-local"
-            class="scm-input"
-          />
         </div>
       </div>
 
@@ -409,7 +409,7 @@ function selectSession(session: ProjectInstanceSession, instance: ProjectInstanc
   if (localSession.value?.id === session.id) {
     localSession.value = null
   } else {
-    localSession.value = { id: session.id, sessionInstance: instance.hostname }
+    localSession.value = { id: session.id, sessionInstance: instance.instanceName }
   }
 }
 
@@ -758,13 +758,13 @@ function apply() {
 }
 
 .scm-input {
-  width: 100%;
-  height: 40px;
-  padding: 10px 14px;
+  width: 220px;
+  height: 36px;
+  padding: 0 10px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   font-family: var(--font-base);
-  font-size: 0.9rem;
+  font-size: 0.8125rem;
   color: var(--color-body);
   background: var(--color-white);
   outline: none;

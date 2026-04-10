@@ -48,7 +48,7 @@ public class InitConfig {
                 workspace-id = ""
                 name = ""
                 label = ""
-                instance-id = ""
+                instance-name = ""
             }
             attributes = {}
             perf-counters { enabled = false }
@@ -120,7 +120,7 @@ public class InitConfig {
         project.setWorkspaceId(projectCfg.getString("workspace-id"));
         project.setName(projectCfg.getString("name"));
         project.setLabel(projectCfg.getString("label"));
-        project.setInstanceId(projectCfg.getString("instance-id"));
+        project.setInstanceName(projectCfg.getString("instance-name"));
         config.setProject(project);
 
         config.setAttributes(resolved.getObject("attributes").unwrapped());
@@ -244,15 +244,15 @@ public class InitConfig {
     }
 
     /**
-     * Returns the instance ID with fallback resolution:
+     * Returns the instance name with fallback resolution:
      * 1. Config value if set
      * 2. HOSTNAME environment variable if set
      * 3. Generated UUID
      */
-    public String getInstanceId() {
+    public String getInstanceName() {
         // 1. Config value
-        if (project != null && !isNullOrBlank(project.getInstanceId())) {
-            return project.getInstanceId();
+        if (project != null && !isNullOrBlank(project.getInstanceName())) {
+            return project.getInstanceName();
         }
         // 2. HOSTNAME env var
         String hostname = System.getenv("HOSTNAME");
@@ -458,9 +458,9 @@ public class InitConfig {
     }
 
     /**
-     * Always returns true since getInstanceId() now has UUID fallback.
+     * Always returns true since getInstanceName() now has UUID fallback.
      */
-    public boolean hasInstanceId() {
+    public boolean hasInstanceName() {
         return true;
     }
 
@@ -560,7 +560,7 @@ public class InitConfig {
         private String workspaceId;
         private String name;
         private String label;
-        private String instanceId;
+        private String instanceName;
 
         public String getWorkspaceId() {
             return workspaceId;
@@ -586,12 +586,12 @@ public class InitConfig {
             this.label = label;
         }
 
-        public String getInstanceId() {
-            return nullIfBlank(instanceId);
+        public String getInstanceName() {
+            return nullIfBlank(instanceName);
         }
 
-        public void setInstanceId(String instanceId) {
-            this.instanceId = instanceId;
+        public void setInstanceName(String instanceName) {
+            this.instanceName = instanceName;
         }
 
         private static String nullIfBlank(String value) {

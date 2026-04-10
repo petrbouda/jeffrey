@@ -37,41 +37,38 @@ public class RemoteProfilerClient {
         this.stub = ProfilerSettingsServiceGrpc.newBlockingStub(connection.getChannel());
     }
 
-    public EffectiveProfilerSettings fetchProfilerSettings(String workspaceId, String projectId) {
+    public EffectiveProfilerSettings fetchProfilerSettings(String projectId) {
         GetProfilerSettingsResponse response = stub.getSettings(
                 GetProfilerSettingsRequest.newBuilder()
-                        .setWorkspaceId(workspaceId)
                         .setProjectId(projectId)
                         .build());
 
         String agentSettings = response.getAgentSettings().isEmpty() ? null : response.getAgentSettings();
         SettingsLevel level = fromProtoLevel(response.getLevel());
 
-        LOG.debug("Fetched profiler settings via gRPC: workspaceId={} projectId={} level={}",
-                workspaceId, projectId, level);
+        LOG.debug("Fetched profiler settings via gRPC: projectId={} level={}",
+                projectId, level);
 
         return new EffectiveProfilerSettings(agentSettings, level);
     }
 
-    public void upsertProfilerSettings(String workspaceId, String projectId, String agentSettings) {
+    public void upsertProfilerSettings(String projectId, String agentSettings) {
         stub.upsertSettings(
                 UpsertProfilerSettingsRequest.newBuilder()
-                        .setWorkspaceId(workspaceId)
                         .setProjectId(projectId)
                         .setAgentSettings(agentSettings)
                         .build());
 
-        LOG.debug("Upserted profiler settings via gRPC: workspaceId={} projectId={}", workspaceId, projectId);
+        LOG.debug("Upserted profiler settings via gRPC: projectId={}", projectId);
     }
 
-    public void deleteProfilerSettings(String workspaceId, String projectId) {
+    public void deleteProfilerSettings(String projectId) {
         stub.deleteSettings(
                 DeleteProfilerSettingsRequest.newBuilder()
-                        .setWorkspaceId(workspaceId)
                         .setProjectId(projectId)
                         .build());
 
-        LOG.debug("Deleted profiler settings via gRPC: workspaceId={} projectId={}", workspaceId, projectId);
+        LOG.debug("Deleted profiler settings via gRPC: projectId={}", projectId);
     }
 
     public List<ProfilerInfo> listAllSettings() {

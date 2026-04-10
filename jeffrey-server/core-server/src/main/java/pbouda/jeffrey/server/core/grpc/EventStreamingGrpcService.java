@@ -153,11 +153,11 @@ public class EventStreamingGrpcService extends EventStreamingServiceGrpc.EventSt
                     observer::onCompleted,
                     t -> observer.onError(GrpcExceptions.internal(t)));
 
-            String replayId = replayStreamingManager.start(replaySubscription, callbacks);
+            String replayId = replayStreamingManager.subscribe(replaySubscription, callbacks);
 
             Context.current().addListener(_ -> {
                 LOG.info("Client disconnected, closing replay stream: subscription={}", replaySubscription);
-                replayStreamingManager.stop(replayId);
+                replayStreamingManager.unsubscribe(replayId);
             }, Runnable::run);
         } catch (IllegalArgumentException e) {
             observer.onError(GrpcExceptions.invalidArgument(e.getMessage()));

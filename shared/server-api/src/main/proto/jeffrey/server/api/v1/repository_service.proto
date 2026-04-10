@@ -27,8 +27,7 @@ service RepositoryService {
 }
 
 message ListSessionsRequest {
-  string workspace_id = 1;
-  string project_id = 2;
+  string project_id = 1;
 }
 
 message ListSessionsResponse {
@@ -36,9 +35,7 @@ message ListSessionsResponse {
 }
 
 message GetSessionRequest {
-  string workspace_id = 1;
-  string project_id = 2;
-  string session_id = 3;
+  string session_id = 1;
 }
 
 message GetSessionResponse {
@@ -46,8 +43,7 @@ message GetSessionResponse {
 }
 
 message GetRepositoryStatisticsRequest {
-  string workspace_id = 1;
-  string project_id = 2;
+  string project_id = 1;
 }
 
 // Aggregate statistics about the recording repository.
@@ -92,19 +88,15 @@ message GetRepositoryStatisticsResponse {
 }
 
 message DeleteSessionRequest {
-  string workspace_id = 1;
-  string project_id = 2;
-  string session_id = 3;
+  string session_id = 1;
 }
 
 message DeleteSessionResponse {}
 
 message DeleteFilesInSessionRequest {
-  string workspace_id = 1;
-  string project_id = 2;
-  string session_id = 3;
+  string session_id = 1;
   // IDs of specific files to delete within the session.
-  repeated string file_ids = 4;
+  repeated string file_ids = 2;
 }
 
 message DeleteFilesInSessionResponse {}

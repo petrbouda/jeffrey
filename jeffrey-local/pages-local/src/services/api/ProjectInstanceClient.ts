@@ -43,7 +43,7 @@ export default class ProjectInstanceClient extends BasePlatformClient {
   private mapToInstance(data: any): ProjectInstance {
     return new ProjectInstance(
       data.id,
-      data.hostname,
+      data.instanceName,
       data.projectId,
       data.status,
       data.createdAt,

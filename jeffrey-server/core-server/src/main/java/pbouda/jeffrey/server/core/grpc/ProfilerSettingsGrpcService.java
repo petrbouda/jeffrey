@@ -25,10 +25,7 @@ import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.server.api.v1.*;
 import pbouda.jeffrey.server.persistence.repository.ProfilerRepository;
 import pbouda.jeffrey.server.persistence.repository.ServerPlatformRepositories;
-import pbouda.jeffrey.server.core.manager.ProfilerSettingsManager;
 import pbouda.jeffrey.server.core.manager.project.ProjectManager;
-import pbouda.jeffrey.server.core.manager.workspace.WorkspaceManager;
-import pbouda.jeffrey.server.core.manager.workspace.WorkspacesManager;
 import pbouda.jeffrey.shared.common.model.EffectiveProfilerSettings;
 import pbouda.jeffrey.shared.common.model.ProfilerInfo;
 
@@ -38,18 +35,23 @@ public class ProfilerSettingsGrpcService extends ProfilerSettingsServiceGrpc.Pro
 
     private static final Logger LOG = LoggerFactory.getLogger(ProfilerSettingsGrpcService.class);
 
-    private final WorkspacesManager workspacesManager;
+    private final ServerPlatformRepositories platformRepositories;
+    private final ProjectManager.Factory projectManagerFactory;
     private final ProfilerRepository profilerRepository;
 
-    public ProfilerSettingsGrpcService(WorkspacesManager workspacesManager, ServerPlatformRepositories platformRepositories) {
-        this.workspacesManager = workspacesManager;
+    public ProfilerSettingsGrpcService(
+            ServerPlatformRepositories platformRepositories,
+            ProjectManager.Factory projectManagerFactory) {
+
+        this.platformRepositories = platformRepositories;
+        this.projectManagerFactory = projectManagerFactory;
         this.profilerRepository = platformRepositories.newProfilerRepository();
     }
 
     @Override
     public void getSettings(GetProfilerSettingsRequest request, StreamObserver<GetProfilerSettingsResponse> responseObserver) {
         try {
-            ProjectManager project = findProject(request.getWorkspaceId(), request.getProjectId());
+            ProjectManager project = findProject(request.getProjectId());
             EffectiveProfilerSettings settings = project.profilerSettingsManager().fetchEffectiveSettings();
 
             LOG.debug("Fetched profiler settings via gRPC: projectId={}", request.getProjectId());
@@ -71,7 +73,7 @@ public class ProfilerSettingsGrpcService extends ProfilerSettingsServiceGrpc.Pro
     @Override
     public void upsertSettings(UpsertProfilerSettingsRequest request, StreamObserver<UpsertProfilerSettingsResponse> responseObserver) {
         try {
-            ProjectManager project = findProject(request.getWorkspaceId(), request.getProjectId());
+            ProjectManager project = findProject(request.getProjectId());
             project.profilerSettingsManager().upsertSettings(request.getAgentSettings());
 
             LOG.debug("Upserted profiler settings via gRPC: projectId={}", request.getProjectId());
@@ -89,7 +91,7 @@ public class ProfilerSettingsGrpcService extends ProfilerSettingsServiceGrpc.Pro
     @Override
     public void deleteSettings(DeleteProfilerSettingsRequest request, StreamObserver<DeleteProfilerSettingsResponse> responseObserver) {
         try {
-            ProjectManager project = findProject(request.getWorkspaceId(), request.getProjectId());
+            ProjectManager project = findProject(request.getProjectId());
             project.profilerSettingsManager().deleteSettings();
 
             LOG.debug("Deleted profiler settings via gRPC: projectId={}", request.getProjectId());
@@ -183,15 +185,10 @@ public class ProfilerSettingsGrpcService extends ProfilerSettingsServiceGrpc.Pro
         }
     }
 
-    private ProjectManager findProject(String workspaceId, String projectId) {
-        WorkspaceManager workspace = workspacesManager.findById(workspaceId)
-                .orElseThrow(() -> Status.NOT_FOUND
-                        .withDescription("Workspace not found: " + workspaceId)
-                        .asRuntimeException());
-        return workspace.projectsManager().project(projectId)
-                .orElseThrow(() -> Status.NOT_FOUND
-                        .withDescription("Project not found: " + projectId)
-                        .asRuntimeException());
+    private ProjectManager findProject(String projectId) {
+        return platformRepositories.newProjectRepository(projectId).find()
+                .map(projectManagerFactory)
+                .orElseThrow(() -> GrpcExceptions.notFound("Project not found: " + projectId));
     }
 
     private static SettingsLevel toProtoLevel(EffectiveProfilerSettings.SettingsLevel level) {

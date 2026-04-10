@@ -338,6 +338,8 @@ jeffrey/
 - **Backend**: Mockito for mocking dependencies
 - **Backend**: `@DuckDBTest` custom annotation for database integration tests (from `shared/test`)
 - **Backend**: Use `java.time.Clock` instead of real timestamps to fix time
+- **Backend gRPC**: Every gRPC service must have an in-process integration test using `InProcessServerBuilder`/`InProcessChannelBuilder` (`grpc-inprocess` dependency). Tests should cover validation errors (status codes), and end-to-end streaming with real data where applicable. See `EventStreamingGrpcServiceTest` for the reference pattern.
+- **Backend Async Assertions**: Use Awaitility (`org.awaitility:awaitility`) for async/polling assertions instead of hand-rolled `Thread.sleep` loops. Example: `await().atMost(5, SECONDS).untilAsserted(() -> assertEquals("expected", getResult()));`
 - **Frontend**: Vitest (`cd jeffrey-local/pages-local && npm run test`)
 
 ## AI Integration

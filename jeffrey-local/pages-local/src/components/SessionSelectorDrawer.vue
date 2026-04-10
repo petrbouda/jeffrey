@@ -13,7 +13,7 @@
           <input
             v-model="searchQuery"
             type="text"
-            placeholder="Search by session ID or hostname..."
+            placeholder="Search by session ID or instance name..."
           />
         </div>
         <div class="drawer-body">
@@ -30,7 +30,7 @@
             <div v-for="group in filteredGroups" :key="group.instance.id">
               <div class="drawer-instance-header">
                 <span class="instance-dot" :class="group.instance.status === 'ACTIVE' ? 'dot-active' : 'dot-inactive'"></span>
-                <span class="instance-hostname">{{ group.instance.hostname }}</span>
+                <span class="instance-name">{{ group.instance.instanceName }}</span>
               </div>
               <div
                 v-for="session in group.sessions"
@@ -129,7 +129,7 @@ const filteredGroups = computed(() => {
       instance: group.instance,
       sessions: group.sessions.filter(
         (s) =>
-          s.id.toLowerCase().includes(q) || group.instance.hostname.toLowerCase().includes(q)
+          s.id.toLowerCase().includes(q) || group.instance.instanceName.toLowerCase().includes(q)
       )
     }))
     .filter((group) => group.sessions.length > 0)
@@ -177,7 +177,7 @@ function selectSession(session: ProjectInstanceSession, instance: ProjectInstanc
   selectedSessionId.value = session.id
   emit('select', {
     sessionId: session.id,
-    sessionInstance: instance.hostname,
+    sessionInstance: instance.instanceName,
     isActive: session.isActive ?? false
   })
   close()
@@ -288,7 +288,7 @@ function close() {
   margin-top: 0;
 }
 
-.instance-hostname {
+.instance-name {
   flex: 1;
 }
 

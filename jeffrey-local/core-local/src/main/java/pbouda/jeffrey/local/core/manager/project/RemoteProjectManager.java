@@ -23,7 +23,6 @@ import pbouda.jeffrey.local.core.manager.*;
 import pbouda.jeffrey.local.core.client.RemoteClients;
 import pbouda.jeffrey.local.core.manager.workspace.RemoteRecordingsDownloadManager;
 import pbouda.jeffrey.local.core.recording.ProjectRecordingInitializer;
-import pbouda.jeffrey.local.persistence.model.RemoteWorkspaceInfo;
 import pbouda.jeffrey.local.persistence.repository.LocalCoreRepositories;
 import pbouda.jeffrey.shared.common.model.ProjectInfo;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEventCreator;
@@ -31,7 +30,6 @@ import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEventCreator;
 public class RemoteProjectManager implements ProjectManager {
 
     private final LocalJeffreyDirs jeffreyDirs;
-    private final RemoteWorkspaceInfo workspaceInfo;
     private final DetailedProjectInfo detailedProjectInfo;
     private final RemoteClients remoteClients;
     private final ProfilesManager.Factory profilesManagerFactory;
@@ -40,7 +38,6 @@ public class RemoteProjectManager implements ProjectManager {
 
     public RemoteProjectManager(
             LocalJeffreyDirs jeffreyDirs,
-            RemoteWorkspaceInfo workspaceInfo,
             DetailedProjectInfo detailedProjectInfo,
             RemoteClients remoteClients,
             ProfilesManager.Factory profilesManagerFactory,
@@ -48,7 +45,6 @@ public class RemoteProjectManager implements ProjectManager {
             LocalCoreRepositories localCoreRepositories) {
 
         this.jeffreyDirs = jeffreyDirs;
-        this.workspaceInfo = workspaceInfo;
         this.detailedProjectInfo = detailedProjectInfo;
         this.remoteClients = remoteClients;
         this.profilesManagerFactory = profilesManagerFactory;
@@ -88,7 +84,6 @@ public class RemoteProjectManager implements ProjectManager {
         return new RemoteRecordingsDownloadManager(
                 jeffreyDirs,
                 projectInfo,
-                workspaceInfo,
                 remoteClients.recordings(),
                 remoteClients.repository(),
                 recordingInitializer);
@@ -99,7 +94,6 @@ public class RemoteProjectManager implements ProjectManager {
         return new RemoteRepositoryManager(
                 jeffreyDirs,
                 detailedProjectInfo.projectInfo(),
-                workspaceInfo,
                 remoteClients.repository(),
                 remoteClients.recordings());
     }
@@ -108,7 +102,6 @@ public class RemoteProjectManager implements ProjectManager {
     public ProfilerSettingsManager profilerSettingsManager() {
         return new RemoteProfilerSettingsManager(
                 remoteClients.profiler(),
-                workspaceInfo,
                 detailedProjectInfo.projectInfo().id());
     }
 
@@ -116,7 +109,6 @@ public class RemoteProjectManager implements ProjectManager {
     public RemoteInstancesManager instancesManager() {
         return new RemoteInstancesManager(
                 detailedProjectInfo.projectInfo(),
-                workspaceInfo,
                 remoteClients.instances());
     }
 
@@ -128,14 +120,12 @@ public class RemoteProjectManager implements ProjectManager {
     @Override
     public void restore() {
         remoteClients.projects().restoreProject(
-                workspaceInfo.id(),
                 detailedProjectInfo.projectInfo().id());
     }
 
     @Override
     public void delete(WorkspaceEventCreator createdBy) {
         remoteClients.projects().deleteProject(
-                workspaceInfo.id(),
                 detailedProjectInfo.projectInfo().id());
     }
 

@@ -90,7 +90,7 @@
           <template v-for="group in filteredGroups" :key="group.instance.id">
             <div class="scm-instance-header">
               <span class="scm-dot" :class="group.instance.status === 'ACTIVE' ? 'dot-active' : 'dot-inactive'"></span>
-              <span class="scm-instance-host">{{ group.instance.hostname }}</span>
+              <span class="scm-instance-host">{{ group.instance.instanceName }}</span>
             </div>
             <div
               v-for="session in group.sessions"
@@ -336,7 +336,7 @@ function toggleSession(session: ProjectInstanceSession, instance: ProjectInstanc
   if (idx >= 0) {
     localSessions.value.splice(idx, 1)
   } else {
-    localSessions.value.push({ id: session.id, sessionInstance: instance.hostname })
+    localSessions.value.push({ id: session.id, sessionInstance: instance.instanceName })
   }
 }
 

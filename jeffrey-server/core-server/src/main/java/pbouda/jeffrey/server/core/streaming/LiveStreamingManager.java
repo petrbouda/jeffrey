@@ -27,14 +27,14 @@ import java.io.IOException;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Tracks active {@link EventStreamSubscriber} instances and provides lifecycle
+ * Tracks active {@link LiveStreamingSubscriber} instances and provides lifecycle
  * management: subscribe, unsubscribe, and close all on shutdown.
  */
 public class LiveStreamingManager implements Closeable {
 
     private static final Logger LOG = LoggerFactory.getLogger(LiveStreamingManager.class);
 
-    private final ConcurrentHashMap<String, EventStreamSubscriber> subscriptions = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, LiveStreamingSubscriber> subscriptions = new ConcurrentHashMap<>();
 
     /**
      * Creates and starts a new subscriber event stream for the given session.
@@ -43,12 +43,9 @@ public class LiveStreamingManager implements Closeable {
      * @return subscription ID
      * @throws IOException if the streaming repository cannot be opened
      */
-    public String subscribe(
-            LiveStreamSubscription subscription,
-            StreamingCallbacks callbacks) throws IOException {
-
+    public String subscribe(LiveStreamSubscription subscription, StreamingCallbacks callbacks) throws IOException {
         String subscriptionId = IDGenerator.generate();
-        EventStreamSubscriber stream = new EventStreamSubscriber(
+        LiveStreamingSubscriber stream = new LiveStreamingSubscriber(
                 subscription, callbacks.withOnClose(() -> removeSubscriber(subscriptionId)));
 
         subscriptions.put(subscriptionId, stream);
@@ -62,7 +59,7 @@ public class LiveStreamingManager implements Closeable {
      * Closes a specific subscriber stream.
      */
     public void unsubscribe(String subscriptionId) {
-        EventStreamSubscriber stream = subscriptions.get(subscriptionId);
+        LiveStreamingSubscriber stream = subscriptions.get(subscriptionId);
         if (stream != null) {
             stream.close();
         }
@@ -77,7 +74,7 @@ public class LiveStreamingManager implements Closeable {
     }
 
     private void removeSubscriber(String subscriptionId) {
-        EventStreamSubscriber stream = subscriptions.remove(subscriptionId);
+        LiveStreamingSubscriber stream = subscriptions.remove(subscriptionId);
         if (stream != null) {
             LOG.debug("Removed live stream subscriber: subscriptionId={}", subscriptionId);
         }

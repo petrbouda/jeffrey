@@ -26,14 +26,14 @@ import java.io.Closeable;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Tracks active {@link ReplayStreamReader} instances and provides lifecycle
+ * Tracks active {@link ReplayStreamingSubscriber} instances and provides lifecycle
  * management: start, stop, and close all on shutdown.
  */
 public class ReplayStreamingManager implements Closeable {
 
     private static final Logger LOG = LoggerFactory.getLogger(ReplayStreamingManager.class);
 
-    private final ConcurrentHashMap<String, ReplayStreamReader> readers = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, ReplayStreamingSubscriber> readers = new ConcurrentHashMap<>();
 
     /**
      * Creates and starts a new replay stream reader for the given subscription.
@@ -42,12 +42,9 @@ public class ReplayStreamingManager implements Closeable {
      * @param callbacks    streaming lifecycle callbacks
      * @return replay ID for later cancellation
      */
-    public String start(
-            ReplayStreamSubscription subscription,
-            StreamingCallbacks callbacks) {
-
+    public String subscribe(ReplayStreamSubscription subscription, StreamingCallbacks callbacks) {
         String replayId = IDGenerator.generate();
-        ReplayStreamReader reader = new ReplayStreamReader(
+        ReplayStreamingSubscriber reader = new ReplayStreamingSubscriber(
                 subscription, callbacks.withOnClose(() -> removeReader(replayId)));
 
         readers.put(replayId, reader);
@@ -60,12 +57,12 @@ public class ReplayStreamingManager implements Closeable {
     /**
      * Stops a specific replay stream.
      */
-    public void stop(String replayId) {
-        ReplayStreamReader reader = readers.get(replayId);
+    public void unsubscribe(String subscriptionId) {
+        ReplayStreamingSubscriber reader = readers.get(subscriptionId);
         if (reader != null) {
             reader.close();
         }
-        LOG.info("Stopped replay stream: replayId={}", replayId);
+        LOG.info("Stopped replay stream: subscriptionId={}", subscriptionId);
     }
 
     @Override
@@ -76,7 +73,7 @@ public class ReplayStreamingManager implements Closeable {
     }
 
     private void removeReader(String replayId) {
-        ReplayStreamReader reader = readers.remove(replayId);
+        ReplayStreamingSubscriber reader = readers.remove(replayId);
         if (reader != null) {
             LOG.debug("Removed replay stream reader: replayId={}", replayId);
         }

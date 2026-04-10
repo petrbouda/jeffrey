@@ -276,11 +276,11 @@ const timeSummaryStart = computed(() => {
 })
 
 const timeSummaryEnd = computed(() => {
-  if (endMode.value === 'latest') return 'Latest event'
+  if (endMode.value === 'latest') return 'Latest'
   if (endMode.value === 'custom' && endTimeInput.value) {
     return FormattingService.formatDateTime(new Date(endTimeInput.value))
   }
-  return 'Latest event'
+  return 'Latest'
 })
 
 const displayedEvents = computed(() => {
@@ -304,9 +304,7 @@ function startReplay() {
   client = new ReplayStreamClient(workspaceId.value, projectId.value)
 
   const options: { startTime?: number; endTime?: number } = {}
-  if (startMode.value === 'beginning') {
-    options.startTime = 0
-  } else if (startMode.value === 'custom' && startTimeInput.value) {
+  if (startMode.value === 'custom' && startTimeInput.value) {
     options.startTime = datetimeLocalToMillis(startTimeInput.value)
   }
   if (endMode.value === 'custom' && endTimeInput.value) {

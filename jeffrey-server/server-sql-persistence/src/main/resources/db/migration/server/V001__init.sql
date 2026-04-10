@@ -111,7 +111,7 @@ CREATE TABLE IF NOT EXISTS project_instances
 (
     instance_id    VARCHAR NOT NULL,
     project_id     VARCHAR NOT NULL,
-    hostname       VARCHAR NOT NULL,
+    instance_name  VARCHAR NOT NULL,
     status         VARCHAR NOT NULL DEFAULT 'PENDING',
     started_at     TIMESTAMPTZ NOT NULL,
     finished_at    TIMESTAMPTZ,

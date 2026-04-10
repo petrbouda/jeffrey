@@ -23,43 +23,38 @@ import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.server.api.v1.*;
-import pbouda.jeffrey.server.core.manager.project.ProjectManager;
-import pbouda.jeffrey.server.core.manager.workspace.WorkspaceManager;
-import pbouda.jeffrey.server.core.manager.workspace.WorkspacesManager;
+import pbouda.jeffrey.server.persistence.repository.ServerPlatformRepositories;
 import pbouda.jeffrey.shared.common.model.ProjectInstanceInfo;
 import pbouda.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
 
 import java.time.Clock;
-import java.time.Instant;
 import java.util.List;
 
 public class InstanceGrpcService extends InstanceServiceGrpc.InstanceServiceImplBase {
 
     private static final Logger LOG = LoggerFactory.getLogger(InstanceGrpcService.class);
 
-    private final WorkspacesManager workspacesManager;
+    private final ServerPlatformRepositories platformRepositories;
     private final Clock clock;
 
-    public InstanceGrpcService(WorkspacesManager workspacesManager, Clock clock) {
-        this.workspacesManager = workspacesManager;
+    public InstanceGrpcService(ServerPlatformRepositories platformRepositories, Clock clock) {
+        this.platformRepositories = platformRepositories;
         this.clock = clock;
     }
 
     @Override
     public void listInstances(ListInstancesRequest request, StreamObserver<ListInstancesResponse> responseObserver) {
         try {
-            ProjectManager project = findProject(request.getWorkspaceId(), request.getProjectId());
-
-            List<InstanceInfo> instances = project.projectInstanceRepository().findAll().stream()
-                    .map(i -> toProto(i, clock))
+            List<InstanceInfo> instances = platformRepositories
+                    .newProjectInstanceRepository(request.getProjectId()).findAll().stream()
+                    .map(InstanceGrpcService::toProto)
                     .toList();
 
             LOG.debug("Listed instances via gRPC: projectId={} count={}", request.getProjectId(), instances.size());
 
-            ListInstancesResponse response = ListInstancesResponse.newBuilder()
+            responseObserver.onNext(ListInstancesResponse.newBuilder()
                     .addAllInstances(instances)
-                    .build();
-            responseObserver.onNext(response);
+                    .build());
             responseObserver.onCompleted();
         } catch (io.grpc.StatusRuntimeException e) {
             responseObserver.onError(e);
@@ -72,19 +67,14 @@ public class InstanceGrpcService extends InstanceServiceGrpc.InstanceServiceImpl
     @Override
     public void getInstance(GetInstanceRequest request, StreamObserver<GetInstanceResponse> responseObserver) {
         try {
-            ProjectManager project = findProject(request.getWorkspaceId(), request.getProjectId());
-
-            ProjectInstanceInfo instance = project.projectInstanceRepository().find(request.getInstanceId())
-                    .orElseThrow(() -> Status.NOT_FOUND
-                            .withDescription("Instance not found: " + request.getInstanceId())
-                            .asRuntimeException());
+            ProjectInstanceInfo instance = platformRepositories.findInstanceById(request.getInstanceId())
+                    .orElseThrow(() -> GrpcExceptions.notFound("Instance not found: " + request.getInstanceId()));
 
             LOG.debug("Fetched instance via gRPC: instanceId={}", request.getInstanceId());
 
-            GetInstanceResponse response = GetInstanceResponse.newBuilder()
-                    .setInstance(toProto(instance, clock))
-                    .build();
-            responseObserver.onNext(response);
+            responseObserver.onNext(GetInstanceResponse.newBuilder()
+                    .setInstance(toProto(instance))
+                    .build());
             responseObserver.onCompleted();
         } catch (io.grpc.StatusRuntimeException e) {
             responseObserver.onError(e);
@@ -97,20 +87,17 @@ public class InstanceGrpcService extends InstanceServiceGrpc.InstanceServiceImpl
     @Override
     public void listInstanceSessions(ListInstanceSessionsRequest request, StreamObserver<ListInstanceSessionsResponse> responseObserver) {
         try {
-            ProjectManager project = findProject(request.getWorkspaceId(), request.getProjectId());
-
-            List<InstanceSessionInfo> sessions = project.projectInstanceRepository()
-                    .findSessions(request.getInstanceId()).stream()
+            List<InstanceSessionInfo> sessions = platformRepositories
+                    .findSessionsByInstanceId(request.getInstanceId()).stream()
                     .map(s -> toSessionProto(s, clock))
                     .toList();
 
             LOG.debug("Listed instance sessions via gRPC: instanceId={} count={}",
                     request.getInstanceId(), sessions.size());
 
-            ListInstanceSessionsResponse response = ListInstanceSessionsResponse.newBuilder()
+            responseObserver.onNext(ListInstanceSessionsResponse.newBuilder()
                     .addAllSessions(sessions)
-                    .build();
-            responseObserver.onNext(response);
+                    .build());
             responseObserver.onCompleted();
         } catch (io.grpc.StatusRuntimeException e) {
             responseObserver.onError(e);
@@ -120,21 +107,10 @@ public class InstanceGrpcService extends InstanceServiceGrpc.InstanceServiceImpl
         }
     }
 
-    private ProjectManager findProject(String workspaceId, String projectId) {
-        WorkspaceManager workspace = workspacesManager.findById(workspaceId)
-                .orElseThrow(() -> Status.NOT_FOUND
-                        .withDescription("Workspace not found: " + workspaceId)
-                        .asRuntimeException());
-        return workspace.projectsManager().project(projectId)
-                .orElseThrow(() -> Status.NOT_FOUND
-                        .withDescription("Project not found: " + projectId)
-                        .asRuntimeException());
-    }
-
-    private static InstanceInfo toProto(ProjectInstanceInfo info, Clock clock) {
+    private static InstanceInfo toProto(ProjectInstanceInfo info) {
         InstanceInfo.Builder builder = InstanceInfo.newBuilder()
                 .setId(info.id())
-                .setHostname(info.hostname() != null ? info.hostname() : "")
+                .setInstanceName(info.instanceName() != null ? info.instanceName() : "")
                 .setStatus(toProtoInstanceStatus(info.status()))
                 .setCreatedAt(info.startedAt().toEpochMilli())
                 .setSessionCount(info.sessionCount());

@@ -43,33 +43,42 @@ public class JdbcProjectInstanceRepository implements ProjectInstanceRepository 
     //language=SQL
     private static final String SELECT_ALL_PROJECT_INSTANCES = """
             SELECT i.*,
-                   (SELECT COUNT(*) FROM project_instance_sessions rs WHERE rs.instance_id = i.instance_id) as session_count,
-                   (SELECT rs.session_id FROM project_instance_sessions rs
-                    WHERE rs.instance_id = i.instance_id AND rs.finished_at IS NULL
-                    ORDER BY rs.created_at DESC LIMIT 1) as active_session_id
+                   COUNT(rs.session_id) as session_count,
+                   (SELECT rs2.session_id FROM project_instance_sessions rs2
+                    WHERE rs2.instance_id = i.instance_id AND rs2.finished_at IS NULL
+                    ORDER BY rs2.created_at DESC LIMIT 1) as active_session_id
             FROM project_instances i
+            LEFT JOIN project_instance_sessions rs ON rs.instance_id = i.instance_id
             WHERE i.project_id = :project_id
+            GROUP BY i.instance_id, i.project_id, i.instance_name, i.status,
+                     i.started_at, i.finished_at, i.expiring_at, i.expired_at
             ORDER BY i.started_at DESC""";
 
     //language=SQL
     private static final String SELECT_PROJECT_INSTANCE_BY_ID = """
             SELECT i.*,
-                   (SELECT COUNT(*) FROM project_instance_sessions rs WHERE rs.instance_id = i.instance_id) as session_count,
-                   (SELECT rs.session_id FROM project_instance_sessions rs
-                    WHERE rs.instance_id = i.instance_id AND rs.finished_at IS NULL
-                    ORDER BY rs.created_at DESC LIMIT 1) as active_session_id
+                   COUNT(rs.session_id) as session_count,
+                   (SELECT rs2.session_id FROM project_instance_sessions rs2
+                    WHERE rs2.instance_id = i.instance_id AND rs2.finished_at IS NULL
+                    ORDER BY rs2.created_at DESC LIMIT 1) as active_session_id
             FROM project_instances i
-            WHERE i.instance_id = :instance_id AND i.project_id = :project_id""";
+            LEFT JOIN project_instance_sessions rs ON rs.instance_id = i.instance_id
+            WHERE i.instance_id = :instance_id
+            GROUP BY i.instance_id, i.project_id, i.instance_name, i.status,
+                     i.started_at, i.finished_at, i.expiring_at, i.expired_at""";
 
     //language=SQL
     private static final String SELECT_PROJECT_INSTANCES_BY_STATUS = """
             SELECT i.*,
-                   (SELECT COUNT(*) FROM project_instance_sessions rs WHERE rs.instance_id = i.instance_id) as session_count,
-                   (SELECT rs.session_id FROM project_instance_sessions rs
-                    WHERE rs.instance_id = i.instance_id AND rs.finished_at IS NULL
-                    ORDER BY rs.created_at DESC LIMIT 1) as active_session_id
+                   COUNT(rs.session_id) as session_count,
+                   (SELECT rs2.session_id FROM project_instance_sessions rs2
+                    WHERE rs2.instance_id = i.instance_id AND rs2.finished_at IS NULL
+                    ORDER BY rs2.created_at DESC LIMIT 1) as active_session_id
             FROM project_instances i
+            LEFT JOIN project_instance_sessions rs ON rs.instance_id = i.instance_id
             WHERE i.project_id = :project_id AND i.status = :status
+            GROUP BY i.instance_id, i.project_id, i.instance_name, i.status,
+                     i.started_at, i.finished_at, i.expiring_at, i.expired_at
             ORDER BY i.started_at DESC""";
 
     //language=SQL
@@ -80,8 +89,8 @@ public class JdbcProjectInstanceRepository implements ProjectInstanceRepository 
 
     //language=SQL
     private static final String INSERT_PROJECT_INSTANCE = """
-            INSERT INTO project_instances (instance_id, project_id, hostname, status, started_at)
-            VALUES (:instance_id, :project_id, :hostname, :status, :started_at)""";
+            INSERT INTO project_instances (instance_id, project_id, instance_name, status, started_at)
+            VALUES (:instance_id, :project_id, :instance_name, :status, :started_at)""";
 
     //language=SQL
     private static final String UPDATE_STATUS = """
@@ -129,7 +138,6 @@ public class JdbcProjectInstanceRepository implements ProjectInstanceRepository 
     @Override
     public Optional<ProjectInstanceInfo> find(String instanceId) {
         MapSqlParameterSource paramSource = new MapSqlParameterSource()
-                .addValue("project_id", projectId)
                 .addValue("instance_id", instanceId);
 
         return databaseClient.querySingle(
@@ -169,7 +177,7 @@ public class JdbcProjectInstanceRepository implements ProjectInstanceRepository 
         MapSqlParameterSource paramSource = new MapSqlParameterSource()
                 .addValue("instance_id", instance.id())
                 .addValue("project_id", projectId)
-                .addValue("hostname", instance.hostname())
+                .addValue("instance_name", instance.instanceName())
                 .addValue("status", instance.status().name())
                 .addValue("started_at", instance.startedAt().atOffset(ZoneOffset.UTC));
 
@@ -249,7 +257,7 @@ public class JdbcProjectInstanceRepository implements ProjectInstanceRepository 
             return new ProjectInstanceInfo(
                     rs.getString("instance_id"),
                     rs.getString("project_id"),
-                    rs.getString("hostname"),
+                    rs.getString("instance_name"),
                     status,
                     ServerMappers.instant(rs, "started_at"),
                     ServerMappers.instant(rs, "finished_at"),
