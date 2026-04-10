@@ -29,30 +29,28 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.local.core.manager.EventStreamingManager;
 import pbouda.jeffrey.local.core.manager.EventStreamingManager.CompositeSubscription;
+import pbouda.jeffrey.local.core.client.LiveSubscriptionRequest;
 
 import java.io.IOException;
-import java.time.Clock;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 /**
- * REST resource that bridges multi-session event streaming to SSE for frontend consumption.
- * A single SSE connection can subscribe to N sessions with the same event-type filter and time range.
+ * REST resource that bridges multi-session live streaming to SSE for frontend consumption.
+ * A single SSE connection can subscribe to N sessions with the same event-type filter.
+ * Always continuous — streams stay open waiting for new events.
  */
-public class ProjectEventStreamingResource {
+public class ProjectLiveStreamResource {
 
-    private static final Logger LOG = LoggerFactory.getLogger(ProjectEventStreamingResource.class);
+    private static final Logger LOG = LoggerFactory.getLogger(ProjectLiveStreamResource.class);
 
     private final EventStreamingManager eventStreamingManager;
-    private final Clock clock;
 
-    public ProjectEventStreamingResource(EventStreamingManager eventStreamingManager, Clock clock) {
+    public ProjectLiveStreamResource(EventStreamingManager eventStreamingManager) {
         this.eventStreamingManager = eventStreamingManager;
-        this.clock = Objects.requireNonNull(clock, "clock");
     }
 
     @GET
@@ -61,9 +59,6 @@ public class ProjectEventStreamingResource {
     public void subscribe(
             @QueryParam("sessionIds") @DefaultValue("") String sessionIds,
             @QueryParam("eventTypes") @DefaultValue("") String eventTypes,
-            @QueryParam("startTime") Long startTime,
-            @QueryParam("endTime") Long endTime,
-            @QueryParam("continuous") @DefaultValue("false") boolean continuous,
             @Context SseEventSink eventSink,
             @Context Sse sse) {
 
@@ -73,21 +68,17 @@ public class ProjectEventStreamingResource {
                     "At least one sessionId is required", Response.Status.BAD_REQUEST);
         }
 
-        validateTimeRange(startTime, endTime, continuous);
-
-        Set<String> eventTypeSet = parseCsv(eventTypes).stream().collect(Collectors.toUnmodifiableSet());
+        var request = new LiveSubscriptionRequest(
+                sessionIdList,
+                parseCsv(eventTypes).stream().collect(Collectors.toUnmodifiableSet()));
 
         // Guard: SseEventSink.send() must be serialized across the N concurrent gRPC batch callbacks.
         Object sinkLock = new Object();
 
         var subscriptionRef = new AtomicReference<CompositeSubscription>();
 
-        CompositeSubscription subscription = eventStreamingManager.subscribeMulti(
-                sessionIdList,
-                eventTypeSet,
-                startTime,
-                endTime,
-                continuous,
+        CompositeSubscription subscription = eventStreamingManager.subscribeLiveStreaming(
+                request,
                 batch -> {
                     if (eventSink.isClosed()) {
                         CompositeSubscription sub = subscriptionRef.get();
@@ -113,24 +104,6 @@ public class ProjectEventStreamingResource {
                             subscription.cancel();
                         }
                     });
-        }
-    }
-
-    private void validateTimeRange(Long startTime, Long endTime, boolean continuous) {
-        if (continuous && endTime != null) {
-            throw new WebApplicationException(
-                    "endTime must not be set when continuous=true; use continuous mode without an endTime or set continuous=false",
-                    Response.Status.BAD_REQUEST);
-        }
-        if (endTime != null && endTime > clock.millis()) {
-            throw new WebApplicationException(
-                    "endTime must not be in the future; for future endTime, switch to continuous mode",
-                    Response.Status.BAD_REQUEST);
-        }
-        if (startTime != null && endTime != null && startTime >= endTime) {
-            throw new WebApplicationException(
-                    "startTime must be strictly before endTime",
-                    Response.Status.BAD_REQUEST);
         }
     }
 

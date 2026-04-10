@@ -51,14 +51,42 @@
                   <i class="bi bi-record-circle"></i>
                   <span>Recordings</span>
                 </div>
-                <router-link
-                  :to="generateProjectUrl('event-streaming')"
-                  class="nav-item"
-                  active-class="active"
-                >
-                  <i class="bi bi-broadcast"></i>
-                  <span>Event Streaming</span>
-                </router-link>
+                  <!-- Events with 2-level submenu -->
+                <div class="nav-item-group">
+                  <div
+                    class="nav-item nav-item-parent"
+                    @click="toggleEventsSubmenu()"
+                    :class="{
+                      active: $route.path.includes('/events'),
+                      expanded: eventsSubmenuExpanded
+                    }"
+                  >
+                    <i class="bi bi-lightning"></i>
+                    <span>Events</span>
+                    <i
+                      class="bi bi-chevron-right submenu-arrow"
+                      :class="{ rotated: eventsSubmenuExpanded }"
+                    ></i>
+                  </div>
+                  <div class="nav-submenu" :class="{ expanded: eventsSubmenuExpanded }">
+                    <router-link
+                      :to="generateProjectUrl('events/live-stream')"
+                      class="nav-item nav-subitem"
+                      active-class="active"
+                    >
+                      <i class="bi bi-broadcast"></i>
+                      <span>Live Stream</span>
+                    </router-link>
+                    <router-link
+                      :to="generateProjectUrl('events/replay-stream')"
+                      class="nav-item nav-subitem"
+                      active-class="active"
+                    >
+                      <i class="bi bi-collection-play"></i>
+                      <span>Replay Stream</span>
+                    </router-link>
+                  </div>
+                </div>
                 <!-- Instances with 2-level submenu -->
                 <div class="nav-item-group">
                   <div
@@ -159,10 +187,15 @@ const sidebarCollapsed = ref(false);
 
 // Submenu expansion state
 const instancesSubmenuExpanded = ref(false);
+const eventsSubmenuExpanded = ref(false);
 
-// Toggle function for Instances submenu
+// Toggle functions for submenus
 const toggleInstancesSubmenu = () => {
   instancesSubmenuExpanded.value = !instancesSubmenuExpanded.value;
+};
+
+const toggleEventsSubmenu = () => {
+  eventsSubmenuExpanded.value = !eventsSubmenuExpanded.value;
 };
 
 // Initialization state variables
@@ -277,6 +310,9 @@ watch(
   newPath => {
     if (newPath.includes('/instances')) {
       instancesSubmenuExpanded.value = true;
+    }
+    if (newPath.includes('/events')) {
+      eventsSubmenuExpanded.value = true;
     }
   },
   { immediate: true }

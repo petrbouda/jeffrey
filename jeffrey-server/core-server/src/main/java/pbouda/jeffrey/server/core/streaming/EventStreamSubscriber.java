@@ -31,7 +31,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Consumer;
 
 /**
  * Per-subscriber JFR EventStream that opens its own repository, filters by event types,
@@ -44,28 +43,19 @@ public class EventStreamSubscriber implements Closeable {
 
     private static final Logger LOG = LoggerFactory.getLogger(EventStreamSubscriber.class);
 
-    private final EventStreamSubscription subscription;
-    private final Consumer<EventBatch> consumer;
-    private final Runnable onComplete;
-    private final Consumer<Throwable> onError;
-    private final Runnable onClose;
+    private final LiveStreamSubscription subscription;
+    private final StreamingCallbacks callbacks;
     private final List<StreamingEvent> buffer = new ArrayList<>();
     private final AtomicBoolean alreadyClosed = new AtomicBoolean(false);
 
     private EventStream eventStream;
 
     public EventStreamSubscriber(
-            EventStreamSubscription subscription,
-            Consumer<EventBatch> consumer,
-            Runnable onComplete,
-            Consumer<Throwable> onError,
-            Runnable onClose) {
+            LiveStreamSubscription subscription,
+            StreamingCallbacks callbacks) {
 
         this.subscription = subscription;
-        this.consumer = consumer;
-        this.onComplete = onComplete;
-        this.onError = onError;
-        this.onClose = onClose;
+        this.callbacks = callbacks;
     }
 
     /**
@@ -75,34 +65,28 @@ public class EventStreamSubscriber implements Closeable {
      * @throws IOException if the streaming repository cannot be opened
      */
     public void start() throws IOException {
-        LOG.info("Starting subscriber event stream: subscription={}", subscription);
+        LOG.info("Starting live stream: subscription={}", subscription);
         this.eventStream = EventStream.openRepository(subscription.sessionPath());
 
-        if (subscription.startTime() != null) {
-            eventStream.setStartTime(subscription.startTime());
-        }
-        if (subscription.endTime() != null) {
-            eventStream.setEndTime(subscription.endTime());
-        }
         for (String eventType : subscription.eventTypes()) {
             eventStream.onEvent(eventType, this::bufferEvent);
         }
 
-        eventStream.onFlush(() -> flush(consumer));
+        eventStream.onFlush(this::flush);
 
         eventStream.onClose(() -> {
-            flush(consumer);
+            flush();
             try {
-                onComplete.run();
+                callbacks.onComplete().run();
             } catch (Exception e) {
                 LOG.info("Observer already closed on stream end: subscription={}", subscription);
             }
         });
 
         eventStream.onError(t -> {
-            LOG.error("Error in subscriber event stream: subscription={}", subscription, t);
+            LOG.error("Error in live stream: subscription={}", subscription, t);
             try {
-                onError.accept(t);
+                callbacks.onError().accept(t);
             } catch (Exception e) {
                 LOG.warn("Observer already closed on error: subscription={}", subscription);
             }
@@ -121,13 +105,13 @@ public class EventStreamSubscriber implements Closeable {
         }
     }
 
-    private void flush(Consumer<EventBatch> consumer) {
+    private void flush() {
         if (alreadyClosed.get()) {
             return;
         }
         if (!buffer.isEmpty() || subscription.sendEmptyBatches()) {
             try {
-                consumer.accept(EventBatch.newBuilder().addAllEvents(buffer).build());
+                callbacks.onNext().accept(EventBatch.newBuilder().addAllEvents(buffer).build());
             } catch (Exception e) {
                 LOG.warn("Failed to send batch, closing stream: subscription={}", subscription);
                 close();
@@ -138,10 +122,10 @@ public class EventStreamSubscriber implements Closeable {
 
     @Override
     public void close() {
-        LOG.info("Closing subscriber event stream: subscription={}", subscription);
+        LOG.info("Closing live stream: subscription={}", subscription);
         if (alreadyClosed.compareAndSet(false, true) && eventStream != null) {
             eventStream.close();
-            onClose.run();
+            callbacks.onClose().run();
         }
     }
 }

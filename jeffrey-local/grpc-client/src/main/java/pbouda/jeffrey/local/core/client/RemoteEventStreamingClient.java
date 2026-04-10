@@ -19,21 +19,18 @@
 package pbouda.jeffrey.local.core.client;
 
 import io.grpc.Context;
-import io.grpc.Status;
-import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.server.api.v1.EventBatch;
 import pbouda.jeffrey.server.api.v1.EventStreamingServiceGrpc;
-import pbouda.jeffrey.server.api.v1.SubscribeEventsRequest;
+import pbouda.jeffrey.server.api.v1.LiveStreamingRequest;
+import pbouda.jeffrey.server.api.v1.ReplayStreamingRequest;
 
 import java.io.Closeable;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Consumer;
 
 /**
- * gRPC client for subscribing to live JFR events from a remote Jeffrey server session.
+ * gRPC client for live streaming and replaying JFR events from a remote Jeffrey server.
  * Uses an async stub for long-lived server-streaming subscriptions.
  */
 public class RemoteEventStreamingClient implements Closeable {
@@ -48,73 +45,68 @@ public class RemoteEventStreamingClient implements Closeable {
     }
 
     /**
-     * Subscribes to live JFR events from a session on the remote server.
+     * Subscribes to live JFR events from a single session on the remote server.
+     * Always continuous — the stream stays open waiting for new events.
      *
-     * @param sessionId       the session ID
-     * @param eventTypes      JFR event types to receive (empty = all events)
-     * @param startTimeMillis optional start time in epoch millis (null for live-only)
-     * @param endTimeMillis   optional end time in epoch millis (null for no limit)
-     * @param continuous      when true, stream stays open waiting for new events
-     * @param onBatch         callback for each received event batch
-     * @param onComplete      callback when the stream ends (session finished or server closes)
-     * @param onError         callback for stream errors
+     * @param sessionId the session ID to subscribe to
+     * @param request   subscription parameters (event types)
+     * @param callbacks streaming lifecycle callbacks (onBatch, onComplete, onError)
      * @return a cancellation handle to stop the subscription
      */
-    public EventStreamingSubscription subscribe(
+    public EventStreamingSubscription subscribeLiveStreaming(
             String sessionId,
-            Set<String> eventTypes,
-            Long startTimeMillis,
-            Long endTimeMillis,
-            boolean continuous,
-            Consumer<EventBatch> onBatch,
-            Runnable onComplete,
-            Consumer<Throwable> onError) {
+            LiveSubscriptionRequest request,
+            StreamingCallbacks callbacks) {
 
-        SubscribeEventsRequest.Builder requestBuilder = SubscribeEventsRequest.newBuilder()
+        LiveStreamingRequest liveRequest = LiveStreamingRequest.newBuilder()
                 .setSessionId(sessionId)
-                .addAllEventTypes(eventTypes)
+                .addAllEventTypes(request.eventTypes())
                 .setSendEmptyBatches(true)
-                .setContinuous(continuous);
-
-        if (startTimeMillis != null) {
-            requestBuilder.setStartTime(startTimeMillis);
-        }
-        if (endTimeMillis != null) {
-            requestBuilder.setEndTime(endTimeMillis);
-        }
+                .build();
 
         Context.CancellableContext cancellableContext = Context.current().withCancellation();
         EventStreamingSubscription subscription = new EventStreamingSubscription(cancellableContext, sessionId);
         activeSubscriptions.add(subscription);
 
-        cancellableContext.run(() ->
-                stub.subscribeEvents(requestBuilder.build(), new StreamObserver<>() {
-                    @Override
-                    public void onNext(EventBatch batch) {
-                        onBatch.accept(batch);
-                    }
+        cancellableContext.run(() -> stub.liveStreaming(liveRequest,
+                new EventBatchStreamObserver(sessionId, subscription, activeSubscriptions, callbacks)));
 
-                    @Override
-                    public void onError(Throwable t) {
-                        activeSubscriptions.remove(subscription);
-                        if (Status.fromThrowable(t).getCode() == Status.Code.CANCELLED) {
-                            LOG.info("Event streaming cancelled: sessionId={}", sessionId);
-                        } else {
-                            LOG.warn("Event streaming error: sessionId={}", sessionId, t);
-                        }
-                        onError.accept(t);
-                    }
+        LOG.info("Subscribed to live stream: sessionId={}", sessionId);
+        return subscription;
+    }
 
-                    @Override
-                    public void onCompleted() {
-                        activeSubscriptions.remove(subscription);
-                        LOG.debug("Event streaming completed: sessionId={}", sessionId);
-                        onComplete.run();
-                    }
-                }));
+    /**
+     * Replays historical JFR events from dumped recording files on the remote server.
+     *
+     * @param request   replay parameters (session ID, event types, time range)
+     * @param callbacks streaming lifecycle callbacks (onBatch, onComplete, onError)
+     * @return a cancellation handle to stop the replay
+     */
+    public EventStreamingSubscription subscribeReplayStreaming(
+            ReplaySubscriptionRequest request,
+            StreamingCallbacks callbacks) {
 
-        LOG.info("Subscribed to event stream: sessionId={} eventTypes={}", sessionId, eventTypes);
+        ReplayStreamingRequest.Builder requestBuilder = ReplayStreamingRequest.newBuilder()
+                .setSessionId(request.sessionId())
+                .addAllEventTypes(request.eventTypes())
+                .setSendEmptyBatches(false);
 
+        if (request.startTime() != null) {
+            requestBuilder.setStartTime(request.startTime());
+        }
+        if (request.endTime() != null) {
+            requestBuilder.setEndTime(request.endTime());
+        }
+
+        String sessionId = request.sessionId();
+        Context.CancellableContext cancellableContext = Context.current().withCancellation();
+        EventStreamingSubscription subscription = new EventStreamingSubscription(cancellableContext, sessionId);
+        activeSubscriptions.add(subscription);
+
+        cancellableContext.run(() -> stub.replayStreaming(requestBuilder.build(),
+                new EventBatchStreamObserver(sessionId, subscription, activeSubscriptions, callbacks)));
+
+        LOG.info("Subscribed to replay stream: request={}", request);
         return subscription;
     }
 

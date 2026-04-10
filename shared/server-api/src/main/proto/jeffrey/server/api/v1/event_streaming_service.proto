@@ -5,44 +5,47 @@ package jeffrey.server.api.v1;
 option java_package = "pbouda.jeffrey.server.api.v1";
 option java_multiple_files = true;
 
-// Provides server-streaming RPC for subscribing to live JFR events from a session's
-// streaming repository. Each subscriber gets their own EventStream with independent
-// start time and event type filtering. Events are micro-batched using JFR's own
-// flush cycle (~1s) and delivered as EventBatch messages.
+// Provides server-streaming RPCs for accessing JFR events from a session:
+// live streaming from the JFR repository, or replay from dumped recording files.
+// Events are delivered as EventBatch messages with typed fields.
 service EventStreamingService {
-  // Subscribe to live JFR events for a session.
+  // Live-streams JFR events from a session's streaming repository.
   // The stream stays open until the client disconnects or the session ends.
-  rpc SubscribeEvents(SubscribeEventsRequest) returns (stream EventBatch);
+  rpc LiveStreaming(LiveStreamingRequest) returns (stream EventBatch);
+
+  // Replays historical JFR events from dumped recording files for a session.
+  // Reads events from .jfr/.jfr.lz4 files in chronological order and streams them back.
+  // The stream ends when all matching events have been delivered.
+  rpc ReplayStreaming(ReplayStreamingRequest) returns (stream EventBatch);
 }
 
-message SubscribeEventsRequest {
-  // Field numbers 1 and 2 were formerly workspace_id and project_id.
-  // Reserved to keep wire-format compatibility with older clients that still
-  // populate those fields — new servers simply ignore them.
-  reserved 1, 2;
-  reserved "workspace_id", "project_id";
-
-  string session_id = 3;
+// Request to live-stream JFR events from a session's streaming repository.
+// Always continuous — the stream stays open waiting for new events.
+message LiveStreamingRequest {
+  string session_id = 1;
   // JFR event types to receive (e.g. "jdk.GCHeapSummary", "jdk.CPULoad").
   // Empty = all events.
-  repeated string event_types = 4;
-  // Optional start time (epoch millis). Enables replaying historical events
-  // from the preserved streaming repository. Omit for live-only.
-  optional int64 start_time = 5;
+  repeated string event_types = 2;
   // Send empty batches as implicit heartbeats (default: false).
   // When true, a batch is sent every flush interval even if no events arrived.
   // Useful for client-side connection liveness detection.
-  optional bool send_empty_batches = 6;
-  // Optional end time (epoch millis). When set, the stream will stop after
-  // delivering all events up to this timestamp. Ignored when continuous is true.
-  optional int64 end_time = 7;
-  // When true, the stream stays open waiting for new events indefinitely.
-  // When false (default), the stream ends after delivering all existing events
-  // (uses end_time if set, otherwise current time as the cutoff).
-  optional bool continuous = 8;
+  optional bool send_empty_batches = 3;
 }
 
-// A batch of JFR events delivered on each JFR flush cycle (~1s).
+// Request to replay historical JFR events from dumped recording files.
+message ReplayStreamingRequest {
+  string session_id = 1;
+  // JFR event types to receive. Empty = all events.
+  repeated string event_types = 2;
+  // Optional start time (epoch millis). Omit to read from the beginning.
+  optional int64 start_time = 3;
+  // Optional end time (epoch millis). Omit to read to the latest event.
+  optional int64 end_time = 4;
+  // Send empty batches as implicit heartbeats (default: false).
+  optional bool send_empty_batches = 5;
+}
+
+// A batch of JFR events delivered on each flush cycle.
 // May be empty when send_empty_batches is true (acts as heartbeat).
 message EventBatch {
   repeated StreamingEvent events = 1;

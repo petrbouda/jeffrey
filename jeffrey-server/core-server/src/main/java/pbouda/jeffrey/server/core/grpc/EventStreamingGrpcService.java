@@ -19,34 +19,32 @@
 package pbouda.jeffrey.server.core.grpc;
 
 import io.grpc.Context;
-import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.server.api.v1.EventBatch;
 import pbouda.jeffrey.server.api.v1.EventStreamingServiceGrpc;
-import pbouda.jeffrey.server.api.v1.SubscribeEventsRequest;
+import pbouda.jeffrey.server.api.v1.LiveStreamingRequest;
+import pbouda.jeffrey.server.api.v1.ReplayStreamingRequest;
 import pbouda.jeffrey.server.core.ServerJeffreyDirs;
-import pbouda.jeffrey.server.core.streaming.EventStreamSubscription;
-import pbouda.jeffrey.server.core.streaming.EventStreamingSubscriptionManager;
-import pbouda.jeffrey.server.core.streaming.SessionPaths;
-import pbouda.jeffrey.server.core.streaming.EventStreamSubscriber;
+import pbouda.jeffrey.server.core.project.repository.RepositoryStorage;
+import pbouda.jeffrey.server.core.streaming.*;
 import pbouda.jeffrey.server.persistence.model.SessionWithRepository;
 import pbouda.jeffrey.server.persistence.repository.ServerPlatformRepositories;
 import pbouda.jeffrey.shared.common.filesystem.FileSystemUtils;
 
-import java.io.IOException;
 import java.nio.file.Path;
-import java.time.Clock;
 import java.time.Instant;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 
 /**
- * gRPC service that allows clients to subscribe to live JFR events from a session's
- * streaming repository. Each subscriber gets their own {@link EventStreamSubscriber}
- * with independent start time and event type filtering.
+ * gRPC service providing two modes of JFR event access:
+ * <ul>
+ *   <li><b>Live streaming</b> — subscribes to a session's streaming repository for real-time events</li>
+ *   <li><b>Replay streaming</b> — reads dumped recording files (.jfr/.jfr.lz4) for historical events</li>
+ * </ul>
  */
 public class EventStreamingGrpcService extends EventStreamingServiceGrpc.EventStreamingServiceImplBase {
 
@@ -54,120 +52,131 @@ public class EventStreamingGrpcService extends EventStreamingServiceGrpc.EventSt
 
     private final ServerJeffreyDirs jeffreyDirs;
     private final ServerPlatformRepositories platformRepositories;
-    private final EventStreamingSubscriptionManager subscriptionManager;
-    private final Clock clock;
+    private final LiveStreamingManager liveStreamingManager;
+    private final ReplayStreamingManager replayStreamingManager;
+    private final RepositoryStorage.Factory repositoryStorageFactory;
 
     public EventStreamingGrpcService(
             ServerJeffreyDirs jeffreyDirs,
             ServerPlatformRepositories platformRepositories,
-            EventStreamingSubscriptionManager subscriptionManager,
-            Clock clock) {
+            LiveStreamingManager liveStreamingManager,
+            ReplayStreamingManager replayStreamingManager,
+            RepositoryStorage.Factory repositoryStorageFactory) {
 
         this.jeffreyDirs = jeffreyDirs;
         this.platformRepositories = platformRepositories;
-        this.subscriptionManager = subscriptionManager;
-        this.clock = clock;
+        this.liveStreamingManager = liveStreamingManager;
+        this.replayStreamingManager = replayStreamingManager;
+        this.repositoryStorageFactory = repositoryStorageFactory;
     }
 
     @Override
-    public void subscribeEvents(SubscribeEventsRequest request, StreamObserver<EventBatch> observer) {
+    public void liveStreaming(LiveStreamingRequest request, StreamObserver<EventBatch> observer) {
         String sessionId = request.getSessionId();
 
         try {
-            Optional<SessionWithRepository> session =
+            Optional<SessionWithRepository> sessionOpt =
                     platformRepositories.findSessionWithRepositoryById(sessionId);
-
-            if (session.isEmpty()) {
-                observer.onError(Status.NOT_FOUND
-                        .withDescription("Session not found: " + sessionId)
-                        .asRuntimeException());
-                return;
-            }
-
-            Path streamingRepoPath = SessionPaths.resolveStreamingRepo(jeffreyDirs, session.get());
-            if (!FileSystemUtils.isDirectory(streamingRepoPath)) {
-                observer.onError(Status.UNAVAILABLE
-                        .withDescription("Session repository for streaming is not available: " + sessionId)
-                        .asRuntimeException());
+            if (sessionOpt.isEmpty()) {
+                observer.onError(GrpcExceptions.notFound("Session not found: " + sessionId));
                 return;
             }
 
             if (request.getEventTypesList().isEmpty()) {
-                observer.onError(Status.INVALID_ARGUMENT
-                        .withDescription("At least one event type must be specified")
-                        .asRuntimeException());
+                observer.onError(GrpcExceptions.invalidArgument("At least one event type must be specified"));
                 return;
             }
 
-            Instant now = clock.instant();
-            Instant requestedStart = request.hasStartTime()
-                    ? Instant.ofEpochMilli(request.getStartTime())
-                    : null;
-            Instant requestedEnd = request.hasEndTime()
-                    ? Instant.ofEpochMilli(request.getEndTime())
-                    : null;
-
-            if (request.getContinuous() && requestedEnd != null) {
-                observer.onError(Status.INVALID_ARGUMENT
-                        .withDescription("endTime must not be set when continuous=true; use continuous mode without an endTime or set continuous=false")
-                        .asRuntimeException());
-                return;
-            }
-            if (requestedEnd != null && requestedEnd.isAfter(now)) {
-                observer.onError(Status.INVALID_ARGUMENT
-                        .withDescription("endTime must not be in the future; for future endTime, switch to continuous mode")
-                        .asRuntimeException());
-                return;
-            }
-            if (requestedStart != null && requestedEnd != null && !requestedStart.isBefore(requestedEnd)) {
-                observer.onError(Status.INVALID_ARGUMENT
-                        .withDescription("startTime must be strictly before endTime")
-                        .asRuntimeException());
+            Path streamingRepoPath = SessionPaths.resolveStreamingRepo(jeffreyDirs, sessionOpt.get());
+            if (!FileSystemUtils.isDirectory(streamingRepoPath)) {
+                observer.onError(GrpcExceptions.unavailable("Session repository for streaming is not available: " + sessionId));
                 return;
             }
 
-            Set<String> eventTypes = new HashSet<>(request.getEventTypesList());
-            // When not continuous, set endTime to bound the stream
-            // (use explicit endTime if provided, otherwise current time)
-            Instant endTime;
-            if (request.getContinuous()) {
-                endTime = null;
-            } else if (requestedEnd != null) {
-                endTime = requestedEnd;
-            } else {
-                endTime = now;
-            }
-
-            EventStreamSubscription subscription = new EventStreamSubscription(
+            LiveStreamSubscription subscription = new LiveStreamSubscription(
                     sessionId,
                     streamingRepoPath,
-                    eventTypes,
-                    requestedStart,
-                    endTime,
+                    new HashSet<>(request.getEventTypesList()),
                     request.getSendEmptyBatches());
 
-            String subscriptionId = subscriptionManager.subscribe(
-                    subscription,
+            var callbacks = new StreamingCallbacks(
                     observer::onNext,
                     observer::onCompleted,
-                    t -> observer.onError(Status.INTERNAL.withDescription(t.getMessage()).asRuntimeException()));
+                    t -> observer.onError(GrpcExceptions.internal(t)));
 
-            // Clean up on client disconnect
+            String subscriptionId = liveStreamingManager.subscribe(subscription, callbacks);
+
             Context.current().addListener(_ -> {
-                LOG.info("Client disconnected, closing subscriber stream: sessionId={}", sessionId);
-                subscriptionManager.unsubscribe(subscriptionId);
+                LOG.info("Client disconnected, closing live stream: subscription={}", subscription);
+                liveStreamingManager.unsubscribe(subscriptionId);
             }, Runnable::run);
-
-        } catch (IOException e) {
-            LOG.error("Failed to open streaming repository: sessionId={}", sessionId, e);
-            observer.onError(Status.INTERNAL
-                    .withDescription("Failed to open streaming repository: " + e.getMessage())
-                    .asRuntimeException());
         } catch (Exception e) {
-            LOG.error("Failed to subscribe to events: sessionId={}", sessionId, e);
-            observer.onError(Status.INTERNAL
-                    .withDescription(e.getMessage())
-                    .asRuntimeException());
+            LOG.error("Failed to start live streaming: sessionId={}", sessionId, e);
+            observer.onError(GrpcExceptions.internal(e));
         }
+    }
+
+    @Override
+    public void replayStreaming(ReplayStreamingRequest request, StreamObserver<EventBatch> observer) {
+        String sessionId = request.getSessionId();
+
+        try {
+            Optional<SessionWithRepository> sessionOpt =
+                    platformRepositories.findSessionWithRepositoryById(sessionId);
+            if (sessionOpt.isEmpty()) {
+                observer.onError(GrpcExceptions.notFound("Session not found: " + sessionId));
+                return;
+            }
+
+            if (request.getEventTypesList().isEmpty()) {
+                observer.onError(GrpcExceptions.invalidArgument("At least one event type must be specified"));
+                return;
+            }
+
+            StreamingWindow window = resolveStreamingWindow(request);
+
+            RepositoryStorage storage = repositoryStorageFactory.apply(sessionOpt.get().projectInfo());
+            List<Path> recordingFiles = storage.recordings(sessionId, null);
+            if (recordingFiles.isEmpty()) {
+                observer.onError(GrpcExceptions.notFound("No recording files found for session: " + sessionId));
+                return;
+            }
+
+            ReplayStreamSubscription replaySubscription = new ReplayStreamSubscription(
+                    sessionId,
+                    recordingFiles,
+                    new HashSet<>(request.getEventTypesList()),
+                    window, jeffreyDirs.temp());
+
+            var callbacks = new StreamingCallbacks(
+                    observer::onNext,
+                    observer::onCompleted,
+                    t -> observer.onError(GrpcExceptions.internal(t)));
+
+            String replayId = replayStreamingManager.start(replaySubscription, callbacks);
+
+            Context.current().addListener(_ -> {
+                LOG.info("Client disconnected, closing replay stream: subscription={}", replaySubscription);
+                replayStreamingManager.stop(replayId);
+            }, Runnable::run);
+        } catch (IllegalArgumentException e) {
+            observer.onError(GrpcExceptions.invalidArgument(e.getMessage()));
+        } catch (Exception e) {
+            LOG.error("Failed to start replay streaming: sessionId={}", sessionId, e);
+            observer.onError(GrpcExceptions.internal(e));
+        }
+    }
+
+    // ========== Helpers ==========
+
+    private static StreamingWindow resolveStreamingWindow(ReplayStreamingRequest request) {
+        Instant startTime = request.hasStartTime()
+                ? Instant.ofEpochMilli(request.getStartTime())
+                : null;
+        Instant endTime = request.hasEndTime()
+                ? Instant.ofEpochMilli(request.getEndTime())
+                : null;
+
+        return new StreamingWindow(startTime, endTime);
     }
 }

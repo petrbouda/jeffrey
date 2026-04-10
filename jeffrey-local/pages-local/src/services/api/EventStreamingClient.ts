@@ -49,11 +49,12 @@ export default class EventStreamingClient {
   private eventSource: EventSource | null = null
 
   constructor(workspaceId: string, projectId: string) {
-    this.baseUrl = `${GlobalVars.internalUrl}/workspaces/${workspaceId}/projects/${projectId}/event-streaming`
+    this.baseUrl = `${GlobalVars.internalUrl}/workspaces/${workspaceId}/projects/${projectId}/live-stream`
   }
 
   /**
-   * Subscribes to live JFR events for one or more sessions with the same filter.
+   * Subscribes to live JFR events for one or more sessions.
+   * Always continuous — the stream stays open waiting for new events.
    *
    * @param sessionIds - The sessions to stream events from (must be non-empty)
    * @param eventTypes - JFR event types to receive (empty array = all events)
@@ -62,7 +63,6 @@ export default class EventStreamingClient {
    * @param onError - Called when the SSE connection itself is lost
    * @param onSessionError - Called with the sessionId of a session whose server-side stream errored;
    *                         other sessions keep streaming
-   * @param options - Optional: startTime/endTime (epoch millis), continuous (keep stream open)
    */
   subscribe(
     sessionIds: string[],
@@ -70,8 +70,7 @@ export default class EventStreamingClient {
     onEvents: (events: StreamingEvent[]) => void,
     _onComplete: () => void,
     onError: (error: string) => void,
-    onSessionError: (sessionId: string) => void,
-    options?: { startTime?: number; endTime?: number; continuous?: boolean }
+    onSessionError: (sessionId: string) => void
   ): void {
     this.unsubscribe()
 
@@ -79,15 +78,6 @@ export default class EventStreamingClient {
     params.set('sessionIds', sessionIds.join(','))
     if (eventTypes.length > 0) {
       params.set('eventTypes', eventTypes.join(','))
-    }
-    if (options?.startTime != null) {
-      params.set('startTime', String(options.startTime))
-    }
-    if (options?.endTime) {
-      params.set('endTime', String(options.endTime))
-    }
-    if (options?.continuous) {
-      params.set('continuous', 'true')
     }
 
     const url = `${this.baseUrl}/subscribe?${params.toString()}`

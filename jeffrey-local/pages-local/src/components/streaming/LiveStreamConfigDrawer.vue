@@ -1,9 +1,9 @@
 <template>
   <GenericModal
-    modal-id="streaming-config-modal"
+    modal-id="live-stream-config-modal"
     :show="show"
-    title="Streaming Configuration"
-    icon="bi-gear"
+    title="Live Stream Configuration"
+    icon="bi-broadcast"
     size="md"
     modal-dialog-class="scm-dialog"
     :show-footer="true"
@@ -23,7 +23,7 @@
         Cancel
       </button>
       <button
-        v-if="currentStep < 3"
+        v-if="currentStep < 2"
         type="button"
         class="btn btn-primary"
         :disabled="!canAdvance"
@@ -158,86 +158,6 @@
         are merged at dump time and do not appear in the live stream.
       </div>
       <EventTypeSelector v-model="localEventTypes" />
-    </div>
-
-    <!-- Step 3: Time Range -->
-    <div v-if="currentStep === 3" class="scm-step-content">
-      <div class="scm-time-fields">
-        <div>
-          <label class="scm-label">Start</label>
-          <div class="scm-start-options">
-            <button
-              class="scm-option-btn"
-              :class="{ active: startMode === 'beginning' }"
-              @click="setStartMode('beginning')"
-            >
-              From beginning
-            </button>
-            <button
-              class="scm-option-btn"
-              :class="{ active: startMode === 'now' }"
-              @click="setStartMode('now')"
-            >
-              Now
-            </button>
-            <button
-              class="scm-option-btn"
-              :class="{ active: startMode === 'custom' }"
-              @click="setStartMode('custom')"
-            >
-              Custom
-            </button>
-          </div>
-          <input
-            v-if="startMode === 'custom'"
-            v-model="localStartTime"
-            type="datetime-local"
-            class="scm-input"
-          />
-        </div>
-        <div>
-          <label class="scm-label">End</label>
-          <div class="scm-start-options">
-            <button
-              class="scm-option-btn"
-              :class="{ active: endMode === 'now' }"
-              :disabled="localContinuous"
-              @click="setEndMode('now')"
-            >
-              Now
-            </button>
-            <button
-              class="scm-option-btn"
-              :class="{ active: endMode === 'custom' }"
-              :disabled="localContinuous"
-              @click="setEndMode('custom')"
-            >
-              Custom
-            </button>
-          </div>
-          <input
-            v-if="endMode === 'custom'"
-            v-model="localEndTime"
-            type="datetime-local"
-            class="scm-input"
-            :disabled="localContinuous"
-          />
-        </div>
-      </div>
-      <div class="scm-toggle-row">
-        <label class="scm-toggle">
-          <input
-            v-model="localContinuous"
-            type="checkbox"
-            class="scm-toggle-input"
-          />
-          <span class="scm-toggle-track"><span class="scm-toggle-thumb"></span></span>
-        </label>
-        <div>
-          <div class="scm-toggle-label">Continuous streaming</div>
-          <div class="scm-toggle-desc">Keep stream open for new events after initial replay</div>
-        </div>
-      </div>
 
       <div class="scm-max-events-row">
         <label class="scm-label">Event Buffer Size</label>
@@ -277,22 +197,14 @@ interface InstanceGroup {
   sessions: ProjectInstanceSession[]
 }
 
-export type StartMode = 'beginning' | 'now' | 'custom'
-export type EndMode = 'now' | 'custom'
-
 export interface SelectedSession {
   id: string
   sessionInstance: string
 }
 
-export interface StreamingConfig {
+export interface LiveStreamConfig {
   sessions: SelectedSession[]
   eventTypes: string[]
-  startMode: StartMode
-  startTime: string
-  endMode: EndMode
-  endTime: string
-  continuous: boolean
   maxEvents: number
 }
 
@@ -300,47 +212,32 @@ const props = defineProps<{
   show: boolean
   workspaceId: string
   projectId: string
-  config: StreamingConfig
+  config: LiveStreamConfig
 }>()
 
 const emit = defineEmits<{
   'update:show': [value: boolean]
-  apply: [config: StreamingConfig]
+  apply: [config: LiveStreamConfig]
 }>()
 
-// Wizard state
 const currentStep = ref(1)
 
 const wizardSteps = [
   { num: 1, label: 'Session' },
-  { num: 2, label: 'Event Types' },
-  { num: 3, label: 'Time Range' }
+  { num: 2, label: 'Event Types' }
 ]
 
 const canAdvance = computed(() => {
   if (currentStep.value === 1) return localSessions.value.length > 0
-  if (currentStep.value === 2) return localEventTypes.value.length > 0
   return true
 })
 
 const applyEnabled = computed(() => {
-  if (localSessions.value.length === 0 || localEventTypes.value.length === 0) return false
-  if (startMode.value === 'custom' && !localStartTime.value) return false
-  if (!localContinuous.value && endMode.value === 'custom' && !localEndTime.value) return false
-
-  if (!localContinuous.value && endMode.value === 'custom') {
-    const endMs = Date.parse(localEndTime.value)
-    if (Number.isNaN(endMs) || endMs > Date.now()) return false
-    if (startMode.value === 'custom') {
-      const startMs = Date.parse(localStartTime.value)
-      if (!Number.isNaN(startMs) && startMs >= endMs) return false
-    }
-  }
-  return true
+  return localSessions.value.length > 0 && localEventTypes.value.length > 0
 })
 
 function nextStep() {
-  if (canAdvance.value && currentStep.value < 3) currentStep.value++
+  if (canAdvance.value && currentStep.value < 2) currentStep.value++
 }
 
 function prevStep() {
@@ -360,11 +257,6 @@ const maxVisibleInstances = ref(5)
 // Config state
 const localSessions = ref<SelectedSession[]>([])
 const localEventTypes = ref<string[]>([])
-const startMode = ref<StartMode>('beginning')
-const localStartTime = ref('')
-const endMode = ref<EndMode>('now')
-const localEndTime = ref('')
-const localContinuous = ref(false)
 const localMaxEvents = ref(1000)
 const maxEventsOptions = [500, 1000, 5000, 10000]
 
@@ -394,7 +286,6 @@ const hiddenInstanceCount = computed(() => {
   return allFilteredGroups.value.length - maxVisibleInstances.value
 })
 
-// Sync local state + load sessions when modal opens
 watch(
   () => props.show,
   (visible) => {
@@ -403,11 +294,6 @@ watch(
       maxVisibleInstances.value = 5
       localSessions.value = props.config.sessions.map((s) => ({ ...s }))
       localEventTypes.value = [...props.config.eventTypes]
-      startMode.value = props.config.startMode
-      localStartTime.value = props.config.startTime
-      endMode.value = props.config.endMode
-      localEndTime.value = props.config.endTime
-      localContinuous.value = props.config.continuous
       localMaxEvents.value = props.config.maxEvents
       sessionSearchQuery.value = ''
       loadSessions()
@@ -458,36 +344,10 @@ function clearSelectedSessions() {
   localSessions.value = []
 }
 
-watch(localContinuous, (on) => {
-  if (on) {
-    endMode.value = 'now'
-    localEndTime.value = ''
-  }
-})
-
-function setStartMode(mode: StartMode) {
-  startMode.value = mode
-  if (mode !== 'custom') {
-    localStartTime.value = ''
-  }
-}
-
-function setEndMode(mode: EndMode) {
-  endMode.value = mode
-  if (mode !== 'custom') {
-    localEndTime.value = ''
-  }
-}
-
 function apply() {
   emit('apply', {
     sessions: localSessions.value.map((s) => ({ ...s })),
     eventTypes: localEventTypes.value,
-    startMode: startMode.value,
-    startTime: localStartTime.value,
-    endMode: endMode.value,
-    endTime: localEndTime.value,
-    continuous: localContinuous.value,
     maxEvents: localMaxEvents.value
   })
   emit('update:show', false)
@@ -664,7 +524,6 @@ function apply() {
   white-space: nowrap;
 }
 
-/* ===== Session Cards (uses shared .session-card utilities) ===== */
 .scm-session-card-spacing {
   margin-bottom: 6px;
 }
@@ -716,7 +575,6 @@ function apply() {
   min-width: 0;
 }
 
-/* Instance header dots: green = JVM online, grey = JVM offline */
 .scm-dot {
   width: 8px;
   height: 8px;
@@ -763,11 +621,11 @@ function apply() {
   font-size: 0.8125rem;
 }
 
-/* ===== Time Range ===== */
-.scm-time-fields {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+/* ===== Max Events ===== */
+.scm-max-events-row {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--color-border-light);
 }
 
 .scm-label {
@@ -780,10 +638,10 @@ function apply() {
   margin-bottom: 6px;
 }
 
-.scm-start-options {
+.scm-max-events-options {
   display: flex;
   gap: 6px;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .scm-option-btn {
@@ -812,112 +670,9 @@ function apply() {
   color: var(--color-primary);
 }
 
-.scm-option-btn:disabled {
-  opacity: 0.4;
-  cursor: default;
-  pointer-events: none;
-}
-
-.scm-input {
-  width: 100%;
-  height: 40px;
-  padding: 10px 14px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  font-family: var(--font-base);
-  font-size: 0.9rem;
-  color: var(--color-body);
-  background: var(--color-white);
-  outline: none;
-  transition: all var(--transition-fast);
-}
-
-.scm-input:focus {
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px var(--color-primary-light);
-}
-
-.scm-input:disabled {
-  background: var(--color-light);
-  opacity: 0.5;
-}
-
-/* ===== Toggle ===== */
-.scm-toggle-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  margin-top: 18px;
-  padding-top: 14px;
-  border-top: 1px solid var(--color-border-light);
-}
-
-.scm-toggle {
-  position: relative;
-  display: inline-block;
-  flex-shrink: 0;
-  cursor: pointer;
-}
-
-.scm-toggle-input {
-  position: absolute;
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-
-.scm-toggle-track {
-  display: block;
-  width: 36px;
-  height: 20px;
-  background: var(--color-border);
-  border-radius: 10px;
-  position: relative;
-  transition: background 0.2s;
-}
-
-.scm-toggle-input:checked + .scm-toggle-track {
-  background: var(--color-primary);
-}
-
-.scm-toggle-thumb {
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 16px;
-  height: 16px;
-  background: var(--color-white);
-  border-radius: 50%;
-  box-shadow: var(--shadow-sm);
-  transition: left 0.2s;
-}
-
-.scm-toggle-input:checked + .scm-toggle-track .scm-toggle-thumb {
-  left: 18px;
-}
-
-.scm-toggle-label {
-  font-size: 0.875rem;
-  color: var(--color-body);
-  font-weight: 600;
-}
-
 .scm-toggle-desc {
   font-size: 0.75rem;
   color: var(--color-muted);
   margin-top: 2px;
-}
-
-/* ===== Max Events ===== */
-.scm-max-events-row {
-  margin-top: 18px;
-  padding-top: 14px;
-  border-top: 1px solid var(--color-border-light);
-}
-
-.scm-max-events-options {
-  display: flex;
-  gap: 6px;
-  margin-bottom: 6px;
 }
 </style>

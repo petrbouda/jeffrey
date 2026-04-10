@@ -257,6 +257,15 @@ jeffrey/
   - `Measuring.s(supplier)` — runs a `Supplier<T>`, returns `Elapsed<T>` (duration + result)
   - Example: `Duration elapsed = Measuring.r(() -> doWork()); LOG.debug("Work completed: duration_in_sec={}", elapsed.toSeconds());`
 
+### Java Best Practices
+- **Prefer records for parameter grouping**: When a method has 3+ related parameters (e.g., sessionId + eventTypes + timeRange), group them into a record. This makes call sites readable and refactoring safe. Example: `LiveSubscriptionRequest(sessionIds, eventTypes)` instead of passing them individually.
+- **Prefer records for callback grouping**: When multiple callbacks travel together (e.g., onBatch + onComplete + onError), group them into a record. Example: `StreamingCallbacks(onBatch, onComplete, onError)`.
+- **Keep domain logic free of framework types**: Records, subscription objects, and domain classes should not depend on gRPC, Jersey, or Spring types. Map framework-specific types (e.g., `StatusRuntimeException`) at the boundary (controller/gRPC service), not in domain code. Example: `StreamingWindow` throws `IllegalArgumentException`, the gRPC service maps it to `INVALID_ARGUMENT`.
+- **Use utility classes for repetitive framework boilerplate**: Extract common framework patterns into static utility classes. Example: `GrpcExceptions.notFound(description)` instead of `Status.NOT_FOUND.withDescription(description).asRuntimeException()`.
+- **Validate in constructors**: Records with invariants should validate in compact constructors and throw standard Java exceptions (e.g., `IllegalArgumentException`), not framework-specific ones.
+- **Compose, don't inherit**: Prefer composition with records and delegation over deep class hierarchies. Example: `ReplayStreamReader` (composite) delegates to `SingleRecordingFileReader` (per-file).
+- **Temp directory lifecycle**: When a process creates temp files, create a dedicated subdirectory (with UUID for uniqueness) and delete the entire directory on close, rather than tracking individual files.
+
 ### Frontend (Vue/TypeScript)
 - **Components**: PascalCase for component names
 - **Composition API**: Preferred over Options API

@@ -22,8 +22,11 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import pbouda.jeffrey.local.core.client.LiveSubscriptionRequest;
 import pbouda.jeffrey.local.core.client.RemoteEventStreamingClient;
 import pbouda.jeffrey.local.core.client.RemoteEventStreamingClient.EventStreamingSubscription;
+import pbouda.jeffrey.local.core.client.ReplaySubscriptionRequest;
+import pbouda.jeffrey.local.core.client.StreamingCallbacks;
 import pbouda.jeffrey.server.api.v1.EventBatch;
 import pbouda.jeffrey.server.api.v1.StreamingEvent;
 import pbouda.jeffrey.server.api.v1.TypedValue;
@@ -32,7 +35,6 @@ import pbouda.jeffrey.shared.common.Json;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
@@ -50,61 +52,74 @@ public class EventStreamingManager {
     }
 
     /**
-     * Subscribes to live JFR events from multiple remote sessions with the same filter and time range.
-     * All event batches are converted to JSON and delivered via a single callback.
+     * Subscribes to live JFR events from multiple remote sessions.
+     * Always continuous — streams stay open waiting for new events.
      * Each session runs as an independent gRPC subscription — a failure in one does not affect the others.
      *
-     * @param sessionIds      the session IDs to subscribe to (must be non-empty)
-     * @param eventTypes      JFR event types to receive (empty = all)
-     * @param startTime       optional start time in epoch millis for historical replay
-     * @param endTime         optional end time in epoch millis to stop streaming
-     * @param continuous      when true, streams stay open waiting for new events
-     * @param onBatch         callback receiving event batches as JSON array nodes
-     *                        (invoked concurrently from multiple gRPC threads — callers must serialize)
-     * @param onSessionError  callback receiving the sessionId of a session whose stream errored;
-     *                        other sessions keep streaming
-     * @param onAllComplete   called once when every session's stream has ended
+     * @param request        live subscription parameters (session IDs, event types)
+     * @param onBatch        callback receiving event batches as JSON array nodes
+     *                       (invoked concurrently from multiple gRPC threads — callers must serialize)
+     * @param onSessionError callback receiving the sessionId of a session whose stream errored
+     * @param onAllComplete  called once when every session's stream has ended
      * @return a cancellation handle for all subscriptions
      */
-    public CompositeSubscription subscribeMulti(
-            List<String> sessionIds,
-            Set<String> eventTypes,
-            Long startTime,
-            Long endTime,
-            boolean continuous,
+    public CompositeSubscription subscribeLiveStreaming(
+            LiveSubscriptionRequest request,
             Consumer<ArrayNode> onBatch,
             Consumer<String> onSessionError,
             Runnable onAllComplete) {
 
-        LOG.info("Subscribing to multi-session event stream: sessionIds={} eventTypes={} startTime={} endTime={} continuous={}",
-                sessionIds, eventTypes, startTime, endTime, continuous);
+        LOG.info("Subscribing to multi-session event stream: request={}", request);
 
-        AtomicInteger remaining = new AtomicInteger(sessionIds.size());
-        List<EventStreamingSubscription> subs = new ArrayList<>(sessionIds.size());
+        AtomicInteger remaining = new AtomicInteger(request.sessionIds().size());
+        List<EventStreamingSubscription> subs = new ArrayList<>(request.sessionIds().size());
 
-        for (String sessionId : sessionIds) {
-            EventStreamingSubscription sub = eventStreamingClient.subscribe(
-                    sessionId,
-                    eventTypes,
-                    startTime,
-                    endTime,
-                    continuous,
+        for (String sessionId : request.sessionIds()) {
+            var callbacks = new StreamingCallbacks(
                     batch -> onBatch.accept(batchToJson(batch)),
                     () -> {
                         if (remaining.decrementAndGet() == 0) {
                             onAllComplete.run();
                         }
                     },
-                    error -> {
+                    _ -> {
                         onSessionError.accept(sessionId);
                         if (remaining.decrementAndGet() == 0) {
                             onAllComplete.run();
                         }
                     });
+
+            EventStreamingSubscription sub = eventStreamingClient.subscribeLiveStreaming(
+                    sessionId, request, callbacks);
             subs.add(sub);
         }
 
         return new CompositeSubscription(subs);
+    }
+
+    /**
+     * Replays historical JFR events from a single remote session's dumped recording files.
+     *
+     * @param request    replay parameters (session ID, event types, time range)
+     * @param onBatch    callback receiving event batches as JSON array nodes
+     * @param onComplete called when the replay finishes
+     * @param onError    called if the replay encounters an error
+     * @return a cancellation handle for the replay
+     */
+    public EventStreamingSubscription subscribeReplayStreaming(
+            ReplaySubscriptionRequest request,
+            Consumer<ArrayNode> onBatch,
+            Runnable onComplete,
+            Consumer<Throwable> onError) {
+
+        LOG.info("Starting event replay: request={}", request);
+
+        var callbacks = new StreamingCallbacks(
+                batch -> onBatch.accept(batchToJson(batch)),
+                onComplete,
+                onError);
+
+        return eventStreamingClient.subscribeReplayStreaming(request, callbacks);
     }
 
     /**
@@ -148,7 +163,8 @@ public class EventStreamingManager {
             case DOUBLE_VALUE -> wrapper.put("doubleValue", tv.getDoubleValue());
             case BOOL_VALUE -> wrapper.put("boolValue", tv.getBoolValue());
             case FLOAT_VALUE -> wrapper.put("floatValue", tv.getFloatValue());
-            case VALUE_NOT_SET -> { }
+            case VALUE_NOT_SET -> {
+            }
         }
         fields.set(key, wrapper);
     }

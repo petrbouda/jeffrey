@@ -542,9 +542,21 @@ const router = createRouter({
                 },
                 {
                   path: 'event-streaming',
-                  name: 'project-event-streaming',
+                  redirect: to =>
+                    `/workspaces/${to.params.workspaceId}/projects/${to.params.projectId}/events/live-stream`
+                },
+                {
+                  path: 'events/live-stream',
+                  name: 'project-live-stream',
                   component: () =>
-                    import('@/views/projects/detail/ProjectEventStreamingView.vue'),
+                    import('@/views/projects/detail/ProjectLiveStreamView.vue'),
+                  meta: { layout: 'project' }
+                },
+                {
+                  path: 'events/replay-stream',
+                  name: 'project-replay-stream',
+                  component: () =>
+                    import('@/views/projects/detail/ProjectReplayStreamView.vue'),
                   meta: { layout: 'project' }
                 },
                 {

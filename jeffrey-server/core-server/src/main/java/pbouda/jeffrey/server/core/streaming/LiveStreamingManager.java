@@ -20,21 +20,19 @@ package pbouda.jeffrey.server.core.streaming;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.server.api.v1.EventBatch;
 import pbouda.jeffrey.shared.common.IDGenerator;
 
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Consumer;
 
 /**
  * Tracks active {@link EventStreamSubscriber} instances and provides lifecycle
- * management: subscribe, unsubscribe, close all for a session, and close on shutdown.
+ * management: subscribe, unsubscribe, and close all on shutdown.
  */
-public class EventStreamingSubscriptionManager implements Closeable {
+public class LiveStreamingManager implements Closeable {
 
-    private static final Logger LOG = LoggerFactory.getLogger(EventStreamingSubscriptionManager.class);
+    private static final Logger LOG = LoggerFactory.getLogger(LiveStreamingManager.class);
 
     private final ConcurrentHashMap<String, EventStreamSubscriber> subscriptions = new ConcurrentHashMap<>();
 
@@ -46,34 +44,34 @@ public class EventStreamingSubscriptionManager implements Closeable {
      * @throws IOException if the streaming repository cannot be opened
      */
     public String subscribe(
-            EventStreamSubscription subscription,
-            Consumer<EventBatch> consumer,
-            Runnable onComplete,
-            Consumer<Throwable> onError) throws IOException {
+            LiveStreamSubscription subscription,
+            StreamingCallbacks callbacks) throws IOException {
 
         String subscriptionId = IDGenerator.generate();
         EventStreamSubscriber stream = new EventStreamSubscriber(
-                subscription, consumer, onComplete, onError, () -> removeSubscriber(subscriptionId));
+                subscription, callbacks.withOnClose(() -> removeSubscriber(subscriptionId)));
 
         subscriptions.put(subscriptionId, stream);
         stream.start();
 
-        LOG.info("Subscribed to event stream: subscription={} subscription_id={}", subscription, subscriptionId);
+        LOG.info("Subscribed to live stream: subscription={} subscriptionId={}", subscription, subscriptionId);
         return subscriptionId;
     }
 
     /**
-     * Closes a specific subscriber stream. The stream's completion callback removes
-     * the entry from the subscription set.
+     * Closes a specific subscriber stream.
      */
     public void unsubscribe(String subscriptionId) {
-        subscriptions.get(subscriptionId).close();
-        LOG.info("Unsubscribed from event stream: subscription_id={}", subscriptionId);
+        EventStreamSubscriber stream = subscriptions.get(subscriptionId);
+        if (stream != null) {
+            stream.close();
+        }
+        LOG.info("Unsubscribed from live stream: subscriptionId={}", subscriptionId);
     }
 
     @Override
     public void close() {
-        LOG.info("Closing all subscriber event streams: count={}", subscriptions.size());
+        LOG.info("Closing all live streams: count={}", subscriptions.size());
         subscriptions.forEach((_, stream) -> stream.close());
         subscriptions.clear();
     }
@@ -81,7 +79,7 @@ public class EventStreamingSubscriptionManager implements Closeable {
     private void removeSubscriber(String subscriptionId) {
         EventStreamSubscriber stream = subscriptions.remove(subscriptionId);
         if (stream != null) {
-            LOG.debug("Removed subscriber from subscriber list: subscription={}", subscriptionId);
+            LOG.debug("Removed live stream subscriber: subscriptionId={}", subscriptionId);
         }
     }
 }

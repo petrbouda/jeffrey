@@ -35,7 +35,8 @@ public class JdbcServerPlatformRepositories implements ServerPlatformRepositorie
 
     //language=SQL
     private static final String SELECT_SESSION_WITH_REPOSITORY = """
-            SELECT rs.session_id AS session_id,
+            SELECT r.project_id AS project_id,
+                   rs.session_id AS session_id,
                    rs.repository_id AS repository_id,
                    rs.instance_id AS instance_id,
                    rs.session_order AS session_order,
@@ -113,9 +114,10 @@ public class JdbcServerPlatformRepositories implements ServerPlatformRepositorie
                 SELECT_SESSION_WITH_REPOSITORY,
                 paramSource,
                 (rs, rowNum) -> {
+                    String projectId = rs.getString("project_id");
                     RepositoryInfo repositoryInfo = ServerMappers.repositoryInfoMapper().mapRow(rs, rowNum);
                     ProjectInstanceSessionInfo sessionInfo = ServerMappers.projectInstanceSessionMapper().mapRow(rs, rowNum);
-                    return new SessionWithRepository(repositoryInfo, sessionInfo);
+                    return new SessionWithRepository(projectId, repositoryInfo, sessionInfo);
                 });
     }
 

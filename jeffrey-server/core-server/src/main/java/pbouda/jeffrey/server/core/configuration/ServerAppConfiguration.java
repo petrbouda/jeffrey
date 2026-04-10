@@ -46,7 +46,8 @@ import pbouda.jeffrey.server.core.project.repository.file.AsprofFileInfoProcesso
 import pbouda.jeffrey.server.core.project.template.ProjectTemplatesLoader;
 import pbouda.jeffrey.server.core.scheduler.JobDefinitionLoader;
 import pbouda.jeffrey.server.core.scheduler.SchedulerTrigger;
-import pbouda.jeffrey.server.core.streaming.EventStreamingSubscriptionManager;
+import pbouda.jeffrey.server.core.streaming.LiveStreamingManager;
+import pbouda.jeffrey.server.core.streaming.ReplayStreamingManager;
 import pbouda.jeffrey.server.core.streaming.FileHeartbeatReader;
 import pbouda.jeffrey.server.core.workspace.WorkspaceEventPublisher;
 import pbouda.jeffrey.server.persistence.DuckDBServerPersistenceProvider;
@@ -197,8 +198,13 @@ public class ServerAppConfiguration {
     }
 
     @Bean(destroyMethod = "close")
-    public EventStreamingSubscriptionManager eventStreamingSubscriptionManager() {
-        return new EventStreamingSubscriptionManager();
+    public LiveStreamingManager liveStreamingManager() {
+        return new LiveStreamingManager();
+    }
+
+    @Bean(destroyMethod = "close")
+    public ReplayStreamingManager replayStreamingManager() {
+        return new ReplayStreamingManager();
     }
 
     @Bean

@@ -96,9 +96,14 @@ public class ProjectResource {
                 projectManager.recordingsDownloadManager());
     }
 
-    @Path("/event-streaming")
-    public ProjectEventStreamingResource eventStreamingResource() {
-        return new ProjectEventStreamingResource(projectManager.eventStreamingManager(), clock);
+    @Path("/live-stream")
+    public ProjectLiveStreamResource liveStreamResource() {
+        return new ProjectLiveStreamResource(projectManager.eventStreamingManager());
+    }
+
+    @Path("/replay-stream")
+    public ProjectReplayStreamResource replayStreamResource() {
+        return new ProjectReplayStreamResource(projectManager.eventStreamingManager());
     }
 
     @Path("/instances")

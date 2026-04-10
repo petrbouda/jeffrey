@@ -18,14 +18,24 @@
 
 package pbouda.jeffrey.server.persistence.model;
 
+import pbouda.jeffrey.shared.common.model.ProjectInfo;
 import pbouda.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
 import pbouda.jeffrey.shared.common.model.RepositoryInfo;
 
 /**
- * A session paired with its parent repository, returned by lookups that need to
+ * A session paired with its parent repository and project, returned by lookups that need to
  * resolve a session by id alone (without going through the project context).
  */
 public record SessionWithRepository(
+        String projectId,
         RepositoryInfo repositoryInfo,
         ProjectInstanceSessionInfo sessionInfo) {
+
+    /**
+     * Creates a minimal {@link ProjectInfo} containing only the project ID.
+     * Useful for factory lookups that only need the ID to resolve project-scoped resources.
+     */
+    public ProjectInfo projectInfo() {
+        return new ProjectInfo(projectId, null, null, null, null, null, null, null, null, null);
+    }
 }
