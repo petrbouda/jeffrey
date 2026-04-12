@@ -43,7 +43,7 @@ public record ProjectInstanceInfo(
         public Set<ProjectInstanceStatus> validFromStatuses() {
             return switch (this) {
                 case PENDING -> Set.of();
-                case ACTIVE -> Set.of(PENDING);
+                case ACTIVE -> Set.of(PENDING, FINISHED);
                 case FINISHED -> Set.of(ACTIVE);
                 case EXPIRED -> Set.of(FINISHED);
             };
