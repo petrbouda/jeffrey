@@ -139,6 +139,14 @@ export const docsNavigation: DocSection[] = [
     ]
   },
   {
+    title: 'Jeffrey Agent',
+    path: 'agent',
+    icon: 'bi-heart-pulse',
+    children: [
+      { title: 'Overview', path: 'overview' }
+    ]
+  },
+  {
     title: 'Jeffrey Events',
     path: 'events',
     icon: 'bi-activity',

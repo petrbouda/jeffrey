@@ -177,6 +177,10 @@ onMounted(() => {
                     <div class="arch-java-app">
                       <i class="bi bi-cpu"></i>
                       <span>Java Application</span>
+                      <div class="arch-agent-badge">
+                        <i class="bi bi-heart-pulse"></i>
+                        <span>Jeffrey Agent</span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -594,6 +598,19 @@ onMounted(() => {
 .arch-java-app i { color: #ef4444; font-size: 1rem; }
 .arch-java-app span { font-size: 0.65rem; font-weight: 600; color: #991b1b; }
 
+.arch-agent-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  margin-top: 0.25rem;
+  padding: 0.15rem 0.4rem;
+  background: #fef3c7;
+  border: 1px solid #fbbf24;
+  border-radius: 4px;
+}
+
+.arch-agent-badge i { color: #d97706; font-size: 0.65rem; }
+.arch-agent-badge span { font-size: 0.55rem; font-weight: 600; color: #92400e; }
 
 /* Responsive */
 @media (max-width: 768px) {
@@ -621,6 +638,5 @@ onMounted(() => {
   .arch-bottom-connector-spacer {
     display: none;
   }
-
 }
 </style>

@@ -45,7 +45,7 @@ onMounted(() => {
       />
 
       <div class="docs-content">
-        <p>The Profiles section within a project shows all <strong>analyzed recordings</strong> ready for investigation. This page explains how profiles are created and managed within the context of a project.</p>
+        <p>Profiles are <strong>analyzed recordings</strong> ready for investigation. Profiles are created and managed within the <strong>Recordings</strong> section of a project.</p>
 
         <DocsCallout type="info">
           For comprehensive information about what profiles contain and the analysis features they provide, see <router-link to="/docs/local/profiles">Profiles</router-link>.
@@ -64,7 +64,7 @@ onMounted(() => {
 
         <ul>
           <li><strong>Manual uploads</strong> - Upload a JFR file directly to the Recordings section</li>
-          <li><strong>Repository</strong> - Recording sessions from live applications connected via a Remote workspace</li>
+          <li><strong>Repository</strong> - Recording sessions from live applications connected via a jeffrey-server</li>
           <li><strong>Quick Analysis</strong> - Upload and analyze a JFR file without creating a workspace or project</li>
         </ul>
 

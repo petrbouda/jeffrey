@@ -122,6 +122,7 @@ exec java @/tmp/jvm.args -jar /app/my-app.jar`;
           <li>Generates JVM flags for async-profiler and enabled features</li>
           <li>Writes output files: <code>.env</code> file (shell exports) and/or JVM arguments file (@argfile format)</li>
           <li>Stores session metadata for Jeffrey to detect</li>
+          <li>Configures <router-link to="/docs/agent/overview">Jeffrey Agent</router-link> for heartbeat monitoring</li>
         </ul>
 
         <h3>When to Use Jeffrey CLI</h3>

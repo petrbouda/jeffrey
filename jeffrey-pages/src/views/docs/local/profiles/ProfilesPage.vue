@@ -133,6 +133,11 @@ const folderStructure = `$JEFFREY_HOME/
           title="Performance Counters"
           description="Hardware performance metrics — CPU cycles, cache misses, and other low-level counters when available."
         />
+        <DocsFeatureCard
+          icon="bi bi-box"
+          title="Container Configuration"
+          description="Container resource limits and settings — CPU quotas, memory limits, and cgroup configuration for containerized deployments."
+        />
       </div>
 
       <h2 id="technologies">Technologies</h2>
@@ -172,8 +177,13 @@ const folderStructure = `$JEFFREY_HOME/
         />
         <DocsFeatureCard
           icon="bi bi-search"
-          title="Leak Suspects & Collections"
-          description="Automated memory leak detection. Collection analysis for empty, oversized, or inefficient collections."
+          title="Leak Suspects"
+          description="Automated memory leak detection based on retained size analysis and reference chain patterns."
+        />
+        <DocsFeatureCard
+          icon="bi bi-collection"
+          title="Biggest Collections & Duplicates"
+          description="Find the largest collections by size and detect duplicate objects wasting memory across the heap."
         />
         <DocsFeatureCard
           icon="bi bi-fonts"
@@ -184,6 +194,11 @@ const folderStructure = `$JEFFREY_HOME/
           icon="bi bi-signpost-split"
           title="GC Roots & Reference Chains"
           description="Browse garbage collection roots. Trace reference chains from any object back to its GC root to understand retention."
+        />
+        <DocsFeatureCard
+          icon="bi bi-layers"
+          title="Class Loaders"
+          description="Analyze class loader hierarchy, loaded class counts, and detect class loader leaks in complex deployments."
         />
       </div>
 

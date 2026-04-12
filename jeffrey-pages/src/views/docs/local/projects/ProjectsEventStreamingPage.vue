@@ -30,6 +30,7 @@ const headings = [
   { id: 'configuration', text: 'Configuration', level: 2 },
   { id: 'available-events', text: 'Available Events', level: 2 },
   { id: 'time-range', text: 'Time Range', level: 2 },
+  { id: 'replay-stream', text: 'Replay Stream', level: 2 },
   { id: 'workspace-availability', text: 'Workspace Availability', level: 2 }
 ];
 
@@ -49,7 +50,7 @@ onMounted(() => {
       <p>Event Streaming lets you subscribe to <strong>live JFR events</strong> from a remote session's streaming repository. Events are delivered in real-time via Server-Sent Events (SSE) as they are committed by the JVM's JFR infrastructure.</p>
 
       <DocsCallout type="info">
-        <strong>Remote Workspaces:</strong> Event Streaming is available in Remote workspaces connected to a jeffrey-server instance with active recording sessions.
+        <strong>Server Connection Required:</strong> Live Stream requires a workspace connected to a jeffrey-server instance with active recording sessions.
       </DocsCallout>
 
       <h2 id="how-it-works">How It Works</h2>
@@ -138,8 +139,18 @@ onMounted(() => {
         <strong>Bounded vs Continuous:</strong> Without continuous mode, the stream automatically closes when it reaches the end time. With continuous mode enabled, the stream stays open and delivers new events indefinitely until you disconnect.
       </DocsCallout>
 
+      <h2 id="replay-stream">Replay Stream</h2>
+      <p>While Live Stream subscribes to events from a running session, <strong>Replay Stream</strong> reads historical JFR events from already dumped recording files. This lets you browse past events without a live connection to the server.</p>
+
+      <p>Replay Stream works with any recording that has been merged into the project's Recordings section. Select a recording, choose event types, and replay the events as if they were streaming in real-time.</p>
+
+      <DocsCallout type="tip">
+        <strong>Live vs Replay:</strong> Use Live Stream to monitor running applications in real-time. Use Replay Stream to investigate historical events from completed recordings — no active session required.
+      </DocsCallout>
+
       <h2 id="workspace-availability">Workspace Availability</h2>
-      <p>Event Streaming is available in <strong>Remote workspaces</strong> connected to a jeffrey-server instance. The project must have at least one active recording session with a JFR streaming repository.</p>
+      <p><strong>Live Stream</strong> requires a workspace connected to a jeffrey-server instance. The project must have at least one active recording session with a JFR streaming repository.</p>
+      <p><strong>Replay Stream</strong> is available in all workspace types, as it reads from local recording files.</p>
     </div>
 
     <DocsNavFooter />

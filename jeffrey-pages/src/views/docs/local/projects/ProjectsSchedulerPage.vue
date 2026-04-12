@@ -47,7 +47,7 @@ onMounted(() => {
         <p>The Scheduler runs <strong>automated background jobs</strong> for continuous profiling scenarios, handling housekeeping tasks and synchronization.</p>
 
         <DocsCallout type="info">
-          <strong>Server-Side Feature:</strong> The Scheduler runs on the jeffrey-server. You can view and manage scheduled jobs through a Remote workspace, but the jobs themselves execute on the server.
+          <strong>Server-Side Feature:</strong> The Scheduler runs on the jeffrey-server. You can view and manage scheduled jobs through a workspace connected to a jeffrey-server instance, but the jobs themselves execute on the server.
         </DocsCallout>
 
         <h2 id="what-is-scheduler">What is Scheduler?</h2>
@@ -131,7 +131,7 @@ onMounted(() => {
         <p>The Scheduler runs on the jeffrey-server and manages server-side automation for continuous profiling. Jobs execute on the server regardless of how you access them.</p>
 
         <DocsCallout type="info">
-          <strong>Remote workspaces:</strong> When using a Remote workspace, you can view and manage scheduled jobs on the connected jeffrey-server. The jobs themselves always run on the server.
+          <strong>Server connection required:</strong> When your workspace is connected to a jeffrey-server, you can view and manage scheduled jobs. The jobs themselves always run on the server.
         </DocsCallout>
       </div>
 

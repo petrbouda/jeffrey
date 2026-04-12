@@ -48,11 +48,11 @@ onMounted(() => {
         <p>The Repository provides access to <strong>recording sessions</strong> from live applications. It's the bridge between your running applications and Jeffrey's analysis capabilities.</p>
 
         <DocsCallout type="info">
-          <strong>Remote Workspaces:</strong> Repository is available in Remote workspaces connected to a jeffrey-server instance. It provides access to recording sessions collected on the server.
+          <strong>Server Connection Required:</strong> Repository is available in workspaces connected to a jeffrey-server instance. It provides access to recording sessions collected on the server.
         </DocsCallout>
 
         <h2 id="what-is-repository">What is Repository?</h2>
-        <p>The Repository is a view of recording sessions collected from running Java applications. Unlike the Recordings section (which shows uploaded files), Repository shows:</p>
+        <p>The Repository is accessed within the <strong>Recordings</strong> section of a project connected to a jeffrey-server. It shows recording sessions collected from running Java applications:</p>
         <ul>
           <li>Active and completed recording sessions</li>
           <li>Recording chunks as they're being created</li>
@@ -101,10 +101,10 @@ onMounted(() => {
         </ul>
 
         <h2 id="how-it-works">How it Works</h2>
-        <p>The Repository in a Remote workspace connects to the jeffrey-server to access recording sessions. Sessions are detected automatically on the server side and synced to your local machine through the Remote workspace connection. When you use Merge and Copy, the recording data is downloaded over the network to your local Recordings section.</p>
+        <p>The Repository connects to the jeffrey-server to access recording sessions. Sessions are detected automatically on the server side and synced to your local machine through the workspace connection. When you use Merge and Copy, the recording data is downloaded over the network to your local Recordings section.</p>
 
         <DocsCallout type="tip">
-          <strong>Recommended workflow:</strong> Deploy jeffrey-server to collect recordings from your applications, then connect from a Remote workspace on your local machine to download and analyze them. This keeps the server lightweight while you use your local machine's resources for analysis.
+          <strong>Recommended workflow:</strong> Deploy jeffrey-server to collect recordings from your applications, then connect your workspace to download and analyze them. This keeps the server lightweight while you use your local machine's resources for analysis.
         </DocsCallout>
       </div>
 

@@ -298,6 +298,13 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/docs/cli/CliGeneratedOutputPage.vue')
       },
 
+      // ──── Jeffrey Agent ────
+      {
+        path: 'agent/overview',
+        name: 'DocsAgentOverview',
+        component: () => import('@/views/docs/agent/AgentOverviewPage.vue')
+      },
+
       // ──── AI Analysis ────
       {
         path: 'ai/overview',
