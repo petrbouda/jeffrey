@@ -130,7 +130,8 @@ public class RemoteRepositoryClient {
                 proto.getCreatedAt() != 0 ? proto.getCreatedAt() : null,
                 proto.getSize(),
                 parseFileType(proto.getFileType()),
-                fromProtoRecordingStatus(proto.getStatus()));
+                fromProtoRecordingStatus(proto.getStatus()),
+                proto.getIsRecording());
     }
 
     private static RecordingStatus fromProtoRecordingStatus(pbouda.jeffrey.server.api.v1.RecordingStatus status) {

@@ -26,6 +26,7 @@ export default class RepositoryFile {
     public createdAt: number,
     public status: RecordingStatus,
     public size: number,
-    public fileType: RecordingFileType
+    public fileType: RecordingFileType,
+    public isRecording: boolean
   ) {}
 }

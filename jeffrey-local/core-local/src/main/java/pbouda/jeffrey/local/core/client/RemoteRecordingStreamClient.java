@@ -18,6 +18,7 @@
 
 package pbouda.jeffrey.local.core.client;
 
+import io.grpc.StatusRuntimeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.io.FileSystemResource;
@@ -34,12 +35,6 @@ import java.util.concurrent.CompletableFuture;
 
 public class RemoteRecordingStreamClient {
 
-    /**
-     * Consumer for streaming HTTP response body.
-     *
-     * @param inputStream   the raw HTTP response body stream
-     * @param contentLength the Content-Length from the HTTP response, or -1 if unknown
-     */
     @FunctionalInterface
     public interface InputStreamConsumer {
         void accept(InputStream inputStream, long contentLength) throws IOException;
@@ -152,6 +147,7 @@ public class RemoteRecordingStreamClient {
 
             // Determine total size from first chunk
             long[] totalSize = {-1};
+            Throwable[] writerError = {null};
 
             Thread writer = Thread.ofVirtual().start(() -> {
                 try (pipeOut) {
@@ -162,7 +158,8 @@ public class RemoteRecordingStreamClient {
                         }
                         chunk.getData().writeTo(pipeOut);
                     }
-                } catch (IOException e) {
+                } catch (Exception e) {
+                    writerError[0] = e;
                     LOG.error("Error writing gRPC chunks to pipe", e);
                 }
             });
@@ -172,6 +169,15 @@ public class RemoteRecordingStreamClient {
             } finally {
                 writer.join();
                 pipeIn.close();
+            }
+
+            if (writerError[0] != null) {
+                String message = writerError[0].getMessage();
+                if (writerError[0] instanceof StatusRuntimeException sre) {
+                    String description = sre.getStatus().getDescription();
+                    message = description != null ? description : message;
+                }
+                throw new RuntimeException(message, writerError[0]);
             }
         } catch (IOException | InterruptedException e) {
             if (e instanceof InterruptedException) {

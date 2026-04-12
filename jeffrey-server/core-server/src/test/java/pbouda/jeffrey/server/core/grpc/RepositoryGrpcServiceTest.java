@@ -39,9 +39,7 @@ import pbouda.jeffrey.shared.common.model.repository.RepositoryStatistics.FileTy
 import pbouda.jeffrey.shared.common.model.repository.SupportedRecordingFile;
 
 import java.io.IOException;
-import java.time.Clock;
 import java.time.Instant;
-import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 
@@ -53,7 +51,6 @@ class RepositoryGrpcServiceTest {
     private static final String PROJECT_ID = "proj-1";
     private static final String SESSION_ID = "session-1";
     private static final Instant FIXED_TIME = Instant.parse("2026-01-15T10:00:00Z");
-    private static final Clock FIXED_CLOCK = Clock.fixed(FIXED_TIME, ZoneId.of("UTC"));
 
     private Server server;
     private ManagedChannel channel;
@@ -214,7 +211,7 @@ class RepositoryGrpcServiceTest {
 
             var repoManagerFactory = mock(RepositoryManager.Factory.class);
 
-            var stub = startServer(new RepositoryGrpcService(platformRepositories, repoManagerFactory, FIXED_CLOCK));
+            var stub = startServer(new RepositoryGrpcService(platformRepositories, repoManagerFactory));
 
             StatusRuntimeException ex = assertThrows(StatusRuntimeException.class, () ->
                     stub.getSession(
@@ -321,7 +318,7 @@ class RepositoryGrpcServiceTest {
 
             var repoManagerFactory = mock(RepositoryManager.Factory.class);
 
-            var stub = startServer(new RepositoryGrpcService(platformRepositories, repoManagerFactory, FIXED_CLOCK));
+            var stub = startServer(new RepositoryGrpcService(platformRepositories, repoManagerFactory));
 
             StatusRuntimeException ex = assertThrows(StatusRuntimeException.class, () ->
                     stub.deleteSession(
@@ -363,7 +360,7 @@ class RepositoryGrpcServiceTest {
 
             var repoManagerFactory = mock(RepositoryManager.Factory.class);
 
-            var stub = startServer(new RepositoryGrpcService(platformRepositories, repoManagerFactory, FIXED_CLOCK));
+            var stub = startServer(new RepositoryGrpcService(platformRepositories, repoManagerFactory));
 
             StatusRuntimeException ex = assertThrows(StatusRuntimeException.class, () ->
                     stub.deleteFilesInSession(
@@ -394,7 +391,7 @@ class RepositoryGrpcServiceTest {
         var repoManagerFactory = mock(RepositoryManager.Factory.class);
         when(repoManagerFactory.apply(TEST_PROJECT_INFO)).thenReturn(repoManager);
 
-        return new RepositoryGrpcService(platformRepositories, repoManagerFactory, FIXED_CLOCK);
+        return new RepositoryGrpcService(platformRepositories, repoManagerFactory);
     }
 
     /**
@@ -410,7 +407,7 @@ class RepositoryGrpcServiceTest {
         var repoManagerFactory = mock(RepositoryManager.Factory.class);
         when(repoManagerFactory.apply(TEST_PROJECT_INFO)).thenReturn(repoManager);
 
-        return new RepositoryGrpcService(platformRepositories, repoManagerFactory, FIXED_CLOCK);
+        return new RepositoryGrpcService(platformRepositories, repoManagerFactory);
     }
 
     /**
@@ -425,6 +422,6 @@ class RepositoryGrpcServiceTest {
 
         var repoManagerFactory = mock(RepositoryManager.Factory.class);
 
-        return new RepositoryGrpcService(platformRepositories, repoManagerFactory, FIXED_CLOCK);
+        return new RepositoryGrpcService(platformRepositories, repoManagerFactory);
     }
 }

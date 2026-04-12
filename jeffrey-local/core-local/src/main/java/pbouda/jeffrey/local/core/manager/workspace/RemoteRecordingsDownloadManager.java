@@ -36,7 +36,6 @@ import pbouda.jeffrey.shared.common.exception.Exceptions;
 import pbouda.jeffrey.shared.common.filesystem.FileSystemUtils;
 import pbouda.jeffrey.local.core.LocalJeffreyDirs;
 import pbouda.jeffrey.shared.common.filesystem.TempDirectory;
-import pbouda.jeffrey.shared.common.model.ProjectInfo;
 import pbouda.jeffrey.shared.common.model.repository.RepositoryFile;
 
 import java.io.IOException;
@@ -60,23 +59,20 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
     /**
      * Maximum number of concurrent file downloads.
      */
-    private static final int MAX_CONCURRENT_DOWNLOADS = 3;
+    private static final int MAX_CONCURRENT_DOWNLOADS = 5;
 
     private final LocalJeffreyDirs jeffreyDirs;
-    private final ProjectInfo projectInfo;
     private final RemoteRecordingStreamClient recordingStreamClient;
     private final RemoteRepositoryClient repositoryClient;
     private final ProjectRecordingInitializer recordingInitializer;
 
     public RemoteRecordingsDownloadManager(
             LocalJeffreyDirs jeffreyDirs,
-            ProjectInfo projectInfo,
             RemoteRecordingStreamClient recordingStreamClient,
             RemoteRepositoryClient repositoryClient,
             ProjectRecordingInitializer recordingInitializer) {
 
         this.jeffreyDirs = jeffreyDirs;
-        this.projectInfo = projectInfo;
         this.recordingStreamClient = recordingStreamClient;
         this.repositoryClient = repositoryClient;
         this.recordingInitializer = recordingInitializer;
@@ -338,8 +334,7 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
             ProgressCallback progressCallback) throws IOException {
 
         try (InputStream in = new ProgressTrackingInputStream(
-                source, fileName,
-                (name, bytes) -> progressCallback.onFileProgress(name, bytes));
+                source, fileName, progressCallback::onFileProgress);
              OutputStream out = Files.newOutputStream(target)) {
 
             byte[] buffer = new byte[8192];

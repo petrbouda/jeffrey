@@ -30,7 +30,6 @@ import pbouda.jeffrey.shared.common.model.ProjectInfo;
 import pbouda.jeffrey.shared.common.model.repository.RepositoryStatistics;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEventCreator;
 
-import java.time.Clock;
 import java.util.List;
 
 public class RepositoryGrpcService extends RepositoryServiceGrpc.RepositoryServiceImplBase {
@@ -39,16 +38,13 @@ public class RepositoryGrpcService extends RepositoryServiceGrpc.RepositoryServi
 
     private final ServerPlatformRepositories platformRepositories;
     private final RepositoryManager.Factory repositoryManagerFactory;
-    private final Clock clock;
 
     public RepositoryGrpcService(
             ServerPlatformRepositories platformRepositories,
-            RepositoryManager.Factory repositoryManagerFactory,
-            Clock clock) {
+            RepositoryManager.Factory repositoryManagerFactory) {
 
         this.platformRepositories = platformRepositories;
         this.repositoryManagerFactory = repositoryManagerFactory;
-        this.clock = clock;
     }
 
     @Override
@@ -57,7 +53,7 @@ public class RepositoryGrpcService extends RepositoryServiceGrpc.RepositoryServi
             RepositoryManager repoManager = repositoryManagerForProject(request.getProjectId());
 
             List<RecordingSession> sessions = repoManager.listRecordingSessions(true).stream()
-                    .map(s -> toProto(s, clock))
+                    .map(RepositoryGrpcService::toProto)
                     .toList();
 
             LOG.debug("Listed sessions via gRPC: projectId={} count={}", request.getProjectId(), sessions.size());
@@ -86,7 +82,7 @@ public class RepositoryGrpcService extends RepositoryServiceGrpc.RepositoryServi
             LOG.debug("Fetched session via gRPC: sessionId={}", request.getSessionId());
 
             responseObserver.onNext(GetSessionResponse.newBuilder()
-                    .setSession(toProto(session, clock))
+                    .setSession(toProto(session))
                     .build());
             responseObserver.onCompleted();
         } catch (io.grpc.StatusRuntimeException e) {
@@ -184,7 +180,7 @@ public class RepositoryGrpcService extends RepositoryServiceGrpc.RepositoryServi
     }
 
     static RecordingSession toProto(
-            pbouda.jeffrey.shared.common.model.repository.RecordingSession session, Clock clock) {
+            pbouda.jeffrey.shared.common.model.repository.RecordingSession session) {
 
         RecordingSession.Builder builder = RecordingSession.newBuilder()
                 .setId(session.id())
@@ -217,6 +213,7 @@ public class RepositoryGrpcService extends RepositoryServiceGrpc.RepositoryServi
                 .setSize(file.size() != null ? file.size() : 0)
                 .setFileType(file.fileType() != null ? file.fileType().name() : "")
                 .setStatus(toProtoRecordingStatus(file.status()))
+                .setIsRecording(file.isRecordingFile())
                 .build();
     }
 

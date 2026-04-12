@@ -19,8 +19,8 @@
 package pbouda.jeffrey.local.core.manager.project;
 
 import pbouda.jeffrey.local.core.LocalJeffreyDirs;
-import pbouda.jeffrey.local.core.manager.*;
 import pbouda.jeffrey.local.core.client.RemoteClients;
+import pbouda.jeffrey.local.core.manager.*;
 import pbouda.jeffrey.local.core.manager.workspace.RemoteRecordingsDownloadManager;
 import pbouda.jeffrey.local.core.recording.ProjectRecordingInitializer;
 import pbouda.jeffrey.local.persistence.repository.LocalCoreRepositories;
@@ -78,12 +78,11 @@ public class RemoteProjectManager implements ProjectManager {
 
     @Override
     public RecordingsDownloadManager recordingsDownloadManager() {
-        ProjectInfo projectInfo = detailedProjectInfo.projectInfo();
-        ProjectRecordingInitializer recordingInitializer = recordingInitializerFactory.apply(projectInfo);
+        ProjectRecordingInitializer recordingInitializer =
+                recordingInitializerFactory.apply(detailedProjectInfo.projectInfo());
 
         return new RemoteRecordingsDownloadManager(
                 jeffreyDirs,
-                projectInfo,
                 remoteClients.recordings(),
                 remoteClients.repository(),
                 recordingInitializer);

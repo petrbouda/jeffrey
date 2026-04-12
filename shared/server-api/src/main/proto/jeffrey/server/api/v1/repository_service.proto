@@ -137,4 +137,6 @@ message RepositoryFile {
   string file_type = 5;
   // File status.
   RecordingStatus status = 6;
+  // Whether this is a JFR recording file (true) or an artifact like logs/heap dumps (false).
+  bool is_recording = 7;
 }

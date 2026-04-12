@@ -73,7 +73,7 @@ public class GrpcServerConfiguration {
                 .addService(new ProjectGrpcService(workspacesManager, platformRepositories, projectManagerFactory))
                 .addService(new InstanceGrpcService(platformRepositories, clock))
                 .addService(new ProfilerSettingsGrpcService(platformRepositories, projectManagerFactory))
-                .addService(new RepositoryGrpcService(platformRepositories, repositoryManagerFactory, clock))
+                .addService(new RepositoryGrpcService(platformRepositories, repositoryManagerFactory))
                 .addService(new RecordingDownloadGrpcService(platformRepositories, repositoryManagerFactory))
                 .addService(new WorkspaceEventsGrpcService(workspaceEventReader))
                 .addService(new EventStreamingGrpcService(jeffreyDirs, platformRepositories, liveStreamingManager, replayStreamingManager, repositoryStorageFactory))

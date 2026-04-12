@@ -128,7 +128,10 @@ interface TypeGroupPanel {
 const parseSessionName = (name: string): { sessionInstance: string; sessionId: string } => {
   const slashIndex = name.indexOf('/');
   if (slashIndex === -1) return { sessionInstance: name, sessionId: '' };
-  return { sessionInstance: name.substring(0, slashIndex), sessionId: name.substring(slashIndex + 1) };
+  return {
+    sessionInstance: name.substring(0, slashIndex),
+    sessionId: name.substring(slashIndex + 1)
+  };
 };
 
 // --- Computed ---
@@ -141,11 +144,7 @@ const sortedSessions = computed(() => {
 // --- Sorting ---
 const getSortedRecordings = (session: RecordingSession) => {
   const getSortPriority = (file: RepositoryFile): number => {
-    if (
-      file.fileType === RecordingFileType.JFR ||
-      file.fileType === RecordingFileType.JFR_LZ4 ||
-      file.fileType === RecordingFileType.ASPROF
-    )
+    if (file.isRecording || file.fileType === RecordingFileType.ASPROF)
       return 1;
     return 0;
   };
@@ -322,11 +321,23 @@ const toggleGroupSelection = (sessionId: string, panel: TypeGroupPanel) => {
 };
 
 const isCheckboxDisabled = (source: RepositoryFile): boolean => {
-  return source.status === RecordingStatus.ACTIVE || source.fileType === RecordingFileType.ASPROF;
+  return (
+    source.status === RecordingStatus.ACTIVE ||
+    source.fileType === RecordingFileType.ASPROF ||
+    source.size === 0
+  );
 };
 
 const isDownloadAllowed = (file: RepositoryFile): boolean => {
-  return file.status !== RecordingStatus.ACTIVE && file.fileType !== RecordingFileType.ASPROF;
+  return (
+    file.status !== RecordingStatus.ACTIVE &&
+    file.fileType !== RecordingFileType.ASPROF &&
+    file.size > 0
+  );
+};
+
+const hasDownloadableRecordings = (session: RecordingSession): boolean => {
+  return session.files.some(f => f.isRecording && f.size > 0);
 };
 
 const downloadFile = async (sessionId: string, fileId: string) => {
@@ -343,6 +354,14 @@ const downloadSession = async (sessionId: string) => {
     const session = props.sessions.find(s => s.id === sessionId);
     if (!session) {
       toast.error('Download', 'Session not found');
+      return;
+    }
+
+    if (!hasDownloadableRecordings(session)) {
+      toast.warn(
+        'No recording data available',
+        'The session may have been terminated before any data was written.'
+      );
       return;
     }
 
@@ -382,6 +401,12 @@ const downloadSelectedSources = async (sessionId: string) => {
       return;
     }
 
+    const downloadableSources = selectedSources.filter(f => f.size > 0);
+    if (downloadableSources.length === 0) {
+      toast.warn('Download', 'No recording data available — the selected files contain no data.');
+      return;
+    }
+
     if (props.isRemoteWorkspace) {
       const fileIds = selectedSources.map(f => f.id);
       await downloadAssistantStore.startDownload(
@@ -396,10 +421,7 @@ const downloadSelectedSources = async (sessionId: string) => {
       );
     } else {
       await repositoryService.value.copySelectedRepositoryFile(session.id, selectedSources, true);
-      toast.success(
-        'Download',
-        `Successfully downloaded ${selectedSources.length} recording(s)`
-      );
+      toast.success('Download', `Successfully downloaded ${selectedSources.length} recording(s)`);
       emit('refresh');
       toggleSelectAllSources(sessionId, false);
     }
@@ -540,17 +562,13 @@ const groupRotatedFiles = (sortedFiles: RepositoryFile[]): FileGroupEntry[] => {
   return result;
 };
 
-const isRecordingFileType = (fileType: string): boolean => {
-  return (
-    fileType === RecordingFileType.JFR ||
-    fileType === RecordingFileType.JFR_LZ4 ||
-    fileType === RecordingFileType.ASPROF
-  );
+const isRecordingOrTempFile = (file: RepositoryFile): boolean => {
+  return file.isRecording || file.fileType === RecordingFileType.ASPROF;
 };
 
 const getRecordingGroupedFiles = (session: RecordingSession): FileGroupEntry[] => {
   const sortedFiles = getSortedRecordings(session);
-  const recordingFiles = sortedFiles.filter(f => isRecordingFileType(f.fileType));
+  const recordingFiles = sortedFiles.filter(f => isRecordingOrTempFile(f));
   return groupRotatedFiles(recordingFiles);
 };
 
@@ -582,7 +600,7 @@ const getArtifactGroupMap = (
   const sortedFiles = getSortedRecordings(session);
   const groupMap = new Map<ArtifactTypeGroup, RepositoryFile[]>();
   for (const file of sortedFiles) {
-    if (isRecordingFileType(file.fileType)) continue;
+    if (isRecordingOrTempFile(file)) continue;
     const groupKey = FILE_TYPE_TO_GROUP[file.fileType] || 'UNKNOWN';
     if (!groupMap.has(groupKey)) groupMap.set(groupKey, []);
     groupMap.get(groupKey)!.push(file);
