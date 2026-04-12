@@ -27,8 +27,6 @@ import jakarta.ws.rs.core.MediaType;
 import pbouda.jeffrey.server.core.manager.workspace.WorkspacesManager;
 import pbouda.jeffrey.shared.common.JeffreyVersion;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 
 @Path("/internal")
@@ -59,13 +57,8 @@ public class RootInternalResource {
         return Map.of("version", JeffreyVersion.resolveJeffreyVersion());
     }
 
-    @GET
-    @Path("/trigger-oom")
-    @Produces(MediaType.TEXT_PLAIN)
-    public String triggerOom() {
-        List<byte[]> leak = new ArrayList<>();
-        while (true) {
-            leak.add(new byte[10 * 1024 * 1024]);
-        }
+    @Path("/debug")
+    public DebugResource debugResource() {
+        return new DebugResource();
     }
 }
