@@ -150,7 +150,7 @@ But this is just the beginning. Jeffrey offers significantly more depth than wha
 - **Application-level monitoring** — HTTP traffic, database statements, connection pools, and gRPC analysis using custom JFR events
 - **AI-powered analysis** — asking questions about your recording in natural language and getting answers backed by real data
 
-Jeffrey is open source (AGPL-3.0) and available on [GitHub](https://github.com/petrbouda/jeffrey). To try it right now:
+Jeffrey is open source (AGPL-3.0). You can find the source code at [github.com/petrbouda/jeffrey](https://github.com/petrbouda/jeffrey) and the full documentation, examples, and release notes at [jeffrey-analyst.cafe](https://jeffrey-analyst.cafe). To try it right now:
 
 ```bash
 docker run -it --network host petrbouda/jeffrey-examples
