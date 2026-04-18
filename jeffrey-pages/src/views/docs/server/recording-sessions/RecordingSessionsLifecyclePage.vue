@@ -27,6 +27,7 @@ const { setHeadings } = useDocHeadings();
 
 const headings = [
   { id: 'session-states', text: 'Session States', level: 2 },
+  { id: 'example-sessions', text: 'Example: Active and Crashed Sessions', level: 2 },
   { id: 'session-detection', text: 'Session Detection', level: 2 },
   { id: 'heartbeat-mechanism', text: 'Heartbeat Mechanism', level: 3 },
   { id: 'finish-detection-logic', text: 'Finish Detection Logic', level: 3 },
@@ -82,6 +83,27 @@ onMounted(() => {
 
         <DocsCallout type="tip">
           <strong>Selective analysis:</strong> You don't need to merge all chunks. Select specific time periods to analyze - for example, only the startup phase or a specific incident window.
+        </DocsCallout>
+
+        <h2 id="example-sessions">Example: Active and Crashed Sessions</h2>
+        <p>The following examples show how sessions appear in the instance detail view during normal operation and after a JVM crash.</p>
+
+        <h3>Active Session</h3>
+        <p>A long-running session accumulating JFR recording chunks, JVM logs, application logs, and other artifacts over time. The session remains active as long as the heartbeat is fresh.</p>
+        <div class="screenshot-container">
+          <img src="/images/docs/recording-sessions/session-active.png" alt="Active recording session with multiple JFR chunks and artifacts" class="doc-screenshot" />
+          <p class="screenshot-caption">An active session running for 9 hours, collecting JFR recordings, JVM logs, application logs, and profiler cache files</p>
+        </div>
+
+        <h3>Crash Recovery (OOM)</h3>
+        <p>When a JVM is killed by an OutOfMemoryError, the session is marked as finished and a new session is automatically created when the application restarts. The crashed session retains all artifacts including heap dumps, HotSpot error logs, and perf counters for post-mortem analysis.</p>
+        <div class="screenshot-container">
+          <img src="/images/docs/recording-sessions/session-crash-recovery.png" alt="Instance with two sessions — one crashed by OOM and one active after recovery" class="doc-screenshot" />
+          <p class="screenshot-caption">An instance with two sessions: the older session was terminated by OOM (with heap dump and error log), while a new active session started after the application restarted</p>
+        </div>
+
+        <DocsCallout type="info">
+          <strong>Automatic recovery:</strong> When the application restarts after a crash, Jeffrey detects the new session and transitions the instance back to Active status. The crashed session's artifacts (heap dump, error logs) remain available for analysis.
         </DocsCallout>
 
         <h2 id="session-detection">Session Detection</h2>
@@ -291,5 +313,28 @@ onMounted(() => {
   font-size: 0.85rem;
   color: #5e6e82;
   line-height: 1.4;
+}
+
+/* Screenshots */
+.screenshot-container {
+  margin: 1.5rem 0;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.doc-screenshot {
+  width: 100%;
+  display: block;
+}
+
+.screenshot-caption {
+  margin: 0;
+  padding: 0.75rem 1rem;
+  font-size: 0.8rem;
+  color: #5e6e82;
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
 }
 </style>
