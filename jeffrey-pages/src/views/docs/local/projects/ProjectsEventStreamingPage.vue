@@ -27,10 +27,10 @@ const { setHeadings } = useDocHeadings();
 
 const headings = [
   { id: 'how-it-works', text: 'How It Works', level: 2 },
-  { id: 'configuration', text: 'Configuration', level: 2 },
-  { id: 'available-events', text: 'Available Events', level: 2 },
-  { id: 'time-range', text: 'Time Range', level: 2 },
+  { id: 'live-stream', text: 'Live Stream', level: 2 },
   { id: 'replay-stream', text: 'Replay Stream', level: 2 },
+  { id: 'available-events', text: 'Available Events', level: 2 },
+  { id: 'live-vs-replay', text: 'Live vs Replay', level: 2 },
   { id: 'workspace-availability', text: 'Workspace Availability', level: 2 }
 ];
 
@@ -47,19 +47,19 @@ onMounted(() => {
     />
 
     <div class="docs-content">
-      <p>Event Streaming lets you subscribe to <strong>live JFR events</strong> from a remote session's streaming repository. Events are delivered in real-time via Server-Sent Events (SSE) as they are committed by the JVM's JFR infrastructure.</p>
+      <p>Event Streaming lets you inspect JFR events from a project's recording sessions. <strong>Live Stream</strong> subscribes to events as the JVM emits them; <strong>Replay Stream</strong> reads historical events from the dumped recording files of a past session. Both pages deliver events to the browser via Server-Sent Events (SSE).</p>
 
       <DocsCallout type="info">
-        <strong>Server Connection Required:</strong> Live Stream requires a workspace connected to a jeffrey-server instance with active recording sessions.
+        <strong>Server Connection Required:</strong> Both Live Stream and Replay Stream operate on project instances and their sessions, so a workspace connected to a jeffrey-server instance is required.
       </DocsCallout>
 
       <h2 id="how-it-works">How It Works</h2>
-      <p>Jeffrey Server opens the JFR streaming repository of a running session using the JDK's <code>EventStream.openRepository()</code> API. Events are micro-batched on JFR's flush cycle (~1 second) and streamed to your browser via gRPC (server) and SSE (browser).</p>
+      <p>Sessions belong to project instances. Live Stream opens a subscription against the session's <em>streaming repository</em> on the remote JVM — events are micro-batched on JFR's flush cycle (~1 second). Replay Stream reads the session's already-dumped <code>.jfr</code> / <code>.jfr.lz4</code> files. In both cases, batches travel from Jeffrey Server to Jeffrey Local over gRPC and are forwarded to the browser over SSE.</p>
 
       <div class="flow-diagram">
         <div class="flow-step">
           <div class="flow-icon"><i class="bi bi-cpu"></i></div>
-          <div class="flow-label">JVM writes events to streaming repository</div>
+          <div class="flow-label">JVM writes events to streaming repository (live) or dump files (replay)</div>
         </div>
         <div class="flow-arrow"><i class="bi bi-arrow-right"></i></div>
         <div class="flow-step">
@@ -73,39 +73,67 @@ onMounted(() => {
         </div>
       </div>
 
-      <h2 id="configuration">Configuration</h2>
-      <p>The streaming configuration wizard has three steps:</p>
+      <h2 id="live-stream">Live Stream</h2>
+      <p>Subscribe to JFR events from one or more running sessions in real time. The stream stays open until you disconnect — it never completes on its own.</p>
+
+      <div class="config-steps">
+        <div class="config-step">
+          <div class="step-number">1</div>
+          <div class="step-content">
+            <h4>Sessions</h4>
+            <p>Select <strong>one or more sessions</strong> across the project's instances. Sessions are grouped by instance, searchable by ID, and annotated with their status (<em>ACTIVE</em> or <em>FINISHED</em>).</p>
+          </div>
+        </div>
+        <div class="config-step">
+          <div class="step-number">2</div>
+          <div class="step-content">
+            <h4>Event Types &amp; Buffer</h4>
+            <p>Pick JFR event types from curated categories or enter custom names. Choose an <strong>Event Buffer Size</strong> (500, 1000, 5000, 10,000, or a custom value) — the UI keeps only the most recent N events; older ones are discarded from the table.</p>
+          </div>
+        </div>
+      </div>
+
+      <p>While connected, a status strip shows the total events received, the number of batches delivered, and the timestamp of the last batch. Session chips are color-coded, and each table row's left border matches its source session. If the subscription for one session fails, that session is marked with a warning icon while the other sessions keep streaming — <strong>failures are isolated per session</strong>.</p>
+
+      <DocsCallout type="warning">
+        <strong>CPU profiling events not available in Live Stream:</strong> Events like <code>jdk.ExecutionSample</code> collected by async-profiler are merged into the JFR recording at dump time and do not appear in the live streaming repository. Use Replay Stream to inspect them after the session is dumped.
+      </DocsCallout>
+
+      <h2 id="replay-stream">Replay Stream</h2>
+      <p>Read historical events from the dumped recording files of a single past session. Unlike Live Stream, a replay completes when the selected time window has been fully read.</p>
 
       <div class="config-steps">
         <div class="config-step">
           <div class="step-number">1</div>
           <div class="step-content">
             <h4>Session</h4>
-            <p>Select an active recording session from one of the project's running instances. Only sessions with a streaming repository are available.</p>
+            <p>Select a <strong>single session</strong> from the project's instances. Replay operates on the <code>.jfr</code> / <code>.jfr.lz4</code> files that were dumped for that session.</p>
           </div>
         </div>
         <div class="config-step">
           <div class="step-number">2</div>
           <div class="step-content">
-            <h4>Event Types</h4>
-            <p>Choose which JFR event types to subscribe to. Events are organized by category: CPU, GC, memory, threading, I/O, and Jeffrey instrumentation events.</p>
+            <h4>Event Types &amp; Buffer</h4>
+            <p>Choose the event types to include and an event buffer size (same options as Live Stream).</p>
           </div>
         </div>
         <div class="config-step">
           <div class="step-number">3</div>
           <div class="step-content">
             <h4>Time Range</h4>
-            <p>Set the start time (<em>From Beginning</em>, <em>Now</em>, or <em>Custom</em>), end time (<em>Now</em> or <em>Custom</em>), and optionally enable <strong>Continuous streaming</strong> to keep the stream open for new events.</p>
+            <p><strong>Start</strong>: <em>From beginning</em> (earliest recorded event) or a <em>Custom</em> datetime. <strong>End</strong>: <em>To latest</em> (last recorded event) or a <em>Custom</em> datetime. If both are custom, start must be before end.</p>
           </div>
         </div>
       </div>
 
-      <h2 id="available-events">Available Events</h2>
-      <p>The streaming repository contains events committed by the JVM's JFR infrastructure in real-time. These include periodic JVM statistics, runtime events, and Jeffrey's custom instrumentation events.</p>
+      <p>When replay finishes, the page switches to a <em>Replay Complete</em> state and the Start Replay button becomes available again so you can run another replay with different parameters. Errors surface as a toast notification; the configuration is preserved so you can adjust and retry.</p>
 
       <DocsCallout type="warning">
-        <strong>CPU profiling events not available:</strong> Events like <code>jdk.ExecutionSample</code> collected by async-profiler are merged into the JFR recording at dump time and do not appear in the live streaming repository.
+        <strong>Dumped files required:</strong> Replay fails if the selected session has no dumped recording files yet. If you only have an active session with no dumps, use Live Stream instead.
       </DocsCallout>
+
+      <h2 id="available-events">Available Events</h2>
+      <p>The following categories are surfaced by the built-in event-type picker. Live Stream is limited to events that the JVM commits to its streaming repository in real time (JVM statistics, runtime events, container metrics, Jeffrey instrumentation). Replay Stream can surface any event type present in the dumped recording files.</p>
 
       <div class="event-categories">
         <div class="event-category">
@@ -126,31 +154,56 @@ onMounted(() => {
         </div>
       </div>
 
-      <h2 id="time-range">Time Range</h2>
-      <p>The time range controls which events are delivered:</p>
-      <ul>
-        <li><strong>From Beginning:</strong> Replay all events available in the streaming repository, then optionally continue with new events</li>
-        <li><strong>From Now:</strong> Only receive events generated after subscription</li>
-        <li><strong>Custom:</strong> Specify exact start and/or end timestamps</li>
-        <li><strong>Continuous:</strong> Keep the stream open after the initial replay, receiving new events as they arrive</li>
-      </ul>
-
-      <DocsCallout type="tip">
-        <strong>Bounded vs Continuous:</strong> Without continuous mode, the stream automatically closes when it reaches the end time. With continuous mode enabled, the stream stays open and delivers new events indefinitely until you disconnect.
-      </DocsCallout>
-
-      <h2 id="replay-stream">Replay Stream</h2>
-      <p>While Live Stream subscribes to events from a running session, <strong>Replay Stream</strong> reads historical JFR events from already dumped recording files. This lets you browse past events without a live connection to the server.</p>
-
-      <p>Replay Stream works with any recording that has been merged into the project's Recordings section. Select a recording, choose event types, and replay the events as if they were streaming in real-time.</p>
-
-      <DocsCallout type="tip">
-        <strong>Live vs Replay:</strong> Use Live Stream to monitor running applications in real-time. Use Replay Stream to investigate historical events from completed recordings — no active session required.
-      </DocsCallout>
+      <h2 id="live-vs-replay">Live vs Replay</h2>
+      <table class="comparison-table">
+        <thead>
+          <tr>
+            <th>Aspect</th>
+            <th>Live Stream</th>
+            <th>Replay Stream</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Session selection</td>
+            <td>One or more (multi-select)</td>
+            <td>Exactly one</td>
+          </tr>
+          <tr>
+            <td>Time range</td>
+            <td>Not applicable</td>
+            <td>Configurable start and end</td>
+          </tr>
+          <tr>
+            <td>Data source</td>
+            <td>Live JFR streaming repository</td>
+            <td>Dumped <code>.jfr</code> / <code>.jfr.lz4</code> files</td>
+          </tr>
+          <tr>
+            <td>Batch cadence</td>
+            <td>~1 s (JFR flush cycle)</td>
+            <td>Variable (file read speed)</td>
+          </tr>
+          <tr>
+            <td>Completion</td>
+            <td>Never (open until Disconnect)</td>
+            <td>Finishes when window is fully read</td>
+          </tr>
+          <tr>
+            <td>Failure isolation</td>
+            <td>Per session — others keep streaming</td>
+            <td>Whole replay stops on error</td>
+          </tr>
+          <tr>
+            <td>Async-profiler CPU samples</td>
+            <td>Not available</td>
+            <td>Available (merged at dump time)</td>
+          </tr>
+        </tbody>
+      </table>
 
       <h2 id="workspace-availability">Workspace Availability</h2>
-      <p><strong>Live Stream</strong> requires a workspace connected to a jeffrey-server instance. The project must have at least one active recording session with a JFR streaming repository.</p>
-      <p><strong>Replay Stream</strong> is available in all workspace types, as it reads from local recording files.</p>
+      <p>Both Live Stream and Replay Stream require a workspace connected to a jeffrey-server instance, because they operate on project instances and their sessions. Workspaces that do not expose instances will not show the Event Streaming sidebar items.</p>
     </div>
 
     <DocsNavFooter />
