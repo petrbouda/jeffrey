@@ -71,3 +71,5 @@ jmh-tests/dependency-reduced-pom.xml
 
 # Local IntelliJ HTTP Client test files
 jeffrey-server/http-client/
+
+/azure-sf

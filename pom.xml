@@ -48,7 +48,7 @@
         <uuid-creator.version>6.1.1</uuid-creator.version>
         <jeffrey-events.version>0.10.0</jeffrey-events.version>
         <spring-boot.version>4.0.4</spring-boot.version>
-        <spring-ai.version>2.0.0-M3</spring-ai.version>
+        <spring-ai.version>2.0.0-M4</spring-ai.version>
         <duckdb.version>1.5.1.0</duckdb.version>
         <flyway.version>10.24.0</flyway.version>
         <grpc.version>1.72.0</grpc.version>
