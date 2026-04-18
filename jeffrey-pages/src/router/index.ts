@@ -65,6 +65,11 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/blog/Jeffrey04AnnouncementView.vue')
   },
   {
+    path: '/blog/getting-started-with-jeffrey',
+    name: 'GettingStartedWithJeffrey',
+    component: () => import('@/views/blog/GettingStartedWithJeffreyView.vue')
+  },
+  {
     path: '/docs',
     component: () => import('@/views/docs/DocsLayout.vue'),
     children: [

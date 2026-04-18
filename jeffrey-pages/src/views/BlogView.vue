@@ -31,6 +31,14 @@ interface BlogPost {
 
 const blogPosts = ref<BlogPost[]>([
   {
+    title: 'Getting Started with JFR Analysis Using Jeffrey',
+    date: 'April 15, 2026',
+    summary: 'From recording a JFR file with Async Profiler to uncovering real performance insights — the complete workflow.',
+    image: '/images/capability_flame.png',
+    slug: 'getting-started-with-jeffrey',
+    colorClass: 'bg-blog-getting-started-gradient'
+  },
+  {
     title: 'Mandatory Literature',
     date: 'June 15, 2025',
     summary: 'All you need to efficiently profile and analyze your profiles',
@@ -128,5 +136,9 @@ const blogPosts = ref<BlogPost[]>([
 
 .bg-blog-announcement-gradient {
   background: linear-gradient(135deg, #ff6b6b 0%, #ffa726 100%);
+}
+
+.bg-blog-getting-started-gradient {
+  background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
 }
 </style>

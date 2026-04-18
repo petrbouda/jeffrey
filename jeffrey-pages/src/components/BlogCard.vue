@@ -29,6 +29,7 @@ defineProps<Props>();
 
 const getRouteForSlug = (slug: string): string => {
   const routeMap: Record<string, string> = {
+    'getting-started-with-jeffrey': '/blog/getting-started-with-jeffrey',
     'java-profiling-literature': '/blog/java-profiling-literature',
     'jfr-in-depth': '/blog/jfr-in-depth',
     'jeffrey-04-announcement': '/blog/jeffrey-04-announcement'
