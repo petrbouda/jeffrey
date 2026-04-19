@@ -33,6 +33,7 @@
         <module>jeffrey-local</module>
         <module>jeffrey-cli</module>
         <module>jeffrey-agent</module>
+        <module>utilities</module>
         <module>build</module>
         <module>manual-tests</module>
 <!--        <module>jmh-tests</module>-->
