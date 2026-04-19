@@ -47,9 +47,9 @@
     </licenses>
 
     <scm>
-        <connection>scm:git:https://github.com/petrbouda/jeffrey-events.git</connection>
-        <developerConnection>scm:git:https://github.com/petrbouda/jeffrey-events.git</developerConnection>
-        <url>https://github.com/petrbouda/jeffrey-events/tree/main</url>
+        <connection>scm:git:https://github.com/petrbouda/jeffrey.git</connection>
+        <developerConnection>scm:git:https://github.com/petrbouda/jeffrey.git</developerConnection>
+        <url>https://github.com/petrbouda/jeffrey/tree/main</url>
     </scm>
 
     <properties>
