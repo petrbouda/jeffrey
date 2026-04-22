@@ -145,6 +145,82 @@ class InstanceGrpcServiceTest {
 
             assertEquals(0, response.getInstancesCount());
         }
+
+        @Test
+        void includeSessionsFalse_leavesSessionsEmpty() throws Exception {
+            var instanceRepo = mock(ProjectInstanceRepository.class);
+            when(instanceRepo.findAll()).thenReturn(List.of(
+                    new ProjectInstanceInfo(
+                            INSTANCE_ID, PROJECT_ID, "host-1",
+                            ProjectInstanceStatus.ACTIVE, FIXED_TIME, null, null, null,
+                            1, "session-active")
+            ));
+
+            var platformRepositories = mock(ServerPlatformRepositories.class);
+            when(platformRepositories.newProjectInstanceRepository(PROJECT_ID)).thenReturn(instanceRepo);
+
+            var stub = startServer(new InstanceGrpcService(platformRepositories, FIXED_CLOCK));
+
+            ListInstancesResponse response = stub.listInstances(
+                    ListInstancesRequest.newBuilder()
+                            .setProjectId(PROJECT_ID)
+                            .build());
+
+            assertEquals(1, response.getInstancesCount());
+            assertEquals(0, response.getInstances(0).getSessionsCount());
+        }
+
+        @Test
+        void includeSessionsTrue_populatesSessionsPerInstance() throws Exception {
+            var instanceRepo = mock(ProjectInstanceRepository.class);
+            when(instanceRepo.findAll()).thenReturn(List.of(
+                    new ProjectInstanceInfo(
+                            INSTANCE_ID, PROJECT_ID, "host-1",
+                            ProjectInstanceStatus.ACTIVE, FIXED_TIME, null, null, null,
+                            2, "session-active"),
+                    new ProjectInstanceInfo(
+                            "inst-2", PROJECT_ID, "host-2",
+                            ProjectInstanceStatus.FINISHED, FIXED_TIME,
+                            FIXED_TIME.plusSeconds(3600), null, null, 1, null)
+            ));
+
+            var platformRepositories = mock(ServerPlatformRepositories.class);
+            when(platformRepositories.newProjectInstanceRepository(PROJECT_ID)).thenReturn(instanceRepo);
+            when(platformRepositories.findSessionsByProjectId(PROJECT_ID)).thenReturn(List.of(
+                    new ProjectInstanceSessionInfo(
+                            "session-active", "repo-1", INSTANCE_ID, 0,
+                            Path.of("session-active"), null, null, FIXED_TIME, null),
+                    new ProjectInstanceSessionInfo(
+                            "session-old", "repo-1", INSTANCE_ID, 1,
+                            Path.of("session-old"), null, null,
+                            FIXED_TIME.minusSeconds(600), FIXED_TIME.minusSeconds(300)),
+                    new ProjectInstanceSessionInfo(
+                            "session-only", "repo-1", "inst-2", 0,
+                            Path.of("session-only"), null, null,
+                            FIXED_TIME, FIXED_TIME.plusSeconds(3600))
+            ));
+
+            var stub = startServer(new InstanceGrpcService(platformRepositories, FIXED_CLOCK));
+
+            ListInstancesResponse response = stub.listInstances(
+                    ListInstancesRequest.newBuilder()
+                            .setProjectId(PROJECT_ID)
+                            .setIncludeSessions(true)
+                            .build());
+
+            assertEquals(2, response.getInstancesCount());
+
+            InstanceInfo first = response.getInstances(0);
+            assertEquals(2, first.getSessionsCount());
+            assertEquals("session-active", first.getSessions(0).getId());
+            assertTrue(first.getSessions(0).getIsActive());
+            assertEquals("session-old", first.getSessions(1).getId());
+            assertFalse(first.getSessions(1).getIsActive());
+
+            InstanceInfo second = response.getInstances(1);
+            assertEquals(1, second.getSessionsCount());
+            assertEquals("session-only", second.getSessions(0).getId());
+        }
     }
 
     // ========== GetInstance ==========

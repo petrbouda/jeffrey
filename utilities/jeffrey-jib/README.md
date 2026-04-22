@@ -25,8 +25,8 @@ after the `java` binary.
 jib {
   pluginExtensions {
     pluginExtension {
-      implementation = "pbouda.jeffrey.jib.gradle.JeffreyJibGradleExtension"
-      configuration(Action<pbouda.jeffrey.jib.JeffreyJibConfig> {
+      implementation = "cafe.jeffrey.jib.gradle.JeffreyJibGradleExtension"
+      configuration(Action<cafe.jeffrey.jib.JeffreyJibConfig> {
         enabled = project.hasProperty("jeffreyProfiling")
         jeffreyHome = "/mnt/azure/runtime/shared/jeffrey"
         baseConfig = "/jeffrey/jeffrey-base.conf"
@@ -53,8 +53,8 @@ jib {
   <configuration>
     <pluginExtensions>
       <pluginExtension>
-        <implementation>pbouda.jeffrey.jib.maven.JeffreyJibMavenExtension</implementation>
-        <configuration implementation="pbouda.jeffrey.jib.JeffreyJibConfig">
+        <implementation>cafe.jeffrey.jib.maven.JeffreyJibMavenExtension</implementation>
+        <configuration implementation="cafe.jeffrey.jib.JeffreyJibConfig">
           <jeffreyHome>/mnt/azure/runtime/shared/jeffrey</jeffreyHome>
           <baseConfig>/jeffrey/jeffrey-base.conf</baseConfig>
         </configuration>

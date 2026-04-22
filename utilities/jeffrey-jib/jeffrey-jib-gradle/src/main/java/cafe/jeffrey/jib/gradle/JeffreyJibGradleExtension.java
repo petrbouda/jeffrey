@@ -16,15 +16,15 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.jib.gradle;
+package cafe.jeffrey.jib.gradle;
 
+import cafe.jeffrey.jib.JeffreyBuildPlanExtender;
+import cafe.jeffrey.jib.JeffreyJibConfig;
 import com.google.cloud.tools.jib.api.buildplan.ContainerBuildPlan;
 import com.google.cloud.tools.jib.gradle.extension.GradleData;
 import com.google.cloud.tools.jib.gradle.extension.JibGradlePluginExtension;
 import com.google.cloud.tools.jib.plugins.extension.ExtensionLogger;
 import com.google.cloud.tools.jib.plugins.extension.JibPluginExtensionException;
-import pbouda.jeffrey.jib.JeffreyBuildPlanExtender;
-import pbouda.jeffrey.jib.JeffreyJibConfig;
 
 import java.util.Map;
 import java.util.Optional;
@@ -39,7 +39,7 @@ import java.util.Optional;
  * jib {
  *   pluginExtensions {
  *     pluginExtension {
- *       implementation = "pbouda.jeffrey.jib.gradle.JeffreyJibGradleExtension"
+ *       implementation = "cafe.jeffrey.jib.gradle.JeffreyJibGradleExtension"
  *       configuration(Action<JeffreyJibConfig> {
  *         enabled = project.hasProperty("jeffreyProfiling")
  *         jeffreyHome = "/mnt/azure/runtime/shared/jeffrey"

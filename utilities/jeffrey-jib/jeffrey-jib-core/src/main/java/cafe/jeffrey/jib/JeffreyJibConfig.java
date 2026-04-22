@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.jib;
+package cafe.jeffrey.jib;
 
 /**
  * User-facing configuration for the Jeffrey JIB plugin extension. Populated by JIB's Maven /

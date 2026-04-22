@@ -507,7 +507,7 @@ const router = createRouter({
                   path: '',
                   name: 'project-default',
                   redirect: to =>
-                    `/workspaces/${to.params.workspaceId}/projects/${to.params.projectId}/instances`
+                    `/workspaces/${to.params.workspaceId}/projects/${to.params.projectId}/instances/timeline`
                 },
                 {
                   path: 'settings',

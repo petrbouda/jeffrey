@@ -1,10 +1,15 @@
 <template>
-  <PageHeader
-    :title="instance?.instanceName || 'Instance'"
-    description="View instance details and recording sessions"
-    icon="bi-box"
-  >
-    <!-- Loading Indicator -->
+  <div>
+    <MainCard>
+      <template #header>
+        <MainCardHeader
+          icon="bi bi-box"
+          :title="instance?.instanceName ?? 'Instance'"
+          :badge="sessions.length"
+        />
+      </template>
+
+      <!-- Loading Indicator -->
     <LoadingState v-if="loading" message="Loading instance..." />
 
     <!-- Instance Not Found -->
@@ -36,14 +41,16 @@
         description="No recording sessions found for this instance."
       />
     </div>
-  </PageHeader>
+    </MainCard>
+  </div>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
-import PageHeader from '@/components/layout/PageHeader.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import EmptyState from '@/components/EmptyState.vue';
+import MainCard from '@/components/MainCard.vue';
+import MainCardHeader from '@/components/MainCardHeader.vue';
 import RecordingSessionList from '@/components/RecordingSessionList.vue';
 import ProjectInstanceClient from '@/services/api/ProjectInstanceClient';
 import ProjectRepositoryClient from '@/services/api/ProjectRepositoryClient';

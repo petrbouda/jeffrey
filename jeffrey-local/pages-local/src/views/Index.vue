@@ -1,5 +1,5 @@
 <template>
-  <div class="w-100 bg-light">
+  <div class="w-100 bg-light index-root">
     <!-- Hero Header -->
     <div class="hero-header">
       <!-- Decorative circles -->
@@ -51,6 +51,12 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+/* Fill the viewport so the `bg-light` surface extends under the entire page, otherwise the
+   slightly darker AppLayout body color (`--color-bg-body`) shows through below the last card. */
+.index-root {
+  min-height: 100vh;
+}
+
 .hero-header {
   background: linear-gradient(
     135deg,

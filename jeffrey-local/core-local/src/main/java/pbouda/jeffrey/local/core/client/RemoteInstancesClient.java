@@ -36,14 +36,15 @@ public class RemoteInstancesClient {
         this.stub = InstanceServiceGrpc.newBlockingStub(connection.getChannel());
     }
 
-    public List<InstanceResponse> projectInstances(String projectId) {
+    public List<InstanceResponse> projectInstances(String projectId, boolean includeSessions) {
         ListInstancesResponse response = stub.listInstances(
                 ListInstancesRequest.newBuilder()
                         .setProjectId(projectId)
+                        .setIncludeSessions(includeSessions)
                         .build());
 
-        LOG.debug("Listed instances via gRPC: projectId={} count={}",
-                projectId, response.getInstancesCount());
+        LOG.debug("Listed instances via gRPC: projectId={} count={} include_sessions={}",
+                projectId, response.getInstancesCount(), includeSessions);
 
         return response.getInstancesList().stream()
                 .map(RemoteInstancesClient::toInstanceResponse)
@@ -77,6 +78,10 @@ public class RemoteInstancesClient {
     }
 
     private static InstanceResponse toInstanceResponse(InstanceInfo proto) {
+        List<InstanceSessionResponse> sessions = proto.getSessionsList().stream()
+                .map(RemoteInstancesClient::toSessionResponse)
+                .toList();
+
         return new InstanceResponse(
                 proto.getId(),
                 proto.getInstanceName().isEmpty() ? null : proto.getInstanceName(),
@@ -87,7 +92,8 @@ public class RemoteInstancesClient {
                 proto.hasExpiredAt() ? proto.getExpiredAt() : null,
                 proto.getSessionCount(),
                 proto.hasActiveSessionId() ? proto.getActiveSessionId() : null,
-                proto.hasFinishedAt() ? proto.getFinishedAt() - proto.getCreatedAt() : null);
+                proto.hasFinishedAt() ? proto.getFinishedAt() - proto.getCreatedAt() : null,
+                sessions);
     }
 
     private static InstanceSessionResponse toSessionResponse(InstanceSessionInfo proto) {

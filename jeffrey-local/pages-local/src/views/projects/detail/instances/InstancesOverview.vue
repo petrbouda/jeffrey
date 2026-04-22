@@ -1,10 +1,15 @@
 <template>
-  <PageHeader
-    title="Instances Overview"
-    description="View all instances connected to this project. Filter by status to see active or finished instances."
-    icon="bi-box"
-  >
-    <!-- Stat Cards -->
+  <div>
+    <MainCard>
+      <template #header>
+        <MainCardHeader
+          icon="bi bi-box"
+          title="Instances Overview"
+          :badge="instances.length"
+        />
+      </template>
+
+      <!-- Stat Cards -->
     <div class="mb-4" v-if="!loading && instances.length > 0">
       <div class="row g-3">
         <!-- Instances -->
@@ -276,15 +281,17 @@
         </router-link>
       </div>
     </div>
-  </PageHeader>
+    </MainCard>
+  </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
-import PageHeader from '@/components/layout/PageHeader.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import EmptyState from '@/components/EmptyState.vue';
 import Badge from '@/components/Badge.vue';
+import MainCard from '@/components/MainCard.vue';
+import MainCardHeader from '@/components/MainCardHeader.vue';
 import SectionHeaderBar from '@/components/SectionHeaderBar.vue';
 import ProjectInstanceClient from '@/services/api/ProjectInstanceClient';
 import ProjectRepositoryClient from '@/services/api/ProjectRepositoryClient';

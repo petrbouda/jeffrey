@@ -1,10 +1,14 @@
 <template>
-  <PageHeader
-    title="Instance Timeline"
-    description="Visual timeline showing when instances were active. Track the lifecycle of your application instances over time."
-    icon="bi-bar-chart-steps"
-  >
-    <!-- Time Range Selector -->
+  <div>
+    <MainCard>
+      <template #header>
+        <MainCardHeader
+          icon="bi bi-bar-chart-steps"
+          title="Instance Timeline"
+        />
+      </template>
+
+      <!-- Time Range Selector + summary chip -->
     <div class="d-flex gap-3 mb-3 align-items-center">
       <div class="btn-group" role="group">
         <button
@@ -18,11 +22,14 @@
           {{ range.label }}
         </button>
       </div>
-    </div>
-
-    <!-- Instances Header Bar -->
-    <div class="col-12" v-if="!loading">
-      <SectionHeaderBar :text="`Instances (${instances.length})`" />
+      <span v-if="!loading" class="count-chip ms-auto">
+        <i class="bi bi-box"></i>
+        <strong>{{ instances.length }}</strong>
+        {{ instances.length === 1 ? 'instance' : 'instances' }}
+        <span class="count-chip-sep">·</span>
+        <strong>{{ totalSessions }}</strong>
+        {{ totalSessions === 1 ? 'session' : 'sessions' }}
+      </span>
     </div>
 
     <!-- Loading Indicator -->
@@ -82,7 +89,7 @@
             ></div>
 
             <!-- Session bars (solid, overlaid) -->
-            <template v-if="!sessionsLoading && instanceSessions.has(instance.id)">
+            <template v-if="instanceSessions.has(instance.id)">
               <div
                 v-for="session in getSessionsForInstance(instance.id)"
                 :key="session.id"
@@ -94,13 +101,6 @@
                 @mouseleave.stop="hideTooltip"
               ></div>
             </template>
-
-            <!-- Shimmer while sessions load -->
-            <div
-              v-if="sessionsLoading"
-              class="session-shimmer"
-              :style="getBarStyle(instance)"
-            ></div>
           </div>
         </div>
       </div>
@@ -255,14 +255,15 @@
         </div>
       </div>
     </Teleport>
-  </PageHeader>
+    </MainCard>
+  </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
-import PageHeader from '@/components/layout/PageHeader.vue';
 import LoadingState from '@/components/LoadingState.vue';
-import SectionHeaderBar from '@/components/SectionHeaderBar.vue';
+import MainCard from '@/components/MainCard.vue';
+import MainCardHeader from '@/components/MainCardHeader.vue';
 import Badge from '@/components/Badge.vue';
 import EmptyState from '@/components/EmptyState.vue';
 import ProjectInstanceClient from '@/services/api/ProjectInstanceClient';
@@ -283,10 +284,13 @@ const timeRanges = [
 ];
 
 const loading = ref(true);
-const sessionsLoading = ref(false);
 const selectedRange = ref('24h');
 const instances = ref<ProjectInstance[]>([]);
 const instanceSessions = ref<Map<string, ProjectInstanceSession[]>>(new Map());
+
+const totalSessions = computed(() =>
+  instances.value.reduce((sum, i) => sum + (i.sessionCount ?? 0), 0)
+);
 
 const hoveredInstance = ref<ProjectInstance | null>(null);
 const hoveredSession = ref<{ session: ProjectInstanceSession; instanceId: string } | null>(null);
@@ -422,25 +426,13 @@ function cancelHideTooltip() {
   }
 }
 
-async function loadAllSessions(client: ProjectInstanceClient) {
-  sessionsLoading.value = true;
-  const entries = await Promise.all(
-    instances.value.map(async instance => {
-      const sessions = await client.getSessions(instance.id);
-      return [instance.id, sessions] as [string, ProjectInstanceSession[]];
-    })
-  );
-  instanceSessions.value = new Map(entries);
-  sessionsLoading.value = false;
-}
-
 onMounted(async () => {
   const client = new ProjectInstanceClient(workspaceId.value!, projectId.value!);
-  instances.value = await client.list();
+  instances.value = await client.list(true);
+  instanceSessions.value = new Map(
+    instances.value.map(instance => [instance.id, instance.sessions ?? []])
+  );
   loading.value = false;
-  if (instances.value.length > 0) {
-    loadAllSessions(client);
-  }
 });
 </script>
 
@@ -586,32 +578,6 @@ onMounted(async () => {
   background: linear-gradient(135deg, var(--color-success), var(--color-success-hover));
 }
 
-/* Shimmer effect while sessions load */
-.session-shimmer {
-  position: absolute;
-  height: 60%;
-  top: 20%;
-  border-radius: 3px;
-  z-index: 2;
-  background: linear-gradient(
-    90deg,
-    rgba(200, 200, 200, 0.2) 25%,
-    rgba(200, 200, 200, 0.4) 50%,
-    rgba(200, 200, 200, 0.2) 75%
-  );
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-}
-
-@keyframes shimmer {
-  0% {
-    background-position: 200% 0;
-  }
-  100% {
-    background-position: -200% 0;
-  }
-}
-
 @keyframes session-pulse-active {
   0%,
   100% {
@@ -700,6 +666,34 @@ onMounted(async () => {
 .btn-group .btn {
   font-size: 0.75rem;
   padding: 0.25rem 0.75rem;
+}
+
+/* Inline summary chip that replaces the old "Instances (N)" bar. Border-radius matches the
+   adjacent time-range button group (6px) so the two controls read as a consistent row. */
+.count-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  background: var(--color-light);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  font-size: 0.78rem;
+  color: var(--color-text);
+  font-weight: 500;
+  white-space: nowrap;
+}
+.count-chip .bi {
+  color: var(--color-primary);
+  font-size: 0.9rem;
+}
+.count-chip strong {
+  color: var(--color-dark);
+  font-weight: 700;
+}
+.count-chip-sep {
+  color: var(--color-text-light);
+  margin: 0 2px;
 }
 </style>
 

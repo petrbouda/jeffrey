@@ -18,10 +18,12 @@
 
 package pbouda.jeffrey.local.core.resources.project;
 
+import jakarta.ws.rs.DefaultValue;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.QueryParam;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.local.core.resources.response.InstanceResponse;
@@ -47,11 +49,13 @@ public class ProjectInstancesResource {
     }
 
     @GET
-    public List<InstanceResponse> list() {
-        var result = projectInstanceRepository.findAll().stream()
+    public List<InstanceResponse> list(
+            @QueryParam("includeSessions") @DefaultValue("false") boolean includeSessions) {
+        var result = projectInstanceRepository.findAll(includeSessions).stream()
                 .map(i -> InstanceResponse.from(i, clock))
                 .toList();
-        LOG.debug("Listed project instances: projectId={} count={}", projectInfo.id(), result.size());
+        LOG.debug("Listed project instances: projectId={} count={} include_sessions={}",
+                projectInfo.id(), result.size(), includeSessions);
         return result;
     }
 

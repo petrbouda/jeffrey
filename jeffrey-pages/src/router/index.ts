@@ -339,6 +339,13 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/docs/events/JeffreyJfrEventsPage.vue')
       },
 
+      // ──── Jeffrey JIB ────
+      {
+        path: 'jib/overview',
+        name: 'DocsJeffreyJib',
+        component: () => import('@/views/docs/jib/JeffreyJibPage.vue')
+      },
+
       // ──── Redirects from old paths ────
       { path: 'goals/overview', redirect: '/docs/getting-started/introduction' },
       { path: 'platform/workspaces', redirect: '/docs/local/workspaces' },

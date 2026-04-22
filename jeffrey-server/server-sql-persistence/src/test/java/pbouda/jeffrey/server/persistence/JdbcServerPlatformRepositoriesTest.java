@@ -20,6 +20,7 @@ package pbouda.jeffrey.server.persistence;
 
 import org.junit.jupiter.api.Test;
 import pbouda.jeffrey.server.persistence.model.SessionWithRepository;
+import pbouda.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
 import pbouda.jeffrey.shared.common.model.RepositoryType;
 import pbouda.jeffrey.shared.persistence.client.DatabaseClientProvider;
 import pbouda.jeffrey.test.DuckDBTest;
@@ -30,6 +31,7 @@ import java.sql.SQLException;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -73,5 +75,31 @@ class JdbcServerPlatformRepositoriesTest {
         Optional<SessionWithRepository> result = repositories.findSessionWithRepositoryById("non-existent");
 
         assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void findSessionsByProjectId_returnsAllSessionsGroupedByInstance(DataSource dataSource) throws SQLException {
+        var provider = new DatabaseClientProvider(dataSource);
+        TestUtils.executeSql(dataSource, "sql/instances/insert-project-with-instances.sql");
+        JdbcServerPlatformRepositories repositories = new JdbcServerPlatformRepositories(provider, FIXED_CLOCK);
+
+        List<ProjectInstanceSessionInfo> sessions = repositories.findSessionsByProjectId("proj-001");
+
+        assertEquals(2, sessions.size());
+        assertEquals("inst-001", sessions.get(0).instanceId());
+        assertEquals("session-001", sessions.get(0).sessionId());
+        assertEquals("inst-002", sessions.get(1).instanceId());
+        assertEquals("session-002", sessions.get(1).sessionId());
+    }
+
+    @Test
+    void findSessionsByProjectId_returnsEmpty_whenProjectHasNoInstances(DataSource dataSource) throws SQLException {
+        var provider = new DatabaseClientProvider(dataSource);
+        TestUtils.executeSql(dataSource, "sql/instances/insert-project-with-instances.sql");
+        JdbcServerPlatformRepositories repositories = new JdbcServerPlatformRepositories(provider, FIXED_CLOCK);
+
+        List<ProjectInstanceSessionInfo> sessions = repositories.findSessionsByProjectId("non-existent");
+
+        assertTrue(sessions.isEmpty());
     }
 }

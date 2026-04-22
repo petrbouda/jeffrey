@@ -1,49 +1,54 @@
 <template>
-  <nav class="topbar">
-    <!-- Decorative circle -->
-    <div class="topbar-decoration"></div>
+  <div class="hero-header">
+    <!-- Decorative circles -->
+    <div class="hero-decoration hero-decoration-1"></div>
+    <div class="hero-decoration hero-decoration-2"></div>
+    <div class="hero-decoration hero-decoration-3"></div>
 
-    <div class="container-fluid d-flex align-items-center" style="height: 100%">
-      <button v-if="!isProfilePage" class="topbar-toggle me-2" type="button" @click="toggleSidebar">
-        <i class="bi bi-list"></i>
-      </button>
+    <div class="container-fluid">
+      <div class="hero-content">
+        <a class="hero-logo-container" href="/">
+          <img src="/jeffrey-icon.svg" alt="Jeffrey Logo" class="hero-logo" />
+        </a>
 
-      <a class="topbar-brand" href="/">
-        <img src="/jeffrey-icon.svg" alt="Jeffrey" class="topbar-logo" />
-        <span class="topbar-title">Jeffrey</span>
-        <span class="topbar-subtitle d-none d-md-inline">JDK Flight Recorder Analysis</span>
-        <span v-if="version" class="topbar-version">{{ version }}</span>
-      </a>
+        <div class="hero-text">
+          <div class="hero-title-row">
+            <h1 class="hero-title">Jeffrey</h1>
+            <span v-if="version" class="hero-version">{{ version }}</span>
+          </div>
+          <p class="hero-subtitle">JDK Flight Recorder Analysis Tool</p>
+        </div>
 
-      <div class="d-flex align-items-center ms-auto">
-        <!-- Back to Profiles/Home button (only shown on profile pages) -->
-        <button
-          v-if="isProfilePage"
-          class="topbar-back-btn me-2"
-          @click="
-            isQuickAnalysisProfile
-              ? $router.push('/quick-analysis')
-              : $router.push(generateProjectUrl('recordings'))
-          "
-          :title="isQuickAnalysisProfile ? 'Back to Quick Analysis' : 'Back to Recordings'"
-        >
-          <i class="bi bi-arrow-return-left"></i>
-          <span>{{ isQuickAnalysisProfile ? 'Quick Analysis' : 'Recordings' }}</span>
-        </button>
+        <div class="hero-actions">
+          <!-- Back to Profiles/Home button (only shown on profile pages) -->
+          <button
+            v-if="isProfilePage"
+            class="topbar-back-btn"
+            @click="
+              isQuickAnalysisProfile
+                ? $router.push('/quick-analysis')
+                : $router.push(generateProjectUrl('recordings'))
+            "
+            :title="isQuickAnalysisProfile ? 'Back to Quick Analysis' : 'Back to Recordings'"
+          >
+            <i class="bi bi-arrow-return-left"></i>
+            <span>{{ isQuickAnalysisProfile ? 'Quick Analysis' : 'Recordings' }}</span>
+          </button>
 
-        <!-- Back to Workspaces button (only shown on project pages) -->
-        <button
-          v-if="isProjectPage"
-          class="topbar-back-btn me-2"
-          @click="$router.push('/workspaces')"
-          title="Back to workspaces"
-        >
-          <i class="bi bi-arrow-return-left"></i>
-          <span>Workspaces</span>
-        </button>
+          <!-- Back to Workspaces button (only shown on project pages) -->
+          <button
+            v-if="isProjectPage"
+            class="topbar-back-btn"
+            @click="$router.push('/workspaces')"
+            title="Back to workspaces"
+          >
+            <i class="bi bi-arrow-return-left"></i>
+            <span>Workspaces</span>
+          </button>
+        </div>
       </div>
     </div>
-  </nav>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -58,26 +63,13 @@ const { workspaceId, projectId, generateProjectUrl } = useNavigation();
 const version = ref('');
 const versionClient = new VersionClient();
 
-// Check if current route is a profile detail page
-const isProfilePage = computed(() => {
-  return route.meta.layout === 'profile';
-});
+const isProfilePage = computed(() => route.meta.layout === 'profile');
 
-// Check if current profile is a Quick Analysis profile (no workspace/project context)
-const isQuickAnalysisProfile = computed(() => {
-  return !workspaceId.value || !projectId.value;
-});
+const isQuickAnalysisProfile = computed(() => !workspaceId.value || !projectId.value);
 
-// Check if current route is a project detail page
 const isProjectPage = computed(() => {
   return route.meta.layout === 'project' || route.path.includes('/projects/');
 });
-
-const toggleSidebar = () => {
-  if (window.toggleSidebar) {
-    window.toggleSidebar();
-  }
-};
 
 onMounted(async () => {
   try {
@@ -89,7 +81,7 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.topbar {
+.hero-header {
   background: linear-gradient(
     135deg,
     var(--color-indigo-dark) 0%,
@@ -97,97 +89,125 @@ onMounted(async () => {
     var(--color-indigo-light) 70%,
     var(--color-primary) 100%
   );
-  height: 50px;
-  position: sticky;
-  top: 0;
-  z-index: 1040;
+  padding: 10px 0;
+  position: relative;
   overflow: hidden;
 }
 
-.topbar-decoration {
-  position: absolute;
-  top: -20px;
-  right: -20px;
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.03);
-  pointer-events: none;
-}
-
-.topbar-toggle {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 6px;
-  color: rgba(255, 255, 255, 0.8);
-  padding: 4px 8px;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: none;
-}
-
-.topbar-toggle:hover {
-  background: rgba(255, 255, 255, 0.18);
-  color: white;
-}
-
-@media (max-width: 991.98px) {
-  .topbar-toggle {
-    display: flex;
-    align-items: center;
-  }
-}
-
-.topbar-brand {
+.hero-content {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 16px;
+  position: relative;
+  z-index: 1;
+}
+
+.hero-logo-container {
+  padding: 3px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  flex-shrink: 0;
   text-decoration: none;
-  padding: 0;
-  margin-right: 2rem;
+  display: inline-flex;
 }
 
-.topbar-logo {
-  width: 22px;
-  height: 22px;
+.hero-logo {
+  height: 38px;
+  width: 38px;
+  display: block;
+  border-radius: 7px;
+  object-fit: cover;
 }
 
-.topbar-title {
-  font-size: 1rem;
+.hero-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.hero-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 2px;
+}
+
+.hero-title {
+  font-size: 1.25rem;
   font-weight: 700;
   color: white;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
+  margin: 0;
   line-height: 1.2;
 }
 
-.topbar-subtitle {
-  font-size: 0.68rem;
-  color: rgba(255, 255, 255, 0.5);
-  font-weight: 400;
-  letter-spacing: 0.3px;
-}
-
-.topbar-version {
-  padding: 2px 7px;
+.hero-version {
+  padding: 3px 10px;
   background: rgba(0, 210, 122, 0.2);
   border: 1px solid rgba(0, 210, 122, 0.3);
-  border-radius: 10px;
-  font-size: 0.5rem;
+  border-radius: 12px;
+  font-size: 0.6rem;
   font-weight: 600;
   color: var(--color-emerald-text);
   letter-spacing: 0.3px;
   white-space: nowrap;
 }
 
-/* Back buttons — glassmorphic style */
+.hero-subtitle {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: 400;
+  letter-spacing: 0.5px;
+  margin: 0;
+}
+
+.hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+/* Decorative circles */
+.hero-decoration {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.hero-decoration-1 {
+  top: -40px;
+  right: -40px;
+  width: 140px;
+  height: 140px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.hero-decoration-2 {
+  bottom: -25px;
+  left: 35%;
+  width: 90px;
+  height: 90px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.hero-decoration-3 {
+  top: 50%;
+  right: 20%;
+  width: 60px;
+  height: 60px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+/* Back buttons — glassmorphic style matching the original topbar */
 .topbar-back-btn {
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  padding: 5px 12px;
-  border-radius: 6px;
-  font-size: 0.72rem;
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 0.78rem;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -211,15 +231,27 @@ onMounted(async () => {
 }
 
 .topbar-back-btn i {
-  font-size: 0.65rem;
+  font-size: 0.72rem;
+}
+
+/* Responsive */
+@media (max-width: 576px) {
+  .hero-header {
+    padding: 20px 0;
+  }
+
+  .hero-logo-container {
+    padding: 2px;
+  }
+
+  .hero-logo {
+    height: 38px;
+    width: 38px;
+  }
+
+  .hero-title {
+    font-size: 1.3rem;
+  }
 }
 </style>
 
-<script lang="ts">
-// Declare global toggle function for sidebar
-declare global {
-  interface Window {
-    toggleSidebar: () => void;
-  }
-}
-</script>

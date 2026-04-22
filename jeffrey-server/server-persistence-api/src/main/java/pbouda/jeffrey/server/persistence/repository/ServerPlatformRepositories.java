@@ -68,4 +68,11 @@ public interface ServerPlatformRepositories {
      */
     List<ProjectInstanceSessionInfo> findSessionsByInstanceId(String instanceId);
 
+    /**
+     * Finds every session across every instance of a project in a single query.
+     * Used to populate ListInstancesResponse with embedded sessions without N+1 fan-out.
+     * Returned rows carry their instance_id so callers can group them in memory.
+     */
+    List<ProjectInstanceSessionInfo> findSessionsByProjectId(String projectId);
+
 }

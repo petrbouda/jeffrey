@@ -1,10 +1,11 @@
 <template>
-  <PageHeader
-    title="Live Stream"
-    description="Subscribe to live JFR events from one or more remote sessions' streaming repositories."
-    icon="bi-broadcast"
-  >
-    <!-- Summary Panel -->
+  <div>
+    <MainCard>
+      <template #header>
+        <MainCardHeader icon="bi bi-broadcast" title="Live Stream" />
+      </template>
+
+      <!-- Summary Panel -->
     <div
       class="summary-panel mb-3"
       :class="{
@@ -151,7 +152,8 @@
         />
       </template>
     </StreamingEventsTable>
-  </PageHeader>
+    </MainCard>
+  </div>
 
   <LiveStreamConfigDrawer
     v-if="workspaceId && projectId"
@@ -165,8 +167,9 @@
 
 <script setup lang="ts">
 import { computed, onUnmounted, ref } from 'vue'
-import PageHeader from '@/components/layout/PageHeader.vue'
 import EmptyState from '@/components/EmptyState.vue'
+import MainCard from '@/components/MainCard.vue'
+import MainCardHeader from '@/components/MainCardHeader.vue'
 import StreamingEventsTable from '@/components/streaming/StreamingEventsTable.vue'
 import LiveStreamConfigDrawer from '@/components/streaming/LiveStreamConfigDrawer.vue'
 import type { LiveStreamConfig, SelectedSession } from '@/components/streaming/LiveStreamConfigDrawer.vue'

@@ -330,7 +330,7 @@ async function loadSessions() {
   sessionsLoading.value = true
   try {
     const client = new ProjectInstanceClient(props.workspaceId, props.projectId)
-    const instances = await client.list()
+    const instances = await client.list(true)
 
     instances.sort((a, b) => {
       if (a.status === 'ACTIVE' && b.status !== 'ACTIVE') return -1
@@ -340,7 +340,7 @@ async function loadSessions() {
 
     const groups: InstanceGroup[] = []
     for (const instance of instances) {
-      const sessions = await client.getSessions(instance.id)
+      const sessions = instance.sessions ?? []
       if (sessions.length > 0) {
         sessions.sort((a, b) => b.createdAt - a.createdAt)
         groups.push({ instance, sessions })

@@ -16,6 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+import type ProjectInstanceSession from '@/services/api/model/ProjectInstanceSession';
+
 export type ProjectInstanceStatus = 'PENDING' | 'ACTIVE' | 'FINISHED' | 'EXPIRED';
 
 export default class ProjectInstance {
@@ -30,6 +32,7 @@ export default class ProjectInstance {
     public activeSessionId?: string,
     public finishedAt?: number,
     public expiringAt?: number,
-    public expiredAt?: number
+    public expiredAt?: number,
+    public sessions?: ProjectInstanceSession[]
   ) {}
 }

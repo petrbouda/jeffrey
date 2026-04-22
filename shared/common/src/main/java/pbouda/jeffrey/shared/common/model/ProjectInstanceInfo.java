@@ -19,6 +19,7 @@
 package pbouda.jeffrey.shared.common.model;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Set;
 
 public record ProjectInstanceInfo(
@@ -31,7 +32,23 @@ public record ProjectInstanceInfo(
         Instant expiringAt,
         Instant expiredAt,
         int sessionCount,
-        String activeSessionId) {
+        String activeSessionId,
+        List<ProjectInstanceSessionInfo> sessions) {
+
+    public ProjectInstanceInfo(
+            String id,
+            String projectId,
+            String instanceName,
+            ProjectInstanceStatus status,
+            Instant startedAt,
+            Instant finishedAt,
+            Instant expiringAt,
+            Instant expiredAt,
+            int sessionCount,
+            String activeSessionId) {
+        this(id, projectId, instanceName, status, startedAt, finishedAt, expiringAt, expiredAt,
+                sessionCount, activeSessionId, List.of());
+    }
 
     public enum ProjectInstanceStatus {
         PENDING, ACTIVE, FINISHED, EXPIRED;

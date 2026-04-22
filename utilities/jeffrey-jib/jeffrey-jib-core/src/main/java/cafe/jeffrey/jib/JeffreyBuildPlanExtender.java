@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.jib;
+package cafe.jeffrey.jib;
 
 import com.google.cloud.tools.jib.api.buildplan.AbsoluteUnixPath;
 import com.google.cloud.tools.jib.api.buildplan.ContainerBuildPlan;
@@ -51,7 +51,7 @@ import java.util.Map;
  */
 public final class JeffreyBuildPlanExtender {
 
-    private static final String ENTRYPOINT_RESOURCE = "/pbouda/jeffrey/jib/jeffrey-entrypoint.sh";
+    private static final String ENTRYPOINT_RESOURCE = "/cafe/jeffrey/jib/jeffrey-entrypoint.sh";
     private static final AbsoluteUnixPath ENTRYPOINT_PATH =
             AbsoluteUnixPath.get("/usr/local/bin/jeffrey-entrypoint");
     private static final FilePermissions EXEC_PERMS = FilePermissions.fromOctalString("755");

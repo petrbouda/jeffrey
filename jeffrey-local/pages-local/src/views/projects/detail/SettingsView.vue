@@ -1,11 +1,12 @@
 <template>
-  <PageHeader
-    title="Project Settings"
-    description="Configure project name and manage project lifecycle"
-    icon="bi-gear"
-  >
-    <!-- Loading State -->
-    <LoadingState v-if="isLoading" message="Loading project settings..." />
+  <div>
+    <MainCard>
+      <template #header>
+        <MainCardHeader icon="bi bi-gear" title="Project Settings" />
+      </template>
+
+      <!-- Loading State -->
+      <LoadingState v-if="isLoading" message="Loading project settings..." />
 
     <template v-else>
       <!-- Top Row: General + Blocking -->
@@ -63,7 +64,8 @@
         </button>
       </div>
     </template>
-  </PageHeader>
+    </MainCard>
+  </div>
 
   <!-- Delete Project Confirmation Modal -->
   <GenericModal
@@ -138,10 +140,10 @@ import { useNavigation } from '@/composables/useNavigation';
 import ProjectSettingsClient from '@/services/api/ProjectSettingsClient';
 import ProjectClient from '@/services/api/ProjectClient';
 import ToastService from '@/services/ToastService';
-import MessageBus from '@/services/MessageBus';
 import GenericModal from '@/components/GenericModal.vue';
 import LoadingState from '@/components/LoadingState.vue';
-import PageHeader from '@/components/layout/PageHeader.vue';
+import MainCard from '@/components/MainCard.vue';
+import MainCardHeader from '@/components/MainCardHeader.vue';
 import '@/styles/shared-components.css';
 
 const router = useRouter();
@@ -192,9 +194,6 @@ async function saveChanges() {
     await settingsClient.updateName(projectName.value);
     originalProjectName.value = projectName.value;
     hasChanges.value = false;
-
-    // Notify other components that project settings have changed
-    MessageBus.emit(MessageBus.UPDATE_PROJECT_SETTINGS, { name: projectName.value });
 
     ToastService.success('Success', 'Project name has been updated');
   } catch (error) {

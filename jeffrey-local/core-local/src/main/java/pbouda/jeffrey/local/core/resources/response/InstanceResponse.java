@@ -23,6 +23,7 @@ import pbouda.jeffrey.shared.common.model.ProjectInstanceInfo;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.util.List;
 
 public record InstanceResponse(
         String id,
@@ -34,11 +35,16 @@ public record InstanceResponse(
         Long expiredAt,
         int sessionCount,
         String activeSessionId,
-        Long duration) {
+        Long duration,
+        List<InstanceSessionResponse> sessions) {
 
     public static InstanceResponse from(ProjectInstanceInfo info, Clock clock) {
         Instant end = info.finishedAt() != null ? info.finishedAt() : clock.instant();
         long duration = end.toEpochMilli() - info.startedAt().toEpochMilli();
+
+        List<InstanceSessionResponse> sessions = info.sessions().stream()
+                .map(s -> InstanceSessionResponse.from(s, clock))
+                .toList();
 
         return new InstanceResponse(
                 info.id(),
@@ -50,6 +56,7 @@ public record InstanceResponse(
                 InstantUtils.toEpochMilli(info.expiredAt()),
                 info.sessionCount(),
                 info.activeSessionId(),
-                duration);
+                duration,
+                sessions);
     }
 }

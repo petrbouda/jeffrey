@@ -18,40 +18,21 @@
 
 <template>
   <div class="workspace-layout">
-    <!-- Main workspace content -->
-    <div ref="workspaceContent" class="workspace-content">
-      <router-view />
-    </div>
+    <router-view />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { watch } from 'vue';
 import { useRoute } from 'vue-router';
 
 const route = useRoute();
-const workspaceContent = ref<HTMLElement | null>(null);
 
-// Scroll to top when route changes
+// Scroll the window (single scroll container) to top on route changes.
 watch(
   () => route.fullPath,
   () => {
-    if (workspaceContent.value) {
-      workspaceContent.value.scrollTop = 0;
-    }
+    window.scrollTo({ top: 0, behavior: 'auto' });
   }
 );
 </script>
-
-<style lang="scss" scoped>
-.workspace-layout {
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
-
-.workspace-content {
-  flex: 1;
-  overflow: auto;
-}
-</style>

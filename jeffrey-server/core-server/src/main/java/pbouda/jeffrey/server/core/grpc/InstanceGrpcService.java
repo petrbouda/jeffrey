@@ -29,6 +29,8 @@ import pbouda.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
 
 import java.time.Clock;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 public class InstanceGrpcService extends InstanceServiceGrpc.InstanceServiceImplBase {
 
@@ -45,12 +47,24 @@ public class InstanceGrpcService extends InstanceServiceGrpc.InstanceServiceImpl
     @Override
     public void listInstances(ListInstancesRequest request, StreamObserver<ListInstancesResponse> responseObserver) {
         try {
-            List<InstanceInfo> instances = platformRepositories
-                    .newProjectInstanceRepository(request.getProjectId()).findAll().stream()
-                    .map(InstanceGrpcService::toProto)
+            String projectId = request.getProjectId();
+            List<ProjectInstanceInfo> rawInstances = platformRepositories
+                    .newProjectInstanceRepository(projectId).findAll();
+
+            Map<String, List<ProjectInstanceSessionInfo>> sessionsByInstanceId;
+            if (request.getIncludeSessions()) {
+                sessionsByInstanceId = platformRepositories.findSessionsByProjectId(projectId).stream()
+                        .collect(Collectors.groupingBy(ProjectInstanceSessionInfo::instanceId));
+            } else {
+                sessionsByInstanceId = Map.of();
+            }
+
+            List<InstanceInfo> instances = rawInstances.stream()
+                    .map(info -> toProto(info, sessionsByInstanceId.getOrDefault(info.id(), List.of()), clock))
                     .toList();
 
-            LOG.debug("Listed instances via gRPC: projectId={} count={}", request.getProjectId(), instances.size());
+            LOG.debug("Listed instances via gRPC: projectId={} count={} include_sessions={}",
+                    projectId, instances.size(), request.getIncludeSessions());
 
             responseObserver.onNext(ListInstancesResponse.newBuilder()
                     .addAllInstances(instances)
@@ -73,7 +87,7 @@ public class InstanceGrpcService extends InstanceServiceGrpc.InstanceServiceImpl
             LOG.debug("Fetched instance via gRPC: instanceId={}", request.getInstanceId());
 
             responseObserver.onNext(GetInstanceResponse.newBuilder()
-                    .setInstance(toProto(instance))
+                    .setInstance(toProto(instance, List.of(), clock))
                     .build());
             responseObserver.onCompleted();
         } catch (io.grpc.StatusRuntimeException e) {
@@ -107,7 +121,7 @@ public class InstanceGrpcService extends InstanceServiceGrpc.InstanceServiceImpl
         }
     }
 
-    private static InstanceInfo toProto(ProjectInstanceInfo info) {
+    private static InstanceInfo toProto(ProjectInstanceInfo info, List<ProjectInstanceSessionInfo> sessions, Clock clock) {
         InstanceInfo.Builder builder = InstanceInfo.newBuilder()
                 .setId(info.id())
                 .setInstanceName(info.instanceName() != null ? info.instanceName() : "")
@@ -126,6 +140,10 @@ public class InstanceGrpcService extends InstanceServiceGrpc.InstanceServiceImpl
         }
         if (info.activeSessionId() != null) {
             builder.setActiveSessionId(info.activeSessionId());
+        }
+
+        for (ProjectInstanceSessionInfo session : sessions) {
+            builder.addSessions(toSessionProto(session, clock));
         }
 
         return builder.build();

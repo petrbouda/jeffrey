@@ -43,8 +43,8 @@ public class RemoteInstancesManager {
         this.instancesClient = instancesClient;
     }
 
-    public List<ProjectInstanceInfo> findAll() {
-        return instancesClient.projectInstances(projectInfo.id()).stream()
+    public List<ProjectInstanceInfo> findAll(boolean includeSessions) {
+        return instancesClient.projectInstances(projectInfo.id(), includeSessions).stream()
                 .map(this::toProjectInstanceInfo)
                 .toList();
     }
@@ -61,6 +61,11 @@ public class RemoteInstancesManager {
     }
 
     private ProjectInstanceInfo toProjectInstanceInfo(InstanceResponse response) {
+        List<ProjectInstanceSessionInfo> sessions = response.sessions() == null ? List.of()
+                : response.sessions().stream()
+                        .map(RemoteInstancesManager::toProjectInstanceSessionInfo)
+                        .toList();
+
         return new ProjectInstanceInfo(
                 response.id(),
                 projectInfo.id(),
@@ -71,7 +76,8 @@ public class RemoteInstancesManager {
                 InstantUtils.fromEpochMilli(response.expiringAt()),
                 InstantUtils.fromEpochMilli(response.expiredAt()),
                 response.sessionCount(),
-                response.activeSessionId());
+                response.activeSessionId(),
+                sessions);
     }
 
     private static ProjectInstanceSessionInfo toProjectInstanceSessionInfo(InstanceSessionResponse response) {

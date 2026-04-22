@@ -56,6 +56,13 @@ public class JdbcServerPlatformRepositories implements ServerPlatformRepositorie
             ORDER BY rs.created_at DESC""";
 
     //language=SQL
+    private static final String SELECT_SESSIONS_BY_PROJECT_ID = """
+            SELECT rs.* FROM project_instance_sessions rs
+            JOIN project_instances i ON rs.instance_id = i.instance_id
+            WHERE i.project_id = :project_id
+            ORDER BY rs.instance_id, rs.created_at DESC""";
+
+    //language=SQL
     private static final String SELECT_SESSION_WITH_REPOSITORY = """
             SELECT r.project_id AS project_id,
                    rs.session_id AS session_id,
@@ -178,6 +185,18 @@ public class JdbcServerPlatformRepositories implements ServerPlatformRepositorie
         return databaseClient.query(
                 StatementLabel.FIND_SESSIONS_BY_INSTANCE_ID,
                 SELECT_SESSIONS_BY_INSTANCE_ID,
+                paramSource,
+                ServerMappers.projectInstanceSessionMapper());
+    }
+
+    @Override
+    public List<ProjectInstanceSessionInfo> findSessionsByProjectId(String projectId) {
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("project_id", projectId);
+
+        return databaseClient.query(
+                StatementLabel.FIND_PROJECT_INSTANCE_SESSIONS_BY_PROJECT_ID,
+                SELECT_SESSIONS_BY_PROJECT_ID,
                 paramSource,
                 ServerMappers.projectInstanceSessionMapper());
     }

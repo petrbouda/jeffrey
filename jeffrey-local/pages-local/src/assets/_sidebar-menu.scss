@@ -1,12 +1,17 @@
 // Shared sidebar menu styles for ProjectDetail and ProfileDetail
 // This file contains common styles for the collapsible sidebar navigation
 
-// Sidebar container
+// Sidebar container. Sized by flex-stretch against its sibling content — no explicit
+// min-height here, because this sidebar sits below the AppTopbar + feature-collection-nav
+// and any 100vh constraint would push the page past the viewport.
+// `align-self: flex-start` opts out of the .d-flex cross-axis stretch so the sidebar keeps
+// its natural content height instead of growing to match the main content column.
 .detail-sidebar {
   width: 280px;
-  min-height: 100vh;
+  align-self: flex-start;
   background-color: #fff;
   border-right: 1px solid #dee2e6;
+  box-shadow: 0 2px 6px -2px rgba(0, 0, 0, 0.06);
   transition: all 0.3s ease;
   flex-shrink: 0;
   position: relative;
@@ -20,6 +25,7 @@
   height: 100%;
   width: 100%;
   overflow: hidden;
+  padding-bottom: 16px;
 
   &.collapsed {
     width: 50px;

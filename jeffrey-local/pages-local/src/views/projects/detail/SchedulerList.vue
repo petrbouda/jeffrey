@@ -27,10 +27,11 @@ import SettingsResponse from '@/services/api/model/SettingsResponse.ts';
 import ToastService from '@/services/ToastService';
 import JobCard from '@/components/JobCard.vue';
 import ProjectInstanceSessionCleanerModal from '@/components/scheduler/modal/ProjectInstanceSessionCleanerModal.vue';
-import PageHeader from '@/components/layout/PageHeader.vue';
 import JobsTable, { type JobDisplayInfo } from '@/components/scheduler/JobsTable.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import EmptyState from '@/components/EmptyState.vue';
+import MainCard from '@/components/MainCard.vue';
+import MainCardHeader from '@/components/MainCardHeader.vue';
 import '@/styles/shared-components.css';
 
 const { workspaceId, projectId } = useNavigation();
@@ -233,12 +234,13 @@ const getJobDisplayInfo = (job: JobInfo): JobDisplayInfo | null => {
 </script>
 
 <template>
-  <PageHeader
-    title="Scheduler"
-    description="Creates periodical jobs to manage data belonging to the given project, such as removing unnecessary old files from the repository."
-    icon="bi-calendar-check"
-  >
-    <!-- Job Types -->
+  <div>
+    <MainCard>
+      <template #header>
+        <MainCardHeader icon="bi bi-calendar-check" title="Scheduler" />
+      </template>
+
+      <!-- Job Types -->
     <div class="col-12 mb-4">
       <div class="row g-4">
         <!-- Instance Session Cleaner -->
@@ -378,7 +380,8 @@ const getJobDisplayInfo = (job: JobInfo): JobDisplayInfo | null => {
         </div>
       </div>
     </div>
-  </PageHeader>
+    </MainCard>
+  </div>
 
   <!-- Modal Components -->
   <ProjectInstanceSessionCleanerModal

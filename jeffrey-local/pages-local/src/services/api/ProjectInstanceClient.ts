@@ -25,8 +25,9 @@ export default class ProjectInstanceClient extends BasePlatformClient {
     super(`/workspaces/${workspaceId}/projects/${projectId}/instances`);
   }
 
-  async list(): Promise<ProjectInstance[]> {
-    return super.get<any[]>().then(data => data.map(this.mapToInstance));
+  async list(includeSessions: boolean = false): Promise<ProjectInstance[]> {
+    const params = includeSessions ? { includeSessions: true } : undefined;
+    return super.get<any[]>('', params).then(data => data.map(this.mapToInstance));
   }
 
   async find(instanceId: string): Promise<ProjectInstance | undefined> {
@@ -40,7 +41,11 @@ export default class ProjectInstanceClient extends BasePlatformClient {
     return super.get<any[]>(`/${instanceId}/sessions`).then(data => data.map(this.mapToSession));
   }
 
-  private mapToInstance(data: any): ProjectInstance {
+  private mapToInstance = (data: any): ProjectInstance => {
+    const sessions = Array.isArray(data.sessions) && data.sessions.length > 0
+      ? data.sessions.map(this.mapToSession)
+      : undefined;
+
     return new ProjectInstance(
       data.id,
       data.instanceName,
@@ -52,9 +57,10 @@ export default class ProjectInstanceClient extends BasePlatformClient {
       data.activeSessionId,
       data.finishedAt ?? undefined,
       data.expiringAt ?? undefined,
-      data.expiredAt ?? undefined
+      data.expiredAt ?? undefined,
+      sessions
     );
-  }
+  };
 
   private mapToSession(data: any): ProjectInstanceSession {
     return new ProjectInstanceSession(

@@ -155,6 +155,14 @@ export const docsNavigation: DocSection[] = [
     ]
   },
   {
+    title: 'Jeffrey JIB',
+    path: 'jib',
+    icon: 'bi-box-seam',
+    children: [
+      { title: 'Overview', path: 'overview' }
+    ]
+  },
+  {
     title: 'AI Analysis',
     path: 'ai',
     icon: 'bi-robot',

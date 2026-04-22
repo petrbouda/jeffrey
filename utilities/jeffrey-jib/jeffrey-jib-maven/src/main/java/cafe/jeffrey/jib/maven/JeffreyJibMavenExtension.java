@@ -16,15 +16,15 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.jib.maven;
+package cafe.jeffrey.jib.maven;
 
+import cafe.jeffrey.jib.JeffreyBuildPlanExtender;
+import cafe.jeffrey.jib.JeffreyJibConfig;
 import com.google.cloud.tools.jib.api.buildplan.ContainerBuildPlan;
 import com.google.cloud.tools.jib.maven.extension.JibMavenPluginExtension;
 import com.google.cloud.tools.jib.maven.extension.MavenData;
 import com.google.cloud.tools.jib.plugins.extension.ExtensionLogger;
 import com.google.cloud.tools.jib.plugins.extension.JibPluginExtensionException;
-import pbouda.jeffrey.jib.JeffreyBuildPlanExtender;
-import pbouda.jeffrey.jib.JeffreyJibConfig;
 
 import javax.inject.Named;
 import javax.inject.Singleton;
@@ -51,8 +51,8 @@ import java.util.Optional;
  *   <configuration>
  *     <pluginExtensions>
  *       <pluginExtension>
- *         <implementation>pbouda.jeffrey.jib.maven.JeffreyJibMavenExtension</implementation>
- *         <configuration implementation="pbouda.jeffrey.jib.JeffreyJibConfig">
+ *         <implementation>cafe.jeffrey.jib.maven.JeffreyJibMavenExtension</implementation>
+ *         <configuration implementation="cafe.jeffrey.jib.JeffreyJibConfig">
  *           <jeffreyHome>/mnt/azure/runtime/shared/jeffrey</jeffreyHome>
  *           <baseConfig>/jeffrey/jeffrey-base.conf</baseConfig>
  *         </configuration>

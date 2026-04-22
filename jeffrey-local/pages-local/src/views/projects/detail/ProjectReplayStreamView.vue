@@ -1,10 +1,11 @@
 <template>
-  <PageHeader
-    title="Replay Stream"
-    description="Replay historical JFR events from dumped recording files."
-    icon="bi-collection-play"
-  >
-    <!-- Summary Panel -->
+  <div>
+    <MainCard>
+      <template #header>
+        <MainCardHeader icon="bi bi-collection-play" title="Replay Stream" />
+      </template>
+
+      <!-- Summary Panel -->
     <div
       class="summary-panel mb-3"
       :class="{
@@ -152,7 +153,8 @@
         />
       </template>
     </StreamingEventsTable>
-  </PageHeader>
+    </MainCard>
+  </div>
 
   <ReplayConfigDrawer
     v-if="workspaceId && projectId"
@@ -166,8 +168,9 @@
 
 <script setup lang="ts">
 import { computed, onUnmounted, ref } from 'vue'
-import PageHeader from '@/components/layout/PageHeader.vue'
 import EmptyState from '@/components/EmptyState.vue'
+import MainCard from '@/components/MainCard.vue'
+import MainCardHeader from '@/components/MainCardHeader.vue'
 import StreamingEventsTable from '@/components/streaming/StreamingEventsTable.vue'
 import ReplayConfigDrawer from '@/components/streaming/ReplayConfigDrawer.vue'
 import type { ReplayStreamConfig, ReplayStartMode, ReplayEndMode, SelectedSession } from '@/components/streaming/ReplayConfigDrawer.vue'

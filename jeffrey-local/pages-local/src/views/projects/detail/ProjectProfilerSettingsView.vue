@@ -1,11 +1,12 @@
 <template>
-  <PageHeader
-    title="Profiler Settings"
-    description="Configure profiler agent settings for this project"
-    icon="bi-cpu"
-  >
-    <!-- Loading State -->
-    <div v-if="isLoading" class="loading-state">
+  <div>
+    <MainCard>
+      <template #header>
+        <MainCardHeader icon="bi bi-cpu" title="Profiler Settings" />
+      </template>
+
+      <!-- Loading State -->
+      <div v-if="isLoading" class="loading-state">
       <div class="spinner-border text-primary" role="status">
         <span class="visually-hidden">Loading...</span>
       </div>
@@ -56,7 +57,8 @@
         />
       </div>
     </div>
-  </PageHeader>
+    </MainCard>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -64,12 +66,13 @@ import { ref, computed, onMounted } from 'vue';
 import { useNavigation } from '@/composables/useNavigation';
 import ProjectProfilerClient from '@/services/api/ProjectProfilerClient';
 import ToastService from '@/services/ToastService';
+import MainCard from '@/components/MainCard.vue';
+import MainCardHeader from '@/components/MainCardHeader.vue';
 import ConfigureCommand from '@/components/settings/ConfigureCommand.vue';
 import CommandBuilder from '@/components/settings/CommandBuilder.vue';
 import CommandDisplay from '@/components/settings/CommandDisplay.vue';
 import SettingsBreadcrumbs from '@/components/settings/SettingsBreadcrumbs.vue';
 import type { BreadcrumbItem } from '@/components/settings/SettingsBreadcrumbs.vue';
-import PageHeader from '@/components/layout/PageHeader.vue';
 import type ProfilerSettings from '@/services/api/model/ProfilerSettings';
 
 const { workspaceId, projectId } = useNavigation();

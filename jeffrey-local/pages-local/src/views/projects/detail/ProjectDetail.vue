@@ -1,291 +1,137 @@
 <template>
-  <div class="d-flex w-100">
-    <!-- Sidebar Menu -->
-    <div class="detail-sidebar" :class="{ collapsed: sidebarCollapsed }">
-      <div class="sidebar" :class="{ collapsed: sidebarCollapsed }">
-        <div class="edge-toggle" @click="toggleSidebar">
-          <div class="edge-toggle-line">
-            <i class="bi" :class="sidebarCollapsed ? 'bi-chevron-right' : 'bi-chevron-left'"></i>
-          </div>
+  <div class="project-detail">
+    <div class="project-nav">
+      <div class="container-fluid">
+        <!-- Slim breadcrumb row above the tabs -->
+        <div class="project-breadcrumb" aria-label="breadcrumb">
+          <router-link to="/workspaces" class="crumb">Workspaces</router-link>
+          <i class="bi bi-chevron-right crumb-sep"></i>
+          <router-link
+            v-if="workspaceInfo"
+            :to="`/workspaces/${workspaceInfo.id}/projects`"
+            class="crumb"
+          >
+            {{ workspaceInfo.name ?? workspaceInfo.id }}
+          </router-link>
+          <span v-else class="crumb crumb-loading">Loading…</span>
+          <i class="bi bi-chevron-right crumb-sep"></i>
+          <span class="crumb crumb-current">{{ projectInfo?.name ?? 'Loading…' }}</span>
         </div>
 
-        <div class="scrollbar" style="height: 100%">
-          <!-- Sidebar Header -->
-          <div class="sidebar-header" v-if="!sidebarCollapsed">
-            <h5 class="project-name">{{ projectInfo?.name || 'Loading...' }}</h5>
-          </div>
-
-          <div class="sidebar-menu" v-if="!sidebarCollapsed">
-            <div class="nav-section">
-              <div class="nav-section-title">OVERVIEW</div>
-              <div class="nav-items">
-                <router-link
-                  v-if="!isCollectorOnly"
-                  :to="generateProjectUrl('recordings')"
-                  class="nav-item"
-                  active-class="active"
-                >
-                  <i class="bi bi-record-circle"></i>
-                  <span>Recordings</span>
-                  <div v-if="hasInitializingProfiles" class="ms-auto">
-                    <Badge
-                      value="Initializing"
-                      variant="orange"
-                      size="xs"
-                      icon="spinner-border spinner-border-sm"
-                    />
-                  </div>
-                  <Badge
-                    v-else-if="projectInfo != null && projectInfo.recordingCount > 0"
-                    :value="projectInfo.recordingCount.toString()"
-                    variant="info"
-                    size="xs"
-                    class="ms-auto"
-                  />
-                </router-link>
-                <div
-                  v-else
-                  class="nav-item disabled-feature"
-                  title="Recordings are not available in collector-only mode"
-                >
-                  <i class="bi bi-record-circle"></i>
-                  <span>Recordings</span>
-                </div>
-                  <!-- Events with 2-level submenu -->
-                <div class="nav-item-group">
-                  <div
-                    class="nav-item nav-item-parent"
-                    @click="toggleEventsSubmenu()"
-                    :class="{
-                      active: $route.path.includes('/events'),
-                      expanded: eventsSubmenuExpanded
-                    }"
-                  >
-                    <i class="bi bi-lightning"></i>
-                    <span>Event Streaming</span>
-                    <i
-                      class="bi bi-chevron-right submenu-arrow"
-                      :class="{ rotated: eventsSubmenuExpanded }"
-                    ></i>
-                  </div>
-                  <div class="nav-submenu" :class="{ expanded: eventsSubmenuExpanded }">
-                    <router-link
-                      :to="generateProjectUrl('events/live-stream')"
-                      class="nav-item nav-subitem"
-                      active-class="active"
-                    >
-                      <i class="bi bi-broadcast"></i>
-                      <span>Live Stream</span>
-                    </router-link>
-                    <router-link
-                      :to="generateProjectUrl('events/replay-stream')"
-                      class="nav-item nav-subitem"
-                      active-class="active"
-                    >
-                      <i class="bi bi-collection-play"></i>
-                      <span>Replay Stream</span>
-                    </router-link>
-                  </div>
-                </div>
-                <!-- Instances with 2-level submenu -->
-                <div class="nav-item-group">
-                  <div
-                    class="nav-item nav-item-parent"
-                    @click="toggleInstancesSubmenu()"
-                    :class="{
-                      active: $route.path.includes('/instances'),
-                      expanded: instancesSubmenuExpanded
-                    }"
-                  >
-                    <i class="bi bi-box"></i>
-                    <span>Instances</span>
-                    <i
-                      class="bi bi-chevron-right submenu-arrow"
-                      :class="{ rotated: instancesSubmenuExpanded }"
-                    ></i>
-                  </div>
-                  <div class="nav-submenu" :class="{ expanded: instancesSubmenuExpanded }">
-                    <router-link
-                      :to="generateProjectUrl('instances')"
-                      class="nav-item nav-subitem"
-                      active-class="active"
-                    >
-                      <i class="bi bi-grid"></i>
-                      <span>Overview</span>
-                    </router-link>
-                    <router-link
-                      :to="generateProjectUrl('instances/timeline')"
-                      class="nav-item nav-subitem"
-                      active-class="active"
-                    >
-                      <i class="bi bi-bar-chart-steps"></i>
-                      <span>Timeline</span>
-                    </router-link>
-                  </div>
-                </div>
-                <router-link
-                  :to="generateProjectUrl('profiler-settings')"
-                  class="nav-item"
-                  active-class="active"
-                >
-                  <i class="bi bi-cpu"></i>
-                  <span>Profiler Settings</span>
-                </router-link>
-                <router-link
-                  v-if="!isSchedulerDisabled"
-                  :to="generateProjectUrl('scheduler')"
-                  class="nav-item"
-                  active-class="active"
-                >
-                  <i class="bi bi-calendar-check"></i>
-                  <span>Scheduler</span>
-                </router-link>
-                <router-link
-                  :to="generateProjectUrl('settings')"
-                  class="nav-item"
-                  active-class="active"
-                >
-                  <i class="bi bi-sliders"></i>
-                  <span>Settings</span>
-                </router-link>
-              </div>
-            </div>
-          </div>
-        </div>
+        <!-- Stacked icon-over-label tabs, matching MainNavigation -->
+        <nav class="nav-container" aria-label="Project sections">
+          <router-link
+            :to="generateProjectUrl('instances/timeline')"
+            class="nav-pill"
+            active-class="active"
+          >
+            <i class="bi bi-bar-chart-steps"></i>
+            <span>Timeline</span>
+          </router-link>
+          <router-link
+            v-if="!isCollectorOnly"
+            :to="generateProjectUrl('recordings')"
+            class="nav-pill"
+            active-class="active"
+          >
+            <i class="bi bi-record-circle"></i>
+            <span>Recordings</span>
+          </router-link>
+          <router-link
+            :to="generateProjectUrl('instances')"
+            class="nav-pill"
+            :class="{ active: isInstancesActive }"
+          >
+            <i class="bi bi-grid"></i>
+            <span>Instances</span>
+          </router-link>
+          <router-link
+            :to="generateProjectUrl('events/live-stream')"
+            class="nav-pill"
+            active-class="active"
+          >
+            <i class="bi bi-broadcast"></i>
+            <span>Live Stream</span>
+          </router-link>
+          <router-link
+            :to="generateProjectUrl('events/replay-stream')"
+            class="nav-pill"
+            active-class="active"
+          >
+            <i class="bi bi-collection-play"></i>
+            <span>Replay Stream</span>
+          </router-link>
+          <router-link
+            :to="generateProjectUrl('profiler-settings')"
+            class="nav-pill"
+            active-class="active"
+          >
+            <i class="bi bi-cpu"></i>
+            <span>Profiler Settings</span>
+          </router-link>
+          <router-link
+            :to="generateProjectUrl('settings')"
+            class="nav-pill"
+            active-class="active"
+          >
+            <i class="bi bi-sliders"></i>
+            <span>Settings</span>
+          </router-link>
+        </nav>
       </div>
     </div>
 
-    <!-- Main Content -->
-    <div class="detail-main-content">
-      <!-- Content Area without tabs -->
-      <div class="detail-content-container mb-4">
-        <div class="card">
-          <div class="card-body">
-            <router-view></router-view>
-          </div>
-        </div>
-      </div>
-    </div>
+    <div class="content-spacer"></div>
+
+    <router-view></router-view>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import ToastService from '@/services/ToastService';
-import MessageBus from '@/services/MessageBus.ts';
-import Badge from '@/components/Badge.vue';
 import ProjectClient from '@/services/api/ProjectClient.ts';
 import Project from '@/services/api/model/Project.ts';
+import WorkspaceClient from '@/services/api/WorkspaceClient.ts';
+import Workspace from '@/services/api/model/Workspace.ts';
 import { useNavigation } from '@/composables/useNavigation';
+
 const route = useRoute();
 const router = useRouter();
 const { workspaceId, projectId, generateProjectUrl } = useNavigation();
 
 const projectInfo = ref<Project | null>(null);
-const sidebarCollapsed = ref(false);
+const workspaceInfo = ref<Workspace | null>(null);
 
-// Submenu expansion state
-const instancesSubmenuExpanded = ref(false);
-const eventsSubmenuExpanded = ref(false);
+// Scheduler is always disabled in local mode; Collector-only mode is never active.
+const isCollectorOnly = computed(() => false);
 
-// Toggle functions for submenus
-const toggleInstancesSubmenu = () => {
-  instancesSubmenuExpanded.value = !instancesSubmenuExpanded.value;
-};
-
-const toggleEventsSubmenu = () => {
-  eventsSubmenuExpanded.value = !eventsSubmenuExpanded.value;
-};
-
-// Initialization state variables
-const hasInitializingProfiles = ref(false);
-const pollInterval = ref<number | null>(null);
-
-// Scheduler is always disabled in local mode
-const isSchedulerDisabled = computed(() => {
-  return true;
+// Prefix-matching would mark Instances active on /instances/timeline (which has its own tab).
+// Custom predicate: active on /instances and /instances/{instanceId} but not on /timeline.
+const isInstancesActive = computed(() => {
+  const path = route.path;
+  return /\/instances(\/[^/]+)?$/.test(path) && !path.endsWith('/instances/timeline');
 });
 
-// Collector-only mode is never active in local mode
-const isCollectorOnly = computed(() => {
-  return false;
-});
+const workspaceClient = new WorkspaceClient();
 
-// Create service client - will be initialized when projectId is available
-let projectClient: ProjectClient | null = null;
-
-// Check if project has initializing profiles
-async function checkInitializingProfiles() {
-  try {
-    if (!projectClient) return;
-    hasInitializingProfiles.value = await projectClient.isInitializing();
-  } catch (error) {
-    console.error('Failed to check initializing profiles:', error);
-    hasInitializingProfiles.value = false;
-  }
-}
-
-// Set up message bus listeners for count updates
-function handleProfileCountChange(count: number) {
-  if (projectInfo.value) {
-    projectInfo.value.profileCount = count;
-  }
-}
-
-function handleRecordingCountChange(count: number) {
-  if (projectInfo.value) {
-    projectInfo.value.recordingCount = count;
-  }
-}
-
-// Start polling for profile status when initialization starts
-function startPolling() {
-  if (pollInterval.value !== null) return;
-
-  // Set initializing flag immediately
-  hasInitializingProfiles.value = true;
-
-  pollInterval.value = window.setInterval(async () => {
-    try {
-      await checkInitializingProfiles();
-
-      // If no profiles are initializing anymore, stop polling
-      if (!hasInitializingProfiles.value) {
-        stopPolling();
-      }
-    } catch (error) {
-      console.error('Error while polling profiles:', error);
-    }
-  }, 5000) as unknown as number;
-}
-
-function stopPolling() {
-  if (pollInterval.value !== null) {
-    window.clearInterval(pollInterval.value);
-    pollInterval.value = null;
-  }
-}
-
-function handleProfileInitializationStarted() {
-  // Start polling immediately when a profile initialization starts
-  hasInitializingProfiles.value = true;
-  startPolling();
-}
-
-// Initialize workspace and project data when IDs become available
 async function initializeProject() {
   if (!projectId.value || !workspaceId.value) return;
 
   try {
-    // Initialize project client with both workspace ID and project ID
-    projectClient = new ProjectClient(workspaceId.value, projectId.value);
+    const projectClient = new ProjectClient(workspaceId.value, projectId.value);
 
-    // Fetch project data
-    projectInfo.value = await projectClient.get();
+    const [project, workspace] = await Promise.all([
+      projectClient.get(),
+      workspaceClient.getById(workspaceId.value).catch(err => {
+        console.error('Failed to load workspace:', err);
+        return null;
+      })
+    ]);
 
-    // Check for initializing profiles
-    await checkInitializingProfiles();
+    projectInfo.value = project;
+    workspaceInfo.value = workspace;
   } catch (error) {
     console.error('Failed to load project:', error);
     ToastService.error('Failed to load project', 'Cannot load project from the server.');
@@ -293,7 +139,6 @@ async function initializeProject() {
   }
 }
 
-// Watch for both projectId and workspaceId changes and initialize
 watch(
   [projectId, workspaceId],
   async ([newProjectId, newWorkspaceId]) => {
@@ -303,67 +148,148 @@ watch(
   },
   { immediate: true }
 );
-
-// Watch for route changes to auto-expand submenus
-watch(
-  () => route.path,
-  newPath => {
-    if (newPath.includes('/instances')) {
-      instancesSubmenuExpanded.value = true;
-    }
-    if (newPath.includes('/events')) {
-      eventsSubmenuExpanded.value = true;
-    }
-  },
-  { immediate: true }
-);
-
-onMounted(() => {
-  // Set up message bus listeners
-  MessageBus.on(MessageBus.PROFILES_COUNT_CHANGED, handleProfileCountChange);
-  MessageBus.on(MessageBus.RECORDINGS_COUNT_CHANGED, handleRecordingCountChange);
-  MessageBus.on(MessageBus.PROFILE_INITIALIZATION_STARTED, handleProfileInitializationStarted);
-});
-
-onUnmounted(() => {
-  // Clean up message bus listeners
-  MessageBus.off(MessageBus.PROFILES_COUNT_CHANGED);
-  MessageBus.off(MessageBus.RECORDINGS_COUNT_CHANGED);
-  MessageBus.off(MessageBus.PROFILE_INITIALIZATION_STARTED);
-
-  // Ensure polling is stopped when component unmounts
-  stopPolling();
-});
-
-const toggleSidebar = () => {
-  sidebarCollapsed.value = !sidebarCollapsed.value;
-  MessageBus.emit(MessageBus.SIDEBAR_CHANGED, null);
-};
 </script>
 
-<style scoped>
-/* ProjectDetail-specific styles */
-/* Common sidebar styles are in @/assets/_sidebar-menu.scss */
-
-/* Sidebar Header - Light Tinted with Accent Border */
-.sidebar-header {
+<style scoped lang="scss">
+/* Extend --color-light across the full AppLayout content area so the project-detail view uses
+   the same page background as Index.vue (bg-light). Without this, AppLayout's slightly darker
+   --color-bg-body shows through around and below the content. Negative margins escape the
+   parent's 1rem padding; matching padding restores inner spacing. */
+.project-detail {
+  background-color: var(--color-light);
+  margin: -1rem;
   padding: 1rem;
-  border-bottom: 1px solid var(--color-border);
-  border-left: 4px solid var(--color-primary);
-  background: linear-gradient(
-    135deg,
-    var(--color-indigo-lightest),
-    var(--color-indigo-lighter)
-  );
+  min-height: calc(100vh - 72px);
 }
 
-.project-name {
-  font-size: 0.9375rem;
-  font-weight: 600;
+/* Nav strip still spans edge-to-edge, matching MainNavigation. Escapes the project-detail's
+   own 1rem padding. */
+.project-nav {
+  background-color: white;
+  box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.05);
+  position: relative;
+  z-index: 10;
+  margin: -1rem -1rem 0;
+}
+
+.project-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 16px 7px;
+  font-size: 0.75rem;
+  border-bottom: 1px solid var(--color-border);
+}
+.crumb {
+  color: var(--color-text-muted);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+.crumb:hover {
+  color: var(--color-primary);
+  text-decoration: underline;
+}
+.crumb-current {
   color: var(--color-dark);
-  margin: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-weight: 700;
+  cursor: default;
+}
+.crumb-current:hover {
+  color: var(--color-dark);
+  text-decoration: none;
+}
+.crumb-loading {
+  color: var(--color-text-light);
+  font-style: italic;
+}
+.crumb-sep {
+  font-size: 0.6rem;
+  color: var(--color-text-light);
+}
+
+/* Tab container + pills: mirrors MainNavigation.vue so the visual language matches. */
+.nav-container {
+  display: flex;
+  align-items: center;
+  padding: 0 1rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.nav-pill {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  background: transparent;
+  position: relative;
+  color: var(--color-slate-muted, var(--color-text-muted));
+  font-size: 0.85rem;
+  font-weight: 500;
+  min-width: 100px;
+  border-radius: 0;
+  transition: all 0.25s ease;
+  text-decoration: none;
+
+  i {
+    font-size: 1.25rem;
+    margin-bottom: 0.25rem;
+    transition: all 0.25s ease;
+  }
+
+  span {
+    opacity: 0.7;
+    transition: all 0.25s ease;
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background-color: transparent;
+    transition: background-color 0.25s ease;
+  }
+
+  &:hover {
+    color: var(--color-slate-text, var(--color-text));
+
+    i {
+      transform: translateY(-2px);
+    }
+
+    span {
+      opacity: 1;
+    }
+  }
+
+  &.active {
+    color: var(--color-primary);
+
+    i {
+      transform: translateY(-2px);
+    }
+
+    span {
+      opacity: 1;
+    }
+
+    &::after {
+      background-color: var(--color-primary);
+    }
+  }
+}
+
+.content-spacer {
+  height: 24px;
 }
 </style>
