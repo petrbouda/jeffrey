@@ -20,5 +20,6 @@ package pbouda.jeffrey.local.core.resources.response;
 
 public record InstanceDetailResponse(
         InstanceResponse instance,
-        InstanceStatsResponse stats) {
+        InstanceStatsResponse stats,
+        InstanceEnvironmentResponse environment) {
 }

@@ -112,64 +112,73 @@
 
           <!-- Expand-on-click detail panel -->
           <div v-if="expandedIds.has(instance.id)" class="detail-panel">
-            <div class="detail-card">
-              <div class="detail-card-head">
-                <span class="detail-card-title">Instance</span>
-                <span class="detail-card-source">overview</span>
+            <LoadingState
+              v-if="!instanceDetails.get(instance.id)"
+              message="Loading instance details..."
+            />
+            <div v-else class="detail-cards">
+              <div class="detail-card">
+                <div class="detail-card-head">
+                  <span class="detail-card-title">Overview</span>
+                </div>
+                <div class="detail-card-body">
+                  <div class="kv"><span class="k">started</span><span class="v mono">{{ FormattingService.formatTimestampUTC(instanceDetails.get(instance.id)!.instance.createdAt) }}</span></div>
+                  <div class="kv">
+                    <span class="k">finished</span>
+                    <span v-if="instanceEnd(instanceDetails.get(instance.id)!.instance)" class="v mono">{{ FormattingService.formatTimestampUTC(instanceEnd(instanceDetails.get(instance.id)!.instance)) }}</span>
+                    <span v-else class="v running">Running...</span>
+                  </div>
+                  <div class="kv"><span class="k">duration</span><span class="v mono">{{ FormattingService.formatDurationInMillis2Units(instanceDetails.get(instance.id)!.instance.duration) }}</span></div>
+                  <div class="kv"><span class="k">sessions</span><span class="v mono">{{ instanceDetails.get(instance.id)!.instance.sessionCount }}</span></div>
+                  <div v-if="instanceDetails.get(instance.id)!.environment?.shutdown" class="kv">
+                    <span class="k">reason</span>
+                    <span class="v reason-value">
+                      <span class="reason-main">
+                        <Badge
+                          :value="shutdownKindLabel(instanceDetails.get(instance.id)!.environment!.shutdown!.kind)"
+                          :variant="shutdownKindVariant(instanceDetails.get(instance.id)!.environment!.shutdown!.kind)"
+                          size="xxs"
+                        />
+                        <span v-if="instanceDetails.get(instance.id)!.environment!.shutdown!.reason" class="mono reason-raw">{{ instanceDetails.get(instance.id)!.environment!.shutdown!.reason }}</span>
+                      </span>
+                      <span class="reason-desc">{{ shutdownKindDescription(instanceDetails.get(instance.id)!.environment!.shutdown!.kind) }}</span>
+                    </span>
+                  </div>
+                  <div class="kv"><span class="k">files</span><span class="v mono">{{ instanceDetails.get(instance.id)!.fileCount }}</span></div>
+                  <div class="kv"><span class="k">storage</span><span class="v mono">{{ FormattingService.formatBytes(instanceDetails.get(instance.id)!.totalSizeBytes) }}</span></div>
+                </div>
               </div>
-              <div class="detail-card-body">
-                <div class="kv"><span class="k">started</span><span class="v mono">{{ FormattingService.formatTimestampUTC(instance.createdAt) }}</span></div>
-                <div class="kv">
-                  <span class="k">finished</span>
-                  <span v-if="instanceEnd(instance)" class="v mono">{{ FormattingService.formatTimestampUTC(instanceEnd(instance)) }}</span>
-                  <span v-else class="v running">Running...</span>
-                </div>
-                <div class="kv"><span class="k">duration</span><span class="v mono">{{ FormattingService.formatDurationInMillis2Units(instance.duration) }}</span></div>
-                <div class="kv"><span class="k">sessions</span><span class="v mono">{{ instance.sessionCount }}</span></div>
-                <div class="kv">
-                  <span class="k">files</span>
-                  <span v-if="instanceDetails.get(instance.id)" class="v mono">{{ instanceDetails.get(instance.id)!.fileCount }}</span>
-                  <span v-else class="v running">loading…</span>
-                </div>
-                <div class="kv">
-                  <span class="k">storage</span>
-                  <span v-if="instanceDetails.get(instance.id)" class="v mono">{{ FormattingService.formatBytes(instanceDetails.get(instance.id)!.totalSizeBytes) }}</span>
-                  <span v-else class="v running">loading…</span>
-                </div>
-              </div>
-            </div>
 
-            <div class="detail-card">
-              <div class="detail-card-head">
-                <span class="detail-card-title">JVM · GC Heap</span>
-                <span class="detail-card-source">jdk.GCHeapConfiguration</span>
+              <div class="detail-card" v-if="instanceDetails.get(instance.id)!.environment?.gcHeap">
+                <div class="detail-card-head">
+                  <span class="detail-card-title">JVM · GC Heap</span>
+                </div>
+                <div class="detail-card-body">
+                  <div v-if="instanceDetails.get(instance.id)!.environment!.gcHeap!.minSize != null" class="kv"><span class="k">min size</span><span class="v mono">{{ FormattingService.formatBytes(instanceDetails.get(instance.id)!.environment!.gcHeap!.minSize!) }}</span></div>
+                  <div v-if="instanceDetails.get(instance.id)!.environment!.gcHeap!.initialSize != null" class="kv"><span class="k">initial size</span><span class="v mono">{{ FormattingService.formatBytes(instanceDetails.get(instance.id)!.environment!.gcHeap!.initialSize!) }}</span></div>
+                  <div v-if="instanceDetails.get(instance.id)!.environment!.gcHeap!.maxSize != null" class="kv"><span class="k">max size</span><span class="v mono">{{ FormattingService.formatBytes(instanceDetails.get(instance.id)!.environment!.gcHeap!.maxSize!) }}</span></div>
+                  <div v-if="instanceDetails.get(instance.id)!.environment!.gcHeap!.usesCompressedOops != null" class="kv"><span class="k">uses compressed oops</span><span class="v mono">{{ instanceDetails.get(instance.id)!.environment!.gcHeap!.usesCompressedOops }}</span></div>
+                  <div v-if="instanceDetails.get(instance.id)!.environment!.gcHeap!.compressedOopsMode" class="kv"><span class="k">compressed oops mode</span><span class="v mono">{{ instanceDetails.get(instance.id)!.environment!.gcHeap!.compressedOopsMode }}</span></div>
+                  <div v-if="instanceDetails.get(instance.id)!.environment!.gcHeap!.objectAlignment != null" class="kv"><span class="k">object alignment</span><span class="v mono">{{ instanceDetails.get(instance.id)!.environment!.gcHeap!.objectAlignment }} B</span></div>
+                  <div v-if="instanceDetails.get(instance.id)!.environment!.gcHeap!.heapAddressBits != null" class="kv"><span class="k">heap address bits</span><span class="v mono">{{ instanceDetails.get(instance.id)!.environment!.gcHeap!.heapAddressBits }}</span></div>
+                </div>
               </div>
-              <div class="detail-card-body">
-                <div class="kv"><span class="k">min size</span><span class="v mono">{{ mockData(instance.id).jvmGcHeap.minSize }}</span></div>
-                <div class="kv"><span class="k">initial size</span><span class="v mono">{{ mockData(instance.id).jvmGcHeap.initialSize }}</span></div>
-                <div class="kv"><span class="k">max size</span><span class="v mono">{{ mockData(instance.id).jvmGcHeap.maxSize }}</span></div>
-                <div class="kv"><span class="k">uses compressed oops</span><span class="v mono">{{ mockData(instance.id).jvmGcHeap.usesCompressedOops }}</span></div>
-                <div class="kv"><span class="k">compressed oops mode</span><span class="v mono">{{ mockData(instance.id).jvmGcHeap.compressedOopsMode }}</span></div>
-                <div class="kv"><span class="k">object alignment</span><span class="v mono">{{ mockData(instance.id).jvmGcHeap.objectAlignment }}</span></div>
-                <div class="kv"><span class="k">heap address bits</span><span class="v mono">{{ mockData(instance.id).jvmGcHeap.heapAddressBits }}</span></div>
-              </div>
-            </div>
 
-            <div class="detail-card">
-              <div class="detail-card-head">
-                <span class="detail-card-title">Container</span>
-                <span class="detail-card-source">jdk.ContainerConfiguration</span>
-              </div>
-              <div class="detail-card-body">
-                <div class="kv"><span class="k">container type</span><span class="v mono">{{ mockData(instance.id).container.type }}</span></div>
-                <div class="kv"><span class="k">effective cpu count</span><span class="v mono">{{ mockData(instance.id).container.effectiveCpuCount }}</span></div>
-                <div class="kv"><span class="k">cpu quota</span><span class="v mono">{{ mockData(instance.id).container.cpuQuota }}</span></div>
-                <div class="kv"><span class="k">cpu slice period</span><span class="v mono">{{ mockData(instance.id).container.cpuSlicePeriod }}</span></div>
-                <div class="kv"><span class="k">cpu shares</span><span class="v mono">{{ mockData(instance.id).container.cpuShares }}</span></div>
-                <div class="kv"><span class="k">memory limit</span><span class="v mono">{{ mockData(instance.id).container.memoryLimit }}</span></div>
-                <div class="kv"><span class="k">memory soft limit</span><span class="v mono">{{ mockData(instance.id).container.memorySoftLimit }}</span></div>
-                <div class="kv"><span class="k">swap memory limit</span><span class="v mono">{{ mockData(instance.id).container.swapMemoryLimit }}</span></div>
-                <div class="kv"><span class="k">host total memory</span><span class="v mono">{{ mockData(instance.id).container.hostTotalMemory }}</span></div>
+              <div class="detail-card" v-if="instanceDetails.get(instance.id)!.environment?.container">
+                <div class="detail-card-head">
+                  <span class="detail-card-title">Container</span>
+                </div>
+                <div class="detail-card-body">
+                  <div v-if="instanceDetails.get(instance.id)!.environment!.container!.containerType" class="kv"><span class="k">container type</span><span class="v mono">{{ instanceDetails.get(instance.id)!.environment!.container!.containerType }}</span></div>
+                  <div v-if="instanceDetails.get(instance.id)!.environment!.container!.effectiveCpuCount != null" class="kv"><span class="k">effective cpu count</span><span class="v mono">{{ instanceDetails.get(instance.id)!.environment!.container!.effectiveCpuCount }}</span></div>
+                  <div v-if="instanceDetails.get(instance.id)!.environment!.container!.cpuQuota != null" class="kv"><span class="k">cpu quota</span><span class="v mono">{{ instanceDetails.get(instance.id)!.environment!.container!.cpuQuota }} µs</span></div>
+                  <div v-if="instanceDetails.get(instance.id)!.environment!.container!.cpuSlicePeriod != null" class="kv"><span class="k">cpu slice period</span><span class="v mono">{{ instanceDetails.get(instance.id)!.environment!.container!.cpuSlicePeriod }} µs</span></div>
+                  <div v-if="instanceDetails.get(instance.id)!.environment!.container!.cpuShares != null" class="kv"><span class="k">cpu shares</span><span class="v mono">{{ instanceDetails.get(instance.id)!.environment!.container!.cpuShares }}</span></div>
+                  <div v-if="instanceDetails.get(instance.id)!.environment!.container!.memoryLimit != null" class="kv"><span class="k">memory limit</span><span class="v mono">{{ FormattingService.formatBytes(instanceDetails.get(instance.id)!.environment!.container!.memoryLimit!) }}</span></div>
+                  <div v-if="instanceDetails.get(instance.id)!.environment!.container!.memorySoftLimit != null" class="kv"><span class="k">memory soft limit</span><span class="v mono">{{ FormattingService.formatBytes(instanceDetails.get(instance.id)!.environment!.container!.memorySoftLimit!) }}</span></div>
+                  <div v-if="instanceDetails.get(instance.id)!.environment!.container!.swapMemoryLimit != null" class="kv"><span class="k">swap memory limit</span><span class="v mono">{{ FormattingService.formatBytes(instanceDetails.get(instance.id)!.environment!.container!.swapMemoryLimit!) }}</span></div>
+                  <div v-if="instanceDetails.get(instance.id)!.environment!.container!.hostTotalMemory != null" class="kv"><span class="k">host total memory</span><span class="v mono">{{ FormattingService.formatBytes(instanceDetails.get(instance.id)!.environment!.container!.hostTotalMemory!) }}</span></div>
+                </div>
               </div>
             </div>
           </div>
@@ -241,7 +250,6 @@ import ProjectInstanceDetail from '@/services/api/model/ProjectInstanceDetail';
 import ProjectInstanceSession from '@/services/api/model/ProjectInstanceSession';
 import FormattingService from '@/services/FormattingService';
 import { useNavigation } from '@/composables/useNavigation';
-import { getInstanceMockData } from './instanceMockData';
 import '@/styles/shared-components.css';
 
 const { workspaceId, projectId, generateInstanceUrl } = useNavigation();
@@ -346,12 +354,39 @@ function sessionBarClass(session: ProjectInstanceSession, idx: number): string[]
   return classes;
 }
 
-function mockData(instanceId: string) {
-  return getInstanceMockData(instanceId);
-}
-
 function instanceEnd(instance: ProjectInstance): number | undefined {
   return instance.finishedAt ?? instance.expiredAt;
+}
+
+function shutdownKindLabel(kind: string | undefined): string {
+  switch (kind) {
+    case 'GRACEFUL': return 'Graceful';
+    case 'VM_ERROR': return 'Crash';
+    case 'CRASH_OOM': return 'OOM Crash';
+    default: return 'Unknown';
+  }
+}
+
+function shutdownKindVariant(kind: string | undefined): 'green' | 'red' | 'grey' {
+  switch (kind) {
+    case 'GRACEFUL': return 'green';
+    case 'VM_ERROR':
+    case 'CRASH_OOM': return 'red';
+    default: return 'grey';
+  }
+}
+
+function shutdownKindDescription(kind: string | undefined): string {
+  switch (kind) {
+    case 'GRACEFUL':
+      return 'Clean shutdown via System.exit, SIGTERM/SIGINT/SIGHUP, or the main thread finishing.';
+    case 'VM_ERROR':
+      return 'Fatal JVM error (SIGSEGV, assertion failure). Look for an hs_err_pid*.log alongside the recording.';
+    case 'CRASH_OOM':
+      return 'Crashed due to OutOfMemoryError with -XX:+CrashOnOutOfMemoryError enabled (JDK 24+).';
+    default:
+      return 'Unrecognised reason — usually from a third-party JVM (SapMachine, GraalVM, …). See the raw reason above.';
+  }
 }
 
 function toggleExpand(instanceId: string): void {
@@ -633,16 +668,19 @@ onMounted(async () => {
    Expanded detail panel (three cards)
    ====================================================================== */
 .detail-panel {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
   padding: 14px 20px 18px;
   background: var(--color-bg-hover);
   border-top: 1px dashed var(--color-border);
 }
 
+.detail-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
 @media (max-width: 900px) {
-  .detail-panel {
+  .detail-cards {
     grid-template-columns: 1fr;
   }
 }
@@ -667,12 +705,6 @@ onMounted(async () => {
   font-weight: 600;
   color: var(--color-dark);
 }
-.detail-card-source {
-  font-size: 0.65rem;
-  color: var(--color-text-light);
-  font-family: ui-monospace, Menlo, Consolas, monospace;
-}
-
 .detail-card-body {
   padding: 6px 12px 10px;
 }
@@ -708,6 +740,35 @@ onMounted(async () => {
   color: var(--color-text-muted);
   font-style: italic;
   font-weight: 500;
+}
+.v.reason-value {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+  font-weight: 500;
+  min-width: 0;
+}
+.reason-main {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.reason-raw {
+  font-size: 0.68rem;
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+.reason-desc {
+  font-size: 0.65rem;
+  color: var(--color-text-light);
+  font-style: italic;
+  text-align: right;
+  line-height: 1.4;
+  font-weight: 400;
+  max-width: 100%;
 }
 
 /* ======================================================================

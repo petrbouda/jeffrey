@@ -20,11 +20,13 @@ package pbouda.jeffrey.server.core.manager;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import pbouda.jeffrey.server.core.project.repository.InstanceEnvironmentParser;
 import pbouda.jeffrey.server.core.project.repository.MergedRecording;
 import pbouda.jeffrey.server.core.project.repository.RepositoryStorage;
 import pbouda.jeffrey.server.core.scheduler.SchedulerTrigger;
 import pbouda.jeffrey.server.core.workspace.WorkspaceEventConverter;
 import pbouda.jeffrey.server.core.workspace.WorkspaceEventPublisher;
+import pbouda.jeffrey.shared.common.model.repository.InstanceEnvironment;
 import pbouda.jeffrey.shared.common.model.repository.InstanceStats;
 import pbouda.jeffrey.shared.common.model.repository.RepositoryStatistics;
 import pbouda.jeffrey.shared.common.model.repository.RepositoryStatistics.FileTypeStats;
@@ -54,6 +56,8 @@ import java.util.stream.Collectors;
 public class RepositoryManagerImpl implements RepositoryManager {
 
     private static final Logger LOG = LoggerFactory.getLogger(RepositoryManagerImpl.class);
+
+    private static final InstanceEnvironmentParser ENVIRONMENT_PARSER = new InstanceEnvironmentParser();
 
     private final Clock clock;
     private final ProjectInfo projectInfo;
@@ -178,6 +182,12 @@ public class RepositoryManagerImpl implements RepositoryManager {
                 .sum();
 
         return new InstanceStats(fileCount, totalSize);
+    }
+
+    @Override
+    public Optional<InstanceEnvironment> instanceEnvironment(String instanceId, boolean expectShutdown) {
+        return repositoryStorage.latestFinishedRecordingForInstance(instanceId)
+                .map(path -> ENVIRONMENT_PARSER.parse(path, expectShutdown));
     }
 
     @Override

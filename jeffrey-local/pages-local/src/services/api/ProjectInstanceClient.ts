@@ -46,7 +46,8 @@ export default class ProjectInstanceClient extends BasePlatformClient {
     return super.get<any>(`/${instanceId}/detail`).then(data => new ProjectInstanceDetail(
         this.mapToInstance(data.instance),
         data.stats.fileCount ?? 0,
-        data.stats.totalSizeBytes ?? 0
+        data.stats.totalSizeBytes ?? 0,
+        data.environment ?? null
     ));
   }
 

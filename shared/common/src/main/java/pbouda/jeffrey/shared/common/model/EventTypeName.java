@@ -66,6 +66,7 @@ public abstract class EventTypeName {
     public static final String CPU_INFORMATION = "jdk.CPUInformation";
     public static final String OS_INFORMATION = "jdk.OSInformation";
     public static final String VIRTUALIZATION_INFORMATION = "jdk.VirtualizationInformation";
+    public static final String SHUTDOWN = "jdk.Shutdown";
     public static final String JAVA_THREAD_STATISTICS = "jdk.JavaThreadStatistics";
     public static final String THREAD_ALLOCATION_STATISTICS = "jdk.ThreadAllocationStatistics";
     public static final String THREAD_CPU_LOAD = "jdk.ThreadCPULoad";

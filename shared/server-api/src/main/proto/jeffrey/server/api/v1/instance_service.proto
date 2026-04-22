@@ -63,6 +63,9 @@ message GetInstanceDetailResponse {
   InstanceInfo instance = 1;
   // Filesystem-backed aggregates for the instance's recordings.
   InstanceStats stats = 2;
+  // Parsed JFR one-shot configuration / environment events. Unset when the
+  // instance has no finished recording chunk yet.
+  optional InstanceEnvironment environment = 3;
 }
 
 // Aggregated storage statistics for a single instance, computed by walking
@@ -70,6 +73,131 @@ message GetInstanceDetailResponse {
 message InstanceStats {
   int32 file_count = 1;
   int64 total_size_bytes = 2;
+}
+
+// Strongly typed payload of one-shot JFR events describing the JVM's
+// runtime environment. Each field is optional because older JDKs may not
+// emit a given event (e.g. non-containerised hosts have no ContainerConfiguration).
+message InstanceEnvironment {
+  optional JvmInformation jvm = 1;
+  optional OsInformation os = 2;
+  optional CpuInformation cpu = 3;
+  optional GcConfiguration gc = 4;
+  optional GcHeapConfiguration gc_heap = 5;
+  optional CompilerConfiguration compiler = 6;
+  optional ContainerConfiguration container = 7;
+  optional VirtualizationInformation virtualization = 8;
+  // Populated only for FINISHED instances whose final JFR chunk contains jdk.Shutdown.
+  optional ShutdownInfo shutdown = 9;
+}
+
+// From jdk.JVMInformation.
+message JvmInformation {
+  optional string jvm_name = 1;
+  optional string jvm_version = 2;
+  optional string jvm_arguments = 3;
+  optional string jvm_flags = 4;
+  optional string java_arguments = 5;
+  optional int64 jvm_start_time = 6;  // epoch millis
+  optional int64 pid = 7;
+}
+
+// From jdk.OSInformation.
+message OsInformation {
+  optional string os_version = 1;
+}
+
+// From jdk.CPUInformation.
+message CpuInformation {
+  optional string cpu = 1;
+  optional string description = 2;
+  optional int32 sockets = 3;
+  optional int32 cores = 4;
+  optional int32 hw_threads = 5;
+}
+
+// From jdk.GCConfiguration.
+message GcConfiguration {
+  optional string young_collector = 1;
+  optional string old_collector = 2;
+  optional int32 parallel_gc_threads = 3;
+  optional int32 concurrent_gc_threads = 4;
+  optional bool uses_dynamic_gc_threads = 5;
+  optional bool is_explicit_gc_concurrent = 6;
+  optional bool is_explicit_gc_disabled = 7;
+  optional int64 pause_target_millis = 8;
+  optional int32 gc_time_ratio = 9;
+}
+
+// From jdk.GCHeapConfiguration.
+message GcHeapConfiguration {
+  optional int64 min_size = 1;  // bytes
+  optional int64 max_size = 2;
+  optional int64 initial_size = 3;
+  optional bool uses_compressed_oops = 4;
+  optional string compressed_oops_mode = 5;
+  optional int64 object_alignment = 6;  // bytes
+  optional int32 heap_address_bits = 7;
+}
+
+// From jdk.CompilerConfiguration.
+message CompilerConfiguration {
+  optional int32 thread_count = 1;
+  optional bool tiered_compilation = 2;
+  optional bool dynamic_compiler_thread_count = 3;
+}
+
+// From jdk.ContainerConfiguration.
+message ContainerConfiguration {
+  optional string container_type = 1;
+  optional int64 cpu_slice_period = 2;    // microseconds
+  optional int64 cpu_quota = 3;            // microseconds
+  optional int64 cpu_shares = 4;
+  optional int32 effective_cpu_count = 5;
+  optional int64 memory_soft_limit = 6;    // bytes
+  optional int64 memory_limit = 7;
+  optional int64 swap_memory_limit = 8;
+  optional int64 host_total_memory = 9;
+  optional int64 host_total_swap_memory = 10;
+}
+
+// From jdk.VirtualizationInformation.
+message VirtualizationInformation {
+  optional string name = 1;
+}
+
+// From jdk.Shutdown. Emitted at JVM exit on a clean shutdown.
+message ShutdownInfo {
+  // Free-form reason as written by HotSpot, e.g. "Shutdown requested from Java",
+  // "VM Error", "CrashOnOutOfMemoryError".
+  optional string reason = 1;
+  // Wall-clock time the JVM recorded the shutdown event (epoch millis).
+  optional int64 event_time = 2;
+  // Classification of the reason string into a small stable set of categories.
+  // Allows the UI to pick an icon / colour without re-implementing the
+  // HotSpot string match. UNKNOWN means the reason didn't match any of the
+  // values the JDK sources are known to emit — third-party JVMs may produce
+  // custom strings which the UI should still display verbatim.
+  optional ShutdownKind kind = 3;
+}
+
+// Classification of jdk.Shutdown.reason. Strings that map to each value
+// are fixed in the OpenJDK sources (jvm.cpp::JVM_BeforeHalt,
+// jfrEmergencyDump.cpp::post_events).
+enum ShutdownKind {
+  SHUTDOWN_KIND_UNSPECIFIED = 0;
+  // "Shutdown requested from Java" — the normal graceful path:
+  // System.exit / Runtime.exit / last non-daemon thread / SIGINT/SIGTERM/SIGHUP
+  // (via java.lang.Terminator) / DestroyJavaVM.
+  SHUTDOWN_KIND_GRACEFUL = 1;
+  // "VM Error" — fatal VM error (SIGSEGV, assertion, guarantee failure).
+  // Usually accompanied by an hs_err_pid*.log file.
+  SHUTDOWN_KIND_VM_ERROR = 2;
+  // "CrashOnOutOfMemoryError" — the JVM was started with
+  // -XX:+CrashOnOutOfMemoryError and an OOM triggered the crash. JDK 24+.
+  SHUTDOWN_KIND_CRASH_OOM = 3;
+  // Reason didn't match any known string. UI should show reason verbatim.
+  SHUTDOWN_KIND_UNKNOWN = 4;
 }
 
 // A project instance — represents a single JVM process lifecycle.

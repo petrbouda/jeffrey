@@ -23,6 +23,7 @@ import pbouda.jeffrey.shared.common.model.RepositoryInfo;
 import pbouda.jeffrey.shared.common.model.repository.RecordingSession;
 import pbouda.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEventCreator;
+import pbouda.jeffrey.shared.common.model.repository.InstanceEnvironment;
 import pbouda.jeffrey.shared.common.model.repository.InstanceStats;
 import pbouda.jeffrey.shared.common.model.repository.RepositoryStatistics;
 import pbouda.jeffrey.shared.common.model.repository.StreamedRecordingFile;
@@ -89,6 +90,21 @@ public interface RepositoryManager {
      * @return file count and total size across all sessions of that instance
      */
     InstanceStats instanceStats(String instanceId);
+
+    /**
+     * Parses the latest finished JFR chunk belonging to the instance and
+     * returns the one-shot configuration / environment events it contains.
+     *
+     * @param instanceId the instance to parse the environment for
+     * @param expectShutdown when {@code true}, the parser reads the whole
+     *                       chunk so that the {@code jdk.Shutdown} event at
+     *                       the end isn't missed (set for FINISHED instances).
+     *                       When {@code false}, the parser bails early once
+     *                       all one-shot config events have been seen.
+     * @return the parsed environment, or empty if no finished uncompressed
+     *         JFR chunk exists yet for this instance
+     */
+    Optional<InstanceEnvironment> instanceEnvironment(String instanceId, boolean expectShutdown);
 
     /**
      * Create a new repository for the project.

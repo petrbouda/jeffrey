@@ -22,6 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.server.api.v1.*;
 import pbouda.jeffrey.local.core.resources.response.InstanceDetailResponse;
+import pbouda.jeffrey.local.core.resources.response.InstanceEnvironmentResponse;
 import pbouda.jeffrey.local.core.resources.response.InstanceResponse;
 import pbouda.jeffrey.local.core.resources.response.InstanceSessionResponse;
 import pbouda.jeffrey.local.core.resources.response.InstanceStatsResponse;
@@ -70,14 +71,120 @@ public class RemoteInstancesClient {
                         .setInstanceId(instanceId)
                         .build());
 
-        LOG.debug("Fetched instance detail via gRPC: instanceId={} files={} totalSize={}",
-                instanceId, response.getStats().getFileCount(), response.getStats().getTotalSizeBytes());
+        LOG.debug("Fetched instance detail via gRPC: instanceId={} files={} totalSize={} hasEnvironment={}",
+                instanceId, response.getStats().getFileCount(), response.getStats().getTotalSizeBytes(),
+                response.hasEnvironment());
 
         return new InstanceDetailResponse(
                 toInstanceResponse(response.getInstance()),
                 new InstanceStatsResponse(
                         response.getStats().getFileCount(),
-                        response.getStats().getTotalSizeBytes()));
+                        response.getStats().getTotalSizeBytes()),
+                response.hasEnvironment() ? toEnvironmentResponse(response.getEnvironment()) : null);
+    }
+
+    private static InstanceEnvironmentResponse toEnvironmentResponse(InstanceEnvironment env) {
+        return new InstanceEnvironmentResponse(
+                env.hasJvm() ? toJvm(env.getJvm()) : null,
+                env.hasOs() ? toOs(env.getOs()) : null,
+                env.hasCpu() ? toCpu(env.getCpu()) : null,
+                env.hasGc() ? toGc(env.getGc()) : null,
+                env.hasGcHeap() ? toGcHeap(env.getGcHeap()) : null,
+                env.hasCompiler() ? toCompiler(env.getCompiler()) : null,
+                env.hasContainer() ? toContainer(env.getContainer()) : null,
+                env.hasVirtualization() ? toVirtualization(env.getVirtualization()) : null,
+                env.hasShutdown() ? toShutdown(env.getShutdown()) : null);
+    }
+
+    private static InstanceEnvironmentResponse.JvmInformation toJvm(JvmInformation j) {
+        return new InstanceEnvironmentResponse.JvmInformation(
+                j.hasJvmName() ? j.getJvmName() : null,
+                j.hasJvmVersion() ? j.getJvmVersion() : null,
+                j.hasJvmArguments() ? j.getJvmArguments() : null,
+                j.hasJvmFlags() ? j.getJvmFlags() : null,
+                j.hasJavaArguments() ? j.getJavaArguments() : null,
+                j.hasJvmStartTime() ? j.getJvmStartTime() : null,
+                j.hasPid() ? j.getPid() : null);
+    }
+
+    private static InstanceEnvironmentResponse.OsInformation toOs(OsInformation o) {
+        return new InstanceEnvironmentResponse.OsInformation(
+                o.hasOsVersion() ? o.getOsVersion() : null);
+    }
+
+    private static InstanceEnvironmentResponse.CpuInformation toCpu(CpuInformation c) {
+        return new InstanceEnvironmentResponse.CpuInformation(
+                c.hasCpu() ? c.getCpu() : null,
+                c.hasDescription() ? c.getDescription() : null,
+                c.hasSockets() ? c.getSockets() : null,
+                c.hasCores() ? c.getCores() : null,
+                c.hasHwThreads() ? c.getHwThreads() : null);
+    }
+
+    private static InstanceEnvironmentResponse.GcConfiguration toGc(GcConfiguration g) {
+        return new InstanceEnvironmentResponse.GcConfiguration(
+                g.hasYoungCollector() ? g.getYoungCollector() : null,
+                g.hasOldCollector() ? g.getOldCollector() : null,
+                g.hasParallelGcThreads() ? g.getParallelGcThreads() : null,
+                g.hasConcurrentGcThreads() ? g.getConcurrentGcThreads() : null,
+                g.hasUsesDynamicGcThreads() ? g.getUsesDynamicGcThreads() : null,
+                g.hasIsExplicitGcConcurrent() ? g.getIsExplicitGcConcurrent() : null,
+                g.hasIsExplicitGcDisabled() ? g.getIsExplicitGcDisabled() : null,
+                g.hasPauseTargetMillis() ? g.getPauseTargetMillis() : null,
+                g.hasGcTimeRatio() ? g.getGcTimeRatio() : null);
+    }
+
+    private static InstanceEnvironmentResponse.GcHeapConfiguration toGcHeap(GcHeapConfiguration h) {
+        return new InstanceEnvironmentResponse.GcHeapConfiguration(
+                h.hasMinSize() ? h.getMinSize() : null,
+                h.hasMaxSize() ? h.getMaxSize() : null,
+                h.hasInitialSize() ? h.getInitialSize() : null,
+                h.hasUsesCompressedOops() ? h.getUsesCompressedOops() : null,
+                h.hasCompressedOopsMode() ? h.getCompressedOopsMode() : null,
+                h.hasObjectAlignment() ? h.getObjectAlignment() : null,
+                h.hasHeapAddressBits() ? h.getHeapAddressBits() : null);
+    }
+
+    private static InstanceEnvironmentResponse.CompilerConfiguration toCompiler(CompilerConfiguration c) {
+        return new InstanceEnvironmentResponse.CompilerConfiguration(
+                c.hasThreadCount() ? c.getThreadCount() : null,
+                c.hasTieredCompilation() ? c.getTieredCompilation() : null,
+                c.hasDynamicCompilerThreadCount() ? c.getDynamicCompilerThreadCount() : null);
+    }
+
+    private static InstanceEnvironmentResponse.ContainerConfiguration toContainer(ContainerConfiguration c) {
+        return new InstanceEnvironmentResponse.ContainerConfiguration(
+                c.hasContainerType() ? c.getContainerType() : null,
+                c.hasCpuSlicePeriod() ? c.getCpuSlicePeriod() : null,
+                c.hasCpuQuota() ? c.getCpuQuota() : null,
+                c.hasCpuShares() ? c.getCpuShares() : null,
+                c.hasEffectiveCpuCount() ? c.getEffectiveCpuCount() : null,
+                c.hasMemorySoftLimit() ? c.getMemorySoftLimit() : null,
+                c.hasMemoryLimit() ? c.getMemoryLimit() : null,
+                c.hasSwapMemoryLimit() ? c.getSwapMemoryLimit() : null,
+                c.hasHostTotalMemory() ? c.getHostTotalMemory() : null,
+                c.hasHostTotalSwapMemory() ? c.getHostTotalSwapMemory() : null);
+    }
+
+    private static InstanceEnvironmentResponse.VirtualizationInformation toVirtualization(VirtualizationInformation v) {
+        return new InstanceEnvironmentResponse.VirtualizationInformation(
+                v.hasName() ? v.getName() : null);
+    }
+
+    private static InstanceEnvironmentResponse.ShutdownInfo toShutdown(ShutdownInfo s) {
+        return new InstanceEnvironmentResponse.ShutdownInfo(
+                s.hasReason() ? s.getReason() : null,
+                s.hasEventTime() ? s.getEventTime() : null,
+                s.hasKind() ? toShutdownKind(s.getKind()) : null);
+    }
+
+    private static String toShutdownKind(ShutdownKind kind) {
+        return switch (kind) {
+            case SHUTDOWN_KIND_GRACEFUL -> "GRACEFUL";
+            case SHUTDOWN_KIND_VM_ERROR -> "VM_ERROR";
+            case SHUTDOWN_KIND_CRASH_OOM -> "CRASH_OOM";
+            case SHUTDOWN_KIND_UNKNOWN, SHUTDOWN_KIND_UNSPECIFIED, UNRECOGNIZED -> "UNKNOWN";
+        };
     }
 
     public List<InstanceSessionResponse> projectInstanceSessions(String instanceId) {

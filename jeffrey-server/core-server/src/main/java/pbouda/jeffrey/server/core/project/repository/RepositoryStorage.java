@@ -71,6 +71,17 @@ public interface RepositoryStorage {
     List<RecordingSession> listSessionsByInstanceId(String instanceId, boolean withFiles);
 
     /**
+     * Returns the path to the newest FINISHED uncompressed JFR chunk across
+     * the instance's sessions. Used by the instance-detail endpoint to parse
+     * JVM-side configuration events without touching LZ4-compressed chunks.
+     *
+     * @param instanceId the instance whose recordings should be searched
+     * @return path to the newest finished {@code .jfr} file, or empty if no
+     *         uncompressed finished chunk exists yet
+     */
+    Optional<Path> latestFinishedRecordingForInstance(String instanceId);
+
+    /**
      * Deletes specific repository files from the repository.
      *
      * @param sessionId         the unique identifier of the recording session
