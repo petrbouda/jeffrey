@@ -59,6 +59,15 @@ public interface ProjectRepositoryRepository {
     List<ProjectInstanceSessionInfo> findAllSessions();
 
     /**
+     * Find all sessions belonging to a specific instance within this project.
+     * Filters at the SQL level for efficiency.
+     *
+     * @param instanceId the instance ID to filter by
+     * @return list of sessions for the instance, newest first
+     */
+    List<ProjectInstanceSessionInfo> findSessionsByInstanceId(String instanceId);
+
+    /**
      * Find a single workspace session by project ID and session ID.
      *
      * @param sessionId the session ID

@@ -2,259 +2,228 @@
   <div>
     <MainCard>
       <template #header>
-        <MainCardHeader
-          icon="bi bi-bar-chart-steps"
-          title="Instance Timeline"
-        />
+        <MainCardHeader icon="bi bi-bar-chart-steps" title="Instance Timeline" />
       </template>
 
-      <!-- Time Range Selector + summary chip -->
-    <div class="d-flex gap-3 mb-3 align-items-center">
-      <div class="btn-group" role="group">
-        <button
-          v-for="range in timeRanges"
-          :key="range.value"
-          type="button"
-          class="btn btn-sm"
-          :class="selectedRange === range.value ? 'btn-primary' : 'btn-outline-secondary'"
-          @click="selectedRange = range.value"
-        >
-          {{ range.label }}
-        </button>
-      </div>
-      <span v-if="!loading" class="count-chip ms-auto">
-        <i class="bi bi-box"></i>
-        <strong>{{ instances.length }}</strong>
-        {{ instances.length === 1 ? 'instance' : 'instances' }}
-        <span class="count-chip-sep">·</span>
-        <strong>{{ totalSessions }}</strong>
-        {{ totalSessions === 1 ? 'session' : 'sessions' }}
-      </span>
-    </div>
-
-    <!-- Loading Indicator -->
-    <LoadingState v-if="loading" message="Loading timeline..." />
-
-    <!-- Empty State -->
-    <EmptyState
-      v-else-if="instances.length === 0"
-      icon="bi-bar-chart-steps"
-      title="No Instances"
-      description="No application instances found for this project."
-    />
-
-    <!-- Timeline Visualization -->
-    <div v-else class="col-12">
-      <!-- Timeline Header -->
-      <div class="timeline-header mb-3">
-        <div class="timeline-scale">
-          <span v-for="tick in timelineTicks" :key="tick" class="tick">{{ tick }}</span>
-        </div>
-      </div>
-
-      <!-- Instance Rows -->
-      <div class="timeline-container">
-        <div v-for="instance in instances" :key="instance.id" class="timeline-row">
-          <div class="instance-label">
-            <span
-              class="status-dot"
-              :class="{
-                pending: instance.status === 'PENDING',
-                active: instance.status === 'ACTIVE',
-                finished: instance.status === 'FINISHED',
-                expired: instance.status === 'EXPIRED'
-              }"
-            ></span>
-            <router-link :to="generateInstanceUrl(instance.id)" class="instance-name-link">{{
-              instance.instanceName
-            }}</router-link>
-            <Badge :value="instance.sessionCount" size="xxs" variant="grey" :uppercase="false" />
-          </div>
-          <div
-            class="instance-bar-container"
-            @mouseenter="showInstanceTooltip($event, instance)"
-            @mousemove="updateTooltipPosition($event)"
-            @mouseleave="hideTooltip"
+      <!-- Toolbar -->
+      <div class="d-flex gap-3 mb-3 align-items-center">
+        <div class="btn-group" role="group">
+          <button
+            v-for="range in timeRanges"
+            :key="range.value"
+            type="button"
+            class="btn btn-sm"
+            :class="selectedRange === range.value ? 'btn-primary' : 'btn-outline-secondary'"
+            @click="selectedRange = range.value"
           >
-            <!-- Instance background bar (faint) -->
-            <div
-              class="instance-bg-bar"
-              :class="{
-                pending: instance.status === 'PENDING',
-                active: instance.status === 'ACTIVE',
-                finished: instance.status === 'FINISHED',
-                expired: instance.status === 'EXPIRED'
-              }"
-              :style="getBarStyle(instance)"
-            ></div>
+            {{ range.label }}
+          </button>
+        </div>
+        <span v-if="!loading" class="timeline-legend">
+          <span class="legend-chip">
+            <span class="legend-sw finished-strong"></span>
+            <span class="legend-sw finished-light"></span>
+            adjacent finished
+          </span>
+          <span class="legend-chip">
+            <span class="legend-sw active-strong"></span>
+            <span class="legend-sw active-light"></span>
+            adjacent active
+          </span>
+        </span>
+        <span v-if="!loading" class="count-chip ms-auto">
+          <i class="bi bi-box"></i>
+          <strong>{{ instances.length }}</strong>
+          {{ instances.length === 1 ? 'instance' : 'instances' }}
+          <span class="count-chip-sep">·</span>
+          <strong>{{ totalSessions }}</strong>
+          {{ totalSessions === 1 ? 'session' : 'sessions' }}
+        </span>
+      </div>
 
-            <!-- Session bars (solid, overlaid) -->
-            <template v-if="instanceSessions.has(instance.id)">
-              <div
-                v-for="session in getSessionsForInstance(instance.id)"
-                :key="session.id"
-                class="session-bar"
-                :class="session.isActive ? 'active' : 'finished'"
-                :style="getSessionBarStyle(session)"
-                @mouseenter.stop="showSessionTooltip($event, session, instance.id)"
-                @mousemove.stop="updateTooltipPosition($event)"
-                @mouseleave.stop="hideTooltip"
-              ></div>
-            </template>
+      <LoadingState v-if="loading" message="Loading timeline..." />
+
+      <EmptyState
+        v-else-if="instances.length === 0"
+        icon="bi-bar-chart-steps"
+        title="No Instances"
+        description="No application instances found for this project."
+      />
+
+      <div v-else class="swim-card">
+        <div
+          v-for="instance in instances"
+          :key="instance.id"
+          class="swim-row-group"
+          :class="{ expanded: expandedIds.has(instance.id) }"
+        >
+          <div class="swim-row" @click="toggleExpand(instance.id)">
+            <!-- Left rail (status shown via background) -->
+            <div class="rail" :class="statusKey(instance.status)">
+              <i
+                class="bi rail-chevron"
+                :class="expandedIds.has(instance.id) ? 'bi-chevron-down' : 'bi-chevron-right'"
+              ></i>
+              <router-link
+                :to="generateInstanceUrl(instance.id)"
+                class="rail-name"
+                @click.stop
+              >
+                <span class="rail-name-text">{{ instance.instanceName }}</span>
+                <i class="bi bi-box-arrow-up-right rail-name-icon"></i>
+              </router-link>
+              <div class="rail-meta">
+                <span><i class="bi bi-clock me-1"></i>{{ FormattingService.formatDurationInMillis2Units(instance.duration) }}</span>
+                <span><i class="bi bi-layers me-1"></i>{{ instance.sessionCount }} {{ instance.sessionCount === 1 ? 'session' : 'sessions' }}</span>
+              </div>
+            </div>
+
+            <!-- Swim lanes -->
+            <div class="track-wrap" @click.stop="toggleExpand(instance.id)">
+              <div class="time-axis">
+                <span
+                  v-for="(tick, idx) in timelineTicks"
+                  :key="tick"
+                  class="axis-tick"
+                  :style="{ left: axisTickLeft(idx) }"
+                >{{ tick }}</span>
+              </div>
+
+              <!-- Sessions lane -->
+              <div class="lane lane-sessions">
+                <div class="lane-bg"></div>
+                <template v-if="instanceSessions.has(instance.id)">
+                  <div
+                    v-for="(session, idx) in getSessionsForInstance(instance.id)"
+                    :key="session.id"
+                    class="session-bar"
+                    :class="sessionBarClass(session, idx)"
+                    :style="getSessionBarStyle(session)"
+                    @mouseenter.stop="showSessionTooltip($event, session, instance.id)"
+                    @mousemove.stop="updateTooltipPosition($event)"
+                    @mouseleave.stop="hideTooltip"
+                    @click.stop
+                  ></div>
+                </template>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- Expand-on-click detail panel -->
+          <div v-if="expandedIds.has(instance.id)" class="detail-panel">
+            <div class="detail-card">
+              <div class="detail-card-head">
+                <span class="detail-card-title">Instance</span>
+                <span class="detail-card-source">overview</span>
+              </div>
+              <div class="detail-card-body">
+                <div class="kv"><span class="k">started</span><span class="v mono">{{ FormattingService.formatTimestampUTC(instance.createdAt) }}</span></div>
+                <div class="kv">
+                  <span class="k">finished</span>
+                  <span v-if="instanceEnd(instance)" class="v mono">{{ FormattingService.formatTimestampUTC(instanceEnd(instance)) }}</span>
+                  <span v-else class="v running">Running...</span>
+                </div>
+                <div class="kv"><span class="k">duration</span><span class="v mono">{{ FormattingService.formatDurationInMillis2Units(instance.duration) }}</span></div>
+                <div class="kv"><span class="k">sessions</span><span class="v mono">{{ instance.sessionCount }}</span></div>
+                <div class="kv">
+                  <span class="k">files</span>
+                  <span v-if="instanceDetails.get(instance.id)" class="v mono">{{ instanceDetails.get(instance.id)!.fileCount }}</span>
+                  <span v-else class="v running">loading…</span>
+                </div>
+                <div class="kv">
+                  <span class="k">storage</span>
+                  <span v-if="instanceDetails.get(instance.id)" class="v mono">{{ FormattingService.formatBytes(instanceDetails.get(instance.id)!.totalSizeBytes) }}</span>
+                  <span v-else class="v running">loading…</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="detail-card">
+              <div class="detail-card-head">
+                <span class="detail-card-title">JVM · GC Heap</span>
+                <span class="detail-card-source">jdk.GCHeapConfiguration</span>
+              </div>
+              <div class="detail-card-body">
+                <div class="kv"><span class="k">min size</span><span class="v mono">{{ mockData(instance.id).jvmGcHeap.minSize }}</span></div>
+                <div class="kv"><span class="k">initial size</span><span class="v mono">{{ mockData(instance.id).jvmGcHeap.initialSize }}</span></div>
+                <div class="kv"><span class="k">max size</span><span class="v mono">{{ mockData(instance.id).jvmGcHeap.maxSize }}</span></div>
+                <div class="kv"><span class="k">uses compressed oops</span><span class="v mono">{{ mockData(instance.id).jvmGcHeap.usesCompressedOops }}</span></div>
+                <div class="kv"><span class="k">compressed oops mode</span><span class="v mono">{{ mockData(instance.id).jvmGcHeap.compressedOopsMode }}</span></div>
+                <div class="kv"><span class="k">object alignment</span><span class="v mono">{{ mockData(instance.id).jvmGcHeap.objectAlignment }}</span></div>
+                <div class="kv"><span class="k">heap address bits</span><span class="v mono">{{ mockData(instance.id).jvmGcHeap.heapAddressBits }}</span></div>
+              </div>
+            </div>
+
+            <div class="detail-card">
+              <div class="detail-card-head">
+                <span class="detail-card-title">Container</span>
+                <span class="detail-card-source">jdk.ContainerConfiguration</span>
+              </div>
+              <div class="detail-card-body">
+                <div class="kv"><span class="k">container type</span><span class="v mono">{{ mockData(instance.id).container.type }}</span></div>
+                <div class="kv"><span class="k">effective cpu count</span><span class="v mono">{{ mockData(instance.id).container.effectiveCpuCount }}</span></div>
+                <div class="kv"><span class="k">cpu quota</span><span class="v mono">{{ mockData(instance.id).container.cpuQuota }}</span></div>
+                <div class="kv"><span class="k">cpu slice period</span><span class="v mono">{{ mockData(instance.id).container.cpuSlicePeriod }}</span></div>
+                <div class="kv"><span class="k">cpu shares</span><span class="v mono">{{ mockData(instance.id).container.cpuShares }}</span></div>
+                <div class="kv"><span class="k">memory limit</span><span class="v mono">{{ mockData(instance.id).container.memoryLimit }}</span></div>
+                <div class="kv"><span class="k">memory soft limit</span><span class="v mono">{{ mockData(instance.id).container.memorySoftLimit }}</span></div>
+                <div class="kv"><span class="k">swap memory limit</span><span class="v mono">{{ mockData(instance.id).container.swapMemoryLimit }}</span></div>
+                <div class="kv"><span class="k">host total memory</span><span class="v mono">{{ mockData(instance.id).container.hostTotalMemory }}</span></div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- Legend -->
-      <div class="timeline-legend mt-4">
-        <div class="legend-item">
-          <span class="legend-bar instance-bg pending"></span>
-          <span>Pending Instance</span>
-        </div>
-        <div class="legend-item">
-          <span class="legend-bar instance-bg active"></span>
-          <span>Active Instance</span>
-        </div>
-        <div class="legend-item">
-          <span class="legend-bar instance-bg finished"></span>
-          <span>Finished Instance</span>
-        </div>
-        <div class="legend-item">
-          <span class="legend-bar instance-bg expired"></span>
-          <span>Expired Instance</span>
-        </div>
-        <div class="legend-item">
-          <span class="legend-bar session active"></span>
-          <span>Active Session</span>
-        </div>
-        <div class="legend-item">
-          <span class="legend-bar session finished"></span>
-          <span>Finished Session</span>
-        </div>
-        <div class="legend-item">
-          <span class="legend-bar gap"></span>
-          <span>Gap (No Recording)</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Instance Tooltip (teleported to body) -->
-    <Teleport to="body">
-      <div
-        v-if="tooltipType === 'instance' && hoveredInstance"
-        class="timeline-tooltip-container"
-        :style="{ left: tooltipPosition.x + 'px', top: tooltipPosition.y + 'px' }"
-        @mouseenter="cancelHideTooltip"
-        @mouseleave="hideTooltip"
-      >
-        <div class="timeline-tooltip-header">
-          <span class="timeline-tooltip-instance-name">{{ hoveredInstance.instanceName }}</span>
-          <Badge
-            :value="hoveredInstance.status"
-            size="xxs"
-            :variant="
-              hoveredInstance.status === 'PENDING'
-                ? 'blue'
-                : hoveredInstance.status === 'ACTIVE'
-                  ? 'orange'
-                  : hoveredInstance.status === 'EXPIRED'
-                    ? 'grey'
-                    : 'green'
-            "
-          />
-        </div>
-        <div class="timeline-tooltip-body">
-          <div class="timeline-tooltip-row">
-            <span class="timeline-tooltip-label">Started</span>
-            <span class="timeline-tooltip-value">
-              {{ FormattingService.formatRelativeTime(hoveredInstance.createdAt) }}
-              <span class="timeline-tooltip-utc">{{
-                FormattingService.formatTimestampUTC(hoveredInstance.createdAt)
-              }}</span>
-            </span>
+      <!-- Session tooltip (teleported to body) -->
+      <Teleport to="body">
+        <div
+          v-if="hoveredSession"
+          class="timeline-tooltip-container"
+          :style="{ left: tooltipPosition.x + 'px', top: tooltipPosition.y + 'px' }"
+          @mouseenter="cancelHideTooltip"
+          @mouseleave="hideTooltip"
+        >
+          <div class="timeline-tooltip-header">
+            <span class="timeline-tooltip-hostname">Session</span>
+            <Badge
+              :value="hoveredSession.session.isActive ? 'Active' : 'Finished'"
+              size="xxs"
+              :variant="hoveredSession.session.isActive ? 'orange' : 'green'"
+            />
           </div>
-          <div class="timeline-tooltip-row">
-            <span class="timeline-tooltip-label">Finished</span>
-            <span class="timeline-tooltip-value">
-              <template v-if="hoveredInstance.finishedAt">
-                {{ FormattingService.formatRelativeTime(hoveredInstance.finishedAt) }}
+          <div class="timeline-tooltip-body">
+            <div class="timeline-tooltip-row">
+              <span class="timeline-tooltip-label">Started</span>
+              <span class="timeline-tooltip-value">
+                {{ FormattingService.formatRelativeTime(hoveredSession.session.createdAt) }}
                 <span class="timeline-tooltip-utc">{{
-                  FormattingService.formatTimestampUTC(hoveredInstance.finishedAt)
+                  FormattingService.formatTimestampUTC(hoveredSession.session.createdAt)
                 }}</span>
-              </template>
-              <template v-else>Running</template>
-            </span>
-          </div>
-          <div class="timeline-tooltip-row">
-            <span class="timeline-tooltip-label">Duration</span>
-            <span class="timeline-tooltip-value">
-              {{ FormattingService.formatDurationInMillis2Units(hoveredInstance.duration) }}
-            </span>
-          </div>
-          <div class="timeline-tooltip-row">
-            <span class="timeline-tooltip-label">Sessions</span>
-            <span class="timeline-tooltip-value">
-              {{ hoveredInstance.sessionCount }}
-              <span v-if="instanceSessions.has(hoveredInstance.id)" class="timeline-tooltip-utc">
-                ({{ getSessionBreakdown(hoveredInstance.id) }})
               </span>
-            </span>
+            </div>
+            <div class="timeline-tooltip-row">
+              <span class="timeline-tooltip-label">Finished</span>
+              <span class="timeline-tooltip-value">
+                <template v-if="hoveredSession.session.finishedAt">
+                  {{ FormattingService.formatRelativeTime(hoveredSession.session.finishedAt) }}
+                  <span class="timeline-tooltip-utc">{{
+                    FormattingService.formatTimestampUTC(hoveredSession.session.finishedAt)
+                  }}</span>
+                </template>
+                <template v-else>Running</template>
+              </span>
+            </div>
+            <div class="timeline-tooltip-row">
+              <span class="timeline-tooltip-label">Duration</span>
+              <span class="timeline-tooltip-value">
+                {{ FormattingService.formatDurationInMillis2Units(hoveredSession.session.duration) }}
+              </span>
+            </div>
           </div>
         </div>
-        <router-link :to="generateInstanceUrl(hoveredInstance.id)" class="timeline-tooltip-link">
-          View Details &rarr;
-        </router-link>
-      </div>
-    </Teleport>
-
-    <!-- Session Tooltip (teleported to body) -->
-    <Teleport to="body">
-      <div
-        v-if="tooltipType === 'session' && hoveredSession"
-        class="timeline-tooltip-container"
-        :style="{ left: tooltipPosition.x + 'px', top: tooltipPosition.y + 'px' }"
-        @mouseenter="cancelHideTooltip"
-        @mouseleave="hideTooltip"
-      >
-        <div class="timeline-tooltip-header">
-          <span class="timeline-tooltip-hostname">Session</span>
-          <Badge
-            :value="hoveredSession.session.isActive ? 'Active' : 'Finished'"
-            size="xxs"
-            :variant="hoveredSession.session.isActive ? 'orange' : 'green'"
-          />
-        </div>
-        <div class="timeline-tooltip-body">
-          <div class="timeline-tooltip-row">
-            <span class="timeline-tooltip-label">Started</span>
-            <span class="timeline-tooltip-value">
-              {{ FormattingService.formatRelativeTime(hoveredSession.session.createdAt) }}
-              <span class="timeline-tooltip-utc">{{
-                FormattingService.formatTimestampUTC(hoveredSession.session.createdAt)
-              }}</span>
-            </span>
-          </div>
-          <div class="timeline-tooltip-row">
-            <span class="timeline-tooltip-label">Finished</span>
-            <span class="timeline-tooltip-value">
-              <template v-if="hoveredSession.session.finishedAt">
-                {{ FormattingService.formatRelativeTime(hoveredSession.session.finishedAt) }}
-                <span class="timeline-tooltip-utc">{{
-                  FormattingService.formatTimestampUTC(hoveredSession.session.finishedAt)
-                }}</span>
-              </template>
-              <template v-else>Running</template>
-            </span>
-          </div>
-          <div class="timeline-tooltip-row">
-            <span class="timeline-tooltip-label">Duration</span>
-            <span class="timeline-tooltip-value">
-              {{ FormattingService.formatDurationInMillis2Units(hoveredSession.session.duration) }}
-            </span>
-          </div>
-        </div>
-      </div>
-    </Teleport>
+      </Teleport>
     </MainCard>
   </div>
 </template>
@@ -267,10 +236,12 @@ import MainCardHeader from '@/components/MainCardHeader.vue';
 import Badge from '@/components/Badge.vue';
 import EmptyState from '@/components/EmptyState.vue';
 import ProjectInstanceClient from '@/services/api/ProjectInstanceClient';
-import ProjectInstance from '@/services/api/model/ProjectInstance';
+import ProjectInstance, { type ProjectInstanceStatus } from '@/services/api/model/ProjectInstance';
+import ProjectInstanceDetail from '@/services/api/model/ProjectInstanceDetail';
 import ProjectInstanceSession from '@/services/api/model/ProjectInstanceSession';
 import FormattingService from '@/services/FormattingService';
 import { useNavigation } from '@/composables/useNavigation';
+import { getInstanceMockData } from './instanceMockData';
 import '@/styles/shared-components.css';
 
 const { workspaceId, projectId, generateInstanceUrl } = useNavigation();
@@ -287,15 +258,16 @@ const loading = ref(true);
 const selectedRange = ref('24h');
 const instances = ref<ProjectInstance[]>([]);
 const instanceSessions = ref<Map<string, ProjectInstanceSession[]>>(new Map());
+const expandedIds = ref<Set<string>>(new Set());
+const instanceDetails = ref<Map<string, ProjectInstanceDetail>>(new Map());
+const instanceClient = new ProjectInstanceClient(workspaceId.value!, projectId.value!);
 
 const totalSessions = computed(() =>
   instances.value.reduce((sum, i) => sum + (i.sessionCount ?? 0), 0)
 );
 
-const hoveredInstance = ref<ProjectInstance | null>(null);
 const hoveredSession = ref<{ session: ProjectInstanceSession; instanceId: string } | null>(null);
 const tooltipPosition = ref<{ x: number; y: number }>({ x: 0, y: 0 });
-const tooltipType = ref<'instance' | 'session' | null>(null);
 let tooltipHideTimeout: number | null = null;
 
 const timelineTicks = computed(() => {
@@ -315,25 +287,10 @@ const timelineTicks = computed(() => {
   }
 });
 
-function getBarStyle(instance: ProjectInstance): Record<string, string> {
-  const now = Date.now();
-  const rangeMs = getRangeMs();
-
-  const startPercent = Math.max(0, Math.min(((now - instance.createdAt) / rangeMs) * 100, 100));
-
-  const effectiveFinishedAt = instance.finishedAt ?? instance.expiredAt;
-  const endPercent =
-    instance.status === 'ACTIVE' || instance.status === 'PENDING' || !effectiveFinishedAt
-      ? 0
-      : Math.max(0, Math.min(((now - effectiveFinishedAt) / rangeMs) * 100, 100));
-
-  const left = endPercent;
-  const width = Math.max(startPercent - endPercent, 0.5);
-
-  return {
-    left: `${left}%`,
-    width: `${Math.min(width, 100 - left)}%`
-  };
+function axisTickLeft(idx: number): string {
+  const count = timelineTicks.value.length;
+  if (count <= 1) return '0%';
+  return ((idx / (count - 1)) * 100).toFixed(2) + '%';
 }
 
 function getSessionBarStyle(session: ProjectInstanceSession): Record<string, string> {
@@ -377,22 +334,41 @@ function getSessionsForInstance(instanceId: string): ProjectInstanceSession[] {
   return instanceSessions.value.get(instanceId) ?? [];
 }
 
-function getSessionBreakdown(instanceId: string): string {
-  const sessions = getSessionsForInstance(instanceId);
-  const active = sessions.filter(s => s.isActive).length;
-  const finished = sessions.filter(s => !s.isActive).length;
-  const parts: string[] = [];
-  if (finished > 0) parts.push(`${finished} finished`);
-  if (active > 0) parts.push(`${active} active`);
-  return parts.join(', ');
+function statusKey(status: ProjectInstanceStatus): string {
+  return status.toLowerCase();
 }
 
-function showInstanceTooltip(event: MouseEvent, instance: ProjectInstance) {
-  cancelHideTooltip();
-  hoveredInstance.value = instance;
-  hoveredSession.value = null;
-  tooltipType.value = 'instance';
-  updateTooltipPosition(event);
+function sessionBarClass(session: ProjectInstanceSession, idx: number): string[] {
+  const kind = session.isActive ? 'active' : 'finished';
+  const shade = idx % 2 === 0 ? 'strong' : 'light';
+  const classes = [`${kind}-${shade}`];
+  if (idx === 0) classes.push('first');
+  return classes;
+}
+
+function mockData(instanceId: string) {
+  return getInstanceMockData(instanceId);
+}
+
+function instanceEnd(instance: ProjectInstance): number | undefined {
+  return instance.finishedAt ?? instance.expiredAt;
+}
+
+function toggleExpand(instanceId: string): void {
+  const next = new Set(expandedIds.value);
+  if (next.has(instanceId)) {
+    next.delete(instanceId);
+  } else {
+    next.add(instanceId);
+    if (!instanceDetails.value.has(instanceId)) {
+      instanceClient.getDetail(instanceId).then(detail => {
+        const updated = new Map(instanceDetails.value);
+        updated.set(instanceId, detail);
+        instanceDetails.value = updated;
+      });
+    }
+  }
+  expandedIds.value = next;
 }
 
 function showSessionTooltip(
@@ -402,8 +378,6 @@ function showSessionTooltip(
 ) {
   cancelHideTooltip();
   hoveredSession.value = { session, instanceId };
-  hoveredInstance.value = null;
-  tooltipType.value = 'session';
   updateTooltipPosition(event);
 }
 
@@ -413,8 +387,6 @@ function updateTooltipPosition(event: MouseEvent) {
 
 function hideTooltip() {
   tooltipHideTimeout = window.setTimeout(() => {
-    tooltipType.value = null;
-    hoveredInstance.value = null;
     hoveredSession.value = null;
   }, 150);
 }
@@ -427,8 +399,7 @@ function cancelHideTooltip() {
 }
 
 onMounted(async () => {
-  const client = new ProjectInstanceClient(workspaceId.value!, projectId.value!);
-  instances.value = await client.list(true);
+  instances.value = await instanceClient.list(true);
   instanceSessions.value = new Map(
     instances.value.map(instance => [instance.id, instance.sessions ?? []])
   );
@@ -437,239 +408,316 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.timeline-scale {
-  display: flex;
-  justify-content: space-between;
+/* ======================================================================
+   Swim card (outer container holding all instance rows)
+   ====================================================================== */
+.swim-card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--color-bg-card);
+}
+
+.swim-row-group {
+  border-bottom: 1px solid var(--color-border);
+}
+.swim-row-group:last-child {
+  border-bottom: none;
+}
+
+/* ======================================================================
+   Two-column row: left rail + swim lanes
+   ====================================================================== */
+.swim-row {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+}
+.swim-row:hover {
+  background-color: var(--color-bg-hover);
+}
+.swim-row-group.expanded .swim-row {
+  background-color: var(--color-bg-hover);
+}
+
+/* ======================================================================
+   Left rail (instance metadata)
+   ====================================================================== */
+.rail {
+  position: relative;
+  padding: 16px 36px 16px 20px;
+  border-right: 1px solid var(--color-border);
+  border-left: 3px solid transparent;
+  min-width: 0;
+  transition: background-color var(--transition-fast);
+}
+
+.rail.pending {
+  background-color: rgba(59, 130, 246, 0.06);
+  border-left-color: var(--color-blue-500);
+}
+.rail.active {
+  background-color: rgba(245, 158, 11, 0.06);
+  border-left-color: var(--color-amber);
+}
+.rail.finished {
+  background-color: rgba(16, 185, 129, 0.04);
+  border-left-color: var(--color-success);
+}
+.rail.expired {
+  background-color: rgba(156, 163, 175, 0.04);
+  border-left-color: var(--color-text-light);
+}
+
+.swim-row:hover .rail.pending { background-color: rgba(59, 130, 246, 0.12); }
+.swim-row:hover .rail.active { background-color: rgba(245, 158, 11, 0.12); }
+.swim-row:hover .rail.finished { background-color: rgba(16, 185, 129, 0.1); }
+.swim-row:hover .rail.expired { background-color: rgba(156, 163, 175, 0.1); }
+
+.rail-chevron {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  font-size: 0.8rem;
   color: var(--color-text-muted);
-  font-size: 0.75rem;
-  padding-bottom: 0.5rem;
-  border-bottom: 1px solid var(--color-slate-lighter);
+  transition: transform var(--transition-fast);
 }
 
-.timeline-container {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  position: relative;
-}
-
-.timeline-row {
-  display: flex;
-  flex-direction: column;
-  border-radius: 4px;
-  transition: background-color 0.15s ease;
-  position: relative;
-  z-index: 1;
-  padding: 0.35rem 0;
-}
-
-.timeline-row:hover {
-  background-color: rgba(94, 100, 255, 0.03);
-}
-
-.instance-label {
+.rail-name {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
-  margin-bottom: 0.25rem;
-}
-
-.instance-name-link {
-  font-size: 0.8rem;
-  color: var(--color-text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  gap: 6px;
+  max-width: 100%;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--color-dark);
   text-decoration: none;
-  cursor: pointer;
-  transition: color 0.15s ease;
+  line-height: 1.35;
+  margin-bottom: 8px;
+  transition: color var(--transition-fast);
 }
-
-.instance-name-link:hover {
-  color: var(--color-primary);
-  text-decoration: underline;
+.rail-name-text {
+  word-break: break-all;
+  min-width: 0;
 }
-
-.status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
+.rail-name-icon {
+  font-size: 0.72rem;
+  color: var(--color-text-light);
   flex-shrink: 0;
+  transition: color var(--transition-fast);
+}
+.rail-name:hover { color: var(--color-primary); }
+.rail-name:hover .rail-name-text { text-decoration: underline; }
+.rail-name:hover .rail-name-icon { color: var(--color-primary); }
+
+.rail-meta {
+  display: flex;
+  gap: 12px;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  margin-top: 2px;
 }
 
-.status-dot.pending {
-  background-color: var(--color-blue-500);
+/* ======================================================================
+   Swim lanes track area
+   ====================================================================== */
+.track-wrap {
+  padding: 12px 20px 14px;
+  min-width: 0;
 }
 
-.status-dot.active {
-  background-color: var(--color-amber);
-}
-
-.status-dot.finished {
-  background-color: var(--color-success);
-}
-
-.status-dot.expired {
-  background-color: var(--color-text-light);
-}
-
-.instance-bar-container {
-  width: 100%;
-  height: 32px;
-  background-color: var(--color-neutral-light);
-  border-radius: 4px;
+.time-axis {
   position: relative;
-  overflow: hidden;
+  height: 16px;
+  margin-bottom: 6px;
 }
-
-/* Instance background bar (faint) */
-.instance-bg-bar {
+.axis-tick {
   position: absolute;
-  height: 100%;
-  border-radius: 4px;
-  min-width: 8px;
-  z-index: 1;
+  transform: translateX(-50%);
+  top: 0;
+  font-size: 0.65rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
 }
 
-.instance-bg-bar.pending {
-  background: rgba(59, 130, 246, 0.15);
-  border: 1px solid rgba(59, 130, 246, 0.3);
-  animation: instance-pulse-pending 3s ease-in-out infinite;
+.lane {
+  position: relative;
+  margin-top: 6px;
 }
 
-.instance-bg-bar.active {
-  background: rgba(245, 158, 11, 0.15);
-  border: 1px solid rgba(245, 158, 11, 0.3);
-  animation: instance-pulse-active 3s ease-in-out infinite;
+.lane-bg {
+  position: absolute;
+  inset: 0;
+  background: var(--color-neutral-light);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
 }
 
-.instance-bg-bar.finished {
-  background: rgba(16, 185, 129, 0.12);
-  border: 1px solid rgba(16, 185, 129, 0.25);
+/* Sessions lane: solid bars with alternating shades per index */
+.lane-sessions {
+  height: 32px;
 }
 
-.instance-bg-bar.expired {
-  background: rgba(156, 163, 175, 0.12);
-  border: 1px solid rgba(156, 163, 175, 0.25);
-}
-
-/* Session bars (solid, overlaid on instance bg) */
 .session-bar {
   position: absolute;
-  height: 60%;
-  top: 20%;
-  border-radius: 3px;
-  min-width: 4px;
-  z-index: 2;
+  top: 4px;
+  bottom: 4px;
+  border-left: 2px solid var(--color-bg-card);
+  box-sizing: border-box;
   cursor: pointer;
-  transition: opacity 0.15s ease;
+  z-index: 1;
+  transition: filter var(--transition-fast);
 }
-
+.session-bar.first {
+  border-left: none;
+}
 .session-bar:hover {
-  opacity: 0.85;
+  filter: brightness(1.08);
+  z-index: 2;
 }
-
-.session-bar.active {
-  background: linear-gradient(135deg, var(--color-amber), var(--color-amber-highlight));
+.session-bar.finished-strong {
+  background: var(--color-success-hover);
+}
+.session-bar.finished-light {
+  background: var(--color-success);
+}
+.session-bar.active-strong {
+  background: var(--color-amber-highlight);
+  animation: session-pulse-active 2s ease-in-out infinite;
+}
+.session-bar.active-light {
+  background: var(--color-amber);
   animation: session-pulse-active 2s ease-in-out infinite;
 }
 
-.session-bar.finished {
-  background: linear-gradient(135deg, var(--color-success), var(--color-success-hover));
-}
-
 @keyframes session-pulse-active {
-  0%,
-  100% {
-    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4);
-  }
-  50% {
-    box-shadow: 0 0 6px 2px rgba(245, 158, 11, 0.25);
-  }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4); }
+  50% { box-shadow: 0 0 6px 2px rgba(245, 158, 11, 0.25); }
 }
 
-@keyframes instance-pulse-pending {
-  0%,
-  100% {
-    border-color: rgba(59, 130, 246, 0.3);
-  }
-  50% {
-    border-color: rgba(59, 130, 246, 0.55);
-  }
-}
-
-@keyframes instance-pulse-active {
-  0%,
-  100% {
-    border-color: rgba(245, 158, 11, 0.3);
-  }
-  50% {
-    border-color: rgba(245, 158, 11, 0.55);
-  }
-}
-
-/* Legend */
+/* Shared timeline legend (inline with toolbar) */
 .timeline-legend {
-  display: flex;
-  gap: 1.5rem;
-  padding-left: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 0.7rem;
+  color: var(--color-text-muted);
   flex-wrap: wrap;
 }
+.legend-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.legend-sw {
+  display: inline-block;
+  width: 14px;
+  height: 8px;
+  border-radius: 2px;
+}
+.legend-sw.finished-strong {
+  background: var(--color-success-hover);
+}
+.legend-sw.finished-light {
+  background: var(--color-success);
+}
+.legend-sw.active-strong {
+  background: var(--color-amber-highlight);
+}
+.legend-sw.active-light {
+  background: var(--color-amber);
+}
 
-.legend-item {
+/* ======================================================================
+   Expanded detail panel (three cards)
+   ====================================================================== */
+.detail-panel {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  padding: 14px 20px 18px;
+  background: var(--color-bg-hover);
+  border-top: 1px dashed var(--color-border);
+}
+
+@media (max-width: 900px) {
+  .detail-panel {
+    grid-template-columns: 1fr;
+  }
+}
+
+.detail-card {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.detail-card-head {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  font-size: 0.8rem;
+  justify-content: space-between;
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-light);
+}
+.detail-card-title {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--color-dark);
+}
+.detail-card-source {
+  font-size: 0.65rem;
+  color: var(--color-text-light);
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+}
+
+.detail-card-body {
+  padding: 6px 12px 10px;
+}
+.kv {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 6px 0;
+  border-top: 1px dashed var(--color-border);
+  font-size: 0.72rem;
+  gap: 8px;
+}
+.kv:first-child {
+  border-top: none;
+}
+.kv .k {
   color: var(--color-text-muted);
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
+.kv .v {
+  color: var(--color-dark);
+  font-weight: 600;
+  text-align: right;
+  word-break: break-word;
+}
+.v.mono {
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+}
+.v.running {
+  color: var(--color-text-muted);
+  font-style: italic;
+  font-weight: 500;
 }
 
-.legend-bar {
-  width: 20px;
-  height: 12px;
-  border-radius: 3px;
-}
-
-.legend-bar.instance-bg.pending {
-  background: rgba(59, 130, 246, 0.15);
-  border: 1px solid rgba(59, 130, 246, 0.4);
-}
-
-.legend-bar.instance-bg.active {
-  background: rgba(245, 158, 11, 0.15);
-  border: 1px solid rgba(245, 158, 11, 0.4);
-}
-
-.legend-bar.instance-bg.finished {
-  background: rgba(16, 185, 129, 0.12);
-  border: 1px solid rgba(16, 185, 129, 0.35);
-}
-
-.legend-bar.instance-bg.expired {
-  background: rgba(156, 163, 175, 0.12);
-  border: 1px solid rgba(156, 163, 175, 0.35);
-}
-
-.legend-bar.session.active {
-  background: linear-gradient(135deg, var(--color-amber), var(--color-amber-highlight));
-}
-
-.legend-bar.session.finished {
-  background: linear-gradient(135deg, var(--color-success), var(--color-success-hover));
-}
-
-.legend-bar.gap {
-  background: var(--color-neutral-light);
-  border: 1px dashed var(--color-slate-light);
-}
-
+/* ======================================================================
+   Toolbar buttons & count chip
+   ====================================================================== */
 .btn-group .btn {
   font-size: 0.75rem;
   padding: 0.25rem 0.75rem;
 }
 
-/* Inline summary chip that replaces the old "Instances (N)" bar. Border-radius matches the
-   adjacent time-range button group (6px) so the two controls read as a consistent row. */
 .count-chip {
   display: inline-flex;
   align-items: center;
@@ -723,7 +771,7 @@ onMounted(async () => {
   gap: 0.5rem;
 }
 
-.timeline-tooltip-instance-name {
+.timeline-tooltip-hostname {
   font-weight: 600;
   font-size: 0.82rem;
   white-space: nowrap;
@@ -759,21 +807,5 @@ onMounted(async () => {
   color: var(--color-text-muted);
   font-size: 0.68rem;
   font-weight: 400;
-}
-
-.timeline-tooltip-link {
-  display: block;
-  padding: 0.5rem 0.75rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  color: var(--color-blue-500);
-  text-decoration: none;
-  font-size: 0.75rem;
-  font-weight: 500;
-  transition: background 0.15s ease;
-}
-
-.timeline-tooltip-link:hover {
-  background: rgba(255, 255, 255, 0.05);
-  color: var(--color-blue-link-hover);
 }
 </style>

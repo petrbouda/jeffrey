@@ -23,9 +23,12 @@ import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.server.api.v1.*;
+import pbouda.jeffrey.server.core.manager.RepositoryManager;
 import pbouda.jeffrey.server.persistence.repository.ServerPlatformRepositories;
+import pbouda.jeffrey.shared.common.model.ProjectInfo;
 import pbouda.jeffrey.shared.common.model.ProjectInstanceInfo;
 import pbouda.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
+import pbouda.jeffrey.shared.common.model.repository.InstanceStats;
 
 import java.time.Clock;
 import java.util.List;
@@ -37,10 +40,15 @@ public class InstanceGrpcService extends InstanceServiceGrpc.InstanceServiceImpl
     private static final Logger LOG = LoggerFactory.getLogger(InstanceGrpcService.class);
 
     private final ServerPlatformRepositories platformRepositories;
+    private final RepositoryManager.Factory repositoryManagerFactory;
     private final Clock clock;
 
-    public InstanceGrpcService(ServerPlatformRepositories platformRepositories, Clock clock) {
+    public InstanceGrpcService(
+            ServerPlatformRepositories platformRepositories,
+            RepositoryManager.Factory repositoryManagerFactory,
+            Clock clock) {
         this.platformRepositories = platformRepositories;
+        this.repositoryManagerFactory = repositoryManagerFactory;
         this.clock = clock;
     }
 
@@ -119,6 +127,44 @@ public class InstanceGrpcService extends InstanceServiceGrpc.InstanceServiceImpl
             LOG.error("Failed to list instance sessions: instanceId={}", request.getInstanceId(), e);
             responseObserver.onError(Status.INTERNAL.withDescription(e.getMessage()).asRuntimeException());
         }
+    }
+
+    @Override
+    public void getInstanceDetail(GetInstanceDetailRequest request, StreamObserver<GetInstanceDetailResponse> responseObserver) {
+        try {
+            String instanceId = request.getInstanceId();
+
+            ProjectInstanceInfo info = platformRepositories.findInstanceById(instanceId)
+                    .orElseThrow(() -> GrpcExceptions.notFound("Instance not found: " + instanceId));
+
+            List<ProjectInstanceSessionInfo> sessions = platformRepositories.findSessionsByInstanceId(instanceId);
+
+            ProjectInfo projectInfo = platformRepositories.newProjectRepository(info.projectId()).find()
+                    .orElseThrow(() -> GrpcExceptions.notFound("Project not found: " + info.projectId()));
+            RepositoryManager repoManager = repositoryManagerFactory.apply(projectInfo);
+            InstanceStats stats = repoManager.instanceStats(instanceId);
+
+            LOG.debug("Fetched instance detail via gRPC: instanceId={} sessions={} files={} totalSize={}",
+                    instanceId, sessions.size(), stats.fileCount(), stats.totalSizeBytes());
+
+            responseObserver.onNext(GetInstanceDetailResponse.newBuilder()
+                    .setInstance(toProto(info, sessions, clock))
+                    .setStats(toProtoStats(stats))
+                    .build());
+            responseObserver.onCompleted();
+        } catch (io.grpc.StatusRuntimeException e) {
+            responseObserver.onError(e);
+        } catch (Exception e) {
+            LOG.error("Failed to get instance detail: instanceId={}", request.getInstanceId(), e);
+            responseObserver.onError(Status.INTERNAL.withDescription(e.getMessage()).asRuntimeException());
+        }
+    }
+
+    private static pbouda.jeffrey.server.api.v1.InstanceStats toProtoStats(InstanceStats stats) {
+        return pbouda.jeffrey.server.api.v1.InstanceStats.newBuilder()
+                .setFileCount(stats.fileCount())
+                .setTotalSizeBytes(stats.totalSizeBytes())
+                .build();
     }
 
     private static InstanceInfo toProto(ProjectInstanceInfo info, List<ProjectInstanceSessionInfo> sessions, Clock clock) {

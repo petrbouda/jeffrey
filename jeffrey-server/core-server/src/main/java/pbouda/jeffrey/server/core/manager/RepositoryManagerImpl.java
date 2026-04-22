@@ -25,6 +25,7 @@ import pbouda.jeffrey.server.core.project.repository.RepositoryStorage;
 import pbouda.jeffrey.server.core.scheduler.SchedulerTrigger;
 import pbouda.jeffrey.server.core.workspace.WorkspaceEventConverter;
 import pbouda.jeffrey.server.core.workspace.WorkspaceEventPublisher;
+import pbouda.jeffrey.shared.common.model.repository.InstanceStats;
 import pbouda.jeffrey.shared.common.model.repository.RepositoryStatistics;
 import pbouda.jeffrey.shared.common.model.repository.RepositoryStatistics.FileTypeStats;
 import pbouda.jeffrey.shared.common.model.repository.RepositoryStatistics.StatsCategory;
@@ -158,6 +159,25 @@ public class RepositoryManagerImpl implements RepositoryManager {
 
     private long fileSize(RepositoryFile file) {
         return file.size() != null ? file.size() : 0L;
+    }
+
+    @Override
+    public InstanceStats instanceStats(String instanceId) {
+        List<RecordingSession> sessions = repositoryStorage.listSessionsByInstanceId(instanceId, true);
+        if (sessions.isEmpty()) {
+            return InstanceStats.EMPTY;
+        }
+
+        int fileCount = sessions.stream()
+                .mapToInt(s -> s.files().size())
+                .sum();
+
+        long totalSize = sessions.stream()
+                .flatMap(s -> s.files().stream())
+                .mapToLong(this::fileSize)
+                .sum();
+
+        return new InstanceStats(fileCount, totalSize);
     }
 
     @Override

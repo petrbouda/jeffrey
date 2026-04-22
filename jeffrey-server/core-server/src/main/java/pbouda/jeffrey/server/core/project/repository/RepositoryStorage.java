@@ -61,6 +61,16 @@ public interface RepositoryStorage {
     List<RecordingSession> listSessions(boolean withFiles);
 
     /**
+     * Lists recording sessions that belong to the given instance. Walks only
+     * the matching sessions' directories — does not scan the whole repository.
+     *
+     * @param instanceId the instance whose sessions should be returned
+     * @param withFiles  if true, includes associated files in the session metadata
+     * @return recording sessions for the instance, newest first
+     */
+    List<RecordingSession> listSessionsByInstanceId(String instanceId, boolean withFiles);
+
+    /**
      * Deletes specific repository files from the repository.
      *
      * @param sessionId         the unique identifier of the recording session

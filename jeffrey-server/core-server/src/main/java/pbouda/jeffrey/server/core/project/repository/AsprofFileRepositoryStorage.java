@@ -140,6 +140,24 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
                 .toList();
     }
 
+    @Override
+    public List<RecordingSession> listSessionsByInstanceId(String instanceId, boolean withFiles) {
+        List<ProjectInstanceSessionInfo> sessions = projectRepositoryRepository.findSessionsByInstanceId(instanceId).stream()
+                .sorted(Comparator.comparing(ProjectInstanceSessionInfo::originCreatedAt).reversed())
+                .toList();
+
+        // Only the repository-wide latest session may be ACTIVE/UNKNOWN; a per-instance "latest"
+        // is not necessarily the same. Cross-reference with the repository's latest session id.
+        Optional<String> latestSessionId = projectRepositoryRepository.findLatestSessionId();
+
+        return sessions.stream()
+                .map(session -> createRecordingSession(
+                        withFiles,
+                        session,
+                        latestSessionId.map(id -> id.equals(session.sessionId())).orElse(false)))
+                .toList();
+    }
+
     private RecordingSession createRecordingSession(
             boolean withFiles, ProjectInstanceSessionInfo sessionInfo, boolean isLatestSession) {
 

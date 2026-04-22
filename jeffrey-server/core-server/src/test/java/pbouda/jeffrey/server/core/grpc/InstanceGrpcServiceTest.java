@@ -28,8 +28,11 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import pbouda.jeffrey.server.api.v1.*;
+import pbouda.jeffrey.server.core.manager.RepositoryManager;
 import pbouda.jeffrey.server.persistence.repository.ProjectInstanceRepository;
+import pbouda.jeffrey.server.persistence.repository.ProjectRepository;
 import pbouda.jeffrey.server.persistence.repository.ServerPlatformRepositories;
+import pbouda.jeffrey.shared.common.model.ProjectInfo;
 import pbouda.jeffrey.shared.common.model.ProjectInstanceInfo;
 import pbouda.jeffrey.shared.common.model.ProjectInstanceInfo.ProjectInstanceStatus;
 import pbouda.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
@@ -103,7 +106,7 @@ class InstanceGrpcServiceTest {
             var platformRepositories = mock(ServerPlatformRepositories.class);
             when(platformRepositories.newProjectInstanceRepository(PROJECT_ID)).thenReturn(instanceRepo);
 
-            var stub = startServer(new InstanceGrpcService(platformRepositories, FIXED_CLOCK));
+            var stub = startServer(new InstanceGrpcService(platformRepositories, mock(RepositoryManager.Factory.class), FIXED_CLOCK));
 
             ListInstancesResponse response = stub.listInstances(
                     ListInstancesRequest.newBuilder()
@@ -136,7 +139,7 @@ class InstanceGrpcServiceTest {
             var platformRepositories = mock(ServerPlatformRepositories.class);
             when(platformRepositories.newProjectInstanceRepository(PROJECT_ID)).thenReturn(instanceRepo);
 
-            var stub = startServer(new InstanceGrpcService(platformRepositories, FIXED_CLOCK));
+            var stub = startServer(new InstanceGrpcService(platformRepositories, mock(RepositoryManager.Factory.class), FIXED_CLOCK));
 
             ListInstancesResponse response = stub.listInstances(
                     ListInstancesRequest.newBuilder()
@@ -159,7 +162,7 @@ class InstanceGrpcServiceTest {
             var platformRepositories = mock(ServerPlatformRepositories.class);
             when(platformRepositories.newProjectInstanceRepository(PROJECT_ID)).thenReturn(instanceRepo);
 
-            var stub = startServer(new InstanceGrpcService(platformRepositories, FIXED_CLOCK));
+            var stub = startServer(new InstanceGrpcService(platformRepositories, mock(RepositoryManager.Factory.class), FIXED_CLOCK));
 
             ListInstancesResponse response = stub.listInstances(
                     ListInstancesRequest.newBuilder()
@@ -200,7 +203,7 @@ class InstanceGrpcServiceTest {
                             FIXED_TIME, FIXED_TIME.plusSeconds(3600))
             ));
 
-            var stub = startServer(new InstanceGrpcService(platformRepositories, FIXED_CLOCK));
+            var stub = startServer(new InstanceGrpcService(platformRepositories, mock(RepositoryManager.Factory.class), FIXED_CLOCK));
 
             ListInstancesResponse response = stub.listInstances(
                     ListInstancesRequest.newBuilder()
@@ -241,7 +244,7 @@ class InstanceGrpcServiceTest {
                             3, null)
             ));
 
-            var stub = startServer(new InstanceGrpcService(platformRepositories, FIXED_CLOCK));
+            var stub = startServer(new InstanceGrpcService(platformRepositories, mock(RepositoryManager.Factory.class), FIXED_CLOCK));
 
             GetInstanceResponse response = stub.getInstance(
                     GetInstanceRequest.newBuilder()
@@ -268,7 +271,7 @@ class InstanceGrpcServiceTest {
             var platformRepositories = mock(ServerPlatformRepositories.class);
             when(platformRepositories.findInstanceById("non-existent")).thenReturn(Optional.empty());
 
-            var stub = startServer(new InstanceGrpcService(platformRepositories, FIXED_CLOCK));
+            var stub = startServer(new InstanceGrpcService(platformRepositories, mock(RepositoryManager.Factory.class), FIXED_CLOCK));
 
             StatusRuntimeException ex = assertThrows(StatusRuntimeException.class, () ->
                     stub.getInstance(
@@ -300,7 +303,7 @@ class InstanceGrpcServiceTest {
                             FIXED_TIME.plusSeconds(1200))
             ));
 
-            var stub = startServer(new InstanceGrpcService(platformRepositories, FIXED_CLOCK));
+            var stub = startServer(new InstanceGrpcService(platformRepositories, mock(RepositoryManager.Factory.class), FIXED_CLOCK));
 
             ListInstanceSessionsResponse response = stub.listInstanceSessions(
                     ListInstanceSessionsRequest.newBuilder()
@@ -328,7 +331,7 @@ class InstanceGrpcServiceTest {
             var platformRepositories = mock(ServerPlatformRepositories.class);
             when(platformRepositories.findSessionsByInstanceId(INSTANCE_ID)).thenReturn(List.of());
 
-            var stub = startServer(new InstanceGrpcService(platformRepositories, FIXED_CLOCK));
+            var stub = startServer(new InstanceGrpcService(platformRepositories, mock(RepositoryManager.Factory.class), FIXED_CLOCK));
 
             ListInstanceSessionsResponse response = stub.listInstanceSessions(
                     ListInstanceSessionsRequest.newBuilder()
@@ -336,6 +339,83 @@ class InstanceGrpcServiceTest {
                             .build());
 
             assertEquals(0, response.getSessionsCount());
+        }
+    }
+
+    // ========== GetInstanceDetail ==========
+
+    @Nested
+    class GetInstanceDetail {
+
+        @Test
+        void returnsInstanceWithStatsAndSessions() throws Exception {
+            var platformRepositories = mock(ServerPlatformRepositories.class);
+            when(platformRepositories.findInstanceById(INSTANCE_ID)).thenReturn(Optional.of(
+                    new ProjectInstanceInfo(
+                            INSTANCE_ID, PROJECT_ID, "host-1",
+                            ProjectInstanceStatus.FINISHED,
+                            FIXED_TIME, FIXED_TIME.plusSeconds(3600), null, null,
+                            2, null)
+            ));
+            when(platformRepositories.findSessionsByInstanceId(INSTANCE_ID)).thenReturn(List.of(
+                    new ProjectInstanceSessionInfo(
+                            "session-1", "repo-1", INSTANCE_ID, 0,
+                            Path.of("session-1"), null,
+                            null, FIXED_TIME, FIXED_TIME.plusSeconds(1800)),
+                    new ProjectInstanceSessionInfo(
+                            "session-2", "repo-1", INSTANCE_ID, 1,
+                            Path.of("session-2"), null,
+                            null, FIXED_TIME.plusSeconds(1800), FIXED_TIME.plusSeconds(3600))
+            ));
+
+            ProjectInfo projectInfo = new ProjectInfo(
+                    PROJECT_ID, null, "test-project", null, null, null,
+                    FIXED_TIME, null, null, null);
+            var projectRepo = mock(ProjectRepository.class);
+            when(projectRepo.find()).thenReturn(Optional.of(projectInfo));
+            when(platformRepositories.newProjectRepository(PROJECT_ID)).thenReturn(projectRepo);
+
+            var repoManager = mock(RepositoryManager.class);
+            when(repoManager.instanceStats(INSTANCE_ID))
+                    .thenReturn(new pbouda.jeffrey.shared.common.model.repository.InstanceStats(5, 12_345_678L));
+            RepositoryManager.Factory factory = p -> repoManager;
+
+            var stub = startServer(new InstanceGrpcService(platformRepositories, factory, FIXED_CLOCK));
+
+            GetInstanceDetailResponse response = stub.getInstanceDetail(
+                    GetInstanceDetailRequest.newBuilder()
+                            .setInstanceId(INSTANCE_ID)
+                            .build());
+
+            assertTrue(response.hasInstance());
+            InstanceInfo instance = response.getInstance();
+            assertEquals(INSTANCE_ID, instance.getId());
+            assertEquals("host-1", instance.getInstanceName());
+            assertEquals(InstanceStatus.INSTANCE_STATUS_FINISHED, instance.getStatus());
+            assertEquals(2, instance.getSessionsCount());
+            assertEquals("session-1", instance.getSessions(0).getId());
+            assertEquals("session-2", instance.getSessions(1).getId());
+
+            assertTrue(response.hasStats());
+            assertEquals(5, response.getStats().getFileCount());
+            assertEquals(12_345_678L, response.getStats().getTotalSizeBytes());
+        }
+
+        @Test
+        void instanceNotFound_returnsNotFound() throws Exception {
+            var platformRepositories = mock(ServerPlatformRepositories.class);
+            when(platformRepositories.findInstanceById("non-existent")).thenReturn(Optional.empty());
+
+            var stub = startServer(new InstanceGrpcService(
+                    platformRepositories, mock(RepositoryManager.Factory.class), FIXED_CLOCK));
+
+            StatusRuntimeException ex = assertThrows(StatusRuntimeException.class, () ->
+                    stub.getInstanceDetail(
+                            GetInstanceDetailRequest.newBuilder()
+                                    .setInstanceId("non-existent")
+                                    .build()));
+
+            assertEquals(Status.Code.NOT_FOUND, ex.getStatus().getCode());
         }
     }
 }

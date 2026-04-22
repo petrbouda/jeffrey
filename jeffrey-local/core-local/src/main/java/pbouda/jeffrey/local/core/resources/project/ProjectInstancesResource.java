@@ -26,6 +26,7 @@ import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.QueryParam;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import pbouda.jeffrey.local.core.resources.response.InstanceDetailResponse;
 import pbouda.jeffrey.local.core.resources.response.InstanceResponse;
 import pbouda.jeffrey.local.core.resources.response.InstanceSessionResponse;
 import pbouda.jeffrey.local.core.manager.project.RemoteInstancesManager;
@@ -65,6 +66,14 @@ public class ProjectInstancesResource {
         LOG.debug("Fetching project instance: instanceId={}", instanceId);
         return projectInstanceRepository.find(instanceId)
                 .map(i -> InstanceResponse.from(i, clock))
+                .orElseThrow(() -> new NotFoundException("Instance not found: " + instanceId));
+    }
+
+    @GET
+    @Path("/{instanceId}/detail")
+    public InstanceDetailResponse getDetail(@PathParam("instanceId") String instanceId) {
+        LOG.debug("Fetching instance detail: instanceId={}", instanceId);
+        return projectInstanceRepository.detail(instanceId)
                 .orElseThrow(() -> new NotFoundException("Instance not found: " + instanceId));
     }
 

@@ -21,8 +21,10 @@ package pbouda.jeffrey.local.core.client;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.server.api.v1.*;
+import pbouda.jeffrey.local.core.resources.response.InstanceDetailResponse;
 import pbouda.jeffrey.local.core.resources.response.InstanceResponse;
 import pbouda.jeffrey.local.core.resources.response.InstanceSessionResponse;
+import pbouda.jeffrey.local.core.resources.response.InstanceStatsResponse;
 
 import java.util.List;
 
@@ -60,6 +62,22 @@ public class RemoteInstancesClient {
         LOG.debug("Fetched instance via gRPC: instanceId={}", instanceId);
 
         return toInstanceResponse(response.getInstance());
+    }
+
+    public InstanceDetailResponse instanceDetail(String instanceId) {
+        GetInstanceDetailResponse response = stub.getInstanceDetail(
+                GetInstanceDetailRequest.newBuilder()
+                        .setInstanceId(instanceId)
+                        .build());
+
+        LOG.debug("Fetched instance detail via gRPC: instanceId={} files={} totalSize={}",
+                instanceId, response.getStats().getFileCount(), response.getStats().getTotalSizeBytes());
+
+        return new InstanceDetailResponse(
+                toInstanceResponse(response.getInstance()),
+                new InstanceStatsResponse(
+                        response.getStats().getFileCount(),
+                        response.getStats().getTotalSizeBytes()));
     }
 
     public List<InstanceSessionResponse> projectInstanceSessions(String instanceId) {

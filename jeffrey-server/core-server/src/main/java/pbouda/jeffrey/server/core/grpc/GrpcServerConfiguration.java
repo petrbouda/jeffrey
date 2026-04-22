@@ -71,7 +71,7 @@ public class GrpcServerConfiguration {
                 .intercept(new JfrGrpcServerInterceptor())
                 .addService(new WorkspaceGrpcService(workspacesManager, clock))
                 .addService(new ProjectGrpcService(workspacesManager, platformRepositories, projectManagerFactory))
-                .addService(new InstanceGrpcService(platformRepositories, clock))
+                .addService(new InstanceGrpcService(platformRepositories, repositoryManagerFactory, clock))
                 .addService(new ProfilerSettingsGrpcService(platformRepositories, projectManagerFactory))
                 .addService(new RepositoryGrpcService(platformRepositories, repositoryManagerFactory))
                 .addService(new RecordingDownloadGrpcService(platformRepositories, repositoryManagerFactory))

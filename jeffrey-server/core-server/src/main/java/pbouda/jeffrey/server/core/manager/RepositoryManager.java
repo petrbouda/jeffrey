@@ -23,6 +23,7 @@ import pbouda.jeffrey.shared.common.model.RepositoryInfo;
 import pbouda.jeffrey.shared.common.model.repository.RecordingSession;
 import pbouda.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEventCreator;
+import pbouda.jeffrey.shared.common.model.repository.InstanceStats;
 import pbouda.jeffrey.shared.common.model.repository.RepositoryStatistics;
 import pbouda.jeffrey.shared.common.model.repository.StreamedRecordingFile;
 
@@ -79,6 +80,15 @@ public interface RepositoryManager {
      * @return repository statistics containing all calculated metrics
      */
     RepositoryStatistics calculateRepositoryStatistics();
+
+    /**
+     * Aggregates storage statistics (file count and total size) for a single
+     * instance by walking only its session directories on disk.
+     *
+     * @param instanceId the instance to compute stats for
+     * @return file count and total size across all sessions of that instance
+     */
+    InstanceStats instanceStats(String instanceId);
 
     /**
      * Create a new repository for the project.

@@ -19,6 +19,12 @@ service InstanceService {
 
   // Lists all recording sessions within a specific instance.
   rpc ListInstanceSessions(ListInstanceSessionsRequest) returns (ListInstanceSessionsResponse);
+
+  // Returns the full detail payload for a single instance, including
+  // filesystem-backed storage statistics. Walks the instance's session
+  // directories on disk, so it is heavier than ListInstances — call it
+  // only when needed (e.g. when the user expands a row in the UI).
+  rpc GetInstanceDetail(GetInstanceDetailRequest) returns (GetInstanceDetailResponse);
 }
 
 message ListInstancesRequest {
@@ -46,6 +52,24 @@ message ListInstanceSessionsRequest {
 
 message ListInstanceSessionsResponse {
   repeated InstanceSessionInfo sessions = 1;
+}
+
+message GetInstanceDetailRequest {
+  string instance_id = 1;
+}
+
+message GetInstanceDetailResponse {
+  // Identity, lifecycle, and sessions. Sessions are always populated in this response.
+  InstanceInfo instance = 1;
+  // Filesystem-backed aggregates for the instance's recordings.
+  InstanceStats stats = 2;
+}
+
+// Aggregated storage statistics for a single instance, computed by walking
+// the instance's session directories on disk.
+message InstanceStats {
+  int32 file_count = 1;
+  int64 total_size_bytes = 2;
 }
 
 // A project instance — represents a single JVM process lifecycle.
