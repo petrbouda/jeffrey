@@ -57,14 +57,13 @@ public class RepositoryManagerImpl implements RepositoryManager {
 
     private static final Logger LOG = LoggerFactory.getLogger(RepositoryManagerImpl.class);
 
-    private static final InstanceEnvironmentParser ENVIRONMENT_PARSER = new InstanceEnvironmentParser();
-
     private final Clock clock;
     private final ProjectInfo projectInfo;
     private final SchedulerTrigger projectsSynchronizerTrigger;
     private final ProjectRepositoryRepository repository;
     private final RepositoryStorage repositoryStorage;
     private final WorkspaceEventPublisher workspaceEventPublisher;
+    private final InstanceEnvironmentParser environmentParser;
 
     public RepositoryManagerImpl(
             Clock clock,
@@ -72,7 +71,8 @@ public class RepositoryManagerImpl implements RepositoryManager {
             SchedulerTrigger projectsSynchronizerTrigger,
             ProjectRepositoryRepository repository,
             RepositoryStorage repositoryStorage,
-            WorkspaceEventPublisher workspaceEventPublisher) {
+            WorkspaceEventPublisher workspaceEventPublisher,
+            InstanceEnvironmentParser environmentParser) {
 
         this.clock = clock;
         this.projectInfo = projectInfo;
@@ -80,6 +80,7 @@ public class RepositoryManagerImpl implements RepositoryManager {
         this.repository = repository;
         this.repositoryStorage = repositoryStorage;
         this.workspaceEventPublisher = workspaceEventPublisher;
+        this.environmentParser = environmentParser;
     }
 
     @Override
@@ -187,7 +188,7 @@ public class RepositoryManagerImpl implements RepositoryManager {
     @Override
     public Optional<InstanceEnvironment> instanceEnvironment(String instanceId, boolean expectShutdown) {
         return repositoryStorage.latestFinishedRecordingForInstance(instanceId)
-                .map(path -> ENVIRONMENT_PARSER.parse(path, expectShutdown));
+                .map(path -> environmentParser.parse(path, expectShutdown));
     }
 
     @Override

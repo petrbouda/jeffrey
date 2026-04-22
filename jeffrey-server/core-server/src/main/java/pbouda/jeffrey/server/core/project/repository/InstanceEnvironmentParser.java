@@ -22,6 +22,9 @@ import jdk.jfr.consumer.RecordedEvent;
 import jdk.jfr.consumer.RecordingFile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import pbouda.jeffrey.server.core.ServerJeffreyDirs;
+import pbouda.jeffrey.shared.common.compression.Lz4Compressor;
+import pbouda.jeffrey.shared.common.filesystem.TempDirectory;
 import pbouda.jeffrey.shared.common.model.EventTypeName;
 import pbouda.jeffrey.shared.common.model.repository.InstanceEnvironment;
 import pbouda.jeffrey.shared.common.model.repository.InstanceEnvironment.*;
@@ -55,10 +58,21 @@ public class InstanceEnvironmentParser {
             EventTypeName.CONTAINER_CONFIGURATION,
             EventTypeName.VIRTUALIZATION_INFORMATION);
 
+    private final ServerJeffreyDirs serverJeffreyDirs;
+    private final Lz4Compressor lz4Compressor;
+
+    public InstanceEnvironmentParser(ServerJeffreyDirs serverJeffreyDirs) {
+        this.serverJeffreyDirs = serverJeffreyDirs;
+        this.lz4Compressor = new Lz4Compressor(serverJeffreyDirs);
+    }
+
     /**
-     * Parses the given JFR chunk and returns the extracted events.
+     * Parses the given JFR chunk and returns the extracted events. Accepts both
+     * raw {@code .jfr} and LZ4-compressed {@code .jfr.lz4} files — compressed
+     * chunks are decompressed into a scoped {@link TempDirectory} that is wiped
+     * on return.
      *
-     * @param jfrPath path to a JFR chunk on disk (uncompressed .jfr file)
+     * @param jfrPath path to a JFR chunk on disk
      * @param expectShutdown when {@code true}, the reader scans to EOF so the
      *                       {@code jdk.Shutdown} event is not missed (it sits at
      *                       the end of a FINISHED instance's final chunk). When
@@ -71,8 +85,21 @@ public class InstanceEnvironmentParser {
                         .collect(Collectors.toUnmodifiableSet())
                 : ONE_SHOT_TYPES;
 
+        if (Lz4Compressor.isLz4Compressed(jfrPath)) {
+            try (TempDirectory td = serverJeffreyDirs.newTempDir()) {
+                Path decompressed = lz4Compressor.decompressToDir(jfrPath, td.path());
+                return readOneShotEvents(decompressed, needed, expectShutdown);
+            } catch (RuntimeException e) {
+                LOG.warn("Failed to decompress JFR chunk for env extraction: path={}", jfrPath, e);
+                return empty();
+            }
+        }
+        return readOneShotEvents(jfrPath, needed, expectShutdown);
+    }
+
+    private static InstanceEnvironment readOneShotEvents(Path path, Set<String> needed, boolean expectShutdown) {
         Map<String, RecordedEvent> latest = new HashMap<>();
-        try (RecordingFile rf = new RecordingFile(jfrPath)) {
+        try (RecordingFile rf = new RecordingFile(path)) {
             while (rf.hasMoreEvents()) {
                 RecordedEvent event = rf.readEvent();
                 String typeName = event.getEventType().getName();
@@ -85,7 +112,7 @@ public class InstanceEnvironmentParser {
                 }
             }
         } catch (IOException e) {
-            LOG.warn("Failed to parse JFR chunk: path={}", jfrPath, e);
+            LOG.warn("Failed to parse JFR chunk: path={}", path, e);
             return empty();
         }
 

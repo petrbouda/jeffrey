@@ -43,6 +43,7 @@ import pbouda.jeffrey.server.core.manager.workspace.WorkspacesManager;
 import pbouda.jeffrey.server.core.project.pipeline.AddProjectJobsStage;
 import pbouda.jeffrey.server.core.project.pipeline.ProjectPipelineCustomizer;
 import pbouda.jeffrey.server.core.project.repository.AsprofFileRepositoryStorage;
+import pbouda.jeffrey.server.core.project.repository.InstanceEnvironmentParser;
 import pbouda.jeffrey.server.core.project.repository.RepositoryStorage;
 import pbouda.jeffrey.server.core.project.repository.file.AsprofFileInfoProcessor;
 import pbouda.jeffrey.server.core.project.template.ProjectTemplatesLoader;
@@ -145,14 +146,21 @@ public class ServerAppConfiguration {
             ObjectFactory<SchedulerTrigger> projectsSynchronizerTrigger,
             RepositoryStorage.Factory repositoryStorageFactory,
             ServerPlatformRepositories platformRepositories,
-            WorkspaceEventPublisher workspaceEventPublisher) {
+            WorkspaceEventPublisher workspaceEventPublisher,
+            InstanceEnvironmentParser instanceEnvironmentParser) {
         return projectInfo -> new ServerProjectManager(
                 applicationClock,
                 projectInfo,
                 projectsSynchronizerTrigger,
                 platformRepositories,
                 repositoryStorageFactory.apply(projectInfo),
-                workspaceEventPublisher);
+                workspaceEventPublisher,
+                instanceEnvironmentParser);
+    }
+
+    @Bean
+    public InstanceEnvironmentParser instanceEnvironmentParser(ServerJeffreyDirs jeffreyDirs) {
+        return new InstanceEnvironmentParser(jeffreyDirs);
     }
 
     @Bean
@@ -162,14 +170,16 @@ public class ServerAppConfiguration {
             ObjectFactory<SchedulerTrigger> projectsSynchronizerTrigger,
             RepositoryStorage.Factory repositoryStorageFactory,
             ServerPlatformRepositories platformRepositories,
-            WorkspaceEventPublisher workspaceEventPublisher) {
+            WorkspaceEventPublisher workspaceEventPublisher,
+            InstanceEnvironmentParser instanceEnvironmentParser) {
         return projectInfo -> new RepositoryManagerImpl(
                 applicationClock,
                 projectInfo,
                 projectsSynchronizerTrigger.getObject(),
                 platformRepositories.newProjectRepositoryRepository(projectInfo.id()),
                 repositoryStorageFactory.apply(projectInfo),
-                workspaceEventPublisher);
+                workspaceEventPublisher,
+                instanceEnvironmentParser);
     }
 
     @Bean

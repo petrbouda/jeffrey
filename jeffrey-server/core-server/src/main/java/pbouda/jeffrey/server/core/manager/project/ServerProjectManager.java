@@ -25,6 +25,7 @@ import pbouda.jeffrey.server.core.manager.LiveProfilerSettingsManager;
 import pbouda.jeffrey.server.core.manager.ProfilerSettingsManager;
 import pbouda.jeffrey.server.core.manager.RepositoryManager;
 import pbouda.jeffrey.server.core.manager.RepositoryManagerImpl;
+import pbouda.jeffrey.server.core.project.repository.InstanceEnvironmentParser;
 import pbouda.jeffrey.server.core.manager.SchedulerManager;
 import pbouda.jeffrey.server.core.manager.SchedulerManagerImpl;
 import pbouda.jeffrey.server.core.project.repository.RepositoryStorage;
@@ -60,6 +61,7 @@ public class ServerProjectManager implements ProjectManager {
     private final WorkspaceEventPublisher workspaceEventPublisher;
     private final Clock clock;
     private final ObjectFactory<SchedulerTrigger> projectsSynchronizerTrigger;
+    private final InstanceEnvironmentParser instanceEnvironmentParser;
 
     public ServerProjectManager(
             Clock clock,
@@ -67,7 +69,8 @@ public class ServerProjectManager implements ProjectManager {
             ObjectFactory<SchedulerTrigger> projectsSynchronizerTrigger,
             ServerPlatformRepositories platformRepositories,
             RepositoryStorage repositoryStorage,
-            WorkspaceEventPublisher workspaceEventPublisher) {
+            WorkspaceEventPublisher workspaceEventPublisher,
+            InstanceEnvironmentParser instanceEnvironmentParser) {
 
         this.clock = clock;
         String projectId = projectInfo.id();
@@ -78,6 +81,7 @@ public class ServerProjectManager implements ProjectManager {
         this.platformRepositories = platformRepositories;
         this.repositoryStorage = repositoryStorage;
         this.workspaceEventPublisher = workspaceEventPublisher;
+        this.instanceEnvironmentParser = instanceEnvironmentParser;
     }
 
     @Override
@@ -93,7 +97,8 @@ public class ServerProjectManager implements ProjectManager {
                 projectsSynchronizerTrigger.getObject(),
                 platformRepositories.newProjectRepositoryRepository(projectInfo.id()),
                 repositoryStorage,
-                workspaceEventPublisher);
+                workspaceEventPublisher,
+                instanceEnvironmentParser);
     }
 
     @Override

@@ -146,7 +146,6 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
                 .flatMap(session -> session.files().stream())
                 .filter(RepositoryFile::isRecordingFile)
                 .filter(file -> file.status() == RecordingStatus.FINISHED)
-                .filter(file -> file.fileType() == SupportedRecordingFile.JFR)
                 .max(Comparator.comparing(
                         RepositoryFile::createdAt,
                         Comparator.nullsLast(Comparator.naturalOrder())))
