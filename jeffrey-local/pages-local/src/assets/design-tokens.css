@@ -253,6 +253,7 @@
   /* Extended semantic palette (primary/info/secondary backgrounds) */
   --color-primary-bg: #e2e7fd;
   --color-primary-border: #9ba8ff;
+  --color-primary-border-light: #cfd6fb;
   --color-info-bg-alt: #ddf2f6;
   --color-info-border-alt: #7dd3e8;
   --color-info-text-dark: #00838f;

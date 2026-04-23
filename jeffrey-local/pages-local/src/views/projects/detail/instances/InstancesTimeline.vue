@@ -183,11 +183,12 @@
                   <i class="bi bi-layers inline-drawer-icon"></i>
                   <span class="inline-drawer-label">Session</span>
                   <span class="inline-drawer-id mono">{{ session.id }}</span>
-                  <Badge
-                    :value="session.isActive ? 'Active' : 'Finished'"
-                    :variant="session.isActive ? 'orange' : 'green'"
-                    size="xxs"
-                  />
+                  <span
+                    class="session-status-dot"
+                    :class="session.isActive ? 'session-status-dot--active' : 'session-status-dot--finished'"
+                    :title="session.isActive ? 'Active' : 'Finished'"
+                    :aria-label="session.isActive ? 'Active' : 'Finished'"
+                  ></span>
                   <div class="drawer-actions">
                     <router-link
                       v-if="session.isActive"
@@ -195,14 +196,14 @@
                       class="drawer-action drawer-action--primary"
                       @click.stop
                     >
-                      <i class="bi bi-broadcast"></i> Stream Live
+                      <i class="bi bi-broadcast"></i> Live Stream
                     </router-link>
                     <router-link
                       :to="generateReplayStreamUrl(session.id, instance.instanceName)"
-                      class="drawer-action drawer-action--ghost"
+                      class="drawer-action drawer-action--replay"
                       @click.stop
                     >
-                      <i class="bi bi-play-circle"></i> Replay
+                      <i class="bi bi-play-circle"></i> Replay Stream
                     </router-link>
                   </div>
                   <span class="inline-drawer-meta">
@@ -1227,6 +1228,22 @@ onMounted(async () => {
   color: var(--color-dark);
 }
 
+.session-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: inline-block;
+}
+.session-status-dot--active {
+  background: var(--color-amber);
+  /* Reuses the session-pulse-active keyframe defined above for the amber session bars. */
+  animation: session-pulse-active 2s ease-in-out infinite;
+}
+.session-status-dot--finished {
+  background: var(--color-success);
+}
+
 .drawer-actions {
   display: inline-flex;
   align-items: center;
@@ -1251,22 +1268,24 @@ onMounted(async () => {
   font-size: 0.78rem;
 }
 .drawer-action--primary {
-  background: var(--color-primary);
-  color: var(--color-white);
+  background: var(--color-primary-bg);
+  color: var(--color-primary-hover);
+  border-color: var(--color-primary-border-light);
 }
 .drawer-action--primary:hover {
-  background: var(--color-primary-hover);
+  background: var(--color-primary);
   color: var(--color-white);
-}
-.drawer-action--ghost {
-  background: var(--color-bg-card);
-  color: var(--color-text-muted);
-  border-color: var(--color-border);
-}
-.drawer-action--ghost:hover {
-  color: var(--color-primary);
   border-color: var(--color-primary);
-  background: var(--color-primary-light);
+}
+.drawer-action--replay {
+  background: var(--color-violet-lightest-bg);
+  color: var(--color-violet-deeper);
+  border-color: var(--color-violet-border);
+}
+.drawer-action--replay:hover {
+  background: var(--color-violet);
+  color: var(--color-white);
+  border-color: var(--color-violet);
 }
 
 .inline-drawer-body {
