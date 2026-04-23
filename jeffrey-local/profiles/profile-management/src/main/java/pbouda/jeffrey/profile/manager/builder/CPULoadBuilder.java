@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.profile.manager.builder;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.node.ObjectNode;
 import pbouda.jeffrey.provider.profile.builder.RecordBuilder;
 import pbouda.jeffrey.profile.manager.model.thread.ThreadCpuLoads;
 import pbouda.jeffrey.profile.manager.model.thread.ThreadWithCpuLoad;

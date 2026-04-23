@@ -39,7 +39,7 @@ public class SerializationOverheadGuard extends TraversableGuard {
                 Category.APPLICATION,
                 TargetFrameType.JAVA,
                 MatchingType.FULL_MATCH,
-                ResultType.SAMPLES);
+                ResultType.SELF_SAMPLES);
     }
 
     @Override

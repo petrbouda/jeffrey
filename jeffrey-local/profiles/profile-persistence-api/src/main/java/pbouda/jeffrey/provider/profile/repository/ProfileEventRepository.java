@@ -18,10 +18,11 @@
 
 package pbouda.jeffrey.provider.profile.repository;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.ObjectNode;
 import pbouda.jeffrey.shared.common.model.Type;
 import pbouda.jeffrey.provider.profile.model.AllocatingThread;
+import pbouda.jeffrey.provider.profile.model.EventDurationStats;
 
 import pbouda.jeffrey.provider.profile.model.JvmFlag;
 import pbouda.jeffrey.provider.profile.model.JvmFlagDetail;
@@ -36,6 +37,14 @@ public interface ProfileEventRepository {
     List<AllocatingThread> allocatingThreads(int limit);
 
     List<JsonNode> eventsByTypeWithFields(Type type);
+
+    /**
+     * Aggregate statistics over the {@code duration} column for events of the given type.
+     * Returns {@link EventDurationStats#EMPTY} when no events exist or none carry a duration.
+     * Consumed by guards that reason about time distributions (e.g. safepoint p99 outliers,
+     * virtual-thread pin total time).
+     */
+    EventDurationStats durationStatsByType(Type type);
 
     boolean containsEventType(Type type);
 

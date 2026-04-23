@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.generator.subsecond.db.api;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import pbouda.jeffrey.generator.subsecond.db.SingleResult;
 import pbouda.jeffrey.generator.subsecond.db.SubSecondCollectorUtils;
 import pbouda.jeffrey.generator.subsecond.db.SubSecondConfig;

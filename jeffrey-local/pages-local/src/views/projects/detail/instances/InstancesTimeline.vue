@@ -188,6 +188,23 @@
                     :variant="session.isActive ? 'orange' : 'green'"
                     size="xxs"
                   />
+                  <div class="drawer-actions">
+                    <router-link
+                      v-if="session.isActive"
+                      :to="generateLiveStreamUrl(session.id, instance.instanceName)"
+                      class="drawer-action drawer-action--primary"
+                      @click.stop
+                    >
+                      <i class="bi bi-broadcast"></i> Stream Live
+                    </router-link>
+                    <router-link
+                      :to="generateReplayStreamUrl(session.id, instance.instanceName)"
+                      class="drawer-action drawer-action--ghost"
+                      @click.stop
+                    >
+                      <i class="bi bi-play-circle"></i> Replay
+                    </router-link>
+                  </div>
                   <span class="inline-drawer-meta">
                     {{ FormattingService.formatTimestampUTC(session.createdAt) }}
                     →
@@ -339,7 +356,7 @@ import FormattingService from '@/services/FormattingService';
 import { useNavigation } from '@/composables/useNavigation';
 import '@/styles/shared-components.css';
 
-const { workspaceId, projectId, generateInstanceUrl } = useNavigation();
+const { workspaceId, projectId, generateInstanceUrl, generateLiveStreamUrl, generateReplayStreamUrl } = useNavigation();
 
 const timeRanges = [
   { label: '1H', value: '1h' },
@@ -1208,6 +1225,48 @@ onMounted(async () => {
 .inline-drawer-close:hover {
   background: var(--color-light);
   color: var(--color-dark);
+}
+
+.drawer-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 4px;
+}
+.drawer-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1;
+  text-decoration: none;
+  border: 1px solid transparent;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+.drawer-action .bi {
+  font-size: 0.78rem;
+}
+.drawer-action--primary {
+  background: var(--color-primary);
+  color: var(--color-white);
+}
+.drawer-action--primary:hover {
+  background: var(--color-primary-hover);
+  color: var(--color-white);
+}
+.drawer-action--ghost {
+  background: var(--color-bg-card);
+  color: var(--color-text-muted);
+  border-color: var(--color-border);
+}
+.drawer-action--ghost:hover {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+  background: var(--color-primary-light);
 }
 
 .inline-drawer-body {

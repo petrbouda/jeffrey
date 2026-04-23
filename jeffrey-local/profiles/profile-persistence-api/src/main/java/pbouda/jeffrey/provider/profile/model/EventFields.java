@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.provider.profile.model;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 
 public record EventFields(
         long eventId,

@@ -325,6 +325,7 @@ jeffrey/
 
 ## Git Commits
 - Never add `Co-Authored-By: Claude` or any AI co-author trailer to commit messages
+- Never automatically commit, create tags, or push. These actions happen **only** when the user explicitly asks for them ("commit", "tag", "push", "ship it", etc.). Finishing a feature, passing tests, or a clean build is **not** a trigger to commit — stop at the working-tree change and wait.
 
 ## Development Workflow
 1. Backend development in Java with Spring Boot (two deployment targets: local and server)

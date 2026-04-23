@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.server.core.project.template;
 
-import com.fasterxml.jackson.core.type.TypeReference;
+import tools.jackson.core.type.TypeReference;
 import pbouda.jeffrey.shared.common.filesystem.FileSystemUtils;
 
 import java.util.List;

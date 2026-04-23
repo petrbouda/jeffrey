@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.provider.profile.model;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import pbouda.jeffrey.shared.common.model.Type;
 
 import java.util.List;

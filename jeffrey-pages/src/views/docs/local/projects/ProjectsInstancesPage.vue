@@ -105,17 +105,17 @@ onMounted(() => {
         <p>Below the stats, instances are listed as cards with color-coded left borders indicating their status. Use the search box to filter by instance name, or the status buttons to show only instances in a specific state.</p>
 
         <h2 id="instances-timeline">Instances Timeline</h2>
-        <p>The timeline provides a visual representation of instance and session activity over time:</p>
-        <ul>
-          <li><strong>Time range selector</strong> - Choose from 1 hour to 30 days to adjust the visible window</li>
-          <li><strong>Instance bars</strong> - Faint background bars showing instance lifespan, with pulsing animation for active instances</li>
-          <li><strong>Session bars</strong> - Solid bars overlaid on instance bars showing individual recording session durations</li>
-          <li><strong>Tooltips</strong> - Hover over bars to see detailed timing information including start time, end time, and duration</li>
-        </ul>
+        <p>A swimlane view of instance and session activity over the selected time range (1h–30d). Each instance gets one row; session bars inside the lane are green when finished, amber when active.</p>
 
-        <DocsCallout type="tip">
-          <strong>Investigating gaps:</strong> The timeline is useful for identifying periods when an instance was not recording. Gaps between session bars may indicate application restarts or profiler configuration issues.
-        </DocsCallout>
+        <figure class="docs-figure">
+          <img src="/images/docs/instances/instance-timeline.png" alt="Instance Timeline with session bars per swimlane" />
+        </figure>
+
+        <p>Clicking a row opens an <strong>Instance drawer</strong> with instance metadata. Clicking a session bar opens a <strong>Session drawer</strong> with that session's JVM environment cards (JVM, OS, CPU, GC, Container, Shutdown, …) — only one drawer per row at a time.</p>
+
+        <figure class="docs-figure">
+          <img src="/images/docs/instances/instance-timeline-session-detail.png" alt="Session drawer with environment cards" />
+        </figure>
       </div>
 
       <DocsNavFooter />

@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.server.core.grpc;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.node.ObjectNode;
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
@@ -193,7 +193,7 @@ public class InstanceGrpcService extends InstanceServiceGrpc.InstanceServiceImpl
 
             LOG.debug("Fetched instance session detail via gRPC: instanceId={} sessionId={} envTypes={}",
                     instanceId, sessionId,
-                    environment.map(node -> iteratorToList(node.fieldNames())).orElse(List.of()));
+                    environment.map(node -> List.copyOf(node.propertyNames())).orElse(List.of()));
 
             GetInstanceSessionDetailResponse response = GetInstanceSessionDetailResponse.newBuilder()
                     .setSession(toSessionProto(sessionInfo, clock))
@@ -209,12 +209,6 @@ public class InstanceGrpcService extends InstanceServiceGrpc.InstanceServiceImpl
                     request.getInstanceId(), request.getSessionId(), e);
             responseObserver.onError(Status.INTERNAL.withDescription(e.getMessage()).asRuntimeException());
         }
-    }
-
-    private static List<String> iteratorToList(java.util.Iterator<String> it) {
-        List<String> out = new java.util.ArrayList<>();
-        while (it.hasNext()) out.add(it.next());
-        return out;
     }
 
     private static pbouda.jeffrey.server.api.v1.InstanceStats toProtoStats(InstanceStats stats) {

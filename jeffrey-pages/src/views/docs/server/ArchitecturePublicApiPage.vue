@@ -184,6 +184,20 @@ onMounted(() => {
                 </div>
                 <p>List sessions for an instance</p>
               </div>
+              <div class="endpoint-item">
+                <div class="endpoint-line">
+                  <span class="method rpc">RPC</span>
+                  <code>GetInstanceDetail</code>
+                </div>
+                <p>Instance identity, sessions, and filesystem-backed storage stats (file count, total size)</p>
+              </div>
+              <div class="endpoint-item">
+                <div class="endpoint-line">
+                  <span class="method rpc">RPC</span>
+                  <code>GetInstanceSessionDetail</code>
+                </div>
+                <p>Per-session detail: session metadata plus the JFR one-shot environment events from the session's latest finished chunk, serialised as a JSON map keyed by event type name (<code>jdk.JVMInformation</code>, <code>jdk.GCConfiguration</code>, <code>jdk.Shutdown</code>, …)</p>
+              </div>
             </div>
           </div>
 

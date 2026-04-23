@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.local.core.client;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.node.ObjectNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.local.core.resources.response.InstanceDetailResponse;

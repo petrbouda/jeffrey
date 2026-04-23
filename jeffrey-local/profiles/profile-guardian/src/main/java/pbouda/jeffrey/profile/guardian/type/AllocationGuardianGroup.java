@@ -22,23 +22,27 @@ import pbouda.jeffrey.profile.common.config.GraphParameters;
 import pbouda.jeffrey.shared.common.model.ProfileInfo;
 import pbouda.jeffrey.shared.common.model.Type;
 import pbouda.jeffrey.shared.common.settings.ActiveSettings;
+import pbouda.jeffrey.profile.guardian.GuardianProperties;
+import pbouda.jeffrey.profile.guardian.guard.GroupKind;
 import pbouda.jeffrey.profile.guardian.guard.Guard;
-import pbouda.jeffrey.profile.guardian.guard.alloc.*;
-import pbouda.jeffrey.profile.guardian.guard.app.LogbackOverheadGuard;
-import pbouda.jeffrey.profile.guardian.traverse.ResultType;
+import pbouda.jeffrey.profile.guardian.guard.GuardRegistry;
 import pbouda.jeffrey.provider.profile.repository.ProfileEventStreamRepository;
 
 import java.util.List;
 
 public class AllocationGuardianGroup extends AbstractGuardianGroup {
 
+    private final GuardianProperties props;
+
     public AllocationGuardianGroup(
             ProfileInfo profileInfo,
             ProfileEventStreamRepository eventRepository,
             ActiveSettings settings,
-            long minimumSamples) {
+            GuardianProperties props) {
 
-        super("Allocation", profileInfo, eventRepository, settings, "Minimum for Allocation Samples", minimumSamples);
+        super("Allocation", profileInfo, eventRepository, settings,
+                "Minimum for Allocation Samples", props.minSamplesAllocation());
+        this.props = props;
     }
 
     @Override
@@ -59,15 +63,6 @@ public class AllocationGuardianGroup extends AbstractGuardianGroup {
 
     @Override
     List<? extends Guard> candidateGuards(Guard.ProfileInfo profileInfo) {
-        return List.of(
-                new LogbackOverheadGuard("Logback Allocation Overhead", ResultType.WEIGHT, profileInfo, 0.1),
-                new HashMapCollisionAllocGuard(profileInfo, 0.05),
-                new RegexAllocGuard(profileInfo, 0.05),
-                new StringConcatAllocGuard(profileInfo, 0.05),
-                new ExceptionAllocGuard(profileInfo, 0.05),
-                new BoxingAllocGuard(profileInfo, 0.05),
-                new CollectionAllocGuard(profileInfo, 0.05),
-                new Log4jAllocGuard(profileInfo, 0.05)
-        );
+        return GuardRegistry.instantiateFor(GroupKind.ALLOCATION, profileInfo, props);
     }
 }

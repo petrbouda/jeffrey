@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.provider.profile.model;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.node.ObjectNode;
 
 public record EventTypeWithFields(String name, String label, ObjectNode content) {
 }

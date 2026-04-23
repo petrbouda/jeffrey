@@ -22,21 +22,27 @@ import pbouda.jeffrey.profile.common.config.GraphParameters;
 import pbouda.jeffrey.shared.common.model.ProfileInfo;
 import pbouda.jeffrey.shared.common.model.Type;
 import pbouda.jeffrey.shared.common.settings.ActiveSettings;
+import pbouda.jeffrey.profile.guardian.GuardianProperties;
+import pbouda.jeffrey.profile.guardian.guard.GroupKind;
 import pbouda.jeffrey.profile.guardian.guard.Guard;
-import pbouda.jeffrey.profile.guardian.guard.blocking.*;
+import pbouda.jeffrey.profile.guardian.guard.GuardRegistry;
 import pbouda.jeffrey.provider.profile.repository.ProfileEventStreamRepository;
 
 import java.util.List;
 
 public class BlockingGuardianGroup extends AbstractGuardianGroup {
 
+    private final GuardianProperties props;
+
     public BlockingGuardianGroup(
             ProfileInfo profileInfo,
             ProfileEventStreamRepository eventRepository,
             ActiveSettings settings,
-            long minimumSamples) {
+            GuardianProperties props) {
 
-        super("Blocking", profileInfo, eventRepository, settings, "Minimum for Blocking Samples", minimumSamples);
+        super("Blocking", profileInfo, eventRepository, settings,
+                "Minimum for Blocking Samples", props.minSamplesBlocking());
+        this.props = props;
     }
 
     @Override
@@ -57,13 +63,6 @@ public class BlockingGuardianGroup extends AbstractGuardianGroup {
 
     @Override
     List<? extends Guard> candidateGuards(Guard.ProfileInfo profileInfo) {
-        return List.of(
-                new DatabaseConnectionPoolBlockingGuard(profileInfo, 0.05),
-                new LockContentionBlockingGuard(profileInfo, 0.05),
-                new IOBlockingGuard(profileInfo, 0.05),
-                new HttpClientBlockingGuard(profileInfo, 0.05),
-                new LogbackBlockingGuard(profileInfo, 0.05),
-                new Log4jBlockingGuard(profileInfo, 0.05)
-        );
+        return GuardRegistry.instantiateFor(GroupKind.BLOCKING, profileInfo, props);
     }
 }

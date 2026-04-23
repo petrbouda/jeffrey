@@ -18,14 +18,15 @@
 
 package pbouda.jeffrey.provider.profile.repository;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.ObjectNode;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import pbouda.jeffrey.shared.common.Json;
 import pbouda.jeffrey.shared.common.model.EventTypeName;
 import pbouda.jeffrey.shared.common.model.ThreadInfo;
 import pbouda.jeffrey.shared.common.model.Type;
 import pbouda.jeffrey.provider.profile.model.AllocatingThread;
+import pbouda.jeffrey.provider.profile.model.EventDurationStats;
 import pbouda.jeffrey.provider.profile.model.FlagValueChange;
 import pbouda.jeffrey.provider.profile.model.JvmFlag;
 import pbouda.jeffrey.provider.profile.model.JvmFlagDetail;
@@ -76,6 +77,17 @@ public class JdbcProfileEventRepository implements ProfileEventRepository {
     //language=SQL
     private static final String CONTAINS_EVENT =
             "SELECT COUNT(*) FROM events WHERE event_type = (:code)";
+
+    //language=SQL
+    private static final String DURATION_STATS_BY_TYPE = """
+            SELECT
+                COUNT(*)                                        AS event_count,
+                COALESCE(SUM(duration), 0)                      AS total_duration_ns,
+                COALESCE(MAX(duration), 0)                      AS max_duration_ns,
+                COALESCE(quantile_cont(duration, 0.99), 0)      AS p99_duration_ns
+            FROM events
+            WHERE event_type = (:code) AND duration IS NOT NULL
+            """;
 
     private static final Set<String> FLAG_EVENT_TYPES = Set.of(
             EventTypeName.BOOLEAN_FLAG,
@@ -210,6 +222,22 @@ public class JdbcProfileEventRepository implements ProfileEventRepository {
                 sqlFormatter.formatJson(FIELDS_BY_EVENT),
                 paramSource,
                 (rs, _) -> Json.readTree(rs.getString("event_fields")));
+    }
+
+    @Override
+    public EventDurationStats durationStatsByType(Type type) {
+        MapSqlParameterSource params = new MapSqlParameterSource().addValue("code", type.code());
+
+        return databaseClient.querySingle(
+                StatementLabel.DURATION_STATS_BY_TYPE,
+                DURATION_STATS_BY_TYPE,
+                params,
+                (rs, _) -> new EventDurationStats(
+                        rs.getLong("event_count"),
+                        rs.getLong("total_duration_ns"),
+                        rs.getLong("max_duration_ns"),
+                        rs.getLong("p99_duration_ns"))
+        ).orElse(EventDurationStats.EMPTY);
     }
 
     @Override

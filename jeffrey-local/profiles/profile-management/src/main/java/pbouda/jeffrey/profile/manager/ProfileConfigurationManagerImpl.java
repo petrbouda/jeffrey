@@ -18,9 +18,9 @@
 
 package pbouda.jeffrey.profile.manager;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.ObjectNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.shared.common.Json;
@@ -110,7 +110,7 @@ public class ProfileConfigurationManagerImpl implements ProfileConfigurationMana
         Map<String, String> fieldNames = fieldNamesOpt.get().fields;
 
         ObjectNode newContent = Json.createObject();
-        originalContent.fields().forEachRemaining(entry -> {
+        originalContent.properties().forEach(entry -> {
             String fieldName = entry.getKey();
             String fieldValue = entry.getValue().asText();
 

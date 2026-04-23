@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.profile.guardian;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.profile.common.event.GarbageCollectorType;
@@ -32,6 +32,10 @@ import pbouda.jeffrey.profile.guardian.preconditions.GuardianInformation;
 import pbouda.jeffrey.profile.guardian.preconditions.GuardianInformationBuilder;
 import pbouda.jeffrey.profile.guardian.preconditions.Preconditions;
 import pbouda.jeffrey.profile.guardian.preconditions.PreconditionsBuilder;
+import pbouda.jeffrey.profile.guardian.metadata.SafepointOutlierEvaluator;
+import pbouda.jeffrey.profile.guardian.metadata.TlabWasteEvaluator;
+import pbouda.jeffrey.profile.guardian.metadata.VirtualThreadPinningEvaluator;
+import pbouda.jeffrey.profile.guardian.prereq.PrerequisitesEvaluator;
 import pbouda.jeffrey.profile.guardian.type.AllocationGuardianGroup;
 import pbouda.jeffrey.profile.guardian.type.BlockingGuardianGroup;
 import pbouda.jeffrey.profile.guardian.type.ExecutionSampleGuardianGroup;
@@ -54,19 +58,22 @@ public class Guardian {
     private final ProfileEventStreamRepository eventStreamRepository;
     private final ProfileEventTypeRepository eventTypeRepository;
     private final ActiveSettings activeSettings;
+    private final GuardianProperties props;
 
     public Guardian(
             ProfileInfo profileInfo,
             ProfileEventRepository eventRepository,
             ProfileEventStreamRepository eventStreamRepository,
             ProfileEventTypeRepository eventTypeRepository,
-            ActiveSettings activeSettings) {
+            ActiveSettings activeSettings,
+            GuardianProperties props) {
 
         this.profileInfo = profileInfo;
         this.eventRepository = eventRepository;
         this.eventStreamRepository = eventStreamRepository;
         this.eventTypeRepository = eventTypeRepository;
         this.activeSettings = activeSettings;
+        this.props = props;
     }
 
     public List<GuardianResult> process() {
@@ -83,13 +90,20 @@ public class Guardian {
                 .build();
 
         List<GuardianGroup> groups = List.of(
-                new ExecutionSampleGuardianGroup(profileInfo, eventStreamRepository, activeSettings, 1000),
-                new AllocationGuardianGroup(profileInfo, eventStreamRepository, activeSettings, 1000),
-                new WallClockGuardianGroup(profileInfo, eventStreamRepository, activeSettings, 1000),
-                new BlockingGuardianGroup(profileInfo, eventStreamRepository, activeSettings, 100)
+                new ExecutionSampleGuardianGroup(profileInfo, eventStreamRepository, activeSettings, props),
+                new AllocationGuardianGroup(profileInfo, eventStreamRepository, activeSettings, props),
+                new WallClockGuardianGroup(profileInfo, eventStreamRepository, activeSettings, props),
+                new BlockingGuardianGroup(profileInfo, eventStreamRepository, activeSettings, props)
         );
 
         List<GuardianResult> results = new ArrayList<>();
+
+        // Prerequisites (data-quality) checks run unconditionally and populate the UI's
+        // "Prerequisites" panel. They do not require event data and have no flamegraph.
+        for (GuardianResult prereq : PrerequisitesEvaluator.evaluate(profileInfo, preconditions)) {
+            results.add(new GuardianResult(prereq.analysisItem().withGroup("Prerequisites"), prereq.frame()));
+        }
+
         for (GuardianGroup group : groups) {
             EventSummary eventSummary = selectEventSummary(group, eventSummaries);
 
@@ -101,6 +115,14 @@ public class Guardian {
                 }
             }
         }
+
+        // Metadata-based guards run without frame-tree traversal.
+        TlabWasteEvaluator.evaluate(eventSummaries, props).ifPresent(r ->
+                results.add(new GuardianResult(r.analysisItem().withGroup("Allocation"), r.frame())));
+        SafepointOutlierEvaluator.evaluate(eventRepository, props).ifPresent(r ->
+                results.add(new GuardianResult(r.analysisItem().withGroup("JIT & Runtime"), r.frame())));
+        VirtualThreadPinningEvaluator.evaluate(eventRepository, props).ifPresent(r ->
+                results.add(new GuardianResult(r.analysisItem().withGroup("Concurrency"), r.frame())));
 
         return results;
     }

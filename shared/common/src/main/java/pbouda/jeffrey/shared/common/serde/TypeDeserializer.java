@@ -18,27 +18,21 @@
 
 package pbouda.jeffrey.shared.common.serde;
 
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.databind.DeserializationContext;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
+import tools.jackson.core.JsonParser;
+import tools.jackson.databind.DeserializationContext;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.deser.std.StdDeserializer;
 import pbouda.jeffrey.shared.common.model.Type;
-
-import java.io.IOException;
 
 public class TypeDeserializer extends StdDeserializer<Type> {
 
     public TypeDeserializer() {
-        this(null);
-    }
-
-    public TypeDeserializer(Class<?> vc) {
-        super(vc);
+        super(Type.class);
     }
 
     @Override
-    public Type deserialize(JsonParser jp, DeserializationContext context) throws IOException {
-        JsonNode node = jp.getCodec().readTree(jp);
+    public Type deserialize(JsonParser jp, DeserializationContext context) {
+        JsonNode node = context.readTree(jp);
         if (node == null) {
             throw new NullPointerException("Type is null");
         }

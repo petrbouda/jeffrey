@@ -18,8 +18,8 @@
 
 package pbouda.jeffrey.server.core.configuration;
 
-import com.fasterxml.jackson.databind.Module;
-import com.fasterxml.jackson.databind.module.SimpleModule;
+import tools.jackson.databind.JacksonModule;
+import tools.jackson.databind.module.SimpleModule;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import pbouda.jeffrey.shared.common.model.Type;
@@ -33,7 +33,7 @@ import pbouda.jeffrey.shared.common.serde.TypeSerializer;
 public class JacksonConfiguration {
 
     @Bean
-    public Module customSerializer() {
+    public JacksonModule customSerializer() {
         SimpleModule module = new SimpleModule();
         module.addSerializer(new TypeSerializer());
         module.addSerializer(new RelativeTimeRangeSerializer());

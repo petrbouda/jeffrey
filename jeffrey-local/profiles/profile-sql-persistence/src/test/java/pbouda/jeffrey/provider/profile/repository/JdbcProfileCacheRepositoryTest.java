@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.provider.profile.repository;
 
-import com.fasterxml.jackson.core.type.TypeReference;
+import tools.jackson.core.type.TypeReference;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import pbouda.jeffrey.shared.persistence.client.DatabaseClientProvider;

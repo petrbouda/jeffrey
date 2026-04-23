@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.local.core.resources.response;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.node.ObjectNode;
 
 /**
  * Detail payload for a single session within an instance: session metadata

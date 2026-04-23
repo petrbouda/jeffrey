@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.provider.profile.query.timeseries;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.node.ObjectNode;
 import org.springframework.jdbc.core.RowMapper;
 import pbouda.jeffrey.shared.common.Json;
 import pbouda.jeffrey.provider.profile.model.SecondValue;

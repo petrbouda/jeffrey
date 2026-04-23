@@ -18,16 +18,14 @@
 
 package pbouda.jeffrey.shared.common;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.ext.NioPathDeserializer;
-import com.fasterxml.jackson.databind.ext.NioPathSerializer;
-import com.fasterxml.jackson.databind.module.SimpleModule;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import tools.jackson.core.JacksonException;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.module.SimpleModule;
+import tools.jackson.databind.node.ArrayNode;
+import tools.jackson.databind.node.ObjectNode;
 import pbouda.jeffrey.shared.common.model.Type;
 import pbouda.jeffrey.shared.common.model.time.RelativeTimeRange;
 import pbouda.jeffrey.shared.common.serde.RelativeTimeRangeDeserializer;
@@ -36,7 +34,6 @@ import pbouda.jeffrey.shared.common.serde.TypeDeserializer;
 import pbouda.jeffrey.shared.common.serde.TypeSerializer;
 
 import java.io.File;
-import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -55,20 +52,15 @@ public abstract class Json {
             new TypeReference<>() {
             };
 
-    private static final SimpleModule CUSTOM_PATH_SERDE = new SimpleModule("PathSerde")
-            .addSerializer(Path.class, new NioPathSerializer())
-            .addDeserializer(Path.class, new NioPathDeserializer());
-
     private static final SimpleModule CUSTOM_TYPES_SERDE = new SimpleModule()
             .addSerializer(new TypeSerializer())
             .addSerializer(new RelativeTimeRangeSerializer())
             .addDeserializer(Type.class, new TypeDeserializer())
             .addDeserializer(RelativeTimeRange.class, new RelativeTimeRangeDeserializer());
 
-    private static final ObjectMapper MAPPER = new ObjectMapper()
-            .registerModule(CUSTOM_PATH_SERDE)
-            .registerModule(CUSTOM_TYPES_SERDE)
-            .registerModule(new JavaTimeModule());
+    private static final ObjectMapper MAPPER = JsonMapper.builder()
+            .addModule(CUSTOM_TYPES_SERDE)
+            .build();
 
     public static ObjectMapper mapper() {
         return MAPPER;
@@ -77,7 +69,7 @@ public abstract class Json {
     public static <T> T read(String content, Class<T> clazz) {
         try {
             return MAPPER.readValue(content, clazz);
-        } catch (IOException e) {
+        } catch (JacksonException e) {
             throw new RuntimeException(e);
         }
     }
@@ -85,7 +77,7 @@ public abstract class Json {
     public static <T> T read(String content, TypeReference<T> type) {
         try {
             return MAPPER.readValue(content, type);
-        } catch (IOException e) {
+        } catch (JacksonException e) {
             throw new RuntimeException(e);
         }
     }
@@ -93,7 +85,7 @@ public abstract class Json {
     public static <T> T read(File file, TypeReference<T> type) {
         try {
             return MAPPER.readValue(file, type);
-        } catch (IOException e) {
+        } catch (JacksonException e) {
             throw new RuntimeException(e);
         }
     }
@@ -101,7 +93,7 @@ public abstract class Json {
     public static <T> T read(Path path, Class<T> clazz) {
         try {
             return MAPPER.readValue(path.toFile(), clazz);
-        } catch (IOException e) {
+        } catch (JacksonException e) {
             throw new RuntimeException(e);
         }
     }
@@ -109,7 +101,7 @@ public abstract class Json {
     public static void write(Path path, Object value) {
         try {
             MAPPER.writerWithDefaultPrettyPrinter().writeValue(path.toFile(), value);
-        } catch (IOException e) {
+        } catch (JacksonException e) {
             throw new RuntimeException(e);
         }
     }
@@ -117,7 +109,7 @@ public abstract class Json {
     public static <T> T treeToValue(JsonNode content, Class<T> type) {
         try {
             return MAPPER.treeToValue(content, type);
-        } catch (IOException e) {
+        } catch (JacksonException e) {
             throw new RuntimeException(e);
         }
     }
@@ -125,7 +117,7 @@ public abstract class Json {
     public static Map<String, String> toMap(String content) {
         try {
             return MAPPER.readValue(content, STRING_MAP_TYPE);
-        } catch (IOException e) {
+        } catch (JacksonException e) {
             throw new RuntimeException("Cannot parse a content to a map", e);
         }
     }
@@ -133,7 +125,7 @@ public abstract class Json {
     public static List<String> toList(String content) {
         try {
             return MAPPER.readValue(content, STRING_LIST_TYPE);
-        } catch (IOException e) {
+        } catch (JacksonException e) {
             throw new RuntimeException("Cannot parse a content to a list", e);
         }
     }
@@ -147,7 +139,7 @@ public abstract class Json {
             return mapper()
                     .writerWithDefaultPrettyPrinter()
                     .writeValueAsString(obj);
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             throw new RuntimeException(e);
         }
     }
@@ -155,7 +147,7 @@ public abstract class Json {
     public static String toString(Object obj) {
         try {
             return mapper().writeValueAsString(obj);
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             throw new RuntimeException(e);
         }
     }
@@ -163,7 +155,7 @@ public abstract class Json {
     public static JsonNode readTree(String obj) {
         try {
             return mapper().readTree(obj);
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             throw new RuntimeException(e);
         }
     }
@@ -171,7 +163,7 @@ public abstract class Json {
     public static ObjectNode readObjectNode(String obj) {
         try {
             return (ObjectNode) mapper().readTree(obj);
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             throw new RuntimeException(e);
         }
     }
@@ -179,7 +171,7 @@ public abstract class Json {
     public static byte[] toByteArray(Object node) {
         try {
             return mapper().writeValueAsBytes(node);
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             throw new RuntimeException("Cannot convert object to a byte array: " + node, e);
         }
     }

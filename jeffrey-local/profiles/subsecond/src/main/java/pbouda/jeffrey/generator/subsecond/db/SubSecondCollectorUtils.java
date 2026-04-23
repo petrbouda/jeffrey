@@ -18,9 +18,9 @@
 
 package pbouda.jeffrey.generator.subsecond.db;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.ArrayNode;
+import tools.jackson.databind.node.ObjectNode;
 import pbouda.jeffrey.shared.common.Json;
 
 import java.util.List;

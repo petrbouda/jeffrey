@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.profile.manager;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.node.ObjectNode;
 import pbouda.jeffrey.shared.common.DurationUtils;
 import pbouda.jeffrey.shared.common.Json;
 import pbouda.jeffrey.profile.common.event.JITCompilationStats;

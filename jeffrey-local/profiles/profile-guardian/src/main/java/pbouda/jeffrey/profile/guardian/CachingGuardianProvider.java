@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -18,15 +18,20 @@
 
 package pbouda.jeffrey.profile.guardian;
 
-import com.fasterxml.jackson.core.type.TypeReference;
+import tools.jackson.core.type.TypeReference;
 import pbouda.jeffrey.provider.profile.cache.CachingSupplier;
 import pbouda.jeffrey.provider.profile.repository.ProfileCacheRepository;
 import pbouda.jeffrey.shared.common.CacheKey;
 
 import java.util.List;
+import java.util.Objects;
 
 /**
  * A caching decorator for {@link GuardianProvider} that caches the result in a {@link ProfileCacheRepository}.
+ * <p>
+ * The cache key is versioned with a short stable hash of the current {@link GuardianProperties} so that changing
+ * any threshold silently invalidates the existing cached analysis — without this, operators tweaking
+ * {@code jeffrey.guardian.*} properties would keep seeing stale results from before the change.
  */
 public class CachingGuardianProvider implements GuardianProvider {
 
@@ -38,9 +43,22 @@ public class CachingGuardianProvider implements GuardianProvider {
 
     public CachingGuardianProvider(
             ProfileCacheRepository cacheRepository,
-            GuardianProvider delegate) {
+            GuardianProvider delegate,
+            GuardianProperties props) {
+        String versionedKey = CacheKey.PROFILE_GUARDIAN + ":" + configHash(props);
         this.cachingSupplier = new CachingSupplier<>(
-                delegate, cacheRepository, CacheKey.PROFILE_GUARDIAN, GUARDIAN_RESULT_TYPE);
+                delegate, cacheRepository, versionedKey, GUARDIAN_RESULT_TYPE);
+    }
+
+    /**
+     * Stable 8-hex-digit fingerprint of the effective threshold configuration. Uses Java's
+     * default {@code Objects.hash} over the record fields (records inherit a deterministic
+     * hashCode based on component values), so any change to any threshold produces a different
+     * hash — thereby a different cache key — on the very next call.
+     */
+    private static String configHash(GuardianProperties props) {
+        int h = Objects.hashCode(props);
+        return String.format("%08x", h);
     }
 
     @Override

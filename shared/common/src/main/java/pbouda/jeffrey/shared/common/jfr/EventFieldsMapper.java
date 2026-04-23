@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.shared.common.jfr;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.node.ObjectNode;
 import jdk.jfr.EventType;
 import jdk.jfr.consumer.RecordedEvent;
 

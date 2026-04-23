@@ -18,9 +18,10 @@
 
 package pbouda.jeffrey.jmh.flamegraph.utils;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.SerializationFeature;
+import tools.jackson.databind.json.JsonMapper;
 import pbouda.jeffrey.frameir.Frame;
 
 import java.util.LinkedHashMap;
@@ -32,8 +33,9 @@ import java.util.Map;
  */
 public class FrameJsonSerializer {
 
-    private static final ObjectMapper MAPPER = new ObjectMapper()
-            .enable(SerializationFeature.INDENT_OUTPUT);
+    private static final ObjectMapper MAPPER = JsonMapper.builder()
+            .configure(SerializationFeature.INDENT_OUTPUT, true)
+            .build();
 
     /**
      * Serialize a Frame tree to JSON bytes.
@@ -41,7 +43,7 @@ public class FrameJsonSerializer {
     public static byte[] toJsonBytes(Frame frame) {
         try {
             return MAPPER.writeValueAsBytes(toMap(frame));
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             throw new RuntimeException("Failed to serialize Frame to JSON", e);
         }
     }

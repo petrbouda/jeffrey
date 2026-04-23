@@ -43,7 +43,8 @@ public abstract class TraversableGuard extends AbstractTraversable implements Gu
 
     private final String guardName;
     private final ProfileInfo profileInfo;
-    private final double threshold;
+    private final double warningThreshold;
+    private final double infoThreshold;
     private final Category category;
     private final ResultType resultType;
 
@@ -52,6 +53,7 @@ public abstract class TraversableGuard extends AbstractTraversable implements Gu
     private Next globalNext = NOT_STARTED;
     private boolean applicable = true;
 
+    /** Single-threshold ctor — INFO band is disabled (infoThreshold == warningThreshold). */
     public TraversableGuard(
             String guardName,
             ProfileInfo profileInfo,
@@ -62,15 +64,28 @@ public abstract class TraversableGuard extends AbstractTraversable implements Gu
             MatchingType matchingType,
             ResultType resultType) {
 
-        this(guardName,
-                profileInfo,
-                threshold,
-                baseFrameMatcher,
-                category,
-                () -> List.of(new CurrentFrameTraverser()),
-                targetFrameType,
-                matchingType,
-                resultType);
+        this(guardName, profileInfo, threshold, threshold, baseFrameMatcher, category,
+                () -> List.of(new CurrentFrameTraverser()), targetFrameType, matchingType, resultType);
+    }
+
+    /**
+     * Dual-threshold ctor. {@code ratio > warningThreshold} produces WARNING,
+     * {@code infoThreshold < ratio <= warningThreshold} produces INFO, otherwise OK.
+     * Passing {@code infoThreshold == warningThreshold} disables the INFO band.
+     */
+    public TraversableGuard(
+            String guardName,
+            ProfileInfo profileInfo,
+            double infoThreshold,
+            double warningThreshold,
+            FrameMatcher baseFrameMatcher,
+            Category category,
+            TargetFrameType targetFrameType,
+            MatchingType matchingType,
+            ResultType resultType) {
+
+        this(guardName, profileInfo, infoThreshold, warningThreshold, baseFrameMatcher, category,
+                () -> List.of(new CurrentFrameTraverser()), targetFrameType, matchingType, resultType);
     }
 
     public TraversableGuard(
@@ -84,11 +99,28 @@ public abstract class TraversableGuard extends AbstractTraversable implements Gu
             MatchingType matchingType,
             ResultType resultType) {
 
+        this(guardName, profileInfo, threshold, threshold, baseFrameMatcher, category,
+                traversables, targetFrameType, matchingType, resultType);
+    }
+
+    public TraversableGuard(
+            String guardName,
+            ProfileInfo profileInfo,
+            double infoThreshold,
+            double warningThreshold,
+            FrameMatcher baseFrameMatcher,
+            Category category,
+            Supplier<List<Traversable>> traversables,
+            TargetFrameType targetFrameType,
+            MatchingType matchingType,
+            ResultType resultType) {
+
         super(baseFrameMatcher, traversables, targetFrameType, matchingType);
 
         this.guardName = guardName;
         this.profileInfo = profileInfo;
-        this.threshold = threshold;
+        this.infoThreshold = Math.min(infoThreshold, warningThreshold);
+        this.warningThreshold = warningThreshold;
         this.category = category;
         this.resultType = resultType;
     }
@@ -117,23 +149,51 @@ public abstract class TraversableGuard extends AbstractTraversable implements Gu
     }
 
     private Result evaluateFrames() {
-        long totalValue = ResultType.SAMPLES == resultType ? getTotalSamples() : getTotalWeight();
+        long totalValue = switch (resultType) {
+            case SAMPLES, SELF_SAMPLES -> getTotalSamples();
+            case WEIGHT, SELF_WEIGHT -> getTotalWeight();
+        };
         long observedValue = 0;
         List<Frame> frames = selectedFrames();
 
         for (Frame frame : frames) {
-            if (resultType == ResultType.SAMPLES) {
-                observedValue += frame.totalSamples();
-            } else {
-                observedValue += frame.totalWeight();
-            }
+            observedValue += switch (resultType) {
+                case SAMPLES -> frame.totalSamples();
+                case WEIGHT -> frame.totalWeight();
+                case SELF_SAMPLES -> accumulateNamespaceSelf(frame, true);
+                case SELF_WEIGHT -> accumulateNamespaceSelf(frame, false);
+            };
         }
 
         double ratioResult = totalValue != 0 ? (double) observedValue / totalValue : 0;
-        Severity severity = ratioResult > threshold ? Severity.WARNING : Severity.OK;
+        Severity severity;
+        if (ratioResult > warningThreshold) {
+            severity = Severity.WARNING;
+        } else if (ratioResult > infoThreshold) {
+            severity = Severity.INFO;
+        } else {
+            severity = Severity.OK;
+        }
 
         BigDecimal matchedInPercent = BigDecimal.valueOf(ratioResult * 100).setScale(2, RoundingMode.HALF_UP);
-        return new Result(severity, totalValue, observedValue, ratioResult, matchedInPercent, threshold, frames);
+        return new Result(severity, totalValue, observedValue, ratioResult, matchedInPercent, warningThreshold, frames);
+    }
+
+    /**
+     * For SELF_SAMPLES / SELF_WEIGHT: sums the self-time of the given frame and of every
+     * descendant whose name still satisfies the guard's base matcher. Descent stops as
+     * soon as the stack leaves the matcher's namespace, so the CPU spent inside code
+     * invoked <em>through</em> a wrapper (reflected target, serialized type's readObject,
+     * user classloader callback) is excluded from the attribution.
+     */
+    private long accumulateNamespaceSelf(Frame frame, boolean samples) {
+        long acc = samples ? frame.selfSamples() : frame.selfWeight();
+        for (Frame child : frame.values()) {
+            if (baseFrameMatcher().matches(child)) {
+                acc += accumulateNamespaceSelf(child, samples);
+            }
+        }
+        return acc;
     }
 
     protected Result getResult() {
@@ -157,7 +217,7 @@ public abstract class TraversableGuard extends AbstractTraversable implements Gu
         GuardVisualization visualization = GuardVisualization.withTimeseries(
                 profileInfo.primaryProfileId(),
                 profileInfo.eventType(),
-                resultType == ResultType.WEIGHT,
+                resultType == ResultType.WEIGHT || resultType == ResultType.SELF_WEIGHT,
                 result.matched(),
                 result.markers());
 

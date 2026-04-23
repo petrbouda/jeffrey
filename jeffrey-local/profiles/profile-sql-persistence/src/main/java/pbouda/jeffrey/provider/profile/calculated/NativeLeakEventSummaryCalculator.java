@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.provider.profile.calculated;
 
-import com.fasterxml.jackson.core.type.TypeReference;
+import tools.jackson.core.type.TypeReference;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import pbouda.jeffrey.shared.common.Json;

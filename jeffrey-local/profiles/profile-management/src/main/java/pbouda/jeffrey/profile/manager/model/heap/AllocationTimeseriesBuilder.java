@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.profile.manager.model.heap;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.node.ObjectNode;
 import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap;
 import pbouda.jeffrey.shared.common.Json;
 import pbouda.jeffrey.shared.common.model.Type;

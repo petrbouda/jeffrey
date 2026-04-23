@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.profile.resources;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import jakarta.ws.rs.GET;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

@@ -118,7 +118,7 @@ message RecordingSession {
   // Current status.
   RecordingStatus status = 6;
   // Files produced during this session (JFR recordings, heap dumps, logs).
-  repeated RepositoryFile files = 9;
+  repeated RepositoryFile files = 7;
 }
 
 // A single file within a recording session.

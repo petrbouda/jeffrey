@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.profile.thread;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import pbouda.jeffrey.shared.common.model.ThreadInfo;
 import pbouda.jeffrey.shared.common.model.Type;
 import pbouda.jeffrey.provider.profile.builder.RecordBuilder;

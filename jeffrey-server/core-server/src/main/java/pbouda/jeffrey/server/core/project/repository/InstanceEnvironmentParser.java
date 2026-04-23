@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.server.core.project.repository;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.node.ObjectNode;
 import jdk.jfr.consumer.EventStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -133,14 +133,6 @@ public class InstanceEnvironmentParser {
     }
 
     private static String iterableKeys(ObjectNode node) {
-        StringBuilder sb = new StringBuilder("[");
-        boolean first = true;
-        for (java.util.Iterator<String> it = node.fieldNames(); it.hasNext(); ) {
-            if (!first) sb.append(", ");
-            sb.append(it.next());
-            first = false;
-        }
-        sb.append("]");
-        return sb.toString();
+        return node.propertyNames().toString();
     }
 }

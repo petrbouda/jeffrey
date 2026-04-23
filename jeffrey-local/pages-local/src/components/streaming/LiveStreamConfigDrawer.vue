@@ -81,8 +81,8 @@
 
         <EmptyState
           v-else-if="instanceGroups.length === 0"
-          title="No sessions found"
-          description="No instances with sessions are available for this project."
+          title="No active sessions"
+          description="No active instances with running sessions are available for live streaming."
           icon="bi-broadcast"
         />
 
@@ -303,7 +303,7 @@ const hiddenInstanceCount = computed(() => {
 
 watch(
   () => props.show,
-  (visible) => {
+  async (visible) => {
     if (visible) {
       currentStep.value = 1
       maxVisibleInstances.value = 5
@@ -312,7 +312,11 @@ watch(
       localMaxEvents.value = props.config.maxEvents
       customMaxEvents.value = !maxEventsOptions.includes(props.config.maxEvents)
       sessionSearchQuery.value = ''
-      loadSessions()
+      await loadSessions()
+      const visibleIds = new Set(
+        instanceGroups.value.flatMap((g) => g.sessions.map((s) => s.id))
+      )
+      localSessions.value = localSessions.value.filter((s) => visibleIds.has(s.id))
     }
   }
 )
@@ -340,7 +344,7 @@ async function loadSessions() {
 
     const groups: InstanceGroup[] = []
     for (const instance of instances) {
-      const sessions = instance.sessions ?? []
+      const sessions = (instance.sessions ?? []).filter((s) => s.isActive === true)
       if (sessions.length > 0) {
         sessions.sort((a, b) => b.createdAt - a.createdAt)
         groups.push({ instance, sessions })

@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.generator.subsecond.db;
 
-import com.fasterxml.jackson.databind.node.ArrayNode;
+import tools.jackson.databind.node.ArrayNode;
 
 public record SubSecondModel(long maxvalue, ArrayNode series) {
 }

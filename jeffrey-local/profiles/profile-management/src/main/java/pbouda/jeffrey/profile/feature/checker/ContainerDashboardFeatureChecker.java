@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.profile.feature.checker;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.node.ObjectNode;
 import pbouda.jeffrey.shared.common.Json;
 import pbouda.jeffrey.profile.common.event.ContainerConfiguration;
 import pbouda.jeffrey.profile.common.event.ContainerIOUsage;

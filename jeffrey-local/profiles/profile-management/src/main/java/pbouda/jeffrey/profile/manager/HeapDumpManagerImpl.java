@@ -18,7 +18,8 @@
 
 package pbouda.jeffrey.profile.manager;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 import org.netbeans.lib.profiler.heap.Heap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -826,7 +827,7 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
         try {
             T report = OBJECT_MAPPER.readValue(filePath.toFile(), type);
             return Optional.of(report);
-        } catch (IOException e) {
+        } catch (JacksonException e) {
             LOG.error("Failed to read analysis file: path={}", filePath, e);
             return Optional.empty();
         }
@@ -839,7 +840,7 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
             OBJECT_MAPPER.writerWithDefaultPrettyPrinter()
                     .writeValue(filePath.toFile(), report);
             LOG.info("{} saved: path={}", analysisName, filePath);
-        } catch (IOException e) {
+        } catch (IOException | JacksonException e) {
             LOG.error("Failed to save {}: path={}", analysisName, heapDumpAnalysisPath, e);
             throw new RuntimeException("Failed to save " + analysisName + ": " + e.getMessage(), e);
         }

@@ -18,12 +18,10 @@
 
 package pbouda.jeffrey.shared.common.serde;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.SerializerProvider;
-import com.fasterxml.jackson.databind.ser.std.StdSerializer;
+import tools.jackson.core.JsonGenerator;
+import tools.jackson.databind.SerializationContext;
+import tools.jackson.databind.ser.std.StdSerializer;
 import pbouda.jeffrey.shared.common.model.time.RelativeTimeRange;
-
-import java.io.IOException;
 
 public class RelativeTimeRangeSerializer extends StdSerializer<RelativeTimeRange> {
 
@@ -32,10 +30,10 @@ public class RelativeTimeRangeSerializer extends StdSerializer<RelativeTimeRange
     }
 
     @Override
-    public void serialize(RelativeTimeRange timeRange, JsonGenerator gen, SerializerProvider serializerProvider) throws IOException {
+    public void serialize(RelativeTimeRange timeRange, JsonGenerator gen, SerializationContext ctxt) {
         gen.writeStartObject();
-        gen.writeNumberField("start", timeRange.start().toMillis());
-        gen.writeNumberField("end", timeRange.end().toMillis());
+        gen.writeNumberProperty("start", timeRange.start().toMillis());
+        gen.writeNumberProperty("end", timeRange.end().toMillis());
         gen.writeEndObject();
     }
 }

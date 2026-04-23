@@ -167,7 +167,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { useRoute } from 'vue-router'
 import EmptyState from '@/components/EmptyState.vue'
 import MainCard from '@/components/MainCard.vue'
 import MainCardHeader from '@/components/MainCardHeader.vue'
@@ -187,6 +188,7 @@ const EVENT_TYPE_COLORS = [
 ]
 
 const { workspaceId, projectId } = useNavigation()
+const route = useRoute()
 
 const showConfigDrawer = ref(false)
 const eventTagsExpanded = ref(false)
@@ -337,6 +339,17 @@ function clearAll() {
   maxEvents.value = 1000
   completed.value = false
 }
+
+onMounted(() => {
+  const sid = route.query.sessionId
+  const sinst = route.query.sessionInstance
+  if (typeof sid === 'string' && sid.length > 0) {
+    session.value = {
+      id: sid,
+      sessionInstance: typeof sinst === 'string' ? sinst : ''
+    }
+  }
+})
 
 onUnmounted(() => {
   stopReplay()

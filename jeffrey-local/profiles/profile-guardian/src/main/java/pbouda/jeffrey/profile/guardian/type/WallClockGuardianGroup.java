@@ -22,22 +22,27 @@ import pbouda.jeffrey.profile.common.config.GraphParameters;
 import pbouda.jeffrey.shared.common.model.ProfileInfo;
 import pbouda.jeffrey.shared.common.model.Type;
 import pbouda.jeffrey.shared.common.settings.ActiveSettings;
+import pbouda.jeffrey.profile.guardian.GuardianProperties;
+import pbouda.jeffrey.profile.guardian.guard.GroupKind;
 import pbouda.jeffrey.profile.guardian.guard.Guard;
-import pbouda.jeffrey.profile.guardian.guard.app.*;
-import pbouda.jeffrey.profile.guardian.traverse.ResultType;
+import pbouda.jeffrey.profile.guardian.guard.GuardRegistry;
 import pbouda.jeffrey.provider.profile.repository.ProfileEventStreamRepository;
 
 import java.util.List;
 
 public class WallClockGuardianGroup extends AbstractGuardianGroup {
 
+    private final GuardianProperties props;
+
     public WallClockGuardianGroup(
             ProfileInfo profileInfo,
             ProfileEventStreamRepository eventRepository,
             ActiveSettings settings,
-            long minimumSamples) {
+            GuardianProperties props) {
 
-        super("Wall Clock", profileInfo, eventRepository, settings, "Minimum for Wall Clock Samples", minimumSamples);
+        super("Wall Clock", profileInfo, eventRepository, settings,
+                "Minimum for Wall Clock Samples", props.minSamplesWallClock());
+        this.props = props;
     }
 
     @Override
@@ -54,16 +59,6 @@ public class WallClockGuardianGroup extends AbstractGuardianGroup {
 
     @Override
     List<? extends Guard> candidateGuards(Guard.ProfileInfo profileInfo) {
-        return List.of(
-                new LogbackOverheadGuard("Logback Wall-Clock Overhead", ResultType.SAMPLES, profileInfo, 0.05),
-                new Log4jOverheadGuard("Log4j Wall-Clock Overhead", ResultType.SAMPLES, profileInfo, 0.05),
-                new HashMapCollisionGuard(profileInfo, 0.05),
-                new RegexOverheadGuard(profileInfo, 0.05),
-                new ReflectionOverheadGuard("Reflection Wall-Clock Overhead", ResultType.SAMPLES, profileInfo, 0.05),
-                new ExceptionOverheadGuard("Exception Wall-Clock Overhead", ResultType.SAMPLES, profileInfo, 0.05),
-                new CryptoOverheadGuard("Crypto/TLS Wall-Clock Overhead", ResultType.SAMPLES, profileInfo, 0.05),
-                new ClassLoadingOverheadGuard("Class Loading Wall-Clock Overhead", ResultType.SAMPLES, profileInfo, 0.05),
-                new ThreadSynchronizationOverheadGuard("Thread Synchronization Wall-Clock Overhead", ResultType.SAMPLES, profileInfo, 0.05)
-        );
+        return GuardRegistry.instantiateFor(GroupKind.WALL_CLOCK, profileInfo, props);
     }
 }

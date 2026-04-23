@@ -18,8 +18,8 @@
 
 package pbouda.jeffrey.profile.parser;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.ObjectNode;
 import jdk.jfr.consumer.*;
 import pbouda.jeffrey.shared.common.model.StacktraceTag;
 import pbouda.jeffrey.shared.common.model.StacktraceType;

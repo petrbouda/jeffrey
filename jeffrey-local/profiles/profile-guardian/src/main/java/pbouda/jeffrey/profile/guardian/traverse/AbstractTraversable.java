@@ -115,6 +115,10 @@ public abstract class AbstractTraversable implements Traversable {
         return totalWeight;
     }
 
+    protected FrameMatcher baseFrameMatcher() {
+        return baseFrameMatcher;
+    }
+
     public List<Frame> selectedFrames() {
         return selectedFrames;
     }

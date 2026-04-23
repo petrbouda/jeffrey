@@ -18,12 +18,10 @@
 
 package pbouda.jeffrey.shared.common.serde;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.SerializerProvider;
-import com.fasterxml.jackson.databind.ser.std.StdSerializer;
+import tools.jackson.core.JsonGenerator;
+import tools.jackson.databind.SerializationContext;
+import tools.jackson.databind.ser.std.StdSerializer;
 import pbouda.jeffrey.shared.common.model.Type;
-
-import java.io.IOException;
 
 public class TypeSerializer extends StdSerializer<Type> {
 
@@ -32,7 +30,7 @@ public class TypeSerializer extends StdSerializer<Type> {
     }
 
     @Override
-    public void serialize(Type type, JsonGenerator gen, SerializerProvider serializerProvider) throws IOException {
+    public void serialize(Type type, JsonGenerator gen, SerializationContext ctxt) {
         gen.writeString(type.code());
     }
 }

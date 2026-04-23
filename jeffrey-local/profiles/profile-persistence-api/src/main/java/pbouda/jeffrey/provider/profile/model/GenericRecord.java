@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.provider.profile.model;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.node.ObjectNode;
 import pbouda.jeffrey.shared.common.model.ThreadInfo;
 import pbouda.jeffrey.shared.common.model.Type;
 import pbouda.jeffrey.jfrparser.api.type.JfrMethod;

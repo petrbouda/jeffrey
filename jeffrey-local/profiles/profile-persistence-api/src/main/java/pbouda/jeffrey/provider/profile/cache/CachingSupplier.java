@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.provider.profile.cache;
 
-import com.fasterxml.jackson.core.type.TypeReference;
+import tools.jackson.core.type.TypeReference;
 import pbouda.jeffrey.provider.profile.repository.ProfileCacheRepository;
 
 import java.util.Optional;

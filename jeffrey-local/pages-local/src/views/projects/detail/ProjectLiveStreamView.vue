@@ -166,7 +166,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { useRoute } from 'vue-router'
 import EmptyState from '@/components/EmptyState.vue'
 import MainCard from '@/components/MainCard.vue'
 import MainCardHeader from '@/components/MainCardHeader.vue'
@@ -185,6 +186,7 @@ const EVENT_TYPE_COLORS = [
 const SESSION_PALETTE_SIZE = 6
 
 const { workspaceId, projectId } = useNavigation()
+const route = useRoute()
 
 const showConfigDrawer = ref(false)
 const eventTagsExpanded = ref(false)
@@ -304,6 +306,16 @@ function clearAll() {
   lastBatchTime.value = null
   maxEvents.value = 1000
 }
+
+onMounted(() => {
+  const sid = route.query.sessionId
+  const sinst = route.query.sessionInstance
+  if (typeof sid === 'string' && sid.length > 0) {
+    const sessionInstance = typeof sinst === 'string' ? sinst : ''
+    sessions.value = [{ id: sid, sessionInstance }]
+    sessionIndexMap.value = { [sid]: 0 }
+  }
+})
 
 onUnmounted(() => {
   stopStreaming()

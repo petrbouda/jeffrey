@@ -79,6 +79,8 @@ public record Type(String code, boolean calculated) {
     public static final Type THREAD_CPU_LOAD = new Type(EventTypeName.THREAD_CPU_LOAD);
     public static final Type COMPILER_STATISTICS = new Type(EventTypeName.COMPILER_STATISTICS);
     public static final Type COMPILATION = new Type(EventTypeName.COMPILATION);
+    public static final Type SAFEPOINT_BEGIN = new Type(EventTypeName.SAFEPOINT_BEGIN);
+    public static final Type VIRTUAL_THREAD_PINNED = new Type(EventTypeName.VIRTUAL_THREAD_PINNED);
 
     // ----------------------------
     // Application events - JEFFREY

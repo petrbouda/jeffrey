@@ -173,10 +173,11 @@ onMounted(() => {
         <p>For each recording session, Jeffrey CLI creates a JSON metadata file containing:</p>
         <ul>
           <li><strong>Session ID</strong> - Unique identifier for the recording session</li>
-          <li><strong>Project information</strong> - Which project this session belongs to</li>
-          <li><strong>Timestamp</strong> - When the session started</li>
-          <li><strong>Configuration</strong> - Profiler settings used for this session</li>
+          <li><strong>Project information</strong> - Project, workspace and instance the session belongs to</li>
+          <li><strong>Timestamp</strong> - When the session started (epoch millis)</li>
+          <li><strong>Ordering</strong> - Session order within the instance and the relative session path on disk</li>
         </ul>
+        <p>The profiler configuration itself is resolved from the <code>.settings</code> hierarchy described below and written separately into the session directory as env / JVM-args files — it is not duplicated into the session metadata.</p>
 
         <h2 id="profiler-settings-hierarchy">Profiler Settings Hierarchy</h2>
         <p>Jeffrey propagates profiler settings to the shared storage in a <code>.settings</code> folder at each level. Jeffrey CLI loads these settings when initializing a profiling session.</p>

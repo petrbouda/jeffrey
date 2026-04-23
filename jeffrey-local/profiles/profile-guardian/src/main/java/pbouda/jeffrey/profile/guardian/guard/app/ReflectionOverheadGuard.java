@@ -30,7 +30,7 @@ import pbouda.jeffrey.profile.guardian.traverse.TargetFrameType;
 public class ReflectionOverheadGuard extends TraversableGuard {
 
     public ReflectionOverheadGuard(ProfileInfo profileInfo, double threshold) {
-        this("Reflection Overhead", ResultType.SAMPLES, profileInfo, threshold);
+        this("Reflection Overhead", ResultType.SELF_SAMPLES, profileInfo, threshold);
     }
 
     public ReflectionOverheadGuard(String guardName, ResultType resultType, ProfileInfo profileInfo, double threshold) {

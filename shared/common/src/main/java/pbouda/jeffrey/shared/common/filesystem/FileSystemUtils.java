@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.shared.common.filesystem;
 
-import com.fasterxml.jackson.core.type.TypeReference;
+import tools.jackson.core.type.TypeReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.shared.common.Json;

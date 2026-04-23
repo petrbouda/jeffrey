@@ -18,8 +18,8 @@
 
 package pbouda.jeffrey.provider.profile.repository;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.ObjectNode;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import pbouda.jeffrey.provider.profile.DuckDBSQLFormatter;
@@ -174,6 +174,100 @@ class JdbcProfileEventRepositoryTest {
             JdbcProfileEventRepository repository = new JdbcProfileEventRepository(SQL_FORMATTER, provider);
 
             assertFalse(repository.containsEventType(Type.fromCode("jdk.ExecutionSample")));
+        }
+    }
+
+    @Nested
+    class DurationStatsByTypeMethod {
+
+        // Fixture: 10 jdk.SafepointBegin events with durations (ms): 1,2,3,4,5,6,7,8,9,500
+        // plus 2 NULL-duration rows that must be excluded
+        // plus 1 jdk.ExecutionSample row at 999 ms that must NOT leak into SafepointBegin stats.
+        private static final long MS = 1_000_000L;
+
+        @Test
+        void returnsEmptyStatsWhenNoEvents(DataSource dataSource) {
+            var provider = new DatabaseClientProvider(dataSource);
+            JdbcProfileEventRepository repository = new JdbcProfileEventRepository(SQL_FORMATTER, provider);
+
+            var stats = repository.durationStatsByType(Type.fromCode("jdk.SafepointBegin"));
+
+            assertEquals(0, stats.count());
+            assertEquals(0, stats.totalDurationNs());
+            assertEquals(0, stats.maxDurationNs());
+            assertEquals(0, stats.p99DurationNs());
+        }
+
+        @Test
+        void countExcludesNullDurationEvents(DataSource dataSource) throws SQLException {
+            TestUtils.executeSql(dataSource, "sql/events/insert-events-with-duration.sql");
+            var provider = new DatabaseClientProvider(dataSource);
+            JdbcProfileEventRepository repository = new JdbcProfileEventRepository(SQL_FORMATTER, provider);
+
+            var stats = repository.durationStatsByType(Type.fromCode("jdk.SafepointBegin"));
+
+            // 12 total safepoint rows in fixture, 2 with NULL duration → 10 counted.
+            assertEquals(10, stats.count(),
+                    "Rows with NULL duration must be excluded from the count");
+        }
+
+        @Test
+        void totalAndMaxMatchFixture(DataSource dataSource) throws SQLException {
+            TestUtils.executeSql(dataSource, "sql/events/insert-events-with-duration.sql");
+            var provider = new DatabaseClientProvider(dataSource);
+            JdbcProfileEventRepository repository = new JdbcProfileEventRepository(SQL_FORMATTER, provider);
+
+            var stats = repository.durationStatsByType(Type.fromCode("jdk.SafepointBegin"));
+
+            // Durations sum: (1+2+3+4+5+6+7+8+9+500) ms = 545 ms.
+            assertEquals(545 * MS, stats.totalDurationNs());
+            assertEquals(500 * MS, stats.maxDurationNs());
+        }
+
+        @Test
+        void p99IsComputedViaQuantileCont(DataSource dataSource) throws SQLException {
+            TestUtils.executeSql(dataSource, "sql/events/insert-events-with-duration.sql");
+            var provider = new DatabaseClientProvider(dataSource);
+            JdbcProfileEventRepository repository = new JdbcProfileEventRepository(SQL_FORMATTER, provider);
+
+            var stats = repository.durationStatsByType(Type.fromCode("jdk.SafepointBegin"));
+
+            // quantile_cont(0.99) on sorted [1,2,3,4,5,6,7,8,9,500] ms interpolates at index 8.91:
+            //   9 ms + 0.91 * (500 - 9) ms = 9 ms + 446.81 ms = 455.81 ms
+            // The exact interpolation formula DuckDB uses is index = 0.99 * (n-1) = 8.91.
+            // Allow ±5 ms tolerance to survive tiny implementation tweaks across DuckDB versions.
+            long expectedP99Ns = 455_810_000L;
+            long toleranceNs = 5 * MS;
+            long actual = stats.p99DurationNs();
+            assertTrue(Math.abs(actual - expectedP99Ns) <= toleranceNs,
+                    "Expected p99 near " + expectedP99Ns + " ns (±" + toleranceNs + "), got " + actual);
+            assertTrue(actual > stats.maxDurationNs() / 2,
+                    "p99 should be dominated by the 500 ms outlier, not the tight 1–9 ms cluster");
+            assertTrue(actual < stats.maxDurationNs(),
+                    "p99 must be strictly below max for this fixture");
+        }
+
+        @Test
+        void statsForDifferentTypeAreIsolated(DataSource dataSource) throws SQLException {
+            TestUtils.executeSql(dataSource, "sql/events/insert-events-with-duration.sql");
+            var provider = new DatabaseClientProvider(dataSource);
+            JdbcProfileEventRepository repository = new JdbcProfileEventRepository(SQL_FORMATTER, provider);
+
+            var execStats = repository.durationStatsByType(Type.fromCode("jdk.ExecutionSample"));
+            assertEquals(1, execStats.count(),
+                    "ExecutionSample fixture has a single row — must not leak safepoint data");
+            assertEquals(999_999_999L, execStats.totalDurationNs());
+        }
+
+        @Test
+        void unknownEventType_returnsEmpty(DataSource dataSource) throws SQLException {
+            TestUtils.executeSql(dataSource, "sql/events/insert-events-with-duration.sql");
+            var provider = new DatabaseClientProvider(dataSource);
+            JdbcProfileEventRepository repository = new JdbcProfileEventRepository(SQL_FORMATTER, provider);
+
+            var stats = repository.durationStatsByType(Type.fromCode("jdk.VirtualThreadPinned"));
+
+            assertEquals(0, stats.count());
         }
     }
 }
