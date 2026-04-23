@@ -11,7 +11,7 @@
 #                    and exec the JIB command verbatim — no jeffrey-cli init, no argfile.
 #
 # All paths are overridable via environment variables:
-#   JEFFREY_HOME          default /mnt/azure/runtime/shared/jeffrey
+#   JEFFREY_HOME          required (unless JEFFREY_CLI_PATH is set directly)
 #   JEFFREY_CLI_PATH      default ${JEFFREY_HOME}/libs/current/jeffrey-cli-<arch>
 #   JEFFREY_BASE_CONFIG   default /jeffrey/jeffrey-base.conf
 #   JEFFREY_OVERRIDE_CONFIG default /jeffrey/jeffrey-overrides.conf (optional)
@@ -30,7 +30,18 @@ case "${JEFFREY_ENABLED:-true}" in
     ;;
 esac
 
-JEFFREY_HOME="${JEFFREY_HOME:-/mnt/azure/runtime/shared/jeffrey}"
+# If the caller hasn't told us where the CLI lives, log a warning and continue without
+# profiling — the application must keep booting even when Jeffrey is not configured.
+if [ -z "${JEFFREY_CLI_PATH:-}" ] && [ -z "${JEFFREY_HOME:-}" ]; then
+  echo "jeffrey-jib: neither JEFFREY_HOME nor JEFFREY_CLI_PATH is set — Jeffrey is disabled, starting application without profiling." >&2
+  echo "jeffrey-jib: to enable, set JEFFREY_HOME to the shared volume root (CLI at \${JEFFREY_HOME}/libs/current/jeffrey-cli-<arch>)," >&2
+  echo "jeffrey-jib: or JEFFREY_CLI_PATH directly to the CLI binary." >&2
+  if [ $# -eq 0 ]; then
+    echo "jeffrey-jib: no command provided; cannot start the application." >&2
+    exit 1
+  fi
+  exec "$@"
+fi
 
 case "$(uname -m)" in
   x86_64)  ARCH="amd64" ;;
