@@ -252,7 +252,13 @@
                         >
                           <div class="kv" :class="{ long: row.multi }">
                             <span class="k">{{ row.label }}</span>
-                            <span class="v" :class="{ mono: row.mono, multi: row.multi, 'bool-true': row.boolTrue, 'bool-false': row.boolFalse }">{{ row.display }}</span>
+                            <span class="v" :class="{ mono: row.mono, multi: row.multi, 'bool-true': row.boolTrue, 'bool-false': row.boolFalse }">{{ rowDisplay(row, typeName) }}</span>
+                            <button
+                              v-if="row.truncatable"
+                              type="button"
+                              class="expand-toggle"
+                              @click="toggleRow(typeName, row.key)"
+                            >{{ isRowExpanded(typeName, row.key) ? 'Show less' : 'Show more' }}</button>
                           </div>
                         </template>
                       </div>
@@ -526,7 +532,35 @@ type FieldRow = {
   multi?: boolean;
   boolTrue?: boolean;
   boolFalse?: boolean;
+  truncatable?: boolean;
 };
+
+const LONG_VALUE_TRUNCATE_AT = 100;
+
+// Per-card×field set of row ids the user has expanded. Resets when the
+// component unmounts; we don't persist across navigation.
+const expandedRows = ref<Set<string>>(new Set());
+
+function rowKey(typeName: string, fieldKey: string): string {
+  return `${typeName}:${fieldKey}`;
+}
+
+function isRowExpanded(typeName: string, fieldKey: string): boolean {
+  return expandedRows.value.has(rowKey(typeName, fieldKey));
+}
+
+function toggleRow(typeName: string, fieldKey: string): void {
+  const next = new Set(expandedRows.value);
+  const k = rowKey(typeName, fieldKey);
+  if (next.has(k)) next.delete(k);
+  else next.add(k);
+  expandedRows.value = next;
+}
+
+function rowDisplay(row: FieldRow, typeName: string): string {
+  if (!row.truncatable || isRowExpanded(typeName, row.key)) return row.display;
+  return row.display.slice(0, LONG_VALUE_TRUNCATE_AT) + '…';
+}
 
 function envEntries(env: Record<string, Record<string, unknown>>): [string, Record<string, unknown>][] {
   return Object.entries(env).sort(([a], [b]) => {
@@ -576,7 +610,14 @@ function inferValue(key: string, value: unknown): FieldRow | null {
   }
   if (typeof value === 'string') {
     if (value.length === 0) return null;
-    return { key, label: fieldLabel(key), display: value, mono: true, multi: value.length > 60 };
+    return {
+      key,
+      label: fieldLabel(key),
+      display: value,
+      mono: true,
+      multi: value.length > 60,
+      truncatable: value.length > LONG_VALUE_TRUNCATE_AT,
+    };
   }
   return { key, label: fieldLabel(key), display: String(value), mono: true };
 }
@@ -967,11 +1008,14 @@ onMounted(async () => {
   background: var(--color-amber);
 }
 
-/* Detail cards grid — reused by both the instance and session drawers. */
+/* Detail cards grid — reused by both the instance and session drawers.
+   Cards stay at least 240px wide; auto-fill would pack 5+ per line on
+   wide screens, so we floor the column template at 25% minus gaps to
+   cap at 4 columns per row. */
 .detail-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(max(240px, calc((100% - 36px) / 4)), 1fr));
 }
 
 .detail-card {
@@ -1049,6 +1093,22 @@ onMounted(async () => {
 .kv.long .k { min-width: 0; }
 .kv.long .v { text-align: left; width: 100%; }
 
+.expand-toggle {
+  align-self: flex-start;
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin-top: 2px;
+  color: var(--color-primary);
+  font-size: 0.68rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+}
+.expand-toggle:hover {
+  text-decoration: underline;
+}
+
 .detail-card-subtitle {
   font-size: 0.62rem;
   font-weight: 500;
@@ -1058,12 +1118,13 @@ onMounted(async () => {
   font-family: ui-monospace, Menlo, Consolas, monospace;
 }
 .reason-desc {
-  font-size: 0.65rem;
-  color: var(--color-text-light);
-  font-style: italic;
-  text-align: right;
-  line-height: 1.4;
-  font-weight: 400;
+  display: block;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  font-size: 0.74rem;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+  font-weight: 500;
+  text-align: left;
   max-width: 100%;
 }
 
@@ -1155,14 +1216,15 @@ onMounted(async () => {
 
 .kv.kv-desc {
   border-top: none;
+  padding-top: 2px;
 }
 .kv.kv-desc .v {
   text-align: left;
-  font-weight: 400;
-  color: var(--color-text-light);
-  font-style: italic;
-  font-size: 0.68rem;
-  line-height: 1.4;
+  font-weight: 500;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  font-size: 0.74rem;
+  line-height: 1.5;
+  color: var(--color-text-muted);
 }
 
 /* ======================================================================

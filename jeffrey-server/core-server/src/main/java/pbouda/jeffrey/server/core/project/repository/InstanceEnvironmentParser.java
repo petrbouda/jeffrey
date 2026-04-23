@@ -106,9 +106,15 @@ public class InstanceEnvironmentParser {
             for (String type : needed) {
                 stream.onEvent(type, e -> {
                     ObjectNode node = mapper.map(e);
-                    // jdk.Shutdown's wall-clock time is the event's startTime,
-                    // not one of its fields — inject it explicitly so the
-                    // client can show when the JVM exited.
+                    // Drop the inherited jdk.jfr.Event fields — the environment
+                    // cards show configuration data, not event-emission
+                    // metadata. Without this, jdk.JVMInformation ends up with
+                    // two "Start Time" rows (the JVM's real jvmStartTime plus
+                    // the event's own startTime) that collide in the UI.
+                    node.remove("startTime");
+                    node.remove("duration");
+                    // jdk.Shutdown has no wall-clock field of its own, so we
+                    // re-inject the event's startTime under a dedicated key.
                     if (EventTypeName.SHUTDOWN.equals(type)) {
                         node.put("eventTime", e.getStartTime().toEpochMilli());
                     }
