@@ -141,8 +141,9 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
     }
 
     @Override
-    public Optional<Path> latestFinishedRecordingForInstance(String instanceId) {
-        return listSessionsByInstanceId(instanceId, true).stream()
+    public Optional<Path> latestFinishedRecordingForSession(String sessionId) {
+        return singleSession(sessionId, true)
+                .stream()
                 .flatMap(session -> session.files().stream())
                 .filter(RepositoryFile::isRecordingFile)
                 .filter(file -> file.status() == RecordingStatus.FINISHED)

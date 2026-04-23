@@ -16,9 +16,20 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.local.core.resources.response;
+import ProjectInstanceSession from '@/services/api/model/ProjectInstanceSession';
 
-public record InstanceDetailResponse(
-        InstanceResponse instance,
-        InstanceStatsResponse stats) {
+/**
+ * Raw JFR environment JSON passed through from the server, keyed by JFR
+ * event-type name (e.g. {@code "jdk.JVMInformation"}). The inner objects
+ * are the field maps emitted by {@code EventFieldsToJsonMapper}; the UI
+ * renders them dynamically so new JFR fields appear without a schema
+ * change. {@code null} when no finished recording chunk is available yet.
+ */
+export type InstanceEnvironmentJson = Record<string, Record<string, unknown>>;
+
+export default class ProjectInstanceSessionDetail {
+  constructor(
+    public session: ProjectInstanceSession,
+    public environment: InstanceEnvironmentJson | null
+  ) {}
 }

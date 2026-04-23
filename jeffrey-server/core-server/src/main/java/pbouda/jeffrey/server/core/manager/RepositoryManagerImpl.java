@@ -18,6 +18,7 @@
 
 package pbouda.jeffrey.server.core.manager;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.server.core.project.repository.InstanceEnvironmentParser;
@@ -26,7 +27,6 @@ import pbouda.jeffrey.server.core.project.repository.RepositoryStorage;
 import pbouda.jeffrey.server.core.scheduler.SchedulerTrigger;
 import pbouda.jeffrey.server.core.workspace.WorkspaceEventConverter;
 import pbouda.jeffrey.server.core.workspace.WorkspaceEventPublisher;
-import pbouda.jeffrey.shared.common.model.repository.InstanceEnvironment;
 import pbouda.jeffrey.shared.common.model.repository.InstanceStats;
 import pbouda.jeffrey.shared.common.model.repository.RepositoryStatistics;
 import pbouda.jeffrey.shared.common.model.repository.RepositoryStatistics.FileTypeStats;
@@ -186,8 +186,8 @@ public class RepositoryManagerImpl implements RepositoryManager {
     }
 
     @Override
-    public Optional<InstanceEnvironment> instanceEnvironment(String instanceId, boolean expectShutdown) {
-        return repositoryStorage.latestFinishedRecordingForInstance(instanceId)
+    public Optional<ObjectNode> sessionEnvironment(String sessionId, boolean expectShutdown) {
+        return repositoryStorage.latestFinishedRecordingForSession(sessionId)
                 .map(path -> environmentParser.parse(path, expectShutdown));
     }
 

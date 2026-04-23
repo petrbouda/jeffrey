@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,10 +16,16 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.profile.parser.fields;
+package pbouda.jeffrey.shared.common.jfr;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import jdk.jfr.*;
+import jdk.jfr.AnnotationElement;
+import jdk.jfr.EventType;
+import jdk.jfr.Percentage;
+import jdk.jfr.Timespan;
+import jdk.jfr.Timestamp;
+import jdk.jfr.Unsigned;
+import jdk.jfr.ValueDescriptor;
 import jdk.jfr.consumer.RecordedClass;
 import jdk.jfr.consumer.RecordedEvent;
 import jdk.jfr.consumer.RecordedMethod;

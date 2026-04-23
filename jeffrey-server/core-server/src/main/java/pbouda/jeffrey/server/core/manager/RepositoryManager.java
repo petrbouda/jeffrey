@@ -18,12 +18,12 @@
 
 package pbouda.jeffrey.server.core.manager;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import pbouda.jeffrey.shared.common.model.ProjectInfo;
 import pbouda.jeffrey.shared.common.model.RepositoryInfo;
 import pbouda.jeffrey.shared.common.model.repository.RecordingSession;
 import pbouda.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEventCreator;
-import pbouda.jeffrey.shared.common.model.repository.InstanceEnvironment;
 import pbouda.jeffrey.shared.common.model.repository.InstanceStats;
 import pbouda.jeffrey.shared.common.model.repository.RepositoryStatistics;
 import pbouda.jeffrey.shared.common.model.repository.StreamedRecordingFile;
@@ -92,19 +92,19 @@ public interface RepositoryManager {
     InstanceStats instanceStats(String instanceId);
 
     /**
-     * Parses the latest finished JFR chunk belonging to the instance and
-     * returns the one-shot configuration / environment events it contains.
+     * Parses the latest finished JFR chunk belonging to the session and
+     * returns the one-shot configuration / environment events it contains as
+     * a JSON map keyed by JFR event type name (see
+     * {@code InstanceEnvironmentParser}).
      *
-     * @param instanceId the instance to parse the environment for
-     * @param expectShutdown when {@code true}, the parser reads the whole
-     *                       chunk so that the {@code jdk.Shutdown} event at
-     *                       the end isn't missed (set for FINISHED instances).
-     *                       When {@code false}, the parser bails early once
-     *                       all one-shot config events have been seen.
-     * @return the parsed environment, or empty if no finished uncompressed
-     *         JFR chunk exists yet for this instance
+     * @param sessionId the session to parse the environment for
+     * @param expectShutdown when {@code true}, the parser looks for the
+     *                       {@code jdk.Shutdown} event (present only in the
+     *                       final chunk of a FINISHED session).
+     * @return the parsed environment as an {@link ObjectNode}, or empty if no
+     *         finished recording chunk exists yet for this session
      */
-    Optional<InstanceEnvironment> instanceEnvironment(String instanceId, boolean expectShutdown);
+    Optional<ObjectNode> sessionEnvironment(String sessionId, boolean expectShutdown);
 
     /**
      * Create a new repository for the project.

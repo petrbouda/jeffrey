@@ -20,6 +20,7 @@ import BasePlatformClient from '@/services/api/BasePlatformClient';
 import ProjectInstance from '@/services/api/model/ProjectInstance';
 import ProjectInstanceDetail from '@/services/api/model/ProjectInstanceDetail';
 import ProjectInstanceSession from '@/services/api/model/ProjectInstanceSession';
+import ProjectInstanceSessionDetail from '@/services/api/model/ProjectInstanceSessionDetail';
 
 export default class ProjectInstanceClient extends BasePlatformClient {
   constructor(workspaceId: string, projectId: string) {
@@ -46,7 +47,13 @@ export default class ProjectInstanceClient extends BasePlatformClient {
     return super.get<any>(`/${instanceId}/detail`).then(data => new ProjectInstanceDetail(
         this.mapToInstance(data.instance),
         data.stats.fileCount ?? 0,
-        data.stats.totalSizeBytes ?? 0,
+        data.stats.totalSizeBytes ?? 0
+    ));
+  }
+
+  async getSessionDetail(instanceId: string, sessionId: string): Promise<ProjectInstanceSessionDetail> {
+    return super.get<any>(`/${instanceId}/sessions/${sessionId}/detail`).then(data => new ProjectInstanceSessionDetail(
+        this.mapToSession(data.session),
         data.environment ?? null
     ));
   }

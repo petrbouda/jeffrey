@@ -28,6 +28,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.local.core.resources.response.InstanceDetailResponse;
 import pbouda.jeffrey.local.core.resources.response.InstanceResponse;
+import pbouda.jeffrey.local.core.resources.response.InstanceSessionDetailResponse;
 import pbouda.jeffrey.local.core.resources.response.InstanceSessionResponse;
 import pbouda.jeffrey.local.core.manager.project.RemoteInstancesManager;
 import pbouda.jeffrey.shared.common.model.ProjectInfo;
@@ -85,5 +86,16 @@ public class ProjectInstancesResource {
                 .toList();
         LOG.debug("Listed instance sessions: projectId={} instanceId={} count={}", projectInfo.id(), instanceId, result.size());
         return result;
+    }
+
+    @GET
+    @Path("/{instanceId}/sessions/{sessionId}/detail")
+    public InstanceSessionDetailResponse getSessionDetail(
+            @PathParam("instanceId") String instanceId,
+            @PathParam("sessionId") String sessionId) {
+        LOG.debug("Fetching instance session detail: instanceId={} sessionId={}", instanceId, sessionId);
+        return projectInstanceRepository.sessionDetail(instanceId, sessionId)
+                .orElseThrow(() -> new NotFoundException(
+                        "Session not found: instanceId=" + instanceId + " sessionId=" + sessionId));
     }
 }

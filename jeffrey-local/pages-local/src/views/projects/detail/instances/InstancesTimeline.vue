@@ -55,7 +55,10 @@
           v-for="instance in instances"
           :key="instance.id"
           class="swim-row-group"
-          :class="{ expanded: expandedIds.has(instance.id) }"
+          :class="{
+            expanded: expandedIds.has(instance.id),
+            'has-open-session': activeSessionByInstance.has(instance.id)
+          }"
         >
           <div class="swim-row" @click="toggleExpand(instance.id)">
             <!-- Left rail (status shown via background) -->
@@ -97,12 +100,12 @@
                     v-for="(session, idx) in getSessionsForInstance(instance.id)"
                     :key="session.id"
                     class="session-bar"
-                    :class="sessionBarClass(session, idx)"
+                    :class="[sessionBarClass(session, idx), { selected: activeSessionByInstance.get(instance.id) === session.id }]"
                     :style="getSessionBarStyle(session)"
                     @mouseenter.stop="showSessionTooltip($event, session, instance.id)"
                     @mousemove.stop="updateTooltipPosition($event)"
                     @mouseleave.stop="hideTooltip"
-                    @click.stop
+                    @click.stop="toggleSessionBar(instance.id, session)"
                   ></div>
                 </template>
               </div>
@@ -110,78 +113,155 @@
             </div>
           </div>
 
-          <!-- Expand-on-click detail panel -->
-          <div v-if="expandedIds.has(instance.id)" class="detail-panel">
-            <LoadingState
-              v-if="!instanceDetails.get(instance.id)"
-              message="Loading instance details..."
-            />
-            <div v-else class="detail-cards">
-              <div class="detail-card">
-                <div class="detail-card-head">
-                  <span class="detail-card-title">Overview</span>
-                </div>
-                <div class="detail-card-body">
-                  <div class="kv"><span class="k">started</span><span class="v mono">{{ FormattingService.formatTimestampUTC(instanceDetails.get(instance.id)!.instance.createdAt) }}</span></div>
-                  <div class="kv">
-                    <span class="k">finished</span>
-                    <span v-if="instanceEnd(instanceDetails.get(instance.id)!.instance)" class="v mono">{{ FormattingService.formatTimestampUTC(instanceEnd(instanceDetails.get(instance.id)!.instance)) }}</span>
-                    <span v-else class="v running">Running...</span>
-                  </div>
-                  <div class="kv"><span class="k">duration</span><span class="v mono">{{ FormattingService.formatDurationInMillis2Units(instanceDetails.get(instance.id)!.instance.duration) }}</span></div>
-                  <div class="kv"><span class="k">sessions</span><span class="v mono">{{ instanceDetails.get(instance.id)!.instance.sessionCount }}</span></div>
-                  <div v-if="instanceDetails.get(instance.id)!.environment?.shutdown" class="kv">
-                    <span class="k">reason</span>
-                    <span class="v reason-value">
-                      <span class="reason-main">
-                        <Badge
-                          :value="shutdownKindLabel(instanceDetails.get(instance.id)!.environment!.shutdown!.kind)"
-                          :variant="shutdownKindVariant(instanceDetails.get(instance.id)!.environment!.shutdown!.kind)"
-                          size="xxs"
-                        />
-                        <span v-if="instanceDetails.get(instance.id)!.environment!.shutdown!.reason" class="mono reason-raw">{{ instanceDetails.get(instance.id)!.environment!.shutdown!.reason }}</span>
-                      </span>
-                      <span class="reason-desc">{{ shutdownKindDescription(instanceDetails.get(instance.id)!.environment!.shutdown!.kind) }}</span>
-                    </span>
-                  </div>
-                  <div class="kv"><span class="k">files</span><span class="v mono">{{ instanceDetails.get(instance.id)!.fileCount }}</span></div>
-                  <div class="kv"><span class="k">storage</span><span class="v mono">{{ FormattingService.formatBytes(instanceDetails.get(instance.id)!.totalSizeBytes) }}</span></div>
-                </div>
-              </div>
+          <!-- Instance overview panel: opens when the row is clicked. Uses the same
+               drawer shell as the session drawer below; only one can be open per row. -->
+          <div v-if="expandedIds.has(instance.id)" class="inline-drawer">
+            <div class="inline-drawer-head">
+              <i class="bi bi-box inline-drawer-icon"></i>
+              <span class="inline-drawer-label">Instance</span>
+              <span class="inline-drawer-id mono">{{ instance.instanceName }}</span>
+              <Badge
+                :value="statusBadgeLabel(instance.status)"
+                :variant="statusBadgeVariant(instance.status)"
+                size="xxs"
+              />
+              <span class="inline-drawer-meta">
+                {{ FormattingService.formatTimestampUTC(instance.createdAt) }}
+                →
+                <template v-if="instanceEnd(instance)">
+                  {{ FormattingService.formatTimestampUTC(instanceEnd(instance)) }}
+                </template>
+                <template v-else>Running</template>
+                <span class="inline-drawer-meta-sep">·</span>
+                {{ FormattingService.formatDurationInMillis2Units(instance.duration) }}
+              </span>
+              <button
+                type="button"
+                class="inline-drawer-close"
+                aria-label="Close instance detail"
+                @click="closeInstanceDrawer(instance.id)"
+              >
+                <i class="bi bi-x-lg"></i>
+              </button>
+            </div>
 
-              <div class="detail-card" v-if="instanceDetails.get(instance.id)!.environment?.gcHeap">
-                <div class="detail-card-head">
-                  <span class="detail-card-title">JVM · GC Heap</span>
-                </div>
-                <div class="detail-card-body">
-                  <div v-if="instanceDetails.get(instance.id)!.environment!.gcHeap!.minSize != null" class="kv"><span class="k">min size</span><span class="v mono">{{ FormattingService.formatBytes(instanceDetails.get(instance.id)!.environment!.gcHeap!.minSize!) }}</span></div>
-                  <div v-if="instanceDetails.get(instance.id)!.environment!.gcHeap!.initialSize != null" class="kv"><span class="k">initial size</span><span class="v mono">{{ FormattingService.formatBytes(instanceDetails.get(instance.id)!.environment!.gcHeap!.initialSize!) }}</span></div>
-                  <div v-if="instanceDetails.get(instance.id)!.environment!.gcHeap!.maxSize != null" class="kv"><span class="k">max size</span><span class="v mono">{{ FormattingService.formatBytes(instanceDetails.get(instance.id)!.environment!.gcHeap!.maxSize!) }}</span></div>
-                  <div v-if="instanceDetails.get(instance.id)!.environment!.gcHeap!.usesCompressedOops != null" class="kv"><span class="k">uses compressed oops</span><span class="v mono">{{ instanceDetails.get(instance.id)!.environment!.gcHeap!.usesCompressedOops }}</span></div>
-                  <div v-if="instanceDetails.get(instance.id)!.environment!.gcHeap!.compressedOopsMode" class="kv"><span class="k">compressed oops mode</span><span class="v mono">{{ instanceDetails.get(instance.id)!.environment!.gcHeap!.compressedOopsMode }}</span></div>
-                  <div v-if="instanceDetails.get(instance.id)!.environment!.gcHeap!.objectAlignment != null" class="kv"><span class="k">object alignment</span><span class="v mono">{{ instanceDetails.get(instance.id)!.environment!.gcHeap!.objectAlignment }} B</span></div>
-                  <div v-if="instanceDetails.get(instance.id)!.environment!.gcHeap!.heapAddressBits != null" class="kv"><span class="k">heap address bits</span><span class="v mono">{{ instanceDetails.get(instance.id)!.environment!.gcHeap!.heapAddressBits }}</span></div>
-                </div>
-              </div>
-
-              <div class="detail-card" v-if="instanceDetails.get(instance.id)!.environment?.container">
-                <div class="detail-card-head">
-                  <span class="detail-card-title">Container</span>
-                </div>
-                <div class="detail-card-body">
-                  <div v-if="instanceDetails.get(instance.id)!.environment!.container!.containerType" class="kv"><span class="k">container type</span><span class="v mono">{{ instanceDetails.get(instance.id)!.environment!.container!.containerType }}</span></div>
-                  <div v-if="instanceDetails.get(instance.id)!.environment!.container!.effectiveCpuCount != null" class="kv"><span class="k">effective cpu count</span><span class="v mono">{{ instanceDetails.get(instance.id)!.environment!.container!.effectiveCpuCount }}</span></div>
-                  <div v-if="instanceDetails.get(instance.id)!.environment!.container!.cpuQuota != null" class="kv"><span class="k">cpu quota</span><span class="v mono">{{ instanceDetails.get(instance.id)!.environment!.container!.cpuQuota }} µs</span></div>
-                  <div v-if="instanceDetails.get(instance.id)!.environment!.container!.cpuSlicePeriod != null" class="kv"><span class="k">cpu slice period</span><span class="v mono">{{ instanceDetails.get(instance.id)!.environment!.container!.cpuSlicePeriod }} µs</span></div>
-                  <div v-if="instanceDetails.get(instance.id)!.environment!.container!.cpuShares != null" class="kv"><span class="k">cpu shares</span><span class="v mono">{{ instanceDetails.get(instance.id)!.environment!.container!.cpuShares }}</span></div>
-                  <div v-if="instanceDetails.get(instance.id)!.environment!.container!.memoryLimit != null" class="kv"><span class="k">memory limit</span><span class="v mono">{{ FormattingService.formatBytes(instanceDetails.get(instance.id)!.environment!.container!.memoryLimit!) }}</span></div>
-                  <div v-if="instanceDetails.get(instance.id)!.environment!.container!.memorySoftLimit != null" class="kv"><span class="k">memory soft limit</span><span class="v mono">{{ FormattingService.formatBytes(instanceDetails.get(instance.id)!.environment!.container!.memorySoftLimit!) }}</span></div>
-                  <div v-if="instanceDetails.get(instance.id)!.environment!.container!.swapMemoryLimit != null" class="kv"><span class="k">swap memory limit</span><span class="v mono">{{ FormattingService.formatBytes(instanceDetails.get(instance.id)!.environment!.container!.swapMemoryLimit!) }}</span></div>
-                  <div v-if="instanceDetails.get(instance.id)!.environment!.container!.hostTotalMemory != null" class="kv"><span class="k">host total memory</span><span class="v mono">{{ FormattingService.formatBytes(instanceDetails.get(instance.id)!.environment!.container!.hostTotalMemory!) }}</span></div>
+            <div class="inline-drawer-body">
+              <LoadingState
+                v-if="!instanceDetails.get(instance.id)"
+                message="Loading instance details..."
+              />
+              <div v-else class="detail-cards">
+                <div class="detail-card">
+                  <div class="detail-card-head">
+                    <span class="detail-card-title">Overview</span>
+                  </div>
+                  <div class="detail-card-body">
+                    <div class="kv"><span class="k">started</span><span class="v mono">{{ FormattingService.formatTimestampUTC(instanceDetails.get(instance.id)!.instance.createdAt) }}</span></div>
+                    <div class="kv">
+                      <span class="k">finished</span>
+                      <span v-if="instanceEnd(instanceDetails.get(instance.id)!.instance)" class="v mono">{{ FormattingService.formatTimestampUTC(instanceEnd(instanceDetails.get(instance.id)!.instance)) }}</span>
+                      <span v-else class="v running">Running...</span>
+                    </div>
+                    <div class="kv"><span class="k">duration</span><span class="v mono">{{ FormattingService.formatDurationInMillis2Units(instanceDetails.get(instance.id)!.instance.duration) }}</span></div>
+                    <div class="kv"><span class="k">sessions</span><span class="v mono">{{ instanceDetails.get(instance.id)!.instance.sessionCount }}</span></div>
+                    <div class="kv"><span class="k">files</span><span class="v mono">{{ instanceDetails.get(instance.id)!.fileCount }}</span></div>
+                    <div class="kv"><span class="k">storage</span><span class="v mono">{{ FormattingService.formatBytes(instanceDetails.get(instance.id)!.totalSizeBytes) }}</span></div>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
+
+          <!-- Session drawer: opens when a session bar in the timeline above is clicked. -->
+          <template v-if="activeSessionByInstance.has(instance.id)">
+            <template v-for="session in getSessionsForInstance(instance.id)" :key="session.id + ':drawer'">
+              <div
+                v-if="activeSessionByInstance.get(instance.id) === session.id"
+                class="inline-drawer"
+              >
+                <div class="inline-drawer-head">
+                  <i class="bi bi-layers inline-drawer-icon"></i>
+                  <span class="inline-drawer-label">Session</span>
+                  <span class="inline-drawer-id mono">{{ session.id }}</span>
+                  <Badge
+                    :value="session.isActive ? 'Active' : 'Finished'"
+                    :variant="session.isActive ? 'orange' : 'green'"
+                    size="xxs"
+                  />
+                  <span class="inline-drawer-meta">
+                    {{ FormattingService.formatTimestampUTC(session.createdAt) }}
+                    →
+                    <template v-if="session.finishedAt">
+                      {{ FormattingService.formatTimestampUTC(session.finishedAt) }}
+                    </template>
+                    <template v-else>Running</template>
+                    <span class="inline-drawer-meta-sep">·</span>
+                    {{ FormattingService.formatDurationInMillis2Units(session.duration) }}
+                  </span>
+                  <button
+                    type="button"
+                    class="inline-drawer-close"
+                    aria-label="Close session detail"
+                    @click="closeSessionDrawer(instance.id)"
+                  >
+                    <i class="bi bi-x-lg"></i>
+                  </button>
+                </div>
+
+                <div class="inline-drawer-body">
+                  <LoadingState
+                    v-if="!sessionDetails.get(session.id)"
+                    message="Loading session..."
+                  />
+                  <EmptyState
+                    v-else-if="!sessionDetails.get(session.id)!.environment"
+                    icon="bi-file-earmark-x"
+                    title="No environment data"
+                    description="This session has no finished recording chunk yet, so no JVM environment events could be read."
+                  />
+                  <div v-else class="detail-cards">
+                    <div
+                      v-for="[typeName, fields] in envEntries(sessionDetails.get(session.id)!.environment)"
+                      :key="typeName"
+                      class="detail-card"
+                    >
+                      <div class="detail-card-head">
+                        <span class="detail-card-title">{{ cardTitle(typeName) }}</span>
+                        <span class="detail-card-subtitle mono">{{ typeName }}</span>
+                      </div>
+                      <div class="detail-card-body">
+                        <!-- Shutdown cards get a derived kind badge at the top before the generic rows. -->
+                        <template v-if="typeName === 'jdk.Shutdown'">
+                          <div class="kv">
+                            <span class="k">kind</span>
+                            <span class="v">
+                              <Badge
+                                :value="shutdownKindLabel(classifyShutdownKind((fields as any).reason))"
+                                :variant="shutdownKindVariant(classifyShutdownKind((fields as any).reason))"
+                                size="xxs"
+                              />
+                            </span>
+                          </div>
+                          <div class="kv kv-desc">
+                            <span class="v reason-desc">{{ shutdownKindDescription(classifyShutdownKind((fields as any).reason)) }}</span>
+                          </div>
+                        </template>
+                        <template
+                          v-for="row in fieldRows(fields)"
+                          :key="row.key"
+                        >
+                          <div class="kv" :class="{ long: row.multi }">
+                            <span class="k">{{ row.label }}</span>
+                            <span class="v" :class="{ mono: row.mono, multi: row.multi, 'bool-true': row.boolTrue, 'bool-false': row.boolFalse }">{{ row.display }}</span>
+                          </div>
+                        </template>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </template>
+          </template>
         </div>
       </div>
 
@@ -248,6 +328,7 @@ import ProjectInstanceClient from '@/services/api/ProjectInstanceClient';
 import ProjectInstance, { type ProjectInstanceStatus } from '@/services/api/model/ProjectInstance';
 import ProjectInstanceDetail from '@/services/api/model/ProjectInstanceDetail';
 import ProjectInstanceSession from '@/services/api/model/ProjectInstanceSession';
+import ProjectInstanceSessionDetail from '@/services/api/model/ProjectInstanceSessionDetail';
 import FormattingService from '@/services/FormattingService';
 import { useNavigation } from '@/composables/useNavigation';
 import '@/styles/shared-components.css';
@@ -268,6 +349,12 @@ const instances = ref<ProjectInstance[]>([]);
 const instanceSessions = ref<Map<string, ProjectInstanceSession[]>>(new Map());
 const expandedIds = ref<Set<string>>(new Set());
 const instanceDetails = ref<Map<string, ProjectInstanceDetail>>(new Map());
+
+// Maps an instance id → the id of the session whose drawer is currently open beneath it.
+// Only one drawer per instance is open at a time; re-clicking the same bar closes it, and
+// clicking another bar in the same row swaps the content.
+const activeSessionByInstance = ref<Map<string, string>>(new Map());
+const sessionDetails = ref<Map<string, ProjectInstanceSessionDetail>>(new Map());
 const instanceClient = new ProjectInstanceClient(workspaceId.value!, projectId.value!);
 
 const totalSessions = computed(() =>
@@ -354,8 +441,161 @@ function sessionBarClass(session: ProjectInstanceSession, idx: number): string[]
   return classes;
 }
 
-function instanceEnd(instance: ProjectInstance): number | undefined {
-  return instance.finishedAt ?? instance.expiredAt;
+// ====================================================================
+// Dynamic environment-card rendering
+// --------------------------------------------------------------------
+// The server passes the raw JFR JSON through as
+//   { "jdk.JVMInformation": { jvmName, ..., pid }, "jdk.Shutdown": { ... }, ... }
+// We iterate that map directly so new JFR fields appear automatically.
+//
+// Label resolution: override map first, then an acronym-aware camelCase
+// splitter as fallback.
+// Value rendering: inferred from the field name (size/memory → bytes,
+// *Time → UTC timestamp, pauseTarget → nanos→ms, booleans → ✓/✗, long
+// strings → monospace wrap, null/empty → row is hidden).
+// ====================================================================
+
+const CARD_TITLE_OVERRIDES: Record<string, string> = {
+  'jdk.JVMInformation': 'JVM',
+  'jdk.OSInformation': 'OS',
+  'jdk.CPUInformation': 'CPU',
+  'jdk.GCConfiguration': 'GC',
+  'jdk.GCHeapConfiguration': 'GC Heap',
+  'jdk.CompilerConfiguration': 'Compiler',
+  'jdk.ContainerConfiguration': 'Container',
+  'jdk.VirtualizationInformation': 'Virtualization',
+  'jdk.Shutdown': 'Shutdown',
+};
+
+const FIELD_LABEL_OVERRIDES: Record<string, string> = {
+  pid: 'PID',
+  hwThreads: 'HW Threads',
+  cpu: 'CPU Model',
+  jvmName: 'Name',
+  jvmVersion: 'Version',
+  jvmArguments: 'JVM Args',
+  javaArguments: 'Java Args',
+  jvmFlags: 'Flags',
+  jvmStartTime: 'Start Time',
+  osVersion: 'Version',
+  compressedOopsMode: 'OOPs Mode',
+  usesCompressedOops: 'Compressed OOPs',
+  usesDynamicGCThreads: 'Dynamic GC Threads',
+  isExplicitGCConcurrent: 'Explicit GC Concurrent',
+  isExplicitGCDisabled: 'Explicit GC Disabled',
+  parallelGCThreads: 'Parallel GC Threads',
+  concurrentGCThreads: 'Concurrent GC Threads',
+  gcTimeRatio: 'GC Time Ratio',
+  pauseTarget: 'Pause Target',
+  dynamicCompilerThreadCount: 'Dynamic Threads',
+  tieredCompilation: 'Tiered',
+  threadCount: 'Threads',
+  containerType: 'Type',
+  cpuSlicePeriod: 'CPU Slice Period',
+  cpuQuota: 'CPU Quota',
+  cpuShares: 'CPU Shares',
+  effectiveCpuCount: 'Effective CPUs',
+  memorySoftLimit: 'Memory (Soft)',
+  memoryLimit: 'Memory Limit',
+  swapMemoryLimit: 'Swap Limit',
+  hostTotalMemory: 'Host Total',
+  hostTotalSwapMemory: 'Host Swap Total',
+  reason: 'Reason',
+  eventTime: 'Time',
+};
+
+// Rendering-order priority when listing event-type cards (smaller first).
+// Unknown event types fall through to a large sentinel so they land at the end.
+const CARD_ORDER: Record<string, number> = {
+  'jdk.Shutdown': 0,
+  'jdk.JVMInformation': 1,
+  'jdk.OSInformation': 2,
+  'jdk.CPUInformation': 3,
+  'jdk.GCConfiguration': 4,
+  'jdk.GCHeapConfiguration': 5,
+  'jdk.CompilerConfiguration': 6,
+  'jdk.ContainerConfiguration': 7,
+  'jdk.VirtualizationInformation': 8,
+};
+
+type FieldRow = {
+  key: string;
+  label: string;
+  display: string;
+  mono?: boolean;
+  multi?: boolean;
+  boolTrue?: boolean;
+  boolFalse?: boolean;
+};
+
+function envEntries(env: Record<string, Record<string, unknown>>): [string, Record<string, unknown>][] {
+  return Object.entries(env).sort(([a], [b]) => {
+    const ao = CARD_ORDER[a] ?? 1000;
+    const bo = CARD_ORDER[b] ?? 1000;
+    return ao - bo || a.localeCompare(b);
+  });
+}
+
+function cardTitle(typeName: string): string {
+  return CARD_TITLE_OVERRIDES[typeName] ?? typeName.replace(/^jdk\./, '');
+}
+
+function splitLabel(key: string): string {
+  const spaced = key
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2');
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+}
+
+function fieldLabel(key: string): string {
+  return FIELD_LABEL_OVERRIDES[key] ?? splitLabel(key);
+}
+
+function inferValue(key: string, value: unknown): FieldRow | null {
+  if (value == null) return null;
+  if (typeof value === 'boolean') {
+    return { key, label: fieldLabel(key), display: value ? '✓' : '✗', boolTrue: value, boolFalse: !value };
+  }
+  if (typeof value === 'number') {
+    if (key === 'jvmStartTime' || key === 'eventTime' || /Time$/.test(key)) {
+      return { key, label: fieldLabel(key), display: FormattingService.formatTimestampUTC(value), mono: true };
+    }
+    if (key === 'objectAlignment') {
+      return { key, label: fieldLabel(key), display: `${value} B`, mono: true };
+    }
+    if (/(Size|Memory|Limit)$/.test(key) && value > 0) {
+      return { key, label: fieldLabel(key), display: FormattingService.formatBytes(value), mono: true };
+    }
+    if (key === 'pauseTarget') {
+      return { key, label: fieldLabel(key), display: `${value / 1_000_000} ms`, mono: true };
+    }
+    if (key === 'cpuQuota' || key === 'cpuSlicePeriod') {
+      return { key, label: fieldLabel(key), display: `${value.toLocaleString()} µs`, mono: true };
+    }
+    return { key, label: fieldLabel(key), display: value.toLocaleString(), mono: true };
+  }
+  if (typeof value === 'string') {
+    if (value.length === 0) return null;
+    return { key, label: fieldLabel(key), display: value, mono: true, multi: value.length > 60 };
+  }
+  return { key, label: fieldLabel(key), display: String(value), mono: true };
+}
+
+function fieldRows(fields: Record<string, unknown>): FieldRow[] {
+  // Shutdown's reason/eventTime are still rendered generically; the derived
+  // `kind` badge is placed outside the loop at the top of that card.
+  return Object.entries(fields)
+    .map(([k, v]) => inferValue(k, v))
+    .filter((row): row is FieldRow => row !== null);
+}
+
+function classifyShutdownKind(reason: unknown): string {
+  switch (reason) {
+    case 'Shutdown requested from Java': return 'GRACEFUL';
+    case 'VM Error': return 'VM_ERROR';
+    case 'CrashOnOutOfMemoryError': return 'CRASH_OOM';
+    default: return 'UNKNOWN';
+  }
 }
 
 function shutdownKindLabel(kind: string | undefined): string {
@@ -389,12 +629,41 @@ function shutdownKindDescription(kind: string | undefined): string {
   }
 }
 
+function instanceEnd(instance: ProjectInstance): number | undefined {
+  return instance.finishedAt ?? instance.expiredAt;
+}
+
+function statusBadgeLabel(status: ProjectInstanceStatus): string {
+  switch (status) {
+    case 'PENDING': return 'Pending';
+    case 'ACTIVE': return 'Active';
+    case 'FINISHED': return 'Finished';
+    case 'EXPIRED': return 'Expired';
+    default: return 'Unknown';
+  }
+}
+
+function statusBadgeVariant(status: ProjectInstanceStatus): 'blue' | 'orange' | 'green' | 'grey' {
+  switch (status) {
+    case 'PENDING': return 'blue';
+    case 'ACTIVE': return 'orange';
+    case 'FINISHED': return 'green';
+    case 'EXPIRED':
+    default: return 'grey';
+  }
+}
+
 function toggleExpand(instanceId: string): void {
   const next = new Set(expandedIds.value);
   if (next.has(instanceId)) {
     next.delete(instanceId);
   } else {
     next.add(instanceId);
+    // Mutual exclusion: only one drawer (Instance or Session) open per row.
+    const activeNext = new Map(activeSessionByInstance.value);
+    activeNext.delete(instanceId);
+    activeSessionByInstance.value = activeNext;
+
     if (!instanceDetails.value.has(instanceId)) {
       instanceClient.getDetail(instanceId).then(detail => {
         const updated = new Map(instanceDetails.value);
@@ -404,6 +673,40 @@ function toggleExpand(instanceId: string): void {
     }
   }
   expandedIds.value = next;
+}
+
+function closeInstanceDrawer(instanceId: string): void {
+  const next = new Set(expandedIds.value);
+  next.delete(instanceId);
+  expandedIds.value = next;
+}
+
+function toggleSessionBar(instanceId: string, session: ProjectInstanceSession): void {
+  const next = new Map(activeSessionByInstance.value);
+  if (next.get(instanceId) === session.id) {
+    next.delete(instanceId);
+  } else {
+    next.set(instanceId, session.id);
+    // Mutual exclusion: close the Instance panel for this row if it was open.
+    const expandedNext = new Set(expandedIds.value);
+    expandedNext.delete(instanceId);
+    expandedIds.value = expandedNext;
+
+    if (!sessionDetails.value.has(session.id)) {
+      instanceClient.getSessionDetail(instanceId, session.id).then(detail => {
+        const updated = new Map(sessionDetails.value);
+        updated.set(session.id, detail);
+        sessionDetails.value = updated;
+      });
+    }
+  }
+  activeSessionByInstance.value = next;
+}
+
+function closeSessionDrawer(instanceId: string): void {
+  const next = new Map(activeSessionByInstance.value);
+  next.delete(instanceId);
+  activeSessionByInstance.value = next;
 }
 
 function showSessionTooltip(
@@ -664,25 +967,11 @@ onMounted(async () => {
   background: var(--color-amber);
 }
 
-/* ======================================================================
-   Expanded detail panel (three cards)
-   ====================================================================== */
-.detail-panel {
-  padding: 14px 20px 18px;
-  background: var(--color-bg-hover);
-  border-top: 1px dashed var(--color-border);
-}
-
+/* Detail cards grid — reused by both the instance and session drawers. */
 .detail-cards {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   gap: 12px;
-}
-
-@media (max-width: 900px) {
-  .detail-cards {
-    grid-template-columns: 1fr;
-  }
 }
 
 .detail-card {
@@ -736,30 +1025,37 @@ onMounted(async () => {
 .v.mono {
   font-family: ui-monospace, Menlo, Consolas, monospace;
 }
-.v.running {
+.v.multi {
+  text-align: left;
+  background: var(--color-bg);
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 0.66rem;
   color: var(--color-text-muted);
-  font-style: italic;
   font-weight: 500;
+  max-width: 100%;
+  white-space: pre-wrap;
+  word-break: break-all;
+  line-height: 1.5;
 }
-.v.reason-value {
-  display: flex;
+.v.bool-true { color: var(--color-success); }
+.v.bool-false { color: var(--color-text-light); }
+
+.kv.long {
   flex-direction: column;
-  align-items: flex-end;
-  gap: 3px;
-  font-weight: 500;
-  min-width: 0;
+  align-items: flex-start;
+  gap: 4px;
 }
-.reason-main {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-}
-.reason-raw {
-  font-size: 0.68rem;
-  color: var(--color-text-muted);
+.kv.long .k { min-width: 0; }
+.kv.long .v { text-align: left; width: 100%; }
+
+.detail-card-subtitle {
+  font-size: 0.62rem;
   font-weight: 500;
+  color: var(--color-text-light);
+}
+.detail-card-subtitle.mono {
+  font-family: ui-monospace, Menlo, Consolas, monospace;
 }
 .reason-desc {
   font-size: 0.65rem;
@@ -769,6 +1065,104 @@ onMounted(async () => {
   line-height: 1.4;
   font-weight: 400;
   max-width: 100%;
+}
+
+/* ======================================================================
+   Session drawer — opens inline beneath the row when a session bar is
+   clicked in the timeline lane above. One drawer per instance at a time.
+   ====================================================================== */
+.swim-row-group.has-open-session {
+  background-color: var(--color-bg-hover);
+}
+.swim-row-group.has-open-session .swim-row {
+  background-color: var(--color-bg-hover);
+}
+
+.session-bar.selected {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+  z-index: 2;
+}
+
+.inline-drawer {
+  border-top: 1px dashed var(--color-border);
+  background: var(--color-bg-hover);
+  padding: 14px 20px 18px;
+  animation: inline-drawer-in 0.18s ease-out;
+}
+@keyframes inline-drawer-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.inline-drawer-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 10px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 0.76rem;
+  flex-wrap: wrap;
+}
+.inline-drawer-icon {
+  font-size: 0.95rem;
+  color: var(--color-primary);
+  flex-shrink: 0;
+}
+.inline-drawer-label {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-primary);
+  flex-shrink: 0;
+}
+.inline-drawer-id {
+  color: var(--color-dark);
+  font-weight: 600;
+  word-break: break-all;
+  min-width: 0;
+}
+.inline-drawer-meta {
+  color: var(--color-text-muted);
+  font-size: 0.7rem;
+  margin-left: auto;
+}
+.inline-drawer-meta-sep {
+  margin: 0 6px;
+  color: var(--color-text-light);
+}
+.inline-drawer-close {
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  padding: 2px 8px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  line-height: 1;
+  transition: all var(--transition-fast);
+}
+.inline-drawer-close:hover {
+  background: var(--color-light);
+  color: var(--color-dark);
+}
+
+.inline-drawer-body {
+  min-height: 40px;
+}
+
+.kv.kv-desc {
+  border-top: none;
+}
+.kv.kv-desc .v {
+  text-align: left;
+  font-weight: 400;
+  color: var(--color-text-light);
+  font-style: italic;
+  font-size: 0.68rem;
+  line-height: 1.4;
 }
 
 /* ======================================================================

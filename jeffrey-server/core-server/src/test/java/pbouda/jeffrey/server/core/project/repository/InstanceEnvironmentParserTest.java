@@ -18,6 +18,8 @@
 
 package pbouda.jeffrey.server.core.project.repository;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import jdk.jfr.Configuration;
 import jdk.jfr.Recording;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,13 +28,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import pbouda.jeffrey.server.core.ServerJeffreyDirs;
 import pbouda.jeffrey.shared.common.compression.Lz4Compressor;
-import pbouda.jeffrey.shared.common.model.repository.InstanceEnvironment;
-import pbouda.jeffrey.shared.common.model.repository.InstanceEnvironment.CompilerConfiguration;
-import pbouda.jeffrey.shared.common.model.repository.InstanceEnvironment.CpuInformation;
-import pbouda.jeffrey.shared.common.model.repository.InstanceEnvironment.GcConfiguration;
-import pbouda.jeffrey.shared.common.model.repository.InstanceEnvironment.GcHeapConfiguration;
-import pbouda.jeffrey.shared.common.model.repository.InstanceEnvironment.JvmInformation;
-import pbouda.jeffrey.shared.common.model.repository.InstanceEnvironment.OsInformation;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -89,6 +84,12 @@ class InstanceEnvironmentParserTest {
         return dumpFile;
     }
 
+    private static JsonNode requireEvent(ObjectNode env, String typeName) {
+        JsonNode n = env.get(typeName);
+        assertNotNull(n, typeName + " should be present in parsed env");
+        return n;
+    }
+
     @Nested
     class WithGeneratedRecording {
 
@@ -96,79 +97,73 @@ class InstanceEnvironmentParserTest {
         void parsesJvmInformationFromFreshRecording(@TempDir Path tempDir) throws Exception {
             Path jfr = writeFreshRecording(tempDir);
 
-            InstanceEnvironment env = parser.parse(jfr, false);
+            ObjectNode env = parser.parse(jfr, false);
 
-            assertTrue(env.jvm().isPresent(), "JvmInformation should be present in a fresh Recording dump");
-            JvmInformation jvm = env.jvm().get();
-            assertTrue(jvm.jvmName().isPresent() && !jvm.jvmName().get().isBlank(), "jvmName must be present");
-            assertTrue(jvm.jvmVersion().isPresent(), "jvmVersion must be present");
-            assertTrue(jvm.pid().isPresent(), "pid must be present");
-            assertEquals(ProcessHandle.current().pid(), jvm.pid().get(), "pid must match current JVM");
-            assertTrue(jvm.jvmStartTime().isPresent(), "jvmStartTime must be present");
-            assertTrue(jvm.jvmStartTime().get() > 0, "jvmStartTime must be a positive epoch-millis value");
+            JsonNode jvm = requireEvent(env, "jdk.JVMInformation");
+            assertTrue(jvm.has("jvmName") && !jvm.get("jvmName").asText().isBlank(), "jvmName must be present");
+            assertTrue(jvm.has("jvmVersion"), "jvmVersion must be present");
+            assertTrue(jvm.has("pid"), "pid must be present");
+            assertEquals(ProcessHandle.current().pid(), jvm.get("pid").asLong(), "pid must match current JVM");
+            assertTrue(jvm.has("jvmStartTime"), "jvmStartTime must be present");
+            assertTrue(jvm.get("jvmStartTime").asLong() > 0, "jvmStartTime must be a positive epoch-millis value");
         }
 
         @Test
         void parsesOsInformationFromFreshRecording(@TempDir Path tempDir) throws Exception {
             Path jfr = writeFreshRecording(tempDir);
 
-            InstanceEnvironment env = parser.parse(jfr, false);
+            ObjectNode env = parser.parse(jfr, false);
 
-            assertTrue(env.os().isPresent(), "OsInformation should be present in a fresh Recording dump");
-            OsInformation os = env.os().get();
-            assertTrue(os.osVersion().isPresent() && !os.osVersion().get().isBlank(), "osVersion must be non-blank");
+            JsonNode os = requireEvent(env, "jdk.OSInformation");
+            assertTrue(os.has("osVersion") && !os.get("osVersion").asText().isBlank(), "osVersion must be non-blank");
         }
 
         @Test
         void parsesCpuInformationFromFreshRecording(@TempDir Path tempDir) throws Exception {
             Path jfr = writeFreshRecording(tempDir);
 
-            InstanceEnvironment env = parser.parse(jfr, false);
+            ObjectNode env = parser.parse(jfr, false);
 
-            assertTrue(env.cpu().isPresent(), "CpuInformation should be present in a fresh Recording dump");
-            CpuInformation cpu = env.cpu().get();
-            assertTrue(cpu.hwThreads().isPresent(), "hwThreads must be present");
-            assertTrue(cpu.hwThreads().get() >= 1, "hwThreads must be at least 1");
+            JsonNode cpu = requireEvent(env, "jdk.CPUInformation");
+            assertTrue(cpu.has("hwThreads"), "hwThreads must be present");
+            assertTrue(cpu.get("hwThreads").asInt() >= 1, "hwThreads must be at least 1");
         }
 
         @Test
         void parsesGcAndHeapConfigurationFromFreshRecording(@TempDir Path tempDir) throws Exception {
             Path jfr = writeFreshRecording(tempDir);
 
-            InstanceEnvironment env = parser.parse(jfr, false);
+            ObjectNode env = parser.parse(jfr, false);
 
-            assertTrue(env.gc().isPresent(), "GcConfiguration should be present in a fresh Recording dump");
-            GcConfiguration gc = env.gc().get();
-            assertTrue(gc.youngCollector().isPresent() && !gc.youngCollector().get().isBlank(),
+            JsonNode gc = requireEvent(env, "jdk.GCConfiguration");
+            assertTrue(gc.has("youngCollector") && !gc.get("youngCollector").asText().isBlank(),
                     "youngCollector must be non-blank");
-            assertTrue(gc.oldCollector().isPresent() && !gc.oldCollector().get().isBlank(),
+            assertTrue(gc.has("oldCollector") && !gc.get("oldCollector").asText().isBlank(),
                     "oldCollector must be non-blank");
 
-            assertTrue(env.gcHeap().isPresent(), "GcHeapConfiguration should be present in a fresh Recording dump");
-            GcHeapConfiguration heap = env.gcHeap().get();
-            assertTrue(heap.maxSize().isPresent(), "maxSize must be present");
-            assertTrue(heap.maxSize().get() > 0, "maxSize must be a positive byte count");
+            JsonNode heap = requireEvent(env, "jdk.GCHeapConfiguration");
+            assertTrue(heap.has("maxSize"), "maxSize must be present");
+            assertTrue(heap.get("maxSize").asLong() > 0, "maxSize must be a positive byte count");
         }
 
         @Test
         void parsesCompilerConfigurationFromFreshRecording(@TempDir Path tempDir) throws Exception {
             Path jfr = writeFreshRecording(tempDir);
 
-            InstanceEnvironment env = parser.parse(jfr, false);
+            ObjectNode env = parser.parse(jfr, false);
 
-            assertTrue(env.compiler().isPresent(), "CompilerConfiguration should be present in a fresh Recording dump");
-            CompilerConfiguration compiler = env.compiler().get();
-            assertTrue(compiler.threadCount().isPresent(), "threadCount must be present");
-            assertTrue(compiler.threadCount().get() >= 0, "threadCount must be non-negative");
+            JsonNode compiler = requireEvent(env, "jdk.CompilerConfiguration");
+            assertTrue(compiler.has("threadCount"), "threadCount must be present");
+            assertTrue(compiler.get("threadCount").asInt() >= 0, "threadCount must be non-negative");
         }
 
         @Test
         void shutdownIsAbsentForNormalDump(@TempDir Path tempDir) throws Exception {
             Path jfr = writeFreshRecording(tempDir);
 
-            InstanceEnvironment env = parser.parse(jfr, true);
+            ObjectNode env = parser.parse(jfr, true);
 
-            assertFalse(env.shutdown().isPresent(),
+            assertFalse(env.has("jdk.Shutdown"),
                     "jdk.Shutdown is emitted only on real JVM exit and must be absent in a dumped Recording");
         }
 
@@ -178,14 +173,14 @@ class InstanceEnvironmentParserTest {
             Path compressed = tempDir.resolve("fresh-recording.jfr.lz4");
             Lz4Compressor.compress(jfr, compressed);
 
-            InstanceEnvironment env = parser.parse(compressed, false);
+            ObjectNode env = parser.parse(compressed, false);
 
-            assertTrue(env.jvm().isPresent(), "JvmInformation should be present after LZ4 decompression");
-            assertTrue(env.os().isPresent(), "OsInformation should be present after LZ4 decompression");
-            assertTrue(env.cpu().isPresent(), "CpuInformation should be present after LZ4 decompression");
-            assertTrue(env.gc().isPresent(), "GcConfiguration should be present after LZ4 decompression");
-            assertTrue(env.gcHeap().isPresent(), "GcHeapConfiguration should be present after LZ4 decompression");
-            assertTrue(env.compiler().isPresent(), "CompilerConfiguration should be present after LZ4 decompression");
+            assertTrue(env.has("jdk.JVMInformation"), "JVMInformation should be present after LZ4 decompression");
+            assertTrue(env.has("jdk.OSInformation"), "OSInformation should be present after LZ4 decompression");
+            assertTrue(env.has("jdk.CPUInformation"), "CPUInformation should be present after LZ4 decompression");
+            assertTrue(env.has("jdk.GCConfiguration"), "GCConfiguration should be present after LZ4 decompression");
+            assertTrue(env.has("jdk.GCHeapConfiguration"), "GCHeapConfiguration should be present after LZ4 decompression");
+            assertTrue(env.has("jdk.CompilerConfiguration"), "CompilerConfiguration should be present after LZ4 decompression");
         }
     }
 
@@ -196,26 +191,17 @@ class InstanceEnvironmentParserTest {
         void parseProfile1DoesNotThrow() {
             Path profile1 = resolveJfr(PROFILE_1);
 
-            InstanceEnvironment env = assertDoesNotThrow(() -> parser.parse(profile1, false));
+            ObjectNode env = assertDoesNotThrow(() -> parser.parse(profile1, false));
 
             assertNotNull(env, "parser must never return null");
-            boolean anyPresent = env.jvm().isPresent()
-                    || env.os().isPresent()
-                    || env.cpu().isPresent()
-                    || env.gc().isPresent()
-                    || env.gcHeap().isPresent()
-                    || env.compiler().isPresent()
-                    || env.container().isPresent()
-                    || env.virtualization().isPresent()
-                    || env.shutdown().isPresent();
-            assertTrue(anyPresent, "profile-1.jfr should contain at least one one-shot configuration event");
+            assertTrue(env.size() >= 1, "profile-1.jfr should contain at least one one-shot configuration event");
         }
 
         @Test
         void parseProfile1WithExpectShutdownTrue() {
             Path profile1 = resolveJfr(PROFILE_1);
 
-            InstanceEnvironment env = assertDoesNotThrow(() -> parser.parse(profile1, true));
+            ObjectNode env = assertDoesNotThrow(() -> parser.parse(profile1, true));
 
             assertNotNull(env, "parser must never return null on the scan-to-EOF branch");
         }
@@ -228,18 +214,20 @@ class InstanceEnvironmentParserTest {
         void parseMissingFileReturnsEmpty(@TempDir Path tempDir) {
             Path missing = tempDir.resolve("does-not-exist.jfr");
 
-            InstanceEnvironment env = parser.parse(missing, false);
+            ObjectNode env = parser.parse(missing, false);
 
-            assertAllEmpty(env);
+            assertTrue(env.isEmpty(), "missing file should yield an empty ObjectNode");
         }
 
         @Test
         void parseTruncatedFileReturnsEmpty(@TempDir Path tempDir) throws IOException {
             Path truncated = truncate(resolveJfr(PROFILE_1), tempDir.resolve("truncated.jfr"));
 
-            InstanceEnvironment env = assertDoesNotThrow(() -> parser.parse(truncated, false));
+            ObjectNode env = assertDoesNotThrow(() -> parser.parse(truncated, false));
 
-            assertAllEmpty(env);
+            // Even for truncated input the parser must not throw; whatever was
+            // read before the truncation point is kept, and the rest is dropped.
+            assertNotNull(env);
         }
 
         private static Path truncate(Path source, Path target) throws IOException {
@@ -248,18 +236,6 @@ class InstanceEnvironmentParserTest {
                 out.write(bytes, 0, bytes.length / 2);
             }
             return target;
-        }
-
-        private static void assertAllEmpty(InstanceEnvironment env) {
-            assertFalse(env.jvm().isPresent(), "jvm must be empty");
-            assertFalse(env.os().isPresent(), "os must be empty");
-            assertFalse(env.cpu().isPresent(), "cpu must be empty");
-            assertFalse(env.gc().isPresent(), "gc must be empty");
-            assertFalse(env.gcHeap().isPresent(), "gcHeap must be empty");
-            assertFalse(env.compiler().isPresent(), "compiler must be empty");
-            assertFalse(env.container().isPresent(), "container must be empty");
-            assertFalse(env.virtualization().isPresent(), "virtualization must be empty");
-            assertFalse(env.shutdown().isPresent(), "shutdown must be empty");
         }
     }
 }

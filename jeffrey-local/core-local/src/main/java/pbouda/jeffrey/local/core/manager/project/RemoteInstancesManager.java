@@ -21,6 +21,7 @@ package pbouda.jeffrey.local.core.manager.project;
 import pbouda.jeffrey.local.core.client.RemoteInstancesClient;
 import pbouda.jeffrey.local.core.resources.response.InstanceDetailResponse;
 import pbouda.jeffrey.local.core.resources.response.InstanceResponse;
+import pbouda.jeffrey.local.core.resources.response.InstanceSessionDetailResponse;
 import pbouda.jeffrey.local.core.resources.response.InstanceSessionResponse;
 import pbouda.jeffrey.shared.common.InstantUtils;
 import pbouda.jeffrey.shared.common.model.ProjectInfo;
@@ -57,6 +58,10 @@ public class RemoteInstancesManager {
 
     public Optional<InstanceDetailResponse> detail(String instanceId) {
         return Optional.ofNullable(instancesClient.instanceDetail(instanceId));
+    }
+
+    public Optional<InstanceSessionDetailResponse> sessionDetail(String instanceId, String sessionId) {
+        return Optional.ofNullable(instancesClient.instanceSessionDetail(instanceId, sessionId));
     }
 
     public List<ProjectInstanceSessionInfo> findSessions(String instanceId) {

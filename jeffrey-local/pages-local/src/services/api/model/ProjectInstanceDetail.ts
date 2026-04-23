@@ -17,13 +17,11 @@
  */
 
 import ProjectInstance from '@/services/api/model/ProjectInstance';
-import type InstanceEnvironment from '@/services/api/model/InstanceEnvironment';
 
 export default class ProjectInstanceDetail {
   constructor(
     public instance: ProjectInstance,
     public fileCount: number,
-    public totalSizeBytes: number,
-    public environment: InstanceEnvironment | null
+    public totalSizeBytes: number
   ) {}
 }
