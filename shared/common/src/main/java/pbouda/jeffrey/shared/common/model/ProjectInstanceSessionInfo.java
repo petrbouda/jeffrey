@@ -27,7 +27,6 @@ public record ProjectInstanceSessionInfo(
         String instanceId,
         int order,
         Path relativeSessionPath,
-        String profilerSettings,
         Instant originCreatedAt,
         Instant createdAt,
         Instant finishedAt) {

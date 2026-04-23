@@ -70,7 +70,6 @@ public class JdbcServerPlatformRepositories implements ServerPlatformRepositorie
                    rs.instance_id AS instance_id,
                    rs.session_order AS session_order,
                    rs.relative_session_path AS relative_session_path,
-                   rs.profiler_settings AS profiler_settings,
                    rs.origin_created_at AS origin_created_at,
                    rs.created_at AS created_at,
                    rs.finished_at AS finished_at,

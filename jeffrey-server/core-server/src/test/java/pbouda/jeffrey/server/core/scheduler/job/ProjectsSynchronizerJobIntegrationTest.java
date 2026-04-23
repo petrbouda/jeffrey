@@ -128,7 +128,7 @@ class ProjectsSynchronizerJobIntegrationTest {
 
     private static WorkspaceEvent sessionCreatedEvent(String originProjectId, String sessionId) {
         SessionCreatedEventContent content = new SessionCreatedEventContent(
-                "inst-001", 1, "session-001", "cpu=true");
+                "inst-001", 1, "session-001");
         return new WorkspaceEvent(null, sessionId, originProjectId, WORKSPACE_ID,
                 WorkspaceEventType.PROJECT_INSTANCE_SESSION_CREATED, Json.toString(content),
                 NOW.minusSeconds(900), NOW, "test");

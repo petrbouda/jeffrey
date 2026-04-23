@@ -53,8 +53,8 @@ public class JdbcProjectRepositoryRepository implements ProjectRepositoryReposit
     //language=SQL
     private static final String INSERT_REPOSITORY_SESSION = """
             INSERT INTO project_instance_sessions
-            (session_id, repository_id, instance_id, session_order, relative_session_path, profiler_settings, origin_created_at, created_at)
-            VALUES (:session_id, :repository_id, :instance_id, :session_order, :relative_session_path, :profiler_settings, :origin_created_at, :created_at)
+            (session_id, repository_id, instance_id, session_order, relative_session_path, origin_created_at, created_at)
+            VALUES (:session_id, :repository_id, :instance_id, :session_order, :relative_session_path, :origin_created_at, :created_at)
             ON CONFLICT DO NOTHING""";
 
     //language=SQL
@@ -172,7 +172,6 @@ public class JdbcProjectRepositoryRepository implements ProjectRepositoryReposit
                 .addValue("instance_id", session.instanceId())
                 .addValue("session_order", session.order())
                 .addValue("relative_session_path", session.relativeSessionPath().toString())
-                .addValue("profiler_settings", session.profilerSettings())
                 .addValue("origin_created_at", session.originCreatedAt().atOffset(ZoneOffset.UTC))
                 .addValue("created_at", clock.instant().atOffset(ZoneOffset.UTC));
 

@@ -98,7 +98,6 @@ public class RemoteInstancesManager {
                 0,
                 null,
                 null,
-                null,
                 InstantUtils.fromEpochMilli(response.createdAt()),
                 InstantUtils.fromEpochMilli(response.finishedAt()));
     }

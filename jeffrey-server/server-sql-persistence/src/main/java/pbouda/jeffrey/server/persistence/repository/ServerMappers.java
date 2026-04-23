@@ -96,7 +96,6 @@ public abstract class ServerMappers {
                     rs.getString("instance_id"),
                     rs.getInt("session_order"),
                     Path.of(rs.getString("relative_session_path")),
-                    rs.getString("profiler_settings"),
                     ServerMappers.instant(rs, "origin_created_at"),
                     ServerMappers.instant(rs, "created_at"),
                     ServerMappers.instant(rs, "finished_at")

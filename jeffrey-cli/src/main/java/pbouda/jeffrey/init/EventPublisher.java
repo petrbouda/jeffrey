@@ -84,13 +84,12 @@ public class EventPublisher {
             String projectId,
             String workspaceId,
             String instanceId,
-            int order,
-            String profilerSettings) {
+            int order) {
 
         String relativeSessionPath = instanceId + "/" + sessionId;
 
         SessionCreatedEventContent content = new SessionCreatedEventContent(
-                instanceId, order, relativeSessionPath, profilerSettings);
+                instanceId, order, relativeSessionPath);
 
         publish(sessionId, projectId, workspaceId,
                 WorkspaceEventType.PROJECT_INSTANCE_SESSION_CREATED, Json.toString(content));

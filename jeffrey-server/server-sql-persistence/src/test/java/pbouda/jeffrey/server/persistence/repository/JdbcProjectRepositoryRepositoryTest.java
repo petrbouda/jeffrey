@@ -107,14 +107,14 @@ class JdbcProjectRepositoryRepositoryTest {
             JdbcProjectRepositoryRepository repository = new JdbcProjectRepositoryRepository(FIXED_CLOCK, "proj-001", provider);
 
             ProjectInstanceSessionInfo sessionInfo = new ProjectInstanceSessionInfo(
-                    "session-new-001", "repo-001", "inst-001", 1, Path.of("session-test"), "cpu=true",
+                    "session-new-001", "repo-001", "inst-001", 1, Path.of("session-test"),
                     Instant.parse("2025-01-15T10:00:00Z"), null, null);
 
             repository.createSession(sessionInfo);
 
             List<ProjectInstanceSessionInfo> result = repository.findAllSessions();
             assertEquals(1, result.size());
-            assertEquals("cpu=true", result.get(0).profilerSettings());
+            assertEquals("session-new-001", result.get(0).sessionId());
         }
 
         @Test

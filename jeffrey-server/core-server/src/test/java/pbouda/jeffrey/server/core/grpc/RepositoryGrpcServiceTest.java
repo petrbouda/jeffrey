@@ -93,7 +93,7 @@ class RepositoryGrpcServiceTest {
                             SESSION_ID, "session-name", "inst-1",
                             FIXED_TIME, null,
                             pbouda.jeffrey.shared.common.model.repository.RecordingStatus.ACTIVE,
-                            null, null, null,
+                            null, null,
                             List.of(new RepositoryFile(
                                     "file-1", "recording.jfr", FIXED_TIME, 1024L,
                                     SupportedRecordingFile.JFR,
@@ -103,7 +103,7 @@ class RepositoryGrpcServiceTest {
                             "session-2", "finished-session", null,
                             FIXED_TIME, FIXED_TIME.plusSeconds(3600),
                             pbouda.jeffrey.shared.common.model.repository.RecordingStatus.FINISHED,
-                            "{\"event\":\"jdk.CPULoad\"}", null, null,
+                            null, null,
                             List.of())
             ));
 
@@ -136,8 +136,6 @@ class RepositoryGrpcServiceTest {
             assertEquals(RecordingStatus.RECORDING_STATUS_FINISHED, second.getStatus());
             assertTrue(second.hasFinishedAt());
             assertEquals(FIXED_TIME.plusSeconds(3600).toEpochMilli(), second.getFinishedAt());
-            assertTrue(second.hasProfilerSettings());
-            assertEquals("{\"event\":\"jdk.CPULoad\"}", second.getProfilerSettings());
         }
 
         @Test
@@ -182,7 +180,7 @@ class RepositoryGrpcServiceTest {
                             SESSION_ID, "my-session", "inst-1",
                             FIXED_TIME, FIXED_TIME.plusSeconds(600),
                             pbouda.jeffrey.shared.common.model.repository.RecordingStatus.FINISHED,
-                            "{\"settings\":true}", null, null,
+                            null, null,
                             List.of())
             ));
 
@@ -200,8 +198,6 @@ class RepositoryGrpcServiceTest {
             assertEquals(RecordingStatus.RECORDING_STATUS_FINISHED, session.getStatus());
             assertTrue(session.hasFinishedAt());
             assertEquals(FIXED_TIME.plusSeconds(600).toEpochMilli(), session.getFinishedAt());
-            assertTrue(session.hasProfilerSettings());
-            assertEquals("{\"settings\":true}", session.getProfilerSettings());
         }
 
         @Test

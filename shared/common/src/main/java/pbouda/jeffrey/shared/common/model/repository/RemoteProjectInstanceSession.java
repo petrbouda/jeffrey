@@ -25,6 +25,5 @@ public record RemoteProjectInstanceSession(
         String instanceId,
         long createdAt,
         int order,
-        String relativeSessionPath,
-        String profilerSettings) {
+        String relativeSessionPath) {
 }

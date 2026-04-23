@@ -136,7 +136,7 @@ class EventPublisherTest {
 
             publisher.publishSessionCreated(
                     "session-001", "proj-001", "ws-001",
-                    "inst-001", 3, "cpu=true");
+                    "inst-001", 3);
 
             CLIWorkspaceEvent event = readSingleEvent();
 
@@ -153,8 +153,7 @@ class EventPublisherTest {
             assertAll(
                     () -> assertEquals("inst-001", content.instanceId()),
                     () -> assertEquals(3, content.order()),
-                    () -> assertEquals("inst-001/session-001", content.relativeSessionPath()),
-                    () -> assertEquals("cpu=true", content.profilerSettings())
+                    () -> assertEquals("inst-001/session-001", content.relativeSessionPath())
             );
         }
 
@@ -164,7 +163,7 @@ class EventPublisherTest {
 
             publisher.publishSessionCreated(
                     "sess-xyz", "proj-001", "ws-001",
-                    "host-abc", 1, null);
+                    "host-abc", 1);
 
             CLIWorkspaceEvent event = readSingleEvent();
             SessionCreatedEventContent content = Json.read(event.content(), SessionCreatedEventContent.class);

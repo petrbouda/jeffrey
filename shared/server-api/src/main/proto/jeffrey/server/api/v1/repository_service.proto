@@ -117,8 +117,6 @@ message RecordingSession {
   optional int64 finished_at = 5;
   // Current status.
   RecordingStatus status = 6;
-  // Profiler agent settings used for this session (JSON string).
-  optional string profiler_settings = 7;
   // Files produced during this session (JFR recordings, heap dumps, logs).
   repeated RepositoryFile files = 9;
 }

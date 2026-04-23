@@ -46,7 +46,6 @@ const repositoryService = computed(
 
 // --- Session UI state ---
 const expandedSessions = ref<{ [key: string]: boolean }>({});
-const expandedProfilerSettings = ref<{ [key: string]: boolean }>({});
 const showMultiSelectActions = ref<{ [sessionId: string]: boolean }>({});
 const selectedRepositoryFile = ref<{ [sessionId: string]: { [sourceId: string]: boolean } }>({});
 const visibleFilesCount = ref<{ [key: string]: number }>({});
@@ -211,24 +210,6 @@ const toggleSession = (sessionId: string) => {
   }
 };
 
-const toggleProfilerSettings = (sessionId: string) => {
-  expandedProfilerSettings.value[sessionId] = !expandedProfilerSettings.value[sessionId];
-
-  if (expandedProfilerSettings.value[sessionId]) {
-    showMultiSelectActions.value[sessionId] = false;
-    expandedSessions.value[sessionId] = true;
-  }
-};
-
-const copyProfilerSettings = async (settings: string) => {
-  try {
-    await navigator.clipboard.writeText(settings);
-    toast.success('Copied', 'Profiler settings copied to clipboard');
-  } catch (error) {
-    toast.error('Copy Failed', 'Failed to copy to clipboard');
-  }
-};
-
 // --- Status helpers ---
 const getSourcesCount = (session: RecordingSession): number => {
   return session.files.length;
@@ -253,7 +234,6 @@ const toggleSelectionMode = (sessionId: string) => {
   showMultiSelectActions.value[sessionId] = !showMultiSelectActions.value[sessionId];
 
   if (showMultiSelectActions.value[sessionId]) {
-    expandedProfilerSettings.value[sessionId] = false;
     expandedSessions.value[sessionId] = true;
   } else {
     clearAllSelections(sessionId);
@@ -786,16 +766,6 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
                   }"
                 ></i>
               </button>
-              <button
-                v-if="session.profilerSettings"
-                class="action-btn action-menu-btn ms-1"
-                :class="{ active: expandedProfilerSettings[session.id] }"
-                type="button"
-                title="Show profiler configuration"
-                @click.stop="toggleProfilerSettings(session.id)"
-              >
-                <i class="bi bi-gear-fill"></i>
-              </button>
             </div>
           </div>
         </div>
@@ -810,21 +780,6 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
 
       <!-- Session recordings (shown when expanded) -->
       <div v-if="expandedSessions[session.id]" class="ps-4 pt-2">
-        <!-- Profiler Configuration Section -->
-        <div
-          v-if="expandedProfilerSettings[session.id] && session.profilerSettings"
-          class="profiler-config-controls d-flex align-items-center mb-2"
-        >
-          <i class="bi bi-gear-fill me-2 text-primary"></i>
-          <code
-            class="raw-command-code mb-0 clickable"
-            @click.stop="copyProfilerSettings(session.profilerSettings)"
-            title="Click to copy"
-          >
-            {{ session.profilerSettings }}
-          </code>
-        </div>
-
         <!-- Multi-select controls -->
         <div
           v-if="showMultiSelectActions[session.id]"
@@ -1534,40 +1489,6 @@ code {
   color: var(--color-primary-hover);
   transform: translateY(-1px);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-}
-
-/* Profiler Configuration Controls Styling */
-.profiler-config-controls {
-  background-color: var(--color-light);
-  padding: 8px 12px;
-  border-radius: 6px;
-  margin-bottom: 12px;
-  border: 1px solid rgba(94, 100, 255, 0.2);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-}
-
-.profiler-config-controls .raw-command-code {
-  background-color: white;
-  padding: 0.5rem 0.75rem;
-  border-radius: 4px;
-  font-size: 0.75rem;
-  word-break: break-all;
-  color: var(--color-dark);
-  border: 1px solid var(--color-slate-lighter);
-  font-family: 'Monaco', 'Consolas', monospace;
-  line-height: 1.6;
-  max-height: 100px;
-  overflow-y: auto;
-  width: 100%;
-  flex: 1;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.profiler-config-controls .raw-command-code:hover {
-  background-color: var(--color-light);
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 0.1rem rgba(94, 100, 255, 0.1);
 }
 
 /* Artifact type panel styles */

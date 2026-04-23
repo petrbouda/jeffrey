@@ -21,6 +21,5 @@ package pbouda.jeffrey.shared.common.model.workspace.event;
 public record SessionCreatedEventContent(
         String instanceId,
         int order,
-        String relativeSessionPath,
-        String profilerSettings) {
+        String relativeSessionPath) {
 }

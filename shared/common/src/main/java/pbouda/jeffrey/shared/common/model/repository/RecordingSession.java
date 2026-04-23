@@ -29,7 +29,6 @@ public record RecordingSession(
         Instant createdAt,
         Instant finishedAt,
         RecordingStatus status,
-        String profilerSettings,
         Path absolutePath,
         Path absoluteStreamingPath,
         List<RepositoryFile> files) {

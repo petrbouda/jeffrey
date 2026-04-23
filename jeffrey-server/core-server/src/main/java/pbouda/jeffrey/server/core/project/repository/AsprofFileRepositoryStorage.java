@@ -202,7 +202,6 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
                 sessionInfo.originCreatedAt(),
                 sessionInfo.finishedAt(),
                 recordingStatus,
-                sessionInfo.profilerSettings(),
                 sessionPath,
                 sessionPath.resolve(STREAMING_REPO_DIR),
                 repositoryFiles);

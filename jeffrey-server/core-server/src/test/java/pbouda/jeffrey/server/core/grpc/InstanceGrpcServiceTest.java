@@ -192,14 +192,14 @@ class InstanceGrpcServiceTest {
             when(platformRepositories.findSessionsByProjectId(PROJECT_ID)).thenReturn(List.of(
                     new ProjectInstanceSessionInfo(
                             "session-active", "repo-1", INSTANCE_ID, 0,
-                            Path.of("session-active"), null, null, FIXED_TIME, null),
+                            Path.of("session-active"), null, FIXED_TIME, null),
                     new ProjectInstanceSessionInfo(
                             "session-old", "repo-1", INSTANCE_ID, 1,
-                            Path.of("session-old"), null, null,
+                            Path.of("session-old"), null,
                             FIXED_TIME.minusSeconds(600), FIXED_TIME.minusSeconds(300)),
                     new ProjectInstanceSessionInfo(
                             "session-only", "repo-1", "inst-2", 0,
-                            Path.of("session-only"), null, null,
+                            Path.of("session-only"), null,
                             FIXED_TIME, FIXED_TIME.plusSeconds(3600))
             ));
 
@@ -295,11 +295,11 @@ class InstanceGrpcServiceTest {
                     new ProjectInstanceSessionInfo(
                             "session-1", "repo-1", INSTANCE_ID, 0,
                             Path.of("session-1"), null,
-                            null, FIXED_TIME, null),
+                            FIXED_TIME, null),
                     new ProjectInstanceSessionInfo(
                             "session-2", "repo-1", INSTANCE_ID, 1,
                             Path.of("session-2"), null,
-                            null, FIXED_TIME.plusSeconds(600),
+                            FIXED_TIME.plusSeconds(600),
                             FIXED_TIME.plusSeconds(1200))
             ));
 
@@ -361,11 +361,11 @@ class InstanceGrpcServiceTest {
                     new ProjectInstanceSessionInfo(
                             "session-1", "repo-1", INSTANCE_ID, 0,
                             Path.of("session-1"), null,
-                            null, FIXED_TIME, FIXED_TIME.plusSeconds(1800)),
+                            FIXED_TIME, FIXED_TIME.plusSeconds(1800)),
                     new ProjectInstanceSessionInfo(
                             "session-2", "repo-1", INSTANCE_ID, 1,
                             Path.of("session-2"), null,
-                            null, FIXED_TIME.plusSeconds(1800), FIXED_TIME.plusSeconds(3600))
+                            FIXED_TIME.plusSeconds(1800), FIXED_TIME.plusSeconds(3600))
             ));
 
             ProjectInfo projectInfo = new ProjectInfo(

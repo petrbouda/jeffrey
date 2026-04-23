@@ -33,7 +33,6 @@ public record RecordingSessionResponse(
         Long createdAt,
         Long finishedAt,
         RecordingStatus status,
-        String profilerSettings,
         Long duration,
         List<RepositoryFileResponse> files) {
 
@@ -48,7 +47,6 @@ public record RecordingSessionResponse(
                 InstantUtils.toEpochMilli(session.createdAt()),
                 InstantUtils.toEpochMilli(session.finishedAt()),
                 session.status(),
-                session.profilerSettings(),
                 duration,
                 session.files().stream()
                         .map(RepositoryFileResponse::from)
@@ -63,7 +61,6 @@ public record RecordingSessionResponse(
                 InstantUtils.fromEpochMilli(response.createdAt()),
                 InstantUtils.fromEpochMilli(response.finishedAt()),
                 response.status(),
-                response.profilerSettings(),
                 null,
                 null,
                 response.files().stream()

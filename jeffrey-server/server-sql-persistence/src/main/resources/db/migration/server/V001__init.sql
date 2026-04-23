@@ -93,7 +93,6 @@ CREATE TABLE IF NOT EXISTS project_instance_sessions
     instance_id           VARCHAR NOT NULL,
     session_order         INTEGER NOT NULL DEFAULT 1,
     relative_session_path VARCHAR NOT NULL,
-    profiler_settings     VARCHAR,
     origin_created_at     TIMESTAMPTZ NOT NULL,
     created_at            TIMESTAMPTZ NOT NULL,
     finished_at           TIMESTAMPTZ,

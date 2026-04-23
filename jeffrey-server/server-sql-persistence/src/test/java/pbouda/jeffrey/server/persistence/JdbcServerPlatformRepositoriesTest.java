@@ -56,7 +56,6 @@ class JdbcServerPlatformRepositoriesTest {
         assertEquals("proj-001", result.get().projectId());
         assertEquals("session-002", result.get().sessionInfo().sessionId());
         assertEquals("inst-002", result.get().sessionInfo().instanceId());
-        assertEquals("cpu=true,alloc=true", result.get().sessionInfo().profilerSettings());
         assertNull(result.get().sessionInfo().finishedAt());
 
         assertEquals("repo-001", result.get().repositoryInfo().id());

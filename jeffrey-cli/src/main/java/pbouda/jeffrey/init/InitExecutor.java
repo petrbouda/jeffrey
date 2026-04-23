@@ -159,12 +159,11 @@ public class InitExecutor {
                 config.getWorkspaceId(),
                 instanceId,
                 order,
-                profilerSettings,
                 newSessionPath);
 
         eventPublisher.publishSessionCreated(
                 sessionId, projectId, config.getWorkspaceId(),
-                instanceId, order, profilerSettings);
+                instanceId, order);
 
         if (config.getEnvFilePath() != null || config.isPrintEnv()) {
             String envContent = new EnvFileBuilder().build(new EnvFileBuilder.Context(

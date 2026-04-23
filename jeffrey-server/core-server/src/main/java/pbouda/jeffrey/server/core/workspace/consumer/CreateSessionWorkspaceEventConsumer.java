@@ -100,7 +100,6 @@ public class CreateSessionWorkspaceEventConsumer implements WorkspaceEventConsum
                 instanceId,
                 eventContent.order(),
                 Path.of(eventContent.relativeSessionPath()),
-                eventContent.profilerSettings(),
                 event.originCreatedAt(),
                 event.createdAt(),
                 null);

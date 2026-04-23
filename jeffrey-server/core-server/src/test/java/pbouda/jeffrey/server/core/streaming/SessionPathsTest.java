@@ -81,6 +81,6 @@ class SessionPathsTest {
     private static ProjectInstanceSessionInfo sessionInfo(String relativeSessionPath) {
         return new ProjectInstanceSessionInfo(
                 "session-001", "repo-1", "instance-1", 0,
-                Path.of(relativeSessionPath), null, null, null, null);
+                Path.of(relativeSessionPath), null, null, null);
     }
 }

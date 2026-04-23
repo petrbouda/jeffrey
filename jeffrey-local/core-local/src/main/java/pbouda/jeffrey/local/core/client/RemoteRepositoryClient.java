@@ -118,7 +118,6 @@ public class RemoteRepositoryClient {
                 proto.getCreatedAt(),
                 proto.hasFinishedAt() ? proto.getFinishedAt() : null,
                 fromProtoRecordingStatus(proto.getStatus()),
-                proto.hasProfilerSettings() ? proto.getProfilerSettings() : null,
                 proto.hasFinishedAt() ? proto.getFinishedAt() - proto.getCreatedAt() : null,
                 files);
     }

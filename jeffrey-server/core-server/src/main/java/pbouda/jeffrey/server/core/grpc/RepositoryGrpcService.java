@@ -194,9 +194,6 @@ public class RepositoryGrpcService extends RepositoryServiceGrpc.RepositoryServi
         if (session.finishedAt() != null) {
             builder.setFinishedAt(session.finishedAt().toEpochMilli());
         }
-        if (session.profilerSettings() != null) {
-            builder.setProfilerSettings(session.profilerSettings());
-        }
 
         if (session.files() != null) {
             session.files().forEach(file -> builder.addFiles(toFileProto(file)));
