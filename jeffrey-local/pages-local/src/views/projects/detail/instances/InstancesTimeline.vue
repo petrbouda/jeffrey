@@ -239,45 +239,88 @@
                   />
                   <div v-else class="detail-cards">
                     <div
-                      v-for="[typeName, fields] in envEntries(sessionDetails.get(session.id)!.environment)"
-                      :key="typeName"
+                      v-for="card in envCards(sessionDetails.get(session.id)!.environment!, session.isActive === true)"
+                      :key="card.id"
                       class="detail-card"
+                      :class="{ 'detail-card--empty': card.kind === 'single' && !card.hasData }"
                     >
                       <div class="detail-card-head">
-                        <span class="detail-card-title">{{ cardTitle(typeName) }}</span>
-                        <span class="detail-card-subtitle mono">{{ typeName }}</span>
+                        <span class="detail-card-title">{{ card.title }}</span>
+                        <span v-if="card.subtitle" class="detail-card-subtitle mono">{{ card.subtitle }}</span>
                       </div>
                       <div class="detail-card-body">
-                        <!-- Shutdown cards get a derived kind badge at the top before the generic rows. -->
-                        <template v-if="typeName === 'jdk.Shutdown'">
-                          <div class="kv">
-                            <span class="k">kind</span>
-                            <span class="v">
-                              <Badge
-                                :value="shutdownKindLabel(classifyShutdownKind((fields as any).reason))"
-                                :variant="shutdownKindVariant(classifyShutdownKind((fields as any).reason))"
-                                size="xxs"
-                              />
-                            </span>
-                          </div>
-                          <div class="kv kv-desc">
-                            <span class="v reason-desc">{{ shutdownKindDescription(classifyShutdownKind((fields as any).reason)) }}</span>
+                        <!-- Merged OS + Virtualization card: two stacked sub-sections with mini-headers. -->
+                        <template v-if="card.kind === 'merged'">
+                          <div
+                            v-for="section in card.sections"
+                            :key="section.typeName"
+                            class="detail-card-section"
+                          >
+                            <div class="detail-card-section-head">
+                              <span class="detail-card-section-label">{{ section.label }}</span>
+                              <span class="detail-card-section-type mono">{{ section.typeName }}</span>
+                            </div>
+                            <template v-if="section.hasData">
+                              <template
+                                v-for="row in fieldRows(section.fields)"
+                                :key="row.key"
+                              >
+                                <div class="kv" :class="{ long: row.multi }">
+                                  <span class="k">{{ row.label }}</span>
+                                  <span class="v" :class="{ mono: row.mono, multi: row.multi, 'bool-true': row.boolTrue, 'bool-false': row.boolFalse }">{{ rowDisplay(row, section.typeName) }}</span>
+                                  <button
+                                    v-if="row.truncatable"
+                                    type="button"
+                                    class="expand-toggle"
+                                    @click="toggleRow(section.typeName, row.key)"
+                                  >{{ isRowExpanded(section.typeName, row.key) ? 'Show less' : 'Show more' }}</button>
+                                </div>
+                              </template>
+                            </template>
+                            <div v-else class="detail-card-section-empty">
+                              <i class="bi bi-inbox"></i>
+                              <span>No Data</span>
+                            </div>
                           </div>
                         </template>
-                        <template
-                          v-for="row in fieldRows(fields)"
-                          :key="row.key"
-                        >
-                          <div class="kv" :class="{ long: row.multi }">
-                            <span class="k">{{ row.label }}</span>
-                            <span class="v" :class="{ mono: row.mono, multi: row.multi, 'bool-true': row.boolTrue, 'bool-false': row.boolFalse }">{{ rowDisplay(row, typeName) }}</span>
-                            <button
-                              v-if="row.truncatable"
-                              type="button"
-                              class="expand-toggle"
-                              @click="toggleRow(typeName, row.key)"
-                            >{{ isRowExpanded(typeName, row.key) ? 'Show less' : 'Show more' }}</button>
+                        <template v-else-if="!card.hasData">
+                          <div class="detail-card-empty-body">
+                            <i class="bi bi-inbox detail-card-empty-icon"></i>
+                            <span class="detail-card-empty-msg">No Data</span>
                           </div>
+                        </template>
+                        <template v-else>
+                          <!-- Shutdown cards get a derived kind badge at the top before the generic rows. -->
+                          <template v-if="card.typeName === 'jdk.Shutdown'">
+                            <div class="kv">
+                              <span class="k">kind</span>
+                              <span class="v">
+                                <Badge
+                                  :value="shutdownKindLabel(classifyShutdownKind((card.fields as any).reason))"
+                                  :variant="shutdownKindVariant(classifyShutdownKind((card.fields as any).reason))"
+                                  size="xxs"
+                                />
+                              </span>
+                            </div>
+                            <div class="kv kv-desc">
+                              <span class="v reason-desc">{{ shutdownKindDescription(classifyShutdownKind((card.fields as any).reason)) }}</span>
+                            </div>
+                          </template>
+                          <template
+                            v-for="row in fieldRows(card.fields)"
+                            :key="row.key"
+                          >
+                            <div class="kv" :class="{ long: row.multi }">
+                              <span class="k">{{ row.label }}</span>
+                              <span class="v" :class="{ mono: row.mono, multi: row.multi, 'bool-true': row.boolTrue, 'bool-false': row.boolFalse }">{{ rowDisplay(row, card.typeName) }}</span>
+                              <button
+                                v-if="row.truncatable"
+                                type="button"
+                                class="expand-toggle"
+                                @click="toggleRow(card.typeName, row.key)"
+                              >{{ isRowExpanded(card.typeName, row.key) ? 'Show less' : 'Show more' }}</button>
+                            </div>
+                          </template>
                         </template>
                       </div>
                     </div>
@@ -533,12 +576,12 @@ const FIELD_LABEL_OVERRIDES: Record<string, string> = {
 const CARD_ORDER: Record<string, number> = {
   'jdk.Shutdown': 0,
   'jdk.JVMInformation': 1,
-  'jdk.OSInformation': 2,
-  'jdk.CPUInformation': 3,
-  'jdk.GCConfiguration': 4,
-  'jdk.GCHeapConfiguration': 5,
+  'jdk.GCConfiguration': 2,
+  'jdk.GCHeapConfiguration': 3,
+  'jdk.CPUInformation': 4,
+  'jdk.ContainerConfiguration': 5,
   'jdk.CompilerConfiguration': 6,
-  'jdk.ContainerConfiguration': 7,
+  'jdk.OSInformation': 7,
   'jdk.VirtualizationInformation': 8,
 };
 
@@ -580,12 +623,109 @@ function rowDisplay(row: FieldRow, typeName: string): string {
   return row.display.slice(0, LONG_VALUE_TRUNCATE_AT) + '…';
 }
 
-function envEntries(env: Record<string, Record<string, unknown>>): [string, Record<string, unknown>][] {
-  return Object.entries(env).sort(([a], [b]) => {
-    const ao = CARD_ORDER[a] ?? 1000;
-    const bo = CARD_ORDER[b] ?? 1000;
-    return ao - bo || a.localeCompare(b);
+type EnvCardSection = {
+  label: string;
+  typeName: string;
+  fields: Record<string, unknown>;
+  hasData: boolean;
+};
+
+type EnvCard =
+  | {
+      kind: 'single';
+      id: string;
+      title: string;
+      subtitle: string;
+      typeName: string;
+      fields: Record<string, unknown>;
+      hasData: boolean;
+    }
+  | {
+      kind: 'merged';
+      id: string;
+      title: string;
+      subtitle: string;
+      sections: EnvCardSection[];
+    };
+
+const OS_TYPE = 'jdk.OSInformation';
+const VIRT_TYPE = 'jdk.VirtualizationInformation';
+
+// Always emits one card per canonical JFR environment type so the grid layout stays stable
+// across sessions (running/finished, containerised/bare-metal, virtualised/host). Types missing
+// from the backend payload get `hasData: false` and render the "No Data" placeholder. OS and
+// Virtualization are merged into a single dual-section card whose sections report presence
+// independently. Unknown types the backend emits but we don't know about fall through at the
+// end of the grid with full data.
+//
+// Shutdown is the one panel whose position depends on session state: first for finished
+// sessions (CARD_ORDER puts it at 0, where it carries real shutdown data) and pushed to the
+// tail for active sessions (where it's just a "No Data" placeholder that doesn't belong up
+// front). The shift stops before 1000 so unknown types still fall after it.
+const SHUTDOWN_ACTIVE_ORDER = 99;
+
+function envCards(
+  env: Record<string, Record<string, unknown>>,
+  isActive: boolean
+): EnvCard[] {
+  const entries: { order: number; card: EnvCard }[] = [];
+
+  for (const typeName of Object.keys(CARD_ORDER)) {
+    if (typeName === OS_TYPE || typeName === VIRT_TYPE) continue;
+    const fields = env[typeName];
+    const order =
+      typeName === 'jdk.Shutdown' && isActive
+        ? SHUTDOWN_ACTIVE_ORDER
+        : CARD_ORDER[typeName];
+    entries.push({
+      order,
+      card: {
+        kind: 'single',
+        id: typeName,
+        title: cardTitle(typeName),
+        subtitle: typeName,
+        typeName,
+        fields: fields ?? {},
+        hasData: Boolean(fields),
+      },
+    });
+  }
+
+  const os = env[OS_TYPE];
+  const virt = env[VIRT_TYPE];
+  entries.push({
+    order: CARD_ORDER[VIRT_TYPE],
+    card: {
+      kind: 'merged',
+      id: 'os+virtualization',
+      title: 'OS + Virtualization',
+      subtitle: '',
+      sections: [
+        { label: 'OS', typeName: OS_TYPE, fields: os ?? {}, hasData: Boolean(os) },
+        { label: 'Virtualization', typeName: VIRT_TYPE, fields: virt ?? {}, hasData: Boolean(virt) },
+      ],
+    },
   });
+
+  for (const [typeName, fields] of Object.entries(env)) {
+    if (CARD_ORDER[typeName] !== undefined) continue;
+    entries.push({
+      order: 1000,
+      card: {
+        kind: 'single',
+        id: typeName,
+        title: cardTitle(typeName),
+        subtitle: typeName,
+        typeName,
+        fields,
+        hasData: true,
+      },
+    });
+  }
+
+  return entries
+    .sort((a, b) => a.order - b.order || a.card.id.localeCompare(b.card.id))
+    .map(e => e.card);
 }
 
 function cardTitle(typeName: string): string {
@@ -1135,6 +1275,87 @@ onMounted(async () => {
 .detail-card-subtitle.mono {
   font-family: ui-monospace, Menlo, Consolas, monospace;
 }
+
+/* Stacked sub-sections inside a merged detail card (e.g. OS + Virtualization). */
+.detail-card-section + .detail-card-section {
+  border-top: 1px solid var(--color-border);
+  margin-top: 8px;
+  padding-top: 4px;
+}
+.detail-card-section-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 6px 0 2px;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-dark);
+}
+.detail-card-section-type {
+  margin-left: auto;
+  font-size: 0.6rem;
+  color: var(--color-text-light);
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 500;
+}
+/* First row inside a sub-section drops its top border so the section head
+   acts as the visual divider, matching the single-card .kv:first-child rule. */
+.detail-card-section-head + .kv {
+  border-top: none;
+}
+
+/* Empty states: full card (single-type missing) and inline section (one side of
+   the merged OS + Virtualization card missing). Both use a muted bi-inbox icon
+   + "No Data" label. */
+.detail-card--empty {
+  border-style: dashed;
+  background: var(--color-bg-hover);
+}
+.detail-card--empty .detail-card-head {
+  background: transparent;
+  border-bottom-style: dashed;
+}
+.detail-card--empty .detail-card-title,
+.detail-card--empty .detail-card-subtitle {
+  opacity: 0.6;
+}
+.detail-card-empty-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 22px 12px;
+  color: var(--color-text-light);
+}
+.detail-card-empty-icon {
+  font-size: 1.25rem;
+  opacity: 0.65;
+}
+.detail-card-empty-msg {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.detail-card-section-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 0 6px;
+  color: var(--color-text-light);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.detail-card-section-empty .bi {
+  font-size: 1rem;
+  opacity: 0.65;
+}
+
 .reason-desc {
   display: block;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;

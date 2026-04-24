@@ -5,7 +5,6 @@
         <MainCardHeader
           icon="bi bi-box"
           :title="instance?.instanceName ?? 'Instance'"
-          :badge="sessions.length"
         />
       </template>
 

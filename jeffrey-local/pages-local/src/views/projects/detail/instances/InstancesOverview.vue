@@ -5,7 +5,6 @@
         <MainCardHeader
           icon="bi bi-box"
           title="Instances Overview"
-          :badge="instances.length"
         />
       </template>
 
