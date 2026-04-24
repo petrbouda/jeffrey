@@ -18,24 +18,21 @@
 
 package pbouda.jeffrey.local.core.resources.response;
 
-import java.util.Map;
+import tools.jackson.databind.JsonNode;
 
 /**
  * Detail payload for a single session within an instance: session metadata
  * plus the one-shot JFR environment events from the session's latest
  * finished recording chunk.
  *
- * <p>{@code environment} is the raw JSON map keyed by JFR event type name
+ * <p>{@code environment} is the raw JSON tree keyed by JFR event type name
  * (e.g. {@code "jdk.JVMInformation"}, {@code "jdk.Shutdown"}) — the same
- * shape produced by {@code EventFieldsToJsonMapper} on the server. We pass
- * through a plain nested {@link Map} (rather than a Jackson {@code ObjectNode})
- * because Jersey's {@code JacksonFeature} is still the Jackson-2 integration;
- * handing it a Jackson-3 node causes bean-reflection that exposes
- * {@code isArray()}/{@code getNodeType()}/… instead of the actual fields.
- * {@code null} when no finished recording chunk has been written yet for
- * this session.
+ * shape produced by {@code EventFieldsToJsonMapper} on the server. Passed
+ * through unchanged so new JFR fields appear on the frontend without a
+ * schema change. {@code null} when no finished recording chunk has been
+ * written yet for this session.
  */
 public record InstanceSessionDetailResponse(
         InstanceSessionResponse session,
-        Map<String, Map<String, Object>> environment) {
+        JsonNode environment) {
 }

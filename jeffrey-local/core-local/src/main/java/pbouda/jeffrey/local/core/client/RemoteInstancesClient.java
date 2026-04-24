@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.local.core.client;
 
-import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.JsonNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.local.core.resources.response.InstanceDetailResponse;
@@ -30,7 +30,6 @@ import pbouda.jeffrey.server.api.v1.*;
 import pbouda.jeffrey.shared.common.Json;
 
 import java.util.List;
-import java.util.Map;
 
 public class RemoteInstancesClient {
 
@@ -92,19 +91,15 @@ public class RemoteInstancesClient {
                         .build());
 
         String json = response.getEnvironmentJsonFields();
-        Map<String, Map<String, Object>> env = (json == null || json.isBlank())
+        JsonNode env = (json == null || json.isBlank())
                 ? null
-                : Json.read(json, ENV_TYPE);
+                : Json.readTree(json);
 
         LOG.debug("Fetched instance session detail via gRPC: instanceId={} sessionId={} envTypes={}",
                 instanceId, sessionId, env == null ? 0 : env.size());
 
         return new InstanceSessionDetailResponse(toSessionResponse(response.getSession()), env);
     }
-
-    private static final TypeReference<Map<String, Map<String, Object>>> ENV_TYPE =
-            new TypeReference<>() {
-            };
 
     public List<InstanceSessionResponse> projectInstanceSessions(String instanceId) {
 

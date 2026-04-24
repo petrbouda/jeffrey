@@ -5,66 +5,32 @@
         <MainCardHeader icon="bi bi-collection-play" title="Replay Stream" />
       </template>
 
-      <!-- Summary Panel -->
-    <div
-      class="summary-panel mb-3"
-      :class="{
-        'summary-panel--empty': !session,
-        'summary-panel--connected': replaying
-      }"
-    >
-      <!-- Empty state -->
-      <template v-if="!session">
+      <!-- Summary panel: 3 inline-editable cards + header actions -->
+      <div class="summary-panel mb-3" :class="{ 'summary-panel--connected': replaying }">
         <div class="summary-row">
-          <i class="bi bi-gear summary-bar-icon"></i>
-          <span class="summary-bar-placeholder">
-            No replay configured — click Configure to select sessions and event types
-          </span>
-          <div class="summary-actions">
-            <button class="summary-btn summary-btn--configure" @click="showConfigDrawer = true">
-              <i class="bi bi-gear"></i> Configure
-            </button>
-            <button class="summary-btn summary-btn--primary" disabled>
-              <i class="bi bi-play-fill"></i> Start Replay
-            </button>
-          </div>
-        </div>
-      </template>
-
-      <!-- Configured / Replaying state -->
-      <template v-else>
-        <!-- Header row: Actions -->
-        <div class="summary-row">
-          <div class="summary-segment" style="flex: 1">
-            <span class="summary-dot" :class="replaying ? 'dot-active dot-pulse' : completed ? 'dot-completed' : 'dot-idle'"></span>
+          <div class="summary-segment">
+            <span
+              class="summary-dot"
+              :class="replaying ? 'dot-active dot-pulse' : completed ? 'dot-completed' : 'dot-idle'"
+            ></span>
             <span class="summary-status-text">{{ statusText }}</span>
           </div>
           <div class="summary-actions">
             <button
-              class="summary-btn summary-btn--configure"
-              :disabled="replaying"
-              @click="showConfigDrawer = true"
-            >
-              <i class="bi bi-gear"></i> Configure
-            </button>
-            <button
               v-if="!replaying"
               class="summary-btn summary-btn--primary"
-              :disabled="eventTypes.length === 0 || !session"
+              :disabled="!canStart"
               @click="startReplay"
             >
               <i class="bi bi-play-fill"></i> Start Replay
             </button>
-            <button
-              v-else
-              class="summary-btn summary-btn--danger"
-              @click="stopReplay"
-            >
+            <button v-else class="summary-btn summary-btn--danger" @click="stopReplay">
               <i class="bi bi-stop-fill"></i> Stop
             </button>
             <button
               class="summary-btn summary-btn--ghost"
-              :disabled="events.length === 0 && !session"
+              :disabled="!hasAnything"
+              title="Clear configuration and events"
               @click="clearAll"
             >
               <i class="bi bi-arrow-counterclockwise"></i>
@@ -72,98 +38,236 @@
           </div>
         </div>
 
-        <!-- Config details grid -->
         <div class="summary-details">
-          <div class="summary-detail-card">
-            <div class="summary-detail-icon"><i class="bi bi-collection-play"></i></div>
-            <div class="summary-detail-body">
-              <div class="summary-detail-label">Session</div>
-              <div class="summary-detail-value" :title="session?.sessionInstance ? `${session.id}\n${session.sessionInstance}` : session?.id">
-                {{ session?.id }}
+          <!-- Session card -->
+          <div
+            class="summary-detail-card"
+            :class="{ 'summary-detail-card--editing': editing === 'session' }"
+          >
+            <div class="summary-detail-head" @click="toggleEditing('session')">
+              <div class="summary-detail-icon"><i class="bi bi-collection-play"></i></div>
+              <div class="summary-detail-label-wrap">
+                <div class="summary-detail-label">Session</div>
+                <i v-if="session" class="bi bi-check-circle-fill summary-detail-check"></i>
               </div>
-              <div v-if="session?.sessionInstance" class="summary-detail-sub">{{ session.sessionInstance }}</div>
+              <span class="summary-detail-action">{{ editing === 'session' ? 'Done' : session ? 'Change' : 'Select' }}</span>
+            </div>
+            <div class="summary-detail-body">
+              <template v-if="editing === 'session' && workspaceId && projectId">
+                <ReplaySessionPicker
+                  :workspace-id="workspaceId"
+                  :project-id="projectId"
+                  :selected="session"
+                  @pick="onSessionPick"
+                />
+              </template>
+              <template v-else-if="session">
+                <div class="summary-detail-value" :title="`${session.id}\n${session.sessionInstance}`">
+                  {{ session.id }}
+                </div>
+                <div v-if="session.sessionInstance" class="summary-detail-sub">{{ session.sessionInstance }}</div>
+              </template>
+              <template v-else>
+                <div class="summary-detail-placeholder">
+                  <i class="bi bi-cursor"></i>
+                  Click <em>Select</em> to pick a session
+                </div>
+              </template>
             </div>
           </div>
 
-          <div class="summary-detail-card">
-            <div class="summary-detail-icon summary-detail-icon--events"><i class="bi bi-lightning"></i></div>
-            <div class="summary-detail-body">
-              <div class="summary-detail-label">Events</div>
-              <div v-if="eventTypes.length === 0" class="summary-detail-sub" style="font-style:italic">No events selected</div>
-              <div v-else class="summary-tags">
-                <span
-                  v-for="et in visibleEventTags"
-                  :key="et"
-                  class="summary-tag"
-                  :style="{ backgroundColor: eventTypeColor(et) + '18', color: eventTypeColor(et), borderColor: eventTypeColor(et) + '40' }"
-                >{{ et }}</span>
-                <a v-if="overflowCount > 0 && !eventTagsExpanded" href="#" class="summary-overflow" @click.prevent="eventTagsExpanded = true">+{{ overflowCount }} more</a>
-                <a v-if="eventTagsExpanded && overflowCount > 0" href="#" class="summary-overflow" @click.prevent="eventTagsExpanded = false">Show less</a>
+          <!-- Events card -->
+          <div
+            class="summary-detail-card"
+            :class="{ 'summary-detail-card--editing': editing === 'events' }"
+          >
+            <div class="summary-detail-head" @click="toggleEditing('events')">
+              <div class="summary-detail-icon summary-detail-icon--events"><i class="bi bi-lightning"></i></div>
+              <div class="summary-detail-label-wrap">
+                <div class="summary-detail-label">Event Types</div>
+                <i v-if="eventTypes.length > 0" class="bi bi-check-circle-fill summary-detail-check"></i>
               </div>
+              <span class="summary-detail-action">{{ editing === 'events' ? 'Done' : eventTypes.length ? 'Change' : 'Select' }}</span>
+            </div>
+            <div class="summary-detail-body">
+              <template v-if="editing === 'events'">
+                <EventTypeSelector v-model="eventTypes" />
+              </template>
+              <template v-else-if="eventTypes.length === 0">
+                <div class="summary-detail-placeholder">
+                  <i class="bi bi-cursor"></i>
+                  Click <em>Select</em> to choose events
+                </div>
+              </template>
+              <template v-else>
+                <div class="summary-tags">
+                  <span
+                    v-for="et in visibleEventTags"
+                    :key="et"
+                    class="summary-tag"
+                    :style="{
+                      backgroundColor: eventTypeColor(et) + '18',
+                      color: eventTypeColor(et),
+                      borderColor: eventTypeColor(et) + '40'
+                    }"
+                  >{{ et }}</span>
+                  <a
+                    v-if="overflowCount > 0 && !eventTagsExpanded"
+                    href="#"
+                    class="summary-overflow"
+                    @click.stop.prevent="eventTagsExpanded = true"
+                  >+{{ overflowCount }} more</a>
+                  <a
+                    v-if="eventTagsExpanded && overflowCount > 0"
+                    href="#"
+                    class="summary-overflow"
+                    @click.stop.prevent="eventTagsExpanded = false"
+                  >Show less</a>
+                </div>
+              </template>
             </div>
           </div>
 
-          <div class="summary-detail-card">
-            <div class="summary-detail-icon summary-detail-icon--time"><i class="bi bi-clock"></i></div>
-            <div class="summary-detail-body">
-              <div class="summary-detail-label">Time Range</div>
-              <div class="summary-time-lines">
-                <div class="summary-time-line">
-                  <span class="summary-time-prefix">From</span>
-                  <span class="summary-time-value">{{ timeSummaryStart }}</span>
-                </div>
-                <div class="summary-time-line">
-                  <span class="summary-time-prefix">To</span>
-                  <span class="summary-time-value">{{ timeSummaryEnd }}</span>
-                </div>
+          <!-- Time card -->
+          <div
+            class="summary-detail-card"
+            :class="{ 'summary-detail-card--editing': editing === 'time' }"
+          >
+            <div class="summary-detail-head" @click="toggleEditing('time')">
+              <div class="summary-detail-icon summary-detail-icon--time"><i class="bi bi-clock"></i></div>
+              <div class="summary-detail-label-wrap">
+                <div class="summary-detail-label">Time Range</div>
               </div>
+              <span class="summary-detail-action">{{ editing === 'time' ? 'Done' : 'Change' }}</span>
+            </div>
+            <div class="summary-detail-body">
+              <template v-if="editing === 'time'">
+                <div class="time-form">
+                  <div class="time-field">
+                    <span class="time-field-label">From</span>
+                    <div class="time-field-controls">
+                      <button
+                        class="time-radio"
+                        :class="{ 'time-radio--on': startMode === 'beginning' }"
+                        @click="setStartMode('beginning')"
+                      >Beginning</button>
+                      <button
+                        class="time-radio"
+                        :class="{ 'time-radio--on': startMode === 'custom' }"
+                        @click="setStartMode('custom')"
+                      >Custom</button>
+                      <input
+                        v-if="startMode === 'custom'"
+                        v-model="startTimeInput"
+                        type="datetime-local"
+                        class="time-dt"
+                      />
+                    </div>
+                  </div>
+
+                  <div class="time-field">
+                    <span class="time-field-label">To</span>
+                    <div class="time-field-controls">
+                      <button
+                        class="time-radio"
+                        :class="{ 'time-radio--on': endMode === 'latest' }"
+                        @click="setEndMode('latest')"
+                      >Latest</button>
+                      <button
+                        class="time-radio"
+                        :class="{ 'time-radio--on': endMode === 'custom' }"
+                        @click="setEndMode('custom')"
+                      >Custom</button>
+                      <input
+                        v-if="endMode === 'custom'"
+                        v-model="endTimeInput"
+                        type="datetime-local"
+                        class="time-dt"
+                      />
+                    </div>
+                  </div>
+
+                  <div class="time-field time-field--buffer">
+                    <span class="time-field-label">Buffer</span>
+                    <div class="time-field-controls">
+                      <button
+                        v-for="option in maxEventsOptions"
+                        :key="option"
+                        class="time-radio"
+                        :class="{ 'time-radio--on': !customMaxEvents && maxEvents === option }"
+                        @click="selectPresetMaxEvents(option)"
+                      >{{ option.toLocaleString() }}</button>
+                      <button
+                        class="time-radio"
+                        :class="{ 'time-radio--on': customMaxEvents }"
+                        @click="enableCustomMaxEvents"
+                      >Custom</button>
+                      <input
+                        v-if="customMaxEvents"
+                        v-model.number="maxEvents"
+                        type="number"
+                        min="1"
+                        class="time-dt time-dt--narrow"
+                      />
+                    </div>
+                  </div>
+                  <div class="time-hint">
+                    Maximum events kept in the table. Oldest events are discarded when the limit is reached.
+                  </div>
+                </div>
+              </template>
+              <template v-else>
+                <div class="summary-time-lines">
+                  <div class="summary-time-line">
+                    <span class="summary-time-prefix">From</span>
+                    <span class="summary-time-value">{{ timeSummaryStart }}</span>
+                  </div>
+                  <div class="summary-time-line">
+                    <span class="summary-time-prefix">To</span>
+                    <span class="summary-time-value">{{ timeSummaryEnd }}</span>
+                  </div>
+                  <div class="summary-time-line">
+                    <span class="summary-time-prefix">Buffer</span>
+                    <span class="summary-time-value">{{ maxEvents.toLocaleString() }}</span>
+                  </div>
+                </div>
+              </template>
             </div>
           </div>
         </div>
-      </template>
-    </div>
+      </div>
 
-    <!-- Status Strip (visible when replaying or has events) -->
-    <div v-if="replaying || events.length > 0" class="status-strip mb-3">
-      <span class="status-strip-item">
-        <i class="bi bi-collection"></i> {{ totalEventsReceived }} events
-      </span>
-      <span class="status-strip-item">
-        <i class="bi bi-stack"></i> {{ batchCount }} batches
-      </span>
-      <span v-if="lastBatchTime" class="status-strip-item">
-        <i class="bi bi-clock"></i> Last batch: {{ FormattingService.formatTimestamp(lastBatchTime) }}
-      </span>
-    </div>
+      <!-- Status Strip -->
+      <div v-if="replaying || events.length > 0" class="status-strip mb-3">
+        <span class="status-strip-item">
+          <i class="bi bi-collection"></i> {{ totalEventsReceived }} events
+        </span>
+        <span class="status-strip-item">
+          <i class="bi bi-stack"></i> {{ batchCount }} batches
+        </span>
+        <span v-if="lastBatchTime" class="status-strip-item">
+          <i class="bi bi-clock"></i> Last batch: {{ FormattingService.formatTimestamp(lastBatchTime) }}
+        </span>
+      </div>
 
-    <!-- Events Table -->
-    <StreamingEventsTable
-      :events="events"
-      :event-types="eventTypes"
-    >
-      <template #empty>
-        <EmptyState
-          title="No events"
-          :description="
-            replaying
-              ? 'Reading events from recording files...'
-              : 'Select a session and click Start Replay to read historical events.'
-          "
-          icon="bi-collection-play"
-        />
-      </template>
-    </StreamingEventsTable>
+      <!-- Events Table -->
+      <StreamingEventsTable :events="events" :event-types="eventTypes">
+        <template #empty>
+          <EmptyState
+            title="No events"
+            :description="
+              replaying
+                ? 'Reading events from recording files...'
+                : canStart
+                  ? 'Click Start Replay to read historical events.'
+                  : 'Configure a session and event types, then click Start Replay.'
+            "
+            icon="bi-collection-play"
+          />
+        </template>
+      </StreamingEventsTable>
     </MainCard>
   </div>
-
-  <ReplayConfigDrawer
-    v-if="workspaceId && projectId"
-    v-model:show="showConfigDrawer"
-    :workspace-id="workspaceId"
-    :project-id="projectId"
-    :config="currentConfig"
-    @apply="onConfigApply"
-  />
 </template>
 
 <script setup lang="ts">
@@ -173,13 +277,16 @@ import EmptyState from '@/components/EmptyState.vue'
 import MainCard from '@/components/MainCard.vue'
 import MainCardHeader from '@/components/MainCardHeader.vue'
 import StreamingEventsTable from '@/components/streaming/StreamingEventsTable.vue'
-import ReplayConfigDrawer from '@/components/streaming/ReplayConfigDrawer.vue'
-import type { ReplayStreamConfig, ReplayStartMode, ReplayEndMode, SelectedSession } from '@/components/streaming/ReplayConfigDrawer.vue'
+import EventTypeSelector from '@/components/streaming/EventTypeSelector.vue'
+import ReplaySessionPicker from '@/components/streaming/ReplaySessionPicker.vue'
+import type { ReplayStartMode, ReplayEndMode, SelectedSession } from '@/components/streaming/streamingTypes'
 import FormattingService from '@/services/FormattingService'
 import ReplayStreamClient from '@/services/api/ReplayStreamClient'
 import type { StreamingEvent } from '@/services/api/EventStreamingClient'
 import ToastService from '@/services/ToastService'
 import { useNavigation } from '@/composables/useNavigation'
+
+type EditingCard = 'session' | 'events' | 'time' | null
 
 const MAX_VISIBLE_TAGS = 3
 const EVENT_TYPE_COLORS = [
@@ -190,7 +297,7 @@ const EVENT_TYPE_COLORS = [
 const { workspaceId, projectId } = useNavigation()
 const route = useRoute()
 
-const showConfigDrawer = ref(false)
+const editing = ref<EditingCard>(null)
 const eventTagsExpanded = ref(false)
 const session = ref<SelectedSession | null>(null)
 const eventTypes = ref<string[]>([])
@@ -205,23 +312,22 @@ const batchCount = ref(0)
 const lastBatchTime = ref<number | null>(null)
 const maxEvents = ref(1000)
 const totalEventsReceived = ref(0)
+const customMaxEvents = ref(false)
+const maxEventsOptions = [500, 1000, 5000, 10000]
 
 let client: ReplayStreamClient | null = null
 
-const currentConfig = computed<ReplayStreamConfig>(() => ({
-  session: session.value ? { ...session.value } : null,
-  eventTypes: eventTypes.value,
-  startMode: startMode.value,
-  startTime: startTimeInput.value,
-  endMode: endMode.value,
-  endTime: endTimeInput.value,
-  maxEvents: maxEvents.value
-}))
+const canStart = computed(() => session.value != null && eventTypes.value.length > 0)
+
+const hasAnything = computed(
+  () => session.value != null || eventTypes.value.length > 0 || events.value.length > 0
+)
 
 const statusText = computed(() => {
   if (replaying.value) return 'Replaying...'
   if (completed.value) return 'Replay Complete'
-  return 'Ready to replay'
+  if (canStart.value) return 'Ready to replay'
+  return 'Configure session and event types'
 })
 
 const visibleEventTags = computed(() =>
@@ -244,7 +350,6 @@ function datetimeLocalToMillis(value: string): number {
 }
 
 const timeSummaryStart = computed(() => {
-  if (startMode.value === 'beginning') return 'Beginning'
   if (startMode.value === 'custom' && startTimeInput.value) {
     return FormattingService.formatDateTime(new Date(startTimeInput.value))
   }
@@ -252,22 +357,40 @@ const timeSummaryStart = computed(() => {
 })
 
 const timeSummaryEnd = computed(() => {
-  if (endMode.value === 'latest') return 'Latest'
   if (endMode.value === 'custom' && endTimeInput.value) {
     return FormattingService.formatDateTime(new Date(endTimeInput.value))
   }
   return 'Latest'
 })
 
-function onConfigApply(config: ReplayStreamConfig) {
-  session.value = config.session ? { ...config.session } : null
-  eventTypes.value = config.eventTypes
-  startMode.value = config.startMode
-  startTimeInput.value = config.startTime
-  endMode.value = config.endMode
-  endTimeInput.value = config.endTime
-  maxEvents.value = config.maxEvents
+function toggleEditing(card: Exclude<EditingCard, null>) {
+  if (replaying.value) return
+  editing.value = editing.value === card ? null : card
+}
+
+function onSessionPick(value: SelectedSession) {
+  session.value = value
   completed.value = false
+  editing.value = eventTypes.value.length === 0 ? 'events' : null
+}
+
+function setStartMode(mode: ReplayStartMode) {
+  startMode.value = mode
+  if (mode !== 'custom') startTimeInput.value = ''
+}
+
+function setEndMode(mode: ReplayEndMode) {
+  endMode.value = mode
+  if (mode !== 'custom') endTimeInput.value = ''
+}
+
+function selectPresetMaxEvents(option: number) {
+  customMaxEvents.value = false
+  maxEvents.value = option
+}
+
+function enableCustomMaxEvents() {
+  customMaxEvents.value = true
 }
 
 function startReplay() {
@@ -283,12 +406,12 @@ function startReplay() {
     options.endTime = datetimeLocalToMillis(endTimeInput.value)
   }
 
-  // Fresh replay → clean slate
   events.value = []
   batchCount.value = 0
   totalEventsReceived.value = 0
   lastBatchTime.value = null
   completed.value = false
+  editing.value = null
 
   client.replay(
     session.value.id,
@@ -337,7 +460,9 @@ function clearAll() {
   totalEventsReceived.value = 0
   lastBatchTime.value = null
   maxEvents.value = 1000
+  customMaxEvents.value = false
   completed.value = false
+  editing.value = null
 }
 
 onMounted(() => {
@@ -348,6 +473,9 @@ onMounted(() => {
       id: sid,
       sessionInstance: typeof sinst === 'string' ? sinst : ''
     }
+    // Arrived from Instances timeline with session + default time already valid.
+    // Jump straight to the only thing the user still has to pick.
+    editing.value = 'events'
   }
 })
 
@@ -365,11 +493,6 @@ onUnmounted(() => {
   border-radius: var(--radius-sm);
 }
 
-.summary-panel--empty {
-  border-style: dashed;
-  background: var(--color-white);
-}
-
 .summary-panel--connected {
   border-color: rgba(0, 210, 122, 0.3);
   background: var(--color-white);
@@ -381,18 +504,6 @@ onUnmounted(() => {
   gap: 12px;
 }
 
-.summary-bar-icon {
-  color: var(--color-muted);
-  font-size: 0.85rem;
-}
-
-.summary-bar-placeholder {
-  font-size: 0.8rem;
-  color: var(--color-muted);
-  font-style: italic;
-  flex: 1;
-}
-
 .summary-segment {
   display: flex;
   align-items: center;
@@ -400,6 +511,7 @@ onUnmounted(() => {
   font-size: 0.8rem;
   color: var(--color-muted);
   min-width: 0;
+  flex: 1;
 }
 
 .summary-status-text {
@@ -410,7 +522,7 @@ onUnmounted(() => {
 
 .summary-details {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: 1fr 1.3fr 1fr;
   gap: 10px;
   margin-top: 12px;
   padding-top: 12px;
@@ -419,11 +531,35 @@ onUnmounted(() => {
 
 .summary-detail-card {
   display: flex;
-  gap: 10px;
-  padding: 10px 12px;
+  flex-direction: column;
   background: var(--color-white);
   border: 1px solid var(--color-border-light);
   border-radius: var(--radius-sm);
+  overflow: hidden;
+  transition: var(--transition-fast);
+}
+.summary-detail-card:hover:not(.summary-detail-card--editing) {
+  border-color: var(--color-primary-border-light);
+}
+.summary-detail-card--editing {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-light);
+}
+
+.summary-detail-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color var(--transition-fast);
+}
+.summary-detail-head:hover {
+  background: var(--color-light);
+}
+.summary-detail-card--editing .summary-detail-head {
+  background: var(--color-primary-lighter);
 }
 
 .summary-detail-icon {
@@ -449,11 +585,12 @@ onUnmounted(() => {
   color: var(--color-teal);
 }
 
-.summary-detail-body {
-  min-width: 0;
+.summary-detail-label-wrap {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  flex: 1;
 }
 
 .summary-detail-label {
@@ -462,6 +599,26 @@ onUnmounted(() => {
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--color-muted);
+}
+
+.summary-detail-check {
+  color: var(--color-success);
+  font-size: 0.78rem;
+}
+
+.summary-detail-action {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  text-decoration: none;
+}
+.summary-detail-head:hover .summary-detail-action {
+  text-decoration: underline;
+}
+
+.summary-detail-body {
+  flex: 1;
+  padding: 10px 12px 12px;
 }
 
 .summary-detail-value {
@@ -477,6 +634,25 @@ onUnmounted(() => {
 .summary-detail-sub {
   font-size: 0.7rem;
   color: var(--color-muted);
+  margin-top: 2px;
+}
+
+.summary-detail-placeholder {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  color: var(--color-muted);
+  font-style: italic;
+}
+.summary-detail-placeholder i {
+  font-size: 0.7rem;
+  opacity: 0.6;
+}
+.summary-detail-placeholder em {
+  font-style: normal;
+  font-weight: 600;
+  color: var(--color-primary);
 }
 
 .summary-time-lines {
@@ -497,7 +673,7 @@ onUnmounted(() => {
   font-weight: 600;
   text-transform: uppercase;
   color: var(--color-primary);
-  min-width: 34px;
+  min-width: 48px;
 }
 
 .summary-time-value {
@@ -531,7 +707,6 @@ onUnmounted(() => {
   cursor: pointer;
   text-decoration: none;
 }
-
 .summary-overflow:hover {
   text-decoration: underline;
 }
@@ -543,17 +718,9 @@ onUnmounted(() => {
   flex-shrink: 0;
 }
 
-.dot-active {
-  background-color: var(--color-success);
-}
-
-.dot-idle {
-  background-color: var(--color-text-light);
-}
-
-.dot-completed {
-  background-color: var(--color-primary);
-}
+.dot-active { background-color: var(--color-success); }
+.dot-idle { background-color: var(--color-text-light); }
+.dot-completed { background-color: var(--color-primary); }
 
 .dot-pulse {
   animation: dotPulse 2s infinite;
@@ -565,7 +732,6 @@ onUnmounted(() => {
 }
 
 .summary-actions {
-  margin-left: auto;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -593,23 +759,10 @@ onUnmounted(() => {
   cursor: default;
 }
 
-.summary-btn--configure {
-  background: var(--color-white);
-  border: 1px solid var(--color-border);
-  color: var(--color-muted);
-}
-
-.summary-btn--configure:hover:not(:disabled) {
-  border-color: var(--color-primary);
-  color: var(--color-primary);
-  background: var(--color-primary-light);
-}
-
 .summary-btn--primary {
   background: var(--color-primary);
   color: var(--color-white);
 }
-
 .summary-btn--primary:hover:not(:disabled) {
   background: var(--color-primary-hover);
 }
@@ -619,7 +772,6 @@ onUnmounted(() => {
   border: 1px solid var(--color-border);
   color: var(--color-danger);
 }
-
 .summary-btn--danger:hover {
   background: rgba(230, 55, 87, 0.06);
   border-color: var(--color-danger);
@@ -630,9 +782,89 @@ onUnmounted(() => {
   color: var(--color-text-light);
   padding: 0 8px;
 }
-
 .summary-btn--ghost:hover:not(:disabled) {
   color: var(--color-primary);
+}
+
+/* ===== Inline Time Editor ===== */
+.time-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.time-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.time-field--buffer {
+  border-top: 1px solid var(--color-border-light);
+  padding-top: 10px;
+  margin-top: 2px;
+}
+
+.time-field-label {
+  min-width: 46px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-muted);
+}
+
+.time-field-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.time-radio {
+  padding: 5px 10px;
+  border: 1px solid var(--color-border);
+  background: var(--color-white);
+  color: var(--color-muted);
+  font-size: 0.74rem;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-family: inherit;
+  transition: var(--transition-fast);
+}
+.time-radio:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+.time-radio--on {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: var(--color-primary-light);
+}
+
+.time-dt {
+  padding: 4px 8px;
+  border: 1px solid var(--color-border-input);
+  border-radius: var(--radius-sm);
+  font-size: 0.74rem;
+  font-family: inherit;
+  outline: none;
+  transition: var(--transition-fast);
+}
+.time-dt:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px var(--color-primary-light);
+}
+.time-dt--narrow {
+  width: 110px;
+}
+
+.time-hint {
+  font-size: 0.68rem;
+  color: var(--color-muted);
+  line-height: 1.4;
 }
 
 /* ===== Status Strip ===== */
@@ -654,5 +886,4 @@ onUnmounted(() => {
 .status-strip-item i {
   font-size: 0.7rem;
 }
-
 </style>

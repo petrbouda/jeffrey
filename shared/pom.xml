@@ -41,6 +41,7 @@
         <module>sql-builder</module>
         <module>recording-storage-api</module>
         <module>filesystem-recording-storage</module>
+        <module>jackson-jaxrs</module>
     </modules>
 
     <dependencyManagement>
@@ -83,6 +84,11 @@
             <dependency>
                 <groupId>${project.groupId}</groupId>
                 <artifactId>filesystem-recording-storage</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>jackson-jaxrs</artifactId>
                 <version>${project.version}</version>
             </dependency>
         </dependencies>

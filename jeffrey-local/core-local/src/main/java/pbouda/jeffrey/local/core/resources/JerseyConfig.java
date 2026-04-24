@@ -19,13 +19,14 @@
 package pbouda.jeffrey.local.core.resources;
 
 import jakarta.ws.rs.ApplicationPath;
-import org.glassfish.jersey.jackson.JacksonFeature;
 import org.glassfish.jersey.logging.LoggingFeature;
 import org.glassfish.jersey.logging.LoggingFeature.Verbosity;
 import org.glassfish.jersey.media.multipart.MultiPartFeature;
 import org.glassfish.jersey.media.sse.SseFeature;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.glassfish.jersey.server.ServerProperties;
+import pbouda.jeffrey.shared.jackson.jaxrs.JacksonJson3Feature;
+
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -39,7 +40,7 @@ public class JerseyConfig extends ResourceConfig {
         // Scan for resources in core and profile-management modules
         packages("pbouda.jeffrey.resources", "pbouda.jeffrey.profile.resources");
 
-        register(JacksonFeature.class);
+        register(JacksonJson3Feature.class);
         register(MultiPartFeature.class);
         register(SseFeature.class);
 

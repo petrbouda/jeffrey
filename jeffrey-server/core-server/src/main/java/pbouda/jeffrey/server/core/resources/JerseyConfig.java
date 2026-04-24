@@ -22,7 +22,6 @@ import jakarta.ws.rs.ApplicationPath;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.ExceptionMapper;
-import org.glassfish.jersey.jackson.JacksonFeature;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.glassfish.jersey.server.ServerProperties;
 import org.slf4j.Logger;
@@ -30,6 +29,7 @@ import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.shared.common.exception.ErrorCode;
 import pbouda.jeffrey.shared.common.exception.ErrorResponse;
 import pbouda.jeffrey.shared.common.exception.ErrorType;
+import pbouda.jeffrey.shared.jackson.jaxrs.JacksonJson3Feature;
 
 @ApplicationPath("/api")
 public class JerseyConfig extends ResourceConfig {
@@ -37,7 +37,7 @@ public class JerseyConfig extends ResourceConfig {
     public JerseyConfig() {
         property(ServerProperties.WADL_FEATURE_DISABLE, true);
 
-        register(JacksonFeature.class);
+        register(JacksonJson3Feature.class);
         register(GenericExceptionMapper.class);
     }
 

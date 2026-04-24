@@ -57,6 +57,10 @@
             <groupId>org.glassfish.jersey.media</groupId>
             <artifactId>jersey-media-sse</artifactId>
         </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>jackson-jaxrs</artifactId>
+        </dependency>
 
         <!-- Platform modules (formerly transitive via platform-core) -->
         <dependency>
