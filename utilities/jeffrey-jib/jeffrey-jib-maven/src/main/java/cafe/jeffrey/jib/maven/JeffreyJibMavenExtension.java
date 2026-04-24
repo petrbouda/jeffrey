@@ -80,6 +80,7 @@ public class JeffreyJibMavenExtension implements JibMavenPluginExtension<Jeffrey
             ExtensionLogger logger) throws JibPluginExtensionException {
 
         JeffreyJibConfig effective = config.orElseGet(JeffreyJibConfig::new);
+        JeffreyBuildPlanExtender.applyProperties(effective, properties, logger);
         return new JeffreyBuildPlanExtender(getClass()).extend(buildPlan, effective, logger);
     }
 }

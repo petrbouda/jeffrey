@@ -22,6 +22,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import pbouda.jeffrey.profile.guardian.GuardianProperties;
+import pbouda.jeffrey.profile.guardian.GuardianPropertiesTestDefaults;
 import pbouda.jeffrey.shared.common.model.Type;
 
 import java.util.List;
@@ -40,7 +41,7 @@ class GuardRegistryTest {
 
     private static final Guard.ProfileInfo PROFILE_INFO =
             new Guard.ProfileInfo("test", Type.EXECUTION_SAMPLE);
-    private static final GuardianProperties PROPS = GuardianProperties.defaults();
+    private static final GuardianProperties PROPS = GuardianPropertiesTestDefaults.defaults();
 
     /**
      * Locks in the per-group counts the pre-refactor {@code candidateGuards()} methods emitted.

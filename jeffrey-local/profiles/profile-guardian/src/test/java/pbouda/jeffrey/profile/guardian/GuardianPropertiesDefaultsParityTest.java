@@ -32,7 +32,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 /**
- * {@link GuardianProperties#defaults()} hand-lists every default by position. When a new field
+ * {@link GuardianPropertiesTestDefaults#defaults()} hand-lists every default by position. When a new field
  * is added to the record, Spring binding picks up the {@code @DefaultValue} annotation
  * automatically — but {@code defaults()} won't: the factory will either fail to compile (too
  * few arguments) or silently construct with a stale default.
@@ -50,7 +50,7 @@ class GuardianPropertiesDefaultsParityTest {
                 .getDeclaredConstructor(paramTypes(components))
                 .getParameters();
 
-        GuardianProperties defaults = GuardianProperties.defaults();
+        GuardianProperties defaults = GuardianPropertiesTestDefaults.defaults();
         List<String> drift = new ArrayList<>();
 
         for (int i = 0; i < components.length; i++) {
@@ -75,7 +75,7 @@ class GuardianPropertiesDefaultsParityTest {
         }
 
         if (!drift.isEmpty()) {
-            fail("GuardianProperties.defaults() has drifted from the @DefaultValue annotations:\n  " +
+            fail("GuardianPropertiesTestDefaults.defaults() has drifted from the @DefaultValue annotations:\n  " +
                     String.join("\n  ", drift) +
                     "\n\nFix defaults() to match, or add a new @DefaultValue if you added a field.");
         }
@@ -88,7 +88,7 @@ class GuardianPropertiesDefaultsParityTest {
         // re-asserts arity explicitly so the failure message is clear in CI logs even if the
         // compiler error is missed.
         int expected = GuardianProperties.class.getRecordComponents().length;
-        int actual = GuardianProperties.defaults().getClass().getRecordComponents().length;
+        int actual = GuardianPropertiesTestDefaults.defaults().getClass().getRecordComponents().length;
         assertEquals(expected, actual,
                 "defaults() and the record definition must have the same component count");
         assertTrue(expected > 0);

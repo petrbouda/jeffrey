@@ -124,6 +124,11 @@ const routes: RouteRecordRaw[] = [
         name: 'DocsProfiles',
         component: () => import('@/views/docs/local/profiles/ProfilesPage.vue')
       },
+      {
+        path: 'local/profiles/guardian',
+        name: 'DocsProfilesGuardian',
+        component: () => import('@/views/docs/local/profiles/ProfileGuardianPage.vue')
+      },
       // Workspaces & Event Log
       {
         path: 'local/workspaces',

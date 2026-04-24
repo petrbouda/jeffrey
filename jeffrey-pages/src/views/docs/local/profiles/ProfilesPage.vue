@@ -105,8 +105,8 @@ const folderStructure = `$JEFFREY_HOME/
       <div class="docs-grid docs-grid-2">
         <DocsFeatureCard
           icon="bi bi-shield-check"
-          title="Guardian & Auto Analysis"
-          description="Automated health checks that traverse stacktraces and evaluate event metrics. Quick triage with color-coded severity (OK, Warning, Critical)."
+          title="Guardian"
+          description="Automated rules that walk stacktraces and event metrics and flag what warrants attention. Color-coded OK / INFO / WARNING with tuneable thresholds — see the Guardian reference."
         />
         <DocsFeatureCard
           icon="bi bi-collection"
@@ -139,6 +139,10 @@ const folderStructure = `$JEFFREY_HOME/
           description="Container resource limits and settings — CPU quotas, memory limits, and cgroup configuration for containerized deployments."
         />
       </div>
+
+      <p class="docs-read-more">
+        <router-link to="/docs/local/profiles/guardian">Read the Guardian reference &rarr;</router-link>
+      </p>
 
       <h2 id="technologies">Technologies</h2>
       <p>Application-specific analysis — how your code interacts with external systems. Requires <router-link to="/docs/events/overview">Jeffrey Events</router-link> library to be added to your application.</p>

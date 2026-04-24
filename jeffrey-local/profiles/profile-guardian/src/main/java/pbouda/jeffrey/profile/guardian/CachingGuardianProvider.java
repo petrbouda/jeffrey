@@ -31,7 +31,7 @@ import java.util.Objects;
  * <p>
  * The cache key is versioned with a short stable hash of the current {@link GuardianProperties} so that changing
  * any threshold silently invalidates the existing cached analysis — without this, operators tweaking
- * {@code jeffrey.guardian.*} properties would keep seeing stale results from before the change.
+ * {@code jeffrey.local.guardian.*} properties would keep seeing stale results from before the change.
  */
 public class CachingGuardianProvider implements GuardianProvider {
 

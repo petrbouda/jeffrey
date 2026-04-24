@@ -85,7 +85,10 @@ onMounted(() => {
         <p>At container start, the wrapper runs <code>jeffrey-cli init</code> &mdash; resolved from
           <code>${JEFFREY_HOME}/libs/current/jeffrey-cli-&lt;arch&gt;</code> on a shared volume populated by
           Jeffrey Server's <code>copy-libs</code> feature &mdash; and then <code>exec</code>s the original JIB
-          command with the CLI-produced argfile inserted right after the <code>java</code> binary.</p>
+          command with the CLI-produced argfile inserted right after the <code>java</code> binary.
+          If the shared-volume root is not configured at runtime (neither <code>JEFFREY_HOME</code> nor
+          <code>JEFFREY_CLI_PATH</code> is set), the wrapper logs a warning and skips init entirely &mdash;
+          see <a href="#runtime-kill-switch">Runtime Kill Switch</a>.</p>
 
         <DocsCallout type="info">
           <strong>Why a shared volume?</strong> The extension does <strong>not</strong> bake Jeffrey
@@ -114,8 +117,8 @@ onMounted(() => {
               <tr>
                 <td><code>jeffreyHome</code></td>
                 <td><code>JEFFREY_HOME</code></td>
-                <td><code>/mnt/azure/runtime/shared/jeffrey</code></td>
-                <td>Shared-volume root. Wrapper resolves the CLI at <code>&lt;home&gt;/libs/current/jeffrey-cli-&lt;arch&gt;</code>.</td>
+                <td>&mdash; <span class="prop-type">(must be set)</span></td>
+                <td>Shared-volume root. Wrapper resolves the CLI at <code>&lt;home&gt;/libs/current/jeffrey-cli-&lt;arch&gt;</code>. If neither this nor <code>cliPath</code> is set, the wrapper warns and falls through &mdash; the container still starts, just without profiling.</td>
               </tr>
               <tr>
                 <td><code>baseConfig</code></td>
@@ -146,45 +149,97 @@ onMounted(() => {
         </div>
 
         <h2 id="runtime-kill-switch">Runtime Kill Switch</h2>
-        <p>Set <code>JEFFREY_ENABLED=false</code> (or <code>0</code>, <code>no</code>, <code>off</code>, case-insensitive)
-          in the container env to bypass profiling entirely. The wrapper skips <code>jeffrey-cli init</code>,
-          async-profiler, and argfile injection, and <code>exec</code>s the JIB-produced <code>java</code>
-          command verbatim &mdash; identical behaviour to a non-instrumented image, no rebuild required.</p>
+        <p><strong>Explicit opt-out.</strong> Set <code>JEFFREY_ENABLED=false</code> (or <code>0</code>,
+          <code>no</code>, <code>off</code>, case-insensitive) in the container env to bypass profiling
+          entirely. The wrapper skips <code>jeffrey-cli init</code>, async-profiler, and argfile
+          injection, and <code>exec</code>s the JIB-produced <code>java</code> command verbatim &mdash;
+          identical behaviour to a non-instrumented image, no rebuild required.</p>
 
         <p>Useful for emergency disablement, per-pod opt-out, dev/local runs without the shared
           volume, and A/B comparisons.</p>
 
+        <p><strong>Implicit fallthrough (fail-open).</strong> If neither <code>JEFFREY_HOME</code> nor
+          <code>JEFFREY_CLI_PATH</code> is set at container start, the wrapper logs a warning to
+          stderr (&ldquo;Jeffrey is disabled, starting application without profiling&rdquo;) and
+          <code>exec</code>s the JIB command verbatim. Misconfiguration can never prevent an app
+          from booting &mdash; the worst case is profiling silently turning off, which the warning
+          surfaces in the pod logs.</p>
+
+        <DocsCallout type="info">
+          The &ldquo;app still starts&rdquo; guarantee holds only when a downstream command is
+          actually present in the container. If the JIB CMD is missing entirely, the wrapper has
+          nothing to exec and still exits non-zero &mdash; a configuration error, not a profiling
+          concern.
+        </DocsCallout>
+
         <h2 id="gradle-setup">Gradle Setup</h2>
         <p>Add the extension as a dependency of the JIB Gradle plugin, then reference it from
-          <code>pluginExtensions</code>. The minimum viable config is a single line &mdash;
-          everything else picks up its default:</p>
+          <code>pluginExtensions</code>. The one property that must always be reachable is
+          <code>jeffreyHome</code> &mdash; either baked as an image <code>ENV</code> default at
+          build time (shown below) or provided at runtime via a <code>JEFFREY_HOME</code> env var
+          on the pod. If neither is set, the wrapper logs a warning and starts the app without
+          profiling.</p>
 
         <div class="code-block">
           <pre><code>jib {
   pluginExtensions {
     pluginExtension {
       implementation = "cafe.jeffrey.jib.gradle.JeffreyJibGradleExtension"
+      properties = mapOf(
+        "jeffreyHome" to "/shared/disk/jeffrey",
+      )
     }
   }
 }</code></pre>
         </div>
 
-        <p>Add explicit overrides only when you need to deviate from the defaults &mdash; for example,
-          gating via a Gradle property and pointing at a non-default shared volume:</p>
+        <p>This builds an image whose wrapper resolves the CLI from
+          <code>${JEFFREY_HOME}/libs/current/jeffrey-cli-&lt;arch&gt;</code> on the shared volume you
+          mount at that path. Every other property has a sensible default; you only set them to
+          override.</p>
+
+        <DocsCallout type="warning">
+          <strong><code>jeffreyHome</code> must point at a shared volume / disk.</strong>
+          Jeffrey Server (with <code>copy-libs.enabled=true</code>) writes the CLI binaries and
+          libs to this path, and every monitored application pod must mount the <em>same</em>
+          volume at the <em>same</em> path so its entrypoint wrapper can resolve
+          <code>${JEFFREY_HOME}/libs/current/jeffrey-cli-&lt;arch&gt;</code> at container start. A
+          host-local directory or a per-pod ephemeral volume will not work &mdash; both endpoints
+          need to see the bytes Jeffrey Server published.
+        </DocsCallout>
+
+        <p>Add explicit overrides via the string <code>properties</code> DSL &mdash; for example,
+          gating via a Gradle property and pointing at a non-default shared volume. Referencing the
+          key constants on <code>JeffreyJibConfig</code> keeps the build file typo-proof and
+          auto-completable in the IDE:</p>
 
         <div class="code-block">
-          <pre><code>jib {
+          <pre><code>import cafe.jeffrey.jib.JeffreyJibConfig
+import cafe.jeffrey.jib.gradle.JeffreyJibGradleExtension
+
+jib {
   pluginExtensions {
     pluginExtension {
-      implementation = "cafe.jeffrey.jib.gradle.JeffreyJibGradleExtension"
-      configuration(Action&lt;cafe.jeffrey.jib.JeffreyJibConfig&gt; {
-        enabled = project.hasProperty("jeffreyProfiling")
-        jeffreyHome = "/data/jeffrey"                  // override default
-      })
+      implementation = JeffreyJibGradleExtension::class.java.name
+      properties = mapOf(
+        JeffreyJibConfig.JEFFREY_HOME to "/shared/disk/jeffrey",
+        JeffreyJibConfig.OVERRIDE_CONFIG to "/jeffrey/jeffrey-overrides.conf",
+      )
     }
   }
 }</code></pre>
         </div>
+
+        <p>The string form (<code>"enabled"</code>, <code>"jeffreyHome"</code>, …) works just as
+          well and avoids the imports if you prefer a zero-dependency build script. Both are
+          equivalent at runtime.</p>
+
+        <DocsCallout type="info">
+          <strong>Why the <code>properties</code> DSL?</strong> It works on every Gradle version
+          JIB supports. The typed <code>configuration(Action&lt;JeffreyJibConfig&gt;) { … }</code> form
+          is also accepted but is fragile across Gradle versions &mdash; prefer
+          <code>properties</code> for portability.
+        </DocsCallout>
 
         <p>Add the artifact to your build-script classpath (<code>buildscript.dependencies</code> or
           the <code>jib</code> plugin's <code>dependencies</code> block, depending on how you apply the
@@ -192,7 +247,10 @@ onMounted(() => {
 
         <h2 id="maven-setup">Maven Setup</h2>
         <p>Attach the extension as a plugin dependency and reference it from
-          <code>pluginExtensions</code>. Minimum viable config (all defaults apply):</p>
+          <code>pluginExtensions</code>. As with Gradle, <code>jeffreyHome</code> must be reachable
+          either here (baked as an image <code>ENV</code> default) or at runtime via a
+          <code>JEFFREY_HOME</code> env var &mdash; otherwise the wrapper warns and starts the app
+          without profiling.</p>
 
         <div class="code-block">
           <pre><code>&lt;plugin&gt;
@@ -209,21 +267,24 @@ onMounted(() => {
     &lt;pluginExtensions&gt;
       &lt;pluginExtension&gt;
         &lt;implementation&gt;cafe.jeffrey.jib.maven.JeffreyJibMavenExtension&lt;/implementation&gt;
+        &lt;properties&gt;
+          &lt;jeffreyHome&gt;/shared/disk/jeffrey&lt;/jeffreyHome&gt;
+        &lt;/properties&gt;
       &lt;/pluginExtension&gt;
     &lt;/pluginExtensions&gt;
   &lt;/configuration&gt;
 &lt;/plugin&gt;</code></pre>
         </div>
 
-        <p>Override specific properties only when needed:</p>
+        <p>Add more properties the same way &mdash; each property name matches a setter on
+          <code>JeffreyJibConfig</code>:</p>
 
         <div class="code-block">
-          <pre><code>&lt;pluginExtension&gt;
-  &lt;implementation&gt;cafe.jeffrey.jib.maven.JeffreyJibMavenExtension&lt;/implementation&gt;
-  &lt;configuration implementation="cafe.jeffrey.jib.JeffreyJibConfig"&gt;
-    &lt;jeffreyHome&gt;/data/jeffrey&lt;/jeffreyHome&gt;
-  &lt;/configuration&gt;
-&lt;/pluginExtension&gt;</code></pre>
+          <pre><code>&lt;properties&gt;
+  &lt;enabled&gt;true&lt;/enabled&gt;
+  &lt;jeffreyHome&gt;/shared/disk/jeffrey&lt;/jeffreyHome&gt;
+  &lt;overrideConfig&gt;/jeffrey/jeffrey-overrides.conf&lt;/overrideConfig&gt;
+&lt;/properties&gt;</code></pre>
         </div>
 
         <h2 id="limitations">Limitations</h2>

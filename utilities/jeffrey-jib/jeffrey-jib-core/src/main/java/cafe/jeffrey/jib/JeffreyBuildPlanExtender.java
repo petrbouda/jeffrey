@@ -48,6 +48,14 @@ import java.util.Map;
  * defaults on the build plan (wrapper reads them at runtime; Kubernetes pod env still wins).
  * If {@code config.isEnabled() == false}, the build plan is returned unchanged — image has
  * no wrapper and no Jeffrey layer.
+ *
+ * <p>Note on JVM flags in CMD: whatever JIB produced in its entrypoint (including any JVM
+ * flags upstream plugins added via {@code container.jvmFlags}) is moved verbatim into CMD.
+ * At runtime those flags are passed after the Jeffrey argfile ({@code java @/tmp/jvm.args
+ * <CMD…>}), so Java evaluates them after the argfile — single-value {@code -XX:} options in
+ * CMD will silently override their argfile counterparts. If Jeffrey is meant to own JVM
+ * configuration, clear those flags at the call site (e.g. {@code jib.container.jvmFlags =
+ * emptyList()}) before invoking JIB; this extender does not second-guess the build script.
  */
 public final class JeffreyBuildPlanExtender {
 
@@ -137,6 +145,46 @@ public final class JeffreyBuildPlanExtender {
             env.put(key, value);
         }
     }
+
+    /**
+     * Merges a {@code Map<String, String>} of JIB plugin-extension properties into the given
+     * config. Used by both the Gradle and Maven extension entry points so consumers can use
+     * the string-based {@code properties} DSL — which works uniformly across build systems
+     * without requiring JIB's ObjectFactory-based instantiation of the typed config class.
+     *
+     * <p>Recognised keys map one-to-one to the {@link JeffreyJibConfig} setters:
+     * {@code enabled}, {@code keepJvmFlags}, {@code jeffreyHome}, {@code baseConfig},
+     * {@code overrideConfig}, {@code cliPath}, {@code argFile}. Null / empty values are ignored;
+     * unknown keys are logged at WARN and otherwise ignored.
+     */
+    public static void applyProperties(
+            JeffreyJibConfig config,
+            Map<String, String> properties,
+            ExtensionLogger logger) {
+
+        if (properties == null || properties.isEmpty()) {
+            return;
+        }
+        for (Map.Entry<String, String> entry : properties.entrySet()) {
+            String key = entry.getKey();
+            String value = entry.getValue();
+            if (value == null || value.isEmpty()) {
+                continue;
+            }
+            switch (key) {
+                case JeffreyJibConfig.ENABLED -> config.setEnabled(Boolean.parseBoolean(value));
+                case JeffreyJibConfig.JEFFREY_HOME -> config.setJeffreyHome(value);
+                case JeffreyJibConfig.BASE_CONFIG -> config.setBaseConfig(value);
+                case JeffreyJibConfig.OVERRIDE_CONFIG -> config.setOverrideConfig(value);
+                case JeffreyJibConfig.CLI_PATH -> config.setCliPath(value);
+                case JeffreyJibConfig.ARG_FILE -> config.setArgFile(value);
+                default -> logger.log(
+                        LogLevel.WARN,
+                        "jeffrey-jib: unknown plugin-extension property '" + key + "'; ignored");
+            }
+        }
+    }
+
 
     private Path extractEntrypointScript() throws JibPluginExtensionException {
         try (InputStream in = JeffreyBuildPlanExtender.class.getResourceAsStream(ENTRYPOINT_RESOURCE)) {

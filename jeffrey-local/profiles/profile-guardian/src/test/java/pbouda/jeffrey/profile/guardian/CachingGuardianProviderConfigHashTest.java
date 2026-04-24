@@ -48,7 +48,7 @@ class CachingGuardianProviderConfigHashTest {
             return List.of();
         };
 
-        CachingGuardianProvider provider = new CachingGuardianProvider(cache, delegate, GuardianProperties.defaults());
+        CachingGuardianProvider provider = new CachingGuardianProvider(cache, delegate, GuardianPropertiesTestDefaults.defaults());
         provider.get();
         provider.get();
 
@@ -64,7 +64,7 @@ class CachingGuardianProviderConfigHashTest {
         RecordingCacheRepository cache = new RecordingCacheRepository();
         GuardianProvider delegate = List::of;
 
-        GuardianProperties original = GuardianProperties.defaults();
+        GuardianProperties original = GuardianPropertiesTestDefaults.defaults();
         // Tweak a single threshold; hash should flip.
         GuardianProperties tweaked = copyWithLogbackWarning(original, original.logbackWarningThreshold() + 0.001);
 
@@ -84,8 +84,8 @@ class CachingGuardianProviderConfigHashTest {
         RecordingCacheRepository cacheB = new RecordingCacheRepository();
         GuardianProvider delegate = List::of;
 
-        new CachingGuardianProvider(cacheA, delegate, GuardianProperties.defaults()).get();
-        new CachingGuardianProvider(cacheB, delegate, GuardianProperties.defaults()).get();
+        new CachingGuardianProvider(cacheA, delegate, GuardianPropertiesTestDefaults.defaults()).get();
+        new CachingGuardianProvider(cacheB, delegate, GuardianPropertiesTestDefaults.defaults()).get();
 
         assertEquals(cacheA.keysWritten.getFirst(), cacheB.keysWritten.getFirst());
     }

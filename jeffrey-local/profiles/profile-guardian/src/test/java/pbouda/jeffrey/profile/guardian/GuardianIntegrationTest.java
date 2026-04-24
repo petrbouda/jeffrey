@@ -90,7 +90,7 @@ class GuardianIntegrationTest {
                 null,
                 new EmptyEventTypeRepository(),
                 new ActiveSettings(List.of()),
-                GuardianProperties.defaults());
+                GuardianPropertiesTestDefaults.defaults());
 
         List<GuardianResult> results = guardian.process();
 
@@ -116,7 +116,7 @@ class GuardianIntegrationTest {
                 null,
                 new EmptyEventTypeRepository(),
                 new ActiveSettings(List.of()),
-                GuardianProperties.defaults());
+                GuardianPropertiesTestDefaults.defaults());
 
         List<String> rules = guardian.process().stream()
                 .map(r -> r.analysisItem().rule())
@@ -135,7 +135,7 @@ class GuardianIntegrationTest {
         ProfileEventTypeRepository typeRepo = new EmptyEventTypeRepository();
         Guardian real = new Guardian(
                 profileInfo(), new EmptyEventRepository(), null,
-                typeRepo, new ActiveSettings(List.of()), GuardianProperties.defaults());
+                typeRepo, new ActiveSettings(List.of()), GuardianPropertiesTestDefaults.defaults());
 
         int[] delegateCalls = {0};
         GuardianProvider countingDelegate = () -> {
@@ -143,7 +143,7 @@ class GuardianIntegrationTest {
             return real.process();
         };
 
-        GuardianProperties props = GuardianProperties.defaults();
+        GuardianProperties props = GuardianPropertiesTestDefaults.defaults();
         var cache = new InMemoryCacheRepository();
         CachingGuardianProvider cached = new CachingGuardianProvider(cache, countingDelegate, props);
 

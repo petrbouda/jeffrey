@@ -21,6 +21,7 @@ package pbouda.jeffrey.profile.guardian.metadata;
 import org.junit.jupiter.api.Test;
 import pbouda.jeffrey.profile.common.analysis.AnalysisResult.Severity;
 import pbouda.jeffrey.profile.guardian.GuardianProperties;
+import pbouda.jeffrey.profile.guardian.GuardianPropertiesTestDefaults;
 import pbouda.jeffrey.profile.guardian.GuardianResult;
 import pbouda.jeffrey.provider.profile.model.EventDurationStats;
 import pbouda.jeffrey.shared.common.model.Type;
@@ -32,7 +33,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 
 class VirtualThreadPinningEvaluatorTest {
 
-    private static final GuardianProperties PROPS = GuardianProperties.defaults();
+    private static final GuardianProperties PROPS = GuardianPropertiesTestDefaults.defaults();
 
     private static EventDurationStats stats(long count, long p99Ms, long maxMs, long totalMs) {
         return new EventDurationStats(count, totalMs * 1_000_000L, maxMs * 1_000_000L, p99Ms * 1_000_000L);

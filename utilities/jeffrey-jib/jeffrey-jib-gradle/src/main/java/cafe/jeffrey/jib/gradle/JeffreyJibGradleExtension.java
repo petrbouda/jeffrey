@@ -34,22 +34,42 @@ import java.util.Optional;
  * before the app starts, without forcing operators to override the container {@code command:} in
  * Kubernetes YAML.
  *
- * <p>Consumer side (Gradle, Kotlin DSL):
+ * <p>Recommended consumer setup (Gradle, Kotlin DSL) — uses the string {@code properties} DSL
+ * so nothing needs to import {@link JeffreyJibConfig} on the build script's compile classpath:
  * <pre>{@code
  * jib {
  *   pluginExtensions {
  *     pluginExtension {
  *       implementation = "cafe.jeffrey.jib.gradle.JeffreyJibGradleExtension"
- *       configuration(Action<JeffreyJibConfig> {
- *         enabled = project.hasProperty("jeffreyProfiling")
- *         jeffreyHome = "/mnt/azure/runtime/shared/jeffrey"
- *         baseConfig = "/jeffrey/jeffrey-base.conf"
- *         overrideConfig = "/jeffrey/jeffrey-overrides.conf"
- *       })
+ *       properties = mapOf(
+ *         "enabled" to "true",
+ *         "jeffreyHome" to "/mnt/azure/runtime/shared/jeffrey",
+ *         "baseConfig" to "/jeffrey/jeffrey-base.conf",
+ *         "overrideConfig" to "/jeffrey/jeffrey-overrides.conf",
+ *       )
  *     }
  *   }
  * }
  * }</pre>
+ *
+ * <p>Supported properties:
+ * <ul>
+ *   <li>{@code enabled} — build-time kill switch. Defaults to {@code true}. Set to
+ *       {@code "false"} to skip wrapping entirely — the produced image is identical to one
+ *       built without this extension. Useful for conditionally disabling profiling per
+ *       environment without ripping the extension out of the build file.
+ *   <li>{@code jeffreyHome} — shared-volume root containing the CLI and libs.
+ *   <li>{@code baseConfig} — default {@code /jeffrey/jeffrey-base.conf}.
+ *   <li>{@code overrideConfig} — optional per-deploy override, default
+ *       {@code /jeffrey/jeffrey-overrides.conf}.
+ *   <li>{@code cliPath} — bypass {@code jeffreyHome} and point directly at the CLI binary.
+ *   <li>{@code argFile} — location of the generated JVM argfile, default {@code /tmp/jvm.args}.
+ * </ul>
+ *
+ * <p>The typed {@code configuration(Action<JeffreyJibConfig>) { … }} DSL is also accepted, but
+ * requires {@link JeffreyJibConfig} to be on the script's compile classpath and works only on
+ * Gradle versions whose {@code ObjectFactory.newInstance(type, project)} call matches a
+ * {@code JeffreyJibConfig} constructor — use the {@code properties} form above for portability.
  */
 public class JeffreyJibGradleExtension implements JibGradlePluginExtension<JeffreyJibConfig> {
 
@@ -67,6 +87,7 @@ public class JeffreyJibGradleExtension implements JibGradlePluginExtension<Jeffr
             ExtensionLogger logger) throws JibPluginExtensionException {
 
         JeffreyJibConfig effective = config.orElseGet(JeffreyJibConfig::new);
+        JeffreyBuildPlanExtender.applyProperties(effective, properties, logger);
         return new JeffreyBuildPlanExtender(getClass()).extend(buildPlan, effective, logger);
     }
 }

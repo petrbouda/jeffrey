@@ -29,6 +29,20 @@ package cafe.jeffrey.jib;
  */
 public class JeffreyJibConfig {
 
+    /**
+     * Property keys recognised by {@link JeffreyBuildPlanExtender#applyProperties} when a JIB
+     * plugin-extension configuration is expressed via the string {@code properties} DSL rather
+     * than the typed {@code configuration(Action<JeffreyJibConfig>)} block. Each constant names
+     * the key a consumer writes in build config (e.g. {@code "jeffreyHome"}) and corresponds
+     * one-to-one to the setter on this class.
+     */
+    public static final String ENABLED = "enabled";
+    public static final String JEFFREY_HOME = "jeffreyHome";
+    public static final String BASE_CONFIG = "baseConfig";
+    public static final String OVERRIDE_CONFIG = "overrideConfig";
+    public static final String CLI_PATH = "cliPath";
+    public static final String ARG_FILE = "argFile";
+
     private boolean enabled = true;
     private String jeffreyHome;
     private String baseConfig;

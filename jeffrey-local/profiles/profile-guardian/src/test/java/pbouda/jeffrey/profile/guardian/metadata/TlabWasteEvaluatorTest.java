@@ -21,6 +21,7 @@ package pbouda.jeffrey.profile.guardian.metadata;
 import org.junit.jupiter.api.Test;
 import pbouda.jeffrey.profile.common.analysis.AnalysisResult.Severity;
 import pbouda.jeffrey.profile.guardian.GuardianProperties;
+import pbouda.jeffrey.profile.guardian.GuardianPropertiesTestDefaults;
 import pbouda.jeffrey.profile.guardian.GuardianResult;
 import pbouda.jeffrey.shared.common.model.EventSubtype;
 import pbouda.jeffrey.shared.common.model.EventSummary;
@@ -37,7 +38,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TlabWasteEvaluatorTest {
 
-    private static final GuardianProperties PROPS = GuardianProperties.defaults();
+    private static final GuardianProperties PROPS = GuardianPropertiesTestDefaults.defaults();
 
     private static EventSummary summary(Type type, long weight) {
         return new EventSummary(type.code(), type.code(), RecordingEventSource.JDK, EventSubtype.EXECUTION_SAMPLE,
