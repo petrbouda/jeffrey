@@ -76,28 +76,28 @@ onMounted(() => {
       <h2 id="live-stream">Live Stream</h2>
       <p>Subscribe to JFR events from one or more running sessions in real time. The stream stays open until you disconnect — it never completes on its own.</p>
 
-      <p>Configuration lives in three inline cards on the page — <strong>Sessions</strong>, <strong>Event Types</strong>, and <strong>Buffer</strong>. There is no modal: click any card (or its <em>Select</em> / <em>Change</em> action) to expand it into an editor, adjust the value, then click the card again to collapse. Deep-linking from the Instances timeline — the <em>Live Stream</em> button on an active session — prefills the Sessions card and auto-opens the Events card so the single remaining choice is already in front of you.</p>
+      <p>Three inline cards — <strong>Sessions</strong>, <strong>Event Types</strong>, <strong>Buffer</strong> — each click-to-edit in place. Deep-linking from the Instances timeline prefills the Sessions card and auto-opens the Events card.</p>
 
       <div class="config-steps">
         <div class="config-step">
           <div class="step-number">1</div>
           <div class="step-content">
             <h4>Sessions</h4>
-            <p>Select <strong>one or more active sessions</strong> across the project's instances. Sessions are grouped by instance and searchable by ID. While disconnected, individual sessions can be removed from the configured list via the <strong>×</strong> on each session chip without reopening the picker.</p>
+            <p>Select one or more active sessions, grouped by instance and searchable by ID. While disconnected, a session chip's <strong>×</strong> removes it without reopening the picker.</p>
           </div>
         </div>
         <div class="config-step">
           <div class="step-number">2</div>
           <div class="step-content">
             <h4>Event Types</h4>
-            <p>Pick JFR event types from curated categories or enter custom names. Selections appear as coloured chips.</p>
+            <p>Pick from curated JFR categories or enter custom event names.</p>
           </div>
         </div>
         <div class="config-step">
           <div class="step-number">3</div>
           <div class="step-content">
             <h4>Buffer</h4>
-            <p>Pick an event buffer size (500, 1000, 5000, 10,000, or a custom value) — the UI keeps only the most recent N events; older ones are discarded from the table.</p>
+            <p>Rolling buffer size: 500, 1000, 5000, 10,000, or custom.</p>
           </div>
         </div>
       </div>
@@ -111,28 +111,28 @@ onMounted(() => {
       <h2 id="replay-stream">Replay Stream</h2>
       <p>Read historical events from the dumped recording files of a single past session. Unlike Live Stream, a replay completes when the selected time window has been fully read.</p>
 
-      <p>Configuration lives in three inline cards — <strong>Session</strong>, <strong>Event Types</strong>, and <strong>Time Range</strong>. Click a card (or its action link) to edit in place. Deep-linking from the Instances timeline — the <em>Replay Stream</em> button on a session — prefills the Session card and keeps the default time range (<em>Beginning → Latest</em>), then auto-opens the Events card so only event selection remains.</p>
+      <p>Three inline cards — <strong>Session</strong>, <strong>Event Types</strong>, <strong>Time Range</strong> — each click-to-edit in place. Deep-linking from the Instances timeline prefills the Session card with the default range (<em>Beginning → Latest</em>) and auto-opens the Events card.</p>
 
       <div class="config-steps">
         <div class="config-step">
           <div class="step-number">1</div>
           <div class="step-content">
             <h4>Session</h4>
-            <p>Select a <strong>single session</strong> from the project's instances. Replay operates on the <code>.jfr</code> / <code>.jfr.lz4</code> files that were dumped for that session.</p>
+            <p>Select a single session. Replay reads the <code>.jfr</code> / <code>.jfr.lz4</code> files dumped for it.</p>
           </div>
         </div>
         <div class="config-step">
           <div class="step-number">2</div>
           <div class="step-content">
             <h4>Event Types</h4>
-            <p>Choose the event types to include (same categorised picker as Live Stream, plus custom names).</p>
+            <p>Same picker as Live Stream.</p>
           </div>
         </div>
         <div class="config-step">
           <div class="step-number">3</div>
           <div class="step-content">
             <h4>Time Range</h4>
-            <p><strong>From</strong>: <em>Beginning</em> (earliest recorded event) or a <em>Custom</em> datetime. <strong>To</strong>: <em>Latest</em> (last recorded event) or a <em>Custom</em> datetime. If both are custom, <em>From</em> must be before <em>To</em>. A third row on this card controls the event <strong>Buffer</strong> with the same presets as Live Stream.</p>
+            <p><strong>From</strong>: <em>Beginning</em> or <em>Custom</em> datetime. <strong>To</strong>: <em>Latest</em> or <em>Custom</em> datetime — if both custom, <em>From</em> must precede <em>To</em>. A third row controls the event <strong>Buffer</strong> (same presets as Live Stream).</p>
           </div>
         </div>
       </div>

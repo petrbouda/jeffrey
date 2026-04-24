@@ -111,7 +111,7 @@ onMounted(() => {
           <img src="/images/docs/instances/instance-timeline.png" alt="Instance Timeline with session bars per swimlane" />
         </figure>
 
-        <p>Clicking a row opens an <strong>Instance drawer</strong> with instance metadata. Clicking a session bar opens a <strong>Session drawer</strong> with that session's JVM environment cards (JVM, CPU, GC, Container, Shutdown, …) — only one drawer per row at a time. OS and Virtualization information are combined into a single <strong>OS + Virtualization</strong> card with two stacked sub-sections, and any environment type whose event wasn't emitted for the session renders as a <em>No Data</em> placeholder so the grid layout stays consistent across active and finished sessions.</p>
+        <p>Clicking a row opens an <strong>Instance drawer</strong> with instance metadata. Clicking a session bar opens a <strong>Session drawer</strong> with that session's JVM environment cards (JVM, CPU, GC, Container, Shutdown, …) — only one drawer per row at a time. OS and Virtualization share a single <strong>OS + Virtualization</strong> card, and any missing environment type renders as a <em>No Data</em> placeholder.</p>
 
         <figure class="docs-figure">
           <img src="/images/docs/instances/instance-timeline-session-detail.png" alt="Session drawer with environment cards" />
