@@ -76,19 +76,28 @@ onMounted(() => {
       <h2 id="live-stream">Live Stream</h2>
       <p>Subscribe to JFR events from one or more running sessions in real time. The stream stays open until you disconnect — it never completes on its own.</p>
 
+      <p>Configuration lives in three inline cards on the page — <strong>Sessions</strong>, <strong>Event Types</strong>, and <strong>Buffer</strong>. There is no modal: click any card (or its <em>Select</em> / <em>Change</em> action) to expand it into an editor, adjust the value, then click the card again to collapse. Deep-linking from the Instances timeline — the <em>Live Stream</em> button on an active session — prefills the Sessions card and auto-opens the Events card so the single remaining choice is already in front of you.</p>
+
       <div class="config-steps">
         <div class="config-step">
           <div class="step-number">1</div>
           <div class="step-content">
             <h4>Sessions</h4>
-            <p>Select <strong>one or more sessions</strong> across the project's instances. Sessions are grouped by instance, searchable by ID, and annotated with their status (<em>ACTIVE</em> or <em>FINISHED</em>).</p>
+            <p>Select <strong>one or more active sessions</strong> across the project's instances. Sessions are grouped by instance and searchable by ID. While disconnected, individual sessions can be removed from the configured list via the <strong>×</strong> on each session chip without reopening the picker.</p>
           </div>
         </div>
         <div class="config-step">
           <div class="step-number">2</div>
           <div class="step-content">
-            <h4>Event Types &amp; Buffer</h4>
-            <p>Pick JFR event types from curated categories or enter custom names. Choose an <strong>Event Buffer Size</strong> (500, 1000, 5000, 10,000, or a custom value) — the UI keeps only the most recent N events; older ones are discarded from the table.</p>
+            <h4>Event Types</h4>
+            <p>Pick JFR event types from curated categories or enter custom names. Selections appear as coloured chips.</p>
+          </div>
+        </div>
+        <div class="config-step">
+          <div class="step-number">3</div>
+          <div class="step-content">
+            <h4>Buffer</h4>
+            <p>Pick an event buffer size (500, 1000, 5000, 10,000, or a custom value) — the UI keeps only the most recent N events; older ones are discarded from the table.</p>
           </div>
         </div>
       </div>
@@ -102,6 +111,8 @@ onMounted(() => {
       <h2 id="replay-stream">Replay Stream</h2>
       <p>Read historical events from the dumped recording files of a single past session. Unlike Live Stream, a replay completes when the selected time window has been fully read.</p>
 
+      <p>Configuration lives in three inline cards — <strong>Session</strong>, <strong>Event Types</strong>, and <strong>Time Range</strong>. Click a card (or its action link) to edit in place. Deep-linking from the Instances timeline — the <em>Replay Stream</em> button on a session — prefills the Session card and keeps the default time range (<em>Beginning → Latest</em>), then auto-opens the Events card so only event selection remains.</p>
+
       <div class="config-steps">
         <div class="config-step">
           <div class="step-number">1</div>
@@ -113,15 +124,15 @@ onMounted(() => {
         <div class="config-step">
           <div class="step-number">2</div>
           <div class="step-content">
-            <h4>Event Types &amp; Buffer</h4>
-            <p>Choose the event types to include and an event buffer size (same options as Live Stream).</p>
+            <h4>Event Types</h4>
+            <p>Choose the event types to include (same categorised picker as Live Stream, plus custom names).</p>
           </div>
         </div>
         <div class="config-step">
           <div class="step-number">3</div>
           <div class="step-content">
             <h4>Time Range</h4>
-            <p><strong>Start</strong>: <em>From beginning</em> (earliest recorded event) or a <em>Custom</em> datetime. <strong>End</strong>: <em>To latest</em> (last recorded event) or a <em>Custom</em> datetime. If both are custom, start must be before end.</p>
+            <p><strong>From</strong>: <em>Beginning</em> (earliest recorded event) or a <em>Custom</em> datetime. <strong>To</strong>: <em>Latest</em> (last recorded event) or a <em>Custom</em> datetime. If both are custom, <em>From</em> must be before <em>To</em>. A third row on this card controls the event <strong>Buffer</strong> with the same presets as Live Stream.</p>
           </div>
         </div>
       </div>
