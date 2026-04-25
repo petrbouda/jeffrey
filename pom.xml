@@ -42,16 +42,16 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <picocli.version>4.7.7</picocli.version>
-        <typesafe-config.version>1.4.5</typesafe-config.version>
-        <lz4.version>1.10.4</lz4.version>
+        <typesafe-config.version>1.4.6</typesafe-config.version>
+        <lz4.version>1.11.0</lz4.version>
         <junit.version>5.14.3</junit.version>
         <uuid-creator.version>6.1.1</uuid-creator.version>
         <jeffrey-events.version>0.10.0</jeffrey-events.version>
         <spring-boot.version>4.0.5</spring-boot.version>
         <spring-ai.version>2.0.0-M4</spring-ai.version>
-        <duckdb.version>1.5.1.0</duckdb.version>
+        <duckdb.version>1.5.2.0</duckdb.version>
         <flyway.version>10.24.0</flyway.version>
-        <grpc.version>1.72.0</grpc.version>
+        <grpc.version>1.80.0</grpc.version>
         <protobuf.version>4.34.1</protobuf.version>
     </properties>
 

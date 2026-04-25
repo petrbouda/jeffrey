@@ -53,8 +53,8 @@
     </modules>
 
     <properties>
-        <eclipse-collections.version>12.0.0.M3</eclipse-collections.version>
-        <flightrecorder.version>9.1.0</flightrecorder.version>
+        <eclipse-collections.version>13.0.0</eclipse-collections.version>
+        <flightrecorder.version>9.1.2</flightrecorder.version>
         <junit.version>5.13.4</junit.version>
         <hdrhistogram.version>2.2.2</hdrhistogram.version>
     </properties>
