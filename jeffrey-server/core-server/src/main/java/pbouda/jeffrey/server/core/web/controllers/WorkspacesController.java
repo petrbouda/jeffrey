@@ -16,13 +16,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.server.core.resources;
+package pbouda.jeffrey.server.core.web.controllers;
 
-import jakarta.ws.rs.GET;
-import jakarta.ws.rs.Path;
-import jakarta.ws.rs.PathParam;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
 import pbouda.jeffrey.server.core.manager.project.ProjectManager;
 import pbouda.jeffrey.server.core.manager.project.ProjectsManager;
 import pbouda.jeffrey.server.core.manager.workspace.WorkspaceManager;
@@ -30,21 +31,22 @@ import pbouda.jeffrey.server.core.manager.workspace.WorkspacesManager;
 import pbouda.jeffrey.server.core.resources.response.ProjectResponse;
 import pbouda.jeffrey.server.core.resources.response.WorkspaceResponse;
 import pbouda.jeffrey.server.core.resources.workspace.Mappers;
-import pbouda.jeffrey.shared.common.model.ProjectInfo;
 
 import java.util.List;
 
-public class WorkspacesResource {
+@RequestMapping("/api/internal/workspaces")
+@ResponseBody
+public class WorkspacesController {
 
-    private static final Logger LOG = LoggerFactory.getLogger(WorkspacesResource.class);
+    private static final Logger LOG = LoggerFactory.getLogger(WorkspacesController.class);
 
     private final WorkspacesManager workspacesManager;
 
-    public WorkspacesResource(WorkspacesManager workspacesManager) {
+    public WorkspacesController(WorkspacesManager workspacesManager) {
         this.workspacesManager = workspacesManager;
     }
 
-    @GET
+    @GetMapping
     public List<WorkspaceResponse> list() {
         var result = workspacesManager.findAll().stream()
                 .map(wm -> {
@@ -62,9 +64,8 @@ public class WorkspacesResource {
         return result;
     }
 
-    @GET
-    @Path("/{workspaceId}/projects")
-    public List<ProjectResponse> projects(@PathParam("workspaceId") String workspaceId) {
+    @GetMapping("/{workspaceId}/projects")
+    public List<ProjectResponse> projects(@PathVariable("workspaceId") String workspaceId) {
         WorkspaceManager workspace = workspacesManager.findById(workspaceId)
                 .orElseThrow(() -> new IllegalArgumentException("Workspace not found: " + workspaceId));
 

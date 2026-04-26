@@ -16,26 +16,21 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.server.core.resources;
+package pbouda.jeffrey.server.core.web.controllers;
 
-import jakarta.ws.rs.GET;
-import jakarta.ws.rs.Path;
-import jakarta.ws.rs.Produces;
-import jakarta.ws.rs.core.MediaType;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+import pbouda.jeffrey.shared.common.JeffreyVersion;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Map;
 
-public class DebugResource {
+@RequestMapping("/api/internal")
+@ResponseBody
+public class VersionController {
 
-    private static final List<byte[]> LEAK = new ArrayList<>();
-
-    @GET
-    @Path("/trigger-oom")
-    @Produces(MediaType.TEXT_PLAIN)
-    public String triggerOom() {
-        while (true) {
-            LEAK.add(new byte[10 * 1024 * 1024]);
-        }
+    @GetMapping("/version")
+    public Map<String, String> version() {
+        return Map.of("version", JeffreyVersion.resolveJeffreyVersion());
     }
 }

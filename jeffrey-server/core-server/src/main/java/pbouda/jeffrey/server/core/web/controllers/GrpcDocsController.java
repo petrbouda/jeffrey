@@ -16,24 +16,27 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.server.core.resources;
+package pbouda.jeffrey.server.core.web.controllers;
 
-import jakarta.ws.rs.GET;
-import jakarta.ws.rs.Produces;
-import jakarta.ws.rs.core.MediaType;
-import jakarta.ws.rs.core.Response;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
 
 import java.io.InputStream;
 
-public class GrpcDocsResource {
+@RequestMapping("/api/internal/grpc-docs")
+public class GrpcDocsController {
 
-    @GET
-    @Produces(MediaType.APPLICATION_JSON)
-    public Response getGrpcDocs() {
+    @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<InputStreamResource> getGrpcDocs() {
         InputStream stream = getClass().getClassLoader().getResourceAsStream("grpc-api-docs.json");
         if (stream == null) {
-            return Response.status(Response.Status.NOT_FOUND).build();
+            return ResponseEntity.notFound().build();
         }
-        return Response.ok(stream).build();
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(new InputStreamResource(stream));
     }
 }

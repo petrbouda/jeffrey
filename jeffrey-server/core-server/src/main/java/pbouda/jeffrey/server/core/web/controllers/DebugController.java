@@ -16,24 +16,26 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.server.core.configuration;
+package pbouda.jeffrey.server.core.web.controllers;
 
-import org.glassfish.jersey.server.ResourceConfig;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import pbouda.jeffrey.server.core.resources.JerseyConfig;
-import pbouda.jeffrey.server.core.resources.RootInternalResource;
+import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
 
-/**
- * Server-specific Jersey configuration that registers the Internal API resource.
- */
-@Configuration
-public class ServerJerseyConfigurer {
+import java.util.ArrayList;
+import java.util.List;
 
-    @Bean
-    public ResourceConfig jerseyConfig() {
-        JerseyConfig config = new JerseyConfig();
-        config.register(RootInternalResource.class);
-        return config;
+@RequestMapping("/api/internal/debug")
+@ResponseBody
+public class DebugController {
+
+    private static final List<byte[]> LEAK = new ArrayList<>();
+
+    @GetMapping(value = "/trigger-oom", produces = MediaType.TEXT_PLAIN_VALUE)
+    public String triggerOom() {
+        while (true) {
+            LEAK.add(new byte[10 * 1024 * 1024]);
+        }
     }
 }
