@@ -21,8 +21,11 @@ package pbouda.jeffrey.server.core.web;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.converter.HttpMessageConverter;
+import org.springframework.http.converter.json.JacksonJsonHttpMessageConverter;
 import org.springframework.web.servlet.HandlerExceptionResolver;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import pbouda.jeffrey.shared.common.Json;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.util.List;
 
@@ -34,7 +37,7 @@ import java.util.List;
 public class WebInfrastructureConfig {
 
     @Bean
-    public WebMvcConfigurer jeffreyWebMvcConfigurer(JacksonJson3HttpMessageConverter jacksonConverter) {
+    public WebMvcConfigurer jeffreyWebMvcConfigurer(JacksonJsonHttpMessageConverter jacksonConverter) {
         return new WebMvcConfigurer() {
             @Override
             public void configureMessageConverters(List<HttpMessageConverter<?>> converters) {
@@ -43,9 +46,14 @@ public class WebInfrastructureConfig {
         };
     }
 
+    /**
+     * Spring 7's native Jackson 3 ({@code tools.jackson}) converter, configured
+     * with the shared {@link Json#mapper()} so custom serializers apply at the
+     * HTTP boundary.
+     */
     @Bean
-    public JacksonJson3HttpMessageConverter jacksonJson3HttpMessageConverter() {
-        return new JacksonJson3HttpMessageConverter();
+    public JacksonJsonHttpMessageConverter jacksonJsonHttpMessageConverter() {
+        return new JacksonJsonHttpMessageConverter((JsonMapper) Json.mapper());
     }
 
     @Bean
