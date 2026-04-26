@@ -18,23 +18,17 @@
 
 package pbouda.jeffrey.server.core.web;
 
-import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.http.converter.json.JacksonJsonHttpMessageConverter;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 import pbouda.jeffrey.shared.common.Json;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.util.Arrays;
 
 /**
- * Builds a {@link MockMvcTester} (Spring 6.2+ AssertJ-based MockMvc API)
- * wired the same way the server's Spring MVC dispatcher is wired in
- * production: shared Jackson 3 message converter and
- * {@link JeffreyExceptionResolver}. Mirrors {@code MockMvcSupport} in
- * core-local; kept separate because the two apps have different exception
- * resolvers (server only handles generic exceptions).
+ * Builds a {@link MockMvcTester} wired the same way the server's Spring MVC
+ * dispatcher is wired in production: shared Jackson 3 message converter and
+ * {@link JeffreyExceptionResolver}. Mirrors the core-local version.
  */
 public final class MockMvcSupport {
 
@@ -45,17 +39,8 @@ public final class MockMvcSupport {
         return MockMvcTester.of(
                 Arrays.asList(controllers),
                 builder -> builder
-                        .setCustomHandlerMapping(StandaloneRequestMappingHandlerMapping::new)
                         .setMessageConverters(new JacksonJsonHttpMessageConverter((JsonMapper) Json.mapper()))
                         .setHandlerExceptionResolvers(new JeffreyExceptionResolver())
                         .build());
-    }
-
-    private static final class StandaloneRequestMappingHandlerMapping extends RequestMappingHandlerMapping {
-
-        @Override
-        protected boolean isHandler(Class<?> beanType) {
-            return AnnotatedElementUtils.hasAnnotation(beanType, RequestMapping.class);
-        }
     }
 }

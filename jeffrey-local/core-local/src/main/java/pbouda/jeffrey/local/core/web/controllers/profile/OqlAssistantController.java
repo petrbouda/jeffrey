@@ -25,7 +25,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
 import pbouda.jeffrey.local.core.web.ProfileManagerResolver;
 import pbouda.jeffrey.profile.ai.model.AiStatusResponse;
 import pbouda.jeffrey.profile.ai.model.HeapDumpContext;
@@ -36,12 +36,12 @@ import pbouda.jeffrey.profile.ai.service.OqlAssistantService;
 import pbouda.jeffrey.profile.heapdump.model.SortBy;
 import pbouda.jeffrey.profile.manager.HeapDumpManager;
 
+@RestController
 @RequestMapping({
         "/api/internal/profiles/{profileId}/heap/oql-assistant",
         "/api/internal/quick-analysis/profiles/{profileId}/heap/oql-assistant",
         "/api/internal/workspaces/{workspaceId}/projects/{projectId}/profiles/{profileId}/heap/oql-assistant"
 })
-@ResponseBody
 public class OqlAssistantController {
 
     private static final Logger LOG = LoggerFactory.getLogger(OqlAssistantController.class);

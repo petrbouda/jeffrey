@@ -23,16 +23,16 @@ import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
 import pbouda.jeffrey.local.core.web.ProfileManagerResolver;
 import pbouda.jeffrey.profile.manager.FlagsData;
 
+@RestController
 @RequestMapping({
         "/api/internal/profiles/{profileId}/flags",
         "/api/internal/quick-analysis/profiles/{profileId}/flags",
         "/api/internal/workspaces/{workspaceId}/projects/{projectId}/profiles/{profileId}/flags"
 })
-@ResponseBody
 public class FlagsController {
 
     private static final Logger LOG = LoggerFactory.getLogger(FlagsController.class);

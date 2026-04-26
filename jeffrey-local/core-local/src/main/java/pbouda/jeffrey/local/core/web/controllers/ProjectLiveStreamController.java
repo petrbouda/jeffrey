@@ -25,7 +25,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import pbouda.jeffrey.local.core.client.LiveSubscriptionRequest;
 import pbouda.jeffrey.local.core.manager.EventStreamingManager;
@@ -45,8 +45,8 @@ import java.util.stream.Collectors;
  * can subscribe to N sessions with the same event-type filter; streams stay
  * open waiting for new events.
  */
+@RestController
 @RequestMapping("/api/internal/workspaces/{workspaceId}/projects/{projectId}/live-stream")
-@ResponseBody
 public class ProjectLiveStreamController {
 
     private static final Logger LOG = LoggerFactory.getLogger(ProjectLiveStreamController.class);

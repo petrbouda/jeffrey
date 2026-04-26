@@ -31,7 +31,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 import pbouda.jeffrey.local.core.manager.ProfilesManager;
 import pbouda.jeffrey.local.core.manager.RecordingsManager;
@@ -55,8 +55,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+@RestController
 @RequestMapping("/api/internal/workspaces/{workspaceId}/projects/{projectId}/recordings")
-@ResponseBody
 public class ProjectRecordingsController {
 
     private static final Logger LOG = LoggerFactory.getLogger(ProjectRecordingsController.class);

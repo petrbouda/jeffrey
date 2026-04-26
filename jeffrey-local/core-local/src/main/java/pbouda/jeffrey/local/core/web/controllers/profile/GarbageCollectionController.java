@@ -24,7 +24,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
 import pbouda.jeffrey.local.core.web.ProfileManagerResolver;
 import pbouda.jeffrey.profile.manager.GarbageCollectionManager;
 import pbouda.jeffrey.profile.manager.model.gc.GCOverviewData;
@@ -32,12 +32,12 @@ import pbouda.jeffrey.profile.manager.model.gc.GCTimeseriesType;
 import pbouda.jeffrey.profile.manager.model.gc.configuration.GCConfigurationData;
 import pbouda.jeffrey.timeseries.TimeseriesData;
 
+@RestController
 @RequestMapping({
         "/api/internal/profiles/{profileId}/gc",
         "/api/internal/quick-analysis/profiles/{profileId}/gc",
         "/api/internal/workspaces/{workspaceId}/projects/{projectId}/profiles/{profileId}/gc"
 })
-@ResponseBody
 public class GarbageCollectionController {
 
     private static final Logger LOG = LoggerFactory.getLogger(GarbageCollectionController.class);

@@ -23,7 +23,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
 import pbouda.jeffrey.server.core.manager.project.ProjectManager;
 import pbouda.jeffrey.server.core.manager.project.ProjectsManager;
 import pbouda.jeffrey.server.core.manager.workspace.WorkspaceManager;
@@ -34,8 +34,8 @@ import pbouda.jeffrey.server.core.resources.workspace.Mappers;
 
 import java.util.List;
 
+@RestController
 @RequestMapping("/api/internal/workspaces")
-@ResponseBody
 public class WorkspacesController {
 
     private static final Logger LOG = LoggerFactory.getLogger(WorkspacesController.class);

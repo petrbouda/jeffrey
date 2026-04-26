@@ -23,7 +23,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
 import pbouda.jeffrey.local.core.configuration.SettingDescriptor;
 import pbouda.jeffrey.local.core.configuration.SettingsMetadata;
 import pbouda.jeffrey.local.core.manager.SettingsManager;
@@ -34,8 +34,8 @@ import pbouda.jeffrey.shared.common.exception.Exceptions;
 import java.util.List;
 import java.util.Map;
 
+@RestController
 @RequestMapping("/api/internal/settings")
-@ResponseBody
 public class SettingsController {
 
     private static final String MASK = "****";

@@ -24,7 +24,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
 import pbouda.jeffrey.local.core.web.ProfileManagerResolver;
 import pbouda.jeffrey.profile.manager.custom.JdbcStatementManager;
 import pbouda.jeffrey.profile.manager.custom.model.jdbc.statement.JdbcOverviewData;
@@ -36,12 +36,12 @@ import java.util.List;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+@RestController
 @RequestMapping({
         "/api/internal/profiles/{profileId}/jdbc/statement/overview",
         "/api/internal/quick-analysis/profiles/{profileId}/jdbc/statement/overview",
         "/api/internal/workspaces/{workspaceId}/projects/{projectId}/profiles/{profileId}/jdbc/statement/overview"
 })
-@ResponseBody
 public class JdbcStatementController {
 
     private static final Logger LOG = LoggerFactory.getLogger(JdbcStatementController.class);

@@ -26,7 +26,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
 import pbouda.jeffrey.local.core.client.RemoteProfilerClient;
 import pbouda.jeffrey.local.core.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.local.core.manager.workspace.WorkspacesManager;
@@ -37,8 +37,8 @@ import pbouda.jeffrey.shared.common.model.ProfilerInfo;
 import java.util.ArrayList;
 import java.util.List;
 
+@RestController
 @RequestMapping("/api/internal/profiler")
-@ResponseBody
 public class ProfilerController {
 
     private static final Logger LOG = LoggerFactory.getLogger(ProfilerController.class);

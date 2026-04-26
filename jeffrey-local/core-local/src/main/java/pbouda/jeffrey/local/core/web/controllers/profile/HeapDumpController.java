@@ -27,7 +27,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import pbouda.jeffrey.local.core.web.ProfileManagerResolver;
 import pbouda.jeffrey.profile.heapdump.model.BiggestCollectionsReport;
@@ -58,12 +58,12 @@ import pbouda.jeffrey.shared.common.exception.Exceptions;
 import java.io.IOException;
 import java.util.List;
 
+@RestController
 @RequestMapping({
         "/api/internal/profiles/{profileId}/heap",
         "/api/internal/quick-analysis/profiles/{profileId}/heap",
         "/api/internal/workspaces/{workspaceId}/projects/{projectId}/profiles/{profileId}/heap"
 })
-@ResponseBody
 public class HeapDumpController {
 
     private static final Logger LOG = LoggerFactory.getLogger(HeapDumpController.class);

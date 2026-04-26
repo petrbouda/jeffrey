@@ -24,7 +24,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
 import pbouda.jeffrey.local.core.manager.project.ProjectManager;
 import pbouda.jeffrey.local.core.manager.project.RemoteInstancesManager;
 import pbouda.jeffrey.local.core.resources.response.InstanceDetailResponse;
@@ -37,8 +37,8 @@ import pbouda.jeffrey.shared.common.exception.Exceptions;
 import java.time.Clock;
 import java.util.List;
 
+@RestController
 @RequestMapping("/api/internal/workspaces/{workspaceId}/projects/{projectId}/instances")
-@ResponseBody
 public class ProjectInstancesController {
 
     private static final Logger LOG = LoggerFactory.getLogger(ProjectInstancesController.class);

@@ -23,7 +23,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
 import pbouda.jeffrey.local.core.web.ProfileManagerResolver;
 import pbouda.jeffrey.profile.manager.ThreadManager;
 import pbouda.jeffrey.profile.manager.model.thread.ThreadCpuLoads;
@@ -36,12 +36,12 @@ import pbouda.jeffrey.timeseries.SingleSerie;
 
 import java.util.List;
 
+@RestController
 @RequestMapping({
         "/api/internal/profiles/{profileId}/thread",
         "/api/internal/quick-analysis/profiles/{profileId}/thread",
         "/api/internal/workspaces/{workspaceId}/projects/{projectId}/profiles/{profileId}/thread"
 })
-@ResponseBody
 public class ThreadController {
 
     private static final Logger LOG = LoggerFactory.getLogger(ThreadController.class);

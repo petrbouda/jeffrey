@@ -24,7 +24,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
 import pbouda.jeffrey.local.core.web.ProfileManagerResolver;
 import pbouda.jeffrey.profile.manager.custom.MethodTracingManager;
 import pbouda.jeffrey.profile.manager.custom.model.method.CumulationMode;
@@ -32,12 +32,12 @@ import pbouda.jeffrey.profile.manager.custom.model.method.MethodTracingCumulated
 import pbouda.jeffrey.profile.manager.custom.model.method.MethodTracingOverviewData;
 import pbouda.jeffrey.profile.manager.custom.model.method.MethodTracingSlowestData;
 
+@RestController
 @RequestMapping({
         "/api/internal/profiles/{profileId}/method-tracing",
         "/api/internal/quick-analysis/profiles/{profileId}/method-tracing",
         "/api/internal/workspaces/{workspaceId}/projects/{projectId}/profiles/{profileId}/method-tracing"
 })
-@ResponseBody
 public class MethodTracingController {
 
     private static final Logger LOG = LoggerFactory.getLogger(MethodTracingController.class);

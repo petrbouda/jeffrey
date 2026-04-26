@@ -29,7 +29,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 import pbouda.jeffrey.local.core.manager.RecordingsDownloadManager;
 import pbouda.jeffrey.local.core.manager.RepositoryManager;
@@ -47,8 +47,8 @@ import java.io.InputStream;
 import java.time.Clock;
 import java.util.List;
 
+@RestController
 @RequestMapping("/api/internal/workspaces/{workspaceId}/projects/{projectId}/repository")
-@ResponseBody
 public class ProjectRepositoryController {
 
     private static final Logger LOG = LoggerFactory.getLogger(ProjectRepositoryController.class);

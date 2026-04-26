@@ -20,13 +20,13 @@ package pbouda.jeffrey.server.core.web.controllers;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
 import pbouda.jeffrey.shared.common.JeffreyVersion;
 
 import java.util.Map;
 
+@RestController
 @RequestMapping("/api/internal")
-@ResponseBody
 public class VersionController {
 
     @GetMapping("/version")

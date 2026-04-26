@@ -24,7 +24,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
 import pbouda.jeffrey.local.core.web.ProfileManagerResolver;
 import pbouda.jeffrey.profile.manager.ProfileManager;
 import pbouda.jeffrey.profile.manager.ProfileToolsManager.RenamePreviewResult;
@@ -34,12 +34,12 @@ import pbouda.jeffrey.profile.tools.collapse.CollapseFramesManager.CollapseApply
 import pbouda.jeffrey.profile.tools.collapse.CollapseFramesManager.CollapsePreviewResult;
 import pbouda.jeffrey.profile.tools.collapse.CollapseFramesManager.CollapseRequest;
 
+@RestController
 @RequestMapping({
         "/api/internal/profiles/{profileId}/tools",
         "/api/internal/quick-analysis/profiles/{profileId}/tools",
         "/api/internal/workspaces/{workspaceId}/projects/{projectId}/profiles/{profileId}/tools"
 })
-@ResponseBody
 public class ToolsController {
 
     private static final Logger LOG = LoggerFactory.getLogger(ToolsController.class);

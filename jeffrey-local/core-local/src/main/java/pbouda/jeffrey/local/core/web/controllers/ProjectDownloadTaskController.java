@@ -29,7 +29,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import pbouda.jeffrey.local.core.manager.RecordingsDownloadManager;
 import pbouda.jeffrey.local.core.manager.download.DownloadProgress;
@@ -48,8 +48,8 @@ import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
+@RestController
 @RequestMapping("/api/internal/workspaces/{workspaceId}/projects/{projectId}/download")
-@ResponseBody
 public class ProjectDownloadTaskController {
 
     private static final Logger LOG = LoggerFactory.getLogger(ProjectDownloadTaskController.class);

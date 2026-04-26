@@ -25,7 +25,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
 import pbouda.jeffrey.local.core.web.ProfileManagerResolver;
 import pbouda.jeffrey.profile.TimeRangeRequest;
 import pbouda.jeffrey.profile.common.config.GraphParameters;
@@ -41,12 +41,12 @@ import pbouda.jeffrey.shared.common.model.time.UndefinedTimeRange;
 
 import java.util.List;
 
+@RestController
 @RequestMapping({
         "/api/internal/profiles/{profileId}/flamegraph",
         "/api/internal/quick-analysis/profiles/{profileId}/flamegraph",
         "/api/internal/workspaces/{workspaceId}/projects/{projectId}/profiles/{profileId}/flamegraph"
 })
-@ResponseBody
 public class FlamegraphController {
 
     public static final String PROTOBUF_MEDIA_TYPE = "application/x-protobuf";

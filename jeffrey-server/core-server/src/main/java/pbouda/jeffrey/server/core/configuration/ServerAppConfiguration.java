@@ -53,9 +53,6 @@ import pbouda.jeffrey.server.core.streaming.LiveStreamingManager;
 import pbouda.jeffrey.server.core.streaming.ReplayStreamingManager;
 import pbouda.jeffrey.server.core.streaming.FileHeartbeatReader;
 import pbouda.jeffrey.server.core.web.WebInfrastructureConfig;
-import pbouda.jeffrey.server.core.web.controllers.GrpcDocsController;
-import pbouda.jeffrey.server.core.web.controllers.VersionController;
-import pbouda.jeffrey.server.core.web.controllers.WorkspacesController;
 import pbouda.jeffrey.server.core.workspace.WorkspaceEventPublisher;
 import pbouda.jeffrey.server.persistence.DuckDBServerPersistenceProvider;
 import pbouda.jeffrey.server.persistence.ServerPersistenceProvider;
@@ -250,20 +247,4 @@ public class ServerAppConfiguration {
         return new JobDescriptorFactory();
     }
 
-    // --- Web controllers (Spring MVC, replacing Jersey resources) ---
-
-    @Bean
-    public VersionController versionController() {
-        return new VersionController();
-    }
-
-    @Bean
-    public WorkspacesController workspacesController(WorkspacesManager workspacesManager) {
-        return new WorkspacesController(workspacesManager);
-    }
-
-    @Bean
-    public GrpcDocsController grpcDocsController() {
-        return new GrpcDocsController();
-    }
 }

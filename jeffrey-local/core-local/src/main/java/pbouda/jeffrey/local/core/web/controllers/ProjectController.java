@@ -25,15 +25,15 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
 import pbouda.jeffrey.local.core.manager.project.ProjectManager;
 import pbouda.jeffrey.local.core.resources.response.ProjectResponse;
 import pbouda.jeffrey.local.core.resources.workspace.Mappers;
 import pbouda.jeffrey.local.core.web.ProjectManagerResolver;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEventCreator;
 
+@RestController
 @RequestMapping("/api/internal/workspaces/{workspaceId}/projects/{projectId}")
-@ResponseBody
 public class ProjectController {
 
     private static final Logger LOG = LoggerFactory.getLogger(ProjectController.class);

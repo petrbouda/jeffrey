@@ -26,17 +26,17 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
 import pbouda.jeffrey.local.core.web.ProfileManagerResolver;
 import pbouda.jeffrey.profile.manager.ProfileManager;
 import pbouda.jeffrey.shared.common.model.ProfileInfo;
 
+@RestController
 @RequestMapping({
         "/api/internal/profiles/{profileId}",
         "/api/internal/quick-analysis/profiles/{profileId}",
         "/api/internal/workspaces/{workspaceId}/projects/{projectId}/profiles/{profileId}"
 })
-@ResponseBody
 public class ProfileController {
 
     private static final Logger LOG = LoggerFactory.getLogger(ProfileController.class);

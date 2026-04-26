@@ -23,16 +23,16 @@ import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
 import pbouda.jeffrey.local.core.web.ProfileManagerResolver;
 import tools.jackson.databind.JsonNode;
 
+@RestController
 @RequestMapping({
         "/api/internal/profiles/{profileId}/information",
         "/api/internal/quick-analysis/profiles/{profileId}/information",
         "/api/internal/workspaces/{workspaceId}/projects/{projectId}/profiles/{profileId}/information"
 })
-@ResponseBody
 public class ConfigurationController {
 
     private static final Logger LOG = LoggerFactory.getLogger(ConfigurationController.class);

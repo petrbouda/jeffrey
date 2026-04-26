@@ -24,19 +24,19 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
 import pbouda.jeffrey.local.core.web.ProfileManagerResolver;
 import pbouda.jeffrey.profile.common.config.GraphParameters;
 import pbouda.jeffrey.profile.manager.TimeseriesManager;
 import pbouda.jeffrey.profile.resources.request.GenerateTimeseriesRequest;
 import pbouda.jeffrey.timeseries.TimeseriesData;
 
+@RestController
 @RequestMapping({
         "/api/internal/profiles/{profileId}/timeseries",
         "/api/internal/quick-analysis/profiles/{profileId}/timeseries",
         "/api/internal/workspaces/{workspaceId}/projects/{projectId}/profiles/{profileId}/timeseries"
 })
-@ResponseBody
 public class TimeseriesController {
 
     private static final Logger LOG = LoggerFactory.getLogger(TimeseriesController.class);

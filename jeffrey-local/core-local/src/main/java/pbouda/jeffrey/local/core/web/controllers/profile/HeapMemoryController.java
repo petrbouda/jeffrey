@@ -24,19 +24,19 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
 import pbouda.jeffrey.local.core.web.ProfileManagerResolver;
 import pbouda.jeffrey.profile.manager.HeapMemoryManager;
 import pbouda.jeffrey.profile.manager.model.heap.HeapMemoryOverviewData;
 import pbouda.jeffrey.profile.manager.model.heap.HeapMemoryTimeseriesType;
 import pbouda.jeffrey.timeseries.SingleSerie;
 
+@RestController
 @RequestMapping({
         "/api/internal/profiles/{profileId}/heap-memory",
         "/api/internal/quick-analysis/profiles/{profileId}/heap-memory",
         "/api/internal/workspaces/{workspaceId}/projects/{projectId}/profiles/{profileId}/heap-memory"
 })
-@ResponseBody
 public class HeapMemoryController {
 
     private static final Logger LOG = LoggerFactory.getLogger(HeapMemoryController.class);

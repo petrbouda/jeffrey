@@ -23,7 +23,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
 import pbouda.jeffrey.local.core.web.ProfileManagerResolver;
 import pbouda.jeffrey.profile.ai.mcp.service.JfrAnalysisAssistantService;
 import pbouda.jeffrey.profile.feature.FeatureType;
@@ -33,12 +33,12 @@ import pbouda.jeffrey.profile.manager.ProfileManager;
 import java.util.ArrayList;
 import java.util.List;
 
+@RestController
 @RequestMapping({
         "/api/internal/profiles/{profileId}/features",
         "/api/internal/quick-analysis/profiles/{profileId}/features",
         "/api/internal/workspaces/{workspaceId}/projects/{projectId}/profiles/{profileId}/features"
 })
-@ResponseBody
 public class ProfileFeaturesController {
 
     private static final Logger LOG = LoggerFactory.getLogger(ProfileFeaturesController.class);

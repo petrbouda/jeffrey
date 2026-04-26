@@ -27,7 +27,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
 import pbouda.jeffrey.local.core.manager.ProfilesManager;
 import pbouda.jeffrey.local.core.manager.project.ProjectManager;
 import pbouda.jeffrey.local.core.resources.request.CreateProfileRequest;
@@ -38,8 +38,8 @@ import pbouda.jeffrey.profile.manager.ProfileManager;
 import java.util.Comparator;
 import java.util.List;
 
+@RestController
 @RequestMapping("/api/internal/workspaces/{workspaceId}/projects/{projectId}/profiles")
-@ResponseBody
 public class ProjectProfilesController {
 
     private static final Logger LOG = LoggerFactory.getLogger(ProjectProfilesController.class);

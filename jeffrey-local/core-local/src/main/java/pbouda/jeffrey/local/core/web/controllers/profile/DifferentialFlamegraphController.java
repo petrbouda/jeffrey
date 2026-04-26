@@ -25,7 +25,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
 import pbouda.jeffrey.local.core.web.ProfileManagerResolver;
 import pbouda.jeffrey.profile.common.config.GraphParameters;
 import pbouda.jeffrey.profile.manager.FlamegraphManager;
@@ -39,11 +39,11 @@ import java.util.List;
 import static pbouda.jeffrey.local.core.web.controllers.profile.FlamegraphController.PROTOBUF_MEDIA_TYPE;
 import static pbouda.jeffrey.local.core.web.controllers.profile.FlamegraphController.mapToGenerateRequest;
 
+@RestController
 @RequestMapping({
         "/api/internal/profiles/{primaryProfileId}/diff/{secondaryProfileId}/differential-flamegraph",
         "/api/internal/workspaces/{workspaceId}/projects/{projectId}/profiles/{primaryProfileId}/diff/{secondaryProfileId}/differential-flamegraph"
 })
-@ResponseBody
 public class DifferentialFlamegraphController {
 
     private static final Logger LOG = LoggerFactory.getLogger(DifferentialFlamegraphController.class);

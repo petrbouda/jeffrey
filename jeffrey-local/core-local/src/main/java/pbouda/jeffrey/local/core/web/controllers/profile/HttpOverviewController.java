@@ -24,7 +24,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
 import pbouda.jeffrey.local.core.web.ProfileManagerResolver;
 import pbouda.jeffrey.profile.manager.custom.HttpManager;
 import pbouda.jeffrey.profile.manager.custom.model.http.HttpOverviewData;
@@ -34,12 +34,12 @@ import java.net.URLDecoder;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+@RestController
 @RequestMapping({
         "/api/internal/profiles/{profileId}/http/overview",
         "/api/internal/quick-analysis/profiles/{profileId}/http/overview",
         "/api/internal/workspaces/{workspaceId}/projects/{projectId}/profiles/{profileId}/http/overview"
 })
-@ResponseBody
 public class HttpOverviewController {
 
     private static final Logger LOG = LoggerFactory.getLogger(HttpOverviewController.class);

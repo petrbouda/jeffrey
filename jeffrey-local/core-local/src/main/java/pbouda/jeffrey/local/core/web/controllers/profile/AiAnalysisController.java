@@ -25,7 +25,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
 import pbouda.jeffrey.local.core.web.ProfileManagerResolver;
 import pbouda.jeffrey.profile.ai.mcp.model.JfrAnalysisRequest;
 import pbouda.jeffrey.profile.ai.mcp.model.JfrAnalysisResponse;
@@ -34,12 +34,12 @@ import pbouda.jeffrey.profile.ai.mcp.service.JfrAnalysisAssistantService;
 
 import java.util.List;
 
+@RestController
 @RequestMapping({
         "/api/internal/profiles/{profileId}/ai-analysis",
         "/api/internal/quick-analysis/profiles/{profileId}/ai-analysis",
         "/api/internal/workspaces/{workspaceId}/projects/{projectId}/profiles/{profileId}/ai-analysis"
 })
-@ResponseBody
 public class AiAnalysisController {
 
     private static final Logger LOG = LoggerFactory.getLogger(AiAnalysisController.class);

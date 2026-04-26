@@ -25,7 +25,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
 import pbouda.jeffrey.local.core.web.ProfileManagerResolver;
 import pbouda.jeffrey.profile.manager.custom.JdbcPoolManager;
 import pbouda.jeffrey.profile.manager.custom.model.jdbc.pool.JdbcPoolData;
@@ -34,12 +34,12 @@ import pbouda.jeffrey.timeseries.SingleSerie;
 
 import java.util.List;
 
+@RestController
 @RequestMapping({
         "/api/internal/profiles/{profileId}/jdbc/pool",
         "/api/internal/quick-analysis/profiles/{profileId}/jdbc/pool",
         "/api/internal/workspaces/{workspaceId}/projects/{projectId}/profiles/{profileId}/jdbc/pool"
 })
-@ResponseBody
 public class JdbcPoolController {
 
     private static final Logger LOG = LoggerFactory.getLogger(JdbcPoolController.class);

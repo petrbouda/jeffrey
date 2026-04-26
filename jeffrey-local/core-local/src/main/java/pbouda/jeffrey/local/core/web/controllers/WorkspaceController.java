@@ -24,7 +24,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
 import pbouda.jeffrey.local.core.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.local.core.resources.response.WorkspaceEventResponse;
 import pbouda.jeffrey.local.core.resources.response.WorkspaceResponse;
@@ -33,8 +33,8 @@ import pbouda.jeffrey.local.core.web.ProjectManagerResolver;
 
 import java.util.List;
 
+@RestController
 @RequestMapping("/api/internal/workspaces/{workspaceId}")
-@ResponseBody
 public class WorkspaceController {
 
     private static final Logger LOG = LoggerFactory.getLogger(WorkspaceController.class);

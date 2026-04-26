@@ -24,7 +24,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
 import pbouda.jeffrey.local.core.web.ProfileManagerResolver;
 import pbouda.jeffrey.profile.common.config.GraphParameters;
 import pbouda.jeffrey.profile.manager.ProfileManager;
@@ -32,11 +32,11 @@ import pbouda.jeffrey.profile.manager.TimeseriesManager;
 import pbouda.jeffrey.profile.resources.request.GenerateTimeseriesRequest;
 import pbouda.jeffrey.timeseries.TimeseriesData;
 
+@RestController
 @RequestMapping({
         "/api/internal/profiles/{primaryProfileId}/diff/{secondaryProfileId}/differential-timeseries",
         "/api/internal/workspaces/{workspaceId}/projects/{projectId}/profiles/{primaryProfileId}/diff/{secondaryProfileId}/differential-timeseries"
 })
-@ResponseBody
 public class DifferentialTimeseriesController {
 
     private static final Logger LOG = LoggerFactory.getLogger(DifferentialTimeseriesController.class);

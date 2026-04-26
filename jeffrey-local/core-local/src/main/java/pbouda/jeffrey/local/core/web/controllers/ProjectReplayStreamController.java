@@ -25,7 +25,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import pbouda.jeffrey.local.core.client.RemoteEventStreamingClient.EventStreamingSubscription;
 import pbouda.jeffrey.local.core.client.ReplaySubscriptionRequest;
@@ -44,8 +44,8 @@ import java.util.stream.Collectors;
  * SSE bridge for single-session event replay; reads historical events from
  * dumped recording files and streams them to the client.
  */
+@RestController
 @RequestMapping("/api/internal/workspaces/{workspaceId}/projects/{projectId}/replay-stream")
-@ResponseBody
 public class ProjectReplayStreamController {
 
     private static final Logger LOG = LoggerFactory.getLogger(ProjectReplayStreamController.class);

@@ -26,7 +26,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
 import pbouda.jeffrey.local.core.client.RemoteClients;
 import pbouda.jeffrey.local.core.manager.workspace.WorkspacesManager;
 import pbouda.jeffrey.local.core.manager.workspace.WorkspacesManager.CreateWorkspaceRequest;
@@ -39,8 +39,8 @@ import pbouda.jeffrey.shared.common.exception.Exceptions;
 
 import java.util.List;
 
+@RestController
 @RequestMapping("/api/internal/remote-workspaces")
-@ResponseBody
 public class RemoteWorkspacesController {
 
     private static final Logger LOG = LoggerFactory.getLogger(RemoteWorkspacesController.class);

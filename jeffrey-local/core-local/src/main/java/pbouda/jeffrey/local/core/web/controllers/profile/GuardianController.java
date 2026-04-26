@@ -23,7 +23,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
 import pbouda.jeffrey.local.core.web.ProfileManagerResolver;
 import pbouda.jeffrey.profile.common.analysis.AnalysisResult;
 import pbouda.jeffrey.profile.guardian.guard.Guard.Category;
@@ -35,12 +35,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
+@RestController
 @RequestMapping({
         "/api/internal/profiles/{profileId}/guardian",
         "/api/internal/quick-analysis/profiles/{profileId}/guardian",
         "/api/internal/workspaces/{workspaceId}/projects/{projectId}/profiles/{profileId}/guardian"
 })
-@ResponseBody
 public class GuardianController {
 
     public record GuardListResponse(String category, List<GuardAnalysisResult> results) {

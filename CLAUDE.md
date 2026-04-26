@@ -234,8 +234,8 @@ jeffrey/
   @Bean public WorkspacesController workspacesController(...) { ... }
   ```
 - **Architecture**: Manager pattern with service layer separation
-- **REST**: Spring MVC controllers as plain classes with `@RequestMapping` + `@ResponseBody` at class level (no `@Controller` / `@RestController` stereotype). Constructor injection only — never `@Autowired`. Register every controller as an explicit `@Bean` in a `@Configuration` class.
-- **Spring Bean Registration**: Never use stereotype annotations (`@Component`, `@Service`, `@Repository`, `@Controller`, `@RestController`) or `@Autowired`. Always register beans explicitly via `@Bean` methods in `@Configuration` classes or Spring 4 `BeanRegistrar`. This keeps wiring visible and explicit.
+- **REST**: Spring MVC controllers annotated with `@RestController` + `@RequestMapping` at class level (this is the **only** stereotype the project allows — see Spring Bean Registration). Constructor injection only — never `@Autowired`. Controllers are picked up by Spring Boot's component scan rooted at the application's package; do not declare them as `@Bean` methods.
+- **Spring Bean Registration**: Never use stereotype annotations (`@Component`, `@Service`, `@Repository`, `@Controller`) or `@Autowired`. **Exception:** `@RestController` is allowed (and required) on Spring MVC controllers — this is the only stereotype on the allow-list, because the controller layer is the single place where component scanning is more pragmatic than explicit wiring. Everything else (managers, services, factories, resolvers, web infrastructure) must be registered explicitly via `@Bean` methods in `@Configuration` classes or Spring 4 `BeanRegistrar`. This keeps wiring visible and explicit while letting the dispatcher discover handlers normally.
 - **gRPC**: Proto files in `shared/server-api/` (package `pbouda.jeffrey.server.api.v1`), implementations in `jeffrey-server/core-server/.../grpc/`, clients in `jeffrey-local/core-local/.../client/`
 - **Sealed Interfaces**: Used for type-safe hierarchies (e.g., `JobDescriptor`, `WorkspacesManager`, `TimeRange`)
 - **Records**: Used for DTOs and immutable data

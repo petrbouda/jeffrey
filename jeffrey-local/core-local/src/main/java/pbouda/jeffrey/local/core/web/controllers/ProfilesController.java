@@ -22,7 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
 import pbouda.jeffrey.local.core.manager.project.ProjectManager;
 import pbouda.jeffrey.local.core.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.local.core.manager.workspace.WorkspacesManager;
@@ -39,8 +39,8 @@ import java.util.List;
  * Top-level GET /api/internal/profiles. Returns all profiles across all
  * workspaces and projects (with workspace/project context).
  */
+@RestController
 @RequestMapping("/api/internal/profiles")
-@ResponseBody
 public class ProfilesController {
 
     private static final Logger LOG = LoggerFactory.getLogger(ProfilesController.class);

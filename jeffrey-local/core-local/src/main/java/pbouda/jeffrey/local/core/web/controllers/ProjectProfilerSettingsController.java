@@ -25,15 +25,15 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
 import pbouda.jeffrey.local.core.manager.ProfilerSettingsManager;
 import pbouda.jeffrey.local.core.manager.project.ProjectManager;
 import pbouda.jeffrey.local.core.resources.request.ProfilerSettingsRequest;
 import pbouda.jeffrey.local.core.resources.response.ProfilerSettingsResponse;
 import pbouda.jeffrey.local.core.web.ProjectManagerResolver;
 
+@RestController
 @RequestMapping("/api/internal/workspaces/{workspaceId}/projects/{projectId}/profiler/settings")
-@ResponseBody
 public class ProjectProfilerSettingsController {
 
     private final ProjectManagerResolver resolver;

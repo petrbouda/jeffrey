@@ -24,7 +24,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
 import pbouda.jeffrey.local.core.web.ProfileManagerResolver;
 import pbouda.jeffrey.profile.manager.ProfileManager;
 import pbouda.jeffrey.profile.resources.request.GetSubSecondRequest;
@@ -35,12 +35,12 @@ import tools.jackson.databind.JsonNode;
 
 import static pbouda.jeffrey.local.core.web.controllers.profile.FlamegraphController.toTimeRange;
 
+@RestController
 @RequestMapping({
         "/api/internal/profiles/{profileId}/subsecond",
         "/api/internal/quick-analysis/profiles/{profileId}/subsecond",
         "/api/internal/workspaces/{workspaceId}/projects/{projectId}/profiles/{profileId}/subsecond"
 })
-@ResponseBody
 public class SubSecondController {
 
     private static final Logger LOG = LoggerFactory.getLogger(SubSecondController.class);
