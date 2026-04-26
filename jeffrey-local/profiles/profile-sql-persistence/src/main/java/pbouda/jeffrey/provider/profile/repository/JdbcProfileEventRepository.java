@@ -307,8 +307,8 @@ public class JdbcProfileEventRepository implements ProfileEventRepository {
                             JsonNode historyArray = Json.readTree(changeHistoryJson);
                             List<FlagValueChange> changes = new ArrayList<>();
                             for (JsonNode entry : historyArray) {
-                                String value = entry.get("value").asText();
-                                String timestamp = entry.get("timestamp").asText();
+                                String value = entry.get("value").asString();
+                                String timestamp = entry.get("timestamp").asString();
                                 changes.add(new FlagValueChange(value, Instant.parse(timestamp)));
                             }
                             changeHistory = changes;

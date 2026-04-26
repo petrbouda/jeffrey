@@ -214,7 +214,7 @@ public class GCOverviewEventBuilder implements RecordBuilder<GenericRecord, GCOv
 
     private void processHeapSummaryEvent(ObjectNode fields) {
         int gcId = fields.get("gcId").asInt();
-        String when = fields.get("when").asText();
+        String when = fields.get("when").asString();
         long heapUsed = fields.get("heapUsed").asLong();
 
         if ("Before GC".equals(when)) {

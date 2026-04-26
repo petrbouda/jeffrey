@@ -140,7 +140,7 @@ public class HttpOverviewEventBuilder implements RecordBuilder<GenericRecord, Ht
             return;
         }
 
-        String uri = jsonFields.path("uri").asText("");
+        String uri = jsonFields.path("uri").asString("");
         if (uri.isEmpty() || (uriFilter != null && !uriFilter.test(uri))) {
             // Skip records without URI or not matching the filter
             return;
@@ -149,10 +149,10 @@ public class HttpOverviewEventBuilder implements RecordBuilder<GenericRecord, Ht
         // Extract fields from JSON
         long startTime = record.startTimestamp().toEpochMilli();
         long responseTime = record.duration().toNanos();
-        String host = jsonFields.path("remoteHost").asText("");
+        String host = jsonFields.path("remoteHost").asString("");
         int port = jsonFields.path("remotePort").asInt(-1);
-        String method = jsonFields.path("method").asText("");
-        String statusStr = jsonFields.path("status").asText("0");
+        String method = jsonFields.path("method").asString("");
+        String statusStr = jsonFields.path("status").asString("0");
         int status = parseStatusCode(statusStr);
         long requestLength = jsonFields.path("requestLength").asLong(-1);
         long responseLength = jsonFields.path("responseLength").asLong(-1);

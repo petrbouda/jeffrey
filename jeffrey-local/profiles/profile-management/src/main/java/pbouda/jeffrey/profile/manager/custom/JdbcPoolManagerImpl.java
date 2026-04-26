@@ -176,7 +176,7 @@ public class JdbcPoolManagerImpl implements JdbcPoolManager {
 
         // Get the event type for the specified pool
         Predicate<ObjectNode> poolNameFilter = json -> {
-            String pool = json.get("poolName").asText();
+            String pool = json.get("poolName").asString();
             return pool.equals(poolName);
         };
 

@@ -192,16 +192,16 @@ public class GrpcOverviewEventBuilder implements RecordBuilder<GenericRecord, Gr
             return;
         }
 
-        String service = jsonFields.path("service").asText("");
+        String service = jsonFields.path("service").asString("");
         if (service.isEmpty() || (serviceFilter != null && !serviceFilter.test(service))) {
             return;
         }
 
         long startTime = record.startTimestamp().toEpochMilli();
         long responseTime = record.duration().toNanos();
-        String method = jsonFields.path("method").asText("");
-        String status = jsonFields.path("status").asText("");
-        String remoteHost = jsonFields.path("remoteHost").asText("");
+        String method = jsonFields.path("method").asString("");
+        String status = jsonFields.path("status").asString("");
+        String remoteHost = jsonFields.path("remoteHost").asString("");
         int remotePort = jsonFields.path("remotePort").asInt(-1);
         long requestSize = jsonFields.path("requestSize").asLong(-1);
         long responseSize = jsonFields.path("responseSize").asLong(-1);

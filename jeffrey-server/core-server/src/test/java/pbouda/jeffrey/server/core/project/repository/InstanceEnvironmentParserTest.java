@@ -100,7 +100,7 @@ class InstanceEnvironmentParserTest {
             ObjectNode env = parser.parse(jfr, false);
 
             JsonNode jvm = requireEvent(env, "jdk.JVMInformation");
-            assertTrue(jvm.has("jvmName") && !jvm.get("jvmName").asText().isBlank(), "jvmName must be present");
+            assertTrue(jvm.has("jvmName") && !jvm.get("jvmName").asString().isBlank(), "jvmName must be present");
             assertTrue(jvm.has("jvmVersion"), "jvmVersion must be present");
             assertTrue(jvm.has("pid"), "pid must be present");
             assertEquals(ProcessHandle.current().pid(), jvm.get("pid").asLong(), "pid must match current JVM");
@@ -115,7 +115,7 @@ class InstanceEnvironmentParserTest {
             ObjectNode env = parser.parse(jfr, false);
 
             JsonNode os = requireEvent(env, "jdk.OSInformation");
-            assertTrue(os.has("osVersion") && !os.get("osVersion").asText().isBlank(), "osVersion must be non-blank");
+            assertTrue(os.has("osVersion") && !os.get("osVersion").asString().isBlank(), "osVersion must be non-blank");
         }
 
         @Test
@@ -136,9 +136,9 @@ class InstanceEnvironmentParserTest {
             ObjectNode env = parser.parse(jfr, false);
 
             JsonNode gc = requireEvent(env, "jdk.GCConfiguration");
-            assertTrue(gc.has("youngCollector") && !gc.get("youngCollector").asText().isBlank(),
+            assertTrue(gc.has("youngCollector") && !gc.get("youngCollector").asString().isBlank(),
                     "youngCollector must be non-blank");
-            assertTrue(gc.has("oldCollector") && !gc.get("oldCollector").asText().isBlank(),
+            assertTrue(gc.has("oldCollector") && !gc.get("oldCollector").asString().isBlank(),
                     "oldCollector must be non-blank");
 
             JsonNode heap = requireEvent(env, "jdk.GCHeapConfiguration");
