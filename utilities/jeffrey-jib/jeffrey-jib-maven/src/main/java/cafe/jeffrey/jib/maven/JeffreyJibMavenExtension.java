@@ -43,7 +43,7 @@ import java.util.Optional;
  *   <artifactId>jib-maven-plugin</artifactId>
  *   <dependencies>
  *     <dependency>
- *       <groupId>pbouda.jeffrey</groupId>
+ *       <groupId>cafe.jeffrey</groupId>
  *       <artifactId>jeffrey-jib-maven</artifactId>
  *       <version>${jeffrey.version}</version>
  *     </dependency>

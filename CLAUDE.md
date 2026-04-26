@@ -211,7 +211,7 @@ jeffrey/
 ## Code Style and Conventions
 
 ### Java Backend
-- **Package Structure**: `pbouda.jeffrey.local.*` for local deployment, `pbouda.jeffrey.server.*` for server deployment, `pbouda.jeffrey.profile.*` for profiles, `pbouda.jeffrey.*` for shared modules
+- **Package Structure**: `cafe.jeffrey.local.*` for local deployment, `cafe.jeffrey.server.*` for server deployment, `cafe.jeffrey.profile.*` for profiles, `cafe.jeffrey.*` for shared modules
 - **Naming**: PascalCase for classes, camelCase for methods/fields
 - **Imports**: Always use import statements; never use fully qualified class names inline in code
 - **Annotation Placement**: Annotations on **classes**, **fields**, and **methods** always go on their own line directly above the declaration — never inline on the same line. Applies to `@Bean`, `@Configuration`, `@RequestMapping`, `@ResponseBody`, `@GetMapping` / `@PostMapping` / etc., `@Mock`, `@Test`, `@ExtendWith`, custom annotations, and so on. Annotations on **method/constructor parameters** (e.g. `@PathVariable`, `@RequestParam`, `@RequestBody`) stay inline next to the parameter — that's the standard form and keeps signatures readable.
@@ -236,7 +236,7 @@ jeffrey/
 - **Architecture**: Manager pattern with service layer separation
 - **REST**: Spring MVC controllers annotated with `@RestController` + `@RequestMapping` at class level (this is the **only** stereotype the project allows — see Spring Bean Registration). Constructor injection only — never `@Autowired`. Controllers are picked up by Spring Boot's component scan rooted at the application's package; do not declare them as `@Bean` methods.
 - **Spring Bean Registration**: Never use stereotype annotations (`@Component`, `@Service`, `@Repository`, `@Controller`) or `@Autowired`. **Exception:** `@RestController` is allowed (and required) on Spring MVC controllers — this is the only stereotype on the allow-list, because the controller layer is the single place where component scanning is more pragmatic than explicit wiring. Everything else (managers, services, factories, resolvers, web infrastructure) must be registered explicitly via `@Bean` methods in `@Configuration` classes or Spring 4 `BeanRegistrar`. This keeps wiring visible and explicit while letting the dispatcher discover handlers normally.
-- **gRPC**: Proto files in `shared/server-api/` (package `pbouda.jeffrey.server.api.v1`), implementations in `jeffrey-server/core-server/.../grpc/`, clients in `jeffrey-local/core-local/.../client/`
+- **gRPC**: Proto files in `shared/server-api/` (package `cafe.jeffrey.server.api.v1`), implementations in `jeffrey-server/core-server/.../grpc/`, clients in `jeffrey-local/core-local/.../client/`
 - **Sealed Interfaces**: Used for type-safe hierarchies (e.g., `JobDescriptor`, `WorkspacesManager`, `TimeRange`)
 - **Records**: Used for DTOs and immutable data
 - **Three-Tier Persistence**: Local Core DB (workspaces, projects, recordings) + Server DB (server workspaces, projects, scheduling) + Profile DB (isolated per profile)
@@ -271,7 +271,7 @@ jeffrey/
   - Use `clock.instant()` to get the current time
   - Example: `private final Clock clock; ... Instant now = clock.instant();`
   - This allows tests to use fixed time via `Clock.fixed()` for deterministic behavior
-- **Elapsed Time Measuring**: Use `pbouda.jeffrey.shared.common.measure.Measuring` utility instead of manual `System.nanoTime()` bookkeeping:
+- **Elapsed Time Measuring**: Use `cafe.jeffrey.shared.common.measure.Measuring` utility instead of manual `System.nanoTime()` bookkeeping:
   - `Measuring.r(runnable)` — runs a `Runnable`, returns `Duration`
   - `Measuring.s(supplier)` — runs a `Supplier<T>`, returns `Elapsed<T>` (duration + result)
   - Example: `Duration elapsed = Measuring.r(() -> doWork()); LOG.debug("Work completed: duration_in_sec={}", elapsed.toSeconds());`

@@ -1,0 +1,36 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2024 Petr Bouda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+package cafe.jeffrey.frameir.frame;
+
+import cafe.jeffrey.jfrparser.api.type.JfrStackFrame;
+import cafe.jeffrey.provider.profile.model.FlamegraphRecord;
+
+import java.util.List;
+
+abstract class SingleFrameProcessor implements FrameProcessor {
+
+    abstract NewFrame processSingle(FlamegraphRecord record, JfrStackFrame frame, boolean topFrame);
+
+    @Override
+    public List<NewFrame> process(FlamegraphRecord record, List<? extends JfrStackFrame> stacktrace, int currIndex) {
+        JfrStackFrame currFrame = stacktrace.get(currIndex);
+        boolean topFrame = currIndex == (stacktrace.size() - 1);
+        return List.of(processSingle(record, currFrame, topFrame));
+    }
+}

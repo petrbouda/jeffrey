@@ -71,7 +71,7 @@ onMounted(() => {
         </thead>
         <tbody>
           <tr>
-            <td><code>logging.level.pbouda.jeffrey.platform</code></td>
+            <td><code>logging.level.cafe.jeffrey.platform</code></td>
             <td><code>DEBUG</code></td>
             <td>Log level for Jeffrey platform classes</td>
           </tr>

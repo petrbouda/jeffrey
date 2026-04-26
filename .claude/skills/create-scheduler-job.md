@@ -64,9 +64,9 @@ Use this template:
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.server.core.scheduler.job.descriptor;
+package cafe.jeffrey.server.core.scheduler.job.descriptor;
 
-import pbouda.jeffrey.shared.common.model.job.JobType;
+import cafe.jeffrey.shared.common.model.job.JobType;
 
 import java.util.Map;
 
@@ -146,16 +146,16 @@ For PROJECT scope (extends RepositoryProjectJob):
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.server.core.scheduler.job;
+package cafe.jeffrey.server.core.scheduler.job;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.shared.common.model.job.JobType;
-import pbouda.jeffrey.server.core.manager.workspace.WorkspacesManager;
-import pbouda.jeffrey.server.core.project.repository.RepositoryStorage;
-import pbouda.jeffrey.server.core.scheduler.job.descriptor.JobDescriptorFactory;
-import pbouda.jeffrey.server.core.scheduler.job.descriptor.{JobName}JobDescriptor;
-import pbouda.jeffrey.server.core.manager.project.ProjectManager;
+import cafe.jeffrey.shared.common.model.job.JobType;
+import cafe.jeffrey.server.core.manager.workspace.WorkspacesManager;
+import cafe.jeffrey.server.core.project.repository.RepositoryStorage;
+import cafe.jeffrey.server.core.scheduler.job.descriptor.JobDescriptorFactory;
+import cafe.jeffrey.server.core.scheduler.job.descriptor.{JobName}JobDescriptor;
+import cafe.jeffrey.server.core.manager.project.ProjectManager;
 
 import java.time.Duration;
 

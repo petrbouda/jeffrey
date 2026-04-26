@@ -45,7 +45,7 @@ opens the door to optional per-module `module-info.java` later.
 matching server file:
 
 ```java
-packages("pbouda.jeffrey.resources", "pbouda.jeffrey.profile.resources");
+packages("cafe.jeffrey.resources", "cafe.jeffrey.profile.resources");
 ```
 
 Jersey's `packages(...)` walks the classpath looking for `@Path` /

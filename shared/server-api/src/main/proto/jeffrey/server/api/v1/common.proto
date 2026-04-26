@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package jeffrey.server.api.v1;
 
-option java_package = "pbouda.jeffrey.server.api.v1";
+option java_package = "cafe.jeffrey.server.api.v1";
 option java_multiple_files = true;
 
 // Shared enums used across multiple gRPC services.

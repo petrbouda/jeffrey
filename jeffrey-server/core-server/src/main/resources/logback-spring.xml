@@ -57,7 +57,7 @@
             </encoder>
         </appender>
 
-        <logger name="pbouda.jeffrey" level="DEBUG" additivity="true">
+        <logger name="cafe.jeffrey" level="DEBUG" additivity="true">
             <appender-ref ref="DEBUG_FILE" />
         </logger>
     </springProfile>
@@ -91,7 +91,7 @@
             </encoder>
         </appender>
 
-        <logger name="pbouda.jeffrey" level="TRACE" additivity="true">
+        <logger name="cafe.jeffrey" level="TRACE" additivity="true">
             <appender-ref ref="TRACE_FILE" />
         </logger>
     </springProfile>

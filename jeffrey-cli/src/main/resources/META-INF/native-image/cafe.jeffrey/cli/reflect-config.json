@@ -1,0 +1,204 @@
+[
+  {
+    "condition": {"typeReachable": "picocli.CommandLine"},
+    "name": "picocli.CommandLine$AutoHelpMixin",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "condition": {"typeReachable": "picocli.CommandLine"},
+    "name": "cafe.jeffrey.init.CliApplication",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "condition": {"typeReachable": "picocli.CommandLine"},
+    "name": "cafe.jeffrey.init.command.InitCommand",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "condition": {"typeReachable": "picocli.CommandLine"},
+    "name": "cafe.jeffrey.init.VersionProvider",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "condition": {"typeReachable": "com.typesafe.config.ConfigBeanFactory"},
+    "name": "cafe.jeffrey.init.InitConfig",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "condition": {"typeReachable": "com.typesafe.config.ConfigBeanFactory"},
+    "name": "cafe.jeffrey.init.InitConfig$ProjectConfig",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "condition": {"typeReachable": "com.typesafe.config.ConfigBeanFactory"},
+    "name": "cafe.jeffrey.init.InitConfig$PerfCountersConfig",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "condition": {"typeReachable": "com.typesafe.config.ConfigBeanFactory"},
+    "name": "cafe.jeffrey.init.InitConfig$HeapDumpConfig",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "condition": {"typeReachable": "com.typesafe.config.ConfigBeanFactory"},
+    "name": "cafe.jeffrey.init.InitConfig$JvmLoggingConfig",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "condition": {"typeReachable": "com.typesafe.config.ConfigBeanFactory"},
+    "name": "cafe.jeffrey.init.InitConfig$JdkJavaOptionsConfig",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "condition": {"typeReachable": "tools.jackson.databind.ObjectMapper"},
+    "name": "cafe.jeffrey.shared.common.model.repository.RemoteProject",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "condition": {"typeReachable": "tools.jackson.databind.ObjectMapper"},
+    "name": "cafe.jeffrey.shared.common.model.repository.RemoteProjectInstance",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "condition": {"typeReachable": "tools.jackson.databind.ObjectMapper"},
+    "name": "cafe.jeffrey.shared.common.model.repository.RemoteProjectInstanceSession",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "condition": {"typeReachable": "tools.jackson.databind.ObjectMapper"},
+    "name": "cafe.jeffrey.shared.common.model.repository.ProfilerSettings",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "condition": {"typeReachable": "tools.jackson.databind.ObjectMapper"},
+    "name": "cafe.jeffrey.shared.common.model.repository.RemoteWorkspaceSettings",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "condition": {"typeReachable": "tools.jackson.databind.ObjectMapper"},
+    "name": "cafe.jeffrey.shared.common.model.Type",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "condition": {"typeReachable": "tools.jackson.databind.ObjectMapper"},
+    "name": "cafe.jeffrey.shared.common.model.time.RelativeTimeRange",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "condition": {"typeReachable": "tools.jackson.databind.ObjectMapper"},
+    "name": "cafe.jeffrey.shared.common.model.RepositoryType",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "condition": {"typeReachable": "tools.jackson.databind.ObjectMapper"},
+    "name": "cafe.jeffrey.shared.common.model.workspace.event.ProjectCreatedEventContent",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "condition": {"typeReachable": "tools.jackson.databind.ObjectMapper"},
+    "name": "cafe.jeffrey.shared.common.model.workspace.event.InstanceCreatedEventContent",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "condition": {"typeReachable": "tools.jackson.databind.ObjectMapper"},
+    "name": "cafe.jeffrey.shared.common.model.workspace.event.SessionCreatedEventContent",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "condition": {"typeReachable": "tools.jackson.databind.ObjectMapper"},
+    "name": "cafe.jeffrey.shared.common.model.workspace.CLIWorkspaceEvent",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "condition": {"typeReachable": "tools.jackson.databind.ObjectMapper"},
+    "name": "cafe.jeffrey.shared.common.model.workspace.WorkspaceEventType",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "condition": {"typeReachable": "ch.qos.logback.classic.LoggerContext"},
+    "name": "ch.qos.logback.core.ConsoleAppender",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "condition": {"typeReachable": "ch.qos.logback.classic.LoggerContext"},
+    "name": "ch.qos.logback.classic.encoder.PatternLayoutEncoder",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "condition": {"typeReachable": "ch.qos.logback.classic.LoggerContext"},
+    "name": "ch.qos.logback.classic.pattern.DateConverter",
+    "allDeclaredConstructors": true
+  },
+  {
+    "condition": {"typeReachable": "ch.qos.logback.classic.LoggerContext"},
+    "name": "ch.qos.logback.classic.pattern.ThreadConverter",
+    "allDeclaredConstructors": true
+  },
+  {
+    "condition": {"typeReachable": "ch.qos.logback.classic.LoggerContext"},
+    "name": "ch.qos.logback.classic.pattern.LevelConverter",
+    "allDeclaredConstructors": true
+  },
+  {
+    "condition": {"typeReachable": "ch.qos.logback.classic.LoggerContext"},
+    "name": "ch.qos.logback.classic.pattern.LoggerConverter",
+    "allDeclaredConstructors": true
+  },
+  {
+    "condition": {"typeReachable": "ch.qos.logback.classic.LoggerContext"},
+    "name": "ch.qos.logback.classic.pattern.MessageConverter",
+    "allDeclaredConstructors": true
+  },
+  {
+    "condition": {"typeReachable": "ch.qos.logback.classic.LoggerContext"},
+    "name": "ch.qos.logback.classic.pattern.LineSeparatorConverter",
+    "allDeclaredConstructors": true
+  }
+]

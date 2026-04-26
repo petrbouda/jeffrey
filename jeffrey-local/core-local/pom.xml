@@ -23,7 +23,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>pbouda.jeffrey</groupId>
+        <groupId>cafe.jeffrey</groupId>
         <artifactId>jeffrey-local</artifactId>
         <version>1.0-SNAPSHOT</version>
     </parent>
@@ -31,7 +31,7 @@
     <artifactId>core-local</artifactId>
 
     <properties>
-        <mainClass>pbouda.jeffrey.local.core.LocalApplication</mainClass>
+        <mainClass>cafe.jeffrey.local.core.LocalApplication</mainClass>
         <finalName>jeffrey</finalName>
     </properties>
 

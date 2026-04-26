@@ -1,0 +1,72 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2025 Petr Bouda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+package cafe.jeffrey.profile.feature.checker;
+
+import tools.jackson.databind.node.ObjectNode;
+import cafe.jeffrey.shared.common.Json;
+import cafe.jeffrey.profile.common.event.ContainerConfiguration;
+import cafe.jeffrey.profile.common.event.ContainerIOUsage;
+import cafe.jeffrey.shared.common.model.EventSummary;
+import cafe.jeffrey.shared.common.model.Type;
+import cafe.jeffrey.profile.feature.FeatureCheckResult;
+import cafe.jeffrey.profile.feature.FeatureType;
+import cafe.jeffrey.provider.profile.repository.ProfileEventRepository;
+
+import java.util.Map;
+import java.util.Optional;
+
+public class ContainerDashboardFeatureChecker implements FeatureChecker {
+
+    private final ProfileEventRepository eventRepository;
+
+    public ContainerDashboardFeatureChecker(ProfileEventRepository eventRepository) {
+        this.eventRepository = eventRepository;
+    }
+
+    @Override
+    public FeatureCheckResult check(Map<Type, EventSummary> eventSummaries) {
+        return containerIOIsUsed() && containerIsConfigured()
+                ? FeatureCheckResult.enabled(FeatureType.CONTAINER_DASHBOARD)
+                : FeatureCheckResult.disabled(FeatureType.CONTAINER_DASHBOARD);
+    }
+
+    private boolean containerIOIsUsed() {
+        Optional<ObjectNode> configurationOpt = eventRepository.latestJsonFields(Type.CONTAINER_IO_USAGE);
+        if (configurationOpt.isEmpty()) {
+            return false;
+        }
+        ContainerIOUsage usage = Json.treeToValue(configurationOpt.get(), ContainerIOUsage.class);
+        return usage.dataTransferred() != null || usage.serviceRequests() != null;
+    }
+
+    private boolean containerIsConfigured() {
+        Optional<ObjectNode> configurationOpt = eventRepository.latestJsonFields(Type.CONTAINER_CONFIGURATION);
+        if (configurationOpt.isEmpty()) {
+            return false;
+        }
+        ContainerConfiguration container = Json.treeToValue(
+                configurationOpt.get(), ContainerConfiguration.class);
+
+        return container.cpuQuota() != null
+                || container.cpuShares() != -1
+                || container.memorySoftLimit() != 0
+                || container.memoryLimit() != -1
+                || container.swapMemoryLimit() != -1;
+    }
+}

@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import { pbouda } from '@/proto/flamegraph';
+import { cafe } from '@/proto/flamegraph';
 import BothGraphData from '@/services/api/model/BothGraphData';
 import FlamegraphData from '@/services/api/model/FlamegraphData';
 import Frame from '@/services/api/model/Frame';
@@ -26,13 +26,13 @@ import DiffDetails from '@/services/api/model/DiffDetails';
 import TimeseriesData from '@/services/timeseries/model/TimeseriesData';
 import Serie from '@/services/timeseries/model/Serie';
 
-type ProtoGraphData = pbouda.jeffrey.flamegraph.proto.GraphData;
-type ProtoFlamegraphData = pbouda.jeffrey.flamegraph.proto.IFlamegraphData;
-type ProtoFrame = pbouda.jeffrey.flamegraph.proto.IFrame;
-type ProtoTimeseriesData = pbouda.jeffrey.flamegraph.proto.ITimeseriesData;
-type ProtoFrameType = pbouda.jeffrey.flamegraph.proto.FrameType;
+type ProtoGraphData = cafe.jeffrey.flamegraph.proto.GraphData;
+type ProtoFlamegraphData = cafe.jeffrey.flamegraph.proto.IFlamegraphData;
+type ProtoFrame = cafe.jeffrey.flamegraph.proto.IFrame;
+type ProtoTimeseriesData = cafe.jeffrey.flamegraph.proto.ITimeseriesData;
+type ProtoFrameType = cafe.jeffrey.flamegraph.proto.FrameType;
 
-const FrameTypeEnum = pbouda.jeffrey.flamegraph.proto.FrameType;
+const FrameTypeEnum = cafe.jeffrey.flamegraph.proto.FrameType;
 
 /**
  * Maps protobuf FrameType enum to string representation used in frontend.
@@ -67,7 +67,7 @@ export default class ProtobufConverter {
    * Decodes binary protobuf data and converts to BothGraphData.
    */
   static decode(data: ArrayBuffer): BothGraphData {
-    const protoData = pbouda.jeffrey.flamegraph.proto.GraphData.decode(new Uint8Array(data));
+    const protoData = cafe.jeffrey.flamegraph.proto.GraphData.decode(new Uint8Array(data));
     return this.convert(protoData);
   }
 

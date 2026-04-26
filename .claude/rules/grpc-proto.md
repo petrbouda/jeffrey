@@ -10,7 +10,7 @@ paths:
 ### Proto File Conventions
 - Syntax: `proto3`
 - Package: `jeffrey.api.v1`
-- Java package: `pbouda.jeffrey.api.v1` (via `option java_package`)
+- Java package: `cafe.jeffrey.api.v1` (via `option java_package`)
 - Always set `option java_multiple_files = true`
 - Location: `shared/server-api/src/main/proto/jeffrey/api/v1/`
 

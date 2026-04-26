@@ -173,10 +173,10 @@
           <div class="settings-form-group">
             <label class="settings-label">Log Level</label>
             <select
-              :value="settings.get('logging.level.pbouda.jeffrey')"
+              :value="settings.get('logging.level.cafe.jeffrey')"
               @change="
                 setSetting(
-                  'logging.level.pbouda.jeffrey',
+                  'logging.level.cafe.jeffrey',
                   ($event.target as HTMLSelectElement).value
                 )
               "
@@ -527,8 +527,8 @@ async function saveGeneralSettings() {
   try {
     await client.upsert(
       'logging',
-      'logging.level.pbouda.jeffrey',
-      settings.get('logging.level.pbouda.jeffrey') || '',
+      'logging.level.cafe.jeffrey',
+      settings.get('logging.level.cafe.jeffrey') || '',
       false
     );
     restartRequired.value = true;

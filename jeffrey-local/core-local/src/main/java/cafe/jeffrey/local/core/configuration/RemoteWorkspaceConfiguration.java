@@ -1,0 +1,76 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2026 Petr Bouda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+package cafe.jeffrey.local.core.configuration;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
+import cafe.jeffrey.local.core.LocalJeffreyDirs;
+import cafe.jeffrey.local.core.manager.ProfilesManager;
+import cafe.jeffrey.local.core.manager.workspace.RemoteWorkspacesManager;
+import cafe.jeffrey.local.core.manager.workspace.WorkspaceManager;
+import cafe.jeffrey.local.core.client.CachedRemoteClientsFactory;
+import cafe.jeffrey.local.core.client.RemoteClients;
+import cafe.jeffrey.local.core.manager.workspace.RemoteWorkspaceManager;
+import cafe.jeffrey.local.persistence.repository.JdbcWorkspaceRepository;
+import cafe.jeffrey.local.persistence.repository.JdbcWorkspacesRepository;
+import cafe.jeffrey.local.persistence.repository.WorkspacesRepository;
+import cafe.jeffrey.local.core.recording.ProjectRecordingInitializer;
+import cafe.jeffrey.local.persistence.LocalCorePersistenceProvider;
+
+@Configuration
+@Import(AppConfiguration.class)
+public class RemoteWorkspaceConfiguration {
+
+    @Bean
+    public WorkspacesRepository localWorkspacesRepository(LocalCorePersistenceProvider localCorePersistenceProvider) {
+        return new JdbcWorkspacesRepository(localCorePersistenceProvider.databaseClientProvider());
+    }
+
+    @Bean
+    public RemoteWorkspacesManager remoteWorkspacesManager(
+            LocalJeffreyDirs jeffreyDirs,
+            LocalCorePersistenceProvider localCorePersistenceProvider,
+            WorkspacesRepository localWorkspacesRepository,
+            RemoteClients.Factory remoteClientsFactory,
+            ProfilesManager.Factory profilesManagerFactory,
+            ProjectRecordingInitializer.Factory recordingInitializerFactory) {
+
+        WorkspaceManager.Factory workspaceManagerFactory = workspaceInfo -> {
+            return new RemoteWorkspaceManager(
+                    jeffreyDirs,
+                    workspaceInfo,
+                    new JdbcWorkspaceRepository(workspaceInfo.id(), localCorePersistenceProvider.databaseClientProvider()),
+                    remoteClientsFactory.apply(workspaceInfo.address()),
+                    profilesManagerFactory,
+                    recordingInitializerFactory,
+                    localCorePersistenceProvider.localCoreRepositories());
+        };
+
+        return new RemoteWorkspacesManager(
+                localWorkspacesRepository,
+                workspaceManagerFactory,
+                remoteClientsFactory);
+    }
+
+    @Bean(destroyMethod = "close")
+    public CachedRemoteClientsFactory remoteClientsFactory() {
+        return new CachedRemoteClientsFactory();
+    }
+}

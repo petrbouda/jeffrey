@@ -18,9 +18,9 @@
 
 syntax = "proto3";
 
-package pbouda.jeffrey.flamegraph.proto;
+package cafe.jeffrey.flamegraph.proto;
 
-option java_package = "pbouda.jeffrey.flamegraph.proto";
+option java_package = "cafe.jeffrey.flamegraph.proto";
 option java_outer_classname = "FlamegraphProtos";
 option java_multiple_files = true;
 

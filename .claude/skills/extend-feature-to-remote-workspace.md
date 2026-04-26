@@ -50,7 +50,7 @@ syntax = "proto3";
 
 package jeffrey.api.v1;
 
-option java_package = "pbouda.jeffrey.api.v1";
+option java_package = "cafe.jeffrey.api.v1";
 option java_multiple_files = true;
 
 service YourFeatureService {
@@ -87,7 +87,7 @@ message DeleteYourFeatureResponse {}
 
 ### Step 2: Generate gRPC Stubs
 
-Run `mvn compile` on `shared/server-api` to generate the Java gRPC stubs from the proto file. This generates the `*Grpc` stub classes and message classes in the `pbouda.jeffrey.api.v1` package.
+Run `mvn compile` on `shared/server-api` to generate the Java gRPC stubs from the proto file. This generates the `*Grpc` stub classes and message classes in the `cafe.jeffrey.api.v1` package.
 
 ### Step 3: Implement gRPC Service on jeffrey-server
 
@@ -112,17 +112,17 @@ Create a gRPC service in `jeffrey-server/core-server/src/main/java/pbouda/jeffre
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.server.core.grpc;
+package cafe.jeffrey.server.core.grpc;
 
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
-import pbouda.jeffrey.api.v1.*;
-import pbouda.jeffrey.server.core.manager.project.ProjectManager;
-import pbouda.jeffrey.server.core.manager.workspace.WorkspaceManager;
-import pbouda.jeffrey.server.core.manager.workspace.WorkspacesManager;
+import cafe.jeffrey.api.v1.*;
+import cafe.jeffrey.server.core.manager.project.ProjectManager;
+import cafe.jeffrey.server.core.manager.workspace.WorkspaceManager;
+import cafe.jeffrey.server.core.manager.workspace.WorkspacesManager;
 
 @Component
 public class YourFeatureGrpcService extends YourFeatureServiceGrpc.YourFeatureServiceImplBase {
@@ -229,11 +229,11 @@ Create a gRPC client in `jeffrey-local/core-local/src/main/java/pbouda/jeffrey/l
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.local.core.client;
+package cafe.jeffrey.local.core.client;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.api.v1.*;
+import cafe.jeffrey.api.v1.*;
 
 public class RemoteYourFeatureClient {
 

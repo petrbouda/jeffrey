@@ -1,0 +1,71 @@
+package cafe.jeffrey.manual;
+
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import cafe.jeffrey.shared.common.model.Type;
+import cafe.jeffrey.flamegraph.FlameGraphProtoBuilder;
+import cafe.jeffrey.flamegraph.proto.FlamegraphData;
+import cafe.jeffrey.frameir.Frame;
+import cafe.jeffrey.frameir.FrameBuilder;
+import cafe.jeffrey.provider.profile.model.FlamegraphRecord;
+import cafe.jeffrey.provider.profile.query.DuckDBFlamegraphQueries;
+import cafe.jeffrey.provider.profile.query.FlamegraphRecordRowMapper;
+import cafe.jeffrey.shared.persistence.SimpleJdbcDataSource;
+
+import javax.sql.DataSource;
+import java.nio.file.Path;
+import java.util.List;
+
+public class ManualApplication {
+    static void main() {
+        IO.println("Manual tests");
+
+        Path databasePath = Path.of("manual-tests/database/profile-data.db");
+        DataSource datasource = new SimpleJdbcDataSource("jdbc:duckdb:" + databasePath.toAbsolutePath());
+
+        String flamegraphSql = DuckDBFlamegraphQueries.of().simple();
+
+        var client = new NamedParameterJdbcTemplate(datasource);
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("event_type", "jdk.ExecutionSample")
+                .addValue("from_time", null)
+                .addValue("to_time", null)
+                .addValue("stacktrace_types", null)
+                .addValue("included_tags", null)
+                .addValue("excluded_tags", null);
+
+        long start = System.nanoTime();
+        for (int i = 0; i < 10; i++) {
+            execute(client, flamegraphSql, params);
+        }
+        long end = System.nanoTime();
+
+        IO.println("Total took: " + ((end - start) / 1_000_000) + " ms");
+    }
+
+    private static void execute(NamedParameterJdbcTemplate client, String flamegraphSql, MapSqlParameterSource params) {
+        long start = System.nanoTime();
+        List<FlamegraphRecord> records = client.query(
+                flamegraphSql, params, new FlamegraphRecordRowMapper(Type.EXECUTION_SAMPLE));
+        long end = System.nanoTime();
+        IO.println("Query took: " + ((end - start) / 1_000_000) + " ms");
+        IO.println("Records: " + records.size());
+
+        long startBuilding = System.nanoTime();
+        FrameBuilder builder = new FrameBuilder(false, false, false, null);
+        for (FlamegraphRecord record : records) {
+            builder.onRecord(record);
+        }
+        Frame rootFrame = builder.build();
+        long endBuilding = System.nanoTime();
+        IO.println("Building took: " + ((endBuilding - startBuilding) / 1_000_000) + " ms");
+        IO.println("Root frame: " + rootFrame);
+
+        long startBuildingJson = System.nanoTime();
+        FlameGraphProtoBuilder jsonBuilder = new FlameGraphProtoBuilder(false, 0, false, weight -> weight + " millis");
+        FlamegraphData data = jsonBuilder.build(rootFrame);
+        System.out.println(data.getDepth());
+        long endBuildingJson = System.nanoTime();
+        IO.println("JSON Building took: " + ((endBuildingJson - startBuildingJson) / 1_000_000) + " ms");
+    }
+}

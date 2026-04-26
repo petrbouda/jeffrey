@@ -1,0 +1,52 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2026 Petr Bouda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+package cafe.jeffrey.shared.common.model.workspace;
+
+import java.time.Instant;
+
+public record WorkspaceInfo(
+        String id,
+        String originId,
+        String repositoryId,
+        String name,
+        String description,
+        WorkspaceLocation location,
+        WorkspaceLocation baseLocation,
+        Instant createdAt,
+        WorkspaceStatus status,
+        int projectCount) {
+
+    public WorkspaceInfo withId(String newId) {
+        return new WorkspaceInfo(
+                newId, originId, repositoryId, name, description,
+                location, baseLocation, createdAt, status, projectCount);
+    }
+
+    public WorkspaceInfo withLocation(WorkspaceLocation newLocation) {
+        return new WorkspaceInfo(
+                id, originId, repositoryId, name, description,
+                newLocation, baseLocation, createdAt, status, projectCount);
+    }
+
+    public WorkspaceInfo withStatus(WorkspaceStatus newStatus) {
+        return new WorkspaceInfo(
+                id, originId, repositoryId, name, description,
+                location, baseLocation, createdAt, newStatus, projectCount);
+    }
+}

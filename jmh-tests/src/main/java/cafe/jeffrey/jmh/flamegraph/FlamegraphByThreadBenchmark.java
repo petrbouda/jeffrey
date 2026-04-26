@@ -1,0 +1,139 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2025 Petr Bouda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+package cafe.jeffrey.jmh.flamegraph;
+
+import org.openjdk.jmh.annotations.*;
+import org.openjdk.jmh.runner.Runner;
+import org.openjdk.jmh.runner.RunnerException;
+import org.openjdk.jmh.runner.options.Options;
+import org.openjdk.jmh.runner.options.OptionsBuilder;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import cafe.jeffrey.frameir.Frame;
+import cafe.jeffrey.frameir.FrameBuilder;
+import cafe.jeffrey.jmh.flamegraph.mapper.FlamegraphRecordByThreadRowMapper;
+import cafe.jeffrey.jmh.flamegraph.verification.BenchmarkVerification;
+import cafe.jeffrey.provider.profile.model.FlamegraphRecord;
+import cafe.jeffrey.provider.profile.query.CachingFlamegraphRecordWithThreadsRowMapper;
+import cafe.jeffrey.provider.profile.query.DuckDBFlamegraphQueries;
+import cafe.jeffrey.provider.profile.query.FramesCache;
+import cafe.jeffrey.shared.common.model.Type;
+import cafe.jeffrey.shared.persistence.GroupLabel;
+import cafe.jeffrey.shared.persistence.SimpleJdbcDataSource;
+import cafe.jeffrey.shared.persistence.client.DatabaseClient;
+
+import javax.sql.DataSource;
+import java.nio.file.Path;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
+
+@BenchmarkMode(Mode.AverageTime)
+@OutputTimeUnit(TimeUnit.MILLISECONDS)
+@State(Scope.Benchmark)
+@Warmup(iterations = 2)
+@Measurement(iterations = 4)
+@Fork(value = 1, jvmArgs = {"-Xms2g", "-Xmx2g"})
+public class FlamegraphByThreadBenchmark {
+
+    private static final Path DATABASE_PATH = Path.of("jmh-tests/data/profile-data.db");
+    private static final String EVENT_TYPE = "jdk.ExecutionSample";
+    private static final String JDBC_URL = "jdbc:duckdb:" + DATABASE_PATH.toAbsolutePath();
+
+    private static final MapSqlParameterSource QUERY_PARAMS = new MapSqlParameterSource()
+            .addValue("event_type", EVENT_TYPE)
+            .addValue("from_time", null)
+            .addValue("to_time", null)
+            .addValue("java_thread_id", null)
+            .addValue("os_thread_id", null)
+            .addValue("stacktrace_types", null)
+            .addValue("included_tags", null)
+            .addValue("excluded_tags", null);
+
+    // Baseline supplier (SQL-side frame resolution)
+    private static final Supplier<List<FlamegraphRecord>> DATABASE_FRAME_INVOCATION = () -> {
+        DataSource ds = new SimpleJdbcDataSource(JDBC_URL);
+        NamedParameterJdbcTemplate jdbcTemplate = new NamedParameterJdbcTemplate(ds);
+        String sql = DuckDBFlamegraphQueries.of().byThread();
+        // byThread query doesn't include weight_entity
+        FlamegraphRecordByThreadRowMapper rowMapper = new FlamegraphRecordByThreadRowMapper(Type.EXECUTION_SAMPLE);
+        return jdbcTemplate.query(sql, QUERY_PARAMS, rowMapper);
+    };
+
+    // Optimized supplier that uses cached frames
+    private static final Supplier<List<FlamegraphRecord>> CACHE_FRAME_INVOCATION = () -> {
+        SimpleJdbcDataSource ds = new SimpleJdbcDataSource(JDBC_URL);
+        DatabaseClient databaseClient = new DatabaseClient(ds, GroupLabel.PROFILE_EVENTS);
+        NamedParameterJdbcTemplate jdbcTemplate = new NamedParameterJdbcTemplate(ds);
+        String sql = DuckDBFlamegraphQueries.of().byThreadOptimized();
+        CachingFlamegraphRecordWithThreadsRowMapper rowMapper = new CachingFlamegraphRecordWithThreadsRowMapper(
+                Type.EXECUTION_SAMPLE, FramesCache.load(databaseClient), false);
+        return jdbcTemplate.query(sql, QUERY_PARAMS, rowMapper);
+    };
+
+    private final BenchmarkVerification verification = new BenchmarkVerification("ByThreadFlamegraphBenchmark");
+    private Frame lastBuiltFrame;
+
+    @TearDown(Level.Invocation)
+    public void verifyInvocation() {
+        verification.verify(lastBuiltFrame);
+        lastBuiltFrame = null;
+    }
+
+    /**
+     * Baseline: SQL-side frame resolution with thread grouping.
+     */
+    @Benchmark
+    public Frame databaseFrameResolution() {
+        List<FlamegraphRecord> records = DATABASE_FRAME_INVOCATION.get();
+        lastBuiltFrame = buildFrameTree(records);
+        return lastBuiltFrame;
+    }
+
+    /**
+     * Optimized: Java-side frame resolution with cached frames and thread grouping.
+     */
+    @Benchmark
+    public Frame cacheFrameResolution() {
+        List<FlamegraphRecord> records = CACHE_FRAME_INVOCATION.get();
+        lastBuiltFrame = buildFrameTree(records);
+        return lastBuiltFrame;
+    }
+
+    private static Frame buildFrameTree(List<FlamegraphRecord> records) {
+        FrameBuilder builder = new FrameBuilder(false, false, false, null);
+        for (FlamegraphRecord record : records) {
+            builder.onRecord(record);
+        }
+        return builder.build();
+    }
+
+    /**
+     * Run from jmh-tests directory:
+     * <pre>
+     * java -cp target/benchmarks.jar cafe.jeffrey.jmh.flamegraph.ByThreadFlamegraphBenchmark
+     * </pre>
+     */
+    static void main() throws RunnerException {
+        Options options = new OptionsBuilder()
+                .include(FlamegraphByThreadBenchmark.class.getSimpleName())
+                .build();
+        new Runner(options).run();
+    }
+}

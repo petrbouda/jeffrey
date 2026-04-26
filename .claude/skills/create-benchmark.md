@@ -59,7 +59,7 @@ public class YourBenchmark {
 
     /**
      * Run from jmh-tests directory:
-     * java -cp target/benchmarks.jar pbouda.jeffrey.jmh.YourBenchmark
+     * java -cp target/benchmarks.jar cafe.jeffrey.jmh.YourBenchmark
      */
     static void main() throws RunnerException {
         Options options = new OptionsBuilder()
@@ -173,7 +173,7 @@ public class YourBenchmarkBaselineGenerator {
 
 Run the generator from jmh-tests directory:
 ```bash
-java -cp target/benchmarks.jar pbouda.jeffrey.jmh.YourBenchmarkBaselineGenerator
+java -cp target/benchmarks.jar cafe.jeffrey.jmh.YourBenchmarkBaselineGenerator
 git add data/baseline/YourBenchmark/
 ```
 
@@ -204,7 +204,7 @@ java -jar target/benchmarks.jar YourBenchmark
 
 Or run via main method:
 ```bash
-java -cp target/benchmarks.jar pbouda.jeffrey.jmh.YourBenchmark
+java -cp target/benchmarks.jar cafe.jeffrey.jmh.YourBenchmark
 ```
 
 ---

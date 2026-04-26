@@ -1,0 +1,85 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2025 Petr Bouda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+package cafe.jeffrey.server.core.workspace.consumer;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import cafe.jeffrey.shared.common.Json;
+import cafe.jeffrey.shared.common.model.RepositoryInfo;
+import cafe.jeffrey.shared.common.model.workspace.WorkspaceEvent;
+import cafe.jeffrey.shared.common.model.workspace.WorkspaceEventType;
+import cafe.jeffrey.shared.common.model.CreateProject;
+import cafe.jeffrey.server.core.jfr.JfrMessageEmitter;
+import cafe.jeffrey.server.core.manager.project.ProjectManager;
+import cafe.jeffrey.server.core.manager.project.ProjectsManager;
+import cafe.jeffrey.server.core.scheduler.job.descriptor.ProjectsSynchronizerJobDescriptor;
+import cafe.jeffrey.shared.common.model.workspace.event.ProjectCreatedEventContent;
+
+import java.util.Optional;
+
+public class CreateProjectWorkspaceEventConsumer implements WorkspaceEventConsumer {
+
+    private static final Logger LOG = LoggerFactory.getLogger(CreateProjectWorkspaceEventConsumer.class);
+
+    @Override
+    public void on(WorkspaceEvent event, ProjectsSynchronizerJobDescriptor jobDescriptor, ProjectsManager projectsManager) {
+        ProjectCreatedEventContent eventContent = Json.read(event.content(), ProjectCreatedEventContent.class);
+
+        Optional<ProjectManager> existingProject = projectsManager.findByOriginProjectId(event.projectId());
+
+        ProjectManager projectManager;
+        if (existingProject.isPresent()) {
+            projectManager = existingProject.get();
+            LOG.info("Project already exists, skipping creation: project_id={} origin_project_id={}",
+                    projectManager.info().id(), event.projectId());
+        } else {
+            CreateProject createProject = new CreateProject(
+                    event.projectId(),
+                    eventContent.projectName(),
+                    eventContent.projectLabel(),
+                    null, // namespace - not available from workspace events
+                    jobDescriptor.templateId(),
+                    // When the project/event was created in the workspace (not replicated to the Jeffrey)
+                    event.originCreatedAt(),
+                    eventContent.attributes());
+
+            projectManager = projectsManager.create(createProject);
+            LOG.info("Project created from workspace event: project_id={} event={}",
+                    projectManager.info().id(), event);
+            JfrMessageEmitter.projectCreated(eventContent.projectName(), projectManager.info().id());
+        }
+
+        if (projectManager.repositoryManager().info().isEmpty()) {
+            RepositoryInfo projectRepository = new RepositoryInfo(
+                    null,
+                    eventContent.repositoryType(),
+                    eventContent.workspacesPath(),
+                    eventContent.relativeWorkspacePath(),
+                    eventContent.relativeProjectPath());
+
+            projectManager.repositoryManager().create(projectRepository);
+            LOG.info("Repository created for project: project_id={}", projectManager.info().id());
+        }
+    }
+
+    @Override
+    public boolean isApplicable(WorkspaceEvent event) {
+        return event.eventType() == WorkspaceEventType.PROJECT_CREATED;
+    }
+}

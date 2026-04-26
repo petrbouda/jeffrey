@@ -15,7 +15,7 @@ Before running benchmarks, you need to initialize the DuckDB database from the J
 
 ```bash
 # From project root directory
-mvn -pl jmh-tests compile exec:java -Dexec.mainClass="pbouda.jeffrey.jmh.JmhDatabaseInitializer"
+mvn -pl jmh-tests compile exec:java -Dexec.mainClass="cafe.jeffrey.jmh.JmhDatabaseInitializer"
 ```
 
 Or run `JmhDatabaseInitializer.main()` directly from your IDE.
@@ -28,7 +28,7 @@ After initializing the database, generate baseline files for benchmark verificat
 
 ```bash
 # From project root directory
-mvn -pl jmh-tests exec:java -Dexec.mainClass="pbouda.jeffrey.jmh.JmhBaselineGenerator"
+mvn -pl jmh-tests exec:java -Dexec.mainClass="cafe.jeffrey.jmh.JmhBaselineGenerator"
 ```
 
 Or run `JmhBaselineGenerator.main()` directly from your IDE.
@@ -59,8 +59,8 @@ To initialize everything from scratch:
 
 ```bash
 # From project root directory
-mvn -pl jmh-tests compile exec:java -Dexec.mainClass="pbouda.jeffrey.jmh.JmhDatabaseInitializer" && \
-mvn -pl jmh-tests exec:java -Dexec.mainClass="pbouda.jeffrey.jmh.JmhBaselineGenerator"
+mvn -pl jmh-tests compile exec:java -Dexec.mainClass="cafe.jeffrey.jmh.JmhDatabaseInitializer" && \
+mvn -pl jmh-tests exec:java -Dexec.mainClass="cafe.jeffrey.jmh.JmhBaselineGenerator"
 ```
 
 ## Directory Structure
@@ -77,7 +77,7 @@ jmh-tests/
 │       ├── ByThreadFlamegraphBenchmark/
 │       └── ByThreadAndWeightFlamegraphBenchmark/
 ├── src/main/java/
-│   └── pbouda/jeffrey/jmh/
+│   └── cafe/jeffrey/jmh/
 │       ├── JmhDatabaseInitializer.java   # Database initialization utility
 │       ├── JmhBaselineGenerator.java     # Baseline generation utility
 │       └── flamegraph/                   # Flamegraph benchmarks
