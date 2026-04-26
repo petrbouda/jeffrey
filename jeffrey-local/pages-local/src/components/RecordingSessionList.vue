@@ -357,7 +357,7 @@ const downloadSession = async (sessionId: string) => {
         }
       );
     } else {
-      await repositoryService.value.copyRecordingSession(session, true);
+      await repositoryService.value.copyRecordingSession(session);
       toast.success('Download', `Successfully downloaded session ${session.id}`);
       emit('refresh');
     }
@@ -400,7 +400,7 @@ const downloadSelectedSources = async (sessionId: string) => {
         }
       );
     } else {
-      await repositoryService.value.copySelectedRepositoryFile(session.id, selectedSources, true);
+      await repositoryService.value.copySelectedRepositoryFile(session.id, selectedSources);
       toast.success('Download', `Successfully downloaded ${selectedSources.length} recording(s)`);
       emit('refresh');
       toggleSelectAllSources(sessionId, false);

@@ -28,11 +28,7 @@ import pbouda.jeffrey.local.core.web.ProfileManagerResolver;
 import pbouda.jeffrey.profile.manager.FlagsData;
 
 @RestController
-@RequestMapping({
-        "/api/internal/profiles/{profileId}/flags",
-        "/api/internal/quick-analysis/profiles/{profileId}/flags",
-        "/api/internal/workspaces/{workspaceId}/projects/{projectId}/profiles/{profileId}/flags"
-})
+@RequestMapping("/api/internal/profiles/{profileId}/flags")
 public class FlagsController {
 
     private static final Logger LOG = LoggerFactory.getLogger(FlagsController.class);

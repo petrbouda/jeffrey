@@ -32,11 +32,7 @@ import pbouda.jeffrey.profile.manager.model.heap.HeapMemoryTimeseriesType;
 import pbouda.jeffrey.timeseries.SingleSerie;
 
 @RestController
-@RequestMapping({
-        "/api/internal/profiles/{profileId}/heap-memory",
-        "/api/internal/quick-analysis/profiles/{profileId}/heap-memory",
-        "/api/internal/workspaces/{workspaceId}/projects/{projectId}/profiles/{profileId}/heap-memory"
-})
+@RequestMapping("/api/internal/profiles/{profileId}/heap-memory")
 public class HeapMemoryController {
 
     private static final Logger LOG = LoggerFactory.getLogger(HeapMemoryController.class);

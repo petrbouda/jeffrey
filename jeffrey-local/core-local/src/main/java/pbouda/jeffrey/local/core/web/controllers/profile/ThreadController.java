@@ -37,11 +37,7 @@ import pbouda.jeffrey.timeseries.SingleSerie;
 import java.util.List;
 
 @RestController
-@RequestMapping({
-        "/api/internal/profiles/{profileId}/thread",
-        "/api/internal/quick-analysis/profiles/{profileId}/thread",
-        "/api/internal/workspaces/{workspaceId}/projects/{projectId}/profiles/{profileId}/thread"
-})
+@RequestMapping("/api/internal/profiles/{profileId}/thread")
 public class ThreadController {
 
     private static final Logger LOG = LoggerFactory.getLogger(ThreadController.class);

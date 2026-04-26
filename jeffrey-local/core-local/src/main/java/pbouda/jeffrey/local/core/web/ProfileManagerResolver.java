@@ -20,7 +20,6 @@ package pbouda.jeffrey.local.core.web;
 
 import jakarta.annotation.Nullable;
 import pbouda.jeffrey.local.core.manager.qanalysis.QuickAnalysisManager;
-import pbouda.jeffrey.local.core.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.local.core.manager.workspace.WorkspacesManager;
 import pbouda.jeffrey.local.persistence.repository.LocalCoreRepositories;
 import pbouda.jeffrey.profile.manager.ProfileManager;
@@ -30,12 +29,11 @@ import pbouda.jeffrey.shared.common.model.ProfileInfo;
 import java.util.Optional;
 
 /**
- * Resolves a {@code profileId} to the underlying {@link ProfileManager} no
- * matter which URL root the request came in on (workspace/project chain,
- * top-level {@code /profiles/{profileId}}, or {@code /quick-analysis}).
- *
- * <p>Direct DB lookup avoids iterating all workspaces/projects, which would
- * trigger HTTP calls for remote workspaces.
+ * Resolves a {@code profileId} to the underlying {@link ProfileManager}.
+ * Checks the quick-analysis store first, then falls back to a direct DB
+ * lookup against the local-core profile repository — avoiding iteration
+ * across all workspaces/projects (which would trigger HTTP calls for
+ * remote workspaces).
  */
 public class ProfileManagerResolver {
 
@@ -74,22 +72,5 @@ public class ProfileManagerResolver {
         return workspacesManager.findById(profileInfo.workspaceId())
                 .flatMap(ws -> ws.projectsManager().project(profileInfo.projectId()))
                 .flatMap(pm -> pm.profilesManager().profile(profileId));
-    }
-
-    public ProfileManager resolveForWorkspaceProject(String workspaceId, String projectId, String profileId) {
-        WorkspaceManager workspace = workspacesManager.findById(workspaceId)
-                .orElseThrow(() -> Exceptions.workspaceNotFound(workspaceId));
-        return workspace.projectsManager().project(projectId)
-                .orElseThrow(() -> Exceptions.projectNotFound(projectId))
-                .profilesManager().profile(profileId)
-                .orElseThrow(() -> Exceptions.profileNotFound(profileId));
-    }
-
-    public ProfileManager resolveForQuickAnalysis(String profileId) {
-        if (quickAnalysisManager == null) {
-            throw Exceptions.profileNotFound(profileId);
-        }
-        return quickAnalysisManager.profile(profileId)
-                .orElseThrow(() -> Exceptions.profileNotFound(profileId));
     }
 }

@@ -28,11 +28,7 @@ import pbouda.jeffrey.local.core.web.ProfileManagerResolver;
 import tools.jackson.databind.JsonNode;
 
 @RestController
-@RequestMapping({
-        "/api/internal/profiles/{profileId}/information",
-        "/api/internal/quick-analysis/profiles/{profileId}/information",
-        "/api/internal/workspaces/{workspaceId}/projects/{projectId}/profiles/{profileId}/information"
-})
+@RequestMapping("/api/internal/profiles/{profileId}/information")
 public class ConfigurationController {
 
     private static final Logger LOG = LoggerFactory.getLogger(ConfigurationController.class);

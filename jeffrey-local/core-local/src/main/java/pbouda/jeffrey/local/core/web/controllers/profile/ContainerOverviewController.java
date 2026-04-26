@@ -28,11 +28,7 @@ import pbouda.jeffrey.local.core.web.ProfileManagerResolver;
 import pbouda.jeffrey.profile.manager.model.container.ContainerConfigurationData;
 
 @RestController
-@RequestMapping({
-        "/api/internal/profiles/{profileId}/container",
-        "/api/internal/quick-analysis/profiles/{profileId}/container",
-        "/api/internal/workspaces/{workspaceId}/projects/{projectId}/profiles/{profileId}/container"
-})
+@RequestMapping("/api/internal/profiles/{profileId}/container")
 public class ContainerOverviewController {
 
     private static final Logger LOG = LoggerFactory.getLogger(ContainerOverviewController.class);

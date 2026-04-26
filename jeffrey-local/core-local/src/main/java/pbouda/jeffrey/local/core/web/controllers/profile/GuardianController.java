@@ -36,11 +36,7 @@ import java.util.Map;
 import java.util.TreeMap;
 
 @RestController
-@RequestMapping({
-        "/api/internal/profiles/{profileId}/guardian",
-        "/api/internal/quick-analysis/profiles/{profileId}/guardian",
-        "/api/internal/workspaces/{workspaceId}/projects/{projectId}/profiles/{profileId}/guardian"
-})
+@RequestMapping("/api/internal/profiles/{profileId}/guardian")
 public class GuardianController {
 
     public record GuardListResponse(String category, List<GuardAnalysisResult> results) {

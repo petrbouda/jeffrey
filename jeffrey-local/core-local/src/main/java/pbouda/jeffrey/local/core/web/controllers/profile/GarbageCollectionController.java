@@ -33,11 +33,7 @@ import pbouda.jeffrey.profile.manager.model.gc.configuration.GCConfigurationData
 import pbouda.jeffrey.timeseries.TimeseriesData;
 
 @RestController
-@RequestMapping({
-        "/api/internal/profiles/{profileId}/gc",
-        "/api/internal/quick-analysis/profiles/{profileId}/gc",
-        "/api/internal/workspaces/{workspaceId}/projects/{projectId}/profiles/{profileId}/gc"
-})
+@RequestMapping("/api/internal/profiles/{profileId}/gc")
 public class GarbageCollectionController {
 
     private static final Logger LOG = LoggerFactory.getLogger(GarbageCollectionController.class);

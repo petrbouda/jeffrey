@@ -20,5 +20,5 @@ package pbouda.jeffrey.local.core.resources.request;
 
 import java.util.List;
 
-public record SelectedRecordingsRequest(String sessionId, List<String> recordingIds, boolean merge) {
+public record SelectedRecordingsRequest(String sessionId, List<String> recordingIds) {
 }

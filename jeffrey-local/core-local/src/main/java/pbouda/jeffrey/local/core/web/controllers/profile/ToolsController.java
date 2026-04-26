@@ -35,11 +35,7 @@ import pbouda.jeffrey.profile.tools.collapse.CollapseFramesManager.CollapsePrevi
 import pbouda.jeffrey.profile.tools.collapse.CollapseFramesManager.CollapseRequest;
 
 @RestController
-@RequestMapping({
-        "/api/internal/profiles/{profileId}/tools",
-        "/api/internal/quick-analysis/profiles/{profileId}/tools",
-        "/api/internal/workspaces/{workspaceId}/projects/{projectId}/profiles/{profileId}/tools"
-})
+@RequestMapping("/api/internal/profiles/{profileId}/tools")
 public class ToolsController {
 
     private static final Logger LOG = LoggerFactory.getLogger(ToolsController.class);

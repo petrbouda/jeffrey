@@ -32,11 +32,7 @@ import pbouda.jeffrey.profile.resources.request.GenerateTimeseriesRequest;
 import pbouda.jeffrey.timeseries.TimeseriesData;
 
 @RestController
-@RequestMapping({
-        "/api/internal/profiles/{profileId}/timeseries",
-        "/api/internal/quick-analysis/profiles/{profileId}/timeseries",
-        "/api/internal/workspaces/{workspaceId}/projects/{projectId}/profiles/{profileId}/timeseries"
-})
+@RequestMapping("/api/internal/profiles/{profileId}/timeseries")
 public class TimeseriesController {
 
     private static final Logger LOG = LoggerFactory.getLogger(TimeseriesController.class);

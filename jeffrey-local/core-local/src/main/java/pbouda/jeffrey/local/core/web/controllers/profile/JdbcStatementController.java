@@ -37,11 +37,7 @@ import java.util.List;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 @RestController
-@RequestMapping({
-        "/api/internal/profiles/{profileId}/jdbc/statement/overview",
-        "/api/internal/quick-analysis/profiles/{profileId}/jdbc/statement/overview",
-        "/api/internal/workspaces/{workspaceId}/projects/{projectId}/profiles/{profileId}/jdbc/statement/overview"
-})
+@RequestMapping("/api/internal/profiles/{profileId}/jdbc/statement/overview")
 public class JdbcStatementController {
 
     private static final Logger LOG = LoggerFactory.getLogger(JdbcStatementController.class);

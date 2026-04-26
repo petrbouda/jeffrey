@@ -34,11 +34,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @RestController
-@RequestMapping({
-        "/api/internal/profiles/{profileId}/features",
-        "/api/internal/quick-analysis/profiles/{profileId}/features",
-        "/api/internal/workspaces/{workspaceId}/projects/{projectId}/profiles/{profileId}/features"
-})
+@RequestMapping("/api/internal/profiles/{profileId}/features")
 public class ProfileFeaturesController {
 
     private static final Logger LOG = LoggerFactory.getLogger(ProfileFeaturesController.class);

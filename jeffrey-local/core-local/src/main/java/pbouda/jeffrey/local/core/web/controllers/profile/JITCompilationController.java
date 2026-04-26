@@ -33,11 +33,7 @@ import pbouda.jeffrey.timeseries.SingleSerie;
 import java.util.List;
 
 @RestController
-@RequestMapping({
-        "/api/internal/profiles/{profileId}/compilation",
-        "/api/internal/quick-analysis/profiles/{profileId}/compilation",
-        "/api/internal/workspaces/{workspaceId}/projects/{projectId}/profiles/{profileId}/compilation"
-})
+@RequestMapping("/api/internal/profiles/{profileId}/compilation")
 public class JITCompilationController {
 
     private static final Logger LOG = LoggerFactory.getLogger(JITCompilationController.class);

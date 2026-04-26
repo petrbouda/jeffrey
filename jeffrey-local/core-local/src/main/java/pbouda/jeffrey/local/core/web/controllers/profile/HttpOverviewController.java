@@ -35,11 +35,7 @@ import java.net.URLDecoder;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 @RestController
-@RequestMapping({
-        "/api/internal/profiles/{profileId}/http/overview",
-        "/api/internal/quick-analysis/profiles/{profileId}/http/overview",
-        "/api/internal/workspaces/{workspaceId}/projects/{projectId}/profiles/{profileId}/http/overview"
-})
+@RequestMapping("/api/internal/profiles/{profileId}/http/overview")
 public class HttpOverviewController {
 
     private static final Logger LOG = LoggerFactory.getLogger(HttpOverviewController.class);

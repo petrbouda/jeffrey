@@ -42,11 +42,7 @@ import pbouda.jeffrey.shared.common.model.time.UndefinedTimeRange;
 import java.util.List;
 
 @RestController
-@RequestMapping({
-        "/api/internal/profiles/{profileId}/flamegraph",
-        "/api/internal/quick-analysis/profiles/{profileId}/flamegraph",
-        "/api/internal/workspaces/{workspaceId}/projects/{projectId}/profiles/{profileId}/flamegraph"
-})
+@RequestMapping("/api/internal/profiles/{profileId}/flamegraph")
 public class FlamegraphController {
 
     public static final String PROTOBUF_MEDIA_TYPE = "application/x-protobuf";

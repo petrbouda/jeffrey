@@ -33,11 +33,7 @@ import pbouda.jeffrey.profile.manager.custom.model.method.MethodTracingOverviewD
 import pbouda.jeffrey.profile.manager.custom.model.method.MethodTracingSlowestData;
 
 @RestController
-@RequestMapping({
-        "/api/internal/profiles/{profileId}/method-tracing",
-        "/api/internal/quick-analysis/profiles/{profileId}/method-tracing",
-        "/api/internal/workspaces/{workspaceId}/projects/{projectId}/profiles/{profileId}/method-tracing"
-})
+@RequestMapping("/api/internal/profiles/{profileId}/method-tracing")
 public class MethodTracingController {
 
     private static final Logger LOG = LoggerFactory.getLogger(MethodTracingController.class);

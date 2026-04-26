@@ -53,11 +53,7 @@ import pbouda.jeffrey.profile.manager.HeapDumpManager;
 import java.util.List;
 
 @RestController
-@RequestMapping({
-        "/api/internal/profiles/{profileId}/heap/ai-analysis",
-        "/api/internal/quick-analysis/profiles/{profileId}/heap/ai-analysis",
-        "/api/internal/workspaces/{workspaceId}/projects/{projectId}/profiles/{profileId}/heap/ai-analysis"
-})
+@RequestMapping("/api/internal/profiles/{profileId}/heap/ai-analysis")
 public class HeapDumpAiAnalysisController {
 
     private static final Logger LOG = LoggerFactory.getLogger(HeapDumpAiAnalysisController.class);

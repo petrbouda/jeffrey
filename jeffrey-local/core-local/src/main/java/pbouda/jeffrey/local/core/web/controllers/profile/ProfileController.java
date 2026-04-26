@@ -32,11 +32,7 @@ import pbouda.jeffrey.profile.manager.ProfileManager;
 import pbouda.jeffrey.shared.common.model.ProfileInfo;
 
 @RestController
-@RequestMapping({
-        "/api/internal/profiles/{profileId}",
-        "/api/internal/quick-analysis/profiles/{profileId}",
-        "/api/internal/workspaces/{workspaceId}/projects/{projectId}/profiles/{profileId}"
-})
+@RequestMapping("/api/internal/profiles/{profileId}")
 public class ProfileController {
 
     private static final Logger LOG = LoggerFactory.getLogger(ProfileController.class);

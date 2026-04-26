@@ -31,11 +31,7 @@ import pbouda.jeffrey.profile.manager.model.PerfCounter;
 import java.util.List;
 
 @RestController
-@RequestMapping({
-        "/api/internal/profiles/{profileId}/perfcounters",
-        "/api/internal/quick-analysis/profiles/{profileId}/perfcounters",
-        "/api/internal/workspaces/{workspaceId}/projects/{projectId}/profiles/{profileId}/perfcounters"
-})
+@RequestMapping("/api/internal/profiles/{profileId}/perfcounters")
 public class PerformanceCountersController {
 
     private static final Logger LOG = LoggerFactory.getLogger(PerformanceCountersController.class);

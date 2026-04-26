@@ -59,11 +59,7 @@ import java.io.IOException;
 import java.util.List;
 
 @RestController
-@RequestMapping({
-        "/api/internal/profiles/{profileId}/heap",
-        "/api/internal/quick-analysis/profiles/{profileId}/heap",
-        "/api/internal/workspaces/{workspaceId}/projects/{projectId}/profiles/{profileId}/heap"
-})
+@RequestMapping("/api/internal/profiles/{profileId}/heap")
 public class HeapDumpController {
 
     private static final Logger LOG = LoggerFactory.getLogger(HeapDumpController.class);

@@ -26,11 +26,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.web.filter.OncePerRequestFilter;
+import pbouda.jeffrey.shared.common.IDGenerator;
 import pbouda.jeffrey.shared.common.measure.Measuring;
 
 import java.io.IOException;
 import java.time.Duration;
-import java.util.UUID;
 
 /**
  * Adds a short request id to the SLF4J MDC and emits debug log lines for the
@@ -42,13 +42,8 @@ public class JeffreyRequestLoggingFilter extends OncePerRequestFilter {
     private static final String MDC_REQUEST_ID = "requestId";
 
     @Override
-    protected void doFilterInternal(
-            HttpServletRequest request,
-            HttpServletResponse response,
-            FilterChain filterChain) throws ServletException, IOException {
-
-        String requestId = UUID.randomUUID().toString().substring(0, 8);
-        MDC.put(MDC_REQUEST_ID, requestId);
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) {
+        MDC.put(MDC_REQUEST_ID, IDGenerator.generate());
 
         LOG.debug("HTTP_REQ: method={} path={}", request.getMethod(), request.getRequestURI());
         try {

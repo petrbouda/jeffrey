@@ -36,11 +36,7 @@ import java.net.URLDecoder;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 @RestController
-@RequestMapping({
-        "/api/internal/profiles/{profileId}/grpc/overview",
-        "/api/internal/quick-analysis/profiles/{profileId}/grpc/overview",
-        "/api/internal/workspaces/{workspaceId}/projects/{projectId}/profiles/{profileId}/grpc/overview"
-})
+@RequestMapping("/api/internal/profiles/{profileId}/grpc/overview")
 public class GrpcOverviewController {
 
     private static final Logger LOG = LoggerFactory.getLogger(GrpcOverviewController.class);

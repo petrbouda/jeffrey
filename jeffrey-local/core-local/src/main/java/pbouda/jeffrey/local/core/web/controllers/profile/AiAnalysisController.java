@@ -35,11 +35,7 @@ import pbouda.jeffrey.profile.ai.mcp.service.JfrAnalysisAssistantService;
 import java.util.List;
 
 @RestController
-@RequestMapping({
-        "/api/internal/profiles/{profileId}/ai-analysis",
-        "/api/internal/quick-analysis/profiles/{profileId}/ai-analysis",
-        "/api/internal/workspaces/{workspaceId}/projects/{projectId}/profiles/{profileId}/ai-analysis"
-})
+@RequestMapping("/api/internal/profiles/{profileId}/ai-analysis")
 public class AiAnalysisController {
 
     private static final Logger LOG = LoggerFactory.getLogger(AiAnalysisController.class);

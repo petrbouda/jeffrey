@@ -35,11 +35,7 @@ import pbouda.jeffrey.timeseries.SingleSerie;
 import java.util.List;
 
 @RestController
-@RequestMapping({
-        "/api/internal/profiles/{profileId}/jdbc/pool",
-        "/api/internal/quick-analysis/profiles/{profileId}/jdbc/pool",
-        "/api/internal/workspaces/{workspaceId}/projects/{projectId}/profiles/{profileId}/jdbc/pool"
-})
+@RequestMapping("/api/internal/profiles/{profileId}/jdbc/pool")
 public class JdbcPoolController {
 
     private static final Logger LOG = LoggerFactory.getLogger(JdbcPoolController.class);

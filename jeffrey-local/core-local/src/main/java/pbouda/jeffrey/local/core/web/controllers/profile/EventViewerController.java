@@ -34,11 +34,7 @@ import tools.jackson.databind.JsonNode;
 import java.util.List;
 
 @RestController
-@RequestMapping({
-        "/api/internal/profiles/{profileId}/viewer",
-        "/api/internal/quick-analysis/profiles/{profileId}/viewer",
-        "/api/internal/workspaces/{workspaceId}/projects/{projectId}/profiles/{profileId}/viewer"
-})
+@RequestMapping("/api/internal/profiles/{profileId}/viewer")
 public class EventViewerController {
 
     private static final Logger LOG = LoggerFactory.getLogger(EventViewerController.class);

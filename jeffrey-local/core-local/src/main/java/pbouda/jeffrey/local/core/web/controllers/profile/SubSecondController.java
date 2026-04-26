@@ -36,11 +36,7 @@ import tools.jackson.databind.JsonNode;
 import static pbouda.jeffrey.local.core.web.controllers.profile.FlamegraphController.toTimeRange;
 
 @RestController
-@RequestMapping({
-        "/api/internal/profiles/{profileId}/subsecond",
-        "/api/internal/quick-analysis/profiles/{profileId}/subsecond",
-        "/api/internal/workspaces/{workspaceId}/projects/{projectId}/profiles/{profileId}/subsecond"
-})
+@RequestMapping("/api/internal/profiles/{profileId}/subsecond")
 public class SubSecondController {
 
     private static final Logger LOG = LoggerFactory.getLogger(SubSecondController.class);

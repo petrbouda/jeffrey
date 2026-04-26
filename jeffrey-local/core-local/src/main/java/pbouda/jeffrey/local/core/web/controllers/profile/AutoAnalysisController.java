@@ -31,11 +31,7 @@ import pbouda.jeffrey.profile.common.analysis.AutoAnalysisResult;
 import java.util.List;
 
 @RestController
-@RequestMapping({
-        "/api/internal/profiles/{profileId}/analysis",
-        "/api/internal/quick-analysis/profiles/{profileId}/analysis",
-        "/api/internal/workspaces/{workspaceId}/projects/{projectId}/profiles/{profileId}/analysis"
-})
+@RequestMapping("/api/internal/profiles/{profileId}/analysis")
 public class AutoAnalysisController {
 
     private static final Logger LOG = LoggerFactory.getLogger(AutoAnalysisController.class);
