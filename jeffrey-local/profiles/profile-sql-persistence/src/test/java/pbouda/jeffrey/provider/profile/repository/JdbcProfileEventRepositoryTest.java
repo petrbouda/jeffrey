@@ -53,7 +53,7 @@ class JdbcProfileEventRepositoryTest {
             Optional<ObjectNode> result = repository.latestJsonFields(Type.fromCode("jdk.ExecutionSample"));
 
             assertTrue(result.isPresent());
-            assertEquals("RUNNABLE", result.get().get("state").asText());
+            assertEquals("RUNNABLE", result.get().get("state").asString());
         }
 
         @Test

@@ -18,13 +18,13 @@
 
 package pbouda.jeffrey.local.core.manager.workspace;
 
-import jakarta.ws.rs.NotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.local.core.client.RemoteClients;
 import pbouda.jeffrey.local.core.client.RemoteDiscoveryClient.WorkspaceResult;
 import pbouda.jeffrey.local.persistence.repository.WorkspacesRepository;
 import pbouda.jeffrey.local.persistence.model.RemoteWorkspaceInfo;
+import pbouda.jeffrey.shared.common.exception.Exceptions;
 
 import java.util.List;
 import java.util.Optional;
@@ -56,7 +56,7 @@ public final class RemoteWorkspacesManager implements WorkspacesManager {
         WorkspaceResult result = remoteClients.discovery().workspace(request.workspaceId());
         return switch (result.status()) {
             case AVAILABLE -> workspacesRepository.create(result.info());
-            case UNAVAILABLE -> throw new NotFoundException("Remote workspace not found");
+            case UNAVAILABLE -> throw Exceptions.workspaceNotFound(request.workspaceId());
             case OFFLINE -> throw new IllegalStateException("Remote workspace is unreachable");
             case UNKNOWN -> throw new IllegalStateException("Unknown remote workspace status");
         };

@@ -82,7 +82,7 @@ public class JdbcPooledEventBuilder implements RecordBuilder<GenericRecord, List
     @Override
     public void onRecord(GenericRecord record) {
         ObjectNode fields = record.jsonFields();
-        String poolName = fields.get("poolName").asText();
+        String poolName = fields.get("poolName").asString();
         Pool pool = poolMap.computeIfAbsent(poolName, Pool::new);
 
         long elapsed = parseElapsed(fields);
@@ -103,7 +103,7 @@ public class JdbcPooledEventBuilder implements RecordBuilder<GenericRecord, List
         if (elapsedJson == null || elapsedJson.isNull()) {
             return 0;
         }
-        return Long.parseLong(elapsedJson.asText());
+        return Long.parseLong(elapsedJson.asString());
     }
 
     @Override

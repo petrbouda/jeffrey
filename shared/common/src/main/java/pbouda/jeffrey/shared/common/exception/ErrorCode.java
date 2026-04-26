@@ -21,6 +21,7 @@ package pbouda.jeffrey.shared.common.exception;
 public enum ErrorCode {
     WORKSPACE_NOT_FOUND,
     PROJECT_NOT_FOUND,
+    PROFILE_NOT_FOUND,
     RECORDING_SESSION_NOT_FOUND,
     RECORDING_FILE_NOT_FOUND,
     REPOSITORY_NOT_FOUND,
@@ -51,6 +52,7 @@ public enum ErrorCode {
     public boolean isNotFound() {
         return this == WORKSPACE_NOT_FOUND
                || this == PROJECT_NOT_FOUND
+               || this == PROFILE_NOT_FOUND
                || this == RECORDING_SESSION_NOT_FOUND
                || this == RECORDING_FILE_NOT_FOUND
                || this == REPOSITORY_NOT_FOUND

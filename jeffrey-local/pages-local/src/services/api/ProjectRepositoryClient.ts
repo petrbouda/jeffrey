@@ -35,10 +35,9 @@ export default class ProjectRepositoryClient extends BasePlatformClient {
     return super.get<RepositoryStatistics>('/statistics');
   }
 
-  copyRecordingSession(recordingSession: RecordingSession, merge: boolean): Promise<void> {
+  copyRecordingSession(recordingSession: RecordingSession): Promise<void> {
     const content = {
-      sessionId: recordingSession.id,
-      merge: merge
+      sessionId: recordingSession.id
     };
 
     return super.post<void>('/sessions/download', content);
@@ -48,16 +47,11 @@ export default class ProjectRepositoryClient extends BasePlatformClient {
     return super.del<void>('/sessions/' + recordingSession.id);
   }
 
-  copySelectedRepositoryFile(
-    sessionId: string,
-    files: RepositoryFile[],
-    merge: boolean
-  ): Promise<void> {
+  copySelectedRepositoryFile(sessionId: string, files: RepositoryFile[]): Promise<void> {
     const ids: string[] = files.map(it => it.id);
     const content = {
       sessionId: sessionId,
-      recordingIds: ids,
-      merge: merge
+      recordingIds: ids
     };
 
     return super.post<void>('/recordings/download', content);

@@ -151,7 +151,7 @@ public class Guardian {
         if (gcConfigurationFields.size() > 1) {
             JsonNode gcConfiguration = gcConfigurationFields.getFirst();
 
-            String oldCollector = gcConfiguration.get("oldCollector").asText();
+            String oldCollector = gcConfiguration.get("oldCollector").asString();
             GarbageCollectorType oldGC = GarbageCollectorType.fromOldGenCollector(oldCollector);
             if (oldGC == null) {
                 LOG.warn("Unknown Old Generation Garbage Collector: {}", oldCollector);

@@ -69,16 +69,16 @@ public class JdbcPoolStatisticsBuilder implements
     @Override
     public void onRecord(GenericRecord record) {
         ObjectNode fields = record.jsonFields();
-        String poolName = fields.get("poolName").asText();
+        String poolName = fields.get("poolName").asString();
 
-        int active = Integer.parseInt(fields.get("active").asText());
-        int idle = Integer.parseInt(fields.get("idle").asText());
-        int pendingThreads = Integer.parseInt(fields.get("pendingThreads").asText());
+        int active = Integer.parseInt(fields.get("active").asString());
+        int idle = Integer.parseInt(fields.get("idle").asString());
+        int pendingThreads = Integer.parseInt(fields.get("pendingThreads").asString());
 
         PoolStats pool = poolMap.get(poolName);
         if (pool == null) {
-            int maxConfigConnections = Integer.parseInt(fields.get("max").asText());
-            int minConfigConnections = Integer.parseInt(fields.get("min").asText());
+            int maxConfigConnections = Integer.parseInt(fields.get("max").asString());
+            int minConfigConnections = Integer.parseInt(fields.get("min").asString());
 
             PoolStats poolStats = PoolStats.create(
                     poolName,

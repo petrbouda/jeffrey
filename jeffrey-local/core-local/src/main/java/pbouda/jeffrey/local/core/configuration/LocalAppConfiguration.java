@@ -23,21 +23,21 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 import pbouda.jeffrey.local.core.initializer.RecordingSeedInitializer;
 import pbouda.jeffrey.local.core.manager.qanalysis.QuickAnalysisManager;
 import pbouda.jeffrey.local.core.manager.qanalysis.QuickAnalysisManagerImpl;
+import pbouda.jeffrey.local.core.manager.workspace.WorkspacesManager;
+import pbouda.jeffrey.local.core.web.ProfileManagerResolver;
+import pbouda.jeffrey.local.core.web.ProjectManagerResolver;
+import pbouda.jeffrey.local.core.web.WebInfrastructureConfig;
 import pbouda.jeffrey.profile.ProfileInitializer;
 import pbouda.jeffrey.profile.ProfileInitializerImpl;
-import pbouda.jeffrey.profile.ai.heapmcp.service.HeapDumpAnalysisAssistantService;
-import pbouda.jeffrey.profile.ai.mcp.service.JfrAnalysisAssistantService;
-import pbouda.jeffrey.profile.ai.service.HeapDumpContextExtractor;
-import pbouda.jeffrey.profile.ai.service.OqlAssistantService;
 import pbouda.jeffrey.profile.configuration.ProfileFactoriesConfiguration;
 import pbouda.jeffrey.profile.manager.ProfileManager;
 import pbouda.jeffrey.profile.manager.action.ProfileDataInitializer;
 import pbouda.jeffrey.profile.parser.JfrRecordingEventParser;
 import pbouda.jeffrey.profile.parser.JfrRecordingInformationParser;
-import pbouda.jeffrey.profile.resources.ProfileResourceFactory;
 import pbouda.jeffrey.local.persistence.LocalCorePersistenceProvider;
 import pbouda.jeffrey.provider.profile.DuckDBProfilePersistenceProvider;
 import pbouda.jeffrey.provider.profile.ProfilePersistenceProvider;
@@ -45,28 +45,17 @@ import pbouda.jeffrey.shared.common.FrameResolutionMode;
 import pbouda.jeffrey.shared.common.compression.Lz4Compressor;
 import pbouda.jeffrey.local.core.LocalJeffreyDirs;
 
+import java.util.Optional;
+
 import java.nio.file.Path;
 import java.time.Clock;
 
 /**
- * Configuration beans specific to LOCAL mode: QuickAnalysis, profile resource factory.
+ * Configuration beans specific to LOCAL mode: QuickAnalysis, web controllers, resolvers.
  */
 @Configuration
+@Import(WebInfrastructureConfig.class)
 public class LocalAppConfiguration {
-
-    @Bean
-    public ProfileResourceFactory profileResourceFactory(
-            OqlAssistantService oqlAssistantService,
-            JfrAnalysisAssistantService jfrAnalysisAssistantService,
-            HeapDumpContextExtractor heapDumpContextExtractor,
-            HeapDumpAnalysisAssistantService heapDumpAnalysisAssistantService) {
-
-        return new ProfileResourceFactory(
-                oqlAssistantService,
-                jfrAnalysisAssistantService,
-                heapDumpContextExtractor,
-                heapDumpAnalysisAssistantService);
-    }
 
     @Bean
     public QuickAnalysisManager quickAnalysisManager(
@@ -108,4 +97,23 @@ public class LocalAppConfiguration {
 
         return new RecordingSeedInitializer(quickAnalysisManager, Path.of(seedDir));
     }
+
+    // --- Resolvers (centralise profileId / projectId lookups for controllers) ---
+
+    @Bean
+    public ProjectManagerResolver projectManagerResolver(WorkspacesManager workspacesManager) {
+        return new ProjectManagerResolver(workspacesManager);
+    }
+
+    @Bean
+    public ProfileManagerResolver profileManagerResolver(
+            WorkspacesManager workspacesManager,
+            Optional<QuickAnalysisManager> quickAnalysisManager,
+            LocalCorePersistenceProvider localCorePersistenceProvider) {
+        return new ProfileManagerResolver(
+                workspacesManager,
+                quickAnalysisManager.orElse(null),
+                localCorePersistenceProvider.localCoreRepositories());
+    }
+
 }

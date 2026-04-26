@@ -121,16 +121,16 @@ public class JdbcOverviewEventBuilder implements RecordBuilder<GenericRecord, Jd
             return;
         }
 
-        String group = jsonFields.path("group").asText(UNKNOWN);
-        String name = jsonFields.path("name").asText(UNKNOWN);
+        String group = jsonFields.path("group").asString(UNKNOWN);
+        String name = jsonFields.path("name").asString(UNKNOWN);
         if (group.isEmpty() || (statementFilter != null && !statementFilter.test(group, name))) {
             // Skip records without URI or not matching the filter
             return;
         }
 
         long startTime = record.startTimestamp().toEpochMilli();
-        String sql = jsonFields.path("sql").asText(null);
-        String params = jsonFields.path("params").asText(null);
+        String sql = jsonFields.path("sql").asString(null);
+        String params = jsonFields.path("params").asString(null);
         long executionTime = record.duration().toNanos();
         long processedRows = jsonFields.path("rows").asLong(0);
         boolean isSuccess = jsonFields.path("isSuccess").asBoolean(false);

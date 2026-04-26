@@ -101,8 +101,8 @@ public class GitHubReleaseChecker {
         }
 
         JsonNode root = objectMapper.readTree(response.body());
-        String tagName = root.path("tag_name").asText("");
-        String htmlUrl = root.path("html_url").asText("");
+        String tagName = root.path("tag_name").asString("");
+        String htmlUrl = root.path("html_url").asString("");
         String downloadUrl = findJarDownloadUrl(root);
 
         Optional<SemanticVersion> currentParsed = SemanticVersion.parse(currentVersion);
@@ -138,9 +138,9 @@ public class GitHubReleaseChecker {
         JsonNode assets = root.path("assets");
         if (assets.isArray()) {
             for (JsonNode asset : assets) {
-                String name = asset.path("name").asText("");
+                String name = asset.path("name").asString("");
                 if (GITHUB_DOWNLOAD_ASSET.equals(name)) {
-                    return asset.path("browser_download_url").asText(null);
+                    return asset.path("browser_download_url").asString(null);
                 }
             }
         }

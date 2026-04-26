@@ -185,7 +185,7 @@ public abstract class Json {
             return null;
         }
         JsonNode fieldNode = node.get(fieldName);
-        return fieldNode == null || fieldNode.isNull() ? null : fieldNode.asText();
+        return fieldNode == null || fieldNode.isNull() ? null : fieldNode.asString();
     }
 
     public static long readLong(JsonNode node, String fieldName) {

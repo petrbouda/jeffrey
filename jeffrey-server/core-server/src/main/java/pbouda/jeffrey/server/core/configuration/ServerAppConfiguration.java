@@ -52,6 +52,7 @@ import pbouda.jeffrey.server.core.scheduler.SchedulerTrigger;
 import pbouda.jeffrey.server.core.streaming.LiveStreamingManager;
 import pbouda.jeffrey.server.core.streaming.ReplayStreamingManager;
 import pbouda.jeffrey.server.core.streaming.FileHeartbeatReader;
+import pbouda.jeffrey.server.core.web.WebInfrastructureConfig;
 import pbouda.jeffrey.server.core.workspace.WorkspaceEventPublisher;
 import pbouda.jeffrey.server.persistence.DuckDBServerPersistenceProvider;
 import pbouda.jeffrey.server.persistence.ServerPersistenceProvider;
@@ -68,7 +69,12 @@ import java.time.Clock;
  * Configuration beans specific to SERVER mode: scheduling, streaming, CopyLibs.
  */
 @Configuration
-@Import({GlobalJobsConfiguration.class, ProjectJobsConfiguration.class, JobsConfiguration.class})
+@Import({
+        GlobalJobsConfiguration.class,
+        ProjectJobsConfiguration.class,
+        JobsConfiguration.class,
+        WebInfrastructureConfig.class
+})
 @EnableConfigurationProperties({ProjectProperties.class, JobProperties.class})
 public class ServerAppConfiguration {
 
@@ -240,4 +246,5 @@ public class ServerAppConfiguration {
     public JobDescriptorFactory  jobDescriptorFactory() {
         return new JobDescriptorFactory();
     }
+
 }

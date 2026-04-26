@@ -63,7 +63,7 @@ public class GarbageCollectionManagerImpl implements GarbageCollectionManager {
         if (!gcConfigurationFields.isEmpty()) {
             JsonNode gcConfiguration = gcConfigurationFields.getFirst();
 
-            String oldCollector = gcConfiguration.get("oldCollector").asText();
+            String oldCollector = gcConfiguration.get("oldCollector").asString();
             return GarbageCollectorType.fromOldGenCollector(oldCollector);
         } else {
             throw new IllegalStateException("No GC configuration event found in the profile.");

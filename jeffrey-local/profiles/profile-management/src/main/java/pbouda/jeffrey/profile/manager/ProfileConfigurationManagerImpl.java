@@ -112,7 +112,7 @@ public class ProfileConfigurationManagerImpl implements ProfileConfigurationMana
         ObjectNode newContent = Json.createObject();
         originalContent.properties().forEach(entry -> {
             String fieldName = entry.getKey();
-            String fieldValue = entry.getValue().asText();
+            String fieldValue = entry.getValue().asString();
 
             String newFieldName = fieldNames.get(fieldName);
             if (newFieldName != null) {
