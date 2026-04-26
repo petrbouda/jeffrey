@@ -27,12 +27,12 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import pbouda.jeffrey.local.core.web.ProfileManagerResolver;
-import pbouda.jeffrey.profile.ai.model.AiStatusResponse;
-import pbouda.jeffrey.profile.ai.model.HeapDumpContext;
-import pbouda.jeffrey.profile.ai.model.OqlChatRequest;
-import pbouda.jeffrey.profile.ai.model.OqlChatResponse;
-import pbouda.jeffrey.profile.ai.service.HeapDumpContextExtractor;
-import pbouda.jeffrey.profile.ai.service.OqlAssistantService;
+import pbouda.jeffrey.profile.ai.oql.model.AiStatusResponse;
+import pbouda.jeffrey.profile.ai.oql.model.HeapDumpContext;
+import pbouda.jeffrey.profile.ai.oql.model.OqlChatRequest;
+import pbouda.jeffrey.profile.ai.oql.model.OqlChatResponse;
+import pbouda.jeffrey.profile.ai.oql.service.HeapDumpContextExtractor;
+import pbouda.jeffrey.profile.ai.oql.service.OqlAssistantService;
 import pbouda.jeffrey.profile.heapdump.model.SortBy;
 import pbouda.jeffrey.profile.manager.HeapDumpManager;
 

@@ -18,6 +18,8 @@
 
 package pbouda.jeffrey.local.core.client;
 
+import pbouda.jeffrey.local.core.client.grpc.*;
+
 import io.grpc.StatusRuntimeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

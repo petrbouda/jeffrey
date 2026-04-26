@@ -23,7 +23,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
 import pbouda.jeffrey.local.core.manager.SettingsManager;
 import pbouda.jeffrey.local.persistence.LocalCorePersistenceProvider;
-import pbouda.jeffrey.local.persistence.repository.JdbcSettingsRepository;
+import pbouda.jeffrey.local.persistence.sql.repository.JdbcSettingsRepository;
 import pbouda.jeffrey.shared.common.encryption.MachineFingerprint;
 import pbouda.jeffrey.shared.common.encryption.SecretEncryptor;
 

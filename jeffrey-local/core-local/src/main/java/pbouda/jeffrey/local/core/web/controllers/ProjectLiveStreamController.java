@@ -27,7 +27,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
-import pbouda.jeffrey.local.core.client.LiveSubscriptionRequest;
+import pbouda.jeffrey.local.core.client.grpc.LiveSubscriptionRequest;
 import pbouda.jeffrey.local.core.manager.EventStreamingManager;
 import pbouda.jeffrey.local.core.manager.EventStreamingManager.CompositeSubscription;
 import pbouda.jeffrey.local.core.manager.project.ProjectManager;

@@ -27,7 +27,7 @@ import pbouda.jeffrey.server.core.manager.project.ProjectManager;
 import pbouda.jeffrey.server.core.manager.project.ProjectsManager;
 import pbouda.jeffrey.server.core.scheduler.job.descriptor.ProjectsSynchronizerJobDescriptor;
 import pbouda.jeffrey.shared.common.model.workspace.event.InstanceCreatedEventContent;
-import pbouda.jeffrey.server.persistence.repository.JdbcProjectInstanceRepository;
+import pbouda.jeffrey.server.persistence.sql.repository.JdbcProjectInstanceRepository;
 import pbouda.jeffrey.shared.common.Json;
 import pbouda.jeffrey.shared.common.model.ProjectInfo;
 import pbouda.jeffrey.shared.common.model.ProjectInstanceInfo;

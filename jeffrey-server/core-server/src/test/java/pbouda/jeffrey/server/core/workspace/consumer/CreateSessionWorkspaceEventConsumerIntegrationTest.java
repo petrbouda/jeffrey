@@ -30,7 +30,7 @@ import pbouda.jeffrey.server.core.manager.project.ProjectsManager;
 import pbouda.jeffrey.server.core.scheduler.job.descriptor.ProjectsSynchronizerJobDescriptor;
 import pbouda.jeffrey.server.core.streaming.SessionFinisher;
 import pbouda.jeffrey.shared.common.model.workspace.event.SessionCreatedEventContent;
-import pbouda.jeffrey.server.persistence.repository.JdbcProjectRepositoryRepository;
+import pbouda.jeffrey.server.persistence.sql.repository.JdbcProjectRepositoryRepository;
 import pbouda.jeffrey.server.persistence.repository.ServerPlatformRepositories;
 import pbouda.jeffrey.server.persistence.repository.ProjectInstanceRepository;
 import pbouda.jeffrey.server.persistence.repository.ProjectRepositoryRepository;

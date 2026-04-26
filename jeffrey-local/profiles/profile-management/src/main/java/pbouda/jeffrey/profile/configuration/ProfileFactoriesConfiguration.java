@@ -61,6 +61,7 @@ import pbouda.jeffrey.provider.profile.DatabaseManagerResolver;
 import pbouda.jeffrey.provider.profile.EventWriter;
 import pbouda.jeffrey.provider.profile.ProfilePersistenceProvider;
 import pbouda.jeffrey.provider.profile.repository.*;
+import pbouda.jeffrey.provider.profile.sql.repository.*;
 import pbouda.jeffrey.shared.common.compression.Lz4Compressor;
 import pbouda.jeffrey.shared.common.filesystem.TempDirFactory;
 import pbouda.jeffrey.shared.common.model.ProfileInfo;

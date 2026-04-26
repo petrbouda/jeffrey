@@ -39,7 +39,7 @@ import pbouda.jeffrey.server.core.workspace.consumer.*;
 import pbouda.jeffrey.shared.common.model.workspace.event.InstanceCreatedEventContent;
 import pbouda.jeffrey.shared.common.model.workspace.event.ProjectCreatedEventContent;
 import pbouda.jeffrey.shared.common.model.workspace.event.SessionCreatedEventContent;
-import pbouda.jeffrey.server.persistence.JdbcServerPlatformRepositories;
+import pbouda.jeffrey.server.persistence.sql.JdbcServerPlatformRepositories;
 import pbouda.jeffrey.server.persistence.repository.ServerPlatformRepositories;
 import pbouda.jeffrey.shared.common.Json;
 import pbouda.jeffrey.server.core.ServerJeffreyDirs;

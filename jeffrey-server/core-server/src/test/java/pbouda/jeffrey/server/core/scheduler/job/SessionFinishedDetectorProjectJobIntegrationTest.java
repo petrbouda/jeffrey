@@ -29,7 +29,7 @@ import pbouda.jeffrey.server.core.project.repository.RepositoryStorage;
 import pbouda.jeffrey.server.core.scheduler.JobContext;
 import pbouda.jeffrey.server.core.scheduler.job.descriptor.SessionFinishedDetectorProjectJobDescriptor;
 import pbouda.jeffrey.server.core.streaming.SessionFinisher;
-import pbouda.jeffrey.server.persistence.JdbcServerPlatformRepositories;
+import pbouda.jeffrey.server.persistence.sql.JdbcServerPlatformRepositories;
 import pbouda.jeffrey.server.core.ServerJeffreyDirs;
 import pbouda.jeffrey.shared.common.model.ProjectInfo;
 import pbouda.jeffrey.shared.common.model.ProjectInstanceInfo;

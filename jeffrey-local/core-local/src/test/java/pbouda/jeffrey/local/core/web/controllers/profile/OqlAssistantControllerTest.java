@@ -24,9 +24,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import pbouda.jeffrey.local.core.web.ProfileManagerResolver;
-import pbouda.jeffrey.profile.ai.model.AiStatusResponse;
-import pbouda.jeffrey.profile.ai.service.HeapDumpContextExtractor;
-import pbouda.jeffrey.profile.ai.service.OqlAssistantService;
+import pbouda.jeffrey.profile.ai.oql.model.AiStatusResponse;
+import pbouda.jeffrey.profile.ai.oql.service.HeapDumpContextExtractor;
+import pbouda.jeffrey.profile.ai.oql.service.OqlAssistantService;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;

@@ -18,6 +18,8 @@
 
 package pbouda.jeffrey.local.core.client;
 
+import pbouda.jeffrey.local.core.client.grpc.*;
+
 import pbouda.jeffrey.local.persistence.model.WorkspaceAddress;
 
 import java.util.function.Function;

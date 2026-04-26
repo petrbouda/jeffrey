@@ -39,7 +39,7 @@ import pbouda.jeffrey.profile.manager.action.ProfileDataInitializer;
 import pbouda.jeffrey.profile.parser.JfrRecordingEventParser;
 import pbouda.jeffrey.profile.parser.JfrRecordingInformationParser;
 import pbouda.jeffrey.local.persistence.LocalCorePersistenceProvider;
-import pbouda.jeffrey.provider.profile.DuckDBProfilePersistenceProvider;
+import pbouda.jeffrey.provider.profile.sql.DuckDBProfilePersistenceProvider;
 import pbouda.jeffrey.provider.profile.ProfilePersistenceProvider;
 import pbouda.jeffrey.shared.common.FrameResolutionMode;
 import pbouda.jeffrey.shared.common.compression.Lz4Compressor;

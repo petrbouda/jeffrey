@@ -18,6 +18,8 @@
 
 package pbouda.jeffrey.local.core.client;
 
+import pbouda.jeffrey.local.core.client.grpc.*;
+
 import pbouda.jeffrey.shared.common.model.ProjectInfo;
 import pbouda.jeffrey.local.core.manager.project.ProjectManager.DetailedProjectInfo;
 import pbouda.jeffrey.local.core.resources.response.RemoteProjectResponse;

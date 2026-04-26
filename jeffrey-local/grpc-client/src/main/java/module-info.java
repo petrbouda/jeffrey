@@ -24,5 +24,5 @@ module pbouda.jeffrey.local.grpc.client {
     requires io.grpc.netty.shaded;
     requires org.slf4j;
 
-    exports pbouda.jeffrey.local.core.client;
+    exports pbouda.jeffrey.local.core.client.grpc;
 }

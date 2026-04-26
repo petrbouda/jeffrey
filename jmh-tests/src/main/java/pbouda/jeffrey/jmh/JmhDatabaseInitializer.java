@@ -22,7 +22,7 @@ import org.flywaydb.core.Flyway;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.profile.parser.JfrRecordingEventParser;
-import pbouda.jeffrey.provider.profile.DuckDBEventWriters;
+import pbouda.jeffrey.provider.profile.sql.DuckDBEventWriters;
 import pbouda.jeffrey.provider.profile.EventWriter;
 import pbouda.jeffrey.provider.profile.writer.SQLEventWriter;
 import pbouda.jeffrey.shared.common.compression.Lz4Compressor;
