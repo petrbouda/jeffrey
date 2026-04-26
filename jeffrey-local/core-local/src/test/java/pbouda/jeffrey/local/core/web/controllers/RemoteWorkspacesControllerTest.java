@@ -19,20 +19,19 @@
 package pbouda.jeffrey.local.core.web.controllers;
 
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 import pbouda.jeffrey.local.core.manager.workspace.WorkspacesManager;
-import pbouda.jeffrey.local.core.web.AbstractControllerTest;
+import pbouda.jeffrey.local.core.web.ControllerTest;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static pbouda.jeffrey.local.core.web.MockMvcSupport.mockMvcFor;
 
-@ExtendWith(MockitoExtension.class)
-class RemoteWorkspacesControllerTest extends AbstractControllerTest {
+@ControllerTest
+class RemoteWorkspacesControllerTest {
 
     @Mock
     WorkspacesManager workspacesManager;

@@ -44,16 +44,36 @@ import tools.jackson.databind.json.JsonMapper;
  * {@code @RequestMapping}-annotated class is treated as a handler — matching
  * the production behaviour.
  *
- * <p>Tests stay thin — instantiate the controller with mock managers, hand it
- * to {@link #mockMvcFor(Object...)}, and drive it with the standard MockMvc
- * fluent API.
+ * <p>Used as a static-import partner of the {@link ControllerTest}
+ * annotation:
+ *
+ * <pre>{@code
+ * import static pbouda.jeffrey.local.core.web.MockMvcSupport.mockMvcFor;
+ *
+ * @ControllerTest
+ * class WorkspacesControllerTest {
+ *
+ *     @Mock
+ *     WorkspacesManager workspacesManager;
+ *
+ *     @Test
+ *     void getsAllWorkspaces() throws Exception {
+ *         mockMvcFor(new WorkspacesController(workspacesManager))
+ *                 .perform(get("/api/internal/workspaces"))
+ *                 .andExpect(status().isOk());
+ *     }
+ * }
+ * }</pre>
  */
-public abstract class AbstractControllerTest {
+public final class MockMvcSupport {
+
+    private MockMvcSupport() {
+    }
 
     /**
      * Builds a {@link MockMvc} that serves the given controllers.
      */
-    protected static MockMvc mockMvcFor(Object... controllers) {
+    public static MockMvc mockMvcFor(Object... controllers) {
         return MockMvcBuilders.standaloneSetup(controllers)
                 .setCustomHandlerMapping(StandaloneRequestMappingHandlerMapping::new)
                 .setMessageConverters(new JacksonJsonHttpMessageConverter((JsonMapper) Json.mapper()))
