@@ -98,18 +98,10 @@
             <artifactId>recording-storage-api</artifactId>
         </dependency>
 
-        <!-- Spring Boot Web for REST resources -->
+        <!-- Spring Boot Web for HTTP boundary types used by managers -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-jersey</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.glassfish.jersey.media</groupId>
-            <artifactId>jersey-media-multipart</artifactId>
         </dependency>
 
         <!-- Logging -->

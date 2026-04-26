@@ -50,6 +50,11 @@ public abstract class Exceptions {
                 ErrorCode.PROJECT_NOT_FOUND, "Project not found: %s".formatted(projectId));
     }
 
+    public static JeffreyClientException profileNotFound(String profileId) {
+        return new JeffreyClientException(
+                ErrorCode.PROFILE_NOT_FOUND, "Profile not found: %s".formatted(profileId));
+    }
+
     public static JeffreyClientException recordingSessionNotFound(String sessionId) {
         return new JeffreyClientException(
                 ErrorCode.RECORDING_SESSION_NOT_FOUND, "Recording session not found: %s".formatted(sessionId));

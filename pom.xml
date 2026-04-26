@@ -171,11 +171,6 @@
                 <artifactId>recording-storage-api</artifactId>
                 <version>${project.version}</version>
             </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>jackson-jaxrs</artifactId>
-                <version>${project.version}</version>
-            </dependency>
 
             <dependency>
                 <groupId>${project.groupId}</groupId>
