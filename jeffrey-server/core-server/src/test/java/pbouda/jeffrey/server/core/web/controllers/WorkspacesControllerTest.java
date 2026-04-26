@@ -77,9 +77,9 @@ class WorkspacesControllerTest {
 
         MockMvcTester mvc = mockMvcTesterFor(new WorkspacesController(workspacesManager));
 
-        // The controller throws IllegalArgumentException, which JeffreyExceptionResolver
+        // The controller throws IllegalArgumentException, which JeffreyExceptionHandler
         // maps to 500 INTERNAL_SERVER_ERROR by default in core-server (no client-error path
-        // for IllegalArgumentException in the server-side resolver — it falls into the
+        // for IllegalArgumentException in the server-side handler — it falls into the
         // generic catch).
         assertThat(mvc.get().uri("/api/internal/workspaces/ghost/projects"))
                 .hasStatus5xxServerError();

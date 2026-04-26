@@ -30,7 +30,7 @@ import java.util.Arrays;
  * wired the same way Spring wires the production dispatcher: shared
  * Jackson 3 message converter (so custom serializers for {@code Type},
  * {@code RelativeTimeRange}, etc. apply at the HTTP boundary) and
- * {@link JeffreyExceptionResolver} (so error paths return the same
+ * {@link JeffreyExceptionHandler} (so error paths return the same
  * {@code ErrorResponse} JSON the real app does).
  *
  * <p>Used as a static-import partner of plain JUnit 5 + Mockito tests:
@@ -70,7 +70,7 @@ public final class MockMvcSupport {
                 Arrays.asList(controllers),
                 builder -> builder
                         .setMessageConverters(new JacksonJsonHttpMessageConverter((JsonMapper) Json.mapper()))
-                        .setHandlerExceptionResolvers(new JeffreyExceptionResolver())
+                        .setControllerAdvice(new JeffreyExceptionHandler())
                         .build());
     }
 }

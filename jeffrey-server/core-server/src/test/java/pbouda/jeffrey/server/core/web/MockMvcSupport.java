@@ -28,7 +28,7 @@ import java.util.Arrays;
 /**
  * Builds a {@link MockMvcTester} wired the same way the server's Spring MVC
  * dispatcher is wired in production: shared Jackson 3 message converter and
- * {@link JeffreyExceptionResolver}. Mirrors the core-local version.
+ * {@link JeffreyExceptionHandler}. Mirrors the core-local version.
  */
 public final class MockMvcSupport {
 
@@ -40,7 +40,7 @@ public final class MockMvcSupport {
                 Arrays.asList(controllers),
                 builder -> builder
                         .setMessageConverters(new JacksonJsonHttpMessageConverter((JsonMapper) Json.mapper()))
-                        .setHandlerExceptionResolvers(new JeffreyExceptionResolver())
+                        .setControllerAdvice(new JeffreyExceptionHandler())
                         .build());
     }
 }

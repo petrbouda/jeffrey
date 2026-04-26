@@ -22,7 +22,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.converter.json.JacksonJsonHttpMessageConverter;
-import org.springframework.web.servlet.HandlerExceptionResolver;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import pbouda.jeffrey.shared.common.Json;
 import tools.jackson.databind.json.JsonMapper;
@@ -31,7 +30,7 @@ import java.util.List;
 
 /**
  * Wires the server's Spring MVC web infrastructure: Jackson 3 message converter
- * and the generic exception resolver.
+ * and the generic exception handler.
  */
 @Configuration
 public class WebInfrastructureConfig {
@@ -57,7 +56,7 @@ public class WebInfrastructureConfig {
     }
 
     @Bean
-    public HandlerExceptionResolver jeffreyExceptionResolver() {
-        return new JeffreyExceptionResolver();
+    public JeffreyExceptionHandler jeffreyExceptionHandler() {
+        return new JeffreyExceptionHandler();
     }
 }
