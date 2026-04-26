@@ -22,43 +22,48 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
-import pbouda.jeffrey.local.core.manager.workspace.WorkspacesManager;
+import pbouda.jeffrey.local.core.manager.ProfilesManager;
+import pbouda.jeffrey.local.core.manager.project.ProjectManager;
+import pbouda.jeffrey.local.core.manager.project.ProjectsManager;
+import pbouda.jeffrey.local.core.manager.workspace.WorkspaceManager;
+import pbouda.jeffrey.local.core.web.ProjectManagerResolver;
+import pbouda.jeffrey.local.core.web.ProjectManagerResolver.ProjectContext;
 
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.when;
 import static pbouda.jeffrey.local.core.web.MockMvcSupport.mockMvcTesterFor;
 
 @ExtendWith(MockitoExtension.class)
-class ProfilerControllerTest {
+class ProjectProfilesControllerTest {
 
     @Mock
-    WorkspacesManager workspacesManager;
+    ProjectManagerResolver resolver;
+
+    @Mock
+    WorkspaceManager workspaceManager;
+
+    @Mock
+    ProjectsManager projectsManager;
+
+    @Mock
+    ProjectManager projectManager;
+
+    @Mock
+    ProfilesManager profilesManager;
 
     @Test
-    void rejectsSettingsWithoutWorkspaceId() {
-        MockMvcTester mvc = mockMvcTesterFor(new ProfilerController(workspacesManager));
+    void listsEmpty() {
+        when(resolver.resolve("ws-1", "p-1"))
+                .thenReturn(new ProjectContext(workspaceManager, projectsManager, projectManager));
+        when(projectManager.profilesManager()).thenReturn(profilesManager);
+        when(profilesManager.allProfiles()).thenReturn(List.of());
 
-        assertThat(mvc.post().uri("/api/internal/profiler/settings")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("""
-                        {"workspaceId":null,"projectId":null}"""))
-                .hasStatus(HttpStatus.BAD_REQUEST)
-                .bodyJson()
-                .extractingPath("$.message").asString().contains("Workspace ID is required");
-    }
+        MockMvcTester mvc = mockMvcTesterFor(new ProjectProfilesController(resolver));
 
-    @Test
-    void listsEmptyWhenNoWorkspaces() {
-        doReturn(List.of()).when(workspacesManager).findAll();
-
-        MockMvcTester mvc = mockMvcTesterFor(new ProfilerController(workspacesManager));
-
-        assertThat(mvc.get().uri("/api/internal/profiler/settings"))
+        assertThat(mvc.get().uri("/api/internal/workspaces/ws-1/projects/p-1/profiles"))
                 .hasStatusOk()
                 .bodyJson()
                 .extractingPath("$").asArray().isEmpty();
