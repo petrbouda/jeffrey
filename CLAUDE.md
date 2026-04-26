@@ -214,8 +214,27 @@ jeffrey/
 - **Package Structure**: `pbouda.jeffrey.local.*` for local deployment, `pbouda.jeffrey.server.*` for server deployment, `pbouda.jeffrey.profile.*` for profiles, `pbouda.jeffrey.*` for shared modules
 - **Naming**: PascalCase for classes, camelCase for methods/fields
 - **Imports**: Always use import statements; never use fully qualified class names inline in code
+- **Annotation Placement**: Annotations on **classes**, **fields**, and **methods** always go on their own line directly above the declaration — never inline on the same line. Applies to `@Bean`, `@Configuration`, `@RequestMapping`, `@ResponseBody`, `@GetMapping` / `@PostMapping` / etc., `@Mock`, `@Test`, `@ExtendWith`, custom annotations, and so on. Annotations on **method/constructor parameters** (e.g. `@PathVariable`, `@RequestParam`, `@RequestBody`) stay inline next to the parameter — that's the standard form and keeps signatures readable.
+
+  ```java
+  // good
+  @Mock
+  WorkspacesManager workspacesManager;
+
+  @Bean
+  public WorkspacesController workspacesController(WorkspacesManager workspacesManager) {
+      return new WorkspacesController(workspacesManager);
+  }
+
+  @GetMapping("/{workspaceId}")
+  public WorkspaceResponse info(@PathVariable("workspaceId") String workspaceId) { ... }
+
+  // bad
+  @Mock WorkspacesManager workspacesManager;
+  @Bean public WorkspacesController workspacesController(...) { ... }
+  ```
 - **Architecture**: Manager pattern with service layer separation
-- **REST**: Jersey/JAX-RS with `@Path` annotations, constructor injection (not `@Autowired`)
+- **REST**: Spring MVC controllers as plain classes with `@RequestMapping` + `@ResponseBody` at class level (no `@Controller` / `@RestController` stereotype). Constructor injection only — never `@Autowired`. Register every controller as an explicit `@Bean` in a `@Configuration` class.
 - **Spring Bean Registration**: Never use stereotype annotations (`@Component`, `@Service`, `@Repository`, `@Controller`, `@RestController`) or `@Autowired`. Always register beans explicitly via `@Bean` methods in `@Configuration` classes or Spring 4 `BeanRegistrar`. This keeps wiring visible and explicit.
 - **gRPC**: Proto files in `shared/server-api/` (package `pbouda.jeffrey.server.api.v1`), implementations in `jeffrey-server/core-server/.../grpc/`, clients in `jeffrey-local/core-local/.../client/`
 - **Sealed Interfaces**: Used for type-safe hierarchies (e.g., `JobDescriptor`, `WorkspacesManager`, `TimeRange`)
