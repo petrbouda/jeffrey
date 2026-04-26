@@ -327,4 +327,184 @@ Special cases to handle as they appear:
 - [ ] Decide cutover prefix strategy (proposal: temporary `/api2` for
       Spring, swap at end of Phase 2).
 - [ ] Inventory tests that extend Jersey test infrastructure
+
+---
+
+## Part 3 — Migration progress and continuation guide (live)
+
+### What's done
+
+| Component | Status | Commit |
+|---|---|---|
+| `core-server` web infrastructure (`JeffreyExceptionResolver`, `JacksonJson3HttpMessageConverter`, `WebInfrastructureConfig`) | ✅ | `3df51c3` |
+| `core-server` controllers (`VersionController`, `WorkspacesController`, `GrpcDocsController`, `DebugController`) | ✅ | `3df51c3` |
+| `core-server` Jersey removed (poms, configurer, JerseyConfig, old Resource classes) | ✅ | `3df51c3` |
+| `core-local` web infrastructure (full set incl. `JeffreyJfrHttpEventFilter` + `JeffreyRequestLoggingFilter`) | ✅ | `91011cd` |
+| `core-local` `ProfileManagerResolver` (resolves profileId via DB lookup, supports all 3 URL roots) | ✅ | `668ede3` |
+| `core-local` controllers — `RemoteWorkspacesController`, `ProfilerController`, `SettingsController` | ✅ (compile only, **not yet @Bean-wired**) | `668ede3` |
+| `PROFILE_NOT_FOUND` ErrorCode + `Exceptions.profileNotFound()` | ✅ | `668ede3` |
+
+**Decision locked in:** style is **annotation MVC, no stereotypes**.
+Each controller has `@RequestMapping(...)` + `@ResponseBody` at class
+level; method annotations `@GetMapping` / `@PostMapping` / `@PutMapping` /
+`@DeleteMapping`; explicit `@RequestBody` / `@RequestParam` /
+`@PathVariable`. Beans registered explicitly via `@Bean` methods. This
+keeps the project's "no stereotype scanning" rule intact while avoiding
+the heavy refactor that functional routing would require for the
+sub-resource locator chains.
+
+### What remains for `core-local`
+
+#### Resource → Controller inventory
+
+The full URL paths are flattened from sub-resource locator chains. Each
+`*Controller` carries a `@RequestMapping("...")` at class level; URLs
+shown are the resulting full paths.
+
+**Workspace / project chain** (`/api/internal/workspaces/...`):
+
+| Existing Resource | Sub-resource locators in original | Controller(s) to write | Notes |
+|---|---|---|---|
+| `WorkspacesResource` | `/{workspaceId}` → `WorkspaceResource` | `WorkspacesController` @ `/api/internal/workspaces` (GET list, POST create) | Drop the locator, see next row for `{workspaceId}` |
+| `WorkspaceResource` | `/projects` → `WorkspaceProjectsResource` | `WorkspaceController` @ `/api/internal/workspaces/{workspaceId}` (GET, DELETE, GET `/events`) | |
+| `WorkspaceProjectsResource` | `/{projectId}` → `ProjectResource` | `WorkspaceProjectsController` @ `/api/internal/workspaces/{workspaceId}/projects` (GET list, GET `/profiles`, GET `/namespaces`) | |
+| `ProjectResource` | many | `ProjectController` @ `/api/internal/workspaces/{workspaceId}/projects/{projectId}` (resource-level endpoints only) | |
+| `ProjectInstancesResource` | none | `ProjectInstancesController` @ `/api/internal/workspaces/{workspaceId}/projects/{projectId}/instances` | |
+| `ProjectProfilesResource` | `/{profileId}` → `ProfileResource` | `ProjectProfilesController` (CRUD on profiles) — sub-resource for `{profileId}` is handled by the multi-path `Profile*` controllers (see below) | |
+| `ProjectRecordingsResource` | none | `ProjectRecordingsController` — has **multipart** | `MultipartFile` instead of `@FormDataParam` |
+| `ProjectRepositoryResource` | none | `ProjectRepositoryController` — has streaming download | `ResponseEntity<InputStreamResource>` |
+| `ProjectReplayStreamResource` | none | `ProjectReplayStreamController` — has **SSE** | Use `SseEmitter` (annotation MVC) |
+| `ProjectDownloadTaskResource` | none | `ProjectDownloadTaskController` | `StreamingResponseBody` |
+| `ProjectLiveStreamResource` | none | `ProjectLiveStreamController` — has **SSE** with multi-session bridge | Use `SseEmitter`; preserve the `sinkLock` synchronisation |
+
+**Profile sub-resources** (reachable from **3 URL roots**):
+
+The 22 profile sub-resource classes plus `ProfileResource` itself
+become controllers with **multi-path `@RequestMapping`**:
+
+```java
+@RequestMapping({
+    "/api/internal/profiles/{profileId}",
+    "/api/internal/quick-analysis/profiles/{profileId}",
+    "/api/internal/workspaces/{workspaceId}/projects/{projectId}/profiles/{profileId}"
+})
+@ResponseBody
+public class FlamegraphController {
+    private final ProfileManagerResolver resolver;
+    public FlamegraphController(ProfileManagerResolver resolver) { this.resolver = resolver; }
+
+    @PostMapping("/flamegraph/...")
+    public Foo doSomething(@PathVariable String profileId, @RequestBody Body body) {
+        FlamegraphManager mgr = resolver.resolve(profileId).flamegraphManager();
+        // existing logic
+    }
+}
+```
+
+The resolver (already committed) handles the lookup uniformly — no need
+for separate controllers per URL root.
+
+| Existing Resource | Controller | Sub-path |
+|---|---|---|
+| `ProfileResource` (GET, PUT, DELETE on the profile itself) | `ProfileController` | (root) |
+| `AutoAnalysisResource` | `AutoAnalysisController` | `/analysis` |
+| `EventViewerResource` | `EventViewerController` | `/viewer` |
+| `FlagsResource` | `FlagsController` | `/flags` |
+| `FlamegraphResource` | `FlamegraphController` | `/flamegraph` |
+| `GuardianResource` | `GuardianController` | `/guardian` |
+| `ConfigurationResource` | `ConfigurationController` | `/information` |
+| `ThreadResource` | `ThreadController` | `/thread` |
+| `JITCompilationResource` | `JITCompilationController` | `/compilation` |
+| `SubSecondResource` | `SubSecondController` | `/subsecond` |
+| `TimeseriesResource` | `TimeseriesController` | `/timeseries` |
+| `PerformanceCountersResource` | `PerformanceCountersController` | `/perfcounters` |
+| `JdbcStatementResource` | `JdbcStatementController` | `/jdbc/statement/overview` |
+| `JdbcPoolResource` | `JdbcPoolController` | `/jdbc/pool` |
+| `HttpOverviewResource` | `HttpOverviewController` | `/http/overview` |
+| `GrpcOverviewResource` | `GrpcOverviewController` | `/grpc/overview` |
+| `MethodTracingResource` | `MethodTracingController` | `/method-tracing` |
+| `GarbageCollectionResource` | `GarbageCollectionController` | `/gc` |
+| `ContainerOverviewResource` | `ContainerOverviewController` | `/container` |
+| `HeapMemoryResource` | `HeapMemoryController` | `/heap-memory` |
+| `HeapDumpResource` (multipart upload) | `HeapDumpController` | `/heap` |
+| `OqlAssistantResource` | `OqlAssistantController` | `/heap/oql-assistant` |
+| `HeapDumpAiAnalysisResource` | `HeapDumpAiAnalysisController` | `/heap/ai-analysis` |
+| `ProfileFeaturesResource` | `ProfileFeaturesController` | `/features` |
+| `ToolsResource` | `ToolsController` | `/tools` |
+| `AiAnalysisResource` | `AiAnalysisController` | `/ai-analysis` |
+
+`FlamegraphDiffResource` and `ProfileDiffResource` are diff resources;
+they live at `/api/internal/profiles/{primaryId}/diff/{secondaryId}/...`
+— two `@PathVariable`s for the two profile IDs.
+
+**Standalone root resources** (no sub-resource locators in original):
+
+| Existing Resource | Controller(s) | Status |
+|---|---|---|
+| `RemoteWorkspacesResource` | `RemoteWorkspacesController` | ✅ done |
+| `ProfilerResource` | `ProfilerController` | ✅ done |
+| `SettingsResource` | `SettingsController` | ✅ done |
+| `RootInternalResource` (only `/version` + `/version/update-check` are real endpoints; the rest are sub-resource locators) | `VersionController` @ `/api/internal` (GET `/version`, GET `/version/update-check`) | ⏳ |
+| `ProfilesResource` (GET list + 2 sub-resource locators) | `ProfilesController` @ `/api/internal/profiles` (GET list); diff handled by `ProfileDiffController` (multi-path) | ⏳ |
+| `QuickAnalysisResource` (groups + recordings + multipart + profile sub-resource) | `QuickAnalysisController` @ `/api/internal/quick-analysis` | ⏳ — multipart |
+
+#### Cutover commit (do these atomically once all controllers are ready)
+
+1. Add `@Bean` methods for every new controller in
+   `LocalAppConfiguration` (or split across smaller `@Configuration`
+   classes — e.g. `WebControllersConfig`, `ProfileControllersConfig`).
+2. `@Import(WebInfrastructureConfig.class)` in `LocalAppConfiguration`.
+3. Delete `LocalJerseyConfigurer`, `JerseyConfig`, `ExceptionMappers`,
+   `RequestLoggingFilter`, `JfrHttpEventFilter`, and **all the old
+   `*Resource` classes**. Keep `request/`, `response/`, and `workspace/`
+   helper packages (DTOs and mappers).
+4. `core-local/pom.xml`:
+   - Remove `spring-boot-starter-jersey`, `jersey-media-multipart`,
+     `jersey-media-sse`, `jersey-test-framework-provider-grizzly2`,
+     `jackson-jaxrs`.
+   - Keep `spring-boot-starter-web`.
+5. `profile-management/pom.xml`:
+   - Remove `jakarta.ws.rs-api` if explicitly listed (was transitive
+     through Jersey).
+   - **Add** `spring-web` and `spring-webmvc` (or
+     `spring-boot-starter-web` if appropriate) since the controllers
+     for profile sub-resources live in this module.
+6. Move profile sub-resource controllers into
+   `profile-management/.../web/controllers/` (mirror the package layout
+   used in `core-local`). The `ProfileManagerResolver` lives in
+   `core-local` and is injected via constructor.
+7. Delete `shared/jackson-jaxrs` module — drop from root `pom.xml`
+   `<modules>` and from any module that declares it.
+8. Frontend: no changes needed — URLs are preserved.
+
+#### Test updates
+
+- `AbstractResourceTest` and any test extending `JerseyTest` →
+  `@SpringBootTest(webEnvironment = RANDOM_PORT)` with `MockMvc` (for
+  in-process) or `TestRestTemplate` (for full HTTP).
+- Drop `jersey-test-framework-provider-grizzly2` from `core-local/pom`.
+- Server-side gRPC tests are unaffected.
+
+#### Compile verification commands
+
+(Java 25 required. The project pins `<release>25</release>`.)
+
+```bash
+# Full reactor compile (skip exec plugins & npm during iteration):
+mvn -am -pl jeffrey-local/core-local install -DskipTests -Dexec.skip=true
+
+# Server side (already green on this branch):
+mvn -am -pl jeffrey-server/core-server install -DskipTests -Dexec.skip=true
+```
+
+#### Estimated remaining effort
+
+| Chunk | Files | Estimate |
+|---|---|---|
+| Standalone root controllers (`Version`, `Profiles`, `QuickAnalysis`) | 3 | 1–2 h |
+| Workspace / project chain (Workspaces, Workspace, WorkspaceProjects, Project + 7 sub-resources) | 11 | 4–6 h (multipart, SSE, streaming) |
+| Profile sub-resources (all 22 + diffs in `profile-management`) | ~24 | 6–8 h |
+| Bean wiring + cutover commit | n/a | 1–2 h |
+| Tests | n/a | 2–4 h |
+| **Total** | **~38** | **14–22 h** |
       (`AbstractResourceTest`, etc.) — plan their replacement.
