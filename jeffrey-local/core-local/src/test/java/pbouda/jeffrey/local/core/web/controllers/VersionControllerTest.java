@@ -19,41 +19,42 @@
 package pbouda.jeffrey.local.core.web.controllers;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import pbouda.jeffrey.local.core.manager.GitHubReleaseChecker;
-import pbouda.jeffrey.local.core.web.ControllerTest;
 
 import java.util.Optional;
 
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static pbouda.jeffrey.local.core.web.MockMvcSupport.mockMvcFor;
+import static pbouda.jeffrey.local.core.web.MockMvcSupport.mockMvcTesterFor;
 
-@ControllerTest
+@ExtendWith(MockitoExtension.class)
 class VersionControllerTest {
 
     @Mock
     GitHubReleaseChecker releaseChecker;
 
     @Test
-    void returnsCurrentVersion() throws Exception {
-        mockMvcFor(new VersionController(releaseChecker))
-                .perform(get("/api/internal/version"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.version", is(notNullValue())));
+    void returnsCurrentVersion() {
+        MockMvcTester mvc = mockMvcTesterFor(new VersionController(releaseChecker));
+
+        assertThat(mvc.get().uri("/api/internal/version"))
+                .hasStatusOk()
+                .bodyJson()
+                .extractingPath("$.version").asString().isNotEmpty();
     }
 
     @Test
-    void updateCheckReturns204WhenNoReleaseInfo() throws Exception {
+    void updateCheckReturns204WhenNoReleaseInfo() {
         when(releaseChecker.check(anyString())).thenReturn(Optional.empty());
 
-        mockMvcFor(new VersionController(releaseChecker))
-                .perform(get("/api/internal/version/update-check"))
-                .andExpect(status().isNoContent());
+        MockMvcTester mvc = mockMvcTesterFor(new VersionController(releaseChecker));
+
+        assertThat(mvc.get().uri("/api/internal/version/update-check"))
+                .hasStatus(204);
     }
 }

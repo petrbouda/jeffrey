@@ -19,57 +19,61 @@
 package pbouda.jeffrey.local.core.web.controllers;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import pbouda.jeffrey.local.core.manager.workspace.WorkspacesManager;
-import pbouda.jeffrey.local.core.web.ControllerTest;
 
-import static org.hamcrest.Matchers.equalTo;
-import static org.springframework.http.MediaType.APPLICATION_JSON;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static pbouda.jeffrey.local.core.web.MockMvcSupport.mockMvcFor;
+import static org.assertj.core.api.Assertions.assertThat;
+import static pbouda.jeffrey.local.core.web.MockMvcSupport.mockMvcTesterFor;
 
-@ControllerTest
+@ExtendWith(MockitoExtension.class)
 class RemoteWorkspacesControllerTest {
 
     @Mock
     WorkspacesManager workspacesManager;
 
     @Test
-    void rejectsBlankHostname() throws Exception {
-        mockMvcFor(new RemoteWorkspacesController(null, workspacesManager))
-                .perform(post("/api/internal/remote-workspaces/list")
-                        .contentType(APPLICATION_JSON)
-                        .content("""
-                                {"hostname":"","port":9090}"""))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.type", equalTo("CLIENT")))
-                .andExpect(jsonPath("$.code", equalTo("INVALID_REQUEST")))
-                .andExpect(jsonPath("$.message", equalTo("Hostname is required")));
+    void rejectsBlankHostname() {
+        MockMvcTester mvc = mockMvcTesterFor(new RemoteWorkspacesController(null, workspacesManager));
+
+        assertThat(mvc.post().uri("/api/internal/remote-workspaces/list")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {"hostname":"","port":9090}"""))
+                .hasStatus(HttpStatus.BAD_REQUEST)
+                .bodyJson()
+                .hasPathSatisfying("$.type", v -> assertThat(v).asString().isEqualTo("CLIENT"))
+                .hasPathSatisfying("$.code", v -> assertThat(v).asString().isEqualTo("INVALID_REQUEST"))
+                .hasPathSatisfying("$.message", v -> assertThat(v).asString().isEqualTo("Hostname is required"));
     }
 
     @Test
-    void rejectsPortOutOfRange() throws Exception {
-        mockMvcFor(new RemoteWorkspacesController(null, workspacesManager))
-                .perform(post("/api/internal/remote-workspaces/list")
-                        .contentType(APPLICATION_JSON)
-                        .content("""
-                                {"hostname":"host","port":70000}"""))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code", equalTo("INVALID_REQUEST")))
-                .andExpect(jsonPath("$.message", equalTo("Port must be between 1 and 65535")));
+    void rejectsPortOutOfRange() {
+        MockMvcTester mvc = mockMvcTesterFor(new RemoteWorkspacesController(null, workspacesManager));
+
+        assertThat(mvc.post().uri("/api/internal/remote-workspaces/list")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {"hostname":"host","port":70000}"""))
+                .hasStatus(HttpStatus.BAD_REQUEST)
+                .bodyJson()
+                .extractingPath("$.message").asString().isEqualTo("Port must be between 1 and 65535");
     }
 
     @Test
-    void reportsMissingRemoteClientsFactory() throws Exception {
-        mockMvcFor(new RemoteWorkspacesController(null, workspacesManager))
-                .perform(post("/api/internal/remote-workspaces/list")
-                        .contentType(APPLICATION_JSON)
-                        .content("""
-                                {"hostname":"host","port":9090}"""))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code", equalTo("INVALID_REQUEST")))
-                .andExpect(jsonPath("$.message", equalTo("Remote workspace clients are not configured")));
+    void reportsMissingRemoteClientsFactory() {
+        MockMvcTester mvc = mockMvcTesterFor(new RemoteWorkspacesController(null, workspacesManager));
+
+        assertThat(mvc.post().uri("/api/internal/remote-workspaces/list")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {"hostname":"host","port":9090}"""))
+                .hasStatus(HttpStatus.BAD_REQUEST)
+                .bodyJson()
+                .extractingPath("$.message").asString().isEqualTo("Remote workspace clients are not configured");
     }
 }

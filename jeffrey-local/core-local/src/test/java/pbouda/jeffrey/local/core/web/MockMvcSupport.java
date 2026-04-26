@@ -20,19 +20,21 @@ package pbouda.jeffrey.local.core.web;
 
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.http.converter.json.JacksonJsonHttpMessageConverter;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import org.springframework.test.web.servlet.setup.StandaloneMockMvcBuilder;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 import pbouda.jeffrey.shared.common.Json;
 import tools.jackson.databind.json.JsonMapper;
 
+import java.util.Arrays;
+
 /**
- * Builds a {@link MockMvc} wired the same way Spring wires the production
- * dispatcher: shared Jackson 3 message converter (so custom serializers for
- * {@code Type}, {@code RelativeTimeRange}, etc. apply at the HTTP boundary)
- * and {@link JeffreyExceptionResolver} (so error paths return the same
+ * Builds a {@link MockMvcTester} (Spring 6.2+ AssertJ-based MockMvc API)
+ * wired the same way Spring wires the production dispatcher: shared
+ * Jackson 3 message converter (so custom serializers for {@code Type},
+ * {@code RelativeTimeRange}, etc. apply at the HTTP boundary) and
+ * {@link JeffreyExceptionResolver} (so error paths return the same
  * {@code ErrorResponse} JSON the real app does).
  *
  * <p>Jeffrey's controllers are registered as explicit {@code @Bean}s with
@@ -44,23 +46,26 @@ import tools.jackson.databind.json.JsonMapper;
  * {@code @RequestMapping}-annotated class is treated as a handler — matching
  * the production behaviour.
  *
- * <p>Used as a static-import partner of the {@link ControllerTest}
- * annotation:
+ * <p>Used as a static-import partner of plain JUnit 5 + Mockito tests:
  *
  * <pre>{@code
- * import static pbouda.jeffrey.local.core.web.MockMvcSupport.mockMvcFor;
+ * import static org.assertj.core.api.Assertions.assertThat;
+ * import static pbouda.jeffrey.local.core.web.MockMvcSupport.mockMvcTesterFor;
  *
- * @ControllerTest
+ * @ExtendWith(MockitoExtension.class)
  * class WorkspacesControllerTest {
  *
  *     @Mock
  *     WorkspacesManager workspacesManager;
  *
  *     @Test
- *     void getsAllWorkspaces() throws Exception {
- *         mockMvcFor(new WorkspacesController(workspacesManager))
- *                 .perform(get("/api/internal/workspaces"))
- *                 .andExpect(status().isOk());
+ *     void getsAllWorkspaces() {
+ *         MockMvcTester mvc = mockMvcTesterFor(new WorkspacesController(workspacesManager));
+ *
+ *         assertThat(mvc.get().uri("/api/internal/workspaces"))
+ *                 .hasStatusOk()
+ *                 .bodyJson()
+ *                 .extractingPath("$[0].id").asString().isEqualTo("ws-1");
  *     }
  * }
  * }</pre>
@@ -71,14 +76,16 @@ public final class MockMvcSupport {
     }
 
     /**
-     * Builds a {@link MockMvc} that serves the given controllers.
+     * Builds a {@link MockMvcTester} that serves the given controllers.
      */
-    public static MockMvc mockMvcFor(Object... controllers) {
-        return MockMvcBuilders.standaloneSetup(controllers)
-                .setCustomHandlerMapping(StandaloneRequestMappingHandlerMapping::new)
-                .setMessageConverters(new JacksonJsonHttpMessageConverter((JsonMapper) Json.mapper()))
-                .setHandlerExceptionResolvers(new JeffreyExceptionResolver())
-                .build();
+    public static MockMvcTester mockMvcTesterFor(Object... controllers) {
+        return MockMvcTester.of(
+                Arrays.asList(controllers),
+                builder -> builder
+                        .setCustomHandlerMapping(StandaloneRequestMappingHandlerMapping::new)
+                        .setMessageConverters(new JacksonJsonHttpMessageConverter((JsonMapper) Json.mapper()))
+                        .setHandlerExceptionResolvers(new JeffreyExceptionResolver())
+                        .build());
     }
 
     private static final class StandaloneRequestMappingHandlerMapping extends RequestMappingHandlerMapping {

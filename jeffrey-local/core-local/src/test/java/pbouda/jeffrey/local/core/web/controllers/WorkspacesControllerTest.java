@@ -19,10 +19,14 @@
 package pbouda.jeffrey.local.core.web.controllers;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import pbouda.jeffrey.local.core.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.local.core.manager.workspace.WorkspacesManager;
-import pbouda.jeffrey.local.core.web.ControllerTest;
 import pbouda.jeffrey.local.persistence.model.RemoteWorkspaceInfo;
 import pbouda.jeffrey.local.persistence.model.WorkspaceAddress;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceStatus;
@@ -30,19 +34,13 @@ import pbouda.jeffrey.shared.common.model.workspace.WorkspaceStatus;
 import java.time.Instant;
 import java.util.List;
 
-import static org.hamcrest.Matchers.equalTo;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.when;
-import static org.springframework.http.MediaType.APPLICATION_JSON;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static pbouda.jeffrey.local.core.web.MockMvcSupport.mockMvcFor;
+import static pbouda.jeffrey.local.core.web.MockMvcSupport.mockMvcTesterFor;
 
-@ControllerTest
+@ExtendWith(MockitoExtension.class)
 class WorkspacesControllerTest {
 
     @Mock
@@ -52,7 +50,7 @@ class WorkspacesControllerTest {
     WorkspaceManager workspaceManager;
 
     @Test
-    void getsAllWorkspaces() throws Exception {
+    void getsAllWorkspaces() {
         RemoteWorkspaceInfo info = new RemoteWorkspaceInfo(
                 "ws-1",
                 "Production",
@@ -66,18 +64,19 @@ class WorkspacesControllerTest {
         doReturn(List.of(workspaceManager)).when(workspacesManager).findAll();
         when(workspaceManager.resolveInfo()).thenReturn(info);
 
-        mockMvcFor(new WorkspacesController(workspacesManager))
-                .perform(get("/api/internal/workspaces"))
-                .andExpect(status().isOk())
-                .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
-                .andExpect(jsonPath("$.length()", equalTo(1)))
-                .andExpect(jsonPath("$[0].id", equalTo("ws-1")))
-                .andExpect(jsonPath("$[0].name", equalTo("Production")))
-                .andExpect(jsonPath("$[0].projectCount", equalTo(3)));
+        MockMvcTester mvc = mockMvcTesterFor(new WorkspacesController(workspacesManager));
+
+        assertThat(mvc.get().uri("/api/internal/workspaces"))
+                .hasStatusOk()
+                .hasContentTypeCompatibleWith(MediaType.APPLICATION_JSON)
+                .bodyJson()
+                .hasPathSatisfying("$[0].id", v -> assertThat(v).asString().isEqualTo("ws-1"))
+                .hasPathSatisfying("$[0].name", v -> assertThat(v).asString().isEqualTo("Production"))
+                .hasPathSatisfying("$[0].projectCount", v -> assertThat(v).asNumber().isEqualTo(3));
     }
 
     @Test
-    void createsWorkspace() throws Exception {
+    void createsWorkspace() {
         RemoteWorkspaceInfo created = new RemoteWorkspaceInfo(
                 "ws-new",
                 "New Workspace",
@@ -88,25 +87,28 @@ class WorkspacesControllerTest {
                 0);
         when(workspacesManager.create(any(WorkspacesManager.CreateWorkspaceRequest.class))).thenReturn(created);
 
-        mockMvcFor(new WorkspacesController(workspacesManager))
-                .perform(post("/api/internal/workspaces")
-                        .contentType(APPLICATION_JSON)
-                        .content("""
-                                {"id":"ws-new","name":"New Workspace","description":"shiny"}"""))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.id", equalTo("ws-new")))
-                .andExpect(jsonPath("$.name", equalTo("New Workspace")));
+        MockMvcTester mvc = mockMvcTesterFor(new WorkspacesController(workspacesManager));
+
+        assertThat(mvc.post().uri("/api/internal/workspaces")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {"id":"ws-new","name":"New Workspace","description":"shiny"}"""))
+                .hasStatus(HttpStatus.CREATED)
+                .bodyJson()
+                .extractingPath("$.id").asString().isEqualTo("ws-new");
     }
 
     @Test
-    void rejectsCreateWithBlankId() throws Exception {
-        mockMvcFor(new WorkspacesController(workspacesManager))
-                .perform(post("/api/internal/workspaces")
-                        .contentType(APPLICATION_JSON)
-                        .content("""
-                                {"id":"","name":"x"}"""))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code", equalTo("INVALID_REQUEST")))
-                .andExpect(jsonPath("$.message", equalTo("Workspace ID is required")));
+    void rejectsCreateWithBlankId() {
+        MockMvcTester mvc = mockMvcTesterFor(new WorkspacesController(workspacesManager));
+
+        assertThat(mvc.post().uri("/api/internal/workspaces")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {"id":"","name":"x"}"""))
+                .hasStatus(HttpStatus.BAD_REQUEST)
+                .bodyJson()
+                .hasPathSatisfying("$.code", v -> assertThat(v).asString().isEqualTo("INVALID_REQUEST"))
+                .hasPathSatisfying("$.message", v -> assertThat(v).asString().isEqualTo("Workspace ID is required"));
     }
 }
