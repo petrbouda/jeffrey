@@ -28,6 +28,7 @@ import pbouda.jeffrey.local.core.manager.project.ProjectsManager;
 import pbouda.jeffrey.local.core.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.local.core.web.ProjectManagerResolver;
 import pbouda.jeffrey.local.core.web.ProjectManagerResolver.ProjectContext;
+import pbouda.jeffrey.shared.common.exception.Exceptions;
 import pbouda.jeffrey.shared.common.model.ProjectInfo;
 
 import java.time.Instant;
@@ -67,5 +68,17 @@ class ProjectSettingsControllerTest {
                 .hasStatusOk()
                 .bodyJson()
                 .extractingPath("$.name").asString().isEqualTo("demo");
+    }
+
+    @Test
+    void projectNotFoundReturns404() {
+        when(resolver.resolve("ws-1", "ghost")).thenThrow(Exceptions.projectNotFound("ghost"));
+
+        MockMvcTester mvc = mockMvcTesterFor(new ProjectSettingsController(resolver));
+
+        assertThat(mvc.get().uri("/api/internal/workspaces/ws-1/projects/ghost/settings"))
+                .hasStatus(404)
+                .bodyJson()
+                .extractingPath("$.code").asString().isEqualTo("PROJECT_NOT_FOUND");
     }
 }

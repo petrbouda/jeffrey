@@ -27,6 +27,7 @@ import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import pbouda.jeffrey.local.core.web.ProfileManagerResolver;
 import pbouda.jeffrey.profile.manager.ProfileManager;
 import pbouda.jeffrey.profile.manager.SubSecondManager;
+import pbouda.jeffrey.shared.common.exception.Exceptions;
 import pbouda.jeffrey.shared.common.model.RecordingEventSource;
 import tools.jackson.databind.node.JsonNodeFactory;
 import tools.jackson.databind.node.ObjectNode;
@@ -73,5 +74,20 @@ class SubSecondControllerTest {
                 .hasStatusOk()
                 .bodyJson()
                 .extractingPath("$.ok").asBoolean().isTrue();
+    }
+
+    @Test
+    void profileNotFoundReturns404() {
+        when(resolver.resolve("ghost")).thenThrow(Exceptions.profileNotFound("ghost"));
+
+        MockMvcTester mvc = mockMvcTesterFor(new SubSecondController(resolver));
+
+        assertThat(mvc.post().uri("/api/internal/profiles/ghost/subsecond")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {"eventType":"jdk.ObjectAllocationInNewTLAB","useWeight":false,"timeRange":null}"""))
+                .hasStatus(404)
+                .bodyJson()
+                .extractingPath("$.code").asString().isEqualTo("PROFILE_NOT_FOUND");
     }
 }

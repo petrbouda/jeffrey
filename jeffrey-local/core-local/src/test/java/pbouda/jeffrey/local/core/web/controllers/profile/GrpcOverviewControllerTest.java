@@ -27,6 +27,7 @@ import pbouda.jeffrey.local.core.web.ProfileManagerResolver;
 import pbouda.jeffrey.profile.manager.ProfileCustomManager;
 import pbouda.jeffrey.profile.manager.ProfileManager;
 import pbouda.jeffrey.profile.manager.custom.GrpcManager;
+import pbouda.jeffrey.shared.common.exception.Exceptions;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
@@ -58,5 +59,17 @@ class GrpcOverviewControllerTest {
 
         assertThat(mvc.get().uri("/api/internal/profiles/p-1/grpc/overview/traffic"))
                 .hasStatusOk();
+    }
+
+    @Test
+    void profileNotFoundReturns404() {
+        when(resolver.resolve("ghost")).thenThrow(Exceptions.profileNotFound("ghost"));
+
+        MockMvcTester mvc = mockMvcTesterFor(new GrpcOverviewController(resolver));
+
+        assertThat(mvc.get().uri("/api/internal/profiles/ghost/grpc/overview/traffic"))
+                .hasStatus(404)
+                .bodyJson()
+                .extractingPath("$.code").asString().isEqualTo("PROFILE_NOT_FOUND");
     }
 }

@@ -26,6 +26,7 @@ import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import pbouda.jeffrey.local.core.web.ProfileManagerResolver;
 import pbouda.jeffrey.profile.manager.FlamegraphManager;
 import pbouda.jeffrey.profile.manager.ProfileManager;
+import pbouda.jeffrey.shared.common.exception.Exceptions;
 
 import java.util.List;
 
@@ -61,5 +62,17 @@ class DifferentialFlamegraphControllerTest {
                 .hasStatusOk()
                 .bodyJson()
                 .extractingPath("$").asArray().isEmpty();
+    }
+
+    @Test
+    void primaryProfileNotFoundReturns404() {
+        when(resolver.resolve("ghost")).thenThrow(Exceptions.profileNotFound("ghost"));
+
+        MockMvcTester mvc = mockMvcTesterFor(new DifferentialFlamegraphController(resolver));
+
+        assertThat(mvc.get().uri("/api/internal/profiles/ghost/diff/p-2/differential-flamegraph/events"))
+                .hasStatus(404)
+                .bodyJson()
+                .extractingPath("$.code").asString().isEqualTo("PROFILE_NOT_FOUND");
     }
 }

@@ -27,6 +27,7 @@ import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import pbouda.jeffrey.local.core.web.ProfileManagerResolver;
 import pbouda.jeffrey.profile.manager.ProfileManager;
 import pbouda.jeffrey.profile.manager.ProfileToolsManager;
+import pbouda.jeffrey.shared.common.exception.Exceptions;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -58,5 +59,20 @@ class ToolsControllerTest {
                 .content("""
                         {"search":"foo","replacement":"bar"}"""))
                 .hasStatusOk();
+    }
+
+    @Test
+    void profileNotFoundReturns404() {
+        when(resolver.resolve("ghost")).thenThrow(Exceptions.profileNotFound("ghost"));
+
+        MockMvcTester mvc = mockMvcTesterFor(new ToolsController(resolver));
+
+        assertThat(mvc.post().uri("/api/internal/profiles/ghost/tools/rename-frames/preview")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {"search":"foo","replacement":"bar"}"""))
+                .hasStatus(404)
+                .bodyJson()
+                .extractingPath("$.code").asString().isEqualTo("PROFILE_NOT_FOUND");
     }
 }

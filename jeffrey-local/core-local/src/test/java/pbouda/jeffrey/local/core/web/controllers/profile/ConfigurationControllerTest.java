@@ -26,8 +26,9 @@ import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import pbouda.jeffrey.local.core.web.ProfileManagerResolver;
 import pbouda.jeffrey.profile.manager.ProfileConfigurationManager;
 import pbouda.jeffrey.profile.manager.ProfileManager;
-import tools.jackson.databind.node.ObjectNode;
+import pbouda.jeffrey.shared.common.exception.Exceptions;
 import tools.jackson.databind.node.JsonNodeFactory;
+import tools.jackson.databind.node.ObjectNode;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
@@ -58,5 +59,17 @@ class ConfigurationControllerTest {
                 .hasStatusOk()
                 .bodyJson()
                 .extractingPath("$.foo").asString().isEqualTo("bar");
+    }
+
+    @Test
+    void profileNotFoundReturns404() {
+        when(resolver.resolve("ghost")).thenThrow(Exceptions.profileNotFound("ghost"));
+
+        MockMvcTester mvc = mockMvcTesterFor(new ConfigurationController(resolver));
+
+        assertThat(mvc.get().uri("/api/internal/profiles/ghost/information"))
+                .hasStatus(404)
+                .bodyJson()
+                .extractingPath("$.code").asString().isEqualTo("PROFILE_NOT_FOUND");
     }
 }

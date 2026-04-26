@@ -27,6 +27,7 @@ import pbouda.jeffrey.local.core.web.ProfileManagerResolver;
 import pbouda.jeffrey.profile.manager.ProfileCustomManager;
 import pbouda.jeffrey.profile.manager.ProfileManager;
 import pbouda.jeffrey.profile.manager.custom.JdbcPoolManager;
+import pbouda.jeffrey.shared.common.exception.Exceptions;
 
 import java.util.List;
 
@@ -62,5 +63,17 @@ class JdbcPoolControllerTest {
                 .hasStatusOk()
                 .bodyJson()
                 .extractingPath("$").asArray().isEmpty();
+    }
+
+    @Test
+    void profileNotFoundReturns404() {
+        when(resolver.resolve("ghost")).thenThrow(Exceptions.profileNotFound("ghost"));
+
+        MockMvcTester mvc = mockMvcTesterFor(new JdbcPoolController(resolver));
+
+        assertThat(mvc.get().uri("/api/internal/profiles/ghost/jdbc/pool"))
+                .hasStatus(404)
+                .bodyJson()
+                .extractingPath("$.code").asString().isEqualTo("PROFILE_NOT_FOUND");
     }
 }

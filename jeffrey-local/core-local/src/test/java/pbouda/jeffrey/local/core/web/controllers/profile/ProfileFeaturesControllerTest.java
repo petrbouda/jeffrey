@@ -28,6 +28,7 @@ import pbouda.jeffrey.profile.ai.mcp.service.JfrAnalysisAssistantService;
 import pbouda.jeffrey.profile.manager.HeapDumpManager;
 import pbouda.jeffrey.profile.manager.ProfileFeaturesManager;
 import pbouda.jeffrey.profile.manager.ProfileManager;
+import pbouda.jeffrey.shared.common.exception.Exceptions;
 
 import java.util.List;
 
@@ -68,5 +69,17 @@ class ProfileFeaturesControllerTest {
                 .hasStatusOk()
                 .bodyJson()
                 .hasPathSatisfying("$", v -> assertThat(v).asArray().contains("AI_ANALYSIS", "HEAP_DUMP"));
+    }
+
+    @Test
+    void profileNotFoundReturns404() {
+        when(resolver.resolve("ghost")).thenThrow(Exceptions.profileNotFound("ghost"));
+
+        MockMvcTester mvc = mockMvcTesterFor(new ProfileFeaturesController(resolver, assistantService));
+
+        assertThat(mvc.get().uri("/api/internal/profiles/ghost/features/disabled"))
+                .hasStatus(404)
+                .bodyJson()
+                .extractingPath("$.code").asString().isEqualTo("PROFILE_NOT_FOUND");
     }
 }

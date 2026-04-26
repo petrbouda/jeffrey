@@ -26,6 +26,7 @@ import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import pbouda.jeffrey.local.core.web.ProfileManagerResolver;
 import pbouda.jeffrey.profile.manager.AdditionalFilesManager;
 import pbouda.jeffrey.profile.manager.ProfileManager;
+import pbouda.jeffrey.shared.common.exception.Exceptions;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
@@ -54,5 +55,17 @@ class PerformanceCountersControllerTest {
         assertThat(mvc.get().uri("/api/internal/profiles/p-1/perfcounters/exists"))
                 .hasStatusOk()
                 .bodyText().isEqualTo("false");
+    }
+
+    @Test
+    void profileNotFoundReturns404() {
+        when(resolver.resolve("ghost")).thenThrow(Exceptions.profileNotFound("ghost"));
+
+        MockMvcTester mvc = mockMvcTesterFor(new PerformanceCountersController(resolver));
+
+        assertThat(mvc.get().uri("/api/internal/profiles/ghost/perfcounters/exists"))
+                .hasStatus(404)
+                .bodyJson()
+                .extractingPath("$.code").asString().isEqualTo("PROFILE_NOT_FOUND");
     }
 }

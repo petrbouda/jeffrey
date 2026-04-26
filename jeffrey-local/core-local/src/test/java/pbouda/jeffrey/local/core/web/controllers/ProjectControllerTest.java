@@ -28,6 +28,7 @@ import pbouda.jeffrey.local.core.manager.project.ProjectsManager;
 import pbouda.jeffrey.local.core.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.local.core.web.ProjectManagerResolver;
 import pbouda.jeffrey.local.core.web.ProjectManagerResolver.ProjectContext;
+import pbouda.jeffrey.shared.common.exception.Exceptions;
 import pbouda.jeffrey.shared.common.model.ProjectInfo;
 
 import java.time.Instant;
@@ -73,5 +74,29 @@ class ProjectControllerTest {
 
         assertThat(mvc.post().uri("/api/internal/workspaces/ws-1/projects/p-1/restore"))
                 .hasStatusOk();
+    }
+
+    @Test
+    void projectNotFoundReturns404() {
+        when(resolver.resolve("ws-1", "ghost")).thenThrow(Exceptions.projectNotFound("ghost"));
+
+        MockMvcTester mvc = mockMvcTesterFor(new ProjectController(resolver));
+
+        assertThat(mvc.get().uri("/api/internal/workspaces/ws-1/projects/ghost"))
+                .hasStatus(404)
+                .bodyJson()
+                .extractingPath("$.code").asString().isEqualTo("PROJECT_NOT_FOUND");
+    }
+
+    @Test
+    void workspaceNotFoundReturns404() {
+        when(resolver.resolve("ghost", "p-1")).thenThrow(Exceptions.workspaceNotFound("ghost"));
+
+        MockMvcTester mvc = mockMvcTesterFor(new ProjectController(resolver));
+
+        assertThat(mvc.get().uri("/api/internal/workspaces/ghost/projects/p-1"))
+                .hasStatus(404)
+                .bodyJson()
+                .extractingPath("$.code").asString().isEqualTo("WORKSPACE_NOT_FOUND");
     }
 }

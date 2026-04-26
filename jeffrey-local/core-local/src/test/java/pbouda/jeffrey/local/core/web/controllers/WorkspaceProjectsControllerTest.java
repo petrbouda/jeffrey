@@ -26,6 +26,7 @@ import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import pbouda.jeffrey.local.core.manager.project.ProjectsManager;
 import pbouda.jeffrey.local.core.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.local.core.web.ProjectManagerResolver;
+import pbouda.jeffrey.shared.common.exception.Exceptions;
 
 import java.util.List;
 
@@ -72,5 +73,17 @@ class WorkspaceProjectsControllerTest {
                 .hasStatusOk()
                 .bodyJson()
                 .extractingPath("$").asArray().isEmpty();
+    }
+
+    @Test
+    void workspaceNotFoundReturns404() {
+        when(resolver.resolveWorkspace("ghost")).thenThrow(Exceptions.workspaceNotFound("ghost"));
+
+        MockMvcTester mvc = mockMvcTesterFor(new WorkspaceProjectsController(resolver));
+
+        assertThat(mvc.get().uri("/api/internal/workspaces/ghost/projects"))
+                .hasStatus(404)
+                .bodyJson()
+                .extractingPath("$.code").asString().isEqualTo("WORKSPACE_NOT_FOUND");
     }
 }

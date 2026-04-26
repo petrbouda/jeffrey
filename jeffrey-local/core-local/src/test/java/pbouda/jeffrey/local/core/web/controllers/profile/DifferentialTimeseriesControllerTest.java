@@ -27,6 +27,7 @@ import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import pbouda.jeffrey.local.core.web.ProfileManagerResolver;
 import pbouda.jeffrey.profile.manager.ProfileManager;
 import pbouda.jeffrey.profile.manager.TimeseriesManager;
+import pbouda.jeffrey.shared.common.exception.Exceptions;
 import pbouda.jeffrey.timeseries.TimeseriesData;
 
 import java.util.List;
@@ -67,5 +68,22 @@ class DifferentialTimeseriesControllerTest {
                         "excludeNonJavaSamples":false,"excludeIdleSamples":false,\
                         "onlyUnsafeAllocationSamples":false}"""))
                 .hasStatusOk();
+    }
+
+    @Test
+    void primaryProfileNotFoundReturns404() {
+        when(resolver.resolve("ghost")).thenThrow(Exceptions.profileNotFound("ghost"));
+
+        MockMvcTester mvc = mockMvcTesterFor(new DifferentialTimeseriesController(resolver));
+
+        assertThat(mvc.post().uri("/api/internal/profiles/ghost/diff/p-2/differential-timeseries")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {"eventType":"jdk.ObjectAllocationInNewTLAB","useWeight":false,\
+                        "excludeNonJavaSamples":false,"excludeIdleSamples":false,\
+                        "onlyUnsafeAllocationSamples":false}"""))
+                .hasStatus(404)
+                .bodyJson()
+                .extractingPath("$.code").asString().isEqualTo("PROFILE_NOT_FOUND");
     }
 }

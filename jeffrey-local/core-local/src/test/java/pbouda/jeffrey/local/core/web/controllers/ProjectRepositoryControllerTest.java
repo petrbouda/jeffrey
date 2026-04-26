@@ -29,6 +29,7 @@ import pbouda.jeffrey.local.core.manager.project.ProjectsManager;
 import pbouda.jeffrey.local.core.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.local.core.web.ProjectManagerResolver;
 import pbouda.jeffrey.local.core.web.ProjectManagerResolver.ProjectContext;
+import pbouda.jeffrey.shared.common.exception.Exceptions;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -71,5 +72,18 @@ class ProjectRepositoryControllerTest {
                 .hasStatusOk()
                 .bodyJson()
                 .extractingPath("$").asArray().isEmpty();
+    }
+
+    @Test
+    void projectNotFoundReturns404() {
+        when(resolver.resolve("ws-1", "ghost")).thenThrow(Exceptions.projectNotFound("ghost"));
+
+        Clock clock = Clock.fixed(Instant.parse("2026-04-26T12:00:00Z"), ZoneOffset.UTC);
+        MockMvcTester mvc = mockMvcTesterFor(new ProjectRepositoryController(resolver, clock));
+
+        assertThat(mvc.get().uri("/api/internal/workspaces/ws-1/projects/ghost/repository/sessions"))
+                .hasStatus(404)
+                .bodyJson()
+                .extractingPath("$.code").asString().isEqualTo("PROJECT_NOT_FOUND");
     }
 }

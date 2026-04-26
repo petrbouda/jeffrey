@@ -26,6 +26,7 @@ import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import pbouda.jeffrey.local.core.web.ProfileManagerResolver;
 import pbouda.jeffrey.profile.manager.ProfileManager;
 import pbouda.jeffrey.profile.manager.ThreadManager;
+import pbouda.jeffrey.shared.common.exception.Exceptions;
 import pbouda.jeffrey.timeseries.SingleSerie;
 
 import java.util.List;
@@ -58,5 +59,17 @@ class ThreadControllerTest {
                 .hasStatusOk()
                 .bodyJson()
                 .extractingPath("$.name").asString().isEqualTo("threads");
+    }
+
+    @Test
+    void profileNotFoundReturns404() {
+        when(resolver.resolve("ghost")).thenThrow(Exceptions.profileNotFound("ghost"));
+
+        MockMvcTester mvc = mockMvcTesterFor(new ThreadController(resolver));
+
+        assertThat(mvc.get().uri("/api/internal/profiles/ghost/thread/timeseries"))
+                .hasStatus(404)
+                .bodyJson()
+                .extractingPath("$.code").asString().isEqualTo("PROFILE_NOT_FOUND");
     }
 }

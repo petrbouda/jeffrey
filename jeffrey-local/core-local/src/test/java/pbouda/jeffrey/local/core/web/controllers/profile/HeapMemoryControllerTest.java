@@ -27,6 +27,7 @@ import pbouda.jeffrey.local.core.web.ProfileManagerResolver;
 import pbouda.jeffrey.profile.manager.HeapMemoryManager;
 import pbouda.jeffrey.profile.manager.ProfileManager;
 import pbouda.jeffrey.profile.manager.model.heap.HeapMemoryTimeseriesType;
+import pbouda.jeffrey.shared.common.exception.Exceptions;
 import pbouda.jeffrey.timeseries.SingleSerie;
 
 import java.util.List;
@@ -59,5 +60,17 @@ class HeapMemoryControllerTest {
 
         assertThat(mvc.get().uri("/api/internal/profiles/p-1/heap-memory/timeseries?timeseriesType=ALLOCATION"))
                 .hasStatusOk();
+    }
+
+    @Test
+    void profileNotFoundReturns404() {
+        when(resolver.resolve("ghost")).thenThrow(Exceptions.profileNotFound("ghost"));
+
+        MockMvcTester mvc = mockMvcTesterFor(new HeapMemoryController(resolver));
+
+        assertThat(mvc.get().uri("/api/internal/profiles/ghost/heap-memory/timeseries?timeseriesType=ALLOCATION"))
+                .hasStatus(404)
+                .bodyJson()
+                .extractingPath("$.code").asString().isEqualTo("PROFILE_NOT_FOUND");
     }
 }

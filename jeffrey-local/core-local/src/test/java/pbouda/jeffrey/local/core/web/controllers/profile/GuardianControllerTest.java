@@ -26,6 +26,7 @@ import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import pbouda.jeffrey.local.core.web.ProfileManagerResolver;
 import pbouda.jeffrey.profile.manager.GuardianManager;
 import pbouda.jeffrey.profile.manager.ProfileManager;
+import pbouda.jeffrey.shared.common.exception.Exceptions;
 
 import java.util.List;
 
@@ -57,5 +58,17 @@ class GuardianControllerTest {
                 .hasStatusOk()
                 .bodyJson()
                 .extractingPath("$").asArray().isEmpty();
+    }
+
+    @Test
+    void profileNotFoundReturns404() {
+        when(resolver.resolve("ghost")).thenThrow(Exceptions.profileNotFound("ghost"));
+
+        MockMvcTester mvc = mockMvcTesterFor(new GuardianController(resolver));
+
+        assertThat(mvc.get().uri("/api/internal/profiles/ghost/guardian"))
+                .hasStatus(404)
+                .bodyJson()
+                .extractingPath("$.code").asString().isEqualTo("PROFILE_NOT_FOUND");
     }
 }

@@ -27,6 +27,7 @@ import pbouda.jeffrey.local.core.web.ProfileManagerResolver;
 import pbouda.jeffrey.profile.manager.GarbageCollectionManager;
 import pbouda.jeffrey.profile.manager.ProfileManager;
 import pbouda.jeffrey.profile.manager.model.gc.GCTimeseriesType;
+import pbouda.jeffrey.shared.common.exception.Exceptions;
 import pbouda.jeffrey.timeseries.TimeseriesData;
 
 import java.util.List;
@@ -58,5 +59,17 @@ class GarbageCollectionControllerTest {
 
         assertThat(mvc.get().uri("/api/internal/profiles/p-1/gc/timeseries?timeseriesType=COUNT"))
                 .hasStatusOk();
+    }
+
+    @Test
+    void profileNotFoundReturns404() {
+        when(resolver.resolve("ghost")).thenThrow(Exceptions.profileNotFound("ghost"));
+
+        MockMvcTester mvc = mockMvcTesterFor(new GarbageCollectionController(resolver));
+
+        assertThat(mvc.get().uri("/api/internal/profiles/ghost/gc/timeseries?timeseriesType=COUNT"))
+                .hasStatus(404)
+                .bodyJson()
+                .extractingPath("$.code").asString().isEqualTo("PROFILE_NOT_FOUND");
     }
 }
