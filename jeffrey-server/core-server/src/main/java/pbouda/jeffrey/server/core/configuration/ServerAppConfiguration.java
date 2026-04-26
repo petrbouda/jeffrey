@@ -53,7 +53,6 @@ import pbouda.jeffrey.server.core.streaming.LiveStreamingManager;
 import pbouda.jeffrey.server.core.streaming.ReplayStreamingManager;
 import pbouda.jeffrey.server.core.streaming.FileHeartbeatReader;
 import pbouda.jeffrey.server.core.web.WebInfrastructureConfig;
-import pbouda.jeffrey.server.core.web.controllers.DebugController;
 import pbouda.jeffrey.server.core.web.controllers.GrpcDocsController;
 import pbouda.jeffrey.server.core.web.controllers.VersionController;
 import pbouda.jeffrey.server.core.web.controllers.WorkspacesController;
@@ -266,10 +265,5 @@ public class ServerAppConfiguration {
     @Bean
     public GrpcDocsController grpcDocsController() {
         return new GrpcDocsController();
-    }
-
-    @Bean
-    public DebugController debugController() {
-        return new DebugController();
     }
 }
