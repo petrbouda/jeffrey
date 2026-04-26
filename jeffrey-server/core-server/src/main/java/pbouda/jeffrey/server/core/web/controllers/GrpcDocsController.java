@@ -18,27 +18,29 @@
 
 package pbouda.jeffrey.server.core.web.controllers;
 
-import org.springframework.core.io.InputStreamResource;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.io.IOException;
 import java.io.InputStream;
 
 @RestController
 @RequestMapping("/api/internal/grpc-docs")
 public class GrpcDocsController {
 
-    @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<InputStreamResource> getGrpcDocs() {
-        InputStream stream = getClass().getClassLoader().getResourceAsStream("grpc-api-docs.json");
-        if (stream == null) {
-            return ResponseEntity.notFound().build();
+    @GetMapping
+    public void getGrpcDocs(HttpServletResponse response) throws IOException {
+        try (InputStream stream = getClass().getClassLoader().getResourceAsStream("grpc-api-docs.json")) {
+            if (stream == null) {
+                response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+                return;
+            }
+            response.setStatus(HttpServletResponse.SC_OK);
+            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+            stream.transferTo(response.getOutputStream());
         }
-        return ResponseEntity.ok()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(new InputStreamResource(stream));
     }
 }

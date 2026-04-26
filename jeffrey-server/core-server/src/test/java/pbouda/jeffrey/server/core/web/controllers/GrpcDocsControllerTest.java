@@ -19,6 +19,7 @@
 package pbouda.jeffrey.server.core.web.controllers;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -27,12 +28,15 @@ import static pbouda.jeffrey.server.core.web.MockMvcSupport.mockMvcTesterFor;
 class GrpcDocsControllerTest {
 
     @Test
-    void returns404WhenDocsResourceMissing() {
-        // grpc-api-docs.json is generated at build time by the exec plugin; it's
-        // not on the test classpath, so the controller should return 404.
+    void servesGrpcDocsAsJson() {
+        // grpc-api-docs.json is generated at build time by shared/server-api's exec
+        // plugin and ships in its target/classes, so it's reliably on the test
+        // classpath via the Maven dependency.
         MockMvcTester mvc = mockMvcTesterFor(new GrpcDocsController());
 
         assertThat(mvc.get().uri("/api/internal/grpc-docs"))
-                .hasStatus(404);
+                .hasStatusOk()
+                .hasContentType(MediaType.APPLICATION_JSON)
+                .bodyText().isNotEmpty().startsWith("{");
     }
 }
