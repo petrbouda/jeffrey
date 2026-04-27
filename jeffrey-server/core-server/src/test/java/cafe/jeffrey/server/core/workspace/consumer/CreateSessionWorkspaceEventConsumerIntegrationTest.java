@@ -31,10 +31,10 @@ import cafe.jeffrey.server.core.scheduler.job.descriptor.ProjectsSynchronizerJob
 import cafe.jeffrey.server.core.streaming.SessionFinisher;
 import cafe.jeffrey.shared.common.model.workspace.event.SessionCreatedEventContent;
 import cafe.jeffrey.server.persistence.jdbc.JdbcServerPlatformRepositories;
-import cafe.jeffrey.server.persistence.repository.jdbc.JdbcProjectRepositoryRepository;
-import cafe.jeffrey.server.persistence.repository.ServerPlatformRepositories;
-import cafe.jeffrey.server.persistence.repository.ProjectInstanceRepository;
-import cafe.jeffrey.server.persistence.repository.ProjectRepositoryRepository;
+import cafe.jeffrey.server.persistence.jdbc.JdbcProjectRepositoryRepository;
+import cafe.jeffrey.server.persistence.api.ServerPlatformRepositories;
+import cafe.jeffrey.server.persistence.api.ProjectInstanceRepository;
+import cafe.jeffrey.server.persistence.api.ProjectRepositoryRepository;
 import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.server.core.ServerJeffreyDirs;
 import cafe.jeffrey.shared.common.model.ProjectInfo;

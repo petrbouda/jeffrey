@@ -22,7 +22,7 @@ import cafe.jeffrey.server.core.manager.ProfilerSettingsManager;
 import cafe.jeffrey.server.core.manager.RepositoryManager;
 import cafe.jeffrey.server.core.manager.SchedulerManager;
 import cafe.jeffrey.server.core.project.repository.RepositoryStorage;
-import cafe.jeffrey.server.persistence.repository.ProjectInstanceRepository;
+import cafe.jeffrey.server.persistence.api.ProjectInstanceRepository;
 import cafe.jeffrey.shared.common.model.ProjectInfo;
 import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceEventCreator;

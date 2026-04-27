@@ -23,7 +23,7 @@ import org.springframework.context.annotation.Configuration;
 import cafe.jeffrey.server.core.project.repository.RepositoryStorage;
 import cafe.jeffrey.server.core.streaming.SessionFinisher;
 import cafe.jeffrey.server.core.workspace.consumer.*;
-import cafe.jeffrey.server.persistence.repository.ServerPlatformRepositories;
+import cafe.jeffrey.server.persistence.api.ServerPlatformRepositories;
 import cafe.jeffrey.server.core.ServerJeffreyDirs;
 
 import java.time.Clock;

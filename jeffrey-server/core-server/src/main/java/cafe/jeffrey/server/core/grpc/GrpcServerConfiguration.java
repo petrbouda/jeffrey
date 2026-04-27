@@ -36,7 +36,7 @@ import cafe.jeffrey.server.core.project.repository.RepositoryStorage;
 import cafe.jeffrey.server.core.streaming.LiveStreamingManager;
 import cafe.jeffrey.server.core.streaming.ReplayStreamingManager;
 import cafe.jeffrey.server.core.workspace.WorkspaceEventReader;
-import cafe.jeffrey.server.persistence.repository.ServerPlatformRepositories;
+import cafe.jeffrey.server.persistence.api.ServerPlatformRepositories;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;

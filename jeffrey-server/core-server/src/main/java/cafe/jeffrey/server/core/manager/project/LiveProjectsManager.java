@@ -24,8 +24,8 @@ import cafe.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 import cafe.jeffrey.server.core.project.pipeline.Pipeline;
 import cafe.jeffrey.shared.common.model.CreateProject;
 import cafe.jeffrey.server.core.project.pipeline.CreateProjectContext;
-import cafe.jeffrey.server.persistence.repository.ProjectsRepository;
-import cafe.jeffrey.server.persistence.repository.ServerPlatformRepositories;
+import cafe.jeffrey.server.persistence.api.ProjectsRepository;
+import cafe.jeffrey.server.persistence.api.ServerPlatformRepositories;
 
 import java.util.List;
 import java.util.Optional;

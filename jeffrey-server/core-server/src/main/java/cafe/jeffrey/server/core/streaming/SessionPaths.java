@@ -19,7 +19,7 @@
 package cafe.jeffrey.server.core.streaming;
 
 import cafe.jeffrey.server.core.ServerJeffreyDirs;
-import cafe.jeffrey.server.persistence.model.SessionWithRepository;
+import cafe.jeffrey.server.persistence.api.SessionWithRepository;
 import cafe.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
 import cafe.jeffrey.shared.common.model.RepositoryInfo;
 

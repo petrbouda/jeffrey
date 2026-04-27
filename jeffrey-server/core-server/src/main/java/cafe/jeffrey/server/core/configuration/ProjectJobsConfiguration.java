@@ -33,7 +33,7 @@ import cafe.jeffrey.server.core.scheduler.job.descriptor.JobDescriptorFactory;
 import cafe.jeffrey.server.core.streaming.FileHeartbeatReader;
 import cafe.jeffrey.server.core.streaming.SessionFinisher;
 import cafe.jeffrey.server.core.workspace.WorkspaceEventPublisher;
-import cafe.jeffrey.server.persistence.repository.ServerPlatformRepositories;
+import cafe.jeffrey.server.persistence.api.ServerPlatformRepositories;
 
 import java.time.Clock;
 import java.time.Duration;

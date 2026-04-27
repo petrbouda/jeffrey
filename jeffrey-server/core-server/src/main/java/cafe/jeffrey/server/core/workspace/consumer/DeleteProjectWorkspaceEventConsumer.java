@@ -26,7 +26,7 @@ import cafe.jeffrey.shared.common.model.workspace.WorkspaceEvent;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceEventType;
 import cafe.jeffrey.server.core.manager.project.ProjectManager;
 import cafe.jeffrey.server.core.manager.project.ProjectsManager;
-import cafe.jeffrey.server.persistence.repository.ServerPlatformRepositories;
+import cafe.jeffrey.server.persistence.api.ServerPlatformRepositories;
 import cafe.jeffrey.server.core.scheduler.job.descriptor.ProjectsSynchronizerJobDescriptor;
 
 import java.util.Optional;

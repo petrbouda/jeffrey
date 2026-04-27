@@ -20,7 +20,7 @@ package cafe.jeffrey.server.core.manager.workspace;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import cafe.jeffrey.server.persistence.repository.WorkspacesRepository;
+import cafe.jeffrey.server.persistence.api.WorkspacesRepository;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceStatus;
 

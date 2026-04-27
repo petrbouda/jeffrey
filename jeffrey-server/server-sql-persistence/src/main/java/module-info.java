@@ -25,11 +25,7 @@ module cafe.jeffrey.server.persistence.sql {
     requires org.slf4j;
 
     exports cafe.jeffrey.server.persistence.jdbc;
-    exports cafe.jeffrey.server.persistence.repository.jdbc;
 
-    // Flyway loads SQL migrations via ClassLoader.getResourceAsStream;
-    // db/migration/server is a valid Java package path, so JPMS encapsulates
-    // the resources unless the package is opened. Unqualified — qualified opens
-    // to flyway.core didn't take effect under IntelliJ's module-aware launcher.
+    // Flyway loads SQL migrations via ClassLoader.getResourceAsStream; Loading of SQL Schemas
     opens db.migration.server;
 }

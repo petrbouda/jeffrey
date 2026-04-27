@@ -33,8 +33,8 @@ import cafe.jeffrey.server.core.manager.project.ProjectManager.DetailedProjectIn
 import cafe.jeffrey.server.core.manager.project.ProjectsManager;
 import cafe.jeffrey.server.core.manager.workspace.WorkspaceManager;
 import cafe.jeffrey.server.core.manager.workspace.WorkspacesManager;
-import cafe.jeffrey.server.persistence.repository.ProjectRepository;
-import cafe.jeffrey.server.persistence.repository.ServerPlatformRepositories;
+import cafe.jeffrey.server.persistence.api.ProjectRepository;
+import cafe.jeffrey.server.persistence.api.ServerPlatformRepositories;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceEventCreator;
 
 import java.io.IOException;

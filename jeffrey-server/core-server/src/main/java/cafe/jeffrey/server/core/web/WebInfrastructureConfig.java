@@ -20,13 +20,6 @@ package cafe.jeffrey.server.core.web;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.converter.HttpMessageConverter;
-import org.springframework.http.converter.json.JacksonJsonHttpMessageConverter;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
-import cafe.jeffrey.shared.common.Json;
-import tools.jackson.databind.json.JsonMapper;
-
-import java.util.List;
 
 /**
  * Wires the server's Spring MVC web infrastructure: Jackson 3 message converter
@@ -34,26 +27,6 @@ import java.util.List;
  */
 @Configuration
 public class WebInfrastructureConfig {
-
-    @Bean
-    public WebMvcConfigurer jeffreyWebMvcConfigurer(JacksonJsonHttpMessageConverter jacksonConverter) {
-        return new WebMvcConfigurer() {
-            @Override
-            public void configureMessageConverters(List<HttpMessageConverter<?>> converters) {
-                converters.add(0, jacksonConverter);
-            }
-        };
-    }
-
-    /**
-     * Spring 7's native Jackson 3 ({@code tools.jackson}) converter, configured
-     * with the shared {@link Json#mapper()} so custom serializers apply at the
-     * HTTP boundary.
-     */
-    @Bean
-    public JacksonJsonHttpMessageConverter jacksonJsonHttpMessageConverter() {
-        return new JacksonJsonHttpMessageConverter((JsonMapper) Json.mapper());
-    }
 
     @Bean
     public JeffreyExceptionHandler jeffreyExceptionHandler() {

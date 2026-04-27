@@ -21,7 +21,7 @@ package cafe.jeffrey.server.core.project.repository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.server.core.project.repository.file.FileInfoProcessor;
-import cafe.jeffrey.server.persistence.repository.ProjectRepositoryRepository;
+import cafe.jeffrey.server.persistence.api.ProjectRepositoryRepository;
 import cafe.jeffrey.shared.common.compression.Lz4Compressor;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;

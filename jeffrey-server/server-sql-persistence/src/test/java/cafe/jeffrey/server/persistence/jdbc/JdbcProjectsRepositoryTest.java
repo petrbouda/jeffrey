@@ -16,11 +16,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.server.persistence.repository.jdbc;
+package cafe.jeffrey.server.persistence.jdbc;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import cafe.jeffrey.server.persistence.model.CreateProject;
+import cafe.jeffrey.server.persistence.api.CreateProject;
 import cafe.jeffrey.shared.common.model.GraphVisualization;
 import cafe.jeffrey.shared.common.model.ProjectInfo;
 import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;

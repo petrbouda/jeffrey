@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.server.persistence.model;
+package cafe.jeffrey.server.persistence.api;
 
 import cafe.jeffrey.shared.common.model.GraphVisualization;
 import cafe.jeffrey.shared.common.model.ProjectInfo;

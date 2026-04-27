@@ -19,7 +19,5 @@ module cafe.jeffrey.server.persistence.api {
     requires transitive cafe.jeffrey.shared.common;
     requires transitive cafe.jeffrey.shared.persistence;
 
-    exports cafe.jeffrey.server.persistence;
-    exports cafe.jeffrey.server.persistence.model;
-    exports cafe.jeffrey.server.persistence.repository;
+    exports cafe.jeffrey.server.persistence.api;
 }

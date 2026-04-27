@@ -16,9 +16,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.server.persistence.repository.jdbc;
+package cafe.jeffrey.server.persistence.jdbc;
 
-import cafe.jeffrey.server.persistence.repository.SchedulerRepository;
+import cafe.jeffrey.server.persistence.api.SchedulerRepository;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.shared.common.model.job.JobInfo;

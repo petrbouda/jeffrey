@@ -23,7 +23,7 @@ import org.slf4j.LoggerFactory;
 import cafe.jeffrey.shared.common.IDGenerator;
 import cafe.jeffrey.shared.common.model.job.JobInfo;
 import cafe.jeffrey.shared.common.model.job.JobType;
-import cafe.jeffrey.server.persistence.repository.SchedulerRepository;
+import cafe.jeffrey.server.persistence.api.SchedulerRepository;
 
 import java.util.List;
 import java.util.Map;

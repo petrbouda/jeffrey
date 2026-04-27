@@ -35,7 +35,7 @@ import cafe.jeffrey.server.core.scheduler.job.WorkspaceEventsReplicatorJob;
 import cafe.jeffrey.server.core.scheduler.job.WorkspaceProfilerSettingsSynchronizerJob;
 import cafe.jeffrey.server.core.scheduler.job.descriptor.JobDescriptorFactory;
 import cafe.jeffrey.server.core.workspace.consumer.WorkspaceEventConsumer;
-import cafe.jeffrey.server.persistence.repository.ServerPlatformRepositories;
+import cafe.jeffrey.server.persistence.api.ServerPlatformRepositories;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceEvent;
 import cafe.jeffrey.shared.folderqueue.FolderQueue;
 import cafe.jeffrey.shared.persistentqueue.PersistentQueue;

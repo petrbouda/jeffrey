@@ -16,9 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.server.persistence;
+package cafe.jeffrey.server.persistence.api;
 
-import cafe.jeffrey.server.persistence.repository.ServerPlatformRepositories;
 import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
 
 import java.time.Clock;

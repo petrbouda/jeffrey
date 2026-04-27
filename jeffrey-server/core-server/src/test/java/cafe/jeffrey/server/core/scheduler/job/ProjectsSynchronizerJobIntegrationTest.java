@@ -40,7 +40,7 @@ import cafe.jeffrey.shared.common.model.workspace.event.InstanceCreatedEventCont
 import cafe.jeffrey.shared.common.model.workspace.event.ProjectCreatedEventContent;
 import cafe.jeffrey.shared.common.model.workspace.event.SessionCreatedEventContent;
 import cafe.jeffrey.server.persistence.jdbc.JdbcServerPlatformRepositories;
-import cafe.jeffrey.server.persistence.repository.ServerPlatformRepositories;
+import cafe.jeffrey.server.persistence.api.ServerPlatformRepositories;
 import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.server.core.ServerJeffreyDirs;
 import cafe.jeffrey.shared.common.model.ProjectInfo;

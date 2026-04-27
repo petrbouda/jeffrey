@@ -16,9 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.server.persistence.repository;
+package cafe.jeffrey.server.persistence.api;
 
-import cafe.jeffrey.server.persistence.model.SessionWithRepository;
 import cafe.jeffrey.shared.common.model.ProjectInstanceInfo;
 import cafe.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
 

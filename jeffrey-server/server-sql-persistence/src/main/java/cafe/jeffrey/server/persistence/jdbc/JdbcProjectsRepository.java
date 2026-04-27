@@ -16,13 +16,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.server.persistence.repository.jdbc;
+package cafe.jeffrey.server.persistence.jdbc;
 
-import cafe.jeffrey.server.persistence.repository.ProjectsRepository;
+import cafe.jeffrey.server.persistence.api.ProjectsRepository;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.shared.common.model.ProjectInfo;
-import cafe.jeffrey.server.persistence.model.CreateProject;
+import cafe.jeffrey.server.persistence.api.CreateProject;
 import cafe.jeffrey.shared.persistence.GroupLabel;
 import cafe.jeffrey.shared.persistence.StatementLabel;
 import cafe.jeffrey.shared.persistence.client.DatabaseClient;

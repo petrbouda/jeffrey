@@ -30,9 +30,9 @@ import org.junit.jupiter.api.Test;
 import cafe.jeffrey.server.api.v1.*;
 import cafe.jeffrey.server.core.manager.ProfilerSettingsManager;
 import cafe.jeffrey.server.core.manager.project.ProjectManager;
-import cafe.jeffrey.server.persistence.repository.ProfilerRepository;
-import cafe.jeffrey.server.persistence.repository.ProjectRepository;
-import cafe.jeffrey.server.persistence.repository.ServerPlatformRepositories;
+import cafe.jeffrey.server.persistence.api.ProfilerRepository;
+import cafe.jeffrey.server.persistence.api.ProjectRepository;
+import cafe.jeffrey.server.persistence.api.ServerPlatformRepositories;
 import cafe.jeffrey.shared.common.model.EffectiveProfilerSettings;
 import cafe.jeffrey.shared.common.model.ProfilerInfo;
 

@@ -19,7 +19,7 @@
 package cafe.jeffrey.server.core.manager;
 
 import cafe.jeffrey.server.core.EffectiveSettingsResolver;
-import cafe.jeffrey.server.persistence.repository.ProfilerRepository;
+import cafe.jeffrey.server.persistence.api.ProfilerRepository;
 import cafe.jeffrey.shared.common.model.EffectiveProfilerSettings;
 import cafe.jeffrey.shared.common.model.ProfilerInfo;
 

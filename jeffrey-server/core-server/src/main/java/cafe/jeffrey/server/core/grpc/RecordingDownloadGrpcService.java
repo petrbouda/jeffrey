@@ -25,8 +25,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.server.api.v1.*;
 import cafe.jeffrey.server.core.manager.RepositoryManager;
-import cafe.jeffrey.server.persistence.model.SessionWithRepository;
-import cafe.jeffrey.server.persistence.repository.ServerPlatformRepositories;
+import cafe.jeffrey.server.persistence.api.SessionWithRepository;
+import cafe.jeffrey.server.persistence.api.ServerPlatformRepositories;
 import cafe.jeffrey.shared.common.model.repository.StreamedRecordingFile;
 
 import java.io.IOException;

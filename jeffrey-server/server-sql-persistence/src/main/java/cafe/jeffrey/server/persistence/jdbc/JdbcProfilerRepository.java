@@ -16,9 +16,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.server.persistence.repository.jdbc;
+package cafe.jeffrey.server.persistence.jdbc;
 
-import cafe.jeffrey.server.persistence.repository.ProfilerRepository;
+import cafe.jeffrey.server.persistence.api.ProfilerRepository;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;

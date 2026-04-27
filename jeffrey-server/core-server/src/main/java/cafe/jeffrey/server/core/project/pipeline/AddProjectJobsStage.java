@@ -24,8 +24,8 @@ import cafe.jeffrey.shared.common.IDGenerator;
 import cafe.jeffrey.server.core.project.template.ProjectTemplate;
 import cafe.jeffrey.server.core.project.template.ProjectTemplatesLoader;
 import cafe.jeffrey.shared.common.model.job.JobInfo;
-import cafe.jeffrey.server.persistence.repository.SchedulerRepository;
-import cafe.jeffrey.server.persistence.repository.ServerPlatformRepositories;
+import cafe.jeffrey.server.persistence.api.SchedulerRepository;
+import cafe.jeffrey.server.persistence.api.ServerPlatformRepositories;
 import cafe.jeffrey.server.core.scheduler.JobDefinition;
 import cafe.jeffrey.server.core.scheduler.JobDefinitionLoader;
 

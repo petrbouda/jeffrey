@@ -24,8 +24,8 @@ import cafe.jeffrey.shared.common.model.GraphVisualization;
 import cafe.jeffrey.shared.common.model.ProjectInfo;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 import cafe.jeffrey.server.core.configuration.properties.ProjectProperties;
-import cafe.jeffrey.server.persistence.repository.ProjectsRepository;
-import cafe.jeffrey.server.persistence.model.CreateProject;
+import cafe.jeffrey.server.persistence.api.ProjectsRepository;
+import cafe.jeffrey.server.persistence.api.CreateProject;
 
 import java.time.Clock;
 import java.util.Map;

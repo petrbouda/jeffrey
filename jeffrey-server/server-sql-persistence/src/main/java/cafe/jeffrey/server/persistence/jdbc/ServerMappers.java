@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.server.persistence.repository.jdbc;
+package cafe.jeffrey.server.persistence.jdbc;
 
 import org.springframework.jdbc.core.RowMapper;
 import cafe.jeffrey.shared.common.Json;
@@ -43,27 +43,6 @@ public abstract class ServerMappers {
             return dateTime.toInstant();
         }
         return null;
-    }
-
-    public static Instant safeParseTimestamp(long timestamp) {
-        return timestamp == 0 ? null : Instant.ofEpochMilli(timestamp);
-    }
-
-    public static RowMapper<ProfileInfo> profileInfoMapper() {
-        return (rs, _) -> {
-            return new ProfileInfo(
-                    rs.getString("profile_id"),
-                    rs.getString("project_id"),
-                    null,
-                    rs.getString("profile_name"),
-                    RecordingEventSource.valueOf(rs.getString("event_source")),
-                    ServerMappers.instant(rs, "recording_started_at"),
-                    ServerMappers.instant(rs, "recording_finished_at"),
-                    ServerMappers.instant(rs, "created_at"),
-                    safeParseTimestamp(rs.getLong("enabled_at")) != null,
-                    false,
-                    null);
-        };
     }
 
     public static RowMapper<JobInfo> jobInfoMapper() {

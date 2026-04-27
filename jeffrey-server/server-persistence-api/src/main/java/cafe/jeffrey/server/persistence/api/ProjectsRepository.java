@@ -16,10 +16,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.server.persistence.repository;
+package cafe.jeffrey.server.persistence.api;
 
 import cafe.jeffrey.shared.common.model.ProjectInfo;
-import cafe.jeffrey.server.persistence.model.CreateProject;
 
 import java.util.List;
 import java.util.Optional;

@@ -30,7 +30,7 @@ import cafe.jeffrey.server.core.project.pipeline.CreateProjectStage;
 import cafe.jeffrey.server.core.project.pipeline.Pipeline;
 import cafe.jeffrey.server.core.project.pipeline.ProjectCreatePipeline;
 import cafe.jeffrey.server.core.project.pipeline.ProjectPipelineCustomizer;
-import cafe.jeffrey.server.persistence.repository.ServerPlatformRepositories;
+import cafe.jeffrey.server.persistence.api.ServerPlatformRepositories;
 
 import java.time.Clock;
 

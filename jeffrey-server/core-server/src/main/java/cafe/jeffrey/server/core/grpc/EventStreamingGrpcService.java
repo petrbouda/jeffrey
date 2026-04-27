@@ -29,8 +29,8 @@ import cafe.jeffrey.server.api.v1.ReplayStreamingRequest;
 import cafe.jeffrey.server.core.ServerJeffreyDirs;
 import cafe.jeffrey.server.core.project.repository.RepositoryStorage;
 import cafe.jeffrey.server.core.streaming.*;
-import cafe.jeffrey.server.persistence.model.SessionWithRepository;
-import cafe.jeffrey.server.persistence.repository.ServerPlatformRepositories;
+import cafe.jeffrey.server.persistence.api.SessionWithRepository;
+import cafe.jeffrey.server.persistence.api.ServerPlatformRepositories;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 
 import java.nio.file.Path;

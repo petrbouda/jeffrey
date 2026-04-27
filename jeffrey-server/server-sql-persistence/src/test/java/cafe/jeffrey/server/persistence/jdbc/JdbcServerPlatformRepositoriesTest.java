@@ -19,7 +19,7 @@
 package cafe.jeffrey.server.persistence.jdbc;
 
 import org.junit.jupiter.api.Test;
-import cafe.jeffrey.server.persistence.model.SessionWithRepository;
+import cafe.jeffrey.server.persistence.api.SessionWithRepository;
 import cafe.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
 import cafe.jeffrey.shared.common.model.RepositoryType;
 import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
