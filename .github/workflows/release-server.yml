@@ -64,7 +64,7 @@ jobs:
         JIB_TO_AUTH_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
         JIB_TO_AUTH_PASSWORD: ${{ secrets.DOCKERHUB_TOKEN }}
       run: |
-        mvn -pl build/build-server-jib jib:build \
+        mvn -pl build/build-server-jib compile jib:build \
           -Djib.from.platforms=linux/amd64 \
           -Djib.to.image=petrbouda/jeffrey-server:${{ steps.version.outputs.VERSION }} \
           -Djib.to.tags=latest
