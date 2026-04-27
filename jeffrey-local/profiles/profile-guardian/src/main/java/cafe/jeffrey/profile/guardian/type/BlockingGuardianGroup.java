@@ -26,7 +26,7 @@ import cafe.jeffrey.profile.guardian.GuardianProperties;
 import cafe.jeffrey.profile.guardian.guard.GroupKind;
 import cafe.jeffrey.profile.guardian.guard.Guard;
 import cafe.jeffrey.profile.guardian.guard.GuardRegistry;
-import cafe.jeffrey.provider.profile.repository.ProfileEventStreamRepository;
+import cafe.jeffrey.provider.profile.api.ProfileEventStreamRepository;
 
 import java.util.List;
 

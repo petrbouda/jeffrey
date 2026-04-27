@@ -26,10 +26,10 @@ import cafe.jeffrey.shared.common.model.RecordingFile;
 import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
 import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
 import cafe.jeffrey.local.core.persistence.NewRecordingHolder;
-import cafe.jeffrey.provider.profile.RecordingInformationParser;
+import cafe.jeffrey.provider.profile.api.RecordingInformationParser;
 import cafe.jeffrey.local.core.persistence.NewRecording;
-import cafe.jeffrey.provider.profile.model.recording.RecordingInformation;
-import cafe.jeffrey.local.persistence.repository.RecordingRepository;
+import cafe.jeffrey.provider.profile.api.RecordingInformation;
+import cafe.jeffrey.local.persistence.api.RecordingRepository;
 import cafe.jeffrey.storage.recording.api.ProjectRecordingStorage;
 
 import java.nio.file.Path;

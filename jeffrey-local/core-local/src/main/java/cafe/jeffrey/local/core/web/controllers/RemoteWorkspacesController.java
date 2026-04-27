@@ -34,7 +34,7 @@ import cafe.jeffrey.local.core.resources.request.RemoteWorkspaceConnectionReques
 import cafe.jeffrey.local.core.resources.request.RemoteWorkspacesRequest;
 import cafe.jeffrey.local.core.resources.response.RemoteWorkspaceResponse;
 import cafe.jeffrey.local.core.resources.response.WorkspaceResponse;
-import cafe.jeffrey.local.persistence.model.WorkspaceAddress;
+import cafe.jeffrey.local.persistence.api.WorkspaceAddress;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 
 import java.util.List;

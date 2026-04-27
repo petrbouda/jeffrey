@@ -28,11 +28,11 @@ import cafe.jeffrey.local.core.manager.workspace.WorkspaceManager;
 import cafe.jeffrey.local.core.client.CachedRemoteClientsFactory;
 import cafe.jeffrey.local.core.client.RemoteClients;
 import cafe.jeffrey.local.core.manager.workspace.RemoteWorkspaceManager;
-import cafe.jeffrey.local.persistence.repository.JdbcWorkspaceRepository;
-import cafe.jeffrey.local.persistence.repository.JdbcWorkspacesRepository;
-import cafe.jeffrey.local.persistence.repository.WorkspacesRepository;
+import cafe.jeffrey.local.persistence.jdbc.JdbcWorkspaceRepository;
+import cafe.jeffrey.local.persistence.jdbc.JdbcWorkspacesRepository;
+import cafe.jeffrey.local.persistence.api.WorkspacesRepository;
 import cafe.jeffrey.local.core.recording.ProjectRecordingInitializer;
-import cafe.jeffrey.local.persistence.LocalCorePersistenceProvider;
+import cafe.jeffrey.local.persistence.api.LocalCorePersistenceProvider;
 
 @Configuration
 @Import(AppConfiguration.class)

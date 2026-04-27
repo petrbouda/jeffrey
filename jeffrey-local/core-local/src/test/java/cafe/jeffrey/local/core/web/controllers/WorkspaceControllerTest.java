@@ -26,8 +26,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import cafe.jeffrey.local.core.manager.workspace.WorkspaceManager;
 import cafe.jeffrey.local.core.web.ProjectManagerResolver;
-import cafe.jeffrey.local.persistence.model.RemoteWorkspaceInfo;
-import cafe.jeffrey.local.persistence.model.WorkspaceAddress;
+import cafe.jeffrey.local.persistence.api.RemoteWorkspaceInfo;
+import cafe.jeffrey.local.persistence.api.WorkspaceAddress;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceStatus;
 

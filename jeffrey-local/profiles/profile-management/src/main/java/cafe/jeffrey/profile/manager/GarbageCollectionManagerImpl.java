@@ -31,11 +31,11 @@ import cafe.jeffrey.profile.manager.model.gc.GCGenerationTimeseriesBuilder;
 import cafe.jeffrey.profile.manager.model.gc.GCOverviewData;
 import cafe.jeffrey.profile.manager.model.gc.GCTimeseriesType;
 import cafe.jeffrey.profile.manager.model.gc.configuration.GCConfigurationData;
-import cafe.jeffrey.provider.profile.builder.RecordBuilder;
-import cafe.jeffrey.provider.profile.repository.EventQueryConfigurer;
-import cafe.jeffrey.provider.profile.repository.ProfileEventRepository;
-import cafe.jeffrey.provider.profile.repository.ProfileEventStreamRepository;
-import cafe.jeffrey.provider.profile.model.GenericRecord;
+import cafe.jeffrey.provider.profile.api.RecordBuilder;
+import cafe.jeffrey.provider.profile.api.EventQueryConfigurer;
+import cafe.jeffrey.provider.profile.api.ProfileEventRepository;
+import cafe.jeffrey.provider.profile.api.ProfileEventStreamRepository;
+import cafe.jeffrey.provider.profile.api.GenericRecord;
 import cafe.jeffrey.timeseries.TimeseriesData;
 
 import java.util.List;

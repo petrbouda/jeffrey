@@ -23,7 +23,7 @@ import cafe.jeffrey.shared.common.model.Type;
 import cafe.jeffrey.profile.feature.FeatureCheckResult;
 import cafe.jeffrey.profile.feature.FeatureType;
 import cafe.jeffrey.profile.manager.additional.PerfCountersAdditionalFileProcessor;
-import cafe.jeffrey.provider.profile.repository.ProfileCacheRepository;
+import cafe.jeffrey.provider.profile.api.ProfileCacheRepository;
 
 import java.util.Map;
 

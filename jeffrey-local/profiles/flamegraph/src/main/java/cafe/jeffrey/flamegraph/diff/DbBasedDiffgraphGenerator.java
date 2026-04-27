@@ -29,7 +29,7 @@ import cafe.jeffrey.flamegraph.provider.TimeseriesDataProvider;
 import cafe.jeffrey.frameir.DiffFrame;
 import cafe.jeffrey.frameir.DiffTreeGenerator;
 import cafe.jeffrey.frameir.Frame;
-import cafe.jeffrey.provider.profile.repository.ProfileEventStreamRepository;
+import cafe.jeffrey.provider.profile.api.ProfileEventStreamRepository;
 import cafe.jeffrey.timeseries.SingleSerie;
 import cafe.jeffrey.timeseries.TimeseriesData;
 import cafe.jeffrey.timeseries.TimeseriesUtils;

@@ -24,8 +24,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import cafe.jeffrey.provider.profile.model.JvmFlagDetail;
-import cafe.jeffrey.provider.profile.repository.ProfileEventRepository;
+import cafe.jeffrey.provider.profile.api.JvmFlagDetail;
+import cafe.jeffrey.provider.profile.api.ProfileEventRepository;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -20,9 +20,9 @@ package cafe.jeffrey.profile.manager.builder;
 
 import tools.jackson.databind.node.ObjectNode;
 import cafe.jeffrey.shared.common.Json;
-import cafe.jeffrey.provider.profile.builder.RecordBuilder;
+import cafe.jeffrey.provider.profile.api.RecordBuilder;
 import cafe.jeffrey.profile.common.event.JITLongCompilation;
-import cafe.jeffrey.provider.profile.model.GenericRecord;
+import cafe.jeffrey.provider.profile.api.GenericRecord;
 
 import java.util.ArrayList;
 import java.util.Comparator;

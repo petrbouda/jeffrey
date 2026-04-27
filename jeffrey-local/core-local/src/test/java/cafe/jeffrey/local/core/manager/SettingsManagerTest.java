@@ -25,8 +25,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.core.env.Environment;
-import cafe.jeffrey.local.persistence.model.Setting;
-import cafe.jeffrey.local.persistence.repository.SettingsRepository;
+import cafe.jeffrey.local.persistence.api.Setting;
+import cafe.jeffrey.local.persistence.api.SettingsRepository;
 import cafe.jeffrey.shared.common.encryption.MachineFingerprint;
 import cafe.jeffrey.shared.common.encryption.SecretEncryptor;
 

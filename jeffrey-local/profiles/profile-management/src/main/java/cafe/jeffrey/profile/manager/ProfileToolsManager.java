@@ -18,7 +18,7 @@
 
 package cafe.jeffrey.profile.manager;
 
-import cafe.jeffrey.provider.profile.repository.ProfileFrameRepository.FrameRenamePreview;
+import cafe.jeffrey.provider.profile.api.ProfileFrameRepository.FrameRenamePreview;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
 
 import java.util.List;

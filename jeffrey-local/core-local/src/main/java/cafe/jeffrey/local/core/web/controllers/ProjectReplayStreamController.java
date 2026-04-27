@@ -18,6 +18,8 @@
 
 package cafe.jeffrey.local.core.web.controllers;
 
+import cafe.jeffrey.local.grpc.client.*;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
@@ -27,8 +29,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
-import cafe.jeffrey.local.core.client.RemoteEventStreamingClient.EventStreamingSubscription;
-import cafe.jeffrey.local.core.client.ReplaySubscriptionRequest;
+import cafe.jeffrey.local.grpc.client.RemoteEventStreamingClient.EventStreamingSubscription;
+import cafe.jeffrey.local.grpc.client.ReplaySubscriptionRequest;
 import cafe.jeffrey.local.core.manager.EventStreamingManager;
 import cafe.jeffrey.local.core.manager.project.ProjectManager;
 import cafe.jeffrey.local.core.web.ProjectManagerResolver;

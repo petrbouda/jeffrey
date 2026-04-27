@@ -7,9 +7,9 @@ import cafe.jeffrey.flamegraph.FlameGraphProtoBuilder;
 import cafe.jeffrey.flamegraph.proto.FlamegraphData;
 import cafe.jeffrey.frameir.Frame;
 import cafe.jeffrey.frameir.FrameBuilder;
-import cafe.jeffrey.provider.profile.model.FlamegraphRecord;
-import cafe.jeffrey.provider.profile.query.DuckDBFlamegraphQueries;
-import cafe.jeffrey.provider.profile.query.FlamegraphRecordRowMapper;
+import cafe.jeffrey.provider.profile.api.FlamegraphRecord;
+import cafe.jeffrey.provider.profile.jdbc.DuckDBFlamegraphQueries;
+import cafe.jeffrey.provider.profile.jdbc.FlamegraphRecordRowMapper;
 import cafe.jeffrey.shared.persistence.SimpleJdbcDataSource;
 
 import javax.sql.DataSource;

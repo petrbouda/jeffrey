@@ -28,7 +28,7 @@ import cafe.jeffrey.jfrparser.api.type.JfrThread;
 import cafe.jeffrey.profile.manager.custom.model.method.MethodTracingSlowestData;
 import cafe.jeffrey.profile.manager.custom.model.method.MethodTracingSlowestHeader;
 import cafe.jeffrey.profile.manager.custom.model.method.SlowestMethodTrace;
-import cafe.jeffrey.provider.profile.model.GenericRecord;
+import cafe.jeffrey.provider.profile.api.GenericRecord;
 import cafe.jeffrey.shared.common.model.Type;
 
 import java.time.Duration;

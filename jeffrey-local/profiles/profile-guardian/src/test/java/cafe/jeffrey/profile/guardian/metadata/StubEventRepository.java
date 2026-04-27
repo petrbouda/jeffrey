@@ -20,11 +20,11 @@ package cafe.jeffrey.profile.guardian.metadata;
 
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.ObjectNode;
-import cafe.jeffrey.provider.profile.model.AllocatingThread;
-import cafe.jeffrey.provider.profile.model.EventDurationStats;
-import cafe.jeffrey.provider.profile.model.JvmFlag;
-import cafe.jeffrey.provider.profile.model.JvmFlagDetail;
-import cafe.jeffrey.provider.profile.repository.ProfileEventRepository;
+import cafe.jeffrey.provider.profile.api.AllocatingThread;
+import cafe.jeffrey.provider.profile.api.EventDurationStats;
+import cafe.jeffrey.provider.profile.api.JvmFlag;
+import cafe.jeffrey.provider.profile.api.JvmFlagDetail;
+import cafe.jeffrey.provider.profile.api.ProfileEventRepository;
 import cafe.jeffrey.shared.common.model.Type;
 
 import java.util.HashMap;

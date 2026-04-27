@@ -23,8 +23,8 @@ import cafe.jeffrey.shared.common.model.Type;
 import cafe.jeffrey.shared.common.model.time.RelativeTimeRange;
 import cafe.jeffrey.profile.manager.custom.builder.HttpOverviewEventBuilder;
 import cafe.jeffrey.profile.manager.custom.model.http.HttpOverviewData;
-import cafe.jeffrey.provider.profile.repository.EventQueryConfigurer;
-import cafe.jeffrey.provider.profile.repository.ProfileEventStreamRepository;
+import cafe.jeffrey.provider.profile.api.EventQueryConfigurer;
+import cafe.jeffrey.provider.profile.api.ProfileEventStreamRepository;
 
 import java.util.function.Predicate;
 

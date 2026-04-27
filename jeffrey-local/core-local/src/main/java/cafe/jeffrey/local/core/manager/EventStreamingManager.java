@@ -18,15 +18,17 @@
 
 package cafe.jeffrey.local.core.manager;
 
+import cafe.jeffrey.local.grpc.client.*;
+
 import tools.jackson.databind.node.ArrayNode;
 import tools.jackson.databind.node.ObjectNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import cafe.jeffrey.local.core.client.LiveSubscriptionRequest;
-import cafe.jeffrey.local.core.client.RemoteEventStreamingClient;
-import cafe.jeffrey.local.core.client.RemoteEventStreamingClient.EventStreamingSubscription;
-import cafe.jeffrey.local.core.client.ReplaySubscriptionRequest;
-import cafe.jeffrey.local.core.client.StreamingCallbacks;
+import cafe.jeffrey.local.grpc.client.LiveSubscriptionRequest;
+import cafe.jeffrey.local.grpc.client.RemoteEventStreamingClient;
+import cafe.jeffrey.local.grpc.client.RemoteEventStreamingClient.EventStreamingSubscription;
+import cafe.jeffrey.local.grpc.client.ReplaySubscriptionRequest;
+import cafe.jeffrey.local.grpc.client.StreamingCallbacks;
 import cafe.jeffrey.server.api.v1.EventBatch;
 import cafe.jeffrey.server.api.v1.StreamingEvent;
 import cafe.jeffrey.server.api.v1.TypedValue;

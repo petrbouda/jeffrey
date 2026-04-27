@@ -25,7 +25,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.local.core.web.ProfileManagerResolver;
-import cafe.jeffrey.profile.ai.mcp.service.JfrAnalysisAssistantService;
+import cafe.jeffrey.profile.ai.oql.duckdb.service.JfrAnalysisAssistantService;
 import cafe.jeffrey.profile.feature.FeatureType;
 import cafe.jeffrey.profile.manager.HeapDumpManager;
 import cafe.jeffrey.profile.manager.ProfileManager;

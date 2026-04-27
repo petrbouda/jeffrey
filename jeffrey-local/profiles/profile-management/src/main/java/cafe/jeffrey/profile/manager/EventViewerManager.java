@@ -22,7 +22,7 @@ import tools.jackson.databind.JsonNode;
 import cafe.jeffrey.shared.common.model.Type;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
 import cafe.jeffrey.profile.common.treetable.EventViewerData;
-import cafe.jeffrey.provider.profile.model.FieldDescription;
+import cafe.jeffrey.provider.profile.api.FieldDescription;
 
 import java.util.List;
 import java.util.function.Function;

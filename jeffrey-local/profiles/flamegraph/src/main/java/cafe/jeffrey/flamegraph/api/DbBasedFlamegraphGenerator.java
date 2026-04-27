@@ -26,7 +26,7 @@ import cafe.jeffrey.flamegraph.proto.TimeseriesPoint;
 import cafe.jeffrey.flamegraph.proto.TimeseriesSeries;
 import cafe.jeffrey.flamegraph.provider.FlamegraphDataProvider;
 import cafe.jeffrey.flamegraph.provider.TimeseriesDataProvider;
-import cafe.jeffrey.provider.profile.repository.ProfileEventStreamRepository;
+import cafe.jeffrey.provider.profile.api.ProfileEventStreamRepository;
 import cafe.jeffrey.timeseries.SingleSerie;
 import cafe.jeffrey.timeseries.TimeseriesData;
 

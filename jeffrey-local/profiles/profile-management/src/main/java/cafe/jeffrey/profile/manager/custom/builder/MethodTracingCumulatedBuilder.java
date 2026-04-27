@@ -22,8 +22,8 @@ import cafe.jeffrey.jfrparser.api.type.JfrMethod;
 import cafe.jeffrey.profile.manager.custom.model.method.CumulatedStats;
 import cafe.jeffrey.profile.manager.custom.model.method.CumulationMode;
 import cafe.jeffrey.profile.manager.custom.model.method.MethodTracingCumulatedData;
-import cafe.jeffrey.provider.profile.builder.RecordBuilder;
-import cafe.jeffrey.provider.profile.model.GenericRecord;
+import cafe.jeffrey.provider.profile.api.RecordBuilder;
+import cafe.jeffrey.provider.profile.api.GenericRecord;
 
 import java.util.Comparator;
 import java.util.HashMap;

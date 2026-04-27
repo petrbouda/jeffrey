@@ -29,7 +29,7 @@ import cafe.jeffrey.profile.guardian.guard.Guard;
 import cafe.jeffrey.profile.guardian.guard.TotalSamplesGuard;
 import cafe.jeffrey.profile.guardian.preconditions.Preconditions;
 import cafe.jeffrey.profile.guardian.traverse.FrameTraversal;
-import cafe.jeffrey.provider.profile.repository.ProfileEventStreamRepository;
+import cafe.jeffrey.provider.profile.api.ProfileEventStreamRepository;
 
 import java.util.ArrayList;
 import java.util.List;

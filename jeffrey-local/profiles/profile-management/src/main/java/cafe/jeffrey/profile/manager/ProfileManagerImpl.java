@@ -24,7 +24,7 @@ import cafe.jeffrey.profile.manager.registry.ProfileManagerFactoryRegistry;
 import cafe.jeffrey.profile.tools.collapse.CollapseFramesManager;
 
 
-import cafe.jeffrey.local.persistence.repository.ProfileRepository;
+import cafe.jeffrey.local.persistence.api.ProfileRepository;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
 

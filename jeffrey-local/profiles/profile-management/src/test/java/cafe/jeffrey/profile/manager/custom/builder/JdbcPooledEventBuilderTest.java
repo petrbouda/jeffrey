@@ -25,7 +25,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import cafe.jeffrey.profile.manager.custom.builder.JdbcPooledEventBuilder.Pool;
 import cafe.jeffrey.profile.manager.custom.builder.JdbcPooledEventBuilder.PoolEvent;
-import cafe.jeffrey.provider.profile.model.GenericRecord;
+import cafe.jeffrey.provider.profile.api.GenericRecord;
 import cafe.jeffrey.shared.common.model.Type;
 
 import java.time.Duration;

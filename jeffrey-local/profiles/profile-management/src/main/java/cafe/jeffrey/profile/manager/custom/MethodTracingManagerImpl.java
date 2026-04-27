@@ -28,8 +28,8 @@ import cafe.jeffrey.profile.manager.custom.model.method.CumulationMode;
 import cafe.jeffrey.profile.manager.custom.model.method.MethodTracingCumulatedData;
 import cafe.jeffrey.profile.manager.custom.model.method.MethodTracingOverviewData;
 import cafe.jeffrey.profile.manager.custom.model.method.MethodTracingSlowestData;
-import cafe.jeffrey.provider.profile.repository.EventQueryConfigurer;
-import cafe.jeffrey.provider.profile.repository.ProfileEventStreamRepository;
+import cafe.jeffrey.provider.profile.api.EventQueryConfigurer;
+import cafe.jeffrey.provider.profile.api.ProfileEventStreamRepository;
 
 public class MethodTracingManagerImpl implements MethodTracingManager {
 

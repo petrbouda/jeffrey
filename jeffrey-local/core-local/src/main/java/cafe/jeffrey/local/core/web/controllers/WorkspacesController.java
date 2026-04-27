@@ -32,7 +32,7 @@ import cafe.jeffrey.local.core.manager.workspace.WorkspacesManager;
 import cafe.jeffrey.local.core.resources.request.CreateWorkspaceRequest;
 import cafe.jeffrey.local.core.resources.response.WorkspaceResponse;
 import cafe.jeffrey.local.core.resources.workspace.Mappers;
-import cafe.jeffrey.local.persistence.model.RemoteWorkspaceInfo;
+import cafe.jeffrey.local.persistence.api.RemoteWorkspaceInfo;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 
 import java.util.List;

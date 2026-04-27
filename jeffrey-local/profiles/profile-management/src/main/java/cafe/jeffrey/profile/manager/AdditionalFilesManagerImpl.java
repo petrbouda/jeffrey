@@ -27,7 +27,7 @@ import cafe.jeffrey.profile.manager.additional.HeapDumpAdditionalFileProcessor;
 import cafe.jeffrey.profile.manager.additional.PerfCountersAdditionalFileProcessor;
 import cafe.jeffrey.profile.manager.additional.ProcessingResult;
 import cafe.jeffrey.profile.manager.model.PerfCounter;
-import cafe.jeffrey.provider.profile.repository.ProfileCacheRepository;
+import cafe.jeffrey.provider.profile.api.ProfileCacheRepository;
 import cafe.jeffrey.storage.recording.api.ProjectRecordingStorage;
 
 import java.io.IOException;

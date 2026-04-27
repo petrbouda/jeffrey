@@ -21,7 +21,7 @@ package cafe.jeffrey.generator.subsecond.db;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import cafe.jeffrey.provider.profile.model.SubSecondRecord;
+import cafe.jeffrey.provider.profile.api.SubSecondRecord;
 
 import static org.junit.jupiter.api.Assertions.*;
 

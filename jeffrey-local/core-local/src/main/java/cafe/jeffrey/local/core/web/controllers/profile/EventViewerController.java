@@ -27,7 +27,7 @@ import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.local.core.web.ProfileManagerResolver;
 import cafe.jeffrey.profile.common.treetable.EventViewerData;
 import cafe.jeffrey.profile.manager.EventViewerManager;
-import cafe.jeffrey.provider.profile.model.FieldDescription;
+import cafe.jeffrey.provider.profile.api.FieldDescription;
 import cafe.jeffrey.shared.common.model.Type;
 import tools.jackson.databind.JsonNode;
 

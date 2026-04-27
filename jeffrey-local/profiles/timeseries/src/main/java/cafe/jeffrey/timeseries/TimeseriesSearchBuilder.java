@@ -20,8 +20,8 @@ package cafe.jeffrey.timeseries;
 
 import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap;
 import cafe.jeffrey.shared.common.model.time.RelativeTimeRange;
-import cafe.jeffrey.provider.profile.builder.RecordBuilder;
-import cafe.jeffrey.provider.profile.model.TimeseriesSearchRecord;
+import cafe.jeffrey.provider.profile.api.RecordBuilder;
+import cafe.jeffrey.provider.profile.api.TimeseriesSearchRecord;
 
 public class TimeseriesSearchBuilder implements RecordBuilder<TimeseriesSearchRecord, TimeseriesData> {
 

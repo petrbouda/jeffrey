@@ -20,9 +20,9 @@ package cafe.jeffrey.profile.configuration;
 
 import org.springframework.context.annotation.Bean;
 import cafe.jeffrey.profile.manager.custom.*;
-import cafe.jeffrey.provider.profile.DatabaseManagerResolver;
-import cafe.jeffrey.provider.profile.ProfilePersistenceProvider;
-import cafe.jeffrey.provider.profile.repository.ProfileRepositories;
+import cafe.jeffrey.provider.profile.api.DatabaseManagerResolver;
+import cafe.jeffrey.provider.profile.api.ProfilePersistenceProvider;
+import cafe.jeffrey.provider.profile.api.ProfileRepositories;
 import cafe.jeffrey.shared.common.model.Type;
 
 import javax.sql.DataSource;

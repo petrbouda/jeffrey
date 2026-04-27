@@ -23,7 +23,7 @@ import cafe.jeffrey.profile.common.analysis.AnalysisResult.Severity;
 import cafe.jeffrey.profile.guardian.GuardianProperties;
 import cafe.jeffrey.profile.guardian.GuardianPropertiesTestDefaults;
 import cafe.jeffrey.profile.guardian.GuardianResult;
-import cafe.jeffrey.provider.profile.model.EventDurationStats;
+import cafe.jeffrey.provider.profile.api.EventDurationStats;
 import cafe.jeffrey.shared.common.model.Type;
 
 import java.util.Optional;

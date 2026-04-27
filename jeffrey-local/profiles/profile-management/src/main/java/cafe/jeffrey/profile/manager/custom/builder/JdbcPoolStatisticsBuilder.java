@@ -19,8 +19,8 @@
 package cafe.jeffrey.profile.manager.custom.builder;
 
 import tools.jackson.databind.node.ObjectNode;
-import cafe.jeffrey.provider.profile.builder.RecordBuilder;
-import cafe.jeffrey.provider.profile.model.GenericRecord;
+import cafe.jeffrey.provider.profile.api.RecordBuilder;
+import cafe.jeffrey.provider.profile.api.GenericRecord;
 
 import java.util.ArrayList;
 import java.util.HashMap;

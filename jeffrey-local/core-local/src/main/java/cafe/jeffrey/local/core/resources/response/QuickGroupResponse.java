@@ -18,7 +18,7 @@
 
 package cafe.jeffrey.local.core.resources.response;
 
-import cafe.jeffrey.local.persistence.model.RecordingGroup;
+import cafe.jeffrey.local.persistence.api.RecordingGroup;
 import cafe.jeffrey.shared.common.InstantUtils;
 
 public record QuickGroupResponse(

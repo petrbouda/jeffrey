@@ -19,10 +19,10 @@
 package cafe.jeffrey.frameir;
 
 import cafe.jeffrey.profile.common.config.GraphParameters;
-import cafe.jeffrey.provider.profile.builder.RecordBuilder;
-import cafe.jeffrey.provider.profile.repository.EventQueryConfigurer;
-import cafe.jeffrey.provider.profile.repository.ProfileEventStreamRepository;
-import cafe.jeffrey.provider.profile.model.FlamegraphRecord;
+import cafe.jeffrey.provider.profile.api.RecordBuilder;
+import cafe.jeffrey.provider.profile.api.EventQueryConfigurer;
+import cafe.jeffrey.provider.profile.api.ProfileEventStreamRepository;
+import cafe.jeffrey.provider.profile.api.FlamegraphRecord;
 
 public class RecordsFrameIterator {
 

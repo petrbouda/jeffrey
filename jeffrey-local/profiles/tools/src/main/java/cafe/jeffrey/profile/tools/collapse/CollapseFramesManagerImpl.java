@@ -20,11 +20,11 @@ package cafe.jeffrey.profile.tools.collapse;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import cafe.jeffrey.provider.profile.repository.ProfileCacheRepository;
-import cafe.jeffrey.provider.profile.repository.ProfileToolsRepository;
-import cafe.jeffrey.provider.profile.repository.ProfileToolsRepository.StacktraceRecord;
-import cafe.jeffrey.provider.profile.model.EventFrame;
-import cafe.jeffrey.provider.profile.writer.SingleThreadHasher;
+import cafe.jeffrey.provider.profile.api.ProfileCacheRepository;
+import cafe.jeffrey.provider.profile.api.ProfileToolsRepository;
+import cafe.jeffrey.provider.profile.api.ProfileToolsRepository.StacktraceRecord;
+import cafe.jeffrey.provider.profile.api.EventFrame;
+import cafe.jeffrey.provider.profile.jdbc.SingleThreadHasher;
 
 import java.util.*;
 

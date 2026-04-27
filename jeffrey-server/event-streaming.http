@@ -1,0 +1,82 @@
+# =============================================================================
+# Jeffrey EventStreamingService — Manual gRPC Test Client
+# =============================================================================
+
+@host = localhost:443
+@sessionId = 019d64e4-735e-791f-85a7-12e55e1cadb1
+
+### 1. Minimal — drain existing events up to "now" and end
+# Only the required fields. continuous defaults to false and no end_time
+# is set, so the server uses clock.instant() as the cutoff. The stream
+# delivers any buffered events from the streaming repository and then
+# closes cleanly. Good baseline smoke test.
+GRPC {{host}}/jeffrey.server.api.v1.EventStreamingService/SubscribeEvents
+Content-Type: application/json
+
+{
+  "sessionId": "{{sessionId}}",
+  "eventTypes": ["jdk.CPULoad"],
+  "startTime": 0
+}
+
+### 2. Live continuous with heartbeats
+# Stays open indefinitely. sendEmptyBatches=true makes the server push an
+# empty EventBatch every JFR flush cycle (~1s) so you can see the stream
+# is alive even when no matching events arrive. Cancel from the Services
+# tool window when done — server log should show
+# "Client disconnected, closing subscriber stream" at INFO level.
+GRPC {{host}}/jeffrey.server.api.v1.EventStreamingService/SubscribeEvents
+Content-Type: application/json
+
+{
+  "sessionId": "{{sessionId}}",
+  "eventTypes": ["jdk.CPULoad", "jdk.GCHeapSummary", "jdk.ThreadStart", "jdk.ThreadEnd"],
+  "continuous": true,
+  "sendEmptyBatches": true
+}
+
+
+### 3. Historical replay — bounded time range
+# Replays a fixed window from the streaming repository. Stream auto-stops
+# once the latest delivered event timestamp reaches endTime. Replace the
+# epoch-millis values below with a real window for your session.
+GRPC {{host}}/jeffrey.server.api.v1.EventStreamingService/SubscribeEvents
+Content-Type: application/json
+
+{
+  "sessionId": "{{sessionId}}",
+  "eventTypes": ["jdk.GCHeapSummary"],
+  "startTime": 1759795200000,
+  "endTime": 1759795260000,
+  "continuous": false
+}
+
+
+### 4. Replay then live — catch-up plus tail
+# startTime is set AND continuous=true. The server first replays everything
+# from startTime out of the streaming repository, then keeps the stream
+# open and tails new events as they arrive. endTime is ignored because
+# continuous=true.
+GRPC {{host}}/jeffrey.server.api.v1.EventStreamingService/SubscribeEvents
+Content-Type: application/json
+
+{
+  "sessionId": "{{sessionId}}",
+  "eventTypes": ["jdk.ObjectAllocationSample"],
+  "startTime": 1759795200000,
+  "continuous": true,
+  "sendEmptyBatches": true
+}
+
+
+### 5. Validation error — empty eventTypes (expect INVALID_ARGUMENT)
+# Confirms server-side validation is wired up. Expected response is a gRPC
+# error with status INVALID_ARGUMENT and message
+# "At least one event type must be specified".
+GRPC {{host}}/jeffrey.server.api.v1.EventStreamingService/SubscribeEvents
+Content-Type: application/json
+
+{
+  "sessionId": "{{sessionId}}",
+  "eventTypes": []
+}

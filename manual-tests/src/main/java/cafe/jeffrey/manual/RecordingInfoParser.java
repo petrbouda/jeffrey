@@ -2,7 +2,7 @@ package cafe.jeffrey.manual;
 
 import cafe.jeffrey.shared.common.filesystem.TempDirFactory;
 import cafe.jeffrey.profile.parser.JfrRecordingInformationParser;
-import cafe.jeffrey.provider.profile.model.recording.RecordingInformation;
+import cafe.jeffrey.provider.profile.api.RecordingInformation;
 
 import java.nio.file.Path;
 

@@ -23,7 +23,7 @@ import cafe.jeffrey.local.core.client.RemoteClients;
 import cafe.jeffrey.local.core.manager.*;
 import cafe.jeffrey.local.core.manager.workspace.RemoteRecordingsDownloadManager;
 import cafe.jeffrey.local.core.recording.ProjectRecordingInitializer;
-import cafe.jeffrey.local.persistence.repository.LocalCoreRepositories;
+import cafe.jeffrey.local.persistence.api.LocalCoreRepositories;
 import cafe.jeffrey.shared.common.model.ProjectInfo;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceEventCreator;
 

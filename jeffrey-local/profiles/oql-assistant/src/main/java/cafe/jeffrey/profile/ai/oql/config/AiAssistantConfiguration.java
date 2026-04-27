@@ -1,0 +1,65 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2025 Petr Bouda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+package cafe.jeffrey.profile.ai.oql.config;
+
+import cafe.jeffrey.profile.ai.oql.service.HeapDumpContextExtractor;
+import cafe.jeffrey.profile.ai.oql.service.NoOpOqlAssistantService;
+import cafe.jeffrey.profile.ai.oql.service.OqlAssistantService;
+import cafe.jeffrey.profile.ai.oql.service.OqlAssistantServiceImpl;
+import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.model.ChatModel;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.context.annotation.Bean;
+import cafe.jeffrey.profile.ai.oql.prompt.OqlSystemPrompt;
+
+public class AiAssistantConfiguration {
+
+    /**
+     * Create the OQL Assistant Service when AI is enabled and a ChatModel is available.
+     */
+    @Bean
+    @ConditionalOnExpression("'${jeffrey.local.ai.provider:none}' != 'none'")
+    public OqlAssistantService oqlAssistantService(
+            ChatModel chatModel,
+            @Value("${jeffrey.local.ai.provider}") String providerName) {
+        ChatClient chatClient = ChatClient.builder(chatModel)
+                .defaultSystem(OqlSystemPrompt.SYSTEM_PROMPT)
+                .build();
+        return new OqlAssistantServiceImpl(chatClient, providerName);
+    }
+
+    /**
+     * Create a no-op service when AI is not configured or no ChatModel is available.
+     */
+    @Bean
+    @ConditionalOnMissingBean(OqlAssistantService.class)
+    public OqlAssistantService noOpOqlAssistantService() {
+        return new NoOpOqlAssistantService();
+    }
+
+    /**
+     * Create the heap dump context extractor.
+     */
+    @Bean
+    public HeapDumpContextExtractor heapDumpContextExtractor() {
+        return new HeapDumpContextExtractor();
+    }
+}

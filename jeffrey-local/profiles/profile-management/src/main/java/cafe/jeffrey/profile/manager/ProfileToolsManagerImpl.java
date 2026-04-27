@@ -20,8 +20,8 @@ package cafe.jeffrey.profile.manager;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import cafe.jeffrey.provider.profile.repository.ProfileCacheRepository;
-import cafe.jeffrey.provider.profile.repository.ProfileFrameRepository;
+import cafe.jeffrey.provider.profile.api.ProfileCacheRepository;
+import cafe.jeffrey.provider.profile.api.ProfileFrameRepository;
 
 public class ProfileToolsManagerImpl implements ProfileToolsManager {
 

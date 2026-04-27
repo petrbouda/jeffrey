@@ -19,10 +19,10 @@
 package cafe.jeffrey.profile.manager.builder;
 
 import tools.jackson.databind.node.ObjectNode;
-import cafe.jeffrey.provider.profile.builder.RecordBuilder;
+import cafe.jeffrey.provider.profile.api.RecordBuilder;
 import cafe.jeffrey.profile.manager.model.thread.ThreadCpuLoads;
 import cafe.jeffrey.profile.manager.model.thread.ThreadWithCpuLoad;
-import cafe.jeffrey.provider.profile.model.GenericRecord;
+import cafe.jeffrey.provider.profile.api.GenericRecord;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;

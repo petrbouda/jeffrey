@@ -23,8 +23,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import cafe.jeffrey.shared.common.model.StacktraceType;
-import cafe.jeffrey.provider.profile.model.EventFrame;
-import cafe.jeffrey.provider.profile.model.EventThread;
+import cafe.jeffrey.provider.profile.api.EventFrame;
+import cafe.jeffrey.provider.profile.api.EventThread;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 

@@ -21,9 +21,9 @@ package cafe.jeffrey.profile.thread;
 import tools.jackson.databind.JsonNode;
 import cafe.jeffrey.shared.common.model.ThreadInfo;
 import cafe.jeffrey.shared.common.model.Type;
-import cafe.jeffrey.provider.profile.builder.RecordBuilder;
+import cafe.jeffrey.provider.profile.api.RecordBuilder;
 import cafe.jeffrey.jfrparser.api.type.JfrThread;
-import cafe.jeffrey.provider.profile.model.GenericRecord;
+import cafe.jeffrey.provider.profile.api.GenericRecord;
 
 import java.util.ArrayList;
 import java.util.List;

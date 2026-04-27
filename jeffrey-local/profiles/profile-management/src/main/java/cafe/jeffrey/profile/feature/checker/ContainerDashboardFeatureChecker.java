@@ -26,7 +26,7 @@ import cafe.jeffrey.shared.common.model.EventSummary;
 import cafe.jeffrey.shared.common.model.Type;
 import cafe.jeffrey.profile.feature.FeatureCheckResult;
 import cafe.jeffrey.profile.feature.FeatureType;
-import cafe.jeffrey.provider.profile.repository.ProfileEventRepository;
+import cafe.jeffrey.provider.profile.api.ProfileEventRepository;
 
 import java.util.Map;
 import java.util.Optional;

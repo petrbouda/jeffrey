@@ -22,7 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.shared.common.model.RecordingEventSource;
-import cafe.jeffrey.provider.profile.model.recording.RecordingInformation;
+import cafe.jeffrey.provider.profile.api.RecordingInformation;
 
 import java.io.InputStream;
 import java.nio.channels.FileChannel;

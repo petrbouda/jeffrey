@@ -27,7 +27,7 @@ import cafe.jeffrey.jfrparser.api.type.JfrMethod;
 import cafe.jeffrey.profile.manager.custom.model.method.MethodStats;
 import cafe.jeffrey.profile.manager.custom.model.method.MethodTracingHeader;
 import cafe.jeffrey.profile.manager.custom.model.method.MethodTracingOverviewData;
-import cafe.jeffrey.provider.profile.model.GenericRecord;
+import cafe.jeffrey.provider.profile.api.GenericRecord;
 import cafe.jeffrey.shared.common.model.Type;
 import cafe.jeffrey.shared.common.model.time.RelativeTimeRange;
 

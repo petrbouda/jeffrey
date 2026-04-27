@@ -29,11 +29,11 @@ import cafe.jeffrey.profile.manager.model.thread.ThreadCpuLoads;
 import cafe.jeffrey.profile.manager.model.thread.ThreadStats;
 import cafe.jeffrey.profile.thread.ThreadInfoProvider;
 import cafe.jeffrey.profile.thread.ThreadRoot;
-import cafe.jeffrey.provider.profile.repository.EventQueryConfigurer;
-import cafe.jeffrey.provider.profile.repository.ProfileEventRepository;
-import cafe.jeffrey.provider.profile.repository.ProfileEventStreamRepository;
-import cafe.jeffrey.provider.profile.repository.ProfileEventTypeRepository;
-import cafe.jeffrey.provider.profile.model.AllocatingThread;
+import cafe.jeffrey.provider.profile.api.EventQueryConfigurer;
+import cafe.jeffrey.provider.profile.api.ProfileEventRepository;
+import cafe.jeffrey.provider.profile.api.ProfileEventStreamRepository;
+import cafe.jeffrey.provider.profile.api.ProfileEventTypeRepository;
+import cafe.jeffrey.provider.profile.api.AllocatingThread;
 import cafe.jeffrey.timeseries.SingleSerie;
 
 import java.util.Comparator;

@@ -21,14 +21,14 @@ package cafe.jeffrey.profile.guardian;
 import org.junit.jupiter.api.Test;
 import cafe.jeffrey.profile.guardian.guard.Guard;
 import cafe.jeffrey.profile.guardian.guard.GuardAnalysisResult;
-import cafe.jeffrey.provider.profile.model.AllocatingThread;
-import cafe.jeffrey.provider.profile.model.EventDurationStats;
-import cafe.jeffrey.provider.profile.model.EventTypeWithFields;
-import cafe.jeffrey.provider.profile.model.FieldDescription;
-import cafe.jeffrey.provider.profile.model.JvmFlag;
-import cafe.jeffrey.provider.profile.model.JvmFlagDetail;
-import cafe.jeffrey.provider.profile.repository.ProfileEventRepository;
-import cafe.jeffrey.provider.profile.repository.ProfileEventTypeRepository;
+import cafe.jeffrey.provider.profile.api.AllocatingThread;
+import cafe.jeffrey.provider.profile.api.EventDurationStats;
+import cafe.jeffrey.provider.profile.api.EventTypeWithFields;
+import cafe.jeffrey.provider.profile.api.FieldDescription;
+import cafe.jeffrey.provider.profile.api.JvmFlag;
+import cafe.jeffrey.provider.profile.api.JvmFlagDetail;
+import cafe.jeffrey.provider.profile.api.ProfileEventRepository;
+import cafe.jeffrey.provider.profile.api.ProfileEventTypeRepository;
 import cafe.jeffrey.shared.common.model.EventSummary;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
 import cafe.jeffrey.shared.common.model.RecordingEventSource;
@@ -187,7 +187,7 @@ class GuardianIntegrationTest {
     }
 
     private static final class InMemoryCacheRepository
-            implements cafe.jeffrey.provider.profile.repository.ProfileCacheRepository {
+            implements cafe.jeffrey.provider.profile.api.ProfileCacheRepository {
         private final java.util.Map<String, Object> store = new java.util.HashMap<>();
         @Override public void put(String key, Object content) { store.put(key, content); }
         @Override public boolean contains(String key) { return store.containsKey(key); }

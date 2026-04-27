@@ -18,8 +18,8 @@
 
 package cafe.jeffrey.profile.thread;
 
-import cafe.jeffrey.provider.profile.cache.CachingSupplier;
-import cafe.jeffrey.provider.profile.repository.ProfileCacheRepository;
+import cafe.jeffrey.provider.profile.api.CachingSupplier;
+import cafe.jeffrey.provider.profile.api.ProfileCacheRepository;
 import cafe.jeffrey.shared.common.CacheKey;
 
 /**

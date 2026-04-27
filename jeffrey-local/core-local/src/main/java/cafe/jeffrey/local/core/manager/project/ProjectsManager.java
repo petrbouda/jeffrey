@@ -18,7 +18,7 @@
 
 package cafe.jeffrey.local.core.manager.project;
 
-import cafe.jeffrey.local.persistence.model.RemoteWorkspaceInfo;
+import cafe.jeffrey.local.persistence.api.RemoteWorkspaceInfo;
 
 import java.util.List;
 import java.util.Optional;

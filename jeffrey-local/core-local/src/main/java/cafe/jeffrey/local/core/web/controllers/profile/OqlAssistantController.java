@@ -27,12 +27,12 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.local.core.web.ProfileManagerResolver;
-import cafe.jeffrey.profile.ai.model.AiStatusResponse;
-import cafe.jeffrey.profile.ai.model.HeapDumpContext;
-import cafe.jeffrey.profile.ai.model.OqlChatRequest;
-import cafe.jeffrey.profile.ai.model.OqlChatResponse;
-import cafe.jeffrey.profile.ai.service.HeapDumpContextExtractor;
-import cafe.jeffrey.profile.ai.service.OqlAssistantService;
+import cafe.jeffrey.profile.ai.oql.model.AiStatusResponse;
+import cafe.jeffrey.profile.ai.oql.model.HeapDumpContext;
+import cafe.jeffrey.profile.ai.oql.model.OqlChatRequest;
+import cafe.jeffrey.profile.ai.oql.model.OqlChatResponse;
+import cafe.jeffrey.profile.ai.oql.service.HeapDumpContextExtractor;
+import cafe.jeffrey.profile.ai.oql.service.OqlAssistantService;
 import cafe.jeffrey.profile.heapdump.model.SortBy;
 import cafe.jeffrey.profile.manager.HeapDumpManager;
 

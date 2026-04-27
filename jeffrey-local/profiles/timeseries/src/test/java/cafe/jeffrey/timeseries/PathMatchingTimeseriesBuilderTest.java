@@ -31,8 +31,8 @@ import cafe.jeffrey.jfrparser.api.type.JfrStackFrame;
 import cafe.jeffrey.jfrparser.api.type.JfrStackTrace;
 import cafe.jeffrey.profile.common.analysis.FramePath;
 import cafe.jeffrey.profile.common.analysis.marker.Marker;
-import cafe.jeffrey.provider.profile.model.SecondValue;
-import cafe.jeffrey.provider.profile.model.TimeseriesRecord;
+import cafe.jeffrey.provider.profile.api.SecondValue;
+import cafe.jeffrey.provider.profile.api.TimeseriesRecord;
 
 import java.time.Duration;
 import java.util.List;

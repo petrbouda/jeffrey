@@ -23,8 +23,8 @@ import cafe.jeffrey.jfrparser.api.type.JfrMethod;
 import cafe.jeffrey.profile.manager.custom.model.method.MethodTracingSlowestData;
 import cafe.jeffrey.profile.manager.custom.model.method.MethodTracingSlowestHeader;
 import cafe.jeffrey.profile.manager.custom.model.method.SlowestMethodTrace;
-import cafe.jeffrey.provider.profile.builder.RecordBuilder;
-import cafe.jeffrey.provider.profile.model.GenericRecord;
+import cafe.jeffrey.provider.profile.api.RecordBuilder;
+import cafe.jeffrey.provider.profile.api.GenericRecord;
 
 import java.util.*;
 

@@ -28,9 +28,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import cafe.jeffrey.shared.common.model.Type;
 import cafe.jeffrey.profile.manager.builder.ContainerConfigurationEventBuilder;
 import cafe.jeffrey.profile.manager.model.container.ContainerConfigurationData;
-import cafe.jeffrey.provider.profile.builder.RecordBuilder;
-import cafe.jeffrey.provider.profile.repository.EventQueryConfigurer;
-import cafe.jeffrey.provider.profile.repository.ProfileEventStreamRepository;
+import cafe.jeffrey.provider.profile.api.RecordBuilder;
+import cafe.jeffrey.provider.profile.api.EventQueryConfigurer;
+import cafe.jeffrey.provider.profile.api.ProfileEventStreamRepository;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;

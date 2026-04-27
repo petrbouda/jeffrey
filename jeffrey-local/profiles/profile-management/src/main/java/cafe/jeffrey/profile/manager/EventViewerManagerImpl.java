@@ -25,9 +25,9 @@ import cafe.jeffrey.shared.common.model.Type;
 import cafe.jeffrey.profile.common.treetable.EventViewerData;
 import cafe.jeffrey.profile.common.treetable.Tree;
 import cafe.jeffrey.profile.common.treetable.TreeData;
-import cafe.jeffrey.provider.profile.model.FieldDescription;
-import cafe.jeffrey.provider.profile.repository.ProfileEventRepository;
-import cafe.jeffrey.provider.profile.repository.ProfileEventTypeRepository;
+import cafe.jeffrey.provider.profile.api.FieldDescription;
+import cafe.jeffrey.provider.profile.api.ProfileEventRepository;
+import cafe.jeffrey.provider.profile.api.ProfileEventTypeRepository;
 
 import java.util.List;
 

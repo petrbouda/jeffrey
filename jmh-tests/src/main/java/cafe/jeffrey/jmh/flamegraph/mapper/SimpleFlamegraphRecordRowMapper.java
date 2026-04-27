@@ -20,8 +20,8 @@ package cafe.jeffrey.jmh.flamegraph.mapper;
 
 import org.springframework.jdbc.core.RowMapper;
 import cafe.jeffrey.jfrparser.db.type.DbJfrStackTrace;
-import cafe.jeffrey.provider.profile.model.FlamegraphRecord;
-import cafe.jeffrey.provider.profile.query.FlamegraphMapperUtils;
+import cafe.jeffrey.provider.profile.api.FlamegraphRecord;
+import cafe.jeffrey.provider.profile.jdbc.FlamegraphMapperUtils;
 import cafe.jeffrey.shared.common.model.Type;
 
 import java.sql.ResultSet;

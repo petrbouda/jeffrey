@@ -24,7 +24,7 @@ import cafe.jeffrey.profile.common.config.GraphParameters;
 import cafe.jeffrey.shared.common.model.Type;
 import cafe.jeffrey.flamegraph.GraphGenerator;
 import cafe.jeffrey.profile.model.EventSummaryResult;
-import cafe.jeffrey.provider.profile.repository.ProfileEventTypeRepository;
+import cafe.jeffrey.provider.profile.api.ProfileEventTypeRepository;
 
 import java.time.Duration;
 import java.util.List;

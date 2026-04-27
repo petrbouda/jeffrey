@@ -18,8 +18,8 @@
 
 package cafe.jeffrey.local.core.manager.workspace;
 
-import cafe.jeffrey.local.persistence.model.RemoteWorkspaceInfo;
-import cafe.jeffrey.local.persistence.model.WorkspaceAddress;
+import cafe.jeffrey.local.persistence.api.RemoteWorkspaceInfo;
+import cafe.jeffrey.local.persistence.api.WorkspaceAddress;
 
 import java.util.List;
 import java.util.Optional;

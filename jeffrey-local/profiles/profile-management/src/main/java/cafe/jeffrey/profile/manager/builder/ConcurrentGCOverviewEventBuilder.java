@@ -28,7 +28,7 @@ import cafe.jeffrey.shared.common.model.time.RelativeTimeRange;
 import cafe.jeffrey.profile.manager.model.gc.ConcurrentEvent;
 import cafe.jeffrey.profile.manager.model.gc.ConcurrentPhase;
 import cafe.jeffrey.profile.manager.model.gc.GCOverviewData;
-import cafe.jeffrey.provider.profile.model.GenericRecord;
+import cafe.jeffrey.provider.profile.api.GenericRecord;
 
 import java.util.*;
 import java.util.stream.Collectors;

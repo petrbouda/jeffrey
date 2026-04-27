@@ -25,7 +25,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import cafe.jeffrey.profile.common.event.JITCompilerType;
 import cafe.jeffrey.profile.common.event.JITLongCompilation;
-import cafe.jeffrey.provider.profile.model.GenericRecord;
+import cafe.jeffrey.provider.profile.api.GenericRecord;
 import cafe.jeffrey.shared.common.model.Type;
 
 import java.time.Duration;

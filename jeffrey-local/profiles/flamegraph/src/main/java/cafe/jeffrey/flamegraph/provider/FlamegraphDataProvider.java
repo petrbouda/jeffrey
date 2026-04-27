@@ -23,8 +23,8 @@ import cafe.jeffrey.flamegraph.FlameGraphProtoBuilder;
 import cafe.jeffrey.frameir.Frame;
 import cafe.jeffrey.frameir.FrameBuilder;
 import cafe.jeffrey.frameir.FrameBuilderResolver;
-import cafe.jeffrey.provider.profile.repository.EventQueryConfigurer;
-import cafe.jeffrey.provider.profile.repository.ProfileEventStreamRepository;
+import cafe.jeffrey.provider.profile.api.EventQueryConfigurer;
+import cafe.jeffrey.provider.profile.api.ProfileEventStreamRepository;
 
 public class FlamegraphDataProvider {
 

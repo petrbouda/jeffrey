@@ -27,10 +27,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.local.core.web.ProfileManagerResolver;
-import cafe.jeffrey.profile.ai.mcp.model.JfrAnalysisRequest;
-import cafe.jeffrey.profile.ai.mcp.model.JfrAnalysisResponse;
-import cafe.jeffrey.profile.ai.mcp.model.JfrChatMessage;
-import cafe.jeffrey.profile.ai.mcp.service.JfrAnalysisAssistantService;
+import cafe.jeffrey.profile.ai.oql.duckdb.model.JfrAnalysisRequest;
+import cafe.jeffrey.profile.ai.oql.duckdb.model.JfrAnalysisResponse;
+import cafe.jeffrey.profile.ai.oql.duckdb.model.JfrChatMessage;
+import cafe.jeffrey.profile.ai.oql.duckdb.service.JfrAnalysisAssistantService;
 
 import java.util.List;
 

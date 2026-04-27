@@ -18,8 +18,8 @@
 
 package cafe.jeffrey.generator.subsecond.db;
 
-import cafe.jeffrey.provider.profile.builder.RecordBuilder;
-import cafe.jeffrey.provider.profile.model.SubSecondRecord;
+import cafe.jeffrey.provider.profile.api.RecordBuilder;
+import cafe.jeffrey.provider.profile.api.SubSecondRecord;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -25,10 +25,10 @@ import cafe.jeffrey.profile.manager.model.heap.AllocationTimeseriesBuilder;
 import cafe.jeffrey.profile.manager.model.heap.HeapMemoryOverviewData;
 import cafe.jeffrey.profile.manager.model.heap.HeapMemoryTimeseriesBuilder;
 import cafe.jeffrey.profile.manager.model.heap.HeapMemoryTimeseriesType;
-import cafe.jeffrey.provider.profile.builder.RecordBuilder;
-import cafe.jeffrey.provider.profile.repository.EventQueryConfigurer;
-import cafe.jeffrey.provider.profile.repository.ProfileEventStreamRepository;
-import cafe.jeffrey.provider.profile.model.GenericRecord;
+import cafe.jeffrey.provider.profile.api.RecordBuilder;
+import cafe.jeffrey.provider.profile.api.EventQueryConfigurer;
+import cafe.jeffrey.provider.profile.api.ProfileEventStreamRepository;
+import cafe.jeffrey.provider.profile.api.GenericRecord;
 import cafe.jeffrey.timeseries.SingleSerie;
 
 import java.util.List;

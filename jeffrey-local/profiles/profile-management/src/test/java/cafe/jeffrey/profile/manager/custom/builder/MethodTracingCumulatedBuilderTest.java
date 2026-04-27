@@ -27,7 +27,7 @@ import cafe.jeffrey.jfrparser.api.type.JfrMethod;
 import cafe.jeffrey.profile.manager.custom.model.method.CumulatedStats;
 import cafe.jeffrey.profile.manager.custom.model.method.CumulationMode;
 import cafe.jeffrey.profile.manager.custom.model.method.MethodTracingCumulatedData;
-import cafe.jeffrey.provider.profile.model.GenericRecord;
+import cafe.jeffrey.provider.profile.api.GenericRecord;
 import cafe.jeffrey.shared.common.model.Type;
 
 import java.time.Duration;

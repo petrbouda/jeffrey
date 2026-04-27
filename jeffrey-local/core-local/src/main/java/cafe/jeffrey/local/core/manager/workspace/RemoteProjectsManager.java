@@ -30,8 +30,8 @@ import cafe.jeffrey.local.core.recording.ProjectRecordingInitializer;
 import cafe.jeffrey.local.core.client.RemoteClients;
 import cafe.jeffrey.local.core.client.RemoteMappers;
 import cafe.jeffrey.local.core.resources.response.RemoteProjectResponse;
-import cafe.jeffrey.local.persistence.model.RemoteWorkspaceInfo;
-import cafe.jeffrey.local.persistence.repository.LocalCoreRepositories;
+import cafe.jeffrey.local.persistence.api.RemoteWorkspaceInfo;
+import cafe.jeffrey.local.persistence.api.LocalCoreRepositories;
 
 import java.util.List;
 import java.util.Optional;

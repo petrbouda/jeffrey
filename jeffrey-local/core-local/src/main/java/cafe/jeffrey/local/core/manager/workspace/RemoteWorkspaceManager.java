@@ -28,10 +28,10 @@ import cafe.jeffrey.local.core.manager.ProfilesManager;
 import cafe.jeffrey.local.core.manager.project.ProjectsManager;
 import cafe.jeffrey.local.core.resources.response.WorkspaceEventResponse;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
-import cafe.jeffrey.local.persistence.repository.WorkspaceRepository;
+import cafe.jeffrey.local.persistence.api.WorkspaceRepository;
 import cafe.jeffrey.local.core.recording.ProjectRecordingInitializer;
-import cafe.jeffrey.local.persistence.model.RemoteWorkspaceInfo;
-import cafe.jeffrey.local.persistence.repository.LocalCoreRepositories;
+import cafe.jeffrey.local.persistence.api.RemoteWorkspaceInfo;
+import cafe.jeffrey.local.persistence.api.LocalCoreRepositories;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceStatus;
 
 import java.util.List;

@@ -23,7 +23,7 @@ import cafe.jeffrey.shared.common.model.EventSummary;
 import cafe.jeffrey.shared.common.model.Type;
 import cafe.jeffrey.flamegraph.GraphGenerator;
 import cafe.jeffrey.profile.model.EventSummaryResult;
-import cafe.jeffrey.provider.profile.repository.ProfileEventTypeRepository;
+import cafe.jeffrey.provider.profile.api.ProfileEventTypeRepository;
 
 import java.util.ArrayList;
 import java.util.List;

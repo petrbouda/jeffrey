@@ -24,7 +24,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import cafe.jeffrey.local.core.web.ProfileManagerResolver;
-import cafe.jeffrey.profile.ai.heapmcp.service.HeapDumpAnalysisAssistantService;
+import cafe.jeffrey.profile.ai.oql.heap.service.HeapDumpAnalysisAssistantService;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;

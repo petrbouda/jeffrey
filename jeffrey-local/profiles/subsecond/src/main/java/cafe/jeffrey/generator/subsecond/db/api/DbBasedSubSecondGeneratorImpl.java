@@ -23,8 +23,8 @@ import cafe.jeffrey.generator.subsecond.db.SingleResult;
 import cafe.jeffrey.generator.subsecond.db.SubSecondCollectorUtils;
 import cafe.jeffrey.generator.subsecond.db.SubSecondConfig;
 import cafe.jeffrey.generator.subsecond.db.SubSecondRecordBuilder;
-import cafe.jeffrey.provider.profile.repository.EventQueryConfigurer;
-import cafe.jeffrey.provider.profile.repository.ProfileEventStreamRepository;
+import cafe.jeffrey.provider.profile.api.EventQueryConfigurer;
+import cafe.jeffrey.provider.profile.api.ProfileEventStreamRepository;
 
 public class DbBasedSubSecondGeneratorImpl implements SubSecondGenerator {
 

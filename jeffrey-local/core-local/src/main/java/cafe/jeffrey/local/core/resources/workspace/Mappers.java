@@ -20,7 +20,7 @@ package cafe.jeffrey.local.core.resources.workspace;
 
 import cafe.jeffrey.shared.common.model.ProjectInfo;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceEvent;
-import cafe.jeffrey.local.persistence.model.RemoteWorkspaceInfo;
+import cafe.jeffrey.local.persistence.api.RemoteWorkspaceInfo;
 import cafe.jeffrey.local.core.manager.project.ProjectManager.DetailedProjectInfo;
 import cafe.jeffrey.local.core.resources.response.ProjectResponse;
 import cafe.jeffrey.local.core.resources.response.WorkspaceEventResponse;

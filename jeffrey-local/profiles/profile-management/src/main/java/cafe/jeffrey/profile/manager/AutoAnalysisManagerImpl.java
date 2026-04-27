@@ -23,7 +23,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.profile.common.analysis.AutoAnalysisResult;
 import cafe.jeffrey.profile.parser.data.AutoAnalysisDataProvider;
-import cafe.jeffrey.provider.profile.repository.ProfileCacheRepository;
+import cafe.jeffrey.provider.profile.api.ProfileCacheRepository;
 import cafe.jeffrey.shared.common.CacheKey;
 
 import java.nio.file.Path;

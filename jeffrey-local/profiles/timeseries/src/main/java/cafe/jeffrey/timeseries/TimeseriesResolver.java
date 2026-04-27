@@ -20,8 +20,8 @@ package cafe.jeffrey.timeseries;
 
 import cafe.jeffrey.profile.common.config.GraphParameters;
 import cafe.jeffrey.shared.common.model.time.RelativeTimeRange;
-import cafe.jeffrey.provider.profile.builder.RecordBuilder;
-import cafe.jeffrey.provider.profile.model.TimeseriesRecord;
+import cafe.jeffrey.provider.profile.api.RecordBuilder;
+import cafe.jeffrey.provider.profile.api.TimeseriesRecord;
 
 public abstract class TimeseriesResolver {
 

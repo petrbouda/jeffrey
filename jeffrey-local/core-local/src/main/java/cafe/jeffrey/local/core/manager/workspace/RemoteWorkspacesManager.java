@@ -22,8 +22,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.local.core.client.RemoteClients;
 import cafe.jeffrey.local.core.client.RemoteDiscoveryClient.WorkspaceResult;
-import cafe.jeffrey.local.persistence.repository.WorkspacesRepository;
-import cafe.jeffrey.local.persistence.model.RemoteWorkspaceInfo;
+import cafe.jeffrey.local.persistence.api.WorkspacesRepository;
+import cafe.jeffrey.local.persistence.api.RemoteWorkspaceInfo;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 
 import java.util.List;

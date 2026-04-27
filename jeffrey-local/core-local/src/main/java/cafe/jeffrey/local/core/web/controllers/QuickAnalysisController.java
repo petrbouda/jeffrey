@@ -35,7 +35,7 @@ import cafe.jeffrey.local.core.manager.qanalysis.QuickAnalysisManager;
 import cafe.jeffrey.local.core.resources.response.AnalyzeResponse;
 import cafe.jeffrey.local.core.resources.response.QuickGroupResponse;
 import cafe.jeffrey.local.core.resources.response.QuickRecordingResponse;
-import cafe.jeffrey.local.persistence.model.RecordingGroup;
+import cafe.jeffrey.local.persistence.api.RecordingGroup;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.shared.common.model.Recording;

@@ -24,8 +24,8 @@ import cafe.jeffrey.shared.common.model.time.RelativeTimeRange;
 import cafe.jeffrey.profile.manager.custom.builder.JdbcOverviewEventBuilder;
 import cafe.jeffrey.profile.manager.custom.model.jdbc.statement.JdbcOverviewData;
 import cafe.jeffrey.profile.manager.custom.model.jdbc.statement.JdbcSlowStatement;
-import cafe.jeffrey.provider.profile.repository.EventQueryConfigurer;
-import cafe.jeffrey.provider.profile.repository.ProfileEventStreamRepository;
+import cafe.jeffrey.provider.profile.api.EventQueryConfigurer;
+import cafe.jeffrey.provider.profile.api.ProfileEventStreamRepository;
 import cafe.jeffrey.timeseries.SingleSerie;
 
 import java.util.List;

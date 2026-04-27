@@ -23,8 +23,8 @@ import org.slf4j.LoggerFactory;
 import cafe.jeffrey.shared.common.compression.Lz4Compressor;
 import cafe.jeffrey.shared.common.filesystem.TempDirFactory;
 import cafe.jeffrey.shared.common.filesystem.TempDirectory;
-import cafe.jeffrey.provider.profile.RecordingInformationParser;
-import cafe.jeffrey.provider.profile.model.recording.RecordingInformation;
+import cafe.jeffrey.provider.profile.api.RecordingInformationParser;
+import cafe.jeffrey.provider.profile.api.RecordingInformation;
 import cafe.jeffrey.profile.parser.chunk.JfrParser;
 
 import java.io.InputStream;

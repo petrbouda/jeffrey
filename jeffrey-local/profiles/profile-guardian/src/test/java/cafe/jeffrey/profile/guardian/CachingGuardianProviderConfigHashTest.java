@@ -20,7 +20,7 @@ package cafe.jeffrey.profile.guardian;
 
 import org.junit.jupiter.api.Test;
 import tools.jackson.core.type.TypeReference;
-import cafe.jeffrey.provider.profile.repository.ProfileCacheRepository;
+import cafe.jeffrey.provider.profile.api.ProfileCacheRepository;
 import cafe.jeffrey.shared.common.CacheKey;
 
 import java.util.HashMap;

@@ -23,9 +23,9 @@ import cafe.jeffrey.profile.common.event.GarbageCollectorType;
 import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.profile.common.event.*;
 import cafe.jeffrey.shared.common.model.EventTypeName;
-import cafe.jeffrey.provider.profile.builder.RecordBuilder;
+import cafe.jeffrey.provider.profile.api.RecordBuilder;
 import cafe.jeffrey.profile.manager.model.gc.configuration.*;
-import cafe.jeffrey.provider.profile.model.GenericRecord;
+import cafe.jeffrey.provider.profile.api.GenericRecord;
 
 public class GCConfigurationEventBuilder implements RecordBuilder<GenericRecord, GCConfigurationData> {
 

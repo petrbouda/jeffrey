@@ -25,8 +25,8 @@ import cafe.jeffrey.jfrparser.api.type.JfrMethod;
 import cafe.jeffrey.profile.manager.custom.model.method.MethodStats;
 import cafe.jeffrey.profile.manager.custom.model.method.MethodTracingHeader;
 import cafe.jeffrey.profile.manager.custom.model.method.MethodTracingOverviewData;
-import cafe.jeffrey.provider.profile.builder.RecordBuilder;
-import cafe.jeffrey.provider.profile.model.GenericRecord;
+import cafe.jeffrey.provider.profile.api.RecordBuilder;
+import cafe.jeffrey.provider.profile.api.GenericRecord;
 import cafe.jeffrey.timeseries.TimeseriesUtils;
 
 import java.util.Comparator;

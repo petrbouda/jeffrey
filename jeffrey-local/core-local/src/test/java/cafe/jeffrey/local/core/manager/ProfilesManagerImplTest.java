@@ -26,9 +26,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import cafe.jeffrey.profile.ProfileInitializer;
 import cafe.jeffrey.profile.manager.ProfileManager;
-import cafe.jeffrey.local.persistence.repository.LocalCoreRepositories;
-import cafe.jeffrey.local.persistence.repository.ProfileRepository;
-import cafe.jeffrey.local.persistence.repository.RecordingRepository;
+import cafe.jeffrey.local.persistence.api.LocalCoreRepositories;
+import cafe.jeffrey.local.persistence.api.ProfileRepository;
+import cafe.jeffrey.local.persistence.api.RecordingRepository;
 import cafe.jeffrey.shared.common.model.*;
 import cafe.jeffrey.storage.recording.api.ProjectRecordingStorage;
 

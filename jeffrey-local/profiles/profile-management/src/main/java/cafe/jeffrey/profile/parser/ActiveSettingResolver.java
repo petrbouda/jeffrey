@@ -22,7 +22,7 @@ import jdk.jfr.EventType;
 import jdk.jfr.consumer.RecordedEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import cafe.jeffrey.provider.profile.model.EventSetting;
+import cafe.jeffrey.provider.profile.api.EventSetting;
 
 import java.util.HashMap;
 import java.util.List;

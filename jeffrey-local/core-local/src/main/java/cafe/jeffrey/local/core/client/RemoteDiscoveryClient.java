@@ -18,6 +18,8 @@
 
 package cafe.jeffrey.local.core.client;
 
+import cafe.jeffrey.local.grpc.client.*;
+
 import io.grpc.StatusRuntimeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,7 +28,7 @@ import cafe.jeffrey.local.core.resources.response.PublicApiInfoResponse;
 import cafe.jeffrey.local.core.resources.response.RemoteProjectResponse;
 import cafe.jeffrey.local.core.resources.response.WorkspaceResponse;
 import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
-import cafe.jeffrey.local.persistence.model.RemoteWorkspaceInfo;
+import cafe.jeffrey.local.persistence.api.RemoteWorkspaceInfo;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceStatus;
 
 import cafe.jeffrey.shared.common.InstantUtils;

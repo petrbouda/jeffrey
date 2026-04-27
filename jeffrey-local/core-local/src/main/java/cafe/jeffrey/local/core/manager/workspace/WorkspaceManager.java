@@ -20,7 +20,7 @@ package cafe.jeffrey.local.core.manager.workspace;
 
 import cafe.jeffrey.local.core.client.RemoteProfilerClient;
 import cafe.jeffrey.local.core.resources.response.WorkspaceEventResponse;
-import cafe.jeffrey.local.persistence.model.RemoteWorkspaceInfo;
+import cafe.jeffrey.local.persistence.api.RemoteWorkspaceInfo;
 import cafe.jeffrey.local.core.manager.project.ProjectsManager;
 
 import java.util.List;

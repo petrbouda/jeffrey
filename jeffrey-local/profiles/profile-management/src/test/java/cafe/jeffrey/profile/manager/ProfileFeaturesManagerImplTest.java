@@ -27,9 +27,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import cafe.jeffrey.shared.common.model.EventSummary;
 import cafe.jeffrey.shared.common.model.Type;
 import cafe.jeffrey.profile.feature.FeatureType;
-import cafe.jeffrey.provider.profile.repository.ProfileCacheRepository;
-import cafe.jeffrey.provider.profile.repository.ProfileEventRepository;
-import cafe.jeffrey.provider.profile.repository.ProfileEventTypeRepository;
+import cafe.jeffrey.provider.profile.api.ProfileCacheRepository;
+import cafe.jeffrey.provider.profile.api.ProfileEventRepository;
+import cafe.jeffrey.provider.profile.api.ProfileEventTypeRepository;
 
 import java.util.List;
 import java.util.Map;

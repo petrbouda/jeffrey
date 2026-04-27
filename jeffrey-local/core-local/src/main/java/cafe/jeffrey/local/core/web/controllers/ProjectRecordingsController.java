@@ -41,7 +41,7 @@ import cafe.jeffrey.local.core.resources.request.MoveRecordingRequest;
 import cafe.jeffrey.local.core.resources.response.RecordingFileResponse;
 import cafe.jeffrey.local.core.resources.response.RecordingsResponse;
 import cafe.jeffrey.local.core.web.ProjectManagerResolver;
-import cafe.jeffrey.local.persistence.model.RecordingGroup;
+import cafe.jeffrey.local.persistence.api.RecordingGroup;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;

@@ -25,8 +25,8 @@ import cafe.jeffrey.frameir.frame.*;
 import cafe.jeffrey.frameir.frame.FrameProcessor.NewFrame;
 import cafe.jeffrey.jfrparser.api.type.JfrStackFrame;
 import cafe.jeffrey.jfrparser.api.type.JfrStackTrace;
-import cafe.jeffrey.provider.profile.builder.RecordBuilder;
-import cafe.jeffrey.provider.profile.model.FlamegraphRecord;
+import cafe.jeffrey.provider.profile.api.RecordBuilder;
+import cafe.jeffrey.provider.profile.api.FlamegraphRecord;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -41,9 +41,9 @@ import cafe.jeffrey.profile.guardian.type.BlockingGuardianGroup;
 import cafe.jeffrey.profile.guardian.type.ExecutionSampleGuardianGroup;
 import cafe.jeffrey.profile.guardian.type.GuardianGroup;
 import cafe.jeffrey.profile.guardian.type.WallClockGuardianGroup;
-import cafe.jeffrey.provider.profile.repository.ProfileEventRepository;
-import cafe.jeffrey.provider.profile.repository.ProfileEventStreamRepository;
-import cafe.jeffrey.provider.profile.repository.ProfileEventTypeRepository;
+import cafe.jeffrey.provider.profile.api.ProfileEventRepository;
+import cafe.jeffrey.provider.profile.api.ProfileEventStreamRepository;
+import cafe.jeffrey.provider.profile.api.ProfileEventTypeRepository;
 
 import java.util.ArrayList;
 import java.util.List;

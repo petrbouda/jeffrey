@@ -22,8 +22,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
 import cafe.jeffrey.local.core.manager.SettingsManager;
-import cafe.jeffrey.local.persistence.LocalCorePersistenceProvider;
-import cafe.jeffrey.local.persistence.repository.JdbcSettingsRepository;
+import cafe.jeffrey.local.persistence.api.LocalCorePersistenceProvider;
+import cafe.jeffrey.local.persistence.jdbc.JdbcSettingsRepository;
 import cafe.jeffrey.shared.common.encryption.MachineFingerprint;
 import cafe.jeffrey.shared.common.encryption.SecretEncryptor;
 

@@ -21,7 +21,7 @@ package cafe.jeffrey.frameir.frame;
 import cafe.jeffrey.shared.common.RecordedClassMapper;
 import cafe.jeffrey.profile.common.model.FrameType;
 import cafe.jeffrey.jfrparser.api.type.JfrStackFrame;
-import cafe.jeffrey.provider.profile.model.FlamegraphRecord;
+import cafe.jeffrey.provider.profile.api.FlamegraphRecord;
 
 import java.util.List;
 

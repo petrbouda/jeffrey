@@ -18,7 +18,9 @@
 
 package cafe.jeffrey.local.core.client;
 
-import cafe.jeffrey.local.persistence.model.WorkspaceAddress;
+import cafe.jeffrey.local.grpc.client.*;
+
+import cafe.jeffrey.local.persistence.api.WorkspaceAddress;
 
 import java.util.function.Function;
 

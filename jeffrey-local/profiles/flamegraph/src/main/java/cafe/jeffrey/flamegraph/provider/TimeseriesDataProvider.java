@@ -19,8 +19,8 @@
 package cafe.jeffrey.flamegraph.provider;
 
 import cafe.jeffrey.profile.common.config.GraphParameters;
-import cafe.jeffrey.provider.profile.repository.EventQueryConfigurer;
-import cafe.jeffrey.provider.profile.repository.ProfileEventStreamRepository;
+import cafe.jeffrey.provider.profile.api.EventQueryConfigurer;
+import cafe.jeffrey.provider.profile.api.ProfileEventStreamRepository;
 import cafe.jeffrey.timeseries.TimeseriesData;
 import cafe.jeffrey.timeseries.TimeseriesResolver;
 import cafe.jeffrey.timeseries.TimeseriesSearchBuilder;

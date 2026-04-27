@@ -23,7 +23,7 @@ import cafe.jeffrey.shared.common.model.Type;
 import cafe.jeffrey.profile.manager.model.thread.ThreadCpuLoads;
 import cafe.jeffrey.profile.manager.model.thread.ThreadStats;
 import cafe.jeffrey.profile.thread.ThreadRoot;
-import cafe.jeffrey.provider.profile.model.AllocatingThread;
+import cafe.jeffrey.provider.profile.api.AllocatingThread;
 import cafe.jeffrey.timeseries.SingleSerie;
 
 import java.util.List;

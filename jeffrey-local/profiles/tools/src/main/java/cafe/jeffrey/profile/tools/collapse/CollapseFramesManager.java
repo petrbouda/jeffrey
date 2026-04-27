@@ -18,7 +18,7 @@
 
 package cafe.jeffrey.profile.tools.collapse;
 
-import cafe.jeffrey.provider.profile.repository.ProfileToolsRepository.FrameSample;
+import cafe.jeffrey.provider.profile.api.ProfileToolsRepository.FrameSample;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
 
 import java.util.List;

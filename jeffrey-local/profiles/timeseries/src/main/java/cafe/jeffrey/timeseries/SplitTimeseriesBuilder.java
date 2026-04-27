@@ -21,9 +21,9 @@ package cafe.jeffrey.timeseries;
 import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap;
 import cafe.jeffrey.shared.common.model.time.RelativeTimeRange;
 import cafe.jeffrey.jfrparser.api.type.JfrStackTrace;
-import cafe.jeffrey.provider.profile.builder.RecordBuilder;
-import cafe.jeffrey.provider.profile.model.SecondValue;
-import cafe.jeffrey.provider.profile.model.TimeseriesRecord;
+import cafe.jeffrey.provider.profile.api.RecordBuilder;
+import cafe.jeffrey.provider.profile.api.SecondValue;
+import cafe.jeffrey.provider.profile.api.TimeseriesRecord;
 
 public abstract class SplitTimeseriesBuilder implements RecordBuilder<TimeseriesRecord, TimeseriesData> {
 

@@ -30,10 +30,10 @@ import cafe.jeffrey.frameir.FrameBuilder;
 import cafe.jeffrey.jmh.flamegraph.mapper.FlamegraphRecordByThreadRowMapper;
 import cafe.jeffrey.jmh.flamegraph.mapper.SimpleFlamegraphRecordRowMapper;
 import cafe.jeffrey.jmh.flamegraph.utils.FrameJsonSerializer;
-import cafe.jeffrey.provider.profile.model.FlamegraphRecord;
-import cafe.jeffrey.provider.profile.query.DuckDBFlamegraphQueries;
-import cafe.jeffrey.provider.profile.query.FlamegraphRecordRowMapper;
-import cafe.jeffrey.provider.profile.query.FlamegraphRecordWithThreadsRowMapper;
+import cafe.jeffrey.provider.profile.api.FlamegraphRecord;
+import cafe.jeffrey.provider.profile.jdbc.DuckDBFlamegraphQueries;
+import cafe.jeffrey.provider.profile.jdbc.FlamegraphRecordRowMapper;
+import cafe.jeffrey.provider.profile.jdbc.FlamegraphRecordWithThreadsRowMapper;
 import cafe.jeffrey.shared.common.model.Type;
 import cafe.jeffrey.shared.persistence.SimpleJdbcDataSource;
 

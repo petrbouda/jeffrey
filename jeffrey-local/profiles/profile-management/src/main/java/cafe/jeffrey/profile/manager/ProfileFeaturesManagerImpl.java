@@ -26,9 +26,9 @@ import cafe.jeffrey.profile.feature.checker.ContainerDashboardFeatureChecker;
 import cafe.jeffrey.profile.feature.checker.FeatureChecker;
 import cafe.jeffrey.profile.feature.checker.FeatureCheckers;
 import cafe.jeffrey.profile.feature.checker.PerfCounterDashboardFeatureChecker;
-import cafe.jeffrey.provider.profile.repository.ProfileCacheRepository;
-import cafe.jeffrey.provider.profile.repository.ProfileEventRepository;
-import cafe.jeffrey.provider.profile.repository.ProfileEventTypeRepository;
+import cafe.jeffrey.provider.profile.api.ProfileCacheRepository;
+import cafe.jeffrey.provider.profile.api.ProfileEventRepository;
+import cafe.jeffrey.provider.profile.api.ProfileEventTypeRepository;
 
 import java.util.List;
 import java.util.Map;

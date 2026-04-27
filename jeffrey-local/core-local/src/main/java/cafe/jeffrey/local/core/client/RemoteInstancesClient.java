@@ -18,6 +18,8 @@
 
 package cafe.jeffrey.local.core.client;
 
+import cafe.jeffrey.local.grpc.client.*;
+
 import tools.jackson.databind.JsonNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

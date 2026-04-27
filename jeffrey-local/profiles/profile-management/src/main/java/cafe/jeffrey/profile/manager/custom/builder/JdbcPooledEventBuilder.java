@@ -21,8 +21,8 @@ package cafe.jeffrey.profile.manager.custom.builder;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.ObjectNode;
 import cafe.jeffrey.shared.common.model.Type;
-import cafe.jeffrey.provider.profile.builder.RecordBuilder;
-import cafe.jeffrey.provider.profile.model.GenericRecord;
+import cafe.jeffrey.provider.profile.api.RecordBuilder;
+import cafe.jeffrey.provider.profile.api.GenericRecord;
 
 import java.time.Duration;
 import java.util.ArrayList;

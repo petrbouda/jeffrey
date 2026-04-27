@@ -23,9 +23,9 @@ import org.HdrHistogram.Histogram;
 import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap;
 import org.eclipse.collections.impl.map.mutable.primitive.ObjectLongHashMap;
 import cafe.jeffrey.shared.common.model.time.RelativeTimeRange;
-import cafe.jeffrey.provider.profile.builder.RecordBuilder;
+import cafe.jeffrey.provider.profile.api.RecordBuilder;
 import cafe.jeffrey.profile.manager.custom.model.jdbc.statement.*;
-import cafe.jeffrey.provider.profile.model.GenericRecord;
+import cafe.jeffrey.provider.profile.api.GenericRecord;
 import cafe.jeffrey.timeseries.TimeseriesUtils;
 
 import java.math.BigDecimal;
