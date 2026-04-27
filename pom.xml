@@ -52,11 +52,20 @@
         <duckdb.version>1.5.2.0</duckdb.version>
         <flyway.version>10.24.0</flyway.version>
         <grpc.version>1.80.0</grpc.version>
+        <netty.version>4.2.12.Final</netty.version>
         <protobuf.version>4.34.1</protobuf.version>
     </properties>
 
     <dependencyManagement>
         <dependencies>
+            <!-- Netty BOM — declared first so all transitive Netty users (grpc-netty, Spring Boot, Reactor, etc.) align on the same version. -->
+            <dependency>
+                <groupId>io.netty</groupId>
+                <artifactId>netty-bom</artifactId>
+                <version>${netty.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
             <dependency>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-dependencies</artifactId>

@@ -76,7 +76,7 @@
             <artifactId>jeffrey-events</artifactId>
         </dependency>
 
-        <!-- gRPC remote clients (brings in server-api + grpc-netty-shaded transitively) -->
+        <!-- gRPC remote clients (brings in server-api + grpc-netty transitively) -->
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>grpc-client</artifactId>

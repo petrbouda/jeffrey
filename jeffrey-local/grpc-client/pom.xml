@@ -35,10 +35,10 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>server-api</artifactId>
         </dependency>
-        <!-- ManagedChannel + Netty shaded -->
+        <!-- ManagedChannel + Netty -->
         <dependency>
             <groupId>io.grpc</groupId>
-            <artifactId>grpc-netty-shaded</artifactId>
+            <artifactId>grpc-netty</artifactId>
         </dependency>
         <!-- WorkspaceAddress record used by GrpcServerConnection -->
         <dependency>
