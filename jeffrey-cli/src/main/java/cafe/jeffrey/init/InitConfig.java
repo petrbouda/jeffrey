@@ -127,7 +127,15 @@ public class InitConfig {
         config.setRepositoryType(resolved.getString("repository-type"));
         config.setAgentPath(resolved.getString("agent-path"));
         config.setEnvFilePath(resolved.getString("env-file"));
-        config.setArgFilePath(resolved.getString("arg-file"));
+
+        String argFile = resolved.getString("arg-file");
+        if (isNullOrBlank(argFile)) {
+            String envArgFile = envLookup.apply("JEFFREY_ARG_FILE");
+            if (!isNullOrBlank(envArgFile)) {
+                argFile = envArgFile;
+            }
+        }
+        config.setArgFilePath(argFile);
         config.setPrintEnv(resolved.getBoolean("print-env"));
 
         Config projectCfg = resolved.getConfig("project");
