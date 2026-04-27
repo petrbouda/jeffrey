@@ -27,7 +27,7 @@ import cafe.jeffrey.server.core.manager.project.ProjectManager;
 import cafe.jeffrey.server.core.manager.project.ProjectsManager;
 import cafe.jeffrey.server.core.scheduler.job.descriptor.ProjectsSynchronizerJobDescriptor;
 import cafe.jeffrey.shared.common.model.workspace.event.InstanceCreatedEventContent;
-import cafe.jeffrey.server.persistence.repository.JdbcProjectInstanceRepository;
+import cafe.jeffrey.server.persistence.repository.jdbc.JdbcProjectInstanceRepository;
 import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.shared.common.model.ProjectInfo;
 import cafe.jeffrey.shared.common.model.ProjectInstanceInfo;

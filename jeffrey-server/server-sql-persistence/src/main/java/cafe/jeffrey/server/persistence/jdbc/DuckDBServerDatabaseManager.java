@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.server.persistence;
+package cafe.jeffrey.server.persistence.jdbc;
 
 import org.flywaydb.core.Flyway;
 import cafe.jeffrey.shared.persistence.DataSourceParams;

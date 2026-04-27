@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.server.persistence.repository;
+package cafe.jeffrey.server.persistence.repository.jdbc;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -34,16 +34,15 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.*;
 
 @DuckDBTest(migration = "classpath:db/migration/server")
-class JdbcProjectSchedulerRepositoryTest {
+class JdbcGlobalSchedulerRepositoryTest {
 
     @Nested
     class AllMethod {
 
         @Test
-        void returnsEmptyList_whenNoJobs(DataSource dataSource) throws SQLException {
+        void returnsEmptyList_whenNoJobs(DataSource dataSource) {
             var provider = new DatabaseClientProvider(dataSource);
-            TestUtils.executeSql(dataSource, "sql/projects/insert-workspace-with-projects.sql");
-            JdbcProjectSchedulerRepository repository = new JdbcProjectSchedulerRepository("proj-001", provider);
+            JdbcGlobalSchedulerRepository repository = new JdbcGlobalSchedulerRepository(provider);
 
             List<JobInfo> result = repository.all();
 
@@ -51,10 +50,10 @@ class JdbcProjectSchedulerRepositoryTest {
         }
 
         @Test
-        void returnsProjectJobs(DataSource dataSource) throws SQLException {
+        void returnsGlobalJobs(DataSource dataSource) throws SQLException {
             var provider = new DatabaseClientProvider(dataSource);
-            TestUtils.executeSql(dataSource, "sql/scheduler/insert-project-jobs.sql");
-            JdbcProjectSchedulerRepository repository = new JdbcProjectSchedulerRepository("proj-001", provider);
+            TestUtils.executeSql(dataSource, "sql/scheduler/insert-global-jobs.sql");
+            JdbcGlobalSchedulerRepository repository = new JdbcGlobalSchedulerRepository(provider);
 
             List<JobInfo> result = repository.all();
 
@@ -62,14 +61,14 @@ class JdbcProjectSchedulerRepositoryTest {
         }
 
         @Test
-        void filtersJobsByProject(DataSource dataSource) throws SQLException {
+        void doesNotReturnProjectJobs(DataSource dataSource) throws SQLException {
             var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/scheduler/insert-project-jobs.sql");
-            JdbcProjectSchedulerRepository repository = new JdbcProjectSchedulerRepository("proj-other", provider);
+            JdbcGlobalSchedulerRepository repository = new JdbcGlobalSchedulerRepository(provider);
 
             List<JobInfo> result = repository.all();
 
-            assertTrue(result.isEmpty()); // No jobs for proj-other
+            assertTrue(result.isEmpty()); // Project jobs should not be returned
         }
     }
 
@@ -77,12 +76,11 @@ class JdbcProjectSchedulerRepositoryTest {
     class InsertMethod {
 
         @Test
-        void insertsJob(DataSource dataSource) throws SQLException {
+        void insertsJob(DataSource dataSource) {
             var provider = new DatabaseClientProvider(dataSource);
-            TestUtils.executeSql(dataSource, "sql/projects/insert-workspace-with-projects.sql");
-            JdbcProjectSchedulerRepository repository = new JdbcProjectSchedulerRepository("proj-001", provider);
+            JdbcGlobalSchedulerRepository repository = new JdbcGlobalSchedulerRepository(provider);
 
-            JobInfo jobInfo = new JobInfo("new-job-001", "proj-001", JobType.PROJECT_INSTANCE_SESSION_CLEANER, Map.of("keepLast", "5"), true);
+            JobInfo jobInfo = new JobInfo("new-job-001", null, JobType.PROJECTS_SYNCHRONIZER, Map.of(), true);
             repository.insert(jobInfo);
 
             List<JobInfo> result = repository.all();
@@ -97,8 +95,8 @@ class JdbcProjectSchedulerRepositoryTest {
         @Test
         void updatesEnabledFlag(DataSource dataSource) throws SQLException {
             var provider = new DatabaseClientProvider(dataSource);
-            TestUtils.executeSql(dataSource, "sql/scheduler/insert-project-jobs.sql");
-            JdbcProjectSchedulerRepository repository = new JdbcProjectSchedulerRepository("proj-001", provider);
+            TestUtils.executeSql(dataSource, "sql/scheduler/insert-global-jobs.sql");
+            JdbcGlobalSchedulerRepository repository = new JdbcGlobalSchedulerRepository(provider);
 
             repository.updateEnabled("job-002", true);
 
@@ -117,8 +115,8 @@ class JdbcProjectSchedulerRepositoryTest {
         @Test
         void deletesJob(DataSource dataSource) throws SQLException {
             var provider = new DatabaseClientProvider(dataSource);
-            TestUtils.executeSql(dataSource, "sql/scheduler/insert-project-jobs.sql");
-            JdbcProjectSchedulerRepository repository = new JdbcProjectSchedulerRepository("proj-001", provider);
+            TestUtils.executeSql(dataSource, "sql/scheduler/insert-global-jobs.sql");
+            JdbcGlobalSchedulerRepository repository = new JdbcGlobalSchedulerRepository(provider);
 
             repository.delete("job-001");
 

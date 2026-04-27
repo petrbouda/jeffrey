@@ -16,9 +16,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.server.persistence.repository;
+package cafe.jeffrey.server.persistence.repository.jdbc;
 
+import cafe.jeffrey.server.persistence.repository.SchedulerRepository;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.shared.common.model.job.JobInfo;
 import cafe.jeffrey.shared.common.model.job.JobType;
@@ -29,7 +31,7 @@ import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
 
 import java.util.List;
 
-public class JdbcProjectSchedulerRepository implements SchedulerRepository {
+public class JdbcGlobalSchedulerRepository implements SchedulerRepository {
 
     //language=SQL
     private static final String INSERT = """
@@ -38,73 +40,62 @@ public class JdbcProjectSchedulerRepository implements SchedulerRepository {
 
     //language=SQL
     private static final String UPDATE_ENABLED =
-            "UPDATE schedulers SET enabled = :enabled WHERE project_id = :project_id AND id = :id";
+            "UPDATE schedulers SET enabled = :enabled WHERE id = :id";
 
     //language=SQL
     private static final String GET_ALL =
-            "SELECT * FROM schedulers WHERE project_id = :project_id";
+            "SELECT * FROM schedulers WHERE project_id IS NULL";
 
     //language=SQL
     private static final String GET_ALL_BY_JOB_TYPE =
-            "SELECT * FROM schedulers WHERE project_id = :project_id AND job_type = :job_type";
+            "SELECT * FROM schedulers WHERE project_id IS NULL AND job_type = :job_type";
 
     //language=SQL
     private static final String DELETE =
-            "DELETE FROM schedulers WHERE project_id = :project_id AND id = :id";
+            "DELETE FROM schedulers WHERE project_id IS NULL AND id = :id";
 
-    private final String projectId;
     private final DatabaseClient databaseClient;
 
-    public JdbcProjectSchedulerRepository(String projectId, DatabaseClientProvider databaseClientProvider) {
-        this.projectId = projectId;
-        this.databaseClient = databaseClientProvider.provide(GroupLabel.PROJECT_SCHEDULERS);
+    public JdbcGlobalSchedulerRepository(DatabaseClientProvider databaseClientProvider) {
+        this.databaseClient = databaseClientProvider.provide(GroupLabel.GLOBAL_SCHEDULERS);
     }
 
     @Override
     public void insert(JobInfo jobInfo) {
-        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+        SqlParameterSource paramSource = new MapSqlParameterSource()
                 .addValue("id", jobInfo.id())
-                .addValue("project_id", projectId)
+                .addValue("project_id", null) // project_id is null for global schedulers
                 .addValue("job_type", jobInfo.jobType().name())
                 .addValue("params", Json.toPrettyString(jobInfo.params()))
                 .addValue("enabled", jobInfo.enabled());
 
-        databaseClient.insert(StatementLabel.INSERT_SCHEDULER, INSERT, paramSource);
+        databaseClient.insert(StatementLabel.INSERT_GLOBAL_JOB ,INSERT, paramSource);
     }
 
     @Override
     public List<JobInfo> all() {
-        MapSqlParameterSource paramSource = new MapSqlParameterSource()
-                .addValue("project_id", projectId);
-
-        return databaseClient.query(StatementLabel.FIND_ALL_SCHEDULERS, GET_ALL, paramSource, ServerMappers.jobInfoMapper());
+        return databaseClient.query(StatementLabel.FIND_ALL_GLOBAL_JOBS, GET_ALL, ServerMappers.jobInfoMapper());
     }
 
     @Override
     public List<JobInfo> allByJobType(JobType jobType) {
         MapSqlParameterSource paramSource = new MapSqlParameterSource()
-                .addValue("project_id", projectId)
                 .addValue("job_type", jobType.name());
 
-        return databaseClient.query(StatementLabel.FIND_SCHEDULERS_BY_TYPE, GET_ALL_BY_JOB_TYPE, paramSource, ServerMappers.jobInfoMapper());
+        return databaseClient.query(StatementLabel.FIND_GLOBAL_JOBS_BY_TYPE, GET_ALL_BY_JOB_TYPE, paramSource, ServerMappers.jobInfoMapper());
     }
 
     @Override
     public void updateEnabled(String id, boolean enabled) {
-        MapSqlParameterSource paramSource = new MapSqlParameterSource()
-                .addValue("project_id", projectId)
+        SqlParameterSource paramSource = new MapSqlParameterSource()
                 .addValue("id", id)
                 .addValue("enabled", enabled);
 
-        databaseClient.update(StatementLabel.ENABLE_SCHEDULER, UPDATE_ENABLED, paramSource);
+        databaseClient.update(StatementLabel.ENABLE_GLOBAL_JOB, UPDATE_ENABLED, paramSource);
     }
 
     @Override
     public void delete(String id) {
-        MapSqlParameterSource paramSource = new MapSqlParameterSource()
-                .addValue("id", id)
-                .addValue("project_id", projectId);
-
-        databaseClient.delete(StatementLabel.DELETE_SCHEDULER, DELETE, paramSource);
+        databaseClient.update(StatementLabel.DELETE_GLOBAL_JOB, DELETE, new MapSqlParameterSource("id", id));
     }
 }

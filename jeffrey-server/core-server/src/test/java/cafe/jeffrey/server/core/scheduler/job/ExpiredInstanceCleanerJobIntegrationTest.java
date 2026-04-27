@@ -27,7 +27,7 @@ import cafe.jeffrey.server.core.manager.SchedulerManager;
 import cafe.jeffrey.server.core.manager.project.ProjectManager;
 import cafe.jeffrey.server.core.scheduler.JobContext;
 import cafe.jeffrey.server.core.scheduler.job.descriptor.ExpiredInstanceCleanerJobDescriptor;
-import cafe.jeffrey.server.persistence.JdbcServerPlatformRepositories;
+import cafe.jeffrey.server.persistence.jdbc.JdbcServerPlatformRepositories;
 import cafe.jeffrey.shared.common.model.ProjectInfo;
 import cafe.jeffrey.shared.common.model.ProjectInstanceInfo;
 import cafe.jeffrey.shared.common.model.ProjectInstanceInfo.ProjectInstanceStatus;

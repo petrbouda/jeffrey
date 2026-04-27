@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.server.persistence;
+package cafe.jeffrey.server.persistence.jdbc;
 
 import org.junit.jupiter.api.Test;
 import cafe.jeffrey.server.persistence.model.SessionWithRepository;

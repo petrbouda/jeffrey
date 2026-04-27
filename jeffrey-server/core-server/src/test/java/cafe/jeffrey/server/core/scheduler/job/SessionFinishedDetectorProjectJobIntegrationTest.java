@@ -29,7 +29,7 @@ import cafe.jeffrey.server.core.project.repository.RepositoryStorage;
 import cafe.jeffrey.server.core.scheduler.JobContext;
 import cafe.jeffrey.server.core.scheduler.job.descriptor.SessionFinishedDetectorProjectJobDescriptor;
 import cafe.jeffrey.server.core.streaming.SessionFinisher;
-import cafe.jeffrey.server.persistence.JdbcServerPlatformRepositories;
+import cafe.jeffrey.server.persistence.jdbc.JdbcServerPlatformRepositories;
 import cafe.jeffrey.server.core.ServerJeffreyDirs;
 import cafe.jeffrey.shared.common.model.ProjectInfo;
 import cafe.jeffrey.shared.common.model.ProjectInstanceInfo;

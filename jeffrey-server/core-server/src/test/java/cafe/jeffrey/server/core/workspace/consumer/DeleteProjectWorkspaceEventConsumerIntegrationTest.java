@@ -28,7 +28,7 @@ import cafe.jeffrey.server.core.manager.project.ProjectManager;
 import cafe.jeffrey.server.core.manager.project.ProjectsManager;
 import cafe.jeffrey.server.core.project.repository.RepositoryStorage;
 import cafe.jeffrey.server.core.scheduler.job.descriptor.ProjectsSynchronizerJobDescriptor;
-import cafe.jeffrey.server.persistence.JdbcServerPlatformRepositories;
+import cafe.jeffrey.server.persistence.jdbc.JdbcServerPlatformRepositories;
 import cafe.jeffrey.server.persistence.repository.ServerPlatformRepositories;
 import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.shared.common.model.ProjectInfo;

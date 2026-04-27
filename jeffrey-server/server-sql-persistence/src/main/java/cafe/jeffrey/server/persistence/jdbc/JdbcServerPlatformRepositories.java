@@ -16,11 +16,20 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.server.persistence;
+package cafe.jeffrey.server.persistence.jdbc;
 
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import cafe.jeffrey.server.persistence.model.SessionWithRepository;
 import cafe.jeffrey.server.persistence.repository.*;
+import cafe.jeffrey.server.persistence.repository.jdbc.JdbcProfilerRepository;
+import cafe.jeffrey.server.persistence.repository.jdbc.JdbcProjectInstanceRepository;
+import cafe.jeffrey.server.persistence.repository.jdbc.JdbcProjectRepository;
+import cafe.jeffrey.server.persistence.repository.jdbc.JdbcProjectRepositoryRepository;
+import cafe.jeffrey.server.persistence.repository.jdbc.JdbcProjectSchedulerRepository;
+import cafe.jeffrey.server.persistence.repository.jdbc.JdbcProjectsRepository;
+import cafe.jeffrey.server.persistence.repository.jdbc.JdbcWorkspaceRepository;
+import cafe.jeffrey.server.persistence.repository.jdbc.JdbcWorkspacesRepository;
+import cafe.jeffrey.server.persistence.repository.jdbc.ServerMappers;
 import cafe.jeffrey.shared.common.model.ProjectInstanceInfo;
 import cafe.jeffrey.shared.common.model.ProjectInstanceInfo.ProjectInstanceStatus;
 import cafe.jeffrey.shared.common.model.ProjectInstanceSessionInfo;

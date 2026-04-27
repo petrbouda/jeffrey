@@ -30,7 +30,8 @@ import cafe.jeffrey.server.core.manager.project.ProjectsManager;
 import cafe.jeffrey.server.core.scheduler.job.descriptor.ProjectsSynchronizerJobDescriptor;
 import cafe.jeffrey.server.core.streaming.SessionFinisher;
 import cafe.jeffrey.shared.common.model.workspace.event.SessionCreatedEventContent;
-import cafe.jeffrey.server.persistence.repository.JdbcProjectRepositoryRepository;
+import cafe.jeffrey.server.persistence.jdbc.JdbcServerPlatformRepositories;
+import cafe.jeffrey.server.persistence.repository.jdbc.JdbcProjectRepositoryRepository;
 import cafe.jeffrey.server.persistence.repository.ServerPlatformRepositories;
 import cafe.jeffrey.server.persistence.repository.ProjectInstanceRepository;
 import cafe.jeffrey.server.persistence.repository.ProjectRepositoryRepository;
@@ -232,7 +233,7 @@ class CreateSessionWorkspaceEventConsumerIntegrationTest {
             TestUtils.executeSql(dataSource, "sql/consumer/insert-workspace-project-pending-instance.sql");
             var provider = new DatabaseClientProvider(dataSource);
             var clock = new MutableClock(NOW);
-            var realServerPlatformRepositories = new cafe.jeffrey.server.persistence.JdbcServerPlatformRepositories(provider, clock);
+            var realServerPlatformRepositories = new JdbcServerPlatformRepositories(provider, clock);
 
             when(projectsManager.findByOriginProjectId(ORIGIN_PROJECT_ID)).thenReturn(Optional.of(projectManager));
             when(projectManager.info()).thenReturn(PROJECT_INFO);

@@ -16,8 +16,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.server.persistence.repository;
+package cafe.jeffrey.server.persistence.repository.jdbc;
 
+import cafe.jeffrey.server.persistence.repository.ProjectsRepository;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.shared.common.model.ProjectInfo;
