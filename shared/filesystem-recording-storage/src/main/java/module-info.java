@@ -15,9 +15,9 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-module cafe.jeffrey.storage.recording.filesystem {
+module cafe.jeffrey.shared.storage.recording.filesystem {
     requires cafe.jeffrey.shared.common;
-    requires transitive cafe.jeffrey.storage.recording.api;
+    requires transitive cafe.jeffrey.shared.storage.recording.api;
     requires org.slf4j;
 
     exports cafe.jeffrey.storage.recording.filesystem;

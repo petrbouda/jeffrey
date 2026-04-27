@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-module cafe.jeffrey.server.api {
+module cafe.jeffrey.shared.server.api {
     requires transitive com.google.protobuf;
     requires transitive io.grpc;
     requires transitive io.grpc.stub;

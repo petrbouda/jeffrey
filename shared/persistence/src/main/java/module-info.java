@@ -19,7 +19,7 @@ module cafe.jeffrey.shared.persistence {
     requires transitive java.sql;
     requires jdk.jfr;
     requires transitive cafe.jeffrey.shared.common;
-    requires transitive cafe.jeffrey.sql.builder;
+    requires transitive cafe.jeffrey.shared.sql.builder;
     requires cafe.jeffrey.jfr.events;
     requires transitive com.zaxxer.hikari;
     requires transitive spring.jdbc;
