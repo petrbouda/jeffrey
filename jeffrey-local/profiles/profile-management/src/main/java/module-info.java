@@ -98,7 +98,7 @@ module cafe.jeffrey.local.profile.management {
     opens cafe.jeffrey.profile to spring.core, spring.beans, spring.context;
     opens cafe.jeffrey.profile.configuration to spring.core, spring.beans, spring.context;
     opens cafe.jeffrey.profile.feature to spring.core, spring.beans, spring.context;
-    opens cafe.jeffrey.profile.manager to spring.core, spring.beans, spring.context;
+    opens cafe.jeffrey.profile.manager to spring.core, spring.beans, spring.context, tools.jackson.databind;
     opens cafe.jeffrey.profile.resources.request to tools.jackson.databind;
     opens cafe.jeffrey.profile.model to tools.jackson.databind;
     opens cafe.jeffrey.profile.settings to tools.jackson.databind;

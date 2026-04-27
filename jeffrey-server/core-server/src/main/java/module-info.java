@@ -36,6 +36,8 @@ module cafe.jeffrey.server.core {
     requires spring.web;
     requires spring.webmvc;
     requires org.apache.tomcat.embed.core;
+    requires org.apache.commons.logging;
+    requires org.jspecify;
 
     // Jackson 3
     requires tools.jackson.databind;
@@ -65,7 +67,7 @@ module cafe.jeffrey.server.core {
     opens cafe.jeffrey.server.core.web to spring.core, spring.beans, spring.context;
 
     // Spring MVC reflectively dispatches to @RestController handler methods
-    opens cafe.jeffrey.server.core.web.controllers to spring.core, spring.beans, spring.context, spring.web;
+    opens cafe.jeffrey.server.core.web.controllers to spring.core, spring.beans, spring.context, spring.web, tools.jackson.databind;
 
     // Jackson 3 record introspection for JSON serialization
     opens cafe.jeffrey.server.core.resources.response to tools.jackson.databind;
