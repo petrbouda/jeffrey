@@ -374,7 +374,7 @@ class InitConfigTest {
         }
 
         @Test
-        void throwsWhenAutoResolvePathDoesNotExist() throws IOException {
+        void returnsNullWhenAutoResolvePathDoesNotExist() throws IOException {
             Path configFile = tempDir.resolve("config.conf");
             Files.writeString(configFile, configWithOverrides(
                     "jeffrey-home = \"" + tempDir + "\"",
@@ -382,16 +382,11 @@ class InitConfigTest {
             ));
 
             InitConfig config = InitConfig.fromHoconFile(configFile, null);
-            IllegalArgumentException exception = assertThrows(
-                    IllegalArgumentException.class,
-                    config::getAgentPath
-            );
-            assertTrue(exception.getMessage().contains("Agent path could not be resolved"));
-            assertTrue(exception.getMessage().contains(tempDir.toString()));
+            assertNull(config.getAgentPath());
         }
 
         @Test
-        void throwsWhenUsingWorkspacesDir() throws IOException {
+        void returnsNullWhenUsingWorkspacesDir() throws IOException {
             Path configFile = tempDir.resolve("config.conf");
             Path libsDir = tempDir.resolve("libs/current");
             Files.createDirectories(libsDir);
@@ -403,11 +398,68 @@ class InitConfigTest {
             ));
 
             InitConfig config = InitConfig.fromHoconFile(configFile, null);
+            assertNull(config.getAgentPath());
+        }
+    }
+
+    @Nested
+    class JeffreyHomeEnvFallback {
+
+        @TempDir
+        Path tempDir;
+
+        @Test
+        void usesEnvVarWhenConfigOmitsJeffreyHome() throws IOException {
+            Path configFile = tempDir.resolve("config.conf");
+            Files.writeString(configFile, configWithOverrides(
+                    "project { workspace-id = \"test\", name = \"test\" }"
+            ));
+
+            InitConfig config = InitConfig.fromHoconFile(configFile, null, name -> "/opt/jeffrey");
+            assertEquals("/opt/jeffrey", config.getJeffreyHome());
+            assertTrue(config.useJeffreyHome());
+        }
+
+        @Test
+        void prefersExplicitConfigOverEnvVar() throws IOException {
+            Path configFile = tempDir.resolve("config.conf");
+            Files.writeString(configFile, configWithOverrides(
+                    "jeffrey-home = \"/explicit\"",
+                    "project { workspace-id = \"test\", name = \"test\" }"
+            ));
+
+            InitConfig config = InitConfig.fromHoconFile(configFile, null, name -> "/from-env");
+            assertEquals("/explicit", config.getJeffreyHome());
+        }
+
+        @Test
+        void doesNotUseEnvVarWhenWorkspacesDirIsSet() throws IOException {
+            Path configFile = tempDir.resolve("config.conf");
+            Path workspacesDir = tempDir.resolve("workspaces");
+            Files.createDirectories(workspacesDir);
+
+            Files.writeString(configFile, configWithOverrides(
+                    "workspaces-dir = \"" + workspacesDir + "\"",
+                    "project { workspace-id = \"test\", name = \"test\" }"
+            ));
+
+            InitConfig config = InitConfig.fromHoconFile(configFile, null, name -> "/opt/jeffrey");
+            assertFalse(config.useJeffreyHome());
+            assertEquals(workspacesDir.toString(), config.getWorkspacesDir());
+        }
+
+        @Test
+        void validationFailsWhenNeitherConfigNorEnvVarIsSet() throws IOException {
+            Path configFile = tempDir.resolve("config.conf");
+            Files.writeString(configFile, configWithOverrides(
+                    "project { workspace-id = \"test\", name = \"test\" }"
+            ));
+
             IllegalArgumentException exception = assertThrows(
                     IllegalArgumentException.class,
-                    config::getAgentPath
+                    () -> InitConfig.fromHoconFile(configFile, null, name -> null)
             );
-            assertTrue(exception.getMessage().contains("Agent path could not be resolved"));
+            assertTrue(exception.getMessage().contains("Either 'jeffrey-home' or 'workspaces-dir'"));
         }
     }
 

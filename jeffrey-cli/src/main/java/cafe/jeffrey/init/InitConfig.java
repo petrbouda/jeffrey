@@ -27,6 +27,7 @@ import cafe.jeffrey.shared.common.model.RepositoryType;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
+import java.util.function.Function;
 
 /**
  * Configuration class for HOCON-based initialization.
@@ -73,6 +74,11 @@ public class InitConfig {
      * @return validated InitConfig instance
      */
     public static InitConfig fromHoconFile(Path baseConfigFile, Path overrideConfigFile) {
+        return fromHoconFile(baseConfigFile, overrideConfigFile, System::getenv);
+    }
+
+    static InitConfig fromHoconFile(
+            Path baseConfigFile, Path overrideConfigFile, Function<String, String> envLookup) {
         if (!Files.exists(baseConfigFile)) {
             throw new IllegalArgumentException("Base config file does not exist: " + baseConfigFile);
         }
@@ -91,7 +97,7 @@ public class InitConfig {
             resolved = baseConfig.withFallback(defaults).resolve();
         }
 
-        InitConfig config = fromConfig(resolved);
+        InitConfig config = fromConfig(resolved, envLookup);
         config.validate();
 
         return config;
@@ -103,10 +109,19 @@ public class InitConfig {
      * {@code java.beans.Introspector} from the {@code java.desktop} module,
      * not available in minimal JDK distributions (e.g. container images).
      */
-    private static InitConfig fromConfig(Config resolved) {
+    private static InitConfig fromConfig(Config resolved, Function<String, String> envLookup) {
         InitConfig config = new InitConfig();
-        config.setJeffreyHome(resolved.getString("jeffrey-home"));
-        config.setWorkspacesDir(resolved.getString("workspaces-dir"));
+
+        String jeffreyHome = resolved.getString("jeffrey-home");
+        String workspacesDir = resolved.getString("workspaces-dir");
+        if (isNullOrBlank(jeffreyHome) && isNullOrBlank(workspacesDir)) {
+            String envHome = envLookup.apply("JEFFREY_HOME");
+            if (!isNullOrBlank(envHome)) {
+                jeffreyHome = envHome;
+            }
+        }
+        config.setJeffreyHome(jeffreyHome);
+        config.setWorkspacesDir(workspacesDir);
         config.setProfilerPath(resolved.getString("profiler-path"));
         config.setProfilerConfig(resolved.getString("profiler-config"));
         config.setRepositoryType(resolved.getString("repository-type"));
@@ -476,6 +491,7 @@ public class InitConfig {
      * Returns the agent JAR path with fallback resolution:
      * 1. Explicit config value if set
      * 2. Auto-resolved from jeffrey-home/libs/current/jeffrey-agent.jar if it exists
+     * 3. Returns null if neither is available — agent-dependent features are skipped downstream.
      */
     public String getAgentPath() {
         // 1. Explicit config value
@@ -489,9 +505,7 @@ public class InitConfig {
                 return candidate.toString();
             }
         }
-        throw new IllegalArgumentException(
-                "Agent path could not be resolved. Set 'agent-path' explicitly or ensure '"
-                        + DEFAULT_AGENT_RELATIVE_PATH + "' exists under JEFFREY_HOME: " + jeffreyHome);
+        return null;
     }
 
     public boolean isJdkJavaOptionsEnabled() {
