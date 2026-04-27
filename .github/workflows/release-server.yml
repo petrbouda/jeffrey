@@ -1,4 +1,4 @@
-name: Docker Server Image
+name: Docker Server Image (Jib)
 
 on:
   workflow_call:
@@ -6,6 +6,8 @@ on:
 jobs:
   docker-server:
     runs-on: ubuntu-latest
+    container:
+      image: petrbouda/jeffrey-builder:25
 
     steps:
     - uses: actions/checkout@v4
@@ -14,74 +16,55 @@ jobs:
       id: version
       run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
 
-    - name: Download jeffrey-server.jar
-      uses: actions/download-artifact@v4
-      with:
-        name: jeffrey-server-jar
-        path: ./docker-context
-
+    # Stage the bundled /jeffrey-libs/ artifacts into Jib's extraDirectories source.
+    # Jib's convention: build/build-server-jib/src/main/jib/<path> → /<path> in the image.
     - name: Download jeffrey-cli.jar
       uses: actions/download-artifact@v4
       with:
         name: jeffrey-cli-jar
-        path: ./docker-context
+        path: ./build/build-server-jib/src/main/jib/jeffrey-libs
 
     - name: Download jeffrey-agent.jar
       uses: actions/download-artifact@v4
       with:
         name: jeffrey-agent-jar
-        path: ./docker-context
+        path: ./build/build-server-jib/src/main/jib/jeffrey-libs
 
     - name: Download native CLI (amd64)
       uses: actions/download-artifact@v4
       with:
         name: jeffrey-cli-amd64
-        path: ./docker-context/cli-amd64
+        path: ./build/build-server-jib/src/main/jib/jeffrey-libs/cli-amd64
 
-    # - name: Download native CLI (arm64)
-    #   uses: actions/download-artifact@v4
-    #   with:
-    #     name: jeffrey-cli-arm64
-    #     path: ./docker-context/cli-arm64
-
-    - name: Download async-profiler
+    - name: Download async-profiler (linux/amd64)
       run: |
         AP_VERSION=$(curl -s https://api.github.com/repos/async-profiler/async-profiler/releases/latest \
           | grep '"tag_name"' | sed 's/.*"v\([^"]*\)".*/\1/')
+        curl -L "https://github.com/async-profiler/async-profiler/releases/download/v${AP_VERSION}/async-profiler-${AP_VERSION}-linux-x64.tar.gz" \
+          | tar -xz -C /tmp
+        cp /tmp/async-profiler-*/lib/libasyncProfiler.so ./build/build-server-jib/src/main/jib/jeffrey-libs/libasyncProfiler.so
+        rm -rf /tmp/async-profiler-*
 
-        for arch_pair in "x64:amd64"; do
-          AP_ARCH="${arch_pair%%:*}"
-          DOCKER_ARCH="${arch_pair##*:}"
-          curl -L "https://github.com/async-profiler/async-profiler/releases/download/v${AP_VERSION}/async-profiler-${AP_VERSION}-linux-${AP_ARCH}.tar.gz" \
-            | tar -xz -C /tmp
-          cp /tmp/async-profiler-*/lib/libasyncProfiler.so ./docker-context/libasyncProfiler-${DOCKER_ARCH}.so
-          rm -rf /tmp/async-profiler-*
-        done
-
-    - name: Prepare build context
+    - name: Stage native CLI binary
       run: |
-        mv ./docker-context/cli-amd64/jeffrey-cli ./docker-context/jeffrey-cli-amd64
-        # mv ./docker-context/cli-arm64/jeffrey-cli ./docker-context/jeffrey-cli-arm64
-        rm -rf ./docker-context/cli-amd64
-        ls -la ./docker-context/
+        mv ./build/build-server-jib/src/main/jib/jeffrey-libs/cli-amd64/jeffrey-cli \
+           ./build/build-server-jib/src/main/jib/jeffrey-libs/jeffrey-cli-amd64
+        rm -rf ./build/build-server-jib/src/main/jib/jeffrey-libs/cli-amd64
+        ls -la ./build/build-server-jib/src/main/jib/jeffrey-libs/
 
-    - name: Set up QEMU
-      uses: docker/setup-qemu-action@v3
+    # Two-step: jib: prefix goal can only be invoked at the project level, so we install
+    # the reactor up to build-server-jib first, then run jib:build scoped to that module.
+    - name: Install reactor up to build-server-jib
+      env:
+        JEFFREY_TAG_VERSION: ${{ steps.version.outputs.VERSION }}
+      run: mvn -pl build/build-server-jib -am -DskipTests=true install
 
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
-
-    - name: Login to Docker Hub
-      uses: docker/login-action@v3
-      with:
-        username: ${{ secrets.DOCKERHUB_USERNAME }}
-        password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-    - name: Build and push jeffrey-server
-      uses: docker/build-push-action@v6
-      with:
-        context: ./docker-context
-        file: ./docker/Dockerfile-server
-        push: true
-        platforms: linux/amd64
-        tags: petrbouda/jeffrey-server:${{ steps.version.outputs.VERSION }},petrbouda/jeffrey-server:latest
+    - name: Build & push image with Jib
+      env:
+        JIB_TO_AUTH_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+        JIB_TO_AUTH_PASSWORD: ${{ secrets.DOCKERHUB_TOKEN }}
+      run: |
+        mvn -pl build/build-server-jib jib:build \
+          -Djib.from.platforms=linux/amd64 \
+          -Djib.to.image=petrbouda/jeffrey-server:${{ steps.version.outputs.VERSION }} \
+          -Djib.to.tags=latest

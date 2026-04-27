@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Jeffrey
+  ~ Copyright (C) 2026 Petr Bouda
+  ~
+  ~ This program is free software: you can redistribute it and/or modify
+  ~ it under the terms of the GNU Affero General Public License as published by
+  ~ the Free Software Foundation, either version 3 of the License, or
+  ~ (at your option) any later version.
+  ~
+  ~ This program is distributed in the hope that it will be useful,
+  ~ but WITHOUT ANY WARRANTY; without even the implied warranty of
+  ~ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  ~ GNU Affero General Public License for more details.
+  ~
+  ~ You should have received a copy of the GNU Affero General Public License
+  ~ along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  -->
+
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>cafe.jeffrey</groupId>
+        <artifactId>build</artifactId>
+        <version>1.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>build-server-jib</artifactId>
+
+    <properties>
+        <mainClass>cafe.jeffrey.server.core.ServerApplication</mainClass>
+        <finalName>jeffrey-server</finalName>
+        <jib-maven-plugin.version>3.4.6</jib-maven-plugin.version>
+        <jeffrey-jib-maven.version>1.0-SNAPSHOT</jeffrey-jib-maven.version>
+        <image.from>eclipse-temurin:25-jdk</image.from>
+        <image.to>petrbouda/jeffrey-server:${project.version}</image.to>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>core-server</artifactId>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>com.google.cloud.tools</groupId>
+                <artifactId>jib-maven-plugin</artifactId>
+                <version>${jib-maven-plugin.version}</version>
+                <dependencies>
+                    <dependency>
+                        <groupId>cafe.jeffrey-analyst</groupId>
+                        <artifactId>jeffrey-jib-maven</artifactId>
+                        <version>${jeffrey-jib-maven.version}</version>
+                    </dependency>
+                </dependencies>
+                <configuration>
+                    <from>
+                        <image>${image.from}</image>
+                    </from>
+                    <to>
+                        <image>${image.to}</image>
+                    </to>
+                    <container>
+                        <mainClass>${mainClass}</mainClass>
+                        <ports>
+                            <port>8080</port>
+                            <port>9090</port>
+                        </ports>
+                        <!-- Image-level default: profiling off. K8s pod env overrides to "true" to enable. -->
+                        <environment>
+                            <JEFFREY_ENABLED>false</JEFFREY_ENABLED>
+                        </environment>
+                        <!-- Empty: let the jeffrey-jib wrapper own JVM configuration via the argfile.
+                             Per JeffreyBuildPlanExtender javadoc, JVM flags here would be moved into CMD
+                             and applied AFTER the argfile, silently overriding profiling settings. -->
+                        <jvmFlags/>
+                    </container>
+                    <pluginExtensions>
+                        <pluginExtension>
+                            <implementation>cafe.jeffrey.jib.maven.JeffreyJibMavenExtension</implementation>
+                            <configuration implementation="cafe.jeffrey.jib.JeffreyJibConfig">
+                                <!-- enabled=true (default): wrapper layer is installed and ENTRYPOINT is rewritten.
+                                     jeffreyHome / cliPath / configs are deployment-specific (shared volume mount)
+                                     and intentionally left unset here so Kubernetes pod env vars provide them. -->
+                            </configuration>
+                        </pluginExtension>
+                    </pluginExtensions>
+                    <!--
+                      Bundled accessory artifacts under /jeffrey-libs/ — preserves feature parity
+                      with the previous docker/Dockerfile-server build. CI stages these files into
+                      src/main/jib/jeffrey-libs/ before running jib:build:
+                        - jeffrey-cli.jar
+                        - jeffrey-cli-amd64 (native GraalVM binary; needs 0755)
+                        - jeffrey-agent.jar
+                        - libasyncProfiler.so (linux/amd64)
+                      Jib's default extraDirectories convention copies src/main/jib/<path> → /<path>.
+                    -->
+                    <extraDirectories>
+                        <permissions>
+                            <permission>
+                                <file>/jeffrey-libs/jeffrey-cli-amd64</file>
+                                <mode>755</mode>
+                            </permission>
+                        </permissions>
+                    </extraDirectories>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>
