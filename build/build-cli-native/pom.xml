@@ -71,6 +71,12 @@
                             <buildArgs>
                                 <buildArg>--no-fallback</buildArg>
                                 <buildArg>--initialize-at-build-time=org.xml.sax.helpers</buildArg>
+                                <!-- Default is -march=native, which bakes the build host's CPU features
+                                     (e.g. AVX2/BMI/FMA on modern GitHub runners) into the binary and
+                                     makes it refuse to start on hosts without them — old Xeons,
+                                     throttled cloud VMs, qemu-emulated amd64 on arm64, etc. Pin to the
+                                     baseline x86-64 / ARMv8.0-A so jeffrey-cli runs anywhere. -->
+                                <buildArg>-march=compatibility</buildArg>
                             </buildArgs>
                         </configuration>
                     </plugin>
