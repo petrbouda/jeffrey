@@ -33,6 +33,8 @@
 
     <modules>
         <module>build-local</module>
+        <module>build-local-jib</module>
+        <module>build-local-examples-jib</module>
         <module>build-server</module>
         <module>build-server-jib</module>
         <module>build-cli</module>
