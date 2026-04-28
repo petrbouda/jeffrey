@@ -20,6 +20,8 @@ package cafe.jeffrey.init;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import cafe.jeffrey.init.model.HeapDumpType;
 import cafe.jeffrey.shared.common.IDGenerator;
 import cafe.jeffrey.shared.common.model.RepositoryType;
@@ -35,8 +37,36 @@ import java.util.function.Function;
  */
 public class InitConfig {
 
-    private static final String DEFAULT_PROFILER_RELATIVE_PATH = "libs/current/libasyncProfiler.so";
+    private static final Logger LOG = LoggerFactory.getLogger(InitConfig.class);
+
     private static final String DEFAULT_AGENT_RELATIVE_PATH = "libs/current/jeffrey-agent.jar";
+
+    /**
+     * Detected runtime arch, null on unsupported platforms. Computed once at class load so
+     * the warning is logged at most once per JVM. When null, profiler auto-resolve is skipped
+     * and {@link #getProfilerPath()} returns null — the application starts without profiling
+     * rather than failing.
+     */
+    private static final String DETECTED_ARCH = detectArch();
+
+    /**
+     * Maps the JVM's os.arch to the binary suffix used for bundled native artifacts
+     * (jeffrey-cli-${arch}, libasyncProfiler-${arch}.so). Mirrors the case mapping in
+     * jeffrey-entrypoint.sh so the auto-resolved path matches what CopyLibsInitializer
+     * places in the shared volume. Returns null on unsupported platforms.
+     */
+    static String detectArch() {
+        String osArch = System.getProperty("os.arch");
+        return switch (osArch) {
+            case "x86_64", "amd64" -> "amd64";
+            case "aarch64", "arm64" -> "arm64";
+            default -> {
+                LOG.warn("Unsupported os.arch for bundled native profiler: os_arch={} - "
+                        + "Jeffrey profiling is disabled, application will start without profiling", osArch);
+                yield null;
+            }
+        };
+    }
 
     // Default configuration with all optional fields
     private static final String DEFAULTS = """
@@ -289,7 +319,9 @@ public class InitConfig {
     /**
      * Returns the profiler path with fallback resolution:
      * 1. Explicit config value if set
-     * 2. Auto-resolved from jeffrey-home/libs/current/libasyncProfiler.so if it exists
+     * 2. Auto-resolved from jeffrey-home/libs/current/libasyncProfiler-${arch}.so if it exists,
+     *    where ${arch} matches the runtime JVM's architecture (amd64 / arm64). Skipped when
+     *    the arch is unsupported (a warning was logged at class load).
      */
     public String getProfilerPath() {
         // 1. Explicit config value
@@ -297,9 +329,10 @@ public class InitConfig {
         if (explicit != null) {
             return explicit;
         }
-        // 2. Auto-resolve from jeffrey-home
-        if (useJeffreyHome()) {
-            Path candidate = Path.of(jeffreyHome).resolve(DEFAULT_PROFILER_RELATIVE_PATH);
+        // 2. Auto-resolve from jeffrey-home (only when arch is recognized)
+        if (useJeffreyHome() && DETECTED_ARCH != null) {
+            Path candidate = Path.of(jeffreyHome)
+                    .resolve("libs/current/libasyncProfiler-" + DETECTED_ARCH + ".so");
             if (Files.exists(candidate)) {
                 return candidate.toString();
             }

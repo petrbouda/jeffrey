@@ -36,20 +36,34 @@ jobs:
         name: jeffrey-cli-amd64
         path: ./build/build-server-jib/src/main/jib/jeffrey-libs/cli-amd64
 
-    - name: Download async-profiler (linux/amd64)
+    - name: Download native CLI (arm64)
+      uses: actions/download-artifact@v4
+      with:
+        name: jeffrey-cli-arm64
+        path: ./build/build-server-jib/src/main/jib/jeffrey-libs/cli-arm64
+
+    - name: Download async-profiler (linux/amd64 + linux/arm64)
       run: |
         AP_VERSION=$(curl -s https://api.github.com/repos/async-profiler/async-profiler/releases/latest \
           | grep '"tag_name"' | sed 's/.*"v\([^"]*\)".*/\1/')
-        curl -L "https://github.com/async-profiler/async-profiler/releases/download/v${AP_VERSION}/async-profiler-${AP_VERSION}-linux-x64.tar.gz" \
-          | tar -xz -C /tmp
-        cp /tmp/async-profiler-*/lib/libasyncProfiler.so ./build/build-server-jib/src/main/jib/jeffrey-libs/libasyncProfiler.so
-        rm -rf /tmp/async-profiler-*
+        for AP_ARCH_PAIR in "x64:amd64" "arm64:arm64"; do
+          AP_ARCH="${AP_ARCH_PAIR%%:*}"
+          OUT_ARCH="${AP_ARCH_PAIR##*:}"
+          curl -L "https://github.com/async-profiler/async-profiler/releases/download/v${AP_VERSION}/async-profiler-${AP_VERSION}-linux-${AP_ARCH}.tar.gz" \
+            | tar -xz -C /tmp
+          cp /tmp/async-profiler-${AP_VERSION}-linux-${AP_ARCH}/lib/libasyncProfiler.so \
+             ./build/build-server-jib/src/main/jib/jeffrey-libs/libasyncProfiler-${OUT_ARCH}.so
+          rm -rf /tmp/async-profiler-${AP_VERSION}-linux-${AP_ARCH}
+        done
 
-    - name: Stage native CLI binary
+    - name: Stage native CLI binaries
       run: |
         mv ./build/build-server-jib/src/main/jib/jeffrey-libs/cli-amd64/jeffrey-cli \
            ./build/build-server-jib/src/main/jib/jeffrey-libs/jeffrey-cli-amd64
         rm -rf ./build/build-server-jib/src/main/jib/jeffrey-libs/cli-amd64
+        mv ./build/build-server-jib/src/main/jib/jeffrey-libs/cli-arm64/jeffrey-cli \
+           ./build/build-server-jib/src/main/jib/jeffrey-libs/jeffrey-cli-arm64
+        rm -rf ./build/build-server-jib/src/main/jib/jeffrey-libs/cli-arm64
         ls -la ./build/build-server-jib/src/main/jib/jeffrey-libs/
 
     # Two-step: jib: prefix goal can only be invoked at the project level, so we install
@@ -75,6 +89,5 @@ jobs:
     - name: Build & push image with Jib
       run: |
         mvn -pl build/build-server-jib compile jib:build \
-          -Djib.from.platforms=linux/amd64 \
           -Djib.to.image=petrbouda/jeffrey-server:${{ steps.version.outputs.VERSION }} \
           -Djib.to.tags=latest

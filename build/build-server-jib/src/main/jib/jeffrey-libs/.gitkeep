@@ -1,3 +1,5 @@
 # Placeholder: keeps the directory tracked in git so Jib's extraDirectories has
 # a valid source path locally. CI stages the real artifacts here before jib:build:
-#   jeffrey-cli.jar, jeffrey-cli-amd64, jeffrey-agent.jar, libasyncProfiler.so
+#   jeffrey-cli.jar, jeffrey-agent.jar,
+#   jeffrey-cli-amd64, jeffrey-cli-arm64,
+#   libasyncProfiler-amd64.so, libasyncProfiler-arm64.so

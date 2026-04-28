@@ -11,8 +11,8 @@ jobs:
         include:
           - os: ubuntu-latest
             arch: amd64
-          # - os: ubuntu-24.04-arm64
-          #   arch: arm64
+          - os: ubuntu-24.04-arm
+            arch: arm64
 
     steps:
     - uses: actions/checkout@v4

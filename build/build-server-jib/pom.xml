@@ -61,6 +61,21 @@
                 <configuration>
                     <from>
                         <image>${image.from}</image>
+                        <!-- Multi-arch manifest. The bundled native CLI + libasyncProfiler are
+                             arch-suffixed (jeffrey-cli-{amd64,arm64}, libasyncProfiler-{amd64,arm64}.so);
+                             the runtime wrapper and jeffrey-cli pick the matching binary via uname -m
+                             / os.arch, so applications profiled via the shared volume can be either arch
+                             regardless of which arch jeffrey-server itself runs on. -->
+                        <platforms>
+                            <platform>
+                                <architecture>amd64</architecture>
+                                <os>linux</os>
+                            </platform>
+                            <platform>
+                                <architecture>arm64</architecture>
+                                <os>linux</os>
+                            </platform>
+                        </platforms>
                     </from>
                     <to>
                         <image>${image.to}</image>
@@ -91,19 +106,25 @@
                         </pluginExtension>
                     </pluginExtensions>
                     <!--
-                      Bundled accessory artifacts under /jeffrey-libs/ — preserves feature parity
-                      with the previous docker/Dockerfile-server build. CI stages these files into
+                      Bundled accessory artifacts under /jeffrey-libs/. CI stages these files into
                       src/main/jib/jeffrey-libs/ before running jib:build:
                         - jeffrey-cli.jar
-                        - jeffrey-cli-amd64 (native GraalVM binary; needs 0755)
+                        - jeffrey-cli-amd64, jeffrey-cli-arm64 (native GraalVM binaries; need 0755)
                         - jeffrey-agent.jar
-                        - libasyncProfiler.so (linux/amd64)
+                        - libasyncProfiler-amd64.so, libasyncProfiler-arm64.so
+                      All four arch variants ship in every per-platform image (~6MB extra) — Jib's
+                      extraDirectories aren't per-platform, and the wrapper / InitConfig pick the
+                      arch-matching files at runtime via uname -m / os.arch.
                       Jib's default extraDirectories convention copies src/main/jib/<path> → /<path>.
                     -->
                     <extraDirectories>
                         <permissions>
                             <permission>
                                 <file>/jeffrey-libs/jeffrey-cli-amd64</file>
+                                <mode>755</mode>
+                            </permission>
+                            <permission>
+                                <file>/jeffrey-libs/jeffrey-cli-arm64</file>
                                 <mode>755</mode>
                             </permission>
                         </permissions>

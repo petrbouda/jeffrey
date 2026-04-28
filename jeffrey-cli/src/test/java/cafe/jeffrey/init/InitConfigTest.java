@@ -294,11 +294,14 @@ class InitConfigTest {
         }
 
         @Test
-        void autoResolvesFromJeffreyHome() throws IOException {
+        void autoResolvesFromJeffreyHomeUsingRuntimeArch() throws IOException {
+            // Auto-resolve picks the libasyncProfiler-${arch}.so matching the JVM running
+            // jeffrey-cli, so an application container's arch (not the server's) drives selection.
             Path configFile = tempDir.resolve("config.conf");
             Path libsDir = tempDir.resolve("libs/current");
             Files.createDirectories(libsDir);
-            Files.createFile(libsDir.resolve("libasyncProfiler.so"));
+            String archSuffixedName = "libasyncProfiler-" + InitConfig.detectArch() + ".so";
+            Files.createFile(libsDir.resolve(archSuffixedName));
 
             Files.writeString(configFile, configWithOverrides(
                     "jeffrey-home = \"" + tempDir + "\"",
@@ -306,7 +309,27 @@ class InitConfigTest {
             ));
 
             InitConfig config = InitConfig.fromHoconFile(configFile, null);
-            assertEquals(libsDir.resolve("libasyncProfiler.so").toString(), config.getProfilerPath());
+            assertEquals(libsDir.resolve(archSuffixedName).toString(), config.getProfilerPath());
+        }
+
+        @Test
+        void autoResolveSkipsForeignArchSuffix() throws IOException {
+            // Only the file matching the running arch is selected; a stray foreign-arch .so
+            // alongside it should not trip the auto-resolve.
+            Path configFile = tempDir.resolve("config.conf");
+            Path libsDir = tempDir.resolve("libs/current");
+            Files.createDirectories(libsDir);
+            String runtimeArch = InitConfig.detectArch();
+            String foreignArch = "amd64".equals(runtimeArch) ? "arm64" : "amd64";
+            Files.createFile(libsDir.resolve("libasyncProfiler-" + foreignArch + ".so"));
+
+            Files.writeString(configFile, configWithOverrides(
+                    "jeffrey-home = \"" + tempDir + "\"",
+                    "project { workspace-id = \"test\", name = \"test\" }"
+            ));
+
+            InitConfig config = InitConfig.fromHoconFile(configFile, null);
+            assertNull(config.getProfilerPath());
         }
 
         @Test
@@ -335,6 +358,20 @@ class InitConfigTest {
 
             InitConfig config = InitConfig.fromHoconFile(configFile, null);
             assertNull(config.getProfilerPath());
+        }
+
+        @Test
+        void detectArchReturnsNullForUnsupportedOsArch() {
+            // Verifies the warn-and-skip branch: callers (getProfilerPath) gate auto-resolve
+            // on a non-null detectArch result, so the application starts without profiling
+            // instead of failing on an unbuildable libasyncProfiler-${osArch}.so path.
+            String original = System.getProperty("os.arch");
+            System.setProperty("os.arch", "ppc64le");
+            try {
+                assertNull(InitConfig.detectArch());
+            } finally {
+                System.setProperty("os.arch", original);
+            }
         }
     }
 
