@@ -29,7 +29,11 @@ CREATE TABLE IF NOT EXISTS workspaces
 (
     workspace_id        VARCHAR PRIMARY KEY,
     hostname            VARCHAR NOT NULL,
-    port                INTEGER NOT NULL DEFAULT 443
+    port                INTEGER NOT NULL DEFAULT 443,
+    -- gRPC client uses cleartext h2c when true, TLS when false. Default false
+    -- preserves the existing public-internet TLS workflow; flip to true for
+    -- in-cluster Service DNS or trusted-LAN setups.
+    plaintext           BOOLEAN NOT NULL DEFAULT FALSE
 );
 
 --

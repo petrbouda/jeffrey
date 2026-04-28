@@ -45,17 +45,21 @@ public class GrpcServerConnection implements Closeable {
         this.address = address;
 
         NettyChannelBuilder builder = NettyChannelBuilder.forAddress(address.hostname(), address.port());
-        try {
-            SslContext sslContext = GrpcSslContexts.forClient()
-                    .trustManager(InsecureTrustManagerFactory.INSTANCE)
-                    .build();
-
-            builder.sslContext(sslContext);
-        } catch (SSLException e) {
-            throw new RuntimeException("Failed to create TLS context for gRPC connection: " + address, e);
+        if (address.plaintext()) {
+            builder.usePlaintext();
+        } else {
+            try {
+                SslContext sslContext = GrpcSslContexts.forClient()
+                        .trustManager(InsecureTrustManagerFactory.INSTANCE)
+                        .build();
+                builder.sslContext(sslContext);
+            } catch (SSLException e) {
+                throw new RuntimeException("Failed to create TLS context for gRPC connection: " + address, e);
+            }
         }
         this.channel = builder.build();
-        LOG.info("Created gRPC connection: target={}:{}", address.hostname(), address.port());
+        LOG.info("Created gRPC connection: target={}:{} plaintext={}",
+                address.hostname(), address.port(), address.plaintext());
     }
 
     /**

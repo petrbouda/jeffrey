@@ -24,11 +24,16 @@ export default class RemoteWorkspaceClient extends BasePlatformClient {
     super('/remote-workspaces');
   }
 
-  async listRemote(hostname: string, port: number): Promise<Workspace[]> {
-    return super.post<Workspace[]>('/list', { hostname, port });
+  async listRemote(hostname: string, port: number, plaintext: boolean): Promise<Workspace[]> {
+    return super.post<Workspace[]>('/list', { hostname, port, plaintext });
   }
 
-  async createRemote(hostname: string, port: number, workspaceIds: string[]): Promise<void> {
-    return super.post<void>('/create', { hostname, port, workspaceIds });
+  async createRemote(
+    hostname: string,
+    port: number,
+    plaintext: boolean,
+    workspaceIds: string[]
+  ): Promise<void> {
+    return super.post<void>('/create', { hostname, port, plaintext, workspaceIds });
   }
 }

@@ -51,8 +51,8 @@ public class JdbcWorkspacesRepository implements WorkspacesRepository {
 
     //language=SQL
     private static final String INSERT = """
-            INSERT INTO workspaces (workspace_id, hostname, port)
-            VALUES (:workspace_id, :hostname, :port)""";
+            INSERT INTO workspaces (workspace_id, hostname, port, plaintext)
+            VALUES (:workspace_id, :hostname, :port, :plaintext)""";
 
     private final DatabaseClient databaseClient;
 
@@ -83,7 +83,8 @@ public class JdbcWorkspacesRepository implements WorkspacesRepository {
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("workspace_id", workspaceInfo.id())
                 .addValue("hostname", workspaceInfo.address().hostname())
-                .addValue("port", workspaceInfo.address().port());
+                .addValue("port", workspaceInfo.address().port())
+                .addValue("plaintext", workspaceInfo.address().plaintext());
 
         databaseClient.update(StatementLabel.INSERT_WORKSPACE, INSERT, params);
         return workspaceInfo;
@@ -100,7 +101,7 @@ public class JdbcWorkspacesRepository implements WorkspacesRepository {
                     workspaceId,
                     workspaceId,
                     null,
-                    new WorkspaceAddress(rs.getString("hostname"), rs.getInt("port")),
+                    new WorkspaceAddress(rs.getString("hostname"), rs.getInt("port"), rs.getBoolean("plaintext")),
                     Instant.EPOCH,
                     WorkspaceStatus.UNKNOWN,
                     0);

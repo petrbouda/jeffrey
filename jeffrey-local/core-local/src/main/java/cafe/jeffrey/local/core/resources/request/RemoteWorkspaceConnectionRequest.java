@@ -18,5 +18,5 @@
 
 package cafe.jeffrey.local.core.resources.request;
 
-public record RemoteWorkspaceConnectionRequest(String hostname, int port) {
+public record RemoteWorkspaceConnectionRequest(String hostname, int port, boolean plaintext) {
 }

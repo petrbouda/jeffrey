@@ -71,6 +71,22 @@
         </div>
       </div>
 
+      <div class="form-check mb-3 plaintext-toggle">
+        <input
+          type="checkbox"
+          class="form-check-input"
+          id="remote-workspace-plaintext"
+          v-model="plaintext"
+        />
+        <label class="form-check-label small" for="remote-workspace-plaintext">
+          Use plaintext (no TLS)
+          <span class="text-muted ms-1">
+            <i class="bi bi-info-circle"></i>
+            Enable for in-cluster Service DNS or trusted-LAN dev setups; leave off for the public internet.
+          </span>
+        </label>
+      </div>
+
       <div class="d-flex justify-content-end mb-3">
         <button
           type="button"
@@ -196,6 +212,7 @@ const emit = defineEmits<{
 // Form states
 const hostname = ref('');
 const port = ref(443);
+const plaintext = ref(false);
 const showWorkspaceSelection = ref(false);
 const loadingWorkspaces = ref(false);
 const remoteWorkspaces = ref<Workspace[]>([]);
@@ -215,6 +232,7 @@ const displayAddress = computed(() => `${hostname.value}:${port.value}`);
 const resetForm = () => {
   hostname.value = '';
   port.value = 443;
+  plaintext.value = false;
   showWorkspaceSelection.value = false;
   loadingWorkspaces.value = false;
   remoteWorkspaces.value = [];
@@ -242,7 +260,8 @@ const loadRemoteWorkspaces = async () => {
     // Call the backend API to get available workspaces to add as remote
     remoteWorkspaces.value = await remoteWorkspaceClient.listRemote(
       hostname.value.trim(),
-      port.value
+      port.value,
+      plaintext.value
     );
     showWorkspaceSelection.value = true;
 
@@ -307,6 +326,7 @@ const mirrorWorkspace = async () => {
     await remoteWorkspaceClient.createRemote(
       hostname.value.trim(),
       port.value,
+      plaintext.value,
       selectedWorkspaceIds.value
     );
 

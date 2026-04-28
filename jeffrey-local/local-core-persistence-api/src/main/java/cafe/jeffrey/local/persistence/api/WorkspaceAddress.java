@@ -18,10 +18,20 @@
 
 package cafe.jeffrey.local.persistence.api;
 
-public record WorkspaceAddress(String hostname, int port) {
+/**
+ * @param plaintext when {@code true}, the gRPC client connects to this address in cleartext h2c
+ *                  (no TLS handshake). Defaults to {@code false} — TLS is the secure default and
+ *                  matches the existing public-internet workflow. Set {@code true} only for
+ *                  in-cluster Service DNS or trusted-LAN dev setups.
+ */
+public record WorkspaceAddress(String hostname, int port, boolean plaintext) {
+
+    public WorkspaceAddress(String hostname, int port) {
+        this(hostname, port, false);
+    }
 
     @Override
     public String toString() {
-        return hostname + ":" + port;
+        return hostname + ":" + port + (plaintext ? " (plaintext)" : "");
     }
 }

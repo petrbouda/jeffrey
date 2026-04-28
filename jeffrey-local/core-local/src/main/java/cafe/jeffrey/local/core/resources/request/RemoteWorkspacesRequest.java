@@ -20,5 +20,5 @@ package cafe.jeffrey.local.core.resources.request;
 
 import java.util.List;
 
-public record RemoteWorkspacesRequest(String hostname, int port, List<String> workspaceIds) {
+public record RemoteWorkspacesRequest(String hostname, int port, boolean plaintext, List<String> workspaceIds) {
 }

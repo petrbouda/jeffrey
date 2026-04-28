@@ -59,7 +59,7 @@ public class RemoteWorkspacesController {
     public List<RemoteWorkspaceResponse> listRemoteWorkspaces(@RequestBody RemoteWorkspaceConnectionRequest request) {
         validateConnection(request.hostname(), request.port());
 
-        WorkspaceAddress address = new WorkspaceAddress(request.hostname(), request.port());
+        WorkspaceAddress address = new WorkspaceAddress(request.hostname(), request.port(), request.plaintext());
         if (remoteClientsFactory == null) {
             throw Exceptions.invalidRequest("Remote workspace clients are not configured");
         }
@@ -92,7 +92,7 @@ public class RemoteWorkspacesController {
             throw Exceptions.invalidRequest("At least one workspace ID is required");
         }
 
-        WorkspaceAddress address = new WorkspaceAddress(request.hostname(), request.port());
+        WorkspaceAddress address = new WorkspaceAddress(request.hostname(), request.port(), request.plaintext());
         for (String workspaceId : request.workspaceIds()) {
             CreateWorkspaceRequest createRequest = CreateWorkspaceRequest.builder()
                     .workspaceId(workspaceId)
