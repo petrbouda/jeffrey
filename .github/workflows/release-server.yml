@@ -10,7 +10,7 @@ jobs:
       image: petrbouda/jeffrey-builder:25
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Extract version
       id: version
@@ -19,25 +19,25 @@ jobs:
     # Stage the bundled /jeffrey-libs/ artifacts into Jib's extraDirectories source.
     # Jib's convention: build/build-server-jib/src/main/jib/<path> → /<path> in the image.
     - name: Download jeffrey-cli.jar
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v5
       with:
         name: jeffrey-cli-jar
         path: ./build/build-server-jib/src/main/jib/jeffrey-libs
 
     - name: Download jeffrey-agent.jar
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v5
       with:
         name: jeffrey-agent-jar
         path: ./build/build-server-jib/src/main/jib/jeffrey-libs
 
     - name: Download native CLI (amd64)
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v5
       with:
         name: jeffrey-cli-amd64
         path: ./build/build-server-jib/src/main/jib/jeffrey-libs/cli-amd64
 
     - name: Download native CLI (arm64)
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v5
       with:
         name: jeffrey-cli-arm64
         path: ./build/build-server-jib/src/main/jib/jeffrey-libs/cli-arm64

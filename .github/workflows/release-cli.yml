@@ -15,14 +15,13 @@ jobs:
             arch: arm64
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Setup GraalVM
       uses: graalvm/setup-graalvm@v1
       with:
         java-version: '25'
         distribution: 'graalvm-community'
-        components: 'native-image'
 
     - name: Extract version
       id: version
@@ -34,7 +33,7 @@ jobs:
       run: mvn -e -pl build/build-cli-native -am -Pnative package -DskipTests
 
     - name: Upload native CLI
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: jeffrey-cli-${{ matrix.arch }}
         path: ./build/build-cli-native/target/jeffrey-cli

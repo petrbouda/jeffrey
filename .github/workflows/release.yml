@@ -15,7 +15,7 @@ jobs:
     permissions: write-all
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Extract version
       id: version
@@ -27,25 +27,25 @@ jobs:
       run: mvn clean package
 
     - name: Upload jeffrey.jar
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: jeffrey-jar
         path: ./build/build-local/target/jeffrey.jar
 
     - name: Upload jeffrey-server.jar
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: jeffrey-server-jar
         path: ./build/build-server/target/jeffrey-server.jar
 
     - name: Upload jeffrey-cli.jar
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: jeffrey-cli-jar
         path: ./build/build-cli/target/jeffrey-cli.jar
 
     - name: Upload jeffrey-agent.jar
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: jeffrey-agent-jar
         path: ./build/build-agent/target/jeffrey-agent.jar
@@ -70,37 +70,37 @@ jobs:
 
     steps:
     - name: Download jeffrey.jar
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v5
       with:
         name: jeffrey-jar
         path: ./artifacts
 
     - name: Download jeffrey-server.jar
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v5
       with:
         name: jeffrey-server-jar
         path: ./artifacts
 
     - name: Download jeffrey-cli.jar
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v5
       with:
         name: jeffrey-cli-jar
         path: ./artifacts
 
     - name: Download jeffrey-agent.jar
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v5
       with:
         name: jeffrey-agent-jar
         path: ./artifacts
 
     - name: Download native CLI (amd64)
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v5
       with:
         name: jeffrey-cli-amd64
         path: ./artifacts/native-amd64
 
     - name: Download native CLI (arm64)
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v5
       with:
         name: jeffrey-cli-arm64
         path: ./artifacts/native-arm64
