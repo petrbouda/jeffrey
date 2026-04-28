@@ -160,9 +160,6 @@ const loadDashboard = async () => {
     }
 
     workspaces.value = results;
-    if (results.length > 0) {
-      expandedWorkspaces.value = new Set([results[0].workspace.id]);
-    }
   } catch (error) {
     console.error('Failed to load dashboard:', error);
   } finally {
