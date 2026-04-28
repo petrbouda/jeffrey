@@ -99,11 +99,15 @@ additional-jvm-options = "-Xmx2g -Xms2g -Djeffrey.logging.trace-file.path=<<JEFF
         </DocsCallout>
 
         <h2 id="configuration-options">Configuration Options</h2>
+
+        <p>Several path-style settings accept an environment-variable override when the HOCON entry is left blank — useful when the value is baked into a container image (see <router-link to="/docs/jib/overview">Jeffrey JIB</router-link>) or supplied by the orchestrator at runtime. Resolution order is always <strong>HOCON value &rarr; environment variable &rarr; built-in default</strong>.</p>
+
         <table>
           <thead>
             <tr>
               <th>Option</th>
               <th>Required</th>
+              <th>Env override</th>
               <th>Description</th>
             </tr>
           </thead>
@@ -111,60 +115,75 @@ additional-jvm-options = "-Xmx2g -Xms2g -Djeffrey.logging.trace-file.path=<<JEFF
             <tr>
               <td><code>jeffrey-home</code></td>
               <td>Yes</td>
-              <td>Base directory for Jeffrey data</td>
+              <td><code>JEFFREY_HOME</code></td>
+              <td>Base directory for Jeffrey data. Falls back to the <code>JEFFREY_HOME</code> env var when neither <code>jeffrey-home</code> nor <code>workspaces-dir</code> is set in HOCON.</td>
             </tr>
             <tr>
               <td><code>project.workspace-id</code></td>
               <td>Yes</td>
+              <td>—</td>
               <td>Workspace identifier (e.g., "production", "staging")</td>
             </tr>
             <tr>
               <td><code>project.name</code></td>
               <td>Yes</td>
+              <td>—</td>
               <td>Project name for organizing recordings</td>
             </tr>
             <tr>
               <td><code>profiler-path</code></td>
               <td>No</td>
-              <td>Path to libasyncProfiler.so. Auto-resolved from <code>libs/current/</code> when <code>jeffrey-home</code> is set and copy-libs is enabled.</td>
+              <td><code>JEFFREY_PROFILER_PATH</code></td>
+              <td>Path to <code>libasyncProfiler.so</code>. When unset, auto-resolved from <code>libs/current/libasyncProfiler-&#123;arch&#125;.so</code> under <code>jeffrey-home</code> — the <code>&#123;arch&#125;</code> suffix is detected from the JVM's <code>os.arch</code> (<code>amd64</code> or <code>arm64</code>).</td>
             </tr>
             <tr>
               <td><code>project.instance-name</code></td>
               <td>No</td>
+              <td>—</td>
               <td>Instance name (defaults to <code>HOSTNAME</code> environment variable or generated UUID)</td>
             </tr>
             <tr>
               <td><code>project.label</code></td>
               <td>No</td>
+              <td>—</td>
               <td>Human-readable project label</td>
             </tr>
             <tr>
               <td><code>agent-path</code></td>
               <td>No</td>
-              <td>Path to <code>jeffrey-agent.jar</code>. Auto-resolved from <code>libs/current/</code> when <code>jeffrey-home</code> is set.</td>
+              <td><code>JEFFREY_AGENT_PATH</code></td>
+              <td>Path to <code>jeffrey-agent.jar</code>. Auto-resolved from <code>libs/current/jeffrey-agent.jar</code> when <code>jeffrey-home</code> is set.</td>
             </tr>
             <tr>
               <td><code>env-file</code></td>
               <td>No</td>
+              <td>—</td>
               <td>Path to write the <code>.env</code> file with shell export statements</td>
             </tr>
             <tr>
               <td><code>arg-file</code></td>
               <td>No</td>
-              <td>Path to write JVM arguments file (Java @argfile format, one arg per line)</td>
+              <td><code>JEFFREY_ARG_FILE</code></td>
+              <td>Path to write the JVM arguments file (Java @argfile format, one arg per line). Defaults to <code>/tmp/jvm.args</code> — override this when running on a read-only root filesystem.</td>
             </tr>
             <tr>
               <td><code>print-env</code></td>
               <td>No</td>
+              <td>—</td>
               <td>Print the <code>.env</code> file content to stdout (default: <code>false</code>)</td>
             </tr>
             <tr>
               <td><code>attributes</code></td>
               <td>No</td>
+              <td>—</td>
               <td>Custom key-value metadata (e.g., cluster, namespace)</td>
             </tr>
           </tbody>
         </table>
+
+        <DocsCallout type="info">
+          <strong>Architecture detection:</strong> the auto-resolved <code>profiler-path</code> reads <code>os.arch</code> at startup and looks for <code>libasyncProfiler-amd64.so</code> on x86_64 or <code>libasyncProfiler-arm64.so</code> on aarch64. On any other architecture (e.g. <code>ppc64le</code>, <code>s390x</code>) the CLI logs a warning and skips profiler setup — <strong>your application still starts</strong>, just without async-profiler attached. Set <code>profiler-path</code> explicitly if you have a custom build.
+        </DocsCallout>
 
         <h2 id="features">Features</h2>
         <p>Jeffrey CLI can enable additional features that capture more diagnostic data alongside JFR recordings:</p>

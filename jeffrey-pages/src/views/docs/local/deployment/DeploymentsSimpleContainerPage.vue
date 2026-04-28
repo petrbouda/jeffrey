@@ -95,6 +95,10 @@ const withEnvVars = `docker run -d \\
 
         <p>Jeffrey is now running at <a href="http://localhost:8080" target="_blank">http://localhost:8080</a>.</p>
 
+        <DocsCallout type="info">
+          <strong>Multi-arch image:</strong> the <code>petrbouda/jeffrey</code> image ships <code>linux/amd64</code> and <code>linux/arm64</code> in a single manifest. Docker / OrbStack / containerd pull the matching variant automatically on Apple Silicon, Graviton, and other arm64 hosts.
+        </DocsCallout>
+
         <DocsCallout type="warning">
           <strong>Data persistence:</strong> Without a volume, all data is lost when the container stops. See the next section for persistent storage.
         </DocsCallout>

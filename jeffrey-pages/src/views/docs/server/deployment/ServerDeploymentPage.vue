@@ -82,6 +82,10 @@ const dockerVolume = `docker run -p 8081:8081 \\
         :code="dockerRun"
       />
 
+      <DocsCallout type="info">
+        <strong>Multi-arch image:</strong> the <code>petrbouda/jeffrey-server</code> image is published as a multi-arch manifest covering <code>linux/amd64</code> and <code>linux/arm64</code>. Your container runtime selects the matching variant automatically — no <code>--platform</code> flag required on Apple Silicon, Graviton, or other arm64 hosts.
+      </DocsCallout>
+
       <p>To persist data across container restarts, mount a volume for the Jeffrey data directory:</p>
       <DocsCodeBlock
         language="bash"

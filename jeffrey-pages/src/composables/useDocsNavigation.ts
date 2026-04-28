@@ -57,7 +57,8 @@ export const docsNavigation: DocSection[] = [
         path: 'profiles',
         children: [
           { title: 'Overview', path: 'profiles' },
-          { title: 'Guardian', path: 'profiles/guardian' }
+          { title: 'Guardian', path: 'profiles/guardian' },
+          { title: 'Garbage Collection', path: 'profiles/garbage-collection' }
         ]
       },
       { title: 'Workspaces', path: 'workspaces' },

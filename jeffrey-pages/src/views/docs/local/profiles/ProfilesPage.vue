@@ -121,7 +121,7 @@ const folderStructure = `$JEFFREY_HOME/
         <DocsFeatureCard
           icon="bi bi-bar-chart-line"
           title="Memory & Garbage Collection"
-          description="Heap usage trends, GC pause distribution, collection frequency, and GC algorithm configuration review."
+          description="Pause distribution, throughput / overhead, longest-pause table with cause attribution, concurrent cycles, and a searchable reference for every GC pause type — see the GC analysis page."
         />
         <DocsFeatureCard
           icon="bi bi-lightning"
@@ -142,6 +142,8 @@ const folderStructure = `$JEFFREY_HOME/
 
       <p class="docs-read-more">
         <router-link to="/docs/local/profiles/guardian">Read the Guardian reference &rarr;</router-link>
+        &nbsp;·&nbsp;
+        <router-link to="/docs/local/profiles/garbage-collection">Read the GC analysis reference &rarr;</router-link>
       </p>
 
       <h2 id="technologies">Technologies</h2>
@@ -204,7 +206,16 @@ const folderStructure = `$JEFFREY_HOME/
           title="Class Loaders"
           description="Analyze class loader hierarchy, loaded class counts, and detect class loader leaks in complex deployments."
         />
+        <DocsFeatureCard
+          icon="bi bi-stars"
+          title="AI Heap Dump Analysis"
+          description="Conversational analysis over your heap dump — ask about retained sizes, suspected leaks, dominator chains, and string duplication in natural language."
+        />
       </div>
+
+      <p class="docs-read-more">
+        <router-link to="/docs/ai/heap-dump-analysis">Read the AI Heap Dump Analysis reference &rarr;</router-link>
+      </p>
 
       <h2 id="tools">Tools</h2>
       <p>Utility operations for modifying profile data — anonymization and simplification.</p>
