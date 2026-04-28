@@ -206,6 +206,91 @@
               </tbody>
         </DataTable>
       </template>
+
+      <!-- Pause Types Reference Tab -->
+      <template #pause-types>
+        <p class="pause-types-intro text-muted">
+          Reference for every GC cause the JVM may emit via Java Flight Recorder. Filter by name or
+          category to look up an unfamiliar cause from the
+          <em>Longest Pauses</em> table.
+        </p>
+
+        <div class="pause-types-toolbar">
+          <div class="input-group search-container pause-types-search">
+            <span class="input-group-text"><i class="bi bi-search search-icon"></i></span>
+            <input
+              type="text"
+              class="form-control search-input"
+              placeholder="Filter by cause name…"
+              v-model="pauseTypeSearch"
+              autocomplete="off"
+            />
+            <button
+              v-if="pauseTypeSearch"
+              class="btn btn-outline-secondary clear-btn"
+              type="button"
+              @click="pauseTypeSearch = ''"
+              title="Clear filter"
+            >
+              <i class="bi bi-x-lg"></i>
+            </button>
+          </div>
+
+          <div class="pause-types-chips">
+            <button
+              type="button"
+              class="pause-type-chip pause-type-chip--all"
+              :class="{ active: pauseTypeActiveFilters.size === 0 }"
+              @click="clearPauseTypeFilters"
+            >
+              All
+            </button>
+            <button
+              v-for="group in pauseTypeGroups"
+              :key="group.key"
+              type="button"
+              class="pause-type-chip"
+              :class="[
+                `pause-type-chip--${group.key}`,
+                { active: pauseTypeActiveFilters.has(group.key) }
+              ]"
+              @click="togglePauseTypeFilter(group.key)"
+            >
+              <span class="dot"></span>{{ group.title }}
+            </button>
+          </div>
+        </div>
+
+        <div class="pause-types-result-count">
+          Showing {{ filteredPauseTypes.length }} of {{ allPauseTypes.length }} causes
+        </div>
+
+        <EmptyState
+          v-if="filteredPauseTypes.length === 0"
+          icon="bi-funnel"
+          title="No causes match the current filter"
+        />
+        <div v-else class="table-responsive">
+          <table class="table table-sm table-hover mb-0 pause-types-table">
+            <thead>
+              <tr>
+                <th>Cause</th>
+                <th>Category</th>
+                <th>Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="item in filteredPauseTypes" :key="item.name">
+                <td class="pause-type-name">{{ item.name }}</td>
+                <td>
+                  <Badge :value="item.group.shortLabel" :variant="item.group.variant" size="s" />
+                </td>
+                <td class="pause-type-desc">{{ item.description }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </template>
     </ChartSectionWithTabs>
 
     <!-- GC Event Details Modal -->
@@ -252,6 +337,7 @@ import {
   getGenerationTypeBadgeVariant
 } from '@/services/api/model/GarbageCollectionUtils';
 import { GarbageCollectionCauseDescriptions } from '@/services/api/model/GarbageCollectionCauseDescriptions';
+import '@/styles/shared-components.css';
 
 const route = useRoute();
 const loading = ref(true);
@@ -268,8 +354,116 @@ const gcTabs = [
   { id: 'distribution', label: 'Pause Distribution', icon: 'bar-chart' },
   { id: 'efficiency', label: 'GC Efficiency', icon: 'pie-chart' },
   { id: 'events', label: 'Longest Pauses', icon: 'table' },
-  { id: 'concurrent-cycles', label: 'Concurrent Cycles', icon: 'layers' }
+  { id: 'concurrent-cycles', label: 'Concurrent Cycles', icon: 'layers' },
+  { id: 'pause-types', label: 'Pause Types', icon: 'info-circle' }
 ];
+
+// Pause Types tab — searchable, category-chip-filterable list of every GC cause
+// the JVM can emit. Descriptions come from the shared map, so the per-event tooltip
+// on the Longest Pauses table and the rows below cannot drift.
+type PauseTypeGroup = {
+  key: string;
+  title: string;
+  shortLabel: string;
+  variant: Variant;
+  causes: string[];
+};
+
+const pauseTypeGroups: PauseTypeGroup[] = [
+  {
+    key: 'allocation',
+    title: 'Allocation-Driven Pauses',
+    shortLabel: 'Allocation',
+    variant: 'indigo',
+    causes: [
+      'Allocation Failure',
+      'G1 Evacuation Pause',
+      'G1 Humongous Allocation',
+      'To-space Exhausted',
+      'Promotion Failed'
+    ]
+  },
+  {
+    key: 'concurrent',
+    title: 'Concurrent Cycles',
+    shortLabel: 'Concurrent',
+    variant: 'green',
+    causes: ['Concurrent Mark Start', 'Concurrent Mode Failure']
+  },
+  {
+    key: 'pressure',
+    title: 'Memory Pressure & Failure Modes',
+    shortLabel: 'Pressure',
+    variant: 'danger',
+    causes: ['Last Ditch Collection', 'Metadata GC Threshold', 'Metadata GC Clear Soft References']
+  },
+  {
+    key: 'tuning',
+    title: 'JVM-Initiated Tuning',
+    shortLabel: 'Tuning',
+    variant: 'purple',
+    causes: ['Ergonomics', 'Proactive', 'Warmup', 'Timer']
+  },
+  {
+    key: 'external',
+    title: 'External / Diagnostic Triggers',
+    shortLabel: 'External',
+    variant: 'orange',
+    causes: [
+      'System.gc()',
+      'Diagnostic Command',
+      'JFR Periodic',
+      'Heap Inspection/Dump',
+      'GCLocker Initiated GC'
+    ]
+  }
+];
+
+const allPauseTypes = (() => {
+  const lookup = new Map(
+    GarbageCollectionCauseDescriptions.getAllCauses().map(c => [c.name, c.description])
+  );
+  return pauseTypeGroups.flatMap(group =>
+    group.causes.map(name => ({
+      name,
+      description: lookup.get(name) ?? '',
+      group
+    }))
+  );
+})();
+
+const pauseTypeSearch = ref('');
+const pauseTypeActiveFilters = ref<Set<string>>(new Set());
+
+const filteredPauseTypes = computed(() => {
+  const q = pauseTypeSearch.value.trim().toLowerCase();
+  return allPauseTypes.filter(item => {
+    if (
+      pauseTypeActiveFilters.value.size > 0 &&
+      !pauseTypeActiveFilters.value.has(item.group.key)
+    ) {
+      return false;
+    }
+    if (q && !item.name.toLowerCase().includes(q)) {
+      return false;
+    }
+    return true;
+  });
+});
+
+const togglePauseTypeFilter = (key: string) => {
+  const next = new Set(pauseTypeActiveFilters.value);
+  if (next.has(key)) {
+    next.delete(key);
+  } else {
+    next.add(key);
+  }
+  pauseTypeActiveFilters.value = next;
+};
+
+const clearPauseTypeFilters = () => {
+  pauseTypeActiveFilters.value = new Set();
+};
 
 // Chart instances
 let distributionChart: ApexCharts | null = null;
@@ -656,5 +850,109 @@ onUnmounted(() => {
     height: auto;
     margin-top: 1rem;
   }
+}
+
+/* Pause Types tab — searchable, chip-filterable reference table. */
+.pause-types-intro {
+  font-size: 0.88rem;
+  margin-bottom: 1rem;
+}
+
+.pause-types-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.pause-types-search {
+  flex: 1;
+  min-width: 240px;
+  max-width: 360px;
+}
+
+.pause-types-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.pause-type-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.75rem;
+  background: var(--color-light);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  font-size: 0.75rem;
+  color: var(--color-text);
+  cursor: pointer;
+  user-select: none;
+  transition:
+    background-color 0.12s,
+    border-color 0.12s,
+    color 0.12s;
+}
+
+.pause-type-chip:hover {
+  border-color: var(--chip-color, var(--color-primary));
+  color: var(--color-dark);
+}
+
+.pause-type-chip.active {
+  background: var(--chip-color, var(--color-primary));
+  border-color: var(--chip-color, var(--color-primary));
+  color: #fff;
+}
+
+.pause-type-chip .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--chip-color, var(--color-primary));
+}
+
+.pause-type-chip.active .dot {
+  background: #fff;
+}
+
+.pause-type-chip--all {
+  --chip-color: var(--color-secondary);
+}
+.pause-type-chip--allocation {
+  --chip-color: var(--color-primary);
+}
+.pause-type-chip--concurrent {
+  --chip-color: var(--color-success);
+}
+.pause-type-chip--pressure {
+  --chip-color: var(--color-danger);
+}
+.pause-type-chip--tuning {
+  --chip-color: var(--color-violet);
+}
+.pause-type-chip--external {
+  --chip-color: var(--color-amber);
+}
+
+.pause-types-result-count {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  margin-bottom: 0.5rem;
+}
+
+.pause-types-table .pause-type-name {
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  font-weight: 600;
+  color: var(--color-dark);
+  white-space: nowrap;
+  width: 220px;
+}
+
+.pause-types-table .pause-type-desc {
+  color: var(--color-text-muted);
+  line-height: 1.5;
 }
 </style>

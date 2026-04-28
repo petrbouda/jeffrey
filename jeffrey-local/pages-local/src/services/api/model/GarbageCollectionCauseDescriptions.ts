@@ -130,4 +130,11 @@ export class GarbageCollectionCauseDescriptions {
 
     return info.description;
   }
+
+  static getAllCauses(): Array<{ name: string; description: string }> {
+    return Object.entries(gcCauseDescriptions).map(([name, info]) => ({
+      name,
+      description: info.description
+    }));
+  }
 }
