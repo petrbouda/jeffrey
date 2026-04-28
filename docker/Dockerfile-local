@@ -1,7 +1,0 @@
-FROM eclipse-temurin:25-jdk
-
-RUN mkdir /app
-
-COPY jeffrey.jar /app/
-
-ENTRYPOINT ["java", "-jar", "/app/jeffrey.jar"]
