@@ -20,6 +20,7 @@ package cafe.jeffrey.shared.common;
 
 import tools.jackson.core.JacksonException;
 import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
@@ -60,6 +61,11 @@ public abstract class Json {
 
     private static final ObjectMapper MAPPER = JsonMapper.builder()
             .addModule(CUSTOM_TYPES_SERDE)
+            // Treat missing/null JSON values as the primitive's zero value (false / 0) instead of
+            // throwing MismatchedInputException. Matches the project's manual JsonNode helpers
+            // (readBoolean / readInt) and Jackson 2.x's historical default - lets request-body
+            // records add new primitive fields without breaking older callers that omit them.
+            .disable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)
             .build();
 
     public static ObjectMapper mapper() {
