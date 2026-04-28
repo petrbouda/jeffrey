@@ -90,7 +90,7 @@ public class InitConfig {
             additional-jvm-options = ""
             debug-non-safepoints { enabled = true }
             env-file = ""
-            arg-file = ""
+            arg-file = "/tmp/jvm.args"
             print-env = false
             """;
 
@@ -152,20 +152,13 @@ public class InitConfig {
         }
         config.setJeffreyHome(jeffreyHome);
         config.setWorkspacesDir(workspacesDir);
-        config.setProfilerPath(resolved.getString("profiler-path"));
+        config.setProfilerPath(resolveWithEnv(resolved.getString("profiler-path"), "JEFFREY_PROFILER_PATH", envLookup));
         config.setProfilerConfig(resolved.getString("profiler-config"));
         config.setRepositoryType(resolved.getString("repository-type"));
-        config.setAgentPath(resolved.getString("agent-path"));
+        config.setAgentPath(resolveWithEnv(resolved.getString("agent-path"), "JEFFREY_AGENT_PATH", envLookup));
         config.setEnvFilePath(resolved.getString("env-file"));
 
-        String argFile = resolved.getString("arg-file");
-        if (isNullOrBlank(argFile)) {
-            String envArgFile = envLookup.apply("JEFFREY_ARG_FILE");
-            if (!isNullOrBlank(envArgFile)) {
-                argFile = envArgFile;
-            }
-        }
-        config.setArgFilePath(argFile);
+        config.setArgFilePath(resolveWithEnv(resolved.getString("arg-file"), "JEFFREY_ARG_FILE", envLookup));
         config.setPrintEnv(resolved.getBoolean("print-env"));
 
         Config projectCfg = resolved.getConfig("project");
@@ -212,6 +205,19 @@ public class InitConfig {
         config.setDebugNonSafepoints(debugNonSafepoints);
 
         return config;
+    }
+
+    /**
+     * Returns {@code hoconValue} if non-blank; otherwise consults the named environment variable.
+     * Used for path-style settings that prefer HOCON but accept env-var defaults baked into the
+     * image by jeffrey-jib (or set on the pod) when the HOCON entry is absent.
+     */
+    private static String resolveWithEnv(String hoconValue, String envName, Function<String, String> envLookup) {
+        if (!isNullOrBlank(hoconValue)) {
+            return hoconValue;
+        }
+        String envValue = envLookup.apply(envName);
+        return isNullOrBlank(envValue) ? hoconValue : envValue;
     }
 
     private String envFilePath;

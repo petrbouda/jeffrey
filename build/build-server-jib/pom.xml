@@ -100,8 +100,18 @@
                             <implementation>cafe.jeffrey.jib.maven.JeffreyJibMavenExtension</implementation>
                             <configuration implementation="cafe.jeffrey.jib.JeffreyJibConfig">
                                 <!-- enabled=true (default): wrapper layer is installed and ENTRYPOINT is rewritten.
-                                     jeffreyHome / cliPath / configs are deployment-specific (shared volume mount)
-                                     and intentionally left unset here so Kubernetes pod env vars provide them. -->
+                                     jeffreyHome / configs remain unset — those are deployment-specific (shared
+                                     volume mount, ConfigMap path) and provided by the operator via pod env.
+
+                                     cliPath / profilerPath / agentPath point at the in-image /jeffrey-libs/ bundle
+                                     so jeffrey-server's own self-profiling does not depend on the shared volume
+                                     being populated at startup. The {arch} placeholder is expanded at container
+                                     start by jeffrey-entrypoint.sh after `uname -m` detects the running platform
+                                     — both arch variants of the CLI binary and async-profiler .so ship in every
+                                     per-platform image. -->
+                                <cliPath>/jeffrey-libs/jeffrey-cli-{arch}</cliPath>
+                                <profilerPath>/jeffrey-libs/libasyncProfiler-{arch}.so</profilerPath>
+                                <agentPath>/jeffrey-libs/jeffrey-agent.jar</agentPath>
                             </configuration>
                         </pluginExtension>
                     </pluginExtensions>

@@ -137,6 +137,8 @@ public final class JeffreyBuildPlanExtender {
         putIfPresent(env, "JEFFREY_OVERRIDE_CONFIG", config.getOverrideConfig());
         putIfPresent(env, "JEFFREY_CLI_PATH", config.getCliPath());
         putIfPresent(env, "JEFFREY_ARG_FILE", config.getArgFile());
+        putIfPresent(env, "JEFFREY_PROFILER_PATH", config.getProfilerPath());
+        putIfPresent(env, "JEFFREY_AGENT_PATH", config.getAgentPath());
         return env;
     }
 
@@ -154,8 +156,9 @@ public final class JeffreyBuildPlanExtender {
      *
      * <p>Recognised keys map one-to-one to the {@link JeffreyJibConfig} setters:
      * {@code enabled}, {@code keepJvmFlags}, {@code jeffreyHome}, {@code baseConfig},
-     * {@code overrideConfig}, {@code cliPath}, {@code argFile}. Null / empty values are ignored;
-     * unknown keys are logged at WARN and otherwise ignored.
+     * {@code overrideConfig}, {@code cliPath}, {@code argFile}, {@code profilerPath},
+     * {@code agentPath}. Null / empty values are ignored; unknown keys are logged at WARN
+     * and otherwise ignored.
      */
     public static void applyProperties(
             JeffreyJibConfig config,
@@ -178,6 +181,8 @@ public final class JeffreyBuildPlanExtender {
                 case JeffreyJibConfig.OVERRIDE_CONFIG -> config.setOverrideConfig(value);
                 case JeffreyJibConfig.CLI_PATH -> config.setCliPath(value);
                 case JeffreyJibConfig.ARG_FILE -> config.setArgFile(value);
+                case JeffreyJibConfig.PROFILER_PATH -> config.setProfilerPath(value);
+                case JeffreyJibConfig.AGENT_PATH -> config.setAgentPath(value);
                 default -> logger.log(
                         LogLevel.WARN,
                         "jeffrey-jib: unknown plugin-extension property '" + key + "'; ignored");

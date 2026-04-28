@@ -49,6 +49,19 @@ case "$(uname -m)" in
   *)       ARCH="$(uname -m)" ;;
 esac
 
+# Expand the literal {arch} placeholder in JEFFREY_* env vars baked by jeffrey-jib
+# (or set on the pod) so multi-arch images can ship a single static value such as
+# /jeffrey-libs/libasyncProfiler-{arch}.so without per-arch builds.
+for var in JEFFREY_CLI_PATH JEFFREY_PROFILER_PATH JEFFREY_AGENT_PATH; do
+  eval "value=\${$var-}"
+  case "$value" in
+    *"{arch}"*)
+      expanded=$(printf '%s' "$value" | sed "s/{arch}/${ARCH}/g")
+      eval "export $var=\"\$expanded\""
+      ;;
+  esac
+done
+
 JEFFREY_CLI="${JEFFREY_CLI_PATH:-${JEFFREY_HOME}/libs/current/jeffrey-cli-${ARCH}}"
 if [ ! -x "$JEFFREY_CLI" ]; then
   echo "jeffrey-jib: CLI not found or not executable: $JEFFREY_CLI" >&2
