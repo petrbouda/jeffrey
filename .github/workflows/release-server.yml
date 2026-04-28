@@ -59,10 +59,14 @@ jobs:
         JEFFREY_TAG_VERSION: ${{ steps.version.outputs.VERSION }}
       run: mvn -pl build/build-server-jib -am -DskipTests=true install
 
+    # Same pattern as release-local.yml — writes ~/.docker/config.json which Jib auto-reads.
+    - name: Login to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+
     - name: Build & push image with Jib
-      env:
-        JIB_TO_AUTH_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-        JIB_TO_AUTH_PASSWORD: ${{ secrets.DOCKERHUB_TOKEN }}
       run: |
         mvn -pl build/build-server-jib compile jib:build \
           -Djib.from.platforms=linux/amd64 \
