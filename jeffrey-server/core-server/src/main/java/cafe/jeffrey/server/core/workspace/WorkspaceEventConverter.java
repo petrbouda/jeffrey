@@ -29,7 +29,7 @@ public abstract class WorkspaceEventConverter {
                 null,
                 message.originEventId(),
                 message.projectId(),
-                message.workspaceId(),
+                message.workspaceRefId(),
                 message.eventType(),
                 message.content(),
                 message.originCreatedAt(),

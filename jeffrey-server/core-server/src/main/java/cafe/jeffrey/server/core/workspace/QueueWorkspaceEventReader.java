@@ -49,7 +49,7 @@ public class QueueWorkspaceEventReader implements WorkspaceEventReader {
                 entry.offset(),
                 payload.originEventId(),
                 payload.projectId(),
-                payload.workspaceId(),
+                payload.workspaceRefId(),
                 payload.eventType(),
                 payload.content(),
                 payload.originCreatedAt(),

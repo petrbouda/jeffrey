@@ -18,9 +18,11 @@
 
 package cafe.jeffrey.local.core.resources.response;
 
-public record RemoteWorkspaceResponse(
+public record RemoteServerResponse(
         String id,
         String name,
-        String description,
-        int projectCount) {
+        String hostname,
+        int port,
+        boolean plaintext,
+        long createdAt) {
 }

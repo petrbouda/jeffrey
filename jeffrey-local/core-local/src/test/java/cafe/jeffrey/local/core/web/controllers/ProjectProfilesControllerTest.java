@@ -57,14 +57,14 @@ class ProjectProfilesControllerTest {
 
     @Test
     void listsEmpty() {
-        when(resolver.resolve("ws-1", "p-1"))
+        when(resolver.resolve("srv-1", "ws-1", "p-1"))
                 .thenReturn(new ProjectContext(workspaceManager, projectsManager, projectManager));
         when(projectManager.profilesManager()).thenReturn(profilesManager);
         when(profilesManager.allProfiles()).thenReturn(List.of());
 
         MockMvcTester mvc = mockMvcTesterFor(new ProjectProfilesController(resolver));
 
-        assertThat(mvc.get().uri("/api/internal/workspaces/ws-1/projects/p-1/profiles"))
+        assertThat(mvc.get().uri("/api/internal/remote-servers/srv-1/workspaces/ws-1/projects/p-1/profiles"))
                 .hasStatusOk()
                 .bodyJson()
                 .extractingPath("$").asArray().isEmpty();
@@ -72,11 +72,11 @@ class ProjectProfilesControllerTest {
 
     @Test
     void projectNotFoundReturns404() {
-        when(resolver.resolve("ws-1", "ghost")).thenThrow(Exceptions.projectNotFound("ghost"));
+        when(resolver.resolve("srv-1", "ws-1", "ghost")).thenThrow(Exceptions.projectNotFound("ghost"));
 
         MockMvcTester mvc = mockMvcTesterFor(new ProjectProfilesController(resolver));
 
-        assertThat(mvc.get().uri("/api/internal/workspaces/ws-1/projects/ghost/profiles"))
+        assertThat(mvc.get().uri("/api/internal/remote-servers/srv-1/workspaces/ws-1/projects/ghost/profiles"))
                 .hasStatus(404)
                 .bodyJson()
                 .extractingPath("$.code").asString().isEqualTo("PROJECT_NOT_FOUND");

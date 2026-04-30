@@ -102,14 +102,12 @@ public class GlobalJobsConfiguration {
             Clock clock,
             ServerJeffreyDirs jeffreyDirs,
             PersistentQueue<WorkspaceEvent> workspaceEventQueue,
-            @Qualifier(PROJECTS_SYNCHRONIZER_TRIGGER) SchedulerTrigger projectsSynchronizerTrigger,
-            @Value("${jeffrey.server.platform.workspace.auto-create-from-events:true}") boolean autoCreateWorkspaces) {
+            @Qualifier(PROJECTS_SYNCHRONIZER_TRIGGER) SchedulerTrigger projectsSynchronizerTrigger) {
 
         return new WorkspaceEventsReplicatorJob(
                 workspacesManager,
                 jobProperties.resolvePeriod("workspace-events-replicator", Duration.ofSeconds(5)),
                 clock,
-                autoCreateWorkspaces,
                 new FolderQueue(jeffreyDirs.workspaceEvents(), clock),
                 workspaceEventQueue,
                 projectsSynchronizerTrigger);

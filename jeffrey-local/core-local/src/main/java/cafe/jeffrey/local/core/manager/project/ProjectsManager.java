@@ -18,7 +18,7 @@
 
 package cafe.jeffrey.local.core.manager.project;
 
-import cafe.jeffrey.local.persistence.api.RemoteWorkspaceInfo;
+import cafe.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 
 import java.util.List;
 import java.util.Optional;
@@ -27,7 +27,7 @@ import java.util.function.Function;
 public interface ProjectsManager {
 
     @FunctionalInterface
-    interface Factory extends Function<RemoteWorkspaceInfo, ProjectsManager> {
+    interface Factory extends Function<WorkspaceInfo, ProjectsManager> {
     }
 
     List<ProjectManager> findAll();

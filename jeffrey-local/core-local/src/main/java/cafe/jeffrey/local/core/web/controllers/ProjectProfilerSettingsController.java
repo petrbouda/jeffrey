@@ -33,7 +33,7 @@ import cafe.jeffrey.local.core.resources.response.ProfilerSettingsResponse;
 import cafe.jeffrey.local.core.web.ProjectManagerResolver;
 
 @RestController
-@RequestMapping("/api/internal/workspaces/{workspaceId}/projects/{projectId}/profiler/settings")
+@RequestMapping("/api/internal/remote-servers/{serverId}/workspaces/{workspaceId}/projects/{projectId}/profiler/settings")
 public class ProjectProfilerSettingsController {
 
     private final ProjectManagerResolver resolver;
@@ -44,30 +44,33 @@ public class ProjectProfilerSettingsController {
 
     @GetMapping
     public ProfilerSettingsResponse fetchSettings(
+            @PathVariable("serverId") String serverId,
             @PathVariable("workspaceId") String workspaceId,
             @PathVariable("projectId") String projectId) {
-        ProfilerSettingsManager mgr = managerFor(workspaceId, projectId);
+        ProfilerSettingsManager mgr = managerFor(serverId, workspaceId, projectId);
         return ProfilerSettingsResponse.from(mgr.fetchEffectiveSettings());
     }
 
     @PostMapping
     public void upsertSettings(
+            @PathVariable("serverId") String serverId,
             @PathVariable("workspaceId") String workspaceId,
             @PathVariable("projectId") String projectId,
             @RequestBody ProfilerSettingsRequest request) {
-        managerFor(workspaceId, projectId).upsertSettings(request.agentSettings());
+        managerFor(serverId, workspaceId, projectId).upsertSettings(request.agentSettings());
     }
 
     @DeleteMapping
     public ResponseEntity<Void> deleteSettings(
+            @PathVariable("serverId") String serverId,
             @PathVariable("workspaceId") String workspaceId,
             @PathVariable("projectId") String projectId) {
-        managerFor(workspaceId, projectId).deleteSettings();
+        managerFor(serverId, workspaceId, projectId).deleteSettings();
         return ResponseEntity.noContent().build();
     }
 
-    private ProfilerSettingsManager managerFor(String workspaceId, String projectId) {
-        ProjectManager pm = resolver.resolve(workspaceId, projectId).projectManager();
+    private ProfilerSettingsManager managerFor(String serverId, String workspaceId, String projectId) {
+        ProjectManager pm = resolver.resolve(serverId, workspaceId, projectId).projectManager();
         return pm.profilerSettingsManager();
     }
 }

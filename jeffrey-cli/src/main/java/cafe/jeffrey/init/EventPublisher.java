@@ -53,7 +53,7 @@ public class EventPublisher {
 
     public void publishProjectCreated(
             String projectId,
-            String workspaceId,
+            String workspaceRefId,
             String projectName,
             String projectLabel,
             String workspacesPath,
@@ -62,27 +62,27 @@ public class EventPublisher {
 
         ProjectCreatedEventContent content = new ProjectCreatedEventContent(
                 projectName, projectLabel, workspacesPath,
-                workspaceId, projectName, repositoryType, attributes);
+                workspaceRefId, projectName, repositoryType, attributes);
 
-        publish(projectId, projectId, workspaceId,
+        publish(projectId, projectId, workspaceRefId,
                 WorkspaceEventType.PROJECT_CREATED, Json.toString(content));
     }
 
     public void publishInstanceCreated(
             String instanceId,
             String projectId,
-            String workspaceId) {
+            String workspaceRefId) {
 
         InstanceCreatedEventContent content = new InstanceCreatedEventContent(instanceId);
 
-        publish(instanceId, projectId, workspaceId,
+        publish(instanceId, projectId, workspaceRefId,
                 WorkspaceEventType.PROJECT_INSTANCE_CREATED, Json.toString(content));
     }
 
     public void publishSessionCreated(
             String sessionId,
             String projectId,
-            String workspaceId,
+            String workspaceRefId,
             String instanceId,
             int order) {
 
@@ -91,19 +91,19 @@ public class EventPublisher {
         SessionCreatedEventContent content = new SessionCreatedEventContent(
                 instanceId, order, relativeSessionPath);
 
-        publish(sessionId, projectId, workspaceId,
+        publish(sessionId, projectId, workspaceRefId,
                 WorkspaceEventType.PROJECT_INSTANCE_SESSION_CREATED, Json.toString(content));
     }
 
     private void publish(
             String originEventId,
             String projectId,
-            String workspaceId,
+            String workspaceRefId,
             WorkspaceEventType eventType,
             String content) {
 
         CLIWorkspaceEvent event = new CLIWorkspaceEvent(
-                originEventId, projectId, workspaceId,
+                originEventId, projectId, workspaceRefId,
                 eventType, content, clock.instant(), CREATED_BY);
 
         folderQueue.publish(originEventId, Json.toString(event));

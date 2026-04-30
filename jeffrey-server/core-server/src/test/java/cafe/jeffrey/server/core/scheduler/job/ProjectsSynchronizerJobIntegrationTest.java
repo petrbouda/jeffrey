@@ -155,9 +155,7 @@ class ProjectsSynchronizerJobIntegrationTest {
         @Test
         void noEvents_noProcessingNoAcknowledgment(DataSource dataSource) {
             var queue = createQueue(dataSource);
-            WorkspaceInfo wsInfo = new WorkspaceInfo(
-                    WORKSPACE_ID, null, null, "Test Workspace", null, null, null,
-                    Instant.parse("2025-01-01T10:00:00Z"), WorkspaceStatus.AVAILABLE, 0);
+            WorkspaceInfo wsInfo = new WorkspaceInfo(WORKSPACE_ID, null, null, "Test Workspace", null, null, Instant.parse("2025-01-01T10:00:00Z"), WorkspaceStatus.AVAILABLE, 0);
             when(workspaceManager.resolveInfo()).thenReturn(wsInfo);
             when(workspaceManager.projectsManager()).thenReturn(projectsManager);
 
@@ -207,9 +205,7 @@ class ProjectsSynchronizerJobIntegrationTest {
             var queue = createQueue(dataSource);
             queue.append(WORKSPACE_ID, instanceCreatedEvent(ORIGIN_PROJECT_ID, "inst-new-001"));
 
-            WorkspaceInfo wsInfo = new WorkspaceInfo(
-                    WORKSPACE_ID, null, null, "Test Workspace", null, null, null,
-                    Instant.parse("2025-01-01T10:00:00Z"), WorkspaceStatus.AVAILABLE, 0);
+            WorkspaceInfo wsInfo = new WorkspaceInfo(WORKSPACE_ID, null, null, "Test Workspace", null, null, Instant.parse("2025-01-01T10:00:00Z"), WorkspaceStatus.AVAILABLE, 0);
             when(workspaceManager.resolveInfo()).thenReturn(wsInfo);
             when(workspaceManager.projectsManager()).thenReturn(projectsManager);
             when(projectsManager.findByOriginProjectId(ORIGIN_PROJECT_ID)).thenReturn(Optional.of(projectManager));
@@ -272,9 +268,7 @@ class ProjectsSynchronizerJobIntegrationTest {
             queue.append(WORKSPACE_ID, instanceCreatedEvent(ORIGIN_PROJECT_ID, "inst-001"));
             queue.append(WORKSPACE_ID, sessionCreatedEvent(ORIGIN_PROJECT_ID, "session-001"));
 
-            WorkspaceInfo wsInfo = new WorkspaceInfo(
-                    WORKSPACE_ID, null, null, "Test Workspace", null, null, null,
-                    Instant.parse("2025-01-01T10:00:00Z"), WorkspaceStatus.AVAILABLE, 0);
+            WorkspaceInfo wsInfo = new WorkspaceInfo(WORKSPACE_ID, null, null, "Test Workspace", null, null, Instant.parse("2025-01-01T10:00:00Z"), WorkspaceStatus.AVAILABLE, 0);
             when(workspaceManager.resolveInfo()).thenReturn(wsInfo);
             when(workspaceManager.projectsManager()).thenReturn(projectsManager);
 
@@ -337,9 +331,7 @@ class ProjectsSynchronizerJobIntegrationTest {
             // Second event: INSTANCE_CREATED → should still succeed
             queue.append(WORKSPACE_ID, instanceCreatedEvent(ORIGIN_PROJECT_ID, "inst-002"));
 
-            WorkspaceInfo wsInfo = new WorkspaceInfo(
-                    WORKSPACE_ID, null, null, "Test Workspace", null, null, null,
-                    Instant.parse("2025-01-01T10:00:00Z"), WorkspaceStatus.AVAILABLE, 0);
+            WorkspaceInfo wsInfo = new WorkspaceInfo(WORKSPACE_ID, null, null, "Test Workspace", null, null, Instant.parse("2025-01-01T10:00:00Z"), WorkspaceStatus.AVAILABLE, 0);
             when(workspaceManager.resolveInfo()).thenReturn(wsInfo);
             when(workspaceManager.projectsManager()).thenReturn(projectsManager);
 
@@ -402,9 +394,7 @@ class ProjectsSynchronizerJobIntegrationTest {
             queue.append(WORKSPACE_ID, instanceCreatedEvent("deleted-proj", "inst-ghost"));
             queue.append(WORKSPACE_ID, sessionCreatedEvent("deleted-proj", "session-ghost"));
 
-            WorkspaceInfo wsInfo = new WorkspaceInfo(
-                    WORKSPACE_ID, null, null, "Test Workspace", null, null, null,
-                    Instant.parse("2025-01-01T10:00:00Z"), WorkspaceStatus.AVAILABLE, 0);
+            WorkspaceInfo wsInfo = new WorkspaceInfo(WORKSPACE_ID, null, null, "Test Workspace", null, null, Instant.parse("2025-01-01T10:00:00Z"), WorkspaceStatus.AVAILABLE, 0);
             when(workspaceManager.resolveInfo()).thenReturn(wsInfo);
             when(workspaceManager.projectsManager()).thenReturn(projectsManager);
 
@@ -464,9 +454,7 @@ class ProjectsSynchronizerJobIntegrationTest {
             queue.append(WORKSPACE_ID, instanceCreatedEvent(ORIGIN_PROJECT_ID, "inst-A"));
             queue.append(WORKSPACE_ID, instanceCreatedEvent(ORIGIN_PROJECT_ID, "inst-B"));
 
-            WorkspaceInfo wsInfo = new WorkspaceInfo(
-                    WORKSPACE_ID, null, null, "Test Workspace", null, null, null,
-                    Instant.parse("2025-01-01T10:00:00Z"), WorkspaceStatus.AVAILABLE, 0);
+            WorkspaceInfo wsInfo = new WorkspaceInfo(WORKSPACE_ID, null, null, "Test Workspace", null, null, Instant.parse("2025-01-01T10:00:00Z"), WorkspaceStatus.AVAILABLE, 0);
             when(workspaceManager.resolveInfo()).thenReturn(wsInfo);
             when(workspaceManager.projectsManager()).thenReturn(projectsManager);
             when(projectsManager.findByOriginProjectId(ORIGIN_PROJECT_ID)).thenReturn(Optional.of(projectManager));

@@ -26,12 +26,12 @@ import cafe.jeffrey.local.core.client.RemoteDiscoveryClient;
 import cafe.jeffrey.local.core.client.RemoteProfilerClient;
 import cafe.jeffrey.local.core.manager.ProfilesManager;
 import cafe.jeffrey.local.core.manager.project.ProjectsManager;
-import cafe.jeffrey.local.core.resources.response.WorkspaceEventResponse;
-import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
-import cafe.jeffrey.local.persistence.api.WorkspaceRepository;
 import cafe.jeffrey.local.core.recording.ProjectRecordingInitializer;
-import cafe.jeffrey.local.persistence.api.RemoteWorkspaceInfo;
+import cafe.jeffrey.local.core.resources.response.WorkspaceEventResponse;
 import cafe.jeffrey.local.persistence.api.LocalCoreRepositories;
+import cafe.jeffrey.local.persistence.api.WorkspaceRepository;
+import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
+import cafe.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceStatus;
 
 import java.util.List;
@@ -42,7 +42,7 @@ public class RemoteWorkspaceManager implements WorkspaceManager {
     private static final Logger LOG = LoggerFactory.getLogger(RemoteWorkspaceManager.class);
 
     private final LocalJeffreyDirs jeffreyDirs;
-    private final RemoteWorkspaceInfo workspaceInfo;
+    private final WorkspaceInfo workspaceInfo;
     private final WorkspaceRepository workspaceRepository;
     private final RemoteClients remoteClients;
     private final ProfilesManager.Factory profilesManagerFactory;
@@ -51,7 +51,7 @@ public class RemoteWorkspaceManager implements WorkspaceManager {
 
     public RemoteWorkspaceManager(
             LocalJeffreyDirs jeffreyDirs,
-            RemoteWorkspaceInfo workspaceInfo,
+            WorkspaceInfo workspaceInfo,
             WorkspaceRepository workspaceRepository,
             RemoteClients remoteClients,
             ProfilesManager.Factory profilesManagerFactory,
@@ -68,12 +68,12 @@ public class RemoteWorkspaceManager implements WorkspaceManager {
     }
 
     @Override
-    public RemoteWorkspaceInfo localInfo() {
+    public WorkspaceInfo localInfo() {
         return workspaceInfo;
     }
 
     @Override
-    public RemoteWorkspaceInfo resolveInfo() {
+    public WorkspaceInfo resolveInfo() {
         try {
             RemoteDiscoveryClient.WorkspaceResult result = remoteClients.discovery().workspace(workspaceInfo.id());
             return switch (result.status()) {
@@ -111,9 +111,16 @@ public class RemoteWorkspaceManager implements WorkspaceManager {
 
     @Override
     public void delete() {
-        List<String> profileIds = workspaceRepository.delete();
+        // Best-effort: drop the workspace on the remote server via gRPC.
+        try {
+            remoteClients.discovery().deleteWorkspace(workspaceInfo.id());
+        } catch (Exception e) {
+            LOG.warn("Remote DeleteWorkspace failed; continuing with local cleanup: workspaceId={}",
+                    workspaceInfo.id(), e);
+        }
 
-        // Clean up per-profile database directories from filesystem
+        // Local cleanup: profiles/recordings/profiler_settings tied to this workspace.
+        List<String> profileIds = workspaceRepository.delete();
         for (String profileId : profileIds) {
             try {
                 FileSystemUtils.removeDirectory(jeffreyDirs.profileDir(profileId));
@@ -124,5 +131,4 @@ public class RemoteWorkspaceManager implements WorkspaceManager {
 
         LOG.info("Deleted workspace: workspaceId={} deletedProfiles={}", workspaceInfo.id(), profileIds.size());
     }
-
 }

@@ -86,7 +86,7 @@ class WorkspaceEventsGrpcServiceTest {
             WorkspaceEventInfo event = response.getEvents(0);
             assertEquals(1L, event.getEventId());
             assertEquals("proj-1", event.getProjectId());
-            assertEquals(WORKSPACE_ID, event.getWorkspaceId());
+            assertEquals(WORKSPACE_ID, event.getWorkspaceRefId());
             assertEquals("PROJECT_CREATED", event.getEventType());
             assertEquals("{}", event.getContent());
         }

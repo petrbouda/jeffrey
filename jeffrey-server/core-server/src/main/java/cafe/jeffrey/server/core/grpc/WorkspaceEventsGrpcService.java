@@ -81,7 +81,7 @@ public class WorkspaceEventsGrpcService extends WorkspaceEventsServiceGrpc.Works
                 .setEventId(event.eventId() != null ? event.eventId() : 0)
                 .setOriginEventId(event.originEventId() != null ? event.originEventId() : "")
                 .setProjectId(event.projectId() != null ? event.projectId() : "")
-                .setWorkspaceId(event.workspaceId() != null ? event.workspaceId() : "")
+                .setWorkspaceRefId(event.workspaceRefId() != null ? event.workspaceRefId() : "")
                 .setEventType(event.eventType() != null ? event.eventType().name() : "")
                 .setContent(event.content() != null ? event.content() : "")
                 .setOriginCreatedAt(event.originCreatedAt() != null ? event.originCreatedAt().toEpochMilli() : 0)

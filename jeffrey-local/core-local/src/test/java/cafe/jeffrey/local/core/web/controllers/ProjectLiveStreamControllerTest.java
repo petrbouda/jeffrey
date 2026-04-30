@@ -38,7 +38,7 @@ class ProjectLiveStreamControllerTest {
     void rejectsEmptySessionIds() {
         MockMvcTester mvc = mockMvcTesterFor(new ProjectLiveStreamController(resolver));
 
-        assertThat(mvc.get().uri("/api/internal/workspaces/ws-1/projects/p-1/live-stream/subscribe"))
+        assertThat(mvc.get().uri("/api/internal/remote-servers/srv-1/workspaces/ws-1/projects/p-1/live-stream/subscribe"))
                 .hasStatus(400)
                 .bodyJson()
                 .extractingPath("$.message").asString().isEqualTo("At least one sessionId is required");

@@ -28,6 +28,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import cafe.jeffrey.server.api.v1.*;
+import cafe.jeffrey.server.core.manager.workspace.WorkspaceAlreadyExistsException;
 import cafe.jeffrey.server.core.manager.workspace.WorkspaceManager;
 import cafe.jeffrey.server.core.manager.workspace.WorkspacesManager;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceInfo;
@@ -158,6 +159,76 @@ class WorkspaceGrpcServiceTest {
     }
 
     @Nested
+    class CreateWorkspace {
+
+        @Test
+        void createsWorkspaceAndReturnsIt() throws IOException {
+            var workspacesManager = mock(WorkspacesManager.class);
+            when(workspacesManager.create(any())).thenReturn(testWorkspaceInfo());
+
+            var stub = startServer(new WorkspaceGrpcService(workspacesManager, FIXED_CLOCK));
+
+            CreateWorkspaceResponse response = stub.createWorkspace(
+                    CreateWorkspaceRequest.newBuilder()
+                            .setReferenceId("origin-1")
+                            .setName("Test Workspace")
+                            .build());
+
+            assertEquals(WORKSPACE_ID, response.getWorkspace().getId());
+            assertEquals("Test Workspace", response.getWorkspace().getName());
+        }
+
+        @Test
+        void duplicateReferenceId_returnsAlreadyExists() throws IOException {
+            var workspacesManager = mock(WorkspacesManager.class);
+            when(workspacesManager.create(any()))
+                    .thenThrow(new WorkspaceAlreadyExistsException(
+                            "Workspace with reference ID 'origin-1' already exists"));
+
+            var stub = startServer(new WorkspaceGrpcService(workspacesManager, FIXED_CLOCK));
+
+            var ex = assertThrows(StatusRuntimeException.class, () ->
+                    stub.createWorkspace(CreateWorkspaceRequest.newBuilder()
+                            .setReferenceId("origin-1")
+                            .setName("Test Workspace")
+                            .build()));
+            assertEquals(Status.Code.ALREADY_EXISTS, ex.getStatus().getCode());
+        }
+
+        @Test
+        void blankReferenceId_returnsInvalidArgument() throws IOException {
+            var workspacesManager = mock(WorkspacesManager.class);
+            when(workspacesManager.create(any()))
+                    .thenThrow(new IllegalArgumentException("Workspace Source ID cannot be null or empty"));
+
+            var stub = startServer(new WorkspaceGrpcService(workspacesManager, FIXED_CLOCK));
+
+            var ex = assertThrows(StatusRuntimeException.class, () ->
+                    stub.createWorkspace(CreateWorkspaceRequest.newBuilder()
+                            .setReferenceId("")
+                            .setName("Test Workspace")
+                            .build()));
+            assertEquals(Status.Code.INVALID_ARGUMENT, ex.getStatus().getCode());
+        }
+
+        @Test
+        void blankName_returnsInvalidArgument() throws IOException {
+            var workspacesManager = mock(WorkspacesManager.class);
+            when(workspacesManager.create(any()))
+                    .thenThrow(new IllegalArgumentException("Workspace Name cannot be null or empty"));
+
+            var stub = startServer(new WorkspaceGrpcService(workspacesManager, FIXED_CLOCK));
+
+            var ex = assertThrows(StatusRuntimeException.class, () ->
+                    stub.createWorkspace(CreateWorkspaceRequest.newBuilder()
+                            .setReferenceId("origin-1")
+                            .setName("")
+                            .build()));
+            assertEquals(Status.Code.INVALID_ARGUMENT, ex.getStatus().getCode());
+        }
+    }
+
+    @Nested
     class DeleteWorkspace {
 
         @Test
@@ -187,8 +258,6 @@ class WorkspaceGrpcServiceTest {
     }
 
     private static WorkspaceInfo testWorkspaceInfo() {
-        return new WorkspaceInfo(
-                WORKSPACE_ID, "origin-1", "repo-1", "Test Workspace", "A description",
-                null, null, FIXED_TIME, WorkspaceStatus.AVAILABLE, 3);
+        return new WorkspaceInfo(WORKSPACE_ID, "origin-1", "repo-1", "Test Workspace", null, null, FIXED_TIME, WorkspaceStatus.AVAILABLE, 3);
     }
 }

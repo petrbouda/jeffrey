@@ -57,14 +57,14 @@ class ProjectControllerTest {
     void initializingAlwaysFalse() {
         MockMvcTester mvc = mockMvcTesterFor(new ProjectController(resolver));
 
-        assertThat(mvc.get().uri("/api/internal/workspaces/ws-1/projects/p-1/initializing"))
+        assertThat(mvc.get().uri("/api/internal/remote-servers/srv-1/workspaces/ws-1/projects/p-1/initializing"))
                 .hasStatusOk()
                 .bodyText().isEqualTo("false");
     }
 
     @Test
     void restoreInvokesManager() {
-        when(resolver.resolve("ws-1", "p-1"))
+        when(resolver.resolve("srv-1", "ws-1", "p-1"))
                 .thenReturn(new ProjectContext(workspaceManager, projectsManager, projectManager));
         when(projectManager.info()).thenReturn(new ProjectInfo(
                 "p-1", "p-1", "demo", "Demo", "demo", "ws-1",
@@ -72,17 +72,17 @@ class ProjectControllerTest {
 
         MockMvcTester mvc = mockMvcTesterFor(new ProjectController(resolver));
 
-        assertThat(mvc.post().uri("/api/internal/workspaces/ws-1/projects/p-1/restore"))
+        assertThat(mvc.post().uri("/api/internal/remote-servers/srv-1/workspaces/ws-1/projects/p-1/restore"))
                 .hasStatusOk();
     }
 
     @Test
     void projectNotFoundReturns404() {
-        when(resolver.resolve("ws-1", "ghost")).thenThrow(Exceptions.projectNotFound("ghost"));
+        when(resolver.resolve("srv-1", "ws-1", "ghost")).thenThrow(Exceptions.projectNotFound("ghost"));
 
         MockMvcTester mvc = mockMvcTesterFor(new ProjectController(resolver));
 
-        assertThat(mvc.get().uri("/api/internal/workspaces/ws-1/projects/ghost"))
+        assertThat(mvc.get().uri("/api/internal/remote-servers/srv-1/workspaces/ws-1/projects/ghost"))
                 .hasStatus(404)
                 .bodyJson()
                 .extractingPath("$.code").asString().isEqualTo("PROJECT_NOT_FOUND");
@@ -90,11 +90,11 @@ class ProjectControllerTest {
 
     @Test
     void workspaceNotFoundReturns404() {
-        when(resolver.resolve("ghost", "p-1")).thenThrow(Exceptions.workspaceNotFound("ghost"));
+        when(resolver.resolve("srv-1", "ghost", "p-1")).thenThrow(Exceptions.workspaceNotFound("ghost"));
 
         MockMvcTester mvc = mockMvcTesterFor(new ProjectController(resolver));
 
-        assertThat(mvc.get().uri("/api/internal/workspaces/ghost/projects/p-1"))
+        assertThat(mvc.get().uri("/api/internal/remote-servers/srv-1/workspaces/ghost/projects/p-1"))
                 .hasStatus(404)
                 .bodyJson()
                 .extractingPath("$.code").asString().isEqualTo("WORKSPACE_NOT_FOUND");

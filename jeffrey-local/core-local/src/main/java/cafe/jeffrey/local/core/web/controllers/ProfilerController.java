@@ -22,39 +22,46 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.local.core.client.RemoteProfilerClient;
+import cafe.jeffrey.local.core.manager.server.RemoteServerManager;
 import cafe.jeffrey.local.core.manager.workspace.WorkspaceManager;
-import cafe.jeffrey.local.core.manager.workspace.WorkspacesManager;
 import cafe.jeffrey.local.core.resources.request.ProfilerSettingsRequest;
+import cafe.jeffrey.local.core.web.ProjectManagerResolver;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.shared.common.model.ProfilerInfo;
+import cafe.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 
 import java.util.ArrayList;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/internal/profiler")
+@RequestMapping("/api/internal/remote-servers/{serverId}/profiler")
 public class ProfilerController {
 
     private static final Logger LOG = LoggerFactory.getLogger(ProfilerController.class);
 
-    private final WorkspacesManager workspacesManager;
+    private final ProjectManagerResolver resolver;
 
-    public ProfilerController(WorkspacesManager workspacesManager) {
-        this.workspacesManager = workspacesManager;
+    public ProfilerController(ProjectManagerResolver resolver) {
+        this.resolver = resolver;
     }
 
     @PostMapping("/settings")
-    public void upsertSettings(@RequestBody ProfilerSettingsRequest request) {
+    public void upsertSettings(
+            @PathVariable("serverId") String serverId,
+            @RequestBody ProfilerSettingsRequest request) {
+
         String workspaceId = normalizeToNull(request.workspaceId());
         String projectId = normalizeToNull(request.projectId());
 
-        LOG.debug("Upserting profiler settings: workspaceId={} projectId={}", workspaceId, projectId);
+        LOG.debug("Upserting profiler settings: server_id={} workspaceId={} projectId={}",
+                serverId, workspaceId, projectId);
 
         if (projectId != null && workspaceId == null) {
             throw Exceptions.invalidRequest("Workspace ID is required when Project ID is provided");
@@ -64,15 +71,20 @@ public class ProfilerController {
             throw Exceptions.invalidRequest("Workspace ID is required to identify the target server");
         }
 
-        RemoteProfilerClient client = findProfilerClient(workspaceId);
+        RemoteProfilerClient client = findProfilerClient(serverId, workspaceId);
         client.upsertSettingsAtLevel(workspaceId, projectId, request.agentSettings());
     }
 
     @GetMapping("/settings")
-    public List<ProfilerSettingsRequest> findAllSettings() {
+    public List<ProfilerSettingsRequest> findAllSettings(@PathVariable("serverId") String serverId) {
+        RemoteServerManager server = resolver.resolveServer(serverId);
         List<ProfilerSettingsRequest> result = new ArrayList<>();
 
-        for (WorkspaceManager workspace : workspacesManager.findAll()) {
+        for (WorkspaceInfo wsInfo : server.workspaces()) {
+            WorkspaceManager workspace = server.workspace(wsInfo.id()).orElse(null);
+            if (workspace == null) {
+                continue;
+            }
             workspace.profilerClient().ifPresent(client -> {
                 try {
                     List<ProfilerInfo> settings = client.listAllSettings();
@@ -81,25 +93,26 @@ public class ProfilerController {
                                 info.workspaceId(), info.projectId(), info.agentSettings()));
                     }
                 } catch (Exception e) {
-                    LOG.warn("Failed to fetch profiler settings from workspace: workspaceId={}",
-                            workspace.localInfo().id(), e);
+                    LOG.warn("Failed to fetch profiler settings: workspaceId={}", wsInfo.id(), e);
                 }
             });
         }
 
-        LOG.debug("Listed profiler settings: count={}", result.size());
+        LOG.debug("Listed profiler settings: server_id={} count={}", serverId, result.size());
         return result;
     }
 
     @DeleteMapping("/settings")
     public void deleteSettings(
+            @PathVariable("serverId") String serverId,
             @RequestParam(value = "workspaceId", required = false) String workspaceId,
             @RequestParam(value = "projectId", required = false) String projectId) {
 
         String wsId = normalizeToNull(workspaceId);
         String projId = normalizeToNull(projectId);
 
-        LOG.debug("Deleting profiler settings: workspaceId={} projectId={}", wsId, projId);
+        LOG.debug("Deleting profiler settings: server_id={} workspaceId={} projectId={}",
+                serverId, wsId, projId);
 
         if (projId != null && wsId == null) {
             throw Exceptions.invalidRequest("Workspace ID is required when Project ID is provided");
@@ -109,14 +122,12 @@ public class ProfilerController {
             throw Exceptions.invalidRequest("Workspace ID is required to identify the target server");
         }
 
-        RemoteProfilerClient client = findProfilerClient(wsId);
+        RemoteProfilerClient client = findProfilerClient(serverId, wsId);
         client.deleteSettingsAtLevel(wsId, projId);
     }
 
-    private RemoteProfilerClient findProfilerClient(String workspaceId) {
-        WorkspaceManager workspace = workspacesManager.findById(workspaceId)
-                .orElseThrow(() -> Exceptions.invalidRequest("Workspace not found: " + workspaceId));
-
+    private RemoteProfilerClient findProfilerClient(String serverId, String workspaceId) {
+        WorkspaceManager workspace = resolver.resolveWorkspace(serverId, workspaceId);
         return workspace.profilerClient()
                 .orElseThrow(() -> Exceptions.invalidRequest(
                         "Workspace does not support remote profiler settings: " + workspaceId));

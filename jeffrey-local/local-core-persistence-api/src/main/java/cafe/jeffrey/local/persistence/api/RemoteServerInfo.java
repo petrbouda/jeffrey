@@ -16,9 +16,17 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.local.core.resources.request;
+package cafe.jeffrey.local.persistence.api;
 
-import java.util.List;
+import java.time.Instant;
 
-public record RemoteWorkspacesRequest(String hostname, int port, boolean plaintext, List<String> workspaceIds) {
+/**
+ * Locally stored reference to a connected jeffrey-server.
+ * Workspaces hosted on the server are listed live via gRPC and are not cached here.
+ */
+public record RemoteServerInfo(
+        String serverId,
+        String name,
+        ServerAddress address,
+        Instant createdAt) {
 }

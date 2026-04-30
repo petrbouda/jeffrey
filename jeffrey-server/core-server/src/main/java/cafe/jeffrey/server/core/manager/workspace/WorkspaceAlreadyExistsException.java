@@ -16,22 +16,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.local.persistence.api;
+package cafe.jeffrey.server.core.manager.workspace;
 
+public class WorkspaceAlreadyExistsException extends RuntimeException {
 
-import java.util.List;
-import java.util.Optional;
-
-/**
- * Local registry of remote workspace connections.
- * Stores only minimal connection references (id, origin id, server URL).
- * All other workspace data comes from gRPC.
- */
-public interface WorkspacesRepository {
-
-    List<RemoteWorkspaceInfo> findAll();
-
-    Optional<RemoteWorkspaceInfo> find(String workspaceId);
-
-    RemoteWorkspaceInfo create(RemoteWorkspaceInfo workspaceInfo);
+    public WorkspaceAlreadyExistsException(String message) {
+        super(message);
+    }
 }

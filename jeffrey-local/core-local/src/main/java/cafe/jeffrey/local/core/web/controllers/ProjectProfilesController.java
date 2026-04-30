@@ -39,7 +39,7 @@ import java.util.Comparator;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/internal/workspaces/{workspaceId}/projects/{projectId}/profiles")
+@RequestMapping("/api/internal/remote-servers/{serverId}/workspaces/{workspaceId}/projects/{projectId}/profiles")
 public class ProjectProfilesController {
 
     private static final Logger LOG = LoggerFactory.getLogger(ProjectProfilesController.class);
@@ -52,9 +52,10 @@ public class ProjectProfilesController {
 
     @GetMapping
     public List<ProfileSummaryResponse> profiles(
+            @PathVariable("serverId") String serverId,
             @PathVariable("workspaceId") String workspaceId,
             @PathVariable("projectId") String projectId) {
-        ProfilesManager profilesManager = managerFor(workspaceId, projectId);
+        ProfilesManager profilesManager = managerFor(serverId, workspaceId, projectId);
         var result = profilesManager.allProfiles().stream()
                 .sorted(Comparator.comparing((ProfileManager pm) -> pm.info().createdAt()).reversed())
                 .map(ProfileSummaryResponse::from)
@@ -65,16 +66,17 @@ public class ProjectProfilesController {
 
     @PostMapping
     public ResponseEntity<Void> createProfile(
+            @PathVariable("serverId") String serverId,
             @PathVariable("workspaceId") String workspaceId,
             @PathVariable("projectId") String projectId,
             @RequestBody CreateProfileRequest request) {
         LOG.debug("Creating profile: recordingId={}", request.recordingId());
-        managerFor(workspaceId, projectId).createProfile(request.recordingId());
+        managerFor(serverId, workspaceId, projectId).createProfile(request.recordingId());
         return ResponseEntity.status(HttpStatus.ACCEPTED).build();
     }
 
-    private ProfilesManager managerFor(String workspaceId, String projectId) {
-        ProjectManager pm = resolver.resolve(workspaceId, projectId).projectManager();
+    private ProfilesManager managerFor(String serverId, String workspaceId, String projectId) {
+        ProjectManager pm = resolver.resolve(serverId, workspaceId, projectId).projectManager();
         return pm.profilesManager();
     }
 }

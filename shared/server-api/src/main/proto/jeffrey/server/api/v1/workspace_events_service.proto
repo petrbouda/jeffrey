@@ -31,8 +31,8 @@ message WorkspaceEventInfo {
   string origin_event_id = 2;
   // Project associated with this event.
   string project_id = 3;
-  // Workspace this event belongs to.
-  string workspace_id = 4;
+  // Reference ID of the workspace this event belongs to (CLI-supplied).
+  string workspace_ref_id = 4;
   // Event type name (e.g., "PROJECT_CREATED", "PROJECT_DELETED").
   string event_type = 5;
   // JSON-serialized event content.

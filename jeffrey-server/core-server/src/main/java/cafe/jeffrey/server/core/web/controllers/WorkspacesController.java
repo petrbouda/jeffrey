@@ -54,7 +54,7 @@ public class WorkspacesController {
                     return new WorkspaceResponse(
                             info.id(),
                             info.name(),
-                            info.description(),
+                            info.referenceId(),
                             info.createdAt().toEpochMilli(),
                             info.projectCount(),
                             info.status());

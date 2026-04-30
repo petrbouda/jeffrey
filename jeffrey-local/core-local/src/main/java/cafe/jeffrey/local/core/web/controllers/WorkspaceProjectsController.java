@@ -40,7 +40,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/internal/workspaces/{workspaceId}/projects")
+@RequestMapping("/api/internal/remote-servers/{serverId}/workspaces/{workspaceId}/projects")
 public class WorkspaceProjectsController {
 
     private static final Logger LOG = LoggerFactory.getLogger(WorkspaceProjectsController.class);
@@ -53,9 +53,10 @@ public class WorkspaceProjectsController {
 
     @GetMapping
     public List<ProjectResponse> projects(
+            @PathVariable("serverId") String serverId,
             @PathVariable("workspaceId") String workspaceId,
             @RequestParam(value = "includeDeleted", defaultValue = "false") boolean includeDeleted) {
-        WorkspaceManager workspace = resolver.resolveWorkspace(workspaceId);
+        WorkspaceManager workspace = resolver.resolveWorkspace(serverId, workspaceId);
         ProjectsManager projectsManager = workspace.projectsManager();
         var managers = includeDeleted
                 ? projectsManager.findAllIncludingDeleted()
@@ -70,8 +71,9 @@ public class WorkspaceProjectsController {
 
     @GetMapping("/profiles")
     public List<ProjectWithProfilesResponse> projectsWithProfiles(
+            @PathVariable("serverId") String serverId,
             @PathVariable("workspaceId") String workspaceId) {
-        WorkspaceManager workspace = resolver.resolveWorkspace(workspaceId);
+        WorkspaceManager workspace = resolver.resolveWorkspace(serverId, workspaceId);
         ProjectsManager projectsManager = workspace.projectsManager();
         List<ProjectWithProfilesResponse> responses = new ArrayList<>();
         for (ProjectManager projectManager : projectsManager.findAll()) {
@@ -95,8 +97,8 @@ public class WorkspaceProjectsController {
     }
 
     @GetMapping("/namespaces")
-    public List<String> namespaces(@PathVariable("workspaceId") String workspaceId) {
-        WorkspaceManager workspace = resolver.resolveWorkspace(workspaceId);
+    public List<String> namespaces(@PathVariable("serverId") String serverId, @PathVariable("workspaceId") String workspaceId) {
+        WorkspaceManager workspace = resolver.resolveWorkspace(serverId, workspaceId);
         var result = workspace.projectsManager().findAllNamespaces();
         LOG.debug("Listed namespaces: workspaceId={} count={}", workspaceId, result.size());
         return result;

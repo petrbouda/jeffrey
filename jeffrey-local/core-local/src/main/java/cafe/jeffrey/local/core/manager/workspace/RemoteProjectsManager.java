@@ -30,8 +30,8 @@ import cafe.jeffrey.local.core.recording.ProjectRecordingInitializer;
 import cafe.jeffrey.local.core.client.RemoteClients;
 import cafe.jeffrey.local.core.client.RemoteMappers;
 import cafe.jeffrey.local.core.resources.response.RemoteProjectResponse;
-import cafe.jeffrey.local.persistence.api.RemoteWorkspaceInfo;
 import cafe.jeffrey.local.persistence.api.LocalCoreRepositories;
+import cafe.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 
 import java.util.List;
 import java.util.Optional;
@@ -41,7 +41,7 @@ public class RemoteProjectsManager implements ProjectsManager {
     private static final Logger LOG = LoggerFactory.getLogger(RemoteProjectsManager.class);
 
     private final LocalJeffreyDirs jeffreyDirs;
-    private final RemoteWorkspaceInfo workspaceInfo;
+    private final WorkspaceInfo workspaceInfo;
     private final RemoteClients remoteClients;
     private final ProfilesManager.Factory profilesManagerFactory;
     private final ProjectRecordingInitializer.Factory recordingInitializerFactory;
@@ -49,7 +49,7 @@ public class RemoteProjectsManager implements ProjectsManager {
 
     public RemoteProjectsManager(
             LocalJeffreyDirs jeffreyDirs,
-            RemoteWorkspaceInfo workspaceInfo,
+            WorkspaceInfo workspaceInfo,
             RemoteClients remoteClients,
             ProfilesManager.Factory profilesManagerFactory,
             ProjectRecordingInitializer.Factory recordingInitializerFactory,

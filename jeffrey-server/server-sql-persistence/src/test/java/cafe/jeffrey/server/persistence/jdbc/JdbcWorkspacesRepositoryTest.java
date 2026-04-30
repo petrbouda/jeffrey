@@ -78,7 +78,7 @@ class JdbcWorkspacesRepositoryTest {
 
             assertTrue(result.isPresent());
             assertEquals("Test Workspace", result.get().name());
-            assertEquals("A test workspace for testing", result.get().description());
+            assertEquals("origin-ws-001", result.get().referenceId());
         }
 
         @Test
@@ -93,27 +93,27 @@ class JdbcWorkspacesRepositoryTest {
     }
 
     @Nested
-    class FindByOriginIdMethod {
+    class FindByReferenceIdMethod {
 
         @Test
-        void returnsWorkspace_whenOriginIdExists(DataSource dataSource) throws SQLException {
+        void returnsWorkspace_whenReferenceIdExists(DataSource dataSource) throws SQLException {
             var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/workspaces/insert-workspace.sql");
             JdbcWorkspacesRepository repository = new JdbcWorkspacesRepository(provider);
 
-            Optional<WorkspaceInfo> result = repository.findByOriginId("origin-ws-001");
+            Optional<WorkspaceInfo> result = repository.findByReferenceId("origin-ws-001");
 
             assertTrue(result.isPresent());
             assertEquals("Test Workspace", result.get().name());
-            assertEquals("origin-ws-001", result.get().originId());
+            assertEquals("origin-ws-001", result.get().referenceId());
         }
 
         @Test
-        void returnsEmpty_whenOriginIdNotExists(DataSource dataSource) {
+        void returnsEmpty_whenReferenceIdNotExists(DataSource dataSource) {
             var provider = new DatabaseClientProvider(dataSource);
             JdbcWorkspacesRepository repository = new JdbcWorkspacesRepository(provider);
 
-            Optional<WorkspaceInfo> result = repository.findByOriginId("non-existent-origin");
+            Optional<WorkspaceInfo> result = repository.findByReferenceId("non-existent-origin");
 
             assertTrue(result.isEmpty());
         }
@@ -128,10 +128,9 @@ class JdbcWorkspacesRepositoryTest {
             JdbcWorkspacesRepository repository = new JdbcWorkspacesRepository(provider);
             WorkspaceInfo input = new WorkspaceInfo(
                     null, // ID will be generated
-                    null,
+                    "new-workspace-ref",
                     null,
                     "New Workspace",
-                    "A new workspace",
                     null,
                     null,
                     Instant.parse("2025-01-15T12:00:00Z"),

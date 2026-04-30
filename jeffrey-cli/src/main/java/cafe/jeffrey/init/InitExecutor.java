@@ -53,7 +53,7 @@ public class InitExecutor {
      * @throws Exception if initialization fails
      */
     public void execute(InitConfig config) throws Exception {
-        LOG.debug("Executing CLI init: workspaceId={} projectName={}", config.getWorkspaceId(), config.getProjectName());
+        LOG.debug("Executing CLI init: workspaceRefId={} projectName={}", config.getWorkspaceRefId(), config.getProjectName());
         Path jeffreyHome;
         Path workspacesPath;
 
@@ -73,7 +73,7 @@ public class InitExecutor {
         FolderQueue folderQueue = new FolderQueue(eventsDir, CLOCK);
         EventPublisher eventPublisher = new EventPublisher(folderQueue, CLOCK);
 
-        Path workspacePath = createDirectories(workspacesPath.resolve(config.getWorkspaceId()));
+        Path workspacePath = createDirectories(workspacesPath.resolve(config.getWorkspaceRefId()));
         LOG.debug("Directories created: workspacesPath={} workspacePath={}", workspacesPath, workspacePath);
 
         FileSystemRepository repository = new FileSystemRepository(CLOCK);
@@ -92,14 +92,14 @@ public class InitExecutor {
                     projectId,
                     config.getProjectName(),
                     config.getProjectLabel(),
-                    config.getWorkspaceId(),
+                    config.getWorkspaceRefId(),
                     config.getWorkspacesDir(),
                     config.resolveRepositoryType(),
                     config.getAttributes(),
                     projectPath);
 
             eventPublisher.publishProjectCreated(
-                    projectId, config.getWorkspaceId(),
+                    projectId, config.getWorkspaceRefId(),
                     config.getProjectName(), config.getProjectLabel(),
                     config.getWorkspacesDir(), config.resolveRepositoryType(),
                     config.getAttributes());
@@ -114,11 +114,11 @@ public class InitExecutor {
             repository.addInstance(
                     instanceId,
                     projectId,
-                    config.getWorkspaceId(),
+                    config.getWorkspaceRefId(),
                     instancePath);
 
             eventPublisher.publishInstanceCreated(
-                    instanceId, projectId, config.getWorkspaceId());
+                    instanceId, projectId, config.getWorkspaceRefId());
         }
 
         String sessionId = IDGenerator.generate();
@@ -156,13 +156,13 @@ public class InitExecutor {
         repository.addSession(
                 sessionId,
                 projectId,
-                config.getWorkspaceId(),
+                config.getWorkspaceRefId(),
                 instanceId,
                 order,
                 newSessionPath);
 
         eventPublisher.publishSessionCreated(
-                sessionId, projectId, config.getWorkspaceId(),
+                sessionId, projectId, config.getWorkspaceRefId(),
                 instanceId, order);
 
         if (config.getEnvFilePath() != null || config.isPrintEnv()) {

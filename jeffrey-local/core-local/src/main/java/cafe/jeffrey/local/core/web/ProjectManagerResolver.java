@@ -20,36 +20,39 @@ package cafe.jeffrey.local.core.web;
 
 import cafe.jeffrey.local.core.manager.project.ProjectManager;
 import cafe.jeffrey.local.core.manager.project.ProjectsManager;
+import cafe.jeffrey.local.core.manager.server.RemoteServerManager;
+import cafe.jeffrey.local.core.manager.server.RemoteServersManager;
 import cafe.jeffrey.local.core.manager.workspace.WorkspaceManager;
-import cafe.jeffrey.local.core.manager.workspace.WorkspacesManager;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 
 /**
- * Resolves a (workspaceId, projectId) pair to the corresponding
- * {@link ProjectManager}. Replaces the JAX-RS sub-resource locator chain
- * (Workspace → WorkspaceProjects → Project) with a single explicit lookup
- * used by every project-scoped Spring controller.
+ * Resolves a (serverId, workspaceId, projectId) tuple to the corresponding
+ * {@link ProjectManager}. Used by every workspace/project-scoped controller.
  */
 public class ProjectManagerResolver {
 
-    private final WorkspacesManager workspacesManager;
+    private final RemoteServersManager remoteServersManager;
 
-    public ProjectManagerResolver(WorkspacesManager workspacesManager) {
-        this.workspacesManager = workspacesManager;
+    public ProjectManagerResolver(RemoteServersManager remoteServersManager) {
+        this.remoteServersManager = remoteServersManager;
     }
 
-    public ProjectContext resolve(String workspaceId, String projectId) {
-        WorkspaceManager workspace = workspacesManager.findById(workspaceId)
+    public RemoteServerManager resolveServer(String serverId) {
+        return remoteServersManager.findById(serverId)
+                .orElseThrow(() -> Exceptions.invalidRequest("Remote server not found: " + serverId));
+    }
+
+    public WorkspaceManager resolveWorkspace(String serverId, String workspaceId) {
+        return resolveServer(serverId).workspace(workspaceId)
                 .orElseThrow(() -> Exceptions.workspaceNotFound(workspaceId));
+    }
+
+    public ProjectContext resolve(String serverId, String workspaceId, String projectId) {
+        WorkspaceManager workspace = resolveWorkspace(serverId, workspaceId);
         ProjectsManager projectsManager = workspace.projectsManager();
         ProjectManager projectManager = projectsManager.project(projectId)
                 .orElseThrow(() -> Exceptions.projectNotFound(projectId));
         return new ProjectContext(workspace, projectsManager, projectManager);
-    }
-
-    public WorkspaceManager resolveWorkspace(String workspaceId) {
-        return workspacesManager.findById(workspaceId)
-                .orElseThrow(() -> Exceptions.workspaceNotFound(workspaceId));
     }
 
     public record ProjectContext(

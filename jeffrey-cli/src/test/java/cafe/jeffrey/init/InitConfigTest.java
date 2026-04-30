@@ -35,7 +35,7 @@ class InitConfigTest {
 
     // Base config template with all required fields for ConfigBeanFactory
     private static final String BASE_CONFIG = """
-            project { workspace-id = "", name = "", label = "", instance-name = "" }
+            project { workspace-ref-id = "", name = "", label = "", instance-name = "" }
             perf-counters { enabled = false }
             heap-dump { enabled = false }
             jvm-logging { enabled = false }
@@ -62,7 +62,7 @@ class InitConfigTest {
             assertEquals("/tmp/jeffrey", config.getJeffreyHome());
             assertEquals("/tmp/asprof/libasyncProfiler.so", config.getProfilerPath());
             assertNull(config.getProfilerConfig());
-            assertEquals("uat", config.getWorkspaceId());
+            assertEquals("uat", config.getWorkspaceRefId());
             assertEquals("test-project", config.getProjectName());
             assertEquals("Test Project", config.getProjectLabel());
             assertEquals("ASYNC_PROFILER", config.getRepositoryType());
@@ -135,7 +135,7 @@ class InitConfigTest {
             InitConfig config = InitConfig.fromHoconFile(CONFIG_FILE, null);
 
             assertEquals("/tmp/jeffrey", config.getJeffreyHome());
-            assertEquals("test-workspace", config.getWorkspaceId());
+            assertEquals("test-workspace", config.getWorkspaceRefId());
             assertEquals("minimal-project", config.getProjectName());
         }
 
@@ -286,7 +286,7 @@ class InitConfigTest {
             Files.writeString(configFile, configWithOverrides(
                     "jeffrey-home = \"" + tempDir + "\"",
                     "profiler-path = \"/custom/path/libasyncProfiler.so\"",
-                    "project { workspace-id = \"test\", name = \"test\" }"
+                    "project { workspace-ref-id = \"test\", name = \"test\" }"
             ));
 
             InitConfig config = InitConfig.fromHoconFile(configFile, null);
@@ -305,7 +305,7 @@ class InitConfigTest {
 
             Files.writeString(configFile, configWithOverrides(
                     "jeffrey-home = \"" + tempDir + "\"",
-                    "project { workspace-id = \"test\", name = \"test\" }"
+                    "project { workspace-ref-id = \"test\", name = \"test\" }"
             ));
 
             InitConfig config = InitConfig.fromHoconFile(configFile, null);
@@ -325,7 +325,7 @@ class InitConfigTest {
 
             Files.writeString(configFile, configWithOverrides(
                     "jeffrey-home = \"" + tempDir + "\"",
-                    "project { workspace-id = \"test\", name = \"test\" }"
+                    "project { workspace-ref-id = \"test\", name = \"test\" }"
             ));
 
             InitConfig config = InitConfig.fromHoconFile(configFile, null);
@@ -337,7 +337,7 @@ class InitConfigTest {
             Path configFile = tempDir.resolve("config.conf");
             Files.writeString(configFile, configWithOverrides(
                     "jeffrey-home = \"" + tempDir + "\"",
-                    "project { workspace-id = \"test\", name = \"test\" }"
+                    "project { workspace-ref-id = \"test\", name = \"test\" }"
             ));
 
             InitConfig config = InitConfig.fromHoconFile(configFile, null);
@@ -353,7 +353,7 @@ class InitConfigTest {
 
             Files.writeString(configFile, configWithOverrides(
                     "workspaces-dir = \"" + tempDir + "\"",
-                    "project { workspace-id = \"test\", name = \"test\" }"
+                    "project { workspace-ref-id = \"test\", name = \"test\" }"
             ));
 
             InitConfig config = InitConfig.fromHoconFile(configFile, null);
@@ -387,7 +387,7 @@ class InitConfigTest {
             Files.writeString(configFile, configWithOverrides(
                     "jeffrey-home = \"" + tempDir + "\"",
                     "agent-path = \"/custom/path/jeffrey-agent.jar\"",
-                    "project { workspace-id = \"test\", name = \"test\" }"
+                    "project { workspace-ref-id = \"test\", name = \"test\" }"
             ));
 
             InitConfig config = InitConfig.fromHoconFile(configFile, null);
@@ -403,7 +403,7 @@ class InitConfigTest {
 
             Files.writeString(configFile, configWithOverrides(
                     "jeffrey-home = \"" + tempDir + "\"",
-                    "project { workspace-id = \"test\", name = \"test\" }"
+                    "project { workspace-ref-id = \"test\", name = \"test\" }"
             ));
 
             InitConfig config = InitConfig.fromHoconFile(configFile, null);
@@ -415,7 +415,7 @@ class InitConfigTest {
             Path configFile = tempDir.resolve("config.conf");
             Files.writeString(configFile, configWithOverrides(
                     "jeffrey-home = \"" + tempDir + "\"",
-                    "project { workspace-id = \"test\", name = \"test\" }"
+                    "project { workspace-ref-id = \"test\", name = \"test\" }"
             ));
 
             InitConfig config = InitConfig.fromHoconFile(configFile, null);
@@ -431,7 +431,7 @@ class InitConfigTest {
 
             Files.writeString(configFile, configWithOverrides(
                     "workspaces-dir = \"" + tempDir + "\"",
-                    "project { workspace-id = \"test\", name = \"test\" }"
+                    "project { workspace-ref-id = \"test\", name = \"test\" }"
             ));
 
             InitConfig config = InitConfig.fromHoconFile(configFile, null);
@@ -449,7 +449,7 @@ class InitConfigTest {
         void usesEnvVarWhenConfigOmitsJeffreyHome() throws IOException {
             Path configFile = tempDir.resolve("config.conf");
             Files.writeString(configFile, configWithOverrides(
-                    "project { workspace-id = \"test\", name = \"test\" }"
+                    "project { workspace-ref-id = \"test\", name = \"test\" }"
             ));
 
             InitConfig config = InitConfig.fromHoconFile(configFile, null, name -> "/opt/jeffrey");
@@ -462,7 +462,7 @@ class InitConfigTest {
             Path configFile = tempDir.resolve("config.conf");
             Files.writeString(configFile, configWithOverrides(
                     "jeffrey-home = \"/explicit\"",
-                    "project { workspace-id = \"test\", name = \"test\" }"
+                    "project { workspace-ref-id = \"test\", name = \"test\" }"
             ));
 
             InitConfig config = InitConfig.fromHoconFile(configFile, null, name -> "/from-env");
@@ -477,7 +477,7 @@ class InitConfigTest {
 
             Files.writeString(configFile, configWithOverrides(
                     "workspaces-dir = \"" + workspacesDir + "\"",
-                    "project { workspace-id = \"test\", name = \"test\" }"
+                    "project { workspace-ref-id = \"test\", name = \"test\" }"
             ));
 
             InitConfig config = InitConfig.fromHoconFile(configFile, null, name -> "/opt/jeffrey");
@@ -489,7 +489,7 @@ class InitConfigTest {
         void validationFailsWhenNeitherConfigNorEnvVarIsSet() throws IOException {
             Path configFile = tempDir.resolve("config.conf");
             Files.writeString(configFile, configWithOverrides(
-                    "project { workspace-id = \"test\", name = \"test\" }"
+                    "project { workspace-ref-id = \"test\", name = \"test\" }"
             ));
 
             IllegalArgumentException exception = assertThrows(
@@ -521,7 +521,7 @@ class InitConfigTest {
         void throwsExceptionWhenNeitherJeffreyHomeNorWorkspacesDirSpecified() throws IOException {
             Path configFile = tempDir.resolve("invalid.conf");
             Files.writeString(configFile, configWithOverrides(
-                    "project { workspace-id = \"test\", name = \"test\" }"
+                    "project { workspace-ref-id = \"test\", name = \"test\" }"
             ));
 
             IllegalArgumentException exception = assertThrows(
@@ -537,7 +537,7 @@ class InitConfigTest {
             Files.writeString(configFile, configWithOverrides(
                     "jeffrey-home = \"/tmp/jeffrey\"",
                     "workspaces-dir = \"/tmp/workspaces\"",
-                    "project { workspace-id = \"test\", name = \"test\" }"
+                    "project { workspace-ref-id = \"test\", name = \"test\" }"
             ));
 
             IllegalArgumentException exception = assertThrows(
@@ -559,7 +559,7 @@ class InitConfigTest {
                     IllegalArgumentException.class,
                     () -> InitConfig.fromHoconFile(configFile, null)
             );
-            assertEquals("'project.workspace-id' must be specified", exception.getMessage());
+            assertEquals("'project.workspace-ref-id' must be specified", exception.getMessage());
         }
 
         @Test
@@ -567,14 +567,14 @@ class InitConfigTest {
             Path configFile = tempDir.resolve("invalid.conf");
             Files.writeString(configFile, configWithOverrides(
                     "jeffrey-home = \"/tmp/jeffrey\"",
-                    "project { workspace-id = \"   \", name = \"test\" }"
+                    "project { workspace-ref-id = \"   \", name = \"test\" }"
             ));
 
             IllegalArgumentException exception = assertThrows(
                     IllegalArgumentException.class,
                     () -> InitConfig.fromHoconFile(configFile, null)
             );
-            assertEquals("'project.workspace-id' must be specified", exception.getMessage());
+            assertEquals("'project.workspace-ref-id' must be specified", exception.getMessage());
         }
 
         @Test
@@ -582,7 +582,7 @@ class InitConfigTest {
             Path configFile = tempDir.resolve("invalid.conf");
             Files.writeString(configFile, configWithOverrides(
                     "jeffrey-home = \"/tmp/jeffrey\"",
-                    "project { workspace-id = \"test\" }"
+                    "project { workspace-ref-id = \"test\" }"
             ));
 
             IllegalArgumentException exception = assertThrows(
@@ -597,7 +597,7 @@ class InitConfigTest {
             Path configFile = tempDir.resolve("invalid.conf");
             Files.writeString(configFile, configWithOverrides(
                     "jeffrey-home = \"/tmp/jeffrey\"",
-                    "project { workspace-id = \"test\", name = \"   \" }"
+                    "project { workspace-ref-id = \"test\", name = \"   \" }"
             ));
 
             IllegalArgumentException exception = assertThrows(
@@ -612,7 +612,7 @@ class InitConfigTest {
             Path configFile = tempDir.resolve("invalid.conf");
             Files.writeString(configFile, configWithOverrides(
                     "jeffrey-home = \"/tmp/jeffrey\"",
-                    "project { workspace-id = \"test\", name = \"my project\" }"
+                    "project { workspace-ref-id = \"test\", name = \"my project\" }"
             ));
 
             IllegalArgumentException exception = assertThrows(
@@ -627,7 +627,7 @@ class InitConfigTest {
             Path configFile = tempDir.resolve("invalid.conf");
             Files.writeString(configFile, configWithOverrides(
                     "jeffrey-home = \"/tmp/jeffrey\"",
-                    "project { workspace-id = \"test\", name = \"my@project!\" }"
+                    "project { workspace-ref-id = \"test\", name = \"my@project!\" }"
             ));
 
             IllegalArgumentException exception = assertThrows(
@@ -642,7 +642,7 @@ class InitConfigTest {
             Path configFile = tempDir.resolve("valid.conf");
             Files.writeString(configFile, configWithOverrides(
                     "jeffrey-home = \"/tmp/jeffrey\"",
-                    "project { workspace-id = \"test\", name = \"my_project-123\" }"
+                    "project { workspace-ref-id = \"test\", name = \"my_project-123\" }"
             ));
 
             InitConfig config = InitConfig.fromHoconFile(configFile, null);

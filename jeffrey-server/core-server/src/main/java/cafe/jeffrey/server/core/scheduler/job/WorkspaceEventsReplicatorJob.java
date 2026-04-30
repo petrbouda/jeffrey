@@ -30,7 +30,6 @@ import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.shared.common.model.job.JobType;
 import cafe.jeffrey.shared.common.model.workspace.CLIWorkspaceEvent;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceEvent;
-import cafe.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 import cafe.jeffrey.shared.folderqueue.FolderQueue;
 import cafe.jeffrey.shared.folderqueue.FolderQueueEntry;
 import cafe.jeffrey.shared.folderqueue.FolderQueueEntryParser;
@@ -57,7 +56,6 @@ public class WorkspaceEventsReplicatorJob implements Job {
 
     private final Duration period;
     private final Clock clock;
-    private final boolean autoCreateWorkspaces;
     private final FolderQueue folderQueue;
     private final WorkspacesManager workspacesManager;
     private final PersistentQueue<WorkspaceEvent> workspaceEventQueue;
@@ -76,7 +74,6 @@ public class WorkspaceEventsReplicatorJob implements Job {
             WorkspacesManager workspacesManager,
             Duration period,
             Clock clock,
-            boolean autoCreateWorkspaces,
             FolderQueue folderQueue,
             PersistentQueue<WorkspaceEvent> workspaceEventQueue,
             SchedulerTrigger migrationCallback) {
@@ -84,7 +81,6 @@ public class WorkspaceEventsReplicatorJob implements Job {
         this.workspacesManager = workspacesManager;
         this.period = period;
         this.clock = clock;
-        this.autoCreateWorkspaces = autoCreateWorkspaces;
         this.folderQueue = folderQueue;
         this.workspaceEventQueue = workspaceEventQueue;
         this.migrationCallback = migrationCallback;
@@ -113,29 +109,15 @@ public class WorkspaceEventsReplicatorJob implements Job {
         for (FolderQueueEntry<CLIWorkspaceEvent> entry : entries) {
             WorkspaceEvent event = WorkspaceEventConverter.fromCLIEvent(entry.parsed(), clock.instant());
             try {
-                Optional<WorkspaceManager> workspaceOpt = workspacesManager.findByOriginId(event.workspaceId());
-                String internalWorkspaceId;
-
+                Optional<WorkspaceManager> workspaceOpt = workspacesManager.findByReferenceId(event.workspaceRefId());
                 if (workspaceOpt.isEmpty()) {
-                    if (!autoCreateWorkspaces) {
-                        LOG.warn("Workspace not found and auto-creation disabled, discarding event: workspace_id={} event_type={}",
-                                event.workspaceId(), event.eventType());
-                        folderQueue.acknowledge(entry.filePath());
-                        continue;
-                    }
-
-                    WorkspaceInfo created = workspacesManager.create(
-                            WorkspacesManager.CreateWorkspaceRequest.builder()
-                                    .workspaceSourceId(event.workspaceId())
-                                    .name(event.workspaceId())
-                                    .build());
-                    internalWorkspaceId = created.id();
-                    LOG.info("Auto-created workspace for CLI event: origin_id={} workspace_id={}",
-                            event.workspaceId(), internalWorkspaceId);
-                } else {
-                    internalWorkspaceId = workspaceOpt.get().localInfo().id();
+                    LOG.warn("Workspace not found, discarding event: reference_id={} event_type={}",
+                            event.workspaceRefId(), event.eventType());
+                    folderQueue.acknowledge(entry.filePath());
+                    continue;
                 }
 
+                String internalWorkspaceId = workspaceOpt.get().localInfo().id();
                 workspaceEventQueue.append(internalWorkspaceId, event);
                 folderQueue.acknowledge(entry.filePath());
                 replicatedCount++;
@@ -144,7 +126,7 @@ public class WorkspaceEventsReplicatorJob implements Job {
                         event.eventType(), entry.filename(), internalWorkspaceId);
             } catch (Exception e) {
                 LOG.error("Failed to replicate folder event, will retry: event_type={} file={} workspace_id={}",
-                        event.eventType(), entry.filename(), event.workspaceId(), e);
+                        event.eventType(), entry.filename(), event.workspaceRefId(), e);
             }
         }
 

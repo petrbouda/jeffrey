@@ -47,7 +47,7 @@ import java.util.stream.Collectors;
  * dumped recording files and streams them to the client.
  */
 @RestController
-@RequestMapping("/api/internal/workspaces/{workspaceId}/projects/{projectId}/replay-stream")
+@RequestMapping("/api/internal/remote-servers/{serverId}/workspaces/{workspaceId}/projects/{projectId}/replay-stream")
 public class ProjectReplayStreamController {
 
     private static final Logger LOG = LoggerFactory.getLogger(ProjectReplayStreamController.class);
@@ -60,6 +60,7 @@ public class ProjectReplayStreamController {
 
     @GetMapping(value = "/subscribe", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter subscribe(
+            @PathVariable("serverId") String serverId,
             @PathVariable("workspaceId") String workspaceId,
             @PathVariable("projectId") String projectId,
             @RequestParam("sessionId") String sessionId,
@@ -74,7 +75,7 @@ public class ProjectReplayStreamController {
             throw Exceptions.invalidRequest("startTime must be strictly before endTime");
         }
 
-        ProjectManager pm = resolver.resolve(workspaceId, projectId).projectManager();
+        ProjectManager pm = resolver.resolve(serverId, workspaceId, projectId).projectManager();
         EventStreamingManager streamingManager = pm.eventStreamingManager();
 
         var request = new ReplaySubscriptionRequest(

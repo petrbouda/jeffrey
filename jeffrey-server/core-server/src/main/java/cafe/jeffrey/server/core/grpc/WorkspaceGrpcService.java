@@ -24,6 +24,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.server.api.v1.*;
 import cafe.jeffrey.shared.common.JeffreyVersion;
+import cafe.jeffrey.server.core.manager.workspace.WorkspaceAlreadyExistsException;
 import cafe.jeffrey.server.core.manager.workspace.WorkspaceManager;
 import cafe.jeffrey.server.core.manager.workspace.WorkspacesManager;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceInfo;
@@ -105,6 +106,42 @@ public class WorkspaceGrpcService extends WorkspaceServiceGrpc.WorkspaceServiceI
     }
 
     @Override
+    public void createWorkspace(
+            CreateWorkspaceRequest request,
+            StreamObserver<CreateWorkspaceResponse> responseObserver) {
+        try {
+            WorkspaceInfo created = workspacesManager.create(
+                    WorkspacesManager.CreateWorkspaceRequest.builder()
+                            .referenceId(request.getReferenceId())
+                            .name(request.getName())
+                            .build());
+
+            LOG.info("Created workspace via gRPC: workspace_id={} reference_id={} name={}",
+                    created.id(), created.referenceId(), created.name());
+
+            CreateWorkspaceResponse response = CreateWorkspaceResponse.newBuilder()
+                    .setWorkspace(toProto(created))
+                    .build();
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+        } catch (WorkspaceAlreadyExistsException e) {
+            LOG.debug("Workspace already exists: reference_id={} name={}",
+                    request.getReferenceId(), request.getName());
+            responseObserver.onError(
+                    Status.ALREADY_EXISTS.withDescription(e.getMessage()).asRuntimeException());
+        } catch (IllegalArgumentException e) {
+            LOG.debug("Invalid workspace creation request: reference_id={} name={} reason={}",
+                    request.getReferenceId(), request.getName(), e.getMessage());
+            responseObserver.onError(
+                    Status.INVALID_ARGUMENT.withDescription(e.getMessage()).asRuntimeException());
+        } catch (Exception e) {
+            LOG.error("Failed to create workspace: reference_id={} name={}",
+                    request.getReferenceId(), request.getName(), e);
+            responseObserver.onError(Status.INTERNAL.withDescription(e.getMessage()).asRuntimeException());
+        }
+    }
+
+    @Override
     public void deleteWorkspace(DeleteWorkspaceRequest request, StreamObserver<DeleteWorkspaceResponse> responseObserver) {
         try {
             WorkspaceManager workspace = findWorkspace(request.getWorkspaceId());
@@ -133,7 +170,7 @@ public class WorkspaceGrpcService extends WorkspaceServiceGrpc.WorkspaceServiceI
         var builder = cafe.jeffrey.server.api.v1.WorkspaceInfo.newBuilder()
                 .setId(info.id())
                 .setName(info.name())
-                .setDescription(info.description() != null ? info.description() : "")
+                .setReferenceId(info.referenceId() != null ? info.referenceId() : "")
                 .setCreatedAt(info.createdAt().toEpochMilli())
                 .setProjectCount(info.projectCount())
                 .setStatus(toProtoStatus(info.status()));

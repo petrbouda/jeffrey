@@ -25,7 +25,7 @@ import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import cafe.jeffrey.local.persistence.api.WorkspaceAddress;
+import cafe.jeffrey.local.persistence.api.ServerAddress;
 
 import javax.net.ssl.SSLException;
 import java.io.Closeable;
@@ -38,10 +38,10 @@ public class GrpcServerConnection implements Closeable {
 
     private static final Logger LOG = LoggerFactory.getLogger(GrpcServerConnection.class);
 
-    private final WorkspaceAddress address;
+    private final ServerAddress address;
     private final ManagedChannel channel;
 
-    public GrpcServerConnection(WorkspaceAddress address) {
+    public GrpcServerConnection(ServerAddress address) {
         this.address = address;
 
         NettyChannelBuilder builder = NettyChannelBuilder.forAddress(address.hostname(), address.port());
@@ -69,7 +69,7 @@ public class GrpcServerConnection implements Closeable {
         return channel;
     }
 
-    public WorkspaceAddress address() {
+    public ServerAddress address() {
         return address;
     }
 

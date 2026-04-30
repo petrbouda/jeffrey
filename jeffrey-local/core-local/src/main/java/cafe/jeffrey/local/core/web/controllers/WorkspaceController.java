@@ -34,7 +34,7 @@ import cafe.jeffrey.local.core.web.ProjectManagerResolver;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/internal/workspaces/{workspaceId}")
+@RequestMapping("/api/internal/remote-servers/{serverId}/workspaces/{workspaceId}")
 public class WorkspaceController {
 
     private static final Logger LOG = LoggerFactory.getLogger(WorkspaceController.class);
@@ -46,21 +46,21 @@ public class WorkspaceController {
     }
 
     @GetMapping
-    public WorkspaceResponse info(@PathVariable("workspaceId") String workspaceId) {
+    public WorkspaceResponse info(@PathVariable("serverId") String serverId, @PathVariable("workspaceId") String workspaceId) {
         LOG.debug("Fetching workspace info: workspaceId={}", workspaceId);
-        WorkspaceManager workspace = resolver.resolveWorkspace(workspaceId);
+        WorkspaceManager workspace = resolver.resolveWorkspace(serverId, workspaceId);
         return Mappers.toResponse(workspace.resolveInfo());
     }
 
     @DeleteMapping
-    public void delete(@PathVariable("workspaceId") String workspaceId) {
+    public void delete(@PathVariable("serverId") String serverId, @PathVariable("workspaceId") String workspaceId) {
         LOG.debug("Deleting workspace: workspaceId={}", workspaceId);
-        resolver.resolveWorkspace(workspaceId).delete();
+        resolver.resolveWorkspace(serverId, workspaceId).delete();
     }
 
     @GetMapping("/events")
-    public List<WorkspaceEventResponse> events(@PathVariable("workspaceId") String workspaceId) {
+    public List<WorkspaceEventResponse> events(@PathVariable("serverId") String serverId, @PathVariable("workspaceId") String workspaceId) {
         LOG.debug("Fetching workspace events: workspaceId={}", workspaceId);
-        return resolver.resolveWorkspace(workspaceId).events();
+        return resolver.resolveWorkspace(serverId, workspaceId).events();
     }
 }

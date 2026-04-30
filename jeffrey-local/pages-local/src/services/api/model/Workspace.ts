@@ -21,7 +21,7 @@ import WorkspaceStatus from '@/services/api/model/WorkspaceStatus.ts';
 export default interface Workspace {
   id: string;
   name: string;
-  description?: string;
+  referenceId: string;
   createdAt: number;
   projectCount: number;
   status: WorkspaceStatus;

@@ -24,51 +24,51 @@ import io.grpc.StatusRuntimeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.server.api.v1.*;
-import cafe.jeffrey.local.core.resources.response.PublicApiInfoResponse;
 import cafe.jeffrey.local.core.resources.response.RemoteProjectResponse;
-import cafe.jeffrey.local.core.resources.response.WorkspaceResponse;
 import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
-import cafe.jeffrey.local.persistence.api.RemoteWorkspaceInfo;
+import cafe.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceStatus;
 
 import cafe.jeffrey.shared.common.InstantUtils;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 
 public class RemoteDiscoveryClient {
 
-    public record WorkspaceResult(RemoteWorkspaceInfo info, WorkspaceStatus status) {
+    public record WorkspaceResult(WorkspaceInfo info, WorkspaceStatus status) {
         public static WorkspaceResult of(WorkspaceStatus status) {
             return new WorkspaceResult(null, status);
         }
 
-        public static WorkspaceResult of(RemoteWorkspaceInfo info) {
+        public static WorkspaceResult of(WorkspaceInfo info) {
             return new WorkspaceResult(info, WorkspaceStatus.AVAILABLE);
         }
     }
 
     private static final Logger LOG = LoggerFactory.getLogger(RemoteDiscoveryClient.class);
 
-    private final GrpcServerConnection connection;
     private final WorkspaceServiceGrpc.WorkspaceServiceBlockingStub workspaceStub;
     private final ProjectServiceGrpc.ProjectServiceBlockingStub projectStub;
 
     public RemoteDiscoveryClient(GrpcServerConnection connection) {
-        this.connection = connection;
         this.workspaceStub = WorkspaceServiceGrpc.newBlockingStub(connection.getChannel());
         this.projectStub = ProjectServiceGrpc.newBlockingStub(connection.getChannel());
     }
 
-    public PublicApiInfoResponse info() {
+    public PublicApiInfo info() {
         GetApiInfoResponse response = workspaceStub.getApiInfo(GetApiInfoRequest.getDefaultInstance());
-        return new PublicApiInfoResponse(response.getVersion(), response.getApiVersion());
+        return new PublicApiInfo(response.getVersion(), response.getApiVersion());
     }
 
-    public List<WorkspaceResponse> allWorkspaces() {
+    public record PublicApiInfo(String version, int apiVersion) {
+    }
+
+    public List<WorkspaceInfo> allWorkspaces() {
         ListWorkspacesResponse response = workspaceStub.listWorkspaces(ListWorkspacesRequest.getDefaultInstance());
         return response.getWorkspacesList().stream()
-                .map(RemoteDiscoveryClient::toWorkspaceResponse)
+                .map(RemoteDiscoveryClient::toWorkspaceInfo)
                 .toList();
     }
 
@@ -79,9 +79,7 @@ public class RemoteDiscoveryClient {
                             .setWorkspaceId(workspaceId)
                             .build());
 
-            cafe.jeffrey.server.api.v1.WorkspaceInfo proto = response.getWorkspace();
-            RemoteWorkspaceInfo info = toWorkspaceInfo(proto);
-            return WorkspaceResult.of(info);
+            return WorkspaceResult.of(toWorkspaceInfo(response.getWorkspace()));
         } catch (StatusRuntimeException e) {
             if (e.getStatus().getCode() == io.grpc.Status.Code.NOT_FOUND) {
                 LOG.debug("Workspace not found via gRPC: workspaceId={}", workspaceId);
@@ -92,6 +90,30 @@ public class RemoteDiscoveryClient {
         } catch (Exception e) {
             LOG.warn("Cannot reach remote server: workspaceId={}", workspaceId, e);
             return WorkspaceResult.of(WorkspaceStatus.OFFLINE);
+        }
+    }
+
+    public WorkspaceInfo createWorkspace(String referenceId, String name) {
+        CreateWorkspaceResponse response = workspaceStub.createWorkspace(
+                CreateWorkspaceRequest.newBuilder()
+                        .setReferenceId(referenceId)
+                        .setName(name)
+                        .build());
+        return toWorkspaceInfo(response.getWorkspace());
+    }
+
+    public void deleteWorkspace(String workspaceId) {
+        workspaceStub.deleteWorkspace(
+                DeleteWorkspaceRequest.newBuilder()
+                        .setWorkspaceId(workspaceId)
+                        .build());
+    }
+
+    public Optional<PublicApiInfo> tryInfo() {
+        try {
+            return Optional.of(info());
+        } catch (Exception e) {
+            return Optional.empty();
         }
     }
 
@@ -107,25 +129,17 @@ public class RemoteDiscoveryClient {
                 .toList();
     }
 
-    private RemoteWorkspaceInfo toWorkspaceInfo(cafe.jeffrey.server.api.v1.WorkspaceInfo proto) {
-        return new RemoteWorkspaceInfo(
+    static WorkspaceInfo toWorkspaceInfo(cafe.jeffrey.server.api.v1.WorkspaceInfo proto) {
+        return new WorkspaceInfo(
                 proto.getId(),
+                proto.getReferenceId().isEmpty() ? proto.getId() : proto.getReferenceId(),
+                null,
                 proto.getName(),
-                proto.getDescription(),
-                connection.address(),
+                null,
+                null,
                 Instant.ofEpochMilli(proto.getCreatedAt()),
                 fromProtoStatus(proto.getStatus()),
                 proto.getProjectCount());
-    }
-
-    private static WorkspaceResponse toWorkspaceResponse(cafe.jeffrey.server.api.v1.WorkspaceInfo proto) {
-        return new WorkspaceResponse(
-                proto.getId(),
-                proto.getName(),
-                proto.getDescription(),
-                proto.getCreatedAt(),
-                proto.getProjectCount(),
-                fromProtoStatus(proto.getStatus()));
     }
 
     private static RemoteProjectResponse toRemoteProjectResponse(ProjectInfo proto) {
@@ -158,5 +172,4 @@ public class RemoteDiscoveryClient {
             default -> WorkspaceStatus.UNKNOWN;
         };
     }
-
 }

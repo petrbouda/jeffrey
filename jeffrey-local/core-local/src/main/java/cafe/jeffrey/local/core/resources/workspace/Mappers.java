@@ -20,7 +20,7 @@ package cafe.jeffrey.local.core.resources.workspace;
 
 import cafe.jeffrey.shared.common.model.ProjectInfo;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceEvent;
-import cafe.jeffrey.local.persistence.api.RemoteWorkspaceInfo;
+import cafe.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 import cafe.jeffrey.local.core.manager.project.ProjectManager.DetailedProjectInfo;
 import cafe.jeffrey.local.core.resources.response.ProjectResponse;
 import cafe.jeffrey.local.core.resources.response.WorkspaceEventResponse;
@@ -29,12 +29,12 @@ import cafe.jeffrey.local.core.resources.response.WorkspaceResponse;
 
 public abstract class Mappers {
 
-    public static WorkspaceResponse toResponse(RemoteWorkspaceInfo info) {
+    public static WorkspaceResponse toResponse(WorkspaceInfo info) {
         return new WorkspaceResponse(
                 info.id(),
                 info.name(),
-                info.description(),
-                info.createdAt().toEpochMilli(),
+                info.referenceId(),
+                info.createdAt() != null ? info.createdAt().toEpochMilli() : 0L,
                 info.projectCount(),
                 info.status());
     }
@@ -44,7 +44,7 @@ public abstract class Mappers {
                 event.eventId(),
                 event.originEventId(),
                 event.projectId(),
-                event.workspaceId(),
+                event.workspaceRefId(),
                 event.eventType(),
                 event.content(),
                 event.originCreatedAt().toEpochMilli(),

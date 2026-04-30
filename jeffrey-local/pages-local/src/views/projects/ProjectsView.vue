@@ -1,842 +1,683 @@
 <template>
   <div>
-    <!-- Workspace Selector (only show in root workspace selection mode) -->
-    <MainCard v-if="!isWorkspaceScoped">
+    <!-- Servers card: switcher tabs + add server -->
+    <MainCard>
       <template #header>
-        <MainCardHeader icon="bi bi-collection" title="Workspaces" :badge="workspaces.length">
+        <MainCardHeader icon="bi bi-hdd-network" title="Servers" :badge="servers.length">
           <template #actions>
-            <button class="page-header-btn" @click="showRemoteWorkspaceModal = true">
+            <button class="page-header-btn" @click="showAddServerModal = true">
               <i class="bi bi-plus-lg"></i>
-              Add Workspace
+              Add Server
             </button>
           </template>
         </MainCardHeader>
       </template>
-      <div class="workspace-cards-grid">
-        <WorkspaceSelectionCard
-          v-for="workspace in workspaces"
-          :key="workspace.id"
-          :name="workspace.name ?? workspace.id"
-          :description="getWorkspaceDescription(workspace)"
-          :selected="selectedWorkspace === workspace.id"
-          :badge-value="getWorkspaceProjectCount(workspace.id)"
-          :status="workspace.status"
-          :show-status-badges="true"
-          @select="handleWorkspaceClick(workspace.id)"
-        />
+      <div v-if="servers.length === 0" class="text-center py-5">
+        <i class="bi bi-hdd-network display-4 text-muted mb-3 d-block"></i>
+        <h5 class="text-muted">No Jeffrey servers connected</h5>
+        <p class="text-muted small mb-3">
+          Connect to a running jeffrey-server to view its workspaces and projects.
+        </p>
+        <button class="btn btn-primary" @click="showAddServerModal = true">
+          <i class="bi bi-plus-lg me-1"></i> Add Server
+        </button>
+      </div>
+      <div v-else class="server-switcher">
+        <button
+          v-for="server in servers"
+          :key="server.id"
+          class="server-tab"
+          :class="{ active: selectedServerId === server.id }"
+          @click="selectServer(server.id)"
+        >
+          <span class="status-dot"></span>
+          <span class="tab-name">{{ server.name }}</span>
+          <span class="tab-meta">{{ server.hostname }}:{{ server.port }}</span>
+        </button>
       </div>
     </MainCard>
 
-    <MainCard>
+    <!-- Workspaces card (for selected server) -->
+    <MainCard v-if="selectedServer">
       <template #header>
-        <!-- Compact Workspace Context Bar (sticky header) -->
-        <div v-if="isWorkspaceScoped || getSelectedWorkspace()" class="workspace-context-bar">
+        <div class="workspace-context-bar">
           <div class="context-bar-info">
-            <span class="workspace-name">{{
-              getSelectedWorkspace()?.name ?? getSelectedWorkspace()?.id
-            }}</span>
+            <span class="workspace-name">{{ selectedServer.name }}</span>
             <span class="context-divider">•</span>
-            <span class="workspace-meta">{{ getProjectCountText() }}</span>
+            <span class="workspace-meta">{{ workspaceCountText }}</span>
             <span class="context-divider">•</span>
-            <span class="workspace-created"
-              >Created
-              {{ FormattingService.formatRelativeTime(getSelectedWorkspace()?.createdAt) }}</span
-            >
+            <span class="workspace-created">
+              Connected {{ FormattingService.formatRelativeTime(selectedServer.createdAt) }}
+            </span>
           </div>
           <div class="context-bar-actions">
             <div class="context-search">
               <i class="bi bi-search"></i>
               <input
-                type="text"
                 v-model="searchQuery"
-                placeholder="Search..."
-                @input="filterProjects"
+                type="text"
+                placeholder="Search workspaces..."
               />
             </div>
-            <button
-              v-if="hasDeletedProjects"
-              class="context-btn"
-              :class="{ active: showDeletedProjects }"
-              @click="toggleDeletedProjects"
-              :title="showDeletedProjects ? 'Hide deleted projects' : 'Show deleted projects'"
-            >
-              <i class="bi bi-trash"></i>
+            <button class="context-btn" title="Refresh" @click="refreshWorkspaces">
+              <i class="bi bi-arrow-clockwise"></i>
             </button>
-            <div class="settings-popover-wrapper">
-              <button
-                class="context-btn"
-                :class="{ active: showSettingsPopover }"
-                @click="showSettingsPopover = !showSettingsPopover"
-                title="Workspace settings"
-              >
-                <i class="bi bi-gear"></i>
-              </button>
-              <div v-if="showSettingsPopover" class="settings-popover">
-              </div>
-            </div>
             <button
               class="context-btn danger"
-              @click="handleDeleteWorkspace()"
-              :disabled="!canDeleteWorkspace()"
-              :title="getDeleteTooltip()"
+              title="Remove server (does not delete server-side data)"
+              @click="confirmDeleteServer"
             >
               <i class="bi bi-trash"></i>
             </button>
           </div>
         </div>
-
-        <!-- Empty State (no workspace selected) -->
-        <div v-else class="workspace-context-empty">
-          <i class="bi bi-folder"></i>
-          <span>Select a workspace to view projects</span>
-        </div>
       </template>
-      <!-- Offline Workspace Info -->
-      <div
-        v-if="getSelectedWorkspace()?.status === WorkspaceStatus.OFFLINE"
-        class="workspace-offline-info mb-4"
-      >
-        <div class="alert alert-danger d-flex align-items-center">
-          <i class="bi bi-wifi-off me-2 fs-5"></i>
-          <div>
-            <strong>Remote workspace is offline</strong><br />
-            <small class="text-muted"
-              >Existing live projects are shown below. Virtual projects cannot be loaded from the
-              remote Jeffrey instance until connection is restored.</small
-            >
-          </div>
-        </div>
-      </div>
 
-      <!-- Unavailable Workspace — removed from server -->
-      <div
-        v-if="getSelectedWorkspace()?.status === WorkspaceStatus.UNAVAILABLE"
-        class="workspace-status-banner unavailable-banner mb-4"
-      >
-        <div class="banner-content">
-          <i class="bi bi-folder-x banner-icon"></i>
-          <div class="banner-text">
-            <strong>This workspace has been removed from the remote server</strong>
-            <span class="banner-hint"
-              >All local data (profiles, recordings) will be deleted when you remove this
-              workspace.</span
-            >
-          </div>
-        </div>
-        <button class="btn-action btn-action-secondary" @click="handleDeleteWorkspace()">
-          <i class="bi bi-trash3"></i>
-          Delete Workspace
-        </button>
-      </div>
-
-      <!-- Offline Workspace — server unreachable -->
-      <div
-        v-else-if="getSelectedWorkspace()?.status === WorkspaceStatus.OFFLINE"
-        class="workspace-status-banner offline-banner mb-4"
-      >
-        <div class="banner-content">
-          <i class="bi bi-wifi-off banner-icon"></i>
-          <div class="banner-text">
-            <strong>Cannot reach the remote server</strong>
-            <span class="banner-hint"
-              >The server may be down or there is a network issue. Projects cannot be loaded.</span
-            >
-          </div>
-        </div>
-        <button class="btn-action btn-action-secondary" @click="refreshProjects">
-          <i class="bi bi-arrow-clockwise"></i>
-          Retry
-        </button>
-      </div>
-
-      <!-- Loading indicator -->
-      <div v-if="loading" class="text-center py-4">
-        <div class="spinner-border text-primary" role="status">
-          <span class="visually-hidden">Loading...</span>
-        </div>
-        <p class="mt-2">Loading projects from server...</p>
-      </div>
-
-      <!-- Error state -->
-      <div v-else-if="errorMessage" class="text-center py-4">
-        <i class="bi bi-exclamation-triangle-fill fs-1 text-warning mb-3"></i>
-        <h5>Failed to load projects</h5>
-        <p class="text-muted">{{ errorMessage }}</p>
-        <button class="btn btn-primary mt-2" @click="refreshProjects">
-          <i class="bi bi-arrow-clockwise me-2"></i>Retry
-        </button>
-      </div>
-
-      <!-- Projects Grid -->
-      <div v-else-if="filteredProjects.length > 0" class="row g-4">
-        <div v-for="project in filteredProjects" :key="project.id" class="col-12 col-md-6 col-lg-4">
-          <ProjectCard
-            :project="project"
-            :workspace-id="isWorkspaceScoped ? workspaceId : selectedWorkspace"
-            @restore="handleRestoreProject"
-          />
-        </div>
-      </div>
-
-      <!-- Empty state -->
-      <EmptyState
-        v-else-if="!errorMessage"
-        icon="bi-folder-plus"
-        title="No projects found"
-        :description="
-          getSelectedWorkspace()?.status === WorkspaceStatus.OFFLINE
-            ? 'Remote workspace is offline. Projects would be shown here when the connection is restored.'
-            : 'Projects in this workspace are synchronized from external source'
-        "
+      <LoadingState v-if="loadingWorkspaces" message="Loading workspaces..." />
+      <ErrorState
+        v-else-if="workspacesError"
+        :message="workspacesError"
+        @retry="refreshWorkspaces"
       />
+      <EmptyState
+        v-else-if="filteredWorkspaces.length === 0 && !showCreateForm"
+        icon="bi-folder-plus"
+        title="No workspaces on this server"
+        description="Create a workspace below — its Reference ID becomes jeffrey-cli's project.workspace-id."
+      />
+      <div v-else-if="filteredWorkspaces.length > 0" class="row g-4 p-4">
+        <div
+          v-for="workspace in filteredWorkspaces"
+          :key="workspace.id"
+          class="col-12 col-md-6 col-lg-4"
+        >
+          <div class="workspace-card">
+            <div class="workspace-card-title">
+              <i class="bi bi-folder text-primary"></i>
+              {{ workspace.name }}
+            </div>
+            <div class="workspace-card-meta">
+              <span class="ref-id">{{ workspace.id }}</span>
+            </div>
+            <div class="workspace-card-footer">
+              <span>{{ workspace.projectCount }} projects</span>
+              <button class="btn btn-sm btn-link p-0" @click="deleteWorkspace(workspace)">
+                <i class="bi bi-trash text-danger"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Inline expanding "+ Create Workspace" form (variant 1) -->
+      <div class="create-workspace-region p-4">
+        <button
+          v-if="!showCreateForm"
+          class="create-workspace-trigger"
+          @click="openCreateForm"
+        >
+          <i class="bi bi-plus-lg me-2"></i> Create Workspace
+        </button>
+
+        <div v-else class="inline-form-card">
+          <div class="inline-form-header">
+            <h4>
+              <i class="bi bi-plus-lg text-primary me-2"></i>
+              Create Workspace on {{ selectedServer.name }}
+            </h4>
+            <button class="context-btn" title="Cancel" @click="closeCreateForm">
+              <i class="bi bi-x-lg"></i>
+            </button>
+          </div>
+
+          <div class="inline-form-row">
+            <div class="form-group">
+              <label class="form-label">
+                Workspace Name <span class="text-danger">*</span>
+              </label>
+              <input
+                v-model="createForm.name"
+                type="text"
+                class="form-control"
+                placeholder="e.g. dev-pb"
+                :disabled="creating"
+              />
+              <small class="text-muted">Shown in the workspace switcher and on cards.</small>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">
+                Reference ID <span class="text-danger">*</span>
+              </label>
+              <div class="input-group">
+                <input
+                  v-model="createForm.referenceId"
+                  type="text"
+                  class="form-control font-monospace"
+                  :disabled="creating"
+                />
+                <button
+                  type="button"
+                  class="btn btn-outline-secondary"
+                  title="Generate new UUID"
+                  :disabled="creating"
+                  @click="regenerateReferenceId"
+                >
+                  <i class="bi bi-arrow-clockwise"></i>
+                </button>
+              </div>
+              <small class="text-muted">
+                Used by <strong>jeffrey-cli</strong>'s
+                <code>project.workspace-id</code>. Must be unique on this server.
+              </small>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Server</label>
+            <div class="server-readonly">
+              <span class="status-dot"></span>
+              {{ selectedServer.hostname }}:{{ selectedServer.port }}
+              <span class="ms-auto small text-muted">selected via tabs above</span>
+            </div>
+          </div>
+
+          <div v-if="createError" class="alert alert-danger mb-0" role="alert">
+            <i class="bi bi-exclamation-triangle me-2"></i>{{ createError }}
+          </div>
+
+          <div class="form-actions">
+            <button class="btn btn-secondary" :disabled="creating" @click="closeCreateForm">
+              Cancel
+            </button>
+            <button
+              class="btn btn-primary"
+              :disabled="!isCreateFormValid || creating"
+              @click="submitCreate"
+            >
+              <span v-if="creating" class="spinner-border spinner-border-sm me-2" role="status"></span>
+              Create Workspace
+            </button>
+          </div>
+        </div>
+      </div>
     </MainCard>
+
+    <!-- Modals -->
+    <AddServerModal v-model:show="showAddServerModal" @server-added="handleServerAdded" />
+
+    <ConfirmationDialog
+      v-model:show="showDeleteServerModal"
+      title="Remove Server"
+      :message="deleteServerMessage"
+      sub-message="This removes the local pointer; server-side data is not affected."
+      confirm-label="Remove"
+      confirm-button-class="btn-danger"
+      @confirm="deleteServer"
+    />
   </div>
-
-  <!-- Modal Components -->
-  <RemoteWorkspaceModal
-    v-model:show="showRemoteWorkspaceModal"
-    @workspace-added="handleWorkspaceAdded"
-  />
-
-  <ConfirmationDialog
-    v-model:show="showDeleteWorkspaceModal"
-    title="Delete Workspace"
-    :message="deleteWorkspaceMessage"
-    :sub-message="deleteWorkspaceSubMessage"
-    confirm-label="Delete"
-    confirm-button-class="btn-danger"
-    @confirm="confirmDeleteWorkspace"
-  />
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
-import ProjectCard from '@/components/ProjectCard.vue';
+import { computed, onMounted, ref } from 'vue';
 import MainCard from '@/components/MainCard.vue';
 import MainCardHeader from '@/components/MainCardHeader.vue';
-import RemoteWorkspaceModal from '@/components/projects/RemoteWorkspaceModal.vue';
-import WorkspaceSelectionCard from '@/components/settings/WorkspaceSelectionCard.vue';
-import ConfirmationDialog from '@/components/ConfirmationDialog.vue';
+import LoadingState from '@/components/LoadingState.vue';
+import ErrorState from '@/components/ErrorState.vue';
 import EmptyState from '@/components/EmptyState.vue';
+import ConfirmationDialog from '@/components/ConfirmationDialog.vue';
+import AddServerModal from '@/components/projects/AddServerModal.vue';
 import ToastService from '@/services/ToastService';
 import FormattingService from '@/services/FormattingService';
-import ProjectsClient from '@/services/api/ProjectsClient.ts';
-import ProjectClient from '@/services/api/ProjectClient.ts';
-import WorkspaceProjectsClient from '@/services/api/WorkspaceProjectsClient.ts';
-import Project from '@/services/api/model/Project.ts';
-import WorkspaceClient from '@/services/api/WorkspaceClient.ts';
+import RemoteServerClient from '@/services/api/RemoteServerClient';
+import WorkspaceClient from '@/services/api/WorkspaceClient';
+import RemoteServer from '@/services/api/model/RemoteServer';
+import Workspace from '@/services/api/model/Workspace';
 
-const workspaceClient = new WorkspaceClient();
-const projectsClient = new ProjectsClient();
-import Workspace from '@/services/api/model/Workspace.ts';
-import WorkspaceStatus from '@/services/api/model/WorkspaceStatus.ts';
-import { useRoute } from 'vue-router';
+const remoteServerClient = new RemoteServerClient();
 
-// Get workspace context directly from route params (not useNavigation, which has a profileStore fallback)
-const route = useRoute();
-const workspaceId = computed(() => route.params.workspaceId as string);
+const servers = ref<RemoteServer[]>([]);
+const selectedServerId = ref<string | null>(null);
 
-// Determine if we're in workspace-scoped mode
-const isWorkspaceScoped = computed(() => !!workspaceId.value);
-
-// State for Workspaces
 const workspaces = ref<Workspace[]>([]);
-const selectedWorkspace = ref<string>('');
-
-// State for Projects
-const projects = ref<Project[]>([]);
-const filteredProjects = ref<Project[]>([]);
+const loadingWorkspaces = ref(false);
+const workspacesError = ref<string | null>(null);
 const searchQuery = ref('');
-const showDeletedProjects = ref(false);
-const hasDeletedProjects = computed(() => projects.value.some(p => p.isDeleted));
-const errorMessage = ref('');
-const loading = ref(true);
 
-// Modal state
-const showRemoteWorkspaceModal = ref(false);
-const showDeleteWorkspaceModal = ref(false);
-const showSettingsPopover = ref(false);
-const deleteWorkspaceMessage = ref('');
-const deleteWorkspaceSubMessage = ref('');
+const showAddServerModal = ref(false);
+const showDeleteServerModal = ref(false);
 
-// Workspace header styling computed properties
-const getWorkspaceHeaderIcon = computed(() => 'bi bi-cloud-fill');
+const showCreateForm = ref(false);
+const creating = ref(false);
+const createError = ref<string | null>(null);
+const createForm = ref({ name: '', referenceId: '' });
 
-const getWorkspaceHeaderLabel = computed(() => 'REMOTE');
+const selectedServer = computed(() =>
+  servers.value.find(s => s.id === selectedServerId.value),
+);
 
-const getTypeBadgeClass = computed(() => 'badge-remote');
+const filteredWorkspaces = computed(() => {
+  const q = searchQuery.value.trim().toLowerCase();
+  if (!q) return workspaces.value;
+  return workspaces.value.filter(w => w.name.toLowerCase().includes(q));
+});
 
-// Fetch workspaces function
+const workspaceCountText = computed(() => {
+  const n = workspaces.value.length;
+  if (n === 0) return 'No workspaces';
+  if (n === 1) return '1 workspace';
+  return `${n} workspaces`;
+});
+
+const isCreateFormValid = computed(() =>
+  createForm.value.name.trim().length > 0 &&
+  createForm.value.referenceId.trim().length > 0,
+);
+
+const deleteServerMessage = computed(() =>
+  selectedServer.value
+    ? `Remove server "${selectedServer.value.name}" (${selectedServer.value.hostname}:${selectedServer.value.port})?`
+    : '',
+);
+
+const refreshServers = async () => {
+  try {
+    servers.value = await remoteServerClient.list({ suppressToast: true });
+    if (!selectedServerId.value && servers.value.length > 0) {
+      selectedServerId.value = servers.value[0].id;
+      await refreshWorkspaces();
+    } else if (servers.value.length === 0) {
+      selectedServerId.value = null;
+      workspaces.value = [];
+    } else if (!servers.value.some(s => s.id === selectedServerId.value)) {
+      selectedServerId.value = servers.value[0].id;
+      await refreshWorkspaces();
+    }
+  } catch (error: any) {
+    ToastService.error('Failed to load servers', 'Cannot reach the local backend.');
+    servers.value = [];
+    selectedServerId.value = null;
+  }
+};
+
 const refreshWorkspaces = async () => {
-  try {
-    // All workspaces come from the backend now
-    workspaces.value = await workspaceClient.list(false, { suppressToast: true });
-
-    // Set selected workspace: first workspace in the list
-    if (!selectedWorkspace.value && workspaces.value.length > 0) {
-      selectedWorkspace.value = workspaces.value[0].id;
-    }
-  } catch (error) {
-    console.error('Failed to load workspaces:', error);
-    ToastService.error('Failed to load workspaces', 'Cannot load workspaces from the server.');
-    // Clear workspaces on error
+  if (!selectedServerId.value) {
     workspaces.value = [];
-    selectedWorkspace.value = '';
+    return;
   }
-};
-
-// Resolve actual workspace statuses by calling the single-workspace endpoint in parallel
-const resolveWorkspaceStatuses = async () => {
-  const resolvePromises = workspaces.value.map(async (workspace, index) => {
-    try {
-      const resolved = await workspaceClient.getById(workspace.id);
-      workspaces.value[index] = resolved;
-    } catch (error) {
-      console.error('Failed to resolve workspace status:', error);
-    }
-  });
-  await Promise.all(resolvePromises);
-};
-
-// Fetch projects function
-const refreshProjects = async () => {
-  loading.value = true;
-  errorMessage.value = '';
-
+  loadingWorkspaces.value = true;
+  workspacesError.value = null;
   try {
-    // In workspace-scoped mode, use the workspace from route
-    const targetWorkspaceId = isWorkspaceScoped.value ? workspaceId.value : selectedWorkspace.value;
-
-    // Check if workspace is selected
-    if (!targetWorkspaceId) {
-      projects.value = [];
-      filteredProjects.value = [];
-      errorMessage.value = '';
-      return;
-    }
-
-    // In workspace-scoped mode, we might not have workspace details loaded yet
-    if (isWorkspaceScoped.value) {
-      // Use workspace-scoped client
-      const workspaceProjectsClient = new WorkspaceProjectsClient(targetWorkspaceId);
-      projects.value = await workspaceProjectsClient.list();
-      filteredProjects.value = [...projects.value];
-    } else {
-      // Check if workspace is offline before trying to load projects (only in selection mode)
-      const workspace = workspaces.value.find(w => w.id === targetWorkspaceId);
-
-      if (!workspace) {
-        projects.value = [];
-        filteredProjects.value = [];
-        errorMessage.value = 'Selected workspace not found.';
-        return;
-      }
-
-      // Handle different workspace statuses gracefully
-      if (workspace.status === WorkspaceStatus.UNAVAILABLE) {
-        projects.value = [];
-        filteredProjects.value = [];
-        errorMessage.value = 'Workspace is unavailable. It may have been deleted from the server.';
-        return;
-      }
-
-      // For offline remote workspaces, still try to load existing projects
-      // This allows displaying already created projects that contain data
-      // The alert will inform users about limitations for virtual projects
-
-      // Use standard API for workspace selection mode
-      projects.value = await projectsClient.list(targetWorkspaceId);
-      filteredProjects.value = [...projects.value];
-    }
-  } catch (error) {
-    console.error('Failed to load projects:', error);
-    errorMessage.value = error instanceof Error ? error.message : 'Could not connect to server';
-    ToastService.error('Failed to load projects', 'Cannot load projects from the server.');
+    const client = new WorkspaceClient(selectedServerId.value);
+    workspaces.value = await client.list({ suppressToast: true });
+  } catch (error: any) {
+    workspacesError.value =
+      error?.response?.data?.message ?? error?.message ?? 'Could not load workspaces';
+    workspaces.value = [];
   } finally {
-    loading.value = false;
+    loadingWorkspaces.value = false;
   }
 };
 
-// Select workspace
-const selectWorkspace = (workspaceId: string) => {
-  selectedWorkspace.value = workspaceId;
-  // Refresh projects when workspace changes
-  refreshProjects();
+const selectServer = (serverId: string) => {
+  if (selectedServerId.value === serverId) return;
+  selectedServerId.value = serverId;
+  closeCreateForm();
+  refreshWorkspaces();
 };
 
-// Handle workspace added
-const handleWorkspaceAdded = async () => {
-  // Refresh workspaces to get updated list including the new remote workspace
-  await refreshWorkspaces();
-  resolveWorkspaceStatuses();
-  await refreshProjects();
+const handleServerAdded = async () => {
+  await refreshServers();
 };
 
-// Get project count for workspace
-const getWorkspaceProjectCount = (workspaceId: string) => {
-  const workspace = workspaces.value.find(w => w.id === workspaceId);
-  return workspace?.projectCount ?? '?';
+const confirmDeleteServer = () => {
+  if (!selectedServer.value) return;
+  showDeleteServerModal.value = true;
 };
 
-// Get workspace description
-const getWorkspaceDescription = (workspace: Workspace | undefined) => {
-  if (!workspace) {
-    return 'No workspace selected';
-  }
-  if (workspace.status === WorkspaceStatus.OFFLINE) {
-    return 'Remote workspace is offline';
-  } else if (workspace.status === WorkspaceStatus.UNAVAILABLE) {
-    return 'Workspace unavailable';
-  } else if (workspace.description) {
-    return workspace.description;
-  } else if (workspace.name) {
-    return `Projects for ${workspace.name}`;
-  } else {
-    return 'Remote workspace';
-  }
-};
-
-// Close settings popover on outside click
-const handleClickOutside = (e: MouseEvent) => {
-  if (!showSettingsPopover.value) return;
-  const wrapper = (e.target as HTMLElement).closest('.settings-popover-wrapper');
-  if (!wrapper) showSettingsPopover.value = false;
-};
-
-onMounted(async () => {
-  document.addEventListener('click', handleClickOutside);
-  // In workspace-scoped mode, we only need to load projects
-  if (isWorkspaceScoped.value) {
-    await refreshProjects();
-  } else {
-    // In workspace selection mode, load workspaces first, then projects
-    await refreshWorkspaces();
-    await refreshProjects();
-    // Resolve actual workspace statuses in parallel (non-blocking for UI)
-    resolveWorkspaceStatuses();
-  }
-});
-
-onBeforeUnmount(() => {
-  document.removeEventListener('click', handleClickOutside);
-});
-
-const filterProjects = () => {
-  let result = projects.value;
-
-  // Filter deleted projects unless toggle is on
-  if (!showDeletedProjects.value) {
-    result = result.filter(project => !project.isDeleted);
-  }
-
-  // Apply search filter
-  if (searchQuery.value.trim()) {
-    const query = searchQuery.value.toLowerCase();
-    result = result.filter(project => project.name.toLowerCase().includes(query));
-  }
-
-  filteredProjects.value = result;
-};
-
-const toggleDeletedProjects = () => {
-  showDeletedProjects.value = !showDeletedProjects.value;
-  filterProjects();
-};
-
-const handleRestoreProject = async (projectId: string) => {
-  const targetWorkspaceId = isWorkspaceScoped.value ? workspaceId.value : selectedWorkspace.value;
-  if (!targetWorkspaceId) return;
-
+const deleteServer = async () => {
+  if (!selectedServer.value) return;
   try {
-    const projectClient = new ProjectClient(targetWorkspaceId, projectId);
-    await projectClient.restore();
-    ToastService.success('Project Restored', 'Project has been restored successfully.');
-    await refreshProjects();
-  } catch (error) {
-    console.error('Failed to restore project:', error);
-    ToastService.error('Error', 'Failed to restore project.');
+    await remoteServerClient.delete(selectedServer.value.id);
+    ToastService.success('Server Removed', `Removed ${selectedServer.value.name}.`);
+    selectedServerId.value = null;
+    await refreshServers();
+  } catch (error: any) {
+    ToastService.error('Failed to remove server', error?.message ?? 'Unknown error');
   }
 };
 
-const handleWorkspaceClick = (workspaceId: string) => {
-  // Allow all workspace clicks - status information is now shown via visual indicators
-  // In workspace selection mode, update the selected workspace
-  selectWorkspace(workspaceId);
+const openCreateForm = () => {
+  showCreateForm.value = true;
+  regenerateReferenceId();
+  createForm.value.name = '';
+  createError.value = null;
 };
 
-// Get selected workspace object
-const getSelectedWorkspace = (): Workspace | undefined => {
-  return workspaces.value.find(w => w.id === selectedWorkspace.value);
+const closeCreateForm = () => {
+  showCreateForm.value = false;
+  createForm.value = { name: '', referenceId: '' };
+  createError.value = null;
 };
 
-// Get project count text
-const getProjectCountText = (): string => {
-  const workspace = getSelectedWorkspace();
-  if (!workspace) return 'No projects';
-
-  const count = workspace.projectCount;
-  if (count === 0) return 'No projects';
-  if (count === 1) return '1 project';
-  return `${count} projects`;
+const regenerateReferenceId = () => {
+  createForm.value.referenceId = crypto.randomUUID();
 };
 
-// Check if workspace can be deleted
-const canDeleteWorkspace = (): boolean => {
-  const workspace = getSelectedWorkspace();
-  return !!workspace;
-};
-
-// Get delete button tooltip
-const getDeleteTooltip = (): string => {
-  const workspace = getSelectedWorkspace();
-  if (!workspace) return '';
-
-  return 'Remove workspace (does not affect remote source)';
-};
-
-// Handle workspace deletion - show confirmation modal
-const handleDeleteWorkspace = () => {
-  const workspace = getSelectedWorkspace();
-  if (!workspace) return;
-
-  deleteWorkspaceMessage.value = `Remove workspace "${workspace.name}"?`;
-  deleteWorkspaceSubMessage.value = `This will remove the local reference but won't affect the remote source.`;
-
-  showDeleteWorkspaceModal.value = true;
-};
-
-// Confirm workspace deletion
-const confirmDeleteWorkspace = async () => {
-  const workspace = getSelectedWorkspace();
-  if (!workspace) return;
-
+const submitCreate = async () => {
+  if (!selectedServerId.value || !isCreateFormValid.value) return;
+  creating.value = true;
+  createError.value = null;
   try {
-    await workspaceClient.delete(workspace.id);
-
-    // Refresh workspaces and select a new one
+    const client = new WorkspaceClient(selectedServerId.value);
+    await client.create({
+      referenceId: createForm.value.referenceId.trim(),
+      name: createForm.value.name.trim(),
+    });
+    ToastService.success('Workspace Created', `"${createForm.value.name}" is ready.`);
+    closeCreateForm();
     await refreshWorkspaces();
-    resolveWorkspaceStatuses();
+  } catch (error: any) {
+    createError.value =
+      error?.response?.data?.message ?? error?.message ?? 'Failed to create workspace';
+  } finally {
+    creating.value = false;
+  }
+};
 
-    ToastService.success(
-      'Workspace Deleted',
-      `Workspace "${workspace.name}" has been deleted successfully.`
+const deleteWorkspace = async (workspace: Workspace) => {
+  if (!selectedServerId.value) return;
+  if (!confirm(`Delete workspace "${workspace.name}"? This is permanent.`)) return;
+  try {
+    const client = new WorkspaceClient(selectedServerId.value);
+    await client.delete(workspace.id);
+    ToastService.success('Workspace Deleted', `"${workspace.name}" removed.`);
+    await refreshWorkspaces();
+  } catch (error: any) {
+    ToastService.error(
+      'Failed to delete workspace',
+      error?.response?.data?.message ?? error?.message ?? 'Unknown error',
     );
-  } catch (error) {
-    console.error('Failed to delete workspace:', error);
-    ToastService.error('Failed to delete workspace', 'Could not delete workspace.');
   }
 };
+
+onMounted(refreshServers);
 </script>
 
 <style scoped>
 @import '@/styles/shared-components.css';
 
-/* Workspace Status Banners */
-.workspace-status-banner {
+/* Server switcher (segmented control of tabs) */
+.server-switcher {
   display: flex;
+  gap: var(--spacing-2);
   align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 14px 18px;
-  border-radius: 10px;
-  border: 1px solid;
+  flex-wrap: wrap;
+  padding: var(--spacing-4) var(--spacing-5);
 }
 
-.banner-content {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.banner-icon {
-  font-size: 1.2rem;
-  flex-shrink: 0;
-}
-
-.banner-text {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  font-size: 0.85rem;
-}
-
-.banner-hint {
-  font-size: 0.78rem;
-  opacity: 0.7;
-}
-
-.unavailable-banner {
-  background: linear-gradient(135deg, var(--color-light), var(--color-border));
-  border-color: rgba(156, 163, 175, 0.25);
-  color: var(--color-text);
-}
-
-.unavailable-banner .banner-icon {
-  color: var(--color-text-light);
-}
-
-.offline-banner {
-  background: linear-gradient(135deg, var(--color-amber-bg), var(--color-amber-light));
-  border-color: var(--color-amber-border);
-  color: var(--color-amber-text);
-}
-
-.offline-banner .banner-icon {
-  color: var(--color-amber);
-}
-
-.btn-action-secondary {
+.server-tab {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  border-radius: 8px;
-  cursor: pointer;
+  gap: var(--spacing-2);
+  padding: var(--spacing-2) var(--spacing-4);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
   background: var(--color-white);
   color: var(--color-text);
-  transition: all 0.2s ease;
-  white-space: nowrap;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  transition: all var(--transition-base);
 }
 
-.btn-action-secondary:hover {
-  background: var(--color-light);
-  border-color: rgba(0, 0, 0, 0.15);
+.server-tab:hover {
+  background: var(--color-bg-hover);
+  border-color: var(--color-muted-separator);
 }
 
-/* Compact Workspace Context Bar */
+.server-tab.active {
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  border-color: var(--color-primary-border);
+}
+
+.server-tab .tab-meta {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  font-weight: var(--font-weight-medium);
+}
+
+.server-tab.active .tab-meta {
+  color: var(--color-primary-hover);
+}
+
+.server-tab .status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-success);
+  display: inline-block;
+}
+
 .workspace-context-bar {
-  position: sticky;
-  top: 0;
-  z-index: 5;
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  padding: 12px 16px;
-  background: var(--color-white);
-  border-bottom: 1px solid var(--color-border);
-  border-radius: 16px 16px 0 0;
-  gap: 16px;
+  align-items: center;
+  gap: var(--spacing-4);
+  padding: var(--spacing-3) var(--spacing-5);
   flex-wrap: wrap;
 }
 
 .context-bar-info {
   display: flex;
   align-items: center;
-  gap: 12px;
-  flex: 1;
-  min-width: 0;
-  flex-wrap: wrap;
-}
-
-.workspace-type-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 4px 10px;
-  border-radius: 12px;
-  font-size: 0.7rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  white-space: nowrap;
-}
-
-.workspace-type-badge i {
-  font-size: 0.7rem;
-}
-
-.badge-remote {
-  background: linear-gradient(135deg, var(--color-teal-light), var(--color-teal-lighter));
-  color: var(--color-teal-900);
+  gap: var(--spacing-3);
 }
 
 .workspace-name {
-  font-weight: 600;
-  font-size: 0.95rem;
+  font-weight: var(--font-weight-semibold);
   color: var(--color-dark);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 200px;
-}
-
-.workspace-meta {
-  font-size: 0.8rem;
-  color: var(--color-primary);
-  font-weight: 500;
-  white-space: nowrap;
-}
-
-.workspace-created {
-  font-size: 0.8rem;
-  color: var(--color-text-light);
-  white-space: nowrap;
 }
 
 .context-divider {
   color: var(--color-muted-separator);
-  font-weight: bold;
+}
+
+.workspace-meta {
+  font-size: var(--font-size-sm);
+  color: var(--color-primary);
+  font-weight: var(--font-weight-medium);
+}
+
+.workspace-created {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-light);
 }
 
 .context-bar-actions {
   display: flex;
+  gap: var(--spacing-2);
   align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
 }
 
 .context-search {
   display: flex;
   align-items: center;
+  gap: var(--spacing-2);
+  padding: var(--spacing-2) var(--spacing-3);
   background: var(--color-light);
   border: 1px solid var(--color-border);
-  border-radius: 6px;
-  padding: 6px 10px;
+  border-radius: var(--radius-base);
   width: 200px;
-  transition: all 0.2s ease;
-}
-
-.context-search:hover {
-  border-color: var(--color-muted-separator);
-}
-
-.context-search:focus-within {
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 2px rgba(94, 100, 255, 0.1);
-  background: var(--color-white);
-}
-
-.context-search i {
-  font-size: 0.8rem;
-  color: var(--color-text-light);
-  margin-right: 6px;
-}
-
-.context-search:focus-within i {
-  color: var(--color-primary);
 }
 
 .context-search input {
   border: none;
   outline: none;
   background: transparent;
-  font-size: 0.8rem;
+  font-family: inherit;
+  font-size: var(--font-size-sm);
+  flex: 1;
   color: var(--color-text);
-  width: 100%;
-  padding: 0;
-}
-
-.context-search input::placeholder {
-  color: var(--color-text-light);
 }
 
 .context-btn {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 6px 12px;
-  border-radius: 6px;
-  font-size: 0.8rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  border: 1px solid transparent;
-  white-space: nowrap;
-}
-
-.context-btn.danger {
-  background: linear-gradient(135deg, rgba(239, 68, 68, 0.04), rgba(239, 68, 68, 0.08));
-  border-color: rgba(239, 68, 68, 0.3);
-  color: var(--color-danger-hover);
-
-  &:hover:not(:disabled) {
-    background: linear-gradient(135deg, var(--color-danger), var(--color-danger-hover));
-    color: var(--color-white);
-    border-color: var(--color-danger-hover);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25);
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-
-    &:hover {
-      background: linear-gradient(135deg, rgba(239, 68, 68, 0.04), rgba(239, 68, 68, 0.08));
-      color: var(--color-danger-hover);
-      transform: none;
-      box-shadow: none;
-    }
-  }
-}
-
-/* Settings popover */
-/* Settings popover */
-.settings-popover-wrapper {
-  position: relative;
-}
-
-.settings-popover {
-  position: absolute;
-  top: calc(100% + 8px);
-  right: 0;
-  z-index: 20;
-  background: var(--color-white);
-  border: 1px solid var(--color-border);
-  border-radius: 10px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
-  padding: 16px 20px;
-  min-width: 260px;
-}
-
-.context-btn i {
-  font-size: 0.8rem;
-}
-
-/* Empty state for context bar */
-.workspace-context-empty {
-  display: flex;
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  padding: 16px 20px;
+  border-radius: var(--radius-base);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.context-btn:hover {
   background: var(--color-light);
-  border-bottom: 1px dashed var(--color-muted-separator);
-  border-radius: 16px 16px 0 0;
+  color: var(--color-text);
+}
+
+.context-btn.danger:hover {
+  background: var(--color-danger-light);
+  color: var(--color-danger);
+}
+
+/* Workspace cards */
+.workspace-card {
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-4);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  transition: all var(--transition-base);
+}
+
+.workspace-card:hover {
+  border-color: var(--color-primary-border);
+  box-shadow: var(--shadow-md);
+}
+
+.workspace-card-title {
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-md);
+  color: var(--color-dark);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.workspace-card-meta {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.ref-id {
+  font-family: 'SF Mono', Monaco, Menlo, Consolas, monospace;
+  font-size: var(--font-size-xs);
+  background: var(--color-light);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+  display: inline-block;
+}
+
+.workspace-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: var(--spacing-3);
+  border-top: 1px solid var(--color-border-light);
+  font-size: var(--font-size-xs);
   color: var(--color-text-light);
-  font-size: 0.9rem;
-  font-weight: 500;
 }
 
-.workspace-context-empty i {
-  font-size: 1.1rem;
+/* Create-workspace region */
+.create-workspace-region {
+  border-top: 1px solid var(--color-border-light);
 }
 
-/* Responsive adjustments for context bar */
-@media (max-width: 768px) {
-  .workspace-context-bar {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 12px;
-  }
+.create-workspace-trigger {
+  width: 100%;
+  padding: var(--spacing-4);
+  border: 1px dashed var(--color-primary-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-primary-lighter);
+  color: var(--color-primary);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
 
-  .context-bar-info {
-    justify-content: flex-start;
-  }
+.create-workspace-trigger:hover {
+  background: var(--color-primary-light);
+  border-style: solid;
+}
 
-  .workspace-name {
-    max-width: 150px;
-  }
+.inline-form-card {
+  background: var(--color-white);
+  border: 1px solid var(--color-primary-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  padding: var(--spacing-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
 
-  .context-bar-actions {
-    justify-content: flex-end;
-  }
+.inline-form-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
 
-  .context-search {
-    width: 120px;
+.inline-form-header h4 {
+  margin: 0;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-dark);
+}
+
+.inline-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-4);
+}
+
+@media (max-width: 720px) {
+  .inline-form-row {
+    grid-template-columns: 1fr;
   }
+}
+
+.server-readonly {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  padding: var(--spacing-2) var(--spacing-3);
+  background: var(--color-light);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-base);
+  color: var(--color-text);
+}
+
+.server-readonly .status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-success);
+}
+
+.form-actions {
+  display: flex;
+  gap: var(--spacing-3);
+  justify-content: flex-end;
 }
 </style>

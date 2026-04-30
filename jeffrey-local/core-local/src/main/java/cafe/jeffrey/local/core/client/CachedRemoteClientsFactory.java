@@ -22,28 +22,28 @@ import cafe.jeffrey.local.grpc.client.*;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import cafe.jeffrey.local.persistence.api.WorkspaceAddress;
+import cafe.jeffrey.local.persistence.api.ServerAddress;
 
 import java.io.Closeable;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * A {@link RemoteClients.Factory} that caches connections by {@link WorkspaceAddress},
+ * A {@link RemoteClients.Factory} that caches connections by {@link ServerAddress},
  * so the same server address always reuses the same {@link GrpcServerConnection} and clients.
  */
 public class CachedRemoteClientsFactory implements RemoteClients.Factory, Closeable {
 
     private static final Logger LOG = LoggerFactory.getLogger(CachedRemoteClientsFactory.class);
 
-    private final ConcurrentHashMap<WorkspaceAddress, CachedEntry> cache = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<ServerAddress, CachedEntry> cache = new ConcurrentHashMap<>();
 
     @Override
-    public RemoteClients apply(WorkspaceAddress address) {
+    public RemoteClients apply(ServerAddress address) {
         return cache.computeIfAbsent(address, this::createEntry).clients();
     }
 
-    public void evict(WorkspaceAddress address) {
+    public void evict(ServerAddress address) {
         CachedEntry entry = cache.remove(address);
         if (entry != null) {
             entry.clients().eventStreaming().close();
@@ -54,7 +54,7 @@ public class CachedRemoteClientsFactory implements RemoteClients.Factory, Closea
 
     @Override
     public void close() {
-        for (Map.Entry<WorkspaceAddress, CachedEntry> entry : cache.entrySet()) {
+        for (Map.Entry<ServerAddress, CachedEntry> entry : cache.entrySet()) {
             entry.getValue().clients().eventStreaming().close();
             entry.getValue().connection().close();
         }
@@ -62,7 +62,7 @@ public class CachedRemoteClientsFactory implements RemoteClients.Factory, Closea
         LOG.info("Closed all cached gRPC connections");
     }
 
-    private CachedEntry createEntry(WorkspaceAddress address) {
+    private CachedEntry createEntry(ServerAddress address) {
         GrpcServerConnection connection = new GrpcServerConnection(address);
         RemoteClients clients = new RemoteClients(
                 new RemoteDiscoveryClient(connection),

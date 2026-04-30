@@ -48,7 +48,7 @@ import java.util.stream.Collectors;
  * open waiting for new events.
  */
 @RestController
-@RequestMapping("/api/internal/workspaces/{workspaceId}/projects/{projectId}/live-stream")
+@RequestMapping("/api/internal/remote-servers/{serverId}/workspaces/{workspaceId}/projects/{projectId}/live-stream")
 public class ProjectLiveStreamController {
 
     private static final Logger LOG = LoggerFactory.getLogger(ProjectLiveStreamController.class);
@@ -61,6 +61,7 @@ public class ProjectLiveStreamController {
 
     @GetMapping(value = "/subscribe", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter subscribe(
+            @PathVariable("serverId") String serverId,
             @PathVariable("workspaceId") String workspaceId,
             @PathVariable("projectId") String projectId,
             @RequestParam(value = "sessionIds", defaultValue = "") String sessionIds,
@@ -71,7 +72,7 @@ public class ProjectLiveStreamController {
             throw Exceptions.invalidRequest("At least one sessionId is required");
         }
 
-        ProjectManager pm = resolver.resolve(workspaceId, projectId).projectManager();
+        ProjectManager pm = resolver.resolve(serverId, workspaceId, projectId).projectManager();
         EventStreamingManager streamingManager = pm.eventStreamingManager();
 
         var request = new LiveSubscriptionRequest(

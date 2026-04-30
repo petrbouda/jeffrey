@@ -40,7 +40,7 @@ class ProjectDownloadTaskControllerTest {
 
         // No task is registered for "ghost-task" — controller throws
         // Exceptions.invalidRequest, mapped to 400.
-        assertThat(mvc.get().uri("/api/internal/workspaces/ws-1/projects/p-1/download/ghost-task/status"))
+        assertThat(mvc.get().uri("/api/internal/remote-servers/srv-1/workspaces/ws-1/projects/p-1/download/ghost-task/status"))
                 .hasStatus(400)
                 .bodyJson()
                 .extractingPath("$.code").asString().isEqualTo("INVALID_REQUEST");
@@ -50,7 +50,7 @@ class ProjectDownloadTaskControllerTest {
     void cancelUnknownTaskReturns404() {
         MockMvcTester mvc = mockMvcTesterFor(new ProjectDownloadTaskController(resolver));
 
-        assertThat(mvc.delete().uri("/api/internal/workspaces/ws-1/projects/p-1/download/ghost-task"))
+        assertThat(mvc.delete().uri("/api/internal/remote-servers/srv-1/workspaces/ws-1/projects/p-1/download/ghost-task"))
                 .hasStatus(404);
     }
 }

@@ -47,14 +47,14 @@ public class JdbcWorkspacesRepository implements WorkspacesRepository {
             FROM workspaces w WHERE w.workspace_id = :workspace_id""";
 
     //language=SQL
-    private static final String SELECT_WORKSPACE_BY_ORIGIN_ID = """
+    private static final String SELECT_WORKSPACE_BY_REFERENCE_ID = """
             SELECT w.*, (SELECT COUNT(*) FROM projects p WHERE p.workspace_id = w.workspace_id AND p.deleted_at IS NULL) as project_count
-            FROM workspaces w WHERE w.workspace_origin_id = :workspace_origin_id""";
+            FROM workspaces w WHERE w.reference_id = :reference_id""";
 
     //language=SQL
     private static final String INSERT_WORKSPACE = """
-            INSERT INTO workspaces (workspace_id, workspace_origin_id, repository_id, name, description, location, base_location, created_at)
-            VALUES (:workspace_id, :workspace_origin_id, :repository_id, :name, :description, :location, :base_location, :created_at)""";
+            INSERT INTO workspaces (workspace_id, reference_id, repository_id, name, location, base_location, created_at)
+            VALUES (:workspace_id, :reference_id, :repository_id, :name, :location, :base_location, :created_at)""";
 
     //language=SQL
     private static final String CHECK_NAME_EXISTS =
@@ -88,13 +88,13 @@ public class JdbcWorkspacesRepository implements WorkspacesRepository {
     }
 
     @Override
-    public Optional<WorkspaceInfo> findByOriginId(String originId) {
+    public Optional<WorkspaceInfo> findByReferenceId(String referenceId) {
         MapSqlParameterSource paramSource = new MapSqlParameterSource()
-                .addValue("workspace_origin_id", originId);
+                .addValue("reference_id", referenceId);
 
         return databaseClient.querySingle(
-                StatementLabel.FIND_WORKSPACE_BY_ORIGIN_ID,
-                SELECT_WORKSPACE_BY_ORIGIN_ID,
+                StatementLabel.FIND_WORKSPACE_BY_REFERENCE_ID,
+                SELECT_WORKSPACE_BY_REFERENCE_ID,
                 paramSource,
                 workspaceMapper());
     }
@@ -104,10 +104,9 @@ public class JdbcWorkspacesRepository implements WorkspacesRepository {
         WorkspaceInfo newWorkspaceInfo = workspaceInfo.withId(IDGenerator.generate());
         MapSqlParameterSource paramSource = new MapSqlParameterSource()
                 .addValue("workspace_id", newWorkspaceInfo.id())
-                .addValue("workspace_origin_id", newWorkspaceInfo.originId())
+                .addValue("reference_id", newWorkspaceInfo.referenceId())
                 .addValue("repository_id", newWorkspaceInfo.repositoryId())
                 .addValue("name", newWorkspaceInfo.name())
-                .addValue("description", newWorkspaceInfo.description())
                 .addValue("location", newWorkspaceInfo.location() != null ? newWorkspaceInfo.location().toString() : null)
                 .addValue("base_location", newWorkspaceInfo.baseLocation() != null ? newWorkspaceInfo.baseLocation().toString() : null)
                 .addValue("created_at", newWorkspaceInfo.createdAt().atOffset(ZoneOffset.UTC));
@@ -138,10 +137,9 @@ public class JdbcWorkspacesRepository implements WorkspacesRepository {
 
             return new WorkspaceInfo(
                     rs.getString("workspace_id"),
-                    rs.getString("workspace_origin_id"),
+                    rs.getString("reference_id"),
                     rs.getString("repository_id"),
                     rs.getString("name"),
-                    rs.getString("description"),
                     location != null ? WorkspaceLocation.of(location) : null,
                     baseLocation != null ? WorkspaceLocation.of(baseLocation) : null,
                     ServerMappers.instant(rs, "created_at"),

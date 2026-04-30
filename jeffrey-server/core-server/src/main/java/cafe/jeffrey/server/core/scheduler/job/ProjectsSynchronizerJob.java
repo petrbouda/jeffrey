@@ -157,7 +157,7 @@ public class ProjectsSynchronizerJob extends WorkspaceJob<ProjectsSynchronizerJo
                 entry.offset(),
                 payload.originEventId(),
                 payload.projectId(),
-                payload.workspaceId(),
+                payload.workspaceRefId(),
                 payload.eventType(),
                 payload.content(),
                 payload.originCreatedAt(),

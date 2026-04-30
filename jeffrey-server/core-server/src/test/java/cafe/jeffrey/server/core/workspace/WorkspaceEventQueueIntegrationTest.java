@@ -51,13 +51,13 @@ class WorkspaceEventQueueIntegrationTest {
         return new DuckDBPersistentQueue<>(provider, "workspace-events", new WorkspaceEventSerializer(), FIXED_CLOCK);
     }
 
-    private static WorkspaceEvent event(String originId, String projectId, WorkspaceEventType type) {
-        return new WorkspaceEvent(null, originId, projectId, "ws-001", type, null,
+    private static WorkspaceEvent event(String referenceId, String projectId, WorkspaceEventType type) {
+        return new WorkspaceEvent(null, referenceId, projectId, "ws-001", type, null,
                 Instant.parse("2025-06-15T10:00:00Z"), Instant.parse("2025-06-15T10:00:01Z"), "test");
     }
 
-    private static WorkspaceEvent eventWithContent(String originId, String projectId, WorkspaceEventType type, String content) {
-        return new WorkspaceEvent(null, originId, projectId, "ws-001", type, content,
+    private static WorkspaceEvent eventWithContent(String referenceId, String projectId, WorkspaceEventType type, String content) {
+        return new WorkspaceEvent(null, referenceId, projectId, "ws-001", type, content,
                 Instant.parse("2025-06-15T10:00:00Z"), Instant.parse("2025-06-15T10:00:01Z"), "test");
     }
 
@@ -78,7 +78,7 @@ class WorkspaceEventQueueIntegrationTest {
             assertAll(
                     () -> assertEquals(original.originEventId(), polled.originEventId()),
                     () -> assertEquals(original.projectId(), polled.projectId()),
-                    () -> assertEquals(original.workspaceId(), polled.workspaceId()),
+                    () -> assertEquals(original.workspaceRefId(), polled.workspaceRefId()),
                     () -> assertEquals(original.eventType(), polled.eventType()),
                     () -> assertEquals(original.content(), polled.content()),
                     () -> assertEquals(original.originCreatedAt(), polled.originCreatedAt()),

@@ -122,7 +122,12 @@ additional-jvm-options = "-Xmx2g -Xms2g -Djeffrey.logging.trace-file.path=<<JEFF
               <td><code>project.workspace-id</code></td>
               <td>Yes</td>
               <td>—</td>
-              <td>Workspace identifier (e.g., "production", "staging")</td>
+              <td>
+                Reference ID of the workspace on the target Jeffrey server. The workspace must
+                already exist — create it via the local UI's "Create Workspace" flow before
+                running the CLI. Events for an unknown reference ID are dropped server-side
+                with a warning.
+              </td>
             </tr>
             <tr>
               <td><code>project.name</code></td>

@@ -28,9 +28,8 @@ public interface WorkspacesManager {
 
     record CreateWorkspaceRequest(
             String workspaceId,
-            String workspaceSourceId,
+            String referenceId,
             String name,
-            String description,
             WorkspaceLocation location,
             WorkspaceLocation baseLocation) {
 
@@ -40,9 +39,8 @@ public interface WorkspacesManager {
 
         public static class Builder {
             private String workspaceId;
-            private String workspaceSourceId;
+            private String referenceId;
             private String name;
-            private String description;
             private String location;
             private WorkspaceLocation workspaceLocation;
             private String baseLocation;
@@ -53,18 +51,13 @@ public interface WorkspacesManager {
                 return this;
             }
 
-            public Builder workspaceSourceId(String workspaceSourceId) {
-                this.workspaceSourceId = workspaceSourceId;
+            public Builder referenceId(String referenceId) {
+                this.referenceId = referenceId;
                 return this;
             }
 
             public Builder name(String name) {
                 this.name = name;
-                return this;
-            }
-
-            public Builder description(String description) {
-                this.description = description;
                 return this;
             }
 
@@ -101,9 +94,8 @@ public interface WorkspacesManager {
 
                 return new CreateWorkspaceRequest(
                         workspaceId,
-                        workspaceSourceId,
+                        referenceId,
                         name,
-                        description,
                         location,
                         baseLocation);
             }
@@ -134,11 +126,11 @@ public interface WorkspacesManager {
     Optional<WorkspaceManager> findById(String workspaceId);
 
     /**
-     * Get a workspace by its origin ID.
+     * Get a workspace by its reference ID (the user-supplied id the CLI binds to).
      *
-     * @param originId the workspace origin ID
+     * @param referenceId the workspace reference ID
      * @return the workspace if it exists, otherwise an empty optional
      */
-    Optional<WorkspaceManager> findByOriginId(String originId);
+    Optional<WorkspaceManager> findByReferenceId(String referenceId);
 
 }

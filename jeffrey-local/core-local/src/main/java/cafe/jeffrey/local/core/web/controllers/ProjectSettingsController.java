@@ -30,7 +30,7 @@ import cafe.jeffrey.local.core.resources.response.ProjectSettingsResponse;
 import cafe.jeffrey.local.core.web.ProjectManagerResolver;
 
 @RestController
-@RequestMapping("/api/internal/workspaces/{workspaceId}/projects/{projectId}/settings")
+@RequestMapping("/api/internal/remote-servers/{serverId}/workspaces/{workspaceId}/projects/{projectId}/settings")
 public class ProjectSettingsController {
 
     private final ProjectManagerResolver resolver;
@@ -41,18 +41,20 @@ public class ProjectSettingsController {
 
     @GetMapping
     public ProjectSettingsResponse settings(
+            @PathVariable("serverId") String serverId,
             @PathVariable("workspaceId") String workspaceId,
             @PathVariable("projectId") String projectId) {
-        ProjectManager pm = resolver.resolve(workspaceId, projectId).projectManager();
+        ProjectManager pm = resolver.resolve(serverId, workspaceId, projectId).projectManager();
         return ProjectSettingsResponse.create(pm.info());
     }
 
     @PostMapping
     public void update(
+            @PathVariable("serverId") String serverId,
             @PathVariable("workspaceId") String workspaceId,
             @PathVariable("projectId") String projectId,
             @RequestBody ProjectSettingsUpdateRequest request) {
-        ProjectManager pm = resolver.resolve(workspaceId, projectId).projectManager();
+        ProjectManager pm = resolver.resolve(serverId, workspaceId, projectId).projectManager();
         if (request.name() != null) {
             pm.updateName(request.name());
         }

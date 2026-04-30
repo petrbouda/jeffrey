@@ -24,7 +24,7 @@ public record WorkspaceEventResponse(
         Long eventId,
         String originEventId,
         String projectId,
-        String workspaceId,
+        String workspaceRefId,
         WorkspaceEventType eventType,
         String content,
         Long originCreatedAt,

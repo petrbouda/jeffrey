@@ -27,7 +27,7 @@ import org.springframework.context.annotation.Import;
 import cafe.jeffrey.local.core.initializer.RecordingSeedInitializer;
 import cafe.jeffrey.local.core.manager.qanalysis.QuickAnalysisManager;
 import cafe.jeffrey.local.core.manager.qanalysis.QuickAnalysisManagerImpl;
-import cafe.jeffrey.local.core.manager.workspace.WorkspacesManager;
+import cafe.jeffrey.local.core.manager.server.RemoteServersManager;
 import cafe.jeffrey.local.core.web.ProfileManagerResolver;
 import cafe.jeffrey.local.core.web.ProjectManagerResolver;
 import cafe.jeffrey.local.core.web.WebInfrastructureConfig;
@@ -101,17 +101,17 @@ public class LocalAppConfiguration {
     // --- Resolvers (centralise profileId / projectId lookups for controllers) ---
 
     @Bean
-    public ProjectManagerResolver projectManagerResolver(WorkspacesManager workspacesManager) {
-        return new ProjectManagerResolver(workspacesManager);
+    public ProjectManagerResolver projectManagerResolver(RemoteServersManager remoteServersManager) {
+        return new ProjectManagerResolver(remoteServersManager);
     }
 
     @Bean
     public ProfileManagerResolver profileManagerResolver(
-            WorkspacesManager workspacesManager,
+            RemoteServersManager remoteServersManager,
             Optional<QuickAnalysisManager> quickAnalysisManager,
             LocalCorePersistenceProvider localCorePersistenceProvider) {
         return new ProfileManagerResolver(
-                workspacesManager,
+                remoteServersManager,
                 quickAnalysisManager.orElse(null),
                 localCorePersistenceProvider.localCoreRepositories());
     }

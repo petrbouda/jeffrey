@@ -38,7 +38,7 @@ class ProjectReplayStreamControllerTest {
     void rejectsInvertedTimeRange() {
         MockMvcTester mvc = mockMvcTesterFor(new ProjectReplayStreamController(resolver));
 
-        assertThat(mvc.get().uri("/api/internal/workspaces/ws-1/projects/p-1/replay-stream/subscribe"
+        assertThat(mvc.get().uri("/api/internal/remote-servers/srv-1/workspaces/ws-1/projects/p-1/replay-stream/subscribe"
                 + "?sessionId=s-1&startTime=2000&endTime=1000"))
                 .hasStatus(400)
                 .bodyJson()

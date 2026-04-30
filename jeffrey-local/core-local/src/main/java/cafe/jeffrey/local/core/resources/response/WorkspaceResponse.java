@@ -23,7 +23,7 @@ import cafe.jeffrey.shared.common.model.workspace.WorkspaceStatus;
 public record WorkspaceResponse(
         String id,
         String name,
-        String description,
+        String referenceId,
         long createdAt,
         int projectCount,
         WorkspaceStatus status) {

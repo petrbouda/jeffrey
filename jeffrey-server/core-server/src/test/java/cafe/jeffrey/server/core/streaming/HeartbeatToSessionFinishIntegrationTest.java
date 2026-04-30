@@ -145,7 +145,7 @@ class HeartbeatToSessionFinishIntegrationTest {
             WorkspaceEvent event = entries.getFirst().payload();
             assertAll(
                     () -> assertEquals(PROJECT_ID, event.projectId()),
-                    () -> assertEquals(WORKSPACE_ID, event.workspaceId()),
+                    () -> assertEquals(WORKSPACE_ID, event.workspaceRefId()),
                     () -> assertEquals(WorkspaceEventType.PROJECT_INSTANCE_SESSION_FINISHED, event.eventType()),
                     () -> assertEquals(SESSION_ID, event.originEventId())
             );
@@ -375,7 +375,7 @@ class HeartbeatToSessionFinishIntegrationTest {
             WorkspaceEvent event = entries.getFirst().payload();
             assertAll(
                     () -> assertEquals(PROJECT_ID, event.projectId()),
-                    () -> assertEquals(WORKSPACE_ID, event.workspaceId()),
+                    () -> assertEquals(WORKSPACE_ID, event.workspaceRefId()),
                     () -> assertEquals(WorkspaceEventType.PROJECT_INSTANCE_SESSION_FINISHED, event.eventType()),
                     () -> assertEquals(SESSION_ID, event.originEventId())
             );

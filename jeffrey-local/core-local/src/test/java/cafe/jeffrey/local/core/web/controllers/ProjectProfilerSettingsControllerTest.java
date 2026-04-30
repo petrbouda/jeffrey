@@ -57,19 +57,19 @@ class ProjectProfilerSettingsControllerTest {
 
     @Test
     void deleteSettings() {
-        when(resolver.resolve("ws-1", "p-1"))
+        when(resolver.resolve("srv-1", "ws-1", "p-1"))
                 .thenReturn(new ProjectContext(workspaceManager, projectsManager, projectManager));
         when(projectManager.profilerSettingsManager()).thenReturn(settingsManager);
 
         MockMvcTester mvc = mockMvcTesterFor(new ProjectProfilerSettingsController(resolver));
 
-        assertThat(mvc.delete().uri("/api/internal/workspaces/ws-1/projects/p-1/profiler/settings"))
+        assertThat(mvc.delete().uri("/api/internal/remote-servers/srv-1/workspaces/ws-1/projects/p-1/profiler/settings"))
                 .hasStatus(204);
     }
 
     @Test
     void fetchEffectiveSettings() {
-        when(resolver.resolve("ws-1", "p-1"))
+        when(resolver.resolve("srv-1", "ws-1", "p-1"))
                 .thenReturn(new ProjectContext(workspaceManager, projectsManager, projectManager));
         when(projectManager.profilerSettingsManager()).thenReturn(settingsManager);
         when(settingsManager.fetchEffectiveSettings())
@@ -77,17 +77,17 @@ class ProjectProfilerSettingsControllerTest {
 
         MockMvcTester mvc = mockMvcTesterFor(new ProjectProfilerSettingsController(resolver));
 
-        assertThat(mvc.get().uri("/api/internal/workspaces/ws-1/projects/p-1/profiler/settings"))
+        assertThat(mvc.get().uri("/api/internal/remote-servers/srv-1/workspaces/ws-1/projects/p-1/profiler/settings"))
                 .hasStatusOk();
     }
 
     @Test
     void projectNotFoundReturns404() {
-        when(resolver.resolve("ws-1", "ghost")).thenThrow(Exceptions.projectNotFound("ghost"));
+        when(resolver.resolve("srv-1", "ws-1", "ghost")).thenThrow(Exceptions.projectNotFound("ghost"));
 
         MockMvcTester mvc = mockMvcTesterFor(new ProjectProfilerSettingsController(resolver));
 
-        assertThat(mvc.get().uri("/api/internal/workspaces/ws-1/projects/ghost/profiler/settings"))
+        assertThat(mvc.get().uri("/api/internal/remote-servers/srv-1/workspaces/ws-1/projects/ghost/profiler/settings"))
                 .hasStatus(404)
                 .bodyJson()
                 .extractingPath("$.code").asString().isEqualTo("PROJECT_NOT_FOUND");

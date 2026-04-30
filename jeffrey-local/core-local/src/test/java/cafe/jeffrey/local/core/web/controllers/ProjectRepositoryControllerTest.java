@@ -60,7 +60,7 @@ class ProjectRepositoryControllerTest {
 
     @Test
     void listsEmptySessions() {
-        when(resolver.resolve("ws-1", "p-1"))
+        when(resolver.resolve("srv-1", "ws-1", "p-1"))
                 .thenReturn(new ProjectContext(workspaceManager, projectsManager, projectManager));
         when(projectManager.repositoryManager()).thenReturn(repositoryManager);
         when(repositoryManager.listRecordingSessions(true)).thenReturn(List.of());
@@ -68,7 +68,7 @@ class ProjectRepositoryControllerTest {
         Clock clock = Clock.fixed(Instant.parse("2026-04-26T12:00:00Z"), ZoneOffset.UTC);
         MockMvcTester mvc = mockMvcTesterFor(new ProjectRepositoryController(resolver, clock));
 
-        assertThat(mvc.get().uri("/api/internal/workspaces/ws-1/projects/p-1/repository/sessions"))
+        assertThat(mvc.get().uri("/api/internal/remote-servers/srv-1/workspaces/ws-1/projects/p-1/repository/sessions"))
                 .hasStatusOk()
                 .bodyJson()
                 .extractingPath("$").asArray().isEmpty();
@@ -76,12 +76,12 @@ class ProjectRepositoryControllerTest {
 
     @Test
     void projectNotFoundReturns404() {
-        when(resolver.resolve("ws-1", "ghost")).thenThrow(Exceptions.projectNotFound("ghost"));
+        when(resolver.resolve("srv-1", "ws-1", "ghost")).thenThrow(Exceptions.projectNotFound("ghost"));
 
         Clock clock = Clock.fixed(Instant.parse("2026-04-26T12:00:00Z"), ZoneOffset.UTC);
         MockMvcTester mvc = mockMvcTesterFor(new ProjectRepositoryController(resolver, clock));
 
-        assertThat(mvc.get().uri("/api/internal/workspaces/ws-1/projects/ghost/repository/sessions"))
+        assertThat(mvc.get().uri("/api/internal/remote-servers/srv-1/workspaces/ws-1/projects/ghost/repository/sessions"))
                 .hasStatus(404)
                 .bodyJson()
                 .extractingPath("$.code").asString().isEqualTo("PROJECT_NOT_FOUND");

@@ -16,23 +16,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.local.persistence.api;
-
-import cafe.jeffrey.shared.common.model.workspace.WorkspaceStatus;
-
-import java.time.Instant;
-
-public record RemoteWorkspaceInfo(
-        String id,
-        String name,
-        String description,
-        WorkspaceAddress address,
-        Instant createdAt,
-        WorkspaceStatus status,
-        int projectCount) {
-
-    public RemoteWorkspaceInfo withStatus(WorkspaceStatus newStatus) {
-        return new RemoteWorkspaceInfo(
-                id, name, description, address, createdAt, newStatus, projectCount);
-    }
+export default interface RemoteServer {
+  id: string;
+  name: string;
+  hostname: string;
+  port: number;
+  plaintext: boolean;
+  createdAt: number;
 }

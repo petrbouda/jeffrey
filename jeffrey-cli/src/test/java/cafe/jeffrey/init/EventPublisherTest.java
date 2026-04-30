@@ -83,7 +83,7 @@ class EventPublisherTest {
             assertAll(
                     () -> assertEquals("proj-001", event.originEventId()),
                     () -> assertEquals("proj-001", event.projectId()),
-                    () -> assertEquals("ws-001", event.workspaceId()),
+                    () -> assertEquals("ws-001", event.workspaceRefId()),
                     () -> assertEquals(WorkspaceEventType.PROJECT_CREATED, event.eventType()),
                     () -> assertEquals(FIXED_INSTANT, event.originCreatedAt()),
                     () -> assertEquals("CLI", event.createdBy())
@@ -116,7 +116,7 @@ class EventPublisherTest {
             assertAll(
                     () -> assertEquals("inst-001", event.originEventId()),
                     () -> assertEquals("proj-001", event.projectId()),
-                    () -> assertEquals("ws-001", event.workspaceId()),
+                    () -> assertEquals("ws-001", event.workspaceRefId()),
                     () -> assertEquals(WorkspaceEventType.PROJECT_INSTANCE_CREATED, event.eventType()),
                     () -> assertEquals(FIXED_INSTANT, event.originCreatedAt()),
                     () -> assertEquals("CLI", event.createdBy())
@@ -143,7 +143,7 @@ class EventPublisherTest {
             assertAll(
                     () -> assertEquals("session-001", event.originEventId()),
                     () -> assertEquals("proj-001", event.projectId()),
-                    () -> assertEquals("ws-001", event.workspaceId()),
+                    () -> assertEquals("ws-001", event.workspaceRefId()),
                     () -> assertEquals(WorkspaceEventType.PROJECT_INSTANCE_SESSION_CREATED, event.eventType()),
                     () -> assertEquals(FIXED_INSTANT, event.originCreatedAt()),
                     () -> assertEquals("CLI", event.createdBy())

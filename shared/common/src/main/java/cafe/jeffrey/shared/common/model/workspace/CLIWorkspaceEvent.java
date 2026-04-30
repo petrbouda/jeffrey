@@ -28,7 +28,7 @@ import java.time.Instant;
 public record CLIWorkspaceEvent(
         String originEventId,
         String projectId,
-        String workspaceId,
+        String workspaceRefId,
         WorkspaceEventType eventType,
         String content,
         Instant originCreatedAt,

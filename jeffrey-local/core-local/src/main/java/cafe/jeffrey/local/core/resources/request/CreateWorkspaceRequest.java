@@ -19,7 +19,6 @@
 package cafe.jeffrey.local.core.resources.request;
 
 public record CreateWorkspaceRequest(
-        String id,
-        String name,
-        String description) {
+        String referenceId,
+        String name) {
 }

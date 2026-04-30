@@ -53,7 +53,7 @@ public class FileSystemRepository {
             String projectId,
             String projectName,
             String projectLabel,
-            String workspaceId,
+            String workspaceRefId,
             String workspacesDir,
             RepositoryType repositoryType,
             Map<String, String> attributes,
@@ -64,10 +64,10 @@ public class FileSystemRepository {
                     projectId,
                     projectName,
                     projectLabel,
-                    workspaceId,
+                    workspaceRefId,
                     clock.instant().toEpochMilli(),
                     workspacesDir,
-                    workspaceId,
+                    workspaceRefId,
                     projectName,
                     repositoryType,
                     attributes);
@@ -82,14 +82,14 @@ public class FileSystemRepository {
     public void addInstance(
             String instanceId,
             String projectId,
-            String workspaceId,
+            String workspaceRefId,
             Path instancePath) {
         LOG.debug("Adding instance to filesystem repository: instanceId={} projectId={} instancePath={}", instanceId, projectId, instancePath);
         try {
             RemoteProjectInstance instance = new RemoteProjectInstance(
                     instanceId,
                     projectId,
-                    workspaceId,
+                    workspaceRefId,
                     clock.instant().toEpochMilli(),
                     instanceId);
 
@@ -116,7 +116,7 @@ public class FileSystemRepository {
     public void addSession(
             String sessionId,
             String projectId,
-            String workspaceId,
+            String workspaceRefId,
             String instanceId,
             int order,
             Path sessionPath) {
@@ -128,7 +128,7 @@ public class FileSystemRepository {
             RemoteProjectInstanceSession session = new RemoteProjectInstanceSession(
                     sessionId,
                     projectId,
-                    workspaceId,
+                    workspaceRefId,
                     instanceId,
                     clock.instant().toEpochMilli(),
                     order,

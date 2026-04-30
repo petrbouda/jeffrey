@@ -58,7 +58,7 @@ public class RemoteWorkspaceEventsClient {
                 proto.getEventId(),
                 proto.getOriginEventId().isEmpty() ? null : proto.getOriginEventId(),
                 proto.getProjectId().isEmpty() ? null : proto.getProjectId(),
-                proto.getWorkspaceId().isEmpty() ? null : proto.getWorkspaceId(),
+                proto.getWorkspaceRefId().isEmpty() ? null : proto.getWorkspaceRefId(),
                 proto.getEventType().isEmpty() ? null : WorkspaceEventType.valueOf(proto.getEventType()),
                 proto.getContent().isEmpty() ? null : proto.getContent(),
                 proto.getOriginCreatedAt(),

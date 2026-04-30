@@ -21,42 +21,50 @@ package cafe.jeffrey.local.core.web.controllers;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.local.core.manager.project.ProjectManager;
+import cafe.jeffrey.local.core.manager.server.RemoteServerManager;
 import cafe.jeffrey.local.core.manager.workspace.WorkspaceManager;
-import cafe.jeffrey.local.core.manager.workspace.WorkspacesManager;
 import cafe.jeffrey.local.core.resources.response.ProfileWithContextResponse;
+import cafe.jeffrey.local.core.web.ProjectManagerResolver;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.shared.common.InstantUtils;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
+import cafe.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
 /**
- * Top-level GET /api/internal/profiles. Returns all profiles across all
- * workspaces and projects (with workspace/project context).
+ * Lists all profiles across all workspaces on a single connected jeffrey-server.
  */
 @RestController
-@RequestMapping("/api/internal/profiles")
+@RequestMapping("/api/internal/remote-servers/{serverId}/profiles")
 public class ProfilesController {
 
     private static final Logger LOG = LoggerFactory.getLogger(ProfilesController.class);
 
-    private final WorkspacesManager workspacesManager;
+    private final ProjectManagerResolver resolver;
 
-    public ProfilesController(WorkspacesManager workspacesManager) {
-        this.workspacesManager = workspacesManager;
+    public ProfilesController(ProjectManagerResolver resolver) {
+        this.resolver = resolver;
     }
 
     @GetMapping
-    public List<ProfileWithContextResponse> listAllProfiles() {
+    public List<ProfileWithContextResponse> listAllProfiles(@PathVariable("serverId") String serverId) {
+        RemoteServerManager server = resolver.resolveServer(serverId);
         List<ProfileWithContextResponse> allProfiles = new ArrayList<>();
 
-        for (WorkspaceManager workspaceManager : workspacesManager.findAll()) {
-            String workspaceName = workspaceManager.resolveInfo().name();
+        for (WorkspaceInfo workspaceInfo : server.workspaces()) {
+            WorkspaceManager workspaceManager = server.workspace(workspaceInfo.id())
+                    .orElse(null);
+            if (workspaceManager == null) {
+                continue;
+            }
+            String workspaceName = workspaceInfo.name();
             for (ProjectManager projectManager : workspaceManager.projectsManager().findAll()) {
                 String projectName = projectManager.info().name();
                 for (ProfileManager profileManager : projectManager.profilesManager().allProfiles()) {
@@ -68,7 +76,7 @@ public class ProfilesController {
         var result = allProfiles.stream()
                 .sorted(Comparator.comparing(ProfileWithContextResponse::createdAt).reversed())
                 .toList();
-        LOG.debug("Listed all profiles across workspaces: count={}", result.size());
+        LOG.debug("Listed all profiles on server: server_id={} count={}", serverId, result.size());
         return result;
     }
 

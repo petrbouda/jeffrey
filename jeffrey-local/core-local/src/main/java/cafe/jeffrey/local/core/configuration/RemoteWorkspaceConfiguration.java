@@ -22,55 +22,77 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import cafe.jeffrey.local.core.LocalJeffreyDirs;
-import cafe.jeffrey.local.core.manager.ProfilesManager;
-import cafe.jeffrey.local.core.manager.workspace.RemoteWorkspacesManager;
-import cafe.jeffrey.local.core.manager.workspace.WorkspaceManager;
 import cafe.jeffrey.local.core.client.CachedRemoteClientsFactory;
 import cafe.jeffrey.local.core.client.RemoteClients;
+import cafe.jeffrey.local.core.manager.ProfilesManager;
+import cafe.jeffrey.local.core.manager.server.RemoteServerManager;
+import cafe.jeffrey.local.core.manager.server.RemoteServerManagerImpl;
+import cafe.jeffrey.local.core.manager.server.RemoteServersManager;
+import cafe.jeffrey.local.core.manager.server.RemoteServersManagerImpl;
 import cafe.jeffrey.local.core.manager.workspace.RemoteWorkspaceManager;
-import cafe.jeffrey.local.persistence.jdbc.JdbcWorkspaceRepository;
-import cafe.jeffrey.local.persistence.jdbc.JdbcWorkspacesRepository;
-import cafe.jeffrey.local.persistence.api.WorkspacesRepository;
+import cafe.jeffrey.local.core.manager.workspace.WorkspaceManagerFactory;
 import cafe.jeffrey.local.core.recording.ProjectRecordingInitializer;
 import cafe.jeffrey.local.persistence.api.LocalCorePersistenceProvider;
+import cafe.jeffrey.local.persistence.api.RemoteServersRepository;
+import cafe.jeffrey.local.persistence.jdbc.JdbcRemoteServersRepository;
+import cafe.jeffrey.local.persistence.jdbc.JdbcWorkspaceRepository;
+
+import java.time.Clock;
 
 @Configuration
 @Import(AppConfiguration.class)
 public class RemoteWorkspaceConfiguration {
 
     @Bean
-    public WorkspacesRepository localWorkspacesRepository(LocalCorePersistenceProvider localCorePersistenceProvider) {
-        return new JdbcWorkspacesRepository(localCorePersistenceProvider.databaseClientProvider());
-    }
-
-    @Bean
-    public RemoteWorkspacesManager remoteWorkspacesManager(
-            LocalJeffreyDirs jeffreyDirs,
-            LocalCorePersistenceProvider localCorePersistenceProvider,
-            WorkspacesRepository localWorkspacesRepository,
-            RemoteClients.Factory remoteClientsFactory,
-            ProfilesManager.Factory profilesManagerFactory,
-            ProjectRecordingInitializer.Factory recordingInitializerFactory) {
-
-        WorkspaceManager.Factory workspaceManagerFactory = workspaceInfo -> {
-            return new RemoteWorkspaceManager(
-                    jeffreyDirs,
-                    workspaceInfo,
-                    new JdbcWorkspaceRepository(workspaceInfo.id(), localCorePersistenceProvider.databaseClientProvider()),
-                    remoteClientsFactory.apply(workspaceInfo.address()),
-                    profilesManagerFactory,
-                    recordingInitializerFactory,
-                    localCorePersistenceProvider.localCoreRepositories());
-        };
-
-        return new RemoteWorkspacesManager(
-                localWorkspacesRepository,
-                workspaceManagerFactory,
-                remoteClientsFactory);
+    public RemoteServersRepository remoteServersRepository(LocalCorePersistenceProvider provider) {
+        return new JdbcRemoteServersRepository(provider.databaseClientProvider());
     }
 
     @Bean(destroyMethod = "close")
     public CachedRemoteClientsFactory remoteClientsFactory() {
         return new CachedRemoteClientsFactory();
+    }
+
+    @Bean
+    public WorkspaceManagerFactory workspaceManagerFactory(
+            LocalJeffreyDirs jeffreyDirs,
+            LocalCorePersistenceProvider persistenceProvider,
+            ProfilesManager.Factory profilesManagerFactory,
+            ProjectRecordingInitializer.Factory recordingInitializerFactory) {
+
+        return (workspaceInfo, remoteClients) -> new RemoteWorkspaceManager(
+                jeffreyDirs,
+                workspaceInfo,
+                new JdbcWorkspaceRepository(workspaceInfo.id(), persistenceProvider.databaseClientProvider()),
+                remoteClients,
+                profilesManagerFactory,
+                recordingInitializerFactory,
+                persistenceProvider.localCoreRepositories());
+    }
+
+    @Bean
+    public RemoteServerManager.Factory remoteServerManagerFactory(
+            CachedRemoteClientsFactory remoteClientsFactory,
+            WorkspaceManagerFactory workspaceManagerFactory,
+            RemoteServersRepository remoteServersRepository) {
+
+        return serverInfo -> {
+            RemoteClients clients = remoteClientsFactory.apply(serverInfo.address());
+            return new RemoteServerManagerImpl(
+                    serverInfo,
+                    clients,
+                    workspaceManagerFactory,
+                    remoteServersRepository,
+                    remoteClientsFactory);
+        };
+    }
+
+    @Bean
+    public RemoteServersManager remoteServersManager(
+            RemoteServersRepository remoteServersRepository,
+            RemoteServerManager.Factory remoteServerManagerFactory,
+            Clock clock) {
+
+        return new RemoteServersManagerImpl(remoteServersRepository, remoteServerManagerFactory, clock);
     }
 }

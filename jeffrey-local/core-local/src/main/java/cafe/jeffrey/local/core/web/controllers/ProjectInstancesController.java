@@ -38,7 +38,7 @@ import java.time.Clock;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/internal/workspaces/{workspaceId}/projects/{projectId}/instances")
+@RequestMapping("/api/internal/remote-servers/{serverId}/workspaces/{workspaceId}/projects/{projectId}/instances")
 public class ProjectInstancesController {
 
     private static final Logger LOG = LoggerFactory.getLogger(ProjectInstancesController.class);
@@ -53,10 +53,11 @@ public class ProjectInstancesController {
 
     @GetMapping
     public List<InstanceResponse> list(
+            @PathVariable("serverId") String serverId,
             @PathVariable("workspaceId") String workspaceId,
             @PathVariable("projectId") String projectId,
             @RequestParam(value = "includeSessions", defaultValue = "false") boolean includeSessions) {
-        RemoteInstancesManager mgr = managerFor(workspaceId, projectId);
+        RemoteInstancesManager mgr = managerFor(serverId, workspaceId, projectId);
         var result = mgr.findAll(includeSessions).stream()
                 .map(i -> InstanceResponse.from(i, clock))
                 .toList();
@@ -67,31 +68,34 @@ public class ProjectInstancesController {
 
     @GetMapping("/{instanceId}")
     public InstanceResponse get(
+            @PathVariable("serverId") String serverId,
             @PathVariable("workspaceId") String workspaceId,
             @PathVariable("projectId") String projectId,
             @PathVariable("instanceId") String instanceId) {
         LOG.debug("Fetching project instance: instanceId={}", instanceId);
-        return managerFor(workspaceId, projectId).find(instanceId)
+        return managerFor(serverId, workspaceId, projectId).find(instanceId)
                 .map(i -> InstanceResponse.from(i, clock))
                 .orElseThrow(() -> Exceptions.invalidRequest("Instance not found: " + instanceId));
     }
 
     @GetMapping("/{instanceId}/detail")
     public InstanceDetailResponse getDetail(
+            @PathVariable("serverId") String serverId,
             @PathVariable("workspaceId") String workspaceId,
             @PathVariable("projectId") String projectId,
             @PathVariable("instanceId") String instanceId) {
         LOG.debug("Fetching instance detail: instanceId={}", instanceId);
-        return managerFor(workspaceId, projectId).detail(instanceId)
+        return managerFor(serverId, workspaceId, projectId).detail(instanceId)
                 .orElseThrow(() -> Exceptions.invalidRequest("Instance not found: " + instanceId));
     }
 
     @GetMapping("/{instanceId}/sessions")
     public List<InstanceSessionResponse> getSessions(
+            @PathVariable("serverId") String serverId,
             @PathVariable("workspaceId") String workspaceId,
             @PathVariable("projectId") String projectId,
             @PathVariable("instanceId") String instanceId) {
-        var result = managerFor(workspaceId, projectId).findSessions(instanceId).stream()
+        var result = managerFor(serverId, workspaceId, projectId).findSessions(instanceId).stream()
                 .map(s -> InstanceSessionResponse.from(s, clock))
                 .toList();
         LOG.debug("Listed instance sessions: projectId={} instanceId={} count={}", projectId, instanceId, result.size());
@@ -100,18 +104,19 @@ public class ProjectInstancesController {
 
     @GetMapping("/{instanceId}/sessions/{sessionId}/detail")
     public InstanceSessionDetailResponse getSessionDetail(
+            @PathVariable("serverId") String serverId,
             @PathVariable("workspaceId") String workspaceId,
             @PathVariable("projectId") String projectId,
             @PathVariable("instanceId") String instanceId,
             @PathVariable("sessionId") String sessionId) {
         LOG.debug("Fetching instance session detail: instanceId={} sessionId={}", instanceId, sessionId);
-        return managerFor(workspaceId, projectId).sessionDetail(instanceId, sessionId)
+        return managerFor(serverId, workspaceId, projectId).sessionDetail(instanceId, sessionId)
                 .orElseThrow(() -> Exceptions.invalidRequest(
                         "Session not found: instanceId=" + instanceId + " sessionId=" + sessionId));
     }
 
-    private RemoteInstancesManager managerFor(String workspaceId, String projectId) {
-        ProjectManager pm = resolver.resolve(workspaceId, projectId).projectManager();
+    private RemoteInstancesManager managerFor(String serverId, String workspaceId, String projectId) {
+        ProjectManager pm = resolver.resolve(serverId, workspaceId, projectId).projectManager();
         return pm.instancesManager();
     }
 }

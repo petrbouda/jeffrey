@@ -49,7 +49,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
 @RestController
-@RequestMapping("/api/internal/workspaces/{workspaceId}/projects/{projectId}/download")
+@RequestMapping("/api/internal/remote-servers/{serverId}/workspaces/{workspaceId}/projects/{projectId}/download")
 public class ProjectDownloadTaskController {
 
     private static final Logger LOG = LoggerFactory.getLogger(ProjectDownloadTaskController.class);
@@ -66,6 +66,7 @@ public class ProjectDownloadTaskController {
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<DownloadTaskResponse> startDownload(
+            @PathVariable("serverId") String serverId,
             @PathVariable("workspaceId") String workspaceId,
             @PathVariable("projectId") String projectId,
             @RequestBody SelectedRecordingsRequest request) {
@@ -74,7 +75,7 @@ public class ProjectDownloadTaskController {
                 request.sessionId(),
                 request.recordingIds() != null ? request.recordingIds().size() : 0);
 
-        ProjectManager pm = resolver.resolve(workspaceId, projectId).projectManager();
+        ProjectManager pm = resolver.resolve(serverId, workspaceId, projectId).projectManager();
         RecordingsDownloadManager downloadManager = pm.recordingsDownloadManager();
 
         DownloadTask task = new DownloadTask(

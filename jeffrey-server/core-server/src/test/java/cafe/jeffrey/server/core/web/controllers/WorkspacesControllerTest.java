@@ -47,17 +47,7 @@ class WorkspacesControllerTest {
 
     @Test
     void listsWorkspaces() {
-        WorkspaceInfo info = new WorkspaceInfo(
-                "ws-1",
-                "ws-1",
-                "repo-1",
-                "Production",
-                "production workspace",
-                null,
-                null,
-                Instant.parse("2026-04-01T10:00:00Z"),
-                WorkspaceStatus.AVAILABLE,
-                3);
+        WorkspaceInfo info = new WorkspaceInfo("ws-1", "ws-1", "repo-1", "Production", null, null, Instant.parse("2026-04-01T10:00:00Z"), WorkspaceStatus.AVAILABLE, 3);
         doReturn(List.of(workspaceManager)).when(workspacesManager).findAll();
         when(workspaceManager.resolveInfo()).thenReturn(info);
 

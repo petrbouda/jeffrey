@@ -28,14 +28,15 @@
 
 CREATE TABLE IF NOT EXISTS workspaces
 (
-    workspace_id        VARCHAR PRIMARY KEY,
-    workspace_origin_id VARCHAR,
-    repository_id       VARCHAR,
-    name                VARCHAR NOT NULL,
-    description         VARCHAR,
-    location            VARCHAR,
-    base_location       VARCHAR,
-    created_at          TIMESTAMPTZ NOT NULL
+    workspace_id  VARCHAR PRIMARY KEY,
+    reference_id  VARCHAR NOT NULL,
+    repository_id VARCHAR,
+    name          VARCHAR NOT NULL,
+    location      VARCHAR,
+    base_location VARCHAR,
+    created_at    TIMESTAMPTZ NOT NULL,
+    UNIQUE (reference_id),
+    UNIQUE (name)
 );
 
 --

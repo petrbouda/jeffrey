@@ -6,8 +6,9 @@ option java_package = "cafe.jeffrey.server.api.v1";
 option java_multiple_files = true;
 
 // Manages workspace discovery and lifecycle.
-// Workspaces are top-level containers that group projects. They are auto-created
-// from filesystem events and represent a connection to a monitored environment.
+// Workspaces are top-level containers that group projects. They are explicitly
+// created via CreateWorkspace; the CLI's project.workspace-id must match an
+// existing workspace's reference_id for events to be accepted.
 service WorkspaceService {
   // Returns the Jeffrey server version and API version for compatibility checks.
   rpc GetApiInfo(GetApiInfoRequest) returns (GetApiInfoResponse);
@@ -18,8 +19,12 @@ service WorkspaceService {
   // Gets a single workspace by its internal ID.
   rpc GetWorkspace(GetWorkspaceRequest) returns (GetWorkspaceResponse);
 
+  // Creates a new workspace with a user-supplied reference_id (used by the CLI
+  // to route recordings via project.workspace-id). The reference_id must be
+  // unique on this server.
+  rpc CreateWorkspace(CreateWorkspaceRequest) returns (CreateWorkspaceResponse);
+
   // Deletes a workspace and all its data.
-  // The workspace can be automatically recreated if new CLI events arrive.
   rpc DeleteWorkspace(DeleteWorkspaceRequest) returns (DeleteWorkspaceResponse);
 }
 
@@ -54,16 +59,28 @@ message DeleteWorkspaceRequest {
 
 message DeleteWorkspaceResponse {}
 
+message CreateWorkspaceRequest {
+  // The reference ID — used by jeffrey-cli's `project.workspace-id` to route
+  // recordings to this workspace. Must be unique on this server.
+  string reference_id = 1;
+  // Display name (required).
+  string name = 2;
+}
+
+message CreateWorkspaceResponse {
+  WorkspaceInfo workspace = 1;
+}
+
 // Represents a workspace — a top-level container for projects.
-// Workspaces correspond to monitored environments and are typically
-// auto-created when the CLI starts sending profiling events.
+// Workspaces are explicitly created via CreateWorkspace; the reference_id
+// is what the CLI uses to address them.
 message WorkspaceInfo {
   // Internal unique identifier for the workspace.
   string id = 1;
   // Display name of the workspace.
   string name = 2;
-  // Optional human-readable description.
-  string description = 3;
+  // Reference ID — the user-supplied id the CLI's project.workspace-id binds to.
+  string reference_id = 3;
   // Timestamp when the workspace was created (epoch millis).
   int64 created_at = 4;
   // Number of projects currently in this workspace.

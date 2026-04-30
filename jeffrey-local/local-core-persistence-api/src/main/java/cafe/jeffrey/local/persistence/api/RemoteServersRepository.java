@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,24 +16,23 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import BasePlatformClient from '@/services/api/BasePlatformClient';
-import Workspace from '@/services/api/model/Workspace';
+package cafe.jeffrey.local.persistence.api;
 
-export default class RemoteWorkspaceClient extends BasePlatformClient {
-  constructor() {
-    super('/remote-workspaces');
-  }
+import java.util.List;
+import java.util.Optional;
 
-  async listRemote(hostname: string, port: number, plaintext: boolean): Promise<Workspace[]> {
-    return super.post<Workspace[]>('/list', { hostname, port, plaintext });
-  }
+/**
+ * Local registry of connected jeffrey-server instances.
+ * Workspaces hosted on those servers are NOT stored locally — they are listed
+ * live via gRPC from the connected server.
+ */
+public interface RemoteServersRepository {
 
-  async createRemote(
-    hostname: string,
-    port: number,
-    plaintext: boolean,
-    workspaceIds: string[]
-  ): Promise<void> {
-    return super.post<void>('/create', { hostname, port, plaintext, workspaceIds });
-  }
+    List<RemoteServerInfo> findAll();
+
+    Optional<RemoteServerInfo> find(String serverId);
+
+    RemoteServerInfo create(RemoteServerInfo serverInfo);
+
+    void delete(String serverId);
 }

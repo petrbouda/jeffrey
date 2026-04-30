@@ -76,7 +76,7 @@ public class InitConfig {
             profiler-config = ""
             repository-type = ""
             project {
-                workspace-id = ""
+                workspace-ref-id = ""
                 name = ""
                 label = ""
                 instance-name = ""
@@ -163,7 +163,7 @@ public class InitConfig {
 
         Config projectCfg = resolved.getConfig("project");
         ProjectConfig project = new ProjectConfig();
-        project.setWorkspaceId(projectCfg.getString("workspace-id"));
+        project.setWorkspaceRefId(projectCfg.getString("workspace-ref-id"));
         project.setName(projectCfg.getString("name"));
         project.setLabel(projectCfg.getString("label"));
         project.setInstanceName(projectCfg.getString("instance-name"));
@@ -290,8 +290,8 @@ public class InitConfig {
     }
 
     // Delegation methods for project fields (backwards compatible API)
-    public String getWorkspaceId() {
-        return project != null ? project.getWorkspaceId() : null;
+    public String getWorkspaceRefId() {
+        return project != null ? project.getWorkspaceRefId() : null;
     }
 
     public String getProjectName() {
@@ -600,8 +600,8 @@ public class InitConfig {
             throw new IllegalArgumentException("Cannot specify both 'jeffrey-home' and 'workspaces-dir'");
         }
 
-        if (isNullOrBlank(project.getWorkspaceId())) {
-            throw new IllegalArgumentException("'project.workspace-id' must be specified");
+        if (isNullOrBlank(project.getWorkspaceRefId())) {
+            throw new IllegalArgumentException("'project.workspace-ref-id' must be specified");
         }
 
         if (isNullOrBlank(project.getName())) {
@@ -618,17 +618,23 @@ public class InitConfig {
     // ==================== Project Config ====================
 
     public static class ProjectConfig {
-        private String workspaceId;
+        /**
+         * Reference ID of the workspace on the target Jeffrey server.
+         * The workspace must already exist — create it via the local UI's
+         * "Create Workspace" flow before pointing the CLI at it. Events for an
+         * unknown reference ID are dropped on the server side with a warning.
+         */
+        private String workspaceRefId;
         private String name;
         private String label;
         private String instanceName;
 
-        public String getWorkspaceId() {
-            return workspaceId;
+        public String getWorkspaceRefId() {
+            return workspaceRefId;
         }
 
-        public void setWorkspaceId(String workspaceId) {
-            this.workspaceId = workspaceId;
+        public void setWorkspaceRefId(String workspaceRefId) {
+            this.workspaceRefId = workspaceRefId;
         }
 
         public String getName() {

@@ -16,7 +16,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.local.core.resources.request;
+package cafe.jeffrey.local.core.manager.workspace;
 
-public record RemoteWorkspaceConnectionRequest(String hostname, int port, boolean plaintext) {
+import cafe.jeffrey.local.core.client.RemoteClients;
+import cafe.jeffrey.shared.common.model.workspace.WorkspaceInfo;
+
+@FunctionalInterface
+public interface WorkspaceManagerFactory {
+
+    WorkspaceManager create(WorkspaceInfo workspaceInfo, RemoteClients remoteClients);
 }

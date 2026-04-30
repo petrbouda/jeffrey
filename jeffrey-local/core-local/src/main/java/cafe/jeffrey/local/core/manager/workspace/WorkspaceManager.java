@@ -20,34 +20,25 @@ package cafe.jeffrey.local.core.manager.workspace;
 
 import cafe.jeffrey.local.core.client.RemoteProfilerClient;
 import cafe.jeffrey.local.core.resources.response.WorkspaceEventResponse;
-import cafe.jeffrey.local.persistence.api.RemoteWorkspaceInfo;
 import cafe.jeffrey.local.core.manager.project.ProjectsManager;
+import cafe.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.function.Function;
 
 public interface WorkspaceManager {
 
-    @FunctionalInterface
-    interface Factory extends Function<RemoteWorkspaceInfo, WorkspaceManager> {
-    }
+    /**
+     * Returns the cached workspace snapshot captured when this manager was resolved.
+     * Never makes a network call.
+     */
+    WorkspaceInfo localInfo();
 
     /**
-     * Returns the locally stored workspace information without remote resolution.
-     * Unlike {@link #resolveInfo()}, this never makes network calls.
-     *
-     * @return the locally stored workspace information
+     * Returns a fresh workspace snapshot from the remote server.
+     * May involve a network call; falls back to OFFLINE status on failure.
      */
-    RemoteWorkspaceInfo localInfo();
-
-    /**
-     * Returns the workspace information associated with this manager.
-     * For remote workspaces, this may involve network calls to check availability.
-     *
-     * @return the workspace information
-     */
-    RemoteWorkspaceInfo resolveInfo();
+    WorkspaceInfo resolveInfo();
 
     /**
      * Returns the projects manager for managing multiple projects within the workspace.

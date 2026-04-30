@@ -20,7 +20,7 @@ package cafe.jeffrey.local.core.client;
 
 import cafe.jeffrey.local.grpc.client.*;
 
-import cafe.jeffrey.local.persistence.api.WorkspaceAddress;
+import cafe.jeffrey.local.persistence.api.ServerAddress;
 
 import java.util.function.Function;
 
@@ -36,6 +36,6 @@ public record RemoteClients(
 ) {
 
     @FunctionalInterface
-    public interface Factory extends Function<WorkspaceAddress, RemoteClients> {
+    public interface Factory extends Function<ServerAddress, RemoteClients> {
     }
 }

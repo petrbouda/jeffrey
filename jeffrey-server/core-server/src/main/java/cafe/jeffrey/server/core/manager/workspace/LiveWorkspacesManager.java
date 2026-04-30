@@ -49,35 +49,31 @@ public final class LiveWorkspacesManager implements WorkspacesManager {
     @Override
     public WorkspaceInfo create(CreateWorkspaceRequest request) {
         LOG.debug("Creating live workspace: name={}", request.name());
-        if (request.workspaceSourceId() == null || request.workspaceSourceId().isBlank()) {
+        if (request.referenceId() == null || request.referenceId().isBlank()) {
             throw new IllegalArgumentException("Workspace Source ID cannot be null or empty");
         }
         if (request.name() == null || request.name().isBlank()) {
             throw new IllegalArgumentException("Workspace Name cannot be null or empty");
         }
 
-        String trimmedSourceId = request.workspaceSourceId().trim();
+        String trimmedSourceId = request.referenceId().trim();
         String trimmedName = request.name().trim();
 
-        Optional<WorkspaceManager> workspaceManager = findById(trimmedSourceId);
-
-        if (workspaceManager.isPresent()) {
-            throw new IllegalArgumentException("Workspace with ID '" + trimmedSourceId + "' already exists");
+        if (findByReferenceId(trimmedSourceId).isPresent()) {
+            throw new WorkspaceAlreadyExistsException(
+                    "Workspace with reference ID '" + trimmedSourceId + "' already exists");
         }
 
         if (workspacesRepository.existsByName(trimmedName)) {
-            throw new IllegalArgumentException("Workspace with name '" + trimmedName + "' already exists");
+            throw new WorkspaceAlreadyExistsException(
+                    "Workspace with name '" + trimmedName + "' already exists");
         }
-
-        String description = request.description() != null
-                && !request.description().trim().isEmpty() ? request.description().trim() : null;
 
         WorkspaceInfo workspaceInfo = new WorkspaceInfo(
                 null,
                 trimmedSourceId,
                 trimmedSourceId,
                 trimmedName,
-                description,
                 request.location(),
                 request.baseLocation(),
                 clock.instant(),
@@ -102,8 +98,8 @@ public final class LiveWorkspacesManager implements WorkspacesManager {
     }
 
     @Override
-    public Optional<WorkspaceManager> findByOriginId(String originId) {
-        return workspacesRepository.findByOriginId(originId)
+    public Optional<WorkspaceManager> findByReferenceId(String referenceId) {
+        return workspacesRepository.findByReferenceId(referenceId)
                 .map(workspaceManagerFactory);
     }
 }

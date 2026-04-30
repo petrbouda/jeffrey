@@ -18,9 +18,10 @@
 
 package cafe.jeffrey.local.core.web;
 
-import jakarta.annotation.Nullable;
 import cafe.jeffrey.local.core.manager.qanalysis.QuickAnalysisManager;
-import cafe.jeffrey.local.core.manager.workspace.WorkspacesManager;
+import cafe.jeffrey.local.core.manager.server.RemoteServerManager;
+import cafe.jeffrey.local.core.manager.server.RemoteServersManager;
+import cafe.jeffrey.local.core.manager.workspace.WorkspaceManager;
 import cafe.jeffrey.local.persistence.api.LocalCoreRepositories;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.shared.common.exception.Exceptions;
@@ -31,21 +32,23 @@ import java.util.Optional;
 /**
  * Resolves a {@code profileId} to the underlying {@link ProfileManager}.
  * Checks the quick-analysis store first, then falls back to a direct DB
- * lookup against the local-core profile repository — avoiding iteration
- * across all workspaces/projects (which would trigger HTTP calls for
- * remote workspaces).
+ * lookup against the local-core profile repository.
+ *
+ * <p>For workspace-scoped profiles, walks the connected remote servers in order
+ * and returns the first hit — workspace IDs are server-generated UUIDs so a
+ * given profile belongs to exactly one server.
  */
 public class ProfileManagerResolver {
 
-    private final WorkspacesManager workspacesManager;
-    private final @Nullable QuickAnalysisManager quickAnalysisManager;
+    private final RemoteServersManager remoteServersManager;
+    private final QuickAnalysisManager quickAnalysisManager;
     private final LocalCoreRepositories localCoreRepositories;
 
     public ProfileManagerResolver(
-            WorkspacesManager workspacesManager,
-            @Nullable QuickAnalysisManager quickAnalysisManager,
+            RemoteServersManager remoteServersManager,
+            QuickAnalysisManager quickAnalysisManager,
             LocalCoreRepositories localCoreRepositories) {
-        this.workspacesManager = workspacesManager;
+        this.remoteServersManager = remoteServersManager;
         this.quickAnalysisManager = quickAnalysisManager;
         this.localCoreRepositories = localCoreRepositories;
     }
@@ -69,8 +72,17 @@ public class ProfileManagerResolver {
         }
 
         ProfileInfo profileInfo = profileInfoOpt.get();
-        return workspacesManager.findById(profileInfo.workspaceId())
-                .flatMap(ws -> ws.projectsManager().project(profileInfo.projectId()))
-                .flatMap(pm -> pm.profilesManager().profile(profileId));
+        for (RemoteServerManager server : remoteServersManager.findAll()) {
+            Optional<WorkspaceManager> ws = server.workspace(profileInfo.workspaceId());
+            if (ws.isEmpty()) {
+                continue;
+            }
+            Optional<ProfileManager> resolved = ws.flatMap(w -> w.projectsManager().project(profileInfo.projectId()))
+                    .flatMap(pm -> pm.profilesManager().profile(profileId));
+            if (resolved.isPresent()) {
+                return resolved;
+            }
+        }
+        return Optional.empty();
     }
 }

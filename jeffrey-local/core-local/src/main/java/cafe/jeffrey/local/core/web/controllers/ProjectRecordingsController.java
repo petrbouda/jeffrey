@@ -56,7 +56,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/api/internal/workspaces/{workspaceId}/projects/{projectId}/recordings")
+@RequestMapping("/api/internal/remote-servers/{serverId}/workspaces/{workspaceId}/projects/{projectId}/recordings")
 public class ProjectRecordingsController {
 
     private static final Logger LOG = LoggerFactory.getLogger(ProjectRecordingsController.class);
@@ -69,9 +69,10 @@ public class ProjectRecordingsController {
 
     @GetMapping
     public List<RecordingsResponse> recordings(
+            @PathVariable("serverId") String serverId,
             @PathVariable("workspaceId") String workspaceId,
             @PathVariable("projectId") String projectId) {
-        ProjectManager projectManager = resolver.resolve(workspaceId, projectId).projectManager();
+        ProjectManager projectManager = resolver.resolve(serverId, workspaceId, projectId).projectManager();
         RecordingsManager recordingsManager = projectManager.recordingsManager();
         ProfilesManager profilesManager = projectManager.profilesManager();
 
@@ -117,19 +118,21 @@ public class ProjectRecordingsController {
 
     @PostMapping("/groups")
     public ResponseEntity<Void> createGroup(
+            @PathVariable("serverId") String serverId,
             @PathVariable("workspaceId") String workspaceId,
             @PathVariable("projectId") String projectId,
             @RequestBody CreateGroupRequest request) {
         LOG.debug("Creating recording group: groupName={}", request.groupName());
-        recordings(workspaceId, projectId, mgr -> mgr.createGroup(request.groupName()));
+        recordings(serverId, workspaceId, projectId, mgr -> mgr.createGroup(request.groupName()));
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
     @GetMapping("/groups")
     public List<RecordingGroup> findAllGroups(
+            @PathVariable("serverId") String serverId,
             @PathVariable("workspaceId") String workspaceId,
             @PathVariable("projectId") String projectId) {
-        RecordingsManager mgr = resolver.resolve(workspaceId, projectId).projectManager().recordingsManager();
+        RecordingsManager mgr = resolver.resolve(serverId, workspaceId, projectId).projectManager().recordingsManager();
         var result = mgr.allRecordingGroups();
         LOG.debug("Listed recording groups: projectId={} count={}", projectId, result.size());
         return result;
@@ -137,42 +140,46 @@ public class ProjectRecordingsController {
 
     @DeleteMapping("/groups/{groupId}")
     public void deleteGroup(
+            @PathVariable("serverId") String serverId,
             @PathVariable("workspaceId") String workspaceId,
             @PathVariable("projectId") String projectId,
             @PathVariable("groupId") String groupId) {
         LOG.debug("Deleting recording group: groupId={}", groupId);
-        recordings(workspaceId, projectId, mgr -> mgr.deleteGroup(groupId));
+        recordings(serverId, workspaceId, projectId, mgr -> mgr.deleteGroup(groupId));
     }
 
     @PutMapping("/{recordingId}/group")
     public void moveRecordingToGroup(
+            @PathVariable("serverId") String serverId,
             @PathVariable("workspaceId") String workspaceId,
             @PathVariable("projectId") String projectId,
             @PathVariable("recordingId") String recordingId,
             @RequestBody MoveRecordingRequest request) {
         LOG.debug("Moving recording to group: recordingId={} groupId={}", recordingId, request.groupId());
-        recordings(workspaceId, projectId, mgr -> mgr.moveRecordingToGroup(recordingId, request.groupId()));
+        recordings(serverId, workspaceId, projectId, mgr -> mgr.moveRecordingToGroup(recordingId, request.groupId()));
     }
 
     @DeleteMapping("/{recordingId}")
     public void deleteRecording(
+            @PathVariable("serverId") String serverId,
             @PathVariable("workspaceId") String workspaceId,
             @PathVariable("projectId") String projectId,
             @PathVariable("recordingId") String recordingId) {
         LOG.debug("Deleting recording: recordingId={}", recordingId);
-        recordings(workspaceId, projectId, mgr -> mgr.delete(recordingId));
+        recordings(serverId, workspaceId, projectId, mgr -> mgr.delete(recordingId));
     }
 
     @GetMapping(value = "/{recordingId}/files/{fileId}/download",
             produces = MediaType.APPLICATION_OCTET_STREAM_VALUE)
     public ResponseEntity<StreamingResponseBody> downloadFile(
+            @PathVariable("serverId") String serverId,
             @PathVariable("workspaceId") String workspaceId,
             @PathVariable("projectId") String projectId,
             @PathVariable("recordingId") String recordingId,
             @PathVariable("fileId") String fileId) {
 
         LOG.debug("Downloading recording file: recordingId={} fileId={}", recordingId, fileId);
-        RecordingsManager mgr = resolver.resolve(workspaceId, projectId).projectManager().recordingsManager();
+        RecordingsManager mgr = resolver.resolve(serverId, workspaceId, projectId).projectManager().recordingsManager();
         Path filePath = mgr.findRecordingFile(recordingId, fileId)
                 .orElseThrow(() -> Exceptions.invalidRequest(
                         "Recording file not found: recordingId=" + recordingId + ", fileId=" + fileId));
@@ -200,7 +207,7 @@ public class ProjectRecordingsController {
                 recordingFile.recordingFileType().description());
     }
 
-    private void recordings(String workspaceId, String projectId, java.util.function.Consumer<RecordingsManager> action) {
-        action.accept(resolver.resolve(workspaceId, projectId).projectManager().recordingsManager());
+    private void recordings(String serverId, String workspaceId, String projectId, java.util.function.Consumer<RecordingsManager> action) {
+        action.accept(resolver.resolve(serverId, workspaceId, projectId).projectManager().recordingsManager());
     }
 }

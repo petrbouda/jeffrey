@@ -48,7 +48,7 @@ import java.time.Clock;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/internal/workspaces/{workspaceId}/projects/{projectId}/repository")
+@RequestMapping("/api/internal/remote-servers/{serverId}/workspaces/{workspaceId}/projects/{projectId}/repository")
 public class ProjectRepositoryController {
 
     private static final Logger LOG = LoggerFactory.getLogger(ProjectRepositoryController.class);
@@ -63,9 +63,10 @@ public class ProjectRepositoryController {
 
     @GetMapping("/sessions")
     public List<RecordingSessionResponse> listRepositorySessions(
+            @PathVariable("serverId") String serverId,
             @PathVariable("workspaceId") String workspaceId,
             @PathVariable("projectId") String projectId) {
-        ProjectManager pm = resolver.resolve(workspaceId, projectId).projectManager();
+        ProjectManager pm = resolver.resolve(serverId, workspaceId, projectId).projectManager();
         var result = pm.repositoryManager().listRecordingSessions(true).stream()
                 .map(s -> RecordingSessionResponse.from(s, clock))
                 .toList();
@@ -75,65 +76,71 @@ public class ProjectRepositoryController {
 
     @GetMapping("/statistics")
     public RepositoryStatisticsResponse getRepositoryStatistics(
+            @PathVariable("serverId") String serverId,
             @PathVariable("workspaceId") String workspaceId,
             @PathVariable("projectId") String projectId) {
         LOG.debug("Fetching repository statistics");
-        ProjectManager pm = resolver.resolve(workspaceId, projectId).projectManager();
+        ProjectManager pm = resolver.resolve(serverId, workspaceId, projectId).projectManager();
         RepositoryStatistics stats = pm.repositoryManager().calculateRepositoryStatistics();
         return RepositoryStatisticsResponse.from(stats);
     }
 
     @PostMapping("/sessions/download")
     public void downloadSession(
+            @PathVariable("serverId") String serverId,
             @PathVariable("workspaceId") String workspaceId,
             @PathVariable("projectId") String projectId,
             @RequestBody SelectedRecordingsRequest request) {
         LOG.debug("Downloading session recordings: sessionId={}", request.sessionId());
-        RecordingsDownloadManager mgr = resolver.resolve(workspaceId, projectId).projectManager().recordingsDownloadManager();
+        RecordingsDownloadManager mgr = resolver.resolve(serverId, workspaceId, projectId).projectManager().recordingsDownloadManager();
         mgr.mergeAndDownloadSession(request.sessionId());
     }
 
     @DeleteMapping("/sessions/{sessionId}")
     public void deleteSession(
+            @PathVariable("serverId") String serverId,
             @PathVariable("workspaceId") String workspaceId,
             @PathVariable("projectId") String projectId,
             @PathVariable("sessionId") String sessionId) {
         LOG.debug("Deleting repository session: sessionId={}", sessionId);
-        RepositoryManager mgr = resolver.resolve(workspaceId, projectId).projectManager().repositoryManager();
+        RepositoryManager mgr = resolver.resolve(serverId, workspaceId, projectId).projectManager().repositoryManager();
         mgr.deleteRecordingSession(sessionId, WorkspaceEventCreator.MANUAL);
     }
 
     @PostMapping("/recordings/download")
     public void downloadSelectedRecordings(
+            @PathVariable("serverId") String serverId,
             @PathVariable("workspaceId") String workspaceId,
             @PathVariable("projectId") String projectId,
             @RequestBody SelectedRecordingsRequest request) {
         LOG.debug("Downloading selected recordings: fileCount={}",
                 request.recordingIds() != null ? request.recordingIds().size() : 0);
-        RecordingsDownloadManager mgr = resolver.resolve(workspaceId, projectId).projectManager().recordingsDownloadManager();
+        RecordingsDownloadManager mgr = resolver.resolve(serverId, workspaceId, projectId).projectManager().recordingsDownloadManager();
         mgr.mergeAndDownloadRecordings(request.sessionId(), request.recordingIds());
     }
 
     @PostMapping("/recordings/delete")
     public void deleteRecording(
+            @PathVariable("serverId") String serverId,
             @PathVariable("workspaceId") String workspaceId,
             @PathVariable("projectId") String projectId,
             @RequestBody SelectedRecordingsRequest request) {
         LOG.debug("Deleting recording from repository");
-        RepositoryManager mgr = resolver.resolve(workspaceId, projectId).projectManager().repositoryManager();
+        RepositoryManager mgr = resolver.resolve(serverId, workspaceId, projectId).projectManager().repositoryManager();
         mgr.deleteFilesInSession(request.sessionId(), request.recordingIds());
     }
 
     @GetMapping(value = "/sessions/{sessionId}/files/{fileId}/download",
             produces = MediaType.APPLICATION_OCTET_STREAM_VALUE)
     public ResponseEntity<StreamingResponseBody> downloadFile(
+            @PathVariable("serverId") String serverId,
             @PathVariable("workspaceId") String workspaceId,
             @PathVariable("projectId") String projectId,
             @PathVariable("sessionId") String sessionId,
             @PathVariable("fileId") String fileId) {
 
         LOG.debug("Downloading session file: sessionId={} fileId={}", sessionId, fileId);
-        RepositoryManager mgr = resolver.resolve(workspaceId, projectId).projectManager().repositoryManager();
+        RepositoryManager mgr = resolver.resolve(serverId, workspaceId, projectId).projectManager().repositoryManager();
         StreamedRecordingFile file = mgr.streamFile(sessionId, fileId);
 
         StreamingResponseBody body = output -> {

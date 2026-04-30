@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -19,51 +19,30 @@
 import BasePlatformClient from '@/services/api/BasePlatformClient';
 import type { RequestOptions } from '@/services/api/BasePlatformClient';
 import Workspace from '@/services/api/model/Workspace';
-import CreateWorkspaceRequest from '@/services/api/model/CreateWorkspaceRequest';
-import WorkspaceEvent from '@/services/api/model/WorkspaceEvent';
 
+export interface CreateWorkspaceRequest {
+  referenceId: string;
+  name: string;
+}
+
+/**
+ * API client for workspace operations under a connected jeffrey-server.
+ * One instance per (serverId) — workspaces are listed live via gRPC.
+ */
 export default class WorkspaceClient extends BasePlatformClient {
-  constructor() {
-    super('/workspaces');
+  constructor(serverId: string) {
+    super(`/remote-servers/${serverId}/workspaces`);
   }
 
-  /**
-   * Get all workspaces
-   * GET /api/workspaces
-   */
-  async list(excludeRemote: boolean = false, options?: RequestOptions): Promise<Workspace[]> {
-    return super.get<Workspace[]>('', { excludeRemote: excludeRemote }, options);
+  async list(options?: RequestOptions): Promise<Workspace[]> {
+    return super.get<Workspace[]>('', undefined, options);
   }
 
-  /**
-   * Get a single workspace by ID
-   * GET /api/workspaces/{workspaceId}
-   */
-  async getById(workspaceId: string): Promise<Workspace> {
-    return super.get<Workspace>(`/${workspaceId}`);
-  }
-
-  /**
-   * Create a new workspace
-   * POST /api/workspaces
-   */
   async create(request: CreateWorkspaceRequest): Promise<Workspace> {
     return super.post<Workspace>('', request);
   }
 
-  /**
-   * Delete a workspace by ID
-   * DELETE /api/workspaces/{workspaceId}
-   */
   async delete(workspaceId: string): Promise<void> {
     return super.del<void>(`/${workspaceId}`);
-  }
-
-  /**
-   * Get events for a specific workspace
-   * GET /api/workspaces/{workspaceId}/events
-   */
-  async getEvents(workspaceId: string): Promise<WorkspaceEvent[]> {
-    return super.get<WorkspaceEvent[]>(`/${workspaceId}/events`);
   }
 }
