@@ -23,8 +23,8 @@ import RepositoryFile from '@/services/api/model/RepositoryFile.ts';
 import RepositoryStatistics from '@/services/api/model/RepositoryStatistics.ts';
 
 export default class ProjectRepositoryClient extends BasePlatformClient {
-  constructor(workspaceId: string, projectId: string) {
-    super(`/workspaces/${workspaceId}/projects/${projectId}/repository`);
+  constructor(serverId: string, workspaceId: string, projectId: string) {
+    super(`/remote-servers/${serverId}/workspaces/${workspaceId}/projects/${projectId}/repository`);
   }
 
   listRecordingSessions(): Promise<RecordingSession[]> {

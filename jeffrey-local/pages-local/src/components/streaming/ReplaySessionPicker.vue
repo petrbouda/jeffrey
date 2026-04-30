@@ -77,6 +77,7 @@ interface InstanceGroup {
 }
 
 const props = defineProps<{
+  serverId: string
   workspaceId: string
   projectId: string
   selected: SelectedSession | null
@@ -109,7 +110,7 @@ const hiddenInstanceCount = computed(() => allFilteredGroups.value.length - maxV
 async function loadSessions() {
   loading.value = true
   try {
-    const client = new ProjectInstanceClient(props.workspaceId, props.projectId)
+    const client = new ProjectInstanceClient(props.serverId, props.workspaceId, props.projectId)
     const instances = await client.list(true)
 
     instances.sort((a, b) => {

@@ -34,11 +34,11 @@ import MainCard from '@/components/MainCard.vue';
 import MainCardHeader from '@/components/MainCardHeader.vue';
 import '@/styles/shared-components.css';
 
-const { workspaceId, projectId } = useNavigation();
+const { serverId, workspaceId, projectId } = useNavigation();
 const currentProject = ref<SettingsResponse | null>(null);
 
-const schedulerService = new ProjectSchedulerClient(workspaceId.value!, projectId.value!);
-const settingsService = new ProjectSettingsClient(workspaceId.value!, projectId.value!);
+const schedulerService = new ProjectSchedulerClient(serverId.value, workspaceId.value!, projectId.value!);
+const settingsService = new ProjectSettingsClient(serverId.value, workspaceId.value!, projectId.value!);
 
 // Modal state
 const showCleanerModal = ref(false);

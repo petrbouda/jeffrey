@@ -23,6 +23,7 @@
     <div v-else class="col-12">
       <RecordingSessionList
         :sessions="sessions"
+        :serverId="serverId!"
         :workspaceId="workspaceId!"
         :projectId="projectId!"
         :isRemoteWorkspace="isRemoteWorkspace"
@@ -58,7 +59,7 @@ import RecordingSession from '@/services/api/model/RecordingSession';
 import { useNavigation } from '@/composables/useNavigation';
 import '@/styles/shared-components.css';
 
-const { workspaceId, projectId, instanceId } = useNavigation();
+const { serverId, workspaceId, projectId, instanceId } = useNavigation();
 
 // Collector-only mode is never active in local mode
 const isCollectorOnly = computed(() => {
@@ -78,7 +79,7 @@ const isRemoteWorkspace = computed(() => {
 const fetchSessions = async () => {
   sessionsLoading.value = true;
   try {
-    const repositoryService = new ProjectRepositoryClient(workspaceId.value!, projectId.value!);
+    const repositoryService = new ProjectRepositoryClient(serverId.value, workspaceId.value!, projectId.value!);
     const allSessions = await repositoryService.listRecordingSessions();
     sessions.value = allSessions.filter(s => s.instanceId === instanceId.value);
   } catch (error: any) {
@@ -91,7 +92,7 @@ const fetchSessions = async () => {
 };
 
 onMounted(async () => {
-  const client = new ProjectInstanceClient(workspaceId.value!, projectId.value!);
+  const client = new ProjectInstanceClient(serverId.value, workspaceId.value!, projectId.value!);
 
   const [inst] = await Promise.all([client.find(instanceId.value!), fetchSessions()]);
 

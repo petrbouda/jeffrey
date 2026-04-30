@@ -876,3 +876,244 @@
   color: var(--color-danger-hover);
   background: #fef2f2;
 }
+
+/* ===========================================
+   Drawer Form (modern fields used in LeftDrawer)
+   =========================================== */
+.drawer-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+
+.drawer-section + .drawer-section {
+  margin-top: var(--spacing-2);
+}
+
+.drawer-section-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.drawer-section-label i {
+  color: var(--color-primary);
+  font-size: 0.85rem;
+}
+
+.field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field-label {
+  font-size: 0.78rem;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-dark);
+  margin: 0;
+}
+
+.field-required {
+  color: var(--color-danger);
+  margin-left: 2px;
+}
+
+.field-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px;
+  height: 46px;
+  background: var(--color-neutral-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  transition: all var(--transition-base);
+}
+
+.field-wrap:hover:not(.is-disabled) {
+  border-color: var(--color-primary-border, var(--color-primary-light));
+  background: var(--color-white);
+}
+
+.field-wrap:focus-within {
+  background: var(--color-white);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-light);
+}
+
+.field-wrap.is-disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.field-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: var(--font-size-base);
+  color: var(--color-dark);
+  padding: 0;
+  height: 100%;
+  min-width: 0;
+}
+
+.field-input::placeholder {
+  color: var(--color-text-light);
+}
+
+.field-input.is-mono {
+  font-family: 'SF Mono', Monaco, Menlo, Consolas, monospace;
+  font-size: var(--font-size-sm);
+}
+
+.field-input[type='number'] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.field-input[type='number']::-webkit-inner-spin-button,
+.field-input[type='number']::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 80px;
+  gap: var(--spacing-3);
+}
+
+.field-hint {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
+.field-hint code {
+  background: var(--color-light);
+  padding: 1px 5px;
+  border-radius: var(--radius-sm);
+  font-size: 0.72rem;
+  color: var(--color-primary);
+  border: 1px solid var(--color-border-light);
+}
+
+/* ----- Server context card (read-only server display) ----- */
+.server-context-card {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  padding: 14px;
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  position: relative;
+  overflow: hidden;
+}
+
+.server-context-card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--color-primary);
+}
+
+.server-context-name {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-dark);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.server-context-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  background: var(--color-success-light);
+  color: var(--color-success-hover);
+  border-radius: 999px;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  flex-shrink: 0;
+}
+
+.server-context-pill .status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-success);
+}
+
+/* ----- Settings row (toggle/checkbox row inside drawer) ----- */
+.setting-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  padding: 14px;
+  background: var(--color-neutral-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.setting-row:hover {
+  border-color: var(--color-primary-light);
+  background: var(--color-white);
+}
+
+.setting-row-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.setting-row-title {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-dark);
+}
+
+.setting-row-sub {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  line-height: 1.4;
+}
+
+/* ----- Modern inline alert ----- */
+.field-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  background: var(--color-danger-light);
+  border: 1px solid var(--color-danger);
+  border-radius: var(--radius-md);
+  color: var(--color-danger-hover);
+  font-size: var(--font-size-sm);
+  line-height: 1.4;
+}
+
+.field-alert i {
+  font-size: 1rem;
+  margin-top: 1px;
+  flex-shrink: 0;
+}

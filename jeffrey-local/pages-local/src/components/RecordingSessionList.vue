@@ -41,7 +41,7 @@ const toast = ToastService;
 const { generateInstanceUrl } = useNavigation();
 
 const repositoryService = computed(
-  () => new ProjectRepositoryClient(props.workspaceId, props.projectId)
+  () => new ProjectRepositoryClient(props.serverId, props.workspaceId, props.projectId)
 );
 
 // --- Session UI state ---
@@ -348,6 +348,7 @@ const downloadSession = async (sessionId: string) => {
     if (props.isRemoteWorkspace) {
       const fileIds = session.files.map(f => f.id);
       await downloadAssistantStore.startDownload(
+        props.serverId,
         props.workspaceId,
         props.projectId,
         sessionId,
@@ -390,6 +391,7 @@ const downloadSelectedSources = async (sessionId: string) => {
     if (props.isRemoteWorkspace) {
       const fileIds = selectedSources.map(f => f.id);
       await downloadAssistantStore.startDownload(
+        props.serverId,
         props.workspaceId,
         props.projectId,
         sessionId,

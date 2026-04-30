@@ -119,7 +119,7 @@ additional-jvm-options = "-Xmx2g -Xms2g -Djeffrey.logging.trace-file.path=<<JEFF
               <td>Base directory for Jeffrey data. Falls back to the <code>JEFFREY_HOME</code> env var when neither <code>jeffrey-home</code> nor <code>workspaces-dir</code> is set in HOCON.</td>
             </tr>
             <tr>
-              <td><code>project.workspace-id</code></td>
+              <td><code>project.workspace-ref-id</code></td>
               <td>Yes</td>
               <td>—</td>
               <td>

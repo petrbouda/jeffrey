@@ -29,7 +29,7 @@ interface GroupSection {
 
 const toast = ToastService;
 const router = useRouter();
-const { workspaceId, projectId, generateProfileUrl } = useNavigation();
+const { serverId, workspaceId, projectId, generateProfileUrl } = useNavigation();
 
 const recordings = ref<Recording[]>([]);
 const groups = ref<RecordingGroup[]>([]);
@@ -82,9 +82,9 @@ const removeDeletingProfile = (profileId: string) => {
 onMounted(async () => {
   if (!workspaceId.value || !projectId.value) return;
 
-  projectProfileClient = new ProjectProfileClient(workspaceId.value, projectId.value);
-  projectRecordingClient = new ProjectRecordingClient(workspaceId.value, projectId.value);
-  projectRecordingGroupClient = new ProjectRecordingGroupClient(workspaceId.value, projectId.value);
+  projectProfileClient = new ProjectProfileClient(serverId.value, workspaceId.value, projectId.value);
+  projectRecordingClient = new ProjectRecordingClient(serverId.value, workspaceId.value, projectId.value);
+  projectRecordingGroupClient = new ProjectRecordingGroupClient(serverId.value, workspaceId.value, projectId.value);
 
   await loadData();
 

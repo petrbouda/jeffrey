@@ -48,6 +48,7 @@ import type { Variant } from '@/types/ui';
 
 const props = defineProps<{
   project: Project;
+  serverId: string;
   workspaceId: string;
 }>();
 
@@ -59,7 +60,7 @@ const { navigateToProject } = useNavigation();
 
 const handleClick = () => {
   if (!props.project.isDeleted) {
-    navigateToProject(props.project.id, props.workspaceId);
+    navigateToProject(props.serverId, props.project.id, props.workspaceId);
   }
 };
 

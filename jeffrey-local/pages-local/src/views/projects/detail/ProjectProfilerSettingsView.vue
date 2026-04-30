@@ -75,8 +75,8 @@ import SettingsBreadcrumbs from '@/components/settings/SettingsBreadcrumbs.vue';
 import type { BreadcrumbItem } from '@/components/settings/SettingsBreadcrumbs.vue';
 import type ProfilerSettings from '@/services/api/model/ProfilerSettings';
 
-const { workspaceId, projectId } = useNavigation();
-const profilerClient = new ProjectProfilerClient(workspaceId.value, projectId.value);
+const { serverId, workspaceId, projectId } = useNavigation();
+const profilerClient = new ProjectProfilerClient(serverId.value, workspaceId.value, projectId.value);
 
 // State
 const isLoading = ref(true);

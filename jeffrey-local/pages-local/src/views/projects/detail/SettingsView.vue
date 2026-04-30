@@ -147,11 +147,11 @@ import MainCardHeader from '@/components/MainCardHeader.vue';
 import '@/styles/shared-components.css';
 
 const router = useRouter();
-const { workspaceId, projectId } = useNavigation();
+const { serverId, workspaceId, projectId } = useNavigation();
 
 // Create clients
-const settingsClient = new ProjectSettingsClient(workspaceId.value!, projectId.value!);
-const projectClient = new ProjectClient(workspaceId.value!, projectId.value!);
+const settingsClient = new ProjectSettingsClient(serverId.value, workspaceId.value!, projectId.value!);
+const projectClient = new ProjectClient(serverId.value, workspaceId.value!, projectId.value!);
 
 // State variables
 const originalProjectName = ref('');

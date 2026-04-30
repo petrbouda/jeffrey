@@ -23,8 +23,8 @@ import ProjectInstanceSession from '@/services/api/model/ProjectInstanceSession'
 import ProjectInstanceSessionDetail from '@/services/api/model/ProjectInstanceSessionDetail';
 
 export default class ProjectInstanceClient extends BasePlatformClient {
-  constructor(workspaceId: string, projectId: string) {
-    super(`/workspaces/${workspaceId}/projects/${projectId}/instances`);
+  constructor(serverId: string, workspaceId: string, projectId: string) {
+    super(`/remote-servers/${serverId}/workspaces/${workspaceId}/projects/${projectId}/instances`);
   }
 
   async list(includeSessions: boolean = false): Promise<ProjectInstance[]> {

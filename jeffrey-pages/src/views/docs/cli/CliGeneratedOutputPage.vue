@@ -218,7 +218,7 @@ export JDK_JAVA_OPTIONS='-agentpath:/tmp/jeffrey/libs/current/libasyncProfiler.s
             </tr>
             <tr>
               <td><code>JEFFREY_CURRENT_WORKSPACE</code></td>
-              <td>Path to the current workspace directory (from <code>project.workspace-id</code> config)</td>
+              <td>Path to the current workspace directory (from <code>project.workspace-ref-id</code> config)</td>
             </tr>
             <tr>
               <td><code>JEFFREY_CURRENT_PROJECT</code></td>

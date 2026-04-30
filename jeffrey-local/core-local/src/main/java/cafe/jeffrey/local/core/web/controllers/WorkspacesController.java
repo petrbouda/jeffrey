@@ -24,6 +24,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -31,6 +32,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.local.core.manager.server.RemoteServerManager;
+import cafe.jeffrey.local.core.manager.workspace.WorkspaceManager;
 import cafe.jeffrey.local.core.resources.request.CreateWorkspaceRequest;
 import cafe.jeffrey.local.core.resources.response.WorkspaceResponse;
 import cafe.jeffrey.local.core.resources.workspace.Mappers;
@@ -60,6 +62,25 @@ public class WorkspacesController {
                 .toList();
         LOG.debug("Listed workspaces: serverId={} count={}", serverId, result.size());
         return result;
+    }
+
+    @GetMapping("/{workspaceId}")
+    public WorkspaceResponse workspace(
+            @PathVariable("serverId") String serverId,
+            @PathVariable("workspaceId") String workspaceId) {
+
+        WorkspaceManager workspace = resolver.resolveWorkspace(serverId, workspaceId);
+        return Mappers.toResponse(workspace.resolveInfo());
+    }
+
+    @DeleteMapping("/{workspaceId}")
+    public ResponseEntity<Void> delete(
+            @PathVariable("serverId") String serverId,
+            @PathVariable("workspaceId") String workspaceId) {
+
+        WorkspaceManager workspace = resolver.resolveWorkspace(serverId, workspaceId);
+        workspace.delete();
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping

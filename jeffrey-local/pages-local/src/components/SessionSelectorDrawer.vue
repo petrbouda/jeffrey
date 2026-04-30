@@ -106,6 +106,7 @@ export interface SessionSelection {
 
 const props = defineProps<{
   show: boolean
+  serverId: string
   workspaceId: string
   projectId: string
 }>()
@@ -148,7 +149,7 @@ watch(
 async function loadSessions() {
   loading.value = true
   try {
-    const client = new ProjectInstanceClient(props.workspaceId, props.projectId)
+    const client = new ProjectInstanceClient(props.serverId, props.workspaceId, props.projectId)
     const instances = await client.list(true)
 
     // Sort instances: ACTIVE first, then by createdAt descending

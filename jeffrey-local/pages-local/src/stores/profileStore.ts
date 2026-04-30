@@ -24,6 +24,7 @@ import Profile from '@/services/api/model/Profile';
  * This is what we receive from the new /profiles/{profileId} endpoint.
  */
 export interface ProfileWithContext extends Profile {
+  serverId: string;
   workspaceId: string;
   projectId: string;
 }
@@ -43,6 +44,7 @@ const error = ref<string | null>(null);
 const profileId = computed(() => currentProfile.value?.id ?? '');
 const projectId = computed(() => currentProfile.value?.projectId ?? '');
 const workspaceId = computed(() => currentProfile.value?.workspaceId ?? '');
+const serverId = computed(() => currentProfile.value?.serverId ?? '');
 const profileName = computed(() => currentProfile.value?.name ?? '');
 const isLoaded = computed(() => currentProfile.value !== null);
 
@@ -91,6 +93,7 @@ export const profileStore = {
   profileId,
   projectId,
   workspaceId,
+  serverId,
   profileName,
   isLoaded,
 

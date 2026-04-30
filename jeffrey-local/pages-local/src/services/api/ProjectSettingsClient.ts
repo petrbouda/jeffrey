@@ -20,8 +20,8 @@ import BasePlatformClient from '@/services/api/BasePlatformClient';
 import SettingsResponse from '@/services/api/model/SettingsResponse';
 
 export default class ProjectSettingsClient extends BasePlatformClient {
-  constructor(workspaceId: string, projectId: string) {
-    super(`/workspaces/${workspaceId}/projects/${projectId}/settings`);
+  constructor(serverId: string, workspaceId: string, projectId: string) {
+    super(`/remote-servers/${serverId}/workspaces/${workspaceId}/projects/${projectId}/settings`);
   }
 
   updateName(name: string): Promise<void> {

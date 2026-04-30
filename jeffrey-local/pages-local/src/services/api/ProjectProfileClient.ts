@@ -20,8 +20,8 @@ import BasePlatformClient from '@/services/api/BasePlatformClient';
 import Profile from '@/services/api/model/Profile';
 
 export default class ProjectProfileClient extends BasePlatformClient {
-  constructor(workspaceId: string, projectId: string) {
-    super(`/workspaces/${workspaceId}/projects/${projectId}/profiles`);
+  constructor(serverId: string, workspaceId: string, projectId: string) {
+    super(`/remote-servers/${serverId}/workspaces/${workspaceId}/projects/${projectId}/profiles`);
   }
 
   async find(profileId: string): Promise<Profile> {

@@ -54,8 +54,9 @@
               <span class="summary-detail-action">{{ editing === 'sessions' ? 'Done' : sessions.length ? 'Change' : 'Select' }}</span>
             </div>
             <div class="summary-detail-body">
-              <template v-if="editing === 'sessions' && workspaceId && projectId">
+              <template v-if="editing === 'sessions' && serverId && workspaceId && projectId">
                 <LiveSessionPicker
+                  :server-id="serverId"
                   :workspace-id="workspaceId"
                   :project-id="projectId"
                   :selected="sessions"

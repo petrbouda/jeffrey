@@ -400,7 +400,7 @@ import FormattingService from '@/services/FormattingService';
 import { useNavigation } from '@/composables/useNavigation';
 import '@/styles/shared-components.css';
 
-const { workspaceId, projectId, generateInstanceUrl, generateLiveStreamUrl, generateReplayStreamUrl } = useNavigation();
+const { serverId, workspaceId, projectId, generateInstanceUrl, generateLiveStreamUrl, generateReplayStreamUrl } = useNavigation();
 
 const timeRanges = [
   { label: '1H', value: '1h' },
@@ -422,7 +422,7 @@ const instanceDetails = ref<Map<string, ProjectInstanceDetail>>(new Map());
 // clicking another bar in the same row swaps the content.
 const activeSessionByInstance = ref<Map<string, string>>(new Map());
 const sessionDetails = ref<Map<string, ProjectInstanceSessionDetail>>(new Map());
-const instanceClient = new ProjectInstanceClient(workspaceId.value!, projectId.value!);
+const instanceClient = new ProjectInstanceClient(serverId.value, workspaceId.value!, projectId.value!);
 
 const totalSessions = computed(() =>
   instances.value.reduce((sum, i) => sum + (i.sessionCount ?? 0), 0)

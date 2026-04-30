@@ -21,8 +21,8 @@ import HttpUtils from '@/services/HttpUtils';
 import Recording from '@/services/api/model/Recording';
 
 export default class ProjectRecordingClient extends BasePlatformClient {
-  constructor(workspaceId: string, projectId: string) {
-    super(`/workspaces/${workspaceId}/projects/${projectId}/recordings`);
+  constructor(serverId: string, workspaceId: string, projectId: string) {
+    super(`/remote-servers/${serverId}/workspaces/${workspaceId}/projects/${projectId}/recordings`);
   }
 
   async list(): Promise<Recording[]> {

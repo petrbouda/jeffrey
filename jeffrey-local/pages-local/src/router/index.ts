@@ -485,14 +485,15 @@ const router = createRouter({
         }
       ]
     },
-    // Workspace-based routes
+    // Workspace-based routes (nested under remote-servers)
     {
-      path: '/workspaces/:workspaceId',
+      path: '/remote-servers/:serverId/workspaces/:workspaceId',
       component: () => import('@/layout/WorkspaceLayout.vue'),
       children: [
         {
           path: '',
-          redirect: to => `/workspaces/${to.params.workspaceId}/projects`
+          redirect: to =>
+            `/remote-servers/${to.params.serverId}/workspaces/${to.params.workspaceId}/projects`
         },
         {
           path: 'projects',
@@ -513,7 +514,7 @@ const router = createRouter({
                   path: '',
                   name: 'project-default',
                   redirect: to =>
-                    `/workspaces/${to.params.workspaceId}/projects/${to.params.projectId}/instances/timeline`
+                    `/remote-servers/${to.params.serverId}/workspaces/${to.params.workspaceId}/projects/${to.params.projectId}/instances/timeline`
                 },
                 {
                   path: 'settings',
@@ -525,7 +526,7 @@ const router = createRouter({
                   path: 'profiles',
                   name: 'project-profiles',
                   redirect: to =>
-                    `/workspaces/${to.params.workspaceId}/projects/${to.params.projectId}/recordings`
+                    `/remote-servers/${to.params.serverId}/workspaces/${to.params.workspaceId}/projects/${to.params.projectId}/recordings`
                 },
                 {
                   path: 'recordings',
@@ -549,7 +550,7 @@ const router = createRouter({
                 {
                   path: 'event-streaming',
                   redirect: to =>
-                    `/workspaces/${to.params.workspaceId}/projects/${to.params.projectId}/events/live-stream`
+                    `/remote-servers/${to.params.serverId}/workspaces/${to.params.workspaceId}/projects/${to.params.projectId}/events/live-stream`
                 },
                 {
                   path: 'events/live-stream',

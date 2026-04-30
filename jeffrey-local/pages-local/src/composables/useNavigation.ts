@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -24,8 +24,10 @@ export function useNavigation() {
   const route = useRoute();
   const router = useRouter();
 
-  // Get workspaceId and projectId from route params OR from profileStore
-  // This enables working with both old nested URLs and new simplified URLs
+  // Route params (with profileStore fallback for the simplified profile URL pattern)
+  const serverId = computed(
+    () => (route.params.serverId as string) || profileStore.serverId.value
+  );
   const workspaceId = computed(
     () => (route.params.workspaceId as string) || profileStore.workspaceId.value
   );
@@ -42,40 +44,45 @@ export function useNavigation() {
     () => route.path.startsWith('/profiles/') && !route.params.workspaceId
   );
 
-  const navigateToWorkspace = (workspaceId: string) => {
-    router.push(`/workspaces/${workspaceId}`);
+  const projectRoot = (sId: string, wId: string, pId: string) =>
+    `/remote-servers/${sId}/workspaces/${wId}/projects/${pId}`;
+
+  const navigateToWorkspace = (sId: string, wId: string) => {
+    router.push(`/remote-servers/${sId}/workspaces/${wId}`);
   };
 
-  const navigateToWorkspaceProjects = (workspaceId: string) => {
-    router.push(`/workspaces/${workspaceId}/projects`);
+  const navigateToWorkspaceProjects = (sId: string, wId: string) => {
+    router.push(`/remote-servers/${sId}/workspaces/${wId}/projects`);
   };
 
-  const navigateToProject = (projectId: string, wsId?: string) => {
-    const targetWorkspaceId = wsId || workspaceId.value;
-    router.push(`/workspaces/${targetWorkspaceId}/projects/${projectId}`);
+  const navigateToProject = (sId: string, pId: string, wId?: string) => {
+    const targetWorkspaceId = wId || workspaceId.value;
+    router.push(projectRoot(sId, targetWorkspaceId, pId));
   };
 
   /**
    * Navigate to a profile using simplified URL pattern.
    */
-  const navigateToProfile = (profileId: string) => {
-    router.push(`/profiles/${profileId}/overview`);
+  const navigateToProfile = (prId: string) => {
+    router.push(`/profiles/${prId}/overview`);
   };
 
   /**
    * Navigate back to the project's recordings list.
-   * Uses workspaceId/projectId from profileStore when using simplified URLs.
+   * Uses serverId/workspaceId/projectId from profileStore when using simplified URLs.
    */
-  const navigateToProjectRecordings = (wsId?: string, pId?: string) => {
-    const targetWorkspaceId = wsId || workspaceId.value;
+  const navigateToProjectRecordings = (sId?: string, wId?: string, pId?: string) => {
+    const targetServerId = sId || serverId.value;
+    const targetWorkspaceId = wId || workspaceId.value;
     const targetProjectId = pId || projectId.value;
-    router.push(`/workspaces/${targetWorkspaceId}/projects/${targetProjectId}/recordings`);
+    router.push(`${projectRoot(targetServerId, targetWorkspaceId, targetProjectId)}/recordings`);
   };
 
-  const generateProjectUrl = (path: string, pId?: string, wsId?: string) => {
-    const targetWorkspaceId = wsId || workspaceId.value;
+  const generateProjectUrl = (path: string, sId?: string, pId?: string, wId?: string) => {
+    const targetServerId = sId || serverId.value;
+    const targetWorkspaceId = wId || workspaceId.value;
     const targetProjectId = pId || projectId.value;
-    return `/workspaces/${targetWorkspaceId}/projects/${targetProjectId}/${path}`;
+    return `${projectRoot(targetServerId, targetWorkspaceId, targetProjectId)}/${path}`;
   };
 
   /**
@@ -89,10 +96,17 @@ export function useNavigation() {
   /**
    * Generate an instance URL within a project.
    */
-  const generateInstanceUrl = (instId: string, path?: string, pId?: string, wsId?: string) => {
-    const targetWorkspaceId = wsId || workspaceId.value;
+  const generateInstanceUrl = (
+    instId: string,
+    path?: string,
+    sId?: string,
+    pId?: string,
+    wId?: string
+  ) => {
+    const targetServerId = sId || serverId.value;
+    const targetWorkspaceId = wId || workspaceId.value;
     const targetProjectId = pId || projectId.value;
-    const basePath = `/workspaces/${targetWorkspaceId}/projects/${targetProjectId}/instances/${instId}`;
+    const basePath = `${projectRoot(targetServerId, targetWorkspaceId, targetProjectId)}/instances/${instId}`;
     return path ? `${basePath}/${path}` : basePath;
   };
 
@@ -100,10 +114,11 @@ export function useNavigation() {
     path: 'events/live-stream' | 'events/replay-stream',
     sessionId?: string,
     sessionInstance?: string,
+    sId?: string,
     pId?: string,
-    wsId?: string
+    wId?: string
   ) => {
-    const base = generateProjectUrl(path, pId, wsId);
+    const base = generateProjectUrl(path, sId, pId, wId);
     if (!sessionId) return base;
     const params = new URLSearchParams();
     params.set('sessionId', sessionId);
@@ -114,26 +129,29 @@ export function useNavigation() {
   const generateLiveStreamUrl = (
     sessionId?: string,
     sessionInstance?: string,
+    sId?: string,
     pId?: string,
-    wsId?: string
-  ) => buildStreamUrl('events/live-stream', sessionId, sessionInstance, pId, wsId);
+    wId?: string
+  ) => buildStreamUrl('events/live-stream', sessionId, sessionInstance, sId, pId, wId);
 
   const generateReplayStreamUrl = (
     sessionId?: string,
     sessionInstance?: string,
+    sId?: string,
     pId?: string,
-    wsId?: string
-  ) => buildStreamUrl('events/replay-stream', sessionId, sessionInstance, pId, wsId);
+    wId?: string
+  ) => buildStreamUrl('events/replay-stream', sessionId, sessionInstance, sId, pId, wId);
 
   /**
    * Navigate to an instance detail page.
    */
-  const navigateToInstance = (instId: string, pId?: string, wsId?: string) => {
-    router.push(generateInstanceUrl(instId, undefined, pId, wsId));
+  const navigateToInstance = (instId: string, sId?: string, pId?: string, wId?: string) => {
+    router.push(generateInstanceUrl(instId, undefined, sId, pId, wId));
   };
 
   return {
     // Route params (with profileStore fallback)
+    serverId,
     workspaceId,
     projectId,
     profileId,

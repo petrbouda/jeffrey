@@ -1,210 +1,368 @@
 <template>
-  <div>
-    <!-- Servers card: switcher tabs + add server -->
-    <MainCard>
-      <template #header>
-        <MainCardHeader icon="bi bi-hdd-network" title="Servers" :badge="servers.length">
-          <template #actions>
-            <button class="page-header-btn" @click="showAddServerModal = true">
-              <i class="bi bi-plus-lg"></i>
-              Add Server
-            </button>
-          </template>
-        </MainCardHeader>
-      </template>
-      <div v-if="servers.length === 0" class="text-center py-5">
-        <i class="bi bi-hdd-network display-4 text-muted mb-3 d-block"></i>
-        <h5 class="text-muted">No Jeffrey servers connected</h5>
-        <p class="text-muted small mb-3">
-          Connect to a running jeffrey-server to view its workspaces and projects.
-        </p>
-        <button class="btn btn-primary" @click="showAddServerModal = true">
-          <i class="bi bi-plus-lg me-1"></i> Add Server
-        </button>
-      </div>
-      <div v-else class="server-switcher">
-        <button
-          v-for="server in servers"
-          :key="server.id"
-          class="server-tab"
-          :class="{ active: selectedServerId === server.id }"
-          @click="selectServer(server.id)"
-        >
-          <span class="status-dot"></span>
-          <span class="tab-name">{{ server.name }}</span>
-          <span class="tab-meta">{{ server.hostname }}:{{ server.port }}</span>
-        </button>
-      </div>
-    </MainCard>
+  <div class="projects-layout">
+    <!-- Vertical icon rail: connected Jeffrey servers + add-server affordance -->
+    <aside class="server-rail">
+      <button
+        v-for="server in servers"
+        :key="server.id"
+        class="rail-avatar"
+        :class="[{ active: selectedServerId === server.id }, `is-${serverStatuses[server.id] || 'unknown'}`]"
+        :title="server.name"
+        @click="selectServer(server.id)"
+      >
+        <span class="avatar-text">{{ initials(server.name) }}</span>
+        <span class="status-dot"></span>
+        <span class="rail-tooltip">
+          <strong>{{ server.name }}</strong>
+          <small>{{ server.hostname }}:{{ server.port }}</small>
+          <small>{{ statusLabelFor(server.id) }}</small>
+        </span>
+      </button>
 
-    <!-- Workspaces card (for selected server) -->
-    <MainCard v-if="selectedServer">
-      <template #header>
-        <div class="workspace-context-bar">
-          <div class="context-bar-info">
-            <span class="workspace-name">{{ selectedServer.name }}</span>
-            <span class="context-divider">•</span>
-            <span class="workspace-meta">{{ workspaceCountText }}</span>
-            <span class="context-divider">•</span>
-            <span class="workspace-created">
-              Connected {{ FormattingService.formatRelativeTime(selectedServer.createdAt) }}
-            </span>
-          </div>
-          <div class="context-bar-actions">
-            <div class="context-search">
-              <i class="bi bi-search"></i>
-              <input
-                v-model="searchQuery"
-                type="text"
-                placeholder="Search workspaces..."
-              />
-            </div>
-            <button class="context-btn" title="Refresh" @click="refreshWorkspaces">
-              <i class="bi bi-arrow-clockwise"></i>
-            </button>
+      <div v-if="servers.length > 0" class="rail-divider"></div>
+
+      <button class="rail-add" title="Add Jeffrey Server" @click="showAddServerModal = true">
+        <i class="bi bi-plus-lg"></i>
+        <span class="rail-tooltip">
+          <strong>Add Jeffrey Server</strong>
+          <small>Connect a new gRPC endpoint</small>
+        </span>
+      </button>
+    </aside>
+
+    <!-- Empty state across both panels when no servers are connected -->
+    <div v-if="servers.length === 0" class="empty-canvas">
+      <i class="bi bi-hdd-network"></i>
+      <h5>No Jeffrey servers connected</h5>
+      <p>Add a server using the <strong>+</strong> button in the rail to view its workspaces and projects.</p>
+      <button class="btn btn-primary" @click="showAddServerModal = true">
+        <i class="bi bi-plus-lg me-1"></i> Add Server
+      </button>
+    </div>
+
+    <template v-else-if="selectedServer">
+      <!-- Workspace column: header for selected server + workspace list + create form -->
+      <section class="workspace-column">
+        <header class="ws-head">
+          <div class="ws-head-row">
+            <h3 class="ws-head-name">
+              <i class="bi bi-server text-primary"></i>
+              {{ selectedServer.name }}
+            </h3>
             <button
-              class="context-btn danger"
+              class="ws-head-btn danger"
               title="Remove server (does not delete server-side data)"
               @click="confirmDeleteServer"
             >
               <i class="bi bi-trash"></i>
             </button>
           </div>
-        </div>
-      </template>
+        </header>
 
-      <LoadingState v-if="loadingWorkspaces" message="Loading workspaces..." />
-      <ErrorState
-        v-else-if="workspacesError"
-        :message="workspacesError"
-        @retry="refreshWorkspaces"
-      />
-      <EmptyState
-        v-else-if="filteredWorkspaces.length === 0 && !showCreateForm"
-        icon="bi-folder-plus"
-        title="No workspaces on this server"
-        description="Create a workspace below — its Reference ID becomes jeffrey-cli's project.workspace-id."
-      />
-      <div v-else-if="filteredWorkspaces.length > 0" class="row g-4 p-4">
-        <div
-          v-for="workspace in filteredWorkspaces"
-          :key="workspace.id"
-          class="col-12 col-md-6 col-lg-4"
+        <div class="ws-body">
+          <div class="ws-search">
+            <i class="bi bi-search"></i>
+            <input
+              v-model="searchQuery"
+              type="text"
+              placeholder="Search workspaces…"
+            />
+          </div>
+
+          <LoadingState v-if="loadingWorkspaces" message="Loading workspaces…" />
+          <ErrorState
+            v-else-if="workspacesError"
+            :message="workspacesError"
+            @retry="refreshWorkspaces"
+          />
+
+          <template v-else>
+            <div class="ws-section-title">Workspaces</div>
+
+            <button
+              v-for="workspace in filteredWorkspaces"
+              :key="workspace.id"
+              class="ws-item"
+              :class="{ active: workspace.id === selectedWorkspaceId }"
+              @click="selectWorkspace(workspace.id)"
+            >
+              <i class="bi bi-folder"></i>
+              <span class="ws-item-name">{{ workspace.name }}</span>
+              <Badge
+                :value="workspace.projectCount"
+                variant="secondary"
+                size="xs"
+              />
+            </button>
+
+            <div
+              v-if="filteredWorkspaces.length === 0 && !showCreateForm"
+              class="ws-empty"
+            >
+              <i class="bi bi-folder-x"></i>
+              <span>No workspaces yet</span>
+            </div>
+
+            <!-- Inline "Create Workspace" trigger / form (variant 1, kept) -->
+            <button class="ws-create-trigger" @click="openCreateForm">
+              <i class="bi bi-plus-lg"></i> Create Workspace
+            </button>
+          </template>
+        </div>
+      </section>
+
+      <!-- Main area: project grid for the selected workspace -->
+      <main class="project-main">
+        <template v-if="selectedWorkspace">
+          <header class="main-head">
+            <div class="main-head-info">
+              <h2>
+                <i class="bi bi-folder-fill text-primary"></i>
+                {{ selectedWorkspace.name }}
+              </h2>
+              <Badge
+                key-label="Projects"
+                :value="projects.length"
+                variant="secondary"
+                size="s"
+                :uppercase="false"
+                :borderless="true"
+              />
+            </div>
+            <div class="main-head-actions">
+              <div class="search">
+                <i class="bi bi-search"></i>
+                <input
+                  v-model="projectSearchQuery"
+                  type="text"
+                  placeholder="Search projects…"
+                />
+              </div>
+              <button
+                class="icon-btn"
+                title="Workspace info"
+                @click="showWorkspaceInfo = true"
+              >
+                <i class="bi bi-info-circle"></i>
+              </button>
+              <button
+                class="icon-btn"
+                title="Refresh"
+                @click="refreshProjects"
+              >
+                <i class="bi bi-arrow-clockwise"></i>
+              </button>
+              <button
+                class="icon-btn danger"
+                title="Delete workspace"
+                @click="deleteWorkspace(selectedWorkspace)"
+              >
+                <i class="bi bi-trash"></i>
+              </button>
+            </div>
+          </header>
+
+          <LoadingState v-if="loadingProjects" message="Loading projects…" />
+          <ErrorState
+            v-else-if="projectsError"
+            :message="projectsError"
+            @retry="refreshProjects"
+          />
+          <EmptyState
+            v-else-if="filteredProjects.length === 0"
+            icon="bi-folder-plus"
+            title="No projects in this workspace"
+            description="Projects appear here when jeffrey-cli reports them via workspace events."
+          />
+          <div v-else class="project-grid">
+            <ProjectCard
+              v-for="project in filteredProjects"
+              :key="project.id"
+              :project="project"
+              :server-id="selectedServerId!"
+              :workspace-id="selectedWorkspace.id"
+              @restore="handleRestoreProject"
+            />
+          </div>
+        </template>
+
+        <!-- Server has no workspaces yet -->
+        <div v-else class="main-empty">
+          <i class="bi bi-folder-plus"></i>
+          <h5>No workspace selected</h5>
+          <p>
+            Create a workspace in the panel on the left — its
+            <strong>Reference ID</strong> becomes
+            <code>jeffrey-cli</code>'s <code>project.workspace-ref-id</code>.
+          </p>
+        </div>
+      </main>
+    </template>
+
+    <!-- Drawers -->
+    <AddServerModal v-model:show="showAddServerModal" @server-added="handleServerAdded" />
+
+    <LeftDrawer
+      v-model:show="showCreateForm"
+      title="Create Workspace"
+      icon="bi-folder-plus"
+      @submit="submitCreate"
+    >
+      <div v-if="selectedServer" class="drawer-section">
+        <div class="drawer-section-label">
+          <i class="bi bi-hdd-network"></i>
+          Target Server
+        </div>
+        <div class="server-context-card">
+          <div class="server-context-name">{{ selectedServer.name }}</div>
+          <span class="server-context-pill">
+            <span class="status-dot"></span>
+            Active
+          </span>
+        </div>
+      </div>
+
+      <div class="drawer-section">
+        <div class="drawer-section-label">
+          <i class="bi bi-folder-plus"></i>
+          Workspace
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">
+            Workspace Name
+            <span class="field-required">*</span>
+          </label>
+          <div class="field-wrap" :class="{ 'is-disabled': creating }">
+            <input
+              v-model="createForm.name"
+              type="text"
+              class="field-input"
+              placeholder="e.g. dev-pb"
+              :disabled="creating"
+            />
+          </div>
+          <div class="field-hint">Shown in the workspace list and project header.</div>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">
+            Reference ID
+            <span class="field-required">*</span>
+          </label>
+          <div class="field-wrap" :class="{ 'is-disabled': creating }">
+            <input
+              v-model="createForm.referenceId"
+              type="text"
+              class="field-input is-mono"
+              placeholder="e.g. uat"
+              :disabled="creating"
+            />
+          </div>
+          <div class="field-hint">
+            Used by <strong>jeffrey-cli</strong>'s
+            <code>project.workspace-ref-id</code>. Must be unique on this server.
+          </div>
+        </div>
+      </div>
+
+      <div v-if="createError" class="field-alert" role="alert">
+        <i class="bi bi-exclamation-triangle"></i>
+        <span>{{ createError }}</span>
+      </div>
+
+      <template #footer>
+        <button class="btn btn-secondary" :disabled="creating" @click="closeCreateForm">
+          Cancel
+        </button>
+        <button
+          class="btn btn-primary"
+          :disabled="!isCreateFormValid || creating"
+          @click="submitCreate"
         >
-          <div class="workspace-card">
-            <div class="workspace-card-title">
-              <i class="bi bi-folder text-primary"></i>
-              {{ workspace.name }}
-            </div>
-            <div class="workspace-card-meta">
-              <span class="ref-id">{{ workspace.id }}</span>
-            </div>
-            <div class="workspace-card-footer">
-              <span>{{ workspace.projectCount }} projects</span>
-              <button class="btn btn-sm btn-link p-0" @click="deleteWorkspace(workspace)">
-                <i class="bi bi-trash text-danger"></i>
+          <span v-if="creating" class="spinner-border spinner-border-sm me-2" role="status"></span>
+          Create Workspace
+        </button>
+      </template>
+    </LeftDrawer>
+
+    <LeftDrawer
+      v-if="selectedWorkspace"
+      v-model:show="showWorkspaceInfo"
+      title="Workspace Info"
+      icon="bi-info-circle"
+    >
+      <div class="drawer-section">
+        <div class="drawer-section-label">
+          <i class="bi bi-folder"></i>
+          Workspace
+        </div>
+
+        <div class="info-rows">
+          <div class="info-row">
+            <div class="info-row-label">Name</div>
+            <div class="info-row-value">{{ selectedWorkspace.name }}</div>
+          </div>
+
+          <div class="info-row">
+            <div class="info-row-label">Reference ID</div>
+            <div class="info-row-value is-mono">
+              <span class="info-row-text">{{ selectedWorkspace.referenceId || '—' }}</span>
+              <button
+                v-if="selectedWorkspace.referenceId"
+                class="info-copy-btn"
+                title="Copy"
+                @click="copyText(selectedWorkspace.referenceId)"
+              >
+                <i class="bi bi-clipboard"></i>
               </button>
             </div>
           </div>
+
+          <div class="info-row">
+            <div class="info-row-label">Workspace ID</div>
+            <div class="info-row-value is-mono">
+              <span class="info-row-text">{{ selectedWorkspace.id }}</span>
+              <button
+                class="info-copy-btn"
+                title="Copy"
+                @click="copyText(selectedWorkspace.id)"
+              >
+                <i class="bi bi-clipboard"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="info-row">
+            <div class="info-row-label">Projects</div>
+            <div class="info-row-value">
+              {{ selectedWorkspace.projectCount }}
+            </div>
+          </div>
         </div>
       </div>
 
-      <!-- Inline expanding "+ Create Workspace" form (variant 1) -->
-      <div class="create-workspace-region p-4">
-        <button
-          v-if="!showCreateForm"
-          class="create-workspace-trigger"
-          @click="openCreateForm"
-        >
-          <i class="bi bi-plus-lg me-2"></i> Create Workspace
-        </button>
+      <div v-if="selectedServer" class="drawer-section">
+        <div class="drawer-section-label">
+          <i class="bi bi-hdd-network"></i>
+          Server
+        </div>
 
-        <div v-else class="inline-form-card">
-          <div class="inline-form-header">
-            <h4>
-              <i class="bi bi-plus-lg text-primary me-2"></i>
-              Create Workspace on {{ selectedServer.name }}
-            </h4>
-            <button class="context-btn" title="Cancel" @click="closeCreateForm">
-              <i class="bi bi-x-lg"></i>
-            </button>
+        <div class="info-rows">
+          <div class="info-row">
+            <div class="info-row-label">Name</div>
+            <div class="info-row-value">{{ selectedServer.name }}</div>
           </div>
 
-          <div class="inline-form-row">
-            <div class="form-group">
-              <label class="form-label">
-                Workspace Name <span class="text-danger">*</span>
-              </label>
-              <input
-                v-model="createForm.name"
-                type="text"
-                class="form-control"
-                placeholder="e.g. dev-pb"
-                :disabled="creating"
-              />
-              <small class="text-muted">Shown in the workspace switcher and on cards.</small>
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">
-                Reference ID <span class="text-danger">*</span>
-              </label>
-              <div class="input-group">
-                <input
-                  v-model="createForm.referenceId"
-                  type="text"
-                  class="form-control font-monospace"
-                  :disabled="creating"
-                />
-                <button
-                  type="button"
-                  class="btn btn-outline-secondary"
-                  title="Generate new UUID"
-                  :disabled="creating"
-                  @click="regenerateReferenceId"
-                >
-                  <i class="bi bi-arrow-clockwise"></i>
-                </button>
-              </div>
-              <small class="text-muted">
-                Used by <strong>jeffrey-cli</strong>'s
-                <code>project.workspace-id</code>. Must be unique on this server.
-              </small>
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">Server</label>
-            <div class="server-readonly">
-              <span class="status-dot"></span>
+          <div class="info-row">
+            <div class="info-row-label">Address</div>
+            <div class="info-row-value is-mono">
               {{ selectedServer.hostname }}:{{ selectedServer.port }}
-              <span class="ms-auto small text-muted">selected via tabs above</span>
             </div>
-          </div>
-
-          <div v-if="createError" class="alert alert-danger mb-0" role="alert">
-            <i class="bi bi-exclamation-triangle me-2"></i>{{ createError }}
-          </div>
-
-          <div class="form-actions">
-            <button class="btn btn-secondary" :disabled="creating" @click="closeCreateForm">
-              Cancel
-            </button>
-            <button
-              class="btn btn-primary"
-              :disabled="!isCreateFormValid || creating"
-              @click="submitCreate"
-            >
-              <span v-if="creating" class="spinner-border spinner-border-sm me-2" role="status"></span>
-              Create Workspace
-            </button>
           </div>
         </div>
       </div>
-    </MainCard>
-
-    <!-- Modals -->
-    <AddServerModal v-model:show="showAddServerModal" @server-added="handleServerAdded" />
+    </LeftDrawer>
 
     <ConfirmationDialog
       v-model:show="showDeleteServerModal"
@@ -220,32 +378,45 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
-import MainCard from '@/components/MainCard.vue';
-import MainCardHeader from '@/components/MainCardHeader.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import ErrorState from '@/components/ErrorState.vue';
 import EmptyState from '@/components/EmptyState.vue';
 import ConfirmationDialog from '@/components/ConfirmationDialog.vue';
 import AddServerModal from '@/components/projects/AddServerModal.vue';
+import LeftDrawer from '@/components/LeftDrawer.vue';
+import ProjectCard from '@/components/ProjectCard.vue';
+import Badge from '@/components/Badge.vue';
 import ToastService from '@/services/ToastService';
-import FormattingService from '@/services/FormattingService';
 import RemoteServerClient from '@/services/api/RemoteServerClient';
 import WorkspaceClient from '@/services/api/WorkspaceClient';
+import WorkspaceProjectsClient from '@/services/api/WorkspaceProjectsClient';
+import ProjectClient from '@/services/api/ProjectClient';
 import RemoteServer from '@/services/api/model/RemoteServer';
 import Workspace from '@/services/api/model/Workspace';
+import Project from '@/services/api/model/Project';
+
+type ServerStatus = 'online' | 'offline' | 'unknown';
 
 const remoteServerClient = new RemoteServerClient();
 
 const servers = ref<RemoteServer[]>([]);
 const selectedServerId = ref<string | null>(null);
+const serverStatuses = ref<Record<string, ServerStatus>>({});
 
 const workspaces = ref<Workspace[]>([]);
+const selectedWorkspaceId = ref<string | null>(null);
 const loadingWorkspaces = ref(false);
 const workspacesError = ref<string | null>(null);
 const searchQuery = ref('');
 
+const projects = ref<Project[]>([]);
+const loadingProjects = ref(false);
+const projectsError = ref<string | null>(null);
+const projectSearchQuery = ref('');
+
 const showAddServerModal = ref(false);
 const showDeleteServerModal = ref(false);
+const showWorkspaceInfo = ref(false);
 
 const showCreateForm = ref(false);
 const creating = ref(false);
@@ -256,17 +427,20 @@ const selectedServer = computed(() =>
   servers.value.find(s => s.id === selectedServerId.value),
 );
 
+const selectedWorkspace = computed(() =>
+  workspaces.value.find(w => w.id === selectedWorkspaceId.value),
+);
+
 const filteredWorkspaces = computed(() => {
   const q = searchQuery.value.trim().toLowerCase();
   if (!q) return workspaces.value;
   return workspaces.value.filter(w => w.name.toLowerCase().includes(q));
 });
 
-const workspaceCountText = computed(() => {
-  const n = workspaces.value.length;
-  if (n === 0) return 'No workspaces';
-  if (n === 1) return '1 workspace';
-  return `${n} workspaces`;
+const filteredProjects = computed(() => {
+  const q = projectSearchQuery.value.trim().toLowerCase();
+  if (!q) return projects.value;
+  return projects.value.filter(p => p.name.toLowerCase().includes(q));
 });
 
 const isCreateFormValid = computed(() =>
@@ -280,15 +454,49 @@ const deleteServerMessage = computed(() =>
     : '',
 );
 
+const statusLabelFor = (serverId: string): string => {
+  switch (serverStatuses.value[serverId]) {
+    case 'online': return '● Online';
+    case 'offline': return '● Unreachable';
+    default: return '● Checking…';
+  }
+};
+
+const probeServer = async (serverId: string) => {
+  try {
+    await new WorkspaceClient(serverId).list({ suppressToast: true });
+    serverStatuses.value = { ...serverStatuses.value, [serverId]: 'online' };
+  } catch {
+    serverStatuses.value = { ...serverStatuses.value, [serverId]: 'offline' };
+  }
+};
+
+// Initials for the rail avatar: take the first letter of up to two words, uppercase.
+const initials = (name: string): string => {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return '?';
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[1][0]).toUpperCase();
+};
+
 const refreshServers = async () => {
   try {
     servers.value = await remoteServerClient.list({ suppressToast: true });
+
+    // Probe each server's gRPC endpoint in parallel; "unknown" until the probe returns.
+    const initial: Record<string, ServerStatus> = {};
+    for (const s of servers.value) initial[s.id] = serverStatuses.value[s.id] ?? 'unknown';
+    serverStatuses.value = initial;
+    Promise.all(servers.value.map(s => probeServer(s.id)));
+
     if (!selectedServerId.value && servers.value.length > 0) {
       selectedServerId.value = servers.value[0].id;
       await refreshWorkspaces();
     } else if (servers.value.length === 0) {
       selectedServerId.value = null;
       workspaces.value = [];
+      selectedWorkspaceId.value = null;
+      projects.value = [];
     } else if (!servers.value.some(s => s.id === selectedServerId.value)) {
       selectedServerId.value = servers.value[0].id;
       await refreshWorkspaces();
@@ -303,27 +511,73 @@ const refreshServers = async () => {
 const refreshWorkspaces = async () => {
   if (!selectedServerId.value) {
     workspaces.value = [];
+    selectedWorkspaceId.value = null;
+    projects.value = [];
     return;
   }
   loadingWorkspaces.value = true;
   workspacesError.value = null;
+  const sid = selectedServerId.value;
   try {
-    const client = new WorkspaceClient(selectedServerId.value);
+    const client = new WorkspaceClient(sid);
     workspaces.value = await client.list({ suppressToast: true });
+    serverStatuses.value = { ...serverStatuses.value, [sid]: 'online' };
+    if (
+      !selectedWorkspaceId.value ||
+      !workspaces.value.some(w => w.id === selectedWorkspaceId.value)
+    ) {
+      selectedWorkspaceId.value = workspaces.value[0]?.id ?? null;
+    }
+    if (selectedWorkspaceId.value) {
+      await refreshProjects();
+    } else {
+      projects.value = [];
+    }
   } catch (error: any) {
     workspacesError.value =
       error?.response?.data?.message ?? error?.message ?? 'Could not load workspaces';
     workspaces.value = [];
+    selectedWorkspaceId.value = null;
+    projects.value = [];
+    serverStatuses.value = { ...serverStatuses.value, [sid]: 'offline' };
   } finally {
     loadingWorkspaces.value = false;
+  }
+};
+
+const refreshProjects = async () => {
+  if (!selectedServerId.value || !selectedWorkspaceId.value) {
+    projects.value = [];
+    return;
+  }
+  loadingProjects.value = true;
+  projectsError.value = null;
+  try {
+    const client = new WorkspaceProjectsClient(selectedServerId.value, selectedWorkspaceId.value);
+    projects.value = await client.list();
+  } catch (error: any) {
+    projectsError.value =
+      error?.response?.data?.message ?? error?.message ?? 'Could not load projects';
+    projects.value = [];
+  } finally {
+    loadingProjects.value = false;
   }
 };
 
 const selectServer = (serverId: string) => {
   if (selectedServerId.value === serverId) return;
   selectedServerId.value = serverId;
+  selectedWorkspaceId.value = null;
+  projects.value = [];
   closeCreateForm();
   refreshWorkspaces();
+};
+
+const selectWorkspace = (workspaceId: string) => {
+  if (selectedWorkspaceId.value === workspaceId) return;
+  selectedWorkspaceId.value = workspaceId;
+  projectSearchQuery.value = '';
+  refreshProjects();
 };
 
 const handleServerAdded = async () => {
@@ -341,16 +595,25 @@ const deleteServer = async () => {
     await remoteServerClient.delete(selectedServer.value.id);
     ToastService.success('Server Removed', `Removed ${selectedServer.value.name}.`);
     selectedServerId.value = null;
+    selectedWorkspaceId.value = null;
     await refreshServers();
   } catch (error: any) {
     ToastService.error('Failed to remove server', error?.message ?? 'Unknown error');
   }
 };
 
+const copyText = async (value: string) => {
+  try {
+    await navigator.clipboard.writeText(value);
+    ToastService.success('Copied', value);
+  } catch {
+    ToastService.error('Copy failed', 'Clipboard not available');
+  }
+};
+
 const openCreateForm = () => {
   showCreateForm.value = true;
-  regenerateReferenceId();
-  createForm.value.name = '';
+  createForm.value = { name: '', referenceId: crypto.randomUUID() };
   createError.value = null;
 };
 
@@ -360,9 +623,6 @@ const closeCreateForm = () => {
   createError.value = null;
 };
 
-const regenerateReferenceId = () => {
-  createForm.value.referenceId = crypto.randomUUID();
-};
 
 const submitCreate = async () => {
   if (!selectedServerId.value || !isCreateFormValid.value) return;
@@ -370,13 +630,17 @@ const submitCreate = async () => {
   createError.value = null;
   try {
     const client = new WorkspaceClient(selectedServerId.value);
-    await client.create({
+    const created = await client.create({
       referenceId: createForm.value.referenceId.trim(),
       name: createForm.value.name.trim(),
     });
     ToastService.success('Workspace Created', `"${createForm.value.name}" is ready.`);
     closeCreateForm();
     await refreshWorkspaces();
+    if (created?.id) {
+      selectedWorkspaceId.value = created.id;
+      await refreshProjects();
+    }
   } catch (error: any) {
     createError.value =
       error?.response?.data?.message ?? error?.message ?? 'Failed to create workspace';
@@ -392,10 +656,29 @@ const deleteWorkspace = async (workspace: Workspace) => {
     const client = new WorkspaceClient(selectedServerId.value);
     await client.delete(workspace.id);
     ToastService.success('Workspace Deleted', `"${workspace.name}" removed.`);
+    if (selectedWorkspaceId.value === workspace.id) {
+      selectedWorkspaceId.value = null;
+      projects.value = [];
+    }
     await refreshWorkspaces();
   } catch (error: any) {
     ToastService.error(
       'Failed to delete workspace',
+      error?.response?.data?.message ?? error?.message ?? 'Unknown error',
+    );
+  }
+};
+
+const handleRestoreProject = async (projectId: string) => {
+  if (!selectedServerId.value || !selectedWorkspaceId.value) return;
+  try {
+    const client = new ProjectClient(selectedServerId.value, selectedWorkspaceId.value, projectId);
+    await client.restore();
+    ToastService.success('Project Restored', 'Project has been restored.');
+    await refreshProjects();
+  } catch (error: any) {
+    ToastService.error(
+      'Failed to restore project',
       error?.response?.data?.message ?? error?.message ?? 'Unknown error',
     );
   }
@@ -407,122 +690,396 @@ onMounted(refreshServers);
 <style scoped>
 @import '@/styles/shared-components.css';
 
-/* Server switcher (segmented control of tabs) */
-.server-switcher {
-  display: flex;
-  gap: var(--spacing-2);
-  align-items: center;
-  flex-wrap: wrap;
-  padding: var(--spacing-4) var(--spacing-5);
+/* ============== Layout ============== */
+.projects-layout {
+  display: grid;
+  grid-template-columns: 72px 280px 1fr;
+  gap: var(--spacing-3);
+  align-items: stretch;
+  min-height: calc(100vh - 220px);
 }
 
-.server-tab {
-  display: inline-flex;
+/* ============== Server rail (Slack/Discord-style) ============== */
+.server-rail {
+  background: var(--color-white);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sm);
+  padding: var(--spacing-3);
+  display: flex;
+  flex-direction: column;
   align-items: center;
   gap: var(--spacing-2);
-  padding: var(--spacing-2) var(--spacing-4);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-border);
-  background: var(--color-white);
-  color: var(--color-text);
-  font-size: var(--font-size-base);
-  font-weight: var(--font-weight-medium);
+}
+
+.rail-avatar,
+.rail-add {
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-md);
+  color: var(--color-text);
+  background: var(--color-light);
+  border: 2px solid transparent;
+  position: relative;
+  transition: all var(--transition-base);
+  flex-shrink: 0;
+}
+
+.rail-avatar:hover {
+  border-radius: 12px;
+  background: var(--color-primary-lighter);
+}
+
+.rail-avatar.active {
+  background: var(--color-primary);
+  color: var(--color-white);
+  border-radius: 12px;
+}
+
+.rail-avatar.active::before {
+  content: '';
+  position: absolute;
+  left: -16px;
+  top: 8px;
+  bottom: 8px;
+  width: 4px;
+  background: var(--color-primary);
+  border-radius: 0 4px 4px 0;
+}
+
+.rail-avatar .avatar-text {
+  pointer-events: none;
+}
+
+.rail-avatar .status-dot {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  width: 14px;
+  height: 14px;
+  background: var(--color-warning);
+  border-radius: 50%;
+  border: 2px solid var(--color-white);
+}
+
+.rail-avatar.is-online .status-dot { background: var(--color-success); }
+.rail-avatar.is-offline .status-dot { background: var(--color-danger); }
+.rail-avatar.is-unknown .status-dot { background: var(--color-warning); }
+
+.rail-divider {
+  width: 32px;
+  height: 2px;
+  background: var(--color-border-light);
+  border-radius: 1px;
+  margin: 4px 0;
+  flex-shrink: 0;
+}
+
+.rail-add {
+  background: var(--color-primary-lighter);
+  border: 1px dashed var(--color-primary-border);
+  color: var(--color-primary);
+  font-size: var(--font-size-lg);
+  border-radius: 12px;
+}
+
+.rail-add:hover {
+  border-style: solid;
+  background: var(--color-primary-light);
+}
+
+.rail-add i {
+  font-size: 1.1rem;
+}
+
+/* Tooltip on hover */
+.rail-tooltip {
+  position: absolute;
+  left: 100%;
+  margin-left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: var(--color-dark);
+  color: var(--color-white);
+  padding: 8px 12px;
+  border-radius: var(--radius-base);
+  font-size: var(--font-size-xs);
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.15s, visibility 0s linear 0.15s;
+  z-index: 10;
+  font-weight: var(--font-weight-normal);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: flex-start;
+}
+
+.rail-tooltip strong {
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-sm);
+}
+
+.rail-tooltip small {
+  color: var(--color-text-light);
+  font-size: 11px;
+  font-family: 'SF Mono', Monaco, Menlo, Consolas, monospace;
+}
+
+.rail-avatar:hover .rail-tooltip,
+.rail-add:hover .rail-tooltip {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.15s, visibility 0s linear 0s;
+}
+
+/* ============== Workspace column ============== */
+.workspace-column {
+  background: var(--color-white);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.ws-head {
+  padding: var(--spacing-4) var(--spacing-4);
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.ws-head-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-2);
+  min-height: 32px;
+}
+
+.ws-head-name {
+  margin: 0;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-dark);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ws-head-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-base);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   transition: all var(--transition-base);
 }
 
-.server-tab:hover {
-  background: var(--color-bg-hover);
-  border-color: var(--color-muted-separator);
+.ws-head-btn:hover {
+  background: var(--color-light);
 }
 
-.server-tab.active {
-  background: var(--color-primary-light);
-  color: var(--color-primary);
-  border-color: var(--color-primary-border);
+.ws-head-btn.danger:hover {
+  background: var(--color-danger-light);
+  color: var(--color-danger);
 }
 
-.server-tab .tab-meta {
-  font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
-  font-weight: var(--font-weight-medium);
-}
-
-.server-tab.active .tab-meta {
-  color: var(--color-primary-hover);
-}
-
-.server-tab .status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--color-success);
-  display: inline-block;
-}
-
-.workspace-context-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: var(--spacing-4);
-  padding: var(--spacing-3) var(--spacing-5);
-  flex-wrap: wrap;
-}
-
-.context-bar-info {
+.ws-search {
   display: flex;
   align-items: center;
-  gap: var(--spacing-3);
-}
-
-.workspace-name {
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-dark);
-}
-
-.context-divider {
-  color: var(--color-muted-separator);
-}
-
-.workspace-meta {
-  font-size: var(--font-size-sm);
-  color: var(--color-primary);
-  font-weight: var(--font-weight-medium);
-}
-
-.workspace-created {
+  gap: 6px;
+  padding: 6px var(--spacing-3);
+  background: var(--color-light);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-base);
   font-size: var(--font-size-sm);
   color: var(--color-text-light);
+  margin-bottom: var(--spacing-2);
 }
 
-.context-bar-actions {
+.ws-search input {
+  border: none;
+  outline: none;
+  background: transparent;
+  flex: 1;
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
+}
+
+.ws-body {
   display: flex;
-  gap: var(--spacing-2);
-  align-items: center;
+  flex-direction: column;
+  gap: 4px;
+  padding: var(--spacing-3);
+  flex: 1;
+  overflow-y: auto;
 }
 
-.context-search {
+.ws-section-title {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-light);
+  font-weight: var(--font-weight-semibold);
+  padding: var(--spacing-2) var(--spacing-2) var(--spacing-3);
+}
+
+.ws-item {
   display: flex;
   align-items: center;
   gap: var(--spacing-2);
   padding: var(--spacing-2) var(--spacing-3);
-  background: var(--color-light);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-base);
-  width: 200px;
-}
-
-.context-search input {
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background var(--transition-base);
   border: none;
-  outline: none;
   background: transparent;
-  font-family: inherit;
-  font-size: var(--font-size-sm);
-  flex: 1;
+  width: 100%;
+  text-align: left;
   color: var(--color-text);
 }
 
-.context-btn {
+.ws-item:hover {
+  background: var(--color-light);
+}
+
+.ws-item.active {
+  background: var(--color-primary);
+  color: var(--color-white);
+}
+
+.ws-item-name {
+  flex: 1;
+  font-weight: var(--font-weight-medium);
+  font-size: var(--font-size-sm);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ws-item.active .ws-item-name {
+  font-weight: var(--font-weight-semibold);
+}
+
+
+.ws-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: var(--spacing-4) var(--spacing-2);
+  color: var(--color-text-light);
+  font-size: var(--font-size-sm);
+}
+
+.ws-empty i {
+  font-size: 1.5rem;
+}
+
+.ws-create-trigger {
+  margin-top: var(--spacing-2);
+  padding: var(--spacing-3);
+  border: 1px dashed var(--color-primary-border);
+  border-radius: var(--radius-md);
+  background: var(--color-primary-lighter);
+  color: var(--color-primary);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-sm);
+  text-align: center;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all var(--transition-base);
+}
+
+.ws-create-trigger:hover {
+  border-style: solid;
+  background: var(--color-primary-light);
+}
+
+/* ============== Project main area ============== */
+.project-main {
+  background: var(--color-white);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.main-head {
+  padding: var(--spacing-4) var(--spacing-5);
+  border-bottom: 1px solid var(--color-border-light);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-4);
+  flex-wrap: wrap;
+}
+
+.main-head-info {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  flex-wrap: wrap;
+}
+
+.main-head h2 {
+  margin: 0;
+  font-size: var(--font-size-md);
+  color: var(--color-dark);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.main-head-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px var(--spacing-3);
+  background: var(--color-light);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-base);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-light);
+  width: 220px;
+}
+
+.search input {
+  border: none;
+  outline: none;
+  background: transparent;
+  flex: 1;
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
+}
+
+.icon-btn {
   width: 32px;
   height: 32px;
   display: inline-flex;
@@ -536,148 +1093,161 @@ onMounted(refreshServers);
   transition: all var(--transition-base);
 }
 
-.context-btn:hover {
+.icon-btn:hover {
   background: var(--color-light);
   color: var(--color-text);
 }
 
-.context-btn.danger:hover {
+.icon-btn.danger:hover {
   background: var(--color-danger-light);
   color: var(--color-danger);
 }
 
-/* Workspace cards */
-.workspace-card {
+.project-grid {
+  padding: var(--spacing-5);
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: var(--spacing-4);
+}
+
+/* ============== Empty states ============== */
+.empty-canvas {
+  grid-column: 2 / 4;
   background: var(--color-white);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: var(--spacing-4);
+  border-radius: var(--radius-xl);
   box-shadow: var(--shadow-sm);
   display: flex;
   flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: var(--spacing-8);
   gap: var(--spacing-3);
-  transition: all var(--transition-base);
 }
 
-.workspace-card:hover {
-  border-color: var(--color-primary-border);
-  box-shadow: var(--shadow-md);
-}
-
-.workspace-card-title {
-  font-weight: var(--font-weight-semibold);
-  font-size: var(--font-size-md);
-  color: var(--color-dark);
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-2);
-}
-
-.workspace-card-meta {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-muted);
-}
-
-.ref-id {
-  font-family: 'SF Mono', Monaco, Menlo, Consolas, monospace;
-  font-size: var(--font-size-xs);
-  background: var(--color-light);
-  padding: 2px 6px;
-  border-radius: var(--radius-sm);
-  color: var(--color-text-muted);
-  border: 1px solid var(--color-border);
-  display: inline-block;
-}
-
-.workspace-card-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding-top: var(--spacing-3);
-  border-top: 1px solid var(--color-border-light);
-  font-size: var(--font-size-xs);
+.empty-canvas i {
+  font-size: 3rem;
   color: var(--color-text-light);
 }
 
-/* Create-workspace region */
-.create-workspace-region {
-  border-top: 1px solid var(--color-border-light);
-}
-
-.create-workspace-trigger {
-  width: 100%;
-  padding: var(--spacing-4);
-  border: 1px dashed var(--color-primary-border);
-  border-radius: var(--radius-lg);
-  background: var(--color-primary-lighter);
-  color: var(--color-primary);
-  font-weight: var(--font-weight-semibold);
-  cursor: pointer;
-  transition: all var(--transition-base);
-}
-
-.create-workspace-trigger:hover {
-  background: var(--color-primary-light);
-  border-style: solid;
-}
-
-.inline-form-card {
-  background: var(--color-white);
-  border: 1px solid var(--color-primary-border);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
-  padding: var(--spacing-5);
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-4);
-}
-
-.inline-form-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.inline-form-header h4 {
+.empty-canvas h5 {
   margin: 0;
-  font-size: var(--font-size-md);
-  font-weight: var(--font-weight-semibold);
   color: var(--color-dark);
 }
 
-.inline-form-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--spacing-4);
+.empty-canvas p {
+  margin: 0;
+  color: var(--color-text-muted);
+  max-width: 420px;
+  font-size: var(--font-size-sm);
 }
 
-@media (max-width: 720px) {
-  .inline-form-row {
-    grid-template-columns: 1fr;
-  }
+.main-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  flex: 1;
+  padding: var(--spacing-8);
+  gap: var(--spacing-3);
+  color: var(--color-text-muted);
 }
 
-.server-readonly {
+.main-empty i {
+  font-size: 3rem;
+  color: var(--color-text-light);
+}
+
+.main-empty h5 {
+  margin: 0;
+  color: var(--color-dark);
+}
+
+.main-empty p {
+  margin: 0;
+  color: var(--color-text-muted);
+  max-width: 420px;
+  font-size: var(--font-size-sm);
+  line-height: 1.6;
+}
+
+.main-empty code {
+  background: var(--color-light);
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  color: var(--color-code-text);
+}
+
+/* ============== Workspace Info drawer ============== */
+.info-rows {
+  display: flex;
+  flex-direction: column;
+}
+
+.info-row {
   display: flex;
   align-items: center;
-  gap: var(--spacing-2);
-  padding: var(--spacing-2) var(--spacing-3);
-  background: var(--color-light);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-base);
-  color: var(--color-text);
-}
-
-.server-readonly .status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--color-success);
-}
-
-.form-actions {
-  display: flex;
   gap: var(--spacing-3);
-  justify-content: flex-end;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.info-row:last-child {
+  border-bottom: none;
+}
+
+.info-row-label {
+  flex-shrink: 0;
+  width: 130px;
+  font-size: 0.78rem;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-muted);
+}
+
+.info-row-value {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-dark);
+}
+
+.info-row-value.is-mono {
+  font-family: 'SF Mono', Monaco, Menlo, Consolas, monospace;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-regular);
+}
+
+.info-row-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.info-copy-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all var(--transition-base);
+}
+
+.info-copy-btn:hover {
+  background: var(--color-light);
+  color: var(--color-primary);
 }
 </style>

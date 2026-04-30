@@ -99,7 +99,7 @@ import { useNavigation } from '@/composables/useNavigation';
 
 const route = useRoute();
 const router = useRouter();
-const { workspaceId, projectId, generateProjectUrl } = useNavigation();
+const { serverId, workspaceId, projectId, generateProjectUrl } = useNavigation();
 
 const projectInfo = ref<Project | null>(null);
 const workspaceInfo = ref<Workspace | null>(null);
@@ -114,13 +114,12 @@ const isInstancesActive = computed(() => {
   return /\/instances(\/[^/]+)?$/.test(path) && !path.endsWith('/instances/timeline');
 });
 
-const workspaceClient = new WorkspaceClient();
-
 async function initializeProject() {
-  if (!projectId.value || !workspaceId.value) return;
+  if (!projectId.value || !workspaceId.value || !serverId.value) return;
 
   try {
-    const projectClient = new ProjectClient(workspaceId.value, projectId.value);
+    const projectClient = new ProjectClient(serverId.value, workspaceId.value, projectId.value);
+    const workspaceClient = new WorkspaceClient(serverId.value);
 
     const [project, workspace] = await Promise.all([
       projectClient.get(),

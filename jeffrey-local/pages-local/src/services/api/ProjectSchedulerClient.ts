@@ -20,8 +20,8 @@ import BasePlatformClient from '@/services/api/BasePlatformClient';
 import JobInfo from '@/services/api/model/JobInfo';
 
 export default class ProjectSchedulerClient extends BasePlatformClient {
-  constructor(workspaceId: string, projectId: string) {
-    super(`/workspaces/${workspaceId}/projects/${projectId}/scheduler`);
+  constructor(serverId: string, workspaceId: string, projectId: string) {
+    super(`/remote-servers/${serverId}/workspaces/${workspaceId}/projects/${projectId}/scheduler`);
   }
 
   create(jobType: string, params: Map<string, string>): Promise<JobInfo> {

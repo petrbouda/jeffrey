@@ -302,7 +302,7 @@ import { useNavigation } from '@/composables/useNavigation';
 import '@/styles/shared-components.css';
 import type { Variant } from '@/types/ui';
 
-const { workspaceId, projectId, generateInstanceUrl } = useNavigation();
+const { serverId, workspaceId, projectId, generateInstanceUrl } = useNavigation();
 
 const loading = ref(true);
 const searchQuery = ref('');
@@ -367,11 +367,11 @@ const filteredInstances = computed(() => {
 });
 
 onMounted(async () => {
-  const client = new ProjectInstanceClient(workspaceId.value!, projectId.value!);
+  const client = new ProjectInstanceClient(serverId.value, workspaceId.value!, projectId.value!);
   instances.value = await client.list();
   loading.value = false;
 
-  const repositoryClient = new ProjectRepositoryClient(workspaceId.value!, projectId.value!);
+  const repositoryClient = new ProjectRepositoryClient(serverId.value, workspaceId.value!, projectId.value!);
   repositoryStatistics.value = await repositoryClient.getRepositoryStatistics();
 });
 </script>

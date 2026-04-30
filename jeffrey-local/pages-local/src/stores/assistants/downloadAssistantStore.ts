@@ -104,6 +104,7 @@ const aggregateStatus = computed(() => {
  * Starts a download and adds it to the queue.
  */
 const startDownload = async (
+  serverId: string,
   workspaceId: string,
   projectId: string,
   sessionId: string,
@@ -112,7 +113,7 @@ const startDownload = async (
 ) => {
   try {
     // Create client for this download
-    const client = new DownloadTaskClient(workspaceId, projectId);
+    const client = new DownloadTaskClient(serverId, workspaceId, projectId);
 
     // Start the download task
     const task = await client.startDownload(sessionId, fileIds);

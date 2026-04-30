@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -20,8 +20,8 @@ import BasePlatformClient from '@/services/api/BasePlatformClient';
 import Project from '@/services/api/model/Project';
 
 export default class WorkspaceProjectsClient extends BasePlatformClient {
-  constructor(workspaceId: string) {
-    super(`/workspaces/${workspaceId}/projects`);
+  constructor(serverId: string, workspaceId: string) {
+    super(`/remote-servers/${serverId}/workspaces/${workspaceId}/projects`);
   }
 
   async list(): Promise<Project[]> {

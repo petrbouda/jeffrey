@@ -53,8 +53,9 @@
               <span class="summary-detail-action">{{ editing === 'session' ? 'Done' : session ? 'Change' : 'Select' }}</span>
             </div>
             <div class="summary-detail-body">
-              <template v-if="editing === 'session' && workspaceId && projectId">
+              <template v-if="editing === 'session' && serverId && workspaceId && projectId">
                 <ReplaySessionPicker
+                  :server-id="serverId"
                   :workspace-id="workspaceId"
                   :project-id="projectId"
                   :selected="session"

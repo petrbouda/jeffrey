@@ -29,8 +29,8 @@ export default class DownloadTaskClient extends BasePlatformClient {
   private eventSource: EventSource | null = null;
   private pollingInterval: ReturnType<typeof setInterval> | null = null;
 
-  constructor(workspaceId: string, projectId: string) {
-    super(`/workspaces/${workspaceId}/projects/${projectId}/download`);
+  constructor(serverId: string, workspaceId: string, projectId: string) {
+    super(`/remote-servers/${serverId}/workspaces/${workspaceId}/projects/${projectId}/download`);
   }
 
   /**

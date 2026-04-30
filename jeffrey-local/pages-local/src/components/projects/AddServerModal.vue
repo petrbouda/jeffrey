@@ -1,60 +1,99 @@
 <template>
-  <GenericModal v-model:show="showModal" title="Add Jeffrey Server" size="md" @close="reset">
-    <div class="form-group mb-3">
-      <label class="form-label">Server Name <span class="text-danger">*</span></label>
-      <input
-        v-model="form.name"
-        type="text"
-        class="form-control"
-        placeholder="e.g. production"
-        :disabled="loading"
-      />
-      <small class="text-muted">Display name shown in the server switcher.</small>
-    </div>
-
-    <div class="row g-2 mb-3">
-      <div class="col-8">
-        <label class="form-label">Hostname <span class="text-danger">*</span></label>
-        <input
-          v-model="form.hostname"
-          type="text"
-          class="form-control"
-          placeholder="grpc.example.com"
-          :disabled="loading"
-        />
+  <LeftDrawer
+    v-model:show="showDrawer"
+    title="Add Jeffrey Server"
+    icon="bi-hdd-network"
+    @update:show="reset"
+    @submit="submit"
+  >
+    <div class="drawer-section">
+      <div class="drawer-section-label">
+        <i class="bi bi-bookmark-fill"></i>
+        Identity
       </div>
-      <div class="col-4">
-        <label class="form-label">Port <span class="text-danger">*</span></label>
-        <input
-          v-model.number="form.port"
-          type="number"
-          class="form-control"
-          placeholder="9090"
-          min="1"
-          max="65535"
-          :disabled="loading"
-        />
+
+      <div class="field-group">
+        <label class="field-label">
+          Server Name
+          <span class="field-required">*</span>
+        </label>
+        <div class="field-wrap" :class="{ 'is-disabled': loading }">
+          <input
+            v-model="form.name"
+            type="text"
+            class="field-input"
+            placeholder="e.g. production"
+            :disabled="loading"
+          />
+        </div>
+        <div class="field-hint">Display name shown in the server switcher.</div>
       </div>
     </div>
 
-    <div class="form-check mb-3">
-      <input
-        id="plaintext-check"
-        v-model="form.plaintext"
-        type="checkbox"
-        class="form-check-input"
-        :disabled="loading"
-      />
-      <label for="plaintext-check" class="form-check-label">
-        Plaintext (h2c, no TLS)
+    <div class="drawer-section">
+      <div class="drawer-section-label">
+        <i class="bi bi-router"></i>
+        Connection
+      </div>
+
+      <div class="field-row">
+        <div class="field-group">
+          <label class="field-label">
+            Hostname
+            <span class="field-required">*</span>
+          </label>
+          <div class="field-wrap" :class="{ 'is-disabled': loading }">
+            <input
+              v-model="form.hostname"
+              type="text"
+              class="field-input is-mono"
+              placeholder="grpc.example.com"
+              :disabled="loading"
+            />
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">
+            Port
+            <span class="field-required">*</span>
+          </label>
+          <div class="field-wrap" :class="{ 'is-disabled': loading }">
+            <input
+              v-model.number="form.port"
+              type="number"
+              class="field-input is-mono"
+              placeholder="9090"
+              min="1"
+              max="65535"
+              :disabled="loading"
+            />
+          </div>
+        </div>
+      </div>
+
+      <label class="setting-row">
+        <div class="setting-row-text">
+          <div class="setting-row-title">Plaintext (h2c, no TLS)</div>
+          <div class="setting-row-sub">
+            Enable for in-cluster Service DNS or trusted-LAN setups. Default is TLS.
+          </div>
+        </div>
+        <span class="toggle-switch">
+          <input
+            v-model="form.plaintext"
+            type="checkbox"
+            class="toggle-input"
+            :disabled="loading"
+          />
+          <span class="toggle-slider"></span>
+        </span>
       </label>
-      <div class="form-text">
-        Enable for in-cluster Service DNS or trusted-LAN setups. Default is TLS.
-      </div>
     </div>
 
-    <div v-if="error" class="alert alert-danger" role="alert">
-      <i class="bi bi-exclamation-triangle me-2"></i>{{ error }}
+    <div v-if="error" class="field-alert" role="alert">
+      <i class="bi bi-exclamation-triangle"></i>
+      <span>{{ error }}</span>
     </div>
 
     <template #footer>
@@ -64,14 +103,15 @@
         Add Server
       </button>
     </template>
-  </GenericModal>
+  </LeftDrawer>
 </template>
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
-import GenericModal from '@/components/GenericModal.vue';
+import LeftDrawer from '@/components/LeftDrawer.vue';
 import RemoteServerClient from '@/services/api/RemoteServerClient';
 import ToastService from '@/services/ToastService';
+import '@/styles/shared-components.css';
 
 const props = defineProps<{ show: boolean }>();
 const emit = defineEmits<{
@@ -79,7 +119,7 @@ const emit = defineEmits<{
   (e: 'server-added'): void;
 }>();
 
-const showModal = computed({
+const showDrawer = computed({
   get: () => props.show,
   set: v => emit('update:show', v),
 });
