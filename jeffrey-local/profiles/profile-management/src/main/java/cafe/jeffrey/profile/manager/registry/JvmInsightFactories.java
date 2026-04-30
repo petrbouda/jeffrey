@@ -23,11 +23,13 @@ import cafe.jeffrey.profile.manager.GarbageCollectionManager;
 import cafe.jeffrey.profile.manager.HeapDumpManager;
 import cafe.jeffrey.profile.manager.HeapMemoryManager;
 import cafe.jeffrey.profile.manager.JITCompilationManager;
+import cafe.jeffrey.profile.manager.JITDeoptimizationManager;
 import cafe.jeffrey.profile.manager.ThreadManager;
 
 public record JvmInsightFactories(
         GarbageCollectionManager.Factory gc,
         JITCompilationManager.Factory jitCompilation,
+        JITDeoptimizationManager.Factory jitDeoptimization,
         HeapMemoryManager.Factory heapMemory,
         ContainerManager.Factory container,
         ThreadManager.Factory thread,

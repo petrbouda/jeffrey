@@ -303,14 +303,43 @@
                 <div class="nav-section">
                   <div class="nav-section-title">COMPILER</div>
                   <div class="nav-items">
-                    <router-link
-                      :to="`/profiles/${profileId}/jit-compilation`"
-                      class="nav-item"
-                      active-class="active"
-                    >
-                      <i class="bi bi-lightning"></i>
-                      <span>JIT Compilation</span>
-                    </router-link>
+                    <!-- JIT Compilation with Submenu -->
+                    <div class="nav-item-group">
+                      <div
+                        class="nav-item nav-item-parent"
+                        @click="toggleJitCompilationSubmenu"
+                        :class="{
+                          active: $route.path.includes('/jit-compilation'),
+                          expanded: jitCompilationSubmenuExpanded
+                        }"
+                      >
+                        <i class="bi bi-lightning"></i>
+                        <span>JIT Compiler</span>
+                        <i
+                          class="bi bi-chevron-right submenu-arrow"
+                          :class="{ rotated: jitCompilationSubmenuExpanded }"
+                        ></i>
+                      </div>
+                      <div class="nav-submenu" :class="{ expanded: jitCompilationSubmenuExpanded }">
+                        <router-link
+                          :to="`/profiles/${profileId}/jit-compilation`"
+                          class="nav-item nav-subitem"
+                          active-class="active"
+                          :class="{ active: $route.path === `/profiles/${profileId}/jit-compilation` }"
+                        >
+                          <i class="bi bi-bar-chart-line"></i>
+                          <span>Compilations</span>
+                        </router-link>
+                        <router-link
+                          :to="`/profiles/${profileId}/jit-compilation/deoptimizations`"
+                          class="nav-item nav-subitem"
+                          active-class="active"
+                        >
+                          <i class="bi bi-arrow-counterclockwise"></i>
+                          <span>Deoptimizations</span>
+                        </router-link>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
@@ -1186,6 +1215,7 @@ function getModeFromPath(
 const selectedMode = ref(getModeFromPath(route.path));
 const heapMemorySubmenuExpanded = ref(false);
 const gcSubmenuExpanded = ref(false);
+const jitCompilationSubmenuExpanded = ref(false);
 
 // Initialize comparison panel visibility from sessionStorage
 const getStoredComparisonPanelState = (): boolean => {
@@ -1217,6 +1247,9 @@ watch(
     }
     if (newPath.includes('/garbage-collection')) {
       gcSubmenuExpanded.value = true;
+    }
+    if (newPath.includes('/jit-compilation')) {
+      jitCompilationSubmenuExpanded.value = true;
     }
   },
   { immediate: true }
@@ -1342,6 +1375,10 @@ const toggleHeapMemorySubmenu = () => {
 
 const toggleGCSubmenu = () => {
   gcSubmenuExpanded.value = !gcSubmenuExpanded.value;
+};
+
+const toggleJitCompilationSubmenu = () => {
+  jitCompilationSubmenuExpanded.value = !jitCompilationSubmenuExpanded.value;
 };
 
 // Navigate to differential pages only if secondary profile is selected (simplified URLs)

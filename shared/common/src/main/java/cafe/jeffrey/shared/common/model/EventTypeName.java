@@ -72,6 +72,7 @@ public abstract class EventTypeName {
     public static final String THREAD_CPU_LOAD = "jdk.ThreadCPULoad";
     public static final String COMPILER_STATISTICS = "jdk.CompilerStatistics";
     public static final String COMPILATION = "jdk.Compilation";
+    public static final String DEOPTIMIZATION = "jdk.Deoptimization";
     public static final String SAFEPOINT_BEGIN = "jdk.SafepointBegin";
     public static final String VIRTUAL_THREAD_PINNED = "jdk.VirtualThreadPinned";
 

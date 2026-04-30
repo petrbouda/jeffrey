@@ -55,6 +55,8 @@ public interface ProfileManager {
 
     JITCompilationManager jitCompilationManager();
 
+    JITDeoptimizationManager jitDeoptimizationManager();
+
     GuardianManager guardianManager();
 
     AdditionalFilesManager additionalFilesManager();

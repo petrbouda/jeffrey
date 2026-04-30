@@ -104,6 +104,12 @@ const profileChildRoutes = [
     meta: { layout: 'profile' }
   },
   {
+    path: 'jit-compilation/deoptimizations',
+    name: 'profile-jit-deoptimizations',
+    component: () => import('@/views/profiles/detail/ProfileJitDeoptimizations.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
     path: 'heap-memory',
     name: 'profile-heap-memory',
     component: () => import('@/views/profiles/detail/ProfileHeapTimeseries.vue'),

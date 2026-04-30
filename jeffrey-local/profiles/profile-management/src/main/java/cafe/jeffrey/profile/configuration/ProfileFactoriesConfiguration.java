@@ -130,6 +130,7 @@ public class ProfileFactoriesConfiguration {
     public JvmInsightFactories jvmInsightFactories(
             GarbageCollectionManager.Factory gcFactory,
             JITCompilationManager.Factory jitCompilationFactory,
+            JITDeoptimizationManager.Factory jitDeoptimizationFactory,
             HeapMemoryManager.Factory heapMemoryFactory,
             ContainerManager.Factory containerFactory,
             ThreadManager.Factory threadFactory,
@@ -138,6 +139,7 @@ public class ProfileFactoriesConfiguration {
         return new JvmInsightFactories(
                 gcFactory,
                 jitCompilationFactory,
+                jitDeoptimizationFactory,
                 heapMemoryFactory,
                 containerFactory,
                 threadFactory,
@@ -450,6 +452,16 @@ public class ProfileFactoriesConfiguration {
                     profileInfo,
                     profileRepositories.newEventTypeRepository(profileDb),
                     profileRepositories.newEventRepository(profileDb),
+                    profileRepositories.newEventStreamRepository(profileDb));
+        };
+    }
+
+    @Bean
+    public JITDeoptimizationManager.Factory jitDeoptimizationManager() {
+        return profileInfo -> {
+            DataSource profileDb = databaseManagerResolver.open(profileInfo);
+            return new JITDeoptimizationManagerImpl(
+                    profileInfo,
                     profileRepositories.newEventStreamRepository(profileDb));
         };
     }

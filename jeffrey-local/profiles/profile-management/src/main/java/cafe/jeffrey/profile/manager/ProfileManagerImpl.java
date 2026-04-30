@@ -112,6 +112,11 @@ public class ProfileManagerImpl implements ProfileManager {
     }
 
     @Override
+    public JITDeoptimizationManager jitDeoptimizationManager() {
+        return registry.jvmInsight().jitDeoptimization().apply(profileInfo);
+    }
+
+    @Override
     public GuardianManager guardianManager() {
         return registry.analysis().guardian().apply(profileInfo);
     }
