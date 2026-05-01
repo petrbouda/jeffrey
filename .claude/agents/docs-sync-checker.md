@@ -4,7 +4,7 @@ Audit documentation accuracy by comparing user-visible features against document
 
 ## Instructions
 
-1. **Scan frontend routes** from `jeffrey-local/pages-local/src/router/index.ts` to identify all user-facing features and pages.
+1. **Scan frontend routes** from `jeffrey-microscope/pages-microscope/src/router/index.ts` to identify all user-facing features and pages.
 
 2. **Scan documentation pages** from `jeffrey-pages/src/views/docs/` to identify all documented features.
 
@@ -12,9 +12,9 @@ Audit documentation accuracy by comparing user-visible features against document
 
    | Code module | Documentation pages |
    |---|---|
-   | `jeffrey-local/core-local` | `jeffrey-pages/src/views/docs/platform/` |
+   | `jeffrey-microscope/core-microscope` | `jeffrey-pages/src/views/docs/platform/` |
    | `jeffrey-server/core-server` | `jeffrey-pages/src/views/docs/platform/` (scheduler) |
-   | `jeffrey-local/profiles/profile-management` | `jeffrey-pages/src/views/docs/profiles/` |
+   | `jeffrey-microscope/profiles/profile-management` | `jeffrey-pages/src/views/docs/profiles/` |
    | `jeffrey-cli/` | `jeffrey-pages/src/views/docs/cli/` |
    | Architecture changes | `jeffrey-pages/src/views/docs/architecture/` |
    | Deployment changes | `jeffrey-pages/src/views/docs/deployments/` |

@@ -32,9 +32,9 @@
     <packaging>pom</packaging>
 
     <modules>
-        <module>build-local</module>
-        <module>build-local-jib</module>
-        <module>build-local-examples-jib</module>
+        <module>build-microscope</module>
+        <module>build-microscope-jib</module>
+        <module>build-microscope-examples-jib</module>
         <module>build-server</module>
         <module>build-server-jib</module>
         <module>build-cli</module>

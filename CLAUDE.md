@@ -6,29 +6,29 @@ Jeffrey is a JFR (Java Flight Recorder) analysis tool that specializes in visual
 ## Architecture
 This is a full-stack application with two deployment modes:
 - **Backend**: Java 25 + Spring Boot 4.0.4 + Jersey/JAX-RS + gRPC 1.72.0
-- **Frontend**: Vue 3 SPA with TypeScript (separate frontends for local and server deployments)
+- **Frontend**: Vue 3 SPA with TypeScript (separate frontends for microscope and server deployments)
 - **Build System**: Maven (Java) + Vite (Frontend)
-- **Database**: DuckDB 1.5.0.0 (three-tier: local core DB + server DB + per-profile DBs)
+- **Database**: DuckDB 1.5.0.0 (three-tier: microscope core DB + server DB + per-profile DBs)
 - **AI Integration**: Spring AI 2.0.0-M3 (Claude/OpenAI providers)
 - **Remote Communication**: gRPC (proto files in `shared/server-api/`)
 - **CLI**: GraalVM Native Image
 
 ### Deployment Architecture
 
-The project supports two deployment modes: **jeffrey-local** (standalone) and **jeffrey-server** (multi-workspace server). They share common modules via **shared/**.
+The project supports two deployment modes: **jeffrey-microscope** (standalone) and **jeffrey-server** (multi-workspace server). They share common modules via **shared/**.
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                     JEFFREY-LOCAL (standalone)                    │
-│  LocalApplication — full-featured single-user deployment         │
+│                     JEFFREY-MICROSCOPE (standalone)                    │
+│  MicroscopeApplication — full-featured single-user deployment         │
 │                                                                  │
 │  ┌──────────────┐  ┌──────────────────┐  ┌──────────────────┐  │
-│  │  core-local   │  │  pages-local      │  │  profiles/       │  │
+│  │  core-microscope   │  │  pages-microscope      │  │  profiles/       │  │
 │  │  REST + gRPC  │  │  Full Vue 3 SPA   │  │  Profile analysis │  │
 │  │  clients      │  │                   │  │  modules          │  │
 │  └──────────────┘  └──────────────────┘  └──────────────────┘  │
 │                                                                  │
-│  Persistence: local-core-sql-persistence (local core DB)         │
+│  Persistence: microscope-core-sql-persistence (microscope core DB)         │
 │  + profiles/profile-sql-persistence (per-profile DBs)            │
 └──────────────────────────┬──────────────────────────────────────┘
                            │ gRPC communication
@@ -56,15 +56,15 @@ The project supports two deployment modes: **jeffrey-local** (standalone) and **
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-**jeffrey-local** (`jeffrey-local/`):
-- `core-local` — Main Spring Boot app (LocalApplication), REST resources, managers, gRPC clients for remote workspace communication
-- `local-core-persistence-api` — Persistence interfaces for local core domain
-- `local-core-sql-persistence` — DuckDB persistence for local core (workspaces, projects, recordings, remote workspace connections)
-- `pages-local` — Full-featured Vue 3 SPA frontend
+**jeffrey-microscope** (`jeffrey-microscope/`):
+- `core-microscope` — Main Spring Boot app (MicroscopeApplication), REST resources, managers, gRPC clients for remote workspace communication
+- `microscope-core-persistence-api` — Persistence interfaces for microscope core domain
+- `microscope-core-sql-persistence` — DuckDB persistence for microscope core (workspaces, projects, recordings, remote workspace connections)
+- `pages-microscope` — Full-featured Vue 3 SPA frontend
 - `profiles/` — All profile analysis modules (see below)
 - REST resources: `/api/internal/workspaces/**`, `/api/internal/projects/**`, `/api/internal/profiles/{profileId}/**`
 
-**jeffrey-local/profiles/** (profile analysis, used only by jeffrey-local):
+**jeffrey-microscope/profiles/** (profile analysis, used only by jeffrey-microscope):
 - `profile-management` — Profile analysis features + REST resources (Flamegraph, Timeseries, Guardian, GC, Threads, HeapDump, AI)
 - `recording-parser/` — JFR parsing (jfr-parser-api, jdk-jfr-parser, db-jfr-parser)
 - `profile-sql-persistence` — Per-profile DuckDB persistence (isolated database per profile)
@@ -100,7 +100,7 @@ The project supports two deployment modes: **jeffrey-local** (standalone) and **
 - **Java**: Version 25
 - **Spring Boot**: 4.0.4 with Jersey/JAX-RS for REST APIs
 - **Maven**: Build tool and dependency management
-- **DuckDB**: 1.5.0.0 — Three-tier database architecture (local core DB + server DB + per-profile DBs)
+- **DuckDB**: 1.5.0.0 — Three-tier database architecture (microscope core DB + server DB + per-profile DBs)
 - **Flyway**: 10.24.0 for database migrations
 - **Jackson**: 2.21.1 for JSON serialization
 - **gRPC**: 1.72.0 for remote workspace communication (replaces old REST public API)
@@ -126,15 +126,15 @@ The project supports two deployment modes: **jeffrey-local** (standalone) and **
 
 ```
 jeffrey/
-├── jeffrey-local/                     # Standalone local deployment
-│   ├── core-local/                    # Main Spring Boot app (LocalApplication)
-│   │   └── src/.../local/core/
+├── jeffrey-microscope/                     # Standalone deployment
+│   ├── core-microscope/                    # Main Spring Boot app (MicroscopeApplication)
+│   │   └── src/.../microscope/core/
 │   │       ├── client/                # gRPC clients (RemoteClients, Remote*Client)
 │   │       ├── manager/               # Managers (project/, workspace/, downloads, recordings, etc.)
 │   │       └── resources/             # REST resources (project/, workspace/, ProfilesResource, etc.)
-│   ├── local-core-persistence-api/    # Local core persistence interfaces
-│   ├── local-core-sql-persistence/    # Local core DuckDB persistence
-│   ├── pages-local/                   # Full-featured Vue 3 SPA frontend
+│   ├── microscope-core-persistence-api/    # Microscope core persistence interfaces
+│   ├── microscope-core-sql-persistence/    # Microscope core DuckDB persistence
+│   ├── pages-microscope/                   # Full-featured Vue 3 SPA frontend
 │   │   └── src/
 │   │       ├── assets/                # Design tokens, SCSS, static assets
 │   │       ├── components/            # Reusable Vue components
@@ -196,7 +196,7 @@ jeffrey/
 ├── jeffrey-agent/                     # Agent module
 ├── jeffrey-pages/                     # Documentation site
 ├── build/                             # Build configurations
-│   ├── build-local/                   # Local application assembly
+│   ├── build-microscope/                   # Local application assembly
 │   ├── build-server/                  # Server application assembly
 │   ├── build-cli/                     # CLI build
 │   ├── build-cli-native/             # Native image build
@@ -211,7 +211,7 @@ jeffrey/
 ## Code Style and Conventions
 
 ### Java Backend
-- **Package Structure**: `cafe.jeffrey.local.*` for local deployment, `cafe.jeffrey.server.*` for server deployment, `cafe.jeffrey.profile.*` for profiles, `cafe.jeffrey.*` for shared modules
+- **Package Structure**: `cafe.jeffrey.microscope.*` for microscope deployment, `cafe.jeffrey.server.*` for server deployment, `cafe.jeffrey.profile.*` for profiles, `cafe.jeffrey.*` for shared modules
 - **Naming**: PascalCase for classes, camelCase for methods/fields
 - **Imports**: Always use import statements; never use fully qualified class names inline in code
 - **Annotation Placement**: Annotations on **classes**, **fields**, and **methods** always go on their own line directly above the declaration — never inline on the same line. Applies to `@Bean`, `@Configuration`, `@RequestMapping`, `@ResponseBody`, `@GetMapping` / `@PostMapping` / etc., `@Mock`, `@Test`, `@ExtendWith`, custom annotations, and so on. Annotations on **method/constructor parameters** (e.g. `@PathVariable`, `@RequestParam`, `@RequestBody`) stay inline next to the parameter — that's the standard form and keeps signatures readable.
@@ -236,7 +236,7 @@ jeffrey/
 - **Architecture**: Manager pattern with service layer separation
 - **REST**: Spring MVC controllers annotated with `@RestController` + `@RequestMapping` at class level (this is the **only** stereotype the project allows — see Spring Bean Registration). Constructor injection only — never `@Autowired`. Controllers are picked up by Spring Boot's component scan rooted at the application's package; do not declare them as `@Bean` methods.
 - **Spring Bean Registration**: Never use stereotype annotations (`@Component`, `@Service`, `@Repository`, `@Controller`) or `@Autowired`. **Exception:** `@RestController` is allowed (and required) on Spring MVC controllers — this is the only stereotype on the allow-list, because the controller layer is the single place where component scanning is more pragmatic than explicit wiring. Everything else (managers, services, factories, resolvers, web infrastructure) must be registered explicitly via `@Bean` methods in `@Configuration` classes or Spring 4 `BeanRegistrar`. This keeps wiring visible and explicit while letting the dispatcher discover handlers normally.
-- **gRPC**: Proto files in `shared/server-api/` (package `cafe.jeffrey.server.api.v1`), implementations in `jeffrey-server/core-server/.../grpc/`, clients in `jeffrey-local/core-local/.../client/`
+- **gRPC**: Proto files in `shared/server-api/` (package `cafe.jeffrey.server.api.v1`), implementations in `jeffrey-server/core-server/.../grpc/`, clients in `jeffrey-microscope/core-microscope/.../client/`
 - **Sealed Interfaces**: Used for type-safe hierarchies (e.g., `JobDescriptor`, `WorkspacesManager`, `TimeRange`)
 - **Records**: Used for DTOs and immutable data
 - **Three-Tier Persistence**: Local Core DB (workspaces, projects, recordings) + Server DB (server workspaces, projects, scheduling) + Profile DB (isolated per profile)
@@ -289,12 +289,12 @@ jeffrey/
 - **Components**: PascalCase for component names
 - **Composition API**: Preferred over Options API
 - **TypeScript**: Strict typing with interfaces for API models
-- **Design Tokens**: CSS custom properties in `jeffrey-local/pages-local/src/assets/design-tokens.css` — always use these for colors, spacing, typography
-- **Composables**: Reusable reactive logic in `jeffrey-local/pages-local/src/composables/` (useModal, useNavigation, useAiAnalysis, useWorkspaceType, etc.)
-- **API Clients**: Two base classes in `jeffrey-local/pages-local/src/services/api/`:
+- **Design Tokens**: CSS custom properties in `jeffrey-microscope/pages-microscope/src/assets/design-tokens.css` — always use these for colors, spacing, typography
+- **Composables**: Reusable reactive logic in `jeffrey-microscope/pages-microscope/src/composables/` (useModal, useNavigation, useAiAnalysis, useWorkspaceType, etc.)
+- **API Clients**: Two base classes in `jeffrey-microscope/pages-microscope/src/services/api/`:
   - `BasePlatformClient` — for workspace/project APIs (used by WorkspaceClient, ProjectClient)
   - `BaseProfileClient` — for profile feature APIs (used by OqlAssistantClient, ProfileMethodTracingClient, etc.)
-- **State Management**: Simple ref-based stores in `jeffrey-local/pages-local/src/stores/` (not Pinia)
+- **State Management**: Simple ref-based stores in `jeffrey-microscope/pages-microscope/src/stores/` (not Pinia)
 - **Protobuf**: Used for flamegraph binary data; regenerate with `npm run proto:generate`
 - **Styling**: Use shared CSS files first, then scoped CSS for component-specific styles
   - **Shared CSS files** (import via `import '@/styles/...'` or `@import` in SCSS):
@@ -324,18 +324,18 @@ jeffrey/
   ```bash
   JAVA_HOME=/Users/petrbouda/.sdkman/candidates/java/25.0.1-amzn /Users/petrbouda/.sdkman/candidates/maven/current/bin/mvn clean compile
   ```
-- **Frontend Dev**: `cd jeffrey-local/pages-local && npm run dev`
-- **Frontend Build**: `cd jeffrey-local/pages-local && npm run build`
-- **Frontend Lint**: `cd jeffrey-local/pages-local && npm run lint`
-- **Frontend Format**: `cd jeffrey-local/pages-local && npm run format`
-- **Frontend Test**: `cd jeffrey-local/pages-local && npm run test`
-- **Frontend Protobuf**: `cd jeffrey-local/pages-local && npm run proto:generate`
+- **Frontend Dev**: `cd jeffrey-microscope/pages-microscope && npm run dev`
+- **Frontend Build**: `cd jeffrey-microscope/pages-microscope && npm run build`
+- **Frontend Lint**: `cd jeffrey-microscope/pages-microscope && npm run lint`
+- **Frontend Format**: `cd jeffrey-microscope/pages-microscope && npm run format`
+- **Frontend Test**: `cd jeffrey-microscope/pages-microscope && npm run test`
+- **Frontend Protobuf**: `cd jeffrey-microscope/pages-microscope && npm run proto:generate`
 
 ## API Structure
-- **jeffrey-local REST**: `/api/internal/` for frontend-facing APIs — resources in `jeffrey-local/core-local/.../resources/`
-- **Profile REST**: `/api/internal/profiles/{profileId}/` for profile features — resources in `jeffrey-local/profiles/profile-management/.../resources/`
+- **jeffrey-microscope REST**: `/api/internal/` for frontend-facing APIs — resources in `jeffrey-microscope/core-microscope/.../resources/`
+- **Profile REST**: `/api/internal/profiles/{profileId}/` for profile features — resources in `jeffrey-microscope/profiles/profile-management/.../resources/`
 - **jeffrey-server REST**: `/api/internal/` for minimal server UI — resources in `jeffrey-server/core-server/.../resources/`
-- **gRPC**: Remote workspace communication between jeffrey-local and jeffrey-server — proto definitions in `shared/server-api/src/main/proto/jeffrey/api/v1/`, service implementations in `jeffrey-server/core-server/.../grpc/`, clients in `jeffrey-local/core-local/.../client/`
+- **gRPC**: Remote workspace communication between jeffrey-microscope and jeffrey-server — proto definitions in `shared/server-api/src/main/proto/jeffrey/api/v1/`, service implementations in `jeffrey-server/core-server/.../grpc/`, clients in `jeffrey-microscope/core-microscope/.../client/`
 - gRPC proto files: `workspace_service.proto`, `project_service.proto`, `instance_service.proto`, `recording_download_service.proto`, `repository_service.proto`, `profiler_settings_service.proto`, `messages_service.proto`
 - gRPC clients: `RemoteClients` record containing `RemoteDiscoveryClient`, `RemoteRepositoryClient`, `RemoteRecordingStreamClient`, `RemoteProfilerClient`, `RemoteMessagesClient`, `RemoteInstancesClient`, `RemoteProjectsClient`
 - Implemented using Jersey/JAX-RS (not Spring MVC) for REST
@@ -348,9 +348,9 @@ jeffrey/
 - **Authorization is per-change-set, not standing.** A "commit and push" approval applies only to the diff in front of you at that moment. The next request — even immediately after, even for a closely-related follow-up — needs a fresh confirmation. Do not treat one OK as a session-wide pass.
 
 ## Development Workflow
-1. Backend development in Java with Spring Boot (two deployment targets: local and server)
-2. Frontend development with Vue 3 and TypeScript (primary UI in `jeffrey-local/pages-local/`)
-3. Integration through REST APIs (local) and gRPC (server communication)
+1. Backend development in Java with Spring Boot (two deployment targets: microscope and server)
+2. Frontend development with Vue 3 and TypeScript (primary UI in `jeffrey-microscope/pages-microscope/`)
+3. Integration through REST APIs (microscope) and gRPC (server communication)
 4. Docker containerization for deployment
 5. Maven for Java build management, npm for frontend dependencies
 
@@ -361,27 +361,27 @@ jeffrey/
 - **Backend**: Use `java.time.Clock` instead of real timestamps to fix time
 - **Backend gRPC**: Every gRPC service must have an in-process integration test using `InProcessServerBuilder`/`InProcessChannelBuilder` (`grpc-inprocess` dependency). Tests should cover validation errors (status codes), and end-to-end streaming with real data where applicable. See `EventStreamingGrpcServiceTest` for the reference pattern.
 - **Backend Async Assertions**: Use Awaitility (`org.awaitility:awaitility`) for async/polling assertions instead of hand-rolled `Thread.sleep` loops. Example: `await().atMost(5, SECONDS).untilAsserted(() -> assertEquals("expected", getResult()));`
-- **Frontend**: Vitest (`cd jeffrey-local/pages-local && npm run test`)
+- **Frontend**: Vitest (`cd jeffrey-microscope/pages-microscope && npm run test`)
 
 ## AI Integration
 - Spring AI 2.0.0-M3 with Claude and OpenAI providers
-- AI modules: `jeffrey-local/profiles/ai-config/`, `jeffrey-local/profiles/oql-assistant/`, `jeffrey-local/profiles/duckdb-ai-mcp/`, `jeffrey-local/profiles/heap-dump-ai-mcp/`
+- AI modules: `jeffrey-microscope/profiles/ai-config/`, `jeffrey-microscope/profiles/oql-assistant/`, `jeffrey-microscope/profiles/duckdb-ai-mcp/`, `jeffrey-microscope/profiles/heap-dump-ai-mcp/`
 - Config: `jeffrey.ai.provider=claude`, `jeffrey.ai.model=claude-opus-4-6`
 
 ## DuckDB MCP Servers
 - You can use MCP Server to connect to DuckDB database to get information about the current data
 
 ### Structure of the Database
-- Three-tier architecture: local core database, server database, and per-profile databases (isolated)
+- Three-tier architecture: microscope core database, server database, and per-profile databases (isolated)
 - Local Core DB: workspaces, projects, recordings, remote workspace connections
 - Server DB: server-side workspaces, projects, scheduling
 - Profile DB: events, flamegraph data, analysis results for a single profile
 - `profile_id` gathers all data related to a specific profile
 
 ### Database Schema
-- Local Core migrations: `jeffrey-local/local-core-sql-persistence/src/main/resources/db/migration/local/core/V001__init.sql`
+- Microscope Core migrations: `jeffrey-microscope/microscope-core-sql-persistence/src/main/resources/db/migration/microscope/core/V001__init.sql`
 - Server migrations: `jeffrey-server/server-sql-persistence/src/main/resources/db/migration/server/V001__init.sql`
-- Profile migrations: `jeffrey-local/profiles/profile-sql-persistence/src/main/resources/db/migration/profile/V001__init.sql`
+- Profile migrations: `jeffrey-microscope/profiles/profile-sql-persistence/src/main/resources/db/migration/profile/V001__init.sql`
 - **Migration policy**: Never create new migration files (V002, V003, etc.). Always modify the existing V001 file directly. The database is recreated from scratch on each startup.
 - JFR Event Types reference: https://sap.github.io/jfrevents/ (select Java version for event details)
 - JSONB `fields` column in the `events` table contains event-specific data — see `/jfr-event-fields` skill for full field reference per event type
@@ -392,9 +392,9 @@ When modifying code, keep the corresponding documentation pages in `jeffrey-page
 
 | Code module | Documentation pages |
 |---|---|
-| `jeffrey-local/core-local` | `jeffrey-pages/src/views/docs/platform/` — workspaces, projects, recordings, sessions, profiler settings, alerts |
+| `jeffrey-microscope/core-microscope` | `jeffrey-pages/src/views/docs/platform/` — workspaces, projects, recordings, sessions, profiler settings, alerts |
 | `jeffrey-server/core-server` | `jeffrey-pages/src/views/docs/platform/` — scheduler |
-| `jeffrey-local/profiles/profile-management` | `jeffrey-pages/src/views/docs/profiles/` — visualization, application analysis, JVM internals, heap dump analysis |
+| `jeffrey-microscope/profiles/profile-management` | `jeffrey-pages/src/views/docs/profiles/` — visualization, application analysis, JVM internals, heap dump analysis |
 | `jeffrey-cli/` | `jeffrey-pages/src/views/docs/cli/` — CLI overview, configuration, directory structure, generated output |
 | Architecture changes | `jeffrey-pages/src/views/docs/architecture/` — overview, public API, storage |
 | Deployment changes | `jeffrey-pages/src/views/docs/deployments/` — JAR, container, live recording |

@@ -7,8 +7,8 @@ Review API contracts for consistency between backend (Java), frontend (TypeScrip
 1. **Identify changed API-related files** using `git diff --name-only`, filtering for:
    - Java REST resources (`*Resource.java`, `*Resources.java`)
    - Java DTOs/records used in API responses
-   - TypeScript API clients (`jeffrey-local/pages-local/src/services/api/*.ts`)
-   - TypeScript model types (`jeffrey-local/pages-local/src/services/api/model/*.ts`)
+   - TypeScript API clients (`jeffrey-microscope/pages-microscope/src/services/api/*.ts`)
+   - TypeScript model types (`jeffrey-microscope/pages-microscope/src/services/api/model/*.ts`)
    - Proto files (`shared/server-api/src/main/proto/**/*.proto`)
    - gRPC service implementations (`*GrpcService.java`)
    - gRPC clients (`Remote*Client.java`)
@@ -26,7 +26,7 @@ Review API contracts for consistency between backend (Java), frontend (TypeScrip
    - `RemoteClients` record must include all gRPC clients
 
 4. **Check REST-to-gRPC parity** (for features that support both local and remote):
-   - Internal REST endpoints in `jeffrey-local` should have corresponding gRPC service methods
+   - Internal REST endpoints in `jeffrey-microscope` should have corresponding gRPC service methods
    - Manager interfaces should have both local and remote implementations
    - Data returned via REST and gRPC should be structurally equivalent
 

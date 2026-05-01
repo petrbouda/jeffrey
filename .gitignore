@@ -10,24 +10,24 @@
 .DS_Store
 
 # Logs
-jeffrey-local/pages-local/logs
-jeffrey-local/pages-local/*.log
-jeffrey-local/pages-local/npm-debug.log*
-jeffrey-local/pages-local/yarn-debug.log*
-jeffrey-local/pages-local/yarn-error.log*
-jeffrey-local/pages-local/pnpm-debug.log*
-jeffrey-local/pages-local/lerna-debug.log*
+jeffrey-microscope/pages-microscope/logs
+jeffrey-microscope/pages-microscope/*.log
+jeffrey-microscope/pages-microscope/npm-debug.log*
+jeffrey-microscope/pages-microscope/yarn-debug.log*
+jeffrey-microscope/pages-microscope/yarn-error.log*
+jeffrey-microscope/pages-microscope/pnpm-debug.log*
+jeffrey-microscope/pages-microscope/lerna-debug.log*
 
 # dependencies
-jeffrey-local/pages-local/node_modules
-jeffrey-local/pages-local/package-lock.json
-jeffrey-local/pages-local/yarn.lock
+jeffrey-microscope/pages-microscope/node_modules
+jeffrey-microscope/pages-microscope/package-lock.json
+jeffrey-microscope/pages-microscope/yarn.lock
 
-jeffrey-local/pages-local/.DS_Store
-jeffrey-local/pages-local/dist
-jeffrey-local/pages-local/dist-ssr
-jeffrey-local/pages-local/coverage
-jeffrey-local/pages-local/*.local
+jeffrey-microscope/pages-microscope/.DS_Store
+jeffrey-microscope/pages-microscope/dist
+jeffrey-microscope/pages-microscope/dist-ssr
+jeffrey-microscope/pages-microscope/coverage
+jeffrey-microscope/pages-microscope/*.local
 
 # pages-server dependencies and build output
 jeffrey-server/pages-server/node_modules
@@ -41,14 +41,14 @@ jeffrey-server/pages-server/*.local
 /cypress/screenshots/
 
 # Editor directories and files
-jeffrey-local/pages-local/.vscode/*
-jeffrey-local/pages-local/!.vscode/extensions.json
-jeffrey-local/pages-local/.idea
-jeffrey-local/pages-local/*.suo
-jeffrey-local/pages-local/*.ntvs*
-jeffrey-local/pages-local/*.njsproj
-jeffrey-local/pages-local/*.sln
-jeffrey-local/pages-local/*.sw?
+jeffrey-microscope/pages-microscope/.vscode/*
+jeffrey-microscope/pages-microscope/!.vscode/extensions.json
+jeffrey-microscope/pages-microscope/.idea
+jeffrey-microscope/pages-microscope/*.suo
+jeffrey-microscope/pages-microscope/*.ntvs*
+jeffrey-microscope/pages-microscope/*.njsproj
+jeffrey-microscope/pages-microscope/*.sln
+jeffrey-microscope/pages-microscope/*.sw?
 
 package-lock.json
 /node_modules/*

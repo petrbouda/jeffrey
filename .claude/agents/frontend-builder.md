@@ -6,17 +6,17 @@ Verify that Vue/TypeScript changes compile, pass lint, and tests succeed.
 
 1. Run frontend build:
    ```bash
-   cd jeffrey-local/pages-local && npm run build 2>&1
+   cd jeffrey-microscope/pages-microscope && npm run build 2>&1
    ```
 
 2. Run frontend lint:
    ```bash
-   cd jeffrey-local/pages-local && npm run lint 2>&1
+   cd jeffrey-microscope/pages-microscope && npm run lint 2>&1
    ```
 
 3. Run frontend tests:
    ```bash
-   cd jeffrey-local/pages-local && npm run test 2>&1
+   cd jeffrey-microscope/pages-microscope && npm run test 2>&1
    ```
 
 4. If all steps **succeed**: Report clean build with no errors.

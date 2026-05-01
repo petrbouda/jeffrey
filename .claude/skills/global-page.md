@@ -16,7 +16,7 @@ Global pages are application-wide views (not scoped to a workspace or project). 
 
 ### Step 1: Create Vue View
 
-Create in `jeffrey-local/pages-local/src/views/global/YourPageView.vue`:
+Create in `jeffrey-microscope/pages-microscope/src/views/global/YourPageView.vue`:
 
 ```vue
 <script setup lang="ts">
@@ -64,7 +64,7 @@ import MainCard from '@/components/MainCard.vue'
 
 ### Step 2: Add Route
 
-Add route to `jeffrey-local/pages-local/src/router/index.ts` under the global routes section (inside the `Index` layout children):
+Add route to `jeffrey-microscope/pages-microscope/src/router/index.ts` under the global routes section (inside the `Index` layout children):
 
 ```typescript
 {
@@ -76,7 +76,7 @@ Add route to `jeffrey-local/pages-local/src/router/index.ts` under the global ro
 
 ### Step 3: Add Navigation Tab
 
-Add a navigation link to `jeffrey-local/pages-local/src/components/MainNavigation.vue`:
+Add a navigation link to `jeffrey-microscope/pages-microscope/src/components/MainNavigation.vue`:
 
 ```vue
 <router-link to="/your-page" class="nav-pill" active-class="active">
@@ -87,25 +87,25 @@ Add a navigation link to `jeffrey-local/pages-local/src/components/MainNavigatio
 
 ### Step 4: Create API Client (if needed)
 
-If the page calls backend APIs, create a client in `jeffrey-local/pages-local/src/services/api/YourPageClient.ts` extending `BasePlatformClient`.
+If the page calls backend APIs, create a client in `jeffrey-microscope/pages-microscope/src/services/api/YourPageClient.ts` extending `BasePlatformClient`.
 
 ## File Locations Summary
 
 | Component | Path |
 |---|---|
-| Vue View | `jeffrey-local/pages-local/src/views/global/YourPageView.vue` |
-| Router | `jeffrey-local/pages-local/src/router/index.ts` (global routes section) |
-| Navigation | `jeffrey-local/pages-local/src/components/MainNavigation.vue` |
-| API Client | `jeffrey-local/pages-local/src/services/api/YourPageClient.ts` |
-| MainCard component | `jeffrey-local/pages-local/src/components/MainCard.vue` |
+| Vue View | `jeffrey-microscope/pages-microscope/src/views/global/YourPageView.vue` |
+| Router | `jeffrey-microscope/pages-microscope/src/router/index.ts` (global routes section) |
+| Navigation | `jeffrey-microscope/pages-microscope/src/components/MainNavigation.vue` |
+| API Client | `jeffrey-microscope/pages-microscope/src/services/api/YourPageClient.ts` |
+| MainCard component | `jeffrey-microscope/pages-microscope/src/components/MainCard.vue` |
 
 ## Reference Examples
 
-- **Simple page**: `jeffrey-local/pages-local/src/views/global/SettingsView.vue`
-- **Multi-card page**: `jeffrey-local/pages-local/src/views/global/EventLogView.vue`
-- **Custom header**: `jeffrey-local/pages-local/src/views/global/QuickAnalysisView.vue`
+- **Simple page**: `jeffrey-microscope/pages-microscope/src/views/global/SettingsView.vue`
+- **Multi-card page**: `jeffrey-microscope/pages-microscope/src/views/global/EventLogView.vue`
+- **Custom header**: `jeffrey-microscope/pages-microscope/src/views/global/QuickAnalysisView.vue`
 
 ## Verification
 
-1. Frontend build: `cd jeffrey-local/pages-local && npm run build`
-2. Frontend tests: `cd jeffrey-local/pages-local && npm run test`
+1. Frontend build: `cd jeffrey-microscope/pages-microscope && npm run build`
+2. Frontend tests: `cd jeffrey-microscope/pages-microscope && npm run test`

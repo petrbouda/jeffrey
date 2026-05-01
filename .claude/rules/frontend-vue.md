@@ -1,7 +1,7 @@
 ---
 paths:
   - "**/*.vue"
-  - "jeffrey-local/pages-local/**/*.ts"
+  - "jeffrey-microscope/pages-microscope/**/*.ts"
 ---
 
 ## Vue/TypeScript Frontend Rules

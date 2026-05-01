@@ -32,7 +32,7 @@ paths:
 - Map domain exceptions to gRPC status at the service boundary, not in domain code
 
 ### gRPC Clients
-- Clients go in `jeffrey-local/core-local/.../client/`
+- Clients go in `jeffrey-microscope/core-microscope/.../client/`
 - Use blocking stubs for request-response, async stubs for streaming
 - Add new clients to the `RemoteClients` record
 - Update the factory method that creates `RemoteClients`

@@ -30,7 +30,7 @@
     <modules>
         <module>shared</module>
         <module>jeffrey-server</module>
-        <module>jeffrey-local</module>
+        <module>jeffrey-microscope</module>
         <module>jeffrey-cli</module>
         <module>jeffrey-agent</module>
         <module>utilities</module>
@@ -95,7 +95,7 @@
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>pages-local</artifactId>
+                <artifactId>pages-microscope</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -120,17 +120,17 @@
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>core-local</artifactId>
+                <artifactId>core-microscope</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>local-core-persistence-api</artifactId>
+                <artifactId>microscope-core-persistence-api</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>local-core-sql-persistence</artifactId>
+                <artifactId>microscope-core-sql-persistence</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

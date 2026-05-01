@@ -18,8 +18,8 @@ Ask the user for the following using AskUserQuestion:
 
 1. **Component Name**: PascalCase name (e.g., "ProfileTimeline", "EventSummaryCard")
 2. **Component Type**: One of:
-   - `view` - Full page component (goes in `jeffrey-local/pages-local/src/views/`)
-   - `component` - Reusable component (goes in `jeffrey-local/pages-local/src/components/`)
+   - `view` - Full page component (goes in `jeffrey-microscope/pages-microscope/src/views/`)
+   - `component` - Reusable component (goes in `jeffrey-microscope/pages-microscope/src/components/`)
 3. **Feature Area**: Which feature area does this belong to? (e.g., "profiles", "projects", "global", "common")
 4. **Has API calls?**: Does the component need to call backend APIs? (yes/no)
 
@@ -75,17 +75,17 @@ const emit = defineEmits<{
 
 | Type | Location |
 |------|----------|
-| View (profiles) | `jeffrey-local/pages-local/src/views/profiles/detail/{ComponentName}.vue` |
-| View (projects) | `jeffrey-local/pages-local/src/views/projects/detail/{ComponentName}.vue` |
-| View (global) | `jeffrey-local/pages-local/src/views/global/{ComponentName}.vue` |
-| Component (shared) | `jeffrey-local/pages-local/src/components/{ComponentName}.vue` |
-| Component (feature) | `jeffrey-local/pages-local/src/components/{feature}/{ComponentName}.vue` |
+| View (profiles) | `jeffrey-microscope/pages-microscope/src/views/profiles/detail/{ComponentName}.vue` |
+| View (projects) | `jeffrey-microscope/pages-microscope/src/views/projects/detail/{ComponentName}.vue` |
+| View (global) | `jeffrey-microscope/pages-microscope/src/views/global/{ComponentName}.vue` |
+| Component (shared) | `jeffrey-microscope/pages-microscope/src/components/{ComponentName}.vue` |
+| Component (feature) | `jeffrey-microscope/pages-microscope/src/components/{feature}/{ComponentName}.vue` |
 
 ### Step 3: Register Routes (Views Only)
 
 If the component is a view, update the router configuration:
 
-**File:** `jeffrey-local/pages-local/src/router/index.ts`
+**File:** `jeffrey-microscope/pages-microscope/src/router/index.ts`
 
 Add route entry following the existing patterns in the file.
 
@@ -93,5 +93,5 @@ Add route entry following the existing patterns in the file.
 
 After generating the component:
 - List all created/modified files
-- Remind to run `npm run build` in `jeffrey-local/pages-local/` to verify
+- Remind to run `npm run build` in `jeffrey-microscope/pages-microscope/` to verify
 - Note any TODO items

@@ -28,7 +28,7 @@ import java.util.Arrays;
 /**
  * Builds a {@link MockMvcTester} wired the same way the server's Spring MVC
  * dispatcher is wired in production: shared Jackson 3 message converter and
- * {@link JeffreyExceptionHandler}. Mirrors the core-local version.
+ * {@link JeffreyExceptionHandler}. Mirrors the core-microscope version.
  */
 public final class MockMvcSupport {
 

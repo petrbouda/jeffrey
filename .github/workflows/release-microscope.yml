@@ -1,0 +1,59 @@
+name: Docker Microscope Images (Jib)
+
+on:
+  workflow_call:
+
+jobs:
+  docker-microscope:
+    runs-on: ubuntu-latest
+    container:
+      image: petrbouda/jeffrey-builder:25
+
+    steps:
+    - uses: actions/checkout@v6
+
+    - name: Extract version
+      id: version
+      run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+    # Clone seed recordings repo into the examples module's Jib extraDirectories source.
+    # Jib convention: src/main/jib/jeffrey-examples/ → /jeffrey-examples/ in the image.
+    - name: Clone jeffrey-recordings into the examples image staging dir
+      run: |
+        rm -rf ./build/build-microscope-examples-jib/src/main/jib/jeffrey-examples
+        git clone --depth=1 https://github.com/petrbouda/jeffrey-recordings.git \
+          ./build/build-microscope-examples-jib/src/main/jib/jeffrey-examples
+        rm -rf ./build/build-microscope-examples-jib/src/main/jib/jeffrey-examples/.git
+        ls -la ./build/build-microscope-examples-jib/src/main/jib/jeffrey-examples/
+
+    # Two-step: jib: prefix goal can only be invoked at the project level. Install the
+    # reactor up to the two jib modules first, then run jib:build scoped to each.
+    - name: Install reactor up to build-microscope-{,examples-}jib
+      env:
+        JEFFREY_TAG_VERSION: ${{ steps.version.outputs.VERSION }}
+      run: mvn -pl build/build-microscope-jib,build/build-microscope-examples-jib -am -DskipTests=true install
+
+    # docker/login-action shells out to `docker login`; the petrbouda/jeffrey-builder:25
+    # container has no docker CLI, so we write ~/.docker/config.json directly. Jib reads
+    # it automatically — same pattern as release-server.yml.
+    - name: Configure Docker Hub auth for Jib
+      env:
+        DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+        DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+      run: |
+        mkdir -p ~/.docker
+        AUTH=$(printf '%s' "${DOCKERHUB_USERNAME}:${DOCKERHUB_TOKEN}" | base64 | tr -d '\n')
+        printf '{"auths":{"https://index.docker.io/v1/":{"auth":"%s"}}}\n' "${AUTH}" > ~/.docker/config.json
+        chmod 600 ~/.docker/config.json
+
+    - name: Build & push microscope
+      run: |
+        mvn -pl build/build-microscope-jib compile jib:build \
+          -Djib.to.image=petrbouda/microscope:${{ steps.version.outputs.VERSION }} \
+          -Djib.to.tags=latest
+
+    - name: Build & push microscope-examples (with seed recordings)
+      run: |
+        mvn -pl build/build-microscope-examples-jib compile jib:build \
+          -Djib.to.image=petrbouda/microscope-examples:${{ steps.version.outputs.VERSION }} \
+          -Djib.to.tags=latest

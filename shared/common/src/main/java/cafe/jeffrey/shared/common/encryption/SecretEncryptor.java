@@ -52,7 +52,7 @@ public final class SecretEncryptor {
     private static final int IV_LENGTH_BYTES = 12;
     private static final int AES_KEY_LENGTH_BYTES = 32;
 
-    private static final byte[] HKDF_SALT = "jeffrey-local-settings-v1".getBytes(StandardCharsets.UTF_8);
+    private static final byte[] HKDF_SALT = "jeffrey-microscope-settings-v1".getBytes(StandardCharsets.UTF_8);
     private static final byte[] HKDF_INFO = "secret-encryption".getBytes(StandardCharsets.UTF_8);
 
     private final SecretKey secretKey;

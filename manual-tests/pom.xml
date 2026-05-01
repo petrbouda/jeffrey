@@ -48,7 +48,7 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>local-core-sql-persistence</artifactId>
+            <artifactId>microscope-core-sql-persistence</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

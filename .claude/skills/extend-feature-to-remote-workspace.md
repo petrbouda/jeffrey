@@ -17,14 +17,14 @@ Jeffrey has two types of workspaces:
 When extending a feature to support REMOTE workspaces, you need to:
 1. Define the gRPC service contract in a **proto file** on the shared server-api module
 2. Implement the gRPC service on **jeffrey-server**
-3. Create a **gRPC client** on jeffrey-local to call the remote server
+3. Create a **gRPC client** on jeffrey-microscope to call the remote server
 4. Create **managers** that delegate to either local or remote implementations
 5. The **frontend** calls the same internal REST API regardless of workspace type
 
 ## Architecture Overview
 
 ```
-jeffrey-local (Local Instance)
+jeffrey-microscope (Local Instance)
 ├── Internal REST API (frontend calls this)
 │   └── ProjectResource → YourFeatureResource
 ├── ProjectManager interface
@@ -206,9 +206,9 @@ public class YourFeatureGrpcService extends YourFeatureServiceGrpc.YourFeatureSe
 }
 ```
 
-### Step 4: Create gRPC Client on jeffrey-local
+### Step 4: Create gRPC Client on jeffrey-microscope
 
-Create a gRPC client in `jeffrey-local/core-local/src/main/java/pbouda/jeffrey/local/core/client/`:
+Create a gRPC client in `jeffrey-microscope/core-microscope/src/main/java/pbouda/jeffrey/local/core/client/`:
 
 ```java
 /*
@@ -229,7 +229,7 @@ Create a gRPC client in `jeffrey-local/core-local/src/main/java/pbouda/jeffrey/l
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.local.core.client;
+package cafe.jeffrey.microscope.core.client;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -282,7 +282,7 @@ public class RemoteYourFeatureClient {
 
 ### Step 5: Wire Client into RemoteClients Record
 
-Add the new client to the `RemoteClients` record in `jeffrey-local/core-local/src/main/java/pbouda/jeffrey/local/core/client/RemoteClients.java`:
+Add the new client to the `RemoteClients` record in `jeffrey-microscope/core-microscope/src/main/java/pbouda/jeffrey/local/core/client/RemoteClients.java`:
 
 ```java
 public record RemoteClients(
@@ -306,7 +306,7 @@ Also update the factory method that creates `RemoteClients` to instantiate `Remo
 
 ### Step 6: Create Manager Interface
 
-Create a manager interface in `jeffrey-local/core-local/src/main/java/pbouda/jeffrey/local/core/manager/`:
+Create a manager interface in `jeffrey-microscope/core-microscope/src/main/java/pbouda/jeffrey/local/core/manager/`:
 
 ```java
 // YourFeatureManager.java
@@ -320,7 +320,7 @@ public interface YourFeatureManager {
 ### Step 7: Create Local Manager Implementation
 
 ```java
-// LocalYourFeatureManager.java in jeffrey-local/core-local/.../manager/
+// LocalYourFeatureManager.java in jeffrey-microscope/core-microscope/.../manager/
 public class LocalYourFeatureManager implements YourFeatureManager {
 
     private final YourRepository repository;
@@ -347,7 +347,7 @@ public class LocalYourFeatureManager implements YourFeatureManager {
 ### Step 8: Create Remote Manager Implementation
 
 ```java
-// RemoteYourFeatureManager.java in jeffrey-local/core-local/.../manager/
+// RemoteYourFeatureManager.java in jeffrey-microscope/core-microscope/.../manager/
 public class RemoteYourFeatureManager implements YourFeatureManager {
 
     private final RemoteYourFeatureClient remoteClient;
@@ -373,7 +373,7 @@ public class RemoteYourFeatureManager implements YourFeatureManager {
 
 ### Step 9: Add to ProjectManager Interface
 
-Add the manager method to `jeffrey-local/core-local/src/main/java/pbouda/jeffrey/local/core/manager/project/ProjectManager.java`:
+Add the manager method to `jeffrey-microscope/core-microscope/src/main/java/pbouda/jeffrey/local/core/manager/project/ProjectManager.java`:
 
 ```java
 YourFeatureManager yourFeatureManager();
@@ -395,7 +395,7 @@ public YourFeatureManager yourFeatureManager() {
 
 ### Step 11: Implement in RemoteProjectManager
 
-In `jeffrey-local/core-local/src/main/java/pbouda/jeffrey/local/core/manager/project/RemoteProjectManager.java`:
+In `jeffrey-microscope/core-microscope/src/main/java/pbouda/jeffrey/local/core/manager/project/RemoteProjectManager.java`:
 
 ```java
 @Override
@@ -409,7 +409,7 @@ public YourFeatureManager yourFeatureManager() {
 
 ### Step 12: Create Internal REST Resource
 
-Create the internal resource in `jeffrey-local/core-local/src/main/java/pbouda/jeffrey/local/core/resources/project/`:
+Create the internal resource in `jeffrey-microscope/core-microscope/src/main/java/pbouda/jeffrey/local/core/resources/project/`:
 
 ```java
 // YourFeatureResource.java
@@ -439,7 +439,7 @@ public class YourFeatureResource {
 
 ### Step 13: Wire Internal Resource
 
-Add to `ProjectResource.java` in `jeffrey-local/core-local/src/main/java/pbouda/jeffrey/local/core/resources/project/`:
+Add to `ProjectResource.java` in `jeffrey-microscope/core-microscope/src/main/java/pbouda/jeffrey/local/core/resources/project/`:
 
 ```java
 @Path("/your-feature")
@@ -450,7 +450,7 @@ public YourFeatureResource yourFeatureResource() {
 
 ### Step 14: Update Frontend API Client
 
-Add project-level methods to your TypeScript client in `jeffrey-local/pages-local/src/services/api/`:
+Add project-level methods to your TypeScript client in `jeffrey-microscope/pages-microscope/src/services/api/`:
 
 ```typescript
 // YourFeatureClient.ts
@@ -497,20 +497,20 @@ const data = await YourFeatureClient.fetchProjectFeature(workspaceId.value, proj
 |-----------|------|
 | Proto files | `shared/server-api/src/main/proto/jeffrey/api/v1/` |
 | gRPC service implementations | `jeffrey-server/core-server/src/main/java/pbouda/jeffrey/server/core/grpc/` |
-| gRPC clients | `jeffrey-local/core-local/src/main/java/pbouda/jeffrey/local/core/client/` |
-| RemoteClients record | `jeffrey-local/core-local/src/main/java/pbouda/jeffrey/local/core/client/RemoteClients.java` |
-| GrpcServerConnection | `jeffrey-local/core-local/src/main/java/pbouda/jeffrey/local/core/client/GrpcServerConnection.java` |
-| Manager interfaces | `jeffrey-local/core-local/src/main/java/pbouda/jeffrey/local/core/manager/` |
-| ProjectManager interface | `jeffrey-local/core-local/src/main/java/pbouda/jeffrey/local/core/manager/project/ProjectManager.java` |
-| RemoteProjectManager | `jeffrey-local/core-local/src/main/java/pbouda/jeffrey/local/core/manager/project/RemoteProjectManager.java` |
-| Internal REST resources | `jeffrey-local/core-local/src/main/java/pbouda/jeffrey/local/core/resources/project/` |
-| Frontend API clients | `jeffrey-local/pages-local/src/services/api/` |
+| gRPC clients | `jeffrey-microscope/core-microscope/src/main/java/pbouda/jeffrey/local/core/client/` |
+| RemoteClients record | `jeffrey-microscope/core-microscope/src/main/java/pbouda/jeffrey/local/core/client/RemoteClients.java` |
+| GrpcServerConnection | `jeffrey-microscope/core-microscope/src/main/java/pbouda/jeffrey/local/core/client/GrpcServerConnection.java` |
+| Manager interfaces | `jeffrey-microscope/core-microscope/src/main/java/pbouda/jeffrey/local/core/manager/` |
+| ProjectManager interface | `jeffrey-microscope/core-microscope/src/main/java/pbouda/jeffrey/local/core/manager/project/ProjectManager.java` |
+| RemoteProjectManager | `jeffrey-microscope/core-microscope/src/main/java/pbouda/jeffrey/local/core/manager/project/RemoteProjectManager.java` |
+| Internal REST resources | `jeffrey-microscope/core-microscope/src/main/java/pbouda/jeffrey/local/core/resources/project/` |
+| Frontend API clients | `jeffrey-microscope/pages-microscope/src/services/api/` |
 
 ## Verification
 
 After implementation:
 1. Run `mvn clean compile` to verify proto generation and backend compiles
-2. Run `cd jeffrey-local/pages-local && npm run build` to verify frontend compiles
+2. Run `cd jeffrey-microscope/pages-microscope && npm run build` to verify frontend compiles
 3. Test with a LIVE workspace - should work as before
 4. Test with a REMOTE workspace - should now work via gRPC
 
@@ -518,7 +518,7 @@ After implementation:
 
 1. **Unified API**: Frontend always calls internal REST API; backend handles delegation to local or remote
 2. **Manager Pattern**: Use interface + local/remote implementations for delegation
-3. **gRPC Contract**: Proto files in `shared/server-api` define the contract between jeffrey-local and jeffrey-server
+3. **gRPC Contract**: Proto files in `shared/server-api` define the contract between jeffrey-microscope and jeffrey-server
 4. **gRPC Replaces REST Public API**: Remote workspace communication uses gRPC, not REST public endpoints
 5. **RemoteClients Record**: All gRPC clients are grouped in the `RemoteClients` record for clean dependency injection
 6. **GrpcServerConnection**: Manages the underlying `ManagedChannel` for creating gRPC stubs; supports both plaintext and TLS

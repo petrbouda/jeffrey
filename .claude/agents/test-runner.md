@@ -7,15 +7,15 @@ Analyze changed files to determine affected modules and run only the relevant te
 1. **Identify changed files** using `git diff --name-only` (include both staged and unstaged).
 
 2. **Map changed files to Maven modules**:
-   - `jeffrey-local/core-local/` -> `-pl jeffrey-local/core-local`
-   - `jeffrey-local/profiles/profile-management/` -> `-pl jeffrey-local/profiles/profile-management`
-   - `jeffrey-local/profiles/profile-sql-persistence/` -> `-pl jeffrey-local/profiles/profile-sql-persistence`
-   - `jeffrey-local/profiles/frame-ir/` -> `-pl jeffrey-local/profiles/frame-ir`
-   - `jeffrey-local/profiles/timeseries/` -> `-pl jeffrey-local/profiles/timeseries`
-   - `jeffrey-local/profiles/subsecond/` -> `-pl jeffrey-local/profiles/subsecond`
-   - `jeffrey-local/profiles/heap-dump/` -> `-pl jeffrey-local/profiles/heap-dump`
-   - `jeffrey-local/profiles/recording-parser/*/` -> `-pl` the specific parser module
-   - `jeffrey-local/local-core-sql-persistence/` -> `-pl jeffrey-local/local-core-sql-persistence`
+   - `jeffrey-microscope/core-microscope/` -> `-pl jeffrey-microscope/core-microscope`
+   - `jeffrey-microscope/profiles/profile-management/` -> `-pl jeffrey-microscope/profiles/profile-management`
+   - `jeffrey-microscope/profiles/profile-sql-persistence/` -> `-pl jeffrey-microscope/profiles/profile-sql-persistence`
+   - `jeffrey-microscope/profiles/frame-ir/` -> `-pl jeffrey-microscope/profiles/frame-ir`
+   - `jeffrey-microscope/profiles/timeseries/` -> `-pl jeffrey-microscope/profiles/timeseries`
+   - `jeffrey-microscope/profiles/subsecond/` -> `-pl jeffrey-microscope/profiles/subsecond`
+   - `jeffrey-microscope/profiles/heap-dump/` -> `-pl jeffrey-microscope/profiles/heap-dump`
+   - `jeffrey-microscope/profiles/recording-parser/*/` -> `-pl` the specific parser module
+   - `jeffrey-microscope/microscope-core-sql-persistence/` -> `-pl jeffrey-microscope/microscope-core-sql-persistence`
    - `jeffrey-server/core-server/` -> `-pl jeffrey-server/core-server`
    - `jeffrey-server/server-sql-persistence/` -> `-pl jeffrey-server/server-sql-persistence`
    - `shared/common/` -> `-pl shared/common`
@@ -25,7 +25,7 @@ Analyze changed files to determine affected modules and run only the relevant te
    - For other modules, derive the Maven module path from the file path
 
 3. **Handle shared module changes**: If files in `shared/` are changed, also include dependent modules that likely need testing:
-   - `shared/common/` -> also test `jeffrey-server/core-server`, `jeffrey-local/profiles/profile-management`
+   - `shared/common/` -> also test `jeffrey-server/core-server`, `jeffrey-microscope/profiles/profile-management`
    - `shared/persistence/` -> also test all `*-sql-persistence` modules
    - `shared/server-api/` -> also test `jeffrey-server/core-server`
 

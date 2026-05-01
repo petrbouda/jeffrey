@@ -319,7 +319,7 @@ jeffrey.server.job.{job-name-kebab}.period=5m
 
 #### 3.1 Add to Frontend JobType
 
-**File:** `jeffrey-local/pages-local/src/services/api/model/JobType.ts`
+**File:** `jeffrey-microscope/pages-microscope/src/services/api/model/JobType.ts`
 
 Add the new job type constant:
 
@@ -329,7 +329,7 @@ Add the new job type constant:
 
 #### 3.2 Update SchedulerList.vue
 
-**File:** `jeffrey-local/pages-local/src/views/projects/detail/SchedulerList.vue`
+**File:** `jeffrey-microscope/pages-microscope/src/views/projects/detail/SchedulerList.vue`
 
 1. Add import for modal component (if applicable)
 2. Add modal visibility ref
@@ -342,7 +342,7 @@ Add the new job type constant:
 
 #### 3.3 Create Modal Component (if job has parameters)
 
-**File:** `jeffrey-local/pages-local/src/components/scheduler/modal/{JobName}Modal.vue`
+**File:** `jeffrey-microscope/pages-microscope/src/components/scheduler/modal/{JobName}Modal.vue`
 
 Create a modal component for job configuration with appropriate form fields.
 
@@ -352,7 +352,7 @@ After generating all files, provide a summary:
 
 - List all created/modified files
 - Remind to run `mvn clean compile` to verify backend
-- Remind to run `cd jeffrey-local/pages-local && npm run build && npm run lint` to verify frontend
+- Remind to run `cd jeffrey-microscope/pages-microscope && npm run build && npm run lint` to verify frontend
 - Note any TODO items in generated code
 
 ## File Locations Reference
@@ -370,9 +370,9 @@ After generating all files, provide a summary:
 | Application properties   | `jeffrey-server/core-server/src/main/resources/application.properties`                                                     |
 | Default job definitions  | `jeffrey-server/core-server/src/main/resources/job-definitions/default-job-definitions.json`                               |
 | Project templates        | `jeffrey-server/core-server/src/main/resources/project-templates/default-project-templates.json`                           |
-| JobType enum (frontend)  | `jeffrey-local/pages-local/src/services/api/model/JobType.ts`                                                              |
-| SchedulerList            | `jeffrey-local/pages-local/src/views/projects/detail/SchedulerList.vue`                                                    |
-| Modal components         | `jeffrey-local/pages-local/src/components/scheduler/modal/`                                                                |
+| JobType enum (frontend)  | `jeffrey-microscope/pages-microscope/src/services/api/model/JobType.ts`                                                              |
+| SchedulerList            | `jeffrey-microscope/pages-microscope/src/views/projects/detail/SchedulerList.vue`                                                    |
+| Modal components         | `jeffrey-microscope/pages-microscope/src/components/scheduler/modal/`                                                                |
 
 ## Example Existing Jobs
 
