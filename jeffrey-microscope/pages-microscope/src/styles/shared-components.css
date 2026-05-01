@@ -954,6 +954,31 @@
   cursor: not-allowed;
 }
 
+.field-wrap.is-invalid {
+  border-color: var(--color-danger);
+  background: var(--color-white);
+}
+
+.field-wrap.is-invalid:focus-within {
+  border-color: var(--color-danger);
+  box-shadow: 0 0 0 3px var(--color-danger-light);
+}
+
+.field-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: var(--font-size-xs);
+  color: var(--color-danger);
+  line-height: 1.5;
+}
+
+.field-error i {
+  font-size: 0.85rem;
+  margin-top: 1px;
+  flex-shrink: 0;
+}
+
 .field-input {
   flex: 1;
   border: none;

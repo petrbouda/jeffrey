@@ -20,6 +20,7 @@ package cafe.jeffrey.server.core.manager.workspace;
 
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceLocation;
+import cafe.jeffrey.shared.common.model.workspace.WorkspaceReferenceId;
 
 import java.util.List;
 import java.util.Optional;
@@ -32,6 +33,10 @@ public interface WorkspacesManager {
             String name,
             WorkspaceLocation location,
             WorkspaceLocation baseLocation) {
+
+        public CreateWorkspaceRequest {
+            WorkspaceReferenceId.validate(referenceId);
+        }
 
         public static Builder builder() {
             return new Builder();

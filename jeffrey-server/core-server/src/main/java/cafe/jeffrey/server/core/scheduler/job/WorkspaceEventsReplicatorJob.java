@@ -20,6 +20,7 @@ package cafe.jeffrey.server.core.scheduler.job;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import cafe.jeffrey.server.core.configuration.properties.DefaultWorkspaceProperties;
 import cafe.jeffrey.server.core.manager.workspace.WorkspaceManager;
 import cafe.jeffrey.server.core.manager.workspace.WorkspacesManager;
 import cafe.jeffrey.server.core.scheduler.Job;
@@ -60,6 +61,7 @@ public class WorkspaceEventsReplicatorJob implements Job {
     private final WorkspacesManager workspacesManager;
     private final PersistentQueue<WorkspaceEvent> workspaceEventQueue;
     private final SchedulerTrigger migrationCallback;
+    private final DefaultWorkspaceProperties defaultWorkspaceProperties;
 
     private static final FolderQueueEntryParser<CLIWorkspaceEvent> JSON_EVENT_PARSER = (filePath, content) -> {
         try {
@@ -76,7 +78,8 @@ public class WorkspaceEventsReplicatorJob implements Job {
             Clock clock,
             FolderQueue folderQueue,
             PersistentQueue<WorkspaceEvent> workspaceEventQueue,
-            SchedulerTrigger migrationCallback) {
+            SchedulerTrigger migrationCallback,
+            DefaultWorkspaceProperties defaultWorkspaceProperties) {
 
         this.workspacesManager = workspacesManager;
         this.period = period;
@@ -84,6 +87,7 @@ public class WorkspaceEventsReplicatorJob implements Job {
         this.folderQueue = folderQueue;
         this.workspaceEventQueue = workspaceEventQueue;
         this.migrationCallback = migrationCallback;
+        this.defaultWorkspaceProperties = defaultWorkspaceProperties;
     }
 
     @Override
@@ -109,10 +113,16 @@ public class WorkspaceEventsReplicatorJob implements Job {
         for (FolderQueueEntry<CLIWorkspaceEvent> entry : entries) {
             WorkspaceEvent event = WorkspaceEventConverter.fromCLIEvent(entry.parsed(), clock.instant());
             try {
-                Optional<WorkspaceManager> workspaceOpt = workspacesManager.findByReferenceId(event.workspaceRefId());
+                String referenceId = resolveReferenceId(event.workspaceRefId());
+                Optional<WorkspaceManager> workspaceOpt = workspacesManager.findByReferenceId(referenceId);
                 if (workspaceOpt.isEmpty()) {
-                    LOG.warn("Workspace not found, discarding event: reference_id={} event_type={}",
-                            event.workspaceRefId(), event.eventType());
+                    if (isBlank(event.workspaceRefId())) {
+                        LOG.error("Default workspace missing, discarding event: configured_reference_id={} event_type={}",
+                                referenceId, event.eventType());
+                    } else {
+                        LOG.warn("Workspace not found, discarding event: reference_id={} event_type={}",
+                                event.workspaceRefId(), event.eventType());
+                    }
                     folderQueue.acknowledge(entry.filePath());
                     continue;
                 }
@@ -135,6 +145,14 @@ public class WorkspaceEventsReplicatorJob implements Job {
         }
 
         return replicatedCount;
+    }
+
+    private String resolveReferenceId(String workspaceRefId) {
+        return isBlank(workspaceRefId) ? defaultWorkspaceProperties.getReferenceId() : workspaceRefId;
+    }
+
+    private static boolean isBlank(String value) {
+        return value == null || value.isBlank();
     }
 
     @Override

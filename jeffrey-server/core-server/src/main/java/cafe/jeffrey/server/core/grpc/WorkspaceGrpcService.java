@@ -24,10 +24,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.server.api.v1.*;
 import cafe.jeffrey.shared.common.JeffreyVersion;
+import cafe.jeffrey.server.core.configuration.properties.DefaultWorkspaceProperties;
 import cafe.jeffrey.server.core.manager.workspace.WorkspaceAlreadyExistsException;
 import cafe.jeffrey.server.core.manager.workspace.WorkspaceManager;
 import cafe.jeffrey.server.core.manager.workspace.WorkspacesManager;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceInfo;
+import cafe.jeffrey.shared.common.model.workspace.WorkspaceReferenceId;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceStatus;
 
 import java.time.Clock;
@@ -40,10 +42,15 @@ public class WorkspaceGrpcService extends WorkspaceServiceGrpc.WorkspaceServiceI
 
     private final WorkspacesManager workspacesManager;
     private final Clock clock;
+    private final DefaultWorkspaceProperties defaultWorkspaceProperties;
 
-    public WorkspaceGrpcService(WorkspacesManager workspacesManager, Clock clock) {
+    public WorkspaceGrpcService(
+            WorkspacesManager workspacesManager,
+            Clock clock,
+            DefaultWorkspaceProperties defaultWorkspaceProperties) {
         this.workspacesManager = workspacesManager;
         this.clock = clock;
+        this.defaultWorkspaceProperties = defaultWorkspaceProperties;
     }
 
     @Override
@@ -110,6 +117,15 @@ public class WorkspaceGrpcService extends WorkspaceServiceGrpc.WorkspaceServiceI
             CreateWorkspaceRequest request,
             StreamObserver<CreateWorkspaceResponse> responseObserver) {
         try {
+            if (WorkspaceReferenceId.isSystem(request.getReferenceId())) {
+                LOG.debug("Rejecting createWorkspace with system-reserved reference_id: reference_id={}",
+                        request.getReferenceId());
+                responseObserver.onError(Status.INVALID_ARGUMENT
+                        .withDescription("Reference IDs starting with '$' are reserved for system workspaces.")
+                        .asRuntimeException());
+                return;
+            }
+
             WorkspaceInfo created = workspacesManager.create(
                     WorkspacesManager.CreateWorkspaceRequest.builder()
                             .referenceId(request.getReferenceId())
@@ -145,6 +161,21 @@ public class WorkspaceGrpcService extends WorkspaceServiceGrpc.WorkspaceServiceI
     public void deleteWorkspace(DeleteWorkspaceRequest request, StreamObserver<DeleteWorkspaceResponse> responseObserver) {
         try {
             WorkspaceManager workspace = findWorkspace(request.getWorkspaceId());
+
+            String defaultRefId = defaultWorkspaceProperties.getReferenceId();
+            String workspaceRefId = workspace.resolveInfo().referenceId();
+            if (defaultRefId.equals(workspaceRefId)) {
+                LOG.debug("Rejecting delete of default workspace: workspace_id={} reference_id={}",
+                        request.getWorkspaceId(), workspaceRefId);
+                responseObserver.onError(Status.FAILED_PRECONDITION
+                        .withDescription(
+                                "Cannot delete the default workspace (" + defaultRefId + "). "
+                                        + "Reconfigure jeffrey.server.default-workspace.reference-id "
+                                        + "and restart to change it.")
+                        .asRuntimeException());
+                return;
+            }
+
             workspace.delete();
 
             LOG.info("Deleted workspace via gRPC: workspaceId={}", request.getWorkspaceId());

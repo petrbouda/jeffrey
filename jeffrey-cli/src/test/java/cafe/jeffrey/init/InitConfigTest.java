@@ -548,33 +548,31 @@ class InitConfigTest {
         }
 
         @Test
-        void throwsExceptionWhenWorkspaceIdMissing() throws IOException {
-            Path configFile = tempDir.resolve("invalid.conf");
+        void missingWorkspaceRefId_isAccepted() throws IOException {
+            Path configFile = tempDir.resolve("valid.conf");
             Files.writeString(configFile, configWithOverrides(
                     "jeffrey-home = \"/tmp/jeffrey\"",
                     "project { name = \"test\" }"
             ));
 
-            IllegalArgumentException exception = assertThrows(
-                    IllegalArgumentException.class,
-                    () -> InitConfig.fromHoconFile(configFile, null)
-            );
-            assertEquals("'project.workspace-ref-id' must be specified", exception.getMessage());
+            InitConfig parsed = InitConfig.fromHoconFile(configFile, null);
+
+            assertNull(parsed.getWorkspaceRefId(),
+                    "Missing workspace-ref-id should resolve to null so the server applies its default");
+            assertEquals("test", parsed.getProjectName());
         }
 
         @Test
-        void throwsExceptionWhenWorkspaceIdBlank() throws IOException {
-            Path configFile = tempDir.resolve("invalid.conf");
+        void blankWorkspaceRefId_isAccepted() throws IOException {
+            Path configFile = tempDir.resolve("valid.conf");
             Files.writeString(configFile, configWithOverrides(
                     "jeffrey-home = \"/tmp/jeffrey\"",
                     "project { workspace-ref-id = \"   \", name = \"test\" }"
             ));
 
-            IllegalArgumentException exception = assertThrows(
-                    IllegalArgumentException.class,
-                    () -> InitConfig.fromHoconFile(configFile, null)
-            );
-            assertEquals("'project.workspace-ref-id' must be specified", exception.getMessage());
+            InitConfig parsed = InitConfig.fromHoconFile(configFile, null);
+
+            assertNull(parsed.getWorkspaceRefId());
         }
 
         @Test

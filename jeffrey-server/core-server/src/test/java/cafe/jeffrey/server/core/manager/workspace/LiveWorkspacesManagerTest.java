@@ -73,14 +73,26 @@ class LiveWorkspacesManagerTest {
         }
 
         @Test
-        void blankSourceId_throwsIllegalArgumentException() {
+        void blankReferenceId_throwsIllegalArgumentException() {
             var ex = assertThrows(IllegalArgumentException.class, () ->
-                    manager.create(WorkspacesManager.CreateWorkspaceRequest.builder()
+                    WorkspacesManager.CreateWorkspaceRequest.builder()
                             .referenceId("   ")
                             .name("Dev Workspace")
-                            .build()));
+                            .build());
 
-            assertTrue(ex.getMessage().contains("Source ID"));
+            assertTrue(ex.getMessage().toLowerCase().contains("reference id"));
+            verify(repository, never()).create(any());
+        }
+
+        @Test
+        void invalidFormatReferenceId_throwsIllegalArgumentException() {
+            var ex = assertThrows(IllegalArgumentException.class, () ->
+                    WorkspacesManager.CreateWorkspaceRequest.builder()
+                            .referenceId("-leading-dash")
+                            .name("Dev Workspace")
+                            .build());
+
+            assertTrue(ex.getMessage().toLowerCase().contains("invalid"));
             verify(repository, never()).create(any());
         }
 

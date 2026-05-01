@@ -49,9 +49,6 @@ public final class LiveWorkspacesManager implements WorkspacesManager {
     @Override
     public WorkspaceInfo create(CreateWorkspaceRequest request) {
         LOG.debug("Creating live workspace: name={}", request.name());
-        if (request.referenceId() == null || request.referenceId().isBlank()) {
-            throw new IllegalArgumentException("Workspace Source ID cannot be null or empty");
-        }
         if (request.name() == null || request.name().isBlank()) {
             throw new IllegalArgumentException("Workspace Name cannot be null or empty");
         }

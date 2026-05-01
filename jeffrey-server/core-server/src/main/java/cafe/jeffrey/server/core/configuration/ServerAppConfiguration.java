@@ -28,6 +28,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import cafe.jeffrey.server.core.configuration.properties.DefaultWorkspaceProperties;
 import cafe.jeffrey.server.core.configuration.properties.JobProperties;
 import cafe.jeffrey.server.core.scheduler.job.descriptor.JobDescriptorFactory;
 import cafe.jeffrey.shared.common.JeffreyVersion;
@@ -86,6 +87,13 @@ public class ServerAppConfiguration {
     @Bean
     public Clock applicationClock() {
         return Clock.systemUTC();
+    }
+
+    @Bean
+    public DefaultWorkspaceProperties defaultWorkspaceProperties(
+            @Value("${jeffrey.server.default-workspace.reference-id:$default}") String referenceId,
+            @Value("${jeffrey.server.default-workspace.name:$default}") String name) {
+        return new DefaultWorkspaceProperties(referenceId, name);
     }
 
     @Bean

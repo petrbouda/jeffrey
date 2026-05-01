@@ -600,10 +600,6 @@ public class InitConfig {
             throw new IllegalArgumentException("Cannot specify both 'jeffrey-home' and 'workspaces-dir'");
         }
 
-        if (isNullOrBlank(project.getWorkspaceRefId())) {
-            throw new IllegalArgumentException("'project.workspace-ref-id' must be specified");
-        }
-
         if (isNullOrBlank(project.getName())) {
             throw new IllegalArgumentException("'project.name' must be specified");
         }
@@ -630,7 +626,7 @@ public class InitConfig {
         private String instanceName;
 
         public String getWorkspaceRefId() {
-            return workspaceRefId;
+            return nullIfBlank(workspaceRefId);
         }
 
         public void setWorkspaceRefId(String workspaceRefId) {

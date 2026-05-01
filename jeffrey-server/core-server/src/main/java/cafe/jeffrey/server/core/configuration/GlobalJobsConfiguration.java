@@ -25,6 +25,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import cafe.jeffrey.server.core.ServerJeffreyDirs;
 import cafe.jeffrey.server.core.appinitializer.ApplicationInitializer;
+import cafe.jeffrey.server.core.appinitializer.DefaultWorkspaceInitializer;
+import cafe.jeffrey.server.core.configuration.properties.DefaultWorkspaceProperties;
 import cafe.jeffrey.server.core.configuration.properties.JobProperties;
 import cafe.jeffrey.server.core.manager.SchedulerManager;
 import cafe.jeffrey.server.core.manager.workspace.WorkspacesManager;
@@ -84,6 +86,12 @@ public class GlobalJobsConfiguration {
     }
 
     @Bean
+    public DefaultWorkspaceInitializer defaultWorkspaceInitializer(
+            DefaultWorkspaceProperties defaultWorkspaceProperties) {
+        return new DefaultWorkspaceInitializer(workspacesManager, defaultWorkspaceProperties);
+    }
+
+    @Bean
     public ProjectsSynchronizerJob projectsSynchronizerJob(
             List<WorkspaceEventConsumer> consumers,
             PersistentQueue<WorkspaceEvent> workspaceEventQueue) {
@@ -102,6 +110,7 @@ public class GlobalJobsConfiguration {
             Clock clock,
             ServerJeffreyDirs jeffreyDirs,
             PersistentQueue<WorkspaceEvent> workspaceEventQueue,
+            DefaultWorkspaceProperties defaultWorkspaceProperties,
             @Qualifier(PROJECTS_SYNCHRONIZER_TRIGGER) SchedulerTrigger projectsSynchronizerTrigger) {
 
         return new WorkspaceEventsReplicatorJob(
@@ -110,7 +119,8 @@ public class GlobalJobsConfiguration {
                 clock,
                 new FolderQueue(jeffreyDirs.workspaceEvents(), clock),
                 workspaceEventQueue,
-                projectsSynchronizerTrigger);
+                projectsSynchronizerTrigger,
+                defaultWorkspaceProperties);
     }
 
     @Bean

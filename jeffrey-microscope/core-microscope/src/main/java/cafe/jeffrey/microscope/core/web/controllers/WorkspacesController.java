@@ -40,6 +40,7 @@ import cafe.jeffrey.microscope.core.resources.workspace.Mappers;
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceInfo;
+import cafe.jeffrey.shared.common.model.workspace.WorkspaceReferenceId;
 
 import java.util.List;
 
@@ -104,10 +105,15 @@ public class WorkspacesController {
         if (request.name() == null || request.name().isBlank()) {
             throw Exceptions.invalidRequest("Workspace name is required");
         }
+        String referenceId = request.referenceId().trim();
+        if (!WorkspaceReferenceId.isValid(referenceId)) {
+            throw Exceptions.invalidRequest(
+                    "Invalid workspace reference ID: " + WorkspaceReferenceId.DESCRIPTION);
+        }
 
         RemoteServerManager server = resolver.resolveServer(serverId);
         try {
-            WorkspaceInfo created = server.createWorkspace(request.referenceId().trim(), request.name().trim());
+            WorkspaceInfo created = server.createWorkspace(referenceId, request.name().trim());
             return ResponseEntity.status(HttpStatus.CREATED).body(Mappers.toResponse(created));
         } catch (StatusRuntimeException e) {
             throw mapStatusError(e);

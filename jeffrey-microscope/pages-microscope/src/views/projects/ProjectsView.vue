@@ -254,18 +254,23 @@
             Reference ID
             <span class="field-required">*</span>
           </label>
-          <div class="field-wrap" :class="{ 'is-disabled': creating }">
+          <div class="field-wrap" :class="{ 'is-disabled': creating, 'is-invalid': !!referenceIdError }">
             <input
               v-model="createForm.referenceId"
               type="text"
               class="field-input is-mono"
-              placeholder="e.g. uat"
+              placeholder="e.g. jeffrey-testapp-1"
               :disabled="creating"
             />
           </div>
-          <div class="field-hint">
+          <div v-if="referenceIdError" class="field-error">
+            <i class="bi bi-exclamation-circle"></i>
+            <span>{{ referenceIdError }}</span>
+          </div>
+          <div v-else class="field-hint">
             Used by <strong>jeffrey-cli</strong>'s
             <code>project.workspace-ref-id</code>. Must be unique on this server.
+            {{ WORKSPACE_REF_ID_HINT }}
           </div>
         </div>
       </div>
@@ -427,6 +432,9 @@ const creating = ref(false);
 const createError = ref<string | null>(null);
 const createForm = ref({ name: '', referenceId: '' });
 
+const WORKSPACE_REF_ID_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9-]{1,62}[a-zA-Z0-9]$/;
+const WORKSPACE_REF_ID_HINT = '3-64 characters, alphanumeric and dashes only, no leading or trailing dash.';
+
 const selectedServer = computed(() =>
   servers.value.find(s => s.id === selectedServerId.value),
 );
@@ -447,9 +455,15 @@ const filteredProjects = computed(() => {
   return projects.value.filter(p => p.name.toLowerCase().includes(q));
 });
 
+const referenceIdError = computed(() => {
+  const ref = createForm.value.referenceId.trim();
+  if (ref.length === 0) return null;
+  return WORKSPACE_REF_ID_PATTERN.test(ref) ? null : WORKSPACE_REF_ID_HINT;
+});
+
 const isCreateFormValid = computed(() =>
   createForm.value.name.trim().length > 0 &&
-  createForm.value.referenceId.trim().length > 0,
+  WORKSPACE_REF_ID_PATTERN.test(createForm.value.referenceId.trim()),
 );
 
 const deleteServerMessage = computed(() =>

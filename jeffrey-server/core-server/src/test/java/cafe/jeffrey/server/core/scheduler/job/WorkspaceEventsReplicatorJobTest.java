@@ -25,6 +25,7 @@ import org.junit.jupiter.api.io.TempDir;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import cafe.jeffrey.server.core.configuration.properties.DefaultWorkspaceProperties;
 import cafe.jeffrey.server.core.manager.workspace.LiveWorkspacesManager;
 import cafe.jeffrey.server.core.manager.workspace.WorkspaceManager;
 import cafe.jeffrey.server.core.manager.workspace.WorkspacesManager;
@@ -103,15 +104,19 @@ class WorkspaceEventsReplicatorJobTest {
                 NOW.minusSeconds(3600), "CLI");
     }
 
+    private static final String DEFAULT_REF_ID = "$default";
+    private static final String DEFAULT_INTERNAL_WORKSPACE_ID = "ws-internal-default";
+
     private WorkspaceEventsReplicatorJob createJob(
             LiveWorkspacesManager workspacesManager,
             FolderQueue folderQueue,
             PersistentQueue<WorkspaceEvent> workspaceEventQueue,
             SchedulerTrigger migrationCallback) {
 
+        DefaultWorkspaceProperties properties = new DefaultWorkspaceProperties(DEFAULT_REF_ID, DEFAULT_REF_ID);
         return new WorkspaceEventsReplicatorJob(
                 workspacesManager, Duration.ofMinutes(1), FIXED_CLOCK, folderQueue,
-                workspaceEventQueue, migrationCallback);
+                workspaceEventQueue, migrationCallback, properties);
     }
 
     @Nested
@@ -346,6 +351,92 @@ class WorkspaceEventsReplicatorJobTest {
 
             // Successful event was replicated, so callback triggered
             verify(migrationCallback).execute();
+        }
+    }
+
+    @Nested
+    class RoutesBlankRefIdToDefaultWorkspace {
+
+        @Mock
+        LiveWorkspacesManager workspacesManager;
+
+        @Mock
+        WorkspaceManager defaultWorkspaceManager;
+
+        @Mock
+        @SuppressWarnings("unchecked")
+        PersistentQueue<WorkspaceEvent> workspaceEventQueue;
+
+        @Mock
+        SchedulerTrigger migrationCallback;
+
+        private static final WorkspaceInfo DEFAULT_WORKSPACE_INFO = new WorkspaceInfo(
+                DEFAULT_INTERNAL_WORKSPACE_ID, DEFAULT_REF_ID, DEFAULT_REF_ID, DEFAULT_REF_ID,
+                null, null, NOW, WorkspaceStatus.UNKNOWN, 0);
+
+        private static CLIWorkspaceEvent eventWithRefId(String refId) {
+            ProjectCreatedEventContent content = new ProjectCreatedEventContent(
+                    "project-x", "X", "/workspaces", "ws-x", "proj-x",
+                    RepositoryType.ASYNC_PROFILER, Map.of());
+            return new CLIWorkspaceEvent(ORIGIN_PROJECT_ID, ORIGIN_PROJECT_ID, refId,
+                    WorkspaceEventType.PROJECT_CREATED, Json.toString(content),
+                    NOW.minusSeconds(60), "CLI");
+        }
+
+        @Test
+        void nullWorkspaceRefId_routedToDefaultWorkspace() throws Exception {
+            Path events = eventsDir();
+            writeEventFile(events, "20260220120000100_aaaaaaaa.json", eventWithRefId(null));
+
+            when(workspacesManager.findByReferenceId(DEFAULT_REF_ID))
+                    .thenReturn(Optional.of(defaultWorkspaceManager));
+            when(defaultWorkspaceManager.localInfo()).thenReturn(DEFAULT_WORKSPACE_INFO);
+            when(migrationCallback.execute()).thenReturn(CompletableFuture.completedFuture(null));
+
+            var folderQueue = new FolderQueue(jeffreyDirs().workspaces().resolve(".events"), FIXED_CLOCK);
+            var job = createJob(workspacesManager, folderQueue, workspaceEventQueue, migrationCallback);
+
+            job.execute(JobContext.EMPTY);
+
+            verify(workspaceEventQueue).append(eq(DEFAULT_INTERNAL_WORKSPACE_ID), any(WorkspaceEvent.class));
+            assertFalse(Files.exists(events.resolve("20260220120000100_aaaaaaaa.json")));
+            assertTrue(Files.exists(events.resolve(".processed").resolve("20260220120000100_aaaaaaaa.json")));
+            verify(migrationCallback).execute();
+        }
+
+        @Test
+        void blankWorkspaceRefId_routedToDefaultWorkspace() throws Exception {
+            Path events = eventsDir();
+            writeEventFile(events, "20260220120000100_aaaaaaaa.json", eventWithRefId("   "));
+
+            when(workspacesManager.findByReferenceId(DEFAULT_REF_ID))
+                    .thenReturn(Optional.of(defaultWorkspaceManager));
+            when(defaultWorkspaceManager.localInfo()).thenReturn(DEFAULT_WORKSPACE_INFO);
+            when(migrationCallback.execute()).thenReturn(CompletableFuture.completedFuture(null));
+
+            var folderQueue = new FolderQueue(jeffreyDirs().workspaces().resolve(".events"), FIXED_CLOCK);
+            var job = createJob(workspacesManager, folderQueue, workspaceEventQueue, migrationCallback);
+
+            job.execute(JobContext.EMPTY);
+
+            verify(workspaceEventQueue).append(eq(DEFAULT_INTERNAL_WORKSPACE_ID), any(WorkspaceEvent.class));
+        }
+
+        @Test
+        void nullRefId_butDefaultWorkspaceMissing_eventDiscarded() throws Exception {
+            Path events = eventsDir();
+            writeEventFile(events, "20260220120000100_aaaaaaaa.json", eventWithRefId(null));
+
+            when(workspacesManager.findByReferenceId(DEFAULT_REF_ID)).thenReturn(Optional.empty());
+
+            var folderQueue = new FolderQueue(jeffreyDirs().workspaces().resolve(".events"), FIXED_CLOCK);
+            var job = createJob(workspacesManager, folderQueue, workspaceEventQueue, migrationCallback);
+
+            job.execute(JobContext.EMPTY);
+
+            verify(workspaceEventQueue, never()).append(any(), any());
+            assertFalse(Files.exists(events.resolve("20260220120000100_aaaaaaaa.json")));
+            assertTrue(Files.exists(events.resolve(".processed").resolve("20260220120000100_aaaaaaaa.json")));
         }
     }
 }

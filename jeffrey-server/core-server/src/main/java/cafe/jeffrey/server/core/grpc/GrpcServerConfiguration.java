@@ -29,6 +29,7 @@ import org.springframework.context.event.ContextClosedEvent;
 import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.context.event.EventListener;
 import cafe.jeffrey.server.core.ServerJeffreyDirs;
+import cafe.jeffrey.server.core.configuration.properties.DefaultWorkspaceProperties;
 import cafe.jeffrey.server.core.manager.RepositoryManager;
 import cafe.jeffrey.server.core.manager.project.ProjectManager;
 import cafe.jeffrey.server.core.manager.workspace.WorkspacesManager;
@@ -65,11 +66,12 @@ public class GrpcServerConfiguration {
             LiveStreamingManager liveStreamingManager,
             ReplayStreamingManager replayStreamingManager,
             RepositoryStorage.Factory repositoryStorageFactory,
+            DefaultWorkspaceProperties defaultWorkspaceProperties,
             Clock clock) {
 
         return ServerBuilder.forPort(grpcPort)
                 .intercept(new JfrGrpcServerInterceptor())
-                .addService(new WorkspaceGrpcService(workspacesManager, clock))
+                .addService(new WorkspaceGrpcService(workspacesManager, clock, defaultWorkspaceProperties))
                 .addService(new ProjectGrpcService(workspacesManager, platformRepositories, projectManagerFactory))
                 .addService(new InstanceGrpcService(platformRepositories, repositoryManagerFactory, clock))
                 .addService(new ProfilerSettingsGrpcService(platformRepositories, projectManagerFactory))
