@@ -22,6 +22,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import cafe.jeffrey.init.model.HeapDumpType;
+import cafe.jeffrey.shared.common.CliConstants;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.shared.common.model.RepositoryType;
 
@@ -548,7 +549,7 @@ class InitConfigTest {
         }
 
         @Test
-        void missingWorkspaceRefId_isAccepted() throws IOException {
+        void missingWorkspaceRefId_resolvesToDefaultConstant() throws IOException {
             Path configFile = tempDir.resolve("valid.conf");
             Files.writeString(configFile, configWithOverrides(
                     "jeffrey-home = \"/tmp/jeffrey\"",
@@ -557,13 +558,14 @@ class InitConfigTest {
 
             InitConfig parsed = InitConfig.fromHoconFile(configFile, null);
 
-            assertNull(parsed.getWorkspaceRefId(),
-                    "Missing workspace-ref-id should resolve to null so the server applies its default");
+            assertEquals(CliConstants.DEFAULT_WORKSPACE_REF_ID, parsed.getWorkspaceRefId(),
+                    "Missing workspace-ref-id should default to the shared CliConstants.DEFAULT_WORKSPACE_REF_ID "
+                            + "so CLI directory layout matches the server's default workspace");
             assertEquals("test", parsed.getProjectName());
         }
 
         @Test
-        void blankWorkspaceRefId_isAccepted() throws IOException {
+        void blankWorkspaceRefId_resolvesToDefaultConstant() throws IOException {
             Path configFile = tempDir.resolve("valid.conf");
             Files.writeString(configFile, configWithOverrides(
                     "jeffrey-home = \"/tmp/jeffrey\"",
@@ -572,7 +574,7 @@ class InitConfigTest {
 
             InitConfig parsed = InitConfig.fromHoconFile(configFile, null);
 
-            assertNull(parsed.getWorkspaceRefId());
+            assertEquals(CliConstants.DEFAULT_WORKSPACE_REF_ID, parsed.getWorkspaceRefId());
         }
 
         @Test
