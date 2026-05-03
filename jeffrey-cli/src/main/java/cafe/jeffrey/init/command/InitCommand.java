@@ -20,6 +20,7 @@ package cafe.jeffrey.init.command;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import cafe.jeffrey.init.DebugLogging;
 import cafe.jeffrey.init.InitConfig;
 import cafe.jeffrey.init.InitExecutor;
 import picocli.CommandLine.Command;
@@ -48,6 +49,9 @@ public class InitCommand implements Runnable {
     public void run() {
         try {
             InitConfig config = InitConfig.fromHoconFile(baseConfigFile, overrideConfigFile);
+            if (config.isDebug()) {
+                DebugLogging.enable();
+            }
             new InitExecutor().execute(config);
         } catch (Exception e) {
             LOG.error("Init failed", e);

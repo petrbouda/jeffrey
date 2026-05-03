@@ -92,6 +92,7 @@ public class InitConfig {
             env-file = ""
             arg-file = "/tmp/jvm.args"
             print-env = false
+            debug = false
             """;
 
     /**
@@ -160,6 +161,7 @@ public class InitConfig {
 
         config.setArgFilePath(resolveWithEnv(resolved.getString("arg-file"), "JEFFREY_ARG_FILE", envLookup));
         config.setPrintEnv(resolved.getBoolean("print-env"));
+        config.setDebug(resolveBoolWithEnv(resolved.getBoolean("debug"), "JEFFREY_DEBUG", envLookup));
 
         Config projectCfg = resolved.getConfig("project");
         ProjectConfig project = new ProjectConfig();
@@ -220,9 +222,29 @@ public class InitConfig {
         return isNullOrBlank(envValue) ? hoconValue : envValue;
     }
 
+    /**
+     * Returns {@code hoconValue} if true; otherwise consults the named environment variable
+     * and treats {@code "1"}, {@code "true"}, {@code "yes"}, {@code "on"} (case-insensitive)
+     * as {@code true}. Used for boolean toggles like {@code debug} that should also accept
+     * a {@code JEFFREY_DEBUG=1} env var without needing to edit the HOCON file.
+     */
+    private static boolean resolveBoolWithEnv(boolean hoconValue, String envName, Function<String, String> envLookup) {
+        if (hoconValue) {
+            return true;
+        }
+        String envValue = envLookup.apply(envName);
+        if (isNullOrBlank(envValue)) {
+            return false;
+        }
+        String normalized = envValue.trim().toLowerCase();
+        return normalized.equals("1") || normalized.equals("true")
+                || normalized.equals("yes") || normalized.equals("on");
+    }
+
     private String envFilePath;
     private String argFilePath;
     private boolean printEnv;
+    private boolean debug;
 
     private String jeffreyHome;
     private String workspacesDir;
@@ -263,6 +285,14 @@ public class InitConfig {
 
     public void setPrintEnv(boolean printEnv) {
         this.printEnv = printEnv;
+    }
+
+    public boolean isDebug() {
+        return debug;
+    }
+
+    public void setDebug(boolean debug) {
+        this.debug = debug;
     }
 
     public String getJeffreyHome() {
