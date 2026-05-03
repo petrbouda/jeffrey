@@ -2,7 +2,7 @@ package cafe.jeffrey.init;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import cafe.jeffrey.shared.common.AgentConstants;
+import cafe.jeffrey.shared.common.CliConstants;
 import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.shared.common.model.repository.ProfilerSettings;
@@ -60,8 +60,8 @@ public class ProfilerSettingsResolver {
         }
 
         return config
-                .replace(AgentConstants.PROFILER_PATH, profilerPath == null ? "" : profilerPath)
-                .replace(AgentConstants.CURRENT_SESSION, sessionPath.toString());
+                .replace(CliConstants.PROFILER_PATH, profilerPath == null ? "" : profilerPath)
+                .replace(CliConstants.CURRENT_SESSION, sessionPath.toString());
     }
 
     private String resolveJeffreyProfilerConfig(Path workspacePath, String projectName) {
@@ -82,11 +82,11 @@ public class ProfilerSettingsResolver {
                     return profilerSettings.defaultSettings();
                 } else {
                     LOG.info("Profiler config resolved from: built-in (cli settings)");
-                    return AgentConstants.DEFAULT_PROFILER_CONFIG;
+                    return CliConstants.DEFAULT_PROFILER_CONFIG;
                 }
             } else {
                 LOG.info("Profiler config resolved from: built-in (cli settings)");
-                return AgentConstants.DEFAULT_PROFILER_CONFIG;
+                return CliConstants.DEFAULT_PROFILER_CONFIG;
             }
         } catch (IOException e) {
             throw new RuntimeException(e);

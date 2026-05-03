@@ -1,7 +1,7 @@
 package cafe.jeffrey.init;
 
 import cafe.jeffrey.init.model.HeapDumpType;
-import cafe.jeffrey.shared.common.AgentConstants;
+import cafe.jeffrey.shared.common.CliConstants;
 import cafe.jeffrey.shared.common.HeartbeatConstants;
 
 import java.nio.file.Path;
@@ -14,17 +14,17 @@ public class FeatureBuilder {
 
     /* Performance data JVM options */
     private static final String PERF_DATA_OPTIONS = "-XX:+UsePerfData -XX:PerfDataSaveFile="
-            + Path.of(AgentConstants.CURRENT_SESSION, PERF_COUNTERS_FILE);
+            + Path.of(CliConstants.CURRENT_SESSION, PERF_COUNTERS_FILE);
 
     /* Heap dump JVM Base options */
     private static final String HEAP_DUMP_BASE_OPTIONS = "-XX:+HeapDumpOnOutOfMemoryError "
             + "-XX:HeapDumpGzipLevel=1 "
-            + "-XX:HeapDumpPath=" + Path.of(AgentConstants.CURRENT_SESSION, "heap-dump.hprof.gz") + " ";
+            + "-XX:HeapDumpPath=" + Path.of(CliConstants.CURRENT_SESSION, "heap-dump.hprof.gz") + " ";
 
     /* Heap dump JVM Crash options */
     private static final String HEAP_DUMP_CRASH_OPTIONS = HEAP_DUMP_BASE_OPTIONS
             + "-XX:+CrashOnOutOfMemoryError "
-            + "-XX:ErrorFile=" + Path.of(AgentConstants.CURRENT_SESSION, "hs-jvm-err.log");
+            + "-XX:ErrorFile=" + Path.of(CliConstants.CURRENT_SESSION, "hs-jvm-err.log");
 
     /* Heap dump JVM Exit options */
     private static final String HEAP_DUMP_EXIT_OPTIONS = HEAP_DUMP_BASE_OPTIONS
@@ -32,7 +32,7 @@ public class FeatureBuilder {
 
     /* Streaming JFR options (used by Jeffrey Agent for repository location) */
     private static final String STREAMING_FLIGHT_RECORDER_OPTIONS =
-            "-XX:FlightRecorderOptions=repository=" + AgentConstants.CURRENT_SESSION + "/" + STREAMING_REPO_DIR + "";
+            "-XX:FlightRecorderOptions=repository=" + CliConstants.CURRENT_SESSION + "/" + STREAMING_REPO_DIR + "";
 
     /* Agent JVM option template (passes heartbeat directory as agent argument) */
     private static final String AGENT_OPTION_TEMPLATE = "-javaagent:%s=" + HeartbeatConstants.PARAM_DIR + "=%s";
@@ -86,7 +86,7 @@ public class FeatureBuilder {
         }
 
         if (perfCountersEnabled) {
-            options.append(PERF_DATA_OPTIONS.replace(AgentConstants.CURRENT_SESSION, currentSessionPath.toString()));
+            options.append(PERF_DATA_OPTIONS.replace(CliConstants.CURRENT_SESSION, currentSessionPath.toString()));
             options.append(" ");
         }
 
@@ -95,13 +95,13 @@ public class FeatureBuilder {
                 case CRASH -> HEAP_DUMP_CRASH_OPTIONS;
                 case EXIT -> HEAP_DUMP_EXIT_OPTIONS;
             };
-            options.append(heapDumpOptions.replace(AgentConstants.CURRENT_SESSION, currentSessionPath.toString()));
+            options.append(heapDumpOptions.replace(CliConstants.CURRENT_SESSION, currentSessionPath.toString()));
             options.append(" ");
         }
 
         if (jvmLogging != null && !jvmLogging.isBlank()) {
             options.append("-Xlog:");
-            options.append(jvmLogging.replace(AgentConstants.CURRENT_SESSION, currentSessionPath.toString()));
+            options.append(jvmLogging.replace(CliConstants.CURRENT_SESSION, currentSessionPath.toString()));
             options.append(" ");
         }
 
@@ -109,12 +109,12 @@ public class FeatureBuilder {
             String heartbeatDirPath = currentSessionPath.resolve(HEARTBEAT_DIR).toString();
             options.append(String.format(AGENT_OPTION_TEMPLATE, agentPath, heartbeatDirPath));
             options.append(" ");
-            options.append(STREAMING_FLIGHT_RECORDER_OPTIONS.replace(AgentConstants.CURRENT_SESSION, currentSessionPath.toString()));
+            options.append(STREAMING_FLIGHT_RECORDER_OPTIONS.replace(CliConstants.CURRENT_SESSION, currentSessionPath.toString()));
             options.append(" ");
         }
 
         if (additionalJvmOptions != null && !additionalJvmOptions.isBlank()) {
-            options.append(additionalJvmOptions.replace(AgentConstants.CURRENT_SESSION, currentSessionPath.toString()));
+            options.append(additionalJvmOptions.replace(CliConstants.CURRENT_SESSION, currentSessionPath.toString()));
             options.append(" ");
         }
 

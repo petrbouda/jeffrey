@@ -73,13 +73,7 @@ public class InitExecutor {
         FolderQueue folderQueue = new FolderQueue(eventsDir, CLOCK);
         EventPublisher eventPublisher = new EventPublisher(folderQueue, CLOCK);
 
-        // No workspace-ref-id: project lives directly under the workspaces root and the
-        // server resolves the default workspace from its own configuration. Avoids hardcoding
-        // any server-side workspace constant (e.g. "$default") in the CLI.
-        String workspaceRefId = config.getWorkspaceRefId();
-        Path workspacePath = workspaceRefId != null
-                ? createDirectories(workspacesPath.resolve(workspaceRefId))
-                : workspacesPath;
+        Path workspacePath = createDirectories(workspacesPath.resolve(config.getWorkspaceRefId()));
         LOG.debug("Directories created: workspacesPath={} workspacePath={}", workspacesPath, workspacePath);
 
         FileSystemRepository repository = new FileSystemRepository(CLOCK);

@@ -18,9 +18,11 @@
 
 package cafe.jeffrey.server.core.configuration.properties;
 
+import cafe.jeffrey.shared.common.CliConstants;
+
 public class DefaultWorkspaceProperties {
 
-    private String referenceId = "$default";
+    private String referenceId = CliConstants.DEFAULT_WORKSPACE_REF_ID;
     private String name = "$default";
 
     public DefaultWorkspaceProperties() {

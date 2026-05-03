@@ -21,7 +21,7 @@ package cafe.jeffrey.server.core.appinitializer;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationListener;
 import org.springframework.core.env.ConfigurableEnvironment;
-import cafe.jeffrey.shared.common.AgentConstants;
+import cafe.jeffrey.shared.common.CliConstants;
 import cafe.jeffrey.shared.common.model.ProfilerInfo;
 import cafe.jeffrey.server.core.manager.SchedulerManager;
 import cafe.jeffrey.server.core.scheduler.job.descriptor.*;
@@ -73,7 +73,7 @@ public class ApplicationInitializer implements ApplicationListener<ApplicationRe
         boolean createGlobalSettings = environment.getProperty(
                 "jeffrey.server.profiler.global-settings.create-if-not-exists", Boolean.class, true);
         String globalCommand = environment.getProperty(
-                "jeffrey.server.profiler.global-settings.command", String.class, AgentConstants.DEFAULT_PROFILER_CONFIG);
+                "jeffrey.server.profiler.global-settings.command", String.class, CliConstants.DEFAULT_PROFILER_CONFIG);
 
         if (createGlobalSettings && !globalCommand.isBlank()) {
             profilerRepository.upsertSettings(new ProfilerInfo(null, null, globalCommand));

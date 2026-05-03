@@ -23,6 +23,7 @@ import com.typesafe.config.ConfigFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.init.model.HeapDumpType;
+import cafe.jeffrey.shared.common.CliConstants;
 import cafe.jeffrey.shared.common.IDGenerator;
 import cafe.jeffrey.shared.common.model.RepositoryType;
 
@@ -656,7 +657,8 @@ public class InitConfig {
         private String instanceName;
 
         public String getWorkspaceRefId() {
-            return nullIfBlank(workspaceRefId);
+            String value = nullIfBlank(workspaceRefId);
+            return value != null ? value : CliConstants.DEFAULT_WORKSPACE_REF_ID;
         }
 
         public void setWorkspaceRefId(String workspaceRefId) {

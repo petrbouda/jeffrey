@@ -91,7 +91,7 @@ public class ServerAppConfiguration {
 
     @Bean
     public DefaultWorkspaceProperties defaultWorkspaceProperties(
-            @Value("${jeffrey.server.default-workspace.reference-id:$default}") String referenceId,
+            @Value("${jeffrey.server.default-workspace.reference-id:#{T(cafe.jeffrey.shared.common.CliConstants).DEFAULT_WORKSPACE_REF_ID}}") String referenceId,
             @Value("${jeffrey.server.default-workspace.name:$default}") String name) {
         return new DefaultWorkspaceProperties(referenceId, name);
     }
