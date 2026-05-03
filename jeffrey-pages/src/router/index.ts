@@ -114,9 +114,9 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/docs/local/LocalOverviewPage.vue')
       },
       {
-        path: 'local/quick-analysis',
-        name: 'DocsQuickAnalysis',
-        component: () => import('@/views/docs/local/QuickAnalysisPage.vue')
+        path: 'local/recordings',
+        name: 'DocsRecordings',
+        component: () => import('@/views/docs/local/RecordingsPage.vue')
       },
       // Profiles
       {
@@ -359,7 +359,7 @@ const routes: RouteRecordRaw[] = [
       // ──── Redirects from old paths ────
       { path: 'goals/overview', redirect: '/docs/getting-started/introduction' },
       { path: 'platform/workspaces', redirect: '/docs/local/workspaces' },
-      { path: 'platform/quick-analysis', redirect: '/docs/local/quick-analysis' },
+      { path: 'platform/recordings', redirect: '/docs/local/recordings' },
       { path: 'platform/event-log', redirect: '/docs/local/event-log' },
       { path: 'platform/projects', redirect: '/docs/local/projects' },
       { path: 'platform/projects/profiles', redirect: '/docs/local/projects/profiles' },

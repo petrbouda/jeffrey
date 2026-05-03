@@ -17,25 +17,25 @@
  */
 
 import { ref, computed } from 'vue';
-import QuickAnalysisClient from '@/services/api/QuickAnalysisClient';
-import type QuickRecording from '@/services/api/model/QuickRecording';
+import RecordingsClient from '@/services/api/RecordingsClient';
+import type Recording from '@/services/api/model/Recording';
 
-const quickAnalysisClient = new QuickAnalysisClient();
+const recordingsClient = new RecordingsClient();
 
 import router from '@/router';
 
 /**
  * Status of the quick analysis process.
  */
-export type QuickAnalysisStatus = 'idle' | 'parsing' | 'completed' | 'failed';
+export type RecordingsAssistantStatus = 'idle' | 'parsing' | 'completed' | 'failed';
 
 /**
  * Type of file being analyzed.
  */
-export type QuickAnalysisFileType = 'jfr' | 'hprof';
+export type RecordingsAssistantFileType = 'jfr' | 'hprof';
 
 /**
- * Global state for Quick Analysis Assistant.
+ * Global state for Recordings Assistant.
  * Allows ad-hoc JFR and Heap Dump file analysis without creating workspaces/projects.
  */
 
@@ -43,10 +43,10 @@ export type QuickAnalysisFileType = 'jfr' | 'hprof';
 const isOpen = ref(false);
 const isExpanded = ref(true);
 const selectedFile = ref<File | null>(null);
-const selectedFileType = ref<QuickAnalysisFileType>('jfr');
-const status = ref<QuickAnalysisStatus>('idle');
+const selectedFileType = ref<RecordingsAssistantFileType>('jfr');
+const status = ref<RecordingsAssistantStatus>('idle');
 const statusMessage = ref('');
-const recentRecordings = ref<QuickRecording[]>([]);
+const recentRecordings = ref<Recording[]>([]);
 const errorMessage = ref<string | null>(null);
 
 /**
@@ -62,7 +62,7 @@ const hasActiveAnalysis = computed(() => isProcessing.value);
 /**
  * Detect file type from filename.
  */
-const detectFileType = (filename: string): QuickAnalysisFileType => {
+const detectFileType = (filename: string): RecordingsAssistantFileType => {
   const lower = filename.toLowerCase();
   if (lower.endsWith('.hprof') || lower.endsWith('.hprof.gz')) {
     return 'hprof';
@@ -71,7 +71,7 @@ const detectFileType = (filename: string): QuickAnalysisFileType => {
 };
 
 /**
- * Opens the Quick Analysis panel.
+ * Opens the Recordings panel.
  */
 const open = () => {
   isOpen.value = true;
@@ -80,7 +80,7 @@ const open = () => {
 };
 
 /**
- * Closes the Quick Analysis panel.
+ * Closes the Recordings panel.
  */
 const close = () => {
   if (!isProcessing.value) {
@@ -135,7 +135,7 @@ const setSelectedFile = (file: File | null) => {
  */
 const loadRecentRecordings = async () => {
   try {
-    recentRecordings.value = await quickAnalysisClient.listRecordings();
+    recentRecordings.value = await recordingsClient.listRecordings();
   } catch (error) {
     console.error('Failed to load recent recordings:', error);
   }
@@ -156,12 +156,12 @@ const startAnalysis = async () => {
 
   try {
     // Step 1: Upload the recording
-    const recordingId = await quickAnalysisClient.uploadRecording(file);
+    const recordingId = await recordingsClient.uploadRecording(file);
 
     statusMessage.value = isHeapDump ? 'Analyzing heap dump...' : 'Analyzing JFR file...';
 
     // Step 2: Analyze the recording
-    const profileId = await quickAnalysisClient.analyzeRecording(recordingId);
+    const profileId = await recordingsClient.analyzeRecording(recordingId);
 
     status.value = 'completed';
 
@@ -198,7 +198,7 @@ const openProfile = async (profileId: string) => {
  */
 const deleteRecording = async (recordingId: string) => {
   try {
-    await quickAnalysisClient.deleteRecording(recordingId);
+    await recordingsClient.deleteRecording(recordingId);
     await loadRecentRecordings();
   } catch {
     // Toast is shown automatically by HttpInterceptor
@@ -206,9 +206,9 @@ const deleteRecording = async (recordingId: string) => {
 };
 
 /**
- * Global Quick Analysis Assistant store.
+ * Global Recordings Assistant store.
  */
-export const quickAnalysisAssistantStore = {
+export const recordingsAssistantStore = {
   // State (reactive refs)
   isOpen,
   isExpanded,

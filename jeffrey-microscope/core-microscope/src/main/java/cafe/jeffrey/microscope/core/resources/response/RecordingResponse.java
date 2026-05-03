@@ -18,10 +18,13 @@
 
 package cafe.jeffrey.microscope.core.resources.response;
 
+import cafe.jeffrey.microscope.persistence.api.RecordingTag;
 import cafe.jeffrey.shared.common.model.Recording;
 import cafe.jeffrey.shared.common.model.RecordingFile;
 
-public record QuickRecordingResponse(
+import java.util.List;
+
+public record RecordingResponse(
         String id,
         String filename,
         String groupId,
@@ -33,12 +36,18 @@ public record QuickRecordingResponse(
         boolean hasProfile,
         long profileSizeInBytes,
         boolean profileModified,
-        String profileName) {
+        String profileName,
+        List<RecordingTagResponse> tags) {
 
-    public static QuickRecordingResponse from(Recording recording, long profileSizeInBytes, boolean profileModified) {
+    public static RecordingResponse from(
+            Recording recording,
+            long profileSizeInBytes,
+            boolean profileModified,
+            List<RecordingTag> tags) {
+
         RecordingFile file = recording.files().isEmpty() ? null : recording.files().getFirst();
 
-        return new QuickRecordingResponse(
+        return new RecordingResponse(
                 recording.id(),
                 file != null ? file.filename() : recording.recordingName(),
                 recording.groupId(),
@@ -50,6 +59,7 @@ public record QuickRecordingResponse(
                 recording.hasProfile(),
                 profileSizeInBytes,
                 profileModified,
-                recording.profileName());
+                recording.profileName(),
+                tags.stream().map(RecordingTagResponse::from).toList());
     }
 }

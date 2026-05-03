@@ -61,9 +61,9 @@ onMounted(() => {
         <p>Then open <a href="http://localhost:8080" target="_blank">http://localhost:8080</a> in your browser.</p>
 
         <h2 id="upload-recording">Upload a Recording</h2>
-        <p>Use <strong>Quick Analysis</strong> to analyze your first JFR recording:</p>
+        <p>Use <strong>Recordings</strong> to analyze your first JFR recording:</p>
         <ol>
-          <li>Click <strong>"Quick Analysis"</strong> on the home page</li>
+          <li>Click <strong>"Recordings"</strong> on the home page</li>
           <li>Upload your <code>.jfr</code> file</li>
           <li>Click <strong>"Analyze"</strong> to create a profile</li>
         </ol>

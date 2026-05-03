@@ -25,8 +25,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import cafe.jeffrey.microscope.core.initializer.RecordingSeedInitializer;
-import cafe.jeffrey.microscope.core.manager.qanalysis.QuickAnalysisManager;
-import cafe.jeffrey.microscope.core.manager.qanalysis.QuickAnalysisManagerImpl;
+import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
+import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManagerImpl;
 import cafe.jeffrey.microscope.core.manager.server.RemoteServersManager;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
@@ -51,14 +51,14 @@ import java.nio.file.Path;
 import java.time.Clock;
 
 /**
- * Configuration beans specific to LOCAL mode: QuickAnalysis, web controllers, resolvers.
+ * Configuration beans specific to LOCAL mode: Recordings, web controllers, resolvers.
  */
 @Configuration
 @Import(WebInfrastructureConfig.class)
 public class MicroscopeAppConfiguration {
 
     @Bean
-    public QuickAnalysisManager quickAnalysisManager(
+    public RecordingsManager recordingsManager(
             Clock clock,
             MicroscopeJeffreyDirs jeffreyDirs,
             @Qualifier(ProfileFactoriesConfiguration.RECORDINGS_PATH) Path recordingsPath,
@@ -70,7 +70,7 @@ public class MicroscopeAppConfiguration {
         ProfilePersistenceProvider quickProvider =
                 new DuckDBProfilePersistenceProvider(clock, jeffreyDirs.profiles(), frameResolutionMode);
 
-        ProfileInitializer quickAnalysisProfileInitializer = new ProfileInitializerImpl(
+        ProfileInitializer recordingsProfileInitializer = new ProfileInitializerImpl(
                 quickProvider.repositories(),
                 quickProvider.databaseManager(),
                 new JfrRecordingEventParser(jeffreyDirs, new Lz4Compressor(jeffreyDirs)),
@@ -79,12 +79,12 @@ public class MicroscopeAppConfiguration {
                 profileDataInitializer,
                 clock);
 
-        return new QuickAnalysisManagerImpl(
+        return new RecordingsManagerImpl(
                 clock,
                 jeffreyDirs,
                 recordingsPath,
                 new JfrRecordingInformationParser(jeffreyDirs),
-                quickAnalysisProfileInitializer,
+                recordingsProfileInitializer,
                 profileManagerFactory,
                 localCorePersistenceProvider.localCoreRepositories());
     }
@@ -92,10 +92,10 @@ public class MicroscopeAppConfiguration {
     @Bean
     @ConditionalOnProperty(name = "jeffrey.microscope.seed.recordings.enabled", havingValue = "true")
     public RecordingSeedInitializer recordingSeedInitializer(
-            QuickAnalysisManager quickAnalysisManager,
+            RecordingsManager recordingsManager,
             @Value("${jeffrey.microscope.seed.recordings.dir:/jeffrey-examples}") String seedDir) {
 
-        return new RecordingSeedInitializer(quickAnalysisManager, Path.of(seedDir));
+        return new RecordingSeedInitializer(recordingsManager, Path.of(seedDir));
     }
 
     // --- Resolvers (centralise profileId / projectId lookups for controllers) ---
@@ -108,11 +108,11 @@ public class MicroscopeAppConfiguration {
     @Bean
     public ProfileManagerResolver profileManagerResolver(
             RemoteServersManager remoteServersManager,
-            Optional<QuickAnalysisManager> quickAnalysisManager,
+            Optional<RecordingsManager> recordingsManager,
             MicroscopeCorePersistenceProvider localCorePersistenceProvider) {
         return new ProfileManagerResolver(
                 remoteServersManager,
-                quickAnalysisManager.orElse(null),
+                recordingsManager.orElse(null),
                 localCorePersistenceProvider.localCoreRepositories());
     }
 

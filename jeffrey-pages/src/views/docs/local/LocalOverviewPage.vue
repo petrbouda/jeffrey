@@ -51,7 +51,7 @@ onMounted(() => {
       <div class="docs-grid docs-grid-2">
         <DocsFeatureCard
           icon="bi bi-lightning"
-          title="Quick Analysis"
+          title="Recordings"
           description="Upload and analyze JFR recordings instantly without project setup."
         />
         <DocsFeatureCard
@@ -93,9 +93,9 @@ onMounted(() => {
 
       <div class="docs-grid docs-grid-2">
         <DocsLinkCard
-          title="Quick Analysis"
+          title="Recordings"
           description="Start analyzing recordings without any setup."
-          to="/docs/local/quick-analysis"
+          to="/docs/local/recordings"
           icon="bi bi-lightning"
         />
         <DocsLinkCard

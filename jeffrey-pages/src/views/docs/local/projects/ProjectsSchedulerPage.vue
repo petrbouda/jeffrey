@@ -114,7 +114,7 @@ onMounted(() => {
             <div class="job-icon blue"><i class="bi bi-clock-history"></i></div>
             <div class="job-content">
               <h4>Download Recording Generator <span class="badge">Coming Soon</span></h4>
-              <p>Creates a new recording from the repository by merging the last configured number of recordings and placing them in the Recordings section.</p>
+              <p>Creates a new recording from the repository by merging the last configured number of recordings; the merged file is published to the global <strong>Recordings</strong> page tagged with its origin.</p>
             </div>
           </div>
 
@@ -122,7 +122,7 @@ onMounted(() => {
             <div class="job-icon blue"><i class="bi bi-arrow-repeat"></i></div>
             <div class="job-content">
               <h4>Periodic Recording Generator <span class="badge">Coming Soon</span></h4>
-              <p>Creates recordings from the repository based on specified periods (e.g., every 15 minutes). Generated recordings are available in the Recordings section.</p>
+              <p>Creates recordings from the repository based on specified periods (e.g., every 15 minutes). Generated recordings appear on the global <strong>Recordings</strong> page with their origin breadcrumb.</p>
             </div>
           </div>
         </div>

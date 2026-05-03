@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,24 +16,23 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import RecordingFile from '@/services/api/model/RecordingFile.ts';
+export interface RecordingTag {
+  key: string;
+  value: string;
+}
 
-export default class Recording {
-  constructor(
-    public id: string,
-    public name: string,
-    public sizeInBytes: number,
-    public durationInMillis: number,
-    public uploadedAt: number,
-    public sourceType: string,
-    public recordingFiles: RecordingFile[],
-    public path?: string,
-    public hasProfile?: boolean,
-    public groupId?: string | null,
-    public profileId?: string | null,
-    public profileName?: string | null,
-    public profileEnabled?: boolean,
-    public profileModified?: boolean,
-    public profileSizeInBytes?: number
-  ) {}
+export default interface Recording {
+  id: string;
+  filename: string;
+  groupId: string | null;
+  eventSource: string;
+  sizeInBytes: number;
+  uploadedAt: number;
+  durationInMillis: number;
+  profileId: string | null;
+  hasProfile: boolean;
+  profileSizeInBytes: number;
+  profileModified: boolean;
+  profileName: string | null;
+  tags: RecordingTag[];
 }

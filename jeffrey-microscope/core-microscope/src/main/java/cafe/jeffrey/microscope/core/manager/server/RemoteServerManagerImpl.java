@@ -76,7 +76,7 @@ public class RemoteServerManagerImpl implements RemoteServerManager {
     public Optional<WorkspaceManager> workspace(String workspaceId) {
         RemoteDiscoveryClient.WorkspaceResult result = remoteClients.discovery().workspace(workspaceId);
         return switch (result.status()) {
-            case AVAILABLE -> Optional.of(workspaceManagerFactory.create(result.info(), remoteClients));
+            case AVAILABLE -> Optional.of(workspaceManagerFactory.create(serverInfo, result.info(), remoteClients));
             case UNAVAILABLE, OFFLINE, UNKNOWN -> Optional.empty();
         };
     }

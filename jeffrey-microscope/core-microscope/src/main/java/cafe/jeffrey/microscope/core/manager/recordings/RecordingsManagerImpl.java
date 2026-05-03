@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.microscope.core.manager.qanalysis;
+package cafe.jeffrey.microscope.core.manager.recordings;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,6 +25,8 @@ import cafe.jeffrey.microscope.persistence.api.RecordingGroup;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
 import cafe.jeffrey.microscope.persistence.api.ProfileRepository;
 import cafe.jeffrey.microscope.persistence.api.RecordingRepository;
+import cafe.jeffrey.microscope.persistence.api.RecordingTag;
+import cafe.jeffrey.microscope.persistence.api.RecordingTagsRepository;
 import cafe.jeffrey.profile.ProfileInitializer;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.provider.profile.api.RecordingInformationParser;
@@ -45,12 +47,14 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.time.Clock;
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
-public class QuickAnalysisManagerImpl implements QuickAnalysisManager {
+public class RecordingsManagerImpl implements RecordingsManager {
 
-    private static final Logger LOG = LoggerFactory.getLogger(QuickAnalysisManagerImpl.class);
+    private static final Logger LOG = LoggerFactory.getLogger(RecordingsManagerImpl.class);
 
     private final Clock clock;
     private final MicroscopeJeffreyDirs jeffreyDirs;
@@ -60,8 +64,9 @@ public class QuickAnalysisManagerImpl implements QuickAnalysisManager {
     private final ProfileManager.Factory profileManagerFactory;
     private final MicroscopeCoreRepositories localCoreRepositories;
     private final RecordingRepository recordingRepository;
+    private final RecordingTagsRepository recordingTagsRepository;
 
-    public QuickAnalysisManagerImpl(
+    public RecordingsManagerImpl(
             Clock clock,
             MicroscopeJeffreyDirs jeffreyDirs,
             Path recordingsDir,
@@ -78,6 +83,7 @@ public class QuickAnalysisManagerImpl implements QuickAnalysisManager {
         this.profileManagerFactory = profileManagerFactory;
         this.localCoreRepositories = localCoreRepositories;
         this.recordingRepository = localCoreRepositories.newRecordingRepository(null);
+        this.recordingTagsRepository = localCoreRepositories.recordingTagsRepository();
     }
 
     // --- Group operations ---
@@ -100,6 +106,7 @@ public class QuickAnalysisManagerImpl implements QuickAnalysisManager {
 
         for (Recording recording : recordings) {
             deleteRecordingInternal(recording);
+            recordingTagsRepository.deleteForRecording(recording.id());
         }
 
         recordingRepository.deleteGroup(groupId);
@@ -136,6 +143,58 @@ public class QuickAnalysisManagerImpl implements QuickAnalysisManager {
         } catch (IOException e) {
             throw new UncheckedIOException("Failed to get file size", e);
         }
+
+        persistRecording(recordingId, filename, targetPath, sizeInBytes, groupId, List.of(), Map.of());
+
+        LOG.info("Quick analysis recording uploaded: recordingId={} filename={} groupId={}", recordingId, filename, groupId);
+        return recordingId;
+    }
+
+    @Override
+    public String createDownloadedRecording(
+            String recordingName,
+            Path mergedRecordingFile,
+            List<Path> artifactFiles,
+            Map<String, String> originTags) {
+
+        String recordingId = IDGenerator.generate();
+        String filename = mergedRecordingFile.getFileName().toString();
+        Path targetPath = recordingsDir.resolve(recordingId + "-" + filename);
+
+        try {
+            Files.copy(mergedRecordingFile, targetPath, StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) {
+            throw new UncheckedIOException("Failed to copy downloaded recording into QA storage", e);
+        }
+
+        long sizeInBytes;
+        try {
+            sizeInBytes = Files.size(targetPath);
+        } catch (IOException e) {
+            throw new UncheckedIOException("Failed to get file size", e);
+        }
+
+        persistRecording(recordingId, filename, targetPath, sizeInBytes, null, artifactFiles, originTags);
+
+        LOG.info("Quick analysis recording downloaded from project: recordingId={} filename={} artifactCount={} tagCount={} sourceName={}",
+                recordingId, filename, artifactFiles.size(), originTags.size(), recordingName);
+        return recordingId;
+    }
+
+    /**
+     * Shared persistence path for both manual uploads and downloaded recordings.
+     * Parses recording info, inserts the primary file, copies and inserts any artifact files,
+     * then writes the supplied origin/system tags.
+     */
+    private void persistRecording(
+            String recordingId,
+            String filename,
+            Path targetPath,
+            long sizeInBytes,
+            String groupId,
+            List<Path> artifactFiles,
+            Map<String, String> originTags) {
+
         RecordingEventSource eventSource = detectEventSource(filename);
         Instant uploadedAt = clock.instant();
 
@@ -166,13 +225,49 @@ public class QuickAnalysisManagerImpl implements QuickAnalysisManager {
 
         recordingRepository.insertRecording(recording, recordingFile);
 
-        LOG.info("Quick analysis recording uploaded: recordingId={} filename={} groupId={}", recordingId, filename, groupId);
-        return recordingId;
+        for (Path artifact : artifactFiles) {
+            persistArtifact(recordingId, artifact, uploadedAt);
+        }
+
+        if (originTags != null && !originTags.isEmpty()) {
+            recordingTagsRepository.insert(recordingId, originTags);
+        }
+    }
+
+    private void persistArtifact(String recordingId, Path artifactPath, Instant uploadedAt) {
+        String artifactFilename = artifactPath.getFileName().toString();
+        Path targetPath = recordingsDir.resolve(recordingId + "-" + artifactFilename);
+        try {
+            Files.copy(artifactPath, targetPath, StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) {
+            throw new UncheckedIOException(
+                    "Failed to copy artifact into QA storage: " + artifactFilename, e);
+        }
+
+        long sizeInBytes;
+        try {
+            sizeInBytes = Files.size(targetPath);
+        } catch (IOException e) {
+            throw new UncheckedIOException(
+                    "Failed to get artifact file size: " + artifactFilename, e);
+        }
+
+        RecordingFile artifactFile = new RecordingFile(
+                IDGenerator.generate(), recordingId, artifactFilename,
+                SupportedRecordingFile.of(artifactFilename),
+                uploadedAt, sizeInBytes);
+
+        recordingRepository.insertRecordingFile(artifactFile);
     }
 
     @Override
     public List<Recording> listRecordings() {
         return recordingRepository.findAllRecordings();
+    }
+
+    @Override
+    public Map<String, List<RecordingTag>> tagsForRecordings(Collection<String> recordingIds) {
+        return recordingTagsRepository.listForRecordings(recordingIds);
     }
 
     @Override
@@ -182,6 +277,7 @@ public class QuickAnalysisManagerImpl implements QuickAnalysisManager {
 
         deleteRecordingInternal(recording);
         recordingRepository.deleteRecordingWithFiles(recordingId);
+        recordingTagsRepository.deleteForRecording(recordingId);
 
         LOG.info("Quick analysis recording deleted: recordingId={}", recordingId);
     }
@@ -310,8 +406,7 @@ public class QuickAnalysisManagerImpl implements QuickAnalysisManager {
             deleteProfileInternal(recording.profileId());
         }
 
-        if (!recording.files().isEmpty()) {
-            RecordingFile file = recording.files().getFirst();
+        for (RecordingFile file : recording.files()) {
             FileSystemUtils.removeFile(resolveRecordingFilePath(file));
         }
     }

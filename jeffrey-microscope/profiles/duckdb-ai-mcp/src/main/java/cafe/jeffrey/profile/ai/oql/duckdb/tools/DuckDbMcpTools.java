@@ -292,7 +292,7 @@ public class DuckDbMcpTools {
                         profileId,
                         projectId != null ? projectId : "N/A",
                         workspaceId != null ? workspaceId : "N/A",
-                        projectId != null ? "regular" : "Quick Analysis"
+                        projectId != null ? "regular" : "Recordings"
                 );
             } else {
                 return "Error: No profile information found";

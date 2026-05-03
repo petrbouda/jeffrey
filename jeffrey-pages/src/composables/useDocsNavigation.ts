@@ -51,7 +51,7 @@ export const docsNavigation: DocSection[] = [
     icon: 'bi-pc-display',
     children: [
       { title: 'Overview', path: 'overview' },
-      { title: 'Quick Analysis', path: 'quick-analysis' },
+      { title: 'Recordings', path: 'recordings' },
       {
         title: 'Profiles',
         path: 'profiles',

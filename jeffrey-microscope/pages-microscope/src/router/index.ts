@@ -446,9 +446,9 @@ const router = createRouter({
           component: () => import('@/views/projects/ProjectsView.vue')
         },
         {
-          path: 'quick-analysis',
-          name: 'quick-analysis',
-          component: () => import('@/views/global/QuickAnalysisView.vue')
+          path: 'recordings',
+          name: 'recordings',
+          component: () => import('@/views/global/RecordingsView.vue')
         },
         {
           path: 'event-log',
@@ -520,18 +520,6 @@ const router = createRouter({
                   path: 'settings',
                   name: 'project-settings',
                   component: () => import('@/views/projects/detail/SettingsView.vue'),
-                  meta: { layout: 'project' }
-                },
-                {
-                  path: 'profiles',
-                  name: 'project-profiles',
-                  redirect: to =>
-                    `/remote-servers/${to.params.serverId}/workspaces/${to.params.workspaceId}/projects/${to.params.projectId}/recordings`
-                },
-                {
-                  path: 'recordings',
-                  name: 'project-recordings',
-                  component: () => import('@/views/projects/detail/RecordingsList.vue'),
                   meta: { layout: 'project' }
                 },
                 {

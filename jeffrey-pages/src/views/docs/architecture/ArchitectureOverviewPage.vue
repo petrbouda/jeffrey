@@ -40,7 +40,7 @@ onMounted(() => {
       />
 
       <div class="docs-content">
-        <p>Jeffrey consists of two applications: <strong>Jeffrey Local</strong> (an analysis tool for visualizing and exploring JFR profiles) and <strong>Jeffrey Server</strong> (a recording collection service that manages workspaces, sessions, and live recordings). Jeffrey Local connects to Jeffrey Server via gRPC to access remote workspaces, and also offers <strong>Quick Analysis</strong> for analyzing JFR files directly without a server connection.</p>
+        <p>Jeffrey consists of two applications: <strong>Jeffrey Local</strong> (an analysis tool for visualizing and exploring JFR profiles) and <strong>Jeffrey Server</strong> (a recording collection service that manages workspaces, sessions, and live recordings). Jeffrey Local connects to Jeffrey Server via gRPC to access remote workspaces, and also offers <strong>Recordings</strong> for analyzing JFR files directly without a server connection.</p>
 
         <h2 id="high-level-architecture">High-Level Architecture</h2>
         <p>Jeffrey runs as two separate applications. Jeffrey Server collects and stores recordings from Java applications, while Jeffrey Local provides the analysis UI and connects to the server via gRPC:</p>
@@ -75,7 +75,7 @@ onMounted(() => {
                 <div class="arch-layer">
                   <div class="arch-chip analysis"><i class="bi bi-globe"></i> HTTP & JDBC</div>
                   <div class="arch-chip ai"><i class="bi bi-robot"></i> AI Analysis</div>
-                  <div class="arch-chip entry"><i class="bi bi-lightning"></i> Quick Analysis</div>
+                  <div class="arch-chip entry"><i class="bi bi-record-circle"></i> Recordings</div>
                 </div>
                 <div class="arch-section-label">Storage</div>
                 <div class="arch-storage-row">

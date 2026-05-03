@@ -26,9 +26,11 @@ import cafe.jeffrey.microscope.core.client.RemoteDiscoveryClient;
 import cafe.jeffrey.microscope.core.client.RemoteProfilerClient;
 import cafe.jeffrey.microscope.core.manager.ProfilesManager;
 import cafe.jeffrey.microscope.core.manager.project.ProjectsManager;
+import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.microscope.core.recording.ProjectRecordingInitializer;
 import cafe.jeffrey.microscope.core.resources.response.WorkspaceEventResponse;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
+import cafe.jeffrey.microscope.persistence.api.RemoteServerInfo;
 import cafe.jeffrey.microscope.persistence.api.WorkspaceRepository;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceInfo;
@@ -42,29 +44,35 @@ public class RemoteWorkspaceManager implements WorkspaceManager {
     private static final Logger LOG = LoggerFactory.getLogger(RemoteWorkspaceManager.class);
 
     private final MicroscopeJeffreyDirs jeffreyDirs;
+    private final RemoteServerInfo serverInfo;
     private final WorkspaceInfo workspaceInfo;
     private final WorkspaceRepository workspaceRepository;
     private final RemoteClients remoteClients;
     private final ProfilesManager.Factory profilesManagerFactory;
     private final ProjectRecordingInitializer.Factory recordingInitializerFactory;
     private final MicroscopeCoreRepositories localCoreRepositories;
+    private final RecordingsManager recordingsManager;
 
     public RemoteWorkspaceManager(
             MicroscopeJeffreyDirs jeffreyDirs,
+            RemoteServerInfo serverInfo,
             WorkspaceInfo workspaceInfo,
             WorkspaceRepository workspaceRepository,
             RemoteClients remoteClients,
             ProfilesManager.Factory profilesManagerFactory,
             ProjectRecordingInitializer.Factory recordingInitializerFactory,
-            MicroscopeCoreRepositories localCoreRepositories) {
+            MicroscopeCoreRepositories localCoreRepositories,
+            RecordingsManager recordingsManager) {
 
         this.jeffreyDirs = jeffreyDirs;
+        this.serverInfo = serverInfo;
         this.workspaceInfo = workspaceInfo;
         this.workspaceRepository = workspaceRepository;
         this.remoteClients = remoteClients;
         this.profilesManagerFactory = profilesManagerFactory;
         this.recordingInitializerFactory = recordingInitializerFactory;
         this.localCoreRepositories = localCoreRepositories;
+        this.recordingsManager = recordingsManager;
     }
 
     @Override
@@ -92,11 +100,13 @@ public class RemoteWorkspaceManager implements WorkspaceManager {
     public ProjectsManager projectsManager() {
         return new RemoteProjectsManager(
                 jeffreyDirs,
+                serverInfo,
                 workspaceInfo,
                 remoteClients,
                 profilesManagerFactory,
                 recordingInitializerFactory,
-                localCoreRepositories);
+                localCoreRepositories,
+                recordingsManager);
     }
 
     @Override

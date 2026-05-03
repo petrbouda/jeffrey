@@ -26,7 +26,7 @@ interface GalleryImage {
   caption: string
 }
 
-const quickAnalysisImages: GalleryImage[] = [
+const recordingsImages: GalleryImage[] = [
   { src: '/images/release-notes/quick-analysis/01-upload.png', caption: 'Upload & manage recordings' },
   { src: '/images/release-notes/quick-analysis/02-gc-analysis.png', caption: 'GC analysis overview' },
   { src: '/images/release-notes/quick-analysis/03-flamegraph-selection.png', caption: 'Flamegraph selection' },
@@ -91,7 +91,7 @@ const profilerSettingsImages: GalleryImage[] = [
 ]
 
 const activeImages = ref<Record<string, number>>({
-  quickAnalysis: 0,
+  recordings: 0,
   techStack: 0,
   serverRecording: 0,
   heapDump: 0,
@@ -212,13 +212,13 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
       </div>
     </section>
 
-    <!-- Feature 01: Quick Analysis -->
+    <!-- Feature 01: Recordings -->
     <div class="feature-section-bg">
       <section class="feature-section">
         <div class="feature-row">
           <div class="feature-text">
             <div class="feature-number">Feature 01</div>
-            <h2>Quick Analysis</h2>
+            <h2>Recordings</h2>
             <p>The fastest path from a JFR file to actionable insights. Drag and drop a recording anywhere in the app and get instant flamegraphs, timeseries, and thread analysis &mdash; no workspace or project setup required.</p>
             <p>Supports JFR files (.jfr, .jfr.lz4) and heap dumps (.hprof, .hprof.gz). Organize your recordings into named groups for easy management of ad-hoc investigations.</p>
             <div class="feature-highlights">
@@ -228,17 +228,17 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
             </div>
           </div>
           <div class="feature-gallery">
-            <div class="gallery-main" @click="openLightbox(quickAnalysisImages, activeImages.quickAnalysis)">
-              <img :src="quickAnalysisImages[activeImages.quickAnalysis].src" :alt="quickAnalysisImages[activeImages.quickAnalysis].caption">
-              <div class="gallery-caption">{{ quickAnalysisImages[activeImages.quickAnalysis].caption }}</div>
+            <div class="gallery-main" @click="openLightbox(recordingsImages, activeImages.recordings)">
+              <img :src="recordingsImages[activeImages.recordings].src" :alt="recordingsImages[activeImages.recordings].caption">
+              <div class="gallery-caption">{{ recordingsImages[activeImages.recordings].caption }}</div>
             </div>
             <div class="gallery-thumbs">
               <button
-                v-for="(img, i) in quickAnalysisImages"
+                v-for="(img, i) in recordingsImages"
                 :key="i"
                 class="gallery-thumb"
-                :class="{ active: activeImages.quickAnalysis === i }"
-                @click="selectImage('quickAnalysis', i)"
+                :class="{ active: activeImages.recordings === i }"
+                @click="selectImage('recordings', i)"
               >
                 <img :src="img.src" :alt="img.caption">
               </button>

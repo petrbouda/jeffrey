@@ -45,7 +45,7 @@ onMounted(() => {
       />
 
       <div class="docs-content">
-        <p>Profiles are <strong>analyzed recordings</strong> ready for investigation. Profiles are created and managed within the <strong>Recordings</strong> section of a project.</p>
+        <p>Profiles are <strong>analyzed recordings</strong> ready for investigation. Profiles are created from recordings on the global <strong>Recordings</strong> page (top nav) — recordings flow in either by manual upload or automatically when you click <strong>Download</strong> on a project's session. Auto-downloaded recordings carry an origin breadcrumb (<code>server › workspace › project</code>) so you can trace each profile back to its source.</p>
 
         <DocsCallout type="info">
           For comprehensive information about what profiles contain and the analysis features they provide, see <router-link to="/docs/local/profiles">Profiles</router-link>.
@@ -60,15 +60,14 @@ onMounted(() => {
         </ul>
 
         <h2 id="where-profiles-come-from">Where Profiles Come From</h2>
-        <p>Profiles are created from recordings within the same project. Recordings can come from multiple sources:</p>
+        <p>All recordings — regardless of where they originated — land on the global <strong>Recordings</strong> page. From there you create a profile from any recording. The two ways recordings arrive:</p>
 
         <ul>
-          <li><strong>Manual uploads</strong> - Upload a JFR file directly to the Recordings section</li>
-          <li><strong>Repository</strong> - Recording sessions from live applications connected via a jeffrey-server</li>
-          <li><strong>Quick Analysis</strong> - Upload and analyze a JFR file without creating a workspace or project</li>
+          <li><strong>Manual uploads</strong> — drop a JFR or heap-dump file directly on the Recordings page.</li>
+          <li><strong>Auto-downloaded from a project session</strong> — click <strong>Download</strong> on a session in a project's Instances view; the recording is streamed to local storage and shows up in Recordings with an origin breadcrumb pointing back to the source server / workspace / project.</li>
         </ul>
 
-        <p>From Repository: Browse sessions, use Merge and Copy, the recording appears in Recordings, then create a profile from it.</p>
+        <p>From Repository: browse sessions in the Instance view, use <strong>Merge and Copy</strong>, and the merged recording appears on the Recordings page tagged with its origin.</p>
 
         <h2 id="profile-creation-process">Profile Creation Process</h2>
         <p>To create a profile from a recording:</p>
@@ -77,8 +76,8 @@ onMounted(() => {
           <div class="process-step">
             <div class="step-number">1</div>
             <div class="step-content">
-              <strong>Navigate to Recordings</strong>
-              <p>Go to your project's Recordings section and find the JFR file you want to analyze.</p>
+              <strong>Open Recordings</strong>
+              <p>Click <strong>Recordings</strong> in the top nav and find the recording you want to analyze. Auto-downloaded recordings show their origin server / workspace / project as a breadcrumb on the card.</p>
             </div>
           </div>
           <div class="process-step">

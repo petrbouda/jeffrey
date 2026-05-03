@@ -19,6 +19,12 @@
 <script setup lang="ts">
 import FormattingService from '@/services/FormattingService';
 
+interface RecordingOrigin {
+  server: string;
+  workspace: string;
+  project: string;
+}
+
 interface Props {
   recordingId: string;
   name: string;
@@ -38,6 +44,7 @@ interface Props {
   expandable?: boolean;
   expanded?: boolean;
   draggable?: boolean;
+  origin?: RecordingOrigin;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -107,6 +114,14 @@ const formatRelativeTime = (timestamp: number) => {
             :class="sourceType === 'HEAP_DUMP' ? 'bi bi-database' : 'bi bi-file-earmark-binary'"
           ></i>
           <span class="rec-card__name">{{ name }}</span>
+          <span v-if="origin" class="rec-card__origin" :title="`From ${origin.server} › ${origin.workspace} › ${origin.project}`">
+            <i class="bi bi-arrow-down-circle-fill"></i>
+            <span class="rec-card__origin-part">{{ origin.server }}</span>
+            <span class="rec-card__origin-sep">›</span>
+            <span class="rec-card__origin-part">{{ origin.workspace }}</span>
+            <span class="rec-card__origin-sep">›</span>
+            <span class="rec-card__origin-part rec-card__origin-part--project">{{ origin.project }}</span>
+          </span>
         </div>
         <div class="rec-card__line2">
           <span class="rec-card__meta">{{ FormattingService.formatBytes(sizeInBytes) }}</span>
@@ -394,6 +409,45 @@ const formatRelativeTime = (timestamp: number) => {
   text-overflow: ellipsis;
   flex: 1;
   min-width: 0;
+}
+
+/* Origin breadcrumb (auto-downloaded recordings) */
+.rec-card__origin {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  font-size: 0.7rem;
+  color: var(--color-text-muted);
+  background: var(--color-light);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-weight: 500;
+  max-width: 50%;
+  overflow: hidden;
+}
+
+.rec-card__origin > i {
+  color: var(--color-success-hover);
+  font-size: 0.7rem;
+}
+
+.rec-card__origin-part {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.rec-card__origin-part--project {
+  color: var(--color-dark);
+  font-weight: 600;
+}
+
+.rec-card__origin-sep {
+  color: var(--color-muted-separator);
+  flex-shrink: 0;
 }
 
 /* Line 2: metadata */

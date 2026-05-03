@@ -25,6 +25,7 @@ import cafe.jeffrey.microscope.core.MicroscopeJeffreyDirs;
 import cafe.jeffrey.microscope.core.client.CachedRemoteClientsFactory;
 import cafe.jeffrey.microscope.core.client.RemoteClients;
 import cafe.jeffrey.microscope.core.manager.ProfilesManager;
+import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.microscope.core.manager.server.RemoteServerManager;
 import cafe.jeffrey.microscope.core.manager.server.RemoteServerManagerImpl;
 import cafe.jeffrey.microscope.core.manager.server.RemoteServersManager;
@@ -58,16 +59,19 @@ public class RemoteWorkspaceConfiguration {
             MicroscopeJeffreyDirs jeffreyDirs,
             MicroscopeCorePersistenceProvider persistenceProvider,
             ProfilesManager.Factory profilesManagerFactory,
-            ProjectRecordingInitializer.Factory recordingInitializerFactory) {
+            ProjectRecordingInitializer.Factory recordingInitializerFactory,
+            RecordingsManager recordingsManager) {
 
-        return (workspaceInfo, remoteClients) -> new RemoteWorkspaceManager(
+        return (serverInfo, workspaceInfo, remoteClients) -> new RemoteWorkspaceManager(
                 jeffreyDirs,
+                serverInfo,
                 workspaceInfo,
                 new JdbcWorkspaceRepository(workspaceInfo.id(), persistenceProvider.databaseClientProvider()),
                 remoteClients,
                 profilesManagerFactory,
                 recordingInitializerFactory,
-                persistenceProvider.localCoreRepositories());
+                persistenceProvider.localCoreRepositories(),
+                recordingsManager);
     }
 
     @Bean

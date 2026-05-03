@@ -16,12 +16,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-export default interface QuickAnalysisProfile {
-  id: string;
-  name: string;
-  groupName: string | null;
-  createdAt: string;
-  eventSource: string;
-  durationInMillis: number;
-  sizeInBytes: number;
+package cafe.jeffrey.microscope.core.resources.response;
+
+import cafe.jeffrey.microscope.persistence.api.RecordingTag;
+
+public record RecordingTagResponse(String key, String value) {
+
+    public static RecordingTagResponse from(RecordingTag tag) {
+        return new RecordingTagResponse(tag.key(), tag.value());
+    }
 }

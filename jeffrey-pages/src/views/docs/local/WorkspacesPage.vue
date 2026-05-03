@@ -90,7 +90,7 @@ onMounted(() => {
         <p>Click <strong>"Add Remote"</strong>, enter the Jeffrey Server address (gRPC endpoint), then select which workspaces to mirror.</p>
 
         <DocsCallout type="tip">
-          <strong>Quick Analysis alternative:</strong> If you just want to analyze a local JFR file without connecting to a server, use <router-link to="/docs/local/quick-analysis">Quick Analysis</router-link> instead.
+          <strong>Recordings alternative:</strong> If you just want to analyze a local JFR file without connecting to a server, use <router-link to="/docs/local/recordings">Recordings</router-link> instead.
         </DocsCallout>
 
         <h2 id="streaming">Streaming Control</h2>

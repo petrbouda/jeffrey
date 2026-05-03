@@ -21,20 +21,18 @@ package cafe.jeffrey.microscope.core.manager.workspace;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.io.Resource;
+import cafe.jeffrey.microscope.core.MicroscopeJeffreyDirs;
+import cafe.jeffrey.microscope.core.client.RemoteRecordingStreamClient;
+import cafe.jeffrey.microscope.core.client.RemoteRepositoryClient;
 import cafe.jeffrey.microscope.core.manager.RecordingsDownloadManager;
 import cafe.jeffrey.microscope.core.manager.download.FileProgress;
 import cafe.jeffrey.microscope.core.manager.download.ProgressCallback;
 import cafe.jeffrey.microscope.core.manager.download.ProgressTrackingInputStream;
-import cafe.jeffrey.microscope.core.recording.ProjectRecordingInitializer;
-import cafe.jeffrey.microscope.core.client.RemoteRecordingStreamClient;
-import cafe.jeffrey.microscope.core.client.RemoteRepositoryClient;
+import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.microscope.core.resources.response.RecordingSessionResponse;
 import cafe.jeffrey.microscope.core.resources.response.RepositoryFileResponse;
-import cafe.jeffrey.microscope.core.persistence.NewRecordingHolder;
-import cafe.jeffrey.microscope.core.persistence.NewRecording;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
-import cafe.jeffrey.microscope.core.MicroscopeJeffreyDirs;
 import cafe.jeffrey.shared.common.filesystem.TempDirectory;
 import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
 
@@ -46,6 +44,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Semaphore;
@@ -64,18 +63,21 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
     private final MicroscopeJeffreyDirs jeffreyDirs;
     private final RemoteRecordingStreamClient recordingStreamClient;
     private final RemoteRepositoryClient repositoryClient;
-    private final ProjectRecordingInitializer recordingInitializer;
+    private final RecordingsManager recordingsManager;
+    private final OriginContext originContext;
 
     public RemoteRecordingsDownloadManager(
             MicroscopeJeffreyDirs jeffreyDirs,
             RemoteRecordingStreamClient recordingStreamClient,
             RemoteRepositoryClient repositoryClient,
-            ProjectRecordingInitializer recordingInitializer) {
+            RecordingsManager recordingsManager,
+            OriginContext originContext) {
 
         this.jeffreyDirs = jeffreyDirs;
         this.recordingStreamClient = recordingStreamClient;
         this.repositoryClient = repositoryClient;
-        this.recordingInitializer = recordingInitializer;
+        this.recordingsManager = recordingsManager;
+        this.originContext = originContext;
     }
 
     @Override
@@ -139,8 +141,8 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
                     .map(CompletableFuture::join)
                     .toList();
 
-            // Create a new recording in the local recordings storage
-            createNewRecording(recordingSessionId, recordingPath, artifactPaths);
+            // Persist into Recordings storage with origin tags
+            persistToRecordings(recordingSessionId, recordingPath, artifactPaths);
         }
     }
 
@@ -310,8 +312,8 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
             // Processing phase
             progressCallback.onProcessing();
 
-            // Create a new recording in the local recordings storage
-            createNewRecording(recordingSessionId, recordingPath, artifactPaths);
+            // Persist into Recordings storage with origin tags
+            persistToRecordings(recordingSessionId, recordingPath, artifactPaths);
 
             // Completed successfully
             progressCallback.onComplete();
@@ -348,15 +350,15 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
         }
     }
 
-    @Override
-    public void createNewRecording(String recordingName, Path recordingPath, List<Path> artifactPaths) {
-        String filename = recordingPath.getFileName().toString();
-        NewRecording newRecording = new NewRecording(recordingName, filename, null);
+    /**
+     * Persist the merged recording + any artifact files into Recordings storage,
+     * tagged with the {@code origin.*} system tags from {@link #originContext}.
+     */
+    private void persistToRecordings(
+            String recordingSessionId, Path recordingPath, List<Path> artifactPaths) {
 
-        try (NewRecordingHolder holder = recordingInitializer.newRecordingWithPaths(newRecording, artifactPaths)) {
-            Files.copy(recordingPath, holder.outputPath(), StandardCopyOption.REPLACE_EXISTING);
-        } catch (Exception e) {
-            throw new RuntimeException("Cannot upload the recording: " + recordingName, e);
-        }
+        Map<String, String> originTags = originContext.toTagMap(recordingSessionId);
+        recordingsManager.createDownloadedRecording(
+                recordingSessionId, recordingPath, artifactPaths, originTags);
     }
 }

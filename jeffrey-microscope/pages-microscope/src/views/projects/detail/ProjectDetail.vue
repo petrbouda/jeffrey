@@ -29,15 +29,6 @@
             <span>Timeline</span>
           </router-link>
           <router-link
-            v-if="!isCollectorOnly"
-            :to="generateProjectUrl('recordings')"
-            class="nav-pill"
-            active-class="active"
-          >
-            <i class="bi bi-record-circle"></i>
-            <span>Recordings</span>
-          </router-link>
-          <router-link
             :to="generateProjectUrl('instances')"
             class="nav-pill"
             :class="{ active: isInstancesActive }"

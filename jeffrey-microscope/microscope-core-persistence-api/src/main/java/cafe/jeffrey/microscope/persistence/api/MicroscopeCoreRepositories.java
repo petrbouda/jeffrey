@@ -32,6 +32,8 @@ public interface MicroscopeCoreRepositories {
 
     RecordingRepository newRecordingRepository(String projectId);
 
+    RecordingTagsRepository recordingTagsRepository();
+
     List<ProfileInfo> findAllProfilesByProject(String projectId);
 
 }

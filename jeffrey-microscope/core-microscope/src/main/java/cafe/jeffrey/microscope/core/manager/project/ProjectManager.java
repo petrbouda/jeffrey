@@ -26,7 +26,6 @@ import cafe.jeffrey.shared.common.model.workspace.WorkspaceEventCreator;
 import cafe.jeffrey.microscope.core.manager.ProfilerSettingsManager;
 import cafe.jeffrey.microscope.core.manager.ProfilesManager;
 import cafe.jeffrey.microscope.core.manager.RecordingsDownloadManager;
-import cafe.jeffrey.microscope.core.manager.RecordingsManager;
 import cafe.jeffrey.microscope.core.manager.RepositoryManager;
 import java.util.function.Function;
 
@@ -47,8 +46,6 @@ public interface ProjectManager {
     }
 
     ProfilesManager profilesManager();
-
-    RecordingsManager recordingsManager();
 
     RecordingsDownloadManager recordingsDownloadManager();
 

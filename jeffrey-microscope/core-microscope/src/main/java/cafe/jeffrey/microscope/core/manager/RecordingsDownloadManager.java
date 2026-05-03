@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -18,7 +18,6 @@
 
 package cafe.jeffrey.microscope.core.manager;
 
-import java.nio.file.Path;
 import java.util.List;
 
 public interface RecordingsDownloadManager {
@@ -26,17 +25,4 @@ public interface RecordingsDownloadManager {
     void mergeAndDownloadSession(String recordingSessionId);
 
     void mergeAndDownloadRecordings(String recordingSessionId, List<String> rawRecordingIds);
-
-    /**
-     * Creates a new recording from the given paths.
-     * <p>
-     * This method is used by remote download managers that have already downloaded
-     * the files to a temporary location and need to merge and store them.
-     * </p>
-     *
-     * @param recordingName the name for the new recording
-     * @param recordingPath path to the merged recording file
-     * @param artifactPaths paths to artifact files (heap dumps, logs, etc.)
-     */
-    void createNewRecording(String recordingName, Path recordingPath, List<Path> artifactPaths);
 }

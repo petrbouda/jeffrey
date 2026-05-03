@@ -17,4 +17,4 @@
  */
 
 export { downloadAssistantStore } from './downloadAssistantStore';
-export { quickAnalysisAssistantStore } from './quickAnalysisAssistantStore';
+export { recordingsAssistantStore } from './recordingsAssistantStore';

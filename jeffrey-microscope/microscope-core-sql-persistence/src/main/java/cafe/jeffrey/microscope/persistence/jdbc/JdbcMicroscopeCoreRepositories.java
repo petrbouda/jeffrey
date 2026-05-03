@@ -37,11 +37,13 @@ public class JdbcMicroscopeCoreRepositories implements MicroscopeCoreRepositorie
 
     private final DatabaseClientProvider databaseClientProvider;
     private final DatabaseClient profilesDatabaseClient;
+    private final RecordingTagsRepository recordingTagsRepository;
     private final Clock clock;
 
     public JdbcMicroscopeCoreRepositories(DatabaseClientProvider databaseClientProvider, Clock clock) {
         this.databaseClientProvider = databaseClientProvider;
         this.profilesDatabaseClient = databaseClientProvider.provide(GroupLabel.PROFILES);
+        this.recordingTagsRepository = new JdbcRecordingTagsRepository(databaseClientProvider);
         this.clock = clock;
     }
 
@@ -53,6 +55,11 @@ public class JdbcMicroscopeCoreRepositories implements MicroscopeCoreRepositorie
     @Override
     public RecordingRepository newRecordingRepository(String projectId) {
         return new JdbcRecordingRepository(projectId, databaseClientProvider);
+    }
+
+    @Override
+    public RecordingTagsRepository recordingTagsRepository() {
+        return recordingTagsRepository;
     }
 
     @Override

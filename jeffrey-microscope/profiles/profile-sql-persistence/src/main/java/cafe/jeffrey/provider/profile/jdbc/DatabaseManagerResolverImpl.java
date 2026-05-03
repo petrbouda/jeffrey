@@ -27,7 +27,7 @@ import javax.sql.DataSource;
 
 /**
  * Implementation of {@link DatabaseManagerResolver} that routes to the appropriate
- * DatabaseManager based on whether the profile is a regular profile or Quick Analysis.
+ * DatabaseManager based on whether the profile is a regular profile or Recordings.
  */
 public class DatabaseManagerResolverImpl implements DatabaseManagerResolver {
 

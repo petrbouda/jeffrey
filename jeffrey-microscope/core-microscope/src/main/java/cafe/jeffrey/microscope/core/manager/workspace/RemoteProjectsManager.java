@@ -26,11 +26,13 @@ import cafe.jeffrey.microscope.core.manager.project.ProjectManager;
 import cafe.jeffrey.microscope.core.manager.project.ProjectManager.DetailedProjectInfo;
 import cafe.jeffrey.microscope.core.manager.project.ProjectsManager;
 import cafe.jeffrey.microscope.core.manager.project.RemoteProjectManager;
+import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.microscope.core.recording.ProjectRecordingInitializer;
 import cafe.jeffrey.microscope.core.client.RemoteClients;
 import cafe.jeffrey.microscope.core.client.RemoteMappers;
 import cafe.jeffrey.microscope.core.resources.response.RemoteProjectResponse;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
+import cafe.jeffrey.microscope.persistence.api.RemoteServerInfo;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 
 import java.util.List;
@@ -41,26 +43,32 @@ public class RemoteProjectsManager implements ProjectsManager {
     private static final Logger LOG = LoggerFactory.getLogger(RemoteProjectsManager.class);
 
     private final MicroscopeJeffreyDirs jeffreyDirs;
+    private final RemoteServerInfo serverInfo;
     private final WorkspaceInfo workspaceInfo;
     private final RemoteClients remoteClients;
     private final ProfilesManager.Factory profilesManagerFactory;
     private final ProjectRecordingInitializer.Factory recordingInitializerFactory;
     private final MicroscopeCoreRepositories localCoreRepositories;
+    private final RecordingsManager recordingsManager;
 
     public RemoteProjectsManager(
             MicroscopeJeffreyDirs jeffreyDirs,
+            RemoteServerInfo serverInfo,
             WorkspaceInfo workspaceInfo,
             RemoteClients remoteClients,
             ProfilesManager.Factory profilesManagerFactory,
             ProjectRecordingInitializer.Factory recordingInitializerFactory,
-            MicroscopeCoreRepositories localCoreRepositories) {
+            MicroscopeCoreRepositories localCoreRepositories,
+            RecordingsManager recordingsManager) {
 
         this.jeffreyDirs = jeffreyDirs;
+        this.serverInfo = serverInfo;
         this.workspaceInfo = workspaceInfo;
         this.remoteClients = remoteClients;
         this.profilesManagerFactory = profilesManagerFactory;
         this.recordingInitializerFactory = recordingInitializerFactory;
         this.localCoreRepositories = localCoreRepositories;
+        this.recordingsManager = recordingsManager;
     }
 
     @Override
@@ -115,13 +123,23 @@ public class RemoteProjectsManager implements ProjectsManager {
     }
 
     private ProjectManager toRemoteProjectManager(DetailedProjectInfo projectInfo) {
+        OriginContext originContext = new OriginContext(
+                serverInfo.serverId(),
+                serverInfo.name(),
+                workspaceInfo.id(),
+                workspaceInfo.referenceId(),
+                projectInfo.projectInfo().id(),
+                projectInfo.projectInfo().name());
+
         return new RemoteProjectManager(
                 jeffreyDirs,
                 projectInfo,
                 remoteClients,
                 profilesManagerFactory,
                 recordingInitializerFactory,
-                localCoreRepositories);
+                localCoreRepositories,
+                recordingsManager,
+                originContext);
     }
 
     @Override

@@ -194,11 +194,11 @@ const closeImageModal = (): void => {
               without generating your own data first.
             </p>
 
-            <h2>Quick Analysis: Upload and Explore</h2>
+            <h2>Recordings: Upload and Explore</h2>
 
             <p>
-              Jeffrey's <strong>Quick Analysis</strong> is the fastest path from a JFR file to actionable insights.
-              Click "Quick Analysis" on the home page, drag and drop your <code>recording.jfr</code> file,
+              Jeffrey's <strong>Recordings</strong> is the fastest path from a JFR file to actionable insights.
+              Click "Recordings" on the home page, drag and drop your <code>recording.jfr</code> file,
               and click "Analyze."
             </p>
 

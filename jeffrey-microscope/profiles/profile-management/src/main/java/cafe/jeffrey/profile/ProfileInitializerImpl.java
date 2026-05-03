@@ -77,7 +77,7 @@ public class ProfileInitializerImpl implements ProfileInitializer {
         DataSource dataSource = databaseManager.open(profileInfo.id());
         try {
             // Store profile context (workspace_id, project_id) in the profile database
-            // Skip for Quick Analysis profiles where workspace/project are null
+            // Skip for Recordings profiles where workspace/project are null
             if (profileInfo.projectId() != null && profileInfo.workspaceId() != null) {
                 ProfileInfoRepository profileInfoRepository = profileRepositories.newProfileInfoRepository(dataSource);
                 profileInfoRepository.insert(new ProfileInfoRepository.ProfileContext(
@@ -101,7 +101,7 @@ public class ProfileInitializerImpl implements ProfileInitializer {
 
             // Process additional files (like logs, metrics, heap-dumps, perf-counters etc.)
             // Currently only perf-counters are supported
-            // Skip for Quick Analysis where recordingId is null
+            // Skip for Recordings where recordingId is null
             if (recordingId != null) {
                 AdditionalFilesManager additionalFilesManager = profileManager.additionalFilesManager();
                 additionalFilesManager.processAdditionalFiles(recordingId);

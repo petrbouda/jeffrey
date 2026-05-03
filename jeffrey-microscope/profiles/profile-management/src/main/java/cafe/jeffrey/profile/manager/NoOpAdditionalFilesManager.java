@@ -30,9 +30,9 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * AdditionalFilesManager implementation for Quick Analysis profiles.
- * Quick Analysis profiles don't have a project context, so performance counters
- * are not available, but heap dump files uploaded via Quick Analysis are supported.
+ * AdditionalFilesManager implementation for Recordings profiles.
+ * Recordings profiles don't have a project context, so performance counters
+ * are not available, but heap dump files uploaded via Recordings are supported.
  */
 public class NoOpAdditionalFilesManager implements AdditionalFilesManager {
 
@@ -50,7 +50,7 @@ public class NoOpAdditionalFilesManager implements AdditionalFilesManager {
 
     @Override
     public void processAdditionalFiles(String recordingId) {
-        // No-op: Quick Analysis doesn't have recording storage
+        // No-op: Recordings doesn't have recording storage
     }
 
     @Override

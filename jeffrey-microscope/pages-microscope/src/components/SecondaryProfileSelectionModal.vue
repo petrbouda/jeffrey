@@ -59,17 +59,17 @@
     <div v-else class="split-pane">
       <!-- Left Sidebar: Tree -->
       <div class="tree-sidebar">
-        <!-- Quick Analysis node -->
+        <!-- Recordings node -->
         <div
-          v-if="quickAnalysisNode"
+          v-if="recordingsNode"
           class="tree-node tree-node-quick"
-          :class="{ active: selectedWorkspaceId === QUICK_ANALYSIS_WORKSPACE_ID }"
-          @click="selectWorkspace(QUICK_ANALYSIS_WORKSPACE_ID)"
+          :class="{ active: selectedWorkspaceId === RECORDINGS_WORKSPACE_ID }"
+          @click="selectWorkspace(RECORDINGS_WORKSPACE_ID)"
         >
           <div class="tree-node-header">
-            <i class="bi bi-lightning-charge-fill tree-node-icon-quick"></i>
-            <span class="tree-node-name">Quick Analysis</span>
-            <span class="tree-node-count">({{ quickAnalysisNode.profileCount }})</span>
+            <i class="bi bi-record-circle-fill tree-node-icon-recordings"></i>
+            <span class="tree-node-name">Recordings</span>
+            <span class="tree-node-count">({{ recordingsNode.profileCount }})</span>
           </div>
         </div>
 
@@ -215,10 +215,10 @@
 import { ref, computed, watch } from 'vue';
 import GenericModal from '@/components/GenericModal.vue';
 import DirectProfileClient, { ProfileListResponse } from '@/services/api/DirectProfileClient';
-import QuickAnalysisClient from '@/services/api/QuickAnalysisClient';
+import RecordingsClient from '@/services/api/RecordingsClient';
 
 const directProfileClient = new DirectProfileClient();
-const quickAnalysisClient = new QuickAnalysisClient();
+const recordingsClient = new RecordingsClient();
 import FormattingService from '@/services/FormattingService';
 import ToastService from '@/services/ToastService';
 import Profile from '@/services/api/model/Profile';
@@ -251,8 +251,8 @@ interface WorkspaceNode {
   projects: ProjectNode[];
 }
 
-const QUICK_ANALYSIS_WORKSPACE_ID = 'quick-analysis';
-const QUICK_ANALYSIS_WORKSPACE_NAME = 'Quick Analysis';
+const RECORDINGS_WORKSPACE_ID = 'recordings';
+const RECORDINGS_WORKSPACE_NAME = 'Recordings';
 
 const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
@@ -339,18 +339,18 @@ const workspaceTree = computed((): WorkspaceNode[] => {
   return nodes;
 });
 
-const quickAnalysisNode = computed(() => {
-  return workspaceTree.value.find(ws => ws.id === QUICK_ANALYSIS_WORKSPACE_ID) ?? null;
+const recordingsNode = computed(() => {
+  return workspaceTree.value.find(ws => ws.id === RECORDINGS_WORKSPACE_ID) ?? null;
 });
 
 const regularWorkspaceTree = computed(() => {
-  return workspaceTree.value.filter(ws => ws.id !== QUICK_ANALYSIS_WORKSPACE_ID);
+  return workspaceTree.value.filter(ws => ws.id !== RECORDINGS_WORKSPACE_ID);
 });
 
 // Computed: name of the selected project
 const selectedProjectName = computed(() => {
   if (!selectedWorkspaceId.value) return '';
-  if (selectedWorkspaceId.value === QUICK_ANALYSIS_WORKSPACE_ID) return 'Quick Analysis';
+  if (selectedWorkspaceId.value === RECORDINGS_WORKSPACE_ID) return 'Recordings';
   const ws = workspaceTree.value.find(w => w.id === selectedWorkspaceId.value);
   if (!ws) return '';
   const proj = ws.projects.find(p => p.id === selectedProjectKey.value?.projectId);
@@ -393,7 +393,7 @@ watch(profileSearchQuery, (newQuery, oldQuery) => {
   if (newQuery) {
     // Auto-expand workspaces that have matching profiles
     for (const ws of workspaceTree.value) {
-      if (ws.id !== QUICK_ANALYSIS_WORKSPACE_ID && ws.profileCount > 0) {
+      if (ws.id !== RECORDINGS_WORKSPACE_ID && ws.profileCount > 0) {
         expandedWorkspaces.value.add(ws.id);
       }
     }
@@ -450,18 +450,18 @@ const initializeModal = async () => {
         workspaceId: existing.workspaceId,
         projectId: existing.projectId
       };
-      if (existing.workspaceId !== QUICK_ANALYSIS_WORKSPACE_ID) {
+      if (existing.workspaceId !== RECORDINGS_WORKSPACE_ID) {
         expandedWorkspaces.value.add(existing.workspaceId);
       }
       return;
     }
   }
 
-  // Default: select Quick Analysis if it has profiles, otherwise current workspace + project
+  // Default: select Recordings if it has profiles, otherwise current workspace + project
   selectedProfile.value = null;
-  const hasQuickAnalysis = allProfiles.value.some(p => p.workspaceId === QUICK_ANALYSIS_WORKSPACE_ID);
-  if (hasQuickAnalysis) {
-    selectedProjectKey.value = { workspaceId: QUICK_ANALYSIS_WORKSPACE_ID, projectId: QUICK_ANALYSIS_WORKSPACE_ID };
+  const hasRecordings = allProfiles.value.some(p => p.workspaceId === RECORDINGS_WORKSPACE_ID);
+  if (hasRecordings) {
+    selectedProjectKey.value = { workspaceId: RECORDINGS_WORKSPACE_ID, projectId: RECORDINGS_WORKSPACE_ID };
   } else {
     selectedProjectKey.value = { workspaceId: props.workspaceId, projectId: props.currentProjectId };
     expandedWorkspaces.value.add(props.workspaceId);
@@ -473,16 +473,16 @@ const loadAllProfiles = async () => {
   try {
     const [regularProfiles, quickProfiles] = await Promise.all([
       directProfileClient.listAll(),
-      quickAnalysisClient.listProfiles()
+      recordingsClient.listProfiles()
     ]);
 
     const mappedQuickProfiles: ProfileListResponse[] = quickProfiles.map(p => ({
       id: p.profileId!,
       name: p.profileName || p.filename,
-      projectId: QUICK_ANALYSIS_WORKSPACE_ID,
-      projectName: QUICK_ANALYSIS_WORKSPACE_NAME,
-      workspaceId: QUICK_ANALYSIS_WORKSPACE_ID,
-      workspaceName: QUICK_ANALYSIS_WORKSPACE_NAME,
+      projectId: RECORDINGS_WORKSPACE_ID,
+      projectName: RECORDINGS_WORKSPACE_NAME,
+      workspaceId: RECORDINGS_WORKSPACE_ID,
+      workspaceName: RECORDINGS_WORKSPACE_NAME,
       createdAt: p.uploadedAt,
       eventSource: p.eventSource,
       enabled: true,
@@ -819,7 +819,7 @@ const isPrimaryProfile = (profile: ProfileListResponse) => {
   flex-shrink: 0;
 }
 
-/* Quick Analysis node */
+/* Recordings node */
 .tree-node-quick {
   background: linear-gradient(135deg, rgba(102, 126, 234, 0.04) 0%, rgba(118, 75, 162, 0.04) 100%);
   margin: 0 0.4rem 0.25rem;
@@ -834,7 +834,7 @@ const isPrimaryProfile = (profile: ProfileListResponse) => {
   background: linear-gradient(135deg, rgba(102, 126, 234, 0.14) 0%, rgba(118, 75, 162, 0.14) 100%);
 }
 
-.tree-node-icon-quick {
+.tree-node-icon-recordings {
   font-size: 0.82rem;
   color: var(--color-primary);
   flex-shrink: 0;

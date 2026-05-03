@@ -26,13 +26,13 @@ import javax.sql.DataSource;
  * Resolves the correct DatabaseManager for a given profile based on its type.
  * <p>
  * Regular profiles (with projectId) use {@code $JEFFREY_HOME/profiles/}
- * Quick Analysis profiles (projectId is null) use {@code $JEFFREY_HOME/temp/quick-profiles/}
+ * Recordings profiles (projectId is null) use {@code $JEFFREY_HOME/temp/quick-profiles/}
  */
 public interface DatabaseManagerResolver {
 
     /**
      * Opens a database connection for the profile, routing to the appropriate
-     * DatabaseManager based on the profile type (regular vs Quick Analysis).
+     * DatabaseManager based on the profile type (regular vs Recordings).
      *
      * @param profileInfo the profile information used to determine the database location
      * @return a DataSource for the profile's database

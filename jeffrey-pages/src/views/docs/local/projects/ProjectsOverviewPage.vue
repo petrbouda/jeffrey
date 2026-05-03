@@ -134,7 +134,7 @@ onMounted(() => {
         </table>
 
         <DocsCallout type="tip">
-          <strong>Quick Analysis:</strong> If you just want to upload and analyze JFR files locally without connecting to a server, use Quick Analysis for a streamlined workflow.
+          <strong>Recordings:</strong> If you just want to upload and analyze JFR files locally without connecting to a server, use Recordings for a streamlined workflow.
         </DocsCallout>
 
         <h2 id="creating-projects">Creating Projects</h2>

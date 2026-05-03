@@ -16,9 +16,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-export default class RecordingGroup {
-  constructor(
-    public id: string,
-    public name: string
-  ) {}
+export default interface RecordingGroup {
+  id: string;
+  name: string;
+  createdAt: string;
+  recordingCount: number;
 }

@@ -22,7 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
-import cafe.jeffrey.microscope.core.manager.qanalysis.QuickAnalysisManager;
+import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.shared.common.model.Recording;
 import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
 
@@ -45,11 +45,11 @@ public class RecordingSeedInitializer implements ApplicationRunner {
             SupportedRecordingFile.HEAP_DUMP_GZ
     );
 
-    private final QuickAnalysisManager quickAnalysisManager;
+    private final RecordingsManager recordingsManager;
     private final Path seedPath;
 
-    public RecordingSeedInitializer(QuickAnalysisManager quickAnalysisManager, Path seedPath) {
-        this.quickAnalysisManager = quickAnalysisManager;
+    public RecordingSeedInitializer(RecordingsManager recordingsManager, Path seedPath) {
+        this.recordingsManager = recordingsManager;
         this.seedPath = seedPath;
     }
 
@@ -62,7 +62,7 @@ public class RecordingSeedInitializer implements ApplicationRunner {
             return;
         }
 
-        List<String> existingFilenames = quickAnalysisManager.listRecordings().stream()
+        List<String> existingFilenames = recordingsManager.listRecordings().stream()
                 .map(Recording::recordingName)
                 .toList();
 
@@ -77,7 +77,7 @@ public class RecordingSeedInitializer implements ApplicationRunner {
                 }
 
                 try (InputStream is = Files.newInputStream(file)) {
-                    quickAnalysisManager.uploadRecording(filename, is, null);
+                    recordingsManager.uploadRecording(filename, is, null);
                     imported++;
                     LOG.info("Seed recording imported: filename={}", filename);
                 } catch (Exception e) {

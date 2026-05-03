@@ -31,11 +31,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
-import cafe.jeffrey.microscope.core.manager.qanalysis.QuickAnalysisManager;
+import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.microscope.core.resources.response.AnalyzeResponse;
-import cafe.jeffrey.microscope.core.resources.response.QuickGroupResponse;
-import cafe.jeffrey.microscope.core.resources.response.QuickRecordingResponse;
+import cafe.jeffrey.microscope.core.resources.response.RecordingGroupResponse;
+import cafe.jeffrey.microscope.core.resources.response.RecordingResponse;
 import cafe.jeffrey.microscope.persistence.api.RecordingGroup;
+import cafe.jeffrey.microscope.persistence.api.RecordingTag;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.shared.common.model.Recording;
@@ -46,15 +47,15 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/api/internal/quick-analysis")
-public class QuickAnalysisController {
+@RequestMapping("/api/internal/recordings")
+public class RecordingsController {
 
-    private static final Logger LOG = LoggerFactory.getLogger(QuickAnalysisController.class);
+    private static final Logger LOG = LoggerFactory.getLogger(RecordingsController.class);
 
-    private final QuickAnalysisManager quickAnalysisManager;
+    private final RecordingsManager recordingsManager;
 
-    public QuickAnalysisController(QuickAnalysisManager quickAnalysisManager) {
-        this.quickAnalysisManager = quickAnalysisManager;
+    public RecordingsController(RecordingsManager recordingsManager) {
+        this.recordingsManager = recordingsManager;
     }
 
     // --- Group endpoints ---
@@ -65,28 +66,28 @@ public class QuickAnalysisController {
         if (request == null || request.name() == null || request.name().isBlank()) {
             throw Exceptions.invalidRequest("Group name is required");
         }
-        String groupId = quickAnalysisManager.createGroup(request.name().trim());
+        String groupId = recordingsManager.createGroup(request.name().trim());
         LOG.debug("Created quick analysis group: groupId={} name={}", groupId, request.name());
         return new CreateGroupResponse(groupId);
     }
 
     @GetMapping(value = "/groups", produces = MediaType.APPLICATION_JSON_VALUE)
-    public List<QuickGroupResponse> listGroups() {
-        List<RecordingGroup> groups = quickAnalysisManager.listGroups();
-        List<Recording> recordings = quickAnalysisManager.listRecordings();
+    public List<RecordingGroupResponse> listGroups() {
+        List<RecordingGroup> groups = recordingsManager.listGroups();
+        List<Recording> recordings = recordingsManager.listRecordings();
 
         Map<String, Long> countByGroup = recordings.stream()
                 .filter(r -> r.groupId() != null)
                 .collect(Collectors.groupingBy(Recording::groupId, Collectors.counting()));
 
         return groups.stream()
-                .map(g -> QuickGroupResponse.from(g, countByGroup.getOrDefault(g.id(), 0L).intValue()))
+                .map(g -> RecordingGroupResponse.from(g, countByGroup.getOrDefault(g.id(), 0L).intValue()))
                 .toList();
     }
 
     @DeleteMapping("/groups/{groupId}")
     public void deleteGroup(@PathVariable("groupId") String groupId) {
-        quickAnalysisManager.deleteGroup(groupId);
+        recordingsManager.deleteGroup(groupId);
     }
 
     // --- Recording endpoints ---
@@ -103,7 +104,7 @@ public class QuickAnalysisController {
         LOG.debug("Uploading recording for quick analysis: filename={} groupId={}",
                 file.getOriginalFilename(), normalizedGroupId);
         try {
-            String recordingId = quickAnalysisManager.uploadRecording(
+            String recordingId = recordingsManager.uploadRecording(
                     file.getOriginalFilename(), file.getInputStream(), normalizedGroupId);
             return new UploadRecordingResponse(recordingId);
         } catch (IOException e) {
@@ -112,9 +113,13 @@ public class QuickAnalysisController {
     }
 
     @GetMapping(value = "/recordings", produces = MediaType.APPLICATION_JSON_VALUE)
-    public List<QuickRecordingResponse> listRecordings() {
-        return quickAnalysisManager.listRecordings().stream()
-                .map(this::toRecordingResponse)
+    public List<RecordingResponse> listRecordings() {
+        List<Recording> recordings = recordingsManager.listRecordings();
+        Map<String, List<RecordingTag>> tagsByRecording = recordingsManager.tagsForRecordings(
+                recordings.stream().map(Recording::id).toList());
+
+        return recordings.stream()
+                .map(rec -> toRecordingResponse(rec, tagsByRecording.getOrDefault(rec.id(), List.of())))
                 .toList();
     }
 
@@ -123,17 +128,17 @@ public class QuickAnalysisController {
             @PathVariable("recordingId") String recordingId,
             @RequestBody MoveToGroupRequest request) {
         LOG.debug("Moving quick recording to group: recordingId={} groupId={}", recordingId, request.groupId());
-        quickAnalysisManager.moveRecordingToGroup(recordingId, request.groupId());
+        recordingsManager.moveRecordingToGroup(recordingId, request.groupId());
     }
 
     @DeleteMapping("/recordings/{recordingId}")
     public void deleteRecording(@PathVariable("recordingId") String recordingId) {
-        quickAnalysisManager.deleteRecording(recordingId);
+        recordingsManager.deleteRecording(recordingId);
     }
 
     @PostMapping(value = "/recordings/{recordingId}/analyze", produces = MediaType.APPLICATION_JSON_VALUE)
     public AnalyzeResponse analyzeRecording(@PathVariable("recordingId") String recordingId) {
-        String profileId = quickAnalysisManager.analyzeRecording(recordingId);
+        String profileId = recordingsManager.analyzeRecording(recordingId);
         return new AnalyzeResponse(profileId);
     }
 
@@ -146,7 +151,7 @@ public class QuickAnalysisController {
             throw Exceptions.invalidRequest("Profile name is required");
         }
 
-        Recording recording = quickAnalysisManager.listRecordings().stream()
+        Recording recording = recordingsManager.listRecordings().stream()
                 .filter(r -> r.id().equals(recordingId))
                 .findFirst()
                 .orElseThrow(() -> Exceptions.invalidRequest("Recording not found: " + recordingId));
@@ -155,25 +160,25 @@ public class QuickAnalysisController {
             throw Exceptions.invalidRequest("Recording has no profile: " + recordingId);
         }
 
-        quickAnalysisManager.updateProfileName(recording.profileId(), request.name().trim());
+        recordingsManager.updateProfileName(recording.profileId(), request.name().trim());
     }
 
     @DeleteMapping("/recordings/{recordingId}/profile")
     public void deleteProfile(@PathVariable("recordingId") String recordingId) {
-        quickAnalysisManager.deleteProfile(recordingId);
+        recordingsManager.deleteProfile(recordingId);
     }
 
-    private QuickRecordingResponse toRecordingResponse(Recording recording) {
+    private RecordingResponse toRecordingResponse(Recording recording, List<RecordingTag> tags) {
         long profileSizeInBytes = 0;
         boolean profileModified = false;
         if (recording.hasProfile()) {
-            ProfileManager profileManager = quickAnalysisManager.profile(recording.profileId()).orElse(null);
+            ProfileManager profileManager = recordingsManager.profile(recording.profileId()).orElse(null);
             if (profileManager != null) {
                 profileSizeInBytes = profileManager.sizeInBytes();
                 profileModified = profileManager.info().modified();
             }
         }
-        return QuickRecordingResponse.from(recording, profileSizeInBytes, profileModified);
+        return RecordingResponse.from(recording, profileSizeInBytes, profileModified, tags);
     }
 
     private static String normalizeString(String value) {

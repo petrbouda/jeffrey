@@ -18,7 +18,7 @@
 
 package cafe.jeffrey.microscope.core.web;
 
-import cafe.jeffrey.microscope.core.manager.qanalysis.QuickAnalysisManager;
+import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.microscope.core.manager.server.RemoteServerManager;
 import cafe.jeffrey.microscope.core.manager.server.RemoteServersManager;
 import cafe.jeffrey.microscope.core.manager.workspace.WorkspaceManager;
@@ -31,7 +31,7 @@ import java.util.Optional;
 
 /**
  * Resolves a {@code profileId} to the underlying {@link ProfileManager}.
- * Checks the quick-analysis store first, then falls back to a direct DB
+ * Checks the Recordings store first, then falls back to a direct DB
  * lookup against the microscope-core profile repository.
  *
  * <p>For workspace-scoped profiles, walks the connected remote servers in order
@@ -41,15 +41,15 @@ import java.util.Optional;
 public class ProfileManagerResolver {
 
     private final RemoteServersManager remoteServersManager;
-    private final QuickAnalysisManager quickAnalysisManager;
+    private final RecordingsManager recordingsManager;
     private final MicroscopeCoreRepositories localCoreRepositories;
 
     public ProfileManagerResolver(
             RemoteServersManager remoteServersManager,
-            QuickAnalysisManager quickAnalysisManager,
+            RecordingsManager recordingsManager,
             MicroscopeCoreRepositories localCoreRepositories) {
         this.remoteServersManager = remoteServersManager;
-        this.quickAnalysisManager = quickAnalysisManager;
+        this.recordingsManager = recordingsManager;
         this.localCoreRepositories = localCoreRepositories;
     }
 
@@ -59,8 +59,8 @@ public class ProfileManagerResolver {
     }
 
     public Optional<ProfileManager> find(String profileId) {
-        if (quickAnalysisManager != null) {
-            Optional<ProfileManager> quickProfile = quickAnalysisManager.profile(profileId);
+        if (recordingsManager != null) {
+            Optional<ProfileManager> quickProfile = recordingsManager.profile(profileId);
             if (quickProfile.isPresent()) {
                 return quickProfile;
             }

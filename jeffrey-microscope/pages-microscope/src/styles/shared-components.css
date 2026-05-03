@@ -777,7 +777,7 @@
 
 /* ===========================================
    Recording Group Headers
-   Used in: RecordingsList, QuickAnalysisView
+   Used in: RecordingsList, RecordingsView
    =========================================== */
 .recording-group-header {
   display: flex;

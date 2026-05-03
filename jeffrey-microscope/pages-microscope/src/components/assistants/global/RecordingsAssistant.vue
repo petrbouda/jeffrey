@@ -25,7 +25,7 @@
     :is-spinning="isSpinningIcon"
     :order="2"
     @click="handleButtonClick"
-    title="Quick Analysis"
+    title="Recordings"
   />
 
   <!-- Expanded State - Panel -->
@@ -38,10 +38,10 @@
     @close="$emit('close')"
   >
     <template #header-icon>
-      <i class="bi bi-lightning-charge-fill text-warning me-2"></i>
+      <i class="bi bi-record-circle-fill text-warning me-2"></i>
     </template>
 
-    <template #header-title> Quick Analysis </template>
+    <template #header-title> Recordings </template>
 
     <template #header-actions>
       <button class="btn-icon" @click="$emit('minimize')" title="Minimize">
@@ -53,7 +53,7 @@
     </template>
 
     <template #body>
-      <div class="quick-analysis-body">
+      <div class="recordings-body">
         <!-- Dropzone -->
         <div
           class="dropzone"
@@ -182,22 +182,22 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import FormattingService from '@/services/FormattingService';
-import type QuickRecording from '@/services/api/model/QuickRecording';
+import type Recording from '@/services/api/model/Recording';
 import AssistantPanel from '@/components/assistants/AssistantPanel.vue';
 import AssistantMinimizedButton from '@/components/assistants/AssistantMinimizedButton.vue';
 import type {
-  QuickAnalysisStatus,
-  QuickAnalysisFileType
-} from '@/stores/assistants/quickAnalysisAssistantStore';
+  RecordingsAssistantStatus,
+  RecordingsAssistantFileType
+} from '@/stores/assistants/recordingsAssistantStore';
 
 interface Props {
   isOpen: boolean;
   isExpanded: boolean;
   selectedFile: File | null;
-  selectedFileType: QuickAnalysisFileType;
-  status: QuickAnalysisStatus;
+  selectedFileType: RecordingsAssistantFileType;
+  status: RecordingsAssistantStatus;
   statusMessage: string;
-  recentRecordings: QuickRecording[];
+  recentRecordings: Recording[];
   errorMessage: string | null;
   isProcessing: boolean;
 }
@@ -223,7 +223,7 @@ const formatBytes = (bytes: number) => FormattingService.formatBytes(bytes);
 const formatRelativeTime = (timestamp: number) => FormattingService.formatRelativeTime(timestamp);
 
 // Helper to determine if a profile is a heap dump based on event source
-const isHeapDumpRecording = (recording: QuickRecording): boolean => {
+const isHeapDumpRecording = (recording: Recording): boolean => {
   return recording.eventSource === 'HEAP_DUMP';
 };
 
@@ -237,7 +237,7 @@ const minimizedIcon = computed(() => {
     case 'parsing':
       return 'bi bi-gear-fill';
     default:
-      return 'bi bi-lightning-charge-fill';
+      return 'bi bi-record-circle-fill';
   }
 });
 
@@ -293,8 +293,8 @@ const handleButtonClick = () => {
 </script>
 
 <style scoped>
-/* Quick Analysis Body */
-.quick-analysis-body {
+/* Recordings Body */
+.recordings-body {
   padding: 1rem;
   display: flex;
   flex-direction: column;

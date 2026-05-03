@@ -79,6 +79,24 @@ CREATE TABLE IF NOT EXISTS recording_groups
 );
 
 --
+-- RECORDING TAGS
+-- Key-value metadata attached to a recording. Tags whose key starts with "origin." are
+-- application-managed (set automatically when a recording lands in QA from a project
+-- session) and read-only. Other keys are reserved for user-defined tags.
+--
+
+CREATE TABLE IF NOT EXISTS recording_tags
+(
+    recording_id VARCHAR NOT NULL,
+    tag_key      VARCHAR NOT NULL,
+    tag_value    VARCHAR NOT NULL,
+    PRIMARY KEY (recording_id, tag_key)
+);
+
+CREATE INDEX IF NOT EXISTS recording_tags_key_value_idx
+    ON recording_tags (tag_key, tag_value);
+
+--
 -- PROFILE METADATA TABLE
 -- Note: Profile event data (events, stacktraces, frames, threads, cache) is stored in per-profile databases.
 --

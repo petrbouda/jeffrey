@@ -21,8 +21,8 @@
     <MainCard>
       <template #header>
         <MainCardHeader
-          icon="bi bi-lightning-charge"
-          title="Quick Analysis"
+          icon="bi bi-record-circle"
+          title="Recordings"
           :badge="allRecordings.length"
         >
           <template #actions>
@@ -116,6 +116,7 @@
                   :profile-modified="recording.profileModified"
                   :analyzing="analyzingRecordings.has(recording.id)"
                   :draggable="true"
+                  :origin="buildOrigin(recording)"
                   @click="handleCardClick(recording)"
                   @create-profile="analyzeRecording(recording.id)"
                   @open-profile="openProfile(recording)"
@@ -132,7 +133,7 @@
         <!-- Empty state -->
         <EmptyState
           v-else-if="allRecordings.length === 0 && allGroups.length === 0"
-          icon="bi-lightning-charge"
+          icon="bi-record-circle"
           title="No recordings yet"
           description="Drop a JFR or heap dump file above to get started"
         />
@@ -178,7 +179,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, reactive, watch } from 'vue';
 import { useRouter } from 'vue-router';
-import QuickAnalysisClient from '@/services/api/QuickAnalysisClient';
+import RecordingsClient from '@/services/api/RecordingsClient';
 import FileUploadPanel from '@/components/FileUploadPanel.vue';
 import MainCard from '@/components/MainCard.vue';
 import MainCardHeader from '@/components/MainCardHeader.vue';
@@ -186,18 +187,18 @@ import RecordingCard from '@/components/RecordingCard.vue';
 import EditNameModal from '@/components/EditNameModal.vue';
 import ConfirmationDialog from '@/components/ConfirmationDialog.vue';
 import EmptyState from '@/components/EmptyState.vue';
-import type QuickGroup from '@/services/api/model/QuickGroup';
-import type QuickRecording from '@/services/api/model/QuickRecording';
+import type RecordingGroup from '@/services/api/model/RecordingGroup';
+import type Recording from '@/services/api/model/Recording';
 
 interface GroupSection {
   id: string | null;
   name: string;
-  recordings: QuickRecording[];
+  recordings: Recording[];
   collapsed: boolean;
 }
 
 const router = useRouter();
-const quickAnalysisClient = new QuickAnalysisClient();
+const recordingsClient = new RecordingsClient();
 
 interface UploadProgressEntry {
   progress: number;
@@ -211,8 +212,8 @@ const isUploading = computed(() =>
   Object.values(uploadProgress.value).some(p => p.status === 'uploading')
 );
 const errorMessage = ref<string | null>(null);
-const allRecordings = ref<QuickRecording[]>([]);
-const allGroups = ref<QuickGroup[]>([]);
+const allRecordings = ref<Recording[]>([]);
+const allGroups = ref<RecordingGroup[]>([]);
 const selectedGroupId = ref<string | null>(null);
 const searchText = ref('');
 const analyzingRecordings = ref<Set<string>>(new Set());
@@ -224,7 +225,7 @@ const newGroupName = ref('');
 const deletingGroupId = ref<string | null>(null);
 
 // Profile editing
-const editingRecording = ref<QuickRecording | null>(null);
+const editingRecording = ref<Recording | null>(null);
 const editProfileName = ref('');
 
 // Reset group name when modal opens
@@ -244,7 +245,7 @@ const filteredRecordings = computed(() => {
 });
 
 const groupedSections = computed(() => {
-  const groupMap = new Map<string | null, QuickRecording[]>();
+  const groupMap = new Map<string | null, Recording[]>();
 
   for (const recording of filteredRecordings.value) {
     const key = recording.groupId;
@@ -317,6 +318,26 @@ const groupedSections = computed(() => {
   return sections;
 });
 
+// Origin breadcrumb derivation
+interface RecordingOrigin {
+  server: string;
+  workspace: string;
+  project: string;
+}
+
+const buildOrigin = (recording: Recording): RecordingOrigin | undefined => {
+  const tags = recording.tags ?? [];
+  const sys = Object.fromEntries(
+    tags.filter(t => t.key.startsWith('origin.')).map(t => [t.key, t.value])
+  );
+  if (!sys['origin.server']) return undefined;
+  return {
+    server: sys['origin.server'],
+    workspace: sys['origin.workspace'] ?? '',
+    project: sys['origin.project'] ?? ''
+  };
+};
+
 // File handling
 const removeFile = (index: number) => {
   uploadFiles.value.splice(index, 1);
@@ -350,7 +371,7 @@ const uploadRecordings = async () => {
         }
       }, 300);
 
-      await quickAnalysisClient.uploadRecording(file, selectedGroupId.value || undefined);
+      await recordingsClient.uploadRecording(file, selectedGroupId.value || undefined);
 
       clearInterval(progressInterval);
       uploadProgress.value[file.name].progress = 100;
@@ -380,7 +401,7 @@ const analyzeRecording = async (recordingId: string) => {
   analyzingRecordings.value.add(recordingId);
 
   try {
-    await quickAnalysisClient.analyzeRecording(recordingId);
+    await recordingsClient.analyzeRecording(recordingId);
     analyzingRecordings.value.delete(recordingId);
     await loadData();
   } catch {
@@ -390,7 +411,7 @@ const analyzeRecording = async (recordingId: string) => {
 };
 
 // Card click: analyze if not analyzed, open profile if analyzed
-const handleCardClick = (recording: QuickRecording) => {
+const handleCardClick = (recording: Recording) => {
   if (analyzingRecordings.value.has(recording.id)) return;
   if (recording.hasProfile) {
     openProfile(recording);
@@ -400,7 +421,7 @@ const handleCardClick = (recording: QuickRecording) => {
 };
 
 // Open profile
-const openProfile = async (recording: QuickRecording) => {
+const openProfile = async (recording: Recording) => {
   if (!recording.profileId) return;
   if (recording.eventSource === 'HEAP_DUMP') {
     await router.push(`/profiles/${recording.profileId}/heap-dump/settings`);
@@ -415,7 +436,7 @@ const createGroup = async () => {
   if (!name) return;
 
   try {
-    await quickAnalysisClient.createGroup(name);
+    await recordingsClient.createGroup(name);
     showCreateGroupModal.value = false;
     newGroupName.value = '';
     await loadData();
@@ -434,7 +455,7 @@ const deleteGroup = async () => {
     if (selectedGroupId.value === deletingGroupId.value) {
       selectedGroupId.value = null;
     }
-    await quickAnalysisClient.deleteGroup(deletingGroupId.value);
+    await recordingsClient.deleteGroup(deletingGroupId.value);
     deletingGroupId.value = null;
     await loadData();
   } catch {
@@ -443,7 +464,7 @@ const deleteGroup = async () => {
 };
 
 // Profile edit
-const startEditProfile = (recording: QuickRecording) => {
+const startEditProfile = (recording: Recording) => {
   editingRecording.value = recording;
   editProfileName.value = recording.profileName ?? recording.filename;
 };
@@ -451,7 +472,7 @@ const startEditProfile = (recording: QuickRecording) => {
 const updateProfileName = async () => {
   if (!editingRecording.value || !editProfileName.value.trim()) return;
   try {
-    await quickAnalysisClient.updateProfileName(
+    await recordingsClient.updateProfileName(
       editingRecording.value.id,
       editProfileName.value.trim()
     );
@@ -465,7 +486,7 @@ const updateProfileName = async () => {
 // Profile delete (keeps recording)
 const deleteProfileFromRecording = async (recordingId: string) => {
   try {
-    await quickAnalysisClient.deleteProfile(recordingId);
+    await recordingsClient.deleteProfile(recordingId);
     await loadData();
   } catch {
     // Toast shown by HttpInterceptor
@@ -475,7 +496,7 @@ const deleteProfileFromRecording = async (recordingId: string) => {
 // Delete recording
 const deleteRecording = async (recordingId: string) => {
   try {
-    await quickAnalysisClient.deleteRecording(recordingId);
+    await recordingsClient.deleteRecording(recordingId);
     await loadData();
   } catch {
     // Toast shown by HttpInterceptor
@@ -486,8 +507,8 @@ const deleteRecording = async (recordingId: string) => {
 const loadData = async () => {
   try {
     const [recordings, groups] = await Promise.all([
-      quickAnalysisClient.listRecordings(),
-      quickAnalysisClient.listGroups()
+      recordingsClient.listRecordings(),
+      recordingsClient.listGroups()
     ]);
     allRecordings.value = recordings;
     allGroups.value = groups;
@@ -528,7 +549,7 @@ const onDrop = async (event: DragEvent, targetGroupId: string | null) => {
   if ((recording.groupId || null) === targetGroupId) return;
   recording.groupId = targetGroupId; // optimistic update
   try {
-    await quickAnalysisClient.moveRecordingToGroup(recordingId, targetGroupId);
+    await recordingsClient.moveRecordingToGroup(recordingId, targetGroupId);
   } catch {
     await loadData();
   }

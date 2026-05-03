@@ -21,6 +21,8 @@ package cafe.jeffrey.microscope.core.manager.project;
 import cafe.jeffrey.microscope.core.MicroscopeJeffreyDirs;
 import cafe.jeffrey.microscope.core.client.RemoteClients;
 import cafe.jeffrey.microscope.core.manager.*;
+import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
+import cafe.jeffrey.microscope.core.manager.workspace.OriginContext;
 import cafe.jeffrey.microscope.core.manager.workspace.RemoteRecordingsDownloadManager;
 import cafe.jeffrey.microscope.core.recording.ProjectRecordingInitializer;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
@@ -33,8 +35,12 @@ public class RemoteProjectManager implements ProjectManager {
     private final DetailedProjectInfo detailedProjectInfo;
     private final RemoteClients remoteClients;
     private final ProfilesManager.Factory profilesManagerFactory;
+    @SuppressWarnings("unused")
     private final ProjectRecordingInitializer.Factory recordingInitializerFactory;
+    @SuppressWarnings("unused")
     private final MicroscopeCoreRepositories localCoreRepositories;
+    private final RecordingsManager recordingsManager;
+    private final OriginContext originContext;
 
     public RemoteProjectManager(
             MicroscopeJeffreyDirs jeffreyDirs,
@@ -42,7 +48,9 @@ public class RemoteProjectManager implements ProjectManager {
             RemoteClients remoteClients,
             ProfilesManager.Factory profilesManagerFactory,
             ProjectRecordingInitializer.Factory recordingInitializerFactory,
-            MicroscopeCoreRepositories localCoreRepositories) {
+            MicroscopeCoreRepositories localCoreRepositories,
+            RecordingsManager recordingsManager,
+            OriginContext originContext) {
 
         this.jeffreyDirs = jeffreyDirs;
         this.detailedProjectInfo = detailedProjectInfo;
@@ -50,6 +58,8 @@ public class RemoteProjectManager implements ProjectManager {
         this.profilesManagerFactory = profilesManagerFactory;
         this.recordingInitializerFactory = recordingInitializerFactory;
         this.localCoreRepositories = localCoreRepositories;
+        this.recordingsManager = recordingsManager;
+        this.originContext = originContext;
     }
 
     @Override
@@ -68,24 +78,13 @@ public class RemoteProjectManager implements ProjectManager {
     }
 
     @Override
-    public RecordingsManager recordingsManager() {
-        ProjectInfo projectInfo = detailedProjectInfo.projectInfo();
-        return new RecordingsManagerImpl(
-                projectInfo,
-                recordingInitializerFactory.apply(projectInfo),
-                localCoreRepositories.newRecordingRepository(projectInfo.id()));
-    }
-
-    @Override
     public RecordingsDownloadManager recordingsDownloadManager() {
-        ProjectRecordingInitializer recordingInitializer =
-                recordingInitializerFactory.apply(detailedProjectInfo.projectInfo());
-
         return new RemoteRecordingsDownloadManager(
                 jeffreyDirs,
                 remoteClients.recordings(),
                 remoteClients.repository(),
-                recordingInitializer);
+                recordingsManager,
+                originContext);
     }
 
     @Override

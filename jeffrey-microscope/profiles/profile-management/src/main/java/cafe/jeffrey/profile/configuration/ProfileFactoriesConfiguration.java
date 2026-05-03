@@ -235,14 +235,14 @@ public class ProfileFactoriesConfiguration {
                         .projectRecordingStorage(profileInfo.projectId())
                         .findRecording(profileInfo.recordingId());
             } else {
-                recordingPathResolver = () -> findQuickRecording(recordingsPath, profileInfo.recordingId());
+                recordingPathResolver = () -> findRecording(recordingsPath, profileInfo.recordingId());
             }
 
             return new AutoAnalysisManagerImpl(cacheRepository, recordingPathResolver);
         };
     }
 
-    private static Optional<Path> findQuickRecording(Path recordingsPath, String recordingId) {
+    private static Optional<Path> findRecording(Path recordingsPath, String recordingId) {
         if (recordingId == null || !Files.exists(recordingsPath)) {
             return Optional.empty();
         }
@@ -432,7 +432,7 @@ public class ProfileFactoriesConfiguration {
                     .resolve(profileInfo.id())
                     .resolve("heap-dump-analysis");
 
-            // Quick Analysis profiles don't have a project - return no-op implementation
+            // Recordings profiles don't have a project - return no-op implementation
             if (profileInfo.projectId() == null) {
                 return new NoOpAdditionalFilesManager(heapDumpAnalysisPath);
             }

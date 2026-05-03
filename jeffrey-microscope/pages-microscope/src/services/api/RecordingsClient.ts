@@ -18,12 +18,12 @@
 
 import axios from 'axios';
 import BasePlatformClient from '@/services/api/BasePlatformClient';
-import type QuickGroup from '@/services/api/model/QuickGroup';
-import type QuickRecording from '@/services/api/model/QuickRecording';
+import type RecordingGroup from '@/services/api/model/RecordingGroup';
+import type Recording from '@/services/api/model/Recording';
 
-export default class QuickAnalysisClient extends BasePlatformClient {
+export default class RecordingsClient extends BasePlatformClient {
   constructor() {
-    super('/quick-analysis');
+    super('/recordings');
   }
 
   // --- Groups ---
@@ -32,8 +32,8 @@ export default class QuickAnalysisClient extends BasePlatformClient {
     return super.post<{ groupId: string }>('/groups', { name }).then(r => r.groupId);
   }
 
-  async listGroups(): Promise<QuickGroup[]> {
-    return super.get<QuickGroup[]>('/groups');
+  async listGroups(): Promise<RecordingGroup[]> {
+    return super.get<RecordingGroup[]>('/groups');
   }
 
   async deleteGroup(groupId: string): Promise<void> {
@@ -56,8 +56,8 @@ export default class QuickAnalysisClient extends BasePlatformClient {
       .then(response => response.data.recordingId);
   }
 
-  async listRecordings(): Promise<QuickRecording[]> {
-    return super.get<QuickRecording[]>('/recordings');
+  async listRecordings(): Promise<Recording[]> {
+    return super.get<Recording[]>('/recordings');
   }
 
   async moveRecordingToGroup(recordingId: string, groupId: string | null): Promise<void> {
@@ -82,7 +82,7 @@ export default class QuickAnalysisClient extends BasePlatformClient {
     return super.del<void>(`/recordings/${recordingId}/profile`);
   }
 
-  async listProfiles(): Promise<QuickRecording[]> {
+  async listProfiles(): Promise<Recording[]> {
     const recordings = await this.listRecordings();
     return recordings.filter(r => r.hasProfile && r.profileId);
   }

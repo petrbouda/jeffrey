@@ -75,7 +75,7 @@ onMounted(() => {
           <li><strong>Select specific files</strong> - Choose which JFR chunks to include</li>
           <li><strong>Merge recording chunks</strong> - Combine selected files into a single recording</li>
           <li><strong>Download artifacts</strong> - Copy all associated files (logs, heap dumps, etc.)</li>
-          <li><strong>Create local recording</strong> - The merged recording appears in your Recordings section</li>
+          <li><strong>Create local recording</strong> — the merged recording is published to the global <strong>Recordings</strong> page, tagged with its origin server / workspace / project</li>
         </ol>
 
         <DocsCallout type="info">
@@ -94,14 +94,14 @@ onMounted(() => {
         <h3>After Merge and Copy</h3>
         <p>Once you've merged a session:</p>
         <ul>
-          <li>The recording appears in your project's Recordings section</li>
-          <li>You can create a profile for analysis</li>
+          <li>The recording lands on the global <strong>Recordings</strong> page (top nav), tagged with its origin (<code>server › workspace › project</code>) so you can trace it back</li>
+          <li>You can create a profile for analysis from there</li>
           <li>All artifacts are available locally</li>
           <li>Analysis runs on your local machine (not the server)</li>
         </ul>
 
         <h2 id="how-it-works">How it Works</h2>
-        <p>The Repository connects to the jeffrey-server to access recording sessions. Sessions are detected automatically on the server side and synced to your local machine through the workspace connection. When you use Merge and Copy, the recording data is downloaded over the network to your local Recordings section.</p>
+        <p>The Repository connects to the jeffrey-server to access recording sessions. Sessions are detected automatically on the server side and synced to your local machine through the workspace connection. When you use Merge and Copy, the recording data is downloaded over the network and persisted on the global Recordings page with an origin breadcrumb.</p>
 
         <DocsCallout type="tip">
           <strong>Recommended workflow:</strong> Deploy jeffrey-server to collect recordings from your applications, then connect your workspace to download and analyze them. This keeps the server lightweight while you use your local machine's resources for analysis.

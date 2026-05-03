@@ -16,17 +16,22 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-export default interface QuickRecording {
-  id: string;
-  filename: string;
-  groupId: string | null;
-  eventSource: string;
-  sizeInBytes: number;
-  uploadedAt: number;
-  durationInMillis: number;
-  profileId: string | null;
-  hasProfile: boolean;
-  profileSizeInBytes: number;
-  profileModified: boolean;
-  profileName: string | null;
+package cafe.jeffrey.microscope.core.resources.response;
+
+import cafe.jeffrey.microscope.persistence.api.RecordingGroup;
+import cafe.jeffrey.shared.common.InstantUtils;
+
+public record RecordingGroupResponse(
+        String id,
+        String name,
+        String createdAt,
+        int recordingCount) {
+
+    public static RecordingGroupResponse from(RecordingGroup group, int recordingCount) {
+        return new RecordingGroupResponse(
+                group.id(),
+                group.name(),
+                InstantUtils.formatInstant(group.createdAt()),
+                recordingCount);
+    }
 }

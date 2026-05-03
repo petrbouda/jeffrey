@@ -25,7 +25,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
-import cafe.jeffrey.microscope.core.manager.qanalysis.QuickAnalysisManager;
+import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 
 import java.util.List;
 
@@ -34,18 +34,18 @@ import static org.mockito.Mockito.when;
 import static cafe.jeffrey.microscope.core.web.MockMvcSupport.mockMvcTesterFor;
 
 @ExtendWith(MockitoExtension.class)
-class QuickAnalysisControllerTest {
+class RecordingsControllerTest {
 
     @Mock
-    QuickAnalysisManager quickAnalysisManager;
+    RecordingsManager recordingsManager;
 
     @Test
     void createsGroup() {
-        when(quickAnalysisManager.createGroup("My Group")).thenReturn("group-1");
+        when(recordingsManager.createGroup("My Group")).thenReturn("group-1");
 
-        MockMvcTester mvc = mockMvcTesterFor(new QuickAnalysisController(quickAnalysisManager));
+        MockMvcTester mvc = mockMvcTesterFor(new RecordingsController(recordingsManager));
 
-        assertThat(mvc.post().uri("/api/internal/quick-analysis/groups")
+        assertThat(mvc.post().uri("/api/internal/recordings/groups")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
                         {"name":"My Group"}"""))
@@ -56,9 +56,9 @@ class QuickAnalysisControllerTest {
 
     @Test
     void rejectsBlankGroupName() {
-        MockMvcTester mvc = mockMvcTesterFor(new QuickAnalysisController(quickAnalysisManager));
+        MockMvcTester mvc = mockMvcTesterFor(new RecordingsController(recordingsManager));
 
-        assertThat(mvc.post().uri("/api/internal/quick-analysis/groups")
+        assertThat(mvc.post().uri("/api/internal/recordings/groups")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
                         {"name":""}"""))
@@ -69,11 +69,11 @@ class QuickAnalysisControllerTest {
 
     @Test
     void listsRecordings() {
-        when(quickAnalysisManager.listRecordings()).thenReturn(List.of());
+        when(recordingsManager.listRecordings()).thenReturn(List.of());
 
-        MockMvcTester mvc = mockMvcTesterFor(new QuickAnalysisController(quickAnalysisManager));
+        MockMvcTester mvc = mockMvcTesterFor(new RecordingsController(recordingsManager));
 
-        assertThat(mvc.get().uri("/api/internal/quick-analysis/recordings"))
+        assertThat(mvc.get().uri("/api/internal/recordings/recordings"))
                 .hasStatusOk()
                 .bodyJson()
                 .extractingPath("$").asArray().isEmpty();

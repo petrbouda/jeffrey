@@ -20,19 +20,15 @@
         </div>
 
         <div class="hero-actions">
-          <!-- Back to Profiles/Home button (only shown on profile pages) -->
+          <!-- Back to Recordings button (only shown on profile pages) -->
           <button
             v-if="isProfilePage"
             class="topbar-back-btn"
-            @click="
-              isQuickAnalysisProfile
-                ? $router.push('/quick-analysis')
-                : $router.push(generateProjectUrl('recordings'))
-            "
-            :title="isQuickAnalysisProfile ? 'Back to Quick Analysis' : 'Back to Recordings'"
+            @click="$router.push('/recordings')"
+            title="Back to Recordings"
           >
             <i class="bi bi-arrow-return-left"></i>
-            <span>{{ isQuickAnalysisProfile ? 'Quick Analysis' : 'Recordings' }}</span>
+            <span>Recordings</span>
           </button>
 
           <!-- Back to Workspaces button (only shown on project pages) -->
@@ -54,18 +50,14 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
-import { useNavigation } from '@/composables/useNavigation';
 import VersionClient from '@/services/api/VersionClient';
 
 const route = useRoute();
-const { workspaceId, projectId, generateProjectUrl } = useNavigation();
 
 const version = ref('');
 const versionClient = new VersionClient();
 
 const isProfilePage = computed(() => route.meta.layout === 'profile');
-
-const isQuickAnalysisProfile = computed(() => !workspaceId.value || !projectId.value);
 
 const isProjectPage = computed(() => {
   return route.meta.layout === 'project' || route.path.includes('/projects/');
