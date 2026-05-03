@@ -71,6 +71,14 @@ public interface RecordingsManager {
 
     void deleteRecording(String recordingId);
 
+    /**
+     * Resolves the on-disk path of a single file belonging to a recording.
+     * Used by the download endpoint to stream individual artifact files (heap dumps,
+     * logs, etc.) attached to a recording. Returns empty if the recording or file id
+     * is unknown.
+     */
+    Optional<Path> findRecordingFile(String recordingId, String fileId);
+
     // Profile operations
     String analyzeRecording(String recordingId);
 

@@ -16,6 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+import type RecordingFile from '@/services/api/model/RecordingFile';
+
 export interface RecordingTag {
   key: string;
   value: string;
@@ -34,5 +36,6 @@ export default interface Recording {
   profileSizeInBytes: number;
   profileModified: boolean;
   profileName: string | null;
+  files: RecordingFile[];
   tags: RecordingTag[];
 }

@@ -117,14 +117,31 @@
                   :analyzing="analyzingRecordings.has(recording.id)"
                   :draggable="true"
                   :origin="buildOrigin(recording)"
+                  :file-count="recording.files?.length ?? 0"
+                  :expandable="(recording.files?.length ?? 0) > 1"
+                  :expanded="expandedRecordings.has(recording.id)"
                   @click="handleCardClick(recording)"
                   @create-profile="analyzeRecording(recording.id)"
                   @open-profile="openProfile(recording)"
                   @edit-profile="startEditProfile(recording)"
                   @delete-profile="deleteProfileFromRecording(recording.id)"
                   @delete-recording="deleteRecording(recording.id)"
+                  @toggle-expand="toggleRecordingFiles(recording.id)"
                   @dragend="onDragEnd"
-                />
+                >
+                  <template #expanded-content>
+                    <RecordingFileGroupList
+                      v-if="recording.files && recording.files.length > 0"
+                      :recording-id="recording.id"
+                      :files="recording.files"
+                      @download="downloadFile"
+                    />
+                    <div v-else class="small py-1 text-muted">
+                      <i class="bi bi-exclamation-circle me-1"></i>
+                      No recording files available
+                    </div>
+                  </template>
+                </RecordingCard>
               </div>
             </div>
           </template>
@@ -187,6 +204,8 @@ import RecordingCard from '@/components/RecordingCard.vue';
 import EditNameModal from '@/components/EditNameModal.vue';
 import ConfirmationDialog from '@/components/ConfirmationDialog.vue';
 import EmptyState from '@/components/EmptyState.vue';
+import RecordingFileGroupList from '@/components/RecordingFileGroupList.vue';
+import ToastService from '@/services/ToastService';
 import type RecordingGroup from '@/services/api/model/RecordingGroup';
 import type Recording from '@/services/api/model/Recording';
 
@@ -217,6 +236,26 @@ const allGroups = ref<RecordingGroup[]>([]);
 const selectedGroupId = ref<string | null>(null);
 const searchText = ref('');
 const analyzingRecordings = ref<Set<string>>(new Set());
+const expandedRecordings = ref<Set<string>>(new Set());
+
+const toggleRecordingFiles = (recordingId: string) => {
+  const next = new Set(expandedRecordings.value);
+  if (next.has(recordingId)) {
+    next.delete(recordingId);
+  } else {
+    next.add(recordingId);
+  }
+  expandedRecordings.value = next;
+};
+
+const downloadFile = async (recordingId: string, fileId: string) => {
+  try {
+    await recordingsClient.downloadFile(recordingId, fileId);
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : 'Failed to download file';
+    ToastService.error('Failed to download file', msg);
+  }
+};
 
 // Group creation
 const showCreateGroupModal = ref(false);

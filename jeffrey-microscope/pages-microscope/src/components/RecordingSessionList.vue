@@ -19,6 +19,7 @@ import TimelineBar from '@/components/TimelineBar.vue';
 
 interface Props {
   sessions: RecordingSession[];
+  serverId: string;
   workspaceId: string;
   projectId: string;
   isRemoteWorkspace: boolean;

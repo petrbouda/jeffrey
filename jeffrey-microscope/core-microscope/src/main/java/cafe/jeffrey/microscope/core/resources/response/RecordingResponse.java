@@ -37,6 +37,7 @@ public record RecordingResponse(
         long profileSizeInBytes,
         boolean profileModified,
         String profileName,
+        List<RecordingFileResponse> files,
         List<RecordingTagResponse> tags) {
 
     public static RecordingResponse from(
@@ -45,14 +46,23 @@ public record RecordingResponse(
             boolean profileModified,
             List<RecordingTag> tags) {
 
-        RecordingFile file = recording.files().isEmpty() ? null : recording.files().getFirst();
+        RecordingFile primary = recording.files().isEmpty() ? null : recording.files().getFirst();
+
+        List<RecordingFileResponse> fileResponses = recording.files().stream()
+                .map(f -> new RecordingFileResponse(
+                        f.id(),
+                        f.filename(),
+                        f.sizeInBytes(),
+                        f.recordingFileType().name(),
+                        f.recordingFileType().description()))
+                .toList();
 
         return new RecordingResponse(
                 recording.id(),
-                file != null ? file.filename() : recording.recordingName(),
+                primary != null ? primary.filename() : recording.recordingName(),
                 recording.groupId(),
                 recording.eventSource().name(),
-                file != null ? file.sizeInBytes() : 0,
+                primary != null ? primary.sizeInBytes() : 0,
                 recording.createdAt().toEpochMilli(),
                 recording.recordingDuration().toMillis(),
                 recording.profileId(),
@@ -60,6 +70,7 @@ public record RecordingResponse(
                 profileSizeInBytes,
                 profileModified,
                 recording.profileName(),
+                fileResponses,
                 tags.stream().map(RecordingTagResponse::from).toList());
     }
 }

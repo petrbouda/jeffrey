@@ -20,7 +20,11 @@ package cafe.jeffrey.microscope.core.web.controllers;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -42,6 +46,7 @@ import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.shared.common.model.Recording;
 
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -134,6 +139,23 @@ public class RecordingsController {
     @DeleteMapping("/recordings/{recordingId}")
     public void deleteRecording(@PathVariable("recordingId") String recordingId) {
         recordingsManager.deleteRecording(recordingId);
+    }
+
+    @GetMapping("/recordings/{recordingId}/files/{fileId}/download")
+    public ResponseEntity<Resource> downloadFile(
+            @PathVariable("recordingId") String recordingId,
+            @PathVariable("fileId") String fileId) {
+
+        Path filePath = recordingsManager.findRecordingFile(recordingId, fileId)
+                .orElseThrow(() -> Exceptions.invalidRequest(
+                        "Recording file not found: recordingId=" + recordingId + " fileId=" + fileId));
+
+        FileSystemResource resource = new FileSystemResource(filePath);
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"" + filePath.getFileName().toString() + "\"")
+                .body(resource);
     }
 
     @PostMapping(value = "/recordings/{recordingId}/analyze", produces = MediaType.APPLICATION_JSON_VALUE)

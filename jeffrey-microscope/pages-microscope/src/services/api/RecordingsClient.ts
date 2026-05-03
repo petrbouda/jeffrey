@@ -18,6 +18,7 @@
 
 import axios from 'axios';
 import BasePlatformClient from '@/services/api/BasePlatformClient';
+import HttpUtils from '@/services/HttpUtils';
 import type RecordingGroup from '@/services/api/model/RecordingGroup';
 import type Recording from '@/services/api/model/Recording';
 
@@ -66,6 +67,12 @@ export default class RecordingsClient extends BasePlatformClient {
 
   async deleteRecording(recordingId: string): Promise<void> {
     return super.del<void>(`/recordings/${recordingId}`);
+  }
+
+  async downloadFile(recordingId: string, fileId: string): Promise<void> {
+    const downloadUrl =
+      this.baseUrl + '/recordings/' + recordingId + '/files/' + encodeURIComponent(fileId) + '/download';
+    return HttpUtils.downloadFile(downloadUrl, fileId);
   }
 
   async analyzeRecording(recordingId: string): Promise<string> {

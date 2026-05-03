@@ -13,14 +13,15 @@
       </button>
     </div>
 
-    <!-- Metrics Row -->
-    <div class="metrics-row">
-      <span>{{ project.sessionCount || 0 }} sessions</span>
-    </div>
-
-    <!-- Footer Row: Date + Status/Alerts -->
+    <!-- Footer Row: Date + Sessions on the left, Status/Alerts on the right -->
     <div class="footer-row">
-      <span class="date"><i class="bi bi-clock"></i>{{ formatDate(project.createdAt) }}</span>
+      <div class="footer-meta">
+        <span class="date"><i class="bi bi-clock"></i>{{ formatDate(project.createdAt) }}</span>
+        <span class="sessions">
+          <i class="bi bi-broadcast"></i>
+          {{ project.sessionCount || 0 }} session{{ (project.sessionCount || 0) === 1 ? '' : 's' }}
+        </span>
+      </div>
       <div class="badges">
         <Badge v-if="project.isDeleted" value="Deleted" variant="grey" size="xs" />
         <Badge
@@ -179,21 +180,6 @@ const formatStatus = (status: RecordingStatus): string => {
   color: var(--color-emerald);
 }
 
-/* Metrics Row */
-.metrics-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.75rem;
-  color: var(--color-text-muted);
-  flex-wrap: wrap;
-}
-
-.metrics-row .dot {
-  color: var(--color-muted-separator);
-  font-weight: bold;
-}
-
 /* Footer Row */
 .footer-row {
   display: flex;
@@ -203,7 +189,14 @@ const formatStatus = (status: RecordingStatus): string => {
   margin-top: 2px;
 }
 
-.footer-row .date {
+.footer-row .footer-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.footer-row .date,
+.footer-row .sessions {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -211,7 +204,8 @@ const formatStatus = (status: RecordingStatus): string => {
   color: var(--color-text-muted);
 }
 
-.footer-row .date i {
+.footer-row .date i,
+.footer-row .sessions i {
   font-size: 0.7rem;
 }
 

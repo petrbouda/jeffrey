@@ -399,6 +399,15 @@ public class RecordingsManagerImpl implements RecordingsManager {
                 .map(profileManagerFactory);
     }
 
+    @Override
+    public Optional<Path> findRecordingFile(String recordingId, String fileId) {
+        return recordingRepository.findRecording(recordingId)
+                .flatMap(rec -> rec.files().stream()
+                        .filter(f -> f.id().equals(fileId))
+                        .findFirst()
+                        .map(this::resolveRecordingFilePath));
+    }
+
     // --- Internal helpers ---
 
     private void deleteRecordingInternal(Recording recording) {
