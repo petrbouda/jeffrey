@@ -92,7 +92,7 @@ public class InitConfig {
             env-file = ""
             arg-file = "/tmp/jvm.args"
             print-env = false
-            debug = false
+            cli-verbose = false
             """;
 
     /**
@@ -161,7 +161,7 @@ public class InitConfig {
 
         config.setArgFilePath(resolveWithEnv(resolved.getString("arg-file"), "JEFFREY_ARG_FILE", envLookup));
         config.setPrintEnv(resolved.getBoolean("print-env"));
-        config.setDebug(resolveBoolWithEnv(resolved.getBoolean("debug"), "JEFFREY_DEBUG", envLookup));
+        config.setJeffreyCliVerbose(resolveBoolWithEnv(resolved.getBoolean("cli-verbose"), "JEFFREY_CLI_VERBOSE", envLookup));
 
         Config projectCfg = resolved.getConfig("project");
         ProjectConfig project = new ProjectConfig();
@@ -225,8 +225,8 @@ public class InitConfig {
     /**
      * Returns {@code hoconValue} if true; otherwise consults the named environment variable
      * and treats {@code "1"}, {@code "true"}, {@code "yes"}, {@code "on"} (case-insensitive)
-     * as {@code true}. Used for boolean toggles like {@code debug} that should also accept
-     * a {@code JEFFREY_DEBUG=1} env var without needing to edit the HOCON file.
+     * as {@code true}. Used for boolean toggles like {@code cli-verbose} that should also
+     * accept a {@code JEFFREY_CLI_VERBOSE=1} env var without needing to edit the HOCON file.
      */
     private static boolean resolveBoolWithEnv(boolean hoconValue, String envName, Function<String, String> envLookup) {
         if (hoconValue) {
@@ -244,7 +244,7 @@ public class InitConfig {
     private String envFilePath;
     private String argFilePath;
     private boolean printEnv;
-    private boolean debug;
+    private boolean jeffreyCliVerbose;
 
     private String jeffreyHome;
     private String workspacesDir;
@@ -287,12 +287,12 @@ public class InitConfig {
         this.printEnv = printEnv;
     }
 
-    public boolean isDebug() {
-        return debug;
+    public boolean isJeffreyCliVerbose() {
+        return jeffreyCliVerbose;
     }
 
-    public void setDebug(boolean debug) {
-        this.debug = debug;
+    public void setJeffreyCliVerbose(boolean jeffreyCliVerbose) {
+        this.jeffreyCliVerbose = jeffreyCliVerbose;
     }
 
     public String getJeffreyHome() {

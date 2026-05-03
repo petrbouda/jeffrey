@@ -22,19 +22,19 @@ public class CliApplication {
     private static final Logger LOG = LoggerFactory.getLogger(CliApplication.class);
 
     @Option(
-            names = {"-v", "--debug"},
+            names = {"-v", "--verbose"},
             scope = ScopeType.INHERIT,
             description = "Enable DEBUG-level logging across all loggers (overrides logback.xml root level)."
     )
-    private boolean debug;
+    private boolean verbose;
 
     static void main(String... args) {
         CliApplication app = new CliApplication();
         CommandLine cmd = new CommandLine(app)
                 .setUsageHelpWidth(160)
                 .setExecutionStrategy(parseResult -> {
-                    if (app.debug) {
-                        DebugLogging.enable();
+                    if (app.verbose) {
+                        VerboseLogging.enable();
                     }
                     return new CommandLine.RunLast().execute(parseResult);
                 });

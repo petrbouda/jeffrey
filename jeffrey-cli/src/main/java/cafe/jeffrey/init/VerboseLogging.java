@@ -24,21 +24,21 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Programmatically flips the Logback root logger to DEBUG. Used by the
- * {@code -v}/{@code --debug} CLI flag, the {@code debug = true} HOCON field,
- * and the {@code JEFFREY_DEBUG} env var so users can enable verbose logging
- * without dropping a custom logback.xml on the classpath.
+ * Programmatically flips the Logback root logger to DEBUG. Triggered by the
+ * {@code -v}/{@code --verbose} CLI flag, the {@code jeffrey-cli-verbose = true}
+ * HOCON field, and the {@code JEFFREY_CLI_VERBOSE} env var so users can enable
+ * verbose logging without dropping a custom logback.xml on the classpath.
  */
-public final class DebugLogging {
+public final class VerboseLogging {
 
-    private static final Logger LOG = LoggerFactory.getLogger(DebugLogging.class);
+    private static final Logger LOG = LoggerFactory.getLogger(VerboseLogging.class);
 
-    private DebugLogging() {
+    private VerboseLogging() {
     }
 
     public static void enable() {
         LoggerContext ctx = (LoggerContext) LoggerFactory.getILoggerFactory();
         ctx.getLogger(Logger.ROOT_LOGGER_NAME).setLevel(Level.DEBUG);
-        LOG.debug("Debug logging enabled");
+        LOG.debug("Verbose logging enabled");
     }
 }
