@@ -15,10 +15,6 @@
 
     <!-- Metrics Row -->
     <div class="metrics-row">
-      <span>{{ project.profileCount }} profiles</span>
-      <span class="dot">•</span>
-      <span>{{ project.recordingCount || 0 }} recordings</span>
-      <span class="dot">•</span>
       <span>{{ project.sessionCount || 0 }} sessions</span>
     </div>
 

@@ -29,8 +29,6 @@ public abstract class RemoteMappers {
         return new DetailedProjectInfo(
                 toProjectInfo(response),
                 response.status(),
-                0,
-                0,
                 response.sessionCount(),
                 null,
                 response.deletedAt() != null);

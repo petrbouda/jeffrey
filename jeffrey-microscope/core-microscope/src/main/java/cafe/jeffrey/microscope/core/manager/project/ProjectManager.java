@@ -34,8 +34,6 @@ public interface ProjectManager {
     record DetailedProjectInfo(
             ProjectInfo projectInfo,
             RecordingStatus status,
-            int profileCount,
-            int recordingCount,
             int sessionCount,
             RecordingEventSource eventSource,
             boolean isDeleted) {

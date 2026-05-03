@@ -64,8 +64,6 @@ public abstract class Mappers {
                 projectInfo.createdAt().toEpochMilli(),
                 projectInfo.workspaceId(),
                 detail.status(),
-                detail.profileCount(),
-                detail.recordingCount(),
                 detail.sessionCount(),
                 detail.eventSource(),
                 detail.isDeleted(),

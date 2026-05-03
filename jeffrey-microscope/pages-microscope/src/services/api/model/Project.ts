@@ -24,10 +24,8 @@ export default class Project {
     public name: string,
     public label: string | null,
     public createdAt: number,
-    public profileCount: number,
     public workspaceId: string,
     public status: RecordingStatus,
-    public recordingCount: number,
     public sessionCount: number,
     public isDeleted: boolean,
     public deletedAt: number | null

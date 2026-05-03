@@ -30,8 +30,6 @@ public record ProjectResponse(
         long createdAt,
         String workspaceId,
         RecordingStatus status,
-        int profileCount,
-        int recordingCount,
         int sessionCount,
         RecordingEventSource eventSource,
         boolean isDeleted,
