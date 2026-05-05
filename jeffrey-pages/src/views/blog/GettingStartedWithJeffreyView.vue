@@ -172,7 +172,7 @@ const closeImageModal = (): void => {
             </p>
 
             <div class="code-block">
-              <pre><code>docker run -it --network host petrbouda/jeffrey</code></pre>
+              <pre><code>docker run -it --network host petrbouda/microscope</code></pre>
             </div>
 
             <p>
@@ -186,7 +186,7 @@ const closeImageModal = (): void => {
             </p>
 
             <div class="code-block">
-              <pre><code>docker run -it --network host petrbouda/jeffrey-examples</code></pre>
+              <pre><code>docker run -it --network host petrbouda/microscope-examples</code></pre>
             </div>
 
             <p>
@@ -417,7 +417,7 @@ const closeImageModal = (): void => {
               <h3>Try Jeffrey Now</h3>
               <p>Ready to profile your application? Start with the examples image:</p>
               <div class="code-block mb-4">
-                <pre><code>docker run -it --network host petrbouda/jeffrey-examples</code></pre>
+                <pre><code>docker run -it --network host petrbouda/microscope-examples</code></pre>
               </div>
               <p>
                 Open <a href="http://localhost:8080" target="_blank">http://localhost:8080</a>, explore the

@@ -125,8 +125,9 @@
                 {{ selectedWorkspace.name }}
               </h2>
               <Badge
-                key-label="Projects"
-                :value="projects.length"
+                v-if="view !== 'settings'"
+                :key-label="view === 'events' ? 'Events' : 'Projects'"
+                :value="view === 'events' ? eventsCount : projects.length"
                 variant="secondary"
                 size="s"
                 :uppercase="false"
@@ -134,13 +135,52 @@
               />
             </div>
             <div class="main-head-actions">
-              <div class="search">
+              <div v-if="view !== 'settings'" class="search">
                 <i class="bi bi-search"></i>
                 <input
+                  v-if="view === 'projects'"
                   v-model="projectSearchQuery"
                   type="text"
                   placeholder="Search projects…"
                 />
+                <input
+                  v-else
+                  v-model="eventSearchQuery"
+                  type="text"
+                  placeholder="Search events…"
+                />
+              </div>
+              <div class="view-switcher" role="tablist" aria-label="View">
+                <button
+                  type="button"
+                  role="tab"
+                  :aria-selected="view === 'projects'"
+                  :class="{ active: view === 'projects' }"
+                  @click="view = 'projects'"
+                >
+                  <i class="bi bi-folder2"></i>
+                  Projects
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  :aria-selected="view === 'events'"
+                  :class="{ active: view === 'events' }"
+                  @click="view = 'events'"
+                >
+                  <i class="bi bi-list-ul"></i>
+                  Event Log
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  :aria-selected="view === 'settings'"
+                  :class="{ active: view === 'settings' }"
+                  @click="view = 'settings'"
+                >
+                  <i class="bi bi-gear"></i>
+                  Profiler Settings
+                </button>
               </div>
               <button
                 class="icon-btn"
@@ -150,9 +190,10 @@
                 <i class="bi bi-info-circle"></i>
               </button>
               <button
+                v-if="view !== 'settings'"
                 class="icon-btn"
                 title="Refresh"
-                @click="refreshProjects"
+                @click="refreshActiveView"
               >
                 <i class="bi bi-arrow-clockwise"></i>
               </button>
@@ -166,28 +207,46 @@
             </div>
           </header>
 
-          <LoadingState v-if="loadingProjects" message="Loading projects…" />
-          <ErrorState
-            v-else-if="projectsError"
-            :message="projectsError"
-            @retry="refreshProjects"
-          />
-          <EmptyState
-            v-else-if="filteredProjects.length === 0"
-            icon="bi-folder-plus"
-            title="No projects in this workspace"
-            description="Projects appear here when jeffrey-cli reports them via workspace events."
-          />
-          <div v-else class="project-grid">
-            <ProjectCard
-              v-for="project in filteredProjects"
-              :key="project.id"
-              :project="project"
-              :server-id="selectedServerId!"
-              :workspace-id="selectedWorkspace.id"
-              @restore="handleRestoreProject"
+          <template v-if="view === 'projects'">
+            <LoadingState v-if="loadingProjects" message="Loading projects…" />
+            <ErrorState
+              v-else-if="projectsError"
+              :message="projectsError"
+              @retry="refreshProjects"
             />
-          </div>
+            <EmptyState
+              v-else-if="filteredProjects.length === 0"
+              icon="bi-folder-plus"
+              title="No projects in this workspace"
+              description="Projects appear here when jeffrey-cli reports them via workspace events."
+            />
+            <div v-else class="project-grid">
+              <ProjectCard
+                v-for="project in filteredProjects"
+                :key="project.id"
+                :project="project"
+                :server-id="selectedServerId!"
+                :workspace-id="selectedWorkspace.id"
+                @restore="handleRestoreProject"
+              />
+            </div>
+          </template>
+
+          <WorkspaceEventLog
+            v-else-if="view === 'events'"
+            ref="eventLogRef"
+            :server-id="selectedServerId!"
+            :workspace-id="selectedWorkspace.id"
+            :search-query="eventSearchQuery"
+            @update:count="eventsCount = $event"
+          />
+
+          <WorkspaceProfilerSettings
+            v-else
+            :server-id="selectedServerId!"
+            :workspace-id="selectedWorkspace.id"
+            :workspace-name="selectedWorkspace.name"
+          />
         </template>
 
         <!-- Server has no workspaces yet -->
@@ -395,6 +454,8 @@ import AddServerModal from '@/components/projects/AddServerModal.vue';
 import LeftDrawer from '@/components/LeftDrawer.vue';
 import ProjectCard from '@/components/ProjectCard.vue';
 import Badge from '@/components/Badge.vue';
+import WorkspaceEventLog from '@/views/projects/WorkspaceEventLog.vue';
+import WorkspaceProfilerSettings from '@/views/projects/WorkspaceProfilerSettings.vue';
 import ToastService from '@/services/ToastService';
 import RemoteServerClient from '@/services/api/RemoteServerClient';
 import WorkspaceClient from '@/services/api/WorkspaceClient';
@@ -422,6 +483,12 @@ const projects = ref<Project[]>([]);
 const loadingProjects = ref(false);
 const projectsError = ref<string | null>(null);
 const projectSearchQuery = ref('');
+
+type MainView = 'projects' | 'events' | 'settings';
+const view = ref<MainView>('projects');
+const eventSearchQuery = ref('');
+const eventsCount = ref(0);
+const eventLogRef = ref<InstanceType<typeof WorkspaceEventLog> | null>(null);
 
 const showAddServerModal = ref(false);
 const showDeleteServerModal = ref(false);
@@ -595,7 +662,17 @@ const selectWorkspace = (workspaceId: string) => {
   if (selectedWorkspaceId.value === workspaceId) return;
   selectedWorkspaceId.value = workspaceId;
   projectSearchQuery.value = '';
+  eventSearchQuery.value = '';
+  view.value = 'projects';
   refreshProjects();
+};
+
+const refreshActiveView = () => {
+  if (view.value === 'events') {
+    eventLogRef.value?.refresh();
+  } else {
+    refreshProjects();
+  }
 };
 
 const handleServerAdded = async () => {
@@ -1075,6 +1152,40 @@ onMounted(refreshServers);
   gap: var(--spacing-2);
 }
 
+.view-switcher {
+  display: inline-flex;
+  background: var(--color-light);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-base);
+  padding: 3px;
+  height: 32px;
+}
+
+.view-switcher button {
+  border: none;
+  background: transparent;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text);
+  padding: 0 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: color var(--transition-base), background var(--transition-base);
+}
+
+.view-switcher button.active {
+  background: var(--color-card, #ffffff);
+  color: var(--color-primary-hover);
+  box-shadow: var(--shadow-sm);
+}
+
+.view-switcher button:not(.active):hover {
+  color: var(--color-text-dark);
+}
+
 .search {
   display: flex;
   align-items: center;
@@ -1124,8 +1235,8 @@ onMounted(refreshServers);
 .project-grid {
   padding: var(--spacing-5);
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: var(--spacing-4);
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: var(--spacing-5);
 }
 
 /* ============== Empty states ============== */

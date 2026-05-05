@@ -51,28 +51,28 @@ onMounted(() => {
 
         <DocsCodeBlock
           language="bash"
-          code="docker run -it --network host petrbouda/jeffrey"
+          code="docker run -it --network host petrbouda/microscope"
         />
 
         <p>For a version with pre-loaded examples:</p>
 
         <DocsCodeBlock
           language="bash"
-          code="docker run -it --network host petrbouda/jeffrey-examples"
+          code="docker run -it --network host petrbouda/microscope-examples"
         />
 
         <h2 id="java-installation">Java Installation</h2>
         <p>If you prefer to run Jeffrey as a standalone Java application:</p>
 
         <ol>
-          <li>Download the latest <code>jeffrey.jar</code> from <a href="https://github.com/petrbouda/jeffrey/releases" target="_blank">GitHub Releases</a></li>
+          <li>Download the latest <code>microscope.jar</code> from <a href="https://github.com/petrbouda/jeffrey/releases" target="_blank">GitHub Releases</a></li>
           <li>Ensure you have Java 25 or higher installed</li>
           <li>Run the application:</li>
         </ol>
 
         <DocsCodeBlock
           language="bash"
-          code="java -jar jeffrey.jar"
+          code="java -jar microscope.jar"
         />
 
         <h2 id="verifying-installation">Verifying Installation</h2>

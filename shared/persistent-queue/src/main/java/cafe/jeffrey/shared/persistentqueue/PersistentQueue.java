@@ -75,13 +75,24 @@ public interface PersistentQueue<T> {
     void acknowledge(String scopeId, String consumerId, long offset);
 
     /**
-     * Returns all events in the queue for the given scope, regardless of consumer
-     * state. Useful for display, debugging, or administrative purposes.
+     * Returns events in the queue for the given scope, ordered by created_at
+     * descending (newest first). When {@code limit > 0} the result is truncated
+     * to that many entries; non-positive values mean unbounded.
      *
      * @param scopeId the scope identifier (e.g. workspace ID)
-     * @return list of all queue entries, ordered by offset descending
+     * @param limit   maximum number of entries to return; {@code <= 0} = unbounded
+     * @return list of queue entries, ordered by created_at descending
      */
-    List<QueueEntry<T>> findAll(String scopeId);
+    List<QueueEntry<T>> findAll(String scopeId, int limit);
+
+    /**
+     * Returns the total number of events in the queue for the given scope,
+     * ignoring any consumer state.
+     *
+     * @param scopeId the scope identifier (e.g. workspace ID)
+     * @return total event count for this scope
+     */
+    long count(String scopeId);
 
     /**
      * Deletes all events older than the given cutoff timestamp across all scopes.

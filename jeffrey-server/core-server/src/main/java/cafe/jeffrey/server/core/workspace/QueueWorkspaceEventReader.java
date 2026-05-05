@@ -37,10 +37,15 @@ public class QueueWorkspaceEventReader implements WorkspaceEventReader {
     }
 
     @Override
-    public List<WorkspaceEvent> findAll(String workspaceId) {
-        return workspaceEventQueue.findAll(workspaceId).stream()
+    public List<WorkspaceEvent> findAll(String workspaceId, int limit) {
+        return workspaceEventQueue.findAll(workspaceId, limit).stream()
                 .map(QueueWorkspaceEventReader::fromQueueEntry)
                 .toList();
+    }
+
+    @Override
+    public long count(String workspaceId) {
+        return workspaceEventQueue.count(workspaceId);
     }
 
     private static WorkspaceEvent fromQueueEntry(QueueEntry<WorkspaceEvent> entry) {

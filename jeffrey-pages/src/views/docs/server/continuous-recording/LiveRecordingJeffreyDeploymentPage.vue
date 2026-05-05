@@ -60,14 +60,14 @@ spec:
             claimName: jeffrey-pvc
       containers:
         - name: jeffrey
-          image: petrbouda/jeffrey:latest
+          image: petrbouda/microscope:latest
           command:
             - /bin/sh
             - '-c'
             - >-
               java -jar /jeffrey-libs/jeffrey-cli.jar
               init --base-config /mnt/config/jeffrey-init.conf &&
-              exec java @/tmp/jvm.args -jar /app/jeffrey.jar
+              exec java @/tmp/jvm.args -jar /app/microscope.jar
               --spring.config.location=file:/mnt/config/application.properties
           ports:
             - name: http

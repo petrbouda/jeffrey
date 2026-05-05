@@ -55,7 +55,7 @@ onMounted(() => {
 
         <DocsCodeBlock
           language="bash"
-          code="docker run -it --network host petrbouda/jeffrey"
+          code="docker run -it --network host petrbouda/microscope"
         />
 
         <p>Then open <a href="http://localhost:8080" target="_blank">http://localhost:8080</a> in your browser.</p>

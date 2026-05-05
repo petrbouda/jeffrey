@@ -31,6 +31,13 @@ service ProfilerSettingsService {
 
   // Deletes profiler settings at any hierarchy level.
   rpc DeleteSettingsAtLevel(DeleteProfilerSettingsAtLevelRequest) returns (DeleteProfilerSettingsAtLevelResponse);
+
+  // Returns the workspace-level and global-level profiler settings for a
+  // workspace. Both fields are optional — present only if a row exists at
+  // that level. The caller decides which is "effectively in force"
+  // (workspace overrides global).
+  rpc GetWorkspaceEffectiveSettings(GetWorkspaceEffectiveSettingsRequest)
+      returns (GetWorkspaceEffectiveSettingsResponse);
 }
 
 message GetProfilerSettingsRequest {
@@ -105,3 +112,15 @@ message DeleteProfilerSettingsAtLevelRequest {
 }
 
 message DeleteProfilerSettingsAtLevelResponse {}
+
+message GetWorkspaceEffectiveSettingsRequest {
+  // The workspace to look up. Required.
+  string workspace_id = 1;
+}
+
+message GetWorkspaceEffectiveSettingsResponse {
+  // Workspace-level settings, if a row exists at that level.
+  optional string workspace_agent_settings = 1;
+  // Global-level settings, if a row exists at that level.
+  optional string global_agent_settings = 2;
+}

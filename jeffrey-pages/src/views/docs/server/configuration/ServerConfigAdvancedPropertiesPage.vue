@@ -226,7 +226,7 @@ onMounted(() => {
           <tr>
             <td><code>jeffrey.project.live.collector-only-mode-enabled</code></td>
             <td><code>true</code></td>
-            <td>Controls UI visibility of analysis features. When enabled, Profiles and Recordings navigation are hidden, and Merge/Download actions are disabled. Use Remote workspaces in Jeffrey Local for analysis.</td>
+            <td>Controls UI visibility of analysis features. When enabled, Profiles and Recordings navigation are hidden, and Merge/Download actions are disabled. Use Remote workspaces in Jeffrey Microscope for analysis.</td>
           </tr>
         </tbody>
       </table>

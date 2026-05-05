@@ -71,7 +71,7 @@ onMounted(() => {
             <div class="lifecycle-icon"><i class="bi bi-check-circle"></i></div>
             <div class="lifecycle-content">
               <h4>Finished</h4>
-              <p>Profiling has completed. All JFR files are finalized and ready for analysis via <router-link to="/docs/local/projects/repository">Repository</router-link>.</p>
+              <p>Profiling has completed. All JFR files are finalized and ready for analysis via <router-link to="/docs/microscope/projects/repository">Repository</router-link>.</p>
               <ul class="lifecycle-details">
                 <li>Select specific JFR chunks to merge</li>
                 <li>Download all session artifacts</li>
@@ -157,11 +157,11 @@ onMounted(() => {
         <p>If the Jeffrey platform was down while a session was active, heartbeats written to the streaming repository can be recovered by replaying the repository files. This ensures accurate <code>finished_at</code> timestamps even after Jeffrey restarts, preventing sessions from being incorrectly marked as finished due to missing heartbeat data.</p>
 
         <DocsCallout type="info">
-          <strong>Scheduler job:</strong> The <router-link to="/docs/local/projects/scheduler">Session Finished Detector</router-link> job runs periodically to evaluate heartbeat staleness and detect finished sessions.
+          <strong>Scheduler job:</strong> The <router-link to="/docs/microscope/projects/scheduler">Session Finished Detector</router-link> job runs periodically to evaluate heartbeat staleness and detect finished sessions.
         </DocsCallout>
 
         <h2 id="session-cleanup">Session Cleanup</h2>
-        <p>Old sessions are automatically cleaned up by <router-link to="/docs/local/projects/scheduler">Scheduler jobs</router-link>:</p>
+        <p>Old sessions are automatically cleaned up by <router-link to="/docs/microscope/projects/scheduler">Scheduler jobs</router-link>:</p>
         <ul>
           <li><strong>Repository Session Cleaner</strong> - Removes sessions older than configured retention period</li>
           <li><strong>Repository Recording Cleaner</strong> - Limits the number of recordings in active sessions</li>

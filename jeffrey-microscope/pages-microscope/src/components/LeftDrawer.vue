@@ -4,7 +4,13 @@
       <div v-if="show" class="drawer-backdrop" @click="$emit('update:show', false)"></div>
     </Transition>
     <Transition name="drawer-slide">
-      <aside v-if="show" class="drawer" role="dialog" :aria-label="title">
+      <aside
+        v-if="show"
+        class="drawer"
+        :class="`drawer-${side}`"
+        role="dialog"
+        :aria-label="title"
+      >
         <header class="drawer-head">
           <div class="drawer-title">
             <i v-if="icon" :class="['bi', icon, 'text-primary', 'me-2']"></i>
@@ -35,11 +41,15 @@
 <script setup lang="ts">
 import { watch, onBeforeUnmount } from 'vue';
 
-const props = defineProps<{
-  show: boolean;
-  title: string;
-  icon?: string;
-}>();
+const props = withDefaults(
+  defineProps<{
+    show: boolean;
+    title: string;
+    icon?: string;
+    side?: 'left' | 'right';
+  }>(),
+  { side: 'left' },
+);
 
 const emit = defineEmits<{
   (e: 'update:show', value: boolean): void;
@@ -91,16 +101,24 @@ onBeforeUnmount(() => {
 
 .drawer {
   position: fixed;
-  left: 0;
   top: 0;
   bottom: 0;
   width: 100%;
   max-width: 460px;
   background: var(--color-white);
-  box-shadow: 8px 0 24px rgba(0, 0, 0, 0.12);
   z-index: 100;
   display: flex;
   flex-direction: column;
+}
+
+.drawer-left {
+  left: 0;
+  box-shadow: 8px 0 24px rgba(0, 0, 0, 0.12);
+}
+
+.drawer-right {
+  right: 0;
+  box-shadow: -8px 0 24px rgba(0, 0, 0, 0.12);
 }
 
 .drawer-head {
@@ -171,8 +189,12 @@ onBeforeUnmount(() => {
 .drawer-slide-leave-active {
   transition: transform 0.22s ease-out;
 }
-.drawer-slide-enter-from,
-.drawer-slide-leave-to {
+.drawer-slide-enter-from.drawer-left,
+.drawer-slide-leave-to.drawer-left {
   transform: translateX(-100%);
+}
+.drawer-slide-enter-from.drawer-right,
+.drawer-slide-leave-to.drawer-right {
+  transform: translateX(100%);
 }
 </style>

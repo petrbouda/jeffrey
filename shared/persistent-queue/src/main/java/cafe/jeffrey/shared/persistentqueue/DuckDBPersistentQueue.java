@@ -70,6 +70,18 @@ public class DuckDBPersistentQueue<T> implements PersistentQueue<T> {
             ORDER BY created_at DESC""";
 
     //language=SQL
+    private static final String SELECT_LATEST_EVENTS = """
+            SELECT * FROM persistent_queue_events
+            WHERE queue_name = :queue_name AND scope_id = :scope_id
+            ORDER BY created_at DESC
+            LIMIT :limit""";
+
+    //language=SQL
+    private static final String COUNT_EVENTS = """
+            SELECT COUNT(*) FROM persistent_queue_events
+            WHERE queue_name = :queue_name AND scope_id = :scope_id""";
+
+    //language=SQL
     private static final String DELETE_OLD_EVENTS =
             "DELETE FROM persistent_queue_events WHERE created_at < :cutoff";
 
@@ -181,16 +193,36 @@ public class DuckDBPersistentQueue<T> implements PersistentQueue<T> {
     }
 
     @Override
-    public List<QueueEntry<T>> findAll(String scopeId) {
+    public List<QueueEntry<T>> findAll(String scopeId, int limit) {
+        if (limit > 0) {
+            MapSqlParameterSource params = new MapSqlParameterSource()
+                    .addValue("queue_name", queueName)
+                    .addValue("scope_id", scopeId)
+                    .addValue("limit", limit);
+            return databaseClient.query(
+                    StatementLabel.QUEUE_FIND_ALL,
+                    SELECT_LATEST_EVENTS,
+                    params,
+                    queueEntryMapper());
+        }
+
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("queue_name", queueName)
                 .addValue("scope_id", scopeId);
-
         return databaseClient.query(
                 StatementLabel.QUEUE_FIND_ALL,
                 SELECT_ALL_EVENTS,
                 params,
                 queueEntryMapper());
+    }
+
+    @Override
+    public long count(String scopeId) {
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("queue_name", queueName)
+                .addValue("scope_id", scopeId);
+
+        return databaseClient.queryLong(StatementLabel.QUEUE_COUNT, COUNT_EVENTS, params);
     }
 
     @Override

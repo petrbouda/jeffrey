@@ -17,10 +17,16 @@ message GetWorkspaceEventsRequest {
   string workspace_id = 1;
   // Optional filter by event type name (e.g., "PROJECT_CREATED").
   optional string event_type = 2;
+  // Maximum number of events to return (latest first). When unset or <= 0,
+  // the server applies a default cap.
+  optional int32 limit = 3;
 }
 
 message GetWorkspaceEventsResponse {
+  // The capped, filtered events (latest first by created_at).
   repeated WorkspaceEventInfo events = 1;
+  // Total number of events for the workspace, ignoring filter and limit.
+  int64 total_count = 2;
 }
 
 // A workspace event produced by the system (e.g., project created, session finished).

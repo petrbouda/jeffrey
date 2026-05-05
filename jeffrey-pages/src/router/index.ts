@@ -75,7 +75,38 @@ const routes: RouteRecordRaw[] = [
     children: [
       {
         path: '',
-        redirect: '/docs/getting-started/introduction'
+        name: 'DocsIndex',
+        component: () => import('@/views/docs/DocsIndexPage.vue')
+      },
+      {
+        path: 'microscope',
+        name: 'DocsMicroscope',
+        component: () => import('@/views/docs/DocsMicroscopePage.vue')
+      },
+      {
+        path: 'microscope/installation',
+        name: 'DocsMicroscopeInstallation',
+        component: () => import('@/views/docs/getting-started/GettingStartedInstallationPage.vue')
+      },
+      {
+        path: 'microscope/quick-start',
+        name: 'DocsMicroscopeQuickStart',
+        component: () => import('@/views/docs/getting-started/GettingStartedQuickStartPage.vue')
+      },
+      {
+        path: 'server',
+        name: 'DocsServer',
+        component: () => import('@/views/docs/DocsServerPage.vue')
+      },
+      {
+        path: 'server/installation',
+        name: 'DocsServerInstallation',
+        component: () => import('@/views/docs/getting-started/GettingStartedInstallationPage.vue')
+      },
+      {
+        path: 'server/quick-start',
+        name: 'DocsServerQuickStart',
+        component: () => import('@/views/docs/getting-started/GettingStartedQuickStartPage.vue')
       },
 
       // ──── Getting Started ────
@@ -101,132 +132,136 @@ const routes: RouteRecordRaw[] = [
         name: 'DocsArchitectureOverview',
         component: () => import('@/views/docs/architecture/ArchitectureOverviewPage.vue')
       },
-      {
-        path: 'architecture/storage',
-        name: 'DocsStorage',
-        component: () => import('@/views/docs/architecture/ArchitectureStoragePage.vue')
-      },
+      // /docs/architecture/storage was retired in favor of per-product storage pages.
+      // Default the redirect to the Microscope variant; users can navigate to the
+      // Server one from its sidebar.
+      { path: 'architecture/storage', redirect: '/docs/microscope/storage' },
 
-      // ──── Jeffrey Local ────
+      // ──── Jeffrey Microscope ────
       {
-        path: 'local/overview',
-        name: 'DocsLocalOverview',
-        component: () => import('@/views/docs/local/LocalOverviewPage.vue')
+        path: 'microscope/overview',
+        name: 'DocsMicroscopeOverview',
+        component: () => import('@/views/docs/microscope/MicroscopeOverviewPage.vue')
       },
       {
-        path: 'local/recordings',
+        path: 'microscope/storage',
+        name: 'DocsMicroscopeStorage',
+        component: () => import('@/views/docs/microscope/MicroscopeStoragePage.vue')
+      },
+      {
+        path: 'microscope/recordings',
         name: 'DocsRecordings',
-        component: () => import('@/views/docs/local/RecordingsPage.vue')
+        component: () => import('@/views/docs/microscope/RecordingsPage.vue')
       },
       // Profiles
       {
-        path: 'local/profiles',
+        path: 'microscope/profiles',
         name: 'DocsProfiles',
-        component: () => import('@/views/docs/local/profiles/ProfilesPage.vue')
+        component: () => import('@/views/docs/microscope/profiles/ProfilesPage.vue')
       },
       {
-        path: 'local/profiles/guardian',
+        path: 'microscope/profiles/guardian',
         name: 'DocsProfilesGuardian',
-        component: () => import('@/views/docs/local/profiles/ProfileGuardianPage.vue')
+        component: () => import('@/views/docs/microscope/profiles/ProfileGuardianPage.vue')
       },
       {
-        path: 'local/profiles/garbage-collection',
+        path: 'microscope/profiles/garbage-collection',
         name: 'DocsProfilesGarbageCollection',
-        component: () => import('@/views/docs/local/profiles/ProfileGarbageCollectionPage.vue')
+        component: () => import('@/views/docs/microscope/profiles/ProfileGarbageCollectionPage.vue')
       },
       // Workspaces & Event Log
       {
-        path: 'local/workspaces',
+        path: 'microscope/workspaces',
         name: 'DocsWorkspaces',
-        component: () => import('@/views/docs/local/WorkspacesPage.vue')
+        component: () => import('@/views/docs/microscope/WorkspacesPage.vue')
       },
       {
-        path: 'local/event-log',
+        path: 'microscope/event-log',
         name: 'DocsEventLog',
-        component: () => import('@/views/docs/local/EventLogPage.vue')
+        component: () => import('@/views/docs/microscope/EventLogPage.vue')
       },
       {
-        path: 'local/profiler-settings',
-        name: 'DocsLocalProfilerSettings',
-        component: () => import('@/views/docs/local/LocalProfilerSettingsPage.vue')
+        path: 'microscope/profiler-settings',
+        name: 'DocsMicroscopeProfilerSettings',
+        component: () => import('@/views/docs/microscope/MicroscopeProfilerSettingsPage.vue')
       },
       {
-        path: 'local/settings',
-        name: 'DocsLocalSettings',
-        component: () => import('@/views/docs/local/LocalSettingsPage.vue')
+        path: 'microscope/settings',
+        name: 'DocsMicroscopeSettings',
+        component: () => import('@/views/docs/microscope/MicroscopeSettingsPage.vue')
       },
       // Projects
       {
-        path: 'local/projects',
+        path: 'microscope/projects',
         name: 'DocsProjects',
-        component: () => import('@/views/docs/local/projects/ProjectsOverviewPage.vue')
+        component: () => import('@/views/docs/microscope/projects/ProjectsOverviewPage.vue')
       },
       {
-        path: 'local/projects/profiles',
+        path: 'microscope/projects/profiles',
         name: 'DocsProjectsProfiles',
-        component: () => import('@/views/docs/local/projects/ProjectsProfilesPage.vue')
+        component: () => import('@/views/docs/microscope/projects/ProjectsProfilesPage.vue')
       },
       {
-        path: 'local/projects/recordings',
+        path: 'microscope/projects/recordings',
         name: 'DocsProjectsRecordings',
-        component: () => import('@/views/docs/local/projects/ProjectsRecordingsPage.vue')
+        component: () => import('@/views/docs/microscope/projects/ProjectsRecordingsPage.vue')
       },
       {
-        path: 'local/projects/repository',
+        path: 'microscope/projects/repository',
         name: 'DocsProjectsRepository',
-        component: () => import('@/views/docs/local/projects/ProjectsRepositoryPage.vue')
+        component: () => import('@/views/docs/microscope/projects/ProjectsRepositoryPage.vue')
       },
       {
-        path: 'local/projects/instances',
+        path: 'microscope/projects/instances',
         name: 'DocsProjectsInstances',
-        component: () => import('@/views/docs/local/projects/ProjectsInstancesPage.vue')
+        component: () => import('@/views/docs/microscope/projects/ProjectsInstancesPage.vue')
       },
       {
-        path: 'local/projects/profiler-settings',
+        path: 'microscope/projects/profiler-settings',
         name: 'DocsProjectsProfilerSettings',
-        component: () => import('@/views/docs/local/projects/ProjectsProfilerSettingsPage.vue')
+        component: () => import('@/views/docs/microscope/projects/ProjectsProfilerSettingsPage.vue')
       },
       {
-        path: 'local/projects/scheduler',
+        path: 'microscope/projects/scheduler',
         name: 'DocsProjectsScheduler',
-        component: () => import('@/views/docs/local/projects/ProjectsSchedulerPage.vue')
+        component: () => import('@/views/docs/microscope/projects/ProjectsSchedulerPage.vue')
       },
       {
-        path: 'local/projects/event-streaming',
+        path: 'microscope/projects/event-streaming',
         name: 'DocsProjectsEventStreaming',
-        component: () => import('@/views/docs/local/projects/ProjectsEventStreamingPage.vue')
+        component: () => import('@/views/docs/microscope/projects/ProjectsEventStreamingPage.vue')
       },
-      // Local Deployment
+      // Microscope Deployment
       {
-        path: 'local/deployment/jar-execution',
-        name: 'DocsLocalDeploymentJar',
-        component: () => import('@/views/docs/local/deployment/DeploymentsSimpleJarPage.vue')
-      },
-      {
-        path: 'local/deployment/docker-container',
-        name: 'DocsLocalDeploymentContainer',
-        component: () => import('@/views/docs/local/deployment/DeploymentsSimpleContainerPage.vue')
+        path: 'microscope/deployment/jar-execution',
+        name: 'DocsMicroscopeDeploymentJar',
+        component: () => import('@/views/docs/microscope/deployment/DeploymentsSimpleJarPage.vue')
       },
       {
-        path: 'local/deployment/container-examples',
-        name: 'DocsLocalDeploymentExamples',
-        component: () => import('@/views/docs/local/deployment/DeploymentsContainerExamplesPage.vue')
-      },
-      // Local Configuration
-      {
-        path: 'local/configuration/application-properties',
-        name: 'DocsLocalConfigAppProps',
-        component: () => import('@/views/docs/local/configuration/LocalConfigApplicationPropertiesPage.vue')
+        path: 'microscope/deployment/docker-container',
+        name: 'DocsMicroscopeDeploymentContainer',
+        component: () => import('@/views/docs/microscope/deployment/DeploymentsSimpleContainerPage.vue')
       },
       {
-        path: 'local/configuration/advanced-properties',
-        name: 'DocsLocalConfigAdvancedProps',
-        component: () => import('@/views/docs/local/configuration/LocalConfigAdvancedPropertiesPage.vue')
+        path: 'microscope/deployment/container-examples',
+        name: 'DocsMicroscopeDeploymentExamples',
+        component: () => import('@/views/docs/microscope/deployment/DeploymentsContainerExamplesPage.vue')
+      },
+      // Microscope Configuration
+      {
+        path: 'microscope/configuration/application-properties',
+        name: 'DocsMicroscopeConfigAppProps',
+        component: () => import('@/views/docs/microscope/configuration/MicroscopeConfigApplicationPropertiesPage.vue')
       },
       {
-        path: 'local/configuration/secrets',
-        name: 'DocsLocalConfigSecrets',
-        component: () => import('@/views/docs/local/configuration/ConfigurationSecretsPage.vue')
+        path: 'microscope/configuration/advanced-properties',
+        name: 'DocsMicroscopeConfigAdvancedProps',
+        component: () => import('@/views/docs/microscope/configuration/MicroscopeConfigAdvancedPropertiesPage.vue')
+      },
+      {
+        path: 'microscope/configuration/secrets',
+        name: 'DocsMicroscopeConfigSecrets',
+        component: () => import('@/views/docs/microscope/configuration/ConfigurationSecretsPage.vue')
       },
 
       // ──── Jeffrey Server ────
@@ -234,6 +269,11 @@ const routes: RouteRecordRaw[] = [
         path: 'server/overview',
         name: 'DocsServerOverview',
         component: () => import('@/views/docs/server/ServerOverviewPage.vue')
+      },
+      {
+        path: 'server/storage',
+        name: 'DocsServerStorage',
+        component: () => import('@/views/docs/server/ServerStoragePage.vue')
       },
       // Continuous Recording
       {
@@ -358,47 +398,57 @@ const routes: RouteRecordRaw[] = [
 
       // ──── Redirects from old paths ────
       { path: 'goals/overview', redirect: '/docs/getting-started/introduction' },
-      { path: 'platform/workspaces', redirect: '/docs/local/workspaces' },
-      { path: 'platform/recordings', redirect: '/docs/local/recordings' },
-      { path: 'platform/event-log', redirect: '/docs/local/event-log' },
-      { path: 'platform/projects', redirect: '/docs/local/projects' },
-      { path: 'platform/projects/profiles', redirect: '/docs/local/projects/profiles' },
-      { path: 'platform/projects/recordings', redirect: '/docs/local/projects/recordings' },
-      { path: 'platform/projects/repository', redirect: '/docs/local/projects/repository' },
-      { path: 'platform/projects/instances', redirect: '/docs/local/projects/instances' },
-      { path: 'platform/projects/profiler-settings', redirect: '/docs/local/projects/profiler-settings' },
-      { path: 'platform/projects/scheduler', redirect: '/docs/local/projects/scheduler' },
-      { path: 'platform/projects/alerts-messages', redirect: '/docs/local/projects/event-streaming' },
+      { path: 'platform/workspaces', redirect: '/docs/microscope/workspaces' },
+      { path: 'platform/recordings', redirect: '/docs/microscope/recordings' },
+      { path: 'platform/event-log', redirect: '/docs/microscope/event-log' },
+      { path: 'platform/projects', redirect: '/docs/microscope/projects' },
+      { path: 'platform/projects/profiles', redirect: '/docs/microscope/projects/profiles' },
+      { path: 'platform/projects/recordings', redirect: '/docs/microscope/projects/recordings' },
+      { path: 'platform/projects/repository', redirect: '/docs/microscope/projects/repository' },
+      { path: 'platform/projects/instances', redirect: '/docs/microscope/projects/instances' },
+      { path: 'platform/projects/profiler-settings', redirect: '/docs/microscope/projects/profiler-settings' },
+      { path: 'platform/projects/scheduler', redirect: '/docs/microscope/projects/scheduler' },
+      { path: 'platform/projects/alerts-messages', redirect: '/docs/microscope/projects/event-streaming' },
       { path: 'platform/recording-sessions/overview', redirect: '/docs/server/recording-sessions/overview' },
       { path: 'platform/recording-sessions/configuration', redirect: '/docs/server/recording-sessions/configuration' },
       { path: 'platform/recording-sessions/lifecycle', redirect: '/docs/server/recording-sessions/lifecycle' },
-      { path: 'profiles/overview', redirect: '/docs/local/profiles' },
-      { path: 'profiles/jvm-internals', redirect: '/docs/local/profiles' },
-      { path: 'profiles/application', redirect: '/docs/local/profiles' },
-      { path: 'profiles/visualization', redirect: '/docs/local/profiles' },
-      { path: 'profiles/heap-dump-analysis', redirect: '/docs/local/profiles' },
-      { path: 'profiles/tools', redirect: '/docs/local/profiles' },
-      { path: 'local/profiles/overview', redirect: '/docs/local/profiles' },
-      { path: 'local/profiles/jvm-internals', redirect: '/docs/local/profiles' },
-      { path: 'local/profiles/application', redirect: '/docs/local/profiles' },
-      { path: 'local/profiles/visualization', redirect: '/docs/local/profiles' },
-      { path: 'local/profiles/heap-dump-analysis', redirect: '/docs/local/profiles' },
-      { path: 'local/profiles/tools', redirect: '/docs/local/profiles' },
-      { path: 'deployments/overview', redirect: '/docs/local/deployment/jar-execution' },
-      { path: 'deployments/simple-jar', redirect: '/docs/local/deployment/jar-execution' },
-      { path: 'deployments/simple-container', redirect: '/docs/local/deployment/docker-container' },
-      { path: 'deployments/container-examples', redirect: '/docs/local/deployment/container-examples' },
+      { path: 'profiles/overview', redirect: '/docs/microscope/profiles' },
+      { path: 'profiles/jvm-internals', redirect: '/docs/microscope/profiles' },
+      { path: 'profiles/application', redirect: '/docs/microscope/profiles' },
+      { path: 'profiles/visualization', redirect: '/docs/microscope/profiles' },
+      { path: 'profiles/heap-dump-analysis', redirect: '/docs/microscope/profiles' },
+      { path: 'profiles/tools', redirect: '/docs/microscope/profiles' },
+      { path: 'local/profiles/overview', redirect: '/docs/microscope/profiles' },
+      { path: 'local/profiles/jvm-internals', redirect: '/docs/microscope/profiles' },
+      { path: 'local/profiles/application', redirect: '/docs/microscope/profiles' },
+      { path: 'local/profiles/visualization', redirect: '/docs/microscope/profiles' },
+      { path: 'local/profiles/heap-dump-analysis', redirect: '/docs/microscope/profiles' },
+      { path: 'local/profiles/tools', redirect: '/docs/microscope/profiles' },
+      { path: 'deployments/overview', redirect: '/docs/microscope/deployment/jar-execution' },
+      { path: 'deployments/simple-jar', redirect: '/docs/microscope/deployment/jar-execution' },
+      { path: 'deployments/simple-container', redirect: '/docs/microscope/deployment/docker-container' },
+      { path: 'deployments/container-examples', redirect: '/docs/microscope/deployment/container-examples' },
       { path: 'deployments/live-recording', redirect: '/docs/server/continuous-recording/overview' },
       { path: 'live-recording/overview', redirect: '/docs/server/continuous-recording/overview' },
       { path: 'live-recording/jeffrey-deployment', redirect: '/docs/server/continuous-recording/jeffrey-deployment' },
       { path: 'live-recording/service-deployment', redirect: '/docs/server/continuous-recording/service-deployment' },
-      { path: 'configuration/overview', redirect: '/docs/local/configuration/application-properties' },
-      { path: 'configuration/application-properties', redirect: '/docs/local/configuration/application-properties' },
-      { path: 'configuration/advanced-properties', redirect: '/docs/local/configuration/advanced-properties' },
-      { path: 'configuration/secrets', redirect: '/docs/local/configuration/secrets' },
+      { path: 'configuration/overview', redirect: '/docs/microscope/configuration/application-properties' },
+      { path: 'configuration/application-properties', redirect: '/docs/microscope/configuration/application-properties' },
+      { path: 'configuration/advanced-properties', redirect: '/docs/microscope/configuration/advanced-properties' },
+      { path: 'configuration/secrets', redirect: '/docs/microscope/configuration/secrets' },
       { path: 'architecture/public-api', redirect: '/docs/server/grpc-api' },
       { path: 'jeffrey-jfr-events/overview', redirect: '/docs/events/overview' },
-      { path: 'features/overview', redirect: '/docs/getting-started/introduction' }
+      { path: 'features/overview', redirect: '/docs/getting-started/introduction' },
+
+      // Legacy /docs/local/* — keep working by mapping any remaining sub-path to /docs/microscope/*.
+      // Listed last so specific local/profiles/* entries above can land on existing /docs/microscope/profiles.
+      {
+        path: 'local/:pathMatch(.*)*',
+        redirect: to => {
+          const sub = (to.params.pathMatch as string[] | undefined)?.join('/') ?? '';
+          return sub ? `/docs/microscope/${sub}` : '/docs/microscope';
+        }
+      }
     ]
   }
 ];

@@ -10,14 +10,6 @@
           <i class="bi bi-record-circle"></i>
           <span>Recordings</span>
         </router-link>
-        <router-link to="/event-log" class="nav-pill" active-class="active">
-          <i class="bi bi-list-ul"></i>
-          <span>Event Log</span>
-        </router-link>
-        <router-link to="/profiler-settings" class="nav-pill" active-class="active">
-          <i class="bi bi-gear"></i>
-          <span>Profiler Settings</span>
-        </router-link>
         <router-link to="/settings" class="nav-pill" active-class="active">
           <i class="bi bi-sliders"></i>
           <span>Settings</span>

@@ -18,6 +18,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue';
+import { useRoute } from 'vue-router';
 import DocsSidebar from '@/components/docs/DocsSidebar.vue';
 import DocsSearch from '@/components/docs/DocsSearch.vue';
 import DocsOnThisPage from '@/components/docs/DocsOnThisPage.vue';
@@ -25,6 +26,11 @@ import { provideDocHeadings } from '@/composables/useDocHeadings';
 
 // Provide headings context for child pages
 const { headings } = provideDocHeadings();
+
+const route = useRoute();
+
+// /docs is the product picker — it owns the full width with no sidebar.
+const isIndexRoute = computed(() => route.path === '/docs' || route.path === '/docs/');
 
 const searchOpen = ref(false);
 const mobileMenuOpen = ref(false);
@@ -99,9 +105,14 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="docs-layout">
-    <!-- Fixed left sidebar -->
-    <aside class="docs-sidebar" :class="{ 'mobile-open': mobileMenuOpen }" :style="sidebarStyle">
+  <div class="docs-layout" :class="{ 'is-index': isIndexRoute }">
+    <!-- Fixed left sidebar (hidden on the /docs picker page) -->
+    <aside
+      v-if="!isIndexRoute"
+      class="docs-sidebar"
+      :class="{ 'mobile-open': mobileMenuOpen }"
+      :style="sidebarStyle"
+    >
       <div class="docs-sidebar-inner">
         <DocsSidebar @open-search="openSearch" />
       </div>
@@ -113,8 +124,8 @@ onUnmounted(() => {
         <div class="docs-content-wrapper">
           <router-view />
         </div>
-        <!-- Sticky right TOC -->
-        <aside class="docs-toc">
+        <!-- Sticky right TOC (hidden on the /docs picker page) -->
+        <aside v-if="!isIndexRoute" class="docs-toc">
           <DocsOnThisPage :headings="headings" />
         </aside>
       </div>
@@ -208,6 +219,14 @@ onUnmounted(() => {
   padding: 2rem;
   margin-left: var(--sidebar-width);
   background: var(--content-bg);
+}
+
+/* On the /docs picker the sidebar and TOC are hidden via v-if. Keep the
+   sidebar's space (margin-left) and add right padding equal to the TOC width
+   plus the flex gap so the picker article occupies exactly the same column as
+   the content on a regular doc page (e.g. /docs/microscope). */
+.docs-layout.is-index .docs-main {
+  padding-right: calc(var(--toc-width) + 2rem + 2rem);
 }
 
 /* Container for content + TOC */

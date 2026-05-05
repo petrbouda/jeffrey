@@ -19,14 +19,27 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
-import { docsNavigation } from '@/composables/useDocsNavigation';
-import type { DocPage } from '@/types/docs';
+import {
+  PRODUCTS,
+  getProductForPath,
+  navigationForProduct,
+  pageHref
+} from '@/composables/useDocsNavigation';
+import type { DocPage, DocSection } from '@/types/docs';
 
 const emit = defineEmits<{
   (e: 'open-search'): void;
 }>();
 
 const route = useRoute();
+
+// Default to the Microscope product when the route does not name one
+// (legacy /docs/getting-started/* and /docs/architecture/* fall here).
+const currentProduct = computed(() => getProductForPath(route.path) ?? 'microscope');
+
+const productInfo = computed(() => PRODUCTS[currentProduct.value]);
+
+const productNav = computed<DocSection[]>(() => navigationForProduct(currentProduct.value));
 
 // Extract category and page from path since routes aren't parameterized
 const currentCategory = computed(() => {
@@ -43,28 +56,6 @@ const currentPage = computed(() => {
 const expandedSections = ref<Set<string>>(new Set());
 // Track expanded page items (pages with children)
 const expandedPageItems = ref<Set<string>>(new Set());
-
-// Auto-expand current category and page items on load and when navigating
-watch([currentCategory, currentPage], ([newCategory, newPage]) => {
-  if (newCategory) {
-    expandedSections.value.add(newCategory);
-  }
-  // Auto-expand page items that have children and are active
-  // Handle nested paths like projects/profiles -> expand projects
-  if (newPage) {
-    const parentPage = newPage.split('/')[0];
-    const pageKey = `${newCategory}/${parentPage}`;
-    expandedPageItems.value.add(pageKey);
-  }
-}, { immediate: true });
-
-const isActiveLink = (category: string, page: string): boolean => {
-  return currentCategory.value === category && currentPage.value === page;
-};
-
-const isActiveSection = (sectionPath: string): boolean => {
-  return currentCategory.value === sectionPath;
-};
 
 const isExpanded = (sectionPath: string): boolean => {
   return expandedSections.value.has(sectionPath);
@@ -96,20 +87,90 @@ const hasChildren = (page: DocPage): boolean => {
 };
 
 const getPageLink = (category: string, page: DocPage): string => {
-  return `/docs/${category}/${page.path}`;
+  return pageHref(category, page);
 };
 
-const isSinglePageSection = (section: typeof docsNavigation[0]): boolean => {
+const isSinglePageSection = (section: DocSection): boolean => {
   return section.children.length === 1;
 };
 
-const getSinglePageLink = (section: typeof docsNavigation[0]): string => {
-  return `/docs/${section.path}/${section.children[0].path}`;
+const getSinglePageLink = (section: DocSection): string => {
+  return pageHref(section.path, section.children[0]);
 };
+
+// Sidebar items mark themselves active when the current URL matches their target.
+// Anchor-targeted items (e.g. /docs/server#architecture) require a hash match too,
+// so plain "Overview" and anchor "Architecture" don't both light up on the same path.
+const isItemActive = (sectionPath: string, page: DocPage): boolean => {
+  const href = pageHref(sectionPath, page);
+  const [hrefPath, hrefHash] = href.split('#');
+  if (route.path !== hrefPath) return false;
+  return hrefHash ? route.hash === `#${hrefHash}` : !route.hash;
+};
+
+// Section is "active" when one of its descendants is the current route.
+// Walks two levels (direct children + their children) — that's the depth the
+// existing data allows. Used by both the active-class binding and the
+// auto-expand watcher so synthetic-path groups (e.g. "Architecture") and
+// nested children (e.g. "Profiles > Guardian") both behave correctly.
+const isSectionActive = (section: DocSection): boolean => {
+  for (const p of section.children) {
+    if (isItemActive(section.path, p)) return true;
+    if (p.children?.some(c => isItemActive(section.path, c))) return true;
+  }
+  return false;
+};
+
+// Auto-expand current category and page items on load and when navigating.
+// Also tracked: route.fullPath, so that hash-only navigations (e.g. clicking
+// Architecture > Diagram which goes to /docs/microscope#architecture) re-trigger
+// expansion of the synthetic-path sections that contain the active link.
+watch(
+  [currentCategory, currentPage, currentProduct, () => route.fullPath],
+  ([newCategory, newPage, product]) => {
+    // /docs/microscope and /docs/server are product-level URLs whose category
+    // is the product id, not a section path — expand the lead section instead.
+    const isProductRoute = newCategory === 'microscope' || newCategory === 'server';
+    if (newCategory && !isProductRoute) {
+      expandedSections.value.add(newCategory);
+    }
+    if (isProductRoute) {
+      const lead = navigationForProduct(product)[0];
+      if (lead) expandedSections.value.add(lead.path);
+    }
+    // Expand any section that contains the current route — covers synthetic-path
+    // groups like "Architecture" (children use absolute `to` overrides) and the
+    // multi-page JEFFREY MICROSCOPE group (nested-children pages like
+    // Profiles > Guardian).
+    for (const section of productNav.value) {
+      if (isSectionActive(section)) {
+        expandedSections.value.add(section.path);
+      }
+    }
+    // Auto-expand page items that have children and are active.
+    // Handle nested paths like projects/profiles -> expand projects.
+    if (newPage) {
+      const parentPage = newPage.split('/')[0];
+      const pageKey = `${newCategory}/${parentPage}`;
+      expandedPageItems.value.add(pageKey);
+    }
+  },
+  { immediate: true }
+);
 </script>
 
 <template>
-  <div class="sidebar-content">
+  <div class="sidebar-content" :class="`product-${currentProduct}`">
+    <!-- Product header: backlink + current product name -->
+    <router-link to="/docs" class="sidebar-back">
+      <i class="bi bi-arrow-left"></i>
+      <span>All docs</span>
+    </router-link>
+    <div class="sidebar-product">
+      <i class="bi" :class="productInfo.icon"></i>
+      <span>{{ productInfo.title }}</span>
+    </div>
+
     <!-- Search trigger -->
     <div class="sidebar-search" @click="emit('open-search')">
       <i class="bi bi-search"></i>
@@ -119,13 +180,13 @@ const getSinglePageLink = (section: typeof docsNavigation[0]): string => {
 
     <!-- Navigation with collapsible sections -->
     <nav class="sidebar-nav">
-      <template v-for="section in docsNavigation" :key="section.path">
+      <template v-for="section in productNav" :key="section.path">
         <!-- Single-page section: direct link -->
         <router-link
           v-if="isSinglePageSection(section)"
           :to="getSinglePageLink(section)"
           class="nav-section-direct"
-          :class="{ 'active-section': isActiveSection(section.path) }"
+          :class="{ 'active-section': isSectionActive(section) }"
         >
           <i class="bi section-icon" :class="section.icon"></i>
           <span class="section-title">{{ section.title }}</span>
@@ -136,7 +197,7 @@ const getSinglePageLink = (section: typeof docsNavigation[0]): string => {
           v-else
           class="nav-section"
           :class="{
-            'active-section': isActiveSection(section.path),
+            'active-section': isSectionActive(section),
             'expanded': isExpanded(section.path)
           }"
         >
@@ -150,13 +211,13 @@ const getSinglePageLink = (section: typeof docsNavigation[0]): string => {
           </div>
 
           <div class="nav-section-items">
-            <template v-for="page in section.children" :key="page.path">
+            <template v-for="page in section.children" :key="page.to ?? page.path ?? page.title">
               <!-- Page with children (collapsible) -->
-              <div v-if="hasChildren(page)" class="nav-item-group" :class="{ 'expanded': isPageItemExpanded(section.path, page.path) }">
+              <div v-if="hasChildren(page)" class="nav-item-group" :class="{ 'expanded': isPageItemExpanded(section.path, page.path ?? '') }">
                 <div
                   class="nav-item nav-item-parent"
-                  :class="{ 'active': currentPage === page.path || currentPage.startsWith(page.path + '/') }"
-                  @click="togglePageItem(section.path, page.path)"
+                  :class="{ 'active': page.path !== undefined && (currentPage === page.path || currentPage.startsWith(page.path + '/')) }"
+                  @click="togglePageItem(section.path, page.path ?? '')"
                 >
                   <span class="nav-item-indicator"></span>
                   {{ page.title }}
@@ -168,7 +229,7 @@ const getSinglePageLink = (section: typeof docsNavigation[0]): string => {
                     :key="child.path"
                     :to="getPageLink(section.path, child)"
                     class="nav-item nav-item-child"
-                    :class="{ 'active': isActiveLink(section.path, child.path) }"
+                    :class="{ 'active': isItemActive(section.path, child) }"
                   >
                     <span class="nav-item-indicator"></span>
                     {{ child.title }}
@@ -180,7 +241,7 @@ const getSinglePageLink = (section: typeof docsNavigation[0]): string => {
                 v-else
                 :to="getPageLink(section.path, page)"
                 class="nav-item"
-                :class="{ 'active': isActiveLink(section.path, page.path) }"
+                :class="{ 'active': isItemActive(section.path, page) }"
               >
                 <span class="nav-item-indicator"></span>
                 {{ page.title }}
@@ -214,8 +275,56 @@ const getSinglePageLink = (section: typeof docsNavigation[0]): string => {
    ============================ */
 .sidebar-content {
   padding: 1.25rem;
-  padding-top: 2rem;
+  padding-top: 1.25rem;
 }
+
+/* Per-product accent — Server gets the violet that already brands its hub. */
+.sidebar-content.product-server {
+  --color-primary: #7c3aed;
+  --color-primary-light: rgba(124, 58, 237, 0.10);
+  --color-primary-lighter: rgba(124, 58, 237, 0.05);
+}
+
+/* ============================
+   Product Header
+   ============================ */
+.sidebar-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted);
+  text-decoration: none;
+  padding: 0.25rem 0.4rem;
+  border-radius: 6px;
+  transition: color var(--transition-fast), background-color var(--transition-fast);
+}
+
+.sidebar-back:hover {
+  color: var(--color-primary);
+  background-color: var(--color-hover-bg);
+}
+
+.sidebar-back i { font-size: 0.7rem; }
+
+.sidebar-product {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin: 0.5rem 0 1.25rem;
+  padding: 0.55rem 0.7rem;
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  letter-spacing: -0.005em;
+}
+
+.sidebar-product i { font-size: 1rem; }
 
 /* ============================
    Search Trigger

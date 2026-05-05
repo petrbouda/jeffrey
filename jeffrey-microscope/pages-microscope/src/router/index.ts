@@ -451,16 +451,6 @@ const router = createRouter({
           component: () => import('@/views/global/RecordingsView.vue')
         },
         {
-          path: 'event-log',
-          name: 'event-log',
-          component: () => import('@/views/global/EventLogView.vue')
-        },
-        {
-          path: 'profiler-settings',
-          name: 'profiler-settings',
-          component: () => import('@/views/global/ProfilerSettingsView.vue')
-        },
-        {
           path: 'settings',
           name: 'settings',
           component: () => import('@/views/global/SettingsView.vue')

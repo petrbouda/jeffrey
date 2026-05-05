@@ -1,6 +1,6 @@
 <template>
   <div class="command-builder pt-3">
-    <div class="step-header">
+    <div v-if="!hideHelpHeader" class="step-header">
       <div class="step-header-status header-primary clickable-header" @click="toggleHelp">
         <div class="step-type-info">
           <i class="bi bi-ui-checks-grid"></i>
@@ -81,7 +81,7 @@
     </div>
 
     <!-- Builder and Live Command Layout -->
-    <div class="builder-and-command-layout">
+    <div class="builder-and-command-layout" :class="{ 'cards-only': hideLivePreview }">
       <!-- Configuration Builder Panel -->
       <div class="configuration-section builder-panel">
         <!-- Builder Mode Content -->
@@ -645,7 +645,7 @@
       </div>
 
       <!-- Live Command Panel -->
-      <div class="configuration-section live-command-panel">
+      <div v-if="!hideLivePreview" class="configuration-section live-command-panel">
         <div class="step-header">
           <div class="step-header-status header-secondary">
             <div class="step-type-info">
@@ -747,10 +747,14 @@ import ToastService from '@/services/ToastService';
 
 interface Props {
   agentMode?: 'jeffrey' | 'custom';
+  hideLivePreview?: boolean;
+  hideHelpHeader?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  agentMode: 'jeffrey'
+  agentMode: 'jeffrey',
+  hideLivePreview: false,
+  hideHelpHeader: false
 });
 
 const emit = defineEmits<{
@@ -843,18 +847,19 @@ const shouldShowJfrSyncWarning = computed(() => {
   return !optionStates.value.jfrsync;
 });
 
-// Enable chunk size configuration and scroll to it
-const enableChunkSizeConfiguration = () => {
-  // Enable chunk size option
+// Enable chunk size configuration. By default, scrolls the chunk-size card
+// into view; pass `{ scroll: false }` to skip the scroll (used when the
+// recommendation is clicked from an inline preview that's already on screen).
+const enableChunkSizeConfiguration = (options: { scroll?: boolean } = {}) => {
   optionStates.value.chunksize = true;
 
-  // Set a reasonable default value if not set
   if (!config.value.chunksizeValue) {
     config.value.chunksizeValue = 100;
     config.value.chunksizeUnit = 'm'; // MB
   }
 
-  // Scroll to chunk size configuration after DOM update
+  if (options.scroll === false) return;
+
   setTimeout(() => {
     const chunkSizeCard = document.querySelector('[data-chunk-size-card]');
     if (chunkSizeCard) {
@@ -866,17 +871,15 @@ const enableChunkSizeConfiguration = () => {
   }, 100);
 };
 
-// Enable JFR sync configuration and scroll to it
-const enableJfrSyncConfiguration = () => {
-  // Enable JFR sync option
+const enableJfrSyncConfiguration = (options: { scroll?: boolean } = {}) => {
   optionStates.value.jfrsync = true;
 
-  // Set default JFC mode if not set
   if (!config.value.jfcMode) {
     config.value.jfcMode = 'default';
   }
 
-  // Scroll to JFR sync configuration after DOM update
+  if (options.scroll === false) return;
+
   setTimeout(() => {
     const jfrSyncCard = document.querySelector('[data-jfr-sync-card]');
     if (jfrSyncCard) {
@@ -890,6 +893,17 @@ const enableJfrSyncConfiguration = () => {
 
 // Initialize configuration generation
 generateConfig();
+
+defineExpose({
+  generatedConfig,
+  builderTokens,
+  shouldShowChunkSizeWarning,
+  shouldShowJfrSyncWarning,
+  enableChunkSizeConfiguration,
+  enableJfrSyncConfiguration,
+  acceptCommand,
+  copyToClipboard
+});
 </script>
 
 <style scoped>
@@ -1277,6 +1291,15 @@ generateConfig();
   display: flex;
   gap: 24px;
   margin-top: 24px;
+}
+
+.builder-and-command-layout.cards-only {
+  display: block;
+}
+
+.builder-and-command-layout.cards-only .builder-panel {
+  flex: none;
+  width: 100%;
 }
 
 .configuration-section {

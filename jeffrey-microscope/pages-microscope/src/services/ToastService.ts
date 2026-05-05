@@ -77,7 +77,12 @@ export class ToastService {
     return toast;
   }
 
-  private static showToast(summary: string, detail: string | undefined, toastClass: string): void {
+  private static showToast(
+    summary: string,
+    detail: string | undefined,
+    toastClass: string,
+    duration?: number,
+  ): void {
     let container = document.getElementById('toast-container');
     if (!container) {
       container = document.createElement('div');
@@ -96,7 +101,8 @@ export class ToastService {
     }
 
     // Auto-hide after delay
-    const timer = setTimeout(() => dismissToast(toast), this.AUTO_HIDE_DELAY);
+    const delay = duration ?? this.AUTO_HIDE_DELAY;
+    const timer = setTimeout(() => dismissToast(toast), delay);
 
     function dismissToast(el: HTMLElement) {
       clearTimeout(timer);
@@ -105,28 +111,28 @@ export class ToastService {
     }
   }
 
-  static success(summary: string, detail?: string): void {
+  static success(summary: string, detail?: string, duration?: number): void {
     console.log(`%c✓ ${summary}`, 'color: #00d27a; font-weight: bold');
     if (detail) console.log(`   ${detail}`);
-    this.showToast(summary, detail, 'toast-success');
+    this.showToast(summary, detail, 'toast-success', duration);
   }
 
-  static info(summary: string, detail?: string): void {
+  static info(summary: string, detail?: string, duration?: number): void {
     console.log(`%cⓘ ${summary}`, 'color: #0ea5e9; font-weight: bold');
     if (detail) console.log(`   ${detail}`);
-    this.showToast(summary, detail, 'toast-info');
+    this.showToast(summary, detail, 'toast-info', duration);
   }
 
-  static warn(summary: string, detail?: string): void {
+  static warn(summary: string, detail?: string, duration?: number): void {
     console.log(`%c⚠ ${summary}`, 'color: #f5803e; font-weight: bold');
     if (detail) console.log(`   ${detail}`);
-    this.showToast(summary, detail, 'toast-warning');
+    this.showToast(summary, detail, 'toast-warning', duration);
   }
 
-  static error(summary: string, detail?: string): void {
+  static error(summary: string, detail?: string, duration?: number): void {
     console.log(`%c✕ ${summary}`, 'color: #e63757; font-weight: bold');
     if (detail) console.log(`   ${detail}`);
-    this.showToast(summary, detail, 'toast-danger');
+    this.showToast(summary, detail, 'toast-danger', duration);
   }
 }
 

@@ -157,10 +157,6 @@ data:
       <div class="docs-content">
         <p>This guide demonstrates deploying a Java service on Kubernetes with <strong>continuous profiling</strong> using Jeffrey CLI and shared storage.</p>
 
-        <DocsCallout type="danger">
-          <strong>Single pod limitation:</strong> Currently, only single-replica deployments are supported. Multi-pod scaling support is coming soon.
-        </DocsCallout>
-
         <h2 id="overview">Overview</h2>
         <p>The deployment consists of:</p>
         <ul>

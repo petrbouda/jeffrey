@@ -19,7 +19,7 @@
 package cafe.jeffrey.microscope.core.manager.workspace;
 
 import cafe.jeffrey.microscope.core.client.RemoteProfilerClient;
-import cafe.jeffrey.microscope.core.resources.response.WorkspaceEventResponse;
+import cafe.jeffrey.microscope.core.resources.response.WorkspaceEventsResponse;
 import cafe.jeffrey.microscope.core.manager.project.ProjectsManager;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 
@@ -56,14 +56,36 @@ public interface WorkspaceManager {
     }
 
     /**
-     * Returns workspace events for this workspace.
-     * Only remote workspaces have events; local workspaces return an empty list.
+     * Returns the latest workspace events for this workspace, capped at {@code limit},
+     * along with the unfiltered total count. Only remote workspaces produce events;
+     * local workspaces return an empty payload.
      *
-     * @return list of workspace event responses
+     * @param limit maximum number of events to return
      */
-    default List<WorkspaceEventResponse> events() {
-        return List.of();
+    default WorkspaceEventsResponse events(int limit) {
+        return new WorkspaceEventsResponse(List.of(), 0L, limit);
     }
+
+    /**
+     * Upserts workspace-level profiler settings. Applies the given agent
+     * settings string to every project in this workspace that doesn't
+     * override at the project level.
+     */
+    void upsertProfilerSettings(String agentSettings);
+
+    /**
+     * Returns the workspace-level and global-level profiler settings for this
+     * workspace. Either field may be {@code null} if no row exists at that
+     * level. The caller decides which is "effectively in force" — workspace
+     * overrides global.
+     */
+    RemoteProfilerClient.WorkspaceProfilerLevels fetchEffectiveProfilerSettings();
+
+    /**
+     * Removes the workspace-level profiler settings, causing the workspace
+     * to fall back to the global default.
+     */
+    void deleteProfilerSettings();
 
     /**
      * Deletes the workspace from the repository.

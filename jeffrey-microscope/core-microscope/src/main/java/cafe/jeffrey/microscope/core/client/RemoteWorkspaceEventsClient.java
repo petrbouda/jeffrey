@@ -38,19 +38,25 @@ public class RemoteWorkspaceEventsClient {
         this.stub = WorkspaceEventsServiceGrpc.newBlockingStub(connection.getChannel());
     }
 
-    public List<WorkspaceEventResponse> getEvents(String workspaceId) {
-        GetWorkspaceEventsRequest request = GetWorkspaceEventsRequest.newBuilder()
-                .setWorkspaceId(workspaceId)
-                .build();
+    public WorkspaceEventsResult getEvents(String workspaceId, int limit) {
+        GetWorkspaceEventsRequest.Builder builder = GetWorkspaceEventsRequest.newBuilder()
+                .setWorkspaceId(workspaceId);
+        if (limit > 0) {
+            builder.setLimit(limit);
+        }
 
-        GetWorkspaceEventsResponse response = stub.getWorkspaceEvents(request);
+        GetWorkspaceEventsResponse response = stub.getWorkspaceEvents(builder.build());
 
-        LOG.debug("Fetched workspace events via gRPC: workspaceId={} count={}",
-                workspaceId, response.getEventsCount());
+        LOG.debug("Fetched workspace events via gRPC: workspaceId={} count={} total={} limit={}",
+                workspaceId, response.getEventsCount(), response.getTotalCount(), limit);
 
-        return response.getEventsList().stream()
+        List<WorkspaceEventResponse> events = response.getEventsList().stream()
                 .map(RemoteWorkspaceEventsClient::toResponse)
                 .toList();
+        return new WorkspaceEventsResult(events, response.getTotalCount());
+    }
+
+    public record WorkspaceEventsResult(List<WorkspaceEventResponse> events, long totalCount) {
     }
 
     private static WorkspaceEventResponse toResponse(WorkspaceEventInfo proto) {

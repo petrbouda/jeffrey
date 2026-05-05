@@ -248,7 +248,7 @@ onMounted(() => {
         </DocsCallout>
 
         <h2 id="repository-visualization">Repository Visualization</h2>
-        <p>Jeffrey watches session folders for each project and displays them in the <router-link to="/docs/local/projects/repository">Repository</router-link> page.</p>
+        <p>Jeffrey watches session folders for each project and displays them in the <router-link to="/docs/microscope/projects/repository">Repository</router-link> page.</p>
 
         <div class="docs-grid docs-grid-3">
           <DocsFeatureCard

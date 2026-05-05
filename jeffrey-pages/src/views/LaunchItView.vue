@@ -52,13 +52,13 @@
                 <div class="method-steps">
                   <div class="step">
                     <div class="step-content">
-                      <p>Find the Docker Image at <a href="https://hub.docker.com/r/petrbouda/jeffrey-examples/tags"
+                      <p>Find the Docker Image at <a href="https://hub.docker.com/r/petrbouda/microscope-examples/tags"
                                                      target="_blank">Docker Hub</a></p>
                     </div>
                   </div>
                   <div class="step">
                     <div class="step-content">
-                      <pre><code>docker run -it --network host petrbouda/jeffrey-examples</code></pre>
+                      <pre><code>docker run -it --network host petrbouda/microscope-examples</code></pre>
                     </div>
                   </div>
                   <div class="step">
@@ -88,7 +88,7 @@
                 <div class="method-steps">
                   <div class="step">
                     <div class="step-content">
-                      <pre><code>docker run -it --network host petrbouda/jeffrey</code></pre>
+                      <pre><code>docker run -it --network host petrbouda/microscope</code></pre>
                     </div>
                   </div>
                   <div class="step">
@@ -113,7 +113,7 @@
                 <div class="method-steps">
                   <div class="step">
                     <div class="step-content">
-                      <pre><code>java -jar jeffrey.jar</code></pre>
+                      <pre><code>java -jar microscope.jar</code></pre>
                     </div>
                   </div>
                   <div class="step">
@@ -138,13 +138,13 @@
                 <div class="method-steps">
                   <div class="step">
                     <div class="step-content">
-                      <p><strong>Backend:</strong> Start <code>Application.java</code> in your IDE</p>
+                      <p><strong>Backend:</strong> Start <code>MicroscopeApplication.java</code> in your IDE</p>
                     </div>
                   </div>
                   <div class="step">
                     <div class="step-content">
-                      <p><strong>Frontend:</strong> Run in <b>pages</b> directory:</p>
-                      <pre><code>cd pages && npm run dev</code></pre></div>
+                      <p><strong>Frontend:</strong> Run in <code>/jeffrey-microscope/pages-microscope</code> directory:</p>
+                      <pre><code>cd jeffrey-microscope/pages-microscope && npm run dev</code></pre></div>
                   </div>
                 </div>
               </div>

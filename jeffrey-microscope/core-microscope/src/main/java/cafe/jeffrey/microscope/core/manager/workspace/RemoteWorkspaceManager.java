@@ -28,7 +28,8 @@ import cafe.jeffrey.microscope.core.manager.ProfilesManager;
 import cafe.jeffrey.microscope.core.manager.project.ProjectsManager;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.microscope.core.recording.ProjectRecordingInitializer;
-import cafe.jeffrey.microscope.core.resources.response.WorkspaceEventResponse;
+import cafe.jeffrey.microscope.core.client.RemoteWorkspaceEventsClient;
+import cafe.jeffrey.microscope.core.resources.response.WorkspaceEventsResponse;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
 import cafe.jeffrey.microscope.persistence.api.RemoteServerInfo;
 import cafe.jeffrey.microscope.persistence.api.WorkspaceRepository;
@@ -110,13 +111,32 @@ public class RemoteWorkspaceManager implements WorkspaceManager {
     }
 
     @Override
-    public List<WorkspaceEventResponse> events() {
-        return remoteClients.workspaceEvents().getEvents(workspaceInfo.id());
+    public WorkspaceEventsResponse events(int limit) {
+        RemoteWorkspaceEventsClient.WorkspaceEventsResult result =
+                remoteClients.workspaceEvents().getEvents(workspaceInfo.id(), limit);
+        return new WorkspaceEventsResponse(result.events(), result.totalCount(), limit);
     }
 
     @Override
     public Optional<RemoteProfilerClient> profilerClient() {
         return Optional.of(remoteClients.profiler());
+    }
+
+    @Override
+    public void upsertProfilerSettings(String agentSettings) {
+        remoteClients.profiler().upsertSettingsAtLevel(workspaceInfo.id(), "", agentSettings);
+        LOG.debug("Upserted workspace-level profiler settings: workspaceId={}", workspaceInfo.id());
+    }
+
+    @Override
+    public RemoteProfilerClient.WorkspaceProfilerLevels fetchEffectiveProfilerSettings() {
+        return remoteClients.profiler().getWorkspaceEffectiveSettings(workspaceInfo.id());
+    }
+
+    @Override
+    public void deleteProfilerSettings() {
+        remoteClients.profiler().deleteSettingsAtLevel(workspaceInfo.id(), "");
+        LOG.debug("Deleted workspace-level profiler settings: workspaceId={}", workspaceInfo.id());
     }
 
     @Override

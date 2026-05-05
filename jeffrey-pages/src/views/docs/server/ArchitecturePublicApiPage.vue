@@ -43,14 +43,14 @@ onMounted(() => {
       />
 
       <div class="docs-content">
-        <p>Jeffrey Server exposes gRPC services for Jeffrey Local instances to connect and fetch data. All communication between Jeffrey Local and Jeffrey Server uses gRPC on port <code>9090</code> (configurable).</p>
+        <p>Jeffrey Server exposes gRPC services for Jeffrey Microscope instances to connect and fetch data. All communication between Jeffrey Microscope and Jeffrey Server uses gRPC on port <code>9090</code> (configurable).</p>
 
         <DocsCallout type="info">
-          <strong>Remote Connectivity:</strong> Jeffrey Local connects to Jeffrey Server via gRPC to browse workspaces, projects, instances, download recordings, and manage profiler settings. All CPU-intensive analysis happens locally.
+          <strong>Remote Connectivity:</strong> Jeffrey Microscope connects to Jeffrey Server via gRPC to browse workspaces, projects, instances, download recordings, and manage profiler settings. All CPU-intensive analysis happens locally.
         </DocsCallout>
 
         <h2 id="purpose">Purpose</h2>
-        <p>The gRPC API enables Jeffrey Local to communicate with Jeffrey Server for remote workspace operations.</p>
+        <p>The gRPC API enables Jeffrey Microscope to communicate with Jeffrey Server for remote workspace operations.</p>
 
         <div class="purpose-cards">
           <div class="purpose-card">
@@ -370,13 +370,13 @@ onMounted(() => {
 
         <div class="workflow-diagram">
           <div class="workflow-row">
-            <div class="workflow-box local">
+            <div class="workflow-box microscope">
               <div class="box-header">
                 <i class="bi bi-pc-display"></i>
                 <span>Developer Machine</span>
               </div>
               <div class="box-content">
-                <strong>Jeffrey Local</strong>
+                <strong>Jeffrey Microscope</strong>
                 <p>Connects to Jeffrey Server via gRPC</p>
               </div>
             </div>

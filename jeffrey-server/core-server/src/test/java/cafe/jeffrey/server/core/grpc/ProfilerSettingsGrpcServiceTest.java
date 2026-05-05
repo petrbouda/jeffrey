@@ -388,6 +388,97 @@ class ProfilerSettingsGrpcServiceTest {
         }
     }
 
+    // ========== GetWorkspaceEffectiveSettings ==========
+
+    @Nested
+    class GetWorkspaceEffectiveSettings {
+
+        @Test
+        void returnsBothLevelsWhenSet() throws Exception {
+            var profilerRepo = mock(ProfilerRepository.class);
+            when(profilerRepo.findWorkspaceSettings(WORKSPACE_ID)).thenReturn(List.of(
+                    new ProfilerInfo(WORKSPACE_ID, null, AGENT_SETTINGS),
+                    new ProfilerInfo(null, null, "global=settings")));
+
+            var stub = startServer(serviceWithProfilerRepository(profilerRepo));
+
+            GetWorkspaceEffectiveSettingsResponse response = stub.getWorkspaceEffectiveSettings(
+                    GetWorkspaceEffectiveSettingsRequest.newBuilder()
+                            .setWorkspaceId(WORKSPACE_ID)
+                            .build());
+
+            assertTrue(response.hasWorkspaceAgentSettings());
+            assertEquals(AGENT_SETTINGS, response.getWorkspaceAgentSettings());
+            assertTrue(response.hasGlobalAgentSettings());
+            assertEquals("global=settings", response.getGlobalAgentSettings());
+        }
+
+        @Test
+        void returnsOnlyWorkspaceLevel() throws Exception {
+            var profilerRepo = mock(ProfilerRepository.class);
+            when(profilerRepo.findWorkspaceSettings(WORKSPACE_ID)).thenReturn(List.of(
+                    new ProfilerInfo(WORKSPACE_ID, null, AGENT_SETTINGS)));
+
+            var stub = startServer(serviceWithProfilerRepository(profilerRepo));
+
+            GetWorkspaceEffectiveSettingsResponse response = stub.getWorkspaceEffectiveSettings(
+                    GetWorkspaceEffectiveSettingsRequest.newBuilder()
+                            .setWorkspaceId(WORKSPACE_ID)
+                            .build());
+
+            assertTrue(response.hasWorkspaceAgentSettings());
+            assertEquals(AGENT_SETTINGS, response.getWorkspaceAgentSettings());
+            assertFalse(response.hasGlobalAgentSettings());
+        }
+
+        @Test
+        void returnsOnlyGlobalLevel() throws Exception {
+            var profilerRepo = mock(ProfilerRepository.class);
+            when(profilerRepo.findWorkspaceSettings(WORKSPACE_ID)).thenReturn(List.of(
+                    new ProfilerInfo(null, null, "global=settings")));
+
+            var stub = startServer(serviceWithProfilerRepository(profilerRepo));
+
+            GetWorkspaceEffectiveSettingsResponse response = stub.getWorkspaceEffectiveSettings(
+                    GetWorkspaceEffectiveSettingsRequest.newBuilder()
+                            .setWorkspaceId(WORKSPACE_ID)
+                            .build());
+
+            assertFalse(response.hasWorkspaceAgentSettings());
+            assertTrue(response.hasGlobalAgentSettings());
+            assertEquals("global=settings", response.getGlobalAgentSettings());
+        }
+
+        @Test
+        void returnsNothingWhenEmpty() throws Exception {
+            var profilerRepo = mock(ProfilerRepository.class);
+            when(profilerRepo.findWorkspaceSettings(WORKSPACE_ID)).thenReturn(List.of());
+
+            var stub = startServer(serviceWithProfilerRepository(profilerRepo));
+
+            GetWorkspaceEffectiveSettingsResponse response = stub.getWorkspaceEffectiveSettings(
+                    GetWorkspaceEffectiveSettingsRequest.newBuilder()
+                            .setWorkspaceId(WORKSPACE_ID)
+                            .build());
+
+            assertFalse(response.hasWorkspaceAgentSettings());
+            assertFalse(response.hasGlobalAgentSettings());
+        }
+
+        @Test
+        void blankWorkspaceId_returnsInvalidArgument() throws Exception {
+            var profilerRepo = mock(ProfilerRepository.class);
+            var stub = startServer(serviceWithProfilerRepository(profilerRepo));
+
+            StatusRuntimeException ex = assertThrows(StatusRuntimeException.class, () ->
+                    stub.getWorkspaceEffectiveSettings(
+                            GetWorkspaceEffectiveSettingsRequest.newBuilder().build()));
+
+            assertEquals(Status.Code.INVALID_ARGUMENT, ex.getStatus().getCode());
+            verifyNoInteractions(profilerRepo);
+        }
+    }
+
     // ========== Helpers ==========
 
     private static final cafe.jeffrey.shared.common.model.ProjectInfo TEST_PROJECT_INFO =

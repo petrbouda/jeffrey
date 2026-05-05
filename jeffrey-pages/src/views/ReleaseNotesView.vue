@@ -44,7 +44,7 @@ const techStackImages: GalleryImage[] = [
 ]
 
 const serverRecordingImages: GalleryImage[] = [
-  { src: '/images/release-notes/server-recording/01-architecture.png', caption: 'Jeffrey Local + Server architecture' },
+  { src: '/images/release-notes/server-recording/01-architecture.png', caption: 'Jeffrey Microscope + Server architecture' },
   { src: '/images/release-notes/server-recording/02-workspaces.png', caption: 'Workspaces & projects' },
   { src: '/images/release-notes/server-recording/02-instances-overview.png', caption: 'Instances overview & lifecycle' },
   { src: '/images/release-notes/server-recording/03-instance-timeline.png', caption: 'Instance timeline' },
@@ -190,10 +190,10 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
               <div class="gs-cmd-icon java"><i class="bi bi-cup-hot"></i></div>
               <div>
                 <div class="gs-cmd-label">Plain Java</div>
-                <div class="gs-cmd-sub"><a href="https://github.com/petrbouda/jeffrey/releases/download/v0.7.0/jeffrey.jar">Download jeffrey.jar</a> &middot; Java 25+</div>
+                <div class="gs-cmd-sub"><a href="https://github.com/petrbouda/jeffrey/releases/download/v0.7.0/microscope.jar">Download microscope.jar</a> &middot; Java 25+</div>
               </div>
             </div>
-            <div class="gs-code"><span class="dollar">$</span> <span class="text">java -jar jeffrey.jar</span></div>
+            <div class="gs-code"><span class="dollar">$</span> <span class="text">java -jar microscope.jar</span></div>
             <p class="gs-open">Then open <a href="http://localhost:8080" target="_blank">localhost:8080</a></p>
           </div>
           <div class="gs-cmd-card">
@@ -205,7 +205,7 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
               </div>
               <span class="gs-cmd-badge">Recommended</span>
             </div>
-            <div class="gs-code"><span class="dollar">$</span> <span class="text">docker run -it --network host petrbouda/jeffrey-examples:0.7.0</span></div>
+            <div class="gs-code"><span class="dollar">$</span> <span class="text">docker run -it --network host petrbouda/microscope-examples:0.7.0</span></div>
             <p class="gs-open">Then open <a href="http://localhost:8080" target="_blank">localhost:8080</a></p>
           </div>
         </div>
@@ -294,7 +294,7 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
           <div class="feature-text">
             <div class="feature-number">Feature 03</div>
             <h2>Server Continuous Recording</h2>
-            <p>A split architecture with <strong>jeffrey-server</strong> collecting recordings in Kubernetes and <strong>jeffrey-local</strong> providing full analysis on your machine. Applications write JFR chunks to shared storage, and Jeffrey discovers sessions, instances, and artifacts automatically.</p>
+            <p>A split architecture with <strong>jeffrey-server</strong> collecting recordings in Kubernetes and <strong>jeffrey-microscope</strong> providing full analysis on your machine. Applications write JFR chunks to shared storage, and Jeffrey discovers sessions, instances, and artifacts automatically.</p>
             <p>Visualize application instance timelines, browse recording sessions, and merge JFR chunks for deep analysis. Artifacts include heap dumps, JVM logs, and performance counters &mdash; all collected continuously alongside your JFR recordings.</p>
             <div class="feature-highlights">
               <span class="feature-highlight"><i class="bi bi-cloud"></i> Kubernetes</span>

@@ -19,6 +19,7 @@
 import BasePlatformClient from '@/services/api/BasePlatformClient';
 import type { RequestOptions } from '@/services/api/BasePlatformClient';
 import Workspace from '@/services/api/model/Workspace';
+import WorkspaceEventsResponse from '@/services/api/model/WorkspaceEventsResponse';
 
 export interface CreateWorkspaceRequest {
   referenceId: string;
@@ -40,6 +41,10 @@ export default class WorkspaceClient extends BasePlatformClient {
 
   async getById(workspaceId: string): Promise<Workspace> {
     return super.get<Workspace>(`/${workspaceId}`);
+  }
+
+  async getEvents(workspaceId: string, limit: number = 100): Promise<WorkspaceEventsResponse> {
+    return super.get<WorkspaceEventsResponse>(`/${workspaceId}/events?limit=${limit}`);
   }
 
   async create(request: CreateWorkspaceRequest): Promise<Workspace> {

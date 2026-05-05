@@ -18,9 +18,10 @@
 
 export interface DocPage {
   title: string;
-  path: string;
-  anchor?: string;  // Optional anchor for linking to sections within a page
-  children?: DocPage[];  // Optional nested children for collapsible sub-items
+  path?: string;  // Relative path under the parent section. URL = /docs/{section.path}/{page.path}.
+  to?: string;    // Absolute URL override; takes precedence over path-based URL building.
+  anchor?: string;
+  children?: DocPage[];
 }
 
 export interface DocSection {

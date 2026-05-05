@@ -19,7 +19,7 @@
         </div>
       </div>
 
-      <div class="command-actions">
+      <div v-if="!hideActions" class="command-actions">
         <button
           type="button"
           class="btn-clear-command"
@@ -48,9 +48,12 @@ import { ref, watch } from 'vue';
 
 interface Props {
   modelValue: string;
+  hideActions?: boolean;
 }
 
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), {
+  hideActions: false,
+});
 
 const emit = defineEmits<{
   'update:modelValue': [value: string];

@@ -28,5 +28,16 @@ import java.util.List;
  */
 public interface WorkspaceEventReader {
 
-    List<WorkspaceEvent> findAll(String workspaceId);
+    /**
+     * Returns the latest events for the workspace, ordered by created_at descending.
+     *
+     * @param workspaceId the target workspace
+     * @param limit       maximum number of events to return; {@code <= 0} = unbounded
+     */
+    List<WorkspaceEvent> findAll(String workspaceId, int limit);
+
+    /**
+     * Total event count for this workspace, ignoring any filters or limits.
+     */
+    long count(String workspaceId);
 }

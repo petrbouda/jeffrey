@@ -113,7 +113,7 @@ onMounted(() => {
           <tr>
             <td><code>jeffrey.server.grpc.port</code></td>
             <td><code>9090</code></td>
-            <td>gRPC server port for Jeffrey Local connections</td>
+            <td>gRPC server port for Jeffrey Microscope connections</td>
           </tr>
         </tbody>
       </table>

@@ -22,7 +22,7 @@ interface WorkspaceEvent {
   eventId: number;
   originEventId: string;
   projectId: string;
-  workspaceId: string;
+  workspaceRefId: string;
   eventType: WorkspaceEventType;
   content: string;
   originCreatedAt: number;

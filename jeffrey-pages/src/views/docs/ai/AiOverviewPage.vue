@@ -70,7 +70,7 @@ onMounted(() => {
       </div>
 
       <h2 id="configuration">Configuration</h2>
-      <p>AI analysis is <strong>disabled by default</strong>. To enable it, configure an AI provider through <strong>Settings</strong> in the Jeffrey Local UI.</p>
+      <p>AI analysis is <strong>disabled by default</strong>. To enable it, configure an AI provider through <strong>Settings</strong> in the Jeffrey Microscope UI.</p>
 
       <table>
         <thead>

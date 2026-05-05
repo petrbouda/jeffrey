@@ -75,7 +75,8 @@ class WorkspaceEventsGrpcServiceTest {
         @Test
         void returnsEvents() throws IOException {
             var reader = mock(WorkspaceEventReader.class);
-            when(reader.findAll(WORKSPACE_ID)).thenReturn(List.of(testEvent()));
+            when(reader.findAll(WORKSPACE_ID, 100)).thenReturn(List.of(testEvent()));
+            when(reader.count(WORKSPACE_ID)).thenReturn(1L);
 
             var stub = startServer(new WorkspaceEventsGrpcService(reader));
 
@@ -83,6 +84,7 @@ class WorkspaceEventsGrpcServiceTest {
                     GetWorkspaceEventsRequest.newBuilder().setWorkspaceId(WORKSPACE_ID).build());
 
             assertEquals(1, response.getEventsCount());
+            assertEquals(1L, response.getTotalCount());
             WorkspaceEventInfo event = response.getEvents(0);
             assertEquals(1L, event.getEventId());
             assertEquals("proj-1", event.getProjectId());
@@ -94,7 +96,8 @@ class WorkspaceEventsGrpcServiceTest {
         @Test
         void returnsEmptyList() throws IOException {
             var reader = mock(WorkspaceEventReader.class);
-            when(reader.findAll(WORKSPACE_ID)).thenReturn(List.of());
+            when(reader.findAll(WORKSPACE_ID, 100)).thenReturn(List.of());
+            when(reader.count(WORKSPACE_ID)).thenReturn(0L);
 
             var stub = startServer(new WorkspaceEventsGrpcService(reader));
 
@@ -102,17 +105,53 @@ class WorkspaceEventsGrpcServiceTest {
                     GetWorkspaceEventsRequest.newBuilder().setWorkspaceId(WORKSPACE_ID).build());
 
             assertEquals(0, response.getEventsCount());
+            assertEquals(0L, response.getTotalCount());
         }
 
         @Test
-        void filtersEventsByType() throws IOException {
+        void appliesDefaultLimitWhenUnset() throws IOException {
+            var reader = mock(WorkspaceEventReader.class);
+            when(reader.findAll(WORKSPACE_ID, 100)).thenReturn(List.of(testEvent()));
+            when(reader.count(WORKSPACE_ID)).thenReturn(247L);
+
+            var stub = startServer(new WorkspaceEventsGrpcService(reader));
+
+            GetWorkspaceEventsResponse response = stub.getWorkspaceEvents(
+                    GetWorkspaceEventsRequest.newBuilder().setWorkspaceId(WORKSPACE_ID).build());
+
+            assertEquals(247L, response.getTotalCount());
+            assertEquals(1, response.getEventsCount());
+        }
+
+        @Test
+        void honoursExplicitLimit() throws IOException {
+            var reader = mock(WorkspaceEventReader.class);
+            when(reader.findAll(WORKSPACE_ID, 5)).thenReturn(List.of(testEvent(), testEvent(), testEvent()));
+            when(reader.count(WORKSPACE_ID)).thenReturn(20L);
+
+            var stub = startServer(new WorkspaceEventsGrpcService(reader));
+
+            GetWorkspaceEventsResponse response = stub.getWorkspaceEvents(
+                    GetWorkspaceEventsRequest.newBuilder()
+                            .setWorkspaceId(WORKSPACE_ID)
+                            .setLimit(5)
+                            .build());
+
+            assertEquals(20L, response.getTotalCount());
+            assertEquals(3, response.getEventsCount());
+        }
+
+        @Test
+        void filtersEventsByType_thenAppliesLimitInMemory() throws IOException {
             var created = testEvent();
             var deleted = new WorkspaceEvent(
                     2L, "origin-2", "proj-1", WORKSPACE_ID,
                     WorkspaceEventType.PROJECT_DELETED, "{}", FIXED_TIME, FIXED_TIME, "system");
 
             var reader = mock(WorkspaceEventReader.class);
-            when(reader.findAll(WORKSPACE_ID)).thenReturn(List.of(created, deleted));
+            // With a type filter the service fetches unbounded so it can filter then limit.
+            when(reader.findAll(WORKSPACE_ID, -1)).thenReturn(List.of(created, deleted));
+            when(reader.count(WORKSPACE_ID)).thenReturn(2L);
 
             var stub = startServer(new WorkspaceEventsGrpcService(reader));
 
@@ -124,12 +163,14 @@ class WorkspaceEventsGrpcServiceTest {
 
             assertEquals(1, response.getEventsCount());
             assertEquals("PROJECT_DELETED", response.getEvents(0).getEventType());
+            assertEquals(2L, response.getTotalCount());
         }
 
         @Test
         void invalidEventType_returnsInvalidArgument() throws IOException {
             var reader = mock(WorkspaceEventReader.class);
-            when(reader.findAll(WORKSPACE_ID)).thenReturn(List.of());
+            when(reader.findAll(WORKSPACE_ID, -1)).thenReturn(List.of());
+            when(reader.count(WORKSPACE_ID)).thenReturn(0L);
 
             var stub = startServer(new WorkspaceEventsGrpcService(reader));
 

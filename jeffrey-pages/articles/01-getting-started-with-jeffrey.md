@@ -49,7 +49,7 @@ Either way, you end up with a `.jfr` file that contains both Async Profiler's sa
 Jeffrey is a self-hosted analysis tool — no cloud services, no account signup, no data leaving your machine. The fastest way to start is with Docker:
 
 ```bash
-docker run -it --network host petrbouda/jeffrey
+docker run -it --network host petrbouda/microscope
 ```
 
 Open [http://localhost:8080](http://localhost:8080) in your browser. That's it — Jeffrey is ready to analyze your recordings.
@@ -57,7 +57,7 @@ Open [http://localhost:8080](http://localhost:8080) in your browser. That's it �
 If you want to explore Jeffrey with pre-loaded example data first (recommended for your first time), use the examples image instead:
 
 ```bash
-docker run -it --network host petrbouda/jeffrey-examples
+docker run -it --network host petrbouda/microscope-examples
 ```
 
 This ships with sample JFR recordings and pre-built profiles so you can explore every feature without generating your own data first.
@@ -153,7 +153,7 @@ But this is just the beginning. Jeffrey offers significantly more depth than wha
 You can find the source code at [github.com/petrbouda/jeffrey](https://github.com/petrbouda/jeffrey) and the full documentation, examples, and release notes at [jeffrey-analyst.cafe](https://jeffrey-analyst.cafe). To try it right now:
 
 ```bash
-docker run -it --network host petrbouda/jeffrey-examples
+docker run -it --network host petrbouda/microscope-examples
 ```
 
 Open [http://localhost:8080](http://localhost:8080), explore the pre-loaded examples, and see what your own recordings reveal.

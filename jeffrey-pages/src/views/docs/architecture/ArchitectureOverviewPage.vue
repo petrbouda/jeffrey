@@ -40,19 +40,19 @@ onMounted(() => {
       />
 
       <div class="docs-content">
-        <p>Jeffrey consists of two applications: <strong>Jeffrey Local</strong> (an analysis tool for visualizing and exploring JFR profiles) and <strong>Jeffrey Server</strong> (a recording collection service that manages workspaces, sessions, and live recordings). Jeffrey Local connects to Jeffrey Server via gRPC to access remote workspaces, and also offers <strong>Recordings</strong> for analyzing JFR files directly without a server connection.</p>
+        <p>Jeffrey consists of two applications: <strong>Jeffrey Microscope</strong> (an analysis tool for visualizing and exploring JFR profiles) and <strong>Jeffrey Server</strong> (a recording collection service that manages workspaces, sessions, and live recordings). Jeffrey Microscope connects to Jeffrey Server via gRPC to access remote workspaces, and also offers <strong>Recordings</strong> for analyzing JFR files directly without a server connection.</p>
 
         <h2 id="high-level-architecture">High-Level Architecture</h2>
-        <p>Jeffrey runs as two separate applications. Jeffrey Server collects and stores recordings from Java applications, while Jeffrey Local provides the analysis UI and connects to the server via gRPC:</p>
+        <p>Jeffrey runs as two separate applications. Jeffrey Server collects and stores recordings from Java applications, while Jeffrey Microscope provides the analysis UI and connects to the server via gRPC:</p>
 
         <div class="arch-diagram">
           <!-- Two apps side by side -->
           <div class="arch-apps">
-            <!-- Jeffrey Local -->
-            <div class="arch-app local">
-              <div class="arch-app-header local-header">
+            <!-- Jeffrey Microscope -->
+            <div class="arch-app microscope">
+              <div class="arch-app-header microscope-header">
                 <i class="bi bi-pc-display"></i>
-                <span>Jeffrey Local</span>
+                <span>Jeffrey Microscope</span>
                 <small>Developer Machine</small>
               </div>
               <div class="arch-app-body">
@@ -135,7 +135,7 @@ onMounted(() => {
 
           <!-- Bottom: Shared Filesystem + Java Apps aligned under Server -->
           <div class="arch-bottom-row">
-            <!-- Empty left spacer to align with Jeffrey Local -->
+            <!-- Empty left spacer to align with Jeffrey Microscope -->
             <div class="arch-bottom-spacer"></div>
             <!-- Connector spacer for gRPC column -->
             <div class="arch-bottom-connector-spacer"></div>
@@ -271,7 +271,7 @@ onMounted(() => {
   opacity: 0.85;
 }
 
-.local-header { background: linear-gradient(135deg, #5e64ff 0%, #4338ca 100%); }
+.microscope-header { background: linear-gradient(135deg, #5e64ff 0%, #4338ca 100%); }
 .server-header { background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%); }
 
 .arch-app-body {

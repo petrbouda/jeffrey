@@ -99,6 +99,28 @@ public class RemoteProfilerClient {
         LOG.debug("Upserted profiler settings at level via gRPC: workspaceId={} projectId={}", workspaceId, projectId);
     }
 
+    public WorkspaceProfilerLevels getWorkspaceEffectiveSettings(String workspaceId) {
+        GetWorkspaceEffectiveSettingsResponse response = stub.getWorkspaceEffectiveSettings(
+                GetWorkspaceEffectiveSettingsRequest.newBuilder()
+                        .setWorkspaceId(workspaceId)
+                        .build());
+
+        String workspaceSettings = response.hasWorkspaceAgentSettings()
+                ? response.getWorkspaceAgentSettings()
+                : null;
+        String globalSettings = response.hasGlobalAgentSettings()
+                ? response.getGlobalAgentSettings()
+                : null;
+
+        LOG.debug("Fetched workspace effective profiler settings via gRPC: workspaceId={} workspaceSet={} globalSet={}",
+                workspaceId, workspaceSettings != null, globalSettings != null);
+
+        return new WorkspaceProfilerLevels(workspaceSettings, globalSettings);
+    }
+
+    public record WorkspaceProfilerLevels(String workspaceSettings, String globalSettings) {
+    }
+
     public void deleteSettingsAtLevel(String workspaceId, String projectId) {
         stub.deleteSettingsAtLevel(
                 DeleteProfilerSettingsAtLevelRequest.newBuilder()

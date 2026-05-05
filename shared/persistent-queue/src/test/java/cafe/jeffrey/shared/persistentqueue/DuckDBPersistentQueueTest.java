@@ -189,7 +189,7 @@ class DuckDBPersistentQueueTest {
 
             queue.appendBatch("scope-1", List.of("event-A", "event-B", "event-A"));
 
-            List<QueueEntry<String>> entries = queue.findAll("scope-1");
+            List<QueueEntry<String>> entries = queue.findAll("scope-1", -1);
 
             assertEquals(2, entries.size());
         }
@@ -329,7 +329,7 @@ class DuckDBPersistentQueueTest {
             queue.append("scope-1", "event-A");
             queue.append("scope-1", "event-A");
 
-            List<QueueEntry<String>> entries = queue.findAll("scope-1");
+            List<QueueEntry<String>> entries = queue.findAll("scope-1", -1);
 
             assertEquals(1, entries.size());
             assertEquals("event-A", entries.getFirst().payload());
@@ -344,7 +344,7 @@ class DuckDBPersistentQueueTest {
             queue.append("scope-1", "event-A");
             queue.append("scope-1", "event-A");
 
-            List<QueueEntry<String>> entries = queue.findAll("scope-1");
+            List<QueueEntry<String>> entries = queue.findAll("scope-1", -1);
 
             assertEquals(3, entries.size());
         }
@@ -360,9 +360,9 @@ class DuckDBPersistentQueueTest {
             queue1.append("scope-2", "event-A");
             queue2.append("scope-1", "event-A");
 
-            List<QueueEntry<String>> queue1Scope1 = queue1.findAll("scope-1");
-            List<QueueEntry<String>> queue1Scope2 = queue1.findAll("scope-2");
-            List<QueueEntry<String>> queue2Scope1 = queue2.findAll("scope-1");
+            List<QueueEntry<String>> queue1Scope1 = queue1.findAll("scope-1", -1);
+            List<QueueEntry<String>> queue1Scope2 = queue1.findAll("scope-2", -1);
+            List<QueueEntry<String>> queue2Scope1 = queue2.findAll("scope-1", -1);
 
             assertAll(
                     () -> assertEquals(1, queue1Scope1.size()),

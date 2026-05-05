@@ -67,20 +67,20 @@ const closeImageModal = (): void => {
 
             <p>
               Today, I'm happy to announce the <strong>0.4</strong> release of Jeffrey App -
-              <a href="https://github.com/petrbouda/jeffrey/releases/download/0.4/jeffrey.jar" target="_blank">Jeffrey App</a>.
+              <a href="https://github.com/petrbouda/jeffrey/releases/download/0.4/microscope.jar" target="_blank">Jeffrey App</a>.
               There is a new cool feature, let's have a look at it!
             </p>
 
             <p>Start the jar file using the following command:</p>
 
             <div class="code-block">
-              <pre><code>java -jar jeffrey.jar</code></pre>
+              <pre><code>java -jar microscope.jar</code></pre>
             </div>
 
             <p>or you can spin up docker container with the following command, and check predefined examples.</p>
 
             <div class="code-block">
-              <pre><code>docker run -it -p 8080:8080 petrbouda/jeffrey-examples:0.4</code></pre>
+              <pre><code>docker run -it -p 8080:8080 petrbouda/microscope-examples:0.4</code></pre>
             </div>
 
             <p>
@@ -147,7 +147,7 @@ const closeImageModal = (): void => {
               <h3>Download Jeffrey 0.4</h3>
               <p>Ready to try the new features? Download Jeffrey 0.4 now:</p>
               <div class="download-buttons">
-                <a href="https://github.com/petrbouda/jeffrey/releases/download/0.4/jeffrey.jar"
+                <a href="https://github.com/petrbouda/jeffrey/releases/download/0.4/microscope.jar"
                    class="btn btn-primary btn-lg me-3" target="_blank">
                   <i class="bi bi-download me-2"></i>Download Jeffrey 0.4
                 </a>

@@ -170,7 +170,7 @@ In the next article, we'll explore **AI-powered analysis** — asking questions 
 You can find the source code at [github.com/petrbouda/jeffrey](https://github.com/petrbouda/jeffrey), the events library at [github.com/petrbouda/jeffrey-events](https://github.com/petrbouda/jeffrey-events), and the full documentation at [jeffrey-analyst.cafe](https://jeffrey-analyst.cafe). To try it right now:
 
 ```bash
-docker run -it --network host petrbouda/jeffrey-examples
+docker run -it --network host petrbouda/microscope-examples
 ```
 
 Open [http://localhost:8080](http://localhost:8080) and explore the pre-loaded examples with custom event data.

@@ -30,11 +30,12 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.microscope.core.manager.server.RemoteServerManager;
 import cafe.jeffrey.microscope.core.manager.workspace.WorkspaceManager;
 import cafe.jeffrey.microscope.core.resources.request.CreateWorkspaceRequest;
-import cafe.jeffrey.microscope.core.resources.response.WorkspaceEventResponse;
+import cafe.jeffrey.microscope.core.resources.response.WorkspaceEventsResponse;
 import cafe.jeffrey.microscope.core.resources.response.WorkspaceResponse;
 import cafe.jeffrey.microscope.core.resources.workspace.Mappers;
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
@@ -86,12 +87,13 @@ public class WorkspacesController {
     }
 
     @GetMapping("/{workspaceId}/events")
-    public List<WorkspaceEventResponse> events(
+    public WorkspaceEventsResponse events(
             @PathVariable("serverId") String serverId,
-            @PathVariable("workspaceId") String workspaceId) {
+            @PathVariable("workspaceId") String workspaceId,
+            @RequestParam(name = "limit", defaultValue = "100") int limit) {
 
-        LOG.debug("Fetching workspace events: workspaceId={}", workspaceId);
-        return resolver.resolveWorkspace(serverId, workspaceId).events();
+        LOG.debug("Fetching workspace events: workspaceId={} limit={}", workspaceId, limit);
+        return resolver.resolveWorkspace(serverId, workspaceId).events(limit);
     }
 
     @PostMapping

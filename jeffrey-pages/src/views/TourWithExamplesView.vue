@@ -39,7 +39,7 @@
           <div class="content-section">
 
             <div class="intro-text">
-              <p>The <code>jeffrey-examples</code> Docker image contains pre-generated recordings that demonstrate Jeffrey's capabilities. These examples help you understand how Jeffrey works without needing to set up your own recordings.</p>
+              <p>The <code>microscope-examples</code> Docker image contains pre-generated recordings that demonstrate Jeffrey's capabilities. These examples help you understand how Jeffrey works without needing to set up your own recordings.</p>
             </div>
 
             <div class="step-card">
@@ -47,7 +47,7 @@
               <div class="step-content">
                 <h3>Quick Start</h3>
                 <p>Launch the Docker container with the following command:</p>
-                <pre><code>docker run -it --network host petrbouda/jeffrey-examples</code></pre>
+                <pre><code>docker run -it --network host petrbouda/microscope-examples</code></pre>
                 <p>After starting the container, open <a href="http://localhost:8080" target="_blank">http://localhost:8080</a> in your browser to access the Jeffrey UI.</p>
               </div>
             </div>

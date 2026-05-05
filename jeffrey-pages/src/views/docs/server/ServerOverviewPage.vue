@@ -67,7 +67,7 @@ onMounted(() => {
         <DocsFeatureCard
           icon="bi bi-hdd-network"
           title="gRPC Communication"
-          description="Jeffrey Local connects to Server via gRPC for downloading and managing recordings."
+          description="Jeffrey Microscope connects to Server via gRPC for downloading and managing recordings."
         />
         <DocsFeatureCard
           icon="bi bi-clock-history"
@@ -82,7 +82,7 @@ onMounted(() => {
       </div>
 
       <h2 id="architecture">Architecture</h2>
-      <p>Jeffrey Server and Jeffrey Local work together as a split architecture:</p>
+      <p>Jeffrey Server and Jeffrey Microscope work together as a split architecture:</p>
       <ul>
         <li><strong>Server</strong> collects recordings in production (Kubernetes, cloud)</li>
         <li><strong>Local</strong> provides full analysis on your developer machine</li>

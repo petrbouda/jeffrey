@@ -159,6 +159,57 @@ public class ProfilerSettingsGrpcService extends ProfilerSettingsServiceGrpc.Pro
     }
 
     @Override
+    public void getWorkspaceEffectiveSettings(
+            GetWorkspaceEffectiveSettingsRequest request,
+            StreamObserver<GetWorkspaceEffectiveSettingsResponse> responseObserver) {
+
+        try {
+            String workspaceId = request.getWorkspaceId();
+            if (workspaceId == null || workspaceId.isBlank()) {
+                responseObserver.onError(Status.INVALID_ARGUMENT
+                        .withDescription("Workspace ID is required")
+                        .asRuntimeException());
+                return;
+            }
+
+            List<ProfilerInfo> all = profilerRepository.findWorkspaceSettings(workspaceId);
+
+            String workspaceSettings = all.stream()
+                    .filter(s -> workspaceId.equals(s.workspaceId()) && s.projectId() == null)
+                    .map(ProfilerInfo::agentSettings)
+                    .findFirst()
+                    .orElse(null);
+
+            String globalSettings = all.stream()
+                    .filter(s -> s.workspaceId() == null && s.projectId() == null)
+                    .map(ProfilerInfo::agentSettings)
+                    .findFirst()
+                    .orElse(null);
+
+            GetWorkspaceEffectiveSettingsResponse.Builder builder =
+                    GetWorkspaceEffectiveSettingsResponse.newBuilder();
+            if (workspaceSettings != null) {
+                builder.setWorkspaceAgentSettings(workspaceSettings);
+            }
+            if (globalSettings != null) {
+                builder.setGlobalAgentSettings(globalSettings);
+            }
+
+            LOG.debug("Fetched workspace effective profiler settings via gRPC: workspaceId={} workspaceSet={} globalSet={}",
+                    workspaceId, workspaceSettings != null, globalSettings != null);
+
+            responseObserver.onNext(builder.build());
+            responseObserver.onCompleted();
+        } catch (io.grpc.StatusRuntimeException e) {
+            responseObserver.onError(e);
+        } catch (Exception e) {
+            LOG.error("Failed to get workspace effective profiler settings: workspaceId={}",
+                    request.getWorkspaceId(), e);
+            responseObserver.onError(Status.INTERNAL.withDescription(e.getMessage()).asRuntimeException());
+        }
+    }
+
+    @Override
     public void deleteSettingsAtLevel(DeleteProfilerSettingsAtLevelRequest request, StreamObserver<DeleteProfilerSettingsAtLevelResponse> responseObserver) {
         try {
             String workspaceId = request.getWorkspaceId().isEmpty() ? null : request.getWorkspaceId();

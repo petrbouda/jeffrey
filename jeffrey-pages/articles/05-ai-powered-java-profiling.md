@@ -169,7 +169,7 @@ In the final article, we'll cover **production profiling at scale** — deployin
 You can find the source code at [github.com/petrbouda/jeffrey](https://github.com/petrbouda/jeffrey) and the full documentation at [jeffrey-analyst.cafe](https://jeffrey-analyst.cafe). To try it right now:
 
 ```bash
-docker run -it --network host petrbouda/jeffrey-examples
+docker run -it --network host petrbouda/microscope-examples
 ```
 
 Open [http://localhost:8080](http://localhost:8080), configure your AI provider in Settings, and start asking questions about the pre-loaded profiles.

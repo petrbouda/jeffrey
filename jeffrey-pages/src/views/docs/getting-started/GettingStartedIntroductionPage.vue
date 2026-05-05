@@ -170,9 +170,9 @@ onMounted(() => {
 
         <div class="docs-grid docs-grid-2">
           <DocsLinkCard
-            title="Jeffrey Local"
+            title="Jeffrey Microscope"
             description="The standalone analysis tool. Run on your machine to analyze JFR recordings and heap dumps with full visualization and AI features."
-            to="/docs/local/overview"
+            to="/docs/microscope/overview"
             icon="bi bi-pc-display"
           />
           <DocsLinkCard
@@ -201,10 +201,10 @@ onMounted(() => {
           <li><strong>Minor updates</strong> appear as a blue notification</li>
           <li><strong>Major updates</strong> appear as an orange warning, indicating potential breaking changes</li>
         </ul>
-        <p>The notification includes a link to the release notes on GitHub and a download button for <code>jeffrey.jar</code> when the release includes it as an asset. Dismissing the notification stores the preference per version, so it won't reappear for the same release.</p>
+        <p>The notification includes a link to the release notes on GitHub and a download button for <code>microscope.jar</code> when the release includes it as an asset. Dismissing the notification stores the preference per version, so it won't reappear for the same release.</p>
 
         <DocsCallout type="info">
-          <strong>Disable update checks:</strong> Set <code>jeffrey.local.update-check.enabled=false</code> in your configuration to turn off automatic version checks.
+          <strong>Disable update checks:</strong> Set <code>jeffrey.microscope.update-check.enabled=false</code> in your configuration to turn off automatic version checks.
         </DocsCallout>
       </div>
 
