@@ -47,8 +47,6 @@ public class RemoteProjectsManager implements ProjectsManager {
     private final WorkspaceInfo workspaceInfo;
     private final RemoteClients remoteClients;
     private final ProfilesManager.Factory profilesManagerFactory;
-    private final ProjectRecordingInitializer.Factory recordingInitializerFactory;
-    private final MicroscopeCoreRepositories localCoreRepositories;
     private final RecordingsManager recordingsManager;
 
     public RemoteProjectsManager(
@@ -57,8 +55,6 @@ public class RemoteProjectsManager implements ProjectsManager {
             WorkspaceInfo workspaceInfo,
             RemoteClients remoteClients,
             ProfilesManager.Factory profilesManagerFactory,
-            ProjectRecordingInitializer.Factory recordingInitializerFactory,
-            MicroscopeCoreRepositories localCoreRepositories,
             RecordingsManager recordingsManager) {
 
         this.jeffreyDirs = jeffreyDirs;
@@ -66,8 +62,6 @@ public class RemoteProjectsManager implements ProjectsManager {
         this.workspaceInfo = workspaceInfo;
         this.remoteClients = remoteClients;
         this.profilesManagerFactory = profilesManagerFactory;
-        this.recordingInitializerFactory = recordingInitializerFactory;
-        this.localCoreRepositories = localCoreRepositories;
         this.recordingsManager = recordingsManager;
     }
 
@@ -136,8 +130,6 @@ public class RemoteProjectsManager implements ProjectsManager {
                 projectInfo,
                 remoteClients,
                 profilesManagerFactory,
-                recordingInitializerFactory,
-                localCoreRepositories,
                 recordingsManager,
                 originContext);
     }

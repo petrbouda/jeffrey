@@ -68,19 +68,22 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
     private final RemoteRepositoryClient repositoryClient;
     private final RecordingsManager recordingsManager;
     private final OriginContext originContext;
+    private final String projectName;
 
     public RemoteRecordingsDownloadManager(
             MicroscopeJeffreyDirs jeffreyDirs,
             RemoteRecordingStreamClient recordingStreamClient,
             RemoteRepositoryClient repositoryClient,
             RecordingsManager recordingsManager,
-            OriginContext originContext) {
+            OriginContext originContext,
+            String projectName) {
 
         this.jeffreyDirs = jeffreyDirs;
         this.recordingStreamClient = recordingStreamClient;
         this.repositoryClient = repositoryClient;
         this.recordingsManager = recordingsManager;
         this.originContext = originContext;
+        this.projectName = projectName;
     }
 
     @Override
@@ -358,10 +361,10 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
     private static final DateTimeFormatter MERGED_FILE_TIMESTAMP =
             DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH-mm-ss'Z'").withZone(ZoneOffset.UTC);
 
-    private static String buildMergedFileName(RecordingSessionResponse session) {
-        String appName = sanitizeForFilename(session.name());
+    private String buildMergedFileName(RecordingSessionResponse session) {
+        String name = sanitizeForFilename(projectName);
         String timestamp = MERGED_FILE_TIMESTAMP.format(Instant.ofEpochMilli(session.createdAt()));
-        return appName + "_" + timestamp + ".jfr.lz4";
+        return name + "_" + timestamp + ".jfr.lz4";
     }
 
     private static String sanitizeForFilename(String value) {

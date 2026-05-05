@@ -18,9 +18,6 @@
 
 package cafe.jeffrey.microscope.core.configuration;
 
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Import;
 import cafe.jeffrey.microscope.core.MicroscopeJeffreyDirs;
 import cafe.jeffrey.microscope.core.client.CachedRemoteClientsFactory;
 import cafe.jeffrey.microscope.core.client.RemoteClients;
@@ -32,11 +29,13 @@ import cafe.jeffrey.microscope.core.manager.server.RemoteServersManager;
 import cafe.jeffrey.microscope.core.manager.server.RemoteServersManagerImpl;
 import cafe.jeffrey.microscope.core.manager.workspace.RemoteWorkspaceManager;
 import cafe.jeffrey.microscope.core.manager.workspace.WorkspaceManagerFactory;
-import cafe.jeffrey.microscope.core.recording.ProjectRecordingInitializer;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCorePersistenceProvider;
 import cafe.jeffrey.microscope.persistence.api.RemoteServersRepository;
 import cafe.jeffrey.microscope.persistence.jdbc.JdbcRemoteServersRepository;
 import cafe.jeffrey.microscope.persistence.jdbc.JdbcWorkspaceRepository;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 
 import java.time.Clock;
 
@@ -59,7 +58,6 @@ public class RemoteWorkspaceConfiguration {
             MicroscopeJeffreyDirs jeffreyDirs,
             MicroscopeCorePersistenceProvider persistenceProvider,
             ProfilesManager.Factory profilesManagerFactory,
-            ProjectRecordingInitializer.Factory recordingInitializerFactory,
             RecordingsManager recordingsManager) {
 
         return (serverInfo, workspaceInfo, remoteClients) -> new RemoteWorkspaceManager(
@@ -69,8 +67,6 @@ public class RemoteWorkspaceConfiguration {
                 new JdbcWorkspaceRepository(workspaceInfo.id(), persistenceProvider.databaseClientProvider()),
                 remoteClients,
                 profilesManagerFactory,
-                recordingInitializerFactory,
-                persistenceProvider.localCoreRepositories(),
                 recordingsManager);
     }
 

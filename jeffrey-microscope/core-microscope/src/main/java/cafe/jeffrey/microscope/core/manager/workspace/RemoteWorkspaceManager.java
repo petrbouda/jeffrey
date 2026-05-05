@@ -50,8 +50,6 @@ public class RemoteWorkspaceManager implements WorkspaceManager {
     private final WorkspaceRepository workspaceRepository;
     private final RemoteClients remoteClients;
     private final ProfilesManager.Factory profilesManagerFactory;
-    private final ProjectRecordingInitializer.Factory recordingInitializerFactory;
-    private final MicroscopeCoreRepositories localCoreRepositories;
     private final RecordingsManager recordingsManager;
 
     public RemoteWorkspaceManager(
@@ -61,8 +59,6 @@ public class RemoteWorkspaceManager implements WorkspaceManager {
             WorkspaceRepository workspaceRepository,
             RemoteClients remoteClients,
             ProfilesManager.Factory profilesManagerFactory,
-            ProjectRecordingInitializer.Factory recordingInitializerFactory,
-            MicroscopeCoreRepositories localCoreRepositories,
             RecordingsManager recordingsManager) {
 
         this.jeffreyDirs = jeffreyDirs;
@@ -71,8 +67,6 @@ public class RemoteWorkspaceManager implements WorkspaceManager {
         this.workspaceRepository = workspaceRepository;
         this.remoteClients = remoteClients;
         this.profilesManagerFactory = profilesManagerFactory;
-        this.recordingInitializerFactory = recordingInitializerFactory;
-        this.localCoreRepositories = localCoreRepositories;
         this.recordingsManager = recordingsManager;
     }
 
@@ -105,8 +99,6 @@ public class RemoteWorkspaceManager implements WorkspaceManager {
                 workspaceInfo,
                 remoteClients,
                 profilesManagerFactory,
-                recordingInitializerFactory,
-                localCoreRepositories,
                 recordingsManager);
     }
 

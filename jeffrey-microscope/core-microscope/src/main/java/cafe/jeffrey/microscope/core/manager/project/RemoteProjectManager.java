@@ -35,10 +35,6 @@ public class RemoteProjectManager implements ProjectManager {
     private final DetailedProjectInfo detailedProjectInfo;
     private final RemoteClients remoteClients;
     private final ProfilesManager.Factory profilesManagerFactory;
-    @SuppressWarnings("unused")
-    private final ProjectRecordingInitializer.Factory recordingInitializerFactory;
-    @SuppressWarnings("unused")
-    private final MicroscopeCoreRepositories localCoreRepositories;
     private final RecordingsManager recordingsManager;
     private final OriginContext originContext;
 
@@ -47,8 +43,6 @@ public class RemoteProjectManager implements ProjectManager {
             DetailedProjectInfo detailedProjectInfo,
             RemoteClients remoteClients,
             ProfilesManager.Factory profilesManagerFactory,
-            ProjectRecordingInitializer.Factory recordingInitializerFactory,
-            MicroscopeCoreRepositories localCoreRepositories,
             RecordingsManager recordingsManager,
             OriginContext originContext) {
 
@@ -56,8 +50,6 @@ public class RemoteProjectManager implements ProjectManager {
         this.detailedProjectInfo = detailedProjectInfo;
         this.remoteClients = remoteClients;
         this.profilesManagerFactory = profilesManagerFactory;
-        this.recordingInitializerFactory = recordingInitializerFactory;
-        this.localCoreRepositories = localCoreRepositories;
         this.recordingsManager = recordingsManager;
         this.originContext = originContext;
     }
@@ -84,7 +76,8 @@ public class RemoteProjectManager implements ProjectManager {
                 remoteClients.recordings(),
                 remoteClients.repository(),
                 recordingsManager,
-                originContext);
+                originContext,
+                detailedProjectInfo.projectInfo().name());
     }
 
     @Override
