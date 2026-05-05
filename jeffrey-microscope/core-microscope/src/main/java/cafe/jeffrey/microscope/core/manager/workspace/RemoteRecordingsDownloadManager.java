@@ -42,6 +42,9 @@ import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -179,13 +182,15 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
                 .filter(file -> fileIds.contains(file.id()))
                 .toList();
 
-        processRecordingSessionWithProgress(recordingSessionId, files, progressCallback);
+        processRecordingSessionWithProgress(recordingSession, files, progressCallback);
     }
 
     private void processRecordingSessionWithProgress(
-            String recordingSessionId,
+            RecordingSessionResponse recordingSession,
             List<RepositoryFile> files,
             ProgressCallback progressCallback) {
+
+        String recordingSessionId = recordingSession.id();
 
         // At least one recording file must be present
         if (files.stream().noneMatch(RepositoryFile::isRecordingFile)) {
@@ -208,7 +213,7 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
         long mergedSizeEstimate = recordingFiles.stream().mapToLong(RepositoryFile::size).sum();
         long totalBytes = files.stream().mapToLong(RepositoryFile::size).sum();
         int totalFiles = 1 + artifactFiles.size();
-        String mergedFileName = "merged-recording.jfr.lz4";
+        String mergedFileName = buildMergedFileName(recordingSession);
 
         LOG.info("Starting parallel download with progress tracking: sessionId={} files={} totalBytes={} maxConcurrent={}",
                 recordingSessionId, totalFiles, totalBytes, MAX_CONCURRENT_DOWNLOADS);
@@ -348,6 +353,23 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
                 out.write(buffer, 0, bytesRead);
             }
         }
+    }
+
+    private static final DateTimeFormatter MERGED_FILE_TIMESTAMP =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH-mm-ss'Z'").withZone(ZoneOffset.UTC);
+
+    private static String buildMergedFileName(RecordingSessionResponse session) {
+        String appName = sanitizeForFilename(session.name());
+        String timestamp = MERGED_FILE_TIMESTAMP.format(Instant.ofEpochMilli(session.createdAt()));
+        return appName + "_" + timestamp + ".jfr.lz4";
+    }
+
+    private static String sanitizeForFilename(String value) {
+        if (value == null || value.isBlank()) {
+            return "recording";
+        }
+        String sanitized = value.trim().replaceAll("[^A-Za-z0-9._-]+", "-");
+        return sanitized.isEmpty() ? "recording" : sanitized;
     }
 
     /**
