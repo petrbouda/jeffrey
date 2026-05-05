@@ -348,6 +348,7 @@ const applyCommand = async (command: string) => {
       `Profiler configuration was applied to ${props.workspaceName || 'this workspace'}.`,
     );
     await fetchCurrent();
+    activeTab.value = 'current';
   } catch (error) {
     console.error('Failed to apply workspace profiler settings:', error);
     ToastService.error(
