@@ -133,17 +133,8 @@ class RecordingDownloadGrpcServiceTest {
             assertNull(observer.error, "Stream should complete without error");
             assertFalse(observer.chunks.isEmpty(), "Should receive at least one chunk");
 
-            // Verify every chunk reports the correct total size
-            for (DataChunk chunk : observer.chunks) {
-                assertEquals(content.length, chunk.getTotalSize());
-            }
-
-            // Reassemble chunks and verify content
-            ByteArrayOutputStream assembled = new ByteArrayOutputStream();
-            for (DataChunk chunk : observer.chunks) {
-                chunk.getData().writeTo(assembled);
-            }
-            assertArrayEquals(content, assembled.toByteArray());
+            assertTotalSizeOnFirstChunkOnly(observer.chunks, content.length);
+            assertArrayEquals(content, reassemble(observer.chunks));
         }
     }
 
@@ -192,12 +183,8 @@ class RecordingDownloadGrpcServiceTest {
             assertNull(observer.error, "Stream should complete without error");
             assertFalse(observer.chunks.isEmpty(), "Should receive at least one chunk");
 
-            ByteArrayOutputStream assembled = new ByteArrayOutputStream();
-            for (DataChunk chunk : observer.chunks) {
-                assertEquals(content.length, chunk.getTotalSize());
-                chunk.getData().writeTo(assembled);
-            }
-            assertArrayEquals(content, assembled.toByteArray());
+            assertTotalSizeOnFirstChunkOnly(observer.chunks, content.length);
+            assertArrayEquals(content, reassemble(observer.chunks));
         }
     }
 
@@ -246,12 +233,8 @@ class RecordingDownloadGrpcServiceTest {
             assertNull(observer.error, "Stream should complete without error");
             assertFalse(observer.chunks.isEmpty(), "Should receive at least one chunk");
 
-            ByteArrayOutputStream assembled = new ByteArrayOutputStream();
-            for (DataChunk chunk : observer.chunks) {
-                assertEquals(content.length, chunk.getTotalSize());
-                chunk.getData().writeTo(assembled);
-            }
-            assertArrayEquals(content, assembled.toByteArray());
+            assertTotalSizeOnFirstChunkOnly(observer.chunks, content.length);
+            assertArrayEquals(content, reassemble(observer.chunks));
         }
     }
 
@@ -292,6 +275,27 @@ class RecordingDownloadGrpcServiceTest {
         assertNotNull(error, "Expected an error");
         assertInstanceOf(StatusRuntimeException.class, error);
         assertEquals(expected, ((StatusRuntimeException) error).getStatus().getCode());
+    }
+
+    /**
+     * Verifies the first chunk carries {@code totalSize} and subsequent chunks omit it (default 0).
+     * Reflects the wire-efficient pattern in {@code streamWithBackpressure}.
+     */
+    private static void assertTotalSizeOnFirstChunkOnly(List<DataChunk> chunks, int expectedTotalSize) {
+        assertEquals(expectedTotalSize, chunks.get(0).getTotalSize(),
+                "First chunk should carry the total size");
+        for (int i = 1; i < chunks.size(); i++) {
+            assertEquals(0L, chunks.get(i).getTotalSize(),
+                    "Subsequent chunks should not repeat the total size: index=" + i);
+        }
+    }
+
+    private static byte[] reassemble(List<DataChunk> chunks) throws IOException {
+        ByteArrayOutputStream assembled = new ByteArrayOutputStream();
+        for (DataChunk chunk : chunks) {
+            chunk.getData().writeTo(assembled);
+        }
+        return assembled.toByteArray();
     }
 
     private static class TestStreamObserver implements StreamObserver<DataChunk> {

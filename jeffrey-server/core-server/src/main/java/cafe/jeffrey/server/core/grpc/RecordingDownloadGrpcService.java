@@ -19,7 +19,8 @@
 package cafe.jeffrey.server.core.grpc;
 
 import com.google.protobuf.ByteString;
-import io.grpc.Status;
+import io.grpc.StatusRuntimeException;
+import io.grpc.stub.ServerCallStreamObserver;
 import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,11 +28,13 @@ import cafe.jeffrey.server.api.v1.*;
 import cafe.jeffrey.server.core.manager.RepositoryManager;
 import cafe.jeffrey.server.persistence.api.SessionWithRepository;
 import cafe.jeffrey.server.persistence.api.ServerPlatformRepositories;
+import cafe.jeffrey.shared.common.Schedulers;
 import cafe.jeffrey.shared.common.model.repository.StreamedRecordingFile;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
+import java.util.concurrent.Semaphore;
 
 public class RecordingDownloadGrpcService extends RecordingDownloadServiceGrpc.RecordingDownloadServiceImplBase {
 
@@ -51,64 +54,81 @@ public class RecordingDownloadGrpcService extends RecordingDownloadServiceGrpc.R
 
     @Override
     public void downloadMergedRecordings(DownloadMergedRecordingsRequest request, StreamObserver<DataChunk> responseObserver) {
-        try {
-            RepositoryManager repoManager = repositoryManagerForSession(request.getSessionId());
+        // ReadyGate.attach must run in the gRPC handler thread (before this method returns) — gRPC rejects
+        // setOnReadyHandler / setOnCancelHandler once the StreamObserver has been handed back.
+        ServerCallStreamObserver<DataChunk> observer = (ServerCallStreamObserver<DataChunk>) responseObserver;
+        ReadyGate gate = ReadyGate.attach(observer);
 
-            LOG.debug("Streaming merged recordings via gRPC: sessionId={} fileCount={}",
-                    request.getSessionId(), request.getFileIdsList().size());
+        Schedulers.streamingExecutor().execute(() -> {
+            try {
+                RepositoryManager repoManager = repositoryManagerForSession(request.getSessionId());
 
-            StreamedRecordingFile recordingFile = repoManager
-                    .mergeAndStreamRecordings(request.getSessionId(), request.getFileIdsList());
+                LOG.debug("Streaming merged recordings via gRPC: sessionId={} fileCount={}",
+                        request.getSessionId(), request.getFileIdsList().size());
 
-            streamFile(recordingFile, responseObserver);
-        } catch (io.grpc.StatusRuntimeException e) {
-            responseObserver.onError(e);
-        } catch (Exception e) {
-            LOG.error("Failed to stream merged recordings: sessionId={}", request.getSessionId(), e);
-            responseObserver.onError(Status.INTERNAL.withDescription(e.getMessage()).asRuntimeException());
-        }
+                StreamedRecordingFile recordingFile = repoManager
+                        .mergeAndStreamRecordings(request.getSessionId(), request.getFileIdsList());
+
+                streamWithBackpressure(recordingFile, observer, gate);
+            } catch (StatusRuntimeException e) {
+                observer.onError(e);
+            } catch (Exception e) {
+                LOG.error("Failed to stream merged recordings: sessionId={}", request.getSessionId(), e);
+                observer.onError(GrpcExceptions.internal(e));
+            }
+        });
     }
 
     @Override
     public void downloadArtifactFile(DownloadArtifactFileRequest request, StreamObserver<DataChunk> responseObserver) {
-        try {
-            RepositoryManager repoManager = repositoryManagerForSession(request.getSessionId());
+        ServerCallStreamObserver<DataChunk> observer = (ServerCallStreamObserver<DataChunk>) responseObserver;
+        ReadyGate gate = ReadyGate.attach(observer);
 
-            LOG.debug("Streaming artifact file via gRPC: sessionId={} fileId={}",
-                    request.getSessionId(), request.getFileId());
+        Schedulers.streamingExecutor().execute(() -> {
+            try {
+                RepositoryManager repoManager = repositoryManagerForSession(request.getSessionId());
 
-            StreamedRecordingFile file = repoManager
-                    .streamArtifactFile(request.getSessionId(), request.getFileId());
+                LOG.debug("Streaming artifact file via gRPC: sessionId={} fileId={}",
+                        request.getSessionId(), request.getFileId());
 
-            streamFile(file, responseObserver);
-        } catch (io.grpc.StatusRuntimeException e) {
-            responseObserver.onError(e);
-        } catch (Exception e) {
-            LOG.error("Failed to stream artifact file: sessionId={} fileId={}",
-                    request.getSessionId(), request.getFileId(), e);
-            responseObserver.onError(Status.INTERNAL.withDescription(e.getMessage()).asRuntimeException());
-        }
+                StreamedRecordingFile file = repoManager
+                        .streamArtifactFile(request.getSessionId(), request.getFileId());
+
+                streamWithBackpressure(file, observer, gate);
+            } catch (StatusRuntimeException e) {
+                observer.onError(e);
+            } catch (Exception e) {
+                LOG.error("Failed to stream artifact file: sessionId={} fileId={}",
+                        request.getSessionId(), request.getFileId(), e);
+                observer.onError(GrpcExceptions.internal(e));
+            }
+        });
     }
 
     @Override
     public void downloadRecordingFile(DownloadRecordingFileRequest request, StreamObserver<DataChunk> responseObserver) {
-        try {
-            RepositoryManager repoManager = repositoryManagerForSession(request.getSessionId());
+        ServerCallStreamObserver<DataChunk> observer = (ServerCallStreamObserver<DataChunk>) responseObserver;
+        ReadyGate gate = ReadyGate.attach(observer);
 
-            LOG.debug("Streaming recording file via gRPC: sessionId={} fileId={}",
-                    request.getSessionId(), request.getFileId());
+        Schedulers.streamingExecutor().execute(() -> {
+            try {
+                RepositoryManager repoManager = repositoryManagerForSession(request.getSessionId());
 
-            StreamedRecordingFile file = repoManager
-                    .streamRecordingFile(request.getSessionId(), request.getFileId());
+                LOG.debug("Streaming recording file via gRPC: sessionId={} fileId={}",
+                        request.getSessionId(), request.getFileId());
 
-            streamFile(file, responseObserver);
-        } catch (io.grpc.StatusRuntimeException e) {
-            responseObserver.onError(e);
-        } catch (Exception e) {
-            LOG.error("Failed to stream recording file: sessionId={} fileId={}",
-                    request.getSessionId(), request.getFileId(), e);
-            responseObserver.onError(Status.INTERNAL.withDescription(e.getMessage()).asRuntimeException());
-        }
+                StreamedRecordingFile file = repoManager
+                        .streamRecordingFile(request.getSessionId(), request.getFileId());
+
+                streamWithBackpressure(file, observer, gate);
+            } catch (StatusRuntimeException e) {
+                observer.onError(e);
+            } catch (Exception e) {
+                LOG.error("Failed to stream recording file: sessionId={} fileId={}",
+                        request.getSessionId(), request.getFileId(), e);
+                observer.onError(GrpcExceptions.internal(e));
+            }
+        });
     }
 
     private RepositoryManager repositoryManagerForSession(String sessionId) {
@@ -117,23 +137,75 @@ public class RecordingDownloadGrpcService extends RecordingDownloadServiceGrpc.R
         return repositoryManagerFactory.apply(session.projectInfo());
     }
 
-    private static void streamFile(StreamedRecordingFile recordingFile, StreamObserver<DataChunk> responseObserver)
-            throws IOException {
+    private static void streamWithBackpressure(
+            StreamedRecordingFile recordingFile,
+            ServerCallStreamObserver<DataChunk> observer,
+            ReadyGate gate) throws IOException, InterruptedException {
 
         long totalSize = Files.size(recordingFile.path());
+        boolean firstChunk = true;
 
         try (InputStream stream = recordingFile.openStream()) {
             byte[] buffer = new byte[CHUNK_SIZE];
             int bytesRead;
-            while ((bytesRead = stream.read(buffer)) != -1) {
-                DataChunk chunk = DataChunk.newBuilder()
-                        .setData(ByteString.copyFrom(buffer, 0, bytesRead))
-                        .setTotalSize(totalSize)
-                        .build();
-                responseObserver.onNext(chunk);
+            while (!gate.isCancelled() && (bytesRead = stream.read(buffer)) != -1) {
+                gate.awaitReady();
+                if (gate.isCancelled()) {
+                    return;
+                }
+
+                DataChunk.Builder builder = DataChunk.newBuilder()
+                        .setData(ByteString.copyFrom(buffer, 0, bytesRead));
+                if (firstChunk) {
+                    builder.setTotalSize(totalSize);
+                    firstChunk = false;
+                }
+                observer.onNext(builder.build());
             }
         }
 
-        responseObserver.onCompleted();
+        if (!gate.isCancelled()) {
+            observer.onCompleted();
+        }
+    }
+
+    /**
+     * Backpressure gate for a server-streaming call. Pauses the producer when the
+     * channel is not ready, resumes when gRPC fires onReady, and short-circuits when
+     * the call is cancelled by the client.
+     */
+    private static final class ReadyGate {
+
+        private final ServerCallStreamObserver<?> observer;
+        private final Semaphore permits = new Semaphore(0);
+        private volatile boolean cancelled = false;
+
+        private ReadyGate(ServerCallStreamObserver<?> observer) {
+            this.observer = observer;
+        }
+
+        static ReadyGate attach(ServerCallStreamObserver<?> observer) {
+            ReadyGate gate = new ReadyGate(observer);
+            observer.setOnReadyHandler(gate.permits::release);
+            observer.setOnCancelHandler(() -> {
+                gate.cancelled = true;
+                gate.permits.release();
+            });
+            return gate;
+        }
+
+        boolean isCancelled() {
+            return cancelled || observer.isCancelled();
+        }
+
+        void awaitReady() throws InterruptedException {
+            if (observer.isReady() || isCancelled()) {
+                return;
+            }
+            permits.drainPermits();
+            while (!observer.isReady() && !isCancelled()) {
+                permits.acquire();
+            }
+        }
     }
 }
