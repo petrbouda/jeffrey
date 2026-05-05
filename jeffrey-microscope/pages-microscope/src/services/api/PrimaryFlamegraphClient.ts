@@ -107,6 +107,7 @@ export default class PrimaryFlamegraphClient extends FlamegraphClient {
     const content = {
       eventType: this.eventType,
       useWeight: this.useWeight,
+      useThreadMode: this.useThreadMode,
       search: search,
       excludeNonJavaSamples: this.excludeNonJavaSamples,
       excludeIdleSamples: this.excludeIdleSamples,

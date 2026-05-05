@@ -682,15 +682,15 @@ const removeWorkspaceOverride = async () => {
 }
 
 .level-card-icon {
-  width: 30px;
-  height: 30px;
-  border-radius: var(--radius-sm);
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-base);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   background: var(--color-primary-light);
   color: var(--color-primary);
-  font-size: 14px;
+  font-size: 18px;
   flex-shrink: 0;
 }
 .level-card.active .level-card-icon {
@@ -699,20 +699,20 @@ const removeWorkspaceOverride = async () => {
 }
 
 .level-card-title {
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.5px;
   text-transform: uppercase;
   color: var(--color-text-dark);
   display: inline-flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 2px;
 }
 .level-card-title small {
   font-weight: 500;
-  font-size: 10.5px;
-  color: var(--color-text-muted);
-  letter-spacing: 0.3px;
+  font-size: 12.5px;
+  color: var(--color-text);
+  letter-spacing: 0;
   text-transform: none;
 }
 
