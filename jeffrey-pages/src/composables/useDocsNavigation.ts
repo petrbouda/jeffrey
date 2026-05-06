@@ -142,45 +142,53 @@ export const microscopeNavigation: DocSection[] = [
 ];
 
 export const serverNavigation: DocSection[] = [
+  // Top-level single-page entries — promoted out of the "Jeffrey Server" group
+  // so the most-used links sit at the root of the sidebar. Synthetic section paths
+  // (prefixed with `_`) keep them out of the breadcrumb/section auto-expand logic
+  // that matches against the URL's first segment.
   {
-    title: 'Jeffrey Server',
-    path: 'server',
-    icon: 'bi-cloud',
+    title: 'Overview',
+    path: '_server-overview',
+    icon: 'bi-info-circle',
+    children: [{ title: 'Overview', to: '/docs/server' }]
+  },
+  {
+    title: 'Deployment by Example',
+    path: 'server/deployment',
+    icon: 'bi-cloud-upload',
     children: [
-      { title: 'Overview', to: '/docs/server' },
-      { title: 'Install Server', to: '/docs/server/installation' },
-      { title: 'Quick Start', to: '/docs/server/quick-start' },
-      { title: 'Architecture', to: '/docs/server#architecture' },
-      { title: 'Storage', to: '/docs/server/storage' },
-      {
-        title: 'Continuous Recording',
-        path: 'continuous-recording',
-        children: [
-          { title: 'Overview', path: 'continuous-recording/overview' },
-          { title: 'Jeffrey Deployment', path: 'continuous-recording/jeffrey-deployment' },
-          { title: 'Service Deployment', path: 'continuous-recording/service-deployment' }
-        ]
-      },
-      {
-        title: 'Recording Sessions',
-        path: 'recording-sessions',
-        children: [
-          { title: 'Overview', path: 'recording-sessions/overview' },
-          { title: 'Configuration', path: 'recording-sessions/configuration' },
-          { title: 'Lifecycle', path: 'recording-sessions/lifecycle' }
-        ]
-      },
-      { title: 'gRPC API', path: 'grpc-api' },
-      { title: 'Deployment', path: 'deployment' },
-      {
-        title: 'Configuration',
-        path: 'configuration',
-        children: [
-          { title: 'Application Properties', path: 'configuration/application-properties' },
-          { title: 'Advanced Properties', path: 'configuration/advanced-properties' }
-        ]
-      }
+      { title: 'Overview', to: '/docs/server/deployment' },
+      { title: 'Jeffrey JIB Extension', to: '/docs/server/deployment/jeffrey-jib' },
+      { title: 'Shared Volume', to: '/docs/server/deployment/shared-volume' },
+      { title: 'Jeffrey CLI', to: '/docs/server/deployment/jeffrey-cli' },
+      { title: 'Helm Chart', to: '/docs/server/deployment/helm-chart' }
     ]
+  },
+  {
+    title: 'Architecture',
+    path: '_server-architecture',
+    icon: 'bi-diagram-3',
+    children: [
+      { title: 'Overview', to: '/docs/server/architecture' },
+      { title: 'Storage', to: '/docs/server/storage' },
+      { title: 'gRPC API', to: '/docs/server/grpc-api' }
+    ]
+  },
+  {
+    title: 'Recording Sessions',
+    path: 'server/recording-sessions',
+    icon: 'bi-collection',
+    children: [
+      { title: 'Overview', to: '/docs/server/recording-sessions/overview' },
+      { title: 'Configuration', to: '/docs/server/recording-sessions/configuration' },
+      { title: 'Lifecycle', to: '/docs/server/recording-sessions/lifecycle' }
+    ]
+  },
+  {
+    title: 'Configuration',
+    path: '_server-configuration',
+    icon: 'bi-gear',
+    children: [{ title: 'Configuration', to: '/docs/server/configuration' }]
   },
   {
     title: 'Jeffrey CLI',

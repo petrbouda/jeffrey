@@ -27,15 +27,16 @@ const { setHeadings } = useDocHeadings();
 
 const headings = [
   { id: 'overview', text: 'Overview', level: 2 },
-  { id: 'cors', text: 'CORS Configuration', level: 2 },
-  { id: 'logging', text: 'Logging Configuration', level: 2 },
+  { id: 'server', text: 'Server', level: 2 },
+  { id: 'core-directories', text: 'Core Directories', level: 2 },
+  { id: 'grpc', text: 'gRPC', level: 2 },
+  { id: 'logging', text: 'Logging', level: 2 },
   { id: 'job-scheduler', text: 'Job Scheduler', level: 2 },
   { id: 'storage', text: 'Project/Recording Storage', level: 2 },
   { id: 'live-workspace', text: 'Server Collection Mode', level: 2 },
   { id: 'profiler', text: 'Profiler Agent Settings', level: 2 },
   { id: 'database', text: 'Database Persistence', level: 2 },
-  { id: 'container', text: 'Container Deployment', level: 2 },
-  { id: 'compression', text: 'HTTP Compression', level: 2 }
+  { id: 'container', text: 'Container Deployment', level: 2 }
 ];
 
 onMounted(() => {
@@ -46,24 +47,27 @@ onMounted(() => {
 <template>
   <article class="docs-article">
     <DocsPageHeader
-      title="Advanced Properties"
-      icon="bi bi-sliders"
+      title="Configuration"
+      icon="bi bi-gear"
     />
 
     <div class="docs-content">
       <h2 id="overview">Overview</h2>
       <p>
-        The <code>advanced.properties</code> file contains tuning and advanced configuration options
-        for Jeffrey Server. These settings are primarily used for performance optimization, job scheduling, and specialized deployments.
+        Jeffrey Server (<code>jeffrey-server.jar</code>) is configured through a single
+        <code>application.properties</code> file. All properties have sensible code defaults,
+        so you only need to override what you want to change. Frequently-tuned settings
+        (ports, directories, gRPC) come first; advanced tuning (jobs, storage paths, profiler
+        defaults, database, container deployment) follows.
       </p>
 
       <DocsCallout type="info">
-        <strong>Reference File:</strong> All properties have sensible code defaults, so you only need to configure what you want to change.
+        <strong>Optional file.</strong> All properties have sensible code defaults. You only
+        need to provide an <code>application.properties</code> file if you want to override
+        them.
       </DocsCallout>
 
-      <h2 id="cors">CORS Configuration</h2>
-      <p>Cross-Origin Resource Sharing settings for API access.</p>
-
+      <h2 id="server">Server</h2>
       <table>
         <thead>
           <tr>
@@ -74,19 +78,57 @@ onMounted(() => {
         </thead>
         <tbody>
           <tr>
-            <td><code>jeffrey.server.cors.mode</code></td>
-            <td><code>PROD</code></td>
-            <td>
-              CORS mode. <code>DEV</code>: all endpoints allow cross-origin requests
-              (for local development with separate frontend).
-              <code>PROD</code>: only public endpoints allow cross-origin requests
-              (for Jeffrey-to-Jeffrey communication over network).
-            </td>
+            <td><code>server.port</code></td>
+            <td><code>8080</code></td>
+            <td>HTTP server port for the web interface</td>
           </tr>
         </tbody>
       </table>
 
-      <h2 id="logging">Logging Configuration</h2>
+      <h2 id="core-directories">Core Directories</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Property</th>
+            <th>Default</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>jeffrey.server.home.dir</code></td>
+            <td><code>${user.home}/.jeffrey-server</code></td>
+            <td>
+              Base directory for all Jeffrey Server data. Env var: <code>JEFFREY_SERVER_HOME_DIR</code>
+            </td>
+          </tr>
+          <tr>
+            <td><code>jeffrey.server.temp.dir</code></td>
+            <td><code>${jeffrey.server.home.dir}/temp</code></td>
+            <td>Directory for temporary files</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2 id="grpc">gRPC</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Property</th>
+            <th>Default</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>jeffrey.server.grpc.port</code></td>
+            <td><code>9090</code></td>
+            <td>gRPC server port for Jeffrey Microscope connections</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2 id="logging">Logging</h2>
       <p>Application logging and JFR event monitoring settings.</p>
 
       <table>
@@ -212,7 +254,10 @@ onMounted(() => {
       </table>
 
       <h2 id="live-workspace">Server Collection Mode</h2>
-      <p>Settings for Jeffrey Server collection mode. Jeffrey Server is designed for recording collection and does not perform profile analysis.</p>
+      <p>
+        Settings for Jeffrey Server collection mode. Jeffrey Server is designed for recording
+        collection and does not perform profile analysis.
+      </p>
 
       <table>
         <thead>
@@ -322,36 +367,6 @@ onMounted(() => {
             <td><code>jeffrey.copy-libs.max-kept-versions</code></td>
             <td><code>10</code></td>
             <td>Maximum number of versioned library directories to keep</td>
-          </tr>
-        </tbody>
-      </table>
-
-      <h2 id="compression">HTTP Compression</h2>
-      <p>Response compression settings for the web server.</p>
-
-      <table>
-        <thead>
-          <tr>
-            <th>Property</th>
-            <th>Default</th>
-            <th>Description</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td><code>server.compression.enabled</code></td>
-            <td><code>false</code></td>
-            <td>Enable GZIP compression for responses</td>
-          </tr>
-          <tr>
-            <td><code>server.compression.mime-types</code></td>
-            <td><code>application/json,text/html</code></td>
-            <td>MIME types to compress</td>
-          </tr>
-          <tr>
-            <td><code>server.compression.min-response-size</code></td>
-            <td><code>1024</code></td>
-            <td>Minimum response size (bytes) to compress</td>
           </tr>
         </tbody>
       </table>

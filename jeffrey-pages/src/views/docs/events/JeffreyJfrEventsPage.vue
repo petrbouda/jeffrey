@@ -192,7 +192,7 @@ onMounted(() => {
 
 .feature-item {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 0.75rem;
   padding: 0.75rem 1rem;
   background: #f0fdf4;
@@ -203,7 +203,6 @@ onMounted(() => {
 .feature-item i {
   color: #10b981;
   font-size: 1rem;
-  margin-top: 0.125rem;
 }
 
 .feature-item div {

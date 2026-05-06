@@ -404,7 +404,7 @@ onMounted(() => {
 
 .usecase-list li {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 0.6rem;
   padding: 0.55rem 0.85rem;
   background: #f8fafc;
@@ -418,7 +418,6 @@ onMounted(() => {
 .usecase-list li i {
   color: #10b981;
   font-size: 1rem;
-  margin-top: 0.15rem;
   flex-shrink: 0;
 }
 

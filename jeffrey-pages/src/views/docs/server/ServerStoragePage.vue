@@ -80,13 +80,6 @@ onMounted(() => {
             <p>JFR is stored compressed with LZ4, heap dumps with GZIP. Microscope decompresses on read.</p>
           </div>
         </div>
-        <div class="principle-card">
-          <div class="card-icon"><i class="bi bi-eye-slash"></i></div>
-          <div class="card-content">
-            <h4>No event parsing on the server</h4>
-            <p>Server never expands JFR into events. That cost lives entirely in Microscope.</p>
-          </div>
-        </div>
       </div>
 
       <h2 id="platform-database">Platform Database</h2>
@@ -99,7 +92,7 @@ onMounted(() => {
           <span class="badge">Single File</span>
         </div>
         <div class="card-body">
-          <p class="file-path"><i class="bi bi-file-earmark"></i> <code>~/.jeffrey-server/jeffrey-data.db</code></p>
+          <p class="file-path"><i class="bi bi-file-earmark"></i> <code>$JEFFREY_HOME/jeffrey-data.db</code></p>
           <p><strong>Purpose:</strong> Multi-workspace catalog and scheduler state.</p>
           <h5>Contains:</h5>
           <ul>
@@ -167,20 +160,18 @@ onMounted(() => {
       <p>A typical Server installation looks like this on disk:</p>
 
       <div class="directory-structure">
-        <pre><code>~/.jeffrey-server/                    # Server home
+        <pre><code>$JEFFREY_HOME/                        # Server home
 ├── jeffrey-data.db                   # Platform database
 ├── temp/                             # Temporary files
-└── workspaces/                       # ── usually a shared volume (NFS / PVC) ──
-    └── {workspace-id}/
-        └── {project-id}/
-            └── recordings/
-                └── {session-id}/
-                    ├── recording.jfr
-                    └── artifacts/</code></pre>
+└── recordings/                       # ── usually a shared volume (NFS / PVC) ──
+    └── {project-id}/
+        └── {session-id}/
+            ├── recording.jfr         # JFR (or recording.jfr.lz4)
+            └── ...                   # heap dumps, JVM logs, perf-counters</code></pre>
       </div>
 
       <DocsCallout type="tip">
-        Override the home directory with <code>jeffrey.server.home.dir</code> in <code>application.properties</code> or via the <code>JEFFREY_SERVER_HOME_DIR</code> environment variable. The <code>workspaces/</code> directory is typically mounted from a shared volume regardless of where the home itself lives.
+        Override the home directory with <code>jeffrey.server.home.dir</code> in <code>application.properties</code> or via the <code>JEFFREY_SERVER_HOME_DIR</code> environment variable. The <code>recordings/</code> directory is typically mounted from a shared volume regardless of where the home itself lives.
       </DocsCallout>
     </div>
 

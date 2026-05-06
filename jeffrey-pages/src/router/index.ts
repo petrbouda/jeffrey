@@ -98,17 +98,43 @@ const routes: RouteRecordRaw[] = [
       {
         path: 'server',
         name: 'DocsServer',
-        component: () => import('@/views/docs/DocsServerPage.vue')
+        component: () => import('@/views/docs/server/ServerOverviewPage.vue')
+      },
+      // Legacy / consolidated entry-points: installation + quick-start replaced by
+      // the Deployment section; /docs/server/overview was superseded by /docs/server.
+      { path: 'server/installation', redirect: '/docs/server/deployment' },
+      { path: 'server/overview', redirect: '/docs/server' },
+      { path: 'server/quick-start', redirect: '/docs/server/deployment' },
+      // Deployment — worked example based on the jeffrey-testapp repo.
+      {
+        path: 'server/deployment',
+        name: 'DocsServerDeploymentOverview',
+        component: () => import('@/views/docs/server/deployment/DeploymentOverviewPage.vue')
       },
       {
-        path: 'server/installation',
-        name: 'DocsServerInstallation',
-        component: () => import('@/views/docs/getting-started/GettingStartedInstallationPage.vue')
+        path: 'server/deployment/jeffrey-jib',
+        name: 'DocsServerDeploymentJeffreyJib',
+        component: () => import('@/views/docs/server/deployment/DeploymentJeffreyJibPage.vue')
       },
       {
-        path: 'server/quick-start',
-        name: 'DocsServerQuickStart',
-        component: () => import('@/views/docs/getting-started/GettingStartedQuickStartPage.vue')
+        path: 'server/deployment/shared-volume',
+        name: 'DocsServerDeploymentSharedVolume',
+        component: () => import('@/views/docs/server/deployment/DeploymentSharedVolumePage.vue')
+      },
+      {
+        path: 'server/deployment/jeffrey-cli',
+        name: 'DocsServerDeploymentJeffreyCli',
+        component: () => import('@/views/docs/server/deployment/DeploymentJeffreyCliPage.vue')
+      },
+      {
+        path: 'server/deployment/helm-chart',
+        name: 'DocsServerDeploymentHelmChart',
+        component: () => import('@/views/docs/server/deployment/DeploymentHelmChartPage.vue')
+      },
+      {
+        path: 'server/architecture',
+        name: 'DocsServerArchitecture',
+        component: () => import('@/views/docs/server/ServerArchitectureOverviewPage.vue')
       },
 
       // ──── Getting Started ────
@@ -231,31 +257,14 @@ const routes: RouteRecordRaw[] = [
 
       // ──── Jeffrey Server ────
       {
-        path: 'server/overview',
-        name: 'DocsServerOverview',
-        component: () => import('@/views/docs/server/ServerOverviewPage.vue')
-      },
-      {
         path: 'server/storage',
         name: 'DocsServerStorage',
         component: () => import('@/views/docs/server/ServerStoragePage.vue')
       },
-      // Continuous Recording
-      {
-        path: 'server/continuous-recording/overview',
-        name: 'DocsContinuousRecordingOverview',
-        component: () => import('@/views/docs/server/continuous-recording/LiveRecordingOverviewPage.vue')
-      },
-      {
-        path: 'server/continuous-recording/jeffrey-deployment',
-        name: 'DocsContinuousRecordingJeffreyDeployment',
-        component: () => import('@/views/docs/server/continuous-recording/LiveRecordingJeffreyDeploymentPage.vue')
-      },
-      {
-        path: 'server/continuous-recording/service-deployment',
-        name: 'DocsContinuousRecordingServiceDeployment',
-        component: () => import('@/views/docs/server/continuous-recording/LiveRecordingServiceDeploymentPage.vue')
-      },
+      // Legacy: Continuous Recording was superseded by the Deployment section.
+      { path: 'server/continuous-recording/overview', redirect: '/docs/server/deployment' },
+      { path: 'server/continuous-recording/jeffrey-deployment', redirect: '/docs/server/deployment/helm-chart' },
+      { path: 'server/continuous-recording/service-deployment', redirect: '/docs/server/deployment/helm-chart' },
       // Recording Sessions
       {
         path: 'server/recording-sessions/overview',
@@ -276,25 +285,17 @@ const routes: RouteRecordRaw[] = [
       {
         path: 'server/grpc-api',
         name: 'DocsServerGrpcApi',
-        component: () => import('@/views/docs/server/ArchitecturePublicApiPage.vue')
+        component: () => import('@/views/docs/server/ServerGrpcApiPage.vue')
       },
-      // Server Deployment
+      // Server Configuration — single merged page
       {
-        path: 'server/deployment',
-        name: 'DocsServerDeployment',
-        component: () => import('@/views/docs/server/deployment/ServerDeploymentPage.vue')
+        path: 'server/configuration',
+        name: 'DocsServerConfiguration',
+        component: () => import('@/views/docs/server/configuration/ServerConfigurationPage.vue')
       },
-      // Server Configuration
-      {
-        path: 'server/configuration/application-properties',
-        name: 'DocsServerConfigAppProps',
-        component: () => import('@/views/docs/server/configuration/ServerConfigApplicationPropertiesPage.vue')
-      },
-      {
-        path: 'server/configuration/advanced-properties',
-        name: 'DocsServerConfigAdvancedProps',
-        component: () => import('@/views/docs/server/configuration/ServerConfigAdvancedPropertiesPage.vue')
-      },
+      // Legacy: split application/advanced pages were merged into a single Configuration page.
+      { path: 'server/configuration/application-properties', redirect: '/docs/server/configuration' },
+      { path: 'server/configuration/advanced-properties', redirect: '/docs/server/configuration' },
 
       // ──── Jeffrey CLI ────
       {
@@ -389,10 +390,10 @@ const routes: RouteRecordRaw[] = [
       { path: 'local/profiles/visualization', redirect: '/docs/microscope/profiles' },
       { path: 'local/profiles/heap-dump-analysis', redirect: '/docs/microscope/profiles' },
       { path: 'local/profiles/tools', redirect: '/docs/microscope/profiles' },
-      { path: 'deployments/live-recording', redirect: '/docs/server/continuous-recording/overview' },
-      { path: 'live-recording/overview', redirect: '/docs/server/continuous-recording/overview' },
-      { path: 'live-recording/jeffrey-deployment', redirect: '/docs/server/continuous-recording/jeffrey-deployment' },
-      { path: 'live-recording/service-deployment', redirect: '/docs/server/continuous-recording/service-deployment' },
+      { path: 'deployments/live-recording', redirect: '/docs/server/deployment' },
+      { path: 'live-recording/overview', redirect: '/docs/server/deployment' },
+      { path: 'live-recording/jeffrey-deployment', redirect: '/docs/server/deployment/helm-chart' },
+      { path: 'live-recording/service-deployment', redirect: '/docs/server/deployment/helm-chart' },
       { path: 'configuration/overview', redirect: '/docs/microscope/configuration/application-properties' },
       { path: 'configuration/application-properties', redirect: '/docs/microscope/configuration/application-properties' },
       { path: 'configuration/advanced-properties', redirect: '/docs/microscope/configuration/advanced-properties' },
