@@ -1,6 +1,6 @@
 <!--
   - Jeffrey
-  - Copyright (C) 2025 Petr Bouda
+  - Copyright (C) 2026 Petr Bouda
   -
   - This program is free software: you can redistribute it and/or modify
   - it under the terms of the GNU Affero General Public License as published by
@@ -26,12 +26,12 @@ import { useDocHeadings } from '@/composables/useDocHeadings';
 const { setHeadings } = useDocHeadings();
 
 const headings = [
-  { id: 'what-are-workspaces', text: 'What are Workspaces?', level: 2 },
-  { id: 'how-it-works', text: 'How It Works', level: 2 },
-  { id: 'key-benefits', text: 'Key Benefits', level: 2 },
-  { id: 'how-to-create', text: 'How to Create', level: 2 },
-  { id: 'streaming', text: 'Streaming Control', level: 2 },
-  { id: 'recommended-workflow', text: 'Recommended Workflow', level: 2 }
+  { id: 'overview', text: 'Overview', level: 2 },
+  { id: 'add-server', text: 'Step 1 — Add a Remote Server', level: 2 },
+  { id: 'create-workspace', text: 'Step 2 — Create a Workspace', level: 2 },
+  { id: 'status', text: 'Workspace Status', level: 2 },
+  { id: 'tabs', text: 'Per-Workspace Tabs', level: 2 },
+  { id: 'not-in-ui', text: 'What\'s Not in the UI', level: 2 }
 ];
 
 onMounted(() => {
@@ -41,221 +41,176 @@ onMounted(() => {
 
 <template>
   <article class="docs-article">
-      <DocsPageHeader
-        title="Workspaces"
-        icon="bi bi-folder2-open"
-      />
+    <DocsPageHeader
+      title="Workspaces"
+      icon="bi bi-folder2-open"
+    />
 
-      <div class="docs-content">
-        <p>Workspaces are the top-level organizational unit in Jeffrey. They <strong>mirror workspaces from a Jeffrey Server</strong> instance, allowing you to browse projects, download recordings, and analyze profiles locally.</p>
+    <div class="docs-content">
+      <h2 id="overview">Overview</h2>
+      <p>
+        A <strong>workspace</strong> is a folder that lives on a Jeffrey Server. It groups projects,
+        their JVM instances, and their recording sessions. Microscope connects to one or more
+        Jeffrey Servers and lets you browse the workspaces hosted there. Heavy analysis still runs
+        locally — Microscope just borrows the data.
+      </p>
+      <p>
+        Connecting Microscope to a server is a two-step process: register the server, then
+        create or pick a workspace inside it.
+      </p>
 
-        <h2 id="what-are-workspaces">What are Workspaces?</h2>
-        <p>A workspace in Jeffrey Microscope is a remote connection to a workspace managed by Jeffrey Server. It provides access to:</p>
-        <ul>
-          <li>Projects and their recording sessions collected on the server</li>
-          <li>Repository browsing for selecting recordings to download</li>
-          <li>Profiler settings configuration for remote projects</li>
-          <li>Instance and session monitoring</li>
-        </ul>
+      <h2 id="add-server">Step 1 — Add a Remote Server</h2>
+      <p>
+        Open the <strong>Workspaces</strong> page from the top navigation. The left rail lists the
+        servers Microscope knows about; click the <strong>+</strong> button to add a new one.
+      </p>
 
-        <DocsCallout type="info">
-          <strong>Local analysis, remote data:</strong> All CPU-intensive profile analysis (flamegraphs, timeseries, thread analysis) runs on your local machine. The server only collects and stores recordings — keeping it lightweight.
-        </DocsCallout>
+      <table>
+        <thead>
+          <tr>
+            <th>Field</th>
+            <th>What it means</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Name</strong></td>
+            <td>Display label shown in the rail. Free text — pick something you'll recognize.</td>
+          </tr>
+          <tr>
+            <td><strong>Hostname</strong></td>
+            <td>The host that runs Jeffrey Server (e.g. <code>jeffrey.internal</code> or an IP).</td>
+          </tr>
+          <tr>
+            <td><strong>Port</strong></td>
+            <td>The gRPC port the server listens on.</td>
+          </tr>
+          <tr>
+            <td><strong>Plaintext</strong></td>
+            <td>Toggle <em>off</em> for a TLS connection (recommended). Toggle <em>on</em> only for local development against a non-TLS server.</td>
+          </tr>
+        </tbody>
+      </table>
 
-        <h2 id="how-it-works">How It Works</h2>
-        <ol>
-          <li>Connect to a Jeffrey Server instance via gRPC</li>
-          <li>Select a workspace to mirror locally</li>
-          <li>Browse projects and recording sessions in the Repository</li>
-          <li>When you find an interesting recording session:
-            <ul>
-              <li>Trigger "Merge and Copy" to download</li>
-              <li>Jeffrey downloads recording files + artifacts (logs, heap dumps, perf-counters, ...)</li>
-              <li>Recording appears in your local Recordings page</li>
-            </ul>
-          </li>
-          <li>Create and analyze profiles <strong>locally</strong> using your machine's resources</li>
-        </ol>
+      <p>
+        Microscope contacts the server once to confirm it's reachable. If it isn't, the form
+        surfaces a clear error (most often "cannot connect — check hostname/port/TLS").
+        On success the server appears in the rail with a status indicator.
+      </p>
 
-        <h2 id="key-benefits">Key Benefits</h2>
-        <ul>
-          <li><strong>Resource offloading</strong> — Heavy analysis runs on your local machine, not the server</li>
-          <li><strong>Selective download</strong> — Only download recordings you want to investigate</li>
-          <li><strong>Full artifacts</strong> — Downloads recordings, logs, heap dumps, perf-counters, and others</li>
-          <li><strong>Remote configuration</strong> — Configure Profiler Settings on project level</li>
-          <li><strong>Cost savings</strong> — Expensive profile analysis runs locally, not in cloud infrastructure</li>
-        </ul>
+      <DocsCallout type="tip">
+        <strong>Removing a server</strong> only removes Microscope's pointer to it — the server
+        and its workspaces stay intact. Re-adding the same hostname/port restores access.
+      </DocsCallout>
 
-        <h2 id="how-to-create">How to Create</h2>
-        <p>Click <strong>"Add Remote"</strong>, enter the Jeffrey Server address (gRPC endpoint), then select which workspaces to mirror.</p>
+      <h2 id="create-workspace">Step 2 — Create a Workspace</h2>
+      <p>
+        Pick a server in the rail, then click <strong>Create Workspace</strong> in the workspace
+        column. Microscope opens a side drawer with two fields:
+      </p>
 
-        <DocsCallout type="tip">
-          <strong>Recordings alternative:</strong> If you just want to analyze a local JFR file without connecting to a server, use <router-link to="/docs/microscope/recordings">Recordings</router-link> instead.
-        </DocsCallout>
+      <table>
+        <thead>
+          <tr>
+            <th>Field</th>
+            <th>What it means</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Workspace Name</strong></td>
+            <td>Display label for the workspace.</td>
+          </tr>
+          <tr>
+            <td><strong>Reference ID</strong></td>
+            <td>
+              A stable identifier the workspace exposes to <code>jeffrey-cli</code>. The CLI uses
+              this ID to route uploads to the right workspace, so it has to match the value in
+              your CLI's configuration.
+            </td>
+          </tr>
+        </tbody>
+      </table>
 
-        <h2 id="streaming">Streaming Control</h2>
-        <p>Each workspace has a <strong>JFR streaming</strong> setting that controls whether Jeffrey Server continuously streams JFR data from connected application instances. You can configure this per workspace using the settings popover in the workspace context bar.</p>
+      <DocsCallout type="warning">
+        <strong>Reference ID is permanent.</strong> It cannot be changed after creation, and
+        any CLI clients that already point at the old value will stop uploading. Pick it
+        deliberately — typically a short slug like <code>prod-eu</code> or <code>staging</code>.
+      </DocsCallout>
 
-        <p>Click the <strong>gear icon</strong> in the workspace header to open the settings popover, then use the segmented toggle to choose a streaming mode:</p>
+      <h2 id="status">Workspace Status</h2>
+      <p>
+        Each workspace card shows a status badge. Microscope re-checks status on every page
+        load and tab switch — there is no manual refresh button.
+      </p>
 
-        <table>
-          <thead>
-            <tr>
-              <th>Mode</th>
-              <th>Description</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td><strong>On</strong></td>
-              <td>Streaming is explicitly enabled for this workspace. JFR data is continuously streamed from connected instances.</td>
-            </tr>
-            <tr>
-              <td><strong>Off</strong></td>
-              <td>Streaming is explicitly disabled. No JFR data is streamed, regardless of the global setting.</td>
-            </tr>
-            <tr>
-              <td><strong>Inherited</strong></td>
-              <td>Uses the global streaming setting configured on the server. This is the default for new workspaces.</td>
-            </tr>
-          </tbody>
-        </table>
+      <table>
+        <thead>
+          <tr>
+            <th>Status</th>
+            <th>Meaning</th>
+            <th>What to do</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Available</strong></td>
+            <td>Workspace is reachable and healthy.</td>
+            <td>Open it and start working.</td>
+          </tr>
+          <tr>
+            <td><strong>Offline</strong></td>
+            <td>Microscope reached the server but the workspace itself is not responding.</td>
+            <td>Check the server logs. The badge clears automatically once the workspace recovers.</td>
+          </tr>
+          <tr>
+            <td><strong>Unavailable</strong></td>
+            <td>The workspace existed before but the server no longer reports it (likely deleted on the server).</td>
+            <td>Either restore it on the server or remove the stale entry from Microscope.</td>
+          </tr>
+          <tr>
+            <td><strong>Unknown</strong></td>
+            <td>Microscope can't reach the parent server at all (network, TLS, or the server is down).</td>
+            <td>Verify the server entry in the rail and your network/VPN.</td>
+          </tr>
+        </tbody>
+      </table>
 
-        <DocsCallout type="tip">
-          <strong>Cost control:</strong> Disabling streaming for workspaces you're not actively investigating reduces resource consumption on both the server and connected application instances.
-        </DocsCallout>
+      <h2 id="tabs">Per-Workspace Tabs</h2>
+      <p>
+        Once you pick a workspace, the right pane exposes three tabs:
+      </p>
+      <ul>
+        <li>
+          <strong><router-link to="/docs/microscope/projects">Projects</router-link></strong> —
+          the list of projects in the workspace, with drill-down into instances, sessions,
+          recordings, and the repository.
+        </li>
+        <li>
+          <strong><router-link to="/docs/microscope/event-log">Event Log</router-link></strong> —
+          a chronological audit trail of project, instance, and session events for this
+          workspace.
+        </li>
+        <li>
+          <strong><router-link to="/docs/microscope/profiler-settings">Profiler Settings</router-link></strong> —
+          the Async-Profiler configuration scoped to this workspace (overrides the global
+          defaults; can be overridden per project).
+        </li>
+      </ul>
 
-        <h2 id="recommended-workflow">Recommended Workflow</h2>
-        <p><strong>Best for:</strong> Teams, CI/CD pipelines, production profiling</p>
+      <h2 id="not-in-ui">What's Not in the UI</h2>
+      <p>A handful of things you might look for don't exist today — knowing this saves you a hunt:</p>
+      <ul>
+        <li><strong>Renaming a workspace</strong> — the name is set at creation and is not editable.</li>
+        <li><strong>Editing a server's hostname or port</strong> — remove and re-add the server entry instead.</li>
+        <li><strong>Per-workspace credentials</strong> — Microscope authenticates at the server level (TLS); there's no separate workspace-level token.</li>
+      </ul>
+    </div>
 
-        <div class="workflow-diagram">
-          <div class="workflow-box server">
-            <h4><i class="bi bi-server me-2"></i>Server</h4>
-            <p>Jeffrey Server</p>
-            <ul>
-              <li>Collects recordings</li>
-              <li>Stores sessions</li>
-              <li>Minimal resources</li>
-            </ul>
-          </div>
-          <div class="workflow-arrow">
-            <i class="bi bi-arrow-left-right"></i>
-            <span>gRPC</span>
-          </div>
-          <div class="workflow-box microscope">
-            <h4><i class="bi bi-laptop me-2"></i>Local Machine</h4>
-            <p>Jeffrey Microscope + Remote Workspace</p>
-            <ul>
-              <li>Mirror workspace</li>
-              <li>Browse Repository</li>
-              <li>Download interesting recordings</li>
-              <li>Analyze locally</li>
-            </ul>
-          </div>
-        </div>
-
-        <DocsCallout type="tip">
-          <strong>Why this workflow?</strong> The server only stores recordings (low resource usage), while heavy analysis like flamegraph generation runs on your local machine. You download only the recordings you need to investigate, including all artifacts.
-        </DocsCallout>
-      </div>
-
-      <DocsNavFooter />
+    <DocsNavFooter />
   </article>
 </template>
 
 <style scoped>
 @import '@/views/docs/docs-page.css';
-
-/* Workflow Diagram */
-.workflow-diagram {
-  display: flex;
-  align-items: stretch;
-  gap: 1rem;
-  margin: 1.5rem 0;
-  padding: 1.5rem;
-  background: #f8fafc;
-  border-radius: 8px;
-  border: 1px solid #e2e8f0;
-}
-
-.workflow-box {
-  flex: 1;
-  padding: 1rem;
-  border-radius: 8px;
-  background: #fff;
-  border: 1px solid #e2e8f0;
-}
-
-.workflow-box h4 {
-  margin: 0 0 0.5rem 0;
-  font-size: 0.9rem;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-}
-
-.workflow-box p {
-  margin: 0 0 0.75rem 0;
-  font-size: 0.8rem;
-  color: #6c757d;
-}
-
-.workflow-box ul {
-  margin: 0;
-  padding-left: 1.25rem;
-  font-size: 0.8rem;
-}
-
-.workflow-box ul li {
-  margin-bottom: 0.25rem;
-  color: #495057;
-}
-
-.workflow-box.server {
-  border-color: rgba(94, 100, 255, 0.3);
-}
-
-.workflow-box.server h4 {
-  color: #5e64ff;
-}
-
-.workflow-box.local {
-  border-color: rgba(16, 185, 129, 0.3);
-}
-
-.workflow-box.local h4 {
-  color: #10b981;
-}
-
-.workflow-arrow {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 0 0.5rem;
-  color: #6c757d;
-}
-
-.workflow-arrow i {
-  font-size: 1.5rem;
-}
-
-.workflow-arrow span {
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-top: 0.25rem;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-  .workflow-diagram {
-    flex-direction: column;
-  }
-
-  .workflow-arrow {
-    transform: rotate(90deg);
-    padding: 0.5rem 0;
-  }
-}
 </style>

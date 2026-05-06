@@ -46,6 +46,20 @@ onMounted(() => {
       <div class="docs-content">
         <p>Jeffrey can be installed using Docker or as a standalone Java application. Choose the method that best suits your environment.</p>
 
+        <h2 id="java-installation">Java Installation</h2>
+        <p>If you prefer to run Jeffrey as a standalone Java application:</p>
+
+        <ol>
+          <li>Download the latest <code>microscope.jar</code> from <a href="https://github.com/petrbouda/jeffrey/releases" target="_blank">GitHub Releases</a></li>
+          <li>Ensure you have Java 25 or higher installed</li>
+          <li>Run the application:</li>
+        </ol>
+
+        <DocsCodeBlock
+            language="bash"
+            code="java -jar microscope.jar"
+        />
+
         <h2 id="docker-installation">Docker Installation</h2>
         <p>The easiest way to get started with Jeffrey is using Docker.</p>
 
@@ -59,20 +73,6 @@ onMounted(() => {
         <DocsCodeBlock
           language="bash"
           code="docker run -it --network host petrbouda/microscope-examples"
-        />
-
-        <h2 id="java-installation">Java Installation</h2>
-        <p>If you prefer to run Jeffrey as a standalone Java application:</p>
-
-        <ol>
-          <li>Download the latest <code>microscope.jar</code> from <a href="https://github.com/petrbouda/jeffrey/releases" target="_blank">GitHub Releases</a></li>
-          <li>Ensure you have Java 25 or higher installed</li>
-          <li>Run the application:</li>
-        </ol>
-
-        <DocsCodeBlock
-          language="bash"
-          code="java -jar microscope.jar"
         />
 
         <h2 id="verifying-installation">Verifying Installation</h2>

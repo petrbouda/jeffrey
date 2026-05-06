@@ -1,6 +1,6 @@
 <!--
   - Jeffrey
-  - Copyright (C) 2025 Petr Bouda
+  - Copyright (C) 2026 Petr Bouda
   -
   - This program is free software: you can redistribute it and/or modify
   - it under the terms of the GNU Affero General Public License as published by
@@ -28,8 +28,10 @@ const { setHeadings } = useDocHeadings();
 
 const headings = [
   { id: 'overview', text: 'Overview', level: 2 },
-  { id: 'ai-api-keys', text: 'AI Provider API Keys', level: 2 },
-  { id: 'usage', text: 'Usage', level: 2 },
+  { id: 'keys', text: 'Secret Keys', level: 2 },
+  { id: 'in-app', text: 'In-App Settings (Recommended)', level: 2 },
+  { id: 'env-vars', text: 'Environment Variables', level: 2 },
+  { id: 'cli-arg', text: 'Command-Line Argument', level: 2 },
   { id: 'security', text: 'Security Best Practices', level: 2 }
 ];
 
@@ -37,19 +39,13 @@ onMounted(() => {
   setHeadings(headings);
 });
 
-const secretsExample = `# AI API Key (Anthropic or OpenAI, depending on jeffrey.microscope.ai.provider)
-jeffrey.microscope.ai.api-key=sk-ant-api03-...`;
-
-const envVarExample = `# Set API key via environment variable (Jeffrey Microscope only)
+const envVarExample = `# Equivalent property: jeffrey.microscope.ai.api-key
 export JEFFREY_MICROSCOPE_AI_API_KEY=sk-ant-api03-...
 
-# Start Jeffrey
 java -jar microscope.jar`;
 
-const gitignoreExample = `# Jeffrey secrets
-secrets.properties
-*.secrets
-.env`;
+const cliArgExample = `java -jar microscope.jar \\
+  --jeffrey.microscope.ai.api-key=sk-ant-api03-...`;
 </script>
 
 <template>
@@ -62,25 +58,17 @@ secrets.properties
     <div class="docs-content">
       <h2 id="overview">Overview</h2>
       <p>
-        The <code>secrets.properties</code> file stores sensitive configuration such as API keys.
-        This file should never be committed to version control.
+        Jeffrey Microscope only has one kind of secret today — the AI provider's API key.
+        It can be supplied through any standard Spring Boot configuration source, or
+        managed inside the Microscope UI where it is encrypted at rest in the embedded DuckDB.
       </p>
-
-      <DocsCallout type="warning">
-        <strong>Security Warning:</strong> Never commit secrets to version control. Always add
-        <code>secrets.properties</code> to your <code>.gitignore</code> file.
-      </DocsCallout>
 
       <DocsCallout type="info">
-        <strong>Jeffrey Microscope Only:</strong> Secrets are only needed for Jeffrey Microscope, which provides AI-powered analysis features. Jeffrey Server does not require any API keys.
+        <strong>Microscope-only:</strong> Jeffrey Server has no concept of API keys. Secrets only
+        apply when the AI features are enabled in Microscope.
       </DocsCallout>
 
-      <h2 id="ai-api-keys">AI Provider API Keys</h2>
-      <p>
-        API keys for the AI assistant feature. Configure the key matching your chosen provider
-        in <router-link to="/docs/microscope/configuration/application-properties">application.properties</router-link>.
-      </p>
-
+      <h2 id="keys">Secret Keys</h2>
       <table>
         <thead>
           <tr>
@@ -91,48 +79,51 @@ secrets.properties
         <tbody>
           <tr>
             <td><code>jeffrey.microscope.ai.api-key</code></td>
-            <td>API key for your chosen provider. Anthropic: <a href="https://console.anthropic.com/" target="_blank">console.anthropic.com</a>, OpenAI: <a href="https://platform.openai.com/" target="_blank">platform.openai.com</a></td>
+            <td>
+              API key for your chosen AI provider. Anthropic:
+              <a href="https://console.anthropic.com/" target="_blank">console.anthropic.com</a>.
+              OpenAI:
+              <a href="https://platform.openai.com/" target="_blank">platform.openai.com</a>.
+            </td>
           </tr>
         </tbody>
       </table>
 
-      <h2 id="usage">Usage</h2>
-
-      <h3>Using a secrets.properties File</h3>
-      <p>Create a file named <code>secrets.properties</code> in your configuration directory:</p>
-      <DocsCodeBlock language="properties" :code="secretsExample" />
-
+      <h2 id="in-app">In-App Settings (Recommended)</h2>
       <p>
-        Jeffrey automatically imports this file if present. The import is configured in
-        <code>application.properties</code> with <code>optional:</code> prefix, so the
-        application starts even if the file doesn't exist.
+        Open Microscope and use the in-app Settings to enter the API key. The value is encrypted
+        before being stored in the embedded DuckDB database, then transparently decrypted and
+        injected into the Spring environment on the next startup. This avoids leaking the key into
+        process listings, environment dumps, or shell history.
       </p>
 
-      <h3>Using Environment Variables</h3>
+      <h2 id="env-vars">Environment Variables</h2>
       <p>
-        For containerized deployments, you can pass API keys as environment variables instead
-        of using a properties file:
+        Spring Boot relaxed binding maps every property to an uppercase, underscore-separated
+        environment variable. This is the simplest option for containers and CI:
       </p>
       <DocsCodeBlock language="bash" :code="envVarExample" />
 
+      <h2 id="cli-arg">Command-Line Argument</h2>
+      <p>
+        Useful for one-off testing — note that the value will be visible to anyone who can list
+        processes on the host:
+      </p>
+      <DocsCodeBlock language="bash" :code="cliArgExample" />
+
       <h2 id="security">Security Best Practices</h2>
-
-      <h3>Git Ignore</h3>
-      <p>Add secrets files to your <code>.gitignore</code>:</p>
-      <DocsCodeBlock language="text" :code="gitignoreExample" />
-
-      <h3>Recommendations</h3>
       <ul>
-        <li><strong>Use environment variables</strong> in production environments</li>
-        <li><strong>Rotate API keys</strong> regularly and when team members leave</li>
-        <li><strong>Use separate keys</strong> for development and production</li>
-        <li><strong>Consider secret management tools</strong> like HashiCorp Vault or AWS Secrets Manager for enterprise deployments</li>
-        <li><strong>Audit API key usage</strong> through your provider's dashboard</li>
+        <li><strong>Prefer the in-app Settings or env vars</strong> — never check API keys into <code>application.properties</code> in version control.</li>
+        <li><strong>Use a Kubernetes Secret</strong> mounted as an env var when running in a cluster; never bake the key into a container image.</li>
+        <li><strong>Rotate keys regularly</strong> and immediately when team members leave.</li>
+        <li><strong>Use separate keys</strong> for development and production so quotas and audit logs stay distinct.</li>
+        <li><strong>Audit usage</strong> through your provider's dashboard.</li>
       </ul>
 
       <DocsCallout type="tip">
-        <strong>Container Deployments:</strong> In Kubernetes, use Secrets objects to inject
-        API keys as environment variables. Never bake secrets into container images.
+        <strong>Container deployments:</strong> mount the key as an env var via a Kubernetes
+        Secret or Docker secret. Then either point Microscope's home directory at a persistent
+        volume (so the in-app Settings save survives restarts) or rely on the env var on each start.
       </DocsCallout>
     </div>
 

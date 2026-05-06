@@ -84,7 +84,7 @@
               <div class="step-number">2</div>
               <div class="step-content">
                 <h3>Create Your First Profile</h3>
-                <p>Select the <code>Examples</code> project and navigate to the <code>Recordings</code> section. Choose any recording from the group <code>Persons</code> and start the initialization of a new profile.
+                <p>Open the <code>Recordings</code> page, where the example recordings are pre-loaded. Pick any recording and start the initialization of a new profile.
                   Switch to the <code>Profiles</code> section and wait for the initialization to be finished.</p>
 
                 <div class="info-note">

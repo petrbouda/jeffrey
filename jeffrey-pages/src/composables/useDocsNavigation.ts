@@ -67,12 +67,6 @@ export const microscopeNavigation: DocSection[] = [
     children: [{ title: 'Overview', to: '/docs/microscope' }]
   },
   {
-    title: 'Install Microscope',
-    path: '_microscope-install',
-    icon: 'bi-download',
-    children: [{ title: 'Install Microscope', to: '/docs/microscope/installation' }]
-  },
-  {
     title: 'Quick Start',
     path: '_microscope-quickstart',
     icon: 'bi-rocket-takeoff',
@@ -83,53 +77,47 @@ export const microscopeNavigation: DocSection[] = [
     path: '_microscope-architecture',
     icon: 'bi-diagram-3',
     children: [
-      { title: 'Diagram', to: '/docs/microscope#architecture' },
+      { title: 'Overview', to: '/docs/microscope/architecture' },
       { title: 'Storage', to: '/docs/microscope/storage' }
     ]
   },
   {
-    title: 'Jeffrey Microscope',
-    path: 'microscope',
-    icon: 'bi-pc-display',
+    title: 'Recordings & Profiles',
+    path: '_microscope-core',
+    icon: 'bi-collection-play',
     children: [
-      { title: 'Recordings', path: 'recordings' },
-      { title: 'Profiles', path: 'profiles' },
-      { title: 'Workspaces', path: 'workspaces' },
+      { title: 'Recordings', to: '/docs/microscope/recordings' },
+      { title: 'Profiles', to: '/docs/microscope/profiles' }
+    ]
+  },
+  {
+    title: 'Server Integration',
+    path: '_microscope-server-integration',
+    icon: 'bi-cloud',
+    children: [
+      { title: 'Workspaces', to: '/docs/microscope/workspaces' },
       {
         title: 'Projects',
         path: 'projects',
         children: [
-          { title: 'Overview', path: 'projects' },
-          { title: 'Profiles', path: 'projects/profiles' },
-          { title: 'Recordings', path: 'projects/recordings' },
-          { title: 'Repository', path: 'projects/repository' },
-          { title: 'Instances', path: 'projects/instances' },
-          { title: 'Profiler Settings', path: 'projects/profiler-settings' },
-          { title: 'Scheduler', path: 'projects/scheduler' },
-          { title: 'Event Streaming', path: 'projects/event-streaming' }
+          { title: 'Overview', to: '/docs/microscope/projects' },
+          { title: 'Instances', to: '/docs/microscope/projects/instances' },
+          { title: 'Event Streaming', to: '/docs/microscope/projects/event-streaming' },
+          { title: 'Profiler Settings', to: '/docs/microscope/projects/profiler-settings' }
         ]
       },
-      { title: 'Event Log', path: 'event-log' },
-      { title: 'Profiler Settings', path: 'profiler-settings' },
-      { title: 'Settings', path: 'settings' },
-      {
-        title: 'Deployment',
-        path: 'deployment',
-        children: [
-          { title: 'JAR Execution', path: 'deployment/jar-execution' },
-          { title: 'Docker Container', path: 'deployment/docker-container' },
-          { title: 'Container with Examples', path: 'deployment/container-examples' }
-        ]
-      },
-      {
-        title: 'Configuration',
-        path: 'configuration',
-        children: [
-          { title: 'Application Properties', path: 'configuration/application-properties' },
-          { title: 'Advanced Properties', path: 'configuration/advanced-properties' },
-          { title: 'Secrets', path: 'configuration/secrets' }
-        ]
-      }
+      { title: 'Event Log', to: '/docs/microscope/event-log' },
+      { title: 'Profiler Settings', to: '/docs/microscope/profiler-settings' }
+    ]
+  },
+  {
+    title: 'Configuration',
+    path: 'microscope/configuration',
+    icon: 'bi-gear',
+    children: [
+      { title: 'Application Properties', to: '/docs/microscope/configuration/application-properties' },
+      { title: 'Advanced Properties', to: '/docs/microscope/configuration/advanced-properties' },
+      { title: 'Secrets', to: '/docs/microscope/configuration/secrets' }
     ]
   },
   {
@@ -281,35 +269,54 @@ export function findCurrentPage(category: string, page: string): CurrentPageInfo
   };
 }
 
-export function getAdjacentPages(category: string, page: string): AdjacentPages {
+// Resolve adjacent (prev/next) pages by route URL.
+// Sections may use synthetic paths (`_…`) that don't appear in URLs, and children may
+// declare absolute `to:` overrides without a `path:`. Match by the resolved URL via
+// `pageHref` so the lookup works regardless of how the entry was declared.
+//
+// The flat list is scoped to the current *product* — Microscope and Server are
+// separate sidebars, so the last Microscope page must NOT chain into the first
+// Server page (and vice versa). Routes that don't belong to either product
+// (e.g. /docs/getting-started/…) default to Microscope, matching DocsSidebar.
+export function getAdjacentPages(routePath: string): AdjacentPages {
+  const product = getProductForPath(routePath) ?? 'microscope';
+  const sections = navigationForProduct(product);
   const allPages: DocPageWithCategory[] = [];
 
-  docsNavigation.forEach(section => {
+  for (const section of sections) {
     const isSinglePageSection = section.children.length === 1 && !section.children[0].children;
 
-    section.children.forEach(p => {
+    for (const p of section.children) {
       if (p.children) {
-        p.children.forEach(child => {
+        for (const child of p.children) {
           allPages.push({
             ...child,
+            to: pageHref(section.path, child),
             category: section.path,
             section: `${section.title} / ${p.title}`
           });
-        });
+        }
       } else {
         allPages.push({
           ...p,
+          to: pageHref(section.path, p),
           title: isSinglePageSection ? section.title : p.title,
           category: section.path,
           section: isSinglePageSection ? '' : section.title
         });
       }
-    });
-  });
+    }
+  }
 
-  const currentIndex = allPages.findIndex(
-    p => p.category === category && p.path === page
-  );
+  // Strip query / hash from both sides — entries like `/docs/server#architecture`
+  // should still align with `/docs/server` so the prev/next pair stays sensible.
+  const normalize = (url: string | undefined) => (url ?? '').split(/[#?]/)[0];
+  const targetPath = normalize(routePath);
+  const currentIndex = allPages.findIndex(p => normalize(p.to) === targetPath);
+
+  if (currentIndex < 0) {
+    return { prev: null, next: null };
+  }
 
   return {
     prev: currentIndex > 0 ? allPages[currentIndex - 1] : null,
@@ -318,68 +325,59 @@ export function getAdjacentPages(category: string, page: string): AdjacentPages 
 }
 
 export function getBreadcrumbs(routePath: string): BreadcrumbItem[] {
-  const pathWithoutDocs = routePath.replace(/^\/docs\/?/, '');
-  if (!pathWithoutDocs) return [];
+  // Sections may use synthetic paths (`_…`) that don't appear in URLs, so we can't
+  // route by section.path anymore. Instead, find the section whose page (or grandchild
+  // page) resolves — via `pageHref` — to the current route.
+  for (const section of docsNavigation) {
+    let foundPage: DocPage | null = null;
+    let parentPage: DocPage | null = null;
 
-  const breadcrumbs: BreadcrumbItem[] = [];
-
-  const firstSegment = pathWithoutDocs.split('/')[0];
-  const section = docsNavigation.find(s => s.path === firstSegment);
-  if (!section) return [];
-
-  const remainingPath = pathWithoutDocs.substring(firstSegment.length + 1) || '';
-
-  let foundPage: DocPage | null = null;
-  let parentPage: DocPage | null = null;
-
-  for (const page of section.children) {
-    if (page.children) {
-      for (const child of page.children) {
-        if (child.path === remainingPath || child.path === pathWithoutDocs.substring(firstSegment.length + 1)) {
-          parentPage = page;
-          foundPage = child;
-          break;
+    for (const page of section.children) {
+      if (page.children) {
+        for (const child of page.children) {
+          if (pageHref(section.path, child) === routePath) {
+            parentPage = page;
+            foundPage = child;
+            break;
+          }
         }
+        if (foundPage) break;
       }
-      if (foundPage) break;
+      if (pageHref(section.path, page) === routePath) {
+        foundPage = page;
+        break;
+      }
     }
 
-    if (page.path === remainingPath) {
-      foundPage = page;
-      break;
+    if (!foundPage) continue;
+
+    const breadcrumbs: BreadcrumbItem[] = [];
+    const isSinglePageSection = section.children.length === 1;
+
+    if (isSinglePageSection) {
+      breadcrumbs.push({ label: section.title });
+    } else {
+      const firstChild = section.children[0];
+      breadcrumbs.push({
+        label: section.title,
+        to: pageHref(section.path, firstChild)
+      });
+
+      if (parentPage) {
+        const parentTarget = parentPage.children?.[0] ?? parentPage;
+        breadcrumbs.push({
+          label: parentPage.title,
+          to: pageHref(section.path, parentTarget)
+        });
+      }
+
+      breadcrumbs.push({ label: foundPage.title });
     }
+
+    return breadcrumbs;
   }
 
-  const isSinglePageSection = section.children.length === 1;
-
-  const firstChildPath = section.children[0]?.path || '';
-
-  if (isSinglePageSection) {
-    breadcrumbs.push({
-      label: section.title
-    });
-  } else {
-    breadcrumbs.push({
-      label: section.title,
-      to: `/docs/${section.path}/${firstChildPath}`
-    });
-
-    if (parentPage) {
-      const parentFirstChild = parentPage.children?.[0]?.path || parentPage.path;
-      breadcrumbs.push({
-        label: parentPage.title,
-        to: `/docs/${section.path}/${parentFirstChild}`
-      });
-    }
-
-    if (foundPage) {
-      breadcrumbs.push({
-        label: foundPage.title
-      });
-    }
-  }
-
-  return breadcrumbs;
+  return [];
 }
 
 export function useDocsNavigation() {
@@ -400,7 +398,7 @@ export function useDocsNavigation() {
   });
 
   const adjacentPages = computed(() => {
-    return getAdjacentPages(currentCategory.value, currentPage.value);
+    return getAdjacentPages(route.path);
   });
 
   return {

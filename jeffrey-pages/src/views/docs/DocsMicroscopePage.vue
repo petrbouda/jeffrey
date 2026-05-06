@@ -18,16 +18,17 @@
 
 <script setup lang="ts">
 import { onMounted } from 'vue';
-import DocsLinkCard from '@/components/docs/DocsLinkCard.vue';
+import DocsNavFooter from '@/components/docs/DocsNavFooter.vue';
 import DocsPageHeader from '@/components/docs/DocsPageHeader.vue';
 import { useDocHeadings } from '@/composables/useDocHeadings';
 
 const { setHeadings } = useDocHeadings();
 
 const headings = [
-  { id: 'introduction', text: 'Introduction', level: 2 },
   { id: 'architecture', text: 'Architecture', level: 2 },
-  { id: 'components', text: 'Components', level: 2 }
+  { id: 'server-connection', text: 'Connection to Jeffrey Server', level: 3 },
+  { id: 'recording-pipeline', text: 'Recording → Profile Pipeline', level: 3 },
+  { id: 'ai-integration', text: 'AI Integration', level: 3 }
 ];
 
 onMounted(() => {
@@ -43,10 +44,6 @@ onMounted(() => {
     />
 
     <div class="docs-content">
-      <h2 id="introduction">Introduction</h2>
-      <p><strong>Jeffrey Microscope</strong> is the standalone JFR analyst. Open a recording locally and explore it with flame graphs, timeseries, sub-second views, the Guardian's automated checks, heap-dump browsers, and the AI assistant — everything renders on your machine, no backend required.</p>
-      <p>Microscope can also connect to a <strong>Jeffrey Server</strong> over gRPC to access remote workspaces and analyze recordings collected from a fleet, but it works fully offline against any local JFR file or heap dump.</p>
-
       <h2 id="architecture">Architecture</h2>
       <p>Microscope analyzes recordings in two ways: it can load a JFR file directly, or connect to a Jeffrey Server over gRPC to read recordings from remote workspaces. From Microscope's perspective, the server is an external dependency — its internals are documented separately.</p>
 
@@ -114,22 +111,50 @@ onMounted(() => {
         </div>
       </div>
 
-      <h2 id="components">Components</h2>
-      <p>Libraries and AI features that integrate with Microscope.</p>
+      <h3 id="server-connection">Connection to Jeffrey Server</h3>
+      <p>When a workspace is bound to a remote, Microscope opens one cached gRPC client per service, all bundled into a <code>RemoteClients</code> record. Recording downloads stream as 64&nbsp;KB chunks, and live JFR events flow over a separate event-streaming channel. With no remote bound, Microscope is fully offline and operates only on local files and heap dumps.</p>
 
-      <DocsLinkCard
-        title="Jeffrey Events"
-        description="JFR event library for your applications. Emit custom events for HTTP, JDBC, and gRPC monitoring dashboards in Microscope."
-        to="/docs/events/overview"
-        icon="bi bi-activity"
-      />
-      <DocsLinkCard
-        title="AI Analysis"
-        description="OQL assistant, JFR analysis, heap-dump analysis — Spring AI integration with Claude and OpenAI providers."
-        to="/docs/ai/overview"
-        icon="bi bi-robot"
-      />
+      <div class="service-chips">
+        <div class="service-chip"><i class="bi bi-compass"></i> Discovery</div>
+        <div class="service-chip"><i class="bi bi-collection"></i> Workspaces</div>
+        <div class="service-chip"><i class="bi bi-folder"></i> Projects</div>
+        <div class="service-chip"><i class="bi bi-hdd-network"></i> Instances</div>
+        <div class="service-chip"><i class="bi bi-cloud-download"></i> Recording Download</div>
+        <div class="service-chip"><i class="bi bi-broadcast"></i> Event Streaming</div>
+        <div class="service-chip"><i class="bi bi-archive"></i> Repository</div>
+        <div class="service-chip"><i class="bi bi-sliders"></i> Profiler Settings</div>
+        <div class="service-chip"><i class="bi bi-list-ul"></i> Workspace Events</div>
+      </div>
+
+      <h3 id="recording-pipeline">Recording → Profile Pipeline</h3>
+      <p>A recording is just a JFR file on disk. Initializing a profile runs the parser, which writes events into a fresh <strong>per-profile DuckDB</strong>. Analysis features (Flamegraph, Timeseries, Sub-Second, Guardian, Threads, Heap Dump) read from that database on demand. Each profile owns its DB, so dropping a profile is a single file delete and parses run in parallel without contention. See <router-link to="/docs/microscope/storage">Storage</router-link> for tier-by-tier details.</p>
+
+      <div class="arch-flow">
+        <div class="flow-node"><i class="bi bi-file-earmark-binary"></i><span>Recording (JFR)</span></div>
+        <div class="flow-arrow"><i class="bi bi-arrow-right"></i></div>
+        <div class="flow-node"><i class="bi bi-cpu"></i><span>Parser</span></div>
+        <div class="flow-arrow"><i class="bi bi-arrow-right"></i></div>
+        <div class="flow-node"><i class="bi bi-database"></i><span>Per-profile DuckDB</span></div>
+        <div class="flow-arrow"><i class="bi bi-arrow-right"></i></div>
+        <div class="flow-node"><i class="bi bi-graph-up"></i><span>Analysis</span></div>
+      </div>
+
+      <h3 id="ai-integration">AI Integration</h3>
+      <p>The assistant is wired through Spring AI with pluggable Claude and OpenAI providers, selected by <code>jeffrey.ai.provider</code> and <code>jeffrey.ai.model</code>. Two MCP servers expose the data: <code>duckdb-ai-mcp</code> answers JFR questions by running OQL against the active profile's DuckDB, and <code>heap-dump-ai-mcp</code> handles heap-dump queries. Configuration and capability detail live on the <router-link to="/docs/ai/overview">AI Overview</router-link> page.</p>
+
+      <div class="arch-flow">
+        <div class="flow-node"><i class="bi bi-chat-dots"></i><span>Assistant</span></div>
+        <div class="flow-arrow"><i class="bi bi-arrow-right"></i></div>
+        <div class="flow-node"><i class="bi bi-robot"></i><span>Spring AI<br><small>Claude / OpenAI</small></span></div>
+        <div class="flow-arrow"><i class="bi bi-arrow-right"></i></div>
+        <div class="flow-node"><i class="bi bi-plug"></i><span>MCP Server</span></div>
+        <div class="flow-arrow"><i class="bi bi-arrow-right"></i></div>
+        <div class="flow-node"><i class="bi bi-database"></i><span>Profile DB / Heap Dump</span></div>
+      </div>
+
     </div>
+
+    <DocsNavFooter />
   </article>
 </template>
 
@@ -331,6 +356,83 @@ onMounted(() => {
   background: #ddd6fe;
 }
 
+/* ===== gRPC SERVICE CHIPS ===== */
+.service-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 1rem 0 1.5rem;
+}
+
+.service-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.75rem;
+  background: #ede9fe;
+  color: #5b21b6;
+  border: 1px solid #c4b5fd;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.service-chip i {
+  font-size: 0.85rem;
+  color: #7c3aed;
+}
+
+/* ===== ARCH FLOW STRIP (pipeline / AI wiring) ===== */
+.arch-flow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 0.5rem;
+  margin: 1rem 0 1.75rem;
+  padding: 1rem;
+  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+}
+
+.flow-node {
+  flex: 1 1 140px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.75rem 0.5rem;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #334155;
+}
+
+.flow-node i {
+  font-size: 1.25rem;
+  color: #4338ca;
+}
+
+.flow-node small {
+  display: block;
+  font-size: 0.65rem;
+  font-weight: 400;
+  color: #64748b;
+  margin-top: 0.15rem;
+}
+
+.flow-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  font-size: 1.1rem;
+}
+
 @media (max-width: 768px) {
   .arch-apps {
     flex-direction: column;
@@ -346,6 +448,14 @@ onMounted(() => {
   .grpc-line {
     width: 24px;
     height: 2px;
+  }
+
+  .arch-flow {
+    flex-direction: column;
+  }
+
+  .flow-arrow {
+    transform: rotate(90deg);
   }
 }
 </style>

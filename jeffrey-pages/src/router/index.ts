@@ -81,17 +81,19 @@ const routes: RouteRecordRaw[] = [
       {
         path: 'microscope',
         name: 'DocsMicroscope',
-        component: () => import('@/views/docs/DocsMicroscopePage.vue')
+        component: () => import('@/views/docs/microscope/MicroscopeOverviewPage.vue')
       },
       {
-        path: 'microscope/installation',
-        name: 'DocsMicroscopeInstallation',
-        component: () => import('@/views/docs/getting-started/GettingStartedInstallationPage.vue')
+        path: 'microscope/architecture',
+        name: 'DocsMicroscopeArchitecture',
+        component: () => import('@/views/docs/DocsMicroscopePage.vue')
       },
+      // Legacy URL — install + quick-start were merged into a single Quick Start page.
+      { path: 'microscope/installation', redirect: '/docs/microscope/quick-start' },
       {
         path: 'microscope/quick-start',
         name: 'DocsMicroscopeQuickStart',
-        component: () => import('@/views/docs/getting-started/GettingStartedQuickStartPage.vue')
+        component: () => import('@/views/docs/microscope/MicroscopeQuickStartPage.vue')
       },
       {
         path: 'server',
@@ -138,11 +140,10 @@ const routes: RouteRecordRaw[] = [
       { path: 'architecture/storage', redirect: '/docs/microscope/storage' },
 
       // ──── Jeffrey Microscope ────
-      {
-        path: 'microscope/overview',
-        name: 'DocsMicroscopeOverview',
-        component: () => import('@/views/docs/microscope/MicroscopeOverviewPage.vue')
-      },
+      // Legacy URL — kept as a redirect so existing inbound links (HomeView CTA,
+      // GettingStarted intro) keep working. The product overview now lives at
+      // /docs/microscope.
+      { path: 'microscope/overview', redirect: '/docs/microscope' },
       {
         path: 'microscope/storage',
         name: 'DocsMicroscopeStorage',
@@ -185,31 +186,11 @@ const routes: RouteRecordRaw[] = [
         name: 'DocsMicroscopeProfilerSettings',
         component: () => import('@/views/docs/microscope/MicroscopeProfilerSettingsPage.vue')
       },
-      {
-        path: 'microscope/settings',
-        name: 'DocsMicroscopeSettings',
-        component: () => import('@/views/docs/microscope/MicroscopeSettingsPage.vue')
-      },
       // Projects
       {
         path: 'microscope/projects',
         name: 'DocsProjects',
         component: () => import('@/views/docs/microscope/projects/ProjectsOverviewPage.vue')
-      },
-      {
-        path: 'microscope/projects/profiles',
-        name: 'DocsProjectsProfiles',
-        component: () => import('@/views/docs/microscope/projects/ProjectsProfilesPage.vue')
-      },
-      {
-        path: 'microscope/projects/recordings',
-        name: 'DocsProjectsRecordings',
-        component: () => import('@/views/docs/microscope/projects/ProjectsRecordingsPage.vue')
-      },
-      {
-        path: 'microscope/projects/repository',
-        name: 'DocsProjectsRepository',
-        component: () => import('@/views/docs/microscope/projects/ProjectsRepositoryPage.vue')
       },
       {
         path: 'microscope/projects/instances',
@@ -222,31 +203,15 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/docs/microscope/projects/ProjectsProfilerSettingsPage.vue')
       },
       {
-        path: 'microscope/projects/scheduler',
-        name: 'DocsProjectsScheduler',
-        component: () => import('@/views/docs/microscope/projects/ProjectsSchedulerPage.vue')
-      },
-      {
         path: 'microscope/projects/event-streaming',
         name: 'DocsProjectsEventStreaming',
         component: () => import('@/views/docs/microscope/projects/ProjectsEventStreamingPage.vue')
       },
-      // Microscope Deployment
-      {
-        path: 'microscope/deployment/jar-execution',
-        name: 'DocsMicroscopeDeploymentJar',
-        component: () => import('@/views/docs/microscope/deployment/DeploymentsSimpleJarPage.vue')
-      },
-      {
-        path: 'microscope/deployment/docker-container',
-        name: 'DocsMicroscopeDeploymentContainer',
-        component: () => import('@/views/docs/microscope/deployment/DeploymentsSimpleContainerPage.vue')
-      },
-      {
-        path: 'microscope/deployment/container-examples',
-        name: 'DocsMicroscopeDeploymentExamples',
-        component: () => import('@/views/docs/microscope/deployment/DeploymentsContainerExamplesPage.vue')
-      },
+      // Legacy paths — features moved to global pages or were removed in the UI.
+      { path: 'microscope/projects/profiles', redirect: '/docs/microscope/profiles' },
+      { path: 'microscope/projects/recordings', redirect: '/docs/microscope/recordings' },
+      { path: 'microscope/projects/repository', redirect: '/docs/microscope/projects/instances' },
+      { path: 'microscope/projects/scheduler', redirect: '/docs/microscope/projects' },
       // Microscope Configuration
       {
         path: 'microscope/configuration/application-properties',
@@ -402,12 +367,12 @@ const routes: RouteRecordRaw[] = [
       { path: 'platform/recordings', redirect: '/docs/microscope/recordings' },
       { path: 'platform/event-log', redirect: '/docs/microscope/event-log' },
       { path: 'platform/projects', redirect: '/docs/microscope/projects' },
-      { path: 'platform/projects/profiles', redirect: '/docs/microscope/projects/profiles' },
-      { path: 'platform/projects/recordings', redirect: '/docs/microscope/projects/recordings' },
-      { path: 'platform/projects/repository', redirect: '/docs/microscope/projects/repository' },
+      { path: 'platform/projects/profiles', redirect: '/docs/microscope/profiles' },
+      { path: 'platform/projects/recordings', redirect: '/docs/microscope/recordings' },
+      { path: 'platform/projects/repository', redirect: '/docs/microscope/projects/instances' },
       { path: 'platform/projects/instances', redirect: '/docs/microscope/projects/instances' },
       { path: 'platform/projects/profiler-settings', redirect: '/docs/microscope/projects/profiler-settings' },
-      { path: 'platform/projects/scheduler', redirect: '/docs/microscope/projects/scheduler' },
+      { path: 'platform/projects/scheduler', redirect: '/docs/microscope/projects' },
       { path: 'platform/projects/alerts-messages', redirect: '/docs/microscope/projects/event-streaming' },
       { path: 'platform/recording-sessions/overview', redirect: '/docs/server/recording-sessions/overview' },
       { path: 'platform/recording-sessions/configuration', redirect: '/docs/server/recording-sessions/configuration' },
@@ -424,10 +389,6 @@ const routes: RouteRecordRaw[] = [
       { path: 'local/profiles/visualization', redirect: '/docs/microscope/profiles' },
       { path: 'local/profiles/heap-dump-analysis', redirect: '/docs/microscope/profiles' },
       { path: 'local/profiles/tools', redirect: '/docs/microscope/profiles' },
-      { path: 'deployments/overview', redirect: '/docs/microscope/deployment/jar-execution' },
-      { path: 'deployments/simple-jar', redirect: '/docs/microscope/deployment/jar-execution' },
-      { path: 'deployments/simple-container', redirect: '/docs/microscope/deployment/docker-container' },
-      { path: 'deployments/container-examples', redirect: '/docs/microscope/deployment/container-examples' },
       { path: 'deployments/live-recording', redirect: '/docs/server/continuous-recording/overview' },
       { path: 'live-recording/overview', redirect: '/docs/server/continuous-recording/overview' },
       { path: 'live-recording/jeffrey-deployment', redirect: '/docs/server/continuous-recording/jeffrey-deployment' },

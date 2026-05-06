@@ -47,7 +47,7 @@ onMounted(() => {
         <p>Recording Sessions represent <strong>profiling periods</strong> from running Java applications, containing JFR recordings and associated artifacts collected during application execution.</p>
 
         <DocsCallout type="info">
-          <strong>Remote Workspaces:</strong> Recording Sessions are available in Remote workspaces through the <router-link to="/docs/microscope/projects/repository">Repository</router-link> feature, providing access to sessions collected on the connected jeffrey-server.
+          <strong>Remote Workspaces:</strong> In Microscope, recording sessions show up under each project's <router-link to="/docs/microscope/projects/instances">Instances</router-link> tab — that's where you browse the JVM instances and their sessions collected by the connected Jeffrey Server.
         </DocsCallout>
 
         <h2 id="what-are-recording-sessions">What are Recording Sessions?</h2>

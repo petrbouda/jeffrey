@@ -48,7 +48,7 @@ onMounted(() => {
         <p>The Event Log provides a <strong>centralized audit trail</strong> of workspace activity. It shows events from remote workspaces in a timeline format, allowing you to track project lifecycle changes, instance activity, and session events.</p>
 
         <h2 id="overview">Overview</h2>
-        <p>The Event Log is accessible from the main navigation bar and displays events across all connected workspaces:</p>
+        <p>Each workspace exposes an <strong>Event Log</strong> tab next to its Projects tab. Pick a workspace from the Workspaces page, then switch to the Event Log tab to see its activity:</p>
 
         <div class="docs-feature-list">
           <DocsFeatureItem icon="bi bi-grid" title="Workspace Selection">
@@ -63,7 +63,7 @@ onMounted(() => {
         </div>
 
         <DocsCallout type="info">
-          <strong>Remote workspaces only:</strong> The Event Log displays events from remote workspaces connected to Jeffrey Server. Local workspaces do not generate workspace events.
+          <strong>Server-side origin:</strong> Events are produced by Jeffrey Server as projects, instances, and sessions change. Microscope fetches them on demand — there is no local event store.
         </DocsCallout>
 
         <h2 id="event-types">Event Types</h2>
@@ -90,15 +90,15 @@ onMounted(() => {
               <td>A new application instance connected to a project</td>
             </tr>
             <tr>
-              <td><code>SESSION_CREATED</code></td>
-              <td>A new recording session was started</td>
+              <td><code>PROJECT_INSTANCE_SESSION_CREATED</code></td>
+              <td>A new recording session was started on an instance</td>
             </tr>
             <tr>
-              <td><code>SESSION_DELETED</code></td>
+              <td><code>PROJECT_INSTANCE_SESSION_DELETED</code></td>
               <td>A recording session was removed</td>
             </tr>
             <tr>
-              <td><code>SESSION_FINISHED</code></td>
+              <td><code>PROJECT_INSTANCE_SESSION_FINISHED</code></td>
               <td>A recording session completed</td>
             </tr>
           </tbody>

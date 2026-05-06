@@ -25,8 +25,8 @@ const { adjacentPages } = useDocsNavigation();
 <template>
   <nav class="docs-nav-footer">
     <router-link
-      v-if="adjacentPages.prev"
-      :to="`/docs/${adjacentPages.prev.category}/${adjacentPages.prev.path}`"
+      v-if="adjacentPages.prev?.to"
+      :to="adjacentPages.prev.to"
       class="nav-link prev"
     >
       <i class="bi bi-arrow-left"></i>
@@ -38,8 +38,8 @@ const { adjacentPages } = useDocsNavigation();
     </router-link>
     <div v-else class="nav-spacer"></div>
     <router-link
-      v-if="adjacentPages.next"
-      :to="`/docs/${adjacentPages.next.category}/${adjacentPages.next.path}`"
+      v-if="adjacentPages.next?.to"
+      :to="adjacentPages.next.to"
       class="nav-link next"
     >
       <div class="nav-text">

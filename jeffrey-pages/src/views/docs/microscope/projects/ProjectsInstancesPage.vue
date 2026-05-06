@@ -29,8 +29,8 @@ const { setHeadings } = useDocHeadings();
 const headings = [
   { id: 'overview', text: 'Overview', level: 2 },
   { id: 'instance-lifecycle', text: 'Instance Lifecycle', level: 2 },
-  { id: 'instances-overview', text: 'Instances Overview', level: 2 },
-  { id: 'instances-timeline', text: 'Instances Timeline', level: 2 }
+  { id: 'instances-tab', text: 'Instances Tab', level: 2 },
+  { id: 'timeline-tab', text: 'Timeline Tab', level: 2 }
 ];
 
 onMounted(() => {
@@ -46,22 +46,22 @@ onMounted(() => {
       />
 
       <div class="docs-content">
-        <p><strong>Instances</strong> represent individual JVM processes connected to a project. When an application starts with the Jeffrey profiler agent, it registers as an instance and begins creating recording sessions.</p>
+        <p><strong>Instances</strong> represent individual JVM processes connected to a project. When an application starts with the Jeffrey profiler agent it registers as an instance and starts producing recording sessions.</p>
 
         <h2 id="overview">Overview</h2>
-        <p>The Instances section in the project sidebar provides visibility into all application instances connected to a project:</p>
+        <p>Two tabs in the project page work together to show instance activity:</p>
 
         <div class="docs-feature-list">
-          <DocsFeatureItem icon="bi bi-list-ul" title="Instances Overview">
-            View all instances with statistics including instance counts by status, storage usage, and file type breakdown. Filter and search instances by name or status.
+          <DocsFeatureItem icon="bi bi-grid" title="Instances">
+            All instances registered in the project, grouped by status, with the project's storage totals (size, file count, biggest session) and a file-type breakdown.
           </DocsFeatureItem>
-          <DocsFeatureItem icon="bi bi-calendar-range" title="Instances Timeline">
-            Visual timeline showing when instances and their recording sessions were active. Select different time ranges (1H, 6H, 24H, 7D, 30D) to zoom in on specific periods.
+          <DocsFeatureItem icon="bi bi-bar-chart-steps" title="Timeline">
+            A swimlane view of when each instance and its sessions were active. Pick a time range (1H, 6H, 24H, 7D, 30D) to focus on the period you care about.
           </DocsFeatureItem>
         </div>
 
         <DocsCallout type="info">
-          <strong>Remote workspaces only:</strong> Instances are available for projects in remote workspaces connected to Jeffrey Server. Local projects that use manual recording uploads do not have instances.
+          <strong>Remote workspaces only:</strong> Instances appear only for projects inside remote workspaces connected to a Jeffrey Server. Locally-uploaded JFR files have no instance concept — they live on the global Recordings page instead.
         </DocsCallout>
 
         <h2 id="instance-lifecycle">Instance Lifecycle</h2>
@@ -94,17 +94,17 @@ onMounted(() => {
           </tbody>
         </table>
 
-        <h2 id="instances-overview">Instances Overview</h2>
-        <p>The overview page shows three stat cards summarizing the project's instances:</p>
+        <h2 id="instances-tab">Instances Tab</h2>
+        <p>The Instances tab opens with three stat cards summarising the project:</p>
         <ul>
-          <li><strong>Instances</strong> - Counts by status (pending, active, finished, expired), total sessions, and uptime range</li>
-          <li><strong>Storage</strong> - Total storage size, file count, and largest session size</li>
-          <li><strong>File Types</strong> - Breakdown by type: JFR recordings, heap dumps, JVM logs, application logs, JVM error logs</li>
+          <li><strong>Instances</strong> — counts by status (pending, active, finished, expired), total sessions, and uptime range.</li>
+          <li><strong>Storage</strong> — total storage size, file count, and the largest session — this is the data the old "Repository" view used to show.</li>
+          <li><strong>File Types</strong> — breakdown by type: JFR recordings, heap dumps, JVM logs, application logs, JVM error logs.</li>
         </ul>
 
-        <p>Below the stats, instances are listed as cards with color-coded left borders indicating their status. Use the search box to filter by instance name, or the status buttons to show only instances in a specific state.</p>
+        <p>Below the stats, instances are listed as cards with colour-coded left borders for their status. Use the search box to filter by name, or the status buttons to show only one state at a time.</p>
 
-        <h2 id="instances-timeline">Instances Timeline</h2>
+        <h2 id="timeline-tab">Timeline Tab</h2>
         <p>A swimlane view of instance and session activity over the selected time range (1h–30d). Each instance gets one row; session bars inside the lane are green when finished, amber when active.</p>
 
         <figure class="docs-figure">
