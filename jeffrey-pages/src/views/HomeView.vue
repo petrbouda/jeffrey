@@ -65,9 +65,30 @@ interface ProductTab {
   cta: string;
 }
 
-const activeTab = ref<Tab>('server');
+const activeTab = ref<Tab>('microscope');
 
 const productTabs: ProductTab[] = [
+  {
+    id: 'microscope',
+    name: 'Jeffrey Microscope',
+    tagline: 'Deep analyzer for JFR, heap dumps and logs.',
+    oneLiner: 'Open a JFR file or connect to a Server. Read flamegraphs that finally render fast.',
+    features: [
+      { icon: 'bi-fire', title: 'Flamegraphs and Differential Flamegraphs', desc: 'For all JFR events providing the stacktraces.' },
+      { icon: 'bi-grid-3x3-gap-fill', title: 'JVM and Tech-specific Dashboards', desc: 'Purpose-built views for GC, threads, JIT, HTTP, JDBC and more.' },
+      { icon: 'bi-droplet-half', title: 'Heap dump inspection', desc: 'Dominator trees, leak suspects, OOM root cause.' },
+      { icon: 'bi-stars', title: 'AI-assisted OQL', desc: 'Ask in natural language; get focused queries.' },
+      { icon: 'bi-plug', title: 'Connect to Server', desc: 'Pull recordings, artifacts & application\'s lifecycle directly via gRPC.' },
+      { icon: 'bi-graph-up', title: 'Sub-second timelines', desc: 'Zoom into the millisecond your service stalled.' }
+    ],
+    deployment: {
+      title: 'Runs as a JAR or container',
+      desc: 'No Server required. Drop it on your laptop, drop in a JFR file, browse.',
+      cmd: 'docker run -it --network host petrbouda/microscope-examples'
+    },
+    docsRoute: '/docs/microscope/overview',
+    cta: 'Read Microscope docs'
+  },
   {
     id: 'server',
     name: 'Jeffrey Server',
@@ -92,27 +113,6 @@ const productTabs: ProductTab[] = [
     },
     docsRoute: '/docs/server/deployment',
     cta: 'Read deployment guide'
-  },
-  {
-    id: 'microscope',
-    name: 'Jeffrey Microscope',
-    tagline: 'Deep analyzer for JFR, heap dumps and logs.',
-    oneLiner: 'Open a JFR file or connect to a Server. Read flamegraphs that finally render fast.',
-    features: [
-      { icon: 'bi-fire', title: 'Flamegraphs and Differential Flamegraphs', desc: 'For all JFR events providing the stacktraces.' },
-      { icon: 'bi-grid-3x3-gap-fill', title: 'JVM and Tech-specific Dashboards', desc: 'Purpose-built views for GC, threads, JIT, HTTP, JDBC and more.' },
-      { icon: 'bi-droplet-half', title: 'Heap dump inspection', desc: 'Dominator trees, leak suspects, OOM root cause.' },
-      { icon: 'bi-stars', title: 'AI-assisted OQL', desc: 'Ask in natural language; get focused queries.' },
-      { icon: 'bi-plug', title: 'Connect to Server', desc: 'Pull recordings, artifacts & application\'s lifecycle directly via gRPC.' },
-      { icon: 'bi-graph-up', title: 'Sub-second timelines', desc: 'Zoom into the millisecond your service stalled.' }
-    ],
-    deployment: {
-      title: 'Runs as a JAR or container',
-      desc: 'No Server required. Drop it on your laptop, drop in a JFR file, browse.',
-      cmd: 'docker run -it --network host petrbouda/microscope-examples'
-    },
-    docsRoute: '/docs/microscope/overview',
-    cta: 'Read Microscope docs'
   }
 ];
 
@@ -128,6 +128,46 @@ function copyCmd(): void {
 <template>
   <!-- Dual Hero -->
   <section class="dual-hero">
+    <div class="hero-half hero-microscope">
+      <div class="hero-half-bg">
+        <div class="bg-grid"></div>
+        <div class="bg-glow bg-glow--microscope"></div>
+      </div>
+      <div class="hero-half-content">
+        <div class="product-eyebrow eyebrow--microscope">
+          <span class="eyebrow-icon"><i class="bi bi-search-heart-fill"></i></span>
+          <span class="eyebrow-text">
+            <strong class="eyebrow-name">Jeffrey Microscope</strong>
+            <span class="eyebrow-tag">at the desk</span>
+          </span>
+        </div>
+        <h1 class="product-title">
+          Analyze recordings<br/>
+          <span class="title-accent title-accent--microscope">on your desk.</span>
+        </h1>
+        <p class="product-subtitle">
+          A deep analyzer for JFR recordings, heap dumps and logs. Upload a file, or connect
+          to a Jeffrey Server and pull artifacts directly.
+        </p>
+        <ul class="bullet-list">
+          <li v-for="(b, i) in microscopeHeroBullets" :key="i">
+            <i class="bi" :class="b.icon"></i>
+            <span>{{ b.text }}</span>
+          </li>
+        </ul>
+        <div class="cta-row">
+          <router-link to="/docs/microscope/overview" class="cta cta--primary cta--microscope">
+            <span>Explore Microscope</span>
+            <i class="bi bi-arrow-right"></i>
+          </router-link>
+          <a href="https://github.com/petrbouda/jeffrey/releases/latest/download/microscope.jar" class="cta cta--ghost">
+            <i class="bi bi-download"></i>
+            <span>Download JAR</span>
+          </a>
+        </div>
+      </div>
+    </div>
+
     <div class="hero-half hero-server">
       <div class="hero-half-bg">
         <div class="bg-grid"></div>
@@ -169,56 +209,16 @@ function copyCmd(): void {
       </div>
     </div>
 
-    <div class="hero-half hero-microscope">
-      <div class="hero-half-bg">
-        <div class="bg-grid"></div>
-        <div class="bg-glow bg-glow--microscope"></div>
-      </div>
-      <div class="hero-half-content">
-        <div class="product-eyebrow eyebrow--microscope">
-          <span class="eyebrow-icon"><i class="bi bi-search-heart-fill"></i></span>
-          <span class="eyebrow-text">
-            <strong class="eyebrow-name">Jeffrey Microscope</strong>
-            <span class="eyebrow-tag">at the desk</span>
-          </span>
-        </div>
-        <h1 class="product-title">
-          Analyze recordings<br/>
-          <span class="title-accent title-accent--microscope">on your desk.</span>
-        </h1>
-        <p class="product-subtitle">
-          A deep analyzer for JFR recordings, heap dumps and logs. Upload a file, or connect
-          to a Jeffrey Server and pull artifacts directly.
-        </p>
-        <ul class="bullet-list">
-          <li v-for="(b, i) in microscopeHeroBullets" :key="i">
-            <i class="bi" :class="b.icon"></i>
-            <span>{{ b.text }}</span>
-          </li>
-        </ul>
-        <div class="cta-row">
-          <router-link to="/docs/microscope/overview" class="cta cta--primary cta--microscope">
-            <span>Explore Microscope</span>
-            <i class="bi bi-arrow-right"></i>
-          </router-link>
-          <a href="https://github.com/petrbouda/jeffrey/releases/latest/download/microscope.jar" class="cta cta--ghost">
-            <i class="bi bi-download"></i>
-            <span>Download JAR</span>
-          </a>
-        </div>
-      </div>
-    </div>
-
     <div class="hero-seam">
       <div class="seam-link">
-        <span class="seam-cable seam-cable--server">
-          <span class="seam-dot seam-dot--server"></span>
+        <span class="seam-cable seam-cable--microscope">
+          <span class="seam-dot seam-dot--microscope"></span>
         </span>
         <div class="seam-pill">
           <i class="bi bi-arrow-left-right seam-arrow"></i>
         </div>
-        <span class="seam-cable seam-cable--microscope">
-          <span class="seam-dot seam-dot--microscope"></span>
+        <span class="seam-cable seam-cable--server">
+          <span class="seam-dot seam-dot--server"></span>
         </span>
       </div>
     </div>
@@ -398,14 +398,14 @@ function copyCmd(): void {
   position: relative;
   z-index: 2;
   max-width: 540px;
-  margin-left: auto;
+  margin-left: auto;       /* default: right-aligned (used by the LEFT half so content sits toward the seam) */
   display: flex;
   flex-direction: column;
 }
 
-.hero-microscope .hero-half-content {
+.hero-server .hero-half-content {
   margin-left: 0;
-  margin-right: auto;
+  margin-right: auto;      /* RIGHT half: left-aligned so content sits toward the seam */
 }
 
 .product-eyebrow {
@@ -633,14 +633,16 @@ function copyCmd(): void {
   border-radius: 2px;
 }
 
-.seam-cable--server {
-  background: linear-gradient(90deg, rgba(216, 180, 254, 0) 0%, rgba(216, 180, 254, 0.55) 100%);
-  box-shadow: 0 0 12px rgba(168, 85, 247, 0.25);
+/* After the dual-hero swap, Microscope sits on the LEFT and Server on the RIGHT —
+   the seam cables flip so each gradient still leans into its adjacent half. */
+.seam-cable--microscope {
+  background: linear-gradient(90deg, rgba(125, 211, 252, 0) 0%, rgba(125, 211, 252, 0.55) 100%);
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.25);
 }
 
-.seam-cable--microscope {
-  background: linear-gradient(90deg, rgba(125, 211, 252, 0.55) 0%, rgba(125, 211, 252, 0) 100%);
-  box-shadow: 0 0 12px rgba(56, 189, 248, 0.25);
+.seam-cable--server {
+  background: linear-gradient(90deg, rgba(216, 180, 254, 0.55) 0%, rgba(216, 180, 254, 0) 100%);
+  box-shadow: 0 0 12px rgba(168, 85, 247, 0.25);
 }
 
 .seam-dot {

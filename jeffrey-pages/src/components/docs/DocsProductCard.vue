@@ -62,10 +62,11 @@ defineProps<{
 
 <style scoped>
 .product-card {
-  --accent: #5e64ff;
-  --accent-tint: #eef0fb;
-  --accent-soft: #fafbff;
-  --accent-shadow: rgba(94, 100, 255, 0.35);
+  /* default: Microscope — blue, matching the dual-hero on the home page */
+  --accent: #0ea5e9;
+  --accent-tint: #e0f2fe;
+  --accent-soft: #f0f9ff;
+  --accent-shadow: rgba(14, 165, 233, 0.35);
 
   display: flex;
   flex-direction: column;
@@ -83,10 +84,11 @@ defineProps<{
 }
 
 .product-card.variant-secondary {
-  --accent: #10b981;
-  --accent-tint: #e6f8f0;
-  --accent-soft: #f5fbf8;
-  --accent-shadow: rgba(16, 185, 129, 0.35);
+  /* secondary: Server — purple/violet, matching the dual-hero on the home page */
+  --accent: #8b5cf6;
+  --accent-tint: #ede9fe;
+  --accent-soft: #f5f3ff;
+  --accent-shadow: rgba(139, 92, 246, 0.35);
 }
 
 .product-card:hover {
