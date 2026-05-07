@@ -2,6 +2,12 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <!-- Cache-bust the SPA shell so browsers always pick up the latest hashed
+         asset URLs after a rebuild. The /assets/ files themselves are
+         content-addressed and stay cacheable. -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
     <link rel="icon" type="image/svg+xml" href="/jeffrey-icon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Jeffrey Microscope - JDK Flight Recorder Analysis Tool</title>
