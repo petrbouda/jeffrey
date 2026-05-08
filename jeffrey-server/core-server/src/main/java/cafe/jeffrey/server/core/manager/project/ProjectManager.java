@@ -20,7 +20,6 @@ package cafe.jeffrey.server.core.manager.project;
 
 import cafe.jeffrey.server.core.manager.ProfilerSettingsManager;
 import cafe.jeffrey.server.core.manager.RepositoryManager;
-import cafe.jeffrey.server.core.manager.SchedulerManager;
 import cafe.jeffrey.server.core.project.repository.RepositoryStorage;
 import cafe.jeffrey.server.persistence.api.ProjectInstanceRepository;
 import cafe.jeffrey.shared.common.model.ProjectInfo;
@@ -49,8 +48,6 @@ public interface ProjectManager {
     RepositoryStorage repositoryStorage();
 
     RepositoryManager repositoryManager();
-
-    SchedulerManager schedulerManager();
 
     ProfilerSettingsManager profilerSettingsManager();
 

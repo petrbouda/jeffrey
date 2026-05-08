@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -20,11 +20,10 @@ package cafe.jeffrey.server.core.workspace.consumer;
 
 import cafe.jeffrey.server.core.manager.project.ProjectsManager;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceEvent;
-import cafe.jeffrey.server.core.scheduler.job.descriptor.ProjectsSynchronizerJobDescriptor;
 
 public interface WorkspaceEventConsumer {
 
-    void on(WorkspaceEvent event, ProjectsSynchronizerJobDescriptor jobDescriptor, ProjectsManager projectsManager);
+    void on(WorkspaceEvent event, ProjectsManager projectsManager);
 
     boolean isApplicable(WorkspaceEvent event);
 }

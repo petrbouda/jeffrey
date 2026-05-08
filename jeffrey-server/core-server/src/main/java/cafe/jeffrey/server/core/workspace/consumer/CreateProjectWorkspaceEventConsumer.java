@@ -28,7 +28,6 @@ import cafe.jeffrey.shared.common.model.CreateProject;
 import cafe.jeffrey.server.core.jfr.JfrMessageEmitter;
 import cafe.jeffrey.server.core.manager.project.ProjectManager;
 import cafe.jeffrey.server.core.manager.project.ProjectsManager;
-import cafe.jeffrey.server.core.scheduler.job.descriptor.ProjectsSynchronizerJobDescriptor;
 import cafe.jeffrey.shared.common.model.workspace.event.ProjectCreatedEventContent;
 
 import java.util.Optional;
@@ -38,7 +37,7 @@ public class CreateProjectWorkspaceEventConsumer implements WorkspaceEventConsum
     private static final Logger LOG = LoggerFactory.getLogger(CreateProjectWorkspaceEventConsumer.class);
 
     @Override
-    public void on(WorkspaceEvent event, ProjectsSynchronizerJobDescriptor jobDescriptor, ProjectsManager projectsManager) {
+    public void on(WorkspaceEvent event, ProjectsManager projectsManager) {
         ProjectCreatedEventContent eventContent = Json.read(event.content(), ProjectCreatedEventContent.class);
 
         Optional<ProjectManager> existingProject = projectsManager.findByOriginProjectId(event.projectId());
@@ -54,7 +53,6 @@ public class CreateProjectWorkspaceEventConsumer implements WorkspaceEventConsum
                     eventContent.projectName(),
                     eventContent.projectLabel(),
                     null, // namespace - not available from workspace events
-                    jobDescriptor.templateId(),
                     // When the project/event was created in the workspace (not replicated to the Jeffrey)
                     event.originCreatedAt(),
                     eventContent.attributes());

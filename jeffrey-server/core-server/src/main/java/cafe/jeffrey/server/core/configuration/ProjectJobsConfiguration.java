@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -22,74 +22,70 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import cafe.jeffrey.server.core.ServerJeffreyDirs;
-import cafe.jeffrey.server.core.configuration.properties.JobProperties;
+import cafe.jeffrey.server.core.configuration.properties.SchedulerJobsProperties;
 import cafe.jeffrey.server.core.manager.workspace.WorkspacesManager;
 import cafe.jeffrey.server.core.project.repository.RepositoryStorage;
 import cafe.jeffrey.server.core.project.repository.SessionFinishEventEmitter;
-import cafe.jeffrey.server.core.scheduler.PeriodicalScheduler;
-import cafe.jeffrey.server.core.scheduler.Scheduler;
 import cafe.jeffrey.server.core.scheduler.job.*;
-import cafe.jeffrey.server.core.scheduler.job.descriptor.JobDescriptorFactory;
+import cafe.jeffrey.server.core.scheduler.job.descriptor.ExpiredInstanceCleanerJobDescriptor;
+import cafe.jeffrey.server.core.scheduler.job.descriptor.ProjectInstanceRecordingCleanerJobDescriptor;
+import cafe.jeffrey.server.core.scheduler.job.descriptor.ProjectInstanceSessionCleanerJobDescriptor;
 import cafe.jeffrey.server.core.streaming.FileHeartbeatReader;
 import cafe.jeffrey.server.core.streaming.SessionFinisher;
 import cafe.jeffrey.server.core.workspace.WorkspaceEventPublisher;
 import cafe.jeffrey.server.persistence.api.ServerPlatformRepositories;
+import cafe.jeffrey.shared.common.model.job.JobType;
 
 import java.time.Clock;
 import java.time.Duration;
-import java.util.List;
 
 /**
- * Configuration for PROJECT-level scheduler jobs.
- * These jobs operate on individual projects and query project-level schedulers.
+ * Configuration for PROJECT-level scheduler jobs. Each {@code @Bean} resolves
+ * its configuration from {@link SchedulerJobsProperties} and constructs the
+ * job; the global scheduler bean filters out jobs whose
+ * {@code .enabled} property is false.
  */
 @Configuration
 public class ProjectJobsConfiguration {
 
-    private static final String PROJECT_SCHEDULER = "PROJECT_SCHEDULER";
-
     private final RepositoryStorage.Factory repositoryStorageFactory;
     private final WorkspacesManager workspacesManager;
-    private final JobDescriptorFactory jobDescriptorFactory;
-    private final JobProperties jobProperties;
+    private final SchedulerJobsProperties schedulerJobsProperties;
 
     public ProjectJobsConfiguration(
             WorkspacesManager workspacesManager,
             RepositoryStorage.Factory repositoryStorageFactory,
-            JobDescriptorFactory jobDescriptorFactory,
-            JobProperties jobProperties) {
+            SchedulerJobsProperties schedulerJobsProperties) {
 
         this.workspacesManager = workspacesManager;
-        this.jobDescriptorFactory = jobDescriptorFactory;
         this.repositoryStorageFactory = repositoryStorageFactory;
-        this.jobProperties = jobProperties;
-    }
-
-    @Bean(name = PROJECT_SCHEDULER, destroyMethod = "close")
-    public Scheduler projectScheduler(List<ProjectJob<?>> jobs) {
-        return new PeriodicalScheduler(jobs);
+        this.schedulerJobsProperties = schedulerJobsProperties;
     }
 
     @Bean
     public ProjectInstanceSessionCleanerJob projectInstanceSessionCleanerJob(
             Clock clock,
             ServerPlatformRepositories platformRepositories) {
+        SchedulerJobsProperties.JobConfig config =
+                schedulerJobsProperties.forType(JobType.PROJECT_INSTANCE_SESSION_CLEANER);
         return new ProjectInstanceSessionCleanerJob(
                 workspacesManager,
                 repositoryStorageFactory,
-                jobDescriptorFactory,
-                jobProperties.resolvePeriod("project-instance-session-cleaner"),
+                ProjectInstanceSessionCleanerJobDescriptor.of(config.params()),
+                config.period(),
                 clock,
                 platformRepositories);
     }
 
     @Bean
     public ProjectInstanceRecordingCleanerJob projectInstanceRecordingCleanerJob(Clock clock) {
+        SchedulerJobsProperties.JobConfig config =
+                schedulerJobsProperties.forType(JobType.PROJECT_INSTANCE_RECORDING_CLEANER);
         return new ProjectInstanceRecordingCleanerJob(
                 workspacesManager,
                 repositoryStorageFactory,
-                jobDescriptorFactory,
-                jobProperties.resolvePeriod("project-instance-recording-cleaner"),
+                ProjectInstanceRecordingCleanerJobDescriptor.of(config.params()),
+                config.period(),
                 clock);
     }
 
@@ -98,18 +94,19 @@ public class ProjectJobsConfiguration {
         return new RepositoryCompressionProjectJob(
                 workspacesManager,
                 repositoryStorageFactory,
-                jobDescriptorFactory,
-                jobProperties.resolvePeriod("repository-compression"));
+                schedulerJobsProperties.forType(JobType.REPOSITORY_JFR_COMPRESSION).period());
     }
 
     @Bean
     public ExpiredInstanceCleanerJob expiredInstanceCleanerJob(
             Clock clock,
             ServerPlatformRepositories platformRepositories) {
+        SchedulerJobsProperties.JobConfig config =
+                schedulerJobsProperties.forType(JobType.EXPIRED_INSTANCE_CLEANER);
         return new ExpiredInstanceCleanerJob(
                 workspacesManager,
-                jobDescriptorFactory,
-                jobProperties.resolvePeriod("expired-instance-cleaner", Duration.ofHours(1)),
+                ExpiredInstanceCleanerJobDescriptor.of(config.params()),
+                config.period(),
                 clock,
                 platformRepositories);
     }
@@ -143,8 +140,7 @@ public class ProjectJobsConfiguration {
         return new SessionFinishedDetectorProjectJob(
                 workspacesManager,
                 repositoryStorageFactory,
-                jobDescriptorFactory,
-                jobProperties.resolvePeriod("session-finished-detector", Duration.ofSeconds(10)),
+                schedulerJobsProperties.forType(JobType.SESSION_FINISHED_DETECTOR).period(),
                 heartbeatTimeout,
                 clock,
                 jeffreyDirs,

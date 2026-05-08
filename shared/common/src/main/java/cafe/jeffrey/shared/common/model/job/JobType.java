@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -19,27 +19,35 @@
 package cafe.jeffrey.shared.common.model.job;
 
 public enum JobType {
-    PROJECT_INSTANCE_SESSION_CLEANER(Group.PROJECT),
-    PROJECT_INSTANCE_RECORDING_CLEANER(Group.PROJECT),
-    EXPIRED_INSTANCE_CLEANER(Group.PROJECT),
-    REPOSITORY_JFR_COMPRESSION(Group.PROJECT),
-    SESSION_FINISHED_DETECTOR(Group.PROJECT),
-    PROJECTS_SYNCHRONIZER(Group.GLOBAL),
-    WORKSPACE_EVENTS_REPLICATOR(Group.GLOBAL),
-    WORKSPACE_PROFILER_SETTINGS_SYNCHRONIZER(Group.GLOBAL),
-    DATA_RETENTION(Group.GLOBAL);
+    WORKSPACE_EVENTS_REPLICATOR(ExecutionLevel.GLOBAL),
+    WORKSPACE_EVENTS_CLEANER(ExecutionLevel.GLOBAL),
+    PROJECTS_SYNCHRONIZER(ExecutionLevel.WORKSPACE),
+    PROFILER_SETTINGS_SYNCHRONIZER(ExecutionLevel.WORKSPACE),
+    PROJECT_INSTANCE_SESSION_CLEANER(ExecutionLevel.PROJECT),
+    PROJECT_INSTANCE_RECORDING_CLEANER(ExecutionLevel.PROJECT),
+    EXPIRED_INSTANCE_CLEANER(ExecutionLevel.PROJECT),
+    REPOSITORY_JFR_COMPRESSION(ExecutionLevel.PROJECT),
+    SESSION_FINISHED_DETECTOR(ExecutionLevel.PROJECT);
 
-    public enum Group {
-        PROJECT, GLOBAL
+    /**
+     * Where a job runs in the server's three-level execution model:
+     * <ul>
+     *   <li>{@link #GLOBAL} — singleton tick, no fan-out</li>
+     *   <li>{@link #WORKSPACE} — fan-out across all workspaces</li>
+     *   <li>{@link #PROJECT} — fan-out across all projects in all workspaces</li>
+     * </ul>
+     */
+    public enum ExecutionLevel {
+        GLOBAL, WORKSPACE, PROJECT
     }
 
-    private final Group group;
+    private final ExecutionLevel executionLevel;
 
-    JobType(Group group) {
-        this.group = group;
+    JobType(ExecutionLevel executionLevel) {
+        this.executionLevel = executionLevel;
     }
 
-    public Group group() {
-        return group;
+    public ExecutionLevel executionLevel() {
+        return executionLevel;
     }
 }

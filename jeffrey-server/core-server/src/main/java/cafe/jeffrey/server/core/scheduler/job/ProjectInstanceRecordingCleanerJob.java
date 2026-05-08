@@ -28,7 +28,6 @@ import cafe.jeffrey.server.core.manager.project.ProjectManager;
 import cafe.jeffrey.server.core.manager.workspace.WorkspacesManager;
 import cafe.jeffrey.server.core.project.repository.RepositoryStorage;
 import cafe.jeffrey.server.core.scheduler.JobContext;
-import cafe.jeffrey.server.core.scheduler.job.descriptor.JobDescriptorFactory;
 import cafe.jeffrey.server.core.scheduler.job.descriptor.ProjectInstanceRecordingCleanerJobDescriptor;
 
 import java.time.Clock;
@@ -47,10 +46,10 @@ public class ProjectInstanceRecordingCleanerJob extends RepositoryProjectJob<Pro
     public ProjectInstanceRecordingCleanerJob(
             WorkspacesManager workspacesManager,
             RepositoryStorage.Factory remoteRepositoryManagerFactory,
-            JobDescriptorFactory jobDescriptorFactory,
+            ProjectInstanceRecordingCleanerJobDescriptor jobDescriptor,
             Duration period,
             Clock clock) {
-        super(workspacesManager, remoteRepositoryManagerFactory, jobDescriptorFactory);
+        super(workspacesManager, remoteRepositoryManagerFactory, jobDescriptor);
         this.period = period;
         this.clock = clock;
     }

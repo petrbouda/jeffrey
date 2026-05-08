@@ -27,7 +27,6 @@ import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
 import cafe.jeffrey.server.core.manager.project.ProjectManager;
 import cafe.jeffrey.server.core.manager.workspace.WorkspacesManager;
 import cafe.jeffrey.server.core.scheduler.JobContext;
-import cafe.jeffrey.server.core.scheduler.job.descriptor.JobDescriptorFactory;
 import cafe.jeffrey.server.core.scheduler.job.descriptor.RepositoryCompressionProjectJobDescriptor;
 
 import java.time.Duration;
@@ -59,10 +58,9 @@ public class RepositoryCompressionProjectJob extends RepositoryProjectJob<Reposi
     public RepositoryCompressionProjectJob(
             WorkspacesManager workspacesManager,
             RepositoryStorage.Factory remoteRepositoryManagerFactory,
-            JobDescriptorFactory jobDescriptorFactory,
             Duration period) {
 
-        super(workspacesManager, remoteRepositoryManagerFactory, jobDescriptorFactory);
+        super(workspacesManager, remoteRepositoryManagerFactory, new RepositoryCompressionProjectJobDescriptor());
         this.period = period;
     }
 

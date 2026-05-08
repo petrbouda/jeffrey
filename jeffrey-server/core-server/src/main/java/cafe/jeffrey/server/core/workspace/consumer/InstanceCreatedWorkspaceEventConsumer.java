@@ -23,7 +23,6 @@ import org.slf4j.LoggerFactory;
 import cafe.jeffrey.server.core.jfr.JfrMessageEmitter;
 import cafe.jeffrey.server.core.manager.project.ProjectManager;
 import cafe.jeffrey.server.core.manager.project.ProjectsManager;
-import cafe.jeffrey.server.core.scheduler.job.descriptor.ProjectsSynchronizerJobDescriptor;
 import cafe.jeffrey.shared.common.model.workspace.event.InstanceCreatedEventContent;
 import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.shared.common.model.ProjectInstanceInfo;
@@ -38,7 +37,7 @@ public class InstanceCreatedWorkspaceEventConsumer implements WorkspaceEventCons
     private static final Logger LOG = LoggerFactory.getLogger(InstanceCreatedWorkspaceEventConsumer.class);
 
     @Override
-    public void on(WorkspaceEvent event, ProjectsSynchronizerJobDescriptor jobDescriptor, ProjectsManager projectsManager) {
+    public void on(WorkspaceEvent event, ProjectsManager projectsManager) {
         InstanceCreatedEventContent eventContent = Json.read(event.content(), InstanceCreatedEventContent.class);
 
         Optional<ProjectManager> projectOpt = projectsManager.findByOriginProjectId(event.projectId());

@@ -25,7 +25,6 @@ import cafe.jeffrey.server.core.manager.project.ProjectManager;
 import cafe.jeffrey.server.core.manager.workspace.WorkspacesManager;
 import cafe.jeffrey.server.core.project.repository.RepositoryStorage;
 import cafe.jeffrey.server.core.scheduler.JobContext;
-import cafe.jeffrey.server.core.scheduler.job.descriptor.JobDescriptorFactory;
 import cafe.jeffrey.server.core.scheduler.job.descriptor.ProjectInstanceSessionCleanerJobDescriptor;
 import cafe.jeffrey.server.persistence.api.ServerPlatformRepositories;
 import cafe.jeffrey.server.persistence.api.ProjectInstanceRepository;
@@ -52,11 +51,11 @@ public class ProjectInstanceSessionCleanerJob extends RepositoryProjectJob<Proje
     public ProjectInstanceSessionCleanerJob(
             WorkspacesManager workspacesManager,
             RepositoryStorage.Factory remoteRepositoryManagerFactory,
-            JobDescriptorFactory jobDescriptorFactory,
+            ProjectInstanceSessionCleanerJobDescriptor jobDescriptor,
             Duration period,
             Clock clock,
             ServerPlatformRepositories platformRepositories) {
-        super(workspacesManager, remoteRepositoryManagerFactory, jobDescriptorFactory);
+        super(workspacesManager, remoteRepositoryManagerFactory, jobDescriptor);
         this.period = period;
         this.clock = clock;
         this.platformRepositories = platformRepositories;

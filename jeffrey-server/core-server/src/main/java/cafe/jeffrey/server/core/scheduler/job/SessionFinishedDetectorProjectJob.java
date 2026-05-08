@@ -27,7 +27,6 @@ import cafe.jeffrey.server.core.project.repository.RepositoryStorage;
 import cafe.jeffrey.server.core.streaming.SessionFinisher;
 import cafe.jeffrey.server.core.streaming.SessionPaths;
 import cafe.jeffrey.server.core.scheduler.JobContext;
-import cafe.jeffrey.server.core.scheduler.job.descriptor.JobDescriptorFactory;
 import cafe.jeffrey.server.core.scheduler.job.descriptor.SessionFinishedDetectorProjectJobDescriptor;
 import cafe.jeffrey.server.persistence.api.ServerPlatformRepositories;
 import cafe.jeffrey.server.persistence.api.ProjectRepositoryRepository;
@@ -69,7 +68,6 @@ public class SessionFinishedDetectorProjectJob extends RepositoryProjectJob<Sess
     public SessionFinishedDetectorProjectJob(
             WorkspacesManager workspacesManager,
             RepositoryStorage.Factory remoteRepositoryManagerFactory,
-            JobDescriptorFactory jobDescriptorFactory,
             Duration period,
             Duration heartbeatThreshold,
             Clock clock,
@@ -77,7 +75,7 @@ public class SessionFinishedDetectorProjectJob extends RepositoryProjectJob<Sess
             ServerPlatformRepositories platformRepositories,
             SessionFinisher sessionFinisher) {
 
-        super(workspacesManager, remoteRepositoryManagerFactory, jobDescriptorFactory);
+        super(workspacesManager, remoteRepositoryManagerFactory, new SessionFinishedDetectorProjectJobDescriptor());
         this.period = period;
         this.heartbeatThreshold = heartbeatThreshold;
         this.clock = clock;

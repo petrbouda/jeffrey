@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -21,74 +21,56 @@ package cafe.jeffrey.server.core.scheduler.job;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
-import cafe.jeffrey.shared.common.model.job.JobInfo;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceInfo;
-import cafe.jeffrey.server.core.manager.SchedulerManager;
 import cafe.jeffrey.server.core.manager.workspace.WorkspaceManager;
 import cafe.jeffrey.server.core.manager.workspace.WorkspacesManager;
 import cafe.jeffrey.server.core.scheduler.Job;
 import cafe.jeffrey.server.core.scheduler.JobContext;
 import cafe.jeffrey.server.core.scheduler.job.descriptor.JobDescriptor;
-import cafe.jeffrey.server.core.scheduler.job.descriptor.JobDescriptorFactory;
 
 import java.nio.file.Path;
 import java.time.Duration;
-import java.util.List;
 
+/**
+ * Base class for jobs that fan out across all workspaces. The descriptor is
+ * constant for the lifetime of the job (resolved at startup from
+ * {@code application.properties}); each tick iterates all workspaces and
+ * invokes {@link #executeOnWorkspace} once per workspace.
+ */
 public abstract class WorkspaceJob<T extends JobDescriptor<T>> implements Job {
 
     private static final Logger LOG = LoggerFactory.getLogger(WorkspaceJob.class);
 
     private final WorkspacesManager workspacesManager;
-    private final SchedulerManager schedulerManager;
-    private final JobDescriptorFactory jobDescriptorFactory;
+    protected final T jobDescriptor;
 
-    public WorkspaceJob(
-            WorkspacesManager workspacesManager,
-            SchedulerManager schedulerManager,
-            JobDescriptorFactory jobDescriptorFactory) {
-
+    public WorkspaceJob(WorkspacesManager workspacesManager, T jobDescriptor) {
         this.workspacesManager = workspacesManager;
-        this.schedulerManager = schedulerManager;
-        this.jobDescriptorFactory = jobDescriptorFactory;
+        this.jobDescriptor = jobDescriptor;
     }
 
     @Override
     public void execute(JobContext context) {
         String simpleName = this.getClass().getSimpleName();
-        List<JobInfo> allJobs = schedulerManager.all(jobType());
-        if (allJobs.isEmpty()) {
-            LOG.debug("No jobs of type {} found, skipping execution", jobType());
-            return;
-        }
 
-        List<? extends WorkspaceManager> allWorkspaces = workspacesManager.findAll();
+        for (WorkspaceManager workspaceManager : workspacesManager.findAll()) {
+            WorkspaceInfo workspaceInfo = workspaceManager.resolveInfo();
+            Path workspacePath = workspaceInfo.location().toPath();
 
-        for (JobInfo jobInfo : allJobs) {
-            if (jobInfo.enabled()) {
-                T jobDescriptor = jobDescriptorFactory.create(jobInfo);
-
-                // Iterate the same job for all workspaces
-                for (WorkspaceManager workspaceManager : allWorkspaces) {
-                    WorkspaceInfo workspaceInfo = workspaceManager.resolveInfo();
-                    Path workspacePath = workspaceInfo.location().toPath();
-
-                    if (!FileSystemUtils.isDirectory(workspacePath)) {
-                        LOG.warn("Workspace dir does not exists, or is invalid: job={} workspace_path={}",
-                                simpleName, workspacePath);
-                        continue;
-                    }
-
-                    LOG.debug("Executing Job: job={} workspace={} workspace_dir={}",
-                            simpleName, workspaceInfo.id(), workspacePath);
-
-                    long start = System.nanoTime();
-                    executeOnWorkspace(workspaceManager, jobDescriptor, context);
-                    Duration elapsed = Duration.ofNanos(System.nanoTime() - start);
-                    LOG.debug("Job completed: job={} elapsed_ms={} workspace_id={} workspace_dir={}",
-                            simpleName, elapsed.toMillis(), workspaceManager.resolveInfo().id(), workspacePath);
-                }
+            if (!FileSystemUtils.isDirectory(workspacePath)) {
+                LOG.debug("Workspace dir does not exist, or is invalid: job={} workspace_path={}",
+                        simpleName, workspacePath);
+                continue;
             }
+
+            LOG.debug("Executing Job: job={} workspace={} workspace_dir={}",
+                    simpleName, workspaceInfo.id(), workspacePath);
+
+            long start = System.nanoTime();
+            executeOnWorkspace(workspaceManager, jobDescriptor, context);
+            Duration elapsed = Duration.ofNanos(System.nanoTime() - start);
+            LOG.debug("Job completed: job={} elapsed_ms={} workspace_id={} workspace_dir={}",
+                    simpleName, elapsed.toMillis(), workspaceInfo.id(), workspacePath);
         }
     }
 

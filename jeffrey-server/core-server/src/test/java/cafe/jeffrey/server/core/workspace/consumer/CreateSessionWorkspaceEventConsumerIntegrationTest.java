@@ -27,7 +27,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import cafe.jeffrey.server.core.manager.RepositoryManager;
 import cafe.jeffrey.server.core.manager.project.ProjectManager;
 import cafe.jeffrey.server.core.manager.project.ProjectsManager;
-import cafe.jeffrey.server.core.scheduler.job.descriptor.ProjectsSynchronizerJobDescriptor;
 import cafe.jeffrey.server.core.streaming.SessionFinisher;
 import cafe.jeffrey.shared.common.model.workspace.event.SessionCreatedEventContent;
 import cafe.jeffrey.server.persistence.jdbc.JdbcServerPlatformRepositories;
@@ -83,9 +82,6 @@ class CreateSessionWorkspaceEventConsumerIntegrationTest {
 
     private static final ServerJeffreyDirs JEFFREY_DIRS = new ServerJeffreyDirs(Path.of("/tmp/jeffrey-test"));
 
-    private static final ProjectsSynchronizerJobDescriptor JOB_DESCRIPTOR =
-            new ProjectsSynchronizerJobDescriptor("test-template");
-
     @Nested
     class CloseUnfinishedSessions {
 
@@ -136,7 +132,7 @@ class CreateSessionWorkspaceEventConsumerIntegrationTest {
 
                 var consumer = new CreateSessionWorkspaceEventConsumer(
                         platformRepositories, JEFFREY_DIRS, sessionFinisher);
-                consumer.on(event, JOB_DESCRIPTOR, projectsManager);
+                consumer.on(event, projectsManager);
 
                 var pathCaptor = ArgumentCaptor.forClass(Path.class);
                 var fallbackCaptor = ArgumentCaptor.forClass(Instant.class);
@@ -199,7 +195,7 @@ class CreateSessionWorkspaceEventConsumerIntegrationTest {
 
                 var consumer = new CreateSessionWorkspaceEventConsumer(
                         platformRepositories, JEFFREY_DIRS, sessionFinisher);
-                consumer.on(event, JOB_DESCRIPTOR, projectsManager);
+                consumer.on(event, projectsManager);
 
                 verify(sessionFinisher).forceFinish(
                         any(ProjectRepositoryRepository.class),
@@ -255,7 +251,7 @@ class CreateSessionWorkspaceEventConsumerIntegrationTest {
 
             var consumer = new CreateSessionWorkspaceEventConsumer(
                     realServerPlatformRepositories, JEFFREY_DIRS, sessionFinisher);
-            consumer.on(event, JOB_DESCRIPTOR, projectsManager);
+            consumer.on(event, projectsManager);
 
             // Instance should now be ACTIVE
             assertEquals(ProjectInstanceStatus.ACTIVE, instanceRepo.find(INSTANCE_ID).orElseThrow().status());

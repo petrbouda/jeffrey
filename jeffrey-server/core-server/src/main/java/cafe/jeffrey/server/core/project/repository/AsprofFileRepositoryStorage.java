@@ -410,8 +410,9 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
 
             // Skip empty recording files — can happen when JFR streaming-repo
             // writes a file before any events are recorded
+            // it can happened if the AsyncProfiler is stopped before any events are written by non-graceful shutdown
             if (originalSize == 0) {
-                LOG.warn("Skipping empty recording file: sessionId={} file={}", sessionId, sourcePath);
+                LOG.debug("Skipping empty recording file: sessionId={} file={}", sessionId, sourcePath);
                 return null;
             }
 

@@ -27,7 +27,6 @@ import cafe.jeffrey.shared.common.model.workspace.WorkspaceEventType;
 import cafe.jeffrey.server.core.manager.project.ProjectManager;
 import cafe.jeffrey.server.core.manager.project.ProjectsManager;
 import cafe.jeffrey.server.persistence.api.ServerPlatformRepositories;
-import cafe.jeffrey.server.core.scheduler.job.descriptor.ProjectsSynchronizerJobDescriptor;
 
 import java.util.Optional;
 
@@ -47,7 +46,7 @@ public class DeleteProjectWorkspaceEventConsumer implements WorkspaceEventConsum
     }
 
     @Override
-    public void on(WorkspaceEvent event, ProjectsSynchronizerJobDescriptor jobDescriptor, ProjectsManager projectsManager) {
+    public void on(WorkspaceEvent event, ProjectsManager projectsManager) {
         Optional<ProjectManager> project = projectsManager.project(event.projectId());
         if (project.isEmpty()) {
             LOG.error("Project not found for deleting: project_id={}", event.projectId());

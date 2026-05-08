@@ -32,7 +32,7 @@ public record JobDescriptorFactory() {
     public <T extends JobDescriptor<T>> T create(JobType jobType, Map<String, String> params) {
         return (T) switch (jobType) {
             case PROJECTS_SYNCHRONIZER ->
-                    ProjectsSynchronizerJobDescriptor.of(params);
+                    new ProjectsSynchronizerJobDescriptor();
             case PROJECT_INSTANCE_SESSION_CLEANER ->
                     ProjectInstanceSessionCleanerJobDescriptor.of(params);
             case PROJECT_INSTANCE_RECORDING_CLEANER ->
@@ -41,8 +41,8 @@ public record JobDescriptorFactory() {
                     ExpiredInstanceCleanerJobDescriptor.of(params);
             case WORKSPACE_EVENTS_REPLICATOR ->
                     new WorkspaceEventsReplicatorJobDescriptor();
-            case WORKSPACE_PROFILER_SETTINGS_SYNCHRONIZER ->
-                    WorkspaceProfilerSettingsSynchronizerJobDescriptor.of(params);
+            case PROFILER_SETTINGS_SYNCHRONIZER ->
+                    ProfilerSettingsSynchronizerJobDescriptor.of(params);
             case REPOSITORY_JFR_COMPRESSION ->
                     new RepositoryCompressionProjectJobDescriptor();
             case SESSION_FINISHED_DETECTOR ->

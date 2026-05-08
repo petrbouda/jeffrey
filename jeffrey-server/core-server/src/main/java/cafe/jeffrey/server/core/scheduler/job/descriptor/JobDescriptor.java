@@ -23,7 +23,7 @@ import cafe.jeffrey.shared.common.model.job.JobType;
 import java.util.Map;
 
 public sealed interface JobDescriptor<T extends JobDescriptor<T>>
-        permits WorkspaceProfilerSettingsSynchronizerJobDescriptor,
+        permits ProfilerSettingsSynchronizerJobDescriptor,
         ProjectsSynchronizerJobDescriptor,
         ProjectInstanceRecordingCleanerJobDescriptor,
         ProjectInstanceSessionCleanerJobDescriptor,

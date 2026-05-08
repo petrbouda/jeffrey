@@ -21,14 +21,12 @@ package cafe.jeffrey.server.core.scheduler.job;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.server.core.jfr.JfrMessageEmitter;
-import cafe.jeffrey.server.core.manager.SchedulerManager;
 import cafe.jeffrey.server.core.manager.project.ProjectsManager;
 import cafe.jeffrey.server.core.manager.workspace.WorkspaceManager;
 import cafe.jeffrey.server.core.manager.workspace.WorkspacesManager;
 import cafe.jeffrey.shared.persistentqueue.PersistentQueue;
 import cafe.jeffrey.shared.persistentqueue.QueueEntry;
 import cafe.jeffrey.server.core.scheduler.JobContext;
-import cafe.jeffrey.server.core.scheduler.job.descriptor.JobDescriptorFactory;
 import cafe.jeffrey.server.core.scheduler.job.descriptor.ProjectsSynchronizerJobDescriptor;
 import cafe.jeffrey.server.core.workspace.WorkspaceEventConsumerType;
 import cafe.jeffrey.server.core.workspace.consumer.WorkspaceEventConsumer;
@@ -55,11 +53,9 @@ public class ProjectsSynchronizerJob extends WorkspaceJob<ProjectsSynchronizerJo
             List<WorkspaceEventConsumer> consumers,
             PersistentQueue<WorkspaceEvent> workspaceEventQueue,
             WorkspacesManager workspacesManager,
-            SchedulerManager schedulerManager,
-            JobDescriptorFactory jobDescriptorFactory,
             Duration period) {
 
-        super(workspacesManager, schedulerManager, jobDescriptorFactory);
+        super(workspacesManager, new ProjectsSynchronizerJobDescriptor());
         this.consumers = consumers;
         this.workspaceEventQueue = workspaceEventQueue;
         this.period = period;
@@ -99,7 +95,7 @@ public class ProjectsSynchronizerJob extends WorkspaceJob<ProjectsSynchronizerJo
 
                 for (WorkspaceEventConsumer consumer : consumers) {
                     if (consumer.isApplicable(event)) {
-                        consumer.on(event, jobDescriptor, projectsManager);
+                        consumer.on(event, projectsManager);
                         LOG.debug("Successfully processed: event_type={} event_id={} consumer={}",
                                 event.eventType(), entry.offset(), consumer.getClass().getSimpleName());
                     }

@@ -108,11 +108,6 @@ public class JdbcServerPlatformRepositories implements ServerPlatformRepositorie
     }
 
     @Override
-    public SchedulerRepository newProjectSchedulerRepository(String projectId) {
-        return new JdbcProjectSchedulerRepository(projectId, databaseClientProvider);
-    }
-
-    @Override
     public ProjectRepositoryRepository newProjectRepositoryRepository(String projectId) {
         return new JdbcProjectRepositoryRepository(clock, projectId, databaseClientProvider);
     }

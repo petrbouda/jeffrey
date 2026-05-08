@@ -36,7 +36,7 @@ public record ProjectInstanceRecordingCleanerJobDescriptor(
             .collect(Collectors.toMap(ChronoUnit::toString, Function.identity()));
 
     private static final String PARAM_DURATION = "duration";
-    private static final String PARAM_TIME_UNIT = "timeUnit";
+    private static final String PARAM_TIME_UNIT = "time-unit";
 
     @Override
     public Map<String, String> params() {

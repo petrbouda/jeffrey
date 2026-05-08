@@ -26,8 +26,6 @@ import cafe.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
 import cafe.jeffrey.shared.common.model.RecordingEventSource;
 import cafe.jeffrey.shared.common.model.RepositoryInfo;
 import cafe.jeffrey.shared.common.model.RepositoryType;
-import cafe.jeffrey.shared.common.model.job.JobInfo;
-import cafe.jeffrey.shared.common.model.job.JobType;
 
 import java.nio.file.Path;
 import java.sql.ResultSet;
@@ -43,17 +41,6 @@ public abstract class ServerMappers {
             return dateTime.toInstant();
         }
         return null;
-    }
-
-    public static RowMapper<JobInfo> jobInfoMapper() {
-        return (rs, _) -> {
-            String id = rs.getString("id");
-            String projectId = rs.getString("project_id");
-            String jobType = rs.getString("job_type");
-            String params = rs.getString("params");
-            boolean enabled = rs.getBoolean("enabled");
-            return new JobInfo(id, projectId, JobType.valueOf(jobType), Json.toMap(params), enabled);
-        };
     }
 
     public static RowMapper<RepositoryInfo> repositoryInfoMapper() {

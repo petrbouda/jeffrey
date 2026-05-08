@@ -23,7 +23,7 @@ import cafe.jeffrey.shared.common.CliConstants;
 public class DefaultWorkspaceProperties {
 
     private String referenceId = CliConstants.DEFAULT_WORKSPACE_REF_ID;
-    private String name = "$default";
+    private String name = CliConstants.DEFAULT_WORKSPACE_REF_ID;
 
     public DefaultWorkspaceProperties() {
     }

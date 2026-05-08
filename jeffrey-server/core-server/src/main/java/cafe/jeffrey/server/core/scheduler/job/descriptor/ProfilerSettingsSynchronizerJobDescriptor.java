@@ -22,15 +22,24 @@ import cafe.jeffrey.shared.common.model.job.JobType;
 
 import java.util.Map;
 
-public record ProjectsSynchronizerJobDescriptor() implements JobDescriptor<ProjectsSynchronizerJobDescriptor> {
+public record ProfilerSettingsSynchronizerJobDescriptor(
+        int maxVersions
+) implements JobDescriptor<ProfilerSettingsSynchronizerJobDescriptor> {
+
+    private static final String PARAM_MAX_VERSIONS = "max-versions";
 
     @Override
     public Map<String, String> params() {
-        return Map.of();
+        return Map.of(PARAM_MAX_VERSIONS, Integer.toString(maxVersions));
     }
 
     @Override
     public JobType type() {
-        return JobType.PROJECTS_SYNCHRONIZER;
+        return JobType.PROFILER_SETTINGS_SYNCHRONIZER;
+    }
+
+    public static ProfilerSettingsSynchronizerJobDescriptor of(Map<String, String> params) {
+        return new ProfilerSettingsSynchronizerJobDescriptor(
+                JobDescriptorUtils.resolveInt(params, PARAM_MAX_VERSIONS));
     }
 }

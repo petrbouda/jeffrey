@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -18,7 +18,18 @@
 
 package cafe.jeffrey.shared.common.model.job;
 
+import java.time.Duration;
 import java.util.Map;
 
-public record JobInfo(String id, String projectId, JobType jobType, Map<String, String> params, boolean enabled) {
+/**
+ * Read-only view of a configured scheduler job, resolved from
+ * {@code application.properties} at startup. There is exactly one
+ * {@code JobInfo} per {@link JobType}.
+ */
+public record JobInfo(
+        JobType jobType,
+        JobType.ExecutionLevel executionLevel,
+        Duration period,
+        Map<String, String> params,
+        boolean enabled) {
 }

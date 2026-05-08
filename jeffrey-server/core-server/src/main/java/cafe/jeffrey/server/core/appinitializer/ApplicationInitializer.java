@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -23,50 +23,20 @@ import org.springframework.context.ApplicationListener;
 import org.springframework.core.env.ConfigurableEnvironment;
 import cafe.jeffrey.shared.common.CliConstants;
 import cafe.jeffrey.shared.common.model.ProfilerInfo;
-import cafe.jeffrey.server.core.manager.SchedulerManager;
-import cafe.jeffrey.server.core.scheduler.job.descriptor.*;
 import cafe.jeffrey.server.persistence.api.ProfilerRepository;
 
 public class ApplicationInitializer implements ApplicationListener<ApplicationReadyEvent> {
 
-    private final SchedulerManager schedulerManager;
     private final ProfilerRepository profilerRepository;
 
-    public ApplicationInitializer(SchedulerManager schedulerManager, ProfilerRepository profilerRepository) {
-        this.schedulerManager = schedulerManager;
+    public ApplicationInitializer(ProfilerRepository profilerRepository) {
         this.profilerRepository = profilerRepository;
     }
 
     @Override
     public void onApplicationEvent(ApplicationReadyEvent event) {
         ConfigurableEnvironment environment = event.getApplicationContext().getEnvironment();
-
-        initializeGlobalJobs(environment);
         initializeProfilerSettings(environment);
-    }
-
-    private void initializeGlobalJobs(ConfigurableEnvironment environment) {
-        boolean projectSynchronizerCreate = environment.getProperty(
-                "jeffrey.server.job.projects-synchronizer.create-if-not-exists", Boolean.class, true);
-        if (projectSynchronizerCreate) {
-            JobDescriptor<?> descriptor = ProjectsSynchronizerJobDescriptor.of(environment);
-            schedulerManager.create(descriptor.type(), descriptor.params());
-        }
-
-        boolean workspaceEventsReplicatorCreate = environment.getProperty(
-                "jeffrey.server.job.workspace-events-replicator.create-if-not-exists", Boolean.class, true);
-        if (workspaceEventsReplicatorCreate) {
-            JobDescriptor<?> descriptor = new WorkspaceEventsReplicatorJobDescriptor();
-            schedulerManager.create(descriptor.type(), descriptor.params());
-        }
-
-        boolean profileSynchronizerCreate = environment.getProperty(
-                "jeffrey.server.job.profiler-settings-synchronizer.create-if-not-exists", Boolean.class, true);
-        if (profileSynchronizerCreate) {
-            JobDescriptor<?> descriptor = WorkspaceProfilerSettingsSynchronizerJobDescriptor.of(environment);
-            schedulerManager.create(descriptor.type(), descriptor.params());
-        }
-
     }
 
     private void initializeProfilerSettings(ConfigurableEnvironment environment) {

@@ -62,16 +62,6 @@ CREATE TABLE IF NOT EXISTS projects
 CREATE INDEX IF NOT EXISTS idx_projects_workspace_id ON projects(workspace_id);
 CREATE INDEX IF NOT EXISTS idx_projects_namespace ON projects(namespace);
 
-CREATE TABLE IF NOT EXISTS schedulers
-(
-    id         VARCHAR NOT NULL,
-    project_id VARCHAR,
-    job_type   VARCHAR NOT NULL,
-    params     VARCHAR NOT NULL,
-    enabled    BOOLEAN NOT NULL,
-    PRIMARY KEY (id)
-);
-
 --
 -- REPOSITORY TABLES
 --

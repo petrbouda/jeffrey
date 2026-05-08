@@ -26,8 +26,6 @@ import cafe.jeffrey.server.core.manager.ProfilerSettingsManager;
 import cafe.jeffrey.server.core.manager.RepositoryManager;
 import cafe.jeffrey.server.core.manager.RepositoryManagerImpl;
 import cafe.jeffrey.server.core.project.repository.InstanceEnvironmentParser;
-import cafe.jeffrey.server.core.manager.SchedulerManager;
-import cafe.jeffrey.server.core.manager.SchedulerManagerImpl;
 import cafe.jeffrey.server.core.project.repository.RepositoryStorage;
 import cafe.jeffrey.server.core.scheduler.SchedulerTrigger;
 import cafe.jeffrey.server.core.workspace.WorkspaceEventConverter;
@@ -35,7 +33,6 @@ import cafe.jeffrey.server.core.workspace.WorkspaceEventPublisher;
 import cafe.jeffrey.server.persistence.api.ServerPlatformRepositories;
 import cafe.jeffrey.server.persistence.api.ProjectInstanceRepository;
 import cafe.jeffrey.server.persistence.api.ProjectRepository;
-import cafe.jeffrey.server.persistence.api.SchedulerRepository;
 import cafe.jeffrey.shared.common.model.ProjectInfo;
 import cafe.jeffrey.shared.common.model.repository.RecordingSession;
 import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
@@ -55,7 +52,6 @@ public class ServerProjectManager implements ProjectManager {
 
     private final ProjectInfo projectInfo;
     private final ProjectRepository projectRepository;
-    private final SchedulerRepository schedulerRepository;
     private final ServerPlatformRepositories platformRepositories;
     private final RepositoryStorage repositoryStorage;
     private final WorkspaceEventPublisher workspaceEventPublisher;
@@ -77,7 +73,6 @@ public class ServerProjectManager implements ProjectManager {
         this.projectsSynchronizerTrigger = projectsSynchronizerTrigger;
         this.projectInfo = projectInfo;
         this.projectRepository = platformRepositories.newProjectRepository(projectId);
-        this.schedulerRepository = platformRepositories.newProjectSchedulerRepository(projectId);
         this.platformRepositories = platformRepositories;
         this.repositoryStorage = repositoryStorage;
         this.workspaceEventPublisher = workspaceEventPublisher;
@@ -99,11 +94,6 @@ public class ServerProjectManager implements ProjectManager {
                 repositoryStorage,
                 workspaceEventPublisher,
                 instanceEnvironmentParser);
-    }
-
-    @Override
-    public SchedulerManager schedulerManager() {
-        return new SchedulerManagerImpl(schedulerRepository);
     }
 
     @Override

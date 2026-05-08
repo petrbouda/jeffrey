@@ -29,16 +29,20 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 
-public class DataRetentionJob implements Job {
+/**
+ * Trims the persistent workspace-events queue, deleting entries older than the
+ * configured retention window so storage stays bounded.
+ */
+public class WorkspaceEventsCleanerJob implements Job {
 
-    private static final Logger LOG = LoggerFactory.getLogger(DataRetentionJob.class);
+    private static final Logger LOG = LoggerFactory.getLogger(WorkspaceEventsCleanerJob.class);
 
     private final PersistentQueue<?> persistentQueue;
     private final Clock clock;
     private final Duration period;
     private final Duration queueEventsRetention;
 
-    public DataRetentionJob(
+    public WorkspaceEventsCleanerJob(
             PersistentQueue<?> persistentQueue,
             Clock clock,
             Duration period,
@@ -70,6 +74,6 @@ public class DataRetentionJob implements Job {
 
     @Override
     public JobType jobType() {
-        return JobType.DATA_RETENTION;
+        return JobType.WORKSPACE_EVENTS_CLEANER;
     }
 }

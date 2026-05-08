@@ -24,7 +24,6 @@ import cafe.jeffrey.server.core.manager.project.ProjectManager;
 import cafe.jeffrey.server.core.manager.workspace.WorkspacesManager;
 import cafe.jeffrey.server.core.scheduler.JobContext;
 import cafe.jeffrey.server.core.scheduler.job.descriptor.ExpiredInstanceCleanerJobDescriptor;
-import cafe.jeffrey.server.core.scheduler.job.descriptor.JobDescriptorFactory;
 import cafe.jeffrey.server.persistence.api.ServerPlatformRepositories;
 import cafe.jeffrey.server.persistence.api.ProjectInstanceRepository;
 import cafe.jeffrey.shared.common.model.ProjectInstanceInfo;
@@ -49,11 +48,11 @@ public class ExpiredInstanceCleanerJob extends ProjectJob<ExpiredInstanceCleaner
 
     public ExpiredInstanceCleanerJob(
             WorkspacesManager workspacesManager,
-            JobDescriptorFactory jobDescriptorFactory,
+            ExpiredInstanceCleanerJobDescriptor jobDescriptor,
             Duration period,
             Clock clock,
             ServerPlatformRepositories platformRepositories) {
-        super(workspacesManager, jobDescriptorFactory);
+        super(workspacesManager, jobDescriptor);
         this.period = period;
         this.clock = clock;
         this.platformRepositories = platformRepositories;

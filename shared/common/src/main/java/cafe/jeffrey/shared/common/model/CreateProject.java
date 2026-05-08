@@ -26,7 +26,6 @@ public record CreateProject(
         String projectName,
         String projectLabel,
         String namespace,
-        String templateId,
         Instant originCreatedAt,
         Map<String, String> attributes) {
 }

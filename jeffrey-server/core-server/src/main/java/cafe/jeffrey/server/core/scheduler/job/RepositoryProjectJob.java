@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -23,7 +23,6 @@ import cafe.jeffrey.server.core.manager.workspace.WorkspacesManager;
 import cafe.jeffrey.server.core.project.repository.RepositoryStorage;
 import cafe.jeffrey.server.core.scheduler.JobContext;
 import cafe.jeffrey.server.core.scheduler.job.descriptor.JobDescriptor;
-import cafe.jeffrey.server.core.scheduler.job.descriptor.JobDescriptorFactory;
 
 /**
  * Base class for PROJECT-level jobs that operate on repository storage.
@@ -36,9 +35,9 @@ public abstract class RepositoryProjectJob<T extends JobDescriptor<T>> extends P
     protected RepositoryProjectJob(
             WorkspacesManager workspacesManager,
             RepositoryStorage.Factory remoteRepositoryManagerFactory,
-            JobDescriptorFactory jobDescriptorFactory) {
+            T jobDescriptor) {
 
-        super(workspacesManager, jobDescriptorFactory);
+        super(workspacesManager, jobDescriptor);
         this.remoteRepositoryManagerFactory = remoteRepositoryManagerFactory;
     }
 

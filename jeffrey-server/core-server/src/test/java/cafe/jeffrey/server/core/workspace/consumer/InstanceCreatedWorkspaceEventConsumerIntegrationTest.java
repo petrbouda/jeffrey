@@ -25,7 +25,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import cafe.jeffrey.server.core.manager.project.ProjectManager;
 import cafe.jeffrey.server.core.manager.project.ProjectsManager;
-import cafe.jeffrey.server.core.scheduler.job.descriptor.ProjectsSynchronizerJobDescriptor;
 import cafe.jeffrey.shared.common.model.workspace.event.InstanceCreatedEventContent;
 import cafe.jeffrey.server.persistence.jdbc.JdbcProjectInstanceRepository;
 import cafe.jeffrey.shared.common.Json;
@@ -60,9 +59,6 @@ class InstanceCreatedWorkspaceEventConsumerIntegrationTest {
             PROJECT_ID, ORIGIN_PROJECT_ID, "Test Project", "Label 1", null,
             WORKSPACE_ID, Instant.parse("2025-01-01T11:00:00Z"), null, Map.of(), null);
 
-    private static final ProjectsSynchronizerJobDescriptor JOB_DESCRIPTOR =
-            new ProjectsSynchronizerJobDescriptor("test-template");
-
     private static WorkspaceEvent instanceCreatedEvent(String instanceId) {
         InstanceCreatedEventContent content = new InstanceCreatedEventContent("inst-dir-001");
         return new WorkspaceEvent(null, instanceId, ORIGIN_PROJECT_ID, WORKSPACE_ID,
@@ -90,7 +86,7 @@ class InstanceCreatedWorkspaceEventConsumerIntegrationTest {
             when(projectManager.projectInstanceRepository()).thenReturn(instanceRepo);
 
             var consumer = new InstanceCreatedWorkspaceEventConsumer();
-            consumer.on(instanceCreatedEvent("inst-new-001"), JOB_DESCRIPTOR, projectsManager);
+            consumer.on(instanceCreatedEvent("inst-new-001"), projectsManager);
 
             Optional<ProjectInstanceInfo> instance = instanceRepo.find("inst-new-001");
             assertTrue(instance.isPresent());
@@ -126,7 +122,7 @@ class InstanceCreatedWorkspaceEventConsumerIntegrationTest {
 
             // inst-001 already exists from SQL fixture
             var consumer = new InstanceCreatedWorkspaceEventConsumer();
-            consumer.on(instanceCreatedEvent("inst-001"), JOB_DESCRIPTOR, projectsManager);
+            consumer.on(instanceCreatedEvent("inst-001"), projectsManager);
 
             // Should still have exactly one instance (not duplicated)
             var allInstances = instanceRepo.findAll();
@@ -149,7 +145,7 @@ class InstanceCreatedWorkspaceEventConsumerIntegrationTest {
 
             // Should not throw
             assertDoesNotThrow(() ->
-                    consumer.on(instanceCreatedEvent("inst-001"), JOB_DESCRIPTOR, projectsManager));
+                    consumer.on(instanceCreatedEvent("inst-001"), projectsManager));
         }
     }
 }

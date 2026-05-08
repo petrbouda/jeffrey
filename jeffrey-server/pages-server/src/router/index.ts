@@ -18,6 +18,7 @@
 
 import { createRouter, createWebHistory } from 'vue-router';
 import ServerDashboard from '@/views/server/ServerDashboard.vue';
+import SchedulerView from '@/views/server/SchedulerView.vue';
 import GrpcApiDocs from '@/views/server/GrpcApiDocs.vue';
 
 const router = createRouter({
@@ -27,6 +28,11 @@ const router = createRouter({
             path: '/',
             name: 'server-dashboard',
             component: ServerDashboard
+        },
+        {
+            path: '/scheduler',
+            name: 'scheduler',
+            component: SchedulerView
         },
         {
             path: '/api-docs',

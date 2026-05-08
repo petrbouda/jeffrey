@@ -28,27 +28,23 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.PropertySource;
 import cafe.jeffrey.server.core.configuration.properties.DefaultWorkspaceProperties;
-import cafe.jeffrey.server.core.configuration.properties.JobProperties;
+import cafe.jeffrey.server.core.configuration.properties.SchedulerJobsProperties;
 import cafe.jeffrey.server.core.scheduler.job.descriptor.JobDescriptorFactory;
 import cafe.jeffrey.shared.common.JeffreyVersion;
 import cafe.jeffrey.server.core.appinitializer.CopyLibsInitializer;
 import cafe.jeffrey.server.core.configuration.properties.ProjectProperties;
 import cafe.jeffrey.server.core.manager.RepositoryManager;
 import cafe.jeffrey.server.core.manager.RepositoryManagerImpl;
-import cafe.jeffrey.server.core.manager.SchedulerManager;
-import cafe.jeffrey.server.core.manager.SchedulerManagerImpl;
 import cafe.jeffrey.server.core.manager.project.ProjectManager;
 import cafe.jeffrey.server.core.manager.project.ServerProjectManager;
 import cafe.jeffrey.server.core.manager.workspace.WorkspacesManager;
-import cafe.jeffrey.server.core.project.pipeline.AddProjectJobsStage;
-import cafe.jeffrey.server.core.project.pipeline.ProjectPipelineCustomizer;
 import cafe.jeffrey.server.core.project.repository.AsprofFileRepositoryStorage;
 import cafe.jeffrey.server.core.project.repository.InstanceEnvironmentParser;
 import cafe.jeffrey.server.core.project.repository.RepositoryStorage;
 import cafe.jeffrey.server.core.project.repository.file.AsprofFileInfoProcessor;
-import cafe.jeffrey.server.core.project.template.ProjectTemplatesLoader;
-import cafe.jeffrey.server.core.scheduler.JobDefinitionLoader;
+import cafe.jeffrey.server.core.scheduler.Scheduler;
 import cafe.jeffrey.server.core.scheduler.SchedulerTrigger;
 import cafe.jeffrey.server.core.streaming.LiveStreamingManager;
 import cafe.jeffrey.server.core.streaming.ReplayStreamingManager;
@@ -57,7 +53,6 @@ import cafe.jeffrey.server.core.web.WebInfrastructureConfig;
 import cafe.jeffrey.server.core.workspace.WorkspaceEventPublisher;
 import cafe.jeffrey.server.persistence.jdbc.DuckDBServerPersistenceProvider;
 import cafe.jeffrey.server.persistence.api.ServerPersistenceProvider;
-import cafe.jeffrey.server.persistence.jdbc.JdbcGlobalSchedulerRepository;
 import cafe.jeffrey.server.persistence.api.ServerPlatformRepositories;
 import cafe.jeffrey.shared.common.StringUtils;
 import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
@@ -76,12 +71,13 @@ import java.time.Clock;
         JobsConfiguration.class,
         WebInfrastructureConfig.class
 })
-@EnableConfigurationProperties({ProjectProperties.class, JobProperties.class})
+@EnableConfigurationProperties({ProjectProperties.class, SchedulerJobsProperties.class})
+@PropertySource("classpath:scheduler-defaults.properties")
 public class ServerAppConfiguration {
 
     private static final Logger LOG = LoggerFactory.getLogger(ServerAppConfiguration.class);
 
-    public static final String GLOBAL_SCHEDULER_MANAGER_BEAN = "globalSchedulerManagerBean";
+    public static final String GLOBAL_SCHEDULER = "GLOBAL_SCHEDULER";
     public static final String PROJECTS_SYNCHRONIZER_TRIGGER = "PROJECTS_SYNCHRONIZER_TRIGGER";
 
     @Bean
@@ -92,7 +88,7 @@ public class ServerAppConfiguration {
     @Bean
     public DefaultWorkspaceProperties defaultWorkspaceProperties(
             @Value("${jeffrey.server.default-workspace.reference-id:#{T(cafe.jeffrey.shared.common.CliConstants).DEFAULT_WORKSPACE_REF_ID}}") String referenceId,
-            @Value("${jeffrey.server.default-workspace.name:$default}") String name) {
+            @Value("${jeffrey.server.default-workspace.name:#{T(cafe.jeffrey.shared.common.CliConstants).DEFAULT_WORKSPACE_REF_ID}}}") String name) {
         return new DefaultWorkspaceProperties(referenceId, name);
     }
 
@@ -134,11 +130,6 @@ public class ServerAppConfiguration {
         jeffreyDirs.initialize();
         LOG.info("Using Jeffrey directory: HOME={} TEMP={}", jeffreyDirs.homeDir(), jeffreyDirs.temp());
         return jeffreyDirs;
-    }
-
-    @Bean(GLOBAL_SCHEDULER_MANAGER_BEAN)
-    public SchedulerManager globalSchedulerManager(DatabaseClientProvider databaseClientProvider) {
-        return new SchedulerManagerImpl(new JdbcGlobalSchedulerRepository(databaseClientProvider));
     }
 
     @Bean
@@ -197,27 +188,6 @@ public class ServerAppConfiguration {
     }
 
     @Bean
-    public ProjectTemplatesLoader projectTemplatesLoader(
-            @Value("${jeffrey.server.default-project-templates:classpath:project-templates/default-project-templates.json}") String projectTemplatesPath) {
-        return new ProjectTemplatesLoader(projectTemplatesPath);
-    }
-
-    @Bean
-    public JobDefinitionLoader jobDefinitionLoader(
-            @Value("${jeffrey.server.default-job-definitions:classpath:job-definitions/default-job-definitions.json}") String jobDefinitionsPath) {
-        return new JobDefinitionLoader(jobDefinitionsPath);
-    }
-
-    @Bean
-    public ProjectPipelineCustomizer addProjectJobsPipelineCustomizer(
-            ServerPlatformRepositories platformRepositories,
-            ProjectTemplatesLoader projectTemplatesLoader,
-            JobDefinitionLoader jobDefinitionLoader) {
-        return pipeline -> pipeline.addStage(
-                new AddProjectJobsStage(platformRepositories, projectTemplatesLoader, jobDefinitionLoader));
-    }
-
-    @Bean
     @ConditionalOnProperty(value = "jeffrey.server.copy-libs.enabled", havingValue = "true", matchIfMissing = false)
     public CopyLibsInitializer copyLibsInitializer(
             ServerJeffreyDirs jeffreyDirs,
@@ -251,8 +221,7 @@ public class ServerAppConfiguration {
     }
 
     @Bean
-    public JobDescriptorFactory  jobDescriptorFactory() {
+    public JobDescriptorFactory jobDescriptorFactory() {
         return new JobDescriptorFactory();
     }
-
 }

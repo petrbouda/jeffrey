@@ -24,7 +24,6 @@ import cafe.jeffrey.server.core.jfr.JfrMessageEmitter;
 import cafe.jeffrey.server.core.manager.project.ProjectManager;
 import cafe.jeffrey.server.core.manager.project.ProjectsManager;
 import cafe.jeffrey.server.core.project.repository.RepositoryStorage;
-import cafe.jeffrey.server.core.scheduler.job.descriptor.ProjectsSynchronizerJobDescriptor;
 import cafe.jeffrey.server.persistence.api.ServerPlatformRepositories;
 import cafe.jeffrey.server.persistence.api.ProjectInstanceRepository;
 import cafe.jeffrey.server.persistence.api.ProjectRepositoryRepository;
@@ -58,7 +57,7 @@ public class DeleteSessionWorkspaceEventConsumer implements WorkspaceEventConsum
     }
 
     @Override
-    public void on(WorkspaceEvent event, ProjectsSynchronizerJobDescriptor jobDescriptor, ProjectsManager projectsManager) {
+    public void on(WorkspaceEvent event, ProjectsManager projectsManager) {
         Optional<ProjectManager> project = projectsManager.project(event.projectId());
         if (project.isEmpty()) {
             LOG.error("Project not found for deleting session: project_id: {}", event.projectId());

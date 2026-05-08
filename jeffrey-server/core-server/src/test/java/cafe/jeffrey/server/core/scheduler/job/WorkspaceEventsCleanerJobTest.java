@@ -39,7 +39,7 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @DuckDBTest(migration = "classpath:db/migration/server")
-class DataRetentionJobTest {
+class WorkspaceEventsCleanerJobTest {
 
     // Fixed time: 2025-06-30. Old data is from 2025-05-01/05-05 (>31 days), recent from 2025-06-25 (<31 days)
     private static final Instant FIXED_TIME = Instant.parse("2025-06-30T12:00:00Z");
@@ -47,7 +47,7 @@ class DataRetentionJobTest {
     private static final Duration RETENTION = Duration.ofDays(31);
     private static final Duration PERIOD = Duration.ofDays(1);
 
-    private static DataRetentionJob createJob(DataSource dataSource) {
+    private static WorkspaceEventsCleanerJob createJob(DataSource dataSource) {
         var provider = new DatabaseClientProvider(dataSource);
 
         var queue = new DuckDBPersistentQueue<>(provider, "test-queue",
@@ -68,7 +68,7 @@ class DataRetentionJobTest {
                     }
                 }, FIXED_CLOCK);
 
-        return new DataRetentionJob(
+        return new WorkspaceEventsCleanerJob(
                 queue,
                 FIXED_CLOCK,
                 PERIOD,

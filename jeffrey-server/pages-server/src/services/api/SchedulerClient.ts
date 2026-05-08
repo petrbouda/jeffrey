@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,8 +16,15 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.server.core.project.template;
+import BasePlatformClient from '@/services/api/BasePlatformClient';
+import type { JobView } from '@/services/api/model/JobView';
 
-public enum TemplateTarget {
-    PROJECT, GLOBAL_SCHEDULER
+export default class SchedulerClient extends BasePlatformClient {
+    constructor() {
+        super('/scheduler');
+    }
+
+    jobs(): Promise<JobView[]> {
+        return this.get<JobView[]>('/jobs');
+    }
 }

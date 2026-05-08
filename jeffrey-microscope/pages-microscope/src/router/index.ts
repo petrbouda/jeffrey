@@ -513,12 +513,6 @@ const router = createRouter({
                   meta: { layout: 'project' }
                 },
                 {
-                  path: 'scheduler',
-                  name: 'project-scheduler',
-                  component: () => import('@/views/projects/detail/SchedulerList.vue'),
-                  meta: { layout: 'project' }
-                },
-                {
                   path: 'profiler-settings',
                   name: 'project-profiler-settings',
                   component: () =>

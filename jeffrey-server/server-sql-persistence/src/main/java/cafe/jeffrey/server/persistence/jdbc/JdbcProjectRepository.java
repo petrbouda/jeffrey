@@ -46,7 +46,6 @@ public class JdbcProjectRepository implements ProjectRepository {
 
     //language=SQL
     private static final String DELETE_PROJECT_CASCADE = """
-            DELETE FROM schedulers WHERE project_id = '%project_id%';
             DELETE FROM project_instance_sessions WHERE repository_id IN (SELECT repository_id FROM repositories WHERE project_id = '%project_id%');
             DELETE FROM project_instances WHERE project_id = '%project_id%';
             DELETE FROM repositories WHERE project_id = '%project_id%';

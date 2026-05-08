@@ -27,7 +27,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import cafe.jeffrey.server.core.manager.project.ProjectManager;
 import cafe.jeffrey.server.core.manager.project.ProjectsManager;
 import cafe.jeffrey.server.core.project.repository.RepositoryStorage;
-import cafe.jeffrey.server.core.scheduler.job.descriptor.ProjectsSynchronizerJobDescriptor;
 import cafe.jeffrey.server.persistence.jdbc.JdbcServerPlatformRepositories;
 import cafe.jeffrey.server.persistence.api.ServerPlatformRepositories;
 import cafe.jeffrey.shared.common.Json;
@@ -67,9 +66,6 @@ class DeleteProjectWorkspaceEventConsumerIntegrationTest {
     private static final ProjectInfo PROJECT_INFO = new ProjectInfo(
             PROJECT_ID, ORIGIN_PROJECT_ID, "Test Project", "Label 1", null,
             WORKSPACE_ID, Instant.parse("2025-01-01T11:00:00Z"), null, Map.of(), null);
-
-    private static final ProjectsSynchronizerJobDescriptor JOB_DESCRIPTOR =
-            new ProjectsSynchronizerJobDescriptor("test-template");
 
     private static WorkspaceEvent projectDeletedEvent() {
         return new WorkspaceEvent(null, ORIGIN_PROJECT_ID, ORIGIN_PROJECT_ID, WORKSPACE_ID,
@@ -115,7 +111,7 @@ class DeleteProjectWorkspaceEventConsumerIntegrationTest {
 
             var consumer = new DeleteProjectWorkspaceEventConsumer(
                     platformRepositories, repositoryStorageFactory);
-            consumer.on(projectDeletedEvent(), JOB_DESCRIPTOR, projectsManager);
+            consumer.on(projectDeletedEvent(), projectsManager);
 
             // 1. Remote sessions deleted
             verify(repositoryStorage).deleteSession("session-001");
@@ -156,7 +152,7 @@ class DeleteProjectWorkspaceEventConsumerIntegrationTest {
 
             var consumer = new DeleteProjectWorkspaceEventConsumer(
                     platformRepositories, repositoryStorageFactory);
-            consumer.on(projectDeletedEvent(), JOB_DESCRIPTOR, projectsManager);
+            consumer.on(projectDeletedEvent(), projectsManager);
 
             // SQL cascade should still happen despite remote failure
             var projectRepo = platformRepositories.newProjectRepository(PROJECT_ID);
@@ -183,7 +179,7 @@ class DeleteProjectWorkspaceEventConsumerIntegrationTest {
                     platformRepositories, repositoryStorageFactory);
 
             assertDoesNotThrow(() ->
-                    consumer.on(projectDeletedEvent(), JOB_DESCRIPTOR, projectsManager));
+                    consumer.on(projectDeletedEvent(), projectsManager));
 
             verifyNoInteractions(repositoryStorageFactory);
         }

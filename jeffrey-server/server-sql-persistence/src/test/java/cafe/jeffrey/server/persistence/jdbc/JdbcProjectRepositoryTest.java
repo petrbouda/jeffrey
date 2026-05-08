@@ -106,17 +106,11 @@ class JdbcProjectRepositoryTest {
 
             // Related data should be hard-deleted
             try (Connection conn = dataSource.getConnection();
-                 Statement stmt = conn.createStatement()) {
-                try (ResultSet rs = stmt.executeQuery(
-                        "SELECT COUNT(*) FROM schedulers WHERE project_id = 'proj-001'")) {
-                    rs.next();
-                    assertEquals(0, rs.getInt(1), "Schedulers should be hard-deleted");
-                }
-                try (ResultSet rs = stmt.executeQuery(
-                        "SELECT COUNT(*) FROM profiler_settings WHERE project_id = 'proj-001'")) {
-                    rs.next();
-                    assertEquals(0, rs.getInt(1), "Profiler settings should be hard-deleted");
-                }
+                 Statement stmt = conn.createStatement();
+                 ResultSet rs = stmt.executeQuery(
+                         "SELECT COUNT(*) FROM profiler_settings WHERE project_id = 'proj-001'")) {
+                rs.next();
+                assertEquals(0, rs.getInt(1), "Profiler settings should be hard-deleted");
             }
         }
     }

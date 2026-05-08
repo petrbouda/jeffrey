@@ -37,8 +37,6 @@ public interface ServerPlatformRepositories {
 
     ProjectsRepository newProjectsRepository();
 
-    SchedulerRepository newProjectSchedulerRepository(String projectId);
-
     ProjectRepositoryRepository newProjectRepositoryRepository(String projectId);
 
     WorkspaceRepository newWorkspaceRepository(String workspaceId);

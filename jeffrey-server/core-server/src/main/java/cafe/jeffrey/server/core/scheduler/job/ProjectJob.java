@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -20,59 +20,45 @@ package cafe.jeffrey.server.core.scheduler.job;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import cafe.jeffrey.shared.common.model.job.JobInfo;
 import cafe.jeffrey.server.core.manager.project.ProjectManager;
 import cafe.jeffrey.server.core.manager.workspace.WorkspaceManager;
 import cafe.jeffrey.server.core.manager.workspace.WorkspacesManager;
 import cafe.jeffrey.server.core.scheduler.Job;
 import cafe.jeffrey.server.core.scheduler.JobContext;
 import cafe.jeffrey.server.core.scheduler.job.descriptor.JobDescriptor;
-import cafe.jeffrey.server.core.scheduler.job.descriptor.JobDescriptorFactory;
 
 import java.time.Duration;
-import java.util.List;
 
 /**
- * Base class for PROJECT-level jobs that operate on individual projects.
- * Unlike WorkspaceJob which uses the global scheduler, ProjectJob queries
- * project-level schedulers to find job configurations.
+ * Base class for jobs that fan out across all projects in all workspaces. The
+ * descriptor is constant for the lifetime of the job (resolved at startup from
+ * {@code application.properties}); each tick iterates the live project list and
+ * invokes {@link #execute} once per project.
  */
 public abstract class ProjectJob<T extends JobDescriptor<T>> implements Job {
 
     private static final Logger LOG = LoggerFactory.getLogger(ProjectJob.class);
 
     private final WorkspacesManager workspacesManager;
-    protected final JobDescriptorFactory jobDescriptorFactory;
+    protected final T jobDescriptor;
 
-    protected ProjectJob(
-            WorkspacesManager workspacesManager,
-            JobDescriptorFactory jobDescriptorFactory) {
+    protected ProjectJob(WorkspacesManager workspacesManager, T jobDescriptor) {
         this.workspacesManager = workspacesManager;
-        this.jobDescriptorFactory = jobDescriptorFactory;
+        this.jobDescriptor = jobDescriptor;
     }
 
     @Override
     public void execute(JobContext context) {
         String simpleName = this.getClass().getSimpleName();
 
-        // Iterate all workspaces (no isLive filter - runs for all projects)
         for (WorkspaceManager workspaceManager : workspacesManager.findAll()) {
-            // Iterate all projects in the workspace
             for (ProjectManager projectManager : workspaceManager.projectsManager().findAll()) {
-                // Query project-level scheduler for this job type
-                List<JobInfo> projectJobs = projectManager.schedulerManager().all(jobType());
-
-                for (JobInfo jobInfo : projectJobs) {
-                    if (jobInfo.enabled()) {
-                        T jobDescriptor = jobDescriptorFactory.create(jobInfo);
-
-                        long start = System.nanoTime();
-                        execute(projectManager, jobDescriptor, context);
-                        Duration elapsed = Duration.ofNanos(System.nanoTime() - start);
-                        LOG.debug("Job completed: job={} elapsed_ms={} workspace_id={} project_id={}",
-                                simpleName, elapsed.toMillis(), workspaceManager.resolveInfo().id(), projectManager.info().id());
-                    }
-                }
+                long start = System.nanoTime();
+                execute(projectManager, jobDescriptor, context);
+                Duration elapsed = Duration.ofNanos(System.nanoTime() - start);
+                LOG.debug("Job completed: job={} elapsed_ms={} workspace_id={} project_id={}",
+                        simpleName, elapsed.toMillis(),
+                        workspaceManager.resolveInfo().id(), projectManager.info().id());
             }
         }
     }

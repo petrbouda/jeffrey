@@ -27,6 +27,7 @@
       </div>
       <nav class="header-nav">
         <router-link to="/" class="nav-tab">Workspaces</router-link>
+        <router-link to="/scheduler" class="nav-tab">Scheduler</router-link>
         <router-link to="/api-docs" class="nav-tab">API Documentation</router-link>
       </nav>
     </div>
@@ -177,7 +178,7 @@ onMounted(() => {
 
 <style scoped>
 .server-dashboard {
-  max-width: 900px;
+  max-width: 1100px;
   margin: 0 auto;
   padding: 32px 24px;
 }
