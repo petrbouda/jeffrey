@@ -43,15 +43,19 @@ import java.util.PriorityQueue;
 import java.util.Set;
 
 /**
- * Provides a dominator tree view of the heap.
+ * Provides a strict dominator tree view of the heap.
  * <p>
- * For root nodes, uses a heuristic approach: selects the largest objects by retained size
- * from the top classes and filters out dominated entries.
+ * For root nodes, selects the largest objects by retained size from the top classes
+ * and filters out entries that are themselves dominated by another candidate.
  * <p>
- * For children, uses the true dominator tree computed by the NetBeans Profiler library
- * (accessed via {@link DominatorTreeReflection}). Each child is an object whose immediate
- * dominator is the parent node. Falls back to field-reference traversal if reflection
- * is unavailable.
+ * For children, returns only objects whose immediate dominator is the parent — the true
+ * dominator tree computed by the NetBeans Profiler library (accessed via
+ * {@link DominatorTreeReflection}). Field references on the parent are used solely to
+ * attribute field names to dominated children; non-dominated field targets are excluded.
+ * <p>
+ * If reflection into the NetBeans dominator tree is unavailable, both {@link #getRoots}
+ * and {@link #getChildren} log an error and return an empty response. There is no
+ * field-reference fallback.
  */
 public class DominatorTreeAnalyzer {
 
@@ -203,8 +207,13 @@ public class DominatorTreeAnalyzer {
             }
         }
 
-        // Filter out entries that are truly dominated by another candidate
+        // Filter out entries that are truly dominated by another candidate.
+        // Strict mode: reflection must be available; otherwise we cannot honestly compute dominance.
         DominatorTreeReflection reflection = getReflection(heap);
+        if (!reflection.isAvailable()) {
+            LOG.error("Dominator tree reflection unavailable, cannot compute strict roots");
+            return new DominatorTreeResponse(List.of(), correctedTotalHeap, compressedOops, false);
+        }
         Set<Long> candidateIds = new HashSet<>();
         for (CandidateEntry entry : minHeap) {
             candidateIds.add(entry.instance().getInstanceId());
@@ -259,13 +268,14 @@ public class DominatorTreeAnalyzer {
      * Get children of a node in the dominator tree: objects whose immediate dominator
      * is the given parent, sorted by retained size with offset-based pagination.
      * <p>
-     * Uses a hybrid approach:
+     * Strict mode:
      * <ol>
-     *   <li>Collects direct field references (for field name attribution)</li>
+     *   <li>Collects direct field references purely for field-name attribution</li>
      *   <li>Queries the NetBeans DominatorTree via reflection for true dominated children</li>
-     *   <li>Merges both sources, deduplicates, sorts by retained size, and returns the requested page</li>
+     *   <li>Includes field-ref targets only when their immediate dominator is this parent
+     *       (single-parent {@code idom == -1} or multi-parent {@code idom == objectId})</li>
      * </ol>
-     * Falls back to field-reference-only behavior if reflection is unavailable.
+     * Returns an empty response if reflection is unavailable (no field-reference fallback).
      */
     @SuppressWarnings("unchecked")
     public DominatorTreeResponse getChildren(Heap heap, long objectId, int offset, int limit, boolean compressedOops, long totalOvercount) {
@@ -328,33 +338,32 @@ public class DominatorTreeAnalyzer {
             }
         }
 
-        // Phase 2: Get true dominated children from the dominator tree via reflection (cached)
+        // Phase 2: Get true dominated children from the dominator tree via reflection (cached).
+        // Strict mode: if reflection is unavailable, return empty rather than degrade to field-ref-only.
         DominatorTreeReflection reflection = getReflection(heap);
-        List<Long> dominatedIds = reflection.isAvailable()
-                ? reflection.findDominatedChildren(objectId)
-                : List.of();
+        if (!reflection.isAvailable()) {
+            LOG.error("Dominator tree reflection unavailable, cannot compute strict children: parentId={}", objectId);
+            return new DominatorTreeResponse(List.of(), totalHeapSize, compressedOops, false);
+        }
+        List<Long> dominatedIds = reflection.findDominatedChildren(objectId);
 
-        // Phase 3: Merge candidates (instanceId -> fieldName, null = dominated-only)
+        // Phase 3: Merge candidates (instanceId -> fieldName, null = dominated-only).
+        // Only objects whose immediate dominator is this parent are included; field references
+        // are used purely for field-name attribution.
         Map<Long, String> candidates = new HashMap<>();
 
         for (Map.Entry<Long, String> entry : fieldRefNames.entrySet()) {
             long childId = entry.getKey();
             String fieldName = entry.getValue();
-
-            if (!reflection.isAvailable()) {
-                // Fallback: include all field references (original behavior)
+            long idom = reflection.getIdom(childId);
+            if (idom == -1) {
+                // Single-parent instance: idom is its sole referrer (this parent)
                 candidates.put(childId, fieldName);
-            } else {
-                long idom = reflection.getIdom(childId);
-                if (idom == -1) {
-                    // Single-parent instance: idom is its sole referrer (the parent)
-                    candidates.put(childId, fieldName);
-                } else if (idom == objectId) {
-                    // Multi-parent instance dominated by this parent
-                    candidates.put(childId, fieldName);
-                }
-                // else: multi-parent instance dominated by someone else -> skip
+            } else if (idom == objectId) {
+                // Multi-parent instance dominated by this parent
+                candidates.put(childId, fieldName);
             }
+            // else: multi-parent instance dominated by someone else -> skip
         }
 
         // Add dominated children not found via field references
@@ -421,36 +430,22 @@ public class DominatorTreeAnalyzer {
     }
 
     /**
-     * Checks if an instance is truly dominated by another candidate using the dominator tree.
-     * Falls back to referrer heuristic when reflection is unavailable.
+     * Checks if an instance is truly dominated by another candidate using the NetBeans dominator tree.
+     * Caller must verify reflection is available before invoking.
      */
     @SuppressWarnings("unchecked")
     private boolean isDominatedByCandidate(Instance instance, Set<Long> candidateIds,
                                            DominatorTreeReflection reflection) {
         long instanceId = instance.getInstanceId();
-
-        if (reflection.isAvailable()) {
-            // Use true dominator: check if the immediate dominator is in the candidate set
-            long idom = reflection.getIdom(instanceId);
-            if (idom > 0) {
-                return candidateIds.contains(idom);
-            }
-            // idom == -1 means single-parent; check the sole referrer
-            List<Value> references = (List<Value>) instance.getReferences();
-            if (references.size() == 1) {
-                Instance referrer = references.get(0).getDefiningInstance();
-                return referrer != null && candidateIds.contains(referrer.getInstanceId());
-            }
-            return false;
+        long idom = reflection.getIdom(instanceId);
+        if (idom > 0) {
+            return candidateIds.contains(idom);
         }
-
-        // Fallback: referrer heuristic (original behavior)
+        // idom == -1 means single-parent; the immediate dominator is the sole referrer
         List<Value> references = (List<Value>) instance.getReferences();
-        for (Value ref : references) {
-            Instance referrer = ref.getDefiningInstance();
-            if (referrer != null && candidateIds.contains(referrer.getInstanceId())) {
-                return true;
-            }
+        if (references.size() == 1) {
+            Instance referrer = references.get(0).getDefiningInstance();
+            return referrer != null && candidateIds.contains(referrer.getInstanceId());
         }
         return false;
     }
