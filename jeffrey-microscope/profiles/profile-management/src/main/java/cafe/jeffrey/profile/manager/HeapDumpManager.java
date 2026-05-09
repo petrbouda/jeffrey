@@ -37,6 +37,7 @@ import cafe.jeffrey.profile.heapdump.model.LeakSuspectsReport;
 import cafe.jeffrey.profile.heapdump.model.OQLQueryRequest;
 import cafe.jeffrey.profile.heapdump.model.OQLQueryResult;
 import cafe.jeffrey.profile.heapdump.model.SortBy;
+import cafe.jeffrey.profile.heapdump.model.ConsumerReport;
 import cafe.jeffrey.profile.heapdump.model.StringAnalysisReport;
 import cafe.jeffrey.profile.heapdump.model.ThreadAnalysisReport;
 import cafe.jeffrey.profile.heapdump.model.ThreadStackFrame;
@@ -405,5 +406,22 @@ public interface HeapDumpManager {
      * Run class loader analysis and save results to JSON file.
      */
     void runClassLoaderAnalysis();
+
+    // --- Consumer Report ---
+
+    /**
+     * Check if the consumer report (top consumers + component report) exists for this profile.
+     */
+    boolean consumerReportExists();
+
+    /**
+     * Get the pre-computed consumer report.
+     */
+    ConsumerReport getConsumerReport();
+
+    /**
+     * Run the consumer / component analysis and save results to JSON file.
+     */
+    void runConsumerReport();
 
 }
