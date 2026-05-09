@@ -22,48 +22,11 @@
 
   <ErrorState v-else-if="error" :message="error" />
 
-  <!-- Analysis Not Yet Run -->
-  <div v-else-if="!analysisExists && !analysisRunning">
-    <PageHeader
-      title="Collection Analysis"
-      description="Find over-allocated and empty collections"
-      icon="bi-collection"
-    />
-
-    <div class="alert alert-warning d-flex align-items-center">
-      <i class="bi bi-exclamation-triangle me-3 fs-4"></i>
-      <div class="flex-grow-1">
-        <h6 class="mb-1">Collection Analysis Not Available</h6>
-        <p class="mb-2 small">
-          The collection analysis was not found. This can happen if the heap dump was initialized
-          before this feature was added. You can run the analysis now.
-        </p>
-        <button class="btn btn-primary btn-sm" @click="runAnalysis">
-          <i class="bi bi-play-fill me-1"></i>
-          Run Collection Analysis
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Analysis Running -->
-  <div v-else-if="analysisRunning">
-    <PageHeader
-      title="Collection Analysis"
-      description="Find over-allocated and empty collections"
-      icon="bi-collection"
-    />
-
-    <div class="alert alert-info d-flex align-items-center">
-      <div class="spinner-border spinner-border-sm me-3" role="status">
-        <span class="visually-hidden">Running...</span>
-      </div>
-      <div>
-        <h6 class="mb-1">Analyzing Collection Instances...</h6>
-        <p class="mb-0 small">This may take a few moments depending on the heap dump size.</p>
-      </div>
-    </div>
-  </div>
+  <HeapDumpNotInitialized
+    v-else-if="!report"
+    icon="collection"
+    message="The collection analysis is not available for this heap dump. Re-initialize the heap dump from the Heap Dump Overview to populate it."
+  />
 
   <!-- Analysis Results -->
   <div v-else>
@@ -519,8 +482,6 @@ const loading = ref(true);
 const error = ref<string | null>(null);
 const heapExists = ref(false);
 const cacheReady = ref(false);
-const analysisExists = ref(false);
-const analysisRunning = ref(false);
 const report = ref<CollectionAnalysisReport | null>(null);
 
 // Sort state for by-type table
@@ -710,23 +671,8 @@ const getTypePercentage = (entry: CollectionStats): number => {
   return (entry.totalWastedBytes / maxTypeWasted.value) * 100;
 };
 
-const runAnalysis = async () => {
-  try {
-    analysisRunning.value = true;
-    await client.runCollectionAnalysis();
-    await loadAnalysis();
-  } catch (err) {
-    error.value = err instanceof Error ? err.message : 'Failed to run collection analysis';
-  } finally {
-    analysisRunning.value = false;
-  }
-};
-
 const loadAnalysis = async () => {
-  analysisExists.value = await client.collectionAnalysisExists();
-  if (analysisExists.value) {
-    report.value = await client.getCollectionAnalysis();
-  }
+  report.value = await client.getCollectionAnalysis();
 };
 
 const scrollToTop = () => {

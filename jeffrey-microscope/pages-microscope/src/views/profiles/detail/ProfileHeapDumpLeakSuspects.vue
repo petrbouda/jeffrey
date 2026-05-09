@@ -19,44 +19,11 @@
 
   <ErrorState v-else-if="error" :message="error" />
 
-  <!-- Analysis Not Yet Run -->
-  <div v-else-if="!analysisExists && !analysisRunning">
-    <PageHeader
-      title="Leak Suspects"
-      description="Automated analysis to identify potential memory leaks"
-      icon="bi-bug"
-    />
-    <div class="alert alert-warning d-flex align-items-center">
-      <i class="bi bi-exclamation-triangle me-3 fs-4"></i>
-      <div class="flex-grow-1">
-        <h6 class="mb-1">Leak Suspects Analysis Not Available</h6>
-        <p class="mb-2 small">
-          Run the analysis to identify objects and classes that may indicate memory leaks based on
-          heuristic detection.
-        </p>
-        <button class="btn btn-primary btn-sm" @click="runAnalysis">
-          <i class="bi bi-play-fill me-1"></i>
-          Run Leak Analysis
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Analysis Running -->
-  <div v-else-if="analysisRunning">
-    <PageHeader
-      title="Leak Suspects"
-      description="Automated analysis to identify potential memory leaks"
-      icon="bi-bug"
-    />
-    <div class="alert alert-info d-flex align-items-center">
-      <div class="spinner-border spinner-border-sm me-3" role="status"></div>
-      <div>
-        <h6 class="mb-1">Analyzing Heap for Leak Suspects...</h6>
-        <p class="mb-0 small">This may take a few moments depending on the heap dump size.</p>
-      </div>
-    </div>
-  </div>
+  <HeapDumpNotInitialized
+    v-else-if="!report"
+    icon="bug"
+    message="The leak suspects analysis is not available for this heap dump. Re-initialize the heap dump from the Heap Dump Overview to populate it."
+  />
 
   <!-- Results -->
   <div v-else-if="report">
@@ -167,8 +134,6 @@ const loading = ref(true);
 const error = ref<string | null>(null);
 const heapExists = ref(false);
 const cacheReady = ref(false);
-const analysisExists = ref(false);
-const analysisRunning = ref(false);
 const report = ref<LeakSuspectsReport | null>(null);
 
 // Modal state
@@ -235,23 +200,8 @@ const openGCRootPath = (objectId: number) => {
   router.push(`/profiles/${profileId}/heap-dump/gc-root-path?objectId=${objectId}`);
 };
 
-const runAnalysis = async () => {
-  try {
-    analysisRunning.value = true;
-    await client.runLeakSuspects();
-    await loadAnalysis();
-  } catch (err) {
-    error.value = err instanceof Error ? err.message : 'Failed to run leak suspects analysis';
-  } finally {
-    analysisRunning.value = false;
-  }
-};
-
 const loadAnalysis = async () => {
-  analysisExists.value = await client.leakSuspectsExists();
-  if (analysisExists.value) {
-    report.value = await client.getLeakSuspects();
-  }
+  report.value = await client.getLeakSuspects();
 };
 
 const loadData = async () => {

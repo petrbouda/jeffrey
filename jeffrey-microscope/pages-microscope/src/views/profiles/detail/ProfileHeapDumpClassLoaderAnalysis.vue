@@ -22,48 +22,11 @@
 
   <ErrorState v-else-if="error" :message="error" />
 
-  <!-- Analysis Not Yet Run -->
-  <div v-else-if="!analysisExists && !analysisRunning">
-    <PageHeader
-      title="Class Loader Analysis"
-      description="Analyze class loaders and detect duplicate classes"
-      icon="bi-diagram-3"
-    />
-
-    <div class="alert alert-warning d-flex align-items-center">
-      <i class="bi bi-exclamation-triangle me-3 fs-4"></i>
-      <div class="flex-grow-1">
-        <h6 class="mb-1">Class Loader Analysis Not Available</h6>
-        <p class="mb-2 small">
-          The class loader analysis was not found. This can happen if the heap dump was initialized
-          before this feature was added. You can run the analysis now.
-        </p>
-        <button class="btn btn-primary btn-sm" @click="runAnalysis">
-          <i class="bi bi-play-fill me-1"></i>
-          Run Class Loader Analysis
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Analysis Running -->
-  <div v-else-if="analysisRunning">
-    <PageHeader
-      title="Class Loader Analysis"
-      description="Analyze class loaders and detect duplicate classes"
-      icon="bi-diagram-3"
-    />
-
-    <div class="alert alert-info d-flex align-items-center">
-      <div class="spinner-border spinner-border-sm me-3" role="status">
-        <span class="visually-hidden">Running...</span>
-      </div>
-      <div>
-        <h6 class="mb-1">Analyzing Class Loaders...</h6>
-        <p class="mb-0 small">This may take a few moments depending on the heap dump size.</p>
-      </div>
-    </div>
-  </div>
+  <HeapDumpNotInitialized
+    v-else-if="!report"
+    icon="diagram-3"
+    message="The class loader analysis is not available for this heap dump. Re-initialize the heap dump from the Heap Dump Overview to populate it."
+  />
 
   <!-- Analysis Results -->
   <div v-else>
@@ -256,8 +219,6 @@ const loading = ref(true);
 const error = ref<string | null>(null);
 const heapExists = ref(false);
 const cacheReady = ref(false);
-const analysisExists = ref(false);
-const analysisRunning = ref(false);
 const report = ref<ClassLoaderReport | null>(null);
 const activeTab = ref('class-loaders');
 
@@ -373,23 +334,8 @@ const onTabChange = (_tabIndex: number, tab: { id: string; label: string; icon?:
   activeTab.value = tab.id;
 };
 
-const runAnalysis = async () => {
-  try {
-    analysisRunning.value = true;
-    await client.runClassLoaderAnalysis();
-    await loadAnalysis();
-  } catch (err) {
-    error.value = err instanceof Error ? err.message : 'Failed to run class loader analysis';
-  } finally {
-    analysisRunning.value = false;
-  }
-};
-
 const loadAnalysis = async () => {
-  analysisExists.value = await client.classLoaderAnalysisExists();
-  if (analysisExists.value) {
-    report.value = await client.getClassLoaderAnalysis();
-  }
+  report.value = await client.getClassLoaderAnalysis();
 };
 
 const scrollToTop = () => {

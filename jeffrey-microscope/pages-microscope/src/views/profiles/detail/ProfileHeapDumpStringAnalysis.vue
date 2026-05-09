@@ -22,48 +22,11 @@
 
   <ErrorState v-else-if="error" :message="error" />
 
-  <!-- Analysis Not Yet Run -->
-  <div v-else-if="!analysisExists && !analysisRunning">
-    <PageHeader
-      title="String Analysis"
-      description="Analysis of string deduplication status and opportunities"
-      icon="bi-fonts"
-    />
-
-    <div class="alert alert-warning d-flex align-items-center">
-      <i class="bi bi-exclamation-triangle me-3 fs-4"></i>
-      <div class="flex-grow-1">
-        <h6 class="mb-1">String Analysis Not Available</h6>
-        <p class="mb-2 small">
-          The string analysis was not found. This can happen if the heap dump was initialized before
-          this feature was added. You can run the analysis now.
-        </p>
-        <button class="btn btn-primary btn-sm" @click="runAnalysis">
-          <i class="bi bi-play-fill me-1"></i>
-          Run String Analysis
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Analysis Running -->
-  <div v-else-if="analysisRunning">
-    <PageHeader
-      title="String Analysis"
-      description="Analysis of string deduplication status and opportunities"
-      icon="bi-fonts"
-    />
-
-    <div class="alert alert-info d-flex align-items-center">
-      <div class="spinner-border spinner-border-sm me-3" role="status">
-        <span class="visually-hidden">Running...</span>
-      </div>
-      <div>
-        <h6 class="mb-1">Analyzing String Instances...</h6>
-        <p class="mb-0 small">This may take a few moments depending on the heap dump size.</p>
-      </div>
-    </div>
-  </div>
+  <HeapDumpNotInitialized
+    v-else-if="!report"
+    icon="fonts"
+    message="The string analysis is not available for this heap dump. Re-initialize the heap dump from the Heap Dump Overview to populate it."
+  />
 
   <!-- Analysis Results -->
   <div v-else>
@@ -529,8 +492,6 @@ const loading = ref(true);
 const error = ref<string | null>(null);
 const heapExists = ref(false);
 const cacheReady = ref(false);
-const analysisExists = ref(false);
-const analysisRunning = ref(false);
 const report = ref<StringAnalysisReport | null>(null);
 const activeTab = ref('overview');
 
@@ -740,23 +701,8 @@ const onTabChange = (_tabIndex: number, tab: { id: string; label: string; icon?:
   activeTab.value = tab.id;
 };
 
-const runAnalysis = async () => {
-  try {
-    analysisRunning.value = true;
-    await client.runStringAnalysis(100);
-    await loadAnalysis();
-  } catch (err) {
-    error.value = err instanceof Error ? err.message : 'Failed to run string analysis';
-  } finally {
-    analysisRunning.value = false;
-  }
-};
-
 const loadAnalysis = async () => {
-  analysisExists.value = await client.stringAnalysisExists();
-  if (analysisExists.value) {
-    report.value = await client.getStringAnalysis();
-  }
+  report.value = await client.getStringAnalysis();
 };
 
 const scrollToTop = () => {

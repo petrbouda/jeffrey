@@ -19,46 +19,11 @@
 
   <ErrorState v-else-if="error" :message="error" />
 
-  <!-- Analysis Not Yet Run -->
-  <div v-else-if="!analysisExists && !analysisRunning">
-    <PageHeader
-      title="Duplicate Objects"
-      description="Find duplicate object instances wasting memory"
-      icon="bi-copy"
-    />
-    <div class="alert alert-warning d-flex align-items-center">
-      <i class="bi bi-exclamation-triangle me-3 fs-4"></i>
-      <div class="flex-grow-1">
-        <h6 class="mb-1">Duplicate Objects Analysis Not Available</h6>
-        <p class="mb-2 small">
-          Run the analysis to identify duplicate objects with identical content that waste heap
-          memory.
-        </p>
-        <button class="btn btn-primary btn-sm" @click="runAnalysis">
-          <i class="bi bi-play-fill me-1"></i>
-          Run Duplicate Objects Analysis
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Analysis Running -->
-  <div v-else-if="analysisRunning">
-    <PageHeader
-      title="Duplicate Objects"
-      description="Find duplicate object instances wasting memory"
-      icon="bi-copy"
-    />
-    <div class="alert alert-info d-flex align-items-center">
-      <div class="spinner-border spinner-border-sm me-3" role="status">
-        <span class="visually-hidden">Running...</span>
-      </div>
-      <div>
-        <h6 class="mb-1">Analyzing Heap for Duplicate Objects...</h6>
-        <p class="mb-0 small">This may take a few moments depending on the heap dump size.</p>
-      </div>
-    </div>
-  </div>
+  <HeapDumpNotInitialized
+    v-else-if="!report"
+    icon="copy"
+    message="The duplicate objects analysis is not available for this heap dump. Re-initialize the heap dump from the Heap Dump Overview to populate it."
+  />
 
   <!-- Analysis Results -->
   <div v-else-if="report">
@@ -179,8 +144,6 @@ const loading = ref(true);
 const error = ref<string | null>(null);
 const heapExists = ref(false);
 const cacheReady = ref(false);
-const analysisExists = ref(false);
-const analysisRunning = ref(false);
 const report = ref<DuplicateObjectsReport | null>(null);
 
 // Sort state
@@ -253,23 +216,8 @@ const truncatePreview = (preview: string): string => {
   return preview.length > 80 ? preview.substring(0, 80) + '...' : preview;
 };
 
-const runAnalysis = async () => {
-  try {
-    analysisRunning.value = true;
-    await client.runDuplicateObjects();
-    await loadAnalysis();
-  } catch (err) {
-    error.value = err instanceof Error ? err.message : 'Failed to run duplicate objects analysis';
-  } finally {
-    analysisRunning.value = false;
-  }
-};
-
 const loadAnalysis = async () => {
-  analysisExists.value = await client.duplicateObjectsExists();
-  if (analysisExists.value) {
-    report.value = await client.getDuplicateObjects();
-  }
+  report.value = await client.getDuplicateObjects();
 };
 
 const scrollToTop = () => {

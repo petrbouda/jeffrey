@@ -19,46 +19,11 @@
 
   <ErrorState v-else-if="error" :message="error" />
 
-  <!-- Analysis Not Yet Run -->
-  <div v-else-if="!analysisExists && !analysisRunning">
-    <PageHeader
-      title="Biggest Collections"
-      description="Find the largest collection instances by element count and retained size"
-      icon="bi-collection-fill"
-    />
-    <div class="alert alert-warning d-flex align-items-center">
-      <i class="bi bi-exclamation-triangle me-3 fs-4"></i>
-      <div class="flex-grow-1">
-        <h6 class="mb-1">Biggest Collections Analysis Not Available</h6>
-        <p class="mb-2 small">
-          Run the analysis to identify the largest collection instances in the heap by element count
-          and retained memory size.
-        </p>
-        <button class="btn btn-primary btn-sm" @click="runAnalysis">
-          <i class="bi bi-play-fill me-1"></i>
-          Run Biggest Collections Analysis
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Analysis Running -->
-  <div v-else-if="analysisRunning">
-    <PageHeader
-      title="Biggest Collections"
-      description="Find the largest collection instances by element count and retained size"
-      icon="bi-collection-fill"
-    />
-    <div class="alert alert-info d-flex align-items-center">
-      <div class="spinner-border spinner-border-sm me-3" role="status">
-        <span class="visually-hidden">Running...</span>
-      </div>
-      <div>
-        <h6 class="mb-1">Analyzing Collection Instances...</h6>
-        <p class="mb-0 small">This may take a few moments depending on the heap dump size.</p>
-      </div>
-    </div>
-  </div>
+  <HeapDumpNotInitialized
+    v-else-if="!report"
+    icon="collection-fill"
+    message="The biggest collections analysis is not available for this heap dump. Re-initialize the heap dump from the Heap Dump Overview to populate it."
+  />
 
   <!-- Analysis Results -->
   <div v-else-if="report">
@@ -107,7 +72,6 @@
                           <span class="package-name">{{ packageName(entry.className) }}</span>
                         </div>
                         <div class="detail-line" v-if="entry.ownerClassName">
-                          <span class="owner-label">owner</span>
                           <span class="field-tag">{{ entry.ownerClassName }}</span>
                         </div>
                       </div>
@@ -177,7 +141,6 @@
                           <span class="package-name">{{ packageName(entry.className) }}</span>
                         </div>
                         <div class="detail-line" v-if="entry.ownerClassName">
-                          <span class="owner-label">owner</span>
                           <span class="field-tag">{{ entry.ownerClassName }}</span>
                         </div>
                       </div>
@@ -244,8 +207,6 @@ const loading = ref(true);
 const error = ref<string | null>(null);
 const heapExists = ref(false);
 const cacheReady = ref(false);
-const analysisExists = ref(false);
-const analysisRunning = ref(false);
 const report = ref<BiggestCollectionsReport | null>(null);
 
 let client: HeapDumpClient;
@@ -332,23 +293,8 @@ const packageName = (name: string): string => {
   return lastDot > 0 ? name.substring(0, lastDot) : '';
 };
 
-const runAnalysis = async () => {
-  try {
-    analysisRunning.value = true;
-    await client.runBiggestCollections();
-    await loadAnalysis();
-  } catch (err) {
-    error.value = err instanceof Error ? err.message : 'Failed to run biggest collections analysis';
-  } finally {
-    analysisRunning.value = false;
-  }
-};
-
 const loadAnalysis = async () => {
-  analysisExists.value = await client.biggestCollectionsExists();
-  if (analysisExists.value) {
-    report.value = await client.getBiggestCollections();
-  }
+  report.value = await client.getBiggestCollections();
 };
 
 const scrollToTop = () => {

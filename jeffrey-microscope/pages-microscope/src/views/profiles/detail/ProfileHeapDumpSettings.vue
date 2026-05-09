@@ -298,42 +298,67 @@
       <!-- Processing Progress -->
       <div v-if="processing" class="processing-card">
         <div class="processing-header">
-          <h4>Initializing Heap Dump</h4>
+          <div class="processing-title-row">
+            <h4>Initializing Heap Dump</h4>
+            <div class="processing-overall">
+              <span class="overall-elapsed">elapsed {{ totalElapsed }}</span>
+              <span class="overall-pill"
+                >{{ overallProgress.done }} / {{ overallProgress.total }} ·
+                {{ overallProgress.pct }}%</span
+              >
+            </div>
+          </div>
           <p class="processing-hint">Please wait while we analyze the heap structure...</p>
         </div>
 
-        <div class="steps-container">
+        <div class="overall-bar">
+          <div class="overall-bar-fill" :style="{ width: overallProgress.pct + '%' }"></div>
+        </div>
+
+        <div class="phase-grid">
           <div
-            v-for="(step, index) in processingSteps"
-            :key="step.id"
-            class="step-item"
-            :class="step.status"
+            v-for="(phase, phaseIdx) in phases"
+            :key="phase.id"
+            class="phase-card"
+            :class="phaseStatus(phase)"
           >
-            <div class="step-top">
-              <div class="step-indicator">
-                <i
-                  v-if="step.status === 'completed'"
-                  class="bi bi-check-circle-fill text-success"
-                ></i>
-                <i
-                  v-else-if="step.status === 'skipped'"
-                  class="bi bi-dash-circle text-secondary"
-                ></i>
-                <div
-                  v-else-if="step.status === 'in_progress'"
-                  class="spinner-border spinner-border-sm text-primary"
-                  role="status"
-                >
-                  <span class="visually-hidden">Processing...</span>
-                </div>
-                <i v-else class="bi bi-circle text-muted"></i>
-              </div>
-              <div class="step-connector" v-if="index < processingSteps.length - 1"></div>
+            <div class="phase-icon">
+              <i v-if="phaseStatus(phase) === 'done'" class="bi bi-check-lg"></i>
+              <span v-else>{{ phaseIdx + 1 }}</span>
             </div>
-            <span class="step-label"
-              >{{ step.label
-              }}<span v-if="step.status === 'skipped'" class="skipped-badge">skipped</span></span
-            >
+            <div class="phase-name">{{ phase.name }}</div>
+            <div class="phase-desc">{{ phase.description }}</div>
+            <div class="phase-bar">
+              <div
+                class="phase-bar-fill"
+                :style="{ width: phaseProgress(phase) + '%' }"
+              ></div>
+            </div>
+            <ul class="phase-stages">
+              <li
+                v-for="(stageDef, sIdx) in phase.stages"
+                :key="stageDef.id"
+                :class="getStep(stageDef.id)?.status"
+              >
+                <span class="tick">
+                  <i
+                    v-if="getStep(stageDef.id)?.status === 'completed'"
+                    class="bi bi-check-lg"
+                  ></i>
+                  <span
+                    v-else-if="getStep(stageDef.id)?.status === 'in_progress'"
+                    class="phase-spinner"
+                  ></span>
+                  <i
+                    v-else-if="getStep(stageDef.id)?.status === 'skipped'"
+                    class="bi bi-dash"
+                  ></i>
+                  <span v-else>{{ sIdx + 1 }}</span>
+                </span>
+                <span class="stage-label">{{ stageDef.label }}</span>
+                <span class="stage-meta">{{ stageMeta(getStep(stageDef.id)) }}</span>
+              </li>
+            </ul>
           </div>
         </div>
       </div>
@@ -419,47 +444,172 @@ interface ProcessingStep {
   id: string;
   label: string;
   status: 'pending' | 'in_progress' | 'completed' | 'skipped';
+  startMs?: number;
+  durationMs?: number;
 }
 
-// Dynamic steps based on checkbox
-const getProcessingSteps = (): ProcessingStep[] => {
-  return [
-    { id: 'load', label: 'Loading heap dump', status: 'pending' },
-    { id: 'parse', label: 'Parsing heap structure', status: 'pending' },
-    { id: 'index', label: 'Building indexes', status: 'pending' },
-    { id: 'strings', label: 'Analyzing strings', status: 'pending' },
-    { id: 'threads', label: 'Analyzing threads', status: 'pending' },
-    {
-      id: 'dominator',
-      label: 'Computing dominator tree',
-      status: includeDominatorTree.value ? 'pending' : 'skipped'
-    },
-    { id: 'biggest', label: 'Finding biggest objects', status: 'pending' },
-    { id: 'collections', label: 'Analyzing collections', status: 'pending' },
-    { id: 'leaks', label: 'Detecting leak suspects', status: 'pending' }
-  ];
-};
+interface Phase {
+  id: string;
+  name: string;
+  description: string;
+  stages: { id: string; label: string }[];
+}
+
+const phases: Phase[] = [
+  {
+    id: 'indexing',
+    name: 'Heap Indexing',
+    description: 'Loading and parsing the heap file',
+    stages: [
+      { id: 'load', label: 'Loading heap dump' },
+      { id: 'parse', label: 'Parsing heap structure' },
+      { id: 'index', label: 'Building indexes' }
+    ]
+  },
+  {
+    id: 'analysis',
+    name: 'Memory Analysis',
+    description: 'Strings, threads, dominator tree, leaks',
+    stages: [
+      { id: 'strings', label: 'Analyzing strings' },
+      { id: 'threads', label: 'Analyzing threads' },
+      { id: 'dominator', label: 'Computing dominator tree' },
+      { id: 'biggest', label: 'Finding biggest objects' },
+      { id: 'collections', label: 'Analyzing collections' },
+      { id: 'leaks', label: 'Detecting leak suspects' }
+    ]
+  },
+  {
+    id: 'hotspots',
+    name: 'Hotspots & Duplicates',
+    description: 'Class loaders, biggest collections, duplicates',
+    stages: [
+      { id: 'classloaders', label: 'Analyzing class loaders' },
+      { id: 'biggest-collections', label: 'Finding biggest collections' },
+      { id: 'duplicates', label: 'Detecting duplicate objects' }
+    ]
+  }
+];
+
+const initialStatus = (id: string): ProcessingStep['status'] =>
+  id === 'dominator' && !includeDominatorTree.value ? 'skipped' : 'pending';
+
+const getProcessingSteps = (): ProcessingStep[] =>
+  phases.flatMap(phase =>
+    phase.stages.map(stage => ({
+      id: stage.id,
+      label: stage.label,
+      status: initialStatus(stage.id)
+    }))
+  );
 
 // Mutable copy for status updates during processing
 const processingSteps = ref<ProcessingStep[]>(getProcessingSteps());
+
+const getStep = (id: string): ProcessingStep | undefined =>
+  processingSteps.value.find(s => s.id === id);
 
 const resetSteps = () => {
   // Rebuild steps based on current checkbox state
   processingSteps.value = getProcessingSteps();
 };
 
-const setStepStatus = (id: string, status: 'pending' | 'in_progress' | 'completed' | 'skipped') => {
-  const step = processingSteps.value.find(s => s.id === id);
+const setStepStatus = (id: string, status: ProcessingStep['status']) => {
+  const step = getStep(id);
   if (step) step.status = status;
 };
 
-const completeStep = (id: string) => {
-  setStepStatus(id, 'completed');
+const startStep = (id: string) => {
+  const step = getStep(id);
+  if (step) {
+    step.status = 'in_progress';
+    step.startMs = Date.now();
+  }
 };
 
-const startStep = (id: string) => {
-  setStepStatus(id, 'in_progress');
+const completeStep = (id: string) => {
+  const step = getStep(id);
+  if (step) {
+    step.status = 'completed';
+    if (step.startMs != null) {
+      step.durationMs = Date.now() - step.startMs;
+    }
+  }
 };
+
+// Live tick for in-progress elapsed display
+const tickNow = ref(Date.now());
+let tickInterval: ReturnType<typeof setInterval> | null = null;
+const startTick = () => {
+  if (tickInterval !== null) return;
+  tickNow.value = Date.now();
+  tickInterval = setInterval(() => {
+    tickNow.value = Date.now();
+  }, 250);
+};
+const stopTick = () => {
+  if (tickInterval !== null) {
+    clearInterval(tickInterval);
+    tickInterval = null;
+  }
+};
+
+const formatDuration = (ms: number): string => {
+  if (ms < 1000) return `${Math.max(0, Math.round(ms))}ms`;
+  return `${(ms / 1000).toFixed(1)}s`;
+};
+
+const stageMeta = (step: ProcessingStep | undefined): string => {
+  if (!step) return '';
+  if (step.status === 'completed' && step.durationMs != null) {
+    return formatDuration(step.durationMs);
+  }
+  if (step.status === 'in_progress' && step.startMs != null) {
+    return formatDuration(tickNow.value - step.startMs);
+  }
+  if (step.status === 'skipped') return 'skipped';
+  return 'queued';
+};
+
+const phaseStatus = (phase: Phase): 'done' | 'active' | 'pending' => {
+  const steps = phase.stages
+    .map(s => getStep(s.id))
+    .filter((s): s is ProcessingStep => s !== undefined);
+  if (steps.length === 0) return 'pending';
+  const isTerminal = (s: ProcessingStep) => s.status === 'completed' || s.status === 'skipped';
+  if (steps.every(isTerminal)) return 'done';
+  if (steps.some(s => s.status === 'in_progress' || s.status === 'completed')) return 'active';
+  return 'pending';
+};
+
+const phaseProgress = (phase: Phase): number => {
+  const steps = phase.stages
+    .map(s => getStep(s.id))
+    .filter((s): s is ProcessingStep => s !== undefined);
+  if (steps.length === 0) return 0;
+  const done = steps.filter(s => s.status === 'completed' || s.status === 'skipped').length;
+  return (done / steps.length) * 100;
+};
+
+const overallProgress = computed(() => {
+  const all = processingSteps.value;
+  const done = all.filter(s => s.status === 'completed' || s.status === 'skipped').length;
+  const total = all.length;
+  return {
+    done,
+    total,
+    pct: total > 0 ? Math.round((done / total) * 100) : 0
+  };
+});
+
+const totalElapsed = computed(() => {
+  let ms = 0;
+  for (const s of processingSteps.value) {
+    if (s.durationMs != null) ms += s.durationMs;
+    else if (s.status === 'in_progress' && s.startMs != null) ms += tickNow.value - s.startMs;
+  }
+  return formatDuration(ms);
+});
 
 // Upload state
 const uploadFile = ref<File | null>(null);
@@ -515,6 +665,7 @@ const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 const processHeapDump = async () => {
   processing.value = true;
   resetSteps();
+  startTick();
 
   try {
     // Step 1: Load
@@ -572,6 +723,21 @@ const processHeapDump = async () => {
     await client.runLeakSuspects();
     completeStep('leaks');
 
+    // Step 10: Class Loaders
+    startStep('classloaders');
+    await client.runClassLoaderAnalysis();
+    completeStep('classloaders');
+
+    // Step 11: Biggest Collections
+    startStep('biggest-collections');
+    await client.runBiggestCollections(50);
+    completeStep('biggest-collections');
+
+    // Step 12: Duplicate Objects
+    startStep('duplicates');
+    await client.runDuplicateObjects(100);
+    completeStep('duplicates');
+
     cacheReady.value = true;
     MessageBus.emit(MessageBus.HEAP_DUMP_STATUS_CHANGED, true);
   } catch (err) {
@@ -586,6 +752,7 @@ const processHeapDump = async () => {
       error.value = err instanceof Error ? err.message : 'Failed to process heap dump';
     }
   } finally {
+    stopTick();
     processing.value = false;
   }
 };
@@ -813,17 +980,47 @@ onMounted(() => {
   margin: 0 auto;
 }
 
-/* Step Progress Styles */
+/* Processing Header */
 .processing-header {
-  text-align: center;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.processing-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 0.4rem;
 }
 
 .processing-header h4 {
   font-size: 1.125rem;
   font-weight: 600;
   color: var(--color-heading-dark);
-  margin-bottom: 0.5rem;
+  margin: 0;
+}
+
+.processing-overall {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+}
+
+.overall-elapsed {
+  font-variant-numeric: tabular-nums;
+}
+
+.overall-pill {
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.74rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .processing-hint {
@@ -832,110 +1029,221 @@ onMounted(() => {
   margin: 0;
 }
 
-.steps-container {
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
-  gap: 0;
-  margin: 0 auto;
-  width: 100%;
+/* Overall progress bar */
+.overall-bar {
+  height: 4px;
+  background: var(--color-border);
+  border-radius: 2px;
+  overflow: hidden;
+  margin: 0 0 1.5rem;
 }
 
-.step-item {
+.overall-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-success), var(--color-primary));
+  transition: width 0.3s ease;
+}
+
+/* Phase grid */
+.phase-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 900px) {
+  .phase-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.phase-card {
+  background: white;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 18px 18px 16px;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  flex: 1;
-  position: relative;
-  max-width: 160px;
 }
 
-.step-top {
-  display: flex;
-  align-items: center;
-  width: 100%;
-  position: relative;
+.phase-card.active {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-light);
 }
 
-.step-indicator {
+.phase-card.done {
+  border-color: var(--color-success);
+  background: var(--color-success-light);
+}
+
+.phase-icon {
   width: 32px;
   height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.78rem;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.phase-card.done .phase-icon {
+  background: var(--color-success);
+  color: white;
+}
+
+.phase-card.active .phase-icon {
+  background: var(--color-primary);
+  color: white;
+}
+
+.phase-card.pending .phase-icon {
+  background: var(--color-border);
+  color: var(--color-text-light);
+}
+
+.phase-name {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--color-heading-dark);
+  margin-bottom: 2px;
+}
+
+.phase-desc {
+  font-size: 0.74rem;
+  color: var(--color-text-muted);
+  margin-bottom: 14px;
+}
+
+.phase-bar {
+  height: 4px;
+  background: var(--color-border);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 14px;
+}
+
+.phase-bar-fill {
+  height: 100%;
+  transition: width 0.3s ease;
+}
+
+.phase-card.done .phase-bar-fill {
+  background: var(--color-success);
+}
+
+.phase-card.active .phase-bar-fill {
+  background: var(--color-primary);
+}
+
+.phase-card.pending .phase-bar-fill {
+  background: var(--color-border);
+}
+
+.phase-stages {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.phase-stages li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.84rem;
+  color: var(--color-text-muted);
+}
+
+.phase-stages li.completed {
+  color: var(--color-text);
+}
+
+.phase-stages li.in_progress {
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.phase-stages li.pending,
+.phase-stages li.skipped {
+  color: var(--color-text-light);
+}
+
+.phase-stages .stage-label {
+  flex: 1;
+}
+
+.phase-stages .stage-meta {
+  font-size: 0.74rem;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.phase-stages li.in_progress .stage-meta {
+  color: var(--color-primary);
+  font-weight: 500;
+}
+
+.phase-stages li.pending .stage-meta,
+.phase-stages li.skipped .stage-meta {
+  color: var(--color-text-light);
+}
+
+.phase-stages .tick {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  position: relative;
-  z-index: 1;
+  font-size: 0.62rem;
+  font-weight: 700;
+}
+
+.phase-stages li.completed .tick {
+  background: var(--color-success);
+  color: white;
+}
+
+.phase-stages li.in_progress .tick {
+  background: var(--color-primary);
+  color: white;
+}
+
+.phase-stages li.pending .tick {
   background: white;
-  margin: 0 auto;
-}
-
-.step-indicator i {
-  font-size: 1.5rem;
-}
-
-.step-indicator .spinner-border-sm {
-  width: 1.25rem;
-  height: 1.25rem;
-}
-
-.step-connector {
-  position: absolute;
-  top: 50%;
-  left: calc(50% + 16px);
-  right: calc(-50% + 16px);
-  height: 2px;
-  background-color: var(--color-border);
-  transform: translateY(-50%);
-}
-
-.step-item.completed .step-connector {
-  background-color: var(--color-success);
-}
-
-.step-label {
-  font-size: 0.8125rem;
-  color: var(--color-text-muted);
-  text-align: center;
-  margin-top: 0.5rem;
-  line-height: 1.3;
-  word-wrap: break-word;
-  max-width: 120px;
-}
-
-.step-item.completed .step-label {
-  color: var(--color-heading-dark);
-}
-
-.step-item.in_progress .step-label {
-  color: var(--color-accent-blue);
-  font-weight: 500;
-}
-
-.step-item.pending .step-label {
+  border: 1.5px solid var(--color-border);
   color: var(--color-text-light);
 }
 
-.step-item.skipped .step-label {
+.phase-stages li.skipped .tick {
+  background: var(--color-border);
   color: var(--color-text-light);
 }
 
-.step-item.skipped .step-connector {
-  background-color: var(--color-border);
+.phase-stages .tick i {
+  font-size: 0.7rem;
+  line-height: 1;
 }
 
-.skipped-badge {
-  display: inline-block;
-  font-size: 0.625rem;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  color: var(--color-text-muted);
-  background-color: var(--color-border);
-  padding: 0.125rem 0.375rem;
-  border-radius: 3px;
-  margin-left: 0.375rem;
-  vertical-align: middle;
+.phase-spinner {
+  width: 9px;
+  height: 9px;
+  border: 1.5px solid rgba(255, 255, 255, 0.4);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: phase-spin 0.8s linear infinite;
+}
+
+@keyframes phase-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Init Section */
