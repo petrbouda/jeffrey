@@ -35,7 +35,9 @@ import cafe.jeffrey.profile.ai.oql.heap.tools.HeapDumpToolsDelegate;
 import cafe.jeffrey.profile.heapdump.model.BiggestObjectsReport;
 import cafe.jeffrey.profile.heapdump.model.ClassHistogramEntry;
 import cafe.jeffrey.profile.heapdump.model.ClassInstancesResponse;
+import cafe.jeffrey.profile.heapdump.model.ClassLoaderReport;
 import cafe.jeffrey.profile.heapdump.model.CollectionAnalysisReport;
+import cafe.jeffrey.profile.heapdump.model.ConsumerReport;
 import cafe.jeffrey.profile.heapdump.model.DominatorTreeResponse;
 import cafe.jeffrey.profile.heapdump.model.GCRootPath;
 import cafe.jeffrey.profile.heapdump.model.GCRootSummary;
@@ -182,6 +184,22 @@ public class HeapDumpAiAnalysisController {
         @Override
         public OQLQueryResult executeQuery(OQLQueryRequest request) {
             return manager.executeQuery(request);
+        }
+
+        @Override
+        public ClassLoaderReport getClassLoaderAnalysis() {
+            if (!manager.classLoaderAnalysisExists()) {
+                return null;
+            }
+            return manager.getClassLoaderAnalysis();
+        }
+
+        @Override
+        public ConsumerReport getConsumerReport() {
+            if (!manager.consumerReportExists()) {
+                return null;
+            }
+            return manager.getConsumerReport();
         }
     }
 }
