@@ -35,6 +35,7 @@ import cafe.jeffrey.profile.heapdump.model.BiggestObjectsReport;
 import cafe.jeffrey.profile.heapdump.model.ClassHistogramEntry;
 import cafe.jeffrey.profile.heapdump.model.ClassInstancesResponse;
 import cafe.jeffrey.profile.heapdump.model.ClassLoaderReport;
+import cafe.jeffrey.profile.heapdump.model.ConsumerReport;
 import cafe.jeffrey.profile.heapdump.model.CollectionAnalysisReport;
 import cafe.jeffrey.profile.heapdump.model.DominatorTreeResponse;
 import cafe.jeffrey.profile.heapdump.model.DuplicateObjectsReport;
@@ -362,6 +363,21 @@ public class HeapDumpController {
     @PostMapping("/classloader-analysis/run")
     public void runClassLoaderAnalysis(@PathVariable("profileId") String profileId) {
         mgr(profileId).runClassLoaderAnalysis();
+    }
+
+    @GetMapping("/consumers/exists")
+    public boolean consumerReportExists(@PathVariable("profileId") String profileId) {
+        return mgr(profileId).consumerReportExists();
+    }
+
+    @GetMapping("/consumers")
+    public ConsumerReport getConsumerReport(@PathVariable("profileId") String profileId) {
+        return mgr(profileId).getConsumerReport();
+    }
+
+    @PostMapping("/consumers/run")
+    public void runConsumerReport(@PathVariable("profileId") String profileId) {
+        mgr(profileId).runConsumerReport();
     }
 
     private HeapDumpManager mgr(String profileId) {
