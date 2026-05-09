@@ -37,6 +37,8 @@ import java.util.List;
  * @param accumulationPointClass class name of the accumulation point
  * @param dominatedHistogram    top classes by retained size inside the cluster subtree
  * @param leakScore             {@code heapPercentage × penalty(className)} — used for ranking
+ * @param classLoaderId         object ID of the class loader that defined {@code className} (0 for bootstrap)
+ * @param classLoaderClassName  class name of that class loader (e.g. {@code "<bootstrap>"} for bootstrap)
  */
 public record LeakSuspect(
         int rank,
@@ -51,6 +53,8 @@ public record LeakSuspect(
         Long accumulationPointId,
         String accumulationPointClass,
         List<DominatedClassEntry> dominatedHistogram,
-        double leakScore
+        double leakScore,
+        long classLoaderId,
+        String classLoaderClassName
 ) {
 }
