@@ -40,13 +40,59 @@
       <i class="bi bi-shield-check fs-1 mb-3 d-block text-success"></i>
       <h6>No Leak Suspects Detected</h6>
       <p class="small">
-        The heuristic analysis did not find any objects or classes that indicate potential memory
-        leaks.
+        The dominator-cluster analysis did not find any clusters above the
+        leak-suspect threshold (≥ 2% of heap).
       </p>
     </div>
 
+    <!-- Top Leaking Class Loaders -->
+    <div v-if="visibleLoaders.length > 0" class="top-loaders-card mb-4">
+      <div class="top-loaders-header">
+        <div>
+          <h6 class="top-loaders-title">
+            <i class="bi bi-hdd-stack me-2"></i>
+            Top Leaking Class Loaders
+          </h6>
+          <p class="top-loaders-sub">
+            Cluster-root classes grouped by the loader that defined them.
+          </p>
+        </div>
+        <label class="form-check small mb-0">
+          <input
+            type="checkbox"
+            class="form-check-input"
+            v-model="includeBootstrap"
+          />
+          <span class="form-check-label">Include bootstrap</span>
+        </label>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-sm table-hover mb-0">
+          <thead>
+            <tr>
+              <th>Class Loader</th>
+              <th class="text-end">Total Retained</th>
+              <th class="text-end">Suspects</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="l in visibleLoaders" :key="l.classLoaderId">
+              <td>
+                <span class="font-monospace">{{ simpleClassName(l.classLoaderClassName) }}</span>
+                <span v-if="l.classLoaderId === 0" class="ms-2 text-muted small">(bootstrap)</span>
+              </td>
+              <td class="text-end font-monospace">
+                {{ FormattingService.formatBytes(l.totalRetainedSize) }}
+              </td>
+              <td class="text-end font-monospace">{{ l.suspectCount }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
     <!-- Suspect cards -->
-    <div v-else class="suspects-list">
+    <div v-if="report.suspects.length > 0" class="suspects-list">
       <div v-for="suspect in report.suspects" :key="suspect.rank" class="va-card">
         <div class="va-top-bar" :class="getSeverityClass(suspect)"></div>
         <div class="va-content">
@@ -74,10 +120,61 @@
                 }}</span>
               </div>
               <div class="va-stat">
+                <span class="va-stat-label">Leak Score</span>
+                <span class="va-stat-value font-monospace">{{
+                  suspect.leakScore.toFixed(1)
+                }}</span>
+              </div>
+              <div class="va-stat">
                 <span class="va-stat-label">Accumulation</span>
-                <span class="va-stat-value">{{ suspect.accumulationPoint }}</span>
+                <span class="va-stat-value">
+                  <a
+                    v-if="suspect.accumulationPointId"
+                    href="#"
+                    @click.prevent="openTreeModal(suspect.accumulationPointId, 'REACHABLES')"
+                  >
+                    {{ suspect.accumulationPoint }}
+                  </a>
+                  <span v-else>{{ suspect.accumulationPoint }}</span>
+                </span>
+              </div>
+              <div class="va-stat">
+                <span class="va-stat-label">Class Loader</span>
+                <span class="va-stat-value font-monospace">
+                  {{ simpleClassName(suspect.classLoaderClassName) }}
+                </span>
               </div>
             </div>
+            <details
+              v-if="suspect.dominatedHistogram && suspect.dominatedHistogram.length > 0"
+              class="va-histogram"
+            >
+              <summary>Top contributing classes ({{ suspect.dominatedHistogram.length }})</summary>
+              <div class="table-responsive">
+                <table class="table table-sm table-hover mb-0">
+                  <thead>
+                    <tr>
+                      <th>Class</th>
+                      <th class="text-end">Instances</th>
+                      <th class="text-end">Retained</th>
+                      <th class="text-end">% of Cluster</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="(h, idx) in suspect.dominatedHistogram" :key="idx">
+                      <td class="font-monospace">{{ simpleClassName(h.className) }}</td>
+                      <td class="text-end font-monospace">
+                        {{ FormattingService.formatNumber(h.instanceCount) }}
+                      </td>
+                      <td class="text-end font-monospace">
+                        {{ FormattingService.formatBytes(h.retainedSize) }}
+                      </td>
+                      <td class="text-end font-monospace">{{ h.percentOfCluster.toFixed(1) }}%</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </details>
           </div>
           <div class="va-percent">
             <span class="va-percent-value" :class="getSeverityClass(suspect)">{{
@@ -135,6 +232,13 @@ const error = ref<string | null>(null);
 const heapExists = ref(false);
 const cacheReady = ref(false);
 const report = ref<LeakSuspectsReport | null>(null);
+const includeBootstrap = ref(false);
+
+const visibleLoaders = computed(() => {
+  if (!report.value) return [];
+  const loaders = report.value.topLeakingClassLoaders ?? [];
+  return includeBootstrap.value ? loaders : loaders.filter((l) => l.classLoaderId !== 0);
+});
 
 // Modal state
 const showTreeModal = ref(false);
@@ -414,5 +518,54 @@ onMounted(() => {
 .va-actions {
   padding: 0.75rem 1.5rem;
   border-top: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+/* Top leaking class loaders card */
+.top-loaders-card {
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--card-border-radius);
+  padding: 1rem 1.25rem;
+}
+
+.top-loaders-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.75rem;
+  gap: 1rem;
+}
+
+.top-loaders-title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-dark);
+}
+
+.top-loaders-sub {
+  margin: 0.15rem 0 0;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+/* Dominated-histogram details */
+.va-histogram {
+  margin-top: 0.75rem;
+  font-size: 0.8rem;
+}
+
+.va-histogram > summary {
+  cursor: pointer;
+  color: var(--color-text-muted);
+  user-select: none;
+}
+
+.va-histogram > summary:hover {
+  color: var(--color-dark);
+}
+
+.va-histogram .table {
+  margin-top: 0.5rem;
 }
 </style>
