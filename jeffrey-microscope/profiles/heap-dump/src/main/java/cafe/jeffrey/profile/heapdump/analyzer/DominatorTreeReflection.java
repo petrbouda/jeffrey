@@ -39,7 +39,8 @@ import java.util.List;
  * {@code table[2i+1]} = value (idomId), key == 0 means empty slot.
  * <p>
  * If reflection fails (API changes, module restrictions), {@link #isAvailable()} returns
- * {@code false} and callers should fall back to field-reference-based children lookup.
+ * {@code false}. Callers operating in strict mode must short-circuit and surface an error
+ * — there is no field-reference fallback.
  */
 public class DominatorTreeReflection {
 
@@ -63,11 +64,10 @@ public class DominatorTreeReflection {
                 tableField.setAccessible(true);
                 extractedTable = (long[]) tableField.get(map);
             } else {
-                LOG.warn("DominatorTree is null, retained size may not be computed yet");
+                LOG.error("DominatorTree is null, retained size may not be computed yet — strict dominator analysis will return empty results");
             }
         } catch (Exception e) {
-            LOG.warn("Failed to access DominatorTree internals via reflection, "
-                    + "dominator tree children will fall back to field references only: message={}", e.getMessage());
+            LOG.error("Failed to access DominatorTree internals via reflection — strict dominator analysis will return empty results: message={}", e.getMessage());
         }
         this.table = extractedTable;
         this.available = extractedTable != null;
