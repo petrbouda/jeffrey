@@ -57,4 +57,8 @@ public interface HeapDumpToolsDelegate {
     InstanceTreeResponse getReferrers(long objectId, int limit, int offset);
 
     OQLQueryResult executeQuery(OQLQueryRequest request);
+
+    ClassLoaderReport getClassLoaderAnalysis();
+
+    ConsumerReport getConsumerReport();
 }

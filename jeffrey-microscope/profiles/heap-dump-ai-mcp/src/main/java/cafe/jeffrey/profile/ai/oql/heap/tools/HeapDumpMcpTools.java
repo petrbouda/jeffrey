@@ -174,19 +174,129 @@ public class HeapDumpMcpTools {
                 result.append("Suspect #").append(suspect.rank()).append(": ").append(suspect.className()).append("\n");
                 result.append("  Reason: ").append(suspect.reason()).append("\n");
                 result.append("  Accumulation Point: ").append(suspect.accumulationPoint()).append("\n");
+                if (suspect.accumulationPointId() != null) {
+                    result.append("  Accumulation Point Object ID: ").append(suspect.accumulationPointId())
+                            .append(" (").append(suspect.accumulationPointClass()).append(")\n");
+                }
                 result.append("  Retained Size: ").append(BytesUtils.format(suspect.retainedSize()))
                         .append(" (").append(String.format("%.1f%%", suspect.heapPercentage())).append(")\n");
+                result.append("  Leak Score: ").append(String.format("%.1f", suspect.leakScore())).append("\n");
                 result.append("  Instance Count: ").append(String.format("%,d", suspect.instanceCount())).append("\n");
+                result.append("  Class Loader: ").append(suspect.classLoaderClassName())
+                        .append(" (id=").append(suspect.classLoaderId()).append(")\n");
                 if (suspect.objectId() != null) {
-                    result.append("  Object ID: ").append(suspect.objectId()).append("\n");
+                    result.append("  Cluster Root Object ID: ").append(suspect.objectId()).append("\n");
+                }
+                if (suspect.dominatedHistogram() != null && !suspect.dominatedHistogram().isEmpty()) {
+                    result.append("  Top Contributing Classes:\n");
+                    int shown = 0;
+                    for (DominatedClassEntry entry : suspect.dominatedHistogram()) {
+                        if (shown++ >= 5) break;
+                        result.append("    - ").append(entry.className())
+                                .append(": ").append(String.format("%,d", entry.instanceCount())).append(" instances, ")
+                                .append(BytesUtils.format(entry.retainedSize()))
+                                .append(" (").append(String.format("%.1f%%", entry.percentOfCluster())).append(" of cluster)\n");
+                    }
                 }
                 result.append("\n");
+            }
+
+            if (report.topLeakingClassLoaders() != null && !report.topLeakingClassLoaders().isEmpty()) {
+                result.append("Top Leaking Class Loaders (across all suspects):\n");
+                for (ClassLoaderLeakSummary loader : report.topLeakingClassLoaders()) {
+                    result.append("  - ").append(loader.classLoaderClassName())
+                            .append(": ").append(BytesUtils.format(loader.totalRetainedSize()))
+                            .append(" across ").append(loader.suspectCount()).append(" suspect(s)\n");
+                }
             }
 
             return result.toString();
         } catch (Exception e) {
             LOG.error("Failed to get leak suspects: message={}", e.getMessage(), e);
             return "Error: Failed to get leak suspects: " + e.getMessage();
+        }
+    }
+
+    @Tool(description = "Get class-loader leak chains: for each suspicious class loader (large retained " +
+            "size, in duplicate-classes, or webapp/URL loader), shows the GC-root path keeping it alive " +
+            "and any matched leak-pattern hints (ThreadLocal, JDBC driver, JNI global, ServiceLoader, " +
+            "static Logger, contextClassLoader). The canonical Tomcat-redeploy diagnostic. " +
+            "Note: This requires the class loader analysis to have been run first.")
+    public String getClassLoaderLeakChains() {
+        try {
+            ClassLoaderReport report = delegate.getClassLoaderAnalysis();
+            if (report == null) {
+                return "Class loader analysis has not been run yet. The user needs to run it from the UI first.";
+            }
+            List<ClassLoaderLeakChain> chains = report.leakChains();
+            if (chains == null || chains.isEmpty()) {
+                return "No suspicious class loaders detected.";
+            }
+            StringBuilder result = new StringBuilder();
+            result.append("Class Loader Leak Chains:\n\n");
+            for (ClassLoaderLeakChain chain : chains) {
+                result.append(chain.classLoaderClassName())
+                        .append(" (id=").append(chain.classLoaderId()).append(")\n");
+                result.append("  Retained: ").append(BytesUtils.format(chain.retainedSize()))
+                        .append(", classes: ").append(chain.classCount()).append("\n");
+                if (chain.hasDuplicateClasses()) {
+                    result.append("  ! At least one class is also loaded by another loader (duplicate)\n");
+                }
+                if (!chain.causeHints().isEmpty()) {
+                    result.append("  Cause hints: ");
+                    for (CauseHint hint : chain.causeHints()) {
+                        result.append(hint.kind()).append("(").append(hint.description()).append(") ");
+                    }
+                    result.append("\n");
+                }
+                if (chain.gcRootPath() != null) {
+                    result.append("  GC root: ").append(chain.gcRootPath().rootType())
+                            .append(" — ").append(chain.gcRootPath().rootClassName()).append("\n");
+                    result.append("  Path: ").append(chain.gcRootPath().steps().size()).append(" hop(s)\n");
+                } else {
+                    result.append("  No GC-root path computed\n");
+                }
+                result.append("\n");
+            }
+            return result.toString();
+        } catch (Exception e) {
+            LOG.error("Failed to get class-loader leak chains: message={}", e.getMessage(), e);
+            return "Error: Failed to get class-loader leak chains: " + e.getMessage();
+        }
+    }
+
+    @Tool(description = "Get the top memory consumers grouped by (package, class loader). Answers " +
+            "'which subsystem is the most bloated?'. Also includes a per-package component report. " +
+            "Note: This requires the consumer report to have been run first.")
+    public String getTopConsumers() {
+        try {
+            ConsumerReport report = delegate.getConsumerReport();
+            if (report == null) {
+                return "Consumer report has not been run yet. The user needs to run it from the UI first.";
+            }
+            StringBuilder result = new StringBuilder();
+            result.append("Top Consumers (by package + class loader):\n");
+            int shown = 0;
+            for (ConsumerEntry entry : report.topConsumers()) {
+                if (shown++ >= 20) break;
+                result.append("  ").append(entry.packageName())
+                        .append(" [").append(entry.classLoaderClassName()).append("]")
+                        .append(" — ").append(BytesUtils.format(entry.retainedSize()))
+                        .append(", ").append(entry.classCount()).append(" classes / ")
+                        .append(String.format("%,d", entry.instanceCount())).append(" instances\n");
+            }
+            result.append("\nComponent Report (per-package):\n");
+            shown = 0;
+            for (ComponentEntry entry : report.componentReport()) {
+                if (shown++ >= 20) break;
+                result.append("  ").append(entry.packageName())
+                        .append(" — ").append(BytesUtils.format(entry.retainedSize()))
+                        .append(", ").append(entry.classCount()).append(" classes\n");
+            }
+            return result.toString();
+        } catch (Exception e) {
+            LOG.error("Failed to get top consumers: message={}", e.getMessage(), e);
+            return "Error: Failed to get top consumers: " + e.getMessage();
         }
     }
 
