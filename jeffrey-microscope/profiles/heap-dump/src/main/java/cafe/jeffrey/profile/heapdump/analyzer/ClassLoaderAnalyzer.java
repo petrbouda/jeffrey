@@ -135,7 +135,8 @@ public class ClassLoaderAnalyzer {
                 allClasses.size(),
                 duplicateClasses.size(),
                 classLoaderInfos,
-                duplicateClasses);
+                duplicateClasses,
+                List.of());
     }
 
     private static class ClassLoaderAccumulator {
