@@ -100,7 +100,7 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
     private static final String THREAD_ANALYSIS_FILE = "thread-analysis.json";
     private static final String COLLECTION_ANALYSIS_FILE = "collection-analysis.json";
     private static final String BIGGEST_OBJECTS_FILE = "biggest-objects.json";
-    private static final String LEAK_SUSPECTS_FILE = "leak-suspects.json";
+    private static final String LEAK_SUSPECTS_FILE = "leak-suspects-v2.json";
     private static final String DUPLICATE_OBJECTS_FILE = "duplicate-objects.json";
     private static final String BIGGEST_COLLECTIONS_FILE = "biggest-collections.json";
     private static final String CLASSLOADER_ANALYSIS_FILE = "classloader-analysis.json";
@@ -167,7 +167,7 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
         this.dominatorTreeAnalyzer = new DominatorTreeAnalyzer();
         this.collectionAnalyzer = new CollectionAnalyzer();
         this.classInstanceBrowserAnalyzer = new ClassInstanceBrowserAnalyzer();
-        this.leakSuspectsAnalyzer = new LeakSuspectsAnalyzer();
+        this.leakSuspectsAnalyzer = new LeakSuspectsAnalyzer(this.dominatorTreeAnalyzer);
         this.duplicateObjectAnalyzer = new DuplicateObjectAnalyzer();
         this.classLoaderAnalyzer = new ClassLoaderAnalyzer();
     }
