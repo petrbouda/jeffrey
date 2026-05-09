@@ -18,21 +18,18 @@
 
 package cafe.jeffrey.profile.heapdump.model;
 
-import java.util.List;
-
 /**
- * Report containing identified leak suspects with dominator-cluster analysis results.
+ * Aggregate of leak suspects attributed to a single class loader.
  *
- * @param totalHeapSize           total heap size in bytes
- * @param analyzedBytes           total bytes analyzed (sum of suspect retained sizes)
- * @param suspects                list of leak suspects ordered by rank (lowest = most suspicious)
- * @param topLeakingClassLoaders  per-class-loader aggregate across all suspects, ordered by total retained size
- *                                (includes bootstrap; UI is expected to filter bootstrap by default)
+ * @param classLoaderId         object ID of the class loader (0 for bootstrap)
+ * @param classLoaderClassName  class name of the loader
+ * @param totalRetainedSize     sum of {@code retainedSize} across all suspects under this loader
+ * @param suspectCount          number of leak suspects rooted in classes loaded by this loader
  */
-public record LeakSuspectsReport(
-        long totalHeapSize,
-        long analyzedBytes,
-        List<LeakSuspect> suspects,
-        List<ClassLoaderLeakSummary> topLeakingClassLoaders
+public record ClassLoaderLeakSummary(
+        long classLoaderId,
+        String classLoaderClassName,
+        long totalRetainedSize,
+        int suspectCount
 ) {
 }

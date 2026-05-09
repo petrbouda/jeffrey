@@ -25,6 +25,8 @@ import org.netbeans.lib.profiler.heap.ObjectArrayInstance;
 import org.netbeans.lib.profiler.heap.ObjectFieldValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import cafe.jeffrey.profile.heapdump.model.ClassLoaderLeakSummary;
+import cafe.jeffrey.profile.heapdump.model.ClassLoaderRef;
 import cafe.jeffrey.profile.heapdump.model.DominatedClassEntry;
 import cafe.jeffrey.profile.heapdump.model.DominatorNode;
 import cafe.jeffrey.profile.heapdump.model.DominatorTreeResponse;
@@ -100,7 +102,7 @@ public class LeakSuspectsAnalyzer {
         long totalHeapSize = CompressedOopsCorrector.correctedTotalHeap(rawTotalHeapSize, compressedOops, totalOvercount);
 
         if (totalHeapSize <= 0) {
-            return new LeakSuspectsReport(totalHeapSize, 0, List.of());
+            return new LeakSuspectsReport(totalHeapSize, 0, List.of(), List.of());
         }
 
         long clusterThreshold = (long) (totalHeapSize * CLUSTER_THRESHOLD_PERCENT / 100.0);
@@ -113,13 +115,13 @@ public class LeakSuspectsAnalyzer {
 
         if (candidates.isEmpty()) {
             LOG.info("No dominator-tree roots found, leak suspects report is empty");
-            return new LeakSuspectsReport(totalHeapSize, 0, List.of());
+            return new LeakSuspectsReport(totalHeapSize, 0, List.of(), List.of());
         }
 
         DominatorTreeReflection reflection = new DominatorTreeReflection(heap);
         if (!reflection.isAvailable()) {
             LOG.error("Dominator tree reflection unavailable, cannot compute leak suspect clusters");
-            return new LeakSuspectsReport(totalHeapSize, 0, List.of());
+            return new LeakSuspectsReport(totalHeapSize, 0, List.of(), List.of());
         }
 
         List<LeakSuspect> suspects = new ArrayList<>();
@@ -160,6 +162,8 @@ public class LeakSuspectsAnalyzer {
                     simpleName, percentage, rootNode.retainedSize());
             String accDescription = describeAccumulationPoint(accPoint, totalHeapSize);
 
+            ClassLoaderRef loader = ClassLoaderResolver.refFor(rootInstance);
+
             rank++;
             suspects.add(new LeakSuspect(
                     rank,
@@ -174,16 +178,40 @@ public class LeakSuspectsAnalyzer {
                     accPoint != null ? accPoint.id() : null,
                     accPoint != null ? accPoint.className() : null,
                     histogram,
-                    leakScore
+                    leakScore,
+                    loader.classLoaderId(),
+                    loader.classLoaderClassName()
             ));
 
             accumulated += rootNode.retainedSize();
         }
 
-        LOG.info("Leak suspects analysis complete: suspects={} accumulatedBytes={} totalHeap={}",
-                suspects.size(), accumulated, totalHeapSize);
+        List<ClassLoaderLeakSummary> topLoaders = aggregateByClassLoader(suspects);
 
-        return new LeakSuspectsReport(totalHeapSize, accumulated, suspects);
+        LOG.info("Leak suspects analysis complete: suspects={} accumulatedBytes={} totalHeap={} classLoaders={}",
+                suspects.size(), accumulated, totalHeapSize, topLoaders.size());
+
+        return new LeakSuspectsReport(totalHeapSize, accumulated, suspects, topLoaders);
+    }
+
+    private static List<ClassLoaderLeakSummary> aggregateByClassLoader(List<LeakSuspect> suspects) {
+        Map<Long, long[]> totals = new HashMap<>();
+        Map<Long, String> names = new HashMap<>();
+        for (LeakSuspect s : suspects) {
+            long[] entry = totals.computeIfAbsent(s.classLoaderId(), k -> new long[2]);
+            entry[0] += s.retainedSize();
+            entry[1]++;
+            names.putIfAbsent(s.classLoaderId(), s.classLoaderClassName());
+        }
+
+        return totals.entrySet().stream()
+                .map(e -> new ClassLoaderLeakSummary(
+                        e.getKey(),
+                        names.get(e.getKey()),
+                        e.getValue()[0],
+                        (int) e.getValue()[1]))
+                .sorted(Comparator.comparingLong(ClassLoaderLeakSummary::totalRetainedSize).reversed())
+                .toList();
     }
 
     private record AccumulationPoint(long id, String className, long retainedSize) {

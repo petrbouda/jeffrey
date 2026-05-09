@@ -18,21 +18,22 @@
 
 package cafe.jeffrey.profile.heapdump.model;
 
-import java.util.List;
-
 /**
- * Report containing identified leak suspects with dominator-cluster analysis results.
+ * A lightweight reference to the class loader of a heap object.
+ * Bootstrap is encoded as {@code classLoaderId == 0} with name {@code "<bootstrap>"}.
  *
- * @param totalHeapSize           total heap size in bytes
- * @param analyzedBytes           total bytes analyzed (sum of suspect retained sizes)
- * @param suspects                list of leak suspects ordered by rank (lowest = most suspicious)
- * @param topLeakingClassLoaders  per-class-loader aggregate across all suspects, ordered by total retained size
- *                                (includes bootstrap; UI is expected to filter bootstrap by default)
+ * @param classLoaderId        object ID of the class loader instance, or {@code 0} for bootstrap
+ * @param classLoaderClassName class name of the loader (e.g. {@code "jdk.internal.loader.ClassLoaders$AppClassLoader"})
  */
-public record LeakSuspectsReport(
-        long totalHeapSize,
-        long analyzedBytes,
-        List<LeakSuspect> suspects,
-        List<ClassLoaderLeakSummary> topLeakingClassLoaders
+public record ClassLoaderRef(
+        long classLoaderId,
+        String classLoaderClassName
 ) {
+    public static final long BOOTSTRAP_ID = 0L;
+    public static final String BOOTSTRAP_NAME = "<bootstrap>";
+    public static final ClassLoaderRef BOOTSTRAP = new ClassLoaderRef(BOOTSTRAP_ID, BOOTSTRAP_NAME);
+
+    public boolean isBootstrap() {
+        return classLoaderId == BOOTSTRAP_ID;
+    }
 }
