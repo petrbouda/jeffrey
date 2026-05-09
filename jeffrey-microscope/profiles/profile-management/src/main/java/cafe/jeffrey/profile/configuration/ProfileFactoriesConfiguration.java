@@ -35,6 +35,7 @@ import cafe.jeffrey.profile.guardian.GuardianProvider;
 import cafe.jeffrey.profile.guardian.ParsingGuardianProvider;
 import cafe.jeffrey.profile.heapdump.HeapLoader;
 import cafe.jeffrey.profile.heapdump.SimpleHeapLoader;
+import cafe.jeffrey.profile.heapdump.sanitizer.SanitizeMode;
 import cafe.jeffrey.profile.manager.*;
 import cafe.jeffrey.profile.tools.collapse.CollapseFramesManager;
 import cafe.jeffrey.profile.tools.collapse.CollapseFramesManagerImpl;
@@ -521,8 +522,9 @@ public class ProfileFactoriesConfiguration {
     }
 
     @Bean
-    public HeapLoader heapLoader() {
-        return new SimpleHeapLoader();
+    public HeapLoader heapLoader(
+            @Value("${jeffrey.microscope.profile.heap-dump.sanitize-mode:IN_PLACE}") SanitizeMode sanitizeMode) {
+        return new SimpleHeapLoader(sanitizeMode);
     }
 
     @Bean

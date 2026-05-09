@@ -28,6 +28,7 @@ import cafe.jeffrey.profile.heapdump.model.GCRootSummary;
 import cafe.jeffrey.profile.heapdump.model.HeapDumpConfig;
 import cafe.jeffrey.profile.heapdump.model.HeapSummary;
 import cafe.jeffrey.profile.heapdump.model.HeapThreadInfo;
+import cafe.jeffrey.profile.heapdump.sanitizer.SanitizeMode;
 import cafe.jeffrey.profile.heapdump.model.InstanceDetail;
 import cafe.jeffrey.profile.heapdump.model.InstanceTreeResponse;
 import cafe.jeffrey.profile.heapdump.model.BiggestCollectionsReport;
@@ -153,10 +154,19 @@ public interface HeapDumpManager {
     void deleteHeapDump();
 
     /**
-     * Sanitize a corrupted heap dump file by creating a repaired copy.
-     * The original file is preserved and a sanitized version is created alongside it.
+     * Sanitize a corrupted heap dump using the configured default mode.
      */
     void sanitizeHeapDump();
+
+    /**
+     * Sanitize a corrupted heap dump using an explicit mode (overrides the
+     * configured default for this single call).
+     *
+     * @param mode {@link SanitizeMode#IN_PLACE} mutates the original file;
+     *             {@link SanitizeMode#COPY} writes a sibling {@code .sanitized}
+     *             file and leaves the original untouched
+     */
+    void sanitizeHeapDump(SanitizeMode mode);
 
     /**
      * Upload a heap dump file.

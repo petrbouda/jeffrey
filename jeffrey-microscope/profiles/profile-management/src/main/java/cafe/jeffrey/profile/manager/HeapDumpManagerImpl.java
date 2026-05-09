@@ -25,6 +25,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.profile.heapdump.HeapLoader;
 import cafe.jeffrey.profile.heapdump.SimpleHeapLoader;
+import cafe.jeffrey.profile.heapdump.sanitizer.SanitizeMode;
 import cafe.jeffrey.profile.heapdump.analyzer.ClassHistogramAnalyzer;
 import cafe.jeffrey.profile.heapdump.analyzer.ClassInstanceBrowserAnalyzer;
 import cafe.jeffrey.profile.heapdump.analyzer.ClassLoaderAnalyzer;
@@ -432,6 +433,11 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
 
     @Override
     public void sanitizeHeapDump() {
+        sanitizeHeapDump(null);
+    }
+
+    @Override
+    public void sanitizeHeapDump(SanitizeMode mode) {
         Optional<Path> heapPath = additionalFilesManager.getHeapDumpPath();
         if (heapPath.isEmpty()) {
             throw new JeffreyException(ErrorType.CLIENT, ErrorCode.HEAP_DUMP_CORRUPTED,
@@ -443,12 +449,14 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
                     "Sanitization is not supported with the current heap loader.");
         }
 
+        SanitizeMode effective = (mode != null) ? mode : simpleLoader.defaultSanitizeMode();
         try {
-            var result = simpleLoader.sanitize(heapPath.get());
-            LOG.info("Heap dump sanitized: profileId={} wasModified={} summary={}",
-                    profileInfo.id(), result.wasModified(), result.summaryMessage());
+            var result = simpleLoader.sanitize(heapPath.get(), effective);
+            LOG.info("Heap dump sanitized: profileId={} mode={} wasModified={} summary={}",
+                    profileInfo.id(), effective, result.wasModified(), result.summaryMessage());
         } catch (IOException e) {
-            LOG.error("Failed to sanitize heap dump: profileId={} path={}", profileInfo.id(), heapPath.get(), e);
+            LOG.error("Failed to sanitize heap dump: profileId={} mode={} path={}",
+                    profileInfo.id(), effective, heapPath.get(), e);
             throw new JeffreyException(ErrorType.INTERNAL, ErrorCode.HEAP_DUMP_CORRUPTED,
                     "Failed to sanitize heap dump: " + e.getMessage(), e);
         }

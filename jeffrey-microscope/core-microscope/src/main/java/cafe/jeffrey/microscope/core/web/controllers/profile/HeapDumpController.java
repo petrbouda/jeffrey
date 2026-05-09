@@ -48,6 +48,7 @@ import cafe.jeffrey.profile.heapdump.model.InstanceTreeResponse;
 import cafe.jeffrey.profile.heapdump.model.LeakSuspectsReport;
 import cafe.jeffrey.profile.heapdump.model.OQLQueryRequest;
 import cafe.jeffrey.profile.heapdump.model.OQLQueryResult;
+import cafe.jeffrey.profile.heapdump.sanitizer.SanitizeMode;
 import cafe.jeffrey.profile.heapdump.model.SortBy;
 import cafe.jeffrey.profile.heapdump.model.StringAnalysisReport;
 import cafe.jeffrey.profile.heapdump.model.ThreadAnalysisReport;
@@ -135,8 +136,10 @@ public class HeapDumpController {
     }
 
     @PostMapping("/sanitize")
-    public void sanitize(@PathVariable("profileId") String profileId) {
-        mgr(profileId).sanitizeHeapDump();
+    public void sanitize(
+            @PathVariable("profileId") String profileId,
+            @RequestParam(value = "mode", required = false) SanitizeMode mode) {
+        mgr(profileId).sanitizeHeapDump(mode);
     }
 
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

@@ -24,6 +24,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.profile.heapdump.sanitizer.HprofCopySanitizer;
 import cafe.jeffrey.profile.heapdump.sanitizer.HprofInPlaceSanitizer;
+import cafe.jeffrey.profile.heapdump.sanitizer.SanitizeMode;
 import cafe.jeffrey.profile.heapdump.sanitizer.SanitizeResult;
 import cafe.jeffrey.shared.common.model.repository.FileExtensions;
 
@@ -42,6 +43,28 @@ import java.util.zip.GZIPInputStream;
 public class SimpleHeapLoader implements HeapLoader {
 
     private static final Logger LOG = LoggerFactory.getLogger(SimpleHeapLoader.class);
+
+    private final SanitizeMode defaultMode;
+
+    public SimpleHeapLoader() {
+        this(SanitizeMode.IN_PLACE);
+    }
+
+    public SimpleHeapLoader(SanitizeMode defaultMode) {
+        if (defaultMode == null) {
+            throw new IllegalArgumentException("defaultMode must not be null");
+        }
+        this.defaultMode = defaultMode;
+        LOG.debug("SimpleHeapLoader created: defaultSanitizeMode={}", defaultMode);
+    }
+
+    /**
+     * The default sanitize mode used when callers invoke {@link #sanitize(Path)}
+     * without specifying one.
+     */
+    public SanitizeMode defaultSanitizeMode() {
+        return defaultMode;
+    }
 
     @Override
     public Optional<Heap> load(Path heapDumpPath) {
@@ -101,31 +124,42 @@ public class SimpleHeapLoader implements HeapLoader {
     }
 
     /**
-     * Sanitizes a corrupted heap dump file <strong>in place</strong>. The original
-     * file is mutated; subsequent calls to {@link #load(Path)} will see the
-     * repaired bytes directly.
-     *
-     * @param heapDumpPath path to the corrupted heap dump
-     * @return the sanitization result
-     * @throws IOException if an I/O error occurs during sanitization
+     * Sanitizes a corrupted heap dump using the configured default mode (see
+     * {@link #defaultSanitizeMode()}).
      */
     public SanitizeResult sanitize(Path heapDumpPath) throws IOException {
-        return HprofInPlaceSanitizer.sanitize(heapDumpPath);
+        return sanitize(heapDumpPath, defaultMode);
     }
 
     /**
-     * Sanitizes a corrupted heap dump <strong>non-destructively</strong> by
-     * writing a repaired sibling {@code <name>.sanitized} file. The original
-     * heap dump is left untouched. Subsequent calls to {@link #load(Path)} will
-     * pick up the sanitized copy automatically.
+     * Sanitizes a corrupted heap dump using the explicitly requested mode,
+     * overriding the default for this single call.
      *
-     * @param heapDumpPath path to the corrupted heap dump
-     * @return the sanitization result
-     * @throws IOException if an I/O error occurs during sanitization
+     * <ul>
+     *   <li>{@link SanitizeMode#IN_PLACE} — mutates the original file.</li>
+     *   <li>{@link SanitizeMode#COPY} — writes a sibling {@code <name>.sanitized}
+     *       file; the original is preserved and {@link #load(Path)} prefers the
+     *       sanitized copy on subsequent calls.</li>
+     * </ul>
      */
-    public SanitizeResult sanitizeToCopy(Path heapDumpPath) throws IOException {
-        Path sanitizedPath = resolveSanitizedPath(heapDumpPath);
-        return HprofCopySanitizer.sanitize(heapDumpPath, sanitizedPath);
+    public SanitizeResult sanitize(Path heapDumpPath, SanitizeMode mode) throws IOException {
+        if (mode == null) {
+            throw new IllegalArgumentException("mode must not be null");
+        }
+        return switch (mode) {
+            case IN_PLACE -> {
+                Path sanitizedPath = resolveSanitizedPath(heapDumpPath);
+                if (Files.exists(sanitizedPath)) {
+                    LOG.warn("In-place sanitization with stale .sanitized sibling present — load() will still prefer the sibling: original={} sibling={}",
+                            heapDumpPath, sanitizedPath);
+                }
+                yield HprofInPlaceSanitizer.sanitize(heapDumpPath);
+            }
+            case COPY -> {
+                Path sanitizedPath = resolveSanitizedPath(heapDumpPath);
+                yield HprofCopySanitizer.sanitize(heapDumpPath, sanitizedPath);
+            }
+        };
     }
 
     private Path resolveSanitizedPath(Path heapDumpPath) {
