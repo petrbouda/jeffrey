@@ -47,6 +47,77 @@
       id-prefix="classloader-"
       @tab-change="onTabChange"
     >
+      <!-- Suspicious Loaders Tab -->
+      <template #suspicious-loaders>
+        <div v-if="report && (report.leakChains ?? []).length > 0">
+          <DataTable>
+            <template #toolbar>
+              <TableToolbar :show-search="false">
+                <span class="toolbar-info">
+                  Showing {{ report.leakChains.length }} suspicious class loaders
+                </span>
+              </TableToolbar>
+            </template>
+            <thead>
+              <tr>
+                <th style="width: 50px">#</th>
+                <th>Class Loader</th>
+                <th class="text-end" style="width: 120px">Class Count</th>
+                <th class="text-end" style="width: 140px">Retained Size</th>
+                <th>Cause Hints</th>
+                <th style="width: 110px">Why Alive?</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(chain, idx) in report.leakChains" :key="chain.classLoaderId">
+                <td class="text-muted">{{ idx + 1 }}</td>
+                <td>
+                  <code class="class-name">{{ simpleClassName(chain.classLoaderClassName) }}</code>
+                  <span class="package-name d-block">
+                    {{ packageName(chain.classLoaderClassName) }}
+                  </span>
+                  <span
+                    v-if="chain.hasDuplicateClasses"
+                    class="badge bg-warning text-dark mt-1"
+                  >duplicate classes</span>
+                </td>
+                <td class="text-end font-monospace">
+                  {{ FormattingService.formatNumber(chain.classCount) }}
+                </td>
+                <td class="text-end font-monospace">
+                  {{ FormattingService.formatBytes(chain.retainedSize) }}
+                </td>
+                <td>
+                  <span
+                    v-for="(hint, hi) in chain.causeHints"
+                    :key="hi"
+                    class="badge bg-info text-dark me-1"
+                    :title="hint.description"
+                  >{{ hintLabel(hint) }}</span>
+                  <span
+                    v-if="chain.causeHints.length === 0"
+                    class="text-muted small"
+                  >no patterns matched</span>
+                </td>
+                <td>
+                  <button
+                    class="btn btn-sm btn-outline-primary"
+                    :disabled="!chain.gcRootPath"
+                    @click="openLeakChainModal(chain)"
+                  >
+                    <i class="bi bi-signpost-2 me-1"></i> Path
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </DataTable>
+        </div>
+        <div v-else class="text-center text-muted py-5">
+          <i class="bi bi-shield-check fs-1 mb-3 d-block text-success"></i>
+          <p>No suspicious class loaders detected.</p>
+        </div>
+      </template>
+
       <!-- Class Loaders Tab -->
       <template #class-loaders>
         <div v-if="report && report.classLoaders.length > 0">
@@ -101,6 +172,10 @@
                         <span class="package-name">{{
                           packageName(entry.classLoaderClassName)
                         }}</span>
+                        <span
+                          v-if="suspiciousLoaderIds.has(entry.objectId)"
+                          class="badge bg-danger text-white ms-2"
+                        >suspicious</span>
                       </div>
                     </td>
                     <td class="text-end font-monospace">
@@ -190,6 +265,38 @@
         </div>
       </template>
     </ChartSectionWithTabs>
+
+    <GenericModal
+      v-model:show="showLeakChainModal"
+      title="Why is this class loader still alive?"
+      size="lg"
+    >
+      <div v-if="selectedLeakChain">
+        <div class="mb-3">
+          <code class="class-name">{{
+            simpleClassName(selectedLeakChain.classLoaderClassName)
+          }}</code>
+          <span class="package-name d-block small text-muted">
+            {{ packageName(selectedLeakChain.classLoaderClassName) }}
+          </span>
+        </div>
+        <div v-if="selectedLeakChain.causeHints.length > 0" class="mb-3">
+          <span
+            v-for="(hint, idx) in selectedLeakChain.causeHints"
+            :key="idx"
+            class="badge bg-info text-dark me-1"
+            :title="hint.description"
+          >{{ hintLabel(hint) }}: {{ hint.description }}</span>
+        </div>
+        <GCRootPathVisualization
+          v-if="selectedLeakChain.gcRootPath"
+          :paths="[selectedLeakChain.gcRootPath]"
+        />
+        <div v-else class="alert alert-info small mb-0">
+          No GC-root path could be computed for this loader.
+        </div>
+      </div>
+    </GenericModal>
   </div>
 </template>
 
@@ -206,9 +313,15 @@ import ChartSectionWithTabs from '@/components/ChartSectionWithTabs.vue';
 import SortableTableHeader from '@/components/table/SortableTableHeader.vue';
 import DataTable from '@/components/table/DataTable.vue';
 import TableToolbar from '@/components/table/TableToolbar.vue';
+import GenericModal from '@/components/GenericModal.vue';
+import GCRootPathVisualization from '@/components/heap/GCRootPathVisualization.vue';
 import HeapDumpClient from '@/services/api/HeapDumpClient';
 import type ClassLoaderReport from '@/services/api/model/ClassLoaderReport';
-import type { ClassLoaderInfo } from '@/services/api/model/ClassLoaderReport';
+import type {
+  ClassLoaderInfo,
+  ClassLoaderLeakChain,
+  CauseHint
+} from '@/services/api/model/ClassLoaderReport';
 import FormattingService from '@/services/FormattingService';
 
 const route = useRoute();
@@ -220,7 +333,41 @@ const error = ref<string | null>(null);
 const heapExists = ref(false);
 const cacheReady = ref(false);
 const report = ref<ClassLoaderReport | null>(null);
-const activeTab = ref('class-loaders');
+const activeTab = ref<string>('class-loaders');
+
+// Leak-chain modal state
+const showLeakChainModal = ref(false);
+const selectedLeakChain = ref<ClassLoaderLeakChain | null>(null);
+
+const openLeakChainModal = (chain: ClassLoaderLeakChain) => {
+  selectedLeakChain.value = chain;
+  showLeakChainModal.value = true;
+};
+
+const hintLabel = (hint: CauseHint): string => {
+  switch (hint.kind) {
+    case 'THREAD_LOCAL':
+      return 'ThreadLocal';
+    case 'JDBC_DRIVER':
+      return 'JDBC';
+    case 'JNI_GLOBAL':
+      return 'JNI';
+    case 'SERVICE_LOADER':
+      return 'ServiceLoader';
+    case 'LOGGER':
+      return 'Logger';
+    case 'CONTEXT_CLASSLOADER':
+      return 'ctx CL';
+    default:
+      return hint.kind;
+  }
+};
+
+const suspiciousLoaderIds = computed<Set<number>>(() => {
+  const ids = new Set<number>();
+  (report.value?.leakChains ?? []).forEach((c) => ids.add(c.classLoaderId));
+  return ids;
+});
 
 // Sort state for class loaders table
 const loaderSortColumn = ref('retainedSize');
@@ -232,10 +379,16 @@ const dupSortDirection = ref<'asc' | 'desc'>('desc');
 
 let client: HeapDumpClient;
 
-const analysisTabs = [
-  { id: 'class-loaders', label: 'Class Loaders', icon: 'diagram-3' },
-  { id: 'duplicate-classes', label: 'Duplicate Classes', icon: 'files' }
-];
+const analysisTabs = computed(() => {
+  const tabs = [
+    { id: 'class-loaders', label: 'Class Loaders', icon: 'diagram-3' },
+    { id: 'duplicate-classes', label: 'Duplicate Classes', icon: 'files' }
+  ];
+  if ((report.value?.leakChains ?? []).length > 0) {
+    tabs.unshift({ id: 'suspicious-loaders', label: 'Suspicious Loaders', icon: 'bug' });
+  }
+  return tabs;
+});
 
 const summaryMetrics = computed(() => {
   if (!report.value) return [];
@@ -336,6 +489,9 @@ const onTabChange = (_tabIndex: number, tab: { id: string; label: string; icon?:
 
 const loadAnalysis = async () => {
   report.value = await client.getClassLoaderAnalysis();
+  if ((report.value?.leakChains ?? []).length > 0) {
+    activeTab.value = 'suspicious-loaders';
+  }
 };
 
 const scrollToTop = () => {
