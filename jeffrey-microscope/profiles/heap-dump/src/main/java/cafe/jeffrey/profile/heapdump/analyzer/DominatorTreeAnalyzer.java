@@ -160,18 +160,36 @@ public class DominatorTreeAnalyzer {
         PriorityQueue<CandidateEntry> minHeap = new PriorityQueue<>(
                 overselectLimit + 1, Comparator.comparingLong(CandidateEntry::retainedSize));
 
-        // Trigger retained size computation for the first instance to ensure dominator tree is built
+        // Trigger retained size computation for the first instance to ensure the dominator tree is built.
+        // If the NetBeans library throws (e.g., a corrupt heap dump where a GCRoot has a null instance),
+        // degrade gracefully: rank by shallow size for the rest of this analysis instead of failing the request.
+        boolean retainedSizesAvailable = false;
         if (!candidates.isEmpty()) {
             List<Instance> firstInstances = (List<Instance>) candidates.get(0).getInstances();
             if (!firstInstances.isEmpty()) {
-                firstInstances.get(0).getRetainedSize();
+                try {
+                    firstInstances.get(0).getRetainedSize();
+                    retainedSizesAvailable = true;
+                } catch (Exception e) {
+                    LOG.warn("Retained size computation failed; falling back to shallow size for ranking: error_class={} error_message={}",
+                            e.getClass().getSimpleName(), e.getMessage());
+                }
             }
         }
 
         for (JavaClass javaClass : candidates) {
             List<Instance> instances = (List<Instance>) javaClass.getInstances();
             for (Instance instance : instances) {
-                long retainedSize = instance.getRetainedSize();
+                long retainedSize;
+                if (retainedSizesAvailable) {
+                    try {
+                        retainedSize = instance.getRetainedSize();
+                    } catch (Exception e) {
+                        retainedSize = instance.getSize();
+                    }
+                } else {
+                    retainedSize = instance.getSize();
+                }
                 if (retainedSize <= 0) {
                     retainedSize = instance.getSize();
                 }
@@ -275,8 +293,16 @@ public class DominatorTreeAnalyzer {
                     : 1.0;
         }
 
-        // Triggers retained size computation (and dominator tree construction) if not yet done
-        long parentRetainedSize = (long) (parent.getRetainedSize() * correctionRatio);
+        // Triggers retained size computation (and dominator tree construction) if not yet done.
+        // Degrade to shallow size if the NetBeans library cannot compute it (e.g., GCRoot with null instance).
+        long parentRetainedSize;
+        try {
+            parentRetainedSize = (long) (parent.getRetainedSize() * correctionRatio);
+        } catch (Exception e) {
+            LOG.warn("Retained size computation failed for parent; using shallow size: parent_id={} error_class={} error_message={}",
+                    objectId, e.getClass().getSimpleName(), e.getMessage());
+            parentRetainedSize = parent.getSize();
+        }
 
         // Phase 1: Collect direct field references (for field name attribution)
         // LinkedHashMap preserves insertion order for stable field name lookup
@@ -344,7 +370,12 @@ public class DominatorTreeAnalyzer {
                 continue;
             }
 
-            long retainedSize = instance.getRetainedSize();
+            long retainedSize;
+            try {
+                retainedSize = instance.getRetainedSize();
+            } catch (Exception e) {
+                retainedSize = instance.getSize();
+            }
             if (retainedSize <= 0) {
                 retainedSize = instance.getSize();
             }
