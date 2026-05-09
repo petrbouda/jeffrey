@@ -29,6 +29,7 @@ import cafe.jeffrey.profile.heapdump.sanitizer.SanitizeMode;
 import cafe.jeffrey.profile.heapdump.analyzer.ClassHistogramAnalyzer;
 import cafe.jeffrey.profile.heapdump.analyzer.ClassInstanceBrowserAnalyzer;
 import cafe.jeffrey.profile.heapdump.analyzer.ClassLoaderAnalyzer;
+import cafe.jeffrey.profile.heapdump.analyzer.ClassLoaderLeakChainAnalyzer;
 import cafe.jeffrey.profile.heapdump.analyzer.CollectionAnalyzer;
 import cafe.jeffrey.profile.heapdump.analyzer.CompressedOopsCorrector;
 import cafe.jeffrey.profile.heapdump.analyzer.DominatorTreeAnalyzer;
@@ -57,6 +58,7 @@ import cafe.jeffrey.profile.heapdump.model.JvmStringFlag;
 import cafe.jeffrey.profile.heapdump.model.BiggestCollectionsReport;
 import cafe.jeffrey.profile.heapdump.model.BiggestObjectEntry;
 import cafe.jeffrey.profile.heapdump.model.BiggestObjectsReport;
+import cafe.jeffrey.profile.heapdump.model.ClassLoaderLeakChain;
 import cafe.jeffrey.profile.heapdump.model.ClassLoaderReport;
 import cafe.jeffrey.profile.heapdump.model.DuplicateObjectsReport;
 import cafe.jeffrey.profile.heapdump.model.LeakSuspectsReport;
@@ -104,7 +106,7 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
     private static final String LEAK_SUSPECTS_FILE = "leak-suspects-v2.json";
     private static final String DUPLICATE_OBJECTS_FILE = "duplicate-objects.json";
     private static final String BIGGEST_COLLECTIONS_FILE = "biggest-collections.json";
-    private static final String CLASSLOADER_ANALYSIS_FILE = "classloader-analysis.json";
+    private static final String CLASSLOADER_ANALYSIS_FILE = "classloader-analysis-v2.json";
     private static final String HEAP_DUMP_CONFIG_FILE = "heap-dump-config.json";
 
     private static final long COMPRESSED_OOPS_MAX_HEAP = 32L * 1024 * 1024 * 1024;
@@ -143,6 +145,7 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
     private final LeakSuspectsAnalyzer leakSuspectsAnalyzer;
     private final DuplicateObjectAnalyzer duplicateObjectAnalyzer;
     private final ClassLoaderAnalyzer classLoaderAnalyzer;
+    private final ClassLoaderLeakChainAnalyzer classLoaderLeakChainAnalyzer;
     public HeapDumpManagerImpl(
             ProfileInfo profileInfo,
             HeapLoader heapLoader,
@@ -171,6 +174,7 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
         this.leakSuspectsAnalyzer = new LeakSuspectsAnalyzer(this.dominatorTreeAnalyzer);
         this.duplicateObjectAnalyzer = new DuplicateObjectAnalyzer();
         this.classLoaderAnalyzer = new ClassLoaderAnalyzer();
+        this.classLoaderLeakChainAnalyzer = new ClassLoaderLeakChainAnalyzer(this.pathToGCRootAnalyzer);
     }
 
     @Override
@@ -820,7 +824,19 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
     @Override
     public void runClassLoaderAnalysis() {
         getHeap().ifPresent(heap -> {
-            ClassLoaderReport report = classLoaderAnalyzer.analyze(heap);
+            OopsConfig oops = resolveOopsConfig(heap);
+            ClassLoaderReport baseReport = classLoaderAnalyzer.analyze(heap);
+            List<ClassLoaderLeakChain> leakChains = classLoaderLeakChainAnalyzer.analyze(
+                    heap, baseReport, oops.compressedOops, oops.correctionRatio);
+
+            ClassLoaderReport report = new ClassLoaderReport(
+                    baseReport.totalClassLoaders(),
+                    baseReport.totalClasses(),
+                    baseReport.duplicateClassCount(),
+                    baseReport.classLoaders(),
+                    baseReport.duplicateClasses(),
+                    leakChains);
+
             writeJsonFile(CLASSLOADER_ANALYSIS_FILE, report, "Class loader analysis");
         });
     }

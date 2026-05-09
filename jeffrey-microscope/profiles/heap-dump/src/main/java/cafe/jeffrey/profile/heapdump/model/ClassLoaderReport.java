@@ -21,20 +21,24 @@ package cafe.jeffrey.profile.heapdump.model;
 import java.util.List;
 
 /**
- * Report summarizing class loader analysis including class loader inventory
- * and duplicate class detection for identifying class loader leaks.
+ * Report summarizing class loader analysis including class loader inventory,
+ * duplicate class detection, and (optionally) leak-chain diagnostics for
+ * suspicious class loaders.
  *
  * @param totalClassLoaders   total number of distinct class loaders found
  * @param totalClasses        total number of loaded classes
  * @param duplicateClassCount number of classes loaded by more than one class loader
  * @param classLoaders        list of class loader summaries sorted by class count descending
  * @param duplicateClasses    list of classes loaded by multiple class loaders sorted by loader count descending
+ * @param leakChains          GC-root paths and cause-hint diagnostics for suspicious class loaders;
+ *                            empty if leak-chain analysis was not run
  */
 public record ClassLoaderReport(
         int totalClassLoaders,
         int totalClasses,
         int duplicateClassCount,
         List<ClassLoaderInfo> classLoaders,
-        List<DuplicateClassInfo> duplicateClasses
+        List<DuplicateClassInfo> duplicateClasses,
+        List<ClassLoaderLeakChain> leakChains
 ) {
 }
