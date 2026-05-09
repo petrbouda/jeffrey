@@ -62,6 +62,84 @@ class HprofInPlaceSanitizerTest {
             assertFalse(result.wasModified());
             assertArrayEquals(before, Files.readAllBytes(file));
         }
+
+        @Test
+        void multipleSegmentsLeftUntouched() throws IOException {
+            HprofTestFileBuilder builder = new HprofTestFileBuilder();
+            byte[] root1 = builder.buildRootUnknownSubRecord(1L);
+            byte[] root2 = builder.buildRootStickyClassSubRecord(2L);
+
+            builder.writeHeader()
+                    .addHeapDumpSegment(root1)
+                    .addHeapDumpSegment(root2)
+                    .addHeapDumpEnd();
+
+            Path file = builder.writeTo(tempDir.resolve("multi-segment.hprof"));
+            byte[] before = Files.readAllBytes(file);
+
+            SanitizeResult result = HprofInPlaceSanitizer.sanitize(file);
+
+            assertFalse(result.wasModified());
+            assertEquals(3, result.totalRecordsProcessed()); // 2 segments + 1 end
+            assertArrayEquals(before, Files.readAllBytes(file));
+        }
+
+        @Test
+        void instanceDumpSubRecordsLeftUntouched() throws IOException {
+            HprofTestFileBuilder builder = new HprofTestFileBuilder();
+            byte[] instance = builder.buildInstanceDumpSubRecord(1L, 0, 2L, new byte[]{1, 2, 3, 4});
+            byte[] root = builder.buildRootUnknownSubRecord(3L);
+
+            builder.writeHeader()
+                    .addHeapDumpSegment(builder.concat(root, instance))
+                    .addHeapDumpEnd();
+
+            Path file = builder.writeTo(tempDir.resolve("instance-dump.hprof"));
+            byte[] before = Files.readAllBytes(file);
+
+            SanitizeResult result = HprofInPlaceSanitizer.sanitize(file);
+
+            assertFalse(result.wasModified());
+            assertEquals(2, result.totalRecordsProcessed()); // 1 segment + 1 end
+            assertArrayEquals(before, Files.readAllBytes(file));
+        }
+
+        @Test
+        void primArraySubRecordsLeftUntouched() throws IOException {
+            HprofTestFileBuilder builder = new HprofTestFileBuilder();
+            byte[] primArray = builder.buildPrimArraySubRecord(1L, 0, HprofTypeSize.BYTE, new byte[]{10, 20, 30});
+            byte[] root = builder.buildRootUnknownSubRecord(2L);
+
+            builder.writeHeader()
+                    .addHeapDumpSegment(builder.concat(root, primArray))
+                    .addHeapDumpEnd();
+
+            Path file = builder.writeTo(tempDir.resolve("prim-array.hprof"));
+            byte[] before = Files.readAllBytes(file);
+
+            SanitizeResult result = HprofInPlaceSanitizer.sanitize(file);
+
+            assertFalse(result.wasModified());
+            assertArrayEquals(before, Files.readAllBytes(file));
+        }
+
+        @Test
+        void idSize4Works() throws IOException {
+            HprofTestFileBuilder builder = new HprofTestFileBuilder().idSize(4);
+            byte[] root = builder.buildRootUnknownSubRecord(1L);
+
+            builder.writeHeader()
+                    .addHeapDumpSegment(root)
+                    .addHeapDumpEnd();
+
+            Path file = builder.writeTo(tempDir.resolve("id4.hprof"));
+            byte[] before = Files.readAllBytes(file);
+
+            SanitizeResult result = HprofInPlaceSanitizer.sanitize(file);
+
+            assertFalse(result.wasModified());
+            assertArrayEquals(before, Files.readAllBytes(file));
+        }
     }
 
     @Nested

@@ -22,6 +22,7 @@ import org.netbeans.lib.profiler.heap.Heap;
 import org.netbeans.lib.profiler.heap.HeapFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import cafe.jeffrey.profile.heapdump.sanitizer.HprofCopySanitizer;
 import cafe.jeffrey.profile.heapdump.sanitizer.HprofInPlaceSanitizer;
 import cafe.jeffrey.profile.heapdump.sanitizer.SanitizeResult;
 import cafe.jeffrey.shared.common.model.repository.FileExtensions;
@@ -82,6 +83,16 @@ public class SimpleHeapLoader implements HeapLoader {
     }
 
     private Optional<Heap> loadHeap(Path heapDumpPath) throws IOException {
+        // If a non-destructive copy was produced previously, prefer it.
+        Path sanitizedPath = resolveSanitizedPath(heapDumpPath);
+        if (Files.exists(sanitizedPath)) {
+            LOG.debug("Found sanitized heap dump copy, loading: path={}", sanitizedPath);
+            return loadHeapDirect(sanitizedPath);
+        }
+        return loadHeapDirect(heapDumpPath);
+    }
+
+    private Optional<Heap> loadHeapDirect(Path heapDumpPath) throws IOException {
         long startNanos = System.nanoTime();
         Heap heap = HeapFactory.createHeap(heapDumpPath.toFile());
         long durationMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
@@ -100,6 +111,25 @@ public class SimpleHeapLoader implements HeapLoader {
      */
     public SanitizeResult sanitize(Path heapDumpPath) throws IOException {
         return HprofInPlaceSanitizer.sanitize(heapDumpPath);
+    }
+
+    /**
+     * Sanitizes a corrupted heap dump <strong>non-destructively</strong> by
+     * writing a repaired sibling {@code <name>.sanitized} file. The original
+     * heap dump is left untouched. Subsequent calls to {@link #load(Path)} will
+     * pick up the sanitized copy automatically.
+     *
+     * @param heapDumpPath path to the corrupted heap dump
+     * @return the sanitization result
+     * @throws IOException if an I/O error occurs during sanitization
+     */
+    public SanitizeResult sanitizeToCopy(Path heapDumpPath) throws IOException {
+        Path sanitizedPath = resolveSanitizedPath(heapDumpPath);
+        return HprofCopySanitizer.sanitize(heapDumpPath, sanitizedPath);
+    }
+
+    private Path resolveSanitizedPath(Path heapDumpPath) {
+        return heapDumpPath.resolveSibling(heapDumpPath.getFileName().toString() + ".sanitized");
     }
 
     private Optional<Heap> decompressAndLoad(Path gzippedPath, Path decompressedPath) throws IOException {
