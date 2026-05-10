@@ -404,6 +404,45 @@ final class DuckDbHeapView implements HeapView {
         return hprof.readBytes(payloadOffset, (int) byteLengthLong);
     }
 
+    @Override
+    public byte[] readInstanceContentBytes(long instanceId) throws SQLException {
+        if (hprof == null) {
+            throw new IllegalStateException(
+                    "HeapView opened without a .hprof file; instance content reads are unavailable. "
+                            + "Use HeapView.open(indexDb, hprof).");
+        }
+        InstanceRow inst = findInstanceById(instanceId).orElse(null);
+        if (inst == null) {
+            return new byte[0];
+        }
+        int idSize = hprof.header().idSize();
+        return switch (inst.kind()) {
+            case INSTANCE -> {
+                // Body: id + u4 + id + u4 numBytes + [field bytes]
+                long fieldsOffset = inst.fileOffset() + 2L * idSize + 8;
+                int len = readInstanceFieldsLength(inst, idSize);
+                yield len <= 0 ? new byte[0] : hprof.readBytes(fieldsOffset, len);
+            }
+            case OBJECT_ARRAY -> {
+                // Body: id + u4 + u4 length + id arrayClassId + [id * length]
+                if (inst.arrayLength() == null) yield new byte[0];
+                long elementsOffset = inst.fileOffset() + 2L * idSize + 8;
+                long byteLen = (long) inst.arrayLength() * idSize;
+                yield byteLen > Integer.MAX_VALUE
+                        ? new byte[0]
+                        : hprof.readBytes(elementsOffset, (int) byteLen);
+            }
+            case PRIMITIVE_ARRAY -> readPrimitiveArrayBytes(instanceId);
+        };
+    }
+
+    private int readInstanceFieldsLength(InstanceRow inst, int idSize) {
+        // INSTANCE_DUMP body: id + u4 + id + u4(fieldsLength) + ... — read the u4 from .hprof.
+        long u4Offset = inst.fileOffset() + 2L * idSize + 4;
+        long len = Integer.toUnsignedLong(hprof.readInt(u4Offset));
+        return len > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) len;
+    }
+
     private static Object decodeBasicType(HprofMappedFile file, long offset, int type, int idSize) {
         return switch (type) {
             case HprofTag.BasicType.OBJECT -> file.readId(offset);
