@@ -201,6 +201,28 @@ final class DuckDbHeapView implements HeapView {
         }
     }
 
+    @Override
+    public long totalInstanceCount() throws SQLException {
+        return scalarLong("SELECT COUNT(*) FROM instance");
+    }
+
+    @Override
+    public long totalShallowSize() throws SQLException {
+        return scalarLong("SELECT COALESCE(SUM(shallow_size), 0) FROM instance");
+    }
+
+    @Override
+    public long classCount() throws SQLException {
+        return scalarLong("SELECT COUNT(*) FROM class");
+    }
+
+    private long scalarLong(String sql) throws SQLException {
+        try (Statement stmt = connection.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            return rs.next() ? rs.getLong(1) : 0L;
+        }
+    }
+
     private static InstanceRow mapInstance(ResultSet rs) throws SQLException {
         return new InstanceRow(
                 rs.getLong(1),
@@ -236,6 +258,11 @@ final class DuckDbHeapView implements HeapView {
                 return rs.next();
             }
         }
+    }
+
+    @Override
+    public long gcRootCount() throws SQLException {
+        return scalarLong("SELECT COUNT(*) FROM gc_root");
     }
 
     private static GcRootRow mapGcRoot(ResultSet rs) throws SQLException {

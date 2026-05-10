@@ -72,11 +72,21 @@ public interface HeapView extends AutoCloseable {
 
     long instanceCount(long classId) throws SQLException;
 
+    /** Total instances across the whole heap. */
+    long totalInstanceCount() throws SQLException;
+
+    /** Sum of {@code shallow_size} across all instances. */
+    long totalShallowSize() throws SQLException;
+
+    long classCount() throws SQLException;
+
     // ---- GC roots --------------------------------------------------------
 
     List<GcRootRow> gcRoots() throws SQLException;
 
     boolean isGcRoot(long instanceId) throws SQLException;
+
+    long gcRootCount() throws SQLException;
 
     // ---- String pool -----------------------------------------------------
 

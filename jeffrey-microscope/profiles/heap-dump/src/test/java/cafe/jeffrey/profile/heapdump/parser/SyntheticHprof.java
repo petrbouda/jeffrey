@@ -33,7 +33,7 @@ import java.util.function.Consumer;
  * on a real captured .hprof file. All numerics are written big-endian as the
  * HPROF format requires.
  */
-final class SyntheticHprof {
+public final class SyntheticHprof {
 
     private final ByteArrayOutputStream sink = new ByteArrayOutputStream();
     private final DataOutputStream out = new DataOutputStream(sink);
@@ -43,7 +43,7 @@ final class SyntheticHprof {
         this.idSize = idSize;
     }
 
-    static SyntheticHprof create(String version, int idSize, long timestampMs) {
+    public static SyntheticHprof create(String version, int idSize, long timestampMs) {
         try {
             SyntheticHprof h = new SyntheticHprof(idSize);
             h.out.writeBytes(magicFor(version));
@@ -56,11 +56,11 @@ final class SyntheticHprof {
         }
     }
 
-    int idSize() {
+    public int idSize() {
         return idSize;
     }
 
-    SyntheticHprof topLevel(int tag, byte[] body) {
+    public SyntheticHprof topLevel(int tag, byte[] body) {
         try {
             out.writeByte(tag);
             out.writeInt(0); // timestamp delta
@@ -72,7 +72,7 @@ final class SyntheticHprof {
         }
     }
 
-    SyntheticHprof string(long stringId, String value) {
+    public SyntheticHprof string(long stringId, String value) {
         ByteArrayOutputStream body = new ByteArrayOutputStream();
         DataOutputStream d = new DataOutputStream(body);
         try {
@@ -84,7 +84,7 @@ final class SyntheticHprof {
         return topLevel(HprofTag.Top.STRING, body.toByteArray());
     }
 
-    SyntheticHprof loadClass(int classSerial, long classId, int traceSerial, long nameStringId) {
+    public SyntheticHprof loadClass(int classSerial, long classId, int traceSerial, long nameStringId) {
         ByteArrayOutputStream body = new ByteArrayOutputStream();
         DataOutputStream d = new DataOutputStream(body);
         try {
@@ -98,23 +98,23 @@ final class SyntheticHprof {
         return topLevel(HprofTag.Top.LOAD_CLASS, body.toByteArray());
     }
 
-    SyntheticHprof heapDumpSegment(Consumer<SubBuilder> body) {
+    public SyntheticHprof heapDumpSegment(Consumer<SubBuilder> body) {
         SubBuilder b = new SubBuilder(idSize);
         body.accept(b);
         return topLevel(HprofTag.Top.HEAP_DUMP_SEGMENT, b.toByteArray());
     }
 
-    SyntheticHprof heapDumpEnd() {
+    public SyntheticHprof heapDumpEnd() {
         return topLevel(HprofTag.Top.HEAP_DUMP_END, new byte[0]);
     }
 
     /** Append an arbitrary record header with no body bytes (used to test unknown tags). */
-    SyntheticHprof unknownTopLevel(int tag) {
+    public SyntheticHprof unknownTopLevel(int tag) {
         return topLevel(tag, new byte[0]);
     }
 
     /** Append raw bytes that DO NOT form a valid record — used to test recovery. */
-    SyntheticHprof appendRaw(byte[] raw) {
+    public SyntheticHprof appendRaw(byte[] raw) {
         try {
             out.write(raw);
             return this;
@@ -123,11 +123,11 @@ final class SyntheticHprof {
         }
     }
 
-    byte[] toByteArray() {
+    public byte[] toByteArray() {
         return sink.toByteArray();
     }
 
-    Path writeTo(Path dir, String fileName) throws IOException {
+    public Path writeTo(Path dir, String fileName) throws IOException {
         Path p = dir.resolve(fileName);
         Files.write(p, sink.toByteArray());
         return p;
@@ -151,7 +151,7 @@ final class SyntheticHprof {
     }
 
     /** Builder for sub-records inside a HEAP_DUMP / HEAP_DUMP_SEGMENT body. */
-    static final class SubBuilder {
+    public static final class SubBuilder {
         private final ByteArrayOutputStream sink = new ByteArrayOutputStream();
         private final DataOutputStream out = new DataOutputStream(sink);
         private final int idSize;
@@ -160,7 +160,7 @@ final class SyntheticHprof {
             this.idSize = idSize;
         }
 
-        SubBuilder gcRoot(int rootKind, long instanceId) {
+        public SubBuilder gcRoot(int rootKind, long instanceId) {
             try {
                 out.writeByte(rootKind);
                 writeId(instanceId);
@@ -170,7 +170,7 @@ final class SyntheticHprof {
             return this;
         }
 
-        SubBuilder gcRootJavaFrame(long instanceId, int threadSerial, int frameIndex) {
+        public SubBuilder gcRootJavaFrame(long instanceId, int threadSerial, int frameIndex) {
             try {
                 out.writeByte(HprofTag.Sub.ROOT_JAVA_FRAME);
                 writeId(instanceId);
@@ -182,7 +182,7 @@ final class SyntheticHprof {
             return this;
         }
 
-        SubBuilder gcRootThreadObject(long threadObjId, int threadSerial, int stackTraceSerial) {
+        public SubBuilder gcRootThreadObject(long threadObjId, int threadSerial, int stackTraceSerial) {
             try {
                 out.writeByte(HprofTag.Sub.ROOT_THREAD_OBJECT);
                 writeId(threadObjId);
@@ -197,7 +197,7 @@ final class SyntheticHprof {
         /**
          * Minimal CLASS_DUMP: no const pool, no static fields, one int instance field.
          */
-        SubBuilder simpleClassDump(long classId, long superClassId, long classloaderId,
+        public SubBuilder simpleClassDump(long classId, long superClassId, long classloaderId,
                                    int instanceSize, long instanceFieldNameId) {
             try {
                 out.writeByte(HprofTag.Sub.CLASS_DUMP);
@@ -221,7 +221,7 @@ final class SyntheticHprof {
             return this;
         }
 
-        SubBuilder instanceDump(long instanceId, long classId, byte[] fieldBytes) {
+        public SubBuilder instanceDump(long instanceId, long classId, byte[] fieldBytes) {
             try {
                 out.writeByte(HprofTag.Sub.INSTANCE_DUMP);
                 writeId(instanceId);
@@ -235,7 +235,7 @@ final class SyntheticHprof {
             return this;
         }
 
-        SubBuilder objectArrayDump(long arrayId, long arrayClassId, long[] elements) {
+        public SubBuilder objectArrayDump(long arrayId, long arrayClassId, long[] elements) {
             try {
                 out.writeByte(HprofTag.Sub.OBJECT_ARRAY_DUMP);
                 writeId(arrayId);
@@ -251,7 +251,7 @@ final class SyntheticHprof {
             return this;
         }
 
-        SubBuilder primitiveArrayDump(long arrayId, int elementType, byte[] payload, int elementCount) {
+        public SubBuilder primitiveArrayDump(long arrayId, int elementType, byte[] payload, int elementCount) {
             try {
                 out.writeByte(HprofTag.Sub.PRIMITIVE_ARRAY_DUMP);
                 writeId(arrayId);
@@ -265,7 +265,7 @@ final class SyntheticHprof {
             return this;
         }
 
-        SubBuilder unknownSub(int tag) {
+        public SubBuilder unknownSub(int tag) {
             try {
                 out.writeByte(tag);
             } catch (IOException e) {
@@ -274,7 +274,7 @@ final class SyntheticHprof {
             return this;
         }
 
-        byte[] toByteArray() {
+        public byte[] toByteArray() {
             return sink.toByteArray();
         }
 
