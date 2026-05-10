@@ -59,6 +59,12 @@
             <artifactId>common-profile</artifactId>
         </dependency>
 
+        <!-- DuckDB JDBC for the heap-dump-index sibling database (.idx.duckdb). -->
+        <dependency>
+            <groupId>org.duckdb</groupId>
+            <artifactId>duckdb_jdbc</artifactId>
+        </dependency>
+
         <!-- Logging -->
         <dependency>
             <groupId>org.slf4j</groupId>
