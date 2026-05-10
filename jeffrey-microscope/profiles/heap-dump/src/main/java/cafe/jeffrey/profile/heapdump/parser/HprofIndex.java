@@ -140,6 +140,13 @@ public final class HprofIndex {
         writeParseWarnings(conn, top.warnings);
         writeParseWarnings(conn, counters.warnings);
 
+        // Force a checkpoint so all WAL contents land in the main DB file.
+        // Without this, opening the file in read-only mode (HeapView) fails because
+        // read-only connections cannot replay an outstanding WAL.
+        try (Statement stmt = conn.createStatement()) {
+            stmt.execute("CHECKPOINT");
+        }
+
         return new IndexResult(
                 top.stringCount,
                 counters.classCount,
