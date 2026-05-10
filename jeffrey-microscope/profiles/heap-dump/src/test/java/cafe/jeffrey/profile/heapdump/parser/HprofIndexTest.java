@@ -226,8 +226,8 @@ class HprofIndexTest {
                     long tableCount = scalarLong(stmt,
                             "SELECT COUNT(*) FROM duckdb_tables() WHERE schema_name = 'main'");
                     // string, class, class_instance_field, instance, gc_root, outbound_ref,
-                    // dump_metadata, parse_warning
-                    assertEquals(8, tableCount);
+                    // dominator, retained_size, dump_metadata, parse_warning
+                    assertEquals(10, tableCount);
                 }
             }
         }

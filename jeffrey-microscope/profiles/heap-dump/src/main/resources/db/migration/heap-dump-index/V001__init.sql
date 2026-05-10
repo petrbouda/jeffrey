@@ -154,6 +154,32 @@ CREATE INDEX IF NOT EXISTS idx_outbound_source ON outbound_ref(source_id);
 CREATE INDEX IF NOT EXISTS idx_outbound_target ON outbound_ref(target_id);
 
 --
+-- DOMINATOR
+-- One row per instance: its immediate dominator in the heap reference graph.
+-- Built lazily by DominatorTreeBuilder; the table stays empty until requested.
+-- Instances rooted directly at the (virtual) root have dominator_id = 0.
+--
+CREATE TABLE IF NOT EXISTS dominator
+(
+    instance_id   BIGINT NOT NULL PRIMARY KEY,
+    dominator_id  BIGINT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_dominator_parent ON dominator(dominator_id);
+
+--
+-- RETAINED_SIZE
+-- One row per instance: total bytes that would be reclaimed if the instance
+-- became unreachable. Computed bottom-up over the dominator tree; populated
+-- by the same lazy build that fills the dominator table.
+--
+CREATE TABLE IF NOT EXISTS retained_size
+(
+    instance_id BIGINT NOT NULL PRIMARY KEY,
+    bytes       BIGINT NOT NULL
+);
+
+--
 -- PARSE_WARNING
 -- Forensic record of any record that was skipped, truncated, or recovered
 -- during the parse. Surfaced to the UI via dump_metadata.warning_count.

@@ -109,6 +109,21 @@ public interface HeapView extends AutoCloseable {
     /** Count of outbound references — cheap whole-graph metric. */
     long outboundRefCount() throws SQLException;
 
+    // ---- Dominator tree + retained size (populated by DominatorTreeBuilder) ----
+
+    /**
+     * Returns the immediate dominator id of {@code instanceId}, or 0L when
+     * the instance is directly rooted at the virtual root, or -1 when no
+     * dominator entry exists (dominator tree not built / instance unreachable).
+     */
+    long dominatorOf(long instanceId) throws SQLException;
+
+    /** Retained size in bytes, or 0 if not computed. */
+    long retainedSize(long instanceId) throws SQLException;
+
+    /** True iff the dominator + retained_size tables have been populated. */
+    boolean hasDominatorTree() throws SQLException;
+
     // ---- Class fields + instance values ----------------------------------
 
     /**

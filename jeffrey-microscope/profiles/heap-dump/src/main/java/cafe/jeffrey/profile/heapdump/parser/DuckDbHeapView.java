@@ -287,6 +287,33 @@ final class DuckDbHeapView implements HeapView {
         return scalarLong("SELECT COUNT(*) FROM outbound_ref");
     }
 
+    @Override
+    public long dominatorOf(long instanceId) throws SQLException {
+        try (PreparedStatement stmt = connection.prepareStatement(
+                "SELECT dominator_id FROM dominator WHERE instance_id = ?")) {
+            stmt.setLong(1, instanceId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                return rs.next() ? rs.getLong(1) : -1L;
+            }
+        }
+    }
+
+    @Override
+    public long retainedSize(long instanceId) throws SQLException {
+        try (PreparedStatement stmt = connection.prepareStatement(
+                "SELECT bytes FROM retained_size WHERE instance_id = ?")) {
+            stmt.setLong(1, instanceId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                return rs.next() ? rs.getLong(1) : 0L;
+            }
+        }
+    }
+
+    @Override
+    public boolean hasDominatorTree() throws SQLException {
+        return scalarLong("SELECT COUNT(*) FROM dominator") > 0;
+    }
+
     // ---- Class fields + instance values ----------------------------------
 
     @Override
