@@ -88,6 +88,17 @@ public interface HeapView extends AutoCloseable {
 
     long gcRootCount() throws SQLException;
 
+    // ---- Reference graph -------------------------------------------------
+
+    /** All outbound references from {@code instanceId}. */
+    List<OutboundRefRow> outboundRefs(long instanceId) throws SQLException;
+
+    /** All inbound references to {@code instanceId}. Cheap thanks to the index on target_id. */
+    List<OutboundRefRow> inboundRefs(long instanceId) throws SQLException;
+
+    /** Count of outbound references — cheap whole-graph metric. */
+    long outboundRefCount() throws SQLException;
+
     // ---- String pool -----------------------------------------------------
 
     Optional<String> findString(long stringId) throws SQLException;

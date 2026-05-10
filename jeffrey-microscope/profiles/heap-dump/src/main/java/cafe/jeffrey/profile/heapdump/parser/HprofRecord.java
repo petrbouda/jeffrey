@@ -94,10 +94,16 @@ public sealed interface HprofRecord {
      * CLASS_DUMP (tag 0x20): one row in the heap's class metadata. Field
      * descriptors are not eagerly decoded — only the byte length needed for
      * shallow size computation is captured ({@code instanceFieldsByteLength}).
+     *
+     * {@code instanceFieldTypes} carries the HPROF basic-type byte for each
+     * instance field in declaration order; the index uses it together with the
+     * super-class chain to walk INSTANCE_DUMP field bytes for outbound-reference
+     * extraction.
      */
     record ClassDump(long classId, int traceSerial, long superClassId, long classloaderId,
                      long signersId, long protectionDomainId, int instanceSize,
                      int instanceFieldsByteLength, int totalByteLength,
+                     int[] instanceFieldTypes,
                      long fileOffset) implements Sub {
     }
 

@@ -77,6 +77,7 @@ public final class HprofIndex {
             long classCount,
             long instanceCount,
             long gcRootCount,
+            long outboundRefCount,
             long warningCount,
             boolean truncated,
             long bytesParsed,
@@ -117,12 +118,12 @@ public final class HprofIndex {
         IndexResult r = elapsed.entity();
         IndexResult withTime = new IndexResult(
                 r.stringCount(), r.classCount(), r.instanceCount(), r.gcRootCount(),
-                r.warningCount(), r.truncated(), r.bytesParsed(), r.recordCount(),
-                elapsed.duration());
-        LOG.debug("Heap dump index built: path={} indexPath={} duration_ms={} strings={} classes={} instances={} gc_roots={} warnings={}",
+                r.outboundRefCount(), r.warningCount(), r.truncated(), r.bytesParsed(),
+                r.recordCount(), elapsed.duration());
+        LOG.debug("Heap dump index built: path={} indexPath={} duration_ms={} strings={} classes={} instances={} gc_roots={} outbound_refs={} warnings={}",
                 file.path(), indexDbPath, elapsed.duration().toMillis(),
                 withTime.stringCount(), withTime.classCount(), withTime.instanceCount(),
-                withTime.gcRootCount(), withTime.warningCount());
+                withTime.gcRootCount(), withTime.outboundRefCount(), withTime.warningCount());
         return withTime;
     }
 
@@ -133,6 +134,7 @@ public final class HprofIndex {
 
         TopLevelData top = walkTopLevel(file, conn);
         Counters counters = walkRegions(file, conn, top, idSize);
+        long refCount = walkRegionsForRefs(file, conn, counters.classDumpsById, idSize, counters);
         long warningCount = top.warnings.size() + counters.warnings.size();
         boolean truncated = anyError(top.warnings) || anyError(counters.warnings);
 
@@ -152,6 +154,7 @@ public final class HprofIndex {
                 counters.classCount,
                 counters.instanceCount,
                 counters.gcRootCount,
+                counters.outboundRefCount,
                 warningCount,
                 truncated,
                 file.size(),
@@ -210,10 +213,13 @@ public final class HprofIndex {
 
     private static final class Counters {
         final List<ParseWarning> warnings = new ArrayList<>();
+        /** classId → ClassDump, populated during the first region walk and consumed during the second. */
+        final Map<Long, HprofRecord.ClassDump> classDumpsById = new HashMap<>();
         long classCount;
         long instanceCount;
         long gcRootCount;
         long subRecordCount;
+        long outboundRefCount;
     }
 
     private static Counters walkRegions(
@@ -244,6 +250,7 @@ public final class HprofIndex {
                                         if (writtenClassIds.add(cd.classId())) {
                                             appendClass(classApp, cd, top);
                                             c.classCount++;
+                                            c.classDumpsById.put(cd.classId(), cd);
                                         }
                                     }
                                     case HprofRecord.InstanceDump id ->
@@ -270,6 +277,109 @@ public final class HprofIndex {
         }
 
         return c;
+    }
+
+    /**
+     * Second pass over the heap-dump regions, populating outbound_ref by decoding
+     * INSTANCE_DUMP field bytes against each class's instance-field type list and
+     * by walking OBJECT_ARRAY_DUMP element ids. Only emits refs whose target id is
+     * non-zero (HPROF id 0 means "no reference").
+     */
+    private static long walkRegionsForRefs(
+            HprofMappedFile file, DuckDBConnection conn,
+            Map<Long, HprofRecord.ClassDump> classes, int idSize, Counters c) throws SQLException {
+        long[] count = {0L};
+        try (DuckDBAppender refApp = conn.createAppender("outbound_ref")) {
+            // Re-walk top-level to find regions; cheap on the mmaped file.
+            HprofTopLevelReader.read(file, new HprofTopLevelReader.Listener() {
+                @Override
+                public void onRecord(HprofRecord.Top record) {
+                    if (record instanceof HprofRecord.HeapDumpRegion region) {
+                        HprofSubRecordReader.read(file, region.fileOffset(), region.byteLength(),
+                                new HprofSubRecordReader.Listener() {
+                                    @Override
+                                    public void onRecord(HprofRecord.Sub sub) {
+                                        try {
+                                            switch (sub) {
+                                                case HprofRecord.InstanceDump id ->
+                                                        count[0] += emitInstanceRefs(file, id, classes, idSize, refApp);
+                                                case HprofRecord.ObjectArrayDump oa ->
+                                                        count[0] += emitArrayRefs(file, oa, idSize, refApp);
+                                                default -> {
+                                                }
+                                            }
+                                        } catch (SQLException e) {
+                                            throw new RuntimeException(e);
+                                        }
+                                    }
+                                });
+                    }
+                }
+            });
+        }
+        c.outboundRefCount = count[0];
+        return count[0];
+    }
+
+    private static int emitInstanceRefs(
+            HprofMappedFile file, HprofRecord.InstanceDump inst,
+            Map<Long, HprofRecord.ClassDump> classes, int idSize, DuckDBAppender refApp) throws SQLException {
+        long fieldsOffset = inst.fileOffset() + 2L * idSize + 8;
+        long cursor = fieldsOffset;
+        long fieldsEnd = fieldsOffset + Integer.toUnsignedLong(inst.instanceFieldsByteLength());
+
+        int globalIndex = 0;
+        int emitted = 0;
+        long currentClassId = inst.classId();
+        // HPROF instance fields are laid out most-derived-first, walking the super-class chain.
+        while (currentClassId != 0L) {
+            HprofRecord.ClassDump cls = classes.get(currentClassId);
+            if (cls == null) {
+                break; // class not seen — give up gracefully on the rest of the chain
+            }
+            for (int type : cls.instanceFieldTypes()) {
+                int sz = HprofTypeSize.sizeOf(type, idSize);
+                if (sz < 0 || cursor + sz > fieldsEnd) {
+                    return emitted; // defensive bail-out on bad data
+                }
+                if (type == HprofTag.BasicType.OBJECT) {
+                    long targetId = file.readId(cursor);
+                    if (targetId != 0L) {
+                        refApp.beginRow();
+                        refApp.append(inst.instanceId());
+                        refApp.append(targetId);
+                        refApp.append((byte) 0); // field_kind: instance_field
+                        refApp.append(globalIndex);
+                        refApp.endRow();
+                        emitted++;
+                    }
+                }
+                cursor += sz;
+                globalIndex++;
+            }
+            currentClassId = cls.superClassId();
+        }
+        return emitted;
+    }
+
+    private static int emitArrayRefs(
+            HprofMappedFile file, HprofRecord.ObjectArrayDump oa, int idSize, DuckDBAppender refApp)
+            throws SQLException {
+        long elementsOffset = oa.fileOffset() + 2L * idSize + 8;
+        int emitted = 0;
+        for (int i = 0; i < oa.length(); i++) {
+            long targetId = file.readId(elementsOffset + (long) i * idSize);
+            if (targetId != 0L) {
+                refApp.beginRow();
+                refApp.append(oa.arrayId());
+                refApp.append(targetId);
+                refApp.append((byte) 1); // field_kind: array_element
+                refApp.append(i);
+                refApp.endRow();
+                emitted++;
+            }
+        }
+        return emitted;
     }
 
     private static void appendClass(

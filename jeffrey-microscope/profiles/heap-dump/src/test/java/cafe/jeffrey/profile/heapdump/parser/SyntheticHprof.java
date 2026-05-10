@@ -221,6 +221,35 @@ public final class SyntheticHprof {
             return this;
         }
 
+        /** CLASS_DUMP with super=0, one OBJECT-typed instance field. */
+        public SubBuilder topLevelObjectClassDump(long classId, long instanceFieldNameId) {
+            return objectFieldClassDumpWithSuper(classId, 0L, instanceFieldNameId);
+        }
+
+        /** CLASS_DUMP with explicit super, one OBJECT-typed instance field. */
+        public SubBuilder objectFieldClassDumpWithSuper(long classId, long superClassId, long instanceFieldNameId) {
+            try {
+                out.writeByte(HprofTag.Sub.CLASS_DUMP);
+                writeId(classId);
+                out.writeInt(0);
+                writeId(superClassId);
+                writeId(0L); // classloader
+                writeId(0L);
+                writeId(0L);
+                writeId(0L);
+                writeId(0L);
+                out.writeInt(idSize); // instance size = one object reference
+                out.writeShort(0); // const pool count
+                out.writeShort(0); // static fields count
+                out.writeShort(1); // instance fields count
+                writeId(instanceFieldNameId);
+                out.writeByte(HprofTag.BasicType.OBJECT);
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+            return this;
+        }
+
         public SubBuilder instanceDump(long instanceId, long classId, byte[] fieldBytes) {
             try {
                 out.writeByte(HprofTag.Sub.INSTANCE_DUMP);

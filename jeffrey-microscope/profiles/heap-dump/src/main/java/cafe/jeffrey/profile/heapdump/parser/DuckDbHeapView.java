@@ -265,6 +265,39 @@ final class DuckDbHeapView implements HeapView {
         return scalarLong("SELECT COUNT(*) FROM gc_root");
     }
 
+    // ---- Reference graph -------------------------------------------------
+
+    @Override
+    public List<OutboundRefRow> outboundRefs(long instanceId) throws SQLException {
+        return queryRefs("SELECT source_id, target_id, field_kind, field_id "
+                + "FROM outbound_ref WHERE source_id = ? ORDER BY field_kind, field_id", instanceId);
+    }
+
+    @Override
+    public List<OutboundRefRow> inboundRefs(long instanceId) throws SQLException {
+        return queryRefs("SELECT source_id, target_id, field_kind, field_id "
+                + "FROM outbound_ref WHERE target_id = ? ORDER BY source_id, field_id", instanceId);
+    }
+
+    @Override
+    public long outboundRefCount() throws SQLException {
+        return scalarLong("SELECT COUNT(*) FROM outbound_ref");
+    }
+
+    private List<OutboundRefRow> queryRefs(String sql, long id) throws SQLException {
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setLong(1, id);
+            try (ResultSet rs = stmt.executeQuery()) {
+                List<OutboundRefRow> rows = new ArrayList<>();
+                while (rs.next()) {
+                    rows.add(new OutboundRefRow(
+                            rs.getLong(1), rs.getLong(2), rs.getInt(3), rs.getInt(4)));
+                }
+                return rows;
+            }
+        }
+    }
+
     private static GcRootRow mapGcRoot(ResultSet rs) throws SQLException {
         return new GcRootRow(
                 rs.getLong(1),
