@@ -132,6 +132,13 @@ public interface HeapView extends AutoCloseable {
      */
     List<InstanceFieldValue> readInstanceFields(long instanceId) throws SQLException;
 
+    /**
+     * Returns the raw payload bytes of a PRIMITIVE_ARRAY_DUMP. Caller decodes
+     * according to the instance's {@code primitiveType}. Requires an attached
+     * .hprof. Returns empty bytes if the instance is not a primitive array.
+     */
+    byte[] readPrimitiveArrayBytes(long instanceId) throws SQLException;
+
     // ---- String pool -----------------------------------------------------
 
     Optional<String> findString(long stringId) throws SQLException;

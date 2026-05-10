@@ -349,6 +349,34 @@ final class DuckDbHeapView implements HeapView {
         return out;
     }
 
+    @Override
+    public byte[] readPrimitiveArrayBytes(long instanceId) throws SQLException {
+        if (hprof == null) {
+            throw new IllegalStateException(
+                    "HeapView opened without a .hprof file; primitive-array reads are unavailable. "
+                            + "Use HeapView.open(indexDb, hprof).");
+        }
+        InstanceRow inst = findInstanceById(instanceId).orElse(null);
+        if (inst == null
+                || inst.kind() != InstanceRow.Kind.PRIMITIVE_ARRAY
+                || inst.arrayLength() == null
+                || inst.primitiveType() == null) {
+            return new byte[0];
+        }
+        int idSize = hprof.header().idSize();
+        // PRIMITIVE_ARRAY_DUMP body layout: id + u4 + u4 + u1 + payload.
+        long payloadOffset = inst.fileOffset() + idSize + 9L;
+        int elementSize = HprofTypeSize.sizeOf(inst.primitiveType(), idSize);
+        if (elementSize < 0) {
+            return new byte[0];
+        }
+        long byteLengthLong = (long) inst.arrayLength() * elementSize;
+        if (byteLengthLong > Integer.MAX_VALUE) {
+            byteLengthLong = Integer.MAX_VALUE; // defensive cap
+        }
+        return hprof.readBytes(payloadOffset, (int) byteLengthLong);
+    }
+
     private static Object decodeBasicType(HprofMappedFile file, long offset, int type, int idSize) {
         return switch (type) {
             case HprofTag.BasicType.OBJECT -> file.readId(offset);

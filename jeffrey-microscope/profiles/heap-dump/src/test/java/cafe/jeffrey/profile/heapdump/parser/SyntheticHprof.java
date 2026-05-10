@@ -250,6 +250,40 @@ public final class SyntheticHprof {
             return this;
         }
 
+        /** A field declaration: (name string id, HPROF basic-type byte). */
+        public record FieldSpec(long nameId, int basicType) {
+        }
+
+        /**
+         * CLASS_DUMP with arbitrary field list. Useful for tests that need
+         * specific multi-field layouts (e.g. String = [value:OBJECT, coder:BYTE, hash:INT]).
+         */
+        public SubBuilder classDumpWithFields(long classId, long superClassId, long classloaderId,
+                                              int instanceSize, FieldSpec... fields) {
+            try {
+                out.writeByte(HprofTag.Sub.CLASS_DUMP);
+                writeId(classId);
+                out.writeInt(0);
+                writeId(superClassId);
+                writeId(classloaderId);
+                writeId(0L);
+                writeId(0L);
+                writeId(0L);
+                writeId(0L);
+                out.writeInt(instanceSize);
+                out.writeShort(0); // const pool count
+                out.writeShort(0); // static fields count
+                out.writeShort(fields.length);
+                for (FieldSpec f : fields) {
+                    writeId(f.nameId());
+                    out.writeByte(f.basicType());
+                }
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+            return this;
+        }
+
         public SubBuilder instanceDump(long instanceId, long classId, byte[] fieldBytes) {
             try {
                 out.writeByte(HprofTag.Sub.INSTANCE_DUMP);
