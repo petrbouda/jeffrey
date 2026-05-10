@@ -187,14 +187,17 @@ public final class HprofSubRecordReader {
             cursor += sz;
         }
 
-        // Instance fields — capture the type byte for each so the index builder
-        // can decode INSTANCE_DUMP field bytes for outbound-ref extraction.
+        // Instance fields — capture name id + type byte for each so the index
+        // builder can decode INSTANCE_DUMP field bytes for ref extraction and
+        // typed value reads.
         int instanceFieldCount = Short.toUnsignedInt(file.readShort(cursor));
         cursor += 2;
         int instanceFieldsByteLength = 0;
+        long[] instanceFieldNameIds = new long[instanceFieldCount];
         int[] instanceFieldTypes = new int[instanceFieldCount];
         for (int i = 0; i < instanceFieldCount; i++) {
-            cursor += idSize; // id nameId (skipped — names persisted in PR #7)
+            instanceFieldNameIds[i] = file.readId(cursor);
+            cursor += idSize;
             int type = Byte.toUnsignedInt(file.readByte(cursor));
             cursor += 1;
             int sz = HprofTypeSize.sizeOf(type, idSize);
@@ -209,7 +212,8 @@ public final class HprofSubRecordReader {
         listener.onRecord(new HprofRecord.ClassDump(
                 classId, traceSerial, superClassId, classloaderId,
                 signersId, protectionDomainId, instanceSize,
-                instanceFieldsByteLength, totalByteLength, instanceFieldTypes, bodyOffset));
+                instanceFieldsByteLength, totalByteLength,
+                instanceFieldNameIds, instanceFieldTypes, bodyOffset));
     }
 
     private static void emitInstanceDump(

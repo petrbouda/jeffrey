@@ -103,7 +103,7 @@ public sealed interface HprofRecord {
     record ClassDump(long classId, int traceSerial, long superClassId, long classloaderId,
                      long signersId, long protectionDomainId, int instanceSize,
                      int instanceFieldsByteLength, int totalByteLength,
-                     int[] instanceFieldTypes,
+                     long[] instanceFieldNameIds, int[] instanceFieldTypes,
                      long fileOffset) implements Sub {
     }
 

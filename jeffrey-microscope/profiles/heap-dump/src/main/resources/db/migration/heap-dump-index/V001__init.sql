@@ -103,6 +103,22 @@ CREATE TABLE IF NOT EXISTS instance
 CREATE INDEX IF NOT EXISTS idx_instance_class ON instance(class_id);
 
 --
+-- CLASS_INSTANCE_FIELD
+-- Per-class instance field descriptors (one row per field, in declaration order).
+-- field_index is the field's 0-based position within THIS class only — the
+-- complete instance-field layout for an object is the concatenation of all its
+-- ancestor classes' rows, walked most-derived-first per HPROF.
+--
+CREATE TABLE IF NOT EXISTS class_instance_field
+(
+    class_id    BIGINT  NOT NULL,
+    field_index INTEGER NOT NULL,
+    name        VARCHAR NOT NULL,
+    basic_type  TINYINT NOT NULL,
+    PRIMARY KEY (class_id, field_index)
+);
+
+--
 -- GC_ROOT
 -- One row per GC root reference (from ROOT_* sub-records).
 -- root_kind maps directly to the HPROF sub-tag byte.

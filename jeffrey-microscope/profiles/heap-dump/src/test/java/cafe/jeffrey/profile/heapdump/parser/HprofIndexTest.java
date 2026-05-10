@@ -225,8 +225,9 @@ class HprofIndexTest {
                 try (Statement stmt = db.connection().createStatement()) {
                     long tableCount = scalarLong(stmt,
                             "SELECT COUNT(*) FROM duckdb_tables() WHERE schema_name = 'main'");
-                    // string, class, instance, gc_root, outbound_ref, dump_metadata, parse_warning
-                    assertEquals(7, tableCount);
+                    // string, class, class_instance_field, instance, gc_root, outbound_ref,
+                    // dump_metadata, parse_warning
+                    assertEquals(8, tableCount);
                 }
             }
         }

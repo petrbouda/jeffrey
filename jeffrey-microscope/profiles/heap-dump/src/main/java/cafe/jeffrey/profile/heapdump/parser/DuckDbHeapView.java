@@ -61,13 +61,15 @@ final class DuckDbHeapView implements HeapView {
 
     private final Path path;
     private final Connection connection;
+    private final HprofMappedFile hprof;
 
-    private DuckDbHeapView(Path path, Connection connection) {
+    private DuckDbHeapView(Path path, Connection connection, HprofMappedFile hprof) {
         this.path = path;
         this.connection = connection;
+        this.hprof = hprof;
     }
 
-    static DuckDbHeapView open(Path indexDbPath) throws SQLException, IOException {
+    static DuckDbHeapView open(Path indexDbPath, HprofMappedFile hprof) throws SQLException, IOException {
         if (indexDbPath == null) {
             throw new IllegalArgumentException("indexDbPath must not be null");
         }
@@ -80,8 +82,9 @@ final class DuckDbHeapView implements HeapView {
         Properties props = new Properties();
         props.setProperty("duckdb.read_only", "true");
         Connection conn = DriverManager.getConnection(url, props);
-        LOG.debug("Opened heap dump index for reading: path={}", indexDbPath);
-        return new DuckDbHeapView(indexDbPath, conn);
+        LOG.debug("Opened heap dump index for reading: path={} hprof_attached={}",
+                indexDbPath, hprof != null);
+        return new DuckDbHeapView(indexDbPath, conn, hprof);
     }
 
     @Override
@@ -282,6 +285,83 @@ final class DuckDbHeapView implements HeapView {
     @Override
     public long outboundRefCount() throws SQLException {
         return scalarLong("SELECT COUNT(*) FROM outbound_ref");
+    }
+
+    // ---- Class fields + instance values ----------------------------------
+
+    @Override
+    public List<InstanceFieldDescriptor> instanceFields(long classId) throws SQLException {
+        try (PreparedStatement stmt = connection.prepareStatement(
+                "SELECT class_id, field_index, name, basic_type "
+                        + "FROM class_instance_field WHERE class_id = ? ORDER BY field_index")) {
+            stmt.setLong(1, classId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                List<InstanceFieldDescriptor> out = new ArrayList<>();
+                while (rs.next()) {
+                    out.add(new InstanceFieldDescriptor(
+                            rs.getLong(1), rs.getInt(2), rs.getString(3), rs.getInt(4)));
+                }
+                return out;
+            }
+        }
+    }
+
+    @Override
+    public List<InstanceFieldDescriptor> instanceFieldsWithChain(long classId) throws SQLException {
+        List<InstanceFieldDescriptor> out = new ArrayList<>();
+        long current = classId;
+        while (current != 0L) {
+            JavaClassRow cls = findClassById(current).orElse(null);
+            if (cls == null) {
+                break;
+            }
+            out.addAll(instanceFields(current));
+            current = cls.superClassId() == null ? 0L : cls.superClassId();
+        }
+        return out;
+    }
+
+    @Override
+    public List<InstanceFieldValue> readInstanceFields(long instanceId) throws SQLException {
+        if (hprof == null) {
+            throw new IllegalStateException(
+                    "HeapView opened without a .hprof file; field-value reads are unavailable. "
+                            + "Use HeapView.open(indexDb, hprof).");
+        }
+        InstanceRow inst = findInstanceById(instanceId).orElse(null);
+        if (inst == null || inst.kind() != InstanceRow.Kind.INSTANCE || inst.classId() == null) {
+            return List.of();
+        }
+        List<InstanceFieldDescriptor> chain = instanceFieldsWithChain(inst.classId());
+        int idSize = hprof.header().idSize();
+        long fieldsOffset = inst.fileOffset() + 2L * idSize + 8;
+        long cursor = fieldsOffset;
+        List<InstanceFieldValue> out = new ArrayList<>(chain.size());
+        for (InstanceFieldDescriptor f : chain) {
+            int sz = HprofTypeSize.sizeOf(f.basicType(), idSize);
+            if (sz < 0) {
+                break;
+            }
+            Object value = decodeBasicType(hprof, cursor, f.basicType(), idSize);
+            out.add(new InstanceFieldValue(f.name(), f.basicType(), value));
+            cursor += sz;
+        }
+        return out;
+    }
+
+    private static Object decodeBasicType(HprofMappedFile file, long offset, int type, int idSize) {
+        return switch (type) {
+            case HprofTag.BasicType.OBJECT -> file.readId(offset);
+            case HprofTag.BasicType.BOOLEAN -> file.readByte(offset) != 0;
+            case HprofTag.BasicType.BYTE -> file.readByte(offset);
+            case HprofTag.BasicType.CHAR -> (char) file.readShort(offset);
+            case HprofTag.BasicType.SHORT -> file.readShort(offset);
+            case HprofTag.BasicType.INT -> file.readInt(offset);
+            case HprofTag.BasicType.FLOAT -> Float.intBitsToFloat(file.readInt(offset));
+            case HprofTag.BasicType.LONG -> file.readLong(offset);
+            case HprofTag.BasicType.DOUBLE -> Double.longBitsToDouble(file.readLong(offset));
+            default -> throw new IllegalArgumentException("Unknown basic type: type=" + type);
+        };
     }
 
     private List<OutboundRefRow> queryRefs(String sql, long id) throws SQLException {

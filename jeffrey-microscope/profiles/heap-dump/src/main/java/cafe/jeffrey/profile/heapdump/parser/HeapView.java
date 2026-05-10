@@ -43,10 +43,20 @@ public interface HeapView extends AutoCloseable {
     /**
      * Opens a {@link HeapView} over the given index DB file. The file must
      * already have been built by {@link HprofIndex#build}; no schema is
-     * applied here.
+     * applied here. Field-value reading methods will throw because no .hprof
+     * is attached.
      */
     static HeapView open(Path indexDbPath) throws SQLException, IOException {
-        return DuckDbHeapView.open(indexDbPath);
+        return DuckDbHeapView.open(indexDbPath, null);
+    }
+
+    /**
+     * Opens a {@link HeapView} with both the index DB and the source .hprof
+     * attached. Field-value reading and any operation that touches raw
+     * instance bytes requires this overload.
+     */
+    static HeapView open(Path indexDbPath, HprofMappedFile hprof) throws SQLException, IOException {
+        return DuckDbHeapView.open(indexDbPath, hprof);
     }
 
     DumpMetadata metadata() throws SQLException;
@@ -98,6 +108,29 @@ public interface HeapView extends AutoCloseable {
 
     /** Count of outbound references — cheap whole-graph metric. */
     long outboundRefCount() throws SQLException;
+
+    // ---- Class fields + instance values ----------------------------------
+
+    /**
+     * The instance field descriptors for the given class (this class only,
+     * not inherited), in declaration order.
+     */
+    List<InstanceFieldDescriptor> instanceFields(long classId) throws SQLException;
+
+    /**
+     * The full instance field list for the class, walked most-derived-first
+     * across the super-class chain. Matches the layout of an INSTANCE_DUMP's
+     * field byte block.
+     */
+    List<InstanceFieldDescriptor> instanceFieldsWithChain(long classId) throws SQLException;
+
+    /**
+     * Decodes all instance field values for the given object. Requires that
+     * the {@link HeapView} was opened with an attached .hprof file
+     * ({@link #open(Path, HprofMappedFile)}); otherwise throws
+     * {@link IllegalStateException}.
+     */
+    List<InstanceFieldValue> readInstanceFields(long instanceId) throws SQLException;
 
     // ---- String pool -----------------------------------------------------
 

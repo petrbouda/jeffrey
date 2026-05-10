@@ -228,6 +228,7 @@ public final class HprofIndex {
         Set<Long> writtenClassIds = new HashSet<>();
 
         try (DuckDBAppender classApp = conn.createAppender("class");
+             DuckDBAppender fieldApp = conn.createAppender("class_instance_field");
              DuckDBAppender instApp = conn.createAppender("instance");
              DuckDBAppender rootApp = conn.createAppender("gc_root")) {
 
@@ -249,6 +250,7 @@ public final class HprofIndex {
                                     case HprofRecord.ClassDump cd -> {
                                         if (writtenClassIds.add(cd.classId())) {
                                             appendClass(classApp, cd, top);
+                                            appendInstanceFields(fieldApp, cd, top);
                                             c.classCount++;
                                             c.classDumpsById.put(cd.classId(), cd);
                                         }
@@ -411,6 +413,24 @@ public final class HprofIndex {
         app.append(0);
         app.append(cd.fileOffset());
         app.endRow();
+    }
+
+    private static void appendInstanceFields(
+            DuckDBAppender app, HprofRecord.ClassDump cd, TopLevelData top) throws SQLException {
+        long[] nameIds = cd.instanceFieldNameIds();
+        int[] types = cd.instanceFieldTypes();
+        for (int i = 0; i < types.length; i++) {
+            byte[] nameBytes = top.stringPool.get(nameIds[i]);
+            String name = nameBytes != null
+                    ? new String(nameBytes, StandardCharsets.UTF_8)
+                    : "<unresolved-field-name:0x" + Long.toHexString(nameIds[i]) + ">";
+            app.beginRow();
+            app.append(cd.classId());
+            app.append(i);
+            app.append(name);
+            app.append((byte) types[i]);
+            app.endRow();
+        }
     }
 
     private static void appendInstanceFromInstanceDump(
