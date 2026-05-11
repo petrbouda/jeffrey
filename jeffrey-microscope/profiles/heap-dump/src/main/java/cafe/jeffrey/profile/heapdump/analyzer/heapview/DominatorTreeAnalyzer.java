@@ -110,8 +110,9 @@ public final class DominatorTreeAnalyzer {
             }
         }
         boolean hasMore = nodes.size() == limit && countChildren(view, parentId) > limit;
+        boolean compressedOops = view.metadata().compressedOops();
 
-        return new DominatorTreeResponse(nodes, totalHeapSize, false /* compressedOops */, hasMore);
+        return new DominatorTreeResponse(nodes, totalHeapSize, compressedOops, hasMore);
     }
 
     private static long countChildren(HeapView view, long parentId) throws SQLException {

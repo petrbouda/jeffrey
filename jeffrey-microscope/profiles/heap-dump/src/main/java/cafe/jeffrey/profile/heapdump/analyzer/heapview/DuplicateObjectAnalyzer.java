@@ -17,43 +17,65 @@
  */
 package cafe.jeffrey.profile.heapdump.analyzer.heapview;
 
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
+import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import net.jpountz.xxhash.XXHash64;
+import net.jpountz.xxhash.XXHashFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import cafe.jeffrey.profile.heapdump.model.DuplicateObjectEntry;
 import cafe.jeffrey.profile.heapdump.model.DuplicateObjectsReport;
 import cafe.jeffrey.profile.heapdump.parser.HeapView;
+import cafe.jeffrey.profile.heapdump.parser.InstanceRow;
+import cafe.jeffrey.shared.common.measure.Measuring;
 
 /**
- * HeapView-backed equivalent of
- * {@link cafe.jeffrey.profile.heapdump.analyzer.DuplicateObjectAnalyzer}.
+ * Finds instances with byte-identical content within a class.
  *
- * Finds instances with byte-identical content within a class. Strategy:
+ * <p>The work is layered so the expensive byte-read + hash step only ever
+ * happens for instances that could plausibly form a duplicate group:
  * <ol>
- *   <li>For each instance, hash its raw content bytes
- *       ({@link HeapView#readInstanceContentBytes}) using SHA-256 and key by
- *       (class_id, hash).</li>
- *   <li>Groups with more than one instance are duplicates; wasted bytes is
- *       (count - 1) × shallowSize.</li>
- *   <li>Top N returned ordered by total wasted bytes descending.</li>
+ *   <li>SQL pre-filter: {@code GROUP BY (class_id, shallow_size) HAVING
+ *       COUNT(*) >= 2} — single-instance classes and unique-by-length object
+ *       arrays drop out before any byte read.</li>
+ *   <li>Greedy bin-pack the surviving {@code (class_id, shallow_size)} pairs
+ *       into {@code N = availableProcessors} buckets, balanced by instance
+ *       count.</li>
+ *   <li>Per bucket, on a virtual thread: open an independent read-only view,
+ *       stream the bucket's instances ordered by {@code file_offset} for
+ *       mmap page-cache locality, read content bytes directly from the row
+ *       (no second DuckDB lookup), hash with xxhash64.</li>
+ *   <li>Group by {@code (class_id, xxhash64)}. Hash collisions are resolved
+ *       by a chain of distinct-bytes exemplars within each group entry; a
+ *       new instance increments the count only after byte-equality with one
+ *       of the exemplars.</li>
+ *   <li>Merge per-bucket maps; emit groups with {@code count > 1}; sort by
+ *       wasted bytes; truncate to top N.</li>
  * </ol>
- *
- * Memory: O(distinct content hashes × 32 bytes) — fine for a few hundred
- * thousand classes; for huge heaps, rolling-hash + on-disk grouping would be
- * a follow-up.
  */
 public final class DuplicateObjectAnalyzer {
+
+    private static final Logger LOG = LoggerFactory.getLogger(DuplicateObjectAnalyzer.class);
 
     private static final int DEFAULT_TOP_N = 100;
     /** Skip tiny instances — their dedup wins are negligible and noise dominates. */
     private static final int MIN_SHALLOW_SIZE = 16;
+
+    private static final XXHash64 XX = XXHashFactory.fastestInstance().hash64();
+    private static final long HASH_SEED = 0L;
 
     private DuplicateObjectAnalyzer() {
     }
@@ -67,116 +89,280 @@ public final class DuplicateObjectAnalyzer {
             throw new IllegalArgumentException("topN must be positive: topN=" + topN);
         }
 
-        // Class id → name (resolved once).
-        Map<Long, String> classNames = new HashMap<>();
-        try (var stmt = view.connection().createStatement();
-             ResultSet rs = stmt.executeQuery("SELECT class_id, name FROM class")) {
-            while (rs.next()) {
-                classNames.put(rs.getLong(1), rs.getString(2));
-            }
+        Map<Long, String> classNames = loadClassNames(view);
+        List<Candidate> candidates = loadCandidates(view, MIN_SHALLOW_SIZE);
+        if (candidates.isEmpty()) {
+            return new DuplicateObjectsReport(0L, 0L, List.of());
         }
 
-        Map<Group, Acc> groups = new HashMap<>();
-        long totalAnalyzed = 0;
+        int parallelism = Math.min(candidates.size(),
+                Math.max(1, Runtime.getRuntime().availableProcessors()));
+        List<Bucket> buckets = binPack(candidates, parallelism);
 
-        // Walk every instance with a class_id; primitive arrays are skipped (same content
-        // dedups via array-pool/string-table mechanisms, not generic dedup).
+        var elapsed = Measuring.s(() -> runParallel(view, buckets));
+        AggregateResult agg = elapsed.entity();
+        LOG.debug("Duplicate-objects scan: candidates={} buckets={} processed={} groups={} duration_in_ms={}",
+                candidates.size(), buckets.size(), agg.totalProcessed,
+                agg.merged.size(), elapsed.duration().toMillis());
+
+        return buildReport(view, agg.merged, classNames, agg.totalProcessed, topN);
+    }
+
+    // ---- Phase 1: aggregate metadata ------------------------------------
+
+    private static Map<Long, String> loadClassNames(HeapView view) throws SQLException {
+        Map<Long, String> out = new HashMap<>();
+        try (var stmt = view.connection().createStatement();
+                ResultSet rs = stmt.executeQuery("SELECT class_id, name FROM class")) {
+            while (rs.next()) {
+                out.put(rs.getLong(1), rs.getString(2));
+            }
+        }
+        return out;
+    }
+
+    /**
+     * One SQL pass: every {@code (class_id, shallow_size)} pair whose instance
+     * count is at least 2, ordered by count descending so the bin-packer can
+     * place the heaviest pairs first.
+     */
+    private static List<Candidate> loadCandidates(HeapView view, int minShallowSize) throws SQLException {
+        List<Candidate> out = new ArrayList<>();
         try (PreparedStatement stmt = view.connection().prepareStatement(
-                "SELECT instance_id, class_id, shallow_size, record_kind FROM instance "
-                        + "WHERE class_id IS NOT NULL AND shallow_size >= ?")) {
-            stmt.setInt(1, MIN_SHALLOW_SIZE);
+                "SELECT class_id, shallow_size, COUNT(*) "
+                        + "FROM instance "
+                        + "WHERE class_id IS NOT NULL AND shallow_size >= ? AND record_kind != 2 "
+                        + "GROUP BY class_id, shallow_size "
+                        + "HAVING COUNT(*) >= 2 "
+                        + "ORDER BY COUNT(*) DESC")) {
+            stmt.setInt(1, minShallowSize);
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
-                    long instanceId = rs.getLong(1);
-                    long classId = rs.getLong(2);
-                    int shallowSize = rs.getInt(3);
-                    int recordKind = rs.getInt(4);
-                    if (recordKind == 2) { // PRIMITIVE_ARRAY: skip
-                        continue;
-                    }
-                    byte[] content;
-                    try {
-                        content = view.readInstanceContentBytes(instanceId);
-                    } catch (IllegalStateException noHprof) {
-                        return new DuplicateObjectsReport(0, 0, List.of());
-                    }
-                    if (content.length == 0) {
-                        continue;
-                    }
-                    Group key = new Group(classId, sha256(content));
-                    groups.computeIfAbsent(key, k -> new Acc(shallowSize, contentPreview(content)))
-                            .count++;
-                    totalAnalyzed++;
+                    out.add(new Candidate(rs.getLong(1), rs.getInt(2), rs.getLong(3)));
                 }
             }
         }
+        return out;
+    }
 
-        long totalWasted = 0;
-        List<DuplicateObjectEntry> entries = new ArrayList<>();
-        for (Map.Entry<Group, Acc> e : groups.entrySet()) {
-            int count = e.getValue().count;
-            if (count <= 1) {
-                continue;
+    // ---- Phase 2: bucket partitioning -----------------------------------
+
+    private static List<Bucket> binPack(List<Candidate> candidates, int n) {
+        List<Bucket> buckets = new ArrayList<>(n);
+        for (int i = 0; i < n; i++) {
+            buckets.add(new Bucket());
+        }
+        long[] loads = new long[n];
+        for (Candidate c : candidates) {
+            int minIdx = 0;
+            for (int i = 1; i < n; i++) {
+                if (loads[i] < loads[minIdx]) {
+                    minIdx = i;
+                }
             }
-            int shallow = e.getValue().shallowSize;
-            long wasted = (long) (count - 1) * shallow;
-            totalWasted += wasted;
-            String className = classNames.getOrDefault(e.getKey().classId(), "<unknown>");
-            entries.add(new DuplicateObjectEntry(className, e.getValue().preview, count, shallow, wasted));
+            Bucket b = buckets.get(minIdx);
+            if (!b.allowed.containsKey(c.classId)) {
+                b.classIds.add(c.classId);
+            }
+            b.allowed.computeIfAbsent(c.classId, k -> new HashSet<>()).add(c.shallowSize);
+            loads[minIdx] += c.count;
+        }
+        buckets.removeIf(b -> b.classIds.isEmpty());
+        return buckets;
+    }
+
+    // ---- Phase 3: fan-out + merge ---------------------------------------
+
+    private static AggregateResult runParallel(HeapView view, List<Bucket> buckets) {
+        try (ExecutorService vexec = Executors.newVirtualThreadPerTaskExecutor()) {
+            List<CompletableFuture<BucketResult>> futures = buckets.stream()
+                    .map(b -> CompletableFuture.supplyAsync(() -> processBucket(view, b), vexec))
+                    .toList();
+            CompletableFuture.allOf(futures.toArray(new CompletableFuture<?>[0])).join();
+
+            Map<Group, AccHead> merged = new HashMap<>();
+            long totalProcessed = 0L;
+            for (CompletableFuture<BucketResult> f : futures) {
+                BucketResult r = f.join();
+                totalProcessed += r.processed;
+                mergeInto(merged, r.groups);
+            }
+            return new AggregateResult(merged, totalProcessed);
+        }
+    }
+
+    private static BucketResult processBucket(HeapView parent, Bucket bucket) {
+        try (HeapView local = parent.openReadOnlyCopy()) {
+            Map<Group, AccHead> groups = new HashMap<>();
+            long processed = 0L;
+
+            String sql = buildBucketSql(bucket.classIds.size());
+            try (PreparedStatement stmt = local.connection().prepareStatement(sql)) {
+                int p = 1;
+                for (Long id : bucket.classIds) {
+                    stmt.setLong(p++, id);
+                }
+                stmt.setInt(p, MIN_SHALLOW_SIZE);
+                try (ResultSet rs = stmt.executeQuery()) {
+                    while (rs.next()) {
+                        long instanceId = rs.getLong(1);
+                        long classId = rs.getLong(2);
+                        long fileOffset = rs.getLong(3);
+                        int recordKind = rs.getInt(4);
+                        int shallowSize = rs.getInt(5);
+                        int arrayLengthRaw = rs.getInt(6);
+                        Integer arrayLength = rs.wasNull() ? null : arrayLengthRaw;
+                        int primitiveTypeRaw = rs.getInt(7);
+                        Integer primitiveType = rs.wasNull() ? null : primitiveTypeRaw;
+
+                        // In-Java tuple filter: instances of a class with a
+                        // shallow_size that isn't in this bucket's candidate set
+                        // (other arrays of the same class with different length)
+                        // could come back from the IN-list query — drop them.
+                        Set<Integer> allowedSizes = bucket.allowed.get(classId);
+                        if (allowedSizes == null || !allowedSizes.contains(shallowSize)) {
+                            continue;
+                        }
+
+                        InstanceRow row = new InstanceRow(
+                                instanceId, classId, fileOffset,
+                                InstanceRow.Kind.fromOrdinal(recordKind),
+                                shallowSize, arrayLength, primitiveType);
+
+                        byte[] content = local.readInstanceContentBytes(row);
+                        if (content.length == 0) {
+                            continue;
+                        }
+                        long h = XX.hash(content, 0, content.length, HASH_SEED);
+                        record(groups, classId, h, content, shallowSize, instanceId);
+                        processed++;
+                    }
+                }
+            }
+            return new BucketResult(groups, processed);
+        } catch (SQLException | IOException e) {
+            throw new RuntimeException(
+                    "Failed processing duplicate-objects bucket: " + e.getMessage(), e);
+        }
+    }
+
+    private static String buildBucketSql(int classCount) {
+        StringBuilder sql = new StringBuilder(
+                "SELECT instance_id, class_id, file_offset, record_kind, shallow_size, "
+                        + "array_length, primitive_type FROM instance "
+                        + "WHERE class_id IN (");
+        for (int i = 0; i < classCount; i++) {
+            sql.append(i == 0 ? "?" : ",?");
+        }
+        sql.append(") AND shallow_size >= ? AND record_kind != 2 ORDER BY file_offset");
+        return sql.toString();
+    }
+
+    private static void record(Map<Group, AccHead> groups, long classId, long h,
+            byte[] content, int shallowSize, long instanceId) {
+        Group key = new Group(classId, h);
+        AccHead head = groups.get(key);
+        if (head == null) {
+            groups.put(key, new AccHead(content, shallowSize, instanceId));
+            return;
+        }
+        for (AccHead cur = head; cur != null; cur = cur.next) {
+            if (Arrays.equals(cur.exemplar, content)) {
+                cur.count++;
+                return;
+            }
+        }
+        // xxhash64 collision with distinct bytes — prepend a new chain node so
+        // the two byte sequences stay distinct groups in the output.
+        AccHead newHead = new AccHead(content, shallowSize, instanceId);
+        newHead.next = head;
+        groups.put(key, newHead);
+    }
+
+    private static void mergeInto(Map<Group, AccHead> dst, Map<Group, AccHead> src) {
+        for (Map.Entry<Group, AccHead> e : src.entrySet()) {
+            Group key = e.getKey();
+            for (AccHead srcNode = e.getValue(); srcNode != null; srcNode = srcNode.next) {
+                AccHead dstHead = dst.get(key);
+                boolean folded = false;
+                for (AccHead w = dstHead; w != null; w = w.next) {
+                    if (Arrays.equals(w.exemplar, srcNode.exemplar)) {
+                        w.count += srcNode.count;
+                        folded = true;
+                        break;
+                    }
+                }
+                if (!folded) {
+                    AccHead copy = new AccHead(
+                            srcNode.exemplar, srcNode.shallowSize, srcNode.exemplarInstanceId);
+                    copy.count = srcNode.count;
+                    copy.next = dstHead;
+                    dst.put(key, copy);
+                }
+            }
+        }
+    }
+
+    // ---- Phase 4: report build ------------------------------------------
+
+    private static DuplicateObjectsReport buildReport(
+            HeapView view,
+            Map<Group, AccHead> merged, Map<Long, String> classNames,
+            long totalProcessed, int topN) {
+        List<DuplicateObjectEntry> entries = new ArrayList<>();
+        long totalWasted = 0L;
+        for (Map.Entry<Group, AccHead> e : merged.entrySet()) {
+            for (AccHead node = e.getValue(); node != null; node = node.next) {
+                if (node.count <= 1) {
+                    continue;
+                }
+                long wasted = (long) (node.count - 1) * node.shallowSize;
+                totalWasted += wasted;
+                String className = classNames.getOrDefault(e.getKey().classId(), "<unknown>");
+                String preview = ContentPreviewRenderer.render(
+                        view, className, node.exemplarInstanceId, node.exemplar);
+                entries.add(new DuplicateObjectEntry(
+                        className, preview,
+                        node.count, node.shallowSize, wasted));
+            }
         }
         entries.sort(Comparator.comparingLong(DuplicateObjectEntry::totalWastedBytes).reversed());
         if (entries.size() > topN) {
             entries = entries.subList(0, topN);
         }
-
-        return new DuplicateObjectsReport(totalAnalyzed, totalWasted, List.copyOf(entries));
+        return new DuplicateObjectsReport(totalProcessed, totalWasted, List.copyOf(entries));
     }
 
-    private static String contentPreview(byte[] bytes) {
-        // Hex preview of up to the first 16 bytes — useful for quick eyeballing.
-        int n = Math.min(bytes.length, 16);
-        StringBuilder sb = new StringBuilder(n * 3);
-        for (int i = 0; i < n; i++) {
-            sb.append(String.format("%02x", bytes[i] & 0xFF));
-            if (i + 1 < n) {
-                sb.append(' ');
-            }
-        }
-        if (bytes.length > 16) {
-            sb.append("…");
-        }
-        return sb.toString();
+    // ---- Internal types -------------------------------------------------
+
+    private record Candidate(long classId, int shallowSize, long count) {
     }
 
-    private static byte[] sha256(byte[] in) {
-        try {
-            return MessageDigest.getInstance("SHA-256").digest(in);
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 unavailable on this JVM", e);
-        }
+    private record Group(long classId, long xxHash) {
     }
 
-    private record Group(long classId, byte[] hash) {
-        @Override
-        public boolean equals(Object o) {
-            return o instanceof Group g && g.classId == classId && java.util.Arrays.equals(g.hash, hash);
-        }
-
-        @Override
-        public int hashCode() {
-            return Long.hashCode(classId) * 31 + java.util.Arrays.hashCode(hash);
-        }
+    private record BucketResult(Map<Group, AccHead> groups, long processed) {
     }
 
-    private static final class Acc {
+    private record AggregateResult(Map<Group, AccHead> merged, long totalProcessed) {
+    }
+
+    private static final class Bucket {
+        final List<Long> classIds = new ArrayList<>();
+        final Map<Long, Set<Integer>> allowed = new HashMap<>();
+    }
+
+    private static final class AccHead {
+        final byte[] exemplar;
         final int shallowSize;
-        final String preview;
-        int count;
+        final long exemplarInstanceId;
+        int count = 1;
+        AccHead next;
 
-        Acc(int shallowSize, String preview) {
+        AccHead(byte[] exemplar, int shallowSize, long exemplarInstanceId) {
+            this.exemplar = exemplar;
             this.shallowSize = shallowSize;
-            this.preview = preview;
+            this.exemplarInstanceId = exemplarInstanceId;
         }
     }
-
 }

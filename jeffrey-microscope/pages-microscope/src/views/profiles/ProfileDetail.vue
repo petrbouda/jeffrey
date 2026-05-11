@@ -927,7 +927,7 @@
                       active-class="active"
                     >
                       <i class="bi bi-copy"></i>
-                      <span>Duplicate Objects</span>
+                      <span>Duplicated Objects</span>
                     </router-link>
                     <router-link
                       :to="`/profiles/${profileId}/heap-dump/string-analysis`"

@@ -36,5 +36,6 @@ public record DumpMetadata(
         long warningCount,
         boolean truncated,
         String parserVersion,
-        long parsedAtMs) {
+        long parsedAtMs,
+        boolean compressedOops) {
 }

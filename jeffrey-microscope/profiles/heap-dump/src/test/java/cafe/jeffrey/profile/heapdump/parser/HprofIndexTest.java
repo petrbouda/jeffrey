@@ -82,7 +82,8 @@ class HprofIndexTest {
 
             assertTrue(Files.exists(indexDb), "index file should exist");
             assertEquals(2, result.stringCount());
-            assertEquals(1, result.classCount());
+            // 1 CLASS_DUMP + 8 synthetic primitive-array class rows (boolean[]..long[]).
+            assertEquals(9, result.classCount());
             assertEquals(3, result.instanceCount(), "INSTANCE_DUMP + OBJECT_ARRAY_DUMP + PRIMITIVE_ARRAY_DUMP");
             assertEquals(2, result.gcRootCount());
             assertEquals(0, result.warningCount());
@@ -93,7 +94,10 @@ class HprofIndexTest {
                  Statement stmt = conn.createStatement()) {
 
                 assertEquals(2, scalarLong(stmt, "SELECT COUNT(*) FROM string"));
-                assertEquals(1, scalarLong(stmt, "SELECT COUNT(*) FROM class"));
+                // 1 CLASS_DUMP + 8 synthetic primitive-array class rows.
+                assertEquals(9, scalarLong(stmt, "SELECT COUNT(*) FROM class"));
+                assertEquals(1, scalarLong(stmt, "SELECT COUNT(*) FROM class WHERE class_id >= 0"));
+                assertEquals(8, scalarLong(stmt, "SELECT COUNT(*) FROM class WHERE is_array = TRUE AND class_id < 0"));
                 assertEquals(3, scalarLong(stmt, "SELECT COUNT(*) FROM instance"));
                 assertEquals(2, scalarLong(stmt, "SELECT COUNT(*) FROM gc_root"));
                 assertEquals(1, scalarLong(stmt, "SELECT COUNT(*) FROM dump_metadata"));
@@ -226,8 +230,9 @@ class HprofIndexTest {
                     long tableCount = scalarLong(stmt,
                             "SELECT COUNT(*) FROM duckdb_tables() WHERE schema_name = 'main'");
                     // string, class, class_instance_field, instance, gc_root, outbound_ref,
-                    // dominator, retained_size, dump_metadata, parse_warning
-                    assertEquals(10, tableCount);
+                    // dominator, retained_size, stack_frame, stack_trace_frame,
+                    // dump_metadata, parse_warning
+                    assertEquals(12, tableCount);
                 }
             }
         }

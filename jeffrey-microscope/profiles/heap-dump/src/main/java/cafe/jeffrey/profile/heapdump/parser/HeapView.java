@@ -162,6 +162,28 @@ public interface HeapView extends AutoCloseable {
      */
     byte[] readInstanceContentBytes(long instanceId) throws SQLException;
 
+    /**
+     * Fast-path overload of {@link #readInstanceContentBytes(long)} that
+     * skips the {@code findInstanceById} round-trip. The caller already holds
+     * a fully populated {@link InstanceRow} (typically from streaming a
+     * batched query) with {@code fileOffset}, {@code kind}, {@code shallowSize}
+     * and {@code arrayLength} resolved — those fields are sufficient to read
+     * the bytes directly from the mmap. Use this in hot loops where the
+     * outer {@code SELECT} already returned everything needed.
+     */
+    byte[] readInstanceContentBytes(InstanceRow row);
+
+    /**
+     * Opens a fresh independent {@link HeapView} that shares this view's
+     * underlying index DB and {@link HprofMappedFile}. The returned view owns
+     * its own DuckDB connection and is independently closeable. Used by
+     * analyzers that fan out work across virtual threads: the index DB is
+     * opened in {@code access_mode=read_only} so multiple connections are
+     * safe, and the mmap is backed by a shared {@link java.lang.foreign.Arena}
+     * so concurrent reads from different threads are lock-free.
+     */
+    HeapView openReadOnlyCopy() throws SQLException, IOException;
+
     // ---- String pool -----------------------------------------------------
 
     Optional<String> findString(long stringId) throws SQLException;
@@ -174,6 +196,16 @@ public interface HeapView extends AutoCloseable {
      * the {@code instance} table — no per-row Java work.
      */
     List<HistogramRow> classHistogram() throws SQLException;
+
+    /**
+     * Reads a 4-byte big-endian {@code int} at the given absolute file
+     * offset directly from the attached {@code .hprof}. Used by analyzers
+     * that need to peek into specific instance-field byte positions
+     * without paying the SQL + full-field-block decode cost of
+     * {@link #readInstanceFields(long)}. Requires the view to have been
+     * opened with an attached {@code HprofMappedFile}.
+     */
+    int readInt(long fileOffset) throws SQLException;
 
     // ---- Escape hatch ----------------------------------------------------
 

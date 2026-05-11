@@ -88,7 +88,8 @@ class Tier1AnalyzerTest {
             try (HeapView view = openIndex(tmp)) {
                 HeapSummary s = HeapSummaryAnalyzer.analyze(view);
                 assertEquals(6, s.totalInstances(), "5 instance dumps + 1 primitive array");
-                assertEquals(2, s.classCount());
+                // 2 real CLASS_DUMPs + 8 synthetic primitive-array class rows (boolean[]..long[]).
+                assertEquals(10, s.classCount());
                 assertEquals(5, s.gcRootCount());
                 assertEquals(Instant.ofEpochMilli(4242L), s.timestamp());
                 assertTrue(s.totalBytes() > 0);

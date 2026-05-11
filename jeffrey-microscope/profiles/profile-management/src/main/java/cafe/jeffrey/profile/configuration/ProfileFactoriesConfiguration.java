@@ -33,9 +33,6 @@ import cafe.jeffrey.profile.guardian.Guardian;
 import cafe.jeffrey.profile.guardian.GuardianProperties;
 import cafe.jeffrey.profile.guardian.GuardianProvider;
 import cafe.jeffrey.profile.guardian.ParsingGuardianProvider;
-import cafe.jeffrey.profile.heapdump.HeapLoader;
-import cafe.jeffrey.profile.heapdump.SimpleHeapLoader;
-import cafe.jeffrey.profile.heapdump.sanitizer.SanitizeMode;
 import cafe.jeffrey.profile.manager.*;
 import cafe.jeffrey.profile.tools.collapse.CollapseFramesManager;
 import cafe.jeffrey.profile.tools.collapse.CollapseFramesManagerImpl;
@@ -431,7 +428,7 @@ public class ProfileFactoriesConfiguration {
         return profileInfo -> {
             Path heapDumpAnalysisPath = profilesPath
                     .resolve(profileInfo.id())
-                    .resolve("heap-dump-analysis");
+                    .resolve("heap-dump");
 
             // Recordings profiles don't have a project - return no-op implementation
             if (profileInfo.projectId() == null) {
@@ -522,23 +519,17 @@ public class ProfileFactoriesConfiguration {
     }
 
     @Bean
-    public HeapLoader heapLoader(
-            @Value("${jeffrey.microscope.profile.heap-dump.sanitize-mode:IN_PLACE}") SanitizeMode sanitizeMode) {
-        return new SimpleHeapLoader(sanitizeMode);
-    }
-
-    @Bean
     public HeapDumpManager.Factory heapDumpManagerFactory(
-            HeapLoader heapLoader,
-            AdditionalFilesManager.Factory additionalFilesManagerFactory) {
+            AdditionalFilesManager.Factory additionalFilesManagerFactory,
+            Clock clock) {
 
         return profileInfo -> {
             DataSource profileDb = databaseManagerResolver.open(profileInfo);
             return new HeapDumpManagerImpl(
                     profileInfo,
-                    heapLoader,
                     additionalFilesManagerFactory.apply(profileInfo),
-                    profileRepositories.newEventRepository(profileDb));
+                    profileRepositories.newEventRepository(profileDb),
+                    clock);
         };
     }
 }

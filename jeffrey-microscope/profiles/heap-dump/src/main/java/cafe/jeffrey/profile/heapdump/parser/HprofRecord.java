@@ -78,6 +78,28 @@ public sealed interface HprofRecord {
         }
     }
 
+    /**
+     * STACK_FRAME (tag 0x04): one stack frame, identified by {@code stackFrameId}.
+     * String ids resolve via the HPROF string pool. {@code classSerial} joins to
+     * the LOAD_CLASS {@code classSerial}. {@code lineNumber} is the raw HPROF
+     * value: {@code &gt;= 1} normal, {@code -1} no info, {@code -2} compiled,
+     * {@code -3} native.
+     */
+    record StackFrame(long stackFrameId, long methodNameStringId, long methodSignatureStringId,
+                      long sourceFileNameStringId, int classSerial, int lineNumber,
+                      long fileOffset) implements Top {
+    }
+
+    /**
+     * STACK_TRACE (tag 0x05): an ordered list of stack frame ids belonging to a
+     * single thread. {@code threadSerial} links to ROOT_THREAD_OBJECT's
+     * {@code threadSerial}; the same value also annotates ROOT_JAVA_FRAME so
+     * locals can be attributed back to their frame.
+     */
+    record StackTrace(int traceSerial, int threadSerial, long[] frameIds,
+                      long fileOffset) implements Top {
+    }
+
     // ---- Sub-records (inside HEAP_DUMP / HEAP_DUMP_SEGMENT) ---------------
 
     /**

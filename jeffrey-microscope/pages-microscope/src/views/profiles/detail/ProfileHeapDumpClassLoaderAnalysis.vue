@@ -146,7 +146,7 @@
                       :sort-column="loaderSortColumn"
                       :sort-direction="loaderSortDirection"
                       align="end"
-                      width="140px"
+                      width="170px"
                       @sort="toggleLoaderSort"
                     />
                     <SortableTableHeader

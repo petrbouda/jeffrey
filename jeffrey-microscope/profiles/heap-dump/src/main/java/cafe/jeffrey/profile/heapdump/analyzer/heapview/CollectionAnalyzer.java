@@ -17,6 +17,8 @@
  */
 package cafe.jeffrey.profile.heapdump.analyzer.heapview;
 
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -24,37 +26,39 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Stream;
 import cafe.jeffrey.profile.heapdump.model.ClassWasteEntry;
 import cafe.jeffrey.profile.heapdump.model.CollectionAnalysisReport;
 import cafe.jeffrey.profile.heapdump.model.CollectionStats;
 import cafe.jeffrey.profile.heapdump.model.FillDistribution;
 import cafe.jeffrey.profile.heapdump.parser.HeapView;
-import cafe.jeffrey.profile.heapdump.parser.InstanceFieldValue;
-import cafe.jeffrey.profile.heapdump.parser.InstanceRow;
+import cafe.jeffrey.profile.heapdump.parser.HprofTypeSize;
+import cafe.jeffrey.profile.heapdump.parser.InstanceFieldDescriptor;
 import cafe.jeffrey.profile.heapdump.parser.JavaClassRow;
 
 /**
- * HeapView-backed equivalent of
- * {@link cafe.jeffrey.profile.heapdump.analyzer.CollectionAnalyzer}.
+ * Bulk-SQL collection analysis.
  *
- * Decodes a curated set of JDK collection types' internal state to estimate
- * fill ratios and wasted capacity. Supported in this PR:
+ * <p>For each supported JDK collection shape, runs a single JOIN that pairs
+ * every instance with its backing-array row in one result set. The {@code size}
+ * field — an inline {@code int} that has no representation in the index DB —
+ * is read directly from the {@code .hprof} via
+ * {@link HeapView#readInt(long)} at a per-class precomputed byte offset. This
+ * replaces the previous per-instance pattern (two JDBC round-trips per
+ * collection: {@code readInstanceFields} + {@code findInstanceById}), which
+ * dominated init cost on heaps with hundreds of thousands of collections.
+ *
+ * <p>Supported shapes:
  * <ul>
- *   <li>{@code java.util.ArrayList}: {@code size} (int) and {@code elementData}
- *       (Object[] — capacity = array.length)</li>
- *   <li>{@code java.util.Vector}: same shape as ArrayList</li>
- *   <li>{@code java.util.HashMap}: {@code size} (int) and {@code table}
- *       (Node[] — capacity = array.length)</li>
- *   <li>{@code java.util.LinkedHashMap}, {@code java.util.HashSet},
- *       {@code java.util.LinkedHashSet}: delegated to HashMap shape</li>
+ *   <li>{@code java.util.ArrayList}, {@code java.util.Vector}: backing field
+ *       {@code elementData} (Object[])</li>
+ *   <li>{@code java.util.HashMap}, {@code java.util.LinkedHashMap}: backing
+ *       field {@code table} (Node[])</li>
+ *   <li>{@code java.util.HashSet}, {@code java.util.LinkedHashSet}: backing
+ *       field {@code map} (a HashMap — capacity unfolds only one level so
+ *       these contribute totals but not fill ratio)</li>
  * </ul>
- *
  * Other collection types (LinkedList, TreeMap, ConcurrentHashMap, ArrayDeque,
- * PriorityQueue, CopyOnWriteArrayList) are <strong>not</strong> decoded yet —
- * they need per-class layout knowledge that is straightforward to add but is
- * out of scope here. Their instance counts surface in
- * {@link ClassHistogramAnalyzer} so users still see them.
+ * PriorityQueue, CopyOnWriteArrayList) are not decoded here.
  */
 public final class CollectionAnalyzer {
 
@@ -66,10 +70,41 @@ public final class CollectionAnalyzer {
             new Shape("java.util.HashSet", "map"),
             new Shape("java.util.LinkedHashSet", "map"));
 
+    /** HPROF basic-type byte for OBJECT references. */
+    private static final int BASIC_TYPE_OBJECT = 2;
+
+    /** record_kind value for OBJECT_ARRAY_DUMP rows in the {@code instance} table. */
+    private static final byte RECORD_KIND_OBJECT_ARRAY = 1;
+
+    /**
+     * Bulk join: every instance of a collection class paired with its
+     * backing array's row in a single result set.
+     *
+     * <p>Parameters: {@code 1 = field_id} (chain-global index for the
+     * backing-array field), {@code 2 = collection class_id}.
+     */
+    private static final String COLLECTIONS_WITH_ARRAY_SQL = """
+            SELECT
+                s.instance_id    AS coll_id,
+                s.file_offset    AS coll_offset,
+                arr.instance_id  AS arr_id,
+                arr.array_length AS arr_length,
+                arr.record_kind  AS arr_kind
+            FROM instance s
+            LEFT JOIN outbound_ref ref
+                ON ref.source_id = s.instance_id AND ref.field_id = ?
+            LEFT JOIN instance arr
+                ON arr.instance_id = ref.target_id
+            WHERE s.class_id = ?
+            """;
+
     private CollectionAnalyzer() {
     }
 
     public static CollectionAnalysisReport analyze(HeapView view) throws SQLException {
+        int idSize = view.metadata().idSize();
+        long instanceHeaderBytes = 2L * idSize + 8L;
+
         Map<String, Acc> byType = new LinkedHashMap<>();
         Map<String, Long> wastedByClass = new HashMap<>();
         long totalEmpty = 0;
@@ -79,28 +114,60 @@ public final class CollectionAnalyzer {
 
         for (Shape shape : SHAPES) {
             for (JavaClassRow cls : view.findClassesByName(shape.className)) {
+                ClassLayout layout = computeLayout(view, cls.classId(), shape, idSize);
+                if (layout == null) {
+                    continue; // Class has no `size` int or no array field — skip this class.
+                }
                 Acc acc = byType.computeIfAbsent(shape.className, k -> new Acc());
-                try (Stream<InstanceRow> stream = view.instances(cls.classId())) {
-                    for (InstanceRow inst : (Iterable<InstanceRow>) stream::iterator) {
-                        Decoded d = decode(view, inst, shape);
-                        if (d == null) {
-                            continue;
-                        }
-                        acc.totalCount++;
-                        totalCollections++;
-                        if (d.size == 0) {
-                            acc.emptyCount++;
-                            totalEmpty++;
-                        }
-                        long wasted = wastedBytes(d.size, d.capacity, shape);
-                        acc.totalWasted += wasted;
-                        totalWasted += wasted;
-                        wastedByClass.merge(shape.className, wasted, Long::sum);
 
-                        double fillRatio = d.capacity == 0 ? 0.0 : (double) d.size / d.capacity;
-                        acc.fillRatioSum += fillRatio;
-                        acc.buckets.add(fillRatio, d.size);
-                        overallBuckets.add(fillRatio, d.size);
+                try (PreparedStatement stmt =
+                             view.connection().prepareStatement(COLLECTIONS_WITH_ARRAY_SQL)) {
+                    stmt.setInt(1, layout.arrayFieldId);
+                    stmt.setLong(2, cls.classId());
+                    try (ResultSet rs = stmt.executeQuery()) {
+                        while (rs.next()) {
+                            long collFileOffset = rs.getLong(2);
+                            long arrId = rs.getLong(3);
+                            if (rs.wasNull() || arrId == 0L) {
+                                continue;
+                            }
+                            int arrKind = rs.getInt(5);
+                            if (rs.wasNull() || arrKind != RECORD_KIND_OBJECT_ARRAY) {
+                                // HashSet's `map` points at a HashMap, not an array — skip.
+                                continue;
+                            }
+                            int arrLength = rs.getInt(4);
+                            if (rs.wasNull()) {
+                                continue;
+                            }
+
+                            // Inline int read: jump to the precomputed offset of `size`
+                            // inside this instance's field block and pull 4 big-endian bytes.
+                            long sizeFieldOffset = collFileOffset + instanceHeaderBytes
+                                    + layout.sizeFieldByteOffset;
+                            int size;
+                            try {
+                                size = view.readInt(sizeFieldOffset);
+                            } catch (RuntimeException ignored) {
+                                continue;
+                            }
+
+                            acc.totalCount++;
+                            totalCollections++;
+                            if (size == 0) {
+                                acc.emptyCount++;
+                                totalEmpty++;
+                            }
+                            long wasted = wastedBytes(size, arrLength);
+                            acc.totalWasted += wasted;
+                            totalWasted += wasted;
+                            wastedByClass.merge(shape.className, wasted, Long::sum);
+
+                            double fillRatio = arrLength == 0 ? 0.0 : (double) size / arrLength;
+                            acc.fillRatioSum += fillRatio;
+                            acc.buckets.add(fillRatio, size);
+                            overallBuckets.add(fillRatio, size);
+                        }
                     }
                 }
             }
@@ -111,11 +178,13 @@ public final class CollectionAnalyzer {
             Acc a = e.getValue();
             double avg = a.totalCount == 0 ? 0.0 : a.fillRatioSum / a.totalCount;
             stats.add(new CollectionStats(
-                    e.getKey(), a.totalCount, a.emptyCount, a.totalWasted, avg, a.buckets.toFillDistribution()));
+                    e.getKey(), a.totalCount, a.emptyCount, a.totalWasted, avg,
+                    a.buckets.toFillDistribution()));
         }
 
         List<ClassWasteEntry> wasteByClass = wastedByClass.entrySet().stream()
-                .map(e -> new ClassWasteEntry(e.getKey(), 0, 0, e.getValue(), Map.<String, Integer>of()))
+                .map(e -> new ClassWasteEntry(e.getKey(), 0, 0, e.getValue(),
+                        Map.<String, Integer>of()))
                 .sorted(Comparator.comparingLong(ClassWasteEntry::wastedBytes).reversed())
                 .toList();
 
@@ -129,37 +198,35 @@ public final class CollectionAnalyzer {
     }
 
     /**
-     * Decodes (size, capacity) for the given collection instance.
-     * Returns null when the instance can't be inspected (no .hprof, missing fields).
+     * Per-class layout: the {@code field_id} (chain-global index) of the
+     * backing-array field, plus the byte offset of the {@code size} int
+     * field within an instance's field block. Returns {@code null} if either
+     * field is missing.
      */
-    private static Decoded decode(HeapView view, InstanceRow inst, Shape shape) throws SQLException {
-        List<InstanceFieldValue> fields;
-        try {
-            fields = view.readInstanceFields(inst.instanceId());
-        } catch (IllegalStateException noHprof) {
-            return null;
-        }
-        Integer size = null;
-        Long arrayRef = null;
-        for (InstanceFieldValue f : fields) {
-            if ("size".equals(f.name()) && f.value() instanceof Integer i) {
-                size = i;
-            } else if (shape.arrayFieldName.equals(f.name()) && f.value() instanceof Long ref) {
-                arrayRef = ref;
+    private static ClassLayout computeLayout(HeapView view, long classId, Shape shape, int idSize)
+            throws SQLException {
+        List<InstanceFieldDescriptor> chain = view.instanceFieldsWithChain(classId);
+        int arrayFieldId = -1;
+        int sizeFieldOffset = -1;
+        long cursor = 0;
+        for (int i = 0; i < chain.size(); i++) {
+            InstanceFieldDescriptor f = chain.get(i);
+            int fieldSize = HprofTypeSize.sizeOf(f.basicType(), idSize);
+            if ("size".equals(f.name()) && fieldSize == 4) {
+                sizeFieldOffset = (int) cursor;
             }
+            if (shape.arrayFieldName.equals(f.name()) && f.basicType() == BASIC_TYPE_OBJECT) {
+                arrayFieldId = i;
+            }
+            cursor += fieldSize;
         }
-        if (size == null || arrayRef == null || arrayRef == 0L) {
+        if (arrayFieldId < 0 || sizeFieldOffset < 0) {
             return null;
         }
-        InstanceRow array = view.findInstanceById(arrayRef).orElse(null);
-        if (array == null || array.kind() != InstanceRow.Kind.OBJECT_ARRAY || array.arrayLength() == null) {
-            // HashSet's "map" field is a HashMap, not an array — skip nested decode for now.
-            return null;
-        }
-        return new Decoded(size, array.arrayLength());
+        return new ClassLayout(arrayFieldId, sizeFieldOffset);
     }
 
-    private static long wastedBytes(int size, int capacity, Shape shape) {
+    private static long wastedBytes(int size, int capacity) {
         if (capacity <= size) {
             return 0L;
         }
@@ -171,7 +238,7 @@ public final class CollectionAnalyzer {
     private record Shape(String className, String arrayFieldName) {
     }
 
-    private record Decoded(int size, int capacity) {
+    private record ClassLayout(int arrayFieldId, int sizeFieldByteOffset) {
     }
 
     private static final class Acc {

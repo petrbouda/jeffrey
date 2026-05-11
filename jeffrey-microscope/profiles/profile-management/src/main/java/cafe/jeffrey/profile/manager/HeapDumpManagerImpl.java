@@ -20,49 +20,47 @@ package cafe.jeffrey.profile.manager;
 
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.ObjectMapper;
-import org.netbeans.lib.profiler.heap.Heap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import cafe.jeffrey.profile.heapdump.HeapLoader;
-import cafe.jeffrey.profile.heapdump.SimpleHeapLoader;
-import cafe.jeffrey.profile.heapdump.sanitizer.SanitizeMode;
-import cafe.jeffrey.profile.heapdump.analyzer.ClassHistogramAnalyzer;
-import cafe.jeffrey.profile.heapdump.analyzer.ClassInstanceBrowserAnalyzer;
-import cafe.jeffrey.profile.heapdump.analyzer.ClassLoaderAnalyzer;
-import cafe.jeffrey.profile.heapdump.analyzer.ClassLoaderLeakChainAnalyzer;
-import cafe.jeffrey.profile.heapdump.analyzer.ConsumerReportAnalyzer;
-import cafe.jeffrey.profile.heapdump.analyzer.CollectionAnalyzer;
-import cafe.jeffrey.profile.heapdump.analyzer.CompressedOopsCorrector;
-import cafe.jeffrey.profile.heapdump.analyzer.DominatorTreeAnalyzer;
-import cafe.jeffrey.profile.heapdump.analyzer.GCRootAnalyzer;
-import cafe.jeffrey.profile.heapdump.analyzer.HeapSummaryAnalyzer;
-import cafe.jeffrey.profile.heapdump.analyzer.InstanceDetailAnalyzer;
-import cafe.jeffrey.profile.heapdump.analyzer.InstanceTreeAnalyzer;
-import cafe.jeffrey.profile.heapdump.analyzer.DuplicateObjectAnalyzer;
-import cafe.jeffrey.profile.heapdump.analyzer.LeakSuspectsAnalyzer;
-import cafe.jeffrey.profile.heapdump.analyzer.OQLQueryExecutor;
-import cafe.jeffrey.profile.heapdump.analyzer.PathToGCRootAnalyzer;
-import cafe.jeffrey.profile.heapdump.analyzer.StringAnalyzer;
-import cafe.jeffrey.profile.heapdump.analyzer.ThreadAnalyzer;
+import cafe.jeffrey.profile.heapdump.analyzer.heapview.ClassHistogramAnalyzer;
+import cafe.jeffrey.profile.heapdump.analyzer.heapview.ClassInstanceBrowserAnalyzer;
+import cafe.jeffrey.profile.heapdump.analyzer.heapview.BiggestCollectionsAnalyzer;
+import cafe.jeffrey.profile.heapdump.analyzer.heapview.ClassLoaderAnalyzer;
+import cafe.jeffrey.profile.heapdump.analyzer.heapview.ClassLoaderLeakChainAnalyzer;
+import cafe.jeffrey.profile.heapdump.analyzer.heapview.CollectionAnalyzer;
+import cafe.jeffrey.profile.heapdump.analyzer.heapview.ConsumerReportAnalyzer;
+import cafe.jeffrey.profile.heapdump.analyzer.heapview.DominatorTreeAnalyzer;
+import cafe.jeffrey.profile.heapdump.analyzer.heapview.DuplicateObjectAnalyzer;
+import cafe.jeffrey.profile.heapdump.analyzer.heapview.GcRootAnalyzer;
+import cafe.jeffrey.profile.heapdump.analyzer.heapview.HeapSummaryAnalyzer;
+import cafe.jeffrey.profile.heapdump.analyzer.heapview.InstanceDetailAnalyzer;
+import cafe.jeffrey.profile.heapdump.analyzer.heapview.InstanceTreeAnalyzer;
+import cafe.jeffrey.profile.heapdump.analyzer.heapview.LeakSuspectsAnalyzer;
+import cafe.jeffrey.profile.heapdump.analyzer.heapview.PathToGCRootAnalyzer;
+import cafe.jeffrey.profile.heapdump.analyzer.heapview.StringAnalyzer;
+import cafe.jeffrey.profile.heapdump.analyzer.heapview.ThreadAnalyzer;
+import cafe.jeffrey.profile.heapdump.analyzer.heapview.ThreadStackAnalyzer;
+import cafe.jeffrey.profile.heapdump.model.BiggestCollectionsReport;
+import cafe.jeffrey.profile.heapdump.model.BiggestObjectEntry;
+import cafe.jeffrey.profile.heapdump.model.BiggestObjectsReport;
 import cafe.jeffrey.profile.heapdump.model.ClassHistogramEntry;
 import cafe.jeffrey.profile.heapdump.model.ClassInstancesResponse;
+import cafe.jeffrey.profile.heapdump.model.ClassLoaderLeakChain;
+import cafe.jeffrey.profile.heapdump.model.ClassLoaderReport;
 import cafe.jeffrey.profile.heapdump.model.CollectionAnalysisReport;
+import cafe.jeffrey.profile.heapdump.model.ConsumerReport;
 import cafe.jeffrey.profile.heapdump.model.DominatorTreeResponse;
+import cafe.jeffrey.profile.heapdump.model.DuplicateObjectsReport;
 import cafe.jeffrey.profile.heapdump.model.GCRootPath;
 import cafe.jeffrey.profile.heapdump.model.GCRootSummary;
 import cafe.jeffrey.profile.heapdump.model.HeapDumpConfig;
 import cafe.jeffrey.profile.heapdump.model.HeapSummary;
 import cafe.jeffrey.profile.heapdump.model.HeapThreadInfo;
+import cafe.jeffrey.profile.heapdump.model.InitPipelineResult;
 import cafe.jeffrey.profile.heapdump.model.InstanceDetail;
+import cafe.jeffrey.profile.heapdump.model.InstanceTreeRequest;
 import cafe.jeffrey.profile.heapdump.model.InstanceTreeResponse;
 import cafe.jeffrey.profile.heapdump.model.JvmStringFlag;
-import cafe.jeffrey.profile.heapdump.model.BiggestCollectionsReport;
-import cafe.jeffrey.profile.heapdump.model.BiggestObjectEntry;
-import cafe.jeffrey.profile.heapdump.model.BiggestObjectsReport;
-import cafe.jeffrey.profile.heapdump.model.ClassLoaderLeakChain;
-import cafe.jeffrey.profile.heapdump.model.ClassLoaderReport;
-import cafe.jeffrey.profile.heapdump.model.ConsumerReport;
-import cafe.jeffrey.profile.heapdump.model.DuplicateObjectsReport;
 import cafe.jeffrey.profile.heapdump.model.LeakSuspectsReport;
 import cafe.jeffrey.profile.heapdump.model.OQLQueryRequest;
 import cafe.jeffrey.profile.heapdump.model.OQLQueryResult;
@@ -70,15 +68,16 @@ import cafe.jeffrey.profile.heapdump.model.SortBy;
 import cafe.jeffrey.profile.heapdump.model.StringAnalysisReport;
 import cafe.jeffrey.profile.heapdump.model.ThreadAnalysisReport;
 import cafe.jeffrey.profile.heapdump.model.ThreadStackFrame;
+import cafe.jeffrey.profile.heapdump.parser.HeapDumpIndexPaths;
+import cafe.jeffrey.profile.heapdump.parser.HeapDumpSession;
+import cafe.jeffrey.profile.heapdump.parser.HeapView;
+import cafe.jeffrey.profile.heapdump.parser.JavaClassRow;
 import cafe.jeffrey.profile.common.event.GCHeapConfiguration;
 import cafe.jeffrey.profile.common.event.GarbageCollectorType;
 import cafe.jeffrey.provider.profile.api.JvmFlag;
 import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.shared.common.model.Type;
 import cafe.jeffrey.provider.profile.api.ProfileEventRepository;
-import cafe.jeffrey.shared.common.exception.ErrorCode;
-import cafe.jeffrey.shared.common.exception.ErrorType;
-import cafe.jeffrey.shared.common.exception.JeffreyException;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
 import cafe.jeffrey.shared.common.model.repository.FileExtensions;
@@ -86,14 +85,27 @@ import cafe.jeffrey.shared.common.model.repository.FileExtensions;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
-import java.util.Map;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.sql.SQLException;
+import java.time.Clock;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
- * Implementation of HeapDumpManager that provides heap dump analysis capabilities.
+ * Implementation of HeapDumpManager on the native parser path
+ * ({@link HeapDumpSession} + {@code analyzer.heapview}). Each method opens
+ * a short-lived session over the heap dump's {@code .idx.duckdb} sibling,
+ * runs the corresponding analyzer, and lets try-with-resources close the
+ * session afterwards.
+ *
+ * <p>Compressed-oops correction is not applied on this path; shallow sizes
+ * are computed with the parser's fixed 16-byte header constant. The
+ * {@link #resolveAndStoreCompressedOops(Boolean)} method still records the
+ * detected setting so the frontend can display it, but the recorded
+ * overcount is always 0 and no correction ratio is applied to any reported
+ * size.
  */
 public class HeapDumpManagerImpl implements HeapDumpManager {
 
@@ -111,8 +123,7 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
     private static final String CLASSLOADER_ANALYSIS_FILE = "classloader-analysis-v2.json";
     private static final String CONSUMER_REPORT_FILE = "consumer-report.json";
     private static final String HEAP_DUMP_CONFIG_FILE = "heap-dump-config.json";
-
-    private static final long COMPRESSED_OOPS_MAX_HEAP = 32L * 1024 * 1024 * 1024;
+    private static final String INIT_PIPELINE_RESULT_FILE = "init-pipeline-result.json";
 
     private static final Map<String, String> FLAG_DESCRIPTIONS = Map.ofEntries(
             Map.entry("UseStringDeduplication", "Enable string deduplication during GC"),
@@ -127,59 +138,44 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
     );
 
     private final ProfileInfo profileInfo;
-    private final HeapLoader heapLoader;
     private final AdditionalFilesManager additionalFilesManager;
     private final ProfileEventRepository eventRepository;
+    private final Clock clock;
     private final Path heapDumpAnalysisPath;
 
-    // Analyzers
-    private final HeapSummaryAnalyzer summaryAnalyzer;
-    private final ClassHistogramAnalyzer histogramAnalyzer;
-    private final OQLQueryExecutor queryExecutor;
-    private final ThreadAnalyzer threadAnalyzer;
-    private final GCRootAnalyzer gcRootAnalyzer;
-    private final StringAnalyzer stringAnalyzer;
-    private final InstanceDetailAnalyzer instanceDetailAnalyzer;
-    private final InstanceTreeAnalyzer instanceTreeAnalyzer;
-    private final PathToGCRootAnalyzer pathToGCRootAnalyzer;
-    private final DominatorTreeAnalyzer dominatorTreeAnalyzer;
-    private final CollectionAnalyzer collectionAnalyzer;
-    private final ClassInstanceBrowserAnalyzer classInstanceBrowserAnalyzer;
-    private final LeakSuspectsAnalyzer leakSuspectsAnalyzer;
-    private final DuplicateObjectAnalyzer duplicateObjectAnalyzer;
-    private final ClassLoaderAnalyzer classLoaderAnalyzer;
-    private final ClassLoaderLeakChainAnalyzer classLoaderLeakChainAnalyzer;
-    private final ConsumerReportAnalyzer consumerReportAnalyzer;
     public HeapDumpManagerImpl(
             ProfileInfo profileInfo,
-            HeapLoader heapLoader,
             AdditionalFilesManager additionalFilesManager,
-            ProfileEventRepository eventRepository) {
+            ProfileEventRepository eventRepository,
+            Clock clock) {
 
         this.profileInfo = profileInfo;
-        this.heapLoader = heapLoader;
         this.additionalFilesManager = additionalFilesManager;
         this.eventRepository = eventRepository;
+        this.clock = clock;
         this.heapDumpAnalysisPath = additionalFilesManager.getHeapDumpAnalysisPath();
+    }
 
-        // Initialize analyzers
-        this.summaryAnalyzer = new HeapSummaryAnalyzer();
-        this.histogramAnalyzer = new ClassHistogramAnalyzer();
-        this.queryExecutor = new OQLQueryExecutor();
-        this.threadAnalyzer = new ThreadAnalyzer();
-        this.gcRootAnalyzer = new GCRootAnalyzer();
-        this.stringAnalyzer = new StringAnalyzer();
-        this.instanceDetailAnalyzer = new InstanceDetailAnalyzer();
-        this.instanceTreeAnalyzer = new InstanceTreeAnalyzer();
-        this.pathToGCRootAnalyzer = new PathToGCRootAnalyzer();
-        this.dominatorTreeAnalyzer = new DominatorTreeAnalyzer();
-        this.collectionAnalyzer = new CollectionAnalyzer();
-        this.classInstanceBrowserAnalyzer = new ClassInstanceBrowserAnalyzer();
-        this.leakSuspectsAnalyzer = new LeakSuspectsAnalyzer(this.dominatorTreeAnalyzer);
-        this.duplicateObjectAnalyzer = new DuplicateObjectAnalyzer();
-        this.classLoaderAnalyzer = new ClassLoaderAnalyzer();
-        this.classLoaderLeakChainAnalyzer = new ClassLoaderLeakChainAnalyzer(this.pathToGCRootAnalyzer);
-        this.consumerReportAnalyzer = new ConsumerReportAnalyzer();
+    // --- Lifecycle helpers ------------------------------------------------
+
+    @FunctionalInterface
+    private interface SessionWork<R> {
+        R apply(HeapDumpSession session) throws SQLException, IOException;
+    }
+
+    private <R> Optional<R> withSession(SessionWork<R> work) {
+        Optional<Path> heapPath = additionalFilesManager.getHeapDumpPath();
+        if (heapPath.isEmpty()) {
+            LOG.debug("No heap dump available: profileId={}", profileInfo.id());
+            return Optional.empty();
+        }
+        try (HeapDumpSession session = HeapDumpSession.openOrBuild(heapPath.get(), clock)) {
+            return Optional.ofNullable(work.apply(session));
+        } catch (IOException | SQLException e) {
+            LOG.warn("Heap dump operation failed: profileId={} path={} error={}",
+                    profileInfo.id(), heapPath.get(), e.getMessage());
+            throw new RuntimeException("Heap dump operation failed: " + e.getMessage(), e);
+        }
     }
 
     @Override
@@ -193,38 +189,25 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
         if (heapPath.isEmpty()) {
             return false;
         }
-
-        Path path = heapPath.get();
-        String fileName = path.getFileName().toString().toLowerCase();
-
-        // For gzipped files, check if decompressed version exists
-        if (fileName.endsWith(FileExtensions.HPROF_GZ)) {
-            String decompressedName = path.getFileName().toString();
-            decompressedName = decompressedName.substring(0, decompressedName.length() - 3);
-            path = path.resolveSibling(decompressedName);
+        Path indexPath = HeapDumpIndexPaths.indexFor(heapPath.get());
+        if (!Files.exists(indexPath)) {
+            return false;
         }
-
-        // Check if .nbcache directory exists
-        Path cachePath = path.resolveSibling(path.getFileName() + ".nbcache");
-        return Files.isDirectory(cachePath);
+        // Index is stale if its mtime is older than the source dump.
+        try {
+            long hprofMtime = Files.getLastModifiedTime(heapPath.get()).toMillis();
+            long indexMtime = Files.getLastModifiedTime(indexPath).toMillis();
+            return indexMtime >= hprofMtime;
+        } catch (IOException e) {
+            return false;
+        }
     }
+
+    // --- Summary + Histogram ---------------------------------------------
 
     @Override
     public HeapSummary getSummary() {
-        Optional<Path> heapPath = additionalFilesManager.getHeapDumpPath();
-        if (heapPath.isEmpty()) {
-            return null; // No heap dump exists
-        }
-
-        Optional<Heap> heap = heapLoader.load(heapPath.get());
-        if (heap.isEmpty()) {
-            // Heap exists but can't be loaded - offer sanitization instead of deleting
-            throw new JeffreyException(ErrorType.CLIENT, ErrorCode.HEAP_DUMP_NEEDS_SANITIZATION,
-                    "The heap dump file appears to be corrupted and needs repair before it can be analyzed.");
-        }
-
-        OopsConfig oops = resolveOopsConfig(heap.get());
-        return summaryAnalyzer.analyze(heap.get(), oops.compressedOops, oops.totalOvercount);
+        return withSession(session -> HeapSummaryAnalyzer.analyze(session.view())).orElse(null);
     }
 
     @Override
@@ -234,20 +217,18 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
 
     @Override
     public List<ClassHistogramEntry> getClassHistogram(int topN, SortBy sortBy) {
-        return getHeap().map(heap -> {
-            OopsConfig oops = resolveOopsConfig(heap);
-            return histogramAnalyzer.analyze(heap, topN, sortBy, oops.compressedOops, oops.correctionRatio);
-        }).orElse(List.of());
+        return withSession(session -> ClassHistogramAnalyzer.analyze(session.view(), topN, sortBy))
+                .orElse(List.of());
     }
+
+    // --- OQL (stubbed — replaced by the MAT-OQL engine when ready) -------
 
     @Override
     public OQLQueryResult executeQuery(OQLQueryRequest request) {
-        Optional<Heap> heapOpt = getHeap();
-        if (heapOpt.isEmpty()) {
-            return OQLQueryResult.error("Heap dump not available", 0);
-        }
-        return queryExecutor.execute(heapOpt.get(), request);
+        return OQLQueryResult.error("OQL is not yet supported on the native parser path", 0);
     }
+
+    // --- Threads ---------------------------------------------------------
 
     @Override
     public List<HeapThreadInfo> getThreads() {
@@ -256,58 +237,49 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
 
     @Override
     public List<HeapThreadInfo> getThreads(boolean includeRetainedSize) {
-        return getHeap()
-                .map(heap -> threadAnalyzer.analyze(heap, includeRetainedSize))
-                .orElse(List.of());
-    }
-
-    @Override
-    public List<ThreadStackFrame> getThreadStack(long threadObjectId) {
-        return getHeap().map(heap -> {
-            OopsConfig oops = resolveOopsConfig(heap);
-            return threadAnalyzer.analyzeThreadStack(heap, threadObjectId, oops.compressedOops);
+        return withSession(session -> {
+            if (includeRetainedSize) {
+                session.buildDominatorTreeIfNeeded();
+            }
+            return ThreadAnalyzer.analyze(session.view());
         }).orElse(List.of());
     }
 
     @Override
-    public GCRootSummary getGCRootSummary() {
-        return getHeap()
-                .map(gcRootAnalyzer::analyze)
-                .orElse(GCRootSummary.EMPTY);
+    public List<ThreadStackFrame> getThreadStack(long threadObjectId) {
+        return withSession(session ->
+                ThreadStackAnalyzer.getStack(session.view(), threadObjectId))
+                .orElse(List.of());
     }
 
     @Override
+    public GCRootSummary getGCRootSummary() {
+        return withSession(session -> GcRootAnalyzer.analyze(session.view()))
+                .orElse(GCRootSummary.EMPTY);
+    }
+
+    // --- Heap lifecycle / cleanup ----------------------------------------
+
+    @Override
     public void unloadHeap() {
-        Optional<Path> heapPath = additionalFilesManager.getHeapDumpPath();
-        heapPath.ifPresent(heapLoader::unload);
+        // The native parser path doesn't hold long-lived heap state; every
+        // analyzer call opens and closes its own short-lived session.
     }
 
     @Override
     public void deleteCache() {
         Optional<Path> heapPath = additionalFilesManager.getHeapDumpPath();
-        if (heapPath.isEmpty()) {
-            return;
-        }
+        heapPath.ifPresent(path -> {
+            Path indexPath = HeapDumpIndexPaths.indexFor(path);
+            try {
+                Files.deleteIfExists(indexPath);
+            } catch (IOException e) {
+                LOG.error("Failed to delete heap dump index: profileId={} path={}",
+                        profileInfo.id(), indexPath, e);
+            }
+        });
 
-        Path path = heapPath.get();
-        String fileName = path.getFileName().toString().toLowerCase();
-
-        // For gzipped files, resolve to decompressed path
-        if (fileName.endsWith(FileExtensions.HPROF_GZ)) {
-            String decompressedName = path.getFileName().toString();
-            decompressedName = decompressedName.substring(0, decompressedName.length() - 3);
-            path = path.resolveSibling(decompressedName);
-        }
-
-        // Delete .nbcache directory
-        Path cachePath = path.resolveSibling(path.getFileName() + ".nbcache");
-        try {
-            FileSystemUtils.removeDirectory(cachePath);
-        } catch (RuntimeException e) {
-            LOG.error("Failed to delete cache: profileId={} path={}", profileInfo.id(), cachePath, e);
-        }
-
-        // Delete all pre-computed analysis files
+        // Delete all pre-computed analysis files.
         deleteJsonFile(STRING_ANALYSIS_FILE, "String analysis");
         deleteJsonFile(THREAD_ANALYSIS_FILE, "Thread analysis");
         deleteJsonFile(COLLECTION_ANALYSIS_FILE, "Collection analysis");
@@ -316,7 +288,9 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
         deleteJsonFile(BIGGEST_COLLECTIONS_FILE, "Biggest collections");
         deleteJsonFile(DUPLICATE_OBJECTS_FILE, "Duplicate objects");
         deleteJsonFile(CLASSLOADER_ANALYSIS_FILE, "Class loader analysis");
+        deleteJsonFile(CONSUMER_REPORT_FILE, "Consumer report");
         deleteJsonFile(HEAP_DUMP_CONFIG_FILE, "Heap dump config");
+        deleteJsonFile(INIT_PIPELINE_RESULT_FILE, "Init pipeline result");
     }
 
     @Override
@@ -326,150 +300,96 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
             return;
         }
 
-        // Unload heap from memory first
-        heapLoader.unload(heapPath.get());
-
         Path path = heapPath.get();
         String fileName = path.getFileName().toString().toLowerCase();
 
         Path hprofPath;
         Path gzPath = null;
-
         if (fileName.endsWith(FileExtensions.HPROF_GZ)) {
-            // Original is gzipped
             gzPath = path;
             String decompressedName = path.getFileName().toString();
             decompressedName = decompressedName.substring(0, decompressedName.length() - 3);
             hprofPath = path.resolveSibling(decompressedName);
         } else {
-            // Original is .hprof
             hprofPath = path;
-            // Check if .gz version exists
             Path potentialGz = path.resolveSibling(path.getFileName() + ".gz");
             if (Files.exists(potentialGz)) {
                 gzPath = potentialGz;
             }
         }
 
-        // Delete .nbcache directory
-        Path cachePath = hprofPath.resolveSibling(hprofPath.getFileName() + ".nbcache");
+        // Delete the .idx.duckdb sibling.
+        Path indexPath = HeapDumpIndexPaths.indexFor(hprofPath);
         try {
-            FileSystemUtils.removeDirectory(cachePath);
-        } catch (RuntimeException e) {
-            LOG.error("Failed to delete cache: profileId={} path={}", profileInfo.id(), cachePath, e);
+            Files.deleteIfExists(indexPath);
+        } catch (IOException e) {
+            LOG.error("Failed to delete heap dump index: profileId={} path={}",
+                    profileInfo.id(), indexPath, e);
         }
 
-        // Delete .hprof file
+        // Delete .hprof file.
         if (Files.exists(hprofPath)) {
             try {
                 Files.delete(hprofPath);
             } catch (IOException e) {
-                LOG.error("Failed to delete heap dump: profileId={} path={}", profileInfo.id(), hprofPath, e);
+                LOG.error("Failed to delete heap dump: profileId={} path={}",
+                        profileInfo.id(), hprofPath, e);
             }
         }
 
-        // Delete .hprof.gz file
+        // Delete .hprof.gz file.
         if (gzPath != null && Files.exists(gzPath)) {
             try {
                 Files.delete(gzPath);
             } catch (IOException e) {
-                LOG.error("Failed to delete compressed heap dump: profileId={} path={}", profileInfo.id(), gzPath, e);
+                LOG.error("Failed to delete compressed heap dump: profileId={} path={}",
+                        profileInfo.id(), gzPath, e);
             }
         }
     }
 
-    private record OopsConfig(boolean compressedOops, long totalOvercount, double correctionRatio) {
-        static final OopsConfig DISABLED = new OopsConfig(false, 0, 1.0);
-    }
-
-    private OopsConfig resolveOopsConfig(Heap heap) {
-        Optional<HeapDumpConfig> configOpt = getHeapDumpConfig();
-        boolean compressedOops = configOpt.map(HeapDumpConfig::compressedOops).orElse(false);
-        long totalOvercount = configOpt.map(HeapDumpConfig::totalOvercount).orElse(0L);
-        if (!compressedOops) {
-            return OopsConfig.DISABLED;
-        }
-        double correctionRatio = CompressedOopsCorrector.computeCorrectionRatio(
-                heap.getSummary().getTotalLiveBytes(), totalOvercount);
-        return new OopsConfig(true, totalOvercount, correctionRatio);
-    }
-
-    private Optional<Heap> getHeap() {
-        Optional<Path> heapPath = additionalFilesManager.getHeapDumpPath();
-        if (heapPath.isEmpty()) {
-            LOG.debug("No heap dump available: profileId={}", profileInfo.id());
-            return Optional.empty();
-        }
-
-        Optional<Heap> heap = heapLoader.load(heapPath.get());
-        if (heap.isEmpty()) {
-            LOG.warn("Failed to load heap dump: profileId={} path={}", profileInfo.id(), heapPath.get());
-        }
-        return heap;
-    }
+    // --- Upload + sanitize ----------------------------------------------
 
     @Override
     public void uploadHeapDump(InputStream inputStream, String filename) {
-        // Validate filename extension
+        // Validate filename extension.
         String lowerFilename = filename.toLowerCase();
         if (!lowerFilename.endsWith("." + FileExtensions.HPROF) &&
                 !lowerFilename.endsWith("." + FileExtensions.HPROF_GZ)) {
             throw new IllegalArgumentException("Invalid file type. Only .hprof and .hprof.gz files are supported.");
         }
 
-        // Clean up any existing files/cache before uploading new heap dump
+        // Clean up any existing files / index before uploading new heap dump.
         try {
             FileSystemUtils.removeDirectory(heapDumpAnalysisPath);
         } catch (RuntimeException e) {
-            LOG.warn("Failed to clean up existing heap dump directory: profileId={} path={}", profileInfo.id(), heapDumpAnalysisPath, e);
+            LOG.warn("Failed to clean up existing heap dump directory: profileId={} path={}",
+                    profileInfo.id(), heapDumpAnalysisPath, e);
         }
 
         Path targetPath = heapDumpAnalysisPath.resolve(filename);
-
         try {
-            // Create the directory if it doesn't exist
             Files.createDirectories(heapDumpAnalysisPath);
-
-            // Save the file
             Files.copy(inputStream, targetPath, StandardCopyOption.REPLACE_EXISTING);
-
             LOG.info("Heap dump uploaded: profileId={} path={}", profileInfo.id(), targetPath);
         } catch (IOException e) {
-            LOG.error("Failed to upload heap dump: profileId={} filename={}", profileInfo.id(), filename, e);
+            LOG.error("Failed to upload heap dump: profileId={} filename={}",
+                    profileInfo.id(), filename, e);
             throw new RuntimeException("Failed to upload heap dump: " + e.getMessage(), e);
         }
     }
 
     @Override
     public void sanitizeHeapDump() {
-        sanitizeHeapDump(null);
+        // The native parser is fault-tolerant by design — framing recovery is
+        // applied inline during indexing rather than as a separate pre-pass.
+        // Keep this as a no-op so any frontend that still calls /sanitize gets
+        // a clean response.
+        LOG.debug("sanitizeHeapDump is a no-op on the native parser path: profileId={}",
+                profileInfo.id());
     }
 
-    @Override
-    public void sanitizeHeapDump(SanitizeMode mode) {
-        Optional<Path> heapPath = additionalFilesManager.getHeapDumpPath();
-        if (heapPath.isEmpty()) {
-            throw new JeffreyException(ErrorType.CLIENT, ErrorCode.HEAP_DUMP_CORRUPTED,
-                    "No heap dump file found to sanitize.");
-        }
-
-        if (!(heapLoader instanceof SimpleHeapLoader simpleLoader)) {
-            throw new JeffreyException(ErrorType.INTERNAL, ErrorCode.HEAP_DUMP_CORRUPTED,
-                    "Sanitization is not supported with the current heap loader.");
-        }
-
-        SanitizeMode effective = (mode != null) ? mode : simpleLoader.defaultSanitizeMode();
-        try {
-            var result = simpleLoader.sanitize(heapPath.get(), effective);
-            LOG.info("Heap dump sanitized: profileId={} mode={} wasModified={} summary={}",
-                    profileInfo.id(), effective, result.wasModified(), result.summaryMessage());
-        } catch (IOException e) {
-            LOG.error("Failed to sanitize heap dump: profileId={} mode={} path={}",
-                    profileInfo.id(), effective, heapPath.get(), e);
-            throw new JeffreyException(ErrorType.INTERNAL, ErrorCode.HEAP_DUMP_CORRUPTED,
-                    "Failed to sanitize heap dump: " + e.getMessage(), e);
-        }
-    }
+    // --- String analysis -------------------------------------------------
 
     @Override
     public boolean stringAnalysisExists() {
@@ -483,15 +403,12 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
 
     @Override
     public void runStringAnalysis(int topN) {
-        getHeap().ifPresent(heap -> {
-            OopsConfig oops = resolveOopsConfig(heap);
-            // Analyze heap for string deduplication
-            StringAnalysisReport heapAnalysis = stringAnalyzer.analyze(heap, topN, oops.compressedOops);
+        withSession(session -> {
+            StringAnalysisReport heapAnalysis = StringAnalyzer.analyze(session.view(), topN);
 
-            // Get JVM flags related to strings from JFR events
+            // Get JVM flags related to strings from JFR events.
             List<JvmStringFlag> jvmFlags = getStringRelatedJvmFlags();
 
-            // Create complete report with JVM flags
             StringAnalysisReport report = new StringAnalysisReport(
                     heapAnalysis.totalStrings(),
                     heapAnalysis.totalStringShallowSize(),
@@ -504,15 +421,14 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
                     heapAnalysis.opportunities(),
                     jvmFlags
             );
-
             writeJsonFile(STRING_ANALYSIS_FILE, report, "String analysis");
+            return null;
         });
     }
 
     private List<JvmStringFlag> getStringRelatedJvmFlags() {
         List<JvmFlag> flags = eventRepository.getStringRelatedFlags();
         return flags.stream()
-                // Filter out disabled GC flags (only show enabled GC)
                 .filter(flag -> !GarbageCollectorType.isGcFlag(flag.name()) || "true".equals(flag.value()))
                 .map(flag -> new JvmStringFlag(
                         flag.name(),
@@ -523,6 +439,8 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
                 ))
                 .toList();
     }
+
+    // --- Thread analysis -------------------------------------------------
 
     @Override
     public boolean threadAnalysisExists() {
@@ -536,11 +454,12 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
 
     @Override
     public void runThreadAnalysis() {
-        getHeap().ifPresent(heap -> {
-            // Analyze threads with retained size calculation (expensive)
-            List<HeapThreadInfo> threads = threadAnalyzer.analyze(heap, true);
+        withSession(session -> {
+            // Retained sizes need the dominator tree; the analyzer reads
+            // retained_size when present.
+            session.buildDominatorTreeIfNeeded();
+            List<HeapThreadInfo> threads = ThreadAnalyzer.analyze(session.view());
 
-            // Calculate summary statistics
             int daemonCount = (int) threads.stream().filter(HeapThreadInfo::daemon).count();
             int userCount = threads.size() - daemonCount;
             long totalRetained = threads.stream()
@@ -548,59 +467,55 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
                     .sum();
 
             ThreadAnalysisReport report = new ThreadAnalysisReport(
-                    threads.size(),
-                    daemonCount,
-                    userCount,
-                    totalRetained,
-                    threads
-            );
-
+                    threads.size(), daemonCount, userCount, totalRetained, threads);
             writeJsonFile(THREAD_ANALYSIS_FILE, report, "Thread analysis");
+            return null;
         });
     }
 
+    // --- Instance browsing -----------------------------------------------
+
     @Override
     public InstanceDetail getInstanceDetail(long objectId, boolean includeRetainedSize) {
-        return getHeap().map(heap -> {
-            OopsConfig oops = resolveOopsConfig(heap);
-            return instanceDetailAnalyzer.analyze(heap, objectId, includeRetainedSize,
-                    oops.compressedOops, oops.correctionRatio);
+        return withSession(session -> {
+            if (includeRetainedSize) {
+                session.buildDominatorTreeIfNeeded();
+            }
+            return InstanceDetailAnalyzer.analyze(session.view(), objectId).orElse(null);
         }).orElse(null);
     }
 
     @Override
     public InstanceTreeResponse getReferrers(long objectId, int limit, int offset) {
-        return getHeap().map(heap -> {
-            OopsConfig oops = resolveOopsConfig(heap);
-            return instanceTreeAnalyzer.getReferrers(heap, objectId, limit, offset, oops.compressedOops);
-        }).orElse(InstanceTreeResponse.notFound());
+        return withSession(session -> InstanceTreeAnalyzer.analyze(
+                session.view(),
+                InstanceTreeRequest.referrers(objectId, limit, offset)))
+                .orElse(InstanceTreeResponse.notFound());
     }
 
     @Override
     public InstanceTreeResponse getReachables(long objectId, int limit, int offset) {
-        return getHeap().map(heap -> {
-            OopsConfig oops = resolveOopsConfig(heap);
-            return instanceTreeAnalyzer.getReachables(heap, objectId, limit, offset, oops.compressedOops);
-        }).orElse(InstanceTreeResponse.notFound());
+        return withSession(session -> InstanceTreeAnalyzer.analyze(
+                session.view(),
+                InstanceTreeRequest.reachables(objectId, limit, offset)))
+                .orElse(InstanceTreeResponse.notFound());
     }
 
-    // --- Path to GC Root ---
+    // --- Path to GC Root -------------------------------------------------
 
     @Override
     public List<GCRootPath> getPathsToGCRoot(long objectId, boolean excludeWeakRefs, int maxPaths) {
-        return getHeap().map(heap -> {
-            OopsConfig oops = resolveOopsConfig(heap);
-            return pathToGCRootAnalyzer.findPaths(heap, objectId, excludeWeakRefs, maxPaths, oops.compressedOops, oops.correctionRatio);
-        }).orElse(List.of());
+        return withSession(session -> PathToGCRootAnalyzer.findPaths(
+                session.view(), objectId, excludeWeakRefs, maxPaths))
+                .orElse(List.of());
     }
 
-    // --- Heap Dump Config ---
+    // --- Heap Dump Config (compressed oops detection only — correction is not applied) ----
 
     @Override
     public HeapDumpConfig resolveAndStoreCompressedOops(Boolean manualOverride) {
         boolean compressedOops;
         String source;
-
         if (manualOverride != null) {
             compressedOops = manualOverride;
             source = "MANUAL";
@@ -610,22 +525,23 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
                 compressedOops = jfrValue.get();
                 source = "JFR";
             } else {
-                compressedOops = inferCompressedOopsFromHeap();
-                source = "INFERRED";
+                Optional<Boolean> inferred = inferCompressedOopsFromHeap();
+                if (inferred.isPresent()) {
+                    compressedOops = inferred.get();
+                    source = "INFERRED";
+                } else {
+                    compressedOops = false;
+                    source = "DEFAULTED";
+                }
             }
         }
 
-        long totalOvercount = 0;
-        if (compressedOops) {
-            totalOvercount = getHeap()
-                    .map(CompressedOopsCorrector::computeTotalOvercount)
-                    .orElse(0L);
-            LOG.info("Total overcount computed: totalOvercount={} profileId={}", totalOvercount, profileInfo.id());
-        }
-
-        HeapDumpConfig config = new HeapDumpConfig(compressedOops, source, totalOvercount);
+        // totalOvercount is always 0 — the native parser doesn't compute it
+        // (CUTOVER.md §6: compressed-oops correction is not applied).
+        HeapDumpConfig config = new HeapDumpConfig(compressedOops, source, 0L);
         writeJsonFile(HEAP_DUMP_CONFIG_FILE, config, "Heap dump config");
-        LOG.info("Compressed oops resolved: compressedOops={} source={} profileId={}", compressedOops, source, profileInfo.id());
+        LOG.info("Compressed oops resolved: compressedOops={} source={} profileId={}",
+                compressedOops, source, profileInfo.id());
         return config;
     }
 
@@ -634,20 +550,21 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
         return readJsonFile(HEAP_DUMP_CONFIG_FILE, HeapDumpConfig.class);
     }
 
-    private boolean inferCompressedOopsFromHeap() {
-        return getHeap().map(heap -> {
-            try {
-                java.util.Properties props = heap.getSystemProperties();
-                String archDataModel = props.getProperty("sun.arch.data.model", "");
-                if ("64".equals(archDataModel)) {
-                    long totalLiveBytes = heap.getSummary().getTotalLiveBytes();
-                    return totalLiveBytes < COMPRESSED_OOPS_MAX_HEAP;
-                }
-            } catch (Exception e) {
-                LOG.debug("Could not infer compressed oops from heap properties: {}", e.getMessage());
-            }
-            return false;
-        }).orElse(false);
+    // --- Init pipeline result ---
+
+    @Override
+    public boolean initPipelineResultExists() {
+        return Files.exists(heapDumpAnalysisPath.resolve(INIT_PIPELINE_RESULT_FILE));
+    }
+
+    @Override
+    public Optional<InitPipelineResult> getInitPipelineResult() {
+        return readJsonFile(INIT_PIPELINE_RESULT_FILE, InitPipelineResult.class);
+    }
+
+    @Override
+    public void storeInitPipelineResult(InitPipelineResult result) {
+        writeJsonFile(INIT_PIPELINE_RESULT_FILE, result, "Init pipeline result");
     }
 
     private Optional<Boolean> detectCompressedOopsFromJfr() {
@@ -661,29 +578,41 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
         }
     }
 
-    // --- Dominator Tree ---
+    /**
+     * Reads the compressed-oops flag the parser baked into the index at build
+     * time. The parser uses the same JVM-default heuristic (64-bit dump with a
+     * heap under the 32 GiB pointer-compression limit), so this is a pure
+     * pass-through; the value drives per-instance shallow-size accounting and
+     * is recorded here as the {@code INFERRED} source for the heap-dump
+     * config. Returns empty when no view is available so {@code DEFAULTED}
+     * wins downstream.
+     */
+    private Optional<Boolean> inferCompressedOopsFromHeap() {
+        return withSession(session -> session.view().metadata().compressedOops());
+    }
+
+    // --- Dominator Tree --------------------------------------------------
 
     @Override
     public DominatorTreeResponse getDominatorTreeRoots(int limit) {
-        Optional<HeapDumpConfig> configOpt = getHeapDumpConfig();
-        boolean compressedOops = configOpt.map(HeapDumpConfig::compressedOops).orElse(false);
-        long totalOvercount = configOpt.map(HeapDumpConfig::totalOvercount).orElse(0L);
-        return getHeap()
-                .map(heap -> dominatorTreeAnalyzer.getRoots(heap, limit, compressedOops, totalOvercount))
-                .orElse(new DominatorTreeResponse(List.of(), 0, false, false));
+        return withSession(session -> {
+            session.buildDominatorTreeIfNeeded();
+            return DominatorTreeAnalyzer.children(session.view(), 0L, limit);
+        }).orElse(new DominatorTreeResponse(List.of(), 0, false, false));
     }
 
     @Override
     public DominatorTreeResponse getDominatorTreeChildren(long objectId, int offset, int limit) {
-        Optional<HeapDumpConfig> configOpt = getHeapDumpConfig();
-        boolean compressedOops = configOpt.map(HeapDumpConfig::compressedOops).orElse(false);
-        long totalOvercount = configOpt.map(HeapDumpConfig::totalOvercount).orElse(0L);
-        return getHeap()
-                .map(heap -> dominatorTreeAnalyzer.getChildren(heap, objectId, offset, limit, compressedOops, totalOvercount))
-                .orElse(new DominatorTreeResponse(List.of(), 0, false, false));
+        // The native DominatorTreeAnalyzer does not currently support offset-based
+        // pagination; offset is ignored. The frontend uses lazy expansion, so the
+        // first `limit` children is what each call needs.
+        return withSession(session -> {
+            session.buildDominatorTreeIfNeeded();
+            return DominatorTreeAnalyzer.children(session.view(), objectId, limit);
+        }).orElse(new DominatorTreeResponse(List.of(), 0, false, false));
     }
 
-    // --- Collection Analysis ---
+    // --- Collection Analysis ---------------------------------------------
 
     @Override
     public boolean collectionAnalysisExists() {
@@ -697,25 +626,32 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
 
     @Override
     public void runCollectionAnalysis() {
-        getHeap().ifPresent(heap -> {
-            OopsConfig oops = resolveOopsConfig(heap);
-            CollectionAnalysisReport report = collectionAnalyzer.analyze(heap, oops.compressedOops);
+        withSession(session -> {
+            CollectionAnalysisReport report = CollectionAnalyzer.analyze(session.view());
             writeJsonFile(COLLECTION_ANALYSIS_FILE, report, "Collection analysis");
+            return null;
         });
     }
 
-    // --- Class Instance Browser ---
+    // --- Class Instance Browser ------------------------------------------
 
     @Override
-    public ClassInstancesResponse getClassInstances(String className, int limit, int offset, boolean includeRetainedSize) {
-        return getHeap().map(heap -> {
-            OopsConfig oops = resolveOopsConfig(heap);
-            return classInstanceBrowserAnalyzer.browse(heap, className, limit, offset, includeRetainedSize,
-                    oops.compressedOops, oops.correctionRatio);
+    public ClassInstancesResponse getClassInstances(
+            String className, int limit, int offset, boolean includeRetainedSize) {
+        return withSession(session -> {
+            if (includeRetainedSize) {
+                session.buildDominatorTreeIfNeeded();
+            }
+            HeapView view = session.view();
+            List<JavaClassRow> matches = view.findClassesByName(className);
+            if (matches.isEmpty()) {
+                return new ClassInstancesResponse(className, 0, List.of(), false);
+            }
+            return ClassInstanceBrowserAnalyzer.browse(view, matches.get(0).classId(), offset, limit);
         }).orElse(new ClassInstancesResponse(className, 0, List.of(), false));
     }
 
-    // --- Leak Suspects ---
+    // --- Leak Suspects ---------------------------------------------------
 
     @Override
     public boolean leakSuspectsExists() {
@@ -729,15 +665,15 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
 
     @Override
     public void runLeakSuspects() {
-        getHeap().ifPresent(heap -> {
-            OopsConfig oops = resolveOopsConfig(heap);
-            LeakSuspectsReport report = leakSuspectsAnalyzer.analyze(
-                    heap, oops.compressedOops, oops.correctionRatio, oops.totalOvercount);
+        withSession(session -> {
+            session.buildDominatorTreeIfNeeded();
+            LeakSuspectsReport report = LeakSuspectsAnalyzer.analyze(session.view());
             writeJsonFile(LEAK_SUSPECTS_FILE, report, "Leak suspects");
+            return null;
         });
     }
 
-    // --- Biggest Objects ---
+    // --- Biggest Objects -------------------------------------------------
 
     @Override
     public boolean biggestObjectsExists() {
@@ -751,9 +687,10 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
 
     @Override
     public void runBiggestObjects(int topN) {
-        getHeap().ifPresent(heap -> {
-            OopsConfig oops = resolveOopsConfig(heap);
-            DominatorTreeResponse response = dominatorTreeAnalyzer.getRoots(heap, topN, oops.compressedOops, oops.totalOvercount);
+        withSession(session -> {
+            session.buildDominatorTreeIfNeeded();
+            HeapView view = session.view();
+            DominatorTreeResponse response = DominatorTreeAnalyzer.children(view, 0L, topN);
 
             List<BiggestObjectEntry> entries = response.nodes().stream()
                     .map(node -> new BiggestObjectEntry(
@@ -764,15 +701,19 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
                     .toList();
 
             long totalRetained = entries.stream().mapToLong(BiggestObjectEntry::retainedSize).sum();
-            long totalHeapSize = CompressedOopsCorrector.correctedTotalHeap(
-                    heap.getSummary().getTotalLiveBytes(), oops.compressedOops, oops.totalOvercount);
-
+            long totalHeapSize;
+            try {
+                totalHeapSize = view.totalShallowSize();
+            } catch (SQLException e) {
+                totalHeapSize = 0L;
+            }
             BiggestObjectsReport report = new BiggestObjectsReport(totalHeapSize, totalRetained, entries);
             writeJsonFile(BIGGEST_OBJECTS_FILE, report, "Biggest objects");
+            return null;
         });
     }
 
-    // --- Biggest Collections ---
+    // --- Biggest Collections (not yet migrated — empty report) -----------
 
     @Override
     public boolean biggestCollectionsExists() {
@@ -786,15 +727,16 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
 
     @Override
     public void runBiggestCollections(int topN) {
-        getHeap().ifPresent(heap -> {
-            OopsConfig oops = resolveOopsConfig(heap);
-            BiggestCollectionsReport report = collectionAnalyzer.analyzeBiggestCollections(
-                    heap, topN, oops.compressedOops);
+        withSession(session -> {
+            session.buildDominatorTreeIfNeeded();
+            BiggestCollectionsReport report =
+                    BiggestCollectionsAnalyzer.analyze(session.view(), topN);
             writeJsonFile(BIGGEST_COLLECTIONS_FILE, report, "Biggest collections");
+            return null;
         });
     }
 
-    // --- Duplicate Objects ---
+    // --- Duplicate Objects ----------------------------------------------
 
     @Override
     public boolean duplicateObjectsExists() {
@@ -808,13 +750,14 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
 
     @Override
     public void runDuplicateObjects(int topN) {
-        getHeap().ifPresent(heap -> {
-            DuplicateObjectsReport report = duplicateObjectAnalyzer.analyze(heap, topN);
+        withSession(session -> {
+            DuplicateObjectsReport report = DuplicateObjectAnalyzer.analyze(session.view(), topN);
             writeJsonFile(DUPLICATE_OBJECTS_FILE, report, "Duplicate objects");
+            return null;
         });
     }
 
-    // --- Class Loader Analysis ---
+    // --- Class Loader Analysis (base + leak chains) ----------------------
 
     @Override
     public boolean classLoaderAnalysisExists() {
@@ -828,11 +771,11 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
 
     @Override
     public void runClassLoaderAnalysis() {
-        getHeap().ifPresent(heap -> {
-            OopsConfig oops = resolveOopsConfig(heap);
-            ClassLoaderReport baseReport = classLoaderAnalyzer.analyze(heap);
-            List<ClassLoaderLeakChain> leakChains = classLoaderLeakChainAnalyzer.analyze(
-                    heap, baseReport, oops.compressedOops, oops.correctionRatio);
+        withSession(session -> {
+            session.buildDominatorTreeIfNeeded();
+            HeapView view = session.view();
+            ClassLoaderReport baseReport = ClassLoaderAnalyzer.analyze(view);
+            List<ClassLoaderLeakChain> leakChains = ClassLoaderLeakChainAnalyzer.analyze(view);
 
             ClassLoaderReport report = new ClassLoaderReport(
                     baseReport.totalClassLoaders(),
@@ -841,12 +784,12 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
                     baseReport.classLoaders(),
                     baseReport.duplicateClasses(),
                     leakChains);
-
             writeJsonFile(CLASSLOADER_ANALYSIS_FILE, report, "Class loader analysis");
+            return null;
         });
     }
 
-    // --- Consumer Report ---
+    // --- Consumer Report ------------------------------------------------
 
     @Override
     public boolean consumerReportExists() {
@@ -860,15 +803,15 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
 
     @Override
     public void runConsumerReport() {
-        getHeap().ifPresent(heap -> {
-            OopsConfig oops = resolveOopsConfig(heap);
-            ConsumerReport report = consumerReportAnalyzer.analyze(
-                    heap, oops.compressedOops, oops.correctionRatio, oops.totalOvercount);
+        withSession(session -> {
+            session.buildDominatorTreeIfNeeded();
+            ConsumerReport report = ConsumerReportAnalyzer.analyze(session.view());
             writeJsonFile(CONSUMER_REPORT_FILE, report, "Consumer report");
+            return null;
         });
     }
 
-    // --- JSON I/O helpers ---
+    // --- JSON I/O helpers -----------------------------------------------
 
     private <T> Optional<T> readJsonFile(String fileName, Class<T> type) {
         Path filePath = heapDumpAnalysisPath.resolve(fileName);

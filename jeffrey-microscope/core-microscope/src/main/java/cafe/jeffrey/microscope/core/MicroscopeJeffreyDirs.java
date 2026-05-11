@@ -30,7 +30,7 @@ public class MicroscopeJeffreyDirs implements TempDirFactory {
     private static final String WORKSPACES_DIR = "workspaces";
     private static final String PROFILES_DIR = "profiles";
     private static final String RECORDINGS_DIR = "recordings";
-    public static final String HEAP_DUMP_ANALYSIS_DIR = "heap-dump-analysis";
+    public static final String HEAP_DUMP_ANALYSIS_DIR = "heap-dump";
     private static final String TMP_DIR = "tmp";
     private final Path homeDir;
     private final Path tempDir;

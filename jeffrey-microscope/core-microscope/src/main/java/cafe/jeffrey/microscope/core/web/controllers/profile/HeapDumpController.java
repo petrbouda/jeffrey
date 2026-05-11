@@ -42,6 +42,7 @@ import cafe.jeffrey.profile.heapdump.model.DuplicateObjectsReport;
 import cafe.jeffrey.profile.heapdump.model.GCRootPath;
 import cafe.jeffrey.profile.heapdump.model.GCRootSummary;
 import cafe.jeffrey.profile.heapdump.model.HeapDumpConfig;
+import cafe.jeffrey.profile.heapdump.model.InitPipelineResult;
 import cafe.jeffrey.profile.heapdump.model.HeapSummary;
 import cafe.jeffrey.profile.heapdump.model.HeapThreadInfo;
 import cafe.jeffrey.profile.heapdump.model.InstanceDetail;
@@ -49,7 +50,6 @@ import cafe.jeffrey.profile.heapdump.model.InstanceTreeResponse;
 import cafe.jeffrey.profile.heapdump.model.LeakSuspectsReport;
 import cafe.jeffrey.profile.heapdump.model.OQLQueryRequest;
 import cafe.jeffrey.profile.heapdump.model.OQLQueryResult;
-import cafe.jeffrey.profile.heapdump.sanitizer.SanitizeMode;
 import cafe.jeffrey.profile.heapdump.model.SortBy;
 import cafe.jeffrey.profile.heapdump.model.StringAnalysisReport;
 import cafe.jeffrey.profile.heapdump.model.ThreadAnalysisReport;
@@ -137,10 +137,8 @@ public class HeapDumpController {
     }
 
     @PostMapping("/sanitize")
-    public void sanitize(
-            @PathVariable("profileId") String profileId,
-            @RequestParam(value = "mode", required = false) SanitizeMode mode) {
-        mgr(profileId).sanitizeHeapDump(mode);
+    public void sanitize(@PathVariable("profileId") String profileId) {
+        mgr(profileId).sanitizeHeapDump();
     }
 
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -241,6 +239,23 @@ public class HeapDumpController {
     @GetMapping("/config")
     public HeapDumpConfig getConfig(@PathVariable("profileId") String profileId) {
         return mgr(profileId).getHeapDumpConfig().orElse(null);
+    }
+
+    @GetMapping("/init-result/exists")
+    public boolean initPipelineResultExists(@PathVariable("profileId") String profileId) {
+        return mgr(profileId).initPipelineResultExists();
+    }
+
+    @GetMapping("/init-result")
+    public InitPipelineResult getInitPipelineResult(@PathVariable("profileId") String profileId) {
+        return mgr(profileId).getInitPipelineResult().orElse(null);
+    }
+
+    @PostMapping("/init-result")
+    public void storeInitPipelineResult(
+            @PathVariable("profileId") String profileId,
+            @RequestBody InitPipelineResult result) {
+        mgr(profileId).storeInitPipelineResult(result);
     }
 
     @GetMapping("/dominator-tree")

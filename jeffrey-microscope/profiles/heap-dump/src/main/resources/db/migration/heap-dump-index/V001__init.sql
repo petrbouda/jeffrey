@@ -43,7 +43,12 @@ CREATE TABLE IF NOT EXISTS dump_metadata
     warning_count     BIGINT  NOT NULL,
     truncated         BOOLEAN NOT NULL,
     parser_version    VARCHAR NOT NULL,
-    parsed_at_ms      BIGINT  NOT NULL
+    parsed_at_ms      BIGINT  NOT NULL,
+    -- compressed_oops: pointer-compression mode the parser assumed when computing
+    -- per-instance shallow_size. Inferred at index build time from id_size + the
+    -- .hprof file size (proxy for total heap). Baked into shallow_size so every
+    -- analyzer downstream gets the right header bytes per array.
+    compressed_oops   BOOLEAN NOT NULL
 );
 
 --
@@ -66,6 +71,7 @@ CREATE TABLE IF NOT EXISTS class
     class_id              BIGINT  NOT NULL PRIMARY KEY,
     class_serial          INTEGER NOT NULL,
     name                  VARCHAR NOT NULL,
+    is_array              BOOLEAN NOT NULL,
     super_class_id        BIGINT,
     classloader_id        BIGINT,
     signers_id            BIGINT,
@@ -77,6 +83,7 @@ CREATE TABLE IF NOT EXISTS class
 
 CREATE INDEX IF NOT EXISTS idx_class_name ON class(name);
 CREATE INDEX IF NOT EXISTS idx_class_super ON class(super_class_id);
+CREATE INDEX IF NOT EXISTS idx_class_is_array ON class(is_array);
 
 --
 -- INSTANCE
@@ -178,6 +185,45 @@ CREATE TABLE IF NOT EXISTS retained_size
     instance_id BIGINT NOT NULL PRIMARY KEY,
     bytes       BIGINT NOT NULL
 );
+
+--
+-- STACK_FRAME
+-- One row per HPROF STACK_FRAME top-level record. class_name is resolved at
+-- index-build time from the LOAD_CLASS map: STACK_FRAME references classes
+-- via class_serial, but the matching CLASS_DUMP may be absent (framework
+-- classes loaded but never instantiated still appear on stacks). Storing
+-- the resolved name avoids a join through the class table and survives
+-- those missing CLASS_DUMP rows.
+-- line_number stores the raw HPROF value: >=1 normal, -1 no info,
+--   -2 compiled, -3 native.
+--
+CREATE TABLE IF NOT EXISTS stack_frame
+(
+    frame_id          BIGINT  NOT NULL PRIMARY KEY,
+    class_name        VARCHAR NOT NULL,
+    method_name       VARCHAR NOT NULL,
+    method_signature  VARCHAR NOT NULL,
+    source_file       VARCHAR,
+    line_number       INTEGER NOT NULL
+);
+
+--
+-- STACK_TRACE_FRAME
+-- Ordered membership of frames in a stack trace. frame_index is 0-based
+-- with the topmost (most-recent) frame at 0. thread_serial duplicates the
+-- one on the parent STACK_TRACE so the per-thread frame query can avoid
+-- a join when the analyzer already knows the thread.
+--
+CREATE TABLE IF NOT EXISTS stack_trace_frame
+(
+    trace_serial   INTEGER NOT NULL,
+    thread_serial  INTEGER NOT NULL,
+    frame_index    INTEGER NOT NULL,
+    frame_id       BIGINT  NOT NULL,
+    PRIMARY KEY (trace_serial, frame_index)
+);
+
+CREATE INDEX IF NOT EXISTS idx_stack_trace_frame_thread ON stack_trace_frame(thread_serial);
 
 --
 -- PARSE_WARNING

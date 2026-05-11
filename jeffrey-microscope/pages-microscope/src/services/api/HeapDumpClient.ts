@@ -36,6 +36,7 @@ import LeakSuspectsReport from '@/services/api/model/LeakSuspectsReport';
 import BiggestObjectsReport from '@/services/api/model/BiggestObjectsReport';
 import BiggestCollectionsReport from '@/services/api/model/BiggestCollectionsReport';
 import HeapDumpConfig from '@/services/api/model/HeapDumpConfig';
+import type InitPipelineResult from '@/services/api/model/InitPipelineResult';
 import type DuplicateObjectsReport from '@/services/api/model/DuplicateObjectsReport';
 import type ClassLoaderReport from '@/services/api/model/ClassLoaderReport';
 import type ThreadStackFrame from '@/services/api/model/ThreadStackFrame';
@@ -101,6 +102,18 @@ export default class HeapDumpClient extends BaseProfileClient {
 
   public getConfig(): Promise<HeapDumpConfig> {
     return this.get<HeapDumpConfig>('/config');
+  }
+
+  public initPipelineResultExists(): Promise<boolean> {
+    return this.get<boolean>('/init-result/exists');
+  }
+
+  public getInitPipelineResult(): Promise<InitPipelineResult | null> {
+    return this.get<InitPipelineResult | null>('/init-result');
+  }
+
+  public storeInitPipelineResult(result: InitPipelineResult): Promise<void> {
+    return this.post<void>('/init-result', result);
   }
 
   public uploadHeapDump(file: File): Promise<void> {

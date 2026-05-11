@@ -114,12 +114,16 @@ class HeapViewTest {
         void listsAllClassesInPrimaryKeyOrder(@TempDir Path tmp) throws IOException, SQLException {
             Path indexDb = buildIndex(tmp);
             try (HeapView view = HeapView.open(indexDb)) {
-                List<JavaClassRow> all = view.classes();
-                assertEquals(3, all.size());
-                assertEquals(CLASS_FOO, all.get(0).classId());
-                assertEquals("com.example.Foo", all.get(0).name());
-                assertEquals(CLASS_BAR, all.get(1).classId());
-                assertEquals(CLASS_FOO_ARRAY, all.get(2).classId());
+                // Filter out the eight synthetic primitive-array class rows that
+                // HprofIndex seeds (their class_ids are deeply negative).
+                List<JavaClassRow> realClasses = view.classes().stream()
+                        .filter(c -> c.classId() >= 0)
+                        .toList();
+                assertEquals(3, realClasses.size());
+                assertEquals(CLASS_FOO, realClasses.get(0).classId());
+                assertEquals("com.example.Foo", realClasses.get(0).name());
+                assertEquals(CLASS_BAR, realClasses.get(1).classId());
+                assertEquals(CLASS_FOO_ARRAY, realClasses.get(2).classId());
             }
         }
 
@@ -270,12 +274,21 @@ class HeapViewTest {
         }
 
         @Test
-        void primitiveArrayInstancesAppearWithNullClassName(@TempDir Path tmp) throws IOException, SQLException {
+        void primitiveArrayInstancesJoinSyntheticClassRow(@TempDir Path tmp) throws IOException, SQLException {
+            // HprofIndex seeds synthetic class rows for the eight primitive-array
+            // types so PRIMITIVE_ARRAY_DUMP instances surface in the histogram with
+            // a proper "int[]"/"byte[]"/... class name. SyntheticHprof emits a
+            // single int[] primitive array, so the histogram should carry an
+            // "int[]" row with a non-null class_id (the synthetic id is negative).
             Path indexDb = buildIndex(tmp);
             try (HeapView view = HeapView.open(indexDb)) {
                 List<HistogramRow> hist = view.classHistogram();
-                boolean hasPrimRow = hist.stream().anyMatch(r -> r.classId() == null && r.className() == null);
-                assertTrue(hasPrimRow, "primitive array bucket should appear with NULL class_id and NULL class_name");
+                boolean hasIntArrayRow = hist.stream().anyMatch(r ->
+                        r.classId() != null
+                                && r.classId() < 0
+                                && "int[]".equals(r.className()));
+                assertTrue(hasIntArrayRow,
+                        "primitive array bucket should appear as int[] with a synthetic (negative) class id");
             }
         }
     }
@@ -290,7 +303,7 @@ class HeapViewTest {
                  Statement stmt = view.connection().createStatement();
                  ResultSet rs = stmt.executeQuery(
                          "SELECT name FROM class WHERE classloader_id = " + CLASSLOADER
-                                 + " AND name NOT LIKE '[%' ORDER BY name")) {
+                                 + " AND is_array = FALSE ORDER BY name")) {
                 assertTrue(rs.next());
                 assertEquals("com.example.Bar", rs.getString(1));
                 assertTrue(rs.next());

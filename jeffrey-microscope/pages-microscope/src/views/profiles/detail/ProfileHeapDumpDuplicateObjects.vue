@@ -19,16 +19,31 @@
 
   <ErrorState v-else-if="error" :message="error" />
 
-  <HeapDumpNotInitialized
-    v-else-if="!report"
-    icon="copy"
-    message="The duplicate objects analysis is not available for this heap dump. Re-initialize the heap dump from the Heap Dump Overview to populate it."
-  />
+  <!-- Legacy cache: cache built before this stage was part of init.
+       Surface a hint to re-initialize from Settings; no manual trigger here. -->
+  <div v-else-if="!report">
+    <PageHeader
+      title="Duplicated Objects"
+      description="Find duplicate object instances wasting memory"
+      icon="bi-copy"
+    />
+    <div class="alert alert-warning d-flex align-items-center">
+      <i class="bi bi-exclamation-triangle me-3 fs-4"></i>
+      <div class="flex-grow-1">
+        <h6 class="mb-1">Duplicated Objects Analysis Not Available</h6>
+        <p class="mb-0 small">
+          This heap dump was initialized before Duplicated Objects became part of
+          the pipeline. Clear the heap-dump cache from Settings and re-initialize
+          to populate this view.
+        </p>
+      </div>
+    </div>
+  </div>
 
   <!-- Analysis Results -->
   <div v-else-if="report">
     <PageHeader
-      title="Duplicate Objects"
+      title="Duplicated Objects"
       description="Find duplicate object instances wasting memory"
       icon="bi-copy"
     />
@@ -39,7 +54,7 @@
     <!-- No duplicates found -->
     <div v-if="report.duplicates.length === 0" class="text-center text-muted py-5">
       <i class="bi bi-shield-check fs-1 mb-3 d-block text-success"></i>
-      <h6>No Duplicate Objects Detected</h6>
+      <h6>No Duplicated Objects Detected</h6>
       <p class="small">The analysis did not find any significant duplicate objects in the heap.</p>
     </div>
 

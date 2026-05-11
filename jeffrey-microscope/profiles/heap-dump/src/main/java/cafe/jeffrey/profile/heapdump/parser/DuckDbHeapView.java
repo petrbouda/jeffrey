@@ -50,7 +50,7 @@ final class DuckDbHeapView implements HeapView {
     private static final Logger LOG = LoggerFactory.getLogger(DuckDbHeapView.class);
 
     private static final String CLASS_COLUMNS =
-            "class_id, class_serial, name, super_class_id, classloader_id, signers_id, "
+            "class_id, class_serial, name, is_array, super_class_id, classloader_id, signers_id, "
                     + "protection_domain_id, instance_size, static_fields_size, file_offset";
 
     private static final String INSTANCE_COLUMNS =
@@ -93,7 +93,7 @@ final class DuckDbHeapView implements HeapView {
              ResultSet rs = stmt.executeQuery(
                      "SELECT hprof_path, hprof_size_bytes, hprof_mtime_ms, id_size, hprof_version, "
                              + "timestamp_ms, bytes_parsed, record_count, warning_count, truncated, "
-                             + "parser_version, parsed_at_ms FROM dump_metadata")) {
+                             + "parser_version, parsed_at_ms, compressed_oops FROM dump_metadata")) {
             if (!rs.next()) {
                 throw new SQLException("dump_metadata table is empty: path=" + path);
             }
@@ -109,7 +109,8 @@ final class DuckDbHeapView implements HeapView {
                     rs.getLong(9),
                     rs.getBoolean(10),
                     rs.getString(11),
-                    rs.getLong(12));
+                    rs.getLong(12),
+                    rs.getBoolean(13));
         }
     }
 
@@ -162,13 +163,14 @@ final class DuckDbHeapView implements HeapView {
                 rs.getLong(1),
                 rs.getInt(2),
                 rs.getString(3),
-                nullableLong(rs, 4),
+                rs.getBoolean(4),
                 nullableLong(rs, 5),
                 nullableLong(rs, 6),
                 nullableLong(rs, 7),
-                rs.getInt(8),
+                nullableLong(rs, 8),
                 rs.getInt(9),
-                rs.getLong(10));
+                rs.getInt(10),
+                rs.getLong(11));
     }
 
     // ---- Instances -------------------------------------------------------
@@ -349,6 +351,16 @@ final class DuckDbHeapView implements HeapView {
     }
 
     @Override
+    public int readInt(long fileOffset) {
+        if (hprof == null) {
+            throw new IllegalStateException(
+                    "HeapView opened without a .hprof file; readInt is unavailable. "
+                            + "Use HeapView.open(indexDb, hprof).");
+        }
+        return hprof.readInt(fileOffset);
+    }
+
+    @Override
     public List<InstanceFieldValue> readInstanceFields(long instanceId) throws SQLException {
         if (hprof == null) {
             throw new IllegalStateException(
@@ -415,6 +427,19 @@ final class DuckDbHeapView implements HeapView {
         if (inst == null) {
             return new byte[0];
         }
+        return readInstanceContentBytes(inst);
+    }
+
+    @Override
+    public byte[] readInstanceContentBytes(InstanceRow inst) {
+        if (hprof == null) {
+            throw new IllegalStateException(
+                    "HeapView opened without a .hprof file; instance content reads are unavailable. "
+                            + "Use HeapView.open(indexDb, hprof).");
+        }
+        if (inst == null) {
+            return new byte[0];
+        }
         int idSize = hprof.header().idSize();
         return switch (inst.kind()) {
             case INSTANCE -> {
@@ -432,8 +457,34 @@ final class DuckDbHeapView implements HeapView {
                         ? new byte[0]
                         : hprof.readBytes(elementsOffset, (int) byteLen);
             }
-            case PRIMITIVE_ARRAY -> readPrimitiveArrayBytes(instanceId);
+            case PRIMITIVE_ARRAY -> readPrimitiveArrayBytesFor(inst, idSize);
         };
+    }
+
+    private byte[] readPrimitiveArrayBytesFor(InstanceRow inst, int idSize) {
+        if (inst.kind() != InstanceRow.Kind.PRIMITIVE_ARRAY
+                || inst.arrayLength() == null
+                || inst.primitiveType() == null) {
+            return new byte[0];
+        }
+        // PRIMITIVE_ARRAY_DUMP body layout: id + u4 + u4 + u1 + payload.
+        long payloadOffset = inst.fileOffset() + idSize + 9L;
+        int elementSize = HprofTypeSize.sizeOf(inst.primitiveType(), idSize);
+        if (elementSize < 0) {
+            return new byte[0];
+        }
+        long byteLengthLong = (long) inst.arrayLength() * elementSize;
+        if (byteLengthLong > Integer.MAX_VALUE) {
+            byteLengthLong = Integer.MAX_VALUE; // defensive cap
+        }
+        return hprof.readBytes(payloadOffset, (int) byteLengthLong);
+    }
+
+    @Override
+    public HeapView openReadOnlyCopy() throws SQLException, IOException {
+        // Mints a fresh DuckDB connection over the same index DB; shares the
+        // mmap (Arena.ofShared, lock-free for concurrent reads).
+        return open(path, hprof);
     }
 
     private int readInstanceFieldsLength(InstanceRow inst, int idSize) {

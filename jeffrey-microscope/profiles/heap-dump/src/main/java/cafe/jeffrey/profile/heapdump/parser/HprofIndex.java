@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.Clock;
@@ -67,9 +68,92 @@ public final class HprofIndex {
     private static final byte RECORD_KIND_OBJECT_ARRAY = 1;
     private static final byte RECORD_KIND_PRIMITIVE_ARRAY = 2;
 
-    /** Java object header overhead used to approximate JVM-side shallow size. */
-    private static final int OBJECT_HEADER_BYTES = 16;
-    private static final int ARRAY_HEADER_BYTES = 16;
+    /**
+     * Heap below this size on a 64-bit dump is assumed to use compressed oops.
+     * The JVM disables compressed oops once {@code -Xmx} exceeds 32 GiB (the
+     * compressed-pointer encoding tops out there), so total .hprof size is a
+     * reasonable proxy when no JFR-side hint is available.
+     */
+    private static final long COMPRESSED_OOPS_HEAP_LIMIT = 32L * 1024 * 1024 * 1024;
+
+    /**
+     * Per-instance memory layout the parser assumes when computing shallow size.
+     *
+     * <ul>
+     *   <li>{@code objectHeader} / {@code arrayHeader} — bytes occupied by the
+     *       JVM-side header, before any payload.</li>
+     *   <li>{@code idSize} — HPROF on-disk pointer width, always 4 (32-bit) or
+     *       8 (64-bit). Drives how OBJECT fields and OBJECT-array elements are
+     *       encoded in the .hprof file.</li>
+     *   <li>{@code oopSize} — pointer width on the live JVM heap. Equals
+     *       {@code idSize} on 32-bit and on 64-bit without compressed oops;
+     *       4 bytes when compressed oops are enabled. References take this
+     *       many bytes per slot regardless of the on-disk width.</li>
+     *   <li>{@code objectAlignment} — every allocation is rounded up to this
+     *       boundary (HotSpot {@code MinObjAlignment}, 8 by default).</li>
+     * </ul>
+     *
+     * Three concrete layouts:
+     * <ul>
+     *   <li>32-bit JVM (idSize == 4): header 8/12, oopSize 4</li>
+     *   <li>64-bit compressed oops: header 16/16, oopSize 4</li>
+     *   <li>64-bit uncompressed oops: header 16/24, oopSize 8</li>
+     * </ul>
+     */
+    private record InstanceLayout(
+            int objectHeader,
+            int arrayHeader,
+            int idSize,
+            int oopSize,
+            int objectAlignment) {
+
+        static InstanceLayout from(int idSize, boolean compressedOops) {
+            if (idSize == 4) {
+                return new InstanceLayout(8, 12, 4, 4, 8);
+            }
+            return compressedOops
+                    ? new InstanceLayout(16, 16, 8, 4, 8)
+                    : new InstanceLayout(16, 24, 8, 8, 8);
+        }
+
+        /** OOP encoding delta: bytes over-counted per reference when the on-disk
+         *  pointer is wider than the on-heap one (only non-zero with compressed oops). */
+        int oopOverheadDelta() {
+            return idSize - oopSize;
+        }
+
+        long alignUp(long size) {
+            int a = objectAlignment;
+            return (size + a - 1) / a * a;
+        }
+    }
+
+    /**
+     * HPROF doesn't emit CLASS_DUMP records for primitive-array types — only the
+     * BasicType byte on each PRIMITIVE_ARRAY_DUMP. We synthesize one class row
+     * per primitive type so primitive arrays show up in the histogram and in
+     * every other class-keyed view. Synthetic ids are deeply negative so they
+     * cannot collide with real HPROF object ids (which are non-negative).
+     */
+    private static final long PRIM_ARRAY_CLASS_ID_BASE = -1_000_000_000L;
+
+    private static long primArrayClassId(int elementType) {
+        return PRIM_ARRAY_CLASS_ID_BASE - elementType;
+    }
+
+    private static String primArrayName(int elementType) {
+        return switch (elementType) {
+            case 4 -> "boolean[]";
+            case 5 -> "char[]";
+            case 6 -> "float[]";
+            case 7 -> "double[]";
+            case 8 -> "byte[]";
+            case 9 -> "short[]";
+            case 10 -> "int[]";
+            case 11 -> "long[]";
+            default -> null;
+        };
+    }
 
     /** Result of an index-build run. Counts reflect rows actually written. */
     public record IndexResult(
@@ -131,14 +215,25 @@ public final class HprofIndex {
             throws IOException, SQLException {
         DuckDBConnection conn = db.connection();
         int idSize = file.header().idSize();
+        // Compressed-oops inference: 64-bit + heap below the JVM's 32 GiB threshold.
+        // Total .hprof size is a coarse but reliable proxy for max heap.
+        boolean compressedOops = (idSize == 8) && (file.size() < COMPRESSED_OOPS_HEAP_LIMIT);
+        InstanceLayout layout = InstanceLayout.from(idSize, compressedOops);
 
         TopLevelData top = walkTopLevel(file, conn);
-        Counters counters = walkRegions(file, conn, top, idSize);
+        writeStackTraces(conn, top);
+        Counters counters = walkRegions(file, conn, top, idSize, layout);
         long refCount = walkRegionsForRefs(file, conn, counters.classDumpsById, idSize, counters);
         long warningCount = top.warnings.size() + counters.warnings.size();
         boolean truncated = anyError(top.warnings) || anyError(counters.warnings);
 
-        writeDumpMetadata(conn, file, clock, top, counters, warningCount, truncated);
+        // Instance dumps are appended with the on-disk field-block size (idSize per
+        // OOP, no alignment). Correct them now that the full class hierarchy is
+        // known: subtract the compressed-oops over-count and round each instance
+        // up to the JVM allocation boundary.
+        applyInstanceShallowCorrection(conn, counters.classDumpsById, layout);
+
+        writeDumpMetadata(conn, file, clock, top, counters, warningCount, truncated, compressedOops);
         writeParseWarnings(conn, top.warnings);
         writeParseWarnings(conn, counters.warnings);
 
@@ -168,6 +263,11 @@ public final class HprofIndex {
         final Map<Long, byte[]> stringPool = new HashMap<>();
         final Map<Long, HprofRecord.LoadClass> loadClassByClassId = new HashMap<>();
         final List<HprofRecord.HeapDumpRegion> regions = new ArrayList<>();
+        // STACK_FRAME / STACK_TRACE records buffered here so string-id resolution
+        // happens after the entire top-level walk has populated stringPool — the
+        // HPROF spec doesn't strictly order STRING before STACK_FRAME records.
+        final List<HprofRecord.StackFrame> stackFrames = new ArrayList<>();
+        final List<HprofRecord.StackTrace> stackTraces = new ArrayList<>();
         final List<ParseWarning> warnings = new ArrayList<>();
         long stringCount;
         long recordCount;
@@ -195,6 +295,8 @@ public final class HprofIndex {
                         }
                         case HprofRecord.LoadClass lc -> data.loadClassByClassId.put(lc.classId(), lc);
                         case HprofRecord.HeapDumpRegion hdr -> data.regions.add(hdr);
+                        case HprofRecord.StackFrame sf -> data.stackFrames.add(sf);
+                        case HprofRecord.StackTrace st -> data.stackTraces.add(st);
                         case HprofRecord.OpaqueTop ignored -> {
                         }
                     }
@@ -223,7 +325,7 @@ public final class HprofIndex {
     }
 
     private static Counters walkRegions(
-            HprofMappedFile file, DuckDBConnection conn, TopLevelData top, int idSize) throws SQLException {
+            HprofMappedFile file, DuckDBConnection conn, TopLevelData top, int idSize, InstanceLayout layout) throws SQLException {
         Counters c = new Counters();
         Set<Long> writtenClassIds = new HashSet<>();
 
@@ -231,6 +333,10 @@ public final class HprofIndex {
              DuckDBAppender fieldApp = conn.createAppender("class_instance_field");
              DuckDBAppender instApp = conn.createAppender("instance");
              DuckDBAppender rootApp = conn.createAppender("gc_root")) {
+
+            // Seed synthetic primitive-array class rows so PRIMITIVE_ARRAY_DUMP
+            // instances can join to a real class name.
+            c.classCount += appendSyntheticPrimitiveArrayClasses(classApp);
 
             for (HprofRecord.HeapDumpRegion region : top.regions) {
                 HprofSubRecordReader.read(file, region.fileOffset(), region.byteLength(),
@@ -256,11 +362,11 @@ public final class HprofIndex {
                                         }
                                     }
                                     case HprofRecord.InstanceDump id ->
-                                            appendInstanceFromInstanceDump(instApp, id, idSize, c);
+                                            appendInstanceFromInstanceDump(instApp, id, layout, c);
                                     case HprofRecord.ObjectArrayDump oa ->
-                                            appendInstanceFromObjectArray(instApp, oa, idSize, c);
+                                            appendInstanceFromObjectArray(instApp, oa, idSize, layout, c);
                                     case HprofRecord.PrimitiveArrayDump pa ->
-                                            appendInstanceFromPrimitiveArray(instApp, pa, idSize, c);
+                                            appendInstanceFromPrimitiveArray(instApp, pa, idSize, layout, c);
                                     case HprofRecord.GcRoot root -> {
                                         appendGcRoot(rootApp, root);
                                         c.gcRootCount++;
@@ -387,23 +493,29 @@ public final class HprofIndex {
     private static void appendClass(
             DuckDBAppender app, HprofRecord.ClassDump cd, TopLevelData top) throws SQLException {
         HprofRecord.LoadClass lc = top.loadClassByClassId.get(cd.classId());
-        String name;
+        String rawName;
         int classSerial;
         if (lc == null) {
-            name = "<unresolved-class:0x" + Long.toHexString(cd.classId()) + ">";
+            rawName = "<unresolved-class:0x" + Long.toHexString(cd.classId()) + ">";
             classSerial = 0;
         } else {
             byte[] nameBytes = top.stringPool.get(lc.nameStringId());
-            name = nameBytes != null
+            rawName = nameBytes != null
                     ? new String(nameBytes, StandardCharsets.UTF_8)
                     : "<unresolved-name:0x" + Long.toHexString(lc.nameStringId()) + ">";
             classSerial = lc.classSerial();
         }
 
+        // Detect array-class by the raw HPROF prefix '[' before normalisation
+        // (the user-facing form ends in "[]" so we'd lose the cheap signal otherwise).
+        boolean isArray = !rawName.isEmpty() && rawName.charAt(0) == '[';
+        String name = ClassNameFormatter.userFacing(rawName);
+
         app.beginRow();
         app.append(cd.classId());
         app.append(classSerial);
         app.append(name);
+        app.append(isArray);
         appendNullableId(app, cd.superClassId());
         appendNullableId(app, cd.classloaderId());
         appendNullableId(app, cd.signersId());
@@ -413,6 +525,37 @@ public final class HprofIndex {
         app.append(0);
         app.append(cd.fileOffset());
         app.endRow();
+    }
+
+    /**
+     * Inserts eight synthetic class rows — one per HPROF primitive basic-type —
+     * so that {@link HprofRecord.PrimitiveArrayDump} instances can be assigned
+     * a real {@code class_id} and surface in every class-keyed view (histogram,
+     * dominator tree, leak suspects, …) with their proper {@code byte[]} /
+     * {@code int[]} / … names. Synthetic ids live in {@link #PRIM_ARRAY_CLASS_ID_BASE}'s
+     * deeply-negative range and cannot collide with real HPROF object ids.
+     */
+    private static long appendSyntheticPrimitiveArrayClasses(DuckDBAppender app) throws SQLException {
+        long inserted = 0;
+        for (int elementType = 4; elementType <= 11; elementType++) {
+            String name = primArrayName(elementType);
+            if (name == null) continue;
+            app.beginRow();
+            app.append(primArrayClassId(elementType));
+            app.append(0); // class_serial — synthetic, no HPROF serial
+            app.append(name);
+            app.append(true); // is_array
+            app.appendNull(); // super_class_id
+            app.appendNull(); // classloader_id (bootstrap)
+            app.appendNull(); // signers_id
+            app.appendNull(); // protection_domain_id
+            app.append(0); // instance_size — variable; per-instance shallow_size is on the instance row
+            app.append(0); // static_fields_size
+            app.append(-1L); // file_offset — no HPROF backing record
+            app.endRow();
+            inserted++;
+        }
+        return inserted;
     }
 
     private static void appendInstanceFields(
@@ -434,9 +577,9 @@ public final class HprofIndex {
     }
 
     private static void appendInstanceFromInstanceDump(
-            DuckDBAppender app, HprofRecord.InstanceDump id, int idSize, Counters c) throws SQLException {
+            DuckDBAppender app, HprofRecord.InstanceDump id, InstanceLayout layout, Counters c) throws SQLException {
         // Approximate JVM-side shallow size: object header + encoded fields.
-        int shallow = OBJECT_HEADER_BYTES + id.instanceFieldsByteLength();
+        int shallow = layout.objectHeader() + id.instanceFieldsByteLength();
         app.beginRow();
         app.append(id.instanceId());
         appendNullableId(app, id.classId());
@@ -450,8 +593,12 @@ public final class HprofIndex {
     }
 
     private static void appendInstanceFromObjectArray(
-            DuckDBAppender app, HprofRecord.ObjectArrayDump oa, int idSize, Counters c) throws SQLException {
-        long shallowLong = (long) ARRAY_HEADER_BYTES + (long) oa.length() * idSize;
+            DuckDBAppender app, HprofRecord.ObjectArrayDump oa, int idSize, InstanceLayout layout, Counters c) throws SQLException {
+        // On-heap OOP width can differ from the .hprof on-disk idSize when the
+        // JVM uses compressed oops. Use oopSize so the array's shallow size
+        // reflects what the JVM actually allocated.
+        long unaligned = (long) layout.arrayHeader() + (long) oa.length() * layout.oopSize();
+        long shallowLong = layout.alignUp(unaligned);
         int shallow = (int) Math.min(shallowLong, Integer.MAX_VALUE);
         app.beginRow();
         app.append(oa.arrayId());
@@ -466,15 +613,17 @@ public final class HprofIndex {
     }
 
     private static void appendInstanceFromPrimitiveArray(
-            DuckDBAppender app, HprofRecord.PrimitiveArrayDump pa, int idSize, Counters c) throws SQLException {
+            DuckDBAppender app, HprofRecord.PrimitiveArrayDump pa, int idSize, InstanceLayout layout, Counters c) throws SQLException {
         int elementSize = HprofTypeSize.sizeOf(pa.elementType(), idSize);
         if (elementSize < 0) elementSize = 1; // defensive fallback
-        long shallowLong = (long) ARRAY_HEADER_BYTES + (long) pa.length() * elementSize;
+        long unaligned = (long) layout.arrayHeader() + (long) pa.length() * elementSize;
+        long shallowLong = layout.alignUp(unaligned);
         int shallow = (int) Math.min(shallowLong, Integer.MAX_VALUE);
         app.beginRow();
         app.append(pa.arrayId());
-        // Primitive arrays don't have a class entry in the heap; class_id stays NULL.
-        app.appendNull();
+        // HPROF has no class_id for primitive arrays — assign the synthetic class
+        // row seeded during walkRegions so the instance joins to a real class name.
+        app.append(primArrayClassId(pa.elementType()));
         app.append(pa.fileOffset());
         app.append(RECORD_KIND_PRIMITIVE_ARRAY);
         app.append(shallow);
@@ -494,11 +643,196 @@ public final class HprofIndex {
         app.endRow();
     }
 
-    // ---- Phase 3: metadata + warnings ------------------------------------
+    // ---- Phase 3: shallow-size correction --------------------------------
+
+    /**
+     * Brings instance shallow_size in line with the JVM's allocated size:
+     *
+     * <ol>
+     *   <li>Subtracts compressed-oops over-count for INSTANCE rows. The HPROF
+     *       file encodes every OBJECT field as {@code idSize} bytes (8 on a
+     *       64-bit dump), but at runtime each compressed OOP occupies
+     *       {@code oopSize} (4). For every class we count OBJECT fields along
+     *       the full super-class chain and subtract
+     *       {@code chainOopCount * (idSize - oopSize)} from each instance.</li>
+     *   <li>Rounds shallow_size up to {@link InstanceLayout#objectAlignment()}
+     *       for every row (instances and arrays alike) — the JVM aligns each
+     *       allocation to {@code MinObjAlignment}, default 8.</li>
+     * </ol>
+     *
+     * Both corrections collapse to no-ops when they're not needed:
+     * uncompressed 64-bit / 32-bit heaps have {@code oopOverheadDelta() == 0},
+     * and rows already aligned to the boundary are left untouched.
+     */
+    private static void applyInstanceShallowCorrection(
+            DuckDBConnection conn,
+            Map<Long, HprofRecord.ClassDump> classDumps,
+            InstanceLayout layout) throws SQLException {
+
+        int oopDelta = layout.oopOverheadDelta();
+        int alignment = layout.objectAlignment();
+
+        if (oopDelta > 0 && !classDumps.isEmpty()) {
+            Map<Long, Integer> chainOopByClass = computeChainOopCounts(classDumps);
+            try (Statement st = conn.createStatement()) {
+                st.execute("CREATE TEMP TABLE _class_chain_oop (class_id BIGINT, oop_count INTEGER)");
+            }
+            try (DuckDBAppender app = conn.createAppender("_class_chain_oop")) {
+                for (Map.Entry<Long, Integer> e : chainOopByClass.entrySet()) {
+                    if (e.getValue() == 0) continue; // skip zero rows to keep the table tight
+                    app.beginRow();
+                    app.append(e.getKey());
+                    app.append(e.getValue());
+                    app.endRow();
+                }
+            }
+            try (PreparedStatement st = conn.prepareStatement(
+                    "UPDATE instance SET shallow_size = shallow_size - c.oop_count * ? "
+                            + "FROM _class_chain_oop c "
+                            + "WHERE instance.class_id = c.class_id "
+                            + "  AND instance.record_kind = " + RECORD_KIND_INSTANCE)) {
+                st.setInt(1, oopDelta);
+                st.executeUpdate();
+            }
+            try (Statement st = conn.createStatement()) {
+                st.execute("DROP TABLE _class_chain_oop");
+            }
+        }
+
+        // Round every row up to objectAlignment. Arrays are already aligned by
+        // appendInstance*, but instances were written without alignment and may
+        // have just become unaligned again after the OOP-delta subtraction.
+        // Use modular arithmetic (no division) so the math stays in INTEGER
+        // domain — DuckDB's `/` promotes to floating point on bound parameters.
+        try (PreparedStatement st = conn.prepareStatement(
+                "UPDATE instance SET shallow_size = shallow_size + ((? - shallow_size % ?) % ?) "
+                        + "WHERE shallow_size % ? <> 0")) {
+            st.setInt(1, alignment);
+            st.setInt(2, alignment);
+            st.setInt(3, alignment);
+            st.setInt(4, alignment);
+            st.executeUpdate();
+        }
+    }
+
+    private static Map<Long, Integer> computeChainOopCounts(
+            Map<Long, HprofRecord.ClassDump> classDumps) {
+        Map<Long, Integer> memo = new HashMap<>(classDumps.size());
+        for (Long classId : classDumps.keySet()) {
+            chainOopCount(classId, classDumps, memo);
+        }
+        return memo;
+    }
+
+    private static int chainOopCount(
+            long classId,
+            Map<Long, HprofRecord.ClassDump> classDumps,
+            Map<Long, Integer> memo) {
+        Integer cached = memo.get(classId);
+        if (cached != null) {
+            return cached;
+        }
+        HprofRecord.ClassDump cd = classDumps.get(classId);
+        if (cd == null) {
+            memo.put(classId, 0);
+            return 0;
+        }
+        int ownCount = 0;
+        for (int type : cd.instanceFieldTypes()) {
+            if (type == HprofTag.BasicType.OBJECT) {
+                ownCount++;
+            }
+        }
+        long superId = cd.superClassId();
+        int total = superId == 0L
+                ? ownCount
+                : ownCount + chainOopCount(superId, classDumps, memo);
+        memo.put(classId, total);
+        return total;
+    }
+
+    // ---- Phase 4: stack frames + traces ---------------------------------
+
+    /**
+     * Persists buffered STACK_FRAME records into {@code stack_frame} and
+     * STACK_TRACE records into {@code stack_trace_frame}. Runs immediately
+     * after {@link #walkTopLevel} so {@code top.stringPool} is complete and
+     * method / signature / source-file ids can be resolved inline. Frames
+     * whose method-name id is missing from the pool get an "<unresolved-...>"
+     * placeholder; source-file id 0 maps to NULL.
+     */
+    private static void writeStackTraces(DuckDBConnection conn, TopLevelData top) throws SQLException {
+        if (!top.stackFrames.isEmpty()) {
+            Map<Integer, String> classNameBySerial = buildClassNameBySerial(top);
+            try (DuckDBAppender app = conn.createAppender("stack_frame")) {
+                for (HprofRecord.StackFrame sf : top.stackFrames) {
+                    app.beginRow();
+                    app.append(sf.stackFrameId());
+                    String className = classNameBySerial.getOrDefault(sf.classSerial(),
+                            "<unresolved-class-serial:" + sf.classSerial() + ">");
+                    app.append(className);
+                    app.append(resolveString(top, sf.methodNameStringId(), "<unresolved-method>"));
+                    app.append(resolveString(top, sf.methodSignatureStringId(), ""));
+                    String sourceFile = sf.sourceFileNameStringId() == 0L
+                            ? null
+                            : resolveString(top, sf.sourceFileNameStringId(), null);
+                    if (sourceFile == null) {
+                        app.appendNull();
+                    } else {
+                        app.append(sourceFile);
+                    }
+                    app.append(sf.lineNumber());
+                    app.endRow();
+                }
+            }
+        }
+        if (!top.stackTraces.isEmpty()) {
+            try (DuckDBAppender app = conn.createAppender("stack_trace_frame")) {
+                for (HprofRecord.StackTrace st : top.stackTraces) {
+                    long[] frameIds = st.frameIds();
+                    for (int idx = 0; idx < frameIds.length; idx++) {
+                        app.beginRow();
+                        app.append(st.traceSerial());
+                        app.append(st.threadSerial());
+                        app.append(idx);
+                        app.append(frameIds[idx]);
+                        app.endRow();
+                    }
+                }
+            }
+        }
+    }
+
+    private static String resolveString(TopLevelData top, long stringId, String fallback) {
+        byte[] bytes = top.stringPool.get(stringId);
+        if (bytes != null) {
+            return new String(bytes, StandardCharsets.UTF_8);
+        }
+        return fallback;
+    }
+
+    /**
+     * Maps each {@code classSerial} (from LOAD_CLASS) to the user-facing class
+     * name. STACK_FRAME records reference classes by serial, and we want a
+     * resolved name even when the matching CLASS_DUMP is absent — common for
+     * framework classes that appear on stacks but are never instantiated.
+     */
+    private static Map<Integer, String> buildClassNameBySerial(TopLevelData top) {
+        Map<Integer, String> out = new HashMap<>(top.loadClassByClassId.size());
+        for (HprofRecord.LoadClass lc : top.loadClassByClassId.values()) {
+            String raw = resolveString(top, lc.nameStringId(),
+                    "<unresolved-class-name:0x" + Long.toHexString(lc.nameStringId()) + ">");
+            out.put(lc.classSerial(), ClassNameFormatter.userFacing(raw));
+        }
+        return out;
+    }
+
+    // ---- Phase 5: metadata + warnings ------------------------------------
 
     private static void writeDumpMetadata(
             DuckDBConnection conn, HprofMappedFile file, Clock clock,
-            TopLevelData top, Counters counters, long warningCount, boolean truncated) throws SQLException, IOException {
+            TopLevelData top, Counters counters, long warningCount, boolean truncated,
+            boolean compressedOops) throws SQLException, IOException {
         long mtimeMs = Files.getLastModifiedTime(file.path()).toMillis();
         try (DuckDBAppender app = conn.createAppender("dump_metadata")) {
             app.beginRow();
@@ -514,6 +848,7 @@ public final class HprofIndex {
             app.append(truncated);
             app.append(PARSER_VERSION);
             app.append(clock.instant().toEpochMilli());
+            app.append(compressedOops);
             app.endRow();
         }
     }

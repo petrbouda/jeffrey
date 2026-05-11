@@ -29,6 +29,7 @@ public record JavaClassRow(
         long classId,
         int classSerial,
         String name,
+        boolean isArray,
         Long superClassId,
         Long classloaderId,
         Long signersId,

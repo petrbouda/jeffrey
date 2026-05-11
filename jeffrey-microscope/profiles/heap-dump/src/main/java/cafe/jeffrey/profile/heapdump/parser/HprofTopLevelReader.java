@@ -95,6 +95,8 @@ public final class HprofTopLevelReader {
         switch (tag) {
             case HprofTag.Top.STRING -> readString(file, bodyOffset, bodyLength, idSize, listener);
             case HprofTag.Top.LOAD_CLASS -> readLoadClass(file, bodyOffset, bodyLength, idSize, listener);
+            case HprofTag.Top.STACK_FRAME -> readStackFrame(file, bodyOffset, bodyLength, idSize, listener);
+            case HprofTag.Top.STACK_TRACE -> readStackTrace(file, bodyOffset, bodyLength, idSize, listener);
             case HprofTag.Top.HEAP_DUMP -> listener.onRecord(
                     new HprofRecord.HeapDumpRegion(bodyOffset, bodyLength, false));
             case HprofTag.Top.HEAP_DUMP_SEGMENT -> listener.onRecord(
@@ -138,5 +140,72 @@ public final class HprofTopLevelReader {
         long nameStringId = file.readId(bodyOffset + 4 + idSize + 4);
         listener.onRecord(new HprofRecord.LoadClass(
                 classSerial, classId, traceSerial, nameStringId, bodyOffset));
+    }
+
+    /**
+     * STACK_FRAME body: 4 × id + u4 classSerial + u4 lineNumber.
+     */
+    private static void readStackFrame(
+            HprofMappedFile file, long bodyOffset, long bodyLength, int idSize, Listener listener) {
+        long expected = 4L * idSize + 4L + 4L;
+        if (bodyLength < expected) {
+            listener.onWarning(new ParseWarning(
+                    bodyOffset, HprofTag.Top.STACK_FRAME, ParseWarning.Severity.WARN,
+                    "STACK_FRAME body too short: bodyLength=" + bodyLength + " expected=" + expected));
+            return;
+        }
+        long cursor = bodyOffset;
+        long stackFrameId = file.readId(cursor);
+        cursor += idSize;
+        long methodNameStringId = file.readId(cursor);
+        cursor += idSize;
+        long methodSignatureStringId = file.readId(cursor);
+        cursor += idSize;
+        long sourceFileNameStringId = file.readId(cursor);
+        cursor += idSize;
+        int classSerial = file.readInt(cursor);
+        cursor += 4;
+        int lineNumber = file.readInt(cursor);
+        listener.onRecord(new HprofRecord.StackFrame(
+                stackFrameId, methodNameStringId, methodSignatureStringId,
+                sourceFileNameStringId, classSerial, lineNumber, bodyOffset));
+    }
+
+    /**
+     * STACK_TRACE body: u4 traceSerial + u4 threadSerial + u4 numberOfFrames + numberOfFrames × id.
+     */
+    private static void readStackTrace(
+            HprofMappedFile file, long bodyOffset, long bodyLength, int idSize, Listener listener) {
+        long headerSize = 4L + 4L + 4L;
+        if (bodyLength < headerSize) {
+            listener.onWarning(new ParseWarning(
+                    bodyOffset, HprofTag.Top.STACK_TRACE, ParseWarning.Severity.WARN,
+                    "STACK_TRACE body too short: bodyLength=" + bodyLength + " expected>=" + headerSize));
+            return;
+        }
+        int traceSerial = file.readInt(bodyOffset);
+        int threadSerial = file.readInt(bodyOffset + 4);
+        int numberOfFrames = file.readInt(bodyOffset + 8);
+        if (numberOfFrames < 0) {
+            listener.onWarning(new ParseWarning(
+                    bodyOffset, HprofTag.Top.STACK_TRACE, ParseWarning.Severity.WARN,
+                    "STACK_TRACE negative frame count, skipping: numberOfFrames=" + numberOfFrames));
+            return;
+        }
+        long expected = headerSize + (long) numberOfFrames * idSize;
+        if (bodyLength < expected) {
+            listener.onWarning(new ParseWarning(
+                    bodyOffset, HprofTag.Top.STACK_TRACE, ParseWarning.Severity.WARN,
+                    "STACK_TRACE body too short for frame ids: bodyLength=" + bodyLength
+                            + " expected=" + expected));
+            return;
+        }
+        long[] frameIds = new long[numberOfFrames];
+        long cursor = bodyOffset + headerSize;
+        for (int i = 0; i < numberOfFrames; i++) {
+            frameIds[i] = file.readId(cursor);
+            cursor += idSize;
+        }
+        listener.onRecord(new HprofRecord.StackTrace(traceSerial, threadSerial, frameIds, bodyOffset));
     }
 }

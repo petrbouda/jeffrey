@@ -38,6 +38,7 @@ import org.duckdb.DuckDBConnection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import cafe.jeffrey.shared.common.measure.Elapsed;
 import cafe.jeffrey.shared.common.measure.Measuring;
 
 /**
@@ -101,7 +102,7 @@ public final class DominatorTreeBuilder {
                 s.execute("DELETE FROM retained_size");
             }
 
-            var elapsed = Measuring.s(() -> {
+            Elapsed<BuildResult> elapsed = Measuring.s(() -> {
                 try {
                     return doBuild(conn);
                 } catch (SQLException e) {

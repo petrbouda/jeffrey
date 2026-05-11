@@ -18,14 +18,12 @@
 module cafe.jeffrey.microscope.profile.heapdump {
     requires transitive cafe.jeffrey.shared.common;
     requires cafe.jeffrey.microscope.profile.common;
-    requires org.openjdk.nashorn;
-    requires transitive org.netbeans.lib.profiler.RELEASE250;
-    requires org.netbeans.modules.profiler.oql.RELEASE250;
+    requires java.sql;
+    requires duckdb.jdbc;
     requires tools.jackson.databind;
     requires org.slf4j;
 
-    exports cafe.jeffrey.profile.heapdump;
-    exports cafe.jeffrey.profile.heapdump.analyzer;
+    exports cafe.jeffrey.profile.heapdump.analyzer.heapview;
     exports cafe.jeffrey.profile.heapdump.model;
-    exports cafe.jeffrey.profile.heapdump.sanitizer;
+    exports cafe.jeffrey.profile.heapdump.parser;
 }

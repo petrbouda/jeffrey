@@ -16,15 +16,19 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.profile.heapdump.sanitizer;
+package cafe.jeffrey.profile.heapdump.model;
 
 /**
- * Represents the parsed HPROF file header.
+ * A single stage's outcome inside an {@link InitPipelineResult} snapshot.
  *
- * @param version    the version string (e.g. "JAVA PROFILE 1.0.2")
- * @param idSize     the size of object IDs in bytes (4 or 8)
- * @param timestamp  the heap dump timestamp in milliseconds
- * @param headerSize the total size of the header in bytes (version + null + 4 + 8)
+ * @param id          stage identifier shared with the frontend's pipeline definition
+ *                    (e.g. "load", "parse", "classloaders")
+ * @param status      terminal status; one of {@code "completed"} or {@code "skipped"}
+ * @param durationMs  elapsed milliseconds the stage took, or {@code null} when skipped
  */
-public record HprofHeader(String version, int idSize, long timestamp, int headerSize) {
+public record InitStageResult(
+        String id,
+        String status,
+        Long durationMs
+) {
 }

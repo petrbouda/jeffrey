@@ -29,7 +29,7 @@ import java.nio.file.StandardCopyOption;
 import java.util.Optional;
 
 /**
- * Processor that copies heap dump files from recording storage to the profile's heap-dump-analysis folder.
+ * Processor that copies heap dump files from recording storage to the profile's heap-dump folder.
  */
 public class HeapDumpAdditionalFileProcessor implements AdditionalFileProcessor {
 
