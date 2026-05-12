@@ -125,7 +125,7 @@ public class AdditionalFilesManagerImpl implements AdditionalFilesManager {
             return;
         }
 
-        // Look for heap dump in profile's heap-dump-analysis folder
+        // Look for heap dump in profile's heap-dump folder
         if (Files.exists(heapDumpAnalysisPath) && Files.isDirectory(heapDumpAnalysisPath)) {
             try (var files = Files.list(heapDumpAnalysisPath)) {
                 Optional<Path> found = files

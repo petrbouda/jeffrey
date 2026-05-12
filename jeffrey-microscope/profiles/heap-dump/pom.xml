@@ -29,26 +29,7 @@
 
     <artifactId>heap-dump</artifactId>
 
-    <properties>
-        <netbeans-oql.version>RELEASE250</netbeans-oql.version>
-    </properties>
-
     <dependencies>
-        <!-- NetBeans OQL for heap dump analysis -->
-        <dependency>
-            <groupId>org.netbeans.modules</groupId>
-            <artifactId>org-netbeans-modules-profiler-oql</artifactId>
-            <version>${netbeans-oql.version}</version>
-        </dependency>
-
-        <!-- Standalone Nashorn JavaScript engine (removed from JDK 15+) -->
-        <!-- Required for OQL query execution which uses JavaScript -->
-        <dependency>
-            <groupId>org.openjdk.nashorn</groupId>
-            <artifactId>nashorn-core</artifactId>
-            <version>15.7</version>
-        </dependency>
-
         <!-- Project dependencies -->
         <dependency>
             <groupId>${project.groupId}</groupId>
@@ -57,6 +38,20 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>common-profile</artifactId>
+        </dependency>
+
+        <!-- DuckDB JDBC for the heap-dump-index sibling database (.idx.duckdb). -->
+        <dependency>
+            <groupId>org.duckdb</groupId>
+            <artifactId>duckdb_jdbc</artifactId>
+        </dependency>
+
+        <!-- lz4-java bundles XXHash64 — used as a fast non-cryptographic hash
+             for grouping byte-identical instance contents in
+             DuplicateObjectAnalyzer. -->
+        <dependency>
+            <groupId>at.yawk.lz4</groupId>
+            <artifactId>lz4-java</artifactId>
         </dependency>
 
         <!-- Logging -->

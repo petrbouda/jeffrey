@@ -28,7 +28,7 @@ import cafe.jeffrey.profile.heapdump.model.GCRootSummary;
 import cafe.jeffrey.profile.heapdump.model.HeapDumpConfig;
 import cafe.jeffrey.profile.heapdump.model.HeapSummary;
 import cafe.jeffrey.profile.heapdump.model.HeapThreadInfo;
-import cafe.jeffrey.profile.heapdump.sanitizer.SanitizeMode;
+import cafe.jeffrey.profile.heapdump.model.InitPipelineResult;
 import cafe.jeffrey.profile.heapdump.model.InstanceDetail;
 import cafe.jeffrey.profile.heapdump.model.InstanceTreeResponse;
 import cafe.jeffrey.profile.heapdump.model.BiggestCollectionsReport;
@@ -155,19 +155,11 @@ public interface HeapDumpManager {
     void deleteHeapDump();
 
     /**
-     * Sanitize a corrupted heap dump using the configured default mode.
+     * Sanitize a corrupted heap dump. On the native parser path this is a
+     * no-op — framing recovery is applied inline during indexing rather than
+     * as a separate pre-pass. Kept on the interface for API compatibility.
      */
     void sanitizeHeapDump();
-
-    /**
-     * Sanitize a corrupted heap dump using an explicit mode (overrides the
-     * configured default for this single call).
-     *
-     * @param mode {@link SanitizeMode#IN_PLACE} mutates the original file;
-     *             {@link SanitizeMode#COPY} writes a sibling {@code .sanitized}
-     *             file and leaves the original untouched
-     */
-    void sanitizeHeapDump(SanitizeMode mode);
 
     /**
      * Upload a heap dump file.
@@ -263,6 +255,27 @@ public interface HeapDumpManager {
      * @return the config, or empty if not yet resolved
      */
     Optional<HeapDumpConfig> getHeapDumpConfig();
+
+    // --- Init pipeline result ---
+
+    /**
+     * Check whether the per-profile initialization-pipeline snapshot exists.
+     */
+    boolean initPipelineResultExists();
+
+    /**
+     * Read the persisted snapshot of the last successful initialization
+     * pipeline run. The snapshot is captured client-side and posted from
+     * the frontend after {@code processHeapDump()} completes.
+     */
+    Optional<InitPipelineResult> getInitPipelineResult();
+
+    /**
+     * Persist a snapshot of the last successful initialization pipeline
+     * run. Overwrites any prior snapshot. The frontend re-reads it on
+     * subsequent visits to the Heap Dump Overview page.
+     */
+    void storeInitPipelineResult(InitPipelineResult result);
 
     // --- Path to GC Root ---
 

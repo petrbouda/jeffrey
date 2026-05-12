@@ -22,4 +22,13 @@ export default interface HeapThreadInfo {
   daemon: boolean;
   priority: number;
   retainedSize?: number;
+  /** Number of stack frames at dump time. Absent for threads with no STACK_TRACE record. */
+  frameCount?: number;
+  /** Number of locals referenced across all frames (ROOT_JAVA_FRAME entries). */
+  localsCount?: number;
+  /** Sum of shallow sizes across all frame-local references, in bytes. */
+  localsBytes?: number;
+  /** Heuristic Thread.State approximation derived from the top frame's class.method:
+   *  PARKED · WAITING · SLEEPING · NATIVE · RUNNABLE. */
+  state?: string;
 }

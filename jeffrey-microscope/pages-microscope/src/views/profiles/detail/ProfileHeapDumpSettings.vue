@@ -231,19 +231,6 @@
           <div class="init-options">
             <div class="init-options-row">
               <div class="init-option-group">
-                <label class="option-label mb-2">Pre-computation</label>
-                <label class="form-check">
-                  <input type="checkbox" class="form-check-input" v-model="includeDominatorTree" />
-                  <span class="form-check-label">
-                    Dominator Tree
-                    <small class="text-muted d-block"
-                      >Computes retained sizes upfront. Can be slow for large heaps.</small
-                    >
-                  </span>
-                </label>
-              </div>
-              <div class="init-option-delimiter"></div>
-              <div class="init-option-group">
                 <label class="option-label mb-2">Compressed Oops</label>
                 <div class="form-check">
                   <input
@@ -295,73 +282,12 @@
         </button>
       </div>
 
-      <!-- Processing Progress -->
-      <div v-if="processing" class="processing-card">
-        <div class="processing-header">
-          <div class="processing-title-row">
-            <h4>Initializing Heap Dump</h4>
-            <div class="processing-overall">
-              <span class="overall-elapsed">elapsed {{ totalElapsed }}</span>
-              <span class="overall-pill"
-                >{{ overallProgress.done }} / {{ overallProgress.total }} ·
-                {{ overallProgress.pct }}%</span
-              >
-            </div>
-          </div>
-          <p class="processing-hint">Please wait while we analyze the heap structure...</p>
-        </div>
-
-        <div class="overall-bar">
-          <div class="overall-bar-fill" :style="{ width: overallProgress.pct + '%' }"></div>
-        </div>
-
-        <div class="phase-grid">
-          <div
-            v-for="(phase, phaseIdx) in phases"
-            :key="phase.id"
-            class="phase-card"
-            :class="phaseStatus(phase)"
-          >
-            <div class="phase-icon">
-              <i v-if="phaseStatus(phase) === 'done'" class="bi bi-check-lg"></i>
-              <span v-else>{{ phaseIdx + 1 }}</span>
-            </div>
-            <div class="phase-name">{{ phase.name }}</div>
-            <div class="phase-desc">{{ phase.description }}</div>
-            <div class="phase-bar">
-              <div
-                class="phase-bar-fill"
-                :style="{ width: phaseProgress(phase) + '%' }"
-              ></div>
-            </div>
-            <ul class="phase-stages">
-              <li
-                v-for="(stageDef, sIdx) in phase.stages"
-                :key="stageDef.id"
-                :class="getStep(stageDef.id)?.status"
-              >
-                <span class="tick">
-                  <i
-                    v-if="getStep(stageDef.id)?.status === 'completed'"
-                    class="bi bi-check-lg"
-                  ></i>
-                  <span
-                    v-else-if="getStep(stageDef.id)?.status === 'in_progress'"
-                    class="phase-spinner"
-                  ></span>
-                  <i
-                    v-else-if="getStep(stageDef.id)?.status === 'skipped'"
-                    class="bi bi-dash"
-                  ></i>
-                  <span v-else>{{ sIdx + 1 }}</span>
-                </span>
-                <span class="stage-label">{{ stageDef.label }}</span>
-                <span class="stage-meta">{{ stageMeta(getStep(stageDef.id)) }}</span>
-              </li>
-            </ul>
-          </div>
-        </div>
-      </div>
+      <!-- Live processing progress -->
+      <HeapDumpInitTimeline
+        v-if="processing"
+        :steps="processingSteps"
+        :tick-now="tickNow"
+      />
 
       <!-- Success State with Management Actions -->
       <div v-if="cacheReady && lastSummary" class="ready-section">
@@ -393,6 +319,17 @@
           </div>
         </button>
       </div>
+
+      <!-- Persisted Initialization Result -->
+      <HeapDumpInitTimeline
+        v-if="!processing && lastInitResult"
+        class="last-init-result"
+        :steps="lastInitResultSteps"
+        :tick-now="0"
+        title="Last Initialization Result"
+        :subtitle="lastInitResultSubtitle"
+        :show-progress-bar="false"
+      />
     </div>
   </div>
 </template>
@@ -407,8 +344,12 @@ import LoadingState from '@/components/LoadingState.vue';
 import ErrorState from '@/components/ErrorState.vue';
 import ConfirmationDialog from '@/components/ConfirmationDialog.vue';
 import HeapDumpClient from '@/services/api/HeapDumpClient';
+import HeapDumpInitTimeline, {
+  type TimelineStep
+} from '@/components/HeapDumpInitTimeline.vue';
 import HeapSummary from '@/services/api/model/HeapSummary';
 import HeapDumpConfig from '@/services/api/model/HeapDumpConfig';
+import type InitPipelineResult from '@/services/api/model/InitPipelineResult';
 import FormattingService from '@/services/FormattingService';
 import { ToastService } from '@/services/ToastService';
 import MessageBus from '@/services/MessageBus';
@@ -436,77 +377,35 @@ const sanitizing = ref(false);
 // Compressed oops choice: 'auto' | 'enabled' | 'disabled'
 const compressedOopsChoice = ref<string>('auto');
 
-// Dominator tree pre-computation
-const includeDominatorTree = ref(true);
-
-// Processing steps
-interface ProcessingStep {
-  id: string;
-  label: string;
-  status: 'pending' | 'in_progress' | 'completed' | 'skipped';
-  startMs?: number;
-  durationMs?: number;
+// Pipeline stage tracking — see HeapDumpInitTimeline.vue for layout / labels.
+interface ProcessingStep extends TimelineStep {
+  /** Frontend ordering keys; the timeline component owns rendering. */
 }
 
-interface Phase {
-  id: string;
-  name: string;
-  description: string;
-  stages: { id: string; label: string }[];
-}
-
-const phases: Phase[] = [
-  {
-    id: 'indexing',
-    name: 'Heap Indexing',
-    description: 'Loading and parsing the heap file',
-    stages: [
-      { id: 'load', label: 'Loading heap dump' },
-      { id: 'parse', label: 'Parsing heap structure' },
-      { id: 'index', label: 'Building indexes' }
-    ]
-  },
-  {
-    id: 'analysis',
-    name: 'Memory Analysis',
-    description: 'Strings, threads, dominator tree, leaks',
-    stages: [
-      { id: 'strings', label: 'Analyzing strings' },
-      { id: 'threads', label: 'Analyzing threads' },
-      { id: 'dominator', label: 'Computing dominator tree' },
-      { id: 'biggest', label: 'Finding biggest objects' },
-      { id: 'collections', label: 'Analyzing collections' },
-      { id: 'leaks', label: 'Detecting leak suspects' }
-    ]
-  },
-  {
-    id: 'hotspots',
-    name: 'Hotspots & Duplicates',
-    description: 'Class loaders, biggest collections, duplicates',
-    stages: [
-      { id: 'classloaders', label: 'Analyzing class loaders' },
-      { id: 'biggest-collections', label: 'Finding biggest collections' },
-      { id: 'duplicates', label: 'Detecting duplicate objects' }
-    ]
-  }
+const STAGE_IDS: string[] = [
+  'load',
+  'parse',
+  'index',
+  'strings',
+  'threads',
+  'dominator',
+  'biggest',
+  'collections',
+  'leaks',
+  'classloaders',
+  'biggest-collections',
+  'duplicates'
 ];
 
-const initialStatus = (id: string): ProcessingStep['status'] =>
-  id === 'dominator' && !includeDominatorTree.value ? 'skipped' : 'pending';
+const initialStatus = (_id: string): ProcessingStep['status'] => 'pending';
 
 const getProcessingSteps = (): ProcessingStep[] =>
-  phases.flatMap(phase =>
-    phase.stages.map(stage => ({
-      id: stage.id,
-      label: stage.label,
-      status: initialStatus(stage.id)
-    }))
-  );
+  STAGE_IDS.map(id => ({ id, status: initialStatus(id) }));
 
 // Mutable copy for status updates during processing
 const processingSteps = ref<ProcessingStep[]>(getProcessingSteps());
 
-const getStep = (id: string): ProcessingStep | undefined =>
+const findStep = (id: string): ProcessingStep | undefined =>
   processingSteps.value.find(s => s.id === id);
 
 const resetSteps = () => {
@@ -515,12 +414,12 @@ const resetSteps = () => {
 };
 
 const setStepStatus = (id: string, status: ProcessingStep['status']) => {
-  const step = getStep(id);
+  const step = findStep(id);
   if (step) step.status = status;
 };
 
 const startStep = (id: string) => {
-  const step = getStep(id);
+  const step = findStep(id);
   if (step) {
     step.status = 'in_progress';
     step.startMs = Date.now();
@@ -528,7 +427,7 @@ const startStep = (id: string) => {
 };
 
 const completeStep = (id: string) => {
-  const step = getStep(id);
+  const step = findStep(id);
   if (step) {
     step.status = 'completed';
     if (step.startMs != null) {
@@ -554,61 +453,24 @@ const stopTick = () => {
   }
 };
 
-const formatDuration = (ms: number): string => {
-  if (ms < 1000) return `${Math.max(0, Math.round(ms))}ms`;
-  return `${(ms / 1000).toFixed(1)}s`;
-};
+// Persisted "last run" snapshot — populated on mount and right after a
+// successful processHeapDump completion. Cleared by clearCache.
+const lastInitResult = ref<InitPipelineResult | null>(null);
 
-const stageMeta = (step: ProcessingStep | undefined): string => {
-  if (!step) return '';
-  if (step.status === 'completed' && step.durationMs != null) {
-    return formatDuration(step.durationMs);
-  }
-  if (step.status === 'in_progress' && step.startMs != null) {
-    return formatDuration(tickNow.value - step.startMs);
-  }
-  if (step.status === 'skipped') return 'skipped';
-  return 'queued';
-};
-
-const phaseStatus = (phase: Phase): 'done' | 'active' | 'pending' => {
-  const steps = phase.stages
-    .map(s => getStep(s.id))
-    .filter((s): s is ProcessingStep => s !== undefined);
-  if (steps.length === 0) return 'pending';
-  const isTerminal = (s: ProcessingStep) => s.status === 'completed' || s.status === 'skipped';
-  if (steps.every(isTerminal)) return 'done';
-  if (steps.some(s => s.status === 'in_progress' || s.status === 'completed')) return 'active';
-  return 'pending';
-};
-
-const phaseProgress = (phase: Phase): number => {
-  const steps = phase.stages
-    .map(s => getStep(s.id))
-    .filter((s): s is ProcessingStep => s !== undefined);
-  if (steps.length === 0) return 0;
-  const done = steps.filter(s => s.status === 'completed' || s.status === 'skipped').length;
-  return (done / steps.length) * 100;
-};
-
-const overallProgress = computed(() => {
-  const all = processingSteps.value;
-  const done = all.filter(s => s.status === 'completed' || s.status === 'skipped').length;
-  const total = all.length;
-  return {
-    done,
-    total,
-    pct: total > 0 ? Math.round((done / total) * 100) : 0
-  };
+const lastInitResultSteps = computed<TimelineStep[]>(() => {
+  if (!lastInitResult.value) return [];
+  return lastInitResult.value.stages.map(s => ({
+    id: s.id,
+    status: s.status as TimelineStep['status'],
+    durationMs: s.durationMs ?? undefined
+  }));
 });
 
-const totalElapsed = computed(() => {
-  let ms = 0;
-  for (const s of processingSteps.value) {
-    if (s.durationMs != null) ms += s.durationMs;
-    else if (s.status === 'in_progress' && s.startMs != null) ms += tickNow.value - s.startMs;
-  }
-  return formatDuration(ms);
+const lastInitResultSubtitle = computed<string>(() => {
+  if (!lastInitResult.value) return '';
+  const epochMs = Date.parse(lastInitResult.value.completedAt);
+  if (Number.isNaN(epochMs)) return '';
+  return `Completed ${FormattingService.formatRelativeTime(epochMs)}`;
 });
 
 // Upload state
@@ -701,12 +563,12 @@ const processHeapDump = async () => {
     await client.runThreadAnalysis();
     completeStep('threads');
 
-    // Step 6: Dominator Tree
-    if (includeDominatorTree.value) {
-      startStep('dominator');
-      await client.getDominatorTreeRoots(50);
-      completeStep('dominator');
-    }
+    // Step 6: Dominator Tree — always pre-computed; retained-size queries
+    // and the dominator-tree view both need it, and lazy-building it during
+    // those views blocks the first interactive request on a multi-minute pass.
+    startStep('dominator');
+    await client.getDominatorTreeRoots(50);
+    completeStep('dominator');
 
     // Step 7: Biggest Objects
     startStep('biggest');
@@ -733,13 +595,46 @@ const processHeapDump = async () => {
     await client.runBiggestCollections(50);
     completeStep('biggest-collections');
 
-    // Step 12: Duplicate Objects
+    // Step 12: Duplicated Objects.
     startStep('duplicates');
     await client.runDuplicateObjects(100);
     completeStep('duplicates');
 
     cacheReady.value = true;
     MessageBus.emit(MessageBus.HEAP_DUMP_STATUS_CHANGED, true);
+
+    // Snapshot the timeline so the Overview page can display it on subsequent visits.
+    const snapshot: InitPipelineResult = {
+      totalElapsedMs: processingSteps.value.reduce(
+        (sum, s) => sum + (s.durationMs ?? 0),
+        0
+      ),
+      totalSteps: processingSteps.value.length,
+      completedSteps: processingSteps.value.filter(
+        s => s.status === 'completed' || s.status === 'skipped' || s.status === 'on_demand'
+      ).length,
+      completedAt: new Date().toISOString(),
+      stages: processingSteps.value.map(s => {
+        const status: 'completed' | 'skipped' | 'on_demand' =
+          s.status === 'completed'
+            ? 'completed'
+            : s.status === 'on_demand'
+              ? 'on_demand'
+              : 'skipped';
+        return {
+          id: s.id,
+          status,
+          durationMs: s.durationMs ?? null
+        };
+      })
+    };
+    lastInitResult.value = snapshot;
+    try {
+      await client.storeInitPipelineResult(snapshot);
+    } catch (storeErr) {
+      // Snapshot persistence is best-effort — log and move on.
+      console.warn('Failed to persist init pipeline result', storeErr);
+    }
   } catch (err) {
     // Check if this is a heap dump corruption error that can be repaired
     if (err instanceof ApiError && err.errorResponse?.code === 'HEAP_DUMP_NEEDS_SANITIZATION') {
@@ -763,6 +658,7 @@ const clearCache = async () => {
     cacheReady.value = false;
     lastSummary.value = null;
     heapConfig.value = null;
+    lastInitResult.value = null;
     MessageBus.emit(MessageBus.HEAP_DUMP_STATUS_CHANGED, false);
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Failed to clear cache';
@@ -780,6 +676,7 @@ const confirmDeleteHeapDump = async () => {
     cacheReady.value = false;
     lastSummary.value = null;
     heapConfig.value = null;
+    lastInitResult.value = null;
     MessageBus.emit(MessageBus.HEAP_DUMP_STATUS_CHANGED, false);
     ToastService.success(
       'Heap Dump Deleted',
@@ -946,6 +843,15 @@ const loadData = async () => {
       const summary = await client.getSummary();
       lastSummary.value = summary;
       heapConfig.value = await client.getConfig();
+      // Restore the persisted timeline so the user sees per-stage timings
+      // of the last successful run on subsequent visits.
+      try {
+        lastInitResult.value = await client.getInitPipelineResult();
+      } catch (loadErr) {
+        // Missing or corrupt snapshot is non-fatal — just hide the section.
+        console.warn('Failed to load init pipeline result', loadErr);
+        lastInitResult.value = null;
+      }
     }
   } catch (err) {
     // Check if this is a heap dump corruption error that can be repaired
@@ -970,280 +876,10 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* Processing Card */
-.processing-card {
-  background: white;
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  padding: 2rem 2rem 2.5rem;
-  max-width: 1300px;
-  margin: 0 auto;
-}
-
-/* Processing Header */
-.processing-header {
-  margin-bottom: 1.25rem;
-}
-
-.processing-title-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 0.4rem;
-}
-
-.processing-header h4 {
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: var(--color-heading-dark);
-  margin: 0;
-}
-
-.processing-overall {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-size: 0.78rem;
-  color: var(--color-text-muted);
-}
-
-.overall-elapsed {
-  font-variant-numeric: tabular-nums;
-}
-
-.overall-pill {
-  background: var(--color-primary-light);
-  color: var(--color-primary);
-  padding: 4px 10px;
-  border-radius: 999px;
-  font-weight: 600;
-  font-size: 0.74rem;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-
-.processing-hint {
-  font-size: 0.8125rem;
-  color: var(--color-text-light);
-  margin: 0;
-}
-
-/* Overall progress bar */
-.overall-bar {
-  height: 4px;
-  background: var(--color-border);
-  border-radius: 2px;
-  overflow: hidden;
-  margin: 0 0 1.5rem;
-}
-
-.overall-bar-fill {
-  height: 100%;
-  background: linear-gradient(90deg, var(--color-success), var(--color-primary));
-  transition: width 0.3s ease;
-}
-
-/* Phase grid */
-.phase-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-}
-
-@media (max-width: 900px) {
-  .phase-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-.phase-card {
-  background: white;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: 18px 18px 16px;
-  display: flex;
-  flex-direction: column;
-}
-
-.phase-card.active {
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px var(--color-primary-light);
-}
-
-.phase-card.done {
-  border-color: var(--color-success);
-  background: var(--color-success-light);
-}
-
-.phase-icon {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.78rem;
-  font-weight: 700;
-  margin-bottom: 10px;
-}
-
-.phase-card.done .phase-icon {
-  background: var(--color-success);
-  color: white;
-}
-
-.phase-card.active .phase-icon {
-  background: var(--color-primary);
-  color: white;
-}
-
-.phase-card.pending .phase-icon {
-  background: var(--color-border);
-  color: var(--color-text-light);
-}
-
-.phase-name {
-  font-size: 0.88rem;
-  font-weight: 600;
-  color: var(--color-heading-dark);
-  margin-bottom: 2px;
-}
-
-.phase-desc {
-  font-size: 0.74rem;
-  color: var(--color-text-muted);
-  margin-bottom: 14px;
-}
-
-.phase-bar {
-  height: 4px;
-  background: var(--color-border);
-  border-radius: 2px;
-  overflow: hidden;
-  margin-bottom: 14px;
-}
-
-.phase-bar-fill {
-  height: 100%;
-  transition: width 0.3s ease;
-}
-
-.phase-card.done .phase-bar-fill {
-  background: var(--color-success);
-}
-
-.phase-card.active .phase-bar-fill {
-  background: var(--color-primary);
-}
-
-.phase-card.pending .phase-bar-fill {
-  background: var(--color-border);
-}
-
-.phase-stages {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.phase-stages li {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 0.84rem;
-  color: var(--color-text-muted);
-}
-
-.phase-stages li.completed {
-  color: var(--color-text);
-}
-
-.phase-stages li.in_progress {
-  color: var(--color-primary);
-  font-weight: 600;
-}
-
-.phase-stages li.pending,
-.phase-stages li.skipped {
-  color: var(--color-text-light);
-}
-
-.phase-stages .stage-label {
-  flex: 1;
-}
-
-.phase-stages .stage-meta {
-  font-size: 0.74rem;
-  color: var(--color-text-muted);
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-
-.phase-stages li.in_progress .stage-meta {
-  color: var(--color-primary);
-  font-weight: 500;
-}
-
-.phase-stages li.pending .stage-meta,
-.phase-stages li.skipped .stage-meta {
-  color: var(--color-text-light);
-}
-
-.phase-stages .tick {
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  font-size: 0.62rem;
-  font-weight: 700;
-}
-
-.phase-stages li.completed .tick {
-  background: var(--color-success);
-  color: white;
-}
-
-.phase-stages li.in_progress .tick {
-  background: var(--color-primary);
-  color: white;
-}
-
-.phase-stages li.pending .tick {
-  background: white;
-  border: 1.5px solid var(--color-border);
-  color: var(--color-text-light);
-}
-
-.phase-stages li.skipped .tick {
-  background: var(--color-border);
-  color: var(--color-text-light);
-}
-
-.phase-stages .tick i {
-  font-size: 0.7rem;
-  line-height: 1;
-}
-
-.phase-spinner {
-  width: 9px;
-  height: 9px;
-  border: 1.5px solid rgba(255, 255, 255, 0.4);
-  border-top-color: white;
-  border-radius: 50%;
-  animation: phase-spin 0.8s linear infinite;
-}
-
-@keyframes phase-spin {
-  to {
-    transform: rotate(360deg);
-  }
+/* Separate the persisted "Last Initialization Result" card from the
+   Clear Cache / Delete Heap Dump buttons above it. */
+.last-init-result {
+  margin-top: 2rem;
 }
 
 /* Init Section */
@@ -1679,12 +1315,6 @@ onMounted(() => {
 .init-option-group {
   flex: 1;
   min-width: 0;
-}
-
-.init-option-delimiter {
-  width: 1px;
-  align-self: stretch;
-  background-color: var(--color-border);
 }
 
 .init-options .option-label {

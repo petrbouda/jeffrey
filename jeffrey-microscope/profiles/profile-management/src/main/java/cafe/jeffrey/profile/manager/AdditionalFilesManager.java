@@ -55,7 +55,7 @@ public interface AdditionalFilesManager {
     /**
      * Get the path to the heap dump analysis folder for this profile.
      *
-     * @return path to the heap-dump-analysis folder
+     * @return path to the heap-dump folder
      */
     Path getHeapDumpAnalysisPath();
 }
