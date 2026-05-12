@@ -843,13 +843,13 @@
                       <span>AI Analysis</span>
                     </router-link>
                     <router-link
-                      :to="`/profiles/${profileId}/heap-dump/sql`"
+                      :to="`/profiles/${profileId}/heap-dump/oql`"
                       class="nav-item"
                       :class="{ 'disabled-feature': isFeatureDisabled('heap-dump') }"
                       active-class="active"
                     >
                       <i class="bi bi-terminal"></i>
-                      <span>SQL Query</span>
+                      <span>OQL Query</span>
                     </router-link>
                   </div>
                 </div>

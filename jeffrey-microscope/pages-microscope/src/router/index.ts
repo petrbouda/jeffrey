@@ -158,9 +158,9 @@ const profileChildRoutes = [
     meta: { layout: 'profile' }
   },
   {
-    path: 'heap-dump/sql',
-    name: 'profile-heap-dump-sql',
-    component: () => import('@/views/profiles/detail/ProfileHeapDumpSql.vue'),
+    path: 'heap-dump/oql',
+    name: 'profile-heap-dump-oql',
+    component: () => import('@/views/profiles/detail/ProfileHeapDumpOQL.vue'),
     meta: { layout: 'profile' }
   },
   {

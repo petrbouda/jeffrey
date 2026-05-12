@@ -1,5 +1,5 @@
 <template>
-  <LoadingState v-if="loading" message="Loading SQL query interface..." />
+  <LoadingState v-if="loading" message="Loading OQL query interface..." />
 
   <div v-else-if="!heapExists" class="no-heap-dump">
     <div class="alert alert-info d-flex align-items-center">
@@ -17,113 +17,40 @@
   <HeapDumpNotInitialized
     v-else-if="!cacheReady"
     icon="terminal"
-    message="The heap dump needs to be initialized before you can execute SQL queries. This process builds the index and prepares the data for analysis."
+    message="The heap dump needs to be initialized before you can execute OQL queries. This process builds indexes and prepares the data for analysis."
   />
 
   <ErrorState v-else-if="error" :message="error" />
 
   <div v-else>
     <PageHeader
-      title="SQL Query"
-      description="Execute DuckDB SQL queries against the heap-dump index"
+      title="OQL Query"
+      description="Execute Object Query Language queries against the heap dump"
       icon="bi-terminal"
     />
 
-    <!-- Sub-page tabs: Executor / Examples / Schema -->
-    <TabBar v-model="activeTab" :tabs="sqlTabs" class="mb-3" />
-
-    <!-- ==== EXAMPLES TAB ============================================ -->
-    <div v-show="activeTab === 'examples'" class="examples-panel">
-      <aside class="picker-rail">
-        <template v-for="group in queryGroups" :key="group.title">
-          <div class="picker-cat">{{ group.title }}</div>
-          <div
-            v-for="ex in group.items"
-            :key="ex.title"
-            class="picker-item"
-            :class="{ active: selectedQuery?.title === ex.title }"
-            @click="selectQuery(ex)"
-          >
-            <i class="bi bi-chevron-right picker-icon"></i>
-            <span class="picker-label">{{ ex.title }}</span>
-          </div>
-        </template>
-      </aside>
-      <section class="picker-preview">
-        <div v-if="!selectedQuery" class="picker-empty">
-          <i class="bi bi-arrow-left me-2"></i>
-          Pick an <strong>example</strong> on the left to see its SQL.
+    <!-- Example Queries Section (Collapsible) -->
+    <div v-if="showExamples" class="examples-card mb-4">
+      <div class="examples-header">
+        <h6 class="mb-0"><i class="bi bi-code-square me-2"></i>Example Queries</h6>
+        <button class="btn btn-sm btn-outline-secondary" @click="showExamples = false">
+          <i class="bi bi-x-lg me-1"></i>Hide
+        </button>
+      </div>
+      <div class="examples-body">
+        <div class="examples-list">
+          <template v-for="(example, index) in exampleQueries" :key="index">
+            <div v-if="example.divider" class="example-divider">
+              {{ example.title.replace(/---/g, '').trim() }}
+            </div>
+            <div v-else class="example-item" @click="useExample(example.query)">
+              <div class="example-title">{{ example.title }}</div>
+              <code class="example-query">{{ example.query }}</code>
+            </div>
+          </template>
         </div>
-        <div v-else>
-          <h6 class="picker-title">{{ selectedQuery.title }}</h6>
-          <p class="picker-desc">{{ selectedQuery.description }}</p>
-          <pre class="example-sql"><code>{{ selectedQuery.query }}</code></pre>
-          <button class="btn btn-sm btn-primary" @click="useExample(selectedQuery.query)">
-            <i class="bi bi-arrow-right-circle me-1"></i>
-            Use this query
-          </button>
-        </div>
-      </section>
+      </div>
     </div>
-
-    <!-- ==== SCHEMA TAB ============================================== -->
-    <div v-show="activeTab === 'schema'" class="examples-panel">
-      <aside class="picker-rail">
-        <div
-          v-for="t in heapDumpIndexSchema"
-          :key="t.name"
-          class="picker-item"
-          :class="{ active: selectedSchema === t.name }"
-          @click="selectSchema(t.name)"
-        >
-          <i class="bi bi-table picker-icon"></i>
-          <span class="picker-label">{{ t.name }}</span>
-        </div>
-      </aside>
-      <section class="picker-preview">
-        <div v-if="!schemaInFocus" class="picker-empty">
-          <i class="bi bi-arrow-left me-2"></i>
-          Pick a <strong>table</strong> on the left to see its columns.
-        </div>
-        <div v-else>
-          <h6 class="picker-title">
-            <i class="bi bi-table me-2"></i>{{ schemaInFocus.name }}
-          </h6>
-          <p class="picker-desc">{{ schemaInFocus.description }}</p>
-          <div class="table-responsive">
-            <table class="table table-sm table-hover mb-0 schema-table">
-              <thead>
-                <tr>
-                  <th>Column</th>
-                  <th>Type</th>
-                  <th>Null</th>
-                  <th>Notes</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="c in schemaInFocus.columns" :key="c.name">
-                  <td><code>{{ c.name }}</code></td>
-                  <td><code>{{ c.type }}</code></td>
-                  <td>{{ c.nullable ? 'YES' : '—' }}</td>
-                  <td class="schema-note">{{ c.note || '' }}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          <p v-if="schemaInFocus.primaryKey && schemaInFocus.primaryKey.length" class="schema-meta">
-            <strong>Primary key:</strong>
-            <code>{{ schemaInFocus.primaryKey.join(', ') }}</code>
-          </p>
-          <p v-if="schemaInFocus.indexed && schemaInFocus.indexed.length" class="schema-meta">
-            <strong>Indexed:</strong>
-            <code>{{ schemaInFocus.indexed.join(', ') }}</code>
-          </p>
-        </div>
-      </section>
-    </div>
-
-    <!-- ==== EXECUTOR TAB (textarea + results) ====================== -->
-    <div v-show="activeTab === 'executor'">
 
     <!-- Query Input Section -->
     <div class="query-editor mb-4">
@@ -131,7 +58,7 @@
         v-model="oqlQuery"
         class="query-input"
         rows="3"
-        placeholder="SELECT c.name, COUNT(*) AS n FROM instance i JOIN class c USING (class_id) GROUP BY c.name ORDER BY n DESC LIMIT 20"
+        placeholder="select s from java.lang.String s where s.value.length > 100"
         @keydown.ctrl.enter="executeQuery"
         @keydown.meta.enter="executeQuery"
       ></textarea>
@@ -158,6 +85,14 @@
           <button v-if="aiAvailable" class="btn btn-sm btn-ai-assistant" @click="openAssistant">
             <i class="bi bi-stars me-1"></i>
             AI Assistant
+          </button>
+          <button
+            class="btn btn-sm"
+            :class="showExamples ? 'btn-purple' : 'btn-outline-purple'"
+            @click="showExamples = !showExamples"
+          >
+            <i class="bi bi-lightbulb me-1"></i>
+            Examples
           </button>
         </div>
         <div class="d-flex align-items-center gap-3">
@@ -235,12 +170,10 @@
                   <div class="object-header">
                     <code v-if="entry.className" class="class-name">{{ entry.className }}</code>
                     <InstanceActionButtons
-                      :object-id="entry.objectId || null"
-                      :show-instance-detail="true"
+                      :object-id="entry.objectId ?? null"
                       @show-referrers="openTreeModal($event, 'REFERRERS')"
                       @show-reachables="openTreeModal($event, 'REACHABLES')"
                       @show-g-c-root-path="openGCRootPathModal"
-                      @show-instance-detail="openInstanceDetailPanel"
                     />
                   </div>
                   <div v-if="entry.value" class="value-text" :title="entry.value">
@@ -263,7 +196,7 @@
       <div class="text-center py-5">
         <i class="bi bi-terminal text-muted" style="font-size: 3rem"></i>
         <p class="text-muted mt-3 mb-0">
-          Enter a SQL query above and click Execute to see results.
+          Enter an OQL query above and click Execute to see results.
         </p>
         <button v-if="aiAvailable" class="btn btn-ai-assistant mt-4" @click="openAssistant">
           <i class="bi bi-stars me-1"></i>
@@ -303,9 +236,8 @@
         <div class="ai-config-text">
           <h5 class="ai-config-title">AI Assistant Available</h5>
           <p class="ai-config-description">
-            Unlock the power of AI to help you write DuckDB SQL queries against the heap-dump
-            index. Describe what you're looking for in natural language and let AI generate the
-            query for you.
+            Unlock the power of AI to help you write OQL queries. Describe what you're looking for
+            in natural language and let AI generate the query for you.
           </p>
           <div class="ai-providers-note">
             <i class="bi bi-check-circle-fill"></i>
@@ -327,7 +259,7 @@
           </div>
           <div class="ai-feature">
             <i class="bi bi-mortarboard"></i>
-            <span>Learn the schema</span>
+            <span>Learn OQL syntax</span>
           </div>
         </div>
 
@@ -394,18 +326,6 @@
       :initial-mode="treeMode"
       :profile-id="profileId"
     />
-
-    <!-- Instance Details Side Panel -->
-    <InstanceDetailPanel
-      v-if="client"
-      :is-open="detailPanelOpen"
-      :object-id="detailPanelObjectId"
-      :client="client"
-      @close="detailPanelOpen = false"
-      @navigate="detailPanelObjectId = $event"
-    />
-
-    </div><!-- /executor tab -->
   </div>
 </template>
 
@@ -419,8 +339,6 @@ import ErrorState from '@/components/ErrorState.vue';
 import HeapDumpNotInitialized from '@/components/HeapDumpNotInitialized.vue';
 import OqlAssistant from '@/components/oql/OqlAssistant.vue';
 import InstanceTreeModal from '@/components/heap/InstanceTreeModal.vue';
-import InstanceDetailPanel from '@/components/heap/InstanceDetailPanel.vue';
-import TabBar, { type TabBarItem } from '@/components/TabBar.vue';
 import InstanceActionButtons from '@/components/heap/InstanceActionButtons.vue';
 import SortableTableHeader from '@/components/table/SortableTableHeader.vue';
 import DataTable from '@/components/table/DataTable.vue';
@@ -444,8 +362,7 @@ const oqlLimit = ref(50);
 const oqlLoading = ref(false);
 const oqlResult = ref<OQLQueryResult | null>(null);
 const oqlError = ref<string | null>(null);
-type SqlTab = 'executor' | 'examples' | 'schema';
-const activeTab = ref<SqlTab>('executor');
+const showExamples = ref(false);
 const includeRetainedSize = ref(true);
 const resultFilter = ref('');
 const sortColumn = ref('retained');
@@ -464,374 +381,88 @@ const showTreeModal = ref(false);
 const selectedObjectId = ref<number | null>(null);
 const treeMode = ref<'REFERRERS' | 'REACHABLES'>('REFERRERS');
 
-// Instance Details side-panel state
-const detailPanelOpen = ref(false);
-const detailPanelObjectId = ref<number | null>(null);
-const openInstanceDetailPanel = (objectId: number) => {
-  detailPanelObjectId.value = objectId;
-  detailPanelOpen.value = true;
-};
-
 let client: HeapDumpClient;
 
-// Heap-dump index schema — sourced from
-// jeffrey-microscope/profiles/heap-dump/src/main/resources/db/migration/heap-dump-index/V001__init.sql.
-// V001 is modified in place per project policy (never V002), so the constant
-// only needs to change when V001 itself changes.
-interface SchemaColumn {
-  name: string;
-  type: string;
-  nullable: boolean;
-  note?: string;
-}
-interface SchemaTable {
-  name: string;
-  description: string;
-  columns: SchemaColumn[];
-  primaryKey?: string[];
-  indexed?: string[];
-}
+// Example queries organized by function category
+const exampleQueries = [
+  // Object/Size Functions
+  { title: '--- Object/Size Functions ---', query: '', divider: true },
+  {
+    title: 'sizeof() - Shallow Size >10KB',
+    query: 'select o from instanceof java.lang.Object o where sizeof(o) > 10240'
+  },
+  {
+    title: 'rsizeof() - Retained Size >1MB',
+    query: 'select o from instanceof java.lang.Object o where rsizeof(o) > 1048576'
+  },
+  { title: 'objectid() - Find by ID', query: 'select heap.findObject(12345)' },
+  {
+    title: 'classof() - Get Class Name',
+    query: 'select classof(o).name from instanceof java.lang.Object o where sizeof(o) > 10240'
+  },
 
-const heapDumpIndexSchema: SchemaTable[] = [
+  // Reference Chain Functions
+  { title: '--- Reference Chain Functions ---', query: '', divider: true },
   {
-    name: 'dump_metadata',
-    description: 'Single-row parse run info — id-size, compressed-oops flag, parser version, warning count.',
-    columns: [
-      { name: 'hprof_path', type: 'VARCHAR', nullable: false },
-      { name: 'hprof_size_bytes', type: 'BIGINT', nullable: false },
-      { name: 'hprof_mtime_ms', type: 'BIGINT', nullable: false },
-      { name: 'id_size', type: 'INTEGER', nullable: false, note: '4 or 8 bytes (HPROF id width)' },
-      { name: 'hprof_version', type: 'VARCHAR', nullable: false },
-      { name: 'timestamp_ms', type: 'BIGINT', nullable: false },
-      { name: 'bytes_parsed', type: 'BIGINT', nullable: false },
-      { name: 'record_count', type: 'BIGINT', nullable: false },
-      { name: 'warning_count', type: 'BIGINT', nullable: false },
-      { name: 'truncated', type: 'BOOLEAN', nullable: false },
-      { name: 'parser_version', type: 'VARCHAR', nullable: false },
-      { name: 'parsed_at_ms', type: 'BIGINT', nullable: false },
-      { name: 'compressed_oops', type: 'BOOLEAN', nullable: false, note: 'Inferred at index build; baked into shallow_size' }
-    ]
+    title: 'referrers() - Objects with Many Refs',
+    query: 'select o from instanceof java.lang.Object o where count(referrers(o)) > 10'
   },
   {
-    name: 'string',
-    description: 'HPROF UTF-8 string pool. Class names + field names reference this via string_id.',
-    columns: [
-      { name: 'string_id', type: 'BIGINT', nullable: false, note: 'PK' },
-      { name: 'value', type: 'VARCHAR', nullable: false }
-    ],
-    primaryKey: ['string_id']
+    title: 'referees() - Referenced Objects',
+    query: 'select referees(m) from java.util.HashMap m where m.size > 100'
+  },
+  { title: 'reachables() - All Reachable', query: 'select reachables(t) from java.lang.Thread t' },
+  {
+    title: 'root() - Find GC Root',
+    query: 'select root(s) from java.lang.String s where s.toString().contains("Error")'
+  },
+
+  // Heap Functions
+  { title: '--- Heap Functions ---', query: '', divider: true },
+  { title: 'heap.classes() - All Classes', query: 'select heap.classes()' },
+  { title: 'heap.objects() - Class Instances', query: 'select heap.objects("java.lang.String")' },
+  { title: 'heap.findClass() - Find Class', query: 'select heap.findClass("java.util.HashMap")' },
+  { title: 'heap.roots() - All GC Roots', query: 'select heap.roots()' },
+
+  // Array/Collection Functions
+  { title: '--- Array/Collection Functions ---', query: '', divider: true },
+  { title: 'count() - Count Instances', query: 'select count(heap.objects("java.lang.String"))' },
+  { title: 'length() - Array Length', query: 'select a from byte[] a where length(a) > 10240' },
+  {
+    title: 'map() - Transform Results',
+    query: 'select map(heap.objects("java.lang.Thread"), "it.name")'
   },
   {
-    name: 'class',
-    description: 'One row per loaded Java class. name is dot-notation (post-ClassNameFormatter).',
-    columns: [
-      { name: 'class_id', type: 'BIGINT', nullable: false, note: 'PK' },
-      { name: 'class_serial', type: 'INTEGER', nullable: false },
-      { name: 'name', type: 'VARCHAR', nullable: false, note: "Dot-notation, e.g. 'java.util.HashMap'" },
-      { name: 'is_array', type: 'BOOLEAN', nullable: false },
-      { name: 'super_class_id', type: 'BIGINT', nullable: true, note: 'NULL for java.lang.Object and primitive arrays' },
-      { name: 'classloader_id', type: 'BIGINT', nullable: true },
-      { name: 'signers_id', type: 'BIGINT', nullable: true },
-      { name: 'protection_domain_id', type: 'BIGINT', nullable: true },
-      { name: 'instance_size', type: 'INTEGER', nullable: false },
-      { name: 'static_fields_size', type: 'INTEGER', nullable: false },
-      { name: 'file_offset', type: 'BIGINT', nullable: false }
-    ],
-    primaryKey: ['class_id'],
-    indexed: ['name', 'super_class_id', 'is_array']
+    title: 'filter() - Filter Results',
+    query: 'select filter(heap.objects("java.lang.Thread"), "it.daemon == true")'
   },
   {
-    name: 'instance',
-    description: 'One row per object in the heap (INSTANCE_DUMP, OBJECT_ARRAY_DUMP, PRIMITIVE_ARRAY_DUMP).',
-    columns: [
-      { name: 'instance_id', type: 'BIGINT', nullable: false, note: 'PK' },
-      { name: 'class_id', type: 'BIGINT', nullable: true, note: 'NULL only for primitive arrays' },
-      { name: 'file_offset', type: 'BIGINT', nullable: false },
-      { name: 'record_kind', type: 'TINYINT', nullable: false, note: '0=instance, 1=object_array, 2=primitive_array' },
-      { name: 'shallow_size', type: 'INTEGER', nullable: false, note: 'Header + payload; MAT @usedHeapSize' },
-      { name: 'array_length', type: 'INTEGER', nullable: true, note: 'Only for arrays; MAT @length' },
-      { name: 'primitive_type', type: 'TINYINT', nullable: true, note: 'Only for primitive arrays' }
-    ],
-    primaryKey: ['instance_id'],
-    indexed: ['class_id']
+    title: 'sort() - Sort Results',
+    query: 'select sort(heap.objects("java.lang.String"), "sizeof(it)")'
   },
   {
-    name: 'class_instance_field',
-    description: 'Per-class instance field descriptors (one row per field, in declaration order).',
-    columns: [
-      { name: 'class_id', type: 'BIGINT', nullable: false, note: 'PK part 1' },
-      { name: 'field_index', type: 'INTEGER', nullable: false, note: 'PK part 2; 0-based within this class only' },
-      { name: 'name', type: 'VARCHAR', nullable: false },
-      { name: 'basic_type', type: 'TINYINT', nullable: false, note: 'HPROF basic type tag' }
-    ],
-    primaryKey: ['class_id', 'field_index']
+    title: 'unique() - Unique Values',
+    query: 'select unique(map(heap.objects("java.lang.Thread"), "it.threadStatus"))'
+  },
+
+  // Common Use Cases
+  { title: '--- Common Use Cases ---', query: '', divider: true },
+  {
+    title: 'Strings containing text',
+    query: 'select s from java.lang.String s where s.toString().contains("Exception")'
   },
   {
-    name: 'gc_root',
-    description: 'One row per GC root reference. root_kind maps to the HPROF sub-tag byte.',
-    columns: [
-      { name: 'instance_id', type: 'BIGINT', nullable: false },
-      { name: 'root_kind', type: 'TINYINT', nullable: false, note: 'HPROF sub-tag byte (jni global, java frame, thread block, …)' },
-      { name: 'thread_serial', type: 'INTEGER', nullable: true },
-      { name: 'frame_index', type: 'INTEGER', nullable: true },
-      { name: 'file_offset', type: 'BIGINT', nullable: false }
-    ],
-    indexed: ['instance_id']
+    title: 'Long Strings (>100 chars)',
+    query: 'select s from java.lang.String s where s.value.length > 100'
   },
+  { title: 'Large HashMaps (>100)', query: 'select m from java.util.HashMap m where m.size > 100' },
   {
-    name: 'outbound_ref',
-    description: 'Every object-to-object reference. The full reference graph.',
-    columns: [
-      { name: 'source_id', type: 'BIGINT', nullable: false },
-      { name: 'target_id', type: 'BIGINT', nullable: false },
-      { name: 'field_kind', type: 'TINYINT', nullable: false, note: '0=instance_field, 1=array_element, 2=class_static' },
-      { name: 'field_id', type: 'INTEGER', nullable: false, note: 'Field index for instance/static, array index for arrays' }
-    ],
-    indexed: ['source_id', 'target_id']
+    title: 'Empty Collections',
+    query: 'select c from instanceof java.util.Collection c where c.size == 0'
   },
-  {
-    name: 'dominator',
-    description: 'Immediate dominator per instance. Built lazily — empty until dominator analysis runs.',
-    columns: [
-      { name: 'instance_id', type: 'BIGINT', nullable: false, note: 'PK' },
-      { name: 'dominator_id', type: 'BIGINT', nullable: false, note: '0 = directly rooted at virtual root' }
-    ],
-    primaryKey: ['instance_id'],
-    indexed: ['dominator_id']
-  },
-  {
-    name: 'retained_size',
-    description: 'Total bytes reclaimable per instance. Populated alongside dominator (lazy).',
-    columns: [
-      { name: 'instance_id', type: 'BIGINT', nullable: false, note: 'PK' },
-      { name: 'bytes', type: 'BIGINT', nullable: false }
-    ],
-    primaryKey: ['instance_id']
-  },
-  {
-    name: 'stack_frame',
-    description: 'HPROF STACK_FRAME records. class_name is resolved at index build time.',
-    columns: [
-      { name: 'frame_id', type: 'BIGINT', nullable: false, note: 'PK' },
-      { name: 'class_name', type: 'VARCHAR', nullable: false },
-      { name: 'method_name', type: 'VARCHAR', nullable: false },
-      { name: 'method_signature', type: 'VARCHAR', nullable: false },
-      { name: 'source_file', type: 'VARCHAR', nullable: true },
-      { name: 'line_number', type: 'INTEGER', nullable: false, note: '≥1 normal, -1 no info, -2 compiled, -3 native' }
-    ],
-    primaryKey: ['frame_id']
-  },
-  {
-    name: 'stack_trace_frame',
-    description: 'Ordered membership of frames in a stack trace. frame_index 0 is topmost.',
-    columns: [
-      { name: 'trace_serial', type: 'INTEGER', nullable: false, note: 'PK part 1' },
-      { name: 'thread_serial', type: 'INTEGER', nullable: false },
-      { name: 'frame_index', type: 'INTEGER', nullable: false, note: 'PK part 2; 0 = topmost' },
-      { name: 'frame_id', type: 'BIGINT', nullable: false }
-    ],
-    primaryKey: ['trace_serial', 'frame_index'],
-    indexed: ['thread_serial']
-  },
-  {
-    name: 'parse_warning',
-    description: 'Forensic record of skipped / truncated / recovered HPROF records.',
-    columns: [
-      { name: 'file_offset', type: 'BIGINT', nullable: false },
-      { name: 'record_kind', type: 'INTEGER', nullable: true },
-      { name: 'severity', type: 'TINYINT', nullable: false, note: '0=info, 1=warn, 2=error' },
-      { name: 'message', type: 'VARCHAR', nullable: false }
-    ]
-  }
+  { title: 'All Thread Names', query: 'select t.name from java.lang.Thread t' },
+  { title: 'Large byte[] Arrays', query: 'select a from byte[] a where a.length > 10240' }
 ];
-
-// Example queries — DuckDB SQL against the heap-dump index schema.
-interface ExampleQuery {
-  title: string;
-  description: string;
-  query: string;
-  divider?: never;
-}
-interface ExampleDivider {
-  title: string;
-  divider: true;
-}
-type ExampleEntry = ExampleQuery | ExampleDivider;
-
-const exampleQueries: ExampleEntry[] = [
-  { title: '--- Class Histogram ---', divider: true },
-  {
-    title: 'Top classes by total shallow size',
-    description: 'Aggregates every live instance by its class and ranks by summed shallow_size. Single GROUP BY against the indexed instance table.',
-    query:
-      "SELECT c.name, COUNT(*) AS n, SUM(i.shallow_size) AS total_bytes\n" +
-      "FROM instance i JOIN class c USING (class_id)\n" +
-      "GROUP BY c.name ORDER BY total_bytes DESC LIMIT 50"
-  },
-  {
-    title: 'Top classes by instance count',
-    description: 'Same shape but ranked by row count. Useful for spotting object-explosion patterns (millions of tiny instances).',
-    query:
-      "SELECT c.name, COUNT(*) AS n\n" +
-      "FROM instance i JOIN class c USING (class_id)\n" +
-      "GROUP BY c.name ORDER BY n DESC LIMIT 50"
-  },
-
-  { title: '--- Retained Size (requires dominator tree) ---', divider: true },
-  {
-    title: 'Top retained classes',
-    description: 'Sums retained_size per class. Requires the dominator tree — LEFT JOIN so the query still runs (with NULLs) if the tree has not been built.',
-    query:
-      "SELECT c.name, SUM(r.bytes) AS retained\n" +
-      "FROM instance i JOIN class c USING (class_id)\n" +
-      "LEFT JOIN retained_size r USING (instance_id)\n" +
-      "GROUP BY c.name ORDER BY retained DESC NULLS LAST LIMIT 20"
-  },
-  {
-    title: 'Single largest retained objects',
-    description: 'Individual instances ranked by retained heap. The answer to "what one object is keeping all that memory alive?"',
-    query:
-      "SELECT r.instance_id, c.name, r.bytes AS retained\n" +
-      "FROM retained_size r\n" +
-      "JOIN instance i USING (instance_id)\n" +
-      "JOIN class c USING (class_id)\n" +
-      "ORDER BY r.bytes DESC LIMIT 20"
-  },
-
-  { title: '--- Reference Graph ---', divider: true },
-  {
-    title: 'Outbound refs of one object',
-    description: 'Direct fan-out from a single instance. Replace 12345 with the object id you are inspecting.',
-    query: "SELECT * FROM outbound_ref WHERE source_id = 12345"
-  },
-  {
-    title: 'Inbound refs of one object',
-    description: 'Who points at this instance? Indexed on target_id so this is cheap even on large heaps.',
-    query: "SELECT * FROM outbound_ref WHERE target_id = 12345"
-  },
-  {
-    title: 'Most-referenced targets',
-    description: 'Hot spots in the reference graph — objects that many other instances point at (caches, interned strings, singletons).',
-    query:
-      "SELECT target_id, COUNT(*) AS in_count\n" +
-      "FROM outbound_ref\n" +
-      "GROUP BY target_id ORDER BY in_count DESC LIMIT 20"
-  },
-
-  { title: '--- GC Roots ---', divider: true },
-  {
-    title: 'GC root kinds and counts',
-    description: 'Distribution of GC root types in the dump. root_kind is the raw HPROF sub-tag byte — see the gc_root schema notes for the mapping.',
-    query:
-      "SELECT root_kind, COUNT(*) AS n\n" +
-      "FROM gc_root\n" +
-      "GROUP BY root_kind ORDER BY n DESC"
-  },
-  {
-    title: 'GC-rooted classes',
-    description: 'Which classes have the most GC-rooted instances. Often dominated by Thread, ClassLoader, jni globals.',
-    query:
-      "SELECT c.name, COUNT(*) AS n\n" +
-      "FROM gc_root g JOIN instance i USING (instance_id) JOIN class c USING (class_id)\n" +
-      "GROUP BY c.name ORDER BY n DESC LIMIT 20"
-  },
-
-  { title: '--- Arrays ---', divider: true },
-  {
-    title: 'Largest object arrays by element count',
-    description: 'Object arrays (record_kind = 1) ranked by length — finds oversized HashMap.table[], ArrayList.elementData, etc.',
-    query:
-      "SELECT i.instance_id, c.name, i.array_length\n" +
-      "FROM instance i JOIN class c USING (class_id)\n" +
-      "WHERE i.record_kind = 1 AND i.array_length IS NOT NULL\n" +
-      "ORDER BY i.array_length DESC LIMIT 20"
-  },
-  {
-    title: 'Largest primitive arrays by shallow size',
-    description: 'byte[] / char[] / int[] etc. by shallow_size. Common offenders for hidden memory waste (big buffers, mis-sized caches).',
-    query:
-      "SELECT i.instance_id, i.primitive_type, i.array_length, i.shallow_size\n" +
-      "FROM instance i\n" +
-      "WHERE i.record_kind = 2\n" +
-      "ORDER BY i.shallow_size DESC LIMIT 20"
-  },
-
-  { title: '--- Class Universe ---', divider: true },
-  {
-    title: 'Find classes by name regex',
-    description: 'DuckDB ~ operator runs a POSIX regex against class.name. Useful to enumerate "all classes from package X".',
-    query: "SELECT class_id, name FROM class WHERE name ~ 'com\\\\.example\\\\..*' ORDER BY name"
-  },
-  {
-    title: 'Subclasses of a given class (recursive)',
-    description: 'Walks super_class_id transitively. The DuckDB-SQL equivalent of MAT-OQL "FROM INSTANCEOF java.util.AbstractMap".',
-    query:
-      "WITH RECURSIVE subs(class_id) AS (\n" +
-      "  SELECT class_id FROM class WHERE name = 'java.util.AbstractMap'\n" +
-      "  UNION ALL\n" +
-      "  SELECT c.class_id FROM class c JOIN subs s ON c.super_class_id = s.class_id\n" +
-      ")\n" +
-      "SELECT cl.name, COUNT(i.instance_id) AS n\n" +
-      "FROM subs JOIN class cl USING (class_id)\n" +
-      "LEFT JOIN instance i USING (class_id)\n" +
-      "GROUP BY cl.name ORDER BY n DESC"
-  },
-
-  { title: '--- Dump Metadata ---', divider: true },
-  {
-    title: 'Heap dump shape + parser metadata',
-    description: 'Single-row table with id-size, compressed-oops flag, parse-warning count, parser version. Call this once to orient yourself.',
-    query: "SELECT * FROM dump_metadata"
-  }
-];
-
-// Group consecutive non-divider examples under the preceding divider so the
-// Examples tab can render category headers + their cards without rebuilding
-// the logic per-row.
-interface QueryGroup {
-  title: string;
-  items: ExampleQuery[];
-}
-const queryGroups = computed<QueryGroup[]>(() => {
-  const groups: QueryGroup[] = [];
-  let current: QueryGroup | null = null;
-  for (const e of exampleQueries) {
-    if (e.divider) {
-      current = { title: e.title.replace(/---/g, '').trim(), items: [] };
-      groups.push(current);
-    } else if (current) {
-      current.items.push(e);
-    }
-  }
-  return groups;
-});
-
-const totalExampleCount = computed(() =>
-  queryGroups.value.reduce((n, g) => n + g.items.length, 0)
-);
-
-const sqlTabs = computed<TabBarItem[]>(() => [
-  { id: 'executor', label: 'Executor', icon: 'terminal' },
-  { id: 'examples', label: 'Examples', icon: 'lightbulb', badge: totalExampleCount.value },
-  { id: 'schema', label: 'Schema', icon: 'table', badge: heapDumpIndexSchema.length }
-]);
-
-// Examples tab — rail item selection
-const selectedQuery = ref<ExampleQuery | null>(null);
-const selectQuery = (ex: ExampleQuery) => {
-  selectedQuery.value = ex;
-};
-
-// Schema tab — rail item selection
-const selectedSchema = ref<string | null>(null);
-const schemaInFocus = computed(() =>
-  selectedSchema.value
-    ? heapDumpIndexSchema.find(t => t.name === selectedSchema.value) ?? null
-    : null
-);
-const selectSchema = (name: string) => {
-  selectedSchema.value = name;
-};
 
 // Check if results have retained size data
 const hasRetainedSize = computed(() => {
@@ -877,7 +508,7 @@ const toggleSort = (column: string) => {
 
 const useExample = (query: string) => {
   oqlQuery.value = query;
-  activeTab.value = 'executor';
+  showExamples.value = false;
 };
 
 const truncateValue = (value: string, maxLength: number = 150): string => {
@@ -955,7 +586,7 @@ const checkAiAvailability = async () => {
   try {
     const aiClient = new OqlAssistantClient(profileId);
     const status = await aiClient.getStatus();
-    aiAvailable.value = status.enabled === true && status.configured === true;
+    aiAvailable.value = status.enabled && status.configured;
   } catch {
     aiAvailable.value = false;
   } finally {
@@ -1003,158 +634,82 @@ onMounted(() => {
   padding: 2rem;
 }
 
-/* Two-pane snippet picker — reused by both Examples and Schema tabs. */
-.examples-panel {
-  display: grid;
-  grid-template-columns: 340px 1fr;
+/* Examples Card */
+.examples-card {
   background: white;
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-base);
   overflow: hidden;
-  min-height: 480px;
 }
 
-.picker-rail {
-  border-right: 1px solid var(--color-border);
-  overflow-y: auto;
-  padding: 0.25rem 0;
+.examples-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background-color: var(--color-light);
+  border-bottom: 1px solid var(--color-border);
 }
 
-.picker-cat {
-  font-size: 0.65rem;
+.examples-header h6 {
+  color: var(--color-purple);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.examples-body {
+  padding: 0.75rem;
+}
+
+.examples-list {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem;
+}
+
+.example-divider {
+  grid-column: 1 / -1;
+  font-size: 0.7rem;
   font-weight: 700;
   color: var(--color-purple);
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  padding: 0.625rem 1rem 0.25rem;
+  padding: 0.5rem 0.5rem 0.25rem;
+  border-bottom: 1px solid var(--color-border);
+  margin-top: 0.25rem;
 }
 
-.picker-cat:not(:first-child) {
-  margin-top: 0.5rem;
-  border-top: 1px solid var(--color-border-light);
-  padding-top: 0.75rem;
+.example-divider:first-child {
+  margin-top: 0;
 }
 
-.picker-item {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.4rem 1rem;
-  font-size: 0.8rem;
-  color: var(--color-text);
+.example-item {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--color-border);
   cursor: pointer;
-  border-left: 2px solid transparent;
-  transition: background-color 0.15s ease, color 0.15s ease;
+  transition: all 0.2s ease;
 }
 
-.picker-item:hover {
-  background-color: var(--color-bg-hover);
+.example-item:hover {
+  background-color: var(--color-light);
+  border-color: var(--color-purple);
 }
 
-.picker-item.active {
-  background-color: var(--color-primary-light);
-  color: var(--color-purple);
-  border-left-color: var(--color-purple);
-  font-weight: 600;
-}
-
-.picker-icon {
-  color: var(--color-text-light);
+.example-title {
   font-size: 0.75rem;
-  flex-shrink: 0;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: 0.125rem;
 }
 
-.picker-item.active .picker-icon {
-  color: var(--color-purple);
-}
-
-.picker-label {
+.example-query {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--color-text-muted);
+  background: transparent;
+  padding: 0;
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.picker-preview {
-  padding: 1rem 1.25rem;
-  background: var(--color-bg-hover);
-  overflow-y: auto;
-}
-
-.picker-empty {
-  color: var(--color-text-muted);
-  font-size: 0.85rem;
-  padding: 1rem 0;
-}
-
-.picker-title {
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: var(--color-text);
-  margin: 0 0 0.5rem;
-  display: flex;
-  align-items: center;
-}
-
-.picker-desc {
-  font-size: 0.8rem;
-  color: var(--color-text-muted);
-  margin: 0 0 0.75rem;
-  line-height: 1.5;
-}
-
-.schema-table th {
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
-  color: var(--color-text-muted);
-  font-weight: 600;
-  background: white;
-}
-
-.schema-table td {
-  font-size: 0.8rem;
-  vertical-align: middle;
-}
-
-.schema-table code {
-  font-size: 0.75rem;
-  background: transparent;
-  color: var(--color-text);
-  padding: 0;
-}
-
-.schema-note {
-  font-size: 0.75rem;
-  color: var(--color-text-muted);
-}
-
-.schema-meta {
-  margin: 0.5rem 0 0;
-  font-size: 0.75rem;
-  color: var(--color-text-muted);
-}
-
-.schema-meta code {
-  background: var(--color-code-bg);
-  color: var(--color-text);
-  padding: 0.05rem 0.35rem;
-  border-radius: var(--radius-sm);
-  font-size: 0.7rem;
-}
-
-.example-sql {
-  background: white;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-base);
-  padding: 0.75rem 0.875rem;
-  margin: 0 0 0.75rem;
-  font-family: 'SF Mono', Menlo, Consolas, monospace;
-  font-size: 0.75rem;
-  line-height: 1.55;
-  color: var(--color-text);
-  overflow-x: auto;
-  max-height: 320px;
-  white-space: pre;
 }
 
 /* Query Editor - Compact Design */
