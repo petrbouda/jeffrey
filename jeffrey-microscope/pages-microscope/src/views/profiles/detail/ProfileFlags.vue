@@ -15,9 +15,10 @@
       <StatsTable :metrics="summaryMetrics" class="mb-4" />
 
       <!-- Tabbed Content Section -->
-      <ChartSectionWithTabs icon="flag" :tabs="analysisTabs" :full-width="true" id-prefix="flags-">
-        <!-- Dashboard Tab -->
-        <template #dashboard>
+      <TabBar v-model="activeTab" :tabs="analysisTabs" class="mb-3" />
+
+      <!-- Dashboard Tab -->
+      <div v-show="activeTab === 'dashboard'">
           <!-- Filter Input -->
           <div class="mb-4">
             <div class="input-group search-container" style="max-width: 400px">
@@ -176,10 +177,10 @@
               <i class="bi bi-funnel"></i>
               <p>No flags match "{{ searchTerm }}"</p>
             </div>
-        </template>
+      </div>
 
-        <!-- About Tab -->
-        <template #about>
+      <!-- About Tab -->
+      <div v-show="activeTab === 'about'">
           <div class="about-container">
             <!-- Header Section -->
             <div class="about-header">
@@ -345,8 +346,7 @@
               </div>
             </div>
           </div>
-        </template>
-      </ChartSectionWithTabs>
+      </div>
     </div>
 
     <div v-else class="no-data">
@@ -372,7 +372,7 @@ import PageHeader from '@/components/layout/PageHeader.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import ErrorState from '@/components/ErrorState.vue';
 import StatsTable from '@/components/StatsTable.vue';
-import ChartSectionWithTabs from '@/components/ChartSectionWithTabs.vue';
+import TabBar from '@/components/TabBar.vue';
 import SortableTableHeader from '@/components/table/SortableTableHeader.vue';
 import Badge from '@/components/Badge.vue';
 import DataTable from '@/components/table/DataTable.vue';
@@ -417,6 +417,7 @@ const analysisTabs = [
   { id: 'dashboard', label: 'JVM Flags', icon: 'flag' },
   { id: 'about', label: 'How It Works', icon: 'info-circle' }
 ];
+const activeTab = ref(analysisTabs[0].id);
 
 // Computed metrics for StatsTable
 const summaryMetrics = computed(() => {

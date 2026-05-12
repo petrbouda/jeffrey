@@ -41,11 +41,12 @@
     <DataTable v-else>
           <thead>
             <tr>
-              <th style="width: 40%">Class Name</th>
+              <th>Class Name</th>
+              <th class="text-end" style="width: 160px"></th>
+              <th class="text-end" style="width: 110px">Identity</th>
               <th class="text-end" style="width: 120px">Shallow Size</th>
               <th class="text-end" style="width: 120px">Retained Size</th>
               <th style="width: 180px">% of Parent</th>
-              <th style="width: 80px"></th>
             </tr>
           </thead>
           <tbody>
@@ -55,7 +56,7 @@
             >
               <!-- Load More row -->
               <template v-if="item.isLoadMore">
-                <td colspan="5">
+                <td colspan="6">
                   <div
                     class="d-flex align-items-center gap-3"
                     :style="{ paddingLeft: item.depth * 1.5 + 'rem' }"
@@ -101,30 +102,45 @@
                     </button>
                     <span v-else class="expand-placeholder me-1"></span>
                     <div class="class-info">
-                      <div class="class-name-line">
-                        <code class="class-name">{{ simpleClassName(item.node.className) }}</code>
-                        <span class="package-name">{{ packageName(item.node.className) }}</span>
-                      </div>
-                      <div class="detail-line">
+                      <ClassNameDisplay :class-name="item.node.className" />
+                      <div
+                        v-if="item.node.fieldName || Object.keys(item.node.objectParams).length > 0"
+                        class="detail-line"
+                      >
                         <span v-if="item.node.fieldName" class="field-name">{{
                           item.node.fieldName
                         }}</span>
-                        <span v-if="item.node.fieldName" class="detail-separator">·</span>
-                        <span class="object-id-text">{{
-                          FormattingService.formatObjectId(item.node.objectId)
+                        <span
+                          v-if="item.node.fieldName && Object.keys(item.node.objectParams).length > 0"
+                          class="detail-separator"
+                        >·</span>
+                        <span v-if="Object.keys(item.node.objectParams).length > 0" class="object-params-text">{{
+                          FormattingService.formatObjectParams(item.node.objectParams)
                         }}</span>
-                        <template v-if="Object.keys(item.node.objectParams).length > 0">
-                          <span class="detail-separator">·</span>
-                          <span class="object-params-text">{{
-                            FormattingService.formatObjectParams(item.node.objectParams)
-                          }}</span>
-                        </template>
-                        <template v-if="item.node.gcRootKind">
-                          <span class="detail-separator">·</span>
-                          <span class="gc-root-badge">{{ gcRootLabel(item.node.gcRootKind) }}</span>
-                        </template>
                       </div>
                     </div>
+                  </div>
+                </td>
+                <!-- Action Buttons -->
+                <td class="text-end">
+                  <InstanceActionButtons
+                    :object-id="item.node.objectId"
+                    :show-instance-detail="true"
+                    @show-referrers="openTreeModal($event, 'REFERRERS')"
+                    @show-reachables="openTreeModal($event, 'REACHABLES')"
+                    @show-g-c-root-path="openGCRootPathModal"
+                    @show-instance-detail="openInstanceDetailPanel"
+                  />
+                </td>
+                <!-- Object ID + GC-root badge -->
+                <td class="text-end">
+                  <div class="object-id-cell">
+                    <span class="object-id-text">{{
+                      FormattingService.formatObjectId(item.node.objectId)
+                    }}</span>
+                    <span v-if="item.node.gcRootKind" class="gc-root-badge">{{
+                      gcRootLabel(item.node.gcRootKind)
+                    }}</span>
                   </div>
                 </td>
                 <!-- Shallow Size -->
@@ -152,15 +168,6 @@
                     >
                   </div>
                 </td>
-                <!-- Action Buttons -->
-                <td>
-                  <InstanceActionButtons
-                    :object-id="item.node.objectId"
-                    @show-referrers="openTreeModal($event, 'REFERRERS')"
-                    @show-reachables="openTreeModal($event, 'REACHABLES')"
-                    @show-g-c-root-path="openGCRootPathModal"
-                  />
-                </td>
               </template>
             </tr>
           </tbody>
@@ -174,6 +181,16 @@
       :profile-id="profileId"
       @update:show="treeModalVisible = $event"
     />
+
+    <!-- Instance Details Side Panel -->
+    <InstanceDetailPanel
+      v-if="client"
+      :is-open="detailPanelOpen"
+      :object-id="detailPanelObjectId"
+      :client="client"
+      @close="detailPanelOpen = false"
+      @navigate="detailPanelObjectId = $event"
+    />
   </div>
 </template>
 
@@ -185,7 +202,9 @@ import LoadingState from '@/components/LoadingState.vue';
 import ErrorState from '@/components/ErrorState.vue';
 import StatsTable from '@/components/StatsTable.vue';
 import HeapDumpNotInitialized from '@/components/HeapDumpNotInitialized.vue';
+import ClassNameDisplay from '@/components/heap/ClassNameDisplay.vue';
 import InstanceActionButtons from '@/components/heap/InstanceActionButtons.vue';
+import InstanceDetailPanel from '@/components/heap/InstanceDetailPanel.vue';
 import InstanceTreeModal from '@/components/heap/InstanceTreeModal.vue';
 import EmptyState from '@/components/EmptyState.vue';
 import DataTable from '@/components/table/DataTable.vue';
@@ -222,6 +241,11 @@ const compressedOops = ref(false);
 const treeModalVisible = ref(false);
 const treeModalObjectId = ref(0);
 const treeModalMode = ref<'REFERRERS' | 'REACHABLES'>('REFERRERS');
+
+// Instance Details side-panel state
+const detailPanelOpen = ref(false);
+const detailPanelObjectId = ref<number | null>(null);
+
 let client: HeapDumpClient;
 
 const summaryMetrics = computed(() => {
@@ -240,16 +264,6 @@ const summaryMetrics = computed(() => {
     }
   ];
 });
-
-const simpleClassName = (name: string): string => {
-  const lastDot = name.lastIndexOf('.');
-  return lastDot > 0 ? name.substring(lastDot + 1) : name;
-};
-
-const packageName = (name: string): string => {
-  const lastDot = name.lastIndexOf('.');
-  return lastDot > 0 ? name.substring(0, lastDot) : '';
-};
 
 const gcRootLabel = (kind: string): string => {
   const labels: Record<string, string> = {
@@ -450,6 +464,11 @@ const openGCRootPathModal = (objectId: number) => {
   router.push(`/profiles/${profileId}/heap-dump/gc-root-path?objectId=${objectId}`);
 };
 
+const openInstanceDetailPanel = (objectId: number) => {
+  detailPanelObjectId.value = objectId;
+  detailPanelOpen.value = true;
+};
+
 const scrollToTop = () => {
   const workspaceContent = document.querySelector('.workspace-content');
   if (workspaceContent) {
@@ -515,12 +534,6 @@ onMounted(() => {
   gap: 0.15rem;
 }
 
-.class-name-line {
-  display: flex;
-  align-items: baseline;
-  gap: 0.4rem;
-}
-
 .detail-line {
   display: flex;
   align-items: baseline;
@@ -564,20 +577,11 @@ onMounted(() => {
   white-space: nowrap;
 }
 
-.class-name {
-  font-size: 0.8rem;
-  font-weight: 600;
-  background-color: transparent;
-  color: var(--color-text);
-  white-space: nowrap;
-}
-
-.package-name {
-  font-size: 0.8rem;
-  color: var(--color-text-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.object-id-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.25rem;
 }
 
 .btn-expand {

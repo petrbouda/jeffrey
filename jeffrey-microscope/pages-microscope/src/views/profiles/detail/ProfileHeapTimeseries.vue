@@ -12,48 +12,41 @@
     />
 
     <!-- Heap Memory Timeseries Section -->
-    <ChartSectionWithTabs
-      icon="memory"
-      :tabs="heapMemoryTabs"
-      :full-width="true"
-      id-prefix="heap-memory-"
-      @tab-change="onHeapMemoryTabChange"
-      class="mb-4"
-    >
-      <!-- Before/After GC Tab -->
-      <template #before-after-gc>
-        <TimeSeriesChart
-          :primary-data="heapMemoryData"
-          primary-title="Before/After GC"
-          :primary-axis-type="AxisFormatType.BYTES"
-          :visible-minutes="60"
-          primary-color="#007bff"
-          time-unit="seconds"
-        />
-      </template>
+    <TabBar v-model="activeTab" :tabs="heapMemoryTabs" class="mb-3" />
 
-      <!-- Allocation Tab -->
-      <template #allocation>
-        <TimeSeriesChart
-          :primary-data="allocationData"
-          primary-title="Allocation Rate"
-          :primary-axis-type="AxisFormatType.BYTES"
-          :visible-minutes="60"
-          primary-color="#00d27a"
-          time-unit="seconds"
-        />
-      </template>
-    </ChartSectionWithTabs>
+    <!-- Before/After GC Tab -->
+    <div v-show="activeTab === 'before-after-gc'">
+      <TimeSeriesChart
+        :primary-data="heapMemoryData"
+        primary-title="Before/After GC"
+        :primary-axis-type="AxisFormatType.BYTES"
+        :visible-minutes="60"
+        primary-color="#007bff"
+        time-unit="seconds"
+      />
+    </div>
+
+    <!-- Allocation Tab -->
+    <div v-show="activeTab === 'allocation'">
+      <TimeSeriesChart
+        :primary-data="allocationData"
+        primary-title="Allocation Rate"
+        :primary-axis-type="AxisFormatType.BYTES"
+        :visible-minutes="60"
+        primary-color="#00d27a"
+        time-unit="seconds"
+      />
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
-import ChartSectionWithTabs from '@/components/ChartSectionWithTabs.vue';
+import TabBar from '@/components/TabBar.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import ErrorState from '@/components/ErrorState.vue';
 import ProfileHeapMemoryClient from '@/services/api/ProfileHeapMemoryClient';
@@ -80,6 +73,7 @@ const heapMemoryTabs = [
     type: HeapMemoryTimeseriesType.ALLOCATION
   }
 ];
+const activeTab = ref(heapMemoryTabs[0].id);
 
 // Heap timeseries data
 const heapMemoryData = ref<number[][]>([]);
@@ -91,35 +85,32 @@ const currentTimeseriesType = ref<HeapMemoryTimeseriesType>(
 // Client initialization - will be set after workspace/project IDs are available
 let client: ProfileHeapMemoryClient;
 
-// Handle heap memory tab change
-const onHeapMemoryTabChange = async (_tabIndex: number, tab: any) => {
+// Reload timeseries data when the user switches tab.
+watch(activeTab, async newId => {
+  const tab = heapMemoryTabs.find(t => t.id === newId);
+  if (!tab?.type) return;
+
   heapMemoryData.value = [];
   allocationData.value = [];
-
-  if (tab.type) {
-    currentTimeseriesType.value = tab.type;
-    try {
-      // Initialize client if needed
-      if (!client) {
-        client = new ProfileHeapMemoryClient(route.params.profileId as string);
-      }
-
-      // Always load data when switching tabs and clear inactive tab data
-      if (tab.type === HeapMemoryTimeseriesType.ALLOCATION) {
-        const timeseriesData = await client.getTimeseries(HeapMemoryTimeseriesType.ALLOCATION);
-        allocationData.value = timeseriesData.data;
-      } else if (tab.type === HeapMemoryTimeseriesType.HEAP_BEFORE_AFTER_GC) {
-        const timeseriesData = await client.getTimeseries(
-          HeapMemoryTimeseriesType.HEAP_BEFORE_AFTER_GC
-        );
-        heapMemoryData.value = timeseriesData.data;
-      }
-    } catch (err) {
-      console.error('Error loading timeseries data:', err);
-      error.value = 'Failed to load timeseries data';
+  currentTimeseriesType.value = tab.type;
+  try {
+    if (!client) {
+      client = new ProfileHeapMemoryClient(route.params.profileId as string);
     }
+    if (tab.type === HeapMemoryTimeseriesType.ALLOCATION) {
+      const timeseriesData = await client.getTimeseries(HeapMemoryTimeseriesType.ALLOCATION);
+      allocationData.value = timeseriesData.data;
+    } else if (tab.type === HeapMemoryTimeseriesType.HEAP_BEFORE_AFTER_GC) {
+      const timeseriesData = await client.getTimeseries(
+        HeapMemoryTimeseriesType.HEAP_BEFORE_AFTER_GC
+      );
+      heapMemoryData.value = timeseriesData.data;
+    }
+  } catch (err) {
+    console.error('Error loading timeseries data:', err);
+    error.value = 'Failed to load timeseries data';
   }
-};
+});
 
 // Load heap memory data
 const loadHeapMemoryData = async () => {

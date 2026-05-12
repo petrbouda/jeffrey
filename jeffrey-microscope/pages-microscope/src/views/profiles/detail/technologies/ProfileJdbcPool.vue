@@ -72,18 +72,13 @@
           </section>
 
           <!-- Event Charts Section -->
-          <ChartSectionWithTabs
-            v-if="selectedPool.eventStatistics.length > 0"
-            title="Pool Timeseries"
-            icon="graph-up"
-            :full-width="true"
-            :tabs="eventTabs"
-            @tab-change="onTabChange"
-          >
-            <template
+          <template v-if="selectedPool.eventStatistics.length > 0">
+            <TabBar v-model="activeEventTab" :tabs="eventTabs" class="mb-3" />
+
+            <div
               v-for="event in selectedPool.eventStatistics"
               :key="event.eventType"
-              #[`event-${event.eventType}`]
+              v-show="activeEventTab === `event-${event.eventType}`"
             >
               <div v-if="isTimeseriesLoading(event.eventType)" class="chart-loading-overlay">
                 <div class="spinner-border text-primary" role="status">
@@ -98,8 +93,8 @@
                 :visible-minutes="60"
                 :primary-axis-type="AxisFormatType.DURATION_IN_MILLIS"
               />
-            </template>
-          </ChartSectionWithTabs>
+            </div>
+          </template>
 
           <!-- Event Statistics Table -->
           <ChartSection
@@ -159,11 +154,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import StatsTable from '@/components/StatsTable.vue';
 import ChartSection from '@/components/ChartSection.vue';
-import ChartSectionWithTabs from '@/components/ChartSectionWithTabs.vue';
+import TabBar from '@/components/TabBar.vue';
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
 import PoolData from '@/services/api/model/PoolData.ts';
 import PoolEventStatistics from '@/services/api/model/PoolEventStatistics.ts';
@@ -215,6 +210,7 @@ const eventTabs = computed(() => {
     icon: 'graph-up'
   }));
 });
+const activeEventTab = ref<string>('');
 
 // Computed metrics for StatsTable
 const poolMetricsData = computed(() => {
@@ -348,12 +344,21 @@ const onTabClick = (eventType: string) => {
   }
 };
 
-const onTabChange = (tabIndex: number, _tab: any) => {
-  const event = selectedPool.value?.eventStatistics[tabIndex];
-  if (event) {
-    onTabClick(event.eventType);
+// Re-load timeseries when the user switches event tab. TabBar's v-model
+// surfaces the new tab id ("event-<eventType>"); we strip the prefix to
+// recover the eventType the analyzer keys on.
+watch(activeEventTab, newId => {
+  if (!newId) return;
+  const eventType = newId.startsWith('event-') ? newId.substring('event-'.length) : newId;
+  onTabClick(eventType);
+});
+
+// Initialise the active event tab once the first pool is selected.
+watch(eventTabs, tabs => {
+  if (tabs.length > 0 && !activeEventTab.value) {
+    activeEventTab.value = tabs[0].id;
   }
-};
+});
 
 const getEventTimeSeriesData = (eventName: string): number[][] => {
   if (!selectedPool.value) {

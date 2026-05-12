@@ -44,44 +44,44 @@
         <DashboardSection :http-header="singleUriData.header" />
 
         <!-- Tabbed Analysis -->
-        <ChartSectionWithTabs :tabs="httpDetailTabs" :full-width="true" id-prefix="http-detail-">
-          <template #timeseries>
-            <TimeSeriesChart
-              :primary-data="singleUriData.responseTimeSerie.data"
-              primary-title="Response Time"
-              :secondary-data="singleUriData.requestCountSerie.data"
-              secondary-title="Request Count"
-              :visible-minutes="60"
-              :independentSecondaryAxis="true"
-              :primary-axis-type="AxisFormatType.DURATION_IN_NANOS"
-              :secondary-axis-type="AxisFormatType.NUMBER"
-            />
-          </template>
+        <TabBar v-model="activeTab" :tabs="httpDetailTabs" class="mb-3" />
 
-          <template #distribution>
-            <HttpDistributionCharts
-              v-if="singleUriData?.statusCodes && singleUriData?.methods"
-              :status-codes="singleUriData.statusCodes"
-              :methods="singleUriData.methods"
-              :total-requests="singleUriData.uri.requestCount"
-              embedded
-            />
-          </template>
+        <div v-show="activeTab === 'timeseries'">
+          <TimeSeriesChart
+            :primary-data="singleUriData.responseTimeSerie.data"
+            primary-title="Response Time"
+            :secondary-data="singleUriData.requestCountSerie.data"
+            secondary-title="Request Count"
+            :visible-minutes="60"
+            :independentSecondaryAxis="true"
+            :primary-axis-type="AxisFormatType.DURATION_IN_NANOS"
+            :secondary-axis-type="AxisFormatType.NUMBER"
+          />
+        </div>
 
-          <template #slowest>
-            <EmptyState
-              v-if="slowestRequests.length === 0"
-              icon="bi-clock-history"
-              title="No slow HTTP requests"
-            />
-            <HttpSlowestRequests
-              v-else
-              :requests="slowestRequests"
-              :total-request-count="singleUriData.header.requestCount || 0"
-              :max-displayed="20"
-            />
-          </template>
-        </ChartSectionWithTabs>
+        <div v-show="activeTab === 'distribution'">
+          <HttpDistributionCharts
+            v-if="singleUriData?.statusCodes && singleUriData?.methods"
+            :status-codes="singleUriData.statusCodes"
+            :methods="singleUriData.methods"
+            :total-requests="singleUriData.uri.requestCount"
+            embedded
+          />
+        </div>
+
+        <div v-show="activeTab === 'slowest'">
+          <EmptyState
+            v-if="slowestRequests.length === 0"
+            icon="bi-clock-history"
+            title="No slow HTTP requests"
+          />
+          <HttpSlowestRequests
+            v-else
+            :requests="slowestRequests"
+            :total-request-count="singleUriData.header.requestCount || 0"
+            :max-displayed="20"
+          />
+        </div>
       </div>
 
       <!-- Endpoint List -->
@@ -110,7 +110,7 @@ import HttpOverviewStats from '@/components/http/HttpOverviewStats.vue';
 import DashboardSection from '@/components/DashboardSection.vue';
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
 import HttpDistributionCharts from '@/components/http/HttpDistributionCharts.vue';
-import ChartSectionWithTabs from '@/components/ChartSectionWithTabs.vue';
+import TabBar from '@/components/TabBar.vue';
 import HttpEndpointList from '@/components/http/HttpEndpointList.vue';
 import HttpSlowestRequests from '@/components/http/HttpSlowestRequests.vue';
 import EmptyState from '@/components/EmptyState.vue';
@@ -153,6 +153,7 @@ const httpDetailTabs = [
   { id: 'distribution', label: 'Distribution', icon: 'pie-chart' },
   { id: 'slowest', label: 'Slowest Requests', icon: 'clock-history' }
 ];
+const activeTab = ref(httpDetailTabs[0].id);
 
 // Check if HTTP dashboard is disabled
 const isHttpDashboardDisabled = computed(() => {

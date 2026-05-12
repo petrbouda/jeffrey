@@ -143,7 +143,15 @@
               <tbody>
                 <tr v-for="field in instance.fields" :key="field.name">
                   <td class="field-name-cell">
-                    <div class="field-name">{{ field.name }}</div>
+                    <div class="field-name-line">
+                      <span class="field-name">{{ field.name }}</span>
+                      <template v-if="field.referencedObjectId">
+                        <span class="field-identity-sep">&middot;</span>
+                        <span class="field-object-id">{{
+                          FormattingService.formatObjectId(field.referencedObjectId)
+                        }}</span>
+                      </template>
+                    </div>
                     <div class="field-type-line">
                       <code class="field-type-simple">{{
                         simpleType(field.referencedClassName ?? field.type)
@@ -154,20 +162,8 @@
                         >{{ typePackage(field.referencedClassName ?? field.type) }}</span
                       >
                     </div>
-                    <div
-                      v-if="field.referencedObjectId || fieldDisplayValue(field)"
-                      class="field-identity-line"
-                    >
-                      <span v-if="field.referencedObjectId" class="field-object-id">{{
-                        FormattingService.formatObjectId(field.referencedObjectId)
-                      }}</span>
+                    <div v-if="fieldDisplayValue(field)" class="field-identity-line">
                       <span
-                        v-if="field.referencedObjectId && fieldDisplayValue(field)"
-                        class="field-identity-sep"
-                        >&middot;</span
-                      >
-                      <span
-                        v-if="fieldDisplayValue(field)"
                         class="field-value-inline"
                         :class="fieldValueClass(field)"
                         >{{ fieldDisplayValue(field) }}</span
@@ -211,7 +207,15 @@
               <tbody>
                 <tr v-for="field in instance.staticFields" :key="field.name">
                   <td class="field-name-cell">
-                    <div class="field-name">{{ field.name }}</div>
+                    <div class="field-name-line">
+                      <span class="field-name">{{ field.name }}</span>
+                      <template v-if="field.referencedObjectId">
+                        <span class="field-identity-sep">&middot;</span>
+                        <span class="field-object-id">{{
+                          FormattingService.formatObjectId(field.referencedObjectId)
+                        }}</span>
+                      </template>
+                    </div>
                     <div class="field-type-line">
                       <code class="field-type-simple">{{
                         simpleType(field.referencedClassName ?? field.type)
@@ -222,20 +226,8 @@
                         >{{ typePackage(field.referencedClassName ?? field.type) }}</span
                       >
                     </div>
-                    <div
-                      v-if="field.referencedObjectId || fieldDisplayValue(field)"
-                      class="field-identity-line"
-                    >
-                      <span v-if="field.referencedObjectId" class="field-object-id">{{
-                        FormattingService.formatObjectId(field.referencedObjectId)
-                      }}</span>
+                    <div v-if="fieldDisplayValue(field)" class="field-identity-line">
                       <span
-                        v-if="field.referencedObjectId && fieldDisplayValue(field)"
-                        class="field-identity-sep"
-                        >&middot;</span
-                      >
-                      <span
-                        v-if="fieldDisplayValue(field)"
                         class="field-value-inline"
                         :class="fieldValueClass(field)"
                         >{{ fieldDisplayValue(field) }}</span
@@ -364,10 +356,10 @@ const truncateValue = (value: string, maxLen: number): string => {
 const fieldDisplayValue = (field: InstanceField): string => {
   if (field.isPrimitive) return field.value;
   if (!field.referencedObjectId) return 'null';
-  // Skip if value is just the object ID (already shown separately)
-  const objectIdStr = FormattingService.formatObjectId(field.referencedObjectId);
-  if (field.value === objectIdStr) return '';
-  return truncateValue(field.value, 60);
+  // Object refs: the backend intentionally returns no value (the class
+  // name + object id are already rendered on their own rows). If a value
+  // is ever present, render it.
+  return field.value ? truncateValue(field.value, 60) : '';
 };
 
 const fieldValueClass = (field: InstanceField): string => {
@@ -462,7 +454,7 @@ watch(
   top: 0;
   right: 0;
   bottom: 0;
-  width: 480px;
+  width: 680px;
   max-width: 100%;
   background: white;
   box-shadow: -4px 0 20px rgba(0, 0, 0, 0.15);
@@ -681,8 +673,6 @@ watch(
 }
 
 .table-container {
-  max-height: 400px;
-  overflow-y: auto;
 }
 
 .table {
@@ -730,6 +720,12 @@ watch(
 .field-identity-sep {
   color: var(--color-text-light);
   font-size: 0.85rem;
+}
+
+.field-name-line {
+  display: flex;
+  align-items: baseline;
+  gap: 0.3rem;
 }
 
 .field-name {

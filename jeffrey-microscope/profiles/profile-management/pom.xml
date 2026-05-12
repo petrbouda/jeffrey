@@ -57,11 +57,11 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>duckdb-ai-mcp</artifactId>
+            <artifactId>duckdb-jfr-mcp</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>heap-dump-ai-mcp</artifactId>
+            <artifactId>duckdb-heapdump-mcp</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>

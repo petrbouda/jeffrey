@@ -165,7 +165,7 @@
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>duckdb-ai-mcp</artifactId>
+                <artifactId>duckdb-jfr-mcp</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

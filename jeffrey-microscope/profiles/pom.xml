@@ -48,8 +48,8 @@
         <module>profile-sql-persistence</module>
         <module>profile-management</module>
         <module>tools</module>
-        <module>duckdb-ai-mcp</module>
-        <module>heap-dump-ai-mcp</module>
+        <module>duckdb-jfr-mcp</module>
+        <module>duckdb-heapdump-mcp</module>
     </modules>
 
     <properties>
@@ -138,12 +138,12 @@
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>duckdb-ai-mcp</artifactId>
+                <artifactId>duckdb-jfr-mcp</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>heap-dump-ai-mcp</artifactId>
+                <artifactId>duckdb-heapdump-mcp</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

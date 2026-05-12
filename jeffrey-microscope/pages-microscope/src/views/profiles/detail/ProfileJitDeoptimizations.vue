@@ -15,16 +15,11 @@
       <StatsTable :metrics="metricsData" />
     </div>
 
-    <!-- Tabbed analysis section (mirrors GC's ChartSectionWithTabs pattern) -->
-    <ChartSectionWithTabs
-      icon="arrow-counterclockwise"
-      :tabs="deoptTabs"
-      :full-width="true"
-      id-prefix="deopt-"
-      @tab-change="onTabChange"
-    >
-      <!-- Activity timeseries -->
-      <template #activity>
+    <!-- Tabbed analysis section -->
+    <TabBar v-model="activeTab" :tabs="deoptTabs" class="mb-3" />
+
+    <!-- Activity timeseries -->
+    <div v-show="activeTab === 'activity'">
         <p class="tab-description">
           Events per second across the recording window. Spikes after warmup may indicate a regression.
         </p>
@@ -35,10 +30,10 @@
             :visibleMinutes="60"
           />
         </div>
-      </template>
+    </div>
 
-      <!-- Events table -->
-      <template #events>
+    <!-- Events table -->
+    <div v-show="activeTab === 'events'">
         <p class="tab-description">
           Per-event detail. Click a row to see full payload. Most recent {{ events.length }} events shown.
         </p>
@@ -115,10 +110,10 @@
             </tr>
           </tbody>
         </DataTable>
-      </template>
+    </div>
 
-      <!-- Top methods -->
-      <template #methods>
+    <!-- Top methods -->
+    <div v-show="activeTab === 'methods'">
         <p class="tab-description">
           Methods ranked by deopt count. The bar visualizes share relative to the top method.
         </p>
@@ -187,10 +182,10 @@
             </tr>
           </tbody>
         </DataTable>
-      </template>
+    </div>
 
-      <!-- Reason distribution -->
-      <template #distribution>
+    <!-- Reason distribution -->
+    <div v-show="activeTab === 'distribution'">
         <EmptyState
           v-if="reasonDistribution.length === 0"
           icon="bi-pie-chart"
@@ -215,10 +210,10 @@
             </div>
           </div>
         </div>
-      </template>
+    </div>
 
-      <!-- How It Works (educational, profile-agnostic) -->
-      <template #howit>
+    <!-- How It Works (educational, profile-agnostic) -->
+    <div v-show="activeTab === 'howit'">
         <div class="howit-section">
           <h6 class="howit-section-title">
             <i class="bi bi-question-circle"></i>
@@ -459,8 +454,7 @@
             </li>
           </ul>
         </div>
-      </template>
-    </ChartSectionWithTabs>
+    </div>
 
     <!-- Per-event drill-in modal -->
     <GenericModal
@@ -543,7 +537,7 @@ import { useRoute } from 'vue-router';
 import ApexCharts from 'apexcharts';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import StatsTable from '@/components/StatsTable.vue';
-import ChartSectionWithTabs from '@/components/ChartSectionWithTabs.vue';
+import TabBar from '@/components/TabBar.vue';
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
 import DataTable from '@/components/table/DataTable.vue';
 import Badge from '@/components/Badge.vue';
@@ -580,6 +574,7 @@ const deoptTabs = [
   { id: 'distribution', label: 'Reason Distribution', icon: 'pie-chart' },
   { id: 'howit', label: 'How It Works', icon: 'book' }
 ];
+const activeTab = ref(deoptTabs[0].id);
 
 let reasonChart: ApexCharts | null = null;
 
@@ -966,16 +961,15 @@ const goToHowItWorksFromModal = () => {
 };
 
 const setActiveTab = (tabId: string) => {
-  // Clicking the matching tab button switches the bootstrap tab without re-implementing state.
-  const button = document.getElementById(`deopt-${tabId}-tab`);
-  button?.click();
+  activeTab.value = tabId;
 };
 
-const onTabChange = (_tabIndex: number, tab: { id: string }) => {
-  if (tab.id === 'distribution') {
+// Re-render the reason-distribution chart when its tab becomes visible.
+watch(activeTab, newId => {
+  if (newId === 'distribution') {
     nextTick(() => createReasonChart());
   }
-};
+});
 
 const createReasonChart = () => {
   const chartElement = document.getElementById('deopt-reason-distribution-chart');

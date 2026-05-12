@@ -40,15 +40,10 @@
     <StatsTable :metrics="summaryMetrics" class="mb-4" />
 
     <!-- Tabbed Analysis Section -->
-    <ChartSectionWithTabs
-      icon="diagram-3"
-      :tabs="analysisTabs"
-      :full-width="true"
-      id-prefix="classloader-"
-      @tab-change="onTabChange"
-    >
-      <!-- Suspicious Loaders Tab -->
-      <template #suspicious-loaders>
+    <TabBar v-model="activeTab" :tabs="analysisTabs" class="mb-3" />
+
+    <!-- Suspicious Loaders Tab -->
+    <div v-show="activeTab === 'suspicious-loaders'">
         <div v-if="report && (report.leakChains ?? []).length > 0">
           <DataTable>
             <template #toolbar>
@@ -60,7 +55,7 @@
             </template>
             <thead>
               <tr>
-                <th style="width: 50px">#</th>
+                <th style="width: 40px">#</th>
                 <th>Class Loader</th>
                 <th class="text-end" style="width: 120px">Class Count</th>
                 <th class="text-end" style="width: 140px">Retained Size</th>
@@ -72,10 +67,7 @@
               <tr v-for="(chain, idx) in report.leakChains" :key="chain.classLoaderId">
                 <td class="text-muted">{{ idx + 1 }}</td>
                 <td>
-                  <code class="class-name">{{ simpleClassName(chain.classLoaderClassName) }}</code>
-                  <span class="package-name d-block">
-                    {{ packageName(chain.classLoaderClassName) }}
-                  </span>
+                  <ClassNameDisplay :class-name="chain.classLoaderClassName" />
                   <span
                     v-if="chain.hasDuplicateClasses"
                     class="badge bg-warning text-dark mt-1"
@@ -116,10 +108,10 @@
           <i class="bi bi-shield-check fs-1 mb-3 d-block text-success"></i>
           <p>No suspicious class loaders detected.</p>
         </div>
-      </template>
+    </div>
 
-      <!-- Class Loaders Tab -->
-      <template #class-loaders>
+    <!-- Class Loaders Tab -->
+    <div v-show="activeTab === 'class-loaders'">
         <div v-if="report && report.classLoaders.length > 0">
           <DataTable>
             <template #toolbar>
@@ -129,7 +121,7 @@
             </template>
                 <thead>
                   <tr>
-                    <th style="width: 50px">#</th>
+                    <th style="width: 40px">#</th>
                     <th>Class Loader Class</th>
                     <SortableTableHeader
                       column="classCount"
@@ -165,16 +157,11 @@
                   <tr v-for="(entry, index) in sortedClassLoaders" :key="entry.objectId">
                     <td class="text-muted">{{ index + 1 }}</td>
                     <td>
-                      <div class="class-info">
-                        <code class="class-name">{{
-                          simpleClassName(entry.classLoaderClassName)
-                        }}</code>
-                        <span class="package-name">{{
-                          packageName(entry.classLoaderClassName)
-                        }}</span>
+                      <div class="class-cell">
+                        <ClassNameDisplay :class-name="entry.classLoaderClassName" />
                         <span
                           v-if="suspiciousLoaderIds.has(entry.objectId)"
-                          class="badge bg-danger text-white ms-2"
+                          class="badge bg-danger text-white"
                         >suspicious</span>
                       </div>
                     </td>
@@ -211,10 +198,10 @@
           <i class="bi bi-diagram-3 fs-1 mb-3 d-block"></i>
           <p>No class loader data available.</p>
         </div>
-      </template>
+    </div>
 
-      <!-- Duplicate Classes Tab -->
-      <template #duplicate-classes>
+    <!-- Duplicate Classes Tab -->
+    <div v-show="activeTab === 'duplicate-classes'">
         <div v-if="report && report.duplicateClasses.length > 0">
           <DataTable>
             <template #toolbar>
@@ -224,7 +211,7 @@
             </template>
                 <thead>
                   <tr>
-                    <th style="width: 50px">#</th>
+                    <th style="width: 40px">#</th>
                     <th>Class Name</th>
                     <SortableTableHeader
                       column="loaderCount"
@@ -242,10 +229,7 @@
                   <tr v-for="(entry, index) in sortedDuplicateClasses" :key="entry.className">
                     <td class="text-muted">{{ index + 1 }}</td>
                     <td>
-                      <div class="class-info">
-                        <code class="class-name">{{ simpleClassName(entry.className) }}</code>
-                        <span class="package-name">{{ packageName(entry.className) }}</span>
-                      </div>
+                      <ClassNameDisplay :class-name="entry.className" />
                     </td>
                     <td class="text-end font-monospace">
                       <span :class="entry.loaderCount > 2 ? 'badge bg-warning text-dark' : ''">
@@ -263,8 +247,7 @@
           <i class="bi bi-check-circle fs-1 mb-3 d-block"></i>
           <p>No duplicate classes detected.</p>
         </div>
-      </template>
-    </ChartSectionWithTabs>
+    </div>
 
     <GenericModal
       v-model:show="showLeakChainModal"
@@ -273,12 +256,7 @@
     >
       <div v-if="selectedLeakChain">
         <div class="mb-3">
-          <code class="class-name">{{
-            simpleClassName(selectedLeakChain.classLoaderClassName)
-          }}</code>
-          <span class="package-name d-block small text-muted">
-            {{ packageName(selectedLeakChain.classLoaderClassName) }}
-          </span>
+          <ClassNameDisplay :class-name="selectedLeakChain.classLoaderClassName" />
         </div>
         <div v-if="selectedLeakChain.causeHints.length > 0" class="mb-3">
           <span
@@ -309,11 +287,12 @@ import LoadingState from '@/components/LoadingState.vue';
 import ErrorState from '@/components/ErrorState.vue';
 import StatsTable from '@/components/StatsTable.vue';
 import HeapDumpNotInitialized from '@/components/HeapDumpNotInitialized.vue';
-import ChartSectionWithTabs from '@/components/ChartSectionWithTabs.vue';
+import TabBar from '@/components/TabBar.vue';
 import SortableTableHeader from '@/components/table/SortableTableHeader.vue';
 import DataTable from '@/components/table/DataTable.vue';
 import TableToolbar from '@/components/table/TableToolbar.vue';
 import GenericModal from '@/components/GenericModal.vue';
+import ClassNameDisplay from '@/components/heap/ClassNameDisplay.vue';
 import GCRootPathVisualization from '@/components/heap/GCRootPathVisualization.vue';
 import HeapDumpClient from '@/services/api/HeapDumpClient';
 import type ClassLoaderReport from '@/services/api/model/ClassLoaderReport';
@@ -468,23 +447,9 @@ const toggleDupSort = (column: string) => {
   }
 };
 
-const simpleClassName = (name: string): string => {
-  const lastDot = name.lastIndexOf('.');
-  return lastDot > 0 ? name.substring(lastDot + 1) : name;
-};
-
-const packageName = (name: string): string => {
-  const lastDot = name.lastIndexOf('.');
-  return lastDot > 0 ? name.substring(0, lastDot) : '';
-};
-
 const getLoaderPercentage = (entry: ClassLoaderInfo): number => {
   if (maxLoaderRetainedSize.value === 0) return 0;
   return (entry.retainedSize / maxLoaderRetainedSize.value) * 100;
-};
-
-const onTabChange = (_tabIndex: number, tab: { id: string; label: string; icon?: string }) => {
-  activeTab.value = tab.id;
 };
 
 const loadAnalysis = async () => {
@@ -540,26 +505,10 @@ onMounted(() => {
   padding: 2rem;
 }
 
-.class-info {
+.class-cell {
   display: flex;
-  align-items: baseline;
-  gap: 0.4rem;
-}
-
-.class-name {
-  font-size: 0.8rem;
-  font-weight: 600;
-  background-color: transparent;
-  color: var(--color-text);
-  white-space: nowrap;
-}
-
-.package-name {
-  font-size: 0.8rem;
-  color: var(--color-text-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  align-items: flex-start;
+  gap: 0.5rem;
 }
 
 .loader-names {

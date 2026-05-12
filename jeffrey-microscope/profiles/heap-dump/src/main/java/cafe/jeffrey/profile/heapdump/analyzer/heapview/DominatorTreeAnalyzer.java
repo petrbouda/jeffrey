@@ -67,6 +67,13 @@ public final class DominatorTreeAnalyzer {
 
         long totalHeapSize = view.totalShallowSize();
 
+        // "% of parent" is computed against the parent's own retained size, NOT the
+        // whole heap. For the virtual root the parent's "retained size" is the
+        // entire heap, so total_shallow_size is the right denominator at top level.
+        long parentRetainedSize = parentId == DominatorTreeBuilder.VIRTUAL_ROOT
+                ? totalHeapSize
+                : loadRetainedSize(view, parentId);
+
         // GC root kind lookup (for top-level nodes) cached in one query.
         Map<Long, Integer> rootKindByInstance = parentId == DominatorTreeBuilder.VIRTUAL_ROOT
                 ? loadGcRootKinds(view)
@@ -98,7 +105,9 @@ public final class DominatorTreeAnalyzer {
                     long shallow = rs.getInt(3);
                     long retained = rs.getLong(4);
                     boolean hasChildren = rs.getBoolean(5);
-                    double percent = totalHeapSize == 0 ? 0.0 : (retained * 100.0) / totalHeapSize;
+                    double percent = parentRetainedSize == 0
+                            ? 0.0
+                            : (retained * 100.0) / parentRetainedSize;
                     String rootKind = rootKindByInstance.containsKey(instanceId)
                             ? kindName(rootKindByInstance.get(instanceId))
                             : null;
@@ -119,6 +128,17 @@ public final class DominatorTreeAnalyzer {
         try (PreparedStatement stmt = view.connection().prepareStatement(
                 "SELECT COUNT(*) FROM dominator WHERE dominator_id = ?")) {
             stmt.setLong(1, parentId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                return rs.next() ? rs.getLong(1) : 0L;
+            }
+        }
+    }
+
+    /** Look up the retained-size bytes for a specific instance; 0 if not in the table. */
+    private static long loadRetainedSize(HeapView view, long instanceId) throws SQLException {
+        try (PreparedStatement stmt = view.connection().prepareStatement(
+                "SELECT bytes FROM retained_size WHERE instance_id = ?")) {
+            stmt.setLong(1, instanceId);
             try (ResultSet rs = stmt.executeQuery()) {
                 return rs.next() ? rs.getLong(1) : 0L;
             }

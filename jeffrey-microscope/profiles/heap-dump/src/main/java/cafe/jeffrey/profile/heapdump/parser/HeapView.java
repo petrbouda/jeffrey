@@ -157,8 +157,7 @@ public interface HeapView extends AutoCloseable {
     /**
      * Returns the raw on-disk content bytes for any instance — INSTANCE_DUMP
      * field block, OBJECT_ARRAY_DUMP element ids, or PRIMITIVE_ARRAY_DUMP
-     * payload. Used by content-hashing analyzers (e.g. DuplicateObjectAnalyzer).
-     * Requires an attached .hprof.
+     * payload. Requires an attached .hprof.
      */
     byte[] readInstanceContentBytes(long instanceId) throws SQLException;
 

@@ -20,36 +20,7 @@
   <div class="workspace-profiler-settings">
     <AsyncProfilerHelpPanel />
 
-    <div class="tab-bar">
-      <button
-        type="button"
-        :class="{ active: activeTab === 'current' }"
-        @click="activeTab = 'current'"
-      >
-        Current
-        <span
-          v-if="effectiveLevel !== 'none'"
-          class="tab-level-badge"
-          :class="`tab-level-${effectiveLevel}`"
-        >
-          {{ effectiveLevel === 'workspace' ? 'WORKSPACE' : 'GLOBAL' }}
-        </span>
-      </button>
-      <button
-        type="button"
-        :class="{ active: activeTab === 'builder' }"
-        @click="activeTab = 'builder'"
-      >
-        Visual Builder
-      </button>
-      <button
-        type="button"
-        :class="{ active: activeTab === 'manual' }"
-        @click="activeTab = 'manual'"
-      >
-        Manual
-      </button>
-    </div>
+    <TabBar v-model="activeTab" :tabs="settingsTabs" />
 
     <div class="tab-content">
       <template v-if="activeTab === 'current'">
@@ -244,6 +215,7 @@ import ConfigureCommand from '@/components/settings/ConfigureCommand.vue';
 import CommandBuilder from '@/components/settings/CommandBuilder.vue';
 import AsyncProfilerHelpPanel from '@/components/settings/AsyncProfilerHelpPanel.vue';
 import ConfirmationDialog from '@/components/ConfirmationDialog.vue';
+import TabBar, { type TabBarItem } from '@/components/TabBar.vue';
 import WorkspaceProfilerSettingsClient from '@/services/api/WorkspaceProfilerSettingsClient';
 import ToastService from '@/services/ToastService';
 
@@ -269,6 +241,17 @@ const effectiveLevel = computed<'workspace' | 'global' | 'none'>(() => {
   if (globalCommand.value) return 'global';
   return 'none';
 });
+
+const settingsTabs = computed<TabBarItem[]>(() => [
+  {
+    id: 'current',
+    label: 'Current',
+    badge: effectiveLevel.value === 'none' ? undefined : effectiveLevel.value === 'workspace' ? 'WORKSPACE' : 'GLOBAL',
+    badgeVariant: effectiveLevel.value === 'workspace' ? 'success' : 'info'
+  },
+  { id: 'builder', label: 'Visual Builder' },
+  { id: 'manual', label: 'Manual' }
+]);
 
 const builderRef = ref<InstanceType<typeof CommandBuilder> | null>(null);
 
@@ -485,29 +468,6 @@ const removeWorkspaceOverride = async () => {
 .btn-primary:disabled {
   opacity: 0.6;
   cursor: not-allowed;
-}
-
-.tab-bar {
-  display: flex;
-  border-bottom: 1px solid var(--color-border);
-}
-.tab-bar button {
-  padding: 9px 16px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--color-text-muted);
-  background: none;
-  border: none;
-  border-bottom: 2px solid transparent;
-  cursor: pointer;
-  transition: color 0.12s ease, border-color 0.12s ease;
-}
-.tab-bar button:hover {
-  color: var(--color-text);
-}
-.tab-bar button.active {
-  color: var(--color-primary);
-  border-bottom-color: var(--color-primary);
 }
 
 .tab-content {
@@ -795,26 +755,6 @@ const removeWorkspaceOverride = async () => {
 .btn-danger:disabled {
   opacity: 0.6;
   cursor: not-allowed;
-}
-
-.tab-level-badge {
-  font-size: 8.5px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  padding: 1px 5px;
-  border-radius: 999px;
-  margin-left: 6px;
-  text-transform: uppercase;
-}
-.tab-level-badge.tab-level-workspace {
-  background: var(--color-info-light);
-  color: var(--color-info);
-  border: 1px solid var(--color-info);
-}
-.tab-level-badge.tab-level-global {
-  background: var(--color-lighter);
-  color: var(--color-text-muted);
-  border: 1px solid var(--color-border);
 }
 
 .step-type-info {

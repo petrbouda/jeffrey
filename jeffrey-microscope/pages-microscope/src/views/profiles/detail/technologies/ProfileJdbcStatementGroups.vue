@@ -42,43 +42,43 @@
           />
 
           <!-- Tabbed Analysis -->
-          <ChartSectionWithTabs :tabs="groupDetailTabs" :full-width="true" id-prefix="jdbc-detail-">
-            <template #timeseries>
-              <div v-if="isStatementTimelineLoading" class="chart-loading">
-                <div class="spinner-border text-primary spinner-border-sm" role="status">
-                  <span class="visually-hidden">Loading...</span>
-                </div>
-                <span class="text-muted">Loading timeline data...</span>
+          <TabBar v-model="activeTab" :tabs="groupDetailTabs" class="mb-3" />
+
+          <div v-show="activeTab === 'timeseries'">
+            <div v-if="isStatementTimelineLoading" class="chart-loading">
+              <div class="spinner-border text-primary spinner-border-sm" role="status">
+                <span class="visually-hidden">Loading...</span>
               </div>
+              <span class="text-muted">Loading timeline data...</span>
+            </div>
 
-              <TimeSeriesChart
-                v-else
-                :primary-data="currentTimelinePrimaryData"
-                primary-title="Execution Time"
-                :secondary-data="currentTimelineSecondaryData"
-                secondary-title="Executions"
-                :visible-minutes="60"
-                :independentSecondaryAxis="true"
-                :primary-axis-type="AxisFormatType.DURATION_IN_NANOS"
-                :secondary-axis-type="AxisFormatType.NUMBER"
-              />
-            </template>
+            <TimeSeriesChart
+              v-else
+              :primary-data="currentTimelinePrimaryData"
+              primary-title="Execution Time"
+              :secondary-data="currentTimelineSecondaryData"
+              secondary-title="Executions"
+              :visible-minutes="60"
+              :independentSecondaryAxis="true"
+              :primary-axis-type="AxisFormatType.DURATION_IN_NANOS"
+              :secondary-axis-type="AxisFormatType.NUMBER"
+            />
+          </div>
 
-            <template #slowest>
-              <div v-if="isSlowestStatementsDataLoading" class="chart-loading">
-                <div class="spinner-border text-primary spinner-border-sm" role="status">
-                  <span class="visually-hidden">Loading...</span>
-                </div>
-                <span class="text-muted">Loading slowest statements...</span>
+          <div v-show="activeTab === 'slowest'">
+            <div v-if="isSlowestStatementsDataLoading" class="chart-loading">
+              <div class="spinner-border text-primary spinner-border-sm" role="status">
+                <span class="visually-hidden">Loading...</span>
               </div>
+              <span class="text-muted">Loading slowest statements...</span>
+            </div>
 
-              <JdbcSlowestStatements
-                v-else
-                :statements="currentSlowestStatements"
-                @sql-button-click="showSqlModal"
-              />
-            </template>
-          </ChartSectionWithTabs>
+            <JdbcSlowestStatements
+              v-else
+              :statements="currentSlowestStatements"
+              @sql-button-click="showSqlModal"
+            />
+          </div>
         </div>
 
         <!-- Group List -->
@@ -115,7 +115,7 @@ import DetailBreadcrumb from '@/components/DetailBreadcrumb.vue';
 import JdbcGroupList from '@/components/jdbc/JdbcGroupList.vue';
 import JdbcOverviewStats from '@/components/jdbc/JdbcOverviewStats.vue';
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
-import ChartSectionWithTabs from '@/components/ChartSectionWithTabs.vue';
+import TabBar from '@/components/TabBar.vue';
 import SearchableFilterBar from '@/components/form/SearchableFilterBar.vue';
 import JdbcStatementModal from '@/components/jdbc/JdbcStatementModal.vue';
 import JdbcSlowestStatements from '@/components/jdbc/JdbcSlowestStatements.vue';
@@ -178,6 +178,7 @@ const groupDetailTabs = [
   { id: 'timeseries', label: 'Metrics Timeline', icon: 'graph-up' },
   { id: 'slowest', label: 'Slowest Statements', icon: 'stopwatch' }
 ];
+const activeTab = ref(groupDetailTabs[0].id);
 
 // Statement name items normalized for SearchableFilterBar
 const statementNameItems = computed<FilterBarItem[]>(() => {

@@ -158,9 +158,9 @@ const profileChildRoutes = [
     meta: { layout: 'profile' }
   },
   {
-    path: 'heap-dump/oql',
-    name: 'profile-heap-dump-oql',
-    component: () => import('@/views/profiles/detail/ProfileHeapDumpOQL.vue'),
+    path: 'heap-dump/sql',
+    name: 'profile-heap-dump-sql',
+    component: () => import('@/views/profiles/detail/ProfileHeapDumpSql.vue'),
     meta: { layout: 'profile' }
   },
   {
@@ -209,12 +209,6 @@ const profileChildRoutes = [
     path: 'heap-dump/biggest-collections',
     name: 'profile-heap-dump-biggest-collections',
     component: () => import('@/views/profiles/detail/ProfileHeapDumpBiggestCollections.vue'),
-    meta: { layout: 'profile' }
-  },
-  {
-    path: 'heap-dump/duplicate-objects',
-    name: 'profile-heap-dump-duplicate-objects',
-    component: () => import('@/views/profiles/detail/ProfileHeapDumpDuplicateObjects.vue'),
     meta: { layout: 'profile' }
   },
   {

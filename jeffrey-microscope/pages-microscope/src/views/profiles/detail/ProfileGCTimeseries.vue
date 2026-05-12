@@ -15,16 +15,10 @@
     <GCMetricsStatsRow :profile-id="route.params.profileId as string" />
 
     <!-- GC Timeseries Section -->
-    <ChartSectionWithTabs
-      icon="graph-up"
-      :tabs="gcTimeseriesTabs"
-      :full-width="true"
-      id-prefix="gc-timeseries-"
-      @tab-change="onTimeseriesTabChange"
-      class="mb-4"
-    >
-      <!-- Count Tab -->
-      <template #count>
+    <TabBar v-model="activeTab" :tabs="gcTimeseriesTabs" class="mb-3" />
+
+    <!-- Count Tab -->
+    <div v-show="activeTab === 'count'">
         <div class="chart-description">
           <span class="chart-description-label">Shows:</span> Number of GC events per second
           <span class="chart-description-separator">|</span>
@@ -45,10 +39,10 @@
           tertiary-color="#EA4335"
           :stacked="true"
         />
-      </template>
+    </div>
 
-      <!-- Max Pause Tab -->
-      <template #max-pause>
+    <!-- Max Pause Tab -->
+    <div v-show="activeTab === 'max-pause'">
         <div class="chart-description">
           <span class="chart-description-label">Shows:</span> Longest single pause within each
           second
@@ -72,10 +66,10 @@
           tertiary-color="#EA4335"
           :stacked="true"
         />
-      </template>
+    </div>
 
-      <!-- Sum of Pauses Tab -->
-      <template #sum-pauses>
+    <!-- Sum of Pauses Tab -->
+    <div v-show="activeTab === 'sum-pauses'">
         <div class="chart-description">
           <span class="chart-description-label">Shows:</span> Total pause time per second
           <span class="chart-description-separator">|</span>
@@ -98,20 +92,19 @@
           tertiary-color="#EA4335"
           :stacked="true"
         />
-      </template>
-    </ChartSectionWithTabs>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import ErrorState from '@/components/ErrorState.vue';
-import ChartSectionWithTabs from '@/components/ChartSectionWithTabs.vue';
+import TabBar from '@/components/TabBar.vue';
 import GCMetricsStatsRow from '@/components/gc/GCMetricsStatsRow.vue';
 import ProfileGCClient from '@/services/api/ProfileGCClient';
 import GCTimeseriesType from '@/services/api/model/GCTimeseriesType';
@@ -133,6 +126,7 @@ const gcTimeseriesTabs = [
     type: GCTimeseriesType.SUM_OF_PAUSES
   }
 ];
+const activeTab = ref(gcTimeseriesTabs[0].id);
 
 // Timeseries data for Young, Old, and Full GC generations
 const youngGCData = ref<number[][]>([]);
@@ -143,28 +137,24 @@ const currentTimeseriesType = ref<GCTimeseriesType>(GCTimeseriesType.COUNT);
 // Client initialization - will be set after workspace/project IDs are available
 let client: ProfileGCClient;
 
-// Handle timeseries tab change
-const onTimeseriesTabChange = async (_tabIndex: number, tab: any) => {
-  if (tab.type) {
-    currentTimeseriesType.value = tab.type;
-    try {
-      // Initialize client if needed
-      if (!client) {
-        client = new ProfileGCClient(route.params.profileId as string);
-      }
-
-      // Load new timeseries data for the selected type
-      const timeseriesData = await client.getTimeseries(tab.type);
-      // Extract Young GC (first series), Old GC (second series), and Full GC (third series)
-      youngGCData.value = timeseriesData.series?.[0]?.data ?? [];
-      oldGCData.value = timeseriesData.series?.[1]?.data ?? [];
-      fullGCData.value = timeseriesData.series?.[2]?.data ?? [];
-    } catch (err) {
-      console.error('Error loading timeseries data:', err);
-      error.value = 'Failed to load timeseries data';
+// Reload timeseries data when the user switches tab.
+watch(activeTab, async newId => {
+  const tab = gcTimeseriesTabs.find(t => t.id === newId);
+  if (!tab?.type) return;
+  currentTimeseriesType.value = tab.type;
+  try {
+    if (!client) {
+      client = new ProfileGCClient(route.params.profileId as string);
     }
+    const timeseriesData = await client.getTimeseries(tab.type);
+    youngGCData.value = timeseriesData.series?.[0]?.data ?? [];
+    oldGCData.value = timeseriesData.series?.[1]?.data ?? [];
+    fullGCData.value = timeseriesData.series?.[2]?.data ?? [];
+  } catch (err) {
+    console.error('Error loading timeseries data:', err);
+    error.value = 'Failed to load timeseries data';
   }
-};
+});
 
 // Load timeseries data from API
 const loadTimeseriesData = async () => {

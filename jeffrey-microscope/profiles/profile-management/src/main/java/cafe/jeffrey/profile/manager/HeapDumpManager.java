@@ -33,7 +33,6 @@ import cafe.jeffrey.profile.heapdump.model.InstanceDetail;
 import cafe.jeffrey.profile.heapdump.model.InstanceTreeResponse;
 import cafe.jeffrey.profile.heapdump.model.BiggestCollectionsReport;
 import cafe.jeffrey.profile.heapdump.model.BiggestObjectsReport;
-import cafe.jeffrey.profile.heapdump.model.DuplicateObjectsReport;
 import cafe.jeffrey.profile.heapdump.model.LeakSuspectsReport;
 import cafe.jeffrey.profile.heapdump.model.OQLQueryRequest;
 import cafe.jeffrey.profile.heapdump.model.OQLQueryResult;
@@ -374,25 +373,6 @@ public interface HeapDumpManager {
      * @param topN number of biggest objects to include
      */
     void runBiggestObjects(int topN);
-
-    // --- Duplicate Objects ---
-
-    /**
-     * Check if duplicate objects analysis results exist for this profile.
-     */
-    boolean duplicateObjectsExists();
-
-    /**
-     * Get the pre-computed duplicate objects report.
-     */
-    DuplicateObjectsReport getDuplicateObjects();
-
-    /**
-     * Run duplicate objects analysis and save results to JSON file.
-     *
-     * @param topN number of top duplicate groups to include
-     */
-    void runDuplicateObjects(int topN);
 
     // --- Biggest Collections ---
 

@@ -22,6 +22,14 @@
     >
       <i class="bi bi-signpost-2"></i>
     </button>
+    <button
+      v-if="showInstanceDetail"
+      class="btn btn-action"
+      title="Show Instance Details"
+      @click="$emit('showInstanceDetail', objectId)"
+    >
+      <i class="bi bi-info-circle"></i>
+    </button>
   </div>
 </template>
 
@@ -29,28 +37,33 @@
 interface Props {
   objectId: number | null;
   showGcRootPath?: boolean;
+  showInstanceDetail?: boolean;
 }
 
 withDefaults(defineProps<Props>(), {
-  showGcRootPath: true
+  showGcRootPath: true,
+  showInstanceDetail: false
 });
 
 defineEmits<{
   showReferrers: [objectId: number];
   showReachables: [objectId: number];
   showGCRootPath: [objectId: number];
+  showInstanceDetail: [objectId: number];
 }>();
 </script>
 
 <style scoped>
 .instance-action-buttons {
   display: inline-flex;
-  gap: 0.125rem;
-  margin-left: 0.25rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.15rem;
+  max-width: 100%;
 }
 
 .btn-action {
-  padding: 0.2rem 0.4rem;
+  padding: 0.25rem 0.35rem;
   font-size: 0.7rem;
   line-height: 1;
   border: none;
@@ -66,6 +79,6 @@ defineEmits<{
 }
 
 .btn-action i {
-  font-size: 0.9rem;
+  font-size: 1rem;
 }
 </style>

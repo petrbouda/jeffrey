@@ -188,8 +188,8 @@ const folderStructure = `$JEFFREY_HOME/
         />
         <DocsFeatureCard
           icon="bi bi-collection"
-          title="Biggest Collections & Duplicates"
-          description="Find the largest collections by size and detect duplicate objects wasting memory across the heap."
+          title="Biggest Collections"
+          description="Find the largest collections by size, capacity, and fill ratio — surface over-allocated maps and lists that waste memory."
         />
         <DocsFeatureCard
           icon="bi bi-fonts"

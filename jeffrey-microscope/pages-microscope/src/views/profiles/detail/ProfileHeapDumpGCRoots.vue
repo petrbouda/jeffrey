@@ -34,26 +34,22 @@
       <StatsTable :metrics="summaryMetrics" class="mb-4" />
 
       <!-- Tabbed Content Section -->
-      <ChartSectionWithTabs
-        icon="diagram-3"
-        :tabs="analysisTabs"
-        :full-width="true"
-        id-prefix="gcroots-"
-      >
-        <!-- Overview Tab -->
-        <template #overview>
-          <DualPanel left-title="Root Type Distribution" embedded>
-            <template #left>
-              <DonutWithLegend
-                :data="rootTypeChartData"
-                :tooltip-formatter="(val: number) => FormattingService.formatNumber(val) + ' roots'"
-              />
-            </template>
-          </DualPanel>
-        </template>
+      <TabBar v-model="activeTab" :tabs="analysisTabs" class="mb-3" />
 
-        <!-- About Tab -->
-        <template #about>
+      <!-- Overview Tab -->
+      <div v-show="activeTab === 'overview'">
+        <DualPanel left-title="Root Type Distribution">
+          <template #left>
+            <DonutWithLegend
+              :data="rootTypeChartData"
+              :tooltip-formatter="(val: number) => FormattingService.formatNumber(val) + ' roots'"
+            />
+          </template>
+        </DualPanel>
+      </div>
+
+      <!-- About Tab -->
+      <div v-show="activeTab === 'about'">
           <div class="about-container">
             <!-- Header Section -->
             <div class="about-header">
@@ -257,8 +253,7 @@
               </div>
             </div>
           </div>
-        </template>
-      </ChartSectionWithTabs>
+      </div>
     </div>
   </div>
 </template>
@@ -272,7 +267,7 @@ import LoadingState from '@/components/LoadingState.vue';
 import ErrorState from '@/components/ErrorState.vue';
 import StatsTable from '@/components/StatsTable.vue';
 import HeapDumpNotInitialized from '@/components/HeapDumpNotInitialized.vue';
-import ChartSectionWithTabs from '@/components/ChartSectionWithTabs.vue';
+import TabBar from '@/components/TabBar.vue';
 import DualPanel from '@/components/DualPanel.vue';
 import DonutWithLegend from '@/components/DonutWithLegend.vue';
 import type { DonutChartData } from '@/components/DonutWithLegend.vue';
@@ -308,6 +303,7 @@ const analysisTabs = [
   { id: 'overview', label: 'Overview', icon: 'pie-chart' },
   { id: 'about', label: 'How It Works', icon: 'info-circle' }
 ];
+const activeTab = ref(analysisTabs[0].id);
 
 // Computed metrics for StatsTable
 const summaryMetrics = computed(() => {

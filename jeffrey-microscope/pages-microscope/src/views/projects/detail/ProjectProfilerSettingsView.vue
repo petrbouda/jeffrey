@@ -27,20 +27,7 @@
       </CommandDisplay>
 
       <!-- Tab Bar -->
-      <div class="tab-bar">
-        <button
-          :class="['tab-item', { 'tab-item--active': activeTab === 'manual' }]"
-          @click="activeTab = 'manual'"
-        >
-          Manual
-        </button>
-        <button
-          :class="['tab-item', { 'tab-item--active': activeTab === 'builder' }]"
-          @click="activeTab = 'builder'"
-        >
-          Visual Builder
-        </button>
-      </div>
+      <TabBar v-model="activeTab" :tabs="builderTabs" />
 
       <!-- Tab Content -->
       <div class="tab-content">
@@ -68,6 +55,7 @@ import ProjectProfilerClient from '@/services/api/ProjectProfilerClient';
 import ToastService from '@/services/ToastService';
 import MainCard from '@/components/MainCard.vue';
 import MainCardHeader from '@/components/MainCardHeader.vue';
+import TabBar, { type TabBarItem } from '@/components/TabBar.vue';
 import ConfigureCommand from '@/components/settings/ConfigureCommand.vue';
 import CommandBuilder from '@/components/settings/CommandBuilder.vue';
 import CommandDisplay from '@/components/settings/CommandDisplay.vue';
@@ -82,6 +70,11 @@ const profilerClient = new ProjectProfilerClient(serverId.value, workspaceId.val
 const isLoading = ref(true);
 const isDeleting = ref(false);
 const activeTab = ref<'manual' | 'builder'>('manual');
+
+const builderTabs: TabBarItem[] = [
+  { id: 'manual', label: 'Manual' },
+  { id: 'builder', label: 'Visual Builder' }
+];
 const newCommand = ref('');
 
 // Effective settings from backend (already resolved from hierarchy)
@@ -185,35 +178,6 @@ onMounted(() => {
   align-items: center;
   padding: 3rem;
   color: var(--color-text-muted);
-}
-
-/* Tab Bar */
-.tab-bar {
-  display: flex;
-  border-bottom: 1px solid var(--color-border);
-  padding: 0;
-  margin-top: 16px;
-}
-
-.tab-item {
-  padding: 10px 20px;
-  font-size: var(--font-size-base);
-  font-weight: 600;
-  color: var(--color-text-muted);
-  background: none;
-  border: none;
-  border-bottom: 2px solid transparent;
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.tab-item:hover {
-  color: var(--color-text);
-}
-
-.tab-item--active {
-  color: var(--color-primary);
-  border-bottom-color: var(--color-primary);
 }
 
 /* Tab Content */

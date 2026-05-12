@@ -843,13 +843,13 @@
                       <span>AI Analysis</span>
                     </router-link>
                     <router-link
-                      :to="`/profiles/${profileId}/heap-dump/oql`"
+                      :to="`/profiles/${profileId}/heap-dump/sql`"
                       class="nav-item"
                       :class="{ 'disabled-feature': isFeatureDisabled('heap-dump') }"
                       active-class="active"
                     >
                       <i class="bi bi-terminal"></i>
-                      <span>OQL Query</span>
+                      <span>SQL Query</span>
                     </router-link>
                   </div>
                 </div>
@@ -919,15 +919,6 @@
                     >
                       <i class="bi bi-collection-fill"></i>
                       <span>Biggest Collections</span>
-                    </router-link>
-                    <router-link
-                      :to="`/profiles/${profileId}/heap-dump/duplicate-objects`"
-                      class="nav-item"
-                      :class="{ 'disabled-feature': isFeatureDisabled('heap-dump') }"
-                      active-class="active"
-                    >
-                      <i class="bi bi-copy"></i>
-                      <span>Duplicated Objects</span>
                     </router-link>
                     <router-link
                       :to="`/profiles/${profileId}/heap-dump/string-analysis`"

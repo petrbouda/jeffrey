@@ -393,8 +393,7 @@ const STAGE_IDS: string[] = [
   'collections',
   'leaks',
   'classloaders',
-  'biggest-collections',
-  'duplicates'
+  'biggest-collections'
 ];
 
 const initialStatus = (_id: string): ProcessingStep['status'] => 'pending';
@@ -594,11 +593,6 @@ const processHeapDump = async () => {
     startStep('biggest-collections');
     await client.runBiggestCollections(50);
     completeStep('biggest-collections');
-
-    // Step 12: Duplicated Objects.
-    startStep('duplicates');
-    await client.runDuplicateObjects(100);
-    completeStep('duplicates');
 
     cacheReady.value = true;
     MessageBus.emit(MessageBus.HEAP_DUMP_STATUS_CHANGED, true);

@@ -61,7 +61,7 @@
       </template>
           <thead>
             <tr>
-              <th style="width: 50px">#</th>
+              <th style="width: 40px">#</th>
               <th>Class Name</th>
               <SortableTableHeader
                 column="COUNT"
@@ -88,10 +88,7 @@
             <tr v-for="(entry, index) in histogramData" :key="entry.className">
               <td class="text-muted">{{ index + 1 }}</td>
               <td>
-                <div class="class-info">
-                  <code class="class-name">{{ simpleClassName(entry.className) }}</code>
-                  <span class="package-name">{{ packageName(entry.className) }}</span>
-                </div>
+                <ClassNameDisplay :class-name="entry.className" />
               </td>
               <td class="text-end font-monospace">
                 {{ FormattingService.formatNumber(entry.instanceCount) }}
@@ -130,6 +127,7 @@ import LoadingState from '@/components/LoadingState.vue';
 import ErrorState from '@/components/ErrorState.vue';
 import StatsTable from '@/components/StatsTable.vue';
 import HeapDumpNotInitialized from '@/components/HeapDumpNotInitialized.vue';
+import ClassNameDisplay from '@/components/heap/ClassNameDisplay.vue';
 import SortableTableHeader from '@/components/table/SortableTableHeader.vue';
 import DataTable from '@/components/table/DataTable.vue';
 import TableToolbar from '@/components/table/TableToolbar.vue';
@@ -203,16 +201,6 @@ const getDistributionPercentage = (entry: ClassHistogramEntry): number => {
   return (entry.totalSize / maxValue.value) * 100;
 };
 
-const simpleClassName = (name: string): string => {
-  const lastDot = name.lastIndexOf('.');
-  return lastDot > 0 ? name.substring(lastDot + 1) : name;
-};
-
-const packageName = (name: string): string => {
-  const lastDot = name.lastIndexOf('.');
-  return lastDot > 0 ? name.substring(0, lastDot) : '';
-};
-
 const loadHistogram = async () => {
   try {
     histogramData.value = await client.getHistogram(histogramTopN.value, histogramSortBy.value);
@@ -279,28 +267,6 @@ onMounted(() => {
 <style scoped>
 .no-heap-dump {
   padding: 2rem;
-}
-
-.class-info {
-  display: flex;
-  align-items: baseline;
-  gap: 0.4rem;
-}
-
-.class-name {
-  font-size: 0.8rem;
-  font-weight: 600;
-  background-color: transparent;
-  color: var(--color-text);
-  white-space: nowrap;
-}
-
-.package-name {
-  font-size: 0.8rem;
-  color: var(--color-text-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .toolbar-info {

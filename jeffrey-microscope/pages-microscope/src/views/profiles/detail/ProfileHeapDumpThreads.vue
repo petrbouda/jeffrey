@@ -60,7 +60,7 @@
         </template>
             <thead>
               <tr>
-                <th style="width: 50px">#</th>
+                <th style="width: 40px">#</th>
                 <th>Thread</th>
                 <th style="width: 36px"></th>
               </tr>
@@ -205,6 +205,7 @@
                             <div
                               v-if="packageName(stackFrames[selectedFrameIndex].className)"
                               class="sig-package"
+                              :class="isJdkPackage(packageName(stackFrames[selectedFrameIndex].className)) ? 'sig-pkg-jdk' : 'sig-pkg-other'"
                             >{{ packageName(stackFrames[selectedFrameIndex].className) }}</div>
                             <div class="meta-line">
                               <span
@@ -258,13 +259,7 @@
                                   :key="local.objectId"
                                   class="local-row"
                                 >
-                                  <div class="local-class">
-                                    <div class="cls">{{ simpleClassName(local.className) }}</div>
-                                    <div
-                                      v-if="packageName(local.className)"
-                                      class="pkg"
-                                    >{{ packageName(local.className) }}</div>
-                                  </div>
+                                  <ClassNameDisplay :class-name="local.className" />
                                   <div class="local-size">
                                     {{ FormattingService.formatBytes(local.shallowSize) }}
                                   </div>
@@ -334,6 +329,7 @@ import LoadingState from '@/components/LoadingState.vue';
 import ErrorState from '@/components/ErrorState.vue';
 import StatsTable from '@/components/StatsTable.vue';
 import HeapDumpNotInitialized from '@/components/HeapDumpNotInitialized.vue';
+import ClassNameDisplay from '@/components/heap/ClassNameDisplay.vue';
 import InstanceTreeModal from '@/components/heap/InstanceTreeModal.vue';
 import InstanceActionButtons from '@/components/heap/InstanceActionButtons.vue';
 import Badge from '@/components/Badge.vue';
@@ -344,6 +340,7 @@ import '@/styles/shared-components.css';
 import HeapThreadInfo from '@/services/api/model/HeapThreadInfo';
 import type ThreadStackFrame from '@/services/api/model/ThreadStackFrame';
 import FormattingService from '@/services/FormattingService';
+import { isJdkPackage } from '@/services/JavaPackage';
 
 const route = useRoute();
 
@@ -1003,8 +1000,9 @@ onMounted(() => {
   cursor: not-allowed;
 }
 
-/* Class.method() on the first line, package on the second (Biggest Collections
-   "owner" style — purple italic — for visual consistency across heap pages). */
+/* Class.method() on the first line, package on the second — coloured by the
+   two-tone rule used in ClassNameDisplay (blue for JDK, dark green for user /
+   third-party). */
 .signature {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 0.9rem;
@@ -1024,10 +1022,15 @@ onMounted(() => {
 .sig-package {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 0.78rem;
-  color: var(--color-purple);
-  font-style: italic;
+  font-weight: 500;
   line-height: 1.3;
   margin-bottom: 0.625rem;
+}
+.sig-pkg-jdk {
+  color: var(--color-primary);
+}
+.sig-pkg-other {
+  color: var(--color-green-text);
 }
 
 /* Meta line: source file (muted) + Badge components for Retained / Locals */
@@ -1109,19 +1112,6 @@ onMounted(() => {
 }
 .local-row:hover {
   background: var(--color-light);
-}
-.local-class .cls {
-  color: var(--color-text);
-  font-weight: 600;
-  font-size: 0.84rem;
-  line-height: 1.3;
-}
-.local-class .pkg {
-  color: var(--color-purple);
-  font-style: italic;
-  font-size: 0.72rem;
-  line-height: 1.3;
-  margin-top: 1px;
 }
 .local-size {
   text-align: right;

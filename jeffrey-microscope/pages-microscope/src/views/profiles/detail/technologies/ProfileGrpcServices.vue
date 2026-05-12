@@ -37,39 +37,39 @@
       <div v-if="selectedServiceForDetail && serviceDetailData" class="dashboard-container">
         <StatsTable :metrics="serviceMetricsData" class="mb-4" />
 
-        <ChartSectionWithTabs :tabs="serviceTabs" :full-width="true" id-prefix="grpc-service-">
-          <template #timeseries>
-            <TimeSeriesChart
-              :primary-data="serviceDetailData.responseTimeSerie.data"
-              primary-title="Response Time"
-              :secondary-data="serviceDetailData.callCountSerie.data"
-              secondary-title="Call Count"
-              :visible-minutes="60"
-              :independentSecondaryAxis="true"
-              :primary-axis-type="AxisFormatType.DURATION_IN_NANOS"
-              :secondary-axis-type="AxisFormatType.NUMBER"
-            />
-          </template>
+        <TabBar v-model="activeTab" :tabs="serviceTabs" class="mb-3" />
 
-          <template #distribution>
-            <DualPanel left-title="Status Code Distribution" embedded>
-              <template #left>
-                <DonutWithLegend
-                  :data="statusCodeChartData"
-                  :tooltip-formatter="(val: number) => val + ' calls'"
-                />
-              </template>
-            </DualPanel>
-          </template>
+        <div v-show="activeTab === 'timeseries'">
+          <TimeSeriesChart
+            :primary-data="serviceDetailData.responseTimeSerie.data"
+            primary-title="Response Time"
+            :secondary-data="serviceDetailData.callCountSerie.data"
+            secondary-title="Call Count"
+            :visible-minutes="60"
+            :independentSecondaryAxis="true"
+            :primary-axis-type="AxisFormatType.DURATION_IN_NANOS"
+            :secondary-axis-type="AxisFormatType.NUMBER"
+          />
+        </div>
 
-          <template #slowest>
-            <GrpcSlowestCalls
-              :calls="slowestCalls"
-              :total-call-count="serviceDetailData.header.callCount || 0"
-              :max-displayed="20"
-            />
-          </template>
-        </ChartSectionWithTabs>
+        <div v-show="activeTab === 'distribution'">
+          <DualPanel left-title="Status Code Distribution" embedded>
+            <template #left>
+              <DonutWithLegend
+                :data="statusCodeChartData"
+                :tooltip-formatter="(val: number) => val + ' calls'"
+              />
+            </template>
+          </DualPanel>
+        </div>
+
+        <div v-show="activeTab === 'slowest'">
+          <GrpcSlowestCalls
+            :calls="slowestCalls"
+            :total-call-count="serviceDetailData.header.callCount || 0"
+            :max-displayed="20"
+          />
+        </div>
       </div>
 
       <!-- Service List -->
@@ -95,7 +95,7 @@ import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import DetailBreadcrumb from '@/components/DetailBreadcrumb.vue';
 import GrpcOverviewStats from '@/components/grpc/GrpcOverviewStats.vue';
-import ChartSectionWithTabs from '@/components/ChartSectionWithTabs.vue';
+import TabBar from '@/components/TabBar.vue';
 import StatsTable from '@/components/StatsTable.vue';
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
 import AxisFormatType from '@/services/timeseries/AxisFormatType';
@@ -131,6 +131,7 @@ const serviceTabs = [
   { id: 'distribution', label: 'Distribution', icon: 'pie-chart' },
   { id: 'slowest', label: 'Slowest Calls', icon: 'clock-history' }
 ];
+const activeTab = ref(serviceTabs[0].id);
 
 // Reactive state
 const grpcOverviewData = ref<GrpcOverviewData | null>(null);

@@ -15,22 +15,17 @@
     <GCMetricsStatsRow :profile-id="route.params.profileId as string" />
 
     <!-- GC Analysis Section -->
-    <ChartSectionWithTabs
-      icon="recycle"
-      :tabs="gcTabs"
-      :full-width="true"
-      id-prefix="gc-"
-      @tab-change="onTabChange"
-    >
-      <!-- Pause Distribution Tab -->
-      <template #distribution>
-        <div class="chart-container">
-          <div id="gc-pause-distribution-chart"></div>
-        </div>
-      </template>
+    <TabBar v-model="activeTab" :tabs="gcTabs" class="mb-3" />
 
-      <!-- GC Efficiency Tab -->
-      <template #efficiency>
+    <!-- Pause Distribution Tab -->
+    <div v-show="activeTab === 'distribution'">
+      <div class="chart-container">
+        <div id="gc-pause-distribution-chart"></div>
+      </div>
+    </div>
+
+    <!-- GC Efficiency Tab -->
+    <div v-show="activeTab === 'efficiency'">
         <div v-if="gcSummary" class="row">
           <div class="col-md-6">
             <div class="chart-container">
@@ -69,10 +64,10 @@
             </div>
           </div>
         </div>
-      </template>
+    </div>
 
-      <!-- Longest Pauses Tab -->
-      <template #events>
+    <!-- Longest Pauses Tab -->
+    <div v-show="activeTab === 'events'">
         <EmptyState
           v-if="!gcOverviewData?.longestPauses || gcOverviewData.longestPauses.length === 0"
           icon="bi-recycle"
@@ -159,10 +154,10 @@
                 </tr>
               </tbody>
         </DataTable>
-      </template>
+    </div>
 
-      <!-- Concurrent Cycles Tab -->
-      <template #concurrent-cycles>
+    <!-- Concurrent Cycles Tab -->
+    <div v-show="activeTab === 'concurrent-cycles'">
         <div v-if="!gcOverviewData?.longestConcurrentEvents" class="alert alert-info">
           <i class="bi bi-info-circle me-2"></i>
           This garbage collector does not support concurrent cycles
@@ -205,10 +200,10 @@
                 </tr>
               </tbody>
         </DataTable>
-      </template>
+    </div>
 
-      <!-- Pause Types Reference Tab -->
-      <template #pause-types>
+    <!-- Pause Types Reference Tab -->
+    <div v-show="activeTab === 'pause-types'">
         <p class="pause-types-intro text-muted">
           Reference for every GC cause the JVM may emit via Java Flight Recorder. Filter by name or
           category to look up an unfamiliar cause from the
@@ -290,8 +285,7 @@
             </tbody>
           </table>
         </div>
-      </template>
-    </ChartSectionWithTabs>
+    </div>
 
     <!-- GC Event Details Modal -->
     <GCEventDetailsModal
@@ -312,14 +306,14 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue';
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import ApexCharts from 'apexcharts';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import GCMetricsStatsRow from '@/components/gc/GCMetricsStatsRow.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import ErrorState from '@/components/ErrorState.vue';
-import ChartSectionWithTabs from '@/components/ChartSectionWithTabs.vue';
+import TabBar from '@/components/TabBar.vue';
 import EmptyState from '@/components/EmptyState.vue';
 import Badge from '@/components/Badge.vue';
 import DataTable from '@/components/table/DataTable.vue';
@@ -357,6 +351,7 @@ const gcTabs = [
   { id: 'concurrent-cycles', label: 'Concurrent Cycles', icon: 'layers' },
   { id: 'pause-types', label: 'Pause Types', icon: 'info-circle' }
 ];
+const activeTab = ref(gcTabs[0].id);
 
 // Pause Types tab — searchable, category-chip-filterable list of every GC cause
 // the JVM can emit. Descriptions come from the shared map, so the per-event tooltip
@@ -715,17 +710,14 @@ const createEfficiencyChart = async () => {
   efficiencyChart.render();
 };
 
-// Handle tab change
-const onTabChange = (_tabIndex: number, tab: any) => {
-  // When switching to distribution or efficiency tabs, ensure charts are rendered
-  if (tab.id === 'distribution' || tab.id === 'efficiency') {
-    if (tab.id === 'distribution') {
-      createDistributionChart();
-    } else if (tab.id === 'efficiency') {
-      createEfficiencyChart();
-    }
+// Re-render the relevant chart when the user switches into a chart-backed tab.
+watch(activeTab, newId => {
+  if (newId === 'distribution') {
+    createDistributionChart();
+  } else if (newId === 'efficiency') {
+    createEfficiencyChart();
   }
-};
+});
 
 // Load data on component mount
 // Load GC data from API

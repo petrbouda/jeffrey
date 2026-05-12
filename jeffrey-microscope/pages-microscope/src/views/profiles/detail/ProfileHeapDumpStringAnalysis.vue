@@ -40,15 +40,10 @@
     <StatsTable :metrics="summaryMetrics" class="mb-4" />
 
     <!-- Tabbed Analysis Section -->
-    <ChartSectionWithTabs
-      icon="fonts"
-      :tabs="analysisTabs"
-      :full-width="true"
-      id-prefix="string-"
-      @tab-change="onTabChange"
-    >
-      <!-- Overview Tab -->
-      <template #overview>
+    <TabBar v-model="activeTab" :tabs="analysisTabs" class="mb-3" />
+
+    <!-- Overview Tab -->
+    <div v-show="activeTab === 'overview'">
         <DualPanel v-if="report" left-title="Memory Status" right-title="String Array Sharing">
           <template #left>
             <DonutWithLegend
@@ -63,10 +58,10 @@
             />
           </template>
         </DualPanel>
-      </template>
+    </div>
 
-      <!-- Deduplicated Tab -->
-      <template #deduplicated>
+    <!-- Deduplicated Tab -->
+    <div v-show="activeTab === 'deduplicated'">
         <div v-if="report && report.alreadyDeduplicated.length > 0">
           <DataTable>
             <template #toolbar>
@@ -76,7 +71,7 @@
             </template>
                 <thead>
                   <tr>
-                    <th style="width: 50px">#</th>
+                    <th style="width: 40px">#</th>
                     <SortableTableHeader
                       column="content"
                       label="Content"
@@ -151,10 +146,10 @@
           <p>No deduplicated strings found in this heap dump.</p>
           <small>String deduplication is not active or no strings are being shared.</small>
         </div>
-      </template>
+    </div>
 
-      <!-- Opportunities Tab -->
-      <template #opportunities>
+    <!-- Opportunities Tab -->
+    <div v-show="activeTab === 'opportunities'">
         <div v-if="report && report.opportunities.length > 0">
           <DataTable>
             <template #toolbar>
@@ -164,7 +159,7 @@
             </template>
                 <thead>
                   <tr>
-                    <th style="width: 50px">#</th>
+                    <th style="width: 40px">#</th>
                     <SortableTableHeader
                       column="content"
                       label="Content"
@@ -239,10 +234,10 @@
           <p>No deduplication opportunities found!</p>
           <small>All duplicate strings are already deduplicated or there are no duplicates.</small>
         </div>
-      </template>
+    </div>
 
-      <!-- JVM Configuration Tab -->
-      <template #jvm-config>
+    <!-- JVM Configuration Tab -->
+    <div v-show="activeTab === 'jvm-config'">
         <div v-if="report?.jvmFlags && report.jvmFlags.length > 0">
           <DataTable>
                 <thead>
@@ -272,10 +267,10 @@
           <p>No JVM flags information available.</p>
           <small>JVM flag data was not found in the JFR recording.</small>
         </div>
-      </template>
+    </div>
 
-      <!-- About Tab -->
-      <template #about>
+    <!-- About Tab -->
+    <div v-show="activeTab === 'about'">
         <div class="about-container">
           <!-- Header Section -->
           <div class="about-header">
@@ -459,8 +454,7 @@
             </div>
           </div>
         </div>
-      </template>
-    </ChartSectionWithTabs>
+    </div>
   </div>
 </template>
 
@@ -473,7 +467,7 @@ import LoadingState from '@/components/LoadingState.vue';
 import ErrorState from '@/components/ErrorState.vue';
 import StatsTable from '@/components/StatsTable.vue';
 import HeapDumpNotInitialized from '@/components/HeapDumpNotInitialized.vue';
-import ChartSectionWithTabs from '@/components/ChartSectionWithTabs.vue';
+import TabBar from '@/components/TabBar.vue';
 import SortableTableHeader from '@/components/table/SortableTableHeader.vue';
 import DataTable from '@/components/table/DataTable.vue';
 import TableToolbar from '@/components/table/TableToolbar.vue';
@@ -695,10 +689,6 @@ const getFlagValueClass = (flag: JvmStringFlag): string => {
     return flag.value === 'true' ? 'badge bg-success' : 'badge bg-secondary';
   }
   return 'font-monospace';
-};
-
-const onTabChange = (_tabIndex: number, tab: { id: string; label: string; icon?: string }) => {
-  activeTab.value = tab.id;
 };
 
 const loadAnalysis = async () => {

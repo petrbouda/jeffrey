@@ -37,7 +37,6 @@ import BiggestObjectsReport from '@/services/api/model/BiggestObjectsReport';
 import BiggestCollectionsReport from '@/services/api/model/BiggestCollectionsReport';
 import HeapDumpConfig from '@/services/api/model/HeapDumpConfig';
 import type InitPipelineResult from '@/services/api/model/InitPipelineResult';
-import type DuplicateObjectsReport from '@/services/api/model/DuplicateObjectsReport';
 import type ClassLoaderReport from '@/services/api/model/ClassLoaderReport';
 import type ThreadStackFrame from '@/services/api/model/ThreadStackFrame';
 
@@ -268,20 +267,6 @@ export default class HeapDumpClient extends BaseProfileClient {
 
   public runBiggestCollections(topN: number = 50): Promise<void> {
     return this.post<void>(`/biggest-collections/run?topN=${topN}`, {});
-  }
-
-  // --- Duplicate Objects ---
-
-  public duplicateObjectsExists(): Promise<boolean> {
-    return this.get<boolean>('/duplicate-objects/exists');
-  }
-
-  public getDuplicateObjects(): Promise<DuplicateObjectsReport> {
-    return this.get<DuplicateObjectsReport>('/duplicate-objects');
-  }
-
-  public runDuplicateObjects(topN: number = 100): Promise<void> {
-    return this.post<void>(`/duplicate-objects/run?topN=${topN}`, {});
   }
 
   // --- Class Loader Analysis ---

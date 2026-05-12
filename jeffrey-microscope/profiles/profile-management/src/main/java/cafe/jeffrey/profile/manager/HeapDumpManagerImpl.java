@@ -30,7 +30,6 @@ import cafe.jeffrey.profile.heapdump.analyzer.heapview.ClassLoaderLeakChainAnaly
 import cafe.jeffrey.profile.heapdump.analyzer.heapview.CollectionAnalyzer;
 import cafe.jeffrey.profile.heapdump.analyzer.heapview.ConsumerReportAnalyzer;
 import cafe.jeffrey.profile.heapdump.analyzer.heapview.DominatorTreeAnalyzer;
-import cafe.jeffrey.profile.heapdump.analyzer.heapview.DuplicateObjectAnalyzer;
 import cafe.jeffrey.profile.heapdump.analyzer.heapview.GcRootAnalyzer;
 import cafe.jeffrey.profile.heapdump.analyzer.heapview.HeapSummaryAnalyzer;
 import cafe.jeffrey.profile.heapdump.analyzer.heapview.InstanceDetailAnalyzer;
@@ -50,7 +49,6 @@ import cafe.jeffrey.profile.heapdump.model.ClassLoaderReport;
 import cafe.jeffrey.profile.heapdump.model.CollectionAnalysisReport;
 import cafe.jeffrey.profile.heapdump.model.ConsumerReport;
 import cafe.jeffrey.profile.heapdump.model.DominatorTreeResponse;
-import cafe.jeffrey.profile.heapdump.model.DuplicateObjectsReport;
 import cafe.jeffrey.profile.heapdump.model.GCRootPath;
 import cafe.jeffrey.profile.heapdump.model.GCRootSummary;
 import cafe.jeffrey.profile.heapdump.model.HeapDumpConfig;
@@ -64,6 +62,7 @@ import cafe.jeffrey.profile.heapdump.model.JvmStringFlag;
 import cafe.jeffrey.profile.heapdump.model.LeakSuspectsReport;
 import cafe.jeffrey.profile.heapdump.model.OQLQueryRequest;
 import cafe.jeffrey.profile.heapdump.model.OQLQueryResult;
+import cafe.jeffrey.profile.heapdump.model.OQLResultEntry;
 import cafe.jeffrey.profile.heapdump.model.SortBy;
 import cafe.jeffrey.profile.heapdump.model.StringAnalysisReport;
 import cafe.jeffrey.profile.heapdump.model.ThreadAnalysisReport;
@@ -82,16 +81,25 @@ import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
 import cafe.jeffrey.shared.common.model.repository.FileExtensions;
 
+import cafe.jeffrey.shared.common.measure.Measuring;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.time.Clock;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.regex.Pattern;
 
 /**
  * Implementation of HeapDumpManager on the native parser path
@@ -118,7 +126,6 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
     private static final String COLLECTION_ANALYSIS_FILE = "collection-analysis.json";
     private static final String BIGGEST_OBJECTS_FILE = "biggest-objects.json";
     private static final String LEAK_SUSPECTS_FILE = "leak-suspects-v2.json";
-    private static final String DUPLICATE_OBJECTS_FILE = "duplicate-objects.json";
     private static final String BIGGEST_COLLECTIONS_FILE = "biggest-collections.json";
     private static final String CLASSLOADER_ANALYSIS_FILE = "classloader-analysis-v2.json";
     private static final String CONSUMER_REPORT_FILE = "consumer-report.json";
@@ -221,11 +228,145 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
                 .orElse(List.of());
     }
 
-    // --- OQL (stubbed — replaced by the MAT-OQL engine when ready) -------
+    // --- SQL Query against the heap-dump-index DuckDB --------------------
+
+    private static final int MAX_QUERY_LIMIT = 100;
+    private static final int QUERY_TIMEOUT_SECONDS = 30;
+    private static final int ROW_PREVIEW_CAP_CHARS = 500;
+    private static final String SQL_KEYWORD_SELECT = "select";
+    private static final String SQL_KEYWORD_WITH = "with";
+    /** Matches a standalone {@code LIMIT} keyword (any case) regardless of surrounding
+     *  whitespace — handles "LIMIT 50", "limit\n50", "LENGTH(value)LIMIT 50", etc. */
+    private static final Pattern SQL_KEYWORD_LIMIT_PATTERN =
+            Pattern.compile("\\blimit\\b", Pattern.CASE_INSENSITIVE);
+
+    /** Column-name aliases recognised when mapping a generic SELECT row to {@link OQLResultEntry}. */
+    private static final Set<String> OBJECT_ID_COLUMN_ALIASES =
+            Set.of("instance_id", "object_id", "id");
+    private static final Set<String> CLASS_NAME_COLUMN_ALIASES =
+            Set.of("name", "class_name", "classname");
+    private static final Set<String> SHALLOW_SIZE_COLUMN_ALIASES =
+            Set.of("shallow_size", "size");
+    private static final Set<String> RETAINED_SIZE_COLUMN_ALIASES =
+            Set.of("retained_size", "retained", "bytes");
 
     @Override
     public OQLQueryResult executeQuery(OQLQueryRequest request) {
-        return OQLQueryResult.error("OQL is not yet supported on the native parser path", 0);
+        String query = request.query().trim();
+        String normalized = query.toLowerCase(Locale.ROOT);
+        if (!normalized.startsWith(SQL_KEYWORD_SELECT) && !normalized.startsWith(SQL_KEYWORD_WITH)) {
+            return OQLQueryResult.error(
+                    "Only SELECT and WITH queries are allowed against the heap-dump index.", 0);
+        }
+
+        int effectiveLimit = Math.min(Math.max(1, request.limit()), MAX_QUERY_LIMIT);
+        String boundedQuery = appendLimitIfMissing(query, effectiveLimit);
+
+        var elapsed = Measuring.s(() -> withSession(session -> {
+            if (request.includeRetainedSize()) {
+                session.buildDominatorTreeIfNeeded();
+            }
+            try (PreparedStatement stmt =
+                         session.view().connection().prepareStatement(boundedQuery)) {
+                stmt.setQueryTimeout(QUERY_TIMEOUT_SECONDS);
+                try (ResultSet rs = stmt.executeQuery()) {
+                    return mapResultSet(rs, effectiveLimit);
+                }
+            } catch (SQLException e) {
+                LOG.warn("Heap-dump SQL query failed: query={} error={}", boundedQuery, e.getMessage());
+                return OQLQueryResult.error("Query failed: " + e.getMessage(), 0);
+            }
+        }).orElseGet(() -> OQLQueryResult.error("Heap dump not available for this profile", 0)));
+
+        OQLQueryResult r = elapsed.entity();
+        return new OQLQueryResult(
+                r.results(), r.totalCount(), r.hasMore(),
+                elapsed.duration().toMillis(), r.errorMessage());
+    }
+
+    private static String appendLimitIfMissing(String query, int limit) {
+        // Detect a standalone LIMIT keyword anywhere in the query (word boundaries
+        // so we don't get tricked by `LIMITS` or similar). Real SQL parsing would
+        // be heavier; this heuristic only false-positives on a `limit` *inside a
+        // string literal*, which is acceptable.
+        if (SQL_KEYWORD_LIMIT_PATTERN.matcher(query).find()) {
+            return query;
+        }
+        return query + " LIMIT " + limit;
+    }
+
+    private static OQLQueryResult mapResultSet(ResultSet rs, int limit) throws SQLException {
+        ResultSetMetaData md = rs.getMetaData();
+        int colCount = md.getColumnCount();
+        SpecialColumns special = identifySpecialColumns(md, colCount);
+        List<OQLResultEntry> entries = new ArrayList<>();
+        while (rs.next() && entries.size() < limit) {
+            // null when the query didn't select a column we recognize as an
+            // instance/object id — frontend uses that to hide the per-row
+            // action buttons for rows that can't be drilled into.
+            Long objectId = special.objectId != -1 ? safeLong(rs, special.objectId) : null;
+            String className = special.className != -1 ? rs.getString(special.className) : null;
+            long size = special.size != -1 ? safeLong(rs, special.size) : 0L;
+            Long retained = null;
+            if (special.retainedSize != -1) {
+                long v = rs.getLong(special.retainedSize);
+                retained = rs.wasNull() ? null : v;
+            }
+            entries.add(new OQLResultEntry(
+                    objectId, className, formatRow(rs, md, colCount), size, retained));
+        }
+        boolean hasMore = entries.size() >= limit;
+        return OQLQueryResult.success(entries, entries.size(), hasMore, 0);
+    }
+
+    private static long safeLong(ResultSet rs, int columnIndex) {
+        try {
+            return rs.getLong(columnIndex);
+        } catch (SQLException ignored) {
+            return 0L;
+        }
+    }
+
+    /** Stringify one row as "col=value, col=value" for the generic preview cell. */
+    private static String formatRow(ResultSet rs, ResultSetMetaData md, int colCount) throws SQLException {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 1; i <= colCount; i++) {
+            if (i > 1) {
+                sb.append(", ");
+            }
+            sb.append(md.getColumnLabel(i)).append('=');
+            Object v = rs.getObject(i);
+            sb.append(v == null ? "null" : v);
+            if (sb.length() > ROW_PREVIEW_CAP_CHARS) {
+                sb.append('…');
+                break;
+            }
+        }
+        return sb.toString();
+    }
+
+    private static SpecialColumns identifySpecialColumns(ResultSetMetaData md, int colCount) throws SQLException {
+        SpecialColumns c = new SpecialColumns();
+        for (int i = 1; i <= colCount; i++) {
+            String label = md.getColumnLabel(i).toLowerCase(Locale.ROOT);
+            if (c.objectId == -1 && OBJECT_ID_COLUMN_ALIASES.contains(label)) {
+                c.objectId = i;
+            } else if (c.className == -1 && CLASS_NAME_COLUMN_ALIASES.contains(label)) {
+                c.className = i;
+            } else if (c.size == -1 && SHALLOW_SIZE_COLUMN_ALIASES.contains(label)) {
+                c.size = i;
+            } else if (c.retainedSize == -1 && RETAINED_SIZE_COLUMN_ALIASES.contains(label)) {
+                c.retainedSize = i;
+            }
+        }
+        return c;
+    }
+
+    private static final class SpecialColumns {
+        int objectId = -1;
+        int className = -1;
+        int size = -1;
+        int retainedSize = -1;
     }
 
     // --- Threads ---------------------------------------------------------
@@ -286,7 +427,6 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
         deleteJsonFile(LEAK_SUSPECTS_FILE, "Leak suspects");
         deleteJsonFile(BIGGEST_OBJECTS_FILE, "Biggest objects");
         deleteJsonFile(BIGGEST_COLLECTIONS_FILE, "Biggest collections");
-        deleteJsonFile(DUPLICATE_OBJECTS_FILE, "Duplicate objects");
         deleteJsonFile(CLASSLOADER_ANALYSIS_FILE, "Class loader analysis");
         deleteJsonFile(CONSUMER_REPORT_FILE, "Consumer report");
         deleteJsonFile(HEAP_DUMP_CONFIG_FILE, "Heap dump config");
@@ -732,27 +872,6 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
             BiggestCollectionsReport report =
                     BiggestCollectionsAnalyzer.analyze(session.view(), topN);
             writeJsonFile(BIGGEST_COLLECTIONS_FILE, report, "Biggest collections");
-            return null;
-        });
-    }
-
-    // --- Duplicate Objects ----------------------------------------------
-
-    @Override
-    public boolean duplicateObjectsExists() {
-        return Files.exists(heapDumpAnalysisPath.resolve(DUPLICATE_OBJECTS_FILE));
-    }
-
-    @Override
-    public DuplicateObjectsReport getDuplicateObjects() {
-        return readJsonFile(DUPLICATE_OBJECTS_FILE, DuplicateObjectsReport.class).orElse(null);
-    }
-
-    @Override
-    public void runDuplicateObjects(int topN) {
-        withSession(session -> {
-            DuplicateObjectsReport report = DuplicateObjectAnalyzer.analyze(session.view(), topN);
-            writeJsonFile(DUPLICATE_OBJECTS_FILE, report, "Duplicate objects");
             return null;
         });
     }

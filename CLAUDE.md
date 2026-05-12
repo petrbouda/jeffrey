@@ -284,6 +284,17 @@ jeffrey/
 - **Validate in constructors**: Records with invariants should validate in compact constructors and throw standard Java exceptions (e.g., `IllegalArgumentException`), not framework-specific ones.
 - **Compose, don't inherit**: Prefer composition with records and delegation over deep class hierarchies. Example: `ReplayStreamReader` (composite) delegates to `SingleRecordingFileReader` (per-file).
 - **Temp directory lifecycle**: When a process creates temp files, create a dedicated subdirectory (with UUID for uniqueness) and delete the entire directory on close, rather than tracking individual files.
+- **No inline string/number literals in logic**: Any string or magic number that gets matched, compared, concatenated into SQL, or used as a configuration value must live in a `private static final` constant with a descriptive name. Inline literals are only acceptable for one-off values that are obvious from their immediate context (e.g., `Math.max(0, x)`, `LIMIT 1`). This includes SQL keywords, column-name aliases, row caps, timeouts, and error-message tokens.
+- **No chained `equals` ladders for set-membership tests**: When checking whether a value is one of several alternatives, never write `s.equals("a") || s.equals("b") || s.equals("c")`. Declare the alternatives in a `private static final Set<String>` constant and use `SET.contains(s)`. Same for `Set<Integer>`, enum sets, etc. Keeps the alternatives visible at the top of the file, makes adding a new alias a one-line change, and reads better at the call site.
+
+  ```java
+  // good
+  private static final Set<String> RETAINED_SIZE_COLUMN_ALIASES = Set.of("retained_size", "retained", "bytes");
+  if (RETAINED_SIZE_COLUMN_ALIASES.contains(label)) { ... }
+
+  // bad
+  if (label.equals("retained_size") || label.equals("retained") || label.equals("bytes")) { ... }
+  ```
 
 ### Frontend (Vue/TypeScript)
 - **Components**: PascalCase for component names

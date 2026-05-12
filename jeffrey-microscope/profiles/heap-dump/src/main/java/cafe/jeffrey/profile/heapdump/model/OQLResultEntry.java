@@ -21,14 +21,19 @@ package cafe.jeffrey.profile.heapdump.model;
 /**
  * A single result entry from an OQL query.
  *
- * @param objectId     the object ID in the heap (for Instance results)
+ * @param objectId     the heap-object ID for the row, or {@code null} when the
+ *                     row doesn't correspond to a single instance (e.g. a
+ *                     non-`instance` table like `string`, or an aggregate
+ *                     result without an identifying column). Used by the
+ *                     frontend to gate the per-row action buttons — `null`
+ *                     means "no instance to inspect".
  * @param className    the class name of the object
  * @param value        string representation of the result
  * @param size         shallow size of the object in bytes (0 if not applicable)
  * @param retainedSize retained heap size in bytes (null if not calculated)
  */
 public record OQLResultEntry(
-        long objectId,
+        Long objectId,
         String className,
         String value,
         long size,
@@ -38,7 +43,7 @@ public record OQLResultEntry(
      * Create an entry for a non-Instance result.
      */
     public static OQLResultEntry ofValue(String value) {
-        return new OQLResultEntry(0, null, value, 0, null);
+        return new OQLResultEntry(null, null, value, 0, null);
     }
 
     /**

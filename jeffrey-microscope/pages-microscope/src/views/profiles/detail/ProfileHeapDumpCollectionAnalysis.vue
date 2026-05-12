@@ -40,14 +40,10 @@
     <StatsTable :metrics="summaryMetrics" class="mb-4" />
 
     <!-- Tabbed Analysis Section -->
-    <ChartSectionWithTabs
-      icon="collection"
-      :tabs="analysisTabs"
-      :full-width="true"
-      id-prefix="collection-"
-    >
-      <!-- Overview Tab -->
-      <template #overview>
+    <TabBar v-model="activeTab" :tabs="analysisTabs" class="mb-3" />
+
+    <!-- Overview Tab -->
+    <div v-show="activeTab === 'overview'">
         <DualPanel v-if="report" left-title="Fill Distribution" right-title="Summary">
           <template #left>
             <DonutWithLegend
@@ -61,10 +57,10 @@
             <SummaryTable :items="summaryItems" />
           </template>
         </DualPanel>
-      </template>
+    </div>
 
-      <!-- By Type Tab -->
-      <template #by-type>
+    <!-- By Type Tab -->
+    <div v-show="activeTab === 'by-type'">
         <div v-if="report && report.byType.length > 0">
           <DataTable>
             <template #toolbar>
@@ -74,7 +70,7 @@
             </template>
                 <thead>
                   <tr>
-                    <th style="width: 50px">#</th>
+                    <th style="width: 40px">#</th>
                     <SortableTableHeader
                       column="collectionType"
                       label="Collection Type"
@@ -125,10 +121,7 @@
                   <tr v-for="(entry, index) in sortedByType" :key="index">
                     <td class="text-muted">{{ index + 1 }}</td>
                     <td>
-                      <div class="class-info">
-                        <code class="class-name">{{ simpleClassName(entry.collectionType) }}</code>
-                        <span class="package-name">{{ packageName(entry.collectionType) }}</span>
-                      </div>
+                      <ClassNameDisplay :class-name="entry.collectionType" />
                     </td>
                     <td class="text-end font-monospace">
                       {{ FormattingService.formatNumber(entry.totalCount) }}
@@ -163,10 +156,10 @@
           <i class="bi bi-collection fs-1 mb-3 d-block"></i>
           <p>No collection type data available.</p>
         </div>
-      </template>
+    </div>
 
-      <!-- Waste by Class Tab -->
-      <template #waste-by-class>
+    <!-- Waste by Class Tab -->
+    <div v-show="activeTab === 'waste-by-class'">
         <div v-if="report && report.wasteByClass && report.wasteByClass.length > 0">
           <DataTable>
             <template #toolbar>
@@ -176,7 +169,7 @@
             </template>
                 <thead>
                   <tr>
-                    <th style="width: 50px">#</th>
+                    <th style="width: 40px">#</th>
                     <th style="width: 50%">Owner Class</th>
                     <th class="text-end" style="width: 120px">Collections</th>
                     <th class="text-end" style="width: 100px">Empty</th>
@@ -188,12 +181,7 @@
                     <td class="text-muted">{{ index + 1 }}</td>
                     <td>
                       <div class="class-info">
-                        <div class="class-name-line">
-                          <code class="class-name">{{
-                            simpleClassName(entry.ownerClassName)
-                          }}</code>
-                          <span class="package-name">{{ packageName(entry.ownerClassName) }}</span>
-                        </div>
+                        <ClassNameDisplay :class-name="entry.ownerClassName" />
                         <div
                           class="detail-line"
                           v-if="Object.keys(entry.collectionTypeCounts).length > 0"
@@ -233,10 +221,10 @@
           <i class="bi bi-building fs-1 mb-3 d-block"></i>
           <p>No waste-by-class data available.</p>
         </div>
-      </template>
+    </div>
 
-      <!-- How It Works Tab -->
-      <template #how-it-works>
+    <!-- How It Works Tab -->
+    <div v-show="activeTab === 'how-it-works'">
         <div class="about-container">
           <!-- Header Section -->
           <div class="about-header">
@@ -445,8 +433,7 @@
             </div>
           </div>
         </div>
-      </template>
-    </ChartSectionWithTabs>
+    </div>
   </div>
 </template>
 
@@ -459,7 +446,8 @@ import LoadingState from '@/components/LoadingState.vue';
 import ErrorState from '@/components/ErrorState.vue';
 import StatsTable from '@/components/StatsTable.vue';
 import HeapDumpNotInitialized from '@/components/HeapDumpNotInitialized.vue';
-import ChartSectionWithTabs from '@/components/ChartSectionWithTabs.vue';
+import ClassNameDisplay from '@/components/heap/ClassNameDisplay.vue';
+import TabBar from '@/components/TabBar.vue';
 import SortableTableHeader from '@/components/table/SortableTableHeader.vue';
 import DataTable from '@/components/table/DataTable.vue';
 import TableToolbar from '@/components/table/TableToolbar.vue';
@@ -496,6 +484,7 @@ const analysisTabs = [
   { id: 'waste-by-class', label: 'Waste by Class', icon: 'building' },
   { id: 'how-it-works', label: 'How It Works', icon: 'info-circle' }
 ];
+const activeTab = ref(analysisTabs[0].id);
 
 const fillChartLabels = [
   'Empty (0%)',
@@ -661,11 +650,6 @@ const simpleClassName = (name: string): string => {
   return lastDot > 0 ? name.substring(lastDot + 1) : name;
 };
 
-const packageName = (name: string): string => {
-  const lastDot = name.lastIndexOf('.');
-  return lastDot > 0 ? name.substring(0, lastDot) : '';
-};
-
 const getTypePercentage = (entry: CollectionStats): number => {
   if (maxTypeWasted.value === 0) return 0;
   return (entry.totalWastedBytes / maxTypeWasted.value) * 100;
@@ -727,12 +711,6 @@ onMounted(() => {
   gap: 0.15rem;
 }
 
-.class-name-line {
-  display: flex;
-  align-items: baseline;
-  gap: 0.4rem;
-}
-
 .detail-line {
   display: flex;
   align-items: baseline;
@@ -749,22 +727,6 @@ onMounted(() => {
 .field-tag {
   color: var(--color-purple);
   font-style: italic;
-}
-
-.class-name {
-  font-size: 0.8rem;
-  font-weight: 600;
-  background-color: transparent;
-  color: var(--color-text);
-  white-space: nowrap;
-}
-
-.package-name {
-  font-size: 0.8rem;
-  color: var(--color-text-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .toolbar-info {

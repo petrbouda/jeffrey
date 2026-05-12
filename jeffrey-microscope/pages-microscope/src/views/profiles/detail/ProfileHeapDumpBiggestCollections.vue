@@ -37,14 +37,10 @@
     <StatsTable :metrics="summaryMetrics" class="mb-4" />
 
     <!-- Tabbed Results -->
-    <ChartSectionWithTabs
-      icon="collection-fill"
-      :tabs="analysisTabs"
-      :full-width="true"
-      id-prefix="biggest-collections-"
-    >
-      <!-- By Element Count Tab -->
-      <template #by-element-count>
+    <TabBar v-model="activeTab" :tabs="analysisTabs" class="mb-3" />
+
+    <!-- By Element Count Tab -->
+    <div v-show="activeTab === 'by-element-count'">
         <div v-if="report.byElementCount.length > 0">
           <DataTable>
             <template #toolbar>
@@ -54,33 +50,39 @@
             </template>
                 <thead>
                   <tr>
-                    <th style="width: 50px">#</th>
-                    <th style="width: 45%">Collection</th>
-                    <th class="text-end" style="width: 220px">Usage</th>
-                    <th style="width: 130px">Fill Ratio</th>
-                    <th class="text-end" style="width: 100px">Shallow</th>
+                    <th style="width: 40px">#</th>
+                    <th style="width: 28%">Collection</th>
+                    <th style="width: 28%">Owner</th>
+                    <th class="text-end" style="width: 220px">
+                      <div>Usage</div>
+                      <div class="usage-sublabel">
+                        <span class="usage-size">size</span>
+                        <span class="usage-sep">/</span>
+                        <span class="usage-cap">capacity</span>
+                      </div>
+                    </th>
                     <th class="text-end" style="width: 110px">Retained</th>
+                    <th style="width: 180px">Fill Ratio</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr v-for="(entry, index) in sortedByElementCount" :key="index">
                     <td class="text-muted">{{ index + 1 }}</td>
                     <td>
-                      <div class="class-info">
-                        <div class="class-name-line">
-                          <code class="class-name">{{ simpleClassName(entry.className) }}</code>
-                          <span class="package-name">{{ packageName(entry.className) }}</span>
-                        </div>
-                        <div class="detail-line" v-if="entry.ownerClassName">
-                          <span class="field-tag">{{ entry.ownerClassName }}</span>
-                        </div>
-                      </div>
+                      <ClassNameDisplay :class-name="entry.className" />
+                    </td>
+                    <td>
+                      <ClassNameDisplay v-if="entry.ownerClassName" :class-name="entry.ownerClassName" />
+                      <span v-else class="text-muted owner-empty">—</span>
                     </td>
                     <td class="text-end font-monospace">
                       <div>{{ FormattingService.formatNumber(entry.elementCount) }}</div>
                       <div class="capacity-hint">
                         {{ FormattingService.formatNumber(entry.capacity) }}
                       </div>
+                    </td>
+                    <td class="text-end font-monospace text-warning">
+                      {{ FormattingService.formatBytes(entry.retainedSize) }}
                     </td>
                     <td>
                       <div class="fill-bar-container">
@@ -96,12 +98,6 @@
                         <span class="fill-pct">{{ (entry.fillRatio * 100).toFixed(1) }}%</span>
                       </div>
                     </td>
-                    <td class="text-end font-monospace">
-                      {{ FormattingService.formatBytes(entry.shallowSize) }}
-                    </td>
-                    <td class="text-end font-monospace text-warning">
-                      {{ FormattingService.formatBytes(entry.retainedSize) }}
-                    </td>
                   </tr>
                 </tbody>
           </DataTable>
@@ -110,10 +106,10 @@
           <i class="bi bi-collection-fill fs-1 mb-3 d-block"></i>
           <p>No collection data available.</p>
         </div>
-      </template>
+    </div>
 
-      <!-- By Retained Size Tab -->
-      <template #by-retained-size>
+    <!-- By Retained Size Tab -->
+    <div v-show="activeTab === 'by-retained-size'">
         <div v-if="report.byRetainedSize.length > 0">
           <DataTable>
             <template #toolbar>
@@ -123,33 +119,39 @@
             </template>
                 <thead>
                   <tr>
-                    <th style="width: 50px">#</th>
-                    <th style="width: 45%">Collection</th>
-                    <th class="text-end" style="width: 220px">Usage</th>
-                    <th style="width: 130px">Fill Ratio</th>
-                    <th class="text-end" style="width: 100px">Shallow</th>
+                    <th style="width: 40px">#</th>
+                    <th style="width: 28%">Collection</th>
+                    <th style="width: 28%">Owner</th>
+                    <th class="text-end" style="width: 220px">
+                      <div>Usage</div>
+                      <div class="usage-sublabel">
+                        <span class="usage-size">size</span>
+                        <span class="usage-sep">/</span>
+                        <span class="usage-cap">capacity</span>
+                      </div>
+                    </th>
                     <th class="text-end" style="width: 110px">Retained</th>
+                    <th style="width: 180px">Fill Ratio</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr v-for="(entry, index) in sortedByRetainedSize" :key="index">
                     <td class="text-muted">{{ index + 1 }}</td>
                     <td>
-                      <div class="class-info">
-                        <div class="class-name-line">
-                          <code class="class-name">{{ simpleClassName(entry.className) }}</code>
-                          <span class="package-name">{{ packageName(entry.className) }}</span>
-                        </div>
-                        <div class="detail-line" v-if="entry.ownerClassName">
-                          <span class="field-tag">{{ entry.ownerClassName }}</span>
-                        </div>
-                      </div>
+                      <ClassNameDisplay :class-name="entry.className" />
+                    </td>
+                    <td>
+                      <ClassNameDisplay v-if="entry.ownerClassName" :class-name="entry.ownerClassName" />
+                      <span v-else class="text-muted owner-empty">—</span>
                     </td>
                     <td class="text-end font-monospace">
                       <div>{{ FormattingService.formatNumber(entry.elementCount) }}</div>
                       <div class="capacity-hint">
                         {{ FormattingService.formatNumber(entry.capacity) }}
                       </div>
+                    </td>
+                    <td class="text-end font-monospace text-warning">
+                      {{ FormattingService.formatBytes(entry.retainedSize) }}
                     </td>
                     <td>
                       <div class="fill-bar-container">
@@ -165,12 +167,6 @@
                         <span class="fill-pct">{{ (entry.fillRatio * 100).toFixed(1) }}%</span>
                       </div>
                     </td>
-                    <td class="text-end font-monospace">
-                      {{ FormattingService.formatBytes(entry.shallowSize) }}
-                    </td>
-                    <td class="text-end font-monospace text-warning">
-                      {{ FormattingService.formatBytes(entry.retainedSize) }}
-                    </td>
                   </tr>
                 </tbody>
           </DataTable>
@@ -179,8 +175,7 @@
           <i class="bi bi-collection-fill fs-1 mb-3 d-block"></i>
           <p>No collection data available.</p>
         </div>
-      </template>
-    </ChartSectionWithTabs>
+    </div>
   </div>
 </template>
 
@@ -193,7 +188,8 @@ import LoadingState from '@/components/LoadingState.vue';
 import ErrorState from '@/components/ErrorState.vue';
 import StatsTable from '@/components/StatsTable.vue';
 import HeapDumpNotInitialized from '@/components/HeapDumpNotInitialized.vue';
-import ChartSectionWithTabs from '@/components/ChartSectionWithTabs.vue';
+import ClassNameDisplay from '@/components/heap/ClassNameDisplay.vue';
+import TabBar from '@/components/TabBar.vue';
 import DataTable from '@/components/table/DataTable.vue';
 import TableToolbar from '@/components/table/TableToolbar.vue';
 import HeapDumpClient from '@/services/api/HeapDumpClient';
@@ -215,6 +211,7 @@ const analysisTabs = [
   { id: 'by-element-count', label: 'By Element Count', icon: 'hash' },
   { id: 'by-retained-size', label: 'By Retained Size', icon: 'hdd' }
 ];
+const activeTab = ref(analysisTabs[0].id);
 
 const summaryMetrics = computed(() => {
   if (!report.value) return [];
@@ -283,16 +280,6 @@ const getFillColor = (ratio: number): string => {
   return '#ffc107';
 };
 
-const simpleClassName = (name: string): string => {
-  const lastDot = name.lastIndexOf('.');
-  return lastDot > 0 ? name.substring(lastDot + 1) : name;
-};
-
-const packageName = (name: string): string => {
-  const lastDot = name.lastIndexOf('.');
-  return lastDot > 0 ? name.substring(0, lastDot) : '';
-};
-
 const loadAnalysis = async () => {
   report.value = await client.getBiggestCollections();
 };
@@ -342,57 +329,8 @@ onMounted(() => {
   padding: 2rem;
 }
 
-.class-info {
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-}
-
-.class-name-line {
-  display: flex;
-  align-items: baseline;
-  gap: 0.4rem;
-}
-
-.detail-line {
-  display: flex;
-  align-items: baseline;
-  gap: 0.35rem;
-  font-size: 0.75rem;
-  margin-top: 1px;
-}
-
-.detail-sep {
-  color: var(--color-text-light);
-  user-select: none;
-}
-
-.owner-label {
-  color: var(--color-text-light);
-  font-size: 0.65rem;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-}
-
-.field-tag {
-  color: var(--color-purple);
-  font-style: italic;
-}
-
-.class-name {
-  font-size: 0.8rem;
-  font-weight: 600;
-  background-color: transparent;
-  color: var(--color-text);
-  white-space: nowrap;
-}
-
-.package-name {
-  font-size: 0.8rem;
-  color: var(--color-text-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.owner-empty {
+  font-size: 0.85rem;
 }
 
 .fill-bar-container {
@@ -415,7 +353,28 @@ onMounted(() => {
 }
 
 .capacity-hint {
+  color: var(--color-purple);
+}
+
+.usage-sublabel {
+  font-size: 0.65rem;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+  margin-top: 1px;
+}
+
+.usage-sublabel .usage-size {
+  color: var(--color-text);
+}
+
+.usage-sublabel .usage-cap {
+  color: var(--color-purple);
+}
+
+.usage-sublabel .usage-sep {
   color: var(--color-text-light);
+  margin: 0 0.15rem;
 }
 
 .fill-pct {

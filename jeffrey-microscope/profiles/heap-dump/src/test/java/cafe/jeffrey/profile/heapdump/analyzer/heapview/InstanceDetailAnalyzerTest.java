@@ -91,7 +91,9 @@ class InstanceDetailAnalyzerTest {
             assertFalse(next.isPrimitive());
             assertEquals(refTarget, next.referencedObjectId());
             assertEquals("com.example.Foo", next.referencedClassName());
-            assertNotNull(next.value());
+            // Non-null object refs intentionally have a null value — the
+            // referencedClassName + referencedObjectId carry the real data.
+            assertNull(next.value());
 
             InstanceField intField = detail.fields().get(1);
             assertEquals("value", intField.name());

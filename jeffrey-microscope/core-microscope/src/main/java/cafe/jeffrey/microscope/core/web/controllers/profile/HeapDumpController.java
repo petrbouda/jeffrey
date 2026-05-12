@@ -38,7 +38,6 @@ import cafe.jeffrey.profile.heapdump.model.ClassLoaderReport;
 import cafe.jeffrey.profile.heapdump.model.ConsumerReport;
 import cafe.jeffrey.profile.heapdump.model.CollectionAnalysisReport;
 import cafe.jeffrey.profile.heapdump.model.DominatorTreeResponse;
-import cafe.jeffrey.profile.heapdump.model.DuplicateObjectsReport;
 import cafe.jeffrey.profile.heapdump.model.GCRootPath;
 import cafe.jeffrey.profile.heapdump.model.GCRootSummary;
 import cafe.jeffrey.profile.heapdump.model.HeapDumpConfig;
@@ -346,23 +345,6 @@ public class HeapDumpController {
             @PathVariable("profileId") String profileId,
             @RequestParam(value = "topN", defaultValue = "50") int topN) {
         mgr(profileId).runBiggestCollections(topN);
-    }
-
-    @GetMapping("/duplicate-objects/exists")
-    public boolean duplicateObjectsExists(@PathVariable("profileId") String profileId) {
-        return mgr(profileId).duplicateObjectsExists();
-    }
-
-    @GetMapping("/duplicate-objects")
-    public DuplicateObjectsReport getDuplicateObjects(@PathVariable("profileId") String profileId) {
-        return mgr(profileId).getDuplicateObjects();
-    }
-
-    @PostMapping("/duplicate-objects/run")
-    public void runDuplicateObjects(
-            @PathVariable("profileId") String profileId,
-            @RequestParam(value = "topN", defaultValue = "100") int topN) {
-        mgr(profileId).runDuplicateObjects(topN);
     }
 
     @GetMapping("/classloader-analysis/exists")

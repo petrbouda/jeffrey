@@ -181,6 +181,58 @@ class DominatorTreeAnalyzerTest {
         }
     }
 
+    @Test
+    void retainedPercentIsRelativeToParentNotTotalHeap(@TempDir Path tmp) throws IOException, SQLException {
+        // Two independent GC-root subtrees:
+        //   ROOT_A → arrayA → leafA1, leafA2     (one heavy subtree we will drill into)
+        //   ROOT_B → leafB                       (a second root that inflates total_shallow_size)
+        // When we call children(ROOT_A), arrayA dominates both of A's leaves and accounts for
+        // almost all of ROOT_A's retained size. Its retainedPercent must reflect that —
+        // close to 100% of the parent's retained size, NOT diluted by ROOT_B's mass in the heap.
+        int idSize = 8;
+        long classId = 0xC001L;
+        long rootA = 0x100L, arrayA = 0x101L, leafA1 = 0x102L, leafA2 = 0x103L;
+        long rootB = 0x200L, leafB = 0x201L;
+
+        Path hprof = SyntheticHprof.create("1.0.2", idSize, 0L)
+                .string(0xA001L, "Holder")
+                .string(0xA002L, "next")
+                .loadClass(1, classId, 0, 0xA001L)
+                .heapDumpSegment(seg -> seg
+                        .topLevelObjectClassDump(classId, 0xA002L)
+                        // Subtree A: ROOT_A → arrayA → leafA1, leafA2
+                        .gcRoot(HprofTag.Sub.ROOT_STICKY_CLASS, rootA)
+                        .objectArrayDump(arrayA, classId, new long[]{leafA1, leafA2})
+                        .instanceDump(rootA, classId, idBytes(arrayA, idSize))
+                        .instanceDump(leafA1, classId, idBytes(0L, idSize))
+                        .instanceDump(leafA2, classId, idBytes(0L, idSize))
+                        // Subtree B: ROOT_B → leafB (independent — inflates total heap size only)
+                        .gcRoot(HprofTag.Sub.ROOT_STICKY_CLASS, rootB)
+                        .instanceDump(rootB, classId, idBytes(leafB, idSize))
+                        .instanceDump(leafB, classId, idBytes(0L, idSize)))
+                .heapDumpEnd()
+                .writeTo(tmp, "parent-percent.hprof");
+        Path indexDb = HeapDumpIndexPaths.indexFor(hprof);
+        try (HprofMappedFile file = HprofMappedFile.open(hprof)) {
+            HprofIndex.build(file, indexDb, CLOCK);
+        }
+        DominatorTreeBuilder.build(indexDb);
+
+        try (HeapView view = HeapView.open(indexDb)) {
+            DominatorTreeResponse children = DominatorTreeAnalyzer.children(view, rootA);
+            assertEquals(1, children.nodes().size(), "rootA dominates arrayA only");
+            DominatorNode arrayNode = children.nodes().get(0);
+            assertEquals(arrayA, arrayNode.objectId());
+
+            // arrayA holds nearly all of rootA's retained size (just one extra instance header for rootA itself).
+            // The percentage must be > 50% — anything less means the formula is dividing by total heap
+            // (the old bug: subtree B inflates total_shallow_size and dilutes the percent below 50%).
+            assertTrue(arrayNode.retainedPercent() > 50.0,
+                    "arrayA should be > 50% of its parent's retained size; got "
+                            + arrayNode.retainedPercent() + "% — likely divided by total heap, not parent");
+        }
+    }
+
     private static byte[] idBytes(long id, int idSize) {
         try {
             ByteArrayOutputStream b = new ByteArrayOutputStream();

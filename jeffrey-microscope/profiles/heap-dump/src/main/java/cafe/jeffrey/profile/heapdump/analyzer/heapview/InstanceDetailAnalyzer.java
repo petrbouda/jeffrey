@@ -71,9 +71,14 @@ public final class InstanceDetailAnalyzer {
         String stringValue = JAVA_LANG_STRING.equals(className)
                 ? JavaStringDecoder.decode(view, objectId).map(JavaStringDecoder.Decoded::content).orElse(null)
                 : null;
+        // Only Strings get a human-readable value here. For any other ref
+        // type, leave displayValue null — the heap dump can't recover an
+        // instance's runtime toString() output, so anything we synthesize
+        // (e.g. "Foo@hex") would just duplicate the class name + object id
+        // already shown elsewhere in the panel.
         String displayValue = stringValue != null
                 ? "\"" + truncate(stringValue) + "\""
-                : className + "@" + Long.toHexString(objectId);
+                : null;
 
         return Optional.of(new InstanceDetail(
                 objectId,
@@ -110,7 +115,11 @@ public final class InstanceDetailAnalyzer {
                 } else {
                     refId = ref;
                     refClassName = resolveClassNameByInstance(view, ref);
-                    value = (refClassName != null ? refClassName : "Object") + "@" + Long.toHexString(ref);
+                    // Leave value null for non-null refs — the refClassName +
+                    // refId pair (delivered alongside) is the real data; any
+                    // "Foo@hex" string here would just be a synthetic copy of
+                    // information already on the row.
+                    value = null;
                 }
             }
             out.add(new InstanceField(f.name(), typeName, value, primitive, refId, refClassName));

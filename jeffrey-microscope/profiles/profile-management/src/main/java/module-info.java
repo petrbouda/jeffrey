@@ -24,8 +24,8 @@ module cafe.jeffrey.microscope.profile.management {
     requires cafe.jeffrey.microscope.profile.flamegraph;
     requires cafe.jeffrey.microscope.profile.heapdump;
     requires cafe.jeffrey.microscope.profile.ai.oql;
-    requires cafe.jeffrey.microscope.profile.ai.mcp.duckdb;
-    requires cafe.jeffrey.microscope.profile.ai.mcp.heapdump;
+    requires cafe.jeffrey.microscope.profile.ai.mcp.duckdb.jfr;
+    requires cafe.jeffrey.microscope.profile.ai.mcp.duckdb.heapdump;
     requires cafe.jeffrey.microscope.profile.ai.config;
     requires cafe.jeffrey.microscope.profile.subsecond;
     requires cafe.jeffrey.microscope.profile.guardian;
