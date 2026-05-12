@@ -86,6 +86,26 @@ CREATE INDEX IF NOT EXISTS idx_class_super ON class(super_class_id);
 CREATE INDEX IF NOT EXISTS idx_class_is_array ON class(is_array);
 
 --
+-- CLASS_INTERFACE
+-- One row per (class, implemented_interface) edge. Drives OQL's IMPLEMENTS
+-- hierarchy walk: given a target interface, find every class whose
+-- implementation chain (including superclass chain) references it.
+--
+-- Standard HPROF CLASS_DUMP records don't carry implemented-interface info;
+-- the indexer leaves this table empty unless an extended dump format
+-- (e.g. IBM PHD) is being parsed. OQL `FROM IMPLEMENTS X` queries against
+-- a standard HPROF index will return an empty result with no error.
+--
+CREATE TABLE IF NOT EXISTS class_interface
+(
+    class_id            BIGINT NOT NULL,
+    interface_class_id  BIGINT NOT NULL,
+    PRIMARY KEY (class_id, interface_class_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_class_interface_interface ON class_interface(interface_class_id);
+
+--
 -- INSTANCE
 -- One row per object in the heap (from INSTANCE_DUMP, OBJECT_ARRAY_DUMP and
 -- PRIMITIVE_ARRAY_DUMP sub-records). file_offset points back to the body so

@@ -210,6 +210,31 @@ jeffrey/
 
 ## Code Style and Conventions
 
+### General (applies to Java, TypeScript, Vue, JS)
+- **Always use braces for control flow**: Every `if`, `else`, `else if`, `for`, `while`, and `do-while` body must be wrapped in `{ ... }` braces — even when the body is a single statement. Never write the inline single-line form. This applies to early-return guards, null checks, instanceof guards, loops, and every other branching construct, in **both Java and TypeScript/Vue**.
+
+  ```java
+  // good
+  if (segments.isEmpty()) {
+      return false;
+  }
+
+  // bad
+  if (segments.isEmpty()) return false;
+  ```
+
+  ```ts
+  // good
+  if (!run.result) {
+    return [];
+  }
+
+  // bad
+  if (!run.result) return [];
+  ```
+
+  Same rule for `else`, `else if`, `for`, `while`. If the body is empty, use `{ }` not `;`. This is non-negotiable — the goal is consistent diff-friendly bodies and to eliminate the "dangling-statement" foot-gun.
+
 ### Java Backend
 - **Package Structure**: `cafe.jeffrey.microscope.*` for microscope deployment, `cafe.jeffrey.server.*` for server deployment, `cafe.jeffrey.profile.*` for profiles, `cafe.jeffrey.*` for shared modules
 - **Naming**: PascalCase for classes, camelCase for methods/fields

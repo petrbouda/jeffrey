@@ -27,12 +27,11 @@ import cafe.jeffrey.profile.heapdump.parser.HistogramRow;
 
 /**
  * HeapView-backed equivalent of
- * {@link cafe.jeffrey.profile.heapdump.analyzer.ClassHistogramAnalyzer}.
- *
+ * <p>
  * The aggregation runs as a single GROUP BY in DuckDB
  * ({@link HeapView#classHistogram()}), which is the canonical SQL-pushdown
  * win versus the NetBeans path's per-class Java loop.
- *
+ * <p>
  * Instances pointing at no class row (primitive arrays, corrupt refs) are
  * folded into a single {@code <unknown>} bucket so callers don't see nulls.
  */

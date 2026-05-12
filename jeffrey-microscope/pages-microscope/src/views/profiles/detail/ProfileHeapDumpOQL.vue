@@ -29,284 +29,400 @@
       icon="bi-terminal"
     />
 
-    <!-- Example Queries Section (Collapsible) -->
-    <div v-if="showExamples" class="examples-card mb-4">
-      <div class="examples-header">
-        <h6 class="mb-0"><i class="bi bi-code-square me-2"></i>Example Queries</h6>
-        <button class="btn btn-sm btn-outline-secondary" @click="showExamples = false">
-          <i class="bi bi-x-lg me-1"></i>Hide
-        </button>
-      </div>
-      <div class="examples-body">
-        <div class="examples-list">
-          <template v-for="(example, index) in exampleQueries" :key="index">
-            <div v-if="example.divider" class="example-divider">
-              {{ example.title.replace(/---/g, '').trim() }}
-            </div>
-            <div v-else class="example-item" @click="useExample(example.query)">
-              <div class="example-title">{{ example.title }}</div>
-              <code class="example-query">{{ example.query }}</code>
-            </div>
-          </template>
-        </div>
-      </div>
-    </div>
+    <TabBar v-model="activeTab" :tabs="oqlTabs" class="mb-3" />
 
-    <!-- Query Input Section -->
-    <div class="query-editor mb-4">
-      <textarea
-        v-model="oqlQuery"
-        class="query-input"
-        rows="3"
-        placeholder="select s from java.lang.String s where s.value.length > 100"
-        @keydown.ctrl.enter="executeQuery"
-        @keydown.meta.enter="executeQuery"
-      ></textarea>
-      <div class="query-toolbar">
-        <div class="d-flex align-items-center gap-2">
-          <button
-            class="btn btn-sm btn-primary"
-            @click="executeQuery"
-            :disabled="oqlLoading || !oqlQuery.trim()"
+    <!-- ==== EXAMPLES TAB ============================================ -->
+    <div v-show="activeTab === 'examples'" class="examples-panel">
+      <aside class="picker-rail">
+        <template v-for="group in queryGroups" :key="group.title">
+          <div class="picker-cat">{{ group.title }}</div>
+          <div
+            v-for="ex in group.items"
+            :key="ex.title"
+            class="picker-item"
+            :class="{ active: selectedQuery?.title === ex.title }"
+            @click="selectQuery(ex)"
           >
-            <span v-if="oqlLoading" class="spinner-border spinner-border-sm me-1"></span>
-            <i v-else class="bi bi-play-fill me-1"></i>
-            Execute
-          </button>
-          <button
-            class="btn btn-sm btn-outline-secondary"
-            @click="clearResults"
-            :disabled="!oqlResult && !oqlError && !oqlQuery.trim()"
-          >
-            <i class="bi bi-x-lg me-1"></i>
-            Clear
-          </button>
-          <div class="toolbar-divider"></div>
-          <button v-if="aiAvailable" class="btn btn-sm btn-ai-assistant" @click="openAssistant">
-            <i class="bi bi-stars me-1"></i>
-            AI Assistant
-          </button>
-          <button
-            class="btn btn-sm"
-            :class="showExamples ? 'btn-purple' : 'btn-outline-purple'"
-            @click="showExamples = !showExamples"
-          >
-            <i class="bi bi-lightbulb me-1"></i>
-            Examples
-          </button>
-        </div>
-        <div class="d-flex align-items-center gap-3">
-          <div class="form-check form-check-inline mb-0">
-            <input
-              type="checkbox"
-              class="form-check-input"
-              id="retainedSizeCheck"
-              v-model="includeRetainedSize"
-            />
-            <label class="form-check-label small" for="retainedSizeCheck">Retained Size</label>
+            <i class="bi bi-chevron-right picker-icon"></i>
+            <span class="picker-label">{{ ex.title }}</span>
           </div>
-          <div class="d-flex align-items-center gap-2">
-            <label class="form-label mb-0 small">Limit:</label>
-            <select v-model="oqlLimit" class="form-select form-select-sm select-narrow">
-              <option :value="50">50</option>
-              <option :value="100">100</option>
-              <option :value="500">500</option>
-              <option :value="1000">1000</option>
-            </select>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Error Display -->
-    <div v-if="oqlError" class="alert alert-danger d-flex align-items-start mb-4">
-      <i class="bi bi-exclamation-triangle-fill me-2 mt-1"></i>
-      <div>
-        <strong>Query Error</strong>
-        <p class="mb-0 mt-1">{{ oqlError }}</p>
-      </div>
-    </div>
-
-    <!-- Results Section -->
-    <div v-if="oqlResult" class="results-section">
-      <!-- Results Table -->
-      <DataTable>
-        <template #toolbar>
-          <TableToolbar v-model="resultFilter" search-placeholder="Filter...">
-            <span class="toolbar-count">{{ filteredResults.length }} results</span>
-            <span v-if="oqlResult.hasMore" class="toolbar-badge-warning">limit reached</span>
-            <span class="toolbar-meta"><i class="bi bi-stopwatch me-1"></i>{{ oqlResult.executionTimeMs }}ms</span>
-          </TableToolbar>
         </template>
+      </aside>
+      <section class="picker-preview">
+        <div v-if="!selectedQuery" class="picker-empty">
+          <i class="bi bi-arrow-left me-2"></i>
+          Pick an <strong>example</strong> on the left to see its OQL.
+        </div>
+        <div v-else>
+          <h6 class="picker-title">{{ selectedQuery.title }}</h6>
+          <p v-if="selectedQuery.description" class="picker-desc">
+            {{ selectedQuery.description }}
+          </p>
+          <pre class="example-oql"><code>{{ selectedQuery.query }}</code></pre>
+          <button class="btn btn-sm btn-primary" @click="useExample(selectedQuery.query)">
+            <i class="bi bi-arrow-right-circle me-1"></i>
+            Use this query
+          </button>
+        </div>
+      </section>
+    </div>
+
+    <!-- ==== EXECUTOR TAB ============================================ -->
+    <div v-show="activeTab === 'executor'">
+      <!-- Editor -->
+      <div class="editor">
+        <div class="editor-band">
+          <span class="lang-tag">OQL</span>
+          <span class="band-label">Object Query Language</span>
+          <span v-if="running" class="band-status status-run">
+            <span class="spinner-border spinner-border-sm me-1"></span>
+            running…
+          </span>
+          <span v-else-if="latestRun?.status === 'success'" class="band-status status-ok">
+            <i class="bi bi-check2-circle me-1"></i>success
+          </span>
+          <span v-else-if="latestRun?.status === 'error'" class="band-status status-err">
+            <i class="bi bi-exclamation-triangle-fill me-1"></i>error
+          </span>
+          <span v-else class="band-status status-idle">ready</span>
+        </div>
+        <div class="editor-overlay-wrap">
+          <pre class="editor-overlay" aria-hidden="true" v-html="highlightedActiveQuery"></pre>
+          <textarea
+            ref="textareaRef"
+            v-model="query"
+            class="editor-input"
+            spellcheck="false"
+            placeholder="select s from java.lang.String s where s.value.length > 100"
+            @keydown.ctrl.enter.prevent="executeActive"
+            @keydown.meta.enter.prevent="executeActive"
+            @input="resizeTextarea"
+          ></textarea>
+        </div>
+        <div class="editor-toolbar">
+          <div class="toolbar-group">
+            <button
+              class="btn btn-sm btn-primary"
+              @click="executeActive"
+              :disabled="running || !query.trim()"
+            >
+              <span v-if="running" class="spinner-border spinner-border-sm me-1"></span>
+              <i v-else class="bi bi-play-fill me-1"></i>
+              Execute
+            </button>
+            <button
+              class="btn btn-sm btn-outline-secondary"
+              @click="clearEditor"
+              :disabled="!query.trim() && !latestRun"
+            >
+              <i class="bi bi-x-lg me-1"></i>
+              Clear
+            </button>
+            <div class="toolbar-divider"></div>
+            <button v-if="aiAvailable" class="btn btn-sm btn-ai-assistant" @click="openAssistant">
+              <i class="bi bi-stars me-1"></i>
+              AI Assistant
+            </button>
+            <span class="kbd-hint d-none d-md-inline"> <kbd>⌘</kbd><kbd>↵</kbd> to run </span>
+          </div>
+          <div class="toolbar-group">
+            <div class="d-flex align-items-center gap-2">
+              <label class="form-label mb-0 small">Limit:</label>
+              <select v-model="oqlLimit" class="form-select form-select-sm select-narrow">
+                <option :value="50">50</option>
+                <option :value="100">100</option>
+                <option :value="500">500</option>
+                <option :value="1000">1000</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Latest result -->
+      <div v-if="latestRun" class="result-block">
+        <div v-if="latestRun.status === 'error'" class="result-error">
+          <strong><i class="bi bi-exclamation-triangle-fill me-2"></i>Query Error</strong>
+          <p class="mb-0 mt-1">{{ latestRun.errorMessage }}</p>
+        </div>
+        <DataTable v-else-if="latestRun.result">
+          <template #toolbar>
+            <TableToolbar v-model="latestRun.resultFilter" search-placeholder="Filter...">
+              <span class="latest-tag">Latest</span>
+              <span class="toolbar-count">{{ getFilteredResults(latestRun).length }} results</span>
+              <span v-if="latestRun.result.hasMore" class="toolbar-badge-warning"
+                >limit reached</span
+              >
+              <span class="toolbar-meta">
+                <i class="bi bi-stopwatch me-1"></i>{{ latestRun.result.executionTimeMs }}ms
+              </span>
+            </TableToolbar>
+          </template>
+          <thead>
+            <tr>
+              <th style="width: 50px">#</th>
+              <th>Object</th>
+              <SortableTableHeader
+                v-if="hasRetainedSize(latestRun)"
+                column="retained"
+                label="Retained"
+                :sort-column="latestRun.sortColumn"
+                :sort-direction="latestRun.sortDirection"
+                align="end"
+                width="100px"
+                @sort="toggleSort(latestRun, $event)"
+              />
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="(entry, index) in getFilteredResults(latestRun)"
+              :key="index"
+              class="result-row"
+            >
+              <td class="text-muted">{{ index + 1 }}</td>
+              <td class="object-cell">
+                <div class="object-header">
+                  <code v-if="entry.className" class="class-name">{{ entry.className }}</code>
+                  <InstanceActionButtons
+                    :object-id="entry.objectId ?? null"
+                    :show-instance-detail="true"
+                    @show-referrers="openTreeModal($event, 'REFERRERS')"
+                    @show-reachables="openTreeModal($event, 'REACHABLES')"
+                    @show-g-c-root-path="openGCRootPathModal"
+                    @show-instance-detail="openInstanceDetailPanel"
+                  />
+                </div>
+                <div v-if="entry.value" class="value-text" :title="entry.value">
+                  {{ truncateValue(entry.value, 300) }}
+                </div>
+              </td>
+              <td v-if="hasRetainedSize(latestRun)" class="text-end font-monospace">
+                {{ entry.retainedSize ? FormattingService.formatBytes(entry.retainedSize) : '-' }}
+              </td>
+            </tr>
+          </tbody>
+        </DataTable>
+      </div>
+
+      <!-- History (chip strip) -->
+      <div v-if="history.length > 0" class="history-section">
+        <div class="history-title">
+          <i class="bi bi-clock-history me-1"></i>
+          <span>History</span>
+          <span class="count">{{ history.length }}</span>
+          <button class="btn-remove-history" @click="clearHistory">
+            <i class="bi bi-trash me-1"></i>
+            Remove history
+          </button>
+        </div>
+        <div class="chip-strip">
+          <div
+            v-for="run in history"
+            :key="run.id"
+            class="chip"
+            :class="{ selected: selectedHistoryId === run.id }"
+            @click="toggleChip(run.id)"
+          >
+            <span class="chip-num">{{ run.id }}</span>
+            <span class="chip-q" v-html="highlightInline(run.query)"></span>
+            <span class="chip-dot" :class="run.status === 'success' ? 'ok' : 'err'"></span>
+          </div>
+        </div>
+
+        <!-- Selected-chip popover -->
+        <div v-if="selectedRun" class="chip-popover">
+          <div class="chip-popover-head">
+            <span class="chip-popover-num">[{{ selectedRun.id }}]</span>
+            <span class="pill" :class="`pill-${selectedRun.status}`">{{ selectedRun.status }}</span>
+            <span v-if="selectedRun.result" class="popover-meta">
+              <strong>{{ selectedRun.result.results.length.toLocaleString() }}</strong> rows
+            </span>
+            <span class="popover-meta">
+              <i class="bi bi-stopwatch me-1"></i>{{ formatElapsed(selectedRun.elapsedMs) }}
+            </span>
+            <div class="chip-popover-actions">
+              <button
+                class="btn-ghost"
+                @click="rerunFromHistory(selectedRun)"
+                title="Re-run this query"
+              >
+                <i class="bi bi-arrow-clockwise"></i>
+              </button>
+              <button class="btn-ghost" @click="copyToEditor(selectedRun)" title="Copy into editor">
+                <i class="bi bi-arrow-up-square"></i>
+              </button>
+              <button class="btn-ghost" @click="selectedHistoryId = null" title="Close">
+                <i class="bi bi-x-lg"></i>
+              </button>
+            </div>
+          </div>
+          <pre class="chip-popover-q" v-html="highlightQuery(selectedRun.query)"></pre>
+
+          <div v-if="selectedRun.status === 'error'" class="popover-error">
+            <strong><i class="bi bi-exclamation-triangle-fill me-2"></i>Query Error</strong>
+            <p class="mb-0 mt-1">{{ selectedRun.errorMessage }}</p>
+          </div>
+          <DataTable v-else-if="selectedRun.result">
+            <template #toolbar>
+              <TableToolbar v-model="selectedRun.resultFilter" search-placeholder="Filter...">
+                <span class="toolbar-count"
+                  >{{ getFilteredResults(selectedRun).length }} results</span
+                >
+                <span v-if="selectedRun.result.hasMore" class="toolbar-badge-warning"
+                  >limit reached</span
+                >
+              </TableToolbar>
+            </template>
             <thead>
               <tr>
                 <th style="width: 50px">#</th>
                 <th>Object</th>
                 <SortableTableHeader
-                  column="size"
-                  label="Size"
-                  :sort-column="sortColumn"
-                  :sort-direction="sortDirection"
-                  align="end"
-                  width="100px"
-                  @sort="toggleSort"
-                />
-                <SortableTableHeader
-                  v-if="hasRetainedSize"
+                  v-if="hasRetainedSize(selectedRun)"
                   column="retained"
                   label="Retained"
-                  :sort-column="sortColumn"
-                  :sort-direction="sortDirection"
+                  :sort-column="selectedRun.sortColumn"
+                  :sort-direction="selectedRun.sortDirection"
                   align="end"
                   width="100px"
-                  @sort="toggleSort"
+                  @sort="toggleSort(selectedRun, $event)"
                 />
               </tr>
             </thead>
             <tbody>
-              <tr v-for="(entry, index) in filteredResults" :key="index" class="result-row">
+              <tr
+                v-for="(entry, index) in getFilteredResults(selectedRun)"
+                :key="index"
+                class="result-row"
+              >
                 <td class="text-muted">{{ index + 1 }}</td>
                 <td class="object-cell">
                   <div class="object-header">
                     <code v-if="entry.className" class="class-name">{{ entry.className }}</code>
                     <InstanceActionButtons
                       :object-id="entry.objectId ?? null"
+                      :show-instance-detail="true"
                       @show-referrers="openTreeModal($event, 'REFERRERS')"
                       @show-reachables="openTreeModal($event, 'REACHABLES')"
                       @show-g-c-root-path="openGCRootPathModal"
+                      @show-instance-detail="openInstanceDetailPanel"
                     />
                   </div>
                   <div v-if="entry.value" class="value-text" :title="entry.value">
                     {{ truncateValue(entry.value, 300) }}
                   </div>
                 </td>
-                <td class="text-end font-monospace">
-                  {{ entry.size ? FormattingService.formatBytes(entry.size) : '-' }}
-                </td>
-                <td v-if="hasRetainedSize" class="text-end font-monospace">
+                <td v-if="hasRetainedSize(selectedRun)" class="text-end font-monospace">
                   {{ entry.retainedSize ? FormattingService.formatBytes(entry.retainedSize) : '-' }}
                 </td>
               </tr>
             </tbody>
-      </DataTable>
-    </div>
-
-    <!-- Empty State -->
-    <div v-if="!oqlResult && !oqlError && !oqlLoading" class="empty-state">
-      <div class="text-center py-5">
-        <i class="bi bi-terminal text-muted" style="font-size: 3rem"></i>
-        <p class="text-muted mt-3 mb-0">
-          Enter an OQL query above and click Execute to see results.
-        </p>
-        <button v-if="aiAvailable" class="btn btn-ai-assistant mt-4" @click="openAssistant">
-          <i class="bi bi-stars me-1"></i>
-          Ask AI Assistant
-        </button>
+          </DataTable>
+        </div>
       </div>
-    </div>
 
-    <!-- AI Assistant Not Configured Panel -->
-    <div
-      v-if="aiChecked && !aiAvailable && !oqlLoading"
-      class="ai-config-panel"
-      :class="{ 'ai-config-minimized': aiPanelMinimized }"
-    >
-      <button class="ai-config-toggle" @click="aiPanelMinimized = !aiPanelMinimized">
-        <span>{{ aiPanelMinimized ? 'Show' : 'Hide' }}</span>
-        <i class="bi" :class="aiPanelMinimized ? 'bi-chevron-down' : 'bi-chevron-up'"></i>
-      </button>
-
-      <!-- Minimized View -->
+      <!-- AI Assistant Not Configured Panel -->
       <div
-        v-if="aiPanelMinimized"
-        class="ai-config-minimized-content"
-        @click="aiPanelMinimized = false"
+        v-if="aiChecked && !aiAvailable"
+        class="ai-config-panel"
+        :class="{ 'ai-config-minimized': aiPanelMinimized }"
       >
-        <div class="ai-config-minimized-icon">
-          <i class="bi bi-stars"></i>
-        </div>
-        <span class="ai-config-minimized-text">AI Assistant available - click to configure</span>
-      </div>
+        <button class="ai-config-toggle" @click="aiPanelMinimized = !aiPanelMinimized">
+          <span>{{ aiPanelMinimized ? 'Show' : 'Hide' }}</span>
+          <i class="bi" :class="aiPanelMinimized ? 'bi-chevron-down' : 'bi-chevron-up'"></i>
+        </button>
 
-      <!-- Expanded View -->
-      <div v-else class="ai-config-content">
-        <div class="ai-config-icon">
-          <i class="bi bi-stars"></i>
-        </div>
-        <div class="ai-config-text">
-          <h5 class="ai-config-title">AI Assistant Available</h5>
-          <p class="ai-config-description">
-            Unlock the power of AI to help you write OQL queries. Describe what you're looking for
-            in natural language and let AI generate the query for you.
-          </p>
-          <div class="ai-providers-note">
-            <i class="bi bi-check-circle-fill"></i>
-            <span
-              >Supports&nbsp;<strong>Anthropic Claude</strong>&nbsp;and&nbsp;<strong
-                >OpenAI ChatGPT</strong
-              ></span
-            >
+        <div
+          v-if="aiPanelMinimized"
+          class="ai-config-minimized-content"
+          @click="aiPanelMinimized = false"
+        >
+          <div class="ai-config-minimized-icon">
+            <i class="bi bi-stars"></i>
           </div>
-        </div>
-        <div class="ai-config-features">
-          <div class="ai-feature">
-            <i class="bi bi-chat-dots"></i>
-            <span>Natural language queries</span>
-          </div>
-          <div class="ai-feature">
-            <i class="bi bi-lightning-charge"></i>
-            <span>Instant query generation</span>
-          </div>
-          <div class="ai-feature">
-            <i class="bi bi-mortarboard"></i>
-            <span>Learn OQL syntax</span>
-          </div>
+          <span class="ai-config-minimized-text">AI Assistant available - click to configure</span>
         </div>
 
-        <div class="ai-config-setup">
-          <div class="config-section">
-            <div class="config-section-title">
-              <i class="bi bi-file-earmark-code me-2"></i>
-              application.properties
-            </div>
-            <div class="config-code">
-              <code>jeffrey.ai.provider=<span class="code-value">claude</span></code>
-              <code
-                ># Claude: claude-opus-4-5-20251101, claude-sonnet-4-5-20250929,
-                claude-sonnet-4-20250514</code
-              >
-              <code># ChatGPT: gpt-4o, gpt-4o-mini, o3-mini</code>
-              <code
-                >jeffrey.ai.model=<span class="code-value">claude-sonnet-4-5-20250929</span></code
+        <div v-else class="ai-config-content">
+          <div class="ai-config-icon">
+            <i class="bi bi-stars"></i>
+          </div>
+          <div class="ai-config-text">
+            <h5 class="ai-config-title">AI Assistant Available</h5>
+            <p class="ai-config-description">
+              Unlock the power of AI to help you write OQL queries. Describe what you're looking for
+              in natural language and let AI generate the query for you.
+            </p>
+            <div class="ai-providers-note">
+              <i class="bi bi-check-circle-fill"></i>
+              <span
+                >Supports&nbsp;<strong>Anthropic Claude</strong>&nbsp;and&nbsp;<strong
+                  >OpenAI ChatGPT</strong
+                ></span
               >
             </div>
           </div>
+          <div class="ai-config-features">
+            <div class="ai-feature">
+              <i class="bi bi-chat-dots"></i>
+              <span>Natural language queries</span>
+            </div>
+            <div class="ai-feature">
+              <i class="bi bi-lightning-charge"></i>
+              <span>Instant query generation</span>
+            </div>
+            <div class="ai-feature">
+              <i class="bi bi-mortarboard"></i>
+              <span>Learn OQL syntax</span>
+            </div>
+          </div>
 
-          <div class="config-section">
-            <div class="config-section-title">
-              <i class="bi bi-key me-2"></i>
-              secrets.properties
+          <div class="ai-config-setup">
+            <div class="config-section">
+              <div class="config-section-title">
+                <i class="bi bi-file-earmark-code me-2"></i>
+                application.properties
+              </div>
+              <div class="config-code">
+                <code>jeffrey.ai.provider=<span class="code-value">claude</span></code>
+                <code
+                  ># Claude: claude-opus-4-5-20251101, claude-sonnet-4-5-20250929,
+                  claude-sonnet-4-20250514</code
+                >
+                <code># ChatGPT: gpt-4o, gpt-4o-mini, o3-mini</code>
+                <code
+                  >jeffrey.ai.model=<span class="code-value">claude-sonnet-4-5-20250929</span></code
+                >
+              </div>
             </div>
-            <div class="config-code">
-              <code>jeffrey.ai.api-key=<span class="code-value">sk-ant-...</span></code>
-            </div>
-            <div class="config-hint-text">
-              Get your API key from
-              <a href="https://console.anthropic.com" target="_blank" rel="noopener"
-                >console.anthropic.com</a
-              >
+
+            <div class="config-section">
+              <div class="config-section-title">
+                <i class="bi bi-key me-2"></i>
+                secrets.properties
+              </div>
+              <div class="config-code">
+                <code>jeffrey.ai.api-key=<span class="code-value">sk-ant-...</span></code>
+              </div>
+              <div class="config-hint-text">
+                Get your API key from
+                <a href="https://console.anthropic.com" target="_blank" rel="noopener"
+                  >console.anthropic.com</a
+                >
+              </div>
             </div>
           </div>
         </div>
-      </div>
-      <div v-if="!aiPanelMinimized" class="ai-config-decoration">
-        <div class="decoration-circle circle-1"></div>
-        <div class="decoration-circle circle-2"></div>
-        <div class="decoration-circle circle-3"></div>
+        <div v-if="!aiPanelMinimized" class="ai-config-decoration">
+          <div class="decoration-circle circle-1"></div>
+          <div class="decoration-circle circle-2"></div>
+          <div class="decoration-circle circle-3"></div>
+        </div>
       </div>
     </div>
 
-    <!-- AI Assistant -->
+    <!-- AI Assistant (overlay, always mounted) -->
     <OqlAssistant
       :is-open="showAssistant"
       :is-expanded="assistantExpanded"
@@ -318,7 +434,7 @@
       @run="runQueryFromAssistant"
     />
 
-    <!-- Instance Tree Modal -->
+    <!-- Instance Tree Modal (overlay, always mounted) -->
     <InstanceTreeModal
       v-if="selectedObjectId !== null"
       v-model:show="showTreeModal"
@@ -326,11 +442,21 @@
       :initial-mode="treeMode"
       :profile-id="profileId"
     />
+
+    <!-- Instance Details Side Panel -->
+    <InstanceDetailPanel
+      v-if="client"
+      :is-open="detailPanelOpen"
+      :object-id="detailPanelObjectId"
+      :client="client"
+      @close="detailPanelOpen = false"
+      @navigate="detailPanelObjectId = $event"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
 import PageHeader from '@/components/layout/PageHeader.vue';
@@ -340,9 +466,11 @@ import HeapDumpNotInitialized from '@/components/HeapDumpNotInitialized.vue';
 import OqlAssistant from '@/components/oql/OqlAssistant.vue';
 import InstanceTreeModal from '@/components/heap/InstanceTreeModal.vue';
 import InstanceActionButtons from '@/components/heap/InstanceActionButtons.vue';
+import InstanceDetailPanel from '@/components/heap/InstanceDetailPanel.vue';
 import SortableTableHeader from '@/components/table/SortableTableHeader.vue';
 import DataTable from '@/components/table/DataTable.vue';
 import TableToolbar from '@/components/table/TableToolbar.vue';
+import TabBar, { type TabBarItem } from '@/components/TabBar.vue';
 import HeapDumpClient from '@/services/api/HeapDumpClient';
 import OqlAssistantClient from '@/services/api/OqlAssistantClient';
 import OQLQueryResult from '@/services/api/model/OQLQueryResult';
@@ -357,199 +485,647 @@ const error = ref<string | null>(null);
 const heapExists = ref(false);
 const cacheReady = ref(false);
 
-const oqlQuery = ref('');
 const oqlLimit = ref(50);
-const oqlLoading = ref(false);
-const oqlResult = ref<OQLQueryResult | null>(null);
-const oqlError = ref<string | null>(null);
-const showExamples = ref(false);
-const includeRetainedSize = ref(true);
-const resultFilter = ref('');
-const sortColumn = ref('retained');
-const sortDirection = ref<'asc' | 'desc'>('desc');
+
 const showAssistant = ref(false);
-const assistantExpanded = ref(false); // Start minimized so button is visible on page load
+const assistantExpanded = ref(false);
 const aiAvailable = ref(false);
 const aiChecked = ref(false);
 const aiPanelMinimized = ref(sessionStorage.getItem('oql-ai-panel-minimized') === 'true');
 
-// Persist minimized state in session storage
 watch(aiPanelMinimized, value => {
   sessionStorage.setItem('oql-ai-panel-minimized', String(value));
 });
+
 const showTreeModal = ref(false);
 const selectedObjectId = ref<number | null>(null);
 const treeMode = ref<'REFERRERS' | 'REACHABLES'>('REFERRERS');
 
+type OqlTab = 'executor' | 'examples';
+const activeTab = ref<OqlTab>('executor');
+
+type RunStatus = 'success' | 'error';
+type SortColumn = 'retained';
+type SortDir = 'asc' | 'desc';
+
+interface QueryRun {
+  id: number;
+  query: string;
+  status: RunStatus;
+  elapsedMs: number;
+  result?: OQLQueryResult;
+  errorMessage?: string;
+  resultFilter: string;
+  sortColumn: SortColumn;
+  sortDirection: SortDir;
+}
+
+const MAX_HISTORY = 20;
+const HL_STR_OPEN = '__OQL_STR_OPEN__';
+const HL_STR_CLOSE = '__OQL_STR_CLOSE__';
+
+const query = ref('');
+const latestRun = ref<QueryRun | null>(null);
+const history = ref<QueryRun[]>([]);
+const selectedHistoryId = ref<number | null>(null);
+const running = ref(false);
+const nextRunId = ref(1);
+const textareaRef = ref<HTMLTextAreaElement | null>(null);
+
 let client: HeapDumpClient;
 
-// Example queries organized by function category
-const exampleQueries = [
-  // Object/Size Functions
-  { title: '--- Object/Size Functions ---', query: '', divider: true },
+const detailPanelOpen = ref(false);
+const detailPanelObjectId = ref<number | null>(null);
+
+// =============================================================================
+// Example queries
+// =============================================================================
+
+interface ExampleQuery {
+  title: string;
+  description?: string;
+  query: string;
+  divider?: never;
+}
+interface ExampleDivider {
+  title: string;
+  divider: true;
+  query?: never;
+}
+type ExampleEntry = ExampleQuery | ExampleDivider;
+
+const exampleQueries: ExampleEntry[] = [
+  { title: '--- Basics ---', divider: true },
   {
-    title: 'sizeof() - Shallow Size >10KB',
-    query: 'select o from instanceof java.lang.Object o where sizeof(o) > 10240'
+    title: 'All Strings (capped)',
+    description: 'Every live java.lang.String instance, capped to the result limit.',
+    query: 'SELECT * FROM java.lang.String LIMIT 50'
   },
   {
-    title: 'rsizeof() - Retained Size >1MB',
-    query: 'select o from instanceof java.lang.Object o where rsizeof(o) > 1048576'
+    title: 'Thread display names',
+    description: 'Every live Thread instance with its Class@hex display name.',
+    query: 'SELECT t.@displayName FROM java.lang.Thread t'
   },
-  { title: 'objectid() - Find by ID', query: 'select heap.findObject(12345)' },
   {
-    title: 'classof() - Get Class Name',
-    query: 'select classof(o).name from instanceof java.lang.Object o where sizeof(o) > 10240'
+    title: 'Object IDs of Strings',
+    description: 'Project just the heap-instance id for each String — useful for follow-up lookups.',
+    query: 'SELECT s.@objectId, s.@displayName FROM java.lang.String s LIMIT 50'
   },
 
-  // Reference Chain Functions
-  { title: '--- Reference Chain Functions ---', query: '', divider: true },
+  { title: '--- Filters & string predicates ---', divider: true },
   {
-    title: 'referrers() - Objects with Many Refs',
-    query: 'select o from instanceof java.lang.Object o where count(referrers(o)) > 10'
+    title: 'Shallow size > 1 KB',
+    description: 'Strings whose shallow size exceeds 1 KB.',
+    query: 'SELECT s FROM java.lang.String s WHERE sizeof(s) > 1024'
   },
   {
-    title: 'referees() - Referenced Objects',
-    query: 'select referees(m) from java.util.HashMap m where m.size > 100'
-  },
-  { title: 'reachables() - All Reachable', query: 'select reachables(t) from java.lang.Thread t' },
-  {
-    title: 'root() - Find GC Root',
-    query: 'select root(s) from java.lang.String s where s.toString().contains("Error")'
-  },
-
-  // Heap Functions
-  { title: '--- Heap Functions ---', query: '', divider: true },
-  { title: 'heap.classes() - All Classes', query: 'select heap.classes()' },
-  { title: 'heap.objects() - Class Instances', query: 'select heap.objects("java.lang.String")' },
-  { title: 'heap.findClass() - Find Class', query: 'select heap.findClass("java.util.HashMap")' },
-  { title: 'heap.roots() - All GC Roots', query: 'select heap.roots()' },
-
-  // Array/Collection Functions
-  { title: '--- Array/Collection Functions ---', query: '', divider: true },
-  { title: 'count() - Count Instances', query: 'select count(heap.objects("java.lang.String"))' },
-  { title: 'length() - Array Length', query: 'select a from byte[] a where length(a) > 10240' },
-  {
-    title: 'map() - Transform Results',
-    query: 'select map(heap.objects("java.lang.Thread"), "it.name")'
+    title: 'Strings starting with "java."',
+    description: 'String content predicate — startsWith works directly on the binding.',
+    query: 'SELECT s FROM java.lang.String s WHERE startsWith(s, "java.")'
   },
   {
-    title: 'filter() - Filter Results',
-    query: 'select filter(heap.objects("java.lang.Thread"), "it.daemon == true")'
+    title: 'Strings ending with ".class"',
+    description: 'String content predicate.',
+    query: 'SELECT s FROM java.lang.String s WHERE endsWith(s, ".class")'
   },
   {
-    title: 'sort() - Sort Results',
-    query: 'select sort(heap.objects("java.lang.String"), "sizeof(it)")'
+    title: 'Strings containing "Exception"',
+    description: 'Quick scan for embedded error messages.',
+    query: 'SELECT s FROM java.lang.String s WHERE contains(s, "Exception")'
   },
   {
-    title: 'unique() - Unique Values',
-    query: 'select unique(map(heap.objects("java.lang.Thread"), "it.threadStatus"))'
+    title: 'Regex match on String content',
+    description: 'URL-shaped Strings via a Java Pattern regex.',
+    query: 'SELECT s FROM java.lang.String s WHERE matchesRegex(s, "^https?://.*")'
+  },
+  {
+    title: 'Case-insensitive equality',
+    description: 'equalsIgnoreCase on String content.',
+    query: 'SELECT s FROM java.lang.String s WHERE equalsIgnoreCase(s, "OK")'
+  },
+  {
+    title: 'Exact-equality match',
+    description: 'equalsString — case-sensitive equality on decoded String content.',
+    query: 'SELECT s FROM java.lang.String s WHERE equalsString(s, "java.lang.Object")'
+  },
+  {
+    title: 'Empty Strings',
+    description: 'isEmptyString — find live String instances whose decoded content is the empty string.',
+    query: 'SELECT s FROM java.lang.String s WHERE isEmptyString(s)'
   },
 
-  // Common Use Cases
-  { title: '--- Common Use Cases ---', query: '', divider: true },
+  { title: '--- Class hierarchy ---', divider: true },
   {
-    title: 'Strings containing text',
-    query: 'select s from java.lang.String s where s.toString().contains("Exception")'
+    title: 'INSTANCEOF AbstractMap',
+    description: 'Every instance whose class descends from java.util.AbstractMap.',
+    query: 'SELECT o FROM INSTANCEOF java.util.AbstractMap o'
   },
   {
-    title: 'Long Strings (>100 chars)',
-    query: 'select s from java.lang.String s where s.value.length > 100'
+    title: 'INSTANCEOF Throwable',
+    description: 'Every live throwable in the heap — exceptions, errors, custom subclasses.',
+    query: 'SELECT o FROM INSTANCEOF java.lang.Throwable o'
   },
-  { title: 'Large HashMaps (>100)', query: 'select m from java.util.HashMap m where m.size > 100' },
   {
-    title: 'Empty Collections',
-    query: 'select c from instanceof java.util.Collection c where c.size == 0'
+    title: 'IMPLEMENTS java.util.Map',
+    description:
+      'Every class that implements java.util.Map. Note: standard HPROF dumps don\\u2019t record interface info; this may return empty.',
+    query: 'SELECT o FROM IMPLEMENTS java.util.Map o'
   },
-  { title: 'All Thread Names', query: 'select t.name from java.lang.Thread t' },
-  { title: 'Large byte[] Arrays', query: 'select a from byte[] a where a.length > 10240' }
+
+  { title: '--- Sizes & retention ---', divider: true },
+  {
+    title: 'Retained size > 1 MB (descending)',
+    description: 'Top retained-size objects — likely memory hogs keeping large subgraphs alive.',
+    query:
+      'SELECT o.@displayName, o.@retainedHeapSize FROM INSTANCEOF java.lang.Object o ' +
+      'WHERE o.@retainedHeapSize > 1048576 ORDER BY o.@retainedHeapSize DESC LIMIT 20'
+  },
+  {
+    title: 'AS RETAINED SET for big HashMaps',
+    description:
+      'Expand the matched HashMaps to their full retained subgraphs — the bytes that would be freed.',
+    query:
+      'SELECT * AS RETAINED SET FROM java.util.HashMap m WHERE m.@retainedHeapSize > 10485760'
+  },
+
+  { title: '--- Aggregates ---', divider: true },
+  {
+    title: 'Class histogram with totals',
+    description: 'Count and total shallow size per class — heaviest types first.',
+    query:
+      'SELECT classof(o).name AS cls, count(*) AS n, sum(sizeof(o)) AS total ' +
+      'FROM INSTANCEOF java.lang.Object o ' +
+      'GROUP BY classof(o).name HAVING count(*) > 100 ' +
+      'ORDER BY total DESC LIMIT 20'
+  },
+  {
+    title: 'Total String count',
+    description: 'Just count how many Strings live in the heap.',
+    query: 'SELECT count(*) FROM java.lang.String'
+  },
+  {
+    title: 'Min/max/avg shallow size',
+    description: 'Distribution of String shallow size.',
+    query: 'SELECT min(sizeof(s)), max(sizeof(s)), avg(sizeof(s)) FROM java.lang.String s'
+  },
+
+  { title: '--- Path expressions & arrays ---', divider: true },
+  {
+    title: 'Strings with backing array > 1000',
+    description: 's.value.length walks two fields (decode happens row-by-row).',
+    query: 'SELECT s FROM java.lang.String s WHERE s.value.length > 1000'
+  },
+  {
+    title: 'First entry slot of HashMap',
+    description: 'Array indexing into HashMap.table[0].',
+    query: 'SELECT m.table[0] FROM java.util.HashMap m'
+  },
+  {
+    title: 'Large byte[] arrays',
+    description: 'byte[] arrays over 10 KB — common for I/O buffers, encoded payloads, or copies.',
+    query: 'SELECT a FROM byte[] a WHERE a.length > 10240 ORDER BY a.length DESC'
+  },
+
+  { title: '--- String accessors ---', divider: true },
+  {
+    title: 'Lower-cased String content',
+    description: 'lower(toString(s)) — projection-side string transformation.',
+    query: 'SELECT lower(toString(s)) FROM java.lang.String s LIMIT 50'
+  },
+  {
+    title: 'Substring(0, 80) preview',
+    description: 'Truncate long Strings to an 80-char preview.',
+    query: 'SELECT substring(toString(s), 0, 80) FROM java.lang.String s WHERE stringLength(s) > 80'
+  },
+  {
+    title: 'Trimmed leading-whitespace Strings',
+    description: 'Find leading-whitespace Strings and show their trimmed form.',
+    query: 'SELECT trim(toString(s)) FROM java.lang.String s WHERE startsWith(s, " ")'
+  },
+  {
+    title: 'Upper-cased String content',
+    description: 'upper(toString(s)) — projection-side string transformation.',
+    query: 'SELECT upper(toString(s)) FROM java.lang.String s LIMIT 50'
+  },
+  {
+    title: 'indexOf("://") on URL-shaped Strings',
+    description: 'Position of "://" in each URL String — handy alongside contains().',
+    query:
+      'SELECT toString(s), indexOf(toString(s), "://") AS pos FROM java.lang.String s ' +
+      'WHERE contains(s, "://")'
+  },
+  {
+    title: 'lastIndexOf(".") for file extensions',
+    description: 'Last dot position — useful for grouping by file extension.',
+    query:
+      'SELECT toString(s), lastIndexOf(toString(s), ".") AS pos FROM java.lang.String s ' +
+      'WHERE endsWith(s, ".class")'
+  },
+  {
+    title: 'First-char histogram via charAt',
+    description: 'Count Strings by their first character.',
+    query:
+      'SELECT charAt(toString(s), 0), count(*) FROM java.lang.String s ' +
+      'WHERE NOT isEmptyString(s) GROUP BY charAt(toString(s), 0) ORDER BY count(*) DESC LIMIT 20'
+  },
+
+  { title: '--- Fuzzy text ---', divider: true },
+  {
+    title: 'Levenshtein distance to "OutOfMemoryError"',
+    description: 'Sort Strings by edit distance to a target term — useful for typo-finding.',
+    query:
+      'SELECT toString(s), levenshtein(toString(s), "OutOfMemoryError") AS dist ' +
+      'FROM java.lang.String s ORDER BY dist ASC LIMIT 20'
+  },
+  {
+    title: 'Jaro-Winkler similar to HashMap class name',
+    description: 'Similarity > 0.85 to "java.util.HashMap" — fuzzy class-name lookup.',
+    query:
+      'SELECT toString(s) FROM java.lang.String s ' +
+      'WHERE jaroWinklerSimilarity(toString(s), "java.util.HashMap") > 0.85'
+  },
+
+  { title: '--- Wrapper toString ---', divider: true },
+  {
+    title: 'Integer value decoded',
+    description: 'Generalised toString decodes the boxed value field.',
+    query: 'SELECT toString(i) FROM java.lang.Integer i LIMIT 50'
+  },
+  {
+    title: 'Boolean wrappers',
+    description: 'Decoded boolean wrapper instances.',
+    query: 'SELECT toString(b) FROM java.lang.Boolean b'
+  },
+
+  { title: '--- Numeric & control flow ---', divider: true },
+  {
+    title: 'Round average shallow size',
+    description: 'round(avg(...), 2) — aggregate with rounding.',
+    query: 'SELECT round(avg(sizeof(s)), 2) FROM java.lang.String s'
+  },
+  {
+    title: 'Size buckets via CASE',
+    description: 'Group every Object into tiny/small/big buckets and count.',
+    query:
+      "SELECT CASE WHEN sizeof(o) < 64 THEN 'tiny' WHEN sizeof(o) < 1024 THEN 'small' ELSE 'big' END AS bucket, " +
+      'count(*) FROM INSTANCEOF java.lang.Object o ' +
+      'GROUP BY bucket ORDER BY count(*) DESC'
+  },
+  {
+    title: 'format() template per Thread',
+    description: 'SLF4J-style format placeholders.',
+    query: "SELECT format('class={} size={}', classof(o).name, sizeof(o)) FROM java.lang.Thread o"
+  },
+
+  { title: '--- Graph traversal ---', divider: true },
+  {
+    title: 'Outbound refs per Thread',
+    description: 'One row per outbound reference; each row is the referenced object.',
+    query: 'SELECT outbounds(t) FROM java.lang.Thread t'
+  },
+  {
+    title: 'Inbound refs to large Strings',
+    description: 'Who references a String > 1000 chars?',
+    query: 'SELECT inbounds(s) FROM java.lang.String s WHERE s.value.length > 1000'
+  },
+  {
+    title: 'reachables() from a Thread',
+    description: 'Transitive forward walk — full per-thread footprint (one row per ref, capped).',
+    query: 'SELECT reachables(t) FROM java.lang.Thread t LIMIT 1'
+  },
+  {
+    title: 'referrers() to a cache class',
+    description: 'Transitive backward walk from instances of *Cache*.',
+    query: 'SELECT referrers(c) FROM java.lang.Class c WHERE c.@displayName LIKE ".*Cache.*"'
+  },
+
+  { title: '--- GC roots ---', divider: true },
+  {
+    title: 'GC-root path for a heavy String',
+    description: 'Render the GC-root path as a single string column per match.',
+    query: 'SELECT root(s) FROM java.lang.String s WHERE s.value.length > 10000'
+  },
+  {
+    title: 'GC-root path for big retained objects',
+    description: 'Top retained-size offenders and the path keeping each one alive.',
+    query:
+      'SELECT root(o) FROM INSTANCEOF java.lang.Object o ' +
+      'WHERE o.@retainedHeapSize > 10485760 LIMIT 5'
+  },
+  {
+    title: 'All GC roots',
+    description: 'Enumerate every GC root in the dump.',
+    query: 'SELECT * FROM heap.roots()'
+  },
+
+  { title: '--- Dominators ---', divider: true },
+  {
+    title: 'Direct dominator of each HashMap',
+    description: 'Who keeps each HashMap alive at the dominator-tree level?',
+    query: 'SELECT dominatorof(o) FROM java.util.HashMap o'
+  },
+  {
+    title: 'Children of big retained objects',
+    description: 'Top retained-size objects and what they directly dominate.',
+    query:
+      'SELECT dominators(o) FROM INSTANCEOF java.lang.Object o ' +
+      'WHERE o.@retainedHeapSize > 1048576 LIMIT 20'
+  },
+
+  { title: '--- Heap helpers ---', divider: true },
+  {
+    title: 'All loaded classes',
+    description: 'Enumerate every loaded class in the dump.',
+    query: 'SELECT * FROM heap.classes()'
+  },
+  {
+    title: 'Lookup class by name',
+    description: 'Resolve a class — building block for follow-up queries.',
+    query: 'SELECT * FROM heap.findClass("java.lang.String")'
+  },
+  {
+    title: 'Lookup object by address',
+    description: 'Resolve a specific instance by its hex object address.',
+    query: 'SELECT * FROM heap.findObject(0xCAFEBABE)'
+  },
+
+  { title: '--- UNION & subqueries ---', divider: true },
+  {
+    title: 'UNION of two FROM sources',
+    description: 'Combine results of two SELECTs.',
+    query:
+      '(SELECT s FROM java.lang.String s WHERE startsWith(s, "java.")) UNION ' +
+      '(SELECT t FROM java.lang.Thread t)'
+  },
+  {
+    title: 'count(*) of a filtered subquery',
+    description: 'Aggregate over a derived table.',
+    query:
+      'SELECT count(*) FROM (SELECT s FROM java.lang.String s WHERE stringLength(s) > 100)'
+  }
 ];
 
-// Check if results have retained size data
-const hasRetainedSize = computed(() => {
-  if (!oqlResult.value || oqlResult.value.results.length === 0) return false;
-  return oqlResult.value.results.some(entry => entry.retainedSize !== null);
+const queryGroups = computed(() => {
+  const groups: { title: string; items: ExampleQuery[] }[] = [];
+  let current: { title: string; items: ExampleQuery[] } | null = null;
+  for (const e of exampleQueries) {
+    if (e.divider) {
+      current = { title: e.title.replace(/---/g, '').trim(), items: [] };
+      groups.push(current);
+    } else if (current) {
+      current.items.push(e);
+    }
+  }
+  return groups;
 });
 
-// Filtered and sorted results
-const filteredResults = computed(() => {
-  if (!oqlResult.value) return [];
+const oqlTabs = computed<TabBarItem[]>(() => [
+  { id: 'executor', label: 'Executor', icon: 'terminal' },
+  { id: 'examples', label: 'Examples', icon: 'lightbulb' }
+]);
 
-  let results = [...oqlResult.value.results];
+const selectedQuery = ref<ExampleQuery | null>(null);
+const selectQuery = (ex: ExampleQuery) => {
+  selectedQuery.value = ex;
+};
 
-  // Apply filter
-  if (resultFilter.value.trim()) {
-    const filter = resultFilter.value.toLowerCase();
-    results = results.filter(
-      entry =>
-        (entry.className && entry.className.toLowerCase().includes(filter)) ||
-        (entry.value && entry.value.toLowerCase().includes(filter))
-    );
-  }
+// =============================================================================
+// Syntax highlighting
+// =============================================================================
 
-  // Apply sorting
-  const direction = sortDirection.value === 'asc' ? 1 : -1;
-  if (sortColumn.value === 'size') {
-    results.sort((a, b) => direction * ((a.size || 0) - (b.size || 0)));
-  } else if (sortColumn.value === 'retained') {
-    results.sort((a, b) => direction * ((a.retainedSize || 0) - (b.retainedSize || 0)));
-  }
+const OQL_KEYWORDS = new Set([
+  'select',
+  'from',
+  'where',
+  'instanceof',
+  'and',
+  'or',
+  'not',
+  'distinct',
+  'order',
+  'by',
+  'asc',
+  'desc',
+  'group'
+]);
 
-  return results;
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function highlightQuery(input: string): string {
+  if (!input) return '';
+  const strings: string[] = [];
+  let placeholder = input.replace(/"([^"\\]*(?:\\.[^"\\]*)*)"/g, (_match, content: string) => {
+    strings.push(content);
+    return HL_STR_OPEN + (strings.length - 1) + HL_STR_CLOSE;
+  });
+  placeholder = escapeHtml(placeholder);
+  placeholder = placeholder.replace(/\b([A-Za-z_][A-Za-z0-9_]*)\b/g, token => {
+    if (OQL_KEYWORDS.has(token.toLowerCase())) {
+      return '<span class="hl-kw">' + token + '</span>';
+    }
+    return token;
+  });
+  const re = new RegExp(HL_STR_OPEN + '(\\d+)' + HL_STR_CLOSE, 'g');
+  placeholder = placeholder.replace(re, (_match, idx: string) => {
+    const raw = strings[Number(idx)] ?? '';
+    return '<span class="hl-str">&quot;' + escapeHtml(raw) + '&quot;</span>';
+  });
+  return placeholder;
+}
+
+function highlightInline(input: string): string {
+  return highlightQuery(input.replace(/\s+/g, ' ').trim());
+}
+
+const highlightedActiveQuery = computed(() => {
+  const trailing = query.value.endsWith('\n') ? ' ' : '';
+  return highlightQuery(query.value) + trailing;
 });
 
-const toggleSort = (column: string) => {
-  if (sortColumn.value === column) {
-    sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc';
-  } else {
-    sortColumn.value = column;
-    sortDirection.value = 'desc';
-  }
-};
+// =============================================================================
+// Helpers
+// =============================================================================
 
-const useExample = (query: string) => {
-  oqlQuery.value = query;
-  showExamples.value = false;
-};
+function formatElapsed(ms: number): string {
+  if (ms < 1000) return Math.round(ms) + 'ms';
+  return (ms / 1000).toFixed(2) + 's';
+}
 
 const truncateValue = (value: string, maxLength: number = 150): string => {
   if (value.length <= maxLength) return value;
   return value.substring(0, maxLength) + '...';
 };
 
-const executeQuery = async () => {
-  if (!oqlQuery.value.trim()) return;
+function hasRetainedSize(run: QueryRun): boolean {
+  if (!run.result || run.result.results.length === 0) return false;
+  return run.result.results.some(entry => entry.retainedSize !== null);
+}
 
-  oqlLoading.value = true;
-  oqlError.value = null;
-  oqlResult.value = null;
-  resultFilter.value = '';
-  sortColumn.value = 'retained';
-  sortDirection.value = 'desc';
+function getFilteredResults(run: QueryRun) {
+  if (!run.result) return [];
+  let results = [...run.result.results];
+  const filter = run.resultFilter.trim().toLowerCase();
+  if (filter) {
+    results = results.filter(
+      entry =>
+        (entry.className && entry.className.toLowerCase().includes(filter)) ||
+        (entry.value && entry.value.toLowerCase().includes(filter))
+    );
+  }
+  const direction = run.sortDirection === 'asc' ? 1 : -1;
+  if (run.sortColumn === 'retained') {
+    results.sort((a, b) => direction * ((a.retainedSize || 0) - (b.retainedSize || 0)));
+  }
+  return results;
+}
+
+function toggleSort(run: QueryRun, column: string) {
+  if (run.sortColumn === column) {
+    run.sortDirection = run.sortDirection === 'asc' ? 'desc' : 'asc';
+  } else {
+    run.sortColumn = column as SortColumn;
+    run.sortDirection = 'desc';
+  }
+}
+
+// =============================================================================
+// Editor sizing
+// =============================================================================
+
+function resizeTextarea() {
+  nextTick(() => {
+    const el = textareaRef.value;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = Math.max(el.scrollHeight, 80) + 'px';
+  });
+}
+
+watch(query, () => resizeTextarea(), { flush: 'post' });
+
+// =============================================================================
+// Execute / Clear / History
+// =============================================================================
+
+function makeRun(
+  status: RunStatus,
+  src: string,
+  elapsedMs: number,
+  result?: OQLQueryResult,
+  errorMessage?: string
+): QueryRun {
+  return {
+    id: nextRunId.value++,
+    query: src,
+    status,
+    elapsedMs,
+    result,
+    errorMessage,
+    resultFilter: '',
+    sortColumn: 'retained',
+    sortDirection: 'desc'
+  };
+}
+
+async function executeActive() {
+  if (!query.value.trim() || running.value) return;
+  selectedHistoryId.value = null;
+  running.value = true;
+  const start = performance.now();
+  const previousLatest = latestRun.value;
+  const sourceQuery = query.value;
 
   try {
-    const result = await client.executeQuery(
-      oqlQuery.value,
-      oqlLimit.value,
-      0,
-      includeRetainedSize.value
-    );
+    const result = await client.executeQuery(sourceQuery, oqlLimit.value, 0, true);
+    const clientElapsed = performance.now() - start;
+    let newRun: QueryRun;
     if (result.errorMessage) {
-      oqlError.value = result.errorMessage;
+      newRun = makeRun('error', sourceQuery, clientElapsed, undefined, result.errorMessage);
     } else {
-      oqlResult.value = result;
+      newRun = makeRun('success', sourceQuery, result.executionTimeMs ?? clientElapsed, result);
     }
+    promoteToHistory(previousLatest, sourceQuery);
+    latestRun.value = newRun;
   } catch (err) {
-    oqlError.value = err instanceof Error ? err.message : 'Query execution failed';
+    const newRun = makeRun(
+      'error',
+      sourceQuery,
+      performance.now() - start,
+      undefined,
+      err instanceof Error ? err.message : 'Query execution failed'
+    );
+    promoteToHistory(previousLatest, sourceQuery);
+    latestRun.value = newRun;
   } finally {
-    oqlLoading.value = false;
+    running.value = false;
   }
+}
+
+function promoteToHistory(previous: QueryRun | null, newQuery: string) {
+  if (!previous) return;
+  if (previous.query === newQuery) return;
+  history.value = [previous, ...history.value].slice(0, MAX_HISTORY);
+}
+
+function clearEditor() {
+  query.value = '';
+  latestRun.value = null;
+  resizeTextarea();
+  focusEditor();
+}
+
+function clearHistory() {
+  history.value = [];
+  selectedHistoryId.value = null;
+}
+
+function toggleChip(id: number) {
+  selectedHistoryId.value = selectedHistoryId.value === id ? null : id;
+}
+
+const selectedRun = computed<QueryRun | null>(() => {
+  if (selectedHistoryId.value === null) return null;
+  return history.value.find(r => r.id === selectedHistoryId.value) ?? null;
+});
+
+function rerunFromHistory(run: QueryRun) {
+  query.value = run.query;
+  selectedHistoryId.value = null;
+  void executeActive();
+}
+
+function copyToEditor(run: QueryRun) {
+  query.value = run.query;
+  selectedHistoryId.value = null;
+  focusEditor();
+}
+
+function focusEditor() {
+  nextTick(() => {
+    textareaRef.value?.focus();
+  });
+}
+
+// =============================================================================
+// Examples -> editor
+// =============================================================================
+
+const useExample = (q: string) => {
+  query.value = q;
+  activeTab.value = 'executor';
+  focusEditor();
 };
 
-const clearResults = () => {
-  oqlQuery.value = '';
-  oqlResult.value = null;
-  oqlError.value = null;
-};
+// =============================================================================
+// AI Assistant
+// =============================================================================
 
 const openAssistant = () => {
   showAssistant.value = true;
@@ -558,19 +1134,24 @@ const openAssistant = () => {
 
 const closeAssistant = () => {
   showAssistant.value = false;
-  assistantExpanded.value = false; // Return to minimized state - button stays visible
+  assistantExpanded.value = false;
 };
 
-const applyQueryFromAssistant = (query: string) => {
-  oqlQuery.value = query;
+const applyQueryFromAssistant = (q: string) => {
+  query.value = q;
   closeAssistant();
+  focusEditor();
 };
 
-const runQueryFromAssistant = async (query: string) => {
-  oqlQuery.value = query;
+const runQueryFromAssistant = async (q: string) => {
+  query.value = q;
   closeAssistant();
-  await executeQuery();
+  await executeActive();
 };
+
+// =============================================================================
+// Modals
+// =============================================================================
 
 const openTreeModal = (objectId: number, mode: 'REFERRERS' | 'REACHABLES') => {
   selectedObjectId.value = objectId;
@@ -579,8 +1160,17 @@ const openTreeModal = (objectId: number, mode: 'REFERRERS' | 'REACHABLES') => {
 };
 
 const openGCRootPathModal = (objectId: number) => {
-  router.push(`/profiles/${profileId}/heap-dump/gc-root-path?objectId=${objectId}`);
+  router.push('/profiles/' + profileId + '/heap-dump/gc-root-path?objectId=' + objectId);
 };
+
+const openInstanceDetailPanel = (objectId: number) => {
+  detailPanelObjectId.value = objectId;
+  detailPanelOpen.value = true;
+};
+
+// =============================================================================
+// AI availability + page load
+// =============================================================================
 
 const checkAiAvailability = async () => {
   try {
@@ -612,7 +1202,6 @@ const loadData = async () => {
 
     if (heapExists.value) {
       cacheReady.value = await client.isCacheReady();
-      // Check AI availability in parallel
       checkAiAvailability();
     }
   } catch (err) {
@@ -626,6 +1215,7 @@ const loadData = async () => {
 onMounted(() => {
   scrollToTop();
   loadData();
+  resizeTextarea();
 });
 </script>
 
@@ -634,164 +1224,313 @@ onMounted(() => {
   padding: 2rem;
 }
 
-/* Examples Card */
-.examples-card {
+/* ==== EXAMPLES TAB ============================================ */
+.examples-panel {
+  display: grid;
+  grid-template-columns: 340px 1fr;
   background: white;
   border: 1px solid var(--color-border);
+  border-radius: var(--radius-base);
   overflow: hidden;
+  /* Pin the panel to the top of the workspace scroll container with a
+     viewport-height cap; the rail scrolls internally so the preview pane
+     on the right (selected example + "Use this query" button) is always
+     visible. */
+  position: sticky;
+  top: 1rem;
+  height: calc(100vh - 2rem);
 }
-
-.examples-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.75rem 1rem;
-  background-color: var(--color-light);
-  border-bottom: 1px solid var(--color-border);
+.picker-rail {
+  border-right: 1px solid var(--color-border);
+  overflow-y: auto;
+  padding: 0.25rem 0;
 }
-
-.examples-header h6 {
-  color: var(--color-purple);
-  font-size: 0.875rem;
-  font-weight: 600;
-}
-
-.examples-body {
-  padding: 0.75rem;
-}
-
-.examples-list {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 0.5rem;
-}
-
-.example-divider {
-  grid-column: 1 / -1;
-  font-size: 0.7rem;
+.picker-cat {
+  font-size: 0.65rem;
   font-weight: 700;
   color: var(--color-purple);
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  padding: 0.5rem 0.5rem 0.25rem;
-  border-bottom: 1px solid var(--color-border);
-  margin-top: 0.25rem;
+  padding: 0.625rem 1rem 0.25rem;
 }
-
-.example-divider:first-child {
-  margin-top: 0;
+.picker-cat:not(:first-child) {
+  margin-top: 0.5rem;
+  border-top: 1px solid var(--color-border-light);
+  padding-top: 0.75rem;
 }
-
-.example-item {
-  padding: 0.5rem 0.75rem;
-  border: 1px solid var(--color-border);
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.example-item:hover {
-  background-color: var(--color-light);
-  border-color: var(--color-purple);
-}
-
-.example-title {
-  font-size: 0.75rem;
-  font-weight: 600;
+.picker-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 1rem;
+  font-size: 0.8rem;
   color: var(--color-text);
-  margin-bottom: 0.125rem;
+  cursor: pointer;
+  border-left: 2px solid transparent;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
 }
-
-.example-query {
-  display: block;
-  font-size: 0.7rem;
-  color: var(--color-text-muted);
-  background: transparent;
-  padding: 0;
-  white-space: nowrap;
+.picker-item:hover {
+  background-color: var(--color-bg-hover);
+}
+.picker-item.active {
+  background-color: var(--color-primary-light);
+  color: var(--color-purple);
+  border-left-color: var(--color-purple);
+  font-weight: 600;
+}
+.picker-icon {
+  color: var(--color-text-light);
+  font-size: 0.75rem;
+  flex-shrink: 0;
+}
+.picker-item.active .picker-icon {
+  color: var(--color-purple);
+}
+.picker-label {
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
-
-/* Query Editor - Compact Design */
-.query-editor {
+.picker-preview {
+  padding: 1rem 1.25rem;
+  background: var(--color-bg-hover);
+  overflow-y: auto;
+}
+.picker-empty {
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+  padding: 1rem 0;
+}
+.picker-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0 0 0.5rem;
+  display: flex;
+  align-items: center;
+}
+.picker-desc {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  margin: 0 0 0.75rem;
+  line-height: 1.5;
+}
+.example-oql {
   background: white;
   border: 1px solid var(--color-border);
+  border-radius: var(--radius-base);
+  padding: 0.75rem 1rem;
+  font-family: var(--font-family-monospace, ui-monospace, monospace);
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--color-text);
+  white-space: pre-wrap;
+  margin: 0 0 0.75rem;
+}
+
+/* ==== EDITOR =============================================================== */
+.editor {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-base);
+  background: white;
+  overflow: hidden;
+  margin-bottom: 0.9rem;
+}
+.editor-band {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.85rem;
+  background: var(--color-bg-hover);
+  border-bottom: 1px solid var(--color-border-light);
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+}
+.lang-tag {
+  font-family: var(--font-family-monospace, ui-monospace, monospace);
+  font-weight: 700;
+  color: var(--color-purple);
+  background: var(--color-primary-light);
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 0.65rem;
+  letter-spacing: 0.4px;
+}
+.band-label {
+  color: var(--color-text-muted);
+}
+.band-status {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.72rem;
+}
+.band-status.status-idle {
+  color: var(--color-text-light);
+}
+.band-status.status-run {
+  color: var(--color-info);
+}
+.band-status.status-ok {
+  color: var(--color-success-hover);
+}
+.band-status.status-err {
+  color: var(--color-danger);
+}
+
+/* Overlay editor */
+.editor-overlay-wrap {
+  position: relative;
+  background: white;
+}
+.editor-overlay,
+.editor-input {
+  margin: 0;
+  padding: 0.85rem 1rem;
+  font-family: var(--font-family-monospace, ui-monospace, monospace);
+  font-size: 0.875rem;
+  line-height: 1.65;
+  letter-spacing: 0;
+  border: 0;
+  box-sizing: border-box;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  tab-size: 2;
+}
+.editor-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  color: var(--color-text);
+  background: transparent;
   overflow: hidden;
 }
-
-.query-input {
+.editor-input {
+  position: relative;
+  display: block;
   width: 100%;
-  padding: 1rem 1.25rem;
-  border: none;
-  border-bottom: 1px solid var(--color-border);
-  background-color: var(--color-light);
-  font-family: var(--font-family-base);
-  font-size: 0.875rem;
-  resize: vertical;
-  min-height: 120px;
-  transition: background-color 0.2s ease;
+  min-height: 80px;
+  background: transparent;
+  color: transparent;
+  caret-color: var(--color-text);
+  resize: none;
+  outline: none;
+  overflow: hidden;
 }
-
-.query-input::placeholder {
+.editor-input::placeholder {
   color: var(--color-text-light);
-  opacity: 0.7;
+  -webkit-text-fill-color: var(--color-text-light);
   font-style: italic;
 }
 
-.query-input:focus {
-  outline: none;
-  background-color: var(--color-white);
-  border-bottom: 2px solid var(--color-blue-500);
+:deep(.hl-kw) {
+  color: var(--color-purple);
+  font-weight: 600;
+}
+:deep(.hl-str) {
+  color: var(--color-warning-hover);
 }
 
-.query-toolbar {
+.editor-toolbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.5rem 1rem;
-  background-color: var(--color-white);
+  padding: 0.5rem 0.85rem;
+  border-top: 1px solid var(--color-border-light);
+  background: var(--color-bg-hover);
+  gap: 0.6rem;
+  flex-wrap: wrap;
 }
-
-.query-toolbar .btn {
-  padding: 0.4rem 0.75rem;
-  font-size: 0.8rem;
+.toolbar-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.editor-toolbar .btn {
+  padding: 0.35rem 0.7rem;
+  font-size: 0.78rem;
   display: inline-flex;
   align-items: center;
-  justify-content: center;
 }
-
 .toolbar-divider {
   width: 1px;
   height: 20px;
   background-color: var(--color-border);
   margin: 0 0.25rem;
 }
-
 .select-narrow {
   width: 80px;
 }
+.kbd-hint {
+  font-size: 0.7rem;
+  color: var(--color-text-light);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+.kbd-hint kbd {
+  font-family: var(--font-family-monospace, ui-monospace, monospace);
+  font-size: 0.65rem;
+  background: white;
+  border: 1px solid var(--color-border);
+  border-bottom-width: 2px;
+  border-radius: 3px;
+  padding: 0 4px;
+  color: var(--color-text-muted);
+}
 
-/* Toolbar badges */
+/* ==== RESULT block ======================================================== */
+.result-block {
+  margin-bottom: 1rem;
+}
+.result-error,
+.popover-error {
+  padding: 0.85rem 1rem;
+  background: var(--color-danger-light);
+  color: var(--color-danger);
+  font-size: 0.85rem;
+  border: 1px solid var(--color-danger-light);
+  border-left: 3px solid var(--color-danger);
+  border-radius: var(--radius-base);
+}
+.result-error strong,
+.popover-error strong {
+  display: block;
+  font-weight: 600;
+}
+
+.latest-tag {
+  font-family: var(--font-family-monospace, ui-monospace, monospace);
+  font-weight: 700;
+  color: var(--color-purple);
+  background: var(--color-primary-light);
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 0.65rem;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+
 .toolbar-count {
   font-size: 0.8rem;
   font-weight: 600;
   color: var(--color-text);
 }
-
 .toolbar-badge-warning {
   font-size: 0.65rem;
-  background: var(--color-warning-bg);
-  color: var(--color-warning-text, #856404);
+  background: var(--color-warning-light);
+  color: var(--color-warning-hover);
   padding: 2px 6px;
   border-radius: 3px;
   font-weight: 500;
 }
-
 .toolbar-meta {
   font-size: 0.75rem;
   color: var(--color-text-muted);
 }
-
 .class-name {
   font-size: 0.8rem;
   font-weight: 500;
@@ -799,7 +1538,6 @@ onMounted(() => {
   word-break: break-all;
   line-height: 1.4;
 }
-
 .value-text {
   font-size: 0.75rem;
   color: var(--color-text-muted);
@@ -807,55 +1545,212 @@ onMounted(() => {
   line-height: 1.4;
   margin-top: 0.25rem;
 }
-
 .font-monospace {
   font-size: 0.8rem;
 }
+.object-cell {
+  position: relative;
+}
+.object-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
 
-.empty-state {
+/* ==== HISTORY (chip strip) =============================================== */
+.history-section {
+  margin-top: 0.75rem;
+  margin-bottom: 1rem;
+}
+.history-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--color-text-muted);
+  margin: 0 0 0.65rem;
+}
+.history-title .count {
+  background: var(--color-border-light);
+  color: var(--color-text);
+  font-size: 0.65rem;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+.btn-remove-history {
+  margin-left: auto;
+  appearance: none;
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-base);
+  padding: 0.25rem 0.65rem;
+  font-size: 0.7rem;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+.btn-remove-history:hover {
+  color: var(--color-danger);
+  border-color: var(--color-danger);
+  background: var(--color-danger-light);
+}
+
+.chip-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--font-family-monospace, ui-monospace, monospace);
+  font-size: 0.72rem;
   background: white;
   border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: 0.25rem 0.7rem 0.25rem 0.4rem;
+  cursor: pointer;
+  max-width: 320px;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease;
 }
-
-.empty-state .btn-ai-assistant {
-  font-size: 0.8rem !important;
-  padding: 0.5rem 1rem !important;
-  border-radius: 6px !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  gap: 0.4rem !important;
-}
-
-.empty-state .btn-ai-assistant i {
-  font-size: 0.9rem !important;
-  color: white !important;
-  line-height: 1 !important;
-}
-
-.btn-purple {
-  background-color: var(--color-purple);
+.chip:hover {
   border-color: var(--color-purple);
-  color: white;
+  background: var(--color-primary-light);
 }
-
-.btn-purple:hover {
-  background-color: var(--color-purple-hover);
-  border-color: var(--color-purple-hover);
-  color: white;
-}
-
-.btn-outline-purple {
+.chip.selected {
   border-color: var(--color-purple);
+  background: var(--color-primary-light);
+}
+.chip-num {
+  font-weight: 700;
+  color: var(--color-purple);
+  font-size: 0.65rem;
+  background: var(--color-primary-light);
+  padding: 1px 6px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+.chip.selected .chip-num {
+  background: white;
+}
+.chip-q {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--color-text);
+}
+.chip-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.chip-dot.ok {
+  background: var(--color-success);
+}
+.chip-dot.err {
+  background: var(--color-danger);
+}
+
+.chip-popover {
+  margin-top: 0.65rem;
+  background: white;
+  border: 1px solid var(--color-purple);
+  border-radius: var(--radius-base);
+  padding: 0.65rem 0.85rem 0.85rem;
+  box-shadow: 0 4px 12px rgba(111, 66, 193, 0.08);
+}
+.chip-popover-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.55rem;
+  flex-wrap: wrap;
+}
+.chip-popover-num {
+  font-family: var(--font-family-monospace, ui-monospace, monospace);
+  font-size: 0.8rem;
+  font-weight: 700;
   color: var(--color-purple);
 }
-
-.btn-outline-purple:hover {
-  background-color: var(--color-purple);
-  border-color: var(--color-purple);
-  color: white;
+.popover-meta {
+  font-size: 0.74rem;
+  color: var(--color-text-muted);
+}
+.popover-meta strong {
+  color: var(--color-text);
+}
+.chip-popover-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 0.1rem;
+}
+.btn-ghost {
+  appearance: none;
+  background: transparent;
+  border: none;
+  color: var(--color-text-muted);
+  padding: 0.25rem 0.45rem;
+  border-radius: var(--radius-base);
+  font-size: 0.85rem;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+.btn-ghost:hover {
+  background: var(--color-primary-light);
+  color: var(--color-purple);
+}
+.chip-popover-q {
+  font-family: var(--font-family-monospace, ui-monospace, monospace);
+  font-size: 0.78rem;
+  background: var(--color-bg-hover);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-base);
+  padding: 0.5rem 0.75rem;
+  margin: 0 0 0.6rem;
+  line-height: 1.55;
+  white-space: pre-wrap;
 }
 
-/* AI Assistant Button - Eye-catching design */
+.pill {
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+}
+.pill-success {
+  color: var(--color-success-hover);
+  background: var(--color-success-light);
+}
+.pill-error {
+  color: var(--color-danger-hover);
+  background: var(--color-danger-light);
+}
+
+/* ==== AI Assistant Button ================================================ */
 .btn-ai-assistant {
   background: linear-gradient(
     135deg,
@@ -877,7 +1772,6 @@ onMounted(() => {
   align-items: center;
   gap: 0.35rem;
 }
-
 .btn-ai-assistant::before {
   content: '';
   position: absolute;
@@ -888,7 +1782,6 @@ onMounted(() => {
   background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
   transition: left 0.5s ease;
 }
-
 .btn-ai-assistant:hover {
   background: linear-gradient(
     135deg,
@@ -900,21 +1793,17 @@ onMounted(() => {
   transform: translateY(-1px);
   color: white;
 }
-
 .btn-ai-assistant:hover::before {
   left: 100%;
 }
-
 .btn-ai-assistant:active {
   transform: translateY(0);
   box-shadow: 0 2px 8px rgba(124, 58, 237, 0.4);
 }
-
 .btn-ai-assistant i {
   font-size: 0.9rem;
   line-height: 1;
 }
-
 @keyframes sparkle {
   0%,
   100% {
@@ -927,18 +1816,7 @@ onMounted(() => {
   }
 }
 
-/* Object cell with inline action buttons */
-.object-cell {
-  position: relative;
-}
-
-.object-header {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-/* AI Configuration Panel - Attractive Design */
+/* AI Configuration Panel */
 .ai-config-panel {
   position: relative;
   background: linear-gradient(
@@ -954,11 +1832,9 @@ onMounted(() => {
   overflow: hidden;
   transition: all 0.3s ease;
 }
-
 .ai-config-panel.ai-config-minimized {
   padding: 0.75rem 1rem;
 }
-
 .ai-config-toggle {
   position: absolute;
   top: 0.75rem;
@@ -978,18 +1854,15 @@ onMounted(() => {
   z-index: 2;
   box-shadow: 0 1px 3px rgba(124, 58, 237, 0.1);
 }
-
 .ai-config-toggle:hover {
   background: var(--color-violet-hover-bg);
   border-color: var(--color-violet-border-light);
   color: var(--color-violet-deeper);
   box-shadow: 0 2px 6px rgba(124, 58, 237, 0.15);
 }
-
 .ai-config-toggle i {
   font-size: 0.7rem;
 }
-
 .ai-config-minimized-content {
   display: flex;
   align-items: center;
@@ -997,7 +1870,6 @@ onMounted(() => {
   cursor: pointer;
   padding-right: 2rem;
 }
-
 .ai-config-minimized-icon {
   width: 32px;
   height: 32px;
@@ -1008,19 +1880,16 @@ onMounted(() => {
   justify-content: center;
   flex-shrink: 0;
 }
-
 .ai-config-minimized-icon i {
   font-size: 1rem;
   color: white;
   animation: sparkle 3s ease-in-out infinite;
 }
-
 .ai-config-minimized-text {
   font-size: 0.85rem;
   font-weight: 500;
   color: var(--color-violet-deeper);
 }
-
 .ai-config-content {
   position: relative;
   z-index: 1;
@@ -1029,7 +1898,6 @@ onMounted(() => {
   align-items: center;
   text-align: center;
 }
-
 .ai-config-icon {
   width: 64px;
   height: 64px;
@@ -1046,32 +1914,27 @@ onMounted(() => {
   margin-bottom: 1rem;
   box-shadow: 0 8px 24px rgba(124, 58, 237, 0.3);
 }
-
 .ai-config-icon i {
   font-size: 1.75rem;
   color: white;
   animation: sparkle 3s ease-in-out infinite;
 }
-
 .ai-config-text {
   max-width: 480px;
   margin-bottom: 1.25rem;
 }
-
 .ai-config-title {
   font-size: 1.125rem;
   font-weight: 700;
   color: var(--color-violet-darkest);
   margin-bottom: 0.5rem;
 }
-
 .ai-config-description {
   font-size: 0.875rem;
   color: var(--color-text-muted);
   line-height: 1.6;
   margin-bottom: 0.5rem;
 }
-
 .ai-providers-note {
   display: inline-flex;
   align-items: center;
@@ -1082,11 +1945,9 @@ onMounted(() => {
   padding: 0.35rem 0.75rem;
   border-radius: 20px;
 }
-
 .ai-providers-note strong {
   color: var(--color-success-hover);
 }
-
 .ai-config-features {
   display: flex;
   gap: 1.5rem;
@@ -1094,7 +1955,6 @@ onMounted(() => {
   flex-wrap: wrap;
   justify-content: center;
 }
-
 .ai-feature {
   display: flex;
   align-items: center;
@@ -1107,12 +1967,9 @@ onMounted(() => {
   box-shadow: 0 2px 8px rgba(124, 58, 237, 0.1);
   border: 1px solid var(--color-violet-border);
 }
-
 .ai-feature i {
   font-size: 1rem;
 }
-
-/* Configuration Setup Section */
 .ai-config-setup {
   display: flex;
   gap: 1.5rem;
@@ -1120,7 +1977,6 @@ onMounted(() => {
   flex-wrap: wrap;
   justify-content: center;
 }
-
 .config-section {
   background: white;
   border: 1px solid var(--color-violet-border);
@@ -1130,7 +1986,6 @@ onMounted(() => {
   text-align: left;
   box-shadow: 0 2px 8px rgba(124, 58, 237, 0.08);
 }
-
 .config-section-title {
   font-size: 0.75rem;
   font-weight: 600;
@@ -1139,13 +1994,11 @@ onMounted(() => {
   display: flex;
   align-items: center;
 }
-
 .config-code {
   display: flex;
   flex-direction: column;
   gap: 0.375rem;
 }
-
 .config-code code {
   display: block;
   font-size: 0.75rem;
@@ -1155,29 +2008,23 @@ onMounted(() => {
   border-radius: 4px;
   border: 1px solid var(--color-violet-lightest-bg);
 }
-
 .config-code .code-value {
   color: var(--color-violet-dark);
   font-weight: 600;
 }
-
 .config-hint-text {
   font-size: 0.7rem;
   color: var(--color-text-muted);
   margin-top: 0.5rem;
 }
-
 .config-hint-text a {
   color: var(--color-violet-dark);
   text-decoration: none;
   font-weight: 500;
 }
-
 .config-hint-text a:hover {
   text-decoration: underline;
 }
-
-/* Decorative Elements */
 .ai-config-decoration {
   position: absolute;
   top: 0;
@@ -1187,13 +2034,11 @@ onMounted(() => {
   pointer-events: none;
   overflow: hidden;
 }
-
 .decoration-circle {
   position: absolute;
   border-radius: 50%;
   opacity: 0.15;
 }
-
 .circle-1 {
   width: 200px;
   height: 200px;
@@ -1202,7 +2047,6 @@ onMounted(() => {
   right: -60px;
   animation: float 8s ease-in-out infinite;
 }
-
 .circle-2 {
   width: 120px;
   height: 120px;
@@ -1211,7 +2055,6 @@ onMounted(() => {
   left: -30px;
   animation: float 6s ease-in-out infinite reverse;
 }
-
 .circle-3 {
   width: 80px;
   height: 80px;
@@ -1224,7 +2067,6 @@ onMounted(() => {
   left: 15%;
   animation: float 10s ease-in-out infinite;
 }
-
 @keyframes float {
   0%,
   100% {

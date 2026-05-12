@@ -23,6 +23,7 @@ module cafe.jeffrey.microscope.profile.management {
     requires cafe.jeffrey.microscope.profile.persistence.jdbc;
     requires cafe.jeffrey.microscope.profile.flamegraph;
     requires cafe.jeffrey.microscope.profile.heapdump;
+    requires cafe.jeffrey.microscope.profile.heapdump.oql;
     requires cafe.jeffrey.microscope.profile.ai.oql;
     requires cafe.jeffrey.microscope.profile.ai.mcp.duckdb.jfr;
     requires cafe.jeffrey.microscope.profile.ai.mcp.duckdb.heapdump;

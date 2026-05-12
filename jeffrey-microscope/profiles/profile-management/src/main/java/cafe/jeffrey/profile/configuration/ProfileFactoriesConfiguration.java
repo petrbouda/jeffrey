@@ -521,7 +521,8 @@ public class ProfileFactoriesConfiguration {
     @Bean
     public HeapDumpManager.Factory heapDumpManagerFactory(
             AdditionalFilesManager.Factory additionalFilesManagerFactory,
-            Clock clock) {
+            Clock clock,
+            cafe.jeffrey.profile.heapdump.oql.OqlEngine oqlEngine) {
 
         return profileInfo -> {
             DataSource profileDb = databaseManagerResolver.open(profileInfo);
@@ -529,7 +530,8 @@ public class ProfileFactoriesConfiguration {
                     profileInfo,
                     additionalFilesManagerFactory.apply(profileInfo),
                     profileRepositories.newEventRepository(profileDb),
-                    clock);
+                    clock,
+                    oqlEngine);
         };
     }
 }

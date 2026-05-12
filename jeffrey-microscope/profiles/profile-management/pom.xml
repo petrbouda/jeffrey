@@ -53,6 +53,10 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>heapdump-oql</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>oql-assistant</artifactId>
         </dependency>
         <dependency>

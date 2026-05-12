@@ -57,6 +57,7 @@
         <grpc.version>1.80.0</grpc.version>
         <netty.version>4.2.12.Final</netty.version>
         <protobuf.version>4.34.1</protobuf.version>
+        <antlr4.version>4.13.2</antlr4.version>
     </properties>
 
     <dependencyManagement>
@@ -259,6 +260,13 @@
                 <groupId>org.flywaydb</groupId>
                 <artifactId>flyway-core</artifactId>
                 <version>${flyway-core.version}</version>
+            </dependency>
+
+            <!-- ANTLR4 runtime — used by heapdump-oql for the OQL grammar -->
+            <dependency>
+                <groupId>org.antlr</groupId>
+                <artifactId>antlr4-runtime</artifactId>
+                <version>${antlr4.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
