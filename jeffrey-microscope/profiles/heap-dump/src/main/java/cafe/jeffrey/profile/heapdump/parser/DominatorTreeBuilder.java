@@ -29,6 +29,10 @@ import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import org.duckdb.DuckDBAppender;
 import org.duckdb.DuckDBConnection;
 import org.slf4j.Logger;
@@ -69,6 +73,18 @@ public final class DominatorTreeBuilder {
 
     /** Reserved id for the synthetic virtual root. HPROF id 0 means null, never a real instance. */
     public static final long VIRTUAL_ROOT = 0L;
+
+    /**
+     * Number of virtual threads used for the parallel persist phase — one per
+     * output table ({@code dominator} and {@code retained_size}). The natural
+     * ceiling is 2 because DuckDB serialises commits within a single table,
+     * so any per-table sharding beyond that would just contend on the same
+     * write lock. Surfaced into the UI sub-phase note via {@link #PERSIST_PARALLELISM_NOTE}.
+     */
+    private static final int PERSIST_PARALLELISM = 2;
+
+    /** Human-readable form of {@link #PERSIST_PARALLELISM} for the UI accordion. */
+    private static final String PERSIST_PARALLELISM_NOTE = PERSIST_PARALLELISM + " virtual threads";
 
     public record BuildResult(int reachableInstances, int rootEdges, long iterations,
                               java.time.Duration buildTime, List<SubPhaseTiming> subPhases) {
@@ -160,40 +176,72 @@ public final class DominatorTreeBuilder {
                 computeRetained(idom, dfs, shallow, virtualIndex, totalNodes));
         long[] retained = retE.entity();
 
-        // Persist.
-        int[] reachableCounter = {0};
-        Duration persistDuration = Measuring.r(() -> {
-            try (DuckDBAppender domApp = conn.createAppender("dominator");
-                 DuckDBAppender retApp = conn.createAppender("retained_size")) {
-                int[] preorder = dfs.preorder();
-                for (int i = 0; i < reachableNodes; i++) {
-                    int v = preorder[i];
-                    if (v == virtualIndex) {
-                        continue;
-                    }
-                    int d = idom[v];
-                    long instanceId = ids[v];
-                    long dominatorId = d == virtualIndex ? VIRTUAL_ROOT : ids[d];
-                    domApp.beginRow();
-                    domApp.append(instanceId);
-                    domApp.append(dominatorId);
-                    domApp.endRow();
+        // Stage 1: materialise the per-row data into compact primitive arrays.
+        // This is the actual reusable work — both appenders need the same
+        // {instanceId, dominatorId, retained} triplets in preorder. Computing
+        // them once on a single thread is cheaper than re-running the branchy
+        // {v == virtualIndex ? VIRTUAL_ROOT : ids[d]} logic in each shard.
+        Elapsed<PersistRowData> rowsE = Measuring.s(() ->
+                buildPersistRowData(idom, dfs, retained, ids, virtualIndex, reachableNodes));
+        PersistRowData rows = rowsE.entity();
+        int reachable = rows.count();
 
-                    retApp.beginRow();
-                    retApp.append(instanceId);
-                    retApp.append(retained[v]);
-                    retApp.endRow();
-                    reachableCounter[0]++;
+        // Stage 2: PERSIST_PARALLELISM virtual threads, one per output table.
+        // Each owns a DuckDBAppender. DuckDB appenders are bound to a single
+        // (connection, table) pair and the threads target *different* tables,
+        // so they don't contend on table-level locks or ART-index inserts.
+        // Net wall time ≈ max(dom_persist, ret_persist) instead of their sum.
+        Duration persistDuration = Measuring.r(() -> {
+            try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
+                Future<?> domFuture = executor.submit(() -> {
+                    try (DuckDBAppender app = conn.createAppender("dominator")) {
+                        long[] instanceIds = rows.instanceIds();
+                        long[] dominatorIds = rows.dominatorIds();
+                        for (int i = 0; i < rows.count(); i++) {
+                            app.beginRow();
+                            app.append(instanceIds[i]);
+                            app.append(dominatorIds[i]);
+                            app.endRow();
+                        }
+                    } catch (SQLException e) {
+                        throw new RuntimeException(e);
+                    }
+                    return null;
+                });
+                Future<?> retFuture = executor.submit(() -> {
+                    try (DuckDBAppender app = conn.createAppender("retained_size")) {
+                        long[] instanceIds = rows.instanceIds();
+                        long[] retainedBytes = rows.retainedBytes();
+                        for (int i = 0; i < rows.count(); i++) {
+                            app.beginRow();
+                            app.append(instanceIds[i]);
+                            app.append(retainedBytes[i]);
+                            app.endRow();
+                        }
+                    } catch (SQLException e) {
+                        throw new RuntimeException(e);
+                    }
+                    return null;
+                });
+                try {
+                    domFuture.get();
+                    retFuture.get();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new RuntimeException(e);
+                } catch (ExecutionException e) {
+                    Throwable cause = e.getCause();
+                    if (cause instanceof RuntimeException re) {
+                        throw re;
+                    }
+                    throw new RuntimeException(cause);
                 }
-            } catch (SQLException e) {
-                throw new RuntimeException(e);
             }
         });
-        int reachable = reachableCounter[0];
 
         LOG.debug(
                 "Dominator tree phases: load_meta_ms={} load_successors_ms={} invert_ms={} "
-                        + "dfs_ms={} semi_nca_ms={} retained_ms={} persist_ms={} "
+                        + "dfs_ms={} semi_nca_ms={} retained_ms={} stage_rows_ms={} persist_ms={} "
                         + "instances={} edges={} reachable={}",
                 metaE.duration().toMillis(),
                 succE.duration().toMillis(),
@@ -201,6 +249,7 @@ public final class DominatorTreeBuilder {
                 dfsE.duration().toMillis(),
                 idomE.duration().toMillis(),
                 retE.duration().toMillis(),
+                rowsE.duration().toMillis(),
                 persistDuration.toMillis(),
                 ids.length,
                 edgeCount(succ),
@@ -213,7 +262,8 @@ public final class DominatorTreeBuilder {
                 new SubPhaseTiming("dfs", dfsE.duration().toMillis(), null),
                 new SubPhaseTiming("semi_nca", idomE.duration().toMillis(), "Lengauer-Tarjan"),
                 new SubPhaseTiming("retained", retE.duration().toMillis(), null),
-                new SubPhaseTiming("persist", persistDuration.toMillis(), null));
+                new SubPhaseTiming("stage_rows", rowsE.duration().toMillis(), null),
+                new SubPhaseTiming("persist", persistDuration.toMillis(), PERSIST_PARALLELISM_NOTE));
 
         // BuildResult.iterations was a CHK leftover (number of fixed-point passes);
         // semi-NCA needs no fixed-point so we report 1 to keep the field honest.
@@ -231,6 +281,47 @@ public final class DominatorTreeBuilder {
      * @param reachable   how many nodes were reached from the virtual root
      */
     private record DfsData(int[] preorder, int[] dfsNum, int[] parent, int reachable) {
+    }
+
+    /**
+     * Compact column-store of the per-row data each appender thread needs.
+     * Built once in preorder; both the {@code dominator} and {@code retained_size}
+     * appender threads read straight off these flat arrays without re-doing the
+     * {@code v == virtualIndex ? VIRTUAL_ROOT : ids[d]} branching.
+     */
+    private record PersistRowData(
+            long[] instanceIds,
+            long[] dominatorIds,
+            long[] retainedBytes,
+            int count) {
+    }
+
+    private static PersistRowData buildPersistRowData(
+            int[] idom,
+            DfsData dfs,
+            long[] retained,
+            long[] ids,
+            int virtualIndex,
+            int reachableNodes) {
+        // Worst case the virtual root sits in the preorder too, so size with a -1.
+        int cap = Math.max(0, reachableNodes - 1);
+        long[] instanceIds = new long[cap];
+        long[] dominatorIds = new long[cap];
+        long[] retainedBytes = new long[cap];
+        int[] preorder = dfs.preorder();
+        int n = 0;
+        for (int i = 0; i < reachableNodes; i++) {
+            int v = preorder[i];
+            if (v == virtualIndex) {
+                continue;
+            }
+            int d = idom[v];
+            instanceIds[n] = ids[v];
+            dominatorIds[n] = d == virtualIndex ? VIRTUAL_ROOT : ids[d];
+            retainedBytes[n] = retained[v];
+            n++;
+        }
+        return new PersistRowData(instanceIds, dominatorIds, retainedBytes, n);
     }
 
     /**

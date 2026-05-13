@@ -264,11 +264,31 @@ public final class HprofIndex {
 
         Duration stackTracesD = measureSqlVoid(() -> writeStackTraces(conn, top));
 
-        Elapsed<Counters> regionsE = measureSql(() -> walkRegions(file, conn, top, idSize, layout));
-        Counters counters = regionsE.entity();
+        // Drop every non-PK index before the bulk writes so per-row writes
+        // skip the per-insert ART-tree updates. Recreated in bulk at the end,
+        // which DuckDB executes far faster than 30 M incremental inserts.
+        Duration dropIndexesD = measureSqlVoid(() -> dropNonPkIndexes(conn));
 
+        // Pass A — sequential, class-dumps only. Populates classDumpsById,
+        // which Pass B reads as a frozen map. Fast on real heaps (~22 K classes).
+        Elapsed<Counters> classesE = measureSql(() -> walkClassDumps(file, conn, top));
+        Counters counters = classesE.entity();
+
+        // Pass B is run sequentially (NOT in parallel). DuckDB's JDBC
+        // appender API can't safely have two concurrent appenders sharing a
+        // single connection — the previous parallel implementation lost ~90 %
+        // of instance rows on a 7.6 M-instance heap because the second thread
+        // created an appender that disturbed the first's transaction state.
+        // The split into two methods is kept because: (1) it gives clear
+        // per-phase timings in the UI, and (2) it's the right shape for a
+        // future multi-connection parallelisation if/when we decide to take
+        // that on.
+        Elapsed<Void> instE = measureSql(() -> {
+            walkInstancesAndRoots(file, conn, top, idSize, layout, counters);
+            return null;
+        });
         Elapsed<Long> refsE = measureSql(() ->
-                walkRegionsForRefs(file, conn, counters.classDumpsById, idSize, counters));
+                walkRegionsForRefs(file, conn, top, counters.classDumpsById, idSize, counters));
         long warningCount = top.warnings.size() + counters.warnings.size();
         boolean truncated = anyError(top.warnings) || anyError(counters.warnings);
 
@@ -291,6 +311,12 @@ public final class HprofIndex {
             writeParseWarnings(conn, counters.warnings);
         });
 
+        // Recreate the indexes we dropped at the start. Bulk index creation
+        // over populated tables is dramatically faster than per-row inserts
+        // into an existing index — DuckDB sorts once then walks rather than
+        // doing 30 M individual ART-tree insertions.
+        Duration createIndexesD = measureSqlVoid(() -> createNonPkIndexes(conn));
+
         // Force a checkpoint so all WAL contents land in the main DB file.
         // Without this, opening the file in read-only mode (HeapView) fails because
         // read-only connections cannot replay an outstanding WAL.
@@ -302,16 +328,21 @@ public final class HprofIndex {
 
         LOG.debug(
                 "Building indexes phases: walk_top_level_ms={} write_stack_traces_ms={} "
-                        + "walk_regions_ms={} walk_regions_for_refs_ms={} apply_shallow_correction_ms={} "
-                        + "write_string_content_ms={} write_metadata_ms={} checkpoint_ms={} "
-                        + "strings={} classes={} instances={} gc_roots={} outbound_refs={} string_contents={}",
+                        + "drop_indexes_ms={} walk_class_dumps_ms={} walk_instances_and_roots_ms={} "
+                        + "walk_regions_for_refs_ms={} apply_shallow_correction_ms={} "
+                        + "write_string_content_ms={} write_metadata_ms={} create_indexes_ms={} "
+                        + "checkpoint_ms={} strings={} classes={} instances={} gc_roots={} "
+                        + "outbound_refs={} string_contents={}",
                 topE.duration().toMillis(),
                 stackTracesD.toMillis(),
-                regionsE.duration().toMillis(),
+                dropIndexesD.toMillis(),
+                classesE.duration().toMillis(),
+                instE.duration().toMillis(),
                 refsE.duration().toMillis(),
                 shallowCorrD.toMillis(),
                 stringContentE.duration().toMillis(),
                 metadataD.toMillis(),
+                createIndexesD.toMillis(),
                 checkpointD.toMillis(),
                 top.stringCount,
                 counters.classCount,
@@ -325,7 +356,10 @@ public final class HprofIndex {
                         top.stringCount + " strings"),
                 new SubPhaseTiming("write_stack_traces", stackTracesD.toMillis(),
                         top.stackFrames.size() + " frames"),
-                new SubPhaseTiming("walk_regions", regionsE.duration().toMillis(),
+                new SubPhaseTiming("drop_indexes", dropIndexesD.toMillis(), null),
+                new SubPhaseTiming("walk_class_dumps", classesE.duration().toMillis(),
+                        counters.classCount + " classes"),
+                new SubPhaseTiming("walk_instances_and_roots", instE.duration().toMillis(),
                         counters.instanceCount + " instances"),
                 new SubPhaseTiming("walk_regions_for_refs", refsE.duration().toMillis(),
                         counters.outboundRefCount + " edges"),
@@ -333,6 +367,7 @@ public final class HprofIndex {
                 new SubPhaseTiming("write_string_content", stringContentE.duration().toMillis(),
                         stringContentCount + " strings"),
                 new SubPhaseTiming("write_metadata", metadataD.toMillis(), null),
+                new SubPhaseTiming("create_indexes", createIndexesD.toMillis(), null),
                 new SubPhaseTiming("checkpoint", checkpointD.toMillis(), null));
 
         return new IndexResult(
@@ -348,6 +383,57 @@ public final class HprofIndex {
                 top.recordCount + counters.subRecordCount,
                 Duration.ZERO, // overwritten by build()
                 subPhases);
+    }
+
+    private static final String[] NON_PK_INDEX_DROP_DDL = {
+            "DROP INDEX IF EXISTS idx_outbound_source",
+            "DROP INDEX IF EXISTS idx_outbound_target",
+            "DROP INDEX IF EXISTS idx_instance_class",
+            "DROP INDEX IF EXISTS idx_gc_root_instance",
+            "DROP INDEX IF EXISTS idx_class_name",
+            "DROP INDEX IF EXISTS idx_class_super",
+            "DROP INDEX IF EXISTS idx_class_is_array",
+            "DROP INDEX IF EXISTS idx_stack_trace_frame_thread"
+    };
+
+    private static final String[] NON_PK_INDEX_CREATE_DDL = {
+            "CREATE INDEX IF NOT EXISTS idx_outbound_source ON outbound_ref(source_id)",
+            "CREATE INDEX IF NOT EXISTS idx_outbound_target ON outbound_ref(target_id)",
+            "CREATE INDEX IF NOT EXISTS idx_instance_class ON instance(class_id)",
+            "CREATE INDEX IF NOT EXISTS idx_gc_root_instance ON gc_root(instance_id)",
+            "CREATE INDEX IF NOT EXISTS idx_class_name ON class(name)",
+            "CREATE INDEX IF NOT EXISTS idx_class_super ON class(super_class_id)",
+            "CREATE INDEX IF NOT EXISTS idx_class_is_array ON class(is_array)",
+            "CREATE INDEX IF NOT EXISTS idx_stack_trace_frame_thread ON stack_trace_frame(thread_serial)"
+    };
+
+    /**
+     * Drops every non-PK index DuckDB maintains for this heap-dump index DB.
+     * Called before the bulk-load phases so per-row writes don't incur per-insert
+     * ART-tree updates. Recreated in bulk by {@link #createNonPkIndexes} once
+     * all rows are present.
+     */
+    private static void dropNonPkIndexes(DuckDBConnection conn) throws SQLException {
+        try (Statement st = conn.createStatement()) {
+            for (String ddl : NON_PK_INDEX_DROP_DDL) {
+                st.execute(ddl);
+            }
+        }
+    }
+
+    /**
+     * Recreates the indexes dropped by {@link #dropNonPkIndexes}. Bulk index
+     * creation over a fully populated table is dramatically faster than
+     * inserting 30 M rows into an existing index — DuckDB sorts the source
+     * column once and walks rather than performing 30 M individual ART-tree
+     * insertions.
+     */
+    private static void createNonPkIndexes(DuckDBConnection conn) throws SQLException {
+        try (Statement st = conn.createStatement()) {
+            for (String ddl : NON_PK_INDEX_CREATE_DDL) {
+                st.execute(ddl);
+            }
+        }
     }
 
     /**
@@ -465,20 +551,68 @@ public final class HprofIndex {
     private record PrimitiveArrayInfo(long fileOffset, int arrayLength, int elementType) {
     }
 
-    private static Counters walkRegions(
-            HprofMappedFile file, DuckDBConnection conn, TopLevelData top, int idSize, InstanceLayout layout) throws SQLException {
+    /**
+     * Pass A — class-dump only. Walks every region but processes only
+     * CLASS_DUMP sub-records, writing the {@code class} and
+     * {@code class_instance_field} tables and populating
+     * {@link Counters#classDumpsById}. Cheap (~22 K class records on a
+     * typical 7.6 M-instance heap) and must finish before Pass B reads the
+     * map. Returns a fresh {@link Counters} that Pass B then mutates.
+     */
+    private static Counters walkClassDumps(
+            HprofMappedFile file, DuckDBConnection conn, TopLevelData top) throws SQLException {
         Counters c = new Counters();
         Set<Long> writtenClassIds = new HashSet<>();
 
         try (DuckDBAppender classApp = conn.createAppender("class");
-             DuckDBAppender fieldApp = conn.createAppender("class_instance_field");
-             DuckDBAppender instApp = conn.createAppender("instance");
-             DuckDBAppender rootApp = conn.createAppender("gc_root")) {
+             DuckDBAppender fieldApp = conn.createAppender("class_instance_field")) {
 
             // Seed synthetic primitive-array class rows so PRIMITIVE_ARRAY_DUMP
             // instances can join to a real class name.
             c.classCount += appendSyntheticPrimitiveArrayClasses(classApp);
 
+            for (HprofRecord.HeapDumpRegion region : top.regions) {
+                HprofSubRecordReader.read(file, region.fileOffset(), region.byteLength(),
+                        new HprofSubRecordReader.Listener() {
+                            @Override
+                            public void onRecord(HprofRecord.Sub sub) {
+                                if (sub instanceof HprofRecord.ClassDump cd) {
+                                    try {
+                                        if (writtenClassIds.add(cd.classId())) {
+                                            appendClass(classApp, cd, top);
+                                            appendInstanceFields(fieldApp, cd, top);
+                                            c.classCount++;
+                                            c.classDumpsById.put(cd.classId(), cd);
+                                        }
+                                    } catch (SQLException e) {
+                                        throw new RuntimeException(e);
+                                    }
+                                }
+                            }
+
+                            @Override
+                            public void onWarning(ParseWarning warning) {
+                                c.warnings.add(warning);
+                            }
+                        });
+            }
+        }
+        return c;
+    }
+
+    /**
+     * Pass B (half 1) — non-class heap-dump records: writes the {@code instance}
+     * and {@code gc_root} tables and populates {@link Counters#primitiveArrayInfoByArrayId}.
+     * Designed to run concurrently with {@link #walkRegionsForRefs}: it touches
+     * only its own {@link DuckDBAppender}s and only mutates the {@code c}
+     * counters dedicated to non-ref data (instance / gc_root / primitive-array
+     * map / subRecordCount). Reads no shared mutable state.
+     */
+    private static void walkInstancesAndRoots(
+            HprofMappedFile file, DuckDBConnection conn, TopLevelData top, int idSize,
+            InstanceLayout layout, Counters c) throws SQLException {
+        try (DuckDBAppender instApp = conn.createAppender("instance");
+             DuckDBAppender rootApp = conn.createAppender("gc_root")) {
             for (HprofRecord.HeapDumpRegion region : top.regions) {
                 HprofSubRecordReader.read(file, region.fileOffset(), region.byteLength(),
                         new HprofSubRecordReader.Listener() {
@@ -494,14 +628,6 @@ public final class HprofIndex {
 
                             private void dispatch(HprofRecord.Sub sub) throws SQLException {
                                 switch (sub) {
-                                    case HprofRecord.ClassDump cd -> {
-                                        if (writtenClassIds.add(cd.classId())) {
-                                            appendClass(classApp, cd, top);
-                                            appendInstanceFields(fieldApp, cd, top);
-                                            c.classCount++;
-                                            c.classDumpsById.put(cd.classId(), cd);
-                                        }
-                                    }
                                     case HprofRecord.InstanceDump id ->
                                             appendInstanceFromInstanceDump(instApp, id, layout, c);
                                     case HprofRecord.ObjectArrayDump oa ->
@@ -512,6 +638,9 @@ public final class HprofIndex {
                                         appendGcRoot(rootApp, root);
                                         c.gcRootCount++;
                                     }
+                                    case HprofRecord.ClassDump ignored -> {
+                                        // Already handled by Pass A (walkClassDumps).
+                                    }
                                     case HprofRecord.OpaqueSub ignored -> {
                                     }
                                 }
@@ -519,52 +648,51 @@ public final class HprofIndex {
 
                             @Override
                             public void onWarning(ParseWarning warning) {
-                                c.warnings.add(warning);
+                                synchronized (c.warnings) {
+                                    c.warnings.add(warning);
+                                }
                             }
                         });
             }
         }
-
-        return c;
     }
 
     /**
-     * Second pass over the heap-dump regions, populating outbound_ref by decoding
-     * INSTANCE_DUMP field bytes against each class's instance-field type list and
-     * by walking OBJECT_ARRAY_DUMP element ids. Only emits refs whose target id is
-     * non-zero (HPROF id 0 means "no reference").
+     * Pass B (half 2) — outbound_ref emission. Decodes INSTANCE_DUMP field bytes
+     * against each class's instance-field chain and walks OBJECT_ARRAY_DUMP
+     * element ids. Only emits refs whose target id is non-zero (HPROF id 0
+     * means "no reference"). Designed to run concurrently with
+     * {@link #walkInstancesAndRoots}: it reads only the frozen
+     * {@code classes} map and {@code top.regions} list, and writes only its
+     * own {@code outbound_ref} appender + the {@code outboundRefCount} field.
      */
     private static long walkRegionsForRefs(
-            HprofMappedFile file, DuckDBConnection conn,
+            HprofMappedFile file, DuckDBConnection conn, TopLevelData top,
             Map<Long, HprofRecord.ClassDump> classes, int idSize, Counters c) throws SQLException {
         long[] count = {0L};
         try (DuckDBAppender refApp = conn.createAppender("outbound_ref")) {
-            // Re-walk top-level to find regions; cheap on the mmaped file.
-            HprofTopLevelReader.read(file, new HprofTopLevelReader.Listener() {
-                @Override
-                public void onRecord(HprofRecord.Top record) {
-                    if (record instanceof HprofRecord.HeapDumpRegion region) {
-                        HprofSubRecordReader.read(file, region.fileOffset(), region.byteLength(),
-                                new HprofSubRecordReader.Listener() {
-                                    @Override
-                                    public void onRecord(HprofRecord.Sub sub) {
-                                        try {
-                                            switch (sub) {
-                                                case HprofRecord.InstanceDump id ->
-                                                        count[0] += emitInstanceRefs(file, id, classes, idSize, refApp);
-                                                case HprofRecord.ObjectArrayDump oa ->
-                                                        count[0] += emitArrayRefs(file, oa, idSize, refApp);
-                                                default -> {
-                                                }
-                                            }
-                                        } catch (SQLException e) {
-                                            throw new RuntimeException(e);
+            // Iterate the regions captured in walkTopLevel — no need to re-walk
+            // the top-level (which the previous version did unnecessarily).
+            for (HprofRecord.HeapDumpRegion region : top.regions) {
+                HprofSubRecordReader.read(file, region.fileOffset(), region.byteLength(),
+                        new HprofSubRecordReader.Listener() {
+                            @Override
+                            public void onRecord(HprofRecord.Sub sub) {
+                                try {
+                                    switch (sub) {
+                                        case HprofRecord.InstanceDump id ->
+                                                count[0] += emitInstanceRefs(file, id, classes, idSize, refApp);
+                                        case HprofRecord.ObjectArrayDump oa ->
+                                                count[0] += emitArrayRefs(file, oa, idSize, refApp);
+                                        default -> {
                                         }
                                     }
-                                });
-                    }
-                }
-            });
+                                } catch (SQLException e) {
+                                    throw new RuntimeException(e);
+                                }
+                            }
+                        });
+            }
         }
         c.outboundRefCount = count[0];
         return count[0];
