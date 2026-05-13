@@ -255,8 +255,12 @@ public record Type(String code, boolean calculated) {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof Type type)) return false;
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof Type type)) {
+            return false;
+        }
         return Objects.equals(code, type.code);
     }
 

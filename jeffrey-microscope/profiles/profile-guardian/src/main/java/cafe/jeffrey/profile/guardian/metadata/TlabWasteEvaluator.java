@@ -123,9 +123,15 @@ public final class TlabWasteEvaluator {
     }
 
     private static String humanBytes(long bytes) {
-        if (bytes < 1024) return bytes + " B";
-        if (bytes < 1024L * 1024) return String.format("%.1f KiB", bytes / 1024.0);
-        if (bytes < 1024L * 1024 * 1024) return String.format("%.1f MiB", bytes / (1024.0 * 1024));
+        if (bytes < 1024) {
+            return bytes + " B";
+        }
+        if (bytes < 1024L * 1024) {
+            return String.format("%.1f KiB", bytes / 1024.0);
+        }
+        if (bytes < 1024L * 1024 * 1024) {
+            return String.format("%.1f MiB", bytes / (1024.0 * 1024));
+        }
         return String.format("%.2f GiB", bytes / (1024.0 * 1024 * 1024));
     }
 }

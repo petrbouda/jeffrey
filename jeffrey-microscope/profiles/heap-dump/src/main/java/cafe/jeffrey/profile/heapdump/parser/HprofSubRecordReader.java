@@ -272,38 +272,54 @@ public final class HprofSubRecordReader {
     private static long classDumpBodySize(HprofMappedFile file, long bodyOffset, long end, int idSize) {
         long fixed = 7L * idSize + 8;
         long cursor = bodyOffset + fixed;
-        if (cursor + 2 > end) return -1;
+        if (cursor + 2 > end) {
+            return -1;
+        }
 
         int constPoolCount = Short.toUnsignedInt(file.readShort(cursor));
         cursor += 2;
         for (int i = 0; i < constPoolCount; i++) {
-            if (cursor + 3 > end) return -1;
+            if (cursor + 3 > end) {
+                return -1;
+            }
             cursor += 2;
             int type = Byte.toUnsignedInt(file.readByte(cursor));
             cursor += 1;
             int sz = HprofTypeSize.sizeOf(type, idSize);
-            if (sz < 0 || cursor + sz > end) return -1;
+            if (sz < 0 || cursor + sz > end) {
+                return -1;
+            }
             cursor += sz;
         }
 
-        if (cursor + 2 > end) return -1;
+        if (cursor + 2 > end) {
+            return -1;
+        }
         int staticFieldCount = Short.toUnsignedInt(file.readShort(cursor));
         cursor += 2;
         for (int i = 0; i < staticFieldCount; i++) {
-            if (cursor + idSize + 1 > end) return -1;
+            if (cursor + idSize + 1 > end) {
+                return -1;
+            }
             cursor += idSize;
             int type = Byte.toUnsignedInt(file.readByte(cursor));
             cursor += 1;
             int sz = HprofTypeSize.sizeOf(type, idSize);
-            if (sz < 0 || cursor + sz > end) return -1;
+            if (sz < 0 || cursor + sz > end) {
+                return -1;
+            }
             cursor += sz;
         }
 
-        if (cursor + 2 > end) return -1;
+        if (cursor + 2 > end) {
+            return -1;
+        }
         int instanceFieldCount = Short.toUnsignedInt(file.readShort(cursor));
         cursor += 2;
         for (int i = 0; i < instanceFieldCount; i++) {
-            if (cursor + idSize + 1 > end) return -1;
+            if (cursor + idSize + 1 > end) {
+                return -1;
+            }
             cursor += idSize + 1;
         }
 
@@ -312,31 +328,45 @@ public final class HprofSubRecordReader {
 
     private static long instanceDumpBodySize(HprofMappedFile file, long bodyOffset, long end, int idSize) {
         long header = 2L * idSize + 8;
-        if (bodyOffset + header > end) return -1;
+        if (bodyOffset + header > end) {
+            return -1;
+        }
         long fieldsLen = Integer.toUnsignedLong(file.readInt(bodyOffset + idSize + 4 + idSize));
         long total = header + fieldsLen;
-        if (bodyOffset + total > end) return -1;
+        if (bodyOffset + total > end) {
+            return -1;
+        }
         return total;
     }
 
     private static long objectArrayBodySize(HprofMappedFile file, long bodyOffset, long end, int idSize) {
         long header = 2L * idSize + 8;
-        if (bodyOffset + header > end) return -1;
+        if (bodyOffset + header > end) {
+            return -1;
+        }
         long n = Integer.toUnsignedLong(file.readInt(bodyOffset + idSize + 4));
         long total = header + n * idSize;
-        if (bodyOffset + total > end) return -1;
+        if (bodyOffset + total > end) {
+            return -1;
+        }
         return total;
     }
 
     private static long primitiveArrayBodySize(HprofMappedFile file, long bodyOffset, long end, int idSize) {
         long header = idSize + 9L;
-        if (bodyOffset + header > end) return -1;
+        if (bodyOffset + header > end) {
+            return -1;
+        }
         long n = Integer.toUnsignedLong(file.readInt(bodyOffset + idSize + 4));
         int elementType = Byte.toUnsignedInt(file.readByte(bodyOffset + idSize + 8));
         int sz = HprofTypeSize.sizeOf(elementType, idSize);
-        if (sz < 0) return -1;
+        if (sz < 0) {
+            return -1;
+        }
         long total = header + n * sz;
-        if (bodyOffset + total > end) return -1;
+        if (bodyOffset + total > end) {
+            return -1;
+        }
         return total;
     }
 }

@@ -151,7 +151,9 @@ final class SqlEmitter {
 
         StringBuilder groupBuf = new StringBuilder();
         for (int i = 0; i < q.groupBy().size(); i++) {
-            if (i > 0) groupBuf.append(", ");
+            if (i > 0) {
+                groupBuf.append(", ");
+            }
             emitExpr(q.groupBy().get(i), groupBuf);
         }
 
@@ -163,7 +165,9 @@ final class SqlEmitter {
         StringBuilder orderBuf = new StringBuilder();
         inOrderBy = true;
         for (int i = 0; i < q.orderBy().size(); i++) {
-            if (i > 0) orderBuf.append(", ");
+            if (i > 0) {
+                orderBuf.append(", ");
+            }
             OrderItem oi = q.orderBy().get(i);
             emitExpr(oi.expr(), orderBuf);
             if (oi.descending()) {
@@ -249,7 +253,9 @@ final class SqlEmitter {
             return;
         }
         for (int i = 0; i < projections.size(); i++) {
-            if (i > 0) out.append(", ");
+            if (i > 0) {
+                out.append(", ");
+            }
             Projection p = projections.get(i);
             emitProjection(p, out);
             if (p.alias() != null) {
@@ -340,9 +346,15 @@ final class SqlEmitter {
     }
 
     private ProjectionKind classifyAttr(String name) {
-        if (OBJECT_ID_ATTRS.contains(name)) return ProjectionKind.OBJECT_ID;
-        if (USED_SIZE_ATTRS.contains(name)) return ProjectionKind.SHALLOW_SIZE;
-        if (RETAINED_SIZE_ATTRS.contains(name)) return ProjectionKind.RETAINED_SIZE;
+        if (OBJECT_ID_ATTRS.contains(name)) {
+            return ProjectionKind.OBJECT_ID;
+        }
+        if (USED_SIZE_ATTRS.contains(name)) {
+            return ProjectionKind.SHALLOW_SIZE;
+        }
+        if (RETAINED_SIZE_ATTRS.contains(name)) {
+            return ProjectionKind.RETAINED_SIZE;
+        }
         // @objectAddress, @displayName, @clazz → generic via expression emitter
         return ProjectionKind.GENERIC;
     }
@@ -530,7 +542,9 @@ final class SqlEmitter {
                 out.append("*");
             } else {
                 for (int i = 0; i < fc.args().size(); i++) {
-                    if (i > 0) out.append(", ");
+                    if (i > 0) {
+                        out.append(", ");
+                    }
                     emitExpr(fc.args().get(i), out);
                 }
             }
@@ -562,7 +576,9 @@ final class SqlEmitter {
                 if (PASSTHROUGH_NUMERIC_FUNCS.contains(name)) {
                     out.append(name).append("(");
                     for (int i = 0; i < fc.args().size(); i++) {
-                        if (i > 0) out.append(", ");
+                        if (i > 0) {
+                            out.append(", ");
+                        }
                         emitExpr(fc.args().get(i), out);
                     }
                     out.append(")");
@@ -617,7 +633,9 @@ final class SqlEmitter {
         emitExpr(in.left(), out);
         out.append(in.negate() ? " NOT IN (" : " IN (");
         for (int i = 0; i < in.values().size(); i++) {
-            if (i > 0) out.append(", ");
+            if (i > 0) {
+                out.append(", ");
+            }
             emitExpr(in.values().get(i), out);
         }
         out.append(")");

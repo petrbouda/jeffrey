@@ -65,8 +65,12 @@ class WorkspaceEventsGrpcServiceTest {
 
     @AfterEach
     void shutdown() {
-        if (channel != null) channel.shutdownNow();
-        if (server != null) server.shutdownNow();
+        if (channel != null) {
+            channel.shutdownNow();
+        }
+        if (server != null) {
+            server.shutdownNow();
+        }
     }
 
     @Nested

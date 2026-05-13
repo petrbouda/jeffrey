@@ -226,9 +226,15 @@ public class Frame extends TreeMap<String, Frame> {
 
     @Override
     public final boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof Frame frame)) return false;
-        if (!super.equals(o)) return false;
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof Frame frame)) {
+            return false;
+        }
+        if (!super.equals(o)) {
+            return false;
+        }
 
         return lineNumber == frame.lineNumber && bci == frame.bci
                 && totalSamples == frame.totalSamples && totalWeight == frame.totalWeight

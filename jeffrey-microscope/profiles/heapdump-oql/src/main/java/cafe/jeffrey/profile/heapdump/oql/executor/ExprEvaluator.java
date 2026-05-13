@@ -126,12 +126,16 @@ final class ExprEvaluator {
             }
             case "classof" -> {
                 InstanceRow i = asInstance(eval(argExprs.get(0)));
-                if (i == null || i.classId() == null) yield null;
+                if (i == null || i.classId() == null) {
+                    yield null;
+                }
                 yield row.view().findClassById(i.classId()).orElse(null);
             }
             case "toString" -> {
                 InstanceRow i = asInstance(eval(argExprs.get(0)));
-                if (i == null) yield null;
+                if (i == null) {
+                    yield null;
+                }
                 JavaClassRow c = i.classId() == null
                         ? null
                         : row.view().findClassById(i.classId()).orElse(null);
@@ -213,7 +217,9 @@ final class ExprEvaluator {
             case "coalesce" -> {
                 for (OqlExpr a : argExprs) {
                     Object v = eval(a);
-                    if (v != null) yield v;
+                    if (v != null) {
+                        yield v;
+                    }
                 }
                 yield null;
             }
@@ -227,7 +233,9 @@ final class ExprEvaluator {
             case "format" -> {
                 String template = String.valueOf(eval(argExprs.get(0)));
                 Object[] args = new Object[argExprs.size() - 1];
-                for (int i = 0; i < args.length; i++) args[i] = eval(argExprs.get(i + 1));
+                for (int i = 0; i < args.length; i++) {
+                    args[i] = eval(argExprs.get(i + 1));
+                }
                 yield applyTemplate(template, args);
             }
 
@@ -240,7 +248,9 @@ final class ExprEvaluator {
         Object best = null;
         for (OqlExpr a : argExprs) {
             Object v = eval(a);
-            if (v == null) continue;
+            if (v == null) {
+                continue;
+            }
             if (best == null) {
                 best = v;
                 continue;
@@ -287,7 +297,9 @@ final class ExprEvaluator {
             case GT -> compareSafe(l, r) > 0;
             case GTE -> compareSafe(l, r) >= 0;
             case LIKE -> {
-                if (l == null || r == null) yield null;
+                if (l == null || r == null) {
+                    yield null;
+                }
                 yield Pattern.compile(String.valueOf(r)).matcher(String.valueOf(l)).matches();
             }
             case ADD -> Numbers.add(l, r);
@@ -299,7 +311,9 @@ final class ExprEvaluator {
     }
 
     private static boolean equalsOp(Object l, Object r) {
-        if (l == null || r == null) return false;
+        if (l == null || r == null) {
+            return false;
+        }
         if (Numbers.isNumber(l) && Numbers.isNumber(r)) {
             if (Numbers.isFractional(l, r)) {
                 return Numbers.toDouble(l) == Numbers.toDouble(r);
@@ -326,7 +340,9 @@ final class ExprEvaluator {
 
     private Object evalIn(OqlExpr.InOp in) throws SQLException {
         Object left = eval(in.left());
-        if (left == null) return null;
+        if (left == null) {
+            return null;
+        }
         boolean any = false;
         for (OqlExpr v : in.values()) {
             if (equalsOp(left, eval(v))) {
@@ -353,7 +369,9 @@ final class ExprEvaluator {
     }
 
     private InstanceRow asInstance(Object v) throws SQLException {
-        if (v instanceof InstanceRow r) return r;
+        if (v instanceof InstanceRow r) {
+            return r;
+        }
         if (v instanceof Long ref && ref != 0L) {
             return row.view().findInstanceById(ref).orElse(null);
         }
@@ -367,8 +385,12 @@ final class ExprEvaluator {
      * Java-heap {@code String} instance without an explicit {@code toString(s)}.
      */
     private String coerceToString(Object v) throws SQLException {
-        if (v == null) return null;
-        if (v instanceof String s) return s;
+        if (v == null) {
+            return null;
+        }
+        if (v instanceof String s) {
+            return s;
+        }
         if (v instanceof InstanceRow inst) {
             JavaClassRow c = inst.classId() == null
                     ? null

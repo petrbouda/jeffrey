@@ -450,7 +450,9 @@ final class DuckDbHeapView implements HeapView {
             }
             case OBJECT_ARRAY -> {
                 // Body: id + u4 + u4 length + id arrayClassId + [id * length]
-                if (inst.arrayLength() == null) yield new byte[0];
+                if (inst.arrayLength() == null) {
+                    yield new byte[0];
+                }
                 long elementsOffset = inst.fileOffset() + 2L * idSize + 8;
                 long byteLen = (long) inst.arrayLength() * idSize;
                 yield byteLen > Integer.MAX_VALUE

@@ -40,13 +40,27 @@ public record OriginContext(
      */
     public Map<String, String> toTagMap(String upstreamRecordingId) {
         Map<String, String> tags = new LinkedHashMap<>();
-        if (serverId != null) tags.put("origin.serverId", serverId);
-        if (serverName != null) tags.put("origin.server", serverName);
-        if (workspaceId != null) tags.put("origin.workspaceId", workspaceId);
-        if (workspaceRef != null) tags.put("origin.workspace", workspaceRef);
-        if (projectId != null) tags.put("origin.projectId", projectId);
-        if (projectName != null) tags.put("origin.project", projectName);
-        if (upstreamRecordingId != null) tags.put("origin.recordingId", upstreamRecordingId);
+        if (serverId != null) {
+            tags.put("origin.serverId", serverId);
+        }
+        if (serverName != null) {
+            tags.put("origin.server", serverName);
+        }
+        if (workspaceId != null) {
+            tags.put("origin.workspaceId", workspaceId);
+        }
+        if (workspaceRef != null) {
+            tags.put("origin.workspace", workspaceRef);
+        }
+        if (projectId != null) {
+            tags.put("origin.projectId", projectId);
+        }
+        if (projectName != null) {
+            tags.put("origin.project", projectName);
+        }
+        if (upstreamRecordingId != null) {
+            tags.put("origin.recordingId", upstreamRecordingId);
+        }
         return tags;
     }
 }

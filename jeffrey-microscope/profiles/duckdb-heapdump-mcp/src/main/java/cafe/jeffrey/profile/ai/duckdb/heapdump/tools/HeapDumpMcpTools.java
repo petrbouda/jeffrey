@@ -197,7 +197,9 @@ public class HeapDumpMcpTools {
                     result.append("  Top Contributing Classes:\n");
                     int shown = 0;
                     for (DominatedClassEntry entry : suspect.dominatedHistogram()) {
-                        if (shown++ >= 5) break;
+                        if (shown++ >= 5) {
+                            break;
+                        }
                         result.append("    - ").append(entry.className())
                                 .append(": ").append(String.format("%,d", entry.instanceCount())).append(" instances, ")
                                 .append(BytesUtils.format(entry.retainedSize()))
@@ -284,7 +286,9 @@ public class HeapDumpMcpTools {
             result.append("Top Consumers (by package + class loader):\n");
             int shown = 0;
             for (ConsumerEntry entry : report.topConsumers()) {
-                if (shown++ >= 20) break;
+                if (shown++ >= 20) {
+                    break;
+                }
                 result.append("  ").append(entry.packageName())
                         .append(" [").append(entry.classLoaderClassName()).append("]")
                         .append(" — ").append(BytesUtils.format(entry.retainedSize()))
@@ -294,7 +298,9 @@ public class HeapDumpMcpTools {
             result.append("\nComponent Report (per-package):\n");
             shown = 0;
             for (ComponentEntry entry : report.componentReport()) {
-                if (shown++ >= 20) break;
+                if (shown++ >= 20) {
+                    break;
+                }
                 result.append("  ").append(entry.packageName())
                         .append(" — ").append(BytesUtils.format(entry.retainedSize()))
                         .append(", ").append(entry.classCount()).append(" classes\n");
@@ -332,7 +338,9 @@ public class HeapDumpMcpTools {
 
                 int count = 0;
                 for (var entry : report.opportunities()) {
-                    if (count >= 20 || result.length() > MAX_RESULT_LENGTH) break;
+                    if (count >= 20 || result.length() > MAX_RESULT_LENGTH) {
+                        break;
+                    }
                     result.append(String.format("%-50s %,10d %15s%n",
                             truncate(entry.content(), 50),
                             entry.count(),
@@ -789,8 +797,12 @@ public class HeapDumpMcpTools {
     }
 
     private String truncate(String s, int maxLength) {
-        if (s == null) return "";
-        if (s.length() <= maxLength) return s;
+        if (s == null) {
+            return "";
+        }
+        if (s.length() <= maxLength) {
+            return s;
+        }
         return s.substring(0, maxLength - 3) + "...";
     }
 }

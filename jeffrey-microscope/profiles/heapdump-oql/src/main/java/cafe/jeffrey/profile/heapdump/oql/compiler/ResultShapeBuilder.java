@@ -35,10 +35,18 @@ final class ResultShapeBuilder {
     void add(String name, boolean isObjectId, boolean isClassName, boolean isShallowSize, boolean isRetainedSize) {
         int idx = columns.size();
         columns.add(name);
-        if (isObjectId && objectId == -1) objectId = idx;
-        if (isClassName && className == -1) className = idx;
-        if (isShallowSize && shallowSize == -1) shallowSize = idx;
-        if (isRetainedSize && retainedSize == -1) retainedSize = idx;
+        if (isObjectId && objectId == -1) {
+            objectId = idx;
+        }
+        if (isClassName && className == -1) {
+            className = idx;
+        }
+        if (isShallowSize && shallowSize == -1) {
+            shallowSize = idx;
+        }
+        if (isRetainedSize && retainedSize == -1) {
+            retainedSize = idx;
+        }
     }
 
     ResultShape build() {

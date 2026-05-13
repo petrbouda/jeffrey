@@ -34,7 +34,9 @@ public final class StringAccessors {
 
     public static String substring(Object subject, Object start, Object end) {
         String s = asString(subject);
-        if (s == null || start == null) return null;
+        if (s == null || start == null) {
+            return null;
+        }
         int from = ((Number) start).intValue();
         int to = end == null ? s.length() : ((Number) end).intValue();
         int safeFrom = Math.max(0, Math.min(from, s.length()));
@@ -60,28 +62,40 @@ public final class StringAccessors {
     public static Integer indexOf(Object subject, Object sub) {
         String s = asString(subject);
         String x = asString(sub);
-        if (s == null || x == null) return null;
+        if (s == null || x == null) {
+            return null;
+        }
         return s.indexOf(x);
     }
 
     public static Integer lastIndexOf(Object subject, Object sub) {
         String s = asString(subject);
         String x = asString(sub);
-        if (s == null || x == null) return null;
+        if (s == null || x == null) {
+            return null;
+        }
         return s.lastIndexOf(x);
     }
 
     public static String charAt(Object subject, Object index) {
         String s = asString(subject);
-        if (s == null || index == null) return null;
+        if (s == null || index == null) {
+            return null;
+        }
         int i = ((Number) index).intValue();
-        if (i < 0 || i >= s.length()) return null;
+        if (i < 0 || i >= s.length()) {
+            return null;
+        }
         return String.valueOf(s.charAt(i));
     }
 
     private static String asString(Object v) {
-        if (v == null) return null;
-        if (v instanceof String s) return s;
+        if (v == null) {
+            return null;
+        }
+        if (v instanceof String s) {
+            return s;
+        }
         return v.toString();
     }
 }

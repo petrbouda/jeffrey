@@ -32,54 +32,72 @@ public final class StringPredicates {
     public static Boolean startsWith(Object subject, Object prefix) {
         String s = asString(subject);
         String p = asString(prefix);
-        if (s == null || p == null) return null;
+        if (s == null || p == null) {
+            return null;
+        }
         return s.startsWith(p);
     }
 
     public static Boolean endsWith(Object subject, Object suffix) {
         String s = asString(subject);
         String x = asString(suffix);
-        if (s == null || x == null) return null;
+        if (s == null || x == null) {
+            return null;
+        }
         return s.endsWith(x);
     }
 
     public static Boolean contains(Object subject, Object sub) {
         String s = asString(subject);
         String x = asString(sub);
-        if (s == null || x == null) return null;
+        if (s == null || x == null) {
+            return null;
+        }
         return s.contains(x);
     }
 
     public static Boolean matchesRegex(Object subject, Object regex) {
         String s = asString(subject);
         String r = asString(regex);
-        if (s == null || r == null) return null;
+        if (s == null || r == null) {
+            return null;
+        }
         return Pattern.compile(r).matcher(s).matches();
     }
 
     public static Boolean equalsString(Object a, Object b) {
         String s1 = asString(a);
         String s2 = asString(b);
-        if (s1 == null || s2 == null) return null;
+        if (s1 == null || s2 == null) {
+            return null;
+        }
         return s1.equals(s2);
     }
 
     public static Boolean equalsIgnoreCase(Object a, Object b) {
         String s1 = asString(a);
         String s2 = asString(b);
-        if (s1 == null || s2 == null) return null;
+        if (s1 == null || s2 == null) {
+            return null;
+        }
         return s1.equalsIgnoreCase(s2);
     }
 
     public static Boolean isEmptyString(Object subject) {
         String s = asString(subject);
-        if (s == null) return null;
+        if (s == null) {
+            return null;
+        }
         return s.isEmpty();
     }
 
     private static String asString(Object v) {
-        if (v == null) return null;
-        if (v instanceof String s) return s;
+        if (v == null) {
+            return null;
+        }
+        if (v instanceof String s) {
+            return s;
+        }
         return v.toString();
     }
 }

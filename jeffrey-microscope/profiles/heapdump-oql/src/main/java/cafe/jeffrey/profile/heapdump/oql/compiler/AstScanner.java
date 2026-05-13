@@ -41,30 +41,50 @@ final class AstScanner {
 
     static boolean containsAggregate(OqlQuery q) {
         for (Projection p : q.select().projections()) {
-            if (p.expr() != null && hasAggregate(p.expr())) return true;
+            if (p.expr() != null && hasAggregate(p.expr())) {
+                return true;
+            }
         }
-        if (q.whereExpr() != null && hasAggregate(q.whereExpr())) return true;
+        if (q.whereExpr() != null && hasAggregate(q.whereExpr())) {
+            return true;
+        }
         for (OqlExpr e : q.groupBy()) {
-            if (hasAggregate(e)) return true;
+            if (hasAggregate(e)) {
+                return true;
+            }
         }
-        if (q.having() != null && hasAggregate(q.having())) return true;
+        if (q.having() != null && hasAggregate(q.having())) {
+            return true;
+        }
         for (OrderItem oi : q.orderBy()) {
-            if (hasAggregate(oi.expr())) return true;
+            if (hasAggregate(oi.expr())) {
+                return true;
+            }
         }
         return false;
     }
 
     static boolean referencesRetained(OqlQuery q) {
         for (Projection p : q.select().projections()) {
-            if (p.expr() != null && hasRetained(p.expr())) return true;
+            if (p.expr() != null && hasRetained(p.expr())) {
+                return true;
+            }
         }
-        if (q.whereExpr() != null && hasRetained(q.whereExpr())) return true;
+        if (q.whereExpr() != null && hasRetained(q.whereExpr())) {
+            return true;
+        }
         for (OqlExpr e : q.groupBy()) {
-            if (hasRetained(e)) return true;
+            if (hasRetained(e)) {
+                return true;
+            }
         }
-        if (q.having() != null && hasRetained(q.having())) return true;
+        if (q.having() != null && hasRetained(q.having())) {
+            return true;
+        }
         for (OrderItem oi : q.orderBy()) {
-            if (hasRetained(oi.expr())) return true;
+            if (hasRetained(oi.expr())) {
+                return true;
+            }
         }
         return false;
     }
@@ -99,18 +119,24 @@ final class AstScanner {
     }
 
     private static boolean scan(OqlExpr expr, java.util.function.Predicate<OqlExpr> matcher) {
-        if (matcher.test(expr)) return true;
+        if (matcher.test(expr)) {
+            return true;
+        }
         return switch (expr) {
             case OqlExpr.BinaryOp b -> scan(b.left(), matcher) || scan(b.right(), matcher);
             case OqlExpr.UnaryOp u -> scan(u.operand(), matcher);
             case OqlExpr.FunctionCall fc -> {
                 for (OqlExpr a : fc.args()) {
-                    if (scan(a, matcher)) yield true;
+                    if (scan(a, matcher)) {
+                        yield true;
+                    }
                 }
                 yield false;
             }
             case OqlExpr.PathExpr p -> {
-                if (scan(p.root(), matcher)) yield true;
+                if (scan(p.root(), matcher)) {
+                    yield true;
+                }
                 for (PathSegment seg : p.segments()) {
                     if (seg instanceof PathSegment.Index idx && scan(idx.index(), matcher)) {
                         yield true;
@@ -119,16 +145,22 @@ final class AstScanner {
                 yield false;
             }
             case OqlExpr.InOp in -> {
-                if (scan(in.left(), matcher)) yield true;
+                if (scan(in.left(), matcher)) {
+                    yield true;
+                }
                 for (OqlExpr v : in.values()) {
-                    if (scan(v, matcher)) yield true;
+                    if (scan(v, matcher)) {
+                        yield true;
+                    }
                 }
                 yield false;
             }
             case OqlExpr.NullCheck nc -> scan(nc.operand(), matcher);
             case OqlExpr.CaseExpr ce -> {
                 for (OqlExpr.CaseExpr.WhenClause w : ce.whens()) {
-                    if (scan(w.condition(), matcher) || scan(w.result(), matcher)) yield true;
+                    if (scan(w.condition(), matcher) || scan(w.result(), matcher)) {
+                        yield true;
+                    }
                 }
                 yield ce.elseExpr() != null && scan(ce.elseExpr(), matcher);
             }

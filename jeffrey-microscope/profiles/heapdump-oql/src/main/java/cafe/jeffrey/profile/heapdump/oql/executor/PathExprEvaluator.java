@@ -151,7 +151,9 @@ final class PathExprEvaluator {
             // Object array — element bytes are id-sized references.
             byte[] bytes = view.readInstanceContentBytes(inst);
             int offset = index * idSize;
-            if (offset + idSize > bytes.length) return null;
+            if (offset + idSize > bytes.length) {
+                return null;
+            }
             long id = readLong(bytes, offset, idSize);
             return id == 0L ? null : id;
         }
@@ -182,9 +184,13 @@ final class PathExprEvaluator {
             case BT_DOUBLE, BT_LONG -> 8;
             default -> -1;
         };
-        if (size < 0) return null;
+        if (size < 0) {
+            return null;
+        }
         int offset = index * size;
-        if (offset + size > bytes.length) return null;
+        if (offset + size > bytes.length) {
+            return null;
+        }
         ByteBuffer buf = ByteBuffer.wrap(bytes, offset, size).order(ByteOrder.BIG_ENDIAN);
         return switch (basicType) {
             case BT_BOOLEAN -> buf.get() != 0;

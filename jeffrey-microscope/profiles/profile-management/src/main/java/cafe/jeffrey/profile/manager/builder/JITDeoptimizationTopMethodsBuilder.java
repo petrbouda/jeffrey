@@ -77,8 +77,12 @@ public class JITDeoptimizationTopMethodsBuilder
         }
 
         long timestamp = record.startTimestamp() != null ? record.startTimestamp().toEpochMilli() : 0L;
-        if (timestamp < aggregate.firstTimestamp) aggregate.firstTimestamp = timestamp;
-        if (timestamp > aggregate.lastTimestamp) aggregate.lastTimestamp = timestamp;
+        if (timestamp < aggregate.firstTimestamp) {
+            aggregate.firstTimestamp = timestamp;
+        }
+        if (timestamp > aggregate.lastTimestamp) {
+            aggregate.lastTimestamp = timestamp;
+        }
     }
 
     @Override

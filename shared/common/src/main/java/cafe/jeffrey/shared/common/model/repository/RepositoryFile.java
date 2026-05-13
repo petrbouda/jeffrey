@@ -105,7 +105,9 @@ public final class RepositoryFile {
 
     @Override
     public boolean equals(Object o) {
-        if (!(o instanceof RepositoryFile that)) return false;
+        if (!(o instanceof RepositoryFile that)) {
+            return false;
+        }
         return Objects.equals(id, that.id)
                && Objects.equals(name, that.name)
                && Objects.equals(createdAt, that.createdAt)

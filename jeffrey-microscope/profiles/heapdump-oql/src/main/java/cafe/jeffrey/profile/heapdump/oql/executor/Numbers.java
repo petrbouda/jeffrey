@@ -58,22 +58,30 @@ final class Numbers {
     }
 
     static Object add(Object l, Object r) {
-        if (isFractional(l, r)) return toDouble(l) + toDouble(r);
+        if (isFractional(l, r)) {
+            return toDouble(l) + toDouble(r);
+        }
         return toLong(l) + toLong(r);
     }
 
     static Object sub(Object l, Object r) {
-        if (isFractional(l, r)) return toDouble(l) - toDouble(r);
+        if (isFractional(l, r)) {
+            return toDouble(l) - toDouble(r);
+        }
         return toLong(l) - toLong(r);
     }
 
     static Object mul(Object l, Object r) {
-        if (isFractional(l, r)) return toDouble(l) * toDouble(r);
+        if (isFractional(l, r)) {
+            return toDouble(l) * toDouble(r);
+        }
         return toLong(l) * toLong(r);
     }
 
     static Object div(Object l, Object r) {
-        if (isFractional(l, r)) return toDouble(l) / toDouble(r);
+        if (isFractional(l, r)) {
+            return toDouble(l) / toDouble(r);
+        }
         long rl = toLong(r);
         if (rl == 0) {
             throw new ArithmeticException("Division by zero");
@@ -104,10 +112,18 @@ final class Numbers {
     }
 
     static boolean truthy(Object v) {
-        if (v == null) return false;
-        if (v instanceof Boolean b) return b;
-        if (v instanceof Number n) return n.longValue() != 0;
-        if (v instanceof String s) return !s.isEmpty();
+        if (v == null) {
+            return false;
+        }
+        if (v instanceof Boolean b) {
+            return b;
+        }
+        if (v instanceof Number n) {
+            return n.longValue() != 0;
+        }
+        if (v instanceof String s) {
+            return !s.isEmpty();
+        }
         return true;
     }
 

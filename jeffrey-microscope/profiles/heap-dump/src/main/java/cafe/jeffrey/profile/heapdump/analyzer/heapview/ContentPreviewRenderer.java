@@ -128,13 +128,19 @@ public final class ContentPreviewRenderer {
         for (InstanceFieldValue f : view.readInstanceFields(instanceId)) {
             switch (f.name()) {
                 case "intCompact" -> {
-                    if (f.value() instanceof Long v) intCompact = v;
+                    if (f.value() instanceof Long v) {
+                        intCompact = v;
+                    }
                 }
                 case "scale" -> {
-                    if (f.value() instanceof Integer v) scale = v;
+                    if (f.value() instanceof Integer v) {
+                        scale = v;
+                    }
                 }
                 case "intVal" -> {
-                    if (f.value() instanceof Long ref) intValId = ref;
+                    if (f.value() instanceof Long ref) {
+                        intValId = ref;
+                    }
                 }
                 default -> { /* ignore */ }
             }
@@ -157,10 +163,14 @@ public final class ContentPreviewRenderer {
         for (InstanceFieldValue f : view.readInstanceFields(instanceId)) {
             switch (f.name()) {
                 case "mostSigBits" -> {
-                    if (f.value() instanceof Long v) msb = v;
+                    if (f.value() instanceof Long v) {
+                        msb = v;
+                    }
                 }
                 case "leastSigBits" -> {
-                    if (f.value() instanceof Long v) lsb = v;
+                    if (f.value() instanceof Long v) {
+                        lsb = v;
+                    }
                 }
                 default -> { /* ignore */ }
             }
@@ -177,10 +187,14 @@ public final class ContentPreviewRenderer {
         for (InstanceFieldValue f : view.readInstanceFields(instanceId)) {
             switch (f.name()) {
                 case "seconds" -> {
-                    if (f.value() instanceof Long v) seconds = v;
+                    if (f.value() instanceof Long v) {
+                        seconds = v;
+                    }
                 }
                 case "nanos" -> {
-                    if (f.value() instanceof Integer v) nanos = v;
+                    if (f.value() instanceof Integer v) {
+                        nanos = v;
+                    }
                 }
                 default -> { /* ignore */ }
             }
@@ -201,10 +215,14 @@ public final class ContentPreviewRenderer {
         for (InstanceFieldValue f : view.readInstanceFields(instanceId)) {
             switch (f.name()) {
                 case "seconds" -> {
-                    if (f.value() instanceof Long v) seconds = v;
+                    if (f.value() instanceof Long v) {
+                        seconds = v;
+                    }
                 }
                 case "nanos" -> {
-                    if (f.value() instanceof Integer v) nanos = v;
+                    if (f.value() instanceof Integer v) {
+                        nanos = v;
+                    }
                 }
                 default -> { /* ignore */ }
             }
@@ -226,13 +244,19 @@ public final class ContentPreviewRenderer {
         for (InstanceFieldValue f : view.readInstanceFields(instanceId)) {
             switch (f.name()) {
                 case "year" -> {
-                    if (f.value() instanceof Integer v) year = v;
+                    if (f.value() instanceof Integer v) {
+                        year = v;
+                    }
                 }
                 case "month" -> {
-                    if (f.value() instanceof Short v) month = v;
+                    if (f.value() instanceof Short v) {
+                        month = v;
+                    }
                 }
                 case "day" -> {
-                    if (f.value() instanceof Short v) day = v;
+                    if (f.value() instanceof Short v) {
+                        day = v;
+                    }
                 }
                 default -> { /* ignore */ }
             }
@@ -255,16 +279,24 @@ public final class ContentPreviewRenderer {
         for (InstanceFieldValue f : view.readInstanceFields(instanceId)) {
             switch (f.name()) {
                 case "hour" -> {
-                    if (f.value() instanceof Byte v) hour = v;
+                    if (f.value() instanceof Byte v) {
+                        hour = v;
+                    }
                 }
                 case "minute" -> {
-                    if (f.value() instanceof Byte v) minute = v;
+                    if (f.value() instanceof Byte v) {
+                        minute = v;
+                    }
                 }
                 case "second" -> {
-                    if (f.value() instanceof Byte v) second = v;
+                    if (f.value() instanceof Byte v) {
+                        second = v;
+                    }
                 }
                 case "nano" -> {
-                    if (f.value() instanceof Integer v) nano = v;
+                    if (f.value() instanceof Integer v) {
+                        nano = v;
+                    }
                 }
                 default -> { /* ignore */ }
             }

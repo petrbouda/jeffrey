@@ -34,13 +34,19 @@ public final class FuzzyTextFunctions {
     }
 
     public static Integer levenshtein(Object a, Object b) {
-        if (a == null || b == null) return null;
+        if (a == null || b == null) {
+            return null;
+        }
         String s1 = a.toString();
         String s2 = b.toString();
         int len1 = s1.length();
         int len2 = s2.length();
-        if (len1 == 0) return len2;
-        if (len2 == 0) return len1;
+        if (len1 == 0) {
+            return len2;
+        }
+        if (len2 == 0) {
+            return len1;
+        }
         int[] prev = new int[len2 + 1];
         int[] curr = new int[len2 + 1];
         for (int j = 0; j <= len2; j++) {
@@ -60,7 +66,9 @@ public final class FuzzyTextFunctions {
     }
 
     public static Double jaroWinklerSimilarity(Object a, Object b) {
-        if (a == null || b == null) return null;
+        if (a == null || b == null) {
+            return null;
+        }
         String s1 = a.toString();
         String s2 = b.toString();
         double jaro = jaro(s1, s2);
@@ -71,8 +79,12 @@ public final class FuzzyTextFunctions {
     private static double jaro(String s1, String s2) {
         int len1 = s1.length();
         int len2 = s2.length();
-        if (len1 == 0 && len2 == 0) return 1.0;
-        if (len1 == 0 || len2 == 0) return 0.0;
+        if (len1 == 0 && len2 == 0) {
+            return 1.0;
+        }
+        if (len1 == 0 || len2 == 0) {
+            return 0.0;
+        }
         int matchWindow = Math.max(0, Math.max(len1, len2) / 2 - 1);
         boolean[] s1Matched = new boolean[len1];
         boolean[] s2Matched = new boolean[len2];
@@ -81,21 +93,33 @@ public final class FuzzyTextFunctions {
             int start = Math.max(0, i - matchWindow);
             int end = Math.min(i + matchWindow + 1, len2);
             for (int j = start; j < end; j++) {
-                if (s2Matched[j]) continue;
-                if (s1.charAt(i) != s2.charAt(j)) continue;
+                if (s2Matched[j]) {
+                    continue;
+                }
+                if (s1.charAt(i) != s2.charAt(j)) {
+                    continue;
+                }
                 s1Matched[i] = true;
                 s2Matched[j] = true;
                 matches++;
                 break;
             }
         }
-        if (matches == 0) return 0.0;
+        if (matches == 0) {
+            return 0.0;
+        }
         int transpositions = 0;
         int k = 0;
         for (int i = 0; i < len1; i++) {
-            if (!s1Matched[i]) continue;
-            while (!s2Matched[k]) k++;
-            if (s1.charAt(i) != s2.charAt(k)) transpositions++;
+            if (!s1Matched[i]) {
+                continue;
+            }
+            while (!s2Matched[k]) {
+                k++;
+            }
+            if (s1.charAt(i) != s2.charAt(k)) {
+                transpositions++;
+            }
             k++;
         }
         double m = matches;
@@ -105,7 +129,9 @@ public final class FuzzyTextFunctions {
     private static int commonPrefix(String s1, String s2) {
         int max = Math.min(JARO_WINKLER_MAX_PREFIX, Math.min(s1.length(), s2.length()));
         for (int i = 0; i < max; i++) {
-            if (s1.charAt(i) != s2.charAt(i)) return i;
+            if (s1.charAt(i) != s2.charAt(i)) {
+                return i;
+            }
         }
         return max;
     }

@@ -539,7 +539,9 @@ public final class HprofIndex {
         long inserted = 0;
         for (int elementType = 4; elementType <= 11; elementType++) {
             String name = primArrayName(elementType);
-            if (name == null) continue;
+            if (name == null) {
+                continue;
+            }
             app.beginRow();
             app.append(primArrayClassId(elementType));
             app.append(0); // class_serial — synthetic, no HPROF serial
@@ -615,7 +617,9 @@ public final class HprofIndex {
     private static void appendInstanceFromPrimitiveArray(
             DuckDBAppender app, HprofRecord.PrimitiveArrayDump pa, int idSize, InstanceLayout layout, Counters c) throws SQLException {
         int elementSize = HprofTypeSize.sizeOf(pa.elementType(), idSize);
-        if (elementSize < 0) elementSize = 1; // defensive fallback
+        if (elementSize < 0) {
+            elementSize = 1; // defensive fallback
+        }
         long unaligned = (long) layout.arrayHeader() + (long) pa.length() * elementSize;
         long shallowLong = layout.alignUp(unaligned);
         int shallow = (int) Math.min(shallowLong, Integer.MAX_VALUE);
@@ -679,7 +683,9 @@ public final class HprofIndex {
             }
             try (DuckDBAppender app = conn.createAppender("_class_chain_oop")) {
                 for (Map.Entry<Long, Integer> e : chainOopByClass.entrySet()) {
-                    if (e.getValue() == 0) continue; // skip zero rows to keep the table tight
+                    if (e.getValue() == 0) {
+                        continue; // skip zero rows to keep the table tight
+                    }
                     app.beginRow();
                     app.append(e.getKey());
                     app.append(e.getValue());

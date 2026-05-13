@@ -80,7 +80,9 @@ public final class GraphWalkFunctions {
                     : view.inboundRefs(id);
             for (OutboundRefRow ref : refs) {
                 long next = forward ? ref.targetId() : ref.sourceId();
-                if (next == 0L) continue;
+                if (next == 0L) {
+                    continue;
+                }
                 if (visited.add(next)) {
                     Optional<InstanceRow> inst = view.findInstanceById(next);
                     inst.ifPresent(out::add);
@@ -94,7 +96,9 @@ public final class GraphWalkFunctions {
     private static List<InstanceRow> resolveTargets(HeapView view, List<OutboundRefRow> refs) throws SQLException {
         List<InstanceRow> out = new ArrayList<>(refs.size());
         for (OutboundRefRow ref : refs) {
-            if (ref.targetId() == 0L) continue;
+            if (ref.targetId() == 0L) {
+                continue;
+            }
             view.findInstanceById(ref.targetId()).ifPresent(out::add);
         }
         return out;

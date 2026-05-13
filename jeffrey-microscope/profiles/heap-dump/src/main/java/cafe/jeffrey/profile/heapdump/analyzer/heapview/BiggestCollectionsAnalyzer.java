@@ -199,8 +199,12 @@ public final class BiggestCollectionsAnalyzer {
         // Dedup survivors so we don't resolve owner-class twice for a collection
         // that lands in both heaps.
         Set<Long> survivors = new HashSet<>(byCount.size() + byRetained.size());
-        for (Candidate c : byCount) survivors.add(c.instanceId);
-        for (Candidate c : byRetained) survivors.add(c.instanceId);
+        for (Candidate c : byCount) {
+            survivors.add(c.instanceId);
+        }
+        for (Candidate c : byRetained) {
+            survivors.add(c.instanceId);
+        }
 
         Map<Long, String> ownerClassByCollectionId = new HashMap<>(survivors.size() * 2);
         try (PreparedStatement ownerStmt = view.connection().prepareStatement(OWNER_CLASS_SQL)) {

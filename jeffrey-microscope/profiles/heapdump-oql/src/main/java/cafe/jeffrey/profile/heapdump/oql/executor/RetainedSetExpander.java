@@ -61,7 +61,9 @@ public final class RetainedSetExpander {
         Set<Long> retained = new HashSet<>();
         Deque<Long> frontier = new ArrayDeque<>();
         for (OQLResultEntry e : innerResult.results()) {
-            if (e.objectId() == null) continue;
+            if (e.objectId() == null) {
+                continue;
+            }
             if (retained.add(e.objectId())) {
                 frontier.add(e.objectId());
             }
@@ -89,7 +91,9 @@ public final class RetainedSetExpander {
                 break;
             }
             InstanceRow inst = view.findInstanceById(id).orElse(null);
-            if (inst == null) continue;
+            if (inst == null) {
+                continue;
+            }
             JavaClassRow clazz = inst.classId() == null
                     ? null
                     : view.findClassById(inst.classId()).orElse(null);

@@ -177,7 +177,9 @@ final class TestHeapView implements HeapView {
 
             @Override
             public InstanceRow next() {
-                if (!checked) hasNext();
+                if (!checked) {
+                    hasNext();
+                }
                 checked = false;
                 try {
                     return mapInstance(rs);
