@@ -182,10 +182,15 @@ public final class ThreadAnalyzer {
             switch (f.name()) {
                 case "name" -> {
                     if (f.value() instanceof Long stringRef && stringRef != 0L) {
-                        Optional<JavaStringDecoder.Decoded> decoded =
-                                JavaStringDecoder.decode(view, stringRef);
-                        if (decoded.isPresent()) {
-                            name = decoded.get().content();
+                        Optional<String> cached = view.findStringContent(stringRef);
+                        if (cached.isPresent()) {
+                            name = cached.get();
+                        } else {
+                            Optional<JavaStringDecoder.Decoded> decoded =
+                                    JavaStringDecoder.decode(view, stringRef);
+                            if (decoded.isPresent()) {
+                                name = decoded.get().content();
+                            }
                         }
                     }
                 }

@@ -78,6 +78,11 @@ final class TestHeapView implements HeapView {
     }
 
     @Override
+    public Optional<String> findStringContent(long instanceId) {
+        return Optional.ofNullable(cannedStrings.get(instanceId));
+    }
+
+    @Override
     public Connection connection() {
         return connection;
     }

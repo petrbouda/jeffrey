@@ -93,7 +93,19 @@ public final class JavaStringDecoder {
         return Optional.of(new Decoded(content, valueArrayId, arrayShallow));
     }
 
-    private static String decodeContent(byte[] bytes, int elementType, Byte coder) {
+    /**
+     * Decodes raw HPROF array payload bytes into a Java String. Public so the
+     * {@code HprofIndex} string-content materialisation phase can reuse the
+     * same decode logic without going through the per-instance lookup path.
+     *
+     * @param elementType the HPROF basic-type tag of the backing array
+     *                    ({@link HprofTag.BasicType#BYTE} for compact Java 9+
+     *                    Strings, {@link HprofTag.BasicType#CHAR} for Java 8)
+     * @param coder       the Java 9+ {@code coder} byte (0=LATIN1, 1=UTF-16);
+     *                    ignored for CHAR arrays
+     * @return decoded String, or {@code null} if {@code elementType} isn't BYTE or CHAR
+     */
+    public static String decodeContent(byte[] bytes, int elementType, Byte coder) {
         if (elementType == HprofTag.BasicType.BYTE) {
             // Java 9+ compact strings.
             if (coder != null && coder == 1) {

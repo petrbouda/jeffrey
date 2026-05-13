@@ -69,7 +69,7 @@ public final class InstanceDetailAnalyzer {
         Long retained = view.hasDominatorTree() ? probeRetained(view, objectId) : null;
 
         String stringValue = JAVA_LANG_STRING.equals(className)
-                ? JavaStringDecoder.decode(view, objectId).map(JavaStringDecoder.Decoded::content).orElse(null)
+                ? resolveStringContent(view, objectId)
                 : null;
         // Only Strings get a human-readable value here. For any other ref
         // type, leave displayValue null — the heap dump can't recover an
@@ -90,6 +90,23 @@ public final class InstanceDetailAnalyzer {
                 retained,
                 fields,
                 List.of()));
+    }
+
+    /**
+     * Pulls the decoded {@code String.value} contents for a {@code java.lang.String}
+     * instance, preferring the indexer-materialised {@code string_content} table
+     * (single PK lookup, cached) and only falling back to mmap-decoded HPROF
+     * payload bytes when the content row is missing or the String exceeded the
+     * indexer's content cap.
+     */
+    private static String resolveStringContent(HeapView view, long objectId) throws SQLException {
+        Optional<String> cached = view.findStringContent(objectId);
+        if (cached.isPresent()) {
+            return cached.get();
+        }
+        return JavaStringDecoder.decode(view, objectId)
+                .map(JavaStringDecoder.Decoded::content)
+                .orElse(null);
     }
 
     private static List<InstanceField> decodeFields(HeapView view, long instanceId) throws SQLException {

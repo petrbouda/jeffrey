@@ -18,6 +18,8 @@
 
 package cafe.jeffrey.profile.heapdump.model;
 
+import java.util.List;
+
 /**
  * A single stage's outcome inside an {@link InitPipelineResult} snapshot.
  *
@@ -25,10 +27,22 @@ package cafe.jeffrey.profile.heapdump.model;
  *                    (e.g. "load", "parse", "classloaders")
  * @param status      terminal status; one of {@code "completed"} or {@code "skipped"}
  * @param durationMs  elapsed milliseconds the stage took, or {@code null} when skipped
+ * @param subPhases   optional fine-grained breakdown of where the stage's time
+ *                    went, surfaced to the UI as an expandable accordion.
+ *                    {@code null} when the stage has no further instrumentation
+ *                    (most stages today); never empty when present.
  */
 public record InitStageResult(
         String id,
         String status,
-        Long durationMs
+        Long durationMs,
+        List<SubPhaseTiming> subPhases
 ) {
+
+    /**
+     * Backwards-compatible constructor for stages without sub-phase data.
+     */
+    public InitStageResult(String id, String status, Long durationMs) {
+        this(id, status, durationMs, null);
+    }
 }

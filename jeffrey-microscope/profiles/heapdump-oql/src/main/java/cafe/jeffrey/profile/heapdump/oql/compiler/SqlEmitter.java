@@ -57,6 +57,8 @@ final class SqlEmitter {
     private static final String INSTANCE_ALIAS = "i";
     private static final String CLASS_ALIAS = "c";
     private static final String RETAINED_ALIAS = "rs";
+    private static final String STRING_CONTENT_ALIAS = "sc";
+    private static final String JAVA_LANG_STRING = "java.lang.String";
 
     /** Aliases recognised as "this object's instance id" for @objectId / objectid(o) / instance ref. */
     private static final Set<String> OBJECT_ID_ATTRS = Set.of("objectId");
@@ -78,16 +80,20 @@ final class SqlEmitter {
     private final StringBuilder sql = new StringBuilder(256);
     private final List<Object> params = new ArrayList<>();
     private final String bindingAlias;
+    /** True when the FROM clause binds to {@code java.lang.String} (final class — INSTANCEOF/IMPLEMENTS behave identically); enables string-predicate pushdown to the {@code string_content} table. */
+    private final boolean bindingIsJavaLangString;
     private boolean needsClassJoin;
     private boolean needsRetainedJoin;
+    private boolean needsStringContentJoin;
     private final ResultShapeBuilder shapeBuilder = new ResultShapeBuilder();
     /** SELECT-list aliases known to the emitter; ORDER BY/HAVING references emit the alias verbatim. */
     private final java.util.Set<String> selectAliases = new java.util.HashSet<>();
     /** Whether the current sub-emission is the ORDER BY clause — used to resolve alias references. */
     private boolean inOrderBy;
 
-    private SqlEmitter(String bindingAlias) {
+    private SqlEmitter(String bindingAlias, boolean bindingIsJavaLangString) {
         this.bindingAlias = bindingAlias;
+        this.bindingIsJavaLangString = bindingIsJavaLangString;
     }
 
     /**
@@ -103,16 +109,26 @@ final class SqlEmitter {
     }
 
     private static EmissionResult emitSingle(OqlQuery q, String classIdParamPlaceholder) {
-        SqlEmitter e = new SqlEmitter(q.from().alias() != null ? q.from().alias() : "");
+        SqlEmitter e = new SqlEmitter(
+                q.from().alias() != null ? q.from().alias() : "",
+                isJavaLangStringBinding(q.from()));
         e.emitQuery(q, classIdParamPlaceholder);
         return new EmissionResult(e.sql.toString(), List.copyOf(e.params),
-                e.needsRetainedJoin, e.shapeBuilder.build());
+                e.needsRetainedJoin, e.needsStringContentJoin, e.shapeBuilder.build());
+    }
+
+    private static boolean isJavaLangStringBinding(FromClause from) {
+        // java.lang.String is final, so INSTANCEOF / IMPLEMENTS over it match
+        // exactly the same instances as a plain class reference.
+        return from.source() instanceof ObjectSource.ClassSource cs
+                && JAVA_LANG_STRING.equals(cs.className());
     }
 
     private static EmissionResult emitUnion(UnionQuery u, String classIdParamPlaceholder) {
         StringBuilder out = new StringBuilder(512);
         List<Object> allParams = new ArrayList<>();
         boolean needsRetained = false;
+        boolean needsStringContent = false;
         ResultShape firstShape = null;
         boolean first = true;
         for (OqlQuery branch : u.branches()) {
@@ -123,12 +139,13 @@ final class SqlEmitter {
             out.append("(").append(r.sql()).append(")");
             allParams.addAll(r.params());
             needsRetained |= r.needsRetainedTree();
+            needsStringContent |= r.needsStringContentJoin();
             if (first) {
                 firstShape = r.shape();
             }
             first = false;
         }
-        return new EmissionResult(out.toString(), allParams, needsRetained, firstShape);
+        return new EmissionResult(out.toString(), allParams, needsRetained, needsStringContent, firstShape);
     }
 
     private void emitQuery(OqlQuery q, String classIdParamPlaceholder) {
@@ -198,6 +215,16 @@ final class SqlEmitter {
             sql.append(" JOIN retained_size ").append(RETAINED_ALIAS)
                     .append(" ON ").append(INSTANCE_ALIAS).append(".instance_id = ")
                     .append(RETAINED_ALIAS).append(".instance_id");
+        }
+        if (needsStringContentJoin) {
+            // LEFT JOIN so Strings that exceeded the indexer's content cap
+            // (and therefore have content=NULL in string_content) still appear
+            // in the row stream — the predicate evaluates to NULL/false against
+            // them, which is the desired "miss it" behaviour when the user
+            // hasn't opted into the scan-large-Strings fallback.
+            sql.append(" LEFT JOIN string_content ").append(STRING_CONTENT_ALIAS)
+                    .append(" ON ").append(INSTANCE_ALIAS).append(".instance_id = ")
+                    .append(STRING_CONTENT_ALIAS).append(".instance_id");
         }
         if (whereBuf.length() > 0) {
             sql.append(" WHERE ").append(whereBuf);
@@ -572,8 +599,12 @@ final class SqlEmitter {
                 emitExpr(fc.args().get(0), out);
                 out.append(")");
             }
+
             default -> {
-                if (PASSTHROUGH_NUMERIC_FUNCS.contains(name)) {
+                StringOp op = StringOp.forOqlName(name);
+                if (op != null) {
+                    emitStringOp(op, fc, out);
+                } else if (PASSTHROUGH_NUMERIC_FUNCS.contains(name)) {
                     out.append(name).append("(");
                     for (int i = 0; i < fc.args().size(); i++) {
                         if (i > 0) {
@@ -587,6 +618,161 @@ final class SqlEmitter {
                 }
             }
         }
+    }
+
+    // ---- String pushdown helpers --------------------------------------
+
+    /**
+     * True when {@code expr} resolves to the decoded text of the current
+     * binding — either the bare binding ({@code s}) or {@code toString(s)}
+     * — and the binding is {@code java.lang.String}.
+     */
+    private boolean isPushableStringRef(OqlExpr expr) {
+        if (!bindingIsJavaLangString) {
+            return false;
+        }
+        if (expr instanceof OqlExpr.BindingRef b && b.name().equals(bindingAlias)) {
+            return true;
+        }
+        if (expr instanceof OqlExpr.FunctionCall fc
+                && "toString".equals(fc.name())
+                && fc.args().size() == 1
+                && fc.args().get(0) instanceof OqlExpr.BindingRef br
+                && br.name().equals(bindingAlias)) {
+            return true;
+        }
+        return false;
+    }
+
+    private void emitStringContentReference(StringBuilder out) {
+        needsStringContentJoin = true;
+        out.append(STRING_CONTENT_ALIAS).append(".content");
+    }
+
+    private void emitStringOp(StringOp op, OqlExpr.FunctionCall fc, StringBuilder out) {
+        if (fc.args().size() != op.arity()) {
+            // SUBSTRING accepts 2 OR 3 — the catalogue records the minimum.
+            if (!(op == StringOp.SUBSTRING && fc.args().size() == 3)) {
+                throw new SqlEmissionException(
+                        op.oqlName() + " expects " + op.arity() + " argument(s); got " + fc.args().size());
+            }
+        }
+        switch (op.kind()) {
+            case PREDICATE -> emitPredicateOp(op, fc, out);
+            case PREDICATE_UNARY -> emitUnaryPredicateOp(op, fc, out);
+            case EQUALITY -> emitEqualityOp(op, fc, out);
+            case LENGTH -> emitLengthOp(op, fc, out);
+            case ACCESSOR_UNARY -> emitUnaryAccessorOp(op, fc, out);
+            case SUBSTRING -> emitSubstringOp(op, fc, out);
+            case INDEX_OF -> emitIndexOfOp(op, fc, out);
+            case TO_STRING -> emitToStringOp(op, fc, out);
+            case UNSUPPORTED_PUSHDOWN -> throw new SqlEmissionException(
+                    op.oqlName() + " has no direct DuckDB pushdown — falls to Plan C");
+        }
+    }
+
+    private void requirePushableFirstArg(StringOp op, OqlExpr.FunctionCall fc) {
+        if (!isPushableStringRef(fc.args().get(0))) {
+            throw new SqlEmissionException(
+                    op.oqlName() + " requires the first argument to reference a java.lang.String binding");
+        }
+    }
+
+    private void emitPredicateOp(StringOp op, OqlExpr.FunctionCall fc, StringBuilder out) {
+        requirePushableFirstArg(op, fc);
+        out.append(op.duckDbFunc()).append("(");
+        emitStringContentReference(out);
+        out.append(", ");
+        emitExpr(fc.args().get(1), out);
+        out.append(")");
+    }
+
+    private void emitUnaryPredicateOp(StringOp op, OqlExpr.FunctionCall fc, StringBuilder out) {
+        requirePushableFirstArg(op, fc);
+        // Only isEmptyString today — content = '' check.
+        out.append("(");
+        emitStringContentReference(out);
+        out.append(" = '')");
+    }
+
+    private void emitEqualityOp(StringOp op, OqlExpr.FunctionCall fc, StringBuilder out) {
+        requirePushableFirstArg(op, fc);
+        boolean ignoreCase = op == StringOp.EQUALS_IGNORE_CASE;
+        if (ignoreCase) {
+            out.append("(lower(");
+            emitStringContentReference(out);
+            out.append(") = lower(");
+            emitExpr(fc.args().get(1), out);
+            out.append("))");
+        } else {
+            out.append("(");
+            emitStringContentReference(out);
+            out.append(" = ");
+            emitExpr(fc.args().get(1), out);
+            out.append(")");
+        }
+    }
+
+    private void emitLengthOp(StringOp op, OqlExpr.FunctionCall fc, StringBuilder out) {
+        requirePushableFirstArg(op, fc);
+        // content_length is ALWAYS populated (even for Strings beyond the cap).
+        needsStringContentJoin = true;
+        out.append(STRING_CONTENT_ALIAS).append(".content_length");
+    }
+
+    private void emitUnaryAccessorOp(StringOp op, OqlExpr.FunctionCall fc, StringBuilder out) {
+        out.append(op.duckDbFunc()).append("(");
+        if (isPushableStringRef(fc.args().get(0))) {
+            emitStringContentReference(out);
+        } else {
+            // lower/upper/trim on a literal or other expression — emit unchanged.
+            emitExpr(fc.args().get(0), out);
+        }
+        out.append(")");
+    }
+
+    private void emitSubstringOp(StringOp op, OqlExpr.FunctionCall fc, StringBuilder out) {
+        OqlExpr subject = fc.args().get(0);
+        out.append("substring(");
+        if (isPushableStringRef(subject)) {
+            emitStringContentReference(out);
+        } else {
+            emitExpr(subject, out);
+        }
+        // DuckDB substring is 1-indexed; OQL is 0-indexed.
+        out.append(", (");
+        emitExpr(fc.args().get(1), out);
+        out.append(") + 1");
+        if (fc.args().size() == 3) {
+            // OQL: substring(s, start, end) — length = end - start.
+            out.append(", (");
+            emitExpr(fc.args().get(2), out);
+            out.append(") - (");
+            emitExpr(fc.args().get(1), out);
+            out.append(")");
+        }
+        out.append(")");
+    }
+
+    private void emitIndexOfOp(StringOp op, OqlExpr.FunctionCall fc, StringBuilder out) {
+        // DuckDB instr() returns 1-based position, 0 when not found.
+        // OQL indexOf is 0-based, -1 when not found — translate.
+        out.append("(").append(op.duckDbFunc()).append("(");
+        if (isPushableStringRef(fc.args().get(0))) {
+            emitStringContentReference(out);
+        } else {
+            emitExpr(fc.args().get(0), out);
+        }
+        out.append(", ");
+        emitExpr(fc.args().get(1), out);
+        out.append(") - 1)");
+    }
+
+    private void emitToStringOp(StringOp op, OqlExpr.FunctionCall fc, StringBuilder out) {
+        if (!isPushableStringRef(fc.args().get(0))) {
+            throw new SqlEmissionException("toString on a non-String binding requires Plan C");
+        }
+        emitStringContentReference(out);
     }
 
     private void emitBinaryOp(OqlExpr.BinaryOp bop, StringBuilder out) {
@@ -662,7 +848,8 @@ final class SqlEmitter {
     }
 
     /** Result of the emission, ready to slot into an {@code SqlPlan}. */
-    record EmissionResult(String sql, List<Object> params, boolean needsRetainedTree, ResultShape shape) {
+    record EmissionResult(String sql, List<Object> params, boolean needsRetainedTree,
+                          boolean needsStringContentJoin, ResultShape shape) {
     }
 
     /** Thrown when the emitter hits a node it can't handle in pure SQL. */

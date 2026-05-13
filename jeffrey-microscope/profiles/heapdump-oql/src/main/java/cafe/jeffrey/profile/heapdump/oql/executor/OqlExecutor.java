@@ -23,6 +23,7 @@ import cafe.jeffrey.profile.heapdump.oql.compiler.ExecutionPlan.HybridPlan;
 import cafe.jeffrey.profile.heapdump.oql.compiler.ExecutionPlan.JavaPlan;
 import cafe.jeffrey.profile.heapdump.oql.compiler.ExecutionPlan.RetainedSetPlan;
 import cafe.jeffrey.profile.heapdump.oql.compiler.ExecutionPlan.SqlPlan;
+import cafe.jeffrey.profile.heapdump.oql.compiler.ExecutionPlan.StringFallbackPlan;
 import cafe.jeffrey.profile.heapdump.parser.HeapView;
 
 import java.sql.SQLException;
@@ -42,6 +43,7 @@ public final class OqlExecutor {
             case SqlPlan p -> SqlExecutor.execute(p, view, limit);
             case HybridPlan p -> HybridExecutor.execute(p, view, limit);
             case JavaPlan p -> JavaExecutor.execute(p, view, limit);
+            case StringFallbackPlan p -> StringFallbackExecutor.execute(p, view, limit);
             case RetainedSetPlan p -> {
                 // Run the inner with an unlimited budget so we get the full
                 // seed set; the expander applies the user's limit on the

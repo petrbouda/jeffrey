@@ -22,6 +22,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.Clock;
@@ -37,6 +38,8 @@ import org.duckdb.DuckDBConnection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import cafe.jeffrey.profile.heapdump.analyzer.heapview.JavaStringDecoder;
+import cafe.jeffrey.profile.heapdump.model.SubPhaseTiming;
 import cafe.jeffrey.shared.common.measure.Elapsed;
 import cafe.jeffrey.shared.common.measure.Measuring;
 
@@ -155,18 +158,41 @@ public final class HprofIndex {
         };
     }
 
-    /** Result of an index-build run. Counts reflect rows actually written. */
+    /**
+     * Result of an index-build run. Counts reflect rows actually written.
+     *
+     * <p>{@code subPhases} carries per-stage timings so the UI's "Building
+     * indexes" accordion can show where the build's wall time actually went
+     * (parsing top-level vs. walking heap regions vs. decoding Strings, etc.).
+     */
     public record IndexResult(
             long stringCount,
             long classCount,
             long instanceCount,
             long gcRootCount,
             long outboundRefCount,
+            long stringContentCount,
             long warningCount,
             boolean truncated,
             long bytesParsed,
             long recordCount,
-            Duration buildTime) {
+            Duration buildTime,
+            List<SubPhaseTiming> subPhases) {
+    }
+
+    /**
+     * Tunable options for the index build. Currently controls only the
+     * {@link #stringContentThreshold} — the maximum decoded character length
+     * of a {@code java.lang.String} whose content is materialised into the
+     * {@code string_content} table (-1 means unlimited).
+     */
+    public record BuildOptions(int stringContentThreshold) {
+
+        public static final int DEFAULT_STRING_CONTENT_THRESHOLD = 4096;
+
+        public static BuildOptions defaults() {
+            return new BuildOptions(DEFAULT_STRING_CONTENT_THRESHOLD);
+        }
     }
 
     private HprofIndex() {
@@ -178,6 +204,15 @@ public final class HprofIndex {
      */
     public static IndexResult build(HprofMappedFile file, Path indexDbPath, Clock clock)
             throws IOException, SQLException {
+        return build(file, indexDbPath, clock, BuildOptions.defaults());
+    }
+
+    /**
+     * Builds (or rebuilds) the index with custom {@link BuildOptions}.
+     */
+    public static IndexResult build(
+            HprofMappedFile file, Path indexDbPath, Clock clock, BuildOptions options)
+            throws IOException, SQLException {
         if (file == null) {
             throw new IllegalArgumentException("file must not be null");
         }
@@ -187,13 +222,16 @@ public final class HprofIndex {
         if (clock == null) {
             throw new IllegalArgumentException("clock must not be null");
         }
+        if (options == null) {
+            throw new IllegalArgumentException("options must not be null");
+        }
 
         Files.deleteIfExists(indexDbPath);
         Files.deleteIfExists(HeapDumpIndexPaths.indexWalFor(file.path()));
 
         Elapsed<IndexResult> elapsed = Measuring.s(() -> {
             try (HeapDumpIndexDb db = HeapDumpIndexDb.openAndInitialize(indexDbPath)) {
-                return doBuild(file, db, clock);
+                return doBuild(file, db, clock, options);
             } catch (IOException | SQLException e) {
                 throw new RuntimeException(e);
             }
@@ -202,16 +240,17 @@ public final class HprofIndex {
         IndexResult r = elapsed.entity();
         IndexResult withTime = new IndexResult(
                 r.stringCount(), r.classCount(), r.instanceCount(), r.gcRootCount(),
-                r.outboundRefCount(), r.warningCount(), r.truncated(), r.bytesParsed(),
-                r.recordCount(), elapsed.duration());
-        LOG.debug("Heap dump index built: path={} indexPath={} duration_ms={} strings={} classes={} instances={} gc_roots={} outbound_refs={} warnings={}",
+                r.outboundRefCount(), r.stringContentCount(), r.warningCount(), r.truncated(),
+                r.bytesParsed(), r.recordCount(), elapsed.duration(), r.subPhases());
+        LOG.debug("Heap dump index built: path={} indexPath={} duration_ms={} strings={} classes={} instances={} gc_roots={} outbound_refs={} string_contents={} warnings={}",
                 file.path(), indexDbPath, elapsed.duration().toMillis(),
                 withTime.stringCount(), withTime.classCount(), withTime.instanceCount(),
-                withTime.gcRootCount(), withTime.outboundRefCount(), withTime.warningCount());
+                withTime.gcRootCount(), withTime.outboundRefCount(),
+                withTime.stringContentCount(), withTime.warningCount());
         return withTime;
     }
 
-    private static IndexResult doBuild(HprofMappedFile file, HeapDumpIndexDb db, Clock clock)
+    private static IndexResult doBuild(HprofMappedFile file, HeapDumpIndexDb db, Clock clock, BuildOptions options)
             throws IOException, SQLException {
         DuckDBConnection conn = db.connection();
         int idSize = file.header().idSize();
@@ -220,10 +259,16 @@ public final class HprofIndex {
         boolean compressedOops = (idSize == 8) && (file.size() < COMPRESSED_OOPS_HEAP_LIMIT);
         InstanceLayout layout = InstanceLayout.from(idSize, compressedOops);
 
-        TopLevelData top = walkTopLevel(file, conn);
-        writeStackTraces(conn, top);
-        Counters counters = walkRegions(file, conn, top, idSize, layout);
-        long refCount = walkRegionsForRefs(file, conn, counters.classDumpsById, idSize, counters);
+        Elapsed<TopLevelData> topE = measureSql(() -> walkTopLevel(file, conn));
+        TopLevelData top = topE.entity();
+
+        Duration stackTracesD = measureSqlVoid(() -> writeStackTraces(conn, top));
+
+        Elapsed<Counters> regionsE = measureSql(() -> walkRegions(file, conn, top, idSize, layout));
+        Counters counters = regionsE.entity();
+
+        Elapsed<Long> refsE = measureSql(() ->
+                walkRegionsForRefs(file, conn, counters.classDumpsById, idSize, counters));
         long warningCount = top.warnings.size() + counters.warnings.size();
         boolean truncated = anyError(top.warnings) || anyError(counters.warnings);
 
@@ -231,18 +276,64 @@ public final class HprofIndex {
         // OOP, no alignment). Correct them now that the full class hierarchy is
         // known: subtract the compressed-oops over-count and round each instance
         // up to the JVM allocation boundary.
-        applyInstanceShallowCorrection(conn, counters.classDumpsById, layout);
+        Duration shallowCorrD = measureSqlVoid(() ->
+                applyInstanceShallowCorrection(conn, counters.classDumpsById, layout));
 
-        writeDumpMetadata(conn, file, clock, top, counters, warningCount, truncated, compressedOops);
-        writeParseWarnings(conn, top.warnings);
-        writeParseWarnings(conn, counters.warnings);
+        // Materialise decoded java.lang.String content so OQL string predicates
+        // push down to DuckDB varchar functions instead of decoding per-instance.
+        Elapsed<Long> stringContentE = measureSql(() ->
+                writeStringContent(conn, file, top, counters, idSize, options.stringContentThreshold()));
+        long stringContentCount = stringContentE.entity();
+
+        Duration metadataD = measureSqlVoid(() -> {
+            writeDumpMetadata(conn, file, clock, top, counters, warningCount, truncated, compressedOops);
+            writeParseWarnings(conn, top.warnings);
+            writeParseWarnings(conn, counters.warnings);
+        });
 
         // Force a checkpoint so all WAL contents land in the main DB file.
         // Without this, opening the file in read-only mode (HeapView) fails because
         // read-only connections cannot replay an outstanding WAL.
-        try (Statement stmt = conn.createStatement()) {
-            stmt.execute("CHECKPOINT");
-        }
+        Duration checkpointD = measureSqlVoid(() -> {
+            try (Statement stmt = conn.createStatement()) {
+                stmt.execute("CHECKPOINT");
+            }
+        });
+
+        LOG.debug(
+                "Building indexes phases: walk_top_level_ms={} write_stack_traces_ms={} "
+                        + "walk_regions_ms={} walk_regions_for_refs_ms={} apply_shallow_correction_ms={} "
+                        + "write_string_content_ms={} write_metadata_ms={} checkpoint_ms={} "
+                        + "strings={} classes={} instances={} gc_roots={} outbound_refs={} string_contents={}",
+                topE.duration().toMillis(),
+                stackTracesD.toMillis(),
+                regionsE.duration().toMillis(),
+                refsE.duration().toMillis(),
+                shallowCorrD.toMillis(),
+                stringContentE.duration().toMillis(),
+                metadataD.toMillis(),
+                checkpointD.toMillis(),
+                top.stringCount,
+                counters.classCount,
+                counters.instanceCount,
+                counters.gcRootCount,
+                counters.outboundRefCount,
+                stringContentCount);
+
+        List<SubPhaseTiming> subPhases = List.of(
+                new SubPhaseTiming("walk_top_level", topE.duration().toMillis(),
+                        top.stringCount + " strings"),
+                new SubPhaseTiming("write_stack_traces", stackTracesD.toMillis(),
+                        top.stackFrames.size() + " frames"),
+                new SubPhaseTiming("walk_regions", regionsE.duration().toMillis(),
+                        counters.instanceCount + " instances"),
+                new SubPhaseTiming("walk_regions_for_refs", refsE.duration().toMillis(),
+                        counters.outboundRefCount + " edges"),
+                new SubPhaseTiming("apply_shallow_correction", shallowCorrD.toMillis(), null),
+                new SubPhaseTiming("write_string_content", stringContentE.duration().toMillis(),
+                        stringContentCount + " strings"),
+                new SubPhaseTiming("write_metadata", metadataD.toMillis(), null),
+                new SubPhaseTiming("checkpoint", checkpointD.toMillis(), null));
 
         return new IndexResult(
                 top.stringCount,
@@ -250,11 +341,47 @@ public final class HprofIndex {
                 counters.instanceCount,
                 counters.gcRootCount,
                 counters.outboundRefCount,
+                stringContentCount,
                 warningCount,
                 truncated,
                 file.size(),
                 top.recordCount + counters.subRecordCount,
-                Duration.ZERO); // overwritten by build()
+                Duration.ZERO, // overwritten by build()
+                subPhases);
+    }
+
+    /**
+     * {@link Measuring#s} adapter for phases that throw {@link SQLException} or
+     * {@link IOException}. Mirrors the same helper in {@link DominatorTreeBuilder}.
+     */
+    private static <T> Elapsed<T> measureSql(SqlSupplier<T> body) {
+        return Measuring.s(() -> {
+            try {
+                return body.get();
+            } catch (SQLException | IOException e) {
+                throw new RuntimeException(e);
+            }
+        });
+    }
+
+    private static Duration measureSqlVoid(SqlRunnable body) {
+        return Measuring.r(() -> {
+            try {
+                body.run();
+            } catch (SQLException | IOException e) {
+                throw new RuntimeException(e);
+            }
+        });
+    }
+
+    @FunctionalInterface
+    private interface SqlSupplier<T> {
+        T get() throws SQLException, IOException;
+    }
+
+    @FunctionalInterface
+    private interface SqlRunnable {
+        void run() throws SQLException, IOException;
     }
 
     // ---- Pass 1: top-level -----------------------------------------------
@@ -317,11 +444,25 @@ public final class HprofIndex {
         final List<ParseWarning> warnings = new ArrayList<>();
         /** classId → ClassDump, populated during the first region walk and consumed during the second. */
         final Map<Long, HprofRecord.ClassDump> classDumpsById = new HashMap<>();
+        /**
+         * arrayId → primitive array metadata, populated for every {@link HprofRecord.PrimitiveArrayDump}
+         * during {@link #walkRegions}. Consumed by {@link #writeStringContent} to avoid an N-times
+         * PK lookup against {@code instance} (~150 µs/round-trip × 1–2 M Strings on real heaps).
+         */
+        final Map<Long, PrimitiveArrayInfo> primitiveArrayInfoByArrayId = new HashMap<>();
         long classCount;
         long instanceCount;
         long gcRootCount;
         long subRecordCount;
         long outboundRefCount;
+    }
+
+    /**
+     * In-memory metadata the indexer needs to decode every {@code java.lang.String}'s
+     * backing primitive array: same triplet that {@link #writeStringContent} would
+     * otherwise read with a SQL PK lookup. Held only during the index build.
+     */
+    private record PrimitiveArrayInfo(long fileOffset, int arrayLength, int elementType) {
     }
 
     private static Counters walkRegions(
@@ -614,6 +755,136 @@ public final class HprofIndex {
         c.instanceCount++;
     }
 
+    // HPROF stores class names with slash separators; "java/lang/String" is the
+    // canonical String type name as it appears in the string pool.
+    private static final String STRING_CLASS_HPROF_NAME = "java/lang/String";
+
+    /**
+     * Decodes every {@code java.lang.String} instance and writes one row per
+     * String to the {@code string_content} table. Content is set to {@code NULL}
+     * when its decoded length exceeds {@code threshold} (so OQL string predicates
+     * can detect uncovered Strings via {@code WHERE sc.content IS NULL} for the
+     * opt-in scan-large-Strings fallback path).
+     *
+     * <p>Returns the number of rows written. A {@code threshold < 0} disables
+     * the cap (every String is materialised in full).
+     */
+    private static long writeStringContent(
+            DuckDBConnection conn, HprofMappedFile file, TopLevelData top,
+            Counters counters, int idSize, int threshold) throws SQLException {
+
+        Long stringClassId = findClassIdByHprofName(top, STRING_CLASS_HPROF_NAME);
+        if (stringClassId == null) {
+            return 0;
+        }
+        HprofRecord.ClassDump cd = counters.classDumpsById.get(stringClassId);
+        if (cd == null) {
+            return 0;
+        }
+
+        int valueOffset = -1;
+        int coderOffset = -1;
+        long[] nameIds = cd.instanceFieldNameIds();
+        int[] types = cd.instanceFieldTypes();
+        int offset = 0;
+        for (int i = 0; i < types.length; i++) {
+            byte[] nameBytes = top.stringPool.get(nameIds[i]);
+            String name = nameBytes == null
+                    ? ""
+                    : new String(nameBytes, StandardCharsets.UTF_8);
+            int type = types[i];
+            int size = HprofTypeSize.sizeOf(type, idSize);
+            if ("value".equals(name) && type == HprofTag.BasicType.OBJECT) {
+                valueOffset = offset;
+            } else if ("coder".equals(name) && type == HprofTag.BasicType.BYTE) {
+                coderOffset = offset;
+            }
+            offset += size;
+        }
+        if (valueOffset < 0) {
+            return 0;
+        }
+
+        final int finalValueOffset = valueOffset;
+        final int finalCoderOffset = coderOffset;
+        Map<Long, PrimitiveArrayInfo> arrayInfoByArrayId = counters.primitiveArrayInfoByArrayId;
+        long count = 0;
+        try (PreparedStatement stringQuery = conn.prepareStatement(
+                "SELECT instance_id, file_offset FROM instance WHERE class_id = ?");
+             DuckDBAppender app = conn.createAppender("string_content")) {
+            stringQuery.setLong(1, stringClassId);
+            try (ResultSet rs = stringQuery.executeQuery()) {
+                while (rs.next()) {
+                    long instanceId = rs.getLong(1);
+                    long instOffset = rs.getLong(2);
+                    long fieldBlockStart = instOffset + 2L * idSize + 8L;
+
+                    long valueRef = file.readId(fieldBlockStart + finalValueOffset);
+                    Byte coder = finalCoderOffset >= 0
+                            ? Byte.valueOf(file.readByte(fieldBlockStart + finalCoderOffset))
+                            : null;
+
+                    String content;
+                    if (valueRef == 0L) {
+                        content = "";
+                    } else {
+                        PrimitiveArrayInfo info = arrayInfoByArrayId.get(valueRef);
+                        if (info == null) {
+                            continue;
+                        }
+                        content = decodeStringForIndex(file, info, coder, idSize);
+                        if (content == null) {
+                            continue;
+                        }
+                    }
+
+                    int len = content.length();
+                    app.beginRow();
+                    app.append(instanceId);
+                    app.append(len);
+                    if (threshold >= 0 && len > threshold) {
+                        app.appendNull();
+                    } else {
+                        app.append(content);
+                    }
+                    app.endRow();
+                    count++;
+                }
+            }
+        }
+        return count;
+    }
+
+    private static String decodeStringForIndex(
+            HprofMappedFile file, PrimitiveArrayInfo info, Byte coder, int idSize) {
+        int elementSize = HprofTypeSize.sizeOf(info.elementType(), idSize);
+        if (elementSize < 0) {
+            return null;
+        }
+        long payloadOffset = info.fileOffset() + idSize + 9L;
+        long byteLengthLong = (long) info.arrayLength() * elementSize;
+        if (byteLengthLong > Integer.MAX_VALUE) {
+            byteLengthLong = Integer.MAX_VALUE;
+        }
+        byte[] bytes = file.readBytes(payloadOffset, (int) byteLengthLong);
+        return JavaStringDecoder.decodeContent(bytes, info.elementType(), coder);
+    }
+
+    private static Long findClassIdByHprofName(TopLevelData top, String hprofName) {
+        String userFacing = ClassNameFormatter.userFacing(hprofName);
+        for (HprofRecord.LoadClass lc : top.loadClassByClassId.values()) {
+            byte[] nameBytes = top.stringPool.get(lc.nameStringId());
+            if (nameBytes == null) {
+                continue;
+            }
+            String raw = new String(nameBytes, StandardCharsets.UTF_8);
+            if (hprofName.equals(raw) || userFacing.equals(ClassNameFormatter.userFacing(raw))) {
+                return lc.classId();
+            }
+        }
+        return null;
+    }
+
     private static void appendInstanceFromPrimitiveArray(
             DuckDBAppender app, HprofRecord.PrimitiveArrayDump pa, int idSize, InstanceLayout layout, Counters c) throws SQLException {
         int elementSize = HprofTypeSize.sizeOf(pa.elementType(), idSize);
@@ -635,6 +906,9 @@ public final class HprofIndex {
         app.append((byte) pa.elementType());
         app.endRow();
         c.instanceCount++;
+        c.primitiveArrayInfoByArrayId.put(
+                pa.arrayId(),
+                new PrimitiveArrayInfo(pa.fileOffset(), pa.length(), pa.elementType()));
     }
 
     private static void appendGcRoot(DuckDBAppender app, HprofRecord.GcRoot root) throws SQLException {

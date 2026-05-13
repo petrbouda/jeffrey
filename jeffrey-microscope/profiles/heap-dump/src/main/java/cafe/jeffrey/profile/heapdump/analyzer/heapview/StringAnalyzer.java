@@ -20,44 +20,42 @@ package cafe.jeffrey.profile.heapdump.analyzer.heapview;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import java.util.Optional;
 import cafe.jeffrey.profile.heapdump.model.JvmStringFlag;
 import cafe.jeffrey.profile.heapdump.model.StringAnalysisReport;
 import cafe.jeffrey.profile.heapdump.model.StringDeduplicationEntry;
 import cafe.jeffrey.profile.heapdump.parser.HeapView;
-import cafe.jeffrey.profile.heapdump.parser.HprofTag;
 import cafe.jeffrey.profile.heapdump.parser.InstanceFieldDescriptor;
 import cafe.jeffrey.profile.heapdump.parser.JavaClassRow;
 
 /**
  * Bulk-SQL String analysis.
  *
- * <p>Iterates every {@code java.lang.String} instance via a single JOIN that
- * pulls each String together with its {@code value} primitive-array's row, then
- * reads the raw array bytes once per unique array (dedup'd via {@code byArray}).
- * The previous per-instance pattern issued ~4 JDBC round-trips per String,
- * which on heaps with millions of Strings was the dominant cost of init.
- *
- * <p>String content is keyed in {@link Map} entries by a tiny {@code BytesKey}
- * wrapper that hashes / equals on the raw {@code byte[]} content + primitive
- * type, so we don't allocate a full Java {@code String} for every instance —
- * decoding to a real {@code String} happens only for the top-N entries that
- * survive sorting for display.
- *
- * <p>Surfaces:
+ * <p>Two aggregations against the index — no per-array mmap reads:
  * <ul>
- *   <li><strong>Already deduplicated</strong>: distinct value-arrays referenced
- *       by more than one String. Savings = (refCount - 1) × arrayShallow.</li>
- *   <li><strong>Opportunities</strong>: identical content stored in multiple
- *       distinct value-arrays. Potential savings =
- *       (distinctArrays - 1) × arrayShallow.</li>
+ *   <li><strong>Physical-sharing</strong>: one row per {@code String.value}
+ *       backing array, with its reference count and shallow size. Drives the
+ *       "already deduplicated" report and all scalar totals.</li>
+ *   <li><strong>Content-sharing</strong>: one row per distinct
+ *       {@code string_content.content} that appears in more than one distinct
+ *       backing array. Drives the "deduplication opportunities" report and
+ *       {@code potentialSavings}.</li>
  * </ul>
+ *
+ * <p>Strings whose decoded content exceeded the indexer's content cap are
+ * stored with {@code content IS NULL}; they contribute to physical-sharing
+ * totals (via {@code outbound_ref} / {@code instance}) but are excluded from
+ * the content-sharing dedup pass. On realistic heaps this is a tiny fraction
+ * of Strings — typical caps cover well over 99% of instances.
+ *
+ * <p>Top-N previews are pulled from {@code string_content} via
+ * {@link HeapView#findStringContent(long)} keyed by a sample String id, so
+ * each preview costs at most one PK lookup.
  *
  * <p>JVM-flag enrichment from JFR events stays the caller's job — this
  * analyzer returns an empty {@link JvmStringFlag} list.
@@ -65,28 +63,49 @@ import cafe.jeffrey.profile.heapdump.parser.JavaClassRow;
 public final class StringAnalyzer {
 
     private static final int DEFAULT_TOP_N = 100;
+    private static final int PREVIEW_MAX_CHARS = 200;
+    private static final String PREVIEW_ELLIPSIS = "…";
     private static final String JAVA_LANG_STRING = "java.lang.String";
 
     /**
-     * Bulk join: every {@code String} instance paired with its {@code value}
-     * primitive-array row in a single result set.
-     *
-     * <p>Parameters: {@code 1 = field_id} of String.value within the inherited
-     * field chain, {@code 2 = String's class_id}.
+     * Per-backing-array aggregation: one row per distinct {@code value}-array
+     * referenced by any {@code String}. {@code 1 = field_id} of String.value,
+     * {@code 2 = String's class_id}.
      */
-    private static final String STRINGS_WITH_VALUES_SQL = """
+    private static final String PHYSICAL_SHARING_SQL = """
             SELECT
-                s.instance_id      AS string_id,
-                s.shallow_size     AS string_shallow,
-                arr.instance_id    AS value_array_id,
-                arr.primitive_type AS value_array_prim,
-                arr.shallow_size   AS value_array_shallow
+                ref.target_id                AS array_id,
+                MAX(arr.shallow_size)        AS array_shallow,
+                COUNT(*)                     AS ref_count,
+                SUM(CAST(s.shallow_size AS BIGINT)) AS sum_string_shallow,
+                MIN(ref.source_id)           AS sample_string_id
             FROM instance s
-            LEFT JOIN outbound_ref ref
-                ON ref.source_id = s.instance_id AND ref.field_id = ?
-            LEFT JOIN instance arr
-                ON arr.instance_id = ref.target_id
+            JOIN outbound_ref ref ON ref.source_id = s.instance_id AND ref.field_id = ?
+            JOIN instance arr     ON arr.instance_id = ref.target_id
             WHERE s.class_id = ?
+            GROUP BY ref.target_id
+            """;
+
+    /**
+     * Content-dedup aggregation: one row per distinct decoded String content
+     * that exists in more than one backing array. {@code 1 = field_id} of
+     * String.value, {@code 2 = String's class_id}.
+     */
+    private static final String CONTENT_DEDUP_SQL = """
+            SELECT
+                sc.content                       AS content,
+                COUNT(*)                         AS string_count,
+                COUNT(DISTINCT ref.target_id)    AS distinct_arrays,
+                MAX(arr.shallow_size)            AS array_shallow,
+                MIN(sc.instance_id)              AS sample_string_id
+            FROM string_content sc
+            JOIN instance s       ON s.instance_id = sc.instance_id
+            JOIN outbound_ref ref ON ref.source_id = sc.instance_id AND ref.field_id = ?
+            JOIN instance arr     ON arr.instance_id = ref.target_id
+            WHERE sc.content IS NOT NULL
+              AND s.class_id = ?
+            GROUP BY sc.content
+            HAVING COUNT(DISTINCT ref.target_id) > 1
             """;
 
     private StringAnalyzer() {
@@ -106,90 +125,66 @@ public final class StringAnalyzer {
             return emptyReport();
         }
 
-        Map<Long, ArrayUsage> byArray = new HashMap<>();
-        Map<BytesKey, ContentUsage> byContent = new HashMap<>();
+        List<PhysicalSharingRow> physRows = new ArrayList<>();
+        Map<String, ContentSharingRow> contentRows = new HashMap<>();
         long totalStrings = 0;
         long totalShallowSize = 0;
 
         for (JavaClassRow stringClass : stringClasses) {
             int valueFieldId = findValueFieldId(view, stringClass.classId());
             if (valueFieldId < 0) {
-                continue; // No String.value field for this class — skip.
+                continue;
             }
-            try (PreparedStatement stmt = view.connection().prepareStatement(STRINGS_WITH_VALUES_SQL)) {
+
+            try (PreparedStatement stmt = view.connection().prepareStatement(PHYSICAL_SHARING_SQL)) {
                 stmt.setInt(1, valueFieldId);
                 stmt.setLong(2, stringClass.classId());
                 try (ResultSet rs = stmt.executeQuery()) {
                     while (rs.next()) {
-                        long valueArrayId = rs.getLong(3);
-                        if (rs.wasNull() || valueArrayId == 0L) {
-                            // Match the previous behaviour: Strings without a
-                            // resolvable value-array don't contribute to totals.
-                            continue;
-                        }
-                        int valueArrayPrim = rs.getInt(4);
-                        if (rs.wasNull()) {
-                            continue;
-                        }
-                        int stringShallow = rs.getInt(2);
-                        long valueArrayShallow = rs.getInt(5);
+                        long arrayShallow = rs.getLong(2);
+                        long refCount = rs.getLong(3);
+                        long sumStringShallow = rs.getLong(4);
+                        long sampleStringId = rs.getLong(5);
+                        physRows.add(new PhysicalSharingRow(arrayShallow, refCount, sampleStringId));
+                        totalStrings += refCount;
+                        totalShallowSize += sumStringShallow;
+                    }
+                }
+            }
 
-                        totalStrings++;
-                        totalShallowSize += stringShallow;
-
-                        ArrayUsage au = byArray.get(valueArrayId);
-                        if (au == null) {
-                            byte[] bytes = view.readPrimitiveArrayBytes(valueArrayId);
-                            BytesKey contentKey = new BytesKey(bytes, valueArrayPrim);
-                            au = new ArrayUsage(bytes, valueArrayPrim, valueArrayShallow, contentKey);
-                            byArray.put(valueArrayId, au);
-                            byContent.computeIfAbsent(contentKey,
-                                            k -> new ContentUsage(valueArrayShallow))
-                                    .distinctArrays.add(valueArrayId);
-                        }
-                        au.refCount++;
-                        byContent.get(au.contentKey).totalCount++;
+            try (PreparedStatement stmt = view.connection().prepareStatement(CONTENT_DEDUP_SQL)) {
+                stmt.setInt(1, valueFieldId);
+                stmt.setLong(2, stringClass.classId());
+                try (ResultSet rs = stmt.executeQuery()) {
+                    while (rs.next()) {
+                        String content = rs.getString(1);
+                        long stringCount = rs.getLong(2);
+                        long distinctArrays = rs.getLong(3);
+                        long arrayShallow = rs.getLong(4);
+                        long sampleStringId = rs.getLong(5);
+                        // Merge across String classes — same content stored under
+                        // different class-loader String classes should coalesce.
+                        contentRows.merge(content,
+                                new ContentSharingRow(stringCount, distinctArrays, arrayShallow, sampleStringId),
+                                ContentSharingRow::merge);
                     }
                 }
             }
         }
 
-        long uniqueArrays = byArray.size();
-        long sharedArrays = byArray.values().stream().filter(a -> a.refCount > 1).count();
-        long totalSharedStrings = byArray.values().stream().filter(a -> a.refCount > 1)
-                .mapToLong(a -> a.refCount).sum();
-        long memorySavedByDedup = byArray.values().stream().filter(a -> a.refCount > 1)
-                .mapToLong(a -> (long) (a.refCount - 1) * a.arrayShallowSize).sum();
+        long uniqueArrays = physRows.size();
+        long sharedArrays = physRows.stream().filter(r -> r.refCount > 1).count();
+        long totalSharedStrings = physRows.stream().filter(r -> r.refCount > 1)
+                .mapToLong(r -> r.refCount).sum();
+        long memorySavedByDedup = physRows.stream().filter(r -> r.refCount > 1)
+                .mapToLong(r -> (r.refCount - 1) * r.arrayShallowSize).sum();
 
-        // Already-deduplicated: distinct value-arrays referenced by more than one String.
-        List<StringDeduplicationEntry> already = byArray.values().stream()
-                .filter(a -> a.refCount > 1)
-                .sorted(Comparator.comparingLong(StringAnalyzer::dedupSavings).reversed())
-                .limit(topN)
-                .map(a -> new StringDeduplicationEntry(
-                        truncate(decodePreview(a.bytes, a.primitiveType)),
-                        a.refCount,
-                        a.arrayShallowSize,
-                        (long) (a.refCount - 1) * a.arrayShallowSize))
-                .toList();
+        List<StringDeduplicationEntry> already = topNByPhysicalSavings(physRows, topN, view);
 
-        // Opportunities: same content stored in multiple distinct arrays.
-        List<StringDeduplicationEntry> opps = byContent.entrySet().stream()
-                .filter(e -> e.getValue().distinctArrays.size() > 1)
-                .sorted(Comparator.<Map.Entry<BytesKey, ContentUsage>>comparingLong(
-                                e -> oppSavings(e.getValue())).reversed())
-                .limit(topN)
-                .map(e -> new StringDeduplicationEntry(
-                        truncate(decodePreview(e.getKey().bytes, e.getKey().primitiveType)),
-                        e.getValue().totalCount,
-                        e.getValue().arrayShallowSize,
-                        (long) (e.getValue().distinctArrays.size() - 1) * e.getValue().arrayShallowSize))
-                .toList();
-
-        long potentialSavings = byContent.values().stream()
-                .filter(c -> c.distinctArrays.size() > 1)
-                .mapToLong(c -> (long) (c.distinctArrays.size() - 1) * c.arrayShallowSize)
+        long potentialSavings = contentRows.values().stream()
+                .mapToLong(c -> (c.distinctArrays - 1) * c.arrayShallowSize)
                 .sum();
+        List<StringDeduplicationEntry> opps = topNByContentSavings(contentRows, topN);
 
         return new StringAnalysisReport(
                 totalStrings,
@@ -202,6 +197,46 @@ public final class StringAnalyzer {
                 already,
                 opps,
                 List.<JvmStringFlag>of());
+    }
+
+    private static List<StringDeduplicationEntry> topNByPhysicalSavings(
+            List<PhysicalSharingRow> rows, int topN, HeapView view) throws SQLException {
+        List<PhysicalSharingRow> top = rows.stream()
+                .filter(r -> r.refCount > 1)
+                .sorted(Comparator.<PhysicalSharingRow>comparingLong(
+                        r -> (r.refCount - 1) * r.arrayShallowSize).reversed())
+                .limit(topN)
+                .toList();
+        List<StringDeduplicationEntry> out = new ArrayList<>(top.size());
+        for (PhysicalSharingRow r : top) {
+            String preview = previewFor(view, r.sampleStringId);
+            out.add(new StringDeduplicationEntry(
+                    preview,
+                    toBoundedInt(r.refCount),
+                    r.arrayShallowSize,
+                    (r.refCount - 1) * r.arrayShallowSize));
+        }
+        return out;
+    }
+
+    private static List<StringDeduplicationEntry> topNByContentSavings(
+            Map<String, ContentSharingRow> contentRows, int topN) {
+        return contentRows.entrySet().stream()
+                .sorted(Comparator.<Map.Entry<String, ContentSharingRow>>comparingLong(
+                                e -> (e.getValue().distinctArrays - 1) * e.getValue().arrayShallowSize)
+                        .reversed())
+                .limit(topN)
+                .map(e -> new StringDeduplicationEntry(
+                        truncate(e.getKey()),
+                        toBoundedInt(e.getValue().stringCount),
+                        e.getValue().arrayShallowSize,
+                        (e.getValue().distinctArrays - 1) * e.getValue().arrayShallowSize))
+                .toList();
+    }
+
+    private static String previewFor(HeapView view, long sampleStringId) throws SQLException {
+        Optional<String> content = view.findStringContent(sampleStringId);
+        return content.map(StringAnalyzer::truncate).orElse("");
     }
 
     /**
@@ -219,40 +254,14 @@ public final class StringAnalyzer {
         return -1;
     }
 
-    private static long dedupSavings(ArrayUsage a) {
-        return (long) (a.refCount - 1) * a.arrayShallowSize;
-    }
-
-    private static long oppSavings(ContentUsage c) {
-        return (long) (c.distinctArrays.size() - 1) * c.arrayShallowSize;
-    }
-
-    /**
-     * Best-effort decoding of value-array bytes for the top-N display.
-     * The Java 9+ {@code coder} byte isn't joined into the bulk query so we
-     * pick a sensible default (LATIN1 for byte[], UTF-16 BE for char[]).
-     * The preview is truncated to 200 chars anyway, so a wrong charset on
-     * non-LATIN1 byte[] content only affects display, not dedup keying.
-     */
-    private static String decodePreview(byte[] bytes, int primitiveType) {
-        if (primitiveType == HprofTag.BasicType.BYTE) {
-            return new String(bytes, java.nio.charset.StandardCharsets.ISO_8859_1);
-        }
-        if (primitiveType == HprofTag.BasicType.CHAR) {
-            int n = bytes.length / 2;
-            char[] chars = new char[n];
-            for (int i = 0; i < n; i++) {
-                int hi = bytes[i * 2] & 0xFF;
-                int lo = bytes[i * 2 + 1] & 0xFF;
-                chars[i] = (char) ((hi << 8) | lo);
-            }
-            return new String(chars);
-        }
-        return "";
+    private static int toBoundedInt(long v) {
+        return v > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) v;
     }
 
     private static String truncate(String s) {
-        return s.length() <= 200 ? s : s.substring(0, 200) + "…";
+        return s.length() <= PREVIEW_MAX_CHARS
+                ? s
+                : s.substring(0, PREVIEW_MAX_CHARS) + PREVIEW_ELLIPSIS;
     }
 
     private static StringAnalysisReport emptyReport() {
@@ -263,58 +272,18 @@ public final class StringAnalyzer {
                 List.<JvmStringFlag>of());
     }
 
-    /**
-     * Hash/equality key over a value-array's raw bytes paired with its
-     * primitive type. Two arrays are "same content" only if they have the
-     * exact same bytes <em>and</em> the same primitive type (a char[] and a
-     * byte[] with byte-identical content still can't share storage).
-     */
-    private static final class BytesKey {
-        final byte[] bytes;
-        final int primitiveType;
-        final int hash;
-
-        BytesKey(byte[] bytes, int primitiveType) {
-            this.bytes = bytes;
-            this.primitiveType = primitiveType;
-            this.hash = 31 * Arrays.hashCode(bytes) + primitiveType;
-        }
-
-        @Override
-        public int hashCode() {
-            return hash;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            return o instanceof BytesKey other
-                    && primitiveType == other.primitiveType
-                    && Arrays.equals(bytes, other.bytes);
-        }
+    private record PhysicalSharingRow(long arrayShallowSize, long refCount, long sampleStringId) {
     }
 
-    private static final class ArrayUsage {
-        final byte[] bytes;
-        final int primitiveType;
-        final long arrayShallowSize;
-        final BytesKey contentKey;
-        int refCount;
+    private record ContentSharingRow(
+            long stringCount, long distinctArrays, long arrayShallowSize, long sampleStringId) {
 
-        ArrayUsage(byte[] bytes, int primitiveType, long arrayShallowSize, BytesKey contentKey) {
-            this.bytes = bytes;
-            this.primitiveType = primitiveType;
-            this.arrayShallowSize = arrayShallowSize;
-            this.contentKey = contentKey;
-        }
-    }
-
-    private static final class ContentUsage {
-        final long arrayShallowSize;
-        final Set<Long> distinctArrays = new HashSet<>();
-        int totalCount;
-
-        ContentUsage(long arrayShallowSize) {
-            this.arrayShallowSize = arrayShallowSize;
+        ContentSharingRow merge(ContentSharingRow other) {
+            return new ContentSharingRow(
+                    stringCount + other.stringCount,
+                    distinctArrays + other.distinctArrays,
+                    Math.max(arrayShallowSize, other.arrayShallowSize),
+                    Math.min(sampleStringId, other.sampleStringId));
         }
     }
 }

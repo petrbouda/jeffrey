@@ -187,6 +187,17 @@ public interface HeapView extends AutoCloseable {
 
     Optional<String> findString(long stringId) throws SQLException;
 
+    // ---- Decoded java.lang.String content (materialised at index time) ---
+
+    /**
+     * Returns the decoded text content of a {@code java.lang.String} instance
+     * if it was materialised during indexing and falls within the configured
+     * content-length cap. Returns empty when the instance isn't a String, the
+     * String exceeded the cap (in which case the row exists but its content
+     * is {@code NULL}), or when no row exists at all.
+     */
+    Optional<String> findStringContent(long instanceId) throws SQLException;
+
     // ---- Aggregate -------------------------------------------------------
 
     /**

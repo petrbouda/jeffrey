@@ -93,6 +93,32 @@ public sealed interface ExecutionPlan {
     }
 
     /**
+     * Plan A SQL pushdown for string predicates on a {@code java.lang.String}
+     * binding, paired with a Plan-C fallback over Strings whose decoded
+     * content exceeded the indexer's content cap. Only built when the user
+     * has opted in via {@code scanLargeStrings} AND the inner SQL plan
+     * actually JOINs the {@code string_content} table.
+     */
+    record StringFallbackPlan(SqlPlan primary, OqlQuery query) implements ExecutionPlan {
+
+        public StringFallbackPlan {
+            if (primary == null || query == null) {
+                throw new IllegalArgumentException("primary and query must be present");
+            }
+        }
+
+        @Override
+        public boolean needsDominatorTree() {
+            return primary.needsDominatorTree();
+        }
+
+        @Override
+        public ResultShape resultShape() {
+            return primary.resultShape();
+        }
+    }
+
+    /**
      * Post-pass wrapper: runs {@code inner} to collect a seed set of instance
      * IDs, then expands that set by BFS over the dominator tree to produce
      * the full retained set. Triggered by {@code AS RETAINED SET}.

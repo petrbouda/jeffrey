@@ -350,6 +350,7 @@ import HeapDumpInitTimeline, {
 import HeapSummary from '@/services/api/model/HeapSummary';
 import HeapDumpConfig from '@/services/api/model/HeapDumpConfig';
 import type InitPipelineResult from '@/services/api/model/InitPipelineResult';
+import type { SubPhaseTiming } from '@/services/api/model/InitPipelineResult';
 import FormattingService from '@/services/FormattingService';
 import { ToastService } from '@/services/ToastService';
 import MessageBus from '@/services/MessageBus';
@@ -387,8 +388,8 @@ const STAGE_IDS: string[] = [
   'parse',
   'index',
   'strings',
-  'threads',
   'dominator',
+  'threads',
   'biggest',
   'collections',
   'leaks',
@@ -425,12 +426,15 @@ const startStep = (id: string) => {
   }
 };
 
-const completeStep = (id: string) => {
+const completeStep = (id: string, subPhases?: SubPhaseTiming[]) => {
   const step = findStep(id);
   if (step) {
     step.status = 'completed';
     if (step.startMs != null) {
       step.durationMs = Date.now() - step.startMs;
+    }
+    if (subPhases && subPhases.length > 0) {
+      step.subPhases = subPhases;
     }
   }
 };
@@ -461,7 +465,8 @@ const lastInitResultSteps = computed<TimelineStep[]>(() => {
   return lastInitResult.value.stages.map(s => ({
     id: s.id,
     status: s.status as TimelineStep['status'],
-    durationMs: s.durationMs ?? undefined
+    durationMs: s.durationMs ?? undefined,
+    subPhases: s.subPhases ?? undefined
   }));
 });
 
@@ -547,27 +552,31 @@ const processHeapDump = async () => {
         : compressedOopsChoice.value === 'disabled'
           ? false
           : undefined;
-    const summary = await client.initialize(compressedOopsOverride);
-    lastSummary.value = summary;
+    const indexResult = await client.initialize(compressedOopsOverride);
+    lastSummary.value = indexResult.summary;
     heapConfig.value = await client.getConfig();
-    completeStep('index');
+    completeStep('index', indexResult.subPhases);
 
     // Step 4: Strings
     startStep('strings');
     await client.runStringAnalysis(100);
     completeStep('strings');
 
-    // Step 5: Threads
+    // Step 5: Dominator Tree — pre-computed up front because (a) it owns the
+    // single biggest cost on large heaps and (b) retained sizes for threads,
+    // biggest objects, leak suspects and the dominator-tree view all read
+    // from it. Running it as its own stage keeps the timeline honest:
+    // previously this cost hid behind the "Analyzing threads" label because
+    // runThreadAnalysis() built the tree lazily.
+    startStep('dominator');
+    const dominatorSubPhases = await client.runComputeDominator();
+    completeStep('dominator', dominatorSubPhases);
+
+    // Step 6: Threads — tree is already built, so this is purely the
+    // SQL-based thread analysis (sub-second on typical heaps).
     startStep('threads');
     await client.runThreadAnalysis();
     completeStep('threads');
-
-    // Step 6: Dominator Tree — always pre-computed; retained-size queries
-    // and the dominator-tree view both need it, and lazy-building it during
-    // those views blocks the first interactive request on a multi-minute pass.
-    startStep('dominator');
-    await client.getDominatorTreeRoots(50);
-    completeStep('dominator');
 
     // Step 7: Biggest Objects
     startStep('biggest');
@@ -618,7 +627,8 @@ const processHeapDump = async () => {
         return {
           id: s.id,
           status,
-          durationMs: s.durationMs ?? null
+          durationMs: s.durationMs ?? null,
+          subPhases: s.subPhases ?? null
         };
       })
     };

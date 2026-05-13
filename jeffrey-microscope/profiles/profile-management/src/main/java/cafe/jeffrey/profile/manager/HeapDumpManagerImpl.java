@@ -55,6 +55,7 @@ import cafe.jeffrey.profile.heapdump.model.HeapDumpConfig;
 import cafe.jeffrey.profile.heapdump.model.HeapSummary;
 import cafe.jeffrey.profile.heapdump.model.HeapThreadInfo;
 import cafe.jeffrey.profile.heapdump.model.InitPipelineResult;
+import cafe.jeffrey.profile.heapdump.model.InitializeResult;
 import cafe.jeffrey.profile.heapdump.model.InstanceDetail;
 import cafe.jeffrey.profile.heapdump.model.InstanceTreeRequest;
 import cafe.jeffrey.profile.heapdump.model.InstanceTreeResponse;
@@ -64,6 +65,7 @@ import cafe.jeffrey.profile.heapdump.model.OQLQueryRequest;
 import cafe.jeffrey.profile.heapdump.model.OQLQueryResult;
 import cafe.jeffrey.profile.heapdump.model.SortBy;
 import cafe.jeffrey.profile.heapdump.model.StringAnalysisReport;
+import cafe.jeffrey.profile.heapdump.model.SubPhaseTiming;
 import cafe.jeffrey.profile.heapdump.model.ThreadAnalysisReport;
 import cafe.jeffrey.profile.heapdump.model.ThreadStackFrame;
 import cafe.jeffrey.profile.heapdump.oql.OqlEngine;
@@ -218,6 +220,49 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
     }
 
     @Override
+    public InitializeResult initialize(Boolean compressedOopsOverride) {
+        // Done inside a single withSession so the index rebuild (if any) and the
+        // compressed-oops inference share one HeapDumpSession. Calling
+        // resolveAndStoreCompressedOops() first would otherwise open *its own*
+        // session (via inferCompressedOopsFromHeap → withSession), trigger the
+        // index build inside that throwaway session, and leave initialize()'s
+        // session with empty lastBuildSubPhases().
+        return withSession(session -> {
+            resolveCompressedOopsInSession(compressedOopsOverride, session);
+            HeapSummary summary = HeapSummaryAnalyzer.analyze(session.view());
+            return new InitializeResult(summary, session.lastBuildSubPhases());
+        }).orElseGet(() -> new InitializeResult(null, List.<SubPhaseTiming>of()));
+    }
+
+    /**
+     * Compressed-oops resolution that reuses an already-open session instead of
+     * opening a new one through {@link #inferCompressedOopsFromHeap()}.
+     * Mirrors {@link #resolveAndStoreCompressedOops(Boolean)} otherwise.
+     */
+    private void resolveCompressedOopsInSession(Boolean override, HeapDumpSession session)
+            throws SQLException {
+        boolean compressedOops;
+        String source;
+        if (override != null) {
+            compressedOops = override;
+            source = "MANUAL";
+        } else {
+            Optional<Boolean> jfrValue = detectCompressedOopsFromJfr();
+            if (jfrValue.isPresent()) {
+                compressedOops = jfrValue.get();
+                source = "JFR";
+            } else {
+                compressedOops = session.view().metadata().compressedOops();
+                source = "INFERRED";
+            }
+        }
+        HeapDumpConfig config = new HeapDumpConfig(compressedOops, source, 0L);
+        writeJsonFile(HEAP_DUMP_CONFIG_FILE, config, "Heap dump config");
+        LOG.info("Compressed oops resolved: compressedOops={} source={} profileId={}",
+                compressedOops, source, profileInfo.id());
+    }
+
+    @Override
     public List<ClassHistogramEntry> getClassHistogram(int topN) {
         return getClassHistogram(topN, SortBy.SIZE);
     }
@@ -250,7 +295,10 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
 
         ExecutionPlan plan;
         try {
-            plan = oqlEngine.compile(stmt);
+            plan = oqlEngine.compile(
+                    stmt,
+                    new cafe.jeffrey.profile.heapdump.oql.compiler.OqlCompileOptions(
+                            request.scanLargeStrings()));
         } catch (RuntimeException e) {
             return OQLQueryResult.error("Compile error: " + e.getMessage(), 0);
         }
@@ -499,9 +547,12 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
     @Override
     public void runThreadAnalysis() {
         withSession(session -> {
-            // Retained sizes need the dominator tree; the analyzer reads
-            // retained_size when present.
-            session.buildDominatorTreeIfNeeded();
+            // Retained sizes need the dominator tree. The init pipeline runs
+            // runComputeDominator() as its own stage before this one, so the
+            // tree is already present and ThreadAnalyzer will populate
+            // retained sizes from retained_size. If runThreadAnalysis is
+            // invoked directly without a prior dominator build, retained
+            // sizes come back null — which the analyzer handles gracefully.
             List<HeapThreadInfo> threads = ThreadAnalyzer.analyze(session.view());
 
             int daemonCount = (int) threads.stream().filter(HeapThreadInfo::daemon).count();
@@ -515,6 +566,15 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
             writeJsonFile(THREAD_ANALYSIS_FILE, report, "Thread analysis");
             return null;
         });
+    }
+
+    @Override
+    public List<SubPhaseTiming> runComputeDominator() {
+        Optional<List<SubPhaseTiming>> result = withSession(session ->
+                session.buildDominatorTreeIfNeeded()
+                        .map(r -> r.subPhases())
+                        .orElse(List.<SubPhaseTiming>of()));
+        return result.orElse(List.<SubPhaseTiming>of());
     }
 
     // --- Instance browsing -----------------------------------------------

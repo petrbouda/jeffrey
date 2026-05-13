@@ -29,6 +29,7 @@ import cafe.jeffrey.profile.heapdump.model.HeapDumpConfig;
 import cafe.jeffrey.profile.heapdump.model.HeapSummary;
 import cafe.jeffrey.profile.heapdump.model.HeapThreadInfo;
 import cafe.jeffrey.profile.heapdump.model.InitPipelineResult;
+import cafe.jeffrey.profile.heapdump.model.InitializeResult;
 import cafe.jeffrey.profile.heapdump.model.InstanceDetail;
 import cafe.jeffrey.profile.heapdump.model.InstanceTreeResponse;
 import cafe.jeffrey.profile.heapdump.model.BiggestCollectionsReport;
@@ -39,6 +40,7 @@ import cafe.jeffrey.profile.heapdump.model.OQLQueryResult;
 import cafe.jeffrey.profile.heapdump.model.SortBy;
 import cafe.jeffrey.profile.heapdump.model.ConsumerReport;
 import cafe.jeffrey.profile.heapdump.model.StringAnalysisReport;
+import cafe.jeffrey.profile.heapdump.model.SubPhaseTiming;
 import cafe.jeffrey.profile.heapdump.model.ThreadAnalysisReport;
 import cafe.jeffrey.profile.heapdump.model.ThreadStackFrame;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
@@ -79,6 +81,18 @@ public interface HeapDumpManager {
      * @return heap summary or null if heap dump not available
      */
     HeapSummary getSummary();
+
+    /**
+     * One-shot initialization step invoked by the UI's first stage: resolves
+     * the compressed-oops setting, opens the heap-dump session (which builds
+     * the index sibling on first access), and returns both the resulting
+     * {@link HeapSummary} and the per-phase timings captured during the index
+     * build (empty list when an existing index was reused).
+     *
+     * @param compressedOopsOverride optional user override, see
+     *                               {@link #resolveAndStoreCompressedOops(Boolean)}
+     */
+    InitializeResult initialize(Boolean compressedOopsOverride);
 
     /**
      * Get class histogram sorted by size.
@@ -205,8 +219,26 @@ public interface HeapDumpManager {
 
     /**
      * Run thread analysis with retained heap calculation and save results to JSON file.
+     *
+     * <p>Assumes the dominator tree has already been built (call
+     * {@link #runComputeDominator()} first). Without it, retained sizes are
+     * reported as {@code null} on every thread.
      */
     void runThreadAnalysis();
+
+    /**
+     * Build the dominator tree and retained-size table for this profile, if
+     * absent. Idempotent — a second call against an already-built tree is a
+     * fast no-op. Exposed as its own pipeline step so the timeline attributes
+     * the cost to "Computing dominator tree" rather than hiding it inside a
+     * downstream analysis stage.
+     *
+     * <p>Returns the per-phase breakdown of the build (CHK iteration, persist,
+     * etc.) so the UI can surface where the time went as an expandable
+     * accordion. Returns an empty list when the tree was already present and
+     * no build was needed.
+     */
+    List<SubPhaseTiming> runComputeDominator();
 
     /**
      * Get detailed information about an instance including all its fields.

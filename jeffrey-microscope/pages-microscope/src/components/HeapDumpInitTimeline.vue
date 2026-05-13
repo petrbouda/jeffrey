@@ -44,27 +44,59 @@
           <div class="phase-bar-fill" :style="{ width: phaseProgress(phase) + '%' }"></div>
         </div>
         <ul class="phase-stages">
-          <li
-            v-for="(stageDef, sIdx) in phase.stages"
-            :key="stageDef.id"
-            :class="getStep(stageDef.id)?.status"
-          >
-            <span class="tick">
-              <i v-if="getStep(stageDef.id)?.status === 'completed'" class="bi bi-check-lg"></i>
-              <span
-                v-else-if="getStep(stageDef.id)?.status === 'in_progress'"
-                class="phase-spinner"
-              ></span>
-              <i v-else-if="getStep(stageDef.id)?.status === 'skipped'" class="bi bi-dash"></i>
-              <i
-                v-else-if="getStep(stageDef.id)?.status === 'on_demand'"
-                class="bi bi-clock-history"
-              ></i>
-              <span v-else>{{ sIdx + 1 }}</span>
-            </span>
-            <span class="stage-label">{{ stageDef.label }}</span>
-            <span class="stage-meta">{{ stageMeta(getStep(stageDef.id)) }}</span>
-          </li>
+          <template v-for="(stageDef, sIdx) in phase.stages" :key="stageDef.id">
+            <li
+              :class="[
+                getStep(stageDef.id)?.status,
+                { expandable: hasSubPhases(getStep(stageDef.id)) },
+                { expanded: hasSubPhases(getStep(stageDef.id)) && isExpanded(stageDef.id) }
+              ]"
+              @click="hasSubPhases(getStep(stageDef.id)) && toggleExpanded(stageDef.id)"
+            >
+              <span class="stage-chevron" v-if="hasSubPhases(getStep(stageDef.id))">
+                <i class="bi bi-chevron-right"></i>
+              </span>
+              <span class="stage-chevron stage-chevron-placeholder" v-else></span>
+              <span class="tick">
+                <i v-if="getStep(stageDef.id)?.status === 'completed'" class="bi bi-check-lg"></i>
+                <span
+                  v-else-if="getStep(stageDef.id)?.status === 'in_progress'"
+                  class="phase-spinner"
+                ></span>
+                <i v-else-if="getStep(stageDef.id)?.status === 'skipped'" class="bi bi-dash"></i>
+                <i
+                  v-else-if="getStep(stageDef.id)?.status === 'on_demand'"
+                  class="bi bi-clock-history"
+                ></i>
+                <span v-else>{{ sIdx + 1 }}</span>
+              </span>
+              <span class="stage-label">{{ stageDef.label }}</span>
+              <span class="stage-meta">{{ stageMeta(getStep(stageDef.id)) }}</span>
+            </li>
+            <li
+              v-if="hasSubPhases(getStep(stageDef.id)) && isExpanded(stageDef.id)"
+              class="subphase-block"
+            >
+              <ul class="subphase-list">
+                <li
+                  v-for="sub in getStep(stageDef.id)!.subPhases"
+                  :key="sub.name"
+                  class="subphase-row"
+                >
+                  <span
+                    class="subphase-row-fill"
+                    :style="{
+                      width:
+                        subPhasePercent(sub, getStep(stageDef.id)!.subPhases!) + '%'
+                    }"
+                  ></span>
+                  <span class="subphase-name">{{ sub.name }}</span>
+                  <span v-if="sub.note" class="subphase-note">{{ sub.note }}</span>
+                  <span class="subphase-time">{{ formatDuration(sub.durationMs) }}</span>
+                </li>
+              </ul>
+            </li>
+          </template>
         </ul>
       </div>
     </div>
@@ -72,13 +104,19 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
+import type { SubPhaseTiming } from '@/services/api/model/InitPipelineResult';
 
 export interface TimelineStep {
   id: string;
   status: 'pending' | 'in_progress' | 'completed' | 'skipped' | 'on_demand';
   startMs?: number;
   durationMs?: number;
+  /**
+   * Optional per-stage breakdown rendered as an inline accordion. The stage
+   * row gets a chevron and the sub-phases expand underneath when clicked.
+   */
+  subPhases?: SubPhaseTiming[];
 }
 
 interface Phase {
@@ -124,8 +162,8 @@ const phases: Phase[] = [
     description: 'Strings, threads, dominator tree, leaks',
     stages: [
       { id: 'strings', label: 'Analyzing strings' },
-      { id: 'threads', label: 'Analyzing threads' },
       { id: 'dominator', label: 'Computing dominator tree' },
+      { id: 'threads', label: 'Analyzing threads' },
       { id: 'biggest', label: 'Finding biggest objects' },
       { id: 'collections', label: 'Analyzing collections' },
       { id: 'leaks', label: 'Detecting leak suspects' }
@@ -148,6 +186,32 @@ const getStep = (id: string): TimelineStep | undefined =>
 const formatDuration = (ms: number): string => {
   if (ms < 1000) return `${Math.max(0, Math.round(ms))}ms`;
   return `${(ms / 1000).toFixed(1)}s`;
+};
+
+// Sub-phase accordion state — set of stage ids currently expanded.
+const expandedStages = ref<Set<string>>(new Set());
+const isExpanded = (id: string): boolean => expandedStages.value.has(id);
+const toggleExpanded = (id: string) => {
+  const next = new Set(expandedStages.value);
+  if (next.has(id)) {
+    next.delete(id);
+  } else {
+    next.add(id);
+  }
+  expandedStages.value = next;
+};
+
+const hasSubPhases = (step: TimelineStep | undefined): boolean =>
+  !!step && Array.isArray(step.subPhases) && step.subPhases.length > 0;
+
+/** Bar width % vs. the largest sub-phase in the set. Floored at 2% so a
+ *  near-zero sub-phase still shows a visible nub. */
+const subPhasePercent = (sub: SubPhaseTiming, all: SubPhaseTiming[]): number => {
+  const total = all.reduce((s, p) => s + Math.max(0, p.durationMs), 0);
+  if (total <= 0) {
+    return 0;
+  }
+  return Math.max(2, Math.round((sub.durationMs / total) * 100));
 };
 
 const stageMeta = (step: TimelineStep | undefined): string => {
@@ -491,5 +555,126 @@ const totalElapsed = computed(() => {
   to {
     transform: rotate(360deg);
   }
+}
+
+/* Sub-phase accordion */
+
+.phase-stages li.expandable {
+  cursor: pointer;
+  border-radius: 4px;
+  padding: 2px 4px;
+  margin: -2px -4px;
+}
+
+.phase-stages li.expandable:hover {
+  background: var(--color-primary-light);
+}
+
+.phase-stages li.expanded {
+  background: var(--color-primary-light);
+}
+
+.stage-chevron {
+  width: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-muted);
+  font-size: 0.7rem;
+  transition: transform 0.15s ease;
+  flex-shrink: 0;
+}
+
+.phase-stages li.expanded .stage-chevron {
+  transform: rotate(90deg);
+  color: var(--color-primary);
+}
+
+.stage-chevron-placeholder {
+  visibility: hidden;
+}
+
+/* Bar-inside sub-phase rows: each entry is a single horizontal pill whose
+   primary-tinted fill spans its share of the parent stage's time. Name sits
+   on the left, optional note chip sits inline before the time, time hugs
+   the right edge. */
+
+.phase-stages li.subphase-block {
+  /* Higher-specificity override of the .phase-stages li `display: flex`
+     default. Without this the inner <ul> was a flex item that shrank to
+     content width, leaving the pills only ~40% as wide as the parent row. */
+  display: block;
+  padding: 6px 0 4px 0;
+  margin: 0 -6px 0 28px;
+  background: transparent;
+  cursor: default;
+}
+
+.subphase-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.subphase-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 10px;
+  background: rgba(15, 23, 42, 0.04);
+  border-radius: 4px;
+  overflow: hidden;
+  font-size: 0.76rem;
+}
+
+.subphase-row-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background: rgba(94, 100, 255, 0.18);
+  border-radius: 4px;
+  transition: width 0.25s ease;
+  pointer-events: none;
+}
+
+.subphase-name {
+  position: relative;
+  flex: 1;
+  z-index: 1;
+  color: var(--color-text);
+  font-family: 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 0.74rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.subphase-note {
+  position: relative;
+  z-index: 1;
+  font-size: 0.66rem;
+  color: var(--color-text-muted);
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 3px;
+  padding: 1px 6px;
+  margin-right: 8px;
+  white-space: nowrap;
+  font-weight: 500;
+  font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
+}
+
+.subphase-time {
+  position: relative;
+  z-index: 1;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.76rem;
+  color: var(--color-text);
+  font-weight: 500;
 }
 </style>

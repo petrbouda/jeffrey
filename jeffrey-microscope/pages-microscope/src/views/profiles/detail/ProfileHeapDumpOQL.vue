@@ -126,6 +126,20 @@
             <span class="kbd-hint d-none d-md-inline"> <kbd>⌘</kbd><kbd>↵</kbd> to run </span>
           </div>
           <div class="toolbar-group">
+            <div
+              class="form-check form-check-inline mb-0"
+              title="Also scan java.lang.String instances whose decoded content exceeded the indexer's cap. Slower; off by default — the SQL pushdown path already covers all Strings within the cap."
+            >
+              <input
+                type="checkbox"
+                class="form-check-input"
+                id="scanLargeStringsCheck"
+                v-model="scanLargeStrings"
+              />
+              <label class="form-check-label small" for="scanLargeStringsCheck">
+                Scan large Strings
+              </label>
+            </div>
             <div class="d-flex align-items-center gap-2">
               <label class="form-label mb-0 small">Limit:</label>
               <select v-model="oqlLimit" class="form-select form-select-sm select-narrow">
@@ -486,6 +500,7 @@ const heapExists = ref(false);
 const cacheReady = ref(false);
 
 const oqlLimit = ref(50);
+const scanLargeStrings = ref(false);
 
 const showAssistant = ref(false);
 const assistantExpanded = ref(false);
@@ -1043,7 +1058,13 @@ async function executeActive() {
   const sourceQuery = query.value;
 
   try {
-    const result = await client.executeQuery(sourceQuery, oqlLimit.value, 0, true);
+    const result = await client.executeQuery(
+      sourceQuery,
+      oqlLimit.value,
+      0,
+      true,
+      scanLargeStrings.value
+    );
     const clientElapsed = performance.now() - start;
     let newRun: QueryRun;
     if (result.errorMessage) {

@@ -107,6 +107,10 @@ public final class ContentPreviewRenderer {
     }
 
     private static String renderString(HeapView view, long instanceId) throws SQLException {
+        Optional<String> cached = view.findStringContent(instanceId);
+        if (cached.isPresent()) {
+            return quoteAndCap(cached.get());
+        }
         Optional<JavaStringDecoder.Decoded> decoded = JavaStringDecoder.decode(view, instanceId);
         return decoded.map(d -> quoteAndCap(d.content())).orElse(null);
     }

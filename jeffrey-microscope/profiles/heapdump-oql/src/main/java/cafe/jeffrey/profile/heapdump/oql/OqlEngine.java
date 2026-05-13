@@ -20,6 +20,7 @@ package cafe.jeffrey.profile.heapdump.oql;
 import cafe.jeffrey.profile.heapdump.model.OQLQueryResult;
 import cafe.jeffrey.profile.heapdump.oql.ast.OqlStatement;
 import cafe.jeffrey.profile.heapdump.oql.compiler.ExecutionPlan;
+import cafe.jeffrey.profile.heapdump.oql.compiler.OqlCompileOptions;
 import cafe.jeffrey.profile.heapdump.oql.compiler.OqlCompiler;
 import cafe.jeffrey.profile.heapdump.oql.executor.OqlExecutor;
 import cafe.jeffrey.profile.heapdump.oql.parser.OqlParseException;
@@ -55,6 +56,15 @@ public final class OqlEngine {
      */
     public ExecutionPlan compile(OqlStatement stmt) {
         return compiler.compile(stmt);
+    }
+
+    /**
+     * Compile overload accepting per-query knobs such as
+     * {@code scanLargeStrings} (enables the {@link ExecutionPlan.StringFallbackPlan}
+     * Plan-C tail scan over Strings that exceeded the indexer's content cap).
+     */
+    public ExecutionPlan compile(OqlStatement stmt, OqlCompileOptions options) {
+        return compiler.compile(stmt, options);
     }
 
     /** Executes a previously compiled plan against the given view. */

@@ -44,6 +44,31 @@ public final class OqlCompiler {
     private static final String CLASS_IDS_PLACEHOLDER = "__CLASS_IDS__";
 
     public ExecutionPlan compile(OqlStatement stmt) {
+        return compile(stmt, OqlCompileOptions.DEFAULTS);
+    }
+
+    public ExecutionPlan compile(OqlStatement stmt, OqlCompileOptions options) {
+        if (options == null) {
+            options = OqlCompileOptions.DEFAULTS;
+        }
+        ExecutionPlan plan = compileCore(stmt);
+        if (options.scanLargeStrings()
+                && plan instanceof SqlPlan sqlPlan
+                && involvesStringContentJoin(sqlPlan)
+                && stmt instanceof OqlStatement.OqlQuery query) {
+            return new ExecutionPlan.StringFallbackPlan(sqlPlan, query);
+        }
+        return plan;
+    }
+
+    private static boolean involvesStringContentJoin(SqlPlan plan) {
+        // Cheap signal: the JOIN clause is emitted verbatim by the SqlEmitter
+        // when pushdown happens. Checking the SQL text avoids threading a new
+        // boolean through every ExecutionPlan record.
+        return plan.sql().contains("string_content");
+    }
+
+    private ExecutionPlan compileCore(OqlStatement stmt) {
         // UNION over Plan C queries needs more work; reject for now.
         if (stmt instanceof OqlStatement.UnionQuery u && requiresJavaPlan(u)) {
             return new JavaPlan(null, null, false,

@@ -127,7 +127,12 @@ public final class JavaExecutor {
         return List.of();
     }
 
-    private static void appendRowEntries(ExprEvaluator eval, OqlQuery query, Row row, List<OQLResultEntry> entries) throws SQLException {
+    /**
+     * Visible to {@code StringFallbackExecutor} so it can reuse the same row
+     * → projection logic when scanning large-content Strings that were
+     * skipped by the SQL pushdown path.
+     */
+    static void appendRowEntries(ExprEvaluator eval, OqlQuery query, Row row, List<OQLResultEntry> entries) throws SQLException {
         List<Projection> projections = query.select().projections();
         // SELECT * → canonical instance triple
         if (projections.size() == 1 && projections.get(0).star()) {

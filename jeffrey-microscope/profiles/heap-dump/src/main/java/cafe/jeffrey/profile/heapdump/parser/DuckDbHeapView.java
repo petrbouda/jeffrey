@@ -34,6 +34,8 @@ import java.util.Optional;
 import java.util.Properties;
 import java.util.Spliterator;
 import java.util.Spliterators;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import org.slf4j.Logger;
@@ -62,6 +64,15 @@ final class DuckDbHeapView implements HeapView {
     private final Path path;
     private final Connection connection;
     private final HprofMappedFile hprof;
+    /**
+     * Per-session cache for {@link #findStringContent(long)}. Heap-dump analyses
+     * resolve the same Strings repeatedly (thread names, classloader names,
+     * top-N labels, UI previews), and every cache miss is a DuckDB PK round-trip
+     * (~50 µs). Lifetime matches this view's open session; dropped when
+     * {@link #close()} runs. {@link Optional} captures the "no row" / "content
+     * IS NULL" outcomes so the cache covers misses too.
+     */
+    private final ConcurrentMap<Long, Optional<String>> stringContentCache = new ConcurrentHashMap<>();
 
     private DuckDbHeapView(Path path, Connection connection, HprofMappedFile hprof) {
         this.path = path;
@@ -543,6 +554,31 @@ final class DuckDbHeapView implements HeapView {
             stmt.setLong(1, stringId);
             try (ResultSet rs = stmt.executeQuery()) {
                 return rs.next() ? Optional.of(rs.getString(1)) : Optional.empty();
+            }
+        }
+    }
+
+    @Override
+    public Optional<String> findStringContent(long instanceId) throws SQLException {
+        Optional<String> cached = stringContentCache.get(instanceId);
+        if (cached != null) {
+            return cached;
+        }
+        Optional<String> fresh = queryStringContent(instanceId);
+        stringContentCache.put(instanceId, fresh);
+        return fresh;
+    }
+
+    private Optional<String> queryStringContent(long instanceId) throws SQLException {
+        try (PreparedStatement stmt = connection.prepareStatement(
+                "SELECT content FROM string_content WHERE instance_id = ?")) {
+            stmt.setLong(1, instanceId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (!rs.next()) {
+                    return Optional.empty();
+                }
+                String content = rs.getString(1);
+                return rs.wasNull() ? Optional.empty() : Optional.of(content);
             }
         }
     }

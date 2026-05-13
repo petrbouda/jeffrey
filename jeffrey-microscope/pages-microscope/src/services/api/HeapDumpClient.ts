@@ -20,6 +20,7 @@ import axios from 'axios';
 import BaseProfileClient from '@/services/api/BaseProfileClient';
 import HttpUtils from '@/services/HttpUtils';
 import HeapSummary from '@/services/api/model/HeapSummary';
+import type InitializeResult from '@/services/api/model/InitializeResult';
 import ClassHistogramEntry from '@/services/api/model/ClassHistogramEntry';
 import OQLQueryResult from '@/services/api/model/OQLQueryResult';
 import GCRootSummary from '@/services/api/model/GCRootSummary';
@@ -37,6 +38,7 @@ import BiggestObjectsReport from '@/services/api/model/BiggestObjectsReport';
 import BiggestCollectionsReport from '@/services/api/model/BiggestCollectionsReport';
 import HeapDumpConfig from '@/services/api/model/HeapDumpConfig';
 import type InitPipelineResult from '@/services/api/model/InitPipelineResult';
+import type { SubPhaseTiming } from '@/services/api/model/InitPipelineResult';
 import type ClassLoaderReport from '@/services/api/model/ClassLoaderReport';
 import type ThreadStackFrame from '@/services/api/model/ThreadStackFrame';
 
@@ -65,9 +67,16 @@ export default class HeapDumpClient extends BaseProfileClient {
     query: string,
     limit: number = 100,
     offset: number = 0,
-    includeRetainedSize: boolean = true
+    includeRetainedSize: boolean = true,
+    scanLargeStrings: boolean = false
   ): Promise<OQLQueryResult> {
-    return this.post<OQLQueryResult>('/query', { query, limit, offset, includeRetainedSize });
+    return this.post<OQLQueryResult>('/query', {
+      query,
+      limit,
+      offset,
+      includeRetainedSize,
+      scanLargeStrings
+    });
   }
 
   public getThreads(): Promise<HeapThreadInfo[]> {
@@ -94,9 +103,9 @@ export default class HeapDumpClient extends BaseProfileClient {
     return this.post<void>('/sanitize', {});
   }
 
-  public initialize(compressedOops?: boolean): Promise<HeapSummary> {
+  public initialize(compressedOops?: boolean): Promise<InitializeResult> {
     const params = compressedOops !== undefined ? `?compressedOops=${compressedOops}` : '';
-    return this.post<HeapSummary>(`/initialize${params}`, {});
+    return this.post<InitializeResult>(`/initialize${params}`, {});
   }
 
   public getConfig(): Promise<HeapDumpConfig> {
@@ -145,6 +154,10 @@ export default class HeapDumpClient extends BaseProfileClient {
 
   public runThreadAnalysis(): Promise<void> {
     return this.post<void>('/thread-analysis/run', {});
+  }
+
+  public runComputeDominator(): Promise<SubPhaseTiming[]> {
+    return this.post<SubPhaseTiming[]>('/dominator-tree/compute', {});
   }
 
   public getInstanceDetail(

@@ -42,6 +42,7 @@ import cafe.jeffrey.profile.heapdump.model.GCRootPath;
 import cafe.jeffrey.profile.heapdump.model.GCRootSummary;
 import cafe.jeffrey.profile.heapdump.model.HeapDumpConfig;
 import cafe.jeffrey.profile.heapdump.model.InitPipelineResult;
+import cafe.jeffrey.profile.heapdump.model.InitializeResult;
 import cafe.jeffrey.profile.heapdump.model.HeapSummary;
 import cafe.jeffrey.profile.heapdump.model.HeapThreadInfo;
 import cafe.jeffrey.profile.heapdump.model.InstanceDetail;
@@ -51,6 +52,7 @@ import cafe.jeffrey.profile.heapdump.model.OQLQueryRequest;
 import cafe.jeffrey.profile.heapdump.model.OQLQueryResult;
 import cafe.jeffrey.profile.heapdump.model.SortBy;
 import cafe.jeffrey.profile.heapdump.model.StringAnalysisReport;
+import cafe.jeffrey.profile.heapdump.model.SubPhaseTiming;
 import cafe.jeffrey.profile.heapdump.model.ThreadAnalysisReport;
 import cafe.jeffrey.profile.heapdump.model.ThreadStackFrame;
 import cafe.jeffrey.profile.manager.HeapDumpManager;
@@ -191,6 +193,11 @@ public class HeapDumpController {
         mgr(profileId).runThreadAnalysis();
     }
 
+    @PostMapping("/dominator-tree/compute")
+    public List<SubPhaseTiming> runComputeDominator(@PathVariable("profileId") String profileId) {
+        return mgr(profileId).runComputeDominator();
+    }
+
     @GetMapping("/instance/{objectId}")
     public InstanceDetail getInstanceDetail(
             @PathVariable("profileId") String profileId,
@@ -227,12 +234,10 @@ public class HeapDumpController {
     }
 
     @PostMapping("/initialize")
-    public HeapSummary initialize(
+    public InitializeResult initialize(
             @PathVariable("profileId") String profileId,
             @RequestParam(value = "compressedOops", required = false) Boolean compressedOops) {
-        HeapDumpManager m = mgr(profileId);
-        m.resolveAndStoreCompressedOops(compressedOops);
-        return m.getSummary();
+        return mgr(profileId).initialize(compressedOops);
     }
 
     @GetMapping("/config")

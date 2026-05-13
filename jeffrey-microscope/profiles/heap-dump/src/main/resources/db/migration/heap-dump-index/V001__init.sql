@@ -207,6 +207,26 @@ CREATE TABLE IF NOT EXISTS retained_size
 );
 
 --
+-- STRING_CONTENT
+-- Decoded text of every java.lang.String instance, materialised during the
+-- index build so OQL string predicates push down to DuckDB varchar functions
+-- (starts_with, contains, regexp_matches, lower, etc.) instead of decoding
+-- the .hprof bytes once per candidate row.
+--
+-- content_length is the full decoded char-count and is ALWAYS populated.
+-- content carries the decoded text but is NULL when content_length exceeds
+-- the configured large-content-threshold. Predicates on uncovered Strings
+-- naturally fail (NULL comparisons); per-query opt-in via the
+-- "Scan large Strings" flag scans the uncovered tail in Java.
+--
+CREATE TABLE IF NOT EXISTS string_content
+(
+    instance_id    BIGINT  NOT NULL PRIMARY KEY,
+    content_length INTEGER NOT NULL,
+    content        VARCHAR
+);
+
+--
 -- STACK_FRAME
 -- One row per HPROF STACK_FRAME top-level record. class_name is resolved at
 -- index-build time from the LOAD_CLASS map: STACK_FRAME references classes

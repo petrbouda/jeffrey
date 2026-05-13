@@ -25,19 +25,16 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
+import java.time.Duration;
 import java.util.Arrays;
-import java.util.Deque;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Properties;
 import org.duckdb.DuckDBAppender;
 import org.duckdb.DuckDBConnection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import cafe.jeffrey.profile.heapdump.model.SubPhaseTiming;
 import cafe.jeffrey.shared.common.measure.Elapsed;
 import cafe.jeffrey.shared.common.measure.Measuring;
 
@@ -74,7 +71,12 @@ public final class DominatorTreeBuilder {
     public static final long VIRTUAL_ROOT = 0L;
 
     public record BuildResult(int reachableInstances, int rootEdges, long iterations,
-                              java.time.Duration buildTime) {
+                              java.time.Duration buildTime, List<SubPhaseTiming> subPhases) {
+
+        /** Backwards-compatible factory for tests/callers that don't need sub-phase data. */
+        public BuildResult(int reachableInstances, int rootEdges, long iterations, Duration buildTime) {
+            this(reachableInstances, rootEdges, iterations, buildTime, List.of());
+        }
     }
 
     private DominatorTreeBuilder() {
@@ -111,7 +113,7 @@ public final class DominatorTreeBuilder {
             });
             BuildResult r = elapsed.entity();
             BuildResult timed = new BuildResult(
-                    r.reachableInstances, r.rootEdges, r.iterations, elapsed.duration());
+                    r.reachableInstances, r.rootEdges, r.iterations, elapsed.duration(), r.subPhases());
 
             try (Statement s = conn.createStatement()) {
                 s.execute("CHECKPOINT");
@@ -124,172 +126,436 @@ public final class DominatorTreeBuilder {
     }
 
     private static BuildResult doBuild(DuckDBConnection conn) throws SQLException {
-        long[] ids = loadInstanceIds(conn);
-        Map<Long, Integer> idToIndex = new HashMap<>(ids.length * 2);
-        for (int i = 0; i < ids.length; i++) {
-            idToIndex.put(ids[i], i);
-        }
+        Elapsed<InstanceMeta> metaE = measure(() -> loadInstanceMeta(conn));
+        InstanceMeta meta = metaE.entity();
+        long[] ids = meta.ids();
+        long[] shallow = meta.shallow();
         // Index N = virtual root. We allocate one extra slot at index ids.length.
         int virtualIndex = ids.length;
         int totalNodes = ids.length + 1;
 
-        int[][] succ = loadSuccessors(conn, idToIndex, virtualIndex);
-        int[][] pred = invert(succ, totalNodes);
+        Elapsed<int[][]> succE = measure(() -> loadSuccessors(conn, ids, virtualIndex));
+        int[][] succ = succE.entity();
 
-        // DFS from virtual root, build post-order then reverse for RPO.
-        int[] postOrder = postOrderFromRoot(succ, virtualIndex, totalNodes);
-        // rpo[k] = node at reverse-post-order position k.
-        int[] rpo = new int[postOrder.length];
-        for (int i = 0; i < postOrder.length; i++) {
-            rpo[i] = postOrder[postOrder.length - 1 - i];
-        }
-        int[] rpoOf = new int[totalNodes];
-        Arrays.fill(rpoOf, -1);
-        for (int k = 0; k < rpo.length; k++) {
-            rpoOf[rpo[k]] = k;
-        }
+        Elapsed<int[][]> predE = Measuring.s(() -> invert(succ, totalNodes));
+        int[][] pred = predE.entity();
 
-        // idom[v] holds the index of v's immediate dominator, or -1 if unset.
-        int[] idom = new int[totalNodes];
-        Arrays.fill(idom, -1);
-        idom[virtualIndex] = virtualIndex;
+        // DFS from the virtual root: assigns each reachable node a preorder number,
+        // captures the spanning-tree parent. Replaces the old RPO setup.
+        Elapsed<DfsData> dfsE = Measuring.s(() -> computeDfsData(succ, virtualIndex, totalNodes));
+        DfsData dfs = dfsE.entity();
+        int reachableNodes = dfs.reachable();
 
-        long iterations = 0;
-        boolean changed = true;
-        while (changed) {
-            changed = false;
-            iterations++;
-            for (int k = 1; k < rpo.length; k++) { // skip entry (k=0)
-                int n = rpo[k];
-                int newIdom = -1;
-                for (int p : pred[n]) {
-                    if (idom[p] != -1) {
-                        if (newIdom == -1) {
-                            newIdom = p;
-                        } else {
-                            newIdom = intersect(p, newIdom, idom, rpoOf);
-                        }
+        // semi-NCA dominators (Georgiadis & Tarjan, "Finding Dominators Revisited", 2004).
+        // Replaces the old Cooper-Harvey-Kennedy fixed-point loop. On heap reference
+        // graphs (heavily cyclic, unlike CFGs) CHK iterated 100s of times until
+        // convergence; semi-NCA is essentially linear regardless of graph shape.
+        Elapsed<int[]> idomE = Measuring.s(() -> computeDominatorsSemiNCA(pred, dfs, totalNodes));
+        int[] idom = idomE.entity();
+
+        // Retained size: bottom-up over the dom tree, processed in reverse DFS
+        // preorder so every node sees its descendants finalised before adding
+        // into its dominator.
+        Elapsed<long[]> retE = Measuring.s(() ->
+                computeRetained(idom, dfs, shallow, virtualIndex, totalNodes));
+        long[] retained = retE.entity();
+
+        // Persist.
+        int[] reachableCounter = {0};
+        Duration persistDuration = Measuring.r(() -> {
+            try (DuckDBAppender domApp = conn.createAppender("dominator");
+                 DuckDBAppender retApp = conn.createAppender("retained_size")) {
+                int[] preorder = dfs.preorder();
+                for (int i = 0; i < reachableNodes; i++) {
+                    int v = preorder[i];
+                    if (v == virtualIndex) {
+                        continue;
                     }
+                    int d = idom[v];
+                    long instanceId = ids[v];
+                    long dominatorId = d == virtualIndex ? VIRTUAL_ROOT : ids[d];
+                    domApp.beginRow();
+                    domApp.append(instanceId);
+                    domApp.append(dominatorId);
+                    domApp.endRow();
+
+                    retApp.beginRow();
+                    retApp.append(instanceId);
+                    retApp.append(retained[v]);
+                    retApp.endRow();
+                    reachableCounter[0]++;
                 }
-                if (newIdom != idom[n]) {
-                    idom[n] = newIdom;
-                    changed = true;
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
+        });
+        int reachable = reachableCounter[0];
+
+        LOG.debug(
+                "Dominator tree phases: load_meta_ms={} load_successors_ms={} invert_ms={} "
+                        + "dfs_ms={} semi_nca_ms={} retained_ms={} persist_ms={} "
+                        + "instances={} edges={} reachable={}",
+                metaE.duration().toMillis(),
+                succE.duration().toMillis(),
+                predE.duration().toMillis(),
+                dfsE.duration().toMillis(),
+                idomE.duration().toMillis(),
+                retE.duration().toMillis(),
+                persistDuration.toMillis(),
+                ids.length,
+                edgeCount(succ),
+                reachable);
+
+        List<SubPhaseTiming> subPhases = List.of(
+                new SubPhaseTiming("load_meta", metaE.duration().toMillis(), null),
+                new SubPhaseTiming("load_successors", succE.duration().toMillis(), null),
+                new SubPhaseTiming("invert", predE.duration().toMillis(), null),
+                new SubPhaseTiming("dfs", dfsE.duration().toMillis(), null),
+                new SubPhaseTiming("semi_nca", idomE.duration().toMillis(), "Lengauer-Tarjan"),
+                new SubPhaseTiming("retained", retE.duration().toMillis(), null),
+                new SubPhaseTiming("persist", persistDuration.toMillis(), null));
+
+        // BuildResult.iterations was a CHK leftover (number of fixed-point passes);
+        // semi-NCA needs no fixed-point so we report 1 to keep the field honest.
+        return new BuildResult(reachable, succ[virtualIndex].length, 1L,
+                java.time.Duration.ZERO, subPhases);
+    }
+
+    /**
+     * DFS spanning tree captured during the preorder walk from the virtual root.
+     *
+     * @param preorder    {@code preorder[i]} = the node visited at DFS index {@code i}
+     * @param dfsNum      {@code dfsNum[v]}   = DFS index of {@code v} ({@code -1} if unreachable)
+     * @param parent      {@code parent[v]}   = v's parent in the DFS spanning tree
+     *                    ({@code parent[root] = root} as a sentinel)
+     * @param reachable   how many nodes were reached from the virtual root
+     */
+    private record DfsData(int[] preorder, int[] dfsNum, int[] parent, int reachable) {
+    }
+
+    /**
+     * {@link Measuring#s} adapter for SQL-throwing suppliers. Rethrows
+     * {@link SQLException} as an unchecked {@link RuntimeException} which
+     * the outer {@link #build} call already routes through.
+     */
+    private static <T> Elapsed<T> measure(SqlSupplier<T> body) {
+        return Measuring.s(() -> {
+            try {
+                return body.get();
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
+        });
+    }
+
+    @FunctionalInterface
+    private interface SqlSupplier<T> {
+        T get() throws SQLException;
+    }
+
+    private static long edgeCount(int[][] succ) {
+        long total = 0;
+        for (int[] row : succ) {
+            total += row.length;
+        }
+        return total;
+    }
+
+    /**
+     * Iterative DFS from {@code root}: assigns preorder numbers, captures the
+     * spanning-tree parent for each reachable node, and reports the reachable
+     * count. Unreachable nodes are left with {@code dfsNum[v] = -1} and
+     * {@code parent[v] = -1}.
+     */
+    private static DfsData computeDfsData(int[][] succ, int root, int totalNodes) {
+        int[] preorder = new int[totalNodes];
+        int[] dfsNum = new int[totalNodes];
+        int[] parent = new int[totalNodes];
+        Arrays.fill(dfsNum, -1);
+        Arrays.fill(parent, -1);
+
+        int[] stack = new int[totalNodes];
+        int[] childIdx = new int[totalNodes];
+        int top = -1;
+
+        dfsNum[root] = 0;
+        preorder[0] = root;
+        parent[root] = root; // self-parent sentinel so the semi-NCA walk terminates cleanly
+        int n = 1;
+        stack[++top] = root;
+
+        while (top >= 0) {
+            int u = stack[top];
+            int idx = childIdx[u];
+            int[] children = succ[u];
+            if (idx < children.length) {
+                int v = children[idx];
+                childIdx[u] = idx + 1;
+                if (dfsNum[v] < 0) {
+                    dfsNum[v] = n;
+                    preorder[n] = v;
+                    parent[v] = u;
+                    n++;
+                    stack[++top] = v;
                 }
+            } else {
+                top--;
             }
         }
+        return new DfsData(preorder, dfsNum, parent, n);
+    }
 
-        // Retained size: bottom-up over the dom tree.
-        long[] shallow = loadShallowSizes(conn, ids);
+    /**
+     * Lengauer-Tarjan-style semi-NCA dominators (Georgiadis &amp; Tarjan 2004).
+     *
+     * <p>Cooper-Harvey-Kennedy is great for control-flow graphs (a few back-edges,
+     * tree-like shape) but pathological on heap reference graphs which are
+     * heavily cyclic — measured 375 fixed-point iterations on a 7.6 M-instance
+     * dump, ~70 s total. Semi-NCA needs no fixed point: a single DFS, a single
+     * reverse-preorder pass to compute semi-dominators via a path-compressed
+     * link-eval forest, and a single preorder pass to derive immediate
+     * dominators by walking up the DFS spanning tree to the nearest ancestor
+     * with the right depth. Total complexity is O(N · α(N)) — essentially
+     * linear in N + E.
+     *
+     * @return {@code idom[v]} = immediate dominator of {@code v}, with
+     *         {@code idom[root] = root}. Unreachable nodes have {@code -1}.
+     */
+    private static int[] computeDominatorsSemiNCA(int[][] pred, DfsData dfs, int totalNodes) {
+        int[] preorder = dfs.preorder();
+        int[] dfsNum = dfs.dfsNum();
+        int[] parent = dfs.parent();
+        int reachable = dfs.reachable();
+        int root = preorder[0];
+
+        int[] sdom = new int[totalNodes];
+        int[] ancestor = new int[totalNodes];
+        int[] best = new int[totalNodes];
+        int[] idom = new int[totalNodes];
+        int[] pathStack = new int[totalNodes];
+
+        Arrays.fill(ancestor, -1);
+        Arrays.fill(idom, -1);
+
+        // sdom[v] starts at v's own DFS number — the trivial 0-length path.
+        for (int v = 0; v < totalNodes; v++) {
+            sdom[v] = dfsNum[v];
+            best[v] = v;
+        }
+
+        // Reverse-preorder pass: for each v, walk predecessors, refine semi-dominator.
+        for (int i = reachable - 1; i > 0; i--) {
+            int v = preorder[i];
+            for (int u : pred[v]) {
+                if (dfsNum[u] < 0) {
+                    continue; // unreachable predecessor
+                }
+                int t = eval(u, ancestor, best, sdom, pathStack);
+                if (sdom[t] < sdom[v]) {
+                    sdom[v] = sdom[t];
+                }
+            }
+            // Link v into the forest under its DFS-tree parent.
+            ancestor[v] = parent[v];
+        }
+
+        // semi-NCA: idom[v] = the nearest ancestor in the DFS tree whose DFS
+        // number does not exceed sdom[v]. Processing in preorder ensures every
+        // ancestor's idom is already finalised by the time we walk up.
+        idom[root] = root;
+        for (int i = 1; i < reachable; i++) {
+            int v = preorder[i];
+            int p = parent[v];
+            while (dfsNum[p] > sdom[v]) {
+                p = idom[p];
+            }
+            idom[v] = p;
+        }
+        return idom;
+    }
+
+    /**
+     * EVAL with iterative path compression on the link-eval forest. Returns the
+     * vertex on {@code v}'s forest path with the minimum semi-dominator.
+     *
+     * <p>The recursive textbook form blows the JVM stack on deep heaps
+     * (millions of instances → forest depth in the thousands). The iterative
+     * form below uses a pre-allocated {@code pathStack} scratch buffer instead.
+     */
+    private static int eval(int v, int[] ancestor, int[] best, int[] sdom, int[] pathStack) {
+        if (ancestor[v] == -1) {
+            return v;
+        }
+        int top = 0;
+        pathStack[top++] = v;
+        int curr = v;
+        while (ancestor[curr] != -1) {
+            curr = ancestor[curr];
+            pathStack[top++] = curr;
+        }
+        // pathStack[top-1] is the forest root (its ancestor is -1).
+        int forestRoot = pathStack[top - 1];
+        // Compress: every node on the path now points directly at the forest
+        // root, and best[] absorbs the minimum-semi node from its sub-path.
+        for (int i = top - 2; i >= 0; i--) {
+            int u = pathStack[i];
+            int origAncestor = pathStack[i + 1];
+            if (sdom[best[origAncestor]] < sdom[best[u]]) {
+                best[u] = best[origAncestor];
+            }
+            ancestor[u] = forestRoot;
+        }
+        return best[v];
+    }
+
+    /**
+     * Bottom-up retained-size accumulation over the dominator tree. Reverse
+     * DFS-preorder is a valid topological order for the dominator tree because
+     * {@code idom[v]} is always an ancestor of {@code v} in the DFS spanning
+     * tree, so all of v's dominator-tree descendants are processed before v.
+     */
+    private static long[] computeRetained(
+            int[] idom, DfsData dfs, long[] shallow, int virtualIndex, int totalNodes) {
+        int[] preorder = dfs.preorder();
+        int reachable = dfs.reachable();
         long[] retained = new long[totalNodes];
-        // Each reachable node starts with its shallow size.
-        for (int v : rpo) {
+
+        for (int i = 0; i < reachable; i++) {
+            int v = preorder[i];
             if (v != virtualIndex) {
                 retained[v] = shallow[v];
             }
         }
-        // Process in reverse RPO so children come before their dominator.
-        for (int k = rpo.length - 1; k >= 1; k--) {
-            int v = rpo[k];
+        for (int i = reachable - 1; i >= 1; i--) {
+            int v = preorder[i];
             int d = idom[v];
             if (d != -1 && d != virtualIndex) {
                 retained[d] += retained[v];
             }
         }
-
-        // Persist.
-        int reachable = 0;
-        try (DuckDBAppender domApp = conn.createAppender("dominator");
-             DuckDBAppender retApp = conn.createAppender("retained_size")) {
-            for (int v : rpo) {
-                if (v == virtualIndex) {
-                    continue;
-                }
-                int d = idom[v];
-                long instanceId = ids[v];
-                long dominatorId = d == virtualIndex ? VIRTUAL_ROOT : ids[d];
-                domApp.beginRow();
-                domApp.append(instanceId);
-                domApp.append(dominatorId);
-                domApp.endRow();
-
-                retApp.beginRow();
-                retApp.append(instanceId);
-                retApp.append(retained[v]);
-                retApp.endRow();
-                reachable++;
-            }
-        }
-        return new BuildResult(reachable, succ[virtualIndex].length, iterations, java.time.Duration.ZERO);
+        return retained;
     }
 
-    /** Cooper-Harvey-Kennedy intersect: walk both finger pointers up the dom tree until they meet. */
-    private static int intersect(int b1, int b2, int[] idom, int[] rpoOf) {
-        while (b1 != b2) {
-            while (rpoOf[b1] > rpoOf[b2]) {
-                b1 = idom[b1];
-            }
-            while (rpoOf[b2] > rpoOf[b1]) {
-                b2 = idom[b2];
-            }
-        }
-        return b1;
+    /**
+     * Sorted instance ids paired with their shallow sizes, indices aligned —
+     * {@code ids[i]} has size {@code shallow[i]}. Loaded by one ORDER BY
+     * instance_id scan so the downstream code can use {@code shallow[index]}
+     * directly without a second SQL pass or per-row lookup.
+     */
+    private record InstanceMeta(long[] ids, long[] shallow) {
     }
 
-    private static long[] loadInstanceIds(Connection conn) throws SQLException {
-        List<Long> list = new ArrayList<>();
+    private static InstanceMeta loadInstanceMeta(Connection conn) throws SQLException {
+        int count;
         try (Statement s = conn.createStatement();
-             ResultSet rs = s.executeQuery("SELECT instance_id FROM instance ORDER BY instance_id")) {
-            while (rs.next()) {
-                list.add(rs.getLong(1));
+             ResultSet rs = s.executeQuery("SELECT COUNT(*) FROM instance")) {
+            count = rs.next() ? rs.getInt(1) : 0;
+        }
+        long[] ids = new long[count];
+        long[] shallow = new long[count];
+        int i = 0;
+        try (Statement s = conn.createStatement();
+             ResultSet rs = s.executeQuery(
+                     "SELECT instance_id, shallow_size FROM instance ORDER BY instance_id")) {
+            while (rs.next() && i < count) {
+                ids[i] = rs.getLong(1);
+                shallow[i] = rs.getInt(2);
+                i++;
             }
         }
-        long[] arr = new long[list.size()];
-        for (int i = 0; i < arr.length; i++) {
-            arr[i] = list.get(i);
+        if (i != count) {
+            // Defensive: COUNT(*) and the scan returned different row counts
+            // (concurrent write, or count overflow). Truncate to actually read.
+            long[] idsTrimmed = new long[i];
+            long[] shallowTrimmed = new long[i];
+            System.arraycopy(ids, 0, idsTrimmed, 0, i);
+            System.arraycopy(shallow, 0, shallowTrimmed, 0, i);
+            return new InstanceMeta(idsTrimmed, shallowTrimmed);
         }
-        return arr;
+        return new InstanceMeta(ids, shallow);
     }
 
+    private static final String OUTBOUND_REF_SQL =
+            "SELECT source_id, target_id FROM outbound_ref";
+    private static final String GC_ROOT_DISTINCT_SQL =
+            "SELECT DISTINCT instance_id FROM gc_root";
+
+    /**
+     * Builds the {@code int[][]} adjacency list in two passes: count out-degrees,
+     * then fill exact-sized rows. Avoids the per-edge autoboxing cost of the
+     * earlier {@code List<List<Integer>>} variant — every edge on a 20-50 M
+     * edge graph used to box both source and target into {@code Integer}.
+     */
     private static int[][] loadSuccessors(
-            Connection conn, Map<Long, Integer> idToIndex, int virtualIndex) throws SQLException {
-        int n = idToIndex.size() + 1;
-        List<List<Integer>> tmp = new ArrayList<>(n);
-        for (int i = 0; i < n; i++) {
-            tmp.add(new ArrayList<>());
-        }
+            Connection conn, long[] ids, int virtualIndex) throws SQLException {
+        int n = ids.length + 1;
+        int[] outDeg = new int[n];
 
-        // Outbound refs from real instances.
+        // Pass 1a: count outbound_ref edges by source.
         try (Statement s = conn.createStatement();
-             ResultSet rs = s.executeQuery("SELECT source_id, target_id FROM outbound_ref")) {
+             ResultSet rs = s.executeQuery(OUTBOUND_REF_SQL)) {
             while (rs.next()) {
-                Integer src = idToIndex.get(rs.getLong(1));
-                Integer dst = idToIndex.get(rs.getLong(2));
-                if (src != null && dst != null) {
-                    tmp.get(src).add(dst);
+                int src = indexOf(ids, rs.getLong(1));
+                int dst = indexOf(ids, rs.getLong(2));
+                if (src >= 0 && dst >= 0) {
+                    outDeg[src]++;
                 }
             }
         }
 
-        // Virtual root → every GC-rooted instance present in the instance table.
+        // Pass 1b: count gc_root edges from virtual root.
         try (Statement s = conn.createStatement();
-             ResultSet rs = s.executeQuery("SELECT DISTINCT instance_id FROM gc_root")) {
+             ResultSet rs = s.executeQuery(GC_ROOT_DISTINCT_SQL)) {
             while (rs.next()) {
-                Integer dst = idToIndex.get(rs.getLong(1));
-                if (dst != null) {
-                    tmp.get(virtualIndex).add(dst);
+                int dst = indexOf(ids, rs.getLong(1));
+                if (dst >= 0) {
+                    outDeg[virtualIndex]++;
                 }
             }
         }
 
         int[][] out = new int[n][];
         for (int i = 0; i < n; i++) {
-            List<Integer> l = tmp.get(i);
-            out[i] = new int[l.size()];
-            for (int j = 0; j < l.size(); j++) {
-                out[i][j] = l.get(j);
+            out[i] = new int[outDeg[i]];
+        }
+
+        // Pass 2: fill edges using cursor[] to track per-row write position.
+        int[] cursor = new int[n];
+
+        try (Statement s = conn.createStatement();
+             ResultSet rs = s.executeQuery(OUTBOUND_REF_SQL)) {
+            while (rs.next()) {
+                int src = indexOf(ids, rs.getLong(1));
+                int dst = indexOf(ids, rs.getLong(2));
+                if (src >= 0 && dst >= 0) {
+                    out[src][cursor[src]++] = dst;
+                }
             }
         }
+
+        try (Statement s = conn.createStatement();
+             ResultSet rs = s.executeQuery(GC_ROOT_DISTINCT_SQL)) {
+            while (rs.next()) {
+                int dst = indexOf(ids, rs.getLong(1));
+                if (dst >= 0) {
+                    out[virtualIndex][cursor[virtualIndex]++] = dst;
+                }
+            }
+        }
+
         return out;
+    }
+
+    /**
+     * Binary-search lookup over the sorted {@code ids[]} array. Returns the
+     * index of {@code id} or {@code -1} when absent. Replaces the per-call
+     * autoboxing cost of {@code Map<Long, Integer>.get(...)} that this method
+     * historically used; for a 7.6 M-instance heap the cumulative win across
+     * the {@code outbound_ref} scan is in the multiple-seconds range.
+     */
+    private static int indexOf(long[] sortedIds, long id) {
+        int idx = Arrays.binarySearch(sortedIds, id);
+        return idx >= 0 ? idx : -1;
     }
 
     private static int[][] invert(int[][] succ, int n) {
@@ -312,50 +578,4 @@ public final class DominatorTreeBuilder {
         return pred;
     }
 
-    /** Iterative DFS (avoid recursion blowup), returning post-order for nodes reachable from {@code root}. */
-    private static int[] postOrderFromRoot(int[][] succ, int root, int totalNodes) {
-        boolean[] seen = new boolean[totalNodes];
-        int[] childIdx = new int[totalNodes];
-        Deque<Integer> stack = new ArrayDeque<>();
-        List<Integer> order = new ArrayList<>();
-
-        stack.push(root);
-        seen[root] = true;
-        while (!stack.isEmpty()) {
-            int u = stack.peek();
-            int idx = childIdx[u];
-            int[] children = succ[u];
-            if (idx < children.length) {
-                int v = children[idx];
-                childIdx[u] = idx + 1;
-                if (!seen[v]) {
-                    seen[v] = true;
-                    stack.push(v);
-                }
-            } else {
-                stack.pop();
-                order.add(u);
-            }
-        }
-        int[] arr = new int[order.size()];
-        for (int i = 0; i < arr.length; i++) {
-            arr[i] = order.get(i);
-        }
-        return arr;
-    }
-
-    private static long[] loadShallowSizes(Connection conn, long[] ids) throws SQLException {
-        long[] sizes = new long[ids.length + 1]; // +1 for virtual root slot, stays 0
-        try (Statement s = conn.createStatement();
-             ResultSet rs = s.executeQuery("SELECT instance_id, shallow_size FROM instance")) {
-            while (rs.next()) {
-                long id = rs.getLong(1);
-                int idx = Arrays.binarySearch(ids, id);
-                if (idx >= 0) {
-                    sizes[idx] = rs.getInt(2);
-                }
-            }
-        }
-        return sizes;
-    }
 }

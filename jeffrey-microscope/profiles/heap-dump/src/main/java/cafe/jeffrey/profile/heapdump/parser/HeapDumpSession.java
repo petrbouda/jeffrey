@@ -22,8 +22,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.SQLException;
 import java.time.Clock;
+import java.util.List;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import cafe.jeffrey.profile.heapdump.model.SubPhaseTiming;
 
 /**
  * Bundle holding the open {@link HprofMappedFile} and {@link HeapView} for a
@@ -51,11 +55,22 @@ public final class HeapDumpSession implements AutoCloseable {
     private final HprofMappedFile hprof;
     private HeapView view;
     private final Path indexDbPath;
+    /**
+     * Per-phase timings captured the last time {@link HprofIndex#build} ran for
+     * this session — empty when an existing index was reused. Surfaced to the
+     * UI's "Building indexes" accordion via {@code HeapDumpManager.initialize}.
+     */
+    private final List<SubPhaseTiming> lastBuildSubPhases;
 
-    private HeapDumpSession(HprofMappedFile hprof, HeapView view, Path indexDbPath) {
+    private HeapDumpSession(
+            HprofMappedFile hprof,
+            HeapView view,
+            Path indexDbPath,
+            List<SubPhaseTiming> lastBuildSubPhases) {
         this.hprof = hprof;
         this.view = view;
         this.indexDbPath = indexDbPath;
+        this.lastBuildSubPhases = lastBuildSubPhases;
     }
 
     /**
@@ -78,14 +93,16 @@ public final class HeapDumpSession implements AutoCloseable {
         Path indexDbPath = HeapDumpIndexPaths.indexFor(hprofPath);
 
         try {
+            List<SubPhaseTiming> subPhases = List.of();
             if (needsRebuild(hprofPath, indexDbPath)) {
                 LOG.debug("Building heap dump index: hprof={} index={}", hprofPath, indexDbPath);
-                HprofIndex.build(hprof, indexDbPath, clock);
+                HprofIndex.IndexResult result = HprofIndex.build(hprof, indexDbPath, clock);
+                subPhases = result.subPhases();
             } else {
                 LOG.debug("Reusing heap dump index: index={}", indexDbPath);
             }
             HeapView view = HeapView.open(indexDbPath, hprof);
-            return new HeapDumpSession(hprof, view, indexDbPath);
+            return new HeapDumpSession(hprof, view, indexDbPath, subPhases);
         } catch (Throwable t) {
             try {
                 hprof.close();
@@ -97,24 +114,36 @@ public final class HeapDumpSession implements AutoCloseable {
 
     /**
      * Builds the dominator tree + retained sizes if not already populated.
-     * Idempotent — checks {@link HeapView#hasDominatorTree()} first.
+     * Idempotent — checks {@link HeapView#hasDominatorTree()} first. Returns
+     * the {@link DominatorTreeBuilder.BuildResult} (with its sub-phase
+     * timings) when a build actually ran; {@link Optional#empty()} when the
+     * tree was already present and nothing was rebuilt.
      *
      * Implementation note: DuckDB doesn't permit a read-write builder
      * connection while a read-only view is open against the same file.
      * The current view is closed before the build and re-opened afterwards
      * so the same {@link HeapDumpSession} stays usable.
      */
-    public void buildDominatorTreeIfNeeded() throws SQLException, IOException {
+    public Optional<DominatorTreeBuilder.BuildResult> buildDominatorTreeIfNeeded()
+            throws SQLException, IOException {
         if (view.hasDominatorTree()) {
-            return;
+            return Optional.empty();
         }
         LOG.debug("Building dominator tree: index={}", indexDbPath);
         view.close();
         try {
-            DominatorTreeBuilder.build(indexDbPath);
+            return Optional.of(DominatorTreeBuilder.build(indexDbPath));
         } finally {
             view = HeapView.open(indexDbPath, hprof);
         }
+    }
+
+    /**
+     * Per-phase index-build timings captured the last time this session ran
+     * {@link HprofIndex#build}. Empty list when the existing index was reused.
+     */
+    public List<SubPhaseTiming> lastBuildSubPhases() {
+        return lastBuildSubPhases;
     }
 
     public HeapView view() {

@@ -97,6 +97,13 @@ class PlanCIntegrationTest {
 
             st.execute("INSERT INTO dump_metadata VALUES "
                     + "('fixture.hprof', 1024, 0, 8, '1.0', 0, 1024, 8, 0, FALSE, 'test', 0, FALSE)");
+
+            // Materialised decoded String content — populated by the indexer
+            // in production; seeded directly here so SQL pushdown for
+            // startsWith/contains/etc. finds the rows.
+            st.execute("INSERT INTO string_content VALUES "
+                    + "(100, 19, 'Hello java.lang.Foo'),"
+                    + "(101,  9, 'foo.class')");
         }
         view = new TestHeapView(conn);
 
@@ -301,9 +308,12 @@ class PlanCIntegrationTest {
     class Classification {
 
         @Test
-        void stringPredicateRoutesToJavaPlan() {
+        void stringPredicateRoutesToSqlPlanViaStringContentJoin() {
+            // String predicates on a java.lang.String binding now push down to
+            // SQL via the materialised string_content table — no longer Plan C.
             ExecutionPlan plan = compile("SELECT s FROM java.lang.String s WHERE startsWith(s, \"java.\")");
-            assertInstanceOf(ExecutionPlan.JavaPlan.class, plan);
+            assertInstanceOf(ExecutionPlan.SqlPlan.class, plan);
+            assertTrue(((ExecutionPlan.SqlPlan) plan).sql().contains("string_content"));
         }
 
         @Test
@@ -319,10 +329,12 @@ class PlanCIntegrationTest {
         }
 
         @Test
-        void retainedSizeOnPlanCFlagsDominatorTree() {
+        void retainedSizeWithStringPredicateFlagsDominatorTree() {
+            // startsWith now pushes to SQL; rsizeof keeps the dominator-tree
+            // dependency flag set on the resulting plan.
             ExecutionPlan plan = compile(
                     "SELECT s FROM java.lang.String s WHERE startsWith(s, \"x\") AND rsizeof(s) > 0");
-            assertInstanceOf(ExecutionPlan.JavaPlan.class, plan);
+            assertInstanceOf(ExecutionPlan.SqlPlan.class, plan);
             assertTrue(plan.needsDominatorTree());
         }
     }
