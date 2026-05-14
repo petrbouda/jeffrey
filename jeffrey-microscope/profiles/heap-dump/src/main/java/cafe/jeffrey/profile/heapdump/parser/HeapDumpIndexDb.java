@@ -45,6 +45,17 @@ public final class HeapDumpIndexDb implements AutoCloseable {
 
     private static final String SCHEMA_RESOURCE = "/db/migration/heap-dump-index/V001__init.sql";
 
+    /**
+     * Raises the WAL auto-checkpoint threshold so DuckDB doesn't flush WAL → main
+     * file every 16 MB (the default) during a multi-GB index build. Each
+     * auto-checkpoint stalls writes; for a bulk load they're pure overhead. The
+     * close-time checkpoint (run automatically by DuckDB when the connection
+     * closes in {@link #close()}) still fires regardless of this threshold, so
+     * durability is preserved before the read-only HeapView reopens the file.
+     * {@code 1TB} is DuckDB's documented "effectively disabled" value.
+     */
+    private static final String PRAGMA_WAL_AUTOCHECKPOINT = "PRAGMA wal_autocheckpoint = '1TB'";
+
     private final Path path;
     private final DuckDBConnection connection;
 
@@ -109,6 +120,7 @@ public final class HeapDumpIndexDb implements AutoCloseable {
         try (Statement s = conn.createStatement()) {
             // DuckDB JDBC supports running multiple ;-delimited statements in a single execute.
             s.execute(sql);
+            s.execute(PRAGMA_WAL_AUTOCHECKPOINT);
         }
     }
 

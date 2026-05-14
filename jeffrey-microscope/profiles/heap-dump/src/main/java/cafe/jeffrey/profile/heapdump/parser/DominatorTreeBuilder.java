@@ -29,10 +29,6 @@ import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import org.duckdb.DuckDBAppender;
 import org.duckdb.DuckDBConnection;
 import org.slf4j.Logger;
@@ -75,16 +71,14 @@ public final class DominatorTreeBuilder {
     public static final long VIRTUAL_ROOT = 0L;
 
     /**
-     * Number of virtual threads used for the parallel persist phase — one per
-     * output table ({@code dominator} and {@code retained_size}). The natural
-     * ceiling is 2 because DuckDB serialises commits within a single table,
-     * so any per-table sharding beyond that would just contend on the same
-     * write lock. Surfaced into the UI sub-phase note via {@link #PERSIST_PARALLELISM_NOTE}.
+     * Raises the WAL auto-checkpoint threshold so DuckDB doesn't flush WAL → main
+     * file every 16 MB (the default) while we stream the dominator/retained-size
+     * rows. Each auto-checkpoint stalls the appenders; for a bulk load they're
+     * pure overhead because we issue an explicit {@code CHECKPOINT} at the end of
+     * the build, before the read-only HeapView reopens. {@code 1TB} is DuckDB's
+     * documented "effectively disabled" value.
      */
-    private static final int PERSIST_PARALLELISM = 2;
-
-    /** Human-readable form of {@link #PERSIST_PARALLELISM} for the UI accordion. */
-    private static final String PERSIST_PARALLELISM_NOTE = PERSIST_PARALLELISM + " virtual threads";
+    private static final String PRAGMA_WAL_AUTOCHECKPOINT = "PRAGMA wal_autocheckpoint = '1TB'";
 
     public record BuildResult(int reachableInstances, int rootEdges, long iterations,
                               java.time.Duration buildTime, List<SubPhaseTiming> subPhases) {
@@ -116,6 +110,7 @@ public final class DominatorTreeBuilder {
              DuckDBConnection conn = raw.unwrap(DuckDBConnection.class)) {
 
             try (Statement s = conn.createStatement()) {
+                s.execute(PRAGMA_WAL_AUTOCHECKPOINT);
                 s.execute("DELETE FROM dominator");
                 s.execute("DELETE FROM retained_size");
             }
@@ -186,56 +181,36 @@ public final class DominatorTreeBuilder {
         PersistRowData rows = rowsE.entity();
         int reachable = rows.count();
 
-        // Stage 2: PERSIST_PARALLELISM virtual threads, one per output table.
-        // Each owns a DuckDBAppender. DuckDB appenders are bound to a single
-        // (connection, table) pair and the threads target *different* tables,
-        // so they don't contend on table-level locks or ART-index inserts.
-        // Net wall time ≈ max(dom_persist, ret_persist) instead of their sum.
+        // Stage 2: sequential per-table appender writes. DuckDB JDBC binds a
+        // DuckDBAppender to a single Connection's pending-query state and is
+        // not safe to share across threads — two concurrent appenders on one
+        // connection trample each other and fail at flush with "Attempting to
+        // execute an unsuccessful or closed pending query result". Same
+        // constraint that forced HprofIndex Pass B to be sequential.
         Duration persistDuration = Measuring.r(() -> {
-            try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
-                Future<?> domFuture = executor.submit(() -> {
-                    try (DuckDBAppender app = conn.createAppender("dominator")) {
-                        long[] instanceIds = rows.instanceIds();
-                        long[] dominatorIds = rows.dominatorIds();
-                        for (int i = 0; i < rows.count(); i++) {
-                            app.beginRow();
-                            app.append(instanceIds[i]);
-                            app.append(dominatorIds[i]);
-                            app.endRow();
-                        }
-                    } catch (SQLException e) {
-                        throw new RuntimeException(e);
-                    }
-                    return null;
-                });
-                Future<?> retFuture = executor.submit(() -> {
-                    try (DuckDBAppender app = conn.createAppender("retained_size")) {
-                        long[] instanceIds = rows.instanceIds();
-                        long[] retainedBytes = rows.retainedBytes();
-                        for (int i = 0; i < rows.count(); i++) {
-                            app.beginRow();
-                            app.append(instanceIds[i]);
-                            app.append(retainedBytes[i]);
-                            app.endRow();
-                        }
-                    } catch (SQLException e) {
-                        throw new RuntimeException(e);
-                    }
-                    return null;
-                });
-                try {
-                    domFuture.get();
-                    retFuture.get();
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    throw new RuntimeException(e);
-                } catch (ExecutionException e) {
-                    Throwable cause = e.getCause();
-                    if (cause instanceof RuntimeException re) {
-                        throw re;
-                    }
-                    throw new RuntimeException(cause);
+            try (DuckDBAppender app = conn.createAppender("dominator")) {
+                long[] instanceIds = rows.instanceIds();
+                long[] dominatorIds = rows.dominatorIds();
+                for (int i = 0; i < rows.count(); i++) {
+                    app.beginRow();
+                    app.append(instanceIds[i]);
+                    app.append(dominatorIds[i]);
+                    app.endRow();
                 }
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
+            try (DuckDBAppender app = conn.createAppender("retained_size")) {
+                long[] instanceIds = rows.instanceIds();
+                long[] retainedBytes = rows.retainedBytes();
+                for (int i = 0; i < rows.count(); i++) {
+                    app.beginRow();
+                    app.append(instanceIds[i]);
+                    app.append(retainedBytes[i]);
+                    app.endRow();
+                }
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
             }
         });
 
@@ -263,7 +238,7 @@ public final class DominatorTreeBuilder {
                 new SubPhaseTiming("semi_nca", idomE.duration().toMillis(), "Lengauer-Tarjan"),
                 new SubPhaseTiming("retained", retE.duration().toMillis(), null),
                 new SubPhaseTiming("stage_rows", rowsE.duration().toMillis(), null),
-                new SubPhaseTiming("persist", persistDuration.toMillis(), PERSIST_PARALLELISM_NOTE));
+                new SubPhaseTiming("persist", persistDuration.toMillis(), null));
 
         // BuildResult.iterations was a CHK leftover (number of fixed-point passes);
         // semi-NCA needs no fixed-point so we report 1 to keep the field honest.
