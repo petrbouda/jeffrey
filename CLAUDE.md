@@ -210,6 +210,15 @@ jeffrey/
 
 ## Code Style and Conventions
 
+### Design over micro-optimization (default mode)
+Default to clean object-oriented design — sealed type hierarchies, focused single-responsibility collaborators, composition over inheritance, polymorphism over conditionals — even when the result is more files or a small amount of extra indirection. Examples that count as "design over optimization": splitting a god class into a sealed analysis hierarchy plus collaborator services; preferring a `Map<K, V>` lookup over a manually hand-rolled switch ladder; introducing a small record over passing five parallel parameters.
+
+Do **not** sacrifice design for low-level optimizations — hot-path tuning, manual inlining, allocation elimination, primitive-array packing, lock-free tricks, parallel execution, pre-computed lookup caches, or similar — unless the user **explicitly** asks for the optimization (e.g., "make this faster", "reduce allocations here", "optimize the hot path"). The price of those optimizations is usually paid in code clarity, test isolation, and refactor cost; that price is only worth paying when the user has named it as their goal.
+
+**Evident trade-offs are surfaced, not decided silently.** If, while doing design work, you spot a meaningful optimization that would cost design clarity — e.g., a hot-path tightening that requires inlining a sealed type away, an allocation reduction that needs a primitive-array shape, a parallel pipeline that needs shared mutable state, a lookup table that replaces a polymorphic dispatch — **don't pick on the user's behalf**. Present both options with one sentence each on the design cost and the optimization win, and let the user choose. The skill is "make the trade-off legible," not "default-pick design and hide the alternative."
+
+When unsure whether a request is "make it cleaner" or "make it faster", ask. Default mode is design.
+
 ### General (applies to Java, TypeScript, Vue, JS)
 - **Always use braces for control flow**: Every `if`, `else`, `else if`, `for`, `while`, and `do-while` body must be wrapped in `{ ... }` braces — even when the body is a single statement. Never write the inline single-line form. This applies to early-return guards, null checks, instanceof guards, loops, and every other branching construct, in **both Java and TypeScript/Vue**.
 
