@@ -51,6 +51,20 @@ public enum HeapDumpStatement {
     APPEND_DOMINATOR,
     APPEND_RETAINED_SIZE,
 
+    // ---- DominatorTreeBuilder id-index temp table (load_successors hash-join) ----
+    BUILD_ID_INDEX,
+    DROP_ID_INDEX,
+    JOIN_OUTBOUND_REFS,
+    JOIN_GC_ROOTS,
+
+    // ---- parquet staging bulk-load (parallel walks + parallel persist) ----
+    BULK_LOAD_INSTANCE,
+    BULK_LOAD_GC_ROOT,
+    BULK_LOAD_OUTBOUND_REF,
+    BULK_LOAD_STRING_CONTENT,
+    BULK_LOAD_DOMINATOR,
+    BULK_LOAD_RETAINED_SIZE,
+
     // ---- corrections + temp tables ----
     CREATE_TEMP_CLASS_CHAIN_OOP,
     DROP_TEMP_CLASS_CHAIN_OOP,

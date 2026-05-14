@@ -240,6 +240,44 @@ public final class HeapDumpDatabaseClient {
         }
     }
 
+    /**
+     * Bulk-loads parquet shards produced by parallel build workers into the
+     * given target table via DuckDB's {@code read_parquet} table function.
+     * Single statement, single transaction; emits one {@link JdbcInsertEvent}
+     * tagged as a batch insert. The {@code parquetGlob} is interpolated
+     * directly into the SQL — callers must pass trusted, builder-controlled
+     * paths (no user input).
+     *
+     * @return rows inserted (DuckDB returns the count via {@link Statement#getUpdateCount()})
+     */
+    public long bulkLoadFromParquet(HeapDumpStatement stmt, String table, String parquetGlob) {
+        String sql = "INSERT INTO " + table
+                + " SELECT * FROM read_parquet('" + parquetGlob + "')";
+        JdbcInsertEvent event = new JdbcInsertEvent(stmt.label(), groupLabel);
+        event.isSuccess = true;
+        event.isBatch = true;
+        event.begin();
+        long rows = 0;
+        try (Statement s = connection.createStatement()) {
+            s.execute(sql);
+            rows = s.getLargeUpdateCount();
+            if (rows < 0) {
+                rows = 0;
+            }
+            event.end();
+        } catch (SQLException e) {
+            event.isSuccess = false;
+            throw new RuntimeException("Heap-dump bulk-load failed: " + stmt + " on " + table + ": " + e.getMessage(), e);
+        } finally {
+            if (event.shouldCommit()) {
+                event.sql = sql;
+                event.rows = rows;
+                event.commit();
+            }
+        }
+        return rows;
+    }
+
     // ---- Read side ----
 
     public <T> Optional<T> queryScalar(HeapDumpStatement stmt, String sql, RowMapper<T> mapper, Object... params) {

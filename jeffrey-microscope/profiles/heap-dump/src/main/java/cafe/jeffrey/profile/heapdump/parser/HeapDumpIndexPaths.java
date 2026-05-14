@@ -30,6 +30,7 @@ public final class HeapDumpIndexPaths {
 
     static final String INDEX_SUFFIX = ".idx.duckdb";
     static final String INDEX_WAL_SUFFIX = ".idx.duckdb.wal";
+    static final String INDEX_STAGING_SUFFIX = ".idx.staging";
 
     private HeapDumpIndexPaths() {
     }
@@ -45,6 +46,36 @@ public final class HeapDumpIndexPaths {
     /** The DuckDB write-ahead log sibling, used when cleaning up. */
     public static Path indexWalFor(Path hprof) {
         return sibling(hprof, INDEX_WAL_SUFFIX);
+    }
+
+    /**
+     * Sibling directory used as a transient staging area where parallel build
+     * workers write parquet shards before the coordinator bulk-loads them into
+     * the index DB. Deleted at the end of the build.
+     */
+    public static Path indexStagingFor(Path hprof) {
+        return sibling(hprof, INDEX_STAGING_SUFFIX);
+    }
+
+    /**
+     * Same staging directory as {@link #indexStagingFor(Path)}, but derived
+     * from the {@code .idx.duckdb} path instead of the {@code .hprof} path.
+     * Used by builders (dominator tree, persist) that only carry the index-DB
+     * handle.
+     */
+    public static Path stagingForIndex(Path indexDb) {
+        if (indexDb == null) {
+            throw new IllegalArgumentException("indexDb must not be null");
+        }
+        Path fileName = indexDb.getFileName();
+        if (fileName == null) {
+            throw new IllegalArgumentException("indexDb must have a file name: path=" + indexDb);
+        }
+        String name = fileName.toString();
+        String stem = name.endsWith(INDEX_SUFFIX)
+                ? name.substring(0, name.length() - INDEX_SUFFIX.length())
+                : name;
+        return indexDb.resolveSibling(stem + INDEX_STAGING_SUFFIX);
     }
 
     private static Path sibling(Path hprof, String suffix) {

@@ -18,6 +18,8 @@
 package cafe.jeffrey.profile.heapdump.parser;
 
 import cafe.jeffrey.profile.heapdump.model.SubPhaseTiming;
+import cafe.jeffrey.profile.heapdump.parser.parquet.ParquetSink;
+import cafe.jeffrey.profile.heapdump.parser.parquet.ParquetStaging;
 import cafe.jeffrey.profile.heapdump.persistence.HeapDumpDatabaseClient;
 import cafe.jeffrey.profile.heapdump.persistence.HeapDumpStatement;
 import cafe.jeffrey.shared.common.measure.Elapsed;
@@ -33,7 +35,13 @@ import java.sql.SQLException;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import org.duckdb.DuckDBAppender;
 import org.duckdb.DuckDBConnection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -115,10 +123,11 @@ public final class DominatorTreeBuilder {
             client.execute(HeapDumpStatement.DELETE_DOMINATOR, "DELETE FROM dominator");
             client.execute(HeapDumpStatement.DELETE_RETAINED_SIZE, "DELETE FROM retained_size");
 
+            Path stagingDir = HeapDumpIndexPaths.stagingForIndex(indexDbPath);
             Elapsed<BuildResult> elapsed = Measuring.s(() -> {
                 try {
-                    return doBuild(client);
-                } catch (SQLException e) {
+                    return doBuild(client, stagingDir);
+                } catch (SQLException | IOException e) {
                     throw new RuntimeException(e);
                 }
             });
@@ -134,7 +143,8 @@ public final class DominatorTreeBuilder {
         }
     }
 
-    private static BuildResult doBuild(HeapDumpDatabaseClient client) throws SQLException {
+    private static BuildResult doBuild(HeapDumpDatabaseClient client, Path stagingDir)
+            throws SQLException, IOException {
         Elapsed<InstanceMeta> metaE = measure(() -> loadInstanceMeta(client));
         InstanceMeta meta = metaE.entity();
         long[] ids = meta.ids();
@@ -179,35 +189,20 @@ public final class DominatorTreeBuilder {
         PersistRowData rows = rowsE.entity();
         int reachable = rows.count();
 
-        // Stage 2: sequential per-table appender writes. DuckDB JDBC binds a
-        // DuckDBAppender to a single Connection's pending-query state and is
-        // not safe to share across threads — two concurrent appenders on one
-        // connection trample each other and fail at flush with "Attempting to
-        // execute an unsuccessful or closed pending query result". Same
-        // constraint that forced HprofIndex Pass B to be sequential.
+        // Stage 2: parallel parquet staging + serial bulk-load. Each writer
+        // owns an in-memory DuckDB instance (so the appender state is isolated
+        // — sidesteps the JDBC single-connection appender contention that
+        // forced the previous parallel-persist attempt to be reverted, see
+        // a03fd5d8c). The two staging tables are flushed to parquet shards in
+        // parallel virtual threads. The coordinator then merges each shard
+        // back into the index DB via INSERT INTO ... SELECT * FROM
+        // read_parquet(...).
         Duration persistDuration = Measuring.r(() -> {
-            client.withAppender(HeapDumpStatement.APPEND_DOMINATOR, "dominator", app -> {
-                long[] instanceIds = rows.instanceIds();
-                long[] dominatorIds = rows.dominatorIds();
-                for (int i = 0; i < rows.count(); i++) {
-                    app.beginRow();
-                    app.append(instanceIds[i]);
-                    app.append(dominatorIds[i]);
-                    app.endRow();
-                }
-                return (long) rows.count();
-            });
-            client.withAppender(HeapDumpStatement.APPEND_RETAINED_SIZE, "retained_size", app -> {
-                long[] instanceIds = rows.instanceIds();
-                long[] retainedBytes = rows.retainedBytes();
-                for (int i = 0; i < rows.count(); i++) {
-                    app.beginRow();
-                    app.append(instanceIds[i]);
-                    app.append(retainedBytes[i]);
-                    app.endRow();
-                }
-                return (long) rows.count();
-            });
+            try {
+                persistViaParquet(client, stagingDir, rows);
+            } catch (IOException | SQLException e) {
+                throw new RuntimeException(e);
+            }
         });
 
         LOG.debug(
@@ -252,6 +247,110 @@ public final class DominatorTreeBuilder {
      * @param reachable   how many nodes were reached from the virtual root
      */
     private record DfsData(int[] preorder, int[] dfsNum, int[] parent, int reachable) {
+    }
+
+    private static final String DOMINATOR_TABLE = "dominator";
+
+    private static final String RETAINED_SIZE_TABLE = "retained_size";
+
+    private static final String DOMINATOR_STAGING_DDL =
+            "instance_id BIGINT, dominator_id BIGINT";
+
+    private static final String RETAINED_SIZE_STAGING_DDL =
+            "instance_id BIGINT, bytes BIGINT";
+
+    /**
+     * Fans the dominator + retained-size row arrays out to two virtual-thread
+     * workers, each writing its own parquet shard from a private in-memory
+     * DuckDB, then bulk-loads both shards into the real index DB.
+     */
+    private static void persistViaParquet(
+            HeapDumpDatabaseClient client, Path stagingDir, PersistRowData rows)
+            throws IOException, SQLException {
+        try (ParquetStaging staging = ParquetStaging.open(stagingDir)) {
+            staging.prepareTable(DOMINATOR_TABLE);
+            staging.prepareTable(RETAINED_SIZE_TABLE);
+
+            Path dominatorOutput = staging.partFile(DOMINATOR_TABLE, 0);
+            Path retainedOutput = staging.partFile(RETAINED_SIZE_TABLE, 0);
+
+            // ParquetSink + its underlying DuckDBAppender are thread-confined —
+            // each worker must open its own sink inside the worker thread.
+            try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
+                Future<?> domF = executor.submit(() -> {
+                    writeDominatorShard(rows, dominatorOutput);
+                    return null;
+                });
+                Future<?> retF = executor.submit(() -> {
+                    writeRetainedSizeShard(rows, retainedOutput);
+                    return null;
+                });
+                joinUnwrapping(domF);
+                joinUnwrapping(retF);
+            }
+
+            // Bulk-load: two different target tables, no constraint overlap,
+            // so the two INSERT statements could run concurrently on separate
+            // connections. Keeping it sequential for now — the bulk-load is
+            // already vector-pipelined inside DuckDB and the second statement
+            // typically lands in <5 s. Revisit if profiling shows it as the
+            // remaining bottleneck after this front lands.
+            staging.bulkLoad(client, HeapDumpStatement.BULK_LOAD_DOMINATOR, DOMINATOR_TABLE);
+            staging.bulkLoad(client, HeapDumpStatement.BULK_LOAD_RETAINED_SIZE, RETAINED_SIZE_TABLE);
+        }
+    }
+
+    private static void writeDominatorShard(PersistRowData rows, Path outputPath) {
+        try (ParquetSink sink = ParquetSink.open(
+                Map.of(DOMINATOR_TABLE, DOMINATOR_STAGING_DDL),
+                Map.of(DOMINATOR_TABLE, outputPath))) {
+            DuckDBAppender app = sink.appender(DOMINATOR_TABLE);
+            long[] instanceIds = rows.instanceIds();
+            long[] dominatorIds = rows.dominatorIds();
+            int count = rows.count();
+            for (int i = 0; i < count; i++) {
+                app.beginRow();
+                app.append(instanceIds[i]);
+                app.append(dominatorIds[i]);
+                app.endRow();
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static void writeRetainedSizeShard(PersistRowData rows, Path outputPath) {
+        try (ParquetSink sink = ParquetSink.open(
+                Map.of(RETAINED_SIZE_TABLE, RETAINED_SIZE_STAGING_DDL),
+                Map.of(RETAINED_SIZE_TABLE, outputPath))) {
+            DuckDBAppender app = sink.appender(RETAINED_SIZE_TABLE);
+            long[] instanceIds = rows.instanceIds();
+            long[] retainedBytes = rows.retainedBytes();
+            int count = rows.count();
+            for (int i = 0; i < count; i++) {
+                app.beginRow();
+                app.append(instanceIds[i]);
+                app.append(retainedBytes[i]);
+                app.endRow();
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static void joinUnwrapping(Future<?> future) {
+        try {
+            future.get();
+        } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException(ie);
+        } catch (ExecutionException ee) {
+            Throwable cause = ee.getCause();
+            if (cause instanceof RuntimeException re) {
+                throw re;
+            }
+            throw new RuntimeException(cause);
+        }
     }
 
     /**
@@ -535,95 +634,110 @@ public final class DominatorTreeBuilder {
         return new InstanceMeta(ids, shallow);
     }
 
-    private static final String OUTBOUND_REF_SQL =
-            "SELECT source_id, target_id FROM outbound_ref";
-    private static final String GC_ROOT_DISTINCT_SQL =
-            "SELECT DISTINCT instance_id FROM gc_root";
+    /**
+     * Builds a connection-local temp table mapping every {@code instance_id} to
+     * its dense node index — the position in the in-memory {@code ids[]} array.
+     * Both use {@code ORDER BY instance_id}, so {@code ROW_NUMBER() OVER
+     * (ORDER BY instance_id) - 1} produces the same indices as the Java-side
+     * {@code loadInstanceMeta} scan.
+     *
+     * <p>Materialising the mapping in DuckDB lets the edge-loading queries push
+     * the translation into the engine's parallel hash join, replacing 87 M ×
+     * two Java-side binary searches per pass with a single multi-threaded scan.
+     */
+    private static final String CREATE_ID_INDEX_SQL = """
+            CREATE TEMP TABLE id_index AS
+            SELECT instance_id,
+                   CAST(ROW_NUMBER() OVER (ORDER BY instance_id) - 1 AS INTEGER) AS node_index
+            FROM instance
+            """;
+
+    private static final String DROP_ID_INDEX_SQL = "DROP TABLE id_index";
+
+    private static final String OUTBOUND_REFS_JOIN_SQL = """
+            SELECT s.node_index, t.node_index
+            FROM outbound_ref o
+            JOIN id_index s ON o.source_id = s.instance_id
+            JOIN id_index t ON o.target_id = t.instance_id
+            """;
+
+    private static final String GC_ROOTS_JOIN_SQL = """
+            SELECT DISTINCT t.node_index
+            FROM gc_root g
+            JOIN id_index t ON g.instance_id = t.instance_id
+            """;
 
     /**
      * Builds the {@code int[][]} adjacency list in two passes: count out-degrees,
-     * then fill exact-sized rows. Avoids the per-edge autoboxing cost of the
-     * earlier {@code List<List<Integer>>} variant — every edge on a 20-50 M
-     * edge graph used to box both source and target into {@code Integer}.
+     * then fill exact-sized rows.
+     *
+     * <p>The per-edge {@code instance_id → node_index} translation runs in DuckDB
+     * via a temp {@code id_index} table and INNER JOINs against {@code outbound_ref}
+     * / {@code gc_root}. INNER JOIN naturally drops orphan references that point
+     * to instances absent from the {@code instance} table, matching the old
+     * {@code if (src >= 0 && dst >= 0)} filter.
      */
     private static int[][] loadSuccessors(
             HeapDumpDatabaseClient client, long[] ids, int virtualIndex) {
         int n = ids.length + 1;
         int[] outDeg = new int[n];
 
-        // Pass 1a: count outbound_ref edges by source.
-        client.rawStream(HeapDumpStatement.OUTBOUND_REFS, OUTBOUND_REF_SQL, rs -> {
-            long rows = 0;
-            while (rs.next()) {
-                int src = indexOf(ids, rs.getLong(1));
-                int dst = indexOf(ids, rs.getLong(2));
-                if (src >= 0 && dst >= 0) {
+        client.execute(HeapDumpStatement.BUILD_ID_INDEX, CREATE_ID_INDEX_SQL);
+        try {
+            // Pass 1a: count outbound_ref edges by source.
+            client.rawStream(HeapDumpStatement.JOIN_OUTBOUND_REFS, OUTBOUND_REFS_JOIN_SQL, rs -> {
+                long rows = 0;
+                while (rs.next()) {
+                    int src = rs.getInt(1);
                     outDeg[src]++;
+                    rows++;
                 }
-                rows++;
-            }
-            return rows;
-        });
+                return rows;
+            });
 
-        // Pass 1b: count gc_root edges from virtual root.
-        client.rawStream(HeapDumpStatement.GC_ROOTS, GC_ROOT_DISTINCT_SQL, rs -> {
-            long rows = 0;
-            while (rs.next()) {
-                int dst = indexOf(ids, rs.getLong(1));
-                if (dst >= 0) {
+            // Pass 1b: count gc_root edges from virtual root.
+            client.rawStream(HeapDumpStatement.JOIN_GC_ROOTS, GC_ROOTS_JOIN_SQL, rs -> {
+                long rows = 0;
+                while (rs.next()) {
                     outDeg[virtualIndex]++;
+                    rows++;
                 }
-                rows++;
+                return rows;
+            });
+
+            int[][] out = new int[n][];
+            for (int i = 0; i < n; i++) {
+                out[i] = new int[outDeg[i]];
             }
-            return rows;
-        });
 
-        int[][] out = new int[n][];
-        for (int i = 0; i < n; i++) {
-            out[i] = new int[outDeg[i]];
-        }
+            // Pass 2: fill edges using cursor[] to track per-row write position.
+            int[] cursor = new int[n];
 
-        // Pass 2: fill edges using cursor[] to track per-row write position.
-        int[] cursor = new int[n];
-
-        client.rawStream(HeapDumpStatement.OUTBOUND_REFS, OUTBOUND_REF_SQL, rs -> {
-            long rows = 0;
-            while (rs.next()) {
-                int src = indexOf(ids, rs.getLong(1));
-                int dst = indexOf(ids, rs.getLong(2));
-                if (src >= 0 && dst >= 0) {
+            client.rawStream(HeapDumpStatement.JOIN_OUTBOUND_REFS, OUTBOUND_REFS_JOIN_SQL, rs -> {
+                long rows = 0;
+                while (rs.next()) {
+                    int src = rs.getInt(1);
+                    int dst = rs.getInt(2);
                     out[src][cursor[src]++] = dst;
+                    rows++;
                 }
-                rows++;
-            }
-            return rows;
-        });
+                return rows;
+            });
 
-        client.rawStream(HeapDumpStatement.GC_ROOTS, GC_ROOT_DISTINCT_SQL, rs -> {
-            long rows = 0;
-            while (rs.next()) {
-                int dst = indexOf(ids, rs.getLong(1));
-                if (dst >= 0) {
+            client.rawStream(HeapDumpStatement.JOIN_GC_ROOTS, GC_ROOTS_JOIN_SQL, rs -> {
+                long rows = 0;
+                while (rs.next()) {
+                    int dst = rs.getInt(1);
                     out[virtualIndex][cursor[virtualIndex]++] = dst;
+                    rows++;
                 }
-                rows++;
-            }
-            return rows;
-        });
+                return rows;
+            });
 
-        return out;
-    }
-
-    /**
-     * Binary-search lookup over the sorted {@code ids[]} array. Returns the
-     * index of {@code id} or {@code -1} when absent. Replaces the per-call
-     * autoboxing cost of {@code Map<Long, Integer>.get(...)} that this method
-     * historically used; for a 7.6 M-instance heap the cumulative win across
-     * the {@code outbound_ref} scan is in the multiple-seconds range.
-     */
-    private static int indexOf(long[] sortedIds, long id) {
-        int idx = Arrays.binarySearch(sortedIds, id);
-        return idx >= 0 ? idx : -1;
+            return out;
+        } finally {
+            client.execute(HeapDumpStatement.DROP_ID_INDEX, DROP_ID_INDEX_SQL);
+        }
     }
 
     private static int[][] invert(int[][] succ, int n) {
