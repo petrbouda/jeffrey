@@ -17,6 +17,9 @@
  */
 package cafe.jeffrey.profile.heapdump.parser;
 
+import cafe.jeffrey.profile.heapdump.persistence.HeapDumpDatabaseClient;
+import cafe.jeffrey.shared.persistence.GroupLabel;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -38,6 +41,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
+import org.duckdb.DuckDBConnection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,6 +67,7 @@ final class DuckDbHeapView implements HeapView {
 
     private final Path path;
     private final Connection connection;
+    private final HeapDumpDatabaseClient databaseClient;
     private final HprofMappedFile hprof;
     /**
      * Per-session cache for {@link #findStringContent(long)}. Heap-dump analyses
@@ -74,9 +79,11 @@ final class DuckDbHeapView implements HeapView {
      */
     private final ConcurrentMap<Long, Optional<String>> stringContentCache = new ConcurrentHashMap<>();
 
-    private DuckDbHeapView(Path path, Connection connection, HprofMappedFile hprof) {
+    private DuckDbHeapView(Path path, Connection connection, HprofMappedFile hprof) throws SQLException {
         this.path = path;
         this.connection = connection;
+        this.databaseClient = new HeapDumpDatabaseClient(
+                connection.unwrap(DuckDBConnection.class), GroupLabel.HEAP_DUMP_VIEW);
         this.hprof = hprof;
     }
 
@@ -500,6 +507,11 @@ final class DuckDbHeapView implements HeapView {
         return open(path, hprof);
     }
 
+    @Override
+    public HeapDumpDatabaseClient databaseClient() {
+        return databaseClient;
+    }
+
     private int readInstanceFieldsLength(InstanceRow inst, int idSize) {
         // INSTANCE_DUMP body: id + u4 + id + u4(fieldsLength) + ... — read the u4 from .hprof.
         long u4Offset = inst.fileOffset() + 2L * idSize + 4;
@@ -608,11 +620,6 @@ final class DuckDbHeapView implements HeapView {
     }
 
     // ---- Connection / lifecycle ------------------------------------------
-
-    @Override
-    public Connection connection() {
-        return connection;
-    }
 
     @Override
     public void close() {

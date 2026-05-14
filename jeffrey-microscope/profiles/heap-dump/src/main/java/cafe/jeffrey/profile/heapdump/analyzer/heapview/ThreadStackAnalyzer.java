@@ -98,7 +98,7 @@ public final class ThreadStackAnalyzer {
         }
 
         List<ThreadStackFrame> out = new ArrayList<>(frameRows.size());
-        try (PreparedStatement localsStmt = view.connection().prepareStatement(LOCALS_SQL)) {
+        try (PreparedStatement localsStmt = view.databaseClient().connection().prepareStatement(LOCALS_SQL)) {
             for (FrameRow f : frameRows) {
                 List<StackFrameLocal> locals = pullLocals(localsStmt, threadSerial, f.frameIndex);
                 out.add(new ThreadStackFrame(
@@ -113,7 +113,7 @@ public final class ThreadStackAnalyzer {
     }
 
     private static Integer lookupThreadSerial(HeapView view, long threadObjectId) throws SQLException {
-        try (PreparedStatement stmt = view.connection().prepareStatement(THREAD_SERIAL_SQL)) {
+        try (PreparedStatement stmt = view.databaseClient().connection().prepareStatement(THREAD_SERIAL_SQL)) {
             stmt.setLong(1, threadObjectId);
             try (ResultSet rs = stmt.executeQuery()) {
                 if (!rs.next()) {
@@ -127,7 +127,7 @@ public final class ThreadStackAnalyzer {
 
     private static List<FrameRow> pullFrames(HeapView view, int threadSerial) throws SQLException {
         List<FrameRow> rows = new ArrayList<>();
-        try (PreparedStatement stmt = view.connection().prepareStatement(FRAMES_SQL)) {
+        try (PreparedStatement stmt = view.databaseClient().connection().prepareStatement(FRAMES_SQL)) {
             stmt.setInt(1, threadSerial);
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {

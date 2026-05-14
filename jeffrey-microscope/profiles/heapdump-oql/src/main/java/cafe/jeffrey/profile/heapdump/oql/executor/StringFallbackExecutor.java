@@ -88,7 +88,7 @@ public final class StringFallbackExecutor {
     }
 
     private static List<OQLResultEntry> scanUncovered(OqlQuery query, HeapView view, int limit) throws SQLException {
-        Connection conn = view.connection();
+        Connection conn = view.databaseClient().connection();
         List<OQLResultEntry> entries = new ArrayList<>();
         PathExprEvaluator pathEval = new PathExprEvaluator(view);
         try (PreparedStatement stmt = conn.prepareStatement(UNCAPPED_STRINGS_SQL);

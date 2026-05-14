@@ -92,7 +92,7 @@ public final class DominatorTreeAnalyzer {
                 + "LIMIT ?";
 
         List<DominatorNode> nodes = new ArrayList<>();
-        try (PreparedStatement stmt = view.connection().prepareStatement(sql)) {
+        try (PreparedStatement stmt = view.databaseClient().connection().prepareStatement(sql)) {
             stmt.setLong(1, parentId);
             stmt.setInt(2, limit + 1);
             try (ResultSet rs = stmt.executeQuery()) {
@@ -125,7 +125,7 @@ public final class DominatorTreeAnalyzer {
     }
 
     private static long countChildren(HeapView view, long parentId) throws SQLException {
-        try (PreparedStatement stmt = view.connection().prepareStatement(
+        try (PreparedStatement stmt = view.databaseClient().connection().prepareStatement(
                 "SELECT COUNT(*) FROM dominator WHERE dominator_id = ?")) {
             stmt.setLong(1, parentId);
             try (ResultSet rs = stmt.executeQuery()) {
@@ -136,7 +136,7 @@ public final class DominatorTreeAnalyzer {
 
     /** Look up the retained-size bytes for a specific instance; 0 if not in the table. */
     private static long loadRetainedSize(HeapView view, long instanceId) throws SQLException {
-        try (PreparedStatement stmt = view.connection().prepareStatement(
+        try (PreparedStatement stmt = view.databaseClient().connection().prepareStatement(
                 "SELECT bytes FROM retained_size WHERE instance_id = ?")) {
             stmt.setLong(1, instanceId);
             try (ResultSet rs = stmt.executeQuery()) {
@@ -147,7 +147,7 @@ public final class DominatorTreeAnalyzer {
 
     private static Map<Long, Integer> loadGcRootKinds(HeapView view) throws SQLException {
         Map<Long, Integer> out = new HashMap<>();
-        try (PreparedStatement stmt = view.connection().prepareStatement(
+        try (PreparedStatement stmt = view.databaseClient().connection().prepareStatement(
                 "SELECT instance_id, root_kind FROM gc_root");
              ResultSet rs = stmt.executeQuery()) {
             while (rs.next()) {

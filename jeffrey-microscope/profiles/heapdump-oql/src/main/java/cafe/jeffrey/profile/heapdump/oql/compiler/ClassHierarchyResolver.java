@@ -61,7 +61,7 @@ public final class ClassHierarchyResolver {
             visited.add(row.classId());
             frontier.add(row.classId());
         }
-        Connection conn = view.connection();
+        Connection conn = view.databaseClient().connection();
         try (PreparedStatement stmt = conn.prepareStatement(
                 "SELECT class_id FROM class WHERE super_class_id = ?")) {
             while (!frontier.isEmpty()) {
@@ -97,7 +97,7 @@ public final class ClassHierarchyResolver {
             return List.of();
         }
         Set<Long> directlyImplementing = new HashSet<>();
-        Connection conn = view.connection();
+        Connection conn = view.databaseClient().connection();
         try (PreparedStatement stmt = conn.prepareStatement(
                 "SELECT class_id FROM class_interface WHERE interface_class_id = ?")) {
             for (JavaClassRow row : ifaceMatches) {

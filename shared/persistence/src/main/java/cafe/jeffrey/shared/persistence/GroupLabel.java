@@ -47,4 +47,6 @@ public enum GroupLabel {
     PROFILE_FRAMES,
     PROFILE_TOOLS,
     SETTINGS,
+    HEAP_DUMP_INDEX,
+    HEAP_DUMP_VIEW,
 }

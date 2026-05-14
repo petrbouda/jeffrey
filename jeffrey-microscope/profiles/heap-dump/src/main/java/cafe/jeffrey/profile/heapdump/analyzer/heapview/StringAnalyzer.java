@@ -136,7 +136,7 @@ public final class StringAnalyzer {
                 continue;
             }
 
-            try (PreparedStatement stmt = view.connection().prepareStatement(PHYSICAL_SHARING_SQL)) {
+            try (PreparedStatement stmt = view.databaseClient().connection().prepareStatement(PHYSICAL_SHARING_SQL)) {
                 stmt.setInt(1, valueFieldId);
                 stmt.setLong(2, stringClass.classId());
                 try (ResultSet rs = stmt.executeQuery()) {
@@ -152,7 +152,7 @@ public final class StringAnalyzer {
                 }
             }
 
-            try (PreparedStatement stmt = view.connection().prepareStatement(CONTENT_DEDUP_SQL)) {
+            try (PreparedStatement stmt = view.databaseClient().connection().prepareStatement(CONTENT_DEDUP_SQL)) {
                 stmt.setInt(1, valueFieldId);
                 stmt.setLong(2, stringClass.classId());
                 try (ResultSet rs = stmt.executeQuery()) {

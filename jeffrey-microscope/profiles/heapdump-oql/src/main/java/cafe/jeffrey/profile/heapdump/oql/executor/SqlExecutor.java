@@ -40,7 +40,7 @@ public final class SqlExecutor {
     }
 
     public static OQLQueryResult execute(SqlPlan plan, HeapView view, int limit) throws SQLException {
-        Connection conn = view.connection();
+        Connection conn = view.databaseClient().connection();
         String sql = ensureLimit(plan.sql(), limit);
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             bindParams(stmt, plan.params());

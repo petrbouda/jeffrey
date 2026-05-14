@@ -68,7 +68,7 @@ public final class RetainedSetExpander {
                 frontier.add(e.objectId());
             }
         }
-        Connection conn = view.connection();
+        Connection conn = view.databaseClient().connection();
         try (PreparedStatement stmt = conn.prepareStatement(CHILDREN_OF_DOMINATOR_SQL)) {
             while (!frontier.isEmpty() && retained.size() < MAX_RETAINED_SET_SIZE) {
                 long parentId = frontier.poll();

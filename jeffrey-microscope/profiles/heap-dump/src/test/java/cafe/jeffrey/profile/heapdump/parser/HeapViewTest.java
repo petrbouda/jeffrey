@@ -300,7 +300,7 @@ class HeapViewTest {
         void exposesUnderlyingConnectionForAdHocSql(@TempDir Path tmp) throws IOException, SQLException {
             Path indexDb = buildIndex(tmp);
             try (HeapView view = HeapView.open(indexDb);
-                 Statement stmt = view.connection().createStatement();
+                 Statement stmt = view.databaseClient().connection().createStatement();
                  ResultSet rs = stmt.executeQuery(
                          "SELECT name FROM class WHERE classloader_id = " + CLASSLOADER
                                  + " AND is_array = FALSE ORDER BY name")) {

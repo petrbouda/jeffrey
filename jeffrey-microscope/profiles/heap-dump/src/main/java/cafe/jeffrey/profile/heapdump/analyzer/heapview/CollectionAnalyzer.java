@@ -121,7 +121,7 @@ public final class CollectionAnalyzer {
                 Acc acc = byType.computeIfAbsent(shape.className, k -> new Acc());
 
                 try (PreparedStatement stmt =
-                             view.connection().prepareStatement(COLLECTIONS_WITH_ARRAY_SQL)) {
+                             view.databaseClient().connection().prepareStatement(COLLECTIONS_WITH_ARRAY_SQL)) {
                     stmt.setInt(1, layout.arrayFieldId);
                     stmt.setLong(2, cls.classId());
                     try (ResultSet rs = stmt.executeQuery()) {

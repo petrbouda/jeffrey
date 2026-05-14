@@ -18,6 +18,8 @@
 module cafe.jeffrey.microscope.profile.heapdump {
     requires transitive cafe.jeffrey.shared.common;
     requires cafe.jeffrey.microscope.profile.common;
+    requires cafe.jeffrey.shared.persistence;
+    requires cafe.jeffrey.jfr.events;
     requires java.sql;
     requires duckdb.jdbc;
     requires tools.jackson.databind;
@@ -26,4 +28,5 @@ module cafe.jeffrey.microscope.profile.heapdump {
     exports cafe.jeffrey.profile.heapdump.analyzer.heapview;
     exports cafe.jeffrey.profile.heapdump.model;
     exports cafe.jeffrey.profile.heapdump.parser;
+    exports cafe.jeffrey.profile.heapdump.persistence;
 }

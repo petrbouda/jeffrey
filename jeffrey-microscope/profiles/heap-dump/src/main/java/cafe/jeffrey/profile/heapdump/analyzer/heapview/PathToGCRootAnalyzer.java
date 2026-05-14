@@ -136,7 +136,7 @@ public final class PathToGCRootAnalyzer {
 
     private static Map<Long, Integer> loadGcRoots(HeapView view) throws SQLException {
         Map<Long, Integer> out = new HashMap<>();
-        try (Statement stmt = view.connection().createStatement();
+        try (Statement stmt = view.databaseClient().connection().createStatement();
              ResultSet rs = stmt.executeQuery("SELECT instance_id, root_kind FROM gc_root")) {
             while (rs.next()) {
                 // If an instance is rooted multiple ways, the most recent kind wins — fine for path display.
@@ -262,7 +262,7 @@ public final class PathToGCRootAnalyzer {
         if (inst == null || inst.classId() == null) {
             // GC roots can be classes themselves (ROOT_STICKY_CLASS), which means the
             // instance-table row is missing but the class table has the entry.
-            try (PreparedStatement stmt = view.connection().prepareStatement(
+            try (PreparedStatement stmt = view.databaseClient().connection().prepareStatement(
                     "SELECT name FROM class WHERE class_id = ?")) {
                 stmt.setLong(1, instanceId);
                 try (ResultSet rs = stmt.executeQuery()) {

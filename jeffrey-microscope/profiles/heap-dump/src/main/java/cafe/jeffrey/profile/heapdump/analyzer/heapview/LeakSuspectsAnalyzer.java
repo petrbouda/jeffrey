@@ -107,7 +107,7 @@ public final class LeakSuspectsAnalyzer {
         Map<Long, LoaderAcc> byLoader = new HashMap<>();
         Map<Long, String> loaderNameCache = new HashMap<>();
 
-        try (PreparedStatement stmt = view.connection().prepareStatement(sql)) {
+        try (PreparedStatement stmt = view.databaseClient().connection().prepareStatement(sql)) {
             stmt.setLong(1, thresholdBytes);
             stmt.setInt(2, topN);
             try (ResultSet rs = stmt.executeQuery()) {
@@ -172,7 +172,7 @@ public final class LeakSuspectsAnalyzer {
         if (cached != null) {
             return cached;
         }
-        try (PreparedStatement stmt = view.connection().prepareStatement(
+        try (PreparedStatement stmt = view.databaseClient().connection().prepareStatement(
                 "SELECT c.name FROM instance i JOIN class c ON i.class_id = c.class_id "
                         + "WHERE i.instance_id = ?")) {
             stmt.setLong(1, loaderInstanceId);

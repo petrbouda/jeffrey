@@ -71,7 +71,7 @@ public final class ConsumerReportAnalyzer {
         long totalHeapSize = 0;
 
         // One pass: per-class shallow totals, joined to class name + classloader.
-        try (Statement stmt = view.connection().createStatement();
+        try (Statement stmt = view.databaseClient().connection().createStatement();
              ResultSet rs = stmt.executeQuery(
                      "SELECT c.name, c.classloader_id, COUNT(*) AS instance_count, "
                              + "SUM(i.shallow_size) AS total_shallow "
@@ -142,7 +142,7 @@ public final class ConsumerReportAnalyzer {
         if (cached != null) {
             return cached;
         }
-        try (PreparedStatement stmt = view.connection().prepareStatement(
+        try (PreparedStatement stmt = view.databaseClient().connection().prepareStatement(
                 "SELECT c.name FROM instance i JOIN class c ON i.class_id = c.class_id "
                         + "WHERE i.instance_id = ?")) {
             stmt.setLong(1, loaderInstanceId);

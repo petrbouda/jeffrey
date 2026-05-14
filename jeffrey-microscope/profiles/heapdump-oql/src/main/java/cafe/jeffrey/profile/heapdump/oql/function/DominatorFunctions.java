@@ -53,7 +53,7 @@ public final class DominatorFunctions {
     }
 
     public static List<InstanceRow> dominators(HeapView view, long instanceId) throws SQLException {
-        Connection conn = view.connection();
+        Connection conn = view.databaseClient().connection();
         try (PreparedStatement stmt = conn.prepareStatement(DOMINATED_CHILDREN_SQL)) {
             stmt.setLong(1, instanceId);
             try (ResultSet rs = stmt.executeQuery()) {

@@ -17,6 +17,10 @@
  */
 package cafe.jeffrey.profile.heapdump.parser;
 
+import cafe.jeffrey.profile.heapdump.persistence.HeapDumpDatabaseClient;
+import cafe.jeffrey.profile.heapdump.persistence.HeapDumpStatement;
+import cafe.jeffrey.shared.persistence.GroupLabel;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
@@ -26,7 +30,6 @@ import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
-import java.sql.Statement;
 import org.duckdb.DuckDBConnection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -58,10 +61,12 @@ public final class HeapDumpIndexDb implements AutoCloseable {
 
     private final Path path;
     private final DuckDBConnection connection;
+    private final HeapDumpDatabaseClient databaseClient;
 
     private HeapDumpIndexDb(Path path, DuckDBConnection connection) {
         this.path = path;
         this.connection = connection;
+        this.databaseClient = new HeapDumpDatabaseClient(connection, GroupLabel.HEAP_DUMP_INDEX);
     }
 
     /**
@@ -88,8 +93,9 @@ public final class HeapDumpIndexDb implements AutoCloseable {
             throw t;
         }
 
+        HeapDumpIndexDb db = new HeapDumpIndexDb(path, duckConn);
         try {
-            applySchema(duckConn);
+            db.applySchema();
         } catch (Throwable t) {
             try {
                 duckConn.close();
@@ -99,11 +105,15 @@ public final class HeapDumpIndexDb implements AutoCloseable {
         }
 
         LOG.debug("Opened heap dump index db: path={}", path);
-        return new HeapDumpIndexDb(path, duckConn);
+        return db;
     }
 
     public DuckDBConnection connection() {
         return connection;
+    }
+
+    public HeapDumpDatabaseClient databaseClient() {
+        return databaseClient;
     }
 
     public Path path() {
@@ -115,13 +125,10 @@ public final class HeapDumpIndexDb implements AutoCloseable {
         connection.close();
     }
 
-    private static void applySchema(DuckDBConnection conn) throws IOException, SQLException {
-        String sql = loadResource(SCHEMA_RESOURCE);
-        try (Statement s = conn.createStatement()) {
-            // DuckDB JDBC supports running multiple ;-delimited statements in a single execute.
-            s.execute(sql);
-            s.execute(PRAGMA_WAL_AUTOCHECKPOINT);
-        }
+    private void applySchema() throws IOException {
+        // DuckDB JDBC supports running multiple ;-delimited statements in a single execute.
+        databaseClient.execute(HeapDumpStatement.APPLY_SCHEMA, loadResource(SCHEMA_RESOURCE));
+        databaseClient.execute(HeapDumpStatement.WAL_AUTOCHECKPOINT_PRAGMA, PRAGMA_WAL_AUTOCHECKPOINT);
     }
 
     private static String loadResource(String resource) throws IOException {

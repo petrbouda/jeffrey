@@ -100,7 +100,7 @@ public final class ThreadAnalyzer {
         boolean haveRetained = view.hasDominatorTree();
         List<HeapThreadInfo> out = new ArrayList<>();
 
-        try (Statement stmt = view.connection().createStatement();
+        try (Statement stmt = view.databaseClient().connection().createStatement();
              ResultSet rs = stmt.executeQuery(THREAD_BULK_SQL)) {
             while (rs.next()) {
                 long threadInstanceId = rs.getLong(1);
@@ -217,7 +217,7 @@ public final class ThreadAnalyzer {
     }
 
     private static Long probeRetainedSize(HeapView view, long instanceId) throws SQLException {
-        try (PreparedStatement stmt = view.connection().prepareStatement(
+        try (PreparedStatement stmt = view.databaseClient().connection().prepareStatement(
                 "SELECT bytes FROM retained_size WHERE instance_id = ?")) {
             stmt.setLong(1, instanceId);
             try (ResultSet rs = stmt.executeQuery()) {

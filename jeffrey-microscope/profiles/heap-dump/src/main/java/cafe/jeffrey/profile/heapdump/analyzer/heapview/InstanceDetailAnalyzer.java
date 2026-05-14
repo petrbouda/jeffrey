@@ -145,7 +145,7 @@ public final class InstanceDetailAnalyzer {
     }
 
     private static String resolveClassNameByInstance(HeapView view, long instanceId) throws SQLException {
-        try (PreparedStatement stmt = view.connection().prepareStatement(
+        try (PreparedStatement stmt = view.databaseClient().connection().prepareStatement(
                 "SELECT c.name FROM instance i JOIN class c ON i.class_id = c.class_id "
                         + "WHERE i.instance_id = ?")) {
             stmt.setLong(1, instanceId);
@@ -156,7 +156,7 @@ public final class InstanceDetailAnalyzer {
     }
 
     private static Long probeRetained(HeapView view, long instanceId) throws SQLException {
-        try (PreparedStatement stmt = view.connection().prepareStatement(
+        try (PreparedStatement stmt = view.databaseClient().connection().prepareStatement(
                 "SELECT bytes FROM retained_size WHERE instance_id = ?")) {
             stmt.setLong(1, instanceId);
             try (ResultSet rs = stmt.executeQuery()) {

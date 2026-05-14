@@ -26,6 +26,9 @@ import cafe.jeffrey.profile.heapdump.parser.InstanceFieldValue;
 import cafe.jeffrey.profile.heapdump.parser.InstanceRow;
 import cafe.jeffrey.profile.heapdump.parser.JavaClassRow;
 import cafe.jeffrey.profile.heapdump.parser.OutboundRefRow;
+import cafe.jeffrey.profile.heapdump.persistence.HeapDumpDatabaseClient;
+import cafe.jeffrey.shared.persistence.GroupLabel;
+import org.duckdb.DuckDBConnection;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -83,8 +86,12 @@ final class TestHeapView implements HeapView {
     }
 
     @Override
-    public Connection connection() {
-        return connection;
+    public HeapDumpDatabaseClient databaseClient() {
+        try {
+            return new HeapDumpDatabaseClient(connection.unwrap(DuckDBConnection.class), GroupLabel.HEAP_DUMP_VIEW);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override

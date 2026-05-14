@@ -130,7 +130,7 @@ public final class ClassLoaderAnalyzer {
         record LoaderAggregate(long loaderId, int classCount, long totalShallow) {}
 
         List<LoaderAggregate> aggregates = new ArrayList<>();
-        try (Statement stmt = view.connection().createStatement();
+        try (Statement stmt = view.databaseClient().connection().createStatement();
              ResultSet rs = stmt.executeQuery(AGGREGATE_SQL)) {
             while (rs.next()) {
                 long loaderObjectId = rs.getLong(1);
@@ -142,7 +142,7 @@ public final class ClassLoaderAnalyzer {
         }
 
         List<ClassLoaderInfo> rows = new ArrayList<>(aggregates.size());
-        try (PreparedStatement retainedStmt = view.connection().prepareStatement(LOADER_RETAINED_SQL)) {
+        try (PreparedStatement retainedStmt = view.databaseClient().connection().prepareStatement(LOADER_RETAINED_SQL)) {
             for (LoaderAggregate a : aggregates) {
                 long retained = a.loaderId == 0L ? 0L : lookupRetained(retainedStmt, a.loaderId);
                 String loaderClassName = a.loaderId == 0L
@@ -167,7 +167,7 @@ public final class ClassLoaderAnalyzer {
     private static List<DuplicateClassInfo> findDuplicateClasses(
             HeapView view, Map<Long, String> loaderNameCache) throws SQLException {
         Map<String, List<Long>> byName = new LinkedHashMap<>();
-        try (Statement stmt = view.connection().createStatement();
+        try (Statement stmt = view.databaseClient().connection().createStatement();
              ResultSet rs = stmt.executeQuery(DUPLICATE_SQL)) {
             while (rs.next()) {
                 String name = rs.getString(1);
@@ -198,7 +198,7 @@ public final class ClassLoaderAnalyzer {
         if (cached != null) {
             return cached;
         }
-        try (PreparedStatement stmt = view.connection().prepareStatement(
+        try (PreparedStatement stmt = view.databaseClient().connection().prepareStatement(
                 "SELECT c.name FROM instance i JOIN class c ON i.class_id = c.class_id "
                         + "WHERE i.instance_id = ?")) {
             stmt.setLong(1, loaderInstanceId);

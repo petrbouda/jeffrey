@@ -82,7 +82,7 @@ public final class InstanceTreeAnalyzer {
 
         long totalChildren = countChildren(view, request);
         List<InstanceTreeNode> children = new ArrayList<>();
-        try (PreparedStatement stmt = view.connection().prepareStatement(sql)) {
+        try (PreparedStatement stmt = view.databaseClient().connection().prepareStatement(sql)) {
             stmt.setLong(1, request.objectId());
             stmt.setInt(2, request.limit());
             stmt.setInt(3, request.offset());
@@ -103,7 +103,7 @@ public final class InstanceTreeAnalyzer {
 
     private static long countChildren(HeapView view, InstanceTreeRequest req) throws SQLException {
         String column = req.mode() == InstanceTreeRequest.TreeMode.REFERRERS ? "target_id" : "source_id";
-        try (PreparedStatement stmt = view.connection().prepareStatement(
+        try (PreparedStatement stmt = view.databaseClient().connection().prepareStatement(
                 "SELECT COUNT(*) FROM outbound_ref WHERE " + column + " = ?")) {
             stmt.setLong(1, req.objectId());
             try (ResultSet rs = stmt.executeQuery()) {
@@ -129,7 +129,7 @@ public final class InstanceTreeAnalyzer {
     }
 
     private static long countChildrenAny(HeapView view, long instanceId) throws SQLException {
-        try (PreparedStatement stmt = view.connection().prepareStatement(
+        try (PreparedStatement stmt = view.databaseClient().connection().prepareStatement(
                 "SELECT COUNT(*) FROM outbound_ref WHERE source_id = ? OR target_id = ?")) {
             stmt.setLong(1, instanceId);
             stmt.setLong(2, instanceId);
@@ -198,7 +198,7 @@ public final class InstanceTreeAnalyzer {
     }
 
     private static Long probeRetained(HeapView view, long instanceId) throws SQLException {
-        try (PreparedStatement stmt = view.connection().prepareStatement(
+        try (PreparedStatement stmt = view.databaseClient().connection().prepareStatement(
                 "SELECT bytes FROM retained_size WHERE instance_id = ?")) {
             stmt.setLong(1, instanceId);
             try (ResultSet rs = stmt.executeQuery()) {

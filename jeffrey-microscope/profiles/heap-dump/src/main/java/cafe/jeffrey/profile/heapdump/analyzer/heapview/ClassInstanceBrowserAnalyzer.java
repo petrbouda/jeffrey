@@ -71,7 +71,7 @@ public final class ClassInstanceBrowserAnalyzer {
         boolean haveDom = view.hasDominatorTree();
 
         List<ClassInstanceEntry> entries = new ArrayList<>();
-        try (PreparedStatement stmt = view.connection().prepareStatement(
+        try (PreparedStatement stmt = view.databaseClient().connection().prepareStatement(
                 "SELECT instance_id, shallow_size FROM instance "
                         + "WHERE class_id = ? ORDER BY instance_id LIMIT ? OFFSET ?")) {
             stmt.setLong(1, classId);
@@ -106,7 +106,7 @@ public final class ClassInstanceBrowserAnalyzer {
     }
 
     private static Long probeRetained(HeapView view, long instanceId) throws SQLException {
-        try (PreparedStatement stmt = view.connection().prepareStatement(
+        try (PreparedStatement stmt = view.databaseClient().connection().prepareStatement(
                 "SELECT bytes FROM retained_size WHERE instance_id = ?")) {
             stmt.setLong(1, instanceId);
             try (ResultSet rs = stmt.executeQuery()) {

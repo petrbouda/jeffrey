@@ -17,14 +17,13 @@
  */
 package cafe.jeffrey.profile.heapdump.analyzer.heapview;
 
-import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import cafe.jeffrey.profile.heapdump.model.GCRootSummary;
 import cafe.jeffrey.profile.heapdump.parser.HeapView;
 import cafe.jeffrey.profile.heapdump.parser.HprofTag;
+import cafe.jeffrey.profile.heapdump.persistence.HeapDumpStatement;
 
 /**
  * HeapView-backed equivalent of
@@ -41,19 +40,24 @@ public final class GcRootAnalyzer {
 
     public static GCRootSummary analyze(HeapView view) throws SQLException {
         Map<String, Long> rootsByType = new LinkedHashMap<>();
-        long total = 0;
+        long[] totalBox = {0L};
 
-        try (Statement stmt = view.connection().createStatement();
-             ResultSet rs = stmt.executeQuery(
-                     "SELECT root_kind, COUNT(*) FROM gc_root GROUP BY root_kind ORDER BY 2 DESC")) {
-            while (rs.next()) {
-                int kind = rs.getInt(1);
-                long count = rs.getLong(2);
-                rootsByType.merge(kindName(kind), count, Long::sum);
-                total += count;
-            }
-        }
+        view.databaseClient().rawStream(
+                HeapDumpStatement.GC_ROOT_SUMMARY,
+                "SELECT root_kind, COUNT(*) FROM gc_root GROUP BY root_kind ORDER BY 2 DESC",
+                rs -> {
+                    long rows = 0;
+                    while (rs.next()) {
+                        int kind = rs.getInt(1);
+                        long count = rs.getLong(2);
+                        rootsByType.merge(kindName(kind), count, Long::sum);
+                        totalBox[0] += count;
+                        rows++;
+                    }
+                    return rows;
+                });
 
+        long total = totalBox[0];
         if (total == 0) {
             return GCRootSummary.EMPTY;
         }

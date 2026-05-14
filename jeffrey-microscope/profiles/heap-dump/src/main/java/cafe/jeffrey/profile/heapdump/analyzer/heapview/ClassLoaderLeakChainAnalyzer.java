@@ -99,7 +99,7 @@ public final class ClassLoaderLeakChainAnalyzer {
         // Aggregate per-loader stats. We count classes and approximate per-class shallow
         // (instance_size × COUNT(*) of instances) — same approach as ClassLoaderAnalyzer.
         Map<Long, LoaderInfo> byId = new HashMap<>();
-        try (Statement stmt = view.connection().createStatement();
+        try (Statement stmt = view.databaseClient().connection().createStatement();
              ResultSet rs = stmt.executeQuery(
                      "SELECT c.classloader_id, c.class_id, c.instance_size, "
                              + "(SELECT COUNT(*) FROM instance i WHERE i.class_id = c.class_id) "
@@ -139,7 +139,7 @@ public final class ClassLoaderLeakChainAnalyzer {
     private static Set<String> collectDuplicateLoaderNames(HeapView view) throws SQLException {
         Set<String> dup = new HashSet<>();
         // Class names appearing under more than one classloader_id.
-        try (Statement stmt = view.connection().createStatement();
+        try (Statement stmt = view.databaseClient().connection().createStatement();
              ResultSet rs = stmt.executeQuery(
                      "SELECT name FROM class WHERE classloader_id IS NOT NULL "
                              + "GROUP BY name HAVING COUNT(DISTINCT classloader_id) > 1")) {
@@ -151,7 +151,7 @@ public final class ClassLoaderLeakChainAnalyzer {
     }
 
     private static String resolveLoaderClassName(HeapView view, long loaderInstanceId) throws SQLException {
-        try (PreparedStatement stmt = view.connection().prepareStatement(
+        try (PreparedStatement stmt = view.databaseClient().connection().prepareStatement(
                 "SELECT c.name FROM instance i JOIN class c ON i.class_id = c.class_id "
                         + "WHERE i.instance_id = ?")) {
             stmt.setLong(1, loaderInstanceId);
@@ -162,7 +162,7 @@ public final class ClassLoaderLeakChainAnalyzer {
     }
 
     private static long probeRetained(HeapView view, long instanceId) throws SQLException {
-        try (PreparedStatement stmt = view.connection().prepareStatement(
+        try (PreparedStatement stmt = view.databaseClient().connection().prepareStatement(
                 "SELECT bytes FROM retained_size WHERE instance_id = ?")) {
             stmt.setLong(1, instanceId);
             try (ResultSet rs = stmt.executeQuery()) {

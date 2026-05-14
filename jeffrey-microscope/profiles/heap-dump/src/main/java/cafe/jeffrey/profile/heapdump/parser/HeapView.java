@@ -17,9 +17,10 @@
  */
 package cafe.jeffrey.profile.heapdump.parser;
 
+import cafe.jeffrey.profile.heapdump.persistence.HeapDumpDatabaseClient;
+
 import java.io.IOException;
 import java.nio.file.Path;
-import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Optional;
@@ -220,11 +221,17 @@ public interface HeapView extends AutoCloseable {
     // ---- Escape hatch ----------------------------------------------------
 
     /**
-     * The underlying DuckDB connection, for analyzers that need ad-hoc SQL
-     * the typed methods don't cover. Callers must not close it; the
-     * {@link HeapView} owns the lifecycle.
+     * The JFR-instrumented client for analyzer SQL. Every query that goes
+     * through this client emits a {@code JdbcQueryEvent} /
+     * {@code JdbcStreamEvent} tagged with {@code group=heap_dump_view}.
+     *
+     * <p>Use {@code databaseClient().connection()} when an analyzer needs raw
+     * JDBC for an ad-hoc query that doesn't map cleanly to the typed helpers
+     * (queryScalar / queryList / queryStream / rawStream). The intent is that
+     * raw access remains available but is a deliberate step through the
+     * instrumented client rather than a silent bypass.
      */
-    Connection connection();
+    HeapDumpDatabaseClient databaseClient();
 
     @Override
     void close();

@@ -151,7 +151,7 @@ public final class BiggestCollectionsAnalyzer {
                 classNameByClassId.put(cls.classId(), shape.className);
 
                 try (PreparedStatement stmt =
-                             view.connection().prepareStatement(COLLECTIONS_SQL)) {
+                             view.databaseClient().connection().prepareStatement(COLLECTIONS_SQL)) {
                     stmt.setInt(1, layout.arrayFieldId);
                     stmt.setLong(2, cls.classId());
                     try (ResultSet rs = stmt.executeQuery()) {
@@ -207,7 +207,7 @@ public final class BiggestCollectionsAnalyzer {
         }
 
         Map<Long, String> ownerClassByCollectionId = new HashMap<>(survivors.size() * 2);
-        try (PreparedStatement ownerStmt = view.connection().prepareStatement(OWNER_CLASS_SQL)) {
+        try (PreparedStatement ownerStmt = view.databaseClient().connection().prepareStatement(OWNER_CLASS_SQL)) {
             for (long collId : survivors) {
                 ownerStmt.setLong(1, collId);
                 try (ResultSet rs = ownerStmt.executeQuery()) {

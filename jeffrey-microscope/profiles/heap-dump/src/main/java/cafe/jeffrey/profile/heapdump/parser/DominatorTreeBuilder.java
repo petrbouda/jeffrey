@@ -17,26 +17,26 @@
  */
 package cafe.jeffrey.profile.heapdump.parser;
 
+import cafe.jeffrey.profile.heapdump.model.SubPhaseTiming;
+import cafe.jeffrey.profile.heapdump.persistence.HeapDumpDatabaseClient;
+import cafe.jeffrey.profile.heapdump.persistence.HeapDumpStatement;
+import cafe.jeffrey.shared.common.measure.Elapsed;
+import cafe.jeffrey.shared.common.measure.Measuring;
+import cafe.jeffrey.shared.persistence.GroupLabel;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DriverManager;
-import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
-import org.duckdb.DuckDBAppender;
 import org.duckdb.DuckDBConnection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import cafe.jeffrey.profile.heapdump.model.SubPhaseTiming;
-import cafe.jeffrey.shared.common.measure.Elapsed;
-import cafe.jeffrey.shared.common.measure.Measuring;
 
 /**
  * Computes the dominator tree of the heap reference graph and the retained
@@ -109,15 +109,15 @@ public final class DominatorTreeBuilder {
         try (Connection raw = DriverManager.getConnection(url, props);
              DuckDBConnection conn = raw.unwrap(DuckDBConnection.class)) {
 
-            try (Statement s = conn.createStatement()) {
-                s.execute(PRAGMA_WAL_AUTOCHECKPOINT);
-                s.execute("DELETE FROM dominator");
-                s.execute("DELETE FROM retained_size");
-            }
+            HeapDumpDatabaseClient client = new HeapDumpDatabaseClient(conn, GroupLabel.HEAP_DUMP_INDEX);
+
+            client.execute(HeapDumpStatement.WAL_AUTOCHECKPOINT_PRAGMA, PRAGMA_WAL_AUTOCHECKPOINT);
+            client.execute(HeapDumpStatement.DELETE_DOMINATOR, "DELETE FROM dominator");
+            client.execute(HeapDumpStatement.DELETE_RETAINED_SIZE, "DELETE FROM retained_size");
 
             Elapsed<BuildResult> elapsed = Measuring.s(() -> {
                 try {
-                    return doBuild(conn);
+                    return doBuild(client);
                 } catch (SQLException e) {
                     throw new RuntimeException(e);
                 }
@@ -126,9 +126,7 @@ public final class DominatorTreeBuilder {
             BuildResult timed = new BuildResult(
                     r.reachableInstances, r.rootEdges, r.iterations, elapsed.duration(), r.subPhases());
 
-            try (Statement s = conn.createStatement()) {
-                s.execute("CHECKPOINT");
-            }
+            client.execute(HeapDumpStatement.CHECKPOINT, "CHECKPOINT");
             LOG.debug("Dominator tree built: path={} reachable={} roots={} iterations={} duration_ms={}",
                     indexDbPath, timed.reachableInstances, timed.rootEdges, timed.iterations,
                     timed.buildTime.toMillis());
@@ -136,8 +134,8 @@ public final class DominatorTreeBuilder {
         }
     }
 
-    private static BuildResult doBuild(DuckDBConnection conn) throws SQLException {
-        Elapsed<InstanceMeta> metaE = measure(() -> loadInstanceMeta(conn));
+    private static BuildResult doBuild(HeapDumpDatabaseClient client) throws SQLException {
+        Elapsed<InstanceMeta> metaE = measure(() -> loadInstanceMeta(client));
         InstanceMeta meta = metaE.entity();
         long[] ids = meta.ids();
         long[] shallow = meta.shallow();
@@ -145,7 +143,7 @@ public final class DominatorTreeBuilder {
         int virtualIndex = ids.length;
         int totalNodes = ids.length + 1;
 
-        Elapsed<int[][]> succE = measure(() -> loadSuccessors(conn, ids, virtualIndex));
+        Elapsed<int[][]> succE = measure(() -> loadSuccessors(client, ids, virtualIndex));
         int[][] succ = succE.entity();
 
         Elapsed<int[][]> predE = Measuring.s(() -> invert(succ, totalNodes));
@@ -188,7 +186,7 @@ public final class DominatorTreeBuilder {
         // execute an unsuccessful or closed pending query result". Same
         // constraint that forced HprofIndex Pass B to be sequential.
         Duration persistDuration = Measuring.r(() -> {
-            try (DuckDBAppender app = conn.createAppender("dominator")) {
+            client.withAppender(HeapDumpStatement.APPEND_DOMINATOR, "dominator", app -> {
                 long[] instanceIds = rows.instanceIds();
                 long[] dominatorIds = rows.dominatorIds();
                 for (int i = 0; i < rows.count(); i++) {
@@ -197,10 +195,9 @@ public final class DominatorTreeBuilder {
                     app.append(dominatorIds[i]);
                     app.endRow();
                 }
-            } catch (SQLException e) {
-                throw new RuntimeException(e);
-            }
-            try (DuckDBAppender app = conn.createAppender("retained_size")) {
+                return (long) rows.count();
+            });
+            client.withAppender(HeapDumpStatement.APPEND_RETAINED_SIZE, "retained_size", app -> {
                 long[] instanceIds = rows.instanceIds();
                 long[] retainedBytes = rows.retainedBytes();
                 for (int i = 0; i < rows.count(); i++) {
@@ -209,9 +206,8 @@ public final class DominatorTreeBuilder {
                     app.append(retainedBytes[i]);
                     app.endRow();
                 }
-            } catch (SQLException e) {
-                throw new RuntimeException(e);
-            }
+                return (long) rows.count();
+            });
         });
 
         LOG.debug(
@@ -511,24 +507,22 @@ public final class DominatorTreeBuilder {
     private record InstanceMeta(long[] ids, long[] shallow) {
     }
 
-    private static InstanceMeta loadInstanceMeta(Connection conn) throws SQLException {
-        int count;
-        try (Statement s = conn.createStatement();
-             ResultSet rs = s.executeQuery("SELECT COUNT(*) FROM instance")) {
-            count = rs.next() ? rs.getInt(1) : 0;
-        }
+    private static InstanceMeta loadInstanceMeta(HeapDumpDatabaseClient client) {
+        int count = (int) client.queryLong(HeapDumpStatement.TOTAL_INSTANCE_COUNT, "SELECT COUNT(*) FROM instance");
         long[] ids = new long[count];
         long[] shallow = new long[count];
-        int i = 0;
-        try (Statement s = conn.createStatement();
-             ResultSet rs = s.executeQuery(
-                     "SELECT instance_id, shallow_size FROM instance ORDER BY instance_id")) {
-            while (rs.next() && i < count) {
-                ids[i] = rs.getLong(1);
-                shallow[i] = rs.getInt(2);
-                i++;
-            }
-        }
+        int[] iBox = {0};
+        client.rawStream(HeapDumpStatement.STREAM_INSTANCES_BY_CLASS,
+                "SELECT instance_id, shallow_size FROM instance ORDER BY instance_id",
+                rs -> {
+                    while (rs.next() && iBox[0] < count) {
+                        ids[iBox[0]] = rs.getLong(1);
+                        shallow[iBox[0]] = rs.getInt(2);
+                        iBox[0]++;
+                    }
+                    return iBox[0];
+                });
+        int i = iBox[0];
         if (i != count) {
             // Defensive: COUNT(*) and the scan returned different row counts
             // (concurrent write, or count overflow). Truncate to actually read.
@@ -553,32 +547,36 @@ public final class DominatorTreeBuilder {
      * edge graph used to box both source and target into {@code Integer}.
      */
     private static int[][] loadSuccessors(
-            Connection conn, long[] ids, int virtualIndex) throws SQLException {
+            HeapDumpDatabaseClient client, long[] ids, int virtualIndex) {
         int n = ids.length + 1;
         int[] outDeg = new int[n];
 
         // Pass 1a: count outbound_ref edges by source.
-        try (Statement s = conn.createStatement();
-             ResultSet rs = s.executeQuery(OUTBOUND_REF_SQL)) {
+        client.rawStream(HeapDumpStatement.OUTBOUND_REFS, OUTBOUND_REF_SQL, rs -> {
+            long rows = 0;
             while (rs.next()) {
                 int src = indexOf(ids, rs.getLong(1));
                 int dst = indexOf(ids, rs.getLong(2));
                 if (src >= 0 && dst >= 0) {
                     outDeg[src]++;
                 }
+                rows++;
             }
-        }
+            return rows;
+        });
 
         // Pass 1b: count gc_root edges from virtual root.
-        try (Statement s = conn.createStatement();
-             ResultSet rs = s.executeQuery(GC_ROOT_DISTINCT_SQL)) {
+        client.rawStream(HeapDumpStatement.GC_ROOTS, GC_ROOT_DISTINCT_SQL, rs -> {
+            long rows = 0;
             while (rs.next()) {
                 int dst = indexOf(ids, rs.getLong(1));
                 if (dst >= 0) {
                     outDeg[virtualIndex]++;
                 }
+                rows++;
             }
-        }
+            return rows;
+        });
 
         int[][] out = new int[n][];
         for (int i = 0; i < n; i++) {
@@ -588,26 +586,30 @@ public final class DominatorTreeBuilder {
         // Pass 2: fill edges using cursor[] to track per-row write position.
         int[] cursor = new int[n];
 
-        try (Statement s = conn.createStatement();
-             ResultSet rs = s.executeQuery(OUTBOUND_REF_SQL)) {
+        client.rawStream(HeapDumpStatement.OUTBOUND_REFS, OUTBOUND_REF_SQL, rs -> {
+            long rows = 0;
             while (rs.next()) {
                 int src = indexOf(ids, rs.getLong(1));
                 int dst = indexOf(ids, rs.getLong(2));
                 if (src >= 0 && dst >= 0) {
                     out[src][cursor[src]++] = dst;
                 }
+                rows++;
             }
-        }
+            return rows;
+        });
 
-        try (Statement s = conn.createStatement();
-             ResultSet rs = s.executeQuery(GC_ROOT_DISTINCT_SQL)) {
+        client.rawStream(HeapDumpStatement.GC_ROOTS, GC_ROOT_DISTINCT_SQL, rs -> {
+            long rows = 0;
             while (rs.next()) {
                 int dst = indexOf(ids, rs.getLong(1));
                 if (dst >= 0) {
                     out[virtualIndex][cursor[virtualIndex]++] = dst;
                 }
+                rows++;
             }
-        }
+            return rows;
+        });
 
         return out;
     }
