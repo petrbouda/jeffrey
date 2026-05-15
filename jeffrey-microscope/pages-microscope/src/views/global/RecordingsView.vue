@@ -179,7 +179,7 @@
       <div v-if="allRecordings.length > 0 || allGroups.length > 0" class="group-bar">
         <span class="group-bar-label">Group</span>
         <button
-          class="group-chip"
+          class="group-chip group-chip-all"
           :class="{ active: viewFilter === 'all' }"
           type="button"
           @click="selectFilter('all', null)"
@@ -188,9 +188,26 @@
           <span class="chip-count">{{ allRecordings.length }}</span>
         </button>
         <button
+          v-if="ungroupedCount > 0"
+          class="group-chip group-chip-ungrouped"
+          :class="{
+            active: viewFilter === '__ungrouped__',
+            'drop-target': dragOverGroupKey === '__ungrouped__'
+          }"
+          type="button"
+          @click="selectFilter('__ungrouped__', null)"
+          @dragover="onChipDragOver($event, '__ungrouped__')"
+          @dragleave="onChipDragLeave($event, '__ungrouped__')"
+          @drop="onChipDrop($event, null)"
+        >
+          <i class="bi bi-collection"></i>
+          Ungrouped
+          <span class="chip-count">{{ ungroupedCount }}</span>
+        </button>
+        <button
           v-for="group in sortedGroups"
           :key="group.id"
-          class="group-chip"
+          class="group-chip group-chip-custom"
           :class="{
             active: viewFilter === group.id,
             'drop-target': dragOverGroupKey === group.id
@@ -211,23 +228,6 @@
           >
             <i class="bi bi-trash"></i>
           </span>
-        </button>
-        <button
-          v-if="ungroupedCount > 0"
-          class="group-chip"
-          :class="{
-            active: viewFilter === '__ungrouped__',
-            'drop-target': dragOverGroupKey === '__ungrouped__'
-          }"
-          type="button"
-          @click="selectFilter('__ungrouped__', null)"
-          @dragover="onChipDragOver($event, '__ungrouped__')"
-          @dragleave="onChipDragLeave($event, '__ungrouped__')"
-          @drop="onChipDrop($event, null)"
-        >
-          <i class="bi bi-collection"></i>
-          Ungrouped
-          <span class="chip-count">{{ ungroupedCount }}</span>
         </button>
         <button
           class="new-group-btn"
@@ -1275,6 +1275,45 @@ const onDragEnd = () => {
 .group-chip:hover {
   border-color: var(--color-primary);
   color: var(--color-primary);
+}
+
+.group-chip-all {
+  border-left: 3px solid var(--color-slate-muted);
+  padding-left: 9px;
+}
+
+.group-chip-all:hover {
+  border-left-color: var(--color-slate-muted);
+}
+
+.group-chip-all.active {
+  border-left-color: var(--color-slate-muted);
+}
+
+.group-chip-custom {
+  border-left: 3px solid var(--color-teal);
+  padding-left: 9px;
+}
+
+.group-chip-custom:hover {
+  border-left-color: var(--color-teal);
+}
+
+.group-chip-custom.active {
+  border-left-color: var(--color-teal);
+}
+
+.group-chip-ungrouped {
+  border-left: 3px solid var(--color-amber);
+  padding-left: 9px;
+}
+
+.group-chip-ungrouped:hover {
+  border-left-color: var(--color-amber);
+}
+
+.group-chip-ungrouped.active {
+  border-left-color: var(--color-amber);
 }
 
 .group-chip > i {
