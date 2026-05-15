@@ -183,7 +183,7 @@ public final class HprofIndex {
         // Drop every non-PK index before the bulk writes so per-row writes
         // skip the per-insert ART-tree updates. Recreated in bulk at the end,
         // which DuckDB executes far faster than 30 M incremental inserts.
-        Duration dropIndexesD = measureSqlVoid(() -> dropNonPkIndexes(client));
+        Duration dropIndexesD = measureSqlVoid(() -> HprofNonPkIndexes.dropAll(client));
 
         // Pass A — sequential, class-dumps only. Produces the read-only
         // ClassDumpIndex that Pass B and downstream phases share.
@@ -242,7 +242,7 @@ public final class HprofIndex {
         // connections to the same DuckDB file (DuckDB serialises ART writes
         // only within a single table).
         Duration createIndexesD = measureSqlVoid(() ->
-                createNonPkIndexes(client, db.path(), options.walkWorkers()));
+                HprofNonPkIndexes.createAll(client, db.path(), options.walkWorkers()));
 
         // Force a checkpoint so all WAL contents land in the main DB file.
         // Without this, opening the file in read-only mode (HeapView) fails because
@@ -282,105 +282,6 @@ public final class HprofIndex {
                 totalRecordCount,
                 Duration.ZERO, // overwritten by build()
                 subPhases);
-    }
-
-    private static final String[] NON_PK_INDEX_DROP_DDL = {
-            "DROP INDEX IF EXISTS idx_outbound_source",
-            "DROP INDEX IF EXISTS idx_outbound_target",
-            "DROP INDEX IF EXISTS idx_instance_class",
-            "DROP INDEX IF EXISTS idx_gc_root_instance",
-            "DROP INDEX IF EXISTS idx_class_name",
-            "DROP INDEX IF EXISTS idx_class_super",
-            "DROP INDEX IF EXISTS idx_class_is_array",
-            "DROP INDEX IF EXISTS idx_stack_trace_frame_thread"
-    };
-
-    /**
-     * Non-PK indexes grouped by target table. Same-table indexes share a DuckDB
-     * write lock on the table's ART tree, so they're issued sequentially on
-     * one worker; different-table groups run on their own workers in parallel.
-     * Iteration order is preserved via {@link LinkedHashMap}.
-     */
-    private static final Map<String, List<String>> NON_PK_INDEX_CREATE_DDL_BY_TABLE;
-
-    static {
-        Map<String, List<String>> m = new LinkedHashMap<>();
-        m.put("outbound_ref", List.of(
-                "CREATE INDEX IF NOT EXISTS idx_outbound_source ON outbound_ref(source_id)",
-                "CREATE INDEX IF NOT EXISTS idx_outbound_target ON outbound_ref(target_id)"));
-        m.put("instance", List.of(
-                "CREATE INDEX IF NOT EXISTS idx_instance_class ON instance(class_id)"));
-        m.put("gc_root", List.of(
-                "CREATE INDEX IF NOT EXISTS idx_gc_root_instance ON gc_root(instance_id)"));
-        m.put("class", List.of(
-                "CREATE INDEX IF NOT EXISTS idx_class_name ON class(name)",
-                "CREATE INDEX IF NOT EXISTS idx_class_super ON class(super_class_id)",
-                "CREATE INDEX IF NOT EXISTS idx_class_is_array ON class(is_array)"));
-        m.put("stack_trace_frame", List.of(
-                "CREATE INDEX IF NOT EXISTS idx_stack_trace_frame_thread ON stack_trace_frame(thread_serial)"));
-        NON_PK_INDEX_CREATE_DDL_BY_TABLE = Map.copyOf(m);
-    }
-
-
-    /**
-     * Drops every non-PK index DuckDB maintains for this heap-dump index DB.
-     * Called before the bulk-load phases so per-row writes don't incur per-insert
-     * ART-tree updates. Recreated in bulk by {@link #createNonPkIndexes} once
-     * all rows are present.
-     */
-    private static void dropNonPkIndexes(HeapDumpDatabaseClient client) {
-        for (String ddl : NON_PK_INDEX_DROP_DDL) {
-            client.execute(HeapDumpStatement.DROP_INDEXES, ddl);
-        }
-    }
-
-    /**
-     * Recreates the indexes dropped by {@link #dropNonPkIndexes}. Bulk index
-     * creation over a fully populated table is dramatically faster than
-     * inserting 30 M rows into an existing index — DuckDB sorts the source
-     * column once and walks rather than performing 30 M individual ART-tree
-     * insertions.
-     *
-     * <p>Same-table indexes share a write lock on the table's ART tree, so the
-     * group runs sequentially on a single worker. Different-table groups run on
-     * separate JDBC connections to the same {@code .idx.duckdb} file in parallel
-     * virtual threads. DuckDB serialises commits internally; the wall-time win
-     * comes from overlapping the per-index sort + ART build CPU work.
-     */
-    private static void createNonPkIndexes(
-            HeapDumpDatabaseClient client, Path indexDbPath, int requestedWorkers) {
-        List<List<String>> groups = new ArrayList<>(NON_PK_INDEX_CREATE_DDL_BY_TABLE.values());
-        int n = Math.max(1, Math.min(requestedWorkers, groups.size()));
-        if (n == 1) {
-            for (List<String> group : groups) {
-                for (String ddl : group) {
-                    client.execute(HeapDumpStatement.CREATE_INDEXES, ddl);
-                }
-            }
-            return;
-        }
-
-        String url = "jdbc:duckdb:" + indexDbPath.toAbsolutePath();
-        List<Future<?>> futures = new ArrayList<>(groups.size());
-        try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
-            for (List<String> group : groups) {
-                futures.add(executor.submit(() -> {
-                    try (Connection conn = DriverManager.getConnection(url);
-                         Statement s = conn.createStatement()) {
-                        for (String ddl : group) {
-                            s.execute(ddl);
-                        }
-                    } catch (SQLException e) {
-                        throw new RuntimeException(
-                                "Heap-dump create-index failed: ddl=" + group + ": " + e.getMessage(), e);
-                    }
-                    return null;
-                }));
-            }
-        }
-        for (Future<?> f : futures) {
-            FutureJoin.unwrap(f);
-        }
     }
 
     /**
