@@ -20,6 +20,7 @@ package cafe.jeffrey.profile.manager;
 
 import cafe.jeffrey.profile.heapdump.analyzer.heapview.ClassHistogramAnalyzer;
 import cafe.jeffrey.profile.heapdump.analyzer.heapview.ClassInstanceBrowserAnalyzer;
+import cafe.jeffrey.profile.heapdump.analyzer.heapview.ClassLoaderDetailService;
 import cafe.jeffrey.profile.heapdump.analyzer.heapview.DominatorTreeAnalyzer;
 import cafe.jeffrey.profile.heapdump.analyzer.heapview.GcRootAnalyzer;
 import cafe.jeffrey.profile.heapdump.analyzer.heapview.HeapSummaryAnalyzer;
@@ -32,6 +33,7 @@ import cafe.jeffrey.profile.heapdump.model.BiggestCollectionsReport;
 import cafe.jeffrey.profile.heapdump.model.BiggestObjectsReport;
 import cafe.jeffrey.profile.heapdump.model.ClassHistogramEntry;
 import cafe.jeffrey.profile.heapdump.model.ClassInstancesResponse;
+import cafe.jeffrey.profile.heapdump.model.ClassLoaderDetail;
 import cafe.jeffrey.profile.heapdump.model.ClassLoaderReport;
 import cafe.jeffrey.profile.heapdump.model.CollectionAnalysisReport;
 import cafe.jeffrey.profile.heapdump.model.ConsumerReport;
@@ -527,6 +529,14 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
     @Override
     public void runClassLoaderAnalysis() {
         runner.run(new ClassLoaderHeapAnalysis());
+    }
+
+    @Override
+    public Optional<ClassLoaderDetail> getClassLoaderDetail(long loaderId) {
+        return withSession(session -> {
+            session.buildDominatorTreeIfNeeded();
+            return ClassLoaderDetailService.loadDetail(session.view(), loaderId).orElse(null);
+        });
     }
 
     // --- Consumer Report -------------------------------------------------

@@ -19,13 +19,20 @@
 package cafe.jeffrey.profile.manager.heapdump.analysis;
 
 import cafe.jeffrey.profile.heapdump.analyzer.heapview.ClassLoaderAnalyzer;
+import cafe.jeffrey.profile.heapdump.analyzer.heapview.ClassLoaderHierarchyAnalyzer;
 import cafe.jeffrey.profile.heapdump.analyzer.heapview.ClassLoaderLeakChainAnalyzer;
+import cafe.jeffrey.profile.heapdump.analyzer.heapview.ClassLoaderUnloadabilityAnalyzer;
+import cafe.jeffrey.profile.heapdump.model.ClassLoaderHierarchyEdge;
+import cafe.jeffrey.profile.heapdump.model.ClassLoaderInfo;
 import cafe.jeffrey.profile.heapdump.model.ClassLoaderLeakChain;
 import cafe.jeffrey.profile.heapdump.model.ClassLoaderReport;
+import cafe.jeffrey.profile.heapdump.model.ClassLoaderUnloadability;
 import cafe.jeffrey.profile.heapdump.parser.HeapView;
 
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public final class ClassLoaderHeapAnalysis implements CachedAnalysis<ClassLoaderReport> {
 
@@ -56,13 +63,26 @@ public final class ClassLoaderHeapAnalysis implements CachedAnalysis<ClassLoader
     @Override
     public ClassLoaderReport compute(HeapView view) throws SQLException {
         ClassLoaderReport baseReport = ClassLoaderAnalyzer.analyze(view);
+
+        List<Long> loaderIds = new ArrayList<>(baseReport.classLoaders().size());
+        for (ClassLoaderInfo info : baseReport.classLoaders()) {
+            loaderIds.add(info.objectId());
+        }
+
+        List<ClassLoaderHierarchyEdge> hierarchyEdges = ClassLoaderHierarchyAnalyzer.analyze(view, loaderIds);
+        Map<Long, ClassLoaderUnloadability> unloadability =
+                ClassLoaderUnloadabilityAnalyzer.analyze(view, loaderIds);
         List<ClassLoaderLeakChain> leakChains = ClassLoaderLeakChainAnalyzer.analyze(view);
+
         return new ClassLoaderReport(
                 baseReport.totalClassLoaders(),
                 baseReport.totalClasses(),
                 baseReport.duplicateClassCount(),
                 baseReport.classLoaders(),
                 baseReport.duplicateClasses(),
-                leakChains);
+                leakChains,
+                hierarchyEdges,
+                unloadability,
+                baseReport.loaderTypes());
     }
 }

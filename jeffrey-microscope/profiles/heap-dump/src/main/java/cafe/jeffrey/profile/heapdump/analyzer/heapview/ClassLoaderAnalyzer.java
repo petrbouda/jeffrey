@@ -27,10 +27,13 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import cafe.jeffrey.profile.heapdump.model.ClassLoaderHierarchyEdge;
 import cafe.jeffrey.profile.heapdump.model.ClassLoaderInfo;
 import cafe.jeffrey.profile.heapdump.model.ClassLoaderLeakChain;
 import cafe.jeffrey.profile.heapdump.model.ClassLoaderReport;
+import cafe.jeffrey.profile.heapdump.model.ClassLoaderUnloadability;
 import cafe.jeffrey.profile.heapdump.model.DuplicateClassInfo;
+import cafe.jeffrey.profile.heapdump.model.LoaderType;
 import cafe.jeffrey.profile.heapdump.parser.HeapView;
 
 /**
@@ -115,6 +118,11 @@ public final class ClassLoaderAnalyzer {
         List<ClassLoaderInfo> loaderInfos = aggregateLoaders(view, loaderNameCache);
         List<DuplicateClassInfo> duplicates = findDuplicateClasses(view, loaderNameCache);
 
+        Map<Long, LoaderType> loaderTypes = new HashMap<>(loaderInfos.size());
+        for (ClassLoaderInfo info : loaderInfos) {
+            loaderTypes.put(info.objectId(), LoaderTypeClassifier.classify(info.objectId(), info.classLoaderClassName()));
+        }
+
         int totalClasses = loaderInfos.stream().mapToInt(ClassLoaderInfo::classCount).sum();
         return new ClassLoaderReport(
                 loaderInfos.size(),
@@ -122,7 +130,10 @@ public final class ClassLoaderAnalyzer {
                 duplicates.size(),
                 loaderInfos,
                 duplicates,
-                List.<ClassLoaderLeakChain>of());
+                List.<ClassLoaderLeakChain>of(),
+                List.<ClassLoaderHierarchyEdge>of(),
+                Map.<Long, ClassLoaderUnloadability>of(),
+                loaderTypes);
     }
 
     private static List<ClassLoaderInfo> aggregateLoaders(

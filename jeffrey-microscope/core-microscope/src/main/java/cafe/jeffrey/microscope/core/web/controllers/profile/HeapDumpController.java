@@ -34,6 +34,7 @@ import cafe.jeffrey.profile.heapdump.model.BiggestCollectionsReport;
 import cafe.jeffrey.profile.heapdump.model.BiggestObjectsReport;
 import cafe.jeffrey.profile.heapdump.model.ClassHistogramEntry;
 import cafe.jeffrey.profile.heapdump.model.ClassInstancesResponse;
+import cafe.jeffrey.profile.heapdump.model.ClassLoaderDetail;
 import cafe.jeffrey.profile.heapdump.model.ClassLoaderReport;
 import cafe.jeffrey.profile.heapdump.model.ConsumerReport;
 import cafe.jeffrey.profile.heapdump.model.CollectionAnalysisReport;
@@ -367,6 +368,13 @@ public class HeapDumpController {
     @PostMapping("/classloader-analysis/run")
     public void runClassLoaderAnalysis(@PathVariable("profileId") String profileId) {
         mgr(profileId).runClassLoaderAnalysis();
+    }
+
+    @GetMapping("/classloader-detail/{loaderId}")
+    public ClassLoaderDetail getClassLoaderDetail(
+            @PathVariable("profileId") String profileId,
+            @PathVariable("loaderId") long loaderId) {
+        return mgr(profileId).getClassLoaderDetail(loaderId).orElse(null);
     }
 
     @GetMapping("/consumers/exists")

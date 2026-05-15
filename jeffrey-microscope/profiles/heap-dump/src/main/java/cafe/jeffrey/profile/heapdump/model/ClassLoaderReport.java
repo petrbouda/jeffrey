@@ -19,11 +19,13 @@
 package cafe.jeffrey.profile.heapdump.model;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Report summarizing class loader analysis including class loader inventory,
- * duplicate class detection, and (optionally) leak-chain diagnostics for
- * suspicious class loaders.
+ * duplicate class detection, hierarchy edges (parent → child), per-loader
+ * unloadability diagnostics, loader type classification, and (optionally)
+ * leak-chain diagnostics for suspicious class loaders.
  *
  * @param totalClassLoaders   total number of distinct class loaders found
  * @param totalClasses        total number of loaded classes
@@ -32,6 +34,9 @@ import java.util.List;
  * @param duplicateClasses    list of classes loaded by multiple class loaders sorted by loader count descending
  * @param leakChains          GC-root paths and cause-hint diagnostics for suspicious class loaders;
  *                            empty if leak-chain analysis was not run
+ * @param hierarchyEdges      one entry per non-bootstrap loader pointing at its parent
+ * @param unloadability       per-loader verdict on whether the loader can be GC'd
+ * @param loaderTypes         coarse classification (Bootstrap / Platform / System / Web / OSGi / App / Custom)
  */
 public record ClassLoaderReport(
         int totalClassLoaders,
@@ -39,6 +44,9 @@ public record ClassLoaderReport(
         int duplicateClassCount,
         List<ClassLoaderInfo> classLoaders,
         List<DuplicateClassInfo> duplicateClasses,
-        List<ClassLoaderLeakChain> leakChains
+        List<ClassLoaderLeakChain> leakChains,
+        List<ClassLoaderHierarchyEdge> hierarchyEdges,
+        Map<Long, ClassLoaderUnloadability> unloadability,
+        Map<Long, LoaderType> loaderTypes
 ) {
 }

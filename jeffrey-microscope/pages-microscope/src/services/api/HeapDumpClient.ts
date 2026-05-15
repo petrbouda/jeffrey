@@ -40,6 +40,7 @@ import HeapDumpConfig from '@/services/api/model/HeapDumpConfig';
 import type InitPipelineResult from '@/services/api/model/InitPipelineResult';
 import type { SubPhaseTiming } from '@/services/api/model/InitPipelineResult';
 import type ClassLoaderReport from '@/services/api/model/ClassLoaderReport';
+import type ClassLoaderDetail from '@/services/api/model/ClassLoaderDetail';
 import type ThreadStackFrame from '@/services/api/model/ThreadStackFrame';
 
 export default class HeapDumpClient extends BaseProfileClient {
@@ -296,6 +297,10 @@ export default class HeapDumpClient extends BaseProfileClient {
 
   public runClassLoaderAnalysis(): Promise<void> {
     return this.post<void>('/classloader-analysis/run', {});
+  }
+
+  public getClassLoaderDetail(loaderId: number): Promise<ClassLoaderDetail | null> {
+    return this.get<ClassLoaderDetail | null>(`/classloader-detail/${loaderId}`);
   }
 
   // --- Thread Stack ---

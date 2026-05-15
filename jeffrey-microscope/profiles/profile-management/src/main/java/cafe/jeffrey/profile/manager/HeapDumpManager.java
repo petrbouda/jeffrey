@@ -20,6 +20,7 @@ package cafe.jeffrey.profile.manager;
 
 import cafe.jeffrey.profile.heapdump.model.ClassHistogramEntry;
 import cafe.jeffrey.profile.heapdump.model.ClassInstancesResponse;
+import cafe.jeffrey.profile.heapdump.model.ClassLoaderDetail;
 import cafe.jeffrey.profile.heapdump.model.ClassLoaderReport;
 import cafe.jeffrey.profile.heapdump.model.CollectionAnalysisReport;
 import cafe.jeffrey.profile.heapdump.model.DominatorTreeResponse;
@@ -457,6 +458,15 @@ public interface HeapDumpManager {
      * Run class loader analysis and save results to JSON file.
      */
     void runClassLoaderAnalysis();
+
+    /**
+     * Load the per-loader detail panel served by the Class Loader Detail
+     * drawer. Reads live from the heap dump session; not cached.
+     *
+     * @param loaderId loader instance id (0 for the synthetic bootstrap loader)
+     * @return populated detail when the loader exists, {@link Optional#empty()} otherwise
+     */
+    Optional<ClassLoaderDetail> getClassLoaderDetail(long loaderId);
 
     // --- Consumer Report ---
 
