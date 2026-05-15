@@ -19,35 +19,23 @@ package cafe.jeffrey.profile.heapdump.parser;
 
 import cafe.jeffrey.profile.heapdump.persistence.HeapDumpDatabaseClient;
 import cafe.jeffrey.shared.persistence.GroupLabel;
-
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.NoSuchElementException;
-import java.util.Optional;
-import java.util.Properties;
-import java.util.Spliterator;
-import java.util.Spliterators;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 import org.duckdb.DuckDBConnection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.sql.*;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
+
 /**
  * DuckDB-backed implementation of {@link HeapView}.
- *
+ * <p>
  * Opens the index DB in {@code access_mode=read_only} so multiple views can
  * coexist and so an accidental UPDATE can't corrupt a built index.
  */
@@ -64,6 +52,87 @@ final class DuckDbHeapView implements HeapView {
 
     private static final String GC_ROOT_COLUMNS =
             "instance_id, root_kind, thread_serial, frame_index, file_offset";
+
+    // ---- SQL constants ---------------------------------------------------
+
+    private static final String SELECT_DUMP_METADATA =
+            "SELECT hprof_path, hprof_size_bytes, hprof_mtime_ms, id_size, hprof_version, "
+                    + "timestamp_ms, bytes_parsed, record_count, warning_count, truncated, "
+                    + "parser_version, parsed_at_ms, compressed_oops FROM dump_metadata";
+
+    private static final String SELECT_ALL_CLASSES =
+            "SELECT " + CLASS_COLUMNS + " FROM class ORDER BY class_id";
+
+    private static final String SELECT_CLASS_BY_ID =
+            "SELECT " + CLASS_COLUMNS + " FROM class WHERE class_id = ?";
+
+    private static final String SELECT_CLASSES_BY_NAME =
+            "SELECT " + CLASS_COLUMNS + " FROM class WHERE name = ? ORDER BY class_id";
+
+    private static final String SELECT_INSTANCES_BY_CLASS_ORDERED =
+            "SELECT " + INSTANCE_COLUMNS + " FROM instance WHERE class_id = ? ORDER BY instance_id";
+
+    private static final String SELECT_INSTANCE_BY_ID =
+            "SELECT " + INSTANCE_COLUMNS + " FROM instance WHERE instance_id = ?";
+
+    private static final String COUNT_INSTANCES_BY_CLASS =
+            "SELECT COUNT(*) FROM instance WHERE class_id = ?";
+
+    private static final String COUNT_INSTANCES =
+            "SELECT COUNT(*) FROM instance";
+
+    private static final String SUM_SHALLOW_SIZE =
+            "SELECT COALESCE(SUM(shallow_size), 0) FROM instance";
+
+    private static final String COUNT_CLASSES =
+            "SELECT COUNT(*) FROM class";
+
+    private static final String SELECT_GC_ROOTS_ORDERED =
+            "SELECT " + GC_ROOT_COLUMNS + " FROM gc_root ORDER BY instance_id, root_kind";
+
+    private static final String EXISTS_GC_ROOT =
+            "SELECT 1 FROM gc_root WHERE instance_id = ? LIMIT 1";
+
+    private static final String COUNT_GC_ROOTS =
+            "SELECT COUNT(*) FROM gc_root";
+
+    private static final String SELECT_OUTBOUND_REFS_BY_SOURCE =
+            "SELECT source_id, target_id, field_kind, field_id "
+                    + "FROM outbound_ref WHERE source_id = ? ORDER BY field_kind, field_id";
+
+    private static final String SELECT_OUTBOUND_REFS_BY_TARGET =
+            "SELECT source_id, target_id, field_kind, field_id "
+                    + "FROM outbound_ref WHERE target_id = ? ORDER BY source_id, field_id";
+
+    private static final String COUNT_OUTBOUND_REFS =
+            "SELECT COUNT(*) FROM outbound_ref";
+
+    private static final String SELECT_DOMINATOR_OF =
+            "SELECT dominator_id FROM dominator WHERE instance_id = ?";
+
+    private static final String SELECT_RETAINED_SIZE =
+            "SELECT bytes FROM retained_size WHERE instance_id = ?";
+
+    private static final String COUNT_DOMINATORS =
+            "SELECT COUNT(*) FROM dominator";
+
+    private static final String SELECT_INSTANCE_FIELDS_BY_CLASS =
+            "SELECT class_id, field_index, name, basic_type "
+                    + "FROM class_instance_field WHERE class_id = ? ORDER BY field_index";
+
+    private static final String SELECT_STRING_BY_ID =
+            "SELECT value FROM string WHERE string_id = ?";
+
+    private static final String SELECT_STRING_CONTENT_BY_INSTANCE =
+            "SELECT content FROM string_content WHERE instance_id = ?";
+
+    // LEFT JOIN so primitive arrays (class_id NULL) and instances pointing to
+    // missing class rows still appear in the histogram with className=NULL.
+    private static final String SELECT_CLASS_HISTOGRAM =
+            "SELECT i.class_id, c.name, COUNT(*) AS cnt, SUM(i.shallow_size) AS total "
+                    + "FROM instance i LEFT JOIN class c ON i.class_id = c.class_id "
+                    + "GROUP BY i.class_id, c.name "
+                    + "ORDER BY total DESC, cnt DESC";
 
     private final Path path;
     private final Connection connection;
@@ -108,10 +177,7 @@ final class DuckDbHeapView implements HeapView {
     @Override
     public DumpMetadata metadata() throws SQLException {
         try (Statement stmt = connection.createStatement();
-             ResultSet rs = stmt.executeQuery(
-                     "SELECT hprof_path, hprof_size_bytes, hprof_mtime_ms, id_size, hprof_version, "
-                             + "timestamp_ms, bytes_parsed, record_count, warning_count, truncated, "
-                             + "parser_version, parsed_at_ms, compressed_oops FROM dump_metadata")) {
+             ResultSet rs = stmt.executeQuery(SELECT_DUMP_METADATA)) {
             if (!rs.next()) {
                 throw new SQLException("dump_metadata table is empty: path=" + path);
             }
@@ -137,8 +203,7 @@ final class DuckDbHeapView implements HeapView {
     @Override
     public List<JavaClassRow> classes() throws SQLException {
         try (Statement stmt = connection.createStatement();
-             ResultSet rs = stmt.executeQuery(
-                     "SELECT " + CLASS_COLUMNS + " FROM class ORDER BY class_id")) {
+             ResultSet rs = stmt.executeQuery(SELECT_ALL_CLASSES)) {
             List<JavaClassRow> rows = new ArrayList<>();
             while (rs.next()) {
                 rows.add(mapClass(rs));
@@ -149,8 +214,7 @@ final class DuckDbHeapView implements HeapView {
 
     @Override
     public Optional<JavaClassRow> findClassById(long classId) throws SQLException {
-        try (PreparedStatement stmt = connection.prepareStatement(
-                "SELECT " + CLASS_COLUMNS + " FROM class WHERE class_id = ?")) {
+        try (PreparedStatement stmt = connection.prepareStatement(SELECT_CLASS_BY_ID)) {
             stmt.setLong(1, classId);
             try (ResultSet rs = stmt.executeQuery()) {
                 return rs.next() ? Optional.of(mapClass(rs)) : Optional.empty();
@@ -163,8 +227,7 @@ final class DuckDbHeapView implements HeapView {
         if (name == null) {
             throw new IllegalArgumentException("name must not be null");
         }
-        try (PreparedStatement stmt = connection.prepareStatement(
-                "SELECT " + CLASS_COLUMNS + " FROM class WHERE name = ? ORDER BY class_id")) {
+        try (PreparedStatement stmt = connection.prepareStatement(SELECT_CLASSES_BY_NAME)) {
             stmt.setString(1, name);
             try (ResultSet rs = stmt.executeQuery()) {
                 List<JavaClassRow> rows = new ArrayList<>();
@@ -195,8 +258,7 @@ final class DuckDbHeapView implements HeapView {
 
     @Override
     public Stream<InstanceRow> instances(long classId) throws SQLException {
-        PreparedStatement stmt = connection.prepareStatement(
-                "SELECT " + INSTANCE_COLUMNS + " FROM instance WHERE class_id = ? ORDER BY instance_id");
+        PreparedStatement stmt = connection.prepareStatement(SELECT_INSTANCES_BY_CLASS_ORDERED);
         stmt.setLong(1, classId);
         ResultSet rs = stmt.executeQuery();
         return resultSetStream(stmt, rs, DuckDbHeapView::mapInstance);
@@ -204,8 +266,7 @@ final class DuckDbHeapView implements HeapView {
 
     @Override
     public Optional<InstanceRow> findInstanceById(long instanceId) throws SQLException {
-        try (PreparedStatement stmt = connection.prepareStatement(
-                "SELECT " + INSTANCE_COLUMNS + " FROM instance WHERE instance_id = ?")) {
+        try (PreparedStatement stmt = connection.prepareStatement(SELECT_INSTANCE_BY_ID)) {
             stmt.setLong(1, instanceId);
             try (ResultSet rs = stmt.executeQuery()) {
                 return rs.next() ? Optional.of(mapInstance(rs)) : Optional.empty();
@@ -215,8 +276,7 @@ final class DuckDbHeapView implements HeapView {
 
     @Override
     public long instanceCount(long classId) throws SQLException {
-        try (PreparedStatement stmt = connection.prepareStatement(
-                "SELECT COUNT(*) FROM instance WHERE class_id = ?")) {
+        try (PreparedStatement stmt = connection.prepareStatement(COUNT_INSTANCES_BY_CLASS)) {
             stmt.setLong(1, classId);
             try (ResultSet rs = stmt.executeQuery()) {
                 return rs.next() ? rs.getLong(1) : 0L;
@@ -226,17 +286,17 @@ final class DuckDbHeapView implements HeapView {
 
     @Override
     public long totalInstanceCount() throws SQLException {
-        return scalarLong("SELECT COUNT(*) FROM instance");
+        return scalarLong(COUNT_INSTANCES);
     }
 
     @Override
     public long totalShallowSize() throws SQLException {
-        return scalarLong("SELECT COALESCE(SUM(shallow_size), 0) FROM instance");
+        return scalarLong(SUM_SHALLOW_SIZE);
     }
 
     @Override
     public long classCount() throws SQLException {
-        return scalarLong("SELECT COUNT(*) FROM class");
+        return scalarLong(COUNT_CLASSES);
     }
 
     private long scalarLong(String sql) throws SQLException {
@@ -262,8 +322,7 @@ final class DuckDbHeapView implements HeapView {
     @Override
     public List<GcRootRow> gcRoots() throws SQLException {
         try (Statement stmt = connection.createStatement();
-             ResultSet rs = stmt.executeQuery(
-                     "SELECT " + GC_ROOT_COLUMNS + " FROM gc_root ORDER BY instance_id, root_kind")) {
+             ResultSet rs = stmt.executeQuery(SELECT_GC_ROOTS_ORDERED)) {
             List<GcRootRow> rows = new ArrayList<>();
             while (rs.next()) {
                 rows.add(mapGcRoot(rs));
@@ -274,8 +333,7 @@ final class DuckDbHeapView implements HeapView {
 
     @Override
     public boolean isGcRoot(long instanceId) throws SQLException {
-        try (PreparedStatement stmt = connection.prepareStatement(
-                "SELECT 1 FROM gc_root WHERE instance_id = ? LIMIT 1")) {
+        try (PreparedStatement stmt = connection.prepareStatement(EXISTS_GC_ROOT)) {
             stmt.setLong(1, instanceId);
             try (ResultSet rs = stmt.executeQuery()) {
                 return rs.next();
@@ -285,32 +343,29 @@ final class DuckDbHeapView implements HeapView {
 
     @Override
     public long gcRootCount() throws SQLException {
-        return scalarLong("SELECT COUNT(*) FROM gc_root");
+        return scalarLong(COUNT_GC_ROOTS);
     }
 
     // ---- Reference graph -------------------------------------------------
 
     @Override
     public List<OutboundRefRow> outboundRefs(long instanceId) throws SQLException {
-        return queryRefs("SELECT source_id, target_id, field_kind, field_id "
-                + "FROM outbound_ref WHERE source_id = ? ORDER BY field_kind, field_id", instanceId);
+        return queryRefs(SELECT_OUTBOUND_REFS_BY_SOURCE, instanceId);
     }
 
     @Override
     public List<OutboundRefRow> inboundRefs(long instanceId) throws SQLException {
-        return queryRefs("SELECT source_id, target_id, field_kind, field_id "
-                + "FROM outbound_ref WHERE target_id = ? ORDER BY source_id, field_id", instanceId);
+        return queryRefs(SELECT_OUTBOUND_REFS_BY_TARGET, instanceId);
     }
 
     @Override
     public long outboundRefCount() throws SQLException {
-        return scalarLong("SELECT COUNT(*) FROM outbound_ref");
+        return scalarLong(COUNT_OUTBOUND_REFS);
     }
 
     @Override
     public long dominatorOf(long instanceId) throws SQLException {
-        try (PreparedStatement stmt = connection.prepareStatement(
-                "SELECT dominator_id FROM dominator WHERE instance_id = ?")) {
+        try (PreparedStatement stmt = connection.prepareStatement(SELECT_DOMINATOR_OF)) {
             stmt.setLong(1, instanceId);
             try (ResultSet rs = stmt.executeQuery()) {
                 return rs.next() ? rs.getLong(1) : -1L;
@@ -320,8 +375,7 @@ final class DuckDbHeapView implements HeapView {
 
     @Override
     public long retainedSize(long instanceId) throws SQLException {
-        try (PreparedStatement stmt = connection.prepareStatement(
-                "SELECT bytes FROM retained_size WHERE instance_id = ?")) {
+        try (PreparedStatement stmt = connection.prepareStatement(SELECT_RETAINED_SIZE)) {
             stmt.setLong(1, instanceId);
             try (ResultSet rs = stmt.executeQuery()) {
                 return rs.next() ? rs.getLong(1) : 0L;
@@ -331,16 +385,14 @@ final class DuckDbHeapView implements HeapView {
 
     @Override
     public boolean hasDominatorTree() throws SQLException {
-        return scalarLong("SELECT COUNT(*) FROM dominator") > 0;
+        return scalarLong(COUNT_DOMINATORS) > 0;
     }
 
     // ---- Class fields + instance values ----------------------------------
 
     @Override
     public List<InstanceFieldDescriptor> instanceFields(long classId) throws SQLException {
-        try (PreparedStatement stmt = connection.prepareStatement(
-                "SELECT class_id, field_index, name, basic_type "
-                        + "FROM class_instance_field WHERE class_id = ? ORDER BY field_index")) {
+        try (PreparedStatement stmt = connection.prepareStatement(SELECT_INSTANCE_FIELDS_BY_CLASS)) {
             stmt.setLong(1, classId);
             try (ResultSet rs = stmt.executeQuery()) {
                 List<InstanceFieldDescriptor> out = new ArrayList<>();
@@ -561,8 +613,7 @@ final class DuckDbHeapView implements HeapView {
 
     @Override
     public Optional<String> findString(long stringId) throws SQLException {
-        try (PreparedStatement stmt = connection.prepareStatement(
-                "SELECT value FROM string WHERE string_id = ?")) {
+        try (PreparedStatement stmt = connection.prepareStatement(SELECT_STRING_BY_ID)) {
             stmt.setLong(1, stringId);
             try (ResultSet rs = stmt.executeQuery()) {
                 return rs.next() ? Optional.of(rs.getString(1)) : Optional.empty();
@@ -582,8 +633,7 @@ final class DuckDbHeapView implements HeapView {
     }
 
     private Optional<String> queryStringContent(long instanceId) throws SQLException {
-        try (PreparedStatement stmt = connection.prepareStatement(
-                "SELECT content FROM string_content WHERE instance_id = ?")) {
+        try (PreparedStatement stmt = connection.prepareStatement(SELECT_STRING_CONTENT_BY_INSTANCE)) {
             stmt.setLong(1, instanceId);
             try (ResultSet rs = stmt.executeQuery()) {
                 if (!rs.next()) {
@@ -599,14 +649,8 @@ final class DuckDbHeapView implements HeapView {
 
     @Override
     public List<HistogramRow> classHistogram() throws SQLException {
-        // LEFT JOIN so primitive arrays (class_id NULL) and instances pointing to
-        // missing class rows still appear in the histogram with className=NULL.
-        String sql = "SELECT i.class_id, c.name, COUNT(*) AS cnt, SUM(i.shallow_size) AS total "
-                + "FROM instance i LEFT JOIN class c ON i.class_id = c.class_id "
-                + "GROUP BY i.class_id, c.name "
-                + "ORDER BY total DESC, cnt DESC";
         try (Statement stmt = connection.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
+             ResultSet rs = stmt.executeQuery(SELECT_CLASS_HISTOGRAM)) {
             List<HistogramRow> rows = new ArrayList<>();
             while (rs.next()) {
                 rows.add(new HistogramRow(
