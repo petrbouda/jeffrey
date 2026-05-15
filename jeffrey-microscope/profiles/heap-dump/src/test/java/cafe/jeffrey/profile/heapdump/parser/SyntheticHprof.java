@@ -98,6 +98,39 @@ public final class SyntheticHprof {
         return topLevel(HprofTag.Top.LOAD_CLASS, body.toByteArray());
     }
 
+    public SyntheticHprof stackFrame(long stackFrameId, long methodNameStringId, long methodSignatureStringId,
+                                     long sourceFileNameStringId, int classSerial, int lineNumber) {
+        ByteArrayOutputStream body = new ByteArrayOutputStream();
+        DataOutputStream d = new DataOutputStream(body);
+        try {
+            writeId(d, stackFrameId);
+            writeId(d, methodNameStringId);
+            writeId(d, methodSignatureStringId);
+            writeId(d, sourceFileNameStringId);
+            d.writeInt(classSerial);
+            d.writeInt(lineNumber);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+        return topLevel(HprofTag.Top.STACK_FRAME, body.toByteArray());
+    }
+
+    public SyntheticHprof stackTrace(int traceSerial, int threadSerial, long... frameIds) {
+        ByteArrayOutputStream body = new ByteArrayOutputStream();
+        DataOutputStream d = new DataOutputStream(body);
+        try {
+            d.writeInt(traceSerial);
+            d.writeInt(threadSerial);
+            d.writeInt(frameIds.length);
+            for (long fid : frameIds) {
+                writeId(d, fid);
+            }
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+        return topLevel(HprofTag.Top.STACK_TRACE, body.toByteArray());
+    }
+
     public SyntheticHprof heapDumpSegment(Consumer<SubBuilder> body) {
         SubBuilder b = new SubBuilder(idSize);
         body.accept(b);
