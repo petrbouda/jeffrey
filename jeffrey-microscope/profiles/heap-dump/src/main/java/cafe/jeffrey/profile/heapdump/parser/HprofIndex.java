@@ -26,7 +26,6 @@ import cafe.jeffrey.profile.heapdump.persistence.HeapDumpStatement;
 import cafe.jeffrey.shared.common.measure.Elapsed;
 import cafe.jeffrey.shared.common.measure.Measuring;
 import org.duckdb.DuckDBAppender;
-import org.duckdb.DuckDBConnection;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -36,10 +35,14 @@ import java.sql.*;
 import java.time.Clock;
 import java.time.Duration;
 import java.util.*;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+
+import static cafe.jeffrey.profile.heapdump.parser.HprofAppenderUtils.appendNullableId;
+import static cafe.jeffrey.profile.heapdump.parser.HprofAppenderUtils.appendNullableInt;
+import static cafe.jeffrey.profile.heapdump.parser.HprofAppenderUtils.primArrayClassId;
+import static cafe.jeffrey.profile.heapdump.parser.HprofAppenderUtils.primArrayName;
 
 /**
  * Builds a DuckDB index ({@code .idx.duckdb}) for an HPROF heap dump.
@@ -60,6 +63,10 @@ import java.util.concurrent.Future;
  */
 public final class HprofIndex {
 
+    //language=sql
+    private static final String INSTANCES_PER_CLASS_ID_SQL =
+            "SELECT instance_id, file_offset FROM instance WHERE class_id = ?";
+
     /**
      * Bumped when the on-disk schema or extraction semantics change.
      */
@@ -76,87 +83,6 @@ public final class HprofIndex {
      * reasonable proxy when no JFR-side hint is available.
      */
     private static final long COMPRESSED_OOPS_HEAP_LIMIT = 32L * 1024 * 1024 * 1024;
-
-    /**
-     * Per-instance memory layout the parser assumes when computing shallow size.
-     *
-     * <ul>
-     *   <li>{@code objectHeader} / {@code arrayHeader} — bytes occupied by the
-     *       JVM-side header, before any payload.</li>
-     *   <li>{@code idSize} — HPROF on-disk pointer width, always 4 (32-bit) or
-     *       8 (64-bit). Drives how OBJECT fields and OBJECT-array elements are
-     *       encoded in the .hprof file.</li>
-     *   <li>{@code oopSize} — pointer width on the live JVM heap. Equals
-     *       {@code idSize} on 32-bit and on 64-bit without compressed oops;
-     *       4 bytes when compressed oops are enabled. References take this
-     *       many bytes per slot regardless of the on-disk width.</li>
-     *   <li>{@code objectAlignment} — every allocation is rounded up to this
-     *       boundary (HotSpot {@code MinObjAlignment}, 8 by default).</li>
-     * </ul>
-     * <p>
-     * Three concrete layouts:
-     * <ul>
-     *   <li>32-bit JVM (idSize == 4): header 8/12, oopSize 4</li>
-     *   <li>64-bit compressed oops: header 16/16, oopSize 4</li>
-     *   <li>64-bit uncompressed oops: header 16/24, oopSize 8</li>
-     * </ul>
-     */
-    private record InstanceLayout(
-            int objectHeader,
-            int arrayHeader,
-            int idSize,
-            int oopSize,
-            int objectAlignment) {
-
-        static InstanceLayout from(int idSize, boolean compressedOops) {
-            if (idSize == 4) {
-                return new InstanceLayout(8, 12, 4, 4, 8);
-            }
-            return compressedOops
-                    ? new InstanceLayout(16, 16, 8, 4, 8)
-                    : new InstanceLayout(16, 24, 8, 8, 8);
-        }
-
-        /**
-         * OOP encoding delta: bytes over-counted per reference when the on-disk
-         * pointer is wider than the on-heap one (only non-zero with compressed oops).
-         */
-        int oopOverheadDelta() {
-            return idSize - oopSize;
-        }
-
-        long alignUp(long size) {
-            int a = objectAlignment;
-            return (size + a - 1) / a * a;
-        }
-    }
-
-    /**
-     * HPROF doesn't emit CLASS_DUMP records for primitive-array types — only the
-     * BasicType byte on each PRIMITIVE_ARRAY_DUMP. We synthesize one class row
-     * per primitive type so primitive arrays show up in the histogram and in
-     * every other class-keyed view. Synthetic ids are deeply negative so they
-     * cannot collide with real HPROF object ids (which are non-negative).
-     */
-    private static final long PRIM_ARRAY_CLASS_ID_BASE = -1_000_000_000L;
-
-    private static long primArrayClassId(int elementType) {
-        return PRIM_ARRAY_CLASS_ID_BASE - elementType;
-    }
-
-    private static String primArrayName(int elementType) {
-        return switch (elementType) {
-            case 4 -> "boolean[]";
-            case 5 -> "char[]";
-            case 6 -> "float[]";
-            case 7 -> "double[]";
-            case 8 -> "byte[]";
-            case 9 -> "short[]";
-            case 10 -> "int[]";
-            case 11 -> "long[]";
-            default -> null;
-        };
-    }
 
     /**
      * Result of an index-build run. Counts reflect rows actually written.
@@ -178,36 +104,6 @@ public final class HprofIndex {
             long recordCount,
             Duration buildTime,
             List<SubPhaseTiming> subPhases) {
-    }
-
-    /**
-     * Tunable options for the index build.
-     *
-     * <ul>
-     *   <li>{@code stringContentThreshold} — maximum decoded character length
-     *       of a {@code java.lang.String} whose content is materialised into the
-     *       {@code string_content} table; {@code -1} means unlimited.</li>
-     *   <li>{@code walkWorkers} — virtual-thread fanout for Pass B (the fused
-     *       instance/ref/root walk) and for {@code write_string_content}. Clamped
-     *       at runtime to the number of HPROF regions / String-id ranges so we
-     *       never spin up more workers than there is work to partition.</li>
-     * </ul>
-     */
-    public record BuildOptions(int stringContentThreshold, int walkWorkers) {
-
-        public static final int DEFAULT_STRING_CONTENT_THRESHOLD = 4096;
-
-        public static final int DEFAULT_WALK_WORKERS = 4;
-
-        public BuildOptions {
-            if (walkWorkers < 1) {
-                throw new IllegalArgumentException("walkWorkers must be >= 1: walkWorkers=" + walkWorkers);
-            }
-        }
-
-        public static BuildOptions defaults() {
-            return new BuildOptions(DEFAULT_STRING_CONTENT_THRESHOLD, DEFAULT_WALK_WORKERS);
-        }
     }
 
     private HprofIndex() {
@@ -273,27 +169,26 @@ public final class HprofIndex {
             HprofMappedFile file, HeapDumpIndexDb db, Clock clock, BuildOptions options, Path stagingDir)
             throws IOException, SQLException {
         HeapDumpDatabaseClient client = db.databaseClient();
-        DuckDBConnection conn = db.connection();
         int idSize = file.header().idSize();
         // Compressed-oops inference: 64-bit + heap below the JVM's 32 GiB threshold.
         // Total .hprof size is a coarse but reliable proxy for max heap.
         boolean compressedOops = (idSize == 8) && (file.size() < COMPRESSED_OOPS_HEAP_LIMIT);
         InstanceLayout layout = InstanceLayout.from(idSize, compressedOops);
 
-        Elapsed<TopLevelData> topE = measureSql(() -> walkTopLevel(file, client));
+        Elapsed<TopLevelData> topE = measureSql(() -> HprofTopLevelWalk.walk(file, client));
         TopLevelData top = topE.entity();
 
-        Duration stackTracesD = measureSqlVoid(() -> writeStackTraces(client, top));
+        Duration stackTracesD = measureSqlVoid(() -> HprofStackTraceWriter.write(client, top));
 
         // Drop every non-PK index before the bulk writes so per-row writes
         // skip the per-insert ART-tree updates. Recreated in bulk at the end,
         // which DuckDB executes far faster than 30 M incremental inserts.
         Duration dropIndexesD = measureSqlVoid(() -> dropNonPkIndexes(client));
 
-        // Pass A — sequential, class-dumps only. Populates classDumpsById,
-        // which Pass B reads as a frozen map. Fast on real heaps (~22 K classes).
-        Elapsed<Counters> classesE = measureSql(() -> walkClassDumps(file, client, top));
-        Counters counters = classesE.entity();
+        // Pass A — sequential, class-dumps only. Produces the read-only
+        // ClassDumpIndex that Pass B and downstream phases share.
+        Elapsed<ClassDumpIndex> classesE = measureSql(() -> walkClassDumps(file, client, top));
+        ClassDumpIndex classes = classesE.entity();
 
         // Pass B — parallel fused walk. N virtual-thread workers each take a
         // slice of `top.regions`, decode the records themselves, and stream
@@ -305,32 +200,38 @@ public final class HprofIndex {
         // Fusing walkInstancesAndRoots + walkRegionsForRefs into one walk per
         // worker visits every region exactly once instead of twice — a free
         // win on top of the parallelism.
-        Elapsed<Void> passBE = measureSql(() -> {
-            walkPassBParallel(file, client, top, counters, idSize, layout,
-                    stagingDir, options.walkWorkers());
-            return null;
-        });
-        long warningCount = top.warnings.size() + counters.warnings.size();
-        boolean truncated = anyError(top.warnings) || anyError(counters.warnings);
+        Elapsed<PassBOutput> passBE = measureSql(() ->
+                walkPassBParallel(file, client, top, classes, idSize, layout,
+                        stagingDir, options.walkWorkers()));
+        PassBOutput passB = passBE.entity();
+        long warningCount = top.warnings.size() + classes.warnings().size() + passB.warnings().size();
+        boolean truncated = ParseWarning.anyError(top.warnings)
+                || ParseWarning.anyError(classes.warnings())
+                || ParseWarning.anyError(passB.warnings());
 
         // Instance dumps are appended with the on-disk field-block size (idSize per
         // OOP, no alignment). Correct them now that the full class hierarchy is
         // known: subtract the compressed-oops over-count and round each instance
         // up to the JVM allocation boundary.
         Duration shallowCorrD = measureSqlVoid(() ->
-                applyInstanceShallowCorrection(client, counters.classDumpsById, layout));
+                applyInstanceShallowCorrection(client, classes.byId(), layout));
 
         // Materialise decoded java.lang.String content so OQL string predicates
         // push down to DuckDB varchar functions instead of decoding per-instance.
         Elapsed<Long> stringContentE = measureSql(() ->
-                writeStringContent(client, file, top, counters, idSize,
+                writeStringContent(client, file, top, classes, passB.primArrInfo(), idSize,
                         options.stringContentThreshold(), stagingDir, options.walkWorkers()));
         long stringContentCount = stringContentE.entity();
 
+        long totalRecordCount = top.recordCount + passB.subRecordCount();
         Duration metadataD = measureSqlVoid(() -> {
-            writeDumpMetadata(client, file, clock, top, counters, warningCount, truncated, compressedOops);
-            writeParseWarnings(client, top.warnings);
-            writeParseWarnings(client, counters.warnings);
+            HprofMetadataWriter.writeMetadata(client, file, clock, top, totalRecordCount,
+                    passB.instanceCount(), classes.classCount(),
+                    passB.gcRootCount(), passB.outboundRefCount(),
+                    warningCount, truncated, compressedOops, PARSER_VERSION);
+            HprofMetadataWriter.writeWarnings(client, top.warnings);
+            HprofMetadataWriter.writeWarnings(client, classes.warnings());
+            HprofMetadataWriter.writeWarnings(client, passB.warnings());
         });
 
         // Recreate the indexes we dropped at the start. Bulk index creation
@@ -356,10 +257,10 @@ public final class HprofIndex {
                         top.stackFrames.size() + " frames"),
                 new SubPhaseTiming("drop_indexes", dropIndexesD.toMillis(), null),
                 new SubPhaseTiming("walk_class_dumps", classesE.duration().toMillis(),
-                        counters.classCount + " classes"),
+                        classes.classCount() + " classes"),
                 new SubPhaseTiming("walk_pass_b", passBE.duration().toMillis(),
-                        counters.instanceCount + " inst, "
-                                + counters.outboundRefCount + " edges, "
+                        passB.instanceCount() + " inst, "
+                                + passB.outboundRefCount() + " edges, "
                                 + options.walkWorkers() + " workers"),
                 new SubPhaseTiming("apply_shallow_correction", shallowCorrD.toMillis(), null),
                 new SubPhaseTiming("write_string_content", stringContentE.duration().toMillis(),
@@ -370,15 +271,15 @@ public final class HprofIndex {
 
         return new IndexResult(
                 top.stringCount,
-                counters.classCount,
-                counters.instanceCount,
-                counters.gcRootCount,
-                counters.outboundRefCount,
+                classes.classCount(),
+                passB.instanceCount(),
+                passB.gcRootCount(),
+                passB.outboundRefCount(),
                 stringContentCount,
                 warningCount,
                 truncated,
                 file.size(),
-                top.recordCount + counters.subRecordCount,
+                totalRecordCount,
                 Duration.ZERO, // overwritten by build()
                 subPhases);
     }
@@ -478,7 +379,7 @@ public final class HprofIndex {
             }
         }
         for (Future<?> f : futures) {
-            joinForResult(f);
+            FutureJoin.unwrap(f);
         }
     }
 
@@ -516,68 +417,43 @@ public final class HprofIndex {
         void run() throws SQLException, IOException;
     }
 
-    // ---- Pass 1: top-level -----------------------------------------------
-
-    private static final class TopLevelData {
-        final Map<Long, byte[]> stringPool = new HashMap<>();
-        final Map<Long, HprofRecord.LoadClass> loadClassByClassId = new HashMap<>();
-        final List<HprofRecord.HeapDumpRegion> regions = new ArrayList<>();
-        // STACK_FRAME / STACK_TRACE records buffered here so string-id resolution
-        // happens after the entire top-level walk has populated stringPool — the
-        // HPROF spec doesn't strictly order STRING before STACK_FRAME records.
-        final List<HprofRecord.StackFrame> stackFrames = new ArrayList<>();
-        final List<HprofRecord.StackTrace> stackTraces = new ArrayList<>();
-        final List<ParseWarning> warnings = new ArrayList<>();
-        long stringCount;
-        long recordCount;
-    }
-
-    private static TopLevelData walkTopLevel(HprofMappedFile file, HeapDumpDatabaseClient client) {
-        TopLevelData data = new TopLevelData();
-        client.withAppender(HeapDumpStatement.APPEND_STRING, "string", stringApp -> {
-            HprofTopLevelReader.read(file, new HprofTopLevelReader.Listener() {
-                @Override
-                public void onRecord(HprofRecord.Top record) {
-                    data.recordCount++;
-                    switch (record) {
-                        case HprofRecord.HprofString s -> {
-                            try {
-                                stringApp.beginRow();
-                                stringApp.append(s.stringId());
-                                stringApp.append(new String(s.utf8(), StandardCharsets.UTF_8));
-                                stringApp.endRow();
-                            } catch (SQLException e) {
-                                throw new RuntimeException(e);
-                            }
-                            data.stringPool.put(s.stringId(), s.utf8());
-                            data.stringCount++;
-                        }
-                        case HprofRecord.LoadClass lc -> data.loadClassByClassId.put(lc.classId(), lc);
-                        case HprofRecord.HeapDumpRegion hdr -> data.regions.add(hdr);
-                        case HprofRecord.StackFrame sf -> data.stackFrames.add(sf);
-                        case HprofRecord.StackTrace st -> data.stackTraces.add(st);
-                        case HprofRecord.OpaqueTop ignored -> {
-                        }
-                    }
-                }
-
-                @Override
-                public void onWarning(ParseWarning warning) {
-                    data.warnings.add(warning);
-                }
-            });
-            return data.stringCount;
-        });
-        return data;
-    }
-
     // ---- Pass 2: heap dump regions ---------------------------------------
 
+    /**
+     * Output of Pass A (class-dump walk). Read-only after construction; passed
+     * by reference to Pass B (which uses {@link #byId} read-only), the shallow-
+     * size corrector, the string-content writer, and the metadata writer.
+     */
+    record ClassDumpIndex(
+            Map<Long, HprofRecord.ClassDump> byId,
+            long classCount,
+            List<ParseWarning> warnings) {
+    }
+
+    /**
+     * Output of Pass B (fused parallel walk of instances / roots / refs). The
+     * primitive-array-info map is what {@code HprofStringContentWriter}
+     * subsequently joins on to decode {@code java.lang.String} backing arrays.
+     */
+    record PassBOutput(
+            long instanceCount,
+            long gcRootCount,
+            long outboundRefCount,
+            long subRecordCount,
+            Map<Long, PrimitiveArrayInfo> primArrInfo,
+            List<ParseWarning> warnings) {
+    }
+
+    /**
+     * Worker-local mutable bag used during the Pass B fanout: each virtual
+     * thread accumulates its slice's counts and per-record maps in its own
+     * {@code Counters}, then the orchestrator sums them into a single
+     * {@link PassBOutput}. Pass A reuses this shape for its own counters
+     * because its return path is structurally similar.
+     */
     private static final class Counters {
         final List<ParseWarning> warnings = new ArrayList<>();
-        /**
-         * classId → ClassDump, populated during the first region walk and consumed during the second.
-         */
+        /** classId → ClassDump — populated by Pass A, shared read-only with Pass B. */
         final Map<Long, HprofRecord.ClassDump> classDumpsById = new HashMap<>();
         final Map<Long, PrimitiveArrayInfo> primitiveArrayInfoByArrayId = new HashMap<>();
         long classCount;
@@ -588,31 +464,25 @@ public final class HprofIndex {
     }
 
     /**
-     * In-memory metadata the indexer needs to decode every {@code java.lang.String}'s
-     * backing primitive array: same triplet that {@link #writeStringContent} would
-     * otherwise read with a SQL PK lookup. Held only during the index build.
-     */
-    private record PrimitiveArrayInfo(long fileOffset, int arrayLength, int elementType) {
-    }
-
-    /**
      * Pass A — class-dump only. Walks every region but processes only
      * CLASS_DUMP sub-records, writing the {@code class} and
-     * {@code class_instance_field} tables and populating
-     * {@link Counters#classDumpsById}. Cheap (~22 K class records on a
+     * {@code class_instance_field} tables. Cheap (~22 K class records on a
      * typical 7.6 M-instance heap) and must finish before Pass B reads the
-     * map. Returns a fresh {@link Counters} that Pass B then mutates.
+     * map. Returns a {@link ClassDumpIndex} that downstream phases (Pass B,
+     * shallow correction, string content, metadata) read from.
      */
-    private static Counters walkClassDumps(
+    private static ClassDumpIndex walkClassDumps(
             HprofMappedFile file, HeapDumpDatabaseClient client, TopLevelData top) {
-        Counters c = new Counters();
+        Map<Long, HprofRecord.ClassDump> byId = new HashMap<>();
+        List<ParseWarning> warnings = new ArrayList<>();
         Set<Long> writtenClassIds = new HashSet<>();
+        long[] classCount = {0L};
 
         client.withAppenderPair(HeapDumpStatement.APPEND_CLASS, "class", "class_instance_field",
                 (classApp, fieldApp) -> {
                     // Seed synthetic primitive-array class rows so PRIMITIVE_ARRAY_DUMP
                     // instances can join to a real class name.
-                    c.classCount += appendSyntheticPrimitiveArrayClasses(classApp);
+                    classCount[0] += appendSyntheticPrimitiveArrayClasses(classApp);
 
                     for (HprofRecord.HeapDumpRegion region : top.regions) {
                         HprofSubRecordReader.read(file, region.fileOffset(), region.byteLength(),
@@ -624,8 +494,8 @@ public final class HprofIndex {
                                                 if (writtenClassIds.add(cd.classId())) {
                                                     appendClass(classApp, cd, top);
                                                     appendInstanceFields(fieldApp, cd, top);
-                                                    c.classCount++;
-                                                    c.classDumpsById.put(cd.classId(), cd);
+                                                    classCount[0]++;
+                                                    byId.put(cd.classId(), cd);
                                                 }
                                             } catch (SQLException e) {
                                                 throw new RuntimeException(e);
@@ -635,13 +505,13 @@ public final class HprofIndex {
 
                                     @Override
                                     public void onWarning(ParseWarning warning) {
-                                        c.warnings.add(warning);
+                                        warnings.add(warning);
                                     }
                                 });
                     }
-                    return c.classCount;
+                    return classCount[0];
                 });
-        return c;
+        return new ClassDumpIndex(byId, classCount[0], warnings);
     }
 
     // ---- Pass B parallel fused walk ----------------------------------------
@@ -677,11 +547,11 @@ public final class HprofIndex {
      * merged into {@code c} after completion (counts summed, warning /
      * primitive-array maps unioned).
      */
-    private static void walkPassBParallel(
-            HprofMappedFile file, HeapDumpDatabaseClient client, TopLevelData top, Counters c,
-            int idSize, InstanceLayout layout, Path stagingDir, int requestedWorkers)
+    private static PassBOutput walkPassBParallel(
+            HprofMappedFile file, HeapDumpDatabaseClient client, TopLevelData top,
+            ClassDumpIndex classes, int idSize, InstanceLayout layout, Path stagingDir, int requestedWorkers)
             throws IOException {
-        Map<Long, HprofRecord.ClassDump> classes = c.classDumpsById;
+        Map<Long, HprofRecord.ClassDump> classesById = classes.byId();
         List<HprofRecord.HeapDumpRegion> regions = top.regions;
         int n = Math.max(1, Math.min(requestedWorkers, regions.size()));
 
@@ -705,23 +575,32 @@ public final class HprofIndex {
                     Map<String, Path> outputs = staging.partFiles(
                             w, INSTANCE_TABLE, GC_ROOT_TABLE, OUTBOUND_REF_TABLE);
                     futures.add(executor.submit(() ->
-                            runPassBWorker(file, assigned, classes, idSize, layout, outputs)));
+                            runPassBWorker(file, assigned, classesById, idSize, layout, outputs)));
                 }
             }
 
+            long instanceCount = 0L;
+            long gcRootCount = 0L;
+            long outboundRefCount = 0L;
+            long subRecordCount = 0L;
+            Map<Long, PrimitiveArrayInfo> primArrInfo = new HashMap<>();
+            List<ParseWarning> warnings = new ArrayList<>();
             for (Future<Counters> f : futures) {
-                Counters wc = joinForResult(f);
-                c.instanceCount += wc.instanceCount;
-                c.gcRootCount += wc.gcRootCount;
-                c.outboundRefCount += wc.outboundRefCount;
-                c.subRecordCount += wc.subRecordCount;
-                c.primitiveArrayInfoByArrayId.putAll(wc.primitiveArrayInfoByArrayId);
-                c.warnings.addAll(wc.warnings);
+                Counters wc = FutureJoin.unwrap(f);
+                instanceCount += wc.instanceCount;
+                gcRootCount += wc.gcRootCount;
+                outboundRefCount += wc.outboundRefCount;
+                subRecordCount += wc.subRecordCount;
+                primArrInfo.putAll(wc.primitiveArrayInfoByArrayId);
+                warnings.addAll(wc.warnings);
             }
 
             staging.bulkLoad(client, HeapDumpStatement.BULK_LOAD_INSTANCE, INSTANCE_TABLE);
             staging.bulkLoad(client, HeapDumpStatement.BULK_LOAD_GC_ROOT, GC_ROOT_TABLE);
             staging.bulkLoad(client, HeapDumpStatement.BULK_LOAD_OUTBOUND_REF, OUTBOUND_REF_TABLE);
+
+            return new PassBOutput(instanceCount, gcRootCount, outboundRefCount, subRecordCount,
+                    primArrInfo, warnings);
         }
     }
 
@@ -761,7 +640,7 @@ public final class HprofIndex {
                                         refCount[0] += emitInstanceRefs(file, id, classes, idSize, refApp);
                                     }
                                     case HprofRecord.ObjectArrayDump oa -> {
-                                        appendInstanceFromObjectArray(instApp, oa, idSize, layout, c);
+                                        appendInstanceFromObjectArray(instApp, oa, layout, c);
                                         refCount[0] += emitArrayRefs(file, oa, idSize, refApp);
                                     }
                                     case HprofRecord.PrimitiveArrayDump pa ->
@@ -789,21 +668,6 @@ public final class HprofIndex {
             throw new RuntimeException(e);
         }
         return c;
-    }
-
-    private static <T> T joinForResult(Future<T> future) {
-        try {
-            return future.get();
-        } catch (InterruptedException ie) {
-            Thread.currentThread().interrupt();
-            throw new RuntimeException(ie);
-        } catch (ExecutionException ee) {
-            Throwable cause = ee.getCause();
-            if (cause instanceof RuntimeException re) {
-                throw re;
-            }
-            throw new RuntimeException(cause);
-        }
     }
 
     private static int emitInstanceRefs(
@@ -972,7 +836,7 @@ public final class HprofIndex {
     }
 
     private static void appendInstanceFromObjectArray(
-            DuckDBAppender app, HprofRecord.ObjectArrayDump oa, int idSize, InstanceLayout layout, Counters c) throws SQLException {
+            DuckDBAppender app, HprofRecord.ObjectArrayDump oa, InstanceLayout layout, Counters c) throws SQLException {
         // On-heap OOP width can differ from the .hprof on-disk idSize when the
         // JVM uses compressed oops. Use oopSize so the array's shallow size
         // reflects what the JVM actually allocated.
@@ -1012,14 +876,15 @@ public final class HprofIndex {
 
     private static long writeStringContent(
             HeapDumpDatabaseClient client, HprofMappedFile file, TopLevelData top,
-            Counters counters, int idSize, int threshold,
+            ClassDumpIndex classes, Map<Long, PrimitiveArrayInfo> primArrInfo,
+            int idSize, int threshold,
             Path stagingDir, int requestedWorkers) throws SQLException, IOException {
 
-        Long stringClassId = findClassIdByHprofName(top, STRING_CLASS_HPROF_NAME);
+        Long stringClassId = findClassIdByHprofName(top);
         if (stringClassId == null) {
             return 0;
         }
-        HprofRecord.ClassDump cd = counters.classDumpsById.get(stringClassId);
+        HprofRecord.ClassDump cd = classes.byId().get(stringClassId);
         if (cd == null) {
             return 0;
         }
@@ -1075,7 +940,7 @@ public final class HprofIndex {
 
         final int finalValueOffset = valueOffset;
         final int finalCoderOffset = coderOffset;
-        Map<Long, PrimitiveArrayInfo> arrayInfoByArrayId = counters.primitiveArrayInfoByArrayId;
+        Map<Long, PrimitiveArrayInfo> arrayInfoByArrayId = primArrInfo;
 
         long emitted;
         try (ParquetStaging staging = ParquetStaging.open(stagingDir)) {
@@ -1096,7 +961,7 @@ public final class HprofIndex {
 
             emitted = 0L;
             for (Future<Long> f : futures) {
-                emitted += joinForResult(f);
+                emitted += FutureJoin.unwrap(f);
             }
 
             staging.bulkLoad(client, HeapDumpStatement.BULK_LOAD_STRING_CONTENT, STRING_CONTENT_TABLE);
@@ -1112,8 +977,7 @@ public final class HprofIndex {
         long[] instanceIds = new long[total];
         long[] fileOffsets = new long[total];
         int[] cursor = {0};
-        try (PreparedStatement ps = client.connection().prepareStatement(
-                "SELECT instance_id, file_offset FROM instance WHERE class_id = ?")) {
+        try (PreparedStatement ps = client.connection().prepareStatement(INSTANCES_PER_CLASS_ID_SQL)) {
             ps.setLong(1, stringClassId);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next() && cursor[0] < total) {
@@ -1151,7 +1015,7 @@ public final class HprofIndex {
 
                 long valueRef = file.readId(fieldBlockStart + valueOffset);
                 Byte coder = coderOffset >= 0
-                        ? Byte.valueOf(file.readByte(fieldBlockStart + coderOffset))
+                        ? file.readByte(fieldBlockStart + coderOffset)
                         : null;
 
                 String content;
@@ -1201,15 +1065,16 @@ public final class HprofIndex {
         return JavaStringDecoder.decodeContent(bytes, info.elementType(), coder);
     }
 
-    private static Long findClassIdByHprofName(TopLevelData top, String hprofName) {
-        String userFacing = ClassNameFormatter.userFacing(hprofName);
+    private static Long findClassIdByHprofName(TopLevelData top) {
+        String userFacing = ClassNameFormatter.userFacing(HprofIndex.STRING_CLASS_HPROF_NAME);
         for (HprofRecord.LoadClass lc : top.loadClassByClassId.values()) {
             byte[] nameBytes = top.stringPool.get(lc.nameStringId());
             if (nameBytes == null) {
                 continue;
             }
             String raw = new String(nameBytes, StandardCharsets.UTF_8);
-            if (hprofName.equals(raw) || userFacing.equals(ClassNameFormatter.userFacing(raw))) {
+            if (HprofIndex.STRING_CLASS_HPROF_NAME.equals(raw)
+                    || userFacing.equals(ClassNameFormatter.userFacing(raw))) {
                 return lc.classId();
             }
         }
@@ -1355,170 +1220,4 @@ public final class HprofIndex {
         return total;
     }
 
-    // ---- Phase 4: stack frames + traces ---------------------------------
-
-    /**
-     * Persists buffered STACK_FRAME records into {@code stack_frame} and
-     * STACK_TRACE records into {@code stack_trace_frame}. Runs immediately
-     * after {@link #walkTopLevel} so {@code top.stringPool} is complete and
-     * method / signature / source-file ids can be resolved inline. Frames
-     * whose method-name id is missing from the pool get an "<unresolved-...>"
-     * placeholder; source-file id 0 maps to NULL.
-     */
-    private static void writeStackTraces(HeapDumpDatabaseClient client, TopLevelData top) {
-        if (!top.stackFrames.isEmpty()) {
-            Map<Integer, String> classNameBySerial = buildClassNameBySerial(top);
-            client.withAppender(HeapDumpStatement.APPEND_STACK_FRAME, "stack_frame", app -> {
-                long rows = 0;
-                for (HprofRecord.StackFrame sf : top.stackFrames) {
-                    app.beginRow();
-                    app.append(sf.stackFrameId());
-                    String className = classNameBySerial.getOrDefault(sf.classSerial(),
-                            "<unresolved-class-serial:" + sf.classSerial() + ">");
-                    app.append(className);
-                    app.append(resolveString(top, sf.methodNameStringId(), "<unresolved-method>"));
-                    app.append(resolveString(top, sf.methodSignatureStringId(), ""));
-                    String sourceFile = sf.sourceFileNameStringId() == 0L
-                            ? null
-                            : resolveString(top, sf.sourceFileNameStringId(), null);
-                    if (sourceFile == null) {
-                        app.appendNull();
-                    } else {
-                        app.append(sourceFile);
-                    }
-                    app.append(sf.lineNumber());
-                    app.endRow();
-                    rows++;
-                }
-                return rows;
-            });
-        }
-        if (!top.stackTraces.isEmpty()) {
-            client.withAppender(HeapDumpStatement.APPEND_STACK_TRACE_FRAME, "stack_trace_frame", app -> {
-                long rows = 0;
-                for (HprofRecord.StackTrace st : top.stackTraces) {
-                    long[] frameIds = st.frameIds();
-                    for (int idx = 0; idx < frameIds.length; idx++) {
-                        app.beginRow();
-                        app.append(st.traceSerial());
-                        app.append(st.threadSerial());
-                        app.append(idx);
-                        app.append(frameIds[idx]);
-                        app.endRow();
-                        rows++;
-                    }
-                }
-                return rows;
-            });
-        }
-    }
-
-    private static String resolveString(TopLevelData top, long stringId, String fallback) {
-        byte[] bytes = top.stringPool.get(stringId);
-        if (bytes != null) {
-            return new String(bytes, StandardCharsets.UTF_8);
-        }
-        return fallback;
-    }
-
-    /**
-     * Maps each {@code classSerial} (from LOAD_CLASS) to the user-facing class
-     * name. STACK_FRAME records reference classes by serial, and we want a
-     * resolved name even when the matching CLASS_DUMP is absent — common for
-     * framework classes that appear on stacks but are never instantiated.
-     */
-    private static Map<Integer, String> buildClassNameBySerial(TopLevelData top) {
-        Map<Integer, String> out = new HashMap<>(top.loadClassByClassId.size());
-        for (HprofRecord.LoadClass lc : top.loadClassByClassId.values()) {
-            String raw = resolveString(top, lc.nameStringId(),
-                    "<unresolved-class-name:0x" + Long.toHexString(lc.nameStringId()) + ">");
-            out.put(lc.classSerial(), ClassNameFormatter.userFacing(raw));
-        }
-        return out;
-    }
-
-    // ---- Phase 5: metadata + warnings ------------------------------------
-
-    private static void writeDumpMetadata(
-            HeapDumpDatabaseClient client, HprofMappedFile file, Clock clock,
-            TopLevelData top, Counters counters, long warningCount, boolean truncated,
-            boolean compressedOops) throws IOException {
-        long mtimeMs = Files.getLastModifiedTime(file.path()).toMillis();
-        client.withAppender(HeapDumpStatement.APPEND_DUMP_METADATA, "dump_metadata", app -> {
-            app.beginRow();
-            app.append(file.path().toAbsolutePath().toString());
-            app.append(file.size());
-            app.append(mtimeMs);
-            app.append(file.header().idSize());
-            app.append(file.header().version());
-            app.append(file.header().timestampMs());
-            app.append(file.size()); // bytes_parsed: best-effort = file size
-            app.append(top.recordCount + counters.subRecordCount);
-            app.append(warningCount);
-            app.append(truncated);
-            app.append(PARSER_VERSION);
-            app.append(clock.instant().toEpochMilli());
-            app.append(compressedOops);
-            app.endRow();
-            return 1L;
-        });
-    }
-
-    private static void writeParseWarnings(HeapDumpDatabaseClient client, List<ParseWarning> warnings) {
-        if (warnings.isEmpty()) {
-            return;
-        }
-        client.withAppender(HeapDumpStatement.APPEND_PARSE_WARNING, "parse_warning", app -> {
-            long rows = 0;
-            for (ParseWarning w : warnings) {
-                app.beginRow();
-                app.append(w.fileOffset());
-                appendNullableInt(app, w.recordKind() == null ? null : w.recordKind());
-                app.append((byte) w.severity().ordinal());
-                app.append(w.message());
-                app.endRow();
-                rows++;
-            }
-            return rows;
-        });
-    }
-
-    // ---- Helpers ---------------------------------------------------------
-
-    /**
-     * HPROF id 0 means "no reference"; map to NULL in the index for clean SQL semantics.
-     */
-    private static void appendNullableId(DuckDBAppender app, long id) throws SQLException {
-        if (id == 0L) {
-            app.appendNull();
-        } else {
-            app.append(id);
-        }
-    }
-
-    private static void appendNullableInt(DuckDBAppender app, Integer value) throws SQLException {
-        if (value == null) {
-            app.appendNull();
-        } else {
-            app.append(value.intValue());
-        }
-    }
-
-    private static void appendNullableInt(DuckDBAppender app, int value) throws SQLException {
-        // Sentinel -1 used by parser for "absent" thread/frame fields.
-        if (value < 0) {
-            app.appendNull();
-        } else {
-            app.append(value);
-        }
-    }
-
-    private static boolean anyError(List<ParseWarning> warnings) {
-        for (ParseWarning w : warnings) {
-            if (w.severity() == ParseWarning.Severity.ERROR) {
-                return true;
-            }
-        }
-        return false;
-    }
 }

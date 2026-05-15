@@ -17,6 +17,10 @@
  */
 package cafe.jeffrey.profile.heapdump.parser;
 
+import cafe.jeffrey.profile.heapdump.model.SubPhaseTiming;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -24,15 +28,11 @@ import java.sql.SQLException;
 import java.time.Clock;
 import java.util.List;
 import java.util.Optional;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import cafe.jeffrey.profile.heapdump.model.SubPhaseTiming;
 
 /**
  * Bundle holding the open {@link HprofMappedFile} and {@link HeapView} for a
  * single heap dump, with paired lifecycle. Closing the session closes both.
- *
+ * <p>
  * Replaces the load-Heap pattern callers used with NetBeans: instead of
  * {@code Heap heap = HeapFactory.createHeap(file)}, callers do
  *
@@ -42,7 +42,7 @@ import cafe.jeffrey.profile.heapdump.model.SubPhaseTiming;
  *     // run any heapview analyzer against view ...
  * }
  * }</pre>
- *
+ * <p>
  * On first call for a given dump, builds the {@code .idx.duckdb} sibling.
  * Subsequent calls just open the existing index. Dominator-tree construction
  * is opt-in via {@link #buildDominatorTreeIfNeeded()} so cheap analyzers
@@ -118,7 +118,7 @@ public final class HeapDumpSession implements AutoCloseable {
      * the {@link DominatorTreeBuilder.BuildResult} (with its sub-phase
      * timings) when a build actually ran; {@link Optional#empty()} when the
      * tree was already present and nothing was rebuilt.
-     *
+     * <p>
      * Implementation note: DuckDB doesn't permit a read-write builder
      * connection while a read-only view is open against the same file.
      * The current view is closed before the build and re-opened afterwards

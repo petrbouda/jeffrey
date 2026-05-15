@@ -37,7 +37,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -285,8 +284,8 @@ public final class DominatorTreeBuilder {
                     writeRetainedSizeShard(rows, retainedOutput);
                     return null;
                 });
-                joinUnwrapping(domF);
-                joinUnwrapping(retF);
+                FutureJoin.unwrap(domF);
+                FutureJoin.unwrap(retF);
             }
 
             // Bulk-load: two different target tables, no constraint overlap,
@@ -335,21 +334,6 @@ public final class DominatorTreeBuilder {
             }
         } catch (SQLException e) {
             throw new RuntimeException(e);
-        }
-    }
-
-    private static void joinUnwrapping(Future<?> future) {
-        try {
-            future.get();
-        } catch (InterruptedException ie) {
-            Thread.currentThread().interrupt();
-            throw new RuntimeException(ie);
-        } catch (ExecutionException ee) {
-            Throwable cause = ee.getCause();
-            if (cause instanceof RuntimeException re) {
-                throw re;
-            }
-            throw new RuntimeException(cause);
         }
     }
 

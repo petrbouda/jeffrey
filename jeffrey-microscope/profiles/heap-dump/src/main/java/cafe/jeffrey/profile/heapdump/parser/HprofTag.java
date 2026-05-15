@@ -19,11 +19,11 @@ package cafe.jeffrey.profile.heapdump.parser;
 
 /**
  * HPROF binary format tag constants.
- *
+ * <p>
  * Top-level tags appear after the file header and frame independent records
  * (each top-level record carries an 8-byte timestamp delta + 4-byte body length
  * after its tag byte).
- *
+ * <p>
  * Sub-record tags appear inside HEAP_DUMP and HEAP_DUMP_SEGMENT bodies.
  */
 public final class HprofTag {
@@ -31,7 +31,9 @@ public final class HprofTag {
     private HprofTag() {
     }
 
-    /** Top-level record tags. */
+    /**
+     * Top-level record tags.
+     */
     public static final class Top {
         public static final int STRING = 0x01;
         public static final int LOAD_CLASS = 0x02;
@@ -52,7 +54,9 @@ public final class HprofTag {
         }
     }
 
-    /** Sub-record tags inside HEAP_DUMP / HEAP_DUMP_SEGMENT bodies. */
+    /**
+     * Sub-record tags inside HEAP_DUMP / HEAP_DUMP_SEGMENT bodies.
+     */
     public static final class Sub {
         public static final int ROOT_UNKNOWN = 0xFF;
         public static final int ROOT_JNI_GLOBAL = 0x01;
@@ -74,7 +78,9 @@ public final class HprofTag {
         }
     }
 
-    /** HPROF basic types used in PRIMITIVE_ARRAY_DUMP and CLASS_DUMP field type bytes. */
+    /**
+     * HPROF basic types used in PRIMITIVE_ARRAY_DUMP and CLASS_DUMP field type bytes.
+     */
     public static final class BasicType {
         public static final int OBJECT = 2;
         public static final int BOOLEAN = 4;
@@ -86,7 +92,9 @@ public final class HprofTag {
         public static final int INT = 10;
         public static final int LONG = 11;
 
-        /** Size in bytes for a basic type. Object size depends on idSize and is handled separately. */
+        /**
+         * Size in bytes for a basic type. Object size depends on idSize and is handled separately.
+         */
         public static int sizeOf(int basicType) {
             return switch (basicType) {
                 case BOOLEAN, BYTE -> 1;

@@ -17,6 +17,8 @@
  */
 package cafe.jeffrey.profile.heapdump.parser;
 
+import java.util.List;
+
 /**
  * A non-fatal anomaly emitted by the parser. Persisted to the
  * {@code parse_warning} table for forensics; counted in
@@ -42,5 +44,15 @@ public record ParseWarning(long fileOffset, Integer recordKind, Severity severit
     /** Severity ordinal matches the on-disk TINYINT in the parse_warning table. */
     public enum Severity {
         INFO, WARN, ERROR
+    }
+
+    /** True if any warning in {@code warnings} has {@link Severity#ERROR}. */
+    public static boolean anyError(List<ParseWarning> warnings) {
+        for (ParseWarning w : warnings) {
+            if (w.severity() == Severity.ERROR) {
+                return true;
+            }
+        }
+        return false;
     }
 }

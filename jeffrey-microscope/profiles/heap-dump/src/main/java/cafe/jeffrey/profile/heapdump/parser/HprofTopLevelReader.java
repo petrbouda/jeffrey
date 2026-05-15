@@ -19,14 +19,14 @@ package cafe.jeffrey.profile.heapdump.parser;
 
 /**
  * Streams top-level records out of an {@link HprofMappedFile}.
- *
+ * <p>
  * Each top-level record is laid out as:
  * <pre>
  *   [u1 tag] [u4 timestampDelta] [u4 bodyLength] [body...]
  * </pre>
  * The 4-byte body length is treated as unsigned: HEAP_DUMP_SEGMENT bodies in
  * particular can approach 4 GB on a single segment.
- *
+ * <p>
  * Stateless and thread-safe. Decoded records and parse warnings are pushed to
  * the supplied {@link Listener}; the reader does not buffer.
  */

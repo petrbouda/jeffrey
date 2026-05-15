@@ -29,11 +29,11 @@ import java.nio.file.StandardOpenOption;
 
 /**
  * Random-access reader over an HPROF file, backed by a single shared {@link MemorySegment}.
- *
+ * <p>
  * Replaces the synchronized-{@code ByteBuffer} approach used by the NetBeans parser.
  * All accessors are stateless and thread-safe; multiple worker threads may read
  * concurrently from the same instance without contention.
- *
+ * <p>
  * The header is parsed eagerly at construction.
  */
 public final class HprofMappedFile implements AutoCloseable {
@@ -116,7 +116,7 @@ public final class HprofMappedFile implements AutoCloseable {
     /**
      * Reads an HPROF object identifier at {@code offset}. ID width depends on the
      * file's header ({@code idSize}). For 4-byte IDs the value is zero-extended.
-     *
+     * <p>
      * Performs a runtime branch on every call; specialised variants come in a
      * later phase once the hot scan is profiled.
      */
@@ -127,7 +127,9 @@ public final class HprofMappedFile implements AutoCloseable {
         return segment.get(BE_LONG, offset);
     }
 
-    /** Reads {@code length} bytes starting at {@code offset} into a fresh byte array. */
+    /**
+     * Reads {@code length} bytes starting at {@code offset} into a fresh byte array.
+     */
     public byte[] readBytes(long offset, int length) {
         if (length < 0) {
             throw new IllegalArgumentException("length must be non-negative: length=" + length);
@@ -135,11 +137,6 @@ public final class HprofMappedFile implements AutoCloseable {
         byte[] dst = new byte[length];
         MemorySegment.copy(segment, LE_BYTE, offset, dst, 0, length);
         return dst;
-    }
-
-    /** Reads {@code length} bytes starting at {@code offset} into {@code dst} at {@code dstOffset}. */
-    public void readBytes(long offset, byte[] dst, int dstOffset, int length) {
-        MemorySegment.copy(segment, LE_BYTE, offset, dst, dstOffset, length);
     }
 
     @Override
