@@ -2,13 +2,13 @@
   <div class="navigation-tabs">
     <div class="container-fluid">
       <div class="nav-container">
-        <router-link to="/workspaces" class="nav-pill" active-class="active">
-          <i class="bi bi-folder"></i>
-          <span>Workspaces</span>
-        </router-link>
         <router-link to="/recordings" class="nav-pill" active-class="active">
           <i class="bi bi-record-circle"></i>
           <span>Recordings</span>
+        </router-link>
+        <router-link to="/workspaces" class="nav-pill" active-class="active">
+          <i class="bi bi-folder"></i>
+          <span>Workspaces</span>
         </router-link>
         <router-link to="/settings" class="nav-pill" active-class="active">
           <i class="bi bi-sliders"></i>

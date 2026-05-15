@@ -46,6 +46,7 @@ import cafe.jeffrey.profile.heapdump.model.InitializeResult;
 import cafe.jeffrey.profile.heapdump.model.HeapSummary;
 import cafe.jeffrey.profile.heapdump.model.HeapThreadInfo;
 import cafe.jeffrey.profile.heapdump.model.InstanceDetail;
+import cafe.jeffrey.profile.heapdump.model.InstanceSortBy;
 import cafe.jeffrey.profile.heapdump.model.InstanceTreeResponse;
 import cafe.jeffrey.profile.heapdump.model.LeakSuspectsReport;
 import cafe.jeffrey.profile.heapdump.model.OQLQueryRequest;
@@ -299,8 +300,9 @@ public class HeapDumpController {
             @RequestParam("className") String className,
             @RequestParam(value = "limit", defaultValue = "50") int limit,
             @RequestParam(value = "offset", defaultValue = "0") int offset,
-            @RequestParam(value = "includeRetainedSize", defaultValue = "false") boolean includeRetainedSize) {
-        return mgr(profileId).getClassInstances(className, limit, offset, includeRetainedSize);
+            @RequestParam(value = "includeRetainedSize", defaultValue = "false") boolean includeRetainedSize,
+            @RequestParam(value = "sortBy", defaultValue = "OBJECT_ID") InstanceSortBy sortBy) {
+        return mgr(profileId).getClassInstances(className, limit, offset, includeRetainedSize, sortBy);
     }
 
     @GetMapping("/leak-suspects/exists")

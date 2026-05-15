@@ -28,7 +28,7 @@ const props = withDefaults(
     submitLabel?: string;
   }>(),
   {
-    title: 'Edit Profile',
+    title: 'Edit Name',
     placeholder: 'Enter profile name',
     submitLabel: 'Update'
   }
@@ -56,7 +56,8 @@ onMounted(() => {
     modal-id="editNameModal"
     :show="true"
     :title="title"
-    size="sm"
+    size="md"
+    modal-dialog-class="modal-dialog-centered"
     @update:show="emit('close')"
   >
     <template #default>
@@ -72,8 +73,8 @@ onMounted(() => {
       />
     </template>
     <template #footer>
-      <button class="btn btn-secondary btn-sm" @click="emit('close')">Cancel</button>
-      <button class="btn btn-primary btn-sm" @click="emit('submit')" :disabled="!modelValue.trim()">
+      <button class="btn btn-secondary" @click="emit('close')">Cancel</button>
+      <button class="btn btn-primary" @click="emit('submit')" :disabled="!modelValue.trim()">
         {{ submitLabel }}
       </button>
     </template>
@@ -85,8 +86,8 @@ onMounted(() => {
   width: 100%;
   border: 1px solid var(--color-border-input);
   border-radius: 6px;
-  padding: 8px 12px;
-  font-size: 0.8rem;
+  padding: 10px 14px;
+  font-size: 0.9rem;
   transition: border-color 0.15s ease;
 }
 

@@ -428,21 +428,21 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      redirect: '/workspaces'
+      redirect: '/recordings'
     },
     {
       path: '/',
       component: () => import('@/views/Index.vue'),
       children: [
         {
-          path: 'workspaces',
-          name: 'workspaces',
-          component: () => import('@/views/projects/ProjectsView.vue')
-        },
-        {
           path: 'recordings',
           name: 'recordings',
           component: () => import('@/views/global/RecordingsView.vue')
+        },
+        {
+          path: 'workspaces',
+          name: 'workspaces',
+          component: () => import('@/views/projects/ProjectsView.vue')
         },
         {
           path: 'settings',
@@ -454,7 +454,7 @@ const router = createRouter({
     // Legacy redirect for old projects URL
     {
       path: '/projects',
-      redirect: '/workspaces'
+      redirect: '/recordings'
     },
     // Simplified profile routes - /profiles/:profileId/...
     {

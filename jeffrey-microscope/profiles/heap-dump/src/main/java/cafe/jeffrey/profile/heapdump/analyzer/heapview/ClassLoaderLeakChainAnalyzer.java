@@ -118,7 +118,7 @@ public final class ClassLoaderLeakChainAnalyzer {
         boolean haveDom = view.hasDominatorTree();
         for (LoaderInfo info : byId.values()) {
             info.className = resolveLoaderClassName(view, info.objectId);
-            info.retained = haveDom ? probeRetained(view, info.objectId) : 0L;
+            info.retained = haveDom ? view.findRetainedSize(info.objectId).orElse(0L) : 0L;
         }
 
         return byId.values().stream()
@@ -157,16 +157,6 @@ public final class ClassLoaderLeakChainAnalyzer {
             stmt.setLong(1, loaderInstanceId);
             try (ResultSet rs = stmt.executeQuery()) {
                 return rs.next() ? rs.getString(1) : "<unresolved>";
-            }
-        }
-    }
-
-    private static long probeRetained(HeapView view, long instanceId) throws SQLException {
-        try (PreparedStatement stmt = view.databaseClient().connection().prepareStatement(
-                "SELECT bytes FROM retained_size WHERE instance_id = ?")) {
-            stmt.setLong(1, instanceId);
-            try (ResultSet rs = stmt.executeQuery()) {
-                return rs.next() ? rs.getLong(1) : 0L;
             }
         }
     }

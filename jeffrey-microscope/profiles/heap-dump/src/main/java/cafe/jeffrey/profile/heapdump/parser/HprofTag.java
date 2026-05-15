@@ -76,6 +76,22 @@ public final class HprofTag {
 
         private Sub() {
         }
+
+        /** Maps a raw HPROF root sub-tag byte to a stable display name. */
+        public static String rootKindName(int rootKind) {
+            return switch (rootKind) {
+                case ROOT_UNKNOWN -> "Unknown";
+                case ROOT_JNI_GLOBAL -> "JNI global";
+                case ROOT_JNI_LOCAL -> "JNI local";
+                case ROOT_JAVA_FRAME -> "Java frame";
+                case ROOT_NATIVE_STACK -> "Native stack";
+                case ROOT_STICKY_CLASS -> "Sticky class";
+                case ROOT_THREAD_BLOCK -> "Thread block";
+                case ROOT_MONITOR_USED -> "Monitor used";
+                case ROOT_THREAD_OBJECT -> "Thread object";
+                default -> "Other(0x" + Integer.toHexString(rootKind) + ")";
+            };
+        }
     }
 
     /**

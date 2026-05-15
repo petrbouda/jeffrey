@@ -76,6 +76,8 @@ public final class StringHeapAnalysis implements CachedAnalysis<StringAnalysisRe
                 base.totalSharedStrings(),
                 base.memorySavedByDedup(),
                 base.potentialSavings(),
+                base.topByRetained(),
+                base.topInstancesByRetained(),
                 base.alreadyDeduplicated(),
                 base.opportunities(),
                 jvmFlags);

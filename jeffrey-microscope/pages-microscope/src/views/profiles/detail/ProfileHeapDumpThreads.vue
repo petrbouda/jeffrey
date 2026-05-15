@@ -89,7 +89,7 @@
                     <div class="thread-meta">
                       <span v-if="thread.state" class="inline-stat">
                         State
-                        <span class="state-pill" :class="stateClass(thread.state)">{{ thread.state }}</span>
+                        <Badge :value="thread.state" :variant="stateVariant(thread.state)" size="xs" borderless />
                       </span>
                       <span v-if="thread.state" class="meta-separator">•</span>
 
@@ -341,6 +341,7 @@ import HeapThreadInfo from '@/services/api/model/HeapThreadInfo';
 import type ThreadStackFrame from '@/services/api/model/ThreadStackFrame';
 import FormattingService from '@/services/FormattingService';
 import { isJdkPackage } from '@/services/JavaPackage';
+import type { Variant } from '@/types/ui';
 
 const route = useRoute();
 
@@ -454,18 +455,17 @@ const openTreeModal = (objectId: number, mode: 'REFERRERS' | 'REACHABLES') => {
 // Column layout: #, Thread (with all inline meta), chevron.
 const columnCount = 3;
 
-const stateClass = (state: string | undefined): string => {
+const stateVariant = (state: string | undefined): Variant => {
   switch (state) {
     case 'PARKED':
     case 'WAITING':
     case 'SLEEPING':
-      return 'state-waiting';
     case 'NATIVE':
-      return 'state-native';
+      return 'warning';
     case 'RUNNABLE':
-      return 'state-runnable';
+      return 'success';
     default:
-      return 'state-unknown';
+      return 'secondary';
   }
 };
 
@@ -796,32 +796,8 @@ onMounted(() => {
 .inline-stat.priority-low strong {
   color: var(--color-text-muted);
 }
-.state-pill {
-  display: inline-flex;
-  padding: 2px 8px;
-  border-radius: 999px;
-  font-size: 0.66rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-}
 .sort-select {
   min-width: 168px;
-}
-.state-waiting {
-  background: var(--color-warning-light);
-  color: var(--color-warning);
-}
-.state-native {
-  background: var(--color-warning-light);
-  color: var(--color-warning);
-}
-.state-runnable {
-  background: var(--color-success-light);
-  color: var(--color-success);
-}
-.state-unknown {
-  background: var(--color-lighter);
-  color: var(--color-text-muted);
 }
 
 /* Split */

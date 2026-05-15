@@ -44,6 +44,7 @@ import cafe.jeffrey.profile.heapdump.model.HeapThreadInfo;
 import cafe.jeffrey.profile.heapdump.model.InitPipelineResult;
 import cafe.jeffrey.profile.heapdump.model.InitializeResult;
 import cafe.jeffrey.profile.heapdump.model.InstanceDetail;
+import cafe.jeffrey.profile.heapdump.model.InstanceSortBy;
 import cafe.jeffrey.profile.heapdump.model.InstanceTreeRequest;
 import cafe.jeffrey.profile.heapdump.model.InstanceTreeResponse;
 import cafe.jeffrey.profile.heapdump.model.LeakSuspectsReport;
@@ -441,8 +442,14 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
     @Override
     public ClassInstancesResponse getClassInstances(
             String className, int limit, int offset, boolean includeRetainedSize) {
+        return getClassInstances(className, limit, offset, includeRetainedSize, InstanceSortBy.OBJECT_ID);
+    }
+
+    @Override
+    public ClassInstancesResponse getClassInstances(
+            String className, int limit, int offset, boolean includeRetainedSize, InstanceSortBy sortBy) {
         return withSession(session -> {
-            if (includeRetainedSize) {
+            if (includeRetainedSize || sortBy == InstanceSortBy.RETAINED_SIZE) {
                 session.buildDominatorTreeIfNeeded();
             }
             HeapView view = session.view();
@@ -450,7 +457,7 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
             if (matches.isEmpty()) {
                 return new ClassInstancesResponse(className, 0, List.of(), false);
             }
-            return ClassInstanceBrowserAnalyzer.browse(view, matches.get(0).classId(), offset, limit);
+            return ClassInstanceBrowserAnalyzer.browse(view, matches.get(0).classId(), offset, limit, sortBy);
         }).orElse(new ClassInstancesResponse(className, 0, List.of(), false));
     }
 

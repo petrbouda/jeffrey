@@ -33,6 +33,9 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
+import static cafe.jeffrey.profile.heapdump.parser.JdbcNullable.nullableInt;
+import static cafe.jeffrey.profile.heapdump.parser.JdbcNullable.nullableLong;
+
 /**
  * DuckDB-backed implementation of {@link HeapView}.
  * <p>
@@ -374,16 +377,6 @@ final class DuckDbHeapView implements HeapView {
     }
 
     @Override
-    public long retainedSize(long instanceId) throws SQLException {
-        try (PreparedStatement stmt = connection.prepareStatement(SELECT_RETAINED_SIZE)) {
-            stmt.setLong(1, instanceId);
-            try (ResultSet rs = stmt.executeQuery()) {
-                return rs.next() ? rs.getLong(1) : 0L;
-            }
-        }
-    }
-
-    @Override
     public boolean hasDominatorTree() throws SQLException {
         return scalarLong(COUNT_DOMINATORS) > 0;
     }
@@ -460,10 +453,18 @@ final class DuckDbHeapView implements HeapView {
 
     @Override
     public byte[] readPrimitiveArrayBytes(long instanceId) throws SQLException {
+        return readPrimitiveArrayBytes(instanceId, Integer.MAX_VALUE);
+    }
+
+    @Override
+    public byte[] readPrimitiveArrayBytes(long instanceId, int maxBytes) throws SQLException {
         if (hprof == null) {
             throw new IllegalStateException(
                     "HeapView opened without a .hprof file; primitive-array reads are unavailable. "
                             + "Use HeapView.open(indexDb, hprof).");
+        }
+        if (maxBytes <= 0) {
+            return new byte[0];
         }
         InstanceRow inst = findInstanceById(instanceId).orElse(null);
         if (inst == null
@@ -483,7 +484,8 @@ final class DuckDbHeapView implements HeapView {
         if (byteLengthLong > Integer.MAX_VALUE) {
             byteLengthLong = Integer.MAX_VALUE; // defensive cap
         }
-        return hprof.readBytes(payloadOffset, (int) byteLengthLong);
+        int byteLength = (int) Math.min(byteLengthLong, maxBytes);
+        return hprof.readBytes(payloadOffset, byteLength);
     }
 
     @Override
@@ -645,6 +647,16 @@ final class DuckDbHeapView implements HeapView {
         }
     }
 
+    @Override
+    public Optional<Long> findRetainedSize(long instanceId) throws SQLException {
+        try (PreparedStatement stmt = connection.prepareStatement(SELECT_RETAINED_SIZE)) {
+            stmt.setLong(1, instanceId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                return rs.next() ? Optional.of(rs.getLong(1)) : Optional.empty();
+            }
+        }
+    }
+
     // ---- Histogram -------------------------------------------------------
 
     @Override
@@ -675,16 +687,6 @@ final class DuckDbHeapView implements HeapView {
     }
 
     // ---- Helpers ---------------------------------------------------------
-
-    private static Long nullableLong(ResultSet rs, int columnIndex) throws SQLException {
-        long v = rs.getLong(columnIndex);
-        return rs.wasNull() ? null : v;
-    }
-
-    private static Integer nullableInt(ResultSet rs, int columnIndex) throws SQLException {
-        int v = rs.getInt(columnIndex);
-        return rs.wasNull() ? null : v;
-    }
 
     /**
      * Wraps a JDBC {@link ResultSet} as a closing {@link Stream}. The {@code stmt}

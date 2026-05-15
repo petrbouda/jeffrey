@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -31,6 +31,8 @@ import java.util.List;
  * @param totalSharedStrings     total Strings sharing arrays (benefiting from deduplication)
  * @param memorySavedByDedup     bytes saved by current deduplication
  * @param potentialSavings       additional bytes that could be saved by deduplication
+ * @param topByRetained          top strings grouped by content, ranked by total retained size (sorted desc)
+ * @param topInstancesByRetained top individual String instances, ranked by GC-retained size (sorted desc)
  * @param alreadyDeduplicated    list of strings already sharing arrays (sorted by savings desc)
  * @param opportunities          list of deduplication opportunities (sorted by potential savings desc)
  * @param jvmFlags               JVM flags related to string handling extracted from JFR events
@@ -43,6 +45,8 @@ public record StringAnalysisReport(
         long totalSharedStrings,
         long memorySavedByDedup,
         long potentialSavings,
+        List<StringTopEntry> topByRetained,
+        List<StringInstanceEntry> topInstancesByRetained,
         List<StringDeduplicationEntry> alreadyDeduplicated,
         List<StringDeduplicationEntry> opportunities,
         List<JvmStringFlag> jvmFlags

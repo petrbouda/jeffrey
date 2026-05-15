@@ -230,13 +230,15 @@ export default class HeapDumpClient extends BaseProfileClient {
     className: string,
     limit: number = 50,
     offset: number = 0,
-    includeRetainedSize: boolean = false
+    includeRetainedSize: boolean = false,
+    sortBy: 'OBJECT_ID' | 'RETAINED_SIZE' = 'OBJECT_ID'
   ): Promise<ClassInstancesResponse> {
     return this.get<ClassInstancesResponse>('/class-instances', {
       className,
       limit,
       offset,
-      includeRetainedSize
+      includeRetainedSize,
+      sortBy
     });
   }
 

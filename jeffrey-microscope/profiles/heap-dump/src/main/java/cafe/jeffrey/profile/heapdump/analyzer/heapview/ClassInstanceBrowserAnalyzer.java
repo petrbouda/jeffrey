@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import cafe.jeffrey.profile.heapdump.model.ClassInstanceEntry;
 import cafe.jeffrey.profile.heapdump.model.ClassInstancesResponse;
+import cafe.jeffrey.profile.heapdump.model.InstanceSortBy;
 import cafe.jeffrey.profile.heapdump.parser.HeapView;
 import cafe.jeffrey.profile.heapdump.parser.InstanceFieldValue;
 import cafe.jeffrey.profile.heapdump.parser.JavaClassRow;
@@ -47,21 +48,42 @@ import cafe.jeffrey.profile.heapdump.parser.JavaClassRow;
 public final class ClassInstanceBrowserAnalyzer {
 
     private static final int DEFAULT_LIMIT = 100;
+    private static final int MAX_SUPERCLASS_WALK = 20;
+
+    private static final String SQL_BY_OBJECT_ID =
+            "SELECT instance_id, shallow_size FROM instance "
+                    + "WHERE class_id = ? ORDER BY instance_id LIMIT ? OFFSET ?";
+
+    private static final String SQL_BY_RETAINED_SIZE =
+            "SELECT i.instance_id, i.shallow_size, r.bytes "
+                    + "FROM instance i "
+                    + "LEFT JOIN retained_size r ON i.instance_id = r.instance_id "
+                    + "WHERE i.class_id = ? "
+                    + "ORDER BY r.bytes DESC NULLS LAST, i.instance_id "
+                    + "LIMIT ? OFFSET ?";
 
     private ClassInstanceBrowserAnalyzer() {
     }
 
     public static ClassInstancesResponse browse(HeapView view, long classId) throws SQLException {
-        return browse(view, classId, 0, DEFAULT_LIMIT);
+        return browse(view, classId, 0, DEFAULT_LIMIT, InstanceSortBy.OBJECT_ID);
     }
 
     public static ClassInstancesResponse browse(HeapView view, long classId, int offset, int limit)
             throws SQLException {
+        return browse(view, classId, offset, limit, InstanceSortBy.OBJECT_ID);
+    }
+
+    public static ClassInstancesResponse browse(
+            HeapView view, long classId, int offset, int limit, InstanceSortBy sortBy) throws SQLException {
         if (offset < 0) {
             throw new IllegalArgumentException("offset must be non-negative: offset=" + offset);
         }
         if (limit <= 0) {
             throw new IllegalArgumentException("limit must be positive: limit=" + limit);
+        }
+        if (sortBy == InstanceSortBy.RETAINED_SIZE && !view.hasDominatorTree()) {
+            throw new IllegalStateException("Retained-size sort requires the dominator tree to be built");
         }
 
         JavaClassRow cls = view.findClassById(classId).orElse(null);
@@ -69,11 +91,12 @@ public final class ClassInstanceBrowserAnalyzer {
         long totalLong = view.instanceCount(classId);
         int total = (int) Math.min(totalLong, Integer.MAX_VALUE);
         boolean haveDom = view.hasDominatorTree();
+        boolean joinRetained = sortBy == InstanceSortBy.RETAINED_SIZE;
+        boolean isEnum = cls != null && isEnumClass(view, cls);
 
         List<ClassInstanceEntry> entries = new ArrayList<>();
-        try (PreparedStatement stmt = view.databaseClient().connection().prepareStatement(
-                "SELECT instance_id, shallow_size FROM instance "
-                        + "WHERE class_id = ? ORDER BY instance_id LIMIT ? OFFSET ?")) {
+        String sql = joinRetained ? SQL_BY_RETAINED_SIZE : SQL_BY_OBJECT_ID;
+        try (PreparedStatement stmt = view.databaseClient().connection().prepareStatement(sql)) {
             stmt.setLong(1, classId);
             stmt.setInt(2, limit);
             stmt.setInt(3, offset);
@@ -82,14 +105,45 @@ public final class ClassInstanceBrowserAnalyzer {
                     long instanceId = rs.getLong(1);
                     int shallow = rs.getInt(2);
                     Map<String, String> params = readFieldsAsParams(view, instanceId);
-                    Long retained = haveDom ? probeRetained(view, instanceId) : null;
-                    entries.add(new ClassInstanceEntry(instanceId, shallow, retained, params));
+                    Long retained;
+                    if (joinRetained) {
+                        long bytes = rs.getLong(3);
+                        retained = rs.wasNull() ? null : bytes;
+                    } else {
+                        retained = haveDom ? view.findRetainedSize(instanceId).orElse(null) : null;
+                    }
+                    String preview = ContentPreviewRenderer.renderOrNull(view, className, instanceId, isEnum);
+                    entries.add(new ClassInstanceEntry(instanceId, shallow, retained, params, preview));
                 }
             }
         }
 
         boolean hasMore = (long) offset + entries.size() < totalLong;
         return new ClassInstancesResponse(className, total, List.copyOf(entries), hasMore);
+    }
+
+    /**
+     * Walks the super-class chain looking for {@code java.lang.Enum}, so the renderer
+     * can resolve the {@code name} field uniformly for every enum subclass without
+     * needing a dedicated case per enum type.
+     */
+    private static boolean isEnumClass(HeapView view, JavaClassRow start) throws SQLException {
+        JavaClassRow current = start;
+        for (int i = 0; i < MAX_SUPERCLASS_WALK; i++) {
+            if (Enum.class.getName().equals(current.name())) {
+                return true;
+            }
+            Long superId = current.superClassId();
+            if (superId == null || superId == 0L) {
+                return false;
+            }
+            JavaClassRow parent = view.findClassById(superId).orElse(null);
+            if (parent == null) {
+                return false;
+            }
+            current = parent;
+        }
+        return false;
     }
 
     private static Map<String, String> readFieldsAsParams(HeapView view, long instanceId) throws SQLException {
@@ -102,16 +156,6 @@ public final class ClassInstanceBrowserAnalyzer {
             return out;
         } catch (IllegalStateException noHprof) {
             return Map.of();
-        }
-    }
-
-    private static Long probeRetained(HeapView view, long instanceId) throws SQLException {
-        try (PreparedStatement stmt = view.databaseClient().connection().prepareStatement(
-                "SELECT bytes FROM retained_size WHERE instance_id = ?")) {
-            stmt.setLong(1, instanceId);
-            try (ResultSet rs = stmt.executeQuery()) {
-                return rs.next() ? rs.getLong(1) : null;
-            }
         }
     }
 

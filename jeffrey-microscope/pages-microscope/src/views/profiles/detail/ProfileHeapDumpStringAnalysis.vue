@@ -42,6 +42,175 @@
     <!-- Tabbed Analysis Section -->
     <TabBar v-model="activeTab" :tabs="analysisTabs" class="mb-3" />
 
+    <!-- Top Strings Tab -->
+    <div v-show="activeTab === 'top'">
+      <div v-if="report && report.topByRetained.length > 0">
+        <DataTable>
+          <template #toolbar>
+            <TableToolbar :show-search="false">
+              <span class="toolbar-info"
+                >Showing top {{ report.topByRetained.length }} strings by retained size</span
+              >
+            </TableToolbar>
+          </template>
+          <thead>
+            <tr>
+              <th style="width: 40px">#</th>
+              <SortableTableHeader
+                column="content"
+                label="Content"
+                :sort-column="topSortColumn"
+                :sort-direction="topSortDirection"
+                @sort="toggleTopSort"
+              />
+              <SortableTableHeader
+                column="count"
+                label="Count"
+                :sort-column="topSortColumn"
+                :sort-direction="topSortDirection"
+                align="end"
+                width="100px"
+                @sort="toggleTopSort"
+              />
+              <SortableTableHeader
+                column="arrayShallowSize"
+                label="Array Size"
+                :sort-column="topSortColumn"
+                :sort-direction="topSortDirection"
+                align="end"
+                width="120px"
+                @sort="toggleTopSort"
+              />
+              <SortableTableHeader
+                column="retainedSize"
+                label="Retained"
+                :sort-column="topSortColumn"
+                :sort-direction="topSortDirection"
+                align="end"
+                width="130px"
+                @sort="toggleTopSort"
+              />
+              <th style="width: 200px">% of top</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(entry, index) in sortedTopRetained" :key="index">
+              <td class="text-muted">{{ index + 1 }}</td>
+              <td>
+                <code class="string-content">{{ entry.content }}</code>
+              </td>
+              <td class="text-end font-monospace">
+                {{ FormattingService.formatNumber(entry.count) }}
+              </td>
+              <td class="text-end font-monospace">
+                {{ FormattingService.formatBytes(entry.arrayShallowSize) }}
+              </td>
+              <td class="text-end font-monospace text-primary">
+                {{ FormattingService.formatBytes(entry.retainedSize) }}
+              </td>
+              <td>
+                <div class="d-flex align-items-center gap-2">
+                  <div class="progress flex-grow-1" style="height: 6px">
+                    <div
+                      class="progress-bar bg-primary"
+                      :style="{ width: getTopRetainedPercentage(entry) + '%' }"
+                    ></div>
+                  </div>
+                  <small class="text-muted" style="min-width: 45px"
+                    >{{ getTopRetainedPercentage(entry).toFixed(1) }}%</small
+                  >
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </DataTable>
+      </div>
+      <div v-else class="text-center text-muted py-5">
+        <i class="bi bi-trophy fs-1 mb-3 d-block"></i>
+        <p>No strings found in this heap dump.</p>
+        <small>The heap dump contains no String instances to rank.</small>
+      </div>
+    </div>
+
+    <!-- Top Instances Tab -->
+    <div v-show="activeTab === 'top-instances'">
+      <div v-if="report && report.topInstancesByRetained.length > 0">
+        <DataTable>
+          <template #toolbar>
+            <TableToolbar :show-search="false">
+              <span class="toolbar-info"
+                >Showing top {{ report.topInstancesByRetained.length }} String instances by
+                GC-retained size — a single shared array contributes only when no other String
+                references it</span
+              >
+            </TableToolbar>
+          </template>
+          <thead>
+            <tr>
+              <th style="width: 40px">#</th>
+              <SortableTableHeader
+                column="content"
+                label="Content"
+                :sort-column="instSortColumn"
+                :sort-direction="instSortDirection"
+                @sort="toggleInstSort"
+              />
+              <th style="width: 180px" class="text-end">Actions</th>
+              <SortableTableHeader
+                column="retainedSize"
+                label="Retained"
+                :sort-column="instSortColumn"
+                :sort-direction="instSortDirection"
+                align="end"
+                width="130px"
+                @sort="toggleInstSort"
+              />
+              <th style="width: 200px">% of top</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(entry, index) in sortedTopInstances" :key="entry.instanceId">
+              <td class="text-muted">{{ index + 1 }}</td>
+              <td class="content-flex">
+                <code class="string-content-flex">{{ entry.content }}</code>
+              </td>
+              <td class="text-end actions-nowrap">
+                <InstanceActionButtons
+                  :object-id="entry.instanceId"
+                  :show-instance-detail="true"
+                  @show-referrers="openTreeModal($event, 'REFERRERS')"
+                  @show-reachables="openTreeModal($event, 'REACHABLES')"
+                  @show-g-c-root-path="openGCRootPathModal"
+                  @show-instance-detail="openInstanceDetailPanel"
+                />
+              </td>
+              <td class="text-end font-monospace text-primary">
+                {{ FormattingService.formatBytes(entry.retainedSize) }}
+              </td>
+              <td>
+                <div class="d-flex align-items-center gap-2">
+                  <div class="progress flex-grow-1" style="height: 6px">
+                    <div
+                      class="progress-bar bg-primary"
+                      :style="{ width: getInstanceRetainedPercentage(entry) + '%' }"
+                    ></div>
+                  </div>
+                  <small class="text-muted" style="min-width: 45px"
+                    >{{ getInstanceRetainedPercentage(entry).toFixed(1) }}%</small
+                  >
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </DataTable>
+      </div>
+      <div v-else class="text-center text-muted py-5">
+        <i class="bi bi-bullseye fs-1 mb-3 d-block"></i>
+        <p>No String instances found.</p>
+        <small>The heap dump contains no individual String objects to rank.</small>
+      </div>
+    </div>
+
     <!-- Overview Tab -->
     <div v-show="activeTab === 'overview'">
         <DualPanel v-if="report" left-title="Memory Status" right-title="String Array Sharing">
@@ -455,12 +624,31 @@
           </div>
         </div>
     </div>
+
+    <!-- Instance Tree Modal (referrers / reachables) -->
+    <InstanceTreeModal
+      :show="treeModalVisible"
+      :object-id="treeModalObjectId"
+      :initial-mode="treeModalMode"
+      :profile-id="profileId"
+      @update:show="treeModalVisible = $event"
+    />
+
+    <!-- Instance Details Side Panel -->
+    <InstanceDetailPanel
+      v-if="client"
+      :is-open="detailPanelOpen"
+      :object-id="detailPanelObjectId"
+      :client="client"
+      @close="detailPanelOpen = false"
+      @navigate="detailPanelObjectId = $event"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 
 import PageHeader from '@/components/layout/PageHeader.vue';
 import LoadingState from '@/components/LoadingState.vue';
@@ -474,11 +662,17 @@ import TableToolbar from '@/components/table/TableToolbar.vue';
 import DualPanel from '@/components/DualPanel.vue';
 import DonutWithLegend from '@/components/DonutWithLegend.vue';
 import type { DonutChartData } from '@/components/DonutWithLegend.vue';
+import InstanceActionButtons from '@/components/heap/InstanceActionButtons.vue';
+import InstanceTreeModal from '@/components/heap/InstanceTreeModal.vue';
+import InstanceDetailPanel from '@/components/heap/InstanceDetailPanel.vue';
 import HeapDumpClient from '@/services/api/HeapDumpClient';
 import StringAnalysisReport, { JvmStringFlag } from '@/services/api/model/StringAnalysisReport';
 import StringDeduplicationEntry from '@/services/api/model/StringDeduplicationEntry';
+import StringInstanceEntry from '@/services/api/model/StringInstanceEntry';
+import StringTopEntry from '@/services/api/model/StringTopEntry';
 import FormattingService from '@/services/FormattingService';
 const route = useRoute();
+const router = useRouter();
 
 const profileId = route.params.profileId as string;
 
@@ -487,7 +681,24 @@ const error = ref<string | null>(null);
 const heapExists = ref(false);
 const cacheReady = ref(false);
 const report = ref<StringAnalysisReport | null>(null);
-const activeTab = ref('overview');
+const activeTab = ref('top');
+
+// Sort state for top strings table
+const topSortColumn = ref('retainedSize');
+const topSortDirection = ref<'asc' | 'desc'>('desc');
+
+// Sort state for top instances table
+const instSortColumn = ref('retainedSize');
+const instSortDirection = ref<'asc' | 'desc'>('desc');
+
+// Tree modal state (referrers / reachables) for top-instance actions
+const treeModalVisible = ref(false);
+const treeModalObjectId = ref(0);
+const treeModalMode = ref<'REFERRERS' | 'REACHABLES'>('REFERRERS');
+
+// Instance detail side-panel state
+const detailPanelOpen = ref(false);
+const detailPanelObjectId = ref<number | null>(null);
 
 // Sort state for deduplicated table
 const dedupSortColumn = ref('savings');
@@ -500,6 +711,8 @@ const oppSortDirection = ref<'asc' | 'desc'>('desc');
 let client: HeapDumpClient;
 
 const analysisTabs = [
+  { id: 'top', label: 'Top Strings', icon: 'trophy' },
+  { id: 'top-instances', label: 'Top Instances', icon: 'bullseye' },
   { id: 'overview', label: 'Overview', icon: 'pie-chart' },
   { id: 'deduplicated', label: 'Deduplicated', icon: 'check-circle' },
   { id: 'opportunities', label: 'Opportunities', icon: 'exclamation-triangle' },
@@ -600,6 +813,20 @@ const arrayChartData = computed<DonutChartData>(() => {
   };
 });
 
+const maxTopRetained = computed(() => {
+  if (!report.value || report.value.topByRetained.length === 0) {
+    return 0;
+  }
+  return Math.max(...report.value.topByRetained.map(e => e.retainedSize));
+});
+
+const maxInstanceRetained = computed(() => {
+  if (!report.value || report.value.topInstancesByRetained.length === 0) {
+    return 0;
+  }
+  return Math.max(...report.value.topInstancesByRetained.map(e => e.retainedSize));
+});
+
 const maxDeduplicatedSavings = computed(() => {
   if (!report.value || report.value.alreadyDeduplicated.length === 0) return 0;
   return Math.max(...report.value.alreadyDeduplicated.map(e => e.savings));
@@ -608,6 +835,50 @@ const maxDeduplicatedSavings = computed(() => {
 const maxOpportunitySavings = computed(() => {
   if (!report.value || report.value.opportunities.length === 0) return 0;
   return Math.max(...report.value.opportunities.map(e => e.savings));
+});
+
+// Sorted top-instances entries
+const sortedTopInstances = computed(() => {
+  if (!report.value) {
+    return [];
+  }
+  const entries = [...report.value.topInstancesByRetained];
+  const direction = instSortDirection.value === 'asc' ? 1 : -1;
+
+  switch (instSortColumn.value) {
+    case 'content':
+      entries.sort((a, b) => direction * a.content.localeCompare(b.content));
+      break;
+    case 'retainedSize':
+      entries.sort((a, b) => direction * (a.retainedSize - b.retainedSize));
+      break;
+  }
+  return entries;
+});
+
+// Sorted top-by-retained entries
+const sortedTopRetained = computed(() => {
+  if (!report.value) {
+    return [];
+  }
+  const entries = [...report.value.topByRetained];
+  const direction = topSortDirection.value === 'asc' ? 1 : -1;
+
+  switch (topSortColumn.value) {
+    case 'content':
+      entries.sort((a, b) => direction * a.content.localeCompare(b.content));
+      break;
+    case 'count':
+      entries.sort((a, b) => direction * (a.count - b.count));
+      break;
+    case 'arrayShallowSize':
+      entries.sort((a, b) => direction * (a.arrayShallowSize - b.arrayShallowSize));
+      break;
+    case 'retainedSize':
+      entries.sort((a, b) => direction * (a.retainedSize - b.retainedSize));
+      break;
+  }
+  return entries;
 });
 
 // Sorted deduplicated entries
@@ -656,6 +927,24 @@ const sortedOpportunities = computed(() => {
   return entries;
 });
 
+const toggleTopSort = (column: string) => {
+  if (topSortColumn.value === column) {
+    topSortDirection.value = topSortDirection.value === 'asc' ? 'desc' : 'asc';
+  } else {
+    topSortColumn.value = column;
+    topSortDirection.value = column === 'content' ? 'asc' : 'desc';
+  }
+};
+
+const toggleInstSort = (column: string) => {
+  if (instSortColumn.value === column) {
+    instSortDirection.value = instSortDirection.value === 'asc' ? 'desc' : 'asc';
+  } else {
+    instSortColumn.value = column;
+    instSortDirection.value = column === 'content' ? 'asc' : 'desc';
+  }
+};
+
 const toggleDedupSort = (column: string) => {
   if (dedupSortColumn.value === column) {
     dedupSortDirection.value = dedupSortDirection.value === 'asc' ? 'desc' : 'asc';
@@ -672,6 +961,35 @@ const toggleOppSort = (column: string) => {
     oppSortColumn.value = column;
     oppSortDirection.value = column === 'content' ? 'asc' : 'desc';
   }
+};
+
+const getTopRetainedPercentage = (entry: StringTopEntry): number => {
+  if (maxTopRetained.value === 0) {
+    return 0;
+  }
+  return (entry.retainedSize / maxTopRetained.value) * 100;
+};
+
+const getInstanceRetainedPercentage = (entry: StringInstanceEntry): number => {
+  if (maxInstanceRetained.value === 0) {
+    return 0;
+  }
+  return (entry.retainedSize / maxInstanceRetained.value) * 100;
+};
+
+const openTreeModal = (objectId: number, mode: 'REFERRERS' | 'REACHABLES') => {
+  treeModalObjectId.value = objectId;
+  treeModalMode.value = mode;
+  treeModalVisible.value = true;
+};
+
+const openGCRootPathModal = (objectId: number) => {
+  router.push(`/profiles/${profileId}/heap-dump/gc-root-path?objectId=${objectId}`);
+};
+
+const openInstanceDetailPanel = (objectId: number) => {
+  detailPanelObjectId.value = objectId;
+  detailPanelOpen.value = true;
 };
 
 const getDeduplicatedPercentage = (entry: StringDeduplicationEntry): number => {
@@ -746,11 +1064,32 @@ onMounted(() => {
   word-break: break-all;
   background-color: transparent;
   color: var(--color-text);
-  max-width: 400px;
+  max-width: 720px;
   display: inline-block;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* max-width: 0 + width: 100% lets this <td> shrink/grow to whatever the
+   sibling fixed-width columns leave, then ellipsis-truncate when narrow. */
+.content-flex {
+  max-width: 0;
+  width: 100%;
+}
+
+.string-content-flex {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--color-text);
+  background-color: transparent;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.actions-nowrap :deep(.instance-action-buttons) {
+  flex-wrap: nowrap;
 }
 
 .flag-name {

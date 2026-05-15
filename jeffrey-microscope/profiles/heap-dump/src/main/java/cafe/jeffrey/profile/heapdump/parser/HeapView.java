@@ -28,13 +28,13 @@ import java.util.stream.Stream;
 
 /**
  * Read-side façade over a heap-dump index DB.
- *
+ * <p>
  * Replaces the consumer-side surface that the rewritten analyzers will use in
  * place of NetBeans' {@code org.netbeans.lib.profiler.heap.Heap}. Methods that
  * return bounded result sets ({@link #classes()}, {@link #gcRoots()}, the
  * histogram) hand back lists; methods that may scan the full instance table
  * return {@link Stream} and must be closed by the caller via try-with-resources.
- *
+ * <p>
  * Implementations are read-only: the underlying DuckDB connection is opened in
  * {@code access_mode=read_only} so multiple {@link HeapView} instances can run
  * concurrently against the same index.
@@ -83,10 +83,14 @@ public interface HeapView extends AutoCloseable {
 
     long instanceCount(long classId) throws SQLException;
 
-    /** Total instances across the whole heap. */
+    /**
+     * Total instances across the whole heap.
+     */
     long totalInstanceCount() throws SQLException;
 
-    /** Sum of {@code shallow_size} across all instances. */
+    /**
+     * Sum of {@code shallow_size} across all instances.
+     */
     long totalShallowSize() throws SQLException;
 
     long classCount() throws SQLException;
@@ -101,13 +105,19 @@ public interface HeapView extends AutoCloseable {
 
     // ---- Reference graph -------------------------------------------------
 
-    /** All outbound references from {@code instanceId}. */
+    /**
+     * All outbound references from {@code instanceId}.
+     */
     List<OutboundRefRow> outboundRefs(long instanceId) throws SQLException;
 
-    /** All inbound references to {@code instanceId}. Cheap thanks to the index on target_id. */
+    /**
+     * All inbound references to {@code instanceId}. Cheap thanks to the index on target_id.
+     */
     List<OutboundRefRow> inboundRefs(long instanceId) throws SQLException;
 
-    /** Count of outbound references — cheap whole-graph metric. */
+    /**
+     * Count of outbound references — cheap whole-graph metric.
+     */
     long outboundRefCount() throws SQLException;
 
     // ---- Dominator tree + retained size (populated by DominatorTreeBuilder) ----
@@ -119,10 +129,18 @@ public interface HeapView extends AutoCloseable {
      */
     long dominatorOf(long instanceId) throws SQLException;
 
-    /** Retained size in bytes, or 0 if not computed. */
-    long retainedSize(long instanceId) throws SQLException;
+    /**
+     * Retained size in bytes, or 0 if not computed. Convenience wrapper for
+     * callers that don't need to distinguish "0 bytes retained" from "no row
+     * yet". For that distinction, use {@link #findRetainedSize(long)}.
+     */
+    default long retainedSize(long instanceId) throws SQLException {
+        return findRetainedSize(instanceId).orElse(0L);
+    }
 
-    /** True iff the dominator + retained_size tables have been populated. */
+    /**
+     * True iff the dominator + retained_size tables have been populated.
+     */
     boolean hasDominatorTree() throws SQLException;
 
     // ---- Class fields + instance values ----------------------------------
@@ -154,6 +172,15 @@ public interface HeapView extends AutoCloseable {
      * .hprof. Returns empty bytes if the instance is not a primitive array.
      */
     byte[] readPrimitiveArrayBytes(long instanceId) throws SQLException;
+
+    /**
+     * Bounded-read variant of {@link #readPrimitiveArrayBytes(long)} that copies
+     * at most {@code maxBytes} from the start of the array's payload. Use this
+     * when you only need a prefix (e.g. a 200-char String preview) and want to
+     * avoid the multi-megabyte allocation a full read would cost on a large
+     * array. {@code maxBytes <= 0} returns an empty array.
+     */
+    byte[] readPrimitiveArrayBytes(long instanceId, int maxBytes) throws SQLException;
 
     /**
      * Returns the raw on-disk content bytes for any instance — INSTANCE_DUMP
@@ -198,6 +225,15 @@ public interface HeapView extends AutoCloseable {
      * is {@code NULL}), or when no row exists at all.
      */
     Optional<String> findStringContent(long instanceId) throws SQLException;
+
+    /**
+     * Looks up the GC-retained size of an instance from the {@code
+     * retained_size} table populated by the dominator phase. Returns empty
+     * when no row exists yet (e.g. before the dominator pass has run, or for
+     * instances the pass did not visit). For the convenience "0 when missing"
+     * form, use {@link #retainedSize(long)}.
+     */
+    Optional<Long> findRetainedSize(long instanceId) throws SQLException;
 
     // ---- Aggregate -------------------------------------------------------
 

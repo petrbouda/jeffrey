@@ -92,9 +92,9 @@ public final class HprofStringContentWriter {
                     : new String(nameBytes, StandardCharsets.UTF_8);
             int type = types[i];
             int size = HprofTypeSize.sizeOf(type, idSize);
-            if ("value".equals(name) && type == HprofTag.BasicType.OBJECT) {
+            if (JdkFieldNames.STRING_VALUE.equals(name) && type == HprofTag.BasicType.OBJECT) {
                 valueOffset = offset;
-            } else if ("coder".equals(name) && type == HprofTag.BasicType.BYTE) {
+            } else if (JdkFieldNames.STRING_CODER.equals(name) && type == HprofTag.BasicType.BYTE) {
                 coderOffset = offset;
             }
             offset += size;

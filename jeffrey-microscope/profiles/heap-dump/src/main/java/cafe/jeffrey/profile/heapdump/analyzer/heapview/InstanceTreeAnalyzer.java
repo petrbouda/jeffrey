@@ -114,7 +114,7 @@ public final class InstanceTreeAnalyzer {
 
     private static InstanceTreeNode buildRootNode(HeapView view, InstanceRow inst) throws SQLException {
         String className = classNameFor(view, inst);
-        Long retained = view.hasDominatorTree() ? probeRetained(view, inst.instanceId()) : null;
+        Long retained = view.hasDominatorTree() ? view.findRetainedSize(inst.instanceId()).orElse(null) : null;
         long childCount = countChildrenAny(view, inst.instanceId());
         return new InstanceTreeNode(
                 inst.instanceId(),
@@ -145,7 +145,7 @@ public final class InstanceTreeAnalyzer {
         InstanceRow other = view.findInstanceById(otherId).orElse(null);
         String className = other != null ? classNameFor(view, other) : "<unknown>";
         long shallow = other != null ? other.shallowSize() : 0L;
-        Long retained = view.hasDominatorTree() ? probeRetained(view, otherId) : null;
+        Long retained = view.hasDominatorTree() ? view.findRetainedSize(otherId).orElse(null) : null;
 
         String fieldName = null;
         if (request.mode() == InstanceTreeRequest.TreeMode.REACHABLES) {
@@ -197,13 +197,4 @@ public final class InstanceTreeAnalyzer {
         return view.findClassById(inst.classId()).map(JavaClassRow::name).orElse("<unknown>");
     }
 
-    private static Long probeRetained(HeapView view, long instanceId) throws SQLException {
-        try (PreparedStatement stmt = view.databaseClient().connection().prepareStatement(
-                "SELECT bytes FROM retained_size WHERE instance_id = ?")) {
-            stmt.setLong(1, instanceId);
-            try (ResultSet rs = stmt.executeQuery()) {
-                return rs.next() ? rs.getLong(1) : null;
-            }
-        }
-    }
 }

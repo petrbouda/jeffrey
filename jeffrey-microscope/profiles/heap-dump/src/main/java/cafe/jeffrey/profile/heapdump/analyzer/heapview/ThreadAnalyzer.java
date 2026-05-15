@@ -17,7 +17,6 @@
  */
 package cafe.jeffrey.profile.heapdump.analyzer.heapview;
 
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -29,6 +28,10 @@ import cafe.jeffrey.profile.heapdump.model.HeapThreadState;
 import cafe.jeffrey.profile.heapdump.parser.HeapView;
 import cafe.jeffrey.profile.heapdump.parser.HprofTag;
 import cafe.jeffrey.profile.heapdump.parser.InstanceFieldValue;
+import cafe.jeffrey.profile.heapdump.parser.JdkFieldNames;
+
+import static cafe.jeffrey.profile.heapdump.parser.JdbcNullable.nullableInt;
+import static cafe.jeffrey.profile.heapdump.parser.JdbcNullable.nullableLong;
 
 /**
  * HeapView-backed equivalent of
@@ -180,7 +183,7 @@ public final class ThreadAnalyzer {
         int priority = 0;
         for (InstanceFieldValue f : fields) {
             switch (f.name()) {
-                case "name" -> {
+                case JdkFieldNames.THREAD_NAME -> {
                     if (f.value() instanceof Long stringRef && stringRef != 0L) {
                         Optional<String> cached = view.findStringContent(stringRef);
                         if (cached.isPresent()) {
@@ -210,29 +213,10 @@ public final class ThreadAnalyzer {
             }
         }
 
-        Long retained = haveRetained ? probeRetainedSize(view, instanceId) : null;
+        Long retained = haveRetained ? view.findRetainedSize(instanceId).orElse(null) : null;
         return Optional.of(new HeapThreadInfo(
                 instanceId, name, daemon, priority, retained,
                 frameCount, localsCount, localsBytes, state));
     }
 
-    private static Long probeRetainedSize(HeapView view, long instanceId) throws SQLException {
-        try (PreparedStatement stmt = view.databaseClient().connection().prepareStatement(
-                "SELECT bytes FROM retained_size WHERE instance_id = ?")) {
-            stmt.setLong(1, instanceId);
-            try (ResultSet rs = stmt.executeQuery()) {
-                return rs.next() ? rs.getLong(1) : null;
-            }
-        }
-    }
-
-    private static Integer nullableInt(ResultSet rs, int column) throws SQLException {
-        int v = rs.getInt(column);
-        return rs.wasNull() ? null : v;
-    }
-
-    private static Long nullableLong(ResultSet rs, int column) throws SQLException {
-        long v = rs.getLong(column);
-        return rs.wasNull() ? null : v;
-    }
 }

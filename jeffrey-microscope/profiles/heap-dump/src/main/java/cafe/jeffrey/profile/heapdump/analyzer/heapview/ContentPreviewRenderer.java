@@ -30,6 +30,7 @@ import java.util.Set;
 import java.util.UUID;
 import cafe.jeffrey.profile.heapdump.parser.HeapView;
 import cafe.jeffrey.profile.heapdump.parser.InstanceFieldValue;
+import cafe.jeffrey.profile.heapdump.parser.JdkFieldNames;
 
 /**
  * Renders a human-readable preview of an instance's content — the decoded
@@ -78,7 +79,7 @@ public final class ContentPreviewRenderer {
     public static String render(HeapView view, String className,
             long exemplarInstanceId, byte[] exemplarBytes) {
         try {
-            String formatted = renderTyped(view, className, exemplarInstanceId);
+            String formatted = renderTyped(view, className, exemplarInstanceId, false);
             if (formatted != null) {
                 return formatted;
             }
@@ -88,12 +89,29 @@ public final class ContentPreviewRenderer {
         return hexPreview(exemplarBytes);
     }
 
-    private static String renderTyped(HeapView view, String className, long instanceId) throws SQLException {
-        if ("java.lang.String".equals(className)) {
+    /**
+     * Render a preview for the given instance, returning {@code null} when no known
+     * layout applies. Unlike {@link #render}, this entry point never falls back to a
+     * hex dump — suited for UIs that prefer "no preview" over a meaningless byte stream.
+     *
+     * @param isEnum {@code true} when the class transitively extends {@code java.lang.Enum};
+     *               in that case the {@code name} field is resolved as the preview.
+     */
+    public static String renderOrNull(HeapView view, String className, long instanceId, boolean isEnum)
+            throws SQLException {
+        return renderTyped(view, className, instanceId, isEnum);
+    }
+
+    private static String renderTyped(HeapView view, String className, long instanceId, boolean isEnum)
+            throws SQLException {
+        if (String.class.getName().equals(className)) {
             return renderString(view, instanceId);
         }
         if (BOXED_WRAPPERS.contains(className)) {
             return renderBoxedValue(view, instanceId);
+        }
+        if (isEnum) {
+            return capRaw(renderNameField(view, instanceId));
         }
         return switch (className) {
             case "java.math.BigDecimal" -> capRaw(renderBigDecimal(view, instanceId));
@@ -102,8 +120,24 @@ public final class ContentPreviewRenderer {
             case "java.time.Duration" -> capRaw(renderDuration(view, instanceId));
             case "java.time.LocalDate" -> capRaw(renderLocalDate(view, instanceId));
             case "java.time.LocalTime" -> capRaw(renderLocalTime(view, instanceId));
+            case "java.lang.Thread" -> capRaw(renderNameField(view, instanceId));
+            case "java.lang.Class" -> capRaw(renderNameField(view, instanceId));
             default -> null;
         };
+    }
+
+    /**
+     * Resolves the {@code name} String reference on an instance (Thread, Class, Enum) and
+     * returns its decoded content. The name field is rendered unquoted because identifiers
+     * like {@code MainThread} or {@code java.util.HashMap} read better without quotes.
+     */
+    private static String renderNameField(HeapView view, long instanceId) throws SQLException {
+        for (InstanceFieldValue f : view.readInstanceFields(instanceId)) {
+            if (JdkFieldNames.THREAD_NAME.equals(f.name()) && f.value() instanceof Long ref && ref != 0L) {
+                return view.findStringContent(ref).orElse(null);
+            }
+        }
+        return null;
     }
 
     private static String renderString(HeapView view, long instanceId) throws SQLException {
@@ -117,7 +151,7 @@ public final class ContentPreviewRenderer {
 
     private static String renderBoxedValue(HeapView view, long instanceId) throws SQLException {
         for (InstanceFieldValue f : view.readInstanceFields(instanceId)) {
-            if ("value".equals(f.name())) {
+            if (JdkFieldNames.STRING_VALUE.equals(f.name())) {
                 Object v = f.value();
                 return v == null ? null : String.valueOf(v);
             }

@@ -109,7 +109,7 @@ public final class DominatorTreeAnalyzer {
                             ? 0.0
                             : (retained * 100.0) / parentRetainedSize;
                     String rootKind = rootKindByInstance.containsKey(instanceId)
-                            ? kindName(rootKindByInstance.get(instanceId))
+                            ? HprofTag.Sub.rootKindName(rootKindByInstance.get(instanceId))
                             : null;
                     nodes.add(new DominatorNode(
                             instanceId, className, Map.of(),
@@ -157,18 +157,4 @@ public final class DominatorTreeAnalyzer {
         return out;
     }
 
-    private static String kindName(int rootKind) {
-        return switch (rootKind) {
-            case HprofTag.Sub.ROOT_UNKNOWN -> "Unknown";
-            case HprofTag.Sub.ROOT_JNI_GLOBAL -> "JNI global";
-            case HprofTag.Sub.ROOT_JNI_LOCAL -> "JNI local";
-            case HprofTag.Sub.ROOT_JAVA_FRAME -> "Java frame";
-            case HprofTag.Sub.ROOT_NATIVE_STACK -> "Native stack";
-            case HprofTag.Sub.ROOT_STICKY_CLASS -> "Sticky class";
-            case HprofTag.Sub.ROOT_THREAD_BLOCK -> "Thread block";
-            case HprofTag.Sub.ROOT_MONITOR_USED -> "Monitor used";
-            case HprofTag.Sub.ROOT_THREAD_OBJECT -> "Thread object";
-            default -> "Other";
-        };
-    }
 }

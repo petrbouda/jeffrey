@@ -3,6 +3,7 @@ export interface ClassInstanceEntry {
   shallowSize: number;
   retainedSize: number | null;
   objectParams: Record<string, string>;
+  contentPreview: string | null;
 }
 
 export default interface ClassInstancesResponse {

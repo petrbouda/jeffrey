@@ -213,7 +213,7 @@ public final class PathToGCRootAnalyzer {
         return new GCRootPath(
                 rootId,
                 rootClassName,
-                kindName(rootKind),
+                HprofTag.Sub.rootKindName(rootKind),
                 null,           // threadName — populated once ThreadAnalyzer (PR #10) lands
                 null,           // stackFrame — same
                 steps);
@@ -280,21 +280,6 @@ public final class PathToGCRootAnalyzer {
                 throw new RuntimeException(e);
             }
         })).map(JavaClassRow::name).orElse("<unknown>");
-    }
-
-    private static String kindName(int kind) {
-        return switch (kind) {
-            case HprofTag.Sub.ROOT_UNKNOWN -> "Unknown";
-            case HprofTag.Sub.ROOT_JNI_GLOBAL -> "JNI global";
-            case HprofTag.Sub.ROOT_JNI_LOCAL -> "JNI local";
-            case HprofTag.Sub.ROOT_JAVA_FRAME -> "Java frame";
-            case HprofTag.Sub.ROOT_NATIVE_STACK -> "Native stack";
-            case HprofTag.Sub.ROOT_STICKY_CLASS -> "Sticky class";
-            case HprofTag.Sub.ROOT_THREAD_BLOCK -> "Thread block";
-            case HprofTag.Sub.ROOT_MONITOR_USED -> "Monitor used";
-            case HprofTag.Sub.ROOT_THREAD_OBJECT -> "Thread object";
-            default -> "Other";
-        };
     }
 
     /** A back-pointer in the BFS: this node was reached via {@code refToChild} from {@code child}. */

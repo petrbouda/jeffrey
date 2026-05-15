@@ -17,6 +17,7 @@
   -->
 
 <script setup lang="ts">
+import { onBeforeUnmount, onMounted, ref } from 'vue';
 import FormattingService from '@/services/FormattingService';
 
 interface RecordingOrigin {
@@ -76,9 +77,14 @@ const isTransitional = () =>
   (props.hasProfile && !props.profileEnabled);
 
 const handleClick = () => {
-  if (!isTransitional()) {
-    emit('click');
+  if (isTransitional()) {
+    return;
   }
+  if (menuOpen.value) {
+    menuOpen.value = false;
+    return;
+  }
+  emit('click');
 };
 
 const onDragStart = (event: DragEvent) => {
@@ -90,17 +96,57 @@ const onDragStart = (event: DragEvent) => {
 const formatRelativeTime = (timestamp: number) => {
   return FormattingService.formatRelativeTime(timestamp);
 };
+
+// In-card action bar (no popover — sidesteps overflow/positioning issues)
+type MenuAction = 'edit-profile' | 'delete-profile' | 'delete-recording';
+const cardRef = ref<HTMLElement | null>(null);
+const menuOpen = ref(false);
+
+const toggleMenu = () => {
+  menuOpen.value = !menuOpen.value;
+};
+
+const menuAction = (action: MenuAction) => {
+  menuOpen.value = false;
+  if (action === 'edit-profile') {
+    emit('edit-profile');
+  } else if (action === 'delete-profile') {
+    emit('delete-profile');
+  } else {
+    emit('delete-recording');
+  }
+};
+
+const handleDocumentClick = (event: MouseEvent) => {
+  if (!menuOpen.value || !cardRef.value) {
+    return;
+  }
+  const target = event.target as Node | null;
+  if (target && !cardRef.value.contains(target)) {
+    menuOpen.value = false;
+  }
+};
+
+onMounted(() => {
+  document.addEventListener('mousedown', handleDocumentClick);
+});
+
+onBeforeUnmount(() => {
+  document.removeEventListener('mousedown', handleDocumentClick);
+});
 </script>
 
 <template>
   <div
+    ref="cardRef"
     class="rec-card"
     :class="{
       'rec-card--analyzed': hasProfile && profileEnabled && !deletingProfile,
       'rec-card--analyzing':
         analyzing || creatingProfile || (hasProfile && !profileEnabled && !deletingProfile),
       'rec-card--deleting': deletingProfile,
-      'rec-card--heap-dump': sourceType === 'HEAP_DUMP'
+      'rec-card--heap-dump': sourceType === 'HEAP_DUMP',
+      'rec-card--menu-open': menuOpen
     }"
     @click="handleClick"
   >
@@ -111,7 +157,7 @@ const formatRelativeTime = (timestamp: number) => {
         <div class="rec-card__line1">
           <i
             class="rec-card__icon"
-            :class="sourceType === 'HEAP_DUMP' ? 'bi bi-database' : 'bi bi-file-earmark-binary'"
+            :class="sourceType === 'HEAP_DUMP' ? 'bi bi-pie-chart-fill' : 'bi bi-activity'"
           ></i>
           <span class="rec-card__name">{{ name }}</span>
           <span v-if="origin" class="rec-card__origin" :title="`From ${origin.server} › ${origin.workspace} › ${origin.project}`">
@@ -133,10 +179,6 @@ const formatRelativeTime = (timestamp: number) => {
           </template>
           <span class="rec-card__sep">&middot;</span>
           <span class="rec-card__meta">{{ formatRelativeTime(uploadedAt) }}</span>
-          <template v-if="fileCount != null && fileCount > 0 && !expandable">
-            <span class="rec-card__sep">&middot;</span>
-            <span class="rec-card__meta">{{ fileCount }} file{{ fileCount !== 1 ? 's' : '' }}</span>
-          </template>
           <template v-if="hasProfile && profileSizeInBytes && profileSizeInBytes > 0">
             <span class="rec-card__sep">&middot;</span>
             <span class="rec-card__profile-info">
@@ -151,6 +193,19 @@ const formatRelativeTime = (timestamp: number) => {
               Modified
             </span>
           </template>
+          <span
+            v-if="!isTransitional()"
+            class="rec-card__hint"
+            :class="{
+              'rec-card__hint--analyze': !hasProfile,
+              'rec-card__hint--open': hasProfile && profileEnabled && sourceType !== 'HEAP_DUMP',
+              'rec-card__hint--open-heap':
+                hasProfile && profileEnabled && sourceType === 'HEAP_DUMP'
+            }"
+          >
+            <template v-if="!hasProfile">Click to analyze</template>
+            <template v-else>Open profile</template>
+          </span>
         </div>
       </div>
 
@@ -168,73 +223,32 @@ const formatRelativeTime = (timestamp: number) => {
           <i class="bi" :class="expanded ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
         </button>
 
-        <!-- Not analyzed: Analyze button -->
-        <button
-          v-if="!hasProfile && !analyzing && !creatingProfile"
-          class="rec-card__btn rec-card__btn--analyze"
-          @click.stop="emit('create-profile')"
-        >
-          <i class="bi bi-play-fill"></i>
-          Analyze
-        </button>
-
-        <!-- Analyzing / Creating spinner -->
-        <span v-else-if="analyzing || creatingProfile" class="rec-card__btn rec-card__btn--spinner">
-          <div class="rec-card__spinner"></div>
-          {{ analyzing ? 'Analyzing...' : 'Creating...' }}
+        <!-- Transitional spinner pills -->
+        <span v-if="analyzing || creatingProfile" class="rec-card__spinner-pill">
+          <span class="rec-card__spinner"></span>
+          {{ analyzing ? 'Analyzing…' : 'Creating…' }}
         </span>
-
-        <!-- Deleting spinner -->
         <span
           v-else-if="deletingProfile"
-          class="rec-card__btn rec-card__btn--spinner rec-card__btn--spinner-danger"
+          class="rec-card__spinner-pill rec-card__spinner-pill--danger"
         >
-          <div class="rec-card__spinner rec-card__spinner--danger"></div>
-          Deleting...
+          <span class="rec-card__spinner rec-card__spinner--danger"></span>
+          Deleting…
+        </span>
+        <span v-else-if="hasProfile && !profileEnabled" class="rec-card__spinner-pill">
+          <span class="rec-card__spinner"></span>
+          Initializing…
         </span>
 
-        <!-- Initializing (has profile but not enabled yet) -->
-        <span
-          v-else-if="hasProfile && !profileEnabled"
-          class="rec-card__btn rec-card__btn--spinner"
-        >
-          <div class="rec-card__spinner"></div>
-          Initializing...
-        </span>
-
-        <!-- Analyzed + enabled: Open Profile -->
+        <!-- Actions toggle (⋯ / chevron) -->
         <button
-          v-else-if="hasProfile && profileEnabled"
-          class="rec-card__btn rec-card__btn--open"
-          @click.stop="emit('open-profile')"
+          v-else
+          class="rec-card__menu-btn"
+          :class="{ 'rec-card__menu-btn--active': menuOpen }"
+          :title="menuOpen ? 'Close actions' : 'More actions'"
+          @click.stop="toggleMenu"
         >
-          Open Profile
-          <i class="bi bi-arrow-right"></i>
-        </button>
-
-        <!-- Action icon buttons -->
-        <button
-          v-if="hasProfile && profileEnabled && !deletingProfile"
-          class="rec-card__action-btn"
-          @click.stop="emit('edit-profile')"
-          title="Edit Profile"
-        >
-          <i class="bi bi-pencil"></i>
-        </button>
-        <button
-          v-if="hasProfile && !deletingProfile"
-          class="rec-card__action-btn rec-card__action-btn--danger"
-          @click.stop="emit('delete-profile')"
-          title="Delete Profile"
-        >
-          <i class="bi bi-person-x"></i>
-        </button>
-        <button
-          class="rec-card__action-btn rec-card__action-btn--danger"
-          @click.stop="emit('delete-recording')"
-          title="Delete"
-        >
-          <i class="bi bi-trash"></i>
+          <i class="bi" :class="menuOpen ? 'bi-chevron-up' : 'bi-three-dots'"></i>
         </button>
         <div
           v-if="draggable"
@@ -250,6 +264,30 @@ const formatRelativeTime = (timestamp: number) => {
       </div>
     </div>
 
+    <!-- In-card action bar -->
+    <div v-if="menuOpen" class="rec-card__action-bar" @click.stop>
+      <template v-if="hasProfile">
+        <button class="rec-card__action" @click="menuAction('edit-profile')">
+          <i class="bi bi-pencil"></i>
+          Edit profile name
+        </button>
+        <button
+          class="rec-card__action rec-card__action--danger"
+          @click="menuAction('delete-profile')"
+        >
+          <i class="bi bi-person-x"></i>
+          Delete profile
+        </button>
+      </template>
+      <button
+        class="rec-card__action rec-card__action--danger"
+        @click="menuAction('delete-recording')"
+      >
+        <i class="bi bi-trash"></i>
+        Delete recording
+      </button>
+    </div>
+
     <!-- Expanded content slot -->
     <div v-if="expanded" class="rec-card__expanded" @click.stop>
       <slot name="expanded-content"></slot>
@@ -263,31 +301,31 @@ const formatRelativeTime = (timestamp: number) => {
   padding: 10px 14px;
   border-radius: 8px;
   border: 1px solid var(--color-border);
-  border-left: 3px dashed var(--color-blue-border-light);
+  border-left: 3px dashed var(--color-primary-border);
   background: var(--color-light);
   transition: all 0.2s ease;
   cursor: pointer;
 }
 
 .rec-card:hover {
-  border-color: rgba(59, 130, 246, 0.3);
-  border-left-color: rgba(59, 130, 246, 1);
+  border-color: rgba(94, 100, 255, 0.3);
+  border-left-color: var(--color-primary);
   border-left-style: solid;
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.04), rgba(59, 130, 246, 0.03));
-  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.12);
+  background: linear-gradient(135deg, rgba(94, 100, 255, 0.04), rgba(94, 100, 255, 0.03));
+  box-shadow: 0 2px 8px rgba(94, 100, 255, 0.12);
 }
 
 /* Analyzed state */
 .rec-card--analyzed {
-  border-left: 3px solid var(--color-success);
-  background: linear-gradient(135deg, rgba(0, 210, 122, 0.03), var(--color-white));
+  border-left: 3px solid var(--color-primary);
+  background: linear-gradient(135deg, rgba(94, 100, 255, 0.03), var(--color-white));
 }
 
 .rec-card--analyzed:hover {
-  border-color: rgba(0, 210, 122, 0.3);
-  border-left-color: var(--color-success-hover);
-  background: linear-gradient(135deg, rgba(0, 210, 122, 0.06), rgba(0, 210, 122, 0.04));
-  box-shadow: 0 2px 8px rgba(0, 210, 122, 0.15);
+  border-color: rgba(94, 100, 255, 0.3);
+  border-left-color: var(--color-primary-hover);
+  background: linear-gradient(135deg, rgba(94, 100, 255, 0.06), rgba(94, 100, 255, 0.04));
+  box-shadow: 0 2px 8px rgba(94, 100, 255, 0.15);
 }
 
 /* Analyzing / Creating state */
@@ -317,47 +355,37 @@ const formatRelativeTime = (timestamp: number) => {
 
 /* Heap dump: not analyzed */
 .rec-card--heap-dump {
-  border-left: 3px dashed var(--color-violet-border-light);
+  border-left: 3px dashed rgba(111, 66, 193, 0.4);
 }
 
 .rec-card--heap-dump:hover {
-  border-color: rgba(139, 92, 246, 0.3);
-  border-left-color: var(--color-violet);
+  border-color: rgba(111, 66, 193, 0.3);
+  border-left-color: var(--color-purple);
   border-left-style: solid;
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.04), rgba(139, 92, 246, 0.02));
-  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.12);
+  background: linear-gradient(135deg, rgba(111, 66, 193, 0.04), rgba(111, 66, 193, 0.02));
+  box-shadow: 0 2px 8px rgba(111, 66, 193, 0.12);
 }
 
 /* Heap dump: analyzed */
 .rec-card--heap-dump.rec-card--analyzed {
-  border-left: 3px solid var(--color-violet);
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.03), var(--color-white));
+  border-left: 3px solid var(--color-purple);
+  background: linear-gradient(135deg, rgba(111, 66, 193, 0.03), var(--color-white));
 }
 
 .rec-card--heap-dump.rec-card--analyzed:hover {
-  border-color: rgba(139, 92, 246, 0.3);
-  border-left-color: var(--color-violet-dark);
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.08), rgba(139, 92, 246, 0.04));
-  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.15);
+  border-color: rgba(111, 66, 193, 0.3);
+  border-left-color: var(--color-purple-hover);
+  background: linear-gradient(135deg, rgba(111, 66, 193, 0.08), rgba(111, 66, 193, 0.04));
+  box-shadow: 0 2px 8px rgba(111, 66, 193, 0.15);
 }
 
+.rec-card--heap-dump .rec-card__icon,
 .rec-card--heap-dump.rec-card--analyzed .rec-card__icon {
-  color: var(--color-violet);
-}
-
-.rec-card--heap-dump.rec-card--analyzed .rec-card__btn--open {
-  color: var(--color-violet);
-  border-color: rgba(139, 92, 246, 0.3);
-}
-
-.rec-card--heap-dump:hover .rec-card__btn--open {
-  background: linear-gradient(135deg, var(--color-violet), var(--color-violet-dark));
-  color: var(--color-white);
-  border-color: transparent;
+  color: var(--color-purple);
 }
 
 .rec-card--heap-dump.rec-card--analyzed .rec-card__profile-info {
-  color: var(--color-violet);
+  color: var(--color-purple);
 }
 
 @keyframes rec-card-pulse {
@@ -397,7 +425,7 @@ const formatRelativeTime = (timestamp: number) => {
 }
 
 .rec-card--analyzed .rec-card__icon {
-  color: var(--color-success-hover);
+  color: var(--color-primary);
 }
 
 .rec-card__name {
@@ -482,7 +510,7 @@ const formatRelativeTime = (timestamp: number) => {
   gap: 4px;
   font-size: 0.75rem;
   font-weight: 500;
-  color: var(--color-success-hover);
+  color: var(--color-primary);
 }
 
 .rec-card__profile-info i {
@@ -534,53 +562,150 @@ const formatRelativeTime = (timestamp: number) => {
   font-size: 0.75rem;
 }
 
-/* Primary action buttons */
-.rec-card__btn {
-  display: flex;
+/* Action hint — pushed to the right edge of meta line, hidden until row hover */
+.rec-card__hint {
+  display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-size: 0.84rem;
+  gap: 7px;
+  margin-left: auto;
+  padding-left: 12px;
+  font-size: var(--font-size-sm);
   font-weight: 500;
-  padding: 7px 16px;
-  border-radius: 6px;
-  border: none;
-  cursor: pointer;
-  transition: all 0.2s ease;
+  opacity: 0;
+  transform: translateX(4px);
+  transition:
+    opacity 0.18s ease,
+    transform 0.18s ease;
+  pointer-events: none;
+  user-select: none;
   white-space: nowrap;
 }
 
-.rec-card__btn--analyze {
-  background: transparent;
+.rec-card:hover .rec-card__hint {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.rec-card__hint i {
+  font-size: 0.72rem;
+  transition: transform 0.15s ease;
+}
+
+.rec-card:hover .rec-card__hint i.bi-arrow-right {
+  transform: translateX(2px);
+}
+
+.rec-card__hint--analyze {
+  color: var(--color-success);
+}
+
+.rec-card__hint--open {
   color: var(--color-primary);
-  border: 1px solid rgba(94, 100, 255, 0.3);
 }
 
-.rec-card:hover .rec-card__btn--analyze {
-  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-hover));
-  color: var(--color-white);
-  border-color: transparent;
+.rec-card__hint--open-heap {
+  color: var(--color-purple);
 }
 
-.rec-card__btn--open {
+/* ⋯ / chevron toggle button */
+.rec-card__menu-btn {
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background: transparent;
-  color: var(--color-success-hover);
-  border: 1px solid rgba(0, 210, 122, 0.3);
+  border: 1px solid transparent;
+  border-radius: var(--radius-base);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font-size: 1rem;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
 }
 
-.rec-card:not(.rec-card--heap-dump):hover .rec-card__btn--open {
-  background: linear-gradient(135deg, var(--color-success), var(--color-success-hover));
-  color: var(--color-white);
-  border-color: transparent;
+.rec-card__menu-btn:hover,
+.rec-card__menu-btn--active {
+  background: var(--color-bg-hover-alt);
+  color: var(--color-dark);
 }
 
-.rec-card__btn--spinner {
+/* In-card action bar (slides in below the meta line when ⋯ is open) */
+.rec-card__action-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--color-border-light);
+  flex-wrap: wrap;
+}
+
+.rec-card__action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: var(--radius-base);
+  background: transparent;
+  border: 1px solid var(--color-border);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--color-text);
+  cursor: pointer;
+  transition:
+    background 0.12s ease,
+    border-color 0.12s ease,
+    color 0.12s ease;
+}
+
+.rec-card__action i {
+  font-size: 0.78rem;
+}
+
+.rec-card__action:hover {
+  background: var(--color-primary-light);
+  border-color: var(--color-primary);
   color: var(--color-primary);
-  padding: 7px 16px;
+}
+
+.rec-card__action--danger {
+  color: var(--color-danger);
+  border-color: rgba(230, 55, 87, 0.25);
+}
+
+.rec-card__action--danger:hover {
+  background: var(--color-danger-light);
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+}
+
+/* Subtle elevation when the action bar is open */
+.rec-card--menu-open {
+  border-color: rgba(94, 100, 255, 0.3);
+  box-shadow: 0 2px 8px rgba(94, 100, 255, 0.1);
+}
+
+/* Spinner pill (transitional states) */
+.rec-card__spinner-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 14px;
+  border-radius: 6px;
+  background: var(--color-lighter);
+  color: var(--color-text-muted);
+  font-size: 0.82rem;
+  font-weight: 500;
   cursor: default;
 }
 
-.rec-card__btn--spinner-danger {
+.rec-card__spinner-pill--danger {
   color: var(--color-danger-hover);
+  background: var(--color-danger-light);
 }
 
 /* Spinner */
@@ -603,36 +728,6 @@ const formatRelativeTime = (timestamp: number) => {
   to {
     transform: rotate(360deg);
   }
-}
-
-/* Hover-revealed action buttons */
-.rec-card__action-btn {
-  background: transparent;
-  border: none;
-  color: var(--color-slate-light);
-  width: 34px;
-  height: 34px;
-  border-radius: 6px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.88rem;
-  transition: all 0.15s ease;
-}
-
-.rec-card__action-btn:hover {
-  background: rgba(94, 100, 255, 0.1);
-  color: var(--color-primary);
-}
-
-.rec-card__action-btn--danger:hover {
-  background: rgba(220, 38, 38, 0.1);
-  color: var(--color-danger-hover);
-}
-
-.rec-card__action-btn:active {
-  transform: scale(0.92);
 }
 
 /* Drag handle */

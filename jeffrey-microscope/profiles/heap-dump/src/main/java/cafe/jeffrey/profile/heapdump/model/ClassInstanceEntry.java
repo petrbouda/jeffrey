@@ -23,15 +23,20 @@ import java.util.Map;
 /**
  * A single instance entry when browsing instances of a class.
  *
- * @param objectId      unique object identifier
- * @param shallowSize   shallow size in bytes
- * @param retainedSize  retained size in bytes (null if not computed)
- * @param objectParams  structured key/value pairs describing the instance
+ * @param objectId       unique object identifier
+ * @param shallowSize    shallow size in bytes
+ * @param retainedSize   retained size in bytes (null if not computed)
+ * @param objectParams   structured key/value pairs describing the instance
+ * @param contentPreview short human-readable rendering of the instance's content
+ *                       (e.g. the decoded String text, a boxed primitive value,
+ *                       a Thread/Class/Enum name) — {@code null} when the class
+ *                       has no known preview layout
  */
 public record ClassInstanceEntry(
         long objectId,
         long shallowSize,
         Long retainedSize,
-        Map<String, String> objectParams
+        Map<String, String> objectParams,
+        String contentPreview
 ) {
 }

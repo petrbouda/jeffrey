@@ -31,6 +31,7 @@ import cafe.jeffrey.profile.heapdump.model.HeapThreadInfo;
 import cafe.jeffrey.profile.heapdump.model.InitPipelineResult;
 import cafe.jeffrey.profile.heapdump.model.InitializeResult;
 import cafe.jeffrey.profile.heapdump.model.InstanceDetail;
+import cafe.jeffrey.profile.heapdump.model.InstanceSortBy;
 import cafe.jeffrey.profile.heapdump.model.InstanceTreeResponse;
 import cafe.jeffrey.profile.heapdump.model.BiggestCollectionsReport;
 import cafe.jeffrey.profile.heapdump.model.BiggestObjectsReport;
@@ -369,6 +370,21 @@ public interface HeapDumpManager {
      * @return paginated response with class instances
      */
     ClassInstancesResponse getClassInstances(String className, int limit, int offset, boolean includeRetainedSize);
+
+    /**
+     * Browse instances of a specific class with pagination and a sort order. When sort is
+     * {@link InstanceSortBy#RETAINED_SIZE}, the dominator tree is built on demand and retained
+     * sizes are included in the response regardless of {@code includeRetainedSize}.
+     *
+     * @param className           fully qualified class name
+     * @param limit               maximum number of instances to return
+     * @param offset              offset for pagination
+     * @param includeRetainedSize whether to compute retained size per instance
+     * @param sortBy              ordering of the returned instances
+     * @return paginated response with class instances
+     */
+    ClassInstancesResponse getClassInstances(
+            String className, int limit, int offset, boolean includeRetainedSize, InstanceSortBy sortBy);
 
     // --- Leak Suspects ---
 

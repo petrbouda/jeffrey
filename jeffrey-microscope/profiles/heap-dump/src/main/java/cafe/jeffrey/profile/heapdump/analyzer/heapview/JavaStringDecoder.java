@@ -25,6 +25,7 @@ import cafe.jeffrey.profile.heapdump.parser.HeapView;
 import cafe.jeffrey.profile.heapdump.parser.HprofTag;
 import cafe.jeffrey.profile.heapdump.parser.InstanceFieldValue;
 import cafe.jeffrey.profile.heapdump.parser.InstanceRow;
+import cafe.jeffrey.profile.heapdump.parser.JdkFieldNames;
 
 /**
  * Decodes a Java {@code String} object from the heap.
@@ -48,6 +49,28 @@ public final class JavaStringDecoder {
 
     /** Decodes the String at {@code stringInstanceId}, or empty if it isn't a decodable String. */
     public static Optional<Decoded> decode(HeapView view, long stringInstanceId) throws SQLException {
+        return decodeInternal(view, stringInstanceId, Integer.MAX_VALUE);
+    }
+
+    /**
+     * Decodes only the prefix of the String at {@code stringInstanceId}, sized
+     * for a preview of at most {@code maxChars} characters. Reads only a
+     * bounded prefix of the backing array via
+     * {@link HeapView#readPrimitiveArrayBytes(long, int)} so a 100 MB log
+     * String costs ~200 B of transient allocation instead of 100 MB. The
+     * returned content may be slightly shorter than {@code maxChars} because
+     * the read is aligned to byte (not character) boundaries.
+     */
+    public static Optional<Decoded> decodePreview(HeapView view, long stringInstanceId, int maxChars)
+            throws SQLException {
+        if (maxChars <= 0) {
+            return Optional.empty();
+        }
+        return decodeInternal(view, stringInstanceId, maxChars);
+    }
+
+    private static Optional<Decoded> decodeInternal(HeapView view, long stringInstanceId, int maxChars)
+            throws SQLException {
         InstanceRow inst = view.findInstanceById(stringInstanceId).orElse(null);
         if (inst == null || inst.kind() != InstanceRow.Kind.INSTANCE) {
             return Optional.empty();
@@ -58,12 +81,12 @@ public final class JavaStringDecoder {
         Byte coder = null;
         for (InstanceFieldValue f : fields) {
             switch (f.name()) {
-                case "value" -> {
+                case JdkFieldNames.STRING_VALUE -> {
                     if (f.value() instanceof Long ref) {
                         valueArrayId = ref;
                     }
                 }
-                case "coder" -> {
+                case JdkFieldNames.STRING_CODER -> {
                     if (f.value() instanceof Byte b) {
                         coder = b;
                     }
@@ -84,13 +107,39 @@ public final class JavaStringDecoder {
             return Optional.empty();
         }
 
-        byte[] bytes = view.readPrimitiveArrayBytes(valueArrayId);
+        int maxBytes = boundedReadSize(maxChars, array.primitiveType(), coder);
+        byte[] bytes = maxBytes == Integer.MAX_VALUE
+                ? view.readPrimitiveArrayBytes(valueArrayId)
+                : view.readPrimitiveArrayBytes(valueArrayId, maxBytes);
         long arrayShallow = array.shallowSize();
         String content = decodeContent(bytes, array.primitiveType(), coder);
         if (content == null) {
             return Optional.empty();
         }
         return Optional.of(new Decoded(content, valueArrayId, arrayShallow));
+    }
+
+    /**
+     * Number of bytes to read for a {@code maxChars}-character preview, given
+     * the array's element type and the String's {@code coder}. Returns
+     * {@link Integer#MAX_VALUE} when {@code maxChars} itself is unbounded.
+     */
+    private static int boundedReadSize(int maxChars, int elementType, Byte coder) {
+        if (maxChars == Integer.MAX_VALUE) {
+            return Integer.MAX_VALUE;
+        }
+        int bytesPerChar;
+        if (elementType == HprofTag.BasicType.BYTE) {
+            // Java 9+ compact: LATIN1 = 1 byte/char, UTF-16 = 2 bytes/char.
+            bytesPerChar = (coder != null && coder == 1) ? 2 : 1;
+        } else if (elementType == HprofTag.BasicType.CHAR) {
+            // Java 8 char[]: 2 bytes per UTF-16 code unit.
+            bytesPerChar = 2;
+        } else {
+            return Integer.MAX_VALUE;
+        }
+        long bytes = (long) maxChars * bytesPerChar;
+        return bytes > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) bytes;
     }
 
     /**

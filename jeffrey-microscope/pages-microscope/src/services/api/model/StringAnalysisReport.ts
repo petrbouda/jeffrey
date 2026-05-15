@@ -17,6 +17,8 @@
  */
 
 import StringDeduplicationEntry from './StringDeduplicationEntry';
+import StringInstanceEntry from './StringInstanceEntry';
+import StringTopEntry from './StringTopEntry';
 
 /**
  * Represents a JVM flag related to String handling.
@@ -40,6 +42,8 @@ export default interface StringAnalysisReport {
   totalSharedStrings: number;
   memorySavedByDedup: number;
   potentialSavings: number;
+  topByRetained: StringTopEntry[];
+  topInstancesByRetained: StringInstanceEntry[];
   alreadyDeduplicated: StringDeduplicationEntry[];
   opportunities: StringDeduplicationEntry[];
   jvmFlags: JvmStringFlag[];

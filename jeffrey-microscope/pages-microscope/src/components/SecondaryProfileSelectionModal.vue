@@ -57,81 +57,34 @@
 
     <!-- Split-Pane Layout -->
     <div v-else class="split-pane">
-      <!-- Left Sidebar: Tree -->
+      <!-- Left Sidebar: Group list -->
       <div class="tree-sidebar">
-        <!-- Recordings node -->
-        <div
-          v-if="recordingsNode"
-          class="tree-node tree-node-quick"
-          :class="{ active: selectedWorkspaceId === RECORDINGS_WORKSPACE_ID }"
-          @click="selectWorkspace(RECORDINGS_WORKSPACE_ID)"
+        <button
+          v-for="node in groupNodes"
+          :key="node.key"
+          type="button"
+          class="tree-node"
+          :class="{ active: selectedGroupKey === node.key }"
+          @click="selectGroup(node.key)"
         >
-          <div class="tree-node-header">
-            <i class="bi bi-record-circle-fill tree-node-icon-recordings"></i>
-            <span class="tree-node-name">Recordings</span>
-            <span class="tree-node-count">({{ recordingsNode.profileCount }})</span>
-          </div>
-        </div>
-
-        <!-- Regular workspace nodes -->
-        <div v-for="ws in regularWorkspaceTree" :key="ws.id" class="tree-group">
-          <div
-            class="tree-node"
-            :class="{
-              active: selectedWorkspaceId === ws.id && selectedProjectKey?.projectId === ws.id
-            }"
-            @click="toggleWorkspaceExpand(ws.id)"
-          >
-            <div class="tree-node-header">
-              <i
-                class="bi tree-expand-icon"
-                :class="expandedWorkspaces.has(ws.id) ? 'bi-chevron-down' : 'bi-chevron-right'"
-              ></i>
-              <span class="tree-node-name">{{ ws.name }}</span>
-              <span v-if="ws.id === props.workspaceId" class="current-dot"></span>
-              <span class="tree-node-count">({{ ws.profileCount }})</span>
-            </div>
-          </div>
-          <!-- Project children -->
-          <div v-if="expandedWorkspaces.has(ws.id)" class="tree-children">
-            <div
-              v-for="proj in ws.projects"
-              :key="proj.id"
-              class="tree-child"
-              :class="{
-                active:
-                  selectedProjectKey?.workspaceId === ws.id &&
-                  selectedProjectKey?.projectId === proj.id
-              }"
-              @click="selectProject(ws.id, proj.id)"
-            >
-              <span class="tree-child-name">{{ proj.name }}</span>
-              <span class="tree-child-count">({{ proj.profileCount }})</span>
-            </div>
-          </div>
-        </div>
+          <i class="bi tree-node-icon" :class="node.icon"></i>
+          <span class="tree-node-name">{{ node.name }}</span>
+          <span class="tree-node-count">{{ node.count }}</span>
+        </button>
       </div>
 
       <!-- Right Content: Profile Cards -->
       <div class="profile-content">
-        <!-- No project selected -->
-        <div v-if="!selectedProjectKey" class="profile-content-empty">
-          <div class="empty-state-icon-wrapper small">
-            <i class="bi bi-arrow-left-circle"></i>
-          </div>
-          <p class="mt-2 mb-0">Select a project to see profiles</p>
-        </div>
-
-        <!-- Project selected but no profiles -->
-        <div v-else-if="selectedProjectProfiles.length === 0" class="profile-content-empty">
+        <!-- No profiles in this group -->
+        <div v-if="selectedGroupProfiles.length === 0" class="profile-content-empty">
           <div class="empty-state-icon-wrapper small">
             <i class="bi bi-file-earmark-bar-graph"></i>
           </div>
           <p class="mt-2 mb-0">
             {{
               profileSearchQuery
-                ? 'No matching profiles in this project'
-                : 'No profiles in this project'
+                ? 'No matching profiles in this group'
+                : 'No profiles in this group'
             }}
           </p>
         </div>
@@ -139,12 +92,12 @@
         <!-- Profile cards -->
         <template v-else>
           <div class="profile-content-header">
-            Profiles in "{{ selectedProjectName }}"
-            <span class="profile-content-header-count">({{ selectedProjectProfiles.length }})</span>
+            Profiles in "{{ selectedGroupName }}"
+            <span class="profile-content-header-count">({{ selectedGroupProfiles.length }})</span>
           </div>
           <div class="profile-cards-list">
             <div
-              v-for="profile in selectedProjectProfiles"
+              v-for="profile in selectedGroupProfiles"
               :key="profile.id"
               class="profile-card"
               :class="{
@@ -214,10 +167,10 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
 import GenericModal from '@/components/GenericModal.vue';
-import DirectProfileClient, { ProfileListResponse } from '@/services/api/DirectProfileClient';
+import type { ProfileListResponse } from '@/services/api/DirectProfileClient';
 import RecordingsClient from '@/services/api/RecordingsClient';
+import type RecordingGroup from '@/services/api/model/RecordingGroup';
 
-const directProfileClient = new DirectProfileClient();
 const recordingsClient = new RecordingsClient();
 import FormattingService from '@/services/FormattingService';
 import ToastService from '@/services/ToastService';
@@ -238,44 +191,37 @@ interface Emits {
   'profile-cleared': [];
 }
 
-interface ProjectNode {
-  id: string;
-  name: string;
-  profileCount: number;
+interface ProfileEntry extends ProfileListResponse {
+  groupId: string | null;
 }
 
-interface WorkspaceNode {
-  id: string;
+interface GroupNode {
+  key: string;
   name: string;
-  profileCount: number;
-  projects: ProjectNode[];
+  icon: string;
+  count: number;
 }
 
 const RECORDINGS_WORKSPACE_ID = 'recordings';
 const RECORDINGS_WORKSPACE_NAME = 'Recordings';
+const ALL_GROUP_KEY = 'all';
+const UNGROUPED_KEY = '__ungrouped__';
 
 const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
 
 // Local state
-const allProfiles = ref<ProfileListResponse[]>([]);
-const selectedProfile = ref<ProfileListResponse | null>(null);
+const allProfiles = ref<ProfileEntry[]>([]);
+const allGroups = ref<RecordingGroup[]>([]);
+const selectedProfile = ref<ProfileEntry | null>(null);
 const loadingProfiles = ref(false);
 const profileSearchQuery = ref('');
 
 // Selection state
-const selectedProjectKey = ref<{ workspaceId: string; projectId: string } | null>(null);
-
-// Tree expand state
-const expandedWorkspaces = ref<Set<string>>(new Set());
+const selectedGroupKey = ref<string>(ALL_GROUP_KEY);
 
 // Saved state for search restore
-const savedSelectionState = ref<{
-  selected: { workspaceId: string; projectId: string } | null;
-} | null>(null);
-
-// Computed: which workspace is currently selected
-const selectedWorkspaceId = computed(() => selectedProjectKey.value?.workspaceId ?? null);
+const savedSelectionState = ref<{ groupKey: string } | null>(null);
 
 // Computed properties
 const filteredProfiles = computed(() => {
@@ -287,83 +233,83 @@ const filteredProfiles = computed(() => {
   return profiles;
 });
 
-const workspaceTree = computed((): WorkspaceNode[] => {
-  const wsMap = new Map<
-    string,
-    { id: string; name: string; projects: Map<string, { id: string; name: string; count: number }> }
-  >();
-
-  for (const profile of filteredProfiles.value) {
-    if (!wsMap.has(profile.workspaceId)) {
-      wsMap.set(profile.workspaceId, {
-        id: profile.workspaceId,
-        name: profile.workspaceName || profile.workspaceId,
-        projects: new Map()
-      });
-    }
-    const ws = wsMap.get(profile.workspaceId)!;
-    if (!ws.projects.has(profile.projectId)) {
-      ws.projects.set(profile.projectId, {
-        id: profile.projectId,
-        name: profile.projectName || profile.projectId,
-        count: 0
-      });
-    }
-    ws.projects.get(profile.projectId)!.count++;
+const groupCounts = computed<Map<string | null, number>>(() => {
+  const map = new Map<string | null, number>();
+  for (const p of allProfiles.value) {
+    map.set(p.groupId, (map.get(p.groupId) ?? 0) + 1);
   }
+  return map;
+});
 
-  const nodes: WorkspaceNode[] = [];
-  for (const ws of wsMap.values()) {
-    const projects: ProjectNode[] = [];
-    for (const proj of ws.projects.values()) {
-      projects.push({ id: proj.id, name: proj.name, profileCount: proj.count });
+const ungroupedCount = computed(() => groupCounts.value.get(null) ?? 0);
+
+const sortedGroups = computed<RecordingGroup[]>(() => {
+  const newestForGroup = (groupId: string): number => {
+    let max = 0;
+    for (const p of allProfiles.value) {
+      if (p.groupId === groupId) {
+        const t = Number(p.createdAt) || 0;
+        if (t > max) {
+          max = t;
+        }
+      }
     }
-    // Sort projects: current project first, then alphabetical
-    projects.sort((a, b) => {
-      if (a.id === props.currentProjectId) return -1;
-      if (b.id === props.currentProjectId) return 1;
-      return a.name.localeCompare(b.name);
-    });
-
-    const totalCount = projects.reduce((sum, p) => sum + p.profileCount, 0);
-    nodes.push({ id: ws.id, name: ws.name, profileCount: totalCount, projects });
-  }
-
-  // Sort workspaces: current workspace first, then alphabetical
-  nodes.sort((a, b) => {
-    if (a.id === props.workspaceId) return -1;
-    if (b.id === props.workspaceId) return 1;
+    return max;
+  };
+  return [...allGroups.value].sort((a, b) => {
+    const diff = newestForGroup(b.id) - newestForGroup(a.id);
+    if (diff !== 0) {
+      return diff;
+    }
     return a.name.localeCompare(b.name);
   });
+});
 
+const groupNodes = computed<GroupNode[]>(() => {
+  const nodes: GroupNode[] = [];
+  nodes.push({
+    key: ALL_GROUP_KEY,
+    name: 'All',
+    icon: 'bi-record-circle-fill',
+    count: allProfiles.value.length
+  });
+  for (const g of sortedGroups.value) {
+    nodes.push({
+      key: g.id,
+      name: g.name,
+      icon: 'bi-folder',
+      count: groupCounts.value.get(g.id) ?? 0
+    });
+  }
+  if (ungroupedCount.value > 0) {
+    nodes.push({
+      key: UNGROUPED_KEY,
+      name: 'Ungrouped',
+      icon: 'bi-collection',
+      count: ungroupedCount.value
+    });
+  }
   return nodes;
 });
 
-const recordingsNode = computed(() => {
-  return workspaceTree.value.find(ws => ws.id === RECORDINGS_WORKSPACE_ID) ?? null;
+const selectedGroupName = computed(() => {
+  if (selectedGroupKey.value === ALL_GROUP_KEY) {
+    return 'All';
+  }
+  if (selectedGroupKey.value === UNGROUPED_KEY) {
+    return 'Ungrouped';
+  }
+  return allGroups.value.find(g => g.id === selectedGroupKey.value)?.name ?? 'Group';
 });
 
-const regularWorkspaceTree = computed(() => {
-  return workspaceTree.value.filter(ws => ws.id !== RECORDINGS_WORKSPACE_ID);
-});
-
-// Computed: name of the selected project
-const selectedProjectName = computed(() => {
-  if (!selectedWorkspaceId.value) return '';
-  if (selectedWorkspaceId.value === RECORDINGS_WORKSPACE_ID) return 'Recordings';
-  const ws = workspaceTree.value.find(w => w.id === selectedWorkspaceId.value);
-  if (!ws) return '';
-  const proj = ws.projects.find(p => p.id === selectedProjectKey.value?.projectId);
-  return proj?.name ?? ws.name;
-});
-
-const selectedProjectProfiles = computed(() => {
-  if (!selectedProjectKey.value) return [];
-  return filteredProfiles.value.filter(
-    p =>
-      p.workspaceId === selectedProjectKey.value!.workspaceId &&
-      p.projectId === selectedProjectKey.value!.projectId
-  );
+const selectedGroupProfiles = computed(() => {
+  if (selectedGroupKey.value === ALL_GROUP_KEY) {
+    return filteredProfiles.value;
+  }
+  if (selectedGroupKey.value === UNGROUPED_KEY) {
+    return filteredProfiles.value.filter(p => p.groupId === null);
+  }
+  return filteredProfiles.value.filter(p => p.groupId === selectedGroupKey.value);
 });
 
 const hasValidSelection = computed(() => {
@@ -381,102 +327,55 @@ watch(
   { immediate: true }
 );
 
-// Watch search query for auto-select and auto-expand
+// Watch search query for auto-select
 watch(profileSearchQuery, (newQuery, oldQuery) => {
   if (newQuery && !oldQuery) {
     // Entering search: save current selection state
-    savedSelectionState.value = {
-      selected: selectedProjectKey.value ? { ...selectedProjectKey.value } : null
-    };
+    savedSelectionState.value = { groupKey: selectedGroupKey.value };
   }
 
   if (newQuery) {
-    // Auto-expand workspaces that have matching profiles
-    for (const ws of workspaceTree.value) {
-      if (ws.id !== RECORDINGS_WORKSPACE_ID && ws.profileCount > 0) {
-        expandedWorkspaces.value.add(ws.id);
-      }
-    }
-
-    // If current selection has no matches, auto-select workspace of first match
-    if (selectedProjectKey.value) {
-      const hasMatches = filteredProfiles.value.some(
-        p =>
-          p.workspaceId === selectedProjectKey.value!.workspaceId &&
-          p.projectId === selectedProjectKey.value!.projectId
-      );
-      if (!hasMatches && filteredProfiles.value.length > 0) {
-        const first = filteredProfiles.value[0];
-        selectedProjectKey.value = { workspaceId: first.workspaceId, projectId: first.projectId };
-      }
-    } else if (filteredProfiles.value.length > 0) {
-      const first = filteredProfiles.value[0];
-      selectedProjectKey.value = { workspaceId: first.workspaceId, projectId: first.projectId };
+    // If the currently selected group has no matches, jump to the first match's group
+    if (selectedGroupProfiles.value.length === 0 && filteredProfiles.value.length > 0) {
+      selectedGroupKey.value = ALL_GROUP_KEY;
     }
   } else if (!newQuery && oldQuery) {
     // Clearing search: restore saved selection state
     if (savedSelectionState.value) {
-      selectedProjectKey.value = savedSelectionState.value.selected;
+      selectedGroupKey.value = savedSelectionState.value.groupKey;
       savedSelectionState.value = null;
     }
   }
 });
 
-const toggleWorkspaceExpand = (wsId: string) => {
-  if (expandedWorkspaces.value.has(wsId)) {
-    expandedWorkspaces.value.delete(wsId);
-  } else {
-    expandedWorkspaces.value.add(wsId);
-    // Auto-select first project when expanding
-    const ws = workspaceTree.value.find(w => w.id === wsId);
-    if (ws && ws.projects.length > 0 && selectedProjectKey.value?.workspaceId !== wsId) {
-      selectProject(wsId, ws.projects[0].id);
-    }
-  }
-};
-
 const initializeModal = async () => {
   profileSearchQuery.value = '';
   savedSelectionState.value = null;
-  expandedWorkspaces.value = new Set();
   await loadAllProfiles();
 
   if (props.currentSecondaryProfileId) {
-    // If secondary profile already selected: select its workspace/project, pre-select it
+    // If secondary profile already selected: pre-select it and jump to its group
     const existing = allProfiles.value.find(p => p.id === props.currentSecondaryProfileId);
     if (existing) {
       selectedProfile.value = existing;
-      selectedProjectKey.value = {
-        workspaceId: existing.workspaceId,
-        projectId: existing.projectId
-      };
-      if (existing.workspaceId !== RECORDINGS_WORKSPACE_ID) {
-        expandedWorkspaces.value.add(existing.workspaceId);
-      }
+      selectedGroupKey.value = existing.groupId ?? UNGROUPED_KEY;
       return;
     }
   }
 
-  // Default: select Recordings if it has profiles, otherwise current workspace + project
+  // Default: All
   selectedProfile.value = null;
-  const hasRecordings = allProfiles.value.some(p => p.workspaceId === RECORDINGS_WORKSPACE_ID);
-  if (hasRecordings) {
-    selectedProjectKey.value = { workspaceId: RECORDINGS_WORKSPACE_ID, projectId: RECORDINGS_WORKSPACE_ID };
-  } else {
-    selectedProjectKey.value = { workspaceId: props.workspaceId, projectId: props.currentProjectId };
-    expandedWorkspaces.value.add(props.workspaceId);
-  }
+  selectedGroupKey.value = ALL_GROUP_KEY;
 };
 
 const loadAllProfiles = async () => {
   loadingProfiles.value = true;
   try {
-    const [regularProfiles, quickProfiles] = await Promise.all([
-      directProfileClient.listAll(),
-      recordingsClient.listProfiles()
+    const [profiles, groups] = await Promise.all([
+      recordingsClient.listProfiles(),
+      recordingsClient.listGroups()
     ]);
-
-    const mappedQuickProfiles: ProfileListResponse[] = quickProfiles.map(p => ({
+    allProfiles.value = profiles.map(p => ({
       id: p.profileId!,
       name: p.profileName || p.filename,
       projectId: RECORDINGS_WORKSPACE_ID,
@@ -487,31 +386,25 @@ const loadAllProfiles = async () => {
       eventSource: p.eventSource,
       enabled: true,
       durationInMillis: p.durationInMillis,
-      sizeInBytes: p.profileSizeInBytes
+      sizeInBytes: p.profileSizeInBytes,
+      groupId: p.groupId
     }));
-
-    allProfiles.value = [...regularProfiles, ...mappedQuickProfiles];
+    allGroups.value = groups;
   } catch (error) {
     console.error('Failed to load profiles:', error);
     ToastService.error('Failed to load profiles', 'Error occurred while loading profiles');
     allProfiles.value = [];
+    allGroups.value = [];
   } finally {
     loadingProfiles.value = false;
   }
 };
 
-const selectWorkspace = (wsId: string) => {
-  const ws = workspaceTree.value.find(w => w.id === wsId);
-  if (ws && ws.projects.length > 0) {
-    selectProject(wsId, ws.projects[0].id);
-  }
+const selectGroup = (key: string) => {
+  selectedGroupKey.value = key;
 };
 
-const selectProject = (wsId: string, projId: string) => {
-  selectedProjectKey.value = { workspaceId: wsId, projectId: projId };
-};
-
-const selectProfile = (profile: ProfileListResponse) => {
+const selectProfile = (profile: ProfileEntry) => {
   if (profile.id === props.currentProfileId) {
     ToastService.error('Selection failed', 'Cannot select primary profile as secondary profile');
     return;
@@ -547,7 +440,7 @@ const closeModal = () => {
   emit('update:show', false);
 };
 
-const isPrimaryProfile = (profile: ProfileListResponse) => {
+const isPrimaryProfile = (profile: ProfileEntry) => {
   return profile.id === props.currentProfileId;
 };
 </script>
@@ -766,37 +659,50 @@ const isPrimaryProfile = (profile: ProfileListResponse) => {
   background: rgba(0, 0, 0, 0.15);
 }
 
-/* Tree node (workspace level) */
+/* Group list item */
 .tree-node {
-  padding: 0.45rem 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.5rem 0.85rem;
+  background: transparent;
+  border: 0;
+  border-left: 3px solid transparent;
+  text-align: left;
+  font-family: inherit;
+  font-size: 0.88rem;
+  color: var(--color-text);
   cursor: pointer;
-  transition: background 0.15s ease;
-  user-select: none;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease;
 }
 
 .tree-node:hover {
   background: rgba(94, 100, 255, 0.04);
+  color: var(--color-dark);
 }
 
-.tree-node-header {
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
+.tree-node.active {
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  border-left-color: var(--color-primary);
 }
 
-.tree-expand-icon {
-  font-size: 0.7rem;
-  color: var(--color-text-light);
-  width: 14px;
-  text-align: center;
+.tree-node-icon {
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
   flex-shrink: 0;
-  transition: transform 0.15s ease;
+}
+
+.tree-node.active .tree-node-icon {
+  color: var(--color-primary);
 }
 
 .tree-node-name {
-  font-weight: 600;
-  font-size: 0.88rem;
-  color: var(--color-text);
+  font-weight: 500;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -804,40 +710,23 @@ const isPrimaryProfile = (profile: ProfileListResponse) => {
   min-width: 0;
 }
 
+.tree-node.active .tree-node-name {
+  font-weight: 600;
+}
+
 .tree-node-count {
-  font-size: 0.78rem;
-  color: var(--color-text-light);
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  background: var(--color-lighter);
+  padding: 1px 7px;
+  border-radius: 999px;
   flex-shrink: 0;
 }
 
-.current-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--color-primary);
-  box-shadow: 0 0 0 2px rgba(94, 100, 255, 0.2);
-  flex-shrink: 0;
-}
-
-/* Recordings node */
-.tree-node-quick {
-  background: linear-gradient(135deg, rgba(102, 126, 234, 0.04) 0%, rgba(118, 75, 162, 0.04) 100%);
-  margin: 0 0.4rem 0.25rem;
-  border-radius: 6px;
-}
-
-.tree-node-quick:hover {
-  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
-}
-
-.tree-node-quick.active {
-  background: linear-gradient(135deg, rgba(102, 126, 234, 0.14) 0%, rgba(118, 75, 162, 0.14) 100%);
-}
-
-.tree-node-icon-recordings {
-  font-size: 0.82rem;
+.tree-node.active .tree-node-count {
+  background: var(--color-white);
   color: var(--color-primary);
-  flex-shrink: 0;
 }
 
 /* Tree children (project level) */

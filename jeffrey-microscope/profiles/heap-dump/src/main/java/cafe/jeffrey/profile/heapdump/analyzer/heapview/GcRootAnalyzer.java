@@ -50,7 +50,7 @@ public final class GcRootAnalyzer {
                     while (rs.next()) {
                         int kind = rs.getInt(1);
                         long count = rs.getLong(2);
-                        rootsByType.merge(kindName(kind), count, Long::sum);
+                        rootsByType.merge(HprofTag.Sub.rootKindName(kind), count, Long::sum);
                         totalBox[0] += count;
                         rows++;
                     }
@@ -64,19 +64,4 @@ public final class GcRootAnalyzer {
         return new GCRootSummary(rootsByType, total);
     }
 
-    /** Maps a raw HPROF root sub-tag byte to a stable display name. */
-    private static String kindName(int rootKind) {
-        return switch (rootKind) {
-            case HprofTag.Sub.ROOT_UNKNOWN -> "Unknown";
-            case HprofTag.Sub.ROOT_JNI_GLOBAL -> "JNI global";
-            case HprofTag.Sub.ROOT_JNI_LOCAL -> "JNI local";
-            case HprofTag.Sub.ROOT_JAVA_FRAME -> "Java frame";
-            case HprofTag.Sub.ROOT_NATIVE_STACK -> "Native stack";
-            case HprofTag.Sub.ROOT_STICKY_CLASS -> "Sticky class";
-            case HprofTag.Sub.ROOT_THREAD_BLOCK -> "Thread block";
-            case HprofTag.Sub.ROOT_MONITOR_USED -> "Monitor used";
-            case HprofTag.Sub.ROOT_THREAD_OBJECT -> "Thread object";
-            default -> "Other(0x" + Integer.toHexString(rootKind) + ")";
-        };
-    }
 }

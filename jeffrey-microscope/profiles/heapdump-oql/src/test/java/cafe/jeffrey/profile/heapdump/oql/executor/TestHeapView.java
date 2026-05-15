@@ -333,6 +333,11 @@ final class TestHeapView implements HeapView {
     }
 
     @Override
+    public Optional<Long> findRetainedSize(long instanceId) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
     public List<InstanceFieldDescriptor> instanceFields(long classId) {
         throw new UnsupportedOperationException();
     }
@@ -350,6 +355,20 @@ final class TestHeapView implements HeapView {
     @Override
     public byte[] readPrimitiveArrayBytes(long instanceId) {
         return cannedPrimitiveArrays.getOrDefault(instanceId, new byte[0]);
+    }
+
+    @Override
+    public byte[] readPrimitiveArrayBytes(long instanceId, int maxBytes) {
+        byte[] full = readPrimitiveArrayBytes(instanceId);
+        if (maxBytes <= 0 || full.length == 0) {
+            return new byte[0];
+        }
+        if (full.length <= maxBytes) {
+            return full;
+        }
+        byte[] out = new byte[maxBytes];
+        System.arraycopy(full, 0, out, 0, maxBytes);
+        return out;
     }
 
     @Override

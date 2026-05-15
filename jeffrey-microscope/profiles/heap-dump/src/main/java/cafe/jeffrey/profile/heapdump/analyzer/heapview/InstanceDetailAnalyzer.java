@@ -51,7 +51,7 @@ import cafe.jeffrey.profile.heapdump.parser.JavaClassRow;
  */
 public final class InstanceDetailAnalyzer {
 
-    private static final String JAVA_LANG_STRING = "java.lang.String";
+    private static final int STRING_PREVIEW_MAX_CHARS = 200;
 
     private InstanceDetailAnalyzer() {
     }
@@ -66,9 +66,9 @@ public final class InstanceDetailAnalyzer {
                 : kindClassName(inst);
 
         List<InstanceField> fields = decodeFields(view, objectId);
-        Long retained = view.hasDominatorTree() ? probeRetained(view, objectId) : null;
+        Long retained = view.hasDominatorTree() ? view.findRetainedSize(objectId).orElse(null) : null;
 
-        String stringValue = JAVA_LANG_STRING.equals(className)
+        String stringValue = String.class.getName().equals(className)
                 ? resolveStringContent(view, objectId)
                 : null;
         // Only Strings get a human-readable value here. For any other ref
@@ -155,16 +155,6 @@ public final class InstanceDetailAnalyzer {
         }
     }
 
-    private static Long probeRetained(HeapView view, long instanceId) throws SQLException {
-        try (PreparedStatement stmt = view.databaseClient().connection().prepareStatement(
-                "SELECT bytes FROM retained_size WHERE instance_id = ?")) {
-            stmt.setLong(1, instanceId);
-            try (ResultSet rs = stmt.executeQuery()) {
-                return rs.next() ? rs.getLong(1) : null;
-            }
-        }
-    }
-
     private static String kindClassName(InstanceRow inst) {
         return switch (inst.kind()) {
             case PRIMITIVE_ARRAY -> primitiveArrayName(inst.primitiveType());
@@ -206,6 +196,6 @@ public final class InstanceDetailAnalyzer {
     }
 
     private static String truncate(String s) {
-        return s.length() <= 200 ? s : s.substring(0, 200) + "…";
+        return StringTruncate.to(s, STRING_PREVIEW_MAX_CHARS);
     }
 }
