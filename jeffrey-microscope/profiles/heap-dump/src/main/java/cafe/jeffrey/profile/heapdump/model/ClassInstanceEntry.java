@@ -31,12 +31,17 @@ import java.util.Map;
  *                       (e.g. the decoded String text, a boxed primitive value,
  *                       a Thread/Class/Enum name) — {@code null} when the class
  *                       has no known preview layout
+ * @param referrerClass  class name of the dominant referrer for this instance,
+ *                       or {@code null} when the class is self-describing /
+ *                       has no known referrer hint; today only populated for
+ *                       {@code byte[]} rows
  */
 public record ClassInstanceEntry(
         long objectId,
         long shallowSize,
         Long retainedSize,
         Map<String, String> objectParams,
-        String contentPreview
+        String contentPreview,
+        String referrerClass
 ) {
 }

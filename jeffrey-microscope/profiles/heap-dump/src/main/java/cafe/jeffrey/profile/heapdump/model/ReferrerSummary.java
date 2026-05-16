@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -15,26 +15,16 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
 package cafe.jeffrey.profile.heapdump.model;
 
-import java.util.List;
-
 /**
- * Represents a single entry in a class histogram.
+ * Aggregate hint for an opaque histogram row (e.g. {@code byte[]}): the class
+ * name of a referrer plus the percentage of the row's total bytes attributable
+ * to that referrer class.
  *
- * @param className     fully qualified class name
- * @param instanceCount number of instances of this class
- * @param totalSize     total memory used by all instances in bytes
- * @param referrers     top referrer class hints — only populated for opaque
- *                      primitive-array rows (e.g. {@code byte[]}) where the
- *                      class name alone doesn't say what the bytes are for;
- *                      empty list otherwise
+ * @param className fully qualified class name of the referrer
+ * @param percent   share of the histogram row's total bytes attributed to this
+ *                  class, expressed as 0-100
  */
-public record ClassHistogramEntry(
-        String className,
-        long instanceCount,
-        long totalSize,
-        List<ReferrerSummary> referrers
-) {
+public record ReferrerSummary(String className, double percent) {
 }

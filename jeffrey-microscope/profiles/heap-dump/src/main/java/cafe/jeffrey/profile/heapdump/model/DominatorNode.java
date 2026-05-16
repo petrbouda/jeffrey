@@ -18,6 +18,7 @@
 
 package cafe.jeffrey.profile.heapdump.model;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -32,6 +33,10 @@ import java.util.Map;
  * @param retainedPercent percentage of parent's retained size this node occupies
  * @param hasChildren     whether this node has expandable children
  * @param gcRootKind      GC root kind (e.g. "Java Frame", "Thread Obj") or null if not a GC root
+ * @param referrerClasses distinct class names of objects pointing at this instance, ordered by
+ *                        reference count descending; populated only for opaque primitive-array
+ *                        rows (e.g. {@code byte[]}) to surface who holds the bytes; empty list
+ *                        otherwise
  */
 public record DominatorNode(
         long objectId,
@@ -42,6 +47,7 @@ public record DominatorNode(
         long retainedSize,
         double retainedPercent,
         boolean hasChildren,
-        String gcRootKind
+        String gcRootKind,
+        List<String> referrerClasses
 ) {
 }

@@ -105,7 +105,22 @@
                       ></i>
                       <i v-else class="bi bi-chevron-right"></i>
                     </button>
-                    <ClassNameDisplay :class-name="entry.className" />
+                    <div class="class-info">
+                      <ClassNameDisplay :class-name="entry.className" />
+                      <div v-if="entry.referrers && entry.referrers.length > 0" class="referrers-line">
+                        <span class="referrers-label">referrers</span>
+                        <Badge
+                          v-for="ref in entry.referrers"
+                          :key="ref.className"
+                          variant="violet"
+                          size="xxs"
+                          :uppercase="false"
+                          :value="'↑ ' + simpleClassName(ref.className)"
+                          :accent="ref.percent.toFixed(0) + '%'"
+                          :title="ref.className"
+                        />
+                      </div>
+                    </div>
                   </div>
                 </td>
                 <td class="text-end font-monospace">
@@ -215,6 +230,7 @@
                           v-for="(inst, idx) in instancesByClass[entry.className].instances"
                           :key="inst.objectId"
                           class="sp-list-row"
+                          :class="{ 'has-referrer-col': showsReferrerColumn(entry.className) }"
                         >
                           <span class="spr-rank">{{
                             String(idx + 1).padStart(2, '0')
@@ -222,6 +238,17 @@
                           <span class="spr-id">{{
                             FormattingService.formatObjectId(inst.objectId)
                           }}</span>
+                          <span v-if="showsReferrerColumn(entry.className)" class="spr-referrer-slot">
+                            <Badge
+                              v-if="inst.referrerClass"
+                              variant="violet"
+                              size="xxs"
+                              :uppercase="false"
+                              :value="'↑ ' + simpleClassName(inst.referrerClass)"
+                              :title="inst.referrerClass"
+                            />
+                            <span v-else class="spr-referrer-empty">—</span>
+                          </span>
                           <span
                             class="spr-preview"
                             :title="inst.contentPreview ?? ''"
@@ -312,6 +339,7 @@ import SortableTableHeader from '@/components/table/SortableTableHeader.vue';
 import DataTable from '@/components/table/DataTable.vue';
 import TableToolbar from '@/components/table/TableToolbar.vue';
 import EmptyState from '@/components/EmptyState.vue';
+import Badge from '@/components/Badge.vue';
 import HeapDumpClient from '@/services/api/HeapDumpClient';
 import ClassHistogramEntry from '@/services/api/model/ClassHistogramEntry';
 import type ClassInstancesResponse from '@/services/api/model/ClassInstancesResponse';
@@ -320,6 +348,11 @@ import HeapSummary from '@/services/api/model/HeapSummary';
 import FormattingService from '@/services/FormattingService';
 
 const TOP_INSTANCES_LIMIT = 20;
+
+const REFERRER_COLUMN_CLASS_NAMES = new Set<string>(['byte[]']);
+
+const showsReferrerColumn = (className: string): boolean =>
+  REFERRER_COLUMN_CLASS_NAMES.has(className);
 
 const route = useRoute();
 const router = useRouter();
@@ -395,6 +428,11 @@ const maxValue = computed(() => {
   }
   return Math.max(...histogramData.value.map(entry => entry.totalSize));
 });
+
+const simpleClassName = (fqn: string): string => {
+  const lastDot = fqn.lastIndexOf('.');
+  return lastDot > 0 ? fqn.substring(lastDot + 1) : fqn;
+};
 
 // Calculate distribution percentage based on sort field
 const getDistributionPercentage = (entry: ClassHistogramEntry): number => {
@@ -596,7 +634,32 @@ onMounted(() => {
 /* --- Expandable row chrome --------------------------------------- */
 .class-cell {
   display: flex;
+  align-items: flex-start;
+}
+
+.class-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 0.15rem;
+}
+
+/* --- Referrer hint pills (class row, opaque arrays e.g. byte[]) -- */
+.referrers-line {
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
+  gap: 0.3rem;
+  margin-top: 4px;
+}
+
+.referrers-label {
+  font-size: 0.66rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-light);
+  margin-right: 0.15rem;
 }
 
 .btn-expand {
@@ -751,11 +814,27 @@ tr.row-expanded > td {
 
 .sp-list-row {
   display: grid;
-  grid-template-columns: 28px 130px minmax(0, 1fr) 120px 80px auto;
+  grid-template-columns: 28px 95px minmax(0, 1fr) 120px 80px auto;
   align-items: center;
   gap: 0.6rem;
   padding: 0.55rem 0.95rem;
   border-bottom: 1px solid var(--color-border-row);
+  font-size: 0.78rem;
+}
+
+.sp-list-row.has-referrer-col {
+  grid-template-columns: 28px 95px 150px minmax(0, 1fr) 120px 80px auto;
+}
+
+.spr-referrer-slot {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.spr-referrer-empty {
+  color: var(--color-text-light);
+  font-family: monospace;
   font-size: 0.78rem;
 }
 

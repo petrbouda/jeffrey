@@ -118,6 +118,21 @@
                           FormattingService.formatObjectParams(item.node.objectParams)
                         }}</span>
                       </div>
+                      <div
+                        v-if="item.node.referrerClasses && item.node.referrerClasses.length > 0"
+                        class="referrers-line"
+                      >
+                        <span class="referrers-label">referrers</span>
+                        <Badge
+                          v-for="cls in item.node.referrerClasses"
+                          :key="cls"
+                          variant="violet"
+                          size="xxs"
+                          :uppercase="false"
+                          :value="'↑ ' + simpleClassName(cls)"
+                          :title="cls"
+                        />
+                      </div>
                     </div>
                   </div>
                 </td>
@@ -207,6 +222,7 @@ import InstanceActionButtons from '@/components/heap/InstanceActionButtons.vue';
 import InstanceDetailPanel from '@/components/heap/InstanceDetailPanel.vue';
 import InstanceTreeModal from '@/components/heap/InstanceTreeModal.vue';
 import EmptyState from '@/components/EmptyState.vue';
+import Badge from '@/components/Badge.vue';
 import DataTable from '@/components/table/DataTable.vue';
 import HeapDumpClient from '@/services/api/HeapDumpClient';
 import type DominatorTreeResponse from '@/services/api/model/DominatorTreeResponse';
@@ -280,6 +296,11 @@ const gcRootLabel = (kind: string): string => {
   return labels[kind] ?? kind;
 };
 
+const simpleClassName = (fqn: string): string => {
+  const lastDot = fqn.lastIndexOf('.');
+  return lastDot > 0 ? fqn.substring(lastDot + 1) : fqn;
+};
+
 const getBarColor = (percent: number): string => {
   if (percent >= 50) return '#dc3545';
   if (percent >= 25) return '#fd7e14';
@@ -300,7 +321,8 @@ const createLoadMoreItem = (parentObjectId: number, depth: number): TreeItem => 
     retainedSize: 0,
     retainedPercent: 0,
     hasChildren: false,
-    gcRootKind: null
+    gcRootKind: null,
+    referrerClasses: []
   },
   depth,
   expanded: false,
@@ -562,6 +584,23 @@ onMounted(() => {
 .object-params-text {
   font-family: monospace;
   color: var(--color-text-muted);
+}
+
+.referrers-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem;
+  margin-top: 4px;
+}
+
+.referrers-label {
+  font-size: 0.66rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-light);
+  margin-right: 0.15rem;
 }
 
 .gc-root-badge {

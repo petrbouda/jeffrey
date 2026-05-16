@@ -330,6 +330,75 @@ class ClassInstanceBrowserAnalyzerTest {
         }
     }
 
+    @Test
+    void byteArrayInstancesCarryReferrerAndStringPreview(@TempDir Path tmp) throws IOException, SQLException {
+        // Setup:
+        //   - A String "hello" backed by byte[] (so the byte[] is held by a String)
+        //   - A Holder instance holding its own byte[] (no String content)
+        // Browse byte[]:
+        //   - The String-held byte[] returns referrerClass=java.lang.String, preview="\"hello\""
+        //   - The Holder-held byte[] returns referrerClass=Holder, preview=null
+        long stringClass = 0xC001L;
+        long holderClass = 0xC002L;
+        long stringInstance = 0x100L;
+        long holderInstance = 0x200L;
+        long bytesString = 0x300L;
+        long bytesHolder = 0x301L;
+
+        Path hprof = SyntheticHprof.create("1.0.2", ID_SIZE, 0L)
+                .string(0xA001L, "java.lang.String")
+                .string(0xA002L, "Holder")
+                .string(0xA003L, "value")
+                .string(0xA004L, "coder")
+                .string(0xA005L, "hash")
+                .loadClass(1, stringClass, 0, 0xA001L)
+                .loadClass(2, holderClass, 0, 0xA002L)
+                .heapDumpSegment(seg -> seg
+                        .classDumpWithFields(stringClass, 0L, 0L, ID_SIZE + 1 + 4,
+                                new SyntheticHprof.SubBuilder.FieldSpec(0xA003L, HprofTag.BasicType.OBJECT),
+                                new SyntheticHprof.SubBuilder.FieldSpec(0xA004L, HprofTag.BasicType.BYTE),
+                                new SyntheticHprof.SubBuilder.FieldSpec(0xA005L, HprofTag.BasicType.INT))
+                        .topLevelObjectClassDump(holderClass, 0xA003L)
+                        .gcRoot(HprofTag.Sub.ROOT_STICKY_CLASS, stringInstance)
+                        .gcRoot(HprofTag.Sub.ROOT_STICKY_CLASS, holderInstance)
+                        .primitiveArrayDump(bytesString, HprofTag.BasicType.BYTE,
+                                "hello".getBytes(StandardCharsets.ISO_8859_1), 5)
+                        .primitiveArrayDump(bytesHolder, HprofTag.BasicType.BYTE, new byte[32], 32)
+                        .instanceDump(stringInstance, stringClass, stringFields(bytesString, (byte) 0))
+                        .instanceDump(holderInstance, holderClass, idBytes(bytesHolder)))
+                .heapDumpEnd()
+                .writeTo(tmp, "byte-array-referrers.hprof");
+
+        Path indexDb = HeapDumpIndexPaths.indexFor(hprof);
+        try (HprofMappedFile file = HprofMappedFile.open(hprof)) {
+            HprofIndex.build(file, indexDb, CLOCK);
+        }
+        try (HprofMappedFile file = HprofMappedFile.open(hprof);
+             HeapView view = HeapView.open(indexDb, file)) {
+            // byte[] is the synthetic primitive-array class — look up its id by name.
+            long byteArrayClassId = view.findClassesByName("byte[]").get(0).classId();
+            ClassInstancesResponse response = ClassInstanceBrowserAnalyzer.browse(view, byteArrayClassId);
+            assertEquals("byte[]", response.className());
+            assertEquals(2, response.instances().size());
+
+            ClassInstanceEntry stringHeld = response.instances().stream()
+                    .filter(e -> e.objectId() == bytesString)
+                    .findFirst()
+                    .orElseThrow();
+            assertEquals("java.lang.String", stringHeld.referrerClass());
+            assertEquals("\"hello\"", stringHeld.contentPreview(),
+                    "byte[] held by String should expose the decoded String content");
+
+            ClassInstanceEntry holderHeld = response.instances().stream()
+                    .filter(e -> e.objectId() == bytesHolder)
+                    .findFirst()
+                    .orElseThrow();
+            assertEquals("Holder", holderHeld.referrerClass());
+            assertEquals(null, holderHeld.contentPreview(),
+                    "byte[] held by a non-String should NOT expose a preview");
+        }
+    }
+
     private static byte[] fields(long objectRef, int intValue) {
         try {
             ByteArrayOutputStream b = new ByteArrayOutputStream();

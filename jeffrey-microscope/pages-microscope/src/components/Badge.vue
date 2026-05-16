@@ -6,7 +6,10 @@
       variantClass,
       keyValueClass,
       uppercaseClass,
-      { 'badge-borderless': borderless },
+      {
+        'badge-borderless': borderless,
+        'has-accent': hasAccent
+      },
       props.class
     ]"
   >
@@ -14,6 +17,18 @@
       <i v-if="icon" :class="icon" class="badge-icon"></i>
       <span class="badge-key">{{ keyLabel }}:</span>
       <span class="badge-value">{{ value }}</span>
+    </template>
+    <template v-else-if="hasAccent">
+      <span class="badge-main">
+        <i
+          v-if="icon"
+          :class="icon"
+          style="width: 0.5rem; height: 0.5rem; margin-right: 5px"
+          class="badge-icon"
+        ></i>
+        {{ value }}
+      </span>
+      <span class="badge-accent">{{ accent }}</span>
     </template>
     <template v-else>
       <i
@@ -34,6 +49,12 @@ import type { Size, Variant } from '@/types/ui.ts';
 interface Props {
   value?: string | number;
   keyLabel?: string;
+  /**
+   * Optional right-side "sticky" segment rendered with a darker/bolder treatment
+   * — used for counter-style annotations like `↑ String  78%`. Ignored when
+   * `keyLabel` is set (key-value mode takes precedence).
+   */
+  accent?: string | number;
   size?: Size;
   variant?: Variant;
   icon?: string;
@@ -50,6 +71,9 @@ const props = withDefaults(defineProps<Props>(), {
 
 // Determine if this is a key-value badge
 const isKeyValueMode = computed(() => props.keyLabel !== undefined);
+
+// Accent mode renders a second, contrasting segment on the right.
+const hasAccent = computed(() => !isKeyValueMode.value && props.accent !== undefined);
 
 const sizeClass = computed(() => `badge-${props.size}`);
 const variantClass = computed(() => `badge-${props.variant}`);
@@ -431,5 +455,72 @@ const uppercaseClass = computed(() => (props.uppercase ? '' : 'badge-no-uppercas
 /* Uppercase override */
 .badge.badge-no-uppercase {
   text-transform: none;
+}
+
+/* ----------------------------------------------------------------- */
+/*  Accent mode — two-tone "sticky" right segment                    */
+/*  Renders the badge as a two-tone pill. The main segment uses the  */
+/*  variant's normal colors; the accent segment uses a stronger      */
+/*  contrast so values like percentages stay readable.               */
+/* ----------------------------------------------------------------- */
+.badge.has-accent {
+  padding: 0;
+  overflow: hidden;
+  gap: 0;
+}
+
+.badge .badge-main,
+.badge .badge-accent {
+  display: inline-flex;
+  align-items: center;
+  align-self: stretch;
+}
+
+.badge .badge-accent {
+  font-weight: 700;
+}
+
+/* Per-size padding for main + accent segments — keeps the badge's
+   overall footprint identical to the non-accent version. */
+.badge.has-accent.badge-xxs .badge-main,
+.badge.has-accent.badge-xxs .badge-accent {
+  padding: 0.15rem 0.3rem;
+}
+
+.badge.has-accent.badge-xs .badge-main,
+.badge.has-accent.badge-xs .badge-accent {
+  padding: 0.2rem 0.4rem;
+}
+
+.badge.has-accent.badge-s .badge-main,
+.badge.has-accent.badge-s .badge-accent {
+  padding: 0.25rem 0.5rem;
+}
+
+.badge.has-accent.badge-m .badge-main,
+.badge.has-accent.badge-m .badge-accent {
+  padding: 0.3rem 0.6rem;
+}
+
+.badge.has-accent.badge-l .badge-main,
+.badge.has-accent.badge-l .badge-accent {
+  padding: 0.375rem 0.625rem;
+}
+
+.badge.has-accent.badge-xl .badge-main,
+.badge.has-accent.badge-xl .badge-accent {
+  padding: 0.5rem 0.75rem;
+}
+
+/* Variant-specific accent colors. Today only violet has the split styling;
+   other variants will fall through to a sensible default if used. */
+.badge-violet.has-accent {
+  background-color: var(--color-violet-lighter-bg);
+  border-color: var(--color-violet-border-light);
+}
+
+.badge-violet .badge-accent {
+  background-color: var(--color-violet-border-light);
+  color: var(--color-violet-darkest);
 }
 </style>

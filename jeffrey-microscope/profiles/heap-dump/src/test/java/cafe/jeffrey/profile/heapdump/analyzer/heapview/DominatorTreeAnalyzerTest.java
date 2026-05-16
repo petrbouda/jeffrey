@@ -233,6 +233,101 @@ class DominatorTreeAnalyzerTest {
         }
     }
 
+    @Test
+    void byteArrayRowsCarryDistinctReferrerClassNames(@TempDir Path tmp) throws IOException, SQLException {
+        // Two classes (Holder, Cache) each hold a reference to the *same* byte[]. Because
+        // two GC-rooted instances reach the byte[], its dominator is the virtual root, so
+        // calling children(0L) returns Holder, Cache, and the byte[] as siblings — and the
+        // byte[] row must carry both class names in its referrerClasses list.
+        int idSize = 8;
+        long holderClass = 0xC100L, cacheClass = 0xC200L;
+        long holder = 0x100L, cache = 0x200L, bytes = 0x500L;
+
+        Path hprof = SyntheticHprof.create("1.0.2", idSize, 0L)
+                .string(0xA001L, "Holder")
+                .string(0xA002L, "Cache")
+                .string(0xA003L, "value")
+                .loadClass(1, holderClass, 0, 0xA001L)
+                .loadClass(2, cacheClass, 0, 0xA002L)
+                .heapDumpSegment(seg -> seg
+                        .topLevelObjectClassDump(holderClass, 0xA003L)
+                        .topLevelObjectClassDump(cacheClass, 0xA003L)
+                        .gcRoot(HprofTag.Sub.ROOT_STICKY_CLASS, holder)
+                        .gcRoot(HprofTag.Sub.ROOT_STICKY_CLASS, cache)
+                        .instanceDump(holder, holderClass, idBytes(bytes, idSize))
+                        .instanceDump(cache, cacheClass, idBytes(bytes, idSize))
+                        .primitiveArrayDump(bytes, HprofTag.BasicType.BYTE, new byte[64], 64))
+                .heapDumpEnd()
+                .writeTo(tmp, "byte-referrers.hprof");
+
+        Path indexDb = HeapDumpIndexPaths.indexFor(hprof);
+        try (HprofMappedFile file = HprofMappedFile.open(hprof)) {
+            HprofIndex.build(file, indexDb, CLOCK);
+        }
+        DominatorTreeBuilder.build(indexDb);
+
+        try (HeapView view = HeapView.open(indexDb)) {
+            DominatorTreeResponse response = DominatorTreeAnalyzer.children(view, 0L);
+
+            DominatorNode bytesNode = response.nodes().stream()
+                    .filter(n -> "byte[]".equals(n.className()))
+                    .findFirst()
+                    .orElseThrow(() -> new AssertionError("byte[] node missing from top-level dominator children"));
+
+            assertEquals(bytes, bytesNode.objectId());
+            assertEquals(2, bytesNode.referrerClasses().size(),
+                    "expected both holder + cache class names to be surfaced");
+            assertTrue(bytesNode.referrerClasses().contains("Holder"));
+            assertTrue(bytesNode.referrerClasses().contains("Cache"));
+
+            // Non-array rows (Holder, Cache instances) must NOT be enriched — referrerClasses stays empty.
+            for (DominatorNode n : response.nodes()) {
+                if (!"byte[]".equals(n.className())) {
+                    assertTrue(n.referrerClasses().isEmpty(),
+                            "non-byte[] row " + n.className() + " unexpectedly carries referrer classes");
+                }
+            }
+        }
+    }
+
+    @Test
+    void singleReferrerClassByteArrayCarriesItsHolder(@TempDir Path tmp) throws IOException, SQLException {
+        // The common case: a byte[] reachable from exactly one holder. The byte[] is
+        // dominated by that holder and the referrer-hint list still contains the holder
+        // class — so the UI never sees an empty list for byte[] rows that have any
+        // incoming reference at all.
+        int idSize = 8;
+        long holderClass = 0xC100L;
+        long holder = 0x100L, bytes = 0x500L;
+
+        Path hprof = SyntheticHprof.create("1.0.2", idSize, 0L)
+                .string(0xA001L, "Holder")
+                .string(0xA003L, "value")
+                .loadClass(1, holderClass, 0, 0xA001L)
+                .heapDumpSegment(seg -> seg
+                        .topLevelObjectClassDump(holderClass, 0xA003L)
+                        .gcRoot(HprofTag.Sub.ROOT_STICKY_CLASS, holder)
+                        .instanceDump(holder, holderClass, idBytes(bytes, idSize))
+                        .primitiveArrayDump(bytes, HprofTag.BasicType.BYTE, new byte[32], 32))
+                .heapDumpEnd()
+                .writeTo(tmp, "byte-single-referrer.hprof");
+
+        Path indexDb = HeapDumpIndexPaths.indexFor(hprof);
+        try (HprofMappedFile file = HprofMappedFile.open(hprof)) {
+            HprofIndex.build(file, indexDb, CLOCK);
+        }
+        DominatorTreeBuilder.build(indexDb);
+
+        try (HeapView view = HeapView.open(indexDb)) {
+            DominatorTreeResponse children = DominatorTreeAnalyzer.children(view, holder);
+            DominatorNode bytesNode = children.nodes().stream()
+                    .filter(n -> "byte[]".equals(n.className()))
+                    .findFirst()
+                    .orElseThrow();
+            assertEquals(List.of("Holder"), bytesNode.referrerClasses());
+        }
+    }
+
     private static byte[] idBytes(long id, int idSize) {
         try {
             ByteArrayOutputStream b = new ByteArrayOutputStream();

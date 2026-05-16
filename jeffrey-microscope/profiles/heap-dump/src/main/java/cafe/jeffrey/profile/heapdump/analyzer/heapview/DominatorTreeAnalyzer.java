@@ -21,9 +21,12 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import cafe.jeffrey.profile.heapdump.model.DominatorNode;
 import cafe.jeffrey.profile.heapdump.model.DominatorTreeResponse;
 import cafe.jeffrey.profile.heapdump.parser.DominatorTreeBuilder;
@@ -48,6 +51,17 @@ import cafe.jeffrey.profile.heapdump.parser.HprofTag;
 public final class DominatorTreeAnalyzer {
 
     private static final int DEFAULT_LIMIT = 100;
+
+    /**
+     * Class names whose instances are too opaque to be self-describing — knowing
+     * "this is a byte[]" does not tell you whether it backs a String, a HeapByteBuffer,
+     * a deserialized cache entry, etc. For these rows we surface the top distinct
+     * referrer class names inline so the UI can render a "referrers" badge row.
+     */
+    private static final Set<String> REFERRER_HINT_CLASS_NAMES = Set.of(byte[].class.getSimpleName());
+
+    /** Max distinct referrer class names to attach per opaque-array row. */
+    private static final int REFERRER_HINT_LIMIT = 3;
 
     private DominatorTreeAnalyzer() {
     }
@@ -91,12 +105,19 @@ public final class DominatorTreeAnalyzer {
                 + "ORDER BY r.bytes DESC "
                 + "LIMIT ?";
 
-        List<DominatorNode> nodes = new ArrayList<>();
+        // First pass: pull child rows and remember which byte[] (opaque-array) ids we need
+        // to enrich with referrer hints. Building the final DominatorNode list is deferred
+        // to a second pass so we can attach the batch-fetched referrer classes.
+        record Row(long instanceId, String className, long shallow, long retained,
+                   boolean hasChildren, double percent, String rootKind) {
+        }
+        List<Row> rawRows = new ArrayList<>();
+        List<Long> opaqueArrayIds = new ArrayList<>();
         try (PreparedStatement stmt = view.databaseClient().connection().prepareStatement(sql)) {
             stmt.setLong(1, parentId);
             stmt.setInt(2, limit + 1);
             try (ResultSet rs = stmt.executeQuery()) {
-                while (rs.next() && nodes.size() < limit) {
+                while (rs.next() && rawRows.size() < limit) {
                     long instanceId = rs.getLong(1);
                     String className = rs.getString(2);
                     if (className == null) {
@@ -111,12 +132,26 @@ public final class DominatorTreeAnalyzer {
                     String rootKind = rootKindByInstance.containsKey(instanceId)
                             ? HprofTag.Sub.rootKindName(rootKindByInstance.get(instanceId))
                             : null;
-                    nodes.add(new DominatorNode(
-                            instanceId, className, Map.of(),
-                            null, // fieldName: not applicable at this aggregation level
-                            shallow, retained, percent, hasChildren, rootKind));
+                    rawRows.add(new Row(instanceId, className, shallow, retained, hasChildren, percent, rootKind));
+                    if (REFERRER_HINT_CLASS_NAMES.contains(className)) {
+                        opaqueArrayIds.add(instanceId);
+                    }
                 }
             }
+        }
+
+        Map<Long, List<String>> referrersByInstance = opaqueArrayIds.isEmpty()
+                ? Map.of()
+                : loadReferrerClasses(view, opaqueArrayIds);
+
+        List<DominatorNode> nodes = new ArrayList<>(rawRows.size());
+        for (Row row : rawRows) {
+            List<String> referrers = referrersByInstance.getOrDefault(row.instanceId(), List.of());
+            nodes.add(new DominatorNode(
+                    row.instanceId(), row.className(), Map.of(),
+                    null, // fieldName: not applicable at this aggregation level
+                    row.shallow(), row.retained(), row.percent(), row.hasChildren(), row.rootKind(),
+                    referrers));
         }
         boolean hasMore = nodes.size() == limit && countChildren(view, parentId) > limit;
         boolean compressedOops = view.metadata().compressedOops();
@@ -152,6 +187,54 @@ public final class DominatorTreeAnalyzer {
              ResultSet rs = stmt.executeQuery()) {
             while (rs.next()) {
                 out.put(rs.getLong(1), rs.getInt(2));
+            }
+        }
+        return out;
+    }
+
+    /**
+     * Batch-fetch the top distinct referrer class names for the given opaque-array
+     * instances. One row per target instance per referrer class, ordered so that the
+     * most common referrer class comes first; we cap each target at
+     * {@link #REFERRER_HINT_LIMIT} in the Java post-processing step.
+     */
+    private static Map<Long, List<String>> loadReferrerClasses(HeapView view, List<Long> targetIds) throws SQLException {
+        String placeholders = String.join(",", Collections.nCopies(targetIds.size(), "?"));
+        String sql = "SELECT o.target_id, c.name, COUNT(*) AS ref_count "
+                + "FROM outbound_ref o "
+                + "JOIN instance i ON i.instance_id = o.source_id "
+                + "LEFT JOIN class c ON c.class_id = i.class_id "
+                + "WHERE o.target_id IN (" + placeholders + ") "
+                + "GROUP BY o.target_id, c.name "
+                + "ORDER BY o.target_id, ref_count DESC, c.name";
+
+        Map<Long, List<String>> out = new HashMap<>();
+        try (PreparedStatement stmt = view.databaseClient().connection().prepareStatement(sql)) {
+            for (int i = 0; i < targetIds.size(); i++) {
+                stmt.setLong(i + 1, targetIds.get(i));
+            }
+            try (ResultSet rs = stmt.executeQuery()) {
+                // Preserve insertion order so the top-N truncation keeps the highest-count classes.
+                Map<Long, LinkedHashMap<String, Boolean>> perTarget = new LinkedHashMap<>();
+                while (rs.next()) {
+                    long targetId = rs.getLong(1);
+                    String className = rs.getString(2);
+                    if (className == null) {
+                        className = "<unknown>";
+                    }
+                    perTarget.computeIfAbsent(targetId, k -> new LinkedHashMap<>())
+                            .putIfAbsent(className, Boolean.TRUE);
+                }
+                for (Map.Entry<Long, LinkedHashMap<String, Boolean>> e : perTarget.entrySet()) {
+                    List<String> top = new ArrayList<>(REFERRER_HINT_LIMIT);
+                    for (String name : e.getValue().keySet()) {
+                        if (top.size() == REFERRER_HINT_LIMIT) {
+                            break;
+                        }
+                        top.add(name);
+                    }
+                    out.put(e.getKey(), List.copyOf(top));
+                }
             }
         }
         return out;

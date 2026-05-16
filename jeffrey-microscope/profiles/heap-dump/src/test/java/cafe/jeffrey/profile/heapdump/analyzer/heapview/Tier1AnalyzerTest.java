@@ -17,7 +17,10 @@
  */
 package cafe.jeffrey.profile.heapdump.analyzer.heapview;
 
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Path;
 import java.sql.SQLException;
 import java.time.Clock;
@@ -31,6 +34,7 @@ import org.junit.jupiter.api.io.TempDir;
 import cafe.jeffrey.profile.heapdump.model.ClassHistogramEntry;
 import cafe.jeffrey.profile.heapdump.model.GCRootSummary;
 import cafe.jeffrey.profile.heapdump.model.HeapSummary;
+import cafe.jeffrey.profile.heapdump.model.ReferrerSummary;
 import cafe.jeffrey.profile.heapdump.model.SortBy;
 import cafe.jeffrey.profile.heapdump.parser.HeapDumpIndexPaths;
 import cafe.jeffrey.profile.heapdump.parser.HeapView;
@@ -159,6 +163,66 @@ class Tier1AnalyzerTest {
                 assertThrows(IllegalArgumentException.class,
                         () -> ClassHistogramAnalyzer.analyze(view, 10, null));
             }
+        }
+
+        @Test
+        void byteArrayEntryCarriesTopReferrerHints(@TempDir Path tmp) throws IOException, SQLException {
+            // Two Holder instances each pointing at their own byte[]. The byte[] histogram
+            // row should declare Holder as the top referrer with ~100% share of byte[] bytes.
+            int idSize = 8;
+            long holderClass = 0xC100L;
+            long holder1 = 0x100L, holder2 = 0x101L, bytes1 = 0x500L, bytes2 = 0x501L;
+
+            Path hprof = SyntheticHprof.create("1.0.2", idSize, 0L)
+                    .string(0xA001L, "Holder")
+                    .string(0xA003L, "value")
+                    .loadClass(1, holderClass, 0, 0xA001L)
+                    .heapDumpSegment(seg -> seg
+                            .topLevelObjectClassDump(holderClass, 0xA003L)
+                            .gcRoot(HprofTag.Sub.ROOT_STICKY_CLASS, holder1)
+                            .gcRoot(HprofTag.Sub.ROOT_STICKY_CLASS, holder2)
+                            .instanceDump(holder1, holderClass, idBytes(bytes1))
+                            .instanceDump(holder2, holderClass, idBytes(bytes2))
+                            .primitiveArrayDump(bytes1, HprofTag.BasicType.BYTE, new byte[32], 32)
+                            .primitiveArrayDump(bytes2, HprofTag.BasicType.BYTE, new byte[16], 16))
+                    .heapDumpEnd()
+                    .writeTo(tmp, "histogram-byte-referrers.hprof");
+
+            Path indexDb = HeapDumpIndexPaths.indexFor(hprof);
+            try (HprofMappedFile file = HprofMappedFile.open(hprof)) {
+                HprofIndex.build(file, indexDb, FIXED_CLOCK);
+            }
+            try (HeapView view = HeapView.open(indexDb)) {
+                List<ClassHistogramEntry> hist =
+                        ClassHistogramAnalyzer.analyze(view, 100, SortBy.SIZE);
+                ClassHistogramEntry bytes = hist.stream()
+                        .filter(e -> "byte[]".equals(e.className()))
+                        .findFirst()
+                        .orElseThrow(() -> new AssertionError("byte[] entry missing from histogram"));
+                assertEquals(1, bytes.referrers().size(),
+                        "exactly one referrer class — Holder — should be surfaced");
+                ReferrerSummary top = bytes.referrers().get(0);
+                assertEquals("Holder", top.className());
+                assertEquals(100.0, top.percent(), 0.01,
+                        "Holder accounts for 100% of byte[] bytes — both arrays are held by a Holder");
+
+                // Non-byte[] rows must not carry referrer hints.
+                hist.stream()
+                        .filter(e -> !"byte[]".equals(e.className()))
+                        .forEach(e -> assertTrue(e.referrers().isEmpty(),
+                                "row " + e.className() + " unexpectedly has referrer hints"));
+            }
+        }
+    }
+
+    private static byte[] idBytes(long ref) {
+        try {
+            ByteArrayOutputStream b = new ByteArrayOutputStream();
+            DataOutputStream d = new DataOutputStream(b);
+            d.writeLong(ref);
+            return b.toByteArray();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
         }
     }
 

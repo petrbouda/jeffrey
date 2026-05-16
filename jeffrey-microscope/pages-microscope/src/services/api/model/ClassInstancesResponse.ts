@@ -4,6 +4,7 @@ export interface ClassInstanceEntry {
   retainedSize: number | null;
   objectParams: Record<string, string>;
   contentPreview: string | null;
+  referrerClass: string | null;
 }
 
 export default interface ClassInstancesResponse {

@@ -16,8 +16,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+export interface ReferrerSummary {
+  className: string;
+  percent: number;
+}
+
 export default interface ClassHistogramEntry {
   className: string;
   instanceCount: number;
   totalSize: number;
+  referrers: ReferrerSummary[];
 }
