@@ -24,8 +24,12 @@ import cafe.jeffrey.profile.heapdump.model.ClassLoaderDetail;
 import cafe.jeffrey.profile.heapdump.model.ClassLoaderReport;
 import cafe.jeffrey.profile.heapdump.model.CollectionAnalysisReport;
 import cafe.jeffrey.profile.heapdump.model.DominatorTreeResponse;
+import cafe.jeffrey.profile.heapdump.model.GCRootClassAggregate;
+import cafe.jeffrey.profile.heapdump.model.GCRootClassLoaderAggregate;
 import cafe.jeffrey.profile.heapdump.model.GCRootPath;
+import cafe.jeffrey.profile.heapdump.model.GCRootRetainer;
 import cafe.jeffrey.profile.heapdump.model.GCRootSummary;
+import cafe.jeffrey.profile.heapdump.model.LeakHintFinding;
 import cafe.jeffrey.profile.heapdump.model.HeapDumpConfig;
 import cafe.jeffrey.profile.heapdump.model.HeapSummary;
 import cafe.jeffrey.profile.heapdump.model.HeapThreadInfo;
@@ -150,6 +154,21 @@ public interface HeapDumpManager {
      * @return GC root summary
      */
     GCRootSummary getGCRootSummary();
+
+    /**
+     * Top individual GC roots ranked by retained size. Optionally filter to a
+     * subset of root kinds (raw HPROF sub-tag bytes) — empty list = no filter.
+     */
+    List<GCRootRetainer> getTopRetainers(int limit, List<Integer> rootKinds);
+
+    /** Aggregate GC roots by the class of the referenced instance. */
+    List<GCRootClassAggregate> getRootsByClass(int limit);
+
+    /** Aggregate GC roots by the classloader of the referenced class. */
+    List<GCRootClassLoaderAggregate> getRootsByClassLoader(int limit);
+
+    /** Heuristic leak findings ordered by severity. */
+    List<LeakHintFinding> getLeakHints();
 
     /**
      * Unload the heap from memory cache.

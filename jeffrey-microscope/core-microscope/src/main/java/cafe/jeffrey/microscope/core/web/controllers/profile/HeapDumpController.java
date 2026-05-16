@@ -39,8 +39,12 @@ import cafe.jeffrey.profile.heapdump.model.ClassLoaderReport;
 import cafe.jeffrey.profile.heapdump.model.ConsumerReport;
 import cafe.jeffrey.profile.heapdump.model.CollectionAnalysisReport;
 import cafe.jeffrey.profile.heapdump.model.DominatorTreeResponse;
+import cafe.jeffrey.profile.heapdump.model.GCRootClassAggregate;
+import cafe.jeffrey.profile.heapdump.model.GCRootClassLoaderAggregate;
 import cafe.jeffrey.profile.heapdump.model.GCRootPath;
+import cafe.jeffrey.profile.heapdump.model.GCRootRetainer;
 import cafe.jeffrey.profile.heapdump.model.GCRootSummary;
+import cafe.jeffrey.profile.heapdump.model.LeakHintFinding;
 import cafe.jeffrey.profile.heapdump.model.HeapDumpConfig;
 import cafe.jeffrey.profile.heapdump.model.InitPipelineResult;
 import cafe.jeffrey.profile.heapdump.model.InitializeResult;
@@ -122,6 +126,33 @@ public class HeapDumpController {
     @GetMapping("/gc-roots")
     public GCRootSummary gcRoots(@PathVariable("profileId") String profileId) {
         return mgr(profileId).getGCRootSummary();
+    }
+
+    @GetMapping("/gc-roots/top-retainers")
+    public List<GCRootRetainer> topRetainers(
+            @PathVariable("profileId") String profileId,
+            @RequestParam(value = "limit", defaultValue = "100") int limit,
+            @RequestParam(value = "rootKinds", required = false) List<Integer> rootKinds) {
+        return mgr(profileId).getTopRetainers(limit, rootKinds == null ? List.of() : rootKinds);
+    }
+
+    @GetMapping("/gc-roots/by-class")
+    public List<GCRootClassAggregate> rootsByClass(
+            @PathVariable("profileId") String profileId,
+            @RequestParam(value = "limit", defaultValue = "100") int limit) {
+        return mgr(profileId).getRootsByClass(limit);
+    }
+
+    @GetMapping("/gc-roots/by-classloader")
+    public List<GCRootClassLoaderAggregate> rootsByClassLoader(
+            @PathVariable("profileId") String profileId,
+            @RequestParam(value = "limit", defaultValue = "50") int limit) {
+        return mgr(profileId).getRootsByClassLoader(limit);
+    }
+
+    @GetMapping("/gc-roots/leak-hints")
+    public List<LeakHintFinding> leakHints(@PathVariable("profileId") String profileId) {
+        return mgr(profileId).getLeakHints();
     }
 
     @PostMapping("/unload")

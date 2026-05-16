@@ -24,6 +24,10 @@ import type InitializeResult from '@/services/api/model/InitializeResult';
 import ClassHistogramEntry from '@/services/api/model/ClassHistogramEntry';
 import OQLQueryResult from '@/services/api/model/OQLQueryResult';
 import GCRootSummary from '@/services/api/model/GCRootSummary';
+import type GCRootRetainer from '@/services/api/model/GCRootRetainer';
+import type GCRootClassAggregate from '@/services/api/model/GCRootClassAggregate';
+import type GCRootClassLoaderAggregate from '@/services/api/model/GCRootClassLoaderAggregate';
+import type LeakHintFinding from '@/services/api/model/LeakHintFinding';
 import HeapThreadInfo from '@/services/api/model/HeapThreadInfo';
 import StringAnalysisReport from '@/services/api/model/StringAnalysisReport';
 import ThreadAnalysisReport from '@/services/api/model/ThreadAnalysisReport';
@@ -86,6 +90,29 @@ export default class HeapDumpClient extends BaseProfileClient {
 
   public getGCRoots(): Promise<GCRootSummary> {
     return this.get<GCRootSummary>('/gc-roots');
+  }
+
+  public getTopRetainers(
+    limit: number = 100,
+    rootKinds: number[] = []
+  ): Promise<GCRootRetainer[]> {
+    const params: Record<string, unknown> = { limit };
+    if (rootKinds.length > 0) {
+      params.rootKinds = rootKinds.join(',');
+    }
+    return this.get<GCRootRetainer[]>('/gc-roots/top-retainers', params);
+  }
+
+  public getRootsByClass(limit: number = 100): Promise<GCRootClassAggregate[]> {
+    return this.get<GCRootClassAggregate[]>('/gc-roots/by-class', { limit });
+  }
+
+  public getRootsByClassLoader(limit: number = 50): Promise<GCRootClassLoaderAggregate[]> {
+    return this.get<GCRootClassLoaderAggregate[]>('/gc-roots/by-classloader', { limit });
+  }
+
+  public getLeakHints(): Promise<LeakHintFinding[]> {
+    return this.get<LeakHintFinding[]>('/gc-roots/leak-hints');
   }
 
   public unload(): Promise<void> {

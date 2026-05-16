@@ -23,6 +23,10 @@ import cafe.jeffrey.profile.heapdump.analyzer.heapview.ClassInstanceBrowserAnaly
 import cafe.jeffrey.profile.heapdump.analyzer.heapview.ClassLoaderDetailService;
 import cafe.jeffrey.profile.heapdump.analyzer.heapview.DominatorTreeAnalyzer;
 import cafe.jeffrey.profile.heapdump.analyzer.heapview.GcRootAnalyzer;
+import cafe.jeffrey.profile.heapdump.analyzer.heapview.GcRootByClassAnalyzer;
+import cafe.jeffrey.profile.heapdump.analyzer.heapview.GcRootByClassLoaderAnalyzer;
+import cafe.jeffrey.profile.heapdump.analyzer.heapview.GcRootRetainersAnalyzer;
+import cafe.jeffrey.profile.heapdump.analyzer.heapview.LeakHintsAnalyzer;
 import cafe.jeffrey.profile.heapdump.analyzer.heapview.HeapSummaryAnalyzer;
 import cafe.jeffrey.profile.heapdump.analyzer.heapview.InstanceDetailAnalyzer;
 import cafe.jeffrey.profile.heapdump.analyzer.heapview.InstanceTreeAnalyzer;
@@ -38,8 +42,12 @@ import cafe.jeffrey.profile.heapdump.model.ClassLoaderReport;
 import cafe.jeffrey.profile.heapdump.model.CollectionAnalysisReport;
 import cafe.jeffrey.profile.heapdump.model.ConsumerReport;
 import cafe.jeffrey.profile.heapdump.model.DominatorTreeResponse;
+import cafe.jeffrey.profile.heapdump.model.GCRootClassAggregate;
+import cafe.jeffrey.profile.heapdump.model.GCRootClassLoaderAggregate;
 import cafe.jeffrey.profile.heapdump.model.GCRootPath;
+import cafe.jeffrey.profile.heapdump.model.GCRootRetainer;
 import cafe.jeffrey.profile.heapdump.model.GCRootSummary;
+import cafe.jeffrey.profile.heapdump.model.LeakHintFinding;
 import cafe.jeffrey.profile.heapdump.model.HeapDumpConfig;
 import cafe.jeffrey.profile.heapdump.model.HeapSummary;
 import cafe.jeffrey.profile.heapdump.model.HeapThreadInfo;
@@ -264,6 +272,38 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
     public GCRootSummary getGCRootSummary() {
         return withSession(session -> GcRootAnalyzer.analyze(session.view()))
                 .orElse(GCRootSummary.EMPTY);
+    }
+
+    @Override
+    public List<GCRootRetainer> getTopRetainers(int limit, List<Integer> rootKinds) {
+        return withSession(session -> {
+            session.buildDominatorTreeIfNeeded();
+            return GcRootRetainersAnalyzer.analyze(session.view(), limit, rootKinds);
+        }).orElse(List.of());
+    }
+
+    @Override
+    public List<GCRootClassAggregate> getRootsByClass(int limit) {
+        return withSession(session -> {
+            session.buildDominatorTreeIfNeeded();
+            return GcRootByClassAnalyzer.analyze(session.view(), limit);
+        }).orElse(List.of());
+    }
+
+    @Override
+    public List<GCRootClassLoaderAggregate> getRootsByClassLoader(int limit) {
+        return withSession(session -> {
+            session.buildDominatorTreeIfNeeded();
+            return GcRootByClassLoaderAnalyzer.analyze(session.view(), limit);
+        }).orElse(List.of());
+    }
+
+    @Override
+    public List<LeakHintFinding> getLeakHints() {
+        return withSession(session -> {
+            session.buildDominatorTreeIfNeeded();
+            return LeakHintsAnalyzer.analyze(session.view());
+        }).orElse(List.of());
     }
 
     // --- Heap lifecycle / cleanup ----------------------------------------

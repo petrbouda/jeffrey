@@ -43,7 +43,6 @@
             <tr>
               <th>Class Name</th>
               <th class="text-end" style="width: 160px"></th>
-              <th class="text-end" style="width: 110px">Identity</th>
               <th class="text-end" style="width: 120px">Shallow Size</th>
               <th class="text-end" style="width: 120px">Retained Size</th>
               <th style="width: 180px">% of Parent</th>
@@ -56,7 +55,7 @@
             >
               <!-- Load More row -->
               <template v-if="item.isLoadMore">
-                <td colspan="6">
+                <td colspan="5">
                   <div
                     class="d-flex align-items-center gap-3"
                     :style="{ paddingLeft: item.depth * 1.5 + 'rem' }"
@@ -146,17 +145,6 @@
                     @show-g-c-root-path="openGCRootPathModal"
                     @show-instance-detail="openInstanceDetailPanel"
                   />
-                </td>
-                <!-- Object ID + GC-root badge -->
-                <td class="text-end">
-                  <div class="object-id-cell">
-                    <span class="object-id-text">{{
-                      FormattingService.formatObjectId(item.node.objectId)
-                    }}</span>
-                    <span v-if="item.node.gcRootKind" class="gc-root-badge">{{
-                      gcRootLabel(item.node.gcRootKind)
-                    }}</span>
-                  </div>
                 </td>
                 <!-- Shallow Size -->
                 <td class="text-end font-monospace">
@@ -280,21 +268,6 @@ const summaryMetrics = computed(() => {
     }
   ];
 });
-
-const gcRootLabel = (kind: string): string => {
-  const labels: Record<string, string> = {
-    'Java frame': 'Local Variable',
-    'thread object': 'Thread Object',
-    'JNI global': 'JNI Global',
-    'JNI local': 'JNI Local',
-    'sticky class': 'Sticky Class',
-    'native stack': 'Native Stack',
-    'thread block': 'Thread Block',
-    'monitor used': 'Monitor',
-    'VM internal': 'VM Internal'
-  };
-  return labels[kind] ?? kind;
-};
 
 const simpleClassName = (fqn: string): string => {
   const lastDot = fqn.lastIndexOf('.');
@@ -576,11 +549,6 @@ onMounted(() => {
   white-space: nowrap;
 }
 
-.object-id-text {
-  font-family: monospace;
-  color: var(--color-text-muted);
-}
-
 .object-params-text {
   font-family: monospace;
   color: var(--color-text-muted);
@@ -601,26 +569,6 @@ onMounted(() => {
   letter-spacing: 0.04em;
   color: var(--color-text-light);
   margin-right: 0.15rem;
-}
-
-.gc-root-badge {
-  display: inline-block;
-  font-size: 0.65rem;
-  font-weight: 600;
-  color: var(--color-accent-blue);
-  background-color: rgba(13, 110, 253, 0.1);
-  border: 1px solid rgba(13, 110, 253, 0.25);
-  border-radius: 3px;
-  padding: 0 4px;
-  line-height: 1.4;
-  white-space: nowrap;
-}
-
-.object-id-cell {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 0.25rem;
 }
 
 .btn-expand {

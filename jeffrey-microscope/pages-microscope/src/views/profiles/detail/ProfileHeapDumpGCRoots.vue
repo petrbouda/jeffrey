@@ -48,6 +48,71 @@
         </DualPanel>
       </div>
 
+      <!-- Top Retainers -->
+      <div v-show="activeTab === 'top-retainers'">
+        <GCRootsTopRetainers
+          v-if="client"
+          :client="client"
+          :total-heap-bytes="totalHeapBytes"
+          :active="activeTab === 'top-retainers'"
+          @show-referrers="openTreeModal($event, 'REFERRERS')"
+          @show-reachables="openTreeModal($event, 'REACHABLES')"
+          @show-g-c-root-path="openGCRootPathModal"
+          @show-instance-detail="openInstanceDetailPanel"
+        />
+      </div>
+
+      <!-- Roots by Class -->
+      <div v-show="activeTab === 'by-class'">
+        <GCRootsByClass v-if="client" :client="client" :active="activeTab === 'by-class'" />
+      </div>
+
+      <!-- Roots by ClassLoader -->
+      <div v-show="activeTab === 'by-classloader'">
+        <GCRootsByClassLoader
+          v-if="client"
+          :client="client"
+          :active="activeTab === 'by-classloader'"
+        />
+      </div>
+
+      <!-- Native / JNI -->
+      <div v-show="activeTab === 'native'">
+        <GCRootsNativeAudit
+          v-if="client"
+          :client="client"
+          :active="activeTab === 'native'"
+          @show-referrers="openTreeModal($event, 'REFERRERS')"
+          @show-reachables="openTreeModal($event, 'REACHABLES')"
+          @show-g-c-root-path="openGCRootPathModal"
+          @show-instance-detail="openInstanceDetailPanel"
+        />
+      </div>
+
+      <!-- Leak Hints -->
+      <div v-show="activeTab === 'leak-hints'">
+        <GCRootsLeakHints v-if="client" :client="client" :active="activeTab === 'leak-hints'" />
+      </div>
+
+      <!-- Instance Tree Modal -->
+      <InstanceTreeModal
+        :show="treeModalVisible"
+        :object-id="treeModalObjectId"
+        :initial-mode="treeModalMode"
+        :profile-id="profileId"
+        @update:show="treeModalVisible = $event"
+      />
+
+      <!-- Instance Details Side Panel -->
+      <InstanceDetailPanel
+        v-if="client"
+        :is-open="detailPanelOpen"
+        :object-id="detailPanelObjectId"
+        :client="client"
+        @close="detailPanelOpen = false"
+        @navigate="detailPanelObjectId = $event"
+      />
+
       <!-- About Tab -->
       <div v-show="activeTab === 'about'">
           <div class="about-container">
@@ -259,8 +324,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
-import { useRoute } from 'vue-router';
+import { computed, onMounted, ref, shallowRef } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 
 import PageHeader from '@/components/layout/PageHeader.vue';
 import LoadingState from '@/components/LoadingState.vue';
@@ -271,11 +336,19 @@ import TabBar from '@/components/TabBar.vue';
 import DualPanel from '@/components/DualPanel.vue';
 import DonutWithLegend from '@/components/DonutWithLegend.vue';
 import type { DonutChartData } from '@/components/DonutWithLegend.vue';
+import InstanceTreeModal from '@/components/heap/InstanceTreeModal.vue';
+import InstanceDetailPanel from '@/components/heap/InstanceDetailPanel.vue';
+import GCRootsTopRetainers from '@/components/gcroots/GCRootsTopRetainers.vue';
+import GCRootsByClass from '@/components/gcroots/GCRootsByClass.vue';
+import GCRootsByClassLoader from '@/components/gcroots/GCRootsByClassLoader.vue';
+import GCRootsNativeAudit from '@/components/gcroots/GCRootsNativeAudit.vue';
+import GCRootsLeakHints from '@/components/gcroots/GCRootsLeakHints.vue';
 import HeapDumpClient from '@/services/api/HeapDumpClient';
 import GCRootSummary from '@/services/api/model/GCRootSummary';
 import FormattingService from '@/services/FormattingService';
 
 const route = useRoute();
+const router = useRouter();
 
 const profileId = route.params.profileId as string;
 const loading = ref(true);
@@ -283,8 +356,33 @@ const error = ref<string | null>(null);
 const heapExists = ref(false);
 const cacheReady = ref(false);
 const gcRootData = ref<GCRootSummary | null>(null);
+const totalHeapBytes = ref(0);
 
-let client: HeapDumpClient;
+const client = shallowRef<HeapDumpClient | null>(null);
+
+// Tree modal state (referrers / reachables)
+const treeModalVisible = ref(false);
+const treeModalObjectId = ref(0);
+const treeModalMode = ref<'REFERRERS' | 'REACHABLES'>('REFERRERS');
+
+// Instance detail side-panel state
+const detailPanelOpen = ref(false);
+const detailPanelObjectId = ref<number | null>(null);
+
+const openTreeModal = (objectId: number, mode: 'REFERRERS' | 'REACHABLES') => {
+  treeModalObjectId.value = objectId;
+  treeModalMode.value = mode;
+  treeModalVisible.value = true;
+};
+
+const openGCRootPathModal = (objectId: number) => {
+  router.push(`/profiles/${profileId}/heap-dump/gc-root-path?objectId=${objectId}`);
+};
+
+const openInstanceDetailPanel = (objectId: number) => {
+  detailPanelObjectId.value = objectId;
+  detailPanelOpen.value = true;
+};
 
 const rootTypeColors = [
   '#4285F4',
@@ -301,6 +399,11 @@ const rootTypeColors = [
 
 const analysisTabs = [
   { id: 'overview', label: 'Overview', icon: 'pie-chart' },
+  { id: 'top-retainers', label: 'Top Retainers', icon: 'trophy' },
+  { id: 'by-class', label: 'By Class', icon: 'diagram-2' },
+  { id: 'by-classloader', label: 'By ClassLoader', icon: 'stack' },
+  { id: 'native', label: 'Native / JNI', icon: 'cpu' },
+  { id: 'leak-hints', label: 'Leak Hints', icon: 'search' },
   { id: 'about', label: 'How It Works', icon: 'info-circle' }
 ];
 const activeTab = ref(analysisTabs[0].id);
@@ -369,23 +472,30 @@ const loadData = async () => {
     loading.value = true;
     error.value = null;
 
-    client = new HeapDumpClient(profileId);
+    client.value = new HeapDumpClient(profileId);
 
-    heapExists.value = await client.exists();
+    heapExists.value = await client.value.exists();
 
     if (!heapExists.value) {
       loading.value = false;
       return;
     }
 
-    cacheReady.value = await client.isCacheReady();
+    cacheReady.value = await client.value.isCacheReady();
 
     if (!cacheReady.value) {
       loading.value = false;
       return;
     }
 
-    gcRootData.value = await client.getGCRoots();
+    // Pull GC summary + heap summary in parallel — totalBytes powers the
+    // "% of heap" column in the Top Retainers tab.
+    const [gcSummary, heapSummary] = await Promise.all([
+      client.value.getGCRoots(),
+      client.value.getSummary()
+    ]);
+    gcRootData.value = gcSummary;
+    totalHeapBytes.value = heapSummary.totalBytes;
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Failed to load GC roots';
     console.error('Error loading GC roots:', err);
