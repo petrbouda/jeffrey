@@ -179,7 +179,7 @@ const folderStructure = `$JEFFREY_HOME/
         <DocsFeatureCard
           icon="bi bi-list-ol"
           title="Class Histogram & Dominator Tree"
-          description="Object counts and memory sizes by class. Hierarchical view of objects by retained size to understand memory ownership."
+          description="Object counts and memory sizes by class, with per-class instance drill-down. Hierarchical retained-size view to understand memory ownership. Opaque arrays (byte[], char[]) show inferred referrer-class hint pills."
         />
         <DocsFeatureCard
           icon="bi bi-search"
@@ -199,12 +199,12 @@ const folderStructure = `$JEFFREY_HOME/
         <DocsFeatureCard
           icon="bi bi-signpost-split"
           title="GC Roots & Reference Chains"
-          description="Browse garbage collection roots. Trace reference chains from any object back to its GC root to understand retention."
+          description="Browse GC roots across five tabs — Top Retainers, By Class, By ClassLoader, Native / JNI, and Leak Hints. Trace reference chains from any object back to its root to understand retention."
         />
         <DocsFeatureCard
           icon="bi bi-layers"
           title="Class Loaders"
-          description="Analyze class loader hierarchy, loaded class counts, and detect class loader leaks in complex deployments."
+          description="Loader hierarchy with per-loader unloadability verdict — unloadable, rooted (effectively rooted via the parent chain), or pinned (the classic redeploy-leak signature). Suspicious-loader and duplicate-class tabs surface common metaspace leaks."
         />
         <DocsFeatureCard
           icon="bi bi-stars"

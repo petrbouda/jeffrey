@@ -88,6 +88,12 @@ onMounted(() => {
           color="neutral"
         />
         <DocsFeatureCard
+          icon="bi bi-layers"
+          title="Class Loader Unloadability"
+          description="Ask which loaders the GC cannot reclaim and why — unloadable, rooted, or pinned (transitive) verdicts with top blocking classes and leak-pattern hints (ThreadLocal, JDBC, JNI, ServiceLoader)."
+          color="orange"
+        />
+        <DocsFeatureCard
           icon="bi bi-fonts"
           title="String & Collection Analysis"
           description="Find string duplication opportunities and collections with poor fill ratios for optimization."
@@ -103,6 +109,7 @@ onMounted(() => {
         <li>"What keeps this object alive? Trace the path to GC root"</li>
         <li>"Are there duplicate strings that could be deduplicated?"</li>
         <li>"Which collections have poor fill ratios?"</li>
+        <li>"Which class loaders are pinned and can't be unloaded?"</li>
       </ul>
 
       <h2 id="how-the-ai-analyzes-heap-dumps">How the AI Analyzes Heap Dumps</h2>
