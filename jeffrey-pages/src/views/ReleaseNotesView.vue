@@ -29,39 +29,45 @@ interface GalleryImage {
 // ───────────────────────── 0.9.0 galleries ─────────────────────────
 
 const v090OverviewImages: GalleryImage[] = [
+  { src: '/images/release-notes/v0.9.0/recordings-heap-dumps.png', caption: 'Drop .hprof / .hprof.gz next to your JFR recordings' },
   { src: '/images/release-notes/v0.9.0/overview-summary.png', caption: 'Heap dump workspace — summary & navigation' },
-  { src: '/images/release-notes/v0.9.0/overview-histogram.png', caption: 'Class histogram — shallow & retained size' },
-  { src: '/images/release-notes/v0.9.0/overview-instance.png', caption: 'Instance details — fields, referrers, reachables' },
+  { src: '/images/release-notes/v0.9.0/overview-initialization.png', caption: 'Indexing breakdown — every analysis phase timed' },
+  { src: '/images/release-notes/v0.9.0/class-histogram.png', caption: 'Class histogram — shallow & retained size' },
+  { src: '/images/release-notes/v0.9.0/histogram-top-instances.png', caption: 'Expand any row to see its Top 20 retained instances' },
+  { src: '/images/release-notes/v0.9.0/instance-details.png', caption: 'Instance details — fields, value, shallow & retained size' },
 ]
 
 const v090DominatorImages: GalleryImage[] = [
-  { src: '/images/release-notes/v0.9.0/dominator-tree.png', caption: 'Dominator tree — who is really keeping memory alive' },
-  { src: '/images/release-notes/v0.9.0/dominator-path.png', caption: 'Path to GC root — trace the retention chain' },
+  { src: '/images/release-notes/v0.9.0/dominator-tree.png', caption: 'Dominator tree — biggest retainers ranked by retained size' },
+  { src: '/images/release-notes/v0.9.0/dominator-tree-expanded.png', caption: 'Expand any node to see what it really owns' },
+  { src: '/images/release-notes/v0.9.0/instance-tree-referrers.png', caption: 'Instance tree — every referrer of a chosen object' },
+  { src: '/images/release-notes/v0.9.0/path-to-gc-root.png', caption: 'Path to GC root — every chain keeping an object alive' },
+  { src: '/images/release-notes/v0.9.0/path-to-gc-root-chain.png', caption: 'Full retention chain through JMX listeners' },
 ]
 
 const v090GcRootsImages: GalleryImage[] = [
-  { src: '/images/release-notes/v0.9.0/gcroots-top-retainers.png', caption: 'Top Retainers — biggest memory holders' },
-  { src: '/images/release-notes/v0.9.0/gcroots-by-class.png', caption: 'GC roots By Class — aggregated by class name' },
-  { src: '/images/release-notes/v0.9.0/gcroots-by-classloader.png', caption: 'GC roots By Class Loader — spot classloader leaks' },
-  { src: '/images/release-notes/v0.9.0/gcroots-leak-hints.png', caption: 'Leak Hints — automated suspect detection' },
+  { src: '/images/release-notes/v0.9.0/gcroots-overview.png', caption: 'GC Roots Overview — root-type distribution at a glance' },
+  { src: '/images/release-notes/v0.9.0/gcroots-top-retainers.png', caption: 'Top Retainers — biggest memory holders, with root kind' },
+  { src: '/images/release-notes/v0.9.0/gcroots-by-class.png', caption: 'By Class — aggregate roots by class with mixed root kinds' },
+  { src: '/images/release-notes/v0.9.0/gcroots-native-jni.png', caption: 'Native / JNI — every native handle holding the heap' },
 ]
 
-const v090AiChatImages: GalleryImage[] = [
-  { src: '/images/release-notes/v0.9.0/ai-chat.png', caption: 'Heap Dump AI Chat — natural-language investigations' },
-  { src: '/images/release-notes/v0.9.0/ai-findings.png', caption: 'AI findings & recommendations' },
-  { src: '/images/release-notes/v0.9.0/ai-mcp-tools.png', caption: 'Driven by the heap-dump-ai-mcp tool server' },
-]
-
-const v090OqlImages: GalleryImage[] = [
-  { src: '/images/release-notes/v0.9.0/oql-assistant.png', caption: 'OQL Assistant — generate queries from a prompt' },
-  { src: '/images/release-notes/v0.9.0/oql-results.png', caption: 'Run, refine, and explore the result set' },
+const v090AiImages: GalleryImage[] = [
+  { src: '/images/release-notes/v0.9.0/ai-chat.png', caption: 'Heap Dump AI Chat — ask anything, with suggested prompts' },
+  { src: '/images/release-notes/v0.9.0/oql-editor.png', caption: 'OQL Query editor — write by hand, or click AI Assistant' },
+  { src: '/images/release-notes/v0.9.0/oql-assistant-chat.png', caption: 'OQL Assistant — describe the query in plain English' },
+  { src: '/images/release-notes/v0.9.0/oql-assistant-refine.png', caption: 'Refine iteratively — the assistant remembers context' },
+  { src: '/images/release-notes/v0.9.0/oql-results.png', caption: 'Results table with retained size and drill-down' },
 ]
 
 const v090MemoryDetectivesImages: GalleryImage[] = [
-  { src: '/images/release-notes/v0.9.0/strings-analysis.png', caption: 'String analysis — find duplicated literals' },
-  { src: '/images/release-notes/v0.9.0/collections-analysis.png', caption: 'Collection efficiency — under-filled containers' },
-  { src: '/images/release-notes/v0.9.0/classloader-analysis.png', caption: 'Class loader breakdown — per-loader memory cost' },
-  { src: '/images/release-notes/v0.9.0/threads-analysis.png', caption: 'Threads — stacks & retained size per thread' },
+  { src: '/images/release-notes/v0.9.0/strings-top.png', caption: 'String Analysis — top duplicated literals you should be interning' },
+  { src: '/images/release-notes/v0.9.0/strings-top-instances.png', caption: 'Top Instances — the heaviest single strings in the dump' },
+  { src: '/images/release-notes/v0.9.0/collections-overview.png', caption: 'Collection Analysis — fill distribution & wasted memory' },
+  { src: '/images/release-notes/v0.9.0/collections-by-type.png', caption: 'By Type — wasted memory ranked per collection class' },
+  { src: '/images/release-notes/v0.9.0/biggest-collections.png', caption: 'Biggest Collections — the heaviest containers in the heap' },
+  { src: '/images/release-notes/v0.9.0/classloaders.png', caption: 'Class Loader Analysis — per-loader memory cost & duplicates' },
+  { src: '/images/release-notes/v0.9.0/threads.png', caption: 'Threads — every live thread with state, frames & retained size' },
 ]
 
 // ───────────────────────── 0.8.0 galleries ─────────────────────────
@@ -162,8 +168,7 @@ const activeImages = ref<Record<string, number>>({
   heapOverview: 0,
   dominator: 0,
   gcRoots: 0,
-  aiChat: 0,
-  oqlAssistant: 0,
+  heapDumpAi: 0,
   memoryDetectives: 0,
   // 0.8.0
   twoProducts: 0,
@@ -520,33 +525,34 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
         </section>
       </div>
 
-      <!-- Feature 04: Heap Dump AI Chat -->
+      <!-- Feature 04: Heap Dump AI -->
       <section class="feature-section">
         <div class="feature-row reverse">
           <div class="feature-text">
             <div class="feature-number">Feature 04</div>
-            <h2>Heap Dump AI Chat</h2>
-            <p>A chat-style assistant that investigates a heap dump on your behalf. Ask <em>"What are the biggest objects consuming memory?"</em>, <em>"Are there any memory leak suspects?"</em>, or <em>"Analyse string duplication"</em> &mdash; the model walks the same analysers a human would, surfaces findings in plain English, and links every claim back to the underlying view so you can verify it.</p>
-            <p>Powered by the new <strong>heap-dump-ai-mcp</strong> tool server: histograms, dominator trees, GC roots, leak suspects and instance navigation are exposed as MCP tools the model can call directly. Works with <strong>Claude</strong> and <strong>ChatGPT</strong>.</p>
+            <h2>Heap Dump AI</h2>
+            <p>Two AI affordances inside the heap-dump workspace, both backed by the new <strong>heap-dump-ai-mcp</strong> tool server. Histograms, dominator trees, GC roots, leak suspects and instance navigation are exposed as MCP tools the model can call directly &mdash; works with <strong>Claude</strong> and <strong>ChatGPT</strong>.</p>
+            <p><strong>Chat-style investigation:</strong> ask <em>"What are the biggest objects consuming memory?"</em> or <em>"Are there any leak suspects?"</em> &mdash; the model walks the same analysers a human would, surfaces findings in plain English, and links every claim back to the underlying view so you can verify it.</p>
+            <p><strong>OQL Assistant:</strong> describe what you want &mdash; <em>"all <code>HashMap</code> instances with more than 10k entries owned by a thread"</em> &mdash; and the assistant generates the OQL, explains the query, and runs it. Hand-written OQL still works the same way; the assistant is a shortcut, not a replacement.</p>
             <div class="feature-highlights">
               <span class="feature-highlight"><i class="bi bi-robot"></i> Claude &amp; ChatGPT</span>
-              <span class="feature-highlight"><i class="bi bi-chat-dots"></i> Natural language</span>
+              <span class="feature-highlight"><i class="bi bi-chat-dots"></i> Natural-language chat</span>
+              <span class="feature-highlight"><i class="bi bi-code-slash"></i> Prompt &rarr; OQL</span>
               <span class="feature-highlight"><i class="bi bi-plug"></i> MCP tool server</span>
-              <span class="feature-highlight"><i class="bi bi-shield-check"></i> Verifiable findings</span>
             </div>
           </div>
           <div class="feature-gallery">
-            <div class="gallery-main" @click="openLightbox(v090AiChatImages, activeImages.aiChat)">
-              <img :src="v090AiChatImages[activeImages.aiChat].src" :alt="v090AiChatImages[activeImages.aiChat].caption">
-              <div class="gallery-caption">{{ v090AiChatImages[activeImages.aiChat].caption }}</div>
+            <div class="gallery-main" @click="openLightbox(v090AiImages, activeImages.heapDumpAi)">
+              <img :src="v090AiImages[activeImages.heapDumpAi].src" :alt="v090AiImages[activeImages.heapDumpAi].caption">
+              <div class="gallery-caption">{{ v090AiImages[activeImages.heapDumpAi].caption }}</div>
             </div>
             <div class="gallery-thumbs">
               <button
-                v-for="(img, i) in v090AiChatImages"
+                v-for="(img, i) in v090AiImages"
                 :key="i"
                 class="gallery-thumb"
-                :class="{ active: activeImages.aiChat === i }"
-                @click="selectImage('aiChat', i)"
+                :class="{ active: activeImages.heapDumpAi === i }"
+                @click="selectImage('heapDumpAi', i)"
               >
                 <img :src="img.src" :alt="img.caption">
               </button>
@@ -555,48 +561,13 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
         </div>
       </section>
 
-      <!-- Feature 05: OQL with AI Assistant -->
+      <!-- Feature 05: Memory Detectives -->
       <div class="feature-section-bg">
         <section class="feature-section">
           <div class="feature-row">
             <div class="feature-text">
               <div class="feature-number">Feature 05</div>
-              <h2>OQL with AI Assistant</h2>
-              <p>The <strong>Object Query Language</strong> editor is now AI-assisted. Describe what you want in English &mdash; <em>"all <code>HashMap</code> instances with more than 10k entries owned by a thread"</em> &mdash; and the assistant generates the OQL, explains the query, and runs it against the indexed dump. Inline syntax highlighting, result paging and one-click drill-down into Instance Details.</p>
-              <p>Hand-written OQL still works the same way; the assistant is a shortcut, not a replacement.</p>
-              <div class="feature-highlights">
-                <span class="feature-highlight"><i class="bi bi-code-slash"></i> OQL editor</span>
-                <span class="feature-highlight"><i class="bi bi-magic"></i> Prompt &rarr; query</span>
-                <span class="feature-highlight"><i class="bi bi-table"></i> Drill-down results</span>
-              </div>
-            </div>
-            <div class="feature-gallery">
-              <div class="gallery-main" @click="openLightbox(v090OqlImages, activeImages.oqlAssistant)">
-                <img :src="v090OqlImages[activeImages.oqlAssistant].src" :alt="v090OqlImages[activeImages.oqlAssistant].caption">
-                <div class="gallery-caption">{{ v090OqlImages[activeImages.oqlAssistant].caption }}</div>
-              </div>
-              <div class="gallery-thumbs">
-                <button
-                  v-for="(img, i) in v090OqlImages"
-                  :key="i"
-                  class="gallery-thumb"
-                  :class="{ active: activeImages.oqlAssistant === i }"
-                  @click="selectImage('oqlAssistant', i)"
-                >
-                  <img :src="img.src" :alt="img.caption">
-                </button>
-              </div>
-            </div>
-          </div>
-        </section>
-      </div>
-
-      <!-- Feature 06: Memory Detectives -->
-      <section class="feature-section">
-        <div class="feature-row reverse">
-          <div class="feature-text">
-            <div class="feature-number">Feature 06</div>
-            <h2>Memory Detectives</h2>
+              <h2>Memory Detectives</h2>
             <p>A handful of focused analysers that pay for themselves the first time you run them. <strong>String Analysis</strong> finds duplicated literals you should be interning; <strong>Collection Analysis</strong> reports under-filled <code>ArrayList</code>s, <code>HashMap</code>s and friends where wasted capacity adds up; <strong>Class Loader Analysis</strong> breaks down the heap per loader to expose hot loaders and leftover plugins; <strong>Threads</strong> lists every live thread with its stack and (optionally) its retained size.</p>
               <p>Each report is one click away from the rest of the workspace &mdash; from a top duplicate <code>String</code> straight to its referrers, from a leaky thread straight to its stack frames.</p>
             <div class="feature-highlights">
@@ -624,37 +595,7 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
             </div>
           </div>
         </div>
-      </section>
-
-      <!-- 0.9.0 Improvements -->
-      <div class="improvements-section">
-        <div class="improvements-inner">
-          <div class="improvements-header">
-            <div class="improvements-header-line"></div>
-            <h2><i class="bi bi-wrench"></i> Improvements</h2>
-            <div class="improvements-header-line"></div>
-          </div>
-          <div class="improvements-grid">
-            <div class="improvement-tile improvement-tile-text">
-              <div class="imp-tile-body">
-                <h3>Heap Dump MCP Tool Server</h3>
-                <p>The new <code>heap-dump-ai-mcp</code> module exposes Jeffrey's heap-dump analysers as MCP tools, so any MCP-aware AI client (Claude Desktop, Claude Code, ChatGPT &hellip;) can drive a heap-dump investigation without going through the Jeffrey UI.</p>
-              </div>
-            </div>
-            <div class="improvement-tile improvement-tile-text">
-              <div class="imp-tile-body">
-                <h3>Cached Indexing &amp; Faster Re-opens</h3>
-                <p>Heap-dump indexes are persisted per profile. Re-opening a dump you've already analysed skips the full parse and goes straight to the workspace &mdash; useful when iterating on a leak with a teammate.</p>
-              </div>
-            </div>
-            <div class="improvement-tile improvement-tile-text">
-              <div class="imp-tile-body">
-                <h3>Heap Timeseries</h3>
-                <p>When the source JFR recording carries heap-size events, the new <strong>Heap Timeseries</strong> view plots the trend alongside the dump so you can see how the heap got to where it is.</p>
-              </div>
-            </div>
-          </div>
-        </div>
+        </section>
       </div>
     </template>
 
