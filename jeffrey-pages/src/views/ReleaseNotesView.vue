@@ -19,12 +19,56 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 
-const selectedVersion = ref('0.8.0')
+const selectedVersion = ref('0.9.0')
 
 interface GalleryImage {
   src: string
   caption: string
 }
+
+// ───────────────────────── 0.9.0 galleries ─────────────────────────
+
+const v090OverviewImages: GalleryImage[] = [
+  { src: '/images/release-notes/v0.9.0/recordings-heap-dumps.png', caption: 'Drop .hprof / .hprof.gz next to your JFR recordings' },
+  { src: '/images/release-notes/v0.9.0/overview-summary.png', caption: 'Heap dump workspace — summary & navigation' },
+  { src: '/images/release-notes/v0.9.0/overview-initialization.png', caption: 'Indexing breakdown — every analysis phase timed' },
+  { src: '/images/release-notes/v0.9.0/class-histogram.png', caption: 'Class histogram — shallow & retained size' },
+  { src: '/images/release-notes/v0.9.0/histogram-top-instances.png', caption: 'Expand any row to see its Top 20 retained instances' },
+  { src: '/images/release-notes/v0.9.0/instance-details.png', caption: 'Instance details — fields, value, shallow & retained size' },
+]
+
+const v090DominatorImages: GalleryImage[] = [
+  { src: '/images/release-notes/v0.9.0/dominator-tree.png', caption: 'Dominator tree — biggest retainers ranked by retained size' },
+  { src: '/images/release-notes/v0.9.0/dominator-tree-expanded.png', caption: 'Expand any node to see what it really owns' },
+  { src: '/images/release-notes/v0.9.0/instance-tree-referrers.png', caption: 'Instance tree — every referrer of a chosen object' },
+  { src: '/images/release-notes/v0.9.0/path-to-gc-root.png', caption: 'Path to GC root — every chain keeping an object alive' },
+  { src: '/images/release-notes/v0.9.0/path-to-gc-root-chain.png', caption: 'Full retention chain through JMX listeners' },
+]
+
+const v090GcRootsImages: GalleryImage[] = [
+  { src: '/images/release-notes/v0.9.0/gcroots-overview.png', caption: 'GC Roots Overview — root-type distribution at a glance' },
+  { src: '/images/release-notes/v0.9.0/gcroots-top-retainers.png', caption: 'Top Retainers — biggest memory holders, with root kind' },
+  { src: '/images/release-notes/v0.9.0/gcroots-by-class.png', caption: 'By Class — aggregate roots by class with mixed root kinds' },
+  { src: '/images/release-notes/v0.9.0/gcroots-native-jni.png', caption: 'Native / JNI — every native handle holding the heap' },
+]
+
+const v090AiImages: GalleryImage[] = [
+  { src: '/images/release-notes/v0.9.0/ai-chat.png', caption: 'Heap Dump AI Chat — ask anything, with suggested prompts' },
+  { src: '/images/release-notes/v0.9.0/oql-editor.png', caption: 'OQL Query editor — write by hand, or click AI Assistant' },
+  { src: '/images/release-notes/v0.9.0/oql-assistant-chat.png', caption: 'OQL Assistant — describe the query in plain English' },
+  { src: '/images/release-notes/v0.9.0/oql-assistant-refine.png', caption: 'Refine iteratively — the assistant remembers context' },
+  { src: '/images/release-notes/v0.9.0/oql-results.png', caption: 'Results table with retained size and drill-down' },
+]
+
+const v090MemoryDetectivesImages: GalleryImage[] = [
+  { src: '/images/release-notes/v0.9.0/strings-top.png', caption: 'String Analysis — top duplicated literals you should be interning' },
+  { src: '/images/release-notes/v0.9.0/strings-top-instances.png', caption: 'Top Instances — the heaviest single strings in the dump' },
+  { src: '/images/release-notes/v0.9.0/collections-overview.png', caption: 'Collection Analysis — fill distribution & wasted memory' },
+  { src: '/images/release-notes/v0.9.0/collections-by-type.png', caption: 'By Type — wasted memory ranked per collection class' },
+  { src: '/images/release-notes/v0.9.0/biggest-collections.png', caption: 'Biggest Collections — the heaviest containers in the heap' },
+  { src: '/images/release-notes/v0.9.0/classloaders.png', caption: 'Class Loader Analysis — per-loader memory cost & duplicates' },
+  { src: '/images/release-notes/v0.9.0/threads.png', caption: 'Threads — every live thread with state, frames & retained size' },
+]
 
 // ───────────────────────── 0.8.0 galleries ─────────────────────────
 
@@ -120,6 +164,12 @@ const profilerSettingsImages: GalleryImage[] = [
 ]
 
 const activeImages = ref<Record<string, number>>({
+  // 0.9.0
+  heapOverview: 0,
+  dominator: 0,
+  gcRoots: 0,
+  heapDumpAi: 0,
+  memoryDetectives: 0,
   // 0.8.0
   twoProducts: 0,
   remoteWorkspace: 0,
@@ -185,8 +235,31 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
 
 <template>
   <div class="release-notes-page">
+    <!-- ─────────────────────── 0.9.0 Hero ─────────────────────── -->
+    <section v-if="selectedVersion === '0.9.0'" class="hero-banner hero-banner-090">
+      <div class="hero-inner">
+        <div class="hero-version-card">
+          <div class="hero-version-badge">v0.9.0</div>
+          <div class="hero-version-meta">
+            <span class="hero-version-dot heap"></span>
+            Heap Dumps
+          </div>
+          <div class="hero-version-meta">
+            <span class="hero-version-dot ai"></span>
+            AI Assistant
+          </div>
+        </div>
+        <div class="hero-text">
+          <div class="hero-eyebrow">Release Notes</div>
+          <h1 class="hero-title"><span>Heap Dumps</span> Release</h1>
+          <p class="hero-version">Version 0.9.0 &middot; May 2026</p>
+          <p class="hero-summary">A complete heap-dump analysis suite for Jeffrey Microscope &mdash; dominator trees, GC-root path tracing, leak hints, string &amp; collection analysis, an OQL assistant, and a natural-language AI chat backed by the new <code>heap-dump-ai-mcp</code> tool server.</p>
+        </div>
+      </div>
+    </section>
+
     <!-- ─────────────────────── 0.8.0 Hero ─────────────────────── -->
-    <section v-if="selectedVersion === '0.8.0'" class="hero-banner hero-banner-080">
+    <section v-else-if="selectedVersion === '0.8.0'" class="hero-banner hero-banner-080">
       <div class="hero-inner">
         <div class="hero-version-card">
           <div class="hero-version-badge">v0.8.0</div>
@@ -229,6 +302,7 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
         <div class="version-bar-left">
           <h3>Release Notes</h3>
           <select v-model="selectedVersion" class="version-select">
+            <option value="0.9.0">0.9.0 &mdash; Heap Dumps Release</option>
             <option value="0.8.0">0.8.0 &mdash; Two Products Release</option>
             <option value="0.7.0">0.7.0 &mdash; Easter Release</option>
           </select>
@@ -236,8 +310,43 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
       </div>
     </div>
 
+    <!-- Get Started — 0.9.0 -->
+    <section v-if="selectedVersion === '0.9.0'" class="get-started">
+      <div class="get-started-inner">
+        <div class="gs-title-row">
+          <h2><i class="bi bi-rocket-takeoff"></i>Get Started in Seconds</h2>
+          <a href="https://www.jeffrey-analyst.cafe/launch-it" target="_blank" class="gs-more-link">More options <i class="bi bi-arrow-right"></i></a>
+        </div>
+        <div class="gs-commands">
+          <div class="gs-cmd-card">
+            <div class="gs-cmd-top">
+              <div class="gs-cmd-icon java"><i class="bi bi-cup-hot"></i></div>
+              <div>
+                <div class="gs-cmd-label">Plain Java</div>
+                <div class="gs-cmd-sub"><a href="https://github.com/petrbouda/jeffrey/releases/download/v0.9.0/microscope.jar">Download microscope.jar</a> &middot; Java 25+</div>
+              </div>
+            </div>
+            <div class="gs-code"><span class="dollar">$</span> <span class="text">java -jar microscope.jar</span></div>
+            <p class="gs-open">Then open <a href="http://localhost:8080" target="_blank">localhost:8080</a></p>
+          </div>
+          <div class="gs-cmd-card">
+            <div class="gs-cmd-top">
+              <div class="gs-cmd-icon docker"><i class="bi bi-box-seam"></i></div>
+              <div>
+                <div class="gs-cmd-label">Docker with Examples</div>
+                <div class="gs-cmd-sub">Pre-loaded sample heap dumps &amp; recordings</div>
+              </div>
+              <span class="gs-cmd-badge">Recommended</span>
+            </div>
+            <div class="gs-code"><span class="dollar">$</span> <span class="text">docker run -it --network host petrbouda/microscope-examples:0.9.0</span></div>
+            <p class="gs-open">Then open <a href="http://localhost:8080" target="_blank">localhost:8080</a></p>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- Get Started — 0.8.0 -->
-    <section v-if="selectedVersion === '0.8.0'" class="get-started">
+    <section v-else-if="selectedVersion === '0.8.0'" class="get-started">
       <div class="get-started-inner">
         <div class="gs-title-row">
           <h2><i class="bi bi-rocket-takeoff"></i>Get Started in Seconds</h2>
@@ -306,8 +415,192 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
       </div>
     </section>
 
+    <!-- ──────────────────────── 0.9.0 features ──────────────────────── -->
+    <template v-if="selectedVersion === '0.9.0'">
+      <!-- Feature 01: Heap Dump Workspace -->
+      <div class="feature-section-bg">
+        <section class="feature-section">
+          <div class="feature-row">
+            <div class="feature-text">
+              <div class="feature-number">Feature 01</div>
+              <h2>Heap Dump Workspace</h2>
+              <p>Upload an <code>.hprof</code> file (or load one captured by Jeffrey Server) and get a guided workspace built around the dump. The summary surfaces total heap size, object counts and GC-root mix at a glance, the class histogram is sortable by shallow size, retained size and instance count, and every row in every view drills down into the same <strong>Instance Details</strong> panel &mdash; fields, referrers, reachables, and a one-click path back to a GC root.</p>
+              <p>Indexing is cached: re-opening a previously analysed dump is instant, no re-parse, no re-walk.</p>
+              <div class="feature-highlights">
+                <span class="feature-highlight"><i class="bi bi-upload"></i> .hprof &amp; .hprof.gz</span>
+                <span class="feature-highlight"><i class="bi bi-bar-chart"></i> Class histogram</span>
+                <span class="feature-highlight"><i class="bi bi-box"></i> Instance details</span>
+                <span class="feature-highlight"><i class="bi bi-lightning-charge"></i> Cached re-opens</span>
+              </div>
+            </div>
+            <div class="feature-gallery">
+              <div class="gallery-main" @click="openLightbox(v090OverviewImages, activeImages.heapOverview)">
+                <img :src="v090OverviewImages[activeImages.heapOverview].src" :alt="v090OverviewImages[activeImages.heapOverview].caption">
+                <div class="gallery-caption">{{ v090OverviewImages[activeImages.heapOverview].caption }}</div>
+              </div>
+              <div class="gallery-thumbs">
+                <button
+                  v-for="(img, i) in v090OverviewImages"
+                  :key="i"
+                  class="gallery-thumb"
+                  :class="{ active: activeImages.heapOverview === i }"
+                  @click="selectImage('heapOverview', i)"
+                >
+                  <img :src="img.src" :alt="img.caption">
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Feature 02: Dominator Tree & Retention -->
+      <section class="feature-section">
+        <div class="feature-row reverse">
+          <div class="feature-text">
+            <div class="feature-number">Feature 02</div>
+            <h2>Dominator Tree &amp; Retention</h2>
+            <p>The class histogram answers <em>what is in memory</em>; the <strong>Dominator Tree</strong> answers the harder question &mdash; <em>who is keeping it alive</em>. Browse root-level dominators by retained size, expand any node to see what it owns, and follow the chain until you find the object that, if dropped, would free everything underneath.</p>
+              <p>Selecting any instance opens <strong>Path to GC Root</strong>: the full reference chain back to the root that explains why the object survives, with optional filtering of weak/soft/phantom references so the path tells the story you actually care about.</p>
+            <div class="feature-highlights">
+              <span class="feature-highlight"><i class="bi bi-diagram-3"></i> Retained size</span>
+              <span class="feature-highlight"><i class="bi bi-signpost-split"></i> Path to GC root</span>
+              <span class="feature-highlight"><i class="bi bi-funnel"></i> Weak-ref filter</span>
+            </div>
+          </div>
+          <div class="feature-gallery">
+            <div class="gallery-main" @click="openLightbox(v090DominatorImages, activeImages.dominator)">
+              <img :src="v090DominatorImages[activeImages.dominator].src" :alt="v090DominatorImages[activeImages.dominator].caption">
+              <div class="gallery-caption">{{ v090DominatorImages[activeImages.dominator].caption }}</div>
+            </div>
+            <div class="gallery-thumbs">
+              <button
+                v-for="(img, i) in v090DominatorImages"
+                :key="i"
+                class="gallery-thumb"
+                :class="{ active: activeImages.dominator === i }"
+                @click="selectImage('dominator', i)"
+              >
+                <img :src="img.src" :alt="img.caption">
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Feature 03: GC Roots Deep Dive -->
+      <div class="feature-section-bg">
+        <section class="feature-section">
+          <div class="feature-row">
+            <div class="feature-text">
+              <div class="feature-number">Feature 03</div>
+              <h2>GC Roots Deep Dive</h2>
+              <p>Four complementary lenses on the same root set. <strong>Top Retainers</strong> ranks objects by what they hold; <strong>By Class</strong> aggregates roots per class so a leaky cache shows up as a single line; <strong>By Class Loader</strong> isolates classloader leaks in app-server and plugin scenarios; <strong>Leak Hints</strong> runs heuristic detection to surface suspicious retention patterns automatically.</p>
+              <p>Root kinds (Java Frame, Thread Object, JNI Local, System Class, &hellip;) can be filtered per view, so you can ask the dump exactly the question you need answered.</p>
+              <div class="feature-highlights">
+                <span class="feature-highlight"><i class="bi bi-trophy"></i> Top Retainers</span>
+                <span class="feature-highlight"><i class="bi bi-collection"></i> By Class</span>
+                <span class="feature-highlight"><i class="bi bi-boxes"></i> By Class Loader</span>
+                <span class="feature-highlight"><i class="bi bi-bug"></i> Leak Hints</span>
+              </div>
+            </div>
+            <div class="feature-gallery">
+              <div class="gallery-main" @click="openLightbox(v090GcRootsImages, activeImages.gcRoots)">
+                <img :src="v090GcRootsImages[activeImages.gcRoots].src" :alt="v090GcRootsImages[activeImages.gcRoots].caption">
+                <div class="gallery-caption">{{ v090GcRootsImages[activeImages.gcRoots].caption }}</div>
+              </div>
+              <div class="gallery-thumbs">
+                <button
+                  v-for="(img, i) in v090GcRootsImages"
+                  :key="i"
+                  class="gallery-thumb"
+                  :class="{ active: activeImages.gcRoots === i }"
+                  @click="selectImage('gcRoots', i)"
+                >
+                  <img :src="img.src" :alt="img.caption">
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Feature 04: Heap Dump AI -->
+      <section class="feature-section">
+        <div class="feature-row reverse">
+          <div class="feature-text">
+            <div class="feature-number">Feature 04</div>
+            <h2>Heap Dump AI</h2>
+            <p>Two AI affordances inside the heap-dump workspace, both backed by the new <strong>heap-dump-ai-mcp</strong> tool server. Histograms, dominator trees, GC roots, leak suspects and instance navigation are exposed as MCP tools the model can call directly &mdash; works with <strong>Claude</strong> and <strong>ChatGPT</strong>.</p>
+            <p><strong>Chat-style investigation:</strong> ask <em>"What are the biggest objects consuming memory?"</em> or <em>"Are there any leak suspects?"</em> &mdash; the model walks the same analysers a human would, surfaces findings in plain English, and links every claim back to the underlying view so you can verify it.</p>
+            <p><strong>OQL Assistant:</strong> describe what you want &mdash; <em>"all <code>HashMap</code> instances with more than 10k entries owned by a thread"</em> &mdash; and the assistant generates the OQL, explains the query, and runs it. Hand-written OQL still works the same way; the assistant is a shortcut, not a replacement.</p>
+            <div class="feature-highlights">
+              <span class="feature-highlight"><i class="bi bi-robot"></i> Claude &amp; ChatGPT</span>
+              <span class="feature-highlight"><i class="bi bi-chat-dots"></i> Natural-language chat</span>
+              <span class="feature-highlight"><i class="bi bi-code-slash"></i> Prompt &rarr; OQL</span>
+              <span class="feature-highlight"><i class="bi bi-plug"></i> MCP tool server</span>
+            </div>
+          </div>
+          <div class="feature-gallery">
+            <div class="gallery-main" @click="openLightbox(v090AiImages, activeImages.heapDumpAi)">
+              <img :src="v090AiImages[activeImages.heapDumpAi].src" :alt="v090AiImages[activeImages.heapDumpAi].caption">
+              <div class="gallery-caption">{{ v090AiImages[activeImages.heapDumpAi].caption }}</div>
+            </div>
+            <div class="gallery-thumbs">
+              <button
+                v-for="(img, i) in v090AiImages"
+                :key="i"
+                class="gallery-thumb"
+                :class="{ active: activeImages.heapDumpAi === i }"
+                @click="selectImage('heapDumpAi', i)"
+              >
+                <img :src="img.src" :alt="img.caption">
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Feature 05: Memory Detectives -->
+      <div class="feature-section-bg">
+        <section class="feature-section">
+          <div class="feature-row">
+            <div class="feature-text">
+              <div class="feature-number">Feature 05</div>
+              <h2>Memory Detectives</h2>
+            <p>A handful of focused analysers that pay for themselves the first time you run them. <strong>String Analysis</strong> finds duplicated literals you should be interning; <strong>Collection Analysis</strong> reports under-filled <code>ArrayList</code>s, <code>HashMap</code>s and friends where wasted capacity adds up; <strong>Class Loader Analysis</strong> breaks down the heap per loader to expose hot loaders and leftover plugins; <strong>Threads</strong> lists every live thread with its stack and (optionally) its retained size.</p>
+              <p>Each report is one click away from the rest of the workspace &mdash; from a top duplicate <code>String</code> straight to its referrers, from a leaky thread straight to its stack frames.</p>
+            <div class="feature-highlights">
+              <span class="feature-highlight"><i class="bi bi-type"></i> String dedup</span>
+              <span class="feature-highlight"><i class="bi bi-list-ol"></i> Collection efficiency</span>
+              <span class="feature-highlight"><i class="bi bi-boxes"></i> Class loaders</span>
+              <span class="feature-highlight"><i class="bi bi-cpu"></i> Threads</span>
+            </div>
+          </div>
+          <div class="feature-gallery">
+            <div class="gallery-main" @click="openLightbox(v090MemoryDetectivesImages, activeImages.memoryDetectives)">
+              <img :src="v090MemoryDetectivesImages[activeImages.memoryDetectives].src" :alt="v090MemoryDetectivesImages[activeImages.memoryDetectives].caption">
+              <div class="gallery-caption">{{ v090MemoryDetectivesImages[activeImages.memoryDetectives].caption }}</div>
+            </div>
+            <div class="gallery-thumbs">
+              <button
+                v-for="(img, i) in v090MemoryDetectivesImages"
+                :key="i"
+                class="gallery-thumb"
+                :class="{ active: activeImages.memoryDetectives === i }"
+                @click="selectImage('memoryDetectives', i)"
+              >
+                <img :src="img.src" :alt="img.caption">
+              </button>
+            </div>
+          </div>
+        </div>
+        </section>
+      </div>
+    </template>
+
     <!-- ──────────────────────── 0.8.0 features ──────────────────────── -->
-    <template v-if="selectedVersion === '0.8.0'">
+    <template v-else-if="selectedVersion === '0.8.0'">
       <!-- Feature 01: Two Products -->
       <div class="feature-section-bg">
         <section class="feature-section">
@@ -829,6 +1122,16 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
     radial-gradient(circle at 75% 40%, rgba(168, 85, 247, 0.16) 0%, transparent 55%);
 }
 
+.hero-banner-090 {
+  background: linear-gradient(135deg, #1a0b26 0%, #2d1248 50%, #3d0f3d 100%);
+}
+
+.hero-banner-090::before {
+  background:
+    radial-gradient(circle at 25% 50%, rgba(236, 72, 153, 0.18) 0%, transparent 55%),
+    radial-gradient(circle at 75% 40%, rgba(168, 85, 247, 0.16) 0%, transparent 55%);
+}
+
 .hero-inner {
   max-width: 900px;
   margin: 0 auto;
@@ -906,6 +1209,16 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
 }
 
 .hero-version-dot.server {
+  background: #a855f7;
+  box-shadow: 0 0 8px #a855f7;
+}
+
+.hero-version-dot.heap {
+  background: #ec4899;
+  box-shadow: 0 0 8px #ec4899;
+}
+
+.hero-version-dot.ai {
   background: #a855f7;
   box-shadow: 0 0 8px #a855f7;
 }
