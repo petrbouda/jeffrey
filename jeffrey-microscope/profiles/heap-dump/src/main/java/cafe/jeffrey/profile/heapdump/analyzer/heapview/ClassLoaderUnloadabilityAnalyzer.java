@@ -25,7 +25,9 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import cafe.jeffrey.profile.heapdump.model.BlockingClass;
+import cafe.jeffrey.profile.heapdump.model.ClassLoaderHierarchyEdge;
 import cafe.jeffrey.profile.heapdump.model.ClassLoaderUnloadability;
 import cafe.jeffrey.profile.heapdump.model.UnloadabilityVerdict;
 import cafe.jeffrey.profile.heapdump.parser.HeapView;
@@ -36,17 +38,21 @@ import cafe.jeffrey.profile.heapdump.parser.HeapView;
  * combines two facts: whether any instance of any class the loader defined
  * is still allocated, and whether the loader instance itself is a GC root.
  *
+ * <p>"Rooted" here means <em>effectively</em> rooted, not just "directly listed
+ * in the HPROF root table". {@link ClassLoaderRootednessAnalyzer} promotes
+ * every ancestor of a directly-rooted loader to also rooted, so JDK parent
+ * loaders (Bootstrap, Platform) — kept alive only because the leaf
+ * {@code AppClassLoader} holds them via {@code parent} — receive
+ * {@link UnloadabilityVerdict#PINNED_ROOTED} instead of being mislabeled as
+ * the leak signature.
+ *
  * <p>Implementation runs two whole-heap queries (one rollup of instances per
  * loader, one window-ranked top-5 of blocking classes per loader) plus one
- * {@link HeapView#isGcRoot} probe per loader id. The bootstrap loader is
- * always reported as {@link UnloadabilityVerdict#PINNED_ROOTED} — it has no
- * loader instance, so the {@code isGcRoot} check is skipped.
+ * {@link HeapView#isGcRoot} probe per loader id.
  */
 public final class ClassLoaderUnloadabilityAnalyzer {
 
     private static final int TOP_BLOCKING_CLASSES_PER_LOADER = 5;
-
-    private static final long BOOTSTRAP_LOADER_ID = 0L;
 
     private static final String INSTANCE_COUNT_SQL = """
             SELECT
@@ -87,8 +93,11 @@ public final class ClassLoaderUnloadabilityAnalyzer {
     }
 
     public static Map<Long, ClassLoaderUnloadability> analyze(
-            HeapView view, Collection<Long> loaderIds) throws SQLException {
+            HeapView view,
+            Collection<Long> loaderIds,
+            Collection<ClassLoaderHierarchyEdge> edges) throws SQLException {
 
+        Set<Long> effectivelyRooted = ClassLoaderRootednessAnalyzer.analyze(view, loaderIds, edges);
         Map<Long, Long> liveInstancesByLoader = readInstanceCounts(view);
         Map<Long, List<BlockingClass>> blockingByLoader = readTopBlockingClasses(view);
 
@@ -98,7 +107,7 @@ public final class ClassLoaderUnloadabilityAnalyzer {
                 continue;
             }
             long live = liveInstancesByLoader.getOrDefault(loaderId, 0L);
-            boolean rooted = loaderId == BOOTSTRAP_LOADER_ID || view.isGcRoot(loaderId);
+            boolean rooted = effectivelyRooted.contains(loaderId);
             UnloadabilityVerdict verdict = computeVerdict(live, rooted);
             List<BlockingClass> top = blockingByLoader.getOrDefault(loaderId, List.of());
             result.put(loaderId, new ClassLoaderUnloadability(verdict, live, rooted, top));

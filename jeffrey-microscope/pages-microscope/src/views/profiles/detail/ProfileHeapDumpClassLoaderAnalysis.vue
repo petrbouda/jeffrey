@@ -433,9 +433,11 @@
                 <Badge value="rooted" variant="secondary" size="xxs" class="me-1" />
               </h6>
               <p>
-                The loader instance is itself referenced by a GC root — typically the case for
-                Bootstrap, Platform and System loaders, or for any application loader still held by
-                a running thread. Its lifetime matches the JVM's.
+                The loader is <em>effectively</em> rooted — either directly listed in the HPROF
+                GC-root table, or reachable from a rooted loader by walking up its
+                <code>parent</code> chain. Bootstrap, Platform and System loaders fall here, and so
+                does any application loader held by a running thread. Its lifetime matches the
+                JVM's.
               </p>
             </div>
           </div>
@@ -449,25 +451,10 @@
                 <Badge value="pinned" variant="warning" size="xxs" class="me-1" />
               </h6>
               <p>
-                The loader is not a GC root, yet instances of its classes are still reachable on
-                the heap. This is the canonical "classloader leak" signature — something else on
-                the heap is keeping classes from the old loader alive.
-              </p>
-            </div>
-          </div>
-
-          <div class="feature-card">
-            <div class="feature-icon icon-info">
-              <i class="bi bi-info-circle"></i>
-            </div>
-            <div class="feature-content">
-              <h6>Heuristic caveat</h6>
-              <p>
-                The verdict only inspects whether <em>this</em> loader instance is in the GC-root
-                table. Parent loaders that are kept alive only through their rooted child (a
-                <code>parent</code> back-pointer) can show up as <code>pinned</code> even when
-                they're behaving normally. Treat a single <code>pinned</code> badge as a hint, not
-                a proof of leak.
+                The loader is not rooted (neither directly nor via any descendant in the
+                <code>parent</code> chain), yet instances of its classes are still reachable on the
+                heap. This is the canonical "classloader leak" signature — something on the heap
+                outside the normal parent chain is keeping its classes alive.
               </p>
             </div>
           </div>

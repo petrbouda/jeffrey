@@ -65,7 +65,7 @@ export interface BlockingClass {
 export interface ClassLoaderUnloadability {
   verdict: UnloadabilityVerdict;
   liveInstanceCount: number;
-  directlyRooted: boolean;
+  rooted: boolean;
   topBlockingClasses: BlockingClass[];
 }
 

@@ -20,12 +20,15 @@ package cafe.jeffrey.profile.heapdump.analyzer.heapview;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import cafe.jeffrey.profile.heapdump.model.BlockingClass;
 import cafe.jeffrey.profile.heapdump.model.ClassEntry;
 import cafe.jeffrey.profile.heapdump.model.ClassLoaderDetail;
+import cafe.jeffrey.profile.heapdump.model.ClassLoaderHierarchyEdge;
 import cafe.jeffrey.profile.heapdump.model.ClassLoaderUnloadability;
 import cafe.jeffrey.profile.heapdump.model.LoaderType;
 import cafe.jeffrey.profile.heapdump.model.UnloadabilityVerdict;
@@ -57,6 +60,9 @@ public final class ClassLoaderDetailService {
     private static final int TOP_BLOCKING_CLASSES_PER_LOADER = 5;
 
     private static final String PARENT_FIELD_NAME = "parent";
+
+    private static final String ALL_LOADER_IDS_SQL =
+            "SELECT DISTINCT COALESCE(classloader_id, 0) FROM class";
 
     private static final String LOADER_CLASS_NAME_SQL =
             "SELECT c.name FROM instance i JOIN class c ON i.class_id = c.class_id "
@@ -128,7 +134,7 @@ public final class ClassLoaderDetailService {
         int classCount = (int) lookupCount(view, LOADER_CLASS_COUNT_SQL, loaderId);
         long retainedSize = loaderId == BOOTSTRAP_LOADER_ID ? 0L : lookupRetainedSize(view, loaderId);
 
-        boolean rooted = loaderId == BOOTSTRAP_LOADER_ID || view.isGcRoot(loaderId);
+        boolean rooted = isEffectivelyRooted(view, loaderId);
         List<BlockingClass> topBlocking = readTopBlockingClasses(view, loaderId);
         UnloadabilityVerdict verdict;
         if (rooted) {
@@ -158,6 +164,31 @@ public final class ClassLoaderDetailService {
 
     private static boolean loaderExists(HeapView view, long loaderId) throws SQLException {
         return view.findInstanceById(loaderId).isPresent();
+    }
+
+    /**
+     * Computes the effective rooted-ness verdict for a single loader, matching
+     * the smarter heuristic used by the cached {@link ClassLoaderUnloadabilityAnalyzer}:
+     * a loader counts as rooted if it OR any of its descendants is a direct GC
+     * root. Rebuilds the full hierarchy on each call — cheap because loader
+     * counts are bounded (tens, not thousands) on real heaps.
+     */
+    private static boolean isEffectivelyRooted(HeapView view, long loaderId) throws SQLException {
+        List<Long> allLoaderIds = readAllLoaderIds(view);
+        List<ClassLoaderHierarchyEdge> edges = ClassLoaderHierarchyAnalyzer.analyze(view, allLoaderIds);
+        Set<Long> rooted = ClassLoaderRootednessAnalyzer.analyze(view, allLoaderIds, edges);
+        return rooted.contains(loaderId);
+    }
+
+    private static List<Long> readAllLoaderIds(HeapView view) throws SQLException {
+        List<Long> ids = new ArrayList<>();
+        try (Statement stmt = view.databaseClient().connection().createStatement();
+             ResultSet rs = stmt.executeQuery(ALL_LOADER_IDS_SQL)) {
+            while (rs.next()) {
+                ids.add(rs.getLong(1));
+            }
+        }
+        return ids;
     }
 
     private static String resolveDisplayName(HeapView view, long loaderId) throws SQLException {

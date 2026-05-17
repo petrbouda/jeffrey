@@ -24,10 +24,17 @@ import java.util.List;
  * Per-loader unloadability diagnostic. The verdict explains whether the
  * loader could be garbage-collected on the next metaspace-aware GC cycle and,
  * for pinned cases, names the classes whose live instances are responsible.
+ *
+ * @param verdict             unloadability outcome for the loader
+ * @param liveInstanceCount   total instances of every class loaded by this loader (excluding the loader itself)
+ * @param rooted              {@code true} when the loader is <em>effectively</em> rooted — either
+ *                            directly listed as a GC root in the HPROF dump, or reachable from a
+ *                            rooted loader by walking up its {@code parent} chain
+ * @param topBlockingClasses  top classes whose live instances pin the loader; empty for non-pinned verdicts
  */
 public record ClassLoaderUnloadability(
         UnloadabilityVerdict verdict,
         long liveInstanceCount,
-        boolean directlyRooted,
+        boolean rooted,
         List<BlockingClass> topBlockingClasses) {
 }

@@ -252,8 +252,7 @@
                           <span
                             class="spr-preview"
                             :title="inst.contentPreview ?? ''"
-                            >{{ inst.contentPreview ?? '' }}</span
-                          >
+                            >{{ inst.contentPreview ?? '' }}</span>
                           <span class="spr-bar">
                             <span
                               class="spr-fill"

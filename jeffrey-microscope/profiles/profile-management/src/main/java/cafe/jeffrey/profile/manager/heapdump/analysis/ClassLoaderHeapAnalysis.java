@@ -71,7 +71,7 @@ public final class ClassLoaderHeapAnalysis implements CachedAnalysis<ClassLoader
 
         List<ClassLoaderHierarchyEdge> hierarchyEdges = ClassLoaderHierarchyAnalyzer.analyze(view, loaderIds);
         Map<Long, ClassLoaderUnloadability> unloadability =
-                ClassLoaderUnloadabilityAnalyzer.analyze(view, loaderIds);
+                ClassLoaderUnloadabilityAnalyzer.analyze(view, loaderIds, hierarchyEdges);
         List<ClassLoaderLeakChain> leakChains = ClassLoaderLeakChainAnalyzer.analyze(view);
 
         return new ClassLoaderReport(
