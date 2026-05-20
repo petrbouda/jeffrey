@@ -46,6 +46,14 @@
           <i class="bi bi-bar-chart"></i>
           Visualization
         </button>
+        <button
+          class="settings-tab"
+          :class="{ active: activeTab === 'ai-export' }"
+          @click="activeTab = 'ai-export'"
+        >
+          <i class="bi bi-stars"></i>
+          AI Export
+        </button>
       </div>
 
       <!-- AI Configuration Tab -->
@@ -71,7 +79,10 @@
             <select
               :value="settings.get('jeffrey.microscope.ai.provider')"
               @change="
-                setSetting('jeffrey.microscope.ai.provider', ($event.target as HTMLSelectElement).value)
+                setSetting(
+                  'jeffrey.microscope.ai.provider',
+                  ($event.target as HTMLSelectElement).value
+                )
               "
               class="form-control select-with-indicator"
               :disabled="!aiEnabled"
@@ -100,7 +111,10 @@
                 :type="showApiKey ? 'text' : 'password'"
                 :value="settings.get('jeffrey.microscope.ai.api-key')"
                 @input="
-                  setSetting('jeffrey.microscope.ai.api-key', ($event.target as HTMLInputElement).value)
+                  setSetting(
+                    'jeffrey.microscope.ai.api-key',
+                    ($event.target as HTMLInputElement).value
+                  )
                 "
                 class="form-control"
                 :disabled="!aiEnabled"
@@ -120,7 +134,10 @@
               type="number"
               :value="settings.get('jeffrey.microscope.ai.max-tokens')"
               @input="
-                setSetting('jeffrey.microscope.ai.max-tokens', ($event.target as HTMLInputElement).value)
+                setSetting(
+                  'jeffrey.microscope.ai.max-tokens',
+                  ($event.target as HTMLInputElement).value
+                )
               "
               class="form-control"
               :disabled="!aiEnabled"
@@ -175,10 +192,7 @@
             <select
               :value="settings.get('logging.level.cafe.jeffrey')"
               @change="
-                setSetting(
-                  'logging.level.cafe.jeffrey',
-                  ($event.target as HTMLSelectElement).value
-                )
+                setSetting('logging.level.cafe.jeffrey', ($event.target as HTMLSelectElement).value)
               "
               class="form-control select-with-indicator"
               style="max-width: 300px"
@@ -262,6 +276,44 @@
           </button>
         </div>
       </div>
+
+      <!-- AI Export Tab -->
+      <div v-if="activeTab === 'ai-export'" id="ai-export" class="settings-content">
+        <div class="settings-form-grid settings-form-grid-single">
+          <div class="settings-form-group">
+            <label class="settings-label">Flamegraph — Minimum Frame Threshold (%)</label>
+            <input
+              type="number"
+              :value="
+                settings.get('jeffrey.microscope.ai-export.flamegraph.min-frame-threshold-pct')
+              "
+              @input="
+                setSetting(
+                  'jeffrey.microscope.ai-export.flamegraph.min-frame-threshold-pct',
+                  ($event.target as HTMLInputElement).value
+                )
+              "
+              class="form-control"
+              style="max-width: 300px"
+              min="0"
+              max="100"
+              step="0.01"
+              placeholder="1.0"
+            />
+            <div class="settings-hint">
+              Subtrees representing less than this percentage of total samples are dropped from
+              the AI export. Same semantics as the visualization threshold, but tuned coarser to
+              keep the LLM payload compact. Default: 1.0%
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-actions">
+          <button class="btn-primary" @click="saveAiExportSettings" :disabled="saving">
+            {{ saving ? 'Saving...' : 'Save Changes' }}
+          </button>
+        </div>
+      </div>
     </MainCard>
   </div>
 </template>
@@ -270,10 +322,19 @@
 import '@/styles/form-utilities.css';
 import '@/styles/shared-components.css';
 import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue';
+import { useRoute } from 'vue-router';
 import SettingsClient from '@/services/api/SettingsClient';
 import MainCard from '@/components/MainCard.vue';
 import MainCardHeader from '@/components/MainCardHeader.vue';
 import DataTable from '@/components/table/DataTable.vue';
+
+const route = useRoute();
+const SUPPORTED_TABS: ReadonlySet<string> = new Set([
+  'ai',
+  'general',
+  'visualization',
+  'ai-export'
+]);
 
 interface ModelInfo {
   id: string;
@@ -338,6 +399,11 @@ function selectModel(model: ModelInfo) {
 }
 
 onMounted(async () => {
+  const hash = route.hash.replace(/^#/, '');
+  if (SUPPORTED_TABS.has(hash)) {
+    activeTab.value = hash;
+  }
+
   try {
     const [fetched, status] = await Promise.all([client.fetchAll(), client.fetchStatus()]);
 
@@ -559,6 +625,22 @@ async function saveVisualizationSettings() {
     restartRequired.value = true;
   } catch (e) {
     console.error('Failed to save visualization settings', e);
+  } finally {
+    saving.value = false;
+  }
+}
+
+async function saveAiExportSettings() {
+  saving.value = true;
+  try {
+    await client.upsert(
+      'ai-export',
+      'jeffrey.microscope.ai-export.flamegraph.min-frame-threshold-pct',
+      settings.get('jeffrey.microscope.ai-export.flamegraph.min-frame-threshold-pct') || '',
+      false
+    );
+  } catch (e) {
+    console.error('Failed to save AI export settings', e);
   } finally {
     saving.value = false;
   }

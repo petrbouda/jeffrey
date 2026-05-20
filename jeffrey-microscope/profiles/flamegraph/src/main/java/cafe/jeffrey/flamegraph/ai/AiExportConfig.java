@@ -15,19 +15,15 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-module cafe.jeffrey.microscope.profile.flamegraph {
-    requires transitive cafe.jeffrey.shared.common;
-    requires transitive cafe.jeffrey.microscope.profile.frame.ir;
-    requires transitive cafe.jeffrey.microscope.profile.timeseries;
-    requires transitive cafe.jeffrey.microscope.profile.persistence.api;
-    requires cafe.jeffrey.microscope.profile.parser.jdk;
-    requires transitive com.google.protobuf;
-    requires tools.jackson.databind;
-    requires org.slf4j;
 
-    exports cafe.jeffrey.flamegraph;
-    exports cafe.jeffrey.flamegraph.ai;
-    exports cafe.jeffrey.flamegraph.api;
-    exports cafe.jeffrey.flamegraph.diff;
-    exports cafe.jeffrey.flamegraph.provider;
+package cafe.jeffrey.flamegraph.ai;
+
+public record AiExportConfig(double minFrameThresholdPct) {
+
+    public AiExportConfig {
+        if (!(minFrameThresholdPct > 0.0 && minFrameThresholdPct < 100.0)) {
+            throw new IllegalArgumentException(
+                    "minFrameThresholdPct must be in (0, 100): " + minFrameThresholdPct);
+        }
+    }
 }

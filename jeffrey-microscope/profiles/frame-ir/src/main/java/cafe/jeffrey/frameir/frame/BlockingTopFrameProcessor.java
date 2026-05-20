@@ -41,6 +41,6 @@ public class BlockingTopFrameProcessor extends SingleFrameProcessor {
 
     @Override
     public boolean isApplicable(FlamegraphRecord record, List<? extends JfrStackFrame> stacktrace, int currIndex) {
-        return currIndex == (stacktrace.size() - 1);
+        return currIndex == (stacktrace.size() - 1) && record.weightEntity() != null;
     }
 }

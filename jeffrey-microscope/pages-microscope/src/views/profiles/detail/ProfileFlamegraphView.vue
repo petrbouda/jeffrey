@@ -18,6 +18,7 @@
 
 <script setup lang="ts">
 import FlamegraphComponent from '@/components/FlamegraphComponent.vue';
+import type { AiExportContext } from '@/components/FlamegraphComponent.vue';
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
 import SearchBarComponent from '@/components/SearchBarComponent.vue';
 import { onBeforeMount, ref } from 'vue';
@@ -43,6 +44,7 @@ const eventType = ref<string>('');
 const useWeight = ref(false);
 const isDifferential = ref(false);
 const isPrimary = ref(false);
+const aiExportContext = ref<AiExportContext | null>(null);
 
 function scrollToTop() {
   const workspaceContent = document.querySelector('.workspace-content');
@@ -101,6 +103,17 @@ onBeforeMount(() => {
     useWeightValue,
     isDifferentialValue
   );
+
+  aiExportContext.value = {
+    profileId: route.params.profileId as string,
+    eventType: eventTypeValue,
+    graphMode: isDifferentialValue ? 'DIFFERENTIAL' : 'PRIMARY',
+    useWeight: useWeightValue,
+    useThreadMode,
+    excludeNonJavaSamples,
+    excludeIdleSamples,
+    onlyUnsafeAllocationSamples
+  };
 });
 </script>
 
@@ -123,6 +136,7 @@ onBeforeMount(() => {
       :scrollable-wrapper-class="null"
       :flamegraph-tooltip="flamegraphTooltip"
       :graph-updater="graphUpdater"
+      :ai-export-context="aiExportContext"
       @loaded="scrollToTop"
     />
   </div>

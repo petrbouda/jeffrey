@@ -59,6 +59,12 @@ public class DiffFlamegraphManagerImpl implements FlamegraphManager {
     }
 
     @Override
+    public String generateAiExport(GraphParameters parameters) {
+        throw new UnsupportedOperationException(
+                "AI export is not supported for differential flamegraphs");
+    }
+
+    @Override
     public List<EventSummaryResult> eventSummaries() {
         List<EventSummary> primaryEvents = primaryEventTypeRepository.eventSummaries(SUPPORTED_EVENTS).stream()
                 .filter(eventSummary -> eventSummary.samples() > 0)

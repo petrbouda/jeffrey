@@ -21,6 +21,7 @@ package cafe.jeffrey.shared.common.model;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -124,6 +125,9 @@ public record Type(String code, boolean calculated) {
     public static final Type MESSAGE = new Type(EventTypeName.MESSAGE);
     public static final Type ALERT = new Type(EventTypeName.ALERT);
 
+    private static final Set<Type> BLOCKING_EVENTS =
+            Set.of(JAVA_MONITOR_ENTER, JAVA_MONITOR_WAIT, THREAD_PARK, THREAD_SLEEP);
+
     private static final Map<String, Type> KNOWN_TYPES;
 
     static {
@@ -217,9 +221,7 @@ public record Type(String code, boolean calculated) {
     }
 
     public boolean isBlockingEvent() {
-        return Type.JAVA_MONITOR_ENTER.equals(this)
-                || Type.JAVA_MONITOR_WAIT.equals(this)
-                || Type.THREAD_PARK.equals(this);
+        return BLOCKING_EVENTS.contains(this);
     }
 
     public boolean isMethodTraceEvent() {

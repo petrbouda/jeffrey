@@ -247,7 +247,7 @@
                               :value="'↑ ' + simpleClassName(inst.referrerClass)"
                               :title="inst.referrerClass"
                             />
-                            <span v-else class="spr-referrer-empty">—</span>
+                            <span v-else class="spr-referrer-empty">—</span>../
                           </span>
                           <span
                             class="spr-preview"

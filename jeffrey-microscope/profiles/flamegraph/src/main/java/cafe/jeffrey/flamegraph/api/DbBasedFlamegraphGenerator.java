@@ -22,10 +22,13 @@ import cafe.jeffrey.shared.common.Schedulers;
 import cafe.jeffrey.profile.common.config.GraphComponents;
 import cafe.jeffrey.profile.common.config.GraphParameters;
 import cafe.jeffrey.flamegraph.GraphGenerator;
+import cafe.jeffrey.flamegraph.ai.AiExportConfig;
+import cafe.jeffrey.flamegraph.ai.FlamegraphAiMarkdownBuilder;
 import cafe.jeffrey.flamegraph.proto.TimeseriesPoint;
 import cafe.jeffrey.flamegraph.proto.TimeseriesSeries;
 import cafe.jeffrey.flamegraph.provider.FlamegraphDataProvider;
 import cafe.jeffrey.flamegraph.provider.TimeseriesDataProvider;
+import cafe.jeffrey.frameir.Frame;
 import cafe.jeffrey.provider.profile.api.ProfileEventStreamRepository;
 import cafe.jeffrey.timeseries.SingleSerie;
 import cafe.jeffrey.timeseries.TimeseriesData;
@@ -37,18 +40,24 @@ public class DbBasedFlamegraphGenerator implements GraphGenerator {
 
     private final ProfileEventStreamRepository eventRepository;
     private final double minFrameThresholdPct;
+    private final AiExportConfig aiExportConfig;
 
-    public DbBasedFlamegraphGenerator(ProfileEventStreamRepository eventRepository, double minFrameThresholdPct) {
+    public DbBasedFlamegraphGenerator(
+            ProfileEventStreamRepository eventRepository,
+            double minFrameThresholdPct,
+            AiExportConfig aiExportConfig) {
         this.eventRepository = eventRepository;
         this.minFrameThresholdPct = minFrameThresholdPct;
+        this.aiExportConfig = aiExportConfig;
     }
 
     @Override
     public byte[] generate(GraphParameters params) {
         CompletableFuture<cafe.jeffrey.flamegraph.proto.FlamegraphData> flameFuture;
         if (GraphComponents.isFlamegraphCompatible(params.graphComponents())) {
-            FlamegraphDataProvider flamegraphProvider = FlamegraphDataProvider.primary(eventRepository, params, minFrameThresholdPct);
-            flameFuture = CompletableFuture.supplyAsync(flamegraphProvider::provideProto, Schedulers.sharedParallel());
+            FlamegraphDataProvider flamegraphProvider = FlamegraphDataProvider.primary(eventRepository, params);
+            flameFuture = CompletableFuture.supplyAsync(
+                    () -> flamegraphProvider.provideProto(minFrameThresholdPct), Schedulers.sharedParallel());
         } else {
             flameFuture = CompletableFuture.completedFuture(null);
         }
@@ -78,8 +87,24 @@ public class DbBasedFlamegraphGenerator implements GraphGenerator {
         return graphBuilder.build().toByteArray();
     }
 
+    /**
+     * Generate an AI-friendly Markdown export of the flamegraph. Walks the
+     * unpruned IR (visualization prune is skipped — AI export applies its
+     * own threshold from {@link #aiExportConfig} so the LLM payload stays
+     * compact). Threshold is set at bean construction from
+     * {@code jeffrey.microscope.ai-export.flamegraph.min-frame-threshold-pct}.
+     */
+    public String generateAiExport(GraphParameters params) {
+        Frame root = FlamegraphDataProvider.primary(eventRepository, params)
+                .provideFrame();
+        return new FlamegraphAiMarkdownBuilder(params.eventType(), aiExportConfig)
+                .withThreadMode(params.threadMode())
+                .build(root);
+    }
+
     private static cafe.jeffrey.flamegraph.proto.TimeseriesData convertTimeseries(TimeseriesData data) {
-        cafe.jeffrey.flamegraph.proto.TimeseriesData.Builder builder = cafe.jeffrey.flamegraph.proto.TimeseriesData.newBuilder();
+        cafe.jeffrey.flamegraph.proto.TimeseriesData.Builder builder =
+                cafe.jeffrey.flamegraph.proto.TimeseriesData.newBuilder();
 
         for (SingleSerie serie : data.series()) {
             TimeseriesSeries.Builder seriesBuilder = TimeseriesSeries.newBuilder()

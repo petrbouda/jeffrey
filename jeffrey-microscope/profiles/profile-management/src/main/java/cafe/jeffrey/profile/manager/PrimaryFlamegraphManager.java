@@ -22,7 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.profile.common.config.GraphParameters;
 import cafe.jeffrey.shared.common.model.Type;
-import cafe.jeffrey.flamegraph.GraphGenerator;
+import cafe.jeffrey.flamegraph.api.DbBasedFlamegraphGenerator;
 import cafe.jeffrey.profile.model.EventSummaryResult;
 import cafe.jeffrey.provider.profile.api.ProfileEventTypeRepository;
 
@@ -48,11 +48,11 @@ public class PrimaryFlamegraphManager implements FlamegraphManager {
             Type.JAVA_MONITOR_WAIT);
 
     private final ProfileEventTypeRepository eventTypeRepository;
-    private final GraphGenerator generator;
+    private final DbBasedFlamegraphGenerator generator;
 
     public PrimaryFlamegraphManager(
             ProfileEventTypeRepository eventTypeRepository,
-            GraphGenerator generator) {
+            DbBasedFlamegraphGenerator generator) {
 
         this.eventTypeRepository = eventTypeRepository;
         this.generator = generator;
@@ -72,6 +72,16 @@ public class PrimaryFlamegraphManager implements FlamegraphManager {
         long startTime = System.nanoTime();
         byte[] result = generator.generate(adjustParams(params));
         LOG.debug("Flamegraph generated: eventType={} durationMs={}", params.eventType(), Duration.ofNanos(System.nanoTime() - startTime).toMillis());
+        return result;
+    }
+
+    @Override
+    public String generateAiExport(GraphParameters params) {
+        LOG.debug("Generating AI export: eventType={}", params.eventType());
+        long startTime = System.nanoTime();
+        String result = generator.generateAiExport(adjustParams(params));
+        LOG.debug("AI export generated: eventType={} durationMs={}",
+                params.eventType(), Duration.ofNanos(System.nanoTime() - startTime).toMillis());
         return result;
     }
 

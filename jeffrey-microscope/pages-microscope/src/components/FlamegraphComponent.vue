@@ -29,6 +29,21 @@ import GuardMatched from '@/services/api/model/GuardMatched';
 import SettingsClient from '@/services/api/SettingsClient';
 import MessageBus from '@/services/MessageBus.ts';
 import LoadingIndicator from '@/components/LoadingIndicator.vue';
+import AiExportButton from '@/components/flamegraph/AiExportButton.vue';
+import type { AiExportInput } from '@/composables/useAiExport';
+
+export type AiExportGraphMode = 'PRIMARY' | 'DIFFERENTIAL';
+
+export interface AiExportContext {
+  profileId: string;
+  eventType: string;
+  graphMode: AiExportGraphMode;
+  useWeight: boolean;
+  useThreadMode: boolean;
+  excludeNonJavaSamples: boolean;
+  excludeIdleSamples: boolean;
+  onlyUnsafeAllocationSamples: boolean;
+}
 
 const props = defineProps<{
   withTimeseries: boolean;
@@ -37,6 +52,7 @@ const props = defineProps<{
   scrollableWrapperClass: string | null;
   flamegraphTooltip: FlamegraphTooltip;
   graphUpdater: GraphUpdater;
+  aiExportContext?: AiExportContext | null;
 }>();
 
 const emit = defineEmits<{
@@ -56,6 +72,23 @@ let defaultTwoLineMode: boolean | null = null;
 
 const canvasWidth = ref('100%');
 const twoLineMode = ref(false);
+
+function buildAiExportInput(): AiExportInput | null {
+  const ctx = props.aiExportContext;
+  if (!ctx) {
+    return null;
+  }
+  return {
+    profileId: ctx.profileId,
+    eventType: ctx.eventType,
+    useWeight: ctx.useWeight,
+    useThreadMode: ctx.useThreadMode,
+    search: currentSearchValue,
+    excludeNonJavaSamples: ctx.excludeNonJavaSamples,
+    excludeIdleSamples: ctx.excludeIdleSamples,
+    onlyUnsafeAllocationSamples: ctx.onlyUnsafeAllocationSamples
+  };
+}
 
 function setDisplayMode(twoLine: boolean) {
   twoLineMode.value = twoLine;
@@ -301,6 +334,12 @@ function search(value: string | null) {
         Two-line
       </button>
     </div>
+    <AiExportButton
+      v-if="aiExportContext"
+      :build-input="buildAiExportInput"
+      :disabled="aiExportContext.graphMode === 'DIFFERENTIAL'"
+      disabled-tooltip="Differential export coming soon"
+    />
   </div>
   <canvas ref="flamegraphCanvas" id="flamegraphCanvas" :style="{ width: canvasWidth }"></canvas>
 

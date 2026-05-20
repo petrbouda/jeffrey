@@ -23,6 +23,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.beans.factory.annotation.Qualifier;
+import cafe.jeffrey.flamegraph.ai.AiExportConfig;
 import cafe.jeffrey.flamegraph.api.DbBasedFlamegraphGenerator;
 import cafe.jeffrey.flamegraph.diff.DbBasedDiffgraphGenerator;
 import cafe.jeffrey.generator.subsecond.db.api.DbBasedSubSecondGeneratorImpl;
@@ -298,14 +299,16 @@ public class ProfileFactoriesConfiguration {
 
     @Bean
     public FlamegraphManager.Factory flamegraphFactory(
-            @Value("${jeffrey.microscope.visualization.flamegraph.min-frame-threshold-pct:0.05}") double minFrameThresholdPct) {
+            @Value("${jeffrey.microscope.visualization.flamegraph.min-frame-threshold-pct:0.05}") double minFrameThresholdPct,
+            @Value("${jeffrey.microscope.ai-export.flamegraph.min-frame-threshold-pct:1.0}") double aiExportMinFrameThresholdPct) {
 
+        AiExportConfig aiExportConfig = new AiExportConfig(aiExportMinFrameThresholdPct);
         return profileInfo -> {
             DataSource profileDb = databaseManagerResolver.open(profileInfo);
             ProfileEventTypeRepository eventTypeRepository = profileRepositories.newEventTypeRepository(profileDb);
             ProfileEventStreamRepository eventRepository = profileRepositories.newEventStreamRepository(profileDb);
             return new PrimaryFlamegraphManager(eventTypeRepository,
-                    new DbBasedFlamegraphGenerator(eventRepository, minFrameThresholdPct));
+                    new DbBasedFlamegraphGenerator(eventRepository, minFrameThresholdPct, aiExportConfig));
         };
     }
 

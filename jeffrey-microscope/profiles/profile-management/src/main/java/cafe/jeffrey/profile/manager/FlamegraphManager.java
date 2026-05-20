@@ -45,4 +45,18 @@ public interface FlamegraphManager {
      * @return graph data as protobuf bytes
      */
     byte[] generate(GraphParameters graphParameters);
+
+    /**
+     * Generate an AI-friendly Markdown export of the flamegraph. The export
+     * walks the unpruned IR and applies its own threshold (set at bean
+     * construction from
+     * {@code jeffrey.microscope.ai-export.flamegraph.min-frame-threshold-pct},
+     * independent of the visualization threshold).
+     *
+     * @param graphParameters graph parameters
+     * @return Markdown string suitable for pasting into an LLM
+     * @throws UnsupportedOperationException for graph modes that do not
+     *                                       support AI export (e.g. differential)
+     */
+    String generateAiExport(GraphParameters graphParameters);
 }

@@ -18,6 +18,7 @@
 
 package cafe.jeffrey.flamegraph.provider;
 
+import cafe.jeffrey.flamegraph.proto.FlamegraphData;
 import cafe.jeffrey.profile.common.config.GraphParameters;
 import cafe.jeffrey.flamegraph.FlameGraphProtoBuilder;
 import cafe.jeffrey.frameir.Frame;
@@ -31,18 +32,15 @@ public class FlamegraphDataProvider {
     private final ProfileEventStreamRepository eventStreamRepository;
     private final FrameBuilder frameBuilder;
     private final GraphParameters graphParameters;
-    private final double minFrameThresholdPct;
 
     private FlamegraphDataProvider(
             ProfileEventStreamRepository eventStreamRepository,
             GraphParameters graphParameters,
-            FrameBuilder frameBuilder,
-            double minFrameThresholdPct) {
+            FrameBuilder frameBuilder) {
 
         this.eventStreamRepository = eventStreamRepository;
         this.graphParameters = graphParameters;
         this.frameBuilder = frameBuilder;
-        this.minFrameThresholdPct = minFrameThresholdPct;
     }
 
     /**
@@ -52,16 +50,14 @@ public class FlamegraphDataProvider {
      *
      * @param eventStreamRepository repository to fetch all the records for processing
      * @param params                configuration for the flamegraph.
-     * @param minFrameThresholdPct  minimum frame threshold percentage for pruning low-relevancy frames.
      * @return instance of the {@link FlamegraphDataProvider}.
      */
     public static FlamegraphDataProvider primary(
-            ProfileEventStreamRepository eventStreamRepository, GraphParameters params, double minFrameThresholdPct) {
-
+            ProfileEventStreamRepository eventStreamRepository, GraphParameters params) {
         FrameBuilder builder = new FrameBuilderResolver(params, false)
                 .resolve();
 
-        return new FlamegraphDataProvider(eventStreamRepository, params, builder, minFrameThresholdPct);
+        return new FlamegraphDataProvider(eventStreamRepository, params, builder);
     }
 
     /**
@@ -71,16 +67,14 @@ public class FlamegraphDataProvider {
      *
      * @param eventStreamRepository repository to fetch all the records for processing
      * @param params                configuration for the flamegraph.
-     * @param minFrameThresholdPct  minimum frame threshold percentage for pruning low-relevancy frames.
      * @return instance of the {@link FlamegraphDataProvider}.
      */
     public static FlamegraphDataProvider differential(
-            ProfileEventStreamRepository eventStreamRepository, GraphParameters params, double minFrameThresholdPct) {
-
+            ProfileEventStreamRepository eventStreamRepository, GraphParameters params) {
         FrameBuilder builder = new FrameBuilderResolver(params, true)
                 .resolve();
 
-        return new FlamegraphDataProvider(eventStreamRepository, params, builder, minFrameThresholdPct);
+        return new FlamegraphDataProvider(eventStreamRepository, params, builder);
     }
 
     /**
@@ -88,7 +82,7 @@ public class FlamegraphDataProvider {
      *
      * @return flamegraph data in Protobuf format.
      */
-    public cafe.jeffrey.flamegraph.proto.FlamegraphData provideProto() {
+    public FlamegraphData provideProto(double minFrameThresholdPct) {
         Frame frame = provideFrame();
         FlameGraphProtoBuilder protoBuilder = resolveFlamegraphProtoBuilder(graphParameters, minFrameThresholdPct);
         return protoBuilder.build(frame);
