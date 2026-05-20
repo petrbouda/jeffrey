@@ -15,7 +15,10 @@
       <template v-else>
         <template v-for="group in filteredGroups" :key="group.instance.id">
           <div class="rsp-instance-header">
-            <span class="rsp-dot" :class="group.instance.status === 'ACTIVE' ? 'rsp-dot-active' : 'rsp-dot-inactive'"></span>
+            <span
+              class="rsp-dot"
+              :class="group.instance.status === 'ACTIVE' ? 'rsp-dot-active' : 'rsp-dot-inactive'"
+            ></span>
             <span class="rsp-instance-host">{{ group.instance.instanceName }}</span>
           </div>
           <div
@@ -34,7 +37,10 @@
               <i class="bi bi-clock"></i>
               {{ FormattingService.formatRelativeTime(session.createdAt) }}
               <template v-if="session.finishedAt">
-                · {{ FormattingService.formatDurationFromMillis(session.createdAt, session.finishedAt) }}
+                ·
+                {{
+                  FormattingService.formatDurationFromMillis(session.createdAt, session.finishedAt)
+                }}
               </template>
             </span>
             <Badge
@@ -60,84 +66,86 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
-import Badge from '@/components/Badge.vue'
-import LoadingState from '@/components/LoadingState.vue'
-import EmptyState from '@/components/EmptyState.vue'
-import SearchInput from '@/components/form/SearchInput.vue'
-import FormattingService from '@/services/FormattingService'
-import ProjectInstanceClient from '@/services/api/ProjectInstanceClient'
-import type ProjectInstance from '@/services/api/model/ProjectInstance'
-import type ProjectInstanceSession from '@/services/api/model/ProjectInstanceSession'
-import type { SelectedSession } from './streamingTypes'
+import { computed, onMounted, ref } from 'vue';
+import Badge from '@/components/Badge.vue';
+import LoadingState from '@/components/LoadingState.vue';
+import EmptyState from '@/components/EmptyState.vue';
+import SearchInput from '@/components/form/SearchInput.vue';
+import FormattingService from '@/services/FormattingService';
+import ProjectInstanceClient from '@/services/api/ProjectInstanceClient';
+import type ProjectInstance from '@/services/api/model/ProjectInstance';
+import type ProjectInstanceSession from '@/services/api/model/ProjectInstanceSession';
+import type { SelectedSession } from './streamingTypes';
 
 interface InstanceGroup {
-  instance: ProjectInstance
-  sessions: ProjectInstanceSession[]
+  instance: ProjectInstance;
+  sessions: ProjectInstanceSession[];
 }
 
 const props = defineProps<{
-  serverId: string
-  workspaceId: string
-  projectId: string
-  selected: SelectedSession | null
-}>()
+  serverId: string;
+  workspaceId: string;
+  projectId: string;
+  selected: SelectedSession | null;
+}>();
 
 const emit = defineEmits<{
-  pick: [value: SelectedSession]
-}>()
+  pick: [value: SelectedSession];
+}>();
 
-const loading = ref(false)
-const searchQuery = ref('')
-const instanceGroups = ref<InstanceGroup[]>([])
-const maxVisibleInstances = ref(5)
+const loading = ref(false);
+const searchQuery = ref('');
+const instanceGroups = ref<InstanceGroup[]>([]);
+const maxVisibleInstances = ref(5);
 
 const allFilteredGroups = computed(() => {
-  if (!searchQuery.value) return instanceGroups.value
-  const q = searchQuery.value.toLowerCase()
+  if (!searchQuery.value) return instanceGroups.value;
+  const q = searchQuery.value.toLowerCase();
   return instanceGroups.value
-    .map((group) => ({
+    .map(group => ({
       instance: group.instance,
-      sessions: group.sessions.filter((s) => s.id.toLowerCase().includes(q))
+      sessions: group.sessions.filter(s => s.id.toLowerCase().includes(q))
     }))
-    .filter((group) => group.sessions.length > 0)
-})
+    .filter(group => group.sessions.length > 0);
+});
 
-const filteredGroups = computed(() => allFilteredGroups.value.slice(0, maxVisibleInstances.value))
-const hasMoreInstances = computed(() => allFilteredGroups.value.length > maxVisibleInstances.value)
-const hiddenInstanceCount = computed(() => allFilteredGroups.value.length - maxVisibleInstances.value)
+const filteredGroups = computed(() => allFilteredGroups.value.slice(0, maxVisibleInstances.value));
+const hasMoreInstances = computed(() => allFilteredGroups.value.length > maxVisibleInstances.value);
+const hiddenInstanceCount = computed(
+  () => allFilteredGroups.value.length - maxVisibleInstances.value
+);
 
 async function loadSessions() {
-  loading.value = true
+  loading.value = true;
   try {
-    const client = new ProjectInstanceClient(props.serverId, props.workspaceId, props.projectId)
-    const instances = await client.list(true)
+    const client = new ProjectInstanceClient(props.serverId, props.workspaceId, props.projectId);
+    const instances = await client.list(true);
 
     instances.sort((a, b) => {
-      if (a.status === 'ACTIVE' && b.status !== 'ACTIVE') return -1
-      if (a.status !== 'ACTIVE' && b.status === 'ACTIVE') return 1
-      return b.createdAt - a.createdAt
-    })
+      if (a.status === 'ACTIVE' && b.status !== 'ACTIVE') return -1;
+      if (a.status !== 'ACTIVE' && b.status === 'ACTIVE') return 1;
+      return b.createdAt - a.createdAt;
+    });
 
-    const groups: InstanceGroup[] = []
+    const groups: InstanceGroup[] = [];
     for (const instance of instances) {
-      const sessions = instance.sessions ?? []
+      const sessions = instance.sessions ?? [];
       if (sessions.length > 0) {
-        sessions.sort((a, b) => b.createdAt - a.createdAt)
-        groups.push({ instance, sessions })
+        sessions.sort((a, b) => b.createdAt - a.createdAt);
+        groups.push({ instance, sessions });
       }
     }
-    instanceGroups.value = groups
+    instanceGroups.value = groups;
   } finally {
-    loading.value = false
+    loading.value = false;
   }
 }
 
 function pick(session: ProjectInstanceSession, instance: ProjectInstance) {
-  emit('pick', { id: session.id, sessionInstance: instance.instanceName })
+  emit('pick', { id: session.id, sessionInstance: instance.instanceName });
 }
 
-onMounted(loadSessions)
+onMounted(loadSessions);
 </script>
 
 <style scoped>
@@ -166,7 +174,9 @@ onMounted(loadSessions)
   font-weight: 600;
   color: var(--color-body);
 }
-.rsp-instance-header:first-child { margin-top: 0; }
+.rsp-instance-header:first-child {
+  margin-top: 0;
+}
 
 .rsp-instance-host {
   flex: 1;
@@ -182,8 +192,12 @@ onMounted(loadSessions)
   display: inline-block;
   flex-shrink: 0;
 }
-.rsp-dot-active { background-color: var(--color-success); }
-.rsp-dot-inactive { background-color: var(--color-muted); }
+.rsp-dot-active {
+  background-color: var(--color-success);
+}
+.rsp-dot-inactive {
+  background-color: var(--color-muted);
+}
 
 .rsp-session-row {
   display: flex;
@@ -211,7 +225,9 @@ onMounted(loadSessions)
   color: var(--color-text-light);
   flex-shrink: 0;
 }
-.rsp-session-row--selected .rsp-check { color: var(--color-primary); }
+.rsp-session-row--selected .rsp-check {
+  color: var(--color-primary);
+}
 
 .rsp-session-id {
   font-family: var(--font-monospace);
@@ -233,7 +249,9 @@ onMounted(loadSessions)
   color: var(--color-text-muted);
   white-space: nowrap;
 }
-.rsp-session-meta i { font-size: 0.64rem; }
+.rsp-session-meta i {
+  font-size: 0.64rem;
+}
 
 .rsp-load-more {
   text-align: center;

@@ -521,15 +521,13 @@ const router = createRouter({
                 {
                   path: 'events/live-stream',
                   name: 'project-live-stream',
-                  component: () =>
-                    import('@/views/projects/detail/ProjectLiveStreamView.vue'),
+                  component: () => import('@/views/projects/detail/ProjectLiveStreamView.vue'),
                   meta: { layout: 'project' }
                 },
                 {
                   path: 'events/replay-stream',
                   name: 'project-replay-stream',
-                  component: () =>
-                    import('@/views/projects/detail/ProjectReplayStreamView.vue'),
+                  component: () => import('@/views/projects/detail/ProjectReplayStreamView.vue'),
                   meta: { layout: 'project' }
                 },
                 {

@@ -29,7 +29,8 @@
         <option value="PROJECT_INSTANCE_SESSION_FINISHED">Session Finished</option>
       </select>
       <span class="event-toolbar-meta">
-        Showing {{ filteredEvents.length }} of {{ events.length }}<span v-if="totalCount > events.length"> · {{ totalCount }} total</span>
+        Showing {{ filteredEvents.length }} of {{ events.length
+        }}<span v-if="totalCount > events.length"> · {{ totalCount }} total</span>
       </span>
     </div>
 
@@ -63,9 +64,7 @@
             size="s"
             :uppercase="false"
           />
-          <span class="event-ids">
-            {{ event.originEventId }} • {{ event.projectId }}
-          </span>
+          <span class="event-ids"> {{ event.originEventId }} • {{ event.projectId }} </span>
           <span class="event-time">
             <span class="event-time-full">{{
               FormattingService.formatTimestamp(event.originCreatedAt)
@@ -75,15 +74,9 @@
             }}</span>
           </span>
         </div>
-        <div class="event-row-meta">
-          <i class="bi bi-person-fill"></i>{{ event.createdBy }}
-        </div>
+        <div class="event-row-meta"><i class="bi bi-person-fill"></i>{{ event.createdBy }}</div>
         <div v-if="contentPairsFor(event)" class="event-row-pairs">
-          <span
-            v-for="(value, key) in contentPairsFor(event)"
-            :key="key"
-            class="content-pair"
-          >
+          <span v-for="(value, key) in contentPairsFor(event)" :key="key" class="content-pair">
             <span class="content-key">{{ key }}:</span>
             <span class="content-value">{{ value }}</span>
           </span>
@@ -188,7 +181,7 @@ const props = withDefaults(
     searchQuery?: string;
     limit?: number;
   }>(),
-  { limit: DEFAULT_LIMIT },
+  { limit: DEFAULT_LIMIT }
 );
 
 const emit = defineEmits<{
@@ -216,7 +209,7 @@ const filteredEvents = computed(() => {
       e =>
         EventContentParser.getEventDescription(e).toLowerCase().includes(query) ||
         e.originEventId.toLowerCase().includes(query) ||
-        e.projectId.toLowerCase().includes(query),
+        e.projectId.toLowerCase().includes(query)
     );
   }
 
@@ -243,8 +236,7 @@ const refresh = async () => {
     totalCount.value = response.totalCount;
     emit('update:count', response.totalCount);
   } catch (error: unknown) {
-    errorMessage.value =
-      error instanceof Error ? error.message : 'Could not load workspace events';
+    errorMessage.value = error instanceof Error ? error.message : 'Could not load workspace events';
     events.value = [];
     totalCount.value = 0;
     emit('update:count', 0);
@@ -259,7 +251,7 @@ watch(
     selectedEventType.value = '';
     refresh();
   },
-  { immediate: true },
+  { immediate: true }
 );
 
 const openEventDetails = (event: WorkspaceEvent) => {
@@ -402,7 +394,9 @@ defineExpose({ refresh });
   border-radius: var(--radius-md);
   padding: 12px 14px;
   cursor: pointer;
-  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+  transition:
+    border-color 0.12s ease,
+    box-shadow 0.12s ease;
 }
 .event-row:hover {
   border-color: var(--color-primary-border-light);

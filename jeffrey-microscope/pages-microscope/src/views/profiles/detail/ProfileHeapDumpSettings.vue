@@ -283,11 +283,7 @@
       </div>
 
       <!-- Live processing progress -->
-      <HeapDumpInitTimeline
-        v-if="processing"
-        :steps="processingSteps"
-        :tick-now="tickNow"
-      />
+      <HeapDumpInitTimeline v-if="processing" :steps="processingSteps" :tick-now="tickNow" />
 
       <!-- Success State with Management Actions -->
       <div v-if="cacheReady && lastSummary" class="ready-section">
@@ -344,9 +340,7 @@ import LoadingState from '@/components/LoadingState.vue';
 import ErrorState from '@/components/ErrorState.vue';
 import ConfirmationDialog from '@/components/ConfirmationDialog.vue';
 import HeapDumpClient from '@/services/api/HeapDumpClient';
-import HeapDumpInitTimeline, {
-  type TimelineStep
-} from '@/components/HeapDumpInitTimeline.vue';
+import HeapDumpInitTimeline, { type TimelineStep } from '@/components/HeapDumpInitTimeline.vue';
 import HeapSummary from '@/services/api/model/HeapSummary';
 import HeapDumpConfig from '@/services/api/model/HeapDumpConfig';
 import type InitPipelineResult from '@/services/api/model/InitPipelineResult';
@@ -608,10 +602,7 @@ const processHeapDump = async () => {
 
     // Snapshot the timeline so the Overview page can display it on subsequent visits.
     const snapshot: InitPipelineResult = {
-      totalElapsedMs: processingSteps.value.reduce(
-        (sum, s) => sum + (s.durationMs ?? 0),
-        0
-      ),
+      totalElapsedMs: processingSteps.value.reduce((sum, s) => sum + (s.durationMs ?? 0), 0),
       totalSteps: processingSteps.value.length,
       completedSteps: processingSteps.value.filter(
         s => s.status === 'completed' || s.status === 'skipped' || s.status === 'on_demand'

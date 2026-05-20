@@ -17,19 +17,24 @@
  */
 package cafe.jeffrey.profile.heapdump.parser;
 
+import org.eclipse.collections.api.map.primitive.LongObjectMap;
+
 import java.util.List;
-import java.util.Map;
 
 /**
  * Output of Pass B (fused parallel walk of instances / roots / refs). The
  * primitive-array-info map is what the string-content writer subsequently
  * joins on to decode {@code java.lang.String} backing arrays.
+ *
+ * <p>{@code primArrInfo} is keyed on the primitive {@code long} array id so the
+ * hot per-String lookup in {@code HprofStringContentWriter#runWorker} never
+ * boxes the id.
  */
 public record PassBOutput(
         long instanceCount,
         long gcRootCount,
         long outboundRefCount,
         long subRecordCount,
-        Map<Long, PrimitiveArrayInfo> primArrInfo,
+        LongObjectMap<PrimitiveArrayInfo> primArrInfo,
         List<ParseWarning> warnings) {
 }

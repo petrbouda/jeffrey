@@ -8,7 +8,7 @@ export class ToastService {
     'toast-success': '✓',
     'toast-info': 'ⓘ',
     'toast-warning': '⚠',
-    'toast-danger': '✕',
+    'toast-danger': '✕'
   };
 
   private static createToast(
@@ -81,7 +81,7 @@ export class ToastService {
     summary: string,
     detail: string | undefined,
     toastClass: string,
-    duration?: number,
+    duration?: number
   ): void {
     let container = document.getElementById('toast-container');
     if (!container) {

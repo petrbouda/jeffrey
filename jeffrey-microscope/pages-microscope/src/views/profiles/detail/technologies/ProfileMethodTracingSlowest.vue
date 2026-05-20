@@ -62,35 +62,35 @@
             </div>
           </template>
           <DataTable>
-              <thead>
-                <tr>
-                  <th>Method</th>
-                  <th class="text-end">Duration</th>
-                  <th>Thread</th>
-                  <th class="text-end">% of Max</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="(trace, index) in filteredTraces" :key="index" class="trace-row">
-                  <td class="method-cell">
-                    <span class="method-name">{{ trace.methodName || '&lt;init&gt;' }}</span>
-                    <span class="class-name">{{ trace.className }}</span>
-                  </td>
-                  <td class="text-end">
-                    <span class="duration-value" :class="getDurationClass(trace.duration)">
-                      {{ FormattingService.formatDuration2Units(trace.duration) }}
-                    </span>
-                  </td>
-                  <td class="thread-name">{{ trace.threadName }}</td>
-                  <td class="text-end">
-                    <Badge
-                      :value="getPercentOfMax(trace.duration).toFixed(1) + '%'"
-                      variant="blue"
-                      size="xs"
-                    />
-                  </td>
-                </tr>
-              </tbody>
+            <thead>
+              <tr>
+                <th>Method</th>
+                <th class="text-end">Duration</th>
+                <th>Thread</th>
+                <th class="text-end">% of Max</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(trace, index) in filteredTraces" :key="index" class="trace-row">
+                <td class="method-cell">
+                  <span class="method-name">{{ trace.methodName || '&lt;init&gt;' }}</span>
+                  <span class="class-name">{{ trace.className }}</span>
+                </td>
+                <td class="text-end">
+                  <span class="duration-value" :class="getDurationClass(trace.duration)">
+                    {{ FormattingService.formatDuration2Units(trace.duration) }}
+                  </span>
+                </td>
+                <td class="thread-name">{{ trace.threadName }}</td>
+                <td class="text-end">
+                  <Badge
+                    :value="getPercentOfMax(trace.duration).toFixed(1) + '%'"
+                    variant="blue"
+                    size="xs"
+                  />
+                </td>
+              </tr>
+            </tbody>
           </DataTable>
         </ChartSection>
       </div>
@@ -271,6 +271,4 @@ onMounted(() => {
   font-weight: 500;
   font-size: 0.7rem;
 }
-
-
 </style>

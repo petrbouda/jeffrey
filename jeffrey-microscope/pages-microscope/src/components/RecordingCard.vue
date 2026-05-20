@@ -160,13 +160,19 @@ onBeforeUnmount(() => {
             :class="sourceType === 'HEAP_DUMP' ? 'bi bi-pie-chart-fill' : 'bi bi-activity'"
           ></i>
           <span class="rec-card__name">{{ name }}</span>
-          <span v-if="origin" class="rec-card__origin" :title="`From ${origin.server} › ${origin.workspace} › ${origin.project}`">
+          <span
+            v-if="origin"
+            class="rec-card__origin"
+            :title="`From ${origin.server} › ${origin.workspace} › ${origin.project}`"
+          >
             <i class="bi bi-arrow-down-circle-fill"></i>
             <span class="rec-card__origin-part">{{ origin.server }}</span>
             <span class="rec-card__origin-sep">›</span>
             <span class="rec-card__origin-part">{{ origin.workspace }}</span>
             <span class="rec-card__origin-sep">›</span>
-            <span class="rec-card__origin-part rec-card__origin-part--project">{{ origin.project }}</span>
+            <span class="rec-card__origin-part rec-card__origin-part--project">{{
+              origin.project
+            }}</span>
           </span>
         </div>
         <div class="rec-card__line2">

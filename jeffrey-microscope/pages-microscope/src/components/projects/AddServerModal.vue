@@ -121,25 +121,26 @@ const emit = defineEmits<{
 
 const showDrawer = computed({
   get: () => props.show,
-  set: v => emit('update:show', v),
+  set: v => emit('update:show', v)
 });
 
 const defaultForm = () => ({
   name: '',
   hostname: '',
   port: 9090,
-  plaintext: false,
+  plaintext: false
 });
 
 const form = ref(defaultForm());
 const loading = ref(false);
 const error = ref<string | null>(null);
 
-const isValid = computed(() =>
-  form.value.name.trim().length > 0 &&
-  form.value.hostname.trim().length > 0 &&
-  form.value.port >= 1 &&
-  form.value.port <= 65535,
+const isValid = computed(
+  () =>
+    form.value.name.trim().length > 0 &&
+    form.value.hostname.trim().length > 0 &&
+    form.value.port >= 1 &&
+    form.value.port <= 65535
 );
 
 const client = new RemoteServerClient();
@@ -148,7 +149,7 @@ watch(
   () => props.show,
   open => {
     if (open) reset();
-  },
+  }
 );
 
 const reset = () => {
@@ -170,7 +171,7 @@ const submit = async () => {
       name: form.value.name.trim(),
       hostname: form.value.hostname.trim(),
       port: form.value.port,
-      plaintext: form.value.plaintext,
+      plaintext: form.value.plaintext
     });
     ToastService.success('Server Added', 'Connected to Jeffrey server.');
     emit('server-added');

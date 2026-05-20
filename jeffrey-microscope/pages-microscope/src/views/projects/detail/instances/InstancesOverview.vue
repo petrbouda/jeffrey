@@ -2,284 +2,283 @@
   <div>
     <MainCard>
       <template #header>
-        <MainCardHeader
-          icon="bi bi-box"
-          title="Instances Overview"
-        />
+        <MainCardHeader icon="bi bi-box" title="Instances Overview" />
       </template>
 
       <!-- Stat Cards -->
-    <div class="mb-4" v-if="!loading && instances.length > 0">
-      <div class="row g-3">
-        <!-- Instances -->
-        <div class="col-md-4 col-xl">
-          <div class="compact-stat-card">
-            <div class="compact-stat-header">
-              <i class="bi bi-box text-primary"></i>
-              <span class="compact-stat-title">Instances</span>
-            </div>
-            <div class="compact-stat-metrics">
-              <div class="metric-item" v-if="pendingCount > 0">
-                <span class="metric-label">Pending Instances</span>
-                <span class="metric-value">{{ pendingCount }}</span>
+      <div class="mb-4" v-if="!loading && instances.length > 0">
+        <div class="row g-3">
+          <!-- Instances -->
+          <div class="col-md-4 col-xl">
+            <div class="compact-stat-card">
+              <div class="compact-stat-header">
+                <i class="bi bi-box text-primary"></i>
+                <span class="compact-stat-title">Instances</span>
               </div>
-              <div class="metric-item">
-                <span class="metric-label">Active Instances</span>
-                <span class="metric-value">{{ activeCount }}</span>
-              </div>
-              <div class="metric-item">
-                <span class="metric-label">Finished Instances</span>
-                <span class="metric-value">{{ finishedCount }}</span>
-              </div>
-              <div class="metric-item" v-if="expiredCount > 0">
-                <span class="metric-label">Expired Instances</span>
-                <span class="metric-value">{{ expiredCount }}</span>
-              </div>
-              <div class="metric-item">
-                <span class="metric-label">Total Instances</span>
-                <span class="metric-value">{{ instances.length }}</span>
-              </div>
-              <div class="metric-item">
-                <span class="metric-label">Total Sessions</span>
-                <span class="metric-value">{{ totalSessions }}</span>
-              </div>
-              <div class="metric-item">
-                <span class="metric-label">Uptime Range</span>
-                <span class="metric-value">{{ uptimeRange }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Storage -->
-        <div class="col-md-4 col-xl" v-if="repositoryStatistics">
-          <div class="compact-stat-card">
-            <div class="compact-stat-header">
-              <i class="bi bi-hdd text-success"></i>
-              <span class="compact-stat-title">Storage</span>
-            </div>
-            <div class="compact-stat-metrics">
-              <div class="metric-item">
-                <span class="metric-label">Total Size</span>
-                <span class="metric-value">{{
-                  FormattingService.formatBytes(repositoryStatistics.totalSize)
-                }}</span>
-              </div>
-              <div class="metric-item">
-                <span class="metric-label">Total Files</span>
-                <span class="metric-value">{{ repositoryStatistics.totalFiles }}</span>
-              </div>
-              <div class="metric-item">
-                <span class="metric-label">Biggest Session</span>
-                <span class="metric-value">{{
-                  FormattingService.formatBytes(repositoryStatistics.biggestSessionSize)
-                }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- File Types -->
-        <div class="col-md-4 col-xl" v-if="repositoryStatistics">
-          <div class="compact-stat-card">
-            <div class="compact-stat-header">
-              <i class="bi bi-files text-info"></i>
-              <span class="compact-stat-title">File Types</span>
-            </div>
-            <div class="compact-stat-metrics compact-stat-metrics-grid">
-              <div class="metric-item metric-header-row">
-                <span class="metric-label"></span>
-                <span class="metric-col-header">Count</span>
-                <span class="metric-col-header">Size</span>
-              </div>
-              <div class="metric-item">
-                <span class="metric-label">JFR Files</span>
-                <span class="metric-value" style="color: #5e64ff">{{
-                  repositoryStatistics.jfrFiles ?? 0
-                }}</span>
-                <span class="metric-value metric-size" style="color: #5e64ff">{{
-                  FormattingService.formatBytes(repositoryStatistics.jfrSize ?? 0)
-                }}</span>
-              </div>
-              <div class="metric-item">
-                <span class="metric-label">Heap Dumps</span>
-                <span class="metric-value" style="color: #6f42c1">{{
-                  repositoryStatistics.heapDumpFiles ?? 0
-                }}</span>
-                <span class="metric-value metric-size" style="color: #6f42c1">{{
-                  FormattingService.formatBytes(repositoryStatistics.heapDumpSize ?? 0)
-                }}</span>
-              </div>
-              <div class="metric-item">
-                <span class="metric-label">JVM Logs</span>
-                <span class="metric-value" style="color: #14b8a6">{{
-                  repositoryStatistics.logFiles ?? 0
-                }}</span>
-                <span class="metric-value metric-size" style="color: #14b8a6">{{
-                  FormattingService.formatBytes(repositoryStatistics.logSize ?? 0)
-                }}</span>
-              </div>
-              <div class="metric-item">
-                <span class="metric-label">Application Logs</span>
-                <span class="metric-value" style="color: #8b5e3c">{{
-                  repositoryStatistics.appLogFiles ?? 0
-                }}</span>
-                <span class="metric-value metric-size" style="color: #8b5e3c">{{
-                  FormattingService.formatBytes(repositoryStatistics.appLogSize ?? 0)
-                }}</span>
-              </div>
-              <div class="metric-item">
-                <span class="metric-label">JVM Error Logs</span>
-                <span class="metric-value" style="color: #c62828">{{
-                  repositoryStatistics.errorLogFiles ?? 0
-                }}</span>
-                <span class="metric-value metric-size" style="color: #c62828">{{
-                  FormattingService.formatBytes(repositoryStatistics.errorLogSize ?? 0)
-                }}</span>
-              </div>
-              <div class="metric-item">
-                <span class="metric-label">Other Files</span>
-                <span class="metric-value" style="color: #6c757d">{{
-                  repositoryStatistics.otherFiles ?? 0
-                }}</span>
-                <span class="metric-value metric-size" style="color: #6c757d">{{
-                  FormattingService.formatBytes(repositoryStatistics.otherSize ?? 0)
-                }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Search Box and Filter -->
-    <div class="d-flex gap-3 mb-3 align-items-center">
-      <div class="input-group search-container flex-grow-1">
-        <span class="input-group-text"><i class="bi bi-search search-icon"></i></span>
-        <input
-          type="text"
-          class="form-control search-input"
-          placeholder="Search instances..."
-          v-model="searchQuery"
-        />
-        <button
-          v-if="searchQuery"
-          class="btn btn-outline-secondary clear-btn"
-          type="button"
-          @click="searchQuery = ''"
-        >
-          <i class="bi bi-x-lg"></i>
-        </button>
-      </div>
-      <div class="btn-group filter-btn-group" role="group">
-        <button
-          type="button"
-          class="btn btn-sm"
-          :class="statusFilter === '' ? 'btn-primary' : 'btn-outline-secondary'"
-          @click="statusFilter = ''"
-        >
-          All
-        </button>
-        <button
-          type="button"
-          class="btn btn-sm"
-          :class="statusFilter === 'PENDING' ? 'btn-primary' : 'btn-outline-secondary'"
-          @click="statusFilter = 'PENDING'"
-        >
-          Pending
-        </button>
-        <button
-          type="button"
-          class="btn btn-sm"
-          :class="statusFilter === 'ACTIVE' ? 'btn-primary' : 'btn-outline-secondary'"
-          @click="statusFilter = 'ACTIVE'"
-        >
-          Active
-        </button>
-        <button
-          type="button"
-          class="btn btn-sm"
-          :class="statusFilter === 'FINISHED' ? 'btn-primary' : 'btn-outline-secondary'"
-          @click="statusFilter = 'FINISHED'"
-        >
-          Finished
-        </button>
-        <button
-          type="button"
-          class="btn btn-sm"
-          :class="statusFilter === 'EXPIRED' ? 'btn-primary' : 'btn-outline-secondary'"
-          @click="statusFilter = 'EXPIRED'"
-        >
-          Expired
-        </button>
-      </div>
-    </div>
-
-    <!-- Instances Header Bar -->
-    <div class="col-12">
-      <SectionHeaderBar :text="`All Instances (${filteredInstances.length})`" />
-    </div>
-
-    <!-- Loading Indicator -->
-    <LoadingState v-if="loading" message="Loading instance history..." />
-
-    <!-- Instances List -->
-    <div v-else class="col-12">
-      <EmptyState
-        v-if="filteredInstances.length === 0"
-        icon="bi-box"
-        title="No Instances Found"
-        description="No instances match your search criteria."
-      />
-
-      <div v-else>
-        <router-link
-          v-for="instance in filteredInstances"
-          :key="instance.id"
-          :to="generateInstanceUrl(instance.id)"
-          class="instance-card d-block text-decoration-none mb-2"
-          :class="instanceCardClass(instance.status)"
-        >
-          <!-- Top section: instance name + badge + sessions + chevron -->
-          <div class="instance-identity" :class="instanceIdentityClass(instance.status)">
-            <div class="d-flex align-items-center">
-              <div class="instance-icon-square me-3" :class="instanceIconClass(instance.status)">
-                <i class="bi bi-box"></i>
-              </div>
-              <div class="flex-grow-1 min-width-0">
-                <div class="d-flex align-items-center">
-                  <span class="fw-bold text-dark">{{ instance.instanceName }}</span>
-                  <Badge
-                    class="ms-2"
-                    :value="instance.status"
-                    :variant="instanceBadgeVariant(instance.status)"
-                    size="xs"
-                  />
-                  <Badge
-                    v-if="instance.expiringAt"
-                    class="ms-1"
-                    value="Expiring"
-                    variant="warning"
-                    size="xs"
-                  />
+              <div class="compact-stat-metrics">
+                <div class="metric-item" v-if="pendingCount > 0">
+                  <span class="metric-label">Pending Instances</span>
+                  <span class="metric-value">{{ pendingCount }}</span>
                 </div>
-                <div class="instance-meta">
-                  <span><i class="bi bi-layers me-1"></i>{{ instance.sessionCount }} sessions</span>
+                <div class="metric-item">
+                  <span class="metric-label">Active Instances</span>
+                  <span class="metric-value">{{ activeCount }}</span>
+                </div>
+                <div class="metric-item">
+                  <span class="metric-label">Finished Instances</span>
+                  <span class="metric-value">{{ finishedCount }}</span>
+                </div>
+                <div class="metric-item" v-if="expiredCount > 0">
+                  <span class="metric-label">Expired Instances</span>
+                  <span class="metric-value">{{ expiredCount }}</span>
+                </div>
+                <div class="metric-item">
+                  <span class="metric-label">Total Instances</span>
+                  <span class="metric-value">{{ instances.length }}</span>
+                </div>
+                <div class="metric-item">
+                  <span class="metric-label">Total Sessions</span>
+                  <span class="metric-value">{{ totalSessions }}</span>
+                </div>
+                <div class="metric-item">
+                  <span class="metric-label">Uptime Range</span>
+                  <span class="metric-value">{{ uptimeRange }}</span>
                 </div>
               </div>
-              <i class="bi bi-chevron-right text-muted"></i>
             </div>
           </div>
 
-          <!-- Bottom timeline section -->
-          <TimelineBar
-            :createdAt="instance.createdAt"
-            :finishedAt="instance.finishedAt"
-            :duration="instance.duration"
+          <!-- Storage -->
+          <div class="col-md-4 col-xl" v-if="repositoryStatistics">
+            <div class="compact-stat-card">
+              <div class="compact-stat-header">
+                <i class="bi bi-hdd text-success"></i>
+                <span class="compact-stat-title">Storage</span>
+              </div>
+              <div class="compact-stat-metrics">
+                <div class="metric-item">
+                  <span class="metric-label">Total Size</span>
+                  <span class="metric-value">{{
+                    FormattingService.formatBytes(repositoryStatistics.totalSize)
+                  }}</span>
+                </div>
+                <div class="metric-item">
+                  <span class="metric-label">Total Files</span>
+                  <span class="metric-value">{{ repositoryStatistics.totalFiles }}</span>
+                </div>
+                <div class="metric-item">
+                  <span class="metric-label">Biggest Session</span>
+                  <span class="metric-value">{{
+                    FormattingService.formatBytes(repositoryStatistics.biggestSessionSize)
+                  }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- File Types -->
+          <div class="col-md-4 col-xl" v-if="repositoryStatistics">
+            <div class="compact-stat-card">
+              <div class="compact-stat-header">
+                <i class="bi bi-files text-info"></i>
+                <span class="compact-stat-title">File Types</span>
+              </div>
+              <div class="compact-stat-metrics compact-stat-metrics-grid">
+                <div class="metric-item metric-header-row">
+                  <span class="metric-label"></span>
+                  <span class="metric-col-header">Count</span>
+                  <span class="metric-col-header">Size</span>
+                </div>
+                <div class="metric-item">
+                  <span class="metric-label">JFR Files</span>
+                  <span class="metric-value" style="color: #5e64ff">{{
+                    repositoryStatistics.jfrFiles ?? 0
+                  }}</span>
+                  <span class="metric-value metric-size" style="color: #5e64ff">{{
+                    FormattingService.formatBytes(repositoryStatistics.jfrSize ?? 0)
+                  }}</span>
+                </div>
+                <div class="metric-item">
+                  <span class="metric-label">Heap Dumps</span>
+                  <span class="metric-value" style="color: #6f42c1">{{
+                    repositoryStatistics.heapDumpFiles ?? 0
+                  }}</span>
+                  <span class="metric-value metric-size" style="color: #6f42c1">{{
+                    FormattingService.formatBytes(repositoryStatistics.heapDumpSize ?? 0)
+                  }}</span>
+                </div>
+                <div class="metric-item">
+                  <span class="metric-label">JVM Logs</span>
+                  <span class="metric-value" style="color: #14b8a6">{{
+                    repositoryStatistics.logFiles ?? 0
+                  }}</span>
+                  <span class="metric-value metric-size" style="color: #14b8a6">{{
+                    FormattingService.formatBytes(repositoryStatistics.logSize ?? 0)
+                  }}</span>
+                </div>
+                <div class="metric-item">
+                  <span class="metric-label">Application Logs</span>
+                  <span class="metric-value" style="color: #8b5e3c">{{
+                    repositoryStatistics.appLogFiles ?? 0
+                  }}</span>
+                  <span class="metric-value metric-size" style="color: #8b5e3c">{{
+                    FormattingService.formatBytes(repositoryStatistics.appLogSize ?? 0)
+                  }}</span>
+                </div>
+                <div class="metric-item">
+                  <span class="metric-label">JVM Error Logs</span>
+                  <span class="metric-value" style="color: #c62828">{{
+                    repositoryStatistics.errorLogFiles ?? 0
+                  }}</span>
+                  <span class="metric-value metric-size" style="color: #c62828">{{
+                    FormattingService.formatBytes(repositoryStatistics.errorLogSize ?? 0)
+                  }}</span>
+                </div>
+                <div class="metric-item">
+                  <span class="metric-label">Other Files</span>
+                  <span class="metric-value" style="color: #6c757d">{{
+                    repositoryStatistics.otherFiles ?? 0
+                  }}</span>
+                  <span class="metric-value metric-size" style="color: #6c757d">{{
+                    FormattingService.formatBytes(repositoryStatistics.otherSize ?? 0)
+                  }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Search Box and Filter -->
+      <div class="d-flex gap-3 mb-3 align-items-center">
+        <div class="input-group search-container flex-grow-1">
+          <span class="input-group-text"><i class="bi bi-search search-icon"></i></span>
+          <input
+            type="text"
+            class="form-control search-input"
+            placeholder="Search instances..."
+            v-model="searchQuery"
           />
-        </router-link>
+          <button
+            v-if="searchQuery"
+            class="btn btn-outline-secondary clear-btn"
+            type="button"
+            @click="searchQuery = ''"
+          >
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </div>
+        <div class="btn-group filter-btn-group" role="group">
+          <button
+            type="button"
+            class="btn btn-sm"
+            :class="statusFilter === '' ? 'btn-primary' : 'btn-outline-secondary'"
+            @click="statusFilter = ''"
+          >
+            All
+          </button>
+          <button
+            type="button"
+            class="btn btn-sm"
+            :class="statusFilter === 'PENDING' ? 'btn-primary' : 'btn-outline-secondary'"
+            @click="statusFilter = 'PENDING'"
+          >
+            Pending
+          </button>
+          <button
+            type="button"
+            class="btn btn-sm"
+            :class="statusFilter === 'ACTIVE' ? 'btn-primary' : 'btn-outline-secondary'"
+            @click="statusFilter = 'ACTIVE'"
+          >
+            Active
+          </button>
+          <button
+            type="button"
+            class="btn btn-sm"
+            :class="statusFilter === 'FINISHED' ? 'btn-primary' : 'btn-outline-secondary'"
+            @click="statusFilter = 'FINISHED'"
+          >
+            Finished
+          </button>
+          <button
+            type="button"
+            class="btn btn-sm"
+            :class="statusFilter === 'EXPIRED' ? 'btn-primary' : 'btn-outline-secondary'"
+            @click="statusFilter = 'EXPIRED'"
+          >
+            Expired
+          </button>
+        </div>
       </div>
-    </div>
+
+      <!-- Instances Header Bar -->
+      <div class="col-12">
+        <SectionHeaderBar :text="`All Instances (${filteredInstances.length})`" />
+      </div>
+
+      <!-- Loading Indicator -->
+      <LoadingState v-if="loading" message="Loading instance history..." />
+
+      <!-- Instances List -->
+      <div v-else class="col-12">
+        <EmptyState
+          v-if="filteredInstances.length === 0"
+          icon="bi-box"
+          title="No Instances Found"
+          description="No instances match your search criteria."
+        />
+
+        <div v-else>
+          <router-link
+            v-for="instance in filteredInstances"
+            :key="instance.id"
+            :to="generateInstanceUrl(instance.id)"
+            class="instance-card d-block text-decoration-none mb-2"
+            :class="instanceCardClass(instance.status)"
+          >
+            <!-- Top section: instance name + badge + sessions + chevron -->
+            <div class="instance-identity" :class="instanceIdentityClass(instance.status)">
+              <div class="d-flex align-items-center">
+                <div class="instance-icon-square me-3" :class="instanceIconClass(instance.status)">
+                  <i class="bi bi-box"></i>
+                </div>
+                <div class="flex-grow-1 min-width-0">
+                  <div class="d-flex align-items-center">
+                    <span class="fw-bold text-dark">{{ instance.instanceName }}</span>
+                    <Badge
+                      class="ms-2"
+                      :value="instance.status"
+                      :variant="instanceBadgeVariant(instance.status)"
+                      size="xs"
+                    />
+                    <Badge
+                      v-if="instance.expiringAt"
+                      class="ms-1"
+                      value="Expiring"
+                      variant="warning"
+                      size="xs"
+                    />
+                  </div>
+                  <div class="instance-meta">
+                    <span
+                      ><i class="bi bi-layers me-1"></i>{{ instance.sessionCount }} sessions</span
+                    >
+                  </div>
+                </div>
+                <i class="bi bi-chevron-right text-muted"></i>
+              </div>
+            </div>
+
+            <!-- Bottom timeline section -->
+            <TimelineBar
+              :createdAt="instance.createdAt"
+              :finishedAt="instance.finishedAt"
+              :duration="instance.duration"
+            />
+          </router-link>
+        </div>
+      </div>
     </MainCard>
   </div>
 </template>
@@ -371,7 +370,11 @@ onMounted(async () => {
   instances.value = await client.list();
   loading.value = false;
 
-  const repositoryClient = new ProjectRepositoryClient(serverId.value, workspaceId.value!, projectId.value!);
+  const repositoryClient = new ProjectRepositoryClient(
+    serverId.value,
+    workspaceId.value!,
+    projectId.value!
+  );
   repositoryStatistics.value = await repositoryClient.getRepositoryStatistics();
 });
 </script>

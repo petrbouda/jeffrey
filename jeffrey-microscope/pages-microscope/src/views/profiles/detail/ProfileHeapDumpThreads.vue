@@ -38,7 +38,10 @@
         <template #toolbar>
           <TableToolbar v-model="searchQuery" search-placeholder="Filter...">
             <span class="toolbar-count">{{ filteredThreads.length }} threads</span>
-            <span v-if="filteredThreads.length !== threadsData.length" class="toolbar-badge-filtered">
+            <span
+              v-if="filteredThreads.length !== threadsData.length"
+              class="toolbar-badge-filtered"
+            >
               filtered from {{ threadsData.length }}
             </span>
             <template #filters>
@@ -58,247 +61,293 @@
             </template>
           </TableToolbar>
         </template>
-            <thead>
-              <tr>
-                <th style="width: 40px">#</th>
-                <th>Thread</th>
-                <th style="width: 36px"></th>
-              </tr>
-            </thead>
-            <tbody>
-              <template v-for="(thread, index) in filteredThreads" :key="thread.objectId">
-                <tr
-                  class="thread-row"
-                  :class="{ 'is-expanded': expandedThread === thread.objectId }"
-                  @click="toggleStack(thread.objectId)"
-                >
-                  <td class="text-muted align-middle">{{ index + 1 }}</td>
-                  <td class="thread-cell">
-                    <div class="thread-header">
-                      <span class="thread-name">{{ thread.name }}</span>
-                      <span class="thread-id">id 0x{{ thread.objectId.toString(16) }}</span>
-                      <span @click.stop>
-                        <InstanceActionButtons
-                          :object-id="thread.objectId"
-                          :show-gc-root-path="false"
-                          @show-referrers="openTreeModal($event, 'REFERRERS')"
-                          @show-reachables="openTreeModal($event, 'REACHABLES')"
-                        />
-                      </span>
-                    </div>
-                    <div class="thread-meta">
-                      <span v-if="thread.state" class="inline-stat">
-                        State
-                        <Badge :value="thread.state" :variant="stateVariant(thread.state)" size="xs" borderless />
-                      </span>
-                      <span v-if="thread.state" class="meta-separator">•</span>
+        <thead>
+          <tr>
+            <th style="width: 40px">#</th>
+            <th>Thread</th>
+            <th style="width: 36px"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <template v-for="(thread, index) in filteredThreads" :key="thread.objectId">
+            <tr
+              class="thread-row"
+              :class="{ 'is-expanded': expandedThread === thread.objectId }"
+              @click="toggleStack(thread.objectId)"
+            >
+              <td class="text-muted align-middle">{{ index + 1 }}</td>
+              <td class="thread-cell">
+                <div class="thread-header">
+                  <span class="thread-name">{{ thread.name }}</span>
+                  <span class="thread-id">id 0x{{ thread.objectId.toString(16) }}</span>
+                  <span @click.stop>
+                    <InstanceActionButtons
+                      :object-id="thread.objectId"
+                      :show-gc-root-path="false"
+                      @show-referrers="openTreeModal($event, 'REFERRERS')"
+                      @show-reachables="openTreeModal($event, 'REACHABLES')"
+                    />
+                  </span>
+                </div>
+                <div class="thread-meta">
+                  <span v-if="thread.state" class="inline-stat">
+                    State
+                    <Badge
+                      :value="thread.state"
+                      :variant="stateVariant(thread.state)"
+                      size="xs"
+                      borderless
+                    />
+                  </span>
+                  <span v-if="thread.state" class="meta-separator">•</span>
 
-                      <span v-if="thread.frameCount != null" class="inline-stat">
-                        Frames <strong>{{ thread.frameCount }}</strong>
-                      </span>
-                      <span v-if="thread.frameCount != null" class="meta-separator">•</span>
+                  <span v-if="thread.frameCount != null" class="inline-stat">
+                    Frames <strong>{{ thread.frameCount }}</strong>
+                  </span>
+                  <span v-if="thread.frameCount != null" class="meta-separator">•</span>
 
-                      <span v-if="thread.localsCount != null" class="inline-stat">
-                        Locals
-                        <strong>{{ thread.localsCount }} ·
-                          {{ FormattingService.formatBytes(thread.localsBytes ?? 0) }}</strong>
-                      </span>
-                      <span v-if="thread.localsCount != null" class="meta-separator">•</span>
+                  <span v-if="thread.localsCount != null" class="inline-stat">
+                    Locals
+                    <strong
+                      >{{ thread.localsCount }} ·
+                      {{ FormattingService.formatBytes(thread.localsBytes ?? 0) }}</strong
+                    >
+                  </span>
+                  <span v-if="thread.localsCount != null" class="meta-separator">•</span>
 
-                      <span v-if="thread.retainedSize != null" class="inline-stat">
-                        Retained <strong class="retained-strong">{{ FormattingService.formatBytes(thread.retainedSize) }}</strong>
-                      </span>
-                      <span v-if="thread.retainedSize != null" class="meta-separator">•</span>
+                  <span v-if="thread.retainedSize != null" class="inline-stat">
+                    Retained
+                    <strong class="retained-strong">{{
+                      FormattingService.formatBytes(thread.retainedSize)
+                    }}</strong>
+                  </span>
+                  <span v-if="thread.retainedSize != null" class="meta-separator">•</span>
 
-                      <span class="inline-stat">{{ thread.daemon ? 'Daemon' : 'Non-Daemon' }}</span>
-                      <span class="meta-separator">•</span>
-                      <span class="inline-stat" :class="'priority-' + getPriorityClass(thread.priority)">
-                        Priority <strong>{{ thread.priority }}</strong>
-                      </span>
-                    </div>
-                  </td>
-                  <td class="text-center align-middle chevron-cell">
-                    <i
-                      class="bi"
-                      :class="expandedThread === thread.objectId ? 'bi-chevron-up' : 'bi-chevron-down'"
-                    ></i>
-                  </td>
-                </tr>
-                <!-- Stack expansion row — inline two-pane inspector -->
-                <tr v-if="expandedThread === thread.objectId" class="stack-expansion-row">
-                  <td :colspan="columnCount">
-                    <div v-if="stackLoading" class="text-center py-3">
-                      <div class="spinner-border spinner-border-sm text-secondary" role="status">
-                        <span class="visually-hidden">Loading...</span>
+                  <span class="inline-stat">{{ thread.daemon ? 'Daemon' : 'Non-Daemon' }}</span>
+                  <span class="meta-separator">•</span>
+                  <span
+                    class="inline-stat"
+                    :class="'priority-' + getPriorityClass(thread.priority)"
+                  >
+                    Priority <strong>{{ thread.priority }}</strong>
+                  </span>
+                </div>
+              </td>
+              <td class="text-center align-middle chevron-cell">
+                <i
+                  class="bi"
+                  :class="expandedThread === thread.objectId ? 'bi-chevron-up' : 'bi-chevron-down'"
+                ></i>
+              </td>
+            </tr>
+            <!-- Stack expansion row — inline two-pane inspector -->
+            <tr v-if="expandedThread === thread.objectId" class="stack-expansion-row">
+              <td :colspan="columnCount">
+                <div v-if="stackLoading" class="text-center py-3">
+                  <div class="spinner-border spinner-border-sm text-secondary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                  </div>
+                  <span class="ms-2 text-muted small">Loading stack frames...</span>
+                </div>
+                <div v-else-if="stackFrames.length === 0" class="text-muted small py-2">
+                  No stack frames available for this thread.
+                </div>
+
+                <div v-else class="inspector">
+                  <div class="inspector-split">
+                    <div class="frames-pane">
+                      <div class="pane-header">
+                        <span class="pane-title">Frames</span>
+                        <span class="pane-hint">click to inspect</span>
                       </div>
-                      <span class="ms-2 text-muted small">Loading stack frames...</span>
-                    </div>
-                    <div v-else-if="stackFrames.length === 0" class="text-muted small py-2">
-                      No stack frames available for this thread.
-                    </div>
-
-                    <div v-else class="inspector">
-                      <div class="inspector-split">
-                        <div class="frames-pane">
-                          <div class="pane-header">
-                            <span class="pane-title">Frames</span>
-                            <span class="pane-hint">click to inspect</span>
-                          </div>
-                          <div class="frame-list">
-                            <div
-                              v-for="(frame, idx) in stackFrames"
-                              :key="idx"
-                              class="frame-row"
-                              :class="{
-                                selected: idx === selectedFrameIndex,
-                                'has-locals': frame.locals && frame.locals.length > 0
-                              }"
-                              @click="selectedFrameIndex = idx"
-                            >
-                              <span class="frame-depth">{{ idx }}</span>
-                              <div class="frame-row-body">
-                                <div class="frame-row-method">
-                                  {{ simpleClassName(frame.className) }}.{{ frame.methodName }}
-                                </div>
-                                <div class="frame-row-source">
-                                  {{ frameSourceLabel(frame) }}
-                                  <span v-if="frame.locals && frame.locals.length > 0">
-                                    · {{ frame.locals.length }} local{{ frame.locals.length === 1 ? '' : 's' }}
-                                  </span>
-                                </div>
-                              </div>
-                              <span class="frame-row-marker"></span>
+                      <div class="frame-list">
+                        <div
+                          v-for="(frame, idx) in stackFrames"
+                          :key="idx"
+                          class="frame-row"
+                          :class="{
+                            selected: idx === selectedFrameIndex,
+                            'has-locals': frame.locals && frame.locals.length > 0
+                          }"
+                          @click="selectedFrameIndex = idx"
+                        >
+                          <span class="frame-depth">{{ idx }}</span>
+                          <div class="frame-row-body">
+                            <div class="frame-row-method">
+                              {{ simpleClassName(frame.className) }}.{{ frame.methodName }}
                             </div>
-                          </div>
-                        </div>
-
-                        <div class="detail-pane" v-if="stackFrames[selectedFrameIndex]">
-                          <div class="detail-header">
-                            <div class="crumb-row">
-                              <div class="crumb">
-                                <span class="crumb-tag">FRAME {{ selectedFrameIndex }} / {{ stackFrames.length - 1 }}</span>
-                                <span class="crumb-divider">·</span>
-                                <span>{{ frameKindLabel(stackFrames[selectedFrameIndex]) }}</span>
-                              </div>
-                              <div class="nav-row">
-                                <button
-                                  class="nav-btn"
-                                  :disabled="selectedFrameIndex === 0"
-                                  :title="`Caller (frame ${selectedFrameIndex - 1})`"
-                                  @click="selectedFrameIndex = Math.max(0, selectedFrameIndex - 1)"
-                                >
-                                  <i class="bi bi-arrow-up"></i> Caller
-                                </button>
-                                <button
-                                  class="nav-btn"
-                                  :disabled="selectedFrameIndex >= stackFrames.length - 1"
-                                  :title="`Callee (frame ${selectedFrameIndex + 1})`"
-                                  @click="selectedFrameIndex = Math.min(stackFrames.length - 1, selectedFrameIndex + 1)"
-                                >
-                                  Callee <i class="bi bi-arrow-down"></i>
-                                </button>
-                              </div>
-                            </div>
-                            <div class="signature">
-                              {{ simpleClassName(stackFrames[selectedFrameIndex].className) }}.<span class="method">{{ stackFrames[selectedFrameIndex].methodName }}</span><span class="parens">()</span>
-                            </div>
-                            <div
-                              v-if="packageName(stackFrames[selectedFrameIndex].className)"
-                              class="sig-package"
-                              :class="isJdkPackage(packageName(stackFrames[selectedFrameIndex].className)) ? 'sig-pkg-jdk' : 'sig-pkg-other'"
-                            >{{ packageName(stackFrames[selectedFrameIndex].className) }}</div>
-                            <div class="meta-line">
-                              <span
-                                v-if="stackFrames[selectedFrameIndex].sourceFile"
-                                class="item source"
-                              >
-                                <i class="bi bi-file-earmark-code icon"></i>
-                                <strong>{{ stackFrames[selectedFrameIndex].sourceFile }}</strong>
-                                <template v-if="stackFrames[selectedFrameIndex].lineNumber > 0">
-                                  : <strong>{{ stackFrames[selectedFrameIndex].lineNumber }}</strong>
-                                </template>
-                              </span>
-                              <span
-                                v-if="stackFrames[selectedFrameIndex].locals.length > 0"
-                                class="sep"
-                              >|</span>
-                              <span
-                                v-if="stackFrames[selectedFrameIndex].locals.length > 0"
-                                class="item badges"
-                              >
-                                <Badge
-                                  size="xs"
-                                  variant="warning"
-                                  :uppercase="false"
-                                  key-label="Retained"
-                                  :value="FormattingService.formatBytes(localsBytes(stackFrames[selectedFrameIndex]))"
-                                />
-                                <Badge
-                                  size="xs"
-                                  variant="secondary"
-                                  :uppercase="false"
-                                  key-label="Locals"
-                                  :value="String(stackFrames[selectedFrameIndex].locals.length)"
-                                />
+                            <div class="frame-row-source">
+                              {{ frameSourceLabel(frame) }}
+                              <span v-if="frame.locals && frame.locals.length > 0">
+                                · {{ frame.locals.length }} local{{
+                                  frame.locals.length === 1 ? '' : 's'
+                                }}
                               </span>
                             </div>
                           </div>
+                          <span class="frame-row-marker"></span>
+                        </div>
+                      </div>
+                    </div>
 
-                          <div class="detail-body">
-                            <div
-                              v-if="stackFrames[selectedFrameIndex].locals.length > 0"
-                              class="section"
+                    <div class="detail-pane" v-if="stackFrames[selectedFrameIndex]">
+                      <div class="detail-header">
+                        <div class="crumb-row">
+                          <div class="crumb">
+                            <span class="crumb-tag"
+                              >FRAME {{ selectedFrameIndex }} / {{ stackFrames.length - 1 }}</span
                             >
-                              <div class="section-title">
-                                Locals
-                                <span class="section-count">{{ stackFrames[selectedFrameIndex].locals.length }}</span>
-                              </div>
-                              <div class="locals-list">
-                                <div
-                                  v-for="local in stackFrames[selectedFrameIndex].locals"
-                                  :key="local.objectId"
-                                  class="local-row"
-                                >
-                                  <ClassNameDisplay :class-name="local.className" />
-                                  <div class="local-size">
-                                    {{ FormattingService.formatBytes(local.shallowSize) }}
-                                  </div>
-                                  <div class="local-id">
-                                    0x{{ local.objectId.toString(16) }}
-                                  </div>
-                                  <div class="local-actions">
-                                    <InstanceActionButtons
-                                      :object-id="local.objectId"
-                                      :show-gc-root-path="false"
-                                      @show-referrers="openTreeModal($event, 'REFERRERS')"
-                                      @show-reachables="openTreeModal($event, 'REACHABLES')"
-                                    />
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                            <div v-else class="section empty-locals">
-                              No locals captured in this frame.
-                            </div>
+                            <span class="crumb-divider">·</span>
+                            <span>{{ frameKindLabel(stackFrames[selectedFrameIndex]) }}</span>
+                          </div>
+                          <div class="nav-row">
+                            <button
+                              class="nav-btn"
+                              :disabled="selectedFrameIndex === 0"
+                              :title="`Caller (frame ${selectedFrameIndex - 1})`"
+                              @click="selectedFrameIndex = Math.max(0, selectedFrameIndex - 1)"
+                            >
+                              <i class="bi bi-arrow-up"></i> Caller
+                            </button>
+                            <button
+                              class="nav-btn"
+                              :disabled="selectedFrameIndex >= stackFrames.length - 1"
+                              :title="`Callee (frame ${selectedFrameIndex + 1})`"
+                              @click="
+                                selectedFrameIndex = Math.min(
+                                  stackFrames.length - 1,
+                                  selectedFrameIndex + 1
+                                )
+                              "
+                            >
+                              Callee <i class="bi bi-arrow-down"></i>
+                            </button>
+                          </div>
+                        </div>
+                        <div class="signature">
+                          {{ simpleClassName(stackFrames[selectedFrameIndex].className) }}.<span
+                            class="method"
+                            >{{ stackFrames[selectedFrameIndex].methodName }}</span
+                          ><span class="parens">()</span>
+                        </div>
+                        <div
+                          v-if="packageName(stackFrames[selectedFrameIndex].className)"
+                          class="sig-package"
+                          :class="
+                            isJdkPackage(packageName(stackFrames[selectedFrameIndex].className))
+                              ? 'sig-pkg-jdk'
+                              : 'sig-pkg-other'
+                          "
+                        >
+                          {{ packageName(stackFrames[selectedFrameIndex].className) }}
+                        </div>
+                        <div class="meta-line">
+                          <span
+                            v-if="stackFrames[selectedFrameIndex].sourceFile"
+                            class="item source"
+                          >
+                            <i class="bi bi-file-earmark-code icon"></i>
+                            <strong>{{ stackFrames[selectedFrameIndex].sourceFile }}</strong>
+                            <template v-if="stackFrames[selectedFrameIndex].lineNumber > 0">
+                              : <strong>{{ stackFrames[selectedFrameIndex].lineNumber }}</strong>
+                            </template>
+                          </span>
+                          <span v-if="stackFrames[selectedFrameIndex].locals.length > 0" class="sep"
+                            >|</span
+                          >
+                          <span
+                            v-if="stackFrames[selectedFrameIndex].locals.length > 0"
+                            class="item badges"
+                          >
+                            <Badge
+                              size="xs"
+                              variant="warning"
+                              :uppercase="false"
+                              key-label="Retained"
+                              :value="
+                                FormattingService.formatBytes(
+                                  localsBytes(stackFrames[selectedFrameIndex])
+                                )
+                              "
+                            />
+                            <Badge
+                              size="xs"
+                              variant="secondary"
+                              :uppercase="false"
+                              key-label="Locals"
+                              :value="String(stackFrames[selectedFrameIndex].locals.length)"
+                            />
+                          </span>
+                        </div>
+                      </div>
 
+                      <div class="detail-body">
+                        <div
+                          v-if="stackFrames[selectedFrameIndex].locals.length > 0"
+                          class="section"
+                        >
+                          <div class="section-title">
+                            Locals
+                            <span class="section-count">{{
+                              stackFrames[selectedFrameIndex].locals.length
+                            }}</span>
+                          </div>
+                          <div class="locals-list">
                             <div
-                              v-if="frameInsight(stackFrames[selectedFrameIndex], selectedFrameIndex, stackFrames)"
-                              class="section insight"
+                              v-for="local in stackFrames[selectedFrameIndex].locals"
+                              :key="local.objectId"
+                              class="local-row"
                             >
-                              <div class="section-title">Insight</div>
-                              <div class="insight-body">
-                                <i class="bi bi-info-circle me-2"></i>
-                                {{ frameInsight(stackFrames[selectedFrameIndex], selectedFrameIndex, stackFrames) }}
+                              <ClassNameDisplay :class-name="local.className" />
+                              <div class="local-size">
+                                {{ FormattingService.formatBytes(local.shallowSize) }}
+                              </div>
+                              <div class="local-id">0x{{ local.objectId.toString(16) }}</div>
+                              <div class="local-actions">
+                                <InstanceActionButtons
+                                  :object-id="local.objectId"
+                                  :show-gc-root-path="false"
+                                  @show-referrers="openTreeModal($event, 'REFERRERS')"
+                                  @show-reachables="openTreeModal($event, 'REACHABLES')"
+                                />
                               </div>
                             </div>
                           </div>
                         </div>
+                        <div v-else class="section empty-locals">
+                          No locals captured in this frame.
+                        </div>
+
+                        <div
+                          v-if="
+                            frameInsight(
+                              stackFrames[selectedFrameIndex],
+                              selectedFrameIndex,
+                              stackFrames
+                            )
+                          "
+                          class="section insight"
+                        >
+                          <div class="section-title">Insight</div>
+                          <div class="insight-body">
+                            <i class="bi bi-info-circle me-2"></i>
+                            {{
+                              frameInsight(
+                                stackFrames[selectedFrameIndex],
+                                selectedFrameIndex,
+                                stackFrames
+                              )
+                            }}
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  </td>
-                </tr>
-              </template>
-            </tbody>
+                  </div>
+                </div>
+              </td>
+            </tr>
+          </template>
+        </tbody>
       </DataTable>
     </div>
 
@@ -544,9 +593,15 @@ const threadStateLabel = (frames: ThreadStackFrame[]): string => {
   if (frames.length === 0) return 'Unknown';
   const top = frames[0];
   const method = `${top.className}.${top.methodName}`;
-  if (method === 'jdk.internal.misc.Unsafe.park' || method === 'sun.misc.Unsafe.park') return 'PARKED';
+  if (method === 'jdk.internal.misc.Unsafe.park' || method === 'sun.misc.Unsafe.park')
+    return 'PARKED';
   if (method === 'java.lang.Object.wait' || method === 'java.lang.Object.wait0') return 'WAITING';
-  if (method === 'java.lang.Thread.sleep' || method === 'java.lang.Thread.sleep0' || method === 'java.lang.Thread.sleepNanos') return 'SLEEPING';
+  if (
+    method === 'java.lang.Thread.sleep' ||
+    method === 'java.lang.Thread.sleep0' ||
+    method === 'java.lang.Thread.sleepNanos'
+  )
+    return 'SLEEPING';
   if (top.lineNumber === -3) return 'NATIVE';
   return 'RUNNABLE';
 };
@@ -569,13 +624,16 @@ const threadStatePillClass = (frames: ThreadStackFrame[]): string => {
 // Best-effort one-liner explaining what the frame is doing. Keeps the
 // inspector useful even when the user isn't fluent in JDK internals.
 const frameInsight = (
-    frame: ThreadStackFrame, index: number, frames: ThreadStackFrame[]): string | null => {
+  frame: ThreadStackFrame,
+  index: number,
+  frames: ThreadStackFrame[]
+): string | null => {
   const method = `${frame.className}.${frame.methodName}`;
   if (method === 'jdk.internal.misc.Unsafe.park' || method === 'sun.misc.Unsafe.park') {
     return 'Thread is parked on a synchronizer (LockSupport.park). It will resume when another thread unparks it.';
   }
   if (frame.className === 'java.util.concurrent.locks.LockSupport' && frame.methodName === 'park') {
-    return 'LockSupport.park — the JDK\'s lowest-level blocking primitive. Typically used by AQS-based locks and BlockingQueue.';
+    return "LockSupport.park — the JDK's lowest-level blocking primitive. Typically used by AQS-based locks and BlockingQueue.";
   }
   if (frame.className.endsWith('ConditionObject') && frame.methodName === 'await') {
     return 'Awaiting a Condition. Another thread holding the same lock must call signal() / signalAll() to wake this thread up.';
@@ -583,17 +641,27 @@ const frameInsight = (
   if (frame.className.endsWith('DelayedWorkQueue') && frame.methodName === 'take') {
     return 'Worker thread of a ScheduledExecutorService waiting for the next scheduled task.';
   }
-  if (frame.className === 'java.util.concurrent.ThreadPoolExecutor' && frame.methodName === 'getTask') {
+  if (
+    frame.className === 'java.util.concurrent.ThreadPoolExecutor' &&
+    frame.methodName === 'getTask'
+  ) {
     return 'ThreadPool worker waiting for the next task on its work queue (idle).';
   }
-  if (frame.className === 'java.lang.Object' && (frame.methodName === 'wait' || frame.methodName === 'wait0')) {
-    return 'Classic Object.wait() — waiting for a notify()/notifyAll() on this object\'s monitor.';
+  if (
+    frame.className === 'java.lang.Object' &&
+    (frame.methodName === 'wait' || frame.methodName === 'wait0')
+  ) {
+    return "Classic Object.wait() — waiting for a notify()/notifyAll() on this object's monitor.";
   }
   if (frame.lineNumber === -3 && index === 0) {
     return 'Top of stack is a native method — typically a blocking syscall (park, epoll, accept, read).';
   }
-  if (index === frames.length - 1 && frame.className === 'java.lang.Thread' && frame.methodName === 'run') {
-    return 'Bottom of stack — the thread\'s entry point. Everything above this is the work the thread was performing.';
+  if (
+    index === frames.length - 1 &&
+    frame.className === 'java.lang.Thread' &&
+    frame.methodName === 'run'
+  ) {
+    return "Bottom of stack — the thread's entry point. Everything above this is the work the thread was performing.";
   }
   return null;
 };

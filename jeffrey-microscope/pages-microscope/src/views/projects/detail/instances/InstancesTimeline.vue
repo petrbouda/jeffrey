@@ -67,17 +67,19 @@
                 class="bi rail-chevron"
                 :class="expandedIds.has(instance.id) ? 'bi-chevron-down' : 'bi-chevron-right'"
               ></i>
-              <router-link
-                :to="generateInstanceUrl(instance.id)"
-                class="rail-name"
-                @click.stop
-              >
+              <router-link :to="generateInstanceUrl(instance.id)" class="rail-name" @click.stop>
                 <span class="rail-name-text">{{ instance.instanceName }}</span>
                 <i class="bi bi-box-arrow-up-right rail-name-icon"></i>
               </router-link>
               <div class="rail-meta">
-                <span><i class="bi bi-clock me-1"></i>{{ FormattingService.formatDurationInMillis2Units(instance.duration) }}</span>
-                <span><i class="bi bi-layers me-1"></i>{{ instance.sessionCount }} {{ instance.sessionCount === 1 ? 'session' : 'sessions' }}</span>
+                <span
+                  ><i class="bi bi-clock me-1"></i
+                  >{{ FormattingService.formatDurationInMillis2Units(instance.duration) }}</span
+                >
+                <span
+                  ><i class="bi bi-layers me-1"></i>{{ instance.sessionCount }}
+                  {{ instance.sessionCount === 1 ? 'session' : 'sessions' }}</span
+                >
               </div>
             </div>
 
@@ -89,7 +91,8 @@
                   :key="tick"
                   class="axis-tick"
                   :style="{ left: axisTickLeft(idx) }"
-                >{{ tick }}</span>
+                  >{{ tick }}</span
+                >
               </div>
 
               <!-- Sessions lane -->
@@ -100,7 +103,10 @@
                     v-for="(session, idx) in getSessionsForInstance(instance.id)"
                     :key="session.id"
                     class="session-bar"
-                    :class="[sessionBarClass(session, idx), { selected: activeSessionByInstance.get(instance.id) === session.id }]"
+                    :class="[
+                      sessionBarClass(session, idx),
+                      { selected: activeSessionByInstance.get(instance.id) === session.id }
+                    ]"
                     :style="getSessionBarStyle(session)"
                     @mouseenter.stop="showSessionTooltip($event, session, instance.id)"
                     @mousemove.stop="updateTooltipPosition($event)"
@@ -109,7 +115,6 @@
                   ></div>
                 </template>
               </div>
-
             </div>
           </div>
 
@@ -156,16 +161,53 @@
                     <span class="detail-card-title">Overview</span>
                   </div>
                   <div class="detail-card-body">
-                    <div class="kv"><span class="k">started</span><span class="v mono">{{ FormattingService.formatTimestampUTC(instanceDetails.get(instance.id)!.instance.createdAt) }}</span></div>
+                    <div class="kv">
+                      <span class="k">started</span
+                      ><span class="v mono">{{
+                        FormattingService.formatTimestampUTC(
+                          instanceDetails.get(instance.id)!.instance.createdAt
+                        )
+                      }}</span>
+                    </div>
                     <div class="kv">
                       <span class="k">finished</span>
-                      <span v-if="instanceEnd(instanceDetails.get(instance.id)!.instance)" class="v mono">{{ FormattingService.formatTimestampUTC(instanceEnd(instanceDetails.get(instance.id)!.instance)) }}</span>
+                      <span
+                        v-if="instanceEnd(instanceDetails.get(instance.id)!.instance)"
+                        class="v mono"
+                        >{{
+                          FormattingService.formatTimestampUTC(
+                            instanceEnd(instanceDetails.get(instance.id)!.instance)
+                          )
+                        }}</span
+                      >
                       <span v-else class="v running">Running...</span>
                     </div>
-                    <div class="kv"><span class="k">duration</span><span class="v mono">{{ FormattingService.formatDurationInMillis2Units(instanceDetails.get(instance.id)!.instance.duration) }}</span></div>
-                    <div class="kv"><span class="k">sessions</span><span class="v mono">{{ instanceDetails.get(instance.id)!.instance.sessionCount }}</span></div>
-                    <div class="kv"><span class="k">files</span><span class="v mono">{{ instanceDetails.get(instance.id)!.fileCount }}</span></div>
-                    <div class="kv"><span class="k">storage</span><span class="v mono">{{ FormattingService.formatBytes(instanceDetails.get(instance.id)!.totalSizeBytes) }}</span></div>
+                    <div class="kv">
+                      <span class="k">duration</span
+                      ><span class="v mono">{{
+                        FormattingService.formatDurationInMillis2Units(
+                          instanceDetails.get(instance.id)!.instance.duration
+                        )
+                      }}</span>
+                    </div>
+                    <div class="kv">
+                      <span class="k">sessions</span
+                      ><span class="v mono">{{
+                        instanceDetails.get(instance.id)!.instance.sessionCount
+                      }}</span>
+                    </div>
+                    <div class="kv">
+                      <span class="k">files</span
+                      ><span class="v mono">{{ instanceDetails.get(instance.id)!.fileCount }}</span>
+                    </div>
+                    <div class="kv">
+                      <span class="k">storage</span
+                      ><span class="v mono">{{
+                        FormattingService.formatBytes(
+                          instanceDetails.get(instance.id)!.totalSizeBytes
+                        )
+                      }}</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -174,7 +216,10 @@
 
           <!-- Session drawer: opens when a session bar in the timeline above is clicked. -->
           <template v-if="activeSessionByInstance.has(instance.id)">
-            <template v-for="session in getSessionsForInstance(instance.id)" :key="session.id + ':drawer'">
+            <template
+              v-for="session in getSessionsForInstance(instance.id)"
+              :key="session.id + ':drawer'"
+            >
               <div
                 v-if="activeSessionByInstance.get(instance.id) === session.id"
                 class="inline-drawer"
@@ -185,7 +230,11 @@
                   <span class="inline-drawer-id mono">{{ session.id }}</span>
                   <span
                     class="session-status-dot"
-                    :class="session.isActive ? 'session-status-dot--active' : 'session-status-dot--finished'"
+                    :class="
+                      session.isActive
+                        ? 'session-status-dot--active'
+                        : 'session-status-dot--finished'
+                    "
                     :title="session.isActive ? 'Active' : 'Finished'"
                     :aria-label="session.isActive ? 'Active' : 'Finished'"
                   ></span>
@@ -239,14 +288,19 @@
                   />
                   <div v-else class="detail-cards">
                     <div
-                      v-for="card in envCards(sessionDetails.get(session.id)!.environment!, session.isActive === true)"
+                      v-for="card in envCards(
+                        sessionDetails.get(session.id)!.environment!,
+                        session.isActive === true
+                      )"
                       :key="card.id"
                       class="detail-card"
                       :class="{ 'detail-card--empty': card.kind === 'single' && !card.hasData }"
                     >
                       <div class="detail-card-head">
                         <span class="detail-card-title">{{ card.title }}</span>
-                        <span v-if="card.subtitle" class="detail-card-subtitle mono">{{ card.subtitle }}</span>
+                        <span v-if="card.subtitle" class="detail-card-subtitle mono">{{
+                          card.subtitle
+                        }}</span>
                       </div>
                       <div class="detail-card-body">
                         <!-- Merged OS + Virtualization card: two stacked sub-sections with mini-headers. -->
@@ -258,22 +312,36 @@
                           >
                             <div class="detail-card-section-head">
                               <span class="detail-card-section-label">{{ section.label }}</span>
-                              <span class="detail-card-section-type mono">{{ section.typeName }}</span>
+                              <span class="detail-card-section-type mono">{{
+                                section.typeName
+                              }}</span>
                             </div>
                             <template v-if="section.hasData">
-                              <template
-                                v-for="row in fieldRows(section.fields)"
-                                :key="row.key"
-                              >
+                              <template v-for="row in fieldRows(section.fields)" :key="row.key">
                                 <div class="kv" :class="{ long: row.multi }">
                                   <span class="k">{{ row.label }}</span>
-                                  <span class="v" :class="{ mono: row.mono, multi: row.multi, 'bool-true': row.boolTrue, 'bool-false': row.boolFalse }">{{ rowDisplay(row, section.typeName) }}</span>
+                                  <span
+                                    class="v"
+                                    :class="{
+                                      mono: row.mono,
+                                      multi: row.multi,
+                                      'bool-true': row.boolTrue,
+                                      'bool-false': row.boolFalse
+                                    }"
+                                    >{{ rowDisplay(row, section.typeName) }}</span
+                                  >
                                   <button
                                     v-if="row.truncatable"
                                     type="button"
                                     class="expand-toggle"
                                     @click="toggleRow(section.typeName, row.key)"
-                                  >{{ isRowExpanded(section.typeName, row.key) ? 'Show less' : 'Show more' }}</button>
+                                  >
+                                    {{
+                                      isRowExpanded(section.typeName, row.key)
+                                        ? 'Show less'
+                                        : 'Show more'
+                                    }}
+                                  </button>
                                 </div>
                               </template>
                             </template>
@@ -296,29 +364,51 @@
                               <span class="k">kind</span>
                               <span class="v">
                                 <Badge
-                                  :value="shutdownKindLabel(classifyShutdownKind((card.fields as any).reason))"
-                                  :variant="shutdownKindVariant(classifyShutdownKind((card.fields as any).reason))"
+                                  :value="
+                                    shutdownKindLabel(
+                                      classifyShutdownKind((card.fields as any).reason)
+                                    )
+                                  "
+                                  :variant="
+                                    shutdownKindVariant(
+                                      classifyShutdownKind((card.fields as any).reason)
+                                    )
+                                  "
                                   size="xxs"
                                 />
                               </span>
                             </div>
                             <div class="kv kv-desc">
-                              <span class="v reason-desc">{{ shutdownKindDescription(classifyShutdownKind((card.fields as any).reason)) }}</span>
+                              <span class="v reason-desc">{{
+                                shutdownKindDescription(
+                                  classifyShutdownKind((card.fields as any).reason)
+                                )
+                              }}</span>
                             </div>
                           </template>
-                          <template
-                            v-for="row in fieldRows(card.fields)"
-                            :key="row.key"
-                          >
+                          <template v-for="row in fieldRows(card.fields)" :key="row.key">
                             <div class="kv" :class="{ long: row.multi }">
                               <span class="k">{{ row.label }}</span>
-                              <span class="v" :class="{ mono: row.mono, multi: row.multi, 'bool-true': row.boolTrue, 'bool-false': row.boolFalse }">{{ rowDisplay(row, card.typeName) }}</span>
+                              <span
+                                class="v"
+                                :class="{
+                                  mono: row.mono,
+                                  multi: row.multi,
+                                  'bool-true': row.boolTrue,
+                                  'bool-false': row.boolFalse
+                                }"
+                                >{{ rowDisplay(row, card.typeName) }}</span
+                              >
                               <button
                                 v-if="row.truncatable"
                                 type="button"
                                 class="expand-toggle"
                                 @click="toggleRow(card.typeName, row.key)"
-                              >{{ isRowExpanded(card.typeName, row.key) ? 'Show less' : 'Show more' }}</button>
+                              >
+                                {{
+                                  isRowExpanded(card.typeName, row.key) ? 'Show less' : 'Show more'
+                                }}
+                              </button>
                             </div>
                           </template>
                         </template>
@@ -374,7 +464,9 @@
             <div class="timeline-tooltip-row">
               <span class="timeline-tooltip-label">Duration</span>
               <span class="timeline-tooltip-value">
-                {{ FormattingService.formatDurationInMillis2Units(hoveredSession.session.duration) }}
+                {{
+                  FormattingService.formatDurationInMillis2Units(hoveredSession.session.duration)
+                }}
               </span>
             </div>
           </div>
@@ -400,7 +492,14 @@ import FormattingService from '@/services/FormattingService';
 import { useNavigation } from '@/composables/useNavigation';
 import '@/styles/shared-components.css';
 
-const { serverId, workspaceId, projectId, generateInstanceUrl, generateLiveStreamUrl, generateReplayStreamUrl } = useNavigation();
+const {
+  serverId,
+  workspaceId,
+  projectId,
+  generateInstanceUrl,
+  generateLiveStreamUrl,
+  generateReplayStreamUrl
+} = useNavigation();
 
 const timeRanges = [
   { label: '1H', value: '1h' },
@@ -422,7 +521,11 @@ const instanceDetails = ref<Map<string, ProjectInstanceDetail>>(new Map());
 // clicking another bar in the same row swaps the content.
 const activeSessionByInstance = ref<Map<string, string>>(new Map());
 const sessionDetails = ref<Map<string, ProjectInstanceSessionDetail>>(new Map());
-const instanceClient = new ProjectInstanceClient(serverId.value, workspaceId.value!, projectId.value!);
+const instanceClient = new ProjectInstanceClient(
+  serverId.value,
+  workspaceId.value!,
+  projectId.value!
+);
 
 const totalSessions = computed(() =>
   instances.value.reduce((sum, i) => sum + (i.sessionCount ?? 0), 0)
@@ -531,7 +634,7 @@ const CARD_TITLE_OVERRIDES: Record<string, string> = {
   'jdk.CompilerConfiguration': 'Compiler',
   'jdk.ContainerConfiguration': 'Container',
   'jdk.VirtualizationInformation': 'Virtualization',
-  'jdk.Shutdown': 'Shutdown',
+  'jdk.Shutdown': 'Shutdown'
 };
 
 const FIELD_LABEL_OVERRIDES: Record<string, string> = {
@@ -568,7 +671,7 @@ const FIELD_LABEL_OVERRIDES: Record<string, string> = {
   hostTotalMemory: 'Host Total',
   hostTotalSwapMemory: 'Host Swap Total',
   reason: 'Reason',
-  eventTime: 'Time',
+  eventTime: 'Time'
 };
 
 // Rendering-order priority when listing event-type cards (smaller first).
@@ -582,7 +685,7 @@ const CARD_ORDER: Record<string, number> = {
   'jdk.ContainerConfiguration': 5,
   'jdk.CompilerConfiguration': 6,
   'jdk.OSInformation': 7,
-  'jdk.VirtualizationInformation': 8,
+  'jdk.VirtualizationInformation': 8
 };
 
 type FieldRow = {
@@ -664,19 +767,14 @@ const VIRT_TYPE = 'jdk.VirtualizationInformation';
 // front). The shift stops before 1000 so unknown types still fall after it.
 const SHUTDOWN_ACTIVE_ORDER = 99;
 
-function envCards(
-  env: Record<string, Record<string, unknown>>,
-  isActive: boolean
-): EnvCard[] {
+function envCards(env: Record<string, Record<string, unknown>>, isActive: boolean): EnvCard[] {
   const entries: { order: number; card: EnvCard }[] = [];
 
   for (const typeName of Object.keys(CARD_ORDER)) {
     if (typeName === OS_TYPE || typeName === VIRT_TYPE) continue;
     const fields = env[typeName];
     const order =
-      typeName === 'jdk.Shutdown' && isActive
-        ? SHUTDOWN_ACTIVE_ORDER
-        : CARD_ORDER[typeName];
+      typeName === 'jdk.Shutdown' && isActive ? SHUTDOWN_ACTIVE_ORDER : CARD_ORDER[typeName];
     entries.push({
       order,
       card: {
@@ -686,8 +784,8 @@ function envCards(
         subtitle: typeName,
         typeName,
         fields: fields ?? {},
-        hasData: Boolean(fields),
-      },
+        hasData: Boolean(fields)
+      }
     });
   }
 
@@ -702,9 +800,9 @@ function envCards(
       subtitle: '',
       sections: [
         { label: 'OS', typeName: OS_TYPE, fields: os ?? {}, hasData: Boolean(os) },
-        { label: 'Virtualization', typeName: VIRT_TYPE, fields: virt ?? {}, hasData: Boolean(virt) },
-      ],
-    },
+        { label: 'Virtualization', typeName: VIRT_TYPE, fields: virt ?? {}, hasData: Boolean(virt) }
+      ]
+    }
   });
 
   for (const [typeName, fields] of Object.entries(env)) {
@@ -718,8 +816,8 @@ function envCards(
         subtitle: typeName,
         typeName,
         fields,
-        hasData: true,
-      },
+        hasData: true
+      }
     });
   }
 
@@ -746,17 +844,33 @@ function fieldLabel(key: string): string {
 function inferValue(key: string, value: unknown): FieldRow | null {
   if (value == null) return null;
   if (typeof value === 'boolean') {
-    return { key, label: fieldLabel(key), display: value ? '✓' : '✗', boolTrue: value, boolFalse: !value };
+    return {
+      key,
+      label: fieldLabel(key),
+      display: value ? '✓' : '✗',
+      boolTrue: value,
+      boolFalse: !value
+    };
   }
   if (typeof value === 'number') {
     if (key === 'jvmStartTime' || key === 'eventTime' || /Time$/.test(key)) {
-      return { key, label: fieldLabel(key), display: FormattingService.formatTimestampUTC(value), mono: true };
+      return {
+        key,
+        label: fieldLabel(key),
+        display: FormattingService.formatTimestampUTC(value),
+        mono: true
+      };
     }
     if (key === 'objectAlignment') {
       return { key, label: fieldLabel(key), display: `${value} B`, mono: true };
     }
     if (/(Size|Memory|Limit)$/.test(key) && value > 0) {
-      return { key, label: fieldLabel(key), display: FormattingService.formatBytes(value), mono: true };
+      return {
+        key,
+        label: fieldLabel(key),
+        display: FormattingService.formatBytes(value),
+        mono: true
+      };
     }
     if (key === 'pauseTarget') {
       return { key, label: fieldLabel(key), display: `${value / 1_000_000} ms`, mono: true };
@@ -774,7 +888,7 @@ function inferValue(key: string, value: unknown): FieldRow | null {
       display: value,
       mono: true,
       multi: value.length > 60,
-      truncatable: value.length > LONG_VALUE_TRUNCATE_AT,
+      truncatable: value.length > LONG_VALUE_TRUNCATE_AT
     };
   }
   return { key, label: fieldLabel(key), display: String(value), mono: true };
@@ -790,28 +904,39 @@ function fieldRows(fields: Record<string, unknown>): FieldRow[] {
 
 function classifyShutdownKind(reason: unknown): string {
   switch (reason) {
-    case 'Shutdown requested from Java': return 'GRACEFUL';
-    case 'VM Error': return 'VM_ERROR';
-    case 'CrashOnOutOfMemoryError': return 'CRASH_OOM';
-    default: return 'UNKNOWN';
+    case 'Shutdown requested from Java':
+      return 'GRACEFUL';
+    case 'VM Error':
+      return 'VM_ERROR';
+    case 'CrashOnOutOfMemoryError':
+      return 'CRASH_OOM';
+    default:
+      return 'UNKNOWN';
   }
 }
 
 function shutdownKindLabel(kind: string | undefined): string {
   switch (kind) {
-    case 'GRACEFUL': return 'Graceful';
-    case 'VM_ERROR': return 'Crash';
-    case 'CRASH_OOM': return 'OOM Crash';
-    default: return 'Unknown';
+    case 'GRACEFUL':
+      return 'Graceful';
+    case 'VM_ERROR':
+      return 'Crash';
+    case 'CRASH_OOM':
+      return 'OOM Crash';
+    default:
+      return 'Unknown';
   }
 }
 
 function shutdownKindVariant(kind: string | undefined): 'green' | 'red' | 'grey' {
   switch (kind) {
-    case 'GRACEFUL': return 'green';
+    case 'GRACEFUL':
+      return 'green';
     case 'VM_ERROR':
-    case 'CRASH_OOM': return 'red';
-    default: return 'grey';
+    case 'CRASH_OOM':
+      return 'red';
+    default:
+      return 'grey';
   }
 }
 
@@ -834,21 +959,30 @@ function instanceEnd(instance: ProjectInstance): number | undefined {
 
 function statusBadgeLabel(status: ProjectInstanceStatus): string {
   switch (status) {
-    case 'PENDING': return 'Pending';
-    case 'ACTIVE': return 'Active';
-    case 'FINISHED': return 'Finished';
-    case 'EXPIRED': return 'Expired';
-    default: return 'Unknown';
+    case 'PENDING':
+      return 'Pending';
+    case 'ACTIVE':
+      return 'Active';
+    case 'FINISHED':
+      return 'Finished';
+    case 'EXPIRED':
+      return 'Expired';
+    default:
+      return 'Unknown';
   }
 }
 
 function statusBadgeVariant(status: ProjectInstanceStatus): 'blue' | 'orange' | 'green' | 'grey' {
   switch (status) {
-    case 'PENDING': return 'blue';
-    case 'ACTIVE': return 'orange';
-    case 'FINISHED': return 'green';
+    case 'PENDING':
+      return 'blue';
+    case 'ACTIVE':
+      return 'orange';
+    case 'FINISHED':
+      return 'green';
     case 'EXPIRED':
-    default: return 'grey';
+    default:
+      return 'grey';
   }
 }
 
@@ -1007,10 +1141,18 @@ onMounted(async () => {
   border-left-color: var(--color-text-light);
 }
 
-.swim-row:hover .rail.pending { background-color: rgba(59, 130, 246, 0.12); }
-.swim-row:hover .rail.active { background-color: rgba(245, 158, 11, 0.12); }
-.swim-row:hover .rail.finished { background-color: rgba(16, 185, 129, 0.1); }
-.swim-row:hover .rail.expired { background-color: rgba(156, 163, 175, 0.1); }
+.swim-row:hover .rail.pending {
+  background-color: rgba(59, 130, 246, 0.12);
+}
+.swim-row:hover .rail.active {
+  background-color: rgba(245, 158, 11, 0.12);
+}
+.swim-row:hover .rail.finished {
+  background-color: rgba(16, 185, 129, 0.1);
+}
+.swim-row:hover .rail.expired {
+  background-color: rgba(156, 163, 175, 0.1);
+}
 
 .rail-chevron {
   position: absolute;
@@ -1044,9 +1186,15 @@ onMounted(async () => {
   flex-shrink: 0;
   transition: color var(--transition-fast);
 }
-.rail-name:hover { color: var(--color-primary); }
-.rail-name:hover .rail-name-text { text-decoration: underline; }
-.rail-name:hover .rail-name-icon { color: var(--color-primary); }
+.rail-name:hover {
+  color: var(--color-primary);
+}
+.rail-name:hover .rail-name-text {
+  text-decoration: underline;
+}
+.rail-name:hover .rail-name-icon {
+  color: var(--color-primary);
+}
 
 .rail-meta {
   display: flex;
@@ -1129,8 +1277,13 @@ onMounted(async () => {
 }
 
 @keyframes session-pulse-active {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4); }
-  50% { box-shadow: 0 0 6px 2px rgba(245, 158, 11, 0.25); }
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 6px 2px rgba(245, 158, 11, 0.25);
+  }
 }
 
 /* Shared timeline legend (inline with toolbar) */
@@ -1240,16 +1393,25 @@ onMounted(async () => {
   word-break: break-all;
   line-height: 1.5;
 }
-.v.bool-true { color: var(--color-success); }
-.v.bool-false { color: var(--color-text-light); }
+.v.bool-true {
+  color: var(--color-success);
+}
+.v.bool-false {
+  color: var(--color-text-light);
+}
 
 .kv.long {
   flex-direction: column;
   align-items: flex-start;
   gap: 4px;
 }
-.kv.long .k { min-width: 0; }
-.kv.long .v { text-align: left; width: 100%; }
+.kv.long .k {
+  min-width: 0;
+}
+.kv.long .v {
+  text-align: left;
+  width: 100%;
+}
 
 .expand-toggle {
   align-self: flex-start;
@@ -1358,7 +1520,7 @@ onMounted(async () => {
 
 .reason-desc {
   display: block;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
   font-size: 0.74rem;
   line-height: 1.5;
   color: var(--color-text-muted);
@@ -1391,8 +1553,14 @@ onMounted(async () => {
   animation: inline-drawer-in 0.18s ease-out;
 }
 @keyframes inline-drawer-in {
-  from { opacity: 0; transform: translateY(-4px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .inline-drawer-head {
@@ -1520,7 +1688,7 @@ onMounted(async () => {
 .kv.kv-desc .v {
   text-align: left;
   font-weight: 500;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
   font-size: 0.74rem;
   line-height: 1.5;
   color: var(--color-text-muted);

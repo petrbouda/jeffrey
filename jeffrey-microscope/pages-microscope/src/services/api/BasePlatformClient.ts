@@ -35,30 +35,45 @@ export default abstract class BasePlatformClient {
     this.baseUrl = GlobalVars.internalUrl + baseUrl;
   }
 
-  private static applyOptions(config: Record<string, any>, options?: RequestOptions): Record<string, any> {
+  private static applyOptions(
+    config: Record<string, any>,
+    options?: RequestOptions
+  ): Record<string, any> {
     return options?.suppressToast ? { ...config, suppressToast: true } : config;
   }
 
-  protected get<T>(path: string = '', params?: Record<string, any>, options?: RequestOptions): Promise<T> {
+  protected get<T>(
+    path: string = '',
+    params?: Record<string, any>,
+    options?: RequestOptions
+  ): Promise<T> {
     const url = path ? `${this.baseUrl}${path}` : this.baseUrl;
     const config = params
       ? HttpUtils.JSON_ACCEPT_WITH_PARAMS(params)
       : HttpUtils.JSON_ACCEPT_HEADER;
-    return axios.get<T>(url, BasePlatformClient.applyOptions(config, options)).then(HttpUtils.RETURN_DATA);
+    return axios
+      .get<T>(url, BasePlatformClient.applyOptions(config, options))
+      .then(HttpUtils.RETURN_DATA);
   }
 
   protected post<T>(path: string = '', body?: any, options?: RequestOptions): Promise<T> {
     const url = path ? `${this.baseUrl}${path}` : this.baseUrl;
-    return axios.post<T>(url, body, BasePlatformClient.applyOptions(HttpUtils.JSON_HEADERS, options)).then(HttpUtils.RETURN_DATA);
+    return axios
+      .post<T>(url, body, BasePlatformClient.applyOptions(HttpUtils.JSON_HEADERS, options))
+      .then(HttpUtils.RETURN_DATA);
   }
 
   protected put<T>(path: string = '', body?: any, options?: RequestOptions): Promise<T> {
     const url = path ? `${this.baseUrl}${path}` : this.baseUrl;
-    return axios.put<T>(url, body, BasePlatformClient.applyOptions(HttpUtils.JSON_HEADERS, options)).then(HttpUtils.RETURN_DATA);
+    return axios
+      .put<T>(url, body, BasePlatformClient.applyOptions(HttpUtils.JSON_HEADERS, options))
+      .then(HttpUtils.RETURN_DATA);
   }
 
   protected del<T>(path: string = '', options?: RequestOptions): Promise<T> {
     const url = path ? `${this.baseUrl}${path}` : this.baseUrl;
-    return axios.delete<T>(url, BasePlatformClient.applyOptions(HttpUtils.JSON_ACCEPT_HEADER, options)).then(HttpUtils.RETURN_DATA);
+    return axios
+      .delete<T>(url, BasePlatformClient.applyOptions(HttpUtils.JSON_ACCEPT_HEADER, options))
+      .then(HttpUtils.RETURN_DATA);
   }
 }

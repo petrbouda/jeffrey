@@ -7,22 +7,12 @@
     title="No leak hints — heap looks clean"
   />
   <div v-else class="findings">
-    <div
-      v-for="(f, idx) in findings"
-      :key="idx"
-      class="finding"
-      :class="severityClass(f.severity)"
-    >
+    <div v-for="(f, idx) in findings" :key="idx" class="finding" :class="severityClass(f.severity)">
       <div class="finding-icon">
         <i :class="severityIcon(f.severity)"></i>
       </div>
       <div class="finding-body">
-        <Badge
-          :value="f.severity"
-          size="xxs"
-          :variant="severityVariant(f.severity)"
-          class="mb-1"
-        />
+        <Badge :value="f.severity" size="xxs" :variant="severityVariant(f.severity)" class="mb-1" />
         <h3 class="finding-title">{{ f.title }}</h3>
         <p class="finding-desc">{{ f.details }}</p>
       </div>
@@ -120,9 +110,15 @@ onMounted(() => {
   align-items: flex-start;
 }
 
-.finding.sev-high { border-left: 3px solid var(--color-danger); }
-.finding.sev-medium { border-left: 3px solid var(--color-amber); }
-.finding.sev-low { border-left: 3px solid var(--color-blue-500); }
+.finding.sev-high {
+  border-left: 3px solid var(--color-danger);
+}
+.finding.sev-medium {
+  border-left: 3px solid var(--color-amber);
+}
+.finding.sev-low {
+  border-left: 3px solid var(--color-blue-500);
+}
 
 .finding-icon {
   width: 36px;
@@ -137,9 +133,18 @@ onMounted(() => {
   flex-shrink: 0;
 }
 
-.sev-high .finding-icon { background: var(--color-danger-bg-lighter); color: var(--color-danger); }
-.sev-medium .finding-icon { background: var(--color-warning-bg); color: var(--color-amber-highlight); }
-.sev-low .finding-icon { background: var(--color-blue-bg); color: var(--color-blue-text); }
+.sev-high .finding-icon {
+  background: var(--color-danger-bg-lighter);
+  color: var(--color-danger);
+}
+.sev-medium .finding-icon {
+  background: var(--color-warning-bg);
+  color: var(--color-amber-highlight);
+}
+.sev-low .finding-icon {
+  background: var(--color-blue-bg);
+  color: var(--color-blue-text);
+}
 
 .finding-title {
   font-size: 0.95rem;

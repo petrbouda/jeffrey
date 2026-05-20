@@ -24,6 +24,8 @@ module cafe.jeffrey.microscope.profile.heapdump {
     requires duckdb.jdbc;
     requires tools.jackson.databind;
     requires org.slf4j;
+    requires org.eclipse.collections.api;
+    requires org.eclipse.collections.impl;
 
     exports cafe.jeffrey.profile.heapdump.analyzer.heapview;
     exports cafe.jeffrey.profile.heapdump.model;

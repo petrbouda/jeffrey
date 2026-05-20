@@ -44,74 +44,73 @@
 
     <!-- Suspicious Loaders Tab -->
     <div v-show="activeTab === 'suspicious-loaders'">
-        <div v-if="report && (report.leakChains ?? []).length > 0">
-          <DataTable>
-            <template #toolbar>
-              <TableToolbar :show-search="false">
-                <span class="toolbar-info">
-                  Showing {{ report.leakChains.length }} suspicious class loaders
-                </span>
-              </TableToolbar>
-            </template>
-            <thead>
-              <tr>
-                <th style="width: 40px">#</th>
-                <th>Class Loader</th>
-                <th class="text-end" style="width: 150px">Class Count</th>
-                <th class="text-end" style="width: 140px">Retained Size</th>
-                <th>Cause Hints</th>
-                <th style="width: 110px">Details</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                v-for="(chain, idx) in report.leakChains"
-                :key="chain.classLoaderId"
-                class="clickable-row"
-                @click="openDrawer(chain.classLoaderId)"
-              >
-                <td class="text-muted">{{ idx + 1 }}</td>
-                <td>
-                  <ClassNameDisplay :class-name="chain.classLoaderClassName" />
-                  <span
-                    v-if="chain.hasDuplicateClasses"
-                    class="badge bg-warning text-dark mt-1"
-                  >duplicate classes</span>
-                </td>
-                <td class="text-end font-monospace">
-                  {{ FormattingService.formatNumber(chain.classCount) }}
-                </td>
-                <td class="text-end font-monospace">
-                  {{ FormattingService.formatBytes(chain.retainedSize) }}
-                </td>
-                <td>
-                  <span
-                    v-for="(hint, hi) in chain.causeHints"
-                    :key="hi"
-                    class="badge bg-info text-dark me-1"
-                    :title="hint.description"
-                  >{{ hintLabel(hint) }}</span>
-                  <span
-                    v-if="chain.causeHints.length === 0"
-                    class="text-muted small"
-                  >no patterns matched</span>
-                </td>
-                <td>
-                  <button
-                    class="btn btn-sm btn-outline-primary"
-                    @click.stop="openDrawer(chain.classLoaderId)"
-                  >
-                    <i class="bi bi-arrow-right-circle me-1"></i> Open
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </DataTable>
-        </div>
-        <div v-else class="text-center text-muted py-5">
-          <i class="bi bi-shield-check fs-1 mb-3 d-block text-success"></i>
-          <p>No suspicious class loaders detected.</p>
-        </div>
+      <div v-if="report && (report.leakChains ?? []).length > 0">
+        <DataTable>
+          <template #toolbar>
+            <TableToolbar :show-search="false">
+              <span class="toolbar-info">
+                Showing {{ report.leakChains.length }} suspicious class loaders
+              </span>
+            </TableToolbar>
+          </template>
+          <thead>
+            <tr>
+              <th style="width: 40px">#</th>
+              <th>Class Loader</th>
+              <th class="text-end" style="width: 150px">Class Count</th>
+              <th class="text-end" style="width: 140px">Retained Size</th>
+              <th>Cause Hints</th>
+              <th style="width: 110px">Details</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="(chain, idx) in report.leakChains"
+              :key="chain.classLoaderId"
+              class="clickable-row"
+              @click="openDrawer(chain.classLoaderId)"
+            >
+              <td class="text-muted">{{ idx + 1 }}</td>
+              <td>
+                <ClassNameDisplay :class-name="chain.classLoaderClassName" />
+                <span v-if="chain.hasDuplicateClasses" class="badge bg-warning text-dark mt-1"
+                  >duplicate classes</span
+                >
+              </td>
+              <td class="text-end font-monospace">
+                {{ FormattingService.formatNumber(chain.classCount) }}
+              </td>
+              <td class="text-end font-monospace">
+                {{ FormattingService.formatBytes(chain.retainedSize) }}
+              </td>
+              <td>
+                <span
+                  v-for="(hint, hi) in chain.causeHints"
+                  :key="hi"
+                  class="badge bg-info text-dark me-1"
+                  :title="hint.description"
+                  >{{ hintLabel(hint) }}</span
+                >
+                <span v-if="chain.causeHints.length === 0" class="text-muted small"
+                  >no patterns matched</span
+                >
+              </td>
+              <td>
+                <button
+                  class="btn btn-sm btn-outline-primary"
+                  @click.stop="openDrawer(chain.classLoaderId)"
+                >
+                  <i class="bi bi-arrow-right-circle me-1"></i> Open
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </DataTable>
+      </div>
+      <div v-else class="text-center text-muted py-5">
+        <i class="bi bi-shield-check fs-1 mb-3 d-block text-success"></i>
+        <p>No suspicious class loaders detected.</p>
+      </div>
     </div>
 
     <!-- Class Loaders (tree) Tab -->
@@ -148,7 +147,9 @@
 
       <div v-if="unloadabilityRows.length === 0" class="text-center text-muted py-5">
         <i class="bi bi-shield fs-1 mb-3 d-block"></i>
-        <p>Unloadability data is not available in this report. Re-run the analysis to populate it.</p>
+        <p>
+          Unloadability data is not available in this report. Re-run the analysis to populate it.
+        </p>
       </div>
 
       <div v-else-if="sortedUnloadabilityRows.length === 0" class="text-center text-muted py-5">
@@ -160,7 +161,8 @@
         <template #toolbar>
           <TableToolbar :show-search="false">
             <span class="toolbar-info">
-              Showing {{ sortedUnloadabilityRows.length }} of {{ unloadabilityRows.length }} class loaders
+              Showing {{ sortedUnloadabilityRows.length }} of {{ unloadabilityRows.length }} class
+              loaders
             </span>
           </TableToolbar>
         </template>
@@ -204,7 +206,8 @@
                 <span
                   v-if="suspiciousLoaderIds.has(row.loaderId)"
                   class="badge bg-danger text-white"
-                >suspicious</span>
+                  >suspicious</span
+                >
               </div>
             </td>
             <td>
@@ -232,8 +235,14 @@
                   :title="cls.name"
                 >
                   {{ simpleClassName(cls.name) }}
-                  <span class="blocking-count">{{ FormattingService.formatNumber(cls.instanceCount) }}</span>
-                  <span v-if="i === 0 && row.topBlockingClasses.slice(0, 2).length > 1" class="blocking-sep">·</span>
+                  <span class="blocking-count">{{
+                    FormattingService.formatNumber(cls.instanceCount)
+                  }}</span>
+                  <span
+                    v-if="i === 0 && row.topBlockingClasses.slice(0, 2).length > 1"
+                    class="blocking-sep"
+                    >·</span
+                  >
                 </span>
                 <span v-if="row.topBlockingClasses.length > 2" class="blocking-more">
                   +{{ row.topBlockingClasses.length - 2 }} more
@@ -247,51 +256,53 @@
 
     <!-- Duplicate Classes Tab -->
     <div v-show="activeTab === 'duplicate-classes'">
-        <div v-if="report && report.duplicateClasses.length > 0">
-          <DataTable>
-            <template #toolbar>
-              <TableToolbar :show-search="false">
-                <span class="toolbar-info">Showing {{ report.duplicateClasses.length }} duplicate classes</span>
-              </TableToolbar>
-            </template>
-                <thead>
-                  <tr>
-                    <th style="width: 40px">#</th>
-                    <th>Class Name</th>
-                    <SortableTableHeader
-                      column="loaderCount"
-                      label="Loader Count"
-                      :sort-column="dupSortColumn"
-                      :sort-direction="dupSortDirection"
-                      align="end"
-                      width="120px"
-                      @sort="toggleDupSort"
-                    />
-                    <th>Class Loader Names</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="(entry, index) in sortedDuplicateClasses" :key="entry.className">
-                    <td class="text-muted">{{ index + 1 }}</td>
-                    <td>
-                      <ClassNameDisplay :class-name="entry.className" />
-                    </td>
-                    <td class="text-end font-monospace">
-                      <span :class="entry.loaderCount > 2 ? 'badge bg-warning text-dark' : ''">
-                        {{ entry.loaderCount }}
-                      </span>
-                    </td>
-                    <td>
-                      <span class="loader-names">{{ entry.classLoaderNames.join(', ') }}</span>
-                    </td>
-                  </tr>
-                </tbody>
-          </DataTable>
-        </div>
-        <div v-else class="text-center text-muted py-5">
-          <i class="bi bi-check-circle fs-1 mb-3 d-block"></i>
-          <p>No duplicate classes detected.</p>
-        </div>
+      <div v-if="report && report.duplicateClasses.length > 0">
+        <DataTable>
+          <template #toolbar>
+            <TableToolbar :show-search="false">
+              <span class="toolbar-info"
+                >Showing {{ report.duplicateClasses.length }} duplicate classes</span
+              >
+            </TableToolbar>
+          </template>
+          <thead>
+            <tr>
+              <th style="width: 40px">#</th>
+              <th>Class Name</th>
+              <SortableTableHeader
+                column="loaderCount"
+                label="Loader Count"
+                :sort-column="dupSortColumn"
+                :sort-direction="dupSortDirection"
+                align="end"
+                width="120px"
+                @sort="toggleDupSort"
+              />
+              <th>Class Loader Names</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(entry, index) in sortedDuplicateClasses" :key="entry.className">
+              <td class="text-muted">{{ index + 1 }}</td>
+              <td>
+                <ClassNameDisplay :class-name="entry.className" />
+              </td>
+              <td class="text-end font-monospace">
+                <span :class="entry.loaderCount > 2 ? 'badge bg-warning text-dark' : ''">
+                  {{ entry.loaderCount }}
+                </span>
+              </td>
+              <td>
+                <span class="loader-names">{{ entry.classLoaderNames.join(', ') }}</span>
+              </td>
+            </tr>
+          </tbody>
+        </DataTable>
+      </div>
+      <div v-else class="text-center text-muted py-5">
+        <i class="bi bi-check-circle fs-1 mb-3 d-block"></i>
+        <p>No duplicate classes detected.</p>
+      </div>
     </div>
 
     <!-- How It Works Tab -->
@@ -304,7 +315,9 @@
           </div>
           <div>
             <h5 class="mb-1">Understanding Class Loaders</h5>
-            <p class="text-muted mb-0">How the JVM organises class definitions and what keeps them alive</p>
+            <p class="text-muted mb-0">
+              How the JVM organises class definitions and what keeps them alive
+            </p>
           </div>
         </div>
 
@@ -312,17 +325,17 @@
         <div class="about-intro">
           <p class="mb-2">
             A class loader is the JVM object responsible for turning a binary class file into a
-            <code>Class&lt;?&gt;</code> the runtime can execute. Every loaded class is tied to exactly
-            one loader, and loaders form a parent-child chain: a request to load
+            <code>Class&lt;?&gt;</code> the runtime can execute. Every loaded class is tied to
+            exactly one loader, and loaders form a parent-child chain: a request to load
             <code>java.util.List</code> walks up to the bootstrap loader before any application
             loader is asked. This delegation model lets containers (Tomcat, OSGi, Spring Boot fat
             jars) safely isolate webapps while still sharing the JDK underneath.
           </p>
           <p class="mb-0">
             Loaders that cannot be garbage collected become a problem on hot redeploys: every reload
-            cycle leaks an entire copy of the application's classes, eventually exhausting metaspace.
-            The four views on this page help you locate the loaders living on your heap, see how they
-            relate to each other, and identify the ones the GC cannot reclaim.
+            cycle leaks an entire copy of the application's classes, eventually exhausting
+            metaspace. The four views on this page help you locate the loaders living on your heap,
+            see how they relate to each other, and identify the ones the GC cannot reclaim.
           </p>
         </div>
 
@@ -341,9 +354,9 @@
               <h6>Class Loaders</h6>
               <p>
                 Parent-child tree of every loader, reconstructed from each loader's
-                <code>parent</code> field. Bootstrap is the root; everything else branches below
-                it. Each node shows type, unloadability verdict, class count, and retained size.
-                Click a row to open the detail drawer.
+                <code>parent</code> field. Bootstrap is the root; everything else branches below it.
+                Each node shows type, unloadability verdict, class count, and retained size. Click a
+                row to open the detail drawer.
               </p>
             </div>
           </div>
@@ -400,10 +413,10 @@
 
         <div class="about-intro">
           <p class="mb-0">
-            For each loader the analyzer answers: <em>could the next metaspace-aware GC cycle
-            actually unload this class loader?</em> The answer combines two facts — whether the
-            loader instance itself is a GC root, and whether any class it defined still has live
-            instances on the heap.
+            For each loader the analyzer answers:
+            <em>could the next metaspace-aware GC cycle actually unload this class loader?</em> The
+            answer combines two facts — whether the loader instance itself is a GC root, and whether
+            any class it defined still has live instances on the heap.
           </p>
         </div>
 
@@ -417,9 +430,9 @@
                 <Badge value="unloadable" variant="success" size="xxs" class="me-1" />
               </h6>
               <p>
-                Not a GC root and no live instances of its classes remain. The JVM is free to
-                unload this loader at the next metaspace-aware GC. A clean redeploy should leave
-                the old loader in this state.
+                Not a GC root and no live instances of its classes remain. The JVM is free to unload
+                this loader at the next metaspace-aware GC. A clean redeploy should leave the old
+                loader in this state.
               </p>
             </div>
           </div>
@@ -503,8 +516,8 @@
             <div class="feature-content">
               <h6>JNI Global</h6>
               <p>
-                A native library created a JNI global reference to an object in the webapp's
-                loader. The JVM can't track these from Java code — only an explicit
+                A native library created a JNI global reference to an object in the webapp's loader.
+                The JVM can't track these from Java code — only an explicit
                 <code>DeleteGlobalRef</code> in the native side frees them.
               </p>
             </div>
@@ -517,8 +530,8 @@
             <div class="feature-content">
               <h6>ServiceLoader</h6>
               <p>
-                <code>ServiceLoader</code> caches discovered providers. When that cache is held by
-                a longer-lived loader (the JDK's system loader, for example) and the providers come
+                <code>ServiceLoader</code> caches discovered providers. When that cache is held by a
+                longer-lived loader (the JDK's system loader, for example) and the providers come
                 from a shorter-lived loader, the cache pins the providers' loader.
               </p>
             </div>
@@ -531,8 +544,8 @@
             <div class="feature-content">
               <h6>Logger</h6>
               <p>
-                Static logger registries (<code>LogManager</code>, log4j/logback context maps)
-                cache Logger instances by class. The Logger's <code>resourceBundleName</code>
+                Static logger registries (<code>LogManager</code>, log4j/logback context maps) cache
+                Logger instances by class. The Logger's <code>resourceBundleName</code>
                 resolution can pin the loader that contributed the logger class.
               </p>
             </div>
@@ -573,17 +586,17 @@
             <i class="bi bi-info-circle-fill text-info"></i>
             <span>
               <strong>Class Count</strong> includes synthetic primitive-array classes
-              (<code>int[]</code>, <code>byte[]</code>, &hellip;) attributed to the bootstrap
-              loader — which is why bootstrap dominates the class count.
+              (<code>int[]</code>, <code>byte[]</code>, &hellip;) attributed to the bootstrap loader
+              — which is why bootstrap dominates the class count.
             </span>
           </div>
           <div class="benefit-item">
             <i class="bi bi-info-circle-fill text-info"></i>
             <span>
-              <strong>Live Instances</strong> on the detail drawer is the count of <em>all</em>
-              instances of every class loaded by this loader, excluding the loader instance itself.
-              It's the figure that drives the <code>pinned</code> verdict and the "top blocking
-              classes" panel.
+              <strong>Live Instances</strong> on the detail drawer is the count of
+              <em>all</em> instances of every class loaded by this loader, excluding the loader
+              instance itself. It's the figure that drives the <code>pinned</code> verdict and the
+              "top blocking classes" panel.
             </span>
           </div>
           <div class="benefit-item">
@@ -591,8 +604,8 @@
             <span>
               <strong>Total Shallow</strong> in the per-class table is the sum of every instance's
               shallow size (header + payload) — and that's the only size metric shown per class.
-              Retained-heap per class is deliberately omitted: summing it would double-count
-              nested dominator subtrees (tries, linked lists) and routinely exceed the whole heap.
+              Retained-heap per class is deliberately omitted: summing it would double-count nested
+              dominator subtrees (tries, linked lists) and routinely exceed the whole heap.
             </span>
           </div>
         </div>
@@ -690,7 +703,7 @@ const hintLabel = (hint: CauseHint): string => {
 
 const suspiciousLoaderIds = computed<Set<number>>(() => {
   const ids = new Set<number>();
-  (report.value?.leakChains ?? []).forEach((c) => ids.add(c.classLoaderId));
+  (report.value?.leakChains ?? []).forEach(c => ids.add(c.classLoaderId));
   return ids;
 });
 

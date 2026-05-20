@@ -583,7 +583,8 @@ const exampleQueries: ExampleEntry[] = [
   },
   {
     title: 'Object IDs of Strings',
-    description: 'Project just the heap-instance id for each String — useful for follow-up lookups.',
+    description:
+      'Project just the heap-instance id for each String — useful for follow-up lookups.',
     query: 'SELECT s.@objectId, s.@displayName FROM java.lang.String s LIMIT 50'
   },
 
@@ -625,7 +626,8 @@ const exampleQueries: ExampleEntry[] = [
   },
   {
     title: 'Empty Strings',
-    description: 'isEmptyString — find live String instances whose decoded content is the empty string.',
+    description:
+      'isEmptyString — find live String instances whose decoded content is the empty string.',
     query: 'SELECT s FROM java.lang.String s WHERE isEmptyString(s)'
   },
 
@@ -659,8 +661,7 @@ const exampleQueries: ExampleEntry[] = [
     title: 'AS RETAINED SET for big HashMaps',
     description:
       'Expand the matched HashMaps to their full retained subgraphs — the bytes that would be freed.',
-    query:
-      'SELECT * AS RETAINED SET FROM java.util.HashMap m WHERE m.@retainedHeapSize > 10485760'
+    query: 'SELECT * AS RETAINED SET FROM java.util.HashMap m WHERE m.@retainedHeapSize > 10485760'
   },
 
   { title: '--- Aggregates ---', divider: true },
@@ -875,8 +876,7 @@ const exampleQueries: ExampleEntry[] = [
   {
     title: 'count(*) of a filtered subquery',
     description: 'Aggregate over a derived table.',
-    query:
-      'SELECT count(*) FROM (SELECT s FROM java.lang.String s WHERE stringLength(s) > 100)'
+    query: 'SELECT count(*) FROM (SELECT s FROM java.lang.String s WHERE stringLength(s) > 100)'
   }
 ];
 

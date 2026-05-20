@@ -301,9 +301,9 @@
               placeholder="1.0"
             />
             <div class="settings-hint">
-              Subtrees representing less than this percentage of total samples are dropped from
-              the AI export. Same semantics as the visualization threshold, but tuned coarser to
-              keep the LLM payload compact. Default: 1.0%
+              Subtrees representing less than this percentage of total samples are dropped from the
+              AI export. Same semantics as the visualization threshold, but tuned coarser to keep
+              the LLM payload compact. Default: 1.0%
             </div>
           </div>
         </div>

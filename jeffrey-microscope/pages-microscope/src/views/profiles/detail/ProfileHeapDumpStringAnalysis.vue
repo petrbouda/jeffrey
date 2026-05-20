@@ -213,416 +213,420 @@
 
     <!-- Overview Tab -->
     <div v-show="activeTab === 'overview'">
-        <DualPanel v-if="report" left-title="Memory Status" right-title="String Array Sharing">
-          <template #left>
-            <DonutWithLegend
-              :data="memoryChartData"
-              :tooltip-formatter="(val: number) => FormattingService.formatBytes(val)"
-            />
-          </template>
-          <template #right>
-            <DonutWithLegend
-              :data="arrayChartData"
-              :tooltip-formatter="(val: number) => FormattingService.formatNumber(val)"
-            />
-          </template>
-        </DualPanel>
+      <DualPanel v-if="report" left-title="Memory Status" right-title="String Array Sharing">
+        <template #left>
+          <DonutWithLegend
+            :data="memoryChartData"
+            :tooltip-formatter="(val: number) => FormattingService.formatBytes(val)"
+          />
+        </template>
+        <template #right>
+          <DonutWithLegend
+            :data="arrayChartData"
+            :tooltip-formatter="(val: number) => FormattingService.formatNumber(val)"
+          />
+        </template>
+      </DualPanel>
     </div>
 
     <!-- Deduplicated Tab -->
     <div v-show="activeTab === 'deduplicated'">
-        <div v-if="report && report.alreadyDeduplicated.length > 0">
-          <DataTable>
-            <template #toolbar>
-              <TableToolbar :show-search="false">
-                <span class="toolbar-info">Showing {{ report.alreadyDeduplicated.length }} deduplicated strings</span>
-              </TableToolbar>
-            </template>
-                <thead>
-                  <tr>
-                    <th style="width: 40px">#</th>
-                    <SortableTableHeader
-                      column="content"
-                      label="Content"
-                      :sort-column="dedupSortColumn"
-                      :sort-direction="dedupSortDirection"
-                      @sort="toggleDedupSort"
-                    />
-                    <SortableTableHeader
-                      column="count"
-                      label="Count"
-                      :sort-column="dedupSortColumn"
-                      :sort-direction="dedupSortDirection"
-                      align="end"
-                      width="100px"
-                      @sort="toggleDedupSort"
-                    />
-                    <SortableTableHeader
-                      column="arraySize"
-                      label="Array Size"
-                      :sort-column="dedupSortColumn"
-                      :sort-direction="dedupSortDirection"
-                      align="end"
-                      width="120px"
-                      @sort="toggleDedupSort"
-                    />
-                    <SortableTableHeader
-                      column="savings"
-                      label="Saved"
-                      :sort-column="dedupSortColumn"
-                      :sort-direction="dedupSortDirection"
-                      align="end"
-                      width="120px"
-                      @sort="toggleDedupSort"
-                    />
-                    <th style="width: 180px">% of Max</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="(entry, index) in sortedDeduplicated" :key="index">
-                    <td class="text-muted">{{ index + 1 }}</td>
-                    <td>
-                      <code class="string-content">{{ entry.content }}</code>
-                    </td>
-                    <td class="text-end font-monospace">
-                      {{ FormattingService.formatNumber(entry.count) }}
-                    </td>
-                    <td class="text-end font-monospace">
-                      {{ FormattingService.formatBytes(entry.arraySize) }}
-                    </td>
-                    <td class="text-end font-monospace text-success">
-                      {{ FormattingService.formatBytes(entry.savings) }}
-                    </td>
-                    <td>
-                      <div class="d-flex align-items-center gap-2">
-                        <div class="progress flex-grow-1" style="height: 6px">
-                          <div
-                            class="progress-bar bg-success"
-                            :style="{ width: getDeduplicatedPercentage(entry) + '%' }"
-                          ></div>
-                        </div>
-                        <small class="text-muted" style="min-width: 45px"
-                          >{{ getDeduplicatedPercentage(entry).toFixed(1) }}%</small
-                        >
-                      </div>
-                    </td>
-                  </tr>
-                </tbody>
-          </DataTable>
-        </div>
-        <div v-else class="text-center text-muted py-5">
-          <i class="bi bi-check-circle fs-1 mb-3 d-block"></i>
-          <p>No deduplicated strings found in this heap dump.</p>
-          <small>String deduplication is not active or no strings are being shared.</small>
-        </div>
+      <div v-if="report && report.alreadyDeduplicated.length > 0">
+        <DataTable>
+          <template #toolbar>
+            <TableToolbar :show-search="false">
+              <span class="toolbar-info"
+                >Showing {{ report.alreadyDeduplicated.length }} deduplicated strings</span
+              >
+            </TableToolbar>
+          </template>
+          <thead>
+            <tr>
+              <th style="width: 40px">#</th>
+              <SortableTableHeader
+                column="content"
+                label="Content"
+                :sort-column="dedupSortColumn"
+                :sort-direction="dedupSortDirection"
+                @sort="toggleDedupSort"
+              />
+              <SortableTableHeader
+                column="count"
+                label="Count"
+                :sort-column="dedupSortColumn"
+                :sort-direction="dedupSortDirection"
+                align="end"
+                width="100px"
+                @sort="toggleDedupSort"
+              />
+              <SortableTableHeader
+                column="arraySize"
+                label="Array Size"
+                :sort-column="dedupSortColumn"
+                :sort-direction="dedupSortDirection"
+                align="end"
+                width="120px"
+                @sort="toggleDedupSort"
+              />
+              <SortableTableHeader
+                column="savings"
+                label="Saved"
+                :sort-column="dedupSortColumn"
+                :sort-direction="dedupSortDirection"
+                align="end"
+                width="120px"
+                @sort="toggleDedupSort"
+              />
+              <th style="width: 180px">% of Max</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(entry, index) in sortedDeduplicated" :key="index">
+              <td class="text-muted">{{ index + 1 }}</td>
+              <td>
+                <code class="string-content">{{ entry.content }}</code>
+              </td>
+              <td class="text-end font-monospace">
+                {{ FormattingService.formatNumber(entry.count) }}
+              </td>
+              <td class="text-end font-monospace">
+                {{ FormattingService.formatBytes(entry.arraySize) }}
+              </td>
+              <td class="text-end font-monospace text-success">
+                {{ FormattingService.formatBytes(entry.savings) }}
+              </td>
+              <td>
+                <div class="d-flex align-items-center gap-2">
+                  <div class="progress flex-grow-1" style="height: 6px">
+                    <div
+                      class="progress-bar bg-success"
+                      :style="{ width: getDeduplicatedPercentage(entry) + '%' }"
+                    ></div>
+                  </div>
+                  <small class="text-muted" style="min-width: 45px"
+                    >{{ getDeduplicatedPercentage(entry).toFixed(1) }}%</small
+                  >
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </DataTable>
+      </div>
+      <div v-else class="text-center text-muted py-5">
+        <i class="bi bi-check-circle fs-1 mb-3 d-block"></i>
+        <p>No deduplicated strings found in this heap dump.</p>
+        <small>String deduplication is not active or no strings are being shared.</small>
+      </div>
     </div>
 
     <!-- Opportunities Tab -->
     <div v-show="activeTab === 'opportunities'">
-        <div v-if="report && report.opportunities.length > 0">
-          <DataTable>
-            <template #toolbar>
-              <TableToolbar :show-search="false">
-                <span class="toolbar-info">Showing {{ report.opportunities.length }} deduplication opportunities</span>
-              </TableToolbar>
-            </template>
-                <thead>
-                  <tr>
-                    <th style="width: 40px">#</th>
-                    <SortableTableHeader
-                      column="content"
-                      label="Content"
-                      :sort-column="oppSortColumn"
-                      :sort-direction="oppSortDirection"
-                      @sort="toggleOppSort"
-                    />
-                    <SortableTableHeader
-                      column="count"
-                      label="Count"
-                      :sort-column="oppSortColumn"
-                      :sort-direction="oppSortDirection"
-                      align="end"
-                      width="100px"
-                      @sort="toggleOppSort"
-                    />
-                    <SortableTableHeader
-                      column="arraySize"
-                      label="Array Size"
-                      :sort-column="oppSortColumn"
-                      :sort-direction="oppSortDirection"
-                      align="end"
-                      width="120px"
-                      @sort="toggleOppSort"
-                    />
-                    <SortableTableHeader
-                      column="savings"
-                      label="Potential"
-                      :sort-column="oppSortColumn"
-                      :sort-direction="oppSortDirection"
-                      align="end"
-                      width="120px"
-                      @sort="toggleOppSort"
-                    />
-                    <th style="width: 180px">% of Max</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="(entry, index) in sortedOpportunities" :key="index">
-                    <td class="text-muted">{{ index + 1 }}</td>
-                    <td>
-                      <code class="string-content">{{ entry.content }}</code>
-                    </td>
-                    <td class="text-end font-monospace">
-                      {{ FormattingService.formatNumber(entry.count) }}
-                    </td>
-                    <td class="text-end font-monospace">
-                      {{ FormattingService.formatBytes(entry.arraySize) }}
-                    </td>
-                    <td class="text-end font-monospace text-warning">
-                      {{ FormattingService.formatBytes(entry.savings) }}
-                    </td>
-                    <td>
-                      <div class="d-flex align-items-center gap-2">
-                        <div class="progress flex-grow-1" style="height: 6px">
-                          <div
-                            class="progress-bar bg-warning"
-                            :style="{ width: getOpportunityPercentage(entry) + '%' }"
-                          ></div>
-                        </div>
-                        <small class="text-muted" style="min-width: 45px"
-                          >{{ getOpportunityPercentage(entry).toFixed(1) }}%</small
-                        >
-                      </div>
-                    </td>
-                  </tr>
-                </tbody>
-          </DataTable>
-        </div>
-        <div v-else class="text-center text-muted py-5">
-          <i class="bi bi-emoji-smile fs-1 mb-3 d-block"></i>
-          <p>No deduplication opportunities found!</p>
-          <small>All duplicate strings are already deduplicated or there are no duplicates.</small>
-        </div>
+      <div v-if="report && report.opportunities.length > 0">
+        <DataTable>
+          <template #toolbar>
+            <TableToolbar :show-search="false">
+              <span class="toolbar-info"
+                >Showing {{ report.opportunities.length }} deduplication opportunities</span
+              >
+            </TableToolbar>
+          </template>
+          <thead>
+            <tr>
+              <th style="width: 40px">#</th>
+              <SortableTableHeader
+                column="content"
+                label="Content"
+                :sort-column="oppSortColumn"
+                :sort-direction="oppSortDirection"
+                @sort="toggleOppSort"
+              />
+              <SortableTableHeader
+                column="count"
+                label="Count"
+                :sort-column="oppSortColumn"
+                :sort-direction="oppSortDirection"
+                align="end"
+                width="100px"
+                @sort="toggleOppSort"
+              />
+              <SortableTableHeader
+                column="arraySize"
+                label="Array Size"
+                :sort-column="oppSortColumn"
+                :sort-direction="oppSortDirection"
+                align="end"
+                width="120px"
+                @sort="toggleOppSort"
+              />
+              <SortableTableHeader
+                column="savings"
+                label="Potential"
+                :sort-column="oppSortColumn"
+                :sort-direction="oppSortDirection"
+                align="end"
+                width="120px"
+                @sort="toggleOppSort"
+              />
+              <th style="width: 180px">% of Max</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(entry, index) in sortedOpportunities" :key="index">
+              <td class="text-muted">{{ index + 1 }}</td>
+              <td>
+                <code class="string-content">{{ entry.content }}</code>
+              </td>
+              <td class="text-end font-monospace">
+                {{ FormattingService.formatNumber(entry.count) }}
+              </td>
+              <td class="text-end font-monospace">
+                {{ FormattingService.formatBytes(entry.arraySize) }}
+              </td>
+              <td class="text-end font-monospace text-warning">
+                {{ FormattingService.formatBytes(entry.savings) }}
+              </td>
+              <td>
+                <div class="d-flex align-items-center gap-2">
+                  <div class="progress flex-grow-1" style="height: 6px">
+                    <div
+                      class="progress-bar bg-warning"
+                      :style="{ width: getOpportunityPercentage(entry) + '%' }"
+                    ></div>
+                  </div>
+                  <small class="text-muted" style="min-width: 45px"
+                    >{{ getOpportunityPercentage(entry).toFixed(1) }}%</small
+                  >
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </DataTable>
+      </div>
+      <div v-else class="text-center text-muted py-5">
+        <i class="bi bi-emoji-smile fs-1 mb-3 d-block"></i>
+        <p>No deduplication opportunities found!</p>
+        <small>All duplicate strings are already deduplicated or there are no duplicates.</small>
+      </div>
     </div>
 
     <!-- JVM Configuration Tab -->
     <div v-show="activeTab === 'jvm-config'">
-        <div v-if="report?.jvmFlags && report.jvmFlags.length > 0">
-          <DataTable>
-                <thead>
-                  <tr>
-                    <th>Flag</th>
-                    <th>Value</th>
-                    <th>Origin</th>
-                    <th>Description</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="flag in report.jvmFlags" :key="flag.name">
-                    <td>
-                      <code class="flag-name">{{ flag.name }}</code>
-                    </td>
-                    <td>
-                      <span :class="getFlagValueClass(flag)">{{ flag.value }}</span>
-                    </td>
-                    <td class="text-muted">{{ flag.origin }}</td>
-                    <td>{{ flag.description }}</td>
-                  </tr>
-                </tbody>
-          </DataTable>
-        </div>
-        <div v-else class="text-center text-muted py-5">
-          <i class="bi bi-gear fs-1 mb-3 d-block"></i>
-          <p>No JVM flags information available.</p>
-          <small>JVM flag data was not found in the JFR recording.</small>
-        </div>
+      <div v-if="report?.jvmFlags && report.jvmFlags.length > 0">
+        <DataTable>
+          <thead>
+            <tr>
+              <th>Flag</th>
+              <th>Value</th>
+              <th>Origin</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="flag in report.jvmFlags" :key="flag.name">
+              <td>
+                <code class="flag-name">{{ flag.name }}</code>
+              </td>
+              <td>
+                <span :class="getFlagValueClass(flag)">{{ flag.value }}</span>
+              </td>
+              <td class="text-muted">{{ flag.origin }}</td>
+              <td>{{ flag.description }}</td>
+            </tr>
+          </tbody>
+        </DataTable>
+      </div>
+      <div v-else class="text-center text-muted py-5">
+        <i class="bi bi-gear fs-1 mb-3 d-block"></i>
+        <p>No JVM flags information available.</p>
+        <small>JVM flag data was not found in the JFR recording.</small>
+      </div>
     </div>
 
     <!-- About Tab -->
     <div v-show="activeTab === 'about'">
-        <div class="about-container">
-          <!-- Header Section -->
-          <div class="about-header">
-            <div class="about-header-icon">
-              <i class="bi bi-question-circle"></i>
+      <div class="about-container">
+        <!-- Header Section -->
+        <div class="about-header">
+          <div class="about-header-icon">
+            <i class="bi bi-question-circle"></i>
+          </div>
+          <div>
+            <h5 class="mb-1">How String Deduplication Works</h5>
+            <p class="text-muted mb-0">Understanding when and how Java strings share memory</p>
+          </div>
+        </div>
+
+        <!-- Intro -->
+        <div class="about-intro">
+          <p>
+            In Java, each <code>String</code> object contains a reference to a
+            <code>byte[]</code> array that holds the actual character data. When multiple String
+            objects have identical content, they can share the same <code>byte[]</code> array to
+            save memory.
+          </p>
+        </div>
+
+        <!-- Ways Strings Can Be Shared -->
+        <h6 class="section-title">
+          <i class="bi bi-share me-2"></i>
+          Ways Strings Can Be Shared
+        </h6>
+
+        <div class="feature-grid">
+          <div class="feature-card">
+            <div
+              class="feature-icon"
+              style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
+            >
+              <i class="bi bi-file-earmark-code"></i>
             </div>
-            <div>
-              <h5 class="mb-1">How String Deduplication Works</h5>
-              <p class="text-muted mb-0">Understanding when and how Java strings share memory</p>
+            <div class="feature-content">
+              <h6>String Literals</h6>
+              <p>
+                All string literals (<code>"hello"</code>) are automatically interned in the
+                constant pool. Same literals share the same object.
+              </p>
             </div>
           </div>
 
-          <!-- Intro -->
-          <div class="about-intro">
-            <p>
-              In Java, each <code>String</code> object contains a reference to a
-              <code>byte[]</code> array that holds the actual character data. When multiple String
-              objects have identical content, they can share the same <code>byte[]</code> array to
-              save memory.
-            </p>
-          </div>
-
-          <!-- Ways Strings Can Be Shared -->
-          <h6 class="section-title">
-            <i class="bi bi-share me-2"></i>
-            Ways Strings Can Be Shared
-          </h6>
-
-          <div class="feature-grid">
-            <div class="feature-card">
-              <div
-                class="feature-icon"
-                style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
-              >
-                <i class="bi bi-file-earmark-code"></i>
-              </div>
-              <div class="feature-content">
-                <h6>String Literals</h6>
-                <p>
-                  All string literals (<code>"hello"</code>) are automatically interned in the
-                  constant pool. Same literals share the same object.
-                </p>
-              </div>
+          <div class="feature-card">
+            <div
+              class="feature-icon"
+              style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%)"
+            >
+              <i class="bi bi-box-arrow-in-down"></i>
             </div>
-
-            <div class="feature-card">
-              <div
-                class="feature-icon"
-                style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%)"
-              >
-                <i class="bi bi-box-arrow-in-down"></i>
-              </div>
-              <div class="feature-content">
-                <h6>String.intern()</h6>
-                <p>
-                  Frameworks like Jackson, Gson, and Hibernate explicitly intern field names and
-                  entity names.
-                </p>
-              </div>
-            </div>
-
-            <div class="feature-card">
-              <div
-                class="feature-icon"
-                style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)"
-              >
-                <i class="bi bi-cpu"></i>
-              </div>
-              <div class="feature-content">
-                <h6>JVM Internals</h6>
-                <p>
-                  Class names, method names, and field names are stored in shared symbol tables by
-                  the JVM.
-                </p>
-              </div>
-            </div>
-
-            <div class="feature-card">
-              <div
-                class="feature-icon"
-                style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)"
-              >
-                <i class="bi bi-collection"></i>
-              </div>
-              <div class="feature-content">
-                <h6>Framework Interning</h6>
-                <p>
-                  Libraries like Guava's Interner, Apache Commons, and Spring implement custom
-                  deduplication.
-                </p>
-              </div>
+            <div class="feature-content">
+              <h6>String.intern()</h6>
+              <p>
+                Frameworks like Jackson, Gson, and Hibernate explicitly intern field names and
+                entity names.
+              </p>
             </div>
           </div>
 
-          <!-- JVM Flag Section -->
-          <h6 class="section-title">
-            <i class="bi bi-toggles me-2"></i>
-            JVM String Deduplication
-          </h6>
-
-          <div class="flag-cards">
-            <div class="flag-card">
-              <div class="flag-header">
-                <code class="flag-code">-XX:+UseStringDeduplication</code>
-                <span class="flag-badge">GC Feature</span>
-              </div>
-              <div class="flag-body">
-                <p>
-                  When enabled, the garbage collector automatically finds String objects with
-                  identical content and makes them share the same <code>byte[]</code> array during
-                  GC cycles.
-                </p>
-                <div class="gc-support">
-                  <span class="gc-label">Supported:</span>
-                  <span class="gc-tag">G1 (JDK 8u20+)</span>
-                  <span class="gc-tag">ZGC (JDK 18+)</span>
-                  <span class="gc-tag">Shenandoah (JDK 18+)</span>
-                  <span class="gc-tag">Serial (JDK 18+)</span>
-                  <span class="gc-tag">Parallel (JDK 18+)</span>
-                </div>
-              </div>
+          <div class="feature-card">
+            <div
+              class="feature-icon"
+              style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)"
+            >
+              <i class="bi bi-cpu"></i>
             </div>
-
-            <div class="flag-card">
-              <div class="flag-header">
-                <code class="flag-code">-XX:StringDeduplicationAgeThreshold=3</code>
-                <span class="flag-badge">Default: 3</span>
-              </div>
-              <div class="flag-body">
-                <p>
-                  Specifies the number of garbage collection cycles a String must survive before
-                  becoming a candidate for deduplication.
-                </p>
-                <ul class="flag-details">
-                  <li>
-                    <strong>Lower value (1-2):</strong> More aggressive deduplication, processes
-                    strings sooner but may deduplicate short-lived strings unnecessarily
-                  </li>
-                  <li>
-                    <strong>Higher value (4+):</strong> Only long-lived strings are deduplicated,
-                    reducing overhead but potentially missing savings
-                  </li>
-                </ul>
-              </div>
+            <div class="feature-content">
+              <h6>JVM Internals</h6>
+              <p>
+                Class names, method names, and field names are stored in shared symbol tables by the
+                JVM.
+              </p>
             </div>
           </div>
 
-          <!-- Benefits -->
-          <h6 class="section-title">
-            <i class="bi bi-lightning-charge me-2"></i>
-            What It Helps With
-          </h6>
-
-          <div class="benefits-list">
-            <div class="benefit-item">
-              <i class="bi bi-check-circle-fill text-success"></i>
-              <span>User data with duplicates (city names, status values, categories)</span>
+          <div class="feature-card">
+            <div
+              class="feature-icon"
+              style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)"
+            >
+              <i class="bi bi-collection"></i>
             </div>
-            <div class="benefit-item">
-              <i class="bi bi-check-circle-fill text-success"></i>
-              <span>Runtime-generated strings that aren't explicitly interned</span>
-            </div>
-            <div class="benefit-item">
-              <i class="bi bi-check-circle-fill text-success"></i>
-              <span>Temporary strings that survive long enough for GC to process</span>
-            </div>
-          </div>
-
-          <!-- Note -->
-          <div class="about-note">
-            <div class="note-icon">
-              <i class="bi bi-lightbulb-fill"></i>
-            </div>
-            <div class="note-content">
-              <strong>Why is sharing high without the flag?</strong>
-              <p class="mb-0">
-                High sharing without <code>UseStringDeduplication</code> is normal. It comes from
-                string literals, framework interning, and JVM metadata. The "Potential Savings"
-                metric shows additional memory that could be saved by enabling the flag.
+            <div class="feature-content">
+              <h6>Framework Interning</h6>
+              <p>
+                Libraries like Guava's Interner, Apache Commons, and Spring implement custom
+                deduplication.
               </p>
             </div>
           </div>
         </div>
+
+        <!-- JVM Flag Section -->
+        <h6 class="section-title">
+          <i class="bi bi-toggles me-2"></i>
+          JVM String Deduplication
+        </h6>
+
+        <div class="flag-cards">
+          <div class="flag-card">
+            <div class="flag-header">
+              <code class="flag-code">-XX:+UseStringDeduplication</code>
+              <span class="flag-badge">GC Feature</span>
+            </div>
+            <div class="flag-body">
+              <p>
+                When enabled, the garbage collector automatically finds String objects with
+                identical content and makes them share the same <code>byte[]</code> array during GC
+                cycles.
+              </p>
+              <div class="gc-support">
+                <span class="gc-label">Supported:</span>
+                <span class="gc-tag">G1 (JDK 8u20+)</span>
+                <span class="gc-tag">ZGC (JDK 18+)</span>
+                <span class="gc-tag">Shenandoah (JDK 18+)</span>
+                <span class="gc-tag">Serial (JDK 18+)</span>
+                <span class="gc-tag">Parallel (JDK 18+)</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="flag-card">
+            <div class="flag-header">
+              <code class="flag-code">-XX:StringDeduplicationAgeThreshold=3</code>
+              <span class="flag-badge">Default: 3</span>
+            </div>
+            <div class="flag-body">
+              <p>
+                Specifies the number of garbage collection cycles a String must survive before
+                becoming a candidate for deduplication.
+              </p>
+              <ul class="flag-details">
+                <li>
+                  <strong>Lower value (1-2):</strong> More aggressive deduplication, processes
+                  strings sooner but may deduplicate short-lived strings unnecessarily
+                </li>
+                <li>
+                  <strong>Higher value (4+):</strong> Only long-lived strings are deduplicated,
+                  reducing overhead but potentially missing savings
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- Benefits -->
+        <h6 class="section-title">
+          <i class="bi bi-lightning-charge me-2"></i>
+          What It Helps With
+        </h6>
+
+        <div class="benefits-list">
+          <div class="benefit-item">
+            <i class="bi bi-check-circle-fill text-success"></i>
+            <span>User data with duplicates (city names, status values, categories)</span>
+          </div>
+          <div class="benefit-item">
+            <i class="bi bi-check-circle-fill text-success"></i>
+            <span>Runtime-generated strings that aren't explicitly interned</span>
+          </div>
+          <div class="benefit-item">
+            <i class="bi bi-check-circle-fill text-success"></i>
+            <span>Temporary strings that survive long enough for GC to process</span>
+          </div>
+        </div>
+
+        <!-- Note -->
+        <div class="about-note">
+          <div class="note-icon">
+            <i class="bi bi-lightbulb-fill"></i>
+          </div>
+          <div class="note-content">
+            <strong>Why is sharing high without the flag?</strong>
+            <p class="mb-0">
+              High sharing without <code>UseStringDeduplication</code> is normal. It comes from
+              string literals, framework interning, and JVM metadata. The "Potential Savings" metric
+              shows additional memory that could be saved by enabling the flag.
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Instance Tree Modal (referrers / reachables) -->

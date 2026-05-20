@@ -82,7 +82,12 @@
           <template #toolbar>
             <TableToolbar v-model="searchQuery" search-placeholder="Search rules...">
               <span class="toolbar-count">{{ filteredAndSortedRules.length }} rules</span>
-              <Badge v-if="severityCounts.warning > 0" :value="severityCounts.warning + ' warnings'" variant="danger" size="xs" />
+              <Badge
+                v-if="severityCounts.warning > 0"
+                :value="severityCounts.warning + ' warnings'"
+                variant="danger"
+                size="xs"
+              />
               <template #filters>
                 <select v-model="severityFilter" class="form-select form-select-sm">
                   <option value="">All Severities</option>
@@ -93,86 +98,86 @@
               </template>
             </TableToolbar>
           </template>
-              <thead>
-                <tr>
-                  <th class="col-rule">Rule</th>
-                  <th
-                    class="col-score"
-                    title="Severity score (0-100). Higher values indicate more significant findings."
-                  >
-                    Severity
-                  </th>
-                  <th class="col-actions text-end">Details</th>
-                </tr>
-              </thead>
-              <tbody>
-                <template
-                  v-for="(rule, index) in filteredAndSortedRules"
-                  :key="`${index}-${rule.rule}`"
-                >
-                  <tr
-                    class="rule-row"
-                    :class="[`severity-${rule.severity?.toLowerCase() || 'default'}`]"
-                    @click="toggleRow(index)"
-                  >
-                    <td>
-                      <div class="rule-cell">
-                        <i
-                          class="bi severity-icon"
-                          :class="[
-                            `bi-${getSeverityIcon(rule.severity)}`,
-                            getSeverityTextClass(rule.severity)
-                          ]"
-                        ></i>
-                        <span class="rule-name">{{ rule.rule }}</span>
-                      </div>
-                    </td>
-                    <td class="col-score">
-                      <div class="severity-bar-wrapper" v-if="parseScore(rule.score) != null">
-                        <div class="severity-bar-track">
-                          <div
-                            class="severity-bar-fill"
-                            :style="{
-                              width: parseScore(rule.score) + '%',
-                              backgroundColor: getSeverityColor(rule.severity)
-                            }"
-                          ></div>
-                        </div>
-                        <span class="severity-bar-value">{{ parseScore(rule.score) }}</span>
-                      </div>
-                      <span v-else class="no-score">-</span>
-                    </td>
-                    <td class="col-actions text-end">
-                      <i
-                        class="bi expand-icon"
-                        :class="expandedRows.has(index) ? 'bi-chevron-up' : 'bi-chevron-down'"
-                      ></i>
-                    </td>
-                  </tr>
+          <thead>
+            <tr>
+              <th class="col-rule">Rule</th>
+              <th
+                class="col-score"
+                title="Severity score (0-100). Higher values indicate more significant findings."
+              >
+                Severity
+              </th>
+              <th class="col-actions text-end">Details</th>
+            </tr>
+          </thead>
+          <tbody>
+            <template
+              v-for="(rule, index) in filteredAndSortedRules"
+              :key="`${index}-${rule.rule}`"
+            >
+              <tr
+                class="rule-row"
+                :class="[`severity-${rule.severity?.toLowerCase() || 'default'}`]"
+                @click="toggleRow(index)"
+              >
+                <td>
+                  <div class="rule-cell">
+                    <i
+                      class="bi severity-icon"
+                      :class="[
+                        `bi-${getSeverityIcon(rule.severity)}`,
+                        getSeverityTextClass(rule.severity)
+                      ]"
+                    ></i>
+                    <span class="rule-name">{{ rule.rule }}</span>
+                  </div>
+                </td>
+                <td class="col-score">
+                  <div class="severity-bar-wrapper" v-if="parseScore(rule.score) != null">
+                    <div class="severity-bar-track">
+                      <div
+                        class="severity-bar-fill"
+                        :style="{
+                          width: parseScore(rule.score) + '%',
+                          backgroundColor: getSeverityColor(rule.severity)
+                        }"
+                      ></div>
+                    </div>
+                    <span class="severity-bar-value">{{ parseScore(rule.score) }}</span>
+                  </div>
+                  <span v-else class="no-score">-</span>
+                </td>
+                <td class="col-actions text-end">
+                  <i
+                    class="bi expand-icon"
+                    :class="expandedRows.has(index) ? 'bi-chevron-up' : 'bi-chevron-down'"
+                  ></i>
+                </td>
+              </tr>
 
-                  <!-- Expandable Row Details -->
-                  <tr v-if="expandedRows.has(index)" class="details-row">
-                    <td colspan="3" class="p-0">
-                      <div class="row-details">
-                        <div class="details-grid">
-                          <div v-if="rule.summary" class="detail-item">
-                            <span class="detail-label">Summary</span>
-                            <p class="detail-text" v-html="rule.summary"></p>
-                          </div>
-                          <div v-if="rule.explanation" class="detail-item">
-                            <span class="detail-label">Explanation</span>
-                            <p class="detail-text" v-html="rule.explanation"></p>
-                          </div>
-                          <div v-if="rule.solution" class="detail-item">
-                            <span class="detail-label">Solution</span>
-                            <p class="detail-text" v-html="rule.solution"></p>
-                          </div>
-                        </div>
+              <!-- Expandable Row Details -->
+              <tr v-if="expandedRows.has(index)" class="details-row">
+                <td colspan="3" class="p-0">
+                  <div class="row-details">
+                    <div class="details-grid">
+                      <div v-if="rule.summary" class="detail-item">
+                        <span class="detail-label">Summary</span>
+                        <p class="detail-text" v-html="rule.summary"></p>
                       </div>
-                    </td>
-                  </tr>
-                </template>
-              </tbody>
+                      <div v-if="rule.explanation" class="detail-item">
+                        <span class="detail-label">Explanation</span>
+                        <p class="detail-text" v-html="rule.explanation"></p>
+                      </div>
+                      <div v-if="rule.solution" class="detail-item">
+                        <span class="detail-label">Solution</span>
+                        <p class="detail-text" v-html="rule.solution"></p>
+                      </div>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            </template>
+          </tbody>
         </DataTable>
 
         <!-- No Results After Filter -->
@@ -692,5 +697,4 @@ function getSeverityColor(severity: string): string {
     margin-top: 1rem;
   }
 }
-
 </style>

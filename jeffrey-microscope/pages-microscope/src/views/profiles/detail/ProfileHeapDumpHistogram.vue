@@ -59,245 +59,228 @@
           </template>
         </TableToolbar>
       </template>
-          <thead>
-            <tr>
-              <th style="width: 40px">#</th>
-              <th>Class Name</th>
-              <SortableTableHeader
-                column="COUNT"
-                label="Instances"
-                :sort-column="histogramSortBy"
-                :sort-direction="'desc'"
-                align="end"
-                width="120px"
-                @sort="handleSort"
-              />
-              <SortableTableHeader
-                column="SIZE"
-                label="Total Size"
-                :sort-column="histogramSortBy"
-                :sort-direction="'desc'"
-                align="end"
-                width="120px"
-                @sort="handleSort"
-              />
-              <th style="width: 200px">% of Max</th>
-            </tr>
-          </thead>
-          <tbody>
-            <template v-for="(entry, index) in histogramData" :key="entry.className">
-              <tr :class="{ 'row-expanded': expandedClass === entry.className }">
-                <td class="text-muted">{{ index + 1 }}</td>
-                <td>
-                  <div class="class-cell">
-                    <button
-                      class="btn btn-expand"
-                      :disabled="instancesLoading === entry.className"
-                      @click="toggleExpand(entry)"
-                    >
-                      <span
-                        v-if="instancesLoading === entry.className"
-                        class="spinner-border spinner-border-sm spinner-inline"
-                      ></span>
-                      <i
-                        v-else-if="expandedClass === entry.className"
-                        class="bi bi-chevron-down"
-                      ></i>
-                      <i v-else class="bi bi-chevron-right"></i>
-                    </button>
-                    <div class="class-info">
-                      <ClassNameDisplay :class-name="entry.className" />
-                      <div v-if="entry.referrers && entry.referrers.length > 0" class="referrers-line">
-                        <span class="referrers-label">referrers</span>
-                        <Badge
-                          v-for="ref in entry.referrers"
-                          :key="ref.className"
-                          variant="violet"
-                          size="xxs"
-                          :uppercase="false"
-                          :value="'↑ ' + simpleClassName(ref.className)"
-                          :accent="ref.percent.toFixed(0) + '%'"
-                          :title="ref.className"
-                        />
-                      </div>
-                    </div>
+      <thead>
+        <tr>
+          <th style="width: 40px">#</th>
+          <th>Class Name</th>
+          <SortableTableHeader
+            column="COUNT"
+            label="Instances"
+            :sort-column="histogramSortBy"
+            :sort-direction="'desc'"
+            align="end"
+            width="120px"
+            @sort="handleSort"
+          />
+          <SortableTableHeader
+            column="SIZE"
+            label="Total Size"
+            :sort-column="histogramSortBy"
+            :sort-direction="'desc'"
+            align="end"
+            width="120px"
+            @sort="handleSort"
+          />
+          <th style="width: 200px">% of Max</th>
+        </tr>
+      </thead>
+      <tbody>
+        <template v-for="(entry, index) in histogramData" :key="entry.className">
+          <tr :class="{ 'row-expanded': expandedClass === entry.className }">
+            <td class="text-muted">{{ index + 1 }}</td>
+            <td>
+              <div class="class-cell">
+                <button
+                  class="btn btn-expand"
+                  :disabled="instancesLoading === entry.className"
+                  @click="toggleExpand(entry)"
+                >
+                  <span
+                    v-if="instancesLoading === entry.className"
+                    class="spinner-border spinner-border-sm spinner-inline"
+                  ></span>
+                  <i v-else-if="expandedClass === entry.className" class="bi bi-chevron-down"></i>
+                  <i v-else class="bi bi-chevron-right"></i>
+                </button>
+                <div class="class-info">
+                  <ClassNameDisplay :class-name="entry.className" />
+                  <div v-if="entry.referrers && entry.referrers.length > 0" class="referrers-line">
+                    <span class="referrers-label">referrers</span>
+                    <Badge
+                      v-for="ref in entry.referrers"
+                      :key="ref.className"
+                      variant="violet"
+                      size="xxs"
+                      :uppercase="false"
+                      :value="'↑ ' + simpleClassName(ref.className)"
+                      :accent="ref.percent.toFixed(0) + '%'"
+                      :title="ref.className"
+                    />
                   </div>
-                </td>
-                <td class="text-end font-monospace">
-                  {{ FormattingService.formatNumber(entry.instanceCount) }}
-                </td>
-                <td class="text-end font-monospace text-warning">
-                  {{ FormattingService.formatBytes(entry.totalSize) }}
-                </td>
-                <td>
-                  <div class="d-flex align-items-center gap-2">
-                    <div class="progress flex-grow-1" style="height: 6px">
+                </div>
+              </div>
+            </td>
+            <td class="text-end font-monospace">
+              {{ FormattingService.formatNumber(entry.instanceCount) }}
+            </td>
+            <td class="text-end font-monospace text-warning">
+              {{ FormattingService.formatBytes(entry.totalSize) }}
+            </td>
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                <div class="progress flex-grow-1" style="height: 6px">
+                  <div
+                    class="progress-bar"
+                    :style="{
+                      width: getDistributionPercentage(entry) + '%',
+                      backgroundColor: '#4285F4'
+                    }"
+                  ></div>
+                </div>
+                <small class="text-muted" style="min-width: 45px"
+                  >{{ getDistributionPercentage(entry).toFixed(1) }}%</small
+                >
+              </div>
+            </td>
+          </tr>
+
+          <!-- Expansion drawer -->
+          <tr v-if="expandedClass === entry.className && instancesError" class="drawer-row">
+            <td colspan="5">
+              <div class="drawer-panel drawer-error">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                {{ instancesError }}
+              </div>
+            </td>
+          </tr>
+          <tr
+            v-else-if="
+              expandedClass === entry.className &&
+              instancesByClass[entry.className] &&
+              instancesByClass[entry.className].instances.length > 0
+            "
+            class="drawer-row"
+          >
+            <td colspan="5">
+              <div class="drawer-panel">
+                <div class="drawer-title">
+                  Top {{ instancesByClass[entry.className].instances.length }} instances
+                  <span class="sort-hint">— retained size, descending</span>
+                </div>
+
+                <div class="split-panel">
+                  <!-- Left aggregate panel -->
+                  <div class="split-left">
+                    <div class="sp-stat-label">Top {{ TOP_INSTANCES_LIMIT }} retained</div>
+                    <div class="sp-stat-value text-warning">
+                      {{ FormattingService.formatBytes(getTopRetainedTotal(entry.className)) }}
+                    </div>
+
+                    <div class="sp-stat-label">% of class total</div>
+                    <div class="sp-stat-value">{{ getTopRetainedPercent(entry).toFixed(2) }}%</div>
+
+                    <div class="sp-stat-label">Distribution</div>
+                    <div class="sparkline">
                       <div
-                        class="progress-bar"
+                        v-for="(inst, idx) in instancesByClass[entry.className].instances"
+                        :key="idx"
+                        class="sb"
                         :style="{
-                          width: getDistributionPercentage(entry) + '%',
-                          backgroundColor: '#4285F4'
+                          height: getInstanceBarPercent(entry.className, inst) + '%'
                         }"
                       ></div>
                     </div>
-                    <small class="text-muted" style="min-width: 45px"
-                      >{{ getDistributionPercentage(entry).toFixed(1) }}%</small
+                    <div class="sp-caption">
+                      <span>{{
+                        FormattingService.formatBytes(getMaxRetained(entry.className))
+                      }}</span>
+                      <span>{{
+                        FormattingService.formatBytes(getMinRetained(entry.className))
+                      }}</span>
+                    </div>
+
+                    <div
+                      v-if="instancesByClass[entry.className].totalInstances > TOP_INSTANCES_LIMIT"
+                      class="sp-footnote"
                     >
-                  </div>
-                </td>
-              </tr>
-
-              <!-- Expansion drawer -->
-              <tr
-                v-if="expandedClass === entry.className && instancesError"
-                class="drawer-row"
-              >
-                <td colspan="5">
-                  <div class="drawer-panel drawer-error">
-                    <i class="bi bi-exclamation-triangle me-2"></i>
-                    {{ instancesError }}
-                  </div>
-                </td>
-              </tr>
-              <tr
-                v-else-if="
-                  expandedClass === entry.className &&
-                  instancesByClass[entry.className] &&
-                  instancesByClass[entry.className].instances.length > 0
-                "
-                class="drawer-row"
-              >
-                <td colspan="5">
-                  <div class="drawer-panel">
-                    <div class="drawer-title">
-                      Top {{ instancesByClass[entry.className].instances.length }} instances
-                      <span class="sort-hint">— retained size, descending</span>
-                    </div>
-
-                    <div class="split-panel">
-                      <!-- Left aggregate panel -->
-                      <div class="split-left">
-                        <div class="sp-stat-label">Top {{ TOP_INSTANCES_LIMIT }} retained</div>
-                        <div class="sp-stat-value text-warning">
-                          {{ FormattingService.formatBytes(getTopRetainedTotal(entry.className)) }}
-                        </div>
-
-                        <div class="sp-stat-label">% of class total</div>
-                        <div class="sp-stat-value">
-                          {{ getTopRetainedPercent(entry).toFixed(2) }}%
-                        </div>
-
-                        <div class="sp-stat-label">Distribution</div>
-                        <div class="sparkline">
-                          <div
-                            v-for="(inst, idx) in instancesByClass[entry.className].instances"
-                            :key="idx"
-                            class="sb"
-                            :style="{
-                              height: getInstanceBarPercent(entry.className, inst) + '%'
-                            }"
-                          ></div>
-                        </div>
-                        <div class="sp-caption">
-                          <span>{{
-                            FormattingService.formatBytes(
-                              getMaxRetained(entry.className)
-                            )
-                          }}</span>
-                          <span>{{
-                            FormattingService.formatBytes(
-                              getMinRetained(entry.className)
-                            )
-                          }}</span>
-                        </div>
-
-                        <div
-                          v-if="instancesByClass[entry.className].totalInstances > TOP_INSTANCES_LIMIT"
-                          class="sp-footnote"
-                        >
-                          {{
-                            FormattingService.formatNumber(
-                              instancesByClass[entry.className].totalInstances
-                            )
-                          }}
-                          total instances of this class
-                        </div>
-                      </div>
-
-                      <!-- Right scrollable list -->
-                      <div class="split-right">
-                        <div
-                          v-for="(inst, idx) in instancesByClass[entry.className].instances"
-                          :key="inst.objectId"
-                          class="sp-list-row"
-                          :class="{ 'has-referrer-col': showsReferrerColumn(entry.className) }"
-                        >
-                          <span class="spr-rank">{{
-                            String(idx + 1).padStart(2, '0')
-                          }}</span>
-                          <span class="spr-id">{{
-                            FormattingService.formatObjectId(inst.objectId)
-                          }}</span>
-                          <span v-if="showsReferrerColumn(entry.className)" class="spr-referrer-slot">
-                            <Badge
-                              v-if="inst.referrerClass"
-                              variant="violet"
-                              size="xxs"
-                              :uppercase="false"
-                              :value="'↑ ' + simpleClassName(inst.referrerClass)"
-                              :title="inst.referrerClass"
-                            />
-                            <span v-else class="spr-referrer-empty">—</span>../
-                          </span>
-                          <span
-                            class="spr-preview"
-                            :title="inst.contentPreview ?? ''"
-                            >{{ inst.contentPreview ?? '' }}</span>
-                          <span class="spr-bar">
-                            <span
-                              class="spr-fill"
-                              :style="{
-                                width: getInstanceBarPercent(entry.className, inst) + '%'
-                              }"
-                            ></span>
-                          </span>
-                          <span class="spr-retained">{{
-                            inst.retainedSize !== null
-                              ? FormattingService.formatBytes(inst.retainedSize)
-                              : '—'
-                          }}</span>
-                          <span class="spr-actions">
-                            <InstanceActionButtons
-                              :object-id="inst.objectId"
-                              :show-instance-detail="true"
-                              @show-referrers="openTreeModal($event, 'REFERRERS')"
-                              @show-reachables="openTreeModal($event, 'REACHABLES')"
-                              @show-g-c-root-path="openGCRootPathModal"
-                              @show-instance-detail="openInstanceDetailPanel"
-                            />
-                          </span>
-                        </div>
-                      </div>
+                      {{
+                        FormattingService.formatNumber(
+                          instancesByClass[entry.className].totalInstances
+                        )
+                      }}
+                      total instances of this class
                     </div>
                   </div>
-                </td>
-              </tr>
-              <tr
-                v-else-if="
-                  expandedClass === entry.className &&
-                  instancesByClass[entry.className] &&
-                  instancesByClass[entry.className].instances.length === 0
-                "
-                class="drawer-row"
-              >
-                <td colspan="5">
-                  <div class="drawer-panel drawer-empty">
-                    No instances available for this class.
+
+                  <!-- Right scrollable list -->
+                  <div class="split-right">
+                    <div
+                      v-for="(inst, idx) in instancesByClass[entry.className].instances"
+                      :key="inst.objectId"
+                      class="sp-list-row"
+                      :class="{ 'has-referrer-col': showsReferrerColumn(entry.className) }"
+                    >
+                      <span class="spr-rank">{{ String(idx + 1).padStart(2, '0') }}</span>
+                      <span class="spr-id">{{
+                        FormattingService.formatObjectId(inst.objectId)
+                      }}</span>
+                      <span v-if="showsReferrerColumn(entry.className)" class="spr-referrer-slot">
+                        <Badge
+                          v-if="inst.referrerClass"
+                          variant="violet"
+                          size="xxs"
+                          :uppercase="false"
+                          :value="'↑ ' + simpleClassName(inst.referrerClass)"
+                          :title="inst.referrerClass"
+                        />
+                        <span v-else class="spr-referrer-empty">—</span>../
+                      </span>
+                      <span class="spr-preview" :title="inst.contentPreview ?? ''">{{
+                        inst.contentPreview ?? ''
+                      }}</span>
+                      <span class="spr-bar">
+                        <span
+                          class="spr-fill"
+                          :style="{
+                            width: getInstanceBarPercent(entry.className, inst) + '%'
+                          }"
+                        ></span>
+                      </span>
+                      <span class="spr-retained">{{
+                        inst.retainedSize !== null
+                          ? FormattingService.formatBytes(inst.retainedSize)
+                          : '—'
+                      }}</span>
+                      <span class="spr-actions">
+                        <InstanceActionButtons
+                          :object-id="inst.objectId"
+                          :show-instance-detail="true"
+                          @show-referrers="openTreeModal($event, 'REFERRERS')"
+                          @show-reachables="openTreeModal($event, 'REACHABLES')"
+                          @show-g-c-root-path="openGCRootPathModal"
+                          @show-instance-detail="openInstanceDetailPanel"
+                        />
+                      </span>
+                    </div>
                   </div>
-                </td>
-              </tr>
-            </template>
-          </tbody>
+                </div>
+              </div>
+            </td>
+          </tr>
+          <tr
+            v-else-if="
+              expandedClass === entry.className &&
+              instancesByClass[entry.className] &&
+              instancesByClass[entry.className].instances.length === 0
+            "
+            class="drawer-row"
+          >
+            <td colspan="5">
+              <div class="drawer-panel drawer-empty">No instances available for this class.</div>
+            </td>
+          </tr>
+        </template>
+      </tbody>
     </DataTable>
 
     <!-- Instance Tree Modal -->
@@ -449,7 +432,10 @@ const loadHistogram = async () => {
   try {
     histogramData.value = await client.getHistogram(histogramTopN.value, histogramSortBy.value);
     // Collapse any expansion that no longer matches a row.
-    if (expandedClass.value && !histogramData.value.some(e => e.className === expandedClass.value)) {
+    if (
+      expandedClass.value &&
+      !histogramData.value.some(e => e.className === expandedClass.value)
+    ) {
       expandedClass.value = null;
     }
   } catch (err) {

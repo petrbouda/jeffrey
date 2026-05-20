@@ -65,7 +65,11 @@
         </span>
 
         <span class="row-badges">
-          <Badge :value="typeLabel(row.loader.objectId)" :variant="typeVariant(row.loader.objectId)" size="xxs" />
+          <Badge
+            :value="typeLabel(row.loader.objectId)"
+            :variant="typeVariant(row.loader.objectId)"
+            size="xxs"
+          />
           <Badge
             v-if="verdict(row.loader.objectId)"
             :value="verdictLabel(row.loader.objectId)"
@@ -80,14 +84,15 @@
           />
         </span>
 
-        <span class="row-count font-monospace">{{ FormattingService.formatNumber(row.loader.classCount) }}</span>
-        <span class="row-retained font-monospace">{{ FormattingService.formatBytes(row.loader.retainedSize) }}</span>
+        <span class="row-count font-monospace">{{
+          FormattingService.formatNumber(row.loader.classCount)
+        }}</span>
+        <span class="row-retained font-monospace">{{
+          FormattingService.formatBytes(row.loader.retainedSize)
+        }}</span>
         <span class="row-bar">
           <span class="progress">
-            <span
-              class="progress-bar"
-              :style="{ width: percentage(row.loader) + '%' }"
-            ></span>
+            <span class="progress-bar" :style="{ width: percentage(row.loader) + '%' }"></span>
           </span>
           <span class="bar-label">{{ percentage(row.loader).toFixed(1) }}%</span>
         </span>
@@ -302,9 +307,7 @@ const matchesFilters = (loaderId: number): boolean => {
 // does, so the path remains navigable.
 const filteredTree = computed<TreeNode[]>(() => {
   const prune = (node: TreeNode): TreeNode | null => {
-    const keptChildren = node.children
-      .map(prune)
-      .filter((c): c is TreeNode => c !== null);
+    const keptChildren = node.children.map(prune).filter((c): c is TreeNode => c !== null);
     if (matchesFilters(node.loader.objectId) || keptChildren.length > 0) {
       return { loader: node.loader, children: keptChildren };
     }

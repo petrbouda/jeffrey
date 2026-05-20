@@ -44,24 +44,38 @@ export default class ProjectInstanceClient extends BasePlatformClient {
   }
 
   async getDetail(instanceId: string): Promise<ProjectInstanceDetail> {
-    return super.get<any>(`/${instanceId}/detail`).then(data => new ProjectInstanceDetail(
-        this.mapToInstance(data.instance),
-        data.stats.fileCount ?? 0,
-        data.stats.totalSizeBytes ?? 0
-    ));
+    return super
+      .get<any>(`/${instanceId}/detail`)
+      .then(
+        data =>
+          new ProjectInstanceDetail(
+            this.mapToInstance(data.instance),
+            data.stats.fileCount ?? 0,
+            data.stats.totalSizeBytes ?? 0
+          )
+      );
   }
 
-  async getSessionDetail(instanceId: string, sessionId: string): Promise<ProjectInstanceSessionDetail> {
-    return super.get<any>(`/${instanceId}/sessions/${sessionId}/detail`).then(data => new ProjectInstanceSessionDetail(
-        this.mapToSession(data.session),
-        data.environment ?? null
-    ));
+  async getSessionDetail(
+    instanceId: string,
+    sessionId: string
+  ): Promise<ProjectInstanceSessionDetail> {
+    return super
+      .get<any>(`/${instanceId}/sessions/${sessionId}/detail`)
+      .then(
+        data =>
+          new ProjectInstanceSessionDetail(
+            this.mapToSession(data.session),
+            data.environment ?? null
+          )
+      );
   }
 
   private mapToInstance = (data: any): ProjectInstance => {
-    const sessions = Array.isArray(data.sessions) && data.sessions.length > 0
-      ? data.sessions.map(this.mapToSession)
-      : undefined;
+    const sessions =
+      Array.isArray(data.sessions) && data.sessions.length > 0
+        ? data.sessions.map(this.mapToSession)
+        : undefined;
 
     return new ProjectInstance(
       data.id,

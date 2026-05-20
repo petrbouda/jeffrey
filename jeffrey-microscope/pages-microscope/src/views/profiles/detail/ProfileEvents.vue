@@ -70,20 +70,20 @@
       </div>
       <div class="event-config-stats">
         <div class="event-config-stat">
-          <div class="event-config-stat-value">{{ FormattingService.formatNumber(selectedEventType.count) }}</div>
+          <div class="event-config-stat-value">
+            {{ FormattingService.formatNumber(selectedEventType.count) }}
+          </div>
           <div class="event-config-stat-label">Total Samples</div>
         </div>
         <div class="event-config-stat">
-          <div class="event-config-stat-value">{{ FormattingService.formatNumber(Math.min(200, filteredEventData.length)) }}</div>
+          <div class="event-config-stat-value">
+            {{ FormattingService.formatNumber(Math.min(200, filteredEventData.length)) }}
+          </div>
           <div class="event-config-stat-label">Showing</div>
         </div>
       </div>
       <div class="event-config-actions">
-        <button
-          v-if="!showEventTypeList"
-          class="event-config-btn"
-          @click="toggleEventTypeList"
-        >
+        <button v-if="!showEventTypeList" class="event-config-btn" @click="toggleEventTypeList">
           <i class="bi bi-pencil"></i> Change
         </button>
       </div>
@@ -107,54 +107,54 @@
       </div>
       <div v-else>
         <DataTable table-class="event-tree-table">
-            <thead>
-              <tr>
-                <th v-for="column in eventColumns" :key="column.field">
-                  <div class="d-flex flex-column">
-                    <!-- Column header -->
-                    <div
-                      class="d-flex align-items-center mb-1"
-                      :class="{ sortable: isSortableField(column.type) }"
-                      @click="isSortableField(column.type) && toggleSort(column.field)"
-                    >
-                      <span>{{ column.header }}</span>
-                      <span v-if="isSortableField(column.type)" class="ms-1">
-                        <i
-                          v-if="sortConfig && sortConfig.field === column.field"
-                          :class="
-                            sortConfig.direction === 'asc' ? 'bi bi-sort-up' : 'bi bi-sort-down'
-                          "
-                        ></i>
-                        <i v-else class="bi bi-sort text-muted"></i>
-                      </span>
-                    </div>
+          <thead>
+            <tr>
+              <th v-for="column in eventColumns" :key="column.field">
+                <div class="d-flex flex-column">
+                  <!-- Column header -->
+                  <div
+                    class="d-flex align-items-center mb-1"
+                    :class="{ sortable: isSortableField(column.type) }"
+                    @click="isSortableField(column.type) && toggleSort(column.field)"
+                  >
+                    <span>{{ column.header }}</span>
+                    <span v-if="isSortableField(column.type)" class="ms-1">
+                      <i
+                        v-if="sortConfig && sortConfig.field === column.field"
+                        :class="
+                          sortConfig.direction === 'asc' ? 'bi bi-sort-up' : 'bi bi-sort-down'
+                        "
+                      ></i>
+                      <i v-else class="bi bi-sort text-muted"></i>
+                    </span>
+                  </div>
 
-                    <!-- Filter input for string columns -->
-                    <div v-if="isStringField(column.field, column.type)" class="column-filter">
-                      <input
-                        type="text"
-                        class="form-control form-control-sm filter-input"
-                        :placeholder="'Filter...'"
-                        v-model="columnFilters[column.field]"
-                        @click.stop
-                        @input="applyFilters"
-                      />
-                    </div>
+                  <!-- Filter input for string columns -->
+                  <div v-if="isStringField(column.field, column.type)" class="column-filter">
+                    <input
+                      type="text"
+                      class="form-control form-control-sm filter-input"
+                      :placeholder="'Filter...'"
+                      v-model="columnFilters[column.field]"
+                      @click.stop
+                      @input="applyFilters"
+                    />
                   </div>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr class="leaf-row" v-for="(event, index) in limitedEventData" :key="index">
-                <td v-for="column in eventColumns" :key="column.field" class="event-cell">
-                  <div class="event-name-cell">
-                    <span class="event-value">{{
-                      FormattingService.format(event[column.field], column.type || '')
-                    }}</span>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
+                </div>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="leaf-row" v-for="(event, index) in limitedEventData" :key="index">
+              <td v-for="column in eventColumns" :key="column.field" class="event-cell">
+                <div class="event-name-cell">
+                  <span class="event-value">{{
+                    FormattingService.format(event[column.field], column.type || '')
+                  }}</span>
+                </div>
+              </td>
+            </tr>
+          </tbody>
         </DataTable>
       </div>
     </div>

@@ -28,11 +28,48 @@ package cafe.jeffrey.profile.heapdump.parser;
  * On encountering an unknown tag or a truncated body, the reader emits a warning
  * and stops scanning the current region (subsequent sub-records cannot be located
  * without a known frame size). The top-level scan resumes at the next region.
+ *
+ * <p>Dispatch is visitor-based with primitive arguments: each sub-record kind
+ * calls a typed {@code on*} method directly with the field values pulled from
+ * the mapped file. This means the hot {@code INSTANCE_DUMP} /
+ * {@code OBJECT_ARRAY_DUMP} / {@code PRIMITIVE_ARRAY_DUMP} paths never
+ * allocate a record object — Pass B of a 7.6 M-instance dump previously paid
+ * one {@code HprofRecord.InstanceDump} per instance just to switch over it.
+ * {@link HprofRecord.ClassDump} stays as a record on the visitor signature
+ * because it carries 12 fields and only fires ~22 K times per dump.
  */
 public final class HprofSubRecordReader {
 
-    public interface Listener {
-        void onRecord(HprofRecord.Sub record);
+    /**
+     * Visitor over sub-records. Each method has primitive arguments so the
+     * reader can fan out per-sub-record state without materialising a record
+     * object on the hot path. Default no-op implementations let callers
+     * override only the sub-record kinds they care about (Pass A overrides
+     * only {@link #onClassDump}).
+     */
+    public interface Visitor {
+
+        default void onGcRoot(int rootKind, long instanceId, int threadSerial, int frameIndex, long fileOffset) {
+        }
+
+        default void onClassDump(HprofRecord.ClassDump record) {
+        }
+
+        default void onInstanceDump(
+                long instanceId, int traceSerial, long classId,
+                int instanceFieldsByteLength, long fileOffset) {
+        }
+
+        default void onObjectArrayDump(
+                long arrayId, int traceSerial, int length, long arrayClassId, long fileOffset) {
+        }
+
+        default void onPrimitiveArrayDump(
+                long arrayId, int traceSerial, int length, int elementType, long fileOffset) {
+        }
+
+        default void onOpaqueSub(int tag, long bodyOffset, long bodySize) {
+        }
 
         default void onWarning(ParseWarning warning) {
         }
@@ -47,14 +84,14 @@ public final class HprofSubRecordReader {
      * @param file        the underlying mapped file
      * @param regionStart absolute offset of the region's first byte
      * @param regionLength byte length of the region
-     * @param listener    receives decoded records and warnings
+     * @param visitor     receives decoded records and warnings
      */
-    public static void read(HprofMappedFile file, long regionStart, long regionLength, Listener listener) {
+    public static void read(HprofMappedFile file, long regionStart, long regionLength, Visitor visitor) {
         if (file == null) {
             throw new IllegalArgumentException("file must not be null");
         }
-        if (listener == null) {
-            throw new IllegalArgumentException("listener must not be null");
+        if (visitor == null) {
+            throw new IllegalArgumentException("visitor must not be null");
         }
         if (regionLength < 0) {
             throw new IllegalArgumentException("regionLength must be non-negative: regionLength=" + regionLength);
@@ -72,20 +109,20 @@ public final class HprofSubRecordReader {
             try {
                 bodySize = bodySizeFor(file, tag, bodyOffset, end, idSize);
             } catch (RuntimeException e) {
-                listener.onWarning(new ParseWarning(
+                visitor.onWarning(new ParseWarning(
                         pos, tag, ParseWarning.Severity.ERROR,
                         "Failed to compute sub-record size: tag=" + tag + " error=" + e.getMessage()));
                 return;
             }
 
             if (bodySize < 0) {
-                listener.onWarning(new ParseWarning(
+                visitor.onWarning(new ParseWarning(
                         pos, tag, ParseWarning.Severity.ERROR,
                         "Unknown or truncated sub-record, abandoning region: tag=" + tag));
                 return;
             }
             if (bodyOffset + bodySize > end) {
-                listener.onWarning(new ParseWarning(
+                visitor.onWarning(new ParseWarning(
                         pos, tag, ParseWarning.Severity.ERROR,
                         "Sub-record body exceeds region: tag=" + tag
                                 + " bodySize=" + bodySize
@@ -94,9 +131,9 @@ public final class HprofSubRecordReader {
             }
 
             try {
-                dispatch(file, tag, bodyOffset, bodySize, idSize, listener);
+                dispatch(file, tag, bodyOffset, bodySize, idSize, visitor);
             } catch (RuntimeException e) {
-                listener.onWarning(new ParseWarning(
+                visitor.onWarning(new ParseWarning(
                         pos, tag, ParseWarning.Severity.ERROR,
                         "Failed to decode sub-record: tag=" + tag + " error=" + e.getMessage()));
                 return;
@@ -107,28 +144,28 @@ public final class HprofSubRecordReader {
     }
 
     private static void dispatch(
-            HprofMappedFile file, int tag, long bodyOffset, long bodySize, int idSize, Listener listener) {
+            HprofMappedFile file, int tag, long bodyOffset, long bodySize, int idSize, Visitor visitor) {
         switch (tag) {
-            case HprofTag.Sub.ROOT_UNKNOWN -> emitGcRoot(file, tag, bodyOffset, idSize, false, false, listener);
-            case HprofTag.Sub.ROOT_JNI_GLOBAL -> emitGcRoot(file, tag, bodyOffset, idSize, false, false, listener);
-            case HprofTag.Sub.ROOT_JNI_LOCAL -> emitGcRoot(file, tag, bodyOffset, idSize, true, true, listener);
-            case HprofTag.Sub.ROOT_JAVA_FRAME -> emitGcRoot(file, tag, bodyOffset, idSize, true, true, listener);
-            case HprofTag.Sub.ROOT_NATIVE_STACK -> emitGcRoot(file, tag, bodyOffset, idSize, true, false, listener);
-            case HprofTag.Sub.ROOT_STICKY_CLASS -> emitGcRoot(file, tag, bodyOffset, idSize, false, false, listener);
-            case HprofTag.Sub.ROOT_THREAD_BLOCK -> emitGcRoot(file, tag, bodyOffset, idSize, true, false, listener);
-            case HprofTag.Sub.ROOT_MONITOR_USED -> emitGcRoot(file, tag, bodyOffset, idSize, false, false, listener);
-            case HprofTag.Sub.ROOT_THREAD_OBJECT -> emitGcRoot(file, tag, bodyOffset, idSize, true, false, listener);
-            case HprofTag.Sub.CLASS_DUMP -> emitClassDump(file, bodyOffset, bodySize, idSize, listener);
-            case HprofTag.Sub.INSTANCE_DUMP -> emitInstanceDump(file, bodyOffset, idSize, listener);
-            case HprofTag.Sub.OBJECT_ARRAY_DUMP -> emitObjectArrayDump(file, bodyOffset, idSize, listener);
-            case HprofTag.Sub.PRIMITIVE_ARRAY_DUMP -> emitPrimitiveArrayDump(file, bodyOffset, idSize, listener);
-            default -> listener.onRecord(new HprofRecord.OpaqueSub(tag, bodyOffset, bodySize));
+            case HprofTag.Sub.ROOT_UNKNOWN -> emitGcRoot(file, tag, bodyOffset, idSize, false, false, visitor);
+            case HprofTag.Sub.ROOT_JNI_GLOBAL -> emitGcRoot(file, tag, bodyOffset, idSize, false, false, visitor);
+            case HprofTag.Sub.ROOT_JNI_LOCAL -> emitGcRoot(file, tag, bodyOffset, idSize, true, true, visitor);
+            case HprofTag.Sub.ROOT_JAVA_FRAME -> emitGcRoot(file, tag, bodyOffset, idSize, true, true, visitor);
+            case HprofTag.Sub.ROOT_NATIVE_STACK -> emitGcRoot(file, tag, bodyOffset, idSize, true, false, visitor);
+            case HprofTag.Sub.ROOT_STICKY_CLASS -> emitGcRoot(file, tag, bodyOffset, idSize, false, false, visitor);
+            case HprofTag.Sub.ROOT_THREAD_BLOCK -> emitGcRoot(file, tag, bodyOffset, idSize, true, false, visitor);
+            case HprofTag.Sub.ROOT_MONITOR_USED -> emitGcRoot(file, tag, bodyOffset, idSize, false, false, visitor);
+            case HprofTag.Sub.ROOT_THREAD_OBJECT -> emitGcRoot(file, tag, bodyOffset, idSize, true, false, visitor);
+            case HprofTag.Sub.CLASS_DUMP -> emitClassDump(file, bodyOffset, bodySize, idSize, visitor);
+            case HprofTag.Sub.INSTANCE_DUMP -> emitInstanceDump(file, bodyOffset, idSize, visitor);
+            case HprofTag.Sub.OBJECT_ARRAY_DUMP -> emitObjectArrayDump(file, bodyOffset, idSize, visitor);
+            case HprofTag.Sub.PRIMITIVE_ARRAY_DUMP -> emitPrimitiveArrayDump(file, bodyOffset, idSize, visitor);
+            default -> visitor.onOpaqueSub(tag, bodyOffset, bodySize);
         }
     }
 
     private static void emitGcRoot(
             HprofMappedFile file, int tag, long bodyOffset, int idSize,
-            boolean hasThreadSerial, boolean hasFrameIndex, Listener listener) {
+            boolean hasThreadSerial, boolean hasFrameIndex, Visitor visitor) {
         long instanceId = file.readId(bodyOffset);
         long cursor = bodyOffset + idSize;
         // ROOT_JNI_GLOBAL also has a trailing JNI ref id; ROOT_THREAD_OBJECT has thread serial + stack-trace serial.
@@ -142,11 +179,11 @@ public final class HprofSubRecordReader {
         if (hasFrameIndex) {
             frameIndex = file.readInt(cursor);
         }
-        listener.onRecord(new HprofRecord.GcRoot(tag, instanceId, threadSerial, frameIndex, bodyOffset));
+        visitor.onGcRoot(tag, instanceId, threadSerial, frameIndex, bodyOffset);
     }
 
     private static void emitClassDump(
-            HprofMappedFile file, long bodyOffset, long bodySize, int idSize, Listener listener) {
+            HprofMappedFile file, long bodyOffset, long bodySize, int idSize, Visitor visitor) {
         long classId = file.readId(bodyOffset);
         int traceSerial = file.readInt(bodyOffset + idSize);
         long superClassId = file.readId(bodyOffset + idSize + 4);
@@ -209,7 +246,10 @@ public final class HprofSubRecordReader {
         }
 
         int totalByteLength = (int) Math.min(bodySize, Integer.MAX_VALUE);
-        listener.onRecord(new HprofRecord.ClassDump(
+        // ClassDump fires ~22 K times per dump (vs millions of instance dumps)
+        // so the record allocation here is not the hot allocator; the 12-field
+        // signature also makes a record cleaner than a 12-arg visitor method.
+        visitor.onClassDump(new HprofRecord.ClassDump(
                 classId, traceSerial, superClassId, classloaderId,
                 signersId, protectionDomainId, instanceSize,
                 instanceFieldsByteLength, totalByteLength,
@@ -217,33 +257,30 @@ public final class HprofSubRecordReader {
     }
 
     private static void emitInstanceDump(
-            HprofMappedFile file, long bodyOffset, int idSize, Listener listener) {
+            HprofMappedFile file, long bodyOffset, int idSize, Visitor visitor) {
         long instanceId = file.readId(bodyOffset);
         int traceSerial = file.readInt(bodyOffset + idSize);
         long classId = file.readId(bodyOffset + idSize + 4);
         int instanceFieldsByteLength = file.readInt(bodyOffset + 2L * idSize + 4);
-        listener.onRecord(new HprofRecord.InstanceDump(
-                instanceId, traceSerial, classId, instanceFieldsByteLength, bodyOffset));
+        visitor.onInstanceDump(instanceId, traceSerial, classId, instanceFieldsByteLength, bodyOffset);
     }
 
     private static void emitObjectArrayDump(
-            HprofMappedFile file, long bodyOffset, int idSize, Listener listener) {
+            HprofMappedFile file, long bodyOffset, int idSize, Visitor visitor) {
         long arrayId = file.readId(bodyOffset);
         int traceSerial = file.readInt(bodyOffset + idSize);
         int length = file.readInt(bodyOffset + idSize + 4);
         long arrayClassId = file.readId(bodyOffset + idSize + 8);
-        listener.onRecord(new HprofRecord.ObjectArrayDump(
-                arrayId, traceSerial, length, arrayClassId, bodyOffset));
+        visitor.onObjectArrayDump(arrayId, traceSerial, length, arrayClassId, bodyOffset);
     }
 
     private static void emitPrimitiveArrayDump(
-            HprofMappedFile file, long bodyOffset, int idSize, Listener listener) {
+            HprofMappedFile file, long bodyOffset, int idSize, Visitor visitor) {
         long arrayId = file.readId(bodyOffset);
         int traceSerial = file.readInt(bodyOffset + idSize);
         int length = file.readInt(bodyOffset + idSize + 4);
         int elementType = Byte.toUnsignedInt(file.readByte(bodyOffset + idSize + 8));
-        listener.onRecord(new HprofRecord.PrimitiveArrayDump(
-                arrayId, traceSerial, length, elementType, bodyOffset));
+        visitor.onPrimitiveArrayDump(arrayId, traceSerial, length, elementType, bodyOffset);
     }
 
     /**

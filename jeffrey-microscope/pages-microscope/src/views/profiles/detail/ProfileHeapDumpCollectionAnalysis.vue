@@ -44,395 +44,392 @@
 
     <!-- Overview Tab -->
     <div v-show="activeTab === 'overview'">
-        <DualPanel v-if="report" left-title="Fill Distribution" right-title="Summary">
-          <template #left>
-            <DonutWithLegend
-              :data="fillChartData"
-              :tooltip-formatter="
-                (val: number) => FormattingService.formatNumber(val) + ' collections'
-              "
-            />
-          </template>
-          <template #right>
-            <SummaryTable :items="summaryItems" />
-          </template>
-        </DualPanel>
+      <DualPanel v-if="report" left-title="Fill Distribution" right-title="Summary">
+        <template #left>
+          <DonutWithLegend
+            :data="fillChartData"
+            :tooltip-formatter="
+              (val: number) => FormattingService.formatNumber(val) + ' collections'
+            "
+          />
+        </template>
+        <template #right>
+          <SummaryTable :items="summaryItems" />
+        </template>
+      </DualPanel>
     </div>
 
     <!-- By Type Tab -->
     <div v-show="activeTab === 'by-type'">
-        <div v-if="report && report.byType.length > 0">
-          <DataTable>
-            <template #toolbar>
-              <TableToolbar :show-search="false">
-                <span class="toolbar-info">Showing {{ report.byType.length }} collection types</span>
-              </TableToolbar>
-            </template>
-                <thead>
-                  <tr>
-                    <th style="width: 40px">#</th>
-                    <SortableTableHeader
-                      column="collectionType"
-                      label="Collection Type"
-                      :sort-column="typeSortColumn"
-                      :sort-direction="typeSortDirection"
-                      @sort="toggleTypeSort"
-                    />
-                    <SortableTableHeader
-                      column="totalCount"
-                      label="Count"
-                      :sort-column="typeSortColumn"
-                      :sort-direction="typeSortDirection"
-                      align="end"
-                      width="100px"
-                      @sort="toggleTypeSort"
-                    />
-                    <SortableTableHeader
-                      column="emptyCount"
-                      label="Empty"
-                      :sort-column="typeSortColumn"
-                      :sort-direction="typeSortDirection"
-                      align="end"
-                      width="100px"
-                      @sort="toggleTypeSort"
-                    />
-                    <SortableTableHeader
-                      column="avgFillRatio"
-                      label="Avg Fill %"
-                      :sort-column="typeSortColumn"
-                      :sort-direction="typeSortDirection"
-                      align="end"
-                      width="110px"
-                      @sort="toggleTypeSort"
-                    />
-                    <SortableTableHeader
-                      column="totalWastedBytes"
-                      label="Wasted"
-                      :sort-column="typeSortColumn"
-                      :sort-direction="typeSortDirection"
-                      align="end"
-                      width="120px"
-                      @sort="toggleTypeSort"
-                    />
-                    <th style="width: 180px">% of Max</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="(entry, index) in sortedByType" :key="index">
-                    <td class="text-muted">{{ index + 1 }}</td>
-                    <td>
-                      <ClassNameDisplay :class-name="entry.collectionType" />
-                    </td>
-                    <td class="text-end font-monospace">
-                      {{ FormattingService.formatNumber(entry.totalCount) }}
-                    </td>
-                    <td class="text-end font-monospace">
-                      {{ FormattingService.formatNumber(entry.emptyCount) }}
-                    </td>
-                    <td class="text-end font-monospace">
-                      {{ (entry.avgFillRatio * 100).toFixed(1) }}%
-                    </td>
-                    <td class="text-end font-monospace text-warning">
-                      {{ FormattingService.formatBytes(entry.totalWastedBytes) }}
-                    </td>
-                    <td>
-                      <div class="d-flex align-items-center gap-2">
-                        <div class="progress flex-grow-1" style="height: 6px">
-                          <div
-                            class="progress-bar bg-warning"
-                            :style="{ width: getTypePercentage(entry) + '%' }"
-                          ></div>
-                        </div>
-                        <small class="text-muted" style="min-width: 45px"
-                          >{{ getTypePercentage(entry).toFixed(1) }}%</small
-                        >
-                      </div>
-                    </td>
-                  </tr>
-                </tbody>
-          </DataTable>
-        </div>
-        <div v-else class="text-center text-muted py-5">
-          <i class="bi bi-collection fs-1 mb-3 d-block"></i>
-          <p>No collection type data available.</p>
-        </div>
+      <div v-if="report && report.byType.length > 0">
+        <DataTable>
+          <template #toolbar>
+            <TableToolbar :show-search="false">
+              <span class="toolbar-info">Showing {{ report.byType.length }} collection types</span>
+            </TableToolbar>
+          </template>
+          <thead>
+            <tr>
+              <th style="width: 40px">#</th>
+              <SortableTableHeader
+                column="collectionType"
+                label="Collection Type"
+                :sort-column="typeSortColumn"
+                :sort-direction="typeSortDirection"
+                @sort="toggleTypeSort"
+              />
+              <SortableTableHeader
+                column="totalCount"
+                label="Count"
+                :sort-column="typeSortColumn"
+                :sort-direction="typeSortDirection"
+                align="end"
+                width="100px"
+                @sort="toggleTypeSort"
+              />
+              <SortableTableHeader
+                column="emptyCount"
+                label="Empty"
+                :sort-column="typeSortColumn"
+                :sort-direction="typeSortDirection"
+                align="end"
+                width="100px"
+                @sort="toggleTypeSort"
+              />
+              <SortableTableHeader
+                column="avgFillRatio"
+                label="Avg Fill %"
+                :sort-column="typeSortColumn"
+                :sort-direction="typeSortDirection"
+                align="end"
+                width="110px"
+                @sort="toggleTypeSort"
+              />
+              <SortableTableHeader
+                column="totalWastedBytes"
+                label="Wasted"
+                :sort-column="typeSortColumn"
+                :sort-direction="typeSortDirection"
+                align="end"
+                width="120px"
+                @sort="toggleTypeSort"
+              />
+              <th style="width: 180px">% of Max</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(entry, index) in sortedByType" :key="index">
+              <td class="text-muted">{{ index + 1 }}</td>
+              <td>
+                <ClassNameDisplay :class-name="entry.collectionType" />
+              </td>
+              <td class="text-end font-monospace">
+                {{ FormattingService.formatNumber(entry.totalCount) }}
+              </td>
+              <td class="text-end font-monospace">
+                {{ FormattingService.formatNumber(entry.emptyCount) }}
+              </td>
+              <td class="text-end font-monospace">{{ (entry.avgFillRatio * 100).toFixed(1) }}%</td>
+              <td class="text-end font-monospace text-warning">
+                {{ FormattingService.formatBytes(entry.totalWastedBytes) }}
+              </td>
+              <td>
+                <div class="d-flex align-items-center gap-2">
+                  <div class="progress flex-grow-1" style="height: 6px">
+                    <div
+                      class="progress-bar bg-warning"
+                      :style="{ width: getTypePercentage(entry) + '%' }"
+                    ></div>
+                  </div>
+                  <small class="text-muted" style="min-width: 45px"
+                    >{{ getTypePercentage(entry).toFixed(1) }}%</small
+                  >
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </DataTable>
+      </div>
+      <div v-else class="text-center text-muted py-5">
+        <i class="bi bi-collection fs-1 mb-3 d-block"></i>
+        <p>No collection type data available.</p>
+      </div>
     </div>
 
     <!-- Waste by Class Tab -->
     <div v-show="activeTab === 'waste-by-class'">
-        <div v-if="report && report.wasteByClass && report.wasteByClass.length > 0">
-          <DataTable>
-            <template #toolbar>
-              <TableToolbar :show-search="false">
-                <span class="toolbar-info">Showing {{ report.wasteByClass.length }} owner classes</span>
-              </TableToolbar>
-            </template>
-                <thead>
-                  <tr>
-                    <th style="width: 40px">#</th>
-                    <th style="width: 50%">Owner Class</th>
-                    <th class="text-end" style="width: 120px">Collections</th>
-                    <th class="text-end" style="width: 100px">Empty</th>
-                    <th class="text-end" style="width: 120px">Wasted</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="(entry, index) in sortedWasteByClass" :key="index">
-                    <td class="text-muted">{{ index + 1 }}</td>
-                    <td>
-                      <div class="class-info">
-                        <ClassNameDisplay :class-name="entry.ownerClassName" />
-                        <div
-                          class="detail-line"
-                          v-if="Object.keys(entry.collectionTypeCounts).length > 0"
-                        >
-                          <template
-                            v-for="(typeName, typeIndex) in Object.keys(
-                              entry.collectionTypeCounts
-                            ).sort(
-                              (a, b) =>
-                                entry.collectionTypeCounts[b] - entry.collectionTypeCounts[a]
-                            )"
-                            :key="typeName"
-                          >
-                            <span v-if="typeIndex > 0" class="detail-sep">&middot;</span>
-                            <span class="field-tag">{{ simpleClassName(typeName) }}</span>
-                            <span class="text-muted">{{
-                              FormattingService.formatNumber(entry.collectionTypeCounts[typeName])
-                            }}</span>
-                          </template>
-                        </div>
-                      </div>
-                    </td>
-                    <td class="text-end font-monospace">
-                      {{ FormattingService.formatNumber(entry.collectionCount) }}
-                    </td>
-                    <td class="text-end font-monospace">
-                      {{ FormattingService.formatNumber(entry.emptyCount) }}
-                    </td>
-                    <td class="text-end font-monospace text-warning">
-                      {{ FormattingService.formatBytes(entry.wastedBytes) }}
-                    </td>
-                  </tr>
-                </tbody>
-          </DataTable>
-        </div>
-        <div v-else class="text-center text-muted py-5">
-          <i class="bi bi-building fs-1 mb-3 d-block"></i>
-          <p>No waste-by-class data available.</p>
-        </div>
+      <div v-if="report && report.wasteByClass && report.wasteByClass.length > 0">
+        <DataTable>
+          <template #toolbar>
+            <TableToolbar :show-search="false">
+              <span class="toolbar-info"
+                >Showing {{ report.wasteByClass.length }} owner classes</span
+              >
+            </TableToolbar>
+          </template>
+          <thead>
+            <tr>
+              <th style="width: 40px">#</th>
+              <th style="width: 50%">Owner Class</th>
+              <th class="text-end" style="width: 120px">Collections</th>
+              <th class="text-end" style="width: 100px">Empty</th>
+              <th class="text-end" style="width: 120px">Wasted</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(entry, index) in sortedWasteByClass" :key="index">
+              <td class="text-muted">{{ index + 1 }}</td>
+              <td>
+                <div class="class-info">
+                  <ClassNameDisplay :class-name="entry.ownerClassName" />
+                  <div
+                    class="detail-line"
+                    v-if="Object.keys(entry.collectionTypeCounts).length > 0"
+                  >
+                    <template
+                      v-for="(typeName, typeIndex) in Object.keys(entry.collectionTypeCounts).sort(
+                        (a, b) => entry.collectionTypeCounts[b] - entry.collectionTypeCounts[a]
+                      )"
+                      :key="typeName"
+                    >
+                      <span v-if="typeIndex > 0" class="detail-sep">&middot;</span>
+                      <span class="field-tag">{{ simpleClassName(typeName) }}</span>
+                      <span class="text-muted">{{
+                        FormattingService.formatNumber(entry.collectionTypeCounts[typeName])
+                      }}</span>
+                    </template>
+                  </div>
+                </div>
+              </td>
+              <td class="text-end font-monospace">
+                {{ FormattingService.formatNumber(entry.collectionCount) }}
+              </td>
+              <td class="text-end font-monospace">
+                {{ FormattingService.formatNumber(entry.emptyCount) }}
+              </td>
+              <td class="text-end font-monospace text-warning">
+                {{ FormattingService.formatBytes(entry.wastedBytes) }}
+              </td>
+            </tr>
+          </tbody>
+        </DataTable>
+      </div>
+      <div v-else class="text-center text-muted py-5">
+        <i class="bi bi-building fs-1 mb-3 d-block"></i>
+        <p>No waste-by-class data available.</p>
+      </div>
     </div>
 
     <!-- How It Works Tab -->
     <div v-show="activeTab === 'how-it-works'">
-        <div class="about-container">
-          <!-- Header Section -->
-          <div class="about-header">
-            <div class="about-header-icon">
-              <i class="bi bi-question-circle"></i>
+      <div class="about-container">
+        <!-- Header Section -->
+        <div class="about-header">
+          <div class="about-header-icon">
+            <i class="bi bi-question-circle"></i>
+          </div>
+          <div>
+            <h5 class="mb-1">How Collection Analysis Works</h5>
+            <p class="text-muted mb-0">
+              Understanding collection memory allocation and fill ratios
+            </p>
+          </div>
+        </div>
+
+        <!-- Intro -->
+        <div class="about-intro">
+          <p>
+            Java collections like <code>HashMap</code>, <code>ArrayList</code>, and
+            <code>HashSet</code> pre-allocate internal arrays to store elements. When a collection
+            holds fewer elements than its capacity, the unused slots represent wasted memory. This
+            analysis inspects the heap to find over-allocated and empty collections.
+          </p>
+        </div>
+
+        <!-- Key Concepts -->
+        <h6 class="section-title">
+          <i class="bi bi-book me-2"></i>
+          Key Concepts
+        </h6>
+
+        <div class="feature-grid">
+          <div class="feature-card">
+            <div
+              class="feature-icon"
+              style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
+            >
+              <i class="bi bi-rulers"></i>
             </div>
-            <div>
-              <h5 class="mb-1">How Collection Analysis Works</h5>
-              <p class="text-muted mb-0">
-                Understanding collection memory allocation and fill ratios
+            <div class="feature-content">
+              <h6>Initial Capacity</h6>
+              <p>
+                Collections allocate an internal array when created.
+                <code>ArrayList</code> defaults to 10 elements, <code>HashMap</code> defaults to 16
+                buckets. If the actual usage is much smaller, memory is wasted.
               </p>
             </div>
           </div>
 
-          <!-- Intro -->
-          <div class="about-intro">
-            <p>
-              Java collections like <code>HashMap</code>, <code>ArrayList</code>, and
-              <code>HashSet</code> pre-allocate internal arrays to store elements. When a collection
-              holds fewer elements than its capacity, the unused slots represent wasted memory. This
-              analysis inspects the heap to find over-allocated and empty collections.
-            </p>
-          </div>
-
-          <!-- Key Concepts -->
-          <h6 class="section-title">
-            <i class="bi bi-book me-2"></i>
-            Key Concepts
-          </h6>
-
-          <div class="feature-grid">
-            <div class="feature-card">
-              <div
-                class="feature-icon"
-                style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
-              >
-                <i class="bi bi-rulers"></i>
-              </div>
-              <div class="feature-content">
-                <h6>Initial Capacity</h6>
-                <p>
-                  Collections allocate an internal array when created.
-                  <code>ArrayList</code> defaults to 10 elements, <code>HashMap</code> defaults to
-                  16 buckets. If the actual usage is much smaller, memory is wasted.
-                </p>
-              </div>
+          <div class="feature-card">
+            <div
+              class="feature-icon"
+              style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%)"
+            >
+              <i class="bi bi-speedometer2"></i>
             </div>
-
-            <div class="feature-card">
-              <div
-                class="feature-icon"
-                style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%)"
-              >
-                <i class="bi bi-speedometer2"></i>
-              </div>
-              <div class="feature-content">
-                <h6>Load Factor</h6>
-                <p>
-                  <code>HashMap</code> uses a load factor (default 0.75) to decide when to resize.
-                  This means a HashMap is typically only 75% full at most before it doubles in size.
-                </p>
-              </div>
-            </div>
-
-            <div class="feature-card">
-              <div
-                class="feature-icon"
-                style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)"
-              >
-                <i class="bi bi-arrow-up-right-circle"></i>
-              </div>
-              <div class="feature-content">
-                <h6>Growth Strategy</h6>
-                <p>
-                  When a collection runs out of space, it allocates a new, larger array (often 1.5x
-                  or 2x the previous size) and copies elements over. After growth, fill ratio drops
-                  significantly.
-                </p>
-              </div>
-            </div>
-
-            <div class="feature-card">
-              <div
-                class="feature-icon"
-                style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)"
-              >
-                <i class="bi bi-pie-chart"></i>
-              </div>
-              <div class="feature-content">
-                <h6>Fill Ratio</h6>
-                <p>
-                  The fill ratio is <code>size / capacity</code>. A ratio of 0% means the collection
-                  is empty but still holds allocated memory. 100% means every slot is used.
-                </p>
-              </div>
+            <div class="feature-content">
+              <h6>Load Factor</h6>
+              <p>
+                <code>HashMap</code> uses a load factor (default 0.75) to decide when to resize.
+                This means a HashMap is typically only 75% full at most before it doubles in size.
+              </p>
             </div>
           </div>
 
-          <!-- Fill Distribution Categories -->
-          <h6 class="section-title">
-            <i class="bi bi-bar-chart me-2"></i>
-            Fill Distribution Categories
-          </h6>
-
-          <div class="flag-cards">
-            <div class="flag-card">
-              <div class="flag-header">
-                <code class="flag-code">Empty (0%)</code>
-                <span class="flag-badge">Highest Waste</span>
-              </div>
-              <div class="flag-body">
-                <p>
-                  Collections that were created but never populated, or were cleared and not garbage
-                  collected. These hold allocated arrays with zero elements and are prime candidates
-                  for optimization.
-                </p>
-              </div>
+          <div class="feature-card">
+            <div
+              class="feature-icon"
+              style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)"
+            >
+              <i class="bi bi-arrow-up-right-circle"></i>
             </div>
-
-            <div class="flag-card">
-              <div class="flag-header">
-                <code class="flag-code">Low (1-25%)</code>
-                <span class="flag-badge">Significant Waste</span>
-              </div>
-              <div class="flag-body">
-                <p>
-                  Collections using less than a quarter of their capacity. Often caused by
-                  over-estimated initial capacity or collections that once held more data but were
-                  partially cleared.
-                </p>
-              </div>
-            </div>
-
-            <div class="flag-card">
-              <div class="flag-header">
-                <code class="flag-code">Medium (26-75%) / High (76-99%) / Full (100%)</code>
-                <span class="flag-badge">Acceptable</span>
-              </div>
-              <div class="flag-body">
-                <p>
-                  Collections with reasonable utilization. Medium-fill collections are common due to
-                  growth strategies and load factors. High and full collections are efficiently
-                  using their allocated memory.
-                </p>
-              </div>
+            <div class="feature-content">
+              <h6>Growth Strategy</h6>
+              <p>
+                When a collection runs out of space, it allocates a new, larger array (often 1.5x or
+                2x the previous size) and copies elements over. After growth, fill ratio drops
+                significantly.
+              </p>
             </div>
           </div>
 
-          <!-- Optimization Tips -->
-          <h6 class="section-title">
-            <i class="bi bi-lightning-charge me-2"></i>
-            Optimization Tips
-          </h6>
-
-          <div class="benefits-list">
-            <div class="benefit-item">
-              <i class="bi bi-check-circle-fill text-success"></i>
-              <span
-                >Use <code>new ArrayList&lt;&gt;(expectedSize)</code> to set initial capacity when
-                the size is known ahead of time</span
-              >
+          <div class="feature-card">
+            <div
+              class="feature-icon"
+              style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)"
+            >
+              <i class="bi bi-pie-chart"></i>
             </div>
-            <div class="benefit-item">
-              <i class="bi bi-check-circle-fill text-success"></i>
-              <span
-                >Use <code>new HashMap&lt;&gt;(expectedSize, 1.0f)</code> to avoid over-allocation
-                when exact size is known</span
-              >
-            </div>
-            <div class="benefit-item">
-              <i class="bi bi-check-circle-fill text-success"></i>
-              <span
-                >Replace empty singleton collections with <code>Collections.emptyList()</code> or
-                <code>List.of()</code> to avoid allocation entirely</span
-              >
-            </div>
-            <div class="benefit-item">
-              <i class="bi bi-check-circle-fill text-success"></i>
-              <span
-                >Call <code>trimToSize()</code> on ArrayList after final population to release
-                unused capacity</span
-              >
-            </div>
-            <div class="benefit-item">
-              <i class="bi bi-check-circle-fill text-success"></i>
-              <span
-                >Consider lazy initialization: only create collections when the first element is
-                added</span
-              >
-            </div>
-          </div>
-
-          <!-- Note -->
-          <div class="about-note">
-            <div class="note-icon">
-              <i class="bi bi-lightbulb-fill"></i>
-            </div>
-            <div class="note-content">
-              <strong>Why are there so many empty collections?</strong>
-              <p class="mb-0">
-                Empty collections are common in real applications. Many frameworks and libraries
-                eagerly initialize collections in constructors or field declarations that may never
-                be populated. This is often the largest source of wasted collection memory and can
-                be addressed with lazy initialization patterns.
+            <div class="feature-content">
+              <h6>Fill Ratio</h6>
+              <p>
+                The fill ratio is <code>size / capacity</code>. A ratio of 0% means the collection
+                is empty but still holds allocated memory. 100% means every slot is used.
               </p>
             </div>
           </div>
         </div>
+
+        <!-- Fill Distribution Categories -->
+        <h6 class="section-title">
+          <i class="bi bi-bar-chart me-2"></i>
+          Fill Distribution Categories
+        </h6>
+
+        <div class="flag-cards">
+          <div class="flag-card">
+            <div class="flag-header">
+              <code class="flag-code">Empty (0%)</code>
+              <span class="flag-badge">Highest Waste</span>
+            </div>
+            <div class="flag-body">
+              <p>
+                Collections that were created but never populated, or were cleared and not garbage
+                collected. These hold allocated arrays with zero elements and are prime candidates
+                for optimization.
+              </p>
+            </div>
+          </div>
+
+          <div class="flag-card">
+            <div class="flag-header">
+              <code class="flag-code">Low (1-25%)</code>
+              <span class="flag-badge">Significant Waste</span>
+            </div>
+            <div class="flag-body">
+              <p>
+                Collections using less than a quarter of their capacity. Often caused by
+                over-estimated initial capacity or collections that once held more data but were
+                partially cleared.
+              </p>
+            </div>
+          </div>
+
+          <div class="flag-card">
+            <div class="flag-header">
+              <code class="flag-code">Medium (26-75%) / High (76-99%) / Full (100%)</code>
+              <span class="flag-badge">Acceptable</span>
+            </div>
+            <div class="flag-body">
+              <p>
+                Collections with reasonable utilization. Medium-fill collections are common due to
+                growth strategies and load factors. High and full collections are efficiently using
+                their allocated memory.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Optimization Tips -->
+        <h6 class="section-title">
+          <i class="bi bi-lightning-charge me-2"></i>
+          Optimization Tips
+        </h6>
+
+        <div class="benefits-list">
+          <div class="benefit-item">
+            <i class="bi bi-check-circle-fill text-success"></i>
+            <span
+              >Use <code>new ArrayList&lt;&gt;(expectedSize)</code> to set initial capacity when the
+              size is known ahead of time</span
+            >
+          </div>
+          <div class="benefit-item">
+            <i class="bi bi-check-circle-fill text-success"></i>
+            <span
+              >Use <code>new HashMap&lt;&gt;(expectedSize, 1.0f)</code> to avoid over-allocation
+              when exact size is known</span
+            >
+          </div>
+          <div class="benefit-item">
+            <i class="bi bi-check-circle-fill text-success"></i>
+            <span
+              >Replace empty singleton collections with <code>Collections.emptyList()</code> or
+              <code>List.of()</code> to avoid allocation entirely</span
+            >
+          </div>
+          <div class="benefit-item">
+            <i class="bi bi-check-circle-fill text-success"></i>
+            <span
+              >Call <code>trimToSize()</code> on ArrayList after final population to release unused
+              capacity</span
+            >
+          </div>
+          <div class="benefit-item">
+            <i class="bi bi-check-circle-fill text-success"></i>
+            <span
+              >Consider lazy initialization: only create collections when the first element is
+              added</span
+            >
+          </div>
+        </div>
+
+        <!-- Note -->
+        <div class="about-note">
+          <div class="note-icon">
+            <i class="bi bi-lightbulb-fill"></i>
+          </div>
+          <div class="note-content">
+            <strong>Why are there so many empty collections?</strong>
+            <p class="mb-0">
+              Empty collections are common in real applications. Many frameworks and libraries
+              eagerly initialize collections in constructors or field declarations that may never be
+              populated. This is often the largest source of wasted collection memory and can be
+              addressed with lazy initialization patterns.
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>

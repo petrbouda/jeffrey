@@ -35,7 +35,9 @@
               <span class="level-card-icon"><i class="bi bi-folder2"></i></span>
               <span class="level-card-title">
                 Workspace
-                <small>Override applied to <b>{{ workspaceName || 'this workspace' }}</b></small>
+                <small
+                  >Override applied to <b>{{ workspaceName || 'this workspace' }}</b></small
+                >
               </span>
               <span class="level-card-pill">ACTIVE</span>
             </div>
@@ -46,8 +48,16 @@
               <button class="btn btn-ghost" @click="copyCommandText(workspaceCommand)">
                 <i class="bi bi-clipboard"></i> Copy
               </button>
-              <button class="btn btn-danger" :disabled="deleting" @click="confirmRemoveOverride = true">
-                <span v-if="deleting" class="spinner-border spinner-border-sm me-1" role="status"></span>
+              <button
+                class="btn btn-danger"
+                :disabled="deleting"
+                @click="confirmRemoveOverride = true"
+              >
+                <span
+                  v-if="deleting"
+                  class="spinner-border spinner-border-sm me-1"
+                  role="status"
+                ></span>
                 <i v-else class="bi bi-trash"></i>
                 Remove workspace override
               </button>
@@ -98,11 +108,7 @@
       </template>
 
       <template v-else-if="activeTab === 'manual'">
-        <ConfigureCommand
-          v-model="manualCommand"
-          hide-actions
-          @accept-command="onManualAccept"
-        />
+        <ConfigureCommand v-model="manualCommand" hide-actions @accept-command="onManualAccept" />
         <div class="manual-actions">
           <button
             type="button"
@@ -110,7 +116,11 @@
             :disabled="!manualCommand.trim() || applying"
             @click="onManualAccept(manualCommand)"
           >
-            <span v-if="applying" class="spinner-border spinner-border-sm me-2" role="status"></span>
+            <span
+              v-if="applying"
+              class="spinner-border spinner-border-sm me-2"
+              role="status"
+            ></span>
             <i v-else class="bi bi-check-circle-fill me-1"></i>
             Apply to workspace
           </button>
@@ -138,11 +148,7 @@
               <pre class="cmd-text">{{ livePreview.command }}</pre>
             </div>
             <div v-if="livePreview.tokens.length > 0" class="param-rows">
-              <div
-                v-for="t in livePreview.tokens"
-                :key="t.key"
-                class="param-row"
-              >
+              <div v-for="t in livePreview.tokens" :key="t.key" class="param-row">
                 <span class="param-key">
                   <i class="bi bi-circle-fill"></i>
                   {{ t.label }}
@@ -182,7 +188,11 @@
               :disabled="applying"
               @click="applyToWorkspace"
             >
-              <span v-if="applying" class="spinner-border spinner-border-sm me-2" role="status"></span>
+              <span
+                v-if="applying"
+                class="spinner-border spinner-border-sm me-2"
+                role="status"
+              ></span>
               <i v-else class="bi bi-check-circle-fill me-1"></i>
               Apply to workspace
             </button>
@@ -246,7 +256,12 @@ const settingsTabs = computed<TabBarItem[]>(() => [
   {
     id: 'current',
     label: 'Current',
-    badge: effectiveLevel.value === 'none' ? undefined : effectiveLevel.value === 'workspace' ? 'WORKSPACE' : 'GLOBAL',
+    badge:
+      effectiveLevel.value === 'none'
+        ? undefined
+        : effectiveLevel.value === 'workspace'
+          ? 'WORKSPACE'
+          : 'GLOBAL',
     badgeVariant: effectiveLevel.value === 'workspace' ? 'success' : 'info'
   },
   { id: 'builder', label: 'Visual Builder' },
@@ -291,7 +306,7 @@ const livePreview = computed(() => {
     return {
       command: '',
       tokens: [] as Array<{ key: string; label: string; value: string }>,
-      warnings: [] as Recommendation[],
+      warnings: [] as Recommendation[]
     };
   }
 
@@ -300,21 +315,21 @@ const livePreview = computed(() => {
     warnings.push({
       title: 'Chunk size not configured',
       body: 'Chunk Size helps with parallelization of JFR processing with multiple threads',
-      action: () => r.enableChunkSizeConfiguration({ scroll: false }),
+      action: () => r.enableChunkSizeConfiguration({ scroll: false })
     });
   }
   if (r.shouldShowJfrSyncWarning) {
     warnings.push({
       title: 'JFR synchronization not configured',
-      body: 'JFR Synchronization merges AsyncProfiler events with JDK\'s JFR recording for richer profiling data',
-      action: () => r.enableJfrSyncConfiguration({ scroll: false }),
+      body: "JFR Synchronization merges AsyncProfiler events with JDK's JFR recording for richer profiling data",
+      action: () => r.enableJfrSyncConfiguration({ scroll: false })
     });
   }
 
   return {
     command: r.generatedConfig || '',
     tokens: r.builderTokens || [],
-    warnings,
+    warnings
   };
 });
 
@@ -328,7 +343,7 @@ const applyCommand = async (command: string) => {
     await client.upsert(command);
     ToastService.success(
       'Configuration Applied',
-      `Profiler configuration was applied to ${props.workspaceName || 'this workspace'}.`,
+      `Profiler configuration was applied to ${props.workspaceName || 'this workspace'}.`
     );
     await fetchCurrent();
     activeTab.value = 'current';
@@ -336,7 +351,7 @@ const applyCommand = async (command: string) => {
     console.error('Failed to apply workspace profiler settings:', error);
     ToastService.error(
       'Application Failed',
-      'Could not apply profiler settings to this workspace.',
+      'Could not apply profiler settings to this workspace.'
     );
   } finally {
     applying.value = false;
@@ -380,15 +395,12 @@ const removeWorkspaceOverride = async () => {
     await client.delete();
     ToastService.success(
       'Workspace Override Removed',
-      `${props.workspaceName || 'This workspace'} now uses the global default.`,
+      `${props.workspaceName || 'This workspace'} now uses the global default.`
     );
     await fetchCurrent();
   } catch (error) {
     console.error('Failed to remove workspace override:', error);
-    ToastService.error(
-      'Removal Failed',
-      'Could not remove the workspace-level profiler settings.',
-    );
+    ToastService.error('Removal Failed', 'Could not remove the workspace-level profiler settings.');
   } finally {
     deleting.value = false;
     confirmRemoveOverride.value = false;
@@ -729,7 +741,9 @@ const removeWorkspaceOverride = async () => {
   letter-spacing: 0.6px;
   padding: 8px 0;
 }
-.level-arrow i { color: var(--color-text-light); }
+.level-arrow i {
+  color: var(--color-text-light);
+}
 .level-arrow-line {
   height: 16px;
   width: 1px;
@@ -741,7 +755,10 @@ const removeWorkspaceOverride = async () => {
   border: 1px solid transparent;
   color: var(--color-text-muted);
 }
-.btn-ghost:hover { color: var(--color-text); background: var(--color-light); }
+.btn-ghost:hover {
+  color: var(--color-text);
+  background: var(--color-light);
+}
 
 .btn-danger {
   background: white;

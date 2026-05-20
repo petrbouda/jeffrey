@@ -104,41 +104,41 @@
             :full-width="true"
           >
             <DataTable table-class="event-tree-table">
-                <thead>
-                  <tr>
-                    <th>Event Type</th>
-                    <th class="text-center">Count</th>
-                    <th class="text-center">MAX</th>
-                    <th class="text-center">AVG</th>
-                    <th class="text-center">MIN</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr
-                    v-for="event in selectedPool.eventStatistics"
-                    :key="event.eventType"
-                    class="leaf-row"
-                  >
-                    <td>
-                      <div class="d-flex align-items-center event-name-cell">
-                        <span class="tree-leaf-icon me-2">
-                          <i class="bi bi-circle-fill"></i>
-                        </span>
-                        <span class="event-name">{{ event.eventName }}</span>
-                      </div>
-                    </td>
-                    <td class="text-center">{{ event.count.toLocaleString() }}</td>
-                    <td class="text-center">
-                      {{ FormattingService.formatDuration2Units(event.max) }}
-                    </td>
-                    <td class="text-center">
-                      {{ FormattingService.formatDuration2Units(event.avg) }}
-                    </td>
-                    <td class="text-center">
-                      {{ FormattingService.formatDuration2Units(event.min) }}
-                    </td>
-                  </tr>
-                </tbody>
+              <thead>
+                <tr>
+                  <th>Event Type</th>
+                  <th class="text-center">Count</th>
+                  <th class="text-center">MAX</th>
+                  <th class="text-center">AVG</th>
+                  <th class="text-center">MIN</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="event in selectedPool.eventStatistics"
+                  :key="event.eventType"
+                  class="leaf-row"
+                >
+                  <td>
+                    <div class="d-flex align-items-center event-name-cell">
+                      <span class="tree-leaf-icon me-2">
+                        <i class="bi bi-circle-fill"></i>
+                      </span>
+                      <span class="event-name">{{ event.eventName }}</span>
+                    </div>
+                  </td>
+                  <td class="text-center">{{ event.count.toLocaleString() }}</td>
+                  <td class="text-center">
+                    {{ FormattingService.formatDuration2Units(event.max) }}
+                  </td>
+                  <td class="text-center">
+                    {{ FormattingService.formatDuration2Units(event.avg) }}
+                  </td>
+                  <td class="text-center">
+                    {{ FormattingService.formatDuration2Units(event.min) }}
+                  </td>
+                </tr>
+              </tbody>
             </DataTable>
           </ChartSection>
         </div>

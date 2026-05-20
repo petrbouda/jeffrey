@@ -372,7 +372,10 @@ function createContextMenuItems() {
   <!-- Thread Information Modal -->
   <div v-if="showInfoModal" class="modal-overlay" @click="showInfoModal = false">
     <div class="modal-container tooltip-style-modal" @click.stop>
-      <div class="tooltip-header d-flex justify-content-between align-items-center" style="padding: 0.75rem">
+      <div
+        class="tooltip-header d-flex justify-content-between align-items-center"
+        style="padding: 0.75rem"
+      >
         <h5 class="m-0 text-dark fw-bold text-truncate" style="max-width: 85%">
           {{ threadInfo.name }}
         </h5>
@@ -566,7 +569,12 @@ function createContextMenuItems() {
           <h5 class="modal-title" id="flamegraphModalLabel">{{ selectedEventCode }}</h5>
           <button type="button" class="btn-close" @click="closeModal" aria-label="Close"></button>
         </div>
-        <div id="scrollable-wrapper" class="modal-body" style="padding: 0.75rem" v-if="showFlamegraphDialog">
+        <div
+          id="scrollable-wrapper"
+          class="modal-body"
+          style="padding: 0.75rem"
+          v-if="showFlamegraphDialog"
+        >
           <SearchBarComponent :graph-updater="graphUpdater" :with-timeseries="true" />
           <TimeSeriesChart
             :graph-updater="graphUpdater"

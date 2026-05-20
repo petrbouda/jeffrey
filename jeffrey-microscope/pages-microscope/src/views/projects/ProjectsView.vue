@@ -6,7 +6,10 @@
         v-for="server in servers"
         :key="server.id"
         class="rail-avatar"
-        :class="[{ active: selectedServerId === server.id }, `is-${serverStatuses[server.id] || 'unknown'}`]"
+        :class="[
+          { active: selectedServerId === server.id },
+          `is-${serverStatuses[server.id] || 'unknown'}`
+        ]"
         :title="server.name"
         @click="selectServer(server.id)"
       >
@@ -35,7 +38,10 @@
       <div class="empty-hero-content">
         <div class="empty-hero-icon"><i class="bi bi-hdd-network"></i></div>
         <h2>Connect your first server</h2>
-        <p>Microscope analyzes profiles served by Jeffrey servers. Add a remote server to browse its workspaces and projects.</p>
+        <p>
+          Microscope analyzes profiles served by Jeffrey servers. Add a remote server to browse its
+          workspaces and projects.
+        </p>
         <div class="empty-hero-actions">
           <button class="btn btn-primary btn-lg" @click="showAddServerModal = true">
             <i class="bi bi-plus-lg me-1"></i> Add Server
@@ -66,11 +72,7 @@
         <div class="ws-body">
           <div class="ws-search">
             <i class="bi bi-search"></i>
-            <input
-              v-model="searchQuery"
-              type="text"
-              placeholder="Search workspaces…"
-            />
+            <input v-model="searchQuery" type="text" placeholder="Search workspaces…" />
           </div>
 
           <LoadingState v-if="loadingWorkspaces" message="Loading workspaces…" />
@@ -92,17 +94,10 @@
             >
               <i class="bi bi-folder"></i>
               <span class="ws-item-name">{{ workspace.name }}</span>
-              <Badge
-                :value="workspace.projectCount"
-                variant="secondary"
-                size="xs"
-              />
+              <Badge :value="workspace.projectCount" variant="secondary" size="xs" />
             </button>
 
-            <div
-              v-if="filteredWorkspaces.length === 0 && !showCreateForm"
-              class="ws-empty"
-            >
+            <div v-if="filteredWorkspaces.length === 0 && !showCreateForm" class="ws-empty">
               <i class="bi bi-folder-x"></i>
               <span>No workspaces yet</span>
             </div>
@@ -143,12 +138,7 @@
                   type="text"
                   placeholder="Search projects…"
                 />
-                <input
-                  v-else
-                  v-model="eventSearchQuery"
-                  type="text"
-                  placeholder="Search events…"
-                />
+                <input v-else v-model="eventSearchQuery" type="text" placeholder="Search events…" />
               </div>
               <div class="view-switcher" role="tablist" aria-label="View">
                 <button
@@ -182,11 +172,7 @@
                   Profiler Settings
                 </button>
               </div>
-              <button
-                class="icon-btn"
-                title="Workspace info"
-                @click="showWorkspaceInfo = true"
-              >
+              <button class="icon-btn" title="Workspace info" @click="showWorkspaceInfo = true">
                 <i class="bi bi-info-circle"></i>
               </button>
               <button
@@ -255,8 +241,8 @@
           <h5>No workspace selected</h5>
           <p>
             Create a workspace in the panel on the left — its
-            <strong>Reference ID</strong> becomes
-            <code>jeffrey-cli</code>'s <code>project.workspace-ref-id</code>.
+            <strong>Reference ID</strong> becomes <code>jeffrey-cli</code>'s
+            <code>project.workspace-ref-id</code>.
           </p>
         </div>
       </main>
@@ -313,7 +299,10 @@
             Reference ID
             <span class="field-required">*</span>
           </label>
-          <div class="field-wrap" :class="{ 'is-disabled': creating, 'is-invalid': !!referenceIdError }">
+          <div
+            class="field-wrap"
+            :class="{ 'is-disabled': creating, 'is-invalid': !!referenceIdError }"
+          >
             <input
               v-model="createForm.referenceId"
               type="text"
@@ -327,8 +316,8 @@
             <span>{{ referenceIdError }}</span>
           </div>
           <div v-else class="field-hint">
-            Used by <strong>jeffrey-cli</strong>'s
-            <code>project.workspace-ref-id</code>. Must be unique on this server.
+            Used by <strong>jeffrey-cli</strong>'s <code>project.workspace-ref-id</code>. Must be
+            unique on this server.
             {{ WORKSPACE_REF_ID_HINT }}
           </div>
         </div>
@@ -391,11 +380,7 @@
             <div class="info-row-label">Workspace ID</div>
             <div class="info-row-value is-mono">
               <span class="info-row-text">{{ selectedWorkspace.id }}</span>
-              <button
-                class="info-copy-btn"
-                title="Copy"
-                @click="copyText(selectedWorkspace.id)"
-              >
+              <button class="info-copy-btn" title="Copy" @click="copyText(selectedWorkspace.id)">
                 <i class="bi bi-clipboard"></i>
               </button>
             </div>
@@ -500,14 +485,13 @@ const createError = ref<string | null>(null);
 const createForm = ref({ name: '', referenceId: '' });
 
 const WORKSPACE_REF_ID_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9-]{1,62}[a-zA-Z0-9]$/;
-const WORKSPACE_REF_ID_HINT = '3-64 characters, alphanumeric and dashes only, no leading or trailing dash.';
+const WORKSPACE_REF_ID_HINT =
+  '3-64 characters, alphanumeric and dashes only, no leading or trailing dash.';
 
-const selectedServer = computed(() =>
-  servers.value.find(s => s.id === selectedServerId.value),
-);
+const selectedServer = computed(() => servers.value.find(s => s.id === selectedServerId.value));
 
 const selectedWorkspace = computed(() =>
-  workspaces.value.find(w => w.id === selectedWorkspaceId.value),
+  workspaces.value.find(w => w.id === selectedWorkspaceId.value)
 );
 
 const filteredWorkspaces = computed(() => {
@@ -528,22 +512,26 @@ const referenceIdError = computed(() => {
   return WORKSPACE_REF_ID_PATTERN.test(ref) ? null : WORKSPACE_REF_ID_HINT;
 });
 
-const isCreateFormValid = computed(() =>
-  createForm.value.name.trim().length > 0 &&
-  WORKSPACE_REF_ID_PATTERN.test(createForm.value.referenceId.trim()),
+const isCreateFormValid = computed(
+  () =>
+    createForm.value.name.trim().length > 0 &&
+    WORKSPACE_REF_ID_PATTERN.test(createForm.value.referenceId.trim())
 );
 
 const deleteServerMessage = computed(() =>
   selectedServer.value
     ? `Remove server "${selectedServer.value.name}" (${selectedServer.value.hostname}:${selectedServer.value.port})?`
-    : '',
+    : ''
 );
 
 const statusLabelFor = (serverId: string): string => {
   switch (serverStatuses.value[serverId]) {
-    case 'online': return '● Online';
-    case 'offline': return '● Unreachable';
-    default: return '● Checking…';
+    case 'online':
+      return '● Online';
+    case 'offline':
+      return '● Unreachable';
+    default:
+      return '● Checking…';
   }
 };
 
@@ -718,7 +706,6 @@ const closeCreateForm = () => {
   createError.value = null;
 };
 
-
 const submitCreate = async () => {
   if (!selectedServerId.value || !isCreateFormValid.value) return;
   creating.value = true;
@@ -727,7 +714,7 @@ const submitCreate = async () => {
     const client = new WorkspaceClient(selectedServerId.value);
     const created = await client.create({
       referenceId: createForm.value.referenceId.trim(),
-      name: createForm.value.name.trim(),
+      name: createForm.value.name.trim()
     });
     ToastService.success('Workspace Created', `"${createForm.value.name}" is ready.`);
     closeCreateForm();
@@ -759,7 +746,7 @@ const deleteWorkspace = async (workspace: Workspace) => {
   } catch (error: any) {
     ToastService.error(
       'Failed to delete workspace',
-      error?.response?.data?.message ?? error?.message ?? 'Unknown error',
+      error?.response?.data?.message ?? error?.message ?? 'Unknown error'
     );
   }
 };
@@ -774,7 +761,7 @@ const handleRestoreProject = async (projectId: string) => {
   } catch (error: any) {
     ToastService.error(
       'Failed to restore project',
-      error?.response?.data?.message ?? error?.message ?? 'Unknown error',
+      error?.response?.data?.message ?? error?.message ?? 'Unknown error'
     );
   }
 };
@@ -862,9 +849,15 @@ onMounted(refreshServers);
   border: 2px solid var(--color-white);
 }
 
-.rail-avatar.is-online .status-dot { background: var(--color-success); }
-.rail-avatar.is-offline .status-dot { background: var(--color-danger); }
-.rail-avatar.is-unknown .status-dot { background: var(--color-warning); }
+.rail-avatar.is-online .status-dot {
+  background: var(--color-success);
+}
+.rail-avatar.is-offline .status-dot {
+  background: var(--color-danger);
+}
+.rail-avatar.is-unknown .status-dot {
+  background: var(--color-warning);
+}
 
 .rail-divider {
   width: 32px;
@@ -908,7 +901,9 @@ onMounted(refreshServers);
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
-  transition: opacity 0.15s, visibility 0s linear 0.15s;
+  transition:
+    opacity 0.15s,
+    visibility 0s linear 0.15s;
   z-index: 10;
   font-weight: var(--font-weight-normal);
   display: flex;
@@ -932,7 +927,9 @@ onMounted(refreshServers);
 .rail-add:hover .rail-tooltip {
   opacity: 1;
   visibility: visible;
-  transition: opacity 0.15s, visibility 0s linear 0s;
+  transition:
+    opacity 0.15s,
+    visibility 0s linear 0s;
 }
 
 /* ============== Workspace column ============== */
@@ -1072,7 +1069,6 @@ onMounted(refreshServers);
   font-weight: var(--font-weight-semibold);
 }
 
-
 .ws-empty {
   display: flex;
   flex-direction: column;
@@ -1173,7 +1169,9 @@ onMounted(refreshServers);
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  transition: color var(--transition-base), background var(--transition-base);
+  transition:
+    color var(--transition-base),
+    background var(--transition-base);
 }
 
 .view-switcher button.active {

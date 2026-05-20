@@ -144,22 +144,22 @@ const selectSection = () => {
 
       <!-- Configuration table -->
       <DataTable table-class="config-tree-table">
-            <thead>
-              <tr>
-                <th>Configuration Key</th>
-                <th>Value</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="(row, index) in section" :key="index" class="config-row">
-                <td class="config-name-cell">
-                  <span class="config-name">{{ row.key }}</span>
-                </td>
-                <td class="config-value-cell">
-                  <span class="config-value">{{ row.value }}</span>
-                </td>
-              </tr>
-            </tbody>
+        <thead>
+          <tr>
+            <th>Configuration Key</th>
+            <th>Value</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="(row, index) in section" :key="index" class="config-row">
+            <td class="config-name-cell">
+              <span class="config-name">{{ row.key }}</span>
+            </td>
+            <td class="config-value-cell">
+              <span class="config-value">{{ row.value }}</span>
+            </td>
+          </tr>
+        </tbody>
       </DataTable>
     </div>
   </PageHeader>

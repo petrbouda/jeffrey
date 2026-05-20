@@ -39,141 +39,144 @@
       title="No dominator tree data available"
     />
     <DataTable v-else>
-          <thead>
-            <tr>
-              <th>Class Name</th>
-              <th class="text-end" style="width: 160px"></th>
-              <th class="text-end" style="width: 120px">Shallow Size</th>
-              <th class="text-end" style="width: 120px">Retained Size</th>
-              <th style="width: 180px">% of Parent</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              v-for="(item, index) in treeData"
-              :key="item.node.objectId + '-' + item.depth + '-' + index"
-            >
-              <!-- Load More row -->
-              <template v-if="item.isLoadMore">
-                <td colspan="5">
+      <thead>
+        <tr>
+          <th>Class Name</th>
+          <th class="text-end" style="width: 160px"></th>
+          <th class="text-end" style="width: 120px">Shallow Size</th>
+          <th class="text-end" style="width: 120px">Retained Size</th>
+          <th style="width: 180px">% of Parent</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr
+          v-for="(item, index) in treeData"
+          :key="item.node.objectId + '-' + item.depth + '-' + index"
+        >
+          <!-- Load More row -->
+          <template v-if="item.isLoadMore">
+            <td colspan="5">
+              <div
+                class="d-flex align-items-center gap-3"
+                :style="{ paddingLeft: item.depth * 1.5 + 'rem' }"
+              >
+                <span class="expand-placeholder me-1"></span>
+                <span
+                  v-if="item.loading"
+                  class="spinner-border spinner-border-sm spinner-inline text-muted"
+                ></span>
+                <template v-else>
+                  <button class="btn btn-load-more" @click="loadMoreChildren(item, index)">
+                    <i class="bi bi-plus-circle me-1"></i>
+                    Load 50 more
+                  </button>
+                  <button class="btn btn-load-more" @click="loadAllChildren(item, index)">
+                    <i class="bi bi-arrow-down-circle me-1"></i>
+                    Load all
+                  </button>
+                </template>
+              </div>
+            </td>
+          </template>
+          <!-- Normal node row -->
+          <template v-else>
+            <!-- Class Name with expand/collapse -->
+            <td>
+              <div
+                class="d-flex align-items-center"
+                :style="{ paddingLeft: item.depth * 1.5 + 'rem' }"
+              >
+                <button
+                  v-if="item.node.hasChildren"
+                  class="btn btn-expand me-1"
+                  @click="toggleExpand(item, index)"
+                  :disabled="item.loading"
+                >
+                  <span
+                    v-if="item.loading"
+                    class="spinner-border spinner-border-sm spinner-inline"
+                  ></span>
+                  <i v-else-if="item.expanded" class="bi bi-chevron-down"></i>
+                  <i v-else class="bi bi-chevron-right"></i>
+                </button>
+                <span v-else class="expand-placeholder me-1"></span>
+                <div class="class-info">
+                  <ClassNameDisplay :class-name="item.node.className" />
                   <div
-                    class="d-flex align-items-center gap-3"
-                    :style="{ paddingLeft: item.depth * 1.5 + 'rem' }"
+                    v-if="item.node.fieldName || Object.keys(item.node.objectParams).length > 0"
+                    class="detail-line"
                   >
-                    <span class="expand-placeholder me-1"></span>
+                    <span v-if="item.node.fieldName" class="field-name">{{
+                      item.node.fieldName
+                    }}</span>
                     <span
-                      v-if="item.loading"
-                      class="spinner-border spinner-border-sm spinner-inline text-muted"
-                    ></span>
-                    <template v-else>
-                      <button class="btn btn-load-more" @click="loadMoreChildren(item, index)">
-                        <i class="bi bi-plus-circle me-1"></i>
-                        Load 50 more
-                      </button>
-                      <button class="btn btn-load-more" @click="loadAllChildren(item, index)">
-                        <i class="bi bi-arrow-down-circle me-1"></i>
-                        Load all
-                      </button>
-                    </template>
+                      v-if="item.node.fieldName && Object.keys(item.node.objectParams).length > 0"
+                      class="detail-separator"
+                      >·</span
+                    >
+                    <span
+                      v-if="Object.keys(item.node.objectParams).length > 0"
+                      class="object-params-text"
+                      >{{ FormattingService.formatObjectParams(item.node.objectParams) }}</span
+                    >
                   </div>
-                </td>
-              </template>
-              <!-- Normal node row -->
-              <template v-else>
-                <!-- Class Name with expand/collapse -->
-                <td>
                   <div
-                    class="d-flex align-items-center"
-                    :style="{ paddingLeft: item.depth * 1.5 + 'rem' }"
+                    v-if="item.node.referrerClasses && item.node.referrerClasses.length > 0"
+                    class="referrers-line"
                   >
-                    <button
-                      v-if="item.node.hasChildren"
-                      class="btn btn-expand me-1"
-                      @click="toggleExpand(item, index)"
-                      :disabled="item.loading"
-                    >
-                      <span
-                        v-if="item.loading"
-                        class="spinner-border spinner-border-sm spinner-inline"
-                      ></span>
-                      <i v-else-if="item.expanded" class="bi bi-chevron-down"></i>
-                      <i v-else class="bi bi-chevron-right"></i>
-                    </button>
-                    <span v-else class="expand-placeholder me-1"></span>
-                    <div class="class-info">
-                      <ClassNameDisplay :class-name="item.node.className" />
-                      <div
-                        v-if="item.node.fieldName || Object.keys(item.node.objectParams).length > 0"
-                        class="detail-line"
-                      >
-                        <span v-if="item.node.fieldName" class="field-name">{{
-                          item.node.fieldName
-                        }}</span>
-                        <span
-                          v-if="item.node.fieldName && Object.keys(item.node.objectParams).length > 0"
-                          class="detail-separator"
-                        >·</span>
-                        <span v-if="Object.keys(item.node.objectParams).length > 0" class="object-params-text">{{
-                          FormattingService.formatObjectParams(item.node.objectParams)
-                        }}</span>
-                      </div>
-                      <div
-                        v-if="item.node.referrerClasses && item.node.referrerClasses.length > 0"
-                        class="referrers-line"
-                      >
-                        <span class="referrers-label">referrers</span>
-                        <Badge
-                          v-for="cls in item.node.referrerClasses"
-                          :key="cls"
-                          variant="violet"
-                          size="xxs"
-                          :uppercase="false"
-                          :value="'↑ ' + simpleClassName(cls)"
-                          :title="cls"
-                        />
-                      </div>
-                    </div>
+                    <span class="referrers-label">referrers</span>
+                    <Badge
+                      v-for="cls in item.node.referrerClasses"
+                      :key="cls"
+                      variant="violet"
+                      size="xxs"
+                      :uppercase="false"
+                      :value="'↑ ' + simpleClassName(cls)"
+                      :title="cls"
+                    />
                   </div>
-                </td>
-                <!-- Action Buttons -->
-                <td class="text-end">
-                  <InstanceActionButtons
-                    :object-id="item.node.objectId"
-                    :show-instance-detail="true"
-                    @show-referrers="openTreeModal($event, 'REFERRERS')"
-                    @show-reachables="openTreeModal($event, 'REACHABLES')"
-                    @show-g-c-root-path="openGCRootPathModal"
-                    @show-instance-detail="openInstanceDetailPanel"
-                  />
-                </td>
-                <!-- Shallow Size -->
-                <td class="text-end font-monospace">
-                  {{ FormattingService.formatBytes(item.node.shallowSize) }}
-                </td>
-                <!-- Retained Size -->
-                <td class="text-end font-monospace text-warning">
-                  {{ FormattingService.formatBytes(item.node.retainedSize) }}
-                </td>
-                <!-- % of Parent -->
-                <td>
-                  <div class="d-flex align-items-center gap-2">
-                    <div class="progress flex-grow-1" style="height: 6px">
-                      <div
-                        class="progress-bar"
-                        :style="{
-                          width: item.node.retainedPercent + '%',
-                          backgroundColor: getBarColor(item.node.retainedPercent)
-                        }"
-                      ></div>
-                    </div>
-                    <small class="text-muted" style="min-width: 45px"
-                      >{{ item.node.retainedPercent.toFixed(1) }}%</small
-                    >
-                  </div>
-                </td>
-              </template>
-            </tr>
-          </tbody>
+                </div>
+              </div>
+            </td>
+            <!-- Action Buttons -->
+            <td class="text-end">
+              <InstanceActionButtons
+                :object-id="item.node.objectId"
+                :show-instance-detail="true"
+                @show-referrers="openTreeModal($event, 'REFERRERS')"
+                @show-reachables="openTreeModal($event, 'REACHABLES')"
+                @show-g-c-root-path="openGCRootPathModal"
+                @show-instance-detail="openInstanceDetailPanel"
+              />
+            </td>
+            <!-- Shallow Size -->
+            <td class="text-end font-monospace">
+              {{ FormattingService.formatBytes(item.node.shallowSize) }}
+            </td>
+            <!-- Retained Size -->
+            <td class="text-end font-monospace text-warning">
+              {{ FormattingService.formatBytes(item.node.retainedSize) }}
+            </td>
+            <!-- % of Parent -->
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                <div class="progress flex-grow-1" style="height: 6px">
+                  <div
+                    class="progress-bar"
+                    :style="{
+                      width: item.node.retainedPercent + '%',
+                      backgroundColor: getBarColor(item.node.retainedPercent)
+                    }"
+                  ></div>
+                </div>
+                <small class="text-muted" style="min-width: 45px"
+                  >{{ item.node.retainedPercent.toFixed(1) }}%</small
+                >
+              </div>
+            </td>
+          </template>
+        </tr>
+      </tbody>
     </DataTable>
 
     <!-- Instance Tree Modal -->

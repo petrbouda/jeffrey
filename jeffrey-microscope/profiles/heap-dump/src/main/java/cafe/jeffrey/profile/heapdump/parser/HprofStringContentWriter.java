@@ -23,6 +23,7 @@ import cafe.jeffrey.profile.heapdump.parser.parquet.ParquetStaging;
 import cafe.jeffrey.profile.heapdump.persistence.HeapDumpDatabaseClient;
 import cafe.jeffrey.profile.heapdump.persistence.HeapDumpStatement;
 import org.duckdb.DuckDBAppender;
+import org.eclipse.collections.api.map.primitive.LongObjectMap;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -67,7 +68,7 @@ public final class HprofStringContentWriter {
 
     public static long write(
             HeapDumpDatabaseClient client, HprofMappedFile file, TopLevelData top,
-            ClassDumpIndex classes, Map<Long, PrimitiveArrayInfo> primArrInfo,
+            ClassDumpIndex classes, LongObjectMap<PrimitiveArrayInfo> primArrInfo,
             int idSize, int threshold,
             Path stagingDir, int requestedWorkers) throws SQLException, IOException {
 
@@ -131,7 +132,7 @@ public final class HprofStringContentWriter {
 
         final int finalValueOffset = valueOffset;
         final int finalCoderOffset = coderOffset;
-        Map<Long, PrimitiveArrayInfo> arrayInfoByArrayId = primArrInfo;
+        LongObjectMap<PrimitiveArrayInfo> arrayInfoByArrayId = primArrInfo;
 
         long emitted;
         try (ParquetStaging staging = ParquetStaging.open(stagingDir)) {
@@ -192,7 +193,7 @@ public final class HprofStringContentWriter {
     private static long runWorker(
             HprofMappedFile file, long[] instanceIds, long[] fileOffsets, int start, int end,
             int valueOffset, int coderOffset, int idSize,
-            Map<Long, PrimitiveArrayInfo> arrayInfoByArrayId,
+            LongObjectMap<PrimitiveArrayInfo> arrayInfoByArrayId,
             int threshold, Path outputPath) {
         long emitted = 0L;
         try (ParquetSink sink = ParquetSink.open(
@@ -209,28 +210,46 @@ public final class HprofStringContentWriter {
                         ? file.readByte(fieldBlockStart + coderOffset)
                         : null;
 
-                String content;
                 if (valueRef == 0L) {
-                    content = "";
-                } else {
-                    PrimitiveArrayInfo info = arrayInfoByArrayId.get(valueRef);
-                    if (info == null) {
-                        continue;
-                    }
-                    content = decodeStringForIndex(file, info, coder, idSize);
-                    if (content == null) {
-                        continue;
-                    }
+                    // String with null/empty value array (e.g. an uninitialised
+                    // String field). Emit a zero-length row directly.
+                    app.beginRow();
+                    app.append(instanceId);
+                    app.append(0);
+                    app.append(EMPTY_BYTES);
+                    app.endRow();
+                    emitted++;
+                    continue;
                 }
 
-                int len = content.length();
+                PrimitiveArrayInfo info = arrayInfoByArrayId.get(valueRef);
+                if (info == null) {
+                    continue;
+                }
+                int elementType = info.elementType();
+                int elementSize = HprofTypeSize.sizeOf(elementType, idSize);
+                if (elementSize < 0) {
+                    continue;
+                }
+                int charLen = charLengthOf(info.arrayLength(), elementType, coder);
+                if (charLen < 0) {
+                    continue;
+                }
+
                 app.beginRow();
                 app.append(instanceId);
-                app.append(len);
-                if (threshold >= 0 && len > threshold) {
+                app.append(charLen);
+                if (threshold >= 0 && charLen > threshold) {
+                    // Content is over the materialisation cap — readBytes/decode skipped entirely.
                     app.appendNull();
                 } else {
-                    app.append(content);
+                    long payloadOffset = info.fileOffset() + idSize + 9L;
+                    long byteLengthLong = (long) info.arrayLength() * elementSize;
+                    if (byteLengthLong > Integer.MAX_VALUE) {
+                        byteLengthLong = Integer.MAX_VALUE;
+                    }
+                    byte[] bytes = file.readBytes(payloadOffset, (int) byteLengthLong);
+                    appendStringContent(app, bytes, elementType, coder);
                 }
                 app.endRow();
                 emitted++;
@@ -241,19 +260,60 @@ public final class HprofStringContentWriter {
         return emitted;
     }
 
-    private static String decodeStringForIndex(
-            HprofMappedFile file, PrimitiveArrayInfo info, Byte coder, int idSize) {
-        int elementSize = HprofTypeSize.sizeOf(info.elementType(), idSize);
-        if (elementSize < 0) {
-            return null;
+    private static final byte[] EMPTY_BYTES = new byte[0];
+
+    /**
+     * Character length of a String whose value array has {@code arrayLength}
+     * elements, derived from the HPROF array layout without decoding.
+     * {@code BYTE} + {@code coder=1} (UTF-16) and {@code CHAR} arrays store
+     * two bytes per character; LATIN1 ({@code coder=0}) and char-less paths
+     * store one. Returns {@code -1} for unrecognised element types.
+     */
+    private static int charLengthOf(int arrayLength, int elementType, Byte coder) {
+        if (elementType == HprofTag.BasicType.BYTE) {
+            if (coder != null && coder == 1) {
+                return arrayLength / 2;
+            }
+            return arrayLength;
         }
-        long payloadOffset = info.fileOffset() + idSize + 9L;
-        long byteLengthLong = (long) info.arrayLength() * elementSize;
-        if (byteLengthLong > Integer.MAX_VALUE) {
-            byteLengthLong = Integer.MAX_VALUE;
+        if (elementType == HprofTag.BasicType.CHAR) {
+            return arrayLength;
         }
-        byte[] bytes = file.readBytes(payloadOffset, (int) byteLengthLong);
-        return JavaStringDecoder.decodeContent(bytes, info.elementType(), coder);
+        return -1;
+    }
+
+    /**
+     * Writes the String content cell, skipping the intermediate {@code String}
+     * for the common case (Java 9+ LATIN1-coder Strings with 7-bit ASCII
+     * bytes). For those, the HPROF payload bytes are already valid UTF-8 and
+     * go straight to the DuckDB appender — no {@code new String(byte[])} copy,
+     * no {@code String#getBytes(UTF_8)} re-encode. Non-ASCII LATIN1, UTF-16,
+     * and Java 8 {@code char[]} Strings fall through to the JDK decoder; the
+     * appender re-encodes the resulting String to UTF-8.
+     */
+    private static void appendStringContent(
+            DuckDBAppender app, byte[] bytes, int elementType, Byte coder) throws SQLException {
+        if (elementType == HprofTag.BasicType.BYTE
+                && (coder == null || coder == 0)
+                && isAsciiOnly(bytes)) {
+            app.append(bytes);
+            return;
+        }
+        String content = JavaStringDecoder.decodeContent(bytes, elementType, coder);
+        if (content == null) {
+            app.appendNull();
+            return;
+        }
+        app.append(content);
+    }
+
+    private static boolean isAsciiOnly(byte[] bytes) {
+        for (byte b : bytes) {
+            if (b < 0) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private static Long findClassIdByHprofName(TopLevelData top) {

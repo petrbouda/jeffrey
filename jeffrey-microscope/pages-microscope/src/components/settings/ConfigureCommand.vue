@@ -52,7 +52,7 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  hideActions: false,
+  hideActions: false
 });
 
 const emit = defineEmits<{

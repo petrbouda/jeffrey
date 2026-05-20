@@ -7,43 +7,43 @@
 
       <!-- Loading State -->
       <div v-if="isLoading" class="loading-state">
-      <div class="spinner-border text-primary" role="status">
-        <span class="visually-hidden">Loading...</span>
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="mt-3">Loading profiler settings...</p>
       </div>
-      <p class="mt-3">Loading profiler settings...</p>
-    </div>
 
-    <div v-else class="profiler-settings-content">
-      <!-- Current Settings Display -->
-      <CommandDisplay
-        :command="currentSettings"
-        :deletable="settingsLevel === 'PROJECT'"
-        :deleting="isDeleting"
-        @delete="deleteProjectSettings"
-      >
-        <template #header-left>
-          <SettingsBreadcrumbs :items="breadcrumbItems" />
-        </template>
-      </CommandDisplay>
+      <div v-else class="profiler-settings-content">
+        <!-- Current Settings Display -->
+        <CommandDisplay
+          :command="currentSettings"
+          :deletable="settingsLevel === 'PROJECT'"
+          :deleting="isDeleting"
+          @delete="deleteProjectSettings"
+        >
+          <template #header-left>
+            <SettingsBreadcrumbs :items="breadcrumbItems" />
+          </template>
+        </CommandDisplay>
 
-      <!-- Tab Bar -->
-      <TabBar v-model="activeTab" :tabs="builderTabs" />
+        <!-- Tab Bar -->
+        <TabBar v-model="activeTab" :tabs="builderTabs" />
 
-      <!-- Tab Content -->
-      <div class="tab-content">
-        <ConfigureCommand
-          v-if="activeTab === 'manual'"
-          v-model="newCommand"
-          @accept-command="applySettings"
-          @clear="newCommand = ''"
-        />
-        <CommandBuilder
-          v-if="activeTab === 'builder'"
-          @cancel="cancelBuilder"
-          @accept-command="acceptBuilderCommand"
-        />
+        <!-- Tab Content -->
+        <div class="tab-content">
+          <ConfigureCommand
+            v-if="activeTab === 'manual'"
+            v-model="newCommand"
+            @accept-command="applySettings"
+            @clear="newCommand = ''"
+          />
+          <CommandBuilder
+            v-if="activeTab === 'builder'"
+            @cancel="cancelBuilder"
+            @accept-command="acceptBuilderCommand"
+          />
+        </div>
       </div>
-    </div>
     </MainCard>
   </div>
 </template>
@@ -64,7 +64,11 @@ import type { BreadcrumbItem } from '@/components/settings/SettingsBreadcrumbs.v
 import type ProfilerSettings from '@/services/api/model/ProfilerSettings';
 
 const { serverId, workspaceId, projectId } = useNavigation();
-const profilerClient = new ProjectProfilerClient(serverId.value, workspaceId.value, projectId.value);
+const profilerClient = new ProjectProfilerClient(
+  serverId.value,
+  workspaceId.value,
+  projectId.value
+);
 
 // State
 const isLoading = ref(true);

@@ -59,10 +59,13 @@ const stop = () => {
 onMounted(start);
 onUnmounted(stop);
 // If parent flips startedAt (new run), restart the tick.
-watch(() => props.startedAt, () => {
-  stop();
-  start();
-});
+watch(
+  () => props.startedAt,
+  () => {
+    stop();
+    start();
+  }
+);
 
 const formattedElapsed = computed(() => {
   const ms = Math.max(0, now.value - props.startedAt);

@@ -1,19 +1,19 @@
 export interface EventTypeEntry {
-  name: string
-  description: string
+  name: string;
+  description: string;
 }
 
 export interface EventTypeCategory {
-  label: string
-  badge: 'jdk' | 'jeffrey' | 'profiler'
-  events: EventTypeEntry[]
+  label: string;
+  badge: 'jdk' | 'jeffrey' | 'profiler';
+  events: EventTypeEntry[];
 }
 
 export function getEventTypePrefix(name: string): 'jdk' | 'jeffrey' | 'profiler' | 'custom' {
-  if (name.startsWith('jdk.')) return 'jdk'
-  if (name.startsWith('jeffrey.')) return 'jeffrey'
-  if (name.startsWith('profiler.')) return 'profiler'
-  return 'custom'
+  if (name.startsWith('jdk.')) return 'jdk';
+  if (name.startsWith('jeffrey.')) return 'jeffrey';
+  if (name.startsWith('profiler.')) return 'profiler';
+  return 'custom';
 }
 
 const EVENT_TYPE_CATALOG: EventTypeCategory[] = [
@@ -112,7 +112,10 @@ const EVENT_TYPE_CATALOG: EventTypeCategory[] = [
       { name: 'jdk.PromotionFailed', description: 'Promotion failed' },
       { name: 'jdk.ShenandoahEvacuationInformation', description: 'Shenandoah evacuation info' },
       { name: 'jdk.ShenandoahHeapRegionInformation', description: 'Shenandoah region info' },
-      { name: 'jdk.ShenandoahHeapRegionStateChange', description: 'Shenandoah region state change' },
+      {
+        name: 'jdk.ShenandoahHeapRegionStateChange',
+        description: 'Shenandoah region state change'
+      },
       { name: 'jdk.StringDeduplication', description: 'String deduplication' },
       { name: 'jdk.TenuringDistribution', description: 'Tenuring distribution' },
       { name: 'jdk.ZAllocationStall', description: 'ZGC allocation stall' },
@@ -424,6 +427,6 @@ const EVENT_TYPE_CATALOG: EventTypeCategory[] = [
       { name: 'profiler.LiveObject', description: 'Live objects' }
     ]
   }
-]
+];
 
-export default EVENT_TYPE_CATALOG
+export default EVENT_TYPE_CATALOG;

@@ -30,18 +30,18 @@
 -->
 
 <script setup lang="ts">
-import '@/styles/shared-components.css'
+import '@/styles/shared-components.css';
 
 defineProps<{
-  placeholder?: string
-  ariaLabel?: string
-}>()
+  placeholder?: string;
+  ariaLabel?: string;
+}>();
 
-const value = defineModel<string>({ default: '' })
+const value = defineModel<string>({ default: '' });
 
 const clear = () => {
-  value.value = ''
-}
+  value.value = '';
+};
 </script>
 
 <template>

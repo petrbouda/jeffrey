@@ -94,7 +94,9 @@
             class="svc-rate"
             :class="service.successRate < 0.95 ? 'rate-danger' : 'rate-warning'"
           >
-            <span class="svc-rate-num">{{ FormattingService.formatSuccessRate(service.successRate || 0) }}</span>
+            <span class="svc-rate-num">{{
+              FormattingService.formatSuccessRate(service.successRate || 0)
+            }}</span>
             <span class="svc-rate-label">success</span>
           </div>
           <i class="bi bi-chevron-right svc-arrow"></i>

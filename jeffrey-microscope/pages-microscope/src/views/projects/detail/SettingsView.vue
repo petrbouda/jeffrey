@@ -8,62 +8,66 @@
       <!-- Loading State -->
       <LoadingState v-if="isLoading" message="Loading project settings..." />
 
-    <template v-else>
-      <!-- Top Row: General + Blocking -->
-      <div class="settings-grid">
-        <div class="settings-card">
-          <div class="settings-card-header">
-            <i class="bi bi-pencil-square"></i>
-            <h6>General</h6>
-          </div>
-          <form @submit.prevent="saveChanges">
-            <label class="field-label">Project Name</label>
-            <input type="text" class="field-input" v-model="projectName" @input="checkForChanges" />
-            <button
-              type="submit"
-              class="settings-btn settings-btn-primary"
-              :disabled="!hasChanges || isSaving"
-            >
-              <span
-                v-if="isSaving"
-                class="spinner-border spinner-border-sm"
-                role="status"
-                aria-hidden="true"
-              ></span>
-              <i v-else class="bi bi-check-lg"></i>
-              {{ isSaving ? 'Saving...' : 'Save Changes' }}
-            </button>
-          </form>
-        </div>
-
-      </div>
-
-      <!-- Danger Zone Bar -->
-      <div class="danger-bar">
-        <div class="danger-bar-left">
-          <i class="bi bi-exclamation-triangle-fill"></i>
-          <div>
-            <span class="danger-bar-title">Danger Zone</span>
-            <span class="danger-bar-desc">Permanently delete this project and all its data</span>
+      <template v-else>
+        <!-- Top Row: General + Blocking -->
+        <div class="settings-grid">
+          <div class="settings-card">
+            <div class="settings-card-header">
+              <i class="bi bi-pencil-square"></i>
+              <h6>General</h6>
+            </div>
+            <form @submit.prevent="saveChanges">
+              <label class="field-label">Project Name</label>
+              <input
+                type="text"
+                class="field-input"
+                v-model="projectName"
+                @input="checkForChanges"
+              />
+              <button
+                type="submit"
+                class="settings-btn settings-btn-primary"
+                :disabled="!hasChanges || isSaving"
+              >
+                <span
+                  v-if="isSaving"
+                  class="spinner-border spinner-border-sm"
+                  role="status"
+                  aria-hidden="true"
+                ></span>
+                <i v-else class="bi bi-check-lg"></i>
+                {{ isSaving ? 'Saving...' : 'Save Changes' }}
+              </button>
+            </form>
           </div>
         </div>
-        <button
-          type="button"
-          class="settings-btn settings-btn-danger"
-          @click="openDeleteConfirmation"
-          :disabled="isDeleting"
-        >
-          <span
-            v-if="isDeleting"
-            class="spinner-border spinner-border-sm"
-            role="status"
-            aria-hidden="true"
-          ></span>
-          <i v-else class="bi bi-trash3"></i>
-          {{ isDeleting ? 'Deleting...' : 'Delete Project' }}
-        </button>
-      </div>
-    </template>
+
+        <!-- Danger Zone Bar -->
+        <div class="danger-bar">
+          <div class="danger-bar-left">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            <div>
+              <span class="danger-bar-title">Danger Zone</span>
+              <span class="danger-bar-desc">Permanently delete this project and all its data</span>
+            </div>
+          </div>
+          <button
+            type="button"
+            class="settings-btn settings-btn-danger"
+            @click="openDeleteConfirmation"
+            :disabled="isDeleting"
+          >
+            <span
+              v-if="isDeleting"
+              class="spinner-border spinner-border-sm"
+              role="status"
+              aria-hidden="true"
+            ></span>
+            <i v-else class="bi bi-trash3"></i>
+            {{ isDeleting ? 'Deleting...' : 'Delete Project' }}
+          </button>
+        </div>
+      </template>
     </MainCard>
   </div>
 
@@ -93,9 +97,7 @@
       <p>
         Are you sure you want to delete this project? This action <strong>cannot</strong> be undone.
       </p>
-      <p class="mb-0">
-        Please type <strong>delete</strong> to confirm:
-      </p>
+      <p class="mb-0">Please type <strong>delete</strong> to confirm:</p>
     </div>
     <div class="form-group">
       <input
@@ -150,7 +152,11 @@ const router = useRouter();
 const { serverId, workspaceId, projectId } = useNavigation();
 
 // Create clients
-const settingsClient = new ProjectSettingsClient(serverId.value, workspaceId.value!, projectId.value!);
+const settingsClient = new ProjectSettingsClient(
+  serverId.value,
+  workspaceId.value!,
+  projectId.value!
+);
 const projectClient = new ProjectClient(serverId.value, workspaceId.value!, projectId.value!);
 
 // State variables

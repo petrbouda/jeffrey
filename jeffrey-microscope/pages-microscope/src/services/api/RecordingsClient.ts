@@ -71,7 +71,12 @@ export default class RecordingsClient extends BasePlatformClient {
 
   async downloadFile(recordingId: string, fileId: string): Promise<void> {
     const downloadUrl =
-      this.baseUrl + '/recordings/' + recordingId + '/files/' + encodeURIComponent(fileId) + '/download';
+      this.baseUrl +
+      '/recordings/' +
+      recordingId +
+      '/files/' +
+      encodeURIComponent(fileId) +
+      '/download';
     return HttpUtils.downloadFile(downloadUrl, fileId);
   }
 

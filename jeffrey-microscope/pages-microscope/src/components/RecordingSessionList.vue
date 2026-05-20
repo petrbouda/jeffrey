@@ -144,8 +144,7 @@ const sortedSessions = computed(() => {
 // --- Sorting ---
 const getSortedRecordings = (session: RecordingSession) => {
   const getSortPriority = (file: RepositoryFile): number => {
-    if (file.isRecording || file.fileType === RecordingFileType.ASPROF)
-      return 1;
+    if (file.isRecording || file.fileType === RecordingFileType.ASPROF) return 1;
     return 0;
   };
 

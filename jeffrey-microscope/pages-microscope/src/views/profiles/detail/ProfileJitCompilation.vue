@@ -90,47 +90,45 @@
             title="No long compilations recorded"
           />
           <DataTable v-else>
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Method</th>
-                  <th>Level</th>
-                  <th>Time</th>
-                  <th>Code Size</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr
-                  v-for="compilation in compilationsData"
-                  :key="compilation.compileId"
-                  :class="{ 'table-danger': !compilation.succeded }"
-                  :title="compilation.method"
-                >
-                  <td>{{ compilation.compileId }}</td>
-                  <td>
-                    <div class="method-cell">
-                      <div class="d-flex align-items-center gap-2 mb-1">
-                        <span class="method-name">{{
-                          getClassMethodName(compilation.method)
-                        }}</span>
-                        <Badge :value="compilation.compiler" variant="primary" size="xs" />
-                        <Badge v-if="compilation.isOsr" value="OSR" variant="info" size="xs" />
-                      </div>
-                      <span class="method-path text-muted small">{{
-                        getPackage(compilation.method)
-                      }}</span>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Method</th>
+                <th>Level</th>
+                <th>Time</th>
+                <th>Code Size</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="compilation in compilationsData"
+                :key="compilation.compileId"
+                :class="{ 'table-danger': !compilation.succeded }"
+                :title="compilation.method"
+              >
+                <td>{{ compilation.compileId }}</td>
+                <td>
+                  <div class="method-cell">
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                      <span class="method-name">{{ getClassMethodName(compilation.method) }}</span>
+                      <Badge :value="compilation.compiler" variant="primary" size="xs" />
+                      <Badge v-if="compilation.isOsr" value="OSR" variant="info" size="xs" />
                     </div>
-                  </td>
-                  <td>{{ compilation.compileLevel }}</td>
-                  <td>{{ FormattingService.formatDuration2Units(compilation.duration) }}</td>
-                  <td>{{ FormattingService.formatBytes(compilation.codeSize) }}</td>
-                  <td>
-                    <Badge v-if="compilation.succeded" value="Success" variant="success" size="s" />
-                    <Badge v-else value="Failed" variant="danger" size="s" />
-                  </td>
-                </tr>
-              </tbody>
+                    <span class="method-path text-muted small">{{
+                      getPackage(compilation.method)
+                    }}</span>
+                  </div>
+                </td>
+                <td>{{ compilation.compileLevel }}</td>
+                <td>{{ FormattingService.formatDuration2Units(compilation.duration) }}</td>
+                <td>{{ FormattingService.formatBytes(compilation.codeSize) }}</td>
+                <td>
+                  <Badge v-if="compilation.succeded" value="Success" variant="success" size="s" />
+                  <Badge v-else value="Failed" variant="danger" size="s" />
+                </td>
+              </tr>
+            </tbody>
           </DataTable>
         </div>
       </div>
@@ -493,7 +491,6 @@ const getPackage = (method: string): string => {
   // Return everything except the last two segments (class and method)
   return segments.slice(0, segments.length - 1).join('.');
 };
-
 </script>
 
 <style scoped>

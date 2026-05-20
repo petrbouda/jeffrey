@@ -41,9 +41,14 @@
         <td>
           <div class="d-flex align-items-center gap-2">
             <div class="progress flex-grow-1" style="height: 6px">
-              <div class="progress-bar" :style="{ width: sharePct(r.totalRetainedBytes) + '%' }"></div>
+              <div
+                class="progress-bar"
+                :style="{ width: sharePct(r.totalRetainedBytes) + '%' }"
+              ></div>
             </div>
-            <small class="text-muted" style="min-width: 45px">{{ sharePct(r.totalRetainedBytes).toFixed(0) }}%</small>
+            <small class="text-muted" style="min-width: 45px"
+              >{{ sharePct(r.totalRetainedBytes).toFixed(0) }}%</small
+            >
           </div>
         </td>
       </tr>
@@ -128,9 +133,21 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.toolbar-info { font-size: 0.75rem; color: var(--color-text-muted); }
-.progress { background-color: var(--color-border); }
-.progress-bar { background-color: var(--color-accent-blue); transition: width 0.3s ease; }
-.font-monospace { font-size: 0.8rem; }
-.text-warning { color: var(--color-goldenrod) !important; }
+.toolbar-info {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+.progress {
+  background-color: var(--color-border);
+}
+.progress-bar {
+  background-color: var(--color-accent-blue);
+  transition: width 0.3s ease;
+}
+.font-monospace {
+  font-size: 0.8rem;
+}
+.text-warning {
+  color: var(--color-goldenrod) !important;
+}
 </style>

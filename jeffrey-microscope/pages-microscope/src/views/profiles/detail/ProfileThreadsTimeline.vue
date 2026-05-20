@@ -95,92 +95,92 @@
       <div class="info-section mt-4">
         <h5 class="section-title">Event Types</h5>
         <DataTable table-class="event-type-table">
-            <tbody>
-              <tr>
-                <td class="color-cell">
-                  <div
-                    class="event-color-box"
-                    :style="{ 'background-color': ThreadRow.lifespanColor }"
-                  ></div>
-                </td>
-                <td>Lifespan of the thread, time between Thread Start and End</td>
-              </tr>
-              <tr>
-                <td class="color-cell">
-                  <div
-                    class="event-color-box"
-                    :style="{ 'background-color': ThreadRow.parkedColor }"
-                  ></div>
-                </td>
-                <td>
-                  Parking of the thread: <b>LockSupport#park()</b> (e.g. parking threads in Thread
-                  Pools)
-                </td>
-              </tr>
-              <tr>
-                <td class="color-cell">
-                  <div
-                    class="event-color-box"
-                    :style="{ 'background-color': ThreadRow.sleepColor }"
-                  ></div>
-                </td>
-                <td>Threads Sleep, emitted by <b>Thread#sleep()</b></td>
-              </tr>
-              <tr>
-                <td class="color-cell">
-                  <div
-                    class="event-color-box"
-                    :style="{ 'background-color': ThreadRow.waitingColor }"
-                  ></div>
-                </td>
-                <td>Thread Wait, emitted by <b>Thread#wait()</b></td>
-              </tr>
-              <tr>
-                <td class="color-cell">
-                  <div
-                    class="event-color-box"
-                    :style="{ 'background-color': ThreadRow.blockedColor }"
-                  ></div>
-                </td>
-                <td>Blocked thread, caused by <b>MonitorEnter</b> (e.g. synchronized)</td>
-              </tr>
-              <tr>
-                <td class="color-cell">
-                  <div
-                    class="event-color-box"
-                    :style="{ 'background-color': ThreadRow.socketReadColor }"
-                  ></div>
-                </td>
-                <td>Blocking reads from a Socket (e.g. <b>SocketInputStream#read</b>)</td>
-              </tr>
-              <tr>
-                <td class="color-cell">
-                  <div
-                    class="event-color-box"
-                    :style="{ 'background-color': ThreadRow.socketWriteColor }"
-                  ></div>
-                </td>
-                <td>Blocking writes to a Socket (e.g. <b>SocketOutputStream#write</b>)</td>
-              </tr>
-              <tr>
-                <td class="color-cell">
-                  <div
-                    class="event-color-box"
-                    :style="{ 'background-color': ThreadRow.fileReadColor }"
-                  ></div>
-                </td>
-                <td>Blocking reads from a File (e.g. <b>FileInputStream#read</b>)</td>
-              </tr>
-              <tr>
-                <td class="color-cell">
-                  <div
-                    class="event-color-box"
-                    :style="{ 'background-color': ThreadRow.fileWriteColor }"
-                  ></div>
-                </td>
-                <td>Blocking writes to a File (e.g. <b>FileOutputStream#write</b>)</td>
-              </tr>
-            </tbody>
+          <tbody>
+            <tr>
+              <td class="color-cell">
+                <div
+                  class="event-color-box"
+                  :style="{ 'background-color': ThreadRow.lifespanColor }"
+                ></div>
+              </td>
+              <td>Lifespan of the thread, time between Thread Start and End</td>
+            </tr>
+            <tr>
+              <td class="color-cell">
+                <div
+                  class="event-color-box"
+                  :style="{ 'background-color': ThreadRow.parkedColor }"
+                ></div>
+              </td>
+              <td>
+                Parking of the thread: <b>LockSupport#park()</b> (e.g. parking threads in Thread
+                Pools)
+              </td>
+            </tr>
+            <tr>
+              <td class="color-cell">
+                <div
+                  class="event-color-box"
+                  :style="{ 'background-color': ThreadRow.sleepColor }"
+                ></div>
+              </td>
+              <td>Threads Sleep, emitted by <b>Thread#sleep()</b></td>
+            </tr>
+            <tr>
+              <td class="color-cell">
+                <div
+                  class="event-color-box"
+                  :style="{ 'background-color': ThreadRow.waitingColor }"
+                ></div>
+              </td>
+              <td>Thread Wait, emitted by <b>Thread#wait()</b></td>
+            </tr>
+            <tr>
+              <td class="color-cell">
+                <div
+                  class="event-color-box"
+                  :style="{ 'background-color': ThreadRow.blockedColor }"
+                ></div>
+              </td>
+              <td>Blocked thread, caused by <b>MonitorEnter</b> (e.g. synchronized)</td>
+            </tr>
+            <tr>
+              <td class="color-cell">
+                <div
+                  class="event-color-box"
+                  :style="{ 'background-color': ThreadRow.socketReadColor }"
+                ></div>
+              </td>
+              <td>Blocking reads from a Socket (e.g. <b>SocketInputStream#read</b>)</td>
+            </tr>
+            <tr>
+              <td class="color-cell">
+                <div
+                  class="event-color-box"
+                  :style="{ 'background-color': ThreadRow.socketWriteColor }"
+                ></div>
+              </td>
+              <td>Blocking writes to a Socket (e.g. <b>SocketOutputStream#write</b>)</td>
+            </tr>
+            <tr>
+              <td class="color-cell">
+                <div
+                  class="event-color-box"
+                  :style="{ 'background-color': ThreadRow.fileReadColor }"
+                ></div>
+              </td>
+              <td>Blocking reads from a File (e.g. <b>FileInputStream#read</b>)</td>
+            </tr>
+            <tr>
+              <td class="color-cell">
+                <div
+                  class="event-color-box"
+                  :style="{ 'background-color': ThreadRow.fileWriteColor }"
+                ></div>
+              </td>
+              <td>Blocking writes to a File (e.g. <b>FileOutputStream#write</b>)</td>
+            </tr>
+          </tbody>
         </DataTable>
       </div>
     </template>

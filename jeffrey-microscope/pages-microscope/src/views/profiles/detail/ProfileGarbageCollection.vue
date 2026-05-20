@@ -26,265 +26,263 @@
 
     <!-- GC Efficiency Tab -->
     <div v-show="activeTab === 'efficiency'">
-        <div v-if="gcSummary" class="row">
-          <div class="col-md-6">
-            <div class="chart-container">
-              <div id="gc-efficiency-pie-chart"></div>
-            </div>
+      <div v-if="gcSummary" class="row">
+        <div class="col-md-6">
+          <div class="chart-container">
+            <div id="gc-efficiency-pie-chart"></div>
           </div>
-          <div class="col-md-6">
-            <div class="efficiency-stats">
-              <h6 class="mb-3">GC Efficiency Metrics</h6>
-              <div class="stat-item mb-3">
-                <label class="stat-label">Application Time</label>
-                <div class="stat-value">{{ gcSummary.applicationTime }}</div>
-                <div class="progress mt-1">
-                  <div
-                    class="progress-bar bg-success"
-                    role="progressbar"
-                    :style="{ width: gcSummary.gcThroughput + '%' }"
-                  ></div>
-                </div>
+        </div>
+        <div class="col-md-6">
+          <div class="efficiency-stats">
+            <h6 class="mb-3">GC Efficiency Metrics</h6>
+            <div class="stat-item mb-3">
+              <label class="stat-label">Application Time</label>
+              <div class="stat-value">{{ gcSummary.applicationTime }}</div>
+              <div class="progress mt-1">
+                <div
+                  class="progress-bar bg-success"
+                  role="progressbar"
+                  :style="{ width: gcSummary.gcThroughput + '%' }"
+                ></div>
               </div>
-              <div class="stat-item mb-3">
-                <label class="stat-label">GC Time</label>
-                <div class="stat-value">{{ gcSummary.totalGcTime }}</div>
-                <div class="progress mt-1">
-                  <div
-                    class="progress-bar bg-warning"
-                    role="progressbar"
-                    :style="{ width: gcSummary.gcOverhead + '%' }"
-                  ></div>
-                </div>
+            </div>
+            <div class="stat-item mb-3">
+              <label class="stat-label">GC Time</label>
+              <div class="stat-value">{{ gcSummary.totalGcTime }}</div>
+              <div class="progress mt-1">
+                <div
+                  class="progress-bar bg-warning"
+                  role="progressbar"
+                  :style="{ width: gcSummary.gcOverhead + '%' }"
+                ></div>
               </div>
-              <div class="stat-item">
-                <label class="stat-label">Collection Frequency</label>
-                <div class="stat-value">{{ gcSummary.collectionFrequency }}</div>
-              </div>
+            </div>
+            <div class="stat-item">
+              <label class="stat-label">Collection Frequency</label>
+              <div class="stat-value">{{ gcSummary.collectionFrequency }}</div>
             </div>
           </div>
         </div>
+      </div>
     </div>
 
     <!-- Longest Pauses Tab -->
     <div v-show="activeTab === 'events'">
-        <EmptyState
-          v-if="!gcOverviewData?.longestPauses || gcOverviewData.longestPauses.length === 0"
-          icon="bi-recycle"
-          title="No garbage collection pause events"
-        />
-        <DataTable v-else>
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Cause</th>
-                  <th>Sum of Pauses</th>
-                  <th>Duration</th>
-                  <th>Before GC</th>
-                  <th>After GC</th>
-                  <th>Difference</th>
-                  <th>Efficiency</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr
-                  v-for="event in gcOverviewData?.longestPauses"
-                  :key="event.gcId"
-                  @click="showEventDetails(event)"
-                  style="cursor: pointer"
+      <EmptyState
+        v-if="!gcOverviewData?.longestPauses || gcOverviewData.longestPauses.length === 0"
+        icon="bi-recycle"
+        title="No garbage collection pause events"
+      />
+      <DataTable v-else>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Cause</th>
+            <th>Sum of Pauses</th>
+            <th>Duration</th>
+            <th>Before GC</th>
+            <th>After GC</th>
+            <th>Difference</th>
+            <th>Efficiency</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr
+            v-for="event in gcOverviewData?.longestPauses"
+            :key="event.gcId"
+            @click="showEventDetails(event)"
+            style="cursor: pointer"
+          >
+            <td>{{ event.gcId }}</td>
+            <td>
+              <div class="cause-cell">
+                <div class="d-flex align-items-center gap-2 mb-1">
+                  <Badge
+                    :value="event.cause"
+                    variant="secondary"
+                    size="m"
+                    :title="getGCCauseTooltip(event.cause)"
+                    class="gc-cause-badge"
+                  />
+                  <Badge
+                    v-if="event.collectorName"
+                    :value="event.collectorName"
+                    :variant="getGenerationTypeBadgeVariant(event.generationType)"
+                    size="s"
+                  />
+                  <Badge
+                    :value="getConcurrentBadgeValue(event.concurrent)"
+                    :variant="getConcurrentBadgeVariant(event.concurrent)"
+                    size="s"
+                  />
+                  <Badge v-if="event.type" :value="event.type" variant="secondary" size="s" />
+                </div>
+                <span class="timestamp-path text-muted small">{{
+                  FormattingService.formatTimestamp(event.timestamp)
+                }}</span>
+              </div>
+            </td>
+            <td>{{ FormattingService.formatDuration2Units(event.sumOfPauses) }}</td>
+            <td>{{ FormattingService.formatDuration2Units(event.duration) }}</td>
+            <td>{{ FormattingService.formatBytes(event.beforeGC) }}</td>
+            <td>{{ FormattingService.formatBytes(event.afterGC) }}</td>
+            <td>
+              <Badge
+                :value="formatDifference(event.beforeGC, event.afterGC)"
+                :variant="getDifferenceBadgeVariant(event.beforeGC, event.afterGC)"
+                size="m"
+              />
+            </td>
+            <td>
+              <div class="d-flex align-items-center">
+                <div class="progress flex-grow-1 me-2" style="height: 6px; min-width: 40px">
+                  <div
+                    class="progress-bar"
+                    :class="getDifferenceBarClass(event.beforeGC, event.afterGC)"
+                    :style="{
+                      width: getDifferencePercentage(event.beforeGC, event.afterGC) + '%'
+                    }"
+                  ></div>
+                </div>
+                <small class="text-muted"
+                  >{{ getDifferencePercentage(event.beforeGC, event.afterGC).toFixed(1) }}%</small
                 >
-                  <td>{{ event.gcId }}</td>
-                  <td>
-                    <div class="cause-cell">
-                      <div class="d-flex align-items-center gap-2 mb-1">
-                        <Badge
-                          :value="event.cause"
-                          variant="secondary"
-                          size="m"
-                          :title="getGCCauseTooltip(event.cause)"
-                          class="gc-cause-badge"
-                        />
-                        <Badge
-                          v-if="event.collectorName"
-                          :value="event.collectorName"
-                          :variant="getGenerationTypeBadgeVariant(event.generationType)"
-                          size="s"
-                        />
-                        <Badge
-                          :value="getConcurrentBadgeValue(event.concurrent)"
-                          :variant="getConcurrentBadgeVariant(event.concurrent)"
-                          size="s"
-                        />
-                        <Badge v-if="event.type" :value="event.type" variant="secondary" size="s" />
-                      </div>
-                      <span class="timestamp-path text-muted small">{{
-                        FormattingService.formatTimestamp(event.timestamp)
-                      }}</span>
-                    </div>
-                  </td>
-                  <td>{{ FormattingService.formatDuration2Units(event.sumOfPauses) }}</td>
-                  <td>{{ FormattingService.formatDuration2Units(event.duration) }}</td>
-                  <td>{{ FormattingService.formatBytes(event.beforeGC) }}</td>
-                  <td>{{ FormattingService.formatBytes(event.afterGC) }}</td>
-                  <td>
-                    <Badge
-                      :value="formatDifference(event.beforeGC, event.afterGC)"
-                      :variant="getDifferenceBadgeVariant(event.beforeGC, event.afterGC)"
-                      size="m"
-                    />
-                  </td>
-                  <td>
-                    <div class="d-flex align-items-center">
-                      <div class="progress flex-grow-1 me-2" style="height: 6px; min-width: 40px">
-                        <div
-                          class="progress-bar"
-                          :class="getDifferenceBarClass(event.beforeGC, event.afterGC)"
-                          :style="{
-                            width: getDifferencePercentage(event.beforeGC, event.afterGC) + '%'
-                          }"
-                        ></div>
-                      </div>
-                      <small class="text-muted"
-                        >{{
-                          getDifferencePercentage(event.beforeGC, event.afterGC).toFixed(1)
-                        }}%</small
-                      >
-                    </div>
-                  </td>
-                </tr>
-              </tbody>
-        </DataTable>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </DataTable>
     </div>
 
     <!-- Concurrent Cycles Tab -->
     <div v-show="activeTab === 'concurrent-cycles'">
-        <div v-if="!gcOverviewData?.longestConcurrentEvents" class="alert alert-info">
-          <i class="bi bi-info-circle me-2"></i>
-          This garbage collector does not support concurrent cycles
-        </div>
-        <EmptyState
-          v-else-if="gcOverviewData.longestConcurrentEvents.length === 0"
-          icon="bi-recycle"
-          title="No concurrent cycle events"
-        />
-        <DataTable v-else>
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Timestamp</th>
-                  <th>Collector Name</th>
-                  <th>Duration</th>
-                  <th>Sum of Pauses</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr
-                  v-for="event in gcOverviewData?.longestConcurrentEvents"
-                  :key="event.gcId"
-                  @click="showConcurrentEventDetails(event)"
-                  style="cursor: pointer"
-                >
-                  <td>{{ event.gcId }}</td>
-                  <td>{{ FormattingService.formatTimestamp(event.timestamp) }}</td>
-                  <td>
-                    <Badge
-                      v-if="event.collectorName"
-                      :value="event.collectorName"
-                      :variant="getGenerationTypeBadgeVariant(event.generationType)"
-                      size="s"
-                      class="ms-2"
-                    />
-                  </td>
-                  <td>{{ FormattingService.formatDuration2Units(event.duration) }}</td>
-                  <td>{{ FormattingService.formatDuration2Units(event.sumOfPauses) }}</td>
-                </tr>
-              </tbody>
-        </DataTable>
+      <div v-if="!gcOverviewData?.longestConcurrentEvents" class="alert alert-info">
+        <i class="bi bi-info-circle me-2"></i>
+        This garbage collector does not support concurrent cycles
+      </div>
+      <EmptyState
+        v-else-if="gcOverviewData.longestConcurrentEvents.length === 0"
+        icon="bi-recycle"
+        title="No concurrent cycle events"
+      />
+      <DataTable v-else>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Timestamp</th>
+            <th>Collector Name</th>
+            <th>Duration</th>
+            <th>Sum of Pauses</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr
+            v-for="event in gcOverviewData?.longestConcurrentEvents"
+            :key="event.gcId"
+            @click="showConcurrentEventDetails(event)"
+            style="cursor: pointer"
+          >
+            <td>{{ event.gcId }}</td>
+            <td>{{ FormattingService.formatTimestamp(event.timestamp) }}</td>
+            <td>
+              <Badge
+                v-if="event.collectorName"
+                :value="event.collectorName"
+                :variant="getGenerationTypeBadgeVariant(event.generationType)"
+                size="s"
+                class="ms-2"
+              />
+            </td>
+            <td>{{ FormattingService.formatDuration2Units(event.duration) }}</td>
+            <td>{{ FormattingService.formatDuration2Units(event.sumOfPauses) }}</td>
+          </tr>
+        </tbody>
+      </DataTable>
     </div>
 
     <!-- Pause Types Reference Tab -->
     <div v-show="activeTab === 'pause-types'">
-        <p class="pause-types-intro text-muted">
-          Reference for every GC cause the JVM may emit via Java Flight Recorder. Filter by name or
-          category to look up an unfamiliar cause from the
-          <em>Longest Pauses</em> table.
-        </p>
+      <p class="pause-types-intro text-muted">
+        Reference for every GC cause the JVM may emit via Java Flight Recorder. Filter by name or
+        category to look up an unfamiliar cause from the
+        <em>Longest Pauses</em> table.
+      </p>
 
-        <div class="pause-types-toolbar">
-          <div class="input-group search-container pause-types-search">
-            <span class="input-group-text"><i class="bi bi-search search-icon"></i></span>
-            <input
-              type="text"
-              class="form-control search-input"
-              placeholder="Filter by cause name…"
-              v-model="pauseTypeSearch"
-              autocomplete="off"
-            />
-            <button
-              v-if="pauseTypeSearch"
-              class="btn btn-outline-secondary clear-btn"
-              type="button"
-              @click="pauseTypeSearch = ''"
-              title="Clear filter"
-            >
-              <i class="bi bi-x-lg"></i>
-            </button>
-          </div>
-
-          <div class="pause-types-chips">
-            <button
-              type="button"
-              class="pause-type-chip pause-type-chip--all"
-              :class="{ active: pauseTypeActiveFilters.size === 0 }"
-              @click="clearPauseTypeFilters"
-            >
-              All
-            </button>
-            <button
-              v-for="group in pauseTypeGroups"
-              :key="group.key"
-              type="button"
-              class="pause-type-chip"
-              :class="[
-                `pause-type-chip--${group.key}`,
-                { active: pauseTypeActiveFilters.has(group.key) }
-              ]"
-              @click="togglePauseTypeFilter(group.key)"
-            >
-              <span class="dot"></span>{{ group.title }}
-            </button>
-          </div>
+      <div class="pause-types-toolbar">
+        <div class="input-group search-container pause-types-search">
+          <span class="input-group-text"><i class="bi bi-search search-icon"></i></span>
+          <input
+            type="text"
+            class="form-control search-input"
+            placeholder="Filter by cause name…"
+            v-model="pauseTypeSearch"
+            autocomplete="off"
+          />
+          <button
+            v-if="pauseTypeSearch"
+            class="btn btn-outline-secondary clear-btn"
+            type="button"
+            @click="pauseTypeSearch = ''"
+            title="Clear filter"
+          >
+            <i class="bi bi-x-lg"></i>
+          </button>
         </div>
 
-        <div class="pause-types-result-count">
-          Showing {{ filteredPauseTypes.length }} of {{ allPauseTypes.length }} causes
+        <div class="pause-types-chips">
+          <button
+            type="button"
+            class="pause-type-chip pause-type-chip--all"
+            :class="{ active: pauseTypeActiveFilters.size === 0 }"
+            @click="clearPauseTypeFilters"
+          >
+            All
+          </button>
+          <button
+            v-for="group in pauseTypeGroups"
+            :key="group.key"
+            type="button"
+            class="pause-type-chip"
+            :class="[
+              `pause-type-chip--${group.key}`,
+              { active: pauseTypeActiveFilters.has(group.key) }
+            ]"
+            @click="togglePauseTypeFilter(group.key)"
+          >
+            <span class="dot"></span>{{ group.title }}
+          </button>
         </div>
+      </div>
 
-        <EmptyState
-          v-if="filteredPauseTypes.length === 0"
-          icon="bi-funnel"
-          title="No causes match the current filter"
-        />
-        <div v-else class="table-responsive">
-          <table class="table table-sm table-hover mb-0 pause-types-table">
-            <thead>
-              <tr>
-                <th>Cause</th>
-                <th>Category</th>
-                <th>Description</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="item in filteredPauseTypes" :key="item.name">
-                <td class="pause-type-name">{{ item.name }}</td>
-                <td>
-                  <Badge :value="item.group.shortLabel" :variant="item.group.variant" size="s" />
-                </td>
-                <td class="pause-type-desc">{{ item.description }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+      <div class="pause-types-result-count">
+        Showing {{ filteredPauseTypes.length }} of {{ allPauseTypes.length }} causes
+      </div>
+
+      <EmptyState
+        v-if="filteredPauseTypes.length === 0"
+        icon="bi-funnel"
+        title="No causes match the current filter"
+      />
+      <div v-else class="table-responsive">
+        <table class="table table-sm table-hover mb-0 pause-types-table">
+          <thead>
+            <tr>
+              <th>Cause</th>
+              <th>Category</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="item in filteredPauseTypes" :key="item.name">
+              <td class="pause-type-name">{{ item.name }}</td>
+              <td>
+                <Badge :value="item.group.shortLabel" :variant="item.group.variant" size="s" />
+              </td>
+              <td class="pause-type-desc">{{ item.description }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
     <!-- GC Event Details Modal -->

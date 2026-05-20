@@ -28,9 +28,8 @@
     <div class="legend">
       <p class="legend-hint">
         Block size is proportional to retained bytes. The
-        <code>Bootstrap</code> loader (system classes that never unload) is usually
-        the largest — what matters is the <em>second-tier</em> loaders that retain
-        unexpectedly much.
+        <code>Bootstrap</code> loader (system classes that never unload) is usually the largest —
+        what matters is the <em>second-tier</em> loaders that retain unexpectedly much.
       </p>
     </div>
   </div>
@@ -83,9 +82,16 @@ const blockStyle = (r: GCRootClassLoaderAggregate, i: number) => {
   const share = totalRetained.value > 0 ? r.totalRetainedBytes / totalRetained.value : 0;
   let cols = 1;
   let rows = 1;
-  if (share >= 0.4) { cols = 3; rows = 2; }
-  else if (share >= 0.2) { cols = 2; rows = 2; }
-  else if (share >= 0.1) { cols = 2; rows = 1; }
+  if (share >= 0.4) {
+    cols = 3;
+    rows = 2;
+  } else if (share >= 0.2) {
+    cols = 2;
+    rows = 2;
+  } else if (share >= 0.1) {
+    cols = 2;
+    rows = 1;
+  }
   return {
     backgroundColor: palette[i % palette.length],
     gridColumn: `span ${cols}`,

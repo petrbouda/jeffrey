@@ -37,11 +37,7 @@ defineProps<{
   justify-content: space-between;
   padding: 16px 24px;
   margin: -1rem -1rem 0 -1rem; /* Negative margin to extend to card edges */
-  background: linear-gradient(
-    135deg,
-    var(--color-neutral-bg),
-    var(--color-neutral-light)
-  );
+  background: linear-gradient(135deg, var(--color-neutral-bg), var(--color-neutral-light));
   border-bottom: 1px solid rgba(94, 100, 255, 0.08);
 }
 

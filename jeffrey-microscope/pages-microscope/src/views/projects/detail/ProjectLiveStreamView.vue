@@ -48,10 +48,17 @@
               <div class="summary-detail-icon"><i class="bi bi-broadcast"></i></div>
               <div class="summary-detail-label-wrap">
                 <div class="summary-detail-label">Sessions</div>
-                <i v-if="sessions.length > 0" class="bi bi-check-circle-fill summary-detail-check"></i>
-                <span v-if="sessions.length > 0" class="summary-detail-count">{{ sessionsSummaryLabel }}</span>
+                <i
+                  v-if="sessions.length > 0"
+                  class="bi bi-check-circle-fill summary-detail-check"
+                ></i>
+                <span v-if="sessions.length > 0" class="summary-detail-count">{{
+                  sessionsSummaryLabel
+                }}</span>
               </div>
-              <span class="summary-detail-action">{{ editing === 'sessions' ? 'Done' : sessions.length ? 'Change' : 'Select' }}</span>
+              <span class="summary-detail-action">{{
+                editing === 'sessions' ? 'Done' : sessions.length ? 'Change' : 'Select'
+              }}</span>
             </div>
             <div class="summary-detail-body">
               <template v-if="editing === 'sessions' && serverId && workspaceId && projectId">
@@ -81,13 +88,17 @@
                   >
                     <span class="session-chip-dot"></span>
                     {{ s.id }}
-                    <i v-if="failedSessions.has(s.id)" class="bi bi-exclamation-triangle-fill session-chip-warn"></i>
+                    <i
+                      v-if="failedSessions.has(s.id)"
+                      class="bi bi-exclamation-triangle-fill session-chip-warn"
+                    ></i>
                     <span
                       v-if="!connected"
                       class="session-chip-remove"
                       title="Remove session"
                       @click.stop="removeSession(s.id)"
-                    >×</span>
+                      >×</span
+                    >
                   </span>
                 </div>
               </template>
@@ -100,21 +111,27 @@
             :class="{ 'summary-detail-card--editing': editing === 'events' }"
           >
             <div class="summary-detail-head" @click="toggleEditing('events')">
-              <div class="summary-detail-icon summary-detail-icon--events"><i class="bi bi-lightning"></i></div>
+              <div class="summary-detail-icon summary-detail-icon--events">
+                <i class="bi bi-lightning"></i>
+              </div>
               <div class="summary-detail-label-wrap">
                 <div class="summary-detail-label">Event Types</div>
-                <i v-if="eventTypes.length > 0" class="bi bi-check-circle-fill summary-detail-check"></i>
+                <i
+                  v-if="eventTypes.length > 0"
+                  class="bi bi-check-circle-fill summary-detail-check"
+                ></i>
               </div>
-              <span class="summary-detail-action">{{ editing === 'events' ? 'Done' : eventTypes.length ? 'Change' : 'Select' }}</span>
+              <span class="summary-detail-action">{{
+                editing === 'events' ? 'Done' : eventTypes.length ? 'Change' : 'Select'
+              }}</span>
             </div>
             <div class="summary-detail-body">
               <template v-if="editing === 'events'">
                 <div class="events-note">
                   <i class="bi bi-info-circle"></i>
-                  Only events committed by the JVM's JFR in real-time are available.
-                  CPU profiling events (e.g. jdk.ExecutionSample) collected by
-                  async-profiler are merged at dump time and do not appear in the
-                  live stream.
+                  Only events committed by the JVM's JFR in real-time are available. CPU profiling
+                  events (e.g. jdk.ExecutionSample) collected by async-profiler are merged at dump
+                  time and do not appear in the live stream.
                 </div>
                 <EventTypeSelector v-model="eventTypes" />
               </template>
@@ -135,19 +152,22 @@
                       color: eventTypeColor(et),
                       borderColor: eventTypeColor(et) + '40'
                     }"
-                  >{{ et }}</span>
+                    >{{ et }}</span
+                  >
                   <a
                     v-if="overflowCount > 0 && !eventTagsExpanded"
                     href="#"
                     class="summary-overflow"
                     @click.stop.prevent="eventTagsExpanded = true"
-                  >+{{ overflowCount }} more</a>
+                    >+{{ overflowCount }} more</a
+                  >
                   <a
                     v-if="eventTagsExpanded && overflowCount > 0"
                     href="#"
                     class="summary-overflow"
                     @click.stop.prevent="eventTagsExpanded = false"
-                  >Show less</a>
+                    >Show less</a
+                  >
                 </div>
               </template>
             </div>
@@ -159,11 +179,15 @@
             :class="{ 'summary-detail-card--editing': editing === 'buffer' }"
           >
             <div class="summary-detail-head" @click="toggleEditing('buffer')">
-              <div class="summary-detail-icon summary-detail-icon--buffer"><i class="bi bi-stack"></i></div>
+              <div class="summary-detail-icon summary-detail-icon--buffer">
+                <i class="bi bi-stack"></i>
+              </div>
               <div class="summary-detail-label-wrap">
                 <div class="summary-detail-label">Buffer</div>
               </div>
-              <span class="summary-detail-action">{{ editing === 'buffer' ? 'Done' : 'Change' }}</span>
+              <span class="summary-detail-action">{{
+                editing === 'buffer' ? 'Done' : 'Change'
+              }}</span>
             </div>
             <div class="summary-detail-body">
               <template v-if="editing === 'buffer'">
@@ -174,12 +198,16 @@
                     class="time-radio"
                     :class="{ 'time-radio--on': !customMaxEvents && maxEvents === option }"
                     @click="selectPresetMaxEvents(option)"
-                  >{{ option.toLocaleString() }}</button>
+                  >
+                    {{ option.toLocaleString() }}
+                  </button>
                   <button
                     class="time-radio"
                     :class="{ 'time-radio--on': customMaxEvents }"
                     @click="enableCustomMaxEvents"
-                  >Custom</button>
+                  >
+                    Custom
+                  </button>
                   <input
                     v-if="customMaxEvents"
                     v-model.number="maxEvents"
@@ -189,7 +217,8 @@
                   />
                 </div>
                 <div class="time-hint">
-                  Maximum events kept in the table. Oldest events are discarded when the limit is reached.
+                  Maximum events kept in the table. Oldest events are discarded when the limit is
+                  reached.
                 </div>
               </template>
               <template v-else>
@@ -205,7 +234,9 @@
       <div v-if="connected || events.length > 0" class="status-strip mb-3">
         <div class="status-strip-item">
           <span class="status-strip-dot" :class="connected ? 'dot-active' : 'dot-idle'"></span>
-          <span :class="connected ? 'status-strip-connected' : ''">{{ connected ? 'Connected' : 'Disconnected' }}</span>
+          <span :class="connected ? 'status-strip-connected' : ''">{{
+            connected ? 'Connected' : 'Disconnected'
+          }}</span>
         </div>
         <span class="status-strip-item">
           <i class="bi bi-collection"></i> {{ totalEventsReceived }} events
@@ -214,7 +245,8 @@
           <i class="bi bi-stack"></i> {{ batchCount }} batches
         </span>
         <span v-if="lastBatchTime" class="status-strip-item">
-          <i class="bi bi-clock"></i> Last batch: {{ FormattingService.formatTimestamp(lastBatchTime) }}
+          <i class="bi bi-clock"></i> Last batch:
+          {{ FormattingService.formatTimestamp(lastBatchTime) }}
         </span>
       </div>
 
@@ -222,7 +254,9 @@
       <StreamingEventsTable
         :events="events"
         :event-types="eventTypes"
-        :row-attrs="(event) => ({ 'data-session-slot': sessionSlot(event.sessionId), title: event.sessionId })"
+        :row-attrs="
+          event => ({ 'data-session-slot': sessionSlot(event.sessionId), title: event.sessionId })
+        "
       >
         <template #empty>
           <EmptyState
@@ -243,201 +277,211 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue'
-import { useRoute } from 'vue-router'
-import EmptyState from '@/components/EmptyState.vue'
-import MainCard from '@/components/MainCard.vue'
-import MainCardHeader from '@/components/MainCardHeader.vue'
-import StreamingEventsTable from '@/components/streaming/StreamingEventsTable.vue'
-import EventTypeSelector from '@/components/streaming/EventTypeSelector.vue'
-import LiveSessionPicker from '@/components/streaming/LiveSessionPicker.vue'
-import type { SelectedSession } from '@/components/streaming/streamingTypes'
-import FormattingService from '@/services/FormattingService'
-import EventStreamingClient, { type StreamingEvent } from '@/services/api/EventStreamingClient'
-import { useNavigation } from '@/composables/useNavigation'
+import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { useRoute } from 'vue-router';
+import EmptyState from '@/components/EmptyState.vue';
+import MainCard from '@/components/MainCard.vue';
+import MainCardHeader from '@/components/MainCardHeader.vue';
+import StreamingEventsTable from '@/components/streaming/StreamingEventsTable.vue';
+import EventTypeSelector from '@/components/streaming/EventTypeSelector.vue';
+import LiveSessionPicker from '@/components/streaming/LiveSessionPicker.vue';
+import type { SelectedSession } from '@/components/streaming/streamingTypes';
+import FormattingService from '@/services/FormattingService';
+import EventStreamingClient, { type StreamingEvent } from '@/services/api/EventStreamingClient';
+import { useNavigation } from '@/composables/useNavigation';
 
-type EditingCard = 'sessions' | 'events' | 'buffer' | null
+type EditingCard = 'sessions' | 'events' | 'buffer' | null;
 
-const MAX_VISIBLE_TAGS = 3
+const MAX_VISIBLE_TAGS = 3;
 const EVENT_TYPE_COLORS = [
-  '#5e64ff', '#0d9488', '#f59e0b', '#8b5cf6', '#e63757',
-  '#39afd1', '#fd7e14', '#00d27a', '#6f42c1', '#daa520'
-]
-const SESSION_PALETTE_SIZE = 6
+  '#5e64ff',
+  '#0d9488',
+  '#f59e0b',
+  '#8b5cf6',
+  '#e63757',
+  '#39afd1',
+  '#fd7e14',
+  '#00d27a',
+  '#6f42c1',
+  '#daa520'
+];
+const SESSION_PALETTE_SIZE = 6;
 
-const { workspaceId, projectId } = useNavigation()
-const route = useRoute()
+const { workspaceId, projectId } = useNavigation();
+const route = useRoute();
 
-const editing = ref<EditingCard>(null)
-const eventTagsExpanded = ref(false)
-const sessions = ref<SelectedSession[]>([])
-const sessionIndexMap = ref<Record<string, number>>({})
-const failedSessions = ref<Set<string>>(new Set())
-const eventTypes = ref<string[]>([])
-const connected = ref(false)
-const events = ref<StreamingEvent[]>([])
-const batchCount = ref(0)
-const lastBatchTime = ref<number | null>(null)
-const maxEvents = ref(1000)
-const totalEventsReceived = ref(0)
-const customMaxEvents = ref(false)
-const maxEventsOptions = [500, 1000, 5000, 10000]
+const editing = ref<EditingCard>(null);
+const eventTagsExpanded = ref(false);
+const sessions = ref<SelectedSession[]>([]);
+const sessionIndexMap = ref<Record<string, number>>({});
+const failedSessions = ref<Set<string>>(new Set());
+const eventTypes = ref<string[]>([]);
+const connected = ref(false);
+const events = ref<StreamingEvent[]>([]);
+const batchCount = ref(0);
+const lastBatchTime = ref<number | null>(null);
+const maxEvents = ref(1000);
+const totalEventsReceived = ref(0);
+const customMaxEvents = ref(false);
+const maxEventsOptions = [500, 1000, 5000, 10000];
 
-let client: EventStreamingClient | null = null
+let client: EventStreamingClient | null = null;
 
-const canSubscribe = computed(() => sessions.value.length > 0 && eventTypes.value.length > 0)
+const canSubscribe = computed(() => sessions.value.length > 0 && eventTypes.value.length > 0);
 
 const hasAnything = computed(
   () => sessions.value.length > 0 || eventTypes.value.length > 0 || events.value.length > 0
-)
+);
 
 const statusText = computed(() => {
-  if (connected.value) return 'Connected'
-  if (canSubscribe.value) return 'Ready to subscribe'
-  return 'Configure sessions and event types'
-})
+  if (connected.value) return 'Connected';
+  if (canSubscribe.value) return 'Ready to subscribe';
+  return 'Configure sessions and event types';
+});
 
 function sessionSlot(sessionId: string): number {
-  const idx = sessionIndexMap.value[sessionId]
-  return idx == null ? 0 : idx % SESSION_PALETTE_SIZE
+  const idx = sessionIndexMap.value[sessionId];
+  return idx == null ? 0 : idx % SESSION_PALETTE_SIZE;
 }
 
 const visibleEventTags = computed(() =>
   eventTagsExpanded.value ? eventTypes.value : eventTypes.value.slice(0, MAX_VISIBLE_TAGS)
-)
-const overflowCount = computed(() => Math.max(0, eventTypes.value.length - MAX_VISIBLE_TAGS))
+);
+const overflowCount = computed(() => Math.max(0, eventTypes.value.length - MAX_VISIBLE_TAGS));
 
 const eventTypeColorMap = computed(() => {
-  const map: Record<string, number> = {}
-  eventTypes.value.forEach((et, i) => { map[et] = i % EVENT_TYPE_COLORS.length })
-  return map
-})
+  const map: Record<string, number> = {};
+  eventTypes.value.forEach((et, i) => {
+    map[et] = i % EVENT_TYPE_COLORS.length;
+  });
+  return map;
+});
 
 function eventTypeColor(et: string): string {
-  return EVENT_TYPE_COLORS[eventTypeColorMap.value[et] ?? 0]
+  return EVENT_TYPE_COLORS[eventTypeColorMap.value[et] ?? 0];
 }
 
 const sessionsSummaryLabel = computed(() => {
-  const count = sessions.value.length
-  if (count === 0) return ''
-  if (count === 1) return '1 session'
-  return `${count} sessions`
-})
+  const count = sessions.value.length;
+  if (count === 0) return '';
+  if (count === 1) return '1 session';
+  return `${count} sessions`;
+});
 
 function toggleEditing(card: Exclude<EditingCard, null>) {
-  if (connected.value && card === 'sessions') return
-  editing.value = editing.value === card ? null : card
+  if (connected.value && card === 'sessions') return;
+  editing.value = editing.value === card ? null : card;
 }
 
 function onSessionsChange(next: SelectedSession[]) {
-  sessions.value = next.map((s) => ({ ...s }))
+  sessions.value = next.map(s => ({ ...s }));
   // Preserve existing palette slots where possible; newly-added sessions get
   // their position-in-array as the initial slot (the wizard's old heuristic).
-  const newMap: Record<string, number> = {}
+  const newMap: Record<string, number> = {};
   sessions.value.forEach((s, idx) => {
-    const existing = sessionIndexMap.value[s.id]
-    newMap[s.id] = existing != null ? existing : idx
-  })
-  sessionIndexMap.value = newMap
+    const existing = sessionIndexMap.value[s.id];
+    newMap[s.id] = existing != null ? existing : idx;
+  });
+  sessionIndexMap.value = newMap;
   // Drop failed-session markers for sessions that were removed.
   if (failedSessions.value.size > 0) {
-    const activeIds = new Set(sessions.value.map((s) => s.id))
-    const pruned = new Set([...failedSessions.value].filter((id) => activeIds.has(id)))
+    const activeIds = new Set(sessions.value.map(s => s.id));
+    const pruned = new Set([...failedSessions.value].filter(id => activeIds.has(id)));
     if (pruned.size !== failedSessions.value.size) {
-      failedSessions.value = pruned
+      failedSessions.value = pruned;
     }
   }
 }
 
 function removeSession(sessionId: string) {
-  onSessionsChange(sessions.value.filter((s) => s.id !== sessionId))
+  onSessionsChange(sessions.value.filter(s => s.id !== sessionId));
 }
 
 function selectPresetMaxEvents(option: number) {
-  customMaxEvents.value = false
-  maxEvents.value = option
+  customMaxEvents.value = false;
+  maxEvents.value = option;
 }
 
 function enableCustomMaxEvents() {
-  customMaxEvents.value = true
+  customMaxEvents.value = true;
 }
 
 function startStreaming() {
-  if (sessions.value.length === 0 || !workspaceId.value || !projectId.value) return
+  if (sessions.value.length === 0 || !workspaceId.value || !projectId.value) return;
 
-  client = new EventStreamingClient(workspaceId.value, projectId.value)
+  client = new EventStreamingClient(workspaceId.value, projectId.value);
 
-  events.value = []
-  batchCount.value = 0
-  totalEventsReceived.value = 0
-  lastBatchTime.value = null
-  failedSessions.value = new Set()
-  editing.value = null
+  events.value = [];
+  batchCount.value = 0;
+  totalEventsReceived.value = 0;
+  lastBatchTime.value = null;
+  failedSessions.value = new Set();
+  editing.value = null;
 
   client.subscribe(
-    sessions.value.map((s) => s.id),
+    sessions.value.map(s => s.id),
     eventTypes.value,
-    (batch) => {
-      batchCount.value++
-      totalEventsReceived.value += batch.length
-      lastBatchTime.value = Date.now()
-      events.value.push(...batch)
-      const limit = maxEvents.value
+    batch => {
+      batchCount.value++;
+      totalEventsReceived.value += batch.length;
+      lastBatchTime.value = Date.now();
+      events.value.push(...batch);
+      const limit = maxEvents.value;
       if (events.value.length > limit) {
-        events.value = events.value.slice(-limit)
+        events.value = events.value.slice(-limit);
       }
     },
     () => {
-      connected.value = false
+      connected.value = false;
     },
     () => {
-      connected.value = false
+      connected.value = false;
     },
-    (failedSessionId) => {
-      failedSessions.value = new Set([...failedSessions.value, failedSessionId])
+    failedSessionId => {
+      failedSessions.value = new Set([...failedSessions.value, failedSessionId]);
     }
-  )
+  );
 
-  connected.value = true
+  connected.value = true;
 }
 
 function stopStreaming() {
-  client?.unsubscribe()
-  client = null
-  connected.value = false
+  client?.unsubscribe();
+  client = null;
+  connected.value = false;
 }
 
 function clearAll() {
-  stopStreaming()
-  sessions.value = []
-  sessionIndexMap.value = {}
-  failedSessions.value = new Set()
-  eventTypes.value = []
-  events.value = []
-  batchCount.value = 0
-  totalEventsReceived.value = 0
-  lastBatchTime.value = null
-  maxEvents.value = 1000
-  customMaxEvents.value = false
-  editing.value = null
+  stopStreaming();
+  sessions.value = [];
+  sessionIndexMap.value = {};
+  failedSessions.value = new Set();
+  eventTypes.value = [];
+  events.value = [];
+  batchCount.value = 0;
+  totalEventsReceived.value = 0;
+  lastBatchTime.value = null;
+  maxEvents.value = 1000;
+  customMaxEvents.value = false;
+  editing.value = null;
 }
 
 onMounted(() => {
-  const sid = route.query.sessionId
-  const sinst = route.query.sessionInstance
+  const sid = route.query.sessionId;
+  const sinst = route.query.sessionInstance;
   if (typeof sid === 'string' && sid.length > 0) {
-    const sessionInstance = typeof sinst === 'string' ? sinst : ''
-    sessions.value = [{ id: sid, sessionInstance }]
-    sessionIndexMap.value = { [sid]: 0 }
+    const sessionInstance = typeof sinst === 'string' ? sinst : '';
+    sessions.value = [{ id: sid, sessionInstance }];
+    sessionIndexMap.value = { [sid]: 0 };
     // Arrived from Instances timeline with a session already chosen —
     // jump the user straight to picking events.
-    editing.value = 'events'
+    editing.value = 'events';
   }
-})
+});
 
 onUnmounted(() => {
-  stopStreaming()
-})
+  stopStreaming();
+});
 </script>
 
 <style scoped>
@@ -653,16 +697,25 @@ onUnmounted(() => {
   flex-shrink: 0;
 }
 
-.dot-active { background-color: var(--color-success); }
-.dot-idle { background-color: var(--color-text-light); }
+.dot-active {
+  background-color: var(--color-success);
+}
+.dot-idle {
+  background-color: var(--color-text-light);
+}
 
 .dot-pulse {
   animation: dotPulse 2s infinite;
 }
 
 @keyframes dotPulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(0, 210, 122, 0.4); }
-  50% { box-shadow: 0 0 0 4px rgba(0, 210, 122, 0); }
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(0, 210, 122, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(0, 210, 122, 0);
+  }
 }
 
 .summary-actions {
@@ -875,12 +928,24 @@ onUnmounted(() => {
   opacity: 1;
 }
 
-.session-chip[data-session-slot="0"] .session-chip-dot { background: var(--color-primary); }
-.session-chip[data-session-slot="1"] .session-chip-dot { background: var(--color-amber); }
-.session-chip[data-session-slot="2"] .session-chip-dot { background: var(--color-violet); }
-.session-chip[data-session-slot="3"] .session-chip-dot { background: var(--color-teal); }
-.session-chip[data-session-slot="4"] .session-chip-dot { background: var(--color-danger); }
-.session-chip[data-session-slot="5"] .session-chip-dot { background: var(--color-info); }
+.session-chip[data-session-slot='0'] .session-chip-dot {
+  background: var(--color-primary);
+}
+.session-chip[data-session-slot='1'] .session-chip-dot {
+  background: var(--color-amber);
+}
+.session-chip[data-session-slot='2'] .session-chip-dot {
+  background: var(--color-violet);
+}
+.session-chip[data-session-slot='3'] .session-chip-dot {
+  background: var(--color-teal);
+}
+.session-chip[data-session-slot='4'] .session-chip-dot {
+  background: var(--color-danger);
+}
+.session-chip[data-session-slot='5'] .session-chip-dot {
+  background: var(--color-info);
+}
 
 tbody tr[data-session-slot] td:first-child {
   border-left-width: 3px;
@@ -888,10 +953,22 @@ tbody tr[data-session-slot] td:first-child {
   padding-left: 9px;
 }
 
-tbody tr[data-session-slot="0"] td:first-child { border-left-color: var(--color-primary); }
-tbody tr[data-session-slot="1"] td:first-child { border-left-color: var(--color-amber); }
-tbody tr[data-session-slot="2"] td:first-child { border-left-color: var(--color-violet); }
-tbody tr[data-session-slot="3"] td:first-child { border-left-color: var(--color-teal); }
-tbody tr[data-session-slot="4"] td:first-child { border-left-color: var(--color-danger); }
-tbody tr[data-session-slot="5"] td:first-child { border-left-color: var(--color-info); }
+tbody tr[data-session-slot='0'] td:first-child {
+  border-left-color: var(--color-primary);
+}
+tbody tr[data-session-slot='1'] td:first-child {
+  border-left-color: var(--color-amber);
+}
+tbody tr[data-session-slot='2'] td:first-child {
+  border-left-color: var(--color-violet);
+}
+tbody tr[data-session-slot='3'] td:first-child {
+  border-left-color: var(--color-teal);
+}
+tbody tr[data-session-slot='4'] td:first-child {
+  border-left-color: var(--color-danger);
+}
+tbody tr[data-session-slot='5'] td:first-child {
+  border-left-color: var(--color-info);
+}
 </style>

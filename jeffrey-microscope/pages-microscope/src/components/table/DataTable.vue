@@ -10,11 +10,14 @@
 </template>
 
 <script setup lang="ts">
-withDefaults(defineProps<{
-  tableClass?: string;
-}>(), {
-  tableClass: undefined
-});
+withDefaults(
+  defineProps<{
+    tableClass?: string;
+  }>(),
+  {
+    tableClass: undefined
+  }
+);
 </script>
 
 <style scoped>

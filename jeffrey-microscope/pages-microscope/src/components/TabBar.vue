@@ -85,7 +85,9 @@ const select = (tab: TabBarItem) => {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  transition: color 0.15s ease, border-color 0.15s ease;
+  transition:
+    color 0.15s ease,
+    border-color 0.15s ease;
 }
 
 .tab-bar-item:hover:not(.disabled) {

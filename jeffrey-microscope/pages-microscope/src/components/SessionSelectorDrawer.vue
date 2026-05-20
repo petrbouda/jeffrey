@@ -29,7 +29,10 @@
           <template v-else>
             <div v-for="group in filteredGroups" :key="group.instance.id">
               <div class="drawer-instance-header">
-                <span class="instance-dot" :class="group.instance.status === 'ACTIVE' ? 'dot-active' : 'dot-inactive'"></span>
+                <span
+                  class="instance-dot"
+                  :class="group.instance.status === 'ACTIVE' ? 'dot-active' : 'dot-inactive'"
+                ></span>
                 <span class="instance-name">{{ group.instance.instanceName }}</span>
               </div>
               <div
@@ -47,7 +50,11 @@
                     <div class="d-flex align-items-center gap-2 flex-grow-1 drawer-min-width-0">
                       <div
                         class="session-card-icon session-card-icon--compact"
-                        :class="session.isActive ? 'session-card-icon--active' : 'session-card-icon--finished'"
+                        :class="
+                          session.isActive
+                            ? 'session-card-icon--active'
+                            : 'session-card-icon--finished'
+                        "
                       >
                         <i class="bi bi-folder2"></i>
                       </div>
@@ -57,8 +64,19 @@
                           <span class="drawer-session-id">{{ session.id }}</span>
                         </div>
                         <div class="drawer-session-meta">
-                          <span><i class="bi bi-clock me-1"></i>Started {{ FormattingService.formatRelativeTime(session.createdAt) }}</span>
-                          <span v-if="session.finishedAt"><i class="bi bi-stopwatch me-1"></i>{{ FormattingService.formatDurationFromMillis(session.createdAt, session.finishedAt) }}</span>
+                          <span
+                            ><i class="bi bi-clock me-1"></i>Started
+                            {{ FormattingService.formatRelativeTime(session.createdAt) }}</span
+                          >
+                          <span v-if="session.finishedAt"
+                            ><i class="bi bi-stopwatch me-1"></i
+                            >{{
+                              FormattingService.formatDurationFromMillis(
+                                session.createdAt,
+                                session.finishedAt
+                              )
+                            }}</span
+                          >
                         </div>
                       </div>
                     </div>
@@ -83,111 +101,109 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
-import Badge from '@/components/Badge.vue'
-import LoadingState from '@/components/LoadingState.vue'
-import EmptyState from '@/components/EmptyState.vue'
-import FormattingService from '@/services/FormattingService'
-import ProjectInstanceClient from '@/services/api/ProjectInstanceClient'
-import '@/styles/shared-components.css'
-import type ProjectInstance from '@/services/api/model/ProjectInstance'
-import type ProjectInstanceSession from '@/services/api/model/ProjectInstanceSession'
+import { computed, ref, watch } from 'vue';
+import Badge from '@/components/Badge.vue';
+import LoadingState from '@/components/LoadingState.vue';
+import EmptyState from '@/components/EmptyState.vue';
+import FormattingService from '@/services/FormattingService';
+import ProjectInstanceClient from '@/services/api/ProjectInstanceClient';
+import '@/styles/shared-components.css';
+import type ProjectInstance from '@/services/api/model/ProjectInstance';
+import type ProjectInstanceSession from '@/services/api/model/ProjectInstanceSession';
 
 interface InstanceGroup {
-  instance: ProjectInstance
-  sessions: ProjectInstanceSession[]
+  instance: ProjectInstance;
+  sessions: ProjectInstanceSession[];
 }
 
 export interface SessionSelection {
-  sessionId: string
-  sessionInstance: string
-  isActive: boolean
+  sessionId: string;
+  sessionInstance: string;
+  isActive: boolean;
 }
 
 const props = defineProps<{
-  show: boolean
-  serverId: string
-  workspaceId: string
-  projectId: string
-}>()
+  show: boolean;
+  serverId: string;
+  workspaceId: string;
+  projectId: string;
+}>();
 
 const emit = defineEmits<{
-  'update:show': [value: boolean]
-  select: [selection: SessionSelection]
-}>()
+  'update:show': [value: boolean];
+  select: [selection: SessionSelection];
+}>();
 
-const loading = ref(false)
-const searchQuery = ref('')
-const selectedSessionId = ref<string | null>(null)
-const instanceGroups = ref<InstanceGroup[]>([])
+const loading = ref(false);
+const searchQuery = ref('');
+const selectedSessionId = ref<string | null>(null);
+const instanceGroups = ref<InstanceGroup[]>([]);
 
 const filteredGroups = computed(() => {
-  if (!searchQuery.value) return instanceGroups.value
+  if (!searchQuery.value) return instanceGroups.value;
 
-  const q = searchQuery.value.toLowerCase()
+  const q = searchQuery.value.toLowerCase();
   return instanceGroups.value
-    .map((group) => ({
+    .map(group => ({
       instance: group.instance,
       sessions: group.sessions.filter(
-        (s) =>
-          s.id.toLowerCase().includes(q) || group.instance.instanceName.toLowerCase().includes(q)
+        s => s.id.toLowerCase().includes(q) || group.instance.instanceName.toLowerCase().includes(q)
       )
     }))
-    .filter((group) => group.sessions.length > 0)
-})
+    .filter(group => group.sessions.length > 0);
+});
 
 watch(
   () => props.show,
-  (visible) => {
+  visible => {
     if (visible) {
-      searchQuery.value = ''
-      loadSessions()
+      searchQuery.value = '';
+      loadSessions();
     }
   }
-)
+);
 
 async function loadSessions() {
-  loading.value = true
+  loading.value = true;
   try {
-    const client = new ProjectInstanceClient(props.serverId, props.workspaceId, props.projectId)
-    const instances = await client.list(true)
+    const client = new ProjectInstanceClient(props.serverId, props.workspaceId, props.projectId);
+    const instances = await client.list(true);
 
     // Sort instances: ACTIVE first, then by createdAt descending
     instances.sort((a, b) => {
-      if (a.status === 'ACTIVE' && b.status !== 'ACTIVE') return -1
-      if (a.status !== 'ACTIVE' && b.status === 'ACTIVE') return 1
-      return b.createdAt - a.createdAt
-    })
+      if (a.status === 'ACTIVE' && b.status !== 'ACTIVE') return -1;
+      if (a.status !== 'ACTIVE' && b.status === 'ACTIVE') return 1;
+      return b.createdAt - a.createdAt;
+    });
 
-    const groups: InstanceGroup[] = []
+    const groups: InstanceGroup[] = [];
     for (const instance of instances) {
-      const sessions = instance.sessions ?? []
+      const sessions = instance.sessions ?? [];
       if (sessions.length > 0) {
         // Sort sessions: newest first
-        sessions.sort((a, b) => b.createdAt - a.createdAt)
-        groups.push({ instance, sessions })
+        sessions.sort((a, b) => b.createdAt - a.createdAt);
+        groups.push({ instance, sessions });
       }
     }
-    instanceGroups.value = groups
+    instanceGroups.value = groups;
   } finally {
-    loading.value = false
+    loading.value = false;
   }
 }
 
 function selectSession(session: ProjectInstanceSession, instance: ProjectInstance) {
-  selectedSessionId.value = session.id
+  selectedSessionId.value = session.id;
   emit('select', {
     sessionId: session.id,
     sessionInstance: instance.instanceName,
     isActive: session.isActive ?? false
-  })
-  close()
+  });
+  close();
 }
 
 function close() {
-  emit('update:show', false)
+  emit('update:show', false);
 }
-
 </script>
 
 <style scoped>

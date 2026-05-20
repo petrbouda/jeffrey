@@ -66,9 +66,7 @@
                 {{ prereq.score }}
               </div>
             </div>
-            <div v-if="prerequisites.length === 0" class="no-prereq-msg">
-              No prerequisites data
-            </div>
+            <div v-if="prerequisites.length === 0" class="no-prereq-msg">No prerequisites data</div>
           </div>
         </template>
       </DualPanel>
@@ -78,7 +76,12 @@
         <template #toolbar>
           <TableToolbar v-model="searchQuery" search-placeholder="Search rules...">
             <span class="toolbar-count">{{ filteredAndSortedRules.length }} rules</span>
-            <Badge v-if="severityCounts.warning > 0" :value="severityCounts.warning + ' warnings'" variant="danger" size="xs" />
+            <Badge
+              v-if="severityCounts.warning > 0"
+              :value="severityCounts.warning + ' warnings'"
+              variant="danger"
+              size="xs"
+            />
             <template #filters>
               <select v-model="groupFilter" class="form-select form-select-sm">
                 <option value="">All Groups</option>
@@ -564,11 +567,7 @@ function scrollToTop() {
 
 .prereq-item.prereq-ok {
   border-left-color: var(--color-success);
-  background: linear-gradient(
-    135deg,
-    var(--color-success-bg-light),
-    var(--color-neutral-bg)
-  );
+  background: linear-gradient(135deg, var(--color-success-bg-light), var(--color-neutral-bg));
 }
 
 .prereq-item.prereq-warning {

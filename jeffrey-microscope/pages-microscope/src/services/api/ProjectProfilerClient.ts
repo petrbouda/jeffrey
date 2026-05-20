@@ -25,7 +25,9 @@ import ProfilerSettings from '@/services/api/model/ProfilerSettings.ts';
  */
 export default class ProjectProfilerClient extends BasePlatformClient {
   constructor(serverId: string, workspaceId: string, projectId: string) {
-    super(`/remote-servers/${serverId}/workspaces/${workspaceId}/projects/${projectId}/profiler/settings`);
+    super(
+      `/remote-servers/${serverId}/workspaces/${workspaceId}/projects/${projectId}/profiler/settings`
+    );
   }
 
   /**

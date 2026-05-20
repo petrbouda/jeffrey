@@ -13,11 +13,7 @@
             </template>
           </span>
         </div>
-        <EmptyState
-          v-if="panel.rows.length === 0"
-          icon="bi-cpu"
-          title="None"
-        />
+        <EmptyState v-if="panel.rows.length === 0" icon="bi-cpu" title="None" />
         <div v-else class="native-rows">
           <div v-for="r in panel.rows.slice(0, 12)" :key="r.objectId" class="native-row">
             <div class="row-main">
@@ -45,10 +41,10 @@
 
     <div class="legend">
       <p class="legend-hint">
-        <strong>JNI Global</strong> is the leak-prone category — long-lived references
-        held by native code via <code>NewGlobalRef</code>. Missing
-        <code>DeleteGlobalRef</code> on a code path is the canonical cause of growing
-        RSS without growing Java heap. The other two are typically transient.
+        <strong>JNI Global</strong> is the leak-prone category — long-lived references held by
+        native code via <code>NewGlobalRef</code>. Missing <code>DeleteGlobalRef</code> on a code
+        path is the canonical cause of growing RSS without growing Java heap. The other two are
+        typically transient.
       </p>
     </div>
   </div>

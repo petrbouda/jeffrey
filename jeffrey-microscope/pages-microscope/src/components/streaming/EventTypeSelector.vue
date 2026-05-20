@@ -1,11 +1,7 @@
 <template>
   <div class="ets-root" ref="rootRef">
     <!-- Tag input area -->
-    <div
-      class="ets-tags-input"
-      :class="{ focused: dropdownOpen }"
-      @click="openDropdown"
-    >
+    <div class="ets-tags-input" :class="{ focused: dropdownOpen }" @click="openDropdown">
       <span
         v-for="eventType in modelValue"
         :key="eventType"
@@ -26,16 +22,13 @@
         @keydown.backspace="onBackspace"
       />
     </div>
-    <div class="ets-hint">Select at least one event type. Press Enter to add a custom event name.</div>
+    <div class="ets-hint">
+      Select at least one event type. Press Enter to add a custom event name.
+    </div>
 
     <!-- Dropdown -->
     <Teleport to="body">
-      <div
-        v-if="dropdownOpen"
-        class="ets-dropdown"
-        :style="dropdownStyle"
-        ref="dropdownRef"
-      >
+      <div v-if="dropdownOpen" class="ets-dropdown" :style="dropdownStyle" ref="dropdownRef">
         <!-- Search -->
         <div class="ets-dropdown-search">
           <i class="bi bi-search ets-search-icon"></i>
@@ -87,11 +80,7 @@
             placeholder="com.myapp.MyEvent"
             @keydown.enter.prevent="addCustomEvent"
           />
-          <button
-            class="ets-add-btn"
-            :disabled="!customInput.trim()"
-            @click="addCustomEvent"
-          >
+          <button class="ets-add-btn" :disabled="!customInput.trim()" @click="addCustomEvent">
             + Add
           </button>
         </div>
@@ -109,122 +98,123 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
-import EVENT_TYPE_CATALOG, { getEventTypePrefix } from '@/services/EventTypeCatalog'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
+import EVENT_TYPE_CATALOG, { getEventTypePrefix } from '@/services/EventTypeCatalog';
 
 const props = defineProps<{
-  modelValue: string[]
-}>()
+  modelValue: string[];
+}>();
 
 const emit = defineEmits<{
-  'update:modelValue': [value: string[]]
-}>()
+  'update:modelValue': [value: string[]];
+}>();
 
-const rootRef = ref<HTMLElement | null>(null)
-const dropdownRef = ref<HTMLElement | null>(null)
-const dropdownSearchRef = ref<HTMLInputElement | null>(null)
+const rootRef = ref<HTMLElement | null>(null);
+const dropdownRef = ref<HTMLElement | null>(null);
+const dropdownSearchRef = ref<HTMLInputElement | null>(null);
 
-const searchQuery = ref('')
-const customInput = ref('')
-const dropdownOpen = ref(false)
-const dropdownStyle = ref<Record<string, string>>({})
+const searchQuery = ref('');
+const customInput = ref('');
+const dropdownOpen = ref(false);
+const dropdownStyle = ref<Record<string, string>>({});
 
 const filteredCategories = computed(() => {
-  const q = searchQuery.value.toLowerCase()
-  if (!q) return EVENT_TYPE_CATALOG
+  const q = searchQuery.value.toLowerCase();
+  if (!q) return EVENT_TYPE_CATALOG;
 
-  return EVENT_TYPE_CATALOG
-    .map((cat) => ({
-      ...cat,
-      events: cat.events.filter(
-        (e) => e.name.toLowerCase().includes(q) || e.description.toLowerCase().includes(q)
-      )
-    }))
-    .filter((cat) => cat.events.length > 0)
-})
+  return EVENT_TYPE_CATALOG.map(cat => ({
+    ...cat,
+    events: cat.events.filter(
+      e => e.name.toLowerCase().includes(q) || e.description.toLowerCase().includes(q)
+    )
+  })).filter(cat => cat.events.length > 0);
+});
 
 function isSelected(name: string): boolean {
-  return props.modelValue.includes(name)
+  return props.modelValue.includes(name);
 }
 
 function toggleEvent(name: string) {
   if (isSelected(name)) {
-    emit('update:modelValue', props.modelValue.filter((e) => e !== name))
+    emit(
+      'update:modelValue',
+      props.modelValue.filter(e => e !== name)
+    );
   } else {
-    emit('update:modelValue', [...props.modelValue, name])
+    emit('update:modelValue', [...props.modelValue, name]);
   }
 }
 
 function removeEvent(name: string) {
-  emit('update:modelValue', props.modelValue.filter((e) => e !== name))
+  emit(
+    'update:modelValue',
+    props.modelValue.filter(e => e !== name)
+  );
 }
 
 function onEnterKey() {
-  const value = searchQuery.value.trim()
+  const value = searchQuery.value.trim();
   if (value && !isSelected(value)) {
-    emit('update:modelValue', [...props.modelValue, value])
-    searchQuery.value = ''
+    emit('update:modelValue', [...props.modelValue, value]);
+    searchQuery.value = '';
   }
 }
 
 function onBackspace() {
   if (!searchQuery.value && props.modelValue.length > 0) {
-    emit('update:modelValue', props.modelValue.slice(0, -1))
+    emit('update:modelValue', props.modelValue.slice(0, -1));
   }
 }
 
 function addCustomEvent() {
-  const value = customInput.value.trim()
+  const value = customInput.value.trim();
   if (value && !isSelected(value)) {
-    emit('update:modelValue', [...props.modelValue, value])
-    customInput.value = ''
+    emit('update:modelValue', [...props.modelValue, value]);
+    customInput.value = '';
   }
 }
 
 function closeDropdown() {
-  dropdownOpen.value = false
-  searchQuery.value = ''
+  dropdownOpen.value = false;
+  searchQuery.value = '';
 }
 
 function openDropdown() {
-  dropdownOpen.value = true
-  updateDropdownPosition()
+  dropdownOpen.value = true;
+  updateDropdownPosition();
   nextTick(() => {
-    dropdownSearchRef.value?.focus()
-  })
+    dropdownSearchRef.value?.focus();
+  });
 }
 
 function updateDropdownPosition() {
-  if (!rootRef.value) return
-  const rect = rootRef.value.getBoundingClientRect()
+  if (!rootRef.value) return;
+  const rect = rootRef.value.getBoundingClientRect();
   dropdownStyle.value = {
     position: 'fixed',
     top: `${rect.bottom + 4}px`,
     left: `${rect.left}px`,
     width: `${rect.width}px`,
     zIndex: '1060'
-  }
+  };
 }
 
 function onClickOutside(e: MouseEvent) {
-  const target = e.target as Node
-  if (
-    rootRef.value?.contains(target) ||
-    dropdownRef.value?.contains(target)
-  ) {
-    return
+  const target = e.target as Node;
+  if (rootRef.value?.contains(target) || dropdownRef.value?.contains(target)) {
+    return;
   }
-  dropdownOpen.value = false
-  searchQuery.value = ''
+  dropdownOpen.value = false;
+  searchQuery.value = '';
 }
 
 onMounted(() => {
-  document.addEventListener('mousedown', onClickOutside)
-})
+  document.addEventListener('mousedown', onClickOutside);
+});
 
 onBeforeUnmount(() => {
-  document.removeEventListener('mousedown', onClickOutside)
-})
+  document.removeEventListener('mousedown', onClickOutside);
+});
 </script>
 
 <style scoped>
@@ -282,10 +272,22 @@ onBeforeUnmount(() => {
   white-space: nowrap;
 }
 
-.ets-tag--jdk { background: var(--color-blue-bg); color: var(--color-blue-text); }
-.ets-tag--jeffrey { background: var(--color-violet-light); color: var(--color-violet); }
-.ets-tag--profiler { background: var(--color-teal-light); color: var(--color-teal); }
-.ets-tag--custom { background: var(--color-amber-light); color: var(--color-amber-text); }
+.ets-tag--jdk {
+  background: var(--color-blue-bg);
+  color: var(--color-blue-text);
+}
+.ets-tag--jeffrey {
+  background: var(--color-violet-light);
+  color: var(--color-violet);
+}
+.ets-tag--profiler {
+  background: var(--color-teal-light);
+  color: var(--color-teal);
+}
+.ets-tag--custom {
+  background: var(--color-amber-light);
+  color: var(--color-amber-text);
+}
 
 .ets-tag-remove {
   margin-left: 2px;
@@ -377,9 +379,18 @@ onBeforeUnmount(() => {
   font-weight: 600;
 }
 
-.ets-cat-badge--jdk { background: var(--color-blue-bg); color: var(--color-blue-text); }
-.ets-cat-badge--jeffrey { background: var(--color-violet-light); color: var(--color-violet); }
-.ets-cat-badge--profiler { background: var(--color-teal-light); color: var(--color-teal); }
+.ets-cat-badge--jdk {
+  background: var(--color-blue-bg);
+  color: var(--color-blue-text);
+}
+.ets-cat-badge--jeffrey {
+  background: var(--color-violet-light);
+  color: var(--color-violet);
+}
+.ets-cat-badge--profiler {
+  background: var(--color-teal-light);
+  color: var(--color-teal);
+}
 
 .ets-event-item {
   padding: 6px 12px;

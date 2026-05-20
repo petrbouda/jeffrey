@@ -1,11 +1,7 @@
 <template>
   <LoadingState v-if="loading" message="Ranking GC roots by retained size..." />
   <ErrorState v-else-if="error" :message="error" />
-  <EmptyState
-    v-else-if="rows.length === 0"
-    icon="bi-trophy"
-    title="No GC roots ranked yet"
-  />
+  <EmptyState v-else-if="rows.length === 0" icon="bi-trophy" title="No GC roots ranked yet" />
   <DataTable v-else>
     <template #toolbar>
       <TableToolbar :show-search="false">
@@ -13,7 +9,11 @@
         <template #filters>
           <div class="d-flex align-items-center">
             <label class="form-label mb-0 me-2 toolbar-info">Top:</label>
-            <select v-model="limit" class="form-select form-select-sm select-narrow" @change="reload">
+            <select
+              v-model="limit"
+              class="form-select form-select-sm select-narrow"
+              @change="reload"
+            >
               <option :value="50">50</option>
               <option :value="100">100</option>
               <option :value="200">200</option>
@@ -56,10 +56,15 @@
             <div class="progress flex-grow-1" style="height: 6px">
               <div
                 class="progress-bar"
-                :style="{ width: pctOfHeap(r.retainedSize) + '%', backgroundColor: 'var(--color-accent-blue)' }"
+                :style="{
+                  width: pctOfHeap(r.retainedSize) + '%',
+                  backgroundColor: 'var(--color-accent-blue)'
+                }"
               ></div>
             </div>
-            <small class="text-muted" style="min-width: 45px">{{ pctOfHeap(r.retainedSize).toFixed(1) }}%</small>
+            <small class="text-muted" style="min-width: 45px"
+              >{{ pctOfHeap(r.retainedSize).toFixed(1) }}%</small
+            >
           </div>
         </td>
       </tr>

@@ -19,333 +19,326 @@
 
       <!-- Dashboard Tab -->
       <div v-show="activeTab === 'dashboard'">
-          <!-- Filter Input -->
-          <div class="mb-4">
-            <div class="input-group search-container" style="max-width: 400px">
-              <span class="input-group-text"><i class="bi bi-search search-icon"></i></span>
-              <input
-                type="text"
-                class="form-control search-input"
-                placeholder="Filter by flag name..."
-                v-model="searchTerm"
-                autocomplete="off"
-              />
-              <button
-                v-if="searchTerm"
-                class="btn btn-outline-secondary clear-btn"
-                type="button"
-                @click="searchTerm = ''"
-                title="Clear filter"
-              >
-                <i class="bi bi-x-lg"></i>
-              </button>
-            </div>
-            <div class="filter-info" v-if="searchTerm">
-              Showing {{ filteredFlagCount }} of {{ flagsData?.totalFlags }} flags
-            </div>
+        <!-- Filter Input -->
+        <div class="mb-4">
+          <div class="input-group search-container" style="max-width: 400px">
+            <span class="input-group-text"><i class="bi bi-search search-icon"></i></span>
+            <input
+              type="text"
+              class="form-control search-input"
+              placeholder="Filter by flag name..."
+              v-model="searchTerm"
+              autocomplete="off"
+            />
+            <button
+              v-if="searchTerm"
+              class="btn btn-outline-secondary clear-btn"
+              type="button"
+              @click="searchTerm = ''"
+              title="Clear filter"
+            >
+              <i class="bi bi-x-lg"></i>
+            </button>
           </div>
+          <div class="filter-info" v-if="searchTerm">
+            Showing {{ filteredFlagCount }} of {{ flagsData?.totalFlags }} flags
+          </div>
+        </div>
 
-          <!-- Flags Table -->
-          <DataTable v-if="filteredFlags.length > 0">
-              <thead>
-                <tr>
-                  <SortableTableHeader
-                    column="name"
-                    label="Flag Name"
-                    :sort-column="sortColumn"
-                    :sort-direction="sortDirection"
-                    @sort="toggleSort"
-                  />
-                  <SortableTableHeader
-                    column="value"
-                    label="Value"
-                    :sort-column="sortColumn"
-                    :sort-direction="sortDirection"
-                    @sort="toggleSort"
-                  />
-                  <SortableTableHeader
-                    column="type"
-                    label="Type"
-                    :sort-column="sortColumn"
-                    :sort-direction="sortDirection"
-                    @sort="toggleSort"
-                  />
-                  <SortableTableHeader
-                    column="origin"
-                    label="Origin"
-                    :sort-column="sortColumn"
-                    :sort-direction="sortDirection"
-                    @sort="toggleSort"
-                  />
-                  <SortableTableHeader
-                    column="changed"
-                    label="Changed"
-                    :sort-column="sortColumn"
-                    :sort-direction="sortDirection"
-                    @sort="toggleSort"
-                  />
-                </tr>
-              </thead>
-              <tbody>
-                <template v-for="flag in filteredFlags" :key="flag.name">
-                  <!-- Main Flag Row -->
-                  <tr :class="{ 'expanded-row': isExpanded(flag.name) }">
-                    <td class="flag-name-cell">
-                      <div class="flag-name-wrapper">
-                        <div class="flag-name-row">
-                          <button
-                            v-if="flag.hasChanged"
-                            class="expand-btn"
-                            type="button"
-                            @click="toggleExpand(flag.name)"
-                            :title="isExpanded(flag.name) ? 'Collapse' : 'Show change history'"
-                          >
-                            <i
-                              class="bi"
-                              :class="
-                                isExpanded(flag.name) ? 'bi-chevron-down' : 'bi-chevron-right'
-                              "
-                            ></i>
-                          </button>
-                          <code class="flag-name">{{ flag.name }}</code>
-                        </div>
-                        <p
-                          v-if="flag.description"
-                          class="flag-description"
-                          :class="{ 'with-expand-offset': flag.hasChanged }"
-                        >
-                          {{ flag.description }}
-                        </p>
-                      </div>
-                    </td>
-                    <td class="flag-value">
-                      <span
-                        :class="{
-                          'boolean-true': flag.type === 'Boolean' && flag.value === 'true',
-                          'boolean-false': flag.type === 'Boolean' && flag.value === 'false'
-                        }"
+        <!-- Flags Table -->
+        <DataTable v-if="filteredFlags.length > 0">
+          <thead>
+            <tr>
+              <SortableTableHeader
+                column="name"
+                label="Flag Name"
+                :sort-column="sortColumn"
+                :sort-direction="sortDirection"
+                @sort="toggleSort"
+              />
+              <SortableTableHeader
+                column="value"
+                label="Value"
+                :sort-column="sortColumn"
+                :sort-direction="sortDirection"
+                @sort="toggleSort"
+              />
+              <SortableTableHeader
+                column="type"
+                label="Type"
+                :sort-column="sortColumn"
+                :sort-direction="sortDirection"
+                @sort="toggleSort"
+              />
+              <SortableTableHeader
+                column="origin"
+                label="Origin"
+                :sort-column="sortColumn"
+                :sort-direction="sortDirection"
+                @sort="toggleSort"
+              />
+              <SortableTableHeader
+                column="changed"
+                label="Changed"
+                :sort-column="sortColumn"
+                :sort-direction="sortDirection"
+                @sort="toggleSort"
+              />
+            </tr>
+          </thead>
+          <tbody>
+            <template v-for="flag in filteredFlags" :key="flag.name">
+              <!-- Main Flag Row -->
+              <tr :class="{ 'expanded-row': isExpanded(flag.name) }">
+                <td class="flag-name-cell">
+                  <div class="flag-name-wrapper">
+                    <div class="flag-name-row">
+                      <button
+                        v-if="flag.hasChanged"
+                        class="expand-btn"
+                        type="button"
+                        @click="toggleExpand(flag.name)"
+                        :title="isExpanded(flag.name) ? 'Collapse' : 'Show change history'"
                       >
-                        {{ formatFlagValue(flag) }}
-                      </span>
-                    </td>
-                    <td>
-                      <Badge :value="flag.type" :variant="getTypeVariant(flag.type)" size="s" />
-                    </td>
-                    <td>
-                      <Badge
-                        :value="flag.origin"
-                        :variant="getOriginVariant(flag.origin)"
-                        size="s"
-                      />
-                    </td>
-                    <td>
-                      <Badge v-if="flag.hasChanged" value="Yes" variant="orange" size="s" />
-                      <Badge v-else value="No" variant="grey" size="s" />
-                    </td>
-                  </tr>
+                        <i
+                          class="bi"
+                          :class="isExpanded(flag.name) ? 'bi-chevron-down' : 'bi-chevron-right'"
+                        ></i>
+                      </button>
+                      <code class="flag-name">{{ flag.name }}</code>
+                    </div>
+                    <p
+                      v-if="flag.description"
+                      class="flag-description"
+                      :class="{ 'with-expand-offset': flag.hasChanged }"
+                    >
+                      {{ flag.description }}
+                    </p>
+                  </div>
+                </td>
+                <td class="flag-value">
+                  <span
+                    :class="{
+                      'boolean-true': flag.type === 'Boolean' && flag.value === 'true',
+                      'boolean-false': flag.type === 'Boolean' && flag.value === 'false'
+                    }"
+                  >
+                    {{ formatFlagValue(flag) }}
+                  </span>
+                </td>
+                <td>
+                  <Badge :value="flag.type" :variant="getTypeVariant(flag.type)" size="s" />
+                </td>
+                <td>
+                  <Badge :value="flag.origin" :variant="getOriginVariant(flag.origin)" size="s" />
+                </td>
+                <td>
+                  <Badge v-if="flag.hasChanged" value="Yes" variant="orange" size="s" />
+                  <Badge v-else value="No" variant="grey" size="s" />
+                </td>
+              </tr>
 
-                  <!-- Change History Detail Row -->
-                  <tr v-if="flag.hasChanged && isExpanded(flag.name)" class="history-row">
-                    <td colspan="5">
-                      <div class="change-history">
-                        <div class="change-history-header">
-                          <i class="bi bi-clock-history me-2"></i>
-                          Change History
-                        </div>
-                        <div class="change-history-list">
-                          <div
-                            v-for="(change, idx) in flag.changeHistory"
-                            :key="idx"
-                            class="change-item"
-                            :class="{ 'current-value': idx === 0 }"
-                          >
-                            <span class="change-timestamp">{{
-                              formatTimestamp(change.timestamp)
-                            }}</span>
-                            <span class="change-value">{{ change.value }}</span>
-                            <Badge v-if="idx === 0" value="current" variant="green" size="xs" />
-                          </div>
-                        </div>
+              <!-- Change History Detail Row -->
+              <tr v-if="flag.hasChanged && isExpanded(flag.name)" class="history-row">
+                <td colspan="5">
+                  <div class="change-history">
+                    <div class="change-history-header">
+                      <i class="bi bi-clock-history me-2"></i>
+                      Change History
+                    </div>
+                    <div class="change-history-list">
+                      <div
+                        v-for="(change, idx) in flag.changeHistory"
+                        :key="idx"
+                        class="change-item"
+                        :class="{ 'current-value': idx === 0 }"
+                      >
+                        <span class="change-timestamp">{{
+                          formatTimestamp(change.timestamp)
+                        }}</span>
+                        <span class="change-value">{{ change.value }}</span>
+                        <Badge v-if="idx === 0" value="current" variant="green" size="xs" />
                       </div>
-                    </td>
-                  </tr>
-                </template>
-              </tbody>
-          </DataTable>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            </template>
+          </tbody>
+        </DataTable>
 
-            <div v-if="filteredFlags.length === 0" class="no-results">
-              <i class="bi bi-funnel"></i>
-              <p>No flags match "{{ searchTerm }}"</p>
-            </div>
+        <div v-if="filteredFlags.length === 0" class="no-results">
+          <i class="bi bi-funnel"></i>
+          <p>No flags match "{{ searchTerm }}"</p>
+        </div>
       </div>
 
       <!-- About Tab -->
       <div v-show="activeTab === 'about'">
-          <div class="about-container">
-            <!-- Header Section -->
-            <div class="about-header">
-              <div class="about-header-icon">
-                <i class="bi bi-question-circle"></i>
+        <div class="about-container">
+          <!-- Header Section -->
+          <div class="about-header">
+            <div class="about-header-icon">
+              <i class="bi bi-question-circle"></i>
+            </div>
+            <div>
+              <h5 class="mb-1">Understanding JVM Flags</h5>
+              <p class="text-muted mb-0">Configuration options that control JVM behavior</p>
+            </div>
+          </div>
+
+          <!-- Intro -->
+          <div class="about-intro">
+            <p>
+              JVM flags are command-line options that control various aspects of the Java Virtual
+              Machine's behavior and performance. JFR (Java Flight Recorder) captures these flags
+              during recording, providing insights into how the JVM is configured and how it
+              operates during runtime.
+            </p>
+          </div>
+
+          <!-- Flag Origins Section -->
+          <h6 class="section-title">
+            <i class="bi bi-signpost-split me-2"></i>
+            Flag Origins
+          </h6>
+
+          <div class="feature-grid">
+            <div class="feature-card">
+              <div
+                class="feature-icon"
+                style="background: linear-gradient(135deg, #5e64ff 0%, #7c4dff 100%)"
+              >
+                <i class="bi bi-terminal"></i>
               </div>
-              <div>
-                <h5 class="mb-1">Understanding JVM Flags</h5>
-                <p class="text-muted mb-0">Configuration options that control JVM behavior</p>
+              <div class="feature-content">
+                <h6>Command Line</h6>
+                <p>
+                  Flags explicitly set via <code>-XX:</code> arguments when starting the JVM. These
+                  represent intentional configuration choices by the administrator or developer.
+                </p>
               </div>
             </div>
 
-            <!-- Intro -->
-            <div class="about-intro">
-              <p>
-                JVM flags are command-line options that control various aspects of the Java Virtual
-                Machine's behavior and performance. JFR (Java Flight Recorder) captures these flags
-                during recording, providing insights into how the JVM is configured and how it
-                operates during runtime.
-              </p>
-            </div>
-
-            <!-- Flag Origins Section -->
-            <h6 class="section-title">
-              <i class="bi bi-signpost-split me-2"></i>
-              Flag Origins
-            </h6>
-
-            <div class="feature-grid">
-              <div class="feature-card">
-                <div
-                  class="feature-icon"
-                  style="background: linear-gradient(135deg, #5e64ff 0%, #7c4dff 100%)"
-                >
-                  <i class="bi bi-terminal"></i>
-                </div>
-                <div class="feature-content">
-                  <h6>Command Line</h6>
-                  <p>
-                    Flags explicitly set via <code>-XX:</code> arguments when starting the JVM.
-                    These represent intentional configuration choices by the administrator or
-                    developer.
-                  </p>
-                </div>
+            <div class="feature-card">
+              <div
+                class="feature-icon"
+                style="background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%)"
+              >
+                <i class="bi bi-gear-wide-connected"></i>
               </div>
-
-              <div class="feature-card">
-                <div
-                  class="feature-icon"
-                  style="background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%)"
-                >
-                  <i class="bi bi-gear-wide-connected"></i>
-                </div>
-                <div class="feature-content">
-                  <h6>Management</h6>
-                  <p>
-                    Flags modified at runtime through JMX (Java Management Extensions) or diagnostic
-                    commands like <code>jcmd</code>. These may change during the recording.
-                  </p>
-                </div>
-              </div>
-
-              <div class="feature-card">
-                <div
-                  class="feature-icon"
-                  style="background: linear-gradient(135deg, var(--color-success) 0%, #20c997 100%)"
-                >
-                  <i class="bi bi-cpu"></i>
-                </div>
-                <div class="feature-content">
-                  <h6>Ergonomic</h6>
-                  <p>
-                    Flags automatically tuned by the JVM based on the system's hardware resources
-                    (CPU, memory) and workload characteristics. The JVM optimizes these for best
-                    performance.
-                  </p>
-                </div>
-              </div>
-
-              <div class="feature-card">
-                <div
-                  class="feature-icon"
-                  style="background: linear-gradient(135deg, #6c757d 0%, #495057 100%)"
-                >
-                  <i class="bi bi-box"></i>
-                </div>
-                <div class="feature-content">
-                  <h6>Default</h6>
-                  <p>
-                    Flags using their built-in default values as defined in the JVM implementation.
-                    These weren't explicitly set or modified by any other mechanism.
-                  </p>
-                </div>
+              <div class="feature-content">
+                <h6>Management</h6>
+                <p>
+                  Flags modified at runtime through JMX (Java Management Extensions) or diagnostic
+                  commands like <code>jcmd</code>. These may change during the recording.
+                </p>
               </div>
             </div>
 
-            <!-- Flag Types Section -->
-            <h6 class="section-title">
-              <i class="bi bi-list-check me-2"></i>
-              Flag Types
-            </h6>
-
-            <div class="type-list">
-              <div class="type-item">
-                <Badge value="Boolean" variant="blue" size="s" />
-                <span>Toggle flags that can be <code>true</code> or <code>false</code></span>
+            <div class="feature-card">
+              <div
+                class="feature-icon"
+                style="background: linear-gradient(135deg, var(--color-success) 0%, #20c997 100%)"
+              >
+                <i class="bi bi-cpu"></i>
               </div>
-              <div class="type-item">
-                <Badge value="Int" variant="purple" size="s" />
-                <span>32-bit signed integer values</span>
-              </div>
-              <div class="type-item">
-                <Badge value="Long" variant="purple" size="s" />
-                <span>64-bit signed integer values (often used for memory sizes)</span>
-              </div>
-              <div class="type-item">
-                <Badge value="UnsignedInt" variant="orange" size="s" />
-                <span>32-bit unsigned integer values</span>
-              </div>
-              <div class="type-item">
-                <Badge value="String" variant="teal" size="s" />
-                <span>Text values for paths, names, or complex configurations</span>
+              <div class="feature-content">
+                <h6>Ergonomic</h6>
+                <p>
+                  Flags automatically tuned by the JVM based on the system's hardware resources
+                  (CPU, memory) and workload characteristics. The JVM optimizes these for best
+                  performance.
+                </p>
               </div>
             </div>
 
-            <!-- Why It Matters -->
-            <h6 class="section-title">
-              <i class="bi bi-lightning-charge me-2"></i>
-              Why It Matters
-            </h6>
-
-            <div class="benefits-list">
-              <div class="benefit-item">
-                <i class="bi bi-check-circle-fill text-success"></i>
-                <span>Understand how your JVM is configured for debugging and optimization</span>
+            <div class="feature-card">
+              <div
+                class="feature-icon"
+                style="background: linear-gradient(135deg, #6c757d 0%, #495057 100%)"
+              >
+                <i class="bi bi-box"></i>
               </div>
-              <div class="benefit-item">
-                <i class="bi bi-check-circle-fill text-success"></i>
-                <span>Identify non-default settings that may affect performance or behavior</span>
-              </div>
-              <div class="benefit-item">
-                <i class="bi bi-check-circle-fill text-success"></i>
-                <span>Track runtime flag changes for troubleshooting intermittent issues</span>
-              </div>
-              <div class="benefit-item">
-                <i class="bi bi-check-circle-fill text-success"></i>
-                <span>Document production configurations for compliance and reproducibility</span>
-              </div>
-            </div>
-
-            <!-- Note -->
-            <div class="about-note">
-              <div class="note-icon">
-                <i class="bi bi-lightbulb-fill"></i>
-              </div>
-              <div class="note-content">
-                <strong>Changed Flags</strong>
-                <p class="mb-0">
-                  Flags marked as "Changed" had their values modified during the recording period,
-                  typically via JMX or diagnostic commands. The dashboard shows the latest value
-                  along with previous values for tracking configuration drift.
+              <div class="feature-content">
+                <h6>Default</h6>
+                <p>
+                  Flags using their built-in default values as defined in the JVM implementation.
+                  These weren't explicitly set or modified by any other mechanism.
                 </p>
               </div>
             </div>
           </div>
+
+          <!-- Flag Types Section -->
+          <h6 class="section-title">
+            <i class="bi bi-list-check me-2"></i>
+            Flag Types
+          </h6>
+
+          <div class="type-list">
+            <div class="type-item">
+              <Badge value="Boolean" variant="blue" size="s" />
+              <span>Toggle flags that can be <code>true</code> or <code>false</code></span>
+            </div>
+            <div class="type-item">
+              <Badge value="Int" variant="purple" size="s" />
+              <span>32-bit signed integer values</span>
+            </div>
+            <div class="type-item">
+              <Badge value="Long" variant="purple" size="s" />
+              <span>64-bit signed integer values (often used for memory sizes)</span>
+            </div>
+            <div class="type-item">
+              <Badge value="UnsignedInt" variant="orange" size="s" />
+              <span>32-bit unsigned integer values</span>
+            </div>
+            <div class="type-item">
+              <Badge value="String" variant="teal" size="s" />
+              <span>Text values for paths, names, or complex configurations</span>
+            </div>
+          </div>
+
+          <!-- Why It Matters -->
+          <h6 class="section-title">
+            <i class="bi bi-lightning-charge me-2"></i>
+            Why It Matters
+          </h6>
+
+          <div class="benefits-list">
+            <div class="benefit-item">
+              <i class="bi bi-check-circle-fill text-success"></i>
+              <span>Understand how your JVM is configured for debugging and optimization</span>
+            </div>
+            <div class="benefit-item">
+              <i class="bi bi-check-circle-fill text-success"></i>
+              <span>Identify non-default settings that may affect performance or behavior</span>
+            </div>
+            <div class="benefit-item">
+              <i class="bi bi-check-circle-fill text-success"></i>
+              <span>Track runtime flag changes for troubleshooting intermittent issues</span>
+            </div>
+            <div class="benefit-item">
+              <i class="bi bi-check-circle-fill text-success"></i>
+              <span>Document production configurations for compliance and reproducibility</span>
+            </div>
+          </div>
+
+          <!-- Note -->
+          <div class="about-note">
+            <div class="note-icon">
+              <i class="bi bi-lightbulb-fill"></i>
+            </div>
+            <div class="note-content">
+              <strong>Changed Flags</strong>
+              <p class="mb-0">
+                Flags marked as "Changed" had their values modified during the recording period,
+                typically via JMX or diagnostic commands. The dashboard shows the latest value along
+                with previous values for tracking configuration drift.
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 

@@ -31,5 +31,4 @@ export default class ProjectSettingsClient extends BasePlatformClient {
   get(): Promise<SettingsResponse> {
     return super.get<SettingsResponse>();
   }
-
 }

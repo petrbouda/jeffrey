@@ -29,7 +29,11 @@
     <LoadingState v-if="loading" message="Loading loader detail..." />
     <ErrorState v-else-if="error" :message="error" />
     <div v-else-if="!detail" class="text-muted py-3">
-      <EmptyState icon="bi-question-circle" title="Loader not found" description="This loader id is not present in the heap dump index." />
+      <EmptyState
+        icon="bi-question-circle"
+        title="Loader not found"
+        description="This loader id is not present in the heap dump index."
+      />
     </div>
 
     <div v-else>
@@ -60,15 +64,21 @@
           </span>
           <span class="meta-item">
             <span class="meta-label">Classes</span>
-            <span class="meta-value font-monospace">{{ FormattingService.formatNumber(detail.classCount) }}</span>
+            <span class="meta-value font-monospace">{{
+              FormattingService.formatNumber(detail.classCount)
+            }}</span>
           </span>
           <span class="meta-item">
             <span class="meta-label">Live instances</span>
-            <span class="meta-value font-monospace">{{ FormattingService.formatNumber(detail.instanceCount) }}</span>
+            <span class="meta-value font-monospace">{{
+              FormattingService.formatNumber(detail.instanceCount)
+            }}</span>
           </span>
           <span class="meta-item">
             <span class="meta-label">Retained</span>
-            <span class="meta-value font-monospace">{{ FormattingService.formatBytes(detail.retainedSize) }}</span>
+            <span class="meta-value font-monospace">{{
+              FormattingService.formatBytes(detail.retainedSize)
+            }}</span>
           </span>
         </div>
       </div>

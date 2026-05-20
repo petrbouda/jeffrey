@@ -22,7 +22,10 @@
       <template v-else>
         <template v-for="group in filteredGroups" :key="group.instance.id">
           <div class="lsp-instance-header">
-            <span class="lsp-dot" :class="group.instance.status === 'ACTIVE' ? 'lsp-dot-active' : 'lsp-dot-inactive'"></span>
+            <span
+              class="lsp-dot"
+              :class="group.instance.status === 'ACTIVE' ? 'lsp-dot-active' : 'lsp-dot-inactive'"
+            ></span>
             <span class="lsp-instance-host">{{ group.instance.instanceName }}</span>
           </div>
           <div
@@ -60,107 +63,112 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
-import Badge from '@/components/Badge.vue'
-import LoadingState from '@/components/LoadingState.vue'
-import EmptyState from '@/components/EmptyState.vue'
-import SearchInput from '@/components/form/SearchInput.vue'
-import FormattingService from '@/services/FormattingService'
-import ProjectInstanceClient from '@/services/api/ProjectInstanceClient'
-import type ProjectInstance from '@/services/api/model/ProjectInstance'
-import type ProjectInstanceSession from '@/services/api/model/ProjectInstanceSession'
-import type { SelectedSession } from './streamingTypes'
+import { computed, onMounted, ref } from 'vue';
+import Badge from '@/components/Badge.vue';
+import LoadingState from '@/components/LoadingState.vue';
+import EmptyState from '@/components/EmptyState.vue';
+import SearchInput from '@/components/form/SearchInput.vue';
+import FormattingService from '@/services/FormattingService';
+import ProjectInstanceClient from '@/services/api/ProjectInstanceClient';
+import type ProjectInstance from '@/services/api/model/ProjectInstance';
+import type ProjectInstanceSession from '@/services/api/model/ProjectInstanceSession';
+import type { SelectedSession } from './streamingTypes';
 
 interface InstanceGroup {
-  instance: ProjectInstance
-  sessions: ProjectInstanceSession[]
+  instance: ProjectInstance;
+  sessions: ProjectInstanceSession[];
 }
 
 const props = defineProps<{
-  serverId: string
-  workspaceId: string
-  projectId: string
-  selected: SelectedSession[]
-}>()
+  serverId: string;
+  workspaceId: string;
+  projectId: string;
+  selected: SelectedSession[];
+}>();
 
 const emit = defineEmits<{
-  'update:selected': [value: SelectedSession[]]
-}>()
+  'update:selected': [value: SelectedSession[]];
+}>();
 
-const loading = ref(false)
-const searchQuery = ref('')
-const instanceGroups = ref<InstanceGroup[]>([])
-const maxVisibleInstances = ref(5)
+const loading = ref(false);
+const searchQuery = ref('');
+const instanceGroups = ref<InstanceGroup[]>([]);
+const maxVisibleInstances = ref(5);
 
 const allFilteredGroups = computed(() => {
-  if (!searchQuery.value) return instanceGroups.value
-  const q = searchQuery.value.toLowerCase()
+  if (!searchQuery.value) return instanceGroups.value;
+  const q = searchQuery.value.toLowerCase();
   return instanceGroups.value
-    .map((group) => ({
+    .map(group => ({
       instance: group.instance,
-      sessions: group.sessions.filter((s) => s.id.toLowerCase().includes(q))
+      sessions: group.sessions.filter(s => s.id.toLowerCase().includes(q))
     }))
-    .filter((group) => group.sessions.length > 0)
-})
+    .filter(group => group.sessions.length > 0);
+});
 
-const filteredGroups = computed(() => allFilteredGroups.value.slice(0, maxVisibleInstances.value))
-const hasMoreInstances = computed(() => allFilteredGroups.value.length > maxVisibleInstances.value)
-const hiddenInstanceCount = computed(() => allFilteredGroups.value.length - maxVisibleInstances.value)
+const filteredGroups = computed(() => allFilteredGroups.value.slice(0, maxVisibleInstances.value));
+const hasMoreInstances = computed(() => allFilteredGroups.value.length > maxVisibleInstances.value);
+const hiddenInstanceCount = computed(
+  () => allFilteredGroups.value.length - maxVisibleInstances.value
+);
 
 async function loadSessions() {
-  loading.value = true
+  loading.value = true;
   try {
-    const client = new ProjectInstanceClient(props.serverId, props.workspaceId, props.projectId)
-    const instances = await client.list(true)
+    const client = new ProjectInstanceClient(props.serverId, props.workspaceId, props.projectId);
+    const instances = await client.list(true);
 
     instances.sort((a, b) => {
-      if (a.status === 'ACTIVE' && b.status !== 'ACTIVE') return -1
-      if (a.status !== 'ACTIVE' && b.status === 'ACTIVE') return 1
-      return b.createdAt - a.createdAt
-    })
+      if (a.status === 'ACTIVE' && b.status !== 'ACTIVE') return -1;
+      if (a.status !== 'ACTIVE' && b.status === 'ACTIVE') return 1;
+      return b.createdAt - a.createdAt;
+    });
 
-    const groups: InstanceGroup[] = []
+    const groups: InstanceGroup[] = [];
     for (const instance of instances) {
-      const sessions = (instance.sessions ?? []).filter((s) => s.isActive === true)
+      const sessions = (instance.sessions ?? []).filter(s => s.isActive === true);
       if (sessions.length > 0) {
-        sessions.sort((a, b) => b.createdAt - a.createdAt)
-        groups.push({ instance, sessions })
+        sessions.sort((a, b) => b.createdAt - a.createdAt);
+        groups.push({ instance, sessions });
       }
     }
-    instanceGroups.value = groups
+    instanceGroups.value = groups;
 
     // Drop any pre-seeded selection that is no longer visible (e.g. session
     // became inactive between page mount and the picker opening).
-    const visibleIds = new Set(groups.flatMap((g) => g.sessions.map((s) => s.id)))
-    const pruned = props.selected.filter((s) => visibleIds.has(s.id))
+    const visibleIds = new Set(groups.flatMap(g => g.sessions.map(s => s.id)));
+    const pruned = props.selected.filter(s => visibleIds.has(s.id));
     if (pruned.length !== props.selected.length) {
-      emit('update:selected', pruned)
+      emit('update:selected', pruned);
     }
   } finally {
-    loading.value = false
+    loading.value = false;
   }
 }
 
 function isSelected(id: string): boolean {
-  return props.selected.some((s) => s.id === id)
+  return props.selected.some(s => s.id === id);
 }
 
 function toggle(session: ProjectInstanceSession, instance: ProjectInstance) {
   if (isSelected(session.id)) {
-    emit('update:selected', props.selected.filter((s) => s.id !== session.id))
+    emit(
+      'update:selected',
+      props.selected.filter(s => s.id !== session.id)
+    );
   } else {
     emit('update:selected', [
       ...props.selected,
       { id: session.id, sessionInstance: instance.instanceName }
-    ])
+    ]);
   }
 }
 
 function clearAll() {
-  emit('update:selected', [])
+  emit('update:selected', []);
 }
 
-onMounted(loadSessions)
+onMounted(loadSessions);
 </script>
 
 <style scoped>
@@ -219,7 +227,9 @@ onMounted(loadSessions)
   font-weight: 600;
   color: var(--color-body);
 }
-.lsp-instance-header:first-child { margin-top: 0; }
+.lsp-instance-header:first-child {
+  margin-top: 0;
+}
 
 .lsp-instance-host {
   flex: 1;
@@ -235,8 +245,12 @@ onMounted(loadSessions)
   display: inline-block;
   flex-shrink: 0;
 }
-.lsp-dot-active { background-color: var(--color-success); }
-.lsp-dot-inactive { background-color: var(--color-muted); }
+.lsp-dot-active {
+  background-color: var(--color-success);
+}
+.lsp-dot-inactive {
+  background-color: var(--color-muted);
+}
 
 .lsp-session-row {
   display: flex;
@@ -288,7 +302,9 @@ onMounted(loadSessions)
   color: var(--color-text-muted);
   white-space: nowrap;
 }
-.lsp-session-meta i { font-size: 0.64rem; }
+.lsp-session-meta i {
+  font-size: 0.64rem;
+}
 
 .lsp-load-more {
   text-align: center;

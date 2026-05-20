@@ -14,11 +14,7 @@
           :value="modelValue"
           @input="$emit('update:modelValue', ($event.target as HTMLInputElement).value)"
         />
-        <button
-          v-if="modelValue"
-          class="btn-clear"
-          @click="$emit('update:modelValue', '')"
-        >
+        <button v-if="modelValue" class="btn-clear" @click="$emit('update:modelValue', '')">
           <i class="bi bi-x-lg"></i>
         </button>
       </div>
@@ -27,15 +23,18 @@
 </template>
 
 <script setup lang="ts">
-withDefaults(defineProps<{
-  modelValue?: string;
-  searchPlaceholder?: string;
-  showSearch?: boolean;
-}>(), {
-  modelValue: '',
-  searchPlaceholder: 'Filter...',
-  showSearch: true
-});
+withDefaults(
+  defineProps<{
+    modelValue?: string;
+    searchPlaceholder?: string;
+    showSearch?: boolean;
+  }>(),
+  {
+    modelValue: '',
+    searchPlaceholder: 'Filter...',
+    showSearch: true
+  }
+);
 
 defineEmits<{
   'update:modelValue': [value: string];

@@ -38,7 +38,10 @@ export default abstract class BaseProfileClient {
     this.baseUrl = `${GlobalVars.internalUrl}/profiles/${profileId}/${featurePath}`;
   }
 
-  private static applyOptions(config: Record<string, any>, options?: RequestOptions): Record<string, any> {
+  private static applyOptions(
+    config: Record<string, any>,
+    options?: RequestOptions
+  ): Record<string, any> {
     return options?.suppressToast ? { ...config, suppressToast: true } : config;
   }
 
@@ -48,12 +51,18 @@ export default abstract class BaseProfileClient {
    * @param params - Optional query parameters
    * @returns Promise resolving to the response data
    */
-  protected get<T>(path: string, params?: Record<string, any>, options?: RequestOptions): Promise<T> {
+  protected get<T>(
+    path: string,
+    params?: Record<string, any>,
+    options?: RequestOptions
+  ): Promise<T> {
     const url = path ? `${this.baseUrl}${path}` : this.baseUrl;
     const config = params
       ? HttpUtils.JSON_ACCEPT_WITH_PARAMS(params)
       : HttpUtils.JSON_ACCEPT_HEADER;
-    return axios.get<T>(url, BaseProfileClient.applyOptions(config, options)).then(HttpUtils.RETURN_DATA);
+    return axios
+      .get<T>(url, BaseProfileClient.applyOptions(config, options))
+      .then(HttpUtils.RETURN_DATA);
   }
 
   /**
@@ -64,6 +73,12 @@ export default abstract class BaseProfileClient {
    */
   protected post<T>(path: string, body: Record<string, any>, options?: RequestOptions): Promise<T> {
     const url = path ? `${this.baseUrl}${path}` : this.baseUrl;
-    return axios.post<T>(url, body, BaseProfileClient.applyOptions(HttpUtils.JSON_CONTENT_TYPE_HEADER, options)).then(HttpUtils.RETURN_DATA);
+    return axios
+      .post<T>(
+        url,
+        body,
+        BaseProfileClient.applyOptions(HttpUtils.JSON_CONTENT_TYPE_HEADER, options)
+      )
+      .then(HttpUtils.RETURN_DATA);
   }
 }

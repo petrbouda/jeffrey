@@ -73,13 +73,17 @@ public final class StringAnalyzer {
      * referenced by any {@code String}. {@code 1 = field_id} of String.value,
      * {@code 2 = String's class_id}.
      */
+    // DuckDB widens SUM(BIGINT) to HUGEINT to avoid overflow. The outer
+    // CAST AS BIGINT keeps the result on the BIGINT long-vector path so
+    // JDBC getLong returns the value directly instead of going through
+    // getHugeint → BigInteger (+ backing byte[]).
     private static final String PHYSICAL_SHARING_SQL = """
             SELECT
-                ref.target_id                AS array_id,
-                MAX(arr.shallow_size)        AS array_shallow,
-                COUNT(*)                     AS ref_count,
-                SUM(CAST(s.shallow_size AS BIGINT)) AS sum_string_shallow,
-                MIN(ref.source_id)           AS sample_string_id
+                ref.target_id                                       AS array_id,
+                MAX(arr.shallow_size)                               AS array_shallow,
+                COUNT(*)                                            AS ref_count,
+                CAST(SUM(CAST(s.shallow_size AS BIGINT)) AS BIGINT) AS sum_string_shallow,
+                MIN(ref.source_id)                                  AS sample_string_id
             FROM instance s
             JOIN outbound_ref ref ON ref.source_id = s.instance_id AND ref.field_id = ?
             JOIN instance arr     ON arr.instance_id = ref.target_id
@@ -154,14 +158,17 @@ public final class StringAnalyzer {
      * each distinct backing {@code byte[]} array. {@code 1 = field_id} of
      * String.value, {@code 2 = String's class_id}, {@code 3 = LIMIT}.
      */
+    // Same HUGEINT-vs-BIGINT story as PHYSICAL_SHARING_SQL — the outer CAST
+    // keeps sum_string_shallow on the long-vector path. ORDER BY can stay on
+    // HUGEINT; it never crosses the JDBC boundary.
     private static final String TOP_BY_RETAINED_SQL = """
             SELECT
-                sc.content                                  AS content,
-                COUNT(*)                                    AS string_count,
-                SUM(CAST(s.shallow_size AS BIGINT))         AS sum_string_shallow,
-                COUNT(DISTINCT ref.target_id)               AS distinct_arrays,
-                MAX(arr.shallow_size)                       AS array_shallow,
-                MIN(sc.instance_id)                         AS sample_string_id
+                sc.content                                          AS content,
+                COUNT(*)                                            AS string_count,
+                CAST(SUM(CAST(s.shallow_size AS BIGINT)) AS BIGINT) AS sum_string_shallow,
+                COUNT(DISTINCT ref.target_id)                       AS distinct_arrays,
+                MAX(arr.shallow_size)                               AS array_shallow,
+                MIN(sc.instance_id)                                 AS sample_string_id
             FROM string_content sc
             JOIN instance s       ON s.instance_id = sc.instance_id
             JOIN outbound_ref ref ON ref.source_id = sc.instance_id AND ref.field_id = ?

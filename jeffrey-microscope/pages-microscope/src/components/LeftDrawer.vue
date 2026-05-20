@@ -4,13 +4,7 @@
       <div v-if="show" class="drawer-backdrop" @click="$emit('update:show', false)"></div>
     </Transition>
     <Transition name="drawer-slide">
-      <aside
-        v-if="show"
-        class="drawer"
-        :class="`drawer-${side}`"
-        role="dialog"
-        :aria-label="title"
-      >
+      <aside v-if="show" class="drawer" :class="`drawer-${side}`" role="dialog" :aria-label="title">
         <header class="drawer-head">
           <div class="drawer-title">
             <i v-if="icon" :class="['bi', icon, 'text-primary', 'me-2']"></i>
@@ -48,7 +42,7 @@ const props = withDefaults(
     icon?: string;
     side?: 'left' | 'right';
   }>(),
-  { side: 'left' },
+  { side: 'left' }
 );
 
 const emit = defineEmits<{
@@ -82,7 +76,7 @@ watch(
       window.removeEventListener('keydown', onKeydown);
     }
   },
-  { immediate: true },
+  { immediate: true }
 );
 
 onBeforeUnmount(() => {

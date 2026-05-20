@@ -25,9 +25,7 @@ export function useNavigation() {
   const router = useRouter();
 
   // Route params (with profileStore fallback for the simplified profile URL pattern)
-  const serverId = computed(
-    () => (route.params.serverId as string) || profileStore.serverId.value
-  );
+  const serverId = computed(() => (route.params.serverId as string) || profileStore.serverId.value);
   const workspaceId = computed(
     () => (route.params.workspaceId as string) || profileStore.workspaceId.value
   );

@@ -23,16 +23,21 @@
               <code>{{ FormattingService.formatTimestamp(event.timestamp) }}</code>
             </td>
             <td class="text-nowrap">
-              <span class="event-type-badge" :style="{ backgroundColor: eventTypeColor(event.eventType) + '18', color: eventTypeColor(event.eventType), borderColor: eventTypeColor(event.eventType) + '40' }">{{ event.eventType }}</span>
+              <span
+                class="event-type-badge"
+                :style="{
+                  backgroundColor: eventTypeColor(event.eventType) + '18',
+                  color: eventTypeColor(event.eventType),
+                  borderColor: eventTypeColor(event.eventType) + '40'
+                }"
+                >{{ event.eventType }}</span
+              >
             </td>
             <td>
               <div class="fields-container">
-                <span
-                  v-for="(value, key) in event.fields"
-                  :key="key"
-                  class="field-tag"
-                >
-                  <span class="field-key">{{ key }}</span>=<span class="field-value">{{ Utils.typedValueToDisplay(value) }}</span>
+                <span v-for="(value, key) in event.fields" :key="key" class="field-tag">
+                  <span class="field-key">{{ key }}</span
+                  >=<span class="field-value">{{ Utils.typedValueToDisplay(value) }}</span>
                 </span>
               </div>
             </td>
@@ -52,38 +57,47 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import FormattingService from '@/services/FormattingService'
-import Utils from '@/services/Utils'
-import type { StreamingEvent } from '@/services/api/EventStreamingClient'
+import { computed, ref } from 'vue';
+import FormattingService from '@/services/FormattingService';
+import Utils from '@/services/Utils';
+import type { StreamingEvent } from '@/services/api/EventStreamingClient';
 
 const EVENT_TYPE_COLORS = [
-  '#5e64ff', '#0d9488', '#f59e0b', '#8b5cf6', '#e63757',
-  '#39afd1', '#fd7e14', '#00d27a', '#6f42c1', '#daa520'
-]
+  '#5e64ff',
+  '#0d9488',
+  '#f59e0b',
+  '#8b5cf6',
+  '#e63757',
+  '#39afd1',
+  '#fd7e14',
+  '#00d27a',
+  '#6f42c1',
+  '#daa520'
+];
 
 const props = defineProps<{
-  events: StreamingEvent[]
-  eventTypes: string[]
-  rowAttrs?: (event: StreamingEvent) => Record<string, unknown>
-}>()
+  events: StreamingEvent[];
+  eventTypes: string[];
+  rowAttrs?: (event: StreamingEvent) => Record<string, unknown>;
+}>();
 
-const maxDisplayed = ref(200)
+const maxDisplayed = ref(200);
 
 const displayedEvents = computed(() => {
-  return props.events.slice(-maxDisplayed.value).reverse()
-})
+  return props.events.slice(-maxDisplayed.value).reverse();
+});
 
 const eventTypeColorMap = computed(() => {
-  const map: Record<string, number> = {}
-  props.eventTypes.forEach((et, i) => { map[et] = i % EVENT_TYPE_COLORS.length })
-  return map
-})
+  const map: Record<string, number> = {};
+  props.eventTypes.forEach((et, i) => {
+    map[et] = i % EVENT_TYPE_COLORS.length;
+  });
+  return map;
+});
 
 function eventTypeColor(et: string): string {
-  return EVENT_TYPE_COLORS[eventTypeColorMap.value[et] ?? 0]
+  return EVENT_TYPE_COLORS[eventTypeColorMap.value[et] ?? 0];
 }
-
 </script>
 
 <style scoped>

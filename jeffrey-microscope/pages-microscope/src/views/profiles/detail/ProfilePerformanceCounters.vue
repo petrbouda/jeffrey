@@ -59,117 +59,113 @@
 
           <!-- Performance Counters Tree -->
           <DataTable table-class="counter-tree-table">
-                <thead>
-                  <tr>
-                    <th>Counter</th>
-                    <th>Value</th>
-                    <th class="text-center">
-                      <div class="d-flex justify-content-end align-items-center">
-                        <div class="tree-controls">
-                          <button
-                            class="btn btn-sm btn-outline-primary btn-xs px-1"
-                            @click="collapseAll"
-                            title="Collapse All"
-                          >
-                            <i class="bi bi-arrows-collapse"></i>
-                          </button>
-                          <button
-                            class="btn btn-sm btn-outline-primary btn-xs px-1 ms-1"
-                            @click="expandAll"
-                            title="Expand All"
-                          >
-                            <i class="bi bi-arrows-expand"></i>
-                          </button>
-                        </div>
+            <thead>
+              <tr>
+                <th>Counter</th>
+                <th>Value</th>
+                <th class="text-center">
+                  <div class="d-flex justify-content-end align-items-center">
+                    <div class="tree-controls">
+                      <button
+                        class="btn btn-sm btn-outline-primary btn-xs px-1"
+                        @click="collapseAll"
+                        title="Collapse All"
+                      >
+                        <i class="bi bi-arrows-collapse"></i>
+                      </button>
+                      <button
+                        class="btn btn-sm btn-outline-primary btn-xs px-1 ms-1"
+                        @click="expandAll"
+                        title="Expand All"
+                      >
+                        <i class="bi bi-arrows-expand"></i>
+                      </button>
+                    </div>
+                  </div>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- Category nodes (folders) -->
+              <template v-for="category in organizedCounters" :key="category.name">
+                <tr class="parent-row">
+                  <td>
+                    <div class="d-flex align-items-center counter-name-cell">
+                      <!-- Expand/collapse icon for parent nodes -->
+                      <button
+                        class="btn btn-sm expand-btn p-0 me-2"
+                        @click="toggleExpand(category.name)"
+                      >
+                        <i
+                          class="bi"
+                          :class="isExpanded(category.name) ? 'bi-dash-square' : 'bi-plus-square'"
+                        ></i>
+                      </button>
+
+                      <!-- Category name -->
+                      <span class="counter-category">{{ getCategoryLabel(category.name) }}</span>
+                    </div>
+                  </td>
+                  <td></td>
+                  <td></td>
+                </tr>
+
+                <!-- Counter items (when category is expanded) -->
+                <template
+                  v-if="isExpanded(category.name)"
+                  v-for="counter in category.counters"
+                  :key="`${category.name}-${counter.key}`"
+                >
+                  <tr class="leaf-row">
+                    <td>
+                      <div class="d-flex align-items-center counter-name-cell">
+                        <!-- Indentation for counter items -->
+                        <div class="tree-indent" style="width: 20px"></div>
+
+                        <!-- Counter leaf indicator -->
+                        <span class="tree-leaf-icon me-2">
+                          <i class="bi bi-circle-fill"></i>
+                        </span>
+
+                        <!-- Counter name -->
+                        <span class="counter-key" :title="counter.key">{{
+                          formatCounterKey(counter.key)
+                        }}</span>
+
+                        <!-- Question mark icon with description tooltip -->
+                        <i
+                          v-if="counter.description"
+                          class="bi bi-question-circle-fill ms-2 description-icon"
+                          :title="counter.description"
+                          data-bs-toggle="tooltip"
+                          data-bs-placement="top"
+                        >
+                        </i>
+
+                        <!-- JVM and Java badges -->
+                        <Badge
+                          v-if="getBadgeForKey(counter.key)"
+                          :value="getBadgeForKey(counter.key)!"
+                          :variant="getBadgeVariant(counter.key)"
+                          size="xxs"
+                          class="ms-3"
+                        />
                       </div>
-                    </th>
+                    </td>
+                    <td>
+                      <span class="counter-value">{{ counter.formattedValue }}</span>
+                      <span
+                        v-if="counter.formattedValue !== counter.value"
+                        class="text-muted ms-2 small"
+                      >
+                        (raw: {{ counter.value }})
+                      </span>
+                    </td>
+                    <td></td>
                   </tr>
-                </thead>
-                <tbody>
-                  <!-- Category nodes (folders) -->
-                  <template v-for="category in organizedCounters" :key="category.name">
-                    <tr class="parent-row">
-                      <td>
-                        <div class="d-flex align-items-center counter-name-cell">
-                          <!-- Expand/collapse icon for parent nodes -->
-                          <button
-                            class="btn btn-sm expand-btn p-0 me-2"
-                            @click="toggleExpand(category.name)"
-                          >
-                            <i
-                              class="bi"
-                              :class="
-                                isExpanded(category.name) ? 'bi-dash-square' : 'bi-plus-square'
-                              "
-                            ></i>
-                          </button>
-
-                          <!-- Category name -->
-                          <span class="counter-category">{{
-                            getCategoryLabel(category.name)
-                          }}</span>
-                        </div>
-                      </td>
-                      <td></td>
-                      <td></td>
-                    </tr>
-
-                    <!-- Counter items (when category is expanded) -->
-                    <template
-                      v-if="isExpanded(category.name)"
-                      v-for="counter in category.counters"
-                      :key="`${category.name}-${counter.key}`"
-                    >
-                      <tr class="leaf-row">
-                        <td>
-                          <div class="d-flex align-items-center counter-name-cell">
-                            <!-- Indentation for counter items -->
-                            <div class="tree-indent" style="width: 20px"></div>
-
-                            <!-- Counter leaf indicator -->
-                            <span class="tree-leaf-icon me-2">
-                              <i class="bi bi-circle-fill"></i>
-                            </span>
-
-                            <!-- Counter name -->
-                            <span class="counter-key" :title="counter.key">{{
-                              formatCounterKey(counter.key)
-                            }}</span>
-
-                            <!-- Question mark icon with description tooltip -->
-                            <i
-                              v-if="counter.description"
-                              class="bi bi-question-circle-fill ms-2 description-icon"
-                              :title="counter.description"
-                              data-bs-toggle="tooltip"
-                              data-bs-placement="top"
-                            >
-                            </i>
-
-                            <!-- JVM and Java badges -->
-                            <Badge
-                              v-if="getBadgeForKey(counter.key)"
-                              :value="getBadgeForKey(counter.key)!"
-                              :variant="getBadgeVariant(counter.key)"
-                              size="xxs"
-                              class="ms-3"
-                            />
-                          </div>
-                        </td>
-                        <td>
-                          <span class="counter-value">{{ counter.formattedValue }}</span>
-                          <span
-                            v-if="counter.formattedValue !== counter.value"
-                            class="text-muted ms-2 small"
-                          >
-                            (raw: {{ counter.value }})
-                          </span>
-                        </td>
-                        <td></td>
-                      </tr>
-                    </template>
-                  </template>
-                </tbody>
+                </template>
+              </template>
+            </tbody>
           </DataTable>
 
           <!-- No Results message -->

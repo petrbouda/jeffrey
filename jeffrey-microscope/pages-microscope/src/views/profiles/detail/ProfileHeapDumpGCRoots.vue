@@ -115,209 +115,205 @@
 
       <!-- About Tab -->
       <div v-show="activeTab === 'about'">
-          <div class="about-container">
-            <!-- Header Section -->
-            <div class="about-header">
-              <div class="about-header-icon">
-                <i class="bi bi-question-circle"></i>
+        <div class="about-container">
+          <!-- Header Section -->
+          <div class="about-header">
+            <div class="about-header-icon">
+              <i class="bi bi-question-circle"></i>
+            </div>
+            <div>
+              <h5 class="mb-1">Understanding GC Roots</h5>
+              <p class="text-muted mb-0">What prevents objects from being garbage collected</p>
+            </div>
+          </div>
+
+          <!-- Intro -->
+          <div class="about-intro">
+            <p>
+              GC roots are the starting points for garbage collection. The garbage collector traces
+              object references starting from these roots to determine which objects are reachable
+              and should be kept alive. Objects that cannot be traced from any GC root are
+              considered unreachable and eligible for collection.
+            </p>
+          </div>
+
+          <!-- Root Types Section -->
+          <h6 class="section-title">
+            <i class="bi bi-diagram-3 me-2"></i>
+            GC Root Types
+          </h6>
+
+          <div class="feature-grid">
+            <div class="feature-card">
+              <div
+                class="feature-icon"
+                style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
+              >
+                <i class="bi bi-globe"></i>
               </div>
-              <div>
-                <h5 class="mb-1">Understanding GC Roots</h5>
-                <p class="text-muted mb-0">What prevents objects from being garbage collected</p>
+              <div class="feature-content">
+                <h6>JNI Global</h6>
+                <p>
+                  Objects referenced by JNI global references. These are native code references that
+                  persist across JNI calls and must be explicitly deleted.
+                </p>
               </div>
             </div>
 
-            <!-- Intro -->
-            <div class="about-intro">
-              <p>
-                GC roots are the starting points for garbage collection. The garbage collector
-                traces object references starting from these roots to determine which objects are
-                reachable and should be kept alive. Objects that cannot be traced from any GC root
-                are considered unreachable and eligible for collection.
-              </p>
-            </div>
-
-            <!-- Root Types Section -->
-            <h6 class="section-title">
-              <i class="bi bi-diagram-3 me-2"></i>
-              GC Root Types
-            </h6>
-
-            <div class="feature-grid">
-              <div class="feature-card">
-                <div
-                  class="feature-icon"
-                  style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
-                >
-                  <i class="bi bi-globe"></i>
-                </div>
-                <div class="feature-content">
-                  <h6>JNI Global</h6>
-                  <p>
-                    Objects referenced by JNI global references. These are native code references
-                    that persist across JNI calls and must be explicitly deleted.
-                  </p>
-                </div>
+            <div class="feature-card">
+              <div
+                class="feature-icon"
+                style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%)"
+              >
+                <i class="bi bi-geo-alt"></i>
               </div>
-
-              <div class="feature-card">
-                <div
-                  class="feature-icon"
-                  style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%)"
-                >
-                  <i class="bi bi-geo-alt"></i>
-                </div>
-                <div class="feature-content">
-                  <h6>JNI Local</h6>
-                  <p>
-                    Objects referenced by JNI local references within a native method's stack frame.
-                    Automatically cleaned up when the native method returns.
-                  </p>
-                </div>
-              </div>
-
-              <div class="feature-card">
-                <div
-                  class="feature-icon"
-                  style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)"
-                >
-                  <i class="bi bi-layers"></i>
-                </div>
-                <div class="feature-content">
-                  <h6>Java Frame</h6>
-                  <p>
-                    Objects referenced from Java stack frames, including local variables and method
-                    parameters in active method calls.
-                  </p>
-                </div>
-              </div>
-
-              <div class="feature-card">
-                <div
-                  class="feature-icon"
-                  style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)"
-                >
-                  <i class="bi bi-cpu"></i>
-                </div>
-                <div class="feature-content">
-                  <h6>Native Stack</h6>
-                  <p>
-                    Objects referenced from native code execution stacks. These are JNI references
-                    held on the native (C/C++) call stack.
-                  </p>
-                </div>
-              </div>
-
-              <div class="feature-card">
-                <div
-                  class="feature-icon"
-                  style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%)"
-                >
-                  <i class="bi bi-pin-angle"></i>
-                </div>
-                <div class="feature-content">
-                  <h6>Sticky Class</h6>
-                  <p>
-                    System classes that are never unloaded, such as <code>java.lang.*</code>,
-                    primitive types, and other bootstrap classes loaded by the JVM.
-                  </p>
-                </div>
-              </div>
-
-              <div class="feature-card">
-                <div
-                  class="feature-icon"
-                  style="background: linear-gradient(135deg, #30cfd0 0%, #330867 100%)"
-                >
-                  <i class="bi bi-lock"></i>
-                </div>
-                <div class="feature-content">
-                  <h6>Thread Block</h6>
-                  <p>
-                    Objects held as references within thread synchronization blocks. These are
-                    objects referenced by threads waiting on monitors.
-                  </p>
-                </div>
-              </div>
-
-              <div class="feature-card">
-                <div
-                  class="feature-icon"
-                  style="background: linear-gradient(135deg, #ff0844 0%, #ffb199 100%)"
-                >
-                  <i class="bi bi-shield-lock"></i>
-                </div>
-                <div class="feature-content">
-                  <h6>Monitor Used</h6>
-                  <p>
-                    Objects actively being used as monitor locks (<code>synchronized</code>). These
-                    objects are held by threads that have acquired their intrinsic lock.
-                  </p>
-                </div>
-              </div>
-
-              <div class="feature-card">
-                <div
-                  class="feature-icon"
-                  style="background: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%)"
-                >
-                  <i class="bi bi-person-badge"></i>
-                </div>
-                <div class="feature-content">
-                  <h6>Thread Object</h6>
-                  <p>
-                    Thread objects themselves. Every active Java thread is a GC root, keeping itself
-                    and all objects it references alive.
-                  </p>
-                </div>
+              <div class="feature-content">
+                <h6>JNI Local</h6>
+                <p>
+                  Objects referenced by JNI local references within a native method's stack frame.
+                  Automatically cleaned up when the native method returns.
+                </p>
               </div>
             </div>
 
-            <!-- Why It Matters -->
-            <h6 class="section-title">
-              <i class="bi bi-lightning-charge me-2"></i>
-              Why It Matters
-            </h6>
-
-            <div class="benefits-list">
-              <div class="benefit-item">
-                <i class="bi bi-check-circle-fill text-success"></i>
-                <span
-                  >Identify memory leaks by finding unexpected retention paths from GC roots</span
-                >
+            <div class="feature-card">
+              <div
+                class="feature-icon"
+                style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)"
+              >
+                <i class="bi bi-layers"></i>
               </div>
-              <div class="benefit-item">
-                <i class="bi bi-check-circle-fill text-success"></i>
-                <span
-                  >Understand which objects cannot be collected and why they are kept alive</span
-                >
-              </div>
-              <div class="benefit-item">
-                <i class="bi bi-check-circle-fill text-success"></i>
-                <span>Analyze thread state and synchronization issues through monitor roots</span>
-              </div>
-              <div class="benefit-item">
-                <i class="bi bi-check-circle-fill text-success"></i>
-                <span>Debug native code memory issues through JNI global and local references</span>
+              <div class="feature-content">
+                <h6>Java Frame</h6>
+                <p>
+                  Objects referenced from Java stack frames, including local variables and method
+                  parameters in active method calls.
+                </p>
               </div>
             </div>
 
-            <!-- Note -->
-            <div class="about-note">
-              <div class="note-icon">
-                <i class="bi bi-lightbulb-fill"></i>
+            <div class="feature-card">
+              <div
+                class="feature-icon"
+                style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)"
+              >
+                <i class="bi bi-cpu"></i>
               </div>
-              <div class="note-content">
-                <strong>Investigating Memory Leaks?</strong>
-                <p class="mb-0">
-                  Look for objects with unexpected GC roots. Common culprits include static fields
-                  (via Sticky Class), thread locals (via Thread Object), and JNI global references
-                  that weren't properly cleaned up. Use the dominator tree and shortest path to GC
-                  root analysis to trace retention paths.
+              <div class="feature-content">
+                <h6>Native Stack</h6>
+                <p>
+                  Objects referenced from native code execution stacks. These are JNI references
+                  held on the native (C/C++) call stack.
+                </p>
+              </div>
+            </div>
+
+            <div class="feature-card">
+              <div
+                class="feature-icon"
+                style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%)"
+              >
+                <i class="bi bi-pin-angle"></i>
+              </div>
+              <div class="feature-content">
+                <h6>Sticky Class</h6>
+                <p>
+                  System classes that are never unloaded, such as <code>java.lang.*</code>,
+                  primitive types, and other bootstrap classes loaded by the JVM.
+                </p>
+              </div>
+            </div>
+
+            <div class="feature-card">
+              <div
+                class="feature-icon"
+                style="background: linear-gradient(135deg, #30cfd0 0%, #330867 100%)"
+              >
+                <i class="bi bi-lock"></i>
+              </div>
+              <div class="feature-content">
+                <h6>Thread Block</h6>
+                <p>
+                  Objects held as references within thread synchronization blocks. These are objects
+                  referenced by threads waiting on monitors.
+                </p>
+              </div>
+            </div>
+
+            <div class="feature-card">
+              <div
+                class="feature-icon"
+                style="background: linear-gradient(135deg, #ff0844 0%, #ffb199 100%)"
+              >
+                <i class="bi bi-shield-lock"></i>
+              </div>
+              <div class="feature-content">
+                <h6>Monitor Used</h6>
+                <p>
+                  Objects actively being used as monitor locks (<code>synchronized</code>). These
+                  objects are held by threads that have acquired their intrinsic lock.
+                </p>
+              </div>
+            </div>
+
+            <div class="feature-card">
+              <div
+                class="feature-icon"
+                style="background: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%)"
+              >
+                <i class="bi bi-person-badge"></i>
+              </div>
+              <div class="feature-content">
+                <h6>Thread Object</h6>
+                <p>
+                  Thread objects themselves. Every active Java thread is a GC root, keeping itself
+                  and all objects it references alive.
                 </p>
               </div>
             </div>
           </div>
+
+          <!-- Why It Matters -->
+          <h6 class="section-title">
+            <i class="bi bi-lightning-charge me-2"></i>
+            Why It Matters
+          </h6>
+
+          <div class="benefits-list">
+            <div class="benefit-item">
+              <i class="bi bi-check-circle-fill text-success"></i>
+              <span>Identify memory leaks by finding unexpected retention paths from GC roots</span>
+            </div>
+            <div class="benefit-item">
+              <i class="bi bi-check-circle-fill text-success"></i>
+              <span>Understand which objects cannot be collected and why they are kept alive</span>
+            </div>
+            <div class="benefit-item">
+              <i class="bi bi-check-circle-fill text-success"></i>
+              <span>Analyze thread state and synchronization issues through monitor roots</span>
+            </div>
+            <div class="benefit-item">
+              <i class="bi bi-check-circle-fill text-success"></i>
+              <span>Debug native code memory issues through JNI global and local references</span>
+            </div>
+          </div>
+
+          <!-- Note -->
+          <div class="about-note">
+            <div class="note-icon">
+              <i class="bi bi-lightbulb-fill"></i>
+            </div>
+            <div class="note-content">
+              <strong>Investigating Memory Leaks?</strong>
+              <p class="mb-0">
+                Look for objects with unexpected GC roots. Common culprits include static fields
+                (via Sticky Class), thread locals (via Thread Object), and JNI global references
+                that weren't properly cleaned up. Use the dominator tree and shortest path to GC
+                root analysis to trace retention paths.
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>

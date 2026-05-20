@@ -22,12 +22,14 @@ import cafe.jeffrey.profile.heapdump.parser.parquet.ParquetStaging;
 import cafe.jeffrey.profile.heapdump.persistence.HeapDumpDatabaseClient;
 import cafe.jeffrey.profile.heapdump.persistence.HeapDumpStatement;
 import org.duckdb.DuckDBAppender;
+import org.eclipse.collections.api.map.primitive.LongObjectMap;
+import org.eclipse.collections.api.map.primitive.MutableLongObjectMap;
+import org.eclipse.collections.impl.map.mutable.primitive.LongObjectHashMap;
 
 import java.io.IOException;
 import java.nio.file.Path;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -83,7 +85,7 @@ public final class HprofPassBWalker {
      */
     private static final class Counters {
         final List<ParseWarning> warnings = new ArrayList<>();
-        final Map<Long, PrimitiveArrayInfo> primitiveArrayInfoByArrayId = new HashMap<>();
+        final MutableLongObjectMap<PrimitiveArrayInfo> primitiveArrayInfoByArrayId = new LongObjectHashMap<>();
         long instanceCount;
         long gcRootCount;
         long subRecordCount;
@@ -94,7 +96,7 @@ public final class HprofPassBWalker {
             HprofMappedFile file, HeapDumpDatabaseClient client, TopLevelData top,
             ClassDumpIndex classes, int idSize, InstanceLayout layout,
             Path stagingDir, int requestedWorkers) throws IOException {
-        Map<Long, HprofRecord.ClassDump> classesById = classes.byId();
+        LongObjectMap<HprofRecord.ClassDump> classesById = classes.byId();
         List<HprofRecord.HeapDumpRegion> regions = top.regions;
         int n = Math.max(1, Math.min(requestedWorkers, regions.size()));
 
@@ -126,7 +128,7 @@ public final class HprofPassBWalker {
             long gcRootCount = 0L;
             long outboundRefCount = 0L;
             long subRecordCount = 0L;
-            Map<Long, PrimitiveArrayInfo> primArrInfo = new HashMap<>();
+            MutableLongObjectMap<PrimitiveArrayInfo> primArrInfo = new LongObjectHashMap<>();
             List<ParseWarning> warnings = new ArrayList<>();
             for (Future<Counters> f : futures) {
                 Counters wc = FutureJoin.unwrap(f);
@@ -149,7 +151,7 @@ public final class HprofPassBWalker {
 
     private static Counters runWorker(
             HprofMappedFile file, List<HprofRecord.HeapDumpRegion> assigned,
-            Map<Long, HprofRecord.ClassDump> classes, int idSize, InstanceLayout layout,
+            LongObjectMap<HprofRecord.ClassDump> classes, int idSize, InstanceLayout layout,
             Map<String, Path> outputs) {
         Map<String, String> ddls = new LinkedHashMap<>();
         ddls.put(INSTANCE_TABLE, INSTANCE_STAGING_DDL);
@@ -165,39 +167,69 @@ public final class HprofPassBWalker {
 
             for (HprofRecord.HeapDumpRegion region : assigned) {
                 HprofSubRecordReader.read(file, region.fileOffset(), region.byteLength(),
-                        new HprofSubRecordReader.Listener() {
+                        new HprofSubRecordReader.Visitor() {
                             @Override
-                            public void onRecord(HprofRecord.Sub sub) {
+                            public void onInstanceDump(
+                                    long instanceId, int traceSerial, long classId,
+                                    int instanceFieldsByteLength, long fileOffset) {
                                 c.subRecordCount++;
                                 try {
-                                    dispatch(sub);
+                                    appendInstanceFromInstanceDump(
+                                            instApp, instanceId, classId, instanceFieldsByteLength, fileOffset, layout, c);
+                                    refCount[0] += emitInstanceRefs(
+                                            file, instanceId, classId, fileOffset, instanceFieldsByteLength,
+                                            classes, idSize, refApp);
                                 } catch (SQLException e) {
                                     throw new RuntimeException(e);
                                 }
                             }
 
-                            private void dispatch(HprofRecord.Sub sub) throws SQLException {
-                                switch (sub) {
-                                    case HprofRecord.InstanceDump id -> {
-                                        appendInstanceFromInstanceDump(instApp, id, layout, c);
-                                        refCount[0] += emitInstanceRefs(file, id, classes, idSize, refApp);
-                                    }
-                                    case HprofRecord.ObjectArrayDump oa -> {
-                                        appendInstanceFromObjectArray(instApp, oa, layout, c);
-                                        refCount[0] += emitArrayRefs(file, oa, idSize, refApp);
-                                    }
-                                    case HprofRecord.PrimitiveArrayDump pa ->
-                                            appendInstanceFromPrimitiveArray(instApp, pa, idSize, layout, c);
-                                    case HprofRecord.GcRoot root -> {
-                                        appendGcRoot(rootApp, root);
-                                        c.gcRootCount++;
-                                    }
-                                    case HprofRecord.ClassDump ignored -> {
-                                        // Handled by Pass A (HprofClassDumpWalker).
-                                    }
-                                    case HprofRecord.OpaqueSub ignored -> {
-                                    }
+                            @Override
+                            public void onObjectArrayDump(
+                                    long arrayId, int traceSerial, int length, long arrayClassId, long fileOffset) {
+                                c.subRecordCount++;
+                                try {
+                                    appendInstanceFromObjectArray(
+                                            instApp, arrayId, arrayClassId, length, fileOffset, layout, c);
+                                    refCount[0] += emitArrayRefs(file, arrayId, length, fileOffset, idSize, refApp);
+                                } catch (SQLException e) {
+                                    throw new RuntimeException(e);
                                 }
+                            }
+
+                            @Override
+                            public void onPrimitiveArrayDump(
+                                    long arrayId, int traceSerial, int length, int elementType, long fileOffset) {
+                                c.subRecordCount++;
+                                try {
+                                    appendInstanceFromPrimitiveArray(
+                                            instApp, arrayId, length, elementType, fileOffset, idSize, layout, c);
+                                } catch (SQLException e) {
+                                    throw new RuntimeException(e);
+                                }
+                            }
+
+                            @Override
+                            public void onGcRoot(
+                                    int rootKind, long instanceId, int threadSerial, int frameIndex, long fileOffset) {
+                                c.subRecordCount++;
+                                try {
+                                    appendGcRoot(rootApp, rootKind, instanceId, threadSerial, frameIndex, fileOffset);
+                                    c.gcRootCount++;
+                                } catch (SQLException e) {
+                                    throw new RuntimeException(e);
+                                }
+                            }
+
+                            @Override
+                            public void onClassDump(HprofRecord.ClassDump record) {
+                                c.subRecordCount++;
+                                // Handled by Pass A (HprofClassDumpWalker).
+                            }
+
+                            @Override
+                            public void onOpaqueSub(int tag, long bodyOffset, long bodySize) {
+                                c.subRecordCount++;
                             }
 
                             @Override
@@ -214,15 +246,15 @@ public final class HprofPassBWalker {
     }
 
     private static int emitInstanceRefs(
-            HprofMappedFile file, HprofRecord.InstanceDump inst,
-            Map<Long, HprofRecord.ClassDump> classes, int idSize, DuckDBAppender refApp) throws SQLException {
-        long fieldsOffset = inst.fileOffset() + 2L * idSize + 8;
+            HprofMappedFile file, long instanceId, long classId, long fileOffset, int instanceFieldsByteLength,
+            LongObjectMap<HprofRecord.ClassDump> classes, int idSize, DuckDBAppender refApp) throws SQLException {
+        long fieldsOffset = fileOffset + 2L * idSize + 8;
         long cursor = fieldsOffset;
-        long fieldsEnd = fieldsOffset + Integer.toUnsignedLong(inst.instanceFieldsByteLength());
+        long fieldsEnd = fieldsOffset + Integer.toUnsignedLong(instanceFieldsByteLength);
 
         int globalIndex = 0;
         int emitted = 0;
-        long currentClassId = inst.classId();
+        long currentClassId = classId;
         // HPROF instance fields are laid out most-derived-first, walking the super-class chain.
         while (currentClassId != 0L) {
             HprofRecord.ClassDump cls = classes.get(currentClassId);
@@ -238,7 +270,7 @@ public final class HprofPassBWalker {
                     long targetId = file.readId(cursor);
                     if (targetId != 0L) {
                         refApp.beginRow();
-                        refApp.append(inst.instanceId());
+                        refApp.append(instanceId);
                         refApp.append(targetId);
                         refApp.append((byte) 0); // field_kind: instance_field
                         refApp.append(globalIndex);
@@ -255,15 +287,15 @@ public final class HprofPassBWalker {
     }
 
     private static int emitArrayRefs(
-            HprofMappedFile file, HprofRecord.ObjectArrayDump oa, int idSize, DuckDBAppender refApp)
+            HprofMappedFile file, long arrayId, int length, long fileOffset, int idSize, DuckDBAppender refApp)
             throws SQLException {
-        long elementsOffset = oa.fileOffset() + 2L * idSize + 8;
+        long elementsOffset = fileOffset + 2L * idSize + 8;
         int emitted = 0;
-        for (int i = 0; i < oa.length(); i++) {
+        for (int i = 0; i < length; i++) {
             long targetId = file.readId(elementsOffset + (long) i * idSize);
             if (targetId != 0L) {
                 refApp.beginRow();
-                refApp.append(oa.arrayId());
+                refApp.append(arrayId);
                 refApp.append(targetId);
                 refApp.append((byte) 1); // field_kind: array_element
                 refApp.append(i);
@@ -275,13 +307,14 @@ public final class HprofPassBWalker {
     }
 
     private static void appendInstanceFromInstanceDump(
-            DuckDBAppender app, HprofRecord.InstanceDump id, InstanceLayout layout, Counters c) throws SQLException {
+            DuckDBAppender app, long instanceId, long classId, int instanceFieldsByteLength, long fileOffset,
+            InstanceLayout layout, Counters c) throws SQLException {
         // Approximate JVM-side shallow size: object header + encoded fields.
-        int shallow = layout.objectHeader() + id.instanceFieldsByteLength();
+        int shallow = layout.objectHeader() + instanceFieldsByteLength;
         app.beginRow();
-        app.append(id.instanceId());
-        appendNullableId(app, id.classId());
-        app.append(id.fileOffset());
+        app.append(instanceId);
+        appendNullableId(app, classId);
+        app.append(fileOffset);
         app.append(HprofIndex.RECORD_KIND_INSTANCE);
         app.append(shallow);
         app.appendNull(); // array_length
@@ -291,59 +324,62 @@ public final class HprofPassBWalker {
     }
 
     private static void appendInstanceFromObjectArray(
-            DuckDBAppender app, HprofRecord.ObjectArrayDump oa, InstanceLayout layout, Counters c) throws SQLException {
+            DuckDBAppender app, long arrayId, long arrayClassId, int length, long fileOffset,
+            InstanceLayout layout, Counters c) throws SQLException {
         // On-heap OOP width can differ from the .hprof on-disk idSize when the
         // JVM uses compressed oops. Use oopSize so the array's shallow size
         // reflects what the JVM actually allocated.
-        long unaligned = (long) layout.arrayHeader() + (long) oa.length() * layout.oopSize();
+        long unaligned = (long) layout.arrayHeader() + (long) length * layout.oopSize();
         long shallowLong = layout.alignUp(unaligned);
         int shallow = (int) Math.min(shallowLong, Integer.MAX_VALUE);
         app.beginRow();
-        app.append(oa.arrayId());
-        appendNullableId(app, oa.arrayClassId());
-        app.append(oa.fileOffset());
+        app.append(arrayId);
+        appendNullableId(app, arrayClassId);
+        app.append(fileOffset);
         app.append(HprofIndex.RECORD_KIND_OBJECT_ARRAY);
         app.append(shallow);
-        app.append(oa.length());
+        app.append(length);
         app.appendNull(); // primitive_type
         app.endRow();
         c.instanceCount++;
     }
 
     private static void appendInstanceFromPrimitiveArray(
-            DuckDBAppender app, HprofRecord.PrimitiveArrayDump pa, int idSize, InstanceLayout layout, Counters c)
-            throws SQLException {
-        int elementSize = HprofTypeSize.sizeOf(pa.elementType(), idSize);
+            DuckDBAppender app, long arrayId, int length, int elementType, long fileOffset,
+            int idSize, InstanceLayout layout, Counters c) throws SQLException {
+        int elementSize = HprofTypeSize.sizeOf(elementType, idSize);
         if (elementSize < 0) {
             elementSize = 1; // defensive fallback
         }
-        long unaligned = (long) layout.arrayHeader() + (long) pa.length() * elementSize;
+        long unaligned = (long) layout.arrayHeader() + (long) length * elementSize;
         long shallowLong = layout.alignUp(unaligned);
         int shallow = (int) Math.min(shallowLong, Integer.MAX_VALUE);
         app.beginRow();
-        app.append(pa.arrayId());
+        app.append(arrayId);
         // HPROF has no class_id for primitive arrays — assign the synthetic class
         // row seeded by Pass A so the instance joins to a real class name.
-        app.append(primArrayClassId(pa.elementType()));
-        app.append(pa.fileOffset());
+        app.append(primArrayClassId(elementType));
+        app.append(fileOffset);
         app.append(HprofIndex.RECORD_KIND_PRIMITIVE_ARRAY);
         app.append(shallow);
-        app.append(pa.length());
-        app.append((byte) pa.elementType());
+        app.append(length);
+        app.append((byte) elementType);
         app.endRow();
         c.instanceCount++;
         c.primitiveArrayInfoByArrayId.put(
-                pa.arrayId(),
-                new PrimitiveArrayInfo(pa.fileOffset(), pa.length(), pa.elementType()));
+                arrayId,
+                new PrimitiveArrayInfo(fileOffset, length, elementType));
     }
 
-    private static void appendGcRoot(DuckDBAppender app, HprofRecord.GcRoot root) throws SQLException {
+    private static void appendGcRoot(
+            DuckDBAppender app, int rootKind, long instanceId, int threadSerial, int frameIndex, long fileOffset)
+            throws SQLException {
         app.beginRow();
-        app.append(root.instanceId());
-        app.append((byte) root.rootKind());
-        appendNullableInt(app, root.threadSerial());
-        appendNullableInt(app, root.frameIndex());
-        app.append(root.fileOffset());
+        app.append(instanceId);
+        app.append((byte) rootKind);
+        appendNullableInt(app, threadSerial);
+        appendNullableInt(app, frameIndex);
+        app.append(fileOffset);
         app.endRow();
     }
 }

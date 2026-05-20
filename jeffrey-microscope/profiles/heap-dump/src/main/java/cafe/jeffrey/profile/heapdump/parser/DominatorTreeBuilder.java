@@ -152,11 +152,11 @@ public final class DominatorTreeBuilder {
         int virtualIndex = ids.length;
         int totalNodes = ids.length + 1;
 
-        Elapsed<int[][]> succE = measure(() -> loadSuccessors(client, ids, virtualIndex));
-        int[][] succ = succE.entity();
+        Elapsed<Csr> succE = measure(() -> loadSuccessors(client, ids, virtualIndex));
+        Csr succ = succE.entity();
 
-        Elapsed<int[][]> predE = Measuring.s(() -> invert(succ, totalNodes));
-        int[][] pred = predE.entity();
+        Elapsed<Csr> predE = Measuring.s(() -> invert(succ, totalNodes));
+        Csr pred = predE.entity();
 
         // DFS from the virtual root: assigns each reachable node a preorder number,
         // captures the spanning-tree parent. Replaces the old RPO setup.
@@ -217,7 +217,7 @@ public final class DominatorTreeBuilder {
                 rowsE.duration().toMillis(),
                 persistDuration.toMillis(),
                 ids.length,
-                edgeCount(succ),
+                succ.edges().length,
                 reachable);
 
         List<SubPhaseTiming> subPhases = List.of(
@@ -232,7 +232,7 @@ public final class DominatorTreeBuilder {
 
         // BuildResult.iterations was a CHK leftover (number of fixed-point passes);
         // semi-NCA needs no fixed-point so we report 1 to keep the field honest.
-        return new BuildResult(reachable, succ[virtualIndex].length, 1L,
+        return new BuildResult(reachable, succ.outDegree(virtualIndex), 1L,
                 java.time.Duration.ZERO, subPhases);
     }
 
@@ -398,12 +398,22 @@ public final class DominatorTreeBuilder {
         T get() throws SQLException;
     }
 
-    private static long edgeCount(int[][] succ) {
-        long total = 0;
-        for (int[] row : succ) {
-            total += row.length;
+    /**
+     * Compressed Sparse Row adjacency layout. {@code edges} is one flat int[]
+     * holding every outbound destination; node {@code u}'s edges live at
+     * indices {@code [offsets[u], offsets[u + 1])}. Replaces the per-node
+     * {@code int[]} adjacency lists that allocated one int[] per graph node —
+     * typically tens of millions of allocations on a real heap dump.
+     *
+     * <p>{@code offsets.length == nodes + 1}; the trailing slot acts as the
+     * end-sentinel so {@code outDegree(u) = offsets[u + 1] - offsets[u]} stays
+     * branch-free.
+     */
+    private record Csr(int[] offsets, int[] edges) {
+
+        int outDegree(int u) {
+            return offsets[u + 1] - offsets[u];
         }
-        return total;
     }
 
     /**
@@ -412,7 +422,9 @@ public final class DominatorTreeBuilder {
      * count. Unreachable nodes are left with {@code dfsNum[v] = -1} and
      * {@code parent[v] = -1}.
      */
-    private static DfsData computeDfsData(int[][] succ, int root, int totalNodes) {
+    private static DfsData computeDfsData(Csr succ, int root, int totalNodes) {
+        int[] offsets = succ.offsets();
+        int[] edges = succ.edges();
         int[] preorder = new int[totalNodes];
         int[] dfsNum = new int[totalNodes];
         int[] parent = new int[totalNodes];
@@ -432,9 +444,10 @@ public final class DominatorTreeBuilder {
         while (top >= 0) {
             int u = stack[top];
             int idx = childIdx[u];
-            int[] children = succ[u];
-            if (idx < children.length) {
-                int v = children[idx];
+            int start = offsets[u];
+            int end = offsets[u + 1];
+            if (start + idx < end) {
+                int v = edges[start + idx];
                 childIdx[u] = idx + 1;
                 if (dfsNum[v] < 0) {
                     dfsNum[v] = n;
@@ -466,7 +479,9 @@ public final class DominatorTreeBuilder {
      * @return {@code idom[v]} = immediate dominator of {@code v}, with
      *         {@code idom[root] = root}. Unreachable nodes have {@code -1}.
      */
-    private static int[] computeDominatorsSemiNCA(int[][] pred, DfsData dfs, int totalNodes) {
+    private static int[] computeDominatorsSemiNCA(Csr pred, DfsData dfs, int totalNodes) {
+        int[] predOffsets = pred.offsets();
+        int[] predEdges = pred.edges();
         int[] preorder = dfs.preorder();
         int[] dfsNum = dfs.dfsNum();
         int[] parent = dfs.parent();
@@ -491,7 +506,10 @@ public final class DominatorTreeBuilder {
         // Reverse-preorder pass: for each v, walk predecessors, refine semi-dominator.
         for (int i = reachable - 1; i > 0; i--) {
             int v = preorder[i];
-            for (int u : pred[v]) {
+            int startEdge = predOffsets[v];
+            int endEdge = predOffsets[v + 1];
+            for (int k = startEdge; k < endEdge; k++) {
+                int u = predEdges[k];
                 if (dfsNum[u] < 0) {
                     continue; // unreachable predecessor
                 }
@@ -652,8 +670,9 @@ public final class DominatorTreeBuilder {
             """;
 
     /**
-     * Builds the {@code int[][]} adjacency list in two passes: count out-degrees,
-     * then fill exact-sized rows.
+     * Builds the CSR adjacency in two passes: count out-degrees → prefix-sum
+     * them into {@code offsets}, then fill {@code edges} in source order using
+     * a {@code cursor[]} that walks each node's slot in the flat array.
      *
      * <p>The per-edge {@code instance_id → node_index} translation runs in DuckDB
      * via a temp {@code id_index} table and INNER JOINs against {@code outbound_ref}
@@ -661,19 +680,20 @@ public final class DominatorTreeBuilder {
      * to instances absent from the {@code instance} table, matching the old
      * {@code if (src >= 0 && dst >= 0)} filter.
      */
-    private static int[][] loadSuccessors(
+    private static Csr loadSuccessors(
             HeapDumpDatabaseClient client, long[] ids, int virtualIndex) {
         int n = ids.length + 1;
-        int[] outDeg = new int[n];
+        int[] offsets = new int[n + 1];
 
         client.execute(HeapDumpStatement.BUILD_ID_INDEX, CREATE_ID_INDEX_SQL);
         try {
-            // Pass 1a: count outbound_ref edges by source.
+            // Pass 1a: count outbound_ref edges by source. Stash counts at
+            // offsets[u + 1] so the prefix-sum below converts them in place.
             client.rawStream(HeapDumpStatement.JOIN_OUTBOUND_REFS, OUTBOUND_REFS_JOIN_SQL, rs -> {
                 long rows = 0;
                 while (rs.next()) {
                     int src = rs.getInt(1);
-                    outDeg[src]++;
+                    offsets[src + 1]++;
                     rows++;
                 }
                 return rows;
@@ -683,26 +703,31 @@ public final class DominatorTreeBuilder {
             client.rawStream(HeapDumpStatement.JOIN_GC_ROOTS, GC_ROOTS_JOIN_SQL, rs -> {
                 long rows = 0;
                 while (rs.next()) {
-                    outDeg[virtualIndex]++;
+                    offsets[virtualIndex + 1]++;
                     rows++;
                 }
                 return rows;
             });
 
-            int[][] out = new int[n][];
-            for (int i = 0; i < n; i++) {
-                out[i] = new int[outDeg[i]];
+            // Prefix-sum the degrees in offsets[1..n] → CSR start offsets.
+            // offsets[0] stays 0; offsets[n] becomes the total edge count.
+            for (int i = 1; i <= n; i++) {
+                offsets[i] += offsets[i - 1];
             }
+            int totalEdges = offsets[n];
+            int[] edges = new int[totalEdges];
 
-            // Pass 2: fill edges using cursor[] to track per-row write position.
+            // Pass 2: fill edges using cursor[] to track per-source write position.
+            // cursor[u] starts at offsets[u]; advances within [offsets[u], offsets[u + 1]).
             int[] cursor = new int[n];
+            System.arraycopy(offsets, 0, cursor, 0, n);
 
             client.rawStream(HeapDumpStatement.JOIN_OUTBOUND_REFS, OUTBOUND_REFS_JOIN_SQL, rs -> {
                 long rows = 0;
                 while (rs.next()) {
                     int src = rs.getInt(1);
                     int dst = rs.getInt(2);
-                    out[src][cursor[src]++] = dst;
+                    edges[cursor[src]++] = dst;
                     rows++;
                 }
                 return rows;
@@ -712,36 +737,48 @@ public final class DominatorTreeBuilder {
                 long rows = 0;
                 while (rs.next()) {
                     int dst = rs.getInt(1);
-                    out[virtualIndex][cursor[virtualIndex]++] = dst;
+                    edges[cursor[virtualIndex]++] = dst;
                     rows++;
                 }
                 return rows;
             });
 
-            return out;
+            return new Csr(offsets, edges);
         } finally {
             client.execute(HeapDumpStatement.DROP_ID_INDEX, DROP_ID_INDEX_SQL);
         }
     }
 
-    private static int[][] invert(int[][] succ, int n) {
-        int[] degree = new int[n];
-        for (int u = 0; u < n; u++) {
-            for (int v : succ[u]) {
-                degree[v]++;
-            }
+    /**
+     * Builds the inverted CSR via the same two-pass count-then-fill shape used
+     * by {@link #loadSuccessors}: count in-degrees → prefix-sum into
+     * {@code predOffsets}, then fill {@code predEdges} by walking the forward
+     * CSR once more.
+     */
+    private static Csr invert(Csr succ, int n) {
+        int[] succOffsets = succ.offsets();
+        int[] succEdges = succ.edges();
+        int[] predOffsets = new int[n + 1];
+
+        for (int k = 0; k < succEdges.length; k++) {
+            predOffsets[succEdges[k] + 1]++;
         }
-        int[][] pred = new int[n][];
+        for (int i = 1; i <= n; i++) {
+            predOffsets[i] += predOffsets[i - 1];
+        }
+        int[] predEdges = new int[succEdges.length];
         int[] cursor = new int[n];
-        for (int v = 0; v < n; v++) {
-            pred[v] = new int[degree[v]];
-        }
+        System.arraycopy(predOffsets, 0, cursor, 0, n);
+
         for (int u = 0; u < n; u++) {
-            for (int v : succ[u]) {
-                pred[v][cursor[v]++] = u;
+            int startEdge = succOffsets[u];
+            int endEdge = succOffsets[u + 1];
+            for (int k = startEdge; k < endEdge; k++) {
+                int v = succEdges[k];
+                predEdges[cursor[v]++] = u;
             }
         }
-        return pred;
+        return new Csr(predOffsets, predEdges);
     }
 
 }

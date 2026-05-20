@@ -92,10 +92,7 @@ export default class HeapDumpClient extends BaseProfileClient {
     return this.get<GCRootSummary>('/gc-roots');
   }
 
-  public getTopRetainers(
-    limit: number = 100,
-    rootKinds: number[] = []
-  ): Promise<GCRootRetainer[]> {
+  public getTopRetainers(limit: number = 100, rootKinds: number[] = []): Promise<GCRootRetainer[]> {
     const params: Record<string, unknown> = { limit };
     if (rootKinds.length > 0) {
       params.rootKinds = rootKinds.join(',');

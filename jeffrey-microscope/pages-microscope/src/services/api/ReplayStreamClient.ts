@@ -16,18 +16,18 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import GlobalVars from '@/services/GlobalVars'
-import type { StreamingEvent } from '@/services/api/EventStreamingClient'
+import GlobalVars from '@/services/GlobalVars';
+import type { StreamingEvent } from '@/services/api/EventStreamingClient';
 
 /**
  * Client for replaying historical JFR events from a single session's dumped recording files via SSE.
  */
 export default class ReplayStreamClient {
-  private readonly baseUrl: string
-  private eventSource: EventSource | null = null
+  private readonly baseUrl: string;
+  private eventSource: EventSource | null = null;
 
   constructor(workspaceId: string, projectId: string) {
-    this.baseUrl = `${GlobalVars.internalUrl}/workspaces/${workspaceId}/projects/${projectId}/replay-stream`
+    this.baseUrl = `${GlobalVars.internalUrl}/workspaces/${workspaceId}/projects/${projectId}/replay-stream`;
   }
 
   /**
@@ -48,51 +48,51 @@ export default class ReplayStreamClient {
     onError: (error: string) => void,
     options?: { startTime?: number; endTime?: number }
   ): void {
-    this.cancel()
+    this.cancel();
 
-    const params = new URLSearchParams()
-    params.set('sessionId', sessionId)
+    const params = new URLSearchParams();
+    params.set('sessionId', sessionId);
     if (eventTypes.length > 0) {
-      params.set('eventTypes', eventTypes.join(','))
+      params.set('eventTypes', eventTypes.join(','));
     }
     if (options?.startTime != null) {
-      params.set('startTime', String(options.startTime))
+      params.set('startTime', String(options.startTime));
     }
     if (options?.endTime != null) {
-      params.set('endTime', String(options.endTime))
+      params.set('endTime', String(options.endTime));
     }
 
-    const url = `${this.baseUrl}/subscribe?${params.toString()}`
+    const url = `${this.baseUrl}/subscribe?${params.toString()}`;
 
-    let finished = false
+    let finished = false;
 
-    this.eventSource = new EventSource(url)
+    this.eventSource = new EventSource(url);
 
     this.eventSource.addEventListener('events', (event: MessageEvent) => {
-      const events: StreamingEvent[] = JSON.parse(event.data)
-      onEvents(events)
-    })
+      const events: StreamingEvent[] = JSON.parse(event.data);
+      onEvents(events);
+    });
 
     this.eventSource.addEventListener('complete', () => {
-      if (finished) return
-      finished = true
-      this.cancel()
-      onComplete()
-    })
+      if (finished) return;
+      finished = true;
+      this.cancel();
+      onComplete();
+    });
 
     this.eventSource.addEventListener('replayError', (event: MessageEvent) => {
-      if (finished) return
-      finished = true
-      this.cancel()
-      onError(event.data || 'Replay error')
-    })
+      if (finished) return;
+      finished = true;
+      this.cancel();
+      onError(event.data || 'Replay error');
+    });
 
     this.eventSource.onerror = () => {
-      this.cancel()
-      if (finished) return
-      finished = true
-      onComplete()
-    }
+      this.cancel();
+      if (finished) return;
+      finished = true;
+      onComplete();
+    };
   }
 
   /**
@@ -100,8 +100,8 @@ export default class ReplayStreamClient {
    */
   cancel(): void {
     if (this.eventSource) {
-      this.eventSource.close()
-      this.eventSource = null
+      this.eventSource.close();
+      this.eventSource = null;
     }
   }
 }

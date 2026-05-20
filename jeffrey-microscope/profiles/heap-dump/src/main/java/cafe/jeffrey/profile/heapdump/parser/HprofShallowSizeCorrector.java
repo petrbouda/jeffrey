@@ -19,9 +19,11 @@ package cafe.jeffrey.profile.heapdump.parser;
 
 import cafe.jeffrey.profile.heapdump.persistence.HeapDumpDatabaseClient;
 import cafe.jeffrey.profile.heapdump.persistence.HeapDumpStatement;
-
-import java.util.HashMap;
-import java.util.Map;
+import org.eclipse.collections.api.map.primitive.LongIntMap;
+import org.eclipse.collections.api.map.primitive.LongObjectMap;
+import org.eclipse.collections.api.map.primitive.MutableLongIntMap;
+import org.eclipse.collections.api.tuple.primitive.LongIntPair;
+import org.eclipse.collections.impl.map.mutable.primitive.LongIntHashMap;
 
 /**
  * Phase 6 — corrects instance.shallow_size to match the JVM's allocated size:
@@ -49,24 +51,24 @@ public final class HprofShallowSizeCorrector {
 
     public static void apply(
             HeapDumpDatabaseClient client,
-            Map<Long, HprofRecord.ClassDump> classDumps,
+            LongObjectMap<HprofRecord.ClassDump> classDumps,
             InstanceLayout layout) {
         int oopDelta = layout.oopOverheadDelta();
         int alignment = layout.objectAlignment();
 
         if (oopDelta > 0 && !classDumps.isEmpty()) {
-            Map<Long, Integer> chainOopByClass = computeChainOopCounts(classDumps);
+            LongIntMap chainOopByClass = computeChainOopCounts(classDumps);
             client.execute(HeapDumpStatement.CREATE_TEMP_CLASS_CHAIN_OOP,
                     "CREATE TEMP TABLE _class_chain_oop (class_id BIGINT, oop_count INTEGER)");
             client.withAppender(HeapDumpStatement.APPEND_CLASS_CHAIN_OOP, "_class_chain_oop", app -> {
                 long rows = 0;
-                for (Map.Entry<Long, Integer> e : chainOopByClass.entrySet()) {
-                    if (e.getValue() == 0) {
+                for (LongIntPair e : chainOopByClass.keyValuesView()) {
+                    if (e.getTwo() == 0) {
                         continue; // skip zero rows to keep the table tight
                     }
                     app.beginRow();
-                    app.append(e.getKey());
-                    app.append(e.getValue());
+                    app.append(e.getOne());
+                    app.append(e.getTwo());
                     app.endRow();
                     rows++;
                 }
@@ -93,22 +95,23 @@ public final class HprofShallowSizeCorrector {
                 alignment, alignment, alignment, alignment);
     }
 
-    private static Map<Long, Integer> computeChainOopCounts(
-            Map<Long, HprofRecord.ClassDump> classDumps) {
-        Map<Long, Integer> memo = new HashMap<>(classDumps.size());
-        for (Long classId : classDumps.keySet()) {
-            chainOopCount(classId, classDumps, memo);
-        }
+    private static LongIntMap computeChainOopCounts(
+            LongObjectMap<HprofRecord.ClassDump> classDumps) {
+        MutableLongIntMap memo = new LongIntHashMap(classDumps.size());
+        // forEachKey accepts a LongProcedure (primitive long), avoiding a
+        // Long boxing per class entry.
+        classDumps.forEachKey(classId -> chainOopCount(classId, classDumps, memo));
         return memo;
     }
 
     private static int chainOopCount(
             long classId,
-            Map<Long, HprofRecord.ClassDump> classDumps,
-            Map<Long, Integer> memo) {
-        Integer cached = memo.get(classId);
-        if (cached != null) {
-            return cached;
+            LongObjectMap<HprofRecord.ClassDump> classDumps,
+            MutableLongIntMap memo) {
+        // LongIntHashMap stores 0 as the absent-value sentinel by default, so
+        // we use containsKey to disambiguate "cached 0" from "not yet computed".
+        if (memo.containsKey(classId)) {
+            return memo.get(classId);
         }
         HprofRecord.ClassDump cd = classDumps.get(classId);
         if (cd == null) {

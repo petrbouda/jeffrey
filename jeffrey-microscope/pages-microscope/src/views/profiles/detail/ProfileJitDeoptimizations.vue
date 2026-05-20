@@ -20,440 +20,542 @@
 
     <!-- Activity timeseries -->
     <div v-show="activeTab === 'activity'">
-        <p class="tab-description">
-          Events per second across the recording window. Spikes after warmup may indicate a regression.
-        </p>
-        <div class="chart-container">
-          <TimeSeriesChart
-            :primaryData="timeseriesData?.data"
-            :primaryTitle="timeseriesData?.name ?? 'Deoptimizations'"
-            :visibleMinutes="60"
-          />
-        </div>
+      <p class="tab-description">
+        Events per second across the recording window. Spikes after warmup may indicate a
+        regression.
+      </p>
+      <div class="chart-container">
+        <TimeSeriesChart
+          :primaryData="timeseriesData?.data"
+          :primaryTitle="timeseriesData?.name ?? 'Deoptimizations'"
+          :visibleMinutes="60"
+        />
+      </div>
     </div>
 
     <!-- Events table -->
     <div v-show="activeTab === 'events'">
-        <p class="tab-description">
-          Per-event detail. Click a row to see full payload. Most recent {{ events.length }} events shown.
-        </p>
-        <EmptyState
-          v-if="events.length === 0"
-          icon="bi-arrow-counterclockwise"
-          title="No deoptimization events recorded"
-        />
-        <DataTable v-else>
-          <thead>
-            <tr>
-              <th>Time</th>
-              <th>Method</th>
-              <th>Line</th>
-              <th>BCI</th>
-              <th>Reason</th>
-              <th>Compiler</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              v-for="event in events"
-              :key="`${event.timestamp}-${event.compileId}-${event.bci}`"
-              @click="showEventDetails(event)"
-              style="cursor: pointer"
-            >
-              <td>
-                <div class="time-cell">
-                  <span class="time-cell-time">{{ formatEventTime(event.timestamp) }}</span>
-                  <span class="time-cell-date">{{ formatEventDate(event.timestamp) }}</span>
-                </div>
-              </td>
-              <td>
-                <div class="method-cell">
-                  <span class="method-name">{{ getClassMethodName(event.method) }}</span>
-                  <span class="method-path">{{ getPackage(event.method) }}</span>
-                </div>
-              </td>
-              <td>{{ event.lineNumber || '—' }}</td>
-              <td>{{ event.bci }}</td>
-              <td>
-                <div class="reason-cell">
+      <p class="tab-description">
+        Per-event detail. Click a row to see full payload. Most recent {{ events.length }} events
+        shown.
+      </p>
+      <EmptyState
+        v-if="events.length === 0"
+        icon="bi-arrow-counterclockwise"
+        title="No deoptimization events recorded"
+      />
+      <DataTable v-else>
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Method</th>
+            <th>Line</th>
+            <th>BCI</th>
+            <th>Reason</th>
+            <th>Compiler</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr
+            v-for="event in events"
+            :key="`${event.timestamp}-${event.compileId}-${event.bci}`"
+            @click="showEventDetails(event)"
+            style="cursor: pointer"
+          >
+            <td>
+              <div class="time-cell">
+                <span class="time-cell-time">{{ formatEventTime(event.timestamp) }}</span>
+                <span class="time-cell-date">{{ formatEventDate(event.timestamp) }}</span>
+              </div>
+            </td>
+            <td>
+              <div class="method-cell">
+                <span class="method-name">{{ getClassMethodName(event.method) }}</span>
+                <span class="method-path">{{ getPackage(event.method) }}</span>
+              </div>
+            </td>
+            <td>{{ event.lineNumber || '—' }}</td>
+            <td>{{ event.bci }}</td>
+            <td>
+              <div class="reason-cell">
+                <span
+                  v-if="event.reason"
+                  class="compound-pill"
+                  :class="`compound-reason-${reasonVariant(event.reason)}`"
+                  :title="reasonTooltip(event)"
+                >
                   <span
-                    v-if="event.reason"
-                    class="compound-pill"
-                    :class="`compound-reason-${reasonVariant(event.reason)}`"
-                    :title="reasonTooltip(event)"
+                    class="compound-pill-action"
+                    :class="`compound-action-${actionClass(event.action)}`"
                   >
-                    <span
-                      class="compound-pill-action"
-                      :class="`compound-action-${actionClass(event.action)}`"
-                    >
-                      {{ actionAbbr(event.action) }}
-                    </span>
-                    <span class="compound-pill-reason">
-                      {{ displayReason(event.reason) }}
-                    </span>
+                    {{ actionAbbr(event.action) }}
                   </span>
-                  <span v-else>—</span>
-                  <span v-if="event.instruction" class="reason-cell-instruction code-text">
-                    {{ event.instruction }}
+                  <span class="compound-pill-reason">
+                    {{ displayReason(event.reason) }}
                   </span>
-                </div>
-              </td>
-              <td>
-                <Badge
-                  v-if="event.compiler"
-                  :value="event.compiler.toLowerCase()"
-                  variant="primary"
-                  size="xs"
-                />
+                </span>
                 <span v-else>—</span>
-              </td>
-            </tr>
-          </tbody>
-        </DataTable>
+                <span v-if="event.instruction" class="reason-cell-instruction code-text">
+                  {{ event.instruction }}
+                </span>
+              </div>
+            </td>
+            <td>
+              <Badge
+                v-if="event.compiler"
+                :value="event.compiler.toLowerCase()"
+                variant="primary"
+                size="xs"
+              />
+              <span v-else>—</span>
+            </td>
+          </tr>
+        </tbody>
+      </DataTable>
     </div>
 
     <!-- Top methods -->
     <div v-show="activeTab === 'methods'">
-        <p class="tab-description">
-          Methods ranked by deopt count. The bar visualizes share relative to the top method.
-        </p>
-        <EmptyState
-          v-if="topMethods.length === 0"
-          icon="bi-fire"
-          title="No deoptimizations recorded"
-        />
-        <DataTable v-else>
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Method</th>
-              <th>Deopts</th>
-              <th>% of Total</th>
-              <th>Dominant Reason</th>
-              <th>Compilers</th>
-              <th class="share-col">Share</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              v-for="(aggregate, index) in topMethods"
-              :key="aggregate.method"
-            >
-              <td>{{ index + 1 }}</td>
-              <td>
-                <div class="method-cell">
-                  <span class="method-name">{{ getClassMethodName(aggregate.method) }}</span>
-                  <span class="method-path">{{ getPackage(aggregate.method) }}</span>
-                </div>
-              </td>
-              <td><strong>{{ FormattingService.formatNumber(aggregate.count) }}</strong></td>
-              <td>{{ percentageOfTotal(aggregate.count) }}</td>
-              <td>
+      <p class="tab-description">
+        Methods ranked by deopt count. The bar visualizes share relative to the top method.
+      </p>
+      <EmptyState
+        v-if="topMethods.length === 0"
+        icon="bi-fire"
+        title="No deoptimizations recorded"
+      />
+      <DataTable v-else>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Method</th>
+            <th>Deopts</th>
+            <th>% of Total</th>
+            <th>Dominant Reason</th>
+            <th>Compilers</th>
+            <th class="share-col">Share</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="(aggregate, index) in topMethods" :key="aggregate.method">
+            <td>{{ index + 1 }}</td>
+            <td>
+              <div class="method-cell">
+                <span class="method-name">{{ getClassMethodName(aggregate.method) }}</span>
+                <span class="method-path">{{ getPackage(aggregate.method) }}</span>
+              </div>
+            </td>
+            <td>
+              <strong>{{ FormattingService.formatNumber(aggregate.count) }}</strong>
+            </td>
+            <td>{{ percentageOfTotal(aggregate.count) }}</td>
+            <td>
+              <Badge
+                v-if="aggregate.dominantReason"
+                :value="aggregate.dominantReason"
+                :variant="reasonVariant(aggregate.dominantReason)"
+                size="s"
+              />
+              <span v-else>—</span>
+            </td>
+            <td>
+              <div class="compilers-cell">
                 <Badge
-                  v-if="aggregate.dominantReason"
-                  :value="aggregate.dominantReason"
-                  :variant="reasonVariant(aggregate.dominantReason)"
-                  size="s"
+                  v-for="compiler in aggregate.compilers"
+                  :key="compiler"
+                  :value="compiler.toLowerCase()"
+                  variant="primary"
+                  size="xs"
                 />
-                <span v-else>—</span>
-              </td>
-              <td>
-                <div class="compilers-cell">
-                  <Badge
-                    v-for="compiler in aggregate.compilers"
-                    :key="compiler"
-                    :value="compiler.toLowerCase()"
-                    variant="primary"
-                    size="xs"
-                  />
-                </div>
-              </td>
-              <td>
-                <div class="share-bar">
-                  <div
-                    class="share-bar-fill"
-                    :style="{
-                      width: shareBarWidth(aggregate.count) + '%',
-                      background: reasonColor(aggregate.dominantReason)
-                    }"
-                  ></div>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </DataTable>
+              </div>
+            </td>
+            <td>
+              <div class="share-bar">
+                <div
+                  class="share-bar-fill"
+                  :style="{
+                    width: shareBarWidth(aggregate.count) + '%',
+                    background: reasonColor(aggregate.dominantReason)
+                  }"
+                ></div>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </DataTable>
     </div>
 
     <!-- Reason distribution -->
     <div v-show="activeTab === 'distribution'">
-        <EmptyState
-          v-if="reasonDistribution.length === 0"
-          icon="bi-pie-chart"
-          title="No deoptimizations recorded"
-        />
-        <div v-else class="distribution-grid">
-          <div class="chart-container">
-            <div id="deopt-reason-distribution-chart"></div>
-          </div>
-          <div class="reason-card-grid">
-            <div
-              v-for="row in reasonDistribution"
-              :key="row.reason"
-              class="reason-card"
-              :title="reasonExplanation(row.reason)"
-            >
-              <Badge :value="row.reason" :variant="reasonVariant(row.reason)" size="s" />
-              <div class="reason-card-meta">
-                <span class="reason-card-count">{{ FormattingService.formatNumber(row.count) }}</span>
-                <span class="reason-card-pct">{{ percentageOfTotal(row.count) }}</span>
-              </div>
+      <EmptyState
+        v-if="reasonDistribution.length === 0"
+        icon="bi-pie-chart"
+        title="No deoptimizations recorded"
+      />
+      <div v-else class="distribution-grid">
+        <div class="chart-container">
+          <div id="deopt-reason-distribution-chart"></div>
+        </div>
+        <div class="reason-card-grid">
+          <div
+            v-for="row in reasonDistribution"
+            :key="row.reason"
+            class="reason-card"
+            :title="reasonExplanation(row.reason)"
+          >
+            <Badge :value="row.reason" :variant="reasonVariant(row.reason)" size="s" />
+            <div class="reason-card-meta">
+              <span class="reason-card-count">{{ FormattingService.formatNumber(row.count) }}</span>
+              <span class="reason-card-pct">{{ percentageOfTotal(row.count) }}</span>
             </div>
           </div>
         </div>
+      </div>
     </div>
 
     <!-- How It Works (educational, profile-agnostic) -->
     <div v-show="activeTab === 'howit'">
-        <div class="howit-section">
-          <h6 class="howit-section-title">
-            <i class="bi bi-question-circle"></i>
-            What is deoptimization?
-          </h6>
-          <div class="howit-prose">
-            <p>
-              HotSpot's JIT compilers — <strong>C1</strong> (the client compiler, fast) and
-              <strong>C2</strong> (the server compiler, aggressive) — don't translate your bytecode
-              literally. They translate it under <strong>optimistic assumptions</strong>: this call
-              site is monomorphic, this branch is rarely taken, this field is never
-              <code class="code-text">null</code>, this class hierarchy will not gain new subclasses.
-              With those assumptions in hand, the compiler produces dramatically faster machine code
-              than a literal translation could.
-            </p>
-            <p>
-              But assumptions can be invalidated by runtime: a new subclass loads, a "rarely taken"
-              branch is taken, a field <em>does</em> turn out to be null. When that happens, the
-              optimized code is no longer correct, so the JVM <strong>deoptimizes</strong>: it
-              abandons the optimized version, falls back to the interpreter at this exact bytecode
-              index, and may schedule a recompilation that omits the failed assumption. This
-              fallback is also called an <em>uncommon trap</em>.
-            </p>
-          </div>
-          <div class="howit-callout howit-callout-tip">
-            <strong><i class="bi bi-lightbulb-fill"></i> The takeaway.</strong>
-            Deoptimization is not a bug — it's how speculation pays for itself. The JVM speculates
-            aggressively because <em>occasionally</em> being wrong (and paying a deopt) is cheaper
-            than always being correct (and missing huge optimization wins).
-          </div>
-        </div>
-
-        <div class="howit-section">
-          <h6 class="howit-section-title">
-            <i class="bi bi-diagram-3"></i>
-            The compilation → deopt lifecycle
-          </h6>
-          <p class="tab-description">
-            Hot methods walk up the tier ladder. When speculation is wrong, they fall back down.
+      <div class="howit-section">
+        <h6 class="howit-section-title">
+          <i class="bi bi-question-circle"></i>
+          What is deoptimization?
+        </h6>
+        <div class="howit-prose">
+          <p>
+            HotSpot's JIT compilers — <strong>C1</strong> (the client compiler, fast) and
+            <strong>C2</strong> (the server compiler, aggressive) — don't translate your bytecode
+            literally. They translate it under <strong>optimistic assumptions</strong>: this call
+            site is monomorphic, this branch is rarely taken, this field is never
+            <code class="code-text">null</code>, this class hierarchy will not gain new subclasses.
+            With those assumptions in hand, the compiler produces dramatically faster machine code
+            than a literal translation could.
           </p>
-          <div class="lifecycle-diagram">
-            <svg viewBox="0 0 880 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="JIT lifecycle">
-              <defs>
-                <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
-                  <path d="M0,0 L10,5 L0,10 z" fill="var(--color-text-muted)" />
-                </marker>
-                <marker id="arrowDanger" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
-                  <path d="M0,0 L10,5 L0,10 z" fill="var(--color-danger)" />
-                </marker>
-              </defs>
-              <g font-size="13" font-weight="600" text-anchor="middle">
-                <rect x="20" y="60" width="140" height="60" rx="8" fill="var(--color-lighter)" stroke="var(--color-border)" />
-                <text x="90" y="86" fill="var(--color-text)">Interpreter</text>
-                <text x="90" y="104" fill="var(--color-text-muted)" font-weight="400" font-size="10">runs all bytecode</text>
-
-                <rect x="200" y="60" width="160" height="60" rx="8" fill="var(--color-info-light)" stroke="var(--color-info-border)" />
-                <text x="280" y="84" fill="var(--color-info-text)">C1 — Tier 3</text>
-                <text x="280" y="102" fill="var(--color-info-text)" font-weight="400" font-size="10">fast compile + profiling</text>
-
-                <rect x="400" y="60" width="160" height="60" rx="8" fill="var(--color-primary-light)" stroke="var(--color-primary-border)" />
-                <text x="480" y="84" fill="var(--color-primary)">C2 — Tier 4</text>
-                <text x="480" y="102" fill="var(--color-primary)" font-weight="400" font-size="10">aggressive speculation</text>
-
-                <rect x="600" y="60" width="170" height="60" rx="8" fill="var(--color-warning-light)" stroke="var(--color-warning-border)" />
-                <text x="685" y="84" fill="var(--color-warning)">Uncommon trap</text>
-                <text x="685" y="102" fill="var(--color-warning)" font-weight="400" font-size="10">speculation wrong</text>
-
-                <rect x="400" y="220" width="160" height="60" rx="8" fill="var(--color-info-light)" stroke="var(--color-info-border)" />
-                <text x="480" y="244" fill="var(--color-info-text)">Reinterpret</text>
-                <text x="480" y="262" fill="var(--color-info-text)" font-weight="400" font-size="10">action: reinterpret</text>
-
-                <rect x="600" y="220" width="170" height="60" rx="8" fill="var(--color-success-light)" stroke="var(--color-success-bg)" />
-                <text x="685" y="244" fill="var(--color-success)">Recompile</text>
-                <text x="685" y="262" fill="var(--color-success)" font-weight="400" font-size="10">action: recompile</text>
-              </g>
-              <g stroke="var(--color-text-muted)" stroke-width="1.6" fill="none" marker-end="url(#arrow)">
-                <line x1="160" y1="90" x2="200" y2="90" />
-                <line x1="360" y1="90" x2="400" y2="90" />
-                <line x1="560" y1="90" x2="600" y2="90" />
-              </g>
-              <g stroke="var(--color-danger)" stroke-width="1.6" fill="none" marker-end="url(#arrowDanger)">
-                <path d="M650 120 Q 530 170, 480 220" />
-                <path d="M720 120 Q 720 170, 685 220" />
-              </g>
-              <g stroke="var(--color-success)" stroke-width="1.4" fill="none" stroke-dasharray="5,3" marker-end="url(#arrow)">
-                <path d="M600 250 Q 380 250, 380 175 Q 380 130, 480 120" />
-              </g>
-              <text x="200" y="248" fill="var(--color-success)" font-size="10">re-enter C2 with refined profile</text>
-              <g font-size="10" fill="var(--color-text-muted)">
-                <text x="180" y="80" text-anchor="middle">≈10k inv</text>
-                <text x="380" y="80" text-anchor="middle">≈10k+ inv</text>
-                <text x="580" y="80" text-anchor="middle">trap fires</text>
-              </g>
-            </svg>
-          </div>
-        </div>
-
-        <div class="howit-section">
-          <h6 class="howit-section-title">
-            <i class="bi bi-rocket"></i>
-            Why does the JVM speculate?
-          </h6>
-          <div class="howit-prose">
-            <p>Speculation is what makes Java fast. Three classics:</p>
-            <ul>
-              <li>
-                <strong>Inlining a virtual call</strong> — after the profiler sees one receiver
-                type a million times, C2 inlines the callee directly. Inlining unlocks every other
-                optimization downstream.
-              </li>
-              <li>
-                <strong>Removing a null check</strong> — if a field has never been null in
-                profiling, C2 removes the check. If it ever <em>does</em> turn out to be null at
-                runtime, you get a <code class="code-text">null_check</code> deopt — but the saved
-                checks paid off thousands of times before.
-              </li>
-              <li>
-                <strong>Eliminating range checks</strong> — loops with stable bounds let C2 prove
-                array indices are in range and skip the per-iteration check. If the predicate
-                fails, you get a <code class="code-text">predicate</code> deopt.
-              </li>
-            </ul>
-            <p>
-              The trade is asymmetric in your favor: speculation makes 99.9% of executions fast;
-              the 0.1% that hit a deopt pay a fraction of a millisecond.
-            </p>
-          </div>
-        </div>
-
-        <div class="howit-section">
-          <h6 class="howit-section-title">
-            <i class="bi bi-list-ul"></i>
-            Reasons reference
-          </h6>
-          <p class="tab-description">
-            The values you'll see in the <code class="code-text">reason</code> column on the Events
-            tab and the Reason Distribution tab.
+          <p>
+            But assumptions can be invalidated by runtime: a new subclass loads, a "rarely taken"
+            branch is taken, a field <em>does</em> turn out to be null. When that happens, the
+            optimized code is no longer correct, so the JVM <strong>deoptimizes</strong>: it
+            abandons the optimized version, falls back to the interpreter at this exact bytecode
+            index, and may schedule a recompilation that omits the failed assumption. This fallback
+            is also called an <em>uncommon trap</em>.
           </p>
-          <div class="table-responsive">
-            <table class="table table-sm table-hover mb-0">
-              <thead>
-                <tr>
-                  <th>Reason</th>
-                  <th>What it means</th>
-                  <th>Typical cause</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="row in reasonReference" :key="row.reason">
-                  <td><Badge :value="row.reason" :variant="reasonVariant(row.reason)" size="s" /></td>
-                  <td>{{ row.meaning }}</td>
-                  <td class="reason-meaning">{{ row.cause }}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
         </div>
-
-        <div class="howit-section">
-          <h6 class="howit-section-title">
-            <i class="bi bi-gear"></i>
-            Actions reference
-          </h6>
-          <p class="tab-description">What the JVM does after the trap fires.</p>
-          <div class="action-glossary">
-            <div v-for="action in actionReference" :key="action.value" class="action-card">
-              <h6 class="action-card-heading">
-                <Badge :value="action.value" :variant="action.variant" size="s" />
-              </h6>
-              <p>{{ action.description }}</p>
-            </div>
-          </div>
+        <div class="howit-callout howit-callout-tip">
+          <strong><i class="bi bi-lightbulb-fill"></i> The takeaway.</strong>
+          Deoptimization is not a bug — it's how speculation pays for itself. The JVM speculates
+          aggressively because <em>occasionally</em> being wrong (and paying a deopt) is cheaper
+          than always being correct (and missing huge optimization wins).
         </div>
+      </div>
 
-        <div class="howit-section">
-          <div class="howit-grid-2">
-            <div>
-              <h6 class="howit-section-title">
-                <i class="bi bi-check2-circle howit-success-icon"></i>
-                When deopt is normal
-              </h6>
-              <ul class="howit-list">
-                <li v-for="point in normalScenarios" :key="point.title">
-                  <i class="bi bi-check-circle-fill"></i>
-                  <span><strong>{{ point.title }}</strong> {{ point.description }}</span>
-                </li>
-              </ul>
-            </div>
-            <div>
-              <h6 class="howit-section-title">
-                <i class="bi bi-exclamation-triangle howit-warning-icon"></i>
-                When deopt is a problem
-              </h6>
-              <ul class="howit-list howit-list-warn">
-                <li v-for="point in problemScenarios" :key="point.title">
-                  <i class="bi bi-exclamation-triangle-fill"></i>
-                  <span>
-                    <strong>{{ point.title }}</strong> {{ point.description }}
-                    <button
-                      v-if="point.tabLink"
-                      class="tab-link"
-                      type="button"
-                      @click="setActiveTab(point.tabLink)"
-                    >
-                      Open {{ point.tabLinkLabel }} tab
-                    </button>
-                  </span>
-                </li>
-              </ul>
-            </div>
-          </div>
+      <div class="howit-section">
+        <h6 class="howit-section-title">
+          <i class="bi bi-diagram-3"></i>
+          The compilation → deopt lifecycle
+        </h6>
+        <p class="tab-description">
+          Hot methods walk up the tier ladder. When speculation is wrong, they fall back down.
+        </p>
+        <div class="lifecycle-diagram">
+          <svg
+            viewBox="0 0 880 320"
+            xmlns="http://www.w3.org/2000/svg"
+            role="img"
+            aria-label="JIT lifecycle"
+          >
+            <defs>
+              <marker
+                id="arrow"
+                viewBox="0 0 10 10"
+                refX="9"
+                refY="5"
+                markerWidth="8"
+                markerHeight="8"
+                orient="auto"
+              >
+                <path d="M0,0 L10,5 L0,10 z" fill="var(--color-text-muted)" />
+              </marker>
+              <marker
+                id="arrowDanger"
+                viewBox="0 0 10 10"
+                refX="9"
+                refY="5"
+                markerWidth="8"
+                markerHeight="8"
+                orient="auto"
+              >
+                <path d="M0,0 L10,5 L0,10 z" fill="var(--color-danger)" />
+              </marker>
+            </defs>
+            <g font-size="13" font-weight="600" text-anchor="middle">
+              <rect
+                x="20"
+                y="60"
+                width="140"
+                height="60"
+                rx="8"
+                fill="var(--color-lighter)"
+                stroke="var(--color-border)"
+              />
+              <text x="90" y="86" fill="var(--color-text)">Interpreter</text>
+              <text x="90" y="104" fill="var(--color-text-muted)" font-weight="400" font-size="10">
+                runs all bytecode
+              </text>
+
+              <rect
+                x="200"
+                y="60"
+                width="160"
+                height="60"
+                rx="8"
+                fill="var(--color-info-light)"
+                stroke="var(--color-info-border)"
+              />
+              <text x="280" y="84" fill="var(--color-info-text)">C1 — Tier 3</text>
+              <text x="280" y="102" fill="var(--color-info-text)" font-weight="400" font-size="10">
+                fast compile + profiling
+              </text>
+
+              <rect
+                x="400"
+                y="60"
+                width="160"
+                height="60"
+                rx="8"
+                fill="var(--color-primary-light)"
+                stroke="var(--color-primary-border)"
+              />
+              <text x="480" y="84" fill="var(--color-primary)">C2 — Tier 4</text>
+              <text x="480" y="102" fill="var(--color-primary)" font-weight="400" font-size="10">
+                aggressive speculation
+              </text>
+
+              <rect
+                x="600"
+                y="60"
+                width="170"
+                height="60"
+                rx="8"
+                fill="var(--color-warning-light)"
+                stroke="var(--color-warning-border)"
+              />
+              <text x="685" y="84" fill="var(--color-warning)">Uncommon trap</text>
+              <text x="685" y="102" fill="var(--color-warning)" font-weight="400" font-size="10">
+                speculation wrong
+              </text>
+
+              <rect
+                x="400"
+                y="220"
+                width="160"
+                height="60"
+                rx="8"
+                fill="var(--color-info-light)"
+                stroke="var(--color-info-border)"
+              />
+              <text x="480" y="244" fill="var(--color-info-text)">Reinterpret</text>
+              <text x="480" y="262" fill="var(--color-info-text)" font-weight="400" font-size="10">
+                action: reinterpret
+              </text>
+
+              <rect
+                x="600"
+                y="220"
+                width="170"
+                height="60"
+                rx="8"
+                fill="var(--color-success-light)"
+                stroke="var(--color-success-bg)"
+              />
+              <text x="685" y="244" fill="var(--color-success)">Recompile</text>
+              <text x="685" y="262" fill="var(--color-success)" font-weight="400" font-size="10">
+                action: recompile
+              </text>
+            </g>
+            <g
+              stroke="var(--color-text-muted)"
+              stroke-width="1.6"
+              fill="none"
+              marker-end="url(#arrow)"
+            >
+              <line x1="160" y1="90" x2="200" y2="90" />
+              <line x1="360" y1="90" x2="400" y2="90" />
+              <line x1="560" y1="90" x2="600" y2="90" />
+            </g>
+            <g
+              stroke="var(--color-danger)"
+              stroke-width="1.6"
+              fill="none"
+              marker-end="url(#arrowDanger)"
+            >
+              <path d="M650 120 Q 530 170, 480 220" />
+              <path d="M720 120 Q 720 170, 685 220" />
+            </g>
+            <g
+              stroke="var(--color-success)"
+              stroke-width="1.4"
+              fill="none"
+              stroke-dasharray="5,3"
+              marker-end="url(#arrow)"
+            >
+              <path d="M600 250 Q 380 250, 380 175 Q 380 130, 480 120" />
+            </g>
+            <text x="200" y="248" fill="var(--color-success)" font-size="10">
+              re-enter C2 with refined profile
+            </text>
+            <g font-size="10" fill="var(--color-text-muted)">
+              <text x="180" y="80" text-anchor="middle">≈10k inv</text>
+              <text x="380" y="80" text-anchor="middle">≈10k+ inv</text>
+              <text x="580" y="80" text-anchor="middle">trap fires</text>
+            </g>
+          </svg>
         </div>
+      </div>
 
-        <div class="howit-section">
-          <h6 class="howit-section-title">
-            <i class="bi bi-tools"></i>
-            Tools &amp; references
-          </h6>
-          <ul class="refs-list">
+      <div class="howit-section">
+        <h6 class="howit-section-title">
+          <i class="bi bi-rocket"></i>
+          Why does the JVM speculate?
+        </h6>
+        <div class="howit-prose">
+          <p>Speculation is what makes Java fast. Three classics:</p>
+          <ul>
             <li>
-              <strong>Async-profiler:</strong>
-              <code>-e Deoptimization::uncommon_trap_inner</code>
-              produces a stack-traced flame graph of deopts (works in production with no JFR
-              overhead).
+              <strong>Inlining a virtual call</strong> — after the profiler sees one receiver type a
+              million times, C2 inlines the callee directly. Inlining unlocks every other
+              optimization downstream.
             </li>
             <li>
-              <strong>JVM flags for offline inspection:</strong>
-              <code>-XX:+PrintCompilation -XX:+TraceDeoptimization -XX:+LogCompilation</code>
+              <strong>Removing a null check</strong> — if a field has never been null in profiling,
+              C2 removes the check. If it ever <em>does</em> turn out to be null at runtime, you get
+              a <code class="code-text">null_check</code> deopt — but the saved checks paid off
+              thousands of times before.
             </li>
             <li>
-              <strong>JDK-8216041</strong> — JDK 14+ introduced rich
-              <code>jdk.Deoptimization</code> JFR events with the reason/action/BCI fields shown
-              on the Events tab.
-            </li>
-            <li>
-              <strong>Talks &amp; reading:</strong> Vladimir Ivanov on JVM compilation, Cliff Click
-              on speculation, Aleksey Shipilev on JVM internals.
+              <strong>Eliminating range checks</strong> — loops with stable bounds let C2 prove
+              array indices are in range and skip the per-iteration check. If the predicate fails,
+              you get a <code class="code-text">predicate</code> deopt.
             </li>
           </ul>
+          <p>
+            The trade is asymmetric in your favor: speculation makes 99.9% of executions fast; the
+            0.1% that hit a deopt pay a fraction of a millisecond.
+          </p>
         </div>
+      </div>
+
+      <div class="howit-section">
+        <h6 class="howit-section-title">
+          <i class="bi bi-list-ul"></i>
+          Reasons reference
+        </h6>
+        <p class="tab-description">
+          The values you'll see in the <code class="code-text">reason</code> column on the Events
+          tab and the Reason Distribution tab.
+        </p>
+        <div class="table-responsive">
+          <table class="table table-sm table-hover mb-0">
+            <thead>
+              <tr>
+                <th>Reason</th>
+                <th>What it means</th>
+                <th>Typical cause</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="row in reasonReference" :key="row.reason">
+                <td><Badge :value="row.reason" :variant="reasonVariant(row.reason)" size="s" /></td>
+                <td>{{ row.meaning }}</td>
+                <td class="reason-meaning">{{ row.cause }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="howit-section">
+        <h6 class="howit-section-title">
+          <i class="bi bi-gear"></i>
+          Actions reference
+        </h6>
+        <p class="tab-description">What the JVM does after the trap fires.</p>
+        <div class="action-glossary">
+          <div v-for="action in actionReference" :key="action.value" class="action-card">
+            <h6 class="action-card-heading">
+              <Badge :value="action.value" :variant="action.variant" size="s" />
+            </h6>
+            <p>{{ action.description }}</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="howit-section">
+        <div class="howit-grid-2">
+          <div>
+            <h6 class="howit-section-title">
+              <i class="bi bi-check2-circle howit-success-icon"></i>
+              When deopt is normal
+            </h6>
+            <ul class="howit-list">
+              <li v-for="point in normalScenarios" :key="point.title">
+                <i class="bi bi-check-circle-fill"></i>
+                <span
+                  ><strong>{{ point.title }}</strong> {{ point.description }}</span
+                >
+              </li>
+            </ul>
+          </div>
+          <div>
+            <h6 class="howit-section-title">
+              <i class="bi bi-exclamation-triangle howit-warning-icon"></i>
+              When deopt is a problem
+            </h6>
+            <ul class="howit-list howit-list-warn">
+              <li v-for="point in problemScenarios" :key="point.title">
+                <i class="bi bi-exclamation-triangle-fill"></i>
+                <span>
+                  <strong>{{ point.title }}</strong> {{ point.description }}
+                  <button
+                    v-if="point.tabLink"
+                    class="tab-link"
+                    type="button"
+                    @click="setActiveTab(point.tabLink)"
+                  >
+                    Open {{ point.tabLinkLabel }} tab
+                  </button>
+                </span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="howit-section">
+        <h6 class="howit-section-title">
+          <i class="bi bi-tools"></i>
+          Tools &amp; references
+        </h6>
+        <ul class="refs-list">
+          <li>
+            <strong>Async-profiler:</strong>
+            <code>-e Deoptimization::uncommon_trap_inner</code>
+            produces a stack-traced flame graph of deopts (works in production with no JFR
+            overhead).
+          </li>
+          <li>
+            <strong>JVM flags for offline inspection:</strong>
+            <code>-XX:+PrintCompilation -XX:+TraceDeoptimization -XX:+LogCompilation</code>
+          </li>
+          <li>
+            <strong>JDK-8216041</strong> — JDK 14+ introduced rich
+            <code>jdk.Deoptimization</code> JFR events with the reason/action/BCI fields shown on
+            the Events tab.
+          </li>
+          <li>
+            <strong>Talks &amp; reading:</strong> Vladimir Ivanov on JVM compilation, Cliff Click on
+            speculation, Aleksey Shipilev on JVM internals.
+          </li>
+        </ul>
+      </div>
     </div>
 
     <!-- Per-event drill-in modal -->
@@ -507,12 +609,14 @@
         <div class="event-modal-block">
           <div class="event-modal-section-title">CODE LOCATION</div>
           <div class="event-modal-code">
-            {{ selectedEvent.method ?? '—' }}<span v-if="selectedEvent.lineNumber">:{{ selectedEvent.lineNumber }}</span>
+            {{ selectedEvent.method ?? '—'
+            }}<span v-if="selectedEvent.lineNumber">:{{ selectedEvent.lineNumber }}</span>
             <br />
             <span class="event-modal-code-secondary">
               → bytecode index {{ selectedEvent.bci }}
               <span v-if="selectedEvent.instruction">
-                (<span class="code-text">{{ selectedEvent.instruction }}</span>)
+                (<span class="code-text">{{ selectedEvent.instruction }}</span
+                >)
               </span>
             </span>
           </div>
@@ -631,7 +735,10 @@ const metricsData = computed(() => {
       variant: 'highlight' as const,
       breakdown: [
         { label: 'Rate', value: `${rate}/s` },
-        { label: 'Distinct methods', value: FormattingService.formatNumber(stats.value.distinctMethods) }
+        {
+          label: 'Distinct methods',
+          value: FormattingService.formatNumber(stats.value.distinctMethods)
+        }
       ]
     },
     {
@@ -659,9 +766,7 @@ const metricsData = computed(() => {
       title: 'Compiler Mix',
       value:
         stats.value.c2Count > stats.value.c1Count
-          ? `C2: ${FormattingService.formatPercentage(
-              total > 0 ? stats.value.c2Count / total : 0
-            )}`
+          ? `C2: ${FormattingService.formatPercentage(total > 0 ? stats.value.c2Count / total : 0)}`
           : `C1: ${FormattingService.formatPercentage(
               total > 0 ? stats.value.c1Count / total : 0
             )}`,
@@ -757,7 +862,8 @@ const actionReference: Array<{ value: string; variant: Variant; description: str
 const normalScenarios = [
   {
     title: 'During warmup.',
-    description: 'The first seconds of any recording will look noisy — that is the JVM finding the right tier 3/4 mix.'
+    description:
+      'The first seconds of any recording will look noisy — that is the JVM finding the right tier 3/4 mix.'
   },
   {
     title: 'After class loading.',
@@ -765,7 +871,8 @@ const normalScenarios = [
   },
   {
     title: 'After hot-path direction changes.',
-    description: 'Mode switches, weekend traffic patterns, batch-vs-online — all cause frequencies to shift.'
+    description:
+      'Mode switches, weekend traffic patterns, batch-vs-online — all cause frequencies to shift.'
   },
   {
     title: 'First time a rare branch fires.',
@@ -795,7 +902,8 @@ const problemScenarios: Array<{
   },
   {
     title: 'Recompile loops',
-    description: '(deopt → recompile → deopt again) appear as alternating spikes on the Activity tab. The JVM is failing to find a stable shape.',
+    description:
+      '(deopt → recompile → deopt again) appear as alternating spikes on the Activity tab. The JVM is failing to find a stable shape.',
     tabLink: 'activity',
     tabLinkLabel: 'Activity'
   }
@@ -804,22 +912,32 @@ const problemScenarios: Array<{
 const actionAbbr = (action: string | null | undefined): string => {
   if (!action) return '—';
   switch (action) {
-    case 'reinterpret': return 'R';
-    case 'recompile': return 'RC';
-    case 'maybe_recompile': return 'MR';
-    case 'none': return 'N';
-    default: return action.substring(0, 2).toUpperCase();
+    case 'reinterpret':
+      return 'R';
+    case 'recompile':
+      return 'RC';
+    case 'maybe_recompile':
+      return 'MR';
+    case 'none':
+      return 'N';
+    default:
+      return action.substring(0, 2).toUpperCase();
   }
 };
 
 const actionClass = (action: string | null | undefined): string => {
   if (!action) return 'none';
   switch (action) {
-    case 'reinterpret': return 'reinterpret';
-    case 'recompile': return 'recompile';
-    case 'maybe_recompile': return 'maybe';
-    case 'none': return 'none';
-    default: return 'none';
+    case 'reinterpret':
+      return 'reinterpret';
+    case 'recompile':
+      return 'recompile';
+    case 'maybe_recompile':
+      return 'maybe';
+    case 'none':
+      return 'none';
+    default:
+      return 'none';
   }
 };
 
@@ -1157,10 +1275,18 @@ onUnmounted(() => {
   letter-spacing: 0.05em;
 }
 
-.compound-action-reinterpret { background: var(--color-info); }
-.compound-action-recompile { background: var(--color-success); }
-.compound-action-maybe { background: var(--color-text-muted); }
-.compound-action-none { background: var(--color-text-light); }
+.compound-action-reinterpret {
+  background: var(--color-info);
+}
+.compound-action-recompile {
+  background: var(--color-success);
+}
+.compound-action-maybe {
+  background: var(--color-text-muted);
+}
+.compound-action-none {
+  background: var(--color-text-light);
+}
 
 .compound-pill-reason {
   padding: 0.22rem 0.55rem;
@@ -1273,7 +1399,6 @@ onUnmounted(() => {
   color: var(--color-text-muted);
   font-size: 0.7rem;
 }
-
 
 .tab-link {
   background: none;

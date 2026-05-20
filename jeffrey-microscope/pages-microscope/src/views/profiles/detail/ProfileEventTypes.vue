@@ -56,156 +56,156 @@
 
           <!-- Event tree table -->
           <DataTable table-class="event-tree-table">
-                <thead>
-                  <tr>
-                    <th>Event Type</th>
-                    <th class="text-center">
-                      <div class="d-flex justify-content-end align-items-center">
-                        <span class="me-3">Actions</span>
-                        <div class="tree-controls">
-                          <button
-                            class="btn btn-sm btn-outline-primary btn-xs px-1"
-                            @click="collapseAll"
-                            title="Collapse All"
-                          >
-                            <i class="bi bi-arrows-collapse"></i>
-                          </button>
-                          <button
-                            class="btn btn-sm btn-outline-primary btn-xs px-1 ms-1"
-                            @click="expandAll"
-                            title="Expand All"
-                          >
-                            <i class="bi bi-arrows-expand"></i>
-                          </button>
-                        </div>
-                      </div>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <template v-for="node in filteredEvents" :key="node.key">
-                    <tr :class="{ 'parent-row': !node.leaf, 'leaf-row': node.leaf }">
-                      <td>
-                        <div class="d-flex align-items-center event-name-cell">
-                          <!-- Indentation based on level -->
-                          <div
-                            class="tree-indent"
-                            :style="{ width: `${getTreeLevel(node.key) * 20}px` }"
-                          ></div>
+            <thead>
+              <tr>
+                <th>Event Type</th>
+                <th class="text-center">
+                  <div class="d-flex justify-content-end align-items-center">
+                    <span class="me-3">Actions</span>
+                    <div class="tree-controls">
+                      <button
+                        class="btn btn-sm btn-outline-primary btn-xs px-1"
+                        @click="collapseAll"
+                        title="Collapse All"
+                      >
+                        <i class="bi bi-arrows-collapse"></i>
+                      </button>
+                      <button
+                        class="btn btn-sm btn-outline-primary btn-xs px-1 ms-1"
+                        @click="expandAll"
+                        title="Expand All"
+                      >
+                        <i class="bi bi-arrows-expand"></i>
+                      </button>
+                    </div>
+                  </div>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <template v-for="node in filteredEvents" :key="node.key">
+                <tr :class="{ 'parent-row': !node.leaf, 'leaf-row': node.leaf }">
+                  <td>
+                    <div class="d-flex align-items-center event-name-cell">
+                      <!-- Indentation based on level -->
+                      <div
+                        class="tree-indent"
+                        :style="{ width: `${getTreeLevel(node.key) * 20}px` }"
+                      ></div>
 
-                          <!-- Expand/collapse icon for parent nodes -->
-                          <button
-                            v-if="!node.leaf"
-                            class="btn btn-sm expand-btn p-0 me-2"
-                            @click="toggleExpand(node.key)"
-                          >
-                            <i
-                              class="bi"
-                              :class="isExpanded(node.key) ? 'bi-dash-square' : 'bi-plus-square'"
-                            ></i>
-                          </button>
-                          <span v-else class="tree-leaf-icon me-2">
-                            <i class="bi bi-circle-fill"></i>
-                          </span>
+                      <!-- Expand/collapse icon for parent nodes -->
+                      <button
+                        v-if="!node.leaf"
+                        class="btn btn-sm expand-btn p-0 me-2"
+                        @click="toggleExpand(node.key)"
+                      >
+                        <i
+                          class="bi"
+                          :class="isExpanded(node.key) ? 'bi-dash-square' : 'bi-plus-square'"
+                        ></i>
+                      </button>
+                      <span v-else class="tree-leaf-icon me-2">
+                        <i class="bi bi-circle-fill"></i>
+                      </span>
 
-                          <!-- Node name -->
-                          <span class="event-name">{{ node.data.name }}</span>
+                      <!-- Node name -->
+                      <span class="event-name">{{ node.data.name }}</span>
 
-                          <!-- Event code for leaf nodes -->
-                          <span v-if="node.data.code" class="event-code ms-2">{{
-                            node.data.code
-                          }}</span>
+                      <!-- Event code for leaf nodes -->
+                      <span v-if="node.data.code" class="event-code ms-2">{{
+                        node.data.code
+                      }}</span>
 
-                          <!-- Count badge -->
-                          <Badge
-                            v-if="node.data.count !== undefined"
-                            :value="formatNumber(node.data.count)"
-                            :variant="node.data.count > 0 ? 'primary' : 'secondary'"
-                            size="xs"
-                            class="ms-2"
-                          />
+                      <!-- Count badge -->
+                      <Badge
+                        v-if="node.data.count !== undefined"
+                        :value="formatNumber(node.data.count)"
+                        :variant="node.data.count > 0 ? 'primary' : 'secondary'"
+                        size="xs"
+                        class="ms-2"
+                      />
 
-                          <!-- Event type badge -->
-                          <Badge
-                            v-if="node.leaf && node.data.source === 'JDK'"
-                            value="JDK"
-                            variant="info"
-                            size="xs"
-                            class="ms-2"
-                          />
-                          <Badge
-                            v-else-if="node.leaf && node.data.source === 'Async-Profiler'"
-                            value="Async-Profiler"
-                            variant="purple"
-                            size="xs"
-                            class="ms-2"
-                          />
-                          <Badge
-                            v-else-if="node.leaf && node.data.code"
-                            value="Custom"
-                            variant="secondary"
-                            size="xs"
-                            class="ms-2"
-                          />
+                      <!-- Event type badge -->
+                      <Badge
+                        v-if="node.leaf && node.data.source === 'JDK'"
+                        value="JDK"
+                        variant="info"
+                        size="xs"
+                        class="ms-2"
+                      />
+                      <Badge
+                        v-else-if="node.leaf && node.data.source === 'Async-Profiler'"
+                        value="Async-Profiler"
+                        variant="purple"
+                        size="xs"
+                        class="ms-2"
+                      />
+                      <Badge
+                        v-else-if="node.leaf && node.data.code"
+                        value="Custom"
+                        variant="secondary"
+                        size="xs"
+                        class="ms-2"
+                      />
 
-                          <!-- Stack trace indicator -->
-                          <i
-                            v-if="node.leaf && node.data.withStackTrace"
-                            class="bi bi-layers ms-2 text-success"
-                            title="Has stack traces"
-                          ></i>
-                        </div>
-                      </td>
-                      <td class="text-center">
-                        <div class="d-flex justify-content-end gap-2">
-                          <button
-                            v-if="
-                              node.leaf &&
-                              node.data.withStackTrace &&
-                              node.data.count &&
-                              node.data.count > 0
-                            "
-                            class="btn btn-sm btn-danger action-btn"
-                            @click="viewFlamegraph(node)"
-                            title="View event flamegraph"
-                          >
-                            <i class="bi bi-fire"></i> Flame
-                          </button>
-                          <button
-                            v-if="
-                              node.leaf &&
-                              !node.data.withStackTrace &&
-                              node.data.count &&
-                              node.data.count > 0
-                            "
-                            class="btn btn-sm btn-warning action-btn"
-                            @click="viewTimeSeries(node)"
-                            title="View event time series"
-                          >
-                            <i class="bi bi-graph-up"></i> TimeSeries
-                          </button>
-                          <button
-                            v-if="node.leaf && node.data.count && node.data.count > 0"
-                            class="btn btn-sm btn-primary action-btn"
-                            @click="viewEventDetails(node)"
-                            title="View event details"
-                          >
-                            <i class="bi bi-eye"></i> View
-                          </button>
-                          <a
-                            v-if="node.leaf && EventTypes.getSapDocumentationUrl(node.data.code)"
-                            :href="EventTypes.getSapDocumentationUrl(node.data.code)!"
-                            target="_blank"
-                            class="btn btn-sm btn-secondary action-btn"
-                            title="View JFR event documentation"
-                          >
-                            <i class="bi bi-box-arrow-up-right"></i> Docs
-                          </a>
-                        </div>
-                      </td>
-                    </tr>
-                  </template>
-                </tbody>
+                      <!-- Stack trace indicator -->
+                      <i
+                        v-if="node.leaf && node.data.withStackTrace"
+                        class="bi bi-layers ms-2 text-success"
+                        title="Has stack traces"
+                      ></i>
+                    </div>
+                  </td>
+                  <td class="text-center">
+                    <div class="d-flex justify-content-end gap-2">
+                      <button
+                        v-if="
+                          node.leaf &&
+                          node.data.withStackTrace &&
+                          node.data.count &&
+                          node.data.count > 0
+                        "
+                        class="btn btn-sm btn-danger action-btn"
+                        @click="viewFlamegraph(node)"
+                        title="View event flamegraph"
+                      >
+                        <i class="bi bi-fire"></i> Flame
+                      </button>
+                      <button
+                        v-if="
+                          node.leaf &&
+                          !node.data.withStackTrace &&
+                          node.data.count &&
+                          node.data.count > 0
+                        "
+                        class="btn btn-sm btn-warning action-btn"
+                        @click="viewTimeSeries(node)"
+                        title="View event time series"
+                      >
+                        <i class="bi bi-graph-up"></i> TimeSeries
+                      </button>
+                      <button
+                        v-if="node.leaf && node.data.count && node.data.count > 0"
+                        class="btn btn-sm btn-primary action-btn"
+                        @click="viewEventDetails(node)"
+                        title="View event details"
+                      >
+                        <i class="bi bi-eye"></i> View
+                      </button>
+                      <a
+                        v-if="node.leaf && EventTypes.getSapDocumentationUrl(node.data.code)"
+                        :href="EventTypes.getSapDocumentationUrl(node.data.code)!"
+                        target="_blank"
+                        class="btn btn-sm btn-secondary action-btn"
+                        title="View JFR event documentation"
+                      >
+                        <i class="bi bi-box-arrow-up-right"></i> Docs
+                      </a>
+                    </div>
+                  </td>
+                </tr>
+              </template>
+            </tbody>
           </DataTable>
 
           <!-- No Results message -->

@@ -86,8 +86,7 @@
                   <span
                     class="subphase-row-fill"
                     :style="{
-                      width:
-                        subPhasePercent(sub, getStep(stageDef.id)!.subPhases!) + '%'
+                      width: subPhasePercent(sub, getStep(stageDef.id)!.subPhases!) + '%'
                     }"
                   ></span>
                   <span class="subphase-name">{{ sub.name }}</span>
@@ -180,8 +179,7 @@ const phases: Phase[] = [
   }
 ];
 
-const getStep = (id: string): TimelineStep | undefined =>
-  props.steps.find(s => s.id === id);
+const getStep = (id: string): TimelineStep | undefined => props.steps.find(s => s.id === id);
 
 const formatDuration = (ms: number): string => {
   if (ms < 1000) return `${Math.max(0, Math.round(ms))}ms`;

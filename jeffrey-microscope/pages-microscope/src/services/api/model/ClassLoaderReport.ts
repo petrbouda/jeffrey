@@ -46,14 +46,7 @@ export interface ClassLoaderHierarchyEdge {
 
 export type UnloadabilityVerdict = 'UNLOADABLE' | 'PINNED_ROOTED' | 'PINNED_TRANSITIVE';
 
-export type LoaderType =
-  | 'BOOTSTRAP'
-  | 'PLATFORM'
-  | 'SYSTEM'
-  | 'WEB'
-  | 'OSGI'
-  | 'APP'
-  | 'CUSTOM';
+export type LoaderType = 'BOOTSTRAP' | 'PLATFORM' | 'SYSTEM' | 'WEB' | 'OSGI' | 'APP' | 'CUSTOM';
 
 export interface BlockingClass {
   classId: number;

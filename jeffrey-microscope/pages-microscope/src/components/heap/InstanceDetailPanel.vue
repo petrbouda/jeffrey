@@ -163,11 +163,9 @@
                       >
                     </div>
                     <div v-if="fieldDisplayValue(field)" class="field-identity-line">
-                      <span
-                        class="field-value-inline"
-                        :class="fieldValueClass(field)"
-                        >{{ fieldDisplayValue(field) }}</span
-                      >
+                      <span class="field-value-inline" :class="fieldValueClass(field)">{{
+                        fieldDisplayValue(field)
+                      }}</span>
                     </div>
                   </td>
                   <td class="field-nav-cell">
@@ -227,11 +225,9 @@
                       >
                     </div>
                     <div v-if="fieldDisplayValue(field)" class="field-identity-line">
-                      <span
-                        class="field-value-inline"
-                        :class="fieldValueClass(field)"
-                        >{{ fieldDisplayValue(field) }}</span
-                      >
+                      <span class="field-value-inline" :class="fieldValueClass(field)">{{
+                        fieldDisplayValue(field)
+                      }}</span>
                     </div>
                   </td>
                   <td class="field-nav-cell">

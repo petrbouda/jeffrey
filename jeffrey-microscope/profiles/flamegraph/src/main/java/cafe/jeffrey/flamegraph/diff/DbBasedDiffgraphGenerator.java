@@ -60,8 +60,8 @@ public class DbBasedDiffgraphGenerator implements GraphGenerator {
          */
         CompletableFuture<cafe.jeffrey.flamegraph.proto.FlamegraphData> flameFuture;
         if (GraphComponents.isFlamegraphCompatible(params.graphComponents())) {
-            FlamegraphDataProvider primaryFlame = FlamegraphDataProvider.differential(primaryRepository, params, minFrameThresholdPct);
-            FlamegraphDataProvider secondaryFlame = FlamegraphDataProvider.differential(secondaryRepository, params, minFrameThresholdPct);
+            FlamegraphDataProvider primaryFlame = FlamegraphDataProvider.differential(primaryRepository, params);
+            FlamegraphDataProvider secondaryFlame = FlamegraphDataProvider.differential(secondaryRepository, params);
 
             CompletableFuture<Frame> primaryFlameFuture = CompletableFuture.supplyAsync(
                     primaryFlame::provideFrame, Schedulers.sharedParallel());

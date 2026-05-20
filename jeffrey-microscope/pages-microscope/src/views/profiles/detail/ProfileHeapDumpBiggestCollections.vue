@@ -41,140 +41,144 @@
 
     <!-- By Element Count Tab -->
     <div v-show="activeTab === 'by-element-count'">
-        <div v-if="report.byElementCount.length > 0">
-          <DataTable>
-            <template #toolbar>
-              <TableToolbar :show-search="false">
-                <span class="toolbar-info">Showing {{ report.byElementCount.length }} collections</span>
-              </TableToolbar>
-            </template>
-                <thead>
-                  <tr>
-                    <th style="width: 40px">#</th>
-                    <th style="width: 28%">Collection</th>
-                    <th style="width: 28%">Owner</th>
-                    <th class="text-end" style="width: 220px">
-                      <div>Usage</div>
-                      <div class="usage-sublabel">
-                        <span class="usage-size">size</span>
-                        <span class="usage-sep">/</span>
-                        <span class="usage-cap">capacity</span>
-                      </div>
-                    </th>
-                    <th class="text-end" style="width: 110px">Retained</th>
-                    <th style="width: 180px">Fill Ratio</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="(entry, index) in sortedByElementCount" :key="index">
-                    <td class="text-muted">{{ index + 1 }}</td>
-                    <td>
-                      <ClassNameDisplay :class-name="entry.className" />
-                    </td>
-                    <td>
-                      <ClassNameDisplay v-if="entry.ownerClassName" :class-name="entry.ownerClassName" />
-                      <span v-else class="text-muted owner-empty">—</span>
-                    </td>
-                    <td class="text-end font-monospace">
-                      <div>{{ FormattingService.formatNumber(entry.elementCount) }}</div>
-                      <div class="capacity-hint">
-                        {{ FormattingService.formatNumber(entry.capacity) }}
-                      </div>
-                    </td>
-                    <td class="text-end font-monospace text-warning">
-                      {{ FormattingService.formatBytes(entry.retainedSize) }}
-                    </td>
-                    <td>
-                      <div class="fill-bar-container">
-                        <div class="fill-bar">
-                          <div
-                            class="fill-bar-inner"
-                            :style="{
-                              width: entry.fillRatio * 100 + '%',
-                              backgroundColor: getFillColor(entry.fillRatio)
-                            }"
-                          ></div>
-                        </div>
-                        <span class="fill-pct">{{ (entry.fillRatio * 100).toFixed(1) }}%</span>
-                      </div>
-                    </td>
-                  </tr>
-                </tbody>
-          </DataTable>
-        </div>
-        <div v-else class="text-center text-muted py-5">
-          <i class="bi bi-collection-fill fs-1 mb-3 d-block"></i>
-          <p>No collection data available.</p>
-        </div>
+      <div v-if="report.byElementCount.length > 0">
+        <DataTable>
+          <template #toolbar>
+            <TableToolbar :show-search="false">
+              <span class="toolbar-info"
+                >Showing {{ report.byElementCount.length }} collections</span
+              >
+            </TableToolbar>
+          </template>
+          <thead>
+            <tr>
+              <th style="width: 40px">#</th>
+              <th style="width: 28%">Collection</th>
+              <th style="width: 28%">Owner</th>
+              <th class="text-end" style="width: 220px">
+                <div>Usage</div>
+                <div class="usage-sublabel">
+                  <span class="usage-size">size</span>
+                  <span class="usage-sep">/</span>
+                  <span class="usage-cap">capacity</span>
+                </div>
+              </th>
+              <th class="text-end" style="width: 110px">Retained</th>
+              <th style="width: 180px">Fill Ratio</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(entry, index) in sortedByElementCount" :key="index">
+              <td class="text-muted">{{ index + 1 }}</td>
+              <td>
+                <ClassNameDisplay :class-name="entry.className" />
+              </td>
+              <td>
+                <ClassNameDisplay v-if="entry.ownerClassName" :class-name="entry.ownerClassName" />
+                <span v-else class="text-muted owner-empty">—</span>
+              </td>
+              <td class="text-end font-monospace">
+                <div>{{ FormattingService.formatNumber(entry.elementCount) }}</div>
+                <div class="capacity-hint">
+                  {{ FormattingService.formatNumber(entry.capacity) }}
+                </div>
+              </td>
+              <td class="text-end font-monospace text-warning">
+                {{ FormattingService.formatBytes(entry.retainedSize) }}
+              </td>
+              <td>
+                <div class="fill-bar-container">
+                  <div class="fill-bar">
+                    <div
+                      class="fill-bar-inner"
+                      :style="{
+                        width: entry.fillRatio * 100 + '%',
+                        backgroundColor: getFillColor(entry.fillRatio)
+                      }"
+                    ></div>
+                  </div>
+                  <span class="fill-pct">{{ (entry.fillRatio * 100).toFixed(1) }}%</span>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </DataTable>
+      </div>
+      <div v-else class="text-center text-muted py-5">
+        <i class="bi bi-collection-fill fs-1 mb-3 d-block"></i>
+        <p>No collection data available.</p>
+      </div>
     </div>
 
     <!-- By Retained Size Tab -->
     <div v-show="activeTab === 'by-retained-size'">
-        <div v-if="report.byRetainedSize.length > 0">
-          <DataTable>
-            <template #toolbar>
-              <TableToolbar :show-search="false">
-                <span class="toolbar-info">Showing {{ report.byRetainedSize.length }} collections</span>
-              </TableToolbar>
-            </template>
-                <thead>
-                  <tr>
-                    <th style="width: 40px">#</th>
-                    <th style="width: 28%">Collection</th>
-                    <th style="width: 28%">Owner</th>
-                    <th class="text-end" style="width: 220px">
-                      <div>Usage</div>
-                      <div class="usage-sublabel">
-                        <span class="usage-size">size</span>
-                        <span class="usage-sep">/</span>
-                        <span class="usage-cap">capacity</span>
-                      </div>
-                    </th>
-                    <th class="text-end" style="width: 110px">Retained</th>
-                    <th style="width: 180px">Fill Ratio</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="(entry, index) in sortedByRetainedSize" :key="index">
-                    <td class="text-muted">{{ index + 1 }}</td>
-                    <td>
-                      <ClassNameDisplay :class-name="entry.className" />
-                    </td>
-                    <td>
-                      <ClassNameDisplay v-if="entry.ownerClassName" :class-name="entry.ownerClassName" />
-                      <span v-else class="text-muted owner-empty">—</span>
-                    </td>
-                    <td class="text-end font-monospace">
-                      <div>{{ FormattingService.formatNumber(entry.elementCount) }}</div>
-                      <div class="capacity-hint">
-                        {{ FormattingService.formatNumber(entry.capacity) }}
-                      </div>
-                    </td>
-                    <td class="text-end font-monospace text-warning">
-                      {{ FormattingService.formatBytes(entry.retainedSize) }}
-                    </td>
-                    <td>
-                      <div class="fill-bar-container">
-                        <div class="fill-bar">
-                          <div
-                            class="fill-bar-inner"
-                            :style="{
-                              width: entry.fillRatio * 100 + '%',
-                              backgroundColor: getFillColor(entry.fillRatio)
-                            }"
-                          ></div>
-                        </div>
-                        <span class="fill-pct">{{ (entry.fillRatio * 100).toFixed(1) }}%</span>
-                      </div>
-                    </td>
-                  </tr>
-                </tbody>
-          </DataTable>
-        </div>
-        <div v-else class="text-center text-muted py-5">
-          <i class="bi bi-collection-fill fs-1 mb-3 d-block"></i>
-          <p>No collection data available.</p>
-        </div>
+      <div v-if="report.byRetainedSize.length > 0">
+        <DataTable>
+          <template #toolbar>
+            <TableToolbar :show-search="false">
+              <span class="toolbar-info"
+                >Showing {{ report.byRetainedSize.length }} collections</span
+              >
+            </TableToolbar>
+          </template>
+          <thead>
+            <tr>
+              <th style="width: 40px">#</th>
+              <th style="width: 28%">Collection</th>
+              <th style="width: 28%">Owner</th>
+              <th class="text-end" style="width: 220px">
+                <div>Usage</div>
+                <div class="usage-sublabel">
+                  <span class="usage-size">size</span>
+                  <span class="usage-sep">/</span>
+                  <span class="usage-cap">capacity</span>
+                </div>
+              </th>
+              <th class="text-end" style="width: 110px">Retained</th>
+              <th style="width: 180px">Fill Ratio</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(entry, index) in sortedByRetainedSize" :key="index">
+              <td class="text-muted">{{ index + 1 }}</td>
+              <td>
+                <ClassNameDisplay :class-name="entry.className" />
+              </td>
+              <td>
+                <ClassNameDisplay v-if="entry.ownerClassName" :class-name="entry.ownerClassName" />
+                <span v-else class="text-muted owner-empty">—</span>
+              </td>
+              <td class="text-end font-monospace">
+                <div>{{ FormattingService.formatNumber(entry.elementCount) }}</div>
+                <div class="capacity-hint">
+                  {{ FormattingService.formatNumber(entry.capacity) }}
+                </div>
+              </td>
+              <td class="text-end font-monospace text-warning">
+                {{ FormattingService.formatBytes(entry.retainedSize) }}
+              </td>
+              <td>
+                <div class="fill-bar-container">
+                  <div class="fill-bar">
+                    <div
+                      class="fill-bar-inner"
+                      :style="{
+                        width: entry.fillRatio * 100 + '%',
+                        backgroundColor: getFillColor(entry.fillRatio)
+                      }"
+                    ></div>
+                  </div>
+                  <span class="fill-pct">{{ (entry.fillRatio * 100).toFixed(1) }}%</span>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </DataTable>
+      </div>
+      <div v-else class="text-center text-muted py-5">
+        <i class="bi bi-collection-fill fs-1 mb-3 d-block"></i>
+        <p>No collection data available.</p>
+      </div>
     </div>
   </div>
 </template>

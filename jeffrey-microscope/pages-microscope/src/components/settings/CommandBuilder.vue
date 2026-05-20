@@ -437,9 +437,7 @@
                         </button>
                       </div>
                       <div class="form-help">Java Methods: java.lang.Thread.*, *.&lt;init&gt;</div>
-                      <div class="form-help">
-                        All in Package: cafe.jeffrey.server.core.grpc.*.*
-                      </div>
+                      <div class="form-help">All in Package: cafe.jeffrey.server.core.grpc.*.*</div>
                       <div class="form-help">
                         Native Methods: Java_java_lang_Throwable_fillInStackTrace
                       </div>

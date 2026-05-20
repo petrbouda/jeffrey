@@ -40,8 +40,8 @@
       <i class="bi bi-shield-check fs-1 mb-3 d-block text-success"></i>
       <h6>No Leak Suspects Detected</h6>
       <p class="small">
-        The dominator-cluster analysis did not find any clusters above the
-        leak-suspect threshold (≥ 2% of heap).
+        The dominator-cluster analysis did not find any clusters above the leak-suspect threshold (≥
+        2% of heap).
       </p>
     </div>
 
@@ -58,11 +58,7 @@
           </p>
         </div>
         <label class="form-check small mb-0">
-          <input
-            type="checkbox"
-            class="form-check-input"
-            v-model="includeBootstrap"
-          />
+          <input type="checkbox" class="form-check-input" v-model="includeBootstrap" />
           <span class="form-check-label">Include bootstrap</span>
         </label>
       </div>
@@ -121,9 +117,7 @@
               </div>
               <div class="va-stat">
                 <span class="va-stat-label">Leak Score</span>
-                <span class="va-stat-value font-monospace">{{
-                  suspect.leakScore.toFixed(1)
-                }}</span>
+                <span class="va-stat-value font-monospace">{{ suspect.leakScore.toFixed(1) }}</span>
               </div>
               <div class="va-stat">
                 <span class="va-stat-label">Accumulation</span>
@@ -177,9 +171,9 @@
             </details>
           </div>
           <div class="va-percent">
-            <span class="va-percent-value" :class="getSeverityClass(suspect)">{{
-              suspect.heapPercentage.toFixed(1)
-            }}%</span>
+            <span class="va-percent-value" :class="getSeverityClass(suspect)"
+              >{{ suspect.heapPercentage.toFixed(1) }}%</span
+            >
             <span class="va-percent-label">of heap</span>
           </div>
         </div>
@@ -237,7 +231,7 @@ const includeBootstrap = ref(false);
 const visibleLoaders = computed(() => {
   if (!report.value) return [];
   const loaders = report.value.topLeakingClassLoaders ?? [];
-  return includeBootstrap.value ? loaders : loaders.filter((l) => l.classLoaderId !== 0);
+  return includeBootstrap.value ? loaders : loaders.filter(l => l.classLoaderId !== 0);
 });
 
 // Modal state

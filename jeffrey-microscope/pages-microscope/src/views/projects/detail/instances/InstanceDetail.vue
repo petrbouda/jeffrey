@@ -2,45 +2,42 @@
   <div>
     <MainCard>
       <template #header>
-        <MainCardHeader
-          icon="bi bi-box"
-          :title="instance?.instanceName ?? 'Instance'"
-        />
+        <MainCardHeader icon="bi bi-box" :title="instance?.instanceName ?? 'Instance'" />
       </template>
 
       <!-- Loading Indicator -->
-    <LoadingState v-if="loading" message="Loading instance..." />
+      <LoadingState v-if="loading" message="Loading instance..." />
 
-    <!-- Instance Not Found -->
-    <EmptyState
-      v-else-if="!instance"
-      icon="bi-exclamation-circle"
-      title="Instance Not Found"
-      description="The requested instance could not be found."
-    />
-
-    <!-- Instance Details -->
-    <div v-else class="col-12">
-      <RecordingSessionList
-        :sessions="sessions"
-        :serverId="serverId!"
-        :workspaceId="workspaceId!"
-        :projectId="projectId!"
-        :isRemoteWorkspace="isRemoteWorkspace"
-        :isCollectorOnly="isCollectorOnly"
-        :showInstanceLink="false"
-        headerText="Sessions"
-        @refresh="fetchSessions"
-      />
-
-      <!-- No Sessions Message -->
+      <!-- Instance Not Found -->
       <EmptyState
-        v-if="!sessionsLoading && sessions.length === 0"
-        icon="bi-inbox"
-        title="No Sessions"
-        description="No recording sessions found for this instance."
+        v-else-if="!instance"
+        icon="bi-exclamation-circle"
+        title="Instance Not Found"
+        description="The requested instance could not be found."
       />
-    </div>
+
+      <!-- Instance Details -->
+      <div v-else class="col-12">
+        <RecordingSessionList
+          :sessions="sessions"
+          :serverId="serverId!"
+          :workspaceId="workspaceId!"
+          :projectId="projectId!"
+          :isRemoteWorkspace="isRemoteWorkspace"
+          :isCollectorOnly="isCollectorOnly"
+          :showInstanceLink="false"
+          headerText="Sessions"
+          @refresh="fetchSessions"
+        />
+
+        <!-- No Sessions Message -->
+        <EmptyState
+          v-if="!sessionsLoading && sessions.length === 0"
+          icon="bi-inbox"
+          title="No Sessions"
+          description="No recording sessions found for this instance."
+        />
+      </div>
     </MainCard>
   </div>
 </template>
@@ -79,7 +76,11 @@ const isRemoteWorkspace = computed(() => {
 const fetchSessions = async () => {
   sessionsLoading.value = true;
   try {
-    const repositoryService = new ProjectRepositoryClient(serverId.value, workspaceId.value!, projectId.value!);
+    const repositoryService = new ProjectRepositoryClient(
+      serverId.value,
+      workspaceId.value!,
+      projectId.value!
+    );
     const allSessions = await repositoryService.listRecordingSessions();
     sessions.value = allSessions.filter(s => s.instanceId === instanceId.value);
   } catch (error: any) {

@@ -20,15 +20,15 @@ package cafe.jeffrey.profile.heapdump.parser;
 import cafe.jeffrey.profile.heapdump.persistence.HeapDumpDatabaseClient;
 import cafe.jeffrey.profile.heapdump.persistence.HeapDumpStatement;
 import org.duckdb.DuckDBAppender;
+import org.eclipse.collections.api.map.primitive.MutableLongObjectMap;
+import org.eclipse.collections.api.set.primitive.MutableLongSet;
+import org.eclipse.collections.impl.map.mutable.primitive.LongObjectHashMap;
+import org.eclipse.collections.impl.set.mutable.primitive.LongHashSet;
 
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 import static cafe.jeffrey.profile.heapdump.parser.HprofAppenderUtils.appendNullableId;
 import static cafe.jeffrey.profile.heapdump.parser.HprofAppenderUtils.primArrayClassId;
@@ -49,9 +49,9 @@ public final class HprofClassDumpWalker {
 
     public static ClassDumpIndex walk(
             HprofMappedFile file, HeapDumpDatabaseClient client, TopLevelData top) {
-        Map<Long, HprofRecord.ClassDump> byId = new HashMap<>();
+        MutableLongObjectMap<HprofRecord.ClassDump> byId = new LongObjectHashMap<>();
         List<ParseWarning> warnings = new ArrayList<>();
-        Set<Long> writtenClassIds = new HashSet<>();
+        MutableLongSet writtenClassIds = new LongHashSet();
         long[] classCount = {0L};
 
         client.withAppenderPair(HeapDumpStatement.APPEND_CLASS, "class", "class_instance_field",
@@ -62,20 +62,18 @@ public final class HprofClassDumpWalker {
 
                     for (HprofRecord.HeapDumpRegion region : top.regions) {
                         HprofSubRecordReader.read(file, region.fileOffset(), region.byteLength(),
-                                new HprofSubRecordReader.Listener() {
+                                new HprofSubRecordReader.Visitor() {
                                     @Override
-                                    public void onRecord(HprofRecord.Sub sub) {
-                                        if (sub instanceof HprofRecord.ClassDump cd) {
-                                            try {
-                                                if (writtenClassIds.add(cd.classId())) {
-                                                    appendClass(classApp, cd, top);
-                                                    appendInstanceFields(fieldApp, cd, top);
-                                                    classCount[0]++;
-                                                    byId.put(cd.classId(), cd);
-                                                }
-                                            } catch (SQLException e) {
-                                                throw new RuntimeException(e);
+                                    public void onClassDump(HprofRecord.ClassDump cd) {
+                                        try {
+                                            if (writtenClassIds.add(cd.classId())) {
+                                                appendClass(classApp, cd, top);
+                                                appendInstanceFields(fieldApp, cd, top);
+                                                classCount[0]++;
+                                                byId.put(cd.classId(), cd);
                                             }
+                                        } catch (SQLException e) {
+                                            throw new RuntimeException(e);
                                         }
                                     }
 

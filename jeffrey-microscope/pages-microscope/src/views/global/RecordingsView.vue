@@ -20,11 +20,7 @@
   <div>
     <MainCard>
       <template #header>
-        <MainCardHeader
-          icon="bi bi-record-circle"
-          title="Recordings"
-          :badge="allRecordings.length"
-        >
+        <MainCardHeader icon="bi bi-record-circle" title="Recordings" :badge="allRecordings.length">
           <template #actions>
             <div v-if="allRecordings.length > 0" class="page-search">
               <i class="bi bi-search"></i>
@@ -73,11 +69,7 @@
               </span>
             </div>
           </div>
-          <button
-            class="browse-btn"
-            type="button"
-            @click="triggerFileInput"
-          >
+          <button class="browse-btn" type="button" @click="triggerFileInput">
             <i class="bi bi-folder2-open"></i>
             Browse files…
           </button>
@@ -89,7 +81,9 @@
             <span class="queue-title">
               <i class="bi bi-files"></i>
               Uploading to
-              <span class="queue-target"><strong>{{ uploadTargetLabel }}</strong></span>
+              <span class="queue-target"
+                ><strong>{{ uploadTargetLabel }}</strong></span
+              >
             </span>
             <div class="queue-actions">
               <button
@@ -121,11 +115,7 @@
             </div>
           </div>
           <div class="queue-list">
-            <div
-              v-for="(file, index) in uploadFiles"
-              :key="file.name + index"
-              class="queue-item"
-            >
+            <div v-for="(file, index) in uploadFiles" :key="file.name + index" class="queue-item">
               <i :class="fileIconClass(file.name)" class="queue-item-icon"></i>
               <span class="queue-item-name">{{ file.name }}</span>
               <span class="queue-item-size">{{ FormattingService.formatBytes(file.size) }}</span>
@@ -137,10 +127,7 @@
                     :style="{ width: Math.min(uploadProgress[file.name].progress, 100) + '%' }"
                   ></div>
                 </div>
-                <span
-                  class="progress-status"
-                  :class="'status-' + uploadProgress[file.name].status"
-                >
+                <span class="progress-status" :class="'status-' + uploadProgress[file.name].status">
                   <i
                     v-if="uploadProgress[file.name].status === 'complete'"
                     class="bi bi-check-circle"
@@ -221,19 +208,11 @@
           <i class="bi bi-folder"></i>
           {{ group.name }}
           <span class="chip-count">{{ getGroupCount(group.id, 'total') }}</span>
-          <span
-            class="chip-delete"
-            title="Delete group"
-            @click.stop="confirmDeleteGroup(group.id)"
-          >
+          <span class="chip-delete" title="Delete group" @click.stop="confirmDeleteGroup(group.id)">
             <i class="bi bi-trash"></i>
           </span>
         </button>
-        <button
-          class="new-group-btn"
-          type="button"
-          @click="showCreateGroupModal = true"
-        >
+        <button class="new-group-btn" type="button" @click="showCreateGroupModal = true">
           <i class="bi bi-plus-lg"></i>
           New Group
         </button>

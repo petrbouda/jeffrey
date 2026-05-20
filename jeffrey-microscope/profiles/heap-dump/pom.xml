@@ -63,6 +63,14 @@
             <artifactId>lz4-java</artifactId>
         </dependency>
 
+        <!-- Eclipse Collections — primitive-specialised maps/sets/lists used
+             by the HPROF walkers to avoid Long-boxing on object ids. The impl
+             artifact pulls eclipse-collections-api in transitively. -->
+        <dependency>
+            <groupId>org.eclipse.collections</groupId>
+            <artifactId>eclipse-collections</artifactId>
+        </dependency>
+
         <!-- Logging -->
         <dependency>
             <groupId>org.slf4j</groupId>

@@ -33,10 +33,14 @@ export default class VersionClient extends BasePlatformClient {
   }
 
   getVersion(): Promise<string> {
-    return this.get<{ version: string }>('', undefined, { suppressToast: true }).then(data => data.version);
+    return this.get<{ version: string }>('', undefined, { suppressToast: true }).then(
+      data => data.version
+    );
   }
 
   checkForUpdate(): Promise<UpdateCheckResponse | null> {
-    return this.get<UpdateCheckResponse>('/update-check', undefined, { suppressToast: true }).catch(() => null);
+    return this.get<UpdateCheckResponse>('/update-check', undefined, { suppressToast: true }).catch(
+      () => null
+    );
   }
 }

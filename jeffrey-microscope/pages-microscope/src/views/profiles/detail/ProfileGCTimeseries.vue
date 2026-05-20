@@ -19,79 +19,78 @@
 
     <!-- Count Tab -->
     <div v-show="activeTab === 'count'">
-        <div class="chart-description">
-          <span class="chart-description-label">Shows:</span> Number of GC events per second
-          <span class="chart-description-separator">|</span>
-          <span class="chart-description-label">Use case:</span> Identify periods of high GC
-          activity and frequency patterns
-        </div>
-        <TimeSeriesChart
-          :primary-data="youngGCData"
-          :secondary-data="oldGCData"
-          :tertiary-data="fullGCData"
-          primary-title="Young GC"
-          secondary-title="Old GC"
-          tertiary-title="Full GC"
-          :primary-axis-type="AxisFormatType.NUMBER"
-          :visible-minutes="60"
-          primary-color="#4285F4"
-          secondary-color="#FBBC04"
-          tertiary-color="#EA4335"
-          :stacked="true"
-        />
+      <div class="chart-description">
+        <span class="chart-description-label">Shows:</span> Number of GC events per second
+        <span class="chart-description-separator">|</span>
+        <span class="chart-description-label">Use case:</span> Identify periods of high GC activity
+        and frequency patterns
+      </div>
+      <TimeSeriesChart
+        :primary-data="youngGCData"
+        :secondary-data="oldGCData"
+        :tertiary-data="fullGCData"
+        primary-title="Young GC"
+        secondary-title="Old GC"
+        tertiary-title="Full GC"
+        :primary-axis-type="AxisFormatType.NUMBER"
+        :visible-minutes="60"
+        primary-color="#4285F4"
+        secondary-color="#FBBC04"
+        tertiary-color="#EA4335"
+        :stacked="true"
+      />
     </div>
 
     <!-- Max Pause Tab -->
     <div v-show="activeTab === 'max-pause'">
-        <div class="chart-description">
-          <span class="chart-description-label">Shows:</span> Longest single pause within each
-          second
-          <span class="chart-description-separator">|</span>
-          <span class="chart-description-label">Use case:</span> Find worst-case latency spikes that
-          may affect user experience
-        </div>
-        <TimeSeriesChart
-          :primary-data="youngGCData"
-          :secondary-data="oldGCData"
-          :tertiary-data="fullGCData"
-          primary-title="Young GC"
-          secondary-title="Old GC"
-          tertiary-title="Full GC"
-          :primary-axis-type="AxisFormatType.DURATION_IN_NANOS"
-          :secondary-axis-type="AxisFormatType.DURATION_IN_NANOS"
-          :tertiary-axis-type="AxisFormatType.DURATION_IN_NANOS"
-          :visible-minutes="60"
-          primary-color="#4285F4"
-          secondary-color="#FBBC04"
-          tertiary-color="#EA4335"
-          :stacked="true"
-        />
+      <div class="chart-description">
+        <span class="chart-description-label">Shows:</span> Longest single pause within each second
+        <span class="chart-description-separator">|</span>
+        <span class="chart-description-label">Use case:</span> Find worst-case latency spikes that
+        may affect user experience
+      </div>
+      <TimeSeriesChart
+        :primary-data="youngGCData"
+        :secondary-data="oldGCData"
+        :tertiary-data="fullGCData"
+        primary-title="Young GC"
+        secondary-title="Old GC"
+        tertiary-title="Full GC"
+        :primary-axis-type="AxisFormatType.DURATION_IN_NANOS"
+        :secondary-axis-type="AxisFormatType.DURATION_IN_NANOS"
+        :tertiary-axis-type="AxisFormatType.DURATION_IN_NANOS"
+        :visible-minutes="60"
+        primary-color="#4285F4"
+        secondary-color="#FBBC04"
+        tertiary-color="#EA4335"
+        :stacked="true"
+      />
     </div>
 
     <!-- Sum of Pauses Tab -->
     <div v-show="activeTab === 'sum-pauses'">
-        <div class="chart-description">
-          <span class="chart-description-label">Shows:</span> Total pause time per second
-          <span class="chart-description-separator">|</span>
-          <span class="chart-description-label">Use case:</span> Measure overall GC overhead and
-          throughput impact
-        </div>
-        <TimeSeriesChart
-          :primary-data="youngGCData"
-          :secondary-data="oldGCData"
-          :tertiary-data="fullGCData"
-          primary-title="Young GC"
-          secondary-title="Old GC"
-          tertiary-title="Full GC"
-          :primary-axis-type="AxisFormatType.DURATION_IN_NANOS"
-          :secondary-axis-type="AxisFormatType.DURATION_IN_NANOS"
-          :tertiary-axis-type="AxisFormatType.DURATION_IN_NANOS"
-          :visible-minutes="60"
-          primary-color="#4285F4"
-          secondary-color="#FBBC04"
-          tertiary-color="#EA4335"
-          :stacked="true"
-        />
+      <div class="chart-description">
+        <span class="chart-description-label">Shows:</span> Total pause time per second
+        <span class="chart-description-separator">|</span>
+        <span class="chart-description-label">Use case:</span> Measure overall GC overhead and
+        throughput impact
+      </div>
+      <TimeSeriesChart
+        :primary-data="youngGCData"
+        :secondary-data="oldGCData"
+        :tertiary-data="fullGCData"
+        primary-title="Young GC"
+        secondary-title="Old GC"
+        tertiary-title="Full GC"
+        :primary-axis-type="AxisFormatType.DURATION_IN_NANOS"
+        :secondary-axis-type="AxisFormatType.DURATION_IN_NANOS"
+        :tertiary-axis-type="AxisFormatType.DURATION_IN_NANOS"
+        :visible-minutes="60"
+        primary-color="#4285F4"
+        secondary-color="#FBBC04"
+        tertiary-color="#EA4335"
+        :stacked="true"
+      />
     </div>
   </div>
 </template>

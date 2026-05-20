@@ -17,17 +17,23 @@
  */
 package cafe.jeffrey.profile.heapdump.parser;
 
+import org.eclipse.collections.api.map.primitive.LongObjectMap;
+
 import java.util.List;
-import java.util.Map;
 
 /**
  * Output of Pass A ({@link HprofClassDumpWalker}). Read-only after
  * construction; passed by reference to Pass B (which uses {@link #byId}
  * read-only), the shallow-size corrector, the string-content writer, and the
  * metadata writer.
+ *
+ * <p>{@code byId} is keyed on the primitive {@code long} class id via the
+ * Eclipse Collections {@link LongObjectMap}, so the hot {@code byId().get(id)}
+ * call in {@code HprofPassBWalker#emitInstanceRefs} never boxes the id into a
+ * {@code java.lang.Long}.
  */
 public record ClassDumpIndex(
-        Map<Long, HprofRecord.ClassDump> byId,
+        LongObjectMap<HprofRecord.ClassDump> byId,
         long classCount,
         List<ParseWarning> warnings) {
 }

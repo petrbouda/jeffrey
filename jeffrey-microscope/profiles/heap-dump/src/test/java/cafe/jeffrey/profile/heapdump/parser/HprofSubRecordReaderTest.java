@@ -31,13 +31,50 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class HprofSubRecordReaderTest {
 
-    private static final class Capture implements HprofSubRecordReader.Listener {
+    /**
+     * Test-side adapter that materialises each visitor callback back into the
+     * corresponding {@link HprofRecord.Sub} record. The production reader no
+     * longer allocates these on the hot path (visitor + primitive args), but
+     * the tests find it easier to assert against a single {@code List<Sub>}
+     * sequence than to override one method per record kind.
+     */
+    private static final class Capture implements HprofSubRecordReader.Visitor {
         final List<HprofRecord.Sub> records = new ArrayList<>();
         final List<ParseWarning> warnings = new ArrayList<>();
 
         @Override
-        public void onRecord(HprofRecord.Sub record) {
+        public void onGcRoot(int rootKind, long instanceId, int threadSerial, int frameIndex, long fileOffset) {
+            records.add(new HprofRecord.GcRoot(rootKind, instanceId, threadSerial, frameIndex, fileOffset));
+        }
+
+        @Override
+        public void onClassDump(HprofRecord.ClassDump record) {
             records.add(record);
+        }
+
+        @Override
+        public void onInstanceDump(
+                long instanceId, int traceSerial, long classId,
+                int instanceFieldsByteLength, long fileOffset) {
+            records.add(new HprofRecord.InstanceDump(
+                    instanceId, traceSerial, classId, instanceFieldsByteLength, fileOffset));
+        }
+
+        @Override
+        public void onObjectArrayDump(
+                long arrayId, int traceSerial, int length, long arrayClassId, long fileOffset) {
+            records.add(new HprofRecord.ObjectArrayDump(arrayId, traceSerial, length, arrayClassId, fileOffset));
+        }
+
+        @Override
+        public void onPrimitiveArrayDump(
+                long arrayId, int traceSerial, int length, int elementType, long fileOffset) {
+            records.add(new HprofRecord.PrimitiveArrayDump(arrayId, traceSerial, length, elementType, fileOffset));
+        }
+
+        @Override
+        public void onOpaqueSub(int tag, long bodyOffset, long bodySize) {
+            records.add(new HprofRecord.OpaqueSub(tag, bodyOffset, bodySize));
         }
 
         @Override

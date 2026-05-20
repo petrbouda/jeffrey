@@ -89,45 +89,45 @@
             </div>
           </template>
           <DataTable>
-              <thead>
-                <tr>
-                  <th>{{ mode === 'method' ? 'Method' : 'Class' }}</th>
-                  <th class="text-end">Invocations</th>
-                  <th class="text-end">Total Time</th>
-                  <th class="text-end">Avg Time</th>
-                  <th class="text-end">Max Time</th>
-                  <th class="text-end">% of Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="item in filteredItems" :key="getItemKey(item)">
-                  <td class="method-cell">
-                    <template v-if="mode === 'method'">
-                      <span class="method-name">{{ item.methodName || '&lt;init&gt;' }}</span>
-                      <span class="class-name">{{ item.className }}</span>
-                    </template>
-                    <template v-else>
-                      <span class="method-name">{{ getSimpleClassName(item.className) }}</span>
-                      <span class="class-name">{{ getPackageName(item.className) }}</span>
-                    </template>
-                  </td>
-                  <td class="text-end">
-                    {{ FormattingService.formatNumber(item.invocationCount) }}
-                  </td>
-                  <td class="text-end">
-                    {{ FormattingService.formatDuration2Units(item.totalDuration) }}
-                  </td>
-                  <td class="text-end">
-                    {{ FormattingService.formatDuration2Units(item.avgDuration) }}
-                  </td>
-                  <td class="text-end">
-                    {{ FormattingService.formatDuration2Units(item.maxDuration) }}
-                  </td>
-                  <td class="text-end">
-                    <Badge :value="item.percentOfTotal.toFixed(1) + '%'" variant="blue" size="xs" />
-                  </td>
-                </tr>
-              </tbody>
+            <thead>
+              <tr>
+                <th>{{ mode === 'method' ? 'Method' : 'Class' }}</th>
+                <th class="text-end">Invocations</th>
+                <th class="text-end">Total Time</th>
+                <th class="text-end">Avg Time</th>
+                <th class="text-end">Max Time</th>
+                <th class="text-end">% of Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="item in filteredItems" :key="getItemKey(item)">
+                <td class="method-cell">
+                  <template v-if="mode === 'method'">
+                    <span class="method-name">{{ item.methodName || '&lt;init&gt;' }}</span>
+                    <span class="class-name">{{ item.className }}</span>
+                  </template>
+                  <template v-else>
+                    <span class="method-name">{{ getSimpleClassName(item.className) }}</span>
+                    <span class="class-name">{{ getPackageName(item.className) }}</span>
+                  </template>
+                </td>
+                <td class="text-end">
+                  {{ FormattingService.formatNumber(item.invocationCount) }}
+                </td>
+                <td class="text-end">
+                  {{ FormattingService.formatDuration2Units(item.totalDuration) }}
+                </td>
+                <td class="text-end">
+                  {{ FormattingService.formatDuration2Units(item.avgDuration) }}
+                </td>
+                <td class="text-end">
+                  {{ FormattingService.formatDuration2Units(item.maxDuration) }}
+                </td>
+                <td class="text-end">
+                  <Badge :value="item.percentOfTotal.toFixed(1) + '%'" variant="blue" size="xs" />
+                </td>
+              </tr>
+            </tbody>
           </DataTable>
         </ChartSection>
       </div>
