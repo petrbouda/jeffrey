@@ -325,7 +325,9 @@
                           :to="`/profiles/${profileId}/jit-compilation`"
                           class="nav-item nav-subitem"
                           active-class="active"
-                          :class="{ active: $route.path === `/profiles/${profileId}/jit-compilation` }"
+                          :class="{
+                            active: $route.path === `/profiles/${profileId}/jit-compilation`
+                          }"
                         >
                           <i class="bi bi-bar-chart-line"></i>
                           <span>Compilations</span>
@@ -1007,8 +1009,14 @@
               <div class="card-info">
                 <div class="card-title">
                   <span>{{ profile?.name || 'Loading...' }}</span>
-                  <span class="card-label">PRIMARY</span>
-                  <span v-if="profile?.modified" class="card-label modified">MODIFIED</span>
+                  <Badge value="PRIMARY" variant="primary" size="xxs" borderless />
+                  <Badge
+                    v-if="profile?.modified"
+                    value="MODIFIED"
+                    variant="warning"
+                    size="xxs"
+                    borderless
+                  />
                 </div>
                 <div class="card-meta">
                   <span class="meta-item">
@@ -1028,7 +1036,20 @@
               <div class="card-info">
                 <div class="card-title">
                   <span>{{ secondaryProfile?.name || 'Select Secondary Profile' }}</span>
-                  <span v-if="secondaryProfile" class="card-label">SECONDARY</span>
+                  <Badge
+                    v-if="secondaryProfile"
+                    value="SECONDARY"
+                    variant="secondary"
+                    size="xxs"
+                    borderless
+                  />
+                  <Badge
+                    v-if="secondaryProfile"
+                    value="BASE"
+                    variant="danger"
+                    size="xxs"
+                    borderless
+                  />
                 </div>
                 <div class="card-meta">
                   <span v-if="!secondaryProfile" class="meta-item help-text"
@@ -1111,6 +1132,7 @@ import ProfileInfo from '@/services/api/model/ProfileInfo.ts';
 import RecordingEventSource from '@/services/api/model/RecordingEventSource.ts';
 import SecondaryProfileService from '@/services/SecondaryProfileService.ts';
 import SecondaryProfileSelectionModal from '@/components/SecondaryProfileSelectionModal.vue';
+import Badge from '@/components/Badge.vue';
 import MessageBus from '@/services/MessageBus.ts';
 import ProfileFeaturesClient from '@/services/api/ProfileFeaturesClient';
 import FeatureType from '@/services/api/model/FeatureType';
@@ -1578,6 +1600,7 @@ onUnmounted(() => {
   margin-bottom: 0.25rem;
   display: flex;
   align-items: center;
+  gap: 0.5rem;
   min-width: 0;
 }
 
@@ -1600,25 +1623,6 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   white-space: nowrap;
-}
-
-.card-label {
-  font-weight: 600;
-  font-size: 0.6rem;
-  letter-spacing: 0.5px;
-  color: var(--color-text);
-  padding: 0.125rem 0.375rem;
-  background: var(--color-light);
-  border-radius: 3px;
-  margin-left: 0.5rem;
-  display: inline-flex;
-  align-items: center;
-  vertical-align: middle;
-}
-
-.card-label.modified {
-  color: var(--color-amber-text);
-  background: var(--color-amber-light);
 }
 
 .vs-divider {
