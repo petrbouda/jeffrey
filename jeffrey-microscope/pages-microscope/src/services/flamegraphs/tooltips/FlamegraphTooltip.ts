@@ -198,4 +198,71 @@ export default abstract class FlamegraphTooltip {
   static pct(a: number, b: number) {
     return a >= b ? '100' : ((100 * a) / b).toFixed(2);
   }
+
+  /**
+   * Special-cased tooltip for TRUNCATED_SYNTHETIC frames. Skips the standard
+   * self-vs-total bar (would show 100% by construction) and shows the pruned-sample
+   * total, the count of direct children that were pruned, and (when the graph is
+   * rendering by weight) the pruned weight aggregate in the matching unit.
+   */
+  static truncated(
+    frame: Frame,
+    levelTotalSamples: number,
+    useWeight: boolean = false,
+    eventType: string | null = null,
+    levelTotalWeight: number = 0
+  ): string {
+    const prunedCount = frame.prunedChildrenCount ?? 0;
+    const weightRow = FlamegraphTooltip.truncatedWeightRow(
+      frame,
+      useWeight,
+      eventType,
+      levelTotalWeight
+    );
+    return `
+            <div style="padding:10px 12px;border-bottom:1px solid #eaedf1;background:#f9fafd">
+                <div style="font-weight:700;font-size:12px;color:#0b1727">Truncated subtree</div>
+                <div style="margin-top:5px">
+                    <span style="display:inline-block;padding:1px 6px;border-radius:3px;font-size:10px;font-weight:600;background:#fce7f3;color:#831843">SYNTHETIC · BELOW THRESHOLD</span>
+                </div>
+            </div>
+            <div style="padding:6px 10px 10px">
+                <div class="d-flex justify-content-between align-items-center" style="padding:2px 0">
+                    <span class="small text-muted">Pruned samples:</span>
+                    <span class="small fw-semibold ms-2">${FlamegraphTooltip.format_samples(frame.totalSamples, levelTotalSamples)}</span>
+                </div>
+                ${weightRow}
+                <div class="d-flex justify-content-between align-items-center" style="padding:2px 0">
+                    <span class="small text-muted">Children pruned:</span>
+                    <span class="small fw-semibold ms-2">${prunedCount}</span>
+                </div>
+                <div style="margin-top:6px;padding-top:5px;border-top:1px dashed #e5e7eb;color:#748194;font-size:10px;line-height:1.35">
+                    Truncated children whose totals fell below the rendering threshold.
+                </div>
+            </div>`;
+  }
+
+  private static truncatedWeightRow(
+    frame: Frame,
+    useWeight: boolean,
+    eventType: string | null,
+    levelTotalWeight: number
+  ): string {
+    if (!useWeight || eventType == null) {
+      return '';
+    }
+    let label: string;
+    if (EventTypes.isAllocationEventType(eventType)) {
+      label = 'Pruned allocated';
+    } else if (EventTypes.isBlockingEventType(eventType)) {
+      label = 'Pruned duration';
+    } else {
+      return '';
+    }
+    return `
+                <div class="d-flex justify-content-between align-items-center" style="padding:2px 0">
+                    <span class="small text-muted">${label}:</span>
+                    <span class="small fw-semibold ms-2">${FlamegraphTooltip.format_weight(eventType, frame.totalWeight ?? 0, levelTotalWeight)}</span>
+                </div>`;
+  }
 }

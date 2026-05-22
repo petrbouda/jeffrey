@@ -73,7 +73,8 @@ message Frame {
     FramePosition position = 8;
     FrameSampleTypes sample_types = 9;
     DiffDetails diff_details = 10;
-    bool before_marker = 11;        // For guardian analysis coloring
+    bool before_marker = 11;            // For guardian analysis coloring
+    int32 pruned_children_count = 12;   // Only set for FRAME_TYPE_TRUNCATED_SYNTHETIC
 }
 
 // Frame type enumeration matching FrameType.java
@@ -94,6 +95,7 @@ enum FrameType {
     FRAME_TYPE_LAMBDA_SYNTHETIC = 13;
     FRAME_TYPE_HIGHLIGHTED_WARNING = 14;
     FRAME_TYPE_COLLAPSED_SYNTHETIC = 15;
+    FRAME_TYPE_TRUNCATED_SYNTHETIC = 16;
 }
 
 // Position information for source code navigation
@@ -110,10 +112,19 @@ message FrameSampleTypes {
     int64 jit = 4;
 }
 
-// Differential flamegraph details
+// Differential flamegraph details.
+// For SHARED frames: samples/weight carry the signed delta (primary - secondary),
+// and percent fields carry the signed percentage change relative to the baseline.
+// For ADDED frames (no baseline): secondary_samples / secondary_weight = 0,
+// and percent fields = +Infinity (rendered as "new" in the UI).
+// For REMOVED frames (no primary): samples/weight are negative (= -secondary),
+// secondary_samples / secondary_weight carry the baseline value,
+// and percent fields = -100 (entirely removed vs baseline).
 message DiffDetails {
-    int64 samples = 1;            // Difference in samples (primary - secondary)
-    int64 weight = 2;             // Difference in weight (primary - secondary)
-    float percent_samples = 3;    // Percentage difference in samples
-    float percent_weight = 4;     // Percentage difference in weight
+    int64 samples = 1;            // primary - secondary (signed)
+    int64 weight = 2;             // primary - secondary (signed)
+    float percent_samples = 3;    // signed % change vs baseline: (primary - secondary) / secondary * 100
+    float percent_weight = 4;     // signed % change vs baseline
+    int64 secondary_samples = 5;  // baseline samples (so the frontend can show Primary / Baseline / Δ without arithmetic)
+    int64 secondary_weight = 6;   // baseline weight
 }

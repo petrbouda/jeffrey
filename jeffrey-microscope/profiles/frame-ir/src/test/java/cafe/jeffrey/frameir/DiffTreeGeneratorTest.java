@@ -236,6 +236,12 @@ class DiffTreeGeneratorTest {
     @Nested
     class SamplesAndWeightAggregation {
 
+        // SHARED frames intentionally return primary + secondary from samples()/weight():
+        // that is the canvas room the differential flamegraph needs so REMOVED-only
+        // subtrees can still be rendered inline under their SHARED parent without
+        // overflowing it. The signed delta vs baseline lives on DiffDetails (the proto
+        // payload built by DiffgraphProtoFormatter), not on this aggregate. Do not
+        // "fix" this to be primary - secondary.
         @Test
         void sharedFrameContainsBothPrimaryAndSecondarySamples() {
             Frame primary = createFrameWithSamples("main", 150, 1500);

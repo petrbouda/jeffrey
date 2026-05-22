@@ -26,13 +26,22 @@ export interface FrameTextRenderer {
     frameType: string | undefined,
     x: number,
     y: number,
-    pixelWidth: number
+    pixelWidth: number,
+    useLightText: boolean
   ): void;
 }
 
 const FONT_NORMAL = '11px -apple-system, BlinkMacSystemFont, sans-serif';
 const FONT_BOLD = 'bold 11px -apple-system, BlinkMacSystemFont, sans-serif';
 const FONT_ITALIC = 'italic 11px -apple-system, BlinkMacSystemFont, sans-serif';
+
+const TEXT_PRIMARY_DARK = '#000000';
+const TEXT_MUTED_DARK = 'rgba(0,0,0,0.7)';
+// Soft off-white (slate-100) for labels on the ADDED/REMOVED dark fills — keeps
+// AA contrast on both deep-red and deep-green backgrounds without the clinical
+// glare of pure #ffffff.
+const TEXT_PRIMARY_LIGHT = '#f1f5f9';
+const TEXT_MUTED_LIGHT = 'rgba(241,245,249,0.75)';
 
 interface ParsedFrame {
   pkg: string | null;
@@ -91,7 +100,8 @@ function drawBoldClassItalicMethod(
   parsed: ParsedFrame,
   cx: number,
   textY: number,
-  maxW: number
+  maxW: number,
+  primaryColor: string
 ): void {
   const methodStr = parsed.separator + parsed.methodName;
   ctx.font = FONT_ITALIC;
@@ -99,14 +109,13 @@ function drawBoldClassItalicMethod(
   ctx.font = FONT_BOLD;
   const clsW = ctx.measureText(parsed.className).width;
 
+  ctx.fillStyle = primaryColor;
   if (clsW + methodW <= maxW) {
-    ctx.fillStyle = '#000000';
     ctx.font = FONT_BOLD;
     ctx.fillText(parsed.className, cx, textY);
     ctx.font = FONT_ITALIC;
     ctx.fillText(methodStr, cx + clsW, textY);
   } else {
-    ctx.fillStyle = '#000000';
     ctx.font = FONT_BOLD;
     const clsTrunc = truncatePx(parsed.className, maxW - methodW, ctx);
     const clsTruncW = ctx.measureText(clsTrunc).width;
@@ -131,10 +140,13 @@ export class SingleLineFrameTextRenderer implements FrameTextRenderer {
     frameType: string | undefined,
     x: number,
     y: number,
-    pixelWidth: number
+    pixelWidth: number,
+    useLightText: boolean
   ): void {
     if (pixelWidth < 21) return;
 
+    const primaryColor = useLightText ? TEXT_PRIMARY_LIGHT : TEXT_PRIMARY_DARK;
+    const mutedColor = useLightText ? TEXT_MUTED_LIGHT : TEXT_MUTED_DARK;
     const maxW = pixelWidth - 6;
     const textY = y + 14;
     const parsed = parseFrame(title, frameType);
@@ -156,20 +168,20 @@ export class SingleLineFrameTextRenderer implements FrameTextRenderer {
         let cx = x;
 
         if (pkgText) {
-          ctx.fillStyle = 'rgba(0,0,0,0.7)';
+          ctx.fillStyle = mutedColor;
           ctx.font = FONT_NORMAL;
           ctx.fillText(pkgText, cx, textY);
           cx += pkgW;
         }
-        drawBoldClassItalicMethod(ctx, parsed, cx, textY, maxW - pkgW);
+        drawBoldClassItalicMethod(ctx, parsed, cx, textY, maxW - pkgW, primaryColor);
       } else {
-        drawBoldClassItalicMethod(ctx, parsed, x, textY, maxW);
+        drawBoldClassItalicMethod(ctx, parsed, x, textY, maxW, primaryColor);
       }
       return;
     }
 
     // Plain fallback
-    ctx.fillStyle = '#000000';
+    ctx.fillStyle = primaryColor;
     ctx.font = FONT_NORMAL;
     ctx.fillText(truncatePx(title, maxW, ctx), x, textY);
   }
@@ -193,10 +205,13 @@ export class TwoLineFrameTextRenderer implements FrameTextRenderer {
     frameType: string | undefined,
     x: number,
     y: number,
-    pixelWidth: number
+    pixelWidth: number,
+    useLightText: boolean
   ): void {
     if (pixelWidth < 18) return;
 
+    const primaryColor = useLightText ? TEXT_PRIMARY_LIGHT : TEXT_PRIMARY_DARK;
+    const mutedColor = useLightText ? TEXT_MUTED_LIGHT : TEXT_MUTED_DARK;
     const textX = x + 4;
     const maxTextWidth = pixelWidth - 10;
     const parsed = parseFrame(title, frameType);
@@ -205,12 +220,12 @@ export class TwoLineFrameTextRenderer implements FrameTextRenderer {
     if (parsed && pixelWidth >= 60) {
       // Line 1: bold Class + italic method
       const line1Y = parsed.pkg ? y + 13 : y + 19; // center vertically if no package line
-      drawBoldClassItalicMethod(ctx, parsed, textX, line1Y, maxTextWidth);
+      drawBoldClassItalicMethod(ctx, parsed, textX, line1Y, maxTextWidth, primaryColor);
 
       // Line 2: package (Java only)
       if (parsed.pkg) {
         const charsSmall = Math.floor(pixelWidth / 5.5);
-        ctx.fillStyle = 'rgba(0,0,0,0.7)';
+        ctx.fillStyle = mutedColor;
         ctx.font = TwoLineFrameTextRenderer.FONT_PACKAGE;
         ctx.fillText(truncate(parsed.pkg, charsSmall), textX, y + 25, maxTextWidth);
       }
@@ -219,13 +234,13 @@ export class TwoLineFrameTextRenderer implements FrameTextRenderer {
 
     // Narrow parseable frame: single centered line
     if (parsed && pixelWidth >= 21) {
-      drawBoldClassItalicMethod(ctx, parsed, textX, y + 19, maxTextWidth);
+      drawBoldClassItalicMethod(ctx, parsed, textX, y + 19, maxTextWidth, primaryColor);
       return;
     }
 
     // Plain fallback
     if (pixelWidth >= 21) {
-      ctx.fillStyle = '#000000';
+      ctx.fillStyle = primaryColor;
       ctx.font = FONT_NORMAL;
       ctx.fillText(truncatePx(title, maxTextWidth, ctx), textX, y + 19, maxTextWidth);
     }

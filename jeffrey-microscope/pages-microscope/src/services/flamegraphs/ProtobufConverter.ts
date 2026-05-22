@@ -23,6 +23,7 @@ import Frame from '@/services/api/model/Frame';
 import FramePosition from '@/services/api/model/FramePosition';
 import FrameSampleTypes from '@/services/api/model/FrameSampleTypes';
 import DiffDetails from '@/services/api/model/DiffDetails';
+import FrameType from '@/services/flamegraphs/FrameType';
 import TimeseriesData from '@/services/timeseries/model/TimeseriesData';
 import Serie from '@/services/timeseries/model/Serie';
 
@@ -38,24 +39,25 @@ const FrameTypeEnum = cafe.jeffrey.flamegraph.proto.FrameType;
  * Maps protobuf FrameType enum to string representation used in frontend.
  */
 const FRAME_TYPE_MAP: Record<number, string> = {
-  [FrameTypeEnum.FRAME_TYPE_UNKNOWN]: 'UNKNOWN',
-  [FrameTypeEnum.FRAME_TYPE_C1_COMPILED]: 'C1_COMPILED',
-  [FrameTypeEnum.FRAME_TYPE_NATIVE]: 'NATIVE',
-  [FrameTypeEnum.FRAME_TYPE_CPP]: 'CPP',
-  [FrameTypeEnum.FRAME_TYPE_INTERPRETED]: 'INTERPRETED',
-  [FrameTypeEnum.FRAME_TYPE_JIT_COMPILED]: 'JIT_COMPILED',
-  [FrameTypeEnum.FRAME_TYPE_INLINED]: 'INLINED',
-  [FrameTypeEnum.FRAME_TYPE_KERNEL]: 'KERNEL',
-  [FrameTypeEnum.FRAME_TYPE_THREAD_NAME_SYNTHETIC]: 'THREAD_NAME_SYNTHETIC',
-  [FrameTypeEnum.FRAME_TYPE_ALLOCATED_OBJECT_SYNTHETIC]: 'ALLOCATED_OBJECT_SYNTHETIC',
+  [FrameTypeEnum.FRAME_TYPE_UNKNOWN]: FrameType.UNKNOWN,
+  [FrameTypeEnum.FRAME_TYPE_C1_COMPILED]: FrameType.C1_COMPILED,
+  [FrameTypeEnum.FRAME_TYPE_NATIVE]: FrameType.NATIVE,
+  [FrameTypeEnum.FRAME_TYPE_CPP]: FrameType.CPP,
+  [FrameTypeEnum.FRAME_TYPE_INTERPRETED]: FrameType.INTERPRETED,
+  [FrameTypeEnum.FRAME_TYPE_JIT_COMPILED]: FrameType.JIT_COMPILED,
+  [FrameTypeEnum.FRAME_TYPE_INLINED]: FrameType.INLINED,
+  [FrameTypeEnum.FRAME_TYPE_KERNEL]: FrameType.KERNEL,
+  [FrameTypeEnum.FRAME_TYPE_THREAD_NAME_SYNTHETIC]: FrameType.THREAD_NAME_SYNTHETIC,
+  [FrameTypeEnum.FRAME_TYPE_ALLOCATED_OBJECT_SYNTHETIC]: FrameType.ALLOCATED_OBJECT_SYNTHETIC,
   [FrameTypeEnum.FRAME_TYPE_ALLOCATED_OBJECT_IN_NEW_TLAB_SYNTHETIC]:
-    'ALLOCATED_OBJECT_IN_NEW_TLAB_SYNTHETIC',
+    FrameType.ALLOCATED_OBJECT_IN_NEW_TLAB_SYNTHETIC,
   [FrameTypeEnum.FRAME_TYPE_ALLOCATED_OBJECT_OUTSIDE_TLAB_SYNTHETIC]:
-    'ALLOCATED_OBJECT_OUTSIDE_TLAB_SYNTHETIC',
-  [FrameTypeEnum.FRAME_TYPE_BLOCKING_OBJECT_SYNTHETIC]: 'BLOCKING_OBJECT_SYNTHETIC',
-  [FrameTypeEnum.FRAME_TYPE_LAMBDA_SYNTHETIC]: 'LAMBDA_SYNTHETIC',
-  [FrameTypeEnum.FRAME_TYPE_COLLAPSED_SYNTHETIC]: 'COLLAPSED_SYNTHETIC',
-  [FrameTypeEnum.FRAME_TYPE_HIGHLIGHTED_WARNING]: 'HIGHLIGHTED_WARNING'
+    FrameType.ALLOCATED_OBJECT_OUTSIDE_TLAB_SYNTHETIC,
+  [FrameTypeEnum.FRAME_TYPE_BLOCKING_OBJECT_SYNTHETIC]: FrameType.BLOCKING_OBJECT_SYNTHETIC,
+  [FrameTypeEnum.FRAME_TYPE_LAMBDA_SYNTHETIC]: FrameType.LAMBDA_SYNTHETIC,
+  [FrameTypeEnum.FRAME_TYPE_COLLAPSED_SYNTHETIC]: FrameType.COLLAPSED_SYNTHETIC,
+  [FrameTypeEnum.FRAME_TYPE_TRUNCATED_SYNTHETIC]: FrameType.TRUNCATED_SYNTHETIC,
+  [FrameTypeEnum.FRAME_TYPE_HIGHLIGHTED_WARNING]: FrameType.HIGHLIGHTED_WARNING
 };
 
 /**
@@ -126,7 +128,9 @@ export default class ProtobufConverter {
         this.toLong(proto.diffDetails.samples),
         this.toLong(proto.diffDetails.weight),
         proto.diffDetails.percentSamples || 0,
-        proto.diffDetails.percentWeight || 0
+        proto.diffDetails.percentWeight || 0,
+        this.toLong(proto.diffDetails.secondarySamples),
+        this.toLong(proto.diffDetails.secondaryWeight)
       );
     }
 
@@ -141,7 +145,8 @@ export default class ProtobufConverter {
       position,
       sampleTypes,
       diffDetails,
-      proto.beforeMarker || undefined
+      proto.beforeMarker || undefined,
+      proto.prunedChildrenCount || undefined
     );
   }
 

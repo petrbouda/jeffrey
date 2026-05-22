@@ -10,6 +10,7 @@
       <div class="main-chart-container">
         <apexchart
           ref="mainChart"
+          :key="props.primaryAxisType"
           :type="effectiveChartType"
           height="300"
           :options="mainChartOptions"
@@ -65,7 +66,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import FormattingService from '@/services/FormattingService.ts';
 import GraphUpdater from '@/services/flamegraphs/updater/GraphUpdater';
 import TimeseriesData from '@/services/timeseries/model/TimeseriesData';
@@ -73,6 +74,7 @@ import TimeRange from '@/services/api/model/TimeRange';
 import LoadingIndicator from '@/components/LoadingIndicator.vue';
 import AxisFormatType from '@/services/timeseries/AxisFormatType.ts';
 import TimeConverter, { type TimeUnit } from '@/services/timeseries/TimeConverter.ts';
+import MessageBus from '@/services/MessageBus.ts';
 
 // Define props
 const props = defineProps<{
@@ -678,7 +680,7 @@ const mainChartOptions = computed(() => {
           if (seriesIndex === 0) {
             return formatValue(value, props.primaryAxisType);
           } else if (hasSecondaryData && seriesIndex === 1) {
-            return formatValue(value, props.secondaryAxisType);
+            return formatValue(value, props.secondaryAxisType || props.primaryAxisType);
           } else if (hasTertiaryData && seriesIndex === 2) {
             return formatValue(value, props.tertiaryAxisType || props.primaryAxisType);
           } else {
@@ -1028,6 +1030,32 @@ onMounted(async () => {
   await nextTick();
   if (brushChart.value?.updateOptions) {
     brushChart.value.updateOptions(brushChartOptions.value, false);
+  }
+
+  // The sidebar collapse/expand fires SIDEBAR_CHANGED on the message bus, not a
+  // window resize, so ApexCharts' built-in resize listener never fires. Re-emit
+  // a synthetic window resize after CSS has had a moment to reflow — that's the
+  // event the main and brush charts already know how to handle.
+  MessageBus.on(MessageBus.SIDEBAR_CHANGED, handleSidebarChanged);
+});
+
+let sidebarResizeTimer: number | null = null;
+
+function handleSidebarChanged() {
+  if (sidebarResizeTimer != null) {
+    clearTimeout(sidebarResizeTimer);
+  }
+  sidebarResizeTimer = window.setTimeout(() => {
+    window.dispatchEvent(new Event('resize'));
+    sidebarResizeTimer = null;
+  }, 150);
+}
+
+onUnmounted(() => {
+  MessageBus.off(MessageBus.SIDEBAR_CHANGED, handleSidebarChanged);
+  if (sidebarResizeTimer != null) {
+    clearTimeout(sidebarResizeTimer);
+    sidebarResizeTimer = null;
   }
 });
 

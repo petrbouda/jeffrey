@@ -407,6 +407,7 @@ public final class FlamegraphAiMarkdownBuilder {
                  BLOCKING_OBJECT_SYNTHETIC,
                  LAMBDA_SYNTHETIC,
                  COLLAPSED_SYNTHETIC,
+                 TRUNCATED_SYNTHETIC,
                  HIGHLIGHTED_WARNING -> TAG_SYNTHETIC;
             case C1_COMPILED -> TAG_C1;
             case JIT_COMPILED -> TAG_C2;

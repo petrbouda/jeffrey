@@ -30,7 +30,10 @@ import SettingsClient from '@/services/api/SettingsClient';
 import MessageBus from '@/services/MessageBus.ts';
 import LoadingIndicator from '@/components/LoadingIndicator.vue';
 import AiExportButton from '@/components/flamegraph/AiExportButton.vue';
+import DifferentialRootHeader from '@/components/DifferentialRootHeader.vue';
+import PrimaryRootHeader from '@/components/PrimaryRootHeader.vue';
 import type { AiExportInput } from '@/composables/useAiExport';
+import type Frame from '@/services/api/model/Frame';
 
 export type AiExportGraphMode = 'PRIMARY' | 'DIFFERENTIAL';
 
@@ -72,6 +75,8 @@ let defaultTwoLineMode: boolean | null = null;
 
 const canvasWidth = ref('100%');
 const twoLineMode = ref(false);
+const differentialRootFrame = ref<Frame | null>(null);
+const primaryRootFrame = ref<Frame | null>(null);
 
 function buildAiExportInput(): AiExportInput | null {
   const ctx = props.aiExportContext;
@@ -177,15 +182,13 @@ function handleResize(event: any) {
 
   resizeTimer = window.setTimeout(() => {
     if (flamegraph && flamegraphCanvas.value) {
-      // 50 because of the margin from the right of the window - same margin for DIV(ProfileFlamegraphView) even for Modal (SubSecond)
-      let removeWidth = 10;
-      if (props.scrollableWrapperClass != null) {
-        removeWidth = 32;
-      }
-
-      let clientWidth =
-        (flamegraphCanvas.value.parentElement?.clientWidth as number) - removeWidth || 0;
-      canvasWidth.value = '' + clientWidth;
+      // parentElement.clientWidth already excludes any vertical scrollbar on the
+      // container (the page scroll for ProfileFlamegraphView, the modal's inner
+      // scrollable-wrapper for Guardian / Thread / EventTypes). No further
+      // reduction is needed — and reducing makes the canvas misalign with the
+      // toolbar above it.
+      let clientWidth = (flamegraphCanvas.value.parentElement?.clientWidth as number) || 0;
+      canvasWidth.value = clientWidth + 'px';
       flamegraph.resizeWidthCanvas(clientWidth);
     }
   }, 200);
@@ -222,12 +225,18 @@ onMounted(() => {
       hide: () => hideContextMenu()
     };
 
+    const rootFrame = data.levels?.[0]?.[0] ?? null;
+    const isDifferential = rootFrame?.diffDetails != null;
+    differentialRootFrame.value = isDifferential ? rootFrame : null;
+    primaryRootFrame.value = !isDifferential && rootFrame != null ? rootFrame : null;
+
     flamegraph = new Flamegraph(
       data,
       flamegraphCanvas.value,
       props.flamegraphTooltip,
       customContextMenu,
-      props.useWeight
+      props.useWeight,
+      rootFrame != null
     );
     flamegraph.drawRoot();
     FlameUtils.registerAdjustableScrollableComponent(flamegraph, props.scrollableWrapperClass);
@@ -341,6 +350,22 @@ function search(value: string | null) {
       disabled-tooltip="Differential export coming soon"
     />
   </div>
+  <DifferentialRootHeader
+    v-if="differentialRootFrame"
+    :frame="differentialRootFrame"
+    :event-type="flamegraphTooltip.eventType"
+    :use-weight="useWeight"
+    :style="{ width: canvasWidth }"
+    @reset="flamegraph?.resetZoom()"
+  />
+  <PrimaryRootHeader
+    v-else-if="primaryRootFrame"
+    :frame="primaryRootFrame"
+    :event-type="flamegraphTooltip.eventType"
+    :use-weight="useWeight"
+    :style="{ width: canvasWidth }"
+    @reset="flamegraph?.resetZoom()"
+  />
   <canvas ref="flamegraphCanvas" id="flamegraphCanvas" :style="{ width: canvasWidth }"></canvas>
 
   <div

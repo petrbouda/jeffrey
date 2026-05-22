@@ -108,7 +108,8 @@ public class Frame extends TreeMap<String, Frame> {
                  ALLOCATED_OBJECT_OUTSIDE_TLAB_SYNTHETIC,
                  LAMBDA_SYNTHETIC,
                  BLOCKING_OBJECT_SYNTHETIC,
-                 COLLAPSED_SYNTHETIC -> syntheticFrameType = type;
+                 COLLAPSED_SYNTHETIC,
+                 TRUNCATED_SYNTHETIC -> syntheticFrameType = type;
         }
     }
 
@@ -212,12 +213,13 @@ public class Frame extends TreeMap<String, Frame> {
         return selfSamples;
     }
 
-    public int depth(long cutoff) {
+    public int depth(long cutoff, boolean byWeight) {
         int depth = 0;
         if (size() > 0) {
             for (Frame child : values()) {
-                if (child.totalSamples >= cutoff) {
-                    depth = Math.max(depth, child.depth(cutoff));
+                long metric = byWeight ? child.totalWeight : child.totalSamples;
+                if (metric >= cutoff) {
+                    depth = Math.max(depth, child.depth(cutoff, byWeight));
                 }
             }
         }

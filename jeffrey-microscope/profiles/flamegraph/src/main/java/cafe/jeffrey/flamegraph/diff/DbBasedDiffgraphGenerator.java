@@ -70,7 +70,7 @@ public class DbBasedDiffgraphGenerator implements GraphGenerator {
 
             flameFuture = primaryFlameFuture.thenCombine(secondaryFlameFuture, (primary, secondary) -> {
                 DiffFrame differentialFrames = new DiffTreeGenerator(primary, secondary).generate();
-                return new DiffgraphProtoFormatter(differentialFrames, minFrameThresholdPct).format();
+                return new DiffgraphProtoFormatter(differentialFrames, minFrameThresholdPct, params.useWeight()).format();
             });
         } else {
             flameFuture = CompletableFuture.completedFuture(null);

@@ -21,6 +21,8 @@ export default class DiffDetails {
     public samples: number,
     public weight: number,
     public percentSamples: number,
-    public percentWeight: number
+    public percentWeight: number,
+    public secondarySamples: number,
+    public secondaryWeight: number
   ) {}
 }

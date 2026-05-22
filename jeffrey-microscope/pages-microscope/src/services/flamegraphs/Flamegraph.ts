@@ -24,6 +24,7 @@ import Frame from '@/services/api/model/Frame';
 import FrameRect from '@/services/flamegraphs/FrameRect';
 import VisibleFrame from '@/services/flamegraphs/VisibleFrame';
 import FrameColorResolver from '@/services/flamegraphs/FrameColorResolver';
+import FrameType from '@/services/flamegraphs/FrameType';
 import {
   type FrameTextRenderer,
   SingleLineFrameTextRenderer,
@@ -57,6 +58,7 @@ export default class Flamegraph {
 
   private readonly levels: Frame[][];
   private readonly useWeight: boolean = false;
+  private readonly skipRootInCanvas: boolean = false;
   private readonly contextMenu: any;
   private readonly hl: HTMLElement;
 
@@ -75,16 +77,18 @@ export default class Flamegraph {
     canvas: HTMLCanvasElement,
     flamegraphTooltip: FlamegraphTooltip,
     contextMenu: any,
-    useWeight: boolean
+    useWeight: boolean,
+    skipRootInCanvas: boolean = false
   ) {
     this.depth = data.depth;
     this.levels = data.levels;
     this.currentRoot = this.levels[0][0];
+    this.skipRootInCanvas = skipRootInCanvas;
 
     this.contextMenu = contextMenu;
 
     this.canvas = canvas;
-    this.canvas.style.height = data.depth * this.textRenderer.frameHeight + 'px';
+    this.canvas.style.height = this.canvasRows() * this.textRenderer.frameHeight + 'px';
     this.context = this.canvas.getContext('2d')!;
 
     // Create wrapper for canvas and highlight - ensures proper positioning context
@@ -135,9 +139,10 @@ export default class Flamegraph {
   }
 
   private processMouseMove(event: MouseEvent) {
-    const level = Math.floor(event.offsetY / this.textRenderer.frameHeight);
+    const level =
+      Math.floor(event.offsetY / this.textRenderer.frameHeight) + this.firstDrawnLevel();
 
-    if (level >= 0 && level < this.levels.length) {
+    if (level >= this.firstDrawnLevel() && level < this.levels.length) {
       let frame = this.lookupFrame(level, event);
       this.hlFrame = frame;
 
@@ -156,7 +161,8 @@ export default class Flamegraph {
             Math.min(this.totalValue(frame), this.totalValue(this.currentRoot)) *
               this.pxPerSample! +
             'px';
-          this.hl.style.top = level * this.textRenderer.frameHeight + 'px';
+          this.hl.style.top =
+            (level - this.firstDrawnLevel()) * this.textRenderer.frameHeight + 'px';
           this.hl.style.height = this.textRenderer.frameHeight + 'px';
           this.hl.style.lineHeight = this.textRenderer.frameHeight + 'px';
           this.hl.firstChild!.textContent = '';
@@ -196,8 +202,21 @@ export default class Flamegraph {
 
   setTwoLineMode(enabled: boolean) {
     this.textRenderer = enabled ? Flamegraph.TWO_LINE_RENDERER : Flamegraph.SINGLE_LINE_RENDERER;
-    this.canvas.style.height = this.depth * this.textRenderer.frameHeight + 'px';
-    this.resizeCanvas(this.canvasWidth!, this.depth * this.textRenderer.frameHeight);
+    this.canvas.style.height = this.canvasRows() * this.textRenderer.frameHeight + 'px';
+    this.resizeCanvas(this.canvasWidth!, this.canvasRows() * this.textRenderer.frameHeight);
+  }
+
+  // Number of frame rows actually rendered in the canvas. When `skipRootInCanvas`
+  // is true, level 0 lives in the HTML root header above the canvas, so the canvas
+  // is one row shorter than `this.depth`.
+  private canvasRows(): number {
+    return this.depth - this.firstDrawnLevel();
+  }
+
+  // First data level that the canvas draws. 0 normally; 1 when the root has been
+  // pulled into an HTML header.
+  private firstDrawnLevel(): number {
+    return this.skipRootInCanvas ? 1 : 0;
   }
 
   updateScrollPositionY(value: number) {
@@ -374,9 +393,12 @@ export default class Flamegraph {
     const xEnd = xStart + this.totalValue(root);
     const highlighted = new Map<number, number>();
 
-    // Render all levels - canvas shows full flamegraph, container handles scrolling
-    for (let level = 0; level < this.levels.length; level++) {
-      const y = level * this.textRenderer.frameHeight;
+    // Render all levels - canvas shows full flamegraph, container handles scrolling.
+    // When `skipRootInCanvas` is true, level 0 is rendered in the HTML root header
+    // above the canvas, so the draw loop starts at level 1 and shifts y up by one row.
+    const firstLevel = this.firstDrawnLevel();
+    for (let level = firstLevel; level < this.levels.length; level++) {
+      const y = (level - firstLevel) * this.textRenderer.frameHeight;
       const frames = this.levels[level];
 
       for (let i = 0; i < frames.length; i++) {
@@ -460,7 +482,8 @@ export default class Flamegraph {
   ) {
     const path = this.toPath2D(rect);
 
-    this.context.fillStyle = isHighlighted ? Flamegraph.HIGHLIGHTED_COLOR : this.color(frame);
+    const fill = isHighlighted ? Flamegraph.HIGHLIGHTED_COLOR : this.color(frame);
+    this.context.fillStyle = fill;
     this.context.strokeStyle = 'white';
     this.context.fill(path);
     this.context.lineWidth = 1;
@@ -468,7 +491,12 @@ export default class Flamegraph {
 
     const pixelWidth = this.totalValue(frame) * pxPerSample;
     const textX = Math.max(this.leftDistance(frame) - xStart, 0) * pxPerSample + 3;
-    this.textRenderer.drawText(this.context, frame.title, frame.type, textX, y, pixelWidth);
+    const label =
+      frame.type === FrameType.TRUNCATED_SYNTHETIC && frame.prunedChildrenCount
+        ? `▾ ${frame.prunedChildrenCount} children pruned`
+        : frame.title;
+    const useLightText = !isHighlighted && FrameColorResolver.isDarkFill(fill);
+    this.textRenderer.drawText(this.context, label, frame.type, textX, y, pixelWidth, useLightText);
 
     if (isUnderRoot) {
       this.context.fillStyle = 'rgba(255, 255, 255, 0.5)';

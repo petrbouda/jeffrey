@@ -35,9 +35,9 @@ Coul<!--
         <div class="detail-row">
           <span class="detail-label">Type:</span>
           <span class="detail-value" v-if="containsSecondary() && !isSameType()">
-            <span class="primary-value">{{ event.primary.code }}</span>
-            <span class="delimiter"> → </span>
             <span class="secondary-value">{{ event.secondary?.code }}</span>
+            <span class="delimiter"> → </span>
+            <span class="primary-value">{{ event.primary.code }}</span>
             <span class="calculated-indicator" v-if="Utils.parseBoolean(event.primary.calculated)"
               >(calculated)</span
             >
@@ -53,9 +53,9 @@ Coul<!--
         <div class="detail-row" v-if="event.primary.subtype != null">
           <span class="detail-label">Sub-Type:</span>
           <span class="detail-value" v-if="containsSecondary() && !isSameType()">
-            <span class="primary-value">{{ event.primary.subtype }}</span>
-            <span class="delimiter"> → </span>
             <span class="secondary-value">{{ event.secondary?.subtype }}</span>
+            <span class="delimiter"> → </span>
+            <span class="primary-value">{{ event.primary.subtype }}</span>
           </span>
           <span class="detail-value" v-else>
             {{ event.primary.subtype }}
@@ -65,9 +65,9 @@ Coul<!--
         <div class="detail-row">
           <span class="detail-label">Source:</span>
           <span class="detail-value" v-if="containsSecondary() && !isSameSource()">
-            <span class="primary-value">{{ event.primary.source }}</span>
-            <span class="delimiter"> → </span>
             <span class="secondary-value">{{ event.secondary?.source }}</span>
+            <span class="delimiter"> → </span>
+            <span class="primary-value">{{ event.primary.source }}</span>
           </span>
           <span class="detail-value" v-else>
             {{ event.primary.source }}
@@ -77,13 +77,22 @@ Coul<!--
         <div class="detail-row">
           <span class="detail-label">Samples:</span>
           <span class="detail-value" v-if="containsSecondary()">
-            <span class="primary-value">{{
-              FormattingService.formatNumber(event.primary.samples)
-            }}</span>
-            <span class="delimiter"> → </span>
             <span class="secondary-value">{{
               FormattingService.formatNumber(event.secondary?.samples || 0)
             }}</span>
+            <span class="delimiter"> → </span>
+            <span class="primary-value">{{
+              FormattingService.formatNumber(event.primary.samples)
+            }}</span>
+            <Badge
+              v-if="samplesDelta"
+              :value="samplesDelta.text"
+              :variant="samplesDelta.variant"
+              size="xs"
+              borderless
+              :uppercase="false"
+              class="delta-badge"
+            />
           </span>
           <span class="detail-value" v-else>
             {{ FormattingService.formatNumber(event.primary.samples) }}
@@ -93,9 +102,18 @@ Coul<!--
         <div class="detail-row" v-if="weightDesc != null">
           <span class="detail-label">{{ weightDesc }}:</span>
           <span class="detail-value" v-if="containsSecondary()">
-            <span class="primary-value">{{ weightFormatter(event.primary.weight) }}</span>
-            <span class="delimiter"> → </span>
             <span class="secondary-value">{{ weightFormatter(event.secondary?.weight || 0) }}</span>
+            <span class="delimiter"> → </span>
+            <span class="primary-value">{{ weightFormatter(event.primary.weight) }}</span>
+            <Badge
+              v-if="weightDelta"
+              :value="weightDelta.text"
+              :variant="weightDelta.variant"
+              size="xs"
+              borderless
+              :uppercase="false"
+              class="delta-badge"
+            />
           </span>
           <span class="detail-value" v-else>
             {{ weightFormatter(event.primary.weight) }}
@@ -105,13 +123,22 @@ Coul<!--
         <div class="detail-row" v-if="Utils.isNotNull(event.primary.extras?.sample_interval)">
           <span class="detail-label">Sample Interval:</span>
           <span class="detail-value" v-if="containsSecondary()">
-            <span class="primary-value">{{
-              weightFormatter(event.primary.extras.sample_interval)
-            }}</span>
-            <span class="delimiter"> → </span>
             <span class="secondary-value">{{
               weightFormatter(event.secondary?.extras.sample_interval)
             }}</span>
+            <span class="delimiter"> → </span>
+            <span class="primary-value">{{
+              weightFormatter(event.primary.extras.sample_interval)
+            }}</span>
+            <Badge
+              v-if="sampleIntervalDelta"
+              :value="sampleIntervalDelta.text"
+              :variant="sampleIntervalDelta.variant"
+              size="xs"
+              borderless
+              :uppercase="false"
+              class="delta-badge"
+            />
           </span>
           <span class="detail-value" v-else>
             {{ weightFormatter(event.primary.extras.sample_interval) }}
@@ -212,10 +239,43 @@ Coul<!--
 <script setup lang="ts">
 import '@/styles/shared-components.css';
 import { useRouter, useRoute } from 'vue-router';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import EventSummary from '@/services/api/model/EventSummary';
 import Utils from '@/services/Utils';
 import FormattingService from '@/services/FormattingService';
+import Badge from '@/components/Badge.vue';
+import type { Variant } from '@/types/ui';
+
+interface DeltaInfo {
+  text: string;
+  variant: Variant;
+}
+
+const computeDelta = (
+  primary: number | null | undefined,
+  base: number | null | undefined
+): DeltaInfo | null => {
+  const p = Number(primary ?? 0);
+  const b = Number(base ?? 0);
+  if (!Number.isFinite(p) || !Number.isFinite(b)) {
+    return null;
+  }
+  if (b === 0) {
+    if (p === 0) {
+      return { text: '0%', variant: 'secondary' };
+    }
+    return null;
+  }
+  const pct = ((p - b) / b) * 100;
+  if (pct === 0) {
+    return { text: '0%', variant: 'secondary' };
+  }
+  const sign = pct > 0 ? '+' : '−';
+  return {
+    text: `${sign}${Math.abs(pct).toFixed(1)}%`,
+    variant: pct < 0 ? 'success' : 'danger'
+  };
+};
 
 interface Props {
   title: string;
@@ -282,6 +342,27 @@ const isSameSource = () => {
     props.event.secondary != null && props.event.primary.source === props.event.secondary.source
   );
 };
+
+const samplesDelta = computed(() =>
+  containsSecondary()
+    ? computeDelta(props.event.primary.samples, props.event.secondary?.samples ?? 0)
+    : null
+);
+
+const weightDelta = computed(() =>
+  containsSecondary() && props.weightDesc != null
+    ? computeDelta(props.event.primary.weight, props.event.secondary?.weight ?? 0)
+    : null
+);
+
+const sampleIntervalDelta = computed(() =>
+  containsSecondary() && Utils.isNotNull(props.event.primary.extras?.sample_interval)
+    ? computeDelta(
+        props.event.primary.extras?.sample_interval,
+        props.event.secondary?.extras?.sample_interval
+      )
+    : null
+);
 
 const navigateToFlamegraph = () => {
   if (!props.enabled) return;
@@ -494,6 +575,21 @@ const switchIdleSamples = () => {
   color: var(--color-text-light);
   font-weight: 400;
   font-size: 0.75rem;
+}
+
+.delta-badge {
+  margin-left: 0.4rem;
+  vertical-align: middle;
+}
+
+.delta-badge.badge-success {
+  background-color: var(--color-success-100);
+  color: var(--color-emerald);
+}
+
+.delta-badge.badge-danger {
+  background-color: var(--color-danger-100);
+  color: var(--color-danger-dark);
 }
 
 .calculated-indicator {

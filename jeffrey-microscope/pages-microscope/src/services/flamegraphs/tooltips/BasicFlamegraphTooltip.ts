@@ -18,6 +18,7 @@
 
 import FlamegraphTooltip from '@/services/flamegraphs/tooltips/FlamegraphTooltip';
 import Frame from '@/services/api/model/Frame';
+import FrameType from '@/services/flamegraphs/FrameType';
 
 export default class BasicFlamegraphTooltip extends FlamegraphTooltip {
   private readonly weightTitle: string | null;
@@ -38,6 +39,16 @@ export default class BasicFlamegraphTooltip extends FlamegraphTooltip {
   }
 
   generate(frame: Frame, levelTotalSamples: number, levelTotalWeight: number): string {
+    if (frame.type === FrameType.TRUNCATED_SYNTHETIC) {
+      return FlamegraphTooltip.truncated(
+        frame,
+        levelTotalSamples,
+        this.useWeight,
+        this.eventType,
+        levelTotalWeight
+      );
+    }
+
     const selfSamples = frame.selfSamples ?? 0;
 
     let samplesHtml = `

@@ -43,6 +43,8 @@ import java.util.function.Function;
  */
 public class FlameGraphProtoBuilder implements GraphBuilder<cafe.jeffrey.frameir.Frame, FlamegraphData> {
 
+    private static final String TRUNCATED_TITLE = "Truncated";
+
     private static final Function<Long, String> ALLOCATION_FORMATTER =
             weight -> BytesUtils.format(weight) + " Allocated";
 
@@ -90,8 +92,9 @@ public class FlameGraphProtoBuilder implements GraphBuilder<cafe.jeffrey.frameir
 
     @Override
     public FlamegraphData build(cafe.jeffrey.frameir.Frame root) {
-        long minSamples = (long) (root.totalSamples() * minFrameThresholdPct / 100.0);
-        int depth = root.depth(minSamples);
+        long rootMetric = withWeight ? root.totalWeight() : root.totalSamples();
+        long minMetric = (long) (rootMetric * minFrameThresholdPct / 100.0);
+        int depth = root.depth(minMetric, withWeight);
 
         // Initialize level builders
         List<Level.Builder> levelBuilders = new ArrayList<>(depth);
@@ -105,7 +108,7 @@ public class FlameGraphProtoBuilder implements GraphBuilder<cafe.jeffrey.frameir
                 : root.totalSamples() + " Event(s)";
 
         // Recursively build frame tree
-        buildFrame(levelBuilders, rootTitle, root, 0, 0, 0, false, minSamples);
+        buildFrame(levelBuilders, rootTitle, root, 0, 0, 0, false, minMetric);
 
         // Build the final FlamegraphData
         FlamegraphData.Builder dataBuilder = FlamegraphData.newBuilder()
@@ -128,7 +131,7 @@ public class FlameGraphProtoBuilder implements GraphBuilder<cafe.jeffrey.frameir
             long leftSamples,
             long leftWeight,
             boolean markerCrossed,
-            long minSamples) {
+            long minMetric) {
 
         Frame.Builder frameBuilder = Frame.newBuilder()
                 .setLeftSamples(leftSamples)
@@ -185,15 +188,39 @@ public class FlameGraphProtoBuilder implements GraphBuilder<cafe.jeffrey.frameir
 
         levelBuilders.get(level).addFrames(frameBuilder);
 
-        // Process children — skip sub-threshold branches but always accumulate leftSamples
+        // Process children — emit visible ones packed left; aggregate sub-threshold siblings
+        // into a single TRUNCATED_SYNTHETIC placeholder on the right so the parent's true
+        // self-time becomes a visible gap instead of looking like a hotspot.
+        long prunedSamples = 0;
+        long prunedWeight = 0;
+        int prunedChildrenCount = 0;
         for (Map.Entry<String, cafe.jeffrey.frameir.Frame> e : frame.entrySet()) {
             cafe.jeffrey.frameir.Frame child = e.getValue();
-            if (child.totalSamples() >= minSamples) {
+            long childMetric = withWeight ? child.totalWeight() : child.totalSamples();
+            if (childMetric >= minMetric) {
                 boolean markerCrossedLocal = markerCrossed || child.hasMarker();
-                buildFrame(levelBuilders, e.getKey(), child, level + 1, leftSamples, leftWeight, markerCrossedLocal, minSamples);
+                buildFrame(levelBuilders, e.getKey(), child, level + 1, leftSamples, leftWeight, markerCrossedLocal, minMetric);
+                leftSamples += child.totalSamples();
+                leftWeight += child.totalWeight();
+            } else {
+                prunedSamples += child.totalSamples();
+                prunedWeight += child.totalWeight();
+                prunedChildrenCount++;
             }
-            leftSamples += child.totalSamples();
-            leftWeight += child.totalWeight();
+        }
+        if (prunedChildrenCount > 0 && level + 1 < levelBuilders.size()) {
+            Frame.Builder synthetic = Frame.newBuilder()
+                    .setLeftSamples(leftSamples)
+                    .setTotalSamples(prunedSamples)
+                    .setTitleIndex(getOrAddTitle(TRUNCATED_TITLE))
+                    .setType(cafe.jeffrey.flamegraph.proto.FrameType.FRAME_TYPE_TRUNCATED_SYNTHETIC)
+                    .setSelfSamples(prunedSamples)
+                    .setPrunedChildrenCount(prunedChildrenCount);
+            if (withWeight) {
+                synthetic.setLeftWeight(leftWeight);
+                synthetic.setTotalWeight(prunedWeight);
+            }
+            levelBuilders.get(level + 1).addFrames(synthetic);
         }
     }
 
@@ -227,6 +254,7 @@ public class FlameGraphProtoBuilder implements GraphBuilder<cafe.jeffrey.frameir
             case BLOCKING_OBJECT_SYNTHETIC -> cafe.jeffrey.flamegraph.proto.FrameType.FRAME_TYPE_BLOCKING_OBJECT_SYNTHETIC;
             case LAMBDA_SYNTHETIC -> cafe.jeffrey.flamegraph.proto.FrameType.FRAME_TYPE_LAMBDA_SYNTHETIC;
             case COLLAPSED_SYNTHETIC -> cafe.jeffrey.flamegraph.proto.FrameType.FRAME_TYPE_COLLAPSED_SYNTHETIC;
+            case TRUNCATED_SYNTHETIC -> cafe.jeffrey.flamegraph.proto.FrameType.FRAME_TYPE_TRUNCATED_SYNTHETIC;
             case HIGHLIGHTED_WARNING -> cafe.jeffrey.flamegraph.proto.FrameType.FRAME_TYPE_HIGHLIGHTED_WARNING;
             case UNKNOWN -> cafe.jeffrey.flamegraph.proto.FrameType.FRAME_TYPE_UNKNOWN;
         };

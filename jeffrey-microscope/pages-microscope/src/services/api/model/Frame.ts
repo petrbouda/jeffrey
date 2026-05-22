@@ -34,6 +34,8 @@ export default class Frame {
     public sampleTypes?: FrameSampleTypes,
     public diffDetails?: DiffDetails,
     // For guardian analysis - frames before marker are shown in grey
-    public beforeMarker?: boolean
+    public beforeMarker?: boolean,
+    // Only set for TRUNCATED_SYNTHETIC frames - count of direct children pruned at this level
+    public prunedChildrenCount?: number
   ) {}
 }

@@ -37,18 +37,24 @@ import java.util.Map;
  */
 public class DiffgraphProtoFormatter {
 
+    private static final String TRUNCATED_TITLE = "Truncated";
+
     private final DiffFrame diffFrame;
-    private final long minSamples;
+    private final boolean useWeight;
+    private final long minMetric;
 
     // Title pool for string deduplication
     private final List<String> titlePool = new ArrayList<>();
     private final Map<String, Integer> titleIndex = new HashMap<>();
 
-    public DiffgraphProtoFormatter(DiffFrame diffFrame, double minFrameThresholdPct) {
+    public DiffgraphProtoFormatter(DiffFrame diffFrame, double minFrameThresholdPct, boolean useWeight) {
         this.diffFrame = diffFrame;
+        this.useWeight = useWeight;
 
-        long totalSamples = diffFrame.secondarySamples + diffFrame.primarySamples;
-        this.minSamples = (long) (totalSamples * minFrameThresholdPct / 100);
+        long rootMetric = useWeight
+                ? diffFrame.secondaryWeight + diffFrame.primaryWeight
+                : diffFrame.secondarySamples + diffFrame.primarySamples;
+        this.minMetric = (long) (rootMetric * minFrameThresholdPct / 100);
     }
 
     public FlamegraphData format() {
@@ -85,34 +91,93 @@ public class DiffgraphProtoFormatter {
 
                 out.get(layer).addFrames(frameBuilder);
 
+                long prunedSamples = 0;
+                long prunedWeight = 0;
+                long prunedPrimarySamples = 0;
+                long prunedSecondarySamples = 0;
+                long prunedPrimaryWeight = 0;
+                long prunedSecondaryWeight = 0;
+                int prunedChildrenCount = 0;
                 for (Map.Entry<String, DiffFrame> e : diffFrame.entrySet()) {
                     DiffFrame child = e.getValue();
-                    if (child.samples() > minSamples) {
+                    long childMetric = useWeight ? child.weight() : child.samples();
+                    if (childMetric > minMetric) {
                         walkLayer(out, child, layer + 1, leftSamples, leftWeight);
+                        leftSamples += child.samples();
+                        leftWeight += child.weight();
+                    } else {
+                        prunedSamples += child.samples();
+                        prunedWeight += child.weight();
+                        prunedPrimarySamples += child.primarySamples;
+                        prunedSecondarySamples += child.secondarySamples;
+                        prunedPrimaryWeight += child.primaryWeight;
+                        prunedSecondaryWeight += child.secondaryWeight;
+                        prunedChildrenCount++;
                     }
-                    leftSamples += child.samples();
-                    leftWeight += child.weight();
+                }
+                if (prunedChildrenCount > 0) {
+                    emitTruncatedShared(
+                            out, layer + 1, leftSamples, leftWeight,
+                            prunedSamples, prunedWeight,
+                            prunedPrimarySamples, prunedSecondarySamples,
+                            prunedPrimaryWeight, prunedSecondaryWeight,
+                            prunedChildrenCount);
                 }
             }
         }
+    }
+
+    private void emitTruncatedShared(
+            List<Level.Builder> out, int layer,
+            long leftSamples, long leftWeight,
+            long totalSamples, long totalWeight,
+            long primarySamples, long secondarySamples,
+            long primaryWeight, long secondaryWeight,
+            int prunedChildrenCount) {
+
+        checkAndAddLayer(out, layer);
+        DiffDetails details = DiffDetails.newBuilder()
+                .setSamples(primarySamples - secondarySamples)
+                .setWeight(primaryWeight - secondaryWeight)
+                .setPercentSamples(roundDecimalPlaces(100f, pctVsBaseline(primarySamples, secondarySamples)))
+                .setPercentWeight(roundDecimalPlaces(100f, pctVsBaseline(primaryWeight, secondaryWeight)))
+                .setSecondarySamples(secondarySamples)
+                .setSecondaryWeight(secondaryWeight)
+                .build();
+        Frame.Builder synthetic = Frame.newBuilder()
+                .setLeftSamples(leftSamples)
+                .setLeftWeight(leftWeight)
+                .setTotalSamples(totalSamples)
+                .setTotalWeight(totalWeight)
+                .setType(cafe.jeffrey.flamegraph.proto.FrameType.FRAME_TYPE_TRUNCATED_SYNTHETIC)
+                .setTitleIndex(getOrAddTitle(TRUNCATED_TITLE))
+                .setSelfSamples(totalSamples)
+                .setPrunedChildrenCount(prunedChildrenCount)
+                .setDiffDetails(details);
+        out.get(layer).addFrames(synthetic);
     }
 
     private static float roundDecimalPlaces(float shifter, float pct) {
         return (float) Math.round(pct * shifter) / shifter;
     }
 
-    private static float toPercent(long primary, long secondary) {
-        long total = primary + secondary;
-        long diff = Math.abs(primary - secondary);
-        return (float) diff / total;
+    // Signed percentage change vs baseline: (primary - secondary) / secondary * 100.
+    // Returns +Infinity when secondary == 0 (ADDED frames) so the frontend can render "new".
+    private static float pctVsBaseline(long primary, long secondary) {
+        if (secondary == 0) {
+            return Float.POSITIVE_INFINITY;
+        }
+        return ((float) (primary - secondary) / secondary) * 100f;
     }
 
     private static DiffDetails resolveDetail(DiffFrame diffFrame) {
         return DiffDetails.newBuilder()
                 .setSamples(diffFrame.primarySamples - diffFrame.secondarySamples)
                 .setWeight(diffFrame.primaryWeight - diffFrame.secondaryWeight)
-                .setPercentSamples(roundDecimalPlaces(100f, toPercent(diffFrame.primarySamples, diffFrame.secondarySamples) * 100f))
-                .setPercentWeight(roundDecimalPlaces(100f, toPercent(diffFrame.primaryWeight, diffFrame.secondaryWeight) * 100f))
+                .setPercentSamples(roundDecimalPlaces(100f, pctVsBaseline(diffFrame.primarySamples, diffFrame.secondarySamples)))
+                .setPercentWeight(roundDecimalPlaces(100f, pctVsBaseline(diffFrame.primaryWeight, diffFrame.secondaryWeight)))
+                .setSecondarySamples(diffFrame.secondarySamples)
+                .setSecondaryWeight(diffFrame.secondaryWeight)
                 .build();
     }
 
@@ -155,35 +220,87 @@ public class DiffgraphProtoFormatter {
         }
 
         long samples = frame.totalSamples();
-        if (!added) {
-            samples = ~samples + 1;
-        }
-
         long weight = frame.totalWeight();
-        if (!added) {
-            weight = ~weight + 1;
+
+        DiffDetails.Builder details = DiffDetails.newBuilder();
+        if (added) {
+            // primary - secondary = X - 0 = X; baseline is zero, % vs baseline is +Infinity.
+            details.setSamples(samples)
+                    .setWeight(weight)
+                    .setPercentSamples(Float.POSITIVE_INFINITY)
+                    .setPercentWeight(Float.POSITIVE_INFINITY)
+                    .setSecondarySamples(0L)
+                    .setSecondaryWeight(0L);
+        } else {
+            // primary - secondary = 0 - X = -X; % vs baseline = (0 - X)/X = -100.
+            details.setSamples(-samples)
+                    .setWeight(-weight)
+                    .setPercentSamples(-100f)
+                    .setPercentWeight(-100f)
+                    .setSecondarySamples(samples)
+                    .setSecondaryWeight(weight);
         }
 
-        DiffDetails details = DiffDetails.newBuilder()
-                .setSamples(samples)
-                .setWeight(weight)
-                .setPercentSamples(100)
-                .setPercentWeight(100)
-                .build();
-
-        frameBuilder.setDiffDetails(details);
+        frameBuilder.setDiffDetails(details.build());
 
         out.get(layer).addFrames(frameBuilder);
 
+        long prunedSamples = 0;
+        long prunedWeight = 0;
+        int prunedChildrenCount = 0;
         for (Map.Entry<String, cafe.jeffrey.frameir.Frame> e : frame.entrySet()) {
             cafe.jeffrey.frameir.Frame child = e.getValue();
             String method = e.getKey();
-            if (child.totalSamples() > minSamples) {
+            long childMetric = useWeight ? child.totalWeight() : child.totalSamples();
+            if (childMetric > minMetric) {
                 processSubtree(out, child, method, layer + 1, leftSamples, leftWeight, added);
+                leftSamples += child.totalSamples();
+                leftWeight += child.totalWeight();
+            } else {
+                prunedSamples += child.totalSamples();
+                prunedWeight += child.totalWeight();
+                prunedChildrenCount++;
             }
-            leftSamples += child.totalSamples();
-            leftWeight += child.totalWeight();
         }
+        if (prunedChildrenCount > 0) {
+            emitTruncatedSingleSided(out, layer + 1, leftSamples, leftWeight, prunedSamples, prunedWeight, prunedChildrenCount, added);
+        }
+    }
+
+    private void emitTruncatedSingleSided(
+            List<Level.Builder> out, int layer,
+            long leftSamples, long leftWeight,
+            long totalSamples, long totalWeight,
+            int prunedChildrenCount, boolean added) {
+
+        checkAndAddLayer(out, layer);
+        DiffDetails.Builder details = DiffDetails.newBuilder();
+        if (added) {
+            details.setSamples(totalSamples)
+                    .setWeight(totalWeight)
+                    .setPercentSamples(Float.POSITIVE_INFINITY)
+                    .setPercentWeight(Float.POSITIVE_INFINITY)
+                    .setSecondarySamples(0L)
+                    .setSecondaryWeight(0L);
+        } else {
+            details.setSamples(-totalSamples)
+                    .setWeight(-totalWeight)
+                    .setPercentSamples(-100f)
+                    .setPercentWeight(-100f)
+                    .setSecondarySamples(totalSamples)
+                    .setSecondaryWeight(totalWeight);
+        }
+        Frame.Builder synthetic = Frame.newBuilder()
+                .setLeftSamples(leftSamples)
+                .setLeftWeight(leftWeight)
+                .setTotalSamples(totalSamples)
+                .setTotalWeight(totalWeight)
+                .setType(cafe.jeffrey.flamegraph.proto.FrameType.FRAME_TYPE_TRUNCATED_SYNTHETIC)
+                .setTitleIndex(getOrAddTitle(TRUNCATED_TITLE))
+                .setSelfSamples(totalSamples)
+                .setPrunedChildrenCount(prunedChildrenCount)
+                .setDiffDetails(details.build());
+        out.get(layer).addFrames(synthetic);
     }
 
     /**
@@ -220,6 +337,7 @@ public class DiffgraphProtoFormatter {
                     cafe.jeffrey.flamegraph.proto.FrameType.FRAME_TYPE_BLOCKING_OBJECT_SYNTHETIC;
             case LAMBDA_SYNTHETIC -> cafe.jeffrey.flamegraph.proto.FrameType.FRAME_TYPE_LAMBDA_SYNTHETIC;
             case COLLAPSED_SYNTHETIC -> cafe.jeffrey.flamegraph.proto.FrameType.FRAME_TYPE_COLLAPSED_SYNTHETIC;
+            case TRUNCATED_SYNTHETIC -> cafe.jeffrey.flamegraph.proto.FrameType.FRAME_TYPE_TRUNCATED_SYNTHETIC;
             case HIGHLIGHTED_WARNING -> cafe.jeffrey.flamegraph.proto.FrameType.FRAME_TYPE_HIGHLIGHTED_WARNING;
             case UNKNOWN -> cafe.jeffrey.flamegraph.proto.FrameType.FRAME_TYPE_UNKNOWN;
         };
