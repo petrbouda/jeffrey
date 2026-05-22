@@ -10,7 +10,7 @@
       <div class="main-chart-container">
         <apexchart
           ref="mainChart"
-          :key="props.primaryAxisType"
+          :key="`${props.primaryAxisType}-${primaryMaxValue > 0 ? 'ready' : 'empty'}`"
           :type="effectiveChartType"
           height="300"
           :options="mainChartOptions"
@@ -617,7 +617,9 @@ const mainChartOptions = computed(() => {
               },
               min: 0,
               max:
-                props.primaryAxisType === AxisFormatType.BYTES ? primaryMaxValue.value : undefined,
+                props.primaryAxisType === AxisFormatType.BYTES && primaryMaxValue.value > 0
+                  ? primaryMaxValue.value
+                  : undefined,
               forceNiceScale: true,
               tickAmount: 5,
               labels: {
@@ -633,7 +635,7 @@ const mainChartOptions = computed(() => {
               },
               min: 0,
               max:
-                props.secondaryAxisType === AxisFormatType.BYTES
+                props.secondaryAxisType === AxisFormatType.BYTES && secondaryMaxValue.value > 0
                   ? secondaryMaxValue.value
                   : undefined,
               forceNiceScale: true,
@@ -648,7 +650,8 @@ const mainChartOptions = computed(() => {
         : {
             min: 0,
             max:
-              props.primaryAxisType === AxisFormatType.BYTES
+              props.primaryAxisType === AxisFormatType.BYTES &&
+              Math.max(primaryMaxValue.value, secondaryMaxValue.value) > 0
                 ? Math.max(primaryMaxValue.value, secondaryMaxValue.value)
                 : undefined,
             forceNiceScale: true,
@@ -897,7 +900,10 @@ const brushChartOptions = computed(() => ({
       ? [
           {
             min: 0,
-            max: props.primaryAxisType === AxisFormatType.BYTES ? primaryMaxValue.value : undefined,
+            max:
+              props.primaryAxisType === AxisFormatType.BYTES && primaryMaxValue.value > 0
+                ? primaryMaxValue.value
+                : undefined,
             forceNiceScale: true,
             tickAmount: 5,
             labels: {
@@ -914,7 +920,7 @@ const brushChartOptions = computed(() => ({
             opposite: true,
             min: 0,
             max:
-              props.secondaryAxisType === AxisFormatType.BYTES
+              props.secondaryAxisType === AxisFormatType.BYTES && secondaryMaxValue.value > 0
                 ? secondaryMaxValue.value
                 : undefined,
             forceNiceScale: true,
@@ -933,7 +939,8 @@ const brushChartOptions = computed(() => ({
       : {
           min: 0,
           max:
-            props.primaryAxisType === AxisFormatType.BYTES
+            props.primaryAxisType === AxisFormatType.BYTES &&
+            Math.max(primaryMaxValue.value, secondaryMaxValue.value) > 0
               ? Math.max(primaryMaxValue.value, secondaryMaxValue.value)
               : undefined,
           forceNiceScale: true,
