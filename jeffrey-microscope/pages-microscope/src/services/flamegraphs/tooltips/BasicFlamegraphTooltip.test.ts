@@ -24,11 +24,11 @@ import ideConfigStore from '@/stores/ideConfigStore';
 vi.mock('@/stores/ideConfigStore', () => ({
   default: {
     loadOnce: vi.fn(),
-    getBaseUrl: vi.fn(() => null)
+    isEnabled: vi.fn(() => false)
   }
 }));
 
-const getBaseUrlMock = ideConfigStore.getBaseUrl as unknown as ReturnType<typeof vi.fn>;
+const isEnabledMock = ideConfigStore.isEnabled as unknown as ReturnType<typeof vi.fn>;
 
 function javaFrame(): Frame {
   const frame = new Frame(
@@ -58,11 +58,11 @@ function nativeFrame(): Frame {
 
 describe('BasicFlamegraphTooltip — IDE jump button', () => {
   beforeEach(() => {
-    getBaseUrlMock.mockReset();
+    isEnabledMock.mockReset();
   });
 
-  it('renders the Open in IDE button for a Java frame when the IDE base URL is set', () => {
-    getBaseUrlMock.mockReturnValue('http://localhost:4243/ide');
+  it('renders the Open in IDE button for a Java frame when the IDE integration is enabled', () => {
+    isEnabledMock.mockReturnValue(true);
     const tooltip = new BasicFlamegraphTooltip('jdk.ExecutionSample', false);
 
     const html = tooltip.generate(javaFrame(), 27000, 0);
@@ -75,7 +75,7 @@ describe('BasicFlamegraphTooltip — IDE jump button', () => {
   });
 
   it('omits the Open in IDE button when the feature is not configured', () => {
-    getBaseUrlMock.mockReturnValue(null);
+    isEnabledMock.mockReturnValue(false);
     const tooltip = new BasicFlamegraphTooltip('jdk.ExecutionSample', false);
 
     const html = tooltip.generate(javaFrame(), 27000, 0);
@@ -85,7 +85,7 @@ describe('BasicFlamegraphTooltip — IDE jump button', () => {
   });
 
   it('omits the Open in IDE button for non-Java frames even when configured', () => {
-    getBaseUrlMock.mockReturnValue('http://localhost:4243/ide');
+    isEnabledMock.mockReturnValue(true);
     const tooltip = new BasicFlamegraphTooltip('jdk.ExecutionSample', false);
 
     const html = tooltip.generate(nativeFrame(), 27000, 0);

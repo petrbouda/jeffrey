@@ -30,6 +30,7 @@ import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static cafe.jeffrey.microscope.core.web.MockMvcSupport.mockMvcTesterFor;
 
@@ -65,6 +66,34 @@ class RecordingsControllerTest {
                 .hasStatus(HttpStatus.BAD_REQUEST)
                 .bodyJson()
                 .extractingPath("$.message").asString().isEqualTo("Group name is required");
+    }
+
+    @Test
+    void importsFromPath() {
+        when(recordingsManager.importRecordingFromPath(any())).thenReturn("rec-1");
+
+        MockMvcTester mvc = mockMvcTesterFor(new RecordingsController(recordingsManager));
+
+        assertThat(mvc.post().uri("/api/internal/recordings/from-path")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {"path":"/tmp/recording.jfr"}"""))
+                .hasStatusOk()
+                .bodyJson()
+                .extractingPath("$.recordingId").asString().isEqualTo("rec-1");
+    }
+
+    @Test
+    void rejectsBlankPath() {
+        MockMvcTester mvc = mockMvcTesterFor(new RecordingsController(recordingsManager));
+
+        assertThat(mvc.post().uri("/api/internal/recordings/from-path")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {"path":"  "}"""))
+                .hasStatus(HttpStatus.BAD_REQUEST)
+                .bodyJson()
+                .extractingPath("$.message").asString().isEqualTo("Path is required");
     }
 
     @Test

@@ -430,6 +430,13 @@ const router = createRouter({
       path: '/',
       redirect: '/recordings'
     },
+    // Standalone deep link: import a JFR by path, wait, then jump into the profile.
+    // Opened by external tools (e.g. the IntelliJ plugin): /quick-open?path=/abs/file.jfr
+    {
+      path: '/quick-open',
+      name: 'quick-open',
+      component: () => import('@/views/global/QuickOpenView.vue')
+    },
     {
       path: '/',
       component: () => import('@/views/Index.vue'),

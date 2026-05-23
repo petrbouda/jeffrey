@@ -99,7 +99,7 @@ onMounted(() => {
       </DocsCallout>
 
       <h2 id="workflow">Workflow</h2>
-      <p>Two ways to bring an artifact in, then a single path to analysis:</p>
+      <p>Three ways to bring an artifact in, then a single path to analysis:</p>
 
       <div class="workflow-steps">
         <div class="workflow-step">
@@ -114,6 +114,13 @@ onMounted(() => {
           <div class="step-content">
             <h4><i class="bi bi-cloud-arrow-down"></i> Auto-download from a project session</h4>
             <p>From a project's <strong>Instances</strong> view, open a session and click <strong>Download</strong>. The merged recording (plus heap dumps and logs) is streamed to local storage and shows up tagged with its origin.</p>
+          </div>
+        </div>
+        <div class="workflow-step">
+          <div class="step-number">1c</div>
+          <div class="step-content">
+            <h4><i class="bi bi-box-arrow-in-right"></i> Open by path (deep link)</h4>
+            <p>Open <code>/quick-open?path=&lt;path-to-jfr&gt;</code> and Jeffrey reads that local file, adds it as an ungrouped recording, builds the profile, and jumps straight in — all steps below happen automatically. Used by the IntelliJ plugin to send a <code>.jfr</code> straight from the IDE.</p>
           </div>
         </div>
         <div class="workflow-step">

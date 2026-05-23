@@ -163,8 +163,7 @@ export default abstract class FlamegraphTooltip {
     if (!frame.type || !JavaMethodParser.isJavaFrame(frame.type)) {
       return '';
     }
-    const baseUrl = ideConfigStore.getBaseUrl();
-    if (!baseUrl) {
+    if (!ideConfigStore.isEnabled()) {
       return '';
     }
     const parsed = JavaMethodParser.parse(frame.title);
@@ -178,11 +177,11 @@ export default abstract class FlamegraphTooltip {
     const methodAttr = FlamegraphTooltip.escapeAttr(method);
     return `<div style="padding:8px 10px 10px;border-top:1px solid #eaedf1;background:#fbfcfe">
             <button type="button"
+                    class="ide-jump-button"
                     data-ide-action="open"
                     data-fqn="${fqnAttr}"
                     data-method="${methodAttr}"
-                    data-line="${line}"
-                    style="width:100%;border:1px solid #5e64ff;background:#5e64ff;color:#fff;padding:6px 10px;border-radius:4px;font-size:12px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px">
+                    data-line="${line}">
                 <i class="bi bi-box-arrow-up-right"></i> Open in IDE
             </button>
         </div>`;

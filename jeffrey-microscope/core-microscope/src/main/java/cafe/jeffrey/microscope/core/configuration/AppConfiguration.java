@@ -42,6 +42,7 @@ import cafe.jeffrey.provider.profile.jdbc.DatabaseManagerResolverImpl;
 import cafe.jeffrey.provider.profile.jdbc.DuckDBProfilePersistenceProvider;
 import cafe.jeffrey.provider.profile.api.ProfilePersistenceProvider;
 import cafe.jeffrey.microscope.core.manager.GitHubReleaseChecker;
+import cafe.jeffrey.microscope.core.manager.ide.IdeManager;
 import cafe.jeffrey.shared.common.FrameResolutionMode;
 import cafe.jeffrey.shared.common.StringUtils;
 import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
@@ -71,6 +72,13 @@ public class AppConfiguration {
             Clock clock,
             @Value("${jeffrey.microscope.update-check.enabled:true}") boolean enabled) {
         return new GitHubReleaseChecker(objectMapper, clock, enabled);
+    }
+
+    @Bean
+    public IdeManager ideManager(
+            @Value("${jeffrey.microscope.ide.enabled:false}") boolean enabled,
+            @Value("${jeffrey.microscope.ide.base-url:}") String baseUrl) {
+        return new IdeManager(enabled, baseUrl);
     }
 
     @Bean

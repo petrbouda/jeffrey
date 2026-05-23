@@ -16,28 +16,19 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.microscope.core.web.controllers;
+package cafe.jeffrey.microscope.core.manager.ide;
 
-import cafe.jeffrey.microscope.core.manager.ide.IdeManager;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+/**
+ * Outcome of an IDE open attempt. A {@code false} success with a human-readable message represents
+ * an expected, non-fatal condition (e.g. the IDE plugin is not running), not a server error.
+ */
+public record IdeOpenResult(boolean success, String message) {
 
-@RestController
-@RequestMapping("/api/internal/config/ide")
-public class IdeConfigController {
-
-    private final IdeManager ideManager;
-
-    public IdeConfigController(IdeManager ideManager) {
-        this.ideManager = ideManager;
+    public static IdeOpenResult succeeded() {
+        return new IdeOpenResult(true, null);
     }
 
-    @GetMapping
-    public IdeConfigResponse get() {
-        return new IdeConfigResponse(ideManager.isEnabled());
-    }
-
-    public record IdeConfigResponse(boolean enabled) {
+    public static IdeOpenResult failed(String message) {
+        return new IdeOpenResult(false, message);
     }
 }

@@ -57,6 +57,12 @@ export default class RecordingsClient extends BasePlatformClient {
       .then(response => response.data.recordingId);
   }
 
+  async importFromPath(path: string): Promise<string> {
+    return super
+      .post<{ recordingId: string }>('/from-path', { path }, { suppressToast: true })
+      .then(r => r.recordingId);
+  }
+
   async listRecordings(): Promise<Recording[]> {
     return super.get<Recording[]>('/recordings');
   }
@@ -80,9 +86,12 @@ export default class RecordingsClient extends BasePlatformClient {
     return HttpUtils.downloadFile(downloadUrl, fileId);
   }
 
-  async analyzeRecording(recordingId: string): Promise<string> {
+  async analyzeRecording(
+    recordingId: string,
+    options?: { suppressToast?: boolean }
+  ): Promise<string> {
     return super
-      .post<{ profileId: string }>(`/recordings/${recordingId}/analyze`)
+      .post<{ profileId: string }>(`/recordings/${recordingId}/analyze`, undefined, options)
       .then(r => r.profileId);
   }
 

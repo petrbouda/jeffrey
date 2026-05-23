@@ -16,28 +16,19 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.microscope.core.web.controllers;
+import BasePlatformClient from './BasePlatformClient';
 
-import cafe.jeffrey.microscope.core.manager.ide.IdeManager;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+export interface IdeOpenResponse {
+  success: boolean;
+  message: string | null;
+}
 
-@RestController
-@RequestMapping("/api/internal/config/ide")
-public class IdeConfigController {
+export default class IdeClient extends BasePlatformClient {
+  constructor() {
+    super('/ide');
+  }
 
-    private final IdeManager ideManager;
-
-    public IdeConfigController(IdeManager ideManager) {
-        this.ideManager = ideManager;
-    }
-
-    @GetMapping
-    public IdeConfigResponse get() {
-        return new IdeConfigResponse(ideManager.isEnabled());
-    }
-
-    public record IdeConfigResponse(boolean enabled) {
-    }
+  open(fqn: string, method: string, line: number): Promise<IdeOpenResponse> {
+    return this.post<IdeOpenResponse>('/open', { fqn, method, line }, { suppressToast: true });
+  }
 }

@@ -19,25 +19,29 @@
 package cafe.jeffrey.microscope.core.web.controllers;
 
 import cafe.jeffrey.microscope.core.manager.ide.IdeManager;
-import org.springframework.web.bind.annotation.GetMapping;
+import cafe.jeffrey.microscope.core.manager.ide.IdeOpenRequest;
+import cafe.jeffrey.microscope.core.manager.ide.IdeOpenResult;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/internal/config/ide")
-public class IdeConfigController {
+@RequestMapping("/api/internal/ide")
+public class IdeController {
 
     private final IdeManager ideManager;
 
-    public IdeConfigController(IdeManager ideManager) {
+    public IdeController(IdeManager ideManager) {
         this.ideManager = ideManager;
     }
 
-    @GetMapping
-    public IdeConfigResponse get() {
-        return new IdeConfigResponse(ideManager.isEnabled());
+    @PostMapping("/open")
+    public IdeOpenResponse open(@RequestBody IdeOpenRequest request) {
+        IdeOpenResult result = ideManager.open(request);
+        return new IdeOpenResponse(result.success(), result.message());
     }
 
-    public record IdeConfigResponse(boolean enabled) {
+    public record IdeOpenResponse(boolean success, String message) {
     }
 }

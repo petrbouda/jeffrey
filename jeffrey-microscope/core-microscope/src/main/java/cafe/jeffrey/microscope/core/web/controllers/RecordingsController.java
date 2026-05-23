@@ -117,6 +117,18 @@ public class RecordingsController {
         }
     }
 
+    @PostMapping(value = "/from-path", consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    public UploadRecordingResponse importFromPath(@RequestBody ImportFromPathRequest request) {
+        if (request == null || request.path() == null || request.path().isBlank()) {
+            throw Exceptions.invalidRequest("Path is required");
+        }
+        String path = request.path().trim();
+        LOG.debug("Importing recording from local path for quick analysis: path={}", path);
+        String recordingId = recordingsManager.importRecordingFromPath(Path.of(path));
+        return new UploadRecordingResponse(recordingId);
+    }
+
     @GetMapping(value = "/recordings", produces = MediaType.APPLICATION_JSON_VALUE)
     public List<RecordingResponse> listRecordings() {
         List<Recording> recordings = recordingsManager.listRecordings();
@@ -214,6 +226,9 @@ public class RecordingsController {
     }
 
     public record UploadRecordingResponse(String recordingId) {
+    }
+
+    public record ImportFromPathRequest(String path) {
     }
 
     public record UpdateProfileRequest(String name) {

@@ -33,20 +33,16 @@ function loadOnce(): Promise<void> {
       config.value = cfg;
     })
     .catch(() => {
-      config.value = { enabled: false, baseUrl: null };
+      config.value = { enabled: false };
     });
   return loadPromise;
 }
 
-function getBaseUrl(): string | null {
-  const cfg = config.value;
-  if (!cfg || !cfg.enabled) {
-    return null;
-  }
-  return cfg.baseUrl;
+function isEnabled(): boolean {
+  return config.value?.enabled === true;
 }
 
 export default {
   loadOnce,
-  getBaseUrl,
+  isEnabled,
 };

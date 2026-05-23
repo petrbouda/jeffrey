@@ -17,37 +17,25 @@
  */
 
 import ideConfigStore from '@/stores/ideConfigStore';
+import IdeClient from '@/services/api/IdeClient';
 import { ToastService } from '@/services/ToastService';
 
 export default class IdeJumpService {
+  private static readonly FAILURE_TITLE = 'IDE jump failed — is the IDE plugin running?';
+
   static async openInIde(fqn: string, method: string, line: number): Promise<void> {
-    const baseUrl = ideConfigStore.getBaseUrl();
-    if (!baseUrl) {
+    if (!ideConfigStore.isEnabled()) {
       return;
     }
 
-    const trimmed = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
-    const dotIdx = method.indexOf('.');
-    const methodNameOnly = dotIdx >= 0 ? method.substring(dotIdx + 1) : method;
-    const path = `${fqn}.${methodNameOnly}`
-      .split('.')
-      .map(encodeURIComponent)
-      .join('.');
-    const url = `${trimmed}/ide/${path}`;
-
     try {
-      const response = await fetch(url, {
-        method: 'POST',
-        mode: 'cors',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ method, line })
-      });
-      if (!response.ok) {
-        ToastService.warn('IDE jump failed', `${response.status} ${response.statusText}`);
+      const response = await new IdeClient().open(fqn, method, line);
+      if (!response.success) {
+        ToastService.warn(IdeJumpService.FAILURE_TITLE, response.message ?? '');
       }
     } catch (err) {
       const detail = err instanceof Error ? err.message : String(err);
-      ToastService.warn('IDE jump failed — is the IDE plugin running?', detail);
+      ToastService.warn(IdeJumpService.FAILURE_TITLE, detail);
     }
   }
 }

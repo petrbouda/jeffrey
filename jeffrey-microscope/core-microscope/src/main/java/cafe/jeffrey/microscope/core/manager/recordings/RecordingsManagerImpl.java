@@ -151,6 +151,28 @@ public class RecordingsManagerImpl implements RecordingsManager {
     }
 
     @Override
+    public String importRecordingFromPath(Path path) {
+        if (path == null) {
+            throw new IllegalArgumentException("Recording path is required");
+        }
+        if (!Files.isRegularFile(path)) {
+            throw new IllegalArgumentException("Recording file not found: " + path);
+        }
+
+        String filename = path.getFileName().toString();
+        if (SupportedRecordingFile.of(filename) == SupportedRecordingFile.UNKNOWN) {
+            throw new IllegalArgumentException("Unsupported recording file type: " + filename);
+        }
+
+        LOG.debug("Importing recording from local path: path={}", path);
+        try (InputStream inputStream = Files.newInputStream(path)) {
+            return uploadRecording(filename, inputStream, null);
+        } catch (IOException e) {
+            throw new UncheckedIOException("Failed to read recording from path: " + path, e);
+        }
+    }
+
+    @Override
     public String createDownloadedRecording(
             String recordingName,
             Path mergedRecordingFile,

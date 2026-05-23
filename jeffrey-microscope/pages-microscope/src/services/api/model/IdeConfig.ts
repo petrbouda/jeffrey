@@ -18,5 +18,4 @@
 
 export default interface IdeConfig {
   enabled: boolean;
-  baseUrl: string | null;
 }

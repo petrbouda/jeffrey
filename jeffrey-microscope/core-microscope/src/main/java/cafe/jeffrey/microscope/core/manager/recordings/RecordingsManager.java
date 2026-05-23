@@ -42,6 +42,17 @@ public interface RecordingsManager {
     String uploadRecording(String filename, InputStream inputStream, String groupId);
 
     /**
+     * Reads a JFR file from a local filesystem path and ingests it as an ungrouped recording
+     * ({@code project_id = group_id = NULL}). Used by the quick-open deep link, where an external
+     * tool (e.g. the IntelliJ plugin) hands Jeffrey the path of a file that lives on the same
+     * machine as the microscope process. Returns the newly created recording id.
+     *
+     * @throws IllegalArgumentException if the path is null, does not point to a regular file,
+     *                                  or is not a supported recording type
+     */
+    String importRecordingFromPath(Path path);
+
+    /**
      * Persist a recording downloaded from a project session. The merged recording file
      * and any artifact files (heap dumps, logs) are moved into QA storage and recorded
      * with {@code project_id = NULL}; {@code originTags} are written to {@code recording_tags}

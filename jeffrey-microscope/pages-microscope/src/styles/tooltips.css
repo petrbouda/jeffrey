@@ -68,6 +68,28 @@
   word-break: break-word;
 }
 
+/* "Open in IDE" jump action inside flamegraph tooltips */
+.ide-jump-button {
+  width: 100%;
+  border: none;
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  padding: 6px 10px;
+  border-radius: var(--radius-base);
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: background-color 0.12s ease;
+}
+
+.ide-jump-button:hover {
+  background: var(--color-primary-bg);
+}
+
 /* Tooltip animations */
 [class$="-tooltip"] {
   animation: tooltip-fade-in 0.2s ease-out;
