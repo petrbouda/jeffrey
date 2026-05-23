@@ -3,9 +3,13 @@ import App from './App.vue';
 import router from './router';
 import VueApexCharts from 'vue3-apexcharts';
 import { registerHttpInterceptors } from '@/services/HttpInterceptor';
+import ideConfigStore from '@/stores/ideConfigStore';
 
 // Register HTTP interceptors for global error handling
 registerHttpInterceptors();
+
+// Load optional IDE jump configuration (no-op when feature is disabled)
+ideConfigStore.loadOnce();
 
 // Import Bootstrap
 import 'bootstrap/dist/css/bootstrap.min.css';

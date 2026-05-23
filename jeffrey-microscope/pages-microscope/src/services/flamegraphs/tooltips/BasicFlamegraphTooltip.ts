@@ -87,6 +87,7 @@ export default class BasicFlamegraphTooltip extends FlamegraphTooltip {
                     ${samplesHtml}
                 </div>
                 ${extraSections}
-            </div>`;
+            </div>
+            ${FlamegraphTooltip.ide_action(frame)}`;
   }
 }

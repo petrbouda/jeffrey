@@ -23,6 +23,7 @@ import FramePosition from '@/services/api/model/FramePosition';
 import FrameSampleTypes from '@/services/api/model/FrameSampleTypes';
 import JavaMethodParser from '@/services/flamegraphs/JavaMethodParser';
 import FrameColorResolver from '@/services/flamegraphs/FrameColorResolver';
+import ideConfigStore from '@/stores/ideConfigStore';
 
 export default abstract class FlamegraphTooltip {
   private static readonly COMPILATION_TYPES: {
@@ -156,6 +157,43 @@ export default abstract class FlamegraphTooltip {
             ${titleHtml}
             <div style="margin-top:5px">${typeBadge}</div>
         </div>`;
+  }
+
+  static ide_action(frame: Frame): string {
+    if (!frame.type || !JavaMethodParser.isJavaFrame(frame.type)) {
+      return '';
+    }
+    const baseUrl = ideConfigStore.getBaseUrl();
+    if (!baseUrl) {
+      return '';
+    }
+    const parsed = JavaMethodParser.parse(frame.title);
+    if (!parsed || !parsed.className) {
+      return '';
+    }
+    const fqn = parsed.packageName ? `${parsed.packageName}.${parsed.className}` : parsed.className;
+    const method = `${parsed.className}.${parsed.methodName}`;
+    const line = frame.position?.line ?? -1;
+    const fqnAttr = FlamegraphTooltip.escapeAttr(fqn);
+    const methodAttr = FlamegraphTooltip.escapeAttr(method);
+    return `<div style="padding:8px 10px 10px;border-top:1px solid #eaedf1;background:#fbfcfe">
+            <button type="button"
+                    data-ide-action="open"
+                    data-fqn="${fqnAttr}"
+                    data-method="${methodAttr}"
+                    data-line="${line}"
+                    style="width:100%;border:1px solid #5e64ff;background:#5e64ff;color:#fff;padding:6px 10px;border-radius:4px;font-size:12px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px">
+                <i class="bi bi-box-arrow-up-right"></i> Open in IDE
+            </button>
+        </div>`;
+  }
+
+  private static escapeAttr(value: string): string {
+    return value
+      .replace(/&/g, '&amp;')
+      .replace(/"/g, '&quot;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
   }
 
   static format_samples(value: number, base: number) {

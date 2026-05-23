@@ -17,9 +17,15 @@
  */
 
 import TooltipPosition from './TooltipPosition';
+import IdeJumpService from '@/services/IdeJumpService';
 
 export default class Tooltip {
+  private static readonly HIDE_DELAY_MS = 400;
+
   private tooltipTimeoutId: number | null = null;
+  private hideTimeoutId: number | null = null;
+  private displayedContent: string | null = null;
+  private pendingContent: string | null = null;
   private readonly canvas: HTMLElement;
   private readonly tooltipClassName: string;
   private readonly tooltip: HTMLElement;
@@ -28,21 +34,73 @@ export default class Tooltip {
     this.canvas = canvas;
     this.tooltipClassName = this.canvas.id + '-tooltip';
     this.tooltip = Tooltip.createTooltipDiv(this.canvas, this.tooltipClassName);
+    this.registerInteractionHandlers();
   }
 
   public showTooltip(event: TooltipPosition, currentScrollY: number, content: string): void {
-    this.tooltip.style.visibility = 'hidden';
+    this.cancelPendingHide();
 
+    if (this.displayedContent === content) {
+      return;
+    }
+
+    if (this.pendingContent === content) {
+      return;
+    }
+
+    this.tooltip.style.visibility = 'hidden';
+    this.displayedContent = null;
+    this.pendingContent = content;
     clearTimeout(this.tooltipTimeoutId as number);
     this.tooltipTimeoutId = window.setTimeout(() => {
       this.tooltip.innerHTML = content;
+      this.displayedContent = content;
+      this.pendingContent = null;
       Tooltip.placeTooltip(this.canvas, this.tooltip, event, currentScrollY);
     }, 500);
   }
 
   public hideTooltip(): void {
-    this.tooltip.style.visibility = 'hidden';
     clearTimeout(this.tooltipTimeoutId as number);
+    this.pendingContent = null;
+    this.cancelPendingHide();
+    this.hideTimeoutId = window.setTimeout(() => {
+      this.tooltip.style.visibility = 'hidden';
+      this.displayedContent = null;
+    }, Tooltip.HIDE_DELAY_MS);
+  }
+
+  private cancelPendingHide(): void {
+    if (this.hideTimeoutId !== null) {
+      clearTimeout(this.hideTimeoutId);
+      this.hideTimeoutId = null;
+    }
+  }
+
+  private registerInteractionHandlers(): void {
+    this.tooltip.addEventListener('mouseenter', () => {
+      this.cancelPendingHide();
+    });
+    this.tooltip.addEventListener('mouseleave', () => {
+      this.tooltip.style.visibility = 'hidden';
+      this.displayedContent = null;
+    });
+
+    this.tooltip.addEventListener('click', (event) => {
+      const target = (event.target as HTMLElement | null)?.closest(
+        '[data-ide-action="open"]'
+      ) as HTMLElement | null;
+      if (!target) {
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      const fqn = target.getAttribute('data-fqn') ?? '';
+      const method = target.getAttribute('data-method') ?? '';
+      const lineAttr = target.getAttribute('data-line');
+      const line = lineAttr ? parseInt(lineAttr, 10) : -1;
+      IdeJumpService.openInIde(fqn, method, Number.isNaN(line) ? -1 : line);
+    });
   }
 
   private static placeTooltip(
