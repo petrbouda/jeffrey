@@ -24,6 +24,7 @@ export default class MessageBus {
   static SUBSECOND_SELECTION_CLEAR = 'subsecond-selection-clear';
   static SIDEBAR_CHANGED = 'sidebar-changed';
   static HEAP_DUMP_STATUS_CHANGED = 'heap-dump-status-changed';
+  static IDE_VIEW_SOURCE = 'ide-view-source';
 
   static emit(type: string, content: any) {
     this.INSTANCE.emit(type, content);

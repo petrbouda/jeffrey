@@ -18,7 +18,7 @@
 
 package cafe.jeffrey.microscope.core.web.controllers;
 
-import cafe.jeffrey.microscope.core.manager.ide.IdeManager;
+import cafe.jeffrey.microscope.core.manager.ide.IdeBridge;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -27,15 +27,15 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/internal/config/ide")
 public class IdeConfigController {
 
-    private final IdeManager ideManager;
+    private final IdeBridge ideBridge;
 
-    public IdeConfigController(IdeManager ideManager) {
-        this.ideManager = ideManager;
+    public IdeConfigController(IdeBridge ideBridge) {
+        this.ideBridge = ideBridge;
     }
 
     @GetMapping
     public IdeConfigResponse get() {
-        return new IdeConfigResponse(ideManager.isEnabled());
+        return new IdeConfigResponse(ideBridge.isEnabled());
     }
 
     public record IdeConfigResponse(boolean enabled) {

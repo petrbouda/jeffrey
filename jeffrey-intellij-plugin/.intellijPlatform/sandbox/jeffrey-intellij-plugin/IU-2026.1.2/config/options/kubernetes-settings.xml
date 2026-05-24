@@ -1,0 +1,11 @@
+<application>
+  <component name="KubernetesHighlightersLogsSettings">
+    <option name="_logsHighlighters">
+      <list>
+        <KubernetesLogHighlightingPattern enabled="true" pattern="(?i)\b(e(rr(or)?)?|severe)\b" fg="-2409653" fgDark="-2401188" bold="true" />
+        <KubernetesLogHighlightingPattern enabled="true" pattern="(?i)\b(w(arn(ing)?)?)\b" fg="-2125053" fgDark="-2707880" />
+        <KubernetesLogHighlightingPattern pattern="(?i)\b(i(nfo)?)\b" fg="-12359354" fgDark="-9192071" />
+      </list>
+    </option>
+  </component>
+</application>

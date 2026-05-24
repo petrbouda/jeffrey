@@ -175,14 +175,14 @@ export default abstract class FlamegraphTooltip {
     const line = frame.position?.line ?? -1;
     const fqnAttr = FlamegraphTooltip.escapeAttr(fqn);
     const methodAttr = FlamegraphTooltip.escapeAttr(method);
-    return `<div style="padding:8px 10px 10px;border-top:1px solid #eaedf1;background:#fbfcfe">
-            <button type="button"
-                    class="ide-jump-button"
-                    data-ide-action="open"
-                    data-fqn="${fqnAttr}"
-                    data-method="${methodAttr}"
-                    data-line="${line}">
+    const titleAttr = FlamegraphTooltip.escapeAttr(parsed.className);
+    const dataAttrs = `data-fqn="${fqnAttr}" data-method="${methodAttr}" data-line="${line}" data-title="${titleAttr}"`;
+    return `<div style="padding:8px 10px 10px;border-top:1px solid #eaedf1;background:#fbfcfe;display:flex;gap:6px">
+            <button type="button" class="ide-jump-button" style="flex:1" data-ide-action="open" ${dataAttrs}>
                 <i class="bi bi-box-arrow-up-right"></i> Open in IDE
+            </button>
+            <button type="button" class="ide-jump-button" style="flex:1" data-ide-action="source" ${dataAttrs}>
+                <i class="bi bi-file-earmark-code"></i> View Source
             </button>
         </div>`;
   }

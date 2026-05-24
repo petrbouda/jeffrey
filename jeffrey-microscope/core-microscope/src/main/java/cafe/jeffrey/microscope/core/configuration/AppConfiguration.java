@@ -42,16 +42,24 @@ import cafe.jeffrey.provider.profile.jdbc.DatabaseManagerResolverImpl;
 import cafe.jeffrey.provider.profile.jdbc.DuckDBProfilePersistenceProvider;
 import cafe.jeffrey.provider.profile.api.ProfilePersistenceProvider;
 import cafe.jeffrey.microscope.core.manager.GitHubReleaseChecker;
-import cafe.jeffrey.microscope.core.manager.ide.IdeManager;
+import cafe.jeffrey.microscope.core.manager.ide.IdeBridge;
+import cafe.jeffrey.microscope.core.manager.ide.IdeMode;
+import cafe.jeffrey.microscope.core.manager.ide.IdeTargetCache;
+import cafe.jeffrey.microscope.core.manager.ide.JeffreyPluginBridge;
+import cafe.jeffrey.microscope.core.manager.ide.JeffreyPluginClient;
+import cafe.jeffrey.microscope.core.manager.ide.JfrProfilerPluginBridge;
 import cafe.jeffrey.shared.common.FrameResolutionMode;
 import cafe.jeffrey.shared.common.StringUtils;
 import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
 import cafe.jeffrey.storage.recording.api.RecordingStorage;
 import cafe.jeffrey.storage.recording.filesystem.FilesystemRecordingStorage;
 
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
+import org.springframework.web.client.RestClient;
 import tools.jackson.databind.ObjectMapper;
 import java.nio.file.Path;
 import java.time.Clock;
+import java.time.Duration;
 import java.util.List;
 
 
@@ -60,6 +68,9 @@ import java.util.List;
 public class AppConfiguration {
 
     private static final Logger LOG = LoggerFactory.getLogger(AppConfiguration.class);
+
+    private static final Duration IDE_CLIENT_CONNECT_TIMEOUT = Duration.ofMillis(300);
+    private static final Duration IDE_CLIENT_READ_TIMEOUT = Duration.ofSeconds(2);
 
     @Bean
     public Clock applicationClock() {
@@ -75,10 +86,32 @@ public class AppConfiguration {
     }
 
     @Bean
-    public IdeManager ideManager(
+    public IdeBridge ideBridge(
+            @Value("${jeffrey.microscope.ide.mode:default}") String mode,
             @Value("${jeffrey.microscope.ide.enabled:false}") boolean enabled,
-            @Value("${jeffrey.microscope.ide.base-url:}") String baseUrl) {
-        return new IdeManager(enabled, baseUrl);
+            @Value("${jeffrey.microscope.ide.base-url:}") String baseUrl,
+            @Value("${jeffrey.microscope.ide.scan.port-start:63342}") int portStart,
+            @Value("${jeffrey.microscope.ide.scan.port-end:63362}") int portEnd) {
+        IdeMode ideMode = IdeMode.fromProperty(mode);
+        LOG.info("Configuring IDE bridge: mode={} enabled={}", ideMode.propertyValue(), enabled);
+        return switch (ideMode) {
+            case DEFAULT -> new JeffreyPluginBridge(
+                    enabled, portStart, portEnd,
+                    new JeffreyPluginClient(ideRestClientBuilder()), new IdeTargetCache());
+            case JFR_PROFILER_PLUGIN -> new JfrProfilerPluginBridge(enabled, baseUrl);
+        };
+    }
+
+    /**
+     * Builder for the IDE-plugin REST client, pre-configured with short timeouts so scanning closed
+     * ports stays fast. Returning a {@link RestClient.Builder} (rather than a built client) lets tests
+     * bind a {@code MockRestServiceServer} to the same builder.
+     */
+    private static RestClient.Builder ideRestClientBuilder() {
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(IDE_CLIENT_CONNECT_TIMEOUT);
+        factory.setReadTimeout(IDE_CLIENT_READ_TIMEOUT);
+        return RestClient.builder().requestFactory(factory);
     }
 
     @Bean

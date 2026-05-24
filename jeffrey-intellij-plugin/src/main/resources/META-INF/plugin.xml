@@ -1,0 +1,27 @@
+<idea-plugin>
+    <id>cafe.jeffrey.intellij</id>
+    <name>Jeffrey Microscope Plugin</name>
+    <vendor email="petr@jeffrey-analyst.cafe" url="https://jeffrey-analyst.cafe">Petr Bouda</vendor>
+    <!-- <version> and <idea-version since-build/> are injected at build time by the IntelliJ
+         Platform Gradle plugin's patchPluginXml task (from build.gradle.kts). -->
+
+    <description><![CDATA[
+        Bridges Jeffrey Microscope (JFR flame graph analyzer) with IntelliJ IDEA.
+        Lets Microscope navigate directly from a stack frame to the corresponding
+        source code in the right open IDE window.
+    ]]></description>
+
+    <depends>com.intellij.modules.platform</depends>
+    <depends>com.intellij.java</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <httpRequestHandler implementation="cafe.jeffrey.intellij.JeffreyMicroscopeService"/>
+        <applicationService serviceImplementation="cafe.jeffrey.intellij.ProjectRegistry"/>
+        <applicationService serviceImplementation="cafe.jeffrey.intellij.settings.JeffreySettings"/>
+        <applicationConfigurable parentId="tools"
+                                 id="cafe.jeffrey.intellij.settings"
+                                 instance="cafe.jeffrey.intellij.settings.JeffreyConfigurable"
+                                 displayName="Jeffrey Microscope Plugin"/>
+        <notificationGroup id="Jeffrey Microscope Plugin" displayType="BALLOON"/>
+    </extensions>
+</idea-plugin>

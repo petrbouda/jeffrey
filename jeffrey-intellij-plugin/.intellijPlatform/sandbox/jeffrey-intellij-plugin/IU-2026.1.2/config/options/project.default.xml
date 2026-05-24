@@ -1,0 +1,50 @@
+<application>
+  <component name="ProjectManager">
+    <defaultProject>
+      <component name="AutoImportSettings">
+        <option name="autoReloadType" value="SELECTIVE" />
+      </component>
+      <component name="KubernetesApiProvider"><![CDATA[{}]]></component>
+      <component name="PropertiesComponent"><![CDATA[{}]]></component>
+      <component name="TaskManager">
+        <task active="true" id="Default" summary="|b|messages.TaskBundle|k|default.task|Default task">
+          <created>1779636490766</created>
+          <option name="number" value="Default" />
+          <option name="presentableId" value="Default" />
+          <updated>1779636490766</updated>
+        </task>
+        <servers />
+      </component>
+      <component name="XSLT-Support.FileAssociations.UIState">
+        <expand />
+        <select />
+      </component>
+      <component name="masterDetails">
+        <states>
+          <state key="Copyright.UI">
+            <settings>
+              <splitter-proportions>
+                <option name="proportions">
+                  <list>
+                    <option value="0.2" />
+                  </list>
+                </option>
+              </splitter-proportions>
+            </settings>
+          </state>
+          <state key="ScopeChooserConfigurable.UI">
+            <settings>
+              <splitter-proportions>
+                <option name="proportions">
+                  <list>
+                    <option value="0.2" />
+                  </list>
+                </option>
+              </splitter-proportions>
+            </settings>
+          </state>
+        </states>
+      </component>
+    </defaultProject>
+  </component>
+</application>

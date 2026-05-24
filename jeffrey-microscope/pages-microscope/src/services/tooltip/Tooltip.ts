@@ -18,6 +18,8 @@
 
 import TooltipPosition from './TooltipPosition';
 import IdeJumpService from '@/services/IdeJumpService';
+import MessageBus from '@/services/MessageBus';
+import router from '@/router';
 
 export default class Tooltip {
   private static readonly HIDE_DELAY_MS = 400;
@@ -88,18 +90,32 @@ export default class Tooltip {
 
     this.tooltip.addEventListener('click', (event) => {
       const target = (event.target as HTMLElement | null)?.closest(
-        '[data-ide-action="open"]'
+        '[data-ide-action]'
       ) as HTMLElement | null;
       if (!target) {
         return;
       }
       event.preventDefault();
       event.stopPropagation();
+
+      const action = target.getAttribute('data-ide-action');
       const fqn = target.getAttribute('data-fqn') ?? '';
       const method = target.getAttribute('data-method') ?? '';
       const lineAttr = target.getAttribute('data-line');
-      const line = lineAttr ? parseInt(lineAttr, 10) : -1;
-      IdeJumpService.openInIde(fqn, method, Number.isNaN(line) ? -1 : line);
+      const parsedLine = lineAttr ? parseInt(lineAttr, 10) : -1;
+      const line = Number.isNaN(parsedLine) ? -1 : parsedLine;
+
+      const profileId = (router.currentRoute.value.params.profileId as string) ?? '';
+      if (action === 'open') {
+        IdeJumpService.openInIde(profileId, fqn, method, line);
+      } else if (action === 'source') {
+        const title = target.getAttribute('data-title') ?? '';
+        MessageBus.emit(MessageBus.IDE_VIEW_SOURCE, { profileId, fqn, method, line, title });
+      }
+
+      // Hide the tooltip so it does not linger behind the modal / IDE focus shift.
+      this.tooltip.style.visibility = 'hidden';
+      this.displayedContent = null;
     });
   }
 

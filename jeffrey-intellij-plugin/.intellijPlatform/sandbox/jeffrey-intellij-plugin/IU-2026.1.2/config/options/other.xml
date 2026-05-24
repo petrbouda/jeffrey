@@ -1,0 +1,38 @@
+<application>
+  <component name="LangManager">
+    <option name="languageName" value="JAVA" />
+  </component>
+  <component name="NotRoamableUiSettings">
+    <option name="fontSize" value="12.0" />
+    <option name="presentationModeIdeScale" value="1.75" />
+  </component>
+  <component name="PropertyService">{
+  &quot;keyToString&quot;: {
+    &quot;FileTemplates.SelectedTemplate&quot;: &quot;AnnotationType&quot;,
+    &quot;JSHintOptionsTreeView.TREE_SCROLL_BAR_HORIZONTAL&quot;: &quot;22&quot;,
+    &quot;JSHintOptionsTreeView.TREE_SCROLL_BAR_VERTICAL&quot;: &quot;0&quot;,
+    &quot;JSHintOptionsTreeView.TREE_SELECTED_NODE_ID&quot;: &quot;1&quot;,
+    &quot;LAST_EXTRACTOR_SCRIPTS_CLEANUP_VERSION/data/aggregators&quot;: &quot;IU-261.24374.151&quot;,
+    &quot;RunOnceActivity.TerminalFontSettingsService.fixStoredNonMonospacedFonts&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalOptionsProvider.TerminalEngineMigration.2026.1&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalOptionsProvider.appTitleMigration.2026.1.1&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.gateway.wsl.native.mode.default.set&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.set.default.devcontainer.project.open.action&quot;: &quot;true&quot;,
+    &quot;defaultJdkConfigured&quot;: &quot;true&quot;,
+    &quot;fileTypeChangedCounter&quot;: &quot;1&quot;,
+    &quot;migrated.non.roamable.values.from.general.settings&quot;: &quot;true&quot;
+  },
+  &quot;keyToStringList&quot;: {
+    &quot;fileTypeDetectors&quot;: [
+      &quot;com.intellij.ide.scratch.ScratchFileServiceImpl$Detector&quot;,
+      &quot;com.intellij.database.vfs.DbStorageFileType$Detector&quot;,
+      &quot;com.intellij.profiler.ultimate.hprof.impl.HprofFileTypeDetector&quot;,
+      &quot;com.intellij.javascript.debugger.sourcemap.SourceMapFileType$MyFileTypeDetector&quot;,
+      &quot;com.jetbrains.nodejs.util.NodeFileTypeDetector$JavaScriptFileTypeDetector&quot;,
+      &quot;com.jetbrains.nodejs.util.NodeFileTypeDetector$TypeScriptFileTypeDetector&quot;,
+      &quot;com.intellij.docker.dockerFile.DockerFileTypeDetector&quot;,
+      &quot;org.jetbrains.plugins.textmate.TextMateFileType$TextMateFileDetector&quot;
+    ]
+  }
+}</component>
+</application>

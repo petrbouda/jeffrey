@@ -5,6 +5,12 @@
     <!-- Container for minimized assistant buttons (rendered in a row) -->
     <AssistantMinimizedContainer />
 
+    <!-- Global source viewer (opened from flamegraph "View Source") -->
+    <SourceViewerModal />
+
+    <!-- Global IDE target picker (shown when a profile's IDE window is ambiguous) -->
+    <IdeTargetPickerModal />
+
     <!-- Global Download Assistant -->
     <DownloadAssistant
       :is-open="downloadStore.isOpen.value"
@@ -25,6 +31,8 @@
 <script setup lang="ts">
 import { onMounted } from 'vue';
 import { DownloadAssistant, AssistantMinimizedContainer } from '@/components/assistants';
+import SourceViewerModal from '@/components/SourceViewerModal.vue';
+import IdeTargetPickerModal from '@/components/IdeTargetPickerModal.vue';
 import { downloadAssistantStore as downloadStore } from '@/stores/assistants';
 import VersionClient from '@/services/api/VersionClient';
 import { showUpdateCheckToast } from '@/services/UpdateCheckToast';

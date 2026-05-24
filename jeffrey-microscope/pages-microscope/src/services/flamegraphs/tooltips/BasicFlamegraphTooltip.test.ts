@@ -74,6 +74,27 @@ describe('BasicFlamegraphTooltip — IDE jump button', () => {
     expect(html).toContain('Open in IDE');
   });
 
+  it('renders the View Source button for a Java frame when the IDE integration is enabled', () => {
+    isEnabledMock.mockReturnValue(true);
+    const tooltip = new BasicFlamegraphTooltip('jdk.ExecutionSample', false);
+
+    const html = tooltip.generate(javaFrame(), 27000, 0);
+
+    expect(html).toContain('data-ide-action="source"');
+    expect(html).toContain('data-title="OrderService"');
+    expect(html).toContain('View Source');
+  });
+
+  it('omits the View Source button for non-Java frames even when configured', () => {
+    isEnabledMock.mockReturnValue(true);
+    const tooltip = new BasicFlamegraphTooltip('jdk.ExecutionSample', false);
+
+    const html = tooltip.generate(nativeFrame(), 27000, 0);
+
+    expect(html).not.toContain('data-ide-action="source"');
+    expect(html).not.toContain('View Source');
+  });
+
   it('omits the Open in IDE button when the feature is not configured', () => {
     isEnabledMock.mockReturnValue(false);
     const tooltip = new BasicFlamegraphTooltip('jdk.ExecutionSample', false);

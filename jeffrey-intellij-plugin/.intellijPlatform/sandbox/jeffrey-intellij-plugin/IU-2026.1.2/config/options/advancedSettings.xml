@@ -1,0 +1,10 @@
+<application>
+  <component name="AdvancedSettings">
+    <option name="settings">
+      <map>
+        <entry key="gateway.wsl.open.projects.natively" value="true" />
+        <entry key="open.devcontainer.projects.natively" value="true" />
+      </map>
+    </option>
+  </component>
+</application>

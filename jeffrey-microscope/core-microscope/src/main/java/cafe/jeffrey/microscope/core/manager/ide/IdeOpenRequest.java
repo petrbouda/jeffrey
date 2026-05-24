@@ -21,11 +21,14 @@ package cafe.jeffrey.microscope.core.manager.ide;
 /**
  * Request to open a source location in the developer's IDE.
  *
- * @param fqn    fully-qualified class name (e.g. {@code com.example.OrderService})
- * @param method method reference as {@code ClassName.methodName} (e.g. {@code OrderService.processOrder})
- * @param line   source line number, or {@code -1} when unknown
+ * @param profileId the profile this jump belongs to; used by the {@code default} bridge to look up
+ *                  the cached IDE-window target. Nullable (the {@code jfr-profiler-plugin} bridge
+ *                  ignores it).
+ * @param fqn       fully-qualified class name (e.g. {@code com.example.OrderService})
+ * @param method    method reference as {@code ClassName.methodName} (e.g. {@code OrderService.processOrder})
+ * @param line      source line number, or {@code -1} when unknown
  */
-public record IdeOpenRequest(String fqn, String method, int line) {
+public record IdeOpenRequest(String profileId, String fqn, String method, int line) {
 
     public IdeOpenRequest {
         if (fqn == null || fqn.isBlank()) {

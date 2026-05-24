@@ -18,18 +18,29 @@
 
 import ideConfigStore from '@/stores/ideConfigStore';
 import IdeClient from '@/services/api/IdeClient';
+import IdeTargetService from '@/services/IdeTargetService';
 import { ToastService } from '@/services/ToastService';
 
 export default class IdeJumpService {
   private static readonly FAILURE_TITLE = 'IDE jump failed — is the IDE plugin running?';
+  private static readonly NO_IDE_MESSAGE = 'No running IDE was found. Open your project in IntelliJ with the Jeffrey plugin installed.';
 
-  static async openInIde(fqn: string, method: string, line: number): Promise<void> {
+  static async openInIde(profileId: string, fqn: string, method: string, line: number): Promise<void> {
     if (!ideConfigStore.isEnabled()) {
       return;
     }
 
     try {
-      const response = await new IdeClient().open(fqn, method, line);
+      const { target, reason } = await IdeTargetService.resolve(profileId, fqn);
+      if (!target) {
+        if (reason === 'no-ide') {
+          ToastService.warn(IdeJumpService.FAILURE_TITLE, IdeJumpService.NO_IDE_MESSAGE);
+        }
+        // 'cancelled' — user dismissed the picker; stay silent.
+        return;
+      }
+
+      const response = await new IdeClient().open(profileId, fqn, method, line);
       if (!response.success) {
         ToastService.warn(IdeJumpService.FAILURE_TITLE, response.message ?? '');
       }

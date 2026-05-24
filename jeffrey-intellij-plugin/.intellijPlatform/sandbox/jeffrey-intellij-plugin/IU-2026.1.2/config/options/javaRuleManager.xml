@@ -1,0 +1,81 @@
+<application>
+  <component name="javaRuleManager">
+    <group name="Java">
+      <item>java.*</item>
+      <item>javax.*</item>
+      <item>sun.*</item>
+      <item>sunw.*</item>
+      <item>com.sun.*</item>
+      <item>org.omg.CORBA.*</item>
+      <item>org.omg.CosNaming.*</item>
+      <item>COM.rsa.*</item>
+      <item>jrockit.*</item>
+      <item>javafx.*</item>
+      <item>jdk.internal.*</item>
+    </group>
+    <group name="Google">
+      <item>com.google.*</item>
+    </group>
+    <group name="Gradle">
+      <item>org.gradle.*</item>
+    </group>
+    <group name="Groovy">
+      <item>org.codehaus.groovy.*</item>
+      <item>groovy.lang.*</item>
+      <item>groovyjarjarasm.*</item>
+    </group>
+    <group name="Hibernate">
+      <item>org.hibernate.*</item>
+    </group>
+    <group name="Intellij IDEA">
+      <item>com.intellij.rt.execution.*</item>
+    </group>
+    <group name="JBoss">
+      <item>org.jboss.*</item>
+      <item>org.jbossmq.*</item>
+      <item>org.enhydra.*</item>
+      <item>org.hsql.*</item>
+    </group>
+    <group name="JRuby">
+      <item>org.jruby.*</item>
+      <item>jline.*</item>
+    </group>
+    <group name="Netty">
+      <item>io.netty.*</item>
+    </group>
+    <group name="OSGi">
+      <item>org.osgi.*</item>
+    </group>
+    <group name="SQL">
+      <item>org.hsqldb.*</item>
+      <item>com.mysql.*</item>
+      <item>com.microsoft.sqlserver.*</item>
+      <item>org.postgresql.*</item>
+    </group>
+    <group name="Tests">
+      <item>junit.*</item>
+      <item>org.junit.*</item>
+      <item>org.testng.*</item>
+      <item>com.beust.*</item>
+      <item>org.spockframework.*</item>
+    </group>
+    <group name="XML &amp; JSON">
+      <item>org.w3c.*</item>
+      <item>org.xml.*</item>
+      <item>org.jdom.*</item>
+      <item>org.json.*</item>
+      <item>org.dom4j.*</item>
+      <item>org.kxml*</item>
+      <item>org.codehaus.jackson.*</item>
+      <item>net.sf.json.*</item>
+      <item>com.fasterxml.*</item>
+      <item>com.ctc.wstx.*</item>
+      <item>GregorSamsa</item>
+    </group>
+    <group name="Native &amp; Others">
+      <item>[unknown]</item>
+      <item>_*</item>
+      <item>*::*</item>
+    </group>
+  </component>
+</application>
