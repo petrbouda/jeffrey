@@ -19,17 +19,16 @@
 package cafe.jeffrey.microscope.core.manager.ide;
 
 /**
- * Outcome of an IDE source-fetch attempt. A {@code false} success with a human-readable message
- * represents an expected, non-fatal condition (e.g. the IDE plugin is offline or has no source for
- * the class), not a server error. On success {@code content} holds the raw source text.
+ * Inclusive range of localhost ports scanned to discover running IDE plugin instances.
  */
-public record IdeSourceResult(boolean success, String content, String message, boolean decompiled) {
+public record PortRange(int start, int end) {
 
-    public static IdeSourceResult succeeded(String content, boolean decompiled) {
-        return new IdeSourceResult(true, content, null, decompiled);
-    }
-
-    public static IdeSourceResult failed(String message) {
-        return new IdeSourceResult(false, null, message, false);
+    public PortRange {
+        if (start < 0 || end < 0) {
+            throw new IllegalArgumentException("Port values must be non-negative");
+        }
+        if (start > end) {
+            throw new IllegalArgumentException("Port start must be less than or equal to port end");
+        }
     }
 }

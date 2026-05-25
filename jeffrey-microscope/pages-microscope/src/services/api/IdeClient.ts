@@ -21,12 +21,16 @@ import BasePlatformClient from './BasePlatformClient';
 export interface IdeOpenResponse {
   success: boolean;
   message: string | null;
+  reason: IdeFailureReason;
 }
+
+export type IdeFailureReason = 'NONE' | 'DISABLED' | 'NO_TARGET' | 'UNREACHABLE' | 'NOT_RESOLVED';
 
 export interface IdeSourceResponse {
   success: boolean;
   content: string | null;
   message: string | null;
+  decompiled: boolean;
 }
 
 export interface IdeProjectView {
@@ -55,24 +59,65 @@ export interface IdeTargetResponse {
   success: boolean;
 }
 
+/** Cache-only view of a profile's IDE link, backing the profile-wide nav control. */
+export interface IdeTargetStatusResponse {
+  selectable: boolean;
+  linked: boolean;
+  ideName: string | null;
+  projectName: string | null;
+  port: number;
+  pid: number;
+}
+
+/** The window the user picked, with display fields cached server-side at selection time. */
+export interface IdeTargetSelection {
+  port: number;
+  projectId: string;
+  ideName: string;
+  projectName: string;
+  pid: number;
+}
+
 export default class IdeClient extends BasePlatformClient {
   constructor() {
     super('/ide');
   }
 
   open(profileId: string, fqn: string, method: string, line: number): Promise<IdeOpenResponse> {
-    return this.post<IdeOpenResponse>('/open', { profileId, fqn, method, line }, { suppressToast: true });
+    return this.post<IdeOpenResponse>(
+      '/open',
+      { profileId, fqn, method, line },
+      { suppressToast: true }
+    );
   }
 
   fetchSource(profileId: string, fqn: string, method: string): Promise<IdeSourceResponse> {
-    return this.get<IdeSourceResponse>('/source', { profileId, fqn, method }, { suppressToast: true });
+    return this.get<IdeSourceResponse>(
+      '/source',
+      { profileId, fqn, method },
+      { suppressToast: true }
+    );
   }
 
   discoverTargets(profileId: string, fqn: string): Promise<IdeTargetsResponse> {
     return this.get<IdeTargetsResponse>('/targets', { profileId, fqn }, { suppressToast: true });
   }
 
-  selectTarget(profileId: string, port: number, projectId: string): Promise<IdeTargetResponse> {
-    return this.post<IdeTargetResponse>('/target', { profileId, port, projectId }, { suppressToast: true });
+  getStatus(profileId: string): Promise<IdeTargetStatusResponse> {
+    return this.get<IdeTargetStatusResponse>('/status', { profileId }, { suppressToast: true });
+  }
+
+  selectTarget(profileId: string, target: IdeTargetSelection): Promise<IdeTargetResponse> {
+    return this.post<IdeTargetResponse>(
+      '/target',
+      { profileId, ...target },
+      { suppressToast: true }
+    );
+  }
+
+  clearTarget(profileId: string): Promise<IdeTargetResponse> {
+    return this.del<IdeTargetResponse>(`/target?profileId=${encodeURIComponent(profileId)}`, {
+      suppressToast: true
+    });
   }
 }

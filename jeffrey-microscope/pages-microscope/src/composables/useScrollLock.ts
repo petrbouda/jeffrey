@@ -16,20 +16,29 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.microscope.core.manager.ide;
-
 /**
- * Outcome of an IDE source-fetch attempt. A {@code false} success with a human-readable message
- * represents an expected, non-fatal condition (e.g. the IDE plugin is offline or has no source for
- * the class), not a server error. On success {@code content} holds the raw source text.
+ * Locks/unlocks page scrolling on `<body>` while modals are open. Reference-counted so that nested
+ * or simultaneously-open modals don't unlock the body prematurely — the body is restored only once
+ * the last lock is released.
  */
-public record IdeSourceResult(boolean success, String content, String message, boolean decompiled) {
+let lockCount = 0;
+let previousOverflow: string | null = null;
 
-    public static IdeSourceResult succeeded(String content, boolean decompiled) {
-        return new IdeSourceResult(true, content, null, decompiled);
-    }
+export function lockBodyScroll(): void {
+  if (lockCount === 0) {
+    previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+  }
+  lockCount++;
+}
 
-    public static IdeSourceResult failed(String message) {
-        return new IdeSourceResult(false, null, message, false);
-    }
+export function unlockBodyScroll(): void {
+  if (lockCount === 0) {
+    return;
+  }
+  lockCount--;
+  if (lockCount === 0) {
+    document.body.style.overflow = previousOverflow ?? '';
+    previousOverflow = null;
+  }
 }

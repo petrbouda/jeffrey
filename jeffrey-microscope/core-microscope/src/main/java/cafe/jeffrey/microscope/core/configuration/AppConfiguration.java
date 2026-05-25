@@ -48,6 +48,7 @@ import cafe.jeffrey.microscope.core.manager.ide.IdeTargetCache;
 import cafe.jeffrey.microscope.core.manager.ide.JeffreyPluginBridge;
 import cafe.jeffrey.microscope.core.manager.ide.JeffreyPluginClient;
 import cafe.jeffrey.microscope.core.manager.ide.JfrProfilerPluginBridge;
+import cafe.jeffrey.microscope.core.manager.ide.PortRange;
 import cafe.jeffrey.shared.common.FrameResolutionMode;
 import cafe.jeffrey.shared.common.StringUtils;
 import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
@@ -87,18 +88,18 @@ public class AppConfiguration {
 
     @Bean
     public IdeBridge ideBridge(
-            @Value("${jeffrey.microscope.ide.mode:default}") String mode,
-            @Value("${jeffrey.microscope.ide.enabled:false}") boolean enabled,
+            @Value("${jeffrey.microscope.ide.mode:jeffrey-plugin}") String mode,
             @Value("${jeffrey.microscope.ide.base-url:}") String baseUrl,
             @Value("${jeffrey.microscope.ide.scan.port-start:63342}") int portStart,
             @Value("${jeffrey.microscope.ide.scan.port-end:63362}") int portEnd) {
         IdeMode ideMode = IdeMode.fromProperty(mode);
-        LOG.info("Configuring IDE bridge: mode={} enabled={}", ideMode.propertyValue(), enabled);
+        LOG.info("Configuring IDE IntelliJ Plugin: mode={}", ideMode.propertyValue());
         return switch (ideMode) {
-            case DEFAULT -> new JeffreyPluginBridge(
-                    enabled, portStart, portEnd,
-                    new JeffreyPluginClient(ideRestClientBuilder()), new IdeTargetCache());
-            case JFR_PROFILER_PLUGIN -> new JfrProfilerPluginBridge(enabled, baseUrl);
+            case JEFFREY_PLUGIN -> new JeffreyPluginBridge(
+                    new PortRange(portStart, portEnd),
+                    new JeffreyPluginClient(ideRestClientBuilder()),
+                    new IdeTargetCache());
+            case JFR_PROFILER_PLUGIN -> new JfrProfilerPluginBridge(baseUrl);
         };
     }
 

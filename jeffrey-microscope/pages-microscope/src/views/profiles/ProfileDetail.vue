@@ -83,6 +83,23 @@
           </div>
         </div>
 
+        <!-- IDE Target Control (profile-wide; visible only when the bridge supports target selection) -->
+        <div v-if="ideControlVisible" class="comparison-toggle-wrapper ide-toggle-wrapper">
+          <button
+            type="button"
+            class="comparison-toggle-btn"
+            :class="{ active: ideTargetPanelVisible }"
+            @click="toggleIdePanel"
+            :title="ideTargetStatus.linked ? 'IDE linked — show details' : 'Set up IDE integration'"
+          >
+            <i class="bi bi-window-stack"></i>
+            <span class="toggle-label">IDE</span>
+            <span class="toggle-status" :class="{ set: ideTargetStatus.linked }">
+              {{ ideTargetStatus.linked ? 'LINKED' : 'NOT SET' }}
+            </span>
+          </button>
+        </div>
+
         <!-- Comparison Panel Toggle (hidden for heap-dump-only profiles) -->
         <div v-if="!isHeapDumpOnlyProfile" class="comparison-toggle-wrapper">
           <button
@@ -1101,6 +1118,9 @@
           @profile-cleared="handleSecondaryProfileCleared"
         />
 
+        <!-- IDE Target Detail Panel (toggled from the top nav, like the comparison panel) -->
+        <IdeTargetBar v-if="ideControlVisible && ideTargetPanelVisible" :profile-id="profileId" />
+
         <!-- Content Area without tabs -->
         <div class="detail-content-container mb-4">
           <div class="card">
@@ -1137,6 +1157,9 @@ import MessageBus from '@/services/MessageBus.ts';
 import ProfileFeaturesClient from '@/services/api/ProfileFeaturesClient';
 import FeatureType from '@/services/api/model/FeatureType';
 import { profileStore, ProfileWithContext } from '@/stores/profileStore';
+import IdeTargetBar from '@/components/IdeTargetBar.vue';
+import ideConfigStore from '@/stores/ideConfigStore';
+import ideProfileTargetStore from '@/stores/ideProfileTargetStore';
 const route = useRoute();
 const router = useRouter();
 const { workspaceId, projectId, navigateToProjectRecordings } = useNavigation();
@@ -1241,6 +1264,28 @@ const toggleComparisonPanel = () => {
   comparisonPanelVisible.value = !comparisonPanelVisible.value;
 };
 
+// IDE target control (profile-wide). Visible only when IDE integration is on and the active bridge
+// supports choosing a target window (the multi-window Jeffrey plugin). Panel defaults to closed.
+const ideTargetStatus = ideProfileTargetStore.status;
+const ideControlVisible = computed(
+  () =>
+    ideConfigStore.isEnabled() &&
+    (ideTargetStatus.value.selectable || ideTargetStatus.value.linked)
+);
+
+const getStoredIdePanelState = (): boolean => {
+  return sessionStorage.getItem('profile-ide-panel-visible') === 'true';
+};
+const ideTargetPanelVisible = ref(getStoredIdePanelState());
+
+const toggleIdePanel = () => {
+  ideTargetPanelVisible.value = !ideTargetPanelVisible.value;
+};
+
+watch(ideTargetPanelVisible, newValue => {
+  sessionStorage.setItem('profile-ide-panel-visible', String(newValue));
+});
+
 // Watch for mode changes and persist to sessionStorage
 watch(selectedMode, newMode => {
   sessionStorage.setItem('profile-sidebar-mode', newMode);
@@ -1279,6 +1324,10 @@ watch(
 );
 
 onMounted(async () => {
+  // IDE integration config + cached target status (cache-only read, no port scan).
+  ideConfigStore.loadOnce();
+  void ideProfileTargetStore.load(profileId);
+
   try {
     // Fetch profile details using direct profile client (simplified URL)
     const profileWithContext = (await directProfileClient.getById(profileId)) as ProfileWithContext;
@@ -2142,6 +2191,19 @@ onUnmounted(() => {
 .comparison-toggle-btn .toggle-status.set {
   background: var(--color-success-100);
   color: var(--color-success-hover);
+}
+
+/* The IDE wrapper carries the margin-left:auto that pushes the right-hand group over;
+   the Secondary Profile wrapper that follows must NOT add a second auto margin, or the
+   free space gets split between them (leaving a big gap). Sit it flush instead, and drop
+   the facing paddings so the two buttons sit close together. */
+.ide-toggle-wrapper {
+  padding-right: 0;
+}
+
+.ide-toggle-wrapper + .comparison-toggle-wrapper {
+  margin-left: 0;
+  padding-left: 0.5rem;
 }
 
 /* Responsive adjustments for toggle button */

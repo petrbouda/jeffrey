@@ -17,9 +17,10 @@
  */
 
 import IdeClient from '@/services/api/IdeClient';
-import type { IdeInstanceView } from '@/services/api/IdeClient';
+import type { IdeInstanceView, IdeTargetSelection } from '@/services/api/IdeClient';
 import ideTargetPickerStore from '@/stores/ideTargetPickerStore';
 import type { PickedTarget } from '@/stores/ideTargetPickerStore';
+import MessageBus from '@/services/MessageBus';
 
 export type ResolveReason = 'cancelled' | 'no-ide';
 
@@ -46,17 +47,17 @@ export default class IdeTargetService {
 
     // A previously cached choice that is still open wins — no prompt.
     if (targets.selectedProjectId) {
-      const cached = all.find((t) => t.projectId === targets.selectedProjectId);
+      const cached = all.find(t => t.projectId === targets.selectedProjectId);
       if (cached) {
-        return { target: cached };
+        return { target: { port: cached.port, projectId: cached.projectId } };
       }
     }
 
     // Auto-select when there is no real choice to make.
-    const matches = all.filter((t) => t.hasClass);
+    const matches = all.filter(t => t.hasClass);
     const auto = all.length === 1 ? all[0] : matches.length === 1 ? matches[0] : null;
     if (auto) {
-      await client.selectTarget(profileId, auto.port, auto.projectId);
+      await IdeTargetService.persist(client, profileId, auto);
       return { target: { port: auto.port, projectId: auto.projectId } };
     }
 
@@ -65,15 +66,32 @@ export default class IdeTargetService {
     if (!picked) {
       return { target: null, reason: 'cancelled' };
     }
-    await client.selectTarget(profileId, picked.port, picked.projectId);
+    const selected = all.find(t => t.port === picked.port && t.projectId === picked.projectId);
+    if (selected) {
+      await IdeTargetService.persist(client, profileId, selected);
+    }
     return { target: picked };
   }
 
-  private static flatten(instances: IdeInstanceView[]): Array<PickedTarget & { hasClass: boolean }> {
-    return instances.flatMap((instance) =>
-      instance.projects.map((project) => ({
+  private static async persist(
+    client: IdeClient,
+    profileId: string,
+    selection: IdeTargetSelection
+  ): Promise<void> {
+    await client.selectTarget(profileId, selection);
+    MessageBus.emit(MessageBus.IDE_TARGET_CHANGED, null);
+  }
+
+  private static flatten(
+    instances: IdeInstanceView[]
+  ): Array<IdeTargetSelection & { hasClass: boolean }> {
+    return instances.flatMap(instance =>
+      instance.projects.map(project => ({
         port: instance.port,
         projectId: project.id,
+        ideName: instance.ideName,
+        projectName: project.name,
+        pid: instance.pid,
         hasClass: project.hasClass
       }))
     );

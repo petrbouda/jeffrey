@@ -23,7 +23,6 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -36,16 +35,16 @@ class IdeBridgeSelectionTest {
     class ModeParsing {
 
         @Test
-        void blankOrMissingDefaultsToDefaultMode() {
-            assertEquals(IdeMode.DEFAULT, IdeMode.fromProperty(null));
-            assertEquals(IdeMode.DEFAULT, IdeMode.fromProperty(""));
-            assertEquals(IdeMode.DEFAULT, IdeMode.fromProperty("   "));
+        void blankOrMissingDefaultsToJeffreyPluginMode() {
+            assertEquals(IdeMode.JEFFREY_PLUGIN, IdeMode.fromProperty(null));
+            assertEquals(IdeMode.JEFFREY_PLUGIN, IdeMode.fromProperty(""));
+            assertEquals(IdeMode.JEFFREY_PLUGIN, IdeMode.fromProperty("   "));
         }
 
         @Test
         void resolvesKnownValuesCaseInsensitively() {
-            assertEquals(IdeMode.DEFAULT, IdeMode.fromProperty("default"));
-            assertEquals(IdeMode.DEFAULT, IdeMode.fromProperty("DEFAULT"));
+            assertEquals(IdeMode.JEFFREY_PLUGIN, IdeMode.fromProperty("jeffrey-plugin"));
+            assertEquals(IdeMode.JEFFREY_PLUGIN, IdeMode.fromProperty(" Jeffrey-Plugin "));
             assertEquals(IdeMode.JFR_PROFILER_PLUGIN, IdeMode.fromProperty("jfr-profiler-plugin"));
             assertEquals(IdeMode.JFR_PROFILER_PLUGIN, IdeMode.fromProperty(" Jfr-Profiler-Plugin "));
         }
@@ -65,29 +64,29 @@ class IdeBridgeSelectionTest {
         private final AppConfiguration configuration = new AppConfiguration();
 
         @Test
-        void defaultModeWiresJeffreyPluginBridge() {
-            IdeBridge bridge = configuration.ideBridge("default", true, BASE_URL, PORT_START, PORT_END);
+        void jeffreyPluginModeWiresJeffreyPluginBridge() {
+            IdeBridge bridge = configuration.ideBridge("jeffrey-plugin", BASE_URL, PORT_START, PORT_END);
             assertInstanceOf(JeffreyPluginBridge.class, bridge);
             assertTrue(bridge.isEnabled());
         }
 
         @Test
         void blankModeWiresJeffreyPluginBridge() {
-            IdeBridge bridge = configuration.ideBridge("", true, BASE_URL, PORT_START, PORT_END);
+            IdeBridge bridge = configuration.ideBridge("", BASE_URL, PORT_START, PORT_END);
             assertInstanceOf(JeffreyPluginBridge.class, bridge);
         }
 
         @Test
         void jfrProfilerModeWiresJfrProfilerPluginBridge() {
-            IdeBridge bridge = configuration.ideBridge("jfr-profiler-plugin", false, BASE_URL, PORT_START, PORT_END);
+            IdeBridge bridge = configuration.ideBridge("jfr-profiler-plugin", BASE_URL, PORT_START, PORT_END);
             assertInstanceOf(JfrProfilerPluginBridge.class, bridge);
-            assertFalse(bridge.isEnabled());
+            assertTrue(bridge.isEnabled());
         }
 
         @Test
         void unknownModeFailsFast() {
             assertThrows(IllegalArgumentException.class,
-                    () -> configuration.ideBridge("bogus", true, BASE_URL, PORT_START, PORT_END));
+                    () -> configuration.ideBridge("bogus", BASE_URL, PORT_START, PORT_END));
         }
     }
 }

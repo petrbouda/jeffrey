@@ -33,7 +33,7 @@
           <slot name="header">
             <h5 class="modal-title" :id="modalId + 'Label'">
               <i v-if="icon" :class="icon + ' me-2'"></i>
-              {{ title }}
+              <slot name="title">{{ title }}</slot>
             </h5>
             <button type="button" class="btn-close" @click="closeModal" aria-label="Close"></button>
           </slot>
@@ -52,7 +52,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, nextTick } from 'vue';
+import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue';
+import { lockBodyScroll, unlockBodyScroll } from '@/composables/useScrollLock';
 
 interface Props {
   modalId: string;
@@ -107,9 +108,24 @@ const fullscreenStyle = computed(() => {
   return undefined;
 });
 
+// Lock page scrolling while the modal is open so scrolling inside it never chains to the page
+// behind. Per-instance flag keeps the ref-counted body lock balanced across show/hide and unmount.
+let scrollLocked = false;
+
+function applyScrollLock(shouldLock: boolean): void {
+  if (shouldLock && !scrollLocked) {
+    lockBodyScroll();
+    scrollLocked = true;
+  } else if (!shouldLock && scrollLocked) {
+    unlockBodyScroll();
+    scrollLocked = false;
+  }
+}
+
 watch(
   () => props.show,
   newVal => {
+    applyScrollLock(newVal);
     if (newVal) {
       nextTick(() => {
         overlayRef.value?.focus();
@@ -120,6 +136,9 @@ watch(
     }
   }
 );
+
+onMounted(() => applyScrollLock(props.show));
+onUnmounted(() => applyScrollLock(false));
 </script>
 
 <style scoped>

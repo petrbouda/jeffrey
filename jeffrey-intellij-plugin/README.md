@@ -36,8 +36,7 @@ Useful tasks: `./gradlew runIde` (launch a sandbox IDE with the plugin), `./grad
 ## Verify (once endpoints are wired)
 
 ```bash
-curl -H "X-Jeffrey-Token: $(jq -r .token ~/.jeffrey/ide-registry/*.json)" \
-  http://127.0.0.1:63342/api/jeffrey/instance
+curl http://127.0.0.1:63342/api/jeffrey/instance
 ```
 
 ## Configuration

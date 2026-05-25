@@ -101,7 +101,9 @@ public final class Navigator {
             if (psiClass == null) {
                 return SourceResponse.notResolved("class-not-found");
             }
-            PsiFile psiFile = psiClass.getContainingFile();
+            // Prefer attached sources over the decompiled .class: getNavigationElement() returns the
+            // source element when sources are attached, and the compiled element itself otherwise.
+            PsiFile psiFile = psiClass.getNavigationElement().getContainingFile();
             if (psiFile == null) {
                 return SourceResponse.notResolved("no-source-file");
             }

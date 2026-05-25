@@ -56,18 +56,15 @@ public class JfrProfilerPluginBridge implements IdeBridge {
 
     private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(5);
 
-    private static final String MSG_DISABLED = "IDE integration is disabled";
     private static final String MSG_NO_BASE_URL = "IDE base URL is not configured";
     private static final String MSG_IDE_UNREACHABLE = "Could not reach the IDE plugin — is it running?";
     private static final String MSG_IDE_REJECTED = "The IDE plugin rejected the request";
     private static final String MSG_SOURCE_UNAVAILABLE = "Source is not available for this class";
 
-    private final boolean enabled;
     private final String baseUrl;
     private final RestClient restClient;
 
-    public JfrProfilerPluginBridge(boolean enabled, String baseUrl) {
-        this.enabled = enabled;
+    public JfrProfilerPluginBridge(String baseUrl) {
         this.baseUrl = normalizeBaseUrl(baseUrl);
         this.restClient = RestClient.builder()
                 .requestFactory(createRequestFactory())
@@ -76,17 +73,14 @@ public class JfrProfilerPluginBridge implements IdeBridge {
 
     @Override
     public boolean isEnabled() {
-        return enabled;
+        return true;
     }
 
     @Override
     public IdeOpenResult open(IdeOpenRequest request) {
-        if (!enabled) {
-            return IdeOpenResult.failed(MSG_DISABLED);
-        }
         if (baseUrl == null) {
             LOG.warn("IDE open requested but base URL is not configured");
-            return IdeOpenResult.failed(MSG_NO_BASE_URL);
+            return IdeOpenResult.failed(MSG_NO_BASE_URL, IdeFailureReason.DISABLED);
         }
 
         String url = baseUrl + IDE_PATH_PREFIX + buildEncodedPath(request.fqn(), request.method());
@@ -107,10 +101,10 @@ public class JfrProfilerPluginBridge implements IdeBridge {
                 return IdeOpenResult.succeeded();
             }
             LOG.debug("IDE plugin returned non-success status: url={} status={}", url, status.value());
-            return IdeOpenResult.failed(MSG_IDE_REJECTED);
+            return IdeOpenResult.failed(MSG_IDE_REJECTED, IdeFailureReason.NOT_RESOLVED);
         } catch (Exception e) {
             LOG.error("Failed to reach IDE plugin: url={} reason={}", url, e.getMessage());
-            return IdeOpenResult.failed(MSG_IDE_UNREACHABLE);
+            return IdeOpenResult.failed(MSG_IDE_UNREACHABLE, IdeFailureReason.UNREACHABLE);
         }
     }
 
@@ -121,9 +115,6 @@ public class JfrProfilerPluginBridge implements IdeBridge {
      */
     @Override
     public IdeSourceResult fetchSource(IdeSourceRequest request) {
-        if (!enabled) {
-            return IdeSourceResult.failed(MSG_DISABLED);
-        }
         if (baseUrl == null) {
             LOG.warn("IDE source requested but base URL is not configured");
             return IdeSourceResult.failed(MSG_NO_BASE_URL);
@@ -153,11 +144,21 @@ public class JfrProfilerPluginBridge implements IdeBridge {
             }
 
             LOG.debug("IDE source fetched: url={} length={}", url, body.length());
-            return IdeSourceResult.succeeded(body);
+            return IdeSourceResult.succeeded(body, false);
         } catch (Exception e) {
             LOG.error("Failed to reach IDE plugin for source: url={} reason={}", url, e.getMessage());
             return IdeSourceResult.failed(MSG_IDE_UNREACHABLE);
         }
+    }
+
+    /**
+     * The JFR Profiler plugin is a single-URL connection: there is no window to pick or disconnect
+     * ({@code selectable=false}), and it counts as always linked once this mode is configured. The
+     * frontend renders this as an auto-linked panel ("Connected using JFR Profiler Plugin").
+     */
+    @Override
+    public IdeTargetStatus targetStatus(String profileId) {
+        return new IdeTargetStatus(false, true, null, null, 0, 0);
     }
 
     private static SimpleClientHttpRequestFactory createRequestFactory() {

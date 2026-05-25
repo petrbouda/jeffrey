@@ -35,9 +35,12 @@ import java.util.List;
  * {@link IdeBridge} for {@link IdeMode#DEFAULT}: talks to the first-party Jeffrey IntelliJ plugin.
  * Discovers IDE instances by scanning the built-in-server port range (no token, localhost only),
  * remembers the chosen window per profile ({@link IdeTargetCache}), and navigates / fetches source
- * via {@link JeffreyPluginClient}. The window is picked once per profile (by Microscope's UI) and
- * reused; the volatile port is re-resolved from the cached project on each call so an IDE restart
- * keeps working.
+ * via {@link JeffreyPluginClient}.
+ *
+ * <p>Discovery is deliberately lazy: {@link #targetStatus(String)} reads the cache only (no scan), so
+ * a linked window stays linked. A jump tries the cached port directly; only when that is unreachable
+ * do we run a single discovery to re-resolve the project to its (possibly new) port and retry — this
+ * keeps working across IDE restarts without scanning on every profile view.
  */
 public final class JeffreyPluginBridge implements IdeBridge {
 
@@ -45,77 +48,71 @@ public final class JeffreyPluginBridge implements IdeBridge {
 
     private static final String MSG_NO_TARGET = "No IDE window selected for this profile";
     private static final String MSG_TARGET_GONE = "The selected IDE window is no longer open";
-    private static final String MSG_UNREACHABLE = "Could not reach the IDE plugin — is it running?";
     private static final String MSG_NOT_RESOLVED = "The IDE could not resolve this location";
     private static final String MSG_SOURCE_UNAVAILABLE = "Source is not available for this class";
 
-    private final boolean enabled;
-    private final int portStart;
-    private final int portEnd;
+    private final PortRange portRange;
     private final JeffreyPluginClient client;
     private final IdeTargetCache cache;
 
-    public JeffreyPluginBridge(boolean enabled, int portStart, int portEnd,
-                               JeffreyPluginClient client, IdeTargetCache cache) {
-        this.enabled = enabled;
-        this.portStart = portStart;
-        this.portEnd = portEnd;
+    public JeffreyPluginBridge(PortRange portRange, JeffreyPluginClient client, IdeTargetCache cache) {
+        this.portRange = portRange;
         this.client = client;
         this.cache = cache;
     }
 
     @Override
     public boolean isEnabled() {
-        return enabled;
+        return true;
     }
 
     @Override
     public IdeOpenResult open(IdeOpenRequest request) {
-        if (!enabled) {
-            return IdeOpenResult.failed("IDE integration is disabled");
-        }
-        IdeTarget target = resolveTarget(request.profileId());
-        if (target == null) {
-            return IdeOpenResult.failed(cache.get(request.profileId()) == null ? MSG_NO_TARGET : MSG_TARGET_GONE);
+        IdeTarget cached = cache.get(request.profileId());
+        if (cached == null) {
+            return IdeOpenResult.failed(MSG_NO_TARGET, IdeFailureReason.NO_TARGET);
         }
 
-        NavigateBody body = new NavigateBody(
-                target.projectId(), request.fqn(), simpleMethod(request.method()), request.line(), null);
-        PluginNavigateResult result = client.navigate(target.port(), body);
-        if (result == null) {
-            return IdeOpenResult.failed(MSG_UNREACHABLE);
+        PluginNavigateResult result = client.navigate(cached.port(), navBody(cached, request));
+        if (result != null) {
+            return openResult(result);
         }
-        if (!result.resolved()) {
-            return IdeOpenResult.failed(reasonOr(result.reason(), MSG_NOT_RESOLVED));
+
+        // Unreachable on the cached port — the IDE may have restarted on a new port. Re-resolve once.
+        IdeTarget live = reresolve(request.profileId(), cached);
+        if (live != null) {
+            PluginNavigateResult retry = client.navigate(live.port(), navBody(live, request));
+            if (retry != null) {
+                return openResult(retry);
+            }
         }
-        return IdeOpenResult.succeeded();
+        return IdeOpenResult.failed(MSG_TARGET_GONE, IdeFailureReason.UNREACHABLE);
     }
 
     @Override
     public IdeSourceResult fetchSource(IdeSourceRequest request) {
-        if (!enabled) {
-            return IdeSourceResult.failed("IDE integration is disabled");
-        }
-        IdeTarget target = resolveTarget(request.profileId());
-        if (target == null) {
-            return IdeSourceResult.failed(cache.get(request.profileId()) == null ? MSG_NO_TARGET : MSG_TARGET_GONE);
+        IdeTarget cached = cache.get(request.profileId());
+        if (cached == null) {
+            return IdeSourceResult.failed(MSG_NO_TARGET);
         }
 
-        PluginSourceResult result = client.source(target.port(), target.projectId(), request.fqn());
-        if (result == null) {
-            return IdeSourceResult.failed(MSG_UNREACHABLE);
+        PluginSourceResult result = client.source(cached.port(), cached.projectId(), request.fqn());
+        if (result != null) {
+            return sourceResult(result);
         }
-        if (!result.resolved() || result.content() == null || result.content().isBlank()) {
-            return IdeSourceResult.failed(reasonOr(result.reason(), MSG_SOURCE_UNAVAILABLE));
+
+        IdeTarget live = reresolve(request.profileId(), cached);
+        if (live != null) {
+            PluginSourceResult retry = client.source(live.port(), live.projectId(), request.fqn());
+            if (retry != null) {
+                return sourceResult(retry);
+            }
         }
-        return IdeSourceResult.succeeded(result.content());
+        return IdeSourceResult.failed(MSG_TARGET_GONE);
     }
 
     @Override
     public IdeTargetsResult discoverTargets(String profileId, String fqn) {
-        if (!enabled) {
-            return IdeTargetsResult.empty();
-        }
         List<IdeInstanceView> instances = new ArrayList<>();
         for (PluginInstance instance : discover()) {
             instances.add(toInstanceView(instance, fqn));
@@ -125,49 +122,93 @@ public final class JeffreyPluginBridge implements IdeBridge {
     }
 
     @Override
-    public boolean selectTarget(String profileId, int port, String projectId) {
-        if (!enabled || profileId == null || projectId == null) {
+    public boolean selectTarget(String profileId, IdeTarget target) {
+        if (profileId == null || target == null || target.projectId() == null) {
             return false;
         }
-        cache.put(profileId, new IdeTarget(port, projectId));
+        cache.put(profileId, target);
+        return true;
+    }
+
+    @Override
+    public IdeTargetStatus targetStatus(String profileId) {
+        IdeTarget cached = cache.get(profileId);
+        return cached == null ? IdeTargetStatus.notLinked() : IdeTargetStatus.linked(cached);
+    }
+
+    @Override
+    public boolean clearTarget(String profileId) {
+        if (profileId == null || cache.get(profileId) == null) {
+            return false;
+        }
+        cache.clear(profileId);
         return true;
     }
 
     /**
-     * Returns the live target for a profile: the cached project re-resolved to whichever instance
-     * currently hosts it (so an IDE restart on a new port still works). Null when nothing is cached or
-     * the cached project is no longer open anywhere.
+     * Re-resolves a cached project to whichever live instance currently hosts it (the IDE may have
+     * restarted on a new port). Matches by {@code projectId} (the stable locationHash) first, then by
+     * {@code projectName}. Refreshes the cache with the live port/pid. Null when found nowhere.
      */
-    private IdeTarget resolveTarget(String profileId) {
-        IdeTarget cached = cache.get(profileId);
-        if (cached == null) {
-            return null;
+    private IdeTarget reresolve(String profileId, IdeTarget cached) {
+        List<PluginInstance> instances = discover();
+        IdeTarget live = matchInstances(instances, cached, true);
+        if (live == null) {
+            live = matchInstances(instances, cached, false);
         }
-        for (PluginInstance instance : discover()) {
+        if (live != null) {
+            cache.put(profileId, live);
+        }
+        return live;
+    }
+
+    private static IdeTarget matchInstances(List<PluginInstance> instances, IdeTarget cached, boolean byProjectId) {
+        for (PluginInstance instance : instances) {
             for (PluginProject project : instance.projects()) {
-                if (cached.projectId().equals(project.id())) {
-                    IdeTarget live = new IdeTarget(instance.port(), cached.projectId());
-                    cache.put(profileId, live);
-                    return live;
+                boolean match = byProjectId
+                        ? cached.projectId().equals(project.id())
+                        : cached.projectName() != null && cached.projectName().equals(project.name());
+                if (match) {
+                    return new IdeTarget(
+                            instance.port(), project.id(), instance.ideName(), project.name(), instance.pid());
                 }
             }
         }
         return null;
     }
 
+    private static NavigateBody navBody(IdeTarget target, IdeOpenRequest request) {
+        return new NavigateBody(
+                target.projectId(), request.fqn(), simpleMethod(request.method()), request.line(), null);
+    }
+
+    private static IdeOpenResult openResult(PluginNavigateResult result) {
+        if (result.resolved()) {
+            return IdeOpenResult.succeeded();
+        }
+        return IdeOpenResult.failed(reasonOr(result.reason(), MSG_NOT_RESOLVED), IdeFailureReason.NOT_RESOLVED);
+    }
+
+    private static IdeSourceResult sourceResult(PluginSourceResult result) {
+        if (!result.resolved() || result.content() == null || result.content().isBlank()) {
+            return IdeSourceResult.failed(reasonOr(result.reason(), MSG_SOURCE_UNAVAILABLE));
+        }
+        return IdeSourceResult.succeeded(result.content(), result.decompiled());
+    }
+
     private List<PluginInstance> discover() {
         List<PluginInstance> instances = new ArrayList<>();
-        for (int port = portStart; port <= portEnd; port++) {
+        for (int port = portRange.start(); port <= portRange.end(); port++) {
             client.instance(port).ifPresent(instances::add);
         }
-        LOG.debug("IDE discovery scanned ports: range={}-{} found={}", portStart, portEnd, instances.size());
+        LOG.debug("IDE discovery scanned ports: range={} found={}", portRange, instances.size());
         return instances;
     }
 
     private IdeInstanceView toInstanceView(PluginInstance instance, String fqn) {
         List<IdeProjectView> projects = new ArrayList<>();
         for (PluginProject project : instance.projects()) {
-            boolean hasClass = fqn != null && client.hasClass(instance.port(), project.id(), fqn);
+            boolean hasClass = fqn != null && !fqn.isBlank() && client.hasClass(instance.port(), project.id(), fqn);
             projects.add(new IdeProjectView(
                     project.id(), project.name(), project.basePath(), project.vcsBranch(), project.focused(), hasClass));
         }

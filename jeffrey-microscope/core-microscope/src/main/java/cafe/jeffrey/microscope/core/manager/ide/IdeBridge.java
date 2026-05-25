@@ -38,7 +38,8 @@ public interface IdeBridge {
 
     /**
      * Whether IDE integration is enabled at all. Gates the frontend "Open in IDE" / "View Source"
-     * affordances regardless of the selected {@link IdeMode}.
+     * affordances regardless of the selected {@link IdeMode}. Both real bridges return {@code true};
+     * the feature is always available (it shows onboarding until a window is linked).
      */
     boolean isEnabled();
 
@@ -65,7 +66,24 @@ public interface IdeBridge {
      * Records the chosen window for a profile (cached and reused for later jumps). Returns {@code true}
      * if accepted. No-op for the single-URL JFR Profiler bridge.
      */
-    default boolean selectTarget(String profileId, int port, String projectId) {
+    default boolean selectTarget(String profileId, IdeTarget target) {
+        return false;
+    }
+
+    /**
+     * The cached IDE link for a profile, read without any discovery / port scan. Only the multi-window
+     * {@code default} bridge is {@code selectable}; other bridges report {@link IdeTargetStatus#notSelectable()}
+     * so the profile-wide nav control stays hidden.
+     */
+    default IdeTargetStatus targetStatus(String profileId) {
+        return IdeTargetStatus.notSelectable();
+    }
+
+    /**
+     * Clears the cached window for a profile (disconnect). Returns {@code true} if a link was removed.
+     * No-op for the single-URL JFR Profiler bridge.
+     */
+    default boolean clearTarget(String profileId) {
         return false;
     }
 }

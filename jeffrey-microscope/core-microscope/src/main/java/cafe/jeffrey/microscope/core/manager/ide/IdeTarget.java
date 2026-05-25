@@ -20,8 +20,10 @@ package cafe.jeffrey.microscope.core.manager.ide;
 
 /**
  * The cached, stable IDE-window choice for a profile: which discovered instance ({@code port}) and
- * which project ({@code projectId} = the IDE's {@code locationHash}) to navigate to. The port is the
- * volatile part — it is re-resolved by discovery, but the project choice is what the user picked.
+ * which project ({@code projectId} = the IDE's {@code locationHash}) to navigate to. The {@code port}
+ * and {@code pid} are the volatile parts — re-resolved by discovery when the IDE restarts — but the
+ * project choice is what the user picked. The display fields ({@code ideName}, {@code projectName})
+ * are captured at selection time so the UI can show the linked window without re-scanning.
  */
-public record IdeTarget(int port, String projectId) {
+public record IdeTarget(int port, String projectId, String ideName, String projectName, long pid) {
 }

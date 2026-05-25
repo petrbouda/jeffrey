@@ -90,7 +90,8 @@ public final class KotlinResolver {
             PsiClass psiClass = ClassUtil.findPsiClass(
                     PsiManager.getInstance(project), outer, null, true, GlobalSearchScope.allScope(project));
             if (psiClass != null) {
-                PsiFile psiFile = psiClass.getContainingFile();
+                // Prefer attached sources over the decompiled .class (see JavaResolver).
+                PsiFile psiFile = psiClass.getNavigationElement().getContainingFile();
                 vFile = psiFile == null ? null : psiFile.getVirtualFile();
             } else if (outer.endsWith(KT_SUFFIX)) {
                 vFile = findByFilename(project, outer);

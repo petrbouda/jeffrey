@@ -1,6 +1,7 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="MicroscopeApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot">
     <module name="core-microscope" />
+    <option name="PROGRAM_PARAMETERS" value="--jeffrey.microscope.ide.mode=jfr-profiler-plugin --jeffrey.microscope.ide.base-url=http://localhost:4243" />
     <option name="SPRING_BOOT_MAIN_CLASS" value="cafe.jeffrey.microscope.core.MicroscopeApplication" />
     <extension name="coverage">
       <pattern>

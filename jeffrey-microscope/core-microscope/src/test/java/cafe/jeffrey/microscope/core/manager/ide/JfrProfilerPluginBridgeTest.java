@@ -18,18 +18,26 @@
 
 package cafe.jeffrey.microscope.core.manager.ide;
 
-/**
- * Outcome of an IDE source-fetch attempt. A {@code false} success with a human-readable message
- * represents an expected, non-fatal condition (e.g. the IDE plugin is offline or has no source for
- * the class), not a server error. On success {@code content} holds the raw source text.
- */
-public record IdeSourceResult(boolean success, String content, String message, boolean decompiled) {
+import org.junit.jupiter.api.Test;
 
-    public static IdeSourceResult succeeded(String content, boolean decompiled) {
-        return new IdeSourceResult(true, content, null, decompiled);
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+class JfrProfilerPluginBridgeTest {
+
+    private final JfrProfilerPluginBridge bridge = new JfrProfilerPluginBridge("http://localhost:4243");
+
+    @Test
+    void isAlwaysEnabledOnceConfigured() {
+        assertTrue(bridge.isEnabled());
     }
 
-    public static IdeSourceResult failed(String message) {
-        return new IdeSourceResult(false, null, message, false);
+    @Test
+    void targetStatusIsAutoLinkedButNotSelectable() {
+        IdeTargetStatus status = bridge.targetStatus("p1");
+
+        // Single-URL connection: always "linked", and there is no window to pick or disconnect.
+        assertTrue(status.linked());
+        assertFalse(status.selectable());
     }
 }

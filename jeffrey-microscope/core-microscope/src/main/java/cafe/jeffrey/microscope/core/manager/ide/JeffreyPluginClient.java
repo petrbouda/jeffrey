@@ -23,6 +23,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
 import org.springframework.web.client.RestClient;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -56,6 +57,8 @@ public final class JeffreyPluginClient {
                     .body(PluginInstance.class);
             return Optional.ofNullable(instance);
         } catch (Exception e) {
+            // Spams because it's scan used ports
+            // LOG.warn("Cannot get information about IDE instance: port={} reason={}", port, e.getMessage());
             return Optional.empty();
         }
     }
@@ -68,6 +71,7 @@ public final class JeffreyPluginClient {
                     .body(PluginHasClass.class);
             return result != null && result.found();
         } catch (Exception e) {
+            LOG.warn("Cannot get information HAS_CLASS : port={} reason={}", port, e.getMessage());
             return false;
         }
     }
@@ -98,23 +102,53 @@ public final class JeffreyPluginClient {
         }
     }
 
-    public record NavigateBody(String projectId, String className, String methodName, int lineNumber, String recordingTime) {
+    public record NavigateBody(
+            String projectId,
+            String className,
+            String methodName,
+            int lineNumber,
+            String recordingTime) {
     }
 
     public record PluginInstance(
-            int protocolVersion, String instanceId, String ideName, String ideEdition, String ideVersion,
-            long pid, int port, String startedAt, java.util.List<PluginProject> projects) {
+            int protocolVersion,
+            String instanceId,
+            String ideName,
+            String ideEdition,
+            String ideVersion,
+            long pid,
+            int port,
+            String startedAt,
+            List<PluginProject> projects) {
     }
 
-    public record PluginProject(String id, String name, String basePath, boolean trusted, boolean focused, String vcsBranch) {
+    public record PluginProject(
+            String id,
+            String name,
+            String basePath,
+            boolean trusted,
+            boolean focused,
+            String vcsBranch) {
     }
 
     public record PluginNavigateResult(
-            boolean resolved, String source, String file, Integer line, boolean decompiled,
-            boolean imprecise, boolean stale, String sourceMTime, String reason) {
+            boolean resolved,
+            String source,
+            String file,
+            Integer line,
+            boolean decompiled,
+            boolean imprecise,
+            boolean stale,
+            String sourceMTime,
+            String reason) {
     }
 
-    public record PluginSourceResult(boolean resolved, String content, String file, boolean decompiled, String reason) {
+    public record PluginSourceResult(
+            boolean resolved,
+            String content,
+            String file,
+            boolean decompiled,
+            String reason) {
     }
 
     public record PluginHasClass(boolean found, String projectId) {

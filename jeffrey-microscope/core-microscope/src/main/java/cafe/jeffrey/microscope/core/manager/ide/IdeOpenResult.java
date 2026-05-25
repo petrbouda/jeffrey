@@ -20,15 +20,16 @@ package cafe.jeffrey.microscope.core.manager.ide;
 
 /**
  * Outcome of an IDE open attempt. A {@code false} success with a human-readable message represents
- * an expected, non-fatal condition (e.g. the IDE plugin is not running), not a server error.
+ * an expected, non-fatal condition (e.g. the IDE plugin is not running), not a server error. The
+ * {@link IdeFailureReason} lets the frontend decide whether to offer re-selecting a target.
  */
-public record IdeOpenResult(boolean success, String message) {
+public record IdeOpenResult(boolean success, String message, IdeFailureReason reason) {
 
     public static IdeOpenResult succeeded() {
-        return new IdeOpenResult(true, null);
+        return new IdeOpenResult(true, null, IdeFailureReason.NONE);
     }
 
-    public static IdeOpenResult failed(String message) {
-        return new IdeOpenResult(false, message);
+    public static IdeOpenResult failed(String message, IdeFailureReason reason) {
+        return new IdeOpenResult(false, message, reason);
     }
 }

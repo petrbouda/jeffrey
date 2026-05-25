@@ -22,21 +22,33 @@
     :show="show"
     :title="title || 'Source'"
     icon="bi bi-file-earmark-code"
-    size="xl"
+    size="fullscreen"
+    modal-dialog-class="source-viewer-dialog"
     :show-footer="false"
     @update:show="onShowChange"
-    @shown="scrollToLine"
+    @shown="scheduleScroll"
     @hidden="reset"
   >
-    <div v-if="fqn" class="source-subtitle">
-      <span class="source-fqn">{{ fqn }}</span>
-      <span v-if="line > 0" class="source-line">line {{ line }}</span>
+    <template #title>
+      <span v-if="fqnPackage" class="hdr-pkg">{{ fqnPackage }}</span><span class="hdr-cls">{{
+        fqnClass
+      }}</span>
+    </template>
+
+    <div v-if="hasValidLine || decompiled" class="source-subtitle">
+      <Badge
+        v-if="hasValidLine"
+        key-label="Line"
+        :value="line"
+        variant="secondary"
+        size="s"
+        :uppercase="false"
+      />
+      <Badge v-if="decompiled" variant="danger" value="Decompiled" size="s" />
     </div>
 
-    <LoadingState v-if="loading" message="Fetching source…" />
-    <ErrorState v-else-if="error" :message="error" />
-    <div v-else ref="viewerRef" class="source-viewer">
-      <div v-if="line > 0" class="line-highlight" :style="{ top: highlightTop }"></div>
+    <div ref="viewerRef" class="source-viewer">
+      <div v-if="hasValidLine" class="line-highlight" :style="{ top: highlightTop }"></div>
       <pre class="gutter">{{ gutterText }}</pre>
       <pre class="code"><code v-html="highlightedHtml"></code></pre>
     </div>
@@ -49,11 +61,11 @@ import hljs from 'highlight.js/lib/core';
 import java from 'highlight.js/lib/languages/java';
 import 'highlight.js/styles/github.css';
 import GenericModal from '@/components/GenericModal.vue';
-import LoadingState from '@/components/LoadingState.vue';
-import ErrorState from '@/components/ErrorState.vue';
+import Badge from '@/components/Badge.vue';
 import MessageBus from '@/services/MessageBus';
 import IdeClient from '@/services/api/IdeClient';
 import IdeTargetService from '@/services/IdeTargetService';
+import { ToastService } from '@/services/ToastService';
 
 hljs.registerLanguage('java', java);
 
@@ -68,18 +80,37 @@ interface ViewSourcePayload {
   title: string;
 }
 
+const SOURCE_UNAVAILABLE_TITLE = 'Source unavailable';
+const NO_IDE_MESSAGE =
+  'No running IDE was found. Open your project in IntelliJ with the Jeffrey plugin installed.';
+
 const show = ref(false);
-const loading = ref(false);
-const error = ref<string | null>(null);
 const fqn = ref('');
 const title = ref('');
 const line = ref(-1);
+const decompiled = ref(false);
 const highlightedHtml = ref('');
 const lineCount = ref(0);
 const viewerRef = ref<HTMLElement | null>(null);
 
+// Split the FQN so the header can show the package muted and the class name emphasized.
+const lastDotIndex = computed(() => fqn.value.lastIndexOf('.'));
+const fqnPackage = computed(() =>
+  lastDotIndex.value > 0 ? fqn.value.slice(0, lastDotIndex.value + 1) : ''
+);
+const fqnClass = computed(() =>
+  lastDotIndex.value > 0 ? fqn.value.slice(lastDotIndex.value + 1) : fqn.value
+);
+
 const gutterText = computed(() =>
   Array.from({ length: lineCount.value }, (_, i) => i + 1).join('\n')
+);
+
+// The selected line is only valid when it falls within the fetched content and the source is real.
+// Lines past the last line (stale/mismatched info) or decompiled bytecode (line numbers don't match
+// the original) are ignored — no highlight, no scroll.
+const hasValidLine = computed(
+  () => line.value > 0 && line.value <= lineCount.value && !decompiled.value
 );
 
 const highlightTop = computed(
@@ -87,42 +118,53 @@ const highlightTop = computed(
 );
 
 async function openSource(payload: ViewSourcePayload): Promise<void> {
-  fqn.value = payload.fqn;
-  title.value = payload.title;
-  line.value = payload.line;
-  highlightedHtml.value = '';
-  lineCount.value = 0;
-  error.value = null;
-  loading.value = true;
-  show.value = true;
-
+  let content: string;
+  let decompiledFlag = false;
   try {
     const { target, reason } = await IdeTargetService.resolve(payload.profileId, payload.fqn);
     if (!target) {
-      error.value = reason === 'no-ide'
-        ? 'No running IDE was found. Open your project in IntelliJ with the Jeffrey plugin installed.'
-        : 'No IDE window selected.';
+      if (reason === 'no-ide') {
+        ToastService.warn(SOURCE_UNAVAILABLE_TITLE, NO_IDE_MESSAGE);
+      }
+      // 'cancelled' — user dismissed the picker; stay silent.
       return;
     }
     const response = await new IdeClient().fetchSource(payload.profileId, payload.fqn, payload.method);
     if (!response.success || !response.content) {
-      error.value = response.message ?? 'Source is not available for this class';
+      ToastService.warn(SOURCE_UNAVAILABLE_TITLE, response.message ?? 'Source is not available for this class');
       return;
     }
-    highlightedHtml.value = hljs.highlight(response.content, { language: 'java' }).value;
-    lineCount.value = response.content.split('\n').length;
-    await nextTick();
-    scrollToLine();
+    content = response.content;
+    decompiledFlag = response.decompiled === true;
   } catch (err) {
-    error.value = err instanceof Error ? err.message : String(err);
-  } finally {
-    loading.value = false;
+    ToastService.warn(SOURCE_UNAVAILABLE_TITLE, err instanceof Error ? err.message : String(err));
+    return;
   }
+
+  // Only open the modal once the source is actually available.
+  fqn.value = payload.fqn;
+  title.value = payload.title;
+  line.value = payload.line;
+  decompiled.value = decompiledFlag;
+  highlightedHtml.value = hljs.highlight(content, { language: 'java' }).value;
+  lineCount.value = content.split('\n').length;
+  show.value = true;
+  scheduleScroll();
+}
+
+/** Scroll to the selected line once the modal content has been laid out and painted. */
+function scheduleScroll(): void {
+  void nextTick(() => requestAnimationFrame(scrollToLine));
 }
 
 function scrollToLine(): void {
   const viewer = viewerRef.value;
-  if (!viewer || line.value <= 0) {
+  if (!viewer) {
+    return;
+  }
+  if (!hasValidLine.value) {
+    // No proper line to jump to — keep the view at the beginning.
+    viewer.scrollTop = 0;
     return;
   }
   const lineCenter = VIEWER_PADDING_Y_PX + (line.value - 1) * LINE_HEIGHT_PX + LINE_HEIGHT_PX / 2;
@@ -136,10 +178,10 @@ function onShowChange(value: boolean): void {
 function reset(): void {
   highlightedHtml.value = '';
   lineCount.value = 0;
-  error.value = null;
   fqn.value = '';
   title.value = '';
   line.value = -1;
+  decompiled.value = false;
 }
 
 onMounted(() => {
@@ -160,33 +202,42 @@ onUnmounted(() => {
   font-size: 12px;
 }
 
-.source-fqn {
-  font-family: var(--font-mono, monospace);
-  color: var(--color-text-muted);
-  word-break: break-all;
+/* Make the "LINE" key label bold (Badge renders it muted/medium by default). */
+.source-subtitle :deep(.badge-key) {
+  font-weight: 700;
+  text-transform: uppercase;
 }
 
-.source-line {
-  flex-shrink: 0;
-  padding: 1px 8px;
-  border-radius: var(--radius-sm);
-  background: var(--color-warning-bg);
-  color: var(--color-warning-text);
-  font-weight: 600;
+/* Header FQN: package de-emphasized, class name emphasized. */
+.hdr-pkg {
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+
+.hdr-cls {
+  font-weight: 700;
+  color: var(--color-dark);
 }
 
 .source-viewer {
   position: relative;
   max-height: 70vh;
   overflow: auto;
+  /* Stop scroll from chaining to the page behind when the viewer hits its top/bottom. */
+  overscroll-behavior: contain;
   padding: 8px 0;
   display: flex;
+  /* Let the gutter/code size to their full content height instead of being stretched to the
+     container — only .source-viewer scrolls, gutter + code scroll together as one unit. */
+  align-items: flex-start;
   background: var(--color-white);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-base);
   font-family: var(--font-mono, monospace);
   font-size: 13px;
   line-height: 20px;
+  tab-size: 4;
+  -moz-tab-size: 4;
 }
 
 .line-highlight {
@@ -208,6 +259,9 @@ onUnmounted(() => {
   font-family: inherit;
   font-size: inherit;
   line-height: inherit;
+  /* Bootstrap's reboot sets `pre { overflow: auto }`, which would make each pre its own
+     scroll container (two scrollbars + independent clipping). Keep scrolling on .source-viewer. */
+  overflow: visible;
 }
 
 .gutter {
@@ -225,5 +279,25 @@ onUnmounted(() => {
   color: var(--color-dark);
   white-space: pre;
   overflow: visible;
+}
+
+/* Force the inner <code> to use the exact same font metrics as the gutter so every row lines up
+   (the UA stylesheet's `code { font-family: monospace }` otherwise overrides inheritance). */
+.code code {
+  display: block;
+  font: inherit;
+  white-space: pre;
+}
+</style>
+
+<!-- Global: the dialog lives inside GenericModal, so it can't be reached by scoped styles.
+     Vertically centre this modal so the top and bottom gaps from the window are equal,
+     mirroring the 95vw width's even side margins. -->
+<style>
+.modal-dialog.source-viewer-dialog {
+  display: flex;
+  align-items: center;
+  min-height: calc(100% - 5vh);
+  margin: 2.5vh auto;
 }
 </style>

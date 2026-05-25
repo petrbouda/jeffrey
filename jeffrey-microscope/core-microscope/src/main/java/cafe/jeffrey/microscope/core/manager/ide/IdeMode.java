@@ -23,12 +23,13 @@ import java.util.stream.Collectors;
 
 /**
  * Selects which {@link IdeBridge} implementation handles IDE integration, driven by the
- * {@code jeffrey.microscope.ide.mode} property. {@link #DEFAULT} (the first-party Jeffrey plugin)
- * is the default when the property is absent.
+ * {@code jeffrey.microscope.ide.mode} property. {@link #JEFFREY_PLUGIN} (the first-party Jeffrey
+ * plugin) is the default when the property is absent. IDE integration is always available — the
+ * profile-wide control simply shows onboarding until a window is linked.
  */
 public enum IdeMode {
 
-    DEFAULT("default"),
+    JEFFREY_PLUGIN("jeffrey-plugin"),
     JFR_PROFILER_PLUGIN("jfr-profiler-plugin");
 
     private final String propertyValue;
@@ -47,7 +48,7 @@ public enum IdeMode {
      */
     public static IdeMode fromProperty(String value) {
         if (value == null || value.isBlank()) {
-            return DEFAULT;
+            return JEFFREY_PLUGIN;
         }
         String normalized = value.strip();
         for (IdeMode mode : values()) {

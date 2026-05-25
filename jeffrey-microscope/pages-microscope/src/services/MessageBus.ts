@@ -25,6 +25,7 @@ export default class MessageBus {
   static SIDEBAR_CHANGED = 'sidebar-changed';
   static HEAP_DUMP_STATUS_CHANGED = 'heap-dump-status-changed';
   static IDE_VIEW_SOURCE = 'ide-view-source';
+  static IDE_TARGET_CHANGED = 'ide-target-changed';
 
   static emit(type: string, content: any) {
     this.INSTANCE.emit(type, content);

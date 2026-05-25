@@ -22,7 +22,7 @@ import MessageBus from '@/services/MessageBus';
 import router from '@/router';
 
 export default class Tooltip {
-  private static readonly HIDE_DELAY_MS = 400;
+  private static readonly HIDE_DELAY_MS = 600;
 
   private tooltipTimeoutId: number | null = null;
   private hideTimeoutId: number | null = null;
@@ -50,8 +50,9 @@ export default class Tooltip {
       return;
     }
 
-    this.tooltip.style.visibility = 'hidden';
-    this.displayedContent = null;
+    // Keep any currently-shown tooltip visible until the new content is ready, rather than blanking
+    // it instantly. Otherwise moving the cursor toward the tooltip (crossing other frames) makes it
+    // vanish before it can be hovered — which is what made the IDE buttons so hard to click.
     this.pendingContent = content;
     clearTimeout(this.tooltipTimeoutId as number);
     this.tooltipTimeoutId = window.setTimeout(() => {
@@ -82,6 +83,9 @@ export default class Tooltip {
   private registerInteractionHandlers(): void {
     this.tooltip.addEventListener('mouseenter', () => {
       this.cancelPendingHide();
+      // Once the cursor is on the tooltip, don't let a queued new-frame tooltip replace it.
+      clearTimeout(this.tooltipTimeoutId as number);
+      this.pendingContent = null;
     });
     this.tooltip.addEventListener('mouseleave', () => {
       this.tooltip.style.visibility = 'hidden';

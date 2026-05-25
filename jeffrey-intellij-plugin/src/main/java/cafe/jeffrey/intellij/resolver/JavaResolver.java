@@ -25,6 +25,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiDocumentManager;
+import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiManager;
 import com.intellij.psi.PsiMethod;
@@ -47,8 +48,12 @@ public final class JavaResolver {
             if (psiClass == null) {
                 return new Navigation.NotFound("class-not-found");
             }
-            PsiFile psiFile = psiClass.getContainingFile();
-            VirtualFile vFile = psiFile == null ? null : psiFile.getVirtualFile();
+            // Prefer attached sources over the decompiled .class: getNavigationElement() returns the
+            // source element when sources are attached (as IntelliJ's own "Go to Declaration" does),
+            // and the compiled element itself otherwise.
+            PsiElement classNav = psiClass.getNavigationElement();
+            PsiFile sourceFile = classNav.getContainingFile();
+            VirtualFile vFile = sourceFile == null ? null : sourceFile.getVirtualFile();
             if (vFile == null) {
                 return new Navigation.NotFound("no-virtual-file");
             }
@@ -58,17 +63,23 @@ public final class JavaResolver {
                 return new Navigation.Found(vFile, req.lineNumber() - 1, 0, Navigation.Kind.JAVA_LINE, false);
             }
 
-            // No line: jump to the named method's declaration if we can find it.
+            // No line: jump to the named method's declaration if we can find it. Resolve the offset
+            // against the method's own navigation element so file and offset stay consistent.
             if (req.methodName() != null) {
                 PsiMethod[] methods = psiClass.findMethodsByName(req.methodName(), false);
                 if (methods.length >= 1) {
-                    int line = lineForOffset(project, psiFile, methods[0].getTextOffset());
-                    return new Navigation.Found(vFile, line, 0, Navigation.Kind.JAVA_PRECISE, false);
+                    PsiElement methodNav = methods[0].getNavigationElement();
+                    PsiFile methodFile = methodNav.getContainingFile();
+                    VirtualFile methodVFile = methodFile == null ? null : methodFile.getVirtualFile();
+                    if (methodVFile != null) {
+                        int line = lineForOffset(project, methodFile, methodNav.getTextOffset());
+                        return new Navigation.Found(methodVFile, line, 0, Navigation.Kind.JAVA_PRECISE, false);
+                    }
                 }
             }
 
             // Last resort: the class declaration (imprecise).
-            int line = lineForOffset(project, psiFile, psiClass.getTextOffset());
+            int line = lineForOffset(project, sourceFile, classNav.getTextOffset());
             return new Navigation.Found(vFile, line, 0, Navigation.Kind.JAVA_LINE, true);
         });
     }
