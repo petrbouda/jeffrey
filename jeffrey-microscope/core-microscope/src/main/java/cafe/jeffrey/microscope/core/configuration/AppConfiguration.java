@@ -70,8 +70,8 @@ public class AppConfiguration {
 
     private static final Logger LOG = LoggerFactory.getLogger(AppConfiguration.class);
 
-    private static final Duration IDE_CLIENT_CONNECT_TIMEOUT = Duration.ofMillis(300);
-    private static final Duration IDE_CLIENT_READ_TIMEOUT = Duration.ofSeconds(2);
+    private static final Duration IDE_CLIENT_CONNECT_TIMEOUT = Duration.ofMillis(100);
+    private static final Duration IDE_CLIENT_READ_TIMEOUT = Duration.ofMillis(200);
 
     @Bean
     public Clock applicationClock() {
@@ -99,7 +99,7 @@ public class AppConfiguration {
                     new PortRange(portStart, portEnd),
                     new JeffreyPluginClient(ideRestClientBuilder()),
                     new IdeTargetCache());
-            case JFR_PROFILER_PLUGIN -> new JfrProfilerPluginBridge(baseUrl);
+            case JFR_PROFILER_PLUGIN -> new JfrProfilerPluginBridge(baseUrl, ideRestClientBuilder());
         };
     }
 

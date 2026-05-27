@@ -23,13 +23,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
 
 import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
 
 /**
  * {@link IdeBridge} for {@link IdeMode#JFR_PROFILER_PLUGIN}: forwards requests to the JFR Profiler
@@ -47,14 +45,13 @@ public class JfrProfilerPluginBridge implements IdeBridge {
     private static final Logger LOG = LoggerFactory.getLogger(JfrProfilerPluginBridge.class);
 
     private static final String IDE_PATH_PREFIX = "/ide/";
+    private static final String HAS_PATH_PREFIX = "/ide/has/";
     private static final String TRAILING_SLASH = "/";
     private static final String SEGMENT_SEPARATOR = ".";
     private static final String SEGMENT_SPLIT_REGEX = "\\.";
     private static final char METHOD_PREFIX_SEPARATOR = '.';
     private static final String ENCODER_PLUS = "+";
     private static final String ENCODED_SPACE = "%20";
-
-    private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(5);
 
     private static final String MSG_NO_BASE_URL = "IDE base URL is not configured";
     private static final String MSG_IDE_UNREACHABLE = "Could not reach the IDE plugin — is it running?";
@@ -64,16 +61,50 @@ public class JfrProfilerPluginBridge implements IdeBridge {
     private final String baseUrl;
     private final RestClient restClient;
 
-    public JfrProfilerPluginBridge(String baseUrl) {
+    public JfrProfilerPluginBridge(String baseUrl, RestClient.Builder restClientBuilder) {
         this.baseUrl = normalizeBaseUrl(baseUrl);
-        this.restClient = RestClient.builder()
-                .requestFactory(createRequestFactory())
-                .build();
+        this.restClient = restClientBuilder.build();
     }
 
     @Override
     public boolean isEnabled() {
         return true;
+    }
+
+    @Override
+    public IdeMode mode() {
+        return IdeMode.JFR_PROFILER_PLUGIN;
+    }
+
+    /**
+     * Class-level presence check via the JFR Profiler plugin's {@code GET /ide/has/<fqn>} endpoint
+     * (returns {@code {"resolved": bool}}). The fqn is sent as a single URL-encoded path segment, the
+     * way the plugin decodes it. Best-effort: missing base URL/fqn, non-2xx, or any error → {@code false}.
+     */
+    @Override
+    public boolean hasClass(String profileId, String fqn) {
+        if (baseUrl == null || fqn == null || fqn.isBlank()) {
+            return false;
+        }
+
+        String url = baseUrl + HAS_PATH_PREFIX + encodeSegment(fqn);
+        try {
+            ResponseEntity<HasResponse> response = restClient.get()
+                    .uri(URI.create(url))
+                    .accept(MediaType.APPLICATION_JSON)
+                    .retrieve()
+                    .onStatus(HttpStatusCode::isError, (httpRequest, httpResponse) -> {
+                        // Suppress the default 4xx/5xx exception; the status is inspected below.
+                    })
+                    .toEntity(HasResponse.class);
+
+            HttpStatusCode status = response.getStatusCode();
+            HasResponse body = response.getBody();
+            return status.is2xxSuccessful() && body != null && body.resolved();
+        } catch (Exception e) {
+            LOG.debug("Failed to reach IDE plugin for has-class: url={} reason={}", url, e.getMessage());
+            return false;
+        }
     }
 
     @Override
@@ -161,13 +192,6 @@ public class JfrProfilerPluginBridge implements IdeBridge {
         return new IdeTargetStatus(false, true, null, null, 0, 0);
     }
 
-    private static SimpleClientHttpRequestFactory createRequestFactory() {
-        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
-        requestFactory.setConnectTimeout(REQUEST_TIMEOUT);
-        requestFactory.setReadTimeout(REQUEST_TIMEOUT);
-        return requestFactory;
-    }
-
     /**
      * Reproduces the path the SPA used to build: the class prefix is stripped from {@code method},
      * the resulting {@code fqn.simpleMethod} is split on dots, each segment is URL-encoded, and the
@@ -203,5 +227,8 @@ public class JfrProfilerPluginBridge implements IdeBridge {
     }
 
     private record IdeOpenBody(String method, int line) {
+    }
+
+    private record HasResponse(boolean resolved) {
     }
 }

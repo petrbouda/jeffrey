@@ -44,6 +44,21 @@ public interface IdeBridge {
     boolean isEnabled();
 
     /**
+     * The active integration mode, surfaced to the frontend so it can vary behavior per bridge (e.g.
+     * the flamegraph gates its IDE buttons on a per-class check only under {@link IdeMode#JFR_PROFILER_PLUGIN}).
+     */
+    IdeMode mode();
+
+    /**
+     * Whether the IDE contains {@code fqn} (class-level only). Used to enable/disable the flamegraph
+     * IDE buttons per frame. The default assumes presence ({@code true}) so bridges that cannot answer
+     * never gate the buttons; {@link JfrProfilerPluginBridge} overrides it with a real lookup.
+     */
+    default boolean hasClass(String profileId, String fqn) {
+        return true;
+    }
+
+    /**
      * Opens a source location in the developer's IDE (navigate + focus the window).
      */
     IdeOpenResult open(IdeOpenRequest request);

@@ -16,9 +16,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.intellij.resolver;
+package cafe.jeffrey.ide.plugin.idea.resolver;
 
-import cafe.jeffrey.intellij.dto.NavigateRequest;
+import cafe.jeffrey.ide.plugin.idea.dto.NavigateRequest;
 import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;

@@ -66,6 +66,13 @@ public class IdeController {
         return ideBridge.discoverTargets(profileId, fqn);
     }
 
+    @GetMapping("/has")
+    public IdeHasResponse has(
+            @RequestParam(value = "profileId", required = false) String profileId,
+            @RequestParam("fqn") String fqn) {
+        return new IdeHasResponse(ideBridge.hasClass(profileId, fqn));
+    }
+
     @GetMapping("/status")
     public IdeTargetStatus status(@RequestParam(value = "profileId", required = false) String profileId) {
         return ideBridge.targetStatus(profileId);
@@ -88,6 +95,9 @@ public class IdeController {
     }
 
     public record IdeSourceResponse(boolean success, String content, String message, boolean decompiled) {
+    }
+
+    public record IdeHasResponse(boolean found) {
     }
 
     public record IdeTargetRequest(

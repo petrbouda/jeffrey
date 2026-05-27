@@ -63,15 +63,25 @@ public final class JeffreyPluginClient {
         }
     }
 
-    public boolean hasClass(int port, String projectId, String fqcn) {
+    /**
+     * Existence check against an IDE window: {@code className} is required, {@code methodName}
+     * optional. With a method the plugin resolves by class + method; without one, by class alone.
+     */
+    public boolean has(int port, String projectId, String className, String methodName) {
         try {
-            PluginHasClass result = restClient.get()
-                    .uri(BASE + "has-class?fqcn={fqcn}&projectId={projectId}", port, fqcn, projectId)
-                    .retrieve()
-                    .body(PluginHasClass.class);
+            PluginHas result = (methodName == null || methodName.isBlank())
+                    ? restClient.get()
+                            .uri(BASE + "has?class={class}&projectId={projectId}", port, className, projectId)
+                            .retrieve()
+                            .body(PluginHas.class)
+                    : restClient.get()
+                            .uri(BASE + "has?class={class}&method={method}&projectId={projectId}",
+                                    port, className, methodName, projectId)
+                            .retrieve()
+                            .body(PluginHas.class);
             return result != null && result.found();
         } catch (Exception e) {
-            LOG.warn("Cannot get information HAS_CLASS : port={} reason={}", port, e.getMessage());
+            LOG.warn("Cannot get information HAS : port={} reason={}", port, e.getMessage());
             return false;
         }
     }
@@ -151,6 +161,6 @@ public final class JeffreyPluginClient {
             String reason) {
     }
 
-    public record PluginHasClass(boolean found, String projectId) {
+    public record PluginHas(boolean found, String projectId) {
     }
 }

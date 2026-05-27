@@ -16,26 +16,22 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.intellij.resolver;
+package cafe.jeffrey.ide.plugin.idea.dto;
 
-import com.intellij.openapi.vfs.VirtualFile;
+import org.jetbrains.annotations.Nullable;
 
 /**
- * Result of resolving a stack frame to a source location. {@code line}/{@code column} are 0-based
- * (as {@code OpenFileDescriptor} expects).
+ * Body of {@code POST /api/jeffrey/navigate}. {@code projectId} selects the target window
+ * ({@code Project.getLocationHash()}); the rest identifies the source location.
+ *
+ * <p>v1 navigates by class + line (method-level/bytecode-precise matching is deferred until
+ * Microscope sends a JVM descriptor). {@code lineNumber} is 1-based, or {@code <= 0} when unknown.
  */
-public sealed interface Navigation permits Navigation.Found, Navigation.NotFound {
-
-    enum Kind {
-        JAVA_PRECISE,
-        JAVA_LINE,
-        KOTLIN_LINE,
-        KOTLIN_FALLBACK
-    }
-
-    record Found(VirtualFile file, int line, int column, Kind kind, boolean imprecise) implements Navigation {
-    }
-
-    record NotFound(String reason) implements Navigation {
-    }
+public record NavigateRequest(
+        String projectId,
+        String className,
+        @Nullable String methodName,
+        int lineNumber,
+        @Nullable String recordingTime
+) {
 }

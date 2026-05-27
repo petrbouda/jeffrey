@@ -16,22 +16,24 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.intellij.dto;
+package cafe.jeffrey.ide.plugin.idea.dto;
 
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Body of {@code POST /api/jeffrey/navigate}. {@code projectId} selects the target window
- * ({@code Project.getLocationHash()}); the rest identifies the source location.
- *
- * <p>v1 navigates by class + line (method-level/bytecode-precise matching is deferred until
- * Microscope sends a JVM descriptor). {@code lineNumber} is 1-based, or {@code <= 0} when unknown.
+ * Result of {@code GET /api/jeffrey/source}: the raw source text of a class, for display inside
+ * Microscope's source viewer. {@code decompiled} is true when the text comes from a decompiled
+ * library class (no sources attached).
  */
-public record NavigateRequest(
-        String projectId,
-        String className,
-        @Nullable String methodName,
-        int lineNumber,
-        @Nullable String recordingTime
+public record SourceResponse(
+        boolean resolved,
+        @Nullable String content,
+        @Nullable String file,
+        boolean decompiled,
+        @Nullable String reason
 ) {
+
+    public static SourceResponse notResolved(String reason) {
+        return new SourceResponse(false, null, null, false, reason);
+    }
 }

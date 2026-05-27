@@ -16,11 +16,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.intellij;
+package cafe.jeffrey.ide.plugin.idea;
 
-import cafe.jeffrey.intellij.dto.InstanceResponse;
-import cafe.jeffrey.intellij.dto.ProjectInfo;
-import com.intellij.ide.impl.TrustedProjects;
+import cafe.jeffrey.ide.plugin.idea.dto.InstanceResponse;
+import cafe.jeffrey.ide.plugin.idea.dto.ProjectInfo;
+import com.intellij.ide.trustedProjects.TrustedProjects;
 import com.intellij.openapi.application.ApplicationInfo;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.application.ApplicationNamesInfo;
@@ -71,7 +71,7 @@ public final class ProjectRegistry {
     private static List<ProjectInfo> openProjects() {
         // Untrusted projects are omitted entirely — they never appear in Microscope's picker.
         return Arrays.stream(ProjectManager.getInstance().getOpenProjects())
-                .filter(TrustedProjects::isTrusted)
+                .filter(TrustedProjects::isProjectTrusted)
                 .map(ProjectRegistry::toProjectInfo)
                 .toList();
     }

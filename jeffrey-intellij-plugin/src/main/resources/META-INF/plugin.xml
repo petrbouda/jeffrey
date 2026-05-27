@@ -1,27 +1,63 @@
 <idea-plugin>
-    <id>cafe.jeffrey.intellij</id>
-    <name>Jeffrey Plugin</name>
+    <id>cafe.jeffrey.ide.plugin.idea</id>
+    <name>Jeffrey Microscope</name>
     <vendor email="bouda.petr@gmail.com" url="https://jeffrey-analyst.cafe">Petr Bouda</vendor>
     <!-- <version> and <idea-version since-build/> are injected at build time by the IntelliJ
          Platform Gradle plugin's patchPluginXml task (from build.gradle.kts). -->
 
     <description><![CDATA[
-        Bridges Jeffrey Microscope with IntelliJ IDEA.
-        Lets Microscope navigate directly from a stack frame to the corresponding
-        source code in the right open IDE window.
+        <h3>Jump from a JFR flame graph straight to your code.</h3>
+
+        <p>
+            <b>Jeffrey Microscope</b> is the companion IDE plugin for
+            <a href="https://jeffrey-analyst.cafe">Jeffrey</a>, a tool for analyzing Java Flight
+            Recorder (JFR) recordings and heap dumps. While you explore a flame graph, a heap-dump
+            view, or any other Microscope view, this plugin lets you click a stack frame or a class
+            and land on the exact line of source in your already-open IntelliJ window.
+        </p>
+
+        <p>
+            <b>The plugin is headless</b> — it adds no toolbars, tool windows, or actions of its own.
+            It runs quietly in the background and enriches Jeffrey Microscope, letting Microscope
+            discover your open IntelliJ projects and either navigate straight to the matching code or
+            download the sources back into the application directly.
+        </p>
+
+        <p><b>What it does</b></p>
+        <ul>
+            <li><b>Frame-to-source navigation</b> — resolves a fully-qualified class and method to a
+                file, line, and column, opens it, and brings the IDE window to the front.</li>
+            <li><b>Inline source</b> — serves source text back to Microscope so it can show code next
+                to the profile, preferring attached sources over decompiled <code>.class</code> files.</li>
+            <li><b>Zero configuration</b> — Microscope discovers the IDE automatically over IntelliJ's
+                built-in server; there is nothing to pair or paste.</li>
+        </ul>
+
+        <p><b>Private by design</b></p>
+        <ul>
+            <li>Listens on <b>localhost only</b> — never reachable from the network.</li>
+            <li>Honors IntelliJ's <b>trusted projects</b>: untrusted projects are never navigated.</li>
+            <li>Toggle it off anytime under <em>Settings → Tools → Jeffrey Microscope Plugin</em>; a
+                disabled IDE is completely invisible to Microscope.</li>
+        </ul>
+
+        <p>
+            Requires a running Jeffrey Microscope instance. Learn more at
+            <a href="https://jeffrey-analyst.cafe">jeffrey-analyst.cafe</a>.
+        </p>
     ]]></description>
 
     <depends>com.intellij.modules.platform</depends>
     <depends>com.intellij.java</depends>
 
     <extensions defaultExtensionNs="com.intellij">
-        <httpRequestHandler implementation="cafe.jeffrey.intellij.JeffreyMicroscopeService"/>
-        <applicationService serviceImplementation="cafe.jeffrey.intellij.ProjectRegistry"/>
-        <applicationService serviceImplementation="cafe.jeffrey.intellij.settings.JeffreySettings"/>
+        <httpRequestHandler implementation="cafe.jeffrey.ide.plugin.idea.JeffreyMicroscopeService"/>
+        <applicationService serviceImplementation="cafe.jeffrey.ide.plugin.idea.ProjectRegistry"/>
+        <applicationService serviceImplementation="cafe.jeffrey.ide.plugin.idea.settings.JeffreySettings"/>
         <applicationConfigurable parentId="tools"
-                                 id="cafe.jeffrey.intellij.settings"
-                                 instance="cafe.jeffrey.intellij.settings.JeffreyConfigurable"
+                                 id="cafe.jeffrey.ide.plugin.idea.settings"
+                                 instance="cafe.jeffrey.ide.plugin.idea.settings.JeffreyConfigurable"
                                  displayName="Jeffrey Plugin"/>
-        <notificationGroup id="Jeffrey Microscope Plugin" displayType="BALLOON"/>
+        <notificationGroup id="Jeffrey Microscope" displayType="BALLOON"/>
     </extensions>
 </idea-plugin>

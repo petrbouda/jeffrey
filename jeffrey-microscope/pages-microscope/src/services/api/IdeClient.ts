@@ -33,6 +33,10 @@ export interface IdeSourceResponse {
   decompiled: boolean;
 }
 
+export interface IdeHasResponse {
+  found: boolean;
+}
+
 export interface IdeProjectView {
   id: string;
   name: string;
@@ -101,6 +105,10 @@ export default class IdeClient extends BasePlatformClient {
 
   discoverTargets(profileId: string, fqn: string): Promise<IdeTargetsResponse> {
     return this.get<IdeTargetsResponse>('/targets', { profileId, fqn }, { suppressToast: true });
+  }
+
+  hasClass(profileId: string, fqn: string): Promise<IdeHasResponse> {
+    return this.get<IdeHasResponse>('/has', { profileId, fqn }, { suppressToast: true });
   }
 
   getStatus(profileId: string): Promise<IdeTargetStatusResponse> {

@@ -18,7 +18,7 @@
 
 import { ref } from 'vue';
 import IdeConfigClient from '@/services/api/IdeConfigClient';
-import IdeConfig from '@/services/api/model/IdeConfig';
+import IdeConfig, { IdeMode } from '@/services/api/model/IdeConfig';
 
 const config = ref<IdeConfig | null>(null);
 let loadPromise: Promise<void> | null = null;
@@ -33,7 +33,7 @@ function loadOnce(): Promise<void> {
       config.value = cfg;
     })
     .catch(() => {
-      config.value = { enabled: false };
+      config.value = { enabled: false, mode: IdeMode.JEFFREY_PLUGIN };
     });
   return loadPromise;
 }
@@ -42,7 +42,12 @@ function isEnabled(): boolean {
   return config.value?.enabled === true;
 }
 
+function isJfrProfilerMode(): boolean {
+  return config.value?.mode === IdeMode.JFR_PROFILER_PLUGIN;
+}
+
 export default {
   loadOnce,
   isEnabled,
+  isJfrProfilerMode,
 };

@@ -83,12 +83,22 @@ class JeffreyPluginClientTest {
     }
 
     @Test
-    void hasClassReadsFlag() {
+    void hasReadsClassFlag() {
         Fixture f = fixture();
-        f.server().expect(requestTo("http://127.0.0.1:63342/api/jeffrey/has-class?fqcn=com.acme.Foo&projectId=loc-hash"))
+        f.server().expect(requestTo("http://127.0.0.1:63342/api/jeffrey/has?class=com.acme.Foo&projectId=loc-hash"))
                 .andRespond(withSuccess("{\"found\":true,\"projectId\":\"loc-hash\"}", MediaType.APPLICATION_JSON));
 
-        assertTrue(f.client().hasClass(PORT, "loc-hash", "com.acme.Foo"));
+        assertTrue(f.client().has(PORT, "loc-hash", "com.acme.Foo", null));
+        f.server().verify();
+    }
+
+    @Test
+    void hasReadsClassAndMethodFlag() {
+        Fixture f = fixture();
+        f.server().expect(requestTo("http://127.0.0.1:63342/api/jeffrey/has?class=com.acme.Foo&method=bar&projectId=loc-hash"))
+                .andRespond(withSuccess("{\"found\":true,\"projectId\":\"loc-hash\"}", MediaType.APPLICATION_JSON));
+
+        assertTrue(f.client().has(PORT, "loc-hash", "com.acme.Foo", "bar"));
         f.server().verify();
     }
 

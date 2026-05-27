@@ -16,13 +16,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.intellij.util;
+package cafe.jeffrey.ide.plugin.idea.util;
 
-import cafe.jeffrey.intellij.dto.InstanceResponse;
-import cafe.jeffrey.intellij.dto.NavigateRequest;
-import cafe.jeffrey.intellij.dto.NavigateResponse;
-import cafe.jeffrey.intellij.dto.ProjectInfo;
-import cafe.jeffrey.intellij.dto.SourceResponse;
+import cafe.jeffrey.ide.plugin.idea.dto.InstanceResponse;
+import cafe.jeffrey.ide.plugin.idea.dto.NavigateRequest;
+import cafe.jeffrey.ide.plugin.idea.dto.NavigateResponse;
+import cafe.jeffrey.ide.plugin.idea.dto.ProjectInfo;
+import cafe.jeffrey.ide.plugin.idea.dto.SourceResponse;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.stream.JsonWriter;
@@ -53,7 +53,7 @@ public final class Json {
         });
     }
 
-    public static byte[] hasClass(boolean found, String projectId) {
+    public static byte[] has(boolean found, String projectId) {
         return write(w -> {
             w.beginObject();
             w.name("found").value(found);

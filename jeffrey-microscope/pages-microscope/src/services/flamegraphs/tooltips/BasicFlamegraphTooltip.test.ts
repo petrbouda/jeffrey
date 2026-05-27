@@ -24,11 +24,13 @@ import ideConfigStore from '@/stores/ideConfigStore';
 vi.mock('@/stores/ideConfigStore', () => ({
   default: {
     loadOnce: vi.fn(),
-    isEnabled: vi.fn(() => false)
+    isEnabled: vi.fn(() => false),
+    isJfrProfilerMode: vi.fn(() => false)
   }
 }));
 
 const isEnabledMock = ideConfigStore.isEnabled as unknown as ReturnType<typeof vi.fn>;
+const isJfrProfilerModeMock = ideConfigStore.isJfrProfilerMode as unknown as ReturnType<typeof vi.fn>;
 
 function javaFrame(): Frame {
   const frame = new Frame(
@@ -59,6 +61,8 @@ function nativeFrame(): Frame {
 describe('BasicFlamegraphTooltip — IDE jump button', () => {
   beforeEach(() => {
     isEnabledMock.mockReset();
+    isJfrProfilerModeMock.mockReset();
+    isJfrProfilerModeMock.mockReturnValue(false);
   });
 
   it('renders the Open in IDE button for a Java frame when the IDE integration is enabled', () => {
@@ -112,5 +116,29 @@ describe('BasicFlamegraphTooltip — IDE jump button', () => {
     const html = tooltip.generate(nativeFrame(), 27000, 0);
 
     expect(html).not.toContain('data-ide-action');
+  });
+
+  it('renders the buttons enabled (no gating) in Jeffrey Plugin mode', () => {
+    isEnabledMock.mockReturnValue(true);
+    isJfrProfilerModeMock.mockReturnValue(false);
+    const tooltip = new BasicFlamegraphTooltip('jdk.ExecutionSample', false);
+
+    const html = tooltip.generate(javaFrame(), 27000, 0);
+
+    expect(html).toContain('data-ide-action="open"');
+    expect(html).not.toContain('data-ide-gated');
+    expect(html).not.toContain('disabled');
+  });
+
+  it('renders the buttons disabled and gated in JFR Profiler Plugin mode', () => {
+    isEnabledMock.mockReturnValue(true);
+    isJfrProfilerModeMock.mockReturnValue(true);
+    const tooltip = new BasicFlamegraphTooltip('jdk.ExecutionSample', false);
+
+    const html = tooltip.generate(javaFrame(), 27000, 0);
+
+    expect(html).toContain('data-ide-action="open"');
+    expect(html).toContain('data-ide-gated="true"');
+    expect(html).toContain('disabled');
   });
 });

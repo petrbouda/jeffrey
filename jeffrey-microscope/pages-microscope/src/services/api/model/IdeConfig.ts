@@ -16,6 +16,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+export enum IdeMode {
+  JEFFREY_PLUGIN = 'jeffrey-plugin',
+  JFR_PROFILER_PLUGIN = 'jfr-profiler-plugin'
+}
+
 export default interface IdeConfig {
   enabled: boolean;
+  mode: IdeMode;
 }

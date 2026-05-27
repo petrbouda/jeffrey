@@ -16,9 +16,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.intellij.resolver;
+package cafe.jeffrey.ide.plugin.idea.resolver;
 
-import cafe.jeffrey.intellij.dto.NavigateRequest;
+import cafe.jeffrey.ide.plugin.idea.dto.NavigateRequest;
 import com.intellij.testFramework.fixtures.BasePlatformTestCase;
 
 /** PSI resolution tests for {@link JavaResolver}, backed by a light in-process IDE fixture. */
@@ -70,5 +70,16 @@ public class JavaResolverTest extends BasePlatformTestCase {
         myFixture.configureByText("Foo.java", FOO_JAVA);
         assertTrue(JavaResolver.exists(getProject(), "com.acme.Foo"));
         assertFalse(JavaResolver.exists(getProject(), "com.acme.Nope"));
+    }
+
+    public void testHasMethodFindsDeclaredMethod() {
+        myFixture.configureByText("Foo.java", FOO_JAVA);
+        assertTrue(JavaResolver.hasMethod(getProject(), "com.acme.Foo", "bar"));
+    }
+
+    public void testHasMethodFalseForMissingMethodOrClass() {
+        myFixture.configureByText("Foo.java", FOO_JAVA);
+        assertFalse("method not declared", JavaResolver.hasMethod(getProject(), "com.acme.Foo", "noSuchMethod"));
+        assertFalse("class not found", JavaResolver.hasMethod(getProject(), "com.acme.Nope", "bar"));
     }
 }

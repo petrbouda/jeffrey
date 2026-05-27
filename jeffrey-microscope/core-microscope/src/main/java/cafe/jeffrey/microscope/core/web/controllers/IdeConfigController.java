@@ -35,9 +35,9 @@ public class IdeConfigController {
 
     @GetMapping
     public IdeConfigResponse get() {
-        return new IdeConfigResponse(ideBridge.isEnabled());
+        return new IdeConfigResponse(ideBridge.isEnabled(), ideBridge.mode().propertyValue());
     }
 
-    public record IdeConfigResponse(boolean enabled) {
+    public record IdeConfigResponse(boolean enabled, String mode) {
     }
 }

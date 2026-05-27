@@ -18,6 +18,7 @@
 
 import TooltipPosition from './TooltipPosition';
 import IdeJumpService from '@/services/IdeJumpService';
+import IdeButtonGate from '@/services/IdeButtonGate';
 import MessageBus from '@/services/MessageBus';
 import router from '@/router';
 
@@ -28,6 +29,9 @@ export default class Tooltip {
   private hideTimeoutId: number | null = null;
   private displayedContent: string | null = null;
   private pendingContent: string | null = null;
+  // Incremented every time gated IDE buttons are rendered; lets an in-flight class check ignore its
+  // result if the tooltip has since moved to another frame.
+  private ideGateToken = 0;
   private readonly canvas: HTMLElement;
   private readonly tooltipClassName: string;
   private readonly tooltip: HTMLElement;
@@ -60,7 +64,41 @@ export default class Tooltip {
       this.displayedContent = content;
       this.pendingContent = null;
       Tooltip.placeTooltip(this.canvas, this.tooltip, event, currentScrollY);
+      this.applyIdeGate();
     }, 500);
+  }
+
+  /**
+   * JFR Profiler Plugin mode renders the IDE buttons disabled ({@code data-ide-gated}); enable them
+   * once the IDE confirms it contains the frame's class. Guarded by a token so a result arriving after
+   * the cursor moved to another frame cannot enable the wrong tooltip's buttons.
+   */
+  private applyIdeGate(): void {
+    const gated = Array.from(
+      this.tooltip.querySelectorAll('[data-ide-action][data-ide-gated="true"]')
+    ) as HTMLButtonElement[];
+    if (gated.length === 0) {
+      return;
+    }
+    const fqn = gated[0].getAttribute('data-fqn') ?? '';
+    if (!fqn) {
+      return;
+    }
+    const profileId = (router.currentRoute.value.params.profileId as string) ?? '';
+    const token = ++this.ideGateToken;
+    IdeButtonGate.check(profileId, fqn).then((present) => {
+      if (token !== this.ideGateToken || !present) {
+        return;
+      }
+      const current = Array.from(
+        this.tooltip.querySelectorAll('[data-ide-action][data-ide-gated="true"]')
+      ) as HTMLButtonElement[];
+      for (const button of current) {
+        if (button.getAttribute('data-fqn') === fqn) {
+          button.removeAttribute('disabled');
+        }
+      }
+    });
   }
 
   public hideTooltip(): void {

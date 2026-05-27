@@ -16,12 +16,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.intellij;
+package cafe.jeffrey.ide.plugin.idea;
 
-import cafe.jeffrey.intellij.dto.NavigateRequest;
-import cafe.jeffrey.intellij.resolver.JavaResolver;
-import cafe.jeffrey.intellij.settings.JeffreySettings;
-import cafe.jeffrey.intellij.util.Json;
+import cafe.jeffrey.ide.plugin.idea.dto.NavigateRequest;
+import cafe.jeffrey.ide.plugin.idea.resolver.JavaResolver;
+import cafe.jeffrey.ide.plugin.idea.settings.JeffreySettings;
+import cafe.jeffrey.ide.plugin.idea.util.Json;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.io.BufferExposingByteArrayOutputStream;
 import io.netty.channel.ChannelHandlerContext;
@@ -44,7 +44,7 @@ import java.nio.charset.StandardCharsets;
  * server (extension point {@code com.intellij.httpRequestHandler}). Reachable at
  * {@code /api/jeffrey/*} ({@link #PREFIX} is {@code /api}; service name {@code jeffrey}).
  *
- * <p>Endpoints: {@code GET ping}, {@code GET instance}, {@code POST navigate}, {@code GET has-class},
+ * <p>Endpoints: {@code GET ping}, {@code GET instance}, {@code POST navigate}, {@code GET has},
  * {@code GET source}. There is no app-level token: the built-in server binds to localhost, so
  * Microscope discovers and calls instances simply by scanning the port range. Requests carrying a
  * browser {@code Origin} still fall under IntelliJ's default cross-origin protection (see
@@ -61,10 +61,11 @@ public final class JeffreyMicroscopeService extends RestService {
     private static final String PATH_PING = "ping";
     private static final String PATH_INSTANCE = "instance";
     private static final String PATH_NAVIGATE = "navigate";
-    private static final String PATH_HAS_CLASS = "has-class";
+    private static final String PATH_HAS = "has";
     private static final String PATH_SOURCE = "source";
 
-    private static final String PARAM_FQCN = "fqcn";
+    private static final String PARAM_CLASS = "class";
+    private static final String PARAM_METHOD = "method";
     private static final String PARAM_PROJECT_ID = "projectId";
     private static final String PARAM_CLASS_NAME = "className";
 
@@ -104,7 +105,7 @@ public final class JeffreyMicroscopeService extends RestService {
             case PATH_PING -> sendJson(Json.ping(PROTOCOL_VERSION), request, context);
             case PATH_INSTANCE -> sendJson(Json.instance(ProjectRegistry.getInstance().currentInstance()), request, context);
             case PATH_NAVIGATE -> handleNavigate(request, context);
-            case PATH_HAS_CLASS -> handleHasClass(urlDecoder, request, context);
+            case PATH_HAS -> handleHas(urlDecoder, request, context);
             case PATH_SOURCE -> handleSource(urlDecoder, request, context);
             default -> {
                 return "Unknown Jeffrey endpoint";
@@ -118,14 +119,27 @@ public final class JeffreyMicroscopeService extends RestService {
         sendJson(Json.navigate(Navigator.navigate(req)), request, context);
     }
 
-    private void handleHasClass(@NotNull QueryStringDecoder urlDecoder,
-                                @NotNull FullHttpRequest request,
-                                @NotNull ChannelHandlerContext context) throws IOException {
-        String fqcn = getStringParameter(PARAM_FQCN, urlDecoder);
+    /**
+     * Existence check: {@code class} is required, {@code method} optional. With a method we resolve
+     * by class + method; without one, by class alone.
+     */
+    private void handleHas(@NotNull QueryStringDecoder urlDecoder,
+                           @NotNull FullHttpRequest request,
+                           @NotNull ChannelHandlerContext context) throws IOException {
+        String className = getStringParameter(PARAM_CLASS, urlDecoder);
+        String methodName = getStringParameter(PARAM_METHOD, urlDecoder);
         String projectId = getStringParameter(PARAM_PROJECT_ID, urlDecoder);
         Project project = ProjectRegistry.findProject(projectId);
-        boolean found = project != null && fqcn != null && JavaResolver.exists(project, fqcn);
-        sendJson(Json.hasClass(found, projectId), request, context);
+
+        boolean found;
+        if (project == null || className == null) {
+            found = false;
+        } else if (methodName != null && !methodName.isBlank()) {
+            found = JavaResolver.hasMethod(project, className, methodName);
+        } else {
+            found = JavaResolver.exists(project, className);
+        }
+        sendJson(Json.has(found, projectId), request, context);
     }
 
     private void handleSource(@NotNull QueryStringDecoder urlDecoder,

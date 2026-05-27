@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.intellij.dto;
+package cafe.jeffrey.ide.plugin.idea.dto;
 
 import org.jetbrains.annotations.Nullable;
 

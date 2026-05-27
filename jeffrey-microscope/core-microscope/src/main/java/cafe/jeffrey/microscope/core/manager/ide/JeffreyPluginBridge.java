@@ -67,6 +67,11 @@ public final class JeffreyPluginBridge implements IdeBridge {
     }
 
     @Override
+    public IdeMode mode() {
+        return IdeMode.JEFFREY_PLUGIN;
+    }
+
+    @Override
     public IdeOpenResult open(IdeOpenRequest request) {
         IdeTarget cached = cache.get(request.profileId());
         if (cached == null) {
@@ -208,7 +213,7 @@ public final class JeffreyPluginBridge implements IdeBridge {
     private IdeInstanceView toInstanceView(PluginInstance instance, String fqn) {
         List<IdeProjectView> projects = new ArrayList<>();
         for (PluginProject project : instance.projects()) {
-            boolean hasClass = fqn != null && !fqn.isBlank() && client.hasClass(instance.port(), project.id(), fqn);
+            boolean hasClass = fqn != null && !fqn.isBlank() && client.has(instance.port(), project.id(), fqn, null);
             projects.add(new IdeProjectView(
                     project.id(), project.name(), project.basePath(), project.vcsBranch(), project.focused(), hasClass));
         }

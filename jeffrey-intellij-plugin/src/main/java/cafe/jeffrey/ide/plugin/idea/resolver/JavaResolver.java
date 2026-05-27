@@ -16,9 +16,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.intellij.resolver;
+package cafe.jeffrey.ide.plugin.idea.resolver;
 
-import cafe.jeffrey.intellij.dto.NavigateRequest;
+import cafe.jeffrey.ide.plugin.idea.dto.NavigateRequest;
 import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.project.Project;
@@ -86,6 +86,21 @@ public final class JavaResolver {
 
     public static boolean exists(Project project, String fqcn) {
         return ReadAction.compute(() -> findClass(project, fqcn) != null);
+    }
+
+    /**
+     * Reports whether {@code fqcn} declares a method named {@code methodName}. Matches by name only
+     * (and own methods only, {@code checkBases=false}) — consistent with {@link #resolve}'s method
+     * fallback, and with the wire model carrying just a bare method name, no descriptor.
+     */
+    public static boolean hasMethod(Project project, String fqcn, String methodName) {
+        return ReadAction.compute(() -> {
+            PsiClass psiClass = findClass(project, fqcn);
+            if (psiClass == null) {
+                return false;
+            }
+            return psiClass.findMethodsByName(methodName, false).length >= 1;
+        });
     }
 
     private static PsiClass findClass(Project project, String fqcn) {

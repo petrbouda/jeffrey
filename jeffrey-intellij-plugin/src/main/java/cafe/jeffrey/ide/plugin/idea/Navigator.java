@@ -16,16 +16,16 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.intellij;
+package cafe.jeffrey.ide.plugin.idea;
 
-import cafe.jeffrey.intellij.dto.NavigateRequest;
-import cafe.jeffrey.intellij.dto.NavigateResponse;
-import cafe.jeffrey.intellij.dto.SourceResponse;
-import cafe.jeffrey.intellij.resolver.Navigation;
-import cafe.jeffrey.intellij.resolver.ResolverDispatcher;
-import cafe.jeffrey.intellij.util.EdtRunner;
+import cafe.jeffrey.ide.plugin.idea.dto.NavigateRequest;
+import cafe.jeffrey.ide.plugin.idea.dto.NavigateResponse;
+import cafe.jeffrey.ide.plugin.idea.dto.SourceResponse;
+import cafe.jeffrey.ide.plugin.idea.resolver.Navigation;
+import cafe.jeffrey.ide.plugin.idea.resolver.ResolverDispatcher;
+import cafe.jeffrey.ide.plugin.idea.util.EdtRunner;
 import com.intellij.ide.impl.ProjectUtil;
-import com.intellij.ide.impl.TrustedProjects;
+import com.intellij.ide.trustedProjects.TrustedProjects;
 import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.fileEditor.OpenFileDescriptor;
 import com.intellij.openapi.project.Project;
@@ -55,7 +55,7 @@ public final class Navigator {
         if (project == null) {
             return NavigateResponse.notResolved("project-not-found");
         }
-        if (!TrustedProjects.isTrusted(project)) {
+        if (!TrustedProjects.isProjectTrusted(project)) {
             return NavigateResponse.notResolved("project-not-trusted");
         }
 
@@ -92,7 +92,7 @@ public final class Navigator {
         if (project == null) {
             return SourceResponse.notResolved("project-not-found");
         }
-        if (!TrustedProjects.isTrusted(project)) {
+        if (!TrustedProjects.isProjectTrusted(project)) {
             return SourceResponse.notResolved("project-not-trusted");
         }
         return ReadAction.compute(() -> {

@@ -4,8 +4,13 @@
  * Intentionally NOT part of Jeffrey's root Maven reactor: it pulls the IntelliJ Platform SDK and
  * produces a plugin zip. Build it on its own:  cd jeffrey-intellij-plugin && ./gradlew buildPlugin
  *
- * Java level is 21 because IntelliJ IDEA 2026.1 runs on JetBrains Runtime 21 — a newer-bytecode jar
- * would not load. (Jeffrey's own backend is Java 25; unrelated — this plugin runs in IntelliJ's JVM.)
+ * Java level is 21 because the IntelliJ Platform (2025.1+) runs on JetBrains Runtime 21 — a
+ * newer-bytecode jar would not load. (Jeffrey's own backend is Java 25; unrelated — this plugin
+ * runs in IntelliJ's JVM.)
+ *
+ * Build coordinates (group/version), the target SDK (platformType/platformVersion) and the
+ * compatibility floor (pluginSinceBuild) all come from gradle.properties — the single source of
+ * truth, following the IntelliJ Platform Plugin Template layout.
  */
 import org.jetbrains.intellij.platform.gradle.TestFrameworkType
 
@@ -14,8 +19,8 @@ plugins {
     id("org.jetbrains.intellij.platform") version "2.16.0"
 }
 
-group = "cafe.jeffrey"
-version = "0.1.0-SNAPSHOT"
+group = providers.gradleProperty("pluginGroup").get()
+version = providers.gradleProperty("pluginVersion").get()
 
 java {
     toolchain {
@@ -32,17 +37,17 @@ repositories {
 
 dependencies {
     intellijPlatform {
-        // Downloads & extracts the IntelliJ IDEA 2026.1.2 SDK and builds the compile classpath
-        // from its lib/*.jar — what plain Maven could not do.
-        //
-        // NOTE: JetBrains no longer publishes the standalone Community (ideaIC) installer for the
-        // 2025.3+/2026.1 line — only Ultimate (ideaIU) — so we build against the Ultimate SDK. It is
-        // a superset; the plugin still runs on Community IDEs at runtime because it depends only on
-        // com.intellij.modules.platform + com.intellij.java. (runIde launches Ultimate, which needs
-        // a license/trial in the sandbox; building/verifying/installing are unaffected.)
-        intellijIdeaUltimate("2026.1.2")
+        // SDK type + version come from gradle.properties (platformType=IC, platformVersion=2025.1.2).
+        // Building against the 2025.1 SDK is deliberate: the platform APIs this plugin calls
+        // (ReadAction.compute, com.intellij.ide.impl.TrustedProjects.isTrusted) are stable there —
+        // not deprecated/experimental as they became in 2026.1 — so the verifier reports no API
+        // warnings, while sinceBuild=251 keeps the plugin installable on 2025.* and every newer IDE.
+        create(
+            providers.gradleProperty("platformType"),
+            providers.gradleProperty("platformVersion"),
+        )
 
-        // Java PSI: ClassUtil, JavaPsiFacade, PsiMethod, ... (also declared as <depends> in plugin.xml).
+        // Java PSI: ClassUtil, JavaPsiFacade, PsiMethod, ... (bundled in Community; also <depends> in plugin.xml).
         bundledPlugin("com.intellij.java")
 
         // In-process IDE test fixtures (BasePlatformTestCase, myFixture, ...). JUnit 3/4-based.
@@ -55,9 +60,10 @@ dependencies {
 intellijPlatform {
     pluginConfiguration {
         ideaVersion {
-            sinceBuild = "261"
-            // untilBuild left at the plugin default (current branch); open it up when targeting
-            // newer IDE majors.
+            // From gradle.properties (pluginSinceBuild=251 → installable on 2025.1 and newer).
+            sinceBuild = providers.gradleProperty("pluginSinceBuild")
+            // Open-ended: no upper bound (the default would cap untilBuild at the compile-SDK branch).
+            untilBuild = provider { null }
         }
     }
 }

@@ -16,24 +16,26 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.intellij.dto;
+package cafe.jeffrey.ide.plugin.idea.resolver;
 
-import org.jetbrains.annotations.Nullable;
+import com.intellij.openapi.vfs.VirtualFile;
 
 /**
- * Result of {@code GET /api/jeffrey/source}: the raw source text of a class, for display inside
- * Microscope's source viewer. {@code decompiled} is true when the text comes from a decompiled
- * library class (no sources attached).
+ * Result of resolving a stack frame to a source location. {@code line}/{@code column} are 0-based
+ * (as {@code OpenFileDescriptor} expects).
  */
-public record SourceResponse(
-        boolean resolved,
-        @Nullable String content,
-        @Nullable String file,
-        boolean decompiled,
-        @Nullable String reason
-) {
+public sealed interface Navigation permits Navigation.Found, Navigation.NotFound {
 
-    public static SourceResponse notResolved(String reason) {
-        return new SourceResponse(false, null, null, false, reason);
+    enum Kind {
+        JAVA_PRECISE,
+        JAVA_LINE,
+        KOTLIN_LINE,
+        KOTLIN_FALLBACK
+    }
+
+    record Found(VirtualFile file, int line, int column, Kind kind, boolean imprecise) implements Navigation {
+    }
+
+    record NotFound(String reason) implements Navigation {
     }
 }

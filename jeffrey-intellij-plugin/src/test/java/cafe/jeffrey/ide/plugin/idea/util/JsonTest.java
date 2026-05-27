@@ -16,12 +16,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.intellij.util;
+package cafe.jeffrey.ide.plugin.idea.util;
 
-import cafe.jeffrey.intellij.dto.InstanceResponse;
-import cafe.jeffrey.intellij.dto.NavigateRequest;
-import cafe.jeffrey.intellij.dto.NavigateResponse;
-import cafe.jeffrey.intellij.dto.ProjectInfo;
+import cafe.jeffrey.ide.plugin.idea.dto.InstanceResponse;
+import cafe.jeffrey.ide.plugin.idea.dto.NavigateRequest;
+import cafe.jeffrey.ide.plugin.idea.dto.NavigateResponse;
+import cafe.jeffrey.ide.plugin.idea.dto.ProjectInfo;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -91,8 +91,8 @@ public class JsonTest {
     }
 
     @Test
-    public void hasClassSerializesFlag() {
-        JsonObject o = parse(Json.hasClass(true, "loc-hash"));
+    public void hasSerializesFlag() {
+        JsonObject o = parse(Json.has(true, "loc-hash"));
         assertTrue(o.get("found").getAsBoolean());
         assertEquals("loc-hash", o.get("projectId").getAsString());
     }

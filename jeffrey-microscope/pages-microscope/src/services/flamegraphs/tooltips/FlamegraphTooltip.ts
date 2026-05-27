@@ -177,11 +177,16 @@ export default abstract class FlamegraphTooltip {
     const methodAttr = FlamegraphTooltip.escapeAttr(method);
     const titleAttr = FlamegraphTooltip.escapeAttr(parsed.className);
     const dataAttrs = `data-fqn="${fqnAttr}" data-method="${methodAttr}" data-line="${line}" data-title="${titleAttr}"`;
+    // In JFR Profiler Plugin mode the buttons start disabled and are enabled asynchronously once the
+    // IDE confirms it contains the class (see Tooltip.applyIdeGate). In Jeffrey Plugin mode they are
+    // always enabled.
+    const gated = ideConfigStore.isJfrProfilerMode();
+    const gateAttrs = gated ? 'data-ide-gated="true" disabled' : '';
     return `<div style="padding:8px 10px 10px;border-top:1px solid #eaedf1;background:#fbfcfe;display:flex;gap:6px">
-            <button type="button" class="ide-jump-button" style="flex:1" data-ide-action="open" ${dataAttrs}>
+            <button type="button" class="ide-jump-button" style="flex:1" data-ide-action="open" ${dataAttrs} ${gateAttrs}>
                 <i class="bi bi-box-arrow-up-right"></i> Open in IDE
             </button>
-            <button type="button" class="ide-jump-button" style="flex:1" data-ide-action="source" ${dataAttrs}>
+            <button type="button" class="ide-jump-button" style="flex:1" data-ide-action="source" ${dataAttrs} ${gateAttrs}>
                 <i class="bi bi-file-earmark-code"></i> View Source
             </button>
         </div>`;
