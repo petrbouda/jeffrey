@@ -106,7 +106,8 @@ onMounted(() => {
           <div class="step-number">1a</div>
           <div class="step-content">
             <h4><i class="bi bi-upload"></i> Manual upload</h4>
-            <p>Drag a JFR file or heap dump onto the upload panel at the top of the Recordings page.</p>
+            <p>Drop one or more files onto the dashed <strong>Drop Recordings</strong> zone at the top of the page, or click <strong>Browse files…</strong>. Only <code>.jfr</code>, <code>.jfr.lz4</code>, <code>.hprof</code>, and <code>.hprof.gz</code> are accepted — anything else is rejected inline with an error message and the valid files keep uploading.</p>
+            <p>Uploads start <strong>automatically</strong> the moment files are dropped or selected — there is no &ldquo;Upload all&rdquo; button. Each file gets its own progress row inside the same panel; a completed row disappears about 5 seconds after that individual file finishes, so adding new files mid-batch never wipes earlier ones. Failed rows stay visible with a dismiss button. The active <strong>group</strong> chip on the row below the drop zone is the target group for these uploads — switch it before dropping to land in a different group.</p>
           </div>
         </div>
         <div class="workflow-step">
@@ -120,7 +121,7 @@ onMounted(() => {
           <div class="step-number">1c</div>
           <div class="step-content">
             <h4><i class="bi bi-box-arrow-in-right"></i> Open by path (deep link)</h4>
-            <p>Open <code>/quick-open?path=&lt;path-to-jfr&gt;</code> and Jeffrey reads that local file, adds it as an ungrouped recording, builds the profile, and jumps straight in — all steps below happen automatically. Used by the IntelliJ plugin to send a <code>.jfr</code> straight from the IDE.</p>
+            <p>Open <code>/quick-open?path=&lt;absolute-path-to-jfr&gt;</code> and Jeffrey reads that local file, adds it as an ungrouped recording, builds the profile, and jumps straight in — all steps below happen automatically. Used by the <router-link to="/docs/microscope/intellij-plugin/jeffrey-microscope">Jeffrey Microscope plugin</router-link> to send a <code>.jfr</code> straight from the IDE.</p>
           </div>
         </div>
         <div class="workflow-step">

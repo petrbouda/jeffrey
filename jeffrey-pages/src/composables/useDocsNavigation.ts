@@ -91,6 +91,15 @@ export const microscopeNavigation: DocSection[] = [
     ]
   },
   {
+    title: 'IntelliJ Plugin',
+    path: '_microscope-intellij-plugin',
+    icon: 'bi-window-stack',
+    children: [
+      { title: 'Jeffrey Microscope Plugin', to: '/docs/microscope/intellij-plugin/jeffrey-microscope' },
+      { title: 'Java JFR Profiler Plugin', to: '/docs/microscope/intellij-plugin/jfr-profiler' }
+    ]
+  },
+  {
     title: 'Server Integration',
     path: '_microscope-server-integration',
     icon: 'bi-cloud',

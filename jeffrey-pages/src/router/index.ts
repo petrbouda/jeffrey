@@ -180,6 +180,17 @@ const routes: RouteRecordRaw[] = [
         name: 'DocsRecordings',
         component: () => import('@/views/docs/microscope/RecordingsPage.vue')
       },
+      { path: 'microscope/intellij-plugin', redirect: '/docs/microscope/intellij-plugin/jeffrey-microscope' },
+      {
+        path: 'microscope/intellij-plugin/jeffrey-microscope',
+        name: 'DocsIntelliJJeffreyPlugin',
+        component: () => import('@/views/docs/microscope/JeffreyMicroscopePluginPage.vue')
+      },
+      {
+        path: 'microscope/intellij-plugin/jfr-profiler',
+        name: 'DocsIntelliJJfrProfilerPlugin',
+        component: () => import('@/views/docs/microscope/JfrProfilerPluginPage.vue')
+      },
       // Profiles
       {
         path: 'microscope/profiles',
