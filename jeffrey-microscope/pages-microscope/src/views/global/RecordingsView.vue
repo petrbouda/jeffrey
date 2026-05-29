@@ -30,11 +30,11 @@
         </MainCardHeader>
       </template>
 
-      <!-- 1. Upload zone (single drop area for both types) -->
+      <!-- 1. Upload zone (drop area + auto-uploading files in the same panel) -->
       <div class="upload-section">
         <div
           class="drop-zone"
-          :class="{ 'drag-over': dragActive }"
+          :class="{ 'drag-over': dragActive, 'has-files': uploadFiles.length > 0 }"
           @dragover.prevent="dragActive = true"
           @dragleave.prevent="dragActive = false"
           @drop.prevent="handleDrop"
@@ -47,78 +47,40 @@
             class="file-input-hidden"
             @change="handleFileInput"
           />
-          <div class="drop-stack">
-            <div class="drop-ic drop-ic-jfr" title="JFR recording">
-              <i class="bi bi-activity"></i>
+          <div class="drop-row">
+            <div class="drop-stack">
+              <div class="drop-ic drop-ic-jfr" title="JFR recording">
+                <i class="bi bi-activity"></i>
+              </div>
+              <div class="drop-ic drop-ic-heap" title="Heap dump">
+                <i class="bi bi-pie-chart-fill"></i>
+              </div>
             </div>
-            <div class="drop-ic drop-ic-heap" title="Heap dump">
-              <i class="bi bi-pie-chart-fill"></i>
+            <div class="drop-body">
+              <div class="drop-title">Drop Recordings</div>
+              <div class="drop-hint">
+                <Badge value=".jfr" variant="indigo" size="s" :uppercase="false" borderless />
+                <Badge value=".jfr.lz4" variant="indigo" size="s" :uppercase="false" borderless />
+                JFR recordings ·
+                <Badge value=".hprof" variant="purple" size="s" :uppercase="false" borderless />
+                <Badge value=".hprof.gz" variant="purple" size="s" :uppercase="false" borderless />
+                heap dumps
+                <span class="upload-target-hint">
+                  · uploads to <strong>{{ uploadTargetLabel }}</strong>
+                </span>
+              </div>
             </div>
+            <button class="browse-btn" type="button" @click="triggerFileInput">
+              <i class="bi bi-folder2-open"></i>
+              Browse files…
+            </button>
           </div>
-          <div class="drop-body">
-            <div class="drop-title">Drop Recordings</div>
-            <div class="drop-hint">
-              <Badge value=".jfr" variant="indigo" size="s" :uppercase="false" borderless />
-              <Badge value=".jfr.lz4" variant="indigo" size="s" :uppercase="false" borderless />
-              JFR recordings ·
-              <Badge value=".hprof" variant="purple" size="s" :uppercase="false" borderless />
-              <Badge value=".hprof.gz" variant="purple" size="s" :uppercase="false" borderless />
-              heap dumps
-              <span class="upload-target-hint">
-                · uploads to <strong>{{ uploadTargetLabel }}</strong>
-              </span>
-            </div>
-          </div>
-          <button class="browse-btn" type="button" @click="triggerFileInput">
-            <i class="bi bi-folder2-open"></i>
-            Browse files…
-          </button>
-        </div>
 
-        <!-- Queued files -->
-        <div v-if="uploadFiles.length > 0" class="queue-panel">
-          <div class="queue-header">
-            <span class="queue-title">
-              <i class="bi bi-files"></i>
-              Uploading to
-              <span class="queue-target"
-                ><strong>{{ uploadTargetLabel }}</strong></span
-              >
-            </span>
-            <div class="queue-actions">
-              <button
-                class="queue-btn queue-btn-secondary"
-                type="button"
-                :disabled="isUploading"
-                @click="triggerFileInput"
-              >
-                <i class="bi bi-plus-lg"></i>
-                Add more
-              </button>
-              <button
-                class="queue-btn queue-btn-secondary"
-                type="button"
-                :disabled="isUploading"
-                @click="clearFiles"
-              >
-                Clear
-              </button>
-              <button
-                class="queue-btn queue-btn-primary"
-                type="button"
-                :disabled="isUploading"
-                @click="uploadRecordings"
-              >
-                <i class="bi bi-cloud-upload"></i>
-                Upload all
-              </button>
-            </div>
-          </div>
-          <div class="queue-list">
-            <div v-for="(file, index) in uploadFiles" :key="file.name + index" class="queue-item">
-              <i :class="fileIconClass(file.name)" class="queue-item-icon"></i>
-              <span class="queue-item-name">{{ file.name }}</span>
-              <span class="queue-item-size">{{ FormattingService.formatBytes(file.size) }}</span>
+          <div v-if="uploadFiles.length > 0" class="drop-files">
+            <div v-for="(file, index) in uploadFiles" :key="file.name + index" class="drop-file">
+              <i :class="fileIconClass(file.name)" class="drop-file-icon"></i>
+              <span class="drop-file-name">{{ file.name }}</span>
+              <span class="drop-file-size">{{ FormattingService.formatBytes(file.size) }}</span>
               <template v-if="uploadProgress[file.name]">
                 <div class="progress-track">
                   <div
@@ -141,16 +103,16 @@
                   </template>
                   <template v-else>Pending</template>
                 </span>
+                <button
+                  v-if="uploadProgress[file.name].status === 'error'"
+                  class="drop-file-remove"
+                  type="button"
+                  title="Dismiss"
+                  @click="removeFile(index)"
+                >
+                  <i class="bi bi-x"></i>
+                </button>
               </template>
-              <button
-                v-else
-                class="queue-item-remove"
-                type="button"
-                title="Remove"
-                @click="removeFile(index)"
-              >
-                <i class="bi bi-x"></i>
-              </button>
             </div>
           </div>
         </div>
@@ -407,6 +369,7 @@ import type Recording from '@/services/api/model/Recording';
 
 const HEAP_DUMP_SOURCE = 'HEAP_DUMP';
 const UNGROUPED_KEY = '__ungrouped__';
+const ALLOWED_FILE_SUFFIXES = ['.jfr', '.jfr.lz4', '.hprof', '.hprof.gz'];
 
 type ViewFilter = 'all' | typeof UNGROUPED_KEY | string;
 
@@ -427,10 +390,37 @@ const recordingsClient = new RecordingsClient();
 // State
 const uploadFiles = ref<File[]>([]);
 const uploadProgress = ref<Record<string, UploadProgressEntry>>({});
-const isUploading = computed(() =>
-  Object.values(uploadProgress.value).some(p => p.status === 'uploading')
-);
 const errorMessage = ref<string | null>(null);
+const autoRemoveTimers = new Map<string, ReturnType<typeof setTimeout>>();
+const AUTO_REMOVE_DELAY_MS = 5000;
+
+const scheduleAutoRemove = (filename: string) => {
+  const existing = autoRemoveTimers.get(filename);
+  if (existing !== undefined) {
+    clearTimeout(existing);
+  }
+  const handle = setTimeout(() => {
+    autoRemoveTimers.delete(filename);
+    const idx = uploadFiles.value.findIndex(f => f.name === filename);
+    if (idx !== -1) {
+      uploadFiles.value.splice(idx, 1);
+    }
+    if (uploadProgress.value[filename] !== undefined) {
+      const next = { ...uploadProgress.value };
+      delete next[filename];
+      uploadProgress.value = next;
+    }
+  }, AUTO_REMOVE_DELAY_MS);
+  autoRemoveTimers.set(filename, handle);
+};
+
+const cancelAutoRemove = (filename: string) => {
+  const existing = autoRemoveTimers.get(filename);
+  if (existing !== undefined) {
+    clearTimeout(existing);
+    autoRemoveTimers.delete(filename);
+  }
+};
 const allRecordings = ref<Recording[]>([]);
 const allGroups = ref<RecordingGroup[]>([]);
 
@@ -635,10 +625,38 @@ const triggerFileInput = () => {
   fileInputRef.value?.click();
 };
 
+const isAcceptedFile = (filename: string): boolean => {
+  const lower = filename.toLowerCase();
+  return ALLOWED_FILE_SUFFIXES.some(suffix => lower.endsWith(suffix));
+};
+
+const filterAcceptedFiles = (files: File[]): File[] => {
+  const accepted: File[] = [];
+  const rejected: string[] = [];
+  for (const file of files) {
+    if (isAcceptedFile(file.name)) {
+      accepted.push(file);
+    } else {
+      rejected.push(file.name);
+    }
+  }
+  if (rejected.length > 0) {
+    const noun = rejected.length === 1 ? 'file' : 'files';
+    errorMessage.value = `Unsupported ${noun}: ${rejected.join(', ')}. Allowed: ${ALLOWED_FILE_SUFFIXES.join(', ')}`;
+  } else if (accepted.length > 0) {
+    errorMessage.value = null;
+  }
+  return accepted;
+};
+
 const handleFileInput = (event: Event) => {
   const input = event.target as HTMLInputElement;
   if (input.files && input.files.length > 0) {
-    uploadFiles.value = [...uploadFiles.value, ...Array.from(input.files)];
+    const accepted = filterAcceptedFiles(Array.from(input.files));
+    if (accepted.length > 0) {
+      uploadFiles.value = [...uploadFiles.value, ...accepted];
+      uploadRecordings();
+    }
   }
   input.value = '';
 };
@@ -647,35 +665,42 @@ const handleDrop = (event: DragEvent) => {
   dragActive.value = false;
   const files = event.dataTransfer?.files;
   if (files && files.length > 0) {
-    uploadFiles.value = [...uploadFiles.value, ...Array.from(files)];
+    const accepted = filterAcceptedFiles(Array.from(files));
+    if (accepted.length > 0) {
+      uploadFiles.value = [...uploadFiles.value, ...accepted];
+      uploadRecordings();
+    }
   }
 };
 
 const removeFile = (index: number) => {
+  const file = uploadFiles.value[index];
   uploadFiles.value.splice(index, 1);
+  if (file) {
+    cancelAutoRemove(file.name);
+    if (uploadProgress.value[file.name]) {
+      const next = { ...uploadProgress.value };
+      delete next[file.name];
+      uploadProgress.value = next;
+    }
+  }
 };
 
-const clearFiles = () => {
-  uploadFiles.value = [];
-  uploadProgress.value = {};
-  errorMessage.value = null;
-};
-
-// --- Upload ---
+// --- Upload (auto-triggered, idempotent: only handles files without progress yet) ---
 
 const uploadRecordings = async () => {
-  if (uploadFiles.value.length === 0) {
+  const filesToUpload = uploadFiles.value.filter(f => !uploadProgress.value[f.name]);
+  if (filesToUpload.length === 0) {
     return;
   }
-  errorMessage.value = null;
 
-  const newProgress: Record<string, UploadProgressEntry> = {};
-  for (const file of uploadFiles.value) {
-    newProgress[file.name] = { progress: 0, status: 'pending' };
+  const seeded: Record<string, UploadProgressEntry> = { ...uploadProgress.value };
+  for (const file of filesToUpload) {
+    seeded[file.name] = { progress: 0, status: 'pending' };
   }
-  uploadProgress.value = newProgress;
+  uploadProgress.value = seeded;
 
-  const uploadPromises = uploadFiles.value.map(async file => {
+  const uploadPromises = filesToUpload.map(async file => {
     try {
       uploadProgress.value[file.name].status = 'uploading';
 
@@ -690,23 +715,13 @@ const uploadRecordings = async () => {
       clearInterval(progressInterval);
       uploadProgress.value[file.name].progress = 100;
       uploadProgress.value[file.name].status = 'complete';
-      return { success: true };
+      scheduleAutoRemove(file.name);
     } catch {
       uploadProgress.value[file.name].status = 'error';
-      return { success: false };
     }
   });
 
-  const results = await Promise.all(uploadPromises);
-  const successCount = results.filter(r => r.success).length;
-
-  if (successCount === results.length) {
-    setTimeout(() => {
-      uploadFiles.value = [];
-      uploadProgress.value = {};
-    }, 1500);
-  }
-
+  await Promise.all(uploadPromises);
   await loadData();
 };
 
@@ -903,9 +918,6 @@ const onDragEnd = () => {
 }
 
 .drop-zone {
-  display: flex;
-  align-items: center;
-  gap: 18px;
   padding: 24px 28px;
   background: var(--color-light);
   border: 1.5px dashed var(--color-border-input);
@@ -916,11 +928,21 @@ const onDragEnd = () => {
     box-shadow var(--transition-base);
 }
 
-.drop-zone:hover,
+.drop-zone.has-files {
+  padding-bottom: 14px;
+}
+
+.drop-zone:hover:not(.has-files),
 .drop-zone.drag-over {
   border-color: var(--color-primary);
   background: var(--color-primary-lighter);
   box-shadow: 0 0 0 3px var(--color-primary-light);
+}
+
+.drop-row {
+  display: flex;
+  align-items: center;
+  gap: 18px;
 }
 
 .file-input-hidden {
@@ -1004,119 +1026,37 @@ const onDragEnd = () => {
   background: var(--color-primary-light);
 }
 
-/* ============ Queue panel ============ */
-.queue-panel {
-  margin-top: 10px;
-  background: var(--color-white);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: 10px 12px;
-}
-
-.queue-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 8px;
-  flex-wrap: wrap;
-}
-
-.queue-title {
-  font-size: var(--font-size-sm);
-  color: var(--color-text);
-  font-weight: var(--font-weight-medium);
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.queue-title i {
-  color: var(--color-primary);
-}
-
-.queue-target {
-  color: var(--color-text-muted);
-  margin-left: 4px;
-}
-
-.queue-target strong {
-  color: var(--color-dark);
-  font-weight: var(--font-weight-semibold);
-}
-
-.queue-actions {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.queue-btn {
-  border-radius: var(--radius-base);
-  padding: 4px 11px;
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  transition: all var(--transition-base);
-}
-
-.queue-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.queue-btn-secondary {
-  background: var(--color-white);
-  border: 1px solid var(--color-border);
-  color: var(--color-text);
-}
-
-.queue-btn-secondary:hover:not(:disabled) {
-  border-color: var(--color-primary);
-  color: var(--color-primary);
-}
-
-.queue-btn-primary {
-  background: var(--color-primary);
-  border: 1px solid var(--color-primary);
-  color: var(--color-white);
-}
-
-.queue-btn-primary:hover:not(:disabled) {
-  background: var(--color-primary-hover);
-  border-color: var(--color-primary-hover);
-}
-
-.queue-list {
+/* ============ Files (auto-uploading, inside the drop zone) ============ */
+.drop-files {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--color-border-input);
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 4px;
 }
 
-.queue-item {
+.drop-file {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 5px 8px;
-  border-radius: var(--radius-sm);
+  gap: 12px;
+  padding: 9px 10px;
+  border-radius: var(--radius-base);
   transition: background var(--transition-fast);
 }
 
-.queue-item:hover {
+.drop-file:hover {
   background: var(--color-bg-hover-alt);
 }
 
-.queue-item-icon {
-  font-size: 0.85rem;
+.drop-file-icon {
+  font-size: 1.05rem;
   color: var(--color-primary);
   flex-shrink: 0;
 }
 
-.queue-item-name {
-  font-size: var(--font-size-sm);
+.drop-file-name {
+  font-size: var(--font-size-base);
   font-weight: var(--font-weight-medium);
   color: var(--color-text);
   flex: 1;
@@ -1126,41 +1066,43 @@ const onDragEnd = () => {
   text-overflow: ellipsis;
 }
 
-.queue-item-size {
-  font-size: var(--font-size-xs);
-  color: var(--color-text-light);
+.drop-file-size {
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
+  font-weight: var(--font-weight-medium);
   flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
 }
 
-.queue-item-remove {
+.drop-file-remove {
   background: transparent;
   border: 0;
   color: var(--color-text-light);
   cursor: pointer;
-  padding: 2px 4px;
+  padding: 4px 6px;
   border-radius: var(--radius-sm);
-  font-size: 0.85rem;
+  font-size: 1rem;
   flex-shrink: 0;
   transition: all var(--transition-base);
 }
 
-.queue-item-remove:hover {
+.drop-file-remove:hover {
   color: var(--color-danger-hover);
   background: var(--color-danger-light);
 }
 
 .progress-track {
-  width: 80px;
-  height: 4px;
+  width: 160px;
+  height: 6px;
   background: var(--color-border);
-  border-radius: 2px;
+  border-radius: 3px;
   overflow: hidden;
   flex-shrink: 0;
 }
 
 .progress-fill {
   height: 100%;
-  border-radius: 2px;
+  border-radius: 3px;
   background: var(--color-primary);
   transition: width 0.3s ease;
 }
@@ -1178,11 +1120,20 @@ const onDragEnd = () => {
 }
 
 .progress-status {
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-medium);
-  width: 46px;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  width: 64px;
   text-align: right;
   flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+.progress-status i {
+  font-size: 1rem;
 }
 
 .progress-status.status-pending {
