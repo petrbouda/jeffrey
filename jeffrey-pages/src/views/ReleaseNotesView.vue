@@ -19,12 +19,27 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 
-const selectedVersion = ref('0.9.0')
+const selectedVersion = ref('0.10.0')
 
 interface GalleryImage {
   src: string
   caption: string
 }
+
+// ───────────────────────── 0.10.0 galleries ─────────────────────────
+
+const v100NavigationImages: GalleryImage[] = [
+  { src: '/images/release-notes/v0.10.0/flamegraph-open-in-ide.png', caption: 'Click a frame in Microscope — Open in IDE and View Source appear in the tooltip' },
+  { src: '/images/release-notes/v0.10.0/idea-window-after-jump.png', caption: 'IntelliJ comes to the foreground at the exact file, line and column' },
+]
+
+const v100InlineSourceImages: GalleryImage[] = [
+  { src: '/images/release-notes/v0.10.0/inline-source-view.png', caption: 'PersonRepository.java fetched live from the IDE and rendered inline at line 130' },
+]
+
+const v100TargetPickerImages: GalleryImage[] = [
+  { src: '/images/release-notes/v0.10.0/select-ide-target.png', caption: 'Several IntelliJ windows? Pick one — Microscope remembers it per profile' },
+]
 
 // ───────────────────────── 0.9.0 galleries ─────────────────────────
 
@@ -164,6 +179,10 @@ const profilerSettingsImages: GalleryImage[] = [
 ]
 
 const activeImages = ref<Record<string, number>>({
+  // 0.10.0
+  navigation: 0,
+  inlineSource: 0,
+  targetPicker: 0,
   // 0.9.0
   heapOverview: 0,
   dominator: 0,
@@ -235,8 +254,31 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
 
 <template>
   <div class="release-notes-page">
+    <!-- ─────────────────────── 0.10.0 Hero ─────────────────────── -->
+    <section v-if="selectedVersion === '0.10.0'" class="hero-banner hero-banner-100">
+      <div class="hero-inner">
+        <div class="hero-version-card">
+          <div class="hero-version-badge">v0.10.0</div>
+          <div class="hero-version-meta">
+            <span class="hero-version-dot plugin"></span>
+            IntelliJ
+          </div>
+          <div class="hero-version-meta">
+            <span class="hero-version-dot ide"></span>
+            Plugin
+          </div>
+        </div>
+        <div class="hero-text">
+          <div class="hero-eyebrow">Release Notes</div>
+          <h1 class="hero-title"><span>IDE</span> Release</h1>
+          <p class="hero-version">Version 0.10.0 &middot; May 2026</p>
+          <p class="hero-summary">The new <a href="https://plugins.jetbrains.com/plugin/31963-jeffrey-microscope" target="_blank">Jeffrey Microscope</a> plugin for IntelliJ. Click any frame in a flame graph to land on the exact line of source in your already-open IDE &mdash; or pull the source back into Microscope alongside your profile. Headless, localhost-only, honors trusted projects.</p>
+        </div>
+      </div>
+    </section>
+
     <!-- ─────────────────────── 0.9.0 Hero ─────────────────────── -->
-    <section v-if="selectedVersion === '0.9.0'" class="hero-banner hero-banner-090">
+    <section v-else-if="selectedVersion === '0.9.0'" class="hero-banner hero-banner-090">
       <div class="hero-inner">
         <div class="hero-version-card">
           <div class="hero-version-badge">v0.9.0</div>
@@ -302,6 +344,7 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
         <div class="version-bar-left">
           <h3>Release Notes</h3>
           <select v-model="selectedVersion" class="version-select">
+            <option value="0.10.0">0.10.0 &mdash; IDE Release</option>
             <option value="0.9.0">0.9.0 &mdash; Heap Dumps Release</option>
             <option value="0.8.0">0.8.0 &mdash; Two Products Release</option>
             <option value="0.7.0">0.7.0 &mdash; Easter Release</option>
@@ -310,8 +353,63 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
       </div>
     </div>
 
+    <!-- Get Started — 0.10.0 -->
+    <section v-if="selectedVersion === '0.10.0'" class="get-started">
+      <div class="get-started-inner">
+        <div class="gs-title-row">
+          <h2><i class="bi bi-rocket-takeoff"></i>Get Started in Seconds</h2>
+          <a href="https://www.jeffrey-analyst.cafe/launch-it" target="_blank" class="gs-more-link">More options <i class="bi bi-arrow-right"></i></a>
+        </div>
+
+        <div class="gs-commands">
+          <!-- Marketplace install card — eye-catching dark variant -->
+          <a
+            href="https://plugins.jetbrains.com/plugin/31963-jeffrey-microscope"
+            target="_blank"
+            rel="noopener"
+            class="install-plugin-card"
+          >
+            <span class="install-plugin-corner">New in 0.10.0</span>
+            <div class="install-plugin-head">
+              <div class="install-plugin-icon">
+                <img src="/images/release-notes/v0.10.0/plugin-icon.svg" alt="Jeffrey Microscope plugin icon">
+              </div>
+              <div class="install-plugin-titlewrap">
+                <div class="install-plugin-title">Jeffrey Microscope</div>
+                <div class="install-plugin-sub">JetBrains Marketplace &middot; by Petr Bouda</div>
+              </div>
+            </div>
+            <div class="install-plugin-badges">
+              <span class="install-plugin-badge free">FREE</span>
+              <span class="install-plugin-badge">Apache 2.0</span>
+              <span class="install-plugin-badge compat">IDEA 2025.1+</span>
+            </div>
+            <div class="install-plugin-cta">
+              <span>Install from JetBrains Marketplace</span>
+              <i class="bi bi-arrow-right"></i>
+            </div>
+            <div class="install-plugin-link">plugins.jetbrains.com/plugin/31963</div>
+          </a>
+
+          <!-- Run Microscope -->
+          <div class="gs-cmd-card">
+            <div class="gs-cmd-top">
+              <div class="gs-cmd-icon docker"><i class="bi bi-box-seam"></i></div>
+              <div>
+                <div class="gs-cmd-label">Run Microscope</div>
+                <div class="gs-cmd-sub">Docker with pre-loaded examples</div>
+              </div>
+              <span class="gs-cmd-badge">Recommended</span>
+            </div>
+            <div class="gs-code"><span class="dollar">$</span> <span class="text">docker run -it --network host petrbouda/microscope-examples:0.10.0</span></div>
+            <p class="gs-open">Then open <a href="http://localhost:8080" target="_blank">localhost:8080</a></p>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- Get Started — 0.9.0 -->
-    <section v-if="selectedVersion === '0.9.0'" class="get-started">
+    <section v-else-if="selectedVersion === '0.9.0'" class="get-started">
       <div class="get-started-inner">
         <div class="gs-title-row">
           <h2><i class="bi bi-rocket-takeoff"></i>Get Started in Seconds</h2>
@@ -415,8 +513,149 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
       </div>
     </section>
 
+    <!-- ──────────────────────── 0.10.0 features ──────────────────────── -->
+    <template v-if="selectedVersion === '0.10.0'">
+      <!-- Feature 01: Frame-to-Source Navigation -->
+      <div class="feature-section-bg">
+        <section class="feature-section">
+          <div class="feature-row">
+            <div class="feature-text">
+              <div class="feature-number">Feature 01</div>
+              <h2>Frame-to-Source Navigation</h2>
+              <p>Click any frame in a Jeffrey flame graph and Microscope hands the fully-qualified class and method to your IDE. The plugin resolves it through IntelliJ&rsquo;s <strong>PSI</strong> &mdash; preferring attached sources over decompiled <code>.class</code> files &mdash; opens the file at the exact line and column, and brings the IDE window to the foreground.</p>
+              <p>Missing line numbers, or pointing at a method that doesn&rsquo;t exist at that line? The resolver falls back gracefully: <strong>JFR line &rarr; method declaration &rarr; class declaration</strong>. You always land somewhere useful.</p>
+              <div class="feature-highlights">
+                <span class="feature-highlight"><i class="bi bi-arrow-right-circle"></i> PSI-based resolution</span>
+                <span class="feature-highlight"><i class="bi bi-window"></i> Window focus</span>
+                <span class="feature-highlight"><i class="bi bi-shuffle"></i> Graceful fallback</span>
+                <span class="feature-highlight"><i class="bi bi-eye"></i> Smart action buttons</span>
+              </div>
+            </div>
+            <div class="feature-gallery">
+              <div class="gallery-main" @click="openLightbox(v100NavigationImages, activeImages.navigation)">
+                <img :src="v100NavigationImages[activeImages.navigation].src" :alt="v100NavigationImages[activeImages.navigation].caption">
+                <div class="gallery-caption">{{ v100NavigationImages[activeImages.navigation].caption }}</div>
+              </div>
+              <div class="gallery-thumbs">
+                <button
+                  v-for="(img, i) in v100NavigationImages"
+                  :key="i"
+                  class="gallery-thumb"
+                  :class="{ active: activeImages.navigation === i }"
+                  @click="selectImage('navigation', i)"
+                >
+                  <img :src="img.src" :alt="img.caption">
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Feature 02: Inline Source View -->
+      <section class="feature-section">
+        <div class="feature-row reverse">
+          <div class="feature-text">
+            <div class="feature-number">Feature 02</div>
+            <h2>Inline Source View</h2>
+            <p>Don&rsquo;t want to leave the profile? Microscope can pull the source text directly from your IDE and render it as an <strong>inline panel</strong> next to the analysis. The JFR-reported line is pre-selected, syntax highlighting follows the IDE, and you stay in the same view.</p>
+            <p>Sources are preferred over bytecode. When Microscope detects that a file has been modified more than a day after the recording was captured, it flags the code as <strong>stale</strong> so you know it may not match what ran in the JFR.</p>
+            <div class="feature-highlights">
+              <span class="feature-highlight"><i class="bi bi-file-earmark-code"></i> Attached sources preferred</span>
+              <span class="feature-highlight"><i class="bi bi-exclamation-triangle"></i> Stale-source warnings</span>
+              <span class="feature-highlight"><i class="bi bi-layout-split"></i> Side-by-side with profile</span>
+            </div>
+          </div>
+          <div class="feature-gallery">
+            <div class="gallery-main" @click="openLightbox(v100InlineSourceImages, activeImages.inlineSource)">
+              <img :src="v100InlineSourceImages[activeImages.inlineSource].src" :alt="v100InlineSourceImages[activeImages.inlineSource].caption">
+              <div class="gallery-caption">{{ v100InlineSourceImages[activeImages.inlineSource].caption }}</div>
+            </div>
+            <div class="gallery-thumbs">
+              <button
+                v-for="(img, i) in v100InlineSourceImages"
+                :key="i"
+                class="gallery-thumb"
+                :class="{ active: activeImages.inlineSource === i }"
+                @click="selectImage('inlineSource', i)"
+              >
+                <img :src="img.src" :alt="img.caption">
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Feature 03: Multi-IDE Awareness -->
+      <div class="feature-section-bg">
+        <section class="feature-section">
+          <div class="feature-row">
+            <div class="feature-text">
+              <div class="feature-number">Feature 03</div>
+              <h2>Multi-IDE Awareness</h2>
+              <p>Working across multiple projects? The first time you click into your IDE from a profile, Microscope shows a <strong>Select IDE Target</strong> picker listing every advertised project &mdash; across every running IntelliJ instance &mdash; with its on-disk path. You pick once; Microscope remembers the choice <strong>per profile</strong>.</p>
+              <p>Restart the IDE and its discovery port may change. The bridge re-resolves on the next jump instead of erroring out, so you don&rsquo;t notice anything happened.</p>
+              <div class="feature-highlights">
+                <span class="feature-highlight"><i class="bi bi-window-stack"></i> All open projects discovered</span>
+                <span class="feature-highlight"><i class="bi bi-bookmark-star"></i> Remembered per profile</span>
+                <span class="feature-highlight"><i class="bi bi-arrow-clockwise"></i> Re-resolves on restart</span>
+              </div>
+            </div>
+            <div class="feature-gallery">
+              <div class="gallery-main" @click="openLightbox(v100TargetPickerImages, activeImages.targetPicker)">
+                <img :src="v100TargetPickerImages[activeImages.targetPicker].src" :alt="v100TargetPickerImages[activeImages.targetPicker].caption">
+                <div class="gallery-caption">{{ v100TargetPickerImages[activeImages.targetPicker].caption }}</div>
+              </div>
+              <div class="gallery-thumbs">
+                <button
+                  v-for="(img, i) in v100TargetPickerImages"
+                  :key="i"
+                  class="gallery-thumb"
+                  :class="{ active: activeImages.targetPicker === i }"
+                  @click="selectImage('targetPicker', i)"
+                >
+                  <img :src="img.src" :alt="img.caption">
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- 0.10.0 Improvements -->
+      <div class="improvements-section">
+        <div class="improvements-inner">
+          <div class="improvements-header">
+            <div class="improvements-header-line"></div>
+            <h2><i class="bi bi-wrench"></i> Improvements</h2>
+            <div class="improvements-header-line"></div>
+          </div>
+          <div class="improvements-grid">
+            <div class="improvement-tile improvement-tile-text">
+              <div class="imp-tile-body">
+                <h3>Java &amp; Kotlin Out of the Box</h3>
+                <p>Kotlin&rsquo;s synthetic class names (<code>FooKt</code> top-level fa&ccedil;ades, <code>$Companion</code>, <code>$lambda$</code> holders) are resolved via filename fallback when PSI can&rsquo;t find the type directly. <strong>No Kotlin plugin dependency required</strong> &mdash; the resolver uses only the platform and Java PSI APIs.</p>
+              </div>
+            </div>
+            <div class="improvement-tile improvement-tile-text">
+              <div class="imp-tile-body">
+                <h3>Private by Design</h3>
+                <p>The plugin reuses IntelliJ&rsquo;s built-in HTTP server, which listens on <strong>localhost only</strong> &mdash; never reachable from the network. It honors IntelliJ&rsquo;s <strong>trusted projects</strong> setting end-to-end: untrusted projects are never navigated and never appear in the picker. Toggle the plugin off entirely under <em>Settings &rarr; Tools &rarr; Jeffrey Microscope Plugin</em>.</p>
+              </div>
+            </div>
+            <div class="improvement-tile improvement-tile-text">
+              <div class="imp-tile-body">
+                <h3>Headless Plugin</h3>
+                <p>No menus, no tool windows, no actions, no toolbars. The plugin adds <strong>zero UI surface</strong> to your IDE &mdash; it&rsquo;s completely invisible until Microscope calls it. The marketplace listing is <a href="https://plugins.jetbrains.com/plugin/31963-jeffrey-microscope" target="_blank">free and Apache 2.0</a>, compatible with IntelliJ IDEA 2025.1 and later.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </template>
+
     <!-- ──────────────────────── 0.9.0 features ──────────────────────── -->
-    <template v-if="selectedVersion === '0.9.0'">
+    <template v-else-if="selectedVersion === '0.9.0'">
       <!-- Feature 01: Heap Dump Workspace -->
       <div class="feature-section-bg">
         <section class="feature-section">
@@ -1132,6 +1371,16 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
     radial-gradient(circle at 75% 40%, rgba(168, 85, 247, 0.16) 0%, transparent 55%);
 }
 
+.hero-banner-100 {
+  background: linear-gradient(135deg, #1a0f0b 0%, #2d1a12 50%, #3d2410 100%);
+}
+
+.hero-banner-100::before {
+  background:
+    radial-gradient(circle at 25% 50%, rgba(255, 109, 0, 0.18) 0%, transparent 55%),
+    radial-gradient(circle at 75% 40%, rgba(168, 85, 247, 0.14) 0%, transparent 55%);
+}
+
 .hero-inner {
   max-width: 900px;
   margin: 0 auto;
@@ -1221,6 +1470,16 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
 .hero-version-dot.ai {
   background: #a855f7;
   box-shadow: 0 0 8px #a855f7;
+}
+
+.hero-version-dot.plugin {
+  background: #ff6d00;
+  box-shadow: 0 0 8px #ff6d00;
+}
+
+.hero-version-dot.ide {
+  background: #ffab00;
+  box-shadow: 0 0 8px #ffab00;
 }
 
 .hero-text {
@@ -1409,6 +1668,181 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
   background: rgba(59, 130, 246, 0.12);
   color: #2563eb;
 }
+
+/* Marketplace install card — hero CTA for the 0.10.0 release */
+.install-plugin-card {
+  display: block;
+  position: relative;
+  background:
+    radial-gradient(circle at 12% 8%, rgba(255, 109, 0, 0.22) 0%, transparent 45%),
+    radial-gradient(circle at 88% 92%, rgba(168, 85, 247, 0.18) 0%, transparent 50%),
+    linear-gradient(135deg, #15161a 0%, #1f1f24 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 26px 28px 24px;
+  color: #ffffff;
+  text-decoration: none;
+  box-shadow:
+    0 18px 50px rgba(20, 22, 26, 0.18),
+    0 4px 14px rgba(20, 22, 26, 0.08);
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.install-plugin-card .install-plugin-cta {
+  margin-top: auto;
+}
+
+.install-plugin-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+  background-size: 32px 32px;
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+.install-plugin-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 171, 0, 0.4);
+  box-shadow:
+    0 24px 60px rgba(20, 22, 26, 0.28),
+    0 8px 20px rgba(255, 109, 0, 0.18);
+}
+
+.install-plugin-corner {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  z-index: 2;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #ffd54f;
+  background: rgba(255, 213, 79, 0.12);
+  border: 1px solid rgba(255, 213, 79, 0.3);
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+.install-plugin-head {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.install-plugin-icon {
+  flex: 0 0 56px;
+  width: 56px;
+  height: 56px;
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 14px rgba(255, 109, 0, 0.25);
+}
+
+.install-plugin-icon img {
+  width: 100%;
+  height: 100%;
+}
+
+.install-plugin-title {
+  font-size: 1.4rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: #ffffff;
+  line-height: 1.2;
+}
+
+.install-plugin-sub {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.55);
+  margin-top: 4px;
+}
+
+.install-plugin-badges {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 22px;
+}
+
+.install-plugin-badge {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 4px 10px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.install-plugin-badge.free {
+  background: rgba(16, 185, 129, 0.18);
+  color: #34d399;
+  font-weight: 700;
+}
+
+.install-plugin-badge.compat {
+  background: rgba(94, 100, 255, 0.18);
+  color: #a5a8ff;
+}
+
+.install-plugin-cta {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: linear-gradient(135deg, #ff6d00 0%, #ffab00 100%);
+  color: #15161a;
+  padding: 14px 22px;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 1rem;
+  letter-spacing: -0.005em;
+  box-shadow: 0 6px 18px rgba(255, 109, 0, 0.3);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.install-plugin-card:hover .install-plugin-cta {
+  box-shadow: 0 10px 26px rgba(255, 109, 0, 0.45);
+}
+
+.install-plugin-cta i {
+  font-size: 1.05rem;
+  transition: transform 0.15s ease;
+}
+
+.install-plugin-card:hover .install-plugin-cta i {
+  transform: translateX(3px);
+}
+
+.install-plugin-link {
+  position: relative;
+  z-index: 1;
+  margin-top: 12px;
+  text-align: center;
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.45);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
 
 .gs-cmd-label {
   font-size: 0.95rem;

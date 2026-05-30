@@ -101,7 +101,7 @@ onMounted(() => {
       </p>
 
       <DocsCallout type="info">
-        <strong>Target IDE:</strong> IntelliJ IDEA 2026.1+ (<code>since-build = 261</code>).
+        <strong>Target IDE:</strong> IntelliJ IDEA 2025.1+ (<code>since-build = 251</code>).
         The plugin runs on the JetBrains Runtime (Java 21) and is unrelated to the Java version
         you use for the JVM under analysis.
       </DocsCallout>
