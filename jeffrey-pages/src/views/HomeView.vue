@@ -38,7 +38,7 @@ const microscopeHeroBullets: HeroBullet[] = [
   { icon: 'bi-plug', text: 'Pull from a Server, or analyze a JFR file standalone' }
 ];
 
-type Tab = 'server' | 'microscope';
+type Tab = 'server' | 'microscope' | 'plugin';
 
 interface TopologyNode {
   kind: 'apps' | 'volume' | 'server' | 'grpc';
@@ -49,9 +49,18 @@ interface TopologyNode {
   badge?: string;
 }
 
+interface MarketplaceInstall {
+  url: string;
+  name: string;
+  sub: string;
+  iconPath: string;
+  badges: { label: string; variant?: 'free' | 'compat' | 'default' }[];
+}
+
 interface ProductTab {
   id: Tab;
   name: string;
+  icon: string;
   tagline: string;
   oneLiner: string;
   features: { icon: string; title: string; desc: string }[];
@@ -60,6 +69,7 @@ interface ProductTab {
     desc: string;
     cmd?: string;
     topology?: TopologyNode[];
+    marketplace?: MarketplaceInstall;
   };
   docsRoute: string;
   cta: string;
@@ -71,6 +81,7 @@ const productTabs: ProductTab[] = [
   {
     id: 'microscope',
     name: 'Jeffrey Microscope',
+    icon: 'bi-search-heart-fill',
     tagline: 'Deep analyzer for JFR, heap dumps and logs.',
     oneLiner: 'Open a JFR file or connect to a Server. Read flamegraphs that finally render fast.',
     features: [
@@ -90,8 +101,40 @@ const productTabs: ProductTab[] = [
     cta: 'Read Microscope docs'
   },
   {
+    id: 'plugin',
+    name: 'Microscope IDE Plugin',
+    icon: 'bi-window-stack',
+    tagline: 'IntelliJ bridge — from a flame-graph frame to the source line.',
+    oneLiner: 'Click any frame in Microscope and land on the exact method in your already-open IntelliJ — or pull the source back into Microscope inline.',
+    features: [
+      { icon: 'bi-arrow-right-circle-fill', title: 'Frame-to-source navigation', desc: 'Open in IDE from any flame-graph frame. PSI-based jump to the exact file, line and column.' },
+      { icon: 'bi-file-earmark-code', title: 'Inline source view', desc: 'Pull source live from the IDE and render it next to the profile. Stale-source warnings included.' },
+      { icon: 'bi-window-stack', title: 'Multi-IDE awareness', desc: 'Pick which IntelliJ window to target per profile. Microscope remembers and re-resolves on restart.' },
+      { icon: 'bi-shuffle', title: 'Java & Kotlin resolution', desc: 'Both JVM languages resolve identically. Graceful fallback from line → method → class.' },
+      { icon: 'bi-shield-lock', title: 'Headless & localhost-only', desc: 'Uses IntelliJ\'s built-in server. No port to configure, no token to share, no file written.' }
+    ],
+    deployment: {
+      title: 'Install from the JetBrains Marketplace',
+      desc: 'Open Settings → Plugins → Marketplace and search for Jeffrey Microscope, or install directly from the page below.',
+      marketplace: {
+        url: 'https://plugins.jetbrains.com/plugin/31963-jeffrey-microscope',
+        name: 'Jeffrey Microscope',
+        sub: 'JetBrains Marketplace · by Petr Bouda',
+        iconPath: '/images/release-notes/v0.10.0/plugin-icon.svg',
+        badges: [
+          { label: 'FREE', variant: 'free' },
+          { label: 'Apache 2.0' },
+          { label: 'IDEA 2025.1+', variant: 'compat' }
+        ]
+      }
+    },
+    docsRoute: '/docs/microscope/intellij-plugin/jeffrey-microscope',
+    cta: 'Read plugin docs'
+  },
+  {
     id: 'server',
     name: 'Jeffrey Server',
+    icon: 'bi-cloud-fill',
     tagline: 'Collector for application data and lifecycle events.',
     oneLiner: 'Runs in Kubernetes. Captures recordings, artifacts and lifecycle events via shared volume. Streams over gRPC.',
     features: [
@@ -235,7 +278,7 @@ function copyCmd(): void {
           :class="[`tab-btn--${t.id}`, { active: activeTab === t.id }]"
           @click="activeTab = t.id"
         >
-          <i class="bi" :class="t.id === 'server' ? 'bi-cloud-fill' : 'bi-search-heart-fill'"></i>
+          <i class="bi" :class="t.icon"></i>
           <span class="tab-name">{{ t.name }}</span>
         </button>
       </div>
@@ -276,6 +319,36 @@ function copyCmd(): void {
                 </div>
               </template>
             </div>
+            <a
+              v-else-if="active.deployment.marketplace"
+              :href="active.deployment.marketplace.url"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="dep-marketplace"
+            >
+              <span class="dep-marketplace-corner">New in 0.10.0</span>
+              <div class="dep-marketplace-head">
+                <div class="dep-marketplace-icon">
+                  <img :src="active.deployment.marketplace.iconPath" :alt="active.deployment.marketplace.name + ' icon'">
+                </div>
+                <div class="dep-marketplace-titlewrap">
+                  <div class="dep-marketplace-title">{{ active.deployment.marketplace.name }}</div>
+                  <div class="dep-marketplace-sub">{{ active.deployment.marketplace.sub }}</div>
+                </div>
+              </div>
+              <div class="dep-marketplace-badges">
+                <span
+                  v-for="b in active.deployment.marketplace.badges"
+                  :key="b.label"
+                  class="dep-marketplace-badge"
+                  :class="b.variant ? `dep-marketplace-badge--${b.variant}` : ''"
+                >{{ b.label }}</span>
+              </div>
+              <div class="dep-marketplace-cta">
+                <span>Install from JetBrains Marketplace</span>
+                <i class="bi bi-arrow-right"></i>
+              </div>
+            </a>
             <div class="dep-cmd" v-else-if="active.deployment.cmd">
               <code>{{ active.deployment.cmd }}</code>
               <button class="dep-copy" @click="copyCmd" title="Copy">
@@ -706,12 +779,12 @@ function copyCmd(): void {
 
 .tab-bar {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
   gap: 0.5rem;
   background: #fff;
   border-radius: 14px;
   padding: 0.5rem;
-  max-width: 600px;
+  max-width: 780px;
   margin: 0 auto 3rem;
   box-shadow: 0 8px 28px rgba(15, 23, 42, 0.08);
   border: 1px solid #e2e8f0;
@@ -748,6 +821,12 @@ function copyCmd(): void {
   background: linear-gradient(135deg, #38bdf8 0%, #2563eb 100%);
   color: #fff;
   box-shadow: 0 6px 18px rgba(56, 189, 248, 0.35);
+}
+
+.tab-btn--plugin.active {
+  background: linear-gradient(135deg, #fb923c 0%, #ea580c 100%);
+  color: #fff;
+  box-shadow: 0 6px 18px rgba(249, 115, 22, 0.35);
 }
 
 .tab-panel {
@@ -820,6 +899,7 @@ function copyCmd(): void {
 
 .tab-feature-icon--server { background: linear-gradient(135deg, #a855f7, #7c3aed); }
 .tab-feature-icon--microscope { background: linear-gradient(135deg, #38bdf8, #2563eb); }
+.tab-feature-icon--plugin { background: linear-gradient(135deg, #fb923c, #ea580c); }
 
 .tab-feature h4 {
   font-size: 1rem;
@@ -917,6 +997,11 @@ function copyCmd(): void {
   border: 1px solid #bae6fd;
 }
 
+.tab-deployment--plugin {
+  background: linear-gradient(180deg, #fff7ed 0%, #fff 100%);
+  border: 1px solid #fed7aa;
+}
+
 .dep-eyebrow {
   font-size: 0.7rem;
   font-weight: 700;
@@ -928,6 +1013,7 @@ function copyCmd(): void {
 
 .tab-deployment--server .dep-eyebrow { color: #7c3aed; }
 .tab-deployment--microscope .dep-eyebrow { color: #0284c7; }
+.tab-deployment--plugin .dep-eyebrow { color: #c2410c; }
 
 .tab-deployment h4 {
   font-size: 1.1rem;
@@ -978,6 +1064,112 @@ function copyCmd(): void {
 
 .dep-copy:hover { background: rgba(255, 255, 255, 0.2); }
 
+/* Marketplace install card (plugin deployment variant) */
+.dep-marketplace {
+  position: relative;
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  background: linear-gradient(180deg, #0f172a 0%, #1f1409 100%);
+  border-radius: 14px;
+  padding: 1.2rem 1.1rem 1.1rem;
+  margin-bottom: 1.25rem;
+  border: 1px solid rgba(249, 115, 22, 0.4);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(249, 115, 22, 0.12);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.dep-marketplace:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(249, 115, 22, 0.25);
+}
+
+.dep-marketplace-corner {
+  position: absolute;
+  top: 0.7rem;
+  right: 0.7rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  background: rgba(249, 115, 22, 0.22);
+  border: 1px solid rgba(249, 115, 22, 0.55);
+  color: #fdba74;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.dep-marketplace-head {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.9rem;
+}
+
+.dep-marketplace-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #fff7ed, #fed7aa);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 6px 18px rgba(249, 115, 22, 0.3);
+}
+
+.dep-marketplace-icon img { width: 30px; height: 30px; }
+
+.dep-marketplace-titlewrap { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }
+
+.dep-marketplace-title {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.01em;
+}
+
+.dep-marketplace-sub { color: rgba(255, 255, 255, 0.6); font-size: 0.78rem; }
+
+.dep-marketplace-badges { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 1rem; }
+
+.dep-marketplace-badge {
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.dep-marketplace-badge--free {
+  background: rgba(34, 197, 94, 0.18);
+  border-color: rgba(34, 197, 94, 0.5);
+  color: #86efac;
+}
+
+.dep-marketplace-badge--compat {
+  background: rgba(56, 189, 248, 0.18);
+  border-color: rgba(56, 189, 248, 0.5);
+  color: #7dd3fc;
+}
+
+.dep-marketplace-cta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.7rem 0.95rem;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #fb923c 0%, #ea580c 100%);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.88rem;
+  box-shadow: 0 6px 20px rgba(249, 115, 22, 0.35);
+}
+
 .dep-cta {
   display: inline-flex;
   align-items: center;
@@ -993,6 +1185,7 @@ function copyCmd(): void {
 
 .dep-cta--server { background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%); }
 .dep-cta--microscope { background: linear-gradient(135deg, #38bdf8 0%, #2563eb 100%); }
+.dep-cta--plugin { background: linear-gradient(135deg, #fb923c 0%, #ea580c 100%); }
 
 .dep-cta:hover { transform: translateY(-1px); color: #fff; }
 
@@ -1144,7 +1337,7 @@ function copyCmd(): void {
   .tab-panel-header h2 { font-size: 1.7rem; }
 }
 
-@media (max-width: 600px) {
+@media (max-width: 760px) {
   .tab-bar { grid-template-columns: 1fr; }
 }
 
