@@ -72,11 +72,15 @@ release:
 checksum:
   individual: true
 
-# Signing is opt-in: it activates only when the JReleaser GPG secrets are provided (the CI
-# job sets JRELEASER_SIGNING_ACTIVE=NEVER otherwise), so releases never fail for lack of a key.
+# Signing reuses the repository's existing GPG_PRIVATE_KEY / GPG_PASSPHRASE secrets (the same
+# ones the Maven Central publish workflows use). COMMAND mode signs via the gpg CLI against the
+# key the CI job imports into the keyring, so no JReleaser-specific public/secret key secrets are
+# needed. It activates only when GPG_PRIVATE_KEY is present (the CI job sets
+# JRELEASER_SIGNING_ACTIVE=NEVER otherwise), so releases never fail for lack of a key.
 signing:
   active: RELEASE
   armored: true
+  mode: COMMAND
 
 assemble:
   archive:

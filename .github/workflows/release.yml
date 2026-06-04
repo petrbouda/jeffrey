@@ -198,18 +198,27 @@ jobs:
         rm -rf ./artifacts/native-amd64 ./artifacts/native-arm64
         ls -la ./artifacts ./artifacts/installers
 
-    # Signing activates only when a JReleaser GPG secret key is configured; otherwise the
-    # release proceeds unsigned (still checksummed) instead of failing on a missing key.
+    # Signing reuses the repository's existing GPG_PRIVATE_KEY / GPG_PASSPHRASE secrets (the
+    # same pair the Maven Central publish workflows use). It activates only when the key is
+    # present; otherwise the release proceeds unsigned (still checksummed) instead of failing.
     - name: Determine signing mode
       id: signing
       env:
-        GPG_SECRET: ${{ secrets.JRELEASER_GPG_SECRET_KEY }}
+        GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
       run: |
-        if [ -n "$GPG_SECRET" ]; then
+        if [ -n "$GPG_PRIVATE_KEY" ]; then
           echo "active=RELEASE" >> "$GITHUB_OUTPUT"
         else
           echo "active=NEVER" >> "$GITHUB_OUTPUT"
         fi
+
+    - name: Import GPG key
+      if: steps.signing.outputs.active == 'RELEASE'
+      env:
+        GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+      run: |
+        echo "$GPG_PRIVATE_KEY" | gpg --batch --import
+        gpg --list-secret-keys --keyid-format long
 
     - name: Assemble java-archive distributions
       uses: jreleaser/release-action@v2
@@ -227,9 +236,7 @@ jobs:
         JRELEASER_PROJECT_VERSION: ${{ steps.version.outputs.VERSION }}
         JRELEASER_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         JRELEASER_SIGNING_ACTIVE: ${{ steps.signing.outputs.active }}
-        JRELEASER_GPG_PUBLIC_KEY: ${{ secrets.JRELEASER_GPG_PUBLIC_KEY }}
-        JRELEASER_GPG_SECRET_KEY: ${{ secrets.JRELEASER_GPG_SECRET_KEY }}
-        JRELEASER_GPG_PASSPHRASE: ${{ secrets.JRELEASER_GPG_PASSPHRASE }}
+        JRELEASER_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
 
     - name: Upload JReleaser logs
       if: always()
