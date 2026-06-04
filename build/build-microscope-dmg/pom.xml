@@ -39,12 +39,12 @@
 
     <properties>
         <finalName>microscope</finalName>
-        <!-- Left empty on purpose: macOS bundle versions must start with a number >= 1, but Jeffrey
-             is pre-1.0 (0.x), so the release version is not a valid macOS app version. When this is
-             empty the plugin omits the app version flag and jpackage defaults the bundle version to
-             1.0. Override with -Djpackage.app.version=x.y.z (first number >= 1) if a specific value
-             is ever needed. -->
-        <jpackage.app.version></jpackage.app.version>
+        <!-- macOS bundle versions must start with a number >= 1, but Jeffrey is pre-1.0 (0.x), so the
+             release version is not a valid macOS app version. The jpackage plugin always sends some
+             app version (it falls back to ${project.version} = 1.0-SNAPSHOT, which is also invalid),
+             so we pin a fixed valid value here. The real release version lives on the GitHub release
+             and the DMG file name. Override with -Djpackage.app.version=x.y.z (first number >= 1). -->
+        <jpackage.app.version>1.0.0</jpackage.app.version>
         <!-- Clean staging directory that holds ONLY the fat jar so the jpackage input bundles nothing else. -->
         <jpackage.input.dir>${project.build.directory}/jpackage-input</jpackage.input.dir>
         <!-- Directory containing the prebuilt microscope.jar. Defaults to the local build-microscope
