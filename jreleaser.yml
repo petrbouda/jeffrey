@@ -120,6 +120,52 @@ assemble:
             - 'LICENSE'
             - 'NOTICE.md'
             - 'README.md'
+    # CLI archive doubles as the source for the Homebrew formula (see distributions below).
+    # JAVA_BINARY so the generated formula declares a JDK dependency; the bin/ launcher runs
+    # the fat jar via java -jar.
+    jeffrey-cli:
+      active: ALWAYS
+      distributionType: JAVA_BINARY
+      formats:
+        - ZIP
+        - TAR_GZ
+      archiveName: 'jeffrey-cli-{{projectVersion}}'
+      fileSets:
+        - input: 'artifacts'
+          output: 'lib'
+          includes:
+            - 'jeffrey-cli.jar'
+        - input: 'build/dist/jeffrey-cli/bin'
+          output: 'bin'
+        - input: '.'
+          includes:
+            - 'LICENSE'
+            - 'NOTICE.md'
+            - 'README.md'
+
+# Packager configuration for the assembler-created distributions. Only the CLI is published to
+# Homebrew; microscope (a server-style app) and jeffrey-server are not brew-friendly today.
+#
+# The formula is committed to the petrbouda/homebrew-tap repository, enabling:
+#     brew install petrbouda/tap/jeffrey-cli
+#
+# Requires a tap repository and a token that can push to it. The CI job supplies a PAT via
+# HOMEBREW_TAP_TOKEN and runs JReleaser with --exclude-packager brew when that secret is absent,
+# so an unconfigured tap never breaks the core release.
+distributions:
+  jeffrey-cli:
+    type: JAVA_BINARY
+    java:
+      mainClass: cafe.jeffrey.init.CliApplication
+    brew:
+      active: RELEASE
+      formulaName: JeffreyCli
+      tap:
+        owner: petrbouda
+        name: homebrew-tap
+      commitAuthor:
+        name: petrbouda
+        email: bouda.petr@gmail.com
 
 # Loose release assets staged into ./artifacts by the CI release job: the four fat jars, the
 # Linux native CLI binaries, and the jpackage installers (dmg/pkg/msi/deb/rpm).

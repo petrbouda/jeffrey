@@ -220,6 +220,22 @@ jobs:
         echo "$GPG_PRIVATE_KEY" | gpg --batch --import
         gpg --list-secret-keys --keyid-format long
 
+    # The Homebrew formula is pushed to the petrbouda/homebrew-tap repository, which the default
+    # GITHUB_TOKEN cannot write to. Publish the formula only when a cross-repo PAT
+    # (HOMEBREW_TAP_TOKEN) is configured; otherwise skip the brew packager so the core release
+    # still succeeds. When publishing, that PAT also becomes the release token (it can both
+    # create the release here and push to the tap).
+    - name: Determine Homebrew publishing
+      id: brew
+      env:
+        TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+      run: |
+        if [ -n "$TAP_TOKEN" ]; then
+          echo "args=full-release" >> "$GITHUB_OUTPUT"
+        else
+          echo "args=full-release --exclude-packager brew" >> "$GITHUB_OUTPUT"
+        fi
+
     - name: Assemble java-archive distributions
       uses: jreleaser/release-action@v2
       with:
@@ -231,10 +247,10 @@ jobs:
     - name: Run JReleaser full-release
       uses: jreleaser/release-action@v2
       with:
-        arguments: full-release
+        arguments: ${{ steps.brew.outputs.args }}
       env:
         JRELEASER_PROJECT_VERSION: ${{ steps.version.outputs.VERSION }}
-        JRELEASER_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        JRELEASER_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN || secrets.GITHUB_TOKEN }}
         JRELEASER_SIGNING_ACTIVE: ${{ steps.signing.outputs.active }}
         JRELEASER_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
 
