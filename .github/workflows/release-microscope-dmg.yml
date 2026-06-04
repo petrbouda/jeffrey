@@ -31,19 +31,13 @@ jobs:
         name: microscope-jar
         path: ./microscope-jar
 
-    - name: Extract version
-      id: version
-      run: |
-        VERSION=${GITHUB_REF#refs/tags/v}
-        # jpackage --app-version must be numeric (major[.minor[.patch]]); drop any -b<n> suffix.
-        echo "DMG_VERSION=${VERSION%%-*}" >> $GITHUB_OUTPUT
-
     # No -am: the dmg module no longer depends on core-microscope, so only jpackage runs here.
+    # No app-version: jpackage defaults the macOS bundle version to 1.0 (Jeffrey is pre-1.0, and
+    # macOS rejects bundle versions whose first number is 0).
     - name: Build macOS DMG
       run: >
         mvn -e -pl build/build-microscope-dmg -Pdmg package -DskipTests
         -Dmicroscope.source.dir=${{ github.workspace }}/microscope-jar
-        -Djpackage.app.version=${{ steps.version.outputs.DMG_VERSION }}
 
     - name: Rename DMG with architecture
       run: |
