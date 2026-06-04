@@ -23,24 +23,26 @@ jobs:
         java-version: '25'
         distribution: 'temurin'
 
-    - name: Setup Node
-      uses: actions/setup-node@v4
+    # Reuse the already-assembled fat jar from the Linux build job instead of recompiling the
+    # project on macOS (macOS runners lack the proto/grpc toolchain the source build needs).
+    - name: Download microscope.jar
+      uses: actions/download-artifact@v8
       with:
-        node-version: '22'
+        name: microscope-jar
+        path: ./microscope-jar
 
     - name: Extract version
       id: version
       run: |
         VERSION=${GITHUB_REF#refs/tags/v}
         # jpackage --app-version must be numeric (major[.minor[.patch]]); drop any -b<n> suffix.
-        echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
         echo "DMG_VERSION=${VERSION%%-*}" >> $GITHUB_OUTPUT
 
+    # No -am: the dmg module no longer depends on core-microscope, so only jpackage runs here.
     - name: Build macOS DMG
-      env:
-        JEFFREY_TAG_VERSION: ${{ steps.version.outputs.VERSION }}
       run: >
-        mvn -e -pl build/build-microscope-dmg -am -Pdmg package -DskipTests
+        mvn -e -pl build/build-microscope-dmg -Pdmg package -DskipTests
+        -Dmicroscope.source.dir=${{ github.workspace }}/microscope-jar
         -Djpackage.app.version=${{ steps.version.outputs.DMG_VERSION }}
 
     - name: Rename DMG with architecture

@@ -29,22 +29,25 @@
 
     <artifactId>build-microscope-dmg</artifactId>
 
+    <!--
+      Packages an already-built Spring Boot fat jar (microscope.jar) into a self-contained macOS DMG
+      via jpackage. It deliberately does NOT depend on or rebuild core-microscope: jpackage DMG
+      packaging only runs on macOS, and macOS runners lack the proto/grpc toolchain the source build
+      needs. Instead it consumes the microscope.jar produced by the regular (Linux) build and only runs
+      jpackage on it — fast, and free of any build toolchain beyond the JDK itself.
+    -->
+
     <properties>
-        <mainClass>cafe.jeffrey.microscope.core.MicroscopeApplication</mainClass>
         <finalName>microscope</finalName>
-        <!-- jpackage rejects "-SNAPSHOT" and requires a numeric version (e.g. 0.10.0).
+        <!-- jpackage rejects "-SNAPSHOT" and requires a numeric version (e.g. 0.10.1).
              CI overrides this with the cleaned release tag via -Djpackage.app.version=... -->
         <jpackage.app.version>1.0.0</jpackage.app.version>
-        <!-- Staging directory that holds ONLY the fat jar so the jpackage input bundles nothing else. -->
+        <!-- Clean staging directory that holds ONLY the fat jar so the jpackage input bundles nothing else. -->
         <jpackage.input.dir>${project.build.directory}/jpackage-input</jpackage.input.dir>
+        <!-- Directory containing the prebuilt microscope.jar. Defaults to the local build-microscope
+             output; CI overrides it with the directory the release artifact was downloaded into. -->
+        <microscope.source.dir>${project.basedir}/../build-microscope/target</microscope.source.dir>
     </properties>
-
-    <dependencies>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>core-microscope</artifactId>
-        </dependency>
-    </dependencies>
 
     <profiles>
         <!-- Activated with -Pdmg, only on macOS (jpackage DMG packaging cannot cross-compile).
@@ -54,18 +57,27 @@
             <build>
                 <plugins>
                     <plugin>
-                        <artifactId>exec-maven-plugin</artifactId>
-                        <groupId>org.codehaus.mojo</groupId>
-                    </plugin>
-
-                    <plugin>
-                        <groupId>org.springframework.boot</groupId>
-                        <artifactId>spring-boot-maven-plugin</artifactId>
-                        <configuration>
-                            <!-- Repackage the Spring Boot fat jar straight into the clean staging
-                                 directory so the jpackage input contains nothing but microscope.jar. -->
-                            <outputDirectory>${jpackage.input.dir}</outputDirectory>
-                        </configuration>
+                        <artifactId>maven-resources-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>stage-microscope-jar</id>
+                                <phase>prepare-package</phase>
+                                <goals>
+                                    <goal>copy-resources</goal>
+                                </goals>
+                                <configuration>
+                                    <outputDirectory>${jpackage.input.dir}</outputDirectory>
+                                    <resources>
+                                        <resource>
+                                            <directory>${microscope.source.dir}</directory>
+                                            <includes>
+                                                <include>${finalName}.jar</include>
+                                            </includes>
+                                        </resource>
+                                    </resources>
+                                </configuration>
+                            </execution>
+                        </executions>
                     </plugin>
 
                     <plugin>

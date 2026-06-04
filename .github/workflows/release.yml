@@ -54,6 +54,7 @@ jobs:
     uses: ./.github/workflows/release-cli.yml
 
   microscope-dmg:
+    needs: [build]
     uses: ./.github/workflows/release-microscope-dmg.yml
 
   docker-microscope:
