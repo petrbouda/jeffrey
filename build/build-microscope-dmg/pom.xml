@@ -108,13 +108,14 @@
                             <!-- Allow re-runs: jpackage fails if the output already exists. Safe because
                                  destination is inside ${project.build.directory}. -->
                             <removeDestination>true</removeDestination>
-                            <!-- The app is non-modular (classpath). Bundle every JDK module so Spring /
-                                 DuckDB / Jackson reflective access never hits a missing module. jpackage
-                                 still strips developer command-line tools (jfr/jcmd/...), which the app
-                                 never invokes (JFR parsing is the in-process jdk.jfr API). -->
-                            <addModules>
-                                <module>ALL-MODULE-PATH</module>
-                            </addModules>
+                            <!-- Bundle the running JDK itself as the runtime rather than letting
+                                 jpackage jlink a trimmed image. The app is non-modular (classpath),
+                                 so a full runtime guarantees Spring / DuckDB / Jackson reflective
+                                 access never hits a missing module. It also sidesteps jlink, which
+                                 needs the JDK's jmods/ directory, absent from the Temurin JDK that
+                                 GitHub's setup-java installs ("This JDK does not contain packaged
+                                 modules"). -->
+                            <runtimeImage>${java.home}</runtimeImage>
                             <macPackageIdentifier>cafe.jeffrey.microscope</macPackageIdentifier>
                             <macPackageName>Jeffrey</macPackageName>
                             <!-- server.port=0 lets the OS pick a free port, so the app never collides
