@@ -120,46 +120,34 @@ assemble:
             - 'LICENSE'
             - 'NOTICE.md'
             - 'README.md'
-    # CLI archive doubles as the source for the Homebrew formula (see distributions below).
-    # JAVA_BINARY so the generated formula declares a JDK dependency; the bin/ launcher runs
-    # the fat jar via java -jar.
-    jeffrey-cli:
-      active: ALWAYS
-      distributionType: JAVA_BINARY
-      formats:
-        - ZIP
-        - TAR_GZ
-      archiveName: 'jeffrey-cli-{{projectVersion}}'
-      fileSets:
-        - input: 'artifacts'
-          output: 'lib'
-          includes:
-            - 'jeffrey-cli.jar'
-        - input: 'build/dist/jeffrey-cli/bin'
-          output: 'bin'
-        - input: '.'
-          includes:
-            - 'LICENSE'
-            - 'NOTICE.md'
-            - 'README.md'
 
-# Packager configuration for the assembler-created distributions. Only the CLI is published to
-# Homebrew; microscope (a server-style app) and jeffrey-server are not brew-friendly today.
+# Homebrew distribution for the macOS desktop app. microscope is shipped as a CASK that installs
+# the .app bundle from the jpackage DMG, enabling:
+#     brew install --cask petrbouda/tap/microscope
 #
-# The formula is committed to the petrbouda/homebrew-tap repository, enabling:
-#     brew install petrbouda/tap/jeffrey-cli
+# The DMG artifacts (one per macOS architecture) are produced by the jpackage CI job and become
+# this distribution's release assets; the cask references them with per-architecture stanzas.
+# This is a NATIVE_PACKAGE distribution, kept separate from the microscope java-archive above so
+# the cask only sees the .dmg artifacts.
 #
-# Requires a tap repository and a token that can push to it. The CI job supplies a PAT via
-# HOMEBREW_TAP_TOKEN and runs JReleaser with --exclude-packager brew when that secret is absent,
-# so an unconfigured tap never breaks the core release.
+# Publishing requires the petrbouda/homebrew-tap repository plus a token that can push to it. The
+# CI job supplies a PAT via HOMEBREW_TAP_TOKEN and runs JReleaser with --exclude-packager brew
+# when that secret is absent, so an unconfigured tap never breaks the core release.
 distributions:
-  jeffrey-cli:
-    type: JAVA_BINARY
-    java:
-      mainClass: cafe.jeffrey.init.CliApplication
+  microscope-app:
+    type: NATIVE_PACKAGE
+    artifacts:
+      - path: 'artifacts/installers/microscope-{{projectVersion}}-osx-aarch64.dmg'
+        platform: 'osx-aarch64'
+      - path: 'artifacts/installers/microscope-{{projectVersion}}-osx-x86_64.dmg'
+        platform: 'osx-x86_64'
     brew:
       active: RELEASE
-      formulaName: JeffreyCli
+      cask:
+        enabled: true
+        name: microscope
+        displayName: Jeffrey Microscope
+        appName: microscope.app
       tap:
         owner: petrbouda
         name: homebrew-tap
@@ -167,12 +155,17 @@ distributions:
         name: petrbouda
         email: bouda.petr@gmail.com
 
-# Loose release assets staged into ./artifacts by the CI release job: the four fat jars, the
-# Linux native CLI binaries, and the jpackage installers (dmg/pkg/msi/deb/rpm).
+# Loose release assets staged into ./artifacts by the CI release job. The macOS DMGs are NOT
+# listed here — they are uploaded as the microscope-app distribution's artifacts (above) so the
+# cask can reference them; listing them here too would double-upload. The remaining installers
+# (pkg/msi/deb/rpm), the four fat jars, and the Linux native CLI binaries are attached here.
 files:
   active: ALWAYS
   globs:
     - pattern: 'artifacts/*.jar'
     - pattern: 'artifacts/jeffrey-cli-amd64'
     - pattern: 'artifacts/jeffrey-cli-arm64'
-    - pattern: 'artifacts/installers/*'
+    - pattern: 'artifacts/installers/*.pkg'
+    - pattern: 'artifacts/installers/*.msi'
+    - pattern: 'artifacts/installers/*.deb'
+    - pattern: 'artifacts/installers/*.rpm'

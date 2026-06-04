@@ -220,8 +220,8 @@ jobs:
         echo "$GPG_PRIVATE_KEY" | gpg --batch --import
         gpg --list-secret-keys --keyid-format long
 
-    # The Homebrew formula is pushed to the petrbouda/homebrew-tap repository, which the default
-    # GITHUB_TOKEN cannot write to. Publish the formula only when a cross-repo PAT
+    # The Homebrew cask (microscope) is pushed to the petrbouda/homebrew-tap repository, which the
+    # default GITHUB_TOKEN cannot write to. Publish the cask only when a cross-repo PAT
     # (HOMEBREW_TAP_TOKEN) is configured; otherwise skip the brew packager so the core release
     # still succeeds. When publishing, that PAT also becomes the release token (it can both
     # create the release here and push to the tap).
