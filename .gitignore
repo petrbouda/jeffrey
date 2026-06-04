@@ -1,5 +1,10 @@
 **/target/
 
+# JReleaser output and CI release staging
+/out/
+/artifacts/
+**/jpkg-input/
+
 .vscode
 
 ### IntelliJ IDEA ###

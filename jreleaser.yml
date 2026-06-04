@@ -1,0 +1,128 @@
+# Jeffrey
+# Copyright (C) 2026 Petr Bouda
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+# JReleaser configuration for Jeffrey.
+#
+# Scope (phases 1-3):
+#   - GitHub release creation with an auto-generated, categorized changelog
+#   - SHA-256 checksums for every asset
+#   - Optional GPG signing (enabled when JReleaser GPG secrets are present)
+#   - java-archive distributions (zip/tar.gz with launcher scripts) for microscope + server
+#   - Attachment of the existing jars, Linux native CLI binaries, and the jpackage
+#     installers (dmg/pkg/msi/deb/rpm) produced by the per-OS CI jobs
+#
+# Out of scope (intentionally): Docker images stay on Jib (build/build-*-jib) — JReleaser
+# does not hook into the custom jeffrey-jib build-plan extension, so images are not managed
+# here.
+#
+# The project version is supplied at runtime via JRELEASER_PROJECT_VERSION (the pushed git
+# tag without the leading 'v'); the Maven reactor version is intentionally left at
+# 1.0-SNAPSHOT, so it is not used as the release version.
+
+project:
+  name: jeffrey
+  description: JFR Analyst - visualize and analyze Java Flight Recorder events
+  longDescription: |
+    Jeffrey is a JFR (Java Flight Recorder) analysis tool that visualizes JFR events using
+    various types of graphs (flamegraphs, timeseries, sub-second, guardian, threads, heap dump
+    analysis). It helps developers profile Java applications and find performance bottlenecks.
+  authors:
+    - Petr Bouda
+  license: AGPL-3.0-or-later
+  inceptionYear: '2024'
+  links:
+    homepage: https://www.jeffrey-analyst.cafe/
+  languages:
+    java:
+      groupId: cafe.jeffrey
+      version: '25'
+      multiProject: true
+
+release:
+  github:
+    owner: petrbouda
+    name: jeffrey
+    # The tag is already pushed by the maintainer; JReleaser reuses it instead of creating one.
+    skipTag: true
+    overwrite: true
+    tagName: 'v{{projectVersion}}'
+    releaseName: 'Jeffrey {{projectVersion}}'
+    # Tags such as v0.10.0-b4 are pre-releases; full X.Y.Z tags are stable.
+    prerelease:
+      pattern: '.*-b\d+'
+    changelog:
+      formatted: ALWAYS
+      preset: conventional-commits
+      contributors:
+        enabled: true
+
+checksum:
+  individual: true
+
+# Signing is opt-in: it activates only when the JReleaser GPG secrets are provided (the CI
+# job sets JRELEASER_SIGNING_ACTIVE=NEVER otherwise), so releases never fail for lack of a key.
+signing:
+  active: RELEASE
+  armored: true
+
+assemble:
+  archive:
+    microscope:
+      active: ALWAYS
+      formats:
+        - ZIP
+        - TAR_GZ
+      archiveName: 'microscope-{{projectVersion}}'
+      fileSets:
+        - input: 'artifacts'
+          output: 'lib'
+          includes:
+            - 'microscope.jar'
+        - input: 'build/dist/microscope/bin'
+          output: 'bin'
+        - input: '.'
+          includes:
+            - 'LICENSE'
+            - 'NOTICE.md'
+            - 'README.md'
+    jeffrey-server:
+      active: ALWAYS
+      formats:
+        - ZIP
+        - TAR_GZ
+      archiveName: 'jeffrey-server-{{projectVersion}}'
+      fileSets:
+        - input: 'artifacts'
+          output: 'lib'
+          includes:
+            - 'jeffrey-server.jar'
+        - input: 'build/dist/jeffrey-server/bin'
+          output: 'bin'
+        - input: '.'
+          includes:
+            - 'LICENSE'
+            - 'NOTICE.md'
+            - 'README.md'
+
+# Loose release assets staged into ./artifacts by the CI release job: the four fat jars, the
+# Linux native CLI binaries, and the jpackage installers (dmg/pkg/msi/deb/rpm).
+files:
+  active: ALWAYS
+  globs:
+    - pattern: 'artifacts/*.jar'
+    - pattern: 'artifacts/jeffrey-cli-amd64'
+    - pattern: 'artifacts/jeffrey-cli-arm64'
+    - pattern: 'artifacts/installers/*'
