@@ -33,6 +33,7 @@
 
     <modules>
         <module>build-microscope</module>
+        <module>build-microscope-dmg</module>
         <module>build-microscope-jib</module>
         <module>build-microscope-examples-jib</module>
         <module>build-server</module>

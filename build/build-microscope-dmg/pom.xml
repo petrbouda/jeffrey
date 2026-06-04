@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Jeffrey
+  ~ Copyright (C) 2026 Petr Bouda
+  ~
+  ~ This program is free software: you can redistribute it and/or modify
+  ~ it under the terms of the GNU Affero General Public License as published by
+  ~ the Free Software Foundation, either version 3 of the License, or
+  ~ (at your option) any later version.
+  ~
+  ~ This program is distributed in the hope that it will be useful,
+  ~ but WITHOUT ANY WARRANTY; without even the implied warranty of
+  ~ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  ~ GNU Affero General Public License for more details.
+  ~
+  ~ You should have received a copy of the GNU Affero General Public License
+  ~ along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  -->
+
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>cafe.jeffrey</groupId>
+        <artifactId>build</artifactId>
+        <version>1.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>build-microscope-dmg</artifactId>
+
+    <properties>
+        <mainClass>cafe.jeffrey.microscope.core.MicroscopeApplication</mainClass>
+        <finalName>microscope</finalName>
+        <!-- jpackage rejects "-SNAPSHOT" and requires a numeric version (e.g. 0.10.0).
+             CI overrides this with the cleaned release tag via -Djpackage.app.version=... -->
+        <jpackage.app.version>1.0.0</jpackage.app.version>
+        <!-- Staging directory that holds ONLY the fat jar so the jpackage input bundles nothing else. -->
+        <jpackage.input.dir>${project.build.directory}/jpackage-input</jpackage.input.dir>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>core-microscope</artifactId>
+        </dependency>
+    </dependencies>
+
+    <profiles>
+        <!-- Activated with -Pdmg, only on macOS (jpackage DMG packaging cannot cross-compile).
+             A plain "mvn package" leaves this module as an inert empty jar, like build-cli-native. -->
+        <profile>
+            <id>dmg</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <groupId>org.codehaus.mojo</groupId>
+                    </plugin>
+
+                    <plugin>
+                        <groupId>org.springframework.boot</groupId>
+                        <artifactId>spring-boot-maven-plugin</artifactId>
+                        <configuration>
+                            <!-- Repackage the Spring Boot fat jar straight into the clean staging
+                                 directory so the jpackage input contains nothing but microscope.jar. -->
+                            <outputDirectory>${jpackage.input.dir}</outputDirectory>
+                        </configuration>
+                    </plugin>
+
+                    <plugin>
+                        <groupId>org.panteleyev</groupId>
+                        <artifactId>jpackage-maven-plugin</artifactId>
+                        <version>1.7.4</version>
+                        <executions>
+                            <execution>
+                                <id>build-dmg</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>jpackage</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <type>DMG</type>
+                            <name>Jeffrey</name>
+                            <appVersion>${jpackage.app.version}</appVersion>
+                            <vendor>Petr Bouda</vendor>
+                            <copyright>Copyright (C) 2026 Petr Bouda</copyright>
+                            <input>${jpackage.input.dir}</input>
+                            <mainJar>${finalName}.jar</mainJar>
+                            <destination>${project.build.directory}/dist</destination>
+                            <!-- Allow re-runs: jpackage fails if the output already exists. Safe because
+                                 destination is inside ${project.build.directory}. -->
+                            <removeDestination>true</removeDestination>
+                            <!-- The app is non-modular (classpath). Bundle every JDK module so Spring /
+                                 DuckDB / Jackson reflective access never hits a missing module. jpackage
+                                 still strips developer command-line tools (jfr/jcmd/...), which the app
+                                 never invokes (JFR parsing is the in-process jdk.jfr API). -->
+                            <addModules>
+                                <module>ALL-MODULE-PATH</module>
+                            </addModules>
+                            <macPackageIdentifier>cafe.jeffrey.microscope</macPackageIdentifier>
+                            <macPackageName>Jeffrey</macPackageName>
+                            <!-- server.port=0 lets the OS pick a free port, so the app never collides
+                                 with whatever is already on 8080 on the user's Mac. The actual bound
+                                 port is reported by ctx.getWebServer().getPort(), which the
+                                 ApplicationReadyEvent listener uses to open the browser. The packaged
+                                 app is the only distribution that auto-opens the browser; everything
+                                 else leaves jeffrey.microscope.open-browser at its false default. -->
+                            <javaOptions>
+                                <option>-Dserver.port=0</option>
+                                <option>-Djeffrey.microscope.open-browser=true</option>
+                            </javaOptions>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+</project>

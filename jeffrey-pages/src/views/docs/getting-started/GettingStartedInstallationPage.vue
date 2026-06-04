@@ -26,6 +26,7 @@ import { useDocHeadings } from '@/composables/useDocHeadings';
 const { setHeadings } = useDocHeadings();
 
 const headings = [
+  { id: 'macos-installation', text: 'macOS Application (DMG)', level: 2 },
   { id: 'docker-installation', text: 'Docker Installation', level: 2 },
   { id: 'java-installation', text: 'Java Installation', level: 2 },
   { id: 'verifying-installation', text: 'Verifying Installation', level: 2 }
@@ -44,7 +45,20 @@ onMounted(() => {
       />
 
       <div class="docs-content">
-        <p>Jeffrey can be installed using Docker or as a standalone Java application. Choose the method that best suits your environment.</p>
+        <p>Jeffrey can be installed as a native macOS application, using Docker, or as a standalone Java application. Choose the method that best suits your environment.</p>
+
+        <h2 id="macos-installation">macOS Application (DMG)</h2>
+        <p>On macOS the easiest option is the self-contained application bundle &mdash; it ships its own Java runtime, so nothing needs to be pre-installed.</p>
+
+        <ol>
+          <li>Download the <code>.dmg</code> for your chip from <a href="https://github.com/petrbouda/jeffrey/releases" target="_blank">GitHub Releases</a>: <code>microscope-arm64.dmg</code> for Apple Silicon (M-series) or <code>microscope-x86_64.dmg</code> for Intel Macs</li>
+          <li>Open the DMG and drag <strong>Jeffrey</strong> into your <strong>Applications</strong> folder</li>
+          <li>Launch <strong>Jeffrey</strong> &mdash; it starts the local server and opens your browser automatically</li>
+        </ol>
+
+        <DocsCallout type="warning">
+          The application is currently <strong>not notarized</strong>, so on first launch macOS Gatekeeper will block it. Right-click the app and choose <strong>Open</strong>, then confirm in the dialog. This is only required the first time.
+        </DocsCallout>
 
         <h2 id="java-installation">Java Installation</h2>
         <p>If you prefer to run Jeffrey as a standalone Java application:</p>

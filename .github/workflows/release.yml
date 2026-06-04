@@ -53,6 +53,9 @@ jobs:
   cli-native:
     uses: ./.github/workflows/release-cli.yml
 
+  microscope-dmg:
+    uses: ./.github/workflows/release-microscope-dmg.yml
+
   docker-microscope:
     needs: [build]
     uses: ./.github/workflows/release-microscope.yml
@@ -64,7 +67,7 @@ jobs:
     secrets: inherit
 
   create-release:
-    needs: [docker-microscope, docker-server, cli-native]
+    needs: [docker-microscope, docker-server, cli-native, microscope-dmg]
     runs-on: ubuntu-latest
     permissions: write-all
 
@@ -105,6 +108,18 @@ jobs:
         name: jeffrey-cli-arm64
         path: ./artifacts/native-arm64
 
+    - name: Download macOS DMG (x86_64)
+      uses: actions/download-artifact@v8
+      with:
+        name: microscope-dmg-x86_64
+        path: ./artifacts
+
+    - name: Download macOS DMG (arm64)
+      uses: actions/download-artifact@v8
+      with:
+        name: microscope-dmg-arm64
+        path: ./artifacts
+
     - name: Prepare release assets
       run: |
         mv ./artifacts/native-amd64/jeffrey-cli ./artifacts/jeffrey-cli-amd64
@@ -127,5 +142,7 @@ jobs:
           ./artifacts/jeffrey-agent.jar
           ./artifacts/jeffrey-cli-amd64
           ./artifacts/jeffrey-cli-arm64
+          ./artifacts/microscope-x86_64.dmg
+          ./artifacts/microscope-arm64.dmg
         draft: false
         prerelease: false
