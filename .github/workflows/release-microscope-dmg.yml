@@ -36,7 +36,7 @@ jobs:
 
     - name: Rename DMG
       run: |
-        mv build/build-microscope-dmg/target/dist/Jeffrey-*.dmg \
+        mv build/build-microscope-dmg/target/dist/Microscope-*.dmg \
            build/build-microscope-dmg/target/dist/microscope.dmg
 
     - name: Upload DMG

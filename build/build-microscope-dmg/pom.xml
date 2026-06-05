@@ -98,10 +98,12 @@
                         </executions>
                         <configuration>
                             <type>DMG</type>
-                            <name>Jeffrey</name>
+                            <name>Microscope</name>
                             <appVersion>${jpackage.app.version}</appVersion>
                             <vendor>Petr Bouda</vendor>
                             <copyright>Copyright (C) 2026 Petr Bouda</copyright>
+                            <!-- Jeffrey brand mark; regenerate with icon/generate-icns.py. -->
+                            <icon>${project.basedir}/src/main/resources/Microscope.icns</icon>
                             <input>${jpackage.input.dir}</input>
                             <mainJar>${finalName}.jar</mainJar>
                             <destination>${project.build.directory}/dist</destination>
@@ -117,7 +119,7 @@
                                  modules"). -->
                             <runtimeImage>${java.home}</runtimeImage>
                             <macPackageIdentifier>cafe.jeffrey.microscope</macPackageIdentifier>
-                            <macPackageName>Jeffrey</macPackageName>
+                            <macPackageName>Microscope</macPackageName>
                             <!-- server.port=0 lets the OS pick a free port, so the app never collides
                                  with whatever is already on 8080 on the user's Mac. The actual bound
                                  port is reported by ctx.getWebServer().getPort(), which the
