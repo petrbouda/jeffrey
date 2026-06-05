@@ -1,18 +1,13 @@
 name: Build macOS DMG
 
+# Apple Silicon (arm64) only. GitHub no longer offers free Intel (x86_64) macOS runners, so a
+# native Intel DMG can't be built on hosted CI; Intel Macs can run microscope.jar with Java 25.
 on:
   workflow_call:
 
 jobs:
   build-microscope-dmg:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        include:
-          - os: macos-13
-            arch: x86_64
-          - os: macos-14
-            arch: arm64
+    runs-on: macos-14
 
     steps:
     - uses: actions/checkout@v6
@@ -32,8 +27,8 @@ jobs:
         path: ./microscope-jar
 
     # No -am: the dmg module no longer depends on core-microscope, so only jpackage runs here.
-    # No app-version: jpackage defaults the macOS bundle version to 1.0 (Jeffrey is pre-1.0, and
-    # macOS rejects bundle versions whose first number is 0).
+    # No app-version override: the module pins a macOS-valid 1.0.0 (Jeffrey is pre-1.0, and macOS
+    # rejects bundle versions whose first number is 0).
     - name: Build macOS DMG
       run: >
         mvn -e -pl build/build-microscope-dmg -Pdmg package -DskipTests
@@ -42,10 +37,10 @@ jobs:
     - name: Rename DMG with architecture
       run: |
         mv build/build-microscope-dmg/target/dist/Jeffrey-*.dmg \
-           build/build-microscope-dmg/target/dist/microscope-${{ matrix.arch }}.dmg
+           build/build-microscope-dmg/target/dist/microscope-arm64.dmg
 
     - name: Upload DMG
       uses: actions/upload-artifact@v7
       with:
-        name: microscope-dmg-${{ matrix.arch }}
-        path: build/build-microscope-dmg/target/dist/microscope-${{ matrix.arch }}.dmg
+        name: microscope-dmg-arm64
+        path: build/build-microscope-dmg/target/dist/microscope-arm64.dmg

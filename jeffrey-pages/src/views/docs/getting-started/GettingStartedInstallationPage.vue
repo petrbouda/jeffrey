@@ -48,16 +48,20 @@ onMounted(() => {
         <p>Jeffrey can be installed as a native macOS application, using Docker, or as a standalone Java application. Choose the method that best suits your environment.</p>
 
         <h2 id="macos-installation">macOS Application (DMG)</h2>
-        <p>On macOS the easiest option is the self-contained application bundle &mdash; it ships its own Java runtime, so nothing needs to be pre-installed.</p>
+        <p>On Apple Silicon Macs the easiest option is the self-contained application bundle &mdash; it ships its own Java runtime, so nothing needs to be pre-installed.</p>
 
         <ol>
-          <li>Download the <code>.dmg</code> for your chip from <a href="https://github.com/petrbouda/jeffrey/releases" target="_blank">GitHub Releases</a>: <code>microscope-arm64.dmg</code> for Apple Silicon (M-series) or <code>microscope-x86_64.dmg</code> for Intel Macs</li>
+          <li>Download <code>microscope-arm64.dmg</code> from <a href="https://github.com/petrbouda/jeffrey/releases" target="_blank">GitHub Releases</a></li>
           <li>Open the DMG and drag <strong>Jeffrey</strong> into your <strong>Applications</strong> folder</li>
           <li>Launch <strong>Jeffrey</strong> &mdash; it starts the local server and opens your browser automatically</li>
         </ol>
 
         <DocsCallout type="warning">
           The application is currently <strong>not notarized</strong>, so on first launch macOS Gatekeeper will block it. Right-click the app and choose <strong>Open</strong>, then confirm in the dialog. This is only required the first time.
+        </DocsCallout>
+
+        <DocsCallout type="info">
+          The DMG is built for <strong>Apple Silicon</strong> (M-series) only. On Intel Macs, use the Java installation below with <code>microscope.jar</code>.
         </DocsCallout>
 
         <h2 id="java-installation">Java Installation</h2>
