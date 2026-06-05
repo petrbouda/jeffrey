@@ -109,10 +109,10 @@ jobs:
         name: jeffrey-cli-arm64
         path: ./artifacts/native-arm64
 
-    - name: Download macOS DMG (arm64)
+    - name: Download macOS DMG
       uses: actions/download-artifact@v8
       with:
-        name: microscope-dmg-arm64
+        name: microscope-dmg
         path: ./artifacts
 
     - name: Prepare release assets
@@ -137,6 +137,6 @@ jobs:
           ./artifacts/jeffrey-agent.jar
           ./artifacts/jeffrey-cli-amd64
           ./artifacts/jeffrey-cli-arm64
-          ./artifacts/microscope-arm64.dmg
+          ./artifacts/microscope.dmg
         draft: false
         prerelease: false

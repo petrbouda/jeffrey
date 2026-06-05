@@ -34,13 +34,13 @@ jobs:
         mvn -e -pl build/build-microscope-dmg -Pdmg package -DskipTests
         -Dmicroscope.source.dir=${{ github.workspace }}/microscope-jar
 
-    - name: Rename DMG with architecture
+    - name: Rename DMG
       run: |
         mv build/build-microscope-dmg/target/dist/Jeffrey-*.dmg \
-           build/build-microscope-dmg/target/dist/microscope-arm64.dmg
+           build/build-microscope-dmg/target/dist/microscope.dmg
 
     - name: Upload DMG
       uses: actions/upload-artifact@v7
       with:
-        name: microscope-dmg-arm64
-        path: build/build-microscope-dmg/target/dist/microscope-arm64.dmg
+        name: microscope-dmg
+        path: build/build-microscope-dmg/target/dist/microscope.dmg

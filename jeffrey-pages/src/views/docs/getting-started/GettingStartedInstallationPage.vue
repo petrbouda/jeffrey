@@ -51,7 +51,7 @@ onMounted(() => {
         <p>On Apple Silicon Macs the easiest option is the self-contained application bundle &mdash; it ships its own Java runtime, so nothing needs to be pre-installed.</p>
 
         <ol>
-          <li>Download <code>microscope-arm64.dmg</code> from <a href="https://github.com/petrbouda/jeffrey/releases" target="_blank">GitHub Releases</a></li>
+          <li>Download <code>microscope.dmg</code> from <a href="https://github.com/petrbouda/jeffrey/releases" target="_blank">GitHub Releases</a></li>
           <li>Open the DMG and drag <strong>Jeffrey</strong> into your <strong>Applications</strong> folder</li>
           <li>Launch <strong>Jeffrey</strong> &mdash; it starts the local server and opens your browser automatically</li>
         </ol>
