@@ -1,0 +1,74 @@
+# Ad-hoc, manual Maven Central release for the standalone utility libraries
+# (jeffrey-events, jeffrey-jib). These are released independently and on demand,
+# NOT as part of the main tag-triggered Jeffrey release (release.yml).
+#
+# Replaces the two near-identical workflows release-jeffrey-events.yml and
+# release-jeffrey-jib.yml. Maven stages the artifacts (jar + sources + javadoc)
+# into a local staging repository; JReleaser signs them and uploads to Maven Central.
+name: Publish utility library to Maven Central
+on:
+  workflow_dispatch:
+    inputs:
+      module:
+        description: 'Utility library to release'
+        required: true
+        type: choice
+        options:
+          - jeffrey-events
+          - jeffrey-jib
+      version:
+        description: 'Release version (e.g. 0.11.0 or 0.11.0-b5). Must follow [0-9]+.[0-9]+.[0-9]+(-b[0-9]+)?'
+        required: true
+        type: string
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: utilities/${{ inputs.module }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Validate version format
+        run: |
+          if [[ ! "${{ inputs.version }}" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-b[0-9]+)?$ ]]; then
+            echo "ERROR: version '${{ inputs.version }}' does not match [0-9]+.[0-9]+.[0-9]+(-b[0-9]+)?" >&2
+            exit 1
+          fi
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Set version
+        run: mvn versions:set -DnewVersion=${{ inputs.version }} -DprocessAllModules=true
+
+      - name: Stage artifacts into local staging repository
+        run: |
+          mvn -P release --batch-mode deploy -DskipTests \
+            -DaltDeploymentRepository=local::file:$PWD/target/staging-deploy
+
+      - name: Sign and deploy to Maven Central with JReleaser
+        uses: jreleaser/release-action@v2
+        with:
+          arguments: deploy
+          working-directory: utilities/${{ inputs.module }}
+        env:
+          JRELEASER_PROJECT_VERSION: ${{ inputs.version }}
+          JRELEASER_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          JRELEASER_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+          JRELEASER_GPG_PUBLIC_KEY: ${{ secrets.GPG_PUBLIC_KEY }}
+          JRELEASER_GPG_SECRET_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          JRELEASER_MAVENCENTRAL_SONATYPE_USERNAME: ${{ secrets.CENTRAL_TOKEN_USERNAME }}
+          JRELEASER_MAVENCENTRAL_SONATYPE_PASSWORD: ${{ secrets.CENTRAL_TOKEN_PASSWORD }}
+
+      - name: Upload JReleaser logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: jreleaser-deploy-output-${{ inputs.module }}
+          path: |
+            utilities/${{ inputs.module }}/out/jreleaser/trace.log
+            utilities/${{ inputs.module }}/out/jreleaser/output.properties

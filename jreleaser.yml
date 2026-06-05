@@ -1,0 +1,62 @@
+# JReleaser configuration for the main Jeffrey GitHub release.
+#
+# Scope: this file ONLY drives the GitHub release step (changelog + assets +
+# checksums + signatures) of the tag-triggered pipeline. Docker images (Jib),
+# the GraalVM native CLI, the Spring Boot jars and the agent jar are all still
+# produced by Maven/Jib in the earlier jobs of .github/workflows/release.yml and
+# are simply handed to JReleaser as pre-built files.
+#
+# The project version is NOT taken from the pom (which stays 1.0-SNAPSHOT). It is
+# supplied at runtime via JRELEASER_PROJECT_VERSION, derived from the git tag.
+project:
+  name: jeffrey
+  description: JFR (Java Flight Recorder) analysis tool
+  authors:
+    - Petr Bouda
+  license: AGPL-3.0-only
+  links:
+    homepage: https://www.jeffrey-analyst.cafe/
+
+release:
+  github:
+    owner: petrbouda
+    name: jeffrey
+    # The tag is created by the git push that triggers the workflow, so JReleaser
+    # must not try to create it again.
+    skipTag: true
+    # Make re-runs idempotent (update an existing release instead of failing).
+    overwrite: true
+    releaseName: 'Jeffrey {{projectVersion}}'
+    prerelease:
+      # Beta tags (vX.Y.Z-bN) are flagged as pre-releases automatically; the old
+      # job always set prerelease=false, even for betas.
+      pattern: '.*-b\d+'
+    changelog:
+      # Simple flat list of commits since the previous tag (commit messages are
+      # not Conventional Commits, so no categorisation is attempted).
+      formatted: ALWAYS
+      format: '- {{commitShortHash}} {{commitTitle}}'
+      contributors:
+        enabled: true
+
+# Attach a SHA-256 checksums file to the release.
+checksum:
+  algorithms:
+    - SHA-256
+
+# Sign the release assets (and the checksums file) with GPG.
+# Set active to NEVER if a signing key is not available yet (checksums still ship).
+signing:
+  active: ALWAYS
+  armored: true
+
+# The pre-built artifacts produced by the earlier jobs, staged by the workflow
+# into ./artifacts before JReleaser runs.
+files:
+  artifacts:
+    - path: artifacts/microscope.jar
+    - path: artifacts/jeffrey-server.jar
+    - path: artifacts/jeffrey-cli.jar
+    - path: artifacts/jeffrey-agent.jar
+    - path: artifacts/jeffrey-cli-amd64
+    - path: artifacts/jeffrey-cli-arm64

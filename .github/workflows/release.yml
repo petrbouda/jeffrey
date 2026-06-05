@@ -69,6 +69,11 @@ jobs:
     permissions: write-all
 
     steps:
+    - name: Checkout
+      uses: actions/checkout@v6
+      with:
+        fetch-depth: 0          # JReleaser needs full git history to build the changelog
+
     - name: Download microscope.jar
       uses: actions/download-artifact@v8
       with:
@@ -116,16 +121,21 @@ jobs:
       run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
 
     - name: Create Release
-      uses: softprops/action-gh-release@v1
+      uses: jreleaser/release-action@v2
       with:
-        name: Jeffrey ${{ steps.version.outputs.VERSION }}
-        body: Release ${{ steps.version.outputs.VERSION }}
-        files: |
-          ./artifacts/microscope.jar
-          ./artifacts/jeffrey-server.jar
-          ./artifacts/jeffrey-cli.jar
-          ./artifacts/jeffrey-agent.jar
-          ./artifacts/jeffrey-cli-amd64
-          ./artifacts/jeffrey-cli-arm64
-        draft: false
-        prerelease: false
+        arguments: full-release
+      env:
+        JRELEASER_PROJECT_VERSION: ${{ steps.version.outputs.VERSION }}
+        JRELEASER_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        JRELEASER_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+        JRELEASER_GPG_PUBLIC_KEY: ${{ secrets.GPG_PUBLIC_KEY }}
+        JRELEASER_GPG_SECRET_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+
+    - name: Upload JReleaser logs
+      if: always()
+      uses: actions/upload-artifact@v7
+      with:
+        name: jreleaser-release-output
+        path: |
+          out/jreleaser/trace.log
+          out/jreleaser/output.properties

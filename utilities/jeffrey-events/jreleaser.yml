@@ -1,0 +1,38 @@
+# JReleaser configuration for deploying jeffrey-events to Maven Central.
+#
+# JReleaser only performs the SIGN + UPLOAD of artifacts that Maven has already
+# staged into target/staging-deploy (see the unified release-utilities workflow).
+# It replaces the central-publishing-maven-plugin + maven-gpg-plugin that used to
+# live in the pom's `release` profile.
+#
+# Invoked with `jreleaser deploy`, so no GitHub release/tag is created here.
+project:
+  name: jeffrey-events
+  description: Jeffrey-specific events that can be visualized by Jeffrey
+  authors:
+    - Petr Bouda
+  license: Apache-2.0
+  links:
+    homepage: https://github.com/petrbouda/jeffrey
+
+release:
+  github:
+    owner: petrbouda
+    name: jeffrey
+    # This config drives a Maven Central deploy only; never touch git/releases.
+    skipTag: true
+    skipRelease: true
+
+signing:
+  active: ALWAYS
+  armored: true
+
+deploy:
+  maven:
+    mavenCentral:
+      sonatype:
+        active: ALWAYS
+        url: https://central.sonatype.com/api/v1/publisher
+        applyMavenCentralRules: true
+        stagingRepositories:
+          - target/staging-deploy
