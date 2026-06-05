@@ -33,11 +33,14 @@ release:
       # Beta tags (vX.Y.Z-bN) are flagged as pre-releases automatically; the old
       # job always set prerelease=false, even for betas.
       pattern: '.*-b\d+'
-    # No auto-generated description. Release notes are maintained manually at
-    # https://www.jeffrey-analyst.cafe/release-notes, so the GitHub release body
-    # is left empty rather than listing commits.
+    # No auto-generated changelog. Release notes are maintained manually at
+    # https://www.jeffrey-analyst.cafe/release-notes, so instead of listing
+    # commits the body is a fixed 'Release {version}' line. A non-empty body is
+    # also required to stop GitHub from falling back to showing the tagged
+    # commit's message on the release page.
     changelog:
-      enabled: false
+      enabled: true
+      content: 'Release {{projectVersion}}'
 
 # Attach a SHA-256 checksums file to the release.
 checksum:
