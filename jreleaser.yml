@@ -21,6 +21,8 @@ release:
   github:
     owner: petrbouda
     name: jeffrey
+    # Repository default branch is master, not JReleaser's default of main.
+    branch: master
     # The tag is created by the git push that triggers the workflow, so JReleaser
     # must not try to create it again.
     skipTag: true
