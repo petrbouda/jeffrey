@@ -31,13 +31,11 @@ release:
       # Beta tags (vX.Y.Z-bN) are flagged as pre-releases automatically; the old
       # job always set prerelease=false, even for betas.
       pattern: '.*-b\d+'
+    # No auto-generated description. Release notes are maintained manually at
+    # https://www.jeffrey-analyst.cafe/release-notes, so the GitHub release body
+    # is left empty rather than listing commits.
     changelog:
-      # Simple flat list of commits since the previous tag (commit messages are
-      # not Conventional Commits, so no categorisation is attempted).
-      formatted: ALWAYS
-      format: '- {{commitShortHash}} {{commitTitle}}'
-      contributors:
-        enabled: true
+      enabled: false
 
 # Attach a SHA-256 checksums file to the release.
 checksum:

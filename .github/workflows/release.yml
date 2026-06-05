@@ -71,8 +71,6 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v6
-      with:
-        fetch-depth: 0          # JReleaser needs full git history to build the changelog
 
     - name: Download microscope.jar
       uses: actions/download-artifact@v8
