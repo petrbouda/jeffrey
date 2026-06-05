@@ -111,19 +111,16 @@
     <profiles>
         <profile>
             <id>release</id>
+            <!--
+              Staging-only release profile. Maven produces each module's jar + sources +
+              javadoc and deploys them into a local staging repository
+              (target/staging-deploy, via -DaltDeploymentRepository). Signing and the
+              actual upload to Maven Central are handled by JReleaser (`jreleaser deploy`,
+              see jreleaser.yml), which replaced central-publishing-maven-plugin +
+              maven-gpg-plugin.
+            -->
             <build>
                 <plugins>
-                    <plugin>
-                        <groupId>org.sonatype.central</groupId>
-                        <artifactId>central-publishing-maven-plugin</artifactId>
-                        <version>0.8.0</version>
-                        <extensions>true</extensions>
-                        <configuration>
-                            <publishingServerId>central</publishingServerId>
-                            <tokenAuth>true</tokenAuth>
-                            <autoPublish>true</autoPublish>
-                        </configuration>
-                    </plugin>
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-source-plugin</artifactId>
@@ -153,26 +150,6 @@
                         <configuration>
                             <stylesheet>java</stylesheet>
                             <doclint>none</doclint>
-                        </configuration>
-                    </plugin>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-gpg-plugin</artifactId>
-                        <version>3.1.0</version>
-                        <executions>
-                            <execution>
-                                <id>sign-artifacts</id>
-                                <phase>verify</phase>
-                                <goals>
-                                    <goal>sign</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                        <configuration>
-                            <gpgArguments>
-                                <arg>--pinentry-mode</arg>
-                                <arg>loopback</arg>
-                            </gpgArguments>
                         </configuration>
                     </plugin>
                 </plugins>
