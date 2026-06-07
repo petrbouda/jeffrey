@@ -24,6 +24,7 @@ import cafe.jeffrey.profile.manager.HeapDumpManager;
 import cafe.jeffrey.profile.manager.HeapMemoryManager;
 import cafe.jeffrey.profile.manager.JITCompilationManager;
 import cafe.jeffrey.profile.manager.JITDeoptimizationManager;
+import cafe.jeffrey.profile.manager.SpanManager;
 import cafe.jeffrey.profile.manager.ThreadManager;
 
 public record JvmInsightFactories(
@@ -33,5 +34,6 @@ public record JvmInsightFactories(
         HeapMemoryManager.Factory heapMemory,
         ContainerManager.Factory container,
         ThreadManager.Factory thread,
-        HeapDumpManager.Factory heapDump) {
+        HeapDumpManager.Factory heapDump,
+        SpanManager.Factory span) {
 }

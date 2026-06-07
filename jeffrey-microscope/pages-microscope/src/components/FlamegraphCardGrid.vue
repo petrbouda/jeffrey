@@ -42,6 +42,8 @@
       :enabled="true"
       :route-name="routeName"
       :button-text="buttonText"
+      :emit-view="emitView"
+      @view="emit('view', $event)"
     />
 
     <!-- Method Trace Events -->
@@ -68,6 +70,8 @@
       :enabled="true"
       :route-name="routeName"
       :button-text="buttonText"
+      :emit-view="emitView"
+      @view="emit('view', $event)"
     />
 
     <!-- Wall-Clock Events -->
@@ -94,6 +98,8 @@
       :enabled="true"
       :route-name="routeName"
       :button-text="buttonText"
+      :emit-view="emitView"
+      @view="emit('view', $event)"
     />
 
     <!-- Object Allocation Events -->
@@ -120,6 +126,8 @@
       :enabled="true"
       :route-name="routeName"
       :button-text="buttonText"
+      :emit-view="emitView"
+      @view="emit('view', $event)"
     />
 
     <!-- Native Allocation Events (Primary only) -->
@@ -147,6 +155,8 @@
       :enabled="true"
       :route-name="routeName"
       :button-text="buttonText"
+      :emit-view="emitView"
+      @view="emit('view', $event)"
     />
 
     <!-- Native Leak Events (Primary only) -->
@@ -174,6 +184,8 @@
       :enabled="true"
       :route-name="routeName"
       :button-text="buttonText"
+      :emit-view="emitView"
+      @view="emit('view', $event)"
     />
 
     <!-- Blocking Events (Primary flamegraph only) -->
@@ -201,6 +213,8 @@
       :enabled="true"
       :route-name="routeName"
       :button-text="buttonText"
+      :emit-view="emitView"
+      @view="emit('view', $event)"
     />
   </div>
 </template>
@@ -208,6 +222,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import FlamegraphCard from '@/components/FlamegraphCard.vue';
+import type { FlamegraphCardViewPayload } from '@/components/FlamegraphCard.vue';
 import FormattingService from '@/services/FormattingService';
 import GraphType from '@/services/flamegraphs/GraphType';
 import EventSummary from '@/services/api/model/EventSummary';
@@ -223,6 +238,7 @@ interface Props {
   nativeLeakEvents?: EventSummary[];
   routeName?: string;
   buttonText?: string;
+  emitView?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -230,8 +246,13 @@ const props = withDefaults(defineProps<Props>(), {
   nativeAllocationEvents: () => [],
   nativeLeakEvents: () => [],
   routeName: 'flamegraph',
-  buttonText: 'View Flamegraph'
+  buttonText: 'View Flamegraph',
+  emitView: false
 });
+
+const emit = defineEmits<{
+  view: [payload: FlamegraphCardViewPayload];
+}>();
 
 const isPrimary = computed(() => props.graphMode === GraphType.PRIMARY);
 

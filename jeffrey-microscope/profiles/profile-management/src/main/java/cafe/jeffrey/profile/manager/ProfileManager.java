@@ -69,6 +69,8 @@ public interface ProfileManager {
 
     HeapDumpManager heapDumpManager();
 
+    SpanManager spanManager();
+
     ProfileFeaturesManager featuresManager();
 
     ProfileToolsManager toolsManager();

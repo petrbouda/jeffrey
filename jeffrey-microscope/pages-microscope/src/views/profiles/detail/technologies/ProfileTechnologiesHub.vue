@@ -148,6 +148,15 @@ const technologies = [
     colorClass: 'color-tracing',
     route: `/profiles/${profileId}/technologies/method-tracing/timeseries`,
     featureType: FeatureType.TRACING_DASHBOARD
+  },
+  {
+    id: 'async-profiler',
+    name: 'Async-Profiler Spans',
+    description: 'Span-level latency intervals from async-profiler — by-tag breakdown and time heatmap',
+    icon: 'bi-bounding-box',
+    colorClass: 'color-spans',
+    route: `/profiles/${profileId}/technologies/async-profiler/spans`,
+    featureType: FeatureType.ASYNC_PROFILER_SPANS
   }
 ];
 
@@ -246,6 +255,10 @@ const navigateTo = (tech: TechnologyCard) => {
   background: linear-gradient(90deg, var(--color-info), var(--color-cyan-accent));
 }
 
+.card-accent.color-spans {
+  background: linear-gradient(90deg, var(--color-purple), var(--color-violet));
+}
+
 /* Card body */
 .card-body {
   padding: var(--spacing-4) var(--spacing-5);
@@ -279,6 +292,10 @@ const navigateTo = (tech: TechnologyCard) => {
 
 .card-icon.color-tracing {
   color: var(--color-info-hover);
+}
+
+.card-icon.color-spans {
+  color: var(--color-purple-hover);
 }
 
 .card-name {

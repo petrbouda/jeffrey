@@ -90,6 +90,16 @@ const select = (tab: TabBarItem) => {
     border-color 0.15s ease;
 }
 
+.tab-bar-item:focus {
+  outline: none;
+}
+
+.tab-bar-item:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+  border-radius: var(--radius-sm);
+}
+
 .tab-bar-item:hover:not(.disabled) {
   color: var(--color-purple);
 }

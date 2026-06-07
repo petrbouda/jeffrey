@@ -37,9 +37,27 @@
           :borderless="true"
         />
         <Badge
+          v-if="selectedItem.max != null"
+          :key-label="'MAX'"
+          :value="formatP99(selectedItem.max)"
+          variant="secondary"
+          size="xs"
+          :uppercase="false"
+          :borderless="true"
+        />
+        <Badge
           :key-label="'P99'"
           :value="formatP99(selectedItem.p99)"
           variant="orange"
+          size="xs"
+          :uppercase="false"
+          :borderless="true"
+        />
+        <Badge
+          v-if="selectedItem.p95 != null"
+          :key-label="'P95'"
+          :value="formatP99(selectedItem.p95)"
+          variant="blue"
           size="xs"
           :uppercase="false"
           :borderless="true"
@@ -78,6 +96,8 @@ export interface FilterBarItem {
   label: string;
   count: number;
   p99: number;
+  p95?: number;
+  max?: number;
 }
 
 interface Props {

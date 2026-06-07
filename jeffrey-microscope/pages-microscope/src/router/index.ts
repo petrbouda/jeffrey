@@ -356,6 +356,27 @@ const profileChildRoutes = [
     meta: { layout: 'profile' }
   },
   {
+    path: 'technologies/async-profiler/spans',
+    name: 'profile-technologies-async-profiler-spans',
+    component: () =>
+      import('@/views/profiles/detail/technologies/ProfileAsyncProfilerSpans.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
+    path: 'technologies/async-profiler/slowest-spans',
+    name: 'profile-technologies-async-profiler-slowest-spans',
+    component: () =>
+      import('@/views/profiles/detail/technologies/ProfileAsyncProfilerSlowestSpans.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
+    path: 'technologies/async-profiler/heatmap',
+    name: 'profile-technologies-async-profiler-heatmap',
+    component: () =>
+      import('@/views/profiles/detail/technologies/ProfileAsyncProfilerHeatmap.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
     path: 'technologies/grpc/overview',
     name: 'profile-technologies-grpc-overview',
     component: () => import('@/views/profiles/detail/technologies/ProfileGrpcOverview.vue'),

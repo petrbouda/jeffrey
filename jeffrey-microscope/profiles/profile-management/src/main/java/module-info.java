@@ -84,6 +84,7 @@ module cafe.jeffrey.microscope.profile.management {
     exports cafe.jeffrey.profile.manager.model.gc.configuration;
     exports cafe.jeffrey.profile.manager.model.heap;
     exports cafe.jeffrey.profile.manager.model.thread;
+    exports cafe.jeffrey.profile.manager.model.span;
     exports cafe.jeffrey.profile.manager.registry;
     exports cafe.jeffrey.profile.model;
     exports cafe.jeffrey.profile.parser;

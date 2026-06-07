@@ -298,9 +298,24 @@ interface Props {
   enabled: boolean;
   routeName?: string;
   buttonText?: string;
+  emitView?: boolean;
+}
+
+export interface FlamegraphCardViewPayload {
+  eventType: string;
+  useThreadMode: boolean;
+  useWeight: boolean;
+  excludeNonJavaSamples: boolean;
+  excludeIdleSamples: boolean;
+  onlyUnsafeAllocationSamples: boolean;
 }
 
 const props = defineProps<Props>();
+
+const emit = defineEmits<{
+  view: [payload: FlamegraphCardViewPayload];
+}>();
+
 const router = useRouter();
 const route = useRoute();
 
@@ -365,7 +380,21 @@ const sampleIntervalDelta = computed(() =>
 );
 
 const navigateToFlamegraph = () => {
-  if (!props.enabled) return;
+  if (!props.enabled) {
+    return;
+  }
+
+  if (props.emitView) {
+    emit('view', {
+      eventType: props.event.code,
+      useThreadMode: useThreadMode.value,
+      useWeight: useWeight.value,
+      excludeNonJavaSamples: excludeNonJavaSamples.value,
+      excludeIdleSamples: excludeIdleSamples.value,
+      onlyUnsafeAllocationSamples: onlyUnsafeAllocationSamples.value
+    });
+    return;
+  }
 
   const query: any = {
     eventType: props.event.code,

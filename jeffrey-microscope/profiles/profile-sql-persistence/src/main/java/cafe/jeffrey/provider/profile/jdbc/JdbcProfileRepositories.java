@@ -87,4 +87,10 @@ public class JdbcProfileRepositories implements ProfileRepositories {
         DatabaseClientProvider profileClientProvider = new DatabaseClientProvider(dataSource);
         return new JdbcProfileToolsRepository(profileClientProvider);
     }
+
+    @Override
+    public SpanRepository newSpanRepository(DataSource dataSource) {
+        DatabaseClientProvider profileClientProvider = new DatabaseClientProvider(dataSource);
+        return new JdbcSpanRepository(profileClientProvider);
+    }
 }

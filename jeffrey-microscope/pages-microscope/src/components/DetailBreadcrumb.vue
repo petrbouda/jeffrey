@@ -1,103 +1,127 @@
 <template>
   <div class="detail-breadcrumb" @click="$emit('back')">
+    <div class="breadcrumb-tile">
+      <i class="bi" :class="icon"></i>
+    </div>
+    <div class="breadcrumb-stack">
+      <span class="breadcrumb-root">{{ rootLabel }}</span>
+      <span class="breadcrumb-current">
+        <slot></slot>
+      </span>
+    </div>
     <div class="breadcrumb-back">
       <i class="bi bi-arrow-left"></i>
     </div>
-    <span class="breadcrumb-root">{{ rootLabel }}</span>
-    <span class="breadcrumb-sep"><i class="bi bi-chevron-right"></i></span>
-    <span class="breadcrumb-current">
-      <slot></slot>
-    </span>
   </div>
 </template>
 
 <script setup lang="ts">
 interface Props {
   rootLabel: string;
+  icon?: string;
 }
 
-defineProps<Props>();
+withDefaults(defineProps<Props>(), {
+  icon: 'bi-folder2-open'
+});
+
 defineEmits<{ back: [] }>();
 </script>
 
 <style scoped>
 .detail-breadcrumb {
-  background: rgba(94, 100, 255, 0.03);
-  border: 1px solid rgba(94, 100, 255, 0.15);
-  border-radius: var(--radius-md);
-  padding: 10px 16px;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 14px;
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  box-shadow: var(--shadow-sm);
   margin-bottom: 1.5rem;
   cursor: pointer;
-  transition: all var(--transition-fast, 0.15s) ease;
+  transition:
+    border-color var(--transition-fast, 0.15s) ease,
+    background-color var(--transition-fast, 0.15s) ease,
+    box-shadow var(--transition-fast, 0.15s) ease;
 }
 
 .detail-breadcrumb:hover {
-  background: rgba(94, 100, 255, 0.06);
-  border-color: rgba(94, 100, 255, 0.3);
+  border-color: var(--color-primary-border);
+  background: var(--color-primary-lighter);
+  box-shadow: var(--shadow-md);
 }
 
 .detail-breadcrumb:hover .breadcrumb-back {
   background: var(--color-primary);
   border-color: var(--color-primary);
-  color: white;
+  color: var(--color-white);
 }
 
-.breadcrumb-back {
-  width: 32px;
-  height: 32px;
-  border-radius: 6px;
-  border: 1px solid rgba(94, 100, 255, 0.25);
-  background: rgba(94, 100, 255, 0.08);
+.breadcrumb-tile {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-lg);
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--color-primary);
-  font-size: 0.85rem;
+  color: var(--color-white);
+  font-size: 1.1rem;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-violet));
+  box-shadow: var(--shadow-sm);
+}
+
+.breadcrumb-stack {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.28;
+  min-width: 0;
+}
+
+.breadcrumb-root {
+  font-size: var(--font-size-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--color-text-muted);
+  font-weight: var(--font-weight-semibold);
+}
+
+.breadcrumb-current {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-dark);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.breadcrumb-back {
+  margin-left: auto;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-base);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-hover);
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
   transition: all var(--transition-fast, 0.15s) ease;
 }
 
-.breadcrumb-root {
-  font-size: 0.8rem;
-  color: var(--color-primary);
-  font-weight: 500;
-  white-space: nowrap;
-  opacity: 0.7;
-}
-
-.breadcrumb-sep {
-  color: var(--color-border);
-  font-size: 0.7rem;
-}
-
-.breadcrumb-current {
-  font-size: 0.9rem;
-  color: var(--color-dark);
-  font-weight: 600;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
 @media (max-width: 768px) {
   .detail-breadcrumb {
+    gap: 10px;
     padding: 8px 12px;
-    gap: 8px;
   }
 
-  .breadcrumb-root {
-    display: none;
-  }
-
-  .breadcrumb-sep {
-    display: none;
-  }
-
-  .breadcrumb-current {
-    font-size: 0.8rem;
+  .breadcrumb-tile {
+    width: 34px;
+    height: 34px;
+    font-size: 1rem;
   }
 }
 </style>

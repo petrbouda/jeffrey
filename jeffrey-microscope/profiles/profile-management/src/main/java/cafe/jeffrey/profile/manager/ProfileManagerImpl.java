@@ -147,6 +147,11 @@ public class ProfileManagerImpl implements ProfileManager {
     }
 
     @Override
+    public SpanManager spanManager() {
+        return registry.jvmInsight().span().apply(profileInfo);
+    }
+
+    @Override
     public ProfileFeaturesManager featuresManager() {
         return registry.features().apply(profileInfo);
     }

@@ -79,6 +79,8 @@ public enum StatementLabel {
     FIND_ALL_LATEST_EVENTS,
     STREAM_EVENTS,
     LOAD_FRAMES_CACHE,
+    LIST_SPANS,
+    SPAN_EVENTS,
 
     /**
      * {@link GroupLabel#ALLOCATING_THREADS}

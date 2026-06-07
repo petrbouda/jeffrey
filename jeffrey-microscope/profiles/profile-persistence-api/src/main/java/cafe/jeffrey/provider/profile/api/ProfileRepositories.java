@@ -93,4 +93,12 @@ public interface ProfileRepositories {
      * @return a new tools repository for the profile
      */
     ProfileToolsRepository newToolsRepository(DataSource dataSource);
+
+    /**
+     * Creates a span repository for reading async-profiler {@code profiler.Span} events.
+     *
+     * @param dataSource the profile database connection
+     * @return a new span repository for the profile
+     */
+    SpanRepository newSpanRepository(DataSource dataSource);
 }

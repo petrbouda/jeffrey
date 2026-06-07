@@ -8,16 +8,17 @@
     />
 
     <div v-else>
-      <JdbcOverviewStats v-if="jdbcOverviewData" :jdbc-header="jdbcOverviewData.header" />
-
       <!-- Group Display with Navigation -->
       <DetailBreadcrumb
         v-if="selectedGroupForDetail"
         root-label="Statement Groups"
+        icon="bi-database"
         @back="clearGroupSelection"
       >
         {{ selectedGroupForDetail }}
       </DetailBreadcrumb>
+
+      <JdbcOverviewStats v-if="overviewHeader" :jdbc-header="overviewHeader" />
 
       <!-- Loading state -->
       <LoadingState v-if="isLoading" />
@@ -168,6 +169,14 @@ const loadingSlowestStatement = ref<string | null>(null);
 // Check if JDBC statements dashboard is disabled
 const isJdbcStatementsDisabled = computed(() => {
   return props.disabledFeatures.includes(FeatureType.JDBC_STATEMENTS_DASHBOARD);
+});
+
+// StatsRow header: group-scoped when a group is open, overall otherwise
+const overviewHeader = computed(() => {
+  if (selectedGroupForDetail.value) {
+    return singleGroupData.value?.header ?? null;
+  }
+  return jdbcOverviewData.value?.header ?? null;
 });
 
 // Client initialization

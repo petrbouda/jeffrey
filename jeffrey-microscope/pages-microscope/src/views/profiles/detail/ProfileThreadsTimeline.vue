@@ -69,6 +69,7 @@
 
   <GenericModal
     modal-id="threadInfoModal"
+    size="lg"
     :show="infoDialogVisible"
     title="Thread View Information"
     icon="bi-info-circle"

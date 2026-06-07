@@ -561,6 +561,7 @@
     <!-- Per-event drill-in modal -->
     <GenericModal
       modal-id="deoptEventDetailsModal"
+      size="lg"
       :show="showEventModal"
       :title="modalTitle"
       icon="bi-arrow-counterclockwise"

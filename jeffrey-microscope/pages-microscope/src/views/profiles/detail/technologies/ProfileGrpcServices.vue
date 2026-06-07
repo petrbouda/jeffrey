@@ -8,15 +8,11 @@
     />
 
     <div v-else>
-      <GrpcOverviewStats
-        v-if="grpcOverviewData && !selectedServiceForDetail"
-        :header="grpcOverviewData.header"
-      />
-
       <!-- Service Display with Navigation -->
       <DetailBreadcrumb
         v-if="selectedServiceForDetail"
         root-label="Services"
+        icon="bi-diagram-3"
         @back="clearServiceSelection"
       >
         <span class="grpc-service-name">
@@ -27,6 +23,8 @@
         </span>
       </DetailBreadcrumb>
 
+      <GrpcOverviewStats v-if="overviewHeader" :header="overviewHeader" />
+
       <!-- Loading state -->
       <LoadingState v-if="isLoading" />
 
@@ -35,8 +33,6 @@
 
       <!-- Single Service Dashboard content -->
       <div v-if="selectedServiceForDetail && serviceDetailData" class="dashboard-container">
-        <StatsTable :metrics="serviceMetricsData" class="mb-4" />
-
         <TabBar v-model="activeTab" :tabs="serviceTabs" class="mb-3" />
 
         <div v-show="activeTab === 'timeseries'">
@@ -96,7 +92,6 @@ import { useRoute, useRouter } from 'vue-router';
 import DetailBreadcrumb from '@/components/DetailBreadcrumb.vue';
 import GrpcOverviewStats from '@/components/grpc/GrpcOverviewStats.vue';
 import TabBar from '@/components/TabBar.vue';
-import StatsTable from '@/components/StatsTable.vue';
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
 import AxisFormatType from '@/services/timeseries/AxisFormatType';
 import GrpcServiceList from '@/components/grpc/GrpcServiceList.vue';
@@ -165,75 +160,12 @@ const isGrpcDashboardDisabled = computed(() => {
 // Client initialization
 const client = new ProfileGrpcClient(mode, route.params.profileId as string);
 
-// Computed metrics for service detail StatsTable
-const serviceMetricsData = computed(() => {
-  if (!serviceDetailData.value?.header) return [];
-
-  const header = serviceDetailData.value.header;
-
-  return [
-    {
-      icon: 'telephone',
-      title: 'Total Calls',
-      value: header.callCount || 0,
-      variant: 'info' as const
-    },
-    {
-      icon: 'clock-fill',
-      title: 'Response Time',
-      value: FormattingService.formatDuration2Units(header.maxResponseTime),
-      variant: 'highlight' as const,
-      breakdown: [
-        {
-          label: 'P99',
-          value: FormattingService.formatDuration2Units(header.p99ResponseTime)
-        },
-        {
-          label: 'P95',
-          value: FormattingService.formatDuration2Units(header.p95ResponseTime)
-        }
-      ]
-    },
-    {
-      icon: 'check-circle',
-      title: 'Success Rate',
-      value: FormattingService.formatSuccessRate(header.successRate || 0),
-      variant: ((header.successRate || 0) === 1
-        ? 'success'
-        : header.errorCount > 0
-          ? 'danger'
-          : 'warning') as const,
-      breakdown: [
-        {
-          label: 'Errors',
-          value: header.errorCount || 0,
-          color: header.errorCount > 0 ? '#EA4335' : '#28a745'
-        }
-      ]
-    },
-    {
-      icon: 'arrow-down-up',
-      title: 'Data Transferred',
-      value: FormattingService.formatBytes(
-        (header.totalBytesSent || 0) + (header.totalBytesReceived || 0)
-      ),
-      variant: 'info' as const,
-      breakdown: [
-        {
-          label: 'Sent',
-          value:
-            header.totalBytesSent < 0 ? '?' : FormattingService.formatBytes(header.totalBytesSent)
-        },
-        {
-          label: 'Received',
-          value:
-            header.totalBytesReceived < 0
-              ? '?'
-              : FormattingService.formatBytes(header.totalBytesReceived)
-        }
-      ]
-    }
-  ];
+// StatsRow header: service-scoped when a service is open, overall otherwise
+const overviewHeader = computed(() => {
+  if (selectedServiceForDetail.value) {
+    return serviceDetailData.value?.header ?? null;
+  }
+  return grpcOverviewData.value?.header ?? null;
 });
 
 const slowestCalls = computed(() => {

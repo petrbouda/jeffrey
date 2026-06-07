@@ -773,6 +773,32 @@
                         <span>Cumulated Traces</span>
                       </router-link>
                     </div>
+                    <div v-else-if="activeTechnology === 'async-profiler'" class="nav-items">
+                      <router-link
+                        :to="`/profiles/${profileId}/technologies/async-profiler/spans`"
+                        class="nav-item"
+                        active-class="active"
+                      >
+                        <i class="bi bi-table"></i>
+                        <span>Spans by Tag</span>
+                      </router-link>
+                      <router-link
+                        :to="`/profiles/${profileId}/technologies/async-profiler/slowest-spans`"
+                        class="nav-item"
+                        active-class="active"
+                      >
+                        <i class="bi bi-hourglass-split"></i>
+                        <span>Slowest Spans</span>
+                      </router-link>
+                      <router-link
+                        :to="`/profiles/${profileId}/technologies/async-profiler/heatmap`"
+                        class="nav-item"
+                        active-class="active"
+                      >
+                        <i class="bi bi-grid-3x3"></i>
+                        <span>Heatmap</span>
+                      </router-link>
+                    </div>
                   </div>
                 </template>
               </template>
@@ -1196,6 +1222,7 @@ const getFeatureTypeForMenuItem = (menuItem: string): FeatureType | null => {
     'jdbc-pool': FeatureType.JDBC_POOL_DASHBOARD,
     'performance-counters': FeatureType.PERF_COUNTERS_DASHBOARD,
     'method-tracing': FeatureType.TRACING_DASHBOARD,
+    'async-profiler': FeatureType.ASYNC_PROFILER_SPANS,
     'ai-analysis': FeatureType.AI_ANALYSIS,
     'heap-dump': FeatureType.HEAP_DUMP
   };
@@ -1220,6 +1247,9 @@ const activeTechnology = computed<string | null>(() => {
     return mode === 'client' ? 'grpc-client' : 'grpc-server';
   if (path.includes('/technologies/jdbc')) return 'jdbc';
   if (path.includes('/technologies/method-tracing/')) return 'method-tracing';
+  if (path.includes('/technologies/async-profiler/')) {
+    return 'async-profiler';
+  }
   return null;
 });
 
@@ -1229,7 +1259,8 @@ const technologyLabels: Record<string, { name: string; icon: string }> = {
   'grpc-server': { name: 'gRPC Server', icon: 'bi-diagram-3' },
   'grpc-client': { name: 'gRPC Client', icon: 'bi-arrow-left-right' },
   jdbc: { name: 'Database (JDBC)', icon: 'bi-database' },
-  'method-tracing': { name: 'Method Tracing', icon: 'bi-speedometer2' }
+  'method-tracing': { name: 'Method Tracing', icon: 'bi-speedometer2' },
+  'async-profiler': { name: 'Async-Profiler Spans', icon: 'bi-bounding-box' }
 };
 
 // Derive mode from the current route path so refresh preserves the active section
@@ -1256,7 +1287,7 @@ const jitCompilationSubmenuExpanded = ref(false);
 // Initialize comparison panel visibility from sessionStorage
 const getStoredComparisonPanelState = (): boolean => {
   const stored = sessionStorage.getItem('profile-comparison-panel-visible');
-  return stored !== 'false'; // Default to visible
+  return stored === 'true'; // Default to hidden
 };
 const comparisonPanelVisible = ref(getStoredComparisonPanelState());
 

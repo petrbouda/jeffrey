@@ -17,6 +17,7 @@
       <DetailBreadcrumb
         v-if="selectedUriForDetail"
         root-label="Endpoints"
+        icon="bi-hdd-network"
         @back="clearUriSelection"
       >
         <span class="uri-path">

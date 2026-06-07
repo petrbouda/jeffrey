@@ -67,7 +67,9 @@ interface Props {
 
 const props = withDefaults(defineProps<Props>(), {
   title: '',
-  size: 'lg',
+  // Default to the large/immersive size used by data modals (flamegraphs, span events, …).
+  // Confirmation / info / small-form modals should opt down explicitly (size="sm" / "md" / "lg").
+  size: 'fullscreen',
   modalDialogClass: '',
   showFooter: true
 });

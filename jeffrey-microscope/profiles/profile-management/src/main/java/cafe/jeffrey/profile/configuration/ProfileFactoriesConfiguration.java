@@ -133,7 +133,8 @@ public class ProfileFactoriesConfiguration {
             HeapMemoryManager.Factory heapMemoryFactory,
             ContainerManager.Factory containerFactory,
             ThreadManager.Factory threadFactory,
-            HeapDumpManager.Factory heapDumpFactory) {
+            HeapDumpManager.Factory heapDumpFactory,
+            SpanManager.Factory spanFactory) {
 
         return new JvmInsightFactories(
                 gcFactory,
@@ -142,7 +143,30 @@ public class ProfileFactoriesConfiguration {
                 heapMemoryFactory,
                 containerFactory,
                 threadFactory,
-                heapDumpFactory);
+                heapDumpFactory,
+                spanFactory);
+    }
+
+    /**
+     * Selects the span repository implementation at runtime. Defaults to the mock (generated data)
+     * so the span views are usable before async-profiler's Span API ships; set
+     * {@code jeffrey.profile.spans.mock=false} to read real {@code profiler.Span} events from the
+     * profile database.
+     */
+    @Bean
+    public SpanManager.Factory spanManagerFactory(
+            @Value("${jeffrey.profile.spans.mock:true}") boolean mock) {
+
+        return profileInfo -> {
+            SpanRepository repository;
+            if (mock) {
+                repository = new MockSpanRepository();
+            } else {
+                DataSource profileDb = databaseManagerResolver.open(profileInfo);
+                repository = profileRepositories.newSpanRepository(profileDb);
+            }
+            return new SpanManagerImpl(repository);
+        };
     }
 
     @Bean

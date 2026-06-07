@@ -137,6 +137,7 @@
     <!-- Compilation Terms Modal -->
     <GenericModal
       modal-id="bailoutInfoModal"
+      size="lg"
       :show="showModal"
       title="JIT Compilation: Bailouts vs Invalidations"
       icon="bi-info-circle"
@@ -190,6 +191,7 @@
     <!-- nMethods Information Modal -->
     <GenericModal
       modal-id="nMethodsInfoModal"
+      size="lg"
       :show="showNMethodsInfoModal"
       title="JIT Compilation: nMethods Memory Usage"
       icon="bi-info-circle"
@@ -246,6 +248,7 @@
     <!-- Compilations Information Modal -->
     <GenericModal
       modal-id="compilationsInfoModal"
+      size="lg"
       :show="showCompilationsInfoModal"
       title="JIT Compilation: Standard vs OSR Compilation"
       icon="bi-info-circle"

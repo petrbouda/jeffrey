@@ -323,6 +323,25 @@ h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
   }
 }
 
+// Viewport-height modal: caps the dialog to the screen so its body (not the overlay) is the scroll
+// container — used by the span events modal so only its inner table scrolls. Keeps Bootstrap's
+// 1.75rem top+bottom dialog margin.
+.events-modal-dialog {
+  height: calc(100vh - 3.5rem);
+
+  .modal-content {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .modal-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+  }
+}
+
 // Responsive adjustments
 @media (max-width: 767.98px) {
   .card-title {
