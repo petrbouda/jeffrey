@@ -8,10 +8,13 @@ VALUES
     ('jdk.JavaMonitorEnter', 'Java Monitor Enter', 2, 'Monitor enter', '["Java Application"]', '1', NULL, true, NULL, NULL, NULL),
     ('profiler.Span', 'Span', 3, 'async-profiler span', '["Profiler"]', '1', NULL, false, NULL, NULL, NULL);
 
+-- vt-worker is a VIRTUAL thread: os_id is NULL (the JVM reports -1 for virtual threads). Pairing
+-- must therefore key on thread_hash, not os_id — os_id-based matching can never resolve this thread.
 INSERT INTO threads (thread_hash, name, os_id, java_id, is_virtual)
 VALUES
     (3001, 'worker', 91, 5, false),
-    (3002, 'other', 92, 6, false);
+    (3002, 'other', 92, 6, false),
+    (3003, 'vt-worker', NULL, 7, true);
 
 INSERT INTO events (event_type, start_timestamp, duration, samples, weight, weight_entity, stacktrace_hash, thread_hash, fields)
 VALUES
@@ -24,4 +27,6 @@ VALUES
     -- same thread but out of window → EXCLUDED
     ('jdk.ExecutionSample', '2026-01-01T00:00:10.000Z',       NULL, 1, NULL, NULL, NULL, 3001, '{"state":"RUNNABLE"}'),
     -- other thread, in window → EXCLUDED
-    ('jdk.ExecutionSample', '2026-01-01T00:00:01.300Z',       NULL, 1, NULL, NULL, NULL, 3002, '{"state":"RUNNABLE"}');
+    ('jdk.ExecutionSample', '2026-01-01T00:00:01.300Z',       NULL, 1, NULL, NULL, NULL, 3002, '{"state":"RUNNABLE"}'),
+    -- VIRTUAL thread (os_id NULL), in window → KEPT only because we match by thread_hash
+    ('jdk.ExecutionSample', '2026-01-01T00:00:01.800Z',       NULL, 1, NULL, NULL, NULL, 3003, '{"state":"RUNNABLE"}');

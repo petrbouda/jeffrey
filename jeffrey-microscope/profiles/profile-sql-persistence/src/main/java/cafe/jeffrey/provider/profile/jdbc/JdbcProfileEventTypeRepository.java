@@ -27,6 +27,7 @@ import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.shared.common.model.RecordingEventSource;
 import cafe.jeffrey.shared.common.model.EventSubtype;
 import cafe.jeffrey.shared.common.model.EventSummary;
+import cafe.jeffrey.shared.common.model.SpanInterval;
 import cafe.jeffrey.shared.common.model.Type;
 import cafe.jeffrey.provider.profile.api.EventTypeWithFields;
 import cafe.jeffrey.provider.profile.api.FieldDescription;
@@ -95,6 +96,15 @@ public class JdbcProfileEventTypeRepository implements ProfileEventTypeRepositor
                     SUM(weight) as weight
                 FROM events
                 WHERE event_type IN (:codes)
+                    AND (:span_filter_enabled = FALSE OR EXISTS (
+                        SELECT 1 FROM (
+                            SELECT UNNEST([:span_thread_hashes]) AS th,
+                                   UNNEST([:span_from_ms]) AS f,
+                                   UNNEST([:span_to_ms]) AS t
+                        ) iv
+                        WHERE events.thread_hash = iv.th
+                          AND EPOCH_MS(events.start_timestamp) BETWEEN iv.f AND iv.t
+                    ))
                 GROUP BY event_type
             )
             SELECT
@@ -203,6 +213,7 @@ public class JdbcProfileEventTypeRepository implements ProfileEventTypeRepositor
 
         MapSqlParameterSource paramSource = new MapSqlParameterSource()
                 .addValue("codes", codes);
+        SpanIntervalParams.apply(paramSource, null);
 
         List<EventSummary> eventSummaries = databaseClient.query(
                 StatementLabel.EVENT_SUMMARIES, EVENT_SUMMARIES_BY_CODES, paramSource, EVENT_SUMMARY_MAPPER);
@@ -214,6 +225,21 @@ public class JdbcProfileEventTypeRepository implements ProfileEventTypeRepositor
                 .toList();
 
         return combine(eventSummaries, calculatedEventSummaries);
+    }
+
+    @Override
+    public List<EventSummary> eventSummaries(List<Type> types, List<SpanInterval> spanIntervals) {
+        List<String> codes = types.stream()
+                .map(Type::code)
+                .toList();
+
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("codes", codes);
+        SpanIntervalParams.apply(paramSource, spanIntervals);
+
+        // Calculated (non-DB) summaries are profile-wide and cannot be span-scoped, so they are omitted here.
+        return databaseClient.query(
+                StatementLabel.EVENT_SUMMARIES, EVENT_SUMMARIES_BY_CODES, paramSource, EVENT_SUMMARY_MAPPER);
     }
 
     @Override

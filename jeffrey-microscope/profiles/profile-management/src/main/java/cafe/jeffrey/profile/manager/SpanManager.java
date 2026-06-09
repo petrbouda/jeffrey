@@ -20,18 +20,18 @@ package cafe.jeffrey.profile.manager;
 
 import cafe.jeffrey.profile.manager.model.span.SpanDetailRow;
 import cafe.jeffrey.profile.manager.model.span.SpanEventRow;
-import cafe.jeffrey.profile.manager.model.span.SpanHeatmap;
 import cafe.jeffrey.profile.manager.model.span.SpanOverview;
 import cafe.jeffrey.profile.manager.model.span.SpanSlowestRow;
 import cafe.jeffrey.profile.manager.model.span.SpanTagStat;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
+import cafe.jeffrey.shared.common.model.SpanInterval;
 
 import java.util.List;
 import java.util.function.Function;
 
 /**
  * Reads async-profiler {@code profiler.Span} events and shapes them for the span views:
- * an overview header, a by-tag breakdown and a tag-by-time heatmap.
+ * an overview header and a by-tag breakdown.
  */
 public interface SpanManager {
 
@@ -50,15 +50,19 @@ public interface SpanManager {
     List<SpanTagStat> tagStatistics();
 
     /**
-     * @return tag-by-time heatmap of span count and p95 latency
-     */
-    SpanHeatmap heatmap();
-
-    /**
      * @param tag the span tag to inspect
      * @return all spans of that tag, ordered by start time, for the tag detail view
      */
     List<SpanDetailRow> tagSpans(String tag);
+
+    /**
+     * Reduces every span of the given tag to its (thread, time-window) interval so a flamegraph can be
+     * scoped to exactly the samples those spans cover. Used by the span-scoped flamegraph endpoint.
+     *
+     * @param tag the span tag to scope to
+     * @return one interval per span of that tag (empty if the tag has no spans)
+     */
+    List<SpanInterval> tagIntervals(String tag);
 
     /**
      * @param limit maximum number of spans to return
@@ -67,13 +71,14 @@ public interface SpanManager {
     List<SpanSlowestRow> slowestSpans(int limit);
 
     /**
-     * Lists all JFR events on the given OS thread within {@code [fromEpochMillis, toEpochMillis]} —
-     * the events that ran during a span, for the span events drill-down.
+     * Lists all JFR events on the given thread within {@code [fromEpochMillis, toEpochMillis]} —
+     * the events that ran during a span, for the span events drill-down. The thread is identified by
+     * its {@code thread_hash} so the lookup works for virtual threads (which have no OS id).
      *
-     * @param osThreadId      OS thread id
+     * @param threadHash      identity hash of the span's thread
      * @param fromEpochMillis window start (absolute UTC epoch millis, inclusive)
      * @param toEpochMillis   window end (absolute UTC epoch millis, inclusive)
      * @return matching events ordered by start time
      */
-    List<SpanEventRow> spanEvents(long osThreadId, long fromEpochMillis, long toEpochMillis);
+    List<SpanEventRow> spanEvents(long threadHash, long fromEpochMillis, long toEpochMillis);
 }

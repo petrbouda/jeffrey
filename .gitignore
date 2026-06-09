@@ -73,3 +73,7 @@ jmh-tests/dependency-reduced-pom.xml
 jeffrey-server/http-client/
 
 /azure-sf
+
+# Local async-profiler self-profiling helper + its JFR output (not committed)
+/run-microscope-profiled.sh
+/jeffrey-*.jfr

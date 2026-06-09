@@ -58,7 +58,23 @@
         <netty.version>4.2.12.Final</netty.version>
         <protobuf.version>4.34.1</protobuf.version>
         <antlr4.version>4.13.2</antlr4.version>
+        <!-- Vendored async-profiler Java API (span-api branch), served from the in-repo lib/m2 repository. -->
+        <async-profiler.version>4.4-span</async-profiler.version>
     </properties>
+
+    <repositories>
+        <!-- In-repo file repository hosting the vendored async-profiler span-api API jar (lib/m2). -->
+        <repository>
+            <id>jeffrey-in-repo</id>
+            <url>file://${maven.multiModuleProjectDirectory}/lib/m2</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
 
     <dependencyManagement>
         <dependencies>

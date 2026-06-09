@@ -77,6 +77,7 @@ class ProfileFeaturesManagerImplTest {
             assertTrue(disabledFeatures.contains(FeatureType.JDBC_STATEMENTS_DASHBOARD));
             assertTrue(disabledFeatures.contains(FeatureType.JDBC_POOL_DASHBOARD));
             assertTrue(disabledFeatures.contains(FeatureType.TRACING_DASHBOARD));
+            assertTrue(disabledFeatures.contains(FeatureType.ASYNC_PROFILER_SPANS));
             assertTrue(disabledFeatures.contains(FeatureType.CONTAINER_DASHBOARD));
             assertTrue(disabledFeatures.contains(FeatureType.PERF_COUNTERS_DASHBOARD));
         }
@@ -127,6 +128,20 @@ class ProfileFeaturesManagerImplTest {
             List<FeatureType> disabledFeatures = manager.getDisabledFeatures();
 
             assertFalse(disabledFeatures.contains(FeatureType.JDBC_STATEMENTS_DASHBOARD));
+        }
+
+        @Test
+        @DisplayName("Async-profiler spans feature is enabled when SPAN has samples")
+        void asyncProfilerSpansEnabled() {
+            when(eventTypeRepository.eventSummaries()).thenReturn(List.of(
+                    summary(Type.SPAN, 7)));
+            when(eventRepository.latestJsonFields(any())).thenReturn(Optional.empty());
+            when(cacheRepository.contains(any())).thenReturn(false);
+
+            var manager = new ProfileFeaturesManagerImpl(eventRepository, eventTypeRepository, cacheRepository);
+            List<FeatureType> disabledFeatures = manager.getDisabledFeatures();
+
+            assertFalse(disabledFeatures.contains(FeatureType.ASYNC_PROFILER_SPANS));
         }
     }
 }

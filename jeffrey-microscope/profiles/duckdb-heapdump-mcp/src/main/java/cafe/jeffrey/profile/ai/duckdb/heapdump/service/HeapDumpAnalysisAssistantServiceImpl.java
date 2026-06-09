@@ -31,6 +31,7 @@ import cafe.jeffrey.profile.ai.duckdb.heapdump.model.HeapDumpChatMessage;
 import cafe.jeffrey.profile.ai.duckdb.heapdump.prompt.HeapDumpAnalysisSystemPrompt;
 import cafe.jeffrey.profile.ai.duckdb.heapdump.tools.HeapDumpMcpTools;
 import cafe.jeffrey.profile.ai.duckdb.heapdump.tools.HeapDumpToolsDelegate;
+import cafe.jeffrey.shared.common.span.Spans;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -111,11 +112,17 @@ public class HeapDumpAnalysisAssistantServiceImpl implements HeapDumpAnalysisAss
     }
 
     private String executeWithTools(List<Message> messages, HeapDumpMcpTools tools, List<String> toolsUsed) {
-        ChatResponse response = chatClient.prompt()
-                .messages(messages)
-                .tools(tools)
-                .call()
-                .chatResponse();
+        long aiSpan = Spans.start();
+        ChatResponse response;
+        try {
+            response = chatClient.prompt()
+                    .messages(messages)
+                    .tools(tools)
+                    .call()
+                    .chatResponse();
+        } finally {
+            Spans.end(aiSpan, "ai.heapdump-analysis.call");
+        }
 
         return response.getResult().getOutput().getText();
     }

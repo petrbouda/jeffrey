@@ -23,10 +23,9 @@ import java.util.List;
 /**
  * Reads async-profiler {@code profiler.Span} events from a profile.
  * <p>
- * Implemented twice: a real DuckDB-backed implementation and an in-memory mock that generates
- * sample data, selected at runtime via the {@code jeffrey.profile.spans.mock} flag. The single
- * primitive {@link #listSpans()} returns raw spans; all aggregation (by-tag stats, heatmap
- * bucketing, nesting depth) happens above this layer in the span manager.
+ * Backed by a DuckDB implementation that reads real {@code profiler.Span} events from the
+ * profile database. The single primitive {@link #listSpans()} returns raw spans; all aggregation
+ * (by-tag stats) happens above this layer in the span manager.
  */
 public interface SpanRepository {
 
@@ -36,13 +35,15 @@ public interface SpanRepository {
     List<SpanRecord> listSpans();
 
     /**
-     * Returns all events (any type, except {@code profiler.Span} itself) that ran on the given OS
-     * thread within the time window, ordered by start time — for the span events drill-down.
+     * Returns all events (any type, except {@code profiler.Span} itself) that ran on the given thread
+     * within the time window, ordered by start time — for the span events drill-down. The thread is
+     * matched by its identity hash ({@code thread_hash}) rather than OS id, so it resolves correctly
+     * for virtual threads (which have no OS id).
      *
-     * @param osThreadId      OS thread id of the span
+     * @param threadHash      identity hash of the span's thread
      * @param fromEpochMillis window start (inclusive), absolute UTC epoch millis
      * @param toEpochMillis   window end (inclusive), absolute UTC epoch millis
      * @return the matching events, ordered by start time ascending
      */
-    List<SpanEventRecord> eventsForThread(long osThreadId, long fromEpochMillis, long toEpochMillis);
+    List<SpanEventRecord> eventsForThread(long threadHash, long fromEpochMillis, long toEpochMillis);
 }

@@ -148,23 +148,14 @@ public class ProfileFactoriesConfiguration {
     }
 
     /**
-     * Selects the span repository implementation at runtime. Defaults to the mock (generated data)
-     * so the span views are usable before async-profiler's Span API ships; set
-     * {@code jeffrey.profile.spans.mock=false} to read real {@code profiler.Span} events from the
-     * profile database.
+     * Creates the span manager backed by the real {@code profiler.Span} event repository
+     * (read from the per-profile database).
      */
     @Bean
-    public SpanManager.Factory spanManagerFactory(
-            @Value("${jeffrey.profile.spans.mock:true}") boolean mock) {
-
+    public SpanManager.Factory spanManagerFactory() {
         return profileInfo -> {
-            SpanRepository repository;
-            if (mock) {
-                repository = new MockSpanRepository();
-            } else {
-                DataSource profileDb = databaseManagerResolver.open(profileInfo);
-                repository = profileRepositories.newSpanRepository(profileDb);
-            }
+            DataSource profileDb = databaseManagerResolver.open(profileInfo);
+            SpanRepository repository = profileRepositories.newSpanRepository(profileDb);
             return new SpanManagerImpl(repository);
         };
     }

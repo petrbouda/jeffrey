@@ -167,11 +167,11 @@ const displayedItems = computed(() =>
 }
 
 .mcl-card:hover {
-  box-shadow: var(--shadow-lg);
-  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
 }
 
-/* Left: gradient count zone */
+/* Left: soft count zone (flat, brand-tinted) */
 .mcl-count {
   display: flex;
   flex-direction: column;
@@ -180,8 +180,9 @@ const displayedItems = computed(() =>
   min-width: 96px;
   flex-shrink: 0;
   padding: 0 14px;
-  background: linear-gradient(135deg, var(--color-primary), var(--color-violet));
-  color: var(--color-white);
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  border-right: 1px solid var(--color-border-light);
 }
 
 .mcl-count-num {

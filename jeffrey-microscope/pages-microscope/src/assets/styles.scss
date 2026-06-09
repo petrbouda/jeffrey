@@ -323,9 +323,9 @@ h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
   }
 }
 
-// Viewport-height modal: caps the dialog to the screen so its body (not the overlay) is the scroll
-// container — used by the span events modal so only its inner table scrolls. Keeps Bootstrap's
-// 1.75rem top+bottom dialog margin.
+// Viewport-height modal: caps the dialog to the screen so its body is the single scroll container —
+// used by the span events modal so the whole body (timeline, summary, table) scrolls as one unit
+// instead of a nested scrollable panel. Keeps Bootstrap's 1.75rem top+bottom dialog margin.
 .events-modal-dialog {
   height: calc(100vh - 3.5rem);
 
@@ -338,7 +338,7 @@ h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
   .modal-body {
     flex: 1 1 auto;
     min-height: 0;
-    overflow: hidden;
+    overflow-y: auto;
   }
 }
 

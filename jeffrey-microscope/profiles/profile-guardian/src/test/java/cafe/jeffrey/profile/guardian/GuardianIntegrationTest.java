@@ -183,6 +183,7 @@ class GuardianIntegrationTest {
         @Override public Optional<EventTypeWithFields> singleFieldsByEventType(Type type) { return Optional.empty(); }
         @Override public List<FieldDescription> eventColumns(Type type) { return List.of(); }
         @Override public List<EventSummary> eventSummaries(List<Type> types) { return List.of(); }
+        @Override public List<EventSummary> eventSummaries(List<Type> types, List<cafe.jeffrey.shared.common.model.SpanInterval> spanIntervals) { return List.of(); }
         @Override public List<EventSummary> eventSummaries() { return List.of(); }
     }
 

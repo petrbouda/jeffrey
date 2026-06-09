@@ -22,17 +22,30 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
+import cafe.jeffrey.profile.common.config.GraphParameters;
+import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.profile.manager.SpanManager;
 import cafe.jeffrey.profile.manager.model.span.SpanDetailRow;
 import cafe.jeffrey.profile.manager.model.span.SpanEventRow;
-import cafe.jeffrey.profile.manager.model.span.SpanHeatmap;
 import cafe.jeffrey.profile.manager.model.span.SpanOverview;
 import cafe.jeffrey.profile.manager.model.span.SpanSlowestRow;
 import cafe.jeffrey.profile.manager.model.span.SpanTagStat;
+import cafe.jeffrey.profile.model.EventSummaryResult;
+import cafe.jeffrey.profile.resources.request.GenerateSingleSpanFlamegraphRequest;
+import cafe.jeffrey.profile.resources.request.GenerateSpanFlamegraphRequest;
+import cafe.jeffrey.profile.resources.request.SpanFlamegraphOptions;
+import cafe.jeffrey.shared.common.GraphType;
+import cafe.jeffrey.shared.common.model.ProfileInfo;
+import cafe.jeffrey.shared.common.model.ProfilingStartEnd;
+import cafe.jeffrey.shared.common.model.SpanInterval;
+import cafe.jeffrey.shared.common.model.time.RelativeTimeRange;
+import cafe.jeffrey.shared.common.model.time.UndefinedTimeRange;
 
 import java.util.List;
 
@@ -62,12 +75,6 @@ public class AsyncProfilerSpansController {
         return mgr(profileId).tagStatistics();
     }
 
-    @GetMapping("/spans/heatmap")
-    public SpanHeatmap heatmap(@PathVariable("profileId") String profileId) {
-        LOG.debug("Building span heatmap: profileId={}", profileId);
-        return mgr(profileId).heatmap();
-    }
-
     @GetMapping("/spans/tag")
     public List<SpanDetailRow> tagSpans(
             @PathVariable("profileId") String profileId,
@@ -87,12 +94,70 @@ public class AsyncProfilerSpansController {
     @GetMapping("/spans/events")
     public List<SpanEventRow> spanEvents(
             @PathVariable("profileId") String profileId,
-            @RequestParam("osThreadId") long osThreadId,
+            @RequestParam("threadHash") long threadHash,
             @RequestParam("fromMillis") long fromMillis,
             @RequestParam("toMillis") long toMillis) {
-        LOG.debug("Listing span events: profileId={} os_thread_id={} from={} to={}",
-                profileId, osThreadId, fromMillis, toMillis);
-        return mgr(profileId).spanEvents(osThreadId, fromMillis, toMillis);
+        LOG.debug("Listing span events: profileId={} thread_hash={} from={} to={}",
+                profileId, threadHash, fromMillis, toMillis);
+        return mgr(profileId).spanEvents(threadHash, fromMillis, toMillis);
+    }
+
+    @GetMapping("/spans/event-summaries")
+    public List<EventSummaryResult> spanEventSummaries(
+            @PathVariable("profileId") String profileId,
+            @RequestParam("tag") String tag) {
+        LOG.debug("Building span-scoped event summaries: profileId={} tag={}", profileId, tag);
+        ProfileManager pm = resolver.resolve(profileId);
+        List<SpanInterval> intervals = pm.spanManager().tagIntervals(tag);
+        return pm.flamegraphManager().eventSummaries(intervals);
+    }
+
+    @PostMapping(value = "/spans/flamegraph", produces = FlamegraphController.PROTOBUF_MEDIA_TYPE)
+    public byte[] spanFlamegraph(
+            @PathVariable("profileId") String profileId,
+            @RequestBody GenerateSpanFlamegraphRequest request) {
+        LOG.debug("Generating span-scoped flamegraph: profileId={} tag={} eventType={}",
+                profileId, request.tag(), request.eventType());
+        ProfileManager pm = resolver.resolve(profileId);
+        List<SpanInterval> intervals = pm.spanManager().tagIntervals(request.tag());
+        GraphParameters params = mapToSpanGraphParameters(pm.info(), request, intervals);
+        return pm.flamegraphManager().generate(params);
+    }
+
+    @PostMapping(value = "/spans/single/flamegraph", produces = FlamegraphController.PROTOBUF_MEDIA_TYPE)
+    public byte[] singleSpanFlamegraph(
+            @PathVariable("profileId") String profileId,
+            @RequestBody GenerateSingleSpanFlamegraphRequest request) {
+        LOG.debug("Generating single-span flamegraph: profileId={} thread_hash={} from={} to={} eventType={}",
+                profileId, request.threadHash(), request.fromMillis(), request.toMillis(), request.eventType());
+        ProfileManager pm = resolver.resolve(profileId);
+        List<SpanInterval> intervals = List.of(
+                new SpanInterval(request.threadHash(), request.fromMillis(), request.toMillis()));
+        GraphParameters params = mapToSpanGraphParameters(pm.info(), request, intervals);
+        return pm.flamegraphManager().generate(params);
+    }
+
+    private static GraphParameters mapToSpanGraphParameters(
+            ProfileInfo profileInfo, SpanFlamegraphOptions request, List<SpanInterval> intervals) {
+        // Full-profile range so the timeseries can bucket over the whole timeline; the span intervals
+        // (not the time range) are what scope the samples, so a null range would NPE the timeseries init.
+        ProfilingStartEnd primaryStartEnd = new ProfilingStartEnd(
+                profileInfo.profilingStartedAt(), profileInfo.profilingFinishedAt());
+        RelativeTimeRange fullRange = UndefinedTimeRange.INSTANCE.toRelativeTimeRange(primaryStartEnd);
+
+        return GraphParameters.builder()
+                .withEventType(request.eventType())
+                .withTimeRange(fullRange)
+                .withThreadMode(request.useThreadMode())
+                .withUseWeight(request.useWeight())
+                .withExcludeNonJavaSamples(request.excludeNonJavaSamples())
+                .withExcludeIdleSamples(request.excludeIdleSamples())
+                .withOnlyUnsafeAllocationSamples(request.onlyUnsafeAllocationSamples())
+                .withParseLocation(true)
+                .withGraphType(GraphType.PRIMARY)
+                .withGraphComponents(request.components())
+                .withSpanIntervals(intervals)
+                .build();
     }
 
     private SpanManager mgr(String profileId) {

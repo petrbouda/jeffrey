@@ -30,6 +30,7 @@ import cafe.jeffrey.flamegraph.provider.FlamegraphDataProvider;
 import cafe.jeffrey.flamegraph.provider.TimeseriesDataProvider;
 import cafe.jeffrey.frameir.Frame;
 import cafe.jeffrey.provider.profile.api.ProfileEventStreamRepository;
+import cafe.jeffrey.shared.common.span.Spans;
 import cafe.jeffrey.timeseries.SingleSerie;
 import cafe.jeffrey.timeseries.TimeseriesData;
 
@@ -72,19 +73,24 @@ public class DbBasedFlamegraphGenerator implements GraphGenerator {
 
         CompletableFuture.allOf(flameFuture, timeseriesFuture).join();
 
-        cafe.jeffrey.flamegraph.proto.GraphData.Builder graphBuilder = cafe.jeffrey.flamegraph.proto.GraphData.newBuilder();
+        long marshallingSpan = Spans.start();
+        try {
+            cafe.jeffrey.flamegraph.proto.GraphData.Builder graphBuilder = cafe.jeffrey.flamegraph.proto.GraphData.newBuilder();
 
-        cafe.jeffrey.flamegraph.proto.FlamegraphData flamegraphData = flameFuture.join();
-        if (flamegraphData != null) {
-            graphBuilder.setFlamegraph(flamegraphData);
+            cafe.jeffrey.flamegraph.proto.FlamegraphData flamegraphData = flameFuture.join();
+            if (flamegraphData != null) {
+                graphBuilder.setFlamegraph(flamegraphData);
+            }
+
+            TimeseriesData timeseriesData = timeseriesFuture.join();
+            if (timeseriesData != null) {
+                graphBuilder.setTimeseries(convertTimeseries(timeseriesData));
+            }
+
+            return graphBuilder.build().toByteArray();
+        } finally {
+            Spans.end(marshallingSpan, "graph.marshalling");
         }
-
-        TimeseriesData timeseriesData = timeseriesFuture.join();
-        if (timeseriesData != null) {
-            graphBuilder.setTimeseries(convertTimeseries(timeseriesData));
-        }
-
-        return graphBuilder.build().toByteArray();
     }
 
     /**

@@ -26,7 +26,9 @@
     initial-sort="totalNanos"
     @item-click="(stat) => $emit('tagClick', stat.tag)"
   >
-    <template #name="{ item }">{{ item.tag || '(no tag)' }}</template>
+    <template #name="{ item }">
+      <MetricName :segments="parseGroupedName(item.tag, '(no tag)')" :title="item.tag || '(no tag)'" />
+    </template>
 
     <template #metrics="{ item }">
       <Badge
@@ -65,6 +67,8 @@
 import FormattingService from '@/services/FormattingService';
 import Badge from '@/components/Badge.vue';
 import MetricCardList from '@/components/common/MetricCardList.vue';
+import MetricName from '@/components/common/MetricName.vue';
+import { parseGroupedName } from '@/services/metricName';
 import type { MetricSortOption } from '@/components/common/MetricCardList.vue';
 import type { SpanTagStat } from '@/services/api/model/span/SpanModels';
 

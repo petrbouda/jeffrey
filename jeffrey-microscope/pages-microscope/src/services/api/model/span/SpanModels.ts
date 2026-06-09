@@ -39,18 +39,22 @@ export interface SpanTagStat {
   maxNanos: number;
 }
 
+// threadHash is a 64-bit value sent as a string — it exceeds JS's safe-integer range, so a
+// numeric type would silently lose precision and break event pairing.
 export interface SpanDetailRow {
   startEpochMillis: number;
   durationNanos: number;
-  osThreadId: number;
+  threadHash: string;
   threadName: string;
+  isVirtual: boolean;
 }
 
 export interface SpanSlowestRow {
   startEpochMillis: number;
   durationNanos: number;
-  osThreadId: number;
+  threadHash: string;
   threadName: string;
+  isVirtual: boolean;
   tag: string;
 }
 
@@ -59,21 +63,4 @@ export interface SpanEventRow {
   startEpochMillis: number;
   durationNanos: number;
   fields: string | null;
-}
-
-export interface SpanHeatmapCell {
-  bucket: number;
-  count: number;
-  p95Nanos: number;
-}
-
-export interface SpanHeatmapRow {
-  tag: string;
-  cells: SpanHeatmapCell[];
-}
-
-export interface SpanHeatmap {
-  bucketCount: number;
-  bucketMillis: number;
-  rows: SpanHeatmapRow[];
 }

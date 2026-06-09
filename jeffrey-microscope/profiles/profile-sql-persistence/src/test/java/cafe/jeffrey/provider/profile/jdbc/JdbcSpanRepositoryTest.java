@@ -31,6 +31,7 @@ import java.time.Instant;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @DuckDBTest(migration = "classpath:db/migration/profile")
@@ -51,9 +52,11 @@ class JdbcSpanRepositoryTest {
         SpanRecord first = spans.get(0);
         assertEquals(0, first.startMillisFromBeginning());
         assertEquals(300 * MS, first.durationNanos());
+        assertEquals(2001, first.threadHash());
         assertEquals(41, first.osThreadId());
         assertEquals(12, first.javaThreadId());
         assertEquals("http-nio-exec-3", first.threadName());
+        assertFalse(first.isVirtual());
         assertEquals("profile.initialize", first.tag());
 
         assertEquals("jfr.parse_and_ingest", spans.get(1).tag());
@@ -61,6 +64,7 @@ class JdbcSpanRepositoryTest {
 
         SpanRecord third = spans.get(2);
         assertEquals("hprof.index.build", third.tag());
+        assertEquals(2002, third.threadHash());
         assertEquals(71, third.osThreadId());
         assertEquals(2000, third.startMillisFromBeginning());
     }
@@ -80,15 +84,33 @@ class JdbcSpanRepositoryTest {
         long from = Instant.parse("2026-01-01T00:00:00.500Z").toEpochMilli();
         long to = Instant.parse("2026-01-01T00:00:05.000Z").toEpochMilli();
 
-        List<SpanEventRecord> events = repository.eventsForThread(91, from, to);
+        // thread_hash 3001 = the 'worker' platform thread.
+        List<SpanEventRecord> events = repository.eventsForThread(3001, from, to);
 
-        // 2 samples + 1 monitor; excludes the span, the out-of-window sample, and the other thread.
+        // 2 samples + 1 monitor; excludes the span, the out-of-window sample, the other thread,
+        // and the virtual thread.
         assertEquals(3, events.size());
         assertEquals("jdk.ExecutionSample", events.get(0).eventType());
         assertEquals("jdk.JavaMonitorEnter", events.get(1).eventType());
         assertEquals(3_000_000L, events.get(1).durationNanos());
         assertTrue(events.get(1).fields().contains("monitorClass"));
         assertEquals("jdk.ExecutionSample", events.get(2).eventType());
+    }
+
+    @Test
+    void eventsForThreadResolvesVirtualThreadByHash(DataSource dataSource) throws SQLException {
+        TestUtils.executeSql(dataSource, "sql/events/insert-thread-events.sql");
+        JdbcSpanRepository repository = new JdbcSpanRepository(new DatabaseClientProvider(dataSource));
+
+        long from = Instant.parse("2026-01-01T00:00:00.500Z").toEpochMilli();
+        long to = Instant.parse("2026-01-01T00:00:05.000Z").toEpochMilli();
+
+        // thread_hash 3003 = the 'vt-worker' VIRTUAL thread (os_id NULL). Matching by thread_hash
+        // resolves it; an os_id-based query never could. This is the regression guard for the fix.
+        List<SpanEventRecord> events = repository.eventsForThread(3003, from, to);
+
+        assertEquals(1, events.size());
+        assertEquals("jdk.ExecutionSample", events.get(0).eventType());
     }
 
     @Test
@@ -99,6 +121,6 @@ class JdbcSpanRepositoryTest {
         long from = Instant.parse("2026-01-01T00:00:20.000Z").toEpochMilli();
         long to = Instant.parse("2026-01-01T00:00:30.000Z").toEpochMilli();
 
-        assertTrue(repository.eventsForThread(91, from, to).isEmpty());
+        assertTrue(repository.eventsForThread(3001, from, to).isEmpty());
     }
 }

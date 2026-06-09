@@ -19,6 +19,7 @@
 package cafe.jeffrey.profile.common.config;
 
 import cafe.jeffrey.shared.common.GraphType;
+import cafe.jeffrey.shared.common.model.SpanInterval;
 import cafe.jeffrey.shared.common.model.ThreadInfo;
 import cafe.jeffrey.shared.common.model.Type;
 import cafe.jeffrey.profile.common.analysis.marker.Marker;
@@ -41,6 +42,7 @@ public class GraphParametersBuilder {
     private List<Marker> markers;
     private GraphType graphType;
     private GraphComponents graphComponents;
+    private List<SpanInterval> spanIntervals;
 
     public GraphParametersBuilder withEventType(Type eventType) {
         this.eventType = eventType;
@@ -107,6 +109,11 @@ public class GraphParametersBuilder {
         return this;
     }
 
+    public GraphParametersBuilder withSpanIntervals(List<SpanInterval> spanIntervals) {
+        this.spanIntervals = spanIntervals;
+        return this;
+    }
+
     public GraphParameters build() {
         return new GraphParameters(
                 eventType,
@@ -121,6 +128,7 @@ public class GraphParametersBuilder {
                 parseLocations,
                 markers,
                 graphType,
-                graphComponents);
+                graphComponents,
+                spanIntervals);
     }
 }

@@ -103,6 +103,9 @@ public abstract class EventTypeName {
     public static final String GRPC_SERVER_EXCHANGE = "jeffrey.GrpcServerExchange";
     public static final String GRPC_CLIENT_EXCHANGE = "jeffrey.GrpcClientExchange";
 
+    // Async-profiler events
+    public static final String SPAN = "profiler.Span";
+
     // Streaming events
     public static final String MESSAGE = "jeffrey.Message";
     public static final String ALERT = "jeffrey.Alert";

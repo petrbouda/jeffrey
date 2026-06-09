@@ -8,7 +8,9 @@
     initial-sort="maxExecutionTime"
     @item-click="(group) => $emit('groupClick', group.group)"
   >
-    <template #name="{ item }">{{ item.group }}</template>
+    <template #name="{ item }">
+      <MetricName :segments="parseGroupedName(item.group)" :title="item.group" />
+    </template>
 
     <template #metrics="{ item }">
       <Badge
@@ -53,6 +55,8 @@ import FormattingService from '@/services/FormattingService.ts';
 import Badge from '@/components/Badge.vue';
 import StatusBadge from '@/components/common/StatusBadge.vue';
 import MetricCardList from '@/components/common/MetricCardList.vue';
+import MetricName from '@/components/common/MetricName.vue';
+import { parseGroupedName } from '@/services/metricName';
 import type { MetricSortOption } from '@/components/common/MetricCardList.vue';
 
 interface Props {

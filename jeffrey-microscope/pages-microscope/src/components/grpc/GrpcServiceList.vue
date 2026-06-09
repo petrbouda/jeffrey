@@ -9,10 +9,7 @@
     @item-click="(service) => $emit('serviceClick', service.service)"
   >
     <template #name="{ item }">
-      <span :title="item.service">
-        <span class="svc-package">{{ getPackageName(item.service) }}</span>
-        <span class="svc-simple">{{ getSimpleName(item.service) }}</span>
-      </span>
+      <MetricName :segments="parseQualifiedName(item.service)" :title="item.service" />
     </template>
 
     <template #metrics="{ item }">
@@ -71,6 +68,8 @@ import FormattingService from '@/services/FormattingService';
 import Badge from '@/components/Badge.vue';
 import StatusBadge from '@/components/common/StatusBadge.vue';
 import MetricCardList from '@/components/common/MetricCardList.vue';
+import MetricName from '@/components/common/MetricName.vue';
+import { parseQualifiedName } from '@/services/metricName';
 import type { MetricSortOption } from '@/components/common/MetricCardList.vue';
 import type { GrpcServiceInfo } from '@/services/api/ProfileGrpcClient';
 
@@ -110,25 +109,4 @@ const sortOptions: MetricSortOption[] = [
   }
 ];
 
-const getPackageName = (fullName: string): string => {
-  const lastDot = fullName.lastIndexOf('.');
-  return lastDot >= 0 ? fullName.substring(0, lastDot + 1) : '';
-};
-
-const getSimpleName = (fullName: string): string => {
-  const lastDot = fullName.lastIndexOf('.');
-  return lastDot >= 0 ? fullName.substring(lastDot + 1) : fullName;
-};
 </script>
-
-<style scoped>
-.svc-package {
-  color: var(--color-text-muted);
-  font-weight: 400;
-}
-
-.svc-simple {
-  color: var(--color-dark);
-  font-weight: 700;
-}
-</style>

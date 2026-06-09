@@ -39,10 +39,11 @@
       <SpanEventsModal
         v-model:show="eventsShow"
         :profile-id="profileId"
-        :os-thread-id="selected?.osThreadId ?? 0"
+        :thread-hash="selected?.threadHash ?? ''"
         :start-epoch-millis="selected?.startEpochMillis ?? 0"
         :duration-nanos="selected?.durationNanos ?? 0"
         :thread-name="selected?.threadName ?? ''"
+        :is-virtual="selected?.isVirtual ?? false"
         :tag="selected?.tag"
       />
     </div>
@@ -66,8 +67,9 @@ import type { SpanOverview, SpanSlowestRow } from '@/services/api/model/span/Spa
 interface ClickedSpan {
   startEpochMillis: number;
   durationNanos: number;
-  osThreadId: number;
+  threadHash: string;
   threadName: string;
+  isVirtual: boolean;
   tag?: string;
 }
 

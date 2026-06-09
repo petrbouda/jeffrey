@@ -1,5 +1,11 @@
 <template>
-  <div v-if="requests.length > 0" class="slowest-list">
+  <div v-if="requests.length > 0">
+    <SlowestCountHeader
+      :shown="displayedRequests.length"
+      :total="totalRequestCount"
+      note="sorted by response time"
+    />
+    <div class="slowest-list">
     <div v-for="request in displayedRequests" :key="request.timestamp" class="slowest-row">
       <div class="left-accent" :class="getAccentClass(request.statusCode)"></div>
       <div class="row-content">
@@ -60,6 +66,7 @@
         </div>
       </div>
     </div>
+    </div>
   </div>
 </template>
 
@@ -67,6 +74,7 @@
 import { computed } from 'vue';
 import FormattingService from '@/services/FormattingService.ts';
 import Badge from '@/components/Badge.vue';
+import SlowestCountHeader from '@/components/SlowestCountHeader.vue';
 import type { Variant } from '@/types/ui';
 
 interface SlowRequest {

@@ -17,7 +17,7 @@ Coul<!--
   -->
 
 <template>
-  <div :class="['flamegraph-card', getCategoryClass()]">
+  <div :class="['flamegraph-card', getCategoryClass(), { 'is-disabled': !enabled }]">
     <!-- Card Header -->
     <div class="card-header">
       <div class="card-icon">
@@ -28,6 +28,7 @@ Coul<!--
       </div>
     </div>
 
+    <template v-if="enabled">
     <!-- Settings Panel -->
     <div class="settings-panel">
       <!-- Event Details -->
@@ -233,6 +234,16 @@ Coul<!--
         {{ buttonText || 'View Flamegraph' }}
       </button>
     </div>
+    </template>
+
+    <!-- No data: keep the (greyed) header, show an empty state instead of the graph controls -->
+    <EmptyState
+      v-else
+      class="card-empty-state"
+      icon="bi-inbox"
+      title="No samples recorded"
+      description="Nothing to visualize for this graph"
+    />
   </div>
 </template>
 
@@ -244,6 +255,7 @@ import EventSummary from '@/services/api/model/EventSummary';
 import Utils from '@/services/Utils';
 import FormattingService from '@/services/FormattingService';
 import Badge from '@/components/Badge.vue';
+import EmptyState from '@/components/EmptyState.vue';
 import type { Variant } from '@/types/ui';
 
 interface DeltaInfo {
@@ -449,6 +461,31 @@ const switchIdleSamples = () => {
 .flamegraph-card:hover {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   transform: translateY(-2px);
+}
+
+/* No-data (disabled) state: muted card with an empty state instead of the graph controls.
+   order:1 pushes empty cards after the ones with data (the grid lays items out by `order`). */
+.flamegraph-card.is-disabled {
+  order: 1;
+  background: var(--color-light);
+  border-left-color: var(--color-muted-separator);
+}
+
+.flamegraph-card.is-disabled:hover {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  transform: none;
+}
+
+.flamegraph-card.is-disabled .card-icon,
+.flamegraph-card.is-disabled .card-title {
+  color: var(--color-text-muted);
+}
+
+.flamegraph-card.is-disabled :deep(.empty-state) {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* Category-specific styling */

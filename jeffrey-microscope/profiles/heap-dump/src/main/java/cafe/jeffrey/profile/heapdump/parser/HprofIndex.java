@@ -22,6 +22,7 @@ import cafe.jeffrey.profile.heapdump.persistence.HeapDumpDatabaseClient;
 import cafe.jeffrey.profile.heapdump.persistence.HeapDumpStatement;
 import cafe.jeffrey.shared.common.measure.Elapsed;
 import cafe.jeffrey.shared.common.measure.Measuring;
+import cafe.jeffrey.shared.common.span.Spans;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -123,32 +124,37 @@ public final class HprofIndex {
             throw new IllegalArgumentException("options must not be null");
         }
 
-        Files.deleteIfExists(indexDbPath);
-        Files.deleteIfExists(HeapDumpIndexPaths.indexWalFor(file.path()));
+        long indexSpan = Spans.start();
+        try {
+            Files.deleteIfExists(indexDbPath);
+            Files.deleteIfExists(HeapDumpIndexPaths.indexWalFor(file.path()));
 
-        Path stagingDir = HeapDumpIndexPaths.indexStagingFor(file.path());
-        Elapsed<IndexResult> elapsed = Measuring.s(() -> {
-            try (HeapDumpIndexDb db = HeapDumpIndexDb.openAndInitialize(indexDbPath)) {
-                return doBuild(file, db, clock, options, stagingDir);
-            } catch (IOException | SQLException e) {
-                throw new RuntimeException(e);
-            }
-        });
+            Path stagingDir = HeapDumpIndexPaths.indexStagingFor(file.path());
+            Elapsed<IndexResult> elapsed = Measuring.s(() -> {
+                try (HeapDumpIndexDb db = HeapDumpIndexDb.openAndInitialize(indexDbPath)) {
+                    return doBuild(file, db, clock, options, stagingDir);
+                } catch (IOException | SQLException e) {
+                    throw new RuntimeException(e);
+                }
+            });
 
-        IndexResult r = elapsed.entity();
-        return new IndexResult(
-                r.stringCount(),
-                r.classCount(),
-                r.instanceCount(),
-                r.gcRootCount(),
-                r.outboundRefCount(),
-                r.stringContentCount(),
-                r.warningCount(),
-                r.truncated(),
-                r.bytesParsed(),
-                r.recordCount(),
-                elapsed.duration(),
-                r.subPhases());
+            IndexResult r = elapsed.entity();
+            return new IndexResult(
+                    r.stringCount(),
+                    r.classCount(),
+                    r.instanceCount(),
+                    r.gcRootCount(),
+                    r.outboundRefCount(),
+                    r.stringContentCount(),
+                    r.warningCount(),
+                    r.truncated(),
+                    r.bytesParsed(),
+                    r.recordCount(),
+                    elapsed.duration(),
+                    r.subPhases());
+        } finally {
+            Spans.end(indexSpan, "hprof.index.build");
+        }
     }
 
     private static IndexResult doBuild(

@@ -19,6 +19,7 @@
 package cafe.jeffrey.provider.profile.api;
 
 import cafe.jeffrey.shared.common.model.EventSummary;
+import cafe.jeffrey.shared.common.model.SpanInterval;
 import cafe.jeffrey.shared.common.model.Type;
 
 import java.util.List;
@@ -31,6 +32,13 @@ public interface ProfileEventTypeRepository {
     List<FieldDescription> eventColumns(Type type);
 
     List<EventSummary> eventSummaries(List<Type> types);
+
+    /**
+     * Same as {@link #eventSummaries(List)} but scoped to the union of the given span (thread, window)
+     * intervals — the per-type sample/weight totals counted only within those spans. Calculated
+     * (non-DB) summaries are omitted because they cannot be span-scoped.
+     */
+    List<EventSummary> eventSummaries(List<Type> types, List<SpanInterval> spanIntervals);
 
     List<EventSummary> eventSummaries();
 

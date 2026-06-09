@@ -20,14 +20,13 @@ package cafe.jeffrey.profile.manager;
 
 import cafe.jeffrey.profile.manager.model.span.SpanDetailRow;
 import cafe.jeffrey.profile.manager.model.span.SpanEventRow;
-import cafe.jeffrey.profile.manager.model.span.SpanHeatmap;
-import cafe.jeffrey.profile.manager.model.span.SpanHeatmapRow;
 import cafe.jeffrey.profile.manager.model.span.SpanOverview;
 import cafe.jeffrey.profile.manager.model.span.SpanSlowestRow;
 import cafe.jeffrey.profile.manager.model.span.SpanTagStat;
 import cafe.jeffrey.provider.profile.api.SpanEventRecord;
 import cafe.jeffrey.provider.profile.api.SpanRecord;
 import cafe.jeffrey.provider.profile.api.SpanRepository;
+import cafe.jeffrey.shared.common.model.SpanInterval;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
@@ -40,9 +39,11 @@ class SpanManagerImplTest {
 
     private static final long MS = 1_000_000L;
 
-    private static SpanRecord span(String tag, long startMillis, long durationMillis, long osThreadId) {
+    // The thread id doubles as the thread_hash in these unit tests (real hashes are opaque longs).
+    private static SpanRecord span(String tag, long startMillis, long durationMillis, long threadId) {
         return new SpanRecord(
-                startMillis, startMillis, durationMillis * MS, osThreadId, osThreadId + 100, "thread-" + osThreadId, tag);
+                startMillis, startMillis, durationMillis * MS,
+                threadId, threadId, threadId + 100, "thread-" + threadId, false, tag);
     }
 
     private static SpanManager manager(SpanRecord... spans) {
@@ -62,7 +63,7 @@ class SpanManagerImplTest {
         }
 
         @Override
-        public List<SpanEventRecord> eventsForThread(long osThreadId, long fromEpochMillis, long toEpochMillis) {
+        public List<SpanEventRecord> eventsForThread(long threadHash, long fromEpochMillis, long toEpochMillis) {
             return events;
         }
     }
@@ -151,13 +152,36 @@ class SpanManagerImplTest {
             // ordered by start epoch (helper uses startMillis as epoch)
             assertEquals(0, rows.get(0).startEpochMillis());
             assertEquals(30 * MS, rows.get(0).durationNanos());
-            assertEquals(2, rows.get(0).osThreadId());
+            assertEquals("2", rows.get(0).threadHash());
             assertEquals(200, rows.get(1).startEpochMillis());
         }
 
         @Test
         void unknownTagYieldsEmpty() {
             assertTrue(manager(span("a", 0, 10, 1)).tagSpans("missing").isEmpty());
+        }
+    }
+
+    @Nested
+    class TagIntervals {
+
+        @Test
+        void reducesEachSpanToThreadAndWindow() {
+            // Two spans of tag "a" on different threads, plus an unrelated "b" span.
+            List<SpanInterval> intervals = manager(
+                    span("a", 100, 20, 1),
+                    span("a", 5000, 30, 2),
+                    span("b", 0, 10, 3)).tagIntervals("a");
+
+            assertEquals(2, intervals.size());
+            // thread, from (start epoch), to (start + duration in millis)
+            assertEquals(new SpanInterval(1, 100, 120), intervals.get(0));
+            assertEquals(new SpanInterval(2, 5000, 5030), intervals.get(1));
+        }
+
+        @Test
+        void unknownTagYieldsEmpty() {
+            assertTrue(manager(span("a", 0, 10, 1)).tagIntervals("missing").isEmpty());
         }
     }
 
@@ -174,7 +198,7 @@ class SpanManagerImplTest {
             assertEquals(3, rows.size());
             assertEquals(30 * MS, rows.get(0).durationNanos());
             assertEquals("b", rows.get(0).tag());
-            assertEquals(2, rows.get(0).osThreadId());
+            assertEquals("2", rows.get(0).threadHash());
             assertEquals(10 * MS, rows.get(1).durationNanos());
             assertEquals("a", rows.get(1).tag());
             assertEquals(5 * MS, rows.get(2).durationNanos());
@@ -227,32 +251,4 @@ class SpanManagerImplTest {
         }
     }
 
-    @Nested
-    class Heatmap {
-
-        @Test
-        void placesSpansIntoTimeBucketsByTag() {
-            SpanHeatmap heatmap = manager(
-                    span("a", 0, 10, 1),
-                    span("a", 10_000, 10, 1),
-                    span("b", 0, 10, 1)).heatmap();
-
-            assertEquals(60, heatmap.bucketCount());
-            assertEquals(2, heatmap.rows().size());
-
-            SpanHeatmapRow rowA = heatmap.rows().stream()
-                    .filter(row -> row.tag().equals("a")).findFirst().orElseThrow();
-            // Two 'a' spans far apart → land in two distinct buckets.
-            assertEquals(2, rowA.cells().size());
-            assertTrue(rowA.cells().get(0).bucket() < rowA.cells().get(1).bucket());
-            assertEquals(1, rowA.cells().get(0).count());
-        }
-
-        @Test
-        void emptyProfileHasNoRows() {
-            SpanHeatmap heatmap = manager().heatmap();
-            assertTrue(heatmap.rows().isEmpty());
-            assertEquals(1, heatmap.bucketMillis());
-        }
-    }
 }

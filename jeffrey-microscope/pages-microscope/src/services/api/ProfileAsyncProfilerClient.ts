@@ -17,10 +17,10 @@
  */
 
 import BaseProfileClient from '@/services/api/BaseProfileClient';
+import EventSummary from '@/services/api/model/EventSummary';
 import type {
   SpanDetailRow,
   SpanEventRow,
-  SpanHeatmap,
   SpanOverview,
   SpanSlowestRow,
   SpanTagStat
@@ -39,10 +39,6 @@ export default class ProfileAsyncProfilerClient extends BaseProfileClient {
     return this.get<SpanTagStat[]>('/spans/tags');
   }
 
-  public getHeatmap(): Promise<SpanHeatmap> {
-    return this.get<SpanHeatmap>('/spans/heatmap');
-  }
-
   public getTagSpans(tag: string): Promise<SpanDetailRow[]> {
     return this.get<SpanDetailRow[]>('/spans/tag', { tag });
   }
@@ -52,10 +48,18 @@ export default class ProfileAsyncProfilerClient extends BaseProfileClient {
   }
 
   public getSpanEvents(
-    osThreadId: number,
+    threadHash: string,
     fromMillis: number,
     toMillis: number
   ): Promise<SpanEventRow[]> {
-    return this.get<SpanEventRow[]>('/spans/events', { osThreadId, fromMillis, toMillis });
+    return this.get<SpanEventRow[]>('/spans/events', { threadHash, fromMillis, toMillis });
+  }
+
+  /**
+   * Per-event-type summaries scoped to the spans of the given tag, so the flamegraph cards show the
+   * real sample/weight counts those spans cover (not the profile-wide totals).
+   */
+  public getEventSummaries(tag: string): Promise<EventSummary[]> {
+    return this.get<EventSummary[]>('/spans/event-summaries', { tag });
   }
 }

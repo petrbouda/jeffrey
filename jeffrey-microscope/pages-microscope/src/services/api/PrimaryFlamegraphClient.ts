@@ -143,11 +143,15 @@ export default class PrimaryFlamegraphClient extends FlamegraphClient {
       .then(HttpUtils.RETURN_DATA);
   }
 
-  setUseThreadMode(value: boolean): void {
+  override supportsModeToggle(): boolean {
+    return true;
+  }
+
+  override setUseThreadMode(value: boolean): void {
     this.useThreadMode = value;
   }
 
-  setUseWeight(value: boolean | null): void {
+  override setUseWeight(value: boolean | null): void {
     this.useWeight = value;
   }
 }

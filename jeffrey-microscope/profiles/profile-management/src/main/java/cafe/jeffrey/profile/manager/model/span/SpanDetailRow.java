@@ -23,12 +23,17 @@ package cafe.jeffrey.profile.manager.model.span;
  *
  * @param startEpochMillis absolute UTC epoch-millis start
  * @param durationNanos    span duration in nanoseconds
- * @param osThreadId       OS thread id (0 if unknown)
+ * @param threadHash       thread-identity hash — pairing key for the span's events (works for
+ *                         platform and virtual threads). A {@code String} because the 64-bit hash
+ *                         exceeds JavaScript's safe-integer range and would lose precision if sent
+ *                         as a JSON number.
  * @param threadName       thread name (may be {@code null})
+ * @param isVirtual        whether the thread is a virtual thread
  */
 public record SpanDetailRow(
         long startEpochMillis,
         long durationNanos,
-        long osThreadId,
-        String threadName) {
+        String threadHash,
+        String threadName,
+        boolean isVirtual) {
 }

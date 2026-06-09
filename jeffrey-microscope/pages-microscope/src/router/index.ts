@@ -370,13 +370,6 @@ const profileChildRoutes = [
     meta: { layout: 'profile' }
   },
   {
-    path: 'technologies/async-profiler/heatmap',
-    name: 'profile-technologies-async-profiler-heatmap',
-    component: () =>
-      import('@/views/profiles/detail/technologies/ProfileAsyncProfilerHeatmap.vue'),
-    meta: { layout: 'profile' }
-  },
-  {
     path: 'technologies/grpc/overview',
     name: 'profile-technologies-grpc-overview',
     component: () => import('@/views/profiles/detail/technologies/ProfileGrpcOverview.vue'),

@@ -76,6 +76,15 @@ public class DuckDBFlamegraphQueries implements ComplexQueries.Flamegraph {
                 WHERE e.event_type = <<event_type>>
                     AND (:from_time IS NULL OR EPOCH_MS(e.start_timestamp - fs.first_ts) >= :from_time)
                     AND (:to_time IS NULL OR EPOCH_MS(e.start_timestamp - fs.first_ts) <= :to_time)
+                    AND (:span_filter_enabled = FALSE OR EXISTS (
+                        SELECT 1 FROM (
+                            SELECT UNNEST([:span_thread_hashes]) AS th,
+                                   UNNEST([:span_from_ms]) AS f,
+                                   UNNEST([:span_to_ms]) AS t
+                        ) iv
+                        WHERE e.thread_hash = iv.th
+                          AND EPOCH_MS(e.start_timestamp) BETWEEN iv.f AND iv.t
+                    ))
                     AND (:stacktrace_types IS NULL OR s.type_id IN (:stacktrace_types))
                     AND (:included_tags IS NULL OR list_has_any(s.tag_ids, [:included_tags]))
                     AND (:excluded_tags IS NULL OR NOT list_has_any(s.tag_ids, [:excluded_tags]))
@@ -129,6 +138,15 @@ public class DuckDBFlamegraphQueries implements ComplexQueries.Flamegraph {
             WHERE e.event_type = <<event_type>>
                 AND (:from_time IS NULL OR EPOCH_MS(e.start_timestamp - fs.first_ts) >= :from_time)
                 AND (:to_time IS NULL OR EPOCH_MS(e.start_timestamp - fs.first_ts) <= :to_time)
+                AND (:span_filter_enabled = FALSE OR EXISTS (
+                    SELECT 1 FROM (
+                        SELECT UNNEST([:span_thread_hashes]) AS th,
+                               UNNEST([:span_from_ms]) AS f,
+                               UNNEST([:span_to_ms]) AS t
+                    ) iv
+                    WHERE e.thread_hash = iv.th
+                      AND EPOCH_MS(e.start_timestamp) BETWEEN iv.f AND iv.t
+                ))
                 AND (:stacktrace_types IS NULL OR s.type_id IN (:stacktrace_types))
                 AND (:included_tags IS NULL OR list_has_any(s.tag_ids, [:included_tags]))
                 AND (:excluded_tags IS NULL OR NOT list_has_any(s.tag_ids, [:excluded_tags]))
@@ -159,6 +177,15 @@ public class DuckDBFlamegraphQueries implements ComplexQueries.Flamegraph {
                 WHERE e.event_type = <<event_type>>
                     AND (:from_time IS NULL OR EPOCH_MS(e.start_timestamp - fs.first_ts) >= :from_time)
                     AND (:to_time IS NULL OR EPOCH_MS(e.start_timestamp - fs.first_ts) <= :to_time)
+                    AND (:span_filter_enabled = FALSE OR EXISTS (
+                        SELECT 1 FROM (
+                            SELECT UNNEST([:span_thread_hashes]) AS th,
+                                   UNNEST([:span_from_ms]) AS f,
+                                   UNNEST([:span_to_ms]) AS t
+                        ) iv
+                        WHERE e.thread_hash = iv.th
+                          AND EPOCH_MS(e.start_timestamp) BETWEEN iv.f AND iv.t
+                    ))
                     AND (:stacktrace_types IS NULL OR s.type_id IN (:stacktrace_types))
                     AND (:included_tags IS NULL OR list_has_any(s.tag_ids, [:included_tags]))
                     AND (:excluded_tags IS NULL OR NOT list_has_any(s.tag_ids, [:excluded_tags]))
@@ -214,6 +241,15 @@ public class DuckDBFlamegraphQueries implements ComplexQueries.Flamegraph {
             WHERE e.event_type = <<event_type>>
                 AND (:from_time IS NULL OR EPOCH_MS(e.start_timestamp - fs.first_ts) >= :from_time)
                 AND (:to_time IS NULL OR EPOCH_MS(e.start_timestamp - fs.first_ts) <= :to_time)
+                AND (:span_filter_enabled = FALSE OR EXISTS (
+                    SELECT 1 FROM (
+                        SELECT UNNEST([:span_thread_hashes]) AS th,
+                               UNNEST([:span_from_ms]) AS f,
+                               UNNEST([:span_to_ms]) AS t
+                    ) iv
+                    WHERE e.thread_hash = iv.th
+                      AND EPOCH_MS(e.start_timestamp) BETWEEN iv.f AND iv.t
+                ))
                 AND (:stacktrace_types IS NULL OR s.type_id IN (:stacktrace_types))
                 AND (:included_tags IS NULL OR list_has_any(s.tag_ids, [:included_tags]))
                 AND (:excluded_tags IS NULL OR NOT list_has_any(s.tag_ids, [:excluded_tags]))
@@ -258,6 +294,15 @@ public class DuckDBFlamegraphQueries implements ComplexQueries.Flamegraph {
                 WHERE e.event_type = <<event_type>>
                     AND (:from_time IS NULL OR EPOCH_MS(e.start_timestamp - fs.first_ts) >= :from_time)
                     AND (:to_time IS NULL OR EPOCH_MS(e.start_timestamp - fs.first_ts) <= :to_time)
+                    AND (:span_filter_enabled = FALSE OR EXISTS (
+                        SELECT 1 FROM (
+                            SELECT UNNEST([:span_thread_hashes]) AS th,
+                                   UNNEST([:span_from_ms]) AS f,
+                                   UNNEST([:span_to_ms]) AS t
+                        ) iv
+                        WHERE e.thread_hash = iv.th
+                          AND EPOCH_MS(e.start_timestamp) BETWEEN iv.f AND iv.t
+                    ))
                     AND (:java_thread_id IS NULL OR t.java_id = :java_thread_id)
                     AND (:os_thread_id IS NULL OR t.os_id = :os_thread_id)
                     AND (:stacktrace_types IS NULL OR s.type_id IN (:stacktrace_types))
@@ -323,6 +368,15 @@ public class DuckDBFlamegraphQueries implements ComplexQueries.Flamegraph {
                 WHERE e.event_type = <<event_type>>
                     AND (:from_time IS NULL OR EPOCH_MS(e.start_timestamp - fs.first_ts) >= :from_time)
                     AND (:to_time IS NULL OR EPOCH_MS(e.start_timestamp - fs.first_ts) <= :to_time)
+                    AND (:span_filter_enabled = FALSE OR EXISTS (
+                        SELECT 1 FROM (
+                            SELECT UNNEST([:span_thread_hashes]) AS th,
+                                   UNNEST([:span_from_ms]) AS f,
+                                   UNNEST([:span_to_ms]) AS t
+                        ) iv
+                        WHERE e.thread_hash = iv.th
+                          AND EPOCH_MS(e.start_timestamp) BETWEEN iv.f AND iv.t
+                    ))
                     AND (:java_thread_id IS NULL OR t.java_id = :java_thread_id)
                     AND (:os_thread_id IS NULL OR t.os_id = :os_thread_id)
                     AND (:stacktrace_types IS NULL OR s.type_id IN (:stacktrace_types))
@@ -387,6 +441,15 @@ public class DuckDBFlamegraphQueries implements ComplexQueries.Flamegraph {
             WHERE e.event_type = <<event_type>>
                 AND (:from_time IS NULL OR EPOCH_MS(e.start_timestamp - fs.first_ts) >= :from_time)
                 AND (:to_time IS NULL OR EPOCH_MS(e.start_timestamp - fs.first_ts) <= :to_time)
+                AND (:span_filter_enabled = FALSE OR EXISTS (
+                    SELECT 1 FROM (
+                        SELECT UNNEST([:span_thread_hashes]) AS th,
+                               UNNEST([:span_from_ms]) AS f,
+                               UNNEST([:span_to_ms]) AS t
+                    ) iv
+                    WHERE e.thread_hash = iv.th
+                      AND EPOCH_MS(e.start_timestamp) BETWEEN iv.f AND iv.t
+                ))
                 AND (:java_thread_id IS NULL OR t.java_id = :java_thread_id)
                 AND (:os_thread_id IS NULL OR t.os_id = :os_thread_id)
                 AND (:stacktrace_types IS NULL OR s.type_id IN (:stacktrace_types))
@@ -425,6 +488,15 @@ public class DuckDBFlamegraphQueries implements ComplexQueries.Flamegraph {
             WHERE e.event_type = <<event_type>>
                 AND (:from_time IS NULL OR EPOCH_MS(e.start_timestamp - fs.first_ts) >= :from_time)
                 AND (:to_time IS NULL OR EPOCH_MS(e.start_timestamp - fs.first_ts) <= :to_time)
+                AND (:span_filter_enabled = FALSE OR EXISTS (
+                    SELECT 1 FROM (
+                        SELECT UNNEST([:span_thread_hashes]) AS th,
+                               UNNEST([:span_from_ms]) AS f,
+                               UNNEST([:span_to_ms]) AS t
+                    ) iv
+                    WHERE e.thread_hash = iv.th
+                      AND EPOCH_MS(e.start_timestamp) BETWEEN iv.f AND iv.t
+                ))
                 AND (:java_thread_id IS NULL OR t.java_id = :java_thread_id)
                 AND (:os_thread_id IS NULL OR t.os_id = :os_thread_id)
                 AND (:stacktrace_types IS NULL OR s.type_id IN (:stacktrace_types))

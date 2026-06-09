@@ -33,7 +33,10 @@
         <span class="se-chip se-chip-strong">{{ events.length }} events</span>
         <span class="se-chip">{{ orderedTypes.length }} types</span>
         <span class="se-chip"><i class="bi bi-clock"></i> {{ windowLabel }}</span>
-        <span class="se-chip"><i class="bi bi-cpu"></i> {{ threadName || 'unknown' }}</span>
+        <span class="se-chip">
+          <i class="bi bi-cpu"></i> {{ threadName || 'unknown' }}
+          <span v-if="isVirtual" class="se-vt">virtual</span>
+        </span>
         <span v-if="tag" class="se-chip"><i class="bi bi-tag"></i> {{ tag }}</span>
       </div>
 
@@ -47,14 +50,40 @@
       />
 
       <template v-else>
+        <!-- Span-scoped flamegraph swapped in over the events body -->
+        <div v-if="mode === 'flamegraph'" class="se-fg-view">
+          <div class="se-fg-bar">
+            <button type="button" class="se-fg-back" @click="backToEvents">
+              <i class="bi bi-arrow-left"></i> Back to events
+            </button>
+            <span class="se-fg-active"><i class="bi bi-fire"></i> {{ activeEventType }}</span>
+          </div>
+          <div :id="SPAN_FG_SCROLL_ID" class="se-fg-scroll">
+            <TimeSeriesChart
+              :graph-updater="graphUpdater"
+              :primary-axis-type="
+                TimeseriesEventAxeFormatter.resolveAxisFormatter(activeUseWeight, activeEventType)
+              "
+              :visible-minutes="60"
+              :zoom-enabled="true"
+              time-unit="seconds"
+            />
+            <FlamegraphComponent
+              :with-timeseries="true"
+              :use-weight="activeUseWeight"
+              :use-guardian="null"
+              :scrollable-wrapper-class="SPAN_FG_SCROLL_ID"
+              :flamegraph-tooltip="flamegraphTooltip"
+              :graph-updater="graphUpdater"
+              @loaded="onFlamegraphLoaded"
+            />
+          </div>
+        </div>
+
+        <template v-else>
         <!-- Timeline + brush -->
         <div class="se-tl">
-          <div class="se-legend">
-            <span v-for="t in orderedTypes" :key="t.type">
-              <i :style="{ background: `var(${t.color})` }"></i>{{ shortType(t.type) }}
-            </span>
-          </div>
-          <div class="se-main">
+          <div class="se-main" :style="{ height: mainHeight + 'px' }">
             <i
               v-for="(line, i) in gridLines"
               :key="'g' + i"
@@ -62,7 +91,7 @@
               :style="{ left: line + '%' }"
             ></i>
             <span
-              v-for="(ev, i) in eventsInView"
+              v-for="(ev, i) in visibleEvents"
               :key="i"
               class="se-mk"
               :style="{ left: mainLeft(ev.offset) + '%', top: rowTop(ev.eventType) + 'px', background: `var(${colorOf(ev.eventType)})` }"
@@ -93,19 +122,56 @@
             <button v-if="!isFull" type="button" class="se-reset" @click="resetView">Reset window</button>
           </div>
           <div class="se-breakdown">
-            <div v-for="b in breakdown" :key="b.type" class="se-bd">
+            <div
+              v-for="b in breakdown"
+              :key="b.type"
+              class="se-bd"
+              :class="{ 'se-bd-off': !isTypeVisible(b.type) }"
+              role="button"
+              tabindex="0"
+              :title="isTypeVisible(b.type) ? `Hide ${b.type}` : `Show ${b.type}`"
+              @click="toggleType(b.type)"
+              @keydown.enter.prevent="toggleType(b.type)"
+            >
               <span class="se-dot" :style="{ background: `var(${b.color})` }"></span>
               <span class="se-bd-type">{{ b.type }}</span>
               <span class="se-bd-bar">
                 <i :style="{ width: b.pct + '%', background: `var(${b.color})` }"></i>
               </span>
               <span class="se-bd-ct">{{ b.count }}</span>
+              <button
+                v-if="b.fg"
+                type="button"
+                class="se-fg-btn"
+                :class="`se-fg-${b.fg.tone}`"
+                :title="`Open ${b.type} as a flamegraph for this span`"
+                @click.stop="openFlamegraph(b.type)"
+                @keydown.enter.stop
+              >
+                <i class="bi bi-fire"></i> Flamegraph
+              </button>
+              <span
+                v-else
+                class="se-fg-btn se-fg-empty"
+                title="No flamegraph for this event type"
+                @click.stop
+              >—</span>
             </div>
           </div>
         </div>
 
         <!-- Flat chronological table -->
-        <div class="se-listlbl">Events in window — chronological</div>
+        <div class="se-listlbl">
+          <span>Events in window — chronological</span>
+          <button
+            v-if="selectedTypes.size > 0"
+            type="button"
+            class="se-clear"
+            @click="clearTypes"
+          >
+            Showing {{ visibleEvents.length }} of {{ eventsInView.length }} · show all types
+          </button>
+        </div>
         <div class="se-twrap">
           <table>
             <thead>
@@ -117,7 +183,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="(ev, i) in eventsInView" :key="i">
+              <tr v-for="(ev, i) in visibleEvents" :key="i">
                 <td>
                   <span class="se-ty">
                     <span class="se-dot" :style="{ background: `var(${colorOf(ev.eventType)})` }"></span>
@@ -131,6 +197,7 @@
             </tbody>
           </table>
         </div>
+        </template>
       </template>
     </div>
   </GenericModal>
@@ -141,8 +208,17 @@ import { ref, computed, watch, onUnmounted } from 'vue';
 import GenericModal from '@/components/GenericModal.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import EmptyState from '@/components/EmptyState.vue';
+import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
+import FlamegraphComponent from '@/components/FlamegraphComponent.vue';
 import FormattingService from '@/services/FormattingService';
+import EventTypes from '@/services/EventTypes';
 import ProfileAsyncProfilerClient from '@/services/api/ProfileAsyncProfilerClient';
+import SingleSpanFlamegraphClient from '@/services/api/SingleSpanFlamegraphClient';
+import GraphUpdater from '@/services/flamegraphs/updater/GraphUpdater';
+import FullGraphUpdater from '@/services/flamegraphs/updater/FullGraphUpdater';
+import FlamegraphTooltip from '@/services/flamegraphs/tooltips/FlamegraphTooltip';
+import FlamegraphTooltipFactory from '@/services/flamegraphs/tooltips/FlamegraphTooltipFactory';
+import TimeseriesEventAxeFormatter from '@/services/timeseries/TimeseriesEventAxeFormatter';
 import type { SpanEventRow } from '@/services/api/model/span/SpanModels';
 
 const NANOS_PER_MILLI = 1_000_000;
@@ -150,6 +226,10 @@ const MIN_WINDOW_MS = 50;
 const FIELDS_MAX = 80;
 const ROW_STEP = 16;
 const AXIS_TICKS = 6;
+// Delay so the swapped-in flamegraph + timeseries are rendered and their callbacks registered before
+// the graph updater starts fetching (mirrors SpanTagFlamegraphs.vue).
+const MODAL_INIT_DELAY_MS = 200;
+const SPAN_FG_SCROLL_ID = 'span-fg-scroll';
 const TYPE_COLORS = [
   '--flamegraph-color-blue',
   '--flamegraph-color-green',
@@ -165,10 +245,11 @@ const TYPE_COLORS = [
 const props = defineProps<{
   show: boolean;
   profileId: string;
-  osThreadId: number;
+  threadHash: string;
   startEpochMillis: number;
   durationNanos: number;
   threadName: string;
+  isVirtual?: boolean;
   tag?: string;
 }>();
 
@@ -183,6 +264,16 @@ const events = ref<SpanEventRow[]>([]);
 const viewS = ref(0);
 const viewE = ref(0);
 const miniEl = ref<HTMLElement | null>(null);
+// Event-type filter for the chronological table; empty set means "show all types".
+const selectedTypes = ref<Set<string>>(new Set());
+
+// Span-scoped flamegraph swap-in. graphUpdater/flamegraphTooltip are plain (non-reactive) and are
+// assigned in openFlamegraph() before `mode` flips to 'flamegraph', so the re-render reads them fresh.
+const mode = ref<'events' | 'flamegraph'>('events');
+const activeEventType = ref('');
+const activeUseWeight = ref(false);
+let graphUpdater: GraphUpdater;
+let flamegraphTooltip: FlamegraphTooltip;
 
 const windowMillis = computed(() => Math.max(1, Math.round(props.durationNanos / NANOS_PER_MILLI)));
 const windowLabel = computed(() => FormattingService.formatDuration2Units(props.durationNanos));
@@ -215,14 +306,59 @@ function colorOf(type: string): string {
   return colorMap.value.get(type) ?? TYPE_COLORS[0];
 }
 
+// Event types that can be rendered as a span-scoped flamegraph, with the CSS tone used for the row
+// button and the default weight mode. Only the categories the Spans flamegraph tab offers (execution,
+// wall-clock, allocation) are supported; everything else (e.g. ThreadCPULoad) gets no flamegraph.
+interface FlamegraphInfo {
+  tone: 'exec' | 'wall' | 'alloc';
+  useWeight: boolean;
+}
+
+function flamegraphInfo(type: string): FlamegraphInfo | null {
+  if (EventTypes.isExecutionEventType(type)) {
+    return { tone: 'exec', useWeight: false };
+  }
+  if (EventTypes.isWallClock(type)) {
+    return { tone: 'wall', useWeight: false };
+  }
+  if (EventTypes.isAllocationEventType(type)) {
+    return { tone: 'alloc', useWeight: false };
+  }
+  return null;
+}
+
 function rowTop(type: string): number {
   const index = orderedTypes.value.findIndex(t => t.type === type);
   return 8 + Math.max(0, index) * ROW_STEP;
 }
 
+// Grow the timeline so every type row is visible (one row per type, ROW_STEP apart) instead of
+// clipping the lower rows. 8px top padding + a row per type + 8px bottom padding.
+const mainHeight = computed(() => Math.max(72, 16 + orderedTypes.value.length * ROW_STEP));
+
 const eventsInView = computed(() =>
   withOffset.value.filter(e => e.offset >= viewS.value && e.offset <= viewE.value)
 );
+
+const visibleEvents = computed(() =>
+  eventsInView.value.filter(e => isTypeVisible(e.eventType))
+);
+
+function isTypeVisible(type: string): boolean {
+  return selectedTypes.value.size === 0 || selectedTypes.value.has(type);
+}
+
+function toggleType(type: string): void {
+  if (selectedTypes.value.has(type)) {
+    selectedTypes.value.delete(type);
+  } else {
+    selectedTypes.value.add(type);
+  }
+}
+
+function clearTypes(): void {
+  selectedTypes.value.clear();
+}
 
 const isFull = computed(() => viewS.value <= 0 && viewE.value >= windowMillis.value);
 
@@ -234,7 +370,7 @@ const breakdown = computed(() => {
   );
   return orderedTypes.value.map(t => {
     const count = inView.filter(e => e.eventType === t.type).length;
-    return { type: t.type, color: t.color, count, pct: (count / max) * 100 };
+    return { type: t.type, color: t.color, count, pct: (count / max) * 100, fg: flamegraphInfo(t.type) };
   });
 });
 
@@ -284,10 +420,6 @@ function compact(ms: number): string {
 
 function formatOffset(offset: number): string {
   return FormattingService.formatDuration2Units(offset * NANOS_PER_MILLI);
-}
-
-function shortType(type: string): string {
-  return type.replace(/^jdk\./, '').replace(/^profiler\./, '');
 }
 
 function truncate(fields: string | null): string {
@@ -341,12 +473,59 @@ function onBrushUp() {
   window.removeEventListener('pointerup', onBrushUp);
 }
 
+// Swap the modal body to a flamegraph scoped to this single span (its thread + window) for the given
+// event type. The backend derives the scope from the span interval, so no time range/thread is sent.
+function openFlamegraph(type: string): void {
+  const info = flamegraphInfo(type);
+  if (info === null) {
+    return;
+  }
+  activeEventType.value = type;
+  activeUseWeight.value = info.useWeight;
+
+  const to = props.startEpochMillis + windowMillis.value;
+  const fgClient = new SingleSpanFlamegraphClient(
+    props.profileId,
+    props.threadHash,
+    props.startEpochMillis,
+    to,
+    type,
+    false,
+    info.useWeight,
+    false,
+    false,
+    false
+  );
+
+  graphUpdater = new FullGraphUpdater(fgClient, false);
+  flamegraphTooltip = FlamegraphTooltipFactory.create(type, info.useWeight, false);
+
+  mode.value = 'flamegraph';
+
+  setTimeout(() => {
+    graphUpdater.initialize();
+  }, MODAL_INIT_DELAY_MS);
+}
+
+function backToEvents(): void {
+  mode.value = 'events';
+}
+
+function onFlamegraphLoaded(): void {
+  const wrapper = document.getElementById(SPAN_FG_SCROLL_ID);
+  if (wrapper) {
+    wrapper.scrollTop = 0;
+  }
+}
+
 async function load() {
   loading.value = true;
   events.value = [];
+  mode.value = 'events';
+  selectedTypes.value.clear();
   try {
     const to = props.startEpochMillis + windowMillis.value;
-    events.value = await client.getSpanEvents(props.osThreadId, props.startEpochMillis, to);
+    events.value = await client.getSpanEvents(props.threadHash, props.startEpochMillis, to);
   } catch (e: unknown) {
     console.error('Failed to load span events:', e);
     events.value = [];
@@ -357,7 +536,7 @@ async function load() {
 }
 
 watch(
-  () => [props.show, props.osThreadId, props.startEpochMillis, props.durationNanos],
+  () => [props.show, props.threadHash, props.startEpochMillis, props.durationNanos],
   () => {
     if (props.show) {
       load();
@@ -374,8 +553,6 @@ onUnmounted(onBrushUp);
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  height: 100%;
-  min-height: 0;
 }
 
 .se-chips {
@@ -402,6 +579,15 @@ onUnmounted(onBrushUp);
   font-weight: 700;
 }
 
+.se-vt {
+  margin-left: 0.3rem;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-purple);
+}
+
 /* Timeline + brush */
 .se-tl {
   border: 1px solid var(--color-border);
@@ -410,31 +596,8 @@ onUnmounted(onBrushUp);
   background: var(--color-bg-card);
 }
 
-.se-legend {
-  display: flex;
-  gap: 1rem;
-  flex-wrap: wrap;
-  margin-bottom: 0.6rem;
-  font-family: SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
-  font-size: 0.7rem;
-}
-
-.se-legend span {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  color: var(--color-dark);
-}
-
-.se-legend i {
-  width: 11px;
-  height: 11px;
-  border-radius: 3px;
-}
-
 .se-main {
   position: relative;
-  height: 84px;
   background: var(--color-lighter);
   border-radius: var(--radius-sm);
   overflow: hidden;
@@ -571,6 +734,20 @@ onUnmounted(onBrushUp);
   font-family: SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
   font-size: 0.72rem;
   font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+  border-radius: var(--radius-sm);
+  padding: 0.1rem 0.3rem;
+  margin: -0.1rem -0.3rem;
+  transition: opacity 0.12s ease, background 0.12s ease;
+}
+
+.se-bd:hover {
+  background: var(--color-light);
+}
+
+.se-bd-off {
+  opacity: 0.4;
 }
 
 .se-bd-type {
@@ -606,8 +783,116 @@ onUnmounted(onBrushUp);
   flex-shrink: 0;
 }
 
+/* Per-row flamegraph button + empty placeholder (tone reuses the flamegraph category palette) */
+.se-fg-exec {
+  --se-fg-tone: var(--flamegraph-color-green);
+}
+
+.se-fg-wall {
+  --se-fg-tone: var(--flamegraph-color-purple);
+}
+
+.se-fg-alloc {
+  --se-fg-tone: var(--flamegraph-color-blue);
+}
+
+.se-fg-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  margin-left: 0.5rem;
+  flex-shrink: 0;
+  /* Fixed width so the filled buttons and the empty placeholder share the exact same footprint. */
+  width: 7.5rem;
+  box-sizing: border-box;
+  font-size: 0.68rem;
+  font-weight: 700;
+  /* Tinted chip: a light wash of the category tone with a darker-tone label, derived from the
+     pastel flamegraph palette so the button stays on-brand and readable. */
+  color: color-mix(in srgb, var(--se-fg-tone, var(--color-primary)), black 55%);
+  background: color-mix(in srgb, var(--se-fg-tone, var(--color-primary)), white 52%);
+  border: 1px solid color-mix(in srgb, var(--se-fg-tone, var(--color-primary)), white 25%);
+  border-radius: var(--radius-md);
+  padding: 0.32rem 0.5rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.13s ease;
+}
+
+.se-fg-btn:hover {
+  background: color-mix(in srgb, var(--se-fg-tone, var(--color-primary)), white 32%);
+}
+
+.se-fg-btn i {
+  font-size: 0.78rem;
+  color: color-mix(in srgb, var(--se-fg-tone, var(--color-primary)), black 40%);
+}
+
+.se-fg-empty {
+  color: var(--color-text-muted);
+  background: transparent;
+  border: 1px dashed var(--color-border);
+  opacity: 0.7;
+  cursor: default;
+}
+
+.se-fg-empty:hover {
+  background: transparent;
+}
+
+/* Flamegraph swapped in over the events body */
+.se-fg-view {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.se-fg-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.se-fg-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 0.3rem 0.6rem;
+  cursor: pointer;
+}
+
+.se-fg-back:hover {
+  background: var(--color-light);
+}
+
+.se-fg-active {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--color-dark);
+}
+
+.se-fg-scroll {
+  max-height: calc(100vh - 220px);
+  overflow: auto;
+}
+
 /* Flat table */
 .se-listlbl {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
   font-size: 0.62rem;
   font-weight: 600;
   letter-spacing: 0.06em;
@@ -615,10 +900,22 @@ onUnmounted(onBrushUp);
   color: var(--color-text-muted);
 }
 
+.se-clear {
+  cursor: pointer;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: none;
+  color: var(--color-primary);
+  background: transparent;
+  border: none;
+  padding: 0;
+}
+
+.se-clear:hover {
+  text-decoration: underline;
+}
+
 .se-twrap {
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow: auto;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
 }
@@ -629,8 +926,6 @@ onUnmounted(onBrushUp);
 }
 
 .se-twrap thead th {
-  position: sticky;
-  top: 0;
   background: var(--color-white);
   font-size: 0.62rem;
   font-weight: 600;
@@ -640,7 +935,6 @@ onUnmounted(onBrushUp);
   text-align: left;
   padding: 0.5rem 0.625rem;
   border-bottom: 1px solid var(--color-border);
-  z-index: 1;
 }
 
 .se-twrap thead th.r {

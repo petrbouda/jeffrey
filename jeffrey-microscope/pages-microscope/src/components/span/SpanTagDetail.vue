@@ -42,21 +42,17 @@
         <SpanEventsModal
           v-model:show="eventsShow"
           :profile-id="profileId"
-          :os-thread-id="selected?.osThreadId ?? 0"
+          :thread-hash="selected?.threadHash ?? ''"
           :start-epoch-millis="selected?.startEpochMillis ?? 0"
           :duration-nanos="selected?.durationNanos ?? 0"
           :thread-name="selected?.threadName ?? ''"
+          :is-virtual="selected?.isVirtual ?? false"
           :tag="tag"
         />
       </div>
 
       <div v-show="activeTab === 'flames'">
-        <SpanTagFlamegraphs
-          v-if="tagTimeRange"
-          :profile-id="profileId"
-          :tag="tag"
-          :time-range="tagTimeRange"
-        />
+        <SpanTagFlamegraphs v-if="spans.length > 0" :profile-id="profileId" :tag="tag" />
       </div>
     </template>
   </div>
@@ -72,12 +68,10 @@ import SpanEventsModal from '@/components/span/SpanEventsModal.vue';
 import SpanTagFlamegraphs from '@/components/span/SpanTagFlamegraphs.vue';
 import AxisFormatType from '@/services/timeseries/AxisFormatType';
 import ProfileAsyncProfilerClient from '@/services/api/ProfileAsyncProfilerClient';
-import TimeRange from '@/services/api/model/TimeRange';
 import type { TabBarItem } from '@/components/TabBar.vue';
 import type { SpanDetailRow } from '@/services/api/model/span/SpanModels';
 
 const TIMELINE_BUCKETS = 40;
-const NANOS_PER_MILLI = 1_000_000;
 
 const props = defineProps<{
   profileId: string;
@@ -103,27 +97,6 @@ const tabs: TabBarItem[] = [
   { id: 'timeline', label: 'Metrics Timeline', icon: 'graph-up' },
   { id: 'slowest', label: 'Slowest Spans', icon: 'hourglass-split' }
 ];
-
-// Bounding time window of the tag's spans (absolute epoch millis). The flamegraph backend
-// converts absolute ranges to relative via the profile's start, so no conversion is needed here.
-const tagTimeRange = computed<TimeRange | null>(() => {
-  const items = spans.value;
-  if (items.length === 0) {
-    return null;
-  }
-  let start = Infinity;
-  let end = -Infinity;
-  for (const span of items) {
-    if (span.startEpochMillis < start) {
-      start = span.startEpochMillis;
-    }
-    const spanEnd = span.startEpochMillis + span.durationNanos / NANOS_PER_MILLI;
-    if (spanEnd > end) {
-      end = spanEnd;
-    }
-  }
-  return new TimeRange(Math.floor(start), Math.ceil(end), true);
-});
 
 interface Bucket {
   mid: number;

@@ -34,6 +34,9 @@
       :method-trace-events="[]"
       :object-allocation-events="objectAllocationEvents"
       :wall-clock-events="wallClockEvents"
+      :hide-method="true"
+      :hide-native="true"
+      :hide-blocking="true"
       emit-view
       @view="openFlamegraph"
     />
@@ -87,8 +90,8 @@ import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
 import FlamegraphCardGrid from '@/components/FlamegraphCardGrid.vue';
 import type { FlamegraphCardViewPayload } from '@/components/FlamegraphCard.vue';
 
-import PrimaryFlamegraphClient from '@/services/api/PrimaryFlamegraphClient';
-import TimeRange from '@/services/api/model/TimeRange';
+import SpanFlamegraphClient from '@/services/api/SpanFlamegraphClient';
+import ProfileAsyncProfilerClient from '@/services/api/ProfileAsyncProfilerClient';
 import GraphType from '@/services/flamegraphs/GraphType';
 import GraphUpdater from '@/services/flamegraphs/updater/GraphUpdater';
 import FullGraphUpdater from '@/services/flamegraphs/updater/FullGraphUpdater';
@@ -102,11 +105,14 @@ const MODAL_INIT_DELAY_MS = 200;
 const props = defineProps<{
   profileId: string;
   tag: string;
-  timeRange: TimeRange;
 }>();
 
-const { loaded, executionSampleEvents, wallClockEvents, objectAllocationEvents } =
-  useFlamegraphEvents(GraphType.PRIMARY);
+// Span-scoped event summaries so the cards show the real per-span sample/weight counts (matching the
+// flamegraph), not the profile-wide totals.
+const { loaded, executionSampleEvents, wallClockEvents, objectAllocationEvents } = useFlamegraphEvents(
+  GraphType.PRIMARY,
+  () => new ProfileAsyncProfilerClient(props.profileId).getEventSummaries(props.tag)
+);
 
 const hasEvents = computed(
   () =>
@@ -122,29 +128,28 @@ const activeEventType = ref('');
 const activeUseWeight = ref(false);
 let flamegraphTooltip: FlamegraphTooltip;
 let graphUpdater: GraphUpdater;
-// One-shot guard: after the initial (full) flamegraph renders, scope it to the tag window.
-let pendingTagZoom = false;
 
 function openFlamegraph(payload: FlamegraphCardViewPayload) {
   activeTitle.value = payload.eventType;
   activeEventType.value = payload.eventType;
   activeUseWeight.value = payload.useWeight;
 
-  const client = new PrimaryFlamegraphClient(
+  // The backend scopes the graph to this tag's spans (their thread + window), so no time range or
+  // thread filter is sent — the result already contains only the samples those spans cover.
+  const client = new SpanFlamegraphClient(
     props.profileId,
+    props.tag,
     payload.eventType,
     payload.useThreadMode,
     payload.useWeight,
     payload.excludeNonJavaSamples,
     payload.excludeIdleSamples,
-    payload.onlyUnsafeAllocationSamples,
-    null
+    payload.onlyUnsafeAllocationSamples
   );
 
   graphUpdater = new FullGraphUpdater(client, false);
   flamegraphTooltip = FlamegraphTooltipFactory.create(payload.eventType, payload.useWeight, false);
 
-  pendingTagZoom = true;
   showDialog.value = true;
 
   // Delay so the modal (flamegraph + timeseries) is rendered and callbacks registered.
@@ -155,11 +160,6 @@ function openFlamegraph(payload: FlamegraphCardViewPayload) {
 
 function onFlamegraphLoaded() {
   scrollToTop();
-  // Once the full graph is initialized, narrow it to this tag's time window (single shot).
-  if (pendingTagZoom) {
-    pendingTagZoom = false;
-    graphUpdater.updateWithZoom(props.timeRange);
-  }
 }
 
 function scrollToTop() {

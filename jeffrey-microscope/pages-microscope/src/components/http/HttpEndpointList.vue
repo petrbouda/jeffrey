@@ -9,14 +9,7 @@
     @item-click="(endpoint) => $emit('endpointClick', endpoint.uri)"
   >
     <template #name="{ item }">
-      <span :title="item.uri">
-        <span class="uri-sep">/</span>
-        <span v-for="(part, index) in parseUri(item.uri)" :key="index">
-          <span v-if="index > 0" class="uri-sep">/</span>
-          <span v-if="part.isVariable" class="uri-var">{{ part.text }}</span>
-          <span v-else class="uri-segment">{{ part.text }}</span>
-        </span>
-      </span>
+      <MetricName :segments="parseUriName(item.uri)" :title="item.uri" />
     </template>
 
     <template #metrics="{ item }">
@@ -71,6 +64,8 @@ import FormattingService from '@/services/FormattingService.ts';
 import Badge from '@/components/Badge.vue';
 import StatusBadge from '@/components/common/StatusBadge.vue';
 import MetricCardList from '@/components/common/MetricCardList.vue';
+import MetricName from '@/components/common/MetricName.vue';
+import { parseUriName } from '@/services/metricName';
 import type { MetricSortOption } from '@/components/common/MetricCardList.vue';
 
 interface Endpoint {
@@ -106,31 +101,4 @@ const sortOptions: MetricSortOption[] = [
   { key: 'requestCount', label: 'Requests', compare: (a, b) => b.requestCount - a.requestCount }
 ];
 
-const parseUri = (uri: string) => {
-  if (!uri) {
-    return [];
-  }
-  const segments = uri.split('/').filter(segment => segment.length > 0);
-  return segments.map(segment => ({
-    text: segment,
-    isVariable: segment.startsWith('{') && segment.endsWith('}')
-  }));
-};
 </script>
-
-<style scoped>
-.uri-sep {
-  color: var(--color-text-muted);
-  font-weight: 400;
-}
-
-.uri-var {
-  color: var(--color-purple);
-  font-weight: 400;
-}
-
-.uri-segment {
-  color: var(--color-dark);
-  font-weight: 500;
-}
-</style>

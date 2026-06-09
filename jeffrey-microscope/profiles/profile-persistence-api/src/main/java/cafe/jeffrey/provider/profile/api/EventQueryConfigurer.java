@@ -19,6 +19,7 @@
 package cafe.jeffrey.provider.profile.api;
 
 import tools.jackson.databind.node.ObjectNode;
+import cafe.jeffrey.shared.common.model.SpanInterval;
 import cafe.jeffrey.shared.common.model.StacktraceTag;
 import cafe.jeffrey.shared.common.model.StacktraceType;
 import cafe.jeffrey.shared.common.model.ThreadInfo;
@@ -41,6 +42,7 @@ public class EventQueryConfigurer {
     private List<Type> eventTypes;
     private RelativeTimeRange timeRange;
     private String searchPattern;
+    private List<SpanInterval> spanIntervals;
 
     /**
      * Include all types of events in the event-stream.
@@ -187,6 +189,19 @@ public class EventQueryConfigurer {
         return this;
     }
 
+    /**
+     * Scope the event-stream to the union of the given span windows. A sample is kept only if it was
+     * taken on a span's thread within that span's time window; samples are matched at most once even
+     * if several spans overlap. An empty/null list applies no span scoping.
+     *
+     * @param spanIntervals per-span (thread, time-window) intervals
+     * @return instance of the event-stream configurer
+     */
+    public EventQueryConfigurer withSpanIntervals(List<SpanInterval> spanIntervals) {
+        this.spanIntervals = spanIntervals;
+        return this;
+    }
+
     public List<Type> eventTypes() {
         return eventTypes;
     }
@@ -229,5 +244,9 @@ public class EventQueryConfigurer {
 
     public String searchPattern() {
         return searchPattern;
+    }
+
+    public List<SpanInterval> spanIntervals() {
+        return spanIntervals;
     }
 }

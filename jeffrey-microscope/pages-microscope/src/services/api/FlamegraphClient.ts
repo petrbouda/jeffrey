@@ -38,4 +38,17 @@ export default abstract class FlamegraphClient {
     flamegraphName: string,
     timeRange: TimeRange | null
   ): Promise<void>;
+
+  /**
+   * Whether this client re-fetches when the thread-mode/weight toggles change. Clients that support it
+   * override this together with {@link setUseThreadMode}/{@link setUseWeight}; the default is a no-op so
+   * updaters can drive the toggle polymorphically instead of type-checking concrete clients.
+   */
+  supportsModeToggle(): boolean {
+    return false;
+  }
+
+  setUseThreadMode(_value: boolean): void {}
+
+  setUseWeight(_value: boolean | null): void {}
 }

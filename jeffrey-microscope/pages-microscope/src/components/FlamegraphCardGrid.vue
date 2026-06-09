@@ -20,7 +20,7 @@
   <div class="flamegraph-grid">
     <!-- Execution Sample Events -->
     <FlamegraphCard
-      v-for="(event, index) in executionSampleEvents"
+      v-for="(event, index) in displayExecutionSampleEvents"
       :key="'exec-' + index"
       title="Execution Samples"
       color="blue"
@@ -39,7 +39,7 @@
       :only-unsafe-allocation-samples-selected="false"
       :graph-mode="graphMode"
       :event="event"
-      :enabled="true"
+      :enabled="event.primary.samples > 0"
       :route-name="routeName"
       :button-text="buttonText"
       :emit-view="emitView"
@@ -48,7 +48,8 @@
 
     <!-- Method Trace Events -->
     <FlamegraphCard
-      v-for="(event, index) in methodTraceEvents"
+      v-if="showMethodEvents"
+      v-for="(event, index) in displayMethodTraceEvents"
       :key="'method-' + index"
       title="Method Traces"
       color="blue"
@@ -67,7 +68,7 @@
       :only-unsafe-allocation-samples-selected="false"
       :graph-mode="graphMode"
       :event="event"
-      :enabled="true"
+      :enabled="event.primary.samples > 0"
       :route-name="routeName"
       :button-text="buttonText"
       :emit-view="emitView"
@@ -76,7 +77,7 @@
 
     <!-- Wall-Clock Events -->
     <FlamegraphCard
-      v-for="(event, index) in wallClockEvents"
+      v-for="(event, index) in displayWallClockEvents"
       :key="'wall-' + index"
       title="Wall-Clock Samples"
       color="purple"
@@ -95,7 +96,7 @@
       :only-unsafe-allocation-samples-selected="false"
       :graph-mode="graphMode"
       :event="event"
-      :enabled="true"
+      :enabled="event.primary.samples > 0"
       :route-name="routeName"
       :button-text="buttonText"
       :emit-view="emitView"
@@ -104,7 +105,7 @@
 
     <!-- Object Allocation Events -->
     <FlamegraphCard
-      v-for="(event, index) in objectAllocationEvents"
+      v-for="(event, index) in displayObjectAllocationEvents"
       :key="'alloc-' + index"
       title="Allocation Samples"
       color="green"
@@ -123,7 +124,7 @@
       :only-unsafe-allocation-samples-selected="false"
       :graph-mode="graphMode"
       :event="event"
-      :enabled="true"
+      :enabled="event.primary.samples > 0"
       :route-name="routeName"
       :button-text="buttonText"
       :emit-view="emitView"
@@ -133,7 +134,7 @@
     <!-- Native Allocation Events (Primary only) -->
     <FlamegraphCard
       v-if="showNativeEvents"
-      v-for="(event, index) in nativeAllocationEvents"
+      v-for="(event, index) in displayNativeAllocationEvents"
       :key="'native-alloc-' + index"
       title="Native Allocation Samples"
       color="pink"
@@ -152,7 +153,7 @@
       :only-unsafe-allocation-samples-selected="true"
       :graph-mode="graphMode"
       :event="event"
-      :enabled="true"
+      :enabled="event.primary.samples > 0"
       :route-name="routeName"
       :button-text="buttonText"
       :emit-view="emitView"
@@ -162,7 +163,7 @@
     <!-- Native Leak Events (Primary only) -->
     <FlamegraphCard
       v-if="showNativeEvents"
-      v-for="(event, index) in nativeLeakEvents"
+      v-for="(event, index) in displayNativeLeakEvents"
       :key="'native-leak-' + index"
       title="Native Allocation Leaks"
       color="pink"
@@ -181,7 +182,7 @@
       :only-unsafe-allocation-samples-selected="true"
       :graph-mode="graphMode"
       :event="event"
-      :enabled="true"
+      :enabled="event.primary.samples > 0"
       :route-name="routeName"
       :button-text="buttonText"
       :emit-view="emitView"
@@ -191,7 +192,7 @@
     <!-- Blocking Events (Primary flamegraph only) -->
     <FlamegraphCard
       v-if="showBlockingEvents"
-      v-for="(event, index) in blockingEvents"
+      v-for="(event, index) in displayBlockingEvents"
       :key="'blocking-' + index"
       :title="event.label"
       color="red"
@@ -210,7 +211,7 @@
       :only-unsafe-allocation-samples-selected="false"
       :graph-mode="graphMode"
       :event="event"
-      :enabled="true"
+      :enabled="event.primary.samples > 0"
       :route-name="routeName"
       :button-text="buttonText"
       :emit-view="emitView"
@@ -226,6 +227,7 @@ import type { FlamegraphCardViewPayload } from '@/components/FlamegraphCard.vue'
 import FormattingService from '@/services/FormattingService';
 import GraphType from '@/services/flamegraphs/GraphType';
 import EventSummary from '@/services/api/model/EventSummary';
+import EventSummaryDetail from '@/services/api/model/EventSummaryDetail';
 
 interface Props {
   graphMode: string;
@@ -239,6 +241,12 @@ interface Props {
   routeName?: string;
   buttonText?: string;
   emitView?: boolean;
+  // Suppress categories for views that don't want them (default: shown). Inverted (hide*) on purpose:
+  // Vue casts an absent boolean prop to false, so "default false = not hidden = shown" works correctly.
+  // The span view passes these true so it stays focused on Execution / Wall-Clock / Allocation.
+  hideMethod?: boolean;
+  hideNative?: boolean;
+  hideBlocking?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -256,9 +264,42 @@ const emit = defineEmits<{
 
 const isPrimary = computed(() => props.graphMode === GraphType.PRIMARY);
 
-// Show native events only for primary flamegraph mode (not subsecond)
-const showNativeEvents = computed(() => isPrimary.value && props.routeName === 'flamegraph');
+// Native/blocking shown for primary flamegraph mode (not subsecond), unless explicitly overridden.
+const isFlamegraphRoute = computed(() => isPrimary.value && props.routeName === 'flamegraph');
+const showMethodEvents = computed(() => !props.hideMethod);
+const showNativeEvents = computed(() => !props.hideNative && isFlamegraphRoute.value);
+const showBlockingEvents = computed(() => !props.hideBlocking && isFlamegraphRoute.value);
 
-// Show blocking events only for primary flamegraph mode (not subsecond)
-const showBlockingEvents = computed(() => isPrimary.value && props.routeName === 'flamegraph');
+/**
+ * Keep a card visible (disabled) when a category has no samples: if the real list is empty, render a
+ * single zero-sample placeholder so the grid shows a greyed "No data" card instead of hiding it.
+ */
+function withPlaceholder(events: EventSummary[], code: string, label: string): EventSummary[] {
+  if (events.length > 0) {
+    return events;
+  }
+  return [new EventSummary(code, label, new EventSummaryDetail(code, label, '', '', 0, 0, false, null), null)];
+}
+
+const displayExecutionSampleEvents = computed(() =>
+  withPlaceholder(props.executionSampleEvents, 'jdk.ExecutionSample', 'Execution')
+);
+const displayMethodTraceEvents = computed(() =>
+  withPlaceholder(props.methodTraceEvents, 'jdk.MethodTrace', 'Method Trace')
+);
+const displayWallClockEvents = computed(() =>
+  withPlaceholder(props.wallClockEvents, 'profiler.WallClockSample', 'Wall-Clock')
+);
+const displayObjectAllocationEvents = computed(() =>
+  withPlaceholder(props.objectAllocationEvents, 'jdk.ObjectAllocationInNewTLAB', 'Allocation')
+);
+const displayNativeAllocationEvents = computed(() =>
+  withPlaceholder(props.nativeAllocationEvents, 'profiler.Malloc', 'Native Allocation')
+);
+const displayNativeLeakEvents = computed(() =>
+  withPlaceholder(props.nativeLeakEvents, 'jeffrey.NativeLeak', 'Native Allocation Leaks')
+);
+const displayBlockingEvents = computed(() =>
+  withPlaceholder(props.blockingEvents, 'jdk.JavaMonitorEnter', 'Locks & Blocking')
+);
 </script>

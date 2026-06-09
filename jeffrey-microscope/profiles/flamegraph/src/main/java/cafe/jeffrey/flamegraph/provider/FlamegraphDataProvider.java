@@ -26,6 +26,7 @@ import cafe.jeffrey.frameir.FrameBuilder;
 import cafe.jeffrey.frameir.FrameBuilderResolver;
 import cafe.jeffrey.provider.profile.api.EventQueryConfigurer;
 import cafe.jeffrey.provider.profile.api.ProfileEventStreamRepository;
+import cafe.jeffrey.shared.common.span.Spans;
 
 public class FlamegraphDataProvider {
 
@@ -83,9 +84,21 @@ public class FlamegraphDataProvider {
      * @return flamegraph data in Protobuf format.
      */
     public FlamegraphData provideProto(double minFrameThresholdPct) {
-        Frame frame = provideFrame();
+        long generateSpan = Spans.start();
+        Frame frame;
+        try {
+            frame = provideFrame();
+        } finally {
+            Spans.end(generateSpan, "flamegraph.generate");
+        }
+
         FlameGraphProtoBuilder protoBuilder = resolveFlamegraphProtoBuilder(graphParameters, minFrameThresholdPct);
-        return protoBuilder.build(frame);
+        long marshallingSpan = Spans.start();
+        try {
+            return protoBuilder.build(frame);
+        } finally {
+            Spans.end(marshallingSpan, "flamegraph.marshalling");
+        }
     }
 
     /**
@@ -101,7 +114,8 @@ public class FlamegraphDataProvider {
                 .filterStacktraceTags(graphParameters.stacktraceTags())
                 .withThreads(graphParameters.threadMode())
                 .withSpecifiedThread(graphParameters.threadInfo())
-                .withWeight(graphParameters.useWeight());
+                .withWeight(graphParameters.useWeight())
+                .withSpanIntervals(graphParameters.spanIntervals());
 
         Frame frame = eventStreamRepository.flamegraphStreamer(configurer, frameBuilder);
 

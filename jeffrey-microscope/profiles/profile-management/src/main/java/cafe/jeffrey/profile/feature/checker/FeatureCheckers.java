@@ -60,4 +60,7 @@ public abstract class FeatureCheckers {
 
     public static final FeatureChecker TRACING_DASHBOARD =
             new SamplesFeatureChecker(FeatureType.TRACING_DASHBOARD, Type.METHOD_TRACE);
+
+    public static final FeatureChecker ASYNC_PROFILER_SPANS =
+            new SamplesFeatureChecker(FeatureType.ASYNC_PROFILER_SPANS, Type.SPAN);
 }

@@ -21,6 +21,7 @@ package cafe.jeffrey.profile.manager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.profile.common.config.GraphParameters;
+import cafe.jeffrey.shared.common.model.SpanInterval;
 import cafe.jeffrey.shared.common.model.Type;
 import cafe.jeffrey.flamegraph.api.DbBasedFlamegraphGenerator;
 import cafe.jeffrey.profile.model.EventSummaryResult;
@@ -61,6 +62,14 @@ public class PrimaryFlamegraphManager implements FlamegraphManager {
     @Override
     public List<EventSummaryResult> eventSummaries() {
         return eventTypeRepository.eventSummaries(SUPPORTED_EVENTS).stream()
+                .filter(eventSummary -> eventSummary.samples() > 0)
+                .map(EventSummaryResult::new)
+                .toList();
+    }
+
+    @Override
+    public List<EventSummaryResult> eventSummaries(List<SpanInterval> spanIntervals) {
+        return eventTypeRepository.eventSummaries(SUPPORTED_EVENTS, spanIntervals).stream()
                 .filter(eventSummary -> eventSummary.samples() > 0)
                 .map(EventSummaryResult::new)
                 .toList();

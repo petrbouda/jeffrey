@@ -3,7 +3,6 @@
     <div class="hub-grid">
       <!-- Integration info strip -->
       <div class="info-strip">
-        <div class="info-strip-accent"></div>
         <div class="info-strip-body">
           <div class="info-strip-icon">
             <i class="bi bi-puzzle"></i>
@@ -32,7 +31,7 @@
             </a>
             <a
               class="info-strip-btn info-strip-btn-ghost"
-              href="https://github.com/petrbouda/jeffrey-events"
+              href="https://github.com/petrbouda/jeffrey/tree/master/utilities/jeffrey-events"
               target="_blank"
             >
               <i class="bi bi-github"></i> Sources
@@ -96,6 +95,15 @@ interface TechnologyCard {
 
 const technologies = [
   {
+    id: 'async-profiler',
+    name: 'Async-Profiler Spans',
+    description: 'Span-level latency intervals from async-profiler — by-tag breakdown and slowest spans',
+    icon: 'bi-bounding-box',
+    colorClass: 'color-spans',
+    route: `/profiles/${profileId}/technologies/async-profiler/spans`,
+    featureType: FeatureType.ASYNC_PROFILER_SPANS
+  },
+  {
     id: 'http-server',
     name: 'HTTP Server',
     description: 'Inbound HTTP request analysis — latency, endpoints, status codes',
@@ -148,15 +156,6 @@ const technologies = [
     colorClass: 'color-tracing',
     route: `/profiles/${profileId}/technologies/method-tracing/timeseries`,
     featureType: FeatureType.TRACING_DASHBOARD
-  },
-  {
-    id: 'async-profiler',
-    name: 'Async-Profiler Spans',
-    description: 'Span-level latency intervals from async-profiler — by-tag breakdown and time heatmap',
-    icon: 'bi-bounding-box',
-    colorClass: 'color-spans',
-    route: `/profiles/${profileId}/technologies/async-profiler/spans`,
-    featureType: FeatureType.ASYNC_PROFILER_SPANS
   }
 ];
 
@@ -356,19 +355,14 @@ const navigateTo = (tech: TechnologyCard) => {
   line-height: 1;
 }
 
-/* Info strip */
+/* Info strip — a quiet, information-only panel: dashed neutral border, no accent bar, no shadow,
+   so it reads as a secondary hint and doesn't compete with the technology cards. */
 .info-strip {
   grid-column: 1 / -1;
   border-radius: 14px;
   background: var(--color-bg-card);
-  border: 1px solid var(--color-border);
+  border: 1px dashed var(--color-border-input);
   overflow: hidden;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
-}
-
-.info-strip-accent {
-  height: 5px;
-  background: linear-gradient(90deg, var(--color-warning), var(--color-orange-light));
 }
 
 .info-strip-body {
@@ -382,7 +376,7 @@ const navigateTo = (tech: TechnologyCard) => {
   width: 36px;
   height: 36px;
   border-radius: 10px;
-  background: rgba(245, 128, 62, 0.1);
+  background: var(--color-light);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -391,7 +385,7 @@ const navigateTo = (tech: TechnologyCard) => {
 
 .info-strip-icon i {
   font-size: 1rem;
-  color: var(--color-warning-hover);
+  color: var(--color-text-muted);
 }
 
 .info-strip-text {

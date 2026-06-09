@@ -21,6 +21,7 @@ package cafe.jeffrey.flamegraph.provider;
 import cafe.jeffrey.profile.common.config.GraphParameters;
 import cafe.jeffrey.provider.profile.api.EventQueryConfigurer;
 import cafe.jeffrey.provider.profile.api.ProfileEventStreamRepository;
+import cafe.jeffrey.shared.common.span.Spans;
 import cafe.jeffrey.timeseries.TimeseriesData;
 import cafe.jeffrey.timeseries.TimeseriesResolver;
 import cafe.jeffrey.timeseries.TimeseriesSearchBuilder;
@@ -39,23 +40,29 @@ public class TimeseriesDataProvider {
     }
 
     public TimeseriesData provide() {
-        EventQueryConfigurer configurer = new EventQueryConfigurer()
-                .withEventType(graphParameters.eventType())
-                .withTimeRange(graphParameters.timeRange())
-                .filterStacktraceTypes(graphParameters.stacktraceTypes())
-                .filterStacktraceTags(graphParameters.stacktraceTags())
-                .withThreads(graphParameters.threadMode())
-                .withWeight(graphParameters.useWeight())
-                .withSearchPattern(graphParameters.searchPattern())
-                .withSpecifiedThread(graphParameters.threadInfo());
+        long generateSpan = Spans.start();
+        try {
+            EventQueryConfigurer configurer = new EventQueryConfigurer()
+                    .withEventType(graphParameters.eventType())
+                    .withTimeRange(graphParameters.timeRange())
+                    .filterStacktraceTypes(graphParameters.stacktraceTypes())
+                    .filterStacktraceTags(graphParameters.stacktraceTags())
+                    .withThreads(graphParameters.threadMode())
+                    .withWeight(graphParameters.useWeight())
+                    .withSearchPattern(graphParameters.searchPattern())
+                    .withSpecifiedThread(graphParameters.threadInfo())
+                    .withSpanIntervals(graphParameters.spanIntervals());
 
-        if (timeseriesType == TimeseriesType.SIMPLE) {
-            return eventStreamRepository.timeseriesStreamer(configurer, TimeseriesResolver.resolve(graphParameters));
-        } else if (timeseriesType == TimeseriesType.SEARCHING) {
-            TimeseriesSearchBuilder builder = new TimeseriesSearchBuilder(graphParameters.timeRange());
-            return eventStreamRepository.timeseriesSearchingStreamer(configurer, builder);
-        } else {
-            return eventStreamRepository.frameBasedTimeseriesStreamer(configurer, TimeseriesResolver.resolve(graphParameters));
+            if (timeseriesType == TimeseriesType.SIMPLE) {
+                return eventStreamRepository.timeseriesStreamer(configurer, TimeseriesResolver.resolve(graphParameters));
+            } else if (timeseriesType == TimeseriesType.SEARCHING) {
+                TimeseriesSearchBuilder builder = new TimeseriesSearchBuilder(graphParameters.timeRange());
+                return eventStreamRepository.timeseriesSearchingStreamer(configurer, builder);
+            } else {
+                return eventStreamRepository.frameBasedTimeseriesStreamer(configurer, TimeseriesResolver.resolve(graphParameters));
+            }
+        } finally {
+            Spans.end(generateSpan, "timeseries.generate");
         }
     }
 }

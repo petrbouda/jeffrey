@@ -20,34 +20,29 @@ package cafe.jeffrey.profile.manager;
 
 import cafe.jeffrey.profile.manager.model.span.SpanDetailRow;
 import cafe.jeffrey.profile.manager.model.span.SpanEventRow;
-import cafe.jeffrey.profile.manager.model.span.SpanHeatmap;
-import cafe.jeffrey.profile.manager.model.span.SpanHeatmapCell;
-import cafe.jeffrey.profile.manager.model.span.SpanHeatmapRow;
 import cafe.jeffrey.profile.manager.model.span.SpanOverview;
 import cafe.jeffrey.profile.manager.model.span.SpanSlowestRow;
 import cafe.jeffrey.profile.manager.model.span.SpanTagStat;
 import cafe.jeffrey.provider.profile.api.SpanRecord;
 import cafe.jeffrey.provider.profile.api.SpanRepository;
+import cafe.jeffrey.shared.common.model.SpanInterval;
 
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 /**
  * Derives the span views from the single {@link SpanRepository#listSpans()} primitive:
- * by-tag aggregation and a tag-by-time heatmap.
+ * by-tag aggregation.
  */
 public class SpanManagerImpl implements SpanManager {
 
     private static final double P95 = 0.95;
     private static final double P99 = 0.99;
-    private static final int HEATMAP_BUCKET_COUNT = 60;
-    private static final long NANOS_PER_MILLI = 1_000_000L;
     private static final String NO_TAG = "";
+    private static final long NANOS_PER_MILLI = 1_000_000L;
 
     private final SpanRepository repository;
 
@@ -110,55 +105,26 @@ public class SpanManagerImpl implements SpanManager {
     }
 
     @Override
-    public SpanHeatmap heatmap() {
-        List<SpanRecord> spans = repository.listSpans();
-
-        long maxEndMillis = 0;
-        for (SpanRecord span : spans) {
-            long end = span.startMillisFromBeginning() + span.durationNanos() / NANOS_PER_MILLI;
-            if (end > maxEndMillis) {
-                maxEndMillis = end;
-            }
-        }
-        long bucketMillis = Math.max(1L, (long) Math.ceil((double) maxEndMillis / HEATMAP_BUCKET_COUNT));
-
-        Map<String, List<SpanRecord>> byTag = new TreeMap<>();
-        for (SpanRecord span : spans) {
-            byTag.computeIfAbsent(tagOrEmpty(span.tag()), key -> new ArrayList<>()).add(span);
-        }
-
-        List<SpanHeatmapRow> rows = new ArrayList<>();
-        for (Map.Entry<String, List<SpanRecord>> entry : byTag.entrySet()) {
-            Map<Integer, List<Long>> durationsByBucket = new HashMap<>();
-            for (SpanRecord span : entry.getValue()) {
-                int bucket = (int) Math.min(
-                        HEATMAP_BUCKET_COUNT - 1L, span.startMillisFromBeginning() / bucketMillis);
-                durationsByBucket.computeIfAbsent(bucket, key -> new ArrayList<>()).add(span.durationNanos());
-            }
-
-            List<SpanHeatmapCell> cells = new ArrayList<>();
-            for (Map.Entry<Integer, List<Long>> bucketEntry : durationsByBucket.entrySet()) {
-                long[] durations = bucketEntry.getValue().stream()
-                        .mapToLong(Long::longValue)
-                        .sorted()
-                        .toArray();
-                cells.add(new SpanHeatmapCell(bucketEntry.getKey(), durations.length, percentile(durations, P95)));
-            }
-            cells.sort(Comparator.comparingInt(SpanHeatmapCell::bucket));
-            rows.add(new SpanHeatmapRow(entry.getKey(), cells));
-        }
-
-        return new SpanHeatmap(HEATMAP_BUCKET_COUNT, bucketMillis, rows);
-    }
-
-    @Override
     public List<SpanDetailRow> tagSpans(String tag) {
         String wanted = tagOrEmpty(tag);
         return repository.listSpans().stream()
                 .filter(span -> tagOrEmpty(span.tag()).equals(wanted))
                 .sorted(Comparator.comparingLong(SpanRecord::startEpochMillis))
                 .map(span -> new SpanDetailRow(
-                        span.startEpochMillis(), span.durationNanos(), span.osThreadId(), span.threadName()))
+                        span.startEpochMillis(), span.durationNanos(),
+                        Long.toString(span.threadHash()), span.threadName(), span.isVirtual()))
+                .toList();
+    }
+
+    @Override
+    public List<SpanInterval> tagIntervals(String tag) {
+        String wanted = tagOrEmpty(tag);
+        return repository.listSpans().stream()
+                .filter(span -> tagOrEmpty(span.tag()).equals(wanted))
+                .map(span -> new SpanInterval(
+                        span.threadHash(),
+                        span.startEpochMillis(),
+                        span.startEpochMillis() + span.durationNanos() / NANOS_PER_MILLI))
                 .toList();
     }
 
@@ -169,13 +135,13 @@ public class SpanManagerImpl implements SpanManager {
                 .limit(limit)
                 .map(span -> new SpanSlowestRow(
                         span.startEpochMillis(), span.durationNanos(),
-                        span.osThreadId(), span.threadName(), tagOrEmpty(span.tag())))
+                        Long.toString(span.threadHash()), span.threadName(), span.isVirtual(), tagOrEmpty(span.tag())))
                 .toList();
     }
 
     @Override
-    public List<SpanEventRow> spanEvents(long osThreadId, long fromEpochMillis, long toEpochMillis) {
-        return repository.eventsForThread(osThreadId, fromEpochMillis, toEpochMillis).stream()
+    public List<SpanEventRow> spanEvents(long threadHash, long fromEpochMillis, long toEpochMillis) {
+        return repository.eventsForThread(threadHash, fromEpochMillis, toEpochMillis).stream()
                 .map(event -> new SpanEventRow(
                         event.eventType(), event.startEpochMillis(), event.durationNanos(), event.fields()))
                 .toList();

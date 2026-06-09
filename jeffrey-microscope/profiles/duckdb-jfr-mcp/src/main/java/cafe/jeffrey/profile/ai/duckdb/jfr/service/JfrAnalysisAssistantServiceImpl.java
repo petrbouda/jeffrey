@@ -32,6 +32,7 @@ import cafe.jeffrey.profile.ai.duckdb.jfr.prompt.JfrAnalysisSystemPrompt;
 import cafe.jeffrey.profile.ai.duckdb.jfr.tools.DuckDbMcpTools;
 import cafe.jeffrey.provider.profile.api.DatabaseManagerResolver;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
+import cafe.jeffrey.shared.common.span.Spans;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
@@ -165,12 +166,18 @@ public class JfrAnalysisAssistantServiceImpl implements JfrAnalysisAssistantServ
     private String executeWithTools(
             List<Message> messages, DuckDbMcpTools tools, List<String> toolsUsed, String systemPrompt) {
 
-        ChatResponse response = chatClient.prompt()
-                .system(systemPrompt)
-                .messages(messages)
-                .tools(tools)
-                .call()
-                .chatResponse();
+        long aiSpan = Spans.start();
+        ChatResponse response;
+        try {
+            response = chatClient.prompt()
+                    .system(systemPrompt)
+                    .messages(messages)
+                    .tools(tools)
+                    .call()
+                    .chatResponse();
+        } finally {
+            Spans.end(aiSpan, "ai.jfr-analysis.call");
+        }
 
         return response.getResult().getOutput().getText();
     }

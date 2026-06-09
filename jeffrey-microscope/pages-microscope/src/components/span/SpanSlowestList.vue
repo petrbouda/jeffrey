@@ -17,14 +17,16 @@
   -->
 
 <template>
-  <div v-if="sortedSpans.length > 0" class="slowest-list">
-    <div
-      v-for="(span, index) in sortedSpans"
-      :key="index"
-      class="slowest-row"
-      @click="$emit('rowClick', span)"
-    >
-      <div class="left-accent" :class="accentClass(span.threadName)"></div>
+  <div v-if="sortedSpans.length > 0">
+    <SlowestCountHeader :shown="sortedSpans.length" :total="spans.length" />
+    <div class="slowest-list">
+      <div
+        v-for="(span, index) in sortedSpans"
+        :key="index"
+        class="slowest-row"
+        @click="$emit('rowClick', span)"
+      >
+      <div class="left-accent"></div>
       <div class="row-content">
         <div class="row-header">
           <div class="row-header-left">
@@ -45,15 +47,21 @@
           </div>
         </div>
         <div class="row-details">
-          <span v-if="span.tag" class="detail-chip">
-            <i class="bi bi-tag"></i>
-            {{ span.tag }}
-          </span>
+          <Badge
+            v-if="span.tag"
+            :value="span.tag"
+            variant="primary"
+            size="s"
+            icon="bi bi-tag"
+            :uppercase="false"
+            class="span-tag-badge"
+          />
           <span class="detail-chip">
             <i class="bi bi-clock"></i>
             {{ FormattingService.formatTimestamp(span.startEpochMillis).replace('T', ' ') }}
           </span>
         </div>
+      </div>
       </div>
     </div>
   </div>
@@ -63,8 +71,9 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import FormattingService from '@/services/FormattingService';
+import Badge from '@/components/Badge.vue';
+import SlowestCountHeader from '@/components/SlowestCountHeader.vue';
 
-const ACCENTS = ['accent-blue', 'accent-green', 'accent-orange', 'accent-purple', 'accent-cyan'];
 const DISPLAY_LIMIT = 50;
 
 // Accepts both per-tag rows (no tag) and cross-tag slowest rows (with tag). The tag
@@ -72,8 +81,9 @@ const DISPLAY_LIMIT = 50;
 interface SlowestSpanRow {
   startEpochMillis: number;
   durationNanos: number;
-  osThreadId: number;
+  threadHash: string;
   threadName: string;
+  isVirtual: boolean;
   tag?: string;
 }
 
@@ -99,24 +109,6 @@ const maxDuration = computed(() => {
 function timePercentage(durationNanos: number): number {
   return Math.max((durationNanos / maxDuration.value) * 100, 2);
 }
-
-// Stable accent colour per thread, so rows of the same thread share a stripe colour.
-const threadAccents = computed(() => {
-  const map = new Map<string, string>();
-  let next = 0;
-  for (const span of props.spans) {
-    const name = span.threadName || 'unknown';
-    if (!map.has(name)) {
-      map.set(name, ACCENTS[next % ACCENTS.length]);
-      next++;
-    }
-  }
-  return map;
-});
-
-function accentClass(threadName: string): string {
-  return threadAccents.value.get(threadName || 'unknown') ?? 'accent-purple';
-}
 </script>
 
 <style scoped>
@@ -141,26 +133,11 @@ function accentClass(threadName: string): string {
 }
 
 .left-accent {
-  width: 4px;
+  width: 3px;
   border-radius: 2px;
   flex-shrink: 0;
   margin-right: 1rem;
-}
-
-.accent-blue {
-  background: var(--color-info-text);
-}
-.accent-green {
-  background: var(--color-success);
-}
-.accent-orange {
-  background: var(--color-warning);
-}
-.accent-purple {
-  background: var(--color-purple);
-}
-.accent-cyan {
-  background: var(--color-info);
+  background: var(--color-border-light);
 }
 
 .row-content {
@@ -239,6 +216,13 @@ function accentClass(threadName: string): string {
   align-items: center;
   gap: 0.5rem;
   flex-wrap: wrap;
+}
+
+.span-tag-badge {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .detail-chip {

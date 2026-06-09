@@ -28,6 +28,7 @@ import cafe.jeffrey.provider.profile.api.RecordingEventParser;
 import cafe.jeffrey.provider.profile.api.ProfileInfoRepository;
 import cafe.jeffrey.provider.profile.api.ProfileRepositories;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
+import cafe.jeffrey.shared.common.span.Spans;
 import cafe.jeffrey.shared.persistence.DataSourceUtils;
 import cafe.jeffrey.shared.persistence.DatabaseManager;
 import cafe.jeffrey.shared.persistence.GroupLabel;
@@ -71,6 +72,7 @@ public class ProfileInitializerImpl implements ProfileInitializer {
     public ProfileManager initialize(ProfileInfo profileInfo, String recordingId, Path recordingPath) {
         LOG.debug("Initializing profile: profileId={} recordingId={}", profileInfo.id(), recordingId);
         Instant startedAt = clock.instant();
+        long initSpan = Spans.start();
 
         // Open database connection for the new profile
         // it's creates a new database file on disk if it does not exist yet
@@ -120,6 +122,7 @@ public class ProfileInitializerImpl implements ProfileInitializer {
             return profileManager;
         } finally {
             DataSourceUtils.close(dataSource);
+            Spans.end(initSpan, "profile.initialize");
         }
     }
 }

@@ -25,17 +25,24 @@ package cafe.jeffrey.provider.profile.api;
  * @param startMillisFromBeginning span start, in milliseconds relative to the first event of the recording
  * @param startEpochMillis         span start as an absolute UTC epoch-millis timestamp
  * @param durationNanos            span duration in nanoseconds (0 if the span had no duration)
- * @param osThreadId               OS thread id of the enclosing thread (0 if unknown); the reliable join key
+ * @param threadHash               hash of the enclosing thread's identity — the reliable join key for
+ *                                 pairing the span with the events on the same thread (works for
+ *                                 platform <em>and</em> virtual threads, unlike the OS id which is
+ *                                 absent for virtual threads)
+ * @param osThreadId               OS thread id of the enclosing thread (0 if unknown, e.g. virtual threads)
  * @param javaThreadId             Java thread id (0 if unknown)
  * @param threadName               thread name (may be {@code null})
+ * @param isVirtual                whether the enclosing thread is a virtual thread
  * @param tag                      span tag (may be {@code null})
  */
 public record SpanRecord(
         long startMillisFromBeginning,
         long startEpochMillis,
         long durationNanos,
+        long threadHash,
         long osThreadId,
         long javaThreadId,
         String threadName,
+        boolean isVirtual,
         String tag) {
 }

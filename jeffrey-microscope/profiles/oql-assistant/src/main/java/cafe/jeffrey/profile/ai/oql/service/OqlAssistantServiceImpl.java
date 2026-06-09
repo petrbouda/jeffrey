@@ -19,6 +19,7 @@
 package cafe.jeffrey.profile.ai.oql.service;
 
 import cafe.jeffrey.profile.ai.oql.model.*;
+import cafe.jeffrey.shared.common.span.Spans;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
@@ -75,10 +76,16 @@ public class OqlAssistantServiceImpl implements OqlAssistantService {
             List<Message> messages = buildMessages(request, contextText);
 
             // Call the AI
-            String response = chatClient.prompt()
-                    .messages(messages)
-                    .call()
-                    .content();
+            long aiSpan = Spans.start();
+            String response;
+            try {
+                response = chatClient.prompt()
+                        .messages(messages)
+                        .call()
+                        .content();
+            } finally {
+                Spans.end(aiSpan, "ai.oql.call");
+            }
 
             // Extract OQL from response
             String extractedOql = oqlExtractor.extract(response);

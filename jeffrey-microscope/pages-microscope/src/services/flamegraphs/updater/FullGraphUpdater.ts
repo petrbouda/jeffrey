@@ -19,7 +19,6 @@
 import GraphUpdater from '@/services/flamegraphs/updater/GraphUpdater';
 import TimeRange from '@/services/api/model/TimeRange';
 import FlamegraphClient from '@/services/api/FlamegraphClient.ts';
-import PrimaryFlamegraphClient from '@/services/api/PrimaryFlamegraphClient.ts';
 import TimeseriesData from '@/services/timeseries/model/TimeseriesData';
 
 export default class FullGraphUpdater extends GraphUpdater {
@@ -142,7 +141,7 @@ export default class FullGraphUpdater extends GraphUpdater {
   }
 
   public updateModes(useThreadMode: boolean, useWeight: boolean): void {
-    if (this.httpClient instanceof PrimaryFlamegraphClient) {
+    if (this.httpClient.supportsModeToggle()) {
       this.httpClient.setUseThreadMode(useThreadMode);
       this.httpClient.setUseWeight(useWeight);
       this.initialize();

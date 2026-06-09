@@ -115,6 +115,9 @@ public record Type(String code, boolean calculated) {
     public static final Type GRPC_SERVER_EXCHANGE = new Type(EventTypeName.GRPC_SERVER_EXCHANGE);
     public static final Type GRPC_CLIENT_EXCHANGE = new Type(EventTypeName.GRPC_CLIENT_EXCHANGE);
 
+    // Async-profiler events
+    public static final Type SPAN = new Type(EventTypeName.SPAN);
+
     // Container events
     public static final Type CONTAINER_CONFIGURATION = new Type(EventTypeName.CONTAINER_CONFIGURATION);
     public static final Type CONTAINER_CPU_THROTTLING = new Type(EventTypeName.CONTAINER_CPU_THROTTLING);
@@ -199,7 +202,8 @@ public record Type(String code, boolean calculated) {
                 CONTAINER_CONFIGURATION,
                 CONTAINER_CPU_THROTTLING,
                 CONTAINER_MEMORY_USAGE,
-                CONTAINER_IO_USAGE
+                CONTAINER_IO_USAGE,
+                SPAN
         ).collect(Collectors.toMap(Type::code, Function.identity()));
     }
 

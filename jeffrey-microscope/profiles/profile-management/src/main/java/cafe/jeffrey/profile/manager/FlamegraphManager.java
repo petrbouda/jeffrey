@@ -20,6 +20,7 @@ package cafe.jeffrey.profile.manager;
 
 import cafe.jeffrey.profile.common.config.GraphParameters;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
+import cafe.jeffrey.shared.common.model.SpanInterval;
 import cafe.jeffrey.profile.model.EventSummaryResult;
 
 import java.util.List;
@@ -37,6 +38,15 @@ public interface FlamegraphManager {
     }
 
     List<EventSummaryResult> eventSummaries();
+
+    /**
+     * Per-event-type summaries scoped to the union of the given span (thread, window) intervals, so the
+     * span flamegraph cards show the real sample/weight counts those spans cover (not profile-wide totals).
+     *
+     * @param spanIntervals per-span (thread, time-window) intervals to scope the counts to
+     * @return span-scoped event summaries (only types with at least one in-scope sample)
+     */
+    List<EventSummaryResult> eventSummaries(List<SpanInterval> spanIntervals);
 
     /**
      * Generate graph data in Protocol Buffers format.

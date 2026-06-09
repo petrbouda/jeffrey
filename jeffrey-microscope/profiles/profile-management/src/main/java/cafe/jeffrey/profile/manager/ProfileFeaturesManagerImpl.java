@@ -54,6 +54,7 @@ public class ProfileFeaturesManagerImpl implements ProfileFeaturesManager {
                 FeatureCheckers.JDBC_STATEMENTS_DASHBOARD,
                 FeatureCheckers.JDBC_POOL_DASHBOARD,
                 FeatureCheckers.TRACING_DASHBOARD,
+                FeatureCheckers.ASYNC_PROFILER_SPANS,
                 new ContainerDashboardFeatureChecker(eventRepository),
                 new PerfCounterDashboardFeatureChecker(cacheRepository));
     }

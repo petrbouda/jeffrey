@@ -22,8 +22,12 @@ module cafe.jeffrey.shared.common {
     requires com.github.f4b6a3.uuid;
     requires transitive tools.jackson.core;
     requires transitive tools.jackson.databind;
+    // async-profiler Span API — optional at runtime (`static`): bundled only by the microscope app.
+    // The Spans wrapper is the sole user and is never reached by the GraalVM-native CLI.
+    requires static async.profiler;
 
     exports cafe.jeffrey.shared.common;
+    exports cafe.jeffrey.shared.common.span;
     exports cafe.jeffrey.shared.common.compression;
     exports cafe.jeffrey.shared.common.encryption;
     exports cafe.jeffrey.shared.common.exception;

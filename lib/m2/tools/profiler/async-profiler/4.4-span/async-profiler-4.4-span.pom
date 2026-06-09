@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!--
+      Vendored async-profiler Java API jar, built from the `span-api` branch
+      (https://github.com/async-profiler/async-profiler/tree/span-api).
+      Hosted in the in-repo file repository at lib/m2 so it resolves as a normal
+      compile artifact (the systemPath form did not bundle into the assembled app).
+      This is the thin Java API only (one.profiler.Span, Recording, ...); the native
+      libasyncProfiler.so agent is required at runtime to actually record spans.
+    -->
+    <groupId>tools.profiler</groupId>
+    <artifactId>async-profiler</artifactId>
+    <version>4.4-span</version>
+    <packaging>jar</packaging>
+</project>

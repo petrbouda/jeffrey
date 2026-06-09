@@ -1,5 +1,9 @@
 <template>
   <div class="detail-breadcrumb" @click="$emit('back')">
+    <span class="breadcrumb-back-btn">
+      <i class="bi bi-arrow-left"></i> Back to {{ rootLabel }}
+    </span>
+    <div class="breadcrumb-divider"></div>
     <div class="breadcrumb-tile">
       <i class="bi" :class="icon"></i>
     </div>
@@ -8,9 +12,6 @@
       <span class="breadcrumb-current">
         <slot></slot>
       </span>
-    </div>
-    <div class="breadcrumb-back">
-      <i class="bi bi-arrow-left"></i>
     </div>
   </div>
 </template>
@@ -32,7 +33,7 @@ defineEmits<{ back: [] }>();
 .detail-breadcrumb {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
   background: var(--color-white);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
@@ -52,10 +53,34 @@ defineEmits<{ back: [] }>();
   box-shadow: var(--shadow-md);
 }
 
-.detail-breadcrumb:hover .breadcrumb-back {
+/* Prominent "Back to <root>" affordance — fills with brand color on hover. */
+.breadcrumb-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-primary);
+  background: var(--color-primary-light);
+  border: 1px solid var(--color-primary-border);
+  border-radius: var(--radius-base);
+  padding: 6px 12px;
+  transition: all var(--transition-fast, 0.15s) ease;
+}
+
+.detail-breadcrumb:hover .breadcrumb-back-btn {
   background: var(--color-primary);
   border-color: var(--color-primary);
   color: var(--color-white);
+}
+
+.breadcrumb-divider {
+  width: 1px;
+  align-self: stretch;
+  background: var(--color-border);
+  margin: 2px 2px;
+  flex-shrink: 0;
 }
 
 .breadcrumb-tile {
@@ -97,25 +122,14 @@ defineEmits<{ back: [] }>();
   white-space: nowrap;
 }
 
-.breadcrumb-back {
-  margin-left: auto;
-  width: 30px;
-  height: 30px;
-  border-radius: var(--radius-base);
-  border: 1px solid var(--color-border);
-  background: var(--color-bg-hover);
-  color: var(--color-text-muted);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  transition: all var(--transition-fast, 0.15s) ease;
-}
-
 @media (max-width: 768px) {
   .detail-breadcrumb {
     gap: 10px;
     padding: 8px 12px;
+  }
+
+  .breadcrumb-back-btn span {
+    display: none;
   }
 
   .breadcrumb-tile {

@@ -790,14 +790,6 @@
                         <i class="bi bi-hourglass-split"></i>
                         <span>Slowest Spans</span>
                       </router-link>
-                      <router-link
-                        :to="`/profiles/${profileId}/technologies/async-profiler/heatmap`"
-                        class="nav-item"
-                        active-class="active"
-                      >
-                        <i class="bi bi-grid-3x3"></i>
-                        <span>Heatmap</span>
-                      </router-link>
                     </div>
                   </div>
                 </template>

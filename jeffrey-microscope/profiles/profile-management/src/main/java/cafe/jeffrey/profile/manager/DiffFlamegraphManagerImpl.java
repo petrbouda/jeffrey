@@ -20,6 +20,7 @@ package cafe.jeffrey.profile.manager;
 
 import cafe.jeffrey.profile.common.config.GraphParameters;
 import cafe.jeffrey.shared.common.model.EventSummary;
+import cafe.jeffrey.shared.common.model.SpanInterval;
 import cafe.jeffrey.shared.common.model.Type;
 import cafe.jeffrey.flamegraph.GraphGenerator;
 import cafe.jeffrey.profile.model.EventSummaryResult;
@@ -84,6 +85,12 @@ public class DiffFlamegraphManagerImpl implements FlamegraphManager {
         }
 
         return results;
+    }
+
+    @Override
+    public List<EventSummaryResult> eventSummaries(List<SpanInterval> spanIntervals) {
+        throw new UnsupportedOperationException(
+                "Span-scoped event summaries are not supported for differential flamegraphs");
     }
 
     private static Optional<EventSummary> findEventType(List<EventSummary> secondary, String eventType) {

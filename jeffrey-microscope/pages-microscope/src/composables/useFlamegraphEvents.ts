@@ -35,7 +35,10 @@ export interface CategorizedEvents {
   nativeLeakEvents: EventSummary[];
 }
 
-export function useFlamegraphEvents(graphMode: string) {
+export function useFlamegraphEvents(
+  graphMode: string,
+  fetchEvents?: () => Promise<EventSummary[]>
+) {
   const route = useRoute();
 
   const loaded = ref(false);
@@ -84,7 +87,10 @@ export function useFlamegraphEvents(graphMode: string) {
     try {
       let data: EventSummary[];
 
-      if (graphMode === GraphType.DIFFERENTIAL) {
+      if (fetchEvents) {
+        // Caller supplies a scoped event source (e.g. span-scoped summaries) instead of profile-wide.
+        data = await fetchEvents();
+      } else if (graphMode === GraphType.DIFFERENTIAL) {
         const secondaryId = SecondaryProfileService.id();
         if (!secondaryId) {
           // No secondary profile selected, set loaded to true to show empty state

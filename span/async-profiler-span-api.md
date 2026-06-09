@@ -30,6 +30,11 @@ Key properties:
 - **`Contextual` JFR annotation** — tooling (JMC, `jfr view`) can propagate the span tag to all
   events inside the interval, enabling filter/color by span.
 
+> **Looking for what you can _build_ on spans?** Jump to **§9–§14**: native-vs-reconstructable
+> (§9), parent/child hierarchy by time-containment (§10), per-span-instance flamegraph/timeseries
+> (§11), the HTTP-exchange-rooted "request explorer" (§12), other patterns like differential
+> slow-vs-fast flamegraphs (§13), and a built-vs-new inventory of Jeffrey's span feature (§14).
+
 ---
 
 ## 2. Branch contents
@@ -439,25 +444,212 @@ pointer") that increments per sample — matching the new timestamp-storing beha
 
 ---
 
-## 9. Relation to Jeffrey
+## 9. What's native vs. what a reader reconstructs
 
-Jeffrey is a JFR analysis tool. If/when this lands in async-profiler, `profiler.Span` becomes a new
-JFR event type Jeffrey could ingest and visualize:
+Everything interesting Jeffrey can do with spans is a **reader-side derivation**, not an
+async-profiler capability. The recording is deliberately minimal — four flat fields per span, one
+thread, a deduplicated tag. There is **no span id, no parent id, no depth, no correlation id, no
+scope stack** anywhere in the Java API or the native code (confirmed against §4.4: a span is just a
+`SpanEvent { _start_time, _end_time, _tag }` written under `OS::threadId()`).
 
-- A new event type to parse (`recording-parser/`), with fields `startTime`, `duration`,
-  `eventThread`, `tag`.
-- Natural fit for the **timeseries** / **subsecond** views (intervals on a thread timeline) and for
-  **flamegraph filtering** — filter sampled stacks to those whose timestamps fall inside a span of a
-  given tag (the `Contextual` semantics map directly onto a "filter flamegraph by span" feature).
-- Tags are constant-pool strings, so cardinality is bounded and groupable.
+| What the recording literally contains | What a reader (Jeffrey) can derive from it |
+|---|---|
+| `profiler.Span { startTime, duration, eventThread, tag }` — flat | **Parent/child hierarchy** by time-interval containment on one thread (§10) |
+| One `eventThread` per span (the caller of `end`/`emit`) | **Span-scoped flamegraph / timeseries / subsecond** by filtering samples to `[start,end]` on that thread (§11) |
+| Tags interned in a string pool (bounded cardinality) | **Tag-grouped aggregation** + **differential slow-vs-fast** comparisons (§13) |
+| TSC-aligned timestamps, comparable to `jdk.ExecutionSample` (§4.1) | **Sample ↔ span correlation** with no clock conversion (§11, §12) |
+| `@Contextual` flag on `tag` (metadata only — async-profiler does nothing with it, §4.5) | **Context decoration**: attach the set of open span tags to each enclosed sample (§10) |
 
-This is a *potential future integration*, not anything implemented in Jeffrey today.
+The rest of this section is the analysis of those derivations and exactly which existing Jeffrey
+building blocks implement them.
 
-A separate companion note —
-[`async-profiler-span-api-jeffrey-candidates.md`](./async-profiler-span-api-jeffrey-candidates.md) —
-maps the concrete places in Jeffrey Microscope where **Jeffrey instrumenting itself** with Spans
-would be most valuable (AI/LLM calls, the JFR ingestion pipeline, heap-dump indexing, the REST/gRPC
-boundaries), with ranked `file:line` candidates and a recommended minimal starter set.
+---
+
+## 10. Parent/child spans — reconstructed by containment
+
+**There is no native hierarchy.** Two spans open on the same thread share nothing in the recording
+that links them (§4.4). Nesting is *inferred* by the reader.
+
+**Rule.** On a single `eventThread`, span **B is a child of span A** iff
+`A.start ≤ B.start` and `B.end ≤ A.end`. The parent of B is the *innermost* such A.
+
+**Algorithm (stack sweep).** Group spans by thread; within a thread sort by
+`(start ASC, duration DESC)`; walk a stack — pop any open span whose `end < current.start`, then the
+current top of stack (if any) is the parent, push current. O(n log n), pure in-memory; runs over the
+rows the existing `JdbcSpanRepository.LIST_SPANS` already returns (each `SpanRecord` carries
+`startMillisFromBeginning`, `durationNanos`, `osThreadId`, `javaThreadId`, `threadName`, `tag`). It
+fits naturally in `SpanManagerImpl` as a derived parent pointer + depth — **no schema change, no new
+JFR field.**
+
+```
+one thread's timeline ───────────────────────────────────────────────▶ t
+
+  [== A: "GET /api/orders"  (320ms) ===========================]
+      [== B: "loadOrders" (140ms) =====]   [== C: "render" (90ms) ==]
+         [= D: "db.query" (60ms) =]
+
+reconstructed tree:                A
+                                 ┌─┴─┐
+                                 B   C
+                                 │
+                                 D
+```
+
+**Caveats (state these honestly in any UI):**
+- **Equal boundaries** → the longer-duration span is treated as the outer one (the `duration DESC`
+  tie-break); truly identical `[start,end]` pairs are ambiguous and should be shown as siblings.
+- **Thread reuse over time** — a pooled thread handles many unrelated requests; containment is only
+  meaningful within one contiguous burst of activity, which the sweep already respects (a new root
+  starts whenever the stack empties).
+- **Virtual threads** — `eventThread` is the *carrier* OS thread (§3, §6). A virtual thread that
+  unmounts and remounts on a different carrier mid-span makes carrier-based containment unreliable;
+  prefer the Java thread id when present and flag VT spans.
+- **Async hand-off breaks containment** — a logical parent on thread X with child work on thread Y
+  cannot be linked (no correlation id exists, and spans never cross threads, §2). This is a hard
+  limit of the span model, not of the reconstruction.
+
+**JDK-25 `@Contextual` angle.** A JDK-25 reader treats the `tag` field as context that **stacks per
+thread**, so every enclosed sample inherits the *set* of currently-open tags — which is exactly the
+containment relation above, expressed as decoration instead of a tree. Jeffrey can produce the same
+result today, without JDK 25 tooling, by computing containment itself and tagging samples whose
+timestamp falls inside each open span.
+
+---
+
+## 11. Span-scoped flamegraph / timeseries / subsecond (per instance)
+
+This is the single most reusable idea, and **it needs no new query infrastructure.** Jeffrey's
+graph pipeline is already time- and thread-scoped: a `GraphParameters(eventType, timeRange,
+threadInfo, …)` flows through `EventQueryConfigurer.withTimeRange(...).withSpecifiedThread(...)` into
+`FlamegraphDataProvider.provideFrame()` / `TimeseriesDataProvider.provide()` /
+`DbBasedSubSecondGeneratorImpl`, and the underlying DuckDB queries already carry `:from_time` /
+`:to_time` and per-thread predicates.
+
+Given one span instance, the scope is `[span.start, span.end]` **on `span.thread`**:
+
+```java
+// from a SpanRecord (already returned by JdbcSpanRepository.LIST_SPANS)
+long startMs = span.startMillisFromBeginning();
+long endMs   = startMs + span.durationNanos() / 1_000_000;
+
+RelativeTimeRange window = new RelativeTimeRange(startMs, endMs);          // relative to recording start
+ThreadInfo thread = new ThreadInfo(span.osThreadId(), span.javaThreadId(), span.threadName());
+
+GraphParameters params = new GraphParameters(Type.EXECUTION_SAMPLE, window, thread, /* … */);
+Frame flame = new FlamegraphDataProvider(eventStreamRepository, params).provideFrame();
+// TimeseriesData ts = new TimeseriesDataProvider(eventStreamRepository, params).provide();
+```
+
+Notes:
+- **Distinct from the existing `SpanTagFlamegraphs.vue`**, which scopes to a *tag's overall window*
+  (`min(start) … max(end)` across **all** spans of that tag, possibly across unrelated threads). That
+  is coarse and mixes in samples from other requests. The per-**instance** scope above is precise:
+  one request, one thread, one interval.
+- **`endIfProfiled` synergy** — spans recorded with `endIfProfiled` enclose ≥1 sample by
+  construction (§3.2), so their per-instance flamegraph is guaranteed non-empty. Plain `end` spans
+  may be sample-free (e.g. an idle/off-CPU span) — show an explicit "no samples in this interval"
+  state rather than an empty graph.
+- **Swap the event type** to reuse the same window for other lenses: `wall` for off-CPU/latency,
+  allocation types for memory, lock/park types for contention — "what was this span blocked on" vs.
+  "what burned CPU."
+
+---
+
+## 12. HTTP-exchange-rooted "request explorer" (the headline)
+
+Jeffrey **already models** `jeffrey.HttpServerExchange` (and `HttpClientExchange`,
+`GrpcServerExchange`, `GrpcClientExchange`) in `Type` / `EventTypeName` — each an interval event with
+start + duration + thread. Treat one exchange as a **root context** and assemble everything beneath
+it by composing §10 and §11:
+
+1. **Child spans** = `profiler.Span` rows contained in the exchange interval on the same thread
+   (§10 containment, with the exchange itself as the synthetic root).
+2. **Samples** in the exchange window on that thread → per-instance flamegraph + timeseries (§11),
+   built straight from the providers with `timeRange = [exchange.start, exchange.end]`,
+   `threadInfo = exchange.thread`.
+
+The result is a single **request explorer**: the HTTP request on top, the nested operation spans as
+a Gantt below, and a flamegraph + timeseries beside it — *"what did this one request do, and what was
+the CPU actually doing while each operation was open?"*
+
+```
+ HTTP  [===== jeffrey.HttpServerExchange  GET /api/orders   312 ms =====]
+ spans     [== auth (20ms) ==]                                              ┌── flamegraph (this window,
+           [======== loadOrders (180ms) ========]                          │   this thread) ──────────┐
+                  [= db.query (95ms) =] [= map (40ms) =]                    │  handleOrders        100% │
+                                          [==== render (70ms) ====]         │   ├ loadOrders        58% │
+ samples   • • •   •  • •   • • • •    •    • •   • • •  •   •   •           │   │  └ db.query       31% │
+           └────────── timeseries (samples/100ms in window) ─────────┘     │   └ render            22% │
+                                                                           └──────────────────────────┘
+```
+
+- **Same recipe for `GrpcServerExchange`** — any interval event with a thread can be a root.
+- **Honest limit:** correlation is **time + thread containment**, *not* a propagated trace id.
+  Cross-thread async work spawned by the request (executor hand-off, reactive pipelines) is **not**
+  pulled in — it runs on other threads and async-profiler spans never cross threads (§2). The view
+  shows "this request's synchronous work on its serving thread," which is exactly what sampling +
+  spans can prove, and nothing it can't.
+- **Jeffrey mapping:** a read-only correlation in `SpanManager` (exchange row → contained spans +
+  scoped graph params) reusing the §10/§11 blocks; the UI could extend `SpanEventsModal.vue` (which
+  already lists per-thread events during a window) into a request-rooted tree. Implementation-depth
+  blueprint is intentionally left to the candidates doc — see §14.
+
+---
+
+## 13. Other patterns worth building
+
+- **Differential slow-vs-fast flamegraph.** For one tag, build the per-instance flamegraph (§11) of
+  the **p99** spans and subtract the flamegraph of the **median** spans. What remains is the extra
+  work that makes the slow ones slow — the highest-signal view for "why is this endpoint
+  occasionally slow." Reuses §11 twice plus a frame diff.
+
+  ```
+   slow (p99)            fast (median)            diff = slow − fast
+   handle      100%      handle      100%         + db.retry        +34%
+    ├ db.query  72%       ├ db.query  41%         + serialize.gzip  +11%
+    └ serialize 24%       └ serialize 18%         - (cache hit path)  −0%
+  ```
+
+- **Tag-aggregated (union) flamegraph.** Merge the per-instance windows of *all* spans of a tag
+  (precise union of intervals on their threads) — strictly better than the current single
+  `min … max` tag window, which sweeps in unrelated samples between span instances.
+- **Span boundaries as overlays.** Draw span start/end markers on the existing timeseries and
+  subsecond views, so sample density is read *against* the operations that produced it.
+- **Spans as a first-class time+thread selector.** A span click is just a preset
+  `{timeRange, threadInfo}` — the same payload `TimeSeriesChart.vue` already emits via
+  `update:timeRange` on brush. Any existing flamegraph/timeseries view can be driven by it.
+- **On-CPU vs off-CPU split within a span.** Same window, two event types (`cpu` vs `wall`): how
+  much of a 300 ms span was running vs. waiting.
+
+---
+
+## 14. Jeffrey today: built vs. new
+
+Jeffrey **already ships a working span feature** — so the items below are
+extensions, not greenfield. Current state: spans are read from the `events` table
+(`event_type = 'profiler.Span'`, tag via `json_extract_string(fields,'$.tag')`) by
+`JdbcSpanRepository`, aggregated, and visualized.
+
+| Capability | Status | Where |
+|---|---|---|
+| Tag statistics, overview, heatmap, slowest | **Built** | `SpanManagerImpl`, `AsyncProfilerSpansController` (`/spans/overview\|tags\|heatmap\|slowest`) |
+| Per-thread event correlation during a span | **Built** | `JdbcSpanRepository.EVENTS_FOR_THREAD`, `SpanEventsModal.vue` |
+| Tag-**window** flamegraphs (coarse) | **Built** | `SpanTagFlamegraphs.vue` |
+| Parent/child hierarchy by containment (§10) | **New** | derive in `SpanManagerImpl` from `LIST_SPANS` |
+| Per-**instance** flamegraph/timeseries (§11) | **New** | reuse `GraphParameters` + `FlamegraphDataProvider`/`TimeseriesDataProvider` |
+| HTTP/gRPC-exchange-rooted explorer (§12) | **New** | correlate `HttpServerExchange` → contained spans + scoped graphs |
+| Differential slow-vs-fast, union flamegraph (§13) | **New** | compose §11 + frame diff |
+
+**Companion docs (single-responsibility — cross-reference, don't duplicate):**
+- [`async-profiler-span-api-jeffrey-candidates.md`](./async-profiler-span-api-jeffrey-candidates.md)
+  — where **Jeffrey should instrument itself** with spans (AI/LLM calls, JFR ingestion, heap-dump
+  indexing, REST/gRPC boundaries), with ranked `file:line` candidates and a starter set.
+- [`span-visualization-research.md`](./span-visualization-research.md) — industry visualization
+  patterns (Pyroscope, Datadog, JMC, JDK-25 `@Contextual`) that informed §10–§13.
+
+> **Status reminder (§8):** the async-profiler Span API is on an **unreleased feature branch**.
+> The §10–§13 features read real `profiler.Span` events from the profile database, which depend on
+> the `span-api` build landing and being run as the recording agent.
 
 ---
 
@@ -475,3 +667,18 @@ boundaries), with ranked `file:line` candidates and a recommended minimal starte
 | `ProfilingWindow` → `SpanEvent` fold-in | `src/profiler.cpp` / `src/profiler.h` |
 | User docs | `docs/IntegratingAsyncProfiler.md`, `docs/ProfilingNonJavaApplications.md` |
 | Tests | `test/test/span/Span*.java` |
+
+### Jeffrey-side reuse pointers (for §10–§14)
+
+| Concern | File (under `jeffrey-microscope/`) |
+|---------|------|
+| Span rows + queries (`LIST_SPANS`, `EVENTS_FOR_THREAD`) | `profiles/profile-sql-persistence/.../jdbc/JdbcSpanRepository.java` |
+| `SpanRecord` (`startMillisFromBeginning`, `durationNanos`, `osThreadId`, `javaThreadId`, `threadName`, `tag`) | `profiles/profile-persistence-api/.../api/SpanRecord.java` |
+| Span aggregation manager | `profiles/profile-management/.../manager/SpanManagerImpl.java` |
+| Span REST endpoints | `core-microscope/.../web/controllers/profile/AsyncProfilerSpansController.java` |
+| Span manager factory wiring | `profiles/profile-management/.../configuration/ProfileFactoriesConfiguration.java` |
+| Time+thread scoping primitive | `profiles/profile-persistence-api/.../api/EventQueryConfigurer.java` (`withTimeRange` / `withSpecifiedThread`) |
+| Graph params + providers | `profiles/flamegraph/.../provider/FlamegraphDataProvider.java`, `TimeseriesDataProvider.java`; `profiles/subsecond/.../DbBasedSubSecondGeneratorImpl.java` |
+| `RelativeTimeRange` / `ThreadInfo` | `shared/common/.../model/time/RelativeTimeRange.java`, `shared/common/.../model/ThreadInfo.java` |
+| HTTP/gRPC exchange event types | `shared/common/.../model/EventTypeName.java`, `Type.java` (`HTTP_SERVER_EXCHANGE`, `GRPC_SERVER_EXCHANGE`, …) |
+| Span UI components | `pages-microscope/src/components/span/` (`SpanTagFlamegraphs.vue`, `SpanEventsModal.vue`, `SpanHeatmapChart.vue`, …) |

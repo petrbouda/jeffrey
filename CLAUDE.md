@@ -423,6 +423,12 @@ When unsure whether a request is "make it cleaner" or "make it faster", ask. Def
 - Profile DB: events, flamegraph data, analysis results for a single profile
 - `profile_id` gathers all data related to a specific profile
 
+### On-disk Database Locations (for direct inspection)
+- Per-profile DB file: `~/.jeffrey-microscope/profiles/<profile-id>/profile-data.db` (contains the `events`, `threads`, `event_types`, etc. tables for that profile)
+- Microscope core DB file: `~/.jeffrey-microscope/jeffrey-data.db`
+- A running app holds an exclusive lock on these files, so a read-only open fails with `Could not set lock on file`. To inspect while the app runs, copy the file first (e.g. `cp .../profile-data.db /tmp/probe.db`, plus `.wal` if present) and open the copy read-only.
+- No `duckdb` CLI or python module is installed by default; quickest path is a throwaway venv: `python3 -m venv /tmp/ddbvenv && /tmp/ddbvenv/bin/pip install duckdb`, then `duckdb.connect(path, read_only=True)`.
+
 ### Database Schema
 - Microscope Core migrations: `jeffrey-microscope/microscope-core-sql-persistence/src/main/resources/db/migration/microscope/core/V001__init.sql`
 - Server migrations: `jeffrey-server/server-sql-persistence/src/main/resources/db/migration/server/V001__init.sql`

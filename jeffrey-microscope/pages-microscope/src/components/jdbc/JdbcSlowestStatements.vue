@@ -1,11 +1,17 @@
 <template>
-  <div v-if="statements.length > 0" class="slowest-list">
-    <div
-      v-for="statement in sortedStatements"
-      :key="statement.timestamp"
-      class="slowest-row"
-      @click="handleSqlButtonClick(statement)"
-    >
+  <div v-if="statements.length > 0">
+    <SlowestCountHeader
+      :shown="sortedStatements.length"
+      :total="statements.length"
+      note="sorted by execution time"
+    />
+    <div class="slowest-list">
+      <div
+        v-for="statement in sortedStatements"
+        :key="statement.timestamp"
+        class="slowest-row"
+        @click="handleSqlButtonClick(statement)"
+      >
       <div class="left-accent" :class="getAccentClass(statement.operation)"></div>
       <div class="row-content">
         <div class="row-header">
@@ -44,6 +50,7 @@
           </template>
         </div>
       </div>
+      </div>
     </div>
   </div>
 </template>
@@ -52,6 +59,7 @@
 import { computed } from 'vue';
 import JdbcOperationBadge from '@/components/jdbc/JdbcOperationBadge.vue';
 import Badge from '@/components/Badge.vue';
+import SlowestCountHeader from '@/components/SlowestCountHeader.vue';
 import JdbcSlowStatement from '@/services/api/model/JdbcSlowStatement.ts';
 import JdbcUtils from '@/services/api/model/JdbcUtils.ts';
 import FormattingService from '@/services/FormattingService.ts';

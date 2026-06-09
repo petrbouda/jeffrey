@@ -34,8 +34,9 @@ import static cafe.jeffrey.shared.persistence.GroupLabel.PROFILE_EVENTS;
  * Reads async-profiler {@code profiler.Span} events straight from the per-profile {@code events}
  * table. Spans are parsed there generically like any other JFR event; this repository just selects
  * them, resolves the thread via {@code thread_hash}, and exposes the tag from the JSON fields. The
- * span↔sample association is reconstructed downstream by thread + time overlap (see the scoped flame
- * graph), so no join to samples happens here.
+ * span↔event association is reconstructed by thread identity ({@code thread_hash}) + time overlap —
+ * {@code thread_hash} rather than {@code os_id} so it works for virtual threads too (a virtual
+ * thread has no OS id).
  */
 public class JdbcSpanRepository implements SpanRepository {
 
@@ -48,9 +49,11 @@ public class JdbcSpanRepository implements SpanRepository {
                 EPOCH_MS(e.start_timestamp - fs.first_ts) AS start_ms,
                 EPOCH_MS(e.start_timestamp)               AS start_epoch_ms,
                 e.duration                                AS duration_ns,
+                e.thread_hash                             AS thread_hash,
                 COALESCE(t.os_id, 0)                      AS os_id,
                 COALESCE(t.java_id, 0)                    AS java_id,
                 t.name                                    AS thread_name,
+                COALESCE(t.is_virtual, FALSE)             AS is_virtual,
                 json_extract_string(e.fields, '$.tag')    AS tag
             FROM events e
             CROSS JOIN (SELECT MIN(start_timestamp) AS first_ts FROM events) fs
@@ -67,8 +70,7 @@ public class JdbcSpanRepository implements SpanRepository {
                 COALESCE(e.duration, 0)     AS duration_ns,
                 CAST(e.fields AS VARCHAR)   AS fields
             FROM events e
-            JOIN threads t ON e.thread_hash = t.thread_hash
-            WHERE t.os_id = :os_id
+            WHERE e.thread_hash = :thread_hash
                 AND e.event_type <> :span_event_type
                 AND EPOCH_MS(e.start_timestamp) BETWEEN :from_ms AND :to_ms
             ORDER BY e.start_timestamp
@@ -94,16 +96,18 @@ public class JdbcSpanRepository implements SpanRepository {
                         rs.getLong("start_ms"),
                         rs.getLong("start_epoch_ms"),
                         rs.getLong("duration_ns"),
+                        rs.getLong("thread_hash"),
                         rs.getLong("os_id"),
                         rs.getLong("java_id"),
                         rs.getString("thread_name"),
+                        rs.getBoolean("is_virtual"),
                         rs.getString("tag")));
     }
 
     @Override
-    public List<SpanEventRecord> eventsForThread(long osThreadId, long fromEpochMillis, long toEpochMillis) {
+    public List<SpanEventRecord> eventsForThread(long threadHash, long fromEpochMillis, long toEpochMillis) {
         MapSqlParameterSource params = new MapSqlParameterSource()
-                .addValue("os_id", osThreadId)
+                .addValue("thread_hash", threadHash)
                 .addValue("span_event_type", SPAN_EVENT_TYPE)
                 .addValue("from_ms", fromEpochMillis)
                 .addValue("to_ms", toEpochMillis)

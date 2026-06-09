@@ -26,6 +26,7 @@ import cafe.jeffrey.provider.profile.jdbc.DuckDBSQLFormatter;
 import cafe.jeffrey.provider.profile.api.EventTypeWithFields;
 import cafe.jeffrey.provider.profile.api.FieldDescription;
 import cafe.jeffrey.shared.common.model.EventSummary;
+import cafe.jeffrey.shared.common.model.SpanInterval;
 import cafe.jeffrey.shared.common.model.Type;
 import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
 import cafe.jeffrey.test.DuckDBTest;
@@ -33,6 +34,7 @@ import cafe.jeffrey.test.TestUtils;
 
 import javax.sql.DataSource;
 import java.sql.SQLException;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -162,6 +164,35 @@ class JdbcProfileEventTypeRepositoryTest {
             List<EventSummary> result = repository.eventSummaries(List.of(Type.fromCode("jdk.NonExistent")));
 
             assertTrue(result.isEmpty());
+        }
+    }
+
+    @Nested
+    class SpanScopedEventSummariesMethod {
+
+        private static final long A_FROM = Instant.parse("2025-01-15T10:00:00.000Z").toEpochMilli();
+        private static final long A_TO = Instant.parse("2025-01-15T10:00:00.300Z").toEpochMilli();
+        private static final long B_FROM = Instant.parse("2025-01-15T10:00:02.000Z").toEpochMilli();
+        private static final long B_TO = Instant.parse("2025-01-15T10:00:02.200Z").toEpochMilli();
+
+        @Test
+        void countsOnlySamplesWithinSpanThreadAndWindow(DataSource dataSource) throws SQLException {
+            TestUtils.executeSql(dataSource, "sql/events/insert-span-flamegraph.sql");
+            JdbcProfileEventTypeRepository repository =
+                    new JdbcProfileEventTypeRepository(SQL_FORMATTER, new DatabaseClientProvider(dataSource));
+
+            List<Type> types = List.of(Type.fromCode("jdk.ExecutionSample"));
+            List<SpanInterval> intervals = List.of(
+                    new SpanInterval(2001, A_FROM, A_TO),
+                    new SpanInterval(2002, B_FROM, B_TO));
+
+            // Span-scoped: only the thread-2001 and thread-2002 in-window samples (GC + out-of-window excluded).
+            EventSummary scoped = repository.eventSummaries(types, intervals).get(0);
+            assertEquals(2, scoped.samples());
+
+            // Profile-wide: all four execution samples.
+            EventSummary all = repository.eventSummaries(types).get(0);
+            assertEquals(4, all.samples());
         }
     }
 
