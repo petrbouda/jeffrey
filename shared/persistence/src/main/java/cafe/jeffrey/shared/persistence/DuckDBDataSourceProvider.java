@@ -19,8 +19,12 @@ public abstract class DuckDBDataSourceProvider {
             });
         }
         config.setPoolName(params.poolName());
+        // Hikari semantics: keepaliveTime=0 disables keepalive, maxLifetime=0 means infinite lifetime
         config.setKeepaliveTime(params.keepAliveTime().toMillis());
         config.setMaximumPoolSize(params.maxPoolSize());
+        if (params.minIdle() != null) {
+            config.setMinimumIdle(params.minIdle());
+        }
         config.setMaxLifetime(params.maxLifetime().toMillis());
         config.setJdbcUrl(params.url());
         params.additionalProperties().forEach(config::addDataSourceProperty);

@@ -132,12 +132,11 @@ public class AppConfiguration {
 
     @Bean
     public ProfilePersistenceProvider profilePersistenceProvider(
-            Clock clock,
             MicroscopeJeffreyDirs jeffreyDirs,
             @Value("${jeffrey.microscope.profile.frame-resolution:CACHE}") FrameResolutionMode frameResolutionMode) {
 
         LOG.info("Using frame resolution mode: mode={}", frameResolutionMode);
-        return new DuckDBProfilePersistenceProvider(clock, jeffreyDirs.profiles(), frameResolutionMode);
+        return new DuckDBProfilePersistenceProvider(jeffreyDirs.profiles(), frameResolutionMode);
     }
 
     @Bean

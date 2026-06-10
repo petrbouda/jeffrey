@@ -24,11 +24,10 @@ import cafe.jeffrey.provider.profile.jdbc.*;
 import cafe.jeffrey.provider.profile.api.ProfileRepositories;
 import cafe.jeffrey.shared.common.FrameResolutionMode;
 import cafe.jeffrey.shared.common.Schedulers;
-import cafe.jeffrey.shared.persistence.CachingDatabaseManager;
 import cafe.jeffrey.shared.persistence.DatabaseManager;
+import cafe.jeffrey.shared.persistence.SingleSlotDatabaseManager;
 
 import java.nio.file.Path;
-import java.time.Clock;
 
 public class DuckDBProfilePersistenceProvider implements ProfilePersistenceProvider {
 
@@ -38,13 +37,15 @@ public class DuckDBProfilePersistenceProvider implements ProfilePersistenceProvi
     private final DatabaseManager databaseManager;
     private final FrameResolutionMode frameResolutionMode;
 
-    public DuckDBProfilePersistenceProvider(Clock clock, Path profilesDir, FrameResolutionMode frameResolutionMode) {
-        this(clock, profilesDir, frameResolutionMode, DEFAULT_BATCH_SIZE);
+    public DuckDBProfilePersistenceProvider(Path profilesDir, FrameResolutionMode frameResolutionMode) {
+        this(profilesDir, frameResolutionMode, DEFAULT_BATCH_SIZE);
     }
 
-    public DuckDBProfilePersistenceProvider(Clock clock, Path profilesDir, FrameResolutionMode frameResolutionMode, int batchSize) {
+    public DuckDBProfilePersistenceProvider(Path profilesDir, FrameResolutionMode frameResolutionMode, int batchSize) {
         this.batchSize = batchSize;
-        this.databaseManager = new CachingDatabaseManager(new DuckDBProfileDatabaseManager(profilesDir), clock);
+        // Only a single profile is opened at a time: the single-slot manager eagerly closes the
+        // previous profile's pool on switch, releasing its DuckDB instance deterministically
+        this.databaseManager = new SingleSlotDatabaseManager(new DuckDBProfileDatabaseManager(profilesDir));
         this.frameResolutionMode = frameResolutionMode;
     }
 

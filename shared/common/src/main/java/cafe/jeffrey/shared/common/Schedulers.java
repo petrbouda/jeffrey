@@ -52,8 +52,14 @@ public abstract class Schedulers {
     private static final ExecutorService STREAMING =
             Executors.newThreadPerTaskExecutor(virtualThreadfactory("streaming"));
 
+    /**
+     * Number of threads flushing batches into the database. Connection pools serving the writers
+     * should offer at least this many connections, otherwise flush tasks block on the pool.
+     */
+    public static final int DB_WRITER_THREADS = 20;
+
     private static final ExecutorService DB_WRITER =
-            Executors.newFixedThreadPool(20, platformThreadfactory("db-writer"));
+            Executors.newFixedThreadPool(DB_WRITER_THREADS, platformThreadfactory("db-writer"));
 
     public static ExecutorService sharedParallel() {
         return PARALLEL;

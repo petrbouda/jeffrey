@@ -7,6 +7,7 @@ import java.util.Map;
 public record DataSourceParams(
         String url,
         int maxPoolSize,
+        Integer minIdle,
         Duration maxLifetime,
         Duration keepAliveTime,
         String poolName,
@@ -17,8 +18,11 @@ public record DataSourceParams(
         if (additionalProperties == null) {
             throw new IllegalArgumentException("additionalProperties cannot be null");
         }
-        if (maxLifetime == null || !maxLifetime.isPositive()) {
-            throw new IllegalArgumentException("maxLifetime must be positive duration");
+        if (maxLifetime == null || maxLifetime.isNegative()) {
+            throw new IllegalArgumentException("maxLifetime must be a positive duration, or zero for an infinite lifetime");
+        }
+        if (minIdle != null && minIdle < 0) {
+            throw new IllegalArgumentException("minIdle cannot be negative");
         }
     }
 
@@ -29,6 +33,7 @@ public record DataSourceParams(
     public static class Builder {
         private String url;
         private int maxPoolSize = 50;
+        private Integer minIdle;
         private Duration maxLifetime = Duration.ofHours(1);
         private Duration keepaliveTime = Duration.ofSeconds(30);
         private String poolName = "unnamed-pool";
@@ -42,6 +47,11 @@ public record DataSourceParams(
 
         public Builder maxPoolSize(int maxPoolSize) {
             this.maxPoolSize = maxPoolSize;
+            return this;
+        }
+
+        public Builder minIdle(int minIdle) {
+            this.minIdle = minIdle;
             return this;
         }
 
@@ -77,7 +87,7 @@ public record DataSourceParams(
 
         public DataSourceParams build() {
             return new DataSourceParams(
-                    url, maxPoolSize, maxLifetime, keepaliveTime, poolName, enableMetrics, additionalProperties);
+                    url, maxPoolSize, minIdle, maxLifetime, keepaliveTime, poolName, enableMetrics, additionalProperties);
         }
     }
 }

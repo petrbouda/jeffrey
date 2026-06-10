@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -23,31 +23,22 @@ import java.io.PrintWriter;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
-import java.time.Clock;
-import java.time.Instant;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Logger;
 
-public class CachedDataSource implements DataSource, AutoCloseable {
+/**
+ * Shields a shared, pool-based {@link DataSource} from being closed by its consumers.
+ * <p>
+ * Deliberately does not implement {@link AutoCloseable}: defensive shutdowns such as
+ * {@link DataSourceUtils#close(DataSource)} become no-ops on this wrapper, so the underlying pool
+ * stays usable for subsequent consumers. The pool's lifecycle is owned by whoever created it
+ * (e.g. {@link SingleSlotDatabaseManager}), which closes the unwrapped delegate directly.
+ */
+public class UncloseableDataSource implements DataSource {
 
     private final DataSource delegate;
-    private final Clock clock;
-    private final AtomicReference<Instant> lastAccessed;
-    private final boolean suppressClose;
 
-    public CachedDataSource(DataSource delegate, Clock clock) {
-        this(delegate, clock, true);
-    }
-
-    public CachedDataSource(DataSource delegate, Clock clock, boolean suppressClose) {
+    public UncloseableDataSource(DataSource delegate) {
         this.delegate = delegate;
-        this.clock = clock;
-        this.lastAccessed = new AtomicReference<>(clock.instant());
-        this.suppressClose = suppressClose;
-    }
-
-    public Instant lastAccessed() {
-        return lastAccessed.get();
     }
 
     public DataSource delegate() {
@@ -56,13 +47,11 @@ public class CachedDataSource implements DataSource, AutoCloseable {
 
     @Override
     public Connection getConnection() throws SQLException {
-        lastAccessed.set(clock.instant());
         return delegate.getConnection();
     }
 
     @Override
     public Connection getConnection(String username, String password) throws SQLException {
-        lastAccessed.set(clock.instant());
         return delegate.getConnection(username, password);
     }
 
@@ -102,18 +91,5 @@ public class CachedDataSource implements DataSource, AutoCloseable {
     @Override
     public boolean isWrapperFor(Class<?> iface) throws SQLException {
         return iface.isInstance(this) || delegate.isWrapperFor(iface);
-    }
-
-    @Override
-    public void close() {
-        if (!suppressClose) {
-            forceClose();
-        }
-    }
-
-    public void forceClose() {
-        if (delegate != null) {
-            DataSourceUtils.close(delegate);
-        }
     }
 }

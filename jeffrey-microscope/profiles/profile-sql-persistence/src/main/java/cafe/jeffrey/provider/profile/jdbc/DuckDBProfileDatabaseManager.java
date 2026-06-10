@@ -21,6 +21,7 @@ package cafe.jeffrey.provider.profile.jdbc;
 import cafe.jeffrey.provider.profile.api.*;
 
 import org.flywaydb.core.Flyway;
+import cafe.jeffrey.shared.common.Schedulers;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.shared.persistence.DataSourceParams;
 import cafe.jeffrey.shared.persistence.DatabaseManager;
@@ -28,12 +29,21 @@ import cafe.jeffrey.shared.persistence.DuckDBDataSourceProvider;
 
 import javax.sql.DataSource;
 import java.nio.file.Path;
+import java.time.Duration;
 
 public class DuckDBProfileDatabaseManager implements DatabaseManager {
 
     private static final String PROFILE_DB_FILENAME = "profile-data.db";
     private static final String PROFILE_MIGRATIONS_LOCATION = "classpath:db/migration/profile";
-    private static final int MAX_POOL_SIZE = 10;
+    private static final String JDBC_URL_PREFIX = "jdbc:duckdb:";
+
+    // Sized so that every DB-writer thread can flush its batch concurrently during ingestion
+    // instead of blocking on the pool
+    private static final int MAX_POOL_SIZE = Schedulers.DB_WRITER_THREADS;
+
+    // A single idle connection is enough to keep the embedded DuckDB instance (and its buffer
+    // cache) alive between requests; further connections are created on demand
+    private static final int MIN_IDLE_CONNECTIONS = 1;
 
     private final Path baseDir;
 
@@ -71,11 +81,17 @@ public class DuckDBProfileDatabaseManager implements DatabaseManager {
     }
 
     private static DataSource createDataSource(Path dbPath, String profileId) {
-        String url = "jdbc:duckdb:" + dbPath.toAbsolutePath();
+        String url = JDBC_URL_PREFIX + dbPath.toAbsolutePath();
+        // Connections to the embedded DuckDB are in-process: there is no server that could time
+        // them out, so connection retirement (maxLifetime) and keepalive pings are pure churn
+        // and both are disabled (Duration.ZERO)
         DataSourceParams params = DataSourceParams.builder()
                 .url(url)
                 .poolName("profile-database-pool-" + profileId)
                 .maxPoolSize(MAX_POOL_SIZE)
+                .minIdle(MIN_IDLE_CONNECTIONS)
+                .maxLifetime(Duration.ZERO)
+                .keepAliveTime(Duration.ZERO)
                 .build();
 
         return DuckDBDataSourceProvider.open(params);
