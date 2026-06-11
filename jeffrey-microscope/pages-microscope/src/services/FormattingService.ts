@@ -57,7 +57,7 @@ export default class FormattingService {
       return '0.00 B';
     }
 
-    let e = Math.floor(Math.log(bytes) / Math.log(1024));
+    const e = Math.floor(Math.log(bytes) / Math.log(1024));
     return (bytes / Math.pow(1024, e)).toFixed(2) + ' ' + FormattingService.UNITS[e];
   }
 

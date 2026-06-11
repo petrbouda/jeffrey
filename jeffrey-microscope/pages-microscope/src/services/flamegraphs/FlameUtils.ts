@@ -20,7 +20,7 @@ import Flamegraph from '@/services/flamegraphs/Flamegraph';
 
 export default class FlameUtils {
   static canvasResize(flamegraph: Flamegraph, minusPadding = 0) {
-    let w = document.getElementById('flamegraphCanvas')!.parentElement!.clientWidth;
+    const w = document.getElementById('flamegraphCanvas')!.parentElement!.clientWidth;
     if (flamegraph != null) {
       flamegraph.resizeWidthCanvas(w - minusPadding);
     }
@@ -31,7 +31,7 @@ export default class FlameUtils {
     scrollableComponent: string | null
   ) {
     if (scrollableComponent != null) {
-      let el = document.querySelector('#' + scrollableComponent)!;
+      const el = document.querySelector('#' + scrollableComponent)!;
       el.addEventListener('scroll', () => {
         flamegraph.updateScrollPositionY(el.scrollTop);
         flamegraph.removeHighlight();

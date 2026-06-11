@@ -168,7 +168,7 @@ onBeforeMount(() => {
 
 function createOnSelectedCallback() {
   return function (startTime: number[], endTime: number[]) {
-    let selectedTimeRange = Utils.toTimeRange(startTime, endTime, false);
+    const selectedTimeRange = Utils.toTimeRange(startTime, endTime, false);
     showFlamegraph(selectedTimeRange);
   };
 }

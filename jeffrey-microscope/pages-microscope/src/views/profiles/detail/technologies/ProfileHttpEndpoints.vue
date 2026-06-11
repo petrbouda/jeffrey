@@ -167,8 +167,10 @@ const isHttpDashboardDisabled = computed(() => {
 const client = new ProfileHttpClient(mode, route.params.profileId as string);
 
 const slowestRequests = computed(() => {
-  if (!singleUriData.value || !selectedUriForDetail.value) return [];
-  return singleUriData.value.slowRequests.sort(
+  if (!singleUriData.value || !selectedUriForDetail.value) {
+    return [];
+  }
+  return [...singleUriData.value.slowRequests].sort(
     (a: HttpSlowRequest, b: HttpSlowRequest) => b.responseTime - a.responseTime
   );
 });

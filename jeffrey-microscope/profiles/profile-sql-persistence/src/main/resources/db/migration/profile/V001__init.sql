@@ -80,6 +80,10 @@ CREATE TABLE IF NOT EXISTS events
 (
     event_type      VARCHAR NOT NULL,
     start_timestamp TIMESTAMPTZ NOT NULL,
+    -- Milliseconds elapsed since the profiling start (the recording's chunk start time).
+    -- Matches the zero point of Java's RelativeTimeRange, so relative time-range filters
+    -- and bucketing can run directly on this integer column (sargable, no per-row EPOCH_MS).
+    start_timestamp_from_beginning BIGINT,
     duration        BIGINT,
     samples         BIGINT NOT NULL,
     weight          BIGINT,

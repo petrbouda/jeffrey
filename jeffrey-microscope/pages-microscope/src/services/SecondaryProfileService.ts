@@ -24,14 +24,14 @@ export default class SecondaryProfileService {
   static PROFILE_CHANGED = 'secondary-profile-changed';
 
   static {
-    let profile = this.get();
+    const profile = this.get();
     if (profile) {
       SecondaryProfileService.profile.value = profile;
     }
   }
 
   static equals(id: string) {
-    let profile = SecondaryProfileService.get();
+    const profile = SecondaryProfileService.get();
     return profile != null && profile.id === id;
   }
 
@@ -52,7 +52,7 @@ export default class SecondaryProfileService {
   }
 
   static get(): ProfileInfo | null {
-    let item = sessionStorage.getItem('secondary-profile');
+    const item = sessionStorage.getItem('secondary-profile');
     if (item != null) {
       return JSON.parse(item);
     } else {
@@ -61,7 +61,7 @@ export default class SecondaryProfileService {
   }
 
   static id(): string | null {
-    let profile = SecondaryProfileService.get();
+    const profile = SecondaryProfileService.get();
     if (profile != null) {
       return profile.id;
     } else {
@@ -70,7 +70,7 @@ export default class SecondaryProfileService {
   }
 
   static projectId(): string | null {
-    let profile = SecondaryProfileService.get();
+    const profile = SecondaryProfileService.get();
     if (profile != null) {
       return profile.projectId;
     } else {
@@ -79,7 +79,7 @@ export default class SecondaryProfileService {
   }
 
   static name(): string | null {
-    let profile = SecondaryProfileService.get();
+    const profile = SecondaryProfileService.get();
     if (profile != null) {
       return profile.name.replace('.jfr', '');
     } else {

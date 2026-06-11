@@ -56,8 +56,8 @@ public class DuckDBProfilePersistenceProvider implements ProfilePersistenceProvi
 
     @Override
     public EventWriter.Factory eventWriterFactory() {
-        return dataSource -> new SQLEventWriter(
-                () -> new DuckDBEventWriters(Schedulers.sharedDbWriter(), dataSource, batchSize));
+        return (dataSource, profilingStartedAt) -> new SQLEventWriter(
+                () -> new DuckDBEventWriters(Schedulers.sharedDbWriter(), dataSource, batchSize, profilingStartedAt));
     }
 
     @Override

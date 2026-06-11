@@ -25,9 +25,11 @@ module cafe.jeffrey.microscope.profile.ai.config {
     requires spring.context;
     requires spring.beans;
     requires spring.core;
+    requires cafe.jeffrey.shared.common;
     requires org.slf4j;
 
     exports cafe.jeffrey.profile.ai.config;
+    exports cafe.jeffrey.profile.ai.chat;
 
     opens cafe.jeffrey.profile.ai.config to spring.core, spring.beans, spring.context;
 }

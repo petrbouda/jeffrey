@@ -21,18 +21,13 @@ package cafe.jeffrey.profile.ai.duckdb.jfr.service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.chat.messages.AssistantMessage;
-import org.springframework.ai.chat.messages.Message;
-import org.springframework.ai.chat.messages.UserMessage;
-import org.springframework.ai.chat.model.ChatResponse;
+import cafe.jeffrey.profile.ai.chat.AssistantResponse;
+import cafe.jeffrey.profile.ai.chat.ToolCallingChatSession;
 import cafe.jeffrey.profile.ai.duckdb.jfr.model.JfrAnalysisRequest;
-import cafe.jeffrey.profile.ai.duckdb.jfr.model.JfrAnalysisResponse;
-import cafe.jeffrey.profile.ai.duckdb.jfr.model.JfrChatMessage;
 import cafe.jeffrey.profile.ai.duckdb.jfr.prompt.JfrAnalysisSystemPrompt;
 import cafe.jeffrey.profile.ai.duckdb.jfr.tools.DuckDbMcpTools;
 import cafe.jeffrey.provider.profile.api.DatabaseManagerResolver;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
-import cafe.jeffrey.shared.common.span.Spans;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
@@ -41,6 +36,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.StringJoiner;
 
 /**
@@ -50,7 +46,9 @@ public class JfrAnalysisAssistantServiceImpl implements JfrAnalysisAssistantServ
 
     private static final Logger LOG = LoggerFactory.getLogger(JfrAnalysisAssistantServiceImpl.class);
 
-    private final ChatClient chatClient;
+    private static final String AI_CALL_SPAN_NAME = "ai.jfr-analysis.call";
+
+    private final ToolCallingChatSession chatSession;
     private final DatabaseManagerResolver databaseManagerResolver;
     private final String modelName;
     private final String providerName;
@@ -60,7 +58,7 @@ public class JfrAnalysisAssistantServiceImpl implements JfrAnalysisAssistantServ
             DatabaseManagerResolver databaseManagerResolver,
             String modelName,
             String providerName) {
-        this.chatClient = chatClientBuilder.build();
+        this.chatSession = new ToolCallingChatSession(chatClientBuilder.build(), AI_CALL_SPAN_NAME);
         this.databaseManagerResolver = databaseManagerResolver;
         this.modelName = modelName;
         this.providerName = providerName;
@@ -83,7 +81,7 @@ public class JfrAnalysisAssistantServiceImpl implements JfrAnalysisAssistantServ
     }
 
     @Override
-    public JfrAnalysisResponse analyze(ProfileInfo profileInfo, JfrAnalysisRequest request) {
+    public AssistantResponse analyze(ProfileInfo profileInfo, JfrAnalysisRequest request) {
         try {
             // Get DataSource for this profile
             DataSource dataSource = databaseManagerResolver.open(profileInfo);
@@ -99,40 +97,23 @@ public class JfrAnalysisAssistantServiceImpl implements JfrAnalysisAssistantServ
             String eventsSchema = queryEventsTableSchema(dataSource);
             String systemPrompt = JfrAnalysisSystemPrompt.buildPrompt(eventsSchema);
 
-            // Build conversation messages
-            List<Message> messages = buildMessages(request, profileInfo);
-
             // Call the AI with tool support
-            List<String> toolsUsed = new ArrayList<>();
-            String response = executeWithTools(messages, tools, toolsUsed, systemPrompt);
+            String contextualMessage = buildContextualMessage(request, profileInfo);
+            String response = chatSession.call(systemPrompt, request.history(), contextualMessage, tools);
 
             // Generate follow-up suggestions
             List<String> suggestions = generateSuggestions(request.message(), response);
 
-            return new JfrAnalysisResponse(response, suggestions, toolsUsed);
+            return new AssistantResponse(response, suggestions, List.of());
 
         } catch (Exception e) {
             LOG.error("Error during JFR analysis: profileId={} message={}", profileInfo.id(), e.getMessage(), e);
-            return JfrAnalysisResponse.error("Analysis failed: " + e.getMessage());
+            return AssistantResponse.error("Analysis failed: " + e.getMessage());
         }
     }
 
-    private List<Message> buildMessages(JfrAnalysisRequest request, ProfileInfo profileInfo) {
-        List<Message> messages = new ArrayList<>();
-
-        // Add conversation history
-        if (request.history() != null) {
-            for (JfrChatMessage msg : request.history()) {
-                if (msg.isUser()) {
-                    messages.add(new UserMessage(msg.content()));
-                } else {
-                    messages.add(new AssistantMessage(msg.content()));
-                }
-            }
-        }
-
-        // Add current user message with profile context
-        String contextualMessage = """
+    private String buildContextualMessage(JfrAnalysisRequest request, ProfileInfo profileInfo) {
+        return """
                 Profile: %s (ID: %s)
                 Duration: %s
 
@@ -143,10 +124,6 @@ public class JfrAnalysisAssistantServiceImpl implements JfrAnalysisAssistantServ
                 formatDuration(profileInfo),
                 request.message()
         );
-
-        messages.add(new UserMessage(contextualMessage));
-
-        return messages;
     }
 
     private String formatDuration(ProfileInfo profileInfo) {
@@ -163,26 +140,7 @@ public class JfrAnalysisAssistantServiceImpl implements JfrAnalysisAssistantServ
         return "unknown";
     }
 
-    private String executeWithTools(
-            List<Message> messages, DuckDbMcpTools tools, List<String> toolsUsed, String systemPrompt) {
-
-        long aiSpan = Spans.start();
-        ChatResponse response;
-        try {
-            response = chatClient.prompt()
-                    .system(systemPrompt)
-                    .messages(messages)
-                    .tools(tools)
-                    .call()
-                    .chatResponse();
-        } finally {
-            Spans.end(aiSpan, "ai.jfr-analysis.call");
-        }
-
-        return response.getResult().getOutput().getText();
-    }
-
-    private static final java.util.Map<String, String> COLUMN_ANNOTATIONS = java.util.Map.of(
+    private static final Map<String, String> COLUMN_ANNOTATIONS = Map.of(
             "duration", " (nanoseconds)"
     );
 

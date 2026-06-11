@@ -18,6 +18,8 @@
 
 package cafe.jeffrey.profile.ai.duckdb.heapdump.model;
 
+import cafe.jeffrey.profile.ai.chat.ChatMessage;
+
 import java.util.List;
 
 /**
@@ -28,7 +30,7 @@ import java.util.List;
  */
 public record HeapDumpAnalysisRequest(
         String message,
-        List<HeapDumpChatMessage> history
+        List<ChatMessage> history
 ) {
     public HeapDumpAnalysisRequest(String message) {
         this(message, List.of());

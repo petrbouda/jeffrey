@@ -26,16 +26,26 @@ import cafe.jeffrey.provider.profile.api.Event;
 import cafe.jeffrey.shared.persistence.StatementLabel;
 
 import javax.sql.DataSource;
+import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.Executor;
 
 import static cafe.jeffrey.provider.profile.jdbc.DuckDBAppenderUtils.nullableAppend;
 
 public class DuckDBEventWriter extends DuckDBBatchingWriter<Event> {
 
-    public DuckDBEventWriter(Executor executor, DataSource dataSource, int batchSize) {
+    /**
+     * Zero point of the relative event timeline ({@code start_timestamp_from_beginning}).
+     * It is the profiling start of the recording, matching Java's {@code RelativeTimeRange}.
+     */
+    private final long profilingStartedAtMillis;
+
+    public DuckDBEventWriter(Executor executor, DataSource dataSource, int batchSize, Instant profilingStartedAt) {
         super(executor, "events", dataSource, batchSize, StatementLabel.INSERT_EVENTS);
+        Objects.requireNonNull(profilingStartedAt, "profilingStartedAt must be provided to compute relative event timestamps");
+        this.profilingStartedAtMillis = profilingStartedAt.toEpochMilli();
     }
 
     @Override
@@ -47,6 +57,8 @@ public class DuckDBEventWriter extends DuckDBBatchingWriter<Event> {
                 appender.append(event.eventType());
                 // start_timestamp - TIMESTAMP_MS NOT NULL
                 appender.append(event.startTimestamp().atOffset(ZoneOffset.UTC));
+                // start_timestamp_from_beginning - BIGINT (millis since profiling start)
+                appender.append(event.startTimestamp().toEpochMilli() - profilingStartedAtMillis);
                 // duration - BIGINT (nullable)
                 nullableAppend(appender, event.duration());
                 // samples - BIGINT NOT NULL

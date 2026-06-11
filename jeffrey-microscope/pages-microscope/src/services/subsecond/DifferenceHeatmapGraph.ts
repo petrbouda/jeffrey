@@ -91,7 +91,7 @@ export default class DifferenceHeatmapGraph {
   }
 
   #setupTooltipPositionAndStyle() {
-    let el: Element = this.heatmapElement.getElementsByClassName(
+    const el: Element = this.heatmapElement.getElementsByClassName(
       'apexcharts-tooltip apexcharts-theme-light'
     )[0];
     if (el) {
@@ -101,7 +101,7 @@ export default class DifferenceHeatmapGraph {
       );
     } else {
       setTimeout(() => {
-        let retryEl: Element = this.heatmapElement.getElementsByClassName(
+        const retryEl: Element = this.heatmapElement.getElementsByClassName(
           'apexcharts-tooltip apexcharts-theme-light'
         )[0];
         if (retryEl) {
@@ -355,10 +355,10 @@ export default class DifferenceHeatmapGraph {
   }
 
   #_calculateHighlightedArea(x1: number, y1: number, x2: number, y2: number): HTMLDivElement[] {
-    const strokeWidth = this.strokeWidth!!;
+    const strokeWidth = this.strokeWidth!;
 
     const rect = document
-      .querySelector(this.elementQueryId + ' rect[i="' + (this.sizeY - 1) + '"][j="0"]')!!
+      .querySelector(this.elementQueryId + ' rect[i="' + (this.sizeY - 1) + '"][j="0"]')!
       .getBoundingClientRect();
 
     const scrollLeft = this.scrollerElement.scrollLeft;
@@ -476,7 +476,7 @@ export default class DifferenceHeatmapGraph {
     // Use exclusive upper bound (-1) to match heatmap bucket boundaries.
     // Bucket N contains events where: N*20 <= millisInSecond < (N+1)*20
     // So end time should be (N+1)*20 - 1 to exclude events in the next bucket.
-    let endTimeMillis = ms * this.millisInBucket + this.millisInBucket - 1;
+    const endTimeMillis = ms * this.millisInBucket + this.millisInBucket - 1;
     if (endTimeMillis >= 1000) {
       return [sec + 1, 0];
     } else {
@@ -486,7 +486,7 @@ export default class DifferenceHeatmapGraph {
 
   #removeCellSelection(row: number, column: number) {
     document
-      .querySelector(this.elementQueryId + ' rect[i="' + row + '"][j="' + column + '"]')!!
+      .querySelector(this.elementQueryId + ' rect[i="' + row + '"][j="' + column + '"]')!
       .removeAttribute('selected');
   }
 }

@@ -328,8 +328,8 @@ const filterCounters = () => {
 
   // Apply sorting
   result.sort((a, b) => {
-    let valueA = a[sortField.value as keyof PerformanceCounter] as string;
-    let valueB = b[sortField.value as keyof PerformanceCounter] as string;
+    const valueA = a[sortField.value as keyof PerformanceCounter] as string;
+    const valueB = b[sortField.value as keyof PerformanceCounter] as string;
 
     // For sorting values numerically when appropriate
     if (sortField.value === 'value' && !isNaN(Number(valueA)) && !isNaN(Number(valueB))) {

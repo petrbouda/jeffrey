@@ -50,9 +50,9 @@ public enum GuardRegistry {
     // ===== Execution Sample group (CPU samples) ==============================================
 
     LOGBACK_CPU(GroupKind.EXECUTION_SAMPLE, (pi, p) ->
-            new LogbackOverheadGuard("Logback CPU Overhead", ResultType.SAMPLES, pi, p.logbackInfoThreshold(), p.logbackWarningThreshold())),
+            new LoggingOverheadGuard(LoggingOverheadGuard.Framework.LOGBACK, "Logback CPU Overhead", ResultType.SAMPLES, pi, p.logbackInfoThreshold(), p.logbackWarningThreshold())),
     LOG4J_CPU(GroupKind.EXECUTION_SAMPLE, (pi, p) ->
-            new Log4jOverheadGuard("Log4j CPU Overhead", ResultType.SAMPLES, pi, p.log4jInfoThreshold(), p.log4jWarningThreshold())),
+            new LoggingOverheadGuard(LoggingOverheadGuard.Framework.LOG4J, "Log4j CPU Overhead", ResultType.SAMPLES, pi, p.log4jInfoThreshold(), p.log4jWarningThreshold())),
     HASH_MAP_COLLISION(GroupKind.EXECUTION_SAMPLE, (pi, p) ->
             new HashMapCollisionGuard(pi, p.hashMapCollisionInfoThreshold(), p.hashMapCollisionWarningThreshold())),
     REGEX(GroupKind.EXECUTION_SAMPLE, (pi, p) ->
@@ -96,14 +96,14 @@ public enum GuardRegistry {
     GC_SHENANDOAH(GroupKind.EXECUTION_SAMPLE, (pi, p) ->
             new ShenandoahGarbageCollectionGuard(pi, p.gcInfoThreshold(), p.gcWarningThreshold())),
     GC_Z(GroupKind.EXECUTION_SAMPLE, (pi, p) ->
-            new ZGarbageCollectionGuard(pi, p.gcInfoThreshold(), p.gcWarningThreshold())),
+            new ZGarbageCollectionGuard(ZGarbageCollectionGuard.Variant.Z, pi, p.gcInfoThreshold(), p.gcWarningThreshold())),
     GC_Z_GENERATIONAL(GroupKind.EXECUTION_SAMPLE, (pi, p) ->
-            new ZGenerationalGarbageCollectionGuard(pi, p.gcInfoThreshold(), p.gcWarningThreshold())),
+            new ZGarbageCollectionGuard(ZGarbageCollectionGuard.Variant.Z_GENERATIONAL, pi, p.gcInfoThreshold(), p.gcWarningThreshold())),
 
     // ===== Allocation group (allocation bytes) ===============================================
 
     LOGBACK_ALLOC(GroupKind.ALLOCATION, (pi, p) ->
-            new LogbackOverheadGuard("Logback Allocation Overhead", ResultType.WEIGHT, pi, p.logbackAllocInfoThreshold(), p.logbackAllocWarningThreshold())),
+            new LoggingOverheadGuard(LoggingOverheadGuard.Framework.LOGBACK, "Logback Allocation Overhead", ResultType.WEIGHT, pi, p.logbackAllocInfoThreshold(), p.logbackAllocWarningThreshold())),
     HASH_MAP_COLLISION_ALLOC(GroupKind.ALLOCATION, (pi, p) ->
             new HashMapCollisionAllocGuard(pi, p.hashMapCollisionAllocInfoThreshold(), p.hashMapCollisionAllocWarningThreshold())),
     REGEX_ALLOC(GroupKind.ALLOCATION, (pi, p) ->
@@ -122,9 +122,9 @@ public enum GuardRegistry {
     // ===== Wall-Clock group ==================================================================
 
     LOGBACK_WALL(GroupKind.WALL_CLOCK, (pi, p) ->
-            new LogbackOverheadGuard("Logback Wall-Clock Overhead", ResultType.SAMPLES, pi, p.logbackInfoThreshold(), p.logbackWarningThreshold())),
+            new LoggingOverheadGuard(LoggingOverheadGuard.Framework.LOGBACK, "Logback Wall-Clock Overhead", ResultType.SAMPLES, pi, p.logbackInfoThreshold(), p.logbackWarningThreshold())),
     LOG4J_WALL(GroupKind.WALL_CLOCK, (pi, p) ->
-            new Log4jOverheadGuard("Log4j Wall-Clock Overhead", ResultType.SAMPLES, pi, p.log4jInfoThreshold(), p.log4jWarningThreshold())),
+            new LoggingOverheadGuard(LoggingOverheadGuard.Framework.LOG4J, "Log4j Wall-Clock Overhead", ResultType.SAMPLES, pi, p.log4jInfoThreshold(), p.log4jWarningThreshold())),
     HASH_MAP_COLLISION_WALL(GroupKind.WALL_CLOCK, (pi, p) ->
             new HashMapCollisionGuard(pi, p.hashMapCollisionInfoThreshold(), p.hashMapCollisionWarningThreshold())),
     REGEX_WALL(GroupKind.WALL_CLOCK, (pi, p) ->
@@ -151,9 +151,9 @@ public enum GuardRegistry {
     HTTP_CLIENT_BLOCKING(GroupKind.BLOCKING, (pi, p) ->
             new HttpClientBlockingGuard(pi, p.httpClientBlockingInfoThreshold(), p.httpClientBlockingWarningThreshold())),
     LOGBACK_BLOCKING(GroupKind.BLOCKING, (pi, p) ->
-            new LogbackBlockingGuard(pi, p.logbackBlockingInfoThreshold(), p.logbackBlockingWarningThreshold())),
+            new LoggingBlockingGuard(LoggingBlockingGuard.Framework.LOGBACK, pi, p.logbackBlockingInfoThreshold(), p.logbackBlockingWarningThreshold())),
     LOG4J_BLOCKING(GroupKind.BLOCKING, (pi, p) ->
-            new Log4jBlockingGuard(pi, p.log4jBlockingInfoThreshold(), p.log4jBlockingWarningThreshold()));
+            new LoggingBlockingGuard(LoggingBlockingGuard.Framework.LOG4J, pi, p.log4jBlockingInfoThreshold(), p.log4jBlockingWarningThreshold()));
 
     private final GroupKind group;
     private final BiFunction<Guard.ProfileInfo, GuardianProperties, Guard> factory;

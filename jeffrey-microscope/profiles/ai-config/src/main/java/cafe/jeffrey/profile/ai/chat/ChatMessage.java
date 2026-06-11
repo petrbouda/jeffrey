@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,17 +16,17 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.profile.ai.duckdb.jfr.model;
+package cafe.jeffrey.profile.ai.chat;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
- * A chat message in the JFR analysis conversation.
+ * A chat message in an AI analysis conversation.
  *
  * @param role    the role (user or assistant)
  * @param content the message content
  */
-public record JfrChatMessage(
+public record ChatMessage(
         Role role,
         String content
 ) {
@@ -45,11 +45,11 @@ public record JfrChatMessage(
         return role == Role.ASSISTANT;
     }
 
-    public static JfrChatMessage user(String content) {
-        return new JfrChatMessage(Role.USER, content);
+    public static ChatMessage user(String content) {
+        return new ChatMessage(Role.USER, content);
     }
 
-    public static JfrChatMessage assistant(String content) {
-        return new JfrChatMessage(Role.ASSISTANT, content);
+    public static ChatMessage assistant(String content) {
+        return new ChatMessage(Role.ASSISTANT, content);
     }
 }

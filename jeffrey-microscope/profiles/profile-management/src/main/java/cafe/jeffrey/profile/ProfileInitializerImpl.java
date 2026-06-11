@@ -89,7 +89,8 @@ public class ProfileInitializerImpl implements ProfileInitializer {
             }
 
             // Parse recording and store events into the database
-            EventWriter eventWriter = eventWriterFactory.create(dataSource);
+            // The profiling start is the zero point of the relative event timeline persisted with every event
+            EventWriter eventWriter = eventWriterFactory.create(dataSource, profileInfo.profilingStartedAt());
             recordingEventParser.start(eventWriter, recordingPath);
             eventWriter.onComplete();
 

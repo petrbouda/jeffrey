@@ -32,7 +32,7 @@ public class GenericQueryBuilder implements QueryBuilder {
     private static final List<String> BASE_FIELDS = List.of(
             "events.event_type",
             "events.start_timestamp",
-            "EPOCH_MS(events.start_timestamp - fs.first_ts) AS start_timestamp_from_beginning",
+            "events.start_timestamp_from_beginning",
             "events.duration",
             "events.samples",
             "events.weight",

@@ -143,7 +143,7 @@ export default class Flamegraph {
       Math.floor(event.offsetY / this.textRenderer.frameHeight) + this.firstDrawnLevel();
 
     if (level >= this.firstDrawnLevel() && level < this.levels.length) {
-      let frame = this.lookupFrame(level, event);
+      const frame = this.lookupFrame(level, event);
       this.hlFrame = frame;
 
       if (frame) {
@@ -238,7 +238,7 @@ export default class Flamegraph {
   }
 
   removeAllHighlight() {
-    let hl = document.getElementById('hl');
+    const hl = document.getElementById('hl');
     if (hl != null) {
       hl.outerHTML = '';
     }
@@ -330,7 +330,7 @@ export default class Flamegraph {
   }
 
   static initializeLevels(depth: number) {
-    let levels: VisibleFrame[][] = Array(depth + 1);
+    const levels: VisibleFrame[][] = Array(depth + 1);
     for (let h = 0; h < levels.length; h++) {
       levels[h] = [];
     }
@@ -349,8 +349,8 @@ export default class Flamegraph {
 
   search(pattern: string) {
     this.currentPattern = RegExp(pattern);
-    let highlighted = this.draw(this.currentRoot, this.currentRootLevel, this.currentPattern);
-    let highlightedTotal = this.calculateHighlighted(highlighted);
+    const highlighted = this.draw(this.currentRoot, this.currentRootLevel, this.currentPattern);
+    const highlightedTotal = this.calculateHighlighted(highlighted);
     return Flamegraph.pct(highlightedTotal, this.totalValue(this.currentRoot));
   }
 
@@ -402,10 +402,10 @@ export default class Flamegraph {
       const frames = this.levels[level];
 
       for (let i = 0; i < frames.length; i++) {
-        let frame = frames[i];
+        const frame = frames[i];
         if (this.frame_not_overflow(frame, xStart, xEnd)) {
-          let isHighlighted = this.isMethodHighlighted(highlighted, frame, pattern);
-          let isUnderRoot = level < rootLevel;
+          const isHighlighted = this.isMethodHighlighted(highlighted, frame, pattern);
+          const isUnderRoot = level < rootLevel;
 
           const rectangle = this.createRectangle(this.pxPerSample, frame, y, xStart);
           this.visibleFrames[level].push({ rect: rectangle, frame: frame });
@@ -444,14 +444,14 @@ export default class Flamegraph {
   private calculateHighlighted(highlighted: Map<number, number>) {
     let total = 0;
     let left = 0;
-    let obj = Object.fromEntries(highlighted);
+    const obj = Object.fromEntries(highlighted);
     Object.keys(obj)
       .sort(function (a, b) {
         return +a - +b;
       })
       .forEach(function (x) {
         if (+x >= left) {
-          let valueX: number = obj[x];
+          const valueX: number = obj[x];
           total += valueX;
           left = +x + valueX;
         }

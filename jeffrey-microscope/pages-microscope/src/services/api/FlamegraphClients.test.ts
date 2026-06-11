@@ -8,6 +8,10 @@ import SingleSpanFlamegraphClient from '@/services/api/SingleSpanFlamegraphClien
 import SpanFlamegraphClient from '@/services/api/SpanFlamegraphClient';
 import DifferentialFlamegraphClient from '@/services/api/DifferentialFlamegraphClient';
 import GuardianFlamegraphClient from '@/services/api/GuardianFlamegraphClient';
+import StaticFlamegraphClient from '@/services/api/StaticFlamegraphClient';
+import BothGraphData from '@/services/api/model/BothGraphData';
+import FlamegraphData from '@/services/api/model/FlamegraphData';
+import TimeseriesData from '@/services/timeseries/model/TimeseriesData';
 
 vi.mock('axios', () => ({
   default: {
@@ -321,9 +325,7 @@ describe('DifferentialFlamegraphClient payloads', () => {
     await client().provideBoth(GraphComponents.BOTH, timeRange, 'alloc');
 
     const { url, bodyJson, config } = lastPost();
-    expect(url).toBe(
-      '/api/internal/profiles/primary-1/diff/secondary-2/differential-flamegraph'
-    );
+    expect(url).toBe('/api/internal/profiles/primary-1/diff/secondary-2/differential-flamegraph');
     expect(config).toBe(HttpUtils.PROTOBUF_HEADERS);
     expect(bodyJson).toBe(
       expectJson({
@@ -480,5 +482,63 @@ describe('GuardianFlamegraphClient payloads', () => {
         components: 'BOTH'
       })
     );
+  });
+});
+
+/**
+ * StaticFlamegraphClient intentionally stays OUTSIDE the RemoteFlamegraphClient hierarchy: it
+ * serves saved/statically generated graphs entirely from memory and has no REST endpoint, so
+ * there are no wire payloads to share with the remote clients. These tests pin its "payloads"
+ * instead: the exact constructor-provided data instances and the guarantee that no HTTP request
+ * is ever issued.
+ */
+describe('StaticFlamegraphClient behavior', () => {
+  const staticFlamegraph = new FlamegraphData(7, []);
+  const staticTimeseries = new TimeseriesData([]);
+
+  function client(): StaticFlamegraphClient {
+    return new StaticFlamegraphClient(new BothGraphData(staticFlamegraph, staticTimeseries));
+  }
+
+  it('provideBoth returns the constructor data unchanged and ignores all arguments', async () => {
+    const result = await client().provideBoth(GraphComponents.BOTH, timeRange, 'ignored');
+
+    expect(result.flamegraph).toBe(staticFlamegraph);
+    expect(result.timeseries).toBe(staticTimeseries);
+    expect(postMock()).not.toHaveBeenCalled();
+  });
+
+  it('provide returns the exact flamegraph instance without any HTTP call', async () => {
+    const result = await client().provide(timeRange);
+
+    expect(result).toBe(staticFlamegraph);
+    expect(postMock()).not.toHaveBeenCalled();
+  });
+
+  it('provideTimeseries returns the exact timeseries instance without any HTTP call', async () => {
+    const result = await client().provideTimeseries('ignored');
+
+    expect(result).toBe(staticTimeseries);
+    expect(postMock()).not.toHaveBeenCalled();
+  });
+
+  it('save resolves as a no-op and never posts to the repository', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      await expect(
+        client().save(GraphComponents.BOTH, 'static-flamegraph', timeRange)
+      ).resolves.toBeUndefined();
+
+      expect(postMock()).not.toHaveBeenCalled();
+      expect(consoleError).toHaveBeenCalledWith(
+        'Cannot export flamegraph from statically generated data'
+      );
+    } finally {
+      consoleError.mockRestore();
+    }
+  });
+
+  it('does not support mode toggles (inherited default)', () => {
+    expect(client().supportsModeToggle()).toBe(false);
   });
 });

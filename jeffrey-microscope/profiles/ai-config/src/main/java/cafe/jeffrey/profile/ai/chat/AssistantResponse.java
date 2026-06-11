@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,27 +16,27 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.profile.ai.duckdb.heapdump.model;
+package cafe.jeffrey.profile.ai.chat;
 
 import java.util.List;
 
 /**
- * Response from heap dump AI analysis.
+ * Response from an AI analysis assistant.
  *
  * @param content     the analysis response text
  * @param suggestions optional follow-up suggestions for the user
  * @param toolsUsed   list of MCP tools that were invoked during analysis
  */
-public record HeapDumpAnalysisResponse(
+public record AssistantResponse(
         String content,
         List<String> suggestions,
         List<String> toolsUsed
 ) {
-    public static HeapDumpAnalysisResponse textOnly(String content) {
-        return new HeapDumpAnalysisResponse(content, List.of(), List.of());
+    public static AssistantResponse textOnly(String content) {
+        return new AssistantResponse(content, List.of(), List.of());
     }
 
-    public static HeapDumpAnalysisResponse error(String errorMessage) {
-        return new HeapDumpAnalysisResponse(errorMessage, List.of(), List.of());
+    public static AssistantResponse error(String errorMessage) {
+        return new AssistantResponse(errorMessage, List.of(), List.of());
     }
 }

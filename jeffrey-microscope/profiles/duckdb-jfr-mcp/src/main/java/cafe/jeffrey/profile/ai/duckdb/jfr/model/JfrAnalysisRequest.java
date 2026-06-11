@@ -18,6 +18,8 @@
 
 package cafe.jeffrey.profile.ai.duckdb.jfr.model;
 
+import cafe.jeffrey.profile.ai.chat.ChatMessage;
+
 import java.util.List;
 
 /**
@@ -29,14 +31,14 @@ import java.util.List;
  */
 public record JfrAnalysisRequest(
         String message,
-        List<JfrChatMessage> history,
+        List<ChatMessage> history,
         boolean canModify
 ) {
     public JfrAnalysisRequest(String message) {
         this(message, List.of(), false);
     }
 
-    public JfrAnalysisRequest(String message, List<JfrChatMessage> history) {
+    public JfrAnalysisRequest(String message, List<ChatMessage> history) {
         this(message, history, false);
     }
 }

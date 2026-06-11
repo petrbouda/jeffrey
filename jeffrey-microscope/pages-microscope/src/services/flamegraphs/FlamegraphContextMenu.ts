@@ -24,7 +24,7 @@ export default class FlamegraphContextMenu {
   }
 
   static contextMenuItems(searchInTimeseries: () => void, resetZoom: () => void): MenuItem[] {
-    let contextMenuItems: MenuItem[] = [];
+    const contextMenuItems: MenuItem[] = [];
 
     if (searchInTimeseries != null) {
       contextMenuItems.push({
