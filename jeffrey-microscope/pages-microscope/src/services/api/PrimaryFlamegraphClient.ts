@@ -17,19 +17,12 @@
  */
 
 import GlobalVars from '@/services/GlobalVars';
-import axios from 'axios';
-import HttpUtils from '@/services/HttpUtils';
-import FlamegraphData from '@/services/api/model/FlamegraphData';
-import FlamegraphClient from '@/services/api/FlamegraphClient';
-import ThreadInfo from '@/services/thread/model/ThreadInfo';
-import TimeseriesData from '@/services/timeseries/model/TimeseriesData';
-import BothGraphData from '@/services/api/model/BothGraphData';
+import RemoteFlamegraphClient from '@/services/api/RemoteFlamegraphClient';
+import ThreadInfo from '@/services/api/model/ThreadInfo';
 import TimeRange from '@/services/api/model/TimeRange';
 import GraphComponents from '@/services/api/model/GraphComponents';
-import ProtobufConverter from '@/services/flamegraphs/ProtobufConverter';
 
-export default class PrimaryFlamegraphClient extends FlamegraphClient {
-  private readonly baseUrl: string;
+export default class PrimaryFlamegraphClient extends RemoteFlamegraphClient {
   private readonly eventType: string;
   private useThreadMode: boolean;
   private useWeight: boolean | null;
@@ -48,8 +41,7 @@ export default class PrimaryFlamegraphClient extends FlamegraphClient {
     onlyUnsafeAllocationSamples: boolean,
     threadInfo: ThreadInfo | null
   ) {
-    super();
-    this.baseUrl = GlobalVars.internalUrl + '/profiles/' + profileId + '/flamegraph';
+    super(GlobalVars.internalUrl + '/profiles/' + profileId + '/flamegraph');
     this.eventType = eventType;
     this.useThreadMode = useThreadMode;
     this.useWeight = useWeight;
@@ -59,12 +51,12 @@ export default class PrimaryFlamegraphClient extends FlamegraphClient {
     this.threadInfo = threadInfo;
   }
 
-  provideBoth(
+  protected bothContent(
     components: GraphComponents,
-    timeRange: TimeRange | null,
-    search: string | null
-  ): Promise<BothGraphData> {
-    const content = {
+    timeRange: TimeRange | null | undefined,
+    search: string | null | undefined
+  ): Record<string, unknown> {
+    return {
       eventType: this.eventType,
       useWeight: this.useWeight,
       useThreadMode: this.useThreadMode,
@@ -76,50 +68,6 @@ export default class PrimaryFlamegraphClient extends FlamegraphClient {
       threadInfo: this.threadInfo,
       components: components
     };
-
-    // Use Protocol Buffers for most efficient serialization (50-60% smaller than JSON)
-    return axios
-      .post<ArrayBuffer>(this.baseUrl, content, HttpUtils.PROTOBUF_HEADERS)
-      .then(response => ProtobufConverter.decode(response.data));
-  }
-
-  provide(timeRange: TimeRange | null): Promise<FlamegraphData> {
-    const content = {
-      eventType: this.eventType,
-      useWeight: this.useWeight,
-      useThreadMode: this.useThreadMode,
-      timeRange: timeRange,
-      excludeNonJavaSamples: this.excludeNonJavaSamples,
-      excludeIdleSamples: this.excludeIdleSamples,
-      onlyUnsafeAllocationSamples: this.onlyUnsafeAllocationSamples,
-      threadInfo: this.threadInfo,
-      components: GraphComponents.FLAMEGRAPH_ONLY
-    };
-
-    // Use Protocol Buffers for most efficient serialization (50-60% smaller than JSON)
-    return axios
-      .post<ArrayBuffer>(this.baseUrl, content, HttpUtils.PROTOBUF_HEADERS)
-      .then(response => ProtobufConverter.decode(response.data))
-      .then(data => data.flamegraph);
-  }
-
-  provideTimeseries(search: string | null): Promise<TimeseriesData> {
-    const content = {
-      eventType: this.eventType,
-      useWeight: this.useWeight,
-      useThreadMode: this.useThreadMode,
-      search: search,
-      excludeNonJavaSamples: this.excludeNonJavaSamples,
-      excludeIdleSamples: this.excludeIdleSamples,
-      onlyUnsafeAllocationSamples: this.onlyUnsafeAllocationSamples,
-      threadInfo: this.threadInfo,
-      components: GraphComponents.TIMESERIES_ONLY
-    };
-
-    return axios
-      .post<ArrayBuffer>(this.baseUrl, content, HttpUtils.PROTOBUF_HEADERS)
-      .then(response => ProtobufConverter.decode(response.data))
-      .then(data => data.timeseries);
   }
 
   save(
@@ -127,7 +75,7 @@ export default class PrimaryFlamegraphClient extends FlamegraphClient {
     flamegraphName: string,
     timeRange: TimeRange | null
   ): Promise<void> {
-    const content = {
+    return this.postRepository({
       flamegraphName: flamegraphName,
       eventType: this.eventType,
       timeRange: timeRange,
@@ -136,11 +84,7 @@ export default class PrimaryFlamegraphClient extends FlamegraphClient {
       excludeIdleSamples: this.excludeIdleSamples,
       onlyUnsafeAllocationSamples: this.onlyUnsafeAllocationSamples,
       components: components
-    };
-
-    return axios
-      .post<void>(this.baseUrl + '/repository', content, HttpUtils.JSON_HEADERS)
-      .then(HttpUtils.RETURN_DATA);
+    });
   }
 
   override supportsModeToggle(): boolean {

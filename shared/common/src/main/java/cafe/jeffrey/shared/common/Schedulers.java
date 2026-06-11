@@ -40,6 +40,9 @@ public abstract class Schedulers {
     private static final ExecutorService PARALLEL =
             Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors(), platformThreadfactory("parallel"));
 
+    private static final ExecutorService BULK_PARALLEL =
+            Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors(), platformThreadfactory("bulk-parallel"));
+
     private static final ExecutorService SINGLE =
             Executors.newSingleThreadExecutor(platformThreadfactory("single"));
 
@@ -61,8 +64,22 @@ public abstract class Schedulers {
     private static final ExecutorService DB_WRITER =
             Executors.newFixedThreadPool(DB_WRITER_THREADS, platformThreadfactory("db-writer"));
 
+    /**
+     * Pool for interactive, latency-sensitive parallel work (e.g. flamegraph and timeseries
+     * generation triggered by user requests). Bulk/batch workloads must use
+     * {@link #sharedBulkParallel()} so that a large import cannot queue ahead of interactive requests.
+     */
     public static ExecutorService sharedParallel() {
         return PARALLEL;
+    }
+
+    /**
+     * Pool for bulk, throughput-oriented parallel work (e.g. chunk parsing during profile
+     * initialization). Separated from {@link #sharedParallel()} so long-running batch jobs
+     * do not starve interactive requests.
+     */
+    public static ExecutorService sharedBulkParallel() {
+        return BULK_PARALLEL;
     }
 
     public static ExecutorService sharedSingle() {
@@ -103,6 +120,7 @@ public abstract class Schedulers {
     static {
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             PARALLEL.close();
+            BULK_PARALLEL.close();
             SINGLE.close();
             VIRTUAL.close();
             SINGLE_SCHEDULED.close();

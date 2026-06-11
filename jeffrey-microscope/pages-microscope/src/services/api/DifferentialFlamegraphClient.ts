@@ -17,18 +17,12 @@
  */
 
 import GlobalVars from '@/services/GlobalVars';
-import axios from 'axios';
-import HttpUtils from '@/services/HttpUtils';
-import FlamegraphData from '@/services/api/model/FlamegraphData';
-import FlamegraphClient from '@/services/api/FlamegraphClient';
+import RemoteFlamegraphClient from '@/services/api/RemoteFlamegraphClient';
 import TimeseriesData from '@/services/timeseries/model/TimeseriesData';
 import TimeRange from '@/services/api/model/TimeRange';
-import BothGraphData from '@/services/api/model/BothGraphData';
 import GraphComponents from '@/services/api/model/GraphComponents';
-import ProtobufConverter from '@/services/flamegraphs/ProtobufConverter';
 
-export default class DifferentialFlamegraphClient extends FlamegraphClient {
-  private readonly baseUrlFlamegraph: string;
+export default class DifferentialFlamegraphClient extends RemoteFlamegraphClient {
   private readonly eventType: string;
   private readonly useWeight: boolean;
   private readonly excludeNonJavaSamples: boolean;
@@ -44,14 +38,14 @@ export default class DifferentialFlamegraphClient extends FlamegraphClient {
     excludeIdleSamples: boolean,
     onlyUnsafeAllocationSamples: boolean
   ) {
-    super();
-    this.baseUrlFlamegraph =
+    super(
       GlobalVars.internalUrl +
-      '/profiles/' +
-      primaryProfileId +
-      '/diff/' +
-      secondaryProfileId +
-      '/differential-flamegraph';
+        '/profiles/' +
+        primaryProfileId +
+        '/diff/' +
+        secondaryProfileId +
+        '/differential-flamegraph'
+    );
     this.eventType = eventType;
     this.useWeight = useWeight;
     this.excludeNonJavaSamples = excludeNonJavaSamples;
@@ -60,12 +54,12 @@ export default class DifferentialFlamegraphClient extends FlamegraphClient {
   }
 
   // Differential Graph does not support Searching
-  provideBoth(
+  protected bothContent(
     components: GraphComponents,
-    timeRange: TimeRange | null,
-    search: string | null
-  ): Promise<BothGraphData> {
-    const content = {
+    timeRange: TimeRange | null | undefined,
+    search: string | null | undefined
+  ): Record<string, unknown> {
+    return {
       eventType: this.eventType,
       useWeight: this.useWeight,
       timeRange: timeRange,
@@ -75,33 +69,11 @@ export default class DifferentialFlamegraphClient extends FlamegraphClient {
       onlyUnsafeAllocationSamples: this.onlyUnsafeAllocationSamples,
       components: components
     };
-
-    // Use Protocol Buffers for most efficient serialization (50-60% smaller than JSON)
-    return axios
-      .post<ArrayBuffer>(this.baseUrlFlamegraph, content, HttpUtils.PROTOBUF_HEADERS)
-      .then(response => ProtobufConverter.decode(response.data));
   }
 
-  provide(timeRange: any): Promise<FlamegraphData> {
-    const content = {
-      eventType: this.eventType,
-      useWeight: this.useWeight,
-      timeRange: timeRange,
-      excludeNonJavaSamples: this.excludeNonJavaSamples,
-      excludeIdleSamples: this.excludeIdleSamples,
-      onlyUnsafeAllocationSamples: this.onlyUnsafeAllocationSamples,
-      components: GraphComponents.FLAMEGRAPH_ONLY
-    };
-
-    // Use Protocol Buffers for most efficient serialization (50-60% smaller than JSON)
-    return axios
-      .post<ArrayBuffer>(this.baseUrlFlamegraph, content, HttpUtils.PROTOBUF_HEADERS)
-      .then(response => ProtobufConverter.decode(response.data))
-      .then(data => data.flamegraph);
-  }
-
-  provideTimeseries(_ignored: string | null): Promise<TimeseriesData> {
-    // Differential flamegraph doesn't support search in timeseries, but we can still fetch timeseries data
+  override provideTimeseries(_ignored: string | null): Promise<TimeseriesData> {
+    // Differential flamegraph doesn't support search in timeseries, but we can still fetch timeseries
+    // data. Delegates with explicit nulls so the payload keeps the `timeRange`/`search` keys present.
     return this.provideBoth(GraphComponents.TIMESERIES_ONLY, null, null).then(
       data => data.timeseries
     );
@@ -112,7 +84,7 @@ export default class DifferentialFlamegraphClient extends FlamegraphClient {
     flamegraphName: string,
     timeRange: TimeRange | null
   ): Promise<void> {
-    const content = {
+    return this.postRepository({
       flamegraphName: flamegraphName,
       eventType: this.eventType,
       timeRange: timeRange,
@@ -120,10 +92,6 @@ export default class DifferentialFlamegraphClient extends FlamegraphClient {
       excludeIdleSamples: this.excludeIdleSamples,
       onlyUnsafeAllocationSamples: this.onlyUnsafeAllocationSamples,
       components: components
-    };
-
-    return axios
-      .post<void>(this.baseUrlFlamegraph + '/repository', content, HttpUtils.JSON_HEADERS)
-      .then(HttpUtils.RETURN_DATA);
+    });
   }
 }

@@ -44,6 +44,13 @@ public class RemoteRecordingStreamClient {
 
     private static final Logger LOG = LoggerFactory.getLogger(RemoteRecordingStreamClient.class);
 
+    private static final int PIPE_BUFFER_SIZE = 64 * 1024;
+
+    /**
+     * Content length reported to the consumer when the stream does not carry a total size.
+     */
+    private static final long UNKNOWN_CONTENT_LENGTH = -1;
+
     private final RecordingDownloadServiceGrpc.RecordingDownloadServiceBlockingStub stub;
 
     public RemoteRecordingStreamClient(GrpcServerConnection connection) {
