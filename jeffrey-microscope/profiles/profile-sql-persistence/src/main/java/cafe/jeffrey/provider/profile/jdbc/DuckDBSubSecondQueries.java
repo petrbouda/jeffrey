@@ -1,9 +1,34 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2026 Petr Bouda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package cafe.jeffrey.provider.profile.jdbc;
 
-import cafe.jeffrey.provider.profile.api.*;
+import cafe.jeffrey.provider.profile.api.EventQueryConfigurer;
 
 import static cafe.jeffrey.provider.profile.jdbc.DuckDBFlamegraphQueries.addQuotes;
 
+/**
+ * Sub-second queries over the events table. Both the time-range filter and the bucketing run
+ * directly on the integer {@code start_timestamp_from_beginning} column (millis since profiling
+ * start, the same zero point as Java's {@code RelativeTimeRange}), so the predicates are sargable
+ * and no per-row {@code EPOCH_MS} arithmetic or first-sample CTE is needed. The time filter is
+ * spliced into the SQL per request — when disabled, the clause is absent.
+ */
 public class DuckDBSubSecondQueries implements ComplexQueries.SubSecond {
 
     /**
@@ -21,18 +46,12 @@ public class DuckDBSubSecondQueries implements ComplexQueries.SubSecond {
      */
     //language=SQL
     private static final String SIMPLE = """
-            WITH first_sample AS (
-                SELECT MIN(start_timestamp) AS first_ts
-                FROM events
-            )
-            SELECT ((EPOCH_MS(e.start_timestamp - fs.first_ts) - COALESCE(:from_time, 0)) // <<bucket_size_ms>>) * <<bucket_size_ms>>
+            SELECT ((e.start_timestamp_from_beginning - COALESCE(:from_time, 0)) // <<bucket_size_ms>>) * <<bucket_size_ms>>
                        + COALESCE(:from_time, 0) AS start_ms_offset,
                    SUM(%s) AS value
                FROM events e
-               CROSS JOIN first_sample fs
                WHERE e.event_type = <<event_type>>
-                 AND (:from_time IS NULL OR EPOCH_MS(e.start_timestamp - fs.first_ts) >= :from_time)
-                 AND (:to_time IS NULL OR EPOCH_MS(e.start_timestamp - fs.first_ts) <= :to_time)
+                 <<time_filters>>
                  <<additional_filters>>
                GROUP BY start_ms_offset
                ORDER BY start_ms_offset
@@ -60,8 +79,8 @@ public class DuckDBSubSecondQueries implements ComplexQueries.SubSecond {
     }
 
     @Override
-    public String simple(boolean useWeight) {
-        String valueField = useWeight ? "e.weight" : "e.samples";
-        return simple.formatted(valueField);
+    public String simple(EventQueryConfigurer configurer) {
+        String valueField = configurer.useWeight() ? "e.weight" : "e.samples";
+        return EventQueryFilters.splice(simple.formatted(valueField), configurer);
     }
 }

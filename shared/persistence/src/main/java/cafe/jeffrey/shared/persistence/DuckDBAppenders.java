@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,21 +16,19 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.provider.profile.jdbc;
-
-import cafe.jeffrey.shared.persistence.DuckDBAppenders;
+package cafe.jeffrey.shared.persistence;
 
 import org.duckdb.DuckDBAppender;
 
 import java.sql.SQLException;
 
 /**
- * Utility methods for appending nullable values to DuckDB appender.
- * Thin delegates to the shared {@link DuckDBAppenders} helpers.
+ * NULL-aware append helpers for the DuckDB appender, shared by all modules
+ * that bulk-load rows via {@link DuckDBAppender}.
  */
-public final class DuckDBAppenderUtils {
+public final class DuckDBAppenders {
 
-    private DuckDBAppenderUtils() {
+    private DuckDBAppenders() {
         // Utility class
     }
 
@@ -39,7 +37,11 @@ public final class DuckDBAppenderUtils {
      * If value is null, appends NULL; otherwise appends the long value.
      */
     public static void nullableAppend(DuckDBAppender appender, Long value) throws SQLException {
-        DuckDBAppenders.nullableAppend(appender, value);
+        if (value != null) {
+            appender.append(value);
+        } else {
+            appender.appendNull();
+        }
     }
 
     /**
@@ -47,7 +49,11 @@ public final class DuckDBAppenderUtils {
      * If value is null, appends NULL; otherwise appends the int value.
      */
     public static void nullableAppend(DuckDBAppender appender, Integer value) throws SQLException {
-        DuckDBAppenders.nullableAppend(appender, value);
+        if (value != null) {
+            appender.append(value);
+        } else {
+            appender.appendNull();
+        }
     }
 
     /**
@@ -55,6 +61,10 @@ public final class DuckDBAppenderUtils {
      * If value is null, appends NULL; otherwise appends the string value.
      */
     public static void nullableAppend(DuckDBAppender appender, String value) throws SQLException {
-        DuckDBAppenders.nullableAppend(appender, value);
+        if (value != null) {
+            appender.append(value);
+        } else {
+            appender.appendNull();
+        }
     }
 }

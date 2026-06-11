@@ -18,8 +18,14 @@
 
 package cafe.jeffrey.microscope.core.manager.server;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import cafe.jeffrey.microscope.persistence.api.RemoteServerInfo;
+import cafe.jeffrey.microscope.persistence.api.RemoteServersRepository;
 import cafe.jeffrey.microscope.persistence.api.ServerAddress;
+import cafe.jeffrey.shared.common.IDGenerator;
 
+import java.time.Clock;
 import java.util.List;
 import java.util.Optional;
 
@@ -28,23 +34,63 @@ import java.util.Optional;
  * Each connected server is exposed as a {@link RemoteServerManager} with its
  * own gRPC clients.
  */
-public interface RemoteServersManager {
+public class RemoteServersManager {
 
-    record CreateServerRequest(String name, ServerAddress address) {
+    public record CreateServerRequest(String name, ServerAddress address) {
+    }
+
+    private static final Logger LOG = LoggerFactory.getLogger(RemoteServersManager.class);
+
+    private final RemoteServersRepository repository;
+    private final RemoteServerManager.Factory serverManagerFactory;
+    private final Clock clock;
+
+    public RemoteServersManager(
+            RemoteServersRepository repository,
+            RemoteServerManager.Factory serverManagerFactory,
+            Clock clock) {
+
+        this.repository = repository;
+        this.serverManagerFactory = serverManagerFactory;
+        this.clock = clock;
     }
 
     /**
      * Adds a new connected jeffrey-server.
      */
-    RemoteServerManager create(CreateServerRequest request);
+    public RemoteServerManager create(CreateServerRequest request) {
+        if (request.name() == null || request.name().isBlank()) {
+            throw new IllegalArgumentException("Server name cannot be null or empty");
+        }
+        if (request.address() == null) {
+            throw new IllegalArgumentException("Server address cannot be null");
+        }
+
+        RemoteServerInfo info = new RemoteServerInfo(
+                IDGenerator.generate(),
+                request.name().trim(),
+                request.address(),
+                clock.instant());
+
+        RemoteServerInfo created = repository.create(info);
+        LOG.info("Added remote server: server_id={} name={} address={}",
+                created.serverId(), created.name(), created.address());
+        return serverManagerFactory.apply(created);
+    }
 
     /**
      * Returns all connected servers.
      */
-    List<RemoteServerManager> findAll();
+    public List<RemoteServerManager> findAll() {
+        return repository.findAll().stream()
+                .map(serverManagerFactory)
+                .toList();
+    }
 
     /**
      * Looks up a server by its locally-generated id.
      */
-    Optional<RemoteServerManager> findById(String serverId);
+    public Optional<RemoteServerManager> findById(String serverId) {
+        return repository.find(serverId).map(serverManagerFactory);
+    }
 }

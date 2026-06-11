@@ -77,7 +77,7 @@ public class JdbcProfileEventStreamRepository implements ProfileEventStreamRepos
 
         databaseClient.queryStream(
                 StatementLabel.STREAM_EVENTS,
-                factory.complexQueries().subSecond().simple(configurer.useWeight()),
+                factory.complexQueries().subSecond().simple(configurer),
                 baseParams,
                 (r, _) -> new SubSecondRecord(r.getLong("start_ms_offset"), r.getLong("value")),
                 builder::onRecord);
@@ -94,7 +94,7 @@ public class JdbcProfileEventStreamRepository implements ProfileEventStreamRepos
         ComplexQueries.Timeseries timeseries = factory.complexQueries().timeseries();
         databaseClient.queryStream(
                 StatementLabel.STREAM_EVENTS,
-                timeseries.simple(configurer.useWeight(), configurer.specifiedThread() != null),
+                timeseries.simple(configurer),
                 baseParams,
                 (r, _) -> TimeseriesRecord.secondsAndValues(r.getLong("seconds"), r.getLong("value")),
                 builder::onRecord);
@@ -111,7 +111,7 @@ public class JdbcProfileEventStreamRepository implements ProfileEventStreamRepos
         ComplexQueries.Timeseries timeseries = factory.complexQueries().timeseries();
         databaseClient.queryStream(
                 StatementLabel.STREAM_EVENTS,
-                timeseries.simpleSearch(configurer.useWeight(), configurer.specifiedThread() != null),
+                timeseries.simpleSearch(configurer),
                 baseParams,
                 (r, _) -> new TimeseriesSearchRecord(r.getLong("seconds"), r.getLong("total_value"), r.getLong("matched_value")),
                 builder::onRecord);
@@ -128,7 +128,7 @@ public class JdbcProfileEventStreamRepository implements ProfileEventStreamRepos
 
         databaseClient.queryStream(
                 StatementLabel.STREAM_EVENTS,
-                factory.complexQueries().timeseries().filterable(configurer.useWeight()),
+                factory.complexQueries().timeseries().filterable(configurer),
                 baseParams,
                 (r, _) -> new SecondValue(r.getLong("seconds"), r.getLong("samples")),
                 builder::onRecord);
@@ -156,7 +156,7 @@ public class JdbcProfileEventStreamRepository implements ProfileEventStreamRepos
 
         databaseClient.queryStream(
                 StatementLabel.STREAM_EVENTS,
-                factory.complexQueries().timeseries().frameBased(configurer.useWeight()),
+                factory.complexQueries().timeseries().frameBased(configurer),
                 baseParams,
                 new TimeseriesRecordRowMapper(),
                 builder::onRecord);
@@ -197,12 +197,12 @@ public class JdbcProfileEventStreamRepository implements ProfileEventStreamRepos
 
             if (configurer.threads()) {
                 return new FlamegraphOptions(
-                        flamegraphQueries.byThreadAndWeightOptimized(),
+                        flamegraphQueries.byThreadAndWeightOptimized(configurer),
                         baseParams,
                         new CachingFlamegraphRecordRowMapper(eventType, framesCache, true, true));
             } else {
                 return new FlamegraphOptions(
-                        flamegraphQueries.byWeightOptimized(),
+                        flamegraphQueries.byWeightOptimized(configurer),
                         baseParams,
                         new CachingFlamegraphRecordRowMapper(eventType, framesCache, true, false));
             }
@@ -211,12 +211,12 @@ public class JdbcProfileEventStreamRepository implements ProfileEventStreamRepos
         // DATABASE mode: SQL-side frame resolution (original implementation)
         if (configurer.threads()) {
             return new FlamegraphOptions(
-                    flamegraphQueries.byThreadAndWeight(),
+                    flamegraphQueries.byThreadAndWeight(configurer),
                     baseParams,
                     new FlamegraphRecordRowMapper(eventType, true));
         } else {
             return new FlamegraphOptions(
-                    flamegraphQueries.byWeight(),
+                    flamegraphQueries.byWeight(configurer),
                     baseParams,
                     new FlamegraphRecordRowMapper(eventType, false));
         }
