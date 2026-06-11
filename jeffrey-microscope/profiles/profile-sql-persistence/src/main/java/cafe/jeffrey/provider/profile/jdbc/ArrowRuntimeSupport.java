@@ -22,8 +22,6 @@ import org.apache.arrow.c.ArrowArrayStream;
 import org.apache.arrow.c.jni.JniLoader;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.memory.RootAllocator;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Try-once probe of the Apache Arrow runtime. Arrow needs three pieces to work:
@@ -31,40 +29,50 @@ import org.slf4j.LoggerFactory;
  * JNI library (bundled per-platform in {@code arrow-c-data}), and reflective access
  * to {@code java.nio.DirectByteBuffer} for C struct manipulation, which requires the
  * {@code --add-opens=java.base/java.nio=org.apache.arrow.memory.core,ALL-UNNAMED}
- * JVM argument. If any of them fails to initialize, the Arrow ingestion path is
- * unavailable and callers must fall back to the row-based appender writer.
+ * JVM argument. The Arrow path is the only writer for the {@code events} table, so a
+ * failed probe is fatal: {@link #ensureAvailable()} throws at provider/writer
+ * construction instead of letting the ingestion fail mid-parse.
  */
 public final class ArrowRuntimeSupport {
 
-    private static final Logger LOG = LoggerFactory.getLogger(ArrowRuntimeSupport.class);
-
     private static final long PROBE_ALLOCATOR_LIMIT_BYTES = 1024 * 1024;
 
-    private static final boolean AVAILABLE = probe();
+    private static final String UNAVAILABLE_MESSAGE =
+            "Apache Arrow runtime failed to initialize — columnar event ingestion cannot start. " +
+            "Run the JVM with '--add-opens=java.base/java.nio=ALL-UNNAMED' " +
+            "('java -jar' picks it up automatically from the Add-Opens attribute in the fat-jar manifest) " +
+            "and make sure the platform is supported by the bundled Arrow C Data native libraries " +
+            "(linux x86_64/aarch64, macOS x86_64/aarch64, windows x86_64).";
+
+    private static final Throwable PROBE_FAILURE = probe();
 
     private ArrowRuntimeSupport() {
     }
 
     /**
-     * @return true when Arrow off-heap allocation and the C Data Interface JNI library
-     * are both usable on the current platform
+     * Verifies that Arrow off-heap allocation and the C Data Interface JNI library are
+     * usable on the current platform.
+     *
+     * @throws IllegalStateException with an actionable message when the Arrow runtime
+     *                               cannot be initialized
      */
-    public static boolean isAvailable() {
-        return AVAILABLE;
+    public static void ensureAvailable() {
+        if (PROBE_FAILURE != null) {
+            throw new IllegalStateException(UNAVAILABLE_MESSAGE, PROBE_FAILURE);
+        }
     }
 
-    private static boolean probe() {
+    private static Throwable probe() {
         try (BufferAllocator allocator = new RootAllocator(PROBE_ALLOCATOR_LIMIT_BYTES)) {
             JniLoader.get().ensureLoaded();
             // Exercises the exact operations of an exported batch: allocating the C struct
             // (off-heap allocation manager) and wrapping it in a DirectByteBuffer
             // (fails without the java.nio add-opens).
             try (ArrowArrayStream arrowStream = ArrowArrayStream.allocateNew(allocator)) {
-                return true;
+                return null;
             }
         } catch (Throwable t) {
-            LOG.warn("Arrow runtime is not available, columnar event ingestion is disabled: reason={}", t.toString());
-            return false;
+            return t;
         }
     }
 }

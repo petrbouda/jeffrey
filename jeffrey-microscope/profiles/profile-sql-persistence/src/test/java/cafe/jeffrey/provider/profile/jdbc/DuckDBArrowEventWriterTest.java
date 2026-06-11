@@ -22,14 +22,11 @@ import cafe.jeffrey.provider.profile.api.Event;
 import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.test.DuckDBTest;
 
-import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.Test;
-import org.springframework.jdbc.datasource.SingleConnectionDataSource;
 import tools.jackson.databind.node.ObjectNode;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -41,16 +38,15 @@ import java.util.concurrent.Executor;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Writes the same representative set of events through the ARROW path and through the
- * APPENDER path into two databases and asserts row-for-row identical content.
+ * Writes a representative set of events (null optionals, quoted/unicode JSON, zero/negative
+ * hashes, duplicates, multiple full batches plus a partial final flush) through the Arrow
+ * columnar path and asserts that the rows read back from DuckDB match the expected values,
+ * including the JSON round-trip of the {@code fields} column.
  */
 @DuckDBTest(migration = "classpath:db/migration/profile")
 class DuckDBArrowEventWriterTest {
-
-    private static final String PROFILE_MIGRATIONS_LOCATION = "classpath:db/migration/profile";
 
     /**
      * Small batch size to force multiple flushes plus a final partial flush on close.
@@ -58,6 +54,9 @@ class DuckDBArrowEventWriterTest {
     private static final int TEST_BATCH_SIZE = 4;
 
     private static final Executor DIRECT_EXECUTOR = Runnable::run;
+
+    private static final long MICROS_PER_SECOND = 1_000_000L;
+    private static final long NANOS_PER_MICRO = 1_000L;
 
     private static final String SELECT_EVENTS_SQL = """
             SELECT event_type, epoch_us(start_timestamp), duration, samples, weight,
@@ -88,43 +87,28 @@ class DuckDBArrowEventWriterTest {
             .thenComparing(EventRow::fieldsJson, Comparator.nullsFirst(Comparator.naturalOrder()));
 
     @Test
-    void arrowPathWritesIdenticalContentAsAppenderPath(DataSource arrowDataSource) throws Exception {
-        assertTrue(ArrowRuntimeSupport.isAvailable(), "Arrow runtime must be available for this test");
-
+    void arrowPathPersistsRepresentativeEventsExactly(DataSource dataSource) throws Exception {
         List<Event> events = representativeEvents();
 
-        try (Connection appenderConnection = DriverManager.getConnection("jdbc:duckdb:")) {
-            SingleConnectionDataSource appenderDataSource = new SingleConnectionDataSource(appenderConnection, true);
-            migrate(appenderDataSource);
+        DuckDBArrowEventWriter arrowWriter =
+                new DuckDBArrowEventWriter(DIRECT_EXECUTOR, dataSource, TEST_BATCH_SIZE);
+        for (Event event : events) {
+            arrowWriter.insert(event);
+        }
+        arrowWriter.close();
 
-            DuckDBArrowEventWriter arrowWriter =
-                    new DuckDBArrowEventWriter(DIRECT_EXECUTOR, arrowDataSource, TEST_BATCH_SIZE);
-            for (Event event : events) {
-                arrowWriter.insert(event);
-            }
-            arrowWriter.close();
+        List<EventRow> expectedRows = new ArrayList<>(events.stream()
+                .map(DuckDBArrowEventWriterTest::expectedRow)
+                .toList());
+        List<EventRow> actualRows = readEvents(dataSource);
 
-            DuckDBEventWriter appenderWriter =
-                    new DuckDBEventWriter(DIRECT_EXECUTOR, appenderDataSource, TEST_BATCH_SIZE);
-            for (Event event : events) {
-                appenderWriter.insert(event);
-            }
-            appenderWriter.close();
+        assertEquals(expectedRows.size(), actualRows.size(), "Arrow path must persist every inserted event");
 
-            List<EventRow> arrowRows = readEvents(arrowDataSource);
-            List<EventRow> appenderRows = readEvents(appenderDataSource);
+        expectedRows.sort(ROW_ORDER);
+        actualRows.sort(ROW_ORDER);
 
-            assertEquals(events.size(), arrowRows.size(), "Arrow path must persist every inserted event");
-            assertEquals(appenderRows.size(), arrowRows.size());
-
-            arrowRows.sort(ROW_ORDER);
-            appenderRows.sort(ROW_ORDER);
-
-            for (int i = 0; i < arrowRows.size(); i++) {
-                assertRowEquals(appenderRows.get(i), arrowRows.get(i), i);
-            }
-
-            appenderDataSource.destroy();
+        for (int i = 0; i < actualRows.size(); i++) {
+            assertRowEquals(expectedRows.get(i), actualRows.get(i), i);
         }
     }
 
@@ -145,8 +129,29 @@ class DuckDBArrowEventWriterTest {
             assertNull(actualJson, "fields mismatch at row " + index);
             return;
         }
-        // Compare the JSON round-trip semantically — both paths must produce an equal document.
+        // The DuckDB JSON column may normalize whitespace — compare the documents semantically.
         assertEquals(Json.readTree(expectedJson), Json.readTree(actualJson), "fields mismatch at row " + index);
+    }
+
+    /**
+     * The expected database row for an inserted event: timestamps are stored with microsecond
+     * precision, the {@code fields} document round-trips through the JSON column.
+     */
+    private static EventRow expectedRow(Event event) {
+        return new EventRow(
+                event.eventType(),
+                toEpochMicros(event.startTimestamp()),
+                event.duration(),
+                event.samples(),
+                event.weight(),
+                event.weightEntity(),
+                event.stacktraceId(),
+                event.threadId(),
+                event.fields() != null ? event.fields().toString() : null);
+    }
+
+    private static long toEpochMicros(Instant instant) {
+        return instant.getEpochSecond() * MICROS_PER_SECOND + instant.getNano() / NANOS_PER_MICRO;
     }
 
     private static List<Event> representativeEvents() {
@@ -185,14 +190,6 @@ class DuckDBArrowEventWriterTest {
         events.add(new Event("jdk.ExecutionSample", base.plusMillis(6), null, 1L, null, null, 777L, 888L, null));
         events.add(new Event("jdk.ExecutionSample", base.plusMillis(7), null, 1L, null, null, 777L, 888L, null));
         return events;
-    }
-
-    private static void migrate(DataSource dataSource) {
-        Flyway flyway = Flyway.configure()
-                .dataSource(dataSource)
-                .locations(PROFILE_MIGRATIONS_LOCATION)
-                .load();
-        flyway.migrate();
     }
 
     private static List<EventRow> readEvents(DataSource dataSource) throws SQLException {

@@ -47,9 +47,9 @@ import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Columnar writer for the {@code events} table. Instead of crossing JNI once per appended
- * value (as {@link DuckDBEventWriter} does), the whole batch is accumulated into Arrow
- * vectors, exported through the Arrow C Data Interface, registered on the DuckDB connection
- * ({@link DuckDBConnection#registerArrowStream}) and inserted with a single bulk
+ * value (as the row-based {@code DuckDBAppender} does), the whole batch is accumulated into
+ * Arrow vectors, exported through the Arrow C Data Interface, registered on the DuckDB
+ * connection ({@link DuckDBConnection#registerArrowStream}) and inserted with a single bulk
  * {@code INSERT INTO events SELECT ... FROM <arrow-stream>} statement. On an events-like
  * schema this measured ~3x faster than the appender path (1.0M vs 0.31M rows/s on 4M rows).
  */
@@ -108,6 +108,9 @@ public class DuckDBArrowEventWriter extends DuckDBBatchingWriter<Event> {
 
     public DuckDBArrowEventWriter(Executor executor, DataSource dataSource, int batchSize) {
         super(executor, EVENTS_TABLE, dataSource, batchSize, StatementLabel.INSERT_EVENTS);
+        // Fail at construction with an actionable message instead of failing mid-parse
+        // when the Arrow runtime (add-opens, native library) is unusable.
+        ArrowRuntimeSupport.ensureAvailable();
         this.allocator = new RootAllocator();
     }
 

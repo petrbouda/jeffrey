@@ -49,7 +49,6 @@ import cafe.jeffrey.microscope.core.manager.ide.JeffreyPluginBridge;
 import cafe.jeffrey.microscope.core.manager.ide.JeffreyPluginClient;
 import cafe.jeffrey.microscope.core.manager.ide.JfrProfilerPluginBridge;
 import cafe.jeffrey.microscope.core.manager.ide.PortRange;
-import cafe.jeffrey.shared.common.EventWriterMode;
 import cafe.jeffrey.shared.common.FrameResolutionMode;
 import cafe.jeffrey.shared.common.StringUtils;
 import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
@@ -135,15 +134,10 @@ public class AppConfiguration {
     public ProfilePersistenceProvider profilePersistenceProvider(
             Clock clock,
             MicroscopeJeffreyDirs jeffreyDirs,
-            @Value("${jeffrey.microscope.profile.frame-resolution:CACHE}") FrameResolutionMode frameResolutionMode,
-            @Value("${jeffrey.microscope.profile.ingestion.event-writer:ARROW}") EventWriterMode eventWriterMode) {
+            @Value("${jeffrey.microscope.profile.frame-resolution:CACHE}") FrameResolutionMode frameResolutionMode) {
 
         LOG.info("Using frame resolution mode: mode={}", frameResolutionMode);
-        DuckDBProfilePersistenceProvider provider = new DuckDBProfilePersistenceProvider(
-                clock, jeffreyDirs.profiles(), frameResolutionMode, eventWriterMode);
-        LOG.info("Using event writer mode: requested_mode={} effective_mode={}",
-                eventWriterMode, provider.eventWriterMode());
-        return provider;
+        return new DuckDBProfilePersistenceProvider(clock, jeffreyDirs.profiles(), frameResolutionMode);
     }
 
     @Bean

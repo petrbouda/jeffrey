@@ -22,13 +22,10 @@ import cafe.jeffrey.provider.profile.api.*;
 
 import cafe.jeffrey.provider.profile.jdbc.*;
 import cafe.jeffrey.provider.profile.api.ProfileRepositories;
-import cafe.jeffrey.shared.common.EventWriterMode;
 import cafe.jeffrey.shared.common.FrameResolutionMode;
 import cafe.jeffrey.shared.common.Schedulers;
 import cafe.jeffrey.shared.persistence.CachingDatabaseManager;
 import cafe.jeffrey.shared.persistence.DatabaseManager;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.nio.file.Path;
 import java.time.Clock;
@@ -36,8 +33,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class DuckDBProfilePersistenceProvider implements ProfilePersistenceProvider {
-
-    private static final Logger LOG = LoggerFactory.getLogger(DuckDBProfilePersistenceProvider.class);
 
     private static final int DEFAULT_BATCH_SIZE = 10000;
 
@@ -52,39 +47,30 @@ public class DuckDBProfilePersistenceProvider implements ProfilePersistenceProvi
     private final int batchSize;
     private final DatabaseManager databaseManager;
     private final FrameResolutionMode frameResolutionMode;
-    private final EventWriterMode eventWriterMode;
     private final ExecutorService arrowEventsFlushExecutor;
 
     public DuckDBProfilePersistenceProvider(Clock clock, Path profilesDir, FrameResolutionMode frameResolutionMode) {
-        this(clock, profilesDir, frameResolutionMode, EventWriterMode.ARROW, DEFAULT_BATCH_SIZE);
+        this(clock, profilesDir, frameResolutionMode, DEFAULT_BATCH_SIZE);
     }
 
     public DuckDBProfilePersistenceProvider(
             Clock clock,
             Path profilesDir,
             FrameResolutionMode frameResolutionMode,
-            EventWriterMode eventWriterMode) {
-
-        this(clock, profilesDir, frameResolutionMode, eventWriterMode, DEFAULT_BATCH_SIZE);
-    }
-
-    public DuckDBProfilePersistenceProvider(
-            Clock clock,
-            Path profilesDir,
-            FrameResolutionMode frameResolutionMode,
-            EventWriterMode eventWriterMode,
             int batchSize) {
+
+        // The Arrow runtime is the only ingestion path for the events table — fail at
+        // construction (startup/profile-init) instead of mid-parse when it is unusable.
+        ArrowRuntimeSupport.ensureAvailable();
 
         this.batchSize = batchSize;
         this.databaseManager = new CachingDatabaseManager(new DuckDBProfileDatabaseManager(profilesDir), clock);
         this.frameResolutionMode = frameResolutionMode;
-        this.eventWriterMode = resolveEventWriterMode(eventWriterMode);
         // Bulk columnar inserts do not benefit from concurrency (measured: a single connection
         // saturates DuckDB's commit path), a dedicated single flush thread serializes the events
         // inserts while keeping them off the parser threads.
-        this.arrowEventsFlushExecutor = this.eventWriterMode == EventWriterMode.ARROW
-                ? Executors.newSingleThreadExecutor(Schedulers.platformThreadfactory(ARROW_EVENTS_FLUSH_THREAD_PREFIX))
-                : null;
+        this.arrowEventsFlushExecutor =
+                Executors.newSingleThreadExecutor(Schedulers.platformThreadfactory(ARROW_EVENTS_FLUSH_THREAD_PREFIX));
     }
 
     @Override
@@ -92,31 +78,10 @@ public class DuckDBProfilePersistenceProvider implements ProfilePersistenceProvi
         return databaseManager;
     }
 
-    /**
-     * @return the effective writer mode for the events table — may differ from the requested
-     * mode when the Arrow runtime is unavailable on the current platform
-     */
-    public EventWriterMode eventWriterMode() {
-        return eventWriterMode;
-    }
-
     @Override
     public EventWriter.Factory eventWriterFactory() {
-        if (eventWriterMode == EventWriterMode.ARROW) {
-            return dataSource -> new SQLEventWriter(() -> DuckDBEventWriters.arrowBased(
-                    Schedulers.sharedDbWriter(), arrowEventsFlushExecutor, dataSource, batchSize, ARROW_EVENTS_BATCH_SIZE));
-        }
-        return dataSource -> new SQLEventWriter(
-                () -> DuckDBEventWriters.appenderBased(Schedulers.sharedDbWriter(), dataSource, batchSize));
-    }
-
-    private static EventWriterMode resolveEventWriterMode(EventWriterMode requested) {
-        if (requested == EventWriterMode.ARROW && !ArrowRuntimeSupport.isAvailable()) {
-            LOG.warn("Arrow event writer requested but the Arrow runtime is unavailable, " +
-                    "falling back to the appender writer: requested_mode={}", requested);
-            return EventWriterMode.APPENDER;
-        }
-        return requested;
+        return dataSource -> new SQLEventWriter(() -> new DuckDBEventWriters(
+                Schedulers.sharedDbWriter(), arrowEventsFlushExecutor, dataSource, batchSize, ARROW_EVENTS_BATCH_SIZE));
     }
 
     @Override

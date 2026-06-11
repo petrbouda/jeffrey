@@ -27,55 +27,41 @@ import javax.sql.DataSource;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 
+/**
+ * Writer set for a single profile database. The high-volume {@code events} table is written
+ * by the columnar {@link DuckDBArrowEventWriter}; the low-volume tables (event types,
+ * stacktraces, threads, frames) stay on the row-based appender writers.
+ */
 public class DuckDBEventWriters implements EventWriters {
 
-    private final DatabaseWriter<Event> eventWriter;
+    private final DuckDBArrowEventWriter eventWriter;
     private final DuckDBEventTypeWriter eventTypeWriter;
     private final DuckDBStacktraceWriter stacktraceWriter;
     private final DuckDBThreadWriter threadWriter;
     private final DuckDBFrameWriter frameWriter;
 
-    private DuckDBEventWriters(
-            DatabaseWriter<Event> eventWriter,
-            ExecutorService executor,
-            DataSource dataSource,
-            int batchSize) {
-
-        this.eventWriter = eventWriter;
-        this.eventTypeWriter = new DuckDBEventTypeWriter(executor, dataSource, batchSize);
-        this.stacktraceWriter = new DuckDBStacktraceWriter(executor, dataSource, batchSize);
-        this.threadWriter = new DuckDBThreadWriter(executor, dataSource, batchSize);
-        this.frameWriter = new DuckDBFrameWriter(executor, dataSource, batchSize);
-    }
-
     /**
-     * Writer set with the row-based {@link DuckDBEventWriter} (DuckDBAppender) for the events table.
-     */
-    public static DuckDBEventWriters appenderBased(ExecutorService executor, DataSource dataSource, int batchSize) {
-        return new DuckDBEventWriters(
-                new DuckDBEventWriter(executor, dataSource, batchSize), executor, dataSource, batchSize);
-    }
-
-    /**
-     * Writer set with the columnar {@link DuckDBArrowEventWriter} for the high-volume events table.
-     * Low-volume tables (event types, stacktraces, threads, frames) stay on the appender writers.
-     *
+     * @param executor            shared executor for the appender-based writers
      * @param eventsFlushExecutor dedicated executor for events flushes — bulk columnar inserts do not
      *                            benefit from concurrency, a single flush thread keeps the parser
      *                            threads unblocked while serializing the inserts
+     * @param dataSource          profile database
+     * @param batchSize           batch size for the appender-based writers
      * @param eventsBatchSize     batch size for the events table — larger than the appender batches
      *                            to amortize the per-INSERT overhead of the bulk path
      */
-    public static DuckDBEventWriters arrowBased(
+    public DuckDBEventWriters(
             ExecutorService executor,
             Executor eventsFlushExecutor,
             DataSource dataSource,
             int batchSize,
             int eventsBatchSize) {
 
-        return new DuckDBEventWriters(
-                new DuckDBArrowEventWriter(eventsFlushExecutor, dataSource, eventsBatchSize),
-                executor, dataSource, batchSize);
+        this.eventWriter = new DuckDBArrowEventWriter(eventsFlushExecutor, dataSource, eventsBatchSize);
+        this.eventTypeWriter = new DuckDBEventTypeWriter(executor, dataSource, batchSize);
+        this.stacktraceWriter = new DuckDBStacktraceWriter(executor, dataSource, batchSize);
+        this.threadWriter = new DuckDBThreadWriter(executor, dataSource, batchSize);
+        this.frameWriter = new DuckDBFrameWriter(executor, dataSource, batchSize);
     }
 
     @Override

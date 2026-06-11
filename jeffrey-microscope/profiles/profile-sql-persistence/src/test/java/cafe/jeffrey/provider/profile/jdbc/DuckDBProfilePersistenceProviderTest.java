@@ -18,11 +18,9 @@
 
 package cafe.jeffrey.provider.profile.jdbc;
 
-import cafe.jeffrey.shared.common.EventWriterMode;
 import cafe.jeffrey.shared.common.FrameResolutionMode;
 import cafe.jeffrey.test.DuckDBTest;
 
-import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -35,8 +33,8 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @DuckDBTest
 class DuckDBProfilePersistenceProviderTest {
@@ -49,62 +47,24 @@ class DuckDBProfilePersistenceProviderTest {
     @TempDir
     Path profilesDir;
 
-    @Nested
-    class EventWriterModeSelection {
+    @Test
+    void providerConstructsWithArrowOnlyIngestion() {
+        DuckDBProfilePersistenceProvider provider = new DuckDBProfilePersistenceProvider(
+                FIXED_CLOCK, profilesDir, FrameResolutionMode.CACHE);
 
-        @Test
-        void appenderConfigSelectsAppenderWriter() {
-            DuckDBProfilePersistenceProvider provider = new DuckDBProfilePersistenceProvider(
-                    FIXED_CLOCK, profilesDir, FrameResolutionMode.CACHE, EventWriterMode.APPENDER);
-
-            assertEquals(EventWriterMode.APPENDER, provider.eventWriterMode());
-        }
-
-        @Test
-        void arrowConfigSelectsArrowWriterWhenRuntimeAvailable() {
-            DuckDBProfilePersistenceProvider provider = new DuckDBProfilePersistenceProvider(
-                    FIXED_CLOCK, profilesDir, FrameResolutionMode.CACHE, EventWriterMode.ARROW);
-
-            EventWriterMode expected = ArrowRuntimeSupport.isAvailable()
-                    ? EventWriterMode.ARROW
-                    : EventWriterMode.APPENDER;
-            assertEquals(expected, provider.eventWriterMode());
-        }
-
-        @Test
-        void defaultModeIsArrow() {
-            DuckDBProfilePersistenceProvider provider = new DuckDBProfilePersistenceProvider(
-                    FIXED_CLOCK, profilesDir, FrameResolutionMode.CACHE);
-
-            EventWriterMode expected = ArrowRuntimeSupport.isAvailable()
-                    ? EventWriterMode.ARROW
-                    : EventWriterMode.APPENDER;
-            assertEquals(expected, provider.eventWriterMode());
-        }
+        assertNotNull(provider.databaseManager());
+        assertNotNull(provider.eventWriterFactory());
+        assertNotNull(provider.repositories());
     }
 
-    @Nested
-    class EventWritersFactories {
-
-        @Test
-        void appenderBasedWritersUseAppenderEventWriter(DataSource dataSource) {
-            ExecutorService executor = Executors.newSingleThreadExecutor();
-            try (DuckDBEventWriters writers = DuckDBEventWriters.appenderBased(executor, dataSource, 10)) {
-                assertInstanceOf(DuckDBEventWriter.class, writers.events());
-            } finally {
-                executor.shutdownNow();
-            }
-        }
-
-        @Test
-        void arrowBasedWritersUseArrowEventWriter(DataSource dataSource) {
-            ExecutorService executor = Executors.newSingleThreadExecutor();
-            try (DuckDBEventWriters writers =
-                         DuckDBEventWriters.arrowBased(executor, DIRECT_EXECUTOR, dataSource, 10, 100)) {
-                assertInstanceOf(DuckDBArrowEventWriter.class, writers.events());
-            } finally {
-                executor.shutdownNow();
-            }
+    @Test
+    void eventWritersUseArrowEventWriter(DataSource dataSource) {
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        try (DuckDBEventWriters writers =
+                     new DuckDBEventWriters(executor, DIRECT_EXECUTOR, dataSource, 10, 100)) {
+            assertInstanceOf(DuckDBArrowEventWriter.class, writers.events());
+        } finally {
+            executor.shutdownNow();
         }
     }
 }

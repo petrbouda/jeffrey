@@ -41,7 +41,6 @@ import cafe.jeffrey.profile.parser.JfrRecordingInformationParser;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCorePersistenceProvider;
 import cafe.jeffrey.provider.profile.jdbc.DuckDBProfilePersistenceProvider;
 import cafe.jeffrey.provider.profile.api.ProfilePersistenceProvider;
-import cafe.jeffrey.shared.common.EventWriterMode;
 import cafe.jeffrey.shared.common.FrameResolutionMode;
 import cafe.jeffrey.shared.common.compression.Lz4Compressor;
 import cafe.jeffrey.microscope.core.MicroscopeJeffreyDirs;
@@ -66,11 +65,10 @@ public class MicroscopeAppConfiguration {
             ProfileManager.Factory profileManagerFactory,
             ProfileDataInitializer profileDataInitializer,
             MicroscopeCorePersistenceProvider localCorePersistenceProvider,
-            @Value("${jeffrey.microscope.profile.frame-resolution:CACHE}") FrameResolutionMode frameResolutionMode,
-            @Value("${jeffrey.microscope.profile.ingestion.event-writer:ARROW}") EventWriterMode eventWriterMode) {
+            @Value("${jeffrey.microscope.profile.frame-resolution:CACHE}") FrameResolutionMode frameResolutionMode) {
 
         ProfilePersistenceProvider quickProvider =
-                new DuckDBProfilePersistenceProvider(clock, jeffreyDirs.profiles(), frameResolutionMode, eventWriterMode);
+                new DuckDBProfilePersistenceProvider(clock, jeffreyDirs.profiles(), frameResolutionMode);
 
         ProfileInitializer recordingsProfileInitializer = new ProfileInitializerImpl(
                 quickProvider.repositories(),
