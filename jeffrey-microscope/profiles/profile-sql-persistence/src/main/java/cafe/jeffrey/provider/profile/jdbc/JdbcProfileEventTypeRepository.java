@@ -37,6 +37,7 @@ import cafe.jeffrey.shared.persistence.client.DatabaseClient;
 import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -82,6 +83,13 @@ public class JdbcProfileEventTypeRepository implements ProfileEventTypeRepositor
             SELECT event_types.name, event_types.label, events.fields::JSON AS event_fields FROM events
             INNER JOIN event_types ON events.event_type = event_types.name
             WHERE events.event_type = (:code) LIMIT 1""";
+
+    //language=SQL
+    private static final String FIELDS_BY_EVENT_TYPES = """
+            SELECT event_types.name, event_types.label, any_value(events.fields::JSON) AS event_fields FROM events
+            INNER JOIN event_types ON events.event_type = event_types.name
+            WHERE events.event_type IN (:codes)
+            GROUP BY event_types.name, event_types.label""";
 
     //language=SQL
     private static final String COLUMNS_BY_SINGLE_EVENT =
@@ -171,6 +179,28 @@ public class JdbcProfileEventTypeRepository implements ProfileEventTypeRepositor
                 sqlFormatter.formatJson(FIELDS_BY_SINGLE_EVENT),
                 paramSource,
                 TYPE_FIELDS_MAPPER);
+    }
+
+    @Override
+    public Map<Type, EventTypeWithFields> singleFieldsByEventTypes(List<Type> types) {
+        if (types.isEmpty()) {
+            return Map.of();
+        }
+
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("codes", types.stream().map(Type::code).toList());
+
+        List<EventTypeWithFields> rows = databaseClient.query(
+                StatementLabel.FIELDS_WITH_EVENT_TYPES,
+                sqlFormatter.formatJson(FIELDS_BY_EVENT_TYPES),
+                paramSource,
+                TYPE_FIELDS_MAPPER);
+
+        Map<Type, EventTypeWithFields> result = new LinkedHashMap<>();
+        for (EventTypeWithFields row : rows) {
+            result.put(Type.fromCode(row.name()), row);
+        }
+        return result;
     }
 
     @Override

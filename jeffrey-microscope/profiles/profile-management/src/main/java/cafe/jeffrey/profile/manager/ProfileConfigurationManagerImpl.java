@@ -77,11 +77,13 @@ public class ProfileConfigurationManagerImpl implements ProfileConfigurationMana
 
     @Override
     public JsonNode configuration() {
+        // Single batched query for all configuration event types instead of one scan per type
+        Map<Type, EventTypeWithFields> fieldsByType = eventTypeRepository.singleFieldsByEventTypes(EVENT_TYPES);
+
         ObjectNode result = Json.createObject();
         for (Type eventType : EVENT_TYPES) {
-            Optional<EventTypeWithFields> eventTypeWithFields = eventTypeRepository.singleFieldsByEventType(eventType);
-            if (eventTypeWithFields.isPresent()) {
-                EventTypeWithFields fields = eventTypeWithFields.get();
+            EventTypeWithFields fields = fieldsByType.get(eventType);
+            if (fields != null) {
                 ObjectNode cleanedContent = fields.content().remove(IGNORED_FIELDS);
                 result.set(fields.label(), mapNamesToEventFields(fields.name(), cleanedContent));
             }

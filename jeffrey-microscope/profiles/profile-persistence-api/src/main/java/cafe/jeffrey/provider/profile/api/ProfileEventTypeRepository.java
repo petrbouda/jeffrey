@@ -22,12 +22,30 @@ import cafe.jeffrey.shared.common.model.EventSummary;
 import cafe.jeffrey.shared.common.model.SpanInterval;
 import cafe.jeffrey.shared.common.model.Type;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 public interface ProfileEventTypeRepository {
 
     Optional<EventTypeWithFields> singleFieldsByEventType(Type type);
+
+    /**
+     * Batch variant of {@link #singleFieldsByEventType(Type)} — one representative fields-row per
+     * event type. Implementations are expected to override this with a single query; the default
+     * delegates to the single-type lookup, one call per type.
+     *
+     * @param types event types to look up
+     * @return mapping of the event type to its representative fields, absent types are omitted
+     */
+    default Map<Type, EventTypeWithFields> singleFieldsByEventTypes(List<Type> types) {
+        Map<Type, EventTypeWithFields> result = new LinkedHashMap<>();
+        for (Type type : types) {
+            singleFieldsByEventType(type).ifPresent(fields -> result.put(type, fields));
+        }
+        return result;
+    }
 
     List<FieldDescription> eventColumns(Type type);
 
