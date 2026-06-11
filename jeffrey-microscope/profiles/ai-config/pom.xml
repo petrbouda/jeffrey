@@ -28,7 +28,7 @@
     </parent>
 
     <artifactId>ai-config</artifactId>
-    <description>Shared AI ChatModel configuration for Claude and OpenAI providers</description>
+    <description>Shared AI ChatModel configuration for Claude, OpenAI, and Ollama providers</description>
 
     <dependencies>
         <!-- Spring AI - Anthropic Claude -->
@@ -41,6 +41,12 @@
         <dependency>
             <groupId>org.springframework.ai</groupId>
             <artifactId>spring-ai-openai</artifactId>
+        </dependency>
+
+        <!-- Spring AI - Ollama (self-hosted) -->
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-ollama</artifactId>
         </dependency>
 
         <!-- Spring AI - ChatClient -->

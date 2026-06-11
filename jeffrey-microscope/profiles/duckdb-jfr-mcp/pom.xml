@@ -41,6 +41,11 @@
             <groupId>org.springframework.ai</groupId>
             <artifactId>spring-ai-openai</artifactId>
         </dependency>
+        <!-- Spring AI - Ollama (self-hosted) -->
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-ollama</artifactId>
+        </dependency>
         <!-- Spring AI - ChatClient -->
         <dependency>
             <groupId>org.springframework.ai</groupId>

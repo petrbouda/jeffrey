@@ -411,7 +411,7 @@ When unsure whether a request is "make it cleaner" or "make it faster", ask. Def
 ## AI Integration
 - Spring AI 2.0.0-M3 with Claude and OpenAI providers
 - AI modules: `jeffrey-microscope/profiles/ai-config/`, `jeffrey-microscope/profiles/oql-assistant/`, `jeffrey-microscope/profiles/duckdb-ai-mcp/`, `jeffrey-microscope/profiles/heap-dump-ai-mcp/`
-- Config: `jeffrey.ai.provider=claude`, `jeffrey.ai.model=claude-opus-4-6`
+- Config: `jeffrey.ai.provider=claude`, `jeffrey.ai.model=claude-opus-4-8`
 
 ## DuckDB MCP Servers
 - You can use MCP Server to connect to DuckDB database to get information about the current data

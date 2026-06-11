@@ -27,6 +27,9 @@ import org.springframework.ai.anthropic.AnthropicChatOptions;
 import org.springframework.ai.anthropic.AnthropicSetup;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ChatModel;
+import org.springframework.ai.ollama.OllamaChatModel;
+import org.springframework.ai.ollama.api.OllamaApi;
+import org.springframework.ai.ollama.api.OllamaChatOptions;
 import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.ai.openai.setup.OpenAiSetup;
@@ -55,19 +58,22 @@ public class AiChatModelConfiguration {
 
     private static final Duration OPENAI_CLIENT_TIMEOUT = Duration.ofMinutes(10);
     private static final int OPENAI_CLIENT_MAX_RETRIES = 2;
+    private static final String DEFAULT_OLLAMA_BASE_URL = "http://localhost:11434";
 
     @Bean
     public ChatModel chatModel(
             @Value("${jeffrey.microscope.ai.provider}") String provider,
             @Value("${jeffrey.microscope.ai.model}") String modelName,
             @Value("${jeffrey.microscope.ai.max-tokens:4096}") int maxTokens,
-            @Value("${jeffrey.microscope.ai.api-key}") String apiKey) {
+            @Value("${jeffrey.microscope.ai.api-key:}") String apiKey,
+            @Value("${jeffrey.microscope.ai.base-url:" + DEFAULT_OLLAMA_BASE_URL + "}") String baseUrl) {
 
         return switch (provider.toLowerCase()) {
             case "claude" -> createAnthropicChatModel(apiKey, modelName, maxTokens);
             case "chatgpt" -> createOpenAiChatModel(apiKey, modelName, maxTokens);
+            case "ollama" -> createOllamaChatModel(baseUrl, modelName, maxTokens);
             default -> throw new IllegalArgumentException("Unknown AI provider: " + provider
-                    + ". Supported providers: claude, chatgpt");
+                    + ". Supported providers: claude, chatgpt, ollama");
         };
     }
 
@@ -120,6 +126,27 @@ public class AiChatModelConfiguration {
 
         return OpenAiChatModel.builder()
                 .openAiClient(client)
+                .options(options)
+                .build();
+    }
+
+    private ChatModel createOllamaChatModel(String baseUrl, String modelName, int maxTokens) {
+        LOG.info("Creating Ollama ChatModel: baseUrl={} model={} maxTokens={}", baseUrl, modelName, maxTokens);
+
+        OllamaApi api = OllamaApi.builder()
+                .baseUrl(baseUrl)
+                .build();
+
+        // The Ollama-specific builder.model(...) accepts only the OllamaModel enum, so the
+        // free-form, user-configured model name is set via the inherited model(String) method.
+        // numPredict maps to the maximum number of output tokens to generate.
+        OllamaChatOptions options = OllamaChatOptions.builder()
+                .model(modelName)
+                .numPredict(maxTokens)
+                .build();
+
+        return OllamaChatModel.builder()
+                .ollamaApi(api)
                 .options(options)
                 .build();
     }
