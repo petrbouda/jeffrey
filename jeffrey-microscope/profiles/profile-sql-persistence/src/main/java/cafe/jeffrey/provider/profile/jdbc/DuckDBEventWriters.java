@@ -25,7 +25,6 @@ import cafe.jeffrey.provider.profile.jdbc.*;
 
 import javax.sql.DataSource;
 import java.util.concurrent.Executor;
-import java.util.concurrent.ExecutorService;
 
 /**
  * Writer set for a single profile database. The high-volume {@code events} table is written
@@ -41,23 +40,21 @@ public class DuckDBEventWriters implements EventWriters {
     private final DuckDBFrameWriter frameWriter;
 
     /**
-     * @param executor            shared executor for the appender-based writers
-     * @param eventsFlushExecutor dedicated executor for events flushes — bulk columnar inserts do not
-     *                            benefit from concurrency, a single flush thread keeps the parser
-     *                            threads unblocked while serializing the inserts
-     * @param dataSource          profile database
-     * @param batchSize           batch size for the appender-based writers
-     * @param eventsBatchSize     batch size for the events table — larger than the appender batches
-     *                            to amortize the per-INSERT overhead of the bulk path
+     * @param executor        shared executor for all batch flushes — every flush takes its own
+     *                        pooled connection, so in-flight batches fill their Arrow vectors in
+     *                        parallel while DuckDB serializes the actual INSERT commits internally
+     * @param dataSource      profile database
+     * @param batchSize       batch size for the appender-based writers
+     * @param eventsBatchSize batch size for the events table — larger than the appender batches
+     *                        to amortize the per-INSERT overhead of the bulk path
      */
     public DuckDBEventWriters(
-            ExecutorService executor,
-            Executor eventsFlushExecutor,
+            Executor executor,
             DataSource dataSource,
             int batchSize,
             int eventsBatchSize) {
 
-        this.eventWriter = new DuckDBArrowEventWriter(eventsFlushExecutor, dataSource, eventsBatchSize);
+        this.eventWriter = new DuckDBArrowEventWriter(executor, dataSource, eventsBatchSize);
         this.eventTypeWriter = new DuckDBEventTypeWriter(executor, dataSource, batchSize);
         this.stacktraceWriter = new DuckDBStacktraceWriter(executor, dataSource, batchSize);
         this.threadWriter = new DuckDBThreadWriter(executor, dataSource, batchSize);

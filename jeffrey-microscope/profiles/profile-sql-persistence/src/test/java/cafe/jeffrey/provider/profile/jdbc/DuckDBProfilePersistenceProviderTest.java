@@ -30,8 +30,6 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.concurrent.Executor;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -59,12 +57,9 @@ class DuckDBProfilePersistenceProviderTest {
 
     @Test
     void eventWritersUseArrowEventWriter(DataSource dataSource) {
-        ExecutorService executor = Executors.newSingleThreadExecutor();
         try (DuckDBEventWriters writers =
-                     new DuckDBEventWriters(executor, DIRECT_EXECUTOR, dataSource, 10, 100)) {
+                     new DuckDBEventWriters(DIRECT_EXECUTOR, dataSource, 10, 100)) {
             assertInstanceOf(DuckDBArrowEventWriter.class, writers.events());
-        } finally {
-            executor.shutdownNow();
         }
     }
 }

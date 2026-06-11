@@ -29,8 +29,6 @@ import cafe.jeffrey.shared.persistence.DatabaseManager;
 
 import java.nio.file.Path;
 import java.time.Clock;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 public class DuckDBProfilePersistenceProvider implements ProfilePersistenceProvider {
 
@@ -38,16 +36,16 @@ public class DuckDBProfilePersistenceProvider implements ProfilePersistenceProvi
 
     /**
      * Batch size for the Arrow events path. Bigger batches amortize the per-INSERT overhead
-     * of the bulk columnar inserts (~40MB peak per batch with ~330B JSON fields per event).
+     * of the bulk columnar inserts, but they also delay the first flush and pile work up at
+     * {@code close()} after parsing has already finished. 25k keeps the per-INSERT overhead
+     * amortized while flushing early and often enough that vector fill + INSERT overlap with
+     * parsing even on small recordings (~10MB peak per batch with ~330B JSON fields per event).
      */
-    private static final int ARROW_EVENTS_BATCH_SIZE = 100_000;
-
-    private static final String ARROW_EVENTS_FLUSH_THREAD_PREFIX = "arrow-events-writer";
+    private static final int ARROW_EVENTS_BATCH_SIZE = 25_000;
 
     private final int batchSize;
     private final DatabaseManager databaseManager;
     private final FrameResolutionMode frameResolutionMode;
-    private final ExecutorService arrowEventsFlushExecutor;
 
     public DuckDBProfilePersistenceProvider(Clock clock, Path profilesDir, FrameResolutionMode frameResolutionMode) {
         this(clock, profilesDir, frameResolutionMode, DEFAULT_BATCH_SIZE);
@@ -66,11 +64,6 @@ public class DuckDBProfilePersistenceProvider implements ProfilePersistenceProvi
         this.batchSize = batchSize;
         this.databaseManager = new CachingDatabaseManager(new DuckDBProfileDatabaseManager(profilesDir), clock);
         this.frameResolutionMode = frameResolutionMode;
-        // Bulk columnar inserts do not benefit from concurrency (measured: a single connection
-        // saturates DuckDB's commit path), a dedicated single flush thread serializes the events
-        // inserts while keeping them off the parser threads.
-        this.arrowEventsFlushExecutor =
-                Executors.newSingleThreadExecutor(Schedulers.platformThreadfactory(ARROW_EVENTS_FLUSH_THREAD_PREFIX));
     }
 
     @Override
@@ -80,8 +73,11 @@ public class DuckDBProfilePersistenceProvider implements ProfilePersistenceProvi
 
     @Override
     public EventWriter.Factory eventWriterFactory() {
+        // Events flushes run on the shared db-writer pool like every other writer: DuckDB
+        // serializes the actual INSERT commits internally, but the Java-side vector fill of
+        // multiple in-flight batches runs in parallel and overlaps with parsing.
         return dataSource -> new SQLEventWriter(() -> new DuckDBEventWriters(
-                Schedulers.sharedDbWriter(), arrowEventsFlushExecutor, dataSource, batchSize, ARROW_EVENTS_BATCH_SIZE));
+                Schedulers.sharedDbWriter(), dataSource, batchSize, ARROW_EVENTS_BATCH_SIZE));
     }
 
     @Override

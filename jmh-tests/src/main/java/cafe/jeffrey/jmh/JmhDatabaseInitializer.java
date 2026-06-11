@@ -97,7 +97,6 @@ public class JmhDatabaseInitializer {
 
         DataSource dataSource = createDataSource(DB_FILE);
         ExecutorService writerExecutor = Executors.newSingleThreadExecutor();
-        ExecutorService eventsFlushExecutor = Executors.newSingleThreadExecutor();
         try {
             runMigrations(dataSource);
             LOG.info("Database migrations completed: path={}", DB_FILE.toAbsolutePath());
@@ -105,7 +104,7 @@ public class JmhDatabaseInitializer {
             Lz4Compressor lz4Compressor = new Lz4Compressor(tempDirFactory);
             JfrRecordingEventParser parser = new JfrRecordingEventParser(tempDirFactory, lz4Compressor);
             EventWriter eventWriter = new SQLEventWriter(() -> new DuckDBEventWriters(
-                    writerExecutor, eventsFlushExecutor, dataSource, BATCH_SIZE, EVENTS_BATCH_SIZE));
+                    writerExecutor, dataSource, BATCH_SIZE, EVENTS_BATCH_SIZE));
 
             LOG.info("Parsing JFR file: path={}", JFR_FILE.toAbsolutePath());
             parser.start(eventWriter, JFR_FILE);
@@ -119,7 +118,6 @@ public class JmhDatabaseInitializer {
             throw e;
         } finally {
             writerExecutor.shutdown();
-            eventsFlushExecutor.shutdown();
             DataSourceUtils.close(dataSource);
             FileSystemUtils.removeDirectory(TEMP_DIR);
         }

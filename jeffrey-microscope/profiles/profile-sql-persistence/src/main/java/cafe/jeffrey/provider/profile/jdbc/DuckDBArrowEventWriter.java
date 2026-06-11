@@ -18,6 +18,7 @@
 
 package cafe.jeffrey.provider.profile.jdbc;
 
+import cafe.jeffrey.provider.profile.api.DatabaseWriter;
 import cafe.jeffrey.provider.profile.api.Event;
 import cafe.jeffrey.shared.persistence.StatementLabel;
 
@@ -41,6 +42,7 @@ import javax.sql.DataSource;
 import java.nio.charset.StandardCharsets;
 import java.sql.Statement;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicLong;
@@ -52,8 +54,18 @@ import java.util.concurrent.atomic.AtomicLong;
  * connection ({@link DuckDBConnection#registerArrowStream}) and inserted with a single bulk
  * {@code INSERT INTO events SELECT ... FROM <arrow-stream>} statement. On an events-like
  * schema this measured ~3x faster than the appender path (1.0M vs 0.31M rows/s on 4M rows).
+ *
+ * <p>The dominant Java-side cost of ingestion — serializing the JSON {@code fields} document —
+ * is paid on the caller (parser) thread in {@link #insert(Event)}: events are converted into
+ * {@link PreparedEvent}s carrying the pre-serialized JSON string, so the serialization runs in
+ * parallel across parser threads and overlaps with parsing by construction. The flush threads
+ * only fill Arrow vectors from ready values.
+ *
+ * <p>Flushes may run concurrently on a shared executor: each flush operates on its own pooled
+ * connection, its own {@link VectorSchemaRoot} and a process-wide unique stream name, and the
+ * shared {@link RootAllocator} is thread-safe.
  */
-public class DuckDBArrowEventWriter extends DuckDBBatchingWriter<Event> {
+public class DuckDBArrowEventWriter implements DatabaseWriter<Event> {
 
     private static final Logger LOG = LoggerFactory.getLogger(DuckDBArrowEventWriter.class);
 
@@ -89,7 +101,8 @@ public class DuckDBArrowEventWriter extends DuckDBBatchingWriter<Event> {
 
     /**
      * Registered Arrow streams live for the rest of the connection's lifetime (connections are
-     * pooled), so every exported batch needs a process-wide unique name to avoid collisions.
+     * pooled) and flushes of the same writer may run concurrently on a shared executor, so every
+     * exported batch needs a process-wide unique name to avoid collisions.
      */
     private static final AtomicLong STREAM_NAME_SEQUENCE = new AtomicLong();
 
@@ -104,18 +117,83 @@ public class DuckDBArrowEventWriter extends DuckDBBatchingWriter<Event> {
             Field.nullable(COLUMN_THREAD_HASH, new ArrowType.Int(Long.SIZE, true)),
             Field.nullable(COLUMN_FIELDS, new ArrowType.Utf8())));
 
+    /**
+     * An {@link Event} with the caller-thread work already done: the JSON {@code fields}
+     * document serialized to a string and the timestamp converted to epoch micros.
+     */
+    private record PreparedEvent(
+            String eventType,
+            long startTimestampMicros,
+            Long duration,
+            long samples,
+            Long weight,
+            String weightEntity,
+            Long stacktraceHash,
+            Long threadHash,
+            String fieldsJson) {
+    }
+
     private final BufferAllocator allocator;
+    private final DuckDBBatchingWriter<PreparedEvent> batchingWriter;
 
     public DuckDBArrowEventWriter(Executor executor, DataSource dataSource, int batchSize) {
-        super(executor, EVENTS_TABLE, dataSource, batchSize, StatementLabel.INSERT_EVENTS);
         // Fail at construction with an actionable message instead of failing mid-parse
         // when the Arrow runtime (add-opens, native library) is unusable.
         ArrowRuntimeSupport.ensureAvailable();
         this.allocator = new RootAllocator();
+        this.batchingWriter = new DuckDBBatchingWriter<>(
+                executor, EVENTS_TABLE, dataSource, batchSize, StatementLabel.INSERT_EVENTS) {
+
+            @Override
+            protected void execute(DuckDBConnection connection, List<PreparedEvent> batch) throws Exception {
+                insertThroughArrowStream(connection, batch);
+            }
+        };
     }
 
     @Override
-    protected void execute(DuckDBConnection connection, List<Event> batch) throws Exception {
+    public void insert(Event event) {
+        batchingWriter.insert(prepare(event));
+    }
+
+    @Override
+    public void insertBatch(List<Event> events) {
+        List<PreparedEvent> preparedEvents = new ArrayList<>(events.size());
+        for (Event event : events) {
+            preparedEvents.add(prepare(event));
+        }
+        batchingWriter.insertBatch(preparedEvents);
+    }
+
+    @Override
+    public void close() {
+        // Flushes the remaining batch and awaits all pending flushes,
+        // so all per-batch roots are already released when the allocator closes.
+        batchingWriter.close();
+        try {
+            allocator.close();
+        } catch (IllegalStateException e) {
+            // The allocator detected leaked buffers from a failed flush. Failed batches are
+            // already logged by the batching writer — don't let the leak check abort
+            // the profile initialization on top of it.
+            LOG.error("Arrow allocator detected leaked memory after event ingestion", e);
+        }
+    }
+
+    private static PreparedEvent prepare(Event event) {
+        return new PreparedEvent(
+                event.eventType(),
+                toEpochMicros(event.startTimestamp()),
+                event.duration(),
+                event.samples(),
+                event.weight(),
+                event.weightEntity(),
+                event.stacktraceId(),
+                event.threadId(),
+                event.fields() != null ? event.fields().toString() : null);
+    }
+
+    private void insertThroughArrowStream(DuckDBConnection connection, List<PreparedEvent> batch) throws Exception {
         String streamName = ARROW_STREAM_NAME_PREFIX + STREAM_NAME_SEQUENCE.incrementAndGet();
         try (VectorSchemaRoot root = VectorSchemaRoot.create(EVENTS_SCHEMA, allocator)) {
             fillVectors(root, batch);
@@ -131,22 +209,7 @@ public class DuckDBArrowEventWriter extends DuckDBBatchingWriter<Event> {
         }
     }
 
-    @Override
-    public void close() {
-        // Flushes the remaining batch and awaits all pending flushes,
-        // so all per-batch roots are already released when the allocator closes.
-        super.close();
-        try {
-            allocator.close();
-        } catch (IllegalStateException e) {
-            // The allocator detected leaked buffers from a failed flush. Failed batches are
-            // already logged by the batching writer — don't let the leak check abort
-            // the profile initialization on top of it.
-            LOG.error("Arrow allocator detected leaked memory after event ingestion", e);
-        }
-    }
-
-    private static void fillVectors(VectorSchemaRoot root, List<Event> batch) {
+    private static void fillVectors(VectorSchemaRoot root, List<PreparedEvent> batch) {
         VarCharVector eventType = (VarCharVector) root.getVector(COLUMN_EVENT_TYPE);
         TimeStampMicroTZVector startTimestamp = (TimeStampMicroTZVector) root.getVector(COLUMN_START_TIMESTAMP);
         BigIntVector duration = (BigIntVector) root.getVector(COLUMN_DURATION);
@@ -158,16 +221,16 @@ public class DuckDBArrowEventWriter extends DuckDBBatchingWriter<Event> {
         VarCharVector fields = (VarCharVector) root.getVector(COLUMN_FIELDS);
 
         for (int i = 0; i < batch.size(); i++) {
-            Event event = batch.get(i);
+            PreparedEvent event = batch.get(i);
             eventType.setSafe(i, event.eventType().getBytes(StandardCharsets.UTF_8));
-            startTimestamp.setSafe(i, toEpochMicros(event.startTimestamp()));
+            startTimestamp.setSafe(i, event.startTimestampMicros());
             setNullableBigInt(duration, i, event.duration());
             samples.setSafe(i, event.samples());
             setNullableBigInt(weight, i, event.weight());
             setNullableVarChar(weightEntity, i, event.weightEntity());
-            setNullableBigInt(stacktraceHash, i, event.stacktraceId());
-            setNullableBigInt(threadHash, i, event.threadId());
-            setNullableVarChar(fields, i, event.fields() != null ? event.fields().toString() : null);
+            setNullableBigInt(stacktraceHash, i, event.stacktraceHash());
+            setNullableBigInt(threadHash, i, event.threadHash());
+            setNullableVarChar(fields, i, event.fieldsJson());
         }
         root.setRowCount(batch.size());
     }
