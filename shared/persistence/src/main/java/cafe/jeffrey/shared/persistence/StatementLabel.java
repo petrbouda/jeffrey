@@ -21,6 +21,7 @@ package cafe.jeffrey.shared.persistence;
 public enum StatementLabel {
 
     WAL_CHECK_POINT,
+    RECREATE_TABLE_CLUSTERED,
 
     /**
      * {@link GroupLabel#INTERNAL_PROFILES}

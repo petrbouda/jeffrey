@@ -37,6 +37,13 @@ public class DuckDBProfileDatabaseManager implements DatabaseManager {
     private static final String PROFILE_MIGRATIONS_LOCATION = "classpath:db/migration/profile";
     private static final String JDBC_URL_PREFIX = "jdbc:duckdb:";
 
+    // DuckDB setting: without the obligation to preserve insertion order, parallel ingestion
+    // (appenders, CTAS re-clustering) streams batches with less memory and no final re-ordering.
+    // Safe here: consumers that need chronological events request an explicit ORDER BY
+    // (EventQueryConfigurer.orderedByTime), and the table is re-clustered after parsing anyway.
+    private static final String PRESERVE_INSERTION_ORDER_SETTING = "preserve_insertion_order";
+    private static final String PRESERVE_INSERTION_ORDER_VALUE = "false";
+
     // Sized so that every DB-writer thread can flush its batch concurrently during ingestion
     // instead of blocking on the pool
     private static final int MAX_POOL_SIZE = Schedulers.DB_WRITER_THREADS;
@@ -92,6 +99,7 @@ public class DuckDBProfileDatabaseManager implements DatabaseManager {
                 .minIdle(MIN_IDLE_CONNECTIONS)
                 .maxLifetime(Duration.ZERO)
                 .keepAliveTime(Duration.ZERO)
+                .additionalProperty(PRESERVE_INSERTION_ORDER_SETTING, PRESERVE_INSERTION_ORDER_VALUE)
                 .build();
 
         return DuckDBDataSourceProvider.open(params);

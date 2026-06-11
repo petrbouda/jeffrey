@@ -49,15 +49,18 @@ public class JdbcProfileEventStreamRepository implements ProfileEventStreamRepos
     private final QueryBuilderFactoryResolver queryBuilderFactoryResolver;
     private final DatabaseClient databaseClient;
     private final FrameResolutionMode frameResolutionMode;
+    private final FramesCacheSlot framesCacheSlot;
 
     public JdbcProfileEventStreamRepository(
             QueryBuilderFactoryResolver queryBuilderFactoryResolver,
             DatabaseClientProvider databaseClientProvider,
-            FrameResolutionMode frameResolutionMode) {
+            FrameResolutionMode frameResolutionMode,
+            FramesCacheSlot framesCacheSlot) {
 
         this.queryBuilderFactoryResolver = queryBuilderFactoryResolver;
         this.databaseClient = databaseClientProvider.provide(PROFILE_EVENTS);
         this.frameResolutionMode = frameResolutionMode;
+        this.framesCacheSlot = framesCacheSlot;
     }
 
     @Override
@@ -192,8 +195,9 @@ public class JdbcProfileEventStreamRepository implements ProfileEventStreamRepos
         DuckDBFlamegraphQueries flamegraphQueries = (DuckDBFlamegraphQueries) factory.complexQueries().flamegraph();
 
         if (frameResolutionMode == FrameResolutionMode.CACHE) {
-            // Load frames fresh for this request - no caching between generations
-            FramesCache framesCache = FramesCache.load(databaseClient);
+            // Frames of the currently-open profile are cached between generations and invalidated
+            // by frame-mutating operations (class renaming, stacktrace transformations)
+            FramesCache framesCache = framesCacheSlot.resolve(() -> FramesCache.load(databaseClient));
 
             if (configurer.threads()) {
                 return new FlamegraphOptions(

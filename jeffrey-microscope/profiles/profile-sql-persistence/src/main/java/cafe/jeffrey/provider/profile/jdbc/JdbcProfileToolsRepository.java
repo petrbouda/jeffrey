@@ -125,9 +125,11 @@ public class JdbcProfileToolsRepository implements ProfileToolsRepository {
             )""";
 
     private final DatabaseClient databaseClient;
+    private final FramesCacheSlot framesCacheSlot;
 
-    public JdbcProfileToolsRepository(DatabaseClientProvider databaseClientProvider) {
+    public JdbcProfileToolsRepository(DatabaseClientProvider databaseClientProvider, FramesCacheSlot framesCacheSlot) {
         this.databaseClient = databaseClientProvider.provide(GroupLabel.PROFILE_TOOLS);
+        this.framesCacheSlot = framesCacheSlot;
     }
 
     @Override
@@ -179,6 +181,8 @@ public class JdbcProfileToolsRepository implements ProfileToolsRepository {
                 .addValue("class_name", className);
 
         databaseClient.update(StatementLabel.TOOLS_INSERT_SYNTHETIC_FRAME, INSERT_SYNTHETIC_FRAME, params);
+        // The cached frames don't contain the new synthetic frame — the next request must reload them
+        framesCacheSlot.invalidate();
     }
 
     @Override
@@ -206,6 +210,9 @@ public class JdbcProfileToolsRepository implements ProfileToolsRepository {
         // Delete old stacktraces that are no longer referenced
         var deleteParams = new MapSqlParameterSource().addValue("hashes", oldToNewHashMapping.keySet());
         databaseClient.update(StatementLabel.TOOLS_DELETE_STACKTRACES, DELETE_STACKTRACES, deleteParams);
+
+        // Transformations change the frame/stacktrace landscape — drop the cached frames
+        framesCacheSlot.invalidate();
     }
 
     private void updateEventsStacktraceChunk(List<Map.Entry<Long, Long>> mappings) {
@@ -236,7 +243,9 @@ public class JdbcProfileToolsRepository implements ProfileToolsRepository {
 
     @Override
     public long deleteOrphanedFrames() {
-        return databaseClient.update(StatementLabel.TOOLS_DELETE_ORPHANED_FRAMES, DELETE_ORPHANED_FRAMES, new MapSqlParameterSource());
+        long deleted = databaseClient.update(StatementLabel.TOOLS_DELETE_ORPHANED_FRAMES, DELETE_ORPHANED_FRAMES, new MapSqlParameterSource());
+        framesCacheSlot.invalidate();
+        return deleted;
     }
 
     @Override

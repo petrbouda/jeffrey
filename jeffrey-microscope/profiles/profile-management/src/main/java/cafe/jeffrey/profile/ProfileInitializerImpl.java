@@ -28,19 +28,33 @@ import cafe.jeffrey.provider.profile.api.RecordingEventParser;
 import cafe.jeffrey.provider.profile.api.ProfileInfoRepository;
 import cafe.jeffrey.provider.profile.api.ProfileRepositories;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
+import cafe.jeffrey.shared.common.measure.Measuring;
 import cafe.jeffrey.shared.common.span.Spans;
 import cafe.jeffrey.shared.persistence.DataSourceUtils;
 import cafe.jeffrey.shared.persistence.DatabaseManager;
 import cafe.jeffrey.shared.persistence.GroupLabel;
+import cafe.jeffrey.shared.persistence.client.DatabaseClient;
 
 import javax.sql.DataSource;
 import java.nio.file.Path;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 
 public class ProfileInitializerImpl implements ProfileInitializer {
 
     private static final Logger LOG = LoggerFactory.getLogger(ProfileInitializerImpl.class);
+
+    private static final String EVENTS_TABLE = "events";
+
+    /**
+     * Clustering keys of the events table: queries always filter by event type and very often by a
+     * relative time range, so ordering row groups by (event_type, time) gives both predicates tight
+     * zone maps.
+     */
+    private static final List<String> EVENTS_CLUSTERING_COLUMNS =
+            List.of("event_type", "start_timestamp_from_beginning");
 
     private final ProfileRepositories profileRepositories;
     private final DatabaseManager databaseManager;
@@ -110,11 +124,19 @@ public class ProfileInitializerImpl implements ProfileInitializer {
                 additionalFilesManager.processAdditionalFiles(recordingId);
             }
 
+            DatabaseClient infrastructureClient = profileRepositories.databaseClientProvider(dataSource)
+                    .provide(GroupLabel.INFRASTRUCTURE);
+
+            // Re-cluster the events table by (event_type, time) once all writers are done. Row-group
+            // zone maps then prune scans by event type and time range — replacing the ART indexes.
+            Duration clusteringElapsed = Measuring.r(
+                    () -> infrastructureClient.recreateTableClustered(EVENTS_TABLE, EVENTS_CLUSTERING_COLUMNS));
+            LOG.debug("Events table re-clustered: profile_id={} duration_in_ms={}",
+                    profileInfo.id(), clusteringElapsed.toMillis());
+
             // Ensure all data is flushed to disk - especially important for WAL mode databases
             // WAL checkpointing merges the WAL (Write-Ahead Log) into the main database file
-            profileRepositories.databaseClientProvider(dataSource)
-                    .provide(GroupLabel.INFRASTRUCTURE)
-                    .walCheckpoint();
+            infrastructureClient.walCheckpoint();
 
             long elapsedMs = clock.instant().toEpochMilli() - startedAt.toEpochMilli();
             LOG.info("Profile parsed and initialized: profile_id={} profile_name={} elapsed_ms={}",

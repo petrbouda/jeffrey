@@ -60,6 +60,7 @@ public class EventQueryConfigurer {
     private RelativeTimeRange timeRange;
     private String searchPattern;
     private List<SpanInterval> spanIntervals;
+    private boolean orderedByTime;
 
     /**
      * Include all types of events in the event-stream.
@@ -220,6 +221,18 @@ public class EventQueryConfigurer {
         return this;
     }
 
+    /**
+     * Stream the events in chronological order (by start timestamp). Consumers that pair or
+     * sequence events (e.g. start/end matching) must opt in — the physical order of the events
+     * table is the clustering order, not guaranteed to be chronological across event types.
+     *
+     * @return instance of the event-stream configurer
+     */
+    public EventQueryConfigurer orderedByTime() {
+        this.orderedByTime = true;
+        return this;
+    }
+
     public List<Type> eventTypes() {
         return eventTypes;
     }
@@ -266,5 +279,9 @@ public class EventQueryConfigurer {
 
     public List<SpanInterval> spanIntervals() {
         return spanIntervals;
+    }
+
+    public boolean isOrderedByTime() {
+        return orderedByTime;
     }
 }

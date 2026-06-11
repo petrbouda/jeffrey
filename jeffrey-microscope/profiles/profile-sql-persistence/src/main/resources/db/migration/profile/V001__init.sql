@@ -93,10 +93,9 @@ CREATE TABLE IF NOT EXISTS events
     fields          JSON       -- JSON fields for event-specific data
 );
 
--- Optimized indexes for common query patterns
-CREATE INDEX IF NOT EXISTS idx_events_composite ON events(event_type, start_timestamp, stacktrace_hash);
--- To effectively process calculated events (NativeLeaks - stores address as weight_entity)
-CREATE INDEX IF NOT EXISTS idx_events_event_type_weight_entity ON events(event_type, weight_entity);
+-- No ART indexes on events: analytical scans don't use them, they slow down ingest and bloat the
+-- database file. Instead, the table is re-clustered after parsing (CTAS ordered by event_type,
+-- start_timestamp_from_beginning) so zone maps prune scans by event type and time range.
 
 --
 -- THREADS TABLE
