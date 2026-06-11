@@ -127,15 +127,10 @@ public class RemoteRecordingStreamClient {
     private static Resource collectChunksToResource(Iterator<DataChunk> chunks) {
         try {
             Path tempFile = Files.createTempFile("grpc-download-", ".tmp");
-            long totalSize = -1;
 
             try (OutputStream out = new BufferedOutputStream(Files.newOutputStream(tempFile))) {
                 while (chunks.hasNext()) {
-                    DataChunk chunk = chunks.next();
-                    chunk.getData().writeTo(out);
-                    if (totalSize == -1 && chunk.getTotalSize() > 0) {
-                        totalSize = chunk.getTotalSize();
-                    }
+                    chunks.next().getData().writeTo(out);
                 }
             }
 
@@ -147,25 +142,36 @@ public class RemoteRecordingStreamClient {
 
     /**
      * Streams gRPC data chunks through a PipedInputStream to the consumer.
-     * Uses a virtual thread to write chunks to the pipe concurrently.
+     * The first chunk is fetched synchronously before the consumer starts — the server sends
+     * the total size only on the first chunk, so this guarantees the consumer receives the
+     * real content length instead of racing against the writer thread.
+     * A virtual thread writes the remaining chunks to the pipe concurrently.
      */
     private static void streamChunksToConsumer(Iterator<DataChunk> chunks, InputStreamConsumer consumer) {
+        DataChunk firstChunk;
+        try {
+            firstChunk = chunks.hasNext() ? chunks.next() : null;
+        } catch (StatusRuntimeException e) {
+            throw toRuntimeException(e);
+        }
+
+        long contentLength = (firstChunk != null && firstChunk.getTotalSize() > 0)
+                ? firstChunk.getTotalSize()
+                : UNKNOWN_CONTENT_LENGTH;
+
         try {
             PipedOutputStream pipeOut = new PipedOutputStream();
-            PipedInputStream pipeIn = new PipedInputStream(pipeOut, 64 * 1024);
+            PipedInputStream pipeIn = new PipedInputStream(pipeOut, PIPE_BUFFER_SIZE);
 
-            // Determine total size from first chunk
-            long[] totalSize = {-1};
             Throwable[] writerError = {null};
 
             Thread writer = Thread.ofVirtual().start(() -> {
                 try (pipeOut) {
+                    if (firstChunk != null) {
+                        firstChunk.getData().writeTo(pipeOut);
+                    }
                     while (chunks.hasNext()) {
-                        DataChunk chunk = chunks.next();
-                        if (totalSize[0] == -1 && chunk.getTotalSize() > 0) {
-                            totalSize[0] = chunk.getTotalSize();
-                        }
-                        chunk.getData().writeTo(pipeOut);
+                        chunks.next().getData().writeTo(pipeOut);
                     }
                 } catch (Exception e) {
                     writerError[0] = e;
@@ -174,19 +180,14 @@ public class RemoteRecordingStreamClient {
             });
 
             try {
-                consumer.accept(pipeIn, totalSize[0]);
+                consumer.accept(pipeIn, contentLength);
             } finally {
                 writer.join();
                 pipeIn.close();
             }
 
             if (writerError[0] != null) {
-                String message = writerError[0].getMessage();
-                if (writerError[0] instanceof StatusRuntimeException sre) {
-                    String description = sre.getStatus().getDescription();
-                    message = description != null ? description : message;
-                }
-                throw new RuntimeException(message, writerError[0]);
+                throw toRuntimeException(writerError[0]);
             }
         } catch (IOException | InterruptedException e) {
             if (e instanceof InterruptedException) {
@@ -194,5 +195,18 @@ public class RemoteRecordingStreamClient {
             }
             throw new RuntimeException("Failed to stream gRPC data chunks", e);
         }
+    }
+
+    /**
+     * Maps a streaming failure to a RuntimeException, preferring the gRPC status description
+     * as the message when available.
+     */
+    private static RuntimeException toRuntimeException(Throwable error) {
+        String message = error.getMessage();
+        if (error instanceof StatusRuntimeException sre) {
+            String description = sre.getStatus().getDescription();
+            message = description != null ? description : message;
+        }
+        return new RuntimeException(message, error);
     }
 }
