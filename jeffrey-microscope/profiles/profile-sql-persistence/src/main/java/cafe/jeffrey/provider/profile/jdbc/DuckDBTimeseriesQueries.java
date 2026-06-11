@@ -16,7 +16,7 @@ public class DuckDBTimeseriesQueries implements ComplexQueries.Timeseries {
                 SELECT MIN(start_timestamp) AS first_ts
                 FROM events
             )
-            SELECT (EPOCH_MS(e.start_timestamp - fs.first_ts) / 1000) AS seconds, SUM(<<target_value>>) AS value
+            SELECT (EPOCH_MS(e.start_timestamp - fs.first_ts) // 1000) AS seconds, SUM(<<target_value>>) AS value
             FROM events e
             CROSS JOIN first_sample fs
             <<thread_join>>
@@ -55,7 +55,7 @@ public class DuckDBTimeseriesQueries implements ComplexQueries.Timeseries {
             relevant_events AS (
                 SELECT
                     e.stacktrace_hash,
-                    (EPOCH_MS(e.start_timestamp - fs.first_ts) / 1000) AS seconds,
+                    (EPOCH_MS(e.start_timestamp - fs.first_ts) // 1000) AS seconds,
                     <<target_value>> AS event_value
                 FROM events e
                 CROSS JOIN first_sample fs
@@ -118,12 +118,12 @@ public class DuckDBTimeseriesQueries implements ComplexQueries.Timeseries {
                 FROM events
             )
             SELECT
-                (EPOCH_MS(e.start_timestamp - fs.first_ts) / 1000) AS seconds,
-                <<target_value>> AS samples,
-                e.fields AS event_fields
+                (EPOCH_MS(e.start_timestamp - fs.first_ts) // 1000) AS seconds,
+                SUM(<<target_value>>) AS samples
             FROM events e
             CROSS JOIN first_sample fs
             WHERE e.event_type = <<event_type>>
+                AND (:json_field_path IS NULL OR json_extract_string(e.fields, :json_field_path) = :json_field_value)
                 AND (:from_time IS NULL OR EPOCH_MS(e.start_timestamp - fs.first_ts) >= :from_time)
                 AND (:to_time IS NULL OR EPOCH_MS(e.start_timestamp - fs.first_ts) <= :to_time)
                 AND (:span_filter_enabled = FALSE OR EXISTS (
@@ -144,6 +144,7 @@ public class DuckDBTimeseriesQueries implements ComplexQueries.Timeseries {
                         AND (:excluded_tags IS NULL OR NOT list_has_any(s.tag_ids, [:excluded_tags]))
                         <<additional_filters>>
                 )
+            GROUP BY seconds
             ORDER BY seconds
             """;
 
@@ -155,7 +156,7 @@ public class DuckDBTimeseriesQueries implements ComplexQueries.Timeseries {
             ),
             filtered_data AS (
                 SELECT
-                    (EPOCH_MS(e.start_timestamp - fs.first_ts) / 1000) AS seconds,
+                    (EPOCH_MS(e.start_timestamp - fs.first_ts) // 1000) AS seconds,
                     s.stacktrace_hash,
                     s.frame_hashes,
                     SUM(<<target_value>>) AS samples

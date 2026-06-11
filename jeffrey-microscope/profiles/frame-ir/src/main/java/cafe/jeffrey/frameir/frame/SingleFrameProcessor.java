@@ -25,12 +25,21 @@ import java.util.List;
 
 abstract class SingleFrameProcessor implements FrameProcessor {
 
-    abstract NewFrame processSingle(FlamegraphRecord record, JfrStackFrame frame, boolean topFrame);
+    abstract NewFrame processSingle(FlamegraphRecord record, JfrStackFrame frame);
+
+    /**
+     * Number of stacktrace elements consumed by a single invocation of this processor. Regular processors
+     * translate exactly one stacktrace element into one frame and return {@code 1}. Synthetic processors
+     * (thread frame, allocated-object/blocking-object top frames) emit a frame without consuming any
+     * stacktrace element and return {@code 0}.
+     *
+     * @return number of consumed stacktrace elements per invocation.
+     */
+    abstract int consumedStackFrames();
 
     @Override
-    public List<NewFrame> process(FlamegraphRecord record, List<? extends JfrStackFrame> stacktrace, int currIndex) {
+    public ProcessedFrames process(FlamegraphRecord record, List<? extends JfrStackFrame> stacktrace, int currIndex) {
         JfrStackFrame currFrame = stacktrace.get(currIndex);
-        boolean topFrame = currIndex == (stacktrace.size() - 1);
-        return List.of(processSingle(record, currFrame, topFrame));
+        return new ProcessedFrames(List.of(processSingle(record, currFrame)), consumedStackFrames());
     }
 }

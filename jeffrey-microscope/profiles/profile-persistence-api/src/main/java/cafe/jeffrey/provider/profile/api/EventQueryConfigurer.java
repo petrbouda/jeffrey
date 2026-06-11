@@ -18,7 +18,6 @@
 
 package cafe.jeffrey.provider.profile.api;
 
-import tools.jackson.databind.node.ObjectNode;
 import cafe.jeffrey.shared.common.model.SpanInterval;
 import cafe.jeffrey.shared.common.model.StacktraceTag;
 import cafe.jeffrey.shared.common.model.StacktraceType;
@@ -27,14 +26,32 @@ import cafe.jeffrey.shared.common.model.Type;
 import cafe.jeffrey.shared.common.model.time.RelativeTimeRange;
 
 import java.util.List;
-import java.util.function.Predicate;
 
 public class EventQueryConfigurer {
+
+    /**
+     * Equality filter on a single top-level JSON field of the event. The filter is pushed down
+     * into SQL by the persistence layer instead of being evaluated on streamed rows in Java.
+     *
+     * @param field name of the top-level JSON field (e.g. {@code poolName})
+     * @param value expected string value of the field
+     */
+    public record JsonFieldFilter(String field, String value) {
+
+        public JsonFieldFilter {
+            if (field == null || field.isBlank()) {
+                throw new IllegalArgumentException("JSON field name must not be blank");
+            }
+            if (value == null) {
+                throw new IllegalArgumentException("JSON field value must not be null");
+            }
+        }
+    }
 
     private List<StacktraceType> stacktraceTypes;
     private List<StacktraceTag> stacktraceTags;
     private boolean withJsonFields;
-    private Predicate<ObjectNode> withJsonFieldsFilter;
+    private JsonFieldFilter jsonFieldFilter;
     private boolean withEventTypeInfo;
     private Boolean useWeight;
     private boolean withThreads;
@@ -163,14 +180,15 @@ public class EventQueryConfigurer {
     }
 
     /**
-     * Include the JSON fields in the event-stream.
+     * Keep only events whose top-level JSON field equals the given value. The filter is pushed
+     * down into SQL by the persistence layer.
      *
-     * @param filter predicate to filter the events using JSON fields
+     * @param field name of the top-level JSON field (e.g. {@code poolName})
+     * @param value expected string value of the field
      * @return instance of the event-stream configurer
      */
-    public EventQueryConfigurer withJsonFields(Predicate<ObjectNode> filter) {
-        this.withJsonFields = true;
-        this.withJsonFieldsFilter = filter;
+    public EventQueryConfigurer withJsonFieldEquals(String field, String value) {
+        this.jsonFieldFilter = new JsonFieldFilter(field, value);
         return this;
     }
 
@@ -222,8 +240,8 @@ public class EventQueryConfigurer {
         return withJsonFields;
     }
 
-    public Predicate<ObjectNode> jsonFieldsFilter() {
-        return withJsonFieldsFilter;
+    public JsonFieldFilter jsonFieldFilter() {
+        return jsonFieldFilter;
     }
 
     public boolean eventTypeInfo() {

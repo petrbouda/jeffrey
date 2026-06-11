@@ -41,6 +41,8 @@ import static cafe.jeffrey.shared.persistence.GroupLabel.PROFILE_EVENTS;
 
 public class JdbcProfileEventStreamRepository implements ProfileEventStreamRepository {
 
+    private static final String JSON_ROOT_PATH_PREFIX = "$.";
+
     private record FlamegraphOptions(String sql, SqlParameterSource paramSource, RowMapper<FlamegraphRecord> mapper) {
     }
 
@@ -122,15 +124,28 @@ public class JdbcProfileEventStreamRepository implements ProfileEventStreamRepos
         QueryBuilderFactory factory = queryBuilderFactoryResolver.resolve(configurer.eventTypes());
 
         MapSqlParameterSource baseParams = createBaseParams(configurer);
+        applyJsonFieldFilter(baseParams, configurer.jsonFieldFilter());
 
         databaseClient.queryStream(
                 StatementLabel.STREAM_EVENTS,
                 factory.complexQueries().timeseries().filterable(configurer.useWeight()),
                 baseParams,
-                new FilterableTimeseriesRecordRowMapper(configurer.jsonFieldsFilter()),
+                (r, _) -> new SecondValue(r.getLong("seconds"), r.getLong("samples")),
                 builder::onRecord);
 
         return builder.build();
+    }
+
+    private static void applyJsonFieldFilter(
+            MapSqlParameterSource baseParams, EventQueryConfigurer.JsonFieldFilter jsonFieldFilter) {
+
+        if (jsonFieldFilter != null) {
+            baseParams.addValue("json_field_path", JSON_ROOT_PATH_PREFIX + jsonFieldFilter.field());
+            baseParams.addValue("json_field_value", jsonFieldFilter.value());
+        } else {
+            baseParams.addValue("json_field_path", null);
+            baseParams.addValue("json_field_value", null);
+        }
     }
 
     @Override

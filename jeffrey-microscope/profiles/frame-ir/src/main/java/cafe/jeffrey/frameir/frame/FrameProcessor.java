@@ -31,9 +31,27 @@ public interface FrameProcessor {
             int lineNumber,
             int bytecodeIndex,
             FrameType frameType,
-            boolean isTopFrame,
             long samples,
             long sampleWeight) {
+    }
+
+    /**
+     * Result of a single processor invocation. It distinguishes between the frames <b>emitted</b> into
+     * the frame tree and the number of stacktrace elements <b>consumed</b> from the original stacktrace.
+     * The two are not necessarily equal: synthetic processors (thread frame, allocated-object/blocking-object
+     * top frames) emit a frame without consuming any stacktrace element, while regular processors consume
+     * exactly the elements they translate into frames.
+     *
+     * @param frames              newly created frames that will be appended to the latest one.
+     * @param consumedStackFrames number of elements of the original stacktrace consumed by the processor.
+     */
+    record ProcessedFrames(List<NewFrame> frames, int consumedStackFrames) {
+
+        private static final ProcessedFrames NONE = new ProcessedFrames(List.of(), 0);
+
+        public static ProcessedFrames none() {
+            return NONE;
+        }
     }
 
     /**
@@ -52,9 +70,9 @@ public interface FrameProcessor {
      * @param record     a record which is being currently processed.
      * @param stacktrace all frames in the stacktrace where the current frame belongs to.
      * @param currIndex  an index in the stacktrace belonging to the current frame.
-     * @return list of newly create frames that will be appended to the latest one.
+     * @return newly created frames together with the number of consumed stacktrace elements.
      */
-    List<NewFrame> process(FlamegraphRecord record, List<? extends JfrStackFrame> stacktrace, int currIndex);
+    ProcessedFrames process(FlamegraphRecord record, List<? extends JfrStackFrame> stacktrace, int currIndex);
 
     /**
      * Utility method that checks if the invocation is applicable, and then it executes it.
@@ -62,15 +80,15 @@ public interface FrameProcessor {
      * @param record     a record which is being currently processed.
      * @param stacktrace all frames in the stacktrace where the current frame belongs to.
      * @param currIndex  an index in the stacktrace belonging to the current frame.
-     * @return list of newly create frames that will be appended to the latest one.
+     * @return newly created frames together with the number of consumed stacktrace elements.
      */
-    default List<NewFrame> checkAndProcess(
+    default ProcessedFrames checkAndProcess(
             FlamegraphRecord record, List<? extends JfrStackFrame> stacktrace, int currIndex) {
 
         if (isApplicable(record, stacktrace, currIndex)) {
             return process(record, stacktrace, currIndex);
         } else {
-            return List.of();
+            return ProcessedFrames.none();
         }
     }
 }

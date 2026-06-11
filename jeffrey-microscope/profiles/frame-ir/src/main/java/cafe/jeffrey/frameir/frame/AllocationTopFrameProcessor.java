@@ -29,7 +29,7 @@ import java.util.List;
 public class AllocationTopFrameProcessor extends SingleFrameProcessor {
 
     @Override
-    public NewFrame processSingle(FlamegraphRecord record, JfrStackFrame currFrame, boolean topFrame) {
+    public NewFrame processSingle(FlamegraphRecord record, JfrStackFrame currFrame) {
         FrameType currentFrameType;
         if (Type.OBJECT_ALLOCATION_IN_NEW_TLAB.sameAs(record.type())) {
             currentFrameType = FrameType.ALLOCATED_OBJECT_IN_NEW_TLAB_SYNTHETIC;
@@ -44,9 +44,14 @@ public class AllocationTopFrameProcessor extends SingleFrameProcessor {
                 currFrame.lineNumber(),
                 currFrame.bytecodeIndex(),
                 currentFrameType,
-                true,
                 record.samples(),
                 record.weight());
+    }
+
+    @Override
+    int consumedStackFrames() {
+        // Emits a synthetic allocated-object frame below the real leaf without consuming any stacktrace element.
+        return 0;
     }
 
     @Override

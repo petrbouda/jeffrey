@@ -83,7 +83,7 @@
                 class="thread-item cpu-item"
               >
                 <div class="thread-info">
-                  <span class="timestamp-badge">{{ formatTimestamp(thread.timestamp) }}</span>
+                  <span class="timestamp-badge">{{ FormattingService.formatTimeOfDay(thread.timestamp) }}</span>
                   <span class="thread-name" :title="thread.threadInfo.name">
                     {{ thread.threadInfo.name }}
                   </span>
@@ -115,7 +115,7 @@
                 class="thread-item cpu-item"
               >
                 <div class="thread-info">
-                  <span class="timestamp-badge">{{ formatTimestamp(thread.timestamp) }}</span>
+                  <span class="timestamp-badge">{{ FormattingService.formatTimeOfDay(thread.timestamp) }}</span>
                   <span class="thread-name" :title="thread.threadInfo.name">
                     {{ thread.threadInfo.name }}
                   </span>
@@ -378,16 +378,6 @@ const viewThreadCpuProfile = (thread: ThreadWithCpuLoad) => {
   setTimeout(() => {
     graphUpdater.initialize();
   }, 200);
-};
-
-const formatTimestamp = (timestamp: number): string => {
-  const date = new Date(timestamp);
-  return date.toLocaleTimeString('en-US', {
-    hour12: false,
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit'
-  });
 };
 
 // Initialize component on mount

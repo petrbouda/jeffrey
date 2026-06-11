@@ -45,15 +45,19 @@ public class NormalFrameProcessor extends SingleFrameProcessor {
     }
 
     @Override
-    public NewFrame processSingle(FlamegraphRecord record, JfrStackFrame currFrame, boolean topFrame) {
+    public NewFrame processSingle(FlamegraphRecord record, JfrStackFrame currFrame) {
         FrameType frameType = FrameType.fromCode(currFrame.type());
         return new NewFrame(
                 frameNameBuilder.generateName(currFrame, record.thread(), frameType),
                 parseLocations ? currFrame.lineNumber() : -1,
                 parseLocations ? currFrame.bytecodeIndex() : -1,
                 frameType,
-                topFrame,
                 record.samples(),
                 record.weight());
+    }
+
+    @Override
+    int consumedStackFrames() {
+        return 1;
     }
 }

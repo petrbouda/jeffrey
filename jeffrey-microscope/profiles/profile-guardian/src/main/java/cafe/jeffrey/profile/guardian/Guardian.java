@@ -148,7 +148,7 @@ public class Guardian {
         }
 
         List<JsonNode> gcConfigurationFields = eventRepository.eventsByTypeWithFields(Type.GC_CONFIGURATION);
-        if (gcConfigurationFields.size() > 1) {
+        if (!gcConfigurationFields.isEmpty()) {
             JsonNode gcConfiguration = gcConfigurationFields.getFirst();
 
             String oldCollector = gcConfiguration.get("oldCollector").asString();

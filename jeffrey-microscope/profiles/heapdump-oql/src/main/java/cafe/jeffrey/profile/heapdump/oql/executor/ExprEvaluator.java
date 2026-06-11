@@ -23,6 +23,7 @@ import cafe.jeffrey.profile.heapdump.oql.ast.UnaryOperator;
 import cafe.jeffrey.profile.heapdump.oql.function.DominatorFunctions;
 import cafe.jeffrey.profile.heapdump.oql.function.FuzzyTextFunctions;
 import cafe.jeffrey.profile.heapdump.oql.function.GraphWalkFunctions;
+import cafe.jeffrey.profile.heapdump.oql.function.RegexPatternCache;
 import cafe.jeffrey.profile.heapdump.oql.function.RootPathFunction;
 import cafe.jeffrey.profile.heapdump.oql.function.StringAccessors;
 import cafe.jeffrey.profile.heapdump.oql.function.StringFunctions;
@@ -33,7 +34,6 @@ import cafe.jeffrey.profile.heapdump.parser.JavaClassRow;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Pattern;
 
 /**
  * Java-side interpreter for OQL expressions. Used by {@link JavaExecutor} to
@@ -47,16 +47,19 @@ final class ExprEvaluator {
 
     private final Row row;
     private final PathExprEvaluator pathEval;
+    private final RegexPatternCache regexPatternCache;
 
     /**
-     * Constructs an evaluator for one row. The {@code pathEval} is shared
-     * across every row of a query — it owns the per-dump idSize lookup, which
-     * costs a SQL round-trip to {@code dump_metadata} and would otherwise be
-     * paid per candidate instance.
+     * Constructs an evaluator for one row. The {@code pathEval} and
+     * {@code regexPatternCache} are shared across every row of a query —
+     * {@code pathEval} owns the per-dump idSize lookup (a SQL round-trip to
+     * {@code dump_metadata}), and {@code regexPatternCache} keeps regex
+     * operands compiled once per query instead of once per candidate instance.
      */
-    ExprEvaluator(Row row, PathExprEvaluator pathEval) {
+    ExprEvaluator(Row row, PathExprEvaluator pathEval, RegexPatternCache regexPatternCache) {
         this.row = row;
         this.pathEval = pathEval;
+        this.regexPatternCache = regexPatternCache;
     }
 
     Object eval(OqlExpr expr) throws SQLException {
@@ -179,7 +182,7 @@ final class ExprEvaluator {
             case "startsWith" -> StringPredicates.startsWith(coerceToString(eval(argExprs.get(0))), eval(argExprs.get(1)));
             case "endsWith" -> StringPredicates.endsWith(coerceToString(eval(argExprs.get(0))), eval(argExprs.get(1)));
             case "contains" -> StringPredicates.contains(coerceToString(eval(argExprs.get(0))), eval(argExprs.get(1)));
-            case "matchesRegex" -> StringPredicates.matchesRegex(coerceToString(eval(argExprs.get(0))), eval(argExprs.get(1)));
+            case "matchesRegex" -> StringPredicates.matchesRegex(coerceToString(eval(argExprs.get(0))), eval(argExprs.get(1)), regexPatternCache);
             case "equalsString" -> StringPredicates.equalsString(coerceToString(eval(argExprs.get(0))), eval(argExprs.get(1)));
             case "equalsIgnoreCase" -> StringPredicates.equalsIgnoreCase(coerceToString(eval(argExprs.get(0))), eval(argExprs.get(1)));
             case "isEmptyString" -> StringPredicates.isEmptyString(coerceToString(eval(argExprs.get(0))));
@@ -300,7 +303,7 @@ final class ExprEvaluator {
                 if (l == null || r == null) {
                     yield null;
                 }
-                yield Pattern.compile(String.valueOf(r)).matcher(String.valueOf(l)).matches();
+                yield regexPatternCache.compile(String.valueOf(r)).matcher(String.valueOf(l)).matches();
             }
             case ADD -> Numbers.add(l, r);
             case SUB -> Numbers.sub(l, r);

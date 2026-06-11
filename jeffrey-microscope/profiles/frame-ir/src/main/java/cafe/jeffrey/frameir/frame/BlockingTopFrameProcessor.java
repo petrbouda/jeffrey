@@ -28,15 +28,20 @@ import java.util.List;
 public class BlockingTopFrameProcessor extends SingleFrameProcessor {
 
     @Override
-    public NewFrame processSingle(FlamegraphRecord record, JfrStackFrame currFrame, boolean topFrame) {
+    public NewFrame processSingle(FlamegraphRecord record, JfrStackFrame currFrame) {
         return new NewFrame(
                 RecordedClassMapper.map(record.weightEntity().className()),
                 currFrame.lineNumber(),
                 currFrame.bytecodeIndex(),
                 FrameType.BLOCKING_OBJECT_SYNTHETIC,
-                true,
                 record.samples(),
                 record.weight());
+    }
+
+    @Override
+    int consumedStackFrames() {
+        // Emits a synthetic blocking-object frame below the real leaf without consuming any stacktrace element.
+        return 0;
     }
 
     @Override

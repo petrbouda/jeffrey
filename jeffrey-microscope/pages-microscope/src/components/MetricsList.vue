@@ -92,6 +92,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import Badge from '@/components/Badge.vue';
+import FormattingService from '@/services/FormattingService';
 import type { Variant } from '@/types/ui';
 
 export interface MetricDefinition {
@@ -252,9 +253,9 @@ const formatMetricValue = (value: any, metric: MetricDefinition): string => {
     case 'number':
       return typeof value === 'number' ? value.toLocaleString() : String(value);
     case 'duration':
-      return formatDuration(value);
+      return FormattingService.formatDurationMillisCoarse(value);
     case 'bytes':
-      return formatBytes(value);
+      return FormattingService.formatBytesShort(value);
     case 'percentage':
       return `${Number(value).toFixed(1)}%`;
     default:
@@ -336,21 +337,6 @@ const onItemClick = (item: any, index: number) => {
   }
 
   emit('item-click', item, index);
-};
-
-// Utility formatters
-const formatDuration = (ms: number): string => {
-  if (ms < 1000) return `${ms}ms`;
-  if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`;
-  return `${(ms / 60000).toFixed(1)}m`;
-};
-
-const formatBytes = (bytes: number): string => {
-  if (bytes === 0) return '0 B';
-  const k = 1024;
-  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
 };
 </script>
 

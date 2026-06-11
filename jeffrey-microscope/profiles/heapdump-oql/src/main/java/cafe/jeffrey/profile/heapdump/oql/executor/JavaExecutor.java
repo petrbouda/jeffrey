@@ -30,6 +30,7 @@ import cafe.jeffrey.profile.heapdump.oql.compiler.ClassHierarchyResolver;
 import cafe.jeffrey.profile.heapdump.oql.compiler.ExecutionPlan;
 import cafe.jeffrey.profile.heapdump.oql.compiler.ExecutionPlan.JavaPlan;
 import cafe.jeffrey.profile.heapdump.oql.compiler.ExecutionPlan.PrePass.ClassHierarchyExpansion;
+import cafe.jeffrey.profile.heapdump.oql.function.RegexPatternCache;
 import cafe.jeffrey.profile.heapdump.parser.HeapView;
 import cafe.jeffrey.profile.heapdump.parser.InstanceRow;
 import cafe.jeffrey.profile.heapdump.parser.JavaClassRow;
@@ -76,6 +77,9 @@ public final class JavaExecutor {
         // row would issue one SQL round-trip per candidate instance, which
         // dominates Plan-C runtime on multi-million-string heaps.
         PathExprEvaluator pathEval = new PathExprEvaluator(view);
+        // Shared per-query so a loop-invariant regex operand compiles once
+        // instead of once per candidate instance.
+        RegexPatternCache regexCache = new RegexPatternCache();
         // ORDER BY requires materializing every surviving row before sorting.
         // Without ORDER BY we can short-circuit at the user's limit — this
         // turns "first 50 matching Strings" from a 5M-instance scan into
@@ -94,7 +98,7 @@ public final class JavaExecutor {
                         break outer;
                     }
                     Row row = new Row(view, inst, clazz, query.from().alias());
-                    ExprEvaluator eval = new ExprEvaluator(row, pathEval);
+                    ExprEvaluator eval = new ExprEvaluator(row, pathEval, regexCache);
                     if (query.whereExpr() != null && !eval.evalPredicate(query.whereExpr())) {
                         continue;
                     }
