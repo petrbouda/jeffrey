@@ -29,10 +29,11 @@ import cafe.jeffrey.profile.guardian.traverse.TargetFrameType;
 
 public class Log4jBlockingGuard extends TraversableGuard {
 
-    public Log4jBlockingGuard(ProfileInfo profileInfo, double threshold) {
+    public Log4jBlockingGuard(ProfileInfo profileInfo, double infoThreshold, double warningThreshold) {
         super("Log4j Blocking",
                 profileInfo,
-                threshold,
+                infoThreshold,
+                warningThreshold,
                 FrameMatchers.prefix("org.apache.logging.log4j."),
                 Category.APPLICATION,
                 TargetFrameType.JAVA,

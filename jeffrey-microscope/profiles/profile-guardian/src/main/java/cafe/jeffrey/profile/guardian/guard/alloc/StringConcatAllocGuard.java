@@ -29,10 +29,11 @@ import cafe.jeffrey.profile.guardian.traverse.TargetFrameType;
 
 public class StringConcatAllocGuard extends TraversableGuard {
 
-    public StringConcatAllocGuard(ProfileInfo profileInfo, double threshold) {
+    public StringConcatAllocGuard(ProfileInfo profileInfo, double infoThreshold, double warningThreshold) {
         super("String Concatenation Allocations",
                 profileInfo,
-                threshold,
+                infoThreshold,
+                warningThreshold,
                 FrameMatchers.prefix("java.lang.StringBuilder"),
                 Category.APPLICATION,
                 TargetFrameType.JAVA,

@@ -29,14 +29,15 @@ import cafe.jeffrey.profile.guardian.traverse.TargetFrameType;
 
 public class ClassLoadingOverheadGuard extends TraversableGuard {
 
-    public ClassLoadingOverheadGuard(ProfileInfo profileInfo, double threshold) {
-        this("Class Loading Overhead", ResultType.SELF_SAMPLES, profileInfo, threshold);
+    public ClassLoadingOverheadGuard(ProfileInfo profileInfo, double infoThreshold, double warningThreshold) {
+        this("Class Loading Overhead", ResultType.SELF_SAMPLES, profileInfo, infoThreshold, warningThreshold);
     }
 
-    public ClassLoadingOverheadGuard(String guardName, ResultType resultType, ProfileInfo profileInfo, double threshold) {
+    public ClassLoadingOverheadGuard(String guardName, ResultType resultType, ProfileInfo profileInfo, double infoThreshold, double warningThreshold) {
         super(guardName,
                 profileInfo,
-                threshold,
+                infoThreshold,
+                warningThreshold,
                 FrameMatchers.composite(
                         FrameMatchers.prefix("java.lang.ClassLoader#loadClass"),
                         FrameMatchers.prefix("java.lang.Class#forName")),

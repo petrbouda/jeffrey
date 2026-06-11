@@ -189,10 +189,12 @@ public class HttpOverviewEventBuilder implements RecordBuilder<GenericRecord, Ht
         long count4xx = 0;
         long count5xx = 0;
         long maxResponseTime = -1;
-        long p99ResponseTime = -1;
-        long p95ResponseTime = -1;
         long totalBytesReceived = -1;
         long totalBytesSent = -1;
+
+        // Merge the per-URI histograms to compute true global percentiles —
+        // a maximum of per-URI percentiles is not a global percentile.
+        Histogram globalResponseTimes = new Histogram(3);
 
         ObjectLongHashMap<String> methodCounts = new ObjectLongHashMap<>();
         IntLongHashMap statusCodeCounts = new IntLongHashMap();
@@ -210,12 +212,7 @@ public class HttpOverviewEventBuilder implements RecordBuilder<GenericRecord, Ht
             if (uri.maxResponseTime() > maxResponseTime) {
                 maxResponseTime = uri.maxResponseTime();
             }
-            if (uri.p99ResponseTime() > p99ResponseTime) {
-                p99ResponseTime = uri.p99ResponseTime();
-            }
-            if (uri.p95ResponseTime() > p95ResponseTime) {
-                p95ResponseTime = uri.p95ResponseTime();
-            }
+            globalResponseTimes.add(builder.responseTimes);
 
             builder.methodCounts.keyValuesView()
                     .each(pair -> methodCounts.addToValue(pair.getOne(), pair.getTwo()));
@@ -224,6 +221,11 @@ public class HttpOverviewEventBuilder implements RecordBuilder<GenericRecord, Ht
 
             uris.add(uri);
         }
+
+        long p99ResponseTime = globalResponseTimes.getTotalCount() > 0
+                ? globalResponseTimes.getValueAtPercentile(99.0) : -1;
+        long p95ResponseTime = globalResponseTimes.getTotalCount() > 0
+                ? globalResponseTimes.getValueAtPercentile(95.0) : -1;
 
         // Build HTTP header
         HttpHeader header = new HttpHeader(

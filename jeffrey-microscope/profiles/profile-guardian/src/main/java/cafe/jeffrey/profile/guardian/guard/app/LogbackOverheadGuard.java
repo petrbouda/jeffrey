@@ -29,10 +29,11 @@ import cafe.jeffrey.profile.guardian.traverse.TargetFrameType;
 
 public class LogbackOverheadGuard extends TraversableGuard {
 
-    public LogbackOverheadGuard(String guardName, ResultType resultType, ProfileInfo profileInfo, double threshold) {
+    public LogbackOverheadGuard(String guardName, ResultType resultType, ProfileInfo profileInfo, double infoThreshold, double warningThreshold) {
         super(guardName,
                 profileInfo,
-                threshold,
+                infoThreshold,
+                warningThreshold,
                 FrameMatchers.prefix("ch.qos.logback"),
                 Category.APPLICATION,
                 TargetFrameType.JAVA,

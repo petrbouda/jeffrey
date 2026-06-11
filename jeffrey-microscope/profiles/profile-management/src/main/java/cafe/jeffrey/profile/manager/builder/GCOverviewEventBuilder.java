@@ -37,13 +37,17 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.EnumMap;
 import java.util.List;
-import java.util.PriorityQueue;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 public class GCOverviewEventBuilder implements RecordBuilder<GenericRecord, GCOverviewData> {
 
     private static final BigDecimal ZERO_SCALED = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+
+    private static final long NANOS_IN_MILLI = 1_000_000L;
+    private static final double NANOS_IN_MILLI_DOUBLE = 1_000_000.0;
 
     /**
      * Utility method to create a BigDecimal with 2 decimal places and HALF_UP rounding
@@ -55,14 +59,21 @@ public class GCOverviewEventBuilder implements RecordBuilder<GenericRecord, GCOv
     protected final LongObjectHashMap<String> cachedGCTypes = new LongObjectHashMap<>();
     protected final LongLongHashMap gcIdsWithConcurrentPhases = new LongLongHashMap();
 
-    protected final PriorityQueue<GCEvent> longestPauses = new PriorityQueue<>(
-            Comparator.comparingLong(GCEvent::getSumOfPauses));
+    /**
+     * GC events buffered during streaming and joined with the heap-summary maps at
+     * {@link #build()} time — a {@code GarbageCollection} row may stream before its
+     * "After GC" {@code GCHeapSummary} row, so the join must be order-independent.
+     */
+    private final List<PendingGCEvent> pendingGCEvents = new ArrayList<>();
 
     private final Histogram pauseTimesHistogram = new Histogram(3);
     private final LongLongHashMap gcIdToBeforeHeap = new LongLongHashMap();
     private final LongLongHashMap gcIdToAfterHeap = new LongLongHashMap();
     private final LongLongHashMap executionTimeSerie;
     private final LongLongHashMap gcCountSerie;
+
+    private final Map<GCGenerationType, GenerationStatsAccumulator> generationAccumulators =
+            new EnumMap<>(GCGenerationType.class);
 
     private int totalCollections = 0;
     private int youngCollections = 0;
@@ -75,6 +86,42 @@ public class GCOverviewEventBuilder implements RecordBuilder<GenericRecord, GCOv
     private long systemGCTime = 0;
     private int diagnosticCommandCalls = 0;
     private long diagnosticCommandTime = 0;
+
+    /**
+     * Per-GC-event values parsed during streaming; heap usage (before/after) is intentionally
+     * absent — it is joined by {@code gcId} at {@link #build()} time.
+     */
+    private record PendingGCEvent(
+            long startEpochMilli,
+            long gcId,
+            GCGenerationType generationType,
+            String collectorName,
+            String cause,
+            long durationNanos,
+            long sumOfPauses,
+            long longestPause) {
+    }
+
+    /** Mutable per-generation aggregation of real (not estimated) GC numbers. */
+    private static final class GenerationStatsAccumulator {
+
+        private int collections;
+        private long totalPauseTime;
+        private long maxPause;
+        private long memoryFreed;
+
+        private void recordPauses(long pauseNanos, long longestPauseNanos) {
+            collections++;
+            totalPauseTime += pauseNanos;
+            maxPause = Math.max(maxPause, longestPauseNanos);
+        }
+
+        private void recordFreed(long freed) {
+            if (freed > 0) {
+                memoryFreed += freed;
+            }
+        }
+    }
 
     private final SimpleTimeDistributionCollector distributionCollector = new SimpleTimeDistributionCollector(
             new int[]{1, 5, 10, 20, 50, 100, 200, 500, 1000, Integer.MAX_VALUE},
@@ -125,30 +172,25 @@ public class GCOverviewEventBuilder implements RecordBuilder<GenericRecord, GCOv
         long durationInNanos = record.duration().toNanos();
 
         long gcId = Json.readLong(fields, "gcId");
+        long sumOfPauses = Json.readLong(fields, "sumOfPauses");
+        long longestPause = Json.readLong(fields, "longestPause");
+
+        // The event duration includes concurrent (non-STW) phases for Z/Shenandoah/G1-concurrent
+        // collections, so pause statistics prefer the dedicated STW fields and fall back to the
+        // duration only when the fields are absent (Json.readLong returns -1 for absent fields).
+        long pauseNanos = sumOfPauses >= 0 ? sumOfPauses : durationInNanos;
+        long longestPauseNanos = longestPause >= 0 ? longestPause : durationInNanos;
 
         totalCollections++;
-        totalGcTime += durationInNanos;
-        maxPauseTime = Math.max(maxPauseTime, durationInNanos);
-        pauseTimesHistogram.recordValue(durationInNanos);
+        totalGcTime += pauseNanos;
+        maxPauseTime = Math.max(maxPauseTime, longestPauseNanos);
+        pauseTimesHistogram.recordValue(pauseNanos);
 
-        distributionCollector.record(record.duration().toMillis());
+        distributionCollector.record(pauseNanos / NANOS_IN_MILLI);
 
         long seconds = record.timestampFromStart().toSeconds();
         executionTimeSerie.updateValue(seconds, -1, first -> Math.max(first, durationInNanos));
         gcCountSerie.addToValue(seconds, 1);
-
-        // Get heap usage from the maps
-        long beforeGC = gcIdToBeforeHeap.getIfAbsent(gcId, 0);
-        long afterGC = gcIdToAfterHeap.getIfAbsent(gcId, 0);
-        long freed = beforeGC - afterGC;
-
-        if (freed > 0) {
-            totalMemoryFreed += freed;
-        }
-
-        BigDecimal efficiency = beforeGC > 0 ?
-                bigDecimal((double) freed / beforeGC * 100) :
-                ZERO_SCALED;
 
         String collectorName = Json.readString(fields, "name");
         String cause = Json.readString(fields, "cause");
@@ -161,40 +203,28 @@ public class GCOverviewEventBuilder implements RecordBuilder<GenericRecord, GCOv
         // Track Manual GC events (System GC and Diagnostic Command)
         if (GarbageCollectionCause.SYSTEM_GC.sameAs(cause)) {
             systemGCCalls++;
-            systemGCTime += durationInNanos;
+            systemGCTime += pauseNanos;
         } else if (GarbageCollectionCause.DIAGNOSTIC_COMMAND.sameAs(cause)) {
             diagnosticCommandCalls++;
-            diagnosticCommandTime += durationInNanos;
+            diagnosticCommandTime += pauseNanos;
         }
-        
-        GCEvent event = new GCEvent(
+
+        GCGenerationType generationType = getGenerationType(collectorName);
+        generationAccumulator(generationType).recordPauses(pauseNanos, longestPauseNanos);
+
+        pendingGCEvents.add(new PendingGCEvent(
                 record.startTimestamp().toEpochMilli(),
                 gcId,
-                getGenerationType(collectorName),
+                generationType,
                 collectorName,
                 cause,
                 durationInNanos,
-                beforeGC,
-                afterGC,
-                freed,
-                efficiency,
-                beforeGC, // heapSize - using beforeGC as total heap size
-                Json.readLong(fields, "sumOfPauses"),
-                Json.readLong(fields, "longestPause"),
-                gcIdsWithConcurrentPhases.containsKey(gcId)
-        );
+                sumOfPauses,
+                longestPause));
+    }
 
-        // Add to longest pauses priority queue (min-heap, limited by maxLongestPauses)
-        long sumOfPausesInNanos = event.getSumOfPauses();
-        if (longestPauses.size() < maxLongestPauses) {
-            longestPauses.offer(event);
-        } else {
-            GCEvent shortestPause = longestPauses.peek();
-            if (shortestPause != null && sumOfPausesInNanos > shortestPause.getSumOfPauses()) {
-                longestPauses.poll(); // Remove the shortest pause
-                longestPauses.offer(event); // Add the new longer pause
-            }
-        }
+    private GenerationStatsAccumulator generationAccumulator(GCGenerationType generationType) {
+        return generationAccumulators.computeIfAbsent(generationType, _ -> new GenerationStatsAccumulator());
     }
 
     protected GCGenerationType getGenerationType(String collectorName) {
@@ -234,16 +264,20 @@ public class GCOverviewEventBuilder implements RecordBuilder<GenericRecord, GCOv
 
     @Override
     public GCOverviewData build() {
+        List<GCEvent> gcEvents = joinPendingGCEvents();
+
         long avgMemoryFreed = totalCollections > 0 ?
                 totalMemoryFreed / totalCollections : 0;
 
         // Calculate GC overhead as percentage (GC time / total time * 100)
-        double overheadRatio = timeRange.duration().isPositive() ? 
+        double overheadRatio = timeRange.duration().isPositive() ?
                 (double) totalGcTime / timeRange.duration().toNanos() : 0.0;
         BigDecimal gcOverhead = bigDecimal(overheadRatio * 100);
         BigDecimal gcThroughput = bigDecimal(100.0 - (overheadRatio * 100));
-        BigDecimal collectionFrequencyInSec = timeRange.duration().isPositive() ?
-                bigDecimal((double) totalCollections / timeRange.duration().toSeconds()) : ZERO_SCALED;
+        // toSeconds() truncates sub-second durations to 0, use a floating-point division instead
+        double durationInSeconds = timeRange.duration().toMillis() / 1000.0;
+        BigDecimal collectionFrequencyInSec = durationInSeconds > 0 ?
+                bigDecimal(totalCollections / durationInSeconds) : ZERO_SCALED;
 
         // Calculate Manual GC metrics
         long totalManualGCTime = systemGCTime + diagnosticCommandTime;
@@ -278,16 +312,17 @@ public class GCOverviewEventBuilder implements RecordBuilder<GenericRecord, GCOv
                 gcThroughput,
                 gcOverhead);
 
-        for (GCEvent longestPause : longestPauses) {
+        // Top-N events sorted by the sum of pauses (longest pauses first)
+        List<GCEvent> longestPausesList = gcEvents.stream()
+                .sorted(Comparator.comparingLong(GCEvent::getSumOfPauses).reversed())
+                .limit(maxLongestPauses)
+                .collect(Collectors.toList());
+
+        for (GCEvent longestPause : longestPausesList) {
             long gcId = longestPause.getGcId();
             String gcType = cachedGCTypes.get(gcId);
             longestPause.setType(gcType);
         }
-
-        // Convert PriorityQueue to sorted list (longest pauses first)
-        List<GCEvent> longestPausesList = longestPauses.stream()
-                .sorted(Comparator.comparingLong(GCEvent::getSumOfPauses).reversed())
-                .collect(Collectors.toList());
 
         return new GCOverviewData(
                 header,
@@ -298,31 +333,66 @@ public class GCOverviewEventBuilder implements RecordBuilder<GenericRecord, GCOv
                 null); // No concurrent events for base builder
     }
 
+    /**
+     * Joins the buffered GC events with the heap-summary maps by {@code gcId} and accumulates
+     * the join-dependent statistics (freed memory, efficiency, per-generation freed memory).
+     */
+    private List<GCEvent> joinPendingGCEvents() {
+        List<GCEvent> gcEvents = new ArrayList<>(pendingGCEvents.size());
+
+        for (PendingGCEvent pending : pendingGCEvents) {
+            long beforeGC = gcIdToBeforeHeap.getIfAbsent(pending.gcId(), 0);
+            long afterGC = gcIdToAfterHeap.getIfAbsent(pending.gcId(), 0);
+            long freed = beforeGC - afterGC;
+
+            if (freed > 0) {
+                totalMemoryFreed += freed;
+            }
+            generationAccumulator(pending.generationType()).recordFreed(freed);
+
+            BigDecimal efficiency = beforeGC > 0 ?
+                    bigDecimal((double) freed / beforeGC * 100) :
+                    ZERO_SCALED;
+
+            gcEvents.add(new GCEvent(
+                    pending.startEpochMilli(),
+                    pending.gcId(),
+                    pending.generationType(),
+                    pending.collectorName(),
+                    pending.cause(),
+                    pending.durationNanos(),
+                    beforeGC,
+                    afterGC,
+                    freed,
+                    efficiency,
+                    beforeGC, // heapSize - using beforeGC as total heap size
+                    pending.sumOfPauses(),
+                    pending.longestPause(),
+                    gcIdsWithConcurrentPhases.containsKey(pending.gcId())));
+        }
+
+        return gcEvents;
+    }
+
     private List<GCGenerationStats> createGenerationStats() {
         List<GCGenerationStats> genStats = new ArrayList<>();
-
-        if (youngCollections > 0) {
-            genStats.add(new GCGenerationStats(
-                    "Young Generation",
-                    youngCollections,
-                    totalGcTime / 2, // Rough estimate
-                    bigDecimal((double) totalGcTime / youngCollections / 1_000_000.0),
-                    bigDecimal(maxPauseTime / 1_000_000.0),
-                    totalMemoryFreed / 2
-            ));
-        }
-
-        if (oldCollections > 0) {
-            genStats.add(new GCGenerationStats(
-                    "Old Generation",
-                    oldCollections,
-                    totalGcTime / 3, // Rough estimate
-                    bigDecimal((double) totalGcTime / oldCollections / 1_000_000.0),
-                    bigDecimal(maxPauseTime / 1_000_000.0),
-                    totalMemoryFreed / 3
-            ));
-        }
-
+        addGenerationStats(genStats, GCGenerationType.YOUNG, "Young Generation");
+        addGenerationStats(genStats, GCGenerationType.OLD, "Old Generation");
         return genStats;
+    }
+
+    private void addGenerationStats(List<GCGenerationStats> genStats, GCGenerationType type, String label) {
+        GenerationStatsAccumulator acc = generationAccumulators.get(type);
+        if (acc == null || acc.collections == 0) {
+            return;
+        }
+        genStats.add(new GCGenerationStats(
+                label,
+                acc.collections,
+                acc.totalPauseTime,
+                bigDecimal((double) acc.totalPauseTime / acc.collections / NANOS_IN_MILLI_DOUBLE),
+                bigDecimal(acc.maxPause / NANOS_IN_MILLI_DOUBLE),
+                acc.memoryFreed
+        ));
     }
 }

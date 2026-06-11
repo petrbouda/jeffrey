@@ -507,7 +507,9 @@ public class ProfileFactoriesConfiguration {
         return profileInfo -> {
             DataSource profileDb = databaseManagerResolver.open(profileInfo);
             return new HeapMemoryManagerImpl(
-                    profileInfo, profileRepositories.newEventStreamRepository(profileDb));
+                    profileInfo,
+                    profileRepositories.newEventRepository(profileDb),
+                    profileRepositories.newEventStreamRepository(profileDb));
         };
     }
 

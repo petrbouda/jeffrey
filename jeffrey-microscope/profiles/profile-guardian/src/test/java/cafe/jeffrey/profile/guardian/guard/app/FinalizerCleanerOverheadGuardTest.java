@@ -50,7 +50,7 @@ class FinalizerCleanerOverheadGuardTest {
         Frame worker = node("com.example.Worker#doWork", 1000, 1000);
         withChildren(root, worker);
 
-        FinalizerCleanerOverheadGuard guard = new FinalizerCleanerOverheadGuard(pi(), 0.03);
+        FinalizerCleanerOverheadGuard guard = new FinalizerCleanerOverheadGuard(pi(), 0.03, 0.03);
         guard.initialize(Preconditions.builder().build());
         new FrameTraversal(root).traverseWith(List.of(guard));
 
@@ -65,7 +65,7 @@ class FinalizerCleanerOverheadGuardTest {
         Frame finalizer = node("java.lang.ref.Finalizer#runFinalizer", 500, 500);
         withChildren(root, worker, finalizer);
 
-        FinalizerCleanerOverheadGuard guard = new FinalizerCleanerOverheadGuard(pi(), 0.03);
+        FinalizerCleanerOverheadGuard guard = new FinalizerCleanerOverheadGuard(pi(), 0.03, 0.03);
         guard.initialize(Preconditions.builder().build());
         new FrameTraversal(root).traverseWith(List.of(guard));
 
@@ -81,7 +81,7 @@ class FinalizerCleanerOverheadGuardTest {
         Frame cleaner = node("jdk.internal.ref.Cleaner#clean", 100, 100);
         withChildren(root, worker, cleaner);
 
-        FinalizerCleanerOverheadGuard guard = new FinalizerCleanerOverheadGuard(pi(), 0.03);
+        FinalizerCleanerOverheadGuard guard = new FinalizerCleanerOverheadGuard(pi(), 0.03, 0.03);
         guard.initialize(Preconditions.builder().build());
         new FrameTraversal(root).traverseWith(List.of(guard));
 

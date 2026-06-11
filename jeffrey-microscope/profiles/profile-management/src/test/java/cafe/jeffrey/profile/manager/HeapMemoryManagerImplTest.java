@@ -22,12 +22,15 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
+import cafe.jeffrey.shared.common.model.Type;
 import cafe.jeffrey.profile.manager.model.heap.HeapMemoryTimeseriesType;
 import cafe.jeffrey.provider.profile.api.RecordBuilder;
 import cafe.jeffrey.provider.profile.api.EventQueryConfigurer;
+import cafe.jeffrey.provider.profile.api.ProfileEventRepository;
 import cafe.jeffrey.provider.profile.api.ProfileEventStreamRepository;
 import cafe.jeffrey.timeseries.SingleSerie;
 
@@ -41,6 +44,9 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 @DisplayName("HeapMemoryManagerImpl")
 class HeapMemoryManagerImplTest {
+
+    @Mock
+    ProfileEventRepository eventRepository;
 
     @Mock
     ProfileEventStreamRepository eventStreamRepository;
@@ -59,7 +65,7 @@ class HeapMemoryManagerImplTest {
         @Test
         @DisplayName("Returns null (not yet implemented)")
         void returnsNull() {
-            var manager = new HeapMemoryManagerImpl(PROFILE_INFO, eventStreamRepository);
+            var manager = new HeapMemoryManagerImpl(PROFILE_INFO, eventRepository, eventStreamRepository);
             assertNull(manager.getOverviewData());
         }
     }
@@ -75,7 +81,7 @@ class HeapMemoryManagerImplTest {
             when(eventStreamRepository.genericStreaming(any(EventQueryConfigurer.class), any(RecordBuilder.class)))
                     .thenReturn(mockSerie);
 
-            var manager = new HeapMemoryManagerImpl(PROFILE_INFO, eventStreamRepository);
+            var manager = new HeapMemoryManagerImpl(PROFILE_INFO, eventRepository, eventStreamRepository);
             SingleSerie result = manager.timeseries(HeapMemoryTimeseriesType.HEAP_BEFORE_AFTER_GC);
 
             assertSame(mockSerie, result);
@@ -89,11 +95,42 @@ class HeapMemoryManagerImplTest {
             when(eventStreamRepository.genericStreaming(any(EventQueryConfigurer.class), any(RecordBuilder.class)))
                     .thenReturn(mockSerie);
 
-            var manager = new HeapMemoryManagerImpl(PROFILE_INFO, eventStreamRepository);
+            var manager = new HeapMemoryManagerImpl(PROFILE_INFO, eventRepository, eventStreamRepository);
             SingleSerie result = manager.timeseries(HeapMemoryTimeseriesType.ALLOCATION);
 
             assertSame(mockSerie, result);
             verify(eventStreamRepository).genericStreaming(any(EventQueryConfigurer.class), any(RecordBuilder.class));
+        }
+
+        @Test
+        @DisplayName("ALLOCATION streams only the TLAB pair when TLAB events are present")
+        void allocationPrefersTlabEvents() {
+            when(eventStreamRepository.genericStreaming(any(EventQueryConfigurer.class), any(RecordBuilder.class)))
+                    .thenReturn(new SingleSerie("test", List.of()));
+            when(eventRepository.containsEventType(Type.OBJECT_ALLOCATION_IN_NEW_TLAB)).thenReturn(true);
+
+            var manager = new HeapMemoryManagerImpl(PROFILE_INFO, eventRepository, eventStreamRepository);
+            manager.timeseries(HeapMemoryTimeseriesType.ALLOCATION);
+
+            ArgumentCaptor<EventQueryConfigurer> captor = ArgumentCaptor.forClass(EventQueryConfigurer.class);
+            verify(eventStreamRepository).genericStreaming(captor.capture(), any(RecordBuilder.class));
+            assertEquals(HeapMemoryManagerImpl.TLAB_ALLOCATION_EVENT_TYPES, captor.getValue().eventTypes());
+        }
+
+        @Test
+        @DisplayName("ALLOCATION falls back to ObjectAllocationSample when TLAB events are absent")
+        void allocationFallsBackToSampledEvents() {
+            when(eventStreamRepository.genericStreaming(any(EventQueryConfigurer.class), any(RecordBuilder.class)))
+                    .thenReturn(new SingleSerie("test", List.of()));
+            when(eventRepository.containsEventType(Type.OBJECT_ALLOCATION_IN_NEW_TLAB)).thenReturn(false);
+            when(eventRepository.containsEventType(Type.OBJECT_ALLOCATION_OUTSIDE_TLAB)).thenReturn(false);
+
+            var manager = new HeapMemoryManagerImpl(PROFILE_INFO, eventRepository, eventStreamRepository);
+            manager.timeseries(HeapMemoryTimeseriesType.ALLOCATION);
+
+            ArgumentCaptor<EventQueryConfigurer> captor = ArgumentCaptor.forClass(EventQueryConfigurer.class);
+            verify(eventStreamRepository).genericStreaming(captor.capture(), any(RecordBuilder.class));
+            assertEquals(HeapMemoryManagerImpl.SAMPLED_ALLOCATION_EVENT_TYPES, captor.getValue().eventTypes());
         }
     }
 }

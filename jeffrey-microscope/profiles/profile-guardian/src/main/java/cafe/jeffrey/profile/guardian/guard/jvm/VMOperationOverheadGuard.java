@@ -30,10 +30,11 @@ import cafe.jeffrey.profile.guardian.traverse.TargetFrameType;
 
 public class VMOperationOverheadGuard extends TraversableGuard {
 
-    public VMOperationOverheadGuard(ProfileInfo profileInfo, double threshold) {
+    public VMOperationOverheadGuard(ProfileInfo profileInfo, double infoThreshold, double warningThreshold) {
         super("VM Operation Overhead",
                 profileInfo,
-                threshold,
+                infoThreshold,
+                warningThreshold,
                 FrameMatchers.jvm("VM_Operation::evaluate"),
                 Category.JIT,
                 TargetFrameType.JVM,

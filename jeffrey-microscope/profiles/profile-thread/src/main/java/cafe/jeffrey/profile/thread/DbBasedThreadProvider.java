@@ -32,8 +32,6 @@ import java.util.*;
 
 public class DbBasedThreadProvider implements ThreadInfoProvider {
 
-    private static final Duration OFFSET_UNKNOWN = Duration.ofSeconds(-1);
-
     private static final Logger LOG = LoggerFactory.getLogger(DbBasedThreadProvider.class);
 
     private final static List<Type> TYPES = List.of(
@@ -180,25 +178,27 @@ public class DbBasedThreadProvider implements ThreadInfoProvider {
         List<ThreadPeriod> fileRead = new ArrayList<>();
         List<ThreadPeriod> fileWrite = new ArrayList<>();
 
-        Duration currentStartOffset = Duration.ZERO;
+        // null = no open active period (the thread has ended);
+        // ZERO = implicitly open since the start of the recording (no explicit Thread Start seen yet)
+        Duration openStartOffset = Duration.ZERO;
         Duration latestReportedOffset = Duration.ZERO;
         for (ThreadRecord event : events) {
             switch (event.state()) {
                 case STARTED -> {
-                    if (currentStartOffset != OFFSET_UNKNOWN && currentStartOffset != Duration.ZERO) {
+                    if (openStartOffset != null && !openStartOffset.isZero()) {
                         LOG.warn("2 Thread Start in a row! Ignore the event: thread_info:{}", event.threadInfo());
                         continue;
                     }
-                    currentStartOffset = event.start();
+                    openStartOffset = event.start();
                 }
                 case ENDED -> {
                     Duration endOffset = event.start();
-                    if (currentStartOffset == OFFSET_UNKNOWN) {
+                    if (openStartOffset == null) {
                         LOG.warn("2 Thread End in a row!: thread_info:{}", event.threadInfo());
                         active.add(new ThreadPeriod(latestReportedOffset, endOffset));
                     } else {
-                        active.add(new ThreadPeriod(currentStartOffset, endOffset));
-                        currentStartOffset = OFFSET_UNKNOWN;
+                        active.add(new ThreadPeriod(openStartOffset, endOffset));
+                        openStartOffset = null;
                     }
                     latestReportedOffset = endOffset;
                 }
@@ -213,9 +213,9 @@ public class DbBasedThreadProvider implements ThreadInfoProvider {
             }
         }
 
-        if (currentStartOffset != OFFSET_UNKNOWN) {
+        if (openStartOffset != null) {
             Duration endOffset = profileInfo.duration();
-            active.add(new ThreadPeriod(currentStartOffset, endOffset));
+            active.add(new ThreadPeriod(openStartOffset, endOffset));
         }
 
         ThreadRecord first = events.getFirst();
@@ -226,7 +226,9 @@ public class DbBasedThreadProvider implements ThreadInfoProvider {
                 + waiting.size()
                 + sleep.size()
                 + socketRead.size()
-                + socketWrite.size();
+                + socketWrite.size()
+                + fileRead.size()
+                + fileWrite.size();
 
         // Calculate the total duration of all lifespan events (total time of the thread being active)
         long totalDuration = active.stream()

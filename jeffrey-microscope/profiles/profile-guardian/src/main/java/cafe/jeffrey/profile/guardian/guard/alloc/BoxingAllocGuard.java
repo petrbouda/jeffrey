@@ -29,10 +29,11 @@ import cafe.jeffrey.profile.guardian.traverse.TargetFrameType;
 
 public class BoxingAllocGuard extends TraversableGuard {
 
-    public BoxingAllocGuard(ProfileInfo profileInfo, double threshold) {
+    public BoxingAllocGuard(ProfileInfo profileInfo, double infoThreshold, double warningThreshold) {
         super("Autoboxing Allocations",
                 profileInfo,
-                threshold,
+                infoThreshold,
+                warningThreshold,
                 FrameMatchers.suffix("Integer#valueOf")
                         .or(FrameMatchers.suffix("Long#valueOf"))
                         .or(FrameMatchers.suffix("Double#valueOf"))

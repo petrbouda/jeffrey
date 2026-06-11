@@ -30,10 +30,11 @@ import cafe.jeffrey.profile.guardian.traverse.TargetFrameType;
 
 public class DeoptimizationGuard extends TraversableGuard {
 
-    public DeoptimizationGuard(ProfileInfo profileInfo, double threshold) {
+    public DeoptimizationGuard(ProfileInfo profileInfo, double infoThreshold, double warningThreshold) {
         super("JIT Deoptimization",
                 profileInfo,
-                threshold,
+                infoThreshold,
+                warningThreshold,
                 FrameMatchers.prefix("Deoptimization::"),
                 Category.JIT,
                 TargetFrameType.JVM,

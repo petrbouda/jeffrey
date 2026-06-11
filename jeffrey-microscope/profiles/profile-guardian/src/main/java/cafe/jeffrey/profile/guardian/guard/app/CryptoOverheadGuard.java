@@ -29,14 +29,15 @@ import cafe.jeffrey.profile.guardian.traverse.TargetFrameType;
 
 public class CryptoOverheadGuard extends TraversableGuard {
 
-    public CryptoOverheadGuard(ProfileInfo profileInfo, double threshold) {
-        this("Crypto/TLS Overhead", ResultType.SAMPLES, profileInfo, threshold);
+    public CryptoOverheadGuard(ProfileInfo profileInfo, double infoThreshold, double warningThreshold) {
+        this("Crypto/TLS Overhead", ResultType.SAMPLES, profileInfo, infoThreshold, warningThreshold);
     }
 
-    public CryptoOverheadGuard(String guardName, ResultType resultType, ProfileInfo profileInfo, double threshold) {
+    public CryptoOverheadGuard(String guardName, ResultType resultType, ProfileInfo profileInfo, double infoThreshold, double warningThreshold) {
         super(guardName,
                 profileInfo,
-                threshold,
+                infoThreshold,
+                warningThreshold,
                 FrameMatchers.composite(
                         FrameMatchers.prefix("javax.crypto."),
                         FrameMatchers.composite(

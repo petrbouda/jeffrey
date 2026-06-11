@@ -82,7 +82,7 @@ class ReflectionOverheadGuardTest {
 
         @Test
         void reflectedTargetCpuDoesNotCountAsReflectionOverhead() {
-            ReflectionOverheadGuard guard = new ReflectionOverheadGuard(pi(), 0.05);
+            ReflectionOverheadGuard guard = new ReflectionOverheadGuard(pi(), 0.05, 0.05);
             runGuard(guard, reflectionHeavyTree());
 
             GuardianResult result = guard.result();
@@ -106,7 +106,7 @@ class ReflectionOverheadGuardTest {
         @Test
         void samplesModeAttributesWholeSubtree_preservesExistingBehavior() {
             ReflectionOverheadGuard legacyGuard = new ReflectionOverheadGuard(
-                    "Reflection (legacy SAMPLES)", ResultType.SAMPLES, pi(), 0.05);
+                    "Reflection (legacy SAMPLES)", ResultType.SAMPLES, pi(), 0.05, 0.05);
             runGuard(legacyGuard, reflectionHeavyTree());
 
             GuardianResult result = legacyGuard.result();

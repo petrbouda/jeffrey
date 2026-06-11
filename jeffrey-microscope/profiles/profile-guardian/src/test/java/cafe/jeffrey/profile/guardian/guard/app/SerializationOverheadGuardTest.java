@@ -69,7 +69,7 @@ class SerializationOverheadGuardTest {
         withChildren(api, ois);
         withChildren(root, api, other);
 
-        SerializationOverheadGuard guard = new SerializationOverheadGuard(pi(), 0.05);
+        SerializationOverheadGuard guard = new SerializationOverheadGuard(pi(), 0.05, 0.05);
         guard.initialize(Preconditions.builder().build());
         new FrameTraversal(root).traverseWith(List.of(guard));
 
@@ -93,7 +93,7 @@ class SerializationOverheadGuardTest {
         withChildren(api, oos);
         withChildren(root, api, other);
 
-        SerializationOverheadGuard guard = new SerializationOverheadGuard(pi(), 0.05);
+        SerializationOverheadGuard guard = new SerializationOverheadGuard(pi(), 0.05, 0.05);
         guard.initialize(Preconditions.builder().build());
         new FrameTraversal(root).traverseWith(List.of(guard));
 

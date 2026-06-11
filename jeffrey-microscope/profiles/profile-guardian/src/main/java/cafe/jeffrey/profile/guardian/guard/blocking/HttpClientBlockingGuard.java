@@ -29,10 +29,11 @@ import cafe.jeffrey.profile.guardian.traverse.TargetFrameType;
 
 public class HttpClientBlockingGuard extends TraversableGuard {
 
-    public HttpClientBlockingGuard(ProfileInfo profileInfo, double threshold) {
+    public HttpClientBlockingGuard(ProfileInfo profileInfo, double infoThreshold, double warningThreshold) {
         super("HTTP Client Blocking",
                 profileInfo,
-                threshold,
+                infoThreshold,
+                warningThreshold,
                 FrameMatchers.prefix("java.net.http.")
                         .or(FrameMatchers.prefix("org.apache.http."))
                         .or(FrameMatchers.prefix("okhttp3.")),

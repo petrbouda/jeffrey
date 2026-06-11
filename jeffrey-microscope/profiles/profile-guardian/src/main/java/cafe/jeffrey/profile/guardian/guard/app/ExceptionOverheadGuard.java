@@ -29,14 +29,15 @@ import cafe.jeffrey.profile.guardian.traverse.TargetFrameType;
 
 public class ExceptionOverheadGuard extends TraversableGuard {
 
-    public ExceptionOverheadGuard(ProfileInfo profileInfo, double threshold) {
-        this("Exception Overhead", ResultType.SAMPLES, profileInfo, threshold);
+    public ExceptionOverheadGuard(ProfileInfo profileInfo, double infoThreshold, double warningThreshold) {
+        this("Exception Overhead", ResultType.SAMPLES, profileInfo, infoThreshold, warningThreshold);
     }
 
-    public ExceptionOverheadGuard(String guardName, ResultType resultType, ProfileInfo profileInfo, double threshold) {
+    public ExceptionOverheadGuard(String guardName, ResultType resultType, ProfileInfo profileInfo, double infoThreshold, double warningThreshold) {
         super(guardName,
                 profileInfo,
-                threshold,
+                infoThreshold,
+                warningThreshold,
                 FrameMatchers.composite(
                         FrameMatchers.suffix("Throwable#<init>"),
                         FrameMatchers.suffix("Throwable#fillInStackTrace")),

@@ -27,6 +27,7 @@ import cafe.jeffrey.profile.manager.model.heap.HeapMemoryTimeseriesBuilder;
 import cafe.jeffrey.profile.manager.model.heap.HeapMemoryTimeseriesType;
 import cafe.jeffrey.provider.profile.api.RecordBuilder;
 import cafe.jeffrey.provider.profile.api.EventQueryConfigurer;
+import cafe.jeffrey.provider.profile.api.ProfileEventRepository;
 import cafe.jeffrey.provider.profile.api.ProfileEventStreamRepository;
 import cafe.jeffrey.provider.profile.api.GenericRecord;
 import cafe.jeffrey.timeseries.SingleSerie;
@@ -35,16 +36,24 @@ import java.util.List;
 
 public class HeapMemoryManagerImpl implements HeapMemoryManager {
 
-    public static final List<Type> ALLOCATION_EVENT_TYPES = List.of(
+    public static final List<Type> TLAB_ALLOCATION_EVENT_TYPES = List.of(
             Type.OBJECT_ALLOCATION_IN_NEW_TLAB,
-            Type.OBJECT_ALLOCATION_OUTSIDE_TLAB,
+            Type.OBJECT_ALLOCATION_OUTSIDE_TLAB);
+
+    public static final List<Type> SAMPLED_ALLOCATION_EVENT_TYPES = List.of(
             Type.OBJECT_ALLOCATION_SAMPLE);
 
     private final ProfileInfo profileInfo;
+    private final ProfileEventRepository eventRepository;
     private final ProfileEventStreamRepository eventStreamRepository;
 
-    public HeapMemoryManagerImpl(ProfileInfo profileInfo, ProfileEventStreamRepository eventStreamRepository) {
+    public HeapMemoryManagerImpl(
+            ProfileInfo profileInfo,
+            ProfileEventRepository eventRepository,
+            ProfileEventStreamRepository eventStreamRepository) {
+
         this.profileInfo = profileInfo;
+        this.eventRepository = eventRepository;
         this.eventStreamRepository = eventStreamRepository;
     }
 
@@ -62,7 +71,7 @@ public class HeapMemoryManagerImpl implements HeapMemoryManager {
                     .withEventType(Type.GC_HEAP_SUMMARY)
                     .withJsonFields();
             case ALLOCATION -> new EventQueryConfigurer()
-                    .withEventTypes(ALLOCATION_EVENT_TYPES)
+                    .withEventTypes(resolveAllocationEventTypes())
                     .withJsonFields();
         };
 
@@ -72,5 +81,16 @@ public class HeapMemoryManagerImpl implements HeapMemoryManager {
         };
 
         return eventStreamRepository.genericStreaming(configurer, builder);
+    }
+
+    /**
+     * TLAB events and {@code ObjectAllocationSample} describe the same allocations from two
+     * different sources — summing both double-counts when a recording carries both. Prefer the
+     * TLAB pair (precise) and fall back to the sampled events only when the TLAB pair is absent.
+     */
+    private List<Type> resolveAllocationEventTypes() {
+        boolean tlabEventsPresent = eventRepository.containsEventType(Type.OBJECT_ALLOCATION_IN_NEW_TLAB)
+                || eventRepository.containsEventType(Type.OBJECT_ALLOCATION_OUTSIDE_TLAB);
+        return tlabEventsPresent ? TLAB_ALLOCATION_EVENT_TYPES : SAMPLED_ALLOCATION_EVENT_TYPES;
     }
 }

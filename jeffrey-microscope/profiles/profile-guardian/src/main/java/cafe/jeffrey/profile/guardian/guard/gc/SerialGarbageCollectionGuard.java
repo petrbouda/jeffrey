@@ -31,10 +31,11 @@ import cafe.jeffrey.profile.guardian.traverse.TargetFrameType;
 
 public class SerialGarbageCollectionGuard extends TraversableGuard {
 
-    public SerialGarbageCollectionGuard(ProfileInfo profileInfo, double threshold) {
+    public SerialGarbageCollectionGuard(ProfileInfo profileInfo, double infoThreshold, double warningThreshold) {
         super("Serial GC",
                 profileInfo,
-                threshold,
+                infoThreshold,
+                warningThreshold,
                 FrameMatchers.jvm("VM_GenCollectForAllocation::doit"),
                 Category.GARBAGE_COLLECTION,
                 TargetFrameType.JVM,
