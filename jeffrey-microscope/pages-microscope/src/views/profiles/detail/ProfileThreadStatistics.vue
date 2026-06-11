@@ -83,7 +83,9 @@
                 class="thread-item cpu-item"
               >
                 <div class="thread-info">
-                  <span class="timestamp-badge">{{ FormattingService.formatTimeOfDay(thread.timestamp) }}</span>
+                  <span class="timestamp-badge">{{
+                    FormattingService.formatTimeOfDay(thread.timestamp)
+                  }}</span>
                   <span class="thread-name" :title="thread.threadInfo.name">
                     {{ thread.threadInfo.name }}
                   </span>
@@ -115,7 +117,9 @@
                 class="thread-item cpu-item"
               >
                 <div class="thread-info">
-                  <span class="timestamp-badge">{{ FormattingService.formatTimeOfDay(thread.timestamp) }}</span>
+                  <span class="timestamp-badge">{{
+                    FormattingService.formatTimeOfDay(thread.timestamp)
+                  }}</span>
                   <span class="thread-name" :title="thread.threadInfo.name">
                     {{ thread.threadInfo.name }}
                   </span>

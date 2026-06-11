@@ -400,7 +400,9 @@ const toggleExpand = (flagName: string) => {
 
 const isExpanded = (flagName: string) => expandedFlags.value.has(flagName);
 
-// Format timestamp for display
+// The flags API serializes FlagValueChange.timestamp (java.time.Instant) as an
+// ISO-8601 string, not epoch millis — keep the parse localized here and route
+// the formatting through FormattingService.
 const formatTimestamp = (isoTimestamp: string): string => {
   const date = new Date(isoTimestamp);
   return FormattingService.formatDateTime(date);

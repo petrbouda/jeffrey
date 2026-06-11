@@ -101,7 +101,6 @@ const getFileTypeIcon = (fileType: string): string => {
       return 'bi-file-earmark';
   }
 };
-
 </script>
 
 <template>
