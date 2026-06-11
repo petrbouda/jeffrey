@@ -100,6 +100,18 @@ onMounted(() => {
             </td>
           </tr>
           <tr>
+            <td><code>jeffrey.microscope.profile.ingestion.event-writer</code></td>
+            <td><code>ARROW</code></td>
+            <td>
+              Writer for the per-profile <code>events</code> table. <code>ARROW</code> ingests
+              event batches columnar via the Arrow C Data Interface (significantly faster on large
+              recordings); <code>APPENDER</code> uses the row-based DuckDB appender. Jeffrey falls
+              back to <code>APPENDER</code> automatically when the Arrow runtime is unavailable
+              (it requires <code>--add-opens=java.base/java.nio=ALL-UNNAMED</code>, carried by the
+              boot-jar manifest and the container images out of the box).
+            </td>
+          </tr>
+          <tr>
             <td><code>jeffrey.microscope.profile.data-initializer.enabled</code></td>
             <td><code>true</code></td>
             <td>Run the data initializer when a profile is created.</td>

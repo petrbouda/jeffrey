@@ -27,6 +27,12 @@ module cafe.jeffrey.microscope.profile.persistence.jdbc {
     requires org.lz4.java;
     requires java.sql;
     requires duckdb.jdbc;
+    requires org.apache.arrow.vector;
+    requires org.apache.arrow.memory.core;
+    // Not referenced directly: resolves the unsafe-based allocator into the module graph so that
+    // Arrow's DefaultAllocationManagerOption can discover it reflectively at runtime.
+    requires org.apache.arrow.memory.unsafe;
+    requires org.apache.arrow.c;
     requires flyway.core;
     requires tools.jackson.databind;
     requires org.slf4j;
