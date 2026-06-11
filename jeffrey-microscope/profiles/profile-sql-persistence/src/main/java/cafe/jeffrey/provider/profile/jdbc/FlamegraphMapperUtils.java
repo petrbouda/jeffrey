@@ -36,6 +36,33 @@ public abstract class FlamegraphMapperUtils {
         return frames;
     }
 
+    /**
+     * Converts DuckDB array to primitive long array.
+     * DuckDB JDBC may return different array types depending on context.
+     */
+    public static long[] toFrameHashArray(Array frameHashesArray) throws SQLException {
+        Object arrayObj = frameHashesArray.getArray();
+        return switch (arrayObj) {
+            case long[] primitiveArray -> primitiveArray;
+            case Long[] longArray -> {
+                long[] result = new long[longArray.length];
+                for (int i = 0; i < longArray.length; i++) {
+                    result[i] = longArray[i];
+                }
+                yield result;
+            }
+            case Object[] objectArray -> {
+                // DuckDB may return Object[] with Long/Number elements
+                long[] result = new long[objectArray.length];
+                for (int i = 0; i < objectArray.length; i++) {
+                    result[i] = ((Number) objectArray[i]).longValue();
+                }
+                yield result;
+            }
+            default -> throw new SQLException("Unexpected array type: " + arrayObj.getClass());
+        };
+    }
+
     public static DbJfrThread getThread(ResultSet rs) throws SQLException {
         Struct threadStruct = (Struct) rs.getObject("thread");
         if (threadStruct != null) {

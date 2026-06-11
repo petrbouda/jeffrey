@@ -199,12 +199,12 @@ public class JdbcProfileEventStreamRepository implements ProfileEventStreamRepos
                 return new FlamegraphOptions(
                         flamegraphQueries.byThreadAndWeightOptimized(),
                         baseParams,
-                        new CachingFlamegraphRecordWithThreadsRowMapper(eventType, framesCache, true));
+                        new CachingFlamegraphRecordRowMapper(eventType, framesCache, true, true));
             } else {
                 return new FlamegraphOptions(
                         flamegraphQueries.byWeightOptimized(),
                         baseParams,
-                        new CachingFlamegraphRecordRowMapper(eventType, framesCache, true));
+                        new CachingFlamegraphRecordRowMapper(eventType, framesCache, true, false));
             }
         }
 
@@ -213,12 +213,12 @@ public class JdbcProfileEventStreamRepository implements ProfileEventStreamRepos
             return new FlamegraphOptions(
                     flamegraphQueries.byThreadAndWeight(),
                     baseParams,
-                    new FlamegraphRecordWithThreadsRowMapper(eventType));
+                    new FlamegraphRecordRowMapper(eventType, true));
         } else {
             return new FlamegraphOptions(
                     flamegraphQueries.byWeight(),
                     baseParams,
-                    new FlamegraphRecordRowMapper(eventType));
+                    new FlamegraphRecordRowMapper(eventType, false));
         }
     }
 

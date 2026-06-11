@@ -84,7 +84,7 @@ public class FlamegraphSimpleBenchmark {
         NamedParameterJdbcTemplate jdbcTemplate = new NamedParameterJdbcTemplate(ds);
         String sql = DuckDBFlamegraphQueries.of().simpleOptimized();
         CachingFlamegraphRecordRowMapper rowMapper = new CachingFlamegraphRecordRowMapper(
-                Type.EXECUTION_SAMPLE, FramesCache.load(databaseClient), false);
+                Type.EXECUTION_SAMPLE, FramesCache.load(databaseClient), false, false);
         return jdbcTemplate.query(sql, QUERY_PARAMS, rowMapper);
     };
 

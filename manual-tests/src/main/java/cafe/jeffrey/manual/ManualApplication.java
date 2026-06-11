@@ -46,7 +46,7 @@ public class ManualApplication {
     private static void execute(NamedParameterJdbcTemplate client, String flamegraphSql, MapSqlParameterSource params) {
         long start = System.nanoTime();
         List<FlamegraphRecord> records = client.query(
-                flamegraphSql, params, new FlamegraphRecordRowMapper(Type.EXECUTION_SAMPLE));
+                flamegraphSql, params, new FlamegraphRecordRowMapper(Type.EXECUTION_SAMPLE, false));
         long end = System.nanoTime();
         IO.println("Query took: " + ((end - start) / 1_000_000) + " ms");
         IO.println("Records: " + records.size());

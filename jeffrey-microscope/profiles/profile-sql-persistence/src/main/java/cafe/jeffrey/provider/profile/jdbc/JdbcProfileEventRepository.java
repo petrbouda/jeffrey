@@ -77,7 +77,7 @@ public class JdbcProfileEventRepository implements ProfileEventRepository {
 
     //language=SQL
     private static final String CONTAINS_EVENT =
-            "SELECT COUNT(*) FROM events WHERE event_type = (:code)";
+            "SELECT 1 FROM events WHERE event_type = (:code) LIMIT 1";
 
     //language=SQL
     private static final String DURATION_STATS_BY_TYPE = """
@@ -246,7 +246,9 @@ public class JdbcProfileEventRepository implements ProfileEventRepository {
         MapSqlParameterSource paramSource = new MapSqlParameterSource()
                 .addValue("code", type.code());
 
-        return databaseClient.queryExists(StatementLabel.CONTAINS_EVENT, CONTAINS_EVENT, paramSource);
+        // Presence check short-circuits on the first matching row instead of counting all of them
+        return databaseClient.querySingle(StatementLabel.CONTAINS_EVENT, CONTAINS_EVENT, paramSource, (_, _) -> Boolean.TRUE)
+                .isPresent();
     }
 
     @Override

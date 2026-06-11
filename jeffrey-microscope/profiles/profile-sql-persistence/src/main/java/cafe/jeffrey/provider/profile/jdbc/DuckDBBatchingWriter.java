@@ -34,6 +34,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
+import java.util.concurrent.atomic.AtomicReference;
 
 public abstract class DuckDBBatchingWriter<T> implements DatabaseWriter<T> {
 
@@ -47,6 +48,10 @@ public abstract class DuckDBBatchingWriter<T> implements DatabaseWriter<T> {
 
     private final List<T> batch = new ArrayList<>();
     private final List<CompletableFuture<Void>> pendingBatches = new ArrayList<>();
+
+    // First failure of an async batch insert. Once set, no further batches are submitted and the
+    // failure is rethrown at the synchronization point (close) — otherwise events would be lost silently.
+    private final AtomicReference<Throwable> firstFailure = new AtomicReference<>();
 
     public DuckDBBatchingWriter(
             Executor executor,
@@ -86,6 +91,12 @@ public abstract class DuckDBBatchingWriter<T> implements DatabaseWriter<T> {
             return;
         }
 
+        if (firstFailure.get() != null) {
+            // A previous batch already failed — the whole write is doomed, don't submit more work.
+            this.batch.clear();
+            return;
+        }
+
         List<T> copiedBatch = List.copyOf(batch);
         CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
             long start = System.nanoTime();
@@ -96,6 +107,8 @@ public abstract class DuckDBBatchingWriter<T> implements DatabaseWriter<T> {
             } catch (Exception e) {
                 LOG.error("Failed to insert batch of items: type={} size={}",
                         tableName, copiedBatch.size(), e);
+                firstFailure.compareAndSet(null, e);
+                return;
             }
 
             long millis = Duration.ofNanos(System.nanoTime() - start).toMillis();
@@ -112,6 +125,12 @@ public abstract class DuckDBBatchingWriter<T> implements DatabaseWriter<T> {
     public void close() {
         sendBatch(batch);
         awaitPendingBatches();
+
+        Throwable failure = firstFailure.get();
+        if (failure != null) {
+            throw new IllegalStateException(
+                    "Failed to insert batch of items: type=" + tableName, failure);
+        }
     }
 
     private void awaitPendingBatches() {
@@ -123,6 +142,7 @@ public abstract class DuckDBBatchingWriter<T> implements DatabaseWriter<T> {
             CompletableFuture.allOf(pendingBatches.toArray(CompletableFuture[]::new)).join();
         } catch (Exception e) {
             LOG.error("Failed to await pending batches: type={}", tableName, e);
+            firstFailure.compareAndSet(null, e);
         }
         pendingBatches.clear();
     }
