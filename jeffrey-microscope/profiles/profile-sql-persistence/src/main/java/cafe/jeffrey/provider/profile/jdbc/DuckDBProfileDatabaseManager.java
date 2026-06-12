@@ -52,6 +52,16 @@ public class DuckDBProfileDatabaseManager implements DatabaseManager {
     // cache) alive between requests; further connections are created on demand
     private static final int MIN_IDLE_CONNECTIONS = 1;
 
+    private static final String WAL_AUTOCHECKPOINT_PROPERTY = "wal_autocheckpoint";
+
+    /**
+     * Effectively disables automatic mid-load WAL checkpoints (measured 38-45% faster ingestion
+     * in low-thread configurations). The profile database is bulk-written once during profile
+     * initialization and explicitly checkpointed at the end — ProfileInitializerImpl invokes
+     * {@code walCheckpoint()} after parsing completes — so mid-load checkpoints are wasted work.
+     */
+    private static final String WAL_AUTOCHECKPOINT_THRESHOLD = "1TB";
+
     private final Path baseDir;
 
     public DuckDBProfileDatabaseManager(Path baseDir) {
@@ -99,6 +109,7 @@ public class DuckDBProfileDatabaseManager implements DatabaseManager {
                 .minIdle(MIN_IDLE_CONNECTIONS)
                 .maxLifetime(Duration.ZERO)
                 .keepAliveTime(Duration.ZERO)
+                .additionalProperty(WAL_AUTOCHECKPOINT_PROPERTY, WAL_AUTOCHECKPOINT_THRESHOLD)
                 .additionalProperty(PRESERVE_INSERTION_ORDER_SETTING, PRESERVE_INSERTION_ORDER_VALUE)
                 .build();
 
