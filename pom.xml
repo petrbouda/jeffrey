@@ -48,7 +48,7 @@
         <uuid-creator.version>6.1.1</uuid-creator.version>
         <jeffrey-events.version>0.11.0</jeffrey-events.version>
         <spring-boot.version>4.0.5</spring-boot.version>
-        <spring-ai.version>2.0.0-M4</spring-ai.version>
+        <spring-ai.version>2.0.0</spring-ai.version>
         <duckdb.version>1.5.2.0</duckdb.version>
         <flyway.version>10.24.0</flyway.version>
         <!-- flyway-core upgraded ahead of flyway-database-duckdb (which has no 12.x release).
