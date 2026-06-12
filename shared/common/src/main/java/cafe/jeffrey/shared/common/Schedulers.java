@@ -52,11 +52,8 @@ public abstract class Schedulers {
     private static final ExecutorService STREAMING =
             Executors.newThreadPerTaskExecutor(virtualThreadfactory("streaming"));
 
-    // Ingestion throughput plateaus at ~0.31M rows/s regardless of writer thread count
-    // (measured with 4, 8 and 20 threads on a 4M-row events-like schema) because DuckDB
-    // serializes commits/WAL writes. Threads beyond ~4 buy <10% and steal cores from parsing.
     private static final ExecutorService DB_WRITER =
-            Executors.newFixedThreadPool(4, platformThreadfactory("db-writer"));
+            Executors.newFixedThreadPool(20, platformThreadfactory("db-writer"));
 
     public static ExecutorService sharedParallel() {
         return PARALLEL;
