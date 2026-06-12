@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -27,7 +27,6 @@ import org.springframework.ai.anthropic.AnthropicChatOptions;
 import org.springframework.ai.anthropic.AnthropicSetup;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ChatModel;
-import org.springframework.ai.model.tool.ToolCallingManager;
 import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.ai.openai.setup.OpenAiSetup;
@@ -43,7 +42,7 @@ import java.util.List;
  * Replaces the auto-configuration starters with explicit bean creation
  * based on {@code jeffrey.ai.provider} property.
  * <p>
- * Active when {@code jeffrey.ai.provider} is set to a real provider (not {@code none}).
+ * Active when {@code jeffrey.microscope.ai.provider} is set to a real provider (not {@code none}).
  * <p>
  * Database-stored settings are injected into the Spring Environment on startup
  * by {@code SettingsConfiguration}, so they are available via {@code @Value} annotations
@@ -90,7 +89,6 @@ public class AiChatModelConfiguration {
         return AnthropicChatModel.builder()
                 .anthropicClient(client)
                 .options(options)
-                .toolCallingManager(ToolCallingManager.builder().build())
                 .build();
     }
 
@@ -123,7 +121,6 @@ public class AiChatModelConfiguration {
         return OpenAiChatModel.builder()
                 .openAiClient(client)
                 .options(options)
-                .toolCallingManager(ToolCallingManager.builder().build())
                 .build();
     }
 }
