@@ -36,7 +36,6 @@ import cafe.jeffrey.shared.persistence.StatementLabel;
 import cafe.jeffrey.shared.persistence.client.DatabaseClient;
 import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
 
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -162,7 +161,7 @@ public class JdbcProfileEventRepository implements ProfileEventRepository {
                     arg_max({'event_type': event_type, 'flag_value': flag_value, 'origin': origin}, start_timestamp) as latest,
                     list(DISTINCT flag_value) as all_values,
                     count(DISTINCT flag_value) as value_count,
-                    to_json(list({'value': flag_value, 'timestamp': strftime(start_timestamp, '%Y-%m-%dT%H:%M:%S.%gZ')} ORDER BY start_timestamp DESC)) as change_history
+                    to_json(list({'value': flag_value, 'timestamp': epoch_ms(start_timestamp)} ORDER BY start_timestamp DESC)) as change_history
                 FROM flag_history
                 GROUP BY flag_name
             )
@@ -317,8 +316,8 @@ public class JdbcProfileEventRepository implements ProfileEventRepository {
                             List<FlagValueChange> changes = new ArrayList<>();
                             for (JsonNode entry : historyArray) {
                                 String value = entry.get("value").asString();
-                                String timestamp = entry.get("timestamp").asString();
-                                changes.add(new FlagValueChange(value, Instant.parse(timestamp)));
+                                long timestamp = entry.get("timestamp").asLong();
+                                changes.add(new FlagValueChange(value, timestamp));
                             }
                             changeHistory = changes;
                         }

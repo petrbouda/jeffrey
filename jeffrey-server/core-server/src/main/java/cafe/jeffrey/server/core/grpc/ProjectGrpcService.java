@@ -129,7 +129,7 @@ public class ProjectGrpcService extends ProjectServiceGrpc.ProjectServiceImplBas
     @Override
     public void restoreProject(RestoreProjectRequest request, StreamObserver<RestoreProjectResponse> responseObserver) {
         try {
-            ProjectManager project = findProject(request.getProjectId());
+            ProjectManager project = findProjectIncludingDeleted(request.getProjectId());
             project.restore();
 
             LOG.info("Restored project via gRPC: projectId={}", request.getProjectId());
@@ -146,6 +146,17 @@ public class ProjectGrpcService extends ProjectServiceGrpc.ProjectServiceImplBas
 
     private ProjectManager findProject(String projectId) {
         return platformRepositories.newProjectRepository(projectId).find()
+                .map(projectManagerFactory)
+                .orElseThrow(() -> GrpcExceptions.notFound("Project not found: " + projectId));
+    }
+
+    /**
+     * Resolves a project regardless of its soft-deleted state. Restore must see
+     * soft-deleted projects — the active-only {@link #findProject(String)} filters
+     * them out, which would make restoring impossible.
+     */
+    private ProjectManager findProjectIncludingDeleted(String projectId) {
+        return platformRepositories.newProjectRepository(projectId).findIncludingDeleted()
                 .map(projectManagerFactory)
                 .orElseThrow(() -> GrpcExceptions.notFound("Project not found: " + projectId));
     }

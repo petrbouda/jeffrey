@@ -154,7 +154,7 @@
                         :class="{ 'current-value': idx === 0 }"
                       >
                         <span class="change-timestamp">{{
-                          formatTimestamp(change.timestamp)
+                          FormattingService.formatTimestampUTC(change.timestamp)
                         }}</span>
                         <span class="change-value">{{ change.value }}</span>
                         <Badge v-if="idx === 0" value="current" variant="green" size="xs" />
@@ -399,14 +399,6 @@ const toggleExpand = (flagName: string) => {
 };
 
 const isExpanded = (flagName: string) => expandedFlags.value.has(flagName);
-
-// The flags API serializes FlagValueChange.timestamp (java.time.Instant) as an
-// ISO-8601 string, not epoch millis — keep the parse localized here and route
-// the formatting through FormattingService.
-const formatTimestamp = (isoTimestamp: string): string => {
-  const date = new Date(isoTimestamp);
-  return FormattingService.formatDateTime(date);
-};
 
 const analysisTabs = [
   { id: 'dashboard', label: 'JVM Flags', icon: 'flag' },

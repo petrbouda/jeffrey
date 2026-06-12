@@ -200,10 +200,13 @@ class ProjectGrpcServiceTest {
     class RestoreProject {
 
         @Test
-        void restoresProject() throws IOException {
+        void restoresSoftDeletedProject() throws IOException {
+            var deletedInfo = new cafe.jeffrey.shared.common.model.ProjectInfo(
+                    PROJECT_ID, "origin-1", "Test Project", "label", "namespace",
+                    WORKSPACE_ID, FIXED_TIME, null, null, FIXED_TIME);
+
             var projectManager = mock(ProjectManager.class);
-            when(projectManager.detailedInfo()).thenReturn(testDetailedInfo());
-            var stub = startServer(serviceWithProjectManager(projectManager));
+            var stub = startServer(serviceWithSoftDeletedProject(deletedInfo, projectManager));
 
             stub.restoreProject(RestoreProjectRequest.newBuilder()
                     .setProjectId(PROJECT_ID).build());
@@ -367,11 +370,35 @@ class ProjectGrpcServiceTest {
     }
 
     /**
+     * Creates a service where the project exists only as a soft-deleted row: the active-only
+     * find() is empty, the deleted-inclusive findIncludingDeleted() resolves it. This is the
+     * exact state RestoreProject must be able to operate on.
+     */
+    private ProjectGrpcService serviceWithSoftDeletedProject(
+            cafe.jeffrey.shared.common.model.ProjectInfo deletedInfo, ProjectManager projectManager) {
+
+        var projectRepo = mock(ProjectRepository.class);
+        when(projectRepo.find()).thenReturn(Optional.empty());
+        when(projectRepo.findIncludingDeleted()).thenReturn(Optional.of(deletedInfo));
+
+        var platformRepositories = mock(ServerPlatformRepositories.class);
+        when(platformRepositories.newProjectRepository(PROJECT_ID)).thenReturn(projectRepo);
+
+        var projectManagerFactory = mock(ProjectManager.Factory.class);
+        when(projectManagerFactory.apply(deletedInfo)).thenReturn(projectManager);
+
+        var workspacesManager = mock(WorkspacesManager.class);
+
+        return new ProjectGrpcService(workspacesManager, platformRepositories, projectManagerFactory);
+    }
+
+    /**
      * Creates a service where findProject("missing") fails (project not found).
      */
     private ProjectGrpcService serviceWithNoProject() {
         var projectRepo = mock(ProjectRepository.class);
         when(projectRepo.find()).thenReturn(Optional.empty());
+        when(projectRepo.findIncludingDeleted()).thenReturn(Optional.empty());
 
         var platformRepositories = mock(ServerPlatformRepositories.class);
         when(platformRepositories.newProjectRepository(any())).thenReturn(projectRepo);

@@ -180,6 +180,63 @@ class JdbcProfileEventRepositoryTest {
     }
 
     @Nested
+    class GetAllFlagsMethod {
+
+        // Epoch millis of the fixture timestamps 2025-01-15T10:00:00Z and 2025-01-15T10:05:00Z.
+        private static final long FIRST_CHANGE_MILLIS = 1736935200000L;
+        private static final long SECOND_CHANGE_MILLIS = 1736935500000L;
+
+        @Test
+        void unchangedFlag_hasNoChangeHistory(DataSource dataSource) throws SQLException {
+            TestUtils.executeSql(dataSource, "sql/events/insert-flag-events.sql");
+            var provider = new DatabaseClientProvider(dataSource);
+            JdbcProfileEventRepository repository = new JdbcProfileEventRepository(SQL_FORMATTER, provider);
+
+            JvmFlagDetail flag = flagByName(repository, "UseG1GC");
+
+            assertEquals("true", flag.value());
+            assertEquals("Boolean", flag.type());
+            assertEquals("Default", flag.origin());
+            assertFalse(flag.hasChanged());
+            assertTrue(flag.changeHistory().isEmpty());
+        }
+
+        @Test
+        void changedFlag_exposesEpochMillisChangeHistoryLatestFirst(DataSource dataSource) throws SQLException {
+            TestUtils.executeSql(dataSource, "sql/events/insert-flag-events.sql");
+            var provider = new DatabaseClientProvider(dataSource);
+            JdbcProfileEventRepository repository = new JdbcProfileEventRepository(SQL_FORMATTER, provider);
+
+            JvmFlagDetail flag = flagByName(repository, "MaxHeapSize");
+
+            assertTrue(flag.hasChanged());
+            assertEquals("2147483648", flag.value(), "Latest value must win");
+            assertEquals("Management", flag.origin(), "Origin must come from the same latest row");
+            assertEquals(List.of("1073741824"), flag.previousValues());
+
+            List<FlagValueChange> history = flag.changeHistory();
+            assertEquals(2, history.size());
+            assertEquals(new FlagValueChange("2147483648", SECOND_CHANGE_MILLIS), history.get(0));
+            assertEquals(new FlagValueChange("1073741824", FIRST_CHANGE_MILLIS), history.get(1));
+        }
+
+        @Test
+        void returnsEmptyListWhenNoFlagEvents(DataSource dataSource) {
+            var provider = new DatabaseClientProvider(dataSource);
+            JdbcProfileEventRepository repository = new JdbcProfileEventRepository(SQL_FORMATTER, provider);
+
+            assertTrue(repository.getAllFlags().isEmpty());
+        }
+
+        private JvmFlagDetail flagByName(JdbcProfileEventRepository repository, String name) {
+            return repository.getAllFlags().stream()
+                    .filter(flag -> flag.name().equals(name))
+                    .findFirst()
+                    .orElseThrow(() -> new AssertionError("Flag not found: " + name));
+        }
+    }
+
+    @Nested
     class DurationStatsByTypeMethod {
 
         // Fixture: 10 jdk.SafepointBegin events with durations (ms): 1,2,3,4,5,6,7,8,9,500
