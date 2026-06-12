@@ -33,6 +33,15 @@ public class DuckDBProfilePersistenceProvider implements ProfilePersistenceProvi
 
     private static final int DEFAULT_BATCH_SIZE = 10000;
 
+    /**
+     * Batch size for the Arrow events path. Bigger batches amortize the per-INSERT overhead
+     * of the bulk columnar inserts, but they also delay the first flush and pile work up at
+     * {@code close()} after parsing has already finished. 25k keeps the per-INSERT overhead
+     * amortized while flushing early and often enough that vector fill + INSERT overlap with
+     * parsing even on small recordings (~10MB peak per batch with ~330B JSON fields per event).
+     */
+    private static final int ARROW_EVENTS_BATCH_SIZE = 25_000;
+
     private final int batchSize;
     private final DatabaseManager databaseManager;
     private final FrameResolutionMode frameResolutionMode;
@@ -42,6 +51,10 @@ public class DuckDBProfilePersistenceProvider implements ProfilePersistenceProvi
     }
 
     public DuckDBProfilePersistenceProvider(Path profilesDir, FrameResolutionMode frameResolutionMode, int batchSize) {
+        // The Arrow runtime is the only ingestion path for the events table — fail at
+        // construction (startup/profile-init) instead of mid-parse when it is unusable.
+        ArrowRuntimeSupport.ensureAvailable();
+
         this.batchSize = batchSize;
         // Only a single profile is opened at a time: the single-slot manager eagerly closes the
         // previous profile's pool on switch, releasing its DuckDB instance deterministically
@@ -56,8 +69,11 @@ public class DuckDBProfilePersistenceProvider implements ProfilePersistenceProvi
 
     @Override
     public EventWriter.Factory eventWriterFactory() {
-        return (dataSource, profilingStartedAt) -> new SQLEventWriter(
-                () -> new DuckDBEventWriters(Schedulers.sharedDbWriter(), dataSource, batchSize, profilingStartedAt));
+        // Events flushes run on the shared db-writer pool like every other writer: DuckDB
+        // serializes the actual INSERT commits internally, but the Java-side vector fill of
+        // multiple in-flight batches runs in parallel and overlaps with parsing.
+        return (dataSource, profilingStartedAt) -> new SQLEventWriter(() -> new DuckDBEventWriters(
+                Schedulers.sharedDbWriter(), dataSource, batchSize, ARROW_EVENTS_BATCH_SIZE, profilingStartedAt));
     }
 
     @Override

@@ -46,7 +46,7 @@ public class DuckDBProfileDatabaseManager implements DatabaseManager {
 
     // Sized so that every DB-writer thread can flush its batch concurrently during ingestion
     // instead of blocking on the pool
-    private static final int MAX_POOL_SIZE = Schedulers.DB_WRITER_THREADS;
+    private static final int MAX_POOL_SIZE = Schedulers.DB_WRITER_MAX_THREADS;
 
     // A single idle connection is enough to keep the embedded DuckDB instance (and its buffer
     // cache) alive between requests; further connections are created on demand

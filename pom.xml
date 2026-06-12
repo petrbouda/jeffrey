@@ -50,6 +50,8 @@
         <spring-boot.version>4.1.0</spring-boot.version>
         <spring-ai.version>2.0.0</spring-ai.version>
         <duckdb.version>1.5.3.0</duckdb.version>
+        <!-- Apache Arrow Java — columnar bulk ingestion into DuckDB via the Arrow C Data Interface. -->
+        <arrow.version>19.0.0</arrow.version>
         <flyway.version>10.24.0</flyway.version>
         <!-- flyway-core upgraded ahead of flyway-database-duckdb (which has no 12.x release).
              12.x brings Jackson 3.x (tools.jackson.*), eliminating the legacy Jackson 2.x dependency tree. -->
@@ -270,6 +272,30 @@
                 <groupId>org.flywaydb</groupId>
                 <artifactId>flyway-database-duckdb</artifactId>
                 <version>${flyway.version}</version>
+            </dependency>
+
+            <!-- Apache Arrow — columnar batches handed to DuckDB through DuckDBConnection#registerArrowStream. -->
+            <dependency>
+                <groupId>org.apache.arrow</groupId>
+                <artifactId>arrow-vector</artifactId>
+                <version>${arrow.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.arrow</groupId>
+                <artifactId>arrow-memory-core</artifactId>
+                <version>${arrow.version}</version>
+            </dependency>
+            <!-- Unsafe-based allocator avoids the netty-buffer dependency and its required add-opens.
+                 JDK 25 prints a sun.misc.Unsafe warning (JEP 498) on first use, which is acceptable. -->
+            <dependency>
+                <groupId>org.apache.arrow</groupId>
+                <artifactId>arrow-memory-unsafe</artifactId>
+                <version>${arrow.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.arrow</groupId>
+                <artifactId>arrow-c-data</artifactId>
+                <version>${arrow.version}</version>
             </dependency>
             <!-- Override Spring Boot's transitive flyway-core (11.x) so Jackson 3.x is used. -->
             <dependency>

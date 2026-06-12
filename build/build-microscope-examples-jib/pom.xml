@@ -69,6 +69,13 @@
                     </to>
                     <container>
                         <mainClass>${mainClass}</mainClass>
+                        <!-- Arrow-based event ingestion needs reflective access to java.nio
+                             (DirectByteBuffer wrapping of off-heap C structs). The boot jar carries
+                             this as an Add-Opens manifest attribute, but Jib launches the exploded
+                             classpath directly, so the flag must be passed explicitly. -->
+                        <jvmFlags>
+                            <jvmFlag>--add-opens=java.base/java.nio=ALL-UNNAMED</jvmFlag>
+                        </jvmFlags>
                         <ports>
                             <port>8080</port>
                         </ports>

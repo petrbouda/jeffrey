@@ -37,6 +37,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Instant;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * Initializes a DuckDB database from a JFR file for JMH benchmarks.
@@ -62,6 +64,7 @@ public class JmhDatabaseInitializer {
 
     private static final String MIGRATIONS_LOCATION = "classpath:db/migration/profile";
     private static final int BATCH_SIZE = 10000;
+    private static final int EVENTS_BATCH_SIZE = 100_000;
 
     private final Clock clock;
 
@@ -93,13 +96,17 @@ public class JmhDatabaseInitializer {
         TempDirFactory tempDirFactory = TempDirFactory.of(TEMP_DIR);
 
         DataSource dataSource = createDataSource(DB_FILE);
+        ExecutorService writerExecutor = Executors.newSingleThreadExecutor();
         try {
             runMigrations(dataSource);
             LOG.info("Database migrations completed: path={}", DB_FILE.toAbsolutePath());
 
             Lz4Compressor lz4Compressor = new Lz4Compressor(tempDirFactory);
             JfrRecordingEventParser parser = new JfrRecordingEventParser(tempDirFactory, lz4Compressor);
-            EventWriter eventWriter = new SQLEventWriter(() -> new DuckDBEventWriters(dataSource, BATCH_SIZE));
+            // EPOCH as the timeline zero point: the relative timestamps equal the absolute epoch
+            // millis, which is irrelevant for benchmarking but stable across runs.
+            EventWriter eventWriter = new SQLEventWriter(() -> new DuckDBEventWriters(
+                    writerExecutor, dataSource, BATCH_SIZE, EVENTS_BATCH_SIZE, Instant.EPOCH));
 
             LOG.info("Parsing JFR file: path={}", JFR_FILE.toAbsolutePath());
             parser.start(eventWriter, JFR_FILE);
@@ -112,6 +119,7 @@ public class JmhDatabaseInitializer {
             FileSystemUtils.removeFile(DB_FILE);
             throw e;
         } finally {
+            writerExecutor.shutdown();
             DataSourceUtils.close(dataSource);
             FileSystemUtils.removeDirectory(TEMP_DIR);
         }

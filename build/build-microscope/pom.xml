@@ -49,6 +49,24 @@
             </plugin>
 
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <configuration>
+                    <archive>
+                        <manifestEntries>
+                            <!-- Arrow-based event ingestion wraps off-heap C structs in DirectByteBuffers
+                                 via reflection. The java launcher honors this attribute for `java -jar`,
+                                 so no explicit add-opens JVM argument is needed. Launchers that do not
+                                 read the manifest (custom classpath setups) must pass
+                                 `add-opens=java.base/java.nio=ALL-UNNAMED` explicitly; without it
+                                 Jeffrey falls back to the slower appender-based event writer. -->
+                            <Add-Opens>java.base/java.nio</Add-Opens>
+                        </manifestEntries>
+                    </archive>
+                </configuration>
+            </plugin>
+
+            <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
