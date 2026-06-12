@@ -44,19 +44,19 @@
         <picocli.version>4.7.7</picocli.version>
         <typesafe-config.version>1.4.6</typesafe-config.version>
         <lz4.version>1.11.0</lz4.version>
-        <junit.version>5.14.3</junit.version>
+        <junit.version>5.14.4</junit.version>
         <uuid-creator.version>6.1.1</uuid-creator.version>
         <jeffrey-events.version>0.11.0</jeffrey-events.version>
-        <spring-boot.version>4.0.5</spring-boot.version>
-        <spring-ai.version>2.0.0-M4</spring-ai.version>
-        <duckdb.version>1.5.2.0</duckdb.version>
+        <spring-boot.version>4.1.0</spring-boot.version>
+        <spring-ai.version>2.0.0-RC2</spring-ai.version>
+        <duckdb.version>1.5.3.0</duckdb.version>
         <flyway.version>10.24.0</flyway.version>
         <!-- flyway-core upgraded ahead of flyway-database-duckdb (which has no 12.x release).
-             12.4.0 brings Jackson 3.x (tools.jackson.*), eliminating the legacy Jackson 2.x dependency tree. -->
-        <flyway-core.version>12.4.0</flyway-core.version>
-        <grpc.version>1.80.0</grpc.version>
-        <netty.version>4.2.12.Final</netty.version>
-        <protobuf.version>4.34.1</protobuf.version>
+             12.x brings Jackson 3.x (tools.jackson.*), eliminating the legacy Jackson 2.x dependency tree. -->
+        <flyway-core.version>12.8.1</flyway-core.version>
+        <grpc.version>1.81.0</grpc.version>
+        <netty.version>4.2.15.Final</netty.version>
+        <protobuf.version>4.35.0</protobuf.version>
         <antlr4.version>4.13.2</antlr4.version>
         <!-- Vendored async-profiler Java API (span-api branch), served from the in-repo lib/m2 repository. -->
         <async-profiler.version>4.4-span</async-profiler.version>
