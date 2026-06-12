@@ -154,7 +154,7 @@
                         :class="{ 'current-value': idx === 0 }"
                       >
                         <span class="change-timestamp">{{
-                          formatTimestamp(change.timestamp)
+                          FormattingService.formatTimestampUTC(change.timestamp)
                         }}</span>
                         <span class="change-value">{{ change.value }}</span>
                         <Badge v-if="idx === 0" value="current" variant="green" size="xs" />
@@ -400,12 +400,6 @@ const toggleExpand = (flagName: string) => {
 
 const isExpanded = (flagName: string) => expandedFlags.value.has(flagName);
 
-// Format timestamp for display
-const formatTimestamp = (isoTimestamp: string): string => {
-  const date = new Date(isoTimestamp);
-  return FormattingService.formatDateTime(date);
-};
-
 const analysisTabs = [
   { id: 'dashboard', label: 'JVM Flags', icon: 'flag' },
   { id: 'about', label: 'How It Works', icon: 'info-circle' }
@@ -462,9 +456,10 @@ const filteredFlags = computed(() => {
         return direction * a.value.localeCompare(b.value);
       case 'type':
         return direction * a.type.localeCompare(b.type);
-      case 'origin':
+      case 'origin': {
         const originOrder = ['Command line', 'Management', 'Ergonomic', 'Default'];
         return direction * (originOrder.indexOf(a.origin) - originOrder.indexOf(b.origin));
+      }
       case 'changed':
         return direction * ((a.hasChanged ? 1 : 0) - (b.hasChanged ? 1 : 0));
       default:

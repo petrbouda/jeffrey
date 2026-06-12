@@ -505,24 +505,15 @@ class SQLBuilderTest {
     }
 
     @Nested
-    class FirstSampleCte {
+    class PlainSelect {
 
         @Test
-        void includesFirstSampleCte() {
+        void buildsPlainSelectWithoutCtes() {
             String sql = SQLBuilder.select("*")
                     .from("events")
                     .build();
 
-            assertTrue(sql.contains("WITH first_sample AS"));
-        }
-
-        @Test
-        void crossJoinsFirstSample() {
-            String sql = SQLBuilder.select("*")
-                    .from("events")
-                    .build();
-
-            assertTrue(sql.contains("CROSS JOIN first_sample fs"));
+            assertEquals("SELECT * FROM events", sql);
         }
     }
 

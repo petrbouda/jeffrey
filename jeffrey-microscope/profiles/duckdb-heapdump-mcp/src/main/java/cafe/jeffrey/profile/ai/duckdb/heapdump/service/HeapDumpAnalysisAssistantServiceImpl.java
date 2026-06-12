@@ -21,17 +21,12 @@ package cafe.jeffrey.profile.ai.duckdb.heapdump.service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.chat.messages.AssistantMessage;
-import org.springframework.ai.chat.messages.Message;
-import org.springframework.ai.chat.messages.UserMessage;
-import org.springframework.ai.chat.model.ChatResponse;
+import cafe.jeffrey.profile.ai.chat.AssistantResponse;
+import cafe.jeffrey.profile.ai.chat.ToolCallingChatSession;
 import cafe.jeffrey.profile.ai.duckdb.heapdump.model.HeapDumpAnalysisRequest;
-import cafe.jeffrey.profile.ai.duckdb.heapdump.model.HeapDumpAnalysisResponse;
-import cafe.jeffrey.profile.ai.duckdb.heapdump.model.HeapDumpChatMessage;
 import cafe.jeffrey.profile.ai.duckdb.heapdump.prompt.HeapDumpAnalysisSystemPrompt;
 import cafe.jeffrey.profile.ai.duckdb.heapdump.tools.HeapDumpMcpTools;
 import cafe.jeffrey.profile.ai.duckdb.heapdump.tools.HeapDumpToolsDelegate;
-import cafe.jeffrey.shared.common.span.Spans;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -43,7 +38,9 @@ public class HeapDumpAnalysisAssistantServiceImpl implements HeapDumpAnalysisAss
 
     private static final Logger LOG = LoggerFactory.getLogger(HeapDumpAnalysisAssistantServiceImpl.class);
 
-    private final ChatClient chatClient;
+    private static final String AI_CALL_SPAN_NAME = "ai.heapdump-analysis.call";
+
+    private final ToolCallingChatSession chatSession;
     private final String modelName;
     private final String providerName;
 
@@ -51,9 +48,10 @@ public class HeapDumpAnalysisAssistantServiceImpl implements HeapDumpAnalysisAss
             ChatClient.Builder chatClientBuilder,
             String modelName,
             String providerName) {
-        this.chatClient = chatClientBuilder
+        ChatClient chatClient = chatClientBuilder
                 .defaultSystem(HeapDumpAnalysisSystemPrompt.SYSTEM_PROMPT)
                 .build();
+        this.chatSession = new ToolCallingChatSession(chatClient, AI_CALL_SPAN_NAME);
         this.modelName = modelName;
         this.providerName = providerName;
         LOG.info("Heap Dump Analysis Assistant initialized: provider={} model={}", providerName, modelName);
@@ -75,56 +73,19 @@ public class HeapDumpAnalysisAssistantServiceImpl implements HeapDumpAnalysisAss
     }
 
     @Override
-    public HeapDumpAnalysisResponse analyze(HeapDumpToolsDelegate delegate, HeapDumpAnalysisRequest request) {
+    public AssistantResponse analyze(HeapDumpToolsDelegate delegate, HeapDumpAnalysisRequest request) {
         try {
             HeapDumpMcpTools tools = new HeapDumpMcpTools(delegate);
 
-            List<Message> messages = buildMessages(request);
-
-            List<String> toolsUsed = new ArrayList<>();
-            String response = executeWithTools(messages, tools, toolsUsed);
+            String response = chatSession.call(request.history(), request.message(), tools);
 
             List<String> suggestions = generateSuggestions(request.message(), response);
 
-            return new HeapDumpAnalysisResponse(response, suggestions, toolsUsed);
+            return new AssistantResponse(response, suggestions, List.of());
         } catch (Exception e) {
             LOG.error("Error during heap dump analysis: message={}", e.getMessage(), e);
-            return HeapDumpAnalysisResponse.error("Analysis failed: " + e.getMessage());
+            return AssistantResponse.error("Analysis failed: " + e.getMessage());
         }
-    }
-
-    private List<Message> buildMessages(HeapDumpAnalysisRequest request) {
-        List<Message> messages = new ArrayList<>();
-
-        if (request.history() != null) {
-            for (HeapDumpChatMessage msg : request.history()) {
-                if (msg.isUser()) {
-                    messages.add(new UserMessage(msg.content()));
-                } else {
-                    messages.add(new AssistantMessage(msg.content()));
-                }
-            }
-        }
-
-        messages.add(new UserMessage(request.message()));
-
-        return messages;
-    }
-
-    private String executeWithTools(List<Message> messages, HeapDumpMcpTools tools, List<String> toolsUsed) {
-        long aiSpan = Spans.start();
-        ChatResponse response;
-        try {
-            response = chatClient.prompt()
-                    .messages(messages)
-                    .tools(tools)
-                    .call()
-                    .chatResponse();
-        } finally {
-            Spans.end(aiSpan, "ai.heapdump-analysis.call");
-        }
-
-        return response.getResult().getOutput().getText();
     }
 
     private List<String> generateSuggestions(String question, String response) {

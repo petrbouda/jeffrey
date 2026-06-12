@@ -27,9 +27,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
+import cafe.jeffrey.profile.ai.chat.AssistantResponse;
+import cafe.jeffrey.profile.ai.chat.ChatMessage;
 import cafe.jeffrey.profile.ai.duckdb.heapdump.model.HeapDumpAnalysisRequest;
-import cafe.jeffrey.profile.ai.duckdb.heapdump.model.HeapDumpAnalysisResponse;
-import cafe.jeffrey.profile.ai.duckdb.heapdump.model.HeapDumpChatMessage;
 import cafe.jeffrey.profile.ai.duckdb.heapdump.service.HeapDumpAnalysisAssistantService;
 import cafe.jeffrey.profile.ai.duckdb.heapdump.tools.HeapDumpToolsDelegate;
 import cafe.jeffrey.profile.heapdump.model.BiggestObjectsReport;
@@ -80,7 +80,7 @@ public class HeapDumpAiAnalysisController {
     }
 
     @PostMapping("/chat")
-    public HeapDumpAnalysisResponse chat(
+    public AssistantResponse chat(
             @PathVariable("profileId") String profileId,
             @RequestBody ChatRequest request) {
         LOG.debug("Heap dump AI analysis chat request");
@@ -94,7 +94,7 @@ public class HeapDumpAiAnalysisController {
     public record StatusResponse(boolean available, String provider, String model) {
     }
 
-    public record ChatRequest(String message, List<HeapDumpChatMessage> history) {
+    public record ChatRequest(String message, List<ChatMessage> history) {
     }
 
     private record HeapDumpManagerDelegate(HeapDumpManager manager) implements HeapDumpToolsDelegate {

@@ -67,7 +67,7 @@ const showInfoModal = ref(false);
 
 const threadInfo = props.threadRow.threadInfo;
 
-let threadRow: ThreadRow;
+let threadRowRenderer: ThreadRow;
 
 let flamegraphTooltip: FlamegraphTooltip;
 
@@ -75,8 +75,8 @@ let graphUpdater: GraphUpdater;
 
 // Store scroll handler reference for proper cleanup
 const handleScroll = () => {
-  if (threadRow != null) {
-    threadRow.onWindowScroll();
+  if (threadRowRenderer != null) {
+    threadRowRenderer.onWindowScroll();
   }
 
   // Close menu on scroll
@@ -114,8 +114,8 @@ const useWeightValue = computed(() => resolveWeight(selectedEventCode.value));
 
 onMounted(() => {
   // Initialize thread row
-  threadRow = new ThreadRow(props.threadCommon, props.threadRow, canvasId.value);
-  threadRow.draw();
+  threadRowRenderer = new ThreadRow(props.threadCommon, props.threadRow, canvasId.value);
+  threadRowRenderer.draw();
 
   // Initialize the Bootstrap modal after the DOM is ready
   nextTick(() => {
@@ -198,14 +198,14 @@ onUnmounted(() => {
   // Remove scroll listener with correct handler reference
   document.removeEventListener('scroll', handleScroll);
 
-  // Clean up threadRow resources (Konva stage, event handlers, etc.)
-  if (threadRow) {
-    threadRow.destroy();
+  // Clean up thread-row renderer resources (Konva stage, event handlers, etc.)
+  if (threadRowRenderer) {
+    threadRowRenderer.destroy();
   }
 });
 
 const showFlamegraph = (eventCode: string) => {
-  let flamegraphClient = new PrimaryFlamegraphClient(
+  const flamegraphClient = new PrimaryFlamegraphClient(
     props.primaryProfileId,
     eventCode,
     true,
@@ -233,7 +233,7 @@ const showFlamegraph = (eventCode: string) => {
 };
 
 function createContextMenuItems() {
-  let items = [];
+  const items = [];
 
   if (props.threadCommon.containsWallClock) {
     items.push({

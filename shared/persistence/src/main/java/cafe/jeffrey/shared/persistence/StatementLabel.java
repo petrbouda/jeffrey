@@ -21,6 +21,7 @@ package cafe.jeffrey.shared.persistence;
 public enum StatementLabel {
 
     WAL_CHECK_POINT,
+    RECREATE_TABLE_CLUSTERED,
 
     /**
      * {@link GroupLabel#INTERNAL_PROFILES}
@@ -92,6 +93,7 @@ public enum StatementLabel {
      */
     FIELDS_WITH_EVENT_TYPE,
     FIELDS_WITH_SINGLE_EVENT,
+    FIELDS_WITH_EVENT_TYPES,
     DURATION_STATS_BY_TYPE,
     CONTAINS_EVENT,
     STRING_RELATED_FLAGS,
@@ -133,6 +135,7 @@ public enum StatementLabel {
     FIND_ALL_PROFILES,
     DELETE_PROJECT,
     FIND_PROJECT,
+    FIND_PROJECT_INCLUDING_DELETED,
     FIND_PROJECT_BY_ORIGIN_ID,
     UPDATE_PROJECT_NAME,
     RESTORE_PROJECT,

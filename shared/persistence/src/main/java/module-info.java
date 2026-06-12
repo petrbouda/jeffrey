@@ -17,6 +17,7 @@
  */
 module cafe.jeffrey.shared.persistence {
     requires transitive java.sql;
+    requires transitive duckdb.jdbc;
     requires jdk.jfr;
     requires transitive cafe.jeffrey.shared.common;
     requires transitive cafe.jeffrey.shared.sql.builder;

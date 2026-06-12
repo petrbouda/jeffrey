@@ -17,14 +17,19 @@
  */
 package cafe.jeffrey.profile.heapdump.oql.function;
 
-import java.util.regex.Pattern;
-
 /**
  * Boolean string predicates evaluated in Java. Inputs that arrive as
  * {@code null} produce {@code null} per SQL semantics; callers are expected
  * to use {@link Boolean#TRUE}/{@code FALSE}/{@code null} as needed.
  */
 public final class StringPredicates {
+
+    /**
+     * Fallback cache for the convenience overload of
+     * {@link #matchesRegex(Object, Object)}. Per-query callers (the OQL
+     * evaluator) pass their own cache instead.
+     */
+    private static final RegexPatternCache SHARED_PATTERN_CACHE = new RegexPatternCache();
 
     private StringPredicates() {
     }
@@ -57,12 +62,16 @@ public final class StringPredicates {
     }
 
     public static Boolean matchesRegex(Object subject, Object regex) {
+        return matchesRegex(subject, regex, SHARED_PATTERN_CACHE);
+    }
+
+    public static Boolean matchesRegex(Object subject, Object regex, RegexPatternCache patternCache) {
         String s = asString(subject);
         String r = asString(regex);
         if (s == null || r == null) {
             return null;
         }
-        return Pattern.compile(r).matcher(s).matches();
+        return patternCache.compile(r).matcher(s).matches();
     }
 
     public static Boolean equalsString(Object a, Object b) {

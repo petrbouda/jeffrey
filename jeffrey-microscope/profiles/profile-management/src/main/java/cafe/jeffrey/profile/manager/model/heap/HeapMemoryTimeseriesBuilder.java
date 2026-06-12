@@ -31,8 +31,16 @@ import java.time.temporal.ChronoUnit;
 
 public class HeapMemoryTimeseriesBuilder implements RecordBuilder<GenericRecord, SingleSerie> {
 
+    private static final String WHEN_BEFORE_GC = "Before GC";
+    private static final String WHEN_AFTER_GC = "After GC";
+
     private final HeapMemoryTimeseriesType timeseriesType;
     private final LongLongHashMap timeseries;
+
+    // The event timestamp (in nanos) backing the value currently stored for each second bucket.
+    // Keeps the series deterministic when events stream out of order: a bucket always holds the
+    // value of the event with the greatest timestamp, not of the event that happened to arrive last.
+    private final LongLongHashMap latestEventNanosPerSecond = new LongLongHashMap();
 
     public HeapMemoryTimeseriesBuilder(RelativeTimeRange timeRange, HeapMemoryTimeseriesType timeseriesType) {
         this.timeseriesType = timeseriesType;
@@ -48,11 +56,16 @@ public class HeapMemoryTimeseriesBuilder implements RecordBuilder<GenericRecord,
         ObjectNode fields = record.jsonFields();
         String when = Json.readString(fields, "when");
         long heapUsed = Json.readLong(fields, "heapUsed");
+        long eventNanos = record.timestampFromStart().toNanos();
         long seconds = record.timestampFromStart().toSeconds();
 
         // Combine both before and after GC events into a single series
-        if ("Before GC".equals(when) || "After GC".equals(when)) {
-            timeseries.put(seconds, heapUsed);
+        if (WHEN_BEFORE_GC.equals(when) || WHEN_AFTER_GC.equals(when)) {
+            long latestNanos = latestEventNanosPerSecond.getIfAbsent(seconds, Long.MIN_VALUE);
+            if (eventNanos >= latestNanos) {
+                latestEventNanosPerSecond.put(seconds, eventNanos);
+                timeseries.put(seconds, heapUsed);
+            }
         }
     }
 

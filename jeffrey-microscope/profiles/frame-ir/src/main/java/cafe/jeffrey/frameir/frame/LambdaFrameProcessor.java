@@ -27,6 +27,8 @@ import java.util.List;
 
 public class LambdaFrameProcessor implements FrameProcessor {
 
+    private static final String LAMBDA_FRAME_NAME = "Lambda Frame";
+
     private final LambdaMatcher lambdaMatcher;
 
     public LambdaFrameProcessor(LambdaMatcher lambdaMatcher) {
@@ -39,30 +41,36 @@ public class LambdaFrameProcessor implements FrameProcessor {
     }
 
     @Override
-    public List<NewFrame> process(FlamegraphRecord record, List<? extends JfrStackFrame> stacktrace, int currIndex) {
+    public ProcessedFrames process(FlamegraphRecord record, List<? extends JfrStackFrame> stacktrace, int currIndex) {
+        List<NewFrame> frames = collectLambdaFrames(record, stacktrace, currIndex);
+        // Every emitted synthetic lambda frame replaces exactly one consumed stacktrace element.
+        return new ProcessedFrames(frames, frames.size());
+    }
+
+    private List<NewFrame> collectLambdaFrames(
+            FlamegraphRecord record, List<? extends JfrStackFrame> stacktrace, int currIndex) {
+
         if (currIndex >= stacktrace.size()) {
             return List.of();
         }
 
         JfrStackFrame currFrame = stacktrace.get(currIndex);
-        boolean isTopFrame = currIndex == (stacktrace.size() - 1);
 
         List<NewFrame> result = new ArrayList<>();
         if (LambdaMatchUtils.matchLambdaFrames(stacktrace, currIndex)) {
-            result.add(createLambdaSynthetic(currFrame, record, isTopFrame));
-            result.addAll(process(record, stacktrace, currIndex + 1));
+            result.add(createLambdaSynthetic(currFrame, record));
+            result.addAll(collectLambdaFrames(record, stacktrace, currIndex + 1));
         }
 
         return result;
     }
 
-    private NewFrame createLambdaSynthetic(JfrStackFrame currFrame, FlamegraphRecord record, boolean isTopFrame) {
+    private NewFrame createLambdaSynthetic(JfrStackFrame currFrame, FlamegraphRecord record) {
         return new NewFrame(
-                "Lambda Frame",
+                LAMBDA_FRAME_NAME,
                 currFrame.lineNumber(),
                 currFrame.bytecodeIndex(),
                 FrameType.LAMBDA_SYNTHETIC,
-                isTopFrame,
                 record.samples(),
                 record.weight());
     }

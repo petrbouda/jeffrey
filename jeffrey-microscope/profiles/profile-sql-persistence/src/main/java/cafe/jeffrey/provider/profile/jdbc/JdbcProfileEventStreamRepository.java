@@ -41,21 +41,26 @@ import static cafe.jeffrey.shared.persistence.GroupLabel.PROFILE_EVENTS;
 
 public class JdbcProfileEventStreamRepository implements ProfileEventStreamRepository {
 
+    private static final String JSON_ROOT_PATH_PREFIX = "$.";
+
     private record FlamegraphOptions(String sql, SqlParameterSource paramSource, RowMapper<FlamegraphRecord> mapper) {
     }
 
     private final QueryBuilderFactoryResolver queryBuilderFactoryResolver;
     private final DatabaseClient databaseClient;
     private final FrameResolutionMode frameResolutionMode;
+    private final FramesCacheSlot framesCacheSlot;
 
     public JdbcProfileEventStreamRepository(
             QueryBuilderFactoryResolver queryBuilderFactoryResolver,
             DatabaseClientProvider databaseClientProvider,
-            FrameResolutionMode frameResolutionMode) {
+            FrameResolutionMode frameResolutionMode,
+            FramesCacheSlot framesCacheSlot) {
 
         this.queryBuilderFactoryResolver = queryBuilderFactoryResolver;
         this.databaseClient = databaseClientProvider.provide(PROFILE_EVENTS);
         this.frameResolutionMode = frameResolutionMode;
+        this.framesCacheSlot = framesCacheSlot;
     }
 
     @Override
@@ -75,7 +80,7 @@ public class JdbcProfileEventStreamRepository implements ProfileEventStreamRepos
 
         databaseClient.queryStream(
                 StatementLabel.STREAM_EVENTS,
-                factory.complexQueries().subSecond().simple(configurer.useWeight()),
+                factory.complexQueries().subSecond().simple(configurer),
                 baseParams,
                 (r, _) -> new SubSecondRecord(r.getLong("start_ms_offset"), r.getLong("value")),
                 builder::onRecord);
@@ -92,7 +97,7 @@ public class JdbcProfileEventStreamRepository implements ProfileEventStreamRepos
         ComplexQueries.Timeseries timeseries = factory.complexQueries().timeseries();
         databaseClient.queryStream(
                 StatementLabel.STREAM_EVENTS,
-                timeseries.simple(configurer.useWeight(), configurer.specifiedThread() != null),
+                timeseries.simple(configurer),
                 baseParams,
                 (r, _) -> TimeseriesRecord.secondsAndValues(r.getLong("seconds"), r.getLong("value")),
                 builder::onRecord);
@@ -109,7 +114,7 @@ public class JdbcProfileEventStreamRepository implements ProfileEventStreamRepos
         ComplexQueries.Timeseries timeseries = factory.complexQueries().timeseries();
         databaseClient.queryStream(
                 StatementLabel.STREAM_EVENTS,
-                timeseries.simpleSearch(configurer.useWeight(), configurer.specifiedThread() != null),
+                timeseries.simpleSearch(configurer),
                 baseParams,
                 (r, _) -> new TimeseriesSearchRecord(r.getLong("seconds"), r.getLong("total_value"), r.getLong("matched_value")),
                 builder::onRecord);
@@ -122,15 +127,28 @@ public class JdbcProfileEventStreamRepository implements ProfileEventStreamRepos
         QueryBuilderFactory factory = queryBuilderFactoryResolver.resolve(configurer.eventTypes());
 
         MapSqlParameterSource baseParams = createBaseParams(configurer);
+        applyJsonFieldFilter(baseParams, configurer.jsonFieldFilter());
 
         databaseClient.queryStream(
                 StatementLabel.STREAM_EVENTS,
-                factory.complexQueries().timeseries().filterable(configurer.useWeight()),
+                factory.complexQueries().timeseries().filterable(configurer),
                 baseParams,
-                new FilterableTimeseriesRecordRowMapper(configurer.jsonFieldsFilter()),
+                (r, _) -> new SecondValue(r.getLong("seconds"), r.getLong("samples")),
                 builder::onRecord);
 
         return builder.build();
+    }
+
+    private static void applyJsonFieldFilter(
+            MapSqlParameterSource baseParams, EventQueryConfigurer.JsonFieldFilter jsonFieldFilter) {
+
+        if (jsonFieldFilter != null) {
+            baseParams.addValue("json_field_path", JSON_ROOT_PATH_PREFIX + jsonFieldFilter.field());
+            baseParams.addValue("json_field_value", jsonFieldFilter.value());
+        } else {
+            baseParams.addValue("json_field_path", null);
+            baseParams.addValue("json_field_value", null);
+        }
     }
 
     @Override
@@ -141,7 +159,7 @@ public class JdbcProfileEventStreamRepository implements ProfileEventStreamRepos
 
         databaseClient.queryStream(
                 StatementLabel.STREAM_EVENTS,
-                factory.complexQueries().timeseries().frameBased(configurer.useWeight()),
+                factory.complexQueries().timeseries().frameBased(configurer),
                 baseParams,
                 new TimeseriesRecordRowMapper(),
                 builder::onRecord);
@@ -177,33 +195,34 @@ public class JdbcProfileEventStreamRepository implements ProfileEventStreamRepos
         DuckDBFlamegraphQueries flamegraphQueries = (DuckDBFlamegraphQueries) factory.complexQueries().flamegraph();
 
         if (frameResolutionMode == FrameResolutionMode.CACHE) {
-            // Load frames fresh for this request - no caching between generations
-            FramesCache framesCache = FramesCache.load(databaseClient);
+            // Frames of the currently-open profile are cached between generations and invalidated
+            // by frame-mutating operations (class renaming, stacktrace transformations)
+            FramesCache framesCache = framesCacheSlot.resolve(() -> FramesCache.load(databaseClient));
 
             if (configurer.threads()) {
                 return new FlamegraphOptions(
-                        flamegraphQueries.byThreadAndWeightOptimized(),
+                        flamegraphQueries.byThreadAndWeightOptimized(configurer),
                         baseParams,
-                        new CachingFlamegraphRecordWithThreadsRowMapper(eventType, framesCache, true));
+                        new CachingFlamegraphRecordRowMapper(eventType, framesCache, true, true));
             } else {
                 return new FlamegraphOptions(
-                        flamegraphQueries.byWeightOptimized(),
+                        flamegraphQueries.byWeightOptimized(configurer),
                         baseParams,
-                        new CachingFlamegraphRecordRowMapper(eventType, framesCache, true));
+                        new CachingFlamegraphRecordRowMapper(eventType, framesCache, true, false));
             }
         }
 
         // DATABASE mode: SQL-side frame resolution (original implementation)
         if (configurer.threads()) {
             return new FlamegraphOptions(
-                    flamegraphQueries.byThreadAndWeight(),
+                    flamegraphQueries.byThreadAndWeight(configurer),
                     baseParams,
-                    new FlamegraphRecordWithThreadsRowMapper(eventType));
+                    new FlamegraphRecordRowMapper(eventType, true));
         } else {
             return new FlamegraphOptions(
-                    flamegraphQueries.byWeight(),
+                    flamegraphQueries.byWeight(configurer),
                     baseParams,
-                    new FlamegraphRecordRowMapper(eventType));
+                    new FlamegraphRecordRowMapper(eventType, false));
         }
     }
 

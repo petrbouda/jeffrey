@@ -110,9 +110,11 @@ public class FlameGraphProtoBuilder implements GraphBuilder<cafe.jeffrey.frameir
         // Recursively build frame tree
         buildFrame(levelBuilders, rootTitle, root, 0, 0, 0, false, minMetric);
 
-        // Build the final FlamegraphData
+        // Build the final FlamegraphData. The depth is taken from the actual levels because
+        // synthetic TRUNCATED rollups may add one level below the deepest surviving frame
+        // (Frame.depth() counts only surviving children).
         FlamegraphData.Builder dataBuilder = FlamegraphData.newBuilder()
-                .setDepth(depth);
+                .setDepth(levelBuilders.size());
 
         for (Level.Builder levelBuilder : levelBuilders) {
             dataBuilder.addLevels(levelBuilder);
@@ -208,7 +210,7 @@ public class FlameGraphProtoBuilder implements GraphBuilder<cafe.jeffrey.frameir
                 prunedChildrenCount++;
             }
         }
-        if (prunedChildrenCount > 0 && level + 1 < levelBuilders.size()) {
+        if (prunedChildrenCount > 0) {
             Frame.Builder synthetic = Frame.newBuilder()
                     .setLeftSamples(leftSamples)
                     .setTotalSamples(prunedSamples)
@@ -220,8 +222,22 @@ public class FlameGraphProtoBuilder implements GraphBuilder<cafe.jeffrey.frameir
                 synthetic.setLeftWeight(leftWeight);
                 synthetic.setTotalWeight(prunedWeight);
             }
-            levelBuilders.get(level + 1).addFrames(synthetic);
+            // Frame.depth() counts only surviving children — when ALL children of the deepest
+            // surviving frame are pruned, the rollup level does not exist yet and must be grown,
+            // otherwise the parent silently over-represents its self-time.
+            ensureLevel(levelBuilders, level + 1).addFrames(synthetic);
         }
+    }
+
+    /**
+     * Returns the builder for the given level, growing the level list when the level
+     * does not exist yet.
+     */
+    private static Level.Builder ensureLevel(List<Level.Builder> levelBuilders, int level) {
+        while (levelBuilders.size() <= level) {
+            levelBuilders.add(Level.newBuilder());
+        }
+        return levelBuilders.get(level);
     }
 
     /**

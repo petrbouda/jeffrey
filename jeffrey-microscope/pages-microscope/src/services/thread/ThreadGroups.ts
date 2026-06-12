@@ -61,7 +61,7 @@ export default class ThreadGroups {
     this.rectangles.sort((a, b) => a.start - b.start);
 
     const selectedSegments: ThreadRectangle[] = [];
-    for (let segment of this.rectangles) {
+    for (const segment of this.rectangles) {
       if (segment.start <= xPos && segment.end > xPos) {
         selectedSegments.push(segment);
       }

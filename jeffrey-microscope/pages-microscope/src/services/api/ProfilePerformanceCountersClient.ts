@@ -27,8 +27,8 @@ export default class ProfilePerformanceCountersClient extends BaseProfileClient 
     super(profileId, 'perfcounters');
   }
 
-  async exists(): Promise<Boolean> {
-    return super.get<Boolean>('/exists');
+  async exists(): Promise<boolean> {
+    return super.get<boolean>('/exists');
   }
 
   async getAll(): Promise<PerformanceCounterEnhanced[]> {
@@ -77,11 +77,12 @@ export default class ProfilePerformanceCountersClient extends BaseProfileClient 
     }
 
     switch (counter.datatype) {
-      case PerformanceCounterDataType.bytes:
+      case PerformanceCounterDataType.bytes: {
         const bytes = parseInt(counter.value);
         return isNaN(bytes) ? counter.value : FormattingService.formatBytes(bytes);
+      }
 
-      case PerformanceCounterDataType.duration:
+      case PerformanceCounterDataType.duration: {
         const duration = parseInt(counter.value);
         if (isNaN(duration)) {
           return counter.value;
@@ -96,12 +97,14 @@ export default class ProfilePerformanceCountersClient extends BaseProfileClient 
         }
 
         return FormattingService.formatDuration2Units(durationInNanos);
+      }
 
-      case PerformanceCounterDataType.timestamp:
+      case PerformanceCounterDataType.timestamp: {
         const timestamp = parseInt(counter.value);
         return isNaN(timestamp)
           ? counter.value
           : FormattingService.formatTimestamp(timestamp).replace('T', ' ');
+      }
 
       case PerformanceCounterDataType.count:
         // For count type, we use the raw value if it's a number

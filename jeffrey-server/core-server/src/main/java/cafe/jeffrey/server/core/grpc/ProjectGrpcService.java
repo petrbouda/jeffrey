@@ -25,12 +25,14 @@ import org.slf4j.LoggerFactory;
 import cafe.jeffrey.server.api.v1.*;
 import cafe.jeffrey.server.core.manager.project.ProjectManager;
 import cafe.jeffrey.server.core.manager.project.ProjectManager.DetailedProjectInfo;
+import cafe.jeffrey.server.core.manager.project.ProjectsManager;
 import cafe.jeffrey.server.core.manager.workspace.WorkspaceManager;
 import cafe.jeffrey.server.core.manager.workspace.WorkspacesManager;
 import cafe.jeffrey.server.persistence.api.ServerPlatformRepositories;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceEventCreator;
 
 import java.util.List;
+import java.util.Optional;
 
 public class ProjectGrpcService extends ProjectServiceGrpc.ProjectServiceImplBase {
 
@@ -84,9 +86,14 @@ public class ProjectGrpcService extends ProjectServiceGrpc.ProjectServiceImplBas
     @Override
     public void getProject(GetProjectRequest request, StreamObserver<GetProjectResponse> responseObserver) {
         try {
-            ProjectManager project = findProject(request.getProjectId());
+            WorkspaceManager workspace = workspacesManager.findById(request.getWorkspaceId())
+                    .orElseThrow(() -> GrpcExceptions.notFound("Workspace not found: " + request.getWorkspaceId()));
 
-            LOG.debug("Fetched project via gRPC: projectId={}", request.getProjectId());
+            ProjectManager project = findProjectInWorkspace(
+                    workspace, request.getWorkspaceId(), request.getProjectId());
+
+            LOG.debug("Fetched project via gRPC: workspaceId={} projectId={}",
+                    request.getWorkspaceId(), request.getProjectId());
 
             responseObserver.onNext(GetProjectResponse.newBuilder()
                     .setProject(toProto(project.detailedInfo()))
@@ -95,7 +102,8 @@ public class ProjectGrpcService extends ProjectServiceGrpc.ProjectServiceImplBas
         } catch (io.grpc.StatusRuntimeException e) {
             responseObserver.onError(e);
         } catch (Exception e) {
-            LOG.error("Failed to get project: projectId={}", request.getProjectId(), e);
+            LOG.error("Failed to get project: workspaceId={} projectId={}",
+                    request.getWorkspaceId(), request.getProjectId(), e);
             responseObserver.onError(Status.INTERNAL.withDescription(e.getMessage()).asRuntimeException());
         }
     }
@@ -121,7 +129,7 @@ public class ProjectGrpcService extends ProjectServiceGrpc.ProjectServiceImplBas
     @Override
     public void restoreProject(RestoreProjectRequest request, StreamObserver<RestoreProjectResponse> responseObserver) {
         try {
-            ProjectManager project = findProject(request.getProjectId());
+            ProjectManager project = findProjectIncludingDeleted(request.getProjectId());
             project.restore();
 
             LOG.info("Restored project via gRPC: projectId={}", request.getProjectId());
@@ -139,6 +147,40 @@ public class ProjectGrpcService extends ProjectServiceGrpc.ProjectServiceImplBas
     private ProjectManager findProject(String projectId) {
         return platformRepositories.newProjectRepository(projectId).find()
                 .map(projectManagerFactory)
+                .orElseThrow(() -> GrpcExceptions.notFound("Project not found: " + projectId));
+    }
+
+    /**
+     * Resolves a project regardless of its soft-deleted state. Restore must see
+     * soft-deleted projects — the active-only {@link #findProject(String)} filters
+     * them out, which would make restoring impossible.
+     */
+    private ProjectManager findProjectIncludingDeleted(String projectId) {
+        return platformRepositories.newProjectRepository(projectId).findIncludingDeleted()
+                .map(projectManagerFactory)
+                .orElseThrow(() -> GrpcExceptions.notFound("Project not found: " + projectId));
+    }
+
+    /**
+     * Finds a single project within a workspace. Active projects are resolved with a
+     * direct single-row lookup; soft-deleted projects fall back to the deleted-inclusive
+     * listing so restore/management lookups keep working (mirrors the listing path
+     * with include_deleted=true).
+     */
+    private static ProjectManager findProjectInWorkspace(
+            WorkspaceManager workspace, String workspaceId, String projectId) {
+
+        ProjectsManager projectsManager = workspace.projectsManager();
+
+        Optional<ProjectManager> activeProject = projectsManager.project(projectId)
+                .filter(manager -> workspaceId.equals(manager.info().workspaceId()));
+        if (activeProject.isPresent()) {
+            return activeProject.get();
+        }
+
+        return projectsManager.findAllIncludingDeleted().stream()
+                .filter(manager -> manager.info().id().equals(projectId))
+                .findFirst()
                 .orElseThrow(() -> GrpcExceptions.notFound("Project not found: " + projectId));
     }
 

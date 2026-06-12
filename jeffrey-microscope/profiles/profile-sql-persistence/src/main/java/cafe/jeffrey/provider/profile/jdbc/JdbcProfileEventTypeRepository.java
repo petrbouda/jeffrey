@@ -37,6 +37,7 @@ import cafe.jeffrey.shared.persistence.client.DatabaseClient;
 import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -84,8 +85,18 @@ public class JdbcProfileEventTypeRepository implements ProfileEventTypeRepositor
             WHERE events.event_type = (:code) LIMIT 1""";
 
     //language=SQL
+    private static final String FIELDS_BY_EVENT_TYPES = """
+            SELECT event_types.name, event_types.label, any_value(events.fields::JSON) AS event_fields FROM events
+            INNER JOIN event_types ON events.event_type = event_types.name
+            WHERE events.event_type IN (:codes)
+            GROUP BY event_types.name, event_types.label""";
+
+    //language=SQL
     private static final String COLUMNS_BY_SINGLE_EVENT =
             "SELECT columns FROM event_types WHERE name = (:code) LIMIT 1";
+
+    private static final String PLACEHOLDER_SPAN_FILTER = "<<span_filter>>";
+    private static final String EVENTS_TABLE = "events";
 
     //language=SQL
     private static final String EVENT_SUMMARIES_BY_CODES = """
@@ -96,15 +107,7 @@ public class JdbcProfileEventTypeRepository implements ProfileEventTypeRepositor
                     SUM(weight) as weight
                 FROM events
                 WHERE event_type IN (:codes)
-                    AND (:span_filter_enabled = FALSE OR EXISTS (
-                        SELECT 1 FROM (
-                            SELECT UNNEST([:span_thread_hashes]) AS th,
-                                   UNNEST([:span_from_ms]) AS f,
-                                   UNNEST([:span_to_ms]) AS t
-                        ) iv
-                        WHERE events.thread_hash = iv.th
-                          AND EPOCH_MS(events.start_timestamp) BETWEEN iv.f AND iv.t
-                    ))
+                    <<span_filter>>
                 GROUP BY event_type
             )
             SELECT
@@ -174,6 +177,28 @@ public class JdbcProfileEventTypeRepository implements ProfileEventTypeRepositor
     }
 
     @Override
+    public Map<Type, EventTypeWithFields> singleFieldsByEventTypes(List<Type> types) {
+        if (types.isEmpty()) {
+            return Map.of();
+        }
+
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("codes", types.stream().map(Type::code).toList());
+
+        List<EventTypeWithFields> rows = databaseClient.query(
+                StatementLabel.FIELDS_WITH_EVENT_TYPES,
+                sqlFormatter.formatJson(FIELDS_BY_EVENT_TYPES),
+                paramSource,
+                TYPE_FIELDS_MAPPER);
+
+        Map<Type, EventTypeWithFields> result = new LinkedHashMap<>();
+        for (EventTypeWithFields row : rows) {
+            result.put(Type.fromCode(row.name()), row);
+        }
+        return result;
+    }
+
+    @Override
     public List<FieldDescription> eventColumns(Type type) {
         Optional<List<FieldDescription>> calculatedEventColumnsOpt = findCalculatedEventColumns(type);
         // Return calculated columns if present
@@ -216,7 +241,7 @@ public class JdbcProfileEventTypeRepository implements ProfileEventTypeRepositor
         SpanIntervalParams.apply(paramSource, null);
 
         List<EventSummary> eventSummaries = databaseClient.query(
-                StatementLabel.EVENT_SUMMARIES, EVENT_SUMMARIES_BY_CODES, paramSource, EVENT_SUMMARY_MAPPER);
+                StatementLabel.EVENT_SUMMARIES, eventSummariesByCodesSql(null), paramSource, EVENT_SUMMARY_MAPPER);
 
         List<EventSummary> calculatedEventSummaries = commonCalculators.stream()
                 .filter(calculator -> types.contains(calculator.type()))
@@ -239,7 +264,18 @@ public class JdbcProfileEventTypeRepository implements ProfileEventTypeRepositor
 
         // Calculated (non-DB) summaries are profile-wide and cannot be span-scoped, so they are omitted here.
         return databaseClient.query(
-                StatementLabel.EVENT_SUMMARIES, EVENT_SUMMARIES_BY_CODES, paramSource, EVENT_SUMMARY_MAPPER);
+                StatementLabel.EVENT_SUMMARIES, eventSummariesByCodesSql(spanIntervals), paramSource, EVENT_SUMMARY_MAPPER);
+    }
+
+    /**
+     * Splices the span-scope semi-join into the summaries query only when span intervals are present;
+     * without span scoping, the clause is absent entirely.
+     */
+    private static String eventSummariesByCodesSql(List<SpanInterval> spanIntervals) {
+        String spanFilter = SpanIntervalParams.enabled(spanIntervals)
+                ? SpanIntervalParams.semiJoinFragment(EVENTS_TABLE)
+                : "";
+        return EVENT_SUMMARIES_BY_CODES.replace(PLACEHOLDER_SPAN_FILTER, spanFilter);
     }
 
     @Override

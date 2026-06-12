@@ -17,6 +17,8 @@
  */
 package cafe.jeffrey.profile.heapdump.parser;
 
+import cafe.jeffrey.shared.persistence.DuckDBAppenders;
+
 import org.duckdb.DuckDBAppender;
 
 import java.sql.SQLException;
@@ -50,11 +52,7 @@ public final class HprofAppenderUtils {
     }
 
     public static void appendNullableInt(DuckDBAppender app, Integer value) throws SQLException {
-        if (value == null) {
-            app.appendNull();
-        } else {
-            app.append(value.intValue());
-        }
+        DuckDBAppenders.nullableAppend(app, value);
     }
 
     /** Sentinel -1 used by the parser for "absent" thread/frame fields. */

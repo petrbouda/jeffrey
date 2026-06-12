@@ -40,6 +40,14 @@ import java.util.stream.Stream;
 
 public class DatabaseClient {
 
+    private static final String CLUSTERED_TABLE_SUFFIX = "_sorted";
+    //language=SQL
+    private static final String CREATE_SORTED_TABLE_TEMPLATE = "CREATE TABLE %s AS SELECT * FROM %s ORDER BY %s";
+    //language=SQL
+    private static final String DROP_TABLE_TEMPLATE = "DROP TABLE %s";
+    //language=SQL
+    private static final String RENAME_TABLE_TEMPLATE = "ALTER TABLE %s RENAME TO %s";
+
     private final NamedParameterJdbcOperations delegate;
 
     private final String groupLabel;
@@ -401,6 +409,27 @@ public class DatabaseClient {
 
     public void walCheckpoint() {
         execute(StatementLabel.WAL_CHECK_POINT, "FORCE CHECKPOINT;");
+    }
+
+    /**
+     * Rewrites the given table physically ordered by the provided columns (CTAS + swap). Row groups
+     * then carry tight zone maps for the clustering columns, so range predicates prune whole row
+     * groups during scans — without maintaining any index. Intended as a one-time post-ingest
+     * finalization; the swap is not atomic for concurrent readers of the same table.
+     *
+     * <p>Note: a CTAS copy keeps column types but drops constraints (PK/NOT NULL), so this must only
+     * be used for tables without constraints relied upon afterwards.
+     */
+    public void recreateTableClustered(String tableName, List<String> orderByColumns) {
+        if (orderByColumns == null || orderByColumns.isEmpty()) {
+            throw new IllegalArgumentException("At least one clustering column is required");
+        }
+
+        String sortedTableName = tableName + CLUSTERED_TABLE_SUFFIX;
+        execute(StatementLabel.RECREATE_TABLE_CLUSTERED, CREATE_SORTED_TABLE_TEMPLATE.formatted(
+                sortedTableName, tableName, String.join(", ", orderByColumns)));
+        execute(StatementLabel.RECREATE_TABLE_CLUSTERED, DROP_TABLE_TEMPLATE.formatted(tableName));
+        execute(StatementLabel.RECREATE_TABLE_CLUSTERED, RENAME_TABLE_TEMPLATE.formatted(sortedTableName, tableName));
     }
 
     private static long sumRows(int[] updateCount) {

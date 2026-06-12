@@ -46,7 +46,7 @@ public class JdbcSpanRepository implements SpanRepository {
     //language=SQL
     private static final String LIST_SPANS = """
             SELECT
-                EPOCH_MS(e.start_timestamp - fs.first_ts) AS start_ms,
+                e.start_timestamp_from_beginning          AS start_ms,
                 EPOCH_MS(e.start_timestamp)               AS start_epoch_ms,
                 e.duration                                AS duration_ns,
                 e.thread_hash                             AS thread_hash,
@@ -56,12 +56,17 @@ public class JdbcSpanRepository implements SpanRepository {
                 COALESCE(t.is_virtual, FALSE)             AS is_virtual,
                 json_extract_string(e.fields, '$.tag')    AS tag
             FROM events e
-            CROSS JOIN (SELECT MIN(start_timestamp) AS first_ts FROM events) fs
             LEFT JOIN threads t ON e.thread_hash = t.thread_hash
             WHERE e.event_type = :event_type
             ORDER BY e.start_timestamp
             """;
 
+    /*
+     * The window bounds compare the raw start_timestamp against epoch-micros literals so the
+     * predicate stays sargable (no per-row EPOCH_MS). The bounds replicate the millisecond-floor
+     * semantics of `EPOCH_MS(ts) BETWEEN :from_ms AND :to_ms`: floor(ts) >= from <=> ts >= from,
+     * and floor(ts) <= to <=> ts < to + 1ms.
+     */
     //language=SQL
     private static final String EVENTS_FOR_THREAD = """
             SELECT
@@ -72,7 +77,8 @@ public class JdbcSpanRepository implements SpanRepository {
             FROM events e
             WHERE e.thread_hash = :thread_hash
                 AND e.event_type <> :span_event_type
-                AND EPOCH_MS(e.start_timestamp) BETWEEN :from_ms AND :to_ms
+                AND e.start_timestamp >= make_timestamptz(:from_ms * 1000)
+                AND e.start_timestamp < make_timestamptz((:to_ms + 1) * 1000)
             ORDER BY e.start_timestamp
             LIMIT :limit
             """;

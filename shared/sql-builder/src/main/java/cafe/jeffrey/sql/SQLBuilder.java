@@ -25,13 +25,6 @@ import java.util.List;
 
 public class SQLBuilder {
 
-    private static final String FIRST_SAMPLE_CTE = """
-            WITH first_sample AS (
-                SELECT MIN(start_timestamp) AS first_ts
-                FROM events
-            )
-            """;
-
     private final List<String> selectColumns = new ArrayList<>();
     private final List<String> fromTables = new ArrayList<>();
     private final List<Join> joins = new ArrayList<>();
@@ -228,9 +221,6 @@ public class SQLBuilder {
     public String build() {
         StringBuilder sql = new StringBuilder();
 
-        // CTE for first sample timestamp
-        sql.append(FIRST_SAMPLE_CTE);
-
         // SELECT clause
         sql.append("SELECT ");
         if (selectColumns.isEmpty()) {
@@ -249,9 +239,6 @@ public class SQLBuilder {
         for (Join join : joins) {
             sql.append(" ").append(join.toSql());
         }
-
-        // CROSS JOIN first_sample CTE (must be last join)
-        sql.append(" CROSS JOIN first_sample fs");
 
         // WHERE clause
         if (!whereConditions.isEmpty()) {

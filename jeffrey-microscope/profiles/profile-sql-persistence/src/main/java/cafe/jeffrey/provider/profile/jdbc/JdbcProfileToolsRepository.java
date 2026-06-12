@@ -21,6 +21,7 @@ package cafe.jeffrey.provider.profile.jdbc;
 import cafe.jeffrey.provider.profile.api.*;
 
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import cafe.jeffrey.shared.persistence.GroupLabel;
 import cafe.jeffrey.shared.persistence.StatementLabel;
 import cafe.jeffrey.shared.persistence.client.DatabaseClient;
@@ -32,6 +33,7 @@ import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.StringJoiner;
 
 public class JdbcProfileToolsRepository implements ProfileToolsRepository {
 
@@ -74,9 +76,18 @@ public class JdbcProfileToolsRepository implements ProfileToolsRepository {
             VALUES (:frame_hash, :class_name, '', 'Collapsed', 0, 0)
             ON CONFLICT DO NOTHING""";
 
+    /**
+     * Set-based re-pointing of events to new stacktrace hashes: one statement per chunk of
+     * mappings joined via {@code UPDATE ... FROM (VALUES ...)} instead of one full-table
+     * UPDATE per mapping. The placeholder is filled with {@code (:old_N, :new_N)} pairs.
+     */
     //language=SQL
-    private static final String UPDATE_EVENTS_STACKTRACE = """
-            UPDATE events SET stacktrace_hash = :new_hash WHERE stacktrace_hash = :old_hash""";
+    private static final String UPDATE_EVENTS_STACKTRACE_TEMPLATE = """
+            UPDATE events SET stacktrace_hash = m.new_hash
+            FROM (VALUES %s) AS m(old_hash, new_hash)
+            WHERE events.stacktrace_hash = m.old_hash""";
+
+    private static final int UPDATE_MAPPING_CHUNK_SIZE = 1000;
 
     //language=SQL
     private static final String DELETE_STACKTRACES = """
@@ -114,9 +125,11 @@ public class JdbcProfileToolsRepository implements ProfileToolsRepository {
             )""";
 
     private final DatabaseClient databaseClient;
+    private final FramesCacheSlot framesCacheSlot;
 
-    public JdbcProfileToolsRepository(DatabaseClientProvider databaseClientProvider) {
+    public JdbcProfileToolsRepository(DatabaseClientProvider databaseClientProvider, FramesCacheSlot framesCacheSlot) {
         this.databaseClient = databaseClientProvider.provide(GroupLabel.PROFILE_TOOLS);
+        this.framesCacheSlot = framesCacheSlot;
     }
 
     @Override
@@ -168,33 +181,53 @@ public class JdbcProfileToolsRepository implements ProfileToolsRepository {
                 .addValue("class_name", className);
 
         databaseClient.update(StatementLabel.TOOLS_INSERT_SYNTHETIC_FRAME, INSERT_SYNTHETIC_FRAME, params);
+        // The cached frames don't contain the new synthetic frame — the next request must reload them
+        framesCacheSlot.invalidate();
     }
 
     @Override
     public void applyStacktraceTransformation(Map<Long, Long> oldToNewHashMapping, List<StacktraceRecord> newStacktraces) {
-        // Insert new stacktraces first
-        for (StacktraceRecord st : newStacktraces) {
-            var params = new MapSqlParameterSource()
-                    .addValue("hash", st.stacktraceHash())
-                    .addValue("type_id", st.typeId())
-                    .addValue("frame_hashes", Arrays.toString(st.frameHashes()))
-                    .addValue("tag_ids", Arrays.toString(st.tagIds()));
+        // Insert new stacktraces first, in a single batched statement
+        if (!newStacktraces.isEmpty()) {
+            SqlParameterSource[] insertParams = newStacktraces.stream()
+                    .map(st -> (SqlParameterSource) new MapSqlParameterSource()
+                            .addValue("hash", st.stacktraceHash())
+                            .addValue("type_id", st.typeId())
+                            .addValue("frame_hashes", Arrays.toString(st.frameHashes()))
+                            .addValue("tag_ids", Arrays.toString(st.tagIds())))
+                    .toArray(SqlParameterSource[]::new);
 
-            databaseClient.update(StatementLabel.TOOLS_INSERT_STACKTRACE, INSERT_STACKTRACE, params);
+            databaseClient.batchInsert(StatementLabel.TOOLS_INSERT_STACKTRACE, INSERT_STACKTRACE, insertParams);
         }
 
-        // Update events to point to new stacktrace hashes
-        for (var entry : oldToNewHashMapping.entrySet()) {
-            var params = new MapSqlParameterSource()
-                    .addValue("old_hash", entry.getKey())
-                    .addValue("new_hash", entry.getValue());
-
-            databaseClient.update(StatementLabel.TOOLS_UPDATE_EVENTS_STACKTRACE, UPDATE_EVENTS_STACKTRACE, params);
+        // Update events to point to new stacktrace hashes — one set-based statement per chunk
+        List<Map.Entry<Long, Long>> mappings = List.copyOf(oldToNewHashMapping.entrySet());
+        for (int from = 0; from < mappings.size(); from += UPDATE_MAPPING_CHUNK_SIZE) {
+            int to = Math.min(from + UPDATE_MAPPING_CHUNK_SIZE, mappings.size());
+            updateEventsStacktraceChunk(mappings.subList(from, to));
         }
 
         // Delete old stacktraces that are no longer referenced
         var deleteParams = new MapSqlParameterSource().addValue("hashes", oldToNewHashMapping.keySet());
         databaseClient.update(StatementLabel.TOOLS_DELETE_STACKTRACES, DELETE_STACKTRACES, deleteParams);
+
+        // Transformations change the frame/stacktrace landscape — drop the cached frames
+        framesCacheSlot.invalidate();
+    }
+
+    private void updateEventsStacktraceChunk(List<Map.Entry<Long, Long>> mappings) {
+        StringJoiner valueRows = new StringJoiner(", ");
+        MapSqlParameterSource params = new MapSqlParameterSource();
+
+        for (int i = 0; i < mappings.size(); i++) {
+            Map.Entry<Long, Long> mapping = mappings.get(i);
+            valueRows.add("(:old_" + i + ", :new_" + i + ")");
+            params.addValue("old_" + i, mapping.getKey());
+            params.addValue("new_" + i, mapping.getValue());
+        }
+
+        String sql = UPDATE_EVENTS_STACKTRACE_TEMPLATE.formatted(valueRows.toString());
+        databaseClient.update(StatementLabel.TOOLS_UPDATE_EVENTS_STACKTRACE, sql, params);
     }
 
     @Override
@@ -210,7 +243,9 @@ public class JdbcProfileToolsRepository implements ProfileToolsRepository {
 
     @Override
     public long deleteOrphanedFrames() {
-        return databaseClient.update(StatementLabel.TOOLS_DELETE_ORPHANED_FRAMES, DELETE_ORPHANED_FRAMES, new MapSqlParameterSource());
+        long deleted = databaseClient.update(StatementLabel.TOOLS_DELETE_ORPHANED_FRAMES, DELETE_ORPHANED_FRAMES, new MapSqlParameterSource());
+        framesCacheSlot.invalidate();
+        return deleted;
     }
 
     @Override

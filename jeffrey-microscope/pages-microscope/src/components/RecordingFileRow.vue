@@ -101,11 +101,6 @@ const getFileTypeIcon = (fileType: string): string => {
       return 'bi-file-earmark';
   }
 };
-
-const formatTimestamp = (millis: number | null | undefined): string => {
-  if (!millis) return '';
-  return FormattingService.formatTimestampUTC(millis);
-};
 </script>
 
 <template>
@@ -137,7 +132,8 @@ const formatTimestamp = (millis: number | null | undefined): string => {
               <i class="bi bi-hdd me-1"></i>{{ FormattingService.formatBytes(props.sizeInBytes) }}
             </span>
             <span class="recording-file-timestamp ms-2" v-if="props.timestamp">
-              <i class="bi bi-clock me-1"></i>{{ formatTimestamp(props.timestamp) }}
+              <i class="bi bi-clock me-1"></i
+              >{{ FormattingService.formatTimestampUTC(props.timestamp) }}
             </span>
             <span class="recording-file-description ms-2" v-if="props.description">{{
               props.description

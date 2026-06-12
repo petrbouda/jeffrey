@@ -29,10 +29,11 @@ import cafe.jeffrey.profile.guardian.traverse.TargetFrameType;
 
 public class Log4jAllocGuard extends TraversableGuard {
 
-    public Log4jAllocGuard(ProfileInfo profileInfo, double threshold) {
+    public Log4jAllocGuard(ProfileInfo profileInfo, double infoThreshold, double warningThreshold) {
         super("Log4j Allocation Overhead",
                 profileInfo,
-                threshold,
+                infoThreshold,
+                warningThreshold,
                 FrameMatchers.prefix("org.apache.logging.log4j."),
                 Category.APPLICATION,
                 TargetFrameType.JAVA,

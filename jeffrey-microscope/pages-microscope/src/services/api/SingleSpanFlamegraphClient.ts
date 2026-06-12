@@ -17,15 +17,8 @@
  */
 
 import GlobalVars from '@/services/GlobalVars';
-import axios from 'axios';
-import HttpUtils from '@/services/HttpUtils';
-import FlamegraphData from '@/services/api/model/FlamegraphData';
-import FlamegraphClient from '@/services/api/FlamegraphClient';
-import TimeseriesData from '@/services/timeseries/model/TimeseriesData';
-import BothGraphData from '@/services/api/model/BothGraphData';
-import TimeRange from '@/services/api/model/TimeRange';
+import RemoteFlamegraphClient from '@/services/api/RemoteFlamegraphClient';
 import GraphComponents from '@/services/api/model/GraphComponents';
-import ProtobufConverter from '@/services/flamegraphs/ProtobufConverter';
 
 /**
  * Flamegraph client scoped to a single async-profiler span. Like {@link SpanFlamegraphClient} it sends no
@@ -34,8 +27,7 @@ import ProtobufConverter from '@/services/flamegraphs/ProtobufConverter';
  * interval so the result contains only the samples this one span covers. The {@code threadHash} is kept as a
  * string to preserve full 64-bit precision over the wire.
  */
-export default class SingleSpanFlamegraphClient extends FlamegraphClient {
-  private readonly baseUrl: string;
+export default class SingleSpanFlamegraphClient extends RemoteFlamegraphClient {
   private readonly threadHash: string;
   private readonly fromMillis: number;
   private readonly toMillis: number;
@@ -58,9 +50,9 @@ export default class SingleSpanFlamegraphClient extends FlamegraphClient {
     excludeIdleSamples: boolean,
     onlyUnsafeAllocationSamples: boolean
   ) {
-    super();
-    this.baseUrl =
-      GlobalVars.internalUrl + '/profiles/' + profileId + '/async-profiler/spans/single/flamegraph';
+    super(
+      GlobalVars.internalUrl + '/profiles/' + profileId + '/async-profiler/spans/single/flamegraph'
+    );
     this.threadHash = threadHash;
     this.fromMillis = fromMillis;
     this.toMillis = toMillis;
@@ -72,7 +64,8 @@ export default class SingleSpanFlamegraphClient extends FlamegraphClient {
     this.onlyUnsafeAllocationSamples = onlyUnsafeAllocationSamples;
   }
 
-  private requestBody(components: GraphComponents): Record<string, unknown> {
+  // The span scope fully defines the data — timeRange/search of the contract are ignored.
+  protected bothContent(components: GraphComponents): Record<string, unknown> {
     return {
       threadHash: this.threadHash,
       fromMillis: this.fromMillis,
@@ -85,38 +78,6 @@ export default class SingleSpanFlamegraphClient extends FlamegraphClient {
       onlyUnsafeAllocationSamples: this.onlyUnsafeAllocationSamples,
       components: components
     };
-  }
-
-  provideBoth(
-    components: GraphComponents,
-    _timeRange: TimeRange | null,
-    _search: string | null
-  ): Promise<BothGraphData> {
-    return axios
-      .post<ArrayBuffer>(this.baseUrl, this.requestBody(components), HttpUtils.PROTOBUF_HEADERS)
-      .then(response => ProtobufConverter.decode(response.data));
-  }
-
-  provide(_timeRange: TimeRange | null): Promise<FlamegraphData> {
-    return axios
-      .post<ArrayBuffer>(
-        this.baseUrl,
-        this.requestBody(GraphComponents.FLAMEGRAPH_ONLY),
-        HttpUtils.PROTOBUF_HEADERS
-      )
-      .then(response => ProtobufConverter.decode(response.data))
-      .then(data => data.flamegraph);
-  }
-
-  provideTimeseries(_search: string | null): Promise<TimeseriesData> {
-    return axios
-      .post<ArrayBuffer>(
-        this.baseUrl,
-        this.requestBody(GraphComponents.TIMESERIES_ONLY),
-        HttpUtils.PROTOBUF_HEADERS
-      )
-      .then(response => ProtobufConverter.decode(response.data))
-      .then(data => data.timeseries);
   }
 
   save(): Promise<void> {

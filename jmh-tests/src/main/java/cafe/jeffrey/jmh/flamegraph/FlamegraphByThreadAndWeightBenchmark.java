@@ -29,9 +29,9 @@ import cafe.jeffrey.frameir.Frame;
 import cafe.jeffrey.frameir.FrameBuilder;
 import cafe.jeffrey.jmh.flamegraph.verification.BenchmarkVerification;
 import cafe.jeffrey.provider.profile.api.FlamegraphRecord;
-import cafe.jeffrey.provider.profile.jdbc.CachingFlamegraphRecordWithThreadsRowMapper;
+import cafe.jeffrey.provider.profile.jdbc.CachingFlamegraphRecordRowMapper;
 import cafe.jeffrey.provider.profile.jdbc.DuckDBFlamegraphQueries;
-import cafe.jeffrey.provider.profile.jdbc.FlamegraphRecordWithThreadsRowMapper;
+import cafe.jeffrey.provider.profile.jdbc.FlamegraphRecordRowMapper;
 import cafe.jeffrey.provider.profile.jdbc.FramesCache;
 import cafe.jeffrey.shared.common.model.Type;
 import cafe.jeffrey.shared.persistence.GroupLabel;
@@ -71,7 +71,7 @@ public class FlamegraphByThreadAndWeightBenchmark {
         DataSource ds = new SimpleJdbcDataSource(JDBC_URL);
         NamedParameterJdbcTemplate jdbcTemplate = new NamedParameterJdbcTemplate(ds);
         String sql = DuckDBFlamegraphQueries.of().byThreadAndWeight();
-        FlamegraphRecordWithThreadsRowMapper rowMapper = new FlamegraphRecordWithThreadsRowMapper(Type.EXECUTION_SAMPLE);
+        FlamegraphRecordRowMapper rowMapper = new FlamegraphRecordRowMapper(Type.EXECUTION_SAMPLE, true);
         return jdbcTemplate.query(sql, QUERY_PARAMS, rowMapper);
     };
 
@@ -81,8 +81,8 @@ public class FlamegraphByThreadAndWeightBenchmark {
         DatabaseClient databaseClient = new DatabaseClient(ds, GroupLabel.PROFILE_EVENTS);
         NamedParameterJdbcTemplate jdbcTemplate = new NamedParameterJdbcTemplate(ds);
         String sql = DuckDBFlamegraphQueries.of().byThreadAndWeightOptimized();
-        CachingFlamegraphRecordWithThreadsRowMapper rowMapper = new CachingFlamegraphRecordWithThreadsRowMapper(
-                Type.EXECUTION_SAMPLE, FramesCache.load(databaseClient), true);
+        CachingFlamegraphRecordRowMapper rowMapper = new CachingFlamegraphRecordRowMapper(
+                Type.EXECUTION_SAMPLE, FramesCache.load(databaseClient), true, true);
         return jdbcTemplate.query(sql, QUERY_PARAMS, rowMapper);
     };
 

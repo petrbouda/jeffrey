@@ -29,10 +29,11 @@ import cafe.jeffrey.profile.guardian.traverse.TargetFrameType;
 
 public class CollectionAllocGuard extends TraversableGuard {
 
-    public CollectionAllocGuard(ProfileInfo profileInfo, double threshold) {
+    public CollectionAllocGuard(ProfileInfo profileInfo, double infoThreshold, double warningThreshold) {
         super("Collection Resizing Allocations",
                 profileInfo,
-                threshold,
+                infoThreshold,
+                warningThreshold,
                 FrameMatchers.prefix("java.util.Arrays#copyOf"),
                 Category.APPLICATION,
                 TargetFrameType.JAVA,

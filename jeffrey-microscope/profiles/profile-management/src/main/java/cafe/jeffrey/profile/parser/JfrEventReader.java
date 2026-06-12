@@ -44,16 +44,31 @@ import java.util.function.Supplier;
 
 public class JfrEventReader implements EventProcessor<Void> {
 
+    private static final String SAMPLED_THREAD_FIELD = "sampledThread";
+    private static final String THREAD_FIELD = "thread";
+
     private static final List<StacktraceTagResolver> tagResolvers = List.of(
             new UnsafeAllocationStacktraceTagResolver(),
             new IdleStacktraceTagResolver()
     );
+
+    /**
+     * Where the thread of an event comes from. Resolved once per JFR event type
+     * (the {@code hasField} checks are linear descriptor scans) and cached.
+     */
+    private enum ThreadSource {
+        SAMPLED_THREAD_FIELD,
+        EXPLICIT_THREAD_FIELD,
+        EVENT_THREAD
+    }
 
     private final SingleThreadedEventWriter writer;
 
     private final Map<Long, EventThread> threads = new HashMap<>();
     private final Map<RecordedStackTrace, Long> stacktracesById = new IdentityHashMap<>();
     private final Map<RecordedThread, Long> threadsById = new IdentityHashMap<>();
+    private final Map<String, Type> typesByEventName = new HashMap<>();
+    private final Map<Long, ThreadSource> threadSourcesByTypeId = new HashMap<>();
 
     private final Supplier<StacktraceTypeResolver> stacktraceTypeResolverSupplier = StacktraceTypeResolverImpl::new;
 
@@ -87,7 +102,7 @@ public class JfrEventReader implements EventProcessor<Void> {
 
     @Override
     public Result onEvent(RecordedEvent event) {
-        Type type = Type.fromCode(event.getEventType().getName());
+        Type type = typesByEventName.computeIfAbsent(event.getEventType().getName(), Type::fromCode);
 
         if (type == Type.ACTIVE_SETTING) {
             EventSetting resolveSetting = eventTypeResolver.resolveSetting(event);
@@ -97,10 +112,12 @@ public class JfrEventReader implements EventProcessor<Void> {
         }
 
         long samples = calculateSamples(event, type);
-        Long weight = calculateWeight(event, type);
+
+        WeightExtractor weightExtractor = WeightExtractorRegistry.resolve(type);
+        Long weight = calculateWeight(event, weightExtractor);
 
         // Entity (very likely a class) that is associated with the weight (causes the event, e.g. allocated class)
-        String weightEntity = retrieveWeightEntity(event, type);
+        String weightEntity = retrieveWeightEntity(event, weightExtractor);
 
         /*
          * The thread is resolved based on the thread of the event.
@@ -224,13 +241,21 @@ public class JfrEventReader implements EventProcessor<Void> {
     }
 
     private RecordedThread resolveThread(RecordedEvent event) {
-        if (event.hasField("sampledThread")) {
-            return event.getThread("sampledThread");
-        } else if (event.hasField("thread")) {
-            return event.getThread("thread");
-        } else {
-            return event.getThread();
-        }
+        ThreadSource threadSource = threadSourcesByTypeId.computeIfAbsent(event.getEventType().getId(), _ -> {
+            if (event.hasField(SAMPLED_THREAD_FIELD)) {
+                return ThreadSource.SAMPLED_THREAD_FIELD;
+            } else if (event.hasField(THREAD_FIELD)) {
+                return ThreadSource.EXPLICIT_THREAD_FIELD;
+            } else {
+                return ThreadSource.EVENT_THREAD;
+            }
+        });
+
+        return switch (threadSource) {
+            case SAMPLED_THREAD_FIELD -> event.getThread(SAMPLED_THREAD_FIELD);
+            case EXPLICIT_THREAD_FIELD -> event.getThread(THREAD_FIELD);
+            case EVENT_THREAD -> event.getThread();
+        };
     }
 
     private long calculateSamples(RecordedEvent event, Type eventType) {
@@ -241,8 +266,7 @@ public class JfrEventReader implements EventProcessor<Void> {
         }
     }
 
-    private Long calculateWeight(RecordedEvent event, Type eventType) {
-        WeightExtractor weightExtractor = WeightExtractorRegistry.resolve(eventType);
+    private Long calculateWeight(RecordedEvent event, WeightExtractor weightExtractor) {
         if (weightExtractor != null && weightExtractor.extractor() != null) {
             return weightExtractor.extractor().applyAsLong(event);
         } else {
@@ -250,8 +274,7 @@ public class JfrEventReader implements EventProcessor<Void> {
         }
     }
 
-    private String retrieveWeightEntity(RecordedEvent event, Type eventType) {
-        WeightExtractor weightExtractor = WeightExtractorRegistry.resolve(eventType);
+    private String retrieveWeightEntity(RecordedEvent event, WeightExtractor weightExtractor) {
         if (weightExtractor != null && weightExtractor.entityExtractor() != null) {
             return weightExtractor.entityExtractor().apply(event);
         } else {

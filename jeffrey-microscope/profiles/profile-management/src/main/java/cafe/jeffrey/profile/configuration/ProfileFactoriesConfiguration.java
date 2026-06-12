@@ -36,7 +36,6 @@ import cafe.jeffrey.profile.guardian.GuardianProvider;
 import cafe.jeffrey.profile.guardian.ParsingGuardianProvider;
 import cafe.jeffrey.profile.manager.*;
 import cafe.jeffrey.profile.tools.collapse.CollapseFramesManager;
-import cafe.jeffrey.profile.tools.collapse.CollapseFramesManagerImpl;
 
 
 import cafe.jeffrey.profile.manager.action.ProfileDataInitializer;
@@ -174,7 +173,7 @@ public class ProfileFactoriesConfiguration {
     public CollapseFramesManager.Factory collapseFramesManagerFactory() {
         return profileInfo -> {
             DataSource profileDb = databaseManagerResolver.open(profileInfo);
-            return new CollapseFramesManagerImpl(
+            return new CollapseFramesManager(
                     profileRepositories.newToolsRepository(profileDb),
                     profileRepositories.newProfileCacheRepository(profileDb));
         };
@@ -507,7 +506,9 @@ public class ProfileFactoriesConfiguration {
         return profileInfo -> {
             DataSource profileDb = databaseManagerResolver.open(profileInfo);
             return new HeapMemoryManagerImpl(
-                    profileInfo, profileRepositories.newEventStreamRepository(profileDb));
+                    profileInfo,
+                    profileRepositories.newEventRepository(profileDb),
+                    profileRepositories.newEventStreamRepository(profileDb));
         };
     }
 

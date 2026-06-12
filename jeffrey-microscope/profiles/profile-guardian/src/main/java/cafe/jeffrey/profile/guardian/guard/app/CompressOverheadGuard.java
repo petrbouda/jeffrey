@@ -29,10 +29,11 @@ import cafe.jeffrey.profile.guardian.traverse.TargetFrameType;
 
 public class CompressOverheadGuard extends TraversableGuard {
 
-    public CompressOverheadGuard(ProfileInfo profileInfo, double threshold) {
+    public CompressOverheadGuard(ProfileInfo profileInfo, double infoThreshold, double warningThreshold) {
         super("Compression Overhead",
                 profileInfo,
-                threshold,
+                infoThreshold,
+                warningThreshold,
                 FrameMatchers.composite(
                         FrameMatchers.prefix("java.util.zip."),
                         FrameMatchers.prefix("java.util.jar.")),

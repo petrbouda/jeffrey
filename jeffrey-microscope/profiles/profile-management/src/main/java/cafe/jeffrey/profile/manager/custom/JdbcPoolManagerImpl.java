@@ -18,7 +18,6 @@
 
 package cafe.jeffrey.profile.manager.custom;
 
-import tools.jackson.databind.node.ObjectNode;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
 import cafe.jeffrey.shared.common.model.Type;
 import cafe.jeffrey.shared.common.model.time.RelativeTimeRange;
@@ -39,9 +38,10 @@ import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Predicate;
 
 public class JdbcPoolManagerImpl implements JdbcPoolManager {
+
+    private static final String POOL_NAME_FIELD = "poolName";
 
     private static final Map<Type, String> POOL_EVENT_NAMES = Map.of(
             Type.POOLED_JDBC_CONNECTION_ACQUIRED, "Connection Acquired",
@@ -174,14 +174,9 @@ public class JdbcPoolManagerImpl implements JdbcPoolManager {
     public SingleSerie timeseries(String poolName, Type eventType) {
         RelativeTimeRange timeRange = new RelativeTimeRange(profileInfo.profilingStartEnd());
 
-        // Get the event type for the specified pool
-        Predicate<ObjectNode> poolNameFilter = json -> {
-            String pool = json.get("poolName").asString();
-            return pool.equals(poolName);
-        };
-
+        // Only events of the specified pool are aggregated, the filter is pushed down into SQL
         EventQueryConfigurer configurer = new EventQueryConfigurer()
-                .withJsonFields(poolNameFilter)
+                .withJsonFieldEquals(POOL_NAME_FIELD, poolName)
                 .withEventType(eventType)
                 .withTimeRange(timeRange);
 

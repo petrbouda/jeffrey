@@ -18,8 +18,8 @@
 
 package cafe.jeffrey.profile.manager;
 
+import cafe.jeffrey.shared.common.Json;
 import tools.jackson.core.type.TypeReference;
-import tools.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -91,8 +91,7 @@ public class JvmFlagDescriptionProvider {
                 return new ConcurrentHashMap<>();
             }
 
-            ObjectMapper mapper = new ObjectMapper();
-            Map<String, FlagDescription> loaded = mapper.readValue(
+            Map<String, FlagDescription> loaded = Json.mapper().readValue(
                     is,
                     new TypeReference<Map<String, FlagDescription>>() {}
             );

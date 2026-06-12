@@ -24,9 +24,7 @@ import cafe.jeffrey.microscope.core.client.RemoteClients;
 import cafe.jeffrey.microscope.core.manager.ProfilesManager;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.microscope.core.manager.server.RemoteServerManager;
-import cafe.jeffrey.microscope.core.manager.server.RemoteServerManagerImpl;
 import cafe.jeffrey.microscope.core.manager.server.RemoteServersManager;
-import cafe.jeffrey.microscope.core.manager.server.RemoteServersManagerImpl;
 import cafe.jeffrey.microscope.core.manager.workspace.RemoteWorkspaceManager;
 import cafe.jeffrey.microscope.core.manager.workspace.WorkspaceManagerFactory;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCorePersistenceProvider;
@@ -78,7 +76,7 @@ public class RemoteWorkspaceConfiguration {
 
         return serverInfo -> {
             RemoteClients clients = remoteClientsFactory.apply(serverInfo.address());
-            return new RemoteServerManagerImpl(
+            return new RemoteServerManager(
                     serverInfo,
                     clients,
                     workspaceManagerFactory,
@@ -93,6 +91,6 @@ public class RemoteWorkspaceConfiguration {
             RemoteServerManager.Factory remoteServerManagerFactory,
             Clock clock) {
 
-        return new RemoteServersManagerImpl(remoteServersRepository, remoteServerManagerFactory, clock);
+        return new RemoteServersManager(remoteServersRepository, remoteServerManagerFactory, clock);
     }
 }

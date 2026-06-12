@@ -44,7 +44,7 @@
         <div class="config-item">
           <span class="config-label">Host Total Memory</span>
           <span class="config-value">{{
-            formatBytes(configData?.configuration.hostTotalMemory || 0)
+            FormattingService.formatBytes(configData?.configuration.hostTotalMemory || 0)
           }}</span>
         </div>
       </ConfigurationSection>
@@ -198,10 +198,6 @@ const loadData = async () => {
 
 const refreshData = async () => {
   await loadData();
-};
-
-const formatBytes = (bytes: number): string => {
-  return FormattingService.formatBytes(bytes);
 };
 
 const formatDuration = (nanoseconds: number | undefined): string => {

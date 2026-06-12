@@ -30,10 +30,11 @@ import cafe.jeffrey.profile.guardian.traverse.TargetFrameType;
 
 public class JITCompilationGuard extends TraversableGuard {
 
-    public JITCompilationGuard(ProfileInfo profileInfo, double threshold) {
+    public JITCompilationGuard(ProfileInfo profileInfo, double infoThreshold, double warningThreshold) {
         super("JIT Compilation",
                 profileInfo,
-                threshold,
+                infoThreshold,
+                warningThreshold,
                 FrameMatchers.jit(),
                 Category.JIT,
                 TargetFrameType.JVM,

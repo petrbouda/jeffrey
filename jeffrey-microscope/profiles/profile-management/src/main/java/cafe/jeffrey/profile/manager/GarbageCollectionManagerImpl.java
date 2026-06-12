@@ -132,6 +132,8 @@ public class GarbageCollectionManagerImpl implements GarbageCollectionManager {
 
     @Override
     public GCConfigurationData configuration() {
+        // The builder keeps the last streamed configuration per type ("latest wins"), so the stream
+        // must be chronological — the events table is physically clustered, not guaranteed time-ordered
         EventQueryConfigurer configurer = new EventQueryConfigurer()
                 .withEventTypes(List.of(
                         Type.GC_CONFIGURATION,
@@ -140,7 +142,8 @@ public class GarbageCollectionManagerImpl implements GarbageCollectionManager {
                         Type.GC_SURVIVOR_CONFIGURATION,
                         Type.YOUNG_GENERATION_CONFIGURATION
                 ))
-                .withJsonFields();
+                .withJsonFields()
+                .orderedByTime();
 
         return eventStreamRepository.genericStreaming(configurer, new GCConfigurationEventBuilder());
     }

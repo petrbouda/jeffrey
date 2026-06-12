@@ -43,6 +43,11 @@ import java.util.Optional;
 
 public class JITCompilationManagerImpl implements JITCompilationManager {
 
+    private static final String SETTING_THRESHOLD = "threshold";
+
+    /** Reported when the recording does not carry a parseable compilation-threshold setting. */
+    private static final long THRESHOLD_UNKNOWN_MILLIS = -1L;
+
     private final ProfileInfo profileInfo;
     private final ProfileEventTypeRepository eventTypeRepository;
     private final ProfileEventRepository eventRepository;
@@ -75,13 +80,13 @@ public class JITCompilationManagerImpl implements JITCompilationManager {
         }
 
         // Retrieve the threshold from the settings saying when the JIT compilation resulted in a long compilation
-        // and ended up in compilation events.
-        String thresholdInString = statisticsTypeOpt.get().settings()
-                .getOrDefault("threshold", "-1");
-        Duration threshold = DurationUtils.parse(thresholdInString);
+        // and ended up in compilation events. The setting may be absent or unparseable — in that case the
+        // threshold is reported as unknown instead of feeding an unparseable default into the parser.
+        Optional<Duration> threshold = Optional.ofNullable(statisticsTypeOpt.get().settings().get(SETTING_THRESHOLD))
+                .map(value -> DurationUtils.parseOrDefault(value, null));
 
         ObjectNode fields = (ObjectNode) statsOpt.get();
-        fields.put("compileMethodThreshold", threshold.toMillis());
+        fields.put("compileMethodThreshold", threshold.map(Duration::toMillis).orElse(THRESHOLD_UNKNOWN_MILLIS));
 
         return Json.treeToValue(fields, JITCompilationStats.class);
     }

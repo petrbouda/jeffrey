@@ -30,7 +30,7 @@ public class ThreadFrameProcessor extends SingleFrameProcessor {
     private FlamegraphRecord currentRecord = null;
 
     @Override
-    public NewFrame processSingle(FlamegraphRecord record, JfrStackFrame currFrame, boolean topFrame) {
+    public NewFrame processSingle(FlamegraphRecord record, JfrStackFrame currFrame) {
         currentRecord = record;
 
         return new NewFrame(
@@ -38,9 +38,14 @@ public class ThreadFrameProcessor extends SingleFrameProcessor {
                 0,
                 0,
                 FrameType.THREAD_NAME_SYNTHETIC,
-                false,
                 record.samples(),
                 record.weight());
+    }
+
+    @Override
+    int consumedStackFrames() {
+        // Emits a synthetic thread frame on top of the stacktrace without consuming any stacktrace element.
+        return 0;
     }
 
     @Override

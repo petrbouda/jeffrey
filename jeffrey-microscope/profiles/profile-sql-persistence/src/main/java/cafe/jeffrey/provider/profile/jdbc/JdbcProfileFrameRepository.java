@@ -48,9 +48,11 @@ public class JdbcProfileFrameRepository implements ProfileFrameRepository {
             WHERE class_name LIKE '%' || :search || '%'""";
 
     private final DatabaseClient databaseClient;
+    private final FramesCacheSlot framesCacheSlot;
 
-    public JdbcProfileFrameRepository(DatabaseClientProvider databaseClientProvider) {
+    public JdbcProfileFrameRepository(DatabaseClientProvider databaseClientProvider, FramesCacheSlot framesCacheSlot) {
         this.databaseClient = databaseClientProvider.provide(GroupLabel.PROFILE_FRAMES);
+        this.framesCacheSlot = framesCacheSlot;
     }
 
     @Override
@@ -81,6 +83,9 @@ public class JdbcProfileFrameRepository implements ProfileFrameRepository {
                 .addValue("search", search)
                 .addValue("replacement", replacement);
 
-        return databaseClient.update(StatementLabel.RENAME_FRAME_CLASS_NAMES, RENAME_CLASS_NAMES, params);
+        int renamed = databaseClient.update(StatementLabel.RENAME_FRAME_CLASS_NAMES, RENAME_CLASS_NAMES, params);
+        // The cached frames hold the old class names — the next request must reload them
+        framesCacheSlot.invalidate();
+        return renamed;
     }
 }

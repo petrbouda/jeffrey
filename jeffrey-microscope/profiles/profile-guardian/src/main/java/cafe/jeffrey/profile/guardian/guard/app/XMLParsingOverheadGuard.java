@@ -29,10 +29,11 @@ import cafe.jeffrey.profile.guardian.traverse.TargetFrameType;
 
 public class XMLParsingOverheadGuard extends TraversableGuard {
 
-    public XMLParsingOverheadGuard(ProfileInfo profileInfo, double threshold) {
+    public XMLParsingOverheadGuard(ProfileInfo profileInfo, double infoThreshold, double warningThreshold) {
         super("XML Parsing Overhead",
                 profileInfo,
-                threshold,
+                infoThreshold,
+                warningThreshold,
                 FrameMatchers.composite(
                         FrameMatchers.prefix("javax.xml."),
                         FrameMatchers.composite(

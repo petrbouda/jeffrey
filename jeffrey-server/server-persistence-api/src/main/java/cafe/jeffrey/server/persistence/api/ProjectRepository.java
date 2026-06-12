@@ -37,6 +37,14 @@ public interface ProjectRepository {
     Optional<ProjectInfo> find();
 
     /**
+     * Find the project information regardless of its soft-deleted state. Needed by
+     * operations that must resolve soft-deleted projects, e.g. restoring them.
+     *
+     * @return project information, including soft-deleted projects.
+     */
+    Optional<ProjectInfo> findIncludingDeleted();
+
+    /**
      * Update the project name.
      *
      * @param name new project's name.

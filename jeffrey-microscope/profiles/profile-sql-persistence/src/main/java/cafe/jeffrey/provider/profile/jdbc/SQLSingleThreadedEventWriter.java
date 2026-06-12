@@ -79,13 +79,12 @@ public class SQLSingleThreadedEventWriter implements SingleThreadedEventWriter {
 
     @Override
     public long onEventStacktrace(EventStacktrace stacktrace) {
-        List<EventFrameWithHash> framesWithHash = new ArrayList<>();
-        long[] stacktraceFrameHashes = new long[stacktrace.frames().size()];
-        for (int i = 0; i < stacktrace.frames().size(); i++) {
-            EventFrame frame = stacktrace.frames().get(i);
-            long frameHash = hasher.hashFrame(frame);
-            framesWithHash.add(new EventFrameWithHash(frameHash, frame));
-            stacktraceFrameHashes[i] = frameHash;
+        // Only the frame hashes are needed to decide whether the stacktrace is a duplicate,
+        // the EventFrameWithHash objects are built only for new stacktraces below.
+        List<EventFrame> frames = stacktrace.frames();
+        long[] stacktraceFrameHashes = new long[frames.size()];
+        for (int i = 0; i < frames.size(); i++) {
+            stacktraceFrameHashes[i] = hasher.hashFrame(frames.get(i));
         }
 
         long stacktraceHash = hasher.hashStackTrace(stacktraceFrameHashes);
@@ -98,9 +97,13 @@ public class SQLSingleThreadedEventWriter implements SingleThreadedEventWriter {
 
             writersProvider.stacktraces().insert(stacktraceWithHash);
 
-            List<EventFrameWithHash> deduplicatedFrames = framesWithHash.stream()
-                    .filter(frame -> deduplicator.checkAndAddFrame(frame.hash()))
-                    .toList();
+            List<EventFrameWithHash> deduplicatedFrames = new ArrayList<>();
+            for (int i = 0; i < frames.size(); i++) {
+                long frameHash = stacktraceFrameHashes[i];
+                if (deduplicator.checkAndAddFrame(frameHash)) {
+                    deduplicatedFrames.add(new EventFrameWithHash(frameHash, frames.get(i)));
+                }
+            }
 
             if (!deduplicatedFrames.isEmpty()) {
                 writersProvider.frames().insertBatch(deduplicatedFrames);

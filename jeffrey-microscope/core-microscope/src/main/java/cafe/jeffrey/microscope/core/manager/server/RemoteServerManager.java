@@ -18,8 +18,15 @@
 
 package cafe.jeffrey.microscope.core.manager.server;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import cafe.jeffrey.microscope.core.client.CachedRemoteClientsFactory;
+import cafe.jeffrey.microscope.core.client.RemoteClients;
+import cafe.jeffrey.microscope.core.client.RemoteDiscoveryClient;
 import cafe.jeffrey.microscope.core.manager.workspace.WorkspaceManager;
+import cafe.jeffrey.microscope.core.manager.workspace.WorkspaceManagerFactory;
 import cafe.jeffrey.microscope.persistence.api.RemoteServerInfo;
+import cafe.jeffrey.microscope.persistence.api.RemoteServersRepository;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 
 import java.util.List;
@@ -30,23 +37,61 @@ import java.util.function.Function;
  * Facade for one connected jeffrey-server. Lists workspaces live via gRPC,
  * creates new workspaces on the server, and produces per-workspace managers.
  */
-public interface RemoteServerManager {
+public class RemoteServerManager {
 
     @FunctionalInterface
-    interface Factory extends Function<RemoteServerInfo, RemoteServerManager> {
+    public interface Factory extends Function<RemoteServerInfo, RemoteServerManager> {
     }
 
-    RemoteServerInfo info();
+    private static final Logger LOG = LoggerFactory.getLogger(RemoteServerManager.class);
+
+    private final RemoteServerInfo serverInfo;
+    private final RemoteClients remoteClients;
+    private final WorkspaceManagerFactory workspaceManagerFactory;
+    private final RemoteServersRepository remoteServersRepository;
+    private final RemoteClients.Factory remoteClientsFactory;
+
+    public RemoteServerManager(
+            RemoteServerInfo serverInfo,
+            RemoteClients remoteClients,
+            WorkspaceManagerFactory workspaceManagerFactory,
+            RemoteServersRepository remoteServersRepository,
+            RemoteClients.Factory remoteClientsFactory) {
+
+        this.serverInfo = serverInfo;
+        this.remoteClients = remoteClients;
+        this.workspaceManagerFactory = workspaceManagerFactory;
+        this.remoteServersRepository = remoteServersRepository;
+        this.remoteClientsFactory = remoteClientsFactory;
+    }
+
+    public RemoteServerInfo info() {
+        return serverInfo;
+    }
 
     /**
      * Lists all workspaces on this server (live gRPC ListWorkspaces call).
      */
-    List<WorkspaceInfo> workspaces();
+    public List<WorkspaceInfo> workspaces() {
+        try {
+            return remoteClients.discovery().allWorkspaces();
+        } catch (Exception e) {
+            LOG.warn("Failed to list workspaces from remote server: serverId={} address={}",
+                    serverInfo.serverId(), serverInfo.address(), e);
+            return List.of();
+        }
+    }
 
     /**
      * Resolves a single workspace on this server to a {@link WorkspaceManager}.
      */
-    Optional<WorkspaceManager> workspace(String workspaceId);
+    public Optional<WorkspaceManager> workspace(String workspaceId) {
+        RemoteDiscoveryClient.WorkspaceResult result = remoteClients.discovery().workspace(workspaceId);
+        return switch (result.status()) {
+            case AVAILABLE -> Optional.of(workspaceManagerFactory.create(serverInfo, result.info(), remoteClients));
+            case UNAVAILABLE, OFFLINE, UNKNOWN -> Optional.empty();
+        };
+    }
 
     /**
      * Creates a new workspace on this server via the gRPC CreateWorkspace RPC.
@@ -55,10 +100,22 @@ public interface RemoteServerManager {
      *                    must match this value to route recordings to the workspace
      * @param name        display name
      */
-    WorkspaceInfo createWorkspace(String referenceId, String name);
+    public WorkspaceInfo createWorkspace(String referenceId, String name) {
+        WorkspaceInfo created = remoteClients.discovery().createWorkspace(referenceId, name);
+        LOG.info("Created workspace on remote server: server_id={} workspace_id={} reference_id={} name={}",
+                serverInfo.serverId(), created.id(), referenceId, name);
+        return created;
+    }
 
     /**
      * Removes the local pointer to this server. Does NOT touch server-side data.
      */
-    void delete();
+    public void delete() {
+        remoteServersRepository.delete(serverInfo.serverId());
+        if (remoteClientsFactory instanceof CachedRemoteClientsFactory cached) {
+            cached.evict(serverInfo.address());
+        }
+        LOG.info("Deleted local server pointer: server_id={} address={}",
+                serverInfo.serverId(), serverInfo.address());
+    }
 }

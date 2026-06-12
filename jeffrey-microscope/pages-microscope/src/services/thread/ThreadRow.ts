@@ -117,7 +117,7 @@ export default class ThreadRow {
     const pxPerMillis = this.stage.width() / this.threadCommon.totalDuration;
     const threadInfo = this.threadRow.threadInfo;
 
-    let width: number = this.stage.width();
+    const width: number = this.stage.width();
     const lifespanGroups = new ThreadGroups(width, pxPerMillis, ThreadRow.lifespanColor);
     const parkedGroups = new ThreadGroups(width, pxPerMillis, ThreadRow.parkedColor);
     const blockedGroups = new ThreadGroups(width, pxPerMillis, ThreadRow.blockedColor);
@@ -154,7 +154,7 @@ export default class ThreadRow {
     this.stage.on('mousemove', () => {
       const pos = this.stage.getPointerPosition() as Vector2d;
 
-      let xPos = Math.floor(pos.x);
+      const xPos = Math.floor(pos.x);
       const parkedRects = parkedGroups.selectRectangles(xPos);
       const blockedRects = blockedGroups.selectRectangles(xPos);
       const waitingRects = waitingGroups.selectRectangles(xPos);

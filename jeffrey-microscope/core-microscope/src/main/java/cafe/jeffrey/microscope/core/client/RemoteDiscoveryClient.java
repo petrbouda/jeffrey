@@ -129,6 +129,24 @@ public class RemoteDiscoveryClient {
                 .toList();
     }
 
+    public Optional<RemoteProjectResponse> project(String workspaceId, String projectId) {
+        try {
+            GetProjectResponse response = projectStub.getProject(
+                    GetProjectRequest.newBuilder()
+                            .setWorkspaceId(workspaceId)
+                            .setProjectId(projectId)
+                            .build());
+
+            return Optional.of(toRemoteProjectResponse(response.getProject()));
+        } catch (StatusRuntimeException e) {
+            if (e.getStatus().getCode() == io.grpc.Status.Code.NOT_FOUND) {
+                LOG.debug("Project not found via gRPC: workspaceId={} projectId={}", workspaceId, projectId);
+                return Optional.empty();
+            }
+            throw e;
+        }
+    }
+
     static WorkspaceInfo toWorkspaceInfo(cafe.jeffrey.server.api.v1.WorkspaceInfo proto) {
         return new WorkspaceInfo(
                 proto.getId(),

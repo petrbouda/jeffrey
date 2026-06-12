@@ -20,6 +20,7 @@ module cafe.jeffrey.microscope.profile.persistence.api {
     requires transitive cafe.jeffrey.shared.persistence;
     requires transitive cafe.jeffrey.microscope.profile.parser.api;
     requires transitive org.eclipse.collections.api;
+    requires org.eclipse.collections.impl;
     requires transitive tools.jackson.databind;
     requires jakarta.validation;
 

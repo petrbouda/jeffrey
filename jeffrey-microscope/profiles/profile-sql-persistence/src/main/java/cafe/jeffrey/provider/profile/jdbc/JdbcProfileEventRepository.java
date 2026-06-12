@@ -36,7 +36,6 @@ import cafe.jeffrey.shared.persistence.StatementLabel;
 import cafe.jeffrey.shared.persistence.client.DatabaseClient;
 import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
 
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -70,14 +69,22 @@ public class JdbcProfileEventRepository implements ProfileEventRepository {
             ORDER BY events.weight DESC LIMIT :limit
             """;
 
+    /**
+     * Hard cap on the rows materialized for a single event type. The result is fully loaded into
+     * memory as JSON nodes (Event Viewer), so an unbounded query over a high-frequency event type
+     * (e.g. millions of execution samples) would exhaust the heap instead of rendering a table.
+     */
+    private static final int EVENTS_WITH_FIELDS_ROW_LIMIT = 100_000;
+
     //language=SQL
     private static final String FIELDS_BY_EVENT = """
             SELECT events.event_type, events.fields::jsonb as event_fields FROM events
-            WHERE events.event_type IN (:code)""";
+            WHERE events.event_type IN (:code)
+            LIMIT :row_limit""";
 
     //language=SQL
     private static final String CONTAINS_EVENT =
-            "SELECT COUNT(*) FROM events WHERE event_type = (:code)";
+            "SELECT 1 FROM events WHERE event_type = (:code) LIMIT 1";
 
     //language=SQL
     private static final String DURATION_STATS_BY_TYPE = """
@@ -130,6 +137,12 @@ public class JdbcProfileEventRepository implements ProfileEventRepository {
             EventTypeName.STRING_FLAG
     );
 
+    /*
+     * Single pass over the flag events: one GROUP BY per flag computes the latest state
+     * (arg_max over a struct keeps event_type/value/origin from the SAME latest row), the distinct
+     * values and the full change history — instead of materializing a window-ranked CTE and
+     * re-joining it three times.
+     */
     //language=SQL
     private static final String ALL_FLAGS_QUERY = """
             WITH flag_history AS (
@@ -138,39 +151,30 @@ public class JdbcProfileEventRepository implements ProfileEventRepository {
                     json_extract_string(fields, '$.name') as flag_name,
                     json_extract_string(fields, '$.value') as flag_value,
                     json_extract_string(fields, '$.origin') as origin,
-                    start_timestamp,
-                    ROW_NUMBER() OVER (PARTITION BY json_extract_string(fields, '$.name') ORDER BY start_timestamp DESC) as rn
+                    start_timestamp
                 FROM events
                 WHERE event_type IN (:flag_event_types)
             ),
-            flag_values AS (
+            aggregated AS (
                 SELECT
                     flag_name,
+                    arg_max({'event_type': event_type, 'flag_value': flag_value, 'origin': origin}, start_timestamp) as latest,
                     list(DISTINCT flag_value) as all_values,
-                    count(DISTINCT flag_value) as value_count
-                FROM flag_history
-                GROUP BY flag_name
-            ),
-            flag_change_history AS (
-                SELECT
-                    flag_name,
-                    to_json(list({'value': flag_value, 'timestamp': strftime(start_timestamp, '%Y-%m-%dT%H:%M:%S.%gZ')} ORDER BY start_timestamp DESC)) as change_history
+                    count(DISTINCT flag_value) as value_count,
+                    to_json(list({'value': flag_value, 'timestamp': epoch_ms(start_timestamp)} ORDER BY start_timestamp DESC)) as change_history
                 FROM flag_history
                 GROUP BY flag_name
             )
             SELECT
-                h.event_type,
-                h.flag_name,
-                h.flag_value as current_value,
-                h.origin,
-                v.all_values,
-                v.value_count,
-                c.change_history::varchar as change_history
-            FROM flag_history h
-            JOIN flag_values v ON h.flag_name = v.flag_name
-            JOIN flag_change_history c ON h.flag_name = c.flag_name
-            WHERE h.rn = 1
-            ORDER BY h.origin, h.flag_name
+                latest.event_type as event_type,
+                flag_name,
+                latest.flag_value as current_value,
+                latest.origin as origin,
+                all_values,
+                value_count,
+                change_history::varchar as change_history
+            FROM aggregated
+            ORDER BY origin, flag_name
             """;
 
     private final SQLFormatter sqlFormatter;
@@ -216,7 +220,8 @@ public class JdbcProfileEventRepository implements ProfileEventRepository {
     @Override
     public List<JsonNode> eventsByTypeWithFields(Type type) {
         MapSqlParameterSource paramSource = new MapSqlParameterSource()
-                .addValue("code", type.code());
+                .addValue("code", type.code())
+                .addValue("row_limit", EVENTS_WITH_FIELDS_ROW_LIMIT);
 
         return databaseClient.query(
                 StatementLabel.FIELDS_WITH_EVENT_TYPE,
@@ -246,7 +251,9 @@ public class JdbcProfileEventRepository implements ProfileEventRepository {
         MapSqlParameterSource paramSource = new MapSqlParameterSource()
                 .addValue("code", type.code());
 
-        return databaseClient.queryExists(StatementLabel.CONTAINS_EVENT, CONTAINS_EVENT, paramSource);
+        // Presence check short-circuits on the first matching row instead of counting all of them
+        return databaseClient.querySingle(StatementLabel.CONTAINS_EVENT, CONTAINS_EVENT, paramSource, (_, _) -> Boolean.TRUE)
+                .isPresent();
     }
 
     @Override
@@ -309,8 +316,8 @@ public class JdbcProfileEventRepository implements ProfileEventRepository {
                             List<FlagValueChange> changes = new ArrayList<>();
                             for (JsonNode entry : historyArray) {
                                 String value = entry.get("value").asString();
-                                String timestamp = entry.get("timestamp").asString();
-                                changes.add(new FlagValueChange(value, Instant.parse(timestamp)));
+                                long timestamp = entry.get("timestamp").asLong();
+                                changes.add(new FlagValueChange(value, timestamp));
                             }
                             changeHistory = changes;
                         }

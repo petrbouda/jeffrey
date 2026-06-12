@@ -17,6 +17,7 @@
  */
 module cafe.jeffrey.microscope.profile.ai.mcp.duckdb.heapdump {
     requires transitive cafe.jeffrey.microscope.profile.heapdump;
+    requires transitive cafe.jeffrey.microscope.profile.ai.config;
     requires cafe.jeffrey.shared.common;
     requires transitive spring.ai.client.chat;
     requires spring.ai.model;

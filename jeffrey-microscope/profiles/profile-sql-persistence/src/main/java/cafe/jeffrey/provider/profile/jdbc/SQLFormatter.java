@@ -88,10 +88,10 @@ public abstract class SQLFormatter {
     public SQLBuilder timeRangeOptional(Duration from, Duration until) {
         SQLBuilder builder = new SQLBuilder();
         if (from != null) {
-            builder.and(gte("EPOCH_MS(events.start_timestamp - fs.first_ts)", l(from.toMillis())));
+            builder.and(gte("events.start_timestamp_from_beginning", l(from.toMillis())));
         }
         if (until != null) {
-            builder.and(lt("EPOCH_MS(events.start_timestamp - fs.first_ts)", l(until.toMillis())));
+            builder.and(lt("events.start_timestamp_from_beginning", l(until.toMillis())));
         }
         return builder;
     }

@@ -29,8 +29,8 @@ export default class ThreadTooltips {
   }
 
   static basic(metadata: EventMetadata, segments: ThreadRectangle[], colorRgb: string): string {
-    let typeFragment = '';
-    let firstValues = segments[0].period.values;
+    const typeFragment = '';
+    const firstValues = segments[0].period.values;
 
     let fields = '';
     metadata.fields.forEach((threadField, index) => {

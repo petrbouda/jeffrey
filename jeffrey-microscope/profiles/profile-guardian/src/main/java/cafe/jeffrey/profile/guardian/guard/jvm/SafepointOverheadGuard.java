@@ -30,10 +30,11 @@ import cafe.jeffrey.profile.guardian.traverse.TargetFrameType;
 
 public class SafepointOverheadGuard extends TraversableGuard {
 
-    public SafepointOverheadGuard(ProfileInfo profileInfo, double threshold) {
+    public SafepointOverheadGuard(ProfileInfo profileInfo, double infoThreshold, double warningThreshold) {
         super("Safepoint Overhead",
                 profileInfo,
-                threshold,
+                infoThreshold,
+                warningThreshold,
                 FrameMatchers.prefix("SafepointSynchronize::"),
                 Category.JIT,
                 TargetFrameType.JVM,

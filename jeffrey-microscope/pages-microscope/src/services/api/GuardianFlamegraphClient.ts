@@ -17,36 +17,28 @@
  */
 
 import GlobalVars from '@/services/GlobalVars';
-import axios from 'axios';
-import HttpUtils from '@/services/HttpUtils';
-import FlamegraphData from '@/services/api/model/FlamegraphData';
-import FlamegraphClient from '@/services/api/FlamegraphClient';
-import TimeseriesData from '@/services/timeseries/model/TimeseriesData';
+import RemoteFlamegraphClient from '@/services/api/RemoteFlamegraphClient';
 import GraphComponents from '@/services/api/model/GraphComponents';
 import TimeRange from '@/services/api/model/TimeRange';
-import BothGraphData from '@/services/api/model/BothGraphData';
-import ProtobufConverter from '@/services/flamegraphs/ProtobufConverter';
 
-export default class GuardianFlamegraphClient extends FlamegraphClient {
-  private readonly baseUrlFlamegraph: string;
+export default class GuardianFlamegraphClient extends RemoteFlamegraphClient {
   private readonly eventType: string;
   private readonly useWeight: boolean;
   private readonly markers: any;
 
   constructor(profileId: string, eventType: string, useWeight: boolean, markers: any) {
-    super();
-    this.baseUrlFlamegraph = GlobalVars.internalUrl + '/profiles/' + profileId + '/flamegraph';
+    super(GlobalVars.internalUrl + '/profiles/' + profileId + '/flamegraph');
     this.eventType = eventType;
     this.useWeight = useWeight;
     this.markers = markers;
   }
 
-  provideBoth(
+  protected bothContent(
     components: GraphComponents,
-    timeRange: TimeRange | null,
-    search: string | null
-  ): Promise<BothGraphData> {
-    const content = {
+    timeRange: TimeRange | null | undefined,
+    search: string | null | undefined
+  ): Record<string, unknown> {
+    return {
       eventType: this.eventType,
       useWeight: this.useWeight,
       markers: this.markers,
@@ -59,14 +51,12 @@ export default class GuardianFlamegraphClient extends FlamegraphClient {
       threadInfo: null,
       components: components
     };
-
-    return axios
-      .post<ArrayBuffer>(this.baseUrlFlamegraph, content, HttpUtils.PROTOBUF_HEADERS)
-      .then(response => ProtobufConverter.decode(response.data));
   }
 
-  provide(timeRange: TimeRange | null): Promise<FlamegraphData> {
-    const content = {
+  // The flamegraph-only payload historically places `timeRange` before `useThreadMode`;
+  // overridden to keep the serialized payload identical to the hand-built one.
+  protected override flamegraphContent(timeRange: TimeRange | null): Record<string, unknown> {
+    return {
       eventType: this.eventType,
       useWeight: this.useWeight,
       markers: this.markers,
@@ -78,15 +68,12 @@ export default class GuardianFlamegraphClient extends FlamegraphClient {
       threadInfo: null,
       components: GraphComponents.FLAMEGRAPH_ONLY
     };
-
-    return axios
-      .post<ArrayBuffer>(this.baseUrlFlamegraph, content, HttpUtils.PROTOBUF_HEADERS)
-      .then(response => ProtobufConverter.decode(response.data))
-      .then(data => data.flamegraph);
   }
 
-  provideTimeseries(search: string | null): Promise<TimeseriesData> {
-    const content = {
+  // The timeseries-only payload historically places `search` before `useThreadMode`;
+  // overridden to keep the serialized payload identical to the hand-built one.
+  protected override timeseriesContent(search: string | null): Record<string, unknown> {
+    return {
       eventType: this.eventType,
       useWeight: this.useWeight,
       markers: this.markers,
@@ -98,11 +85,6 @@ export default class GuardianFlamegraphClient extends FlamegraphClient {
       threadInfo: null,
       components: GraphComponents.TIMESERIES_ONLY
     };
-
-    return axios
-      .post<ArrayBuffer>(this.baseUrlFlamegraph, content, HttpUtils.PROTOBUF_HEADERS)
-      .then(response => ProtobufConverter.decode(response.data))
-      .then(data => data.timeseries);
   }
 
   save(
@@ -110,17 +92,13 @@ export default class GuardianFlamegraphClient extends FlamegraphClient {
     flamegraphName: string,
     timeRange: TimeRange | null
   ): Promise<void> {
-    const content = {
+    return this.postRepository({
       flamegraphName: flamegraphName,
       eventType: this.eventType,
       timeRange: timeRange,
       useWeight: this.useWeight,
       markers: this.markers,
       components: components
-    };
-
-    return axios
-      .post<void>(this.baseUrlFlamegraph + '/repository', content, HttpUtils.JSON_HEADERS)
-      .then(HttpUtils.RETURN_DATA);
+    });
   }
 }

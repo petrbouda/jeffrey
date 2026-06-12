@@ -101,7 +101,7 @@ public class DiffgraphProtoFormatter {
                 for (Map.Entry<String, DiffFrame> e : diffFrame.entrySet()) {
                     DiffFrame child = e.getValue();
                     long childMetric = useWeight ? child.weight() : child.samples();
-                    if (childMetric > minMetric) {
+                    if (childMetric >= minMetric) {
                         walkLayer(out, child, layer + 1, leftSamples, leftWeight);
                         leftSamples += child.samples();
                         leftWeight += child.weight();
@@ -252,7 +252,7 @@ public class DiffgraphProtoFormatter {
             cafe.jeffrey.frameir.Frame child = e.getValue();
             String method = e.getKey();
             long childMetric = useWeight ? child.totalWeight() : child.totalSamples();
-            if (childMetric > minMetric) {
+            if (childMetric >= minMetric) {
                 processSubtree(out, child, method, layer + 1, leftSamples, leftWeight, added);
                 leftSamples += child.totalSamples();
                 leftWeight += child.totalWeight();

@@ -91,7 +91,9 @@
                   ></span>
                   <span class="subphase-name">{{ sub.name }}</span>
                   <span v-if="sub.note" class="subphase-note">{{ sub.note }}</span>
-                  <span class="subphase-time">{{ formatDuration(sub.durationMs) }}</span>
+                  <span class="subphase-time">{{
+                    FormattingService.formatDurationMillisCompact(sub.durationMs)
+                  }}</span>
                 </li>
               </ul>
             </li>
@@ -104,6 +106,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue';
+import FormattingService from '@/services/FormattingService';
 import type { SubPhaseTiming } from '@/services/api/model/InitPipelineResult';
 
 export interface TimelineStep {
@@ -181,11 +184,6 @@ const phases: Phase[] = [
 
 const getStep = (id: string): TimelineStep | undefined => props.steps.find(s => s.id === id);
 
-const formatDuration = (ms: number): string => {
-  if (ms < 1000) return `${Math.max(0, Math.round(ms))}ms`;
-  return `${(ms / 1000).toFixed(1)}s`;
-};
-
 // Sub-phase accordion state — set of stage ids currently expanded.
 const expandedStages = ref<Set<string>>(new Set());
 const isExpanded = (id: string): boolean => expandedStages.value.has(id);
@@ -215,10 +213,10 @@ const subPhasePercent = (sub: SubPhaseTiming, all: SubPhaseTiming[]): number => 
 const stageMeta = (step: TimelineStep | undefined): string => {
   if (!step) return '';
   if (step.status === 'completed' && step.durationMs != null) {
-    return formatDuration(step.durationMs);
+    return FormattingService.formatDurationMillisCompact(step.durationMs);
   }
   if (step.status === 'in_progress' && step.startMs != null) {
-    return formatDuration(props.tickNow - step.startMs);
+    return FormattingService.formatDurationMillisCompact(props.tickNow - step.startMs);
   }
   if (step.status === 'skipped') return 'skipped';
   if (step.status === 'on_demand') return 'on demand';
@@ -264,7 +262,7 @@ const totalElapsed = computed(() => {
     if (s.durationMs != null) ms += s.durationMs;
     else if (s.status === 'in_progress' && s.startMs != null) ms += props.tickNow - s.startMs;
   }
-  return formatDuration(ms);
+  return FormattingService.formatDurationMillisCompact(ms);
 });
 </script>
 

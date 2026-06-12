@@ -21,6 +21,7 @@ import cafe.jeffrey.profile.heapdump.model.OQLQueryResult;
 import cafe.jeffrey.profile.heapdump.model.OQLResultEntry;
 import cafe.jeffrey.profile.heapdump.oql.ast.OqlStatement.OqlQuery;
 import cafe.jeffrey.profile.heapdump.oql.compiler.ExecutionPlan.StringFallbackPlan;
+import cafe.jeffrey.profile.heapdump.oql.function.RegexPatternCache;
 import cafe.jeffrey.profile.heapdump.parser.HeapView;
 import cafe.jeffrey.profile.heapdump.parser.InstanceRow;
 import cafe.jeffrey.profile.heapdump.parser.JavaClassRow;
@@ -91,6 +92,9 @@ public final class StringFallbackExecutor {
         Connection conn = view.databaseClient().connection();
         List<OQLResultEntry> entries = new ArrayList<>();
         PathExprEvaluator pathEval = new PathExprEvaluator(view);
+        // Shared per-query so a loop-invariant regex operand compiles once
+        // instead of once per uncovered String instance.
+        RegexPatternCache regexCache = new RegexPatternCache();
         try (PreparedStatement stmt = conn.prepareStatement(UNCAPPED_STRINGS_SQL);
              ResultSet rs = stmt.executeQuery()) {
             while (rs.next()) {
@@ -107,7 +111,7 @@ public final class StringFallbackExecutor {
                     continue;
                 }
                 Row row = new Row(view, inst, clazz, query.from().alias());
-                ExprEvaluator eval = new ExprEvaluator(row, pathEval);
+                ExprEvaluator eval = new ExprEvaluator(row, pathEval, regexCache);
                 if (query.whereExpr() != null && !eval.evalPredicate(query.whereExpr())) {
                     continue;
                 }

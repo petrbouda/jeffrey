@@ -27,9 +27,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
+import cafe.jeffrey.profile.ai.chat.AssistantResponse;
+import cafe.jeffrey.profile.ai.chat.ChatMessage;
 import cafe.jeffrey.profile.ai.duckdb.jfr.model.JfrAnalysisRequest;
-import cafe.jeffrey.profile.ai.duckdb.jfr.model.JfrAnalysisResponse;
-import cafe.jeffrey.profile.ai.duckdb.jfr.model.JfrChatMessage;
 import cafe.jeffrey.profile.ai.duckdb.jfr.service.JfrAnalysisAssistantService;
 
 import java.util.List;
@@ -60,7 +60,7 @@ public class AiAnalysisController {
     }
 
     @PostMapping("/chat")
-    public JfrAnalysisResponse chat(
+    public AssistantResponse chat(
             @PathVariable("profileId") String profileId,
             @RequestBody AiAnalysisChatRequest request) {
         LOG.debug("AI analysis chat request");
@@ -76,7 +76,7 @@ public class AiAnalysisController {
 
     public record AiAnalysisChatRequest(
             String message,
-            List<JfrChatMessage> history,
+            List<ChatMessage> history,
             Boolean canModify) {
     }
 }

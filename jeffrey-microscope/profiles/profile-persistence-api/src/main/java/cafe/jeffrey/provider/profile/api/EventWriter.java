@@ -19,6 +19,7 @@
 package cafe.jeffrey.provider.profile.api;
 
 import javax.sql.DataSource;
+import java.time.Instant;
 
 public interface EventWriter {
 
@@ -27,7 +28,13 @@ public interface EventWriter {
      */
     @FunctionalInterface
     interface Factory {
-        EventWriter create(DataSource dataSource);
+
+        /**
+         * @param dataSource         data source of the profile database the events are written into
+         * @param profilingStartedAt profiling start of the recording — the zero point of the relative
+         *                           event timeline persisted with every event
+         */
+        EventWriter create(DataSource dataSource, Instant profilingStartedAt);
     }
 
     /**

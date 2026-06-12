@@ -57,8 +57,22 @@ export default class FormattingService {
       return '0.00 B';
     }
 
-    let e = Math.floor(Math.log(bytes) / Math.log(1024));
+    const e = Math.floor(Math.log(bytes) / Math.log(1024));
     return (bytes / Math.pow(1024, e)).toFixed(2) + ' ' + FormattingService.UNITS[e];
+  }
+
+  /**
+   * Formats bytes with a single decimal place and short SI-style units (KB/MB/...),
+   * trimming trailing zeros (e.g. "1.5 KB", "1 KB").
+   */
+  static formatBytesShort(bytes: number): string {
+    if (bytes === 0) {
+      return '0 B';
+    }
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
   }
 
   static formatPercentage(value: number) {
@@ -130,6 +144,30 @@ export default class FormattingService {
     return durationString.split(' ').slice(0, 2).join(' ');
   }
 
+  /**
+   * Formats elapsed milliseconds compactly: whole milliseconds below one second
+   * (clamped to zero), otherwise seconds with one decimal (e.g. "350ms", "2.5s").
+   */
+  static formatDurationMillisCompact(ms: number): string {
+    if (ms < 1000) {
+      return `${Math.max(0, Math.round(ms))}ms`;
+    }
+    return `${(ms / 1000).toFixed(1)}s`;
+  }
+
+  /**
+   * Formats milliseconds with a single coarse unit: "350ms", "2.5s" or "1.5m".
+   */
+  static formatDurationMillisCoarse(ms: number): string {
+    if (ms < 1000) {
+      return `${ms}ms`;
+    }
+    if (ms < 60000) {
+      return `${(ms / 1000).toFixed(1)}s`;
+    }
+    return `${(ms / 60000).toFixed(1)}m`;
+  }
+
   static formatTimestamp(millis: number): string {
     if (millis === undefined || millis === null || millis === FormattingService.NO_TIMESTAMP) {
       return '-';
@@ -181,6 +219,19 @@ export default class FormattingService {
       .toISOString()
       .replace('T', ' ')
       .replace(/\.\d{3}Z$/, ' UTC');
+  }
+
+  /**
+   * Formats the time-of-day part of an epoch-millis timestamp in the local
+   * timezone as "HH:MM:SS" (24-hour clock).
+   */
+  static formatTimeOfDay(millis: number): string {
+    return new Date(millis).toLocaleTimeString('en-US', {
+      hour12: false,
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    });
   }
 
   static formatDate(dateString: string): string {

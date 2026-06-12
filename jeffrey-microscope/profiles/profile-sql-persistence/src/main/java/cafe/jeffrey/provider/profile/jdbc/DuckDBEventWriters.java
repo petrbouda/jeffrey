@@ -24,6 +24,7 @@ import cafe.jeffrey.provider.profile.api.EventFrameWithHash;
 import cafe.jeffrey.provider.profile.jdbc.*;
 
 import javax.sql.DataSource;
+import java.time.Instant;
 import java.util.concurrent.ExecutorService;
 
 public class DuckDBEventWriters implements EventWriters {
@@ -34,8 +35,8 @@ public class DuckDBEventWriters implements EventWriters {
     private final DuckDBThreadWriter threadWriter;
     private final DuckDBFrameWriter frameWriter;
 
-    public DuckDBEventWriters(ExecutorService executor, DataSource dataSource, int batchSize) {
-        this.eventWriter = new DuckDBEventWriter(executor, dataSource, batchSize);
+    public DuckDBEventWriters(ExecutorService executor, DataSource dataSource, int batchSize, Instant profilingStartedAt) {
+        this.eventWriter = new DuckDBEventWriter(executor, dataSource, batchSize, profilingStartedAt);
         this.eventTypeWriter = new DuckDBEventTypeWriter(executor, dataSource, batchSize);
         this.stacktraceWriter = new DuckDBStacktraceWriter(executor, dataSource, batchSize);
         this.threadWriter = new DuckDBThreadWriter(executor, dataSource, batchSize);

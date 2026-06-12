@@ -65,6 +65,53 @@ class JdbcProjectRepositoryTest {
     }
 
     @Nested
+    class FindIncludingDeletedMethod {
+
+        @Test
+        void returnsSoftDeletedProject(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
+            TestUtils.executeSql(dataSource, "sql/project/insert-project-with-profiles.sql");
+            JdbcProjectRepository repository = new JdbcProjectRepository("proj-001", provider);
+
+            repository.delete();
+
+            // Active-only find() filters the soft-deleted row out, the deleted-inclusive one must not
+            assertTrue(repository.find().isEmpty());
+            Optional<ProjectInfo> result = repository.findIncludingDeleted();
+            assertTrue(result.isPresent());
+            assertNotNull(result.get().deletedAt(), "deletedAt should be populated for a soft-deleted project");
+        }
+
+        @Test
+        void returnsEmpty_whenNotExists(DataSource dataSource) {
+            var provider = new DatabaseClientProvider(dataSource);
+            JdbcProjectRepository repository = new JdbcProjectRepository("non-existent", provider);
+
+            assertTrue(repository.findIncludingDeleted().isEmpty());
+        }
+    }
+
+    @Nested
+    class RestoreMethod {
+
+        @Test
+        void restoresSoftDeletedProject(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
+            TestUtils.executeSql(dataSource, "sql/project/insert-project-with-profiles.sql");
+            JdbcProjectRepository repository = new JdbcProjectRepository("proj-001", provider);
+
+            repository.delete();
+            assertTrue(repository.find().isEmpty());
+
+            repository.restore();
+
+            Optional<ProjectInfo> result = repository.find();
+            assertTrue(result.isPresent(), "Restored project should be visible via the active-only find()");
+            assertNull(result.get().deletedAt(), "deletedAt should be cleared after restore");
+        }
+    }
+
+    @Nested
     class UpdateProjectNameMethod {
 
         @Test

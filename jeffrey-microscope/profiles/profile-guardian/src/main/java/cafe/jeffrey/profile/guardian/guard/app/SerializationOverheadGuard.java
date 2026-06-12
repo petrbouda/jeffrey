@@ -29,10 +29,11 @@ import cafe.jeffrey.profile.guardian.traverse.TargetFrameType;
 
 public class SerializationOverheadGuard extends TraversableGuard {
 
-    public SerializationOverheadGuard(ProfileInfo profileInfo, double threshold) {
+    public SerializationOverheadGuard(ProfileInfo profileInfo, double infoThreshold, double warningThreshold) {
         super("Java Serialization Overhead",
                 profileInfo,
-                threshold,
+                infoThreshold,
+                warningThreshold,
                 FrameMatchers.composite(
                         FrameMatchers.prefix("java.io.ObjectOutputStream#writeObject"),
                         FrameMatchers.prefix("java.io.ObjectInputStream#readObject")),

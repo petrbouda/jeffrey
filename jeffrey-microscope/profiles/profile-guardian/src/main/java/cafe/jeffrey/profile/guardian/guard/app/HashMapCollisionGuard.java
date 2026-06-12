@@ -35,10 +35,11 @@ public class HashMapCollisionGuard extends TraversableGuard {
                     .or(FrameMatchers.suffix("Map$TreeNode#putTreeVal"))
                     .or(FrameMatchers.suffix("Map$TreeNode#findTreeNode"));
 
-    public HashMapCollisionGuard(ProfileInfo profileInfo, double threshold) {
+    public HashMapCollisionGuard(ProfileInfo profileInfo, double infoThreshold, double warningThreshold) {
         super("HashMap Collisions",
                 profileInfo,
-                threshold,
+                infoThreshold,
+                warningThreshold,
                 HASH_COLLISION_MATCHER,
                 Category.APPLICATION,
                 TargetFrameType.JAVA,

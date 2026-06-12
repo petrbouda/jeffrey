@@ -16,7 +16,9 @@ service ProjectService {
   // to true to include them (e.g., for UI toggles).
   rpc ListProjects(ListProjectsRequest) returns (ListProjectsResponse);
 
-  // Gets detailed information about a single project.
+  // Gets detailed information about a single project within a workspace.
+  // Soft-deleted projects are returned as well, so restore/management
+  // lookups resolve without enumerating the whole workspace.
   rpc GetProject(GetProjectRequest) returns (GetProjectResponse);
 
   // Deletes a project by publishing a PROJECT_DELETED workspace event.
@@ -40,7 +42,10 @@ message ListProjectsResponse {
 }
 
 message GetProjectRequest {
-  string project_id = 1;
+  // The workspace containing the project.
+  string workspace_id = 1;
+  // The project to fetch.
+  string project_id = 2;
 }
 
 message GetProjectResponse {

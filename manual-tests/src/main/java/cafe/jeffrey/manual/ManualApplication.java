@@ -7,6 +7,7 @@ import cafe.jeffrey.flamegraph.FlameGraphProtoBuilder;
 import cafe.jeffrey.flamegraph.proto.FlamegraphData;
 import cafe.jeffrey.frameir.Frame;
 import cafe.jeffrey.frameir.FrameBuilder;
+import cafe.jeffrey.provider.profile.api.EventQueryConfigurer;
 import cafe.jeffrey.provider.profile.api.FlamegraphRecord;
 import cafe.jeffrey.provider.profile.jdbc.DuckDBFlamegraphQueries;
 import cafe.jeffrey.provider.profile.jdbc.FlamegraphRecordRowMapper;
@@ -23,7 +24,7 @@ public class ManualApplication {
         Path databasePath = Path.of("manual-tests/database/profile-data.db");
         DataSource datasource = new SimpleJdbcDataSource("jdbc:duckdb:" + databasePath.toAbsolutePath());
 
-        String flamegraphSql = DuckDBFlamegraphQueries.of().simple();
+        String flamegraphSql = DuckDBFlamegraphQueries.of().simple(new EventQueryConfigurer());
 
         var client = new NamedParameterJdbcTemplate(datasource);
         MapSqlParameterSource params = new MapSqlParameterSource()
@@ -46,7 +47,7 @@ public class ManualApplication {
     private static void execute(NamedParameterJdbcTemplate client, String flamegraphSql, MapSqlParameterSource params) {
         long start = System.nanoTime();
         List<FlamegraphRecord> records = client.query(
-                flamegraphSql, params, new FlamegraphRecordRowMapper(Type.EXECUTION_SAMPLE));
+                flamegraphSql, params, new FlamegraphRecordRowMapper(Type.EXECUTION_SAMPLE, false));
         long end = System.nanoTime();
         IO.println("Query took: " + ((end - start) / 1_000_000) + " ms");
         IO.println("Records: " + records.size());

@@ -29,10 +29,17 @@ import java.util.List;
 
 public class GenericQueryBuilder implements QueryBuilder {
 
+    /**
+     * Chronological streaming order for consumers that pair or sequence events. The events table is
+     * physically clustered by (event_type, time), so scan order is not guaranteed to be
+     * chronological — an explicit ORDER BY is required.
+     */
+    private static final String ORDER_BY_TIME = "events.start_timestamp";
+
     private static final List<String> BASE_FIELDS = List.of(
             "events.event_type",
             "events.start_timestamp",
-            "EPOCH_MS(events.start_timestamp - fs.first_ts) AS start_timestamp_from_beginning",
+            "events.start_timestamp_from_beginning",
             "events.duration",
             "events.samples",
             "events.weight",
@@ -85,6 +92,10 @@ public class GenericQueryBuilder implements QueryBuilder {
 
         if (configurer.jsonFields()) {
             builder.merge(sqlFormatter.eventFields());
+        }
+
+        if (configurer.isOrderedByTime()) {
+            builder.orderBy(ORDER_BY_TIME);
         }
     }
 

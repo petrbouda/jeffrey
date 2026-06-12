@@ -16,4 +16,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+// Placeholder model: the backend payload currently carries no fields consumed by the frontend.
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export default interface HeapMemoryOverviewData {}
