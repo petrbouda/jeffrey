@@ -35,6 +35,14 @@ public class DuckDBProfileDatabaseManager implements DatabaseManager {
     private static final String PROFILE_MIGRATIONS_LOCATION = "classpath:db/migration/profile";
     private static final int MAX_POOL_SIZE = 10;
 
+    // DuckDB setting: without the obligation to preserve insertion order, parallel ingestion
+    // streams batches with less memory and no final re-ordering, and parallel scans return rows
+    // as they are produced. Consumers that need a specific row order must request an explicit
+    // ORDER BY — insertion order is not chronological anyway (chunk-parallel parsing flushes
+    // batches from concurrent db-writer threads).
+    private static final String PRESERVE_INSERTION_ORDER_SETTING = "preserve_insertion_order";
+    private static final String PRESERVE_INSERTION_ORDER_VALUE = "false";
+
     private static final String WAL_AUTOCHECKPOINT_PROPERTY = "wal_autocheckpoint";
 
     /**
@@ -87,6 +95,7 @@ public class DuckDBProfileDatabaseManager implements DatabaseManager {
                 .poolName("profile-database-pool-" + profileId)
                 .maxPoolSize(MAX_POOL_SIZE)
                 .additionalProperty(WAL_AUTOCHECKPOINT_PROPERTY, WAL_AUTOCHECKPOINT_THRESHOLD)
+                .additionalProperty(PRESERVE_INSERTION_ORDER_SETTING, PRESERVE_INSERTION_ORDER_VALUE)
                 .build();
 
         return DuckDBDataSourceProvider.open(params);
