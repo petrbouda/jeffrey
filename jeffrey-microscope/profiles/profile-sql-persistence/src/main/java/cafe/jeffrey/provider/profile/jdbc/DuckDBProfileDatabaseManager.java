@@ -21,6 +21,7 @@ package cafe.jeffrey.provider.profile.jdbc;
 import cafe.jeffrey.provider.profile.api.*;
 
 import org.flywaydb.core.Flyway;
+import cafe.jeffrey.shared.common.Schedulers;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.shared.persistence.DataSourceParams;
 import cafe.jeffrey.shared.persistence.DatabaseManager;
@@ -33,7 +34,7 @@ public class DuckDBProfileDatabaseManager implements DatabaseManager {
 
     private static final String PROFILE_DB_FILENAME = "profile-data.db";
     private static final String PROFILE_MIGRATIONS_LOCATION = "classpath:db/migration/profile";
-    private static final int MAX_POOL_SIZE = 10;
+    private static final int MAX_POOL_SIZE = Schedulers.DB_WRITER_MAX_THREADS;
 
     // DuckDB setting: without the obligation to preserve insertion order, parallel ingestion
     // streams batches with less memory and no final re-ordering, and parallel scans return rows

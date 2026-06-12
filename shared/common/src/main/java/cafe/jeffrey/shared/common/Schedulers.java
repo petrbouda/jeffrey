@@ -24,7 +24,10 @@ import org.slf4j.LoggerFactory;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 public abstract class Schedulers {
 
@@ -52,11 +55,28 @@ public abstract class Schedulers {
     private static final ExecutorService STREAMING =
             Executors.newThreadPerTaskExecutor(virtualThreadfactory("streaming"));
 
-    // Ingestion throughput plateaus at ~0.31M rows/s regardless of writer thread count
-    // (measured with 4, 8 and 20 threads on a 4M-row events-like schema) because DuckDB
-    // serializes commits/WAL writes. Threads beyond ~4 buy <10% and steal cores from parsing.
+    private static final int DB_WRITER_MIN_THREADS = 2;
+
+    /**
+     * Hard cap on concurrent DB-writer threads. Connection pools serving the writers must offer
+     * at least this many connections so that no flush task blocks on pool acquisition.
+     */
+    public static final int DB_WRITER_MAX_THREADS = 20;
+
+    // Cached-style pool: 2 core threads always alive, grows to DB_WRITER_MAX_THREADS on demand,
+    // idle threads above the core shrink after 60 s. SynchronousQueue forces immediate hand-off
+    // to a thread (no buffering), so the pool grows eagerly instead of filling a queue first.
+    // CallerRunsPolicy provides natural back-pressure: if all 20 threads are occupied the
+    // submitting parser thread runs the flush itself, slowing ingestion to match write speed.
     private static final ExecutorService DB_WRITER =
-            Executors.newFixedThreadPool(4, platformThreadfactory("db-writer"));
+            new ThreadPoolExecutor(
+                    DB_WRITER_MIN_THREADS,
+                    DB_WRITER_MAX_THREADS,
+                    60L, TimeUnit.SECONDS,
+                    new SynchronousQueue<>(),
+                    platformThreadfactory("db-writer"),
+                    new ThreadPoolExecutor.CallerRunsPolicy()
+            );
 
     public static ExecutorService sharedParallel() {
         return PARALLEL;
