@@ -23,6 +23,7 @@ import org.slf4j.LoggerFactory;
 import cafe.jeffrey.profile.common.model.FrameType;
 import cafe.jeffrey.frameir.frame.*;
 import cafe.jeffrey.frameir.frame.FrameProcessor.NewFrame;
+import cafe.jeffrey.frameir.frame.FrameProcessor.ProcessedFrames;
 import cafe.jeffrey.jfrparser.api.type.JfrStackFrame;
 import cafe.jeffrey.jfrparser.api.type.JfrStackTrace;
 import cafe.jeffrey.provider.profile.api.RecordBuilder;
@@ -74,32 +75,51 @@ public class FrameBuilder implements RecordBuilder<FlamegraphRecord, Frame> {
             return;
         }
 
-        Frame parent = root;
         List<? extends JfrStackFrame> frames = stacktrace.frames();
         if (frames.isEmpty()) {
             return;
         }
 
-        int newFramesCount;
-        for (int i = 0; i < frames.size(); i = i + newFramesCount) {
-            newFramesCount = 0;
-            for (FrameProcessor processor : processors) {
-                for (NewFrame newFrame : processor.checkAndProcess(record, frames, i)) {
-                    parent = addFrameToLayer(newFrame, parent);
-                    newFramesCount++;
-                }
-            }
+        List<NewFrame> newFrames = collectNewFrames(record, frames);
+
+        Frame parent = root;
+        for (int i = 0; i < newFrames.size(); i++) {
+            // Only the deepest emitted frame of the record carries the self-time, it keeps the invariant:
+            // selfSamples + sum(children.totalSamples) == totalSamples for every node in the tree.
+            boolean isTopFrame = i == (newFrames.size() - 1);
+            parent = addFrameToLayer(newFrames.get(i), parent, isTopFrame);
         }
     }
 
-    private static Frame addFrameToLayer(NewFrame newFrame, Frame parent) {
+    private List<NewFrame> collectNewFrames(FlamegraphRecord record, List<? extends JfrStackFrame> frames) {
+        List<NewFrame> newFrames = new ArrayList<>();
+        for (int i = 0; i < frames.size(); ) {
+            int consumedStackFrames = 0;
+            for (FrameProcessor processor : processors) {
+                ProcessedFrames processed = processor.checkAndProcess(record, frames, i);
+                newFrames.addAll(processed.frames());
+                consumedStackFrames += processed.consumedStackFrames();
+            }
+
+            if (consumedStackFrames == 0) {
+                LOG.warn("No stacktrace element consumed, skipping the rest of the stacktrace: index={} frames={}",
+                        i, frames.size());
+                break;
+            }
+
+            i += consumedStackFrames;
+        }
+        return newFrames;
+    }
+
+    private static Frame addFrameToLayer(NewFrame newFrame, Frame parent, boolean isTopFrame) {
         Frame resolvedFrame = parent.get(newFrame.methodName());
         if (resolvedFrame == null) {
             resolvedFrame = new Frame(parent, newFrame.methodName(), newFrame.lineNumber(), newFrame.bytecodeIndex());
             parent.put(newFrame.methodName(), resolvedFrame);
         }
 
-        resolvedFrame.increment(newFrame.frameType(), newFrame.sampleWeight(), newFrame.samples(), newFrame.isTopFrame());
+        resolvedFrame.increment(newFrame.frameType(), newFrame.sampleWeight(), newFrame.samples(), isTopFrame);
         return resolvedFrame;
     }
 

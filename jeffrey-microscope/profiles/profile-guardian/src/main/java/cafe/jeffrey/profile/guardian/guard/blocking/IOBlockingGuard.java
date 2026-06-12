@@ -29,10 +29,11 @@ import cafe.jeffrey.profile.guardian.traverse.TargetFrameType;
 
 public class IOBlockingGuard extends TraversableGuard {
 
-    public IOBlockingGuard(ProfileInfo profileInfo, double threshold) {
+    public IOBlockingGuard(ProfileInfo profileInfo, double infoThreshold, double warningThreshold) {
         super("I/O Blocking",
                 profileInfo,
-                threshold,
+                infoThreshold,
+                warningThreshold,
                 FrameMatchers.prefix("java.net.Socket")
                         .or(FrameMatchers.prefix("sun.nio.ch."))
                         .or(FrameMatchers.prefix("java.io.FileInputStream"))

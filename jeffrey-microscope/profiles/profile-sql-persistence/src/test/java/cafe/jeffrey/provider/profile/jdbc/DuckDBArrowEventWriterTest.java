@@ -58,14 +58,22 @@ class DuckDBArrowEventWriterTest {
     private static final long MICROS_PER_SECOND = 1_000_000L;
     private static final long NANOS_PER_MICRO = 1_000L;
 
+    /**
+     * Zero point of the relative event timeline — slightly before the first event so the
+     * persisted {@code start_timestamp_from_beginning} values are small positive offsets.
+     */
+    private static final Instant PROFILING_STARTED_AT = Instant.parse("2026-01-15T10:30:00Z");
+
     private static final String SELECT_EVENTS_SQL = """
-            SELECT event_type, epoch_us(start_timestamp), duration, samples, weight,
+            SELECT event_type, epoch_us(start_timestamp), start_timestamp_from_beginning,
+                   duration, samples, weight,
                    weight_entity, stacktrace_hash, thread_hash, CAST(fields AS VARCHAR)
             FROM events""";
 
     private record EventRow(
             String eventType,
             long startTimestampMicros,
+            long startTimestampFromBeginningMillis,
             Long duration,
             long samples,
             Long weight,
@@ -91,7 +99,7 @@ class DuckDBArrowEventWriterTest {
         List<Event> events = representativeEvents();
 
         DuckDBArrowEventWriter arrowWriter =
-                new DuckDBArrowEventWriter(DIRECT_EXECUTOR, dataSource, TEST_BATCH_SIZE);
+                new DuckDBArrowEventWriter(DIRECT_EXECUTOR, dataSource, TEST_BATCH_SIZE, PROFILING_STARTED_AT);
         for (Event event : events) {
             arrowWriter.insert(event);
         }
@@ -115,6 +123,8 @@ class DuckDBArrowEventWriterTest {
     private static void assertRowEquals(EventRow expected, EventRow actual, int index) {
         assertEquals(expected.eventType(), actual.eventType(), "event_type mismatch at row " + index);
         assertEquals(expected.startTimestampMicros(), actual.startTimestampMicros(), "start_timestamp mismatch at row " + index);
+        assertEquals(expected.startTimestampFromBeginningMillis(), actual.startTimestampFromBeginningMillis(),
+                "start_timestamp_from_beginning mismatch at row " + index);
         assertEquals(expected.duration(), actual.duration(), "duration mismatch at row " + index);
         assertEquals(expected.samples(), actual.samples(), "samples mismatch at row " + index);
         assertEquals(expected.weight(), actual.weight(), "weight mismatch at row " + index);
@@ -141,6 +151,7 @@ class DuckDBArrowEventWriterTest {
         return new EventRow(
                 event.eventType(),
                 toEpochMicros(event.startTimestamp()),
+                event.startTimestamp().toEpochMilli() - PROFILING_STARTED_AT.toEpochMilli(),
                 event.duration(),
                 event.samples(),
                 event.weight(),
@@ -202,13 +213,14 @@ class DuckDBArrowEventWriterTest {
                 rows.add(new EventRow(
                         resultSet.getString(1),
                         resultSet.getLong(2),
-                        readNullableLong(resultSet, 3),
-                        resultSet.getLong(4),
-                        readNullableLong(resultSet, 5),
-                        resultSet.getString(6),
-                        readNullableLong(resultSet, 7),
+                        resultSet.getLong(3),
+                        readNullableLong(resultSet, 4),
+                        resultSet.getLong(5),
+                        readNullableLong(resultSet, 6),
+                        resultSet.getString(7),
                         readNullableLong(resultSet, 8),
-                        resultSet.getString(9)));
+                        readNullableLong(resultSet, 9),
+                        resultSet.getString(10)));
             }
         }
         return rows;

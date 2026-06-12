@@ -30,6 +30,10 @@ public class JdbcProfileRepositories implements ProfileRepositories {
     private final QueryBuilderFactoryResolver queryBuilderFactoryResolver;
     private final FrameResolutionMode frameResolutionMode;
 
+    // Frames of the single currently-open profile; shared across repositories so that
+    // frame-mutating operations can invalidate what the flamegraph streaming reads
+    private final SingleSlotFramesCache framesCache = new SingleSlotFramesCache();
+
     public JdbcProfileRepositories(
             SQLFormatter sqlFormatter,
             QueryBuilderFactoryResolver queryBuilderFactoryResolver,
@@ -55,7 +59,8 @@ public class JdbcProfileRepositories implements ProfileRepositories {
     public ProfileEventStreamRepository newEventStreamRepository(DataSource dataSource) {
         DatabaseClientProvider profileClientProvider = new DatabaseClientProvider(dataSource);
         return new JdbcProfileEventStreamRepository(
-                queryBuilderFactoryResolver, profileClientProvider, frameResolutionMode);
+                queryBuilderFactoryResolver, profileClientProvider, frameResolutionMode,
+                new FramesCacheSlot(framesCache, dataSource));
     }
 
     @Override
@@ -79,13 +84,13 @@ public class JdbcProfileRepositories implements ProfileRepositories {
     @Override
     public ProfileFrameRepository newFrameRepository(DataSource dataSource) {
         DatabaseClientProvider profileClientProvider = new DatabaseClientProvider(dataSource);
-        return new JdbcProfileFrameRepository(profileClientProvider);
+        return new JdbcProfileFrameRepository(profileClientProvider, new FramesCacheSlot(framesCache, dataSource));
     }
 
     @Override
     public ProfileToolsRepository newToolsRepository(DataSource dataSource) {
         DatabaseClientProvider profileClientProvider = new DatabaseClientProvider(dataSource);
-        return new JdbcProfileToolsRepository(profileClientProvider);
+        return new JdbcProfileToolsRepository(profileClientProvider, new FramesCacheSlot(framesCache, dataSource));
     }
 
     @Override

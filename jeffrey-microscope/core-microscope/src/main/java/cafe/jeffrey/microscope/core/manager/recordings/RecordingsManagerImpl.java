@@ -336,7 +336,7 @@ public class RecordingsManagerImpl implements RecordingsManager {
         String profileId = IDGenerator.generate();
         Instant createdAt = clock.instant();
 
-        RecordingInformation recordingInfo = recordingInformationParser.provide(filePath);
+        RecordingInformation recordingInfo = resolveRecordingInformation(recording, filePath);
 
         ProfileInfo profileInfo = new ProfileInfo(
                 profileId, null, null, file.filename(),
@@ -357,6 +357,27 @@ public class RecordingsManagerImpl implements RecordingsManager {
         profileRepository.enableProfile(createdAt);
 
         return profileId;
+    }
+
+    /**
+     * Prefers the recording metadata persisted at upload time (event source + profiling start/end)
+     * and re-parses the JFR file only when any of them is missing — e.g. when the metadata parse
+     * failed during the upload.
+     */
+    private RecordingInformation resolveRecordingInformation(Recording recording, Path filePath) {
+        boolean persistedInfoComplete = recording.eventSource() != null
+                && recording.eventSource() != RecordingEventSource.UNKNOWN
+                && recording.recordingStartedAt() != null
+                && recording.recordingFinishedAt() != null;
+
+        if (persistedInfoComplete) {
+            return new RecordingInformation(
+                    FileSystemUtils.size(filePath),
+                    recording.eventSource(),
+                    recording.recordingStartedAt(),
+                    recording.recordingFinishedAt());
+        }
+        return recordingInformationParser.provide(filePath);
     }
 
     private String analyzeHeapDump(Recording recording, RecordingFile file) {

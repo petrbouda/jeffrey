@@ -43,7 +43,9 @@ class JdbcProfileToolsRepositoryTest {
     private static final String TEST_DATA = "sql/tools/insert-frames-stacktraces-events.sql";
 
     private static JdbcProfileToolsRepository createRepository(DataSource dataSource) {
-        return new JdbcProfileToolsRepository(new DatabaseClientProvider(dataSource));
+        return new JdbcProfileToolsRepository(
+                new DatabaseClientProvider(dataSource),
+                new FramesCacheSlot(new SingleSlotFramesCache(), dataSource));
     }
 
     @Nested

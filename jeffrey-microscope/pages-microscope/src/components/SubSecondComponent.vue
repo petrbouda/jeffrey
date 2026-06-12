@@ -111,7 +111,7 @@ function handleResize(event: any, delay: number = 100) {
 
   resizeTimer = window.setTimeout(() => {
     // 75 cumulative padding to avoid browser's scrollbar
-    let clientWidth = (heatmapComponent?.parentElement?.clientWidth as number) - 75 || 0;
+    const clientWidth = (heatmapComponent?.parentElement?.clientWidth as number) - 75 || 0;
     heatmapComponent.style.width = clientWidth + 'px';
   }, delay);
 }
@@ -237,7 +237,7 @@ function downloadAndProcessHeatmaps(timeRange?: TimeRange) {
 
 function renderAbsoluteHeatmaps(primaryData: SubSecondData, secondaryData: SubSecondData) {
   // Sync max values for consistent color scaling
-  let maxvalue = Math.max(primaryData.maxvalue, secondaryData.maxvalue);
+  const maxvalue = Math.max(primaryData.maxvalue, secondaryData.maxvalue);
   primaryData.maxvalue = maxvalue;
   secondaryData.maxvalue = maxvalue;
 

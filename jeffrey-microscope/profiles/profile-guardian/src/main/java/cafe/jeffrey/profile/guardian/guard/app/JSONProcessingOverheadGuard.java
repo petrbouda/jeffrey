@@ -29,10 +29,11 @@ import cafe.jeffrey.profile.guardian.traverse.TargetFrameType;
 
 public class JSONProcessingOverheadGuard extends TraversableGuard {
 
-    public JSONProcessingOverheadGuard(ProfileInfo profileInfo, double threshold) {
+    public JSONProcessingOverheadGuard(ProfileInfo profileInfo, double infoThreshold, double warningThreshold) {
         super("JSON Processing Overhead",
                 profileInfo,
-                threshold,
+                infoThreshold,
+                warningThreshold,
                 FrameMatchers.composite(
                         FrameMatchers.prefix("com.fasterxml.jackson."),
                         FrameMatchers.prefix("com.google.gson.")),

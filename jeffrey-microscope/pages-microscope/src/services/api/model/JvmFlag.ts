@@ -22,8 +22,8 @@
 export interface FlagValueChange {
   /** The flag value at this point in time */
   value: string;
-  /** When this value was recorded (ISO format) */
-  timestamp: string;
+  /** When this value was recorded, as UTC epoch millis */
+  timestamp: number;
 }
 
 /**

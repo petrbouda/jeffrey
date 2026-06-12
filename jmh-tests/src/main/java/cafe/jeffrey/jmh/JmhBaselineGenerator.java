@@ -33,7 +33,6 @@ import cafe.jeffrey.jmh.flamegraph.utils.FrameJsonSerializer;
 import cafe.jeffrey.provider.profile.api.FlamegraphRecord;
 import cafe.jeffrey.provider.profile.jdbc.DuckDBFlamegraphQueries;
 import cafe.jeffrey.provider.profile.jdbc.FlamegraphRecordRowMapper;
-import cafe.jeffrey.provider.profile.jdbc.FlamegraphRecordWithThreadsRowMapper;
 import cafe.jeffrey.shared.common.model.Type;
 import cafe.jeffrey.shared.persistence.SimpleJdbcDataSource;
 
@@ -105,7 +104,7 @@ public class JmhBaselineGenerator {
             new BenchmarkConfig(
                     "FlamegraphBenchmark",
                     () -> DuckDBFlamegraphQueries.of().byWeight(),
-                    new FlamegraphRecordRowMapper(Type.EXECUTION_SAMPLE),
+                    new FlamegraphRecordRowMapper(Type.EXECUTION_SAMPLE, false),
                     QUERY_PARAMS),
             new BenchmarkConfig(
                     "ByThreadFlamegraphBenchmark",
@@ -115,7 +114,7 @@ public class JmhBaselineGenerator {
             new BenchmarkConfig(
                     "ByThreadAndWeightFlamegraphBenchmark",
                     () -> DuckDBFlamegraphQueries.of().byThreadAndWeight(),
-                    new FlamegraphRecordWithThreadsRowMapper(Type.EXECUTION_SAMPLE),
+                    new FlamegraphRecordRowMapper(Type.EXECUTION_SAMPLE, true),
                     QUERY_PARAMS_WITH_THREAD)
     );
 

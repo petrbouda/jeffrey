@@ -18,36 +18,16 @@
 
 package cafe.jeffrey.profile.ai.duckdb.jfr.service;
 
+import cafe.jeffrey.profile.ai.chat.AiAssistantService;
+import cafe.jeffrey.profile.ai.chat.AssistantResponse;
 import cafe.jeffrey.profile.ai.duckdb.jfr.model.JfrAnalysisRequest;
-import cafe.jeffrey.profile.ai.duckdb.jfr.model.JfrAnalysisResponse;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
 
 /**
  * Service for AI-powered JFR analysis.
  * Provides conversational interface for analyzing JFR events stored in DuckDB.
  */
-public interface JfrAnalysisAssistantService {
-
-    /**
-     * Check if the AI assistant is available and properly configured.
-     *
-     * @return true if the assistant is available
-     */
-    boolean isAvailable();
-
-    /**
-     * Get the name of the AI model being used.
-     *
-     * @return the model name, or null if not configured
-     */
-    String getModelName();
-
-    /**
-     * Get the display name of the AI provider (e.g. "Claude", "ChatGPT").
-     *
-     * @return the provider display name, or null if not configured
-     */
-    String getProviderName();
+public interface JfrAnalysisAssistantService extends AiAssistantService {
 
     /**
      * Analyze JFR events for a specific profile.
@@ -56,5 +36,5 @@ public interface JfrAnalysisAssistantService {
      * @param request     the analysis request
      * @return the analysis response
      */
-    JfrAnalysisResponse analyze(ProfileInfo profileInfo, JfrAnalysisRequest request);
+    AssistantResponse analyze(ProfileInfo profileInfo, JfrAnalysisRequest request);
 }

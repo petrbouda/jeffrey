@@ -23,6 +23,7 @@ import cafe.jeffrey.frameir.Frame;
 import cafe.jeffrey.profile.common.analysis.AnalysisResult.Severity;
 import cafe.jeffrey.profile.guardian.FrameTreeFactory;
 import cafe.jeffrey.profile.guardian.GuardianResult;
+import cafe.jeffrey.profile.guardian.guard.app.RegexOverheadGuard;
 import cafe.jeffrey.profile.guardian.matcher.FrameMatchers;
 import cafe.jeffrey.profile.guardian.preconditions.Preconditions;
 import cafe.jeffrey.profile.guardian.traverse.FrameTraversal;
@@ -90,6 +91,23 @@ class SeverityBandsTest {
     void ratioAboveWarning_isWarning() {
         Severity severity = runAtRatio(60, 0.03, 0.05); // 6%
         assertEquals(Severity.WARNING, severity);
+    }
+
+    @Test
+    void representativeRegistryGuard_insideInfoBand_isInfo() {
+        // RegexOverheadGuard is wired in GuardRegistry with (regexInfoThreshold, regexWarningThreshold);
+        // a ratio between the two must yield INFO, proving the dual-threshold wiring end-to-end.
+        Frame root = node("root", 1000, 0);
+        Frame regex = node("java.util.regex.Pattern#matcher", 40, 40); // 4% — between 3% and 5%
+        Frame other = node("other", 960, 960);
+        Frame tree = withChildren(root, regex, other);
+
+        RegexOverheadGuard guard = new RegexOverheadGuard(
+                new Guard.ProfileInfo("test", Type.EXECUTION_SAMPLE), 0.03, 0.05);
+        guard.initialize(Preconditions.builder().build());
+        new FrameTraversal(tree).traverseWith(List.of(guard));
+
+        assertEquals(Severity.INFO, guard.result().analysisItem().severity());
     }
 
     @Test

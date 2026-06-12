@@ -27,10 +27,10 @@ import cafe.jeffrey.profile.manager.heapdump.analysis.ConsumerReportAnalysis;
 import cafe.jeffrey.profile.manager.heapdump.analysis.LeakSuspectsAnalysis;
 import cafe.jeffrey.profile.manager.heapdump.analysis.StringHeapAnalysis;
 import cafe.jeffrey.profile.manager.heapdump.analysis.ThreadHeapAnalysis;
+import cafe.jeffrey.shared.common.Json;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tools.jackson.core.JacksonException;
-import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -39,15 +39,13 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Typed JSON I/O for heap-dump analysis sidecar files. Owns the
- * {@link ObjectMapper} and the analysis directory; all heap-dump report
+ * Typed JSON I/O for heap-dump analysis sidecar files. Uses the shared
+ * {@link Json} mapper and owns the analysis directory; all heap-dump report
  * persistence flows through here.
  */
 public final class HeapDumpReportStore {
 
     private static final Logger LOG = LoggerFactory.getLogger(HeapDumpReportStore.class);
-
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     /**
      * Closed list of every cached-analysis sidecar this store knows about.
@@ -100,7 +98,7 @@ public final class HeapDumpReportStore {
             return Optional.empty();
         }
         try {
-            return Optional.of(OBJECT_MAPPER.readValue(filePath.toFile(), type));
+            return Optional.of(Json.mapper().readValue(filePath.toFile(), type));
         } catch (JacksonException e) {
             LOG.error("Failed to read analysis file: path={}", filePath, e);
             return Optional.empty();
@@ -111,7 +109,7 @@ public final class HeapDumpReportStore {
         try {
             Files.createDirectories(analysisDir);
             Path filePath = analysisDir.resolve(fileName);
-            OBJECT_MAPPER.writerWithDefaultPrettyPrinter().writeValue(filePath.toFile(), payload);
+            Json.mapper().writerWithDefaultPrettyPrinter().writeValue(filePath.toFile(), payload);
             LOG.info("{} saved: path={}", displayName, filePath);
         } catch (IOException | JacksonException e) {
             LOG.error("Failed to save {}: path={}", displayName, analysisDir, e);

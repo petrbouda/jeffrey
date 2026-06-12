@@ -18,12 +18,10 @@
 
 package cafe.jeffrey.provider.profile.api;
 
-import java.time.Instant;
-
 /**
  * Represents a single flag value change event with its timestamp.
  *
  * @param value     The flag value at this point in time
- * @param timestamp When this value was recorded
+ * @param timestamp When this value was recorded, as UTC epoch millis
  */
-public record FlagValueChange(String value, Instant timestamp) {}
+public record FlagValueChange(String value, long timestamp) {}

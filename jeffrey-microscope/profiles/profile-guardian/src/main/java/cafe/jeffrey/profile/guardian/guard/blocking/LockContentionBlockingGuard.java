@@ -29,10 +29,11 @@ import cafe.jeffrey.profile.guardian.traverse.TargetFrameType;
 
 public class LockContentionBlockingGuard extends TraversableGuard {
 
-    public LockContentionBlockingGuard(ProfileInfo profileInfo, double threshold) {
+    public LockContentionBlockingGuard(ProfileInfo profileInfo, double infoThreshold, double warningThreshold) {
         super("Lock Contention Blocking",
                 profileInfo,
-                threshold,
+                infoThreshold,
+                warningThreshold,
                 FrameMatchers.composite(
                         FrameMatchers.prefix("java.util.concurrent.locks.ReentrantLock"),
                         FrameMatchers.prefix("java.util.concurrent.locks.AbstractQueuedSynchronizer")),

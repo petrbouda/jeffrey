@@ -41,10 +41,11 @@ import cafe.jeffrey.profile.guardian.traverse.TargetFrameType;
  */
 public class FinalizerCleanerOverheadGuard extends TraversableGuard {
 
-    public FinalizerCleanerOverheadGuard(ProfileInfo profileInfo, double threshold) {
+    public FinalizerCleanerOverheadGuard(ProfileInfo profileInfo, double infoThreshold, double warningThreshold) {
         super("Finalizer/Cleaner Overhead",
                 profileInfo,
-                threshold,
+                infoThreshold,
+                warningThreshold,
                 FrameMatchers.composite(
                         FrameMatchers.prefix("java.lang.ref.Finalizer"),
                         FrameMatchers.composite(

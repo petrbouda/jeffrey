@@ -29,14 +29,15 @@ import cafe.jeffrey.profile.guardian.traverse.TargetFrameType;
 
 public class ReflectionOverheadGuard extends TraversableGuard {
 
-    public ReflectionOverheadGuard(ProfileInfo profileInfo, double threshold) {
-        this("Reflection Overhead", ResultType.SELF_SAMPLES, profileInfo, threshold);
+    public ReflectionOverheadGuard(ProfileInfo profileInfo, double infoThreshold, double warningThreshold) {
+        this("Reflection Overhead", ResultType.SELF_SAMPLES, profileInfo, infoThreshold, warningThreshold);
     }
 
-    public ReflectionOverheadGuard(String guardName, ResultType resultType, ProfileInfo profileInfo, double threshold) {
+    public ReflectionOverheadGuard(String guardName, ResultType resultType, ProfileInfo profileInfo, double infoThreshold, double warningThreshold) {
         super(guardName,
                 profileInfo,
-                threshold,
+                infoThreshold,
+                warningThreshold,
                 FrameMatchers.composite(
                         FrameMatchers.prefix("java.lang.reflect."),
                         FrameMatchers.prefix("jdk.internal.reflect.")),

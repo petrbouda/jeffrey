@@ -18,6 +18,8 @@
 
 package cafe.jeffrey.provider.profile.jdbc;
 
+import cafe.jeffrey.provider.profile.api.EventQueryConfigurer;
+import cafe.jeffrey.shared.common.model.SpanInterval;
 import cafe.jeffrey.shared.persistence.GroupLabel;
 import cafe.jeffrey.shared.persistence.StatementLabel;
 import cafe.jeffrey.shared.persistence.client.DatabaseClient;
@@ -33,6 +35,7 @@ import java.time.Instant;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 /**
  * Exercises the real flamegraph SIMPLE query (resolved from {@link DuckDBFlamegraphQueries}) against
@@ -49,21 +52,18 @@ class DuckDBFlamegraphSpanFilterTest {
     private static final long B_FROM = Instant.parse("2025-01-15T10:00:02.000Z").toEpochMilli();
     private static final long B_TO = Instant.parse("2025-01-15T10:00:02.200Z").toEpochMilli();
 
-    private static long totalSamples(DatabaseClient client, MapSqlParameterSource params) {
-        String sql = DuckDBFlamegraphQueries.of(EVENT_TYPE, "").simple();
+    private static long totalSamples(DatabaseClient client, List<SpanInterval> spanIntervals) {
+        EventQueryConfigurer configurer = new EventQueryConfigurer()
+                .withSpanIntervals(spanIntervals);
+        String sql = DuckDBFlamegraphQueries.of(EVENT_TYPE, "").simple(configurer);
+
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        SpanIntervalParams.apply(params, spanIntervals);
+
         return client.query(StatementLabel.STREAM_EVENTS, sql, params, (rs, _) -> rs.getLong("total_samples"))
                 .stream()
                 .mapToLong(Long::longValue)
                 .sum();
-    }
-
-    private static MapSqlParameterSource baseParams() {
-        return new MapSqlParameterSource()
-                .addValue("from_time", null)
-                .addValue("to_time", null)
-                .addValue("stacktrace_types", null)
-                .addValue("included_tags", null)
-                .addValue("excluded_tags", null);
     }
 
     @Test
@@ -71,15 +71,13 @@ class DuckDBFlamegraphSpanFilterTest {
         TestUtils.executeSql(dataSource, "sql/events/insert-span-flamegraph.sql");
         DatabaseClient client = new DatabaseClientProvider(dataSource).provide(GroupLabel.PROFILE_EVENTS);
 
-        MapSqlParameterSource params = baseParams()
-                .addValue("span_filter_enabled", true)
-                .addValue("span_thread_hashes", List.of(2001L, 2002L))
-                .addValue("span_from_ms", List.of(A_FROM, B_FROM))
-                .addValue("span_to_ms", List.of(A_TO, B_TO));
+        List<SpanInterval> spanIntervals = List.of(
+                new SpanInterval(2001L, A_FROM, A_TO),
+                new SpanInterval(2002L, B_FROM, B_TO));
 
         // Only thread 2001 inside span A and thread 2002 inside span B survive; the GC thread and the
         // out-of-window 2001 sample are filtered out.
-        assertEquals(2, totalSamples(client, params));
+        assertEquals(2, totalSamples(client, spanIntervals));
     }
 
     @Test
@@ -87,14 +85,10 @@ class DuckDBFlamegraphSpanFilterTest {
         TestUtils.executeSql(dataSource, "sql/events/insert-span-flamegraph.sql");
         DatabaseClient client = new DatabaseClientProvider(dataSource).provide(GroupLabel.PROFILE_EVENTS);
 
-        MapSqlParameterSource params = baseParams()
-                .addValue("span_filter_enabled", true)
-                .addValue("span_thread_hashes", List.of(2001L))
-                .addValue("span_from_ms", List.of(A_FROM))
-                .addValue("span_to_ms", List.of(A_TO));
+        List<SpanInterval> spanIntervals = List.of(new SpanInterval(2001L, A_FROM, A_TO));
 
         // Span A only → just the one thread-2001 sample inside its window.
-        assertEquals(1, totalSamples(client, params));
+        assertEquals(1, totalSamples(client, spanIntervals));
     }
 
     @Test
@@ -102,13 +96,10 @@ class DuckDBFlamegraphSpanFilterTest {
         TestUtils.executeSql(dataSource, "sql/events/insert-span-flamegraph.sql");
         DatabaseClient client = new DatabaseClientProvider(dataSource).provide(GroupLabel.PROFILE_EVENTS);
 
-        MapSqlParameterSource params = baseParams()
-                .addValue("span_filter_enabled", false)
-                .addValue("span_thread_hashes", null)
-                .addValue("span_from_ms", null)
-                .addValue("span_to_ms", null);
+        // No span scope → the predicate is spliced out entirely and all four execution samples count.
+        String sql = DuckDBFlamegraphQueries.of(EVENT_TYPE, "").simple(new EventQueryConfigurer());
+        assertFalse(sql.contains("span_thread_hashes"));
 
-        // No span scope → all four execution samples are counted.
-        assertEquals(4, totalSamples(client, params));
+        assertEquals(4, totalSamples(client, null));
     }
 }

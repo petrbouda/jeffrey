@@ -24,15 +24,12 @@ import cafe.jeffrey.profile.common.analysis.marker.Marker;
 import cafe.jeffrey.profile.common.model.FrameType;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.TreeMap;
 
 public class Frame extends TreeMap<String, Frame> {
-    /**
-     * Path to the current frame in the tree structure from IDs
-     */
-    private final List<String> framePath;
     private final String methodName;
     private final int lineNumber;
     private final int bci;
@@ -57,14 +54,6 @@ public class Frame extends TreeMap<String, Frame> {
     private final Frame parent;
 
     public Frame(Frame parent, String methodName, int lineNumber, int bci) {
-        if (parent == null) {
-            this.framePath = List.of();
-        } else {
-            List<String> framePath = new ArrayList<>(parent.framePath);
-            framePath.add(methodName);
-            this.framePath = List.copyOf(framePath);
-        }
-
         this.parent = parent;
         this.methodName = methodName;
         this.lineNumber = lineNumber;
@@ -161,8 +150,20 @@ public class Frame extends TreeMap<String, Frame> {
         }
     }
 
+    /**
+     * Path to the current frame in the tree structure (root-first, the root frame itself is excluded).
+     * The path is derived on demand by walking the parent chain instead of being materialized eagerly
+     * on every frame construction.
+     *
+     * @return method names from the first frame below the root down to this frame.
+     */
     public List<String> framePath() {
-        return framePath;
+        List<String> path = new ArrayList<>();
+        for (Frame current = this; current.parent != null; current = current.parent) {
+            path.add(current.methodName);
+        }
+        Collections.reverse(path);
+        return List.copyOf(path);
     }
 
     public Frame parent() {

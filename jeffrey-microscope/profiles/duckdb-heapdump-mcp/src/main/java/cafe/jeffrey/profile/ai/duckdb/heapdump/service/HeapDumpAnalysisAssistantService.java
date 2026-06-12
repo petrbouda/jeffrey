@@ -18,30 +18,16 @@
 
 package cafe.jeffrey.profile.ai.duckdb.heapdump.service;
 
+import cafe.jeffrey.profile.ai.chat.AiAssistantService;
+import cafe.jeffrey.profile.ai.chat.AssistantResponse;
 import cafe.jeffrey.profile.ai.duckdb.heapdump.model.HeapDumpAnalysisRequest;
-import cafe.jeffrey.profile.ai.duckdb.heapdump.model.HeapDumpAnalysisResponse;
 import cafe.jeffrey.profile.ai.duckdb.heapdump.tools.HeapDumpToolsDelegate;
 
 /**
  * Service for AI-powered heap dump analysis.
  * Provides conversational interface for analyzing Java heap dumps.
  */
-public interface HeapDumpAnalysisAssistantService {
-
-    /**
-     * Check if the AI assistant is available and properly configured.
-     */
-    boolean isAvailable();
-
-    /**
-     * Get the name of the AI model being used.
-     */
-    String getModelName();
-
-    /**
-     * Get the display name of the AI provider (e.g. "Claude", "ChatGPT").
-     */
-    String getProviderName();
+public interface HeapDumpAnalysisAssistantService extends AiAssistantService {
 
     /**
      * Analyze a heap dump with an AI assistant.
@@ -50,5 +36,5 @@ public interface HeapDumpAnalysisAssistantService {
      * @param request  the analysis request
      * @return the analysis response
      */
-    HeapDumpAnalysisResponse analyze(HeapDumpToolsDelegate delegate, HeapDumpAnalysisRequest request);
+    AssistantResponse analyze(HeapDumpToolsDelegate delegate, HeapDumpAnalysisRequest request);
 }

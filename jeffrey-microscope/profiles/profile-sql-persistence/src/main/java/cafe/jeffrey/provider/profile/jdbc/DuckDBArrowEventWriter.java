@@ -44,6 +44,7 @@ import java.sql.Statement;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -73,6 +74,7 @@ public class DuckDBArrowEventWriter implements DatabaseWriter<Event> {
 
     private static final String COLUMN_EVENT_TYPE = "event_type";
     private static final String COLUMN_START_TIMESTAMP = "start_timestamp";
+    private static final String COLUMN_START_TIMESTAMP_FROM_BEGINNING = "start_timestamp_from_beginning";
     private static final String COLUMN_DURATION = "duration";
     private static final String COLUMN_SAMPLES = "samples";
     private static final String COLUMN_WEIGHT = "weight";
@@ -91,10 +93,10 @@ public class DuckDBArrowEventWriter implements DatabaseWriter<Event> {
      * JSON-typed {@code fields} column of the {@code events} table.
      */
     private static final String INSERT_FROM_ARROW_SQL_TEMPLATE = """
-            INSERT INTO events (event_type, start_timestamp, duration, samples, weight, \
-            weight_entity, stacktrace_hash, thread_hash, fields) \
-            SELECT event_type, start_timestamp, duration, samples, weight, \
-            weight_entity, stacktrace_hash, thread_hash, CAST(fields AS JSON) \
+            INSERT INTO events (event_type, start_timestamp, start_timestamp_from_beginning, \
+            duration, samples, weight, weight_entity, stacktrace_hash, thread_hash, fields) \
+            SELECT event_type, start_timestamp, start_timestamp_from_beginning, \
+            duration, samples, weight, weight_entity, stacktrace_hash, thread_hash, CAST(fields AS JSON) \
             FROM "%s\"""";
 
     private static final String ARROW_STREAM_NAME_PREFIX = "arrow_events_batch_";
@@ -109,6 +111,7 @@ public class DuckDBArrowEventWriter implements DatabaseWriter<Event> {
     private static final Schema EVENTS_SCHEMA = new Schema(List.of(
             Field.notNullable(COLUMN_EVENT_TYPE, new ArrowType.Utf8()),
             Field.notNullable(COLUMN_START_TIMESTAMP, new ArrowType.Timestamp(TimeUnit.MICROSECOND, UTC_TIMEZONE)),
+            Field.notNullable(COLUMN_START_TIMESTAMP_FROM_BEGINNING, new ArrowType.Int(Long.SIZE, true)),
             Field.nullable(COLUMN_DURATION, new ArrowType.Int(Long.SIZE, true)),
             Field.notNullable(COLUMN_SAMPLES, new ArrowType.Int(Long.SIZE, true)),
             Field.nullable(COLUMN_WEIGHT, new ArrowType.Int(Long.SIZE, true)),
@@ -124,6 +127,7 @@ public class DuckDBArrowEventWriter implements DatabaseWriter<Event> {
     private record PreparedEvent(
             String eventType,
             long startTimestampMicros,
+            long startTimestampFromBeginningMillis,
             Long duration,
             long samples,
             Long weight,
@@ -136,10 +140,18 @@ public class DuckDBArrowEventWriter implements DatabaseWriter<Event> {
     private final BufferAllocator allocator;
     private final DuckDBBatchingWriter<PreparedEvent> batchingWriter;
 
-    public DuckDBArrowEventWriter(Executor executor, DataSource dataSource, int batchSize) {
+    /**
+     * Zero point of the relative event timeline ({@code start_timestamp_from_beginning}).
+     * It is the profiling start of the recording, matching Java's {@code RelativeTimeRange}.
+     */
+    private final long profilingStartedAtMillis;
+
+    public DuckDBArrowEventWriter(Executor executor, DataSource dataSource, int batchSize, Instant profilingStartedAt) {
         // Fail at construction with an actionable message instead of failing mid-parse
         // when the Arrow runtime (add-opens, native library) is unusable.
         ArrowRuntimeSupport.ensureAvailable();
+        Objects.requireNonNull(profilingStartedAt, "profilingStartedAt must be provided to compute relative event timestamps");
+        this.profilingStartedAtMillis = profilingStartedAt.toEpochMilli();
         this.allocator = new RootAllocator();
         this.batchingWriter = new DuckDBBatchingWriter<>(
                 executor, EVENTS_TABLE, dataSource, batchSize, StatementLabel.INSERT_EVENTS) {
@@ -180,10 +192,11 @@ public class DuckDBArrowEventWriter implements DatabaseWriter<Event> {
         }
     }
 
-    private static PreparedEvent prepare(Event event) {
+    private PreparedEvent prepare(Event event) {
         return new PreparedEvent(
                 event.eventType(),
                 toEpochMicros(event.startTimestamp()),
+                event.startTimestamp().toEpochMilli() - profilingStartedAtMillis,
                 event.duration(),
                 event.samples(),
                 event.weight(),
@@ -212,6 +225,8 @@ public class DuckDBArrowEventWriter implements DatabaseWriter<Event> {
     private static void fillVectors(VectorSchemaRoot root, List<PreparedEvent> batch) {
         VarCharVector eventType = (VarCharVector) root.getVector(COLUMN_EVENT_TYPE);
         TimeStampMicroTZVector startTimestamp = (TimeStampMicroTZVector) root.getVector(COLUMN_START_TIMESTAMP);
+        BigIntVector startTimestampFromBeginning =
+                (BigIntVector) root.getVector(COLUMN_START_TIMESTAMP_FROM_BEGINNING);
         BigIntVector duration = (BigIntVector) root.getVector(COLUMN_DURATION);
         BigIntVector samples = (BigIntVector) root.getVector(COLUMN_SAMPLES);
         BigIntVector weight = (BigIntVector) root.getVector(COLUMN_WEIGHT);
@@ -224,6 +239,7 @@ public class DuckDBArrowEventWriter implements DatabaseWriter<Event> {
             PreparedEvent event = batch.get(i);
             eventType.setSafe(i, event.eventType().getBytes(StandardCharsets.UTF_8));
             startTimestamp.setSafe(i, event.startTimestampMicros());
+            startTimestampFromBeginning.setSafe(i, event.startTimestampFromBeginningMillis());
             setNullableBigInt(duration, i, event.duration());
             samples.setSafe(i, event.samples());
             setNullableBigInt(weight, i, event.weight());

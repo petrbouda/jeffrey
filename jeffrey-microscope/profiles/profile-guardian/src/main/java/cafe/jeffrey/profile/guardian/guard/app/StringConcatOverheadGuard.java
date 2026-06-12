@@ -29,14 +29,15 @@ import cafe.jeffrey.profile.guardian.traverse.TargetFrameType;
 
 public class StringConcatOverheadGuard extends TraversableGuard {
 
-    public StringConcatOverheadGuard(ProfileInfo profileInfo, double threshold) {
-        this("String Concatenation Overhead", ResultType.SAMPLES, profileInfo, threshold);
+    public StringConcatOverheadGuard(ProfileInfo profileInfo, double infoThreshold, double warningThreshold) {
+        this("String Concatenation Overhead", ResultType.SAMPLES, profileInfo, infoThreshold, warningThreshold);
     }
 
-    public StringConcatOverheadGuard(String guardName, ResultType resultType, ProfileInfo profileInfo, double threshold) {
+    public StringConcatOverheadGuard(String guardName, ResultType resultType, ProfileInfo profileInfo, double infoThreshold, double warningThreshold) {
         super(guardName,
                 profileInfo,
-                threshold,
+                infoThreshold,
+                warningThreshold,
                 FrameMatchers.composite(
                         FrameMatchers.prefix("java.lang.StringBuilder#append"),
                         FrameMatchers.prefix("java.lang.StringBuffer#append")),

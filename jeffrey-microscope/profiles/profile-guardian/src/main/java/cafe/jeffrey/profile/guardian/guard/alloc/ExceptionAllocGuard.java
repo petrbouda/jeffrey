@@ -29,10 +29,11 @@ import cafe.jeffrey.profile.guardian.traverse.TargetFrameType;
 
 public class ExceptionAllocGuard extends TraversableGuard {
 
-    public ExceptionAllocGuard(ProfileInfo profileInfo, double threshold) {
+    public ExceptionAllocGuard(ProfileInfo profileInfo, double infoThreshold, double warningThreshold) {
         super("Exception Allocations",
                 profileInfo,
-                threshold,
+                infoThreshold,
+                warningThreshold,
                 FrameMatchers.suffix("Throwable#<init>"),
                 Category.APPLICATION,
                 TargetFrameType.JAVA,

@@ -65,7 +65,7 @@ class ClassLoadingOverheadGuardTest {
         withChildren(user, loadClass);
         withChildren(root, user, other);
 
-        ClassLoadingOverheadGuard guard = new ClassLoadingOverheadGuard(pi(), 0.05);
+        ClassLoadingOverheadGuard guard = new ClassLoadingOverheadGuard(pi(), 0.05, 0.05);
         guard.initialize(Preconditions.builder().build());
         new FrameTraversal(root).traverseWith(List.of(guard));
 
@@ -87,7 +87,7 @@ class ClassLoadingOverheadGuardTest {
         withChildren(user, loadClass);
         withChildren(root, user, other);
 
-        ClassLoadingOverheadGuard guard = new ClassLoadingOverheadGuard(pi(), 0.05);
+        ClassLoadingOverheadGuard guard = new ClassLoadingOverheadGuard(pi(), 0.05, 0.05);
         guard.initialize(Preconditions.builder().build());
         new FrameTraversal(root).traverseWith(List.of(guard));
 
@@ -109,7 +109,7 @@ class ClassLoadingOverheadGuardTest {
         withChildren(root, user);
 
         ClassLoadingOverheadGuard guard = new ClassLoadingOverheadGuard(
-                "Class Loading Wall-Clock Overhead", ResultType.SELF_SAMPLES, pi(), 0.05);
+                "Class Loading Wall-Clock Overhead", ResultType.SELF_SAMPLES, pi(), 0.05, 0.05);
         guard.initialize(Preconditions.builder().build());
         new FrameTraversal(root).traverseWith(List.of(guard));
 

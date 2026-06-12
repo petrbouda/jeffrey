@@ -125,13 +125,13 @@ public abstract class DurationUtils {
         if (d.toMillisPart() > 0) {
             formatted += d.toMillisPart() + "ms ";
         }
-        if (d.toNanosPart() >= 1000) {
+        if ((d.toNanosPart() / 1000) % 1000 > 0) {
             formatted += ((d.toNanosPart() / 1000) % 1000) + "µs ";
         }
-        if (d.toNanosPart() > 0) {
+        if (d.toNanosPart() % 1000 > 0) {
             formatted += (d.toNanosPart() % 1000) + "ns";
         }
-        return formatted;
+        return formatted.trim();
     }
 
     public static String formatNanos(long duration) {

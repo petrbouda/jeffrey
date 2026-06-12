@@ -29,10 +29,11 @@ import cafe.jeffrey.profile.guardian.traverse.TargetFrameType;
 
 public class RegexOverheadGuard extends TraversableGuard {
 
-    public RegexOverheadGuard(ProfileInfo profileInfo, double threshold) {
+    public RegexOverheadGuard(ProfileInfo profileInfo, double infoThreshold, double warningThreshold) {
         super("Regular Expressions",
                 profileInfo,
-                threshold,
+                infoThreshold,
+                warningThreshold,
                 FrameMatchers.composite(
                         FrameMatchers.prefix("java.util.regex.Matcher"),
                         FrameMatchers.prefix("java.util.regex.Pattern")),

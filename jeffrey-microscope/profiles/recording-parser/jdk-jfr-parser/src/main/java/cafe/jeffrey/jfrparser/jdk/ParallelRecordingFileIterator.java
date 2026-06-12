@@ -26,8 +26,10 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
 /**
- * Uses ForkJoinPool.commonPool() intentionally to avoid creating a new thread pool
- * and to leverage the parallelism of the common pool (number of threads == number of processors)
+ * Iterates over multiple recording files in parallel on the shared bulk pool
+ * ({@link Schedulers#sharedBulkParallel()}, number of threads == number of processors).
+ * The bulk pool is intentionally separate from the interactive pool so a large
+ * import cannot queue ahead of latency-sensitive requests (flamegraphs, timeseries).
  *
  * @param <PARTIAL> result of the single recording file
  * @param <RESULT>  collected result of all recording files
@@ -76,7 +78,7 @@ public class ParallelRecordingFileIterator<PARTIAL, RESULT> implements Recording
             Collector<PARTIAL, ?> collector) {
 
         return CompletableFuture.supplyAsync(
-                () -> singleFileIterator.apply(recording).partialCollect(collector), Schedulers.sharedParallel());
+                () -> singleFileIterator.apply(recording).partialCollect(collector), Schedulers.sharedBulkParallel());
     }
 
     private PARTIAL partialCombination(List<PARTIAL> partials, Collector<PARTIAL, ?> collector) {

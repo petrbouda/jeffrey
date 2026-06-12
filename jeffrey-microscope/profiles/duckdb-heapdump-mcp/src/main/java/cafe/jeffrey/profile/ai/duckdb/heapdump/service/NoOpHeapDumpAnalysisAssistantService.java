@@ -18,42 +18,24 @@
 
 package cafe.jeffrey.profile.ai.duckdb.heapdump.service;
 
+import cafe.jeffrey.profile.ai.chat.AssistantResponse;
+import cafe.jeffrey.profile.ai.chat.NoOpAssistantService;
 import cafe.jeffrey.profile.ai.duckdb.heapdump.model.HeapDumpAnalysisRequest;
-import cafe.jeffrey.profile.ai.duckdb.heapdump.model.HeapDumpAnalysisResponse;
 import cafe.jeffrey.profile.ai.duckdb.heapdump.tools.HeapDumpToolsDelegate;
 
 /**
  * No-op implementation of heap dump analysis assistant when AI is not configured.
  */
-public class NoOpHeapDumpAnalysisAssistantService implements HeapDumpAnalysisAssistantService {
+public class NoOpHeapDumpAnalysisAssistantService extends NoOpAssistantService implements HeapDumpAnalysisAssistantService {
 
-    private static final String NOT_CONFIGURED_MESSAGE = """
-            AI-powered heap dump analysis is not configured.
+    private static final String ANALYSIS_KIND = "heap dump analysis";
 
-            To enable AI analysis, configure the following properties:
-            - jeffrey.ai.provider=claude (or chatgpt)
-            - jeffrey.ai.api-key=your-api-key
-
-            See the documentation for more details on configuring AI providers.
-            """;
-
-    @Override
-    public boolean isAvailable() {
-        return false;
+    public NoOpHeapDumpAnalysisAssistantService() {
+        super(ANALYSIS_KIND);
     }
 
     @Override
-    public String getModelName() {
-        return null;
-    }
-
-    @Override
-    public String getProviderName() {
-        return null;
-    }
-
-    @Override
-    public HeapDumpAnalysisResponse analyze(HeapDumpToolsDelegate delegate, HeapDumpAnalysisRequest request) {
-        return HeapDumpAnalysisResponse.textOnly(NOT_CONFIGURED_MESSAGE);
+    public AssistantResponse analyze(HeapDumpToolsDelegate delegate, HeapDumpAnalysisRequest request) {
+        return notConfiguredResponse();
     }
 }

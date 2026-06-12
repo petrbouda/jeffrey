@@ -48,6 +48,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Semaphore;
@@ -62,6 +63,11 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
      * Maximum number of concurrent file downloads.
      */
     private static final int MAX_CONCURRENT_DOWNLOADS = 5;
+
+    /**
+     * Suffix for partially downloaded files before they are atomically moved to their final name.
+     */
+    private static final String PARTIAL_FILE_SUFFIX = ".part";
 
     private final MicroscopeJeffreyDirs jeffreyDirs;
     private final RemoteRecordingStreamClient recordingStreamClient;
@@ -104,10 +110,11 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
         RecordingSessionResponse recordingSession = repositoryClient.recordingSession(
                 recordingSessionId);
 
+        Set<String> requestedFileIds = Set.copyOf(fileIds);
         List<RepositoryFile> files = recordingSession.files().stream()
                 .map(RepositoryFileResponse::from)
                 .filter(RepositoryFile::isFinished)
-                .filter(file -> fileIds.contains(file.id()))
+                .filter(file -> requestedFileIds.contains(file.id()))
                 .toList();
 
         processRecordingSession(recordingSessionId, files);
@@ -156,7 +163,13 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
         try {
             String filename = resource.getFilename();
             Path target = tempDir.resolve(filename);
-            Files.copy(resource.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+            // ATOMIC_MOVE is not a valid option for Files.copy (throws UnsupportedOperationException),
+            // stream into a partial file in the same directory and move it atomically afterwards.
+            Path partial = tempDir.resolve(filename + PARTIAL_FILE_SUFFIX);
+            try (InputStream in = resource.getInputStream()) {
+                Files.copy(in, partial, StandardCopyOption.REPLACE_EXISTING);
+            }
+            Files.move(partial, target, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
             return target;
         } catch (IOException e) {
             throw new RuntimeException("Cannot copy file from remote source", e);
@@ -179,10 +192,11 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
         RecordingSessionResponse recordingSession = repositoryClient.recordingSession(
                 recordingSessionId);
 
+        Set<String> requestedFileIds = Set.copyOf(fileIds);
         List<RepositoryFile> files = recordingSession.files().stream()
                 .map(RepositoryFileResponse::from)
                 .filter(RepositoryFile::isFinished)
-                .filter(file -> fileIds.contains(file.id()))
+                .filter(file -> requestedFileIds.contains(file.id()))
                 .toList();
 
         processRecordingSessionWithProgress(recordingSession, files, progressCallback);

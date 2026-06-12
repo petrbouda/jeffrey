@@ -28,7 +28,6 @@ import cafe.jeffrey.microscope.core.MicroscopeJeffreyDirs;
 import cafe.jeffrey.microscope.core.manager.ProfilesManager;
 import cafe.jeffrey.microscope.core.manager.ProfilesManagerImpl;
 import cafe.jeffrey.microscope.core.recording.ProjectRecordingInitializer;
-import cafe.jeffrey.microscope.core.recording.ProjectRecordingInitializerImpl;
 import cafe.jeffrey.microscope.persistence.jdbc.DuckDBMicroscopeCorePersistenceProvider;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCorePersistenceProvider;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
@@ -132,12 +131,11 @@ public class AppConfiguration {
 
     @Bean
     public ProfilePersistenceProvider profilePersistenceProvider(
-            Clock clock,
             MicroscopeJeffreyDirs jeffreyDirs,
             @Value("${jeffrey.microscope.profile.frame-resolution:CACHE}") FrameResolutionMode frameResolutionMode) {
 
         LOG.info("Using frame resolution mode: mode={}", frameResolutionMode);
-        return new DuckDBProfilePersistenceProvider(clock, jeffreyDirs.profiles(), frameResolutionMode);
+        return new DuckDBProfilePersistenceProvider(jeffreyDirs.profiles(), frameResolutionMode);
     }
 
     @Bean
@@ -205,7 +203,7 @@ public class AppConfiguration {
             MicroscopeJeffreyDirs jeffreyDirs) {
 
         MicroscopeCoreRepositories localCoreRepositories = localCorePersistenceProvider.localCoreRepositories();
-        return projectInfo -> new ProjectRecordingInitializerImpl(
+        return projectInfo -> new ProjectRecordingInitializer(
                 applicationClock,
                 projectInfo,
                 recordingStorage.projectRecordingStorage(projectInfo.id()),

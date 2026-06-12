@@ -20,9 +20,13 @@ package cafe.jeffrey.profile.heapdump.oql.function;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import java.util.regex.Pattern;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -163,6 +167,36 @@ class FunctionsUnitTest {
         @Test
         void toHexFormatsAsZeroXLowerHex() {
             assertEquals("0xcafebabe", StringFunctions.toHex(0xCAFEBABEL));
+        }
+    }
+
+    @Nested
+    class RegexPatternCacheTests {
+
+        @Test
+        void reusesCompiledPatternForSameRegex() {
+            RegexPatternCache cache = new RegexPatternCache();
+            Pattern first = cache.compile("^foo\\..*");
+            Pattern second = cache.compile("^foo\\..*");
+            assertSame(first, second);
+        }
+
+        @Test
+        void recompilesWhenRegexChanges() {
+            RegexPatternCache cache = new RegexPatternCache();
+            Pattern first = cache.compile("^foo$");
+            Pattern second = cache.compile("^bar$");
+            assertNotSame(first, second);
+            assertTrue(second.matcher("bar").matches());
+            assertTrue(cache.compile("^foo$").matcher("foo").matches());
+        }
+
+        @Test
+        void matchesRegexWithExplicitCache() {
+            RegexPatternCache cache = new RegexPatternCache();
+            assertEquals(Boolean.TRUE, StringPredicates.matchesRegex("foo.class", "^foo\\..*", cache));
+            assertEquals(Boolean.FALSE, StringPredicates.matchesRegex("notfoo", "^foo$", cache));
+            assertNull(StringPredicates.matchesRegex(null, "^foo$", cache));
         }
     }
 }

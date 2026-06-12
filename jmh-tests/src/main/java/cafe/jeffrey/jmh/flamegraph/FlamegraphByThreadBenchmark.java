@@ -30,7 +30,7 @@ import cafe.jeffrey.frameir.FrameBuilder;
 import cafe.jeffrey.jmh.flamegraph.mapper.FlamegraphRecordByThreadRowMapper;
 import cafe.jeffrey.jmh.flamegraph.verification.BenchmarkVerification;
 import cafe.jeffrey.provider.profile.api.FlamegraphRecord;
-import cafe.jeffrey.provider.profile.jdbc.CachingFlamegraphRecordWithThreadsRowMapper;
+import cafe.jeffrey.provider.profile.jdbc.CachingFlamegraphRecordRowMapper;
 import cafe.jeffrey.provider.profile.jdbc.DuckDBFlamegraphQueries;
 import cafe.jeffrey.provider.profile.jdbc.FramesCache;
 import cafe.jeffrey.shared.common.model.Type;
@@ -82,8 +82,8 @@ public class FlamegraphByThreadBenchmark {
         DatabaseClient databaseClient = new DatabaseClient(ds, GroupLabel.PROFILE_EVENTS);
         NamedParameterJdbcTemplate jdbcTemplate = new NamedParameterJdbcTemplate(ds);
         String sql = DuckDBFlamegraphQueries.of().byThreadOptimized();
-        CachingFlamegraphRecordWithThreadsRowMapper rowMapper = new CachingFlamegraphRecordWithThreadsRowMapper(
-                Type.EXECUTION_SAMPLE, FramesCache.load(databaseClient), false);
+        CachingFlamegraphRecordRowMapper rowMapper = new CachingFlamegraphRecordRowMapper(
+                Type.EXECUTION_SAMPLE, FramesCache.load(databaseClient), false, true);
         return jdbcTemplate.query(sql, QUERY_PARAMS, rowMapper);
     };
 

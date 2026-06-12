@@ -26,9 +26,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 import javax.sql.DataSource;
 import java.nio.file.Path;
-import java.time.Clock;
 import java.time.Instant;
-import java.time.ZoneOffset;
 import java.util.concurrent.Executor;
 
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
@@ -37,8 +35,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 @DuckDBTest
 class DuckDBProfilePersistenceProviderTest {
 
-    private static final Clock FIXED_CLOCK =
-            Clock.fixed(Instant.parse("2026-01-15T10:00:00Z"), ZoneOffset.UTC);
+    private static final Instant PROFILING_STARTED_AT = Instant.parse("2026-01-15T10:00:00Z");
 
     private static final Executor DIRECT_EXECUTOR = Runnable::run;
 
@@ -48,7 +45,7 @@ class DuckDBProfilePersistenceProviderTest {
     @Test
     void providerConstructsWithArrowOnlyIngestion() {
         DuckDBProfilePersistenceProvider provider = new DuckDBProfilePersistenceProvider(
-                FIXED_CLOCK, profilesDir, FrameResolutionMode.CACHE);
+                profilesDir, FrameResolutionMode.CACHE);
 
         assertNotNull(provider.databaseManager());
         assertNotNull(provider.eventWriterFactory());
@@ -58,7 +55,7 @@ class DuckDBProfilePersistenceProviderTest {
     @Test
     void eventWritersUseArrowEventWriter(DataSource dataSource) {
         try (DuckDBEventWriters writers =
-                     new DuckDBEventWriters(DIRECT_EXECUTOR, dataSource, 10, 100)) {
+                     new DuckDBEventWriters(DIRECT_EXECUTOR, dataSource, 10, 100, PROFILING_STARTED_AT)) {
             assertInstanceOf(DuckDBArrowEventWriter.class, writers.events());
         }
     }

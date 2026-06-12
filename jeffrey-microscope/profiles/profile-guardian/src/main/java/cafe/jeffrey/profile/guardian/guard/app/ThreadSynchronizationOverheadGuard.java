@@ -29,14 +29,15 @@ import cafe.jeffrey.profile.guardian.traverse.TargetFrameType;
 
 public class ThreadSynchronizationOverheadGuard extends TraversableGuard {
 
-    public ThreadSynchronizationOverheadGuard(ProfileInfo profileInfo, double threshold) {
-        this("Thread Synchronization Overhead", ResultType.SAMPLES, profileInfo, threshold);
+    public ThreadSynchronizationOverheadGuard(ProfileInfo profileInfo, double infoThreshold, double warningThreshold) {
+        this("Thread Synchronization Overhead", ResultType.SAMPLES, profileInfo, infoThreshold, warningThreshold);
     }
 
-    public ThreadSynchronizationOverheadGuard(String guardName, ResultType resultType, ProfileInfo profileInfo, double threshold) {
+    public ThreadSynchronizationOverheadGuard(String guardName, ResultType resultType, ProfileInfo profileInfo, double infoThreshold, double warningThreshold) {
         super(guardName,
                 profileInfo,
-                threshold,
+                infoThreshold,
+                warningThreshold,
                 FrameMatchers.composite(
                         FrameMatchers.prefix("jdk.internal.misc.Unsafe#park"),
                         FrameMatchers.suffix("ObjectMonitor::enter")),

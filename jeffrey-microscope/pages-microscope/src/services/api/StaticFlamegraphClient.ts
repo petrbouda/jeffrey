@@ -34,25 +34,25 @@ export default class StaticFlamegraphClient extends FlamegraphClient {
   }
 
   provideBoth(
-    composition: GraphComponents,
-    timeRange: TimeRange | null,
-    search: string | null
+    _composition: GraphComponents,
+    _timeRange: TimeRange | null,
+    _search: string | null
   ): Promise<BothGraphData> {
     return Promise.resolve(new BothGraphData(this.flamegraphData, this.timeseriesData));
   }
 
-  provide(timeRange: any): Promise<FlamegraphData> {
+  provide(_timeRange: any): Promise<FlamegraphData> {
     return Promise.resolve(this.flamegraphData);
   }
 
-  provideTimeseries(search: string | null): Promise<TimeseriesData> {
+  provideTimeseries(_search: string | null): Promise<TimeseriesData> {
     return Promise.resolve(this.timeseriesData);
   }
 
   save(
-    components: GraphComponents,
-    flamegraphName: string,
-    timeRange: TimeRange | null
+    _components: GraphComponents,
+    _flamegraphName: string,
+    _timeRange: TimeRange | null
   ): Promise<void> {
     console.error('Cannot export flamegraph from statically generated data');
     return Promise.resolve();

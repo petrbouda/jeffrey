@@ -187,7 +187,7 @@ function handleResize(event: any) {
       // scrollable-wrapper for Guardian / Thread / EventTypes). No further
       // reduction is needed — and reducing makes the canvas misalign with the
       // toolbar above it.
-      let clientWidth = (flamegraphCanvas.value.parentElement?.clientWidth as number) || 0;
+      const clientWidth = (flamegraphCanvas.value.parentElement?.clientWidth as number) || 0;
       canvasWidth.value = clientWidth + 'px';
       flamegraph.resizeWidthCanvas(clientWidth);
     }
@@ -208,7 +208,7 @@ onMounted(() => {
     menu.style.display = 'none';
   }
 
-  let flamegraphUpdate = (data: FlamegraphData) => {
+  const flamegraphUpdate = (data: FlamegraphData) => {
     if (flamegraph != null) {
       flamegraph.close();
     }
@@ -270,7 +270,7 @@ onMounted(() => {
     );
   };
 
-  let zoomUpdate = (data: FlamegraphData) => {
+  const zoomUpdate = (data: FlamegraphData) => {
     flamegraphUpdate(data);
     search(currentSearchValue);
   };

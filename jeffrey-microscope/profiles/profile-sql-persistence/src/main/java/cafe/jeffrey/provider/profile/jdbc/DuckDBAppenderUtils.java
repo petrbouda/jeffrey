@@ -18,7 +18,7 @@
 
 package cafe.jeffrey.provider.profile.jdbc;
 
-import cafe.jeffrey.provider.profile.api.*;
+import cafe.jeffrey.shared.persistence.DuckDBAppenders;
 
 import org.duckdb.DuckDBAppender;
 
@@ -26,6 +26,7 @@ import java.sql.SQLException;
 
 /**
  * Utility methods for appending nullable values to DuckDB appender.
+ * Thin delegates to the shared {@link DuckDBAppenders} helpers.
  */
 public final class DuckDBAppenderUtils {
 
@@ -38,11 +39,7 @@ public final class DuckDBAppenderUtils {
      * If value is null, appends NULL; otherwise appends the long value.
      */
     public static void nullableAppend(DuckDBAppender appender, Long value) throws SQLException {
-        if (value != null) {
-            appender.append(value);
-        } else {
-            appender.appendNull();
-        }
+        DuckDBAppenders.nullableAppend(appender, value);
     }
 
     /**
@@ -50,11 +47,7 @@ public final class DuckDBAppenderUtils {
      * If value is null, appends NULL; otherwise appends the int value.
      */
     public static void nullableAppend(DuckDBAppender appender, Integer value) throws SQLException {
-        if (value != null) {
-            appender.append(value);
-        } else {
-            appender.appendNull();
-        }
+        DuckDBAppenders.nullableAppend(appender, value);
     }
 
     /**
@@ -62,10 +55,6 @@ public final class DuckDBAppenderUtils {
      * If value is null, appends NULL; otherwise appends the string value.
      */
     public static void nullableAppend(DuckDBAppender appender, String value) throws SQLException {
-        if (value != null) {
-            appender.append(value);
-        } else {
-            appender.appendNull();
-        }
+        DuckDBAppenders.nullableAppend(appender, value);
     }
 }

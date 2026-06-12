@@ -28,39 +28,53 @@ import java.util.function.ToLongFunction;
  * Binds the per-span (thread, time-window) intervals consumed by the span-scope predicate that the
  * flamegraph, timeseries and event-summary queries share. The thread hashes and bounds are passed as
  * {@code List} params so they render as native DuckDB list literals ({@code [..]}, like
- * {@code :included_tags}) and are zipped by {@code UNNEST}. A scalar {@code :span_filter_enabled} flag —
- * not a {@code :param IS NULL} guard — switches the predicate off, because a {@code List} param is
- * expanded into one placeholder per element and would break an {@code IS NULL} guard once a tag has more
- * than one span.
+ * {@code :included_tags}) and are zipped by {@code UNNEST}.
  *
- * <p>The matching SQL fragment (kept inline in each query) is:
- * <pre>{@code
- * AND (:span_filter_enabled = FALSE OR EXISTS (
- *     SELECT 1 FROM (
- *         SELECT UNNEST([:span_thread_hashes]) AS th,
- *                UNNEST([:span_from_ms]) AS f,
- *                UNNEST([:span_to_ms]) AS t
- *     ) iv
- *     WHERE <events>.thread_hash = iv.th
- *       AND EPOCH_MS(<events>.start_timestamp) BETWEEN iv.f AND iv.t
- * ))
- * }</pre>
+ * <p>The predicate is spliced into the SQL only when span intervals are present (see
+ * {@link #semiJoinFragment(String)}); when span scoping is disabled the clause is absent entirely,
+ * so DuckDB can plan a plain semi-join instead of re-evaluating an {@code EXISTS} under an
+ * always-true {@code OR} disjunct for every row.
  */
 final class SpanIntervalParams {
 
-    static final String FILTER_ENABLED = "span_filter_enabled";
     static final String THREAD_HASHES = "span_thread_hashes";
     static final String FROM_MS = "span_from_ms";
     static final String TO_MS = "span_to_ms";
 
+    /**
+     * Span-scope semi-join: an event survives only if it was taken on a span's thread within that
+     * span's absolute time window. {@code %s} is the alias of the events table in the enclosing query.
+     */
+    //language=SQL
+    private static final String SEMI_JOIN_FRAGMENT = """
+            AND EXISTS (
+                SELECT 1 FROM (
+                    SELECT UNNEST([:span_thread_hashes]) AS th,
+                           UNNEST([:span_from_ms]) AS f,
+                           UNNEST([:span_to_ms]) AS t
+                ) iv
+                WHERE %1$s.thread_hash = iv.th
+                  AND EPOCH_MS(%1$s.start_timestamp) BETWEEN iv.f AND iv.t
+            )
+            """;
+
     private SpanIntervalParams() {
     }
 
-    static void apply(MapSqlParameterSource params, List<SpanInterval> spanIntervals) {
-        boolean enabled = spanIntervals != null && !spanIntervals.isEmpty();
-        params.addValue(FILTER_ENABLED, enabled);
+    static boolean enabled(List<SpanInterval> spanIntervals) {
+        return spanIntervals != null && !spanIntervals.isEmpty();
+    }
 
-        if (enabled) {
+    /**
+     * Renders the span-scope semi-join predicate for the events table aliased as {@code eventsAlias}.
+     * Callers must splice it into the query only when {@link #enabled(List)} is {@code true}.
+     */
+    static String semiJoinFragment(String eventsAlias) {
+        return SEMI_JOIN_FRAGMENT.formatted(eventsAlias);
+    }
+
+    static void apply(MapSqlParameterSource params, List<SpanInterval> spanIntervals) {
+        if (enabled(spanIntervals)) {
             params.addValue(THREAD_HASHES, mapToLongList(spanIntervals, SpanInterval::threadHash))
                     .addValue(FROM_MS, mapToLongList(spanIntervals, SpanInterval::fromEpochMillis))
                     .addValue(TO_MS, mapToLongList(spanIntervals, SpanInterval::toEpochMillis));

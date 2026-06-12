@@ -36,9 +36,12 @@ public class ContainerManagerImpl implements ContainerManager {
 
     @Override
     public ContainerConfigurationData configuration() {
+        // The builder keeps the last streamed configuration ("latest wins"), so the stream must be
+        // chronological — the events table is physically clustered, not guaranteed time-ordered
         EventQueryConfigurer configurer = new EventQueryConfigurer()
                 .withEventTypes(List.of(Type.CONTAINER_CONFIGURATION))
-                .withJsonFields();
+                .withJsonFields()
+                .orderedByTime();
 
         return eventStreamRepository.genericStreaming(configurer, new ContainerConfigurationEventBuilder());
     }

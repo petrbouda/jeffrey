@@ -1,7 +1,32 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2026 Petr Bouda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package cafe.jeffrey.provider.profile.jdbc;
 
-import cafe.jeffrey.provider.profile.api.*;
+import cafe.jeffrey.provider.profile.api.EventQueryConfigurer;
 
+/**
+ * Flamegraph queries over the events table. Time-range filtering runs directly on the integer
+ * {@code start_timestamp_from_beginning} column (millis since profiling start, the same zero point
+ * as Java's {@code RelativeTimeRange}), so the predicates are sargable and no per-row
+ * {@code EPOCH_MS} arithmetic or first-sample CTE is needed. All optional filters are spliced into
+ * the SQL per request — a disabled filter is absent instead of guarded by {@code :param IS NULL OR}.
+ */
 public class DuckDBFlamegraphQueries implements ComplexQueries.Flamegraph {
 
     private static final String PLACEHOLDER_FILTERS = "<<additional_filters>>";
@@ -60,11 +85,7 @@ public class DuckDBFlamegraphQueries implements ComplexQueries.Flamegraph {
      */
     //language=SQL
     public static final String SIMPLE = """
-            WITH first_sample AS (
-                SELECT MIN(start_timestamp) AS first_ts
-                FROM events
-            ),
-            filtered_data AS (
+            WITH filtered_data AS (
                 SELECT
                     s.stacktrace_hash,
                     s.frame_hashes,
@@ -72,22 +93,10 @@ public class DuckDBFlamegraphQueries implements ComplexQueries.Flamegraph {
                     SUM(e.weight) AS total_weight
                 FROM events e
                 INNER JOIN stacktraces s ON e.stacktrace_hash = s.stacktrace_hash
-                CROSS JOIN first_sample fs
                 WHERE e.event_type = <<event_type>>
-                    AND (:from_time IS NULL OR EPOCH_MS(e.start_timestamp - fs.first_ts) >= :from_time)
-                    AND (:to_time IS NULL OR EPOCH_MS(e.start_timestamp - fs.first_ts) <= :to_time)
-                    AND (:span_filter_enabled = FALSE OR EXISTS (
-                        SELECT 1 FROM (
-                            SELECT UNNEST([:span_thread_hashes]) AS th,
-                                   UNNEST([:span_from_ms]) AS f,
-                                   UNNEST([:span_to_ms]) AS t
-                        ) iv
-                        WHERE e.thread_hash = iv.th
-                          AND EPOCH_MS(e.start_timestamp) BETWEEN iv.f AND iv.t
-                    ))
-                    AND (:stacktrace_types IS NULL OR s.type_id IN (:stacktrace_types))
-                    AND (:included_tags IS NULL OR list_has_any(s.tag_ids, [:included_tags]))
-                    AND (:excluded_tags IS NULL OR NOT list_has_any(s.tag_ids, [:excluded_tags]))
+                    <<time_filters>>
+                    <<span_filter>>
+                    <<stacktrace_filters>>
                 <<additional_filters>>
                 GROUP BY s.stacktrace_hash, s.frame_hashes
             ),
@@ -123,10 +132,6 @@ public class DuckDBFlamegraphQueries implements ComplexQueries.Flamegraph {
      */
     //language=SQL
     public static final String SIMPLE_OPTIMIZED = """
-            WITH first_sample AS (
-                SELECT MIN(start_timestamp) AS first_ts
-                FROM events
-            )
             SELECT
                 s.stacktrace_hash,
                 s.frame_hashes,
@@ -134,22 +139,10 @@ public class DuckDBFlamegraphQueries implements ComplexQueries.Flamegraph {
                 SUM(e.weight) AS total_weight
             FROM events e
             INNER JOIN stacktraces s ON e.stacktrace_hash = s.stacktrace_hash
-            CROSS JOIN first_sample fs
             WHERE e.event_type = <<event_type>>
-                AND (:from_time IS NULL OR EPOCH_MS(e.start_timestamp - fs.first_ts) >= :from_time)
-                AND (:to_time IS NULL OR EPOCH_MS(e.start_timestamp - fs.first_ts) <= :to_time)
-                AND (:span_filter_enabled = FALSE OR EXISTS (
-                    SELECT 1 FROM (
-                        SELECT UNNEST([:span_thread_hashes]) AS th,
-                               UNNEST([:span_from_ms]) AS f,
-                               UNNEST([:span_to_ms]) AS t
-                    ) iv
-                    WHERE e.thread_hash = iv.th
-                      AND EPOCH_MS(e.start_timestamp) BETWEEN iv.f AND iv.t
-                ))
-                AND (:stacktrace_types IS NULL OR s.type_id IN (:stacktrace_types))
-                AND (:included_tags IS NULL OR list_has_any(s.tag_ids, [:included_tags]))
-                AND (:excluded_tags IS NULL OR NOT list_has_any(s.tag_ids, [:excluded_tags]))
+                <<time_filters>>
+                <<span_filter>>
+                <<stacktrace_filters>>
                 <<additional_filters>>
             GROUP BY s.stacktrace_hash, s.frame_hashes;
             """;
@@ -160,11 +153,7 @@ public class DuckDBFlamegraphQueries implements ComplexQueries.Flamegraph {
      */
     //language=SQL
     public static final String BY_WEIGHT = """
-            WITH first_sample AS (
-                SELECT MIN(start_timestamp) AS first_ts
-                FROM events
-            ),
-            filtered_data AS (
+            WITH filtered_data AS (
                 SELECT
                     s.stacktrace_hash,
                     s.frame_hashes,
@@ -173,22 +162,10 @@ public class DuckDBFlamegraphQueries implements ComplexQueries.Flamegraph {
                     SUM(e.weight) AS total_weight
                 FROM events e
                 INNER JOIN stacktraces s ON e.stacktrace_hash = s.stacktrace_hash
-                CROSS JOIN first_sample fs
                 WHERE e.event_type = <<event_type>>
-                    AND (:from_time IS NULL OR EPOCH_MS(e.start_timestamp - fs.first_ts) >= :from_time)
-                    AND (:to_time IS NULL OR EPOCH_MS(e.start_timestamp - fs.first_ts) <= :to_time)
-                    AND (:span_filter_enabled = FALSE OR EXISTS (
-                        SELECT 1 FROM (
-                            SELECT UNNEST([:span_thread_hashes]) AS th,
-                                   UNNEST([:span_from_ms]) AS f,
-                                   UNNEST([:span_to_ms]) AS t
-                        ) iv
-                        WHERE e.thread_hash = iv.th
-                          AND EPOCH_MS(e.start_timestamp) BETWEEN iv.f AND iv.t
-                    ))
-                    AND (:stacktrace_types IS NULL OR s.type_id IN (:stacktrace_types))
-                    AND (:included_tags IS NULL OR list_has_any(s.tag_ids, [:included_tags]))
-                    AND (:excluded_tags IS NULL OR NOT list_has_any(s.tag_ids, [:excluded_tags]))
+                    <<time_filters>>
+                    <<span_filter>>
+                    <<stacktrace_filters>>
                     <<additional_filters>>
                 GROUP BY s.stacktrace_hash, s.frame_hashes, e.weight_entity
             ),
@@ -225,10 +202,6 @@ public class DuckDBFlamegraphQueries implements ComplexQueries.Flamegraph {
      */
     //language=SQL
     public static final String BY_WEIGHT_OPTIMIZED = """
-            WITH first_sample AS (
-                SELECT MIN(start_timestamp) AS first_ts
-                FROM events
-            )
             SELECT
                 s.stacktrace_hash,
                 e.weight_entity,
@@ -237,22 +210,10 @@ public class DuckDBFlamegraphQueries implements ComplexQueries.Flamegraph {
                 SUM(e.weight) AS total_weight
             FROM events e
             INNER JOIN stacktraces s ON e.stacktrace_hash = s.stacktrace_hash
-            CROSS JOIN first_sample fs
             WHERE e.event_type = <<event_type>>
-                AND (:from_time IS NULL OR EPOCH_MS(e.start_timestamp - fs.first_ts) >= :from_time)
-                AND (:to_time IS NULL OR EPOCH_MS(e.start_timestamp - fs.first_ts) <= :to_time)
-                AND (:span_filter_enabled = FALSE OR EXISTS (
-                    SELECT 1 FROM (
-                        SELECT UNNEST([:span_thread_hashes]) AS th,
-                               UNNEST([:span_from_ms]) AS f,
-                               UNNEST([:span_to_ms]) AS t
-                    ) iv
-                    WHERE e.thread_hash = iv.th
-                      AND EPOCH_MS(e.start_timestamp) BETWEEN iv.f AND iv.t
-                ))
-                AND (:stacktrace_types IS NULL OR s.type_id IN (:stacktrace_types))
-                AND (:included_tags IS NULL OR list_has_any(s.tag_ids, [:included_tags]))
-                AND (:excluded_tags IS NULL OR NOT list_has_any(s.tag_ids, [:excluded_tags]))
+                <<time_filters>>
+                <<span_filter>>
+                <<stacktrace_filters>>
                 <<additional_filters>>
             GROUP BY s.stacktrace_hash, s.frame_hashes, e.weight_entity;
             """;
@@ -271,11 +232,7 @@ public class DuckDBFlamegraphQueries implements ComplexQueries.Flamegraph {
      */
     //language=SQL
     public static final String BY_THREAD = """
-            WITH first_sample AS (
-                SELECT MIN(start_timestamp) AS first_ts
-                FROM events
-            ),
-            filtered_data AS (
+            WITH filtered_data AS (
                 SELECT
                     STRUCT_PACK(
                         os_id := ANY_VALUE(t.os_id),
@@ -290,24 +247,11 @@ public class DuckDBFlamegraphQueries implements ComplexQueries.Flamegraph {
                 FROM events e
                 INNER JOIN threads t ON t.thread_hash = e.thread_hash
                 INNER JOIN stacktraces s ON e.stacktrace_hash = s.stacktrace_hash
-                CROSS JOIN first_sample fs
                 WHERE e.event_type = <<event_type>>
-                    AND (:from_time IS NULL OR EPOCH_MS(e.start_timestamp - fs.first_ts) >= :from_time)
-                    AND (:to_time IS NULL OR EPOCH_MS(e.start_timestamp - fs.first_ts) <= :to_time)
-                    AND (:span_filter_enabled = FALSE OR EXISTS (
-                        SELECT 1 FROM (
-                            SELECT UNNEST([:span_thread_hashes]) AS th,
-                                   UNNEST([:span_from_ms]) AS f,
-                                   UNNEST([:span_to_ms]) AS t
-                        ) iv
-                        WHERE e.thread_hash = iv.th
-                          AND EPOCH_MS(e.start_timestamp) BETWEEN iv.f AND iv.t
-                    ))
-                    AND (:java_thread_id IS NULL OR t.java_id = :java_thread_id)
-                    AND (:os_thread_id IS NULL OR t.os_id = :os_thread_id)
-                    AND (:stacktrace_types IS NULL OR s.type_id IN (:stacktrace_types))
-                    AND (:included_tags IS NULL OR list_has_any(s.tag_ids, [:included_tags]))
-                    AND (:excluded_tags IS NULL OR NOT list_has_any(s.tag_ids, [:excluded_tags]))
+                    <<time_filters>>
+                    <<span_filter>>
+                    <<thread_filters>>
+                    <<stacktrace_filters>>
                     <<additional_filters>>
                 GROUP BY e.thread_hash, s.stacktrace_hash, s.frame_hashes
             ),
@@ -344,11 +288,7 @@ public class DuckDBFlamegraphQueries implements ComplexQueries.Flamegraph {
      */
     //language=SQL
     public static final String BY_THREAD_AND_WEIGHT = """
-            WITH first_sample AS (
-                SELECT MIN(start_timestamp) AS first_ts
-                FROM events
-            ),
-            filtered_data AS (
+            WITH filtered_data AS (
                 SELECT
                     STRUCT_PACK(
                         os_id := ANY_VALUE(t.os_id),
@@ -364,24 +304,11 @@ public class DuckDBFlamegraphQueries implements ComplexQueries.Flamegraph {
                 FROM events e
                 INNER JOIN threads t ON t.thread_hash = e.thread_hash
                 INNER JOIN stacktraces s ON e.stacktrace_hash = s.stacktrace_hash
-                CROSS JOIN first_sample fs
                 WHERE e.event_type = <<event_type>>
-                    AND (:from_time IS NULL OR EPOCH_MS(e.start_timestamp - fs.first_ts) >= :from_time)
-                    AND (:to_time IS NULL OR EPOCH_MS(e.start_timestamp - fs.first_ts) <= :to_time)
-                    AND (:span_filter_enabled = FALSE OR EXISTS (
-                        SELECT 1 FROM (
-                            SELECT UNNEST([:span_thread_hashes]) AS th,
-                                   UNNEST([:span_from_ms]) AS f,
-                                   UNNEST([:span_to_ms]) AS t
-                        ) iv
-                        WHERE e.thread_hash = iv.th
-                          AND EPOCH_MS(e.start_timestamp) BETWEEN iv.f AND iv.t
-                    ))
-                    AND (:java_thread_id IS NULL OR t.java_id = :java_thread_id)
-                    AND (:os_thread_id IS NULL OR t.os_id = :os_thread_id)
-                    AND (:stacktrace_types IS NULL OR s.type_id IN (:stacktrace_types))
-                    AND (:included_tags IS NULL OR list_has_any(s.tag_ids, [:included_tags]))
-                    AND (:excluded_tags IS NULL OR NOT list_has_any(s.tag_ids, [:excluded_tags]))
+                    <<time_filters>>
+                    <<span_filter>>
+                    <<thread_filters>>
+                    <<stacktrace_filters>>
                     <<additional_filters>>
                 GROUP BY e.thread_hash, s.stacktrace_hash, s.frame_hashes, e.weight_entity
             ),
@@ -419,10 +346,6 @@ public class DuckDBFlamegraphQueries implements ComplexQueries.Flamegraph {
      */
     //language=SQL
     public static final String BY_THREAD_OPTIMIZED = """
-            WITH first_sample AS (
-                SELECT MIN(start_timestamp) AS first_ts
-                FROM events
-            )
             SELECT
                 STRUCT_PACK(
                     os_id := ANY_VALUE(t.os_id),
@@ -437,24 +360,11 @@ public class DuckDBFlamegraphQueries implements ComplexQueries.Flamegraph {
             FROM events e
             INNER JOIN threads t ON t.thread_hash = e.thread_hash
             INNER JOIN stacktraces s ON e.stacktrace_hash = s.stacktrace_hash
-            CROSS JOIN first_sample fs
             WHERE e.event_type = <<event_type>>
-                AND (:from_time IS NULL OR EPOCH_MS(e.start_timestamp - fs.first_ts) >= :from_time)
-                AND (:to_time IS NULL OR EPOCH_MS(e.start_timestamp - fs.first_ts) <= :to_time)
-                AND (:span_filter_enabled = FALSE OR EXISTS (
-                    SELECT 1 FROM (
-                        SELECT UNNEST([:span_thread_hashes]) AS th,
-                               UNNEST([:span_from_ms]) AS f,
-                               UNNEST([:span_to_ms]) AS t
-                    ) iv
-                    WHERE e.thread_hash = iv.th
-                      AND EPOCH_MS(e.start_timestamp) BETWEEN iv.f AND iv.t
-                ))
-                AND (:java_thread_id IS NULL OR t.java_id = :java_thread_id)
-                AND (:os_thread_id IS NULL OR t.os_id = :os_thread_id)
-                AND (:stacktrace_types IS NULL OR s.type_id IN (:stacktrace_types))
-                AND (:included_tags IS NULL OR list_has_any(s.tag_ids, [:included_tags]))
-                AND (:excluded_tags IS NULL OR NOT list_has_any(s.tag_ids, [:excluded_tags]))
+                <<time_filters>>
+                <<span_filter>>
+                <<thread_filters>>
+                <<stacktrace_filters>>
                 <<additional_filters>>
             GROUP BY e.thread_hash, s.stacktrace_hash, s.frame_hashes;
             """;
@@ -465,10 +375,6 @@ public class DuckDBFlamegraphQueries implements ComplexQueries.Flamegraph {
      */
     //language=SQL
     public static final String BY_THREAD_AND_WEIGHT_OPTIMIZED = """
-            WITH first_sample AS (
-                SELECT MIN(start_timestamp) AS first_ts
-                FROM events
-            )
             SELECT
                 STRUCT_PACK(
                     os_id := ANY_VALUE(t.os_id),
@@ -484,74 +390,61 @@ public class DuckDBFlamegraphQueries implements ComplexQueries.Flamegraph {
             FROM events e
             INNER JOIN threads t ON t.thread_hash = e.thread_hash
             INNER JOIN stacktraces s ON e.stacktrace_hash = s.stacktrace_hash
-            CROSS JOIN first_sample fs
             WHERE e.event_type = <<event_type>>
-                AND (:from_time IS NULL OR EPOCH_MS(e.start_timestamp - fs.first_ts) >= :from_time)
-                AND (:to_time IS NULL OR EPOCH_MS(e.start_timestamp - fs.first_ts) <= :to_time)
-                AND (:span_filter_enabled = FALSE OR EXISTS (
-                    SELECT 1 FROM (
-                        SELECT UNNEST([:span_thread_hashes]) AS th,
-                               UNNEST([:span_from_ms]) AS f,
-                               UNNEST([:span_to_ms]) AS t
-                    ) iv
-                    WHERE e.thread_hash = iv.th
-                      AND EPOCH_MS(e.start_timestamp) BETWEEN iv.f AND iv.t
-                ))
-                AND (:java_thread_id IS NULL OR t.java_id = :java_thread_id)
-                AND (:os_thread_id IS NULL OR t.os_id = :os_thread_id)
-                AND (:stacktrace_types IS NULL OR s.type_id IN (:stacktrace_types))
-                AND (:included_tags IS NULL OR list_has_any(s.tag_ids, [:included_tags]))
-                AND (:excluded_tags IS NULL OR NOT list_has_any(s.tag_ids, [:excluded_tags]))
+                <<time_filters>>
+                <<span_filter>>
+                <<thread_filters>>
+                <<stacktrace_filters>>
                 <<additional_filters>>
             GROUP BY e.thread_hash, s.stacktrace_hash, s.frame_hashes, e.weight_entity;
             """;
 
     @Override
-    public String simple() {
-        return simple;
+    public String simple(EventQueryConfigurer configurer) {
+        return EventQueryFilters.splice(simple, configurer);
     }
 
     /**
      * Returns the optimized simple query that returns frame_hashes for Java-side resolution.
      */
-    public String simpleOptimized() {
-        return simpleOptimized;
+    public String simpleOptimized(EventQueryConfigurer configurer) {
+        return EventQueryFilters.splice(simpleOptimized, configurer);
     }
 
     @Override
-    public String byWeight() {
-        return byWeight;
+    public String byWeight(EventQueryConfigurer configurer) {
+        return EventQueryFilters.splice(byWeight, configurer);
     }
 
     @Override
-    public String byThread() {
-        return byThread;
+    public String byThread(EventQueryConfigurer configurer) {
+        return EventQueryFilters.splice(byThread, configurer);
     }
 
     @Override
-    public String byThreadAndWeight() {
-        return byThreadAndWeight;
+    public String byThreadAndWeight(EventQueryConfigurer configurer) {
+        return EventQueryFilters.splice(byThreadAndWeight, configurer);
     }
 
     /**
      * Returns the optimized query that returns frame_hashes for Java-side resolution.
      */
-    public String byWeightOptimized() {
-        return byWeightOptimized;
+    public String byWeightOptimized(EventQueryConfigurer configurer) {
+        return EventQueryFilters.splice(byWeightOptimized, configurer);
     }
 
     /**
      * Returns the optimized byThread query that returns frame_hashes for Java-side resolution.
      */
-    public String byThreadOptimized() {
-        return byThreadOptimized;
+    public String byThreadOptimized(EventQueryConfigurer configurer) {
+        return EventQueryFilters.splice(byThreadOptimized, configurer);
     }
 
     /**
      * Returns the optimized byThreadAndWeight query that returns frame_hashes for Java-side resolution.
      */
-    public String byThreadAndWeightOptimized() {
-        return byThreadAndWeightOptimized;
+    public String byThreadAndWeightOptimized(EventQueryConfigurer configurer) {
+        return EventQueryFilters.splice(byThreadAndWeightOptimized, configurer);
     }
 
     /**

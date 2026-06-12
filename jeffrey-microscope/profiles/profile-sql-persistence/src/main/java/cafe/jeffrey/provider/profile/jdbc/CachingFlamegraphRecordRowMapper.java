@@ -25,6 +25,7 @@ import cafe.jeffrey.jfrparser.api.type.JfrClass;
 import cafe.jeffrey.jfrparser.db.type.DbJfrMethod;
 import cafe.jeffrey.jfrparser.db.type.DbJfrStackFrame;
 import cafe.jeffrey.jfrparser.db.type.DbJfrStackTrace;
+import cafe.jeffrey.jfrparser.db.type.DbJfrThread;
 import cafe.jeffrey.provider.profile.api.FlamegraphRecord;
 import cafe.jeffrey.shared.common.model.Type;
 
@@ -35,13 +36,15 @@ import java.util.List;
 
 /**
  * Optimized row mapper that resolves frames using a pre-loaded cache.
- * Works with BY_WEIGHT_OPTIMIZED query that returns frame_hashes instead of resolved frames.
- * For non-thread queries.
+ * Works with the *_OPTIMIZED queries that return frame_hashes instead of resolved frames.
+ * When {@code withThreads} is enabled, the thread information is extracted from the row as well
+ * (BY_THREAD_OPTIMIZED and BY_THREAD_AND_WEIGHT_OPTIMIZED queries).
  */
 public record CachingFlamegraphRecordRowMapper(
         Type eventType,
         FramesCache framesCache,
-        boolean hasWeightEntity
+        boolean hasWeightEntity,
+        boolean withThreads
 ) implements RowMapper<FlamegraphRecord> {
 
     @Override
@@ -52,11 +55,12 @@ public record CachingFlamegraphRecordRowMapper(
         Array frameHashesArray = rs.getArray("frame_hashes");
         List<DbJfrStackFrame> frames = null;
         if (frameHashesArray != null) {
-            long[] hashes = toFrameHashArray(frameHashesArray);
+            long[] hashes = FlamegraphMapperUtils.toFrameHashArray(frameHashesArray);
             frames = framesCache.resolveFrames(hashes);
         }
 
         DbJfrStackTrace stacktrace = new DbJfrStackTrace(stacktraceHash, frames);
+        DbJfrThread thread = withThreads ? FlamegraphMapperUtils.getThread(rs) : null;
 
         JfrClass weightEntity = null;
         if (hasWeightEntity) {
@@ -66,37 +70,10 @@ public record CachingFlamegraphRecordRowMapper(
         return new FlamegraphRecord(
                 eventType,
                 stacktrace,
-                null,
+                thread,
                 weightEntity,
                 rs.getLong("total_samples"),
                 rs.getLong("total_weight")
         );
-    }
-
-    /**
-     * Converts DuckDB array to primitive long array.
-     * DuckDB JDBC may return different array types depending on context.
-     */
-    private static long[] toFrameHashArray(Array frameHashesArray) throws SQLException {
-        Object arrayObj = frameHashesArray.getArray();
-        return switch (arrayObj) {
-            case long[] primitiveArray -> primitiveArray;
-            case Long[] longArray -> {
-                long[] result = new long[longArray.length];
-                for (int i = 0; i < longArray.length; i++) {
-                    result[i] = longArray[i];
-                }
-                yield result;
-            }
-            case Object[] objectArray -> {
-                // DuckDB may return Object[] with Long/Number elements
-                long[] result = new long[objectArray.length];
-                for (int i = 0; i < objectArray.length; i++) {
-                    result[i] = ((Number) objectArray[i]).longValue();
-                }
-                yield result;
-            }
-            default -> throw new SQLException("Unexpected array type: " + arrayObj.getClass());
-        };
     }
 }

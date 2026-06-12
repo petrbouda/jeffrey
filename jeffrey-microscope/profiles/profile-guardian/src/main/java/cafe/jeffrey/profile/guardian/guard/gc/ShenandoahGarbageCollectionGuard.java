@@ -30,10 +30,11 @@ import java.util.function.Supplier;
 
 public class ShenandoahGarbageCollectionGuard extends TraversableGuard {
 
-    public ShenandoahGarbageCollectionGuard(ProfileInfo profileInfo, double threshold) {
+    public ShenandoahGarbageCollectionGuard(ProfileInfo profileInfo, double infoThreshold, double warningThreshold) {
         super("Shenandoah GC",
                 profileInfo,
-                threshold,
+                infoThreshold,
+                warningThreshold,
                 FrameMatchers.jvm("Thread::call_run"),
                 Category.GARBAGE_COLLECTION,
                 createTraversables(),

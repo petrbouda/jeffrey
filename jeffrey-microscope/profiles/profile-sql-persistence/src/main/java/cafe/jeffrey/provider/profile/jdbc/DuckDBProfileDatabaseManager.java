@@ -29,20 +29,28 @@ import cafe.jeffrey.shared.persistence.DuckDBDataSourceProvider;
 
 import javax.sql.DataSource;
 import java.nio.file.Path;
+import java.time.Duration;
 
 public class DuckDBProfileDatabaseManager implements DatabaseManager {
 
     private static final String PROFILE_DB_FILENAME = "profile-data.db";
     private static final String PROFILE_MIGRATIONS_LOCATION = "classpath:db/migration/profile";
-    private static final int MAX_POOL_SIZE = Schedulers.DB_WRITER_MAX_THREADS;
+    private static final String JDBC_URL_PREFIX = "jdbc:duckdb:";
 
     // DuckDB setting: without the obligation to preserve insertion order, parallel ingestion
-    // streams batches with less memory and no final re-ordering, and parallel scans return rows
-    // as they are produced. Consumers that need a specific row order must request an explicit
-    // ORDER BY — insertion order is not chronological anyway (chunk-parallel parsing flushes
-    // batches from concurrent db-writer threads).
+    // (appenders, CTAS re-clustering) streams batches with less memory and no final re-ordering.
+    // Safe here: consumers that need chronological events request an explicit ORDER BY
+    // (EventQueryConfigurer.orderedByTime), and the table is re-clustered after parsing anyway.
     private static final String PRESERVE_INSERTION_ORDER_SETTING = "preserve_insertion_order";
     private static final String PRESERVE_INSERTION_ORDER_VALUE = "false";
+
+    // Sized so that every DB-writer thread can flush its batch concurrently during ingestion
+    // instead of blocking on the pool
+    private static final int MAX_POOL_SIZE = Schedulers.DB_WRITER_MAX_THREADS;
+
+    // A single idle connection is enough to keep the embedded DuckDB instance (and its buffer
+    // cache) alive between requests; further connections are created on demand
+    private static final int MIN_IDLE_CONNECTIONS = 1;
 
     private static final String WAL_AUTOCHECKPOINT_PROPERTY = "wal_autocheckpoint";
 
@@ -90,11 +98,17 @@ public class DuckDBProfileDatabaseManager implements DatabaseManager {
     }
 
     private static DataSource createDataSource(Path dbPath, String profileId) {
-        String url = "jdbc:duckdb:" + dbPath.toAbsolutePath();
+        String url = JDBC_URL_PREFIX + dbPath.toAbsolutePath();
+        // Connections to the embedded DuckDB are in-process: there is no server that could time
+        // them out, so connection retirement (maxLifetime) and keepalive pings are pure churn
+        // and both are disabled (Duration.ZERO)
         DataSourceParams params = DataSourceParams.builder()
                 .url(url)
                 .poolName("profile-database-pool-" + profileId)
                 .maxPoolSize(MAX_POOL_SIZE)
+                .minIdle(MIN_IDLE_CONNECTIONS)
+                .maxLifetime(Duration.ZERO)
+                .keepAliveTime(Duration.ZERO)
                 .additionalProperty(WAL_AUTOCHECKPOINT_PROPERTY, WAL_AUTOCHECKPOINT_THRESHOLD)
                 .additionalProperty(PRESERVE_INSERTION_ORDER_SETTING, PRESERVE_INSERTION_ORDER_VALUE)
                 .build();

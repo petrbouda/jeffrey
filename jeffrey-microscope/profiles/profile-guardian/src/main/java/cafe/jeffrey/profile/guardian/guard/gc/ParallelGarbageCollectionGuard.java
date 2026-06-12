@@ -30,10 +30,11 @@ import java.util.function.Supplier;
 
 public class ParallelGarbageCollectionGuard extends TraversableGuard {
 
-    public ParallelGarbageCollectionGuard(ProfileInfo profileInfo, double threshold) {
+    public ParallelGarbageCollectionGuard(ProfileInfo profileInfo, double infoThreshold, double warningThreshold) {
         super("Parallel GC",
                 profileInfo,
-                threshold,
+                infoThreshold,
+                warningThreshold,
                 FrameMatchers.jvm("Thread::call_run"),
                 Category.GARBAGE_COLLECTION,
                 createTraversables(),

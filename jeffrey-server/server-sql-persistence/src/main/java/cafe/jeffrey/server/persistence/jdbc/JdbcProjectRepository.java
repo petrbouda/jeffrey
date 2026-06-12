@@ -37,6 +37,12 @@ public class JdbcProjectRepository implements ProjectRepository {
             WHERE p.project_id = :project_id AND p.deleted_at IS NULL""";
 
     //language=SQL
+    private static final String SELECT_SINGLE_PROJECT_INCLUDING_DELETED = """
+            SELECT * FROM projects p
+            JOIN workspaces w ON p.workspace_id = w.workspace_id
+            WHERE p.project_id = :project_id""";
+
+    //language=SQL
     private static final String UPDATE_PROJECTS_NAME =
             "UPDATE projects SET project_name = :project_name WHERE project_id = :project_id";
 
@@ -73,6 +79,18 @@ public class JdbcProjectRepository implements ProjectRepository {
 
         return databaseClient.querySingle(
                 StatementLabel.FIND_PROJECT, SELECT_SINGLE_PROJECT, paramSource, ServerMappers.projectInfoMapper());
+    }
+
+    @Override
+    public Optional<ProjectInfo> findIncludingDeleted() {
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("project_id", projectId);
+
+        return databaseClient.querySingle(
+                StatementLabel.FIND_PROJECT_INCLUDING_DELETED,
+                SELECT_SINGLE_PROJECT_INCLUDING_DELETED,
+                paramSource,
+                ServerMappers.projectInfoMapper());
     }
 
     @Override

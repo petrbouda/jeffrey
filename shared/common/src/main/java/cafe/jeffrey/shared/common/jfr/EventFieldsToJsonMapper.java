@@ -24,7 +24,6 @@ import jdk.jfr.EventType;
 import jdk.jfr.Percentage;
 import jdk.jfr.Timespan;
 import jdk.jfr.Timestamp;
-import jdk.jfr.Unsigned;
 import jdk.jfr.ValueDescriptor;
 import jdk.jfr.consumer.RecordedClass;
 import jdk.jfr.consumer.RecordedEvent;
@@ -35,9 +34,11 @@ import cafe.jeffrey.shared.common.RecordedClassMapper;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class EventFieldsToJsonMapper implements EventFieldsMapper {
 
@@ -46,74 +47,151 @@ public class EventFieldsToJsonMapper implements EventFieldsMapper {
     private static final String TIMESTAMP_TYPE_NAME = Timestamp.class.getTypeName();
     private static final String PERCENTAGE_TYPE_NAME = Percentage.class.getTypeName();
     private static final String TIMESPAN_TYPE_NAME = Timespan.class.getTypeName();
-    private static final String UNSIGNED_TYPE_NAME = Unsigned.class.getTypeName();
+
+    private static final String THREAD_TYPE_NAME = "java.lang.Thread";
+    private static final String CLASS_TYPE_NAME = "java.lang.Class";
+    private static final String METHOD_TYPE_NAME = "jdk.types.Method";
+    private static final String BOOLEAN_TYPE_NAME = "boolean";
+    private static final Set<String> INTEGRAL_TYPE_NAMES = Set.of("long", "int");
+
+    private static final String ACTIVE_SETTING_EVENT_NAME = "jdk.ActiveSetting";
+    private static final String ACTIVE_SETTING_ID_FIELD = "id";
+    private static final String ACTIVE_SETTING_LABEL_FIELD = "label";
+
+    /**
+     * Writes a single event field into the JSON node. Resolved once per
+     * {@link EventType} field (annotations and type-name comparisons happen
+     * at plan-build time), then reused for every event of that type.
+     */
+    @FunctionalInterface
+    private interface FieldWriter {
+        void write(RecordedEvent event, ObjectNode node);
+    }
+
+    /**
+     * Ordered field writers for one {@link EventType}, in the event's field order.
+     */
+    private record EventTypePlan(List<FieldWriter> writers) {
+    }
 
     private final Map<Long, EventType> eventTypes = new HashMap<>();
+    private final Map<Long, EventTypePlan> plansByEventTypeId = new HashMap<>();
 
     @Override
     public void update(List<EventType> eventTypes) {
-        eventTypes.forEach(e -> this.eventTypes.put(e.getId(), e));
+        for (EventType eventType : eventTypes) {
+            this.eventTypes.put(eventType.getId(), eventType);
+            this.plansByEventTypeId.put(eventType.getId(), buildPlan(eventType));
+        }
     }
 
     @Override
     public ObjectNode map(RecordedEvent event) {
-        ObjectNode node = Json.createObject();
-        for (ValueDescriptor field : event.getFields()) {
-            if (!IGNORED_FIELDS.contains(field.getName())) {
-                if (handleByAnnotation(field, event, node)) {
-                    // Handled by annotation, skip further processing
-                    continue;
-                }
-
-                if ("java.lang.Thread".equals(field.getTypeName())) {
-                    RecordedThread value = event.getThread(field.getName());
-                    node.put(field.getName(), safeThreadToString(value));
-                } else if ("java.lang.Class".equals(field.getTypeName())) {
-                    RecordedClass clazz = event.getClass(field.getName());
-                    node.put(field.getName(), RecordedClassMapper.map(clazz.getName()));
-                } else if ("jdk.types.Method".equals(field.getTypeName())) {
-                    RecordedMethod method = event.getValue(field.getName());
-                    if (method != null) {
-                        node.put(field.getName(), method.getType().getName() + "#" + method.getName());
-                    }
-                } else if ("jdk.ActiveSetting".equals(event.getEventType().getName()) && "id".equals(field.getName())) {
-                    long eventId = event.getValue(field.getName());
-                    node.put(field.getName(), eventId);
-                    node.put("label", activeSettingValue(eventId));
-                } else if ("long".equals(field.getTypeName()) || "int".equals(field.getTypeName())) {
-                    long value = event.getLong(field.getName());
-                    node.put(field.getName(), value);
-                } else if ("boolean".equals(field.getTypeName())) {
-                    boolean value = event.getBoolean(field.getName());
-                    node.put(field.getName(), value);
-                } else {
-                    String value = safeToString(event.getValue(field.getName()));
-                    node.put(field.getName(), value);
-                }
-            }
+        EventType eventType = event.getEventType();
+        EventTypePlan plan = plansByEventTypeId.get(eventType.getId());
+        if (plan == null) {
+            // Metadata for this type has not been seen yet — build lazily and cache.
+            plan = buildPlan(eventType);
+            plansByEventTypeId.put(eventType.getId(), plan);
         }
 
+        ObjectNode node = Json.createObject();
+        for (FieldWriter writer : plan.writers()) {
+            writer.write(event, node);
+        }
         return node;
     }
 
-    private static boolean handleByAnnotation(ValueDescriptor field, RecordedEvent event, ObjectNode node) {
+    private EventTypePlan buildPlan(EventType eventType) {
+        boolean activeSettingEvent = ACTIVE_SETTING_EVENT_NAME.equals(eventType.getName());
+
+        List<FieldWriter> writers = new ArrayList<>();
+        for (ValueDescriptor field : eventType.getFields()) {
+            if (!IGNORED_FIELDS.contains(field.getName())) {
+                writers.add(resolveWriter(field, activeSettingEvent));
+            }
+        }
+        return new EventTypePlan(List.copyOf(writers));
+    }
+
+    private FieldWriter resolveWriter(ValueDescriptor field, boolean activeSettingEvent) {
+        FieldWriter annotationWriter = resolveAnnotationWriter(field);
+        if (annotationWriter != null) {
+            return annotationWriter;
+        }
+
+        String name = field.getName();
+        String typeName = field.getTypeName();
+
+        if (THREAD_TYPE_NAME.equals(typeName)) {
+            return (event, node) -> {
+                RecordedThread value = event.getThread(name);
+                node.put(name, safeThreadToString(value));
+            };
+        } else if (CLASS_TYPE_NAME.equals(typeName)) {
+            return (event, node) -> {
+                RecordedClass clazz = event.getClass(name);
+                node.put(name, RecordedClassMapper.map(clazz.getName()));
+            };
+        } else if (METHOD_TYPE_NAME.equals(typeName)) {
+            return (event, node) -> {
+                RecordedMethod method = event.getValue(name);
+                if (method != null) {
+                    node.put(name, method.getType().getName() + "#" + method.getName());
+                }
+            };
+        } else if (activeSettingEvent && ACTIVE_SETTING_ID_FIELD.equals(name)) {
+            return (event, node) -> {
+                long eventId = event.getValue(name);
+                node.put(name, eventId);
+                node.put(ACTIVE_SETTING_LABEL_FIELD, activeSettingValue(eventId));
+            };
+        } else if (INTEGRAL_TYPE_NAMES.contains(typeName)) {
+            return (event, node) -> {
+                long value = event.getLong(name);
+                node.put(name, value);
+            };
+        } else if (BOOLEAN_TYPE_NAME.equals(typeName)) {
+            return (event, node) -> {
+                boolean value = event.getBoolean(name);
+                node.put(name, value);
+            };
+        } else {
+            return (event, node) -> {
+                String value = safeToString(event.getValue(name));
+                node.put(name, value);
+            };
+        }
+    }
+
+    /**
+     * Mirrors the legacy per-event annotation scan: the first annotation on the
+     * field that is one of {@code Timestamp}, {@code Percentage}, {@code Timespan}
+     * (in the field's annotation order) decides the writer. Returns {@code null}
+     * when no relevant annotation is present.
+     */
+    private static FieldWriter resolveAnnotationWriter(ValueDescriptor field) {
+        String name = field.getName();
         for (AnnotationElement annotation : field.getAnnotationElements()) {
             String typeName = annotation.getTypeName();
             if (typeName.equals(TIMESTAMP_TYPE_NAME)) {
-                Instant instant = event.getInstant(field.getName());
-                node.put(field.getName(), safeToLongMillis(instant));
-                return true;
+                return (event, node) -> {
+                    Instant instant = event.getInstant(name);
+                    node.put(name, safeToLongMillis(instant));
+                };
             } else if (typeName.equals(PERCENTAGE_TYPE_NAME)) {
-                float value = event.getFloat(field.getName());
-                node.put(field.getName(), value);
-                return true;
+                return (event, node) -> {
+                    float value = event.getFloat(name);
+                    node.put(name, value);
+                };
             } else if (typeName.equals(TIMESPAN_TYPE_NAME)) {
-                Duration value = event.getDuration(field.getName());
-                node.put(field.getName(), safeDurationToLongNanos(value));
-                return true;
+                return (event, node) -> {
+                    Duration value = event.getDuration(name);
+                    node.put(name, safeDurationToLongNanos(value));
+                };
             }
         }
-        return false;
+        return null;
     }
 
     private String activeSettingValue(long eventId) {

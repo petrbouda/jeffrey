@@ -139,7 +139,7 @@ class DuckDBArrowEventWriterThroughputTest {
      * caller thread, writer closed when the thread's share of the recording is done.
      */
     private static void ingestEvents(Executor flushExecutor, DataSource dataSource, int batchSize, int threadIndex) {
-        DuckDBArrowEventWriter writer = new DuckDBArrowEventWriter(flushExecutor, dataSource, batchSize);
+        DuckDBArrowEventWriter writer = new DuckDBArrowEventWriter(flushExecutor, dataSource, batchSize, BASE_TIMESTAMP);
         for (int i = 0; i < EVENTS_PER_THREAD; i++) {
             writer.insert(syntheticEvent(threadIndex, i));
         }

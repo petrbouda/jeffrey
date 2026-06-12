@@ -1,45 +1,61 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2026 Petr Bouda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package cafe.jeffrey.provider.profile.jdbc;
 
-import cafe.jeffrey.provider.profile.api.*;
+import cafe.jeffrey.provider.profile.api.EventQueryConfigurer;
 
 import static cafe.jeffrey.provider.profile.jdbc.DuckDBFlamegraphQueries.addQuotes;
 
+/**
+ * Timeseries queries over the events table. Both the time-range filter and the per-second
+ * bucketing run directly on the integer {@code start_timestamp_from_beginning} column (millis since
+ * profiling start, the same zero point as Java's {@code RelativeTimeRange}), so the predicates are
+ * sargable and no per-row {@code EPOCH_MS} arithmetic or first-sample CTE is needed. All optional
+ * filters are spliced into the SQL per request — a disabled filter is absent instead of guarded by
+ * {@code :param IS NULL OR}.
+ */
 public class DuckDBTimeseriesQueries implements ComplexQueries.Timeseries {
 
     private static final String PLACEHOLDER_FILTERS = "<<additional_filters>>";
     private static final String PLACEHOLDER_EVENT_TYPE = "<<event_type>>";
     private static final String PLACEHOLDER_TARGET_VALUE = "<<target_value>>";
+    private static final String PLACEHOLDER_THREAD_JOIN = "<<thread_join>>";
+
+    private static final String THREAD_JOIN = "LEFT JOIN threads t ON e.thread_hash = t.thread_hash";
+
+    /** Width of a single timeseries bucket in milliseconds (one bucket per second). */
+    private static final int BUCKET_SIZE_MS = 1000;
 
     //language=SQL
     private static final String SIMPLE = """
-            WITH first_sample AS (
-                SELECT MIN(start_timestamp) AS first_ts
-                FROM events
-            )
-            SELECT (EPOCH_MS(e.start_timestamp - fs.first_ts) / 1000) AS seconds, SUM(<<target_value>>) AS value
+            SELECT (e.start_timestamp_from_beginning // <<bucket_size_ms>>) AS seconds, SUM(<<target_value>>) AS value
             FROM events e
-            CROSS JOIN first_sample fs
             <<thread_join>>
             WHERE e.event_type = <<event_type>>
-                AND (:from_time IS NULL OR EPOCH_MS(e.start_timestamp - fs.first_ts) >= :from_time)
-                AND (:to_time IS NULL OR EPOCH_MS(e.start_timestamp - fs.first_ts) <= :to_time)
-                AND (:span_filter_enabled = FALSE OR EXISTS (
-                    SELECT 1 FROM (
-                        SELECT UNNEST([:span_thread_hashes]) AS th,
-                               UNNEST([:span_from_ms]) AS f,
-                               UNNEST([:span_to_ms]) AS t
-                    ) iv
-                    WHERE e.thread_hash = iv.th
-                      AND EPOCH_MS(e.start_timestamp) BETWEEN iv.f AND iv.t
-                ))
+                <<time_filters>>
+                <<span_filter>>
                 <<thread_filters>>
                 AND EXISTS (
                     SELECT 1
                     FROM stacktraces s
                     WHERE s.stacktrace_hash = e.stacktrace_hash
-                        AND (:stacktrace_types IS NULL OR s.type_id IN (:stacktrace_types))
-                        AND (:included_tags IS NULL OR list_has_any(s.tag_ids, [:included_tags]))
-                        AND (:excluded_tags IS NULL OR NOT list_has_any(s.tag_ids, [:excluded_tags]))
+                        <<stacktrace_filters>>
                         <<additional_filters>>
                 )
             GROUP BY seconds
@@ -48,38 +64,23 @@ public class DuckDBTimeseriesQueries implements ComplexQueries.Timeseries {
 
     //language=SQL
     private static final String SIMPLE_SEARCH = """
-            WITH first_sample AS (
-                SELECT MIN(start_timestamp) AS first_ts
-                FROM events
-            ),
-            relevant_events AS (
+            WITH relevant_events AS (
                 SELECT
                     e.stacktrace_hash,
-                    (EPOCH_MS(e.start_timestamp - fs.first_ts) / 1000) AS seconds,
+                    (e.start_timestamp_from_beginning // <<bucket_size_ms>>) AS seconds,
                     <<target_value>> AS event_value
                 FROM events e
-                CROSS JOIN first_sample fs
                 <<thread_join>>
                 WHERE e.event_type = <<event_type>>
-                    AND (:from_time IS NULL OR EPOCH_MS(e.start_timestamp - fs.first_ts) >= :from_time)
-                    AND (:to_time IS NULL OR EPOCH_MS(e.start_timestamp - fs.first_ts) <= :to_time)
-                    AND (:span_filter_enabled = FALSE OR EXISTS (
-                        SELECT 1 FROM (
-                            SELECT UNNEST([:span_thread_hashes]) AS th,
-                                   UNNEST([:span_from_ms]) AS f,
-                                   UNNEST([:span_to_ms]) AS t
-                        ) iv
-                        WHERE e.thread_hash = iv.th
-                          AND EPOCH_MS(e.start_timestamp) BETWEEN iv.f AND iv.t
-                    ))
+                    <<time_filters>>
+                    <<span_filter>>
                     <<thread_filters>>
             ),
             relevant_stacktraces AS (
                 SELECT s.stacktrace_hash, s.frame_hashes
                 FROM stacktraces s
-                WHERE (:stacktrace_types IS NULL OR s.type_id IN (:stacktrace_types))
-                    AND (:included_tags IS NULL OR list_has_any(s.tag_ids, [:included_tags]))
-                    AND (:excluded_tags IS NULL OR NOT list_has_any(s.tag_ids, [:excluded_tags]))
+                WHERE 1 = 1
+                    <<stacktrace_filters>>
                     <<additional_filters>>
                     AND EXISTS (SELECT 1 FROM relevant_events re WHERE re.stacktrace_hash = s.stacktrace_hash)
             ),
@@ -113,70 +114,39 @@ public class DuckDBTimeseriesQueries implements ComplexQueries.Timeseries {
 
     //language=SQL
     private static final String FILTERABLE = """
-            WITH first_sample AS (
-                SELECT MIN(start_timestamp) AS first_ts
-                FROM events
-            )
             SELECT
-                (EPOCH_MS(e.start_timestamp - fs.first_ts) / 1000) AS seconds,
-                <<target_value>> AS samples,
-                e.fields AS event_fields
+                (e.start_timestamp_from_beginning // <<bucket_size_ms>>) AS seconds,
+                SUM(<<target_value>>) AS samples
             FROM events e
-            CROSS JOIN first_sample fs
             WHERE e.event_type = <<event_type>>
-                AND (:from_time IS NULL OR EPOCH_MS(e.start_timestamp - fs.first_ts) >= :from_time)
-                AND (:to_time IS NULL OR EPOCH_MS(e.start_timestamp - fs.first_ts) <= :to_time)
-                AND (:span_filter_enabled = FALSE OR EXISTS (
-                    SELECT 1 FROM (
-                        SELECT UNNEST([:span_thread_hashes]) AS th,
-                               UNNEST([:span_from_ms]) AS f,
-                               UNNEST([:span_to_ms]) AS t
-                    ) iv
-                    WHERE e.thread_hash = iv.th
-                      AND EPOCH_MS(e.start_timestamp) BETWEEN iv.f AND iv.t
-                ))
+                <<json_field_filter>>
+                <<time_filters>>
+                <<span_filter>>
                 AND EXISTS (
                     SELECT 1
                     FROM stacktraces s
                     WHERE s.stacktrace_hash = e.stacktrace_hash
-                        AND (:stacktrace_types IS NULL OR s.type_id IN (:stacktrace_types))
-                        AND (:included_tags IS NULL OR list_has_any(s.tag_ids, [:included_tags]))
-                        AND (:excluded_tags IS NULL OR NOT list_has_any(s.tag_ids, [:excluded_tags]))
+                        <<stacktrace_filters>>
                         <<additional_filters>>
                 )
+            GROUP BY seconds
             ORDER BY seconds
             """;
 
     //language=SQL
     private static final String FRAME_BASED = """
-            WITH first_sample AS (
-                SELECT MIN(start_timestamp) AS first_ts
-                FROM events
-            ),
-            filtered_data AS (
+            WITH filtered_data AS (
                 SELECT
-                    (EPOCH_MS(e.start_timestamp - fs.first_ts) / 1000) AS seconds,
+                    (e.start_timestamp_from_beginning // <<bucket_size_ms>>) AS seconds,
                     s.stacktrace_hash,
                     s.frame_hashes,
                     SUM(<<target_value>>) AS samples
                 FROM events e
                 INNER JOIN stacktraces s ON e.stacktrace_hash = s.stacktrace_hash
-                CROSS JOIN first_sample fs
                 WHERE e.event_type = <<event_type>>
-                    AND (:from_time IS NULL OR EPOCH_MS(e.start_timestamp - fs.first_ts) >= :from_time)
-                    AND (:to_time IS NULL OR EPOCH_MS(e.start_timestamp - fs.first_ts) <= :to_time)
-                    AND (:span_filter_enabled = FALSE OR EXISTS (
-                        SELECT 1 FROM (
-                            SELECT UNNEST([:span_thread_hashes]) AS th,
-                                   UNNEST([:span_from_ms]) AS f,
-                                   UNNEST([:span_to_ms]) AS t
-                        ) iv
-                        WHERE e.thread_hash = iv.th
-                          AND EPOCH_MS(e.start_timestamp) BETWEEN iv.f AND iv.t
-                    ))
-                    AND (:stacktrace_types IS NULL OR s.type_id IN (:stacktrace_types))
-                    AND (:included_tags IS NULL OR list_has_any(s.tag_ids, [:included_tags]))
-                    AND (:excluded_tags IS NULL OR NOT list_has_any(s.tag_ids, [:excluded_tags]))
+                    <<time_filters>>
+                    <<span_filter>>
+                    <<stacktrace_filters>>
                     <<additional_filters>>
                 GROUP BY seconds, s.stacktrace_hash, s.frame_hashes
             ),
@@ -214,18 +184,17 @@ public class DuckDBTimeseriesQueries implements ComplexQueries.Timeseries {
     private final String frameBased;
 
     private DuckDBTimeseriesQueries(String eventType, String additionalFilters) {
-        this.simple = SIMPLE
+        this.simple = prepare(SIMPLE, eventType, additionalFilters);
+        this.simpleSearch = prepare(SIMPLE_SEARCH, eventType, additionalFilters);
+        this.filterable = prepare(FILTERABLE, eventType, additionalFilters);
+        this.frameBased = prepare(FRAME_BASED, eventType, additionalFilters);
+    }
+
+    private static String prepare(String template, String eventType, String additionalFilters) {
+        return template
                 .replace(PLACEHOLDER_EVENT_TYPE, eventType)
-                .replace(PLACEHOLDER_FILTERS, additionalFilters);
-        this.simpleSearch = SIMPLE_SEARCH
-                .replace(PLACEHOLDER_EVENT_TYPE, eventType)
-                .replace(PLACEHOLDER_FILTERS, additionalFilters);
-        this.filterable = FILTERABLE
-                .replace(PLACEHOLDER_EVENT_TYPE, eventType)
-                .replace(PLACEHOLDER_FILTERS, additionalFilters);
-        this.frameBased = FRAME_BASED
-                .replace(PLACEHOLDER_EVENT_TYPE, eventType)
-                .replace(PLACEHOLDER_FILTERS, additionalFilters);
+                .replace(PLACEHOLDER_FILTERS, additionalFilters)
+                .replace("<<bucket_size_ms>>", String.valueOf(BUCKET_SIZE_MS));
     }
 
     public static DuckDBTimeseriesQueries of() {
@@ -236,45 +205,34 @@ public class DuckDBTimeseriesQueries implements ComplexQueries.Timeseries {
         return new DuckDBTimeseriesQueries(addQuotes(eventType), additionalFilters);
     }
 
-    private static String replaceValueField(String sql, boolean useWeight, boolean useSpecifiedThread) {
-        String valueField = useWeight ? "e.weight" : "e.samples";
-        String result = sql.replace(PLACEHOLDER_TARGET_VALUE, valueField);
+    private static String render(String sql, EventQueryConfigurer configurer) {
+        String valueField = configurer.useWeight() ? "e.weight" : "e.samples";
+        String threadJoin = configurer.specifiedThread() != null ? THREAD_JOIN : "";
 
-        if (useSpecifiedThread) {
-            result = result.replace(
-                    "<<thread_join>>",
-                    "LEFT JOIN threads t ON e.thread_hash = t.thread_hash");
-            result = result.replace(
-                    "<<thread_filters>>",
-                    """
-                    AND (:java_thread_id IS NULL OR t.java_id = :java_thread_id)
-                    AND (:os_thread_id IS NULL OR t.os_id = :os_thread_id)
-                    """);
-        } else {
-            result = result.replace("<<thread_join>>", "")
-                    .replace("<<thread_filters>>", "");
-        }
+        String result = sql
+                .replace(PLACEHOLDER_TARGET_VALUE, valueField)
+                .replace(PLACEHOLDER_THREAD_JOIN, threadJoin);
 
-        return result;
+        return EventQueryFilters.splice(result, configurer);
     }
 
     @Override
-    public String simple(boolean useWeight, boolean useSpecifiedThread) {
-        return replaceValueField(simple, useWeight, useSpecifiedThread);
+    public String simple(EventQueryConfigurer configurer) {
+        return render(simple, configurer);
     }
 
     @Override
-    public String simpleSearch(boolean useWeight, boolean useSpecifiedThread) {
-        return replaceValueField(simpleSearch, useWeight, useSpecifiedThread);
+    public String simpleSearch(EventQueryConfigurer configurer) {
+        return render(simpleSearch, configurer);
     }
 
     @Override
-    public String filterable(boolean useWeight) {
-        return replaceValueField(filterable, useWeight, false);
+    public String filterable(EventQueryConfigurer configurer) {
+        return render(filterable, configurer);
     }
 
     @Override
-    public String frameBased(boolean useWeight) {
-        return replaceValueField(frameBased, useWeight, false);
+    public String frameBased(EventQueryConfigurer configurer) {
+        return render(frameBased, configurer);
     }
 }

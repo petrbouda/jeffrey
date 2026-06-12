@@ -37,8 +37,8 @@ public class SubSecondRecordBuilder implements RecordBuilder<SubSecondRecord, Si
     @Override
     public void onRecord(SubSecondRecord record) {
         long millis = record.timestampFromStart() - timeRangeStartMillis;
-        int seconds = (int) millis / 1000;
-        int millisInSecond = (int) millis % 1000;
+        int seconds = (int) (millis / 1000);
+        int millisInSecond = (int) (millis % 1000);
 
         // Value for the new second/column arrived, then create a new column for it.
         int expectedColumns = seconds + 1;

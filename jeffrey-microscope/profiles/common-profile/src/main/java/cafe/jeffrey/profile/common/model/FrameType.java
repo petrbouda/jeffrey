@@ -18,6 +18,9 @@
 
 package cafe.jeffrey.profile.common.model;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public enum FrameType {
     C1_COMPILED("C1 compiled", true, "JAVA C1-compiled"),
     NATIVE("Native", false, "Native"),
@@ -37,7 +40,25 @@ public enum FrameType {
     UNKNOWN("Unknown", false, "Unknown"),
     HIGHLIGHTED_WARNING("Highlighted Warning");
 
-    private static final FrameType[] VALUES = values();
+    /**
+     * Lookup table replacing the former linear scan over {@code values()}.
+     * Keys are every constant's {@code name()} plus its lower-cased {@code code}
+     * (codes were matched with {@code equalsIgnoreCase}). {@code putIfAbsent} in
+     * declaration order preserves the original first-match precedence in case
+     * two constants ever share a code.
+     */
+    private static final Map<String, FrameType> BY_NAME_OR_CODE;
+
+    static {
+        Map<String, FrameType> byNameOrCode = new HashMap<>();
+        for (FrameType value : values()) {
+            byNameOrCode.putIfAbsent(value.name(), value);
+            if (value.code != null) {
+                byNameOrCode.putIfAbsent(value.code.toLowerCase(), value);
+            }
+        }
+        BY_NAME_OR_CODE = Map.copyOf(byNameOrCode);
+    }
 
     private final String code;
     private final String title;
@@ -80,9 +101,14 @@ public enum FrameType {
     }
 
     public static FrameType fromCode(String code) {
-        for (FrameType value : VALUES) {
-            if (value.name().equals(code) || (value.code != null && value.code.equalsIgnoreCase(code))) {
-                return value;
+        if (code != null) {
+            FrameType byName = BY_NAME_OR_CODE.get(code);
+            if (byName != null) {
+                return byName;
+            }
+            FrameType byCode = BY_NAME_OR_CODE.get(code.toLowerCase());
+            if (byCode != null) {
+                return byCode;
             }
         }
         throw new RuntimeException("Frame type does not exists: " + code);

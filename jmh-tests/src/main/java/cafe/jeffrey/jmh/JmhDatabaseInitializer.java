@@ -103,8 +103,10 @@ public class JmhDatabaseInitializer {
 
             Lz4Compressor lz4Compressor = new Lz4Compressor(tempDirFactory);
             JfrRecordingEventParser parser = new JfrRecordingEventParser(tempDirFactory, lz4Compressor);
+            // EPOCH as the timeline zero point: the relative timestamps equal the absolute epoch
+            // millis, which is irrelevant for benchmarking but stable across runs.
             EventWriter eventWriter = new SQLEventWriter(() -> new DuckDBEventWriters(
-                    writerExecutor, dataSource, BATCH_SIZE, EVENTS_BATCH_SIZE));
+                    writerExecutor, dataSource, BATCH_SIZE, EVENTS_BATCH_SIZE, Instant.EPOCH));
 
             LOG.info("Parsing JFR file: path={}", JFR_FILE.toAbsolutePath());
             parser.start(eventWriter, JFR_FILE);

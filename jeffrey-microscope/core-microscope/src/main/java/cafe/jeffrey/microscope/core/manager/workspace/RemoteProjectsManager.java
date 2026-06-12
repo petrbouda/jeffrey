@@ -99,21 +99,19 @@ public class RemoteProjectsManager implements ProjectsManager {
 
     @Override
     public Optional<ProjectManager> project(String projectId) {
-        // In remote-only mode, we look up the project from the remote server
-        // Include deleted projects so restore/management lookups work
-        List<RemoteProjectResponse> remoteProjects;
+        // In remote-only mode, we look up the single project from the remote server.
+        // The server returns deleted projects as well so restore/management lookups work.
+        Optional<RemoteProjectResponse> remoteProject;
         try {
-            remoteProjects = remoteClients.discovery().allProjects(workspaceInfo.id(), true);
+            remoteProject = remoteClients.discovery().project(workspaceInfo.id(), projectId);
         } catch (Exception e) {
-            LOG.error("Failed to fetch projects from remote workspace: {}", workspaceInfo, e);
+            LOG.error("Failed to fetch project from remote workspace: workspace={} project_id={}",
+                    workspaceInfo, projectId, e);
             return Optional.empty();
         }
 
-        return remoteProjects.stream()
-                .filter(p -> p.id().equals(projectId))
-                .findFirst()
-                .map(remoteProject -> toRemoteProjectManager(
-                        RemoteMappers.toDetailedProjectInfo(remoteProject)));
+        return remoteProject.map(project -> toRemoteProjectManager(
+                RemoteMappers.toDetailedProjectInfo(project)));
     }
 
     private ProjectManager toRemoteProjectManager(DetailedProjectInfo projectInfo) {

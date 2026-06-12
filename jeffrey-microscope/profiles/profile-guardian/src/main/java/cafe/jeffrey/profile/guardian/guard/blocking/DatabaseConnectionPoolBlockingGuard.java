@@ -29,10 +29,11 @@ import cafe.jeffrey.profile.guardian.traverse.TargetFrameType;
 
 public class DatabaseConnectionPoolBlockingGuard extends TraversableGuard {
 
-    public DatabaseConnectionPoolBlockingGuard(ProfileInfo profileInfo, double threshold) {
+    public DatabaseConnectionPoolBlockingGuard(ProfileInfo profileInfo, double infoThreshold, double warningThreshold) {
         super("DB Connection Pool Blocking",
                 profileInfo,
-                threshold,
+                infoThreshold,
+                warningThreshold,
                 FrameMatchers.prefix("com.zaxxer.hikari.")
                         .or(FrameMatchers.prefix("org.apache.commons.dbcp2."))
                         .or(FrameMatchers.prefix("com.mchange.v2.c3p0."))

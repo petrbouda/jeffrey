@@ -28,34 +28,59 @@ import cafe.jeffrey.profile.guardian.traverse.*;
 import java.util.List;
 import java.util.function.Supplier;
 
+/**
+ * Guards GC overhead of ZGC. One class covers both the single-generation and the generational
+ * variant — the guard name, VM operation frame prefix and the matched {@link GarbageCollectorType}
+ * live in {@link Variant}.
+ */
 public class ZGarbageCollectionGuard extends TraversableGuard {
 
-    public ZGarbageCollectionGuard(ProfileInfo profileInfo, double threshold) {
-        super("Z GC",
+    public enum Variant {
+        Z("Z GC", "VM_XOperation", GarbageCollectorType.Z),
+        Z_GENERATIONAL("Z Generational GC", "VM_ZOperation", GarbageCollectorType.ZGENERATIONAL);
+
+        private final String guardName;
+        private final String vmOperationPrefix;
+        private final GarbageCollectorType collectorType;
+
+        Variant(String guardName, String vmOperationPrefix, GarbageCollectorType collectorType) {
+            this.guardName = guardName;
+            this.vmOperationPrefix = vmOperationPrefix;
+            this.collectorType = collectorType;
+        }
+    }
+
+    private final Variant variant;
+
+    public ZGarbageCollectionGuard(Variant variant, ProfileInfo profileInfo, double infoThreshold, double warningThreshold) {
+        super(variant.guardName,
                 profileInfo,
-                threshold,
+                infoThreshold,
+                warningThreshold,
                 FrameMatchers.jvm("Thread::call_run"),
                 Category.GARBAGE_COLLECTION,
-                createTraversables(),
+                createTraversables(variant),
                 TargetFrameType.JVM,
                 MatchingType.SINGLE_MATCH,
                 ResultType.SAMPLES);
+
+        this.variant = variant;
     }
 
-    private static Supplier<List<Traversable>> createTraversables() {
+    private static Supplier<List<Traversable>> createTraversables(Variant variant) {
         return () -> List.of(
                 new NameBasedSingleTraverser("ConcurrentGCThread::run"),
                 new NameBasedSingleTraverser("WorkerThread::run"),
                 new BaseWithMatcherTraverser(
                         FrameMatchers.jvm("VM_Operation::evaluate"),
-                        FrameMatchers.prefix("VM_XOperation"))
+                        FrameMatchers.prefix(variant.vmOperationPrefix))
         );
     }
 
     @Override
     public Preconditions preconditions() {
         return Preconditions.builder()
-                .withGarbageCollectorType(GarbageCollectorType.Z)
+                .withGarbageCollectorType(variant.collectorType)
                 .withEventSource(RecordingEventSource.ASYNC_PROFILER)
                 .build();
     }

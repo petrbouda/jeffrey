@@ -69,7 +69,7 @@ public class FlamegraphByWeightBenchmark {
         DataSource ds = new SimpleJdbcDataSource(JDBC_URL);
         NamedParameterJdbcTemplate jdbcTemplate = new NamedParameterJdbcTemplate(ds);
         String sql = DuckDBFlamegraphQueries.of().byWeight();
-        FlamegraphRecordRowMapper rowMapper = new FlamegraphRecordRowMapper(Type.EXECUTION_SAMPLE);
+        FlamegraphRecordRowMapper rowMapper = new FlamegraphRecordRowMapper(Type.EXECUTION_SAMPLE, false);
         return jdbcTemplate.query(sql, QUERY_PARAMS, rowMapper);
     };
 
@@ -80,7 +80,7 @@ public class FlamegraphByWeightBenchmark {
         NamedParameterJdbcTemplate jdbcTemplate = new NamedParameterJdbcTemplate(ds);
         String sql = DuckDBFlamegraphQueries.of().byWeightOptimized();
         CachingFlamegraphRecordRowMapper rowMapper = new CachingFlamegraphRecordRowMapper(
-                Type.EXECUTION_SAMPLE, FramesCache.load(databaseClient), true);
+                Type.EXECUTION_SAMPLE, FramesCache.load(databaseClient), true, false);
         return jdbcTemplate.query(sql, QUERY_PARAMS, rowMapper);
     };
 
