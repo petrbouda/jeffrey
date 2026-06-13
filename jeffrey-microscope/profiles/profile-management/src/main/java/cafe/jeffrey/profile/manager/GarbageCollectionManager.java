@@ -23,6 +23,8 @@ import cafe.jeffrey.shared.common.model.ProfileInfo;
 import cafe.jeffrey.profile.manager.model.gc.GCTimeseriesType;
 import cafe.jeffrey.profile.manager.model.gc.configuration.GCConfigurationData;
 import cafe.jeffrey.profile.manager.model.gc.GCOverviewData;
+import cafe.jeffrey.profile.manager.model.gc.tuning.IhopData;
+import cafe.jeffrey.profile.manager.model.gc.tuning.TenuringData;
 import cafe.jeffrey.timeseries.TimeseriesData;
 
 import java.util.function.Function;
@@ -40,4 +42,18 @@ public interface GarbageCollectionManager {
     TimeseriesData timeseries(GCTimeseriesType timeseriesType);
 
     GCConfigurationData configuration();
+
+    /**
+     * Promotion/tenuring deep-tuning data: per-collection survivor-age distributions
+     * ({@code jdk.TenuringDistribution}) and reference-processing totals
+     * ({@code jdk.GCReferenceStatistics}).
+     */
+    TenuringData tenuring();
+
+    /**
+     * G1 IHOP deep-tuning data: marking-start threshold vs old-gen occupancy timeline
+     * ({@code jdk.G1AdaptiveIHOP}) and per-collection CPU times ({@code jdk.GCCPUTime}).
+     * Collectors without IHOP produce an empty timeline.
+     */
+    IhopData ihop();
 }

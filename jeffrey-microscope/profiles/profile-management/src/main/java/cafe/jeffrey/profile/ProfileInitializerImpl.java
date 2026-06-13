@@ -30,7 +30,7 @@ import cafe.jeffrey.provider.profile.api.ProfileRepositories;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
 import cafe.jeffrey.shared.common.measure.Measuring;
 import cafe.jeffrey.shared.common.span.Spans;
-import cafe.jeffrey.shared.persistence.DataSourceUtils;
+import cafe.jeffrey.shared.persistence.DatabaseLease;
 import cafe.jeffrey.shared.persistence.DatabaseManager;
 import cafe.jeffrey.shared.persistence.GroupLabel;
 import cafe.jeffrey.shared.persistence.client.DatabaseClient;
@@ -88,10 +88,12 @@ public class ProfileInitializerImpl implements ProfileInitializer {
         Instant startedAt = clock.instant();
         long initSpan = Spans.start();
 
-        // Open database connection for the new profile
-        // it's creates a new database file on disk if it does not exist yet
-        DataSource dataSource = databaseManager.open(profileInfo.id());
-        try {
+        // Open database connection for the new profile (creating the database file on disk if it
+        // does not exist yet). The lease keeps this profile's pool pinned for the whole
+        // initialization, so a concurrent initialization of a different profile cannot idle-evict or
+        // otherwise close the pool while parsing is still writing events into it.
+        try (DatabaseLease lease = databaseManager.acquire(profileInfo.id())) {
+            DataSource dataSource = lease.dataSource();
             // Store profile context (workspace_id, project_id) in the profile database
             // Skip for Recordings profiles where workspace/project are null
             if (profileInfo.projectId() != null && profileInfo.workspaceId() != null) {
@@ -144,7 +146,8 @@ public class ProfileInitializerImpl implements ProfileInitializer {
 
             return profileManager;
         } finally {
-            DataSourceUtils.close(dataSource);
+            // The lease (try-with-resources) releases the pin; the cached pool stays warm for
+            // subsequent reads and is closed later by idle eviction, not here.
             Spans.end(initSpan, "profile.initialize");
         }
     }

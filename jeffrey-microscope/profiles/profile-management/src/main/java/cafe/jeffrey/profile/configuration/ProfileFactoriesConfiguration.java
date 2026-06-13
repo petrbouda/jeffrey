@@ -133,6 +133,16 @@ public class ProfileFactoriesConfiguration {
             ContainerManager.Factory containerFactory,
             ThreadManager.Factory threadFactory,
             HeapDumpManager.Factory heapDumpFactory,
+            ClassLoadingManager.Factory classLoadingFactory,
+            ExceptionsManager.Factory exceptionsFactory,
+            NativeMemoryManager.Factory nativeMemoryFactory,
+            NativeMemoryTrackingManager.Factory nativeMemoryTrackingFactory,
+            SystemResourcesManager.Factory systemResourcesFactory,
+            VmOperationManager.Factory vmOperationFactory,
+            BlockingManager.Factory blockingFactory,
+            IoManager.Factory ioFactory,
+            AllocationManager.Factory allocationFactory,
+            LeakCandidatesManager.Factory leakCandidatesFactory,
             SpanManager.Factory spanFactory) {
 
         return new JvmInsightFactories(
@@ -143,6 +153,16 @@ public class ProfileFactoriesConfiguration {
                 containerFactory,
                 threadFactory,
                 heapDumpFactory,
+                classLoadingFactory,
+                exceptionsFactory,
+                nativeMemoryFactory,
+                nativeMemoryTrackingFactory,
+                systemResourcesFactory,
+                vmOperationFactory,
+                blockingFactory,
+                ioFactory,
+                allocationFactory,
+                leakCandidatesFactory,
                 spanFactory);
     }
 
@@ -490,6 +510,122 @@ public class ProfileFactoriesConfiguration {
                     profileInfo,
                     profileRepositories.newEventRepository(profileDb),
                     profileRepositories.newEventStreamRepository(profileDb));
+        };
+    }
+
+    @Bean
+    public ClassLoadingManager.Factory classLoadingManagerFactory() {
+
+        return profileInfo -> {
+            DataSource profileDb = databaseManagerResolver.open(profileInfo);
+            return new ClassLoadingManagerImpl(
+                    profileInfo,
+                    profileRepositories.newEventRepository(profileDb),
+                    profileRepositories.newEventStreamRepository(profileDb));
+        };
+    }
+
+    @Bean
+    public ExceptionsManager.Factory exceptionsManagerFactory() {
+
+        return profileInfo -> {
+            DataSource profileDb = databaseManagerResolver.open(profileInfo);
+            return new ExceptionsManagerImpl(
+                    profileInfo,
+                    profileRepositories.newEventRepository(profileDb),
+                    profileRepositories.newEventStreamRepository(profileDb));
+        };
+    }
+
+    @Bean
+    public NativeMemoryManager.Factory nativeMemoryManagerFactory() {
+
+        return profileInfo -> {
+            DataSource profileDb = databaseManagerResolver.open(profileInfo);
+            return new NativeMemoryManagerImpl(
+                    profileInfo,
+                    profileRepositories.newEventRepository(profileDb),
+                    profileRepositories.newEventStreamRepository(profileDb));
+        };
+    }
+
+    @Bean
+    public NativeMemoryTrackingManager.Factory nativeMemoryTrackingManagerFactory() {
+
+        return profileInfo -> {
+            DataSource profileDb = databaseManagerResolver.open(profileInfo);
+            return new NativeMemoryTrackingManagerImpl(
+                    profileInfo,
+                    profileRepositories.newEventRepository(profileDb),
+                    profileRepositories.newEventStreamRepository(profileDb));
+        };
+    }
+
+    @Bean
+    public SystemResourcesManager.Factory systemResourcesManagerFactory() {
+
+        return profileInfo -> {
+            DataSource profileDb = databaseManagerResolver.open(profileInfo);
+            return new SystemResourcesManagerImpl(
+                    profileInfo,
+                    profileRepositories.newEventStreamRepository(profileDb));
+        };
+    }
+
+    @Bean
+    public VmOperationManager.Factory vmOperationManagerFactory() {
+
+        return profileInfo -> {
+            DataSource profileDb = databaseManagerResolver.open(profileInfo);
+            return new VmOperationManagerImpl(
+                    profileInfo,
+                    profileRepositories.newEventRepository(profileDb),
+                    profileRepositories.newEventStreamRepository(profileDb));
+        };
+    }
+
+    @Bean
+    public BlockingManager.Factory blockingManagerFactory() {
+
+        return profileInfo -> {
+            DataSource profileDb = databaseManagerResolver.open(profileInfo);
+            return new BlockingManagerImpl(
+                    profileInfo,
+                    profileRepositories.newEventRepository(profileDb),
+                    profileRepositories.newEventStreamRepository(profileDb));
+        };
+    }
+
+    @Bean
+    public IoManager.Factory ioManagerFactory() {
+
+        return profileInfo -> {
+            DataSource profileDb = databaseManagerResolver.open(profileInfo);
+            return new IoManagerImpl(
+                    profileInfo,
+                    profileRepositories.newEventRepository(profileDb),
+                    profileRepositories.newEventStreamRepository(profileDb));
+        };
+    }
+
+    @Bean
+    public AllocationManager.Factory allocationManagerFactory() {
+
+        return profileInfo -> {
+            DataSource profileDb = databaseManagerResolver.open(profileInfo);
+            return new AllocationManagerImpl(
+                    profileInfo,
+                    profileRepositories.newEventRepository(profileDb),
+                    profileRepositories.newEventStreamRepository(profileDb));
+        };
+    }
+
+    @Bean
+    public LeakCandidatesManager.Factory leakCandidatesManagerFactory() {
+
+        return profileInfo -> {
+            DataSource profileDb = databaseManagerResolver.open(profileInfo);
+            return new LeakCandidatesManagerImpl(profileRepositories.newEventRepository(profileDb));
         };
     }
 

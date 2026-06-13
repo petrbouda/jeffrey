@@ -132,6 +132,56 @@ public class ProfileManagerImpl implements ProfileManager {
     }
 
     @Override
+    public ClassLoadingManager classLoadingManager() {
+        return registry.jvmInsight().classLoading().apply(profileInfo);
+    }
+
+    @Override
+    public ExceptionsManager exceptionsManager() {
+        return registry.jvmInsight().exceptions().apply(profileInfo);
+    }
+
+    @Override
+    public NativeMemoryManager nativeMemoryManager() {
+        return registry.jvmInsight().nativeMemory().apply(profileInfo);
+    }
+
+    @Override
+    public NativeMemoryTrackingManager nativeMemoryTrackingManager() {
+        return registry.jvmInsight().nativeMemoryTracking().apply(profileInfo);
+    }
+
+    @Override
+    public SystemResourcesManager systemResourcesManager() {
+        return registry.jvmInsight().systemResources().apply(profileInfo);
+    }
+
+    @Override
+    public VmOperationManager vmOperationManager() {
+        return registry.jvmInsight().vmOperation().apply(profileInfo);
+    }
+
+    @Override
+    public BlockingManager blockingManager() {
+        return registry.jvmInsight().blocking().apply(profileInfo);
+    }
+
+    @Override
+    public IoManager ioManager() {
+        return registry.jvmInsight().io().apply(profileInfo);
+    }
+
+    @Override
+    public AllocationManager allocationManager() {
+        return registry.jvmInsight().allocation().apply(profileInfo);
+    }
+
+    @Override
+    public LeakCandidatesManager leakCandidatesManager() {
+        return registry.jvmInsight().leakCandidates().apply(profileInfo);
+    }
+
+    @Override
     public ContainerManager containerManager() {
         return registry.jvmInsight().container().apply(profileInfo);
     }

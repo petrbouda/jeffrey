@@ -63,6 +63,26 @@ public interface ProfileManager {
 
     GarbageCollectionManager gcManager();
 
+    ClassLoadingManager classLoadingManager();
+
+    ExceptionsManager exceptionsManager();
+
+    NativeMemoryManager nativeMemoryManager();
+
+    NativeMemoryTrackingManager nativeMemoryTrackingManager();
+
+    SystemResourcesManager systemResourcesManager();
+
+    VmOperationManager vmOperationManager();
+
+    BlockingManager blockingManager();
+
+    IoManager ioManager();
+
+    AllocationManager allocationManager();
+
+    LeakCandidatesManager leakCandidatesManager();
+
     ContainerManager containerManager();
 
     HeapMemoryManager heapMemoryManager();

@@ -31,6 +31,13 @@ import cafe.jeffrey.profile.manager.model.gc.GCGenerationTimeseriesBuilder;
 import cafe.jeffrey.profile.manager.model.gc.GCOverviewData;
 import cafe.jeffrey.profile.manager.model.gc.GCTimeseriesType;
 import cafe.jeffrey.profile.manager.model.gc.configuration.GCConfigurationData;
+import cafe.jeffrey.profile.manager.model.gc.tuning.G1MmuBuilder;
+import cafe.jeffrey.profile.manager.model.gc.tuning.GcCpuTimesBuilder;
+import cafe.jeffrey.profile.manager.model.gc.tuning.IhopData;
+import cafe.jeffrey.profile.manager.model.gc.tuning.IhopTimeseriesBuilder;
+import cafe.jeffrey.profile.manager.model.gc.tuning.ReferenceStatsBuilder;
+import cafe.jeffrey.profile.manager.model.gc.tuning.TenuringData;
+import cafe.jeffrey.profile.manager.model.gc.tuning.TenuringDistributionBuilder;
 import cafe.jeffrey.provider.profile.api.RecordBuilder;
 import cafe.jeffrey.provider.profile.api.EventQueryConfigurer;
 import cafe.jeffrey.provider.profile.api.ProfileEventRepository;
@@ -43,6 +50,8 @@ import java.util.List;
 public class GarbageCollectionManagerImpl implements GarbageCollectionManager {
 
     private static final int MAX_LONGEST_PAUSES = 20;
+    private static final int MAX_TENURING_COLLECTIONS = 50;
+    private static final int MAX_GC_CPU_ENTRIES = 100;
 
     private final ProfileInfo profileInfo;
     private final ProfileEventRepository eventRepository;
@@ -146,5 +155,44 @@ public class GarbageCollectionManagerImpl implements GarbageCollectionManager {
                 .orderedByTime();
 
         return eventStreamRepository.genericStreaming(configurer, new GCConfigurationEventBuilder());
+    }
+
+    @Override
+    public TenuringData tenuring() {
+        EventQueryConfigurer tenuringConfigurer = new EventQueryConfigurer()
+                .withEventType(Type.TENURING_DISTRIBUTION)
+                .withJsonFields();
+        var gcs = eventStreamRepository.genericStreaming(
+                tenuringConfigurer, new TenuringDistributionBuilder(MAX_TENURING_COLLECTIONS));
+
+        EventQueryConfigurer referenceConfigurer = new EventQueryConfigurer()
+                .withEventType(Type.GC_REFERENCE_STATISTICS)
+                .withJsonFields();
+        var referenceStats = eventStreamRepository.genericStreaming(referenceConfigurer, new ReferenceStatsBuilder());
+
+        return new TenuringData(gcs, referenceStats);
+    }
+
+    @Override
+    public IhopData ihop() {
+        RelativeTimeRange timeRange = new RelativeTimeRange(profileInfo.profilingStartEnd());
+
+        EventQueryConfigurer ihopConfigurer = new EventQueryConfigurer()
+                .withEventType(Type.G1_ADAPTIVE_IHOP)
+                .withJsonFields();
+        TimeseriesData ihopTimeline =
+                eventStreamRepository.genericStreaming(ihopConfigurer, new IhopTimeseriesBuilder(timeRange));
+
+        EventQueryConfigurer cpuConfigurer = new EventQueryConfigurer()
+                .withEventType(Type.GC_CPU_TIME)
+                .withJsonFields();
+        var cpuTimes = eventStreamRepository.genericStreaming(cpuConfigurer, new GcCpuTimesBuilder(MAX_GC_CPU_ENTRIES));
+
+        EventQueryConfigurer mmuConfigurer = new EventQueryConfigurer()
+                .withEventType(Type.G1_MMU)
+                .withJsonFields();
+        var mmu = eventStreamRepository.genericStreaming(mmuConfigurer, new G1MmuBuilder(MAX_GC_CPU_ENTRIES));
+
+        return new IhopData(ihopTimeline, cpuTimes, mmu);
     }
 }

@@ -21,7 +21,9 @@ package cafe.jeffrey.profile.manager;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
 import cafe.jeffrey.profile.common.event.JITCompilationStats;
 import cafe.jeffrey.profile.common.event.JITLongCompilation;
+import cafe.jeffrey.profile.manager.model.jit.CodeCacheData;
 import cafe.jeffrey.timeseries.SingleSerie;
+import cafe.jeffrey.timeseries.TimeseriesData;
 
 import java.util.List;
 import java.util.function.Function;
@@ -37,4 +39,16 @@ public interface JITCompilationManager {
     List<JITLongCompilation> compilations(int limit);
 
     SingleSerie timeseries();
+
+    /**
+     * Compiler queue backlog over the recording (C1 + C2 series), from
+     * {@code jdk.CompilerQueueUtilization}; empty series when the event is absent.
+     */
+    TimeseriesData compilerQueueTimeline();
+
+    /**
+     * Code-cache occupancy per code heap ({@code jdk.CodeCacheStatistics}, latest snapshot)
+     * plus the number of {@code jdk.CodeCacheFull} incidents.
+     */
+    CodeCacheData codeCache();
 }

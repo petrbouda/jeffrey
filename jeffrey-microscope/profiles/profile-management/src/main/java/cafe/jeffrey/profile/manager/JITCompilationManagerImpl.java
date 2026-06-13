@@ -29,6 +29,9 @@ import cafe.jeffrey.shared.common.model.StacktraceType;
 import cafe.jeffrey.shared.common.model.Type;
 import cafe.jeffrey.shared.common.model.time.RelativeTimeRange;
 import cafe.jeffrey.profile.manager.builder.JITLongCompilationBuilder;
+import cafe.jeffrey.profile.manager.model.jit.CodeCacheData;
+import cafe.jeffrey.profile.manager.model.jit.CodeCacheSegmentsBuilder;
+import cafe.jeffrey.profile.manager.model.jit.CompilerQueueTimeseriesBuilder;
 import cafe.jeffrey.provider.profile.api.EventQueryConfigurer;
 import cafe.jeffrey.provider.profile.api.ProfileEventRepository;
 import cafe.jeffrey.provider.profile.api.ProfileEventStreamRepository;
@@ -113,5 +116,37 @@ public class JITCompilationManagerImpl implements JITCompilationManager {
                 .timeseriesStreamer(configurer, new SimpleTimeseriesBuilder("JIT Samples", timeRange));
 
         return timeseriesData.series().getFirst();
+    }
+
+    @Override
+    public TimeseriesData compilerQueueTimeline() {
+        RelativeTimeRange timeRange = new RelativeTimeRange(profileInfo.profilingStartEnd());
+
+        if (!eventRepository.containsEventType(Type.COMPILER_QUEUE_UTILIZATION)) {
+            return TimeseriesData.empty();
+        }
+
+        EventQueryConfigurer configurer = new EventQueryConfigurer()
+                .withEventType(Type.COMPILER_QUEUE_UTILIZATION)
+                .withJsonFields();
+
+        return eventStreamRepository.genericStreaming(configurer, new CompilerQueueTimeseriesBuilder(timeRange));
+    }
+
+    @Override
+    public CodeCacheData codeCache() {
+        // Last snapshot wins per code heap — requires a chronological stream.
+        EventQueryConfigurer configurer = new EventQueryConfigurer()
+                .withEventType(Type.CODE_CACHE_STATISTICS)
+                .withJsonFields()
+                .orderedByTime();
+
+        var segments = eventStreamRepository.genericStreaming(configurer, new CodeCacheSegmentsBuilder());
+
+        long codeCacheFullCount = eventRepository.containsEventType(Type.CODE_CACHE_FULL)
+                ? eventRepository.eventsByTypeWithFields(Type.CODE_CACHE_FULL).size()
+                : 0;
+
+        return new CodeCacheData(segments, codeCacheFullCount);
     }
 }

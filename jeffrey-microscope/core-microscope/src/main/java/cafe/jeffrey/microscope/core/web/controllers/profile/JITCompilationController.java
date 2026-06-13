@@ -28,7 +28,9 @@ import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
 import cafe.jeffrey.profile.common.event.JITCompilationStats;
 import cafe.jeffrey.profile.common.event.JITLongCompilation;
 import cafe.jeffrey.profile.manager.JITCompilationManager;
+import cafe.jeffrey.profile.manager.model.jit.CodeCacheData;
 import cafe.jeffrey.timeseries.SingleSerie;
+import cafe.jeffrey.timeseries.TimeseriesData;
 
 import java.util.List;
 
@@ -61,6 +63,18 @@ public class JITCompilationController {
     public SingleSerie timeseries(@PathVariable("profileId") String profileId) {
         LOG.debug("Fetching JIT compilation timeseries");
         return mgr(profileId).timeseries();
+    }
+
+    @GetMapping("/queue-timeline")
+    public TimeseriesData queueTimeline(@PathVariable("profileId") String profileId) {
+        LOG.debug("Fetching compiler queue timeline");
+        return mgr(profileId).compilerQueueTimeline();
+    }
+
+    @GetMapping("/code-cache")
+    public CodeCacheData codeCache(@PathVariable("profileId") String profileId) {
+        LOG.debug("Fetching code cache statistics");
+        return mgr(profileId).codeCache();
     }
 
     private JITCompilationManager mgr(String profileId) {
