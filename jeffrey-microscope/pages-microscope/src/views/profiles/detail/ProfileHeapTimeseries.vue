@@ -37,6 +37,62 @@
         time-unit="seconds"
       />
     </div>
+
+    <!-- How It Works Tab -->
+    <div v-show="activeTab === 'about'">
+      <AboutPanel
+        icon="bi-question-circle"
+        title="Understanding Heap Memory"
+        subtitle="What the before/after-GC sawtooth and allocation rate tell you"
+      >
+        <AboutCallout variant="intro">
+          <p>
+            The Java heap fills as your application allocates and drops each time the collector runs —
+            the classic sawtooth. The shape of that sawtooth, sampled at every GC, reveals how hard the
+            collector is working and whether your live set is stable or growing.
+          </p>
+        </AboutCallout>
+
+        <AboutSection icon="bi-graph-up" title="Reading the Sawtooth">
+          <FeatureGrid>
+            <FeatureCard icon="bi-arrow-down-up" variant="primary" title="Before vs After GC">
+              The peak is heap used just before a collection; the trough is what survived just after.
+              The drop is garbage reclaimed in that cycle.
+            </FeatureCard>
+            <FeatureCard icon="bi-water" variant="warning" title="Rising troughs = growing live set">
+              If the after-GC floor creeps up over time, your <em>live</em> data is growing — a genuine
+              leak or a cache without bounds, not just churn.
+            </FeatureCard>
+            <FeatureCard icon="bi-activity" variant="info" title="Sawtooth frequency">
+              Tall, frequent teeth mean high allocation pressure — Eden fills fast. Cross-reference the
+              Allocations and GC pages.
+            </FeatureCard>
+            <FeatureCard icon="bi-plus-circle" variant="success" title="Allocation Rate">
+              Bytes allocated per second, independent of the heap occupancy. This is the input that
+              drives collection frequency.
+            </FeatureCard>
+          </FeatureGrid>
+        </AboutSection>
+
+        <AboutCallout variant="tip" title="Floor, not peaks" icon="bi-lightbulb-fill">
+          For leak hunting, watch the post-GC <em>floor</em>, not the peaks. Peaks reflect allocation
+          churn (harmless); a steadily rising floor reflects memory that's never reclaimed.
+        </AboutCallout>
+
+        <AboutSection icon="bi-broadcast" title="How JFR Emits This">
+          <ul>
+            <li>
+              <code>jdk.GCHeapSummary</code> — heap used/committed captured <em>before and after</em>
+              each collection (the <code>when</code> field). Enabled by default; this is the sawtooth.
+            </li>
+            <li>
+              The allocation-rate series is derived from the allocation events (see the Allocations
+              page's "How It Works").
+            </li>
+          </ul>
+        </AboutSection>
+      </AboutPanel>
+    </div>
   </div>
 </template>
 
@@ -49,6 +105,11 @@ import PageHeader from '@/components/layout/PageHeader.vue';
 import TabBar from '@/components/TabBar.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import ErrorState from '@/components/ErrorState.vue';
+import AboutPanel from '@/components/about/AboutPanel.vue';
+import AboutCallout from '@/components/about/AboutCallout.vue';
+import AboutSection from '@/components/about/AboutSection.vue';
+import FeatureGrid from '@/components/about/FeatureGrid.vue';
+import FeatureCard from '@/components/about/FeatureCard.vue';
 import ProfileHeapMemoryClient from '@/services/api/ProfileHeapMemoryClient';
 import HeapMemoryTimeseriesType from '@/services/api/model/HeapMemoryTimeseriesType';
 import AxisFormatType from '@/services/timeseries/AxisFormatType.ts';
@@ -71,7 +132,8 @@ const heapMemoryTabs = [
     label: 'Allocation Rate',
     icon: 'plus-circle',
     type: HeapMemoryTimeseriesType.ALLOCATION
-  }
+  },
+  { id: 'about', label: 'How It Works', icon: 'book' }
 ];
 const activeTab = ref(heapMemoryTabs[0].id);
 

@@ -143,14 +143,6 @@
                   <div class="nav-section-title">ANALYSIS</div>
                   <div class="nav-items">
                     <router-link
-                      :to="`/profiles/${profileId}/overview`"
-                      class="nav-item"
-                      active-class="active"
-                    >
-                      <i class="bi bi-gear"></i>
-                      <span>Configuration</span>
-                    </router-link>
-                    <router-link
                       :to="`/profiles/${profileId}/ai-analysis`"
                       class="nav-item nav-item-ai"
                       :class="{ 'disabled-feature': isFeatureDisabled('ai-analysis') }"
@@ -158,6 +150,14 @@
                     >
                       <i class="bi bi-stars"></i>
                       <span>JFR AI Analysis</span>
+                    </router-link>
+                    <router-link
+                      :to="`/profiles/${profileId}/overview`"
+                      class="nav-item"
+                      active-class="active"
+                    >
+                      <i class="bi bi-gear"></i>
+                      <span>Configuration</span>
                     </router-link>
                     <router-link
                       :to="`/profiles/${profileId}/guardian`"
@@ -183,6 +183,54 @@
                     >
                       <i class="bi bi-speedometer2"></i>
                       <span>Performance Counters</span>
+                    </router-link>
+                    <router-link
+                      :to="`/profiles/${profileId}/class-loading`"
+                      class="nav-item"
+                      active-class="active"
+                    >
+                      <i class="bi bi-box-seam"></i>
+                      <span>Class Loading</span>
+                    </router-link>
+                    <router-link
+                      :to="`/profiles/${profileId}/exceptions`"
+                      class="nav-item"
+                      active-class="active"
+                    >
+                      <i class="bi bi-exclamation-octagon"></i>
+                      <span>Exceptions</span>
+                    </router-link>
+                    <router-link
+                      :to="`/profiles/${profileId}/vm-operations`"
+                      class="nav-item"
+                      active-class="active"
+                    >
+                      <i class="bi bi-stopwatch"></i>
+                      <span>VM Operations</span>
+                    </router-link>
+                    <router-link
+                      :to="`/profiles/${profileId}/blocking-operations`"
+                      class="nav-item"
+                      active-class="active"
+                    >
+                      <i class="bi bi-lock"></i>
+                      <span>Blocking Operations</span>
+                    </router-link>
+                    <router-link
+                      :to="`/profiles/${profileId}/socket-io`"
+                      class="nav-item"
+                      active-class="active"
+                    >
+                      <i class="bi bi-ethernet"></i>
+                      <span>Socket I/O</span>
+                    </router-link>
+                    <router-link
+                      :to="`/profiles/${profileId}/file-io`"
+                      class="nav-item"
+                      active-class="active"
+                    >
+                      <i class="bi bi-file-earmark"></i>
+                      <span>File I/O</span>
                     </router-link>
                   </div>
                 </div>
@@ -314,51 +362,63 @@
                         </router-link>
                       </div>
                     </div>
+                    <router-link
+                      :to="`/profiles/${profileId}/native-memory`"
+                      class="nav-item"
+                      active-class="active"
+                    >
+                      <i class="bi bi-hdd-stack"></i>
+                      <span>Native Memory</span>
+                    </router-link>
+                    <router-link
+                      :to="`/profiles/${profileId}/nmt`"
+                      class="nav-item"
+                      active-class="active"
+                    >
+                      <i class="bi bi-pie-chart"></i>
+                      <span>Native Memory Tracking</span>
+                    </router-link>
+                    <router-link
+                      :to="`/profiles/${profileId}/allocations`"
+                      class="nav-item"
+                      active-class="active"
+                    >
+                      <i class="bi bi-box"></i>
+                      <span>Allocations</span>
+                    </router-link>
+                    <router-link
+                      :to="`/profiles/${profileId}/leak-candidates`"
+                      class="nav-item"
+                      active-class="active"
+                    >
+                      <i class="bi bi-bug"></i>
+                      <span>Leak Candidates</span>
+                    </router-link>
                   </div>
                 </div>
 
                 <div class="nav-section">
                   <div class="nav-section-title">COMPILER</div>
                   <div class="nav-items">
-                    <!-- JIT Compilation with Submenu -->
-                    <div class="nav-item-group">
-                      <div
-                        class="nav-item nav-item-parent"
-                        @click="toggleJitCompilationSubmenu"
-                        :class="{
-                          active: $route.path.includes('/jit-compilation'),
-                          expanded: jitCompilationSubmenuExpanded
-                        }"
-                      >
-                        <i class="bi bi-lightning"></i>
-                        <span>JIT Compiler</span>
-                        <i
-                          class="bi bi-chevron-right submenu-arrow"
-                          :class="{ rotated: jitCompilationSubmenuExpanded }"
-                        ></i>
-                      </div>
-                      <div class="nav-submenu" :class="{ expanded: jitCompilationSubmenuExpanded }">
-                        <router-link
-                          :to="`/profiles/${profileId}/jit-compilation`"
-                          class="nav-item nav-subitem"
-                          active-class="active"
-                          :class="{
-                            active: $route.path === `/profiles/${profileId}/jit-compilation`
-                          }"
-                        >
-                          <i class="bi bi-bar-chart-line"></i>
-                          <span>Compilations</span>
-                        </router-link>
-                        <router-link
-                          :to="`/profiles/${profileId}/jit-compilation/deoptimizations`"
-                          class="nav-item nav-subitem"
-                          active-class="active"
-                        >
-                          <i class="bi bi-arrow-counterclockwise"></i>
-                          <span>Deoptimizations</span>
-                        </router-link>
-                      </div>
-                    </div>
+                    <router-link
+                      :to="`/profiles/${profileId}/jit-compilation`"
+                      class="nav-item"
+                      active-class="active"
+                      :class="{
+                        active: $route.path === `/profiles/${profileId}/jit-compilation`
+                      }"
+                    >
+                      <i class="bi bi-bar-chart-line"></i>
+                      <span>Compilations</span>
+                    </router-link>
+                    <router-link
+                      :to="`/profiles/${profileId}/jit-compilation/deoptimizations`"
+                      class="nav-item"
+                      active-class="active"
+                    >
+                      <i class="bi bi-arrow-counterclockwise"></i>
+                      <span>Deoptimizations</span>
+                    </router-link>
                   </div>
                 </div>
 
@@ -373,6 +433,14 @@
                     >
                       <i class="bi bi-server"></i>
                       <span>Container Configuration</span>
+                    </router-link>
+                    <router-link
+                      :to="`/profiles/${profileId}/system`"
+                      class="nav-item"
+                      active-class="active"
+                    >
+                      <i class="bi bi-cpu"></i>
+                      <span>System &amp; Host</span>
                     </router-link>
                   </div>
                 </div>

@@ -222,111 +222,45 @@
 
     <!-- How It Works Tab -->
     <div v-show="activeTab === 'how-it-works'">
-      <div class="about-container">
-        <!-- Header Section -->
-        <div class="about-header">
-          <div class="about-header-icon">
-            <i class="bi bi-question-circle"></i>
-          </div>
-          <div>
-            <h5 class="mb-1">How Collection Analysis Works</h5>
-            <p class="text-muted mb-0">
-              Understanding collection memory allocation and fill ratios
-            </p>
-          </div>
-        </div>
-
-        <!-- Intro -->
-        <div class="about-intro">
+      <AboutPanel
+        icon="bi-question-circle"
+        title="How Collection Analysis Works"
+        subtitle="Understanding collection memory allocation and fill ratios"
+      >
+        <AboutCallout variant="intro">
           <p>
             Java collections like <code>HashMap</code>, <code>ArrayList</code>, and
             <code>HashSet</code> pre-allocate internal arrays to store elements. When a collection
             holds fewer elements than its capacity, the unused slots represent wasted memory. This
             analysis inspects the heap to find over-allocated and empty collections.
           </p>
-        </div>
+        </AboutCallout>
 
-        <!-- Key Concepts -->
-        <h6 class="section-title">
-          <i class="bi bi-book me-2"></i>
-          Key Concepts
-        </h6>
+        <AboutSection icon="bi-book" title="Key Concepts">
+          <FeatureGrid>
+            <FeatureCard icon="bi-rulers" variant="purple" title="Initial Capacity">
+              Collections allocate an internal array when created. <code>ArrayList</code> defaults to
+              10 elements, <code>HashMap</code> defaults to 16 buckets. If the actual usage is much
+              smaller, memory is wasted.
+            </FeatureCard>
+            <FeatureCard icon="bi-speedometer2" variant="danger" title="Load Factor">
+              <code>HashMap</code> uses a load factor (default 0.75) to decide when to resize. This
+              means a HashMap is typically only 75% full at most before it doubles in size.
+            </FeatureCard>
+            <FeatureCard icon="bi-arrow-up-right-circle" variant="info" title="Growth Strategy">
+              When a collection runs out of space, it allocates a new, larger array (often 1.5x or 2x
+              the previous size) and copies elements over. After growth, fill ratio drops
+              significantly.
+            </FeatureCard>
+            <FeatureCard icon="bi-pie-chart" variant="success" title="Fill Ratio">
+              The fill ratio is <code>size / capacity</code>. A ratio of 0% means the collection is
+              empty but still holds allocated memory. 100% means every slot is used.
+            </FeatureCard>
+          </FeatureGrid>
+        </AboutSection>
 
-        <div class="feature-grid">
-          <div class="feature-card">
-            <div
-              class="feature-icon"
-              style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
-            >
-              <i class="bi bi-rulers"></i>
-            </div>
-            <div class="feature-content">
-              <h6>Initial Capacity</h6>
-              <p>
-                Collections allocate an internal array when created.
-                <code>ArrayList</code> defaults to 10 elements, <code>HashMap</code> defaults to 16
-                buckets. If the actual usage is much smaller, memory is wasted.
-              </p>
-            </div>
-          </div>
-
-          <div class="feature-card">
-            <div
-              class="feature-icon"
-              style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%)"
-            >
-              <i class="bi bi-speedometer2"></i>
-            </div>
-            <div class="feature-content">
-              <h6>Load Factor</h6>
-              <p>
-                <code>HashMap</code> uses a load factor (default 0.75) to decide when to resize.
-                This means a HashMap is typically only 75% full at most before it doubles in size.
-              </p>
-            </div>
-          </div>
-
-          <div class="feature-card">
-            <div
-              class="feature-icon"
-              style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)"
-            >
-              <i class="bi bi-arrow-up-right-circle"></i>
-            </div>
-            <div class="feature-content">
-              <h6>Growth Strategy</h6>
-              <p>
-                When a collection runs out of space, it allocates a new, larger array (often 1.5x or
-                2x the previous size) and copies elements over. After growth, fill ratio drops
-                significantly.
-              </p>
-            </div>
-          </div>
-
-          <div class="feature-card">
-            <div
-              class="feature-icon"
-              style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)"
-            >
-              <i class="bi bi-pie-chart"></i>
-            </div>
-            <div class="feature-content">
-              <h6>Fill Ratio</h6>
-              <p>
-                The fill ratio is <code>size / capacity</code>. A ratio of 0% means the collection
-                is empty but still holds allocated memory. 100% means every slot is used.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Fill Distribution Categories -->
-        <h6 class="section-title">
-          <i class="bi bi-bar-chart me-2"></i>
-          Fill Distribution Categories
-        </h6>
-
-        <div class="flag-cards">
+        <AboutSection icon="bi-bar-chart" title="Fill Distribution Categories">
+          <div class="flag-cards">
           <div class="flag-card">
             <div class="flag-header">
               <code class="flag-code">Empty (0%)</code>
@@ -369,67 +303,57 @@
             </div>
           </div>
         </div>
+        </AboutSection>
 
-        <!-- Optimization Tips -->
-        <h6 class="section-title">
-          <i class="bi bi-lightning-charge me-2"></i>
-          Optimization Tips
-        </h6>
+        <AboutSection icon="bi-lightning-charge" title="Optimization Tips">
+          <div class="benefits-list">
+            <div class="benefit-item">
+              <i class="bi bi-check-circle-fill text-success"></i>
+              <span
+                >Use <code>new ArrayList&lt;&gt;(expectedSize)</code> to set initial capacity when the
+                size is known ahead of time</span
+              >
+            </div>
+            <div class="benefit-item">
+              <i class="bi bi-check-circle-fill text-success"></i>
+              <span
+                >Use <code>new HashMap&lt;&gt;(expectedSize, 1.0f)</code> to avoid over-allocation
+                when exact size is known</span
+              >
+            </div>
+            <div class="benefit-item">
+              <i class="bi bi-check-circle-fill text-success"></i>
+              <span
+                >Replace empty singleton collections with <code>Collections.emptyList()</code> or
+                <code>List.of()</code> to avoid allocation entirely</span
+              >
+            </div>
+            <div class="benefit-item">
+              <i class="bi bi-check-circle-fill text-success"></i>
+              <span
+                >Call <code>trimToSize()</code> on ArrayList after final population to release unused
+                capacity</span
+              >
+            </div>
+            <div class="benefit-item">
+              <i class="bi bi-check-circle-fill text-success"></i>
+              <span
+                >Consider lazy initialization: only create collections when the first element is
+                added</span
+              >
+            </div>
+          </div>
+        </AboutSection>
 
-        <div class="benefits-list">
-          <div class="benefit-item">
-            <i class="bi bi-check-circle-fill text-success"></i>
-            <span
-              >Use <code>new ArrayList&lt;&gt;(expectedSize)</code> to set initial capacity when the
-              size is known ahead of time</span
-            >
-          </div>
-          <div class="benefit-item">
-            <i class="bi bi-check-circle-fill text-success"></i>
-            <span
-              >Use <code>new HashMap&lt;&gt;(expectedSize, 1.0f)</code> to avoid over-allocation
-              when exact size is known</span
-            >
-          </div>
-          <div class="benefit-item">
-            <i class="bi bi-check-circle-fill text-success"></i>
-            <span
-              >Replace empty singleton collections with <code>Collections.emptyList()</code> or
-              <code>List.of()</code> to avoid allocation entirely</span
-            >
-          </div>
-          <div class="benefit-item">
-            <i class="bi bi-check-circle-fill text-success"></i>
-            <span
-              >Call <code>trimToSize()</code> on ArrayList after final population to release unused
-              capacity</span
-            >
-          </div>
-          <div class="benefit-item">
-            <i class="bi bi-check-circle-fill text-success"></i>
-            <span
-              >Consider lazy initialization: only create collections when the first element is
-              added</span
-            >
-          </div>
-        </div>
-
-        <!-- Note -->
-        <div class="about-note">
-          <div class="note-icon">
-            <i class="bi bi-lightbulb-fill"></i>
-          </div>
-          <div class="note-content">
-            <strong>Why are there so many empty collections?</strong>
-            <p class="mb-0">
-              Empty collections are common in real applications. Many frameworks and libraries
-              eagerly initialize collections in constructors or field declarations that may never be
-              populated. This is often the largest source of wasted collection memory and can be
-              addressed with lazy initialization patterns.
-            </p>
-          </div>
-        </div>
-      </div>
+        <AboutCallout variant="note" title="Why are there so many empty collections?" icon="bi-lightbulb-fill">
+          <p>
+            Empty collections are common in real applications. Many frameworks and libraries
+            eagerly initialize collections in constructors or field declarations that may never be
+            populated. This is often the largest source of wasted collection memory and can be
+            addressed with lazy initialization patterns.
+          </p>
+        </AboutCallout>
+      </AboutPanel>
     </div>
   </div>
 </template>
@@ -445,6 +369,11 @@ import StatsTable from '@/components/StatsTable.vue';
 import HeapDumpNotInitialized from '@/components/HeapDumpNotInitialized.vue';
 import ClassNameDisplay from '@/components/heap/ClassNameDisplay.vue';
 import TabBar from '@/components/TabBar.vue';
+import AboutPanel from '@/components/about/AboutPanel.vue';
+import AboutCallout from '@/components/about/AboutCallout.vue';
+import AboutSection from '@/components/about/AboutSection.vue';
+import FeatureGrid from '@/components/about/FeatureGrid.vue';
+import FeatureCard from '@/components/about/FeatureCard.vue';
 import SortableTableHeader from '@/components/table/SortableTableHeader.vue';
 import DataTable from '@/components/table/DataTable.vue';
 import TableToolbar from '@/components/table/TableToolbar.vue';
@@ -743,139 +672,6 @@ onMounted(() => {
   font-size: 0.8rem;
 }
 
-/* About Tab Styles */
-.about-container {
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 1.5rem;
-}
-
-.about-header {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.about-header-icon {
-  width: 48px;
-  height: 48px;
-  background: linear-gradient(
-    135deg,
-    var(--color-gradient-start) 0%,
-    var(--color-gradient-end) 100%
-  );
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-size: 1.5rem;
-  flex-shrink: 0;
-}
-
-.about-header h5 {
-  font-weight: 600;
-  color: var(--color-dark);
-}
-
-.about-intro {
-  background: var(--color-light);
-  border-radius: 8px;
-  padding: 1rem 1.25rem;
-  margin-bottom: 1.5rem;
-  font-size: 0.9rem;
-  line-height: 1.6;
-  color: var(--color-text);
-}
-
-.about-intro code {
-  background-color: var(--color-border);
-  padding: 0.15rem 0.4rem;
-  border-radius: 3px;
-  font-size: 0.85em;
-  color: var(--color-code-text);
-}
-
-.section-title {
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: var(--color-dark);
-  margin-bottom: 1rem;
-  display: flex;
-  align-items: center;
-}
-
-.section-title i {
-  color: var(--color-text-muted);
-}
-
-.feature-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-}
-
-@media (max-width: 768px) {
-  .feature-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-.feature-card {
-  display: flex;
-  gap: 0.875rem;
-  padding: 1rem;
-  background: white;
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  transition:
-    box-shadow 0.2s ease,
-    border-color 0.2s ease;
-}
-
-.feature-card:hover {
-  border-color: var(--color-border);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-}
-
-.feature-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-size: 1.1rem;
-  flex-shrink: 0;
-}
-
-.feature-content h6 {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--color-dark);
-  margin-bottom: 0.25rem;
-}
-
-.feature-content p {
-  font-size: 0.8rem;
-  color: var(--color-text-muted);
-  margin-bottom: 0;
-  line-height: 1.5;
-}
-
-.feature-content code {
-  background-color: var(--color-code-bg);
-  padding: 0.1rem 0.35rem;
-  border-radius: 3px;
-  font-size: 0.85em;
-  color: var(--color-code-text);
-}
-
 .flag-cards {
   display: flex;
   flex-direction: column;
@@ -961,39 +757,6 @@ onMounted(() => {
   border-radius: 3px;
   font-size: 0.85em;
   color: var(--color-code-text);
-}
-
-.about-note {
-  display: flex;
-  gap: 1rem;
-  background: linear-gradient(135deg, var(--color-warning-bg) 0%, var(--color-amber-bg) 100%);
-  border: 1px solid var(--color-warning-border);
-  border-radius: 8px;
-  padding: 1rem;
-}
-
-.note-icon {
-  color: var(--color-amber);
-  font-size: 1.25rem;
-  flex-shrink: 0;
-}
-
-.note-content {
-  font-size: 0.85rem;
-  line-height: 1.6;
-  color: var(--color-brown-text);
-}
-
-.note-content strong {
-  color: var(--color-brown-dark);
-}
-
-.note-content code {
-  background-color: rgba(255, 224, 130, 0.5);
-  padding: 0.1rem 0.35rem;
-  border-radius: 3px;
-  font-size: 0.9em;
-  color: var(--color-brown-accent);
 }
 
 .collection-type-badge {

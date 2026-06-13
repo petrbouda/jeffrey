@@ -332,6 +332,8 @@ const formatValue = (value: number, axisType?: AxisFormatType): string => {
       return FormattingService.formatDuration2Units(value * 1_000_000); // Convert ms to ns
     case AxisFormatType.BYTES:
       return FormattingService.formatBytes(value);
+    case AxisFormatType.PERCENT_IN_HUNDREDTHS:
+      return (value / 100).toFixed(1) + '%';
     default:
       return Math.round(value).toString();
   }

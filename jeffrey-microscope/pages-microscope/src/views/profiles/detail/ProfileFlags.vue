@@ -175,108 +175,43 @@
 
       <!-- About Tab -->
       <div v-show="activeTab === 'about'">
-        <div class="about-container">
-          <!-- Header Section -->
-          <div class="about-header">
-            <div class="about-header-icon">
-              <i class="bi bi-question-circle"></i>
-            </div>
-            <div>
-              <h5 class="mb-1">Understanding JVM Flags</h5>
-              <p class="text-muted mb-0">Configuration options that control JVM behavior</p>
-            </div>
-          </div>
-
-          <!-- Intro -->
-          <div class="about-intro">
+        <AboutPanel
+          icon="bi-question-circle"
+          title="Understanding JVM Flags"
+          subtitle="Configuration options that control JVM behavior"
+        >
+          <AboutCallout variant="intro">
             <p>
               JVM flags are command-line options that control various aspects of the Java Virtual
               Machine's behavior and performance. JFR (Java Flight Recorder) captures these flags
               during recording, providing insights into how the JVM is configured and how it
               operates during runtime.
             </p>
-          </div>
+          </AboutCallout>
 
-          <!-- Flag Origins Section -->
-          <h6 class="section-title">
-            <i class="bi bi-signpost-split me-2"></i>
-            Flag Origins
-          </h6>
+          <AboutSection icon="bi-signpost-split" title="Flag Origins">
+            <FeatureGrid>
+              <FeatureCard icon="bi-terminal" variant="purple" title="Command Line">
+                Flags explicitly set via <code>-XX:</code> arguments when starting the JVM. These
+                represent intentional configuration choices by the administrator or developer.
+              </FeatureCard>
+              <FeatureCard icon="bi-gear-wide-connected" variant="warning" title="Management">
+                Flags modified at runtime through JMX (Java Management Extensions) or diagnostic
+                commands like <code>jcmd</code>. These may change during the recording.
+              </FeatureCard>
+              <FeatureCard icon="bi-cpu" variant="success" title="Ergonomic">
+                Flags automatically tuned by the JVM based on the system's hardware resources (CPU,
+                memory) and workload characteristics. The JVM optimizes these for best performance.
+              </FeatureCard>
+              <FeatureCard icon="bi-box" variant="neutral" title="Default">
+                Flags using their built-in default values as defined in the JVM implementation. These
+                weren't explicitly set or modified by any other mechanism.
+              </FeatureCard>
+            </FeatureGrid>
+          </AboutSection>
 
-          <div class="feature-grid">
-            <div class="feature-card">
-              <div
-                class="feature-icon"
-                style="background: linear-gradient(135deg, #5e64ff 0%, #7c4dff 100%)"
-              >
-                <i class="bi bi-terminal"></i>
-              </div>
-              <div class="feature-content">
-                <h6>Command Line</h6>
-                <p>
-                  Flags explicitly set via <code>-XX:</code> arguments when starting the JVM. These
-                  represent intentional configuration choices by the administrator or developer.
-                </p>
-              </div>
-            </div>
-
-            <div class="feature-card">
-              <div
-                class="feature-icon"
-                style="background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%)"
-              >
-                <i class="bi bi-gear-wide-connected"></i>
-              </div>
-              <div class="feature-content">
-                <h6>Management</h6>
-                <p>
-                  Flags modified at runtime through JMX (Java Management Extensions) or diagnostic
-                  commands like <code>jcmd</code>. These may change during the recording.
-                </p>
-              </div>
-            </div>
-
-            <div class="feature-card">
-              <div
-                class="feature-icon"
-                style="background: linear-gradient(135deg, var(--color-success) 0%, #20c997 100%)"
-              >
-                <i class="bi bi-cpu"></i>
-              </div>
-              <div class="feature-content">
-                <h6>Ergonomic</h6>
-                <p>
-                  Flags automatically tuned by the JVM based on the system's hardware resources
-                  (CPU, memory) and workload characteristics. The JVM optimizes these for best
-                  performance.
-                </p>
-              </div>
-            </div>
-
-            <div class="feature-card">
-              <div
-                class="feature-icon"
-                style="background: linear-gradient(135deg, #6c757d 0%, #495057 100%)"
-              >
-                <i class="bi bi-box"></i>
-              </div>
-              <div class="feature-content">
-                <h6>Default</h6>
-                <p>
-                  Flags using their built-in default values as defined in the JVM implementation.
-                  These weren't explicitly set or modified by any other mechanism.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <!-- Flag Types Section -->
-          <h6 class="section-title">
-            <i class="bi bi-list-check me-2"></i>
-            Flag Types
-          </h6>
-
-          <div class="type-list">
+          <AboutSection icon="bi-list-check" title="Flag Types">
+            <div class="type-list">
             <div class="type-item">
               <Badge value="Boolean" variant="blue" size="s" />
               <span>Toggle flags that can be <code>true</code> or <code>false</code></span>
@@ -297,48 +232,57 @@
               <Badge value="String" variant="teal" size="s" />
               <span>Text values for paths, names, or complex configurations</span>
             </div>
-          </div>
+            </div>
+          </AboutSection>
 
-          <!-- Why It Matters -->
-          <h6 class="section-title">
-            <i class="bi bi-lightning-charge me-2"></i>
-            Why It Matters
-          </h6>
+          <AboutSection icon="bi-lightning-charge" title="Why It Matters">
+            <div class="benefits-list">
+              <div class="benefit-item">
+                <i class="bi bi-check-circle-fill text-success"></i>
+                <span>Understand how your JVM is configured for debugging and optimization</span>
+              </div>
+              <div class="benefit-item">
+                <i class="bi bi-check-circle-fill text-success"></i>
+                <span>Identify non-default settings that may affect performance or behavior</span>
+              </div>
+              <div class="benefit-item">
+                <i class="bi bi-check-circle-fill text-success"></i>
+                <span>Track runtime flag changes for troubleshooting intermittent issues</span>
+              </div>
+              <div class="benefit-item">
+                <i class="bi bi-check-circle-fill text-success"></i>
+                <span>Document production configurations for compliance and reproducibility</span>
+              </div>
+            </div>
+          </AboutSection>
 
-          <div class="benefits-list">
-            <div class="benefit-item">
-              <i class="bi bi-check-circle-fill text-success"></i>
-              <span>Understand how your JVM is configured for debugging and optimization</span>
-            </div>
-            <div class="benefit-item">
-              <i class="bi bi-check-circle-fill text-success"></i>
-              <span>Identify non-default settings that may affect performance or behavior</span>
-            </div>
-            <div class="benefit-item">
-              <i class="bi bi-check-circle-fill text-success"></i>
-              <span>Track runtime flag changes for troubleshooting intermittent issues</span>
-            </div>
-            <div class="benefit-item">
-              <i class="bi bi-check-circle-fill text-success"></i>
-              <span>Document production configurations for compliance and reproducibility</span>
-            </div>
-          </div>
+          <AboutSection icon="bi-broadcast" title="How JFR Emits This">
+            <p>
+              JFR captures the JVM's flags at startup and whenever they change, so this page is built
+              from a handful of flag events rather than a live query:
+            </p>
+            <ul>
+              <li>
+                <code>jdk.BooleanFlag</code>, <code>jdk.IntFlag</code>, <code>jdk.LongFlag</code>,
+                <code>jdk.UnsignedIntFlag</code>/<code>UnsignedLongFlag</code>,
+                <code>jdk.DoubleFlag</code>, <code>jdk.StringFlag</code> — one per flag, carrying its
+                value and <em>origin</em> (command line, ergonomic, default…).
+              </li>
+              <li>
+                The matching <code>*FlagChanged</code> events fire when a flag is altered at runtime via
+                JMX or <code>jcmd</code> — that's how a flag is marked <strong>Changed</strong> here.
+              </li>
+            </ul>
+          </AboutSection>
 
-          <!-- Note -->
-          <div class="about-note">
-            <div class="note-icon">
-              <i class="bi bi-lightbulb-fill"></i>
-            </div>
-            <div class="note-content">
-              <strong>Changed Flags</strong>
-              <p class="mb-0">
-                Flags marked as "Changed" had their values modified during the recording period,
-                typically via JMX or diagnostic commands. The dashboard shows the latest value along
-                with previous values for tracking configuration drift.
-              </p>
-            </div>
-          </div>
-        </div>
+          <AboutCallout variant="note" title="Changed Flags" icon="bi-lightbulb-fill">
+            <p>
+              Flags marked as "Changed" had their values modified during the recording period,
+              typically via JMX or diagnostic commands. The dashboard shows the latest value along
+              with previous values for tracking configuration drift.
+            </p>
+          </AboutCallout>
+        </AboutPanel>
       </div>
     </div>
 
@@ -369,6 +313,11 @@ import TabBar from '@/components/TabBar.vue';
 import SortableTableHeader from '@/components/table/SortableTableHeader.vue';
 import Badge from '@/components/Badge.vue';
 import DataTable from '@/components/table/DataTable.vue';
+import AboutPanel from '@/components/about/AboutPanel.vue';
+import AboutCallout from '@/components/about/AboutCallout.vue';
+import AboutSection from '@/components/about/AboutSection.vue';
+import FeatureGrid from '@/components/about/FeatureGrid.vue';
+import FeatureCard from '@/components/about/FeatureCard.vue';
 import FlagsClient from '@/services/api/FlagsClient';
 import '@/styles/shared-components.css';
 import FlagsData from '@/services/api/model/FlagsData';
@@ -610,127 +559,6 @@ onMounted(() => {
 }
 
 /* About Tab Styles */
-.about-container {
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 1.5rem;
-}
-
-.about-header {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.about-header-icon {
-  width: 48px;
-  height: 48px;
-  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-violet-dark) 100%);
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-size: 1.5rem;
-  flex-shrink: 0;
-}
-
-.about-header h5 {
-  font-weight: 600;
-  color: var(--color-dark);
-}
-
-.about-intro {
-  background: var(--color-light);
-  border-radius: 8px;
-  padding: 1rem 1.25rem;
-  margin-bottom: 1.5rem;
-  font-size: 0.9rem;
-  line-height: 1.6;
-  color: var(--color-text);
-}
-
-.section-title {
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: var(--color-dark);
-  margin-bottom: 1rem;
-  margin-top: 1.5rem;
-  display: flex;
-  align-items: center;
-}
-
-.section-title i {
-  color: var(--color-text-muted);
-}
-
-.feature-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-}
-
-@media (max-width: 768px) {
-  .feature-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-.feature-card {
-  display: flex;
-  gap: 0.875rem;
-  padding: 1rem;
-  background: white;
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  transition:
-    box-shadow 0.2s ease,
-    border-color 0.2s ease;
-}
-
-.feature-card:hover {
-  border-color: var(--color-border);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-}
-
-.feature-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-size: 1.1rem;
-  flex-shrink: 0;
-}
-
-.feature-content h6 {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--color-dark);
-  margin-bottom: 0.25rem;
-}
-
-.feature-content p {
-  font-size: 0.8rem;
-  color: var(--color-text-muted);
-  margin-bottom: 0;
-  line-height: 1.5;
-}
-
-.feature-content code {
-  background-color: var(--color-code-bg);
-  padding: 0.1rem 0.35rem;
-  border-radius: 3px;
-  font-size: 0.85em;
-  color: var(--color-code-text);
-}
-
 /* Type List in About */
 .type-list {
   display: flex;
@@ -776,31 +604,6 @@ onMounted(() => {
 .benefit-item i {
   flex-shrink: 0;
   margin-top: 0.1rem;
-}
-
-.about-note {
-  display: flex;
-  gap: 1rem;
-  background: linear-gradient(135deg, var(--color-warning-bg) 0%, var(--color-amber-bg) 100%);
-  border: 1px solid var(--color-warning-border);
-  border-radius: 8px;
-  padding: 1rem;
-}
-
-.note-icon {
-  color: var(--color-amber);
-  font-size: 1.25rem;
-  flex-shrink: 0;
-}
-
-.note-content {
-  font-size: 0.85rem;
-  line-height: 1.6;
-  color: var(--color-brown-text);
-}
-
-.note-content strong {
-  color: var(--color-brown-dark);
 }
 
 /* Flag Description */

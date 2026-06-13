@@ -115,205 +115,87 @@
 
       <!-- About Tab -->
       <div v-show="activeTab === 'about'">
-        <div class="about-container">
-          <!-- Header Section -->
-          <div class="about-header">
-            <div class="about-header-icon">
-              <i class="bi bi-question-circle"></i>
-            </div>
-            <div>
-              <h5 class="mb-1">Understanding GC Roots</h5>
-              <p class="text-muted mb-0">What prevents objects from being garbage collected</p>
-            </div>
-          </div>
-
-          <!-- Intro -->
-          <div class="about-intro">
+        <AboutPanel
+          icon="bi-question-circle"
+          title="Understanding GC Roots"
+          subtitle="What prevents objects from being garbage collected"
+        >
+          <AboutCallout variant="intro">
             <p>
               GC roots are the starting points for garbage collection. The garbage collector traces
               object references starting from these roots to determine which objects are reachable
               and should be kept alive. Objects that cannot be traced from any GC root are
               considered unreachable and eligible for collection.
             </p>
-          </div>
+          </AboutCallout>
 
-          <!-- Root Types Section -->
-          <h6 class="section-title">
-            <i class="bi bi-diagram-3 me-2"></i>
-            GC Root Types
-          </h6>
+          <AboutSection icon="bi-diagram-3" title="GC Root Types">
+            <FeatureGrid>
+              <FeatureCard icon="bi-globe" variant="purple" title="JNI Global">
+                Objects referenced by JNI global references. These are native code references that
+                persist across JNI calls and must be explicitly deleted.
+              </FeatureCard>
+              <FeatureCard icon="bi-geo-alt" variant="danger" title="JNI Local">
+                Objects referenced by JNI local references within a native method's stack frame.
+                Automatically cleaned up when the native method returns.
+              </FeatureCard>
+              <FeatureCard icon="bi-layers" variant="info" title="Java Frame">
+                Objects referenced from Java stack frames, including local variables and method
+                parameters in active method calls.
+              </FeatureCard>
+              <FeatureCard icon="bi-cpu" variant="success" title="Native Stack">
+                Objects referenced from native code execution stacks. These are JNI references held
+                on the native (C/C++) call stack.
+              </FeatureCard>
+              <FeatureCard icon="bi-pin-angle" variant="warning" title="Sticky Class">
+                System classes that are never unloaded, such as <code>java.lang.*</code>, primitive
+                types, and other bootstrap classes loaded by the JVM.
+              </FeatureCard>
+              <FeatureCard icon="bi-lock" variant="teal" title="Thread Block">
+                Objects held as references within thread synchronization blocks. These are objects
+                referenced by threads waiting on monitors.
+              </FeatureCard>
+              <FeatureCard icon="bi-shield-lock" variant="danger" title="Monitor Used">
+                Objects actively being used as monitor locks (<code>synchronized</code>). These
+                objects are held by threads that have acquired their intrinsic lock.
+              </FeatureCard>
+              <FeatureCard icon="bi-person-badge" variant="primary" title="Thread Object">
+                Thread objects themselves. Every active Java thread is a GC root, keeping itself and
+                all objects it references alive.
+              </FeatureCard>
+            </FeatureGrid>
+          </AboutSection>
 
-          <div class="feature-grid">
-            <div class="feature-card">
-              <div
-                class="feature-icon"
-                style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
-              >
-                <i class="bi bi-globe"></i>
+          <AboutSection icon="bi-lightning-charge" title="Why It Matters">
+            <div class="benefits-list">
+              <div class="benefit-item">
+                <i class="bi bi-check-circle-fill text-success"></i>
+                <span>Identify memory leaks by finding unexpected retention paths from GC roots</span>
               </div>
-              <div class="feature-content">
-                <h6>JNI Global</h6>
-                <p>
-                  Objects referenced by JNI global references. These are native code references that
-                  persist across JNI calls and must be explicitly deleted.
-                </p>
+              <div class="benefit-item">
+                <i class="bi bi-check-circle-fill text-success"></i>
+                <span>Understand which objects cannot be collected and why they are kept alive</span>
+              </div>
+              <div class="benefit-item">
+                <i class="bi bi-check-circle-fill text-success"></i>
+                <span>Analyze thread state and synchronization issues through monitor roots</span>
+              </div>
+              <div class="benefit-item">
+                <i class="bi bi-check-circle-fill text-success"></i>
+                <span>Debug native code memory issues through JNI global and local references</span>
               </div>
             </div>
+          </AboutSection>
 
-            <div class="feature-card">
-              <div
-                class="feature-icon"
-                style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%)"
-              >
-                <i class="bi bi-geo-alt"></i>
-              </div>
-              <div class="feature-content">
-                <h6>JNI Local</h6>
-                <p>
-                  Objects referenced by JNI local references within a native method's stack frame.
-                  Automatically cleaned up when the native method returns.
-                </p>
-              </div>
-            </div>
-
-            <div class="feature-card">
-              <div
-                class="feature-icon"
-                style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)"
-              >
-                <i class="bi bi-layers"></i>
-              </div>
-              <div class="feature-content">
-                <h6>Java Frame</h6>
-                <p>
-                  Objects referenced from Java stack frames, including local variables and method
-                  parameters in active method calls.
-                </p>
-              </div>
-            </div>
-
-            <div class="feature-card">
-              <div
-                class="feature-icon"
-                style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)"
-              >
-                <i class="bi bi-cpu"></i>
-              </div>
-              <div class="feature-content">
-                <h6>Native Stack</h6>
-                <p>
-                  Objects referenced from native code execution stacks. These are JNI references
-                  held on the native (C/C++) call stack.
-                </p>
-              </div>
-            </div>
-
-            <div class="feature-card">
-              <div
-                class="feature-icon"
-                style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%)"
-              >
-                <i class="bi bi-pin-angle"></i>
-              </div>
-              <div class="feature-content">
-                <h6>Sticky Class</h6>
-                <p>
-                  System classes that are never unloaded, such as <code>java.lang.*</code>,
-                  primitive types, and other bootstrap classes loaded by the JVM.
-                </p>
-              </div>
-            </div>
-
-            <div class="feature-card">
-              <div
-                class="feature-icon"
-                style="background: linear-gradient(135deg, #30cfd0 0%, #330867 100%)"
-              >
-                <i class="bi bi-lock"></i>
-              </div>
-              <div class="feature-content">
-                <h6>Thread Block</h6>
-                <p>
-                  Objects held as references within thread synchronization blocks. These are objects
-                  referenced by threads waiting on monitors.
-                </p>
-              </div>
-            </div>
-
-            <div class="feature-card">
-              <div
-                class="feature-icon"
-                style="background: linear-gradient(135deg, #ff0844 0%, #ffb199 100%)"
-              >
-                <i class="bi bi-shield-lock"></i>
-              </div>
-              <div class="feature-content">
-                <h6>Monitor Used</h6>
-                <p>
-                  Objects actively being used as monitor locks (<code>synchronized</code>). These
-                  objects are held by threads that have acquired their intrinsic lock.
-                </p>
-              </div>
-            </div>
-
-            <div class="feature-card">
-              <div
-                class="feature-icon"
-                style="background: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%)"
-              >
-                <i class="bi bi-person-badge"></i>
-              </div>
-              <div class="feature-content">
-                <h6>Thread Object</h6>
-                <p>
-                  Thread objects themselves. Every active Java thread is a GC root, keeping itself
-                  and all objects it references alive.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <!-- Why It Matters -->
-          <h6 class="section-title">
-            <i class="bi bi-lightning-charge me-2"></i>
-            Why It Matters
-          </h6>
-
-          <div class="benefits-list">
-            <div class="benefit-item">
-              <i class="bi bi-check-circle-fill text-success"></i>
-              <span>Identify memory leaks by finding unexpected retention paths from GC roots</span>
-            </div>
-            <div class="benefit-item">
-              <i class="bi bi-check-circle-fill text-success"></i>
-              <span>Understand which objects cannot be collected and why they are kept alive</span>
-            </div>
-            <div class="benefit-item">
-              <i class="bi bi-check-circle-fill text-success"></i>
-              <span>Analyze thread state and synchronization issues through monitor roots</span>
-            </div>
-            <div class="benefit-item">
-              <i class="bi bi-check-circle-fill text-success"></i>
-              <span>Debug native code memory issues through JNI global and local references</span>
-            </div>
-          </div>
-
-          <!-- Note -->
-          <div class="about-note">
-            <div class="note-icon">
-              <i class="bi bi-lightbulb-fill"></i>
-            </div>
-            <div class="note-content">
-              <strong>Investigating Memory Leaks?</strong>
-              <p class="mb-0">
-                Look for objects with unexpected GC roots. Common culprits include static fields
-                (via Sticky Class), thread locals (via Thread Object), and JNI global references
-                that weren't properly cleaned up. Use the dominator tree and shortest path to GC
-                root analysis to trace retention paths.
-              </p>
-            </div>
-          </div>
-        </div>
+          <AboutCallout variant="note" title="Investigating Memory Leaks?" icon="bi-lightbulb-fill">
+            <p>
+              Look for objects with unexpected GC roots. Common culprits include static fields
+              (via Sticky Class), thread locals (via Thread Object), and JNI global references
+              that weren't properly cleaned up. Use the dominator tree and shortest path to GC
+              root analysis to trace retention paths.
+            </p>
+          </AboutCallout>
+        </AboutPanel>
       </div>
     </div>
   </div>
@@ -329,6 +211,11 @@ import ErrorState from '@/components/ErrorState.vue';
 import StatsTable from '@/components/StatsTable.vue';
 import HeapDumpNotInitialized from '@/components/HeapDumpNotInitialized.vue';
 import TabBar from '@/components/TabBar.vue';
+import AboutPanel from '@/components/about/AboutPanel.vue';
+import AboutCallout from '@/components/about/AboutCallout.vue';
+import AboutSection from '@/components/about/AboutSection.vue';
+import FeatureGrid from '@/components/about/FeatureGrid.vue';
+import FeatureCard from '@/components/about/FeatureCard.vue';
 import DualPanel from '@/components/DualPanel.vue';
 import DonutWithLegend from '@/components/DonutWithLegend.vue';
 import type { DonutChartData } from '@/components/DonutWithLegend.vue';
@@ -512,130 +399,6 @@ onMounted(() => {
 }
 
 /* About Tab Styles */
-.about-container {
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 1.5rem;
-}
-
-.about-header {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.about-header-icon {
-  width: 48px;
-  height: 48px;
-  background: linear-gradient(
-    135deg,
-    var(--color-gradient-start) 0%,
-    var(--color-gradient-end) 100%
-  );
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-size: 1.5rem;
-  flex-shrink: 0;
-}
-
-.about-header h5 {
-  font-weight: 600;
-  color: var(--color-dark);
-}
-
-.about-intro {
-  background: var(--color-light);
-  border-radius: 8px;
-  padding: 1rem 1.25rem;
-  margin-bottom: 1.5rem;
-  font-size: 0.9rem;
-  line-height: 1.6;
-  color: var(--color-text);
-}
-
-.section-title {
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: var(--color-dark);
-  margin-bottom: 1rem;
-  display: flex;
-  align-items: center;
-}
-
-.section-title i {
-  color: var(--color-text-muted);
-}
-
-.feature-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-}
-
-@media (max-width: 768px) {
-  .feature-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-.feature-card {
-  display: flex;
-  gap: 0.875rem;
-  padding: 1rem;
-  background: white;
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  transition:
-    box-shadow 0.2s ease,
-    border-color 0.2s ease;
-}
-
-.feature-card:hover {
-  border-color: var(--color-border);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-}
-
-.feature-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-size: 1.1rem;
-  flex-shrink: 0;
-}
-
-.feature-content h6 {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--color-dark);
-  margin-bottom: 0.25rem;
-}
-
-.feature-content p {
-  font-size: 0.8rem;
-  color: var(--color-text-muted);
-  margin-bottom: 0;
-  line-height: 1.5;
-}
-
-.feature-content code {
-  background-color: var(--color-code-bg);
-  padding: 0.1rem 0.35rem;
-  border-radius: 3px;
-  font-size: 0.85em;
-  color: var(--color-code-text);
-}
-
 .benefits-list {
   display: flex;
   flex-direction: column;
@@ -655,38 +418,5 @@ onMounted(() => {
 .benefit-item i {
   flex-shrink: 0;
   margin-top: 0.1rem;
-}
-
-.about-note {
-  display: flex;
-  gap: 1rem;
-  background: linear-gradient(135deg, var(--color-warning-bg) 0%, var(--color-amber-bg) 100%);
-  border: 1px solid var(--color-warning-border);
-  border-radius: 8px;
-  padding: 1rem;
-}
-
-.note-icon {
-  color: var(--color-amber);
-  font-size: 1.25rem;
-  flex-shrink: 0;
-}
-
-.note-content {
-  font-size: 0.85rem;
-  line-height: 1.6;
-  color: var(--color-brown-text);
-}
-
-.note-content strong {
-  color: var(--color-brown-dark);
-}
-
-.note-content code {
-  background-color: rgba(255, 224, 130, 0.5);
-  padding: 0.1rem 0.35rem;
-  border-radius: 3px;
-  font-size: 0.9em;
-  color: var(--color-brown-accent);
 }
 </style>

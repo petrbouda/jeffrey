@@ -1070,9 +1070,8 @@ onMounted(() => {
 
 /* How It Works tab */
 .about-container {
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 1.5rem;
+  width: 100%;
+  padding: 1.5rem 0;
 }
 
 .about-header {
@@ -1087,8 +1086,8 @@ onMounted(() => {
 .about-header-icon {
   width: 48px;
   height: 48px;
-  background-color: var(--color-primary);
-  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-violet-dark) 100%);
+  border-radius: var(--radius-lg);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1102,7 +1101,7 @@ onMounted(() => {
 }
 
 .about-intro {
-  background-color: var(--color-bg-hover);
+  background-color: var(--color-light);
   border-radius: var(--radius-md);
   padding: 1rem 1.25rem;
   margin-bottom: 1.5rem;

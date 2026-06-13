@@ -21,6 +21,7 @@ import GCOverviewData from '@/services/api/model/GCOverviewData';
 import GCConfigurationData from '@/services/api/model/GCConfigurationData';
 import GCTimeseriesType from '@/services/api/model/GCTimeseriesType';
 import TimeseriesData from '@/services/timeseries/model/TimeseriesData';
+import type { IhopData, TenuringData } from '@/services/api/model/GCTuningModels';
 
 export default class ProfileGCClient extends BaseProfileClient {
   constructor(profileId: string) {
@@ -37,5 +38,13 @@ export default class ProfileGCClient extends BaseProfileClient {
 
   public getConfiguration(): Promise<GCConfigurationData> {
     return this.get<GCConfigurationData>('/configuration');
+  }
+
+  public getTenuring(): Promise<TenuringData> {
+    return this.get<TenuringData>('/tenuring');
+  }
+
+  public getIhop(): Promise<IhopData> {
+    return this.get<IhopData>('/ihop');
   }
 }

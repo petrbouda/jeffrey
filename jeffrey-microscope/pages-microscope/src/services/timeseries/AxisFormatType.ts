@@ -20,7 +20,9 @@ enum AxisFormatType {
   NUMBER = 'NUMBER',
   BYTES = 'BYTES',
   DURATION_IN_NANOS = 'DURATION_IN_NANOS',
-  DURATION_IN_MILLIS = 'DURATION_IN_MILLIS'
+  DURATION_IN_MILLIS = 'DURATION_IN_MILLIS',
+  /** Values transported as percent × 100 (basis points), e.g. 442 renders as 4.4% */
+  PERCENT_IN_HUNDREDTHS = 'PERCENT_IN_HUNDREDTHS'
 }
 
 export default AxisFormatType;

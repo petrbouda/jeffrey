@@ -19,12 +19,10 @@
 
     <!-- Count Tab -->
     <div v-show="activeTab === 'count'">
-      <div class="chart-description">
-        <span class="chart-description-label">Shows:</span> Number of GC events per second
-        <span class="chart-description-separator">|</span>
-        <span class="chart-description-label">Use case:</span> Identify periods of high GC activity
-        and frequency patterns
-      </div>
+      <ChartDescription
+        shows="Number of GC events per second"
+        use-case="Identify periods of high GC activity and frequency patterns"
+      />
       <TimeSeriesChart
         :primary-data="youngGCData"
         :secondary-data="oldGCData"
@@ -43,12 +41,10 @@
 
     <!-- Max Pause Tab -->
     <div v-show="activeTab === 'max-pause'">
-      <div class="chart-description">
-        <span class="chart-description-label">Shows:</span> Longest single pause within each second
-        <span class="chart-description-separator">|</span>
-        <span class="chart-description-label">Use case:</span> Find worst-case latency spikes that
-        may affect user experience
-      </div>
+      <ChartDescription
+        shows="Longest single pause within each second"
+        use-case="Find worst-case latency spikes that may affect user experience"
+      />
       <TimeSeriesChart
         :primary-data="youngGCData"
         :secondary-data="oldGCData"
@@ -69,12 +65,10 @@
 
     <!-- Sum of Pauses Tab -->
     <div v-show="activeTab === 'sum-pauses'">
-      <div class="chart-description">
-        <span class="chart-description-label">Shows:</span> Total pause time per second
-        <span class="chart-description-separator">|</span>
-        <span class="chart-description-label">Use case:</span> Measure overall GC overhead and
-        throughput impact
-      </div>
+      <ChartDescription
+        shows="Total pause time per second"
+        use-case="Measure overall GC overhead and throughput impact"
+      />
       <TimeSeriesChart
         :primary-data="youngGCData"
         :secondary-data="oldGCData"
@@ -100,6 +94,7 @@ import { onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
+import ChartDescription from '@/components/ChartDescription.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import ErrorState from '@/components/ErrorState.vue';
@@ -194,25 +189,6 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   min-height: 300px;
-}
-
-.chart-description {
-  padding: 0.5rem 1rem;
-  margin-bottom: 0.5rem;
-  font-size: 0.85rem;
-  color: var(--color-text-muted);
-  background-color: var(--color-light);
-  border-radius: 4px;
-}
-
-.chart-description-label {
-  font-weight: 600;
-  color: var(--color-text);
-}
-
-.chart-description-separator {
-  margin: 0 0.75rem;
-  color: var(--color-border);
 }
 
 /* Responsive Design */

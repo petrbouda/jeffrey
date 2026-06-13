@@ -444,107 +444,43 @@
 
     <!-- About Tab -->
     <div v-show="activeTab === 'about'">
-      <div class="about-container">
-        <!-- Header Section -->
-        <div class="about-header">
-          <div class="about-header-icon">
-            <i class="bi bi-question-circle"></i>
-          </div>
-          <div>
-            <h5 class="mb-1">How String Deduplication Works</h5>
-            <p class="text-muted mb-0">Understanding when and how Java strings share memory</p>
-          </div>
-        </div>
-
-        <!-- Intro -->
-        <div class="about-intro">
+      <AboutPanel
+        icon="bi-question-circle"
+        title="How String Deduplication Works"
+        subtitle="Understanding when and how Java strings share memory"
+      >
+        <AboutCallout variant="intro">
           <p>
             In Java, each <code>String</code> object contains a reference to a
             <code>byte[]</code> array that holds the actual character data. When multiple String
             objects have identical content, they can share the same <code>byte[]</code> array to
             save memory.
           </p>
-        </div>
+        </AboutCallout>
 
-        <!-- Ways Strings Can Be Shared -->
-        <h6 class="section-title">
-          <i class="bi bi-share me-2"></i>
-          Ways Strings Can Be Shared
-        </h6>
+        <AboutSection icon="bi-share" title="Ways Strings Can Be Shared">
+          <FeatureGrid>
+            <FeatureCard icon="bi-file-earmark-code" variant="purple" title="String Literals">
+              All string literals (<code>"hello"</code>) are automatically interned in the constant
+              pool. Same literals share the same object.
+            </FeatureCard>
+            <FeatureCard icon="bi-box-arrow-in-down" variant="danger" title="String.intern()">
+              Frameworks like Jackson, Gson, and Hibernate explicitly intern field names and entity
+              names.
+            </FeatureCard>
+            <FeatureCard icon="bi-cpu" variant="info" title="JVM Internals">
+              Class names, method names, and field names are stored in shared symbol tables by the
+              JVM.
+            </FeatureCard>
+            <FeatureCard icon="bi-collection" variant="success" title="Framework Interning">
+              Libraries like Guava's Interner, Apache Commons, and Spring implement custom
+              deduplication.
+            </FeatureCard>
+          </FeatureGrid>
+        </AboutSection>
 
-        <div class="feature-grid">
-          <div class="feature-card">
-            <div
-              class="feature-icon"
-              style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
-            >
-              <i class="bi bi-file-earmark-code"></i>
-            </div>
-            <div class="feature-content">
-              <h6>String Literals</h6>
-              <p>
-                All string literals (<code>"hello"</code>) are automatically interned in the
-                constant pool. Same literals share the same object.
-              </p>
-            </div>
-          </div>
-
-          <div class="feature-card">
-            <div
-              class="feature-icon"
-              style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%)"
-            >
-              <i class="bi bi-box-arrow-in-down"></i>
-            </div>
-            <div class="feature-content">
-              <h6>String.intern()</h6>
-              <p>
-                Frameworks like Jackson, Gson, and Hibernate explicitly intern field names and
-                entity names.
-              </p>
-            </div>
-          </div>
-
-          <div class="feature-card">
-            <div
-              class="feature-icon"
-              style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)"
-            >
-              <i class="bi bi-cpu"></i>
-            </div>
-            <div class="feature-content">
-              <h6>JVM Internals</h6>
-              <p>
-                Class names, method names, and field names are stored in shared symbol tables by the
-                JVM.
-              </p>
-            </div>
-          </div>
-
-          <div class="feature-card">
-            <div
-              class="feature-icon"
-              style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)"
-            >
-              <i class="bi bi-collection"></i>
-            </div>
-            <div class="feature-content">
-              <h6>Framework Interning</h6>
-              <p>
-                Libraries like Guava's Interner, Apache Commons, and Spring implement custom
-                deduplication.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <!-- JVM Flag Section -->
-        <h6 class="section-title">
-          <i class="bi bi-toggles me-2"></i>
-          JVM String Deduplication
-        </h6>
-
-        <div class="flag-cards">
+        <AboutSection icon="bi-toggles" title="JVM String Deduplication">
+          <div class="flag-cards">
           <div class="flag-card">
             <div class="flag-header">
               <code class="flag-code">-XX:+UseStringDeduplication</code>
@@ -590,43 +526,33 @@
             </div>
           </div>
         </div>
+        </AboutSection>
 
-        <!-- Benefits -->
-        <h6 class="section-title">
-          <i class="bi bi-lightning-charge me-2"></i>
-          What It Helps With
-        </h6>
+        <AboutSection icon="bi-lightning-charge" title="What It Helps With">
+          <div class="benefits-list">
+            <div class="benefit-item">
+              <i class="bi bi-check-circle-fill text-success"></i>
+              <span>User data with duplicates (city names, status values, categories)</span>
+            </div>
+            <div class="benefit-item">
+              <i class="bi bi-check-circle-fill text-success"></i>
+              <span>Runtime-generated strings that aren't explicitly interned</span>
+            </div>
+            <div class="benefit-item">
+              <i class="bi bi-check-circle-fill text-success"></i>
+              <span>Temporary strings that survive long enough for GC to process</span>
+            </div>
+          </div>
+        </AboutSection>
 
-        <div class="benefits-list">
-          <div class="benefit-item">
-            <i class="bi bi-check-circle-fill text-success"></i>
-            <span>User data with duplicates (city names, status values, categories)</span>
-          </div>
-          <div class="benefit-item">
-            <i class="bi bi-check-circle-fill text-success"></i>
-            <span>Runtime-generated strings that aren't explicitly interned</span>
-          </div>
-          <div class="benefit-item">
-            <i class="bi bi-check-circle-fill text-success"></i>
-            <span>Temporary strings that survive long enough for GC to process</span>
-          </div>
-        </div>
-
-        <!-- Note -->
-        <div class="about-note">
-          <div class="note-icon">
-            <i class="bi bi-lightbulb-fill"></i>
-          </div>
-          <div class="note-content">
-            <strong>Why is sharing high without the flag?</strong>
-            <p class="mb-0">
-              High sharing without <code>UseStringDeduplication</code> is normal. It comes from
-              string literals, framework interning, and JVM metadata. The "Potential Savings" metric
-              shows additional memory that could be saved by enabling the flag.
-            </p>
-          </div>
-        </div>
-      </div>
+        <AboutCallout variant="note" title="Why is sharing high without the flag?" icon="bi-lightbulb-fill">
+          <p>
+            High sharing without <code>UseStringDeduplication</code> is normal. It comes from
+            string literals, framework interning, and JVM metadata. The "Potential Savings" metric
+            shows additional memory that could be saved by enabling the flag.
+          </p>
+        </AboutCallout>
+      </AboutPanel>
     </div>
 
     <!-- Instance Tree Modal (referrers / reachables) -->
@@ -660,6 +586,11 @@ import ErrorState from '@/components/ErrorState.vue';
 import StatsTable from '@/components/StatsTable.vue';
 import HeapDumpNotInitialized from '@/components/HeapDumpNotInitialized.vue';
 import TabBar from '@/components/TabBar.vue';
+import AboutPanel from '@/components/about/AboutPanel.vue';
+import AboutCallout from '@/components/about/AboutCallout.vue';
+import AboutSection from '@/components/about/AboutSection.vue';
+import FeatureGrid from '@/components/about/FeatureGrid.vue';
+import FeatureCard from '@/components/about/FeatureCard.vue';
 import SortableTableHeader from '@/components/table/SortableTableHeader.vue';
 import DataTable from '@/components/table/DataTable.vue';
 import TableToolbar from '@/components/table/TableToolbar.vue';
@@ -1119,139 +1050,6 @@ onMounted(() => {
   font-size: 0.8rem;
 }
 
-/* About Tab Styles */
-.about-container {
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 1.5rem;
-}
-
-.about-header {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.about-header-icon {
-  width: 48px;
-  height: 48px;
-  background: linear-gradient(
-    135deg,
-    var(--color-gradient-start) 0%,
-    var(--color-gradient-end) 100%
-  );
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-size: 1.5rem;
-  flex-shrink: 0;
-}
-
-.about-header h5 {
-  font-weight: 600;
-  color: var(--color-dark);
-}
-
-.about-intro {
-  background: var(--color-light);
-  border-radius: 8px;
-  padding: 1rem 1.25rem;
-  margin-bottom: 1.5rem;
-  font-size: 0.9rem;
-  line-height: 1.6;
-  color: var(--color-text);
-}
-
-.about-intro code {
-  background-color: var(--color-border);
-  padding: 0.15rem 0.4rem;
-  border-radius: 3px;
-  font-size: 0.85em;
-  color: var(--color-code-text);
-}
-
-.section-title {
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: var(--color-dark);
-  margin-bottom: 1rem;
-  display: flex;
-  align-items: center;
-}
-
-.section-title i {
-  color: var(--color-text-muted);
-}
-
-.feature-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-}
-
-@media (max-width: 768px) {
-  .feature-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-.feature-card {
-  display: flex;
-  gap: 0.875rem;
-  padding: 1rem;
-  background: white;
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  transition:
-    box-shadow 0.2s ease,
-    border-color 0.2s ease;
-}
-
-.feature-card:hover {
-  border-color: var(--color-border);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-}
-
-.feature-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-size: 1.1rem;
-  flex-shrink: 0;
-}
-
-.feature-content h6 {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--color-dark);
-  margin-bottom: 0.25rem;
-}
-
-.feature-content p {
-  font-size: 0.8rem;
-  color: var(--color-text-muted);
-  margin-bottom: 0;
-  line-height: 1.5;
-}
-
-.feature-content code {
-  background-color: var(--color-code-bg);
-  padding: 0.1rem 0.35rem;
-  border-radius: 3px;
-  font-size: 0.85em;
-  color: var(--color-code-text);
-}
-
 .flag-cards {
   display: flex;
   flex-direction: column;
@@ -1371,39 +1169,6 @@ onMounted(() => {
 .benefit-item i {
   flex-shrink: 0;
   margin-top: 0.1rem;
-}
-
-.about-note {
-  display: flex;
-  gap: 1rem;
-  background: linear-gradient(135deg, var(--color-warning-bg) 0%, var(--color-amber-bg) 100%);
-  border: 1px solid var(--color-warning-border);
-  border-radius: 8px;
-  padding: 1rem;
-}
-
-.note-icon {
-  color: var(--color-amber);
-  font-size: 1.25rem;
-  flex-shrink: 0;
-}
-
-.note-content {
-  font-size: 0.85rem;
-  line-height: 1.6;
-  color: var(--color-brown-text);
-}
-
-.note-content strong {
-  color: var(--color-brown-dark);
-}
-
-.note-content code {
-  background-color: rgba(255, 224, 130, 0.5);
-  padding: 0.1rem 0.35rem;
-  border-radius: 3px;
-  font-size: 0.9em;
-  color: var(--color-brown-accent);
 }
 
 /* Darker warning colors for opportunities */

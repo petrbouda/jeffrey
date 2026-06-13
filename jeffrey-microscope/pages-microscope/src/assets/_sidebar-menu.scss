@@ -16,8 +16,12 @@
   flex-shrink: 0;
   position: relative;
 
+  // When collapsed, opt back into the flex-row cross-axis stretch (overriding the
+  // expanded `align-self: flex-start`) so the slim rail spans the full main-content
+  // height instead of shrinking to its leftover content (a tiny white box).
   &.collapsed {
     width: 50px;
+    align-self: stretch;
   }
 }
 
@@ -171,9 +175,45 @@
   }
 }
 
-// AI Analysis item - purple star icon
-.nav-item-ai i {
-  color: #8b5cf6 !important;
+// AI Analysis item — subtle highlight: a gradient-filled star icon plus a violet,
+// slightly-bold label. Otherwise identical to every other nav item (no pill, border
+// or background), so it stays in line with the rest of the menu.
+.nav-item-ai {
+  i {
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  span {
+    color: #6d28d9;
+    font-weight: 600;
+  }
+
+  // Keep the gradient star on the active route (base `.nav-item.active i` would otherwise
+  // recolor it to the plain indigo accent).
+  &.active i {
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  // When the AI feature isn't configured, fall back to the standard disabled look
+  // (greyed icon + label; the dashed left border comes from `.disabled-feature`).
+  &.disabled-feature {
+    i {
+      background: none;
+      -webkit-text-fill-color: #a1a9b8;
+      color: #a1a9b8;
+    }
+
+    span {
+      color: #a1a9b8;
+      font-weight: 500;
+    }
+  }
 }
 
 // Submenu styles for 2-level menu items

@@ -74,6 +74,14 @@
         title="No garbage collection pause events"
       />
       <DataTable v-else>
+        <template #toolbar>
+          <TableToolbar v-model="longestPausesView.query" search-placeholder="Filter by cause...">
+            <span class="toolbar-info">Longest pauses</span>
+            <template #filters>
+              <Badge key-label="Total" :value="longestPausesView.matchCount" variant="secondary" size="s" borderless />
+            </template>
+          </TableToolbar>
+        </template>
         <thead>
           <tr>
             <th>ID</th>
@@ -88,7 +96,7 @@
         </thead>
         <tbody>
           <tr
-            v-for="event in gcOverviewData?.longestPauses"
+            v-for="event in longestPausesView.visible"
             :key="event.gcId"
             @click="showEventDetails(event)"
             style="cursor: pointer"
@@ -115,7 +123,7 @@
                     :variant="getConcurrentBadgeVariant(event.concurrent)"
                     size="s"
                   />
-                  <Badge v-if="event.type" :value="event.type" variant="secondary" size="s" />
+                  <Badge v-if="event.type" :value="event.type" variant="secondary" size="s" borderless />
                 </div>
                 <span class="timestamp-path text-muted small">{{
                   FormattingService.formatTimestamp(event.timestamp)
@@ -151,6 +159,16 @@
             </td>
           </tr>
         </tbody>
+        <template #footer>
+          <TableShowMore
+            :shown="longestPausesView.visible.length"
+            :match-count="longestPausesView.matchCount"
+            :total="longestPausesView.total"
+            :expanded="longestPausesView.expanded"
+            :page-size="longestPausesView.pageSize"
+            @toggle="longestPausesView.toggle"
+          />
+        </template>
       </DataTable>
     </div>
 
@@ -166,6 +184,14 @@
         title="No concurrent cycle events"
       />
       <DataTable v-else>
+        <template #toolbar>
+          <TableToolbar v-model="concurrentEventsView.query" search-placeholder="Filter by collector...">
+            <span class="toolbar-info">Concurrent cycles</span>
+            <template #filters>
+              <Badge key-label="Total" :value="concurrentEventsView.matchCount" variant="secondary" size="s" borderless />
+            </template>
+          </TableToolbar>
+        </template>
         <thead>
           <tr>
             <th>ID</th>
@@ -177,7 +203,7 @@
         </thead>
         <tbody>
           <tr
-            v-for="event in gcOverviewData?.longestConcurrentEvents"
+            v-for="event in concurrentEventsView.visible"
             :key="event.gcId"
             @click="showConcurrentEventDetails(event)"
             style="cursor: pointer"
@@ -197,10 +223,238 @@
             <td>{{ FormattingService.formatDuration2Units(event.sumOfPauses) }}</td>
           </tr>
         </tbody>
+        <template #footer>
+          <TableShowMore
+            :shown="concurrentEventsView.visible.length"
+            :match-count="concurrentEventsView.matchCount"
+            :total="concurrentEventsView.total"
+            :expanded="concurrentEventsView.expanded"
+            :page-size="concurrentEventsView.pageSize"
+            @toggle="concurrentEventsView.toggle"
+          />
+        </template>
       </DataTable>
     </div>
 
     <!-- Pause Types Reference Tab -->
+    <!-- Promotion & Tenuring Tab -->
+    <div v-show="activeTab === 'tenuring'">
+      <EmptyState
+        v-if="!tenuringData || tenuringData.gcs.length === 0"
+        icon="bi-arrow-up-circle"
+        title="No tenuring distribution recorded"
+        description="This recording has no jdk.TenuringDistribution events — the collector may not use survivor-age tenuring."
+      />
+      <template v-else>
+        <ChartDescription
+          shows="Surviving bytes at each survivor age, one stacked bar per young collection."
+          use-case="Objects drifting toward the top of the stack are about to be promoted — a tall, top-heavy stack signals premature promotion."
+        />
+        <div class="chart-container">
+          <div id="gc-tenuring-stacked-chart"></div>
+        </div>
+
+        <DataTable class="mt-4">
+          <template #toolbar>
+            <TableToolbar :show-search="false">
+              <span class="toolbar-info">Survivor-age distribution</span>
+              <template #filters>
+                <Badge key-label="Collections" :value="tenuringGcsView.total" variant="secondary" size="s" borderless />
+              </template>
+            </TableToolbar>
+          </template>
+          <thead>
+            <tr>
+              <th class="gc-id-column">GC ID</th>
+              <th class="text-end">Surviving Bytes</th>
+              <th>Age Distribution</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="gc in tenuringGcsView.visible" :key="gc.gcId">
+              <td>{{ gc.gcId }}</td>
+              <td class="text-end">{{ FormattingService.formatBytes(gc.totalSizeBytes) }}</td>
+              <td>
+                <div class="tenuring-buckets">
+                  <Badge
+                    v-for="bucket in gc.buckets"
+                    :key="bucket.age"
+                    :key-label="`age ${bucket.age}`"
+                    :value="FormattingService.formatBytesShort(bucket.sizeBytes)"
+                    variant="secondary"
+                    size="xs"
+                  />
+                </div>
+              </td>
+            </tr>
+          </tbody>
+          <template #footer>
+            <TableShowMore
+              :shown="tenuringGcsView.visible.length"
+              :match-count="tenuringGcsView.matchCount"
+              :total="tenuringGcsView.total"
+              :expanded="tenuringGcsView.expanded"
+              :page-size="tenuringGcsView.pageSize"
+              @toggle="tenuringGcsView.toggle"
+            />
+          </template>
+        </DataTable>
+
+        <div v-if="tenuringData.referenceStats.length > 0" class="mt-4">
+          <DataTable>
+            <template #toolbar>
+              <TableToolbar v-model="referenceStatsView.query" search-placeholder="Filter reference types...">
+                <span class="toolbar-info">Reference processing</span>
+                <template #filters>
+                  <Badge
+                    key-label="Types"
+                    :value="referenceStatsView.matchCount"
+                    variant="secondary"
+                    size="s"
+                    borderless
+                  />
+                </template>
+              </TableToolbar>
+            </template>
+            <thead>
+              <tr>
+                <th>Reference Type</th>
+                <th class="text-end">Processed References</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="stat in referenceStatsView.visible" :key="stat.type">
+                <td>{{ stat.type }}</td>
+                <td class="text-end">{{ FormattingService.formatNumber(stat.totalCount) }}</td>
+              </tr>
+            </tbody>
+            <template #footer>
+              <TableShowMore
+                :shown="referenceStatsView.visible.length"
+                :match-count="referenceStatsView.matchCount"
+                :total="referenceStatsView.total"
+                :expanded="referenceStatsView.expanded"
+                :page-size="referenceStatsView.pageSize"
+                @toggle="referenceStatsView.toggle"
+              />
+            </template>
+          </DataTable>
+        </div>
+      </template>
+    </div>
+
+    <!-- G1 IHOP & CPU Tab -->
+    <div v-show="activeTab === 'ihop'">
+      <EmptyState
+        v-if="ihopData && !hasIhopTimeline && ihopData.cpuTimes.length === 0"
+        icon="bi-sliders"
+        title="No G1 IHOP data recorded"
+        description="jdk.G1AdaptiveIHOP events are only emitted by the G1 collector."
+      />
+      <template v-else-if="ihopData">
+        <template v-if="hasIhopTimeline">
+          <ChartDescription
+            shows="The adaptive IHOP threshold vs. current old-generation occupancy over time."
+            use-case="When occupancy crosses the threshold, G1 starts a concurrent marking cycle — it explains when and why cycles begin."
+          />
+          <div class="ihop-chart-container mb-4">
+            <TimeSeriesChart
+              :primaryData="ihopOccupancySeries"
+              primaryTitle="Old Gen Occupancy"
+              :secondaryData="ihopThresholdSeries"
+              secondaryTitle="IHOP Threshold"
+              :primaryAxisType="AxisFormatType.BYTES"
+              :secondaryAxisType="AxisFormatType.BYTES"
+              :visibleMinutes="60"
+            />
+          </div>
+        </template>
+
+        <DataTable v-if="ihopData.cpuTimes.length > 0">
+          <template #toolbar>
+            <TableToolbar :show-search="false">
+              <span class="toolbar-info">GC CPU time</span>
+              <template #filters>
+                <Badge key-label="Collections" :value="cpuTimesView.total" variant="secondary" size="s" borderless />
+              </template>
+            </TableToolbar>
+          </template>
+          <thead>
+            <tr>
+              <th class="gc-id-column">GC ID</th>
+              <th class="text-end">User Time</th>
+              <th class="text-end">System Time</th>
+              <th class="text-end">Real Time</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="entry in cpuTimesView.visible" :key="entry.gcId">
+              <td>{{ entry.gcId }}</td>
+              <td class="text-end">{{ FormattingService.formatDuration2Units(entry.userNanos) }}</td>
+              <td class="text-end">{{ FormattingService.formatDuration2Units(entry.systemNanos) }}</td>
+              <td class="text-end">{{ FormattingService.formatDuration2Units(entry.realNanos) }}</td>
+            </tr>
+          </tbody>
+          <template #footer>
+            <TableShowMore
+              :shown="cpuTimesView.visible.length"
+              :match-count="cpuTimesView.matchCount"
+              :total="cpuTimesView.total"
+              :expanded="cpuTimesView.expanded"
+              :page-size="cpuTimesView.pageSize"
+              @toggle="cpuTimesView.toggle"
+            />
+          </template>
+        </DataTable>
+
+        <DataTable v-if="ihopData.mmu.length > 0" class="mt-4">
+          <template #toolbar>
+            <TableToolbar :show-search="false">
+              <span class="toolbar-info">Pause-target adherence (MMU)</span>
+              <template #filters>
+                <Badge key-label="Collections" :value="mmuView.total" variant="secondary" size="s" borderless />
+              </template>
+            </TableToolbar>
+          </template>
+          <thead>
+            <tr>
+              <th class="gc-id-column">GC ID</th>
+              <th class="text-end">GC Time</th>
+              <th class="text-end">Pause Target</th>
+              <th class="text-end">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="entry in mmuView.visible" :key="entry.gcId" :class="{ 'table-danger': entry.gcTimeNanos > entry.pauseTargetNanos }">
+              <td>{{ entry.gcId }}</td>
+              <td class="text-end">{{ FormattingService.formatDuration2Units(entry.gcTimeNanos) }}</td>
+              <td class="text-end">{{ FormattingService.formatDuration2Units(entry.pauseTargetNanos) }}</td>
+              <td class="text-end">
+                <Badge
+                  v-if="entry.gcTimeNanos > entry.pauseTargetNanos"
+                  value="Exceeded"
+                  variant="danger"
+                  size="xs"
+                  borderless
+                />
+                <Badge v-else value="Within" variant="success" size="xs" borderless />
+              </td>
+            </tr>
+          </tbody>
+          <template #footer>
+            <TableShowMore
+              :shown="mmuView.visible.length"
+              :match-count="mmuView.matchCount"
+              :total="mmuView.total"
+              :expanded="mmuView.expanded"
+              :page-size="mmuView.pageSize"
+              @toggle="mmuView.toggle"
+            />
+          </template>
+        </DataTable>
+      </template>
+    </div>
+
     <div v-show="activeTab === 'pause-types'">
       <p class="pause-types-intro text-muted">
         Reference for every GC cause the JVM may emit via Java Flight Recorder. Filter by name or
@@ -273,7 +527,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="item in filteredPauseTypes" :key="item.name">
+            <tr v-for="item in pauseTypesView.visible" :key="item.name">
               <td class="pause-type-name">{{ item.name }}</td>
               <td>
                 <Badge :value="item.group.shortLabel" :variant="item.group.variant" size="s" />
@@ -282,7 +536,146 @@
             </tr>
           </tbody>
         </table>
+        <TableShowMore
+          :shown="pauseTypesView.visible.length"
+          :match-count="pauseTypesView.matchCount"
+          :total="pauseTypesView.total"
+          :expanded="pauseTypesView.expanded"
+          :page-size="pauseTypesView.pageSize"
+          @toggle="pauseTypesView.toggle"
+        />
       </div>
+    </div>
+
+    <!-- How It Works Tab -->
+    <div v-show="activeTab === 'about'">
+      <AboutPanel
+        icon="bi-question-circle"
+        title="Understanding Garbage Collection"
+        subtitle="How the JVM reclaims memory — and what these charts actually measure"
+      >
+        <AboutCallout variant="intro">
+          <p>
+            The garbage collector reclaims objects no longer reachable from the running program. The
+            JVM ships several collectors with different pause-versus-throughput trade-offs, but they
+            share a generational model and the same fundamental tension: doing GC work
+            <em>stops or competes with</em> your application. These charts measure how often that
+            happens, for how long, and why.
+          </p>
+        </AboutCallout>
+
+        <AboutSection icon="bi-layers" title="The Generational Heap">
+          <FeatureGrid>
+            <FeatureCard icon="bi-egg" variant="info" title="Eden">
+              Where almost all objects are born. Cheap bump-pointer allocation; a young collection
+              sweeps it whenever it fills. Most objects die here ("the weak generational hypothesis").
+            </FeatureCard>
+            <FeatureCard icon="bi-arrow-left-right" variant="success" title="Survivor">
+              Two spaces that ping-pong surviving young objects, ageing them one GC at a time. The
+              <em>Promotion &amp; Tenuring</em> tab visualizes this ageing.
+            </FeatureCard>
+            <FeatureCard icon="bi-archive" variant="warning" title="Old Generation">
+              Objects that survive enough young collections are <em>promoted</em> here. Filling old
+              gen triggers the expensive old/full collections and (for G1) concurrent marking.
+            </FeatureCard>
+            <FeatureCard icon="bi-box-seam" variant="purple" title="Metaspace">
+              Native memory for class metadata — not the Java heap, but collected alongside it when
+              class loaders become unreachable. See the Class Loading and NMT pages.
+            </FeatureCard>
+          </FeatureGrid>
+        </AboutSection>
+
+        <AboutSection icon="bi-stopwatch" title="Stop-the-World vs Concurrent">
+          <FeatureGrid>
+            <FeatureCard icon="bi-pause-circle" variant="danger" title="Stop-the-world (STW) pause">
+              Every application thread is frozen at a safepoint while the collector works. This is the
+              latency you feel; the <em>Pause Distribution</em> and <em>Longest Pauses</em> tabs are
+              all about these windows.
+            </FeatureCard>
+            <FeatureCard icon="bi-arrow-repeat" variant="success" title="Concurrent phase">
+              Work the collector does <em>while your app runs</em> (G1 marking, ZGC/Shenandoah
+              relocation). It trades CPU for shorter pauses — visible on the <em>Concurrent Cycles</em>
+              tab.
+            </FeatureCard>
+          </FeatureGrid>
+          <AboutCallout variant="tip" title="Sum of pauses ≠ duration" icon="bi-lightbulb-fill">
+            A single collection can have several STW sub-pauses around concurrent work. "Sum of
+            pauses" is the total STW time charged to your app; "duration" is wall-clock start-to-end.
+            For low-latency collectors the two diverge sharply — that's the whole point of going
+            concurrent.
+          </AboutCallout>
+        </AboutSection>
+
+        <AboutSection icon="bi-graph-up" title="Reading the Charts">
+          <FeatureGrid>
+            <FeatureCard icon="bi-bar-chart" variant="primary" title="Pause Distribution">
+              A histogram of pause lengths. A tight cluster of short pauses is healthy; a long tail is
+              what hurts p99 latency. Cross-reference the longest ones with their cause.
+            </FeatureCard>
+            <FeatureCard icon="bi-pie-chart" variant="success" title="GC Efficiency">
+              Throughput (time in app) vs overhead (time in GC). Sustained overhead above a few
+              percent means the heap is too small or allocation too high.
+            </FeatureCard>
+            <FeatureCard icon="bi-arrow-up-circle" variant="warning" title="Promotion &amp; Tenuring">
+              Stacked surviving bytes per survivor age. A tall, top-heavy stack means objects are
+              promoted too young — survivor spaces too small or allocation spikes.
+            </FeatureCard>
+            <FeatureCard icon="bi-sliders" variant="info" title="G1 IHOP &amp; MMU">
+              IHOP shows old-gen occupancy crossing the adaptive threshold that <em>starts</em> a
+              concurrent cycle; MMU shows whether each collection stayed within its pause target.
+            </FeatureCard>
+          </FeatureGrid>
+        </AboutSection>
+
+        <AboutSection icon="bi-cpu" title="Collectors at a Glance">
+          <FeatureGrid>
+            <FeatureCard icon="bi-1-circle" variant="neutral" title="Serial">
+              Single-threaded, smallest footprint. Fine for tiny heaps and CLI tools; pauses scale
+              with heap size.
+            </FeatureCard>
+            <FeatureCard icon="bi-speedometer2" variant="warning" title="Parallel">
+              Throughput-first: multiple GC threads, fully STW. Maximizes work done per CPU at the
+              cost of longer pauses.
+            </FeatureCard>
+            <FeatureCard icon="bi-diagram-3" variant="primary" title="G1 (default)">
+              Region-based, balances throughput and pause goals via a soft <code>MaxGCPauseMillis</code>
+              target. The IHOP/MMU/tenuring tabs are G1-specific.
+            </FeatureCard>
+            <FeatureCard icon="bi-lightning-charge" variant="success" title="ZGC / Shenandoah">
+              Concurrent, low-latency collectors with sub-millisecond pauses largely independent of
+              heap size — they relocate objects while the app runs.
+            </FeatureCard>
+          </FeatureGrid>
+        </AboutSection>
+
+        <AboutSection icon="bi-broadcast" title="How JFR Emits This">
+          <p>
+            Core GC events are <strong>on by default</strong> in every JFR configuration, so this page
+            works for any recording:
+          </p>
+          <ul>
+            <li>
+              <code>jdk.GarbageCollection</code> + <code>jdk.GCPhasePause</code> — one event per
+              collection with cause, sum-of-pauses and the STW phase breakdown.
+            </li>
+            <li>
+              <code>jdk.YoungGarbageCollection</code> / <code>jdk.OldGarbageCollection</code> /
+              <code>jdk.G1GarbageCollection</code> — collector-specific detail.
+            </li>
+            <li>
+              <code>jdk.GCHeapSummary</code> — before/after heap occupancy (drives the efficiency and
+              difference columns); <code>jdk.GCConfiguration</code> identifies the collector.
+            </li>
+          </ul>
+          <p>
+            The deep-tuning tabs rely on events that are <strong>G1-only and/or config-gated</strong>,
+            so they show an empty state on other collectors or default recordings:
+            <code>jdk.TenuringDistribution</code>, <code>jdk.G1AdaptiveIHOP</code>,
+            <code>jdk.G1MMU</code>, <code>jdk.GCCPUTime</code>,
+            <code>jdk.GCReferenceStatistics</code>.
+          </p>
+        </AboutSection>
+      </AboutPanel>
     </div>
 
     <!-- GC Event Details Modal -->
@@ -315,9 +708,21 @@ import TabBar from '@/components/TabBar.vue';
 import EmptyState from '@/components/EmptyState.vue';
 import Badge from '@/components/Badge.vue';
 import DataTable from '@/components/table/DataTable.vue';
+import TableToolbar from '@/components/table/TableToolbar.vue';
+import TableShowMore from '@/components/table/TableShowMore.vue';
+import { useTableView } from '@/composables/useTableView';
 import type { Variant } from '@/types/ui';
 import GCEventDetailsModal from '@/components/gc/GCEventDetailsModal.vue';
 import GCPauseDetailsModal from '@/components/gc/GCPauseDetailsModal.vue';
+import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
+import ChartDescription from '@/components/ChartDescription.vue';
+import AboutPanel from '@/components/about/AboutPanel.vue';
+import AboutCallout from '@/components/about/AboutCallout.vue';
+import AboutSection from '@/components/about/AboutSection.vue';
+import FeatureGrid from '@/components/about/FeatureGrid.vue';
+import FeatureCard from '@/components/about/FeatureCard.vue';
+import AxisFormatType from '@/services/timeseries/AxisFormatType';
+import type { IhopData, TenuringData } from '@/services/api/model/GCTuningModels';
 import ProfileGCClient from '@/services/api/ProfileGCClient';
 import GCOverviewData from '@/services/api/model/GCOverviewData';
 import ConcurrentEvent from '@/services/api/model/ConcurrentEvent';
@@ -347,7 +752,10 @@ const gcTabs = [
   { id: 'efficiency', label: 'GC Efficiency', icon: 'pie-chart' },
   { id: 'events', label: 'Longest Pauses', icon: 'table' },
   { id: 'concurrent-cycles', label: 'Concurrent Cycles', icon: 'layers' },
-  { id: 'pause-types', label: 'Pause Types', icon: 'info-circle' }
+  { id: 'tenuring', label: 'Promotion & Tenuring', icon: 'arrow-up-circle' },
+  { id: 'ihop', label: 'G1 IHOP & CPU', icon: 'sliders' },
+  { id: 'pause-types', label: 'Pause Types', icon: 'info-circle' },
+  { id: 'about', label: 'How It Works', icon: 'book' }
 ];
 const activeTab = ref(gcTabs[0].id);
 
@@ -461,6 +869,7 @@ const clearPauseTypeFilters = () => {
 // Chart instances
 let distributionChart: ApexCharts | null = null;
 let efficiencyChart: ApexCharts | null = null;
+let tenuringChart: ApexCharts | null = null;
 
 // GC Overview Data
 const gcOverviewData = ref<GCOverviewData>();
@@ -708,12 +1117,140 @@ const createEfficiencyChart = async () => {
   efficiencyChart.render();
 };
 
+// Deep-tuning tab data, loaded lazily on first visit so the main page stays fast.
+const tenuringData = ref<TenuringData | null>(null);
+const ihopData = ref<IhopData | null>(null);
+
+const ihopThresholdSeries = computed<number[][]>(
+  () => ihopData.value?.ihopTimeline?.series?.[0]?.data ?? []
+);
+const ihopOccupancySeries = computed<number[][]>(
+  () => ihopData.value?.ihopTimeline?.series?.[1]?.data ?? []
+);
+const hasIhopTimeline = computed(() =>
+  ihopOccupancySeries.value.some(point => point[1] > 0)
+);
+
+// Full-text filtering + "show 50 then all" views for the GC tables. Numeric-only tables
+// (tenuring by GC id, CPU time, MMU) get a row window but no search box.
+const longestPausesView = useTableView(() => gcOverviewData.value?.longestPauses ?? [], {
+  searchableText: event => event.cause
+});
+const concurrentEventsView = useTableView(() => gcOverviewData.value?.longestConcurrentEvents ?? [], {
+  searchableText: event => event.collectorName ?? ''
+});
+const tenuringGcsView = useTableView(() => tenuringData.value?.gcs ?? []);
+const referenceStatsView = useTableView(() => tenuringData.value?.referenceStats ?? [], {
+  searchableText: stat => stat.type
+});
+const cpuTimesView = useTableView(() => ihopData.value?.cpuTimes ?? []);
+const mmuView = useTableView(() => ihopData.value?.mmu ?? []);
+const pauseTypesView = useTableView(() => filteredPauseTypes.value);
+
+// Collapse the pause-types window whenever the existing search/chip filter changes.
+watch(filteredPauseTypes, () => {
+  pauseTypesView.expanded = false;
+});
+
+const loadTenuringData = async () => {
+  if (!tenuringData.value) {
+    try {
+      if (!client) {
+        client = new ProfileGCClient(route.params.profileId as string);
+      }
+      tenuringData.value = await client.getTenuring();
+    } catch (err) {
+      console.error('Error loading tenuring data:', err);
+    }
+  }
+  createTenuringChart();
+};
+
+// Stacked-bar of surviving bytes per survivor age, one bar per collection. Each distinct age
+// becomes a series so ApexCharts stacks them; gcId is the category axis.
+const createTenuringChart = async () => {
+  const gcs = tenuringData.value?.gcs ?? [];
+  if (gcs.length === 0) {
+    return;
+  }
+
+  await nextTick();
+  const chartElement = document.getElementById('gc-tenuring-stacked-chart');
+  if (!chartElement) {
+    return;
+  }
+
+  const ages = [...new Set(gcs.flatMap(gc => gc.buckets.map(bucket => bucket.age)))].sort(
+    (a, b) => a - b
+  );
+  const series = ages.map(age => ({
+    name: `Age ${age}`,
+    data: gcs.map(gc => gc.buckets.find(bucket => bucket.age === age)?.sizeBytes ?? 0)
+  }));
+
+  const options = {
+    chart: {
+      type: 'bar' as const,
+      height: 380,
+      stacked: true,
+      fontFamily: 'inherit',
+      toolbar: { show: false }
+    },
+    series,
+    plotOptions: {
+      bar: { horizontal: false, columnWidth: '70%' }
+    },
+    dataLabels: { enabled: false },
+    xaxis: {
+      categories: gcs.map(gc => gc.gcId),
+      title: { text: 'GC ID', style: { fontSize: '12px' } },
+      labels: { style: { fontSize: '10px' } }
+    },
+    yaxis: {
+      title: { text: 'Surviving Bytes', style: { fontSize: '12px' } },
+      labels: {
+        style: { fontSize: '10px' },
+        formatter: (value: number) => FormattingService.formatBytesShort(value)
+      }
+    },
+    legend: { position: 'bottom' as const },
+    tooltip: {
+      y: { formatter: (value: number) => FormattingService.formatBytes(value) }
+    },
+    grid: { borderColor: '#e7e7e7', strokeDashArray: 3 }
+  } as ApexCharts.ApexOptions;
+
+  if (tenuringChart) {
+    tenuringChart.destroy();
+  }
+  tenuringChart = new ApexCharts(chartElement, options);
+  tenuringChart.render();
+};
+
+const loadIhopData = async () => {
+  if (ihopData.value) {
+    return;
+  }
+  try {
+    if (!client) {
+      client = new ProfileGCClient(route.params.profileId as string);
+    }
+    ihopData.value = await client.getIhop();
+  } catch (err) {
+    console.error('Error loading IHOP data:', err);
+  }
+};
+
 // Re-render the relevant chart when the user switches into a chart-backed tab.
 watch(activeTab, newId => {
   if (newId === 'distribution') {
     createDistributionChart();
   } else if (newId === 'efficiency') {
     createEfficiencyChart();
+  } else if (newId === 'tenuring') {
+    loadTenuringData();
+  } else if (newId === 'ihop') {
+    loadIhopData();
   }
 });
 
@@ -760,10 +1297,34 @@ onUnmounted(() => {
   if (efficiencyChart) {
     efficiencyChart.destroy();
   }
+  if (tenuringChart) {
+    tenuringChart.destroy();
+  }
 });
 </script>
 
 <style scoped>
+/* Promotion & Tenuring / IHOP tabs */
+.gc-id-column {
+  width: 90px;
+}
+
+.toolbar-info {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--color-text);
+}
+
+.tenuring-buckets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.ihop-chart-container {
+  width: 100%;
+}
+
 .loading-overlay,
 .error-state {
   display: flex;

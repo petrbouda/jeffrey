@@ -215,18 +215,18 @@
 
     <!-- How It Works (educational, profile-agnostic) -->
     <div v-show="activeTab === 'howit'">
-      <div class="howit-section">
-        <h6 class="howit-section-title">
-          <i class="bi bi-question-circle"></i>
-          What is deoptimization?
-        </h6>
-        <div class="howit-prose">
+      <AboutPanel
+        icon="bi-question-circle"
+        title="Understanding Deoptimization"
+        subtitle="How the JIT speculates — and what happens when it's wrong"
+      >
+        <AboutSection icon="bi-question-circle" title="What is deoptimization?">
           <p>
             HotSpot's JIT compilers — <strong>C1</strong> (the client compiler, fast) and
             <strong>C2</strong> (the server compiler, aggressive) — don't translate your bytecode
             literally. They translate it under <strong>optimistic assumptions</strong>: this call
             site is monomorphic, this branch is rarely taken, this field is never
-            <code class="code-text">null</code>, this class hierarchy will not gain new subclasses.
+            <code>null</code>, this class hierarchy will not gain new subclasses.
             With those assumptions in hand, the compiler produces dramatically faster machine code
             than a literal translation could.
           </p>
@@ -238,24 +238,18 @@
             index, and may schedule a recompilation that omits the failed assumption. This fallback
             is also called an <em>uncommon trap</em>.
           </p>
-        </div>
-        <div class="howit-callout howit-callout-tip">
-          <strong><i class="bi bi-lightbulb-fill"></i> The takeaway.</strong>
-          Deoptimization is not a bug — it's how speculation pays for itself. The JVM speculates
-          aggressively because <em>occasionally</em> being wrong (and paying a deopt) is cheaper
-          than always being correct (and missing huge optimization wins).
-        </div>
-      </div>
+          <AboutCallout variant="tip" title="The takeaway." icon="bi-lightbulb-fill">
+            Deoptimization is not a bug — it's how speculation pays for itself. The JVM speculates
+            aggressively because <em>occasionally</em> being wrong (and paying a deopt) is cheaper
+            than always being correct (and missing huge optimization wins).
+          </AboutCallout>
+        </AboutSection>
 
-      <div class="howit-section">
-        <h6 class="howit-section-title">
-          <i class="bi bi-diagram-3"></i>
-          The compilation → deopt lifecycle
-        </h6>
-        <p class="tab-description">
-          Hot methods walk up the tier ladder. When speculation is wrong, they fall back down.
-        </p>
-        <div class="lifecycle-diagram">
+        <AboutSection icon="bi-diagram-3" title="The compilation → deopt lifecycle">
+          <p>
+            Hot methods walk up the tier ladder. When speculation is wrong, they fall back down.
+          </p>
+          <div class="lifecycle-diagram">
           <svg
             viewBox="0 0 880 320"
             xmlns="http://www.w3.org/2000/svg"
@@ -408,15 +402,10 @@
               <text x="580" y="80" text-anchor="middle">trap fires</text>
             </g>
           </svg>
-        </div>
-      </div>
+          </div>
+        </AboutSection>
 
-      <div class="howit-section">
-        <h6 class="howit-section-title">
-          <i class="bi bi-rocket"></i>
-          Why does the JVM speculate?
-        </h6>
-        <div class="howit-prose">
+        <AboutSection icon="bi-rocket" title="Why does the JVM speculate?">
           <p>Speculation is what makes Java fast. Three classics:</p>
           <ul>
             <li>
@@ -427,31 +416,26 @@
             <li>
               <strong>Removing a null check</strong> — if a field has never been null in profiling,
               C2 removes the check. If it ever <em>does</em> turn out to be null at runtime, you get
-              a <code class="code-text">null_check</code> deopt — but the saved checks paid off
+              a <code>null_check</code> deopt — but the saved checks paid off
               thousands of times before.
             </li>
             <li>
               <strong>Eliminating range checks</strong> — loops with stable bounds let C2 prove
               array indices are in range and skip the per-iteration check. If the predicate fails,
-              you get a <code class="code-text">predicate</code> deopt.
+              you get a <code>predicate</code> deopt.
             </li>
           </ul>
           <p>
             The trade is asymmetric in your favor: speculation makes 99.9% of executions fast; the
             0.1% that hit a deopt pay a fraction of a millisecond.
           </p>
-        </div>
-      </div>
+        </AboutSection>
 
-      <div class="howit-section">
-        <h6 class="howit-section-title">
-          <i class="bi bi-list-ul"></i>
-          Reasons reference
-        </h6>
-        <p class="tab-description">
-          The values you'll see in the <code class="code-text">reason</code> column on the Events
-          tab and the Reason Distribution tab.
-        </p>
+        <AboutSection icon="bi-list-ul" title="Reasons reference">
+          <p>
+            The values you'll see in the <code>reason</code> column on the Events
+            tab and the Reason Distribution tab.
+          </p>
         <div class="table-responsive">
           <table class="table table-sm table-hover mb-0">
             <thead>
@@ -469,93 +453,100 @@
               </tr>
             </tbody>
           </table>
-        </div>
-      </div>
-
-      <div class="howit-section">
-        <h6 class="howit-section-title">
-          <i class="bi bi-gear"></i>
-          Actions reference
-        </h6>
-        <p class="tab-description">What the JVM does after the trap fires.</p>
-        <div class="action-glossary">
-          <div v-for="action in actionReference" :key="action.value" class="action-card">
-            <h6 class="action-card-heading">
-              <Badge :value="action.value" :variant="action.variant" size="s" />
-            </h6>
-            <p>{{ action.description }}</p>
           </div>
-        </div>
-      </div>
+        </AboutSection>
 
-      <div class="howit-section">
-        <div class="howit-grid-2">
-          <div>
-            <h6 class="howit-section-title">
-              <i class="bi bi-check2-circle howit-success-icon"></i>
-              When deopt is normal
-            </h6>
-            <ul class="howit-list">
-              <li v-for="point in normalScenarios" :key="point.title">
-                <i class="bi bi-check-circle-fill"></i>
-                <span
-                  ><strong>{{ point.title }}</strong> {{ point.description }}</span
-                >
-              </li>
-            </ul>
+        <AboutSection icon="bi-gear" title="Actions reference">
+          <p>What the JVM does after the trap fires.</p>
+          <div class="action-glossary">
+            <div v-for="action in actionReference" :key="action.value" class="action-card">
+              <h6 class="action-card-heading">
+                <Badge :value="action.value" :variant="action.variant" size="s" />
+              </h6>
+              <p>{{ action.description }}</p>
+            </div>
           </div>
-          <div>
-            <h6 class="howit-section-title">
-              <i class="bi bi-exclamation-triangle howit-warning-icon"></i>
-              When deopt is a problem
-            </h6>
-            <ul class="howit-list howit-list-warn">
-              <li v-for="point in problemScenarios" :key="point.title">
-                <i class="bi bi-exclamation-triangle-fill"></i>
-                <span>
-                  <strong>{{ point.title }}</strong> {{ point.description }}
-                  <button
-                    v-if="point.tabLink"
-                    class="tab-link"
-                    type="button"
-                    @click="setActiveTab(point.tabLink)"
+        </AboutSection>
+
+        <AboutSection icon="bi-clipboard-check" title="When to worry">
+          <div class="howit-grid-2">
+            <div>
+              <h6 class="howit-subheading">
+                <i class="bi bi-check2-circle howit-success-icon"></i>
+                When deopt is normal
+              </h6>
+              <ul class="howit-list">
+                <li v-for="point in normalScenarios" :key="point.title">
+                  <i class="bi bi-check-circle-fill"></i>
+                  <span
+                    ><strong>{{ point.title }}</strong> {{ point.description }}</span
                   >
-                    Open {{ point.tabLinkLabel }} tab
-                  </button>
-                </span>
-              </li>
-            </ul>
+                </li>
+              </ul>
+            </div>
+            <div>
+              <h6 class="howit-subheading">
+                <i class="bi bi-exclamation-triangle howit-warning-icon"></i>
+                When deopt is a problem
+              </h6>
+              <ul class="howit-list howit-list-warn">
+                <li v-for="point in problemScenarios" :key="point.title">
+                  <i class="bi bi-exclamation-triangle-fill"></i>
+                  <span>
+                    <strong>{{ point.title }}</strong> {{ point.description }}
+                    <button
+                      v-if="point.tabLink"
+                      class="tab-link"
+                      type="button"
+                      @click="setActiveTab(point.tabLink)"
+                    >
+                      Open {{ point.tabLinkLabel }} tab
+                    </button>
+                  </span>
+                </li>
+              </ul>
+            </div>
           </div>
-        </div>
-      </div>
+        </AboutSection>
 
-      <div class="howit-section">
-        <h6 class="howit-section-title">
-          <i class="bi bi-tools"></i>
-          Tools &amp; references
-        </h6>
-        <ul class="refs-list">
-          <li>
-            <strong>Async-profiler:</strong>
-            <code>-e Deoptimization::uncommon_trap_inner</code>
-            produces a stack-traced flame graph of deopts (works in production with no JFR
-            overhead).
-          </li>
-          <li>
-            <strong>JVM flags for offline inspection:</strong>
-            <code>-XX:+PrintCompilation -XX:+TraceDeoptimization -XX:+LogCompilation</code>
-          </li>
-          <li>
-            <strong>JDK-8216041</strong> — JDK 14+ introduced rich
-            <code>jdk.Deoptimization</code> JFR events with the reason/action/BCI fields shown on
-            the Events tab.
-          </li>
-          <li>
-            <strong>Talks &amp; reading:</strong> Vladimir Ivanov on JVM compilation, Cliff Click on
-            speculation, Aleksey Shipilev on JVM internals.
-          </li>
-        </ul>
-      </div>
+        <AboutSection icon="bi-tools" title="Tools &amp; references">
+          <ul class="refs-list">
+            <li>
+              <strong>Async-profiler:</strong>
+              <code>-e Deoptimization::uncommon_trap_inner</code>
+              produces a stack-traced flame graph of deopts (works in production with no JFR
+              overhead).
+            </li>
+            <li>
+              <strong>JVM flags for offline inspection:</strong>
+              <code>-XX:+PrintCompilation -XX:+TraceDeoptimization -XX:+LogCompilation</code>
+            </li>
+            <li>
+              <strong>JDK-8216041</strong> — JDK 14+ introduced rich
+              <code>jdk.Deoptimization</code> JFR events with the reason/action/BCI fields shown on
+              the Events tab.
+            </li>
+            <li>
+              <strong>Talks &amp; reading:</strong> Vladimir Ivanov on JVM compilation, Cliff Click on
+              speculation, Aleksey Shipilev on JVM internals.
+            </li>
+          </ul>
+        </AboutSection>
+
+        <AboutSection icon="bi-broadcast" title="How JFR Emits This">
+          <p>
+            Every deoptimization is recorded by <code>jdk.Deoptimization</code> — introduced in JDK 14
+            (JDK-8216041) and enabled in the default configuration, so the Events and Distribution tabs
+            work out of the box.
+          </p>
+          <p>Each event carries the fields you see on those tabs:</p>
+          <ul>
+            <li><code>reason</code> — which optimistic assumption failed (<code>null_check</code>, <code>class_check</code>, <code>unstable_if</code>…).</li>
+            <li><code>action</code> — what the JVM did next (<code>reinterpret</code>, <code>recompile</code>, <code>none</code>).</li>
+            <li><code>compileLevel</code> + <code>bci</code> — the tier that produced the code and the exact bytecode index where the trap fired, plus the method and instruction.</li>
+          </ul>
+        </AboutSection>
+      </AboutPanel>
     </div>
 
     <!-- Per-event drill-in modal -->
@@ -650,6 +641,9 @@ import LoadingState from '@/components/LoadingState.vue';
 import ErrorState from '@/components/ErrorState.vue';
 import EmptyState from '@/components/EmptyState.vue';
 import GenericModal from '@/components/GenericModal.vue';
+import AboutPanel from '@/components/about/AboutPanel.vue';
+import AboutCallout from '@/components/about/AboutCallout.vue';
+import AboutSection from '@/components/about/AboutSection.vue';
 import FormattingService from '@/services/FormattingService';
 import ProfileDeoptimizationClient from '@/services/api/ProfileDeoptimizationClient';
 import type JITDeoptimizationStats from '@/services/api/model/JITDeoptimizationStats';
@@ -1416,66 +1410,22 @@ onUnmounted(() => {
 }
 
 /* How It Works section styles */
-.howit-section {
-  margin-bottom: 1.5rem;
-}
-
-.howit-section-title {
+.howit-subheading {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 1.1rem;
+  font-size: 0.95rem;
   font-weight: var(--font-weight-semibold);
   color: var(--color-dark);
   margin: 0 0 0.75rem;
 }
 
-.howit-section-title i {
-  color: var(--color-primary);
-}
-
-.howit-section-title .howit-success-icon {
+.howit-subheading .howit-success-icon {
   color: var(--color-success);
 }
 
-.howit-section-title .howit-warning-icon {
+.howit-subheading .howit-warning-icon {
   color: var(--color-warning);
-}
-
-.howit-prose {
-  max-width: 880px;
-  line-height: var(--line-height-relaxed);
-  color: var(--color-text);
-  font-size: 0.95rem;
-}
-
-.howit-prose p {
-  margin: 0 0 0.75rem;
-}
-
-.howit-prose strong {
-  color: var(--color-dark);
-}
-
-.howit-prose ul {
-  margin: 0 0 0.75rem;
-  padding-left: 1.3rem;
-}
-
-.howit-prose ul li {
-  margin-bottom: 0.25rem;
-}
-
-.howit-callout {
-  padding: 1rem 1.25rem;
-  border-radius: var(--radius-base);
-  margin: 0 0 1rem;
-}
-
-.howit-callout-tip {
-  background: var(--color-success-bg);
-  border-left: 4px solid var(--color-success);
-  color: var(--color-success-dark);
 }
 
 .lifecycle-diagram {

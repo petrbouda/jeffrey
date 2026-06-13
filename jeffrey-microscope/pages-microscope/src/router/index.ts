@@ -140,6 +140,72 @@ const profileChildRoutes = [
     meta: { layout: 'profile' }
   },
   {
+    path: 'class-loading',
+    name: 'profile-class-loading',
+    component: () => import('@/views/profiles/detail/ProfileClassLoading.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
+    path: 'exceptions',
+    name: 'profile-exceptions',
+    component: () => import('@/views/profiles/detail/ProfileExceptions.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
+    path: 'native-memory',
+    name: 'profile-native-memory',
+    component: () => import('@/views/profiles/detail/ProfileNativeMemory.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
+    path: 'nmt',
+    name: 'profile-nmt',
+    component: () => import('@/views/profiles/detail/ProfileNmt.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
+    path: 'system',
+    name: 'profile-system',
+    component: () => import('@/views/profiles/detail/ProfileSystem.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
+    path: 'vm-operations',
+    name: 'profile-vm-operations',
+    component: () => import('@/views/profiles/detail/ProfileVmOperations.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
+    path: 'blocking-operations',
+    name: 'profile-blocking-operations',
+    component: () => import('@/views/profiles/detail/ProfileBlockingOperations.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
+    path: 'socket-io',
+    name: 'profile-socket-io',
+    component: () => import('@/views/profiles/detail/ProfileSocketIo.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
+    path: 'file-io',
+    name: 'profile-file-io',
+    component: () => import('@/views/profiles/detail/ProfileFileIo.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
+    path: 'allocations',
+    name: 'profile-allocations',
+    component: () => import('@/views/profiles/detail/ProfileAllocations.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
+    path: 'leak-candidates',
+    name: 'profile-leak-candidates',
+    component: () => import('@/views/profiles/detail/ProfileLeakCandidates.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
     path: 'heap-dump/settings',
     name: 'profile-heap-dump-settings',
     component: () => import('@/views/profiles/detail/ProfileHeapDumpSettings.vue'),

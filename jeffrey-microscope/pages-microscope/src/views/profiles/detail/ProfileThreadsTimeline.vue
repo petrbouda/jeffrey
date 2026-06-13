@@ -5,6 +5,10 @@
       description="View and analyze thread activities over time"
       icon="bi-clock-history"
     />
+
+    <TabBar v-model="activeTab" :tabs="tabs" class="mb-3" />
+
+    <div v-show="activeTab === 'timeline'">
     <div class="d-flex align-items-center mb-3">
       <div class="input-group search-container me-3" style="max-width: 60%">
         <span class="input-group-text"><i class="bi bi-search search-icon"></i></span>
@@ -64,6 +68,65 @@
         <i class="bi bi-exclamation-circle"></i>
         No threads match the current filter
       </div>
+    </div>
+    </div>
+
+    <!-- How It Works Tab -->
+    <div v-show="activeTab === 'about'">
+      <AboutPanel
+        icon="bi-question-circle"
+        title="Understanding the Threads Timeline"
+        subtitle="How per-thread activity bands are reconstructed from JFR samples"
+      >
+        <AboutCallout variant="intro">
+          <p>
+            Each row is one thread; the coloured bands along it show what that thread was doing at each
+            moment — running on CPU, blocked on a lock, parked, or doing socket/file I/O — laid out on a
+            shared wall-clock axis. It's reconstructed by bucketing JFR's per-thread events into time
+            slots, so you can see contention and idle periods across all threads at once.
+          </p>
+        </AboutCallout>
+
+        <AboutSection icon="bi-bar-chart-steps" title="Reading the Timeline">
+          <FeatureGrid>
+            <FeatureCard icon="bi-list" variant="primary" title="Rows are threads">
+              One lane per thread, labelled by name. Filter and sort to bring the threads you care about
+              to the top.
+            </FeatureCard>
+            <FeatureCard icon="bi-palette" variant="info" title="Colours are activity">
+              Each colour is an event category (CPU sample, monitor block, park, socket/file I/O) — see
+              the legend in the info dialog. A solid band of one colour shows where time went.
+            </FeatureCard>
+            <FeatureCard icon="bi-dash" variant="neutral" title="Gaps are idle (or unsampled)">
+              Empty stretches mean the thread produced no events — genuinely idle, or active in a way the
+              recording didn't sample.
+            </FeatureCard>
+            <FeatureCard icon="bi-zoom-in" variant="success" title="Patterns to spot">
+              Many threads blocked at the same instant = contention; one thread saturating CPU = a hot
+              path to profile; staircase start times = a warming thread pool.
+            </FeatureCard>
+          </FeatureGrid>
+        </AboutSection>
+
+        <AboutSection icon="bi-broadcast" title="How JFR Emits This">
+          <p>
+            The lanes are assembled from several per-thread event streams, bucketed into time slots by
+            their <code>eventThread</code> and timestamp:
+          </p>
+          <ul>
+            <li><code>jdk.ThreadStart</code> / <code>jdk.ThreadEnd</code> — when each lane begins and ends.</li>
+            <li><code>jdk.ExecutionSample</code> — CPU activity (the thread was on-CPU when sampled).</li>
+            <li>
+              <code>jdk.JavaMonitorEnter</code> / <code>jdk.ThreadPark</code> / <code>jdk.ThreadSleep</code>
+              — blocking bands.
+            </li>
+            <li>
+              <code>jdk.SocketRead</code>/<code>Write</code> and <code>jdk.FileRead</code>/<code>Write</code>
+              — I/O bands.
+            </li>
+          </ul>
+        </AboutSection>
+      </AboutPanel>
     </div>
   </div>
 
@@ -200,6 +263,12 @@ import Konva from 'konva';
 import ThreadRow from '@/services/thread/ThreadRow';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import GenericModal from '@/components/GenericModal.vue';
+import TabBar from '@/components/TabBar.vue';
+import AboutPanel from '@/components/about/AboutPanel.vue';
+import AboutCallout from '@/components/about/AboutCallout.vue';
+import AboutSection from '@/components/about/AboutSection.vue';
+import FeatureGrid from '@/components/about/FeatureGrid.vue';
+import FeatureCard from '@/components/about/FeatureCard.vue';
 import DataTable from '@/components/table/DataTable.vue';
 import type { PropType } from 'vue';
 import '@/styles/shared-components.css';
@@ -235,6 +304,11 @@ const profileId = route.params.profileId as string;
 const threadRows = ref<ThreadRowData[]>();
 const threadCommon = ref<ThreadCommon>();
 
+const activeTab = ref('timeline');
+const tabs = [
+  { id: 'timeline', label: 'Timeline', icon: 'clock-history' },
+  { id: 'about', label: 'How It Works', icon: 'book' }
+];
 const fulltextFilter = ref<string>('');
 const fulltextFilterAfterTimeout = ref<string>('');
 const selectedSorting = ref<string>('Event Count');

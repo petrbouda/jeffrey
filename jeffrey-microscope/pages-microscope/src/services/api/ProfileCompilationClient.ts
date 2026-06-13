@@ -20,6 +20,8 @@ import BaseProfileClient from '@/services/api/BaseProfileClient';
 import JITCompilationData from '@/services/api/model/JITCompilationData';
 import JITLongCompilation from '@/services/api/model/JITLongCompilation';
 import Serie from '@/services/timeseries/model/Serie';
+import TimeseriesData from '@/services/timeseries/model/TimeseriesData';
+import type { CodeCacheData } from '@/services/api/model/CodeCacheModels';
 
 export default class ProfileCompilationClient extends BaseProfileClient {
   constructor(profileId: string) {
@@ -36,5 +38,13 @@ export default class ProfileCompilationClient extends BaseProfileClient {
 
   public getTimeseries(): Promise<Serie> {
     return this.get<Serie>('/timeseries');
+  }
+
+  public getQueueTimeline(): Promise<TimeseriesData> {
+    return this.get<TimeseriesData>('/queue-timeline');
+  }
+
+  public getCodeCache(): Promise<CodeCacheData> {
+    return this.get<CodeCacheData>('/code-cache');
   }
 }

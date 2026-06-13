@@ -60,11 +60,14 @@ defineProps<Props>();
 .empty-state-title {
   font-size: 0.88rem;
   font-weight: 600;
-  color: var(--color-text-muted);
+  color: var(--color-text);
 }
 
 .empty-state-description {
-  font-size: 0.78rem;
-  color: var(--color-text-light);
+  font-size: 0.82rem;
+  line-height: 1.5;
+  max-width: 560px;
+  text-align: center;
+  color: var(--color-text-muted);
 }
 </style>

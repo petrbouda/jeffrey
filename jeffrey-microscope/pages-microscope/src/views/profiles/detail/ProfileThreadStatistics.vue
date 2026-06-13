@@ -13,6 +13,9 @@
       description="View and analyze thread dumps and states"
       icon="bi-graph-up"
     >
+      <TabBar v-model="activeTab" :tabs="tabs" class="mb-3" />
+
+      <div v-show="activeTab === 'overview'">
       <!-- Summary Stats -->
       <div class="mb-4">
         <StatsTable :metrics="metricsData" />
@@ -139,6 +142,7 @@
           </div>
         </div>
       </div>
+      </div>
 
       <!-- Flamegraph Modal -->
       <GenericModal
@@ -178,6 +182,63 @@
           />
         </div>
       </GenericModal>
+
+      <!-- How It Works Tab -->
+      <div v-show="activeTab === 'about'">
+        <AboutPanel
+          icon="bi-question-circle"
+          title="Understanding Threads"
+          subtitle="What the thread counts, states and per-thread metrics tell you"
+        >
+          <AboutCallout variant="intro">
+            <p>
+              Threads are where your application does work. JFR samples the live thread count over time
+              and attributes CPU and allocation to individual threads, so you can find the threads that
+              dominate the machine — and tell platform threads from virtual ones.
+            </p>
+          </AboutCallout>
+
+          <AboutSection icon="bi-diagram-2" title="Threads in the JVM">
+            <FeatureGrid>
+              <FeatureCard icon="bi-cpu" variant="primary" title="Platform threads">
+                Thin wrappers over OS threads — scarce and relatively heavy (each reserves a stack).
+                A climbing platform-thread count is a thread leak or an unbounded pool.
+              </FeatureCard>
+              <FeatureCard icon="bi-stack" variant="success" title="Virtual threads">
+                Cheap, JVM-scheduled threads (Project Loom) multiplexed onto a small carrier pool. Huge
+                counts are normal; their risk is <em>pinning</em> (see JVM Pauses &amp; Locks).
+              </FeatureCard>
+              <FeatureCard icon="bi-activity" variant="info" title="Thread states">
+                RUNNABLE (on CPU or runnable), BLOCKED (waiting on a monitor), WAITING / TIMED_WAITING
+                (parked or sleeping). Lots of BLOCKED threads = contention.
+              </FeatureCard>
+              <FeatureCard icon="bi-memory" variant="warning" title="Per-thread CPU &amp; allocation">
+                Which threads burn CPU and which allocate the most — the starting point for targeting a
+                flame graph or cutting allocation churn.
+              </FeatureCard>
+            </FeatureGrid>
+          </AboutSection>
+
+          <AboutSection icon="bi-broadcast" title="How JFR Emits This">
+            <ul>
+              <li>
+                <code>jdk.JavaThreadStatistics</code> — periodic live/daemon thread counts that drive
+                the activity chart. Enabled by default.
+              </li>
+              <li>
+                <code>jdk.ThreadStart</code> / <code>jdk.ThreadEnd</code> — thread lifecycle events.
+              </li>
+              <li>
+                <code>jdk.ThreadCPULoad</code> and <code>jdk.ThreadAllocationStatistics</code> —
+                per-thread CPU and cumulative allocation, behind the top-threads tables.
+              </li>
+              <li>
+                <code>jdk.ThreadContextSwitchRate</code> — scheduling pressure across all threads.
+              </li>
+            </ul>
+          </AboutSection>
+        </AboutPanel>
+      </div>
     </PageHeader>
   </div>
 </template>
@@ -194,6 +255,12 @@ import ThreadStats from '@/services/api/model/ThreadStats';
 import AllocatingThread from '@/services/api/model/AllocatingThread';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import StatsTable from '@/components/StatsTable.vue';
+import TabBar from '@/components/TabBar.vue';
+import AboutPanel from '@/components/about/AboutPanel.vue';
+import AboutCallout from '@/components/about/AboutCallout.vue';
+import AboutSection from '@/components/about/AboutSection.vue';
+import FeatureGrid from '@/components/about/FeatureGrid.vue';
+import FeatureCard from '@/components/about/FeatureCard.vue';
 import FlamegraphComponent from '@/components/FlamegraphComponent.vue';
 import SearchBarComponent from '@/components/SearchBarComponent.vue';
 import PrimaryFlamegraphClient from '@/services/api/PrimaryFlamegraphClient';
@@ -212,6 +279,11 @@ const profileId = route.params.profileId as string;
 // State
 const chartLoading = ref<boolean>(true);
 const loading = ref<boolean>(true);
+const activeTab = ref('overview');
+const tabs = [
+  { id: 'overview', label: 'Statistics', icon: 'graph-up' },
+  { id: 'about', label: 'How It Works', icon: 'book' }
+];
 const threadSerie = ref<number[][]>();
 const showFlamegraphModal = ref(false);
 const selectedEventCode = ref('jdk.ObjectAllocationSample');

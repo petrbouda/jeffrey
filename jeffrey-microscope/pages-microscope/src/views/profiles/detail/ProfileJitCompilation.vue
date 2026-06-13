@@ -1,19 +1,7 @@
 <template>
   <div class="jit-compilation-container">
-    <!-- Loading State -->
-    <div v-if="loading" class="text-center my-5">
-      <div class="spinner-border text-primary" role="status">
-        <span class="visually-hidden">Loading JIT compilation data...</span>
-      </div>
-      <p class="mt-3">Loading JIT compilation data...</p>
-    </div>
-
-    <div v-else-if="error" class="text-center my-5">
-      <div class="alert alert-danger">
-        <i class="bi bi-exclamation-triangle-fill me-2"></i>
-        Failed to load JIT compilation data
-      </div>
-    </div>
+    <LoadingState v-if="loading" message="Loading JIT compilation data..." />
+    <ErrorState v-else-if="error" message="Failed to load JIT compilation data" />
 
     <div v-else>
       <!-- Header Section with Stats Overview -->
@@ -23,114 +11,306 @@
         icon="bi-lightning-charge-fill"
       />
 
-      <!-- Main Dashboard Grid -->
-      <div class="dashboard-grid">
-        <!-- Stats Table -->
-        <div class="mb-4">
-          <StatsTable :metrics="metricsData">
-            <template #title-action-0>
-              <i
-                class="bi bi-info-circle text-muted compilation-info-icon"
-                @click="showCompilationsModal"
-                title="Click for detailed explanation of Standard vs OSR Compilation"
-                style="cursor: pointer"
-              ></i>
-            </template>
-            <template #title-action-1>
-              <i
-                class="bi bi-info-circle text-muted compilation-info-icon"
-                @click="showTooltipModal"
-                title="Click for detailed explanation of Bailouts vs Invalidations"
-                style="cursor: pointer"
-              ></i>
-            </template>
-            <template #title-action-2>
-              <i
-                class="bi bi-info-circle text-muted compilation-info-icon"
-                @click="showNMethodsModal"
-                title="Click for detailed explanation of nMethods"
-                style="cursor: pointer"
-              ></i>
-            </template>
-          </StatsTable>
+      <div class="mb-4">
+        <StatsTable :metrics="metricsData">
+          <template #title-action-0>
+            <i
+              class="bi bi-info-circle text-muted compilation-info-icon"
+              @click="showCompilationsModal"
+              title="Click for detailed explanation of Standard vs OSR Compilation"
+              style="cursor: pointer"
+            ></i>
+          </template>
+          <template #title-action-1>
+            <i
+              class="bi bi-info-circle text-muted compilation-info-icon"
+              @click="showTooltipModal"
+              title="Click for detailed explanation of Bailouts vs Invalidations"
+              style="cursor: pointer"
+            ></i>
+          </template>
+          <template #title-action-2>
+            <i
+              class="bi bi-info-circle text-muted compilation-info-icon"
+              @click="showNMethodsModal"
+              title="Click for detailed explanation of nMethods"
+              style="cursor: pointer"
+            ></i>
+          </template>
+        </StatsTable>
+      </div>
+
+      <TabBar v-model="activeTab" :tabs="tabs" class="mb-3" />
+
+      <!-- Activity -->
+      <div v-show="activeTab === 'activity'">
+        <ChartDescription
+          shows="Compilation work sampled by the CPU profiler across the recording."
+          use-case="An early burst is normal warmup; sustained activity afterward can signal compilation churn."
+        />
+        <div class="chart-container">
+          <TimeSeriesChart
+            :primaryData="timeseriesData?.data"
+            :primaryTitle="timeseriesData?.name"
+            :visibleMinutes="60"
+          />
         </div>
 
-        <!-- Row 3: Time Series Graph -->
-        <div class="chart-card mb-4">
-          <div class="chart-card-header">
-            <h5>JIT Compilation Activity by CPU Samples</h5>
-          </div>
+        <template v-if="hasQueueData">
+          <ChartDescription
+            class="mt-4"
+            shows="C1 and C2 compiler queue depth over time."
+            use-case="A sustained C2 backlog during warmup means hot methods are waiting to be optimized."
+          />
           <div class="chart-container">
             <TimeSeriesChart
-              :primaryData="timeseriesData?.data"
-              :primaryTitle="timeseriesData?.name"
+              :primaryData="c1QueueSeries"
+              primaryTitle="C1 Queue"
+              :secondaryData="c2QueueSeries"
+              secondaryTitle="C2 Queue"
               :visibleMinutes="60"
             />
           </div>
-        </div>
+        </template>
+      </div>
 
-        <!-- Row 4: Long Compilation Table -->
-        <div class="data-table-card">
-          <div class="chart-card-header">
-            <h5>Long Compilations</h5>
-            <div class="chart-controls">
-              <div class="d-flex align-items-center">
+      <!-- Long Compilations -->
+      <div v-show="activeTab === 'compilations'">
+        <EmptyState
+          v-if="compilationsData.length === 0"
+          icon="bi-lightning"
+          title="No long compilations recorded"
+          description="No compilation exceeded the long-compilation threshold in this recording."
+        />
+        <DataTable v-else>
+          <template #toolbar>
+            <TableToolbar v-model="compilationsView.query" search-placeholder="Filter methods...">
+              <span class="toolbar-info">Long compilations</span>
+              <template #filters>
                 <Badge
                   key-label="Threshold"
                   :value="`${statisticsData?.compileMethodThreshold}ms`"
                   variant="primary"
                   size="s"
+                  borderless
                 />
-              </div>
-            </div>
-          </div>
-          <EmptyState
-            v-if="compilationsData.length === 0"
-            icon="bi-lightning"
-            title="No long compilations recorded"
-          />
-          <DataTable v-else>
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Method</th>
-                <th>Level</th>
-                <th>Time</th>
-                <th>Code Size</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                v-for="compilation in compilationsData"
-                :key="compilation.compileId"
-                :class="{ 'table-danger': !compilation.succeded }"
-                :title="compilation.method"
-              >
-                <td>{{ compilation.compileId }}</td>
-                <td>
-                  <div class="method-cell">
-                    <div class="d-flex align-items-center gap-2 mb-1">
-                      <span class="method-name">{{ getClassMethodName(compilation.method) }}</span>
-                      <Badge :value="compilation.compiler" variant="primary" size="xs" />
-                      <Badge v-if="compilation.isOsr" value="OSR" variant="info" size="xs" />
-                    </div>
-                    <span class="method-path text-muted small">{{
-                      getPackage(compilation.method)
-                    }}</span>
+                <Badge
+                  key-label="Total"
+                  :value="compilationsView.matchCount"
+                  variant="secondary"
+                  size="s"
+                  borderless
+                />
+              </template>
+            </TableToolbar>
+          </template>
+          <thead>
+            <tr>
+              <th class="id-col">ID</th>
+              <th>Method</th>
+              <th class="text-center">Level</th>
+              <th class="text-end">Time</th>
+              <th class="text-end">Code Size</th>
+              <th class="text-end">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="compilation in compilationsView.visible"
+              :key="compilation.compileId"
+              :class="{ 'table-danger': !compilation.succeded }"
+              :title="compilation.method"
+            >
+              <td class="text-muted">{{ compilation.compileId }}</td>
+              <td>
+                <div class="method-cell">
+                  <div class="d-flex align-items-center gap-2 mb-1">
+                    <span class="method-name">{{ getClassMethodName(compilation.method) }}</span>
+                    <Badge :value="compilation.compiler" variant="primary" size="xs" borderless />
+                    <Badge v-if="compilation.isOsr" value="OSR" variant="info" size="xs" borderless />
                   </div>
-                </td>
-                <td>{{ compilation.compileLevel }}</td>
-                <td>{{ FormattingService.formatDuration2Units(compilation.duration) }}</td>
-                <td>{{ FormattingService.formatBytes(compilation.codeSize) }}</td>
-                <td>
-                  <Badge v-if="compilation.succeded" value="Success" variant="success" size="s" />
-                  <Badge v-else value="Failed" variant="danger" size="s" />
-                </td>
-              </tr>
-            </tbody>
-          </DataTable>
-        </div>
+                  <span class="method-path text-muted small">{{
+                    getPackage(compilation.method)
+                  }}</span>
+                </div>
+              </td>
+              <td class="text-center">{{ compilation.compileLevel }}</td>
+              <td class="text-end">{{ FormattingService.formatDuration2Units(compilation.duration) }}</td>
+              <td class="text-end">{{ FormattingService.formatBytes(compilation.codeSize) }}</td>
+              <td class="text-end">
+                <Badge v-if="compilation.succeded" value="Success" variant="success" size="s" borderless />
+                <Badge v-else value="Failed" variant="danger" size="s" borderless />
+              </td>
+            </tr>
+          </tbody>
+          <template #footer>
+            <TableShowMore
+              :shown="compilationsView.visible.length"
+              :match-count="compilationsView.matchCount"
+              :total="compilationsView.total"
+              :expanded="compilationsView.expanded"
+              :page-size="compilationsView.pageSize"
+              @toggle="compilationsView.toggle"
+            />
+          </template>
+        </DataTable>
+      </div>
+
+      <!-- Code Cache -->
+      <div v-show="activeTab === 'code-cache'">
+        <EmptyState
+          v-if="!codeCacheData || codeCacheData.segments.length === 0"
+          icon="bi-hdd-stack"
+          title="No code cache statistics recorded"
+          description="This recording has no jdk.CodeCacheStatistics events."
+        />
+        <DataTable v-else>
+          <template #toolbar>
+            <TableToolbar v-model="codeCacheView.query" search-placeholder="Filter heaps...">
+              <span class="toolbar-info">Code cache heaps</span>
+              <template #filters>
+                <Badge
+                  key-label="Code Heaps"
+                  :value="codeCacheView.matchCount"
+                  variant="secondary"
+                  size="s"
+                  borderless
+                />
+                <Badge
+                  v-if="codeCacheData.codeCacheFullCount > 0"
+                  key-label="Code Cache Full"
+                  :value="codeCacheData.codeCacheFullCount"
+                  variant="danger"
+                  size="s"
+                  borderless
+                />
+              </template>
+            </TableToolbar>
+          </template>
+          <thead>
+            <tr>
+              <th>Code Heap</th>
+              <th class="text-end">Used</th>
+              <th class="text-end">Reserved</th>
+              <th class="text-end">Methods</th>
+              <th class="text-end">Adaptors</th>
+              <th class="text-end">Full Count</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="segment in codeCacheView.visible" :key="segment.codeBlobType">
+              <td class="method-name">{{ segment.codeBlobType }}</td>
+              <td class="text-end">{{ FormattingService.formatBytes(segment.usedBytes) }}</td>
+              <td class="text-end">{{ FormattingService.formatBytes(segment.reservedBytes) }}</td>
+              <td class="text-end">{{ FormattingService.formatNumber(segment.methodCount) }}</td>
+              <td class="text-end">{{ FormattingService.formatNumber(segment.adaptorCount) }}</td>
+              <td class="text-end">
+                <Badge v-if="segment.fullCount > 0" :value="segment.fullCount" variant="danger" size="xs" borderless />
+                <span v-else class="text-muted">0</span>
+              </td>
+            </tr>
+          </tbody>
+          <template #footer>
+            <TableShowMore
+              :shown="codeCacheView.visible.length"
+              :match-count="codeCacheView.matchCount"
+              :total="codeCacheView.total"
+              :expanded="codeCacheView.expanded"
+              :page-size="codeCacheView.pageSize"
+              @toggle="codeCacheView.toggle"
+            />
+          </template>
+        </DataTable>
+      </div>
+
+      <!-- How It Works Tab -->
+      <div v-show="activeTab === 'about'">
+        <AboutPanel
+          icon="bi-question-circle"
+          title="Understanding JIT Compilation"
+          subtitle="How HotSpot turns hot bytecode into native code — and why warmup looks the way it does"
+        >
+          <AboutCallout variant="intro">
+            <p>
+              The JVM starts by <em>interpreting</em> bytecode, then compiles the methods that run
+              often into optimized native code. HotSpot uses <strong>tiered compilation</strong>: code
+              climbs a ladder of compilers as it gets hotter, each tier trading compile time for
+              execution speed. This page shows that activity, the queues feeding it, and the code
+              cache that stores the result.
+            </p>
+          </AboutCallout>
+
+          <AboutSection icon="bi-bar-chart-steps" title="The Compilation Tiers">
+            <FeatureGrid>
+              <FeatureCard icon="bi-0-circle" variant="neutral" title="Tier 0 — Interpreter">
+                Every method starts here. No compilation; the JVM also gathers invocation and
+                branch counters to decide what's worth compiling.
+              </FeatureCard>
+              <FeatureCard icon="bi-1-circle" variant="info" title="Tiers 1–3 — C1 (client)">
+                Fast compiles with light optimization. Tier 3 also adds <em>profiling</em> counters so
+                C2 can later speculate well. This is what makes early throughput jump during warmup.
+              </FeatureCard>
+              <FeatureCard icon="bi-4-circle" variant="primary" title="Tier 4 — C2 (server)">
+                Slow, aggressive, profile-guided optimization producing the fastest code. Most steady-
+                state hot methods end up here. Wrong speculation is undone via deoptimization.
+              </FeatureCard>
+              <FeatureCard icon="bi-arrow-repeat" variant="warning" title="On-Stack Replacement">
+                OSR compiles a method <em>while a long loop is still running</em>, swapping the
+                interpreter frame for compiled code mid-execution — why a hot loop speeds up without
+                being re-called.
+              </FeatureCard>
+            </FeatureGrid>
+          </AboutSection>
+
+          <AboutSection icon="bi-graph-up" title="Reading the Charts">
+            <FeatureGrid>
+              <FeatureCard icon="bi-graph-up" variant="primary" title="Activity &amp; Queues">
+                Compilation rate over time plus the C1/C2 queue backlog. A large queue during startup
+                is normal warmup pressure; a queue that never drains means the compilers can't keep up.
+              </FeatureCard>
+              <FeatureCard icon="bi-hourglass-split" variant="warning" title="Long Compilations">
+                Individual methods that took unusually long to compile — huge methods or inlining
+                blow-ups that can stall the queue behind them.
+              </FeatureCard>
+              <FeatureCard icon="bi-hdd-stack" variant="info" title="Code Cache">
+                The fixed-size native region holding all compiled code. It's segmented (non-method,
+                profiled, non-profiled) in modern JVMs.
+              </FeatureCard>
+              <FeatureCard icon="bi-exclamation-octagon" variant="danger" title="Code Cache Full">
+                When the cache fills, the JVM <strong>stops compiling</strong> and may flush code —
+                throughput falls off a cliff. A non-zero count here is a red flag worth
+                <code>-XX:ReservedCodeCacheSize</code>.
+              </FeatureCard>
+            </FeatureGrid>
+          </AboutSection>
+
+          <AboutCallout variant="tip" title="Warmup is real" icon="bi-lightbulb-fill">
+            Throughput benchmarks taken before C2 finishes are meaningless. Heavy compilation activity
+            that never settles, or repeated recompiles of the same method, points at deoptimization
+            churn — check the <em>Deoptimizations</em> page.
+          </AboutCallout>
+
+          <AboutSection icon="bi-broadcast" title="How JFR Emits This">
+            <ul>
+              <li>
+                <code>jdk.Compilation</code> — one event per compilation (method, tier/level, OSR flag,
+                duration, generated code size). Enabled in the default configuration.
+              </li>
+              <li>
+                <code>jdk.CompilerQueueUtilization</code> — periodic C1/C2 queue depth and add/remove
+                rates that drive the queue timeline.
+              </li>
+              <li>
+                <code>jdk.CodeCacheStatistics</code> and <code>jdk.CodeCacheFull</code> — code-cache
+                occupancy per segment and the cache-exhaustion event.
+              </li>
+              <li>
+                <code>jdk.CompilerConfiguration</code> — tier thresholds and code-cache size for
+                context.
+              </li>
+            </ul>
+          </AboutSection>
+        </AboutPanel>
       </div>
     </div>
 
@@ -311,7 +491,11 @@ import { useRoute } from 'vue-router';
 
 import PageHeader from '@/components/layout/PageHeader.vue';
 import StatsTable from '@/components/StatsTable.vue';
+import TabBar from '@/components/TabBar.vue';
+import type { TabBarItem } from '@/components/TabBar.vue';
 import GenericModal from '@/components/GenericModal.vue';
+import LoadingState from '@/components/LoadingState.vue';
+import ErrorState from '@/components/ErrorState.vue';
 import FormattingService from '@/services/FormattingService.ts';
 import JITCompilationData from '@/services/api/model/JITCompilationData.ts';
 import ProfileCompilationClient from '@/services/api/ProfileCompilationClient.ts';
@@ -319,9 +503,20 @@ import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
 import Badge from '@/components/Badge.vue';
 import EmptyState from '@/components/EmptyState.vue';
 import DataTable from '@/components/table/DataTable.vue';
+import TableToolbar from '@/components/table/TableToolbar.vue';
+import TableShowMore from '@/components/table/TableShowMore.vue';
+import ChartDescription from '@/components/ChartDescription.vue';
+import AboutPanel from '@/components/about/AboutPanel.vue';
+import AboutCallout from '@/components/about/AboutCallout.vue';
+import AboutSection from '@/components/about/AboutSection.vue';
+import FeatureGrid from '@/components/about/FeatureGrid.vue';
+import FeatureCard from '@/components/about/FeatureCard.vue';
 import Serie from '@/services/timeseries/model/Serie.ts';
 import JITLongCompilation from '@/services/api/model/JITLongCompilation.ts';
+import type { CodeCacheData, CodeCacheSegment } from '@/services/api/model/CodeCacheModels';
+import type TimeseriesData from '@/services/timeseries/model/TimeseriesData';
 import { computed } from 'vue';
+import { useTableView } from '@/composables/useTableView';
 
 const route = useRoute();
 
@@ -333,6 +528,45 @@ const compilationsData = ref<JITLongCompilation[]>([]);
 // Time series chart state
 const chartLoading = ref(true);
 const timeseriesData = ref<Serie>();
+
+// Compiler queue + code cache state
+const queueTimeline = ref<TimeseriesData>();
+const codeCacheData = ref<CodeCacheData>();
+
+const activeTab = ref('activity');
+
+const compilationsView = useTableView<JITLongCompilation>(compilationsData, {
+  searchableText: row => row.method
+});
+
+const codeCacheView = useTableView<CodeCacheSegment>(() => codeCacheData.value?.segments ?? [], {
+  searchableText: row => row.codeBlobType
+});
+
+const c1QueueSeries = computed<number[][]>(() => queueTimeline.value?.series?.[0]?.data ?? []);
+const c2QueueSeries = computed<number[][]>(() => queueTimeline.value?.series?.[1]?.data ?? []);
+const hasQueueData = computed(
+  () =>
+    c1QueueSeries.value.some(point => point[1] > 0) ||
+    c2QueueSeries.value.some(point => point[1] > 0)
+);
+
+const tabs = computed<TabBarItem[]>(() => [
+  { id: 'activity', label: 'Activity', icon: 'graph-up' },
+  {
+    id: 'compilations',
+    label: 'Long Compilations',
+    icon: 'list-ul',
+    badge: compilationsData.value.length || undefined
+  },
+  {
+    id: 'code-cache',
+    label: 'Code Cache',
+    icon: 'hdd-stack',
+    badge: codeCacheData.value?.segments.length || undefined
+  },
+  { id: 'about', label: 'How It Works', icon: 'book' }
+]);
 
 // Modal state
 const showModal = ref(false);
@@ -425,16 +659,26 @@ onMounted(async () => {
     const compilationClient = new ProfileCompilationClient(profileId);
 
     // Fetch all data sets in parallel
-    const [statisticsDataResult, timeseriesDataResult, compilationsDataResult] = await Promise.all([
+    const [
+      statisticsDataResult,
+      timeseriesDataResult,
+      compilationsDataResult,
+      queueTimelineResult,
+      codeCacheResult
+    ] = await Promise.all([
       compilationClient.getStatistics(),
       compilationClient.getTimeseries(),
-      compilationClient.getCompilations()
+      compilationClient.getCompilations(),
+      compilationClient.getQueueTimeline(),
+      compilationClient.getCodeCache()
     ]);
 
     // Update the component state with real data
     statisticsData.value = statisticsDataResult;
     timeseriesData.value = timeseriesDataResult;
     compilationsData.value = compilationsDataResult;
+    queueTimeline.value = queueTimelineResult;
+    codeCacheData.value = codeCacheResult;
 
     // Data loaded successfully
     loading.value = false;
@@ -505,44 +749,18 @@ const getPackage = (method: string): string => {
     'Helvetica Neue', sans-serif;
 }
 
-.dashboard-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 1.5rem;
-}
-
-/* Data Table Card */
-.data-table-card,
-.chart-card {
-  background: var(--color-white);
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-}
-
 .chart-container {
-  padding: 1rem;
-  height: 550px;
+  width: 100%;
 }
 
-.chart-card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem 1.5rem;
-  border-bottom: 1px solid var(--color-border-row);
-}
-
-.chart-card-header h5 {
-  margin: 0;
-  font-size: 1.1rem;
+.toolbar-info {
   font-weight: 600;
+  font-size: 0.9rem;
   color: var(--color-text);
 }
 
-.chart-controls {
-  display: flex;
-  align-items: center;
+.id-col {
+  width: 80px;
 }
 
 /* Long Compilation Table Styles */
