@@ -31,7 +31,7 @@ import java.util.logging.Logger;
  * Deliberately does not implement {@link AutoCloseable}: defensive shutdowns such as
  * {@link DataSourceUtils#close(DataSource)} become no-ops on this wrapper, so the underlying pool
  * stays usable for subsequent consumers. The pool's lifecycle is owned by whoever created it
- * (e.g. {@link SingleSlotDatabaseManager}), which closes the unwrapped delegate directly.
+ * (e.g. {@link CachingDatabaseManager}), which closes the unwrapped delegate directly.
  */
 public class UncloseableDataSource implements DataSource {
 

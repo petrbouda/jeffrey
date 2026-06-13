@@ -31,6 +31,20 @@ public interface DatabaseManager {
     DataSource open(String databaseUri);
 
     /**
+     * Opens the database and holds it for the duration of the returned lease. A caching manager
+     * must keep the underlying pool alive (no idle eviction) until the lease is closed, so a
+     * long-running writer is not torn down mid-use. The default implementation does not pin and
+     * simply wraps {@link #open(String)} — appropriate for managers that keep a single database
+     * open for their whole lifetime.
+     *
+     * @param databaseUri the database URI (URL or file path)
+     * @return a lease exposing the DataSource; close it (try-with-resources) when done
+     */
+    default DatabaseLease acquire(String databaseUri) {
+        return DatabaseLease.unmanaged(open(databaseUri));
+    }
+
+    /**
      * Runs Flyway migrations on the platform database.
      *
      * @param dataSource the DataSource to run migrations on

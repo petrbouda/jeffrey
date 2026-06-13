@@ -22,11 +22,12 @@ import javax.sql.DataSource;
 import java.util.function.Supplier;
 
 /**
- * Keeps at most one {@link FramesCache} alive — for the single currently-open profile (mirroring
- * {@code SingleSlotDatabaseManager}, which keeps a single profile database open at a time). The
- * profile is identified by the identity of its {@link DataSource}: the single-slot database manager
- * hands out the same instance for repeated opens of the same profile and a new one after a switch,
- * so an identity check is both a correct and cheap cache key.
+ * Keeps at most one {@link FramesCache} alive — for the most recently used profile. The profile is
+ * identified by the identity of its {@link DataSource}: {@code CachingDatabaseManager} hands out the
+ * same stable handle instance for repeated opens of the same profile and a distinct one per profile,
+ * so an identity check is both a correct and cheap cache key. When several profiles are used
+ * concurrently this slot is reloaded per switch (a cache-miss cost), but it always returns frames
+ * matching the requested {@link DataSource}.
  *
  * <p>Frame-mutating operations (class renaming, stacktrace transformations) must
  * {@link #invalidate(DataSource)} the slot so the next request reloads fresh frames.

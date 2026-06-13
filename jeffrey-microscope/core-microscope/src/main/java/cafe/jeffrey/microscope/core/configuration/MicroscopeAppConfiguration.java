@@ -68,7 +68,7 @@ public class MicroscopeAppConfiguration {
             @Value("${jeffrey.microscope.profile.frame-resolution:CACHE}") FrameResolutionMode frameResolutionMode) {
 
         ProfilePersistenceProvider quickProvider =
-                new DuckDBProfilePersistenceProvider(jeffreyDirs.profiles(), frameResolutionMode);
+                new DuckDBProfilePersistenceProvider(jeffreyDirs.profiles(), frameResolutionMode, clock);
 
         ProfileInitializer recordingsProfileInitializer = new ProfileInitializerImpl(
                 quickProvider.repositories(),
