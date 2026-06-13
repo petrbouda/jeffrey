@@ -35,6 +35,7 @@ public abstract class EventTypeName {
     public static final String OBJECT_ALLOCATION_IN_NEW_TLAB = "jdk.ObjectAllocationInNewTLAB";
     public static final String OBJECT_ALLOCATION_OUTSIDE_TLAB = "jdk.ObjectAllocationOutsideTLAB";
     public static final String OBJECT_ALLOCATION_SAMPLE = "jdk.ObjectAllocationSample";
+    public static final String OLD_OBJECT_SAMPLE = "jdk.OldObjectSample";
     public static final String SOCKET_READ = "jdk.SocketRead";
     public static final String SOCKET_WRITE = "jdk.SocketWrite";
     public static final String FILE_READ = "jdk.FileRead";
@@ -59,6 +60,12 @@ public abstract class EventTypeName {
     public static final String Z_YOUNG_GARBAGE_COLLECTION = "jdk.ZYoungGarbageCollection";
     public static final String Z_OLD_GARBAGE_COLLECTION = "jdk.ZOldGarbageCollection";
     public static final String GC_PHASE_CONCURRENT = "jdk.GCPhaseConcurrent";
+    public static final String TENURING_DISTRIBUTION = "jdk.TenuringDistribution";
+    public static final String GC_REFERENCE_STATISTICS = "jdk.GCReferenceStatistics";
+    public static final String GC_CPU_TIME = "jdk.GCCPUTime";
+    public static final String G1_ADAPTIVE_IHOP = "jdk.G1AdaptiveIHOP";
+    public static final String G1_BASIC_IHOP = "jdk.G1BasicIHOP";
+    public static final String G1_MMU = "jdk.G1MMU";
 
     public static final String YOUNG_GENERATION_CONFIGURATION = "jdk.YoungGenerationConfiguration";
     public static final String COMPILER_CONFIGURATION = "jdk.CompilerConfiguration";
@@ -73,8 +80,42 @@ public abstract class EventTypeName {
     public static final String COMPILER_STATISTICS = "jdk.CompilerStatistics";
     public static final String COMPILATION = "jdk.Compilation";
     public static final String DEOPTIMIZATION = "jdk.Deoptimization";
+    public static final String COMPILER_QUEUE_UTILIZATION = "jdk.CompilerQueueUtilization";
+    public static final String CODE_CACHE_STATISTICS = "jdk.CodeCacheStatistics";
+    public static final String CODE_CACHE_FULL = "jdk.CodeCacheFull";
     public static final String SAFEPOINT_BEGIN = "jdk.SafepointBegin";
+    public static final String SAFEPOINT_STATE_SYNCHRONIZATION = "jdk.SafepointStateSynchronization";
+    public static final String SAFEPOINT_END = "jdk.SafepointEnd";
+    public static final String EXECUTE_VM_OPERATION = "jdk.ExecuteVMOperation";
+    public static final String JAVA_MONITOR_INFLATE = "jdk.JavaMonitorInflate";
     public static final String VIRTUAL_THREAD_PINNED = "jdk.VirtualThreadPinned";
+
+    // System & host events
+    public static final String CPU_LOAD = "jdk.CPULoad";
+    public static final String NETWORK_UTILIZATION = "jdk.NetworkUtilization";
+    public static final String THREAD_CONTEXT_SWITCH_RATE = "jdk.ThreadContextSwitchRate";
+    public static final String SYSTEM_PROCESS = "jdk.SystemProcess";
+
+    // Native memory events
+    public static final String RESIDENT_SET_SIZE = "jdk.ResidentSetSize";
+    public static final String DIRECT_BUFFER_STATISTICS = "jdk.DirectBufferStatistics";
+    public static final String NATIVE_LIBRARY = "jdk.NativeLibrary";
+    public static final String NATIVE_MEMORY_USAGE = "jdk.NativeMemoryUsage";
+    public static final String NATIVE_MEMORY_USAGE_TOTAL = "jdk.NativeMemoryUsageTotal";
+
+    // Exception events
+    public static final String EXCEPTION_STATISTICS = "jdk.ExceptionStatistics";
+    public static final String JAVA_EXCEPTION_THROW = "jdk.JavaExceptionThrow";
+    public static final String JAVA_ERROR_THROW = "jdk.JavaErrorThrow";
+
+    // Class Loading events
+    public static final String CLASS_LOADING_STATISTICS = "jdk.ClassLoadingStatistics";
+    public static final String CLASS_LOADER_STATISTICS = "jdk.ClassLoaderStatistics";
+    public static final String CLASS_LOAD = "jdk.ClassLoad";
+    public static final String CLASS_DEFINE = "jdk.ClassDefine";
+    public static final String CLASS_UNLOAD = "jdk.ClassUnload";
+    public static final String CLASS_REDEFINITION = "jdk.ClassRedefinition";
+    public static final String RETRANSFORM_CLASSES = "jdk.RetransformClasses";
 
     // ----------------------------
     // Application events - JEFFREY

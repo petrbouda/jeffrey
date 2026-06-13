@@ -202,6 +202,26 @@ public abstract class Json {
         return fieldNode == null || fieldNode.isNull() ? -1L : fieldNode.asLong();
     }
 
+    public static double readDouble(JsonNode node, String fieldName) {
+        if (node == null || !node.has(fieldName)) {
+            return -1d;
+        }
+        JsonNode fieldNode = node.get(fieldName);
+        if (fieldNode == null || fieldNode.isNull()) {
+            return -1d;
+        }
+        if (fieldNode.isNumber()) {
+            return fieldNode.asDouble();
+        }
+        // Float-typed JFR fields without a unit annotation are serialized via toString()
+        // and arrive as numeric strings (e.g. jdk.ThreadContextSwitchRate.switchRate).
+        try {
+            return Double.parseDouble(fieldNode.asString());
+        } catch (NumberFormatException e) {
+            return -1d;
+        }
+    }
+
     public static int readInt(JsonNode node, String fieldName) {
         if (node == null || !node.has(fieldName)) {
             return -1;

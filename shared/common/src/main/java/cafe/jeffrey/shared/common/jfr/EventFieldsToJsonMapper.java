@@ -28,6 +28,7 @@ import jdk.jfr.ValueDescriptor;
 import jdk.jfr.consumer.RecordedClass;
 import jdk.jfr.consumer.RecordedEvent;
 import jdk.jfr.consumer.RecordedMethod;
+import jdk.jfr.consumer.RecordedObject;
 import jdk.jfr.consumer.RecordedThread;
 import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.shared.common.RecordedClassMapper;
@@ -50,6 +51,11 @@ public class EventFieldsToJsonMapper implements EventFieldsMapper {
 
     private static final String THREAD_TYPE_NAME = "java.lang.Thread";
     private static final String CLASS_TYPE_NAME = "java.lang.Class";
+    private static final String CLASS_LOADER_TYPE_NAME = "jdk.types.ClassLoader";
+    private static final String CLASS_LOADER_TYPE_FIELD = "type";
+    private static final String CLASS_LOADER_NAME_FIELD = "name";
+    private static final String OLD_OBJECT_TYPE_NAME = "jdk.types.OldObject";
+    private static final String OLD_OBJECT_TYPE_FIELD = "type";
     private static final String METHOD_TYPE_NAME = "jdk.types.Method";
     private static final String BOOLEAN_TYPE_NAME = "boolean";
     private static final Set<String> INTEGRAL_TYPE_NAMES = Set.of("long", "int");
@@ -133,6 +139,16 @@ public class EventFieldsToJsonMapper implements EventFieldsMapper {
                 RecordedClass clazz = event.getClass(name);
                 node.put(name, RecordedClassMapper.map(clazz.getName()));
             };
+        } else if (CLASS_LOADER_TYPE_NAME.equals(typeName)) {
+            // The JFR ClassLoader struct ({type: Class, name: String}) has no special
+            // RecordedObject handling and would otherwise fall through to a verbose
+            // toString() dump. Flatten it to a readable identity label instead.
+            return (event, node) -> node.put(name, classLoaderLabel(event.getValue(name)));
+        } else if (OLD_OBJECT_TYPE_NAME.equals(typeName)) {
+            // The JFR OldObject struct ({type: Class, address, referrer, …}) has no special
+            // handling and would fall through to a verbose toString() dump. Flatten it to the
+            // leaked object's class name — the field the leak-candidates view needs.
+            return (event, node) -> node.put(name, oldObjectType(event.getValue(name)));
         } else if (METHOD_TYPE_NAME.equals(typeName)) {
             return (event, node) -> {
                 RecordedMethod method = event.getValue(name);
@@ -201,6 +217,40 @@ public class EventFieldsToJsonMapper implements EventFieldsMapper {
 
     private static String safeToString(Object val) {
         return val == null ? null : val.toString();
+    }
+
+    /**
+     * Flattens a JFR {@code jdk.types.ClassLoader} struct to a single human-readable
+     * label. Produces {@code "<type> (<name>)"} when the loader carries an instance
+     * name, the bare type name otherwise, and {@code null} for the bootstrap loader
+     * (the field value is absent for bootstrap-loaded classes).
+     */
+    private static String classLoaderLabel(Object value) {
+        if (!(value instanceof RecordedObject loader)) {
+            return null;
+        }
+        RecordedClass type = loader.getValue(CLASS_LOADER_TYPE_FIELD);
+        String typeName = type == null ? null : RecordedClassMapper.map(type.getName());
+        String name = loader.getString(CLASS_LOADER_NAME_FIELD);
+        if (typeName == null) {
+            return name;
+        }
+        if (name == null || name.isBlank()) {
+            return typeName;
+        }
+        return typeName + " (" + name + ")";
+    }
+
+    /**
+     * Flattens a JFR {@code jdk.types.OldObject} struct to the leaked object's class name (the
+     * struct's {@code type} field), or {@code null} when unavailable.
+     */
+    private static String oldObjectType(Object value) {
+        if (!(value instanceof RecordedObject oldObject)) {
+            return null;
+        }
+        RecordedClass type = oldObject.getValue(OLD_OBJECT_TYPE_FIELD);
+        return type == null ? null : RecordedClassMapper.map(type.getName());
     }
 
     private static Long safeToLongNanos(Duration value) {

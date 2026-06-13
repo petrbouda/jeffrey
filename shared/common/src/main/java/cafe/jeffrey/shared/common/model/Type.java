@@ -45,6 +45,7 @@ public record Type(String code, boolean calculated) {
     public static final Type OBJECT_ALLOCATION_IN_NEW_TLAB = new Type(EventTypeName.OBJECT_ALLOCATION_IN_NEW_TLAB);
     public static final Type OBJECT_ALLOCATION_OUTSIDE_TLAB = new Type(EventTypeName.OBJECT_ALLOCATION_OUTSIDE_TLAB);
     public static final Type OBJECT_ALLOCATION_SAMPLE = new Type(EventTypeName.OBJECT_ALLOCATION_SAMPLE);
+    public static final Type OLD_OBJECT_SAMPLE = new Type(EventTypeName.OLD_OBJECT_SAMPLE);
     public static final Type SOCKET_READ = new Type(EventTypeName.SOCKET_READ);
     public static final Type SOCKET_WRITE = new Type(EventTypeName.SOCKET_WRITE);
     public static final Type FILE_READ = new Type(EventTypeName.FILE_READ);
@@ -69,6 +70,12 @@ public record Type(String code, boolean calculated) {
     public static final Type Z_YOUNG_GARBAGE_COLLECTION = new Type(EventTypeName.Z_YOUNG_GARBAGE_COLLECTION);
     public static final Type Z_OLD_GARBAGE_COLLECTION = new Type(EventTypeName.Z_OLD_GARBAGE_COLLECTION);
     public static final Type GC_PHASE_CONCURRENT = new Type(EventTypeName.GC_PHASE_CONCURRENT);
+    public static final Type TENURING_DISTRIBUTION = new Type(EventTypeName.TENURING_DISTRIBUTION);
+    public static final Type GC_REFERENCE_STATISTICS = new Type(EventTypeName.GC_REFERENCE_STATISTICS);
+    public static final Type GC_CPU_TIME = new Type(EventTypeName.GC_CPU_TIME);
+    public static final Type G1_ADAPTIVE_IHOP = new Type(EventTypeName.G1_ADAPTIVE_IHOP);
+    public static final Type G1_BASIC_IHOP = new Type(EventTypeName.G1_BASIC_IHOP);
+    public static final Type G1_MMU = new Type(EventTypeName.G1_MMU);
     public static final Type YOUNG_GENERATION_CONFIGURATION = new Type(EventTypeName.YOUNG_GENERATION_CONFIGURATION);
     public static final Type COMPILER_CONFIGURATION = new Type(EventTypeName.COMPILER_CONFIGURATION);
     public static final Type JVM_INFORMATION = new Type(EventTypeName.JVM_INFORMATION);
@@ -81,8 +88,42 @@ public record Type(String code, boolean calculated) {
     public static final Type COMPILER_STATISTICS = new Type(EventTypeName.COMPILER_STATISTICS);
     public static final Type COMPILATION = new Type(EventTypeName.COMPILATION);
     public static final Type DEOPTIMIZATION = new Type(EventTypeName.DEOPTIMIZATION);
+    public static final Type COMPILER_QUEUE_UTILIZATION = new Type(EventTypeName.COMPILER_QUEUE_UTILIZATION);
+    public static final Type CODE_CACHE_STATISTICS = new Type(EventTypeName.CODE_CACHE_STATISTICS);
+    public static final Type CODE_CACHE_FULL = new Type(EventTypeName.CODE_CACHE_FULL);
     public static final Type SAFEPOINT_BEGIN = new Type(EventTypeName.SAFEPOINT_BEGIN);
+    public static final Type SAFEPOINT_STATE_SYNCHRONIZATION = new Type(EventTypeName.SAFEPOINT_STATE_SYNCHRONIZATION);
+    public static final Type SAFEPOINT_END = new Type(EventTypeName.SAFEPOINT_END);
+    public static final Type EXECUTE_VM_OPERATION = new Type(EventTypeName.EXECUTE_VM_OPERATION);
+    public static final Type JAVA_MONITOR_INFLATE = new Type(EventTypeName.JAVA_MONITOR_INFLATE);
     public static final Type VIRTUAL_THREAD_PINNED = new Type(EventTypeName.VIRTUAL_THREAD_PINNED);
+
+    // System & host events
+    public static final Type CPU_LOAD = new Type(EventTypeName.CPU_LOAD);
+    public static final Type NETWORK_UTILIZATION = new Type(EventTypeName.NETWORK_UTILIZATION);
+    public static final Type THREAD_CONTEXT_SWITCH_RATE = new Type(EventTypeName.THREAD_CONTEXT_SWITCH_RATE);
+    public static final Type SYSTEM_PROCESS = new Type(EventTypeName.SYSTEM_PROCESS);
+
+    // Native memory events
+    public static final Type RESIDENT_SET_SIZE = new Type(EventTypeName.RESIDENT_SET_SIZE);
+    public static final Type DIRECT_BUFFER_STATISTICS = new Type(EventTypeName.DIRECT_BUFFER_STATISTICS);
+    public static final Type NATIVE_LIBRARY = new Type(EventTypeName.NATIVE_LIBRARY);
+    public static final Type NATIVE_MEMORY_USAGE = new Type(EventTypeName.NATIVE_MEMORY_USAGE);
+    public static final Type NATIVE_MEMORY_USAGE_TOTAL = new Type(EventTypeName.NATIVE_MEMORY_USAGE_TOTAL);
+
+    // Exception events
+    public static final Type EXCEPTION_STATISTICS = new Type(EventTypeName.EXCEPTION_STATISTICS);
+    public static final Type JAVA_EXCEPTION_THROW = new Type(EventTypeName.JAVA_EXCEPTION_THROW);
+    public static final Type JAVA_ERROR_THROW = new Type(EventTypeName.JAVA_ERROR_THROW);
+
+    // Class Loading events
+    public static final Type CLASS_LOADING_STATISTICS = new Type(EventTypeName.CLASS_LOADING_STATISTICS);
+    public static final Type CLASS_LOADER_STATISTICS = new Type(EventTypeName.CLASS_LOADER_STATISTICS);
+    public static final Type CLASS_LOAD = new Type(EventTypeName.CLASS_LOAD);
+    public static final Type CLASS_DEFINE = new Type(EventTypeName.CLASS_DEFINE);
+    public static final Type CLASS_UNLOAD = new Type(EventTypeName.CLASS_UNLOAD);
+    public static final Type CLASS_REDEFINITION = new Type(EventTypeName.CLASS_REDEFINITION);
+    public static final Type RETRANSFORM_CLASSES = new Type(EventTypeName.RETRANSFORM_CLASSES);
 
     // ----------------------------
     // Application events - JEFFREY
@@ -150,6 +191,7 @@ public record Type(String code, boolean calculated) {
                 OBJECT_ALLOCATION_SAMPLE,
                 OBJECT_ALLOCATION_IN_NEW_TLAB,
                 OBJECT_ALLOCATION_OUTSIDE_TLAB,
+                OLD_OBJECT_SAMPLE,
                 SOCKET_READ,
                 SOCKET_WRITE,
                 FILE_READ,
@@ -172,6 +214,12 @@ public record Type(String code, boolean calculated) {
                 Z_YOUNG_GARBAGE_COLLECTION,
                 Z_OLD_GARBAGE_COLLECTION,
                 GC_PHASE_CONCURRENT,
+                TENURING_DISTRIBUTION,
+                GC_REFERENCE_STATISTICS,
+                GC_CPU_TIME,
+                G1_ADAPTIVE_IHOP,
+                G1_BASIC_IHOP,
+                G1_MMU,
                 YOUNG_GENERATION_CONFIGURATION,
                 COMPILER_CONFIGURATION,
                 JVM_INFORMATION,
@@ -184,6 +232,34 @@ public record Type(String code, boolean calculated) {
                 COMPILER_STATISTICS,
                 COMPILATION,
                 DEOPTIMIZATION,
+                COMPILER_QUEUE_UTILIZATION,
+                CODE_CACHE_STATISTICS,
+                CODE_CACHE_FULL,
+                EXECUTE_VM_OPERATION,
+                SAFEPOINT_BEGIN,
+                SAFEPOINT_STATE_SYNCHRONIZATION,
+                SAFEPOINT_END,
+                JAVA_MONITOR_INFLATE,
+                VIRTUAL_THREAD_PINNED,
+                CPU_LOAD,
+                NETWORK_UTILIZATION,
+                THREAD_CONTEXT_SWITCH_RATE,
+                SYSTEM_PROCESS,
+                RESIDENT_SET_SIZE,
+                DIRECT_BUFFER_STATISTICS,
+                NATIVE_LIBRARY,
+                NATIVE_MEMORY_USAGE,
+                NATIVE_MEMORY_USAGE_TOTAL,
+                EXCEPTION_STATISTICS,
+                JAVA_EXCEPTION_THROW,
+                JAVA_ERROR_THROW,
+                CLASS_LOADING_STATISTICS,
+                CLASS_LOADER_STATISTICS,
+                CLASS_LOAD,
+                CLASS_DEFINE,
+                CLASS_UNLOAD,
+                CLASS_REDEFINITION,
+                RETRANSFORM_CLASSES,
                 JDBC_POOL_STATISTICS,
                 ACQUIRING_POOLED_JDBC_CONNECTION_TIMEOUT,
                 POOLED_JDBC_CONNECTION_ACQUIRED,
