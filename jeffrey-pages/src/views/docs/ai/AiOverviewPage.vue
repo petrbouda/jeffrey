@@ -48,7 +48,7 @@ onMounted(() => {
     />
 
     <div class="docs-content">
-      <p>Jeffrey integrates AI-powered analysis to help you understand JFR recordings and heap dumps faster. Ask questions in natural language and get insights powered by Claude or ChatGPT.</p>
+      <p>Jeffrey integrates AI-powered analysis to help you understand JFR recordings and heap dumps faster. Ask questions in natural language and get insights powered by Claude, ChatGPT, or a self-hosted Ollama server.</p>
 
       <h2 id="ai-features">AI Features</h2>
       <div class="docs-grid docs-grid-2">
@@ -83,7 +83,7 @@ onMounted(() => {
         <tbody>
           <tr>
             <td><strong>Provider</strong></td>
-            <td>AI service provider (Claude or ChatGPT)</td>
+            <td>AI service provider (Claude, ChatGPT, or Ollama)</td>
             <td>None (disabled)</td>
           </tr>
           <tr>
@@ -93,8 +93,13 @@ onMounted(() => {
           </tr>
           <tr>
             <td><strong>API Key</strong></td>
-            <td>Your provider API key</td>
+            <td>Your provider API key (Claude and ChatGPT only)</td>
             <td>&mdash;</td>
+          </tr>
+          <tr>
+            <td><strong>Base URL</strong></td>
+            <td>URL of the self-hosted Ollama server (Ollama only)</td>
+            <td>http://localhost:11434</td>
           </tr>
           <tr>
             <td><strong>Max Tokens</strong></td>
@@ -115,6 +120,9 @@ onMounted(() => {
 
       <h3>ChatGPT (OpenAI)</h3>
       <p>Alternative provider. Available models include <code>gpt-4o</code>, <code>gpt-4-turbo</code>, and others.</p>
+
+      <h3>Ollama (self-hosted)</h3>
+      <p>Run models locally on your own infrastructure &mdash; no API key required, just the server's <strong>Base URL</strong> (default <code>http://localhost:11434</code>). Choose a <strong>tool-capable</strong> model such as <code>llama3.1</code>, <code>llama3.3</code>, or <code>qwen2.5</code>, since the analysis features rely on tool calling; models without tool support will not be able to query your data.</p>
 
       <h2 id="how-it-works">How It Works</h2>
       <p>Jeffrey uses <strong>tool-calling</strong> (MCP-style) to provide accurate, data-driven answers:</p>

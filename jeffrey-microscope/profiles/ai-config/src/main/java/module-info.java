@@ -19,6 +19,7 @@ module cafe.jeffrey.microscope.profile.ai.config {
     requires transitive spring.ai.client.chat;
     requires transitive spring.ai.model;
     requires spring.ai.anthropic;
+    requires spring.ai.ollama;
     requires spring.ai.openai;
     requires spring.boot;
     requires spring.boot.autoconfigure;

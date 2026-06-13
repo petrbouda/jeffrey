@@ -89,6 +89,7 @@
             >
               <option value="claude">Claude (Anthropic)</option>
               <option value="chatgpt">ChatGPT (OpenAI)</option>
+              <option value="ollama">Ollama (self-hosted)</option>
             </select>
           </div>
           <div class="settings-form-group">
@@ -104,7 +105,26 @@
               placeholder="Enter model name"
             />
           </div>
-          <div class="settings-form-group">
+          <div v-if="isOllama" class="settings-form-group">
+            <label class="settings-label">Base URL</label>
+            <input
+              type="text"
+              :value="settings.get('jeffrey.microscope.ai.base-url')"
+              @input="
+                setSetting(
+                  'jeffrey.microscope.ai.base-url',
+                  ($event.target as HTMLInputElement).value
+                )
+              "
+              class="form-control"
+              :disabled="!aiEnabled"
+              placeholder="http://localhost:11434"
+            />
+            <div class="settings-hint">
+              <i class="bi bi-hdd-network"></i> URL of your self-hosted Ollama server
+            </div>
+          </div>
+          <div v-else class="settings-form-group">
             <label class="settings-label">API Key</label>
             <div class="password-wrap">
               <input
@@ -342,22 +362,25 @@ interface ModelInfo {
 }
 
 const claudeModels: ModelInfo[] = [
-  { id: 'claude-opus-4-6', maxTokens: 128000 },
+  { id: 'claude-opus-4-8', maxTokens: 128000 },
   { id: 'claude-sonnet-4-6', maxTokens: 64000 },
-  { id: 'claude-haiku-4-5-20251001', maxTokens: 64000 },
-  { id: 'claude-sonnet-4-5-20250929', maxTokens: 64000 },
-  { id: 'claude-opus-4-5-20251101', maxTokens: 64000 },
-  { id: 'claude-sonnet-4-20250514', maxTokens: 64000 }
+  { id: 'claude-haiku-4-5-20251001', maxTokens: 64000 }
 ];
 
 const chatgptModels: ModelInfo[] = [
-  { id: 'gpt-4o', maxTokens: 16384 },
-  { id: 'gpt-4o-mini', maxTokens: 16384 },
+  { id: 'gpt-5.5', maxTokens: 128000 },
+  { id: 'gpt-5.4', maxTokens: 128000 },
   { id: 'gpt-4.1', maxTokens: 32768 },
-  { id: 'gpt-4.1-mini', maxTokens: 32768 },
-  { id: 'o3', maxTokens: 100000 },
-  { id: 'o3-mini', maxTokens: 100000 },
-  { id: 'o4-mini', maxTokens: 100000 }
+  { id: 'gpt-4o', maxTokens: 16384 }
+];
+
+// Tool-capable Ollama models are recommended — the DuckDB/heap-dump analysis
+// features rely on tool calling. maxTokens maps to Ollama's num_predict (max output).
+const ollamaModels: ModelInfo[] = [
+  { id: 'llama4', maxTokens: 8192 },
+  { id: 'qwen3', maxTokens: 8192 },
+  { id: 'gemma4', maxTokens: 8192 },
+  { id: 'mistral-small', maxTokens: 8192 }
 ];
 
 const client = new SettingsClient();
@@ -382,10 +405,13 @@ const previewTwoLine = ref<HTMLCanvasElement | null>(null);
 const aiToggle = ref(false);
 const aiEnabled = computed(() => aiToggle.value);
 
+const isOllama = computed(() => settings.get('jeffrey.microscope.ai.provider') === 'ollama');
+
 const currentModels = computed(() => {
   const provider = settings.get('jeffrey.microscope.ai.provider');
   if (provider === 'claude') return claudeModels;
   if (provider === 'chatgpt') return chatgptModels;
+  if (provider === 'ollama') return ollamaModels;
   return [];
 });
 
@@ -548,7 +574,7 @@ async function onAiToggleChange() {
       !settings.get('jeffrey.microscope.ai.provider')
     ) {
       settings.set('jeffrey.microscope.ai.provider', 'claude');
-      settings.set('jeffrey.microscope.ai.model', 'claude-opus-4-6');
+      settings.set('jeffrey.microscope.ai.model', 'claude-opus-4-8');
     }
   }
 }
@@ -574,6 +600,12 @@ async function saveAiSettings() {
         'ai',
         'jeffrey.microscope.ai.max-tokens',
         settings.get('jeffrey.microscope.ai.max-tokens') || '',
+        false
+      ),
+      client.upsert(
+        'ai',
+        'jeffrey.microscope.ai.base-url',
+        settings.get('jeffrey.microscope.ai.base-url') || '',
         false
       ),
       ...(apiKey && !apiKey.includes('****')
