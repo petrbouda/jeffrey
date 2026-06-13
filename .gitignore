@@ -77,3 +77,6 @@ jeffrey-server/http-client/
 # Local async-profiler self-profiling helper + its JFR output (not committed)
 /run-microscope-profiled.sh
 /jeffrey-*.jfr
+
+# Playwright MCP browser-session artifacts
+.playwright-mcp/

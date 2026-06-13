@@ -207,6 +207,61 @@ const routes: RouteRecordRaw[] = [
         name: 'DocsProfilesGarbageCollection',
         component: () => import('@/views/docs/microscope/profiles/ProfileGarbageCollectionPage.vue')
       },
+      {
+        path: 'microscope/profiles/class-loading',
+        name: 'DocsProfilesClassLoading',
+        component: () => import('@/views/docs/microscope/profiles/ProfileClassLoadingPage.vue')
+      },
+      {
+        path: 'microscope/profiles/exceptions',
+        name: 'DocsProfilesExceptions',
+        component: () => import('@/views/docs/microscope/profiles/ProfileExceptionsPage.vue')
+      },
+      {
+        path: 'microscope/profiles/native-memory',
+        name: 'DocsProfilesNativeMemory',
+        component: () => import('@/views/docs/microscope/profiles/ProfileNativeMemoryPage.vue')
+      },
+      {
+        path: 'microscope/profiles/system',
+        name: 'DocsProfilesSystem',
+        component: () => import('@/views/docs/microscope/profiles/ProfileSystemPage.vue')
+      },
+      {
+        path: 'microscope/profiles/nmt',
+        name: 'DocsProfilesNmt',
+        component: () => import('@/views/docs/microscope/profiles/ProfileNmtPage.vue')
+      },
+      {
+        path: 'microscope/profiles/vm-operations',
+        name: 'DocsProfilesVmOperations',
+        component: () => import('@/views/docs/microscope/profiles/ProfileVmOperationsPage.vue')
+      },
+      {
+        path: 'microscope/profiles/blocking-operations',
+        name: 'DocsProfilesBlockingOperations',
+        component: () => import('@/views/docs/microscope/profiles/ProfileBlockingOperationsPage.vue')
+      },
+      {
+        path: 'microscope/profiles/socket-io',
+        name: 'DocsProfilesSocketIo',
+        component: () => import('@/views/docs/microscope/profiles/ProfileSocketIoPage.vue')
+      },
+      {
+        path: 'microscope/profiles/file-io',
+        name: 'DocsProfilesFileIo',
+        component: () => import('@/views/docs/microscope/profiles/ProfileFileIoPage.vue')
+      },
+      {
+        path: 'microscope/profiles/allocations',
+        name: 'DocsProfilesAllocations',
+        component: () => import('@/views/docs/microscope/profiles/ProfileAllocationsPage.vue')
+      },
+      {
+        path: 'microscope/profiles/leak-candidates',
+        name: 'DocsProfilesLeakCandidates',
+        component: () => import('@/views/docs/microscope/profiles/ProfileLeakCandidatesPage.vue')
+      },
       // Workspaces & Event Log
       {
         path: 'microscope/workspaces',

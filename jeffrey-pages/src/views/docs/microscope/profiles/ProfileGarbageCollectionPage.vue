@@ -31,6 +31,8 @@ const headings = [
   { id: 'gc-efficiency', text: 'GC Efficiency', level: 2 },
   { id: 'longest-pauses', text: 'Longest Pauses', level: 2 },
   { id: 'concurrent-cycles', text: 'Concurrent Cycles', level: 2 },
+  { id: 'tenuring', text: 'Promotion & Tenuring', level: 2 },
+  { id: 'ihop', text: 'G1 IHOP & CPU', level: 2 },
   { id: 'pause-types', text: 'Pause Types Reference', level: 2 }
 ];
 
@@ -69,6 +71,12 @@ onMounted(() => {
 
       <h2 id="concurrent-cycles">Concurrent Cycles</h2>
       <p>For collectors that perform concurrent work (G1, ZGC, Shenandoah, CMS), this tab lists the longest concurrent cycle events with their timestamp, collector name, total duration, and sum of stop-the-world sub-pauses. Collectors that don't support concurrent cycles (e.g. Serial, Parallel) display an information notice instead.</p>
+
+      <h2 id="tenuring">Promotion &amp; Tenuring</h2>
+      <p>Per-collection survivor-age distributions from <code>jdk.TenuringDistribution</code> — how many bytes survive at each age before promotion to the old generation — shown as a stacked bar chart (one bar per collection, one stacked segment per survivor age) and a detailed per-collection table, plus reference-processing totals (<code>jdk.GCReferenceStatistics</code>). A tall, top-heavy stack signals premature promotion (survivor spaces too small); heavy reference counts explain long reference-processing phases.</p>
+
+      <h2 id="ihop">G1 IHOP &amp; CPU</h2>
+      <p>For the G1 collector: the adaptive IHOP threshold vs. current old-generation occupancy over time (<code>jdk.G1AdaptiveIHOP</code>) — when the occupancy line crosses the threshold, a concurrent marking cycle starts — plus per-collection CPU cost (user/system/real) from <code>jdk.GCCPUTime</code> and pause-target adherence (MMU) from <code>jdk.G1MMU</code>, which flags collections whose GC time exceeded the configured pause target. This tab explains <em>why</em> concurrent cycles begin when they do and whether G1 is hitting its pause goal.</p>
 
       <h2 id="pause-types">Pause Types Reference</h2>
       <p>A searchable, category-filterable reference for every GC cause the JVM may emit. Use the search input to filter by cause name, or click the category chips to narrow to a single group:</p>

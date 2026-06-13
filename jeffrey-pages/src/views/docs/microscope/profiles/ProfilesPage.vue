@@ -126,7 +126,37 @@ const folderStructure = `$JEFFREY_HOME/
         <DocsFeatureCard
           icon="bi bi-lightning"
           title="JIT Compilation"
-          description="Method compilation activity, deoptimizations, code cache usage, and optimization levels."
+          description="Method compilation activity, deoptimizations, compiler queue backlog, code cache occupancy with code-cache-full alerts, and optimization levels."
+        />
+        <DocsFeatureCard
+          icon="bi bi-box-seam"
+          title="Class Loading"
+          description="Loaded vs. unloaded classes over time, per-class-loader metaspace footprint and hidden classes, slowest class loads, and bytecode-instrumentation activity — see the class-loading analysis page."
+        />
+        <DocsFeatureCard
+          icon="bi bi-exclamation-octagon"
+          title="Exceptions"
+          description="Exception creation rate over time, top thrown classes with sample messages, and Error throws — spot exception storms and exceptions used as control flow."
+        />
+        <DocsFeatureCard
+          icon="bi bi-memory"
+          title="Native Memory"
+          description="Resident set size vs. heap usage, direct buffer growth, and loaded native libraries — investigate off-heap memory and container OOM kills."
+        />
+        <DocsFeatureCard
+          icon="bi bi-pie-chart"
+          title="Native Memory Tracking"
+          description="The JVM's own native-memory accounting — reserved vs committed per category (Thread, Class, Code, GC), category growth for leak detection, and an RSS-vs-tracked gap view."
+        />
+        <DocsFeatureCard
+          icon="bi bi-box"
+          title="Allocations"
+          description="Allocation rate over time, in-TLAB vs outside-TLAB split, and the top allocated types driving GC pressure."
+        />
+        <DocsFeatureCard
+          icon="bi bi-bug"
+          title="Memory Leak Candidates"
+          description="Long-lived objects flagged by JFR's old-object sampler — leaked class, size, age, and heap usage at sample time."
         />
         <DocsFeatureCard
           icon="bi bi-speedometer2"
@@ -138,12 +168,41 @@ const folderStructure = `$JEFFREY_HOME/
           title="Container Configuration"
           description="Container resource limits and settings — CPU quotas, memory limits, and cgroup configuration for containerized deployments."
         />
+        <DocsFeatureCard
+          icon="bi bi-cpu"
+          title="System & Host"
+          description="JVM vs. machine CPU, network utilization, context switches, and competing host processes — decide whether the problem is your JVM or the box."
+        />
+        <DocsFeatureCard
+          icon="bi bi-stopwatch"
+          title="VM Operations"
+          description="JVM-internal stop-the-world activity beyond GC — VM operations and safepoints, with a catalog of operation types and time-to-safepoint."
+        />
+        <DocsFeatureCard
+          icon="bi bi-lock"
+          title="Blocking Operations"
+          description="Where application threads block — lock contention by monitor class, Object.wait(), thread parks, sleeps, and virtual-thread pinning."
+        />
+        <DocsFeatureCard
+          icon="bi bi-ethernet"
+          title="Socket I/O"
+          description="Blocking network I/O — read/write throughput over time, the slowest operations, and the busiest peers (host:port)."
+        />
+        <DocsFeatureCard
+          icon="bi bi-file-earmark"
+          title="File I/O"
+          description="Blocking file I/O — read/write throughput, the slowest operations, and the busiest files and directories."
+        />
       </div>
 
       <p class="docs-read-more">
         <router-link to="/docs/microscope/profiles/guardian">Read the Guardian reference &rarr;</router-link>
         &nbsp;·&nbsp;
         <router-link to="/docs/microscope/profiles/garbage-collection">Read the GC analysis reference &rarr;</router-link>
+        &nbsp;·&nbsp;
+        <router-link to="/docs/microscope/profiles/class-loading">Read the class-loading reference &rarr;</router-link>
+        &nbsp;·&nbsp;
+        <router-link to="/docs/microscope/profiles/exceptions">Read the exceptions reference &rarr;</router-link>
       </p>
 
       <h2 id="technologies">Technologies</h2>
