@@ -27,6 +27,12 @@ import cafe.jeffrey.profile.manager.builder.CPULoadBuilder;
 import cafe.jeffrey.profile.manager.builder.ThreadTimeseriesBuilder;
 import cafe.jeffrey.profile.manager.model.thread.ThreadCpuLoads;
 import cafe.jeffrey.profile.manager.model.thread.ThreadStats;
+import cafe.jeffrey.profile.manager.model.thread.dump.ParsedDump;
+import cafe.jeffrey.profile.manager.model.thread.dump.RawDump;
+import cafe.jeffrey.profile.manager.model.thread.dump.ThreadDumpAnalysis;
+import cafe.jeffrey.profile.manager.model.thread.dump.ThreadDumpAnalyzer;
+import cafe.jeffrey.profile.manager.model.thread.dump.ThreadDumpBuilder;
+import cafe.jeffrey.profile.manager.model.thread.dump.ThreadDumpParser;
 import cafe.jeffrey.profile.thread.ThreadInfoProvider;
 import cafe.jeffrey.profile.thread.ThreadRoot;
 import cafe.jeffrey.provider.profile.api.EventQueryConfigurer;
@@ -41,6 +47,8 @@ import java.util.List;
 import java.util.Optional;
 
 public class ThreadManagerImpl implements ThreadManager {
+
+    private static final int MAX_THREAD_DUMPS = 200;
 
     private final ProfileInfo profileInfo;
     private final ProfileEventRepository eventRepository;
@@ -133,5 +141,29 @@ public class ThreadManagerImpl implements ThreadManager {
     @Override
     public ThreadRoot threadRows() {
         return threadInfoProvider.get();
+    }
+
+    @Override
+    public ThreadDumpAnalysis threadDumpAnalysis() {
+        RelativeTimeRange timeRange = new RelativeTimeRange(profileInfo.profilingStartEnd());
+        return ThreadDumpAnalyzer.analyze(rawDumps(), timeRange);
+    }
+
+    @Override
+    public ParsedDump threadDump(int index) {
+        List<RawDump> dumps = rawDumps();
+        if (index < 0 || index >= dumps.size()) {
+            return new ParsedDump(0, List.of(), List.of(), "");
+        }
+        RawDump raw = dumps.get(index);
+        return ThreadDumpParser.parse(raw.timeOffsetMillis(), raw.text());
+    }
+
+    private List<RawDump> rawDumps() {
+        EventQueryConfigurer configurer = new EventQueryConfigurer()
+                .withEventType(Type.THREAD_DUMP)
+                .withJsonFields()
+                .orderedByTime();
+        return eventStreamRepository.genericStreaming(configurer, new ThreadDumpBuilder(MAX_THREAD_DUMPS));
     }
 }

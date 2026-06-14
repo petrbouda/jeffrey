@@ -22,6 +22,8 @@ import cafe.jeffrey.shared.common.model.ProfileInfo;
 import cafe.jeffrey.shared.common.model.Type;
 import cafe.jeffrey.profile.manager.model.thread.ThreadCpuLoads;
 import cafe.jeffrey.profile.manager.model.thread.ThreadStats;
+import cafe.jeffrey.profile.manager.model.thread.dump.ParsedDump;
+import cafe.jeffrey.profile.manager.model.thread.dump.ThreadDumpAnalysis;
 import cafe.jeffrey.profile.thread.ThreadRoot;
 import cafe.jeffrey.provider.profile.api.AllocatingThread;
 import cafe.jeffrey.timeseries.SingleSerie;
@@ -46,4 +48,17 @@ public interface ThreadManager {
     ThreadCpuLoads threadCpuLoads(int limit);
 
     ThreadRoot threadRows();
+
+    /**
+     * Cross-dump analysis of all {@code jdk.ThreadDump} occurrences (state timeline, top frames,
+     * deadlocks, lock contention, stuck threads, heatmap). Excludes per-thread stacks — fetch those
+     * per dump via {@link #threadDump(int)}.
+     */
+    ThreadDumpAnalysis threadDumpAnalysis();
+
+    /**
+     * The fully parsed thread dump at {@code index} (its threads + stacks + raw text), for the dump
+     * viewer. Returns an empty dump when the index is out of range.
+     */
+    ParsedDump threadDump(int index);
 }

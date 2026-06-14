@@ -119,6 +119,11 @@ const folderStructure = `$JEFFREY_HOME/
           description="Per-thread CPU time, allocations, and state distribution. Visual timeline of thread activity to spot synchronization issues."
         />
         <DocsFeatureCard
+          icon="bi bi-file-earmark-text"
+          title="Thread Dumps"
+          description="Parses periodic jstack-style jdk.ThreadDump snapshots into a thread-state timeline, hot-frame activity, deadlock detection, lock contention, stuck-thread detection, and a per-thread state heatmap — see the thread dumps reference page."
+        />
+        <DocsFeatureCard
           icon="bi bi-bar-chart-line"
           title="Memory & Garbage Collection"
           description="Pause distribution, throughput / overhead, longest-pause table with cause attribution, concurrent cycles, and a searchable reference for every GC pause type — plus collector-specific G1 and ZGC deep-dive pages."

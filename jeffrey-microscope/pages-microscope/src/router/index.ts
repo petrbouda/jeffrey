@@ -104,6 +104,12 @@ const profileChildRoutes = [
     meta: { layout: 'profile' }
   },
   {
+    path: 'thread-dumps',
+    name: 'profile-thread-dumps',
+    component: () => import('@/views/profiles/detail/ProfileThreadDumps.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
     path: 'jit-compilation',
     name: 'profile-jit-compilation',
     component: () => import('@/views/profiles/detail/ProfileJitCompilation.vue'),
