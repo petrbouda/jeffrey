@@ -52,6 +52,8 @@ class GuardRegistryTest {
     void entryCountsPerGroup_matchPreRefactorCandidateGuardsSizes() {
         assertEquals(25, GuardRegistry.instantiateFor(GroupKind.EXECUTION_SAMPLE, PROFILE_INFO, PROPS).size(),
                 "ExecutionSampleGuardianGroup used to return 25 guards");
+        assertEquals(25, GuardRegistry.instantiateFor(GroupKind.CPU_TIME_SAMPLE, PROFILE_INFO, PROPS).size(),
+                "CpuTimeSampleGuardianGroup mirrors the 25 Execution Sample guards");
         assertEquals(8, GuardRegistry.instantiateFor(GroupKind.ALLOCATION, PROFILE_INFO, PROPS).size(),
                 "AllocationGuardianGroup used to return 8 guards");
         assertEquals(9, GuardRegistry.instantiateFor(GroupKind.WALL_CLOCK, PROFILE_INFO, PROPS).size(),

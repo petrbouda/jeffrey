@@ -71,10 +71,11 @@ jeffrey.microscope.guardian.min-samples-execution=5000`;
 
       <h2 id="overview">Overview</h2>
 
-      <p>Every rule falls into one of four execution groups plus a prerequisites row and a handful of metadata-latency checks:</p>
+      <p>Every rule falls into one of five execution groups plus a prerequisites row and a handful of metadata-latency checks:</p>
 
       <ul>
         <li><strong>Execution Sample</strong> — CPU-time ratios from <code>jdk.ExecutionSample</code> (Logback CPU, Regex, Reflection, JIT, Safepoint, VM Operation, per-GC, …).</li>
+        <li><strong>CPU Time Sample</strong> — the same CPU-overhead rules applied to the JDK 25 CPU-time profiler (<code>jdk.CPUTimeSample</code>); shown when the recording uses CPU-time profiling.</li>
         <li><strong>Allocation</strong> — byte-weight ratios from <code>jdk.ObjectAllocation*</code> (Logback Alloc, Exception Alloc, Boxing, Collection, TLAB Waste, …).</li>
         <li><strong>Wall Clock</strong> — wall-time ratios from <code>profiler.WallClockSample</code> (Reflection Wall-Clock, Class Loading Wall-Clock, Thread Sync Wall-Clock, …).</li>
         <li><strong>Blocking</strong> — duration-weight ratios from <code>jdk.JavaMonitorEnter</code>, <code>jdk.ThreadPark</code>, <code>jdk.ThreadSleep</code> (Lock Contention, I/O Blocking, DB Pool Blocking, HTTP Client, …).</li>
@@ -131,7 +132,7 @@ jeffrey.microscope.guardian.min-samples-execution=5000`;
           <tr>
             <td><strong>Event Coverage</strong></td>
             <td>Event type summaries</td>
-            <td>How many of the four Guardian event groups (CPU / Allocation / Wall-Clock / Blocking) are present. Fewer groups → narrower coverage, more N/A rules.</td>
+            <td>How many of the Guardian event groups (CPU / CPU-Time / Allocation / Wall-Clock / Blocking) are present. Fewer groups → narrower coverage, more N/A rules.</td>
           </tr>
           <tr>
             <td><strong>Debug Symbols</strong></td>

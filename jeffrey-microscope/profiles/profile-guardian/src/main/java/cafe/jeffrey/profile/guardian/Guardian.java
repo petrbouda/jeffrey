@@ -38,6 +38,7 @@ import cafe.jeffrey.profile.guardian.metadata.VirtualThreadPinningEvaluator;
 import cafe.jeffrey.profile.guardian.prereq.PrerequisitesEvaluator;
 import cafe.jeffrey.profile.guardian.type.AllocationGuardianGroup;
 import cafe.jeffrey.profile.guardian.type.BlockingGuardianGroup;
+import cafe.jeffrey.profile.guardian.type.CpuTimeSampleGuardianGroup;
 import cafe.jeffrey.profile.guardian.type.ExecutionSampleGuardianGroup;
 import cafe.jeffrey.profile.guardian.type.GuardianGroup;
 import cafe.jeffrey.profile.guardian.type.WallClockGuardianGroup;
@@ -91,6 +92,7 @@ public class Guardian {
 
         List<GuardianGroup> groups = List.of(
                 new ExecutionSampleGuardianGroup(profileInfo, eventStreamRepository, activeSettings, props),
+                new CpuTimeSampleGuardianGroup(profileInfo, eventStreamRepository, activeSettings, props),
                 new AllocationGuardianGroup(profileInfo, eventStreamRepository, activeSettings, props),
                 new WallClockGuardianGroup(profileInfo, eventStreamRepository, activeSettings, props),
                 new BlockingGuardianGroup(profileInfo, eventStreamRepository, activeSettings, props)
