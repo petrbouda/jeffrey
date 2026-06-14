@@ -147,7 +147,8 @@ public class ProfileFactoriesConfiguration {
             AllocationManager.Factory allocationFactory,
             LeakCandidatesManager.Factory leakCandidatesFactory,
             SecurityManager.Factory securityFactory,
-            SpanManager.Factory spanFactory) {
+            SpanManager.Factory spanFactory,
+            StwTimelineManager.Factory stwTimelineFactory) {
 
         return new JvmInsightFactories(
                 gcFactory,
@@ -169,7 +170,8 @@ public class ProfileFactoriesConfiguration {
                 allocationFactory,
                 leakCandidatesFactory,
                 securityFactory,
-                spanFactory);
+                spanFactory,
+                stwTimelineFactory);
     }
 
     /**
@@ -515,6 +517,17 @@ public class ProfileFactoriesConfiguration {
             return new GarbageCollectionManagerImpl(
                     profileInfo,
                     profileRepositories.newEventRepository(profileDb),
+                    profileRepositories.newEventStreamRepository(profileDb));
+        };
+    }
+
+    @Bean
+    public StwTimelineManager.Factory stwTimelineManagerFactory() {
+
+        return profileInfo -> {
+            DataSource profileDb = databaseManagerResolver.open(profileInfo);
+            return new StwTimelineManagerImpl(
+                    profileInfo,
                     profileRepositories.newEventStreamRepository(profileDb));
         };
     }
