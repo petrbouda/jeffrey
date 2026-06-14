@@ -20,6 +20,7 @@ package cafe.jeffrey.profile.manager.model.gc.tables;
 
 import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap;
 import tools.jackson.databind.node.ObjectNode;
+import cafe.jeffrey.profile.manager.model.gc.tables.StringSymbolTablesData.Deduplication;
 import cafe.jeffrey.profile.manager.model.gc.tables.StringSymbolTablesData.Header;
 import cafe.jeffrey.provider.profile.api.GenericRecord;
 import cafe.jeffrey.provider.profile.api.RecordBuilder;
@@ -88,7 +89,8 @@ public class StringSymbolTablesBuilder implements RecordBuilder<GenericRecord, S
         return new StringSymbolTablesData(
                 new Header(peakStringEntries, peakStringFootprint, peakSymbolEntries, peakSymbolFootprint),
                 new TimeseriesData(carried(STRING_TABLE_SERIES, stringEntries), carried(SYMBOL_TABLE_SERIES, symbolEntries)),
-                new TimeseriesData(carried(STRING_TABLE_SERIES, stringFootprint), carried(SYMBOL_TABLE_SERIES, symbolFootprint)));
+                new TimeseriesData(carried(STRING_TABLE_SERIES, stringFootprint), carried(SYMBOL_TABLE_SERIES, symbolFootprint)),
+                Deduplication.empty());
     }
 
     private static SingleSerie carried(String name, LongLongHashMap values) {

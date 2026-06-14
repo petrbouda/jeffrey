@@ -71,6 +71,7 @@ public abstract class EventTypeName {
     public static final String STRING_TABLE_STATISTICS = "jdk.StringTableStatistics";
     public static final String SYMBOL_TABLE_STATISTICS = "jdk.SymbolTableStatistics";
     public static final String FINALIZER_STATISTICS = "jdk.FinalizerStatistics";
+    public static final String STRING_DEDUPLICATION = "jdk.StringDeduplication";
 
     // G1 deep-dive events
     public static final String G1_HEAP_REGION_INFORMATION = "jdk.G1HeapRegionInformation";

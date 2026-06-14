@@ -35,6 +35,7 @@ import cafe.jeffrey.profile.manager.model.gc.g1.G1AnalysisBuilder;
 import cafe.jeffrey.profile.manager.model.gc.g1.G1AnalysisData;
 import cafe.jeffrey.profile.manager.model.gc.finalizer.FinalizerStatsBuilder;
 import cafe.jeffrey.profile.manager.model.gc.finalizer.FinalizersData;
+import cafe.jeffrey.profile.manager.model.gc.tables.StringDeduplicationBuilder;
 import cafe.jeffrey.profile.manager.model.gc.tables.StringSymbolTablesBuilder;
 import cafe.jeffrey.profile.manager.model.gc.tables.StringSymbolTablesData;
 import cafe.jeffrey.profile.manager.model.gc.tuning.G1MmuBuilder;
@@ -279,7 +280,17 @@ public class GarbageCollectionManagerImpl implements GarbageCollectionManager {
                 .withEventTypes(List.of(Type.STRING_TABLE_STATISTICS, Type.SYMBOL_TABLE_STATISTICS))
                 .withJsonFields();
 
-        return eventStreamRepository.genericStreaming(configurer, new StringSymbolTablesBuilder(timeRange));
+        StringSymbolTablesData tables =
+                eventStreamRepository.genericStreaming(configurer, new StringSymbolTablesBuilder(timeRange));
+
+        EventQueryConfigurer dedupConfigurer = new EventQueryConfigurer()
+                .withEventType(Type.STRING_DEDUPLICATION)
+                .withJsonFields();
+
+        StringSymbolTablesData.Deduplication deduplication =
+                eventStreamRepository.genericStreaming(dedupConfigurer, new StringDeduplicationBuilder(timeRange));
+
+        return tables.withDeduplication(deduplication);
     }
 
     @Override

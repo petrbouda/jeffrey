@@ -25,10 +25,20 @@ export interface StringSymbolTablesHeader {
   peakSymbolFootprint: number;
 }
 
+export interface StringDeduplicationData {
+  cycles: number;
+  totalInspected: number;
+  totalDeduplicated: number;
+  totalNewStrings: number;
+  totalBytesSaved: number;
+  timeline: TimeseriesData;
+}
+
 export interface StringSymbolTablesData {
   header: StringSymbolTablesHeader;
   entries: TimeseriesData;
   footprint: TimeseriesData;
+  deduplication: StringDeduplicationData;
 }
 
 export interface FinalizersHeader {

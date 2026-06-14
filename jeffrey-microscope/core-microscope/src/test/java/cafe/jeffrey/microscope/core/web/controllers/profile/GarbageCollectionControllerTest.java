@@ -94,7 +94,8 @@ class GarbageCollectionControllerTest {
         when(resolver.resolve("p-1")).thenReturn(profileManager);
         when(profileManager.gcManager()).thenReturn(gcManager);
         when(gcManager.stringSymbolTables()).thenReturn(new StringSymbolTablesData(
-                new StringSymbolTablesData.Header(0, 0, 0, 0), TimeseriesData.empty(), TimeseriesData.empty()));
+                new StringSymbolTablesData.Header(0, 0, 0, 0), TimeseriesData.empty(), TimeseriesData.empty(),
+                new StringSymbolTablesData.Deduplication(0, 0, 0, 0, 0, TimeseriesData.empty())));
 
         MockMvcTester mvc = mockMvcTesterFor(new GarbageCollectionController(resolver));
 
@@ -125,6 +126,7 @@ class GarbageCollectionControllerTest {
                 new ZgcHeader(0, 0, 0, 0, 0, 0, 0),
                 TimeseriesData.empty(), List.of(), List.of(), List.of(),
                 TimeseriesData.empty(), List.of(), List.of());
+    }
 
     @Test
     void profileNotFoundReturns404() {

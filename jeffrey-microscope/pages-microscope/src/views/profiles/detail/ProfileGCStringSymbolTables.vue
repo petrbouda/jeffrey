@@ -64,6 +64,33 @@
         />
       </div>
 
+      <!-- Deduplication -->
+      <div v-show="activeTab === 'deduplication'">
+        <ChartDescription
+          shows="String-deduplication activity per second: strings deduplicated and heap bytes reclaimed"
+          use-case="String deduplication (G1/Shenandoah, -XX:+UseStringDeduplication) collapses duplicate char[] backing arrays; the bytes-saved line quantifies the heap it reclaims"
+        />
+        <TimeSeriesChart
+          v-if="hasDeduplication"
+          :primary-data="dedupCount"
+          :secondary-data="dedupBytes"
+          primary-title="Deduplicated"
+          secondary-title="Bytes Saved"
+          :primary-axis-type="AxisFormatType.NUMBER"
+          :secondary-axis-type="AxisFormatType.BYTES"
+          :independent-secondary-axis="true"
+          :visible-minutes="60"
+          primary-color="#34A853"
+          secondary-color="#4285F4"
+        />
+        <EmptyState
+          v-else
+          icon="bi-recycle"
+          title="String deduplication is disabled"
+          description="No jdk.StringDeduplication events were recorded. Enable it with -XX:+UseStringDeduplication (G1 or Shenandoah)."
+        />
+      </div>
+
       <!-- About -->
       <div v-show="activeTab === 'about'">
         <ConfigurationSection title="How String & Symbol Tables Work" icon="bi-info-circle">
@@ -109,6 +136,7 @@ const data = ref<StringSymbolTablesData>();
 const tabs = [
   { id: 'entries', label: 'Entries', icon: 'list-ol' },
   { id: 'footprint', label: 'Footprint', icon: 'hdd' },
+  { id: 'deduplication', label: 'Deduplication', icon: 'recycle' },
   { id: 'about', label: 'About', icon: 'info-circle' }
 ];
 const activeTab = ref(tabs[0].id);
@@ -125,6 +153,10 @@ const stringEntries = computed(() => data.value?.entries.series?.[0]?.data ?? []
 const symbolEntries = computed(() => data.value?.entries.series?.[1]?.data ?? []);
 const stringFootprint = computed(() => data.value?.footprint.series?.[0]?.data ?? []);
 const symbolFootprint = computed(() => data.value?.footprint.series?.[1]?.data ?? []);
+
+const hasDeduplication = computed(() => (data.value?.deduplication?.cycles ?? 0) > 0);
+const dedupCount = computed(() => data.value?.deduplication?.timeline.series?.[0]?.data ?? []);
+const dedupBytes = computed(() => data.value?.deduplication?.timeline.series?.[1]?.data ?? []);
 
 const metrics = computed(() => {
   const h = data.value?.header;

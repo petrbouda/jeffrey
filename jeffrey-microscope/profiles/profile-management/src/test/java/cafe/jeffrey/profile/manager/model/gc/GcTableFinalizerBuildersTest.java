@@ -24,6 +24,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import cafe.jeffrey.profile.manager.model.gc.finalizer.FinalizerStatsBuilder;
 import cafe.jeffrey.profile.manager.model.gc.finalizer.FinalizersData;
+import cafe.jeffrey.profile.manager.model.gc.tables.StringDeduplicationBuilder;
 import cafe.jeffrey.profile.manager.model.gc.tables.StringSymbolTablesBuilder;
 import cafe.jeffrey.profile.manager.model.gc.tables.StringSymbolTablesData;
 import cafe.jeffrey.provider.profile.api.GenericRecord;
@@ -80,6 +81,38 @@ class GcTableFinalizerBuildersTest {
             ObjectNode node = Json.createObject();
             node.put("entryCount", entryCount);
             node.put("totalFootprint", totalFootprint);
+            return node;
+        }
+    }
+
+    @Nested
+    @DisplayName("StringDeduplicationBuilder")
+    class Deduplication {
+
+        @Test
+        @DisplayName("Sums cycle totals and builds the activity timeline")
+        void sumsCycles() {
+            StringDeduplicationBuilder builder = new StringDeduplicationBuilder(new RelativeTimeRange(0, 10_000));
+            builder.onRecord(rec(Type.STRING_DEDUPLICATION, 1, dedupFields(1000, 200, 800, 4096)));
+            builder.onRecord(rec(Type.STRING_DEDUPLICATION, 2, dedupFields(500, 100, 400, 2048)));
+
+            StringSymbolTablesData.Deduplication data = builder.build();
+
+            assertEquals(2, data.cycles());
+            assertEquals(1500, data.totalInspected());
+            assertEquals(300, data.totalDeduplicated());
+            assertEquals(1200, data.totalNewStrings());
+            assertEquals(6144, data.totalBytesSaved());
+            assertEquals("Deduplicated", data.timeline().series().getFirst().name());
+            assertEquals("Bytes Saved", data.timeline().series().get(1).name());
+        }
+
+        private ObjectNode dedupFields(long inspected, long deduplicated, long newStrings, long deduplicatedSize) {
+            ObjectNode node = Json.createObject();
+            node.put("inspected", inspected);
+            node.put("deduplicated", deduplicated);
+            node.put("newStrings", newStrings);
+            node.put("deduplicatedSize", deduplicatedSize);
             return node;
         }
     }
