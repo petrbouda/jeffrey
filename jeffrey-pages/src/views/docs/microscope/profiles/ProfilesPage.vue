@@ -121,7 +121,7 @@ const folderStructure = `$JEFFREY_HOME/
         <DocsFeatureCard
           icon="bi bi-bar-chart-line"
           title="Memory & Garbage Collection"
-          description="Pause distribution, throughput / overhead, longest-pause table with cause attribution, concurrent cycles, and a searchable reference for every GC pause type — see the GC analysis page."
+          description="Pause distribution, throughput / overhead, longest-pause table with cause attribution, concurrent cycles, and a searchable reference for every GC pause type — plus collector-specific G1 and ZGC deep-dive pages."
         />
         <DocsFeatureCard
           icon="bi bi-lightning"
@@ -199,6 +199,10 @@ const folderStructure = `$JEFFREY_HOME/
         <router-link to="/docs/microscope/profiles/guardian">Read the Guardian reference &rarr;</router-link>
         &nbsp;·&nbsp;
         <router-link to="/docs/microscope/profiles/garbage-collection">Read the GC analysis reference &rarr;</router-link>
+        &nbsp;·&nbsp;
+        <router-link to="/docs/microscope/profiles/garbage-collection/g1">Read the G1 analysis reference &rarr;</router-link>
+        &nbsp;·&nbsp;
+        <router-link to="/docs/microscope/profiles/garbage-collection/zgc">Read the ZGC analysis reference &rarr;</router-link>
         &nbsp;·&nbsp;
         <router-link to="/docs/microscope/profiles/class-loading">Read the class-loading reference &rarr;</router-link>
         &nbsp;·&nbsp;

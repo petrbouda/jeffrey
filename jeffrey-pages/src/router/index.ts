@@ -208,6 +208,16 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/docs/microscope/profiles/ProfileGarbageCollectionPage.vue')
       },
       {
+        path: 'microscope/profiles/garbage-collection/g1',
+        name: 'DocsProfilesG1Analysis',
+        component: () => import('@/views/docs/microscope/profiles/ProfileG1AnalysisPage.vue')
+      },
+      {
+        path: 'microscope/profiles/garbage-collection/zgc',
+        name: 'DocsProfilesZgcAnalysis',
+        component: () => import('@/views/docs/microscope/profiles/ProfileZgcAnalysisPage.vue')
+      },
+      {
         path: 'microscope/profiles/class-loading',
         name: 'DocsProfilesClassLoading',
         component: () => import('@/views/docs/microscope/profiles/ProfileClassLoadingPage.vue')
