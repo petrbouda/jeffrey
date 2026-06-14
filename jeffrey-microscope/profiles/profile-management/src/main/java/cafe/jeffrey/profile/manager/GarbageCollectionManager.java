@@ -20,6 +20,7 @@ package cafe.jeffrey.profile.manager;
 
 import cafe.jeffrey.profile.common.event.GarbageCollectorType;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
+import cafe.jeffrey.profile.manager.model.gc.G1PlabStatistics;
 import cafe.jeffrey.profile.manager.model.gc.GCPhaseParallelAggregate;
 import cafe.jeffrey.profile.manager.model.gc.GCTimeseriesType;
 import cafe.jeffrey.profile.manager.model.gc.configuration.GCConfigurationData;
@@ -103,4 +104,12 @@ public interface GarbageCollectionManager {
      * (parallel-phase detail is off in many configs).
      */
     List<GCPhaseParallelAggregate> phaseParallel();
+
+    /**
+     * G1 PLAB (promotion-buffer) evacuation statistics, per young/old evacuation
+     * ({@code jdk.G1EvacuationYoungStatistics} / {@code jdk.G1EvacuationOldStatistics}) — allocated vs.
+     * wasted buffer bytes and waste %. Empty for non-G1 recordings or when the (Detailed-category)
+     * events are not enabled.
+     */
+    List<G1PlabStatistics> plabStatistics();
 }

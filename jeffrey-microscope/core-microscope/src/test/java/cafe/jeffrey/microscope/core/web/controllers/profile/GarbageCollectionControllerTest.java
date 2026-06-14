@@ -154,6 +154,17 @@ class GarbageCollectionControllerTest {
     }
 
     @Test
+    void getsPlabStatistics() {
+        when(resolver.resolve("p-1")).thenReturn(profileManager);
+        when(profileManager.gcManager()).thenReturn(gcManager);
+        when(gcManager.plabStatistics()).thenReturn(List.of());
+
+        MockMvcTester mvc = mockMvcTesterFor(new GarbageCollectionController(resolver));
+
+        assertThat(mvc.get().uri("/api/internal/profiles/p-1/gc/plab-statistics")).hasStatusOk();
+    }
+
+    @Test
     void profileNotFoundReturns404() {
         when(resolver.resolve("ghost")).thenThrow(Exceptions.profileNotFound("ghost"));
 

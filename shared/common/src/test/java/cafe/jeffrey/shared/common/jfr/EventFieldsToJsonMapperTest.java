@@ -46,6 +46,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -255,6 +256,53 @@ class EventFieldsToJsonMapperTest {
                 }
             }
             assertTrue(sawJavaBase, "Every module requires java.base, so it should appear as a flattened name");
+        }
+    }
+
+    @Nested
+    class G1EvacuationStatisticsStructFields {
+
+        @Test
+        void flattensG1EvacuationStatisticsStructToDottedNumericKeys() throws IOException {
+            // The G1 evacuation events only fire under the G1 collector; on other collectors no events
+            // are produced and the test skips at the assumeFalse below.
+            Path dumpFile = Files.createTempFile("g1-plab-mapper-test", ".jfr");
+            List<RecordedEvent> events;
+            List<EventType> eventTypes;
+            try (Recording recording = new Recording()) {
+                recording.enable("jdk.G1EvacuationYoungStatistics");
+                recording.enable("jdk.G1EvacuationOldStatistics");
+                recording.start();
+                // Allocate enough short-lived garbage to force at least one young collection.
+                List<byte[]> sink = new ArrayList<>();
+                for (int i = 0; i < 256; i++) {
+                    sink.add(new byte[1024 * 1024]);
+                    if (sink.size() > 8) {
+                        sink.clear();
+                    }
+                }
+                System.gc();
+                recording.stop();
+                recording.dump(dumpFile);
+            }
+            events = RecordingFile.readAllEvents(dumpFile);
+            eventTypes = events.stream().map(RecordedEvent::getEventType).distinct().toList();
+            Files.deleteIfExists(dumpFile);
+
+            List<RecordedEvent> evacuations = events.stream()
+                    .filter(e -> "jdk.G1EvacuationYoungStatistics".equals(e.getEventType().getName()))
+                    .toList();
+            assumeFalse(evacuations.isEmpty(), "No young evacuation occurred during the test run");
+
+            EventFieldsToJsonMapper mapper = new EventFieldsToJsonMapper();
+            mapper.update(eventTypes);
+
+            ObjectNode node = mapper.map(evacuations.getFirst());
+            // The nested struct must be flattened to dotted numeric keys, not a toString() blob.
+            assertTrue(node.has("statistics.allocated"), "expected flattened statistics.allocated key");
+            assertTrue(node.get("statistics.allocated").isNumber(), "statistics.allocated must be numeric");
+            assertTrue(node.has("statistics.gcId"), "expected flattened statistics.gcId key");
+            assertFalse(node.has("statistics"), "the raw struct field must not survive as a blob");
         }
     }
 

@@ -85,7 +85,6 @@ public abstract class EventTypeName {
     public static final String GC_PHASE_PAUSE_LEVEL_2 = "jdk.GCPhasePauseLevel2";
     public static final String GC_PHASE_PAUSE_LEVEL_3 = "jdk.GCPhasePauseLevel3";
     public static final String GC_PHASE_PAUSE_LEVEL_4 = "jdk.GCPhasePauseLevel4";
-    public static final String GC_PHASE_PARALLEL = "jdk.GCPhaseParallel";
     public static final String SYSTEM_GC = "jdk.SystemGC";
     public static final String GC_LOCKER = "jdk.GCLocker";
 
@@ -96,6 +95,10 @@ public abstract class EventTypeName {
     public static final String Z_RELOCATION_SET_GROUP = "jdk.ZRelocationSetGroup";
     public static final String Z_UNCOMMIT = "jdk.ZUncommit";
     public static final String Z_THREAD_PHASE = "jdk.ZThreadPhase";
+
+    // G1 PLAB / evacuation statistics
+    public static final String G1_EVACUATION_YOUNG_STATISTICS = "jdk.G1EvacuationYoungStatistics";
+    public static final String G1_EVACUATION_OLD_STATISTICS = "jdk.G1EvacuationOldStatistics";
 
     public static final String YOUNG_GENERATION_CONFIGURATION = "jdk.YoungGenerationConfiguration";
     public static final String COMPILER_CONFIGURATION = "jdk.CompilerConfiguration";

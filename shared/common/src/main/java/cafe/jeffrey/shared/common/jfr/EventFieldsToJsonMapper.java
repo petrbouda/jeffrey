@@ -60,6 +60,11 @@ public class EventFieldsToJsonMapper implements EventFieldsMapper {
     private static final String MODULE_TYPE_NAME = "jdk.types.Module";
     private static final String PACKAGE_TYPE_NAME = "jdk.types.Package";
     private static final String STRUCT_NAME_FIELD = "name";
+    private static final String G1_EVACUATION_STATISTICS_TYPE_NAME = "jdk.types.G1EvacuationStatistics";
+    private static final List<String> G1_EVACUATION_STAT_FIELDS = List.of(
+            "gcId", "allocated", "wasted", "used", "undoWaste", "regionEndWaste",
+            "regionsRefilled", "numPlabsFilled", "directAllocated", "numDirectAllocated",
+            "failureUsed", "failureWaste");
     private static final String BOOLEAN_TYPE_NAME = "boolean";
     private static final Set<String> INTEGRAL_TYPE_NAMES = Set.of("long", "int");
 
@@ -163,6 +168,10 @@ public class EventFieldsToJsonMapper implements EventFieldsMapper {
             // The JFR Module/Package structs would otherwise fall through to a verbose toString() dump.
             // Flatten each to its identifying name (the module/package name); absent for the unnamed module.
             return (event, node) -> node.put(name, structName(event.getValue(name)));
+        } else if (G1_EVACUATION_STATISTICS_TYPE_NAME.equals(typeName)) {
+            // The G1 PLAB statistics struct carries ~12 numeric sub-fields; flatten each to a dotted
+            // key (e.g. "statistics.allocated") instead of dumping the whole struct via toString().
+            return (event, node) -> flattenG1EvacuationStatistics(event.getValue(name), name, node);
         } else if (activeSettingEvent && ACTIVE_SETTING_ID_FIELD.equals(name)) {
             return (event, node) -> {
                 long eventId = event.getValue(name);
@@ -258,6 +267,23 @@ public class EventFieldsToJsonMapper implements EventFieldsMapper {
             return null;
         }
         return struct.getString(STRUCT_NAME_FIELD);
+    }
+
+    /**
+     * Flattens the JFR {@code jdk.types.G1EvacuationStatistics} struct (carried by
+     * {@code jdk.G1EvacuationYoungStatistics} / {@code jdk.G1EvacuationOldStatistics}) by lifting each of
+     * its numeric sub-fields to a dotted key under the parent field name, e.g.
+     * {@code statistics.allocated}. Absent when the struct is missing.
+     */
+    private static void flattenG1EvacuationStatistics(Object value, String fieldName, ObjectNode node) {
+        if (!(value instanceof RecordedObject struct)) {
+            return;
+        }
+        for (String subField : G1_EVACUATION_STAT_FIELDS) {
+            if (struct.hasField(subField)) {
+                node.put(fieldName + "." + subField, struct.getLong(subField));
+            }
+        }
     }
 
     /**

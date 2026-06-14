@@ -91,7 +91,6 @@ public record Type(String code, boolean calculated) {
     public static final Type GC_PHASE_PAUSE_LEVEL_2 = new Type(EventTypeName.GC_PHASE_PAUSE_LEVEL_2);
     public static final Type GC_PHASE_PAUSE_LEVEL_3 = new Type(EventTypeName.GC_PHASE_PAUSE_LEVEL_3);
     public static final Type GC_PHASE_PAUSE_LEVEL_4 = new Type(EventTypeName.GC_PHASE_PAUSE_LEVEL_4);
-    public static final Type GC_PHASE_PARALLEL = new Type(EventTypeName.GC_PHASE_PARALLEL);
     public static final Type SYSTEM_GC = new Type(EventTypeName.SYSTEM_GC);
     public static final Type GC_LOCKER = new Type(EventTypeName.GC_LOCKER);
 
@@ -108,6 +107,10 @@ public record Type(String code, boolean calculated) {
     public static final Type SYMBOL_TABLE_STATISTICS = new Type(EventTypeName.SYMBOL_TABLE_STATISTICS);
     public static final Type FINALIZER_STATISTICS = new Type(EventTypeName.FINALIZER_STATISTICS);
     public static final Type STRING_DEDUPLICATION = new Type(EventTypeName.STRING_DEDUPLICATION);
+
+    // G1 PLAB / evacuation statistics
+    public static final Type G1_EVACUATION_YOUNG_STATISTICS = new Type(EventTypeName.G1_EVACUATION_YOUNG_STATISTICS);
+    public static final Type G1_EVACUATION_OLD_STATISTICS = new Type(EventTypeName.G1_EVACUATION_OLD_STATISTICS);
     public static final Type YOUNG_GENERATION_CONFIGURATION = new Type(EventTypeName.YOUNG_GENERATION_CONFIGURATION);
     public static final Type COMPILER_CONFIGURATION = new Type(EventTypeName.COMPILER_CONFIGURATION);
     public static final Type JVM_INFORMATION = new Type(EventTypeName.JVM_INFORMATION);
@@ -288,7 +291,6 @@ public record Type(String code, boolean calculated) {
                 GC_PHASE_PAUSE_LEVEL_2,
                 GC_PHASE_PAUSE_LEVEL_3,
                 GC_PHASE_PAUSE_LEVEL_4,
-                GC_PHASE_PARALLEL,
                 SYSTEM_GC,
                 GC_LOCKER,
                 Z_ALLOCATION_STALL,
@@ -297,6 +299,8 @@ public record Type(String code, boolean calculated) {
                 Z_RELOCATION_SET_GROUP,
                 Z_UNCOMMIT,
                 Z_THREAD_PHASE,
+                G1_EVACUATION_YOUNG_STATISTICS,
+                G1_EVACUATION_OLD_STATISTICS,
                 YOUNG_GENERATION_CONFIGURATION,
                 COMPILER_CONFIGURATION,
                 JVM_INFORMATION,

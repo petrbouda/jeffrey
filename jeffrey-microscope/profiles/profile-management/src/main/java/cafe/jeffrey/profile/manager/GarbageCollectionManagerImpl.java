@@ -29,6 +29,8 @@ import cafe.jeffrey.profile.manager.builder.GCConfigurationEventBuilder;
 import cafe.jeffrey.profile.manager.builder.NonConcurrentGCOverviewEventBuilder;
 import cafe.jeffrey.profile.manager.model.gc.GCGenerationTimeseriesBuilder;
 import cafe.jeffrey.profile.manager.model.gc.GCOverviewData;
+import cafe.jeffrey.profile.manager.model.gc.G1PlabStatistics;
+import cafe.jeffrey.profile.manager.model.gc.G1PlabStatisticsBuilder;
 import cafe.jeffrey.profile.manager.model.gc.GCPhaseParallelAggregate;
 import cafe.jeffrey.profile.manager.model.gc.GCPhaseParallelBuilder;
 import cafe.jeffrey.profile.manager.model.gc.GCTimeseriesType;
@@ -319,5 +321,15 @@ public class GarbageCollectionManagerImpl implements GarbageCollectionManager {
                 .withEventType(Type.GC_PHASE_PARALLEL)
                 .withJsonFields();
         return eventStreamRepository.genericStreaming(configurer, new GCPhaseParallelBuilder());
+    }
+
+    @Override
+    public List<G1PlabStatistics> plabStatistics() {
+        EventQueryConfigurer configurer = new EventQueryConfigurer()
+                .withEventTypes(List.of(
+                        Type.G1_EVACUATION_YOUNG_STATISTICS,
+                        Type.G1_EVACUATION_OLD_STATISTICS))
+                .withJsonFields();
+        return eventStreamRepository.genericStreaming(configurer, new G1PlabStatisticsBuilder());
     }
 }

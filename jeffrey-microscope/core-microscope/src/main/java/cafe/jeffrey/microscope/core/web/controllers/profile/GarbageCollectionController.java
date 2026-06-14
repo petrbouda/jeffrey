@@ -27,6 +27,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
 import cafe.jeffrey.profile.manager.GarbageCollectionManager;
+import cafe.jeffrey.profile.manager.model.gc.G1PlabStatistics;
 import cafe.jeffrey.profile.manager.model.gc.GCOverviewData;
 import cafe.jeffrey.profile.manager.model.gc.GCPhaseParallelAggregate;
 import cafe.jeffrey.profile.manager.model.gc.GCTimeseriesType;
@@ -120,6 +121,12 @@ public class GarbageCollectionController {
     public List<GCPhaseParallelAggregate> phaseParallel(@PathVariable("profileId") String profileId) {
         LOG.debug("Fetching GC parallel sub-phase breakdown");
         return mgr(profileId).phaseParallel();
+    }
+
+    @GetMapping("/plab-statistics")
+    public List<G1PlabStatistics> plabStatistics(@PathVariable("profileId") String profileId) {
+        LOG.debug("Fetching G1 PLAB evacuation statistics");
+        return mgr(profileId).plabStatistics();
     }
 
     private GarbageCollectionManager mgr(String profileId) {

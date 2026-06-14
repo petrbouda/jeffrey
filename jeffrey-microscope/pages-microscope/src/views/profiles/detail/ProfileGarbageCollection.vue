@@ -526,6 +526,78 @@
       </DataTable>
     </div>
 
+    <div v-show="activeTab === 'plab'">
+      <ChartDescription
+        shows="G1 promotion-buffer (PLAB) evacuation statistics per young/old evacuation (jdk.G1EvacuationYoungStatistics, jdk.G1EvacuationOldStatistics) — bytes allocated for copying survivors vs. bytes wasted (alignment, refill, undo, evacuation failure), with a waste %."
+        use-case="High waste % means PLABs are poorly sized — tune -XX:*PLABSize / -XX:+ResizePLAB. Non-zero failure bytes indicate to-space exhaustion (evacuation failure), the usual cause of surprise Full GCs."
+      />
+      <EmptyState
+        v-if="!plabData || plabData.length === 0"
+        icon="bi-speedometer"
+        title="No G1 PLAB statistics"
+        description="This recording has no jdk.G1EvacuationYoungStatistics / jdk.G1EvacuationOldStatistics events — emitted only by the G1 collector, and in the JFR 'Detailed' category (off in most configs)."
+      />
+      <DataTable v-else>
+        <template #toolbar>
+          <TableToolbar v-model="plabView.query" search-placeholder="Filter by generation...">
+            <span class="toolbar-info">PLAB allocation &amp; waste</span>
+            <template #filters>
+              <Badge key-label="Evacuations" :value="plabView.matchCount" variant="secondary" size="s" borderless />
+            </template>
+          </TableToolbar>
+        </template>
+        <thead>
+          <tr>
+            <th>GC ID</th>
+            <th>Generation</th>
+            <th class="text-end">Allocated</th>
+            <th class="text-end">Used</th>
+            <th class="text-end">Wasted</th>
+            <th class="text-end">Waste %</th>
+            <th class="text-end">Direct Alloc</th>
+            <th class="text-end">Regions Refilled</th>
+            <th class="text-end">PLABs Filled</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="(row, index) in plabView.visible" :key="index">
+            <td>{{ row.gcId }}</td>
+            <td>
+              <Badge
+                :value="row.generation"
+                :variant="row.generation === 'Young' ? 'success' : 'warning'"
+                size="s"
+              />
+            </td>
+            <td class="text-end">{{ FormattingService.formatBytes(row.allocated) }}</td>
+            <td class="text-end">{{ FormattingService.formatBytes(row.used) }}</td>
+            <td class="text-end">{{ FormattingService.formatBytes(row.totalWasted) }}</td>
+            <td class="text-end">
+              <Badge
+                :value="row.wastePercent.toFixed(1) + '%'"
+                :variant="row.wastePercent > 20 ? 'danger' : 'secondary'"
+                size="s"
+                borderless
+              />
+            </td>
+            <td class="text-end">{{ FormattingService.formatBytes(row.directAllocated) }}</td>
+            <td class="text-end">{{ FormattingService.formatNumber(row.regionsRefilled) }}</td>
+            <td class="text-end">{{ FormattingService.formatNumber(row.numPlabsFilled) }}</td>
+          </tr>
+        </tbody>
+        <template #footer>
+          <TableShowMore
+            :shown="plabView.visible.length"
+            :match-count="plabView.matchCount"
+            :total="plabView.total"
+            :expanded="plabView.expanded"
+            :page-size="plabView.pageSize"
+            @toggle="plabView.toggle"
+          />
+        </template>
+      </DataTable>
+    </div>
+
     <div v-show="activeTab === 'pause-types'">
       <p class="pause-types-intro text-muted">
         Reference for every GC cause the JVM may emit via Java Flight Recorder. Filter by name or
@@ -805,6 +877,7 @@ import FeatureCard from '@/components/about/FeatureCard.vue';
 import AxisFormatType from '@/services/timeseries/AxisFormatType';
 import type { IhopData, TenuringData } from '@/services/api/model/GCTuningModels';
 import type GCPhaseParallelAggregate from '@/services/api/model/GCPhaseParallelAggregate';
+import type G1PlabStatistics from '@/services/api/model/G1PlabStatistics';
 import ProfileGCClient from '@/services/api/ProfileGCClient';
 import GCOverviewData from '@/services/api/model/GCOverviewData';
 import ConcurrentEvent from '@/services/api/model/ConcurrentEvent';
@@ -837,6 +910,7 @@ const gcTabs = [
   { id: 'tenuring', label: 'Promotion & Tenuring', icon: 'arrow-up-circle' },
   { id: 'ihop', label: 'G1 IHOP & CPU', icon: 'sliders' },
   { id: 'phase-parallel', label: 'Sub-Phases', icon: 'layers' },
+  { id: 'plab', label: 'G1 PLAB', icon: 'speedometer' },
   { id: 'pause-types', label: 'Pause Types', icon: 'info-circle' },
   { id: 'about', label: 'How It Works', icon: 'book' }
 ];
@@ -1204,6 +1278,7 @@ const createEfficiencyChart = async () => {
 const tenuringData = ref<TenuringData | null>(null);
 const ihopData = ref<IhopData | null>(null);
 const phaseParallelData = ref<GCPhaseParallelAggregate[] | null>(null);
+const plabData = ref<G1PlabStatistics[] | null>(null);
 
 const ihopThresholdSeries = computed<number[][]>(
   () => ihopData.value?.ihopTimeline?.series?.[0]?.data ?? []
@@ -1229,6 +1304,9 @@ const cpuTimesView = useTableView(() => ihopData.value?.cpuTimes ?? []);
 const mmuView = useTableView(() => ihopData.value?.mmu ?? []);
 const phaseParallelView = useTableView(() => phaseParallelData.value ?? [], {
   searchableText: phase => phase.name
+});
+const plabView = useTableView(() => plabData.value ?? [], {
+  searchableText: row => row.generation
 });
 const pauseTypesView = useTableView(() => filteredPauseTypes.value);
 
@@ -1340,6 +1418,20 @@ const loadPhaseParallelData = async () => {
   }
 };
 
+const loadPlabData = async () => {
+  if (plabData.value) {
+    return;
+  }
+  try {
+    if (!client) {
+      client = new ProfileGCClient(route.params.profileId as string);
+    }
+    plabData.value = await client.getPlabStatistics();
+  } catch (err) {
+    console.error('Error loading G1 PLAB statistics data:', err);
+  }
+};
+
 // Re-render the relevant chart when the user switches into a chart-backed tab.
 watch(activeTab, newId => {
   if (newId === 'distribution') {
@@ -1352,6 +1444,8 @@ watch(activeTab, newId => {
     loadIhopData();
   } else if (newId === 'phase-parallel') {
     loadPhaseParallelData();
+  } else if (newId === 'plab') {
+    loadPlabData();
   }
 });
 
