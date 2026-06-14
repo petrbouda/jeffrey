@@ -24,6 +24,8 @@ import cafe.jeffrey.profile.manager.model.gc.GCTimeseriesType;
 import cafe.jeffrey.profile.manager.model.gc.configuration.GCConfigurationData;
 import cafe.jeffrey.profile.manager.model.gc.GCOverviewData;
 import cafe.jeffrey.profile.manager.model.gc.g1.G1AnalysisData;
+import cafe.jeffrey.profile.manager.model.gc.finalizer.FinalizersData;
+import cafe.jeffrey.profile.manager.model.gc.tables.StringSymbolTablesData;
 import cafe.jeffrey.profile.manager.model.gc.tuning.IhopData;
 import cafe.jeffrey.profile.manager.model.gc.tuning.TenuringData;
 import cafe.jeffrey.profile.manager.model.gc.zgc.ZgcAnalysisData;
@@ -74,4 +76,16 @@ public interface GarbageCollectionManager {
      * empty result.
      */
     ZgcAnalysisData zgcAnalysis();
+
+    /**
+     * String/symbol intern-table footprint over time, from {@code jdk.StringTableStatistics} and
+     * {@code jdk.SymbolTableStatistics}. Surfaces interned-string leaks and symbol-table growth.
+     */
+    StringSymbolTablesData stringSymbolTables();
+
+    /**
+     * Per-class finalization statistics from {@code jdk.FinalizerStatistics}: peak pending
+     * finalizable objects and total finalizers run, ranked by pending objects.
+     */
+    FinalizersData finalizers();
 }

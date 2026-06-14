@@ -218,6 +218,16 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/docs/microscope/profiles/ProfileZgcAnalysisPage.vue')
       },
       {
+        path: 'microscope/profiles/garbage-collection/string-symbol-tables',
+        name: 'DocsProfilesStringSymbolTables',
+        component: () => import('@/views/docs/microscope/profiles/ProfileGCStringSymbolTablesPage.vue')
+      },
+      {
+        path: 'microscope/profiles/garbage-collection/finalizers',
+        name: 'DocsProfilesFinalizers',
+        component: () => import('@/views/docs/microscope/profiles/ProfileGCFinalizersPage.vue')
+      },
+      {
         path: 'microscope/profiles/class-loading',
         name: 'DocsProfilesClassLoading',
         component: () => import('@/views/docs/microscope/profiles/ProfileClassLoadingPage.vue')

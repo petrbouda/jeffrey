@@ -100,6 +100,12 @@ public record Type(String code, boolean calculated) {
     public static final Type Z_RELOCATION_SET_GROUP = new Type(EventTypeName.Z_RELOCATION_SET_GROUP);
     public static final Type Z_UNCOMMIT = new Type(EventTypeName.Z_UNCOMMIT);
     public static final Type Z_THREAD_PHASE = new Type(EventTypeName.Z_THREAD_PHASE);
+
+    // GC table & finalizer statistics
+    public static final Type STRING_TABLE_STATISTICS = new Type(EventTypeName.STRING_TABLE_STATISTICS);
+    public static final Type SYMBOL_TABLE_STATISTICS = new Type(EventTypeName.SYMBOL_TABLE_STATISTICS);
+    public static final Type FINALIZER_STATISTICS = new Type(EventTypeName.FINALIZER_STATISTICS);
+    public static final Type STRING_DEDUPLICATION = new Type(EventTypeName.STRING_DEDUPLICATION);
     public static final Type YOUNG_GENERATION_CONFIGURATION = new Type(EventTypeName.YOUNG_GENERATION_CONFIGURATION);
     public static final Type COMPILER_CONFIGURATION = new Type(EventTypeName.COMPILER_CONFIGURATION);
     public static final Type JVM_INFORMATION = new Type(EventTypeName.JVM_INFORMATION);
@@ -246,6 +252,10 @@ public record Type(String code, boolean calculated) {
                 TENURING_DISTRIBUTION,
                 GC_REFERENCE_STATISTICS,
                 GC_CPU_TIME,
+                STRING_TABLE_STATISTICS,
+                SYMBOL_TABLE_STATISTICS,
+                FINALIZER_STATISTICS,
+                STRING_DEDUPLICATION,
                 G1_ADAPTIVE_IHOP,
                 G1_BASIC_IHOP,
                 G1_MMU,

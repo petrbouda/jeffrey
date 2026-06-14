@@ -204,6 +204,10 @@ const folderStructure = `$JEFFREY_HOME/
         &nbsp;·&nbsp;
         <router-link to="/docs/microscope/profiles/garbage-collection/zgc">Read the ZGC analysis reference &rarr;</router-link>
         &nbsp;·&nbsp;
+        <router-link to="/docs/microscope/profiles/garbage-collection/string-symbol-tables">Read the String &amp; Symbol Tables reference &rarr;</router-link>
+        &nbsp;·&nbsp;
+        <router-link to="/docs/microscope/profiles/garbage-collection/finalizers">Read the Finalizers reference &rarr;</router-link>
+        &nbsp;·&nbsp;
         <router-link to="/docs/microscope/profiles/class-loading">Read the class-loading reference &rarr;</router-link>
         &nbsp;·&nbsp;
         <router-link to="/docs/microscope/profiles/jit-compilation">Read the JIT compilation reference &rarr;</router-link>

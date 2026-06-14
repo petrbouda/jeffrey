@@ -31,6 +31,8 @@ import cafe.jeffrey.profile.manager.model.gc.GCOverviewData;
 import cafe.jeffrey.profile.manager.model.gc.GCTimeseriesType;
 import cafe.jeffrey.profile.manager.model.gc.configuration.GCConfigurationData;
 import cafe.jeffrey.profile.manager.model.gc.g1.G1AnalysisData;
+import cafe.jeffrey.profile.manager.model.gc.finalizer.FinalizersData;
+import cafe.jeffrey.profile.manager.model.gc.tables.StringSymbolTablesData;
 import cafe.jeffrey.profile.manager.model.gc.tuning.IhopData;
 import cafe.jeffrey.profile.manager.model.gc.tuning.TenuringData;
 import cafe.jeffrey.profile.manager.model.gc.zgc.ZgcAnalysisData;
@@ -90,6 +92,18 @@ public class GarbageCollectionController {
     public ZgcAnalysisData zgcAnalysis(@PathVariable("profileId") String profileId) {
         LOG.debug("Fetching ZGC deep-dive analysis");
         return mgr(profileId).zgcAnalysis();
+    }
+
+    @GetMapping("/string-symbol-tables")
+    public StringSymbolTablesData stringSymbolTables(@PathVariable("profileId") String profileId) {
+        LOG.debug("Fetching GC string/symbol table statistics");
+        return mgr(profileId).stringSymbolTables();
+    }
+
+    @GetMapping("/finalizers")
+    public FinalizersData finalizers(@PathVariable("profileId") String profileId) {
+        LOG.debug("Fetching GC finalizer statistics");
+        return mgr(profileId).finalizers();
     }
 
     private GarbageCollectionManager mgr(String profileId) {

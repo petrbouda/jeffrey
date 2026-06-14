@@ -158,6 +158,18 @@ const profileChildRoutes = [
     meta: { layout: 'profile' }
   },
   {
+    path: 'garbage-collection/string-symbol-tables',
+    name: 'profile-garbage-collection-string-symbol-tables',
+    component: () => import('@/views/profiles/detail/ProfileGCStringSymbolTables.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
+    path: 'garbage-collection/finalizers',
+    name: 'profile-garbage-collection-finalizers',
+    component: () => import('@/views/profiles/detail/ProfileGCFinalizers.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
     path: 'class-loading',
     name: 'profile-class-loading',
     component: () => import('@/views/profiles/detail/ProfileClassLoading.vue'),
