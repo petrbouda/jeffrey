@@ -46,6 +46,34 @@
       @view="emit('view', $event)"
     />
 
+    <!-- CPU-Time Sample Events -->
+    <FlamegraphCard
+      v-for="(event, index) in displayCpuTimeSampleEvents"
+      :key="'cpu-' + index"
+      title="CPU-Time Samples"
+      color="blue"
+      icon="bi-cpu"
+      :thread-mode-opt="isPrimary"
+      :thread-mode-selected="false"
+      :weight-desc="null"
+      :weight-opt="false"
+      :weight-selected="false"
+      :weight-formatter="FormattingService.formatDuration2Units"
+      :exclude-non-java-samples-opt="false"
+      :exclude-non-java-samples-selected="false"
+      :exclude-idle-samples-opt="false"
+      :exclude-idle-samples-selected="false"
+      :only-unsafe-allocation-samples-opt="false"
+      :only-unsafe-allocation-samples-selected="false"
+      :graph-mode="graphMode"
+      :event="event"
+      :enabled="event.primary.samples > 0"
+      :route-name="routeName"
+      :button-text="buttonText"
+      :emit-view="emitView"
+      @view="emit('view', $event)"
+    />
+
     <!-- Method Trace Events -->
     <FlamegraphCard
       v-if="showMethodEvents"
@@ -232,6 +260,7 @@ import EventSummaryDetail from '@/services/api/model/EventSummaryDetail';
 interface Props {
   graphMode: string;
   executionSampleEvents: EventSummary[];
+  cpuTimeSampleEvents?: EventSummary[];
   methodTraceEvents: EventSummary[];
   objectAllocationEvents: EventSummary[];
   wallClockEvents: EventSummary[];
@@ -250,6 +279,7 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
+  cpuTimeSampleEvents: () => [],
   blockingEvents: () => [],
   nativeAllocationEvents: () => [],
   nativeLeakEvents: () => [],
@@ -278,11 +308,21 @@ function withPlaceholder(events: EventSummary[], code: string, label: string): E
   if (events.length > 0) {
     return events;
   }
-  return [new EventSummary(code, label, new EventSummaryDetail(code, label, '', '', 0, 0, false, null), null)];
+  return [
+    new EventSummary(
+      code,
+      label,
+      new EventSummaryDetail(code, label, '', '', 0, 0, false, null),
+      null
+    )
+  ];
 }
 
 const displayExecutionSampleEvents = computed(() =>
   withPlaceholder(props.executionSampleEvents, 'jdk.ExecutionSample', 'Execution')
+);
+const displayCpuTimeSampleEvents = computed(() =>
+  withPlaceholder(props.cpuTimeSampleEvents, 'jdk.CPUTimeSample', 'CPU-Time')
 );
 const displayMethodTraceEvents = computed(() =>
   withPlaceholder(props.methodTraceEvents, 'jdk.MethodTrace', 'Method Trace')

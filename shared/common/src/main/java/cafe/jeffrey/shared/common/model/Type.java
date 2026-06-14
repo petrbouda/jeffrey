@@ -32,6 +32,7 @@ public record Type(String code, boolean calculated) {
 
     // Real events
     public static final Type EXECUTION_SAMPLE = new Type(EventTypeName.EXECUTION_SAMPLE);
+    public static final Type CPU_TIME_SAMPLE = new Type(EventTypeName.CPU_TIME_SAMPLE);
     public static final Type WALL_CLOCK_SAMPLE = new Type(EventTypeName.WALL_CLOCK_SAMPLE);
     public static final Type METHOD_TRACE = new Type(EventTypeName.METHOD_TRACE);
     public static final Type MALLOC = new Type(EventTypeName.MALLOC);
@@ -177,6 +178,7 @@ public record Type(String code, boolean calculated) {
     static {
         KNOWN_TYPES = Stream.of(
                 EXECUTION_SAMPLE,
+                CPU_TIME_SAMPLE,
                 WALL_CLOCK_SAMPLE,
                 METHOD_TRACE,
                 MALLOC,
