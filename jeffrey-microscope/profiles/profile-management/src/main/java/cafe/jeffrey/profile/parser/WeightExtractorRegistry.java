@@ -38,6 +38,7 @@ public class WeightExtractorRegistry {
         Map<Type, WeightExtractor> registry = new HashMap<>();
         registry.put(NATIVE_LEAK, WeightExtractor.allocation("size"));
         registry.put(METHOD_TRACE, WeightExtractor.duration(WeightExtractorRegistry::extractFirstFrame));
+        registry.put(CPU_TIME_SAMPLE, WeightExtractor.durationField("samplingPeriod"));
         registry.put(MALLOC, WeightExtractor.allocation("size", e -> String.valueOf(e.getLong("address"))));
         registry.put(FREE, WeightExtractor.allocationEntityOnly(e -> String.valueOf(e.getLong("address"))));
         registry.put(JAVA_MONITOR_ENTER, WeightExtractor.duration("monitorClass"));
