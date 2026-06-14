@@ -30,6 +30,7 @@ const headings = [
   { id: 'rss-vs-heap', text: 'RSS vs Heap', level: 2 },
   { id: 'direct-buffers', text: 'Direct Buffers', level: 2 },
   { id: 'native-libraries', text: 'Native Libraries', level: 2 },
+  { id: 'native-library-loads', text: 'Native Library Loads', level: 2 },
   { id: 'events', text: 'Source Events', level: 2 }
 ];
 
@@ -64,12 +65,16 @@ onMounted(() => {
       <h2 id="native-libraries">Native Libraries</h2>
       <p>All native libraries mapped into the process with their mapped address-range sizes, from <code>jdk.NativeLibrary</code>. Useful to confirm which JNI-backed dependencies are present when chasing a native leak suspect.</p>
 
+      <h2 id="native-library-loads">Native Library Loads</h2>
+      <p>A dedicated page (<strong>Native Library Loads</strong> in the sidebar) for the load/unload <em>operations</em> from <code>jdk.NativeLibraryLoad</code> / <code>jdk.NativeLibraryUnload</code> (JDK 24+) — unlike the static inventory above, these carry each operation's <strong>duration</strong> and a <strong>success</strong> flag. The Operations tab lists every load/unload slowest-first (with a failures-only filter); a failed load (a missing or ABI-incompatible native dependency) is the earliest signal of an eventual <code>UnsatisfiedLinkError</code>. The Timeline tab shows loads/unloads per second — loads cluster at startup, so later bursts reveal lazy JNI loading or class-loader churn.</p>
+
       <h2 id="events">Source Events</h2>
       <ul>
         <li><code>jdk.ResidentSetSize</code> — periodic RSS samples with current and peak values.</li>
         <li><code>jdk.GCHeapSummary</code> — heap usage at GC boundaries (the heap overlay).</li>
         <li><code>jdk.DirectBufferStatistics</code> — periodic direct-buffer count, capacity, and memory used.</li>
         <li><code>jdk.NativeLibrary</code> — loaded native libraries with mapped address ranges.</li>
+        <li><code>jdk.NativeLibraryLoad</code> / <code>jdk.NativeLibraryUnload</code> — per-operation load/unload timing and success (JDK 24+).</li>
       </ul>
 
       <DocsCallout type="info">
