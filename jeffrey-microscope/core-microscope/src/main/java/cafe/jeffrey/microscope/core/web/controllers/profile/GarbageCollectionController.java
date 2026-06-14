@@ -30,8 +30,10 @@ import cafe.jeffrey.profile.manager.GarbageCollectionManager;
 import cafe.jeffrey.profile.manager.model.gc.GCOverviewData;
 import cafe.jeffrey.profile.manager.model.gc.GCTimeseriesType;
 import cafe.jeffrey.profile.manager.model.gc.configuration.GCConfigurationData;
+import cafe.jeffrey.profile.manager.model.gc.g1.G1AnalysisData;
 import cafe.jeffrey.profile.manager.model.gc.tuning.IhopData;
 import cafe.jeffrey.profile.manager.model.gc.tuning.TenuringData;
+import cafe.jeffrey.profile.manager.model.gc.zgc.ZgcAnalysisData;
 import cafe.jeffrey.timeseries.TimeseriesData;
 
 @RestController
@@ -76,6 +78,18 @@ public class GarbageCollectionController {
     public IhopData ihop(@PathVariable("profileId") String profileId) {
         LOG.debug("Fetching G1 IHOP data");
         return mgr(profileId).ihop();
+    }
+
+    @GetMapping("/g1")
+    public G1AnalysisData g1Analysis(@PathVariable("profileId") String profileId) {
+        LOG.debug("Fetching G1 deep-dive analysis");
+        return mgr(profileId).g1Analysis();
+    }
+
+    @GetMapping("/zgc")
+    public ZgcAnalysisData zgcAnalysis(@PathVariable("profileId") String profileId) {
+        LOG.debug("Fetching ZGC deep-dive analysis");
+        return mgr(profileId).zgcAnalysis();
     }
 
     private GarbageCollectionManager mgr(String profileId) {

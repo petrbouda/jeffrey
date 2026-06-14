@@ -27,6 +27,10 @@ import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
 import cafe.jeffrey.profile.manager.GarbageCollectionManager;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.profile.manager.model.gc.GCTimeseriesType;
+import cafe.jeffrey.profile.manager.model.gc.g1.G1AnalysisData;
+import cafe.jeffrey.profile.manager.model.gc.g1.G1AnalysisData.G1Header;
+import cafe.jeffrey.profile.manager.model.gc.zgc.ZgcAnalysisData;
+import cafe.jeffrey.profile.manager.model.gc.zgc.ZgcAnalysisData.ZgcHeader;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.timeseries.TimeseriesData;
 
@@ -59,6 +63,42 @@ class GarbageCollectionControllerTest {
 
         assertThat(mvc.get().uri("/api/internal/profiles/p-1/gc/timeseries?timeseriesType=COUNT"))
                 .hasStatusOk();
+    }
+
+    @Test
+    void getsG1Analysis() {
+        when(resolver.resolve("p-1")).thenReturn(profileManager);
+        when(profileManager.gcManager()).thenReturn(gcManager);
+        when(gcManager.g1Analysis()).thenReturn(emptyG1Analysis());
+
+        MockMvcTester mvc = mockMvcTesterFor(new GarbageCollectionController(resolver));
+
+        assertThat(mvc.get().uri("/api/internal/profiles/p-1/gc/g1")).hasStatusOk();
+    }
+
+    @Test
+    void getsZgcAnalysis() {
+        when(resolver.resolve("p-1")).thenReturn(profileManager);
+        when(profileManager.gcManager()).thenReturn(gcManager);
+        when(gcManager.zgcAnalysis()).thenReturn(emptyZgcAnalysis());
+
+        MockMvcTester mvc = mockMvcTesterFor(new GarbageCollectionController(resolver));
+
+        assertThat(mvc.get().uri("/api/internal/profiles/p-1/gc/zgc")).hasStatusOk();
+    }
+
+    private static G1AnalysisData emptyG1Analysis() {
+        return new G1AnalysisData(
+                new G1Header(0, 0, 0, 0, 0, 0, 0, 0, 0),
+                List.of(), TimeseriesData.empty(), List.of(), List.of(), List.of(),
+                TimeseriesData.empty(), List.of(), List.of(), List.of());
+    }
+
+    private static ZgcAnalysisData emptyZgcAnalysis() {
+        return new ZgcAnalysisData(
+                new ZgcHeader(0, 0, 0, 0, 0, 0, 0),
+                TimeseriesData.empty(), List.of(), List.of(), List.of(),
+                TimeseriesData.empty(), List.of(), List.of());
     }
 
     @Test

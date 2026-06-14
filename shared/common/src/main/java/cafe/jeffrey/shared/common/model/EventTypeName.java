@@ -69,6 +69,28 @@ public abstract class EventTypeName {
     public static final String G1_BASIC_IHOP = "jdk.G1BasicIHOP";
     public static final String G1_MMU = "jdk.G1MMU";
 
+    // G1 deep-dive events
+    public static final String G1_HEAP_REGION_INFORMATION = "jdk.G1HeapRegionInformation";
+    public static final String G1_HEAP_REGION_TYPE_CHANGE = "jdk.G1HeapRegionTypeChange";
+    public static final String EVACUATION_INFORMATION = "jdk.EvacuationInformation";
+    public static final String EVACUATION_FAILED = "jdk.EvacuationFailed";
+    public static final String GC_PHASE_PAUSE = "jdk.GCPhasePause";
+    public static final String GC_PHASE_PAUSE_LEVEL_1 = "jdk.GCPhasePauseLevel1";
+    public static final String GC_PHASE_PAUSE_LEVEL_2 = "jdk.GCPhasePauseLevel2";
+    public static final String GC_PHASE_PAUSE_LEVEL_3 = "jdk.GCPhasePauseLevel3";
+    public static final String GC_PHASE_PAUSE_LEVEL_4 = "jdk.GCPhasePauseLevel4";
+    public static final String GC_PHASE_PARALLEL = "jdk.GCPhaseParallel";
+    public static final String SYSTEM_GC = "jdk.SystemGC";
+    public static final String GC_LOCKER = "jdk.GCLocker";
+
+    // ZGC deep-dive events
+    public static final String Z_ALLOCATION_STALL = "jdk.ZAllocationStall";
+    public static final String Z_PAGE_ALLOCATION = "jdk.ZPageAllocation";
+    public static final String Z_RELOCATION_SET = "jdk.ZRelocationSet";
+    public static final String Z_RELOCATION_SET_GROUP = "jdk.ZRelocationSetGroup";
+    public static final String Z_UNCOMMIT = "jdk.ZUncommit";
+    public static final String Z_THREAD_PHASE = "jdk.ZThreadPhase";
+
     public static final String YOUNG_GENERATION_CONFIGURATION = "jdk.YoungGenerationConfiguration";
     public static final String COMPILER_CONFIGURATION = "jdk.CompilerConfiguration";
     public static final String JVM_INFORMATION = "jdk.JVMInformation";
