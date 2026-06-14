@@ -52,6 +52,8 @@ export default class HeatmapTooltip {
   #getEventTypeDisplayName(): string {
     if (EventTypes.isExecutionEventType(this.eventType)) {
       return 'Execution Sample';
+    } else if (EventTypes.isCpuTimeSample(this.eventType)) {
+      return 'CPU-Time Sample';
     } else if (EventTypes.isAllocationEventType(this.eventType)) {
       return 'Allocation';
     } else if (EventTypes.isBlockingEventType(this.eventType)) {

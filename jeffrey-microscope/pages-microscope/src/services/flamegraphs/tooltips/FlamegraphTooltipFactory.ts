@@ -25,7 +25,10 @@ export default class FlamegraphTooltipFactory {
   static create(eventType: string, useWeight: boolean, isDifferential: boolean): FlamegraphTooltip {
     if (isDifferential) {
       return new DifferentialFlamegraphTooltip(eventType, useWeight);
-    } else if (EventTypes.isExecutionEventType(eventType)) {
+    } else if (
+      EventTypes.isExecutionEventType(eventType) ||
+      EventTypes.isCpuTimeSample(eventType)
+    ) {
       return new BasicFlamegraphTooltip(eventType, useWeight, null, null, true);
     } else if (
       EventTypes.isAllocationEventType(eventType) ||

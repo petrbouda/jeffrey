@@ -27,6 +27,7 @@ import GraphType from '@/services/flamegraphs/GraphType';
 
 export interface CategorizedEvents {
   executionSampleEvents: EventSummary[];
+  cpuTimeSampleEvents: EventSummary[];
   methodTraceEvents: EventSummary[];
   objectAllocationEvents: EventSummary[];
   wallClockEvents: EventSummary[];
@@ -45,6 +46,7 @@ export function useFlamegraphEvents(
   const error = ref<string | null>(null);
 
   const executionSampleEvents = ref<EventSummary[]>([]);
+  const cpuTimeSampleEvents = ref<EventSummary[]>([]);
   const methodTraceEvents = ref<EventSummary[]>([]);
   const objectAllocationEvents = ref<EventSummary[]>([]);
   const wallClockEvents = ref<EventSummary[]>([]);
@@ -55,6 +57,7 @@ export function useFlamegraphEvents(
   function categorizeEventTypes(eventTypes: EventSummary[]) {
     // Clear existing arrays
     executionSampleEvents.value = [];
+    cpuTimeSampleEvents.value = [];
     methodTraceEvents.value = [];
     objectAllocationEvents.value = [];
     wallClockEvents.value = [];
@@ -65,6 +68,8 @@ export function useFlamegraphEvents(
     for (const event of eventTypes) {
       if (EventTypes.isExecutionEventType(event.code)) {
         executionSampleEvents.value.push(event);
+      } else if (EventTypes.isCpuTimeSample(event.code)) {
+        cpuTimeSampleEvents.value.push(event);
       } else if (EventTypes.isMethodTraceEventType(event.code)) {
         methodTraceEvents.value.push(event);
       } else if (EventTypes.isAllocationEventType(event.code)) {
@@ -119,6 +124,7 @@ export function useFlamegraphEvents(
     loaded,
     error,
     executionSampleEvents,
+    cpuTimeSampleEvents,
     methodTraceEvents,
     objectAllocationEvents,
     wallClockEvents,

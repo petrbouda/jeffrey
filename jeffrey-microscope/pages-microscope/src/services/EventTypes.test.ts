@@ -42,6 +42,13 @@ describe('EventTypes', () => {
     it('isExecutionEventType', () => {
       expect(EventTypes.isExecutionEventType('jdk.ExecutionSample')).toBe(true);
       expect(EventTypes.isExecutionEventType('other')).toBe(false);
+      expect(EventTypes.isExecutionEventType('jdk.CPUTimeSample')).toBe(false);
+    });
+
+    it('isCpuTimeSample', () => {
+      expect(EventTypes.isCpuTimeSample('jdk.CPUTimeSample')).toBe(true);
+      expect(EventTypes.isCpuTimeSample('jdk.ExecutionSample')).toBe(false);
+      expect(EventTypes.isCpuTimeSample('other')).toBe(false);
     });
 
     it('isMethodTraceEventType', () => {

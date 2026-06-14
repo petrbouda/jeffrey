@@ -34,6 +34,7 @@ public class DiffFlamegraphManagerImpl implements FlamegraphManager {
 
     private static final List<Type> SUPPORTED_EVENTS = List.of(
             Type.EXECUTION_SAMPLE,
+            Type.CPU_TIME_SAMPLE,
             Type.WALL_CLOCK_SAMPLE,
             Type.METHOD_TRACE,
             Type.OBJECT_ALLOCATION_SAMPLE,

@@ -38,6 +38,7 @@ public class PrimaryFlamegraphManager implements FlamegraphManager {
             Type.NATIVE_LEAK,
             Type.MALLOC,
             Type.EXECUTION_SAMPLE,
+            Type.CPU_TIME_SAMPLE,
             Type.METHOD_TRACE,
             Type.WALL_CLOCK_SAMPLE,
             Type.OBJECT_ALLOCATION_SAMPLE,
