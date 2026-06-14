@@ -38,6 +38,17 @@ public record WeightExtractor(
                 null);
     }
 
+    /**
+     * Weight by a named {@code @Timespan} field (in nanos) rather than the event's own duration —
+     * e.g. {@code jdk.CPUTimeSample.samplingPeriod}, which carries the per-sample on-CPU time.
+     */
+    public static WeightExtractor durationField(String fieldName) {
+        return new WeightExtractor(
+                e -> e.getDuration(fieldName).toNanos(),
+                DurationUtils::formatNanos,
+                null);
+    }
+
     public static WeightExtractor duration(String entityClassField) {
         return new WeightExtractor(
                 e -> e.getDuration().toNanos(),

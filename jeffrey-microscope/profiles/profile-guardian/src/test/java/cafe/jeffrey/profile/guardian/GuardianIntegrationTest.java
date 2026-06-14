@@ -48,7 +48,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * End-to-end orchestration test for {@link Guardian#process()}. Exercises the full flow
- * wiring — PrerequisitesEvaluator, four {@link cafe.jeffrey.profile.guardian.type.GuardianGroup}s,
+ * wiring — PrerequisitesEvaluator, the {@link cafe.jeffrey.profile.guardian.type.GuardianGroup}s,
  * and the three metadata evaluators — with repository stubs, then asserts:
  * <ol>
  *   <li>The frontend-facing "Prerequisites" category string contract.</li>
@@ -76,7 +76,7 @@ class GuardianIntegrationTest {
     }
 
     /**
-     * With empty event summaries all four frame-tree groups skip, the metadata evaluators
+     * With empty event summaries every frame-tree group skips, the metadata evaluators
      * return {@code Optional.empty()}, and Guardian's output consists only of the four
      * Prerequisites results — all carrying group "Prerequisites" and the right category.
      */

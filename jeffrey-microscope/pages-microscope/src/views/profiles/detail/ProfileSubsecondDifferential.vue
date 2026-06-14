@@ -11,6 +11,7 @@
     <FlamegraphCardGrid
       :graph-mode="GraphType.DIFFERENTIAL"
       :execution-sample-events="executionSampleEvents"
+      :cpu-time-sample-events="cpuTimeSampleEvents"
       :method-trace-events="methodTraceEvents"
       :object-allocation-events="objectAllocationEvents"
       :wall-clock-events="wallClockEvents"
@@ -30,6 +31,7 @@ import { useFlamegraphEvents } from '@/composables/useFlamegraphEvents';
 const {
   loaded,
   executionSampleEvents,
+  cpuTimeSampleEvents,
   methodTraceEvents,
   objectAllocationEvents,
   wallClockEvents

@@ -48,6 +48,10 @@ public record GuardianProperties(
         @DefaultValue("1000")
         int minSamplesExecution,
 
+        // ===== CPU-Time Sample group (shares the Execution thresholds) =====
+        @DefaultValue("1000")
+        int minSamplesCpuTime,
+
         @DefaultValue("0.03")
         double logbackWarningThreshold,
         @DefaultValue("0.02")

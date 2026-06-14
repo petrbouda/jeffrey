@@ -19,12 +19,13 @@
 package cafe.jeffrey.profile.guardian.guard;
 
 /**
- * The four Guardian event groups that frame-tree-traversing guards belong to. Used as a tag
+ * The Guardian event groups that frame-tree-traversing guards belong to. Used as a tag
  * on {@link GuardRegistry} entries so each {@code GuardianGroup} can instantiate the subset
  * relevant to it.
  */
 public enum GroupKind {
     EXECUTION_SAMPLE,
+    CPU_TIME_SAMPLE,
     ALLOCATION,
     WALL_CLOCK,
     BLOCKING

@@ -94,6 +94,7 @@ class CachingGuardianProviderConfigHashTest {
     private static GuardianProperties copyWithLogbackWarning(GuardianProperties p, double newValue) {
         return new GuardianProperties(
                 p.minSamplesExecution(),
+                p.minSamplesCpuTime(),
                 newValue, p.logbackInfoThreshold(),
                 p.log4jWarningThreshold(), p.log4jInfoThreshold(),
                 p.hashMapCollisionWarningThreshold(), p.hashMapCollisionInfoThreshold(),

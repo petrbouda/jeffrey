@@ -36,6 +36,7 @@ public final class GuardianPropertiesTestDefaults {
     public static GuardianProperties defaults() {
         return new GuardianProperties(
                 1000,
+                1000,
                 0.03, 0.02, 0.03, 0.02,
                 0.04, 0.02, 0.04, 0.02,
                 0.05, 0.03, 0.05, 0.03,

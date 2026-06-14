@@ -109,6 +109,7 @@ public class WriterResultCollector {
                 new ExecutionSamplesWeightEnhancer(settings),
 
                 // Fixed source enhancers (parameterized)
+                new FixedSourceEnhancer(Type.CPU_TIME_SAMPLE, RecordingEventSource.JDK),
                 new FixedSourceEnhancer(Type.WALL_CLOCK_SAMPLE, RecordingEventSource.ASYNC_PROFILER),
                 new FixedSourceEnhancer(Type.MALLOC, RecordingEventSource.ASYNC_PROFILER),
                 new FixedSourceEnhancer(Type.JAVA_MONITOR_WAIT, RecordingEventSource.JDK),

@@ -21,6 +21,8 @@ package cafe.jeffrey.shared.common.model;
 public abstract class EventTypeName {
 
     public static final String EXECUTION_SAMPLE = "jdk.ExecutionSample";
+    public static final String CPU_TIME_SAMPLE = "jdk.CPUTimeSample";
+    public static final String CPU_TIME_SAMPLES_LOST = "jdk.CPUTimeSamplesLost";
     public static final String METHOD_TRACE = "jdk.MethodTrace";
     public static final String WALL_CLOCK_SAMPLE = "profiler.WallClockSample";
     public static final String MALLOC = "profiler.Malloc";
