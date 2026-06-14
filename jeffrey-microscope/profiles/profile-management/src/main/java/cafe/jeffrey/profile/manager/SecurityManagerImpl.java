@@ -25,8 +25,10 @@ import cafe.jeffrey.profile.manager.model.security.DeserializationBuilder;
 import cafe.jeffrey.profile.manager.model.security.ProviderServiceBuilder;
 import cafe.jeffrey.profile.manager.model.security.SecurityData;
 import cafe.jeffrey.profile.manager.model.security.SecurityData.CertificateStat;
+import cafe.jeffrey.profile.manager.model.security.SecurityData.MisdeclarationStat;
 import cafe.jeffrey.profile.manager.model.security.SecurityData.ProviderServiceStat;
 import cafe.jeffrey.profile.manager.model.security.SecurityData.SecurityHeader;
+import cafe.jeffrey.profile.manager.model.security.SerializationMisdeclarationBuilder;
 import cafe.jeffrey.profile.manager.model.security.TlsHandshakeBuilder;
 import cafe.jeffrey.provider.profile.api.EventQueryConfigurer;
 import cafe.jeffrey.provider.profile.api.ProfileEventStreamRepository;
@@ -72,6 +74,9 @@ public class SecurityManagerImpl implements SecurityManager {
         DeserializationBuilder.Result deserialization = eventStreamRepository.genericStreaming(
                 configurer(Type.DESERIALIZATION), new DeserializationBuilder());
 
+        List<MisdeclarationStat> misdeclarations = eventStreamRepository.genericStreaming(
+                configurer(Type.SERIALIZATION_MISDECLARATION), new SerializationMisdeclarationBuilder());
+
         List<ProviderServiceStat> providers = eventStreamRepository.genericStreaming(
                 configurer(Type.SECURITY_PROVIDER_SERVICE), new ProviderServiceBuilder());
 
@@ -97,6 +102,7 @@ public class SecurityManagerImpl implements SecurityManager {
                 certificates,
                 deserialization.summary(),
                 deserialization.types(),
+                misdeclarations,
                 providers);
     }
 

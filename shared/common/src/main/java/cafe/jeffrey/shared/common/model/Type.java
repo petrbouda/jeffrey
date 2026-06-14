@@ -164,6 +164,7 @@ public record Type(String code, boolean calculated) {
     public static final Type X509_VALIDATION = new Type(EventTypeName.X509_VALIDATION);
     public static final Type DESERIALIZATION = new Type(EventTypeName.DESERIALIZATION);
     public static final Type SECURITY_PROVIDER_SERVICE = new Type(EventTypeName.SECURITY_PROVIDER_SERVICE);
+    public static final Type SERIALIZATION_MISDECLARATION = new Type(EventTypeName.SERIALIZATION_MISDECLARATION);
 
     // ----------------------------
     // Application events - JEFFREY
@@ -332,6 +333,7 @@ public record Type(String code, boolean calculated) {
                 X509_VALIDATION,
                 DESERIALIZATION,
                 SECURITY_PROVIDER_SERVICE,
+                SERIALIZATION_MISDECLARATION,
                 JDBC_POOL_STATISTICS,
                 ACQUIRING_POOLED_JDBC_CONNECTION_TIMEOUT,
                 POOLED_JDBC_CONNECTION_ACQUIRED,

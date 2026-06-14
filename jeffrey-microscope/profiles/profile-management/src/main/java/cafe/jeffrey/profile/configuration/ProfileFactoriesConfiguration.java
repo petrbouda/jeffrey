@@ -35,6 +35,8 @@ import cafe.jeffrey.profile.guardian.GuardianProperties;
 import cafe.jeffrey.profile.guardian.GuardianProvider;
 import cafe.jeffrey.profile.guardian.ParsingGuardianProvider;
 import cafe.jeffrey.profile.manager.*;
+// Explicit import: disambiguates from java.lang.SecurityManager (both match the wildcard above)
+import cafe.jeffrey.profile.manager.SecurityManager;
 import cafe.jeffrey.profile.tools.collapse.CollapseFramesManager;
 
 

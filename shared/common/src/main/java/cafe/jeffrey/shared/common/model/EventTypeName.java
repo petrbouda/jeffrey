@@ -154,6 +154,7 @@ public abstract class EventTypeName {
     public static final String X509_VALIDATION = "jdk.X509Validation";
     public static final String DESERIALIZATION = "jdk.Deserialization";
     public static final String SECURITY_PROVIDER_SERVICE = "jdk.SecurityProviderService";
+    public static final String SERIALIZATION_MISDECLARATION = "jdk.SerializationMisdeclaration";
 
     // ----------------------------
     // Application events - JEFFREY

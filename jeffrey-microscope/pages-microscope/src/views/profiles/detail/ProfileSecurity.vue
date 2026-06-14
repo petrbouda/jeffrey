@@ -214,6 +214,36 @@
           title="No deserialization recorded"
           description="No jdk.Deserialization events were present."
         />
+
+        <h6 class="section-title mt-4">Serialization Misdeclarations</h6>
+        <ChartDescription
+          shows="Serializable classes the JVM flagged for misdeclared serialization members"
+          use-case="Misdeclared serialVersionUID, writeObject, or serialPersistentFields silently break serialization contracts — fix or document each"
+        />
+        <div class="table-responsive">
+          <table class="table table-sm table-hover mb-0">
+            <thead>
+              <tr>
+                <th>Class</th>
+                <th>Message</th>
+                <th class="text-end">Count</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(m, i) in data!.serializationMisdeclarations" :key="i">
+                <td>{{ m.misdeclaredClass }}</td>
+                <td>{{ m.message }}</td>
+                <td class="text-end">{{ FormattingService.formatNumber(m.count) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <EmptyState
+          v-if="data!.serializationMisdeclarations.length === 0"
+          icon="bi-check-circle"
+          title="No serialization misdeclarations"
+          description="No jdk.SerializationMisdeclaration events were recorded (JDK 26+)."
+        />
       </div>
 
       <!-- Crypto Providers -->

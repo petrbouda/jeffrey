@@ -34,9 +34,11 @@ import java.util.List;
  * @param ciphers              handshake counts by cipher suite
  * @param peers                handshake counts by peer ({@code host:port})
  * @param certificates         observed certificates with security flags and validation counts
- * @param deserialization      deserialization summary (events / filter / exceptions)
- * @param deserializationTypes top deserialized types by total bytes read
- * @param cryptoProviders      crypto provider/algorithm usage counts
+ * @param deserialization            deserialization summary (events / filter / exceptions)
+ * @param deserializationTypes       top deserialized types by total bytes read
+ * @param serializationMisdeclarations classes with serialization misdeclarations
+ *                                   ({@code jdk.SerializationMisdeclaration}, JDK 26+)
+ * @param cryptoProviders            crypto provider/algorithm usage counts
  */
 public record SecurityData(
         SecurityHeader header,
@@ -47,6 +49,7 @@ public record SecurityData(
         List<CertificateStat> certificates,
         DeserializationSummary deserialization,
         List<DeserializationTypeStat> deserializationTypes,
+        List<MisdeclarationStat> serializationMisdeclarations,
         List<ProviderServiceStat> cryptoProviders) {
 
     public record SecurityHeader(
@@ -84,6 +87,9 @@ public record SecurityData(
     }
 
     public record DeserializationTypeStat(String type, long count, long totalBytes, long maxBytes, long maxDepth) {
+    }
+
+    public record MisdeclarationStat(String misdeclaredClass, String message, long count) {
     }
 
     public record ProviderServiceStat(String provider, String type, String algorithm, long count) {

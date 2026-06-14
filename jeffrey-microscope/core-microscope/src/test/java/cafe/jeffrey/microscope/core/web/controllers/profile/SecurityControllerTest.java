@@ -79,6 +79,6 @@ class SecurityControllerTest {
                 TimeseriesData.empty(),
                 List.of(), List.of(), List.of(), List.of(),
                 new DeserializationSummary(0, 0, 0, 0),
-                List.of(), List.of());
+                List.of(), List.of(), List.of());
     }
 }

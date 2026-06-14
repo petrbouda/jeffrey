@@ -69,6 +69,12 @@ export interface ProviderServiceStat {
   count: number;
 }
 
+export interface MisdeclarationStat {
+  misdeclaredClass: string;
+  message: string;
+  count: number;
+}
+
 export default interface SecurityData {
   header: SecurityHeader;
   tlsTimeline: TimeseriesData;
@@ -78,5 +84,6 @@ export default interface SecurityData {
   certificates: CertificateStat[];
   deserialization: DeserializationSummary;
   deserializationTypes: DeserializationTypeStat[];
+  serializationMisdeclarations: MisdeclarationStat[];
   cryptoProviders: ProviderServiceStat[];
 }

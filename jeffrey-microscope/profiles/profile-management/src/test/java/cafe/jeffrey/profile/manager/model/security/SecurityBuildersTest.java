@@ -23,6 +23,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import cafe.jeffrey.profile.manager.model.security.DeserializationBuilder.Result;
+import cafe.jeffrey.profile.manager.model.security.SecurityData.MisdeclarationStat;
 import cafe.jeffrey.profile.manager.model.security.SecurityData.NamedCount;
 import cafe.jeffrey.profile.manager.model.security.SecurityData.ProviderServiceStat;
 import cafe.jeffrey.provider.profile.api.GenericRecord;
@@ -190,6 +191,36 @@ class SecurityBuildersTest {
             ObjectNode node = Json.createObject();
             node.put("certificateId", id);
             node.put("validationCounter", counter);
+            return node;
+        }
+    }
+
+    @Nested
+    @DisplayName("SerializationMisdeclarationBuilder")
+    class SerializationMisdeclarations {
+
+        @Test
+        @DisplayName("Groups misdeclarations by class and message, ranked by count")
+        void groupsByClassAndMessage() {
+            SerializationMisdeclarationBuilder builder = new SerializationMisdeclarationBuilder();
+            builder.onRecord(rec(Type.SERIALIZATION_MISDECLARATION, 1, misdeclaration("com.A", "bad serialVersionUID")));
+            builder.onRecord(rec(Type.SERIALIZATION_MISDECLARATION, 2, misdeclaration("com.A", "bad serialVersionUID")));
+            builder.onRecord(rec(Type.SERIALIZATION_MISDECLARATION, 3, misdeclaration("com.B", "non-private writeObject")));
+
+            List<MisdeclarationStat> result = builder.build();
+
+            assertEquals(2, result.size());
+            assertEquals("com.A", result.getFirst().misdeclaredClass());
+            assertEquals("bad serialVersionUID", result.getFirst().message());
+            assertEquals(2, result.getFirst().count());
+            assertEquals("com.B", result.get(1).misdeclaredClass());
+            assertEquals(1, result.get(1).count());
+        }
+
+        private ObjectNode misdeclaration(String misdeclaredClass, String message) {
+            ObjectNode node = Json.createObject();
+            node.put("misdeclaredClass", misdeclaredClass);
+            node.put("message", message);
             return node;
         }
     }
