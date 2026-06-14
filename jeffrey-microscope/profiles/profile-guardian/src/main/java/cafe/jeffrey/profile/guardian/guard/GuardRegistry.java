@@ -100,6 +100,61 @@ public enum GuardRegistry {
     GC_Z_GENERATIONAL(GroupKind.EXECUTION_SAMPLE, (pi, p) ->
             new ZGarbageCollectionGuard(ZGarbageCollectionGuard.Variant.Z_GENERATIONAL, pi, p.gcInfoThreshold(), p.gcWarningThreshold())),
 
+    // ===== CPU-Time Sample group (JDK 25 CPU-time profiler) ==================================
+    // Mirrors the Execution Sample guards verbatim: CPU-time samples measure the same dimension
+    // (on-CPU time), so the same overhead heuristics and thresholds apply.
+
+    LOGBACK_CPU_TIME(GroupKind.CPU_TIME_SAMPLE, (pi, p) ->
+            new LoggingOverheadGuard(LoggingOverheadGuard.Framework.LOGBACK, "Logback CPU Overhead", ResultType.SAMPLES, pi, p.logbackInfoThreshold(), p.logbackWarningThreshold())),
+    LOG4J_CPU_TIME(GroupKind.CPU_TIME_SAMPLE, (pi, p) ->
+            new LoggingOverheadGuard(LoggingOverheadGuard.Framework.LOG4J, "Log4j CPU Overhead", ResultType.SAMPLES, pi, p.log4jInfoThreshold(), p.log4jWarningThreshold())),
+    HASH_MAP_COLLISION_CPU_TIME(GroupKind.CPU_TIME_SAMPLE, (pi, p) ->
+            new HashMapCollisionGuard(pi, p.hashMapCollisionInfoThreshold(), p.hashMapCollisionWarningThreshold())),
+    REGEX_CPU_TIME(GroupKind.CPU_TIME_SAMPLE, (pi, p) ->
+            new RegexOverheadGuard(pi, p.regexInfoThreshold(), p.regexWarningThreshold())),
+    CLASS_LOADING_CPU_TIME(GroupKind.CPU_TIME_SAMPLE, (pi, p) ->
+            new ClassLoadingOverheadGuard(pi, p.classLoadingInfoThreshold(), p.classLoadingWarningThreshold())),
+    REFLECTION_CPU_TIME(GroupKind.CPU_TIME_SAMPLE, (pi, p) ->
+            new ReflectionOverheadGuard(pi, p.reflectionInfoThreshold(), p.reflectionWarningThreshold())),
+    SERIALIZATION_CPU_TIME(GroupKind.CPU_TIME_SAMPLE, (pi, p) ->
+            new SerializationOverheadGuard(pi, p.serializationInfoThreshold(), p.serializationWarningThreshold())),
+    XML_PARSING_CPU_TIME(GroupKind.CPU_TIME_SAMPLE, (pi, p) ->
+            new XMLParsingOverheadGuard(pi, p.xmlParsingInfoThreshold(), p.xmlParsingWarningThreshold())),
+    JSON_PROCESSING_CPU_TIME(GroupKind.CPU_TIME_SAMPLE, (pi, p) ->
+            new JSONProcessingOverheadGuard(pi, p.jsonProcessingInfoThreshold(), p.jsonProcessingWarningThreshold())),
+    EXCEPTION_CPU_TIME(GroupKind.CPU_TIME_SAMPLE, (pi, p) ->
+            new ExceptionOverheadGuard(pi, p.exceptionInfoThreshold(), p.exceptionWarningThreshold())),
+    STRING_CONCAT_CPU_TIME(GroupKind.CPU_TIME_SAMPLE, (pi, p) ->
+            new StringConcatOverheadGuard(pi, p.stringConcatInfoThreshold(), p.stringConcatWarningThreshold())),
+    THREAD_SYNCHRONIZATION_CPU_TIME(GroupKind.CPU_TIME_SAMPLE, (pi, p) ->
+            new ThreadSynchronizationOverheadGuard(pi, p.threadSyncInfoThreshold(), p.threadSyncWarningThreshold())),
+    CRYPTO_CPU_TIME(GroupKind.CPU_TIME_SAMPLE, (pi, p) ->
+            new CryptoOverheadGuard(pi, p.cryptoInfoThreshold(), p.cryptoWarningThreshold())),
+    COMPRESS_CPU_TIME(GroupKind.CPU_TIME_SAMPLE, (pi, p) ->
+            new CompressOverheadGuard(pi, p.compressInfoThreshold(), p.compressWarningThreshold())),
+    FINALIZER_CLEANER_CPU_TIME(GroupKind.CPU_TIME_SAMPLE, (pi, p) ->
+            new FinalizerCleanerOverheadGuard(pi, p.finalizerCleanerInfoThreshold(), p.finalizerCleanerWarningThreshold())),
+    JIT_COMPILATION_CPU_TIME(GroupKind.CPU_TIME_SAMPLE, (pi, p) ->
+            new JITCompilationGuard(pi, p.jitCompilationInfoThreshold(), p.jitCompilationWarningThreshold())),
+    DEOPTIMIZATION_CPU_TIME(GroupKind.CPU_TIME_SAMPLE, (pi, p) ->
+            new DeoptimizationGuard(pi, p.deoptimizationInfoThreshold(), p.deoptimizationWarningThreshold())),
+    SAFEPOINT_CPU_TIME(GroupKind.CPU_TIME_SAMPLE, (pi, p) ->
+            new SafepointOverheadGuard(pi, p.safepointInfoThreshold(), p.safepointWarningThreshold())),
+    VM_OPERATION_CPU_TIME(GroupKind.CPU_TIME_SAMPLE, (pi, p) ->
+            new VMOperationOverheadGuard(pi, p.vmOperationInfoThreshold(), p.vmOperationWarningThreshold())),
+    GC_SERIAL_CPU_TIME(GroupKind.CPU_TIME_SAMPLE, (pi, p) ->
+            new SerialGarbageCollectionGuard(pi, p.gcInfoThreshold(), p.gcWarningThreshold())),
+    GC_PARALLEL_CPU_TIME(GroupKind.CPU_TIME_SAMPLE, (pi, p) ->
+            new ParallelGarbageCollectionGuard(pi, p.gcInfoThreshold(), p.gcWarningThreshold())),
+    GC_G1_CPU_TIME(GroupKind.CPU_TIME_SAMPLE, (pi, p) ->
+            new G1GarbageCollectionGuard(pi, p.gcInfoThreshold(), p.gcWarningThreshold())),
+    GC_SHENANDOAH_CPU_TIME(GroupKind.CPU_TIME_SAMPLE, (pi, p) ->
+            new ShenandoahGarbageCollectionGuard(pi, p.gcInfoThreshold(), p.gcWarningThreshold())),
+    GC_Z_CPU_TIME(GroupKind.CPU_TIME_SAMPLE, (pi, p) ->
+            new ZGarbageCollectionGuard(ZGarbageCollectionGuard.Variant.Z, pi, p.gcInfoThreshold(), p.gcWarningThreshold())),
+    GC_Z_GENERATIONAL_CPU_TIME(GroupKind.CPU_TIME_SAMPLE, (pi, p) ->
+            new ZGarbageCollectionGuard(ZGarbageCollectionGuard.Variant.Z_GENERATIONAL, pi, p.gcInfoThreshold(), p.gcWarningThreshold())),
+
     // ===== Allocation group (allocation bytes) ===============================================
 
     LOGBACK_ALLOC(GroupKind.ALLOCATION, (pi, p) ->
