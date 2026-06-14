@@ -232,6 +232,14 @@
                       <i class="bi bi-file-earmark"></i>
                       <span>File I/O</span>
                     </router-link>
+                    <router-link
+                      :to="`/profiles/${profileId}/security`"
+                      class="nav-item"
+                      active-class="active"
+                    >
+                      <i class="bi bi-shield-lock"></i>
+                      <span>Security &amp; TLS</span>
+                    </router-link>
                   </div>
                 </div>
 

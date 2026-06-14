@@ -85,6 +85,8 @@ public interface ProfileManager {
 
     LeakCandidatesManager leakCandidatesManager();
 
+    SecurityManager securityManager();
+
     ContainerManager containerManager();
 
     HeapMemoryManager heapMemoryManager();

@@ -144,6 +144,7 @@ public class ProfileFactoriesConfiguration {
             IoManager.Factory ioFactory,
             AllocationManager.Factory allocationFactory,
             LeakCandidatesManager.Factory leakCandidatesFactory,
+            SecurityManager.Factory securityFactory,
             SpanManager.Factory spanFactory) {
 
         return new JvmInsightFactories(
@@ -165,6 +166,7 @@ public class ProfileFactoriesConfiguration {
                 ioFactory,
                 allocationFactory,
                 leakCandidatesFactory,
+                securityFactory,
                 spanFactory);
     }
 
@@ -639,6 +641,17 @@ public class ProfileFactoriesConfiguration {
         return profileInfo -> {
             DataSource profileDb = databaseManagerResolver.open(profileInfo);
             return new LeakCandidatesManagerImpl(profileRepositories.newEventRepository(profileDb));
+        };
+    }
+
+    @Bean
+    public SecurityManager.Factory securityManagerFactory() {
+
+        return profileInfo -> {
+            DataSource profileDb = databaseManagerResolver.open(profileInfo);
+            return new SecurityManagerImpl(
+                    profileInfo,
+                    profileRepositories.newEventStreamRepository(profileDb));
         };
     }
 

@@ -187,6 +187,11 @@ public class ProfileManagerImpl implements ProfileManager {
     }
 
     @Override
+    public SecurityManager securityManager() {
+        return registry.jvmInsight().security().apply(profileInfo);
+    }
+
+    @Override
     public ContainerManager containerManager() {
         return registry.jvmInsight().container().apply(profileInfo);
     }

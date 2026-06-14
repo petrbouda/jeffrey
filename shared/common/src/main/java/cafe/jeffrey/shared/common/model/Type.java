@@ -158,6 +158,13 @@ public record Type(String code, boolean calculated) {
     public static final Type CLASS_REDEFINITION = new Type(EventTypeName.CLASS_REDEFINITION);
     public static final Type RETRANSFORM_CLASSES = new Type(EventTypeName.RETRANSFORM_CLASSES);
 
+    // Security events
+    public static final Type TLS_HANDSHAKE = new Type(EventTypeName.TLS_HANDSHAKE);
+    public static final Type X509_CERTIFICATE = new Type(EventTypeName.X509_CERTIFICATE);
+    public static final Type X509_VALIDATION = new Type(EventTypeName.X509_VALIDATION);
+    public static final Type DESERIALIZATION = new Type(EventTypeName.DESERIALIZATION);
+    public static final Type SECURITY_PROVIDER_SERVICE = new Type(EventTypeName.SECURITY_PROVIDER_SERVICE);
+
     // ----------------------------
     // Application events - JEFFREY
     // ----------------------------
@@ -320,6 +327,11 @@ public record Type(String code, boolean calculated) {
                 CLASS_UNLOAD,
                 CLASS_REDEFINITION,
                 RETRANSFORM_CLASSES,
+                TLS_HANDSHAKE,
+                X509_CERTIFICATE,
+                X509_VALIDATION,
+                DESERIALIZATION,
+                SECURITY_PROVIDER_SERVICE,
                 JDBC_POOL_STATISTICS,
                 ACQUIRING_POOLED_JDBC_CONNECTION_TIMEOUT,
                 POOLED_JDBC_CONNECTION_ACQUIRED,

@@ -148,6 +148,13 @@ public abstract class EventTypeName {
     public static final String CLASS_REDEFINITION = "jdk.ClassRedefinition";
     public static final String RETRANSFORM_CLASSES = "jdk.RetransformClasses";
 
+    // Security events
+    public static final String TLS_HANDSHAKE = "jdk.TLSHandshake";
+    public static final String X509_CERTIFICATE = "jdk.X509Certificate";
+    public static final String X509_VALIDATION = "jdk.X509Validation";
+    public static final String DESERIALIZATION = "jdk.Deserialization";
+    public static final String SECURITY_PROVIDER_SERVICE = "jdk.SecurityProviderService";
+
     // ----------------------------
     // Application events - JEFFREY
     // ----------------------------

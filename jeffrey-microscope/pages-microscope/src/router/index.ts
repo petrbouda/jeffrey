@@ -236,6 +236,12 @@ const profileChildRoutes = [
     meta: { layout: 'profile' }
   },
   {
+    path: 'security',
+    name: 'profile-security',
+    component: () => import('@/views/profiles/detail/ProfileSecurity.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
     path: 'heap-dump/settings',
     name: 'profile-heap-dump-settings',
     component: () => import('@/views/profiles/detail/ProfileHeapDumpSettings.vue'),
