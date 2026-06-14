@@ -22,6 +22,8 @@ import GCConfigurationData from '@/services/api/model/GCConfigurationData';
 import GCTimeseriesType from '@/services/api/model/GCTimeseriesType';
 import TimeseriesData from '@/services/timeseries/model/TimeseriesData';
 import type { IhopData, TenuringData } from '@/services/api/model/GCTuningModels';
+import type G1AnalysisData from '@/services/api/model/G1AnalysisData';
+import type ZgcAnalysisData from '@/services/api/model/ZgcAnalysisData';
 
 export default class ProfileGCClient extends BaseProfileClient {
   constructor(profileId: string) {
@@ -46,5 +48,13 @@ export default class ProfileGCClient extends BaseProfileClient {
 
   public getIhop(): Promise<IhopData> {
     return this.get<IhopData>('/ihop');
+  }
+
+  public getG1Analysis(): Promise<G1AnalysisData> {
+    return this.get<G1AnalysisData>('/g1');
+  }
+
+  public getZgcAnalysis(): Promise<ZgcAnalysisData> {
+    return this.get<ZgcAnalysisData>('/zgc');
   }
 }

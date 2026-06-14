@@ -140,6 +140,18 @@ const profileChildRoutes = [
     meta: { layout: 'profile' }
   },
   {
+    path: 'garbage-collection/g1',
+    name: 'profile-garbage-collection-g1',
+    component: () => import('@/views/profiles/detail/ProfileGCG1.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
+    path: 'garbage-collection/zgc',
+    name: 'profile-garbage-collection-zgc',
+    component: () => import('@/views/profiles/detail/ProfileGCZgc.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
     path: 'class-loading',
     name: 'profile-class-loading',
     component: () => import('@/views/profiles/detail/ProfileClassLoading.vue'),

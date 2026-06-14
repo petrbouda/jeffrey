@@ -31,13 +31,18 @@ import cafe.jeffrey.profile.manager.model.gc.GCGenerationTimeseriesBuilder;
 import cafe.jeffrey.profile.manager.model.gc.GCOverviewData;
 import cafe.jeffrey.profile.manager.model.gc.GCTimeseriesType;
 import cafe.jeffrey.profile.manager.model.gc.configuration.GCConfigurationData;
+import cafe.jeffrey.profile.manager.model.gc.g1.G1AnalysisBuilder;
+import cafe.jeffrey.profile.manager.model.gc.g1.G1AnalysisData;
 import cafe.jeffrey.profile.manager.model.gc.tuning.G1MmuBuilder;
 import cafe.jeffrey.profile.manager.model.gc.tuning.GcCpuTimesBuilder;
 import cafe.jeffrey.profile.manager.model.gc.tuning.IhopData;
+import cafe.jeffrey.profile.manager.model.gc.tuning.IhopData.MmuEntry;
 import cafe.jeffrey.profile.manager.model.gc.tuning.IhopTimeseriesBuilder;
 import cafe.jeffrey.profile.manager.model.gc.tuning.ReferenceStatsBuilder;
 import cafe.jeffrey.profile.manager.model.gc.tuning.TenuringData;
 import cafe.jeffrey.profile.manager.model.gc.tuning.TenuringDistributionBuilder;
+import cafe.jeffrey.profile.manager.model.gc.zgc.ZgcAnalysisBuilder;
+import cafe.jeffrey.profile.manager.model.gc.zgc.ZgcAnalysisData;
 import cafe.jeffrey.provider.profile.api.RecordBuilder;
 import cafe.jeffrey.provider.profile.api.EventQueryConfigurer;
 import cafe.jeffrey.provider.profile.api.ProfileEventRepository;
@@ -194,5 +199,70 @@ public class GarbageCollectionManagerImpl implements GarbageCollectionManager {
         var mmu = eventStreamRepository.genericStreaming(mmuConfigurer, new G1MmuBuilder(MAX_GC_CPU_ENTRIES));
 
         return new IhopData(ihopTimeline, cpuTimes, mmu);
+    }
+
+    @Override
+    public G1AnalysisData g1Analysis() {
+        RelativeTimeRange timeRange = new RelativeTimeRange(profileInfo.profilingStartEnd());
+
+        EventQueryConfigurer configurer = new EventQueryConfigurer()
+                .withEventTypes(List.of(
+                        Type.GARBAGE_COLLECTION,
+                        Type.G1_GARBAGE_COLLECTION,
+                        Type.GC_PHASE_PAUSE,
+                        Type.GC_PHASE_PAUSE_LEVEL_1,
+                        Type.GC_PHASE_PAUSE_LEVEL_2,
+                        Type.GC_PHASE_PAUSE_LEVEL_3,
+                        Type.GC_PHASE_PAUSE_LEVEL_4,
+                        Type.GC_PHASE_PARALLEL,
+                        Type.G1_HEAP_SUMMARY,
+                        Type.G1_HEAP_REGION_INFORMATION,
+                        Type.EVACUATION_INFORMATION,
+                        Type.EVACUATION_FAILED,
+                        Type.SYSTEM_GC,
+                        Type.GC_LOCKER))
+                .withJsonFields();
+        G1AnalysisData base = eventStreamRepository.genericStreaming(configurer, new G1AnalysisBuilder(timeRange));
+
+        EventQueryConfigurer ihopConfigurer = new EventQueryConfigurer()
+                .withEventType(Type.G1_ADAPTIVE_IHOP)
+                .withJsonFields();
+        TimeseriesData ihopTimeline =
+                eventStreamRepository.genericStreaming(ihopConfigurer, new IhopTimeseriesBuilder(timeRange));
+
+        EventQueryConfigurer mmuConfigurer = new EventQueryConfigurer()
+                .withEventType(Type.G1_MMU)
+                .withJsonFields();
+        List<MmuEntry> mmu = eventStreamRepository.genericStreaming(mmuConfigurer, new G1MmuBuilder(MAX_GC_CPU_ENTRIES));
+
+        return new G1AnalysisData(
+                base.header(),
+                base.pausePhases(),
+                base.regionComposition(),
+                base.regionSnapshots(),
+                base.evacuations(),
+                base.evacuationFailures(),
+                ihopTimeline,
+                mmu,
+                base.systemGcs(),
+                base.gcLockers());
+    }
+
+    @Override
+    public ZgcAnalysisData zgcAnalysis() {
+        RelativeTimeRange timeRange = new RelativeTimeRange(profileInfo.profilingStartEnd());
+
+        EventQueryConfigurer configurer = new EventQueryConfigurer()
+                .withEventTypes(List.of(
+                        Type.Z_ALLOCATION_STALL,
+                        Type.Z_YOUNG_GARBAGE_COLLECTION,
+                        Type.Z_OLD_GARBAGE_COLLECTION,
+                        Type.Z_PAGE_ALLOCATION,
+                        Type.Z_UNCOMMIT,
+                        Type.Z_RELOCATION_SET))
+                .withJsonFields()
+                .withThreads();
+
+        return eventStreamRepository.genericStreaming(configurer, new ZgcAnalysisBuilder(timeRange));
     }
 }
