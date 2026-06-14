@@ -35,6 +35,8 @@ import cafe.jeffrey.profile.guardian.GuardianProperties;
 import cafe.jeffrey.profile.guardian.GuardianProvider;
 import cafe.jeffrey.profile.guardian.ParsingGuardianProvider;
 import cafe.jeffrey.profile.manager.*;
+// Explicit import: disambiguates from java.lang.SecurityManager (both match the wildcard above)
+import cafe.jeffrey.profile.manager.SecurityManager;
 import cafe.jeffrey.profile.tools.collapse.CollapseFramesManager;
 
 
@@ -144,6 +146,7 @@ public class ProfileFactoriesConfiguration {
             IoManager.Factory ioFactory,
             AllocationManager.Factory allocationFactory,
             LeakCandidatesManager.Factory leakCandidatesFactory,
+            SecurityManager.Factory securityFactory,
             SpanManager.Factory spanFactory) {
 
         return new JvmInsightFactories(
@@ -165,6 +168,7 @@ public class ProfileFactoriesConfiguration {
                 ioFactory,
                 allocationFactory,
                 leakCandidatesFactory,
+                securityFactory,
                 spanFactory);
     }
 
@@ -639,6 +643,17 @@ public class ProfileFactoriesConfiguration {
         return profileInfo -> {
             DataSource profileDb = databaseManagerResolver.open(profileInfo);
             return new LeakCandidatesManagerImpl(profileRepositories.newEventRepository(profileDb));
+        };
+    }
+
+    @Bean
+    public SecurityManager.Factory securityManagerFactory() {
+
+        return profileInfo -> {
+            DataSource profileDb = databaseManagerResolver.open(profileInfo);
+            return new SecurityManagerImpl(
+                    profileInfo,
+                    profileRepositories.newEventStreamRepository(profileDb));
         };
     }
 
