@@ -43,7 +43,8 @@ import cafe.jeffrey.profile.manager.model.gc.tuning.GcCpuTimesBuilder;
 import cafe.jeffrey.profile.manager.model.gc.tuning.IhopData;
 import cafe.jeffrey.profile.manager.model.gc.tuning.IhopData.MmuEntry;
 import cafe.jeffrey.profile.manager.model.gc.tuning.IhopTimeseriesBuilder;
-import cafe.jeffrey.profile.manager.model.gc.tuning.ReferenceStatsBuilder;
+import cafe.jeffrey.profile.manager.model.gc.tuning.ReferenceProcessingBuilder;
+import cafe.jeffrey.profile.manager.model.gc.tuning.ReferenceProcessingData;
 import cafe.jeffrey.profile.manager.model.gc.tuning.TenuringData;
 import cafe.jeffrey.profile.manager.model.gc.tuning.TenuringDistributionBuilder;
 import cafe.jeffrey.profile.manager.model.gc.zgc.ZgcAnalysisBuilder;
@@ -63,6 +64,7 @@ public class GarbageCollectionManagerImpl implements GarbageCollectionManager {
     private static final int MAX_LONGEST_PAUSES = 20;
     private static final int MAX_TENURING_COLLECTIONS = 50;
     private static final int MAX_GC_CPU_ENTRIES = 100;
+    private static final int MAX_REFERENCE_GCS = 200;
 
     private final ProfileInfo profileInfo;
     private final ProfileEventRepository eventRepository;
@@ -176,12 +178,19 @@ public class GarbageCollectionManagerImpl implements GarbageCollectionManager {
         var gcs = eventStreamRepository.genericStreaming(
                 tenuringConfigurer, new TenuringDistributionBuilder(MAX_TENURING_COLLECTIONS));
 
-        EventQueryConfigurer referenceConfigurer = new EventQueryConfigurer()
+        return new TenuringData(gcs);
+    }
+
+    @Override
+    public ReferenceProcessingData referenceProcessing() {
+        RelativeTimeRange timeRange = new RelativeTimeRange(profileInfo.profilingStartEnd());
+
+        EventQueryConfigurer configurer = new EventQueryConfigurer()
                 .withEventType(Type.GC_REFERENCE_STATISTICS)
                 .withJsonFields();
-        var referenceStats = eventStreamRepository.genericStreaming(referenceConfigurer, new ReferenceStatsBuilder());
 
-        return new TenuringData(gcs, referenceStats);
+        return eventStreamRepository.genericStreaming(
+                configurer, new ReferenceProcessingBuilder(timeRange, MAX_REFERENCE_GCS));
     }
 
     @Override

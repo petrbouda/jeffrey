@@ -27,6 +27,7 @@ import cafe.jeffrey.profile.manager.model.gc.g1.G1AnalysisData;
 import cafe.jeffrey.profile.manager.model.gc.finalizer.FinalizersData;
 import cafe.jeffrey.profile.manager.model.gc.tables.StringSymbolTablesData;
 import cafe.jeffrey.profile.manager.model.gc.tuning.IhopData;
+import cafe.jeffrey.profile.manager.model.gc.tuning.ReferenceProcessingData;
 import cafe.jeffrey.profile.manager.model.gc.tuning.TenuringData;
 import cafe.jeffrey.profile.manager.model.gc.zgc.ZgcAnalysisData;
 import cafe.jeffrey.timeseries.TimeseriesData;
@@ -49,8 +50,7 @@ public interface GarbageCollectionManager {
 
     /**
      * Promotion/tenuring deep-tuning data: per-collection survivor-age distributions
-     * ({@code jdk.TenuringDistribution}) and reference-processing totals
-     * ({@code jdk.GCReferenceStatistics}).
+     * ({@code jdk.TenuringDistribution}).
      */
     TenuringData tenuring();
 
@@ -88,4 +88,10 @@ public interface GarbageCollectionManager {
      * finalizable objects and total finalizers run, ranked by pending objects.
      */
     FinalizersData finalizers();
+
+    /**
+     * Reference-processing data from {@code jdk.GCReferenceStatistics}: Soft/Weak/Final/Phantom
+     * reference counts as per-type totals, a per-second timeline, and a per-collection breakdown.
+     */
+    ReferenceProcessingData referenceProcessing();
 }

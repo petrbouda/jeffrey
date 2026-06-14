@@ -24,7 +24,8 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import cafe.jeffrey.profile.manager.model.gc.tuning.IhopData.GcCpuEntry;
 import cafe.jeffrey.profile.manager.model.gc.tuning.IhopData.MmuEntry;
-import cafe.jeffrey.profile.manager.model.gc.tuning.TenuringData.ReferenceStat;
+import cafe.jeffrey.profile.manager.model.gc.tuning.ReferenceProcessingData.GcReferenceBreakdown;
+import cafe.jeffrey.profile.manager.model.gc.tuning.ReferenceProcessingData.ReferenceTypeStat;
 import cafe.jeffrey.profile.manager.model.gc.tuning.TenuringData.TenuringGcSummary;
 import cafe.jeffrey.provider.profile.api.GenericRecord;
 import cafe.jeffrey.shared.common.Json;
@@ -96,27 +97,48 @@ class GcTuningBuildersTest {
     }
 
     @Nested
-    @DisplayName("ReferenceStatsBuilder")
+    @DisplayName("ReferenceProcessingBuilder")
     class References {
 
         @Test
-        @DisplayName("Sums counts per reference type, descending")
-        void sumsPerType() {
-            ReferenceStatsBuilder builder = new ReferenceStatsBuilder();
-            builder.onRecord(record(Type.GC_REFERENCE_STATISTICS, 1, referenceFields("Soft reference", 5)));
-            builder.onRecord(record(Type.GC_REFERENCE_STATISTICS, 2, referenceFields("Soft reference", 7)));
-            builder.onRecord(record(Type.GC_REFERENCE_STATISTICS, 2, referenceFields("Weak reference", 100)));
+        @DisplayName("Sums per type, builds per-type timeline series and ranks per-GC breakdown")
+        void aggregates() {
+            ReferenceProcessingBuilder builder = new ReferenceProcessingBuilder(new RelativeTimeRange(0, 10_000), 10);
+            builder.onRecord(record(Type.GC_REFERENCE_STATISTICS, 1, referenceFields(1, "Soft reference", 5)));
+            builder.onRecord(record(Type.GC_REFERENCE_STATISTICS, 2, referenceFields(2, "Soft reference", 7)));
+            builder.onRecord(record(Type.GC_REFERENCE_STATISTICS, 2, referenceFields(2, "Weak reference", 100)));
 
-            List<ReferenceStat> result = builder.build();
+            ReferenceProcessingData data = builder.build();
 
-            assertEquals(2, result.size());
-            assertEquals("Weak reference", result.getFirst().type());
-            assertEquals(100, result.getFirst().totalCount());
-            assertEquals(12, result.get(1).totalCount());
+            // Header: two GC cycles (1, 2), two distinct types, dominant = Weak (100).
+            assertEquals(112, data.header().totalReferences());
+            assertEquals(2, data.header().distinctTypes());
+            assertEquals(2, data.header().gcCount());
+            assertEquals("Weak reference", data.header().dominantType());
+
+            // byType ordered by total desc; avg = total / gcCount.
+            List<ReferenceTypeStat> byType = data.byType();
+            assertEquals("Weak reference", byType.getFirst().type());
+            assertEquals(100, byType.getFirst().total());
+            assertEquals(50, byType.getFirst().avgPerGc());
+            assertEquals("Soft reference", byType.get(1).type());
+            assertEquals(12, byType.get(1).total());
+
+            // One timeline series per type, in byType order.
+            assertEquals("Weak reference", data.timeline().series().getFirst().name());
+            assertEquals("Soft reference", data.timeline().series().get(1).name());
+
+            // Per-GC breakdown ranked by total: gc 2 (107) before gc 1 (5).
+            List<GcReferenceBreakdown> perGc = data.perGc();
+            assertEquals(2, perGc.getFirst().gcId());
+            assertEquals(107, perGc.getFirst().total());
+            assertEquals(100, perGc.getFirst().countsByType().get("Weak reference"));
+            assertEquals(5, perGc.get(1).total());
         }
 
-        private ObjectNode referenceFields(String type, long count) {
+        private ObjectNode referenceFields(long gcId, String type, long count) {
             ObjectNode node = Json.createObject();
+            node.put("gcId", gcId);
             node.put("type", type);
             node.put("count", count);
             return node;

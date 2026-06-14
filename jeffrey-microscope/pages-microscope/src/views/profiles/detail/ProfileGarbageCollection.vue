@@ -299,47 +299,6 @@
             />
           </template>
         </DataTable>
-
-        <div v-if="tenuringData.referenceStats.length > 0" class="mt-4">
-          <DataTable>
-            <template #toolbar>
-              <TableToolbar v-model="referenceStatsView.query" search-placeholder="Filter reference types...">
-                <span class="toolbar-info">Reference processing</span>
-                <template #filters>
-                  <Badge
-                    key-label="Types"
-                    :value="referenceStatsView.matchCount"
-                    variant="secondary"
-                    size="s"
-                    borderless
-                  />
-                </template>
-              </TableToolbar>
-            </template>
-            <thead>
-              <tr>
-                <th>Reference Type</th>
-                <th class="text-end">Processed References</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="stat in referenceStatsView.visible" :key="stat.type">
-                <td>{{ stat.type }}</td>
-                <td class="text-end">{{ FormattingService.formatNumber(stat.totalCount) }}</td>
-              </tr>
-            </tbody>
-            <template #footer>
-              <TableShowMore
-                :shown="referenceStatsView.visible.length"
-                :match-count="referenceStatsView.matchCount"
-                :total="referenceStatsView.total"
-                :expanded="referenceStatsView.expanded"
-                :page-size="referenceStatsView.pageSize"
-                @toggle="referenceStatsView.toggle"
-              />
-            </template>
-          </DataTable>
-        </div>
       </template>
     </div>
 
@@ -671,8 +630,11 @@
             The deep-tuning tabs rely on events that are <strong>G1-only and/or config-gated</strong>,
             so they show an empty state on other collectors or default recordings:
             <code>jdk.TenuringDistribution</code>, <code>jdk.G1AdaptiveIHOP</code>,
-            <code>jdk.G1MMU</code>, <code>jdk.GCCPUTime</code>,
-            <code>jdk.GCReferenceStatistics</code>.
+            <code>jdk.G1MMU</code>, <code>jdk.GCCPUTime</code>.
+          </p>
+          <p>
+            Reference processing (<code>jdk.GCReferenceStatistics</code>) has its own
+            <strong>Reference Processing</strong> page in the Garbage Collection menu.
           </p>
         </AboutSection>
       </AboutPanel>
@@ -1140,9 +1102,6 @@ const concurrentEventsView = useTableView(() => gcOverviewData.value?.longestCon
   searchableText: event => event.collectorName ?? ''
 });
 const tenuringGcsView = useTableView(() => tenuringData.value?.gcs ?? []);
-const referenceStatsView = useTableView(() => tenuringData.value?.referenceStats ?? [], {
-  searchableText: stat => stat.type
-});
 const cpuTimesView = useTableView(() => ihopData.value?.cpuTimes ?? []);
 const mmuView = useTableView(() => ihopData.value?.mmu ?? []);
 const pauseTypesView = useTableView(() => filteredPauseTypes.value);

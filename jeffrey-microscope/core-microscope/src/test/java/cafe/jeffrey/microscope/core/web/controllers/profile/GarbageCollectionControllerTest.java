@@ -33,6 +33,7 @@ import cafe.jeffrey.profile.manager.model.gc.zgc.ZgcAnalysisData;
 import cafe.jeffrey.profile.manager.model.gc.zgc.ZgcAnalysisData.ZgcHeader;
 import cafe.jeffrey.profile.manager.model.gc.finalizer.FinalizersData;
 import cafe.jeffrey.profile.manager.model.gc.tables.StringSymbolTablesData;
+import cafe.jeffrey.profile.manager.model.gc.tuning.ReferenceProcessingData;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.timeseries.TimeseriesData;
 
@@ -112,6 +113,19 @@ class GarbageCollectionControllerTest {
         MockMvcTester mvc = mockMvcTesterFor(new GarbageCollectionController(resolver));
 
         assertThat(mvc.get().uri("/api/internal/profiles/p-1/gc/finalizers")).hasStatusOk();
+    }
+
+    @Test
+    void getsReferenceProcessing() {
+        when(resolver.resolve("p-1")).thenReturn(profileManager);
+        when(profileManager.gcManager()).thenReturn(gcManager);
+        when(gcManager.referenceProcessing()).thenReturn(new ReferenceProcessingData(
+                new ReferenceProcessingData.Header(0, 0, 0, null),
+                List.of(), new TimeseriesData(List.of()), List.of()));
+
+        MockMvcTester mvc = mockMvcTesterFor(new GarbageCollectionController(resolver));
+
+        assertThat(mvc.get().uri("/api/internal/profiles/p-1/gc/reference-processing")).hasStatusOk();
     }
 
     private static G1AnalysisData emptyG1Analysis() {

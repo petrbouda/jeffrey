@@ -408,6 +408,14 @@
                           <i class="bi bi-hourglass-split"></i>
                           <span>Finalizers</span>
                         </router-link>
+                        <router-link
+                          :to="`/profiles/${profileId}/garbage-collection/reference-processing`"
+                          class="nav-item nav-subitem"
+                          active-class="active"
+                        >
+                          <i class="bi bi-link-45deg"></i>
+                          <span>Reference Processing</span>
+                        </router-link>
                       </div>
                     </div>
                     <router-link
