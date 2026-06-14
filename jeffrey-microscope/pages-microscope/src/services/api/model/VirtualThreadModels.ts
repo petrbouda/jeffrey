@@ -40,6 +40,13 @@ export interface PinnedThreadStat {
   maxNanos: number;
 }
 
+export interface PinningReasonStat {
+  reason: string;
+  count: number;
+  totalNanos: number;
+  maxNanos: number;
+}
+
 export interface SubmitFailure {
   timeOffsetMillis: number;
   threadName: string;
@@ -51,6 +58,7 @@ export default interface VirtualThreadData {
   pinningTimeline: TimeseriesData;
   pinningDistribution: DurationBucket[];
   topPinnedThreads: PinnedThreadStat[];
+  pinningReasons: PinningReasonStat[];
   submitFailures: SubmitFailure[];
   lifecycle: TimeseriesData;
 }

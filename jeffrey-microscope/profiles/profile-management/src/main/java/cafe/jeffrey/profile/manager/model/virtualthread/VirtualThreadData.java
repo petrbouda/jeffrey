@@ -29,6 +29,7 @@ import java.util.List;
  * @param pinningTimeline     pinning occurrences and total pinned time per second ({@code jdk.VirtualThreadPinned})
  * @param pinningDistribution pinning incidents bucketed by duration
  * @param topPinnedThreads    virtual threads ranked by total pinned time
+ * @param pinningReasons      pinning incidents grouped by reported reason ({@code pinnedReason}, JDK 26+)
  * @param submitFailures      carrier-submit failures ({@code jdk.VirtualThreadSubmitFailed})
  * @param lifecycle           per-second started / ended / live counts
  *                            ({@code jdk.VirtualThreadStart}/{@code jdk.VirtualThreadEnd}); empty unless enabled
@@ -38,6 +39,7 @@ public record VirtualThreadData(
         TimeseriesData pinningTimeline,
         List<DurationBucket> pinningDistribution,
         List<PinnedThreadStat> topPinnedThreads,
+        List<PinningReasonStat> pinningReasons,
         List<SubmitFailure> submitFailures,
         TimeseriesData lifecycle) {
 
@@ -55,6 +57,9 @@ public record VirtualThreadData(
     }
 
     public record PinnedThreadStat(String threadName, long count, long totalNanos, long maxNanos) {
+    }
+
+    public record PinningReasonStat(String reason, long count, long totalNanos, long maxNanos) {
     }
 
     public record SubmitFailure(long timeOffsetMillis, String threadName, String exceptionMessage) {

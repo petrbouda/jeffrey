@@ -80,6 +80,7 @@ public class VirtualThreadManagerImpl implements VirtualThreadManager {
                 pinning.timeline(),
                 pinning.distribution(),
                 pinning.topThreads(),
+                pinning.reasons(),
                 submitFailures,
                 lifecycle.timeline());
     }

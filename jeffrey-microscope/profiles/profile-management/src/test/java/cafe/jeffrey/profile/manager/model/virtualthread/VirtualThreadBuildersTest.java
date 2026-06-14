@@ -24,6 +24,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import cafe.jeffrey.profile.manager.model.virtualthread.VirtualThreadData.DurationBucket;
 import cafe.jeffrey.profile.manager.model.virtualthread.VirtualThreadData.PinnedThreadStat;
+import cafe.jeffrey.profile.manager.model.virtualthread.VirtualThreadData.PinningReasonStat;
 import cafe.jeffrey.profile.manager.model.virtualthread.VirtualThreadData.SubmitFailure;
 import cafe.jeffrey.provider.profile.api.GenericRecord;
 import cafe.jeffrey.shared.common.Json;
@@ -55,6 +56,12 @@ class VirtualThreadBuildersTest {
         return node;
     }
 
+    private static ObjectNode pinned(String thread, String reason) {
+        ObjectNode node = pinned(thread);
+        node.put("pinnedReason", reason);
+        return node;
+    }
+
     @Nested
     @DisplayName("VtPinningBuilder")
     class Pinning {
@@ -83,6 +90,30 @@ class VirtualThreadBuildersTest {
             assertEquals("vt-1", top.get(1).threadName());
             assertEquals(2, top.get(1).count());
             assertEquals("Pinning Events", result.timeline().series().getFirst().name());
+        }
+
+        @Test
+        @DisplayName("Groups pinning incidents by reported reason")
+        void groupsByReason() {
+            VtPinningBuilder builder = new VtPinningBuilder(new RelativeTimeRange(0, 10_000), 10);
+            builder.onRecord(rec(Type.VIRTUAL_THREAD_PINNED, 1, 30 * MS, pinned("vt-1", "Monitor")));
+            builder.onRecord(rec(Type.VIRTUAL_THREAD_PINNED, 1, 60 * MS, pinned("vt-2", "Monitor")));
+            builder.onRecord(rec(Type.VIRTUAL_THREAD_PINNED, 2, 200 * MS, pinned("vt-3", "Native frame")));
+            builder.onRecord(rec(Type.VIRTUAL_THREAD_PINNED, 3, 10 * MS, pinned("vt-4")));
+
+            List<PinningReasonStat> reasons = builder.build().reasons();
+
+            assertEquals(3, reasons.size());
+            assertEquals("Native frame", reasons.getFirst().reason());
+            assertEquals(200 * MS, reasons.getFirst().totalNanos());
+            PinningReasonStat monitor = reasons.stream()
+                    .filter(r -> r.reason().equals("Monitor"))
+                    .findFirst()
+                    .orElseThrow();
+            assertEquals(2, monitor.count());
+            assertEquals(90 * MS, monitor.totalNanos());
+            assertEquals(60 * MS, monitor.maxNanos());
+            assertEquals(1, reasons.stream().filter(r -> r.reason().equals("unknown")).count());
         }
 
         private long bucket(List<DurationBucket> distribution, String label) {

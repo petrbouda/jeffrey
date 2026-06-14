@@ -97,6 +97,42 @@
           </div>
         </div>
 
+        <div class="row mt-4">
+          <div class="col-12">
+            <h6 class="section-title">Pinning by Reason</h6>
+            <div class="table-responsive">
+              <table class="table table-sm table-hover mb-0">
+                <thead>
+                  <tr>
+                    <th>Reason</th>
+                    <th class="text-end">Incidents</th>
+                    <th class="text-end">Total Pinned</th>
+                    <th class="text-end">Max Pinned</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="(r, i) in data!.pinningReasons" :key="i">
+                    <td>{{ r.reason }}</td>
+                    <td class="text-end">{{ FormattingService.formatNumber(r.count) }}</td>
+                    <td class="text-end">
+                      {{ FormattingService.formatDuration2Units(r.totalNanos) }}
+                    </td>
+                    <td class="text-end">
+                      {{ FormattingService.formatDuration2Units(r.maxNanos) }}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <EmptyState
+              v-if="data!.pinningReasons.length === 0"
+              icon="bi-check-circle"
+              title="No pinning recorded"
+              description="The pinnedReason field is reported by JDK 26+ recordings."
+            />
+          </div>
+        </div>
+
         <p class="hint mt-3">
           <i class="bi bi-lightbulb"></i>
           To see <em>where</em> the pinning happens, open the weighted

@@ -21,6 +21,7 @@ package cafe.jeffrey.profile.manager.model.virtualthread;
 import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap;
 import cafe.jeffrey.profile.manager.model.virtualthread.VirtualThreadData.DurationBucket;
 import cafe.jeffrey.profile.manager.model.virtualthread.VirtualThreadData.PinnedThreadStat;
+import cafe.jeffrey.profile.manager.model.virtualthread.VirtualThreadData.PinningReasonStat;
 import cafe.jeffrey.provider.profile.api.GenericRecord;
 import cafe.jeffrey.provider.profile.api.RecordBuilder;
 import cafe.jeffrey.shared.common.Json;
@@ -48,11 +49,14 @@ public class VtPinningBuilder implements RecordBuilder<GenericRecord, VtPinningB
             long maxNanos,
             TimeseriesData timeline,
             List<DurationBucket> distribution,
-            List<PinnedThreadStat> topThreads) {
+            List<PinnedThreadStat> topThreads,
+            List<PinningReasonStat> reasons) {
     }
 
     private static final String EVENT_THREAD_FIELD = "eventThread";
+    private static final String PINNED_REASON_FIELD = "pinnedReason";
     private static final String UNKNOWN_THREAD = "unknown";
+    private static final String UNKNOWN_REASON = "unknown";
     private static final String COUNT_SERIES = "Pinning Events";
     private static final String TIME_SERIES = "Pinned Time";
 
@@ -79,6 +83,7 @@ public class VtPinningBuilder implements RecordBuilder<GenericRecord, VtPinningB
     private final LongLongHashMap timeSeries;
     private final long[] bucketCounts = new long[BUCKET_LABELS.length];
     private final Map<String, ThreadAcc> byThread = new HashMap<>();
+    private final Map<String, ThreadAcc> byReason = new HashMap<>();
     private long count;
     private long totalNanos;
     private long maxNanos;
@@ -108,6 +113,10 @@ public class VtPinningBuilder implements RecordBuilder<GenericRecord, VtPinningB
 
         String thread = Json.readString(record.jsonFields(), EVENT_THREAD_FIELD);
         byThread.computeIfAbsent(thread == null ? UNKNOWN_THREAD : thread, key -> new ThreadAcc()).add(nanos);
+
+        String reason = Json.readString(record.jsonFields(), PINNED_REASON_FIELD);
+        byReason.computeIfAbsent(reason == null || reason.isBlank() ? UNKNOWN_REASON : reason,
+                key -> new ThreadAcc()).add(nanos);
     }
 
     private static int bucketIndex(long nanos) {
@@ -136,7 +145,13 @@ public class VtPinningBuilder implements RecordBuilder<GenericRecord, VtPinningB
                 .limit(maxThreads)
                 .toList();
 
+        List<PinningReasonStat> reasons = byReason.entrySet().stream()
+                .map(entry -> new PinningReasonStat(
+                        entry.getKey(), entry.getValue().count, entry.getValue().total, entry.getValue().max))
+                .sorted(Comparator.comparingLong(PinningReasonStat::totalNanos).reversed())
+                .toList();
+
         return new Result(count, totalNanos, maxNanos, new TimeseriesData(countSerie, timeSerie),
-                distribution, topThreads);
+                distribution, topThreads, reasons);
     }
 }

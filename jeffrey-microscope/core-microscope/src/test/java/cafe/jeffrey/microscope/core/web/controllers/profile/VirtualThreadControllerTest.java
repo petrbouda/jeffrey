@@ -79,6 +79,7 @@ class VirtualThreadControllerTest {
                 List.of(),
                 List.of(),
                 List.of(),
+                List.of(),
                 TimeseriesData.empty());
     }
 }
