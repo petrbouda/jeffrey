@@ -21,6 +21,8 @@ import GCOverviewData from '@/services/api/model/GCOverviewData';
 import GCConfigurationData from '@/services/api/model/GCConfigurationData';
 import GCTimeseriesType from '@/services/api/model/GCTimeseriesType';
 import TimeseriesData from '@/services/timeseries/model/TimeseriesData';
+import type GCPhaseParallelAggregate from '@/services/api/model/GCPhaseParallelAggregate';
+import type G1PlabStatistics from '@/services/api/model/G1PlabStatistics';
 import type { IhopData, TenuringData } from '@/services/api/model/GCTuningModels';
 import type G1AnalysisData from '@/services/api/model/G1AnalysisData';
 import type ZgcAnalysisData from '@/services/api/model/ZgcAnalysisData';
@@ -70,5 +72,13 @@ export default class ProfileGCClient extends BaseProfileClient {
 
   public getReferenceProcessing(): Promise<ReferenceProcessingData> {
     return this.get<ReferenceProcessingData>('/reference-processing');
+  }
+
+  public getPhaseParallel(): Promise<GCPhaseParallelAggregate[]> {
+    return this.get<GCPhaseParallelAggregate[]>('/phase-parallel');
+  }
+
+  public getPlabStatistics(): Promise<G1PlabStatistics[]> {
+    return this.get<G1PlabStatistics[]>('/plab-statistics');
   }
 }

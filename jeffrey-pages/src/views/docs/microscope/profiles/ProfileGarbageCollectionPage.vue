@@ -34,6 +34,8 @@ const headings = [
   { id: 'tenuring', text: 'Promotion & Tenuring', level: 2 },
   { id: 'ihop', text: 'G1 IHOP & CPU', level: 2 },
   { id: 'reference-processing', text: 'Reference Processing', level: 2 },
+  { id: 'sub-phases', text: 'Sub-Phases', level: 2 },
+  { id: 'plab', text: 'G1 PLAB Statistics', level: 2 },
   { id: 'pause-types', text: 'Pause Types Reference', level: 2 }
 ];
 
@@ -81,6 +83,12 @@ onMounted(() => {
 
       <h2 id="reference-processing">Reference Processing</h2>
       <p>A dedicated page (under <strong>Garbage Collection → Reference Processing</strong>) for <code>jdk.GCReferenceStatistics</code> — the count of Soft, Weak, Final and Phantom references each collection processes. On JDK 26 the event carries only the processed count per type and the GC id (no per-phase time), so the views are count-based: a stacked-by-type <strong>timeline</strong> (Soft-reference bursts track heap-pressure episodes; rising Final/Phantom volume points at finalizer/cleaner load), a <strong>by-type</strong> totals/averages table, and a <strong>per-GC</strong> breakdown ranking the collections that processed the most references.</p>
+
+      <h2 id="sub-phases">Sub-Phases</h2>
+      <p>A breakdown of the parallel sub-phases that make up stop-the-world pauses (<code>jdk.GCPhaseParallel</code>) — e.g. Ext Root Scanning, Object Copy, Termination — aggregated by phase name across all GC worker threads and collections, with count, total/average/max time and share of total. Find which sub-phase dominates a pause: heavy Object Copy points at high promotion volume, heavy Termination at worker load imbalance. The event is off in many GC configurations, so this tab may be empty.</p>
+
+      <h2 id="plab">G1 PLAB Statistics</h2>
+      <p>For the G1 collector: per-evacuation promotion-buffer (PLAB) statistics from <code>jdk.G1EvacuationYoungStatistics</code> and <code>jdk.G1EvacuationOldStatistics</code>. PLABs are the thread-local buffers G1 uses to copy surviving objects during a collection; each row shows the GC id, generation (young/old), bytes allocated for PLABs, bytes actually used, total wasted bytes (alignment + refill + undo + evacuation-failure waste) and the resulting waste percentage, plus direct allocations, regions refilled and PLABs filled. A high waste percentage means PLABs are poorly sized (tune <code>-XX:+ResizePLAB</code> / the PLAB-size flags); non-zero failure bytes signal to-space exhaustion (evacuation failure), the usual cause of surprise Full GCs. These events are in the JFR <em>Detailed</em> category and off in most recording configs, so the tab is empty unless they were explicitly enabled under G1.</p>
 
       <h2 id="pause-types">Pause Types Reference</h2>
       <p>A searchable, category-filterable reference for every GC cause the JVM may emit. Use the search input to filter by cause name, or click the category chips to narrow to a single group:</p>

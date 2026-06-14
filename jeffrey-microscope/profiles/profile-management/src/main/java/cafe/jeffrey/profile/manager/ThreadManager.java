@@ -20,6 +20,7 @@ package cafe.jeffrey.profile.manager;
 
 import cafe.jeffrey.shared.common.model.ProfileInfo;
 import cafe.jeffrey.shared.common.model.Type;
+import cafe.jeffrey.profile.manager.model.thread.ReservedStackActivation;
 import cafe.jeffrey.profile.manager.model.thread.ThreadCpuLoads;
 import cafe.jeffrey.profile.manager.model.thread.ThreadStats;
 import cafe.jeffrey.profile.manager.model.thread.dump.ParsedDump;
@@ -61,4 +62,10 @@ public interface ThreadManager {
      * viewer. Returns an empty dump when the index is out of range.
      */
     ParsedDump threadDump(int index);
+
+    /**
+     * Reserved-stack activations ({@code jdk.ReservedStackActivation}) in time order — stack-overflow
+     * near-misses in {@code @ReservedStackAccess} methods. Empty in the common (healthy) case.
+     */
+    List<ReservedStackActivation> reservedStackActivations();
 }

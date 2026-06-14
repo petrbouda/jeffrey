@@ -90,6 +90,17 @@ class ThreadControllerTest {
     }
 
     @Test
+    void getsReservedStackActivations() {
+        when(resolver.resolve("p-1")).thenReturn(profileManager);
+        when(profileManager.threadManager()).thenReturn(threadManager);
+        when(threadManager.reservedStackActivations()).thenReturn(List.of());
+
+        MockMvcTester mvc = mockMvcTesterFor(new ThreadController(resolver));
+
+        assertThat(mvc.get().uri("/api/internal/profiles/p-1/thread/reserved-stack")).hasStatusOk();
+    }
+
+    @Test
     void profileNotFoundReturns404() {
         when(resolver.resolve("ghost")).thenThrow(Exceptions.profileNotFound("ghost"));
 

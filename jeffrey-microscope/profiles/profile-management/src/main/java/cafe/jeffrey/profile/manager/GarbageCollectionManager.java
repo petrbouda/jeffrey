@@ -20,6 +20,8 @@ package cafe.jeffrey.profile.manager;
 
 import cafe.jeffrey.profile.common.event.GarbageCollectorType;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
+import cafe.jeffrey.profile.manager.model.gc.G1PlabStatistics;
+import cafe.jeffrey.profile.manager.model.gc.GCPhaseParallelAggregate;
 import cafe.jeffrey.profile.manager.model.gc.GCTimeseriesType;
 import cafe.jeffrey.profile.manager.model.gc.configuration.GCConfigurationData;
 import cafe.jeffrey.profile.manager.model.gc.GCOverviewData;
@@ -32,6 +34,7 @@ import cafe.jeffrey.profile.manager.model.gc.tuning.TenuringData;
 import cafe.jeffrey.profile.manager.model.gc.zgc.ZgcAnalysisData;
 import cafe.jeffrey.timeseries.TimeseriesData;
 
+import java.util.List;
 import java.util.function.Function;
 
 public interface GarbageCollectionManager {
@@ -94,4 +97,19 @@ public interface GarbageCollectionManager {
      * reference counts as per-type totals, a per-second timeline, and a per-collection breakdown.
      */
     ReferenceProcessingData referenceProcessing();
+
+    /**
+     * Parallel GC sub-phase breakdown ({@code jdk.GCPhaseParallel}) aggregated by phase name across all
+     * worker threads and collections, longest total first. Empty when the event is not recorded
+     * (parallel-phase detail is off in many configs).
+     */
+    List<GCPhaseParallelAggregate> phaseParallel();
+
+    /**
+     * G1 PLAB (promotion-buffer) evacuation statistics, per young/old evacuation
+     * ({@code jdk.G1EvacuationYoungStatistics} / {@code jdk.G1EvacuationOldStatistics}) — allocated vs.
+     * wasted buffer bytes and waste %. Empty for non-G1 recordings or when the (Detailed-category)
+     * events are not enabled.
+     */
+    List<G1PlabStatistics> plabStatistics();
 }

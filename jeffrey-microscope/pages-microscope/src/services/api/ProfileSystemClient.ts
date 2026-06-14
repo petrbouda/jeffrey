@@ -18,7 +18,13 @@
 
 import BaseProfileClient from '@/services/api/BaseProfileClient';
 import TimeseriesData from '@/services/timeseries/model/TimeseriesData';
-import type { SystemOverview, SystemProcessInfo } from '@/services/api/model/SystemModels';
+import type {
+  LaunchedProcessInfo,
+  ModuleEdge,
+  ModuleExport,
+  SystemOverview,
+  SystemProcessInfo
+} from '@/services/api/model/SystemModels';
 
 export default class ProfileSystemClient extends BaseProfileClient {
   constructor(profileId: string) {
@@ -47,5 +53,21 @@ export default class ProfileSystemClient extends BaseProfileClient {
 
   public getProcesses(): Promise<SystemProcessInfo[]> {
     return this.get<SystemProcessInfo[]>('/processes');
+  }
+
+  public getSwapTimeline(): Promise<TimeseriesData> {
+    return this.get<TimeseriesData>('/swap/timeline');
+  }
+
+  public getLaunchedProcesses(): Promise<LaunchedProcessInfo[]> {
+    return this.get<LaunchedProcessInfo[]>('/launched-processes');
+  }
+
+  public getModuleRequires(): Promise<ModuleEdge[]> {
+    return this.get<ModuleEdge[]>('/modules/requires');
+  }
+
+  public getModuleExports(): Promise<ModuleExport[]> {
+    return this.get<ModuleExport[]>('/modules/exports');
   }
 }

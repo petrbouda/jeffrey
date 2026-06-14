@@ -26,6 +26,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
 import cafe.jeffrey.profile.manager.IoManager;
+import cafe.jeffrey.profile.manager.model.io.FileForceStats;
 import cafe.jeffrey.profile.manager.model.io.IoEndpoint;
 import cafe.jeffrey.profile.manager.model.io.IoKind;
 import cafe.jeffrey.profile.manager.model.io.IoOperation;
@@ -74,6 +75,12 @@ public class IoController {
     public List<IoEndpoint> directories(@PathVariable("profileId") String profileId) {
         LOG.debug("Fetching file I/O directories");
         return mgr(profileId).directories();
+    }
+
+    @GetMapping("/file/force")
+    public FileForceStats fileForce(@PathVariable("profileId") String profileId) {
+        LOG.debug("Fetching file force (fsync) stats");
+        return mgr(profileId).fileForce();
     }
 
     private IoManager mgr(String profileId) {

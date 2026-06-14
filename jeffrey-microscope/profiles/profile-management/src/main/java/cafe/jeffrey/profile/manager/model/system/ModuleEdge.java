@@ -16,36 +16,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-/** CPU values are basis points (percent x 100), e.g. 442 = 4.42%. */
-export interface SystemOverview {
-  avgMachineCpuBp: number;
-  maxMachineCpuBp: number;
-  avgJvmCpuBp: number;
-  avgOtherCpuBp: number;
-  maxContextSwitchRateHz: number;
-  processCount: number;
-  networkInterfaceCount: number;
-}
+package cafe.jeffrey.profile.manager.model.system;
 
-export interface SystemProcessInfo {
-  pid: string;
-  commandLine: string;
-}
-
-export interface LaunchedProcessInfo {
-  timeOffsetMillis: number;
-  pid: number;
-  command: string | null;
-  directory: string | null;
-  thread: string | null;
-}
-
-export interface ModuleEdge {
-  source: string | null;
-  required: string | null;
-}
-
-export interface ModuleExport {
-  packageName: string | null;
-  targetModule: string | null;
+/**
+ * A module dependency edge from {@code jdk.ModuleRequire}: {@code source} requires {@code required}.
+ * The unnamed module is represented as {@code null}.
+ */
+public record ModuleEdge(String source, String required) {
 }

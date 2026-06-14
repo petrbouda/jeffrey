@@ -26,6 +26,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
 import cafe.jeffrey.profile.manager.ThreadManager;
+import cafe.jeffrey.profile.manager.model.thread.ReservedStackActivation;
 import cafe.jeffrey.profile.manager.model.thread.ThreadCpuLoads;
 import cafe.jeffrey.profile.manager.model.thread.ThreadStats;
 import cafe.jeffrey.profile.manager.model.thread.ThreadWithCpuLoad;
@@ -96,6 +97,12 @@ public class ThreadController {
             @PathVariable("index") int index) {
         LOG.debug("Fetching thread dump: index={}", index);
         return mgr(profileId).threadDump(index);
+    }
+
+    @GetMapping("/reserved-stack")
+    public List<ReservedStackActivation> reservedStack(@PathVariable("profileId") String profileId) {
+        LOG.debug("Fetching reserved-stack activations");
+        return mgr(profileId).reservedStackActivations();
     }
 
     private ThreadManager mgr(String profileId) {

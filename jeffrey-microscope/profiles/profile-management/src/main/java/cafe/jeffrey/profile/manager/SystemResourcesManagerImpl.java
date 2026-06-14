@@ -21,8 +21,15 @@ package cafe.jeffrey.profile.manager;
 import cafe.jeffrey.profile.manager.model.system.ContextSwitchTimeseriesBuilder;
 import cafe.jeffrey.profile.manager.model.system.CpuLoadStatsBuilder;
 import cafe.jeffrey.profile.manager.model.system.CpuLoadTimeseriesBuilder;
+import cafe.jeffrey.profile.manager.model.system.LaunchedProcessInfo;
+import cafe.jeffrey.profile.manager.model.system.LaunchedProcessesBuilder;
+import cafe.jeffrey.profile.manager.model.system.ModuleEdge;
+import cafe.jeffrey.profile.manager.model.system.ModuleExport;
+import cafe.jeffrey.profile.manager.model.system.ModuleExportsBuilder;
+import cafe.jeffrey.profile.manager.model.system.ModuleRequiresBuilder;
 import cafe.jeffrey.profile.manager.model.system.NetworkInterfacesBuilder;
 import cafe.jeffrey.profile.manager.model.system.NetworkRateTimeseriesBuilder;
+import cafe.jeffrey.profile.manager.model.system.SwapTimeseriesBuilder;
 import cafe.jeffrey.profile.manager.model.system.SystemOverview;
 import cafe.jeffrey.profile.manager.model.system.SystemProcessInfo;
 import cafe.jeffrey.profile.manager.model.system.SystemProcessesBuilder;
@@ -119,6 +126,44 @@ public class SystemResourcesManagerImpl implements SystemResourcesManager {
                 .orderedByTime();
 
         return eventStreamRepository.genericStreaming(configurer, new SystemProcessesBuilder());
+    }
+
+    @Override
+    public TimeseriesData swapTimeline() {
+        RelativeTimeRange timeRange = new RelativeTimeRange(profileInfo.profilingStartEnd());
+        EventQueryConfigurer configurer = new EventQueryConfigurer()
+                .withEventType(Type.SWAP_SPACE)
+                .withJsonFields();
+
+        return eventStreamRepository.genericStreaming(configurer, new SwapTimeseriesBuilder(timeRange));
+    }
+
+    @Override
+    public List<LaunchedProcessInfo> launchedProcesses() {
+        EventQueryConfigurer configurer = new EventQueryConfigurer()
+                .withEventType(Type.PROCESS_START)
+                .withJsonFields()
+                .orderedByTime();
+
+        return eventStreamRepository.genericStreaming(configurer, new LaunchedProcessesBuilder());
+    }
+
+    @Override
+    public List<ModuleEdge> moduleRequires() {
+        EventQueryConfigurer configurer = new EventQueryConfigurer()
+                .withEventType(Type.MODULE_REQUIRE)
+                .withJsonFields();
+
+        return eventStreamRepository.genericStreaming(configurer, new ModuleRequiresBuilder());
+    }
+
+    @Override
+    public List<ModuleExport> moduleExports() {
+        EventQueryConfigurer configurer = new EventQueryConfigurer()
+                .withEventType(Type.MODULE_EXPORT)
+                .withJsonFields();
+
+        return eventStreamRepository.genericStreaming(configurer, new ModuleExportsBuilder());
     }
 
     private static long maxSerieValue(TimeseriesData data) {

@@ -30,7 +30,9 @@ const headings = [
   { id: 'cpu', text: 'CPU', level: 2 },
   { id: 'network', text: 'Network', level: 2 },
   { id: 'context-switches', text: 'Context Switches', level: 2 },
+  { id: 'swap', text: 'Swap', level: 2 },
   { id: 'host-processes', text: 'Host Processes', level: 2 },
+  { id: 'modules', text: 'Modules', level: 2 },
   { id: 'events', text: 'Source Events', level: 2 }
 ];
 
@@ -65,8 +67,14 @@ onMounted(() => {
       <h2 id="context-switches">Context Switches</h2>
       <p>Thread context switches per second from <code>jdk.ThreadContextSwitchRate</code>. A persistently high rate signals thread oversubscription or heavy lock churn — threads spending their quantum fighting for the scheduler rather than doing work.</p>
 
+      <h2 id="swap">Swap</h2>
+      <p>OS swap space — total and in-use bytes over the recording, from periodic <code>jdk.SwapSpace</code> samples. Rising used-swap on a JVM host is a red flag: paging heap pages to disk turns ordinary GC into multi-second stalls. Ideally the used line stays flat near zero. (Swap tracking is platform-dependent, so the tab may be empty.)</p>
+
       <h2 id="host-processes">Host Processes</h2>
-      <p>The other processes running on the host during the recording, from periodic <code>jdk.SystemProcess</code> snapshots (latest snapshot per pid). This is where the noisy neighbor gets a name.</p>
+      <p>The other processes running on the host during the recording, from periodic <code>jdk.SystemProcess</code> snapshots (latest snapshot per pid) — this is where the noisy neighbor gets a name. A second table lists subprocesses the JVM itself launched during the recording (<code>jdk.ProcessStart</code>), with command, working directory and the launching thread.</p>
+
+      <h2 id="modules">Modules</h2>
+      <p>The startup module graph: module dependencies from <code>jdk.ModuleRequire</code> (source module → required module) and package exports from <code>jdk.ModuleExport</code> (exported package → target module, or unqualified). Useful for auditing the runtime module set or chasing module-resolution / illegal-access issues.</p>
 
       <h2 id="events">Source Events</h2>
       <ul>
@@ -74,6 +82,9 @@ onMounted(() => {
         <li><code>jdk.NetworkUtilization</code> — per-interface read/write rates.</li>
         <li><code>jdk.ThreadContextSwitchRate</code> — OS context switches per second.</li>
         <li><code>jdk.SystemProcess</code> — processes running on the host.</li>
+        <li><code>jdk.ProcessStart</code> — subprocesses the JVM launched (pid, command, directory).</li>
+        <li><code>jdk.SwapSpace</code> — periodic OS swap total/free.</li>
+        <li><code>jdk.ModuleRequire</code> / <code>jdk.ModuleExport</code> — the startup module dependency/export graph.</li>
       </ul>
     </div>
 

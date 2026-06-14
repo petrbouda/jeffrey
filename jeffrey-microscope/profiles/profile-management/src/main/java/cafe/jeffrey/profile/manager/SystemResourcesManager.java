@@ -18,6 +18,9 @@
 
 package cafe.jeffrey.profile.manager;
 
+import cafe.jeffrey.profile.manager.model.system.LaunchedProcessInfo;
+import cafe.jeffrey.profile.manager.model.system.ModuleEdge;
+import cafe.jeffrey.profile.manager.model.system.ModuleExport;
 import cafe.jeffrey.profile.manager.model.system.SystemOverview;
 import cafe.jeffrey.profile.manager.model.system.SystemProcessInfo;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
@@ -68,4 +71,25 @@ public interface SystemResourcesManager {
      * Host processes observed alongside the JVM (latest snapshot per pid).
      */
     List<SystemProcessInfo> processes();
+
+    /**
+     * OS swap-space timeline (total and used bytes) from {@code jdk.SwapSpace}. Empty when swap tracking
+     * is unavailable on the host.
+     */
+    TimeseriesData swapTimeline();
+
+    /**
+     * Subprocesses the JVM launched during the recording, from {@code jdk.ProcessStart}, in time order.
+     */
+    List<LaunchedProcessInfo> launchedProcesses();
+
+    /**
+     * Module dependency edges from {@code jdk.ModuleRequire} (source requires required), de-duplicated.
+     */
+    List<ModuleEdge> moduleRequires();
+
+    /**
+     * Package exports from {@code jdk.ModuleExport} (package exported to target, or unqualified).
+     */
+    List<ModuleExport> moduleExports();
 }

@@ -48,7 +48,13 @@
             <TableToolbar v-model="filesView.query" search-placeholder="Filter files...">
               <span class="toolbar-info">Files</span>
               <template #filters>
-                <Badge key-label="Total" :value="filesView.matchCount" variant="secondary" size="s" borderless />
+                <Badge
+                  key-label="Total"
+                  :value="filesView.matchCount"
+                  variant="secondary"
+                  size="s"
+                  borderless
+                />
               </template>
             </TableToolbar>
           </template>
@@ -72,10 +78,15 @@
               <td class="text-end">{{ FormattingService.formatBytes(file.bytes) }}</td>
               <td>
                 <div class="share-bar">
-                  <div class="share-bar-fill" :style="{ width: shareWidth(file.bytes, maxFileBytes) + '%' }"></div>
+                  <div
+                    class="share-bar-fill"
+                    :style="{ width: shareWidth(file.bytes, maxFileBytes) + '%' }"
+                  ></div>
                 </div>
               </td>
-              <td class="text-end">{{ FormattingService.formatDuration2Units(file.totalNanos) }}</td>
+              <td class="text-end">
+                {{ FormattingService.formatDuration2Units(file.totalNanos) }}
+              </td>
               <td class="text-end">{{ FormattingService.formatDuration2Units(file.maxNanos) }}</td>
             </tr>
           </tbody>
@@ -102,10 +113,19 @@
         />
         <DataTable v-else>
           <template #toolbar>
-            <TableToolbar v-model="directoriesView.query" search-placeholder="Filter directories...">
+            <TableToolbar
+              v-model="directoriesView.query"
+              search-placeholder="Filter directories..."
+            >
               <span class="toolbar-info">By directory</span>
               <template #filters>
-                <Badge key-label="Total" :value="directoriesView.matchCount" variant="secondary" size="s" borderless />
+                <Badge
+                  key-label="Total"
+                  :value="directoriesView.matchCount"
+                  variant="secondary"
+                  size="s"
+                  borderless
+                />
               </template>
             </TableToolbar>
           </template>
@@ -126,7 +146,10 @@
               <td class="text-end">{{ FormattingService.formatBytes(dir.bytes) }}</td>
               <td>
                 <div class="share-bar">
-                  <div class="share-bar-fill" :style="{ width: shareWidth(dir.bytes, maxDirBytes) + '%' }"></div>
+                  <div
+                    class="share-bar-fill"
+                    :style="{ width: shareWidth(dir.bytes, maxDirBytes) + '%' }"
+                  ></div>
                 </div>
               </td>
               <td class="text-end">{{ FormattingService.formatDuration2Units(dir.totalNanos) }}</td>
@@ -159,7 +182,13 @@
             <TableToolbar v-model="slowestView.query" search-placeholder="Filter operations...">
               <span class="toolbar-info">Slowest operations</span>
               <template #filters>
-                <Badge key-label="Showing" :value="slowestView.matchCount" variant="secondary" size="s" borderless />
+                <Badge
+                  key-label="Showing"
+                  :value="slowestView.matchCount"
+                  variant="secondary"
+                  size="s"
+                  borderless
+                />
               </template>
             </TableToolbar>
           </template>
@@ -174,10 +203,14 @@
           </thead>
           <tbody>
             <tr v-for="(op, index) in slowestView.visible" :key="index">
-              <td><Badge :value="op.kind" :variant="kindVariant(op.kind)" size="xs" borderless /></td>
+              <td>
+                <Badge :value="op.kind" :variant="kindVariant(op.kind)" size="xs" borderless />
+              </td>
               <td class="target-cell" :title="op.target">{{ op.target }}</td>
               <td class="text-end">{{ FormattingService.formatBytes(op.bytes) }}</td>
-              <td class="text-end">{{ FormattingService.formatDuration2Units(op.durationNanos) }}</td>
+              <td class="text-end">
+                {{ FormattingService.formatDuration2Units(op.durationNanos) }}
+              </td>
               <td class="text-muted">{{ op.thread ?? '—' }}</td>
             </tr>
           </tbody>
@@ -194,6 +227,80 @@
         </DataTable>
       </div>
 
+      <!-- Fsync -->
+      <div v-show="activeTab === 'fsync'">
+        <ChartDescription
+          shows="File force (fsync) operations from jdk.FileForce — flushing buffered writes (and optionally metadata) durably to disk. Unlike reads/writes, force carries no bytes, only latency."
+          use-case="Slow or frequent fsyncs are a classic durability bottleneck (commit logs, databases, flush-on-every-write). A high metadata-flush share means extra inode updates."
+        />
+        <EmptyState
+          v-if="!fileForce || fileForce.count === 0"
+          icon="bi-arrow-repeat"
+          title="No fsync operations recorded"
+          description="This recording has no jdk.FileForce events (often disabled by default)."
+        />
+        <div v-else>
+          <div class="mb-4">
+            <StatsTable :metrics="forceMetrics" />
+          </div>
+          <DataTable>
+            <template #toolbar>
+              <TableToolbar v-model="forceView.query" search-placeholder="Filter forces...">
+                <span class="toolbar-info">Slowest forces</span>
+                <template #filters>
+                  <Badge
+                    key-label="Showing"
+                    :value="forceView.matchCount"
+                    variant="secondary"
+                    size="s"
+                    borderless
+                  />
+                </template>
+              </TableToolbar>
+            </template>
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>File</th>
+                <th>Flush</th>
+                <th class="text-end">Duration</th>
+                <th>Thread</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(op, index) in forceView.visible" :key="index">
+                <td>
+                  {{ FormattingService.formatDuration2Units(op.timeOffsetMillis * 1_000_000) }}
+                </td>
+                <td class="target-cell" :title="op.path ?? ''">{{ op.path ?? '—' }}</td>
+                <td>
+                  <Badge
+                    :value="op.metaData ? 'data + metadata' : 'data'"
+                    :variant="op.metaData ? 'warning' : 'secondary'"
+                    size="xs"
+                    borderless
+                  />
+                </td>
+                <td class="text-end">
+                  {{ FormattingService.formatDuration2Units(op.durationNanos) }}
+                </td>
+                <td class="text-muted">{{ op.thread ?? '—' }}</td>
+              </tr>
+            </tbody>
+            <template #footer>
+              <TableShowMore
+                :shown="forceView.visible.length"
+                :match-count="forceView.matchCount"
+                :total="forceView.total"
+                :expanded="forceView.expanded"
+                :page-size="forceView.pageSize"
+                @toggle="forceView.toggle"
+              />
+            </template>
+          </DataTable>
+        </div>
+      </div>
+
       <!-- How It Works -->
       <div v-show="activeTab === 'about'">
         <AboutPanel
@@ -203,29 +310,29 @@
         >
           <AboutCallout variant="intro">
             <p>
-              A file read or write blocks the calling thread until the OS satisfies it — instantly from
-              the page cache, or slowly from disk on a cache miss or <code>fsync</code>. This page
-              attributes that wait to the files and directories your application touches.
+              A file read or write blocks the calling thread until the OS satisfies it — instantly
+              from the page cache, or slowly from disk on a cache miss or <code>fsync</code>. This
+              page attributes that wait to the files and directories your application touches.
             </p>
           </AboutCallout>
 
           <AboutSection icon="bi-hdd" title="What the Views Show">
             <FeatureGrid>
               <FeatureCard icon="bi-graph-up" variant="primary" title="Throughput">
-                Bytes read vs written per second. Heavy sustained writes can mean logging or flushing;
-                heavy reads on the same files suggest a missing in-memory cache.
+                Bytes read vs written per second. Heavy sustained writes can mean logging or
+                flushing; heavy reads on the same files suggest a missing in-memory cache.
               </FeatureCard>
               <FeatureCard icon="bi-file-earmark" variant="info" title="Top Files">
                 Individual files ranked by bytes, with a share bar. A single file dominating is the
                 cue to cache it, batch writes, or move it off the hot path.
               </FeatureCard>
               <FeatureCard icon="bi-folder" variant="success" title="By Directory">
-                The same I/O rolled up per parent directory — surfaces a hot log dir or data dir even
-                when it's spread across many rotating files.
+                The same I/O rolled up per parent directory — surfaces a hot log dir or data dir
+                even when it's spread across many rotating files.
               </FeatureCard>
               <FeatureCard icon="bi-hourglass-split" variant="warning" title="Slowest Operations">
-                Individual reads/writes by duration. A slow write is often an <code>fsync</code>/flush;
-                a slow read is a page-cache miss hitting the disk.
+                Individual reads/writes by duration. A slow write is often an
+                <code>fsync</code>/flush; a slow read is a page-cache miss hitting the disk.
               </FeatureCard>
             </FeatureGrid>
           </AboutSection>
@@ -233,10 +340,16 @@
           <AboutSection icon="bi-broadcast" title="How JFR Emits This">
             <ul>
               <li>
-                <code>jdk.FileRead</code> — path, <code>bytesRead</code>, an end-of-stream flag and the
-                operation <code>duration</code>.
+                <code>jdk.FileRead</code> — path, <code>bytesRead</code>, an end-of-stream flag and
+                the operation <code>duration</code>.
               </li>
-              <li><code>jdk.FileWrite</code> — path and <code>bytesWritten</code> with duration.</li>
+              <li>
+                <code>jdk.FileWrite</code> — path and <code>bytesWritten</code> with duration.
+              </li>
+              <li>
+                <code>jdk.FileForce</code> — an fsync: path, a <code>metaData</code> flag and the
+                flush <code>duration</code> (no byte count). Powers the Fsync tab.
+              </li>
             </ul>
             <p>
               Both are <strong>threshold-gated</strong> and frequently disabled in default recording
@@ -275,7 +388,13 @@ import FormattingService from '@/services/FormattingService';
 import AxisFormatType from '@/services/timeseries/AxisFormatType';
 import { useTableView } from '@/composables/useTableView';
 import ProfileFileIoClient from '@/services/api/ProfileFileIoClient';
-import type { IoEndpoint, IoOperation, IoOverview } from '@/services/api/model/IoModels';
+import type {
+  FileForceOp,
+  FileForceStats,
+  IoEndpoint,
+  IoOperation,
+  IoOverview
+} from '@/services/api/model/IoModels';
 import type { Variant } from '@/types/ui';
 import type TimeseriesData from '@/services/timeseries/model/TimeseriesData';
 
@@ -289,15 +408,21 @@ const timeline = ref<TimeseriesData>();
 const slowest = ref<IoOperation[]>([]);
 const files = ref<IoEndpoint[]>([]);
 const directories = ref<IoEndpoint[]>([]);
+const fileForce = ref<FileForceStats>();
+
+const forceSlowest = computed<FileForceOp[]>(() => fileForce.value?.slowest ?? []);
+const forceView = useTableView<FileForceOp>(forceSlowest, {
+  searchableText: r => `${r.path ?? ''} ${r.thread ?? ''}`
+});
 
 const slowestView = useTableView<IoOperation>(slowest, {
-  searchableText: (r) => `${r.target} ${r.thread ?? ''}`
+  searchableText: r => `${r.target} ${r.thread ?? ''}`
 });
 const filesView = useTableView<IoEndpoint>(files, {
-  searchableText: (r) => r.target
+  searchableText: r => r.target
 });
 const directoriesView = useTableView<IoEndpoint>(directories, {
-  searchableText: (r) => r.target
+  searchableText: r => r.target
 });
 
 const activeTab = ref('throughput');
@@ -329,8 +454,50 @@ const tabs = computed<TabBarItem[]>(() => [
     icon: 'hourglass-split',
     badge: slowest.value.length || undefined
   },
+  {
+    id: 'fsync',
+    label: 'Fsync',
+    icon: 'arrow-repeat',
+    badge: fileForce.value?.count || undefined
+  },
   { id: 'about', label: 'How It Works', icon: 'book' }
 ]);
+
+const forceMetrics = computed(() => {
+  const f = fileForce.value;
+  if (!f) {
+    return [];
+  }
+  return [
+    {
+      icon: 'arrow-repeat',
+      title: 'Force Operations',
+      value: FormattingService.formatNumber(f.count),
+      variant: 'highlight' as const,
+      breakdown: [
+        { label: 'Metadata Flushes', value: FormattingService.formatNumber(f.metadataCount) }
+      ]
+    },
+    {
+      icon: 'hourglass-split',
+      title: 'Avg Latency',
+      value: FormattingService.formatDuration2Units(f.avgNanos),
+      variant: 'info' as const
+    },
+    {
+      icon: 'hourglass-bottom',
+      title: 'Max Latency',
+      value: FormattingService.formatDuration2Units(f.maxNanos),
+      variant: 'warning' as const
+    },
+    {
+      icon: 'clock-history',
+      title: 'Total Time',
+      value: FormattingService.formatDuration2Units(f.totalNanos),
+      variant: 'success' as const
+    }
+  ];
+});
 
 const kindVariant = (kind: string): Variant => (kind.includes('Write') ? 'warning' : 'info');
 
@@ -385,20 +552,28 @@ onMounted(async () => {
     const profileId = route.params.profileId as string;
     const client = new ProfileFileIoClient(profileId);
 
-    const [overviewResult, timelineResult, slowestResult, filesResult, directoriesResult] =
-      await Promise.all([
-        client.getOverview(),
-        client.getTimeline(),
-        client.getSlowest(),
-        client.getFiles(),
-        client.getDirectories()
-      ]);
+    const [
+      overviewResult,
+      timelineResult,
+      slowestResult,
+      filesResult,
+      directoriesResult,
+      forceResult
+    ] = await Promise.all([
+      client.getOverview(),
+      client.getTimeline(),
+      client.getSlowest(),
+      client.getFiles(),
+      client.getDirectories(),
+      client.getForce()
+    ]);
 
     overview.value = overviewResult;
     timeline.value = timelineResult;
     slowest.value = slowestResult;
     files.value = filesResult;
     directories.value = directoriesResult;
+    fileForce.value = forceResult;
 
     loading.value = false;
   } catch (e) {
