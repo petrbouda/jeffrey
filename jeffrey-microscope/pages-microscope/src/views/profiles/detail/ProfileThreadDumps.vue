@@ -42,59 +42,6 @@
 
       <TabBar v-model="activeTab" :tabs="tabs" class="mb-3" />
 
-      <!-- Timeline -->
-      <div v-show="activeTab === 'timeline'">
-        <ChartDescription
-          shows="Thread counts by state across the periodic dumps (carried forward between samples)"
-          use-case="A BLOCKED spike is a lock storm; a steadily climbing total is a thread leak; a pool full of WAITING is an idle pool"
-        />
-        <div class="chart-container">
-          <div id="thread-dump-state-chart"></div>
-        </div>
-      </div>
-
-      <!-- Activity -->
-      <div v-show="activeTab === 'activity'">
-        <ChartDescription
-          shows="The stack frames threads sit at most often, across all dumps"
-          use-case="Many threads at the same frame reveal idle pools (parked), I/O waits, or a genuine hotspot"
-        />
-        <DataTable>
-          <template #toolbar>
-            <TableToolbar v-model="framesView.query" search-placeholder="Filter frames...">
-              <span class="toolbar-info">Top frames</span>
-              <template #filters>
-                <Badge key-label="Frames" :value="framesView.matchCount" variant="secondary" size="s" borderless />
-              </template>
-            </TableToolbar>
-          </template>
-          <thead>
-            <tr>
-              <th>Frame</th>
-              <th class="text-end">Occurrences</th>
-              <th class="text-end">Distinct Threads</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="(f, i) in framesView.visible" :key="i">
-              <td><code>{{ f.frame }}</code></td>
-              <td class="text-end">{{ FormattingService.formatNumber(f.occurrences) }}</td>
-              <td class="text-end">{{ FormattingService.formatNumber(f.distinctThreads) }}</td>
-            </tr>
-          </tbody>
-          <template #footer>
-            <TableShowMore
-              :shown="framesView.visible.length"
-              :match-count="framesView.matchCount"
-              :total="framesView.total"
-              :expanded="framesView.expanded"
-              :page-size="framesView.pageSize"
-              @toggle="framesView.toggle"
-            />
-          </template>
-        </DataTable>
-      </div>
-
       <!-- Locks & Deadlocks -->
       <div v-show="activeTab === 'locks'">
         <h6 class="section-title">Deadlocks</h6>
@@ -127,7 +74,10 @@
             <tbody>
               <tr v-for="(c, i) in data!.lockContention" :key="i">
                 <td><code>{{ c.monitorId }}</code></td>
-                <td>{{ c.monitorClass ?? '—' }}</td>
+                <td class="class-cell" :title="c.monitorClass ?? ''">
+                  <ClassNameDisplay v-if="c.monitorClass" :class-name="c.monitorClass" />
+                  <span v-else>—</span>
+                </td>
                 <td class="text-end">{{ FormattingService.formatNumber(c.waiterCount) }}</td>
                 <td>{{ c.owner ?? '—' }}</td>
               </tr>
@@ -175,36 +125,6 @@
           title="No stuck threads"
           description="No thread kept the same stack across 3+ consecutive dumps."
         />
-      </div>
-
-      <!-- Heatmap -->
-      <div v-show="activeTab === 'heatmap'">
-        <ChartDescription
-          shows="Each tracked thread's state across the dump sequence (BLOCKED and stuck threads first)"
-          use-case="Spot a thread that turns and stays BLOCKED, or a pool that fills with BLOCKED over time"
-        />
-        <div class="heatmap-legend">
-          <span v-for="state in legendStates" :key="state" class="legend-item">
-            <span class="legend-swatch" :style="{ background: stateColor(state) }"></span>{{ state }}
-          </span>
-        </div>
-        <div class="heatmap-scroll">
-          <div
-            class="heatmap-grid"
-            :style="{ gridTemplateColumns: `var(--heatmap-label-w) repeat(${data!.heatmap.dumpOffsets.length}, 16px)` }"
-          >
-            <template v-for="row in data!.heatmap.rows" :key="row.threadName">
-              <div class="heatmap-label" :title="row.threadName">{{ row.threadName }}</div>
-              <div
-                v-for="(state, i) in row.states"
-                :key="i"
-                class="heatmap-cell"
-                :style="{ background: state ? stateColor(state) : 'transparent' }"
-                :title="`${row.threadName} · ${state ?? 'absent'} @ ${formatOffset(data!.heatmap.dumpOffsets[i])}`"
-              ></div>
-            </template>
-          </div>
-        </div>
       </div>
 
       <!-- Browse -->
@@ -266,20 +186,20 @@
               snapshot.
             </p>
             <AboutCallout variant="tip" title="Sampled, not continuous" icon="bi-lightbulb-fill">
-              Dumps are periodic (~every 60s by default), so the timeline is a coarse sample — great for
+              Dumps are periodic (~every 60s by default), so they are a coarse sample — great for
               hangs and saturation, not for sub-second spikes.
             </AboutCallout>
           </AboutSection>
           <AboutSection icon="bi-graph-up" title="Reading the Views">
             <FeatureGrid>
-              <FeatureCard icon="bi-activity" variant="primary" title="Timeline & Activity">
-                State counts over time and the frames threads sit at most — saturation and idle vs busy.
+              <FeatureCard icon="bi-search" variant="primary" title="Browse">
+                Every parsed dump thread-by-thread: state, full stack and held/awaited locks, with a raw-text view.
               </FeatureCard>
               <FeatureCard icon="bi-lock" variant="danger" title="Locks & Deadlocks">
                 JVM-reported deadlocks and the most-contended monitors with their waiters and owner.
               </FeatureCard>
-              <FeatureCard icon="bi-hourglass-split" variant="warning" title="Stuck & Heatmap">
-                Threads whose stack never moves across dumps, and a per-thread state heatmap.
+              <FeatureCard icon="bi-hourglass-split" variant="warning" title="Stuck Threads">
+                Threads whose stack never moves across consecutive dumps.
               </FeatureCard>
             </FeatureGrid>
           </AboutSection>
@@ -290,31 +210,26 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
-import ApexCharts from 'apexcharts';
 
 import PageHeader from '@/components/layout/PageHeader.vue';
 import StatsTable from '@/components/StatsTable.vue';
 import TabBar from '@/components/TabBar.vue';
 import ChartDescription from '@/components/ChartDescription.vue';
-import DataTable from '@/components/table/DataTable.vue';
-import TableToolbar from '@/components/table/TableToolbar.vue';
-import TableShowMore from '@/components/table/TableShowMore.vue';
 import AboutPanel from '@/components/about/AboutPanel.vue';
 import AboutSection from '@/components/about/AboutSection.vue';
 import AboutCallout from '@/components/about/AboutCallout.vue';
 import FeatureGrid from '@/components/about/FeatureGrid.vue';
 import FeatureCard from '@/components/about/FeatureCard.vue';
 import Badge from '@/components/Badge.vue';
+import ClassNameDisplay from '@/components/heap/ClassNameDisplay.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import ErrorState from '@/components/ErrorState.vue';
 import EmptyState from '@/components/EmptyState.vue';
 import ProfileThreadClient from '@/services/api/ProfileThreadClient';
 import FormattingService from '@/services/FormattingService';
-import { useTableView } from '@/composables/useTableView';
 import type {
-  FrameStat,
   ParsedDump,
   ThreadDumpAnalysis,
   ThreadLockKind,
@@ -327,23 +242,11 @@ const route = useRoute();
 const loading = ref(true);
 const error = ref(false);
 const data = ref<ThreadDumpAnalysis>();
-const activeTab = ref('timeline');
+const activeTab = ref('browse');
 
 let client: ProfileThreadClient | null = null;
-let chart: ApexCharts | null = null;
 
 const legendStates: ThreadState[] = ['RUNNABLE', 'BLOCKED', 'WAITING', 'TIMED_WAITING', 'NEW', 'TERMINATED', 'UNKNOWN'];
-
-const STATE_COLORS: Record<ThreadState, string> = {
-  RUNNABLE: '#34A853',
-  BLOCKED: '#EA4335',
-  WAITING: '#4285F4',
-  TIMED_WAITING: '#FBBC04',
-  NEW: '#9AA0A6',
-  TERMINATED: '#5F6368',
-  UNKNOWN: '#DADCE0'
-};
-const stateColor = (state: ThreadState): string => STATE_COLORS[state] ?? STATE_COLORS.UNKNOWN;
 
 const stateVariant = (state: ThreadState): Variant => {
   switch (state) {
@@ -376,19 +279,13 @@ const lockLabel = (kind: ThreadLockKind): string => {
 const formatOffset = (millis: number): string => FormattingService.formatDuration2Units(millis * 1_000_000);
 
 const tabs = [
-  { id: 'timeline', label: 'Timeline', icon: 'activity' },
-  { id: 'activity', label: 'Activity', icon: 'list-ol' },
+  { id: 'browse', label: 'Browse', icon: 'search' },
   { id: 'locks', label: 'Locks & Deadlocks', icon: 'lock' },
   { id: 'stuck', label: 'Stuck Threads', icon: 'hourglass-split' },
-  { id: 'heatmap', label: 'Heatmap', icon: 'grid-3x3' },
-  { id: 'browse', label: 'Browse', icon: 'search' },
   { id: 'about', label: 'About', icon: 'info-circle' }
 ];
 
 const hasData = computed(() => (data.value?.header.dumpCount ?? 0) > 0);
-
-const framesSource = computed<FrameStat[]>(() => data.value?.topFrames ?? []);
-const framesView = useTableView<FrameStat>(framesSource, { searchableText: (f) => f.frame });
 
 const metrics = computed(() => {
   const h = data.value?.header;
@@ -417,46 +314,6 @@ const metrics = computed(() => {
     }
   ];
 });
-
-// ----- State timeline chart (custom stacked area: one series per state) -----
-const renderChart = async () => {
-  if (!hasData.value) {
-    return;
-  }
-  await nextTick();
-  const element = document.getElementById('thread-dump-state-chart');
-  if (!element) {
-    return;
-  }
-  const series = (data.value?.stateTimeline.series ?? []).map((s) => ({ name: s.name, data: s.data }));
-  const colors = (data.value?.stateTimeline.series ?? []).map((s) => stateColor(s.name as ThreadState));
-
-  const options = {
-    chart: { type: 'area' as const, height: 380, stacked: true, fontFamily: 'inherit', toolbar: { show: false } },
-    series,
-    colors,
-    dataLabels: { enabled: false },
-    stroke: { curve: 'stepline' as const, width: 1 },
-    fill: { type: 'solid', opacity: 0.55 },
-    xaxis: {
-      type: 'numeric' as const,
-      title: { text: 'Time', style: { fontSize: '12px' } },
-      labels: {
-        style: { fontSize: '10px' },
-        formatter: (value: string | number) => FormattingService.formatDuration2Units(Number(value) * 1e9)
-      }
-    },
-    yaxis: { title: { text: 'Threads', style: { fontSize: '12px' } }, labels: { style: { fontSize: '10px' } } },
-    legend: { position: 'bottom' as const },
-    grid: { borderColor: '#e7e7e7', strokeDashArray: 3 }
-  } as ApexCharts.ApexOptions;
-
-  if (chart) {
-    chart.destroy();
-  }
-  chart = new ApexCharts(element, options);
-  chart.render();
-};
 
 // ----- Browse: lazily load a single parsed dump -----
 const selectedIndex = ref(0);
@@ -497,8 +354,8 @@ const loadData = async () => {
     error.value = false;
     client = new ProfileThreadClient(route.params.profileId as string);
     data.value = await client.dumps();
-    if (activeTab.value === 'timeline') {
-      renderChart();
+    if (activeTab.value === 'browse' && (data.value?.dumps.length ?? 0) > 0) {
+      loadDump();
     }
   } catch (err) {
     error.value = true;
@@ -509,30 +366,15 @@ const loadData = async () => {
 };
 
 watch(activeTab, (tab) => {
-  if (tab === 'timeline') {
-    renderChart();
-  } else if (tab === 'browse' && !selectedDump.value && (data.value?.dumps.length ?? 0) > 0) {
+  if (tab === 'browse' && !selectedDump.value && (data.value?.dumps.length ?? 0) > 0) {
     loadDump();
   }
 });
 
 onMounted(loadData);
-onUnmounted(() => {
-  if (chart) {
-    chart.destroy();
-    chart = null;
-  }
-});
 </script>
 
 <style scoped>
-.chart-container {
-  background: var(--color-white);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: 1rem;
-}
-
 .section-title {
   font-size: 0.75rem;
   font-weight: 600;
@@ -578,52 +420,8 @@ onUnmounted(() => {
   word-break: break-word;
 }
 
-/* Heatmap */
-.heatmap-legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  margin: 0.5rem 0 0.75rem;
-  font-size: 0.78rem;
-  color: var(--color-text-muted);
-}
-
-.legend-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-}
-
-.legend-swatch {
-  width: 12px;
-  height: 12px;
-  border-radius: var(--radius-sm);
-}
-
-.heatmap-scroll {
-  overflow-x: auto;
-}
-
-.heatmap-grid {
-  --heatmap-label-w: 220px;
-  display: grid;
-  gap: 2px;
-  align-items: center;
-}
-
-.heatmap-label {
-  font-size: 0.75rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  padding-right: 0.5rem;
-}
-
-.heatmap-cell {
-  width: 16px;
-  height: 16px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--color-border-light);
+.class-cell {
+  max-width: 520px;
 }
 
 /* Browse */

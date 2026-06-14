@@ -227,8 +227,6 @@ const folderStructure = `$JEFFREY_HOME/
         <router-link to="/docs/microscope/profiles/virtual-threads">Read the Virtual Threads reference &rarr;</router-link>
         &nbsp;·&nbsp;
         <router-link to="/docs/microscope/profiles/security">Read the Security &amp; TLS reference &rarr;</router-link>
-        &nbsp;·&nbsp;
-        <router-link to="/docs/microscope/profiles/stop-the-world">Read the Stop-The-World reference &rarr;</router-link>
       </p>
 
       <h2 id="technologies">Technologies</h2>

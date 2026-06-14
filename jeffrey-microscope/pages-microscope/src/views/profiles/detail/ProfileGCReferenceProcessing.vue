@@ -49,6 +49,16 @@
           use-case="A Soft-reference spike signals heap pressure clearing caches; sustained Final/Phantom volume signals finalizer/cleaner backlog that lengthens reference-processing phases"
         />
         <div class="chart-container">
+          <div class="chart-toolbar">
+            <button
+              type="button"
+              class="btn btn-sm btn-outline-secondary"
+              title="Reset zoom to the entire range"
+              @click="resetTimelineZoom"
+            >
+              <i class="bi bi-arrows-angle-expand me-1"></i>Reset zoom
+            </button>
+          </div>
           <div id="gc-reference-stacked-chart"></div>
         </div>
       </div>
@@ -287,6 +297,13 @@ const renderChart = async () => {
   chart.render();
 };
 
+// Clears any active x-axis zoom, returning the chart to its full starting range.
+const resetTimelineZoom = (): void => {
+  if (chart) {
+    chart.updateOptions({ xaxis: { min: undefined, max: undefined } });
+  }
+};
+
 const loadData = async () => {
   try {
     loading.value = true;
@@ -326,6 +343,12 @@ onUnmounted(() => {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   padding: 1rem;
+}
+
+.chart-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 0.5rem;
 }
 
 .type-swatch {

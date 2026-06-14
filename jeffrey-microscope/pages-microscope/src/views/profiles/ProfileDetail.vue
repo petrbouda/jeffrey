@@ -217,14 +217,6 @@
                       <span>Blocking Operations</span>
                     </router-link>
                     <router-link
-                      :to="`/profiles/${profileId}/stop-the-world`"
-                      class="nav-item"
-                      active-class="active"
-                    >
-                      <i class="bi bi-pause-circle"></i>
-                      <span>Stop-The-World</span>
-                    </router-link>
-                    <router-link
                       :to="`/profiles/${profileId}/socket-io`"
                       class="nav-item"
                       active-class="active"
@@ -409,14 +401,6 @@
                           <span>ZGC Analysis</span>
                         </router-link>
                         <router-link
-                          :to="`/profiles/${profileId}/garbage-collection/string-symbol-tables`"
-                          class="nav-item nav-subitem"
-                          active-class="active"
-                        >
-                          <i class="bi bi-fonts"></i>
-                          <span>String &amp; Symbol Tables</span>
-                        </router-link>
-                        <router-link
                           :to="`/profiles/${profileId}/garbage-collection/finalizers`"
                           class="nav-item nav-subitem"
                           active-class="active"
@@ -434,6 +418,14 @@
                         </router-link>
                       </div>
                     </div>
+                    <router-link
+                      :to="`/profiles/${profileId}/string-symbol-tables`"
+                      class="nav-item"
+                      active-class="active"
+                    >
+                      <i class="bi bi-fonts"></i>
+                      <span>String &amp; Symbol Tables</span>
+                    </router-link>
                     <router-link
                       :to="`/profiles/${profileId}/native-memory`"
                       class="nav-item"
@@ -521,6 +513,14 @@
                     >
                       <i class="bi bi-cpu"></i>
                       <span>System &amp; Host</span>
+                    </router-link>
+                    <router-link
+                      :to="`/profiles/${profileId}/modules`"
+                      class="nav-item"
+                      active-class="active"
+                    >
+                      <i class="bi bi-boxes"></i>
+                      <span>Modules</span>
                     </router-link>
                   </div>
                 </div>

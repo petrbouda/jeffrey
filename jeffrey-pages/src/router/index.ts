@@ -283,11 +283,6 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/docs/microscope/profiles/ProfileSecurityPage.vue')
       },
       {
-        path: 'microscope/profiles/stop-the-world',
-        name: 'DocsProfilesStopTheWorld',
-        component: () => import('@/views/docs/microscope/profiles/ProfileStwTimelinePage.vue')
-      },
-      {
         path: 'microscope/profiles/socket-io',
         name: 'DocsProfilesSocketIo',
         component: () => import('@/views/docs/microscope/profiles/ProfileSocketIoPage.vue')

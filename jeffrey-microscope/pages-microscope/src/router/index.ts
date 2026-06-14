@@ -164,8 +164,8 @@ const profileChildRoutes = [
     meta: { layout: 'profile' }
   },
   {
-    path: 'garbage-collection/string-symbol-tables',
-    name: 'profile-garbage-collection-string-symbol-tables',
+    path: 'string-symbol-tables',
+    name: 'profile-string-symbol-tables',
     component: () => import('@/views/profiles/detail/ProfileGCStringSymbolTables.vue'),
     meta: { layout: 'profile' }
   },
@@ -218,6 +218,12 @@ const profileChildRoutes = [
     meta: { layout: 'profile' }
   },
   {
+    path: 'modules',
+    name: 'profile-modules',
+    component: () => import('@/views/profiles/detail/ProfileModules.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
     path: 'vm-operations',
     name: 'profile-vm-operations',
     component: () => import('@/views/profiles/detail/ProfileVmOperations.vue'),
@@ -227,12 +233,6 @@ const profileChildRoutes = [
     path: 'blocking-operations',
     name: 'profile-blocking-operations',
     component: () => import('@/views/profiles/detail/ProfileBlockingOperations.vue'),
-    meta: { layout: 'profile' }
-  },
-  {
-    path: 'stop-the-world',
-    name: 'profile-stw-timeline',
-    component: () => import('@/views/profiles/detail/ProfileStwTimeline.vue'),
     meta: { layout: 'profile' }
   },
   {

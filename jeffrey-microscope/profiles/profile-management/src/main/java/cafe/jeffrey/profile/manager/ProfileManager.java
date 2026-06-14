@@ -75,8 +75,6 @@ public interface ProfileManager {
 
     VmOperationManager vmOperationManager();
 
-    StwTimelineManager stwTimelineManager();
-
     BlockingManager blockingManager();
 
     VirtualThreadManager virtualThreadManager();
