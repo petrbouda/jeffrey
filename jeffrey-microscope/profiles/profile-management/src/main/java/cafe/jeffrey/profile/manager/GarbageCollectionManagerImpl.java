@@ -33,6 +33,10 @@ import cafe.jeffrey.profile.manager.model.gc.GCTimeseriesType;
 import cafe.jeffrey.profile.manager.model.gc.configuration.GCConfigurationData;
 import cafe.jeffrey.profile.manager.model.gc.g1.G1AnalysisBuilder;
 import cafe.jeffrey.profile.manager.model.gc.g1.G1AnalysisData;
+import cafe.jeffrey.profile.manager.model.gc.finalizer.FinalizerStatsBuilder;
+import cafe.jeffrey.profile.manager.model.gc.finalizer.FinalizersData;
+import cafe.jeffrey.profile.manager.model.gc.tables.StringSymbolTablesBuilder;
+import cafe.jeffrey.profile.manager.model.gc.tables.StringSymbolTablesData;
 import cafe.jeffrey.profile.manager.model.gc.tuning.G1MmuBuilder;
 import cafe.jeffrey.profile.manager.model.gc.tuning.GcCpuTimesBuilder;
 import cafe.jeffrey.profile.manager.model.gc.tuning.IhopData;
@@ -54,6 +58,7 @@ import java.util.List;
 
 public class GarbageCollectionManagerImpl implements GarbageCollectionManager {
 
+    private static final int MAX_FINALIZER_CLASSES = 100;
     private static final int MAX_LONGEST_PAUSES = 20;
     private static final int MAX_TENURING_COLLECTIONS = 50;
     private static final int MAX_GC_CPU_ENTRIES = 100;
@@ -264,5 +269,25 @@ public class GarbageCollectionManagerImpl implements GarbageCollectionManager {
                 .withThreads();
 
         return eventStreamRepository.genericStreaming(configurer, new ZgcAnalysisBuilder(timeRange));
+    }
+
+    @Override
+    public StringSymbolTablesData stringSymbolTables() {
+        RelativeTimeRange timeRange = new RelativeTimeRange(profileInfo.profilingStartEnd());
+
+        EventQueryConfigurer configurer = new EventQueryConfigurer()
+                .withEventTypes(List.of(Type.STRING_TABLE_STATISTICS, Type.SYMBOL_TABLE_STATISTICS))
+                .withJsonFields();
+
+        return eventStreamRepository.genericStreaming(configurer, new StringSymbolTablesBuilder(timeRange));
+    }
+
+    @Override
+    public FinalizersData finalizers() {
+        EventQueryConfigurer configurer = new EventQueryConfigurer()
+                .withEventType(Type.FINALIZER_STATISTICS)
+                .withJsonFields();
+
+        return eventStreamRepository.genericStreaming(configurer, new FinalizerStatsBuilder(MAX_FINALIZER_CLASSES));
     }
 }

@@ -24,6 +24,7 @@ import TimeseriesData from '@/services/timeseries/model/TimeseriesData';
 import type { IhopData, TenuringData } from '@/services/api/model/GCTuningModels';
 import type G1AnalysisData from '@/services/api/model/G1AnalysisData';
 import type ZgcAnalysisData from '@/services/api/model/ZgcAnalysisData';
+import type { StringSymbolTablesData, FinalizersData } from '@/services/api/model/GCTablesModels';
 
 export default class ProfileGCClient extends BaseProfileClient {
   constructor(profileId: string) {
@@ -56,5 +57,13 @@ export default class ProfileGCClient extends BaseProfileClient {
 
   public getZgcAnalysis(): Promise<ZgcAnalysisData> {
     return this.get<ZgcAnalysisData>('/zgc');
+  }
+
+  public getStringSymbolTables(): Promise<StringSymbolTablesData> {
+    return this.get<StringSymbolTablesData>('/string-symbol-tables');
+  }
+
+  public getFinalizers(): Promise<FinalizersData> {
+    return this.get<FinalizersData>('/finalizers');
   }
 }

@@ -68,6 +68,9 @@ public abstract class EventTypeName {
     public static final String G1_ADAPTIVE_IHOP = "jdk.G1AdaptiveIHOP";
     public static final String G1_BASIC_IHOP = "jdk.G1BasicIHOP";
     public static final String G1_MMU = "jdk.G1MMU";
+    public static final String STRING_TABLE_STATISTICS = "jdk.StringTableStatistics";
+    public static final String SYMBOL_TABLE_STATISTICS = "jdk.SymbolTableStatistics";
+    public static final String FINALIZER_STATISTICS = "jdk.FinalizerStatistics";
 
     // G1 deep-dive events
     public static final String G1_HEAP_REGION_INFORMATION = "jdk.G1HeapRegionInformation";

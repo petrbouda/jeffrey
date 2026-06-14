@@ -31,6 +31,8 @@ import cafe.jeffrey.profile.manager.model.gc.g1.G1AnalysisData;
 import cafe.jeffrey.profile.manager.model.gc.g1.G1AnalysisData.G1Header;
 import cafe.jeffrey.profile.manager.model.gc.zgc.ZgcAnalysisData;
 import cafe.jeffrey.profile.manager.model.gc.zgc.ZgcAnalysisData.ZgcHeader;
+import cafe.jeffrey.profile.manager.model.gc.finalizer.FinalizersData;
+import cafe.jeffrey.profile.manager.model.gc.tables.StringSymbolTablesData;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.timeseries.TimeseriesData;
 
@@ -87,6 +89,30 @@ class GarbageCollectionControllerTest {
         assertThat(mvc.get().uri("/api/internal/profiles/p-1/gc/zgc")).hasStatusOk();
     }
 
+    @Test
+    void getsStringSymbolTables() {
+        when(resolver.resolve("p-1")).thenReturn(profileManager);
+        when(profileManager.gcManager()).thenReturn(gcManager);
+        when(gcManager.stringSymbolTables()).thenReturn(new StringSymbolTablesData(
+                new StringSymbolTablesData.Header(0, 0, 0, 0), TimeseriesData.empty(), TimeseriesData.empty()));
+
+        MockMvcTester mvc = mockMvcTesterFor(new GarbageCollectionController(resolver));
+
+        assertThat(mvc.get().uri("/api/internal/profiles/p-1/gc/string-symbol-tables")).hasStatusOk();
+    }
+
+    @Test
+    void getsFinalizers() {
+        when(resolver.resolve("p-1")).thenReturn(profileManager);
+        when(profileManager.gcManager()).thenReturn(gcManager);
+        when(gcManager.finalizers()).thenReturn(new FinalizersData(
+                new FinalizersData.Header(0, 0, 0), List.of()));
+
+        MockMvcTester mvc = mockMvcTesterFor(new GarbageCollectionController(resolver));
+
+        assertThat(mvc.get().uri("/api/internal/profiles/p-1/gc/finalizers")).hasStatusOk();
+    }
+
     private static G1AnalysisData emptyG1Analysis() {
         return new G1AnalysisData(
                 new G1Header(0, 0, 0, 0, 0, 0, 0, 0, 0),
@@ -99,7 +125,6 @@ class GarbageCollectionControllerTest {
                 new ZgcHeader(0, 0, 0, 0, 0, 0, 0),
                 TimeseriesData.empty(), List.of(), List.of(), List.of(),
                 TimeseriesData.empty(), List.of(), List.of());
-    }
 
     @Test
     void profileNotFoundReturns404() {

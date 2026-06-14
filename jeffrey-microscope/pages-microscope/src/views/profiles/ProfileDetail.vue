@@ -384,6 +384,22 @@
                           <i class="bi bi-cpu"></i>
                           <span>ZGC Analysis</span>
                         </router-link>
+                        <router-link
+                          :to="`/profiles/${profileId}/garbage-collection/string-symbol-tables`"
+                          class="nav-item nav-subitem"
+                          active-class="active"
+                        >
+                          <i class="bi bi-fonts"></i>
+                          <span>String &amp; Symbol Tables</span>
+                        </router-link>
+                        <router-link
+                          :to="`/profiles/${profileId}/garbage-collection/finalizers`"
+                          class="nav-item nav-subitem"
+                          active-class="active"
+                        >
+                          <i class="bi bi-hourglass-split"></i>
+                          <span>Finalizers</span>
+                        </router-link>
                       </div>
                     </div>
                     <router-link
