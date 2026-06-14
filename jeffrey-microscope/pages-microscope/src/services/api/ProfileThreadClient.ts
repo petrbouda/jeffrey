@@ -20,6 +20,7 @@ import BaseProfileClient from '@/services/api/BaseProfileClient';
 import ThreadResponse from '@/services/api/model/ThreadResponse';
 import ThreadStatisticsResponse from '@/services/api/model/ThreadStatisticsResponse';
 import Serie from '@/services/timeseries/model/Serie';
+import type { ParsedDump, ThreadDumpAnalysis } from '@/services/api/model/ThreadDumpModels';
 
 export default class ProfileThreadClient extends BaseProfileClient {
   constructor(profileId: string) {
@@ -36,5 +37,13 @@ export default class ProfileThreadClient extends BaseProfileClient {
 
   public timeseries(): Promise<Serie> {
     return this.get<Serie>('/timeseries');
+  }
+
+  public dumps(): Promise<ThreadDumpAnalysis> {
+    return this.get<ThreadDumpAnalysis>('/dumps');
+  }
+
+  public dump(index: number): Promise<ParsedDump> {
+    return this.get<ParsedDump>(`/dumps/${index}`);
   }
 }

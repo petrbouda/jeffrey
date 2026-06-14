@@ -29,6 +29,8 @@ import cafe.jeffrey.profile.manager.ThreadManager;
 import cafe.jeffrey.profile.manager.model.thread.ThreadCpuLoads;
 import cafe.jeffrey.profile.manager.model.thread.ThreadStats;
 import cafe.jeffrey.profile.manager.model.thread.ThreadWithCpuLoad;
+import cafe.jeffrey.profile.manager.model.thread.dump.ParsedDump;
+import cafe.jeffrey.profile.manager.model.thread.dump.ThreadDumpAnalysis;
 import cafe.jeffrey.profile.thread.ThreadRoot;
 import cafe.jeffrey.provider.profile.api.AllocatingThread;
 import cafe.jeffrey.shared.common.model.Type;
@@ -80,6 +82,20 @@ public class ThreadController {
     public SingleSerie activeThreadsSerie(@PathVariable("profileId") String profileId) {
         LOG.debug("Fetching active threads timeseries");
         return mgr(profileId).activeThreadsSerie();
+    }
+
+    @GetMapping("/dumps")
+    public ThreadDumpAnalysis threadDumpAnalysis(@PathVariable("profileId") String profileId) {
+        LOG.debug("Fetching thread-dump analysis");
+        return mgr(profileId).threadDumpAnalysis();
+    }
+
+    @GetMapping("/dumps/{index}")
+    public ParsedDump threadDump(
+            @PathVariable("profileId") String profileId,
+            @PathVariable("index") int index) {
+        LOG.debug("Fetching thread dump: index={}", index);
+        return mgr(profileId).threadDump(index);
     }
 
     private ThreadManager mgr(String profileId) {

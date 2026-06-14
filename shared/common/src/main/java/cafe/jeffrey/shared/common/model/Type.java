@@ -115,6 +115,7 @@ public record Type(String code, boolean calculated) {
     public static final Type JAVA_THREAD_STATISTICS = new Type(EventTypeName.JAVA_THREAD_STATISTICS);
     public static final Type THREAD_ALLOCATION_STATISTICS = new Type(EventTypeName.THREAD_ALLOCATION_STATISTICS);
     public static final Type THREAD_CPU_LOAD = new Type(EventTypeName.THREAD_CPU_LOAD);
+    public static final Type THREAD_DUMP = new Type(EventTypeName.THREAD_DUMP);
     public static final Type COMPILER_STATISTICS = new Type(EventTypeName.COMPILER_STATISTICS);
     public static final Type COMPILATION = new Type(EventTypeName.COMPILATION);
     public static final Type DEOPTIMIZATION = new Type(EventTypeName.DEOPTIMIZATION);
@@ -296,6 +297,7 @@ public record Type(String code, boolean calculated) {
                 JAVA_THREAD_STATISTICS,
                 THREAD_ALLOCATION_STATISTICS,
                 THREAD_CPU_LOAD,
+                THREAD_DUMP,
                 COMPILER_STATISTICS,
                 COMPILATION,
                 DEOPTIMIZATION,

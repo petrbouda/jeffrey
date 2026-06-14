@@ -26,8 +26,11 @@ import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.profile.manager.ThreadManager;
+import cafe.jeffrey.profile.manager.model.thread.dump.ParsedDump;
+import cafe.jeffrey.profile.manager.model.thread.dump.ThreadDumpAnalysis;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.timeseries.SingleSerie;
+import cafe.jeffrey.timeseries.TimeseriesData;
 
 import java.util.List;
 
@@ -59,6 +62,31 @@ class ThreadControllerTest {
                 .hasStatusOk()
                 .bodyJson()
                 .extractingPath("$.name").asString().isEqualTo("threads");
+    }
+
+    @Test
+    void getsThreadDumpAnalysis() {
+        when(resolver.resolve("p-1")).thenReturn(profileManager);
+        when(profileManager.threadManager()).thenReturn(threadManager);
+        when(threadManager.threadDumpAnalysis()).thenReturn(new ThreadDumpAnalysis(
+                new ThreadDumpAnalysis.Header(0, 0, 0, 0, 0, 0),
+                List.of(), new TimeseriesData(List.of()), List.of(), List.of(), List.of(), List.of(),
+                new ThreadDumpAnalysis.Heatmap(List.of(), List.of())));
+
+        MockMvcTester mvc = mockMvcTesterFor(new ThreadController(resolver));
+
+        assertThat(mvc.get().uri("/api/internal/profiles/p-1/thread/dumps")).hasStatusOk();
+    }
+
+    @Test
+    void getsSingleThreadDump() {
+        when(resolver.resolve("p-1")).thenReturn(profileManager);
+        when(profileManager.threadManager()).thenReturn(threadManager);
+        when(threadManager.threadDump(0)).thenReturn(new ParsedDump(0, List.of(), List.of(), ""));
+
+        MockMvcTester mvc = mockMvcTesterFor(new ThreadController(resolver));
+
+        assertThat(mvc.get().uri("/api/internal/profiles/p-1/thread/dumps/0")).hasStatusOk();
     }
 
     @Test

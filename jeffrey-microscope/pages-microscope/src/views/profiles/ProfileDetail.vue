@@ -300,6 +300,14 @@
                       <i class="bi bi-pin-angle"></i>
                       <span>Virtual Threads</span>
                     </router-link>
+                    <router-link
+                      :to="`/profiles/${profileId}/thread-dumps`"
+                      class="nav-item"
+                      active-class="active"
+                    >
+                      <i class="bi bi-file-earmark-text"></i>
+                      <span>Thread Dumps</span>
+                    </router-link>
                   </div>
                 </div>
 
