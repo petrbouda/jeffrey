@@ -140,6 +140,7 @@ public class ProfileFactoriesConfiguration {
             SystemResourcesManager.Factory systemResourcesFactory,
             VmOperationManager.Factory vmOperationFactory,
             BlockingManager.Factory blockingFactory,
+            VirtualThreadManager.Factory virtualThreadFactory,
             IoManager.Factory ioFactory,
             AllocationManager.Factory allocationFactory,
             LeakCandidatesManager.Factory leakCandidatesFactory,
@@ -160,6 +161,7 @@ public class ProfileFactoriesConfiguration {
                 systemResourcesFactory,
                 vmOperationFactory,
                 blockingFactory,
+                virtualThreadFactory,
                 ioFactory,
                 allocationFactory,
                 leakCandidatesFactory,
@@ -592,6 +594,17 @@ public class ProfileFactoriesConfiguration {
             return new BlockingManagerImpl(
                     profileInfo,
                     profileRepositories.newEventRepository(profileDb),
+                    profileRepositories.newEventStreamRepository(profileDb));
+        };
+    }
+
+    @Bean
+    public VirtualThreadManager.Factory virtualThreadManagerFactory() {
+
+        return profileInfo -> {
+            DataSource profileDb = databaseManagerResolver.open(profileInfo);
+            return new VirtualThreadManagerImpl(
+                    profileInfo,
                     profileRepositories.newEventStreamRepository(profileDb));
         };
     }

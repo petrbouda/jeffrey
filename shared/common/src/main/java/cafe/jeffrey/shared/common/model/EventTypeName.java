@@ -113,6 +113,9 @@ public abstract class EventTypeName {
     public static final String EXECUTE_VM_OPERATION = "jdk.ExecuteVMOperation";
     public static final String JAVA_MONITOR_INFLATE = "jdk.JavaMonitorInflate";
     public static final String VIRTUAL_THREAD_PINNED = "jdk.VirtualThreadPinned";
+    public static final String VIRTUAL_THREAD_START = "jdk.VirtualThreadStart";
+    public static final String VIRTUAL_THREAD_END = "jdk.VirtualThreadEnd";
+    public static final String VIRTUAL_THREAD_SUBMIT_FAILED = "jdk.VirtualThreadSubmitFailed";
 
     // System & host events
     public static final String CPU_LOAD = "jdk.CPULoad";

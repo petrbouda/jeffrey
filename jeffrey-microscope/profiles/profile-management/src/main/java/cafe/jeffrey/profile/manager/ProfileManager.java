@@ -77,6 +77,8 @@ public interface ProfileManager {
 
     BlockingManager blockingManager();
 
+    VirtualThreadManager virtualThreadManager();
+
     IoManager ioManager();
 
     AllocationManager allocationManager();

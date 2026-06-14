@@ -209,6 +209,8 @@ const folderStructure = `$JEFFREY_HOME/
         <router-link to="/docs/microscope/profiles/jit-compilation">Read the JIT compilation reference &rarr;</router-link>
         &nbsp;·&nbsp;
         <router-link to="/docs/microscope/profiles/exceptions">Read the exceptions reference &rarr;</router-link>
+        &nbsp;·&nbsp;
+        <router-link to="/docs/microscope/profiles/virtual-threads">Read the Virtual Threads reference &rarr;</router-link>
       </p>
 
       <h2 id="technologies">Technologies</h2>

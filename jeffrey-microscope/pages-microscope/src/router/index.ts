@@ -98,6 +98,12 @@ const profileChildRoutes = [
     meta: { layout: 'profile' }
   },
   {
+    path: 'virtual-threads',
+    name: 'profile-virtual-threads',
+    component: () => import('@/views/profiles/detail/ProfileVirtualThreads.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
     path: 'jit-compilation',
     name: 'profile-jit-compilation',
     component: () => import('@/views/profiles/detail/ProfileJitCompilation.vue'),

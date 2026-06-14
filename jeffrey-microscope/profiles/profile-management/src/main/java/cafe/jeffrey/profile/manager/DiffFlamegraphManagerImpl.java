@@ -39,7 +39,8 @@ public class DiffFlamegraphManagerImpl implements FlamegraphManager {
             Type.METHOD_TRACE,
             Type.OBJECT_ALLOCATION_SAMPLE,
             Type.OBJECT_ALLOCATION_IN_NEW_TLAB,
-            Type.OBJECT_ALLOCATION_OUTSIDE_TLAB);
+            Type.OBJECT_ALLOCATION_OUTSIDE_TLAB,
+            Type.VIRTUAL_THREAD_PINNED);
 
     private final ProfileEventTypeRepository primaryEventTypeRepository;
     private final ProfileEventTypeRepository secondaryEventTypeRepository;

@@ -28,6 +28,7 @@ export default class EventTypes {
   static JAVA_MONITOR_ENTER = 'jdk.JavaMonitorEnter';
   static JAVA_MONITOR_WAIT = 'jdk.JavaMonitorWait';
   static THREAD_PARK = 'jdk.ThreadPark';
+  static VIRTUAL_THREAD_PINNED = 'jdk.VirtualThreadPinned';
   static WALL_CLOCK = 'profiler.WallClockSample';
   static NATIVE_MALLOC_ALLOCATION = 'profiler.Malloc';
   static NATIVE_LEAK = 'jeffrey.NativeLeak';
@@ -56,6 +57,10 @@ export default class EventTypes {
     return code === this.THREAD_PARK;
   }
 
+  static isVirtualThreadPinned(code: string) {
+    return code === this.VIRTUAL_THREAD_PINNED;
+  }
+
   static isWallClock(code: string) {
     return code === this.WALL_CLOCK;
   }
@@ -69,11 +74,21 @@ export default class EventTypes {
   }
 
   static isBlockingEventType(code: string) {
-    return this.isJavaMonitorEnter(code) || this.isJavaMonitorWait(code) || this.isThreadPark(code);
+    return (
+      this.isJavaMonitorEnter(code) ||
+      this.isJavaMonitorWait(code) ||
+      this.isThreadPark(code) ||
+      this.isVirtualThreadPinned(code)
+    );
   }
 
   static isDifferential(code: string) {
-    return this.isJavaMonitorEnter(code) || this.isJavaMonitorWait(code) || this.isThreadPark(code);
+    return (
+      this.isJavaMonitorEnter(code) ||
+      this.isJavaMonitorWait(code) ||
+      this.isThreadPark(code) ||
+      this.isVirtualThreadPinned(code)
+    );
   }
 
   static isExecutionEventType(code: string) {

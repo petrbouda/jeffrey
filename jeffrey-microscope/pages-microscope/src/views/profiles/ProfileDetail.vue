@@ -284,6 +284,14 @@
                       <i class="bi bi-clock-history"></i>
                       <span>Timeline</span>
                     </router-link>
+                    <router-link
+                      :to="`/profiles/${profileId}/virtual-threads`"
+                      class="nav-item"
+                      active-class="active"
+                    >
+                      <i class="bi bi-pin-angle"></i>
+                      <span>Virtual Threads</span>
+                    </router-link>
                   </div>
                 </div>
 

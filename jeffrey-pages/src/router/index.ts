@@ -258,6 +258,11 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/docs/microscope/profiles/ProfileBlockingOperationsPage.vue')
       },
       {
+        path: 'microscope/profiles/virtual-threads',
+        name: 'DocsProfilesVirtualThreads',
+        component: () => import('@/views/docs/microscope/profiles/ProfileVirtualThreadsPage.vue')
+      },
+      {
         path: 'microscope/profiles/socket-io',
         name: 'DocsProfilesSocketIo',
         component: () => import('@/views/docs/microscope/profiles/ProfileSocketIoPage.vue')
