@@ -16,132 +16,132 @@
       <TabBar v-model="activeTab" :tabs="tabs" class="mb-3" />
 
       <div v-show="activeTab === 'overview'">
-      <!-- Summary Stats -->
-      <div class="mb-4">
-        <StatsTable :metrics="metricsData" />
-      </div>
+        <!-- Summary Stats -->
+        <div class="mb-4">
+          <StatsTable :metrics="metricsData" />
+        </div>
 
-      <!-- Thread Activity Chart -->
-      <ChartSection title="Active Threads Over Time" icon="bi-graph-up" :full-width="true">
-        <TimeSeriesChart
-          :primary-data="threadSerie"
-          primary-title="Active Threads"
-          :primary-axis-type="AxisFormatType.NUMBER"
-          :visible-minutes="60"
-          primary-color="#4285F4"
-        />
-      </ChartSection>
+        <!-- Thread Activity Chart -->
+        <ChartSection title="Active Threads Over Time" icon="bi-graph-up" :full-width="true">
+          <TimeSeriesChart
+            :primary-data="threadSerie"
+            primary-title="Active Threads"
+            :primary-axis-type="AxisFormatType.NUMBER"
+            :visible-minutes="60"
+            primary-color="#4285F4"
+          />
+        </ChartSection>
 
-      <!-- Thread Tables Container -->
-      <div class="thread-tables-container mb-4">
-        <!-- Top Allocating Threads -->
-        <div class="data-table-card">
-          <div class="chart-card-header">
-            <h5><i class="bi bi-memory me-2"></i>Top Allocators</h5>
-          </div>
-          <div class="thread-list">
-            <div v-for="(thread, index) in topAllocatingThreads" :key="index" class="thread-item">
-              <div class="thread-info">
-                <span class="thread-name" :title="thread.threadInfo.name">
-                  {{ thread.threadInfo.name }}
-                </span>
+        <!-- Thread Tables Container -->
+        <div class="thread-tables-container mb-4">
+          <!-- Top Allocating Threads -->
+          <div class="data-table-card">
+            <div class="chart-card-header">
+              <h5><i class="bi bi-memory me-2"></i>Top Allocators</h5>
+            </div>
+            <div class="thread-list">
+              <div v-for="(thread, index) in topAllocatingThreads" :key="index" class="thread-item">
+                <div class="thread-info">
+                  <span class="thread-name" :title="thread.threadInfo.name">
+                    {{ thread.threadInfo.name }}
+                  </span>
+                </div>
+                <div class="thread-actions">
+                  <span class="allocation-badge">
+                    {{ FormattingService.formatBytes(thread.allocatedBytes) }}
+                  </span>
+                  <button
+                    class="flame-btn"
+                    @click="viewThreadAllocationFlamegraph(thread)"
+                    title="View thread allocation flamegraph"
+                    :disabled="!allocationType"
+                  >
+                    <i class="bi bi-fire"></i>
+                  </button>
+                </div>
               </div>
-              <div class="thread-actions">
-                <span class="allocation-badge">
-                  {{ FormattingService.formatBytes(thread.allocatedBytes) }}
-                </span>
-                <button
-                  class="flame-btn"
-                  @click="viewThreadAllocationFlamegraph(thread)"
-                  title="View thread allocation flamegraph"
-                  :disabled="!allocationType"
+              <div v-if="topAllocatingThreads.length === 0" class="empty-message">
+                <i class="bi bi-inbox"></i>
+                <span>No allocation data available</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Top CPU Load Threads -->
+          <div class="data-table-card">
+            <div class="chart-card-header">
+              <h5><i class="bi bi-cpu me-2"></i>Top CPU Load Threads</h5>
+            </div>
+
+            <!-- User CPU Load Section -->
+            <div class="cpu-section">
+              <div class="section-header">
+                <i class="bi bi-person-fill"></i>
+                <span>User CPU Load</span>
+              </div>
+              <div class="thread-list">
+                <div
+                  v-for="(thread, index) in topUserCpuThreads"
+                  :key="`user-${index}`"
+                  class="thread-item cpu-item"
                 >
-                  <i class="bi bi-fire"></i>
-                </button>
-              </div>
-            </div>
-            <div v-if="topAllocatingThreads.length === 0" class="empty-message">
-              <i class="bi bi-inbox"></i>
-              <span>No allocation data available</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Top CPU Load Threads -->
-        <div class="data-table-card">
-          <div class="chart-card-header">
-            <h5><i class="bi bi-cpu me-2"></i>Top CPU Load Threads</h5>
-          </div>
-
-          <!-- User CPU Load Section -->
-          <div class="cpu-section">
-            <div class="section-header">
-              <i class="bi bi-person-fill"></i>
-              <span>User CPU Load</span>
-            </div>
-            <div class="thread-list">
-              <div
-                v-for="(thread, index) in topUserCpuThreads"
-                :key="`user-${index}`"
-                class="thread-item cpu-item"
-              >
-                <div class="thread-info">
-                  <span class="timestamp-badge">{{
-                    FormattingService.formatTimeOfDay(thread.timestamp)
-                  }}</span>
-                  <span class="thread-name" :title="thread.threadInfo.name">
-                    {{ thread.threadInfo.name }}
-                  </span>
-                </div>
-                <div class="thread-actions">
-                  <span class="cpu-badge"> {{ (thread.cpuLoad * 100).toFixed(2) }}% </span>
-                  <button
-                    class="flame-btn"
-                    @click="viewThreadCpuProfile(thread)"
-                    title="View thread CPU flamegraph"
-                  >
-                    <i class="bi bi-fire"></i>
-                  </button>
+                  <div class="thread-info">
+                    <span class="timestamp-badge">{{
+                      FormattingService.formatTimeOfDay(thread.timestamp)
+                    }}</span>
+                    <span class="thread-name" :title="thread.threadInfo.name">
+                      {{ thread.threadInfo.name }}
+                    </span>
+                  </div>
+                  <div class="thread-actions">
+                    <span class="cpu-badge"> {{ (thread.cpuLoad * 100).toFixed(2) }}% </span>
+                    <button
+                      class="flame-btn"
+                      @click="viewThreadCpuProfile(thread)"
+                      title="View thread CPU flamegraph"
+                    >
+                      <i class="bi bi-fire"></i>
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          <!-- System CPU Load Section -->
-          <div class="cpu-section">
-            <div class="section-header">
-              <i class="bi bi-gear-fill"></i>
-              <span>System CPU Load</span>
-            </div>
-            <div class="thread-list">
-              <div
-                v-for="(thread, index) in topSystemCpuThreads"
-                :key="`system-${index}`"
-                class="thread-item cpu-item"
-              >
-                <div class="thread-info">
-                  <span class="timestamp-badge">{{
-                    FormattingService.formatTimeOfDay(thread.timestamp)
-                  }}</span>
-                  <span class="thread-name" :title="thread.threadInfo.name">
-                    {{ thread.threadInfo.name }}
-                  </span>
-                </div>
-                <div class="thread-actions">
-                  <span class="cpu-badge"> {{ (thread.cpuLoad * 100).toFixed(2) }}% </span>
-                  <button
-                    class="flame-btn"
-                    @click="viewThreadCpuProfile(thread)"
-                    title="View thread CPU flamegraph"
-                  >
-                    <i class="bi bi-fire"></i>
-                  </button>
+            <!-- System CPU Load Section -->
+            <div class="cpu-section">
+              <div class="section-header">
+                <i class="bi bi-gear-fill"></i>
+                <span>System CPU Load</span>
+              </div>
+              <div class="thread-list">
+                <div
+                  v-for="(thread, index) in topSystemCpuThreads"
+                  :key="`system-${index}`"
+                  class="thread-item cpu-item"
+                >
+                  <div class="thread-info">
+                    <span class="timestamp-badge">{{
+                      FormattingService.formatTimeOfDay(thread.timestamp)
+                    }}</span>
+                    <span class="thread-name" :title="thread.threadInfo.name">
+                      {{ thread.threadInfo.name }}
+                    </span>
+                  </div>
+                  <div class="thread-actions">
+                    <span class="cpu-badge"> {{ (thread.cpuLoad * 100).toFixed(2) }}% </span>
+                    <button
+                      class="flame-btn"
+                      @click="viewThreadCpuProfile(thread)"
+                      title="View thread CPU flamegraph"
+                    >
+                      <i class="bi bi-fire"></i>
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
       </div>
 
       <!-- Flamegraph Modal -->
@@ -183,6 +183,44 @@
         </div>
       </GenericModal>
 
+      <!-- Reserved Stack Tab -->
+      <div v-show="activeTab === 'reserved-stack'">
+        <ChartDescription
+          shows="Reserved-stack activations from jdk.ReservedStackActivation — a thread executing a @ReservedStackAccess method (typically lock internals) entered the reserved stack zone"
+          use-case="Each entry is a near stack-overflow: deep recursion or runaway stack growth that nearly corrupted a critical section. No entries is the healthy, expected case"
+        />
+        <div class="table-responsive">
+          <table class="table table-sm table-hover mb-0">
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>Thread</th>
+                <th>Method</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(activation, index) in reservedStackActivations" :key="index">
+                <td>
+                  {{
+                    FormattingService.formatDuration2Units(activation.timeOffsetMillis * 1_000_000)
+                  }}
+                </td>
+                <td>{{ activation.thread ?? '—' }}</td>
+                <td>
+                  <code>{{ activation.method ?? '—' }}</code>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <EmptyState
+          v-if="reservedStackActivations.length === 0"
+          icon="bi-shield-check"
+          title="No reserved-stack activations"
+          description="No thread came close to a stack overflow in a @ReservedStackAccess method — this is the healthy case."
+        />
+      </div>
+
       <!-- How It Works Tab -->
       <div v-show="activeTab === 'about'">
         <AboutPanel
@@ -192,9 +230,9 @@
         >
           <AboutCallout variant="intro">
             <p>
-              Threads are where your application does work. JFR samples the live thread count over time
-              and attributes CPU and allocation to individual threads, so you can find the threads that
-              dominate the machine — and tell platform threads from virtual ones.
+              Threads are where your application does work. JFR samples the live thread count over
+              time and attributes CPU and allocation to individual threads, so you can find the
+              threads that dominate the machine — and tell platform threads from virtual ones.
             </p>
           </AboutCallout>
 
@@ -205,16 +243,20 @@
                 A climbing platform-thread count is a thread leak or an unbounded pool.
               </FeatureCard>
               <FeatureCard icon="bi-stack" variant="success" title="Virtual threads">
-                Cheap, JVM-scheduled threads (Project Loom) multiplexed onto a small carrier pool. Huge
-                counts are normal; their risk is <em>pinning</em> (see JVM Pauses &amp; Locks).
+                Cheap, JVM-scheduled threads (Project Loom) multiplexed onto a small carrier pool.
+                Huge counts are normal; their risk is <em>pinning</em> (see JVM Pauses &amp; Locks).
               </FeatureCard>
               <FeatureCard icon="bi-activity" variant="info" title="Thread states">
-                RUNNABLE (on CPU or runnable), BLOCKED (waiting on a monitor), WAITING / TIMED_WAITING
-                (parked or sleeping). Lots of BLOCKED threads = contention.
+                RUNNABLE (on CPU or runnable), BLOCKED (waiting on a monitor), WAITING /
+                TIMED_WAITING (parked or sleeping). Lots of BLOCKED threads = contention.
               </FeatureCard>
-              <FeatureCard icon="bi-memory" variant="warning" title="Per-thread CPU &amp; allocation">
-                Which threads burn CPU and which allocate the most — the starting point for targeting a
-                flame graph or cutting allocation churn.
+              <FeatureCard
+                icon="bi-memory"
+                variant="warning"
+                title="Per-thread CPU &amp; allocation"
+              >
+                Which threads burn CPU and which allocate the most — the starting point for
+                targeting a flame graph or cutting allocation churn.
               </FeatureCard>
             </FeatureGrid>
           </AboutSection>
@@ -222,8 +264,8 @@
           <AboutSection icon="bi-broadcast" title="How JFR Emits This">
             <ul>
               <li>
-                <code>jdk.JavaThreadStatistics</code> — periodic live/daemon thread counts that drive
-                the activity chart. Enabled by default.
+                <code>jdk.JavaThreadStatistics</code> — periodic live/daemon thread counts that
+                drive the activity chart. Enabled by default.
               </li>
               <li>
                 <code>jdk.ThreadStart</code> / <code>jdk.ThreadEnd</code> — thread lifecycle events.
@@ -261,6 +303,9 @@ import AboutCallout from '@/components/about/AboutCallout.vue';
 import AboutSection from '@/components/about/AboutSection.vue';
 import FeatureGrid from '@/components/about/FeatureGrid.vue';
 import FeatureCard from '@/components/about/FeatureCard.vue';
+import ChartDescription from '@/components/ChartDescription.vue';
+import EmptyState from '@/components/EmptyState.vue';
+import type ReservedStackActivation from '@/services/api/model/ReservedStackActivation';
 import FlamegraphComponent from '@/components/FlamegraphComponent.vue';
 import SearchBarComponent from '@/components/SearchBarComponent.vue';
 import PrimaryFlamegraphClient from '@/services/api/PrimaryFlamegraphClient';
@@ -282,6 +327,7 @@ const loading = ref<boolean>(true);
 const activeTab = ref('overview');
 const tabs = [
   { id: 'overview', label: 'Statistics', icon: 'graph-up' },
+  { id: 'reserved-stack', label: 'Reserved Stack', icon: 'shield-exclamation' },
   { id: 'about', label: 'How It Works', icon: 'book' }
 ];
 const threadSerie = ref<number[][]>();
@@ -311,6 +357,9 @@ const topSystemCpuThreads = ref<ThreadWithCpuLoad[]>([]);
 
 // State for allocation type from ThreadStatisticsResponse
 const allocationType = ref<string>('');
+
+// Reserved-stack activations (stack-overflow near-misses)
+const reservedStackActivations = ref<ReservedStackActivation[]>([]);
 
 // Computed metrics for StatsTable
 const metricsData = computed(() => {
@@ -367,11 +416,14 @@ const loadThreadStatistics = async (): Promise<void> => {
 
     const client = new ProfileThreadClient(profileId);
 
-    // Call both APIs in parallel
-    const [statisticsResponse, timeseriesResponse] = await Promise.all([
+    // Call APIs in parallel
+    const [statisticsResponse, timeseriesResponse, reservedStackResponse] = await Promise.all([
       client.statistics(),
-      client.timeseries()
+      client.timeseries(),
+      client.reservedStack()
     ]);
+
+    reservedStackActivations.value = reservedStackResponse;
 
     // Update thread statistics
     threadStats.value = statisticsResponse.statistics;

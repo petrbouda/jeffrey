@@ -31,6 +31,7 @@ const headings = [
   { id: 'files', text: 'Top Files', level: 2 },
   { id: 'directories', text: 'By Directory', level: 2 },
   { id: 'slowest', text: 'Slowest Operations', level: 2 },
+  { id: 'fsync', text: 'Fsync', level: 2 },
   { id: 'events', text: 'Source Events', level: 2 }
 ];
 
@@ -65,10 +66,14 @@ onMounted(() => {
       <h2 id="slowest">Slowest Operations</h2>
       <p>The slowest individual reads/writes by duration. A slow write is often an <code>fsync</code>/flush; a slow read is a page-cache miss hitting the disk.</p>
 
+      <h2 id="fsync">Fsync</h2>
+      <p>File force (fsync) operations from <code>jdk.FileForce</code> — flushing buffered writes (and optionally file metadata) durably to disk. Unlike reads and writes, a force carries no byte count, only latency, so it gets a dedicated stat block (count, average/max/total latency, metadata-flush share) and a slowest-forces table. Slow or frequent fsyncs are a classic durability bottleneck for commit logs, databases, and flush-on-every-write code.</p>
+
       <h2 id="events">Source Events</h2>
       <ul>
         <li><code>jdk.FileRead</code> — path, bytes read, end-of-stream and duration (threshold-gated, often disabled by default).</li>
         <li><code>jdk.FileWrite</code> — path, bytes written and duration (threshold-gated, often disabled by default).</li>
+        <li><code>jdk.FileForce</code> — path, a metadata flag and the flush duration (no byte count); powers the Fsync tab.</li>
       </ul>
     </div>
 

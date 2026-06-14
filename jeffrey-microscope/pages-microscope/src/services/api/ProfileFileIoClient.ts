@@ -18,7 +18,12 @@
 
 import BaseProfileClient from '@/services/api/BaseProfileClient';
 import TimeseriesData from '@/services/timeseries/model/TimeseriesData';
-import type { IoEndpoint, IoOperation, IoOverview } from '@/services/api/model/IoModels';
+import type {
+  FileForceStats,
+  IoEndpoint,
+  IoOperation,
+  IoOverview
+} from '@/services/api/model/IoModels';
 
 export default class ProfileFileIoClient extends BaseProfileClient {
   constructor(profileId: string) {
@@ -43,5 +48,9 @@ export default class ProfileFileIoClient extends BaseProfileClient {
 
   public getDirectories(): Promise<IoEndpoint[]> {
     return this.get<IoEndpoint[]>('/directories');
+  }
+
+  public getForce(): Promise<FileForceStats> {
+    return this.get<FileForceStats>('/force');
   }
 }

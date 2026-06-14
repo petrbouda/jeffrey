@@ -27,6 +27,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
 import cafe.jeffrey.profile.manager.SystemResourcesManager;
+import cafe.jeffrey.profile.manager.model.system.LaunchedProcessInfo;
+import cafe.jeffrey.profile.manager.model.system.ModuleEdge;
+import cafe.jeffrey.profile.manager.model.system.ModuleExport;
 import cafe.jeffrey.profile.manager.model.system.SystemOverview;
 import cafe.jeffrey.profile.manager.model.system.SystemProcessInfo;
 import cafe.jeffrey.timeseries.TimeseriesData;
@@ -81,6 +84,30 @@ public class SystemResourcesController {
     public List<SystemProcessInfo> processes(@PathVariable("profileId") String profileId) {
         LOG.debug("Fetching host processes");
         return mgr(profileId).processes();
+    }
+
+    @GetMapping("/swap/timeline")
+    public TimeseriesData swapTimeline(@PathVariable("profileId") String profileId) {
+        LOG.debug("Fetching swap-space timeline");
+        return mgr(profileId).swapTimeline();
+    }
+
+    @GetMapping("/launched-processes")
+    public List<LaunchedProcessInfo> launchedProcesses(@PathVariable("profileId") String profileId) {
+        LOG.debug("Fetching launched subprocesses");
+        return mgr(profileId).launchedProcesses();
+    }
+
+    @GetMapping("/modules/requires")
+    public List<ModuleEdge> moduleRequires(@PathVariable("profileId") String profileId) {
+        LOG.debug("Fetching module requires");
+        return mgr(profileId).moduleRequires();
+    }
+
+    @GetMapping("/modules/exports")
+    public List<ModuleExport> moduleExports(@PathVariable("profileId") String profileId) {
+        LOG.debug("Fetching module exports");
+        return mgr(profileId).moduleExports();
     }
 
     private SystemResourcesManager mgr(String profileId) {

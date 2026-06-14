@@ -21,6 +21,7 @@ import ThreadResponse from '@/services/api/model/ThreadResponse';
 import ThreadStatisticsResponse from '@/services/api/model/ThreadStatisticsResponse';
 import Serie from '@/services/timeseries/model/Serie';
 import type { ParsedDump, ThreadDumpAnalysis } from '@/services/api/model/ThreadDumpModels';
+import type ReservedStackActivation from '@/services/api/model/ReservedStackActivation';
 
 export default class ProfileThreadClient extends BaseProfileClient {
   constructor(profileId: string) {
@@ -45,5 +46,9 @@ export default class ProfileThreadClient extends BaseProfileClient {
 
   public dump(index: number): Promise<ParsedDump> {
     return this.get<ParsedDump>(`/dumps/${index}`);
+  }
+
+  public reservedStack(): Promise<ReservedStackActivation[]> {
+    return this.get<ReservedStackActivation[]>('/reserved-stack');
   }
 }

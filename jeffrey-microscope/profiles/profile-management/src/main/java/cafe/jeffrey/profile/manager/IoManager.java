@@ -18,6 +18,7 @@
 
 package cafe.jeffrey.profile.manager;
 
+import cafe.jeffrey.profile.manager.model.io.FileForceStats;
 import cafe.jeffrey.profile.manager.model.io.IoEndpoint;
 import cafe.jeffrey.profile.manager.model.io.IoKind;
 import cafe.jeffrey.profile.manager.model.io.IoOperation;
@@ -65,4 +66,10 @@ public interface IoManager {
      * File I/O aggregated by parent directory, ranked by bytes; empty when no file events are present.
      */
     List<IoEndpoint> directories();
+
+    /**
+     * Fsync (file-force) latency summary from {@code jdk.FileForce} — count, latency stats, and slowest
+     * forces. Force events carry no bytes, so they are reported separately from read/write throughput.
+     */
+    FileForceStats fileForce();
 }

@@ -52,6 +52,7 @@ public record Type(String code, boolean calculated) {
     public static final Type SOCKET_WRITE = new Type(EventTypeName.SOCKET_WRITE);
     public static final Type FILE_READ = new Type(EventTypeName.FILE_READ);
     public static final Type FILE_WRITE = new Type(EventTypeName.FILE_WRITE);
+    public static final Type FILE_FORCE = new Type(EventTypeName.FILE_FORCE);
     public static final Type LIVE_OBJECTS = new Type(EventTypeName.LIVE_OBJECTS);
     public static final Type ACTIVE_RECORDING = new Type(EventTypeName.ACTIVE_RECORDING);
     public static final Type ACTIVE_SETTING = new Type(EventTypeName.ACTIVE_SETTING);
@@ -72,6 +73,7 @@ public record Type(String code, boolean calculated) {
     public static final Type Z_YOUNG_GARBAGE_COLLECTION = new Type(EventTypeName.Z_YOUNG_GARBAGE_COLLECTION);
     public static final Type Z_OLD_GARBAGE_COLLECTION = new Type(EventTypeName.Z_OLD_GARBAGE_COLLECTION);
     public static final Type GC_PHASE_CONCURRENT = new Type(EventTypeName.GC_PHASE_CONCURRENT);
+    public static final Type GC_PHASE_PARALLEL = new Type(EventTypeName.GC_PHASE_PARALLEL);
     public static final Type TENURING_DISTRIBUTION = new Type(EventTypeName.TENURING_DISTRIBUTION);
     public static final Type GC_REFERENCE_STATISTICS = new Type(EventTypeName.GC_REFERENCE_STATISTICS);
     public static final Type GC_CPU_TIME = new Type(EventTypeName.GC_CPU_TIME);
@@ -131,12 +133,17 @@ public record Type(String code, boolean calculated) {
     public static final Type VIRTUAL_THREAD_START = new Type(EventTypeName.VIRTUAL_THREAD_START);
     public static final Type VIRTUAL_THREAD_END = new Type(EventTypeName.VIRTUAL_THREAD_END);
     public static final Type VIRTUAL_THREAD_SUBMIT_FAILED = new Type(EventTypeName.VIRTUAL_THREAD_SUBMIT_FAILED);
+    public static final Type RESERVED_STACK_ACTIVATION = new Type(EventTypeName.RESERVED_STACK_ACTIVATION);
 
     // System & host events
     public static final Type CPU_LOAD = new Type(EventTypeName.CPU_LOAD);
     public static final Type NETWORK_UTILIZATION = new Type(EventTypeName.NETWORK_UTILIZATION);
     public static final Type THREAD_CONTEXT_SWITCH_RATE = new Type(EventTypeName.THREAD_CONTEXT_SWITCH_RATE);
     public static final Type SYSTEM_PROCESS = new Type(EventTypeName.SYSTEM_PROCESS);
+    public static final Type PROCESS_START = new Type(EventTypeName.PROCESS_START);
+    public static final Type SWAP_SPACE = new Type(EventTypeName.SWAP_SPACE);
+    public static final Type MODULE_REQUIRE = new Type(EventTypeName.MODULE_REQUIRE);
+    public static final Type MODULE_EXPORT = new Type(EventTypeName.MODULE_EXPORT);
 
     // Native memory events
     public static final Type RESIDENT_SET_SIZE = new Type(EventTypeName.RESIDENT_SET_SIZE);
@@ -242,6 +249,7 @@ public record Type(String code, boolean calculated) {
                 SOCKET_WRITE,
                 FILE_READ,
                 FILE_WRITE,
+                FILE_FORCE,
                 LIVE_OBJECTS,
                 ACTIVE_RECORDING,
                 ACTIVE_SETTING,
@@ -260,6 +268,7 @@ public record Type(String code, boolean calculated) {
                 Z_YOUNG_GARBAGE_COLLECTION,
                 Z_OLD_GARBAGE_COLLECTION,
                 GC_PHASE_CONCURRENT,
+                GC_PHASE_PARALLEL,
                 TENURING_DISTRIBUTION,
                 GC_REFERENCE_STATISTICS,
                 GC_CPU_TIME,
@@ -313,10 +322,15 @@ public record Type(String code, boolean calculated) {
                 VIRTUAL_THREAD_START,
                 VIRTUAL_THREAD_END,
                 VIRTUAL_THREAD_SUBMIT_FAILED,
+                RESERVED_STACK_ACTIVATION,
                 CPU_LOAD,
                 NETWORK_UTILIZATION,
                 THREAD_CONTEXT_SWITCH_RATE,
                 SYSTEM_PROCESS,
+                PROCESS_START,
+                SWAP_SPACE,
+                MODULE_REQUIRE,
+                MODULE_EXPORT,
                 RESIDENT_SET_SIZE,
                 DIRECT_BUFFER_STATISTICS,
                 NATIVE_LIBRARY,

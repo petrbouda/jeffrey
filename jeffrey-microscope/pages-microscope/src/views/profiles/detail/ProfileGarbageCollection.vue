@@ -78,7 +78,13 @@
           <TableToolbar v-model="longestPausesView.query" search-placeholder="Filter by cause...">
             <span class="toolbar-info">Longest pauses</span>
             <template #filters>
-              <Badge key-label="Total" :value="longestPausesView.matchCount" variant="secondary" size="s" borderless />
+              <Badge
+                key-label="Total"
+                :value="longestPausesView.matchCount"
+                variant="secondary"
+                size="s"
+                borderless
+              />
             </template>
           </TableToolbar>
         </template>
@@ -123,7 +129,13 @@
                     :variant="getConcurrentBadgeVariant(event.concurrent)"
                     size="s"
                   />
-                  <Badge v-if="event.type" :value="event.type" variant="secondary" size="s" borderless />
+                  <Badge
+                    v-if="event.type"
+                    :value="event.type"
+                    variant="secondary"
+                    size="s"
+                    borderless
+                  />
                 </div>
                 <span class="timestamp-path text-muted small">{{
                   FormattingService.formatTimestamp(event.timestamp)
@@ -185,10 +197,19 @@
       />
       <DataTable v-else>
         <template #toolbar>
-          <TableToolbar v-model="concurrentEventsView.query" search-placeholder="Filter by collector...">
+          <TableToolbar
+            v-model="concurrentEventsView.query"
+            search-placeholder="Filter by collector..."
+          >
             <span class="toolbar-info">Concurrent cycles</span>
             <template #filters>
-              <Badge key-label="Total" :value="concurrentEventsView.matchCount" variant="secondary" size="s" borderless />
+              <Badge
+                key-label="Total"
+                :value="concurrentEventsView.matchCount"
+                variant="secondary"
+                size="s"
+                borderless
+              />
             </template>
           </TableToolbar>
         </template>
@@ -259,7 +280,13 @@
             <TableToolbar :show-search="false">
               <span class="toolbar-info">Survivor-age distribution</span>
               <template #filters>
-                <Badge key-label="Collections" :value="tenuringGcsView.total" variant="secondary" size="s" borderless />
+                <Badge
+                  key-label="Collections"
+                  :value="tenuringGcsView.total"
+                  variant="secondary"
+                  size="s"
+                  borderless
+                />
               </template>
             </TableToolbar>
           </template>
@@ -334,7 +361,13 @@
             <TableToolbar :show-search="false">
               <span class="toolbar-info">GC CPU time</span>
               <template #filters>
-                <Badge key-label="Collections" :value="cpuTimesView.total" variant="secondary" size="s" borderless />
+                <Badge
+                  key-label="Collections"
+                  :value="cpuTimesView.total"
+                  variant="secondary"
+                  size="s"
+                  borderless
+                />
               </template>
             </TableToolbar>
           </template>
@@ -349,9 +382,15 @@
           <tbody>
             <tr v-for="entry in cpuTimesView.visible" :key="entry.gcId">
               <td>{{ entry.gcId }}</td>
-              <td class="text-end">{{ FormattingService.formatDuration2Units(entry.userNanos) }}</td>
-              <td class="text-end">{{ FormattingService.formatDuration2Units(entry.systemNanos) }}</td>
-              <td class="text-end">{{ FormattingService.formatDuration2Units(entry.realNanos) }}</td>
+              <td class="text-end">
+                {{ FormattingService.formatDuration2Units(entry.userNanos) }}
+              </td>
+              <td class="text-end">
+                {{ FormattingService.formatDuration2Units(entry.systemNanos) }}
+              </td>
+              <td class="text-end">
+                {{ FormattingService.formatDuration2Units(entry.realNanos) }}
+              </td>
             </tr>
           </tbody>
           <template #footer>
@@ -371,7 +410,13 @@
             <TableToolbar :show-search="false">
               <span class="toolbar-info">Pause-target adherence (MMU)</span>
               <template #filters>
-                <Badge key-label="Collections" :value="mmuView.total" variant="secondary" size="s" borderless />
+                <Badge
+                  key-label="Collections"
+                  :value="mmuView.total"
+                  variant="secondary"
+                  size="s"
+                  borderless
+                />
               </template>
             </TableToolbar>
           </template>
@@ -384,10 +429,18 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="entry in mmuView.visible" :key="entry.gcId" :class="{ 'table-danger': entry.gcTimeNanos > entry.pauseTargetNanos }">
+            <tr
+              v-for="entry in mmuView.visible"
+              :key="entry.gcId"
+              :class="{ 'table-danger': entry.gcTimeNanos > entry.pauseTargetNanos }"
+            >
               <td>{{ entry.gcId }}</td>
-              <td class="text-end">{{ FormattingService.formatDuration2Units(entry.gcTimeNanos) }}</td>
-              <td class="text-end">{{ FormattingService.formatDuration2Units(entry.pauseTargetNanos) }}</td>
+              <td class="text-end">
+                {{ FormattingService.formatDuration2Units(entry.gcTimeNanos) }}
+              </td>
+              <td class="text-end">
+                {{ FormattingService.formatDuration2Units(entry.pauseTargetNanos) }}
+              </td>
               <td class="text-end">
                 <Badge
                   v-if="entry.gcTimeNanos > entry.pauseTargetNanos"
@@ -412,6 +465,65 @@
           </template>
         </DataTable>
       </template>
+    </div>
+
+    <div v-show="activeTab === 'phase-parallel'">
+      <ChartDescription
+        shows="Parallel GC sub-phases (jdk.GCPhaseParallel) aggregated by name across all GC worker threads and collections — e.g. Ext Root Scanning, Object Copy, Termination."
+        use-case="Find which sub-phase dominates a stop-the-world pause: heavy Object Copy points at high promotion, heavy Termination at worker load imbalance."
+      />
+      <EmptyState
+        v-if="!phaseParallelData || phaseParallelData.length === 0"
+        icon="bi-layers"
+        title="No parallel sub-phase events"
+        description="This recording has no jdk.GCPhaseParallel events (sub-phase detail is off in many GC configs)."
+      />
+      <DataTable v-else>
+        <template #toolbar>
+          <TableToolbar v-model="phaseParallelView.query" search-placeholder="Filter phases...">
+            <span class="toolbar-info">GC sub-phases</span>
+            <template #filters>
+              <Badge
+                key-label="Phases"
+                :value="phaseParallelView.matchCount"
+                variant="secondary"
+                size="s"
+                borderless
+              />
+            </template>
+          </TableToolbar>
+        </template>
+        <thead>
+          <tr>
+            <th>Phase</th>
+            <th class="text-end">Samples</th>
+            <th class="text-end">Total Time</th>
+            <th class="text-end">Avg Time</th>
+            <th class="text-end">Max Time</th>
+            <th class="text-end">% of Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="(phase, index) in phaseParallelView.visible" :key="index">
+            <td>{{ phase.name }}</td>
+            <td class="text-end">{{ FormattingService.formatNumber(phase.count) }}</td>
+            <td class="text-end">{{ FormattingService.formatDuration2Units(phase.totalNanos) }}</td>
+            <td class="text-end">{{ FormattingService.formatDuration2Units(phase.avgNanos) }}</td>
+            <td class="text-end">{{ FormattingService.formatDuration2Units(phase.maxNanos) }}</td>
+            <td class="text-end">{{ phase.percentOfTotal.toFixed(1) }}%</td>
+          </tr>
+        </tbody>
+        <template #footer>
+          <TableShowMore
+            :shown="phaseParallelView.visible.length"
+            :match-count="phaseParallelView.matchCount"
+            :total="phaseParallelView.total"
+            :expanded="phaseParallelView.expanded"
+            :page-size="phaseParallelView.pageSize"
+            @toggle="phaseParallelView.toggle"
+          />
+        </template>
+      </DataTable>
     </div>
 
     <div v-show="activeTab === 'pause-types'">
@@ -527,7 +639,8 @@
           <FeatureGrid>
             <FeatureCard icon="bi-egg" variant="info" title="Eden">
               Where almost all objects are born. Cheap bump-pointer allocation; a young collection
-              sweeps it whenever it fills. Most objects die here ("the weak generational hypothesis").
+              sweeps it whenever it fills. Most objects die here ("the weak generational
+              hypothesis").
             </FeatureCard>
             <FeatureCard icon="bi-arrow-left-right" variant="success" title="Survivor">
               Two spaces that ping-pong surviving young objects, ageing them one GC at a time. The
@@ -547,35 +660,40 @@
         <AboutSection icon="bi-stopwatch" title="Stop-the-World vs Concurrent">
           <FeatureGrid>
             <FeatureCard icon="bi-pause-circle" variant="danger" title="Stop-the-world (STW) pause">
-              Every application thread is frozen at a safepoint while the collector works. This is the
-              latency you feel; the <em>Pause Distribution</em> and <em>Longest Pauses</em> tabs are
-              all about these windows.
+              Every application thread is frozen at a safepoint while the collector works. This is
+              the latency you feel; the <em>Pause Distribution</em> and <em>Longest Pauses</em> tabs
+              are all about these windows.
             </FeatureCard>
             <FeatureCard icon="bi-arrow-repeat" variant="success" title="Concurrent phase">
               Work the collector does <em>while your app runs</em> (G1 marking, ZGC/Shenandoah
-              relocation). It trades CPU for shorter pauses — visible on the <em>Concurrent Cycles</em>
+              relocation). It trades CPU for shorter pauses — visible on the
+              <em>Concurrent Cycles</em>
               tab.
             </FeatureCard>
           </FeatureGrid>
           <AboutCallout variant="tip" title="Sum of pauses ≠ duration" icon="bi-lightbulb-fill">
             A single collection can have several STW sub-pauses around concurrent work. "Sum of
-            pauses" is the total STW time charged to your app; "duration" is wall-clock start-to-end.
-            For low-latency collectors the two diverge sharply — that's the whole point of going
-            concurrent.
+            pauses" is the total STW time charged to your app; "duration" is wall-clock
+            start-to-end. For low-latency collectors the two diverge sharply — that's the whole
+            point of going concurrent.
           </AboutCallout>
         </AboutSection>
 
         <AboutSection icon="bi-graph-up" title="Reading the Charts">
           <FeatureGrid>
             <FeatureCard icon="bi-bar-chart" variant="primary" title="Pause Distribution">
-              A histogram of pause lengths. A tight cluster of short pauses is healthy; a long tail is
-              what hurts p99 latency. Cross-reference the longest ones with their cause.
+              A histogram of pause lengths. A tight cluster of short pauses is healthy; a long tail
+              is what hurts p99 latency. Cross-reference the longest ones with their cause.
             </FeatureCard>
             <FeatureCard icon="bi-pie-chart" variant="success" title="GC Efficiency">
               Throughput (time in app) vs overhead (time in GC). Sustained overhead above a few
               percent means the heap is too small or allocation too high.
             </FeatureCard>
-            <FeatureCard icon="bi-arrow-up-circle" variant="warning" title="Promotion &amp; Tenuring">
+            <FeatureCard
+              icon="bi-arrow-up-circle"
+              variant="warning"
+              title="Promotion &amp; Tenuring"
+            >
               Stacked surviving bytes per survivor age. A tall, top-heavy stack means objects are
               promoted too young — survivor spaces too small or allocation spikes.
             </FeatureCard>
@@ -597,7 +715,8 @@
               cost of longer pauses.
             </FeatureCard>
             <FeatureCard icon="bi-diagram-3" variant="primary" title="G1 (default)">
-              Region-based, balances throughput and pause goals via a soft <code>MaxGCPauseMillis</code>
+              Region-based, balances throughput and pause goals via a soft
+              <code>MaxGCPauseMillis</code>
               target. The IHOP/MMU/tenuring tabs are G1-specific.
             </FeatureCard>
             <FeatureCard icon="bi-lightning-charge" variant="success" title="ZGC / Shenandoah">
@@ -609,8 +728,8 @@
 
         <AboutSection icon="bi-broadcast" title="How JFR Emits This">
           <p>
-            Core GC events are <strong>on by default</strong> in every JFR configuration, so this page
-            works for any recording:
+            Core GC events are <strong>on by default</strong> in every JFR configuration, so this
+            page works for any recording:
           </p>
           <ul>
             <li>
@@ -622,8 +741,8 @@
               <code>jdk.G1GarbageCollection</code> — collector-specific detail.
             </li>
             <li>
-              <code>jdk.GCHeapSummary</code> — before/after heap occupancy (drives the efficiency and
-              difference columns); <code>jdk.GCConfiguration</code> identifies the collector.
+              <code>jdk.GCHeapSummary</code> — before/after heap occupancy (drives the efficiency
+              and difference columns); <code>jdk.GCConfiguration</code> identifies the collector.
             </li>
           </ul>
           <p>
@@ -685,6 +804,7 @@ import FeatureGrid from '@/components/about/FeatureGrid.vue';
 import FeatureCard from '@/components/about/FeatureCard.vue';
 import AxisFormatType from '@/services/timeseries/AxisFormatType';
 import type { IhopData, TenuringData } from '@/services/api/model/GCTuningModels';
+import type GCPhaseParallelAggregate from '@/services/api/model/GCPhaseParallelAggregate';
 import ProfileGCClient from '@/services/api/ProfileGCClient';
 import GCOverviewData from '@/services/api/model/GCOverviewData';
 import ConcurrentEvent from '@/services/api/model/ConcurrentEvent';
@@ -716,6 +836,7 @@ const gcTabs = [
   { id: 'concurrent-cycles', label: 'Concurrent Cycles', icon: 'layers' },
   { id: 'tenuring', label: 'Promotion & Tenuring', icon: 'arrow-up-circle' },
   { id: 'ihop', label: 'G1 IHOP & CPU', icon: 'sliders' },
+  { id: 'phase-parallel', label: 'Sub-Phases', icon: 'layers' },
   { id: 'pause-types', label: 'Pause Types', icon: 'info-circle' },
   { id: 'about', label: 'How It Works', icon: 'book' }
 ];
@@ -1082,6 +1203,7 @@ const createEfficiencyChart = async () => {
 // Deep-tuning tab data, loaded lazily on first visit so the main page stays fast.
 const tenuringData = ref<TenuringData | null>(null);
 const ihopData = ref<IhopData | null>(null);
+const phaseParallelData = ref<GCPhaseParallelAggregate[] | null>(null);
 
 const ihopThresholdSeries = computed<number[][]>(
   () => ihopData.value?.ihopTimeline?.series?.[0]?.data ?? []
@@ -1089,21 +1211,25 @@ const ihopThresholdSeries = computed<number[][]>(
 const ihopOccupancySeries = computed<number[][]>(
   () => ihopData.value?.ihopTimeline?.series?.[1]?.data ?? []
 );
-const hasIhopTimeline = computed(() =>
-  ihopOccupancySeries.value.some(point => point[1] > 0)
-);
+const hasIhopTimeline = computed(() => ihopOccupancySeries.value.some(point => point[1] > 0));
 
 // Full-text filtering + "show 50 then all" views for the GC tables. Numeric-only tables
 // (tenuring by GC id, CPU time, MMU) get a row window but no search box.
 const longestPausesView = useTableView(() => gcOverviewData.value?.longestPauses ?? [], {
   searchableText: event => event.cause
 });
-const concurrentEventsView = useTableView(() => gcOverviewData.value?.longestConcurrentEvents ?? [], {
-  searchableText: event => event.collectorName ?? ''
-});
+const concurrentEventsView = useTableView(
+  () => gcOverviewData.value?.longestConcurrentEvents ?? [],
+  {
+    searchableText: event => event.collectorName ?? ''
+  }
+);
 const tenuringGcsView = useTableView(() => tenuringData.value?.gcs ?? []);
 const cpuTimesView = useTableView(() => ihopData.value?.cpuTimes ?? []);
 const mmuView = useTableView(() => ihopData.value?.mmu ?? []);
+const phaseParallelView = useTableView(() => phaseParallelData.value ?? [], {
+  searchableText: phase => phase.name
+});
 const pauseTypesView = useTableView(() => filteredPauseTypes.value);
 
 // Collapse the pause-types window whenever the existing search/chip filter changes.
@@ -1200,6 +1326,20 @@ const loadIhopData = async () => {
   }
 };
 
+const loadPhaseParallelData = async () => {
+  if (phaseParallelData.value) {
+    return;
+  }
+  try {
+    if (!client) {
+      client = new ProfileGCClient(route.params.profileId as string);
+    }
+    phaseParallelData.value = await client.getPhaseParallel();
+  } catch (err) {
+    console.error('Error loading GC parallel sub-phase data:', err);
+  }
+};
+
 // Re-render the relevant chart when the user switches into a chart-backed tab.
 watch(activeTab, newId => {
   if (newId === 'distribution') {
@@ -1210,6 +1350,8 @@ watch(activeTab, newId => {
     loadTenuringData();
   } else if (newId === 'ihop') {
     loadIhopData();
+  } else if (newId === 'phase-parallel') {
+    loadPhaseParallelData();
   }
 });
 

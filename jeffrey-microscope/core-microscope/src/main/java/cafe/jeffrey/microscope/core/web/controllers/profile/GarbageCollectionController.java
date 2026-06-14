@@ -28,6 +28,7 @@ import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
 import cafe.jeffrey.profile.manager.GarbageCollectionManager;
 import cafe.jeffrey.profile.manager.model.gc.GCOverviewData;
+import cafe.jeffrey.profile.manager.model.gc.GCPhaseParallelAggregate;
 import cafe.jeffrey.profile.manager.model.gc.GCTimeseriesType;
 import cafe.jeffrey.profile.manager.model.gc.configuration.GCConfigurationData;
 import cafe.jeffrey.profile.manager.model.gc.g1.G1AnalysisData;
@@ -38,6 +39,8 @@ import cafe.jeffrey.profile.manager.model.gc.tuning.ReferenceProcessingData;
 import cafe.jeffrey.profile.manager.model.gc.tuning.TenuringData;
 import cafe.jeffrey.profile.manager.model.gc.zgc.ZgcAnalysisData;
 import cafe.jeffrey.timeseries.TimeseriesData;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/internal/profiles/{profileId}/gc")
@@ -111,6 +114,12 @@ public class GarbageCollectionController {
     public ReferenceProcessingData referenceProcessing(@PathVariable("profileId") String profileId) {
         LOG.debug("Fetching GC reference-processing data");
         return mgr(profileId).referenceProcessing();
+    }
+
+    @GetMapping("/phase-parallel")
+    public List<GCPhaseParallelAggregate> phaseParallel(@PathVariable("profileId") String profileId) {
+        LOG.debug("Fetching GC parallel sub-phase breakdown");
+        return mgr(profileId).phaseParallel();
     }
 
     private GarbageCollectionManager mgr(String profileId) {

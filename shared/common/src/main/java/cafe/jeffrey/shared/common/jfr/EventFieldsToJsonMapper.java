@@ -57,6 +57,9 @@ public class EventFieldsToJsonMapper implements EventFieldsMapper {
     private static final String OLD_OBJECT_TYPE_NAME = "jdk.types.OldObject";
     private static final String OLD_OBJECT_TYPE_FIELD = "type";
     private static final String METHOD_TYPE_NAME = "jdk.types.Method";
+    private static final String MODULE_TYPE_NAME = "jdk.types.Module";
+    private static final String PACKAGE_TYPE_NAME = "jdk.types.Package";
+    private static final String STRUCT_NAME_FIELD = "name";
     private static final String BOOLEAN_TYPE_NAME = "boolean";
     private static final Set<String> INTEGRAL_TYPE_NAMES = Set.of("long", "int");
 
@@ -156,6 +159,10 @@ public class EventFieldsToJsonMapper implements EventFieldsMapper {
                     node.put(name, method.getType().getName() + "#" + method.getName());
                 }
             };
+        } else if (MODULE_TYPE_NAME.equals(typeName) || PACKAGE_TYPE_NAME.equals(typeName)) {
+            // The JFR Module/Package structs would otherwise fall through to a verbose toString() dump.
+            // Flatten each to its identifying name (the module/package name); absent for the unnamed module.
+            return (event, node) -> node.put(name, structName(event.getValue(name)));
         } else if (activeSettingEvent && ACTIVE_SETTING_ID_FIELD.equals(name)) {
             return (event, node) -> {
                 long eventId = event.getValue(name);
@@ -239,6 +246,18 @@ public class EventFieldsToJsonMapper implements EventFieldsMapper {
             return typeName;
         }
         return typeName + " (" + name + ")";
+    }
+
+    /**
+     * Flattens a JFR struct that carries a {@code name} field (e.g. {@code jdk.types.Module},
+     * {@code jdk.types.Package}) to that name, or {@code null} when the struct is absent (the unnamed
+     * module / a qualified export with no target).
+     */
+    private static String structName(Object value) {
+        if (!(value instanceof RecordedObject struct)) {
+            return null;
+        }
+        return struct.getString(STRUCT_NAME_FIELD);
     }
 
     /**

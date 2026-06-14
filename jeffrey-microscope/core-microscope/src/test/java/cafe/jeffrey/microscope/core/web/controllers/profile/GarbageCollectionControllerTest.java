@@ -128,6 +128,17 @@ class GarbageCollectionControllerTest {
         assertThat(mvc.get().uri("/api/internal/profiles/p-1/gc/reference-processing")).hasStatusOk();
     }
 
+    @Test
+    void getsPhaseParallelBreakdown() {
+        when(resolver.resolve("p-1")).thenReturn(profileManager);
+        when(profileManager.gcManager()).thenReturn(gcManager);
+        when(gcManager.phaseParallel()).thenReturn(List.of());
+
+        MockMvcTester mvc = mockMvcTesterFor(new GarbageCollectionController(resolver));
+
+        assertThat(mvc.get().uri("/api/internal/profiles/p-1/gc/phase-parallel")).hasStatusOk();
+    }
+
     private static G1AnalysisData emptyG1Analysis() {
         return new G1AnalysisData(
                 new G1Header(0, 0, 0, 0, 0, 0, 0, 0, 0),

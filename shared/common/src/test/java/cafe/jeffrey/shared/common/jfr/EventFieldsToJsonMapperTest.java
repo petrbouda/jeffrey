@@ -53,6 +53,7 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
 
 /**
  * Verifies that the plan-based {@link EventFieldsToJsonMapper} produces JSON
@@ -211,6 +212,49 @@ class EventFieldsToJsonMapperTest {
                 assertTrue(node.has("id"));
                 assertTrue(node.has("label"));
             }
+        }
+    }
+
+    @Nested
+    class ModuleStructFields {
+
+        @Test
+        void flattensModuleAndPackageStructsToTheirName() throws IOException {
+            Path dumpFile = Files.createTempFile("module-events-mapper-test", ".jfr");
+            List<RecordedEvent> moduleEvents;
+            List<EventType> eventTypes;
+            try (Recording recording = new Recording()) {
+                recording.enable("jdk.ModuleRequire");
+                recording.enable("jdk.ModuleExport");
+                recording.start();
+                recording.stop();
+                recording.dump(dumpFile);
+            }
+            moduleEvents = RecordingFile.readAllEvents(dumpFile);
+            eventTypes = moduleEvents.stream().map(RecordedEvent::getEventType).distinct().toList();
+            Files.deleteIfExists(dumpFile);
+
+            List<RecordedEvent> requires = moduleEvents.stream()
+                    .filter(e -> "jdk.ModuleRequire".equals(e.getEventType().getName()))
+                    .toList();
+            // The module graph is dumped at chunk start; bail out gracefully if a JVM does not emit it.
+            assumeFalse(requires.isEmpty(), "Recording is expected to contain jdk.ModuleRequire events");
+
+            EventFieldsToJsonMapper mapper = new EventFieldsToJsonMapper();
+            mapper.update(eventTypes);
+
+            boolean sawJavaBase = false;
+            for (RecordedEvent event : requires) {
+                ObjectNode node = mapper.map(event);
+                // requiredModule is a Module struct; it must flatten to a plain name, not a RecordedObject dump.
+                if (node.hasNonNull("requiredModule")) {
+                    String required = node.get("requiredModule").asString();
+                    assertFalse(required.contains("{"), "Module struct must not be a toString() blob: " + required);
+                    assertFalse(required.contains("="), "Module struct must not be a toString() blob: " + required);
+                    sawJavaBase = sawJavaBase || "java.base".equals(required);
+                }
+            }
+            assertTrue(sawJavaBase, "Every module requires java.base, so it should appear as a flattened name");
         }
     }
 

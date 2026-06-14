@@ -25,6 +25,8 @@ import cafe.jeffrey.shared.common.model.Type;
 import cafe.jeffrey.shared.common.model.time.RelativeTimeRange;
 import cafe.jeffrey.profile.manager.builder.CPULoadBuilder;
 import cafe.jeffrey.profile.manager.builder.ThreadTimeseriesBuilder;
+import cafe.jeffrey.profile.manager.model.thread.ReservedStackActivation;
+import cafe.jeffrey.profile.manager.model.thread.ReservedStackActivationBuilder;
 import cafe.jeffrey.profile.manager.model.thread.ThreadCpuLoads;
 import cafe.jeffrey.profile.manager.model.thread.ThreadStats;
 import cafe.jeffrey.profile.manager.model.thread.dump.ParsedDump;
@@ -157,6 +159,16 @@ public class ThreadManagerImpl implements ThreadManager {
         }
         RawDump raw = dumps.get(index);
         return ThreadDumpParser.parse(raw.timeOffsetMillis(), raw.text());
+    }
+
+    @Override
+    public List<ReservedStackActivation> reservedStackActivations() {
+        EventQueryConfigurer configurer = new EventQueryConfigurer()
+                .withEventType(Type.RESERVED_STACK_ACTIVATION)
+                .withJsonFields()
+                .orderedByTime();
+
+        return eventStreamRepository.genericStreaming(configurer, new ReservedStackActivationBuilder());
     }
 
     private List<RawDump> rawDumps() {

@@ -16,44 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-export interface IoOverview {
-  bytesRead: number;
-  bytesWritten: number;
-  opCount: number;
-  slowestNanos: number;
-  slowestTarget: string | null;
-  hasEvents: boolean;
-}
-
-export interface IoOperation {
-  kind: string;
-  target: string;
-  bytes: number;
-  durationNanos: number;
-  thread: string | null;
-}
-
-export interface IoEndpoint {
-  target: string;
-  opCount: number;
-  bytes: number;
-  totalNanos: number;
-  maxNanos: number;
-}
-
-export interface FileForceOp {
+export default interface ReservedStackActivation {
   timeOffsetMillis: number;
-  path: string | null;
-  metaData: boolean;
-  durationNanos: number;
   thread: string | null;
-}
-
-export interface FileForceStats {
-  count: number;
-  totalNanos: number;
-  avgNanos: number;
-  maxNanos: number;
-  metadataCount: number;
-  slowest: FileForceOp[];
+  method: string | null;
 }

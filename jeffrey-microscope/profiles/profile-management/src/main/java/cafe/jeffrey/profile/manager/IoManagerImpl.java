@@ -18,6 +18,8 @@
 
 package cafe.jeffrey.profile.manager;
 
+import cafe.jeffrey.profile.manager.model.io.FileForceBuilder;
+import cafe.jeffrey.profile.manager.model.io.FileForceStats;
 import cafe.jeffrey.profile.manager.model.io.IoDirectoriesBuilder;
 import cafe.jeffrey.profile.manager.model.io.IoEndpoint;
 import cafe.jeffrey.profile.manager.model.io.IoEndpointsBuilder;
@@ -40,6 +42,7 @@ import java.util.List;
 public class IoManagerImpl implements IoManager {
 
     private static final int MAX_SLOWEST_OPERATIONS = 50;
+    private static final int MAX_SLOWEST_FORCES = 50;
 
     private final ProfileInfo profileInfo;
     private final ProfileEventRepository eventRepository;
@@ -99,6 +102,14 @@ public class IoManagerImpl implements IoManager {
                 .withEventTypes(IoKind.FILE.types())
                 .withJsonFields();
         return eventStreamRepository.genericStreaming(configurer, new IoDirectoriesBuilder());
+    }
+
+    @Override
+    public FileForceStats fileForce() {
+        EventQueryConfigurer configurer = new EventQueryConfigurer()
+                .withEventType(Type.FILE_FORCE)
+                .withJsonFields();
+        return eventStreamRepository.genericStreaming(configurer, new FileForceBuilder(MAX_SLOWEST_FORCES));
     }
 
     private boolean hasAny(List<Type> types) {

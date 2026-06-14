@@ -42,6 +42,7 @@ public abstract class EventTypeName {
     public static final String SOCKET_WRITE = "jdk.SocketWrite";
     public static final String FILE_READ = "jdk.FileRead";
     public static final String FILE_WRITE = "jdk.FileWrite";
+    public static final String FILE_FORCE = "jdk.FileForce";
     public static final String LIVE_OBJECTS = "profiler.LiveObject";
     public static final String ACTIVE_RECORDING = "jdk.ActiveRecording";
     public static final String ACTIVE_SETTING = "jdk.ActiveSetting";
@@ -62,6 +63,7 @@ public abstract class EventTypeName {
     public static final String Z_YOUNG_GARBAGE_COLLECTION = "jdk.ZYoungGarbageCollection";
     public static final String Z_OLD_GARBAGE_COLLECTION = "jdk.ZOldGarbageCollection";
     public static final String GC_PHASE_CONCURRENT = "jdk.GCPhaseConcurrent";
+    public static final String GC_PHASE_PARALLEL = "jdk.GCPhaseParallel";
     public static final String TENURING_DISTRIBUTION = "jdk.TenuringDistribution";
     public static final String GC_REFERENCE_STATISTICS = "jdk.GCReferenceStatistics";
     public static final String GC_CPU_TIME = "jdk.GCCPUTime";
@@ -121,12 +123,17 @@ public abstract class EventTypeName {
     public static final String VIRTUAL_THREAD_START = "jdk.VirtualThreadStart";
     public static final String VIRTUAL_THREAD_END = "jdk.VirtualThreadEnd";
     public static final String VIRTUAL_THREAD_SUBMIT_FAILED = "jdk.VirtualThreadSubmitFailed";
+    public static final String RESERVED_STACK_ACTIVATION = "jdk.ReservedStackActivation";
 
     // System & host events
     public static final String CPU_LOAD = "jdk.CPULoad";
     public static final String NETWORK_UTILIZATION = "jdk.NetworkUtilization";
     public static final String THREAD_CONTEXT_SWITCH_RATE = "jdk.ThreadContextSwitchRate";
     public static final String SYSTEM_PROCESS = "jdk.SystemProcess";
+    public static final String PROCESS_START = "jdk.ProcessStart";
+    public static final String SWAP_SPACE = "jdk.SwapSpace";
+    public static final String MODULE_REQUIRE = "jdk.ModuleRequire";
+    public static final String MODULE_EXPORT = "jdk.ModuleExport";
 
     // Native memory events
     public static final String RESIDENT_SET_SIZE = "jdk.ResidentSetSize";
