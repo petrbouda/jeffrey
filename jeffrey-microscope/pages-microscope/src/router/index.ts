@@ -170,6 +170,12 @@ const profileChildRoutes = [
     meta: { layout: 'profile' }
   },
   {
+    path: 'garbage-collection/reference-processing',
+    name: 'profile-garbage-collection-reference-processing',
+    component: () => import('@/views/profiles/detail/ProfileGCReferenceProcessing.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
     path: 'class-loading',
     name: 'profile-class-loading',
     component: () => import('@/views/profiles/detail/ProfileClassLoading.vue'),

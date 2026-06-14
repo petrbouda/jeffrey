@@ -25,6 +25,7 @@ import type { IhopData, TenuringData } from '@/services/api/model/GCTuningModels
 import type G1AnalysisData from '@/services/api/model/G1AnalysisData';
 import type ZgcAnalysisData from '@/services/api/model/ZgcAnalysisData';
 import type { StringSymbolTablesData, FinalizersData } from '@/services/api/model/GCTablesModels';
+import type { ReferenceProcessingData } from '@/services/api/model/GCReferenceModels';
 
 export default class ProfileGCClient extends BaseProfileClient {
   constructor(profileId: string) {
@@ -65,5 +66,9 @@ export default class ProfileGCClient extends BaseProfileClient {
 
   public getFinalizers(): Promise<FinalizersData> {
     return this.get<FinalizersData>('/finalizers');
+  }
+
+  public getReferenceProcessing(): Promise<ReferenceProcessingData> {
+    return this.get<ReferenceProcessingData>('/reference-processing');
   }
 }

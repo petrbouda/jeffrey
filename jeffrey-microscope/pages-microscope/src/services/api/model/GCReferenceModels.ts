@@ -18,36 +18,28 @@
 
 import type TimeseriesData from '@/services/timeseries/model/TimeseriesData';
 
-export interface TenuringAgeBucket {
-  age: number;
-  sizeBytes: number;
+export interface ReferenceProcessingHeader {
+  totalReferences: number;
+  distinctTypes: number;
+  gcCount: number;
+  dominantType: string | null;
 }
 
-export interface TenuringGcSummary {
+export interface ReferenceTypeStat {
+  type: string;
+  total: number;
+  avgPerGc: number;
+}
+
+export interface GcReferenceBreakdown {
   gcId: number;
-  totalSizeBytes: number;
-  buckets: TenuringAgeBucket[];
+  total: number;
+  countsByType: Record<string, number>;
 }
 
-export interface TenuringData {
-  gcs: TenuringGcSummary[];
-}
-
-export interface GcCpuEntry {
-  gcId: number;
-  userNanos: number;
-  systemNanos: number;
-  realNanos: number;
-}
-
-export interface MmuEntry {
-  gcId: number;
-  gcTimeNanos: number;
-  pauseTargetNanos: number;
-}
-
-export interface IhopData {
-  ihopTimeline: TimeseriesData;
-  cpuTimes: GcCpuEntry[];
-  mmu: MmuEntry[];
+export interface ReferenceProcessingData {
+  header: ReferenceProcessingHeader;
+  byType: ReferenceTypeStat[];
+  timeline: TimeseriesData;
+  perGc: GcReferenceBreakdown[];
 }

@@ -23,10 +23,9 @@ import java.util.List;
 /**
  * Promotion/tenuring insight for the GC deep-tuning tab.
  *
- * @param gcs            per-collection survivor-age distributions, most recent collection first
- * @param referenceStats reference-processing counts summed across the recording, by reference type
+ * @param gcs per-collection survivor-age distributions, most recent collection first
  */
-public record TenuringData(List<TenuringGcSummary> gcs, List<ReferenceStat> referenceStats) {
+public record TenuringData(List<TenuringGcSummary> gcs) {
 
     /**
      * Survivor-age distribution of one garbage collection, from {@code jdk.TenuringDistribution}.
@@ -42,11 +41,5 @@ public record TenuringData(List<TenuringGcSummary> gcs, List<ReferenceStat> refe
      * Surviving bytes of one tenuring age within a single collection.
      */
     public record TenuringAgeBucket(int age, long sizeBytes) {
-    }
-
-    /**
-     * Total processed references of one reference type ({@code jdk.GCReferenceStatistics}).
-     */
-    public record ReferenceStat(String type, long totalCount) {
     }
 }
