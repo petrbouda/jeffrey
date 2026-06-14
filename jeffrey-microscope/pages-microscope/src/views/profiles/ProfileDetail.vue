@@ -427,6 +427,14 @@
                       <span>Native Memory</span>
                     </router-link>
                     <router-link
+                      :to="`/profiles/${profileId}/native-library-loads`"
+                      class="nav-item"
+                      active-class="active"
+                    >
+                      <i class="bi bi-box-arrow-in-down"></i>
+                      <span>Native Library Loads</span>
+                    </router-link>
+                    <router-link
                       :to="`/profiles/${profileId}/nmt`"
                       class="nav-item"
                       active-class="active"

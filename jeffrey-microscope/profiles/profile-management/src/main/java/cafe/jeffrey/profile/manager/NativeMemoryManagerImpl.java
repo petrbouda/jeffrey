@@ -21,6 +21,8 @@ package cafe.jeffrey.profile.manager;
 import tools.jackson.databind.node.ObjectNode;
 import cafe.jeffrey.profile.manager.model.nativememory.DirectBufferTimeseriesBuilder;
 import cafe.jeffrey.profile.manager.model.nativememory.NativeLibrariesBuilder;
+import cafe.jeffrey.profile.manager.model.nativememory.NativeLibraryActivityBuilder;
+import cafe.jeffrey.profile.manager.model.nativememory.NativeLibraryActivityData;
 import cafe.jeffrey.profile.manager.model.nativememory.NativeLibraryInfo;
 import cafe.jeffrey.profile.manager.model.nativememory.NativeMemoryOverview;
 import cafe.jeffrey.profile.manager.model.nativememory.RssStatsBuilder;
@@ -42,6 +44,7 @@ public class NativeMemoryManagerImpl implements NativeMemoryManager {
     private static final String DIRECT_BUFFER_COUNT_FIELD = "count";
     private static final String DIRECT_BUFFER_MEMORY_USED_FIELD = "memoryUsed";
     private static final String DIRECT_BUFFER_TOTAL_CAPACITY_FIELD = "totalCapacity";
+    private static final int MAX_LIBRARY_OPERATIONS = 500;
 
     private final ProfileInfo profileInfo;
     private final ProfileEventRepository eventRepository;
@@ -109,5 +112,17 @@ public class NativeMemoryManagerImpl implements NativeMemoryManager {
                 .orderedByTime();
 
         return eventStreamRepository.genericStreaming(configurer, new NativeLibrariesBuilder());
+    }
+
+    @Override
+    public NativeLibraryActivityData nativeLibraryActivity() {
+        RelativeTimeRange timeRange = new RelativeTimeRange(profileInfo.profilingStartEnd());
+
+        EventQueryConfigurer configurer = new EventQueryConfigurer()
+                .withEventTypes(List.of(Type.NATIVE_LIBRARY_LOAD, Type.NATIVE_LIBRARY_UNLOAD))
+                .withJsonFields();
+
+        return eventStreamRepository.genericStreaming(
+                configurer, new NativeLibraryActivityBuilder(timeRange, MAX_LIBRARY_OPERATIONS));
     }
 }

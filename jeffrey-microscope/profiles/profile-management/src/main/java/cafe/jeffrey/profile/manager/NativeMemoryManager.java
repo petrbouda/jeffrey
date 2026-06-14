@@ -18,6 +18,7 @@
 
 package cafe.jeffrey.profile.manager;
 
+import cafe.jeffrey.profile.manager.model.nativememory.NativeLibraryActivityData;
 import cafe.jeffrey.profile.manager.model.nativememory.NativeLibraryInfo;
 import cafe.jeffrey.profile.manager.model.nativememory.NativeMemoryOverview;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
@@ -57,4 +58,10 @@ public interface NativeMemoryManager {
      * Loaded native libraries, ordered by descending mapped size.
      */
     List<NativeLibraryInfo> nativeLibraries();
+
+    /**
+     * Native dynamic-library load/unload activity ({@code jdk.NativeLibraryLoad} /
+     * {@code jdk.NativeLibraryUnload}): load durations, failed loads, and load/unload timelines.
+     */
+    NativeLibraryActivityData nativeLibraryActivity();
 }

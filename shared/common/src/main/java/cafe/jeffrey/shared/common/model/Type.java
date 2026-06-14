@@ -141,6 +141,8 @@ public record Type(String code, boolean calculated) {
     public static final Type RESIDENT_SET_SIZE = new Type(EventTypeName.RESIDENT_SET_SIZE);
     public static final Type DIRECT_BUFFER_STATISTICS = new Type(EventTypeName.DIRECT_BUFFER_STATISTICS);
     public static final Type NATIVE_LIBRARY = new Type(EventTypeName.NATIVE_LIBRARY);
+    public static final Type NATIVE_LIBRARY_LOAD = new Type(EventTypeName.NATIVE_LIBRARY_LOAD);
+    public static final Type NATIVE_LIBRARY_UNLOAD = new Type(EventTypeName.NATIVE_LIBRARY_UNLOAD);
     public static final Type NATIVE_MEMORY_USAGE = new Type(EventTypeName.NATIVE_MEMORY_USAGE);
     public static final Type NATIVE_MEMORY_USAGE_TOTAL = new Type(EventTypeName.NATIVE_MEMORY_USAGE_TOTAL);
 
@@ -316,6 +318,8 @@ public record Type(String code, boolean calculated) {
                 RESIDENT_SET_SIZE,
                 DIRECT_BUFFER_STATISTICS,
                 NATIVE_LIBRARY,
+                NATIVE_LIBRARY_LOAD,
+                NATIVE_LIBRARY_UNLOAD,
                 NATIVE_MEMORY_USAGE,
                 NATIVE_MEMORY_USAGE_TOTAL,
                 EXCEPTION_STATISTICS,

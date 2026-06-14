@@ -26,6 +26,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
 import cafe.jeffrey.profile.manager.NativeMemoryManager;
+import cafe.jeffrey.profile.manager.model.nativememory.NativeLibraryActivityData;
 import cafe.jeffrey.profile.manager.model.nativememory.NativeLibraryInfo;
 import cafe.jeffrey.profile.manager.model.nativememory.NativeMemoryOverview;
 import cafe.jeffrey.timeseries.TimeseriesData;
@@ -66,6 +67,12 @@ public class NativeMemoryController {
     public List<NativeLibraryInfo> nativeLibraries(@PathVariable("profileId") String profileId) {
         LOG.debug("Fetching native libraries");
         return mgr(profileId).nativeLibraries();
+    }
+
+    @GetMapping("/library-activity")
+    public NativeLibraryActivityData nativeLibraryActivity(@PathVariable("profileId") String profileId) {
+        LOG.debug("Fetching native-library load/unload activity");
+        return mgr(profileId).nativeLibraryActivity();
     }
 
     private NativeMemoryManager mgr(String profileId) {

@@ -131,6 +131,8 @@ public abstract class EventTypeName {
     public static final String RESIDENT_SET_SIZE = "jdk.ResidentSetSize";
     public static final String DIRECT_BUFFER_STATISTICS = "jdk.DirectBufferStatistics";
     public static final String NATIVE_LIBRARY = "jdk.NativeLibrary";
+    public static final String NATIVE_LIBRARY_LOAD = "jdk.NativeLibraryLoad";
+    public static final String NATIVE_LIBRARY_UNLOAD = "jdk.NativeLibraryUnload";
     public static final String NATIVE_MEMORY_USAGE = "jdk.NativeMemoryUsage";
     public static final String NATIVE_MEMORY_USAGE_TOTAL = "jdk.NativeMemoryUsageTotal";
 

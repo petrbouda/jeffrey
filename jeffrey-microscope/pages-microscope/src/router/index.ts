@@ -194,6 +194,12 @@ const profileChildRoutes = [
     meta: { layout: 'profile' }
   },
   {
+    path: 'native-library-loads',
+    name: 'profile-native-library-loads',
+    component: () => import('@/views/profiles/detail/ProfileNativeLibraryLoads.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
     path: 'nmt',
     name: 'profile-nmt',
     component: () => import('@/views/profiles/detail/ProfileNmt.vue'),
