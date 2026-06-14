@@ -213,6 +213,11 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/docs/microscope/profiles/ProfileClassLoadingPage.vue')
       },
       {
+        path: 'microscope/profiles/jit-compilation',
+        name: 'DocsProfilesJitCompilation',
+        component: () => import('@/views/docs/microscope/profiles/ProfileJitCompilationPage.vue')
+      },
+      {
         path: 'microscope/profiles/exceptions',
         name: 'DocsProfilesExceptions',
         component: () => import('@/views/docs/microscope/profiles/ProfileExceptionsPage.vue')

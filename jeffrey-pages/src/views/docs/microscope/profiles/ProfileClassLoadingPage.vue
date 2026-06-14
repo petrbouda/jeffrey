@@ -47,7 +47,7 @@ onMounted(() => {
     />
 
     <div class="docs-content">
-      <p>The Class Loading page surfaces how the JVM's class-loading subsystem behaved during the recording — how many classes were loaded and unloaded over time, which class loaders hold the most metaspace, and what bytecode-instrumentation activity took place. It is the place to investigate metaspace leaks, class-loader leaks, hidden-class explosions, and agent overhead. The view is split into four tabs sitting under a headline metrics strip.</p>
+      <p>The Class Loading page surfaces how the JVM's class-loading subsystem behaved during the recording — how many classes were loaded and unloaded over time, which class loaders hold the most metaspace, and what bytecode-instrumentation activity took place. It is the place to investigate metaspace leaks, class-loader leaks, hidden-class explosions, and agent overhead. The view is split into four analysis tabs (plus a <em>How It Works</em> explainer) sitting under a headline metrics strip.</p>
 
       <h2 id="overview">Overview</h2>
       <p>The header strip shows the currently-loaded class count (loaded minus unloaded), the cumulative loaded and unloaded totals, the number of distinct class loaders, total metaspace reserved across loaders, hidden-class count, and the number of class redefinitions.</p>

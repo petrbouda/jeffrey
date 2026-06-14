@@ -126,7 +126,7 @@ const folderStructure = `$JEFFREY_HOME/
         <DocsFeatureCard
           icon="bi bi-lightning"
           title="JIT Compilation"
-          description="Method compilation activity, deoptimizations, compiler queue backlog, code cache occupancy with code-cache-full alerts, and optimization levels."
+          description="Method compilation activity, long compilations, compiler queue backlog, code cache occupancy with code-cache-full alerts, and deoptimizations by reason and hot method — see the JIT analysis page."
         />
         <DocsFeatureCard
           icon="bi bi-box-seam"
@@ -201,6 +201,8 @@ const folderStructure = `$JEFFREY_HOME/
         <router-link to="/docs/microscope/profiles/garbage-collection">Read the GC analysis reference &rarr;</router-link>
         &nbsp;·&nbsp;
         <router-link to="/docs/microscope/profiles/class-loading">Read the class-loading reference &rarr;</router-link>
+        &nbsp;·&nbsp;
+        <router-link to="/docs/microscope/profiles/jit-compilation">Read the JIT compilation reference &rarr;</router-link>
         &nbsp;·&nbsp;
         <router-link to="/docs/microscope/profiles/exceptions">Read the exceptions reference &rarr;</router-link>
       </p>

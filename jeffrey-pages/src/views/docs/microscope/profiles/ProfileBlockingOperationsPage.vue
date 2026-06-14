@@ -27,6 +27,7 @@ const { setHeadings } = useDocHeadings();
 
 const headings = [
   { id: 'overview', text: 'Overview', level: 2 },
+  { id: 'occurrences', text: 'Occurrences', level: 2 },
   { id: 'monitors', text: 'Lock Contention', level: 2 },
   { id: 'waits', text: 'Monitor Waits', level: 2 },
   { id: 'parks', text: 'Thread Parks', level: 2 },
@@ -53,6 +54,9 @@ onMounted(() => {
 
       <h2 id="overview">Overview</h2>
       <p>The header strip shows total monitor-blocked time with the number of contended classes, plus the monitor-wait, thread-park, sleep and virtual-thread-pinning counts.</p>
+
+      <h2 id="occurrences">Occurrences</h2>
+      <p>The default tab — a time-series chart of blocking-event occurrences per second, with one line per blocking type (lock contention, monitor waits, parks, sleeps, virtual-thread pinning). It is the place to start: spot <em>when</em> blocking spikes, <em>which</em> kind spikes, and whether different blocking types correlate (for example a contention spike that lines up with a park spike points at the same hot path). Drill into the per-type tabs below once the timeline tells you what to chase.</p>
 
       <h2 id="monitors">Lock Contention</h2>
       <p>Contended <code>synchronized</code> acquisition (<code>jdk.JavaMonitorEnter</code>) grouped by monitor class — count, total/max blocked time and distinct threads. Uncontended locks are a cheap header CAS and aren't recorded; contention inflates the lock to a heavyweight <code>ObjectMonitor</code>. The classic finds: connection pools, logging frameworks, synchronized singletons.</p>

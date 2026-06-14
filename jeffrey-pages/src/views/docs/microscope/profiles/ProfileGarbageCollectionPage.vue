@@ -49,7 +49,7 @@ onMounted(() => {
     />
 
     <div class="docs-content">
-      <p>The Garbage Collection page summarises every GC event JFR captured during the recording — pause durations, throughput, collector activity, and the reasons each collection was triggered. The view is split into five tabs that build from a high-level overview down to per-event detail.</p>
+      <p>The Garbage Collection page summarises every GC event JFR captured during the recording — pause durations, throughput, collector activity, and the reasons each collection was triggered. The view is split across seven analysis tabs that build from a high-level overview down to per-event detail, plus a <em>How It Works</em> explainer.</p>
 
       <h2 id="overview">Overview</h2>
       <p>A header strip at the top of the page surfaces the headline numbers — total collections, young vs. old splits, pause-time percentiles (max, p99, p95), throughput percentage, and collection frequency — so you can judge GC health at a glance before drilling into any tab.</p>
