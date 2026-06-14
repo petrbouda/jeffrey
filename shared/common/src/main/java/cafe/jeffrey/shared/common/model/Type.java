@@ -76,6 +76,28 @@ public record Type(String code, boolean calculated) {
     public static final Type G1_ADAPTIVE_IHOP = new Type(EventTypeName.G1_ADAPTIVE_IHOP);
     public static final Type G1_BASIC_IHOP = new Type(EventTypeName.G1_BASIC_IHOP);
     public static final Type G1_MMU = new Type(EventTypeName.G1_MMU);
+
+    // G1 deep-dive events
+    public static final Type G1_HEAP_REGION_INFORMATION = new Type(EventTypeName.G1_HEAP_REGION_INFORMATION);
+    public static final Type G1_HEAP_REGION_TYPE_CHANGE = new Type(EventTypeName.G1_HEAP_REGION_TYPE_CHANGE);
+    public static final Type EVACUATION_INFORMATION = new Type(EventTypeName.EVACUATION_INFORMATION);
+    public static final Type EVACUATION_FAILED = new Type(EventTypeName.EVACUATION_FAILED);
+    public static final Type GC_PHASE_PAUSE = new Type(EventTypeName.GC_PHASE_PAUSE);
+    public static final Type GC_PHASE_PAUSE_LEVEL_1 = new Type(EventTypeName.GC_PHASE_PAUSE_LEVEL_1);
+    public static final Type GC_PHASE_PAUSE_LEVEL_2 = new Type(EventTypeName.GC_PHASE_PAUSE_LEVEL_2);
+    public static final Type GC_PHASE_PAUSE_LEVEL_3 = new Type(EventTypeName.GC_PHASE_PAUSE_LEVEL_3);
+    public static final Type GC_PHASE_PAUSE_LEVEL_4 = new Type(EventTypeName.GC_PHASE_PAUSE_LEVEL_4);
+    public static final Type GC_PHASE_PARALLEL = new Type(EventTypeName.GC_PHASE_PARALLEL);
+    public static final Type SYSTEM_GC = new Type(EventTypeName.SYSTEM_GC);
+    public static final Type GC_LOCKER = new Type(EventTypeName.GC_LOCKER);
+
+    // ZGC deep-dive events
+    public static final Type Z_ALLOCATION_STALL = new Type(EventTypeName.Z_ALLOCATION_STALL);
+    public static final Type Z_PAGE_ALLOCATION = new Type(EventTypeName.Z_PAGE_ALLOCATION);
+    public static final Type Z_RELOCATION_SET = new Type(EventTypeName.Z_RELOCATION_SET);
+    public static final Type Z_RELOCATION_SET_GROUP = new Type(EventTypeName.Z_RELOCATION_SET_GROUP);
+    public static final Type Z_UNCOMMIT = new Type(EventTypeName.Z_UNCOMMIT);
+    public static final Type Z_THREAD_PHASE = new Type(EventTypeName.Z_THREAD_PHASE);
     public static final Type YOUNG_GENERATION_CONFIGURATION = new Type(EventTypeName.YOUNG_GENERATION_CONFIGURATION);
     public static final Type COMPILER_CONFIGURATION = new Type(EventTypeName.COMPILER_CONFIGURATION);
     public static final Type JVM_INFORMATION = new Type(EventTypeName.JVM_INFORMATION);
@@ -220,6 +242,24 @@ public record Type(String code, boolean calculated) {
                 G1_ADAPTIVE_IHOP,
                 G1_BASIC_IHOP,
                 G1_MMU,
+                G1_HEAP_REGION_INFORMATION,
+                G1_HEAP_REGION_TYPE_CHANGE,
+                EVACUATION_INFORMATION,
+                EVACUATION_FAILED,
+                GC_PHASE_PAUSE,
+                GC_PHASE_PAUSE_LEVEL_1,
+                GC_PHASE_PAUSE_LEVEL_2,
+                GC_PHASE_PAUSE_LEVEL_3,
+                GC_PHASE_PAUSE_LEVEL_4,
+                GC_PHASE_PARALLEL,
+                SYSTEM_GC,
+                GC_LOCKER,
+                Z_ALLOCATION_STALL,
+                Z_PAGE_ALLOCATION,
+                Z_RELOCATION_SET,
+                Z_RELOCATION_SET_GROUP,
+                Z_UNCOMMIT,
+                Z_THREAD_PHASE,
                 YOUNG_GENERATION_CONFIGURATION,
                 COMPILER_CONFIGURATION,
                 JVM_INFORMATION,

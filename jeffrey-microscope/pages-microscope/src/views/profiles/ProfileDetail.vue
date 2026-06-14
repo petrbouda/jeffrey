@@ -360,6 +360,22 @@
                           <i class="bi bi-gear"></i>
                           <span>Configuration</span>
                         </router-link>
+                        <router-link
+                          :to="`/profiles/${profileId}/garbage-collection/g1`"
+                          class="nav-item nav-subitem"
+                          active-class="active"
+                        >
+                          <i class="bi bi-diagram-3"></i>
+                          <span>G1 Analysis</span>
+                        </router-link>
+                        <router-link
+                          :to="`/profiles/${profileId}/garbage-collection/zgc`"
+                          class="nav-item nav-subitem"
+                          active-class="active"
+                        >
+                          <i class="bi bi-cpu"></i>
+                          <span>ZGC Analysis</span>
+                        </router-link>
                       </div>
                     </div>
                     <router-link

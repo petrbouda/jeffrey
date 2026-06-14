@@ -23,8 +23,10 @@ import cafe.jeffrey.shared.common.model.ProfileInfo;
 import cafe.jeffrey.profile.manager.model.gc.GCTimeseriesType;
 import cafe.jeffrey.profile.manager.model.gc.configuration.GCConfigurationData;
 import cafe.jeffrey.profile.manager.model.gc.GCOverviewData;
+import cafe.jeffrey.profile.manager.model.gc.g1.G1AnalysisData;
 import cafe.jeffrey.profile.manager.model.gc.tuning.IhopData;
 import cafe.jeffrey.profile.manager.model.gc.tuning.TenuringData;
+import cafe.jeffrey.profile.manager.model.gc.zgc.ZgcAnalysisData;
 import cafe.jeffrey.timeseries.TimeseriesData;
 
 import java.util.function.Function;
@@ -56,4 +58,20 @@ public interface GarbageCollectionManager {
      * Collectors without IHOP produce an empty timeline.
      */
     IhopData ihop();
+
+    /**
+     * G1-specific deep-dive: pause-phase anatomy ({@code jdk.GCPhasePause*}), heap-region
+     * composition and per-region snapshots ({@code jdk.G1HeapSummary}, {@code jdk.G1HeapRegionInformation}),
+     * evacuation cost and to-space exhaustion ({@code jdk.EvacuationInformation}/{@code EvacuationFailed}),
+     * IHOP/MMU marking behaviour, plus explicit-GC and GC-locker anomalies. Non-G1 recordings
+     * produce an empty result.
+     */
+    G1AnalysisData g1Analysis();
+
+    /**
+     * ZGC-specific deep-dive: allocation stalls ({@code jdk.ZAllocationStall}), young/old cycles,
+     * page-allocation throughput, uncommit and relocation activity. Non-ZGC recordings produce an
+     * empty result.
+     */
+    ZgcAnalysisData zgcAnalysis();
 }
