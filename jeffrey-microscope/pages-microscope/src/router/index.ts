@@ -230,6 +230,12 @@ const profileChildRoutes = [
     meta: { layout: 'profile' }
   },
   {
+    path: 'stop-the-world',
+    name: 'profile-stw-timeline',
+    component: () => import('@/views/profiles/detail/ProfileStwTimeline.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
     path: 'socket-io',
     name: 'profile-socket-io',
     component: () => import('@/views/profiles/detail/ProfileSocketIo.vue'),

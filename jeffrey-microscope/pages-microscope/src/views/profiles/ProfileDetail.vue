@@ -217,6 +217,14 @@
                       <span>Blocking Operations</span>
                     </router-link>
                     <router-link
+                      :to="`/profiles/${profileId}/stop-the-world`"
+                      class="nav-item"
+                      active-class="active"
+                    >
+                      <i class="bi bi-pause-circle"></i>
+                      <span>Stop-The-World</span>
+                    </router-link>
+                    <router-link
                       :to="`/profiles/${profileId}/socket-io`"
                       class="nav-item"
                       active-class="active"
