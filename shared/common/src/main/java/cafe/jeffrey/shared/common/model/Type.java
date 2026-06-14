@@ -121,6 +121,9 @@ public record Type(String code, boolean calculated) {
     public static final Type EXECUTE_VM_OPERATION = new Type(EventTypeName.EXECUTE_VM_OPERATION);
     public static final Type JAVA_MONITOR_INFLATE = new Type(EventTypeName.JAVA_MONITOR_INFLATE);
     public static final Type VIRTUAL_THREAD_PINNED = new Type(EventTypeName.VIRTUAL_THREAD_PINNED);
+    public static final Type VIRTUAL_THREAD_START = new Type(EventTypeName.VIRTUAL_THREAD_START);
+    public static final Type VIRTUAL_THREAD_END = new Type(EventTypeName.VIRTUAL_THREAD_END);
+    public static final Type VIRTUAL_THREAD_SUBMIT_FAILED = new Type(EventTypeName.VIRTUAL_THREAD_SUBMIT_FAILED);
 
     // System & host events
     public static final Type CPU_LOAD = new Type(EventTypeName.CPU_LOAD);
@@ -285,6 +288,9 @@ public record Type(String code, boolean calculated) {
                 SAFEPOINT_END,
                 JAVA_MONITOR_INFLATE,
                 VIRTUAL_THREAD_PINNED,
+                VIRTUAL_THREAD_START,
+                VIRTUAL_THREAD_END,
+                VIRTUAL_THREAD_SUBMIT_FAILED,
                 CPU_LOAD,
                 NETWORK_UTILIZATION,
                 THREAD_CONTEXT_SWITCH_RATE,

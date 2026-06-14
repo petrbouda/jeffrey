@@ -39,6 +39,11 @@ describe('EventTypes', () => {
       expect(EventTypes.isWallClock('other')).toBe(false);
     });
 
+    it('isVirtualThreadPinned', () => {
+      expect(EventTypes.isVirtualThreadPinned('jdk.VirtualThreadPinned')).toBe(true);
+      expect(EventTypes.isVirtualThreadPinned('other')).toBe(false);
+    });
+
     it('isExecutionEventType', () => {
       expect(EventTypes.isExecutionEventType('jdk.ExecutionSample')).toBe(true);
       expect(EventTypes.isExecutionEventType('other')).toBe(false);
@@ -79,6 +84,7 @@ describe('EventTypes', () => {
       expect(EventTypes.isBlockingEventType('jdk.JavaMonitorEnter')).toBe(true);
       expect(EventTypes.isBlockingEventType('jdk.JavaMonitorWait')).toBe(true);
       expect(EventTypes.isBlockingEventType('jdk.ThreadPark')).toBe(true);
+      expect(EventTypes.isBlockingEventType('jdk.VirtualThreadPinned')).toBe(true);
       expect(EventTypes.isBlockingEventType('jdk.ExecutionSample')).toBe(false);
     });
 
@@ -86,6 +92,7 @@ describe('EventTypes', () => {
       expect(EventTypes.isDifferential('jdk.JavaMonitorEnter')).toBe(true);
       expect(EventTypes.isDifferential('jdk.JavaMonitorWait')).toBe(true);
       expect(EventTypes.isDifferential('jdk.ThreadPark')).toBe(true);
+      expect(EventTypes.isDifferential('jdk.VirtualThreadPinned')).toBe(true);
       expect(EventTypes.isDifferential('jdk.ExecutionSample')).toBe(false);
     });
   });

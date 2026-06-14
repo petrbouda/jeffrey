@@ -167,6 +167,11 @@ public class ProfileManagerImpl implements ProfileManager {
     }
 
     @Override
+    public VirtualThreadManager virtualThreadManager() {
+        return registry.jvmInsight().virtualThread().apply(profileInfo);
+    }
+
+    @Override
     public IoManager ioManager() {
         return registry.jvmInsight().io().apply(profileInfo);
     }

@@ -47,7 +47,8 @@ public class PrimaryFlamegraphManager implements FlamegraphManager {
             Type.THREAD_PARK,
             Type.THREAD_SLEEP,
             Type.JAVA_MONITOR_ENTER,
-            Type.JAVA_MONITOR_WAIT);
+            Type.JAVA_MONITOR_WAIT,
+            Type.VIRTUAL_THREAD_PINNED);
 
     private final ProfileEventTypeRepository eventTypeRepository;
     private final DbBasedFlamegraphGenerator generator;
