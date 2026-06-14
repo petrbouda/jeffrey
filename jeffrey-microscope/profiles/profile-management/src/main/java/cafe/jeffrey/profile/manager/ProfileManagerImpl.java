@@ -162,6 +162,11 @@ public class ProfileManagerImpl implements ProfileManager {
     }
 
     @Override
+    public StwTimelineManager stwTimelineManager() {
+        return registry.jvmInsight().stwTimeline().apply(profileInfo);
+    }
+
+    @Override
     public BlockingManager blockingManager() {
         return registry.jvmInsight().blocking().apply(profileInfo);
     }

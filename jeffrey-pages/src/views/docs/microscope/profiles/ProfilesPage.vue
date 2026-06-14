@@ -189,6 +189,11 @@ const folderStructure = `$JEFFREY_HOME/
           description="Where application threads block — lock contention by monitor class, Object.wait(), thread parks, sleeps, and virtual-thread pinning."
         />
         <DocsFeatureCard
+          icon="bi bi-pause-circle"
+          title="Stop-The-World"
+          description="Every JVM pause on one timeline — GC pauses, safepoint operations, time-to-safepoint, and per-thread stalls — with the app-stop budget, MMU curve, and click-to-explain drill-down."
+        />
+        <DocsFeatureCard
           icon="bi bi-ethernet"
           title="Socket I/O"
           description="Blocking network I/O — read/write throughput over time, the slowest operations, and the busiest peers (host:port)."
@@ -222,6 +227,8 @@ const folderStructure = `$JEFFREY_HOME/
         <router-link to="/docs/microscope/profiles/virtual-threads">Read the Virtual Threads reference &rarr;</router-link>
         &nbsp;·&nbsp;
         <router-link to="/docs/microscope/profiles/security">Read the Security &amp; TLS reference &rarr;</router-link>
+        &nbsp;·&nbsp;
+        <router-link to="/docs/microscope/profiles/stop-the-world">Read the Stop-The-World reference &rarr;</router-link>
       </p>
 
       <h2 id="technologies">Technologies</h2>
