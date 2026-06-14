@@ -162,6 +162,63 @@
         </template>
       </div>
 
+      <!-- Analysis -->
+      <div v-show="activeTab === 'analysis'">
+        <EmptyState
+          v-if="events.length === 0"
+          icon="bi-graph-up"
+          title="Nothing to analyze"
+          description="This recording has no stop-the-world pauses."
+        />
+        <template v-else>
+          <ChartSection title="Pause-Budget Simulator" icon="bi-sliders">
+            <div class="whatif">
+              <label class="whatif-label">
+                Max acceptable pause: <strong>{{ FormattingService.formatDurationMillisCoarse(whatIfThresholdMs) }}</strong>
+              </label>
+              <input
+                v-model.number="whatIfThresholdMs"
+                type="range"
+                min="0"
+                :max="Math.max(1, maxPauseMillis)"
+                step="1"
+                class="form-range whatif-range"
+              />
+              <div class="whatif-stats">
+                <div class="whatif-stat">
+                  <span class="whatif-value">{{ FormattingService.formatNumber(violations.length) }}</span>
+                  <span class="whatif-key">pauses exceed the limit</span>
+                </div>
+                <div class="whatif-stat">
+                  <span class="whatif-value">{{ FormattingService.formatDuration2Units(violationTotalNanos) }}</span>
+                  <span class="whatif-key">total time over the limit</span>
+                </div>
+                <div class="whatif-stat">
+                  <span class="whatif-value">{{ availabilityPercent.toFixed(3) }}%</span>
+                  <span class="whatif-key">app availability (global STW)</span>
+                </div>
+              </div>
+            </div>
+          </ChartSection>
+
+          <ChartSection title="Minimum Mutator Utilization" icon="bi-activity" class="mt-4">
+            <ChartDescription
+              shows="For each window size, the worst-case fraction of time the application actually ran (was not in a global STW pause)."
+              use-case="A low MMU at small windows means short, frequent pauses; a low MMU only at large windows means rare but very long pauses."
+            />
+            <StwMmuChart :events="events" />
+          </ChartSection>
+
+          <ChartSection title="Pause Density" icon="bi-grid-3x3" class="mt-4">
+            <ChartDescription
+              shows="Total pause time per lane across time buckets — darker cells are heavier stop concentration."
+              use-case="Spot clustering (a bad phase) vs. steady background pauses, even when individual pauses are tiny."
+            />
+            <StwDensityHeatmap :events="events" />
+          </ChartSection>
+        </template>
+      </div>
+
       <!-- How It Works -->
       <div v-show="activeTab === 'about'">
         <AboutPanel
@@ -271,6 +328,8 @@ import FeatureGrid from '@/components/about/FeatureGrid.vue';
 import FeatureCard from '@/components/about/FeatureCard.vue';
 import StwSwimlane from '@/components/stw/StwSwimlane.vue';
 import StwLaneLegend from '@/components/stw/StwLaneLegend.vue';
+import StwMmuChart from '@/components/stw/StwMmuChart.vue';
+import StwDensityHeatmap from '@/components/stw/StwDensityHeatmap.vue';
 import FormattingService from '@/services/FormattingService';
 import AxisFormatType from '@/services/timeseries/AxisFormatType';
 import { useTableView } from '@/composables/useTableView';
@@ -302,8 +361,11 @@ const NANOS_PER_MILLI = 1_000_000;
 const tabs: TabBarItem[] = [
   { id: 'timeline', label: 'Timeline', icon: 'bar-chart-steps' },
   { id: 'inventory', label: 'Inventory', icon: 'table' },
+  { id: 'analysis', label: 'Analysis', icon: 'graph-up' },
   { id: 'about', label: 'How It Works', icon: 'book' }
 ];
+
+const whatIfThresholdMs = ref(50);
 
 const globalBudget = computed<number[][]>(() => budget.value?.series?.[0]?.data ?? []);
 const localBudget = computed<number[][]>(() => budget.value?.series?.[1]?.data ?? []);
@@ -370,6 +432,41 @@ const concurrentEvents = computed<StwEvent[]>(() => {
 const inventoryView = useTableView<StwEvent>(() => events.value, {
   searchableText: (row) => `${laneFor(row.category).label} ${row.label} ${row.thread ?? ''}`
 });
+
+// --- Analysis: what-if budget simulator (global stop-the-world pauses only) ---
+const globalStops = computed<StwEvent[]>(() =>
+  events.value.filter((event) => event.category === 'GC_PAUSE' || event.category === 'VM_OPERATION')
+);
+
+const wallClockMillis = computed<number>(() =>
+  events.value.reduce(
+    (max, event) => Math.max(max, event.timeOffsetMillis + event.durationNanos / NANOS_PER_MILLI),
+    0
+  )
+);
+
+const maxPauseMillis = computed<number>(() =>
+  Math.ceil(globalStops.value.reduce((max, event) => Math.max(max, event.durationNanos / NANOS_PER_MILLI), 0))
+);
+
+const totalGlobalStopMillis = computed<number>(() =>
+  globalStops.value.reduce((sum, event) => sum + event.durationNanos / NANOS_PER_MILLI, 0)
+);
+
+const availabilityPercent = computed<number>(() => {
+  if (wallClockMillis.value <= 0) {
+    return 100;
+  }
+  return Math.max(0, (1 - totalGlobalStopMillis.value / wallClockMillis.value) * 100);
+});
+
+const violations = computed<StwEvent[]>(() =>
+  globalStops.value.filter((event) => event.durationNanos / NANOS_PER_MILLI > whatIfThresholdMs.value)
+);
+
+const violationTotalNanos = computed<number>(() =>
+  violations.value.reduce((sum, event) => sum + event.durationNanos, 0)
+);
 
 function badgeVariant(scope: StwScope): Variant {
   return scope === 'GLOBAL' ? 'danger' : 'warning';
@@ -452,6 +549,39 @@ onMounted(async () => {
   font-size: 0.7rem;
   text-transform: uppercase;
   letter-spacing: 0.4px;
+  color: var(--color-text-muted);
+}
+
+.whatif-label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-size: 0.85rem;
+}
+
+.whatif-range {
+  max-width: 480px;
+}
+
+.whatif-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  margin-top: 0.75rem;
+}
+
+.whatif-stat {
+  display: flex;
+  flex-direction: column;
+}
+
+.whatif-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.whatif-key {
+  font-size: 0.75rem;
   color: var(--color-text-muted);
 }
 
