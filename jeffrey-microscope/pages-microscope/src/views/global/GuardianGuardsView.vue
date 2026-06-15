@@ -103,145 +103,177 @@
     </MainCard>
 
     <!-- Create / Edit modal -->
-    <GenericModal v-model:show="showEditor" :title="editorTitle" size="lg" :show-footer="false">
-      <form @submit.prevent="save">
-        <div class="row g-3">
-          <div class="col-md-8">
-            <label class="form-label">Name</label>
-            <input v-model="form.name" type="text" class="form-control form-control-sm" required />
-          </div>
-          <div class="col-md-4 d-flex align-items-end">
-            <div class="form-check">
+    <GenericModal
+      v-model:show="showEditor"
+      modal-id="guardianGuardModal"
+      :title="editorTitle"
+      icon="bi bi-shield-check"
+      size="xl"
+      modal-dialog-class="modal-dialog-centered modal-dialog-scrollable"
+    >
+      <form id="guardianGuardForm" class="guard-form" @submit.prevent="save">
+        <div class="guard-grid">
+          <div class="field-group c4">
+            <label class="field-label">Name <span class="field-required">*</span></label>
+            <div class="field-wrap">
               <input
-                id="guard-enabled"
-                v-model="form.enabled"
-                class="form-check-input"
-                type="checkbox"
+                v-model="form.name"
+                class="field-input"
+                type="text"
+                placeholder="Guard name"
+                required
               />
-              <label class="form-check-label" for="guard-enabled">Enabled</label>
+            </div>
+          </div>
+          <div class="field-group c2">
+            <label class="field-label">Status</label>
+            <label class="guard-switch">
+              <input v-model="form.enabled" type="checkbox" />
+              <span>{{ form.enabled ? 'Enabled' : 'Disabled' }}</span>
+            </label>
+          </div>
+
+          <div class="field-group c2">
+            <label class="field-label">Group</label>
+            <div class="field-wrap">
+              <select v-model="form.groupKind" class="field-input">
+                <option v-for="g in GROUP_KINDS" :key="g" :value="g">{{ g }}</option>
+              </select>
+            </div>
+          </div>
+          <div class="field-group c2">
+            <label class="field-label">Category</label>
+            <div class="field-wrap">
+              <select v-model="form.category" class="field-input">
+                <option v-for="c in CATEGORIES" :key="c" :value="c">{{ c }}</option>
+              </select>
+            </div>
+          </div>
+          <div class="field-group c2">
+            <label class="field-label">Result type</label>
+            <div class="field-wrap">
+              <select v-model="form.resultType" class="field-input">
+                <option v-for="r in RESULT_TYPES" :key="r" :value="r">{{ r }}</option>
+              </select>
             </div>
           </div>
 
-          <div class="col-md-4">
-            <label class="form-label">Group</label>
-            <select v-model="form.groupKind" class="form-select form-select-sm">
-              <option v-for="g in GROUP_KINDS" :key="g" :value="g">{{ g }}</option>
-            </select>
+          <div class="field-group c2">
+            <label class="field-label">Target frame</label>
+            <div class="field-wrap">
+              <select v-model="form.targetFrame" class="field-input">
+                <option v-for="t in TARGET_FRAMES" :key="t" :value="t">{{ t }}</option>
+              </select>
+            </div>
           </div>
-          <div class="col-md-4">
-            <label class="form-label">Category</label>
-            <select v-model="form.category" class="form-select form-select-sm">
-              <option v-for="c in CATEGORIES" :key="c" :value="c">{{ c }}</option>
-            </select>
+          <div class="field-group c2">
+            <label class="field-label">Matching</label>
+            <div class="field-wrap">
+              <select v-model="form.matchingType" class="field-input">
+                <option v-for="m in MATCHING_TYPES" :key="m" :value="m">{{ m }}</option>
+              </select>
+            </div>
           </div>
-          <div class="col-md-4">
-            <label class="form-label">Result type</label>
-            <select v-model="form.resultType" class="form-select form-select-sm">
-              <option v-for="r in RESULT_TYPES" :key="r" :value="r">{{ r }}</option>
-            </select>
+          <div class="field-group c1">
+            <label class="field-label">Info ≥</label>
+            <div class="field-wrap">
+              <input
+                v-model.number="form.infoThreshold"
+                class="field-input"
+                type="number"
+                step="0.01"
+              />
+            </div>
           </div>
-
-          <div class="col-md-4">
-            <label class="form-label">Target frame</label>
-            <select v-model="form.targetFrame" class="form-select form-select-sm">
-              <option v-for="t in TARGET_FRAMES" :key="t" :value="t">{{ t }}</option>
-            </select>
-          </div>
-          <div class="col-md-4">
-            <label class="form-label">Matching</label>
-            <select v-model="form.matchingType" class="form-select form-select-sm">
-              <option v-for="m in MATCHING_TYPES" :key="m" :value="m">{{ m }}</option>
-            </select>
-          </div>
-          <div class="col-md-2">
-            <label class="form-label">Info ≥</label>
-            <input
-              v-model.number="form.infoThreshold"
-              type="number"
-              step="0.01"
-              class="form-control form-control-sm"
-            />
-          </div>
-          <div class="col-md-2">
-            <label class="form-label">Warn ≥</label>
-            <input
-              v-model.number="form.warningThreshold"
-              type="number"
-              step="0.01"
-              class="form-control form-control-sm"
-            />
+          <div class="field-group c1">
+            <label class="field-label">Warn ≥</label>
+            <div class="field-wrap">
+              <input
+                v-model.number="form.warningThreshold"
+                class="field-input"
+                type="number"
+                step="0.01"
+              />
+            </div>
           </div>
 
-          <div class="col-12">
-            <label class="form-label">Summary noun</label>
-            <input v-model="form.summaryNoun" type="text" class="form-control form-control-sm" />
+          <div class="field-group c6">
+            <label class="field-label">Summary noun</label>
+            <div class="field-wrap">
+              <input
+                v-model="form.summaryNoun"
+                class="field-input"
+                type="text"
+                placeholder="e.g. the logging"
+              />
+            </div>
           </div>
-          <div class="col-12">
-            <label class="form-label">
-              Matcher spec (JSON) —
-              <span class="text-muted"
-                >e.g. {"anchor":{"type":"Predicate","op":"PREFIX","value":"com.acme."}}</span
-              >
-            </label>
-            <textarea
-              v-model="form.matcherSpec"
-              rows="4"
-              class="form-control form-control-sm font-monospace"
-            ></textarea>
+
+          <div class="field-group c6">
+            <label class="field-label">Matcher spec <span class="field-muted">(JSON)</span></label>
+            <textarea v-model="form.matcherSpec" class="field-textarea is-mono" rows="6"></textarea>
+            <p class="field-hint">
+              e.g. <code>{"anchor":{"type":"Predicate","op":"PREFIX","value":"com.acme."}}</code> —
+              combine with <code>AnyOf</code> / <code>AllOf</code> / <code>Not</code>; ops:
+              <code>PREFIX</code>, <code>SUFFIX</code>, <code>CONTAINS</code>, <code>EQUALS</code>,
+              <code>REGEX</code>.
+            </p>
           </div>
-          <div class="col-12">
-            <label class="form-label">Preconditions (JSON, optional)</label>
+          <div class="field-group c6">
+            <label class="field-label"
+              >Preconditions <span class="field-muted">(JSON, optional)</span></label
+            >
             <textarea
               v-model="form.preconditions"
-              rows="2"
-              class="form-control form-control-sm font-monospace"
+              class="field-textarea is-mono"
+              rows="3"
             ></textarea>
           </div>
-          <div class="col-12">
-            <label class="form-label">Explanation (HTML, optional)</label>
-            <textarea
-              v-model="form.explanation"
-              rows="3"
-              class="form-control form-control-sm"
-            ></textarea>
+          <div class="field-group c6">
+            <label class="field-label"
+              >Explanation <span class="field-muted">(HTML, optional)</span></label
+            >
+            <textarea v-model="form.explanation" class="field-textarea" rows="4"></textarea>
           </div>
-          <div class="col-12">
-            <label class="form-label">Solution (HTML, optional)</label>
-            <textarea
-              v-model="form.solution"
-              rows="3"
-              class="form-control form-control-sm"
-            ></textarea>
+          <div class="field-group c6">
+            <label class="field-label"
+              >Solution <span class="field-muted">(HTML, optional)</span></label
+            >
+            <textarea v-model="form.solution" class="field-textarea" rows="4"></textarea>
           </div>
         </div>
 
-        <div v-if="formError" class="text-danger small mt-2">{{ formError }}</div>
-
-        <div class="d-flex justify-content-end gap-2 mt-3">
-          <button
-            type="button"
-            class="btn btn-sm btn-outline-secondary"
-            @click="showEditor = false"
-          >
-            Cancel
-          </button>
-          <button type="submit" class="btn btn-sm btn-primary" :disabled="saving">
-            {{ saving ? 'Saving…' : 'Save' }}
-          </button>
-        </div>
+        <p v-if="formError" class="field-error">
+          <i class="bi bi-exclamation-circle"></i> {{ formError }}
+        </p>
       </form>
+
+      <template #footer>
+        <button type="button" class="btn btn-secondary" @click="showEditor = false">Cancel</button>
+        <button type="submit" form="guardianGuardForm" class="btn btn-primary" :disabled="saving">
+          {{ saving ? 'Saving…' : 'Save guard' }}
+        </button>
+      </template>
     </GenericModal>
 
     <!-- Delete confirmation -->
-    <GenericModal v-model:show="showDelete" title="Delete guard" size="sm" :show-footer="false">
-      <p>
+    <GenericModal
+      v-model:show="showDelete"
+      modal-id="guardianGuardDeleteModal"
+      title="Delete guard"
+      icon="bi bi-trash"
+      size="md"
+      modal-dialog-class="modal-dialog-centered"
+    >
+      <p class="mb-0">
         Delete guard <strong>{{ deleteTarget?.name }}</strong
         >? This cannot be undone.
       </p>
-      <div class="d-flex justify-content-end gap-2">
-        <button class="btn btn-sm btn-outline-secondary" @click="showDelete = false">Cancel</button>
-        <button class="btn btn-sm btn-danger" :disabled="saving" @click="doDelete">Delete</button>
-      </div>
+
+      <template #footer>
+        <button class="btn btn-secondary" @click="showDelete = false">Cancel</button>
+        <button class="btn btn-danger" :disabled="saving" @click="doDelete">Delete</button>
+      </template>
     </GenericModal>
   </div>
 </template>
@@ -423,3 +455,95 @@ async function doDelete(): Promise<void> {
 
 onMounted(load);
 </script>
+
+<style scoped>
+.guard-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Responsive 6-column grid; fields span a subset via the c1..c6 helpers. */
+.guard-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 1rem 1.25rem;
+}
+
+.c1 {
+  grid-column: span 1;
+}
+.c2 {
+  grid-column: span 2;
+}
+.c4 {
+  grid-column: span 4;
+}
+.c6 {
+  grid-column: span 6;
+}
+
+.field-muted {
+  color: var(--color-text-muted);
+  font-weight: var(--font-weight-normal);
+}
+
+/* Enable/disable toggle styled to line up with the bordered field controls. */
+.guard-switch {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 46px;
+  font-size: var(--font-size-base);
+  color: var(--color-dark);
+  cursor: pointer;
+}
+
+.guard-switch input {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: var(--color-primary);
+}
+
+/* Multi-line companion to the shared .field-wrap / .field-input controls. */
+.field-textarea {
+  width: 100%;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-neutral-bg);
+  padding: 10px 14px;
+  font-size: var(--font-size-base);
+  color: var(--color-dark);
+  line-height: 1.5;
+  resize: vertical;
+  transition: all var(--transition-base);
+}
+
+.field-textarea:hover {
+  border-color: var(--color-primary-light);
+  background: var(--color-white);
+}
+
+.field-textarea:focus {
+  outline: none;
+  background: var(--color-white);
+  border-color: var(--color-primary);
+  box-shadow: var(--focus-ring);
+}
+
+.field-textarea.is-mono {
+  font-family: 'SF Mono', Monaco, Menlo, Consolas, monospace;
+  font-size: var(--font-size-sm);
+}
+
+@media (max-width: 768px) {
+  .guard-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .guard-grid > * {
+    grid-column: 1 / -1;
+  }
+}
+</style>
