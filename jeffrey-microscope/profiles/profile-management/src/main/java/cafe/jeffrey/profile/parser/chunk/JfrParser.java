@@ -21,6 +21,7 @@ package cafe.jeffrey.profile.parser.chunk;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
+import cafe.jeffrey.shared.common.model.EventSourceResolver;
 import cafe.jeffrey.shared.common.model.RecordingEventSource;
 import cafe.jeffrey.provider.profile.api.RecordingInformation;
 
@@ -228,13 +229,11 @@ public abstract class JfrParser {
                 .max(Instant::compareTo)
                 .orElse(null);
 
-        boolean anyProfilerEvent = chunks.stream()
+        List<String> eventTypeNames = chunks.stream()
                 .flatMap(chunk -> chunk.eventTypes().stream())
-                .anyMatch(eventType -> eventType.startsWith("profiler."));
+                .toList();
 
-        RecordingEventSource source = anyProfilerEvent
-                ? RecordingEventSource.ASYNC_PROFILER
-                : RecordingEventSource.JDK;
+        RecordingEventSource source = EventSourceResolver.fromEventTypeNames(eventTypeNames);
 
         return new RecordingInformation(bytes, source, startTime, endTime);
     }

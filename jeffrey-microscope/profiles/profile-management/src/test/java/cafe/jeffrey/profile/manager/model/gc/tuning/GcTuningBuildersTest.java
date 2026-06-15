@@ -218,6 +218,7 @@ class GcTuningBuildersTest {
             assertEquals(1, result.getFirst().gcId());
             assertEquals(250_000_000L, result.getFirst().gcTimeNanos());
             assertEquals(200_000_000L, result.getFirst().pauseTargetNanos());
+            assertEquals(2000L, result.getFirst().timeOffsetMillis());
         }
 
         @Test

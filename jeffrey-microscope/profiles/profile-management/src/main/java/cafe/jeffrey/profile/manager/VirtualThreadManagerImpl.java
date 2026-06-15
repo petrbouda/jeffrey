@@ -34,7 +34,7 @@ import java.util.List;
 
 public class VirtualThreadManagerImpl implements VirtualThreadManager {
 
-    private static final int MAX_TOP_THREADS = 100;
+    private static final int MAX_TOP_THREADS = 20;
     private static final int MAX_SUBMIT_FAILURES = 200;
 
     private final ProfileInfo profileInfo;

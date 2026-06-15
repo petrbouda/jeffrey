@@ -56,12 +56,20 @@
             </select>
           </template>
         </ChartDescription>
-        <EmptyState
+        <DisabledEventsNotice
           v-if="networkInterfaces.length === 0"
-          icon="bi-wifi-off"
           title="No network utilization recorded"
-          description="This recording has no jdk.NetworkUtilization events."
-        />
+          icon="bi-wifi-off"
+        >
+          <p>
+            Per-interface throughput comes from <code>jdk.NetworkUtilization</code>, which is
+            <strong>enabled by default</strong> (and polled every ~5&nbsp;s) in the bundled
+            <code>default</code> and <code>profile</code> configs — so an empty tab is
+            <em>not</em> a missing setting. It almost always means the platform reported no usable
+            network interfaces to the JVM (a minimal container or sandbox, a host with no active
+            NIC, or an OS that doesn't expose per-interface counters).
+          </p>
+        </DisabledEventsNotice>
         <div v-else class="chart-container">
           <TimeSeriesChart
             :key="selectedInterface"
@@ -97,12 +105,20 @@
           shows="OS swap space — total swap and how much is in use, over the recording."
           use-case="Rising used-swap on a JVM host is a red flag: paging the heap to disk causes huge GC pauses and latency. Ideally used swap stays flat near zero."
         />
-        <EmptyState
+        <DisabledEventsNotice
           v-if="!hasSwapData"
-          icon="bi-hdd"
           title="No swap data recorded"
-          description="This recording has no jdk.SwapSpace events (swap tracking is platform-dependent)."
-        />
+          icon="bi-hdd"
+        >
+          <p>
+            Swap totals come from <code>jdk.SwapSpace</code>, which is <strong>enabled by
+            default</strong> (sampled once per chunk) in the bundled <code>default</code> and
+            <code>profile</code> configs — so emptiness here is <em>environmental</em>, not a
+            config gap. It typically means the host has <strong>no swap configured</strong>, or the
+            platform simply doesn't expose swap accounting to the JVM. On a JVM box that's usually
+            the desired state — swap activity under a Java heap is a red flag.
+          </p>
+        </DisabledEventsNotice>
         <div v-else class="chart-container">
           <TimeSeriesChart
             :primaryData="swapUsedSeries"
@@ -118,12 +134,21 @@
 
       <!-- Host Processes -->
       <div v-show="activeTab === 'processes'">
-        <EmptyState
+        <DisabledEventsNotice
           v-if="processes.length === 0"
-          icon="bi-pc-display"
           title="No host processes recorded"
-          description="This recording has no jdk.SystemProcess events."
-        />
+          icon="bi-pc-display"
+        >
+          <p>
+            The host-process snapshot comes from <code>jdk.SystemProcess</code>, which is
+            <strong>enabled by default</strong> (captured at chunk end) in the bundled
+            <code>default</code> and <code>profile</code> configs — so an empty table is
+            <em>not</em> a missing setting. It means the JVM couldn't enumerate the host's processes
+            for this run: commonly a restricted container or sandbox, missing
+            <code>/proc</code> access or permissions, or a platform that doesn't expose a process
+            list to the JVM.
+          </p>
+        </DisabledEventsNotice>
         <DataTable v-else>
           <template #toolbar>
             <TableToolbar v-model="processesView.query" search-placeholder="Filter processes...">
@@ -169,12 +194,20 @@
         </DataTable>
 
         <h6 class="subsection-title">Launched during recording</h6>
-        <EmptyState
+        <DisabledEventsNotice
           v-if="launchedProcesses.length === 0"
-          icon="bi-terminal"
           title="No subprocesses launched"
-          description="The JVM started no child processes during the recording (no jdk.ProcessStart events)."
-        />
+          icon="bi-terminal"
+        >
+          <p>
+            This list is built from <code>jdk.ProcessStart</code>, which is <strong>enabled by
+            default</strong> in the bundled <code>default</code> and <code>profile</code> configs.
+            An empty list is <strong>completely normal</strong> and not a configuration problem — it
+            simply means the JVM launched no child processes during the recording (no
+            <code>ProcessBuilder</code> / <code>Runtime.exec</code> calls). The event would only
+            appear if your application actually spawned a subprocess.
+          </p>
+        </DisabledEventsNotice>
         <DataTable v-else>
           <template #toolbar>
             <TableToolbar
@@ -221,123 +254,6 @@
               :expanded="launchedProcessesView.expanded"
               :page-size="launchedProcessesView.pageSize"
               @toggle="launchedProcessesView.toggle"
-            />
-          </template>
-        </DataTable>
-      </div>
-
-      <!-- Modules -->
-      <div v-show="activeTab === 'modules'">
-        <ChartDescription
-          shows="The module graph from jdk.ModuleRequire (dependencies) and jdk.ModuleExport (package exports), captured at JVM startup."
-          use-case="Confirm which modules a JItPL app reads and what's exported (and to whom) — useful when chasing IllegalAccess / module-resolution issues or auditing the runtime module set."
-        />
-        <h6 class="subsection-title">Requires</h6>
-        <EmptyState
-          v-if="moduleRequires.length === 0"
-          icon="bi-box"
-          title="No module dependencies recorded"
-          description="This recording has no jdk.ModuleRequire events."
-        />
-        <DataTable v-else>
-          <template #toolbar>
-            <TableToolbar
-              v-model="moduleRequiresView.query"
-              search-placeholder="Filter dependencies..."
-            >
-              <span class="toolbar-info">Module dependencies</span>
-              <template #filters>
-                <Badge
-                  key-label="Edges"
-                  :value="moduleRequiresView.matchCount"
-                  variant="secondary"
-                  size="s"
-                  borderless
-                />
-              </template>
-            </TableToolbar>
-          </template>
-          <thead>
-            <tr>
-              <th>Source Module</th>
-              <th>Requires</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="(edge, index) in moduleRequiresView.visible" :key="index">
-              <td>
-                <code>{{ edge.source ?? 'unnamed' }}</code>
-              </td>
-              <td>
-                <code>{{ edge.required ?? 'unnamed' }}</code>
-              </td>
-            </tr>
-          </tbody>
-          <template #footer>
-            <TableShowMore
-              :shown="moduleRequiresView.visible.length"
-              :match-count="moduleRequiresView.matchCount"
-              :total="moduleRequiresView.total"
-              :expanded="moduleRequiresView.expanded"
-              :page-size="moduleRequiresView.pageSize"
-              @toggle="moduleRequiresView.toggle"
-            />
-          </template>
-        </DataTable>
-
-        <h6 class="subsection-title">Exports</h6>
-        <EmptyState
-          v-if="moduleExports.length === 0"
-          icon="bi-box-arrow-up-right"
-          title="No package exports recorded"
-          description="This recording has no jdk.ModuleExport events."
-        />
-        <DataTable v-else>
-          <template #toolbar>
-            <TableToolbar v-model="moduleExportsView.query" search-placeholder="Filter exports...">
-              <span class="toolbar-info">Package exports</span>
-              <template #filters>
-                <Badge
-                  key-label="Exports"
-                  :value="moduleExportsView.matchCount"
-                  variant="secondary"
-                  size="s"
-                  borderless
-                />
-              </template>
-            </TableToolbar>
-          </template>
-          <thead>
-            <tr>
-              <th>Exported Package</th>
-              <th>Target</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="(exp, index) in moduleExportsView.visible" :key="index">
-              <td>
-                <code>{{ exp.packageName ?? '—' }}</code>
-              </td>
-              <td>
-                <Badge
-                  v-if="!exp.targetModule"
-                  value="unqualified"
-                  variant="info"
-                  size="xs"
-                  borderless
-                />
-                <code v-else>{{ exp.targetModule }}</code>
-              </td>
-            </tr>
-          </tbody>
-          <template #footer>
-            <TableShowMore
-              :shown="moduleExportsView.visible.length"
-              :match-count="moduleExportsView.matchCount"
-              :total="moduleExportsView.total"
-              :expanded="moduleExportsView.expanded"
-              :page-size="moduleExportsView.pageSize"
-              @toggle="moduleExportsView.toggle"
             />
           </template>
         </DataTable>
@@ -406,10 +322,6 @@
               <li>
                 <code>jdk.SwapSpace</code> — periodic OS swap total/free, behind the Swap tab.
               </li>
-              <li>
-                <code>jdk.ModuleRequire</code> / <code>jdk.ModuleExport</code> — the startup module
-                graph (dependencies and package exports), behind the Modules tab.
-              </li>
             </ul>
           </AboutSection>
         </AboutPanel>
@@ -437,7 +349,7 @@ import AboutSection from '@/components/about/AboutSection.vue';
 import FeatureGrid from '@/components/about/FeatureGrid.vue';
 import FeatureCard from '@/components/about/FeatureCard.vue';
 import Badge from '@/components/Badge.vue';
-import EmptyState from '@/components/EmptyState.vue';
+import DisabledEventsNotice from '@/components/alerts/DisabledEventsNotice.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import ErrorState from '@/components/ErrorState.vue';
 import FormattingService from '@/services/FormattingService';
@@ -445,8 +357,6 @@ import AxisFormatType from '@/services/timeseries/AxisFormatType';
 import ProfileSystemClient from '@/services/api/ProfileSystemClient';
 import type {
   LaunchedProcessInfo,
-  ModuleEdge,
-  ModuleExport,
   SystemOverview,
   SystemProcessInfo
 } from '@/services/api/model/SystemModels';
@@ -467,20 +377,12 @@ const contextSwitchTimeline = ref<TimeseriesData>();
 const processes = ref<SystemProcessInfo[]>([]);
 const launchedProcesses = ref<LaunchedProcessInfo[]>([]);
 const swapTimeline = ref<TimeseriesData>();
-const moduleRequires = ref<ModuleEdge[]>([]);
-const moduleExports = ref<ModuleExport[]>([]);
 
 const processesView = useTableView<SystemProcessInfo>(processes, {
   searchableText: r => `${r.pid} ${r.commandLine}`
 });
 const launchedProcessesView = useTableView<LaunchedProcessInfo>(launchedProcesses, {
   searchableText: r => `${r.pid} ${r.command ?? ''} ${r.directory ?? ''}`
-});
-const moduleRequiresView = useTableView<ModuleEdge>(moduleRequires, {
-  searchableText: r => `${r.source ?? ''} ${r.required ?? ''}`
-});
-const moduleExportsView = useTableView<ModuleExport>(moduleExports, {
-  searchableText: r => `${r.packageName ?? ''} ${r.targetModule ?? ''}`
 });
 
 const activeTab = ref('cpu');
@@ -518,12 +420,6 @@ const tabs = computed<TabBarItem[]>(() => [
     label: 'Host Processes',
     icon: 'pc-display',
     badge: processes.value.length || undefined
-  },
-  {
-    id: 'modules',
-    label: 'Modules',
-    icon: 'boxes',
-    badge: moduleRequires.value.length || undefined
   },
   { id: 'about', label: 'How It Works', icon: 'book' }
 ]);
@@ -609,9 +505,7 @@ onMounted(async () => {
       contextSwitchResult,
       processesResult,
       swapResult,
-      launchedResult,
-      moduleRequiresResult,
-      moduleExportsResult
+      launchedResult
     ] = await Promise.all([
       client.getOverview(),
       client.getCpuTimeline(),
@@ -619,9 +513,7 @@ onMounted(async () => {
       client.getContextSwitchTimeline(),
       client.getProcesses(),
       client.getSwapTimeline(),
-      client.getLaunchedProcesses(),
-      client.getModuleRequires(),
-      client.getModuleExports()
+      client.getLaunchedProcesses()
     ]);
 
     overview.value = overviewResult;
@@ -631,8 +523,6 @@ onMounted(async () => {
     processes.value = processesResult;
     swapTimeline.value = swapResult;
     launchedProcesses.value = launchedResult;
-    moduleRequires.value = moduleRequiresResult;
-    moduleExports.value = moduleExportsResult;
 
     if (interfacesResult.length > 0) {
       selectedInterface.value = interfacesResult[0];

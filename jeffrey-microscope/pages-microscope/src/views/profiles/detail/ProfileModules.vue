@@ -18,12 +18,23 @@
           shows="Module dependencies from jdk.ModuleRequire — which module reads which, captured at JVM startup."
           use-case="Audit the runtime module set or chase module-resolution failures — confirm a module actually reads the one it needs."
         />
-        <EmptyState
+        <DisabledEventsNotice
           v-if="moduleRequires.length === 0"
-          icon="bi-box"
           title="No module dependencies recorded"
-          description="This recording has no jdk.ModuleRequire events."
-        />
+          icon="bi-box"
+          action-label="Re-record with the module events enabled, then re-import"
+          :command="moduleEnableCommand"
+        >
+          <p>
+            Module dependencies come from <code>jdk.ModuleRequire</code>, which the JVM emits once at
+            startup (one event per <code>requires</code> edge in the resolved module graph). This event
+            is <strong>enabled by default</strong> in both the bundled <code>default</code> and
+            <code>profile</code> configs, so an empty tab usually means one of two things: the
+            recording was made with a minimal or custom config that disabled it, or the application
+            runs from the classpath with no named modules (only the unnamed module), in which case
+            there are no <code>requires</code> edges to report.
+          </p>
+        </DisabledEventsNotice>
         <DataTable v-else>
           <template #toolbar>
             <TableToolbar
@@ -77,12 +88,43 @@
           shows="Package exports from jdk.ModuleExport — which package is exported and to which target module (or unqualified, i.e. to everyone)."
           use-case="Chase IllegalAccess errors or audit the API surface — confirm a package is exported to the module trying to use it."
         />
-        <EmptyState
+        <DisabledEventsNotice
           v-if="moduleExports.length === 0"
-          icon="bi-box-arrow-up-right"
           title="No package exports recorded"
-          description="This recording has no jdk.ModuleExport events."
-        />
+          icon="bi-box-arrow-up-right"
+          action-label="Enable jdk.ModuleExport, then re-record and re-import"
+          :command="moduleEnableCommand"
+        >
+          <p>
+            Package exports come from <code>jdk.ModuleExport</code>, emitted once at JVM startup — one
+            event per <code>exports</code> declaration in the resolved module graph (the package, and
+            the target module, or unqualified when exported to everyone).
+          </p>
+          <p>
+            This event is <strong>disabled in the bundled <code>default</code> config</strong> and
+            <strong>enabled in <code>profile</code></strong>. So an empty tab usually means the
+            recording was made with <code>default</code> (or a minimal config) rather than
+            <code>profile</code> — enable the event and re-record to populate this view.
+          </p>
+
+          <template #action>
+            <p>
+              <strong>A — inline, no extra file.</strong> Use the copyable command above: it records
+              with the bundled <code>profile</code> config and explicitly enables both
+              <code>jdk.ModuleRequire</code> and <code>jdk.ModuleExport</code>.
+            </p>
+            <p>
+              <strong>B — a reusable <code>.jfc</code> overlay.</strong> Save this as
+              <code>modules.jfc</code> and record with
+              <code>settings=profile,settings=modules.jfc</code>:
+            </p>
+            <pre class="jfc-block">{{ moduleJfcSnippet }}</pre>
+            <p>
+              Re-import the <code>.jfr</code> into Jeffrey afterwards. Both events fire once at
+              startup, so they add negligible overhead.
+            </p>
+          </template>
+        </DisabledEventsNotice>
         <DataTable v-else>
           <template #toolbar>
             <TableToolbar v-model="moduleExportsView.query" search-placeholder="Filter exports...">
@@ -148,7 +190,7 @@ import TableToolbar from '@/components/table/TableToolbar.vue';
 import TableShowMore from '@/components/table/TableShowMore.vue';
 import ChartDescription from '@/components/ChartDescription.vue';
 import Badge from '@/components/Badge.vue';
-import EmptyState from '@/components/EmptyState.vue';
+import DisabledEventsNotice from '@/components/alerts/DisabledEventsNotice.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import ErrorState from '@/components/ErrorState.vue';
 import ProfileSystemClient from '@/services/api/ProfileSystemClient';
@@ -156,6 +198,21 @@ import type { ModuleEdge, ModuleExport } from '@/services/api/model/SystemModels
 import { useTableView } from '@/composables/useTableView';
 
 const route = useRoute();
+
+const moduleEnableCommand =
+  'java -XX:StartFlightRecording=settings=profile,jdk.ModuleRequire#enabled=true,jdk.ModuleExport#enabled=true,filename=app.jfr,dumponexit=true -jar app.jar';
+
+const moduleJfcSnippet = `<?xml version="1.0" encoding="UTF-8"?>
+<configuration version="2.0">
+  <event name="jdk.ModuleRequire">
+    <setting name="enabled">true</setting>
+    <setting name="period">endChunk</setting>
+  </event>
+  <event name="jdk.ModuleExport">
+    <setting name="enabled">true</setting>
+    <setting name="period">endChunk</setting>
+  </event>
+</configuration>`;
 
 const loading = ref(true);
 const error = ref(false);
@@ -203,3 +260,19 @@ onMounted(async () => {
   }
 });
 </script>
+
+<style scoped>
+.jfc-block {
+  margin: 8px 0 12px;
+  padding: 12px 14px;
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-family: SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: var(--color-text);
+  overflow-x: auto;
+  white-space: pre;
+}
+</style>

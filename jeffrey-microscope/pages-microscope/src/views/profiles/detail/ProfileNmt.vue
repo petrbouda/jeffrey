@@ -47,17 +47,12 @@
             use-case="A category climbing steadily is the native-memory leak signal — growing Thread points at a thread leak, Class/Metaspace at a classloader leak."
           />
           <div class="chart-container">
-            <div class="chart-toolbar">
-              <button
-                type="button"
-                class="btn btn-sm btn-outline-secondary"
-                title="Reset zoom to the entire range"
-                @click="resetCategoryZoom"
-              >
-                <i class="bi bi-arrows-angle-expand me-1"></i>Reset zoom
-              </button>
-            </div>
-            <div id="nmt-category-stacked-chart"></div>
+            <TimeSeriesChart
+              :seriesData="categorySeries"
+              :stacked="true"
+              :primaryAxisType="AxisFormatType.BYTES"
+              :visibleMinutes="60"
+            />
           </div>
 
           <DataTable class="mt-4">
@@ -263,9 +258,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
-import ApexCharts from 'apexcharts';
 
 import PageHeader from '@/components/layout/PageHeader.vue';
 import StatsTable from '@/components/StatsTable.vue';
@@ -309,6 +303,10 @@ const activeTab = ref('categories');
 const categoriesView = useTableView<NmtCategory>(categories, {
   searchableText: category => category.category
 });
+
+const categorySeries = computed(() =>
+  (categoryTimeline.value?.series ?? []).map(serie => ({ name: serie.name, data: serie.data }))
+);
 
 const totalCommittedSeries = computed<number[][]>(() => totalTimeline.value?.series?.[0]?.data ?? []);
 const totalReservedSeries = computed<number[][]>(() => totalTimeline.value?.series?.[1]?.data ?? []);
@@ -390,84 +388,6 @@ const metricsData = computed(() => {
   ];
 });
 
-let categoryChart: ApexCharts | null = null;
-
-// Stacked-area of committed bytes per category over time. x is seconds-from-start (as every Jeffrey
-// timeline), formatted as a duration. Mirrors the GC tenuring chart's ApexCharts lifecycle.
-const createCategoryChart = async (): Promise<void> => {
-  const rawSeries = categoryTimeline.value?.series ?? [];
-  if (rawSeries.length === 0) {
-    return;
-  }
-
-  await nextTick();
-  const chartElement = document.getElementById('nmt-category-stacked-chart');
-  if (!chartElement) {
-    return;
-  }
-
-  const series = rawSeries.map(serie => ({ name: serie.name, data: serie.data }));
-
-  const options = {
-    chart: {
-      type: 'area' as const,
-      height: 380,
-      stacked: true,
-      fontFamily: 'inherit',
-      toolbar: { show: false },
-      zoom: {
-        enabled: true,
-        type: 'x' as const,
-        autoScaleYaxis: true
-      }
-    },
-    series,
-    dataLabels: { enabled: false },
-    stroke: { curve: 'smooth' as const, width: 1 },
-    fill: { type: 'solid', opacity: 0.65 },
-    xaxis: {
-      type: 'numeric' as const,
-      title: { text: 'Elapsed Time', style: { fontSize: '12px' } },
-      labels: {
-        style: { fontSize: '10px' },
-        formatter: (value: string) => FormattingService.formatDuration(Number(value) * 1_000_000_000)
-      }
-    },
-    yaxis: {
-      title: { text: 'Committed Bytes', style: { fontSize: '12px' } },
-      labels: {
-        style: { fontSize: '10px' },
-        formatter: (value: number) => FormattingService.formatBytesShort(value)
-      }
-    },
-    legend: { position: 'bottom' as const },
-    tooltip: {
-      x: { formatter: (value: number) => FormattingService.formatDuration(value * 1_000_000_000) },
-      y: { formatter: (value: number) => FormattingService.formatBytes(value) }
-    },
-    grid: { borderColor: '#e7e7e7', strokeDashArray: 3 }
-  } as ApexCharts.ApexOptions;
-
-  if (categoryChart) {
-    categoryChart.destroy();
-  }
-  categoryChart = new ApexCharts(chartElement, options);
-  categoryChart.render();
-};
-
-// Clears any active x-axis zoom, returning the chart to its full starting range.
-const resetCategoryZoom = (): void => {
-  if (categoryChart) {
-    categoryChart.updateOptions({ xaxis: { min: undefined, max: undefined } });
-  }
-};
-
-watch(activeTab, newId => {
-  if (newId === 'categories') {
-    createCategoryChart();
-  }
-});
-
 onMounted(async () => {
   try {
     const profileId = route.params.profileId as string;
@@ -489,17 +409,10 @@ onMounted(async () => {
     rssVsTracked.value = rssResult;
 
     loading.value = false;
-    createCategoryChart();
   } catch (e) {
     console.error('Failed to load native-memory-tracking data:', e);
     error.value = true;
     loading.value = false;
-  }
-});
-
-onUnmounted(() => {
-  if (categoryChart) {
-    categoryChart.destroy();
   }
 });
 </script>
@@ -512,13 +425,6 @@ onUnmounted(() => {
 
 .chart-container {
   width: 100%;
-}
-
-.chart-toolbar {
-  display: flex;
-  justify-content: flex-start;
-  margin-bottom: 0;
-  padding-left: 60px;
 }
 
 .toolbar-info {

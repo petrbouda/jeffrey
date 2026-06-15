@@ -44,6 +44,7 @@ export interface MmuEntry {
   gcId: number;
   gcTimeNanos: number;
   pauseTargetNanos: number;
+  timeOffsetMillis: number;
 }
 
 export interface IhopData {

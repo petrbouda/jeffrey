@@ -37,12 +37,22 @@
 
       <!-- Top Files -->
       <div v-show="activeTab === 'files'">
-        <EmptyState
+        <DisabledEventsNotice
           v-if="files.length === 0"
-          icon="bi-file-earmark"
           title="No file I/O recorded"
-          description="This recording has no jdk.FileRead / jdk.FileWrite events (often disabled by default)."
-        />
+          icon="bi-file-earmark"
+          action-label="Un-gate the file I/O events, then re-record and re-import"
+          :command="ioEnableCommand"
+        >
+          <p>
+            Per-file totals come from <code>jdk.FileRead</code> and <code>jdk.FileWrite</code>. In the
+            bundled <code>default</code>/<code>profile</code> configs these are <strong>enabled but
+            threshold-gated</strong> (only operations slower than ~1&nbsp;ms are kept, and they are
+            throttled), so light or fast file I/O leaves this empty. The copyable command keeps the
+            <code>profile</code> config and sets both events to <code>threshold=0ms</code> to capture
+            every operation.
+          </p>
+        </DisabledEventsNotice>
         <DataTable v-else>
           <template #toolbar>
             <TableToolbar v-model="filesView.query" search-placeholder="Filter files...">
@@ -105,12 +115,20 @@
 
       <!-- By Directory -->
       <div v-show="activeTab === 'directories'">
-        <EmptyState
+        <DisabledEventsNotice
           v-if="directories.length === 0"
-          icon="bi-folder"
           title="No file I/O recorded"
-          description="This recording has no jdk.FileRead / jdk.FileWrite events to aggregate by directory."
-        />
+          icon="bi-folder"
+          action-label="Un-gate the file I/O events, then re-record and re-import"
+          :command="ioEnableCommand"
+        >
+          <p>
+            The per-directory rollup aggregates <code>jdk.FileRead</code> / <code>jdk.FileWrite</code>
+            events. They are <strong>enabled but threshold-gated</strong> (~1&nbsp;ms) and throttled in
+            the bundled configs, so there is nothing to aggregate here yet. The command above un-gates
+            them (<code>threshold=0ms</code>) on top of the <code>profile</code> config.
+          </p>
+        </DisabledEventsNotice>
         <DataTable v-else>
           <template #toolbar>
             <TableToolbar
@@ -171,12 +189,21 @@
 
       <!-- Slowest Operations -->
       <div v-show="activeTab === 'slowest'">
-        <EmptyState
+        <DisabledEventsNotice
           v-if="slowest.length === 0"
-          icon="bi-hourglass-split"
           title="No file operations recorded"
-          description="This recording has no file I/O events."
-        />
+          icon="bi-hourglass-split"
+          action-label="Un-gate the file I/O events, then re-record and re-import"
+          :command="ioEnableCommand"
+        >
+          <p>
+            The slowest-operations list is built from individual <code>jdk.FileRead</code> /
+            <code>jdk.FileWrite</code> events, which are <strong>enabled but threshold-gated</strong>
+            (~1&nbsp;ms) and throttled in the bundled configs. With no qualifying operations the list
+            stays empty — the command above captures every read/write by setting
+            <code>threshold=0ms</code>.
+          </p>
+        </DisabledEventsNotice>
         <DataTable v-else>
           <template #toolbar>
             <TableToolbar v-model="slowestView.query" search-placeholder="Filter operations...">
@@ -233,12 +260,48 @@
           shows="File force (fsync) operations from jdk.FileForce — flushing buffered writes (and optionally metadata) durably to disk. Unlike reads/writes, force carries no bytes, only latency."
           use-case="Slow or frequent fsyncs are a classic durability bottleneck (commit logs, databases, flush-on-every-write). A high metadata-flush share means extra inode updates."
         />
-        <EmptyState
+        <DisabledEventsNotice
           v-if="!fileForce || fileForce.count === 0"
-          icon="bi-arrow-repeat"
           title="No fsync operations recorded"
-          description="This recording has no jdk.FileForce events (often disabled by default)."
-        />
+          icon="bi-arrow-repeat"
+          action-label="Enable &amp; un-gate jdk.FileForce, then re-record and re-import"
+          :command="ioEnableCommand"
+        >
+          <p>
+            An <strong>fsync</strong> (<code>FileChannel.force()</code> /
+            <code>FileDescriptor.sync()</code>) flushes buffered writes — and optionally metadata —
+            durably to disk. JFR reports it as <code>jdk.FileForce</code>, which carries latency only,
+            no byte count.
+          </p>
+          <p>
+            In the JDK's bundled <code>default</code> and <code>profile</code> configs this event is
+            <strong>enabled but threshold-gated</strong> (≈20&nbsp;ms in <code>default</code>,
+            10&nbsp;ms in <code>profile</code>), and some minimal/older configs disable it outright. An
+            empty tab usually means your fsyncs were faster than that threshold — not that none
+            happened.
+          </p>
+
+          <template #action>
+            <p>
+              <strong>A — inline, no extra file.</strong> Use the copyable command above: it keeps the
+              bundled <code>profile</code> config and adds <code>jdk.FileForce#enabled=true</code> with
+              <code>threshold=0ms</code> so every force is captured (the same command also un-gates
+              reads/writes for the other tabs).
+            </p>
+            <p>
+              <strong>B — a reusable <code>.jfc</code> overlay.</strong> Save this as
+              <code>file-io.jfc</code> and record with
+              <code>settings=profile,settings=file-io.jfc</code>:
+            </p>
+            <pre class="jfc-block">{{ ioJfcSnippet }}</pre>
+            <p>
+              Re-import the <code>.jfr</code> afterwards. Raise the <code>threshold</code> (e.g. to
+              <code>10ms</code>) to keep only the slow, latency-relevant forces — frequent or slow
+              fsyncs are a classic durability bottleneck for commit logs, databases, and
+              flush-on-every-write code.
+            </p>
+          </template>
+        </DisabledEventsNotice>
         <div v-else>
           <div class="mb-4">
             <StatsTable :metrics="forceMetrics" />
@@ -352,8 +415,11 @@
               </li>
             </ul>
             <p>
-              Both are <strong>threshold-gated</strong> and frequently disabled in default recording
-              configurations, so file tabs may be empty even when the app does file I/O.
+              All three are <strong>enabled but threshold-gated</strong> in the bundled
+              <code>default</code> / <code>profile</code> configs (reads and writes at ~1&nbsp;ms and
+              throttled, forces at 10–20&nbsp;ms), and disabled outright in some minimal configs — so
+              the file tabs can be empty even when the app does file I/O. Lower the
+              <code>threshold</code> (down to <code>0ms</code>) to capture everything.
             </p>
           </AboutSection>
         </AboutPanel>
@@ -381,7 +447,7 @@ import AboutSection from '@/components/about/AboutSection.vue';
 import FeatureGrid from '@/components/about/FeatureGrid.vue';
 import FeatureCard from '@/components/about/FeatureCard.vue';
 import Badge from '@/components/Badge.vue';
-import EmptyState from '@/components/EmptyState.vue';
+import DisabledEventsNotice from '@/components/alerts/DisabledEventsNotice.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import ErrorState from '@/components/ErrorState.vue';
 import FormattingService from '@/services/FormattingService';
@@ -399,6 +465,28 @@ import type { Variant } from '@/types/ui';
 import type TimeseriesData from '@/services/timeseries/model/TimeseriesData';
 
 const route = useRoute();
+
+const ioEnableCommand =
+  'java -XX:StartFlightRecording=settings=profile,jdk.FileRead#enabled=true,jdk.FileRead#threshold=0ms,jdk.FileWrite#enabled=true,jdk.FileWrite#threshold=0ms,jdk.FileForce#enabled=true,jdk.FileForce#threshold=0ms,filename=app.jfr,dumponexit=true -jar app.jar';
+
+const ioJfcSnippet = `<?xml version="1.0" encoding="UTF-8"?>
+<configuration version="2.0">
+  <event name="jdk.FileRead">
+    <setting name="enabled">true</setting>
+    <setting name="stackTrace">true</setting>
+    <setting name="threshold">0 ms</setting>
+  </event>
+  <event name="jdk.FileWrite">
+    <setting name="enabled">true</setting>
+    <setting name="stackTrace">true</setting>
+    <setting name="threshold">0 ms</setting>
+  </event>
+  <event name="jdk.FileForce">
+    <setting name="enabled">true</setting>
+    <setting name="stackTrace">true</setting>
+    <setting name="threshold">0 ms</setting>
+  </event>
+</configuration>`;
 
 const loading = ref(true);
 const error = ref(false);
@@ -651,5 +739,19 @@ onMounted(async () => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.jfc-block {
+  margin: 8px 0 12px;
+  padding: 12px 14px;
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-family: SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: var(--color-text);
+  overflow-x: auto;
+  white-space: pre;
 }
 </style>

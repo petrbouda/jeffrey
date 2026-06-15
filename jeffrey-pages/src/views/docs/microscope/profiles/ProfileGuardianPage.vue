@@ -112,18 +112,13 @@ jeffrey.microscope.guardian.min-samples-execution=5000`;
 
       <h2 id="prerequisites-panel">Prerequisites Panel</h2>
 
-      <p>Before any rule fires, Guardian produces four data-quality checks that live in a dedicated "Prerequisites" card. These aren't performance findings — they explain what Guardian can and can't tell you about this particular recording:</p>
+      <p>Before any rule fires, Guardian produces three data-quality checks that live in a dedicated "Prerequisites" card. These aren't performance findings — they explain what Guardian can and can't tell you about this particular recording:</p>
 
       <table class="guardian-table">
         <thead>
           <tr><th>Check</th><th>Reads</th><th>What it tells you</th></tr>
         </thead>
         <tbody>
-          <tr>
-            <td><strong>Event Source</strong></td>
-            <td>Recording metadata</td>
-            <td>Async-profiler vs. JDK JFR. JDK JFR rows will be N/A for every JVM-internal rule (JIT, Safepoint, VM Op, Deoptimization, per-GC attribution) because those rely on native stack frames the JDK JFR doesn't record.</td>
-          </tr>
           <tr>
             <td><strong>Recording Duration</strong></td>
             <td><code>profilingStartedAt</code>/<code>profilingFinishedAt</code></td>

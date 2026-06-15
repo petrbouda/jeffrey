@@ -45,6 +45,14 @@
         title="No deoptimization events recorded"
       />
       <DataTable v-else>
+        <template #toolbar>
+          <TableToolbar v-model="eventsView.query" search-placeholder="Filter events...">
+            <span class="toolbar-info">Events</span>
+            <template #filters>
+              <Badge key-label="Total" :value="eventsView.matchCount" variant="secondary" size="s" borderless />
+            </template>
+          </TableToolbar>
+        </template>
         <thead>
           <tr>
             <th>Time</th>
@@ -57,7 +65,7 @@
         </thead>
         <tbody>
           <tr
-            v-for="event in events"
+            v-for="event in eventsView.visible"
             :key="`${event.timestamp}-${event.compileId}-${event.bci}`"
             @click="showEventDetails(event)"
             style="cursor: pointer"
@@ -111,6 +119,16 @@
             </td>
           </tr>
         </tbody>
+        <template #footer>
+          <TableShowMore
+            :shown="eventsView.visible.length"
+            :match-count="eventsView.matchCount"
+            :total="eventsView.total"
+            :expanded="eventsView.expanded"
+            :page-size="eventsView.pageSize"
+            @toggle="eventsView.toggle"
+          />
+        </template>
       </DataTable>
     </div>
 
@@ -125,6 +143,14 @@
         title="No deoptimizations recorded"
       />
       <DataTable v-else>
+        <template #toolbar>
+          <TableToolbar v-model="topMethodsView.query" search-placeholder="Filter methods...">
+            <span class="toolbar-info">Top Methods</span>
+            <template #filters>
+              <Badge key-label="Total" :value="topMethodsView.matchCount" variant="secondary" size="s" borderless />
+            </template>
+          </TableToolbar>
+        </template>
         <thead>
           <tr>
             <th>#</th>
@@ -137,7 +163,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="(aggregate, index) in topMethods" :key="aggregate.method">
+          <tr v-for="(aggregate, index) in topMethodsView.visible" :key="aggregate.method">
             <td>{{ index + 1 }}</td>
             <td>
               <div class="method-cell">
@@ -182,6 +208,16 @@
             </td>
           </tr>
         </tbody>
+        <template #footer>
+          <TableShowMore
+            :shown="topMethodsView.visible.length"
+            :match-count="topMethodsView.matchCount"
+            :total="topMethodsView.total"
+            :expanded="topMethodsView.expanded"
+            :page-size="topMethodsView.pageSize"
+            @toggle="topMethodsView.toggle"
+          />
+        </template>
       </DataTable>
     </div>
 
@@ -436,24 +472,22 @@
             The values you'll see in the <code>reason</code> column on the Events
             tab and the Reason Distribution tab.
           </p>
-        <div class="table-responsive">
-          <table class="table table-sm table-hover mb-0">
-            <thead>
-              <tr>
-                <th>Reason</th>
-                <th>What it means</th>
-                <th>Typical cause</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="row in reasonReference" :key="row.reason">
-                <td><Badge :value="row.reason" :variant="reasonVariant(row.reason)" size="s" /></td>
-                <td>{{ row.meaning }}</td>
-                <td class="reason-meaning">{{ row.cause }}</td>
-              </tr>
-            </tbody>
-          </table>
-          </div>
+        <DataTable>
+          <thead>
+            <tr>
+              <th>Reason</th>
+              <th>What it means</th>
+              <th>Typical cause</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="row in reasonReference" :key="row.reason">
+              <td><Badge :value="row.reason" :variant="reasonVariant(row.reason)" size="s" /></td>
+              <td>{{ row.meaning }}</td>
+              <td class="reason-meaning">{{ row.cause }}</td>
+            </tr>
+          </tbody>
+        </DataTable>
         </AboutSection>
 
         <AboutSection icon="bi-gear" title="Actions reference">
@@ -636,6 +670,8 @@ import StatsTable from '@/components/StatsTable.vue';
 import TabBar from '@/components/TabBar.vue';
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
 import DataTable from '@/components/table/DataTable.vue';
+import TableToolbar from '@/components/table/TableToolbar.vue';
+import TableShowMore from '@/components/table/TableShowMore.vue';
 import Badge from '@/components/Badge.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import ErrorState from '@/components/ErrorState.vue';
@@ -652,6 +688,7 @@ import type JITDeoptimizationMethodAggregate from '@/services/api/model/JITDeopt
 import type JITDeoptimizationReasonCount from '@/services/api/model/JITDeoptimizationReasonCount';
 import type Serie from '@/services/timeseries/model/Serie';
 import type { Variant } from '@/types/ui';
+import { useTableView } from '@/composables/useTableView';
 
 const route = useRoute();
 
@@ -662,6 +699,13 @@ const timeseriesData = ref<Serie | null>(null);
 const events = ref<JITDeoptimizationEvent[]>([]);
 const topMethods = ref<JITDeoptimizationMethodAggregate[]>([]);
 const reasonDistribution = ref<JITDeoptimizationReasonCount[]>([]);
+
+const eventsView = useTableView(() => events.value ?? [], {
+  searchableText: e => `${e.method} ${e.reason}`
+});
+const topMethodsView = useTableView(() => topMethods.value ?? [], {
+  searchableText: m => m.method
+});
 
 const showEventModal = ref(false);
 const selectedEvent = ref<JITDeoptimizationEvent | null>(null);
@@ -1183,6 +1227,12 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+.toolbar-info {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--color-text);
+}
+
 .tab-description {
   margin: 0 0 var(--spacing-3);
   color: var(--color-text-muted);

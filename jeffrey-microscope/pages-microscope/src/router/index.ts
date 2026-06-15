@@ -122,18 +122,6 @@ const profileChildRoutes = [
     meta: { layout: 'profile' }
   },
   {
-    path: 'heap-memory',
-    name: 'profile-heap-memory',
-    component: () => import('@/views/profiles/detail/ProfileHeapTimeseries.vue'),
-    meta: { layout: 'profile' }
-  },
-  {
-    path: 'heap-memory/timeseries',
-    name: 'profile-heap-memory-timeseries',
-    component: () => import('@/views/profiles/detail/ProfileHeapTimeseries.vue'),
-    meta: { layout: 'profile' }
-  },
-  {
     path: 'garbage-collection',
     name: 'profile-garbage-collection',
     component: () => import('@/views/profiles/detail/ProfileGarbageCollection.vue'),

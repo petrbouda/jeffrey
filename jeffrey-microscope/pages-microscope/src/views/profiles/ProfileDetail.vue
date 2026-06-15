@@ -312,36 +312,16 @@
                 </div>
 
                 <div class="nav-section">
-                  <div class="nav-section-title">MEMORY</div>
+                  <div class="nav-section-title">HEAP MEMORY</div>
                   <div class="nav-items">
-                    <!-- Heap Memory with Submenu -->
-                    <div class="nav-item-group">
-                      <div
-                        class="nav-item nav-item-parent"
-                        @click="toggleHeapMemorySubmenu"
-                        :class="{
-                          active: $route.path.includes('/heap-memory'),
-                          expanded: heapMemorySubmenuExpanded
-                        }"
-                      >
-                        <i class="bi bi-memory"></i>
-                        <span>Heap Memory</span>
-                        <i
-                          class="bi bi-chevron-right submenu-arrow"
-                          :class="{ rotated: heapMemorySubmenuExpanded }"
-                        ></i>
-                      </div>
-                      <div class="nav-submenu" :class="{ expanded: heapMemorySubmenuExpanded }">
-                        <router-link
-                          :to="`/profiles/${profileId}/heap-memory/timeseries`"
-                          class="nav-item nav-subitem"
-                          active-class="active"
-                        >
-                          <i class="bi bi-graph-up-arrow"></i>
-                          <span>Timeseries</span>
-                        </router-link>
-                      </div>
-                    </div>
+                    <router-link
+                      :to="`/profiles/${profileId}/allocations`"
+                      class="nav-item"
+                      active-class="active"
+                    >
+                      <i class="bi bi-box"></i>
+                      <span>Heap Allocations</span>
+                    </router-link>
                     <!-- Garbage Collection with Submenu -->
                     <div class="nav-item-group">
                       <div
@@ -400,22 +380,6 @@
                           <i class="bi bi-cpu"></i>
                           <span>ZGC Analysis</span>
                         </router-link>
-                        <router-link
-                          :to="`/profiles/${profileId}/garbage-collection/finalizers`"
-                          class="nav-item nav-subitem"
-                          active-class="active"
-                        >
-                          <i class="bi bi-hourglass-split"></i>
-                          <span>Finalizers</span>
-                        </router-link>
-                        <router-link
-                          :to="`/profiles/${profileId}/garbage-collection/reference-processing`"
-                          class="nav-item nav-subitem"
-                          active-class="active"
-                        >
-                          <i class="bi bi-link-45deg"></i>
-                          <span>Reference Processing</span>
-                        </router-link>
                       </div>
                     </div>
                     <router-link
@@ -426,6 +390,36 @@
                       <i class="bi bi-fonts"></i>
                       <span>String &amp; Symbol Tables</span>
                     </router-link>
+                    <router-link
+                      :to="`/profiles/${profileId}/leak-candidates`"
+                      class="nav-item"
+                      active-class="active"
+                    >
+                      <i class="bi bi-bug"></i>
+                      <span>Leak Candidates</span>
+                    </router-link>
+                    <router-link
+                      :to="`/profiles/${profileId}/garbage-collection/finalizers`"
+                      class="nav-item"
+                      active-class="active"
+                    >
+                      <i class="bi bi-hourglass-split"></i>
+                      <span>Finalizers</span>
+                    </router-link>
+                    <router-link
+                      :to="`/profiles/${profileId}/garbage-collection/reference-processing`"
+                      class="nav-item"
+                      active-class="active"
+                    >
+                      <i class="bi bi-link-45deg"></i>
+                      <span>Reference Processing</span>
+                    </router-link>
+                  </div>
+                </div>
+
+                <div class="nav-section">
+                  <div class="nav-section-title">NATIVE MEMORY</div>
+                  <div class="nav-items">
                     <router-link
                       :to="`/profiles/${profileId}/native-memory`"
                       class="nav-item"
@@ -449,22 +443,6 @@
                     >
                       <i class="bi bi-pie-chart"></i>
                       <span>Native Memory Tracking</span>
-                    </router-link>
-                    <router-link
-                      :to="`/profiles/${profileId}/allocations`"
-                      class="nav-item"
-                      active-class="active"
-                    >
-                      <i class="bi bi-box"></i>
-                      <span>Allocations</span>
-                    </router-link>
-                    <router-link
-                      :to="`/profiles/${profileId}/leak-candidates`"
-                      class="nav-item"
-                      active-class="active"
-                    >
-                      <i class="bi bi-bug"></i>
-                      <span>Leak Candidates</span>
                     </router-link>
                   </div>
                 </div>
@@ -1420,7 +1398,6 @@ function getModeFromPath(
 }
 // (heap-dump-only profiles override this to 'HeapDump' in onMounted)
 const selectedMode = ref(getModeFromPath(route.path));
-const heapMemorySubmenuExpanded = ref(false);
 const gcSubmenuExpanded = ref(false);
 const jitCompilationSubmenuExpanded = ref(false);
 
@@ -1471,9 +1448,6 @@ watch(comparisonPanelVisible, newValue => {
 watch(
   () => route.path,
   newPath => {
-    if (newPath.includes('/heap-memory')) {
-      heapMemorySubmenuExpanded.value = true;
-    }
     if (newPath.includes('/garbage-collection')) {
       gcSubmenuExpanded.value = true;
     }
@@ -1600,10 +1574,6 @@ const selectMode = (mode: 'JVM' | 'Technologies' | 'Visualization' | 'HeapDump' 
   };
 
   router.push(firstRoutes[mode]);
-};
-
-const toggleHeapMemorySubmenu = () => {
-  heapMemorySubmenuExpanded.value = !heapMemorySubmenuExpanded.value;
 };
 
 const toggleGCSubmenu = () => {

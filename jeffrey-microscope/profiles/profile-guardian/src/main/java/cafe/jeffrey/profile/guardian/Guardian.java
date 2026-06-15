@@ -22,6 +22,7 @@ import tools.jackson.databind.JsonNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.profile.common.event.GarbageCollectorType;
+import cafe.jeffrey.shared.common.model.EventSourceResolver;
 import cafe.jeffrey.shared.common.model.EventSummary;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
 import cafe.jeffrey.shared.common.model.RecordingEventSource;
@@ -82,9 +83,15 @@ public class Guardian {
 
         List<EventSummary> eventSummaries = eventTypeRepository.eventSummaries();
 
+        // The recording is async-profiler if it carries any event from the `profiler.` namespace — the
+        // same rule the parser uses to set the recording source. Derived from the event summaries Guardian
+        // already loaded so JVM-internal guards (JIT, Safepoint, ...) aren't wrongly Not Applicable.
+        RecordingEventSource eventSource = EventSourceResolver.fromEventTypeNames(
+                eventSummaries.stream().map(EventSummary::name).toList());
+
         Preconditions preconditions = new PreconditionsBuilder()
                 .withEventTypes(eventSummaries)
-                .withEventSource(recordingInfo.eventSource())
+                .withEventSource(eventSource)
                 .withDebugSymbolsAvailable(recordingInfo.debugSymbolsAvailable())
                 .withKernelSymbolsAvailable(recordingInfo.kernelSymbolsAvailable())
                 .withGarbageCollectorType(recordingInfo.garbageCollectorType())
@@ -135,12 +142,6 @@ public class Guardian {
         Optional<ActiveSetting> activeRecordingOpt = activeSettings.findFirstByType(Type.ACTIVE_RECORDING);
         if (activeRecordingOpt.isPresent()) {
             ActiveSetting activeRecording = activeRecordingOpt.get();
-            // param `features` is available in Async-profiler recordings
-            RecordingEventSource source = activeRecording.getParam("features")
-                    .map(f -> RecordingEventSource.ASYNC_PROFILER)
-                    .orElse(RecordingEventSource.JDK);
-
-            builder.setEventSource(source);
 
             activeRecording.getParam("debugSymbols")
                     .ifPresent(value -> builder.setDebugSymbolsAvailable(Boolean.parseBoolean(value)));

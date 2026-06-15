@@ -27,26 +27,42 @@
         use-case="A class with a high or growing pending count signals a finalizer leak or slow finalizer — finalization is deprecated and a known stall / retained-memory source"
       />
 
-      <div class="table-responsive">
-        <table class="table table-sm table-hover mb-0">
-          <thead>
-            <tr>
-              <th>Class</th>
-              <th>Code Source</th>
-              <th class="text-end">Peak Pending Objects</th>
-              <th class="text-end">Finalizers Run</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="(c, i) in data!.classes" :key="i">
-              <td>{{ c.className }}</td>
-              <td class="code-source">{{ c.codeSource || '—' }}</td>
-              <td class="text-end">{{ FormattingService.formatNumber(c.peakObjects) }}</td>
-              <td class="text-end">{{ FormattingService.formatNumber(c.finalizersRun) }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <DataTable>
+        <template #toolbar>
+          <TableToolbar v-model="classesView.query" search-placeholder="Filter classes...">
+            <span class="toolbar-info">Finalizable classes</span>
+            <template #filters>
+              <Badge key-label="Total" :value="classesView.matchCount" variant="secondary" size="s" borderless />
+            </template>
+          </TableToolbar>
+        </template>
+        <thead>
+          <tr>
+            <th>Class</th>
+            <th>Code Source</th>
+            <th class="text-end">Peak Pending Objects</th>
+            <th class="text-end">Finalizers Run</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="(c, i) in classesView.visible" :key="i">
+            <td>{{ c.className }}</td>
+            <td class="code-source">{{ c.codeSource || '—' }}</td>
+            <td class="text-end">{{ FormattingService.formatNumber(c.peakObjects) }}</td>
+            <td class="text-end">{{ FormattingService.formatNumber(c.finalizersRun) }}</td>
+          </tr>
+        </tbody>
+        <template #footer>
+          <TableShowMore
+            :shown="classesView.visible.length"
+            :match-count="classesView.matchCount"
+            :total="classesView.total"
+            :expanded="classesView.expanded"
+            :page-size="classesView.pageSize"
+            @toggle="classesView.toggle"
+          />
+        </template>
+      </DataTable>
     </div>
   </div>
 </template>
@@ -61,8 +77,13 @@ import ChartDescription from '@/components/ChartDescription.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import ErrorState from '@/components/ErrorState.vue';
 import EmptyState from '@/components/EmptyState.vue';
+import DataTable from '@/components/table/DataTable.vue';
+import TableToolbar from '@/components/table/TableToolbar.vue';
+import TableShowMore from '@/components/table/TableShowMore.vue';
+import Badge from '@/components/Badge.vue';
 import ProfileGCClient from '@/services/api/ProfileGCClient';
 import FormattingService from '@/services/FormattingService';
+import { useTableView } from '@/composables/useTableView';
 import type { FinalizersData } from '@/services/api/model/GCTablesModels';
 
 const route = useRoute();
@@ -70,6 +91,10 @@ const route = useRoute();
 const loading = ref(true);
 const error = ref<string | null>(null);
 const data = ref<FinalizersData>();
+
+const classesView = useTableView(() => data.value?.classes ?? [], {
+  searchableText: c => c.className
+});
 
 const hasData = computed(() => (data.value?.header.classCount ?? 0) > 0);
 
@@ -118,6 +143,12 @@ onMounted(loadData);
 </script>
 
 <style scoped>
+.toolbar-info {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--color-text);
+}
+
 .code-source {
   font-size: 0.8rem;
   color: var(--color-text-muted);

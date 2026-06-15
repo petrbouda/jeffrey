@@ -18,13 +18,11 @@
 
 package cafe.jeffrey.profile.guardian.preconditions;
 
-import cafe.jeffrey.shared.common.model.RecordingEventSource;
 import cafe.jeffrey.profile.common.event.GarbageCollectorType;
 
 public class GuardianInformationBuilder {
     private Boolean debugSymbolsAvailable;
     private Boolean kernelSymbolsAvailable;
-    private RecordingEventSource eventSource;
     private GarbageCollectorType garbageCollectorType;
 
     public Boolean getDebugSymbolsAvailable() {
@@ -43,14 +41,6 @@ public class GuardianInformationBuilder {
         this.kernelSymbolsAvailable = kernelSymbolsAvailable;
     }
 
-    public RecordingEventSource getEventSource() {
-        return eventSource;
-    }
-
-    public void setEventSource(RecordingEventSource eventSource) {
-        this.eventSource = eventSource;
-    }
-
     public GarbageCollectorType getGarbageCollectorType() {
         return garbageCollectorType;
     }
@@ -63,7 +53,6 @@ public class GuardianInformationBuilder {
         return new GuardianInformation(
                 debugSymbolsAvailable != null ? debugSymbolsAvailable : false,
                 kernelSymbolsAvailable != null ? kernelSymbolsAvailable : false,
-                eventSource,
                 garbageCollectorType);
     }
 }

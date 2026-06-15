@@ -46,12 +46,46 @@
           :total-throwables="overview.totalThrowables"
           :error-count="overview.errorCount"
         />
-        <EmptyState
+        <DisabledEventsNotice
           v-else-if="exceptionTypes.length === 0"
-          icon="bi-funnel"
           title="No sampled exception throws"
-          description="No jdk.JavaExceptionThrow events in this recording — either none occurred or the event is disabled in the JFR configuration. Errors, if any, appear under the Errors tab."
-        />
+          icon="bi-funnel"
+          action-label="Enable jdk.JavaExceptionThrow, then re-record and re-import"
+          :command="enableCommand"
+        >
+          <p>
+            The per-type breakdown is built from <code>jdk.JavaExceptionThrow</code> — one event per
+            thrown <code>Exception</code> (not <code>Error</code>), with class, message and thread.
+            In the JDK's bundled <code>default</code> config this event is <strong>disabled</strong>;
+            it is only <strong>enabled in the <code>profile</code> config</strong> (with a stack
+            trace, and throttled). So an empty Exceptions tab on a <code>default</code> recording
+            usually just means the event was never turned on.
+          </p>
+          <p>
+            <code>Error</code> throws, if any, appear separately under the <strong>Errors</strong>
+            tab. The Rate Timeline keeps working regardless, because it is driven by the
+            always-enabled <code>jdk.ExceptionStatistics</code> counter.
+          </p>
+
+          <template #action>
+            <p>
+              <strong>A — inline, no extra file.</strong> Record with the bundled
+              <code>profile</code> config (which already enables exception throws) or merge the
+              event explicitly using the copyable command above.
+            </p>
+            <p>
+              <strong>B — a reusable <code>.jfc</code> overlay.</strong> Save this as
+              <code>exceptions.jfc</code> and record with
+              <code>settings=profile,settings=exceptions.jfc</code>:
+            </p>
+            <pre class="jfc-block">{{ jfcSnippet }}</pre>
+            <p>
+              Re-import the <code>.jfr</code> afterwards. Throwing exceptions for control flow is
+              costly because each construction walks the stack via <code>fillInStackTrace()</code> —
+              this tab surfaces the hot types once the event is captured.
+            </p>
+          </template>
+        </DisabledEventsNotice>
         <DataTable v-else>
           <template #toolbar>
             <TableToolbar v-model="exceptionTypesView.query" search-placeholder="Filter exceptions...">
@@ -127,12 +161,27 @@
 
       <!-- Errors -->
       <div v-show="activeTab === 'errors'">
-        <EmptyState
+        <DisabledEventsNotice
           v-if="errorTypes.length === 0"
-          icon="bi-shield-check"
           title="No Error throws recorded"
-          description="No jdk.JavaErrorThrow events in this recording — either none occurred or the event is disabled in the JFR configuration."
-        />
+          icon="bi-shield-check"
+          action-label="Re-enable jdk.JavaErrorThrow only if a custom config disabled it"
+          :command="enableCommand"
+        >
+          <p>
+            This tab counts <code>jdk.JavaErrorThrow</code> — one event per thrown
+            <code>Error</code> (e.g. <code>StackOverflowError</code>,
+            <code>NoSuchMethodError</code>). Unlike exception throws, this event is
+            <strong>enabled in both the <code>default</code> and <code>profile</code> configs</strong>,
+            so an empty tab almost always means <em>no <code>Error</code> was actually thrown</em> —
+            which is the healthy case.
+          </p>
+          <p>
+            The command above only helps in the rare case where a custom or minimal config explicitly
+            turned <code>jdk.JavaErrorThrow</code> off; on a stock recording there is nothing to
+            enable.
+          </p>
+        </DisabledEventsNotice>
         <DataTable v-else>
           <template #toolbar>
             <TableToolbar v-model="errorTypesView.query" search-placeholder="Filter errors...">
@@ -316,7 +365,7 @@ import AboutSection from '@/components/about/AboutSection.vue';
 import FeatureGrid from '@/components/about/FeatureGrid.vue';
 import FeatureCard from '@/components/about/FeatureCard.vue';
 import Badge from '@/components/Badge.vue';
-import EmptyState from '@/components/EmptyState.vue';
+import DisabledEventsNotice from '@/components/alerts/DisabledEventsNotice.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import ErrorState from '@/components/ErrorState.vue';
 import GenericModal from '@/components/GenericModal.vue';
@@ -328,6 +377,21 @@ import type TimeseriesData from '@/services/timeseries/model/TimeseriesData';
 import { useTableView } from '@/composables/useTableView';
 
 const route = useRoute();
+
+const enableCommand =
+  'java -XX:StartFlightRecording=settings=profile,jdk.JavaExceptionThrow#enabled=true,jdk.JavaErrorThrow#enabled=true,filename=app.jfr,dumponexit=true -jar app.jar';
+
+const jfcSnippet = `<?xml version="1.0" encoding="UTF-8"?>
+<configuration version="2.0">
+  <event name="jdk.JavaExceptionThrow">
+    <setting name="enabled">true</setting>
+    <setting name="stackTrace">true</setting>
+  </event>
+  <event name="jdk.JavaErrorThrow">
+    <setting name="enabled">true</setting>
+    <setting name="stackTrace">true</setting>
+  </event>
+</configuration>`;
 
 const loading = ref(true);
 const error = ref(false);
@@ -541,5 +605,19 @@ onMounted(async () => {
 .throwables-info-content {
   font-size: 0.95rem;
   line-height: 1.5;
+}
+
+.jfc-block {
+  margin: 8px 0 12px;
+  padding: 12px 14px;
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-family: SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: var(--color-text);
+  overflow-x: auto;
+  white-space: pre;
 }
 </style>

@@ -58,7 +58,8 @@ public class G1MmuBuilder implements RecordBuilder<GenericRecord, List<MmuEntry>
         entries.add(new MmuEntry(
                 gcId,
                 Math.max(0, Json.readLong(fields, GC_TIME_FIELD)),
-                Math.max(0, Json.readLong(fields, PAUSE_TARGET_FIELD))));
+                Math.max(0, Json.readLong(fields, PAUSE_TARGET_FIELD)),
+                record.timestampFromStart().toMillis()));
     }
 
     @Override

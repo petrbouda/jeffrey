@@ -189,30 +189,46 @@
           shows="Reserved-stack activations from jdk.ReservedStackActivation — a thread executing a @ReservedStackAccess method (typically lock internals) entered the reserved stack zone"
           use-case="Each entry is a near stack-overflow: deep recursion or runaway stack growth that nearly corrupted a critical section. No entries is the healthy, expected case"
         />
-        <div class="table-responsive">
-          <table class="table table-sm table-hover mb-0">
-            <thead>
-              <tr>
-                <th>Time</th>
-                <th>Thread</th>
-                <th>Method</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="(activation, index) in reservedStackActivations" :key="index">
-                <td>
-                  {{
-                    FormattingService.formatDuration2Units(activation.timeOffsetMillis * 1_000_000)
-                  }}
-                </td>
-                <td>{{ activation.thread ?? '—' }}</td>
-                <td>
-                  <code>{{ activation.method ?? '—' }}</code>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <DataTable v-if="reservedStackActivations.length > 0">
+          <template #toolbar>
+            <TableToolbar v-model="reservedStackView.query" search-placeholder="Filter activations...">
+              <span class="toolbar-info">Reserved Stack Activations</span>
+              <template #filters>
+                <Badge key-label="Total" :value="reservedStackView.matchCount" variant="secondary" size="s" borderless />
+              </template>
+            </TableToolbar>
+          </template>
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>Thread</th>
+              <th>Method</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(activation, index) in reservedStackView.visible" :key="index">
+              <td>
+                {{
+                  FormattingService.formatDuration2Units(activation.timeOffsetMillis * 1_000_000)
+                }}
+              </td>
+              <td>{{ activation.thread ?? '—' }}</td>
+              <td>
+                <code>{{ activation.method ?? '—' }}</code>
+              </td>
+            </tr>
+          </tbody>
+          <template #footer>
+            <TableShowMore
+              :shown="reservedStackView.visible.length"
+              :match-count="reservedStackView.matchCount"
+              :total="reservedStackView.total"
+              :expanded="reservedStackView.expanded"
+              :page-size="reservedStackView.pageSize"
+              @toggle="reservedStackView.toggle"
+            />
+          </template>
+        </DataTable>
         <EmptyState
           v-if="reservedStackActivations.length === 0"
           icon="bi-shield-check"
@@ -304,6 +320,11 @@ import AboutSection from '@/components/about/AboutSection.vue';
 import FeatureGrid from '@/components/about/FeatureGrid.vue';
 import FeatureCard from '@/components/about/FeatureCard.vue';
 import ChartDescription from '@/components/ChartDescription.vue';
+import DataTable from '@/components/table/DataTable.vue';
+import TableToolbar from '@/components/table/TableToolbar.vue';
+import TableShowMore from '@/components/table/TableShowMore.vue';
+import Badge from '@/components/Badge.vue';
+import { useTableView } from '@/composables/useTableView';
 import EmptyState from '@/components/EmptyState.vue';
 import type ReservedStackActivation from '@/services/api/model/ReservedStackActivation';
 import FlamegraphComponent from '@/components/FlamegraphComponent.vue';
@@ -360,6 +381,10 @@ const allocationType = ref<string>('');
 
 // Reserved-stack activations (stack-overflow near-misses)
 const reservedStackActivations = ref<ReservedStackActivation[]>([]);
+
+const reservedStackView = useTableView(() => reservedStackActivations.value ?? [], {
+  searchableText: a => `${a.thread} ${a.method}`
+});
 
 // Computed metrics for StatsTable
 const metricsData = computed(() => {
@@ -521,6 +546,12 @@ onMounted(() => {
   font-family:
     -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans',
     'Helvetica Neue', sans-serif;
+}
+
+.toolbar-info {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--color-text);
 }
 
 /* Thread Tables Container */

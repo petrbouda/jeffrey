@@ -5,7 +5,7 @@
 
     <div v-else>
       <PageHeader
-        title="Allocations"
+        title="Heap Allocations"
         description="Where heap allocation pressure comes from — allocation rate over time, the in-TLAB vs outside-TLAB split, and the top allocated types"
         icon="bi-box"
       />
@@ -33,14 +33,69 @@
         </div>
       </div>
 
+      <!-- Before/After GC -->
+      <div v-show="activeTab === 'heap-gc'">
+        <ChartDescription
+          shows="Heap used just before and just after each garbage collection — the classic sawtooth."
+          use-case="A steadily rising post-GC floor means the live set is growing — a leak or unbounded cache, not just churn."
+        />
+        <div class="chart-container">
+          <TimeSeriesChart
+            :primaryData="heapBeforeAfterGcSeries"
+            primaryTitle="Before/After GC"
+            :primaryAxisType="AxisFormatType.BYTES"
+            :visibleMinutes="60"
+            primaryColor="#007bff"
+            timeUnit="seconds"
+          />
+        </div>
+      </div>
+
       <!-- Top Allocated Types -->
       <div v-show="activeTab === 'types'">
-        <EmptyState
+        <DisabledEventsNotice
           v-if="topTypes.length === 0"
-          icon="bi-box"
           title="No allocation events recorded"
-          description="This recording has no jdk.ObjectAllocation* events."
-        />
+          icon="bi-box"
+          action-label="Re-enable allocation profiling, then re-record and re-import"
+          :command="enableCommand"
+        >
+          <p>
+            The top-types breakdown is built from the JVM's allocation profiler. Since JDK&nbsp;16,
+            the modern sampler <code>jdk.ObjectAllocationSample</code> (one throttled event per
+            sampled allocation, carrying the class and a statistical weight) is
+            <strong>enabled by default</strong> in both the bundled <code>default</code> and
+            <code>profile</code> configs — at ~150 samples/s in <code>default</code> and 300/s in
+            <code>profile</code> — and it supersedes the older, higher-volume
+            <code>jdk.ObjectAllocationInNewTLAB</code> / <code>jdk.ObjectAllocationOutsideTLAB</code>
+            pair (off by default).
+          </p>
+          <p>
+            Because the sampler is on out of the box, an empty Allocations tab almost always means
+            allocation profiling was deliberately turned <strong>off</strong> in a custom or minimal
+            configuration — re-enable it (or simply record with <code>settings=profile</code>) and
+            the page will populate.
+          </p>
+
+          <template #action>
+            <p>
+              <strong>A — inline, no extra file.</strong> Use the copyable command above: it records
+              with the bundled <code>profile</code> config and explicitly forces
+              <code>jdk.ObjectAllocationSample#enabled=true</code> so the sampler is never gated off.
+            </p>
+            <p>
+              <strong>B — a reusable <code>.jfc</code> overlay.</strong> Save this as
+              <code>allocations.jfc</code> and record with
+              <code>settings=profile,settings=allocations.jfc</code>:
+            </p>
+            <pre class="jfc-block">{{ jfcSnippet }}</pre>
+            <p>
+              Re-import the <code>.jfr</code> into Jeffrey afterwards. The sampler is intentionally
+              low-overhead — its weighted totals are statistically scaled estimates, ideal for
+              proportions and trends rather than an exact byte count.
+            </p>
+          </template>
+        </DisabledEventsNotice>
         <DataTable v-else>
           <template #toolbar>
             <TableToolbar v-model="typesView.query" search-placeholder="Filter classes...">
@@ -186,17 +241,31 @@ import TableToolbar from '@/components/table/TableToolbar.vue';
 import TableShowMore from '@/components/table/TableShowMore.vue';
 import ClassNameDisplay from '@/components/heap/ClassNameDisplay.vue';
 import Badge from '@/components/Badge.vue';
-import EmptyState from '@/components/EmptyState.vue';
+import DisabledEventsNotice from '@/components/alerts/DisabledEventsNotice.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import ErrorState from '@/components/ErrorState.vue';
 import FormattingService from '@/services/FormattingService';
 import AxisFormatType from '@/services/timeseries/AxisFormatType';
 import ProfileAllocationClient from '@/services/api/ProfileAllocationClient';
+import ProfileHeapMemoryClient from '@/services/api/ProfileHeapMemoryClient';
+import HeapMemoryTimeseriesType from '@/services/api/model/HeapMemoryTimeseriesType';
 import type { AllocatedType, AllocationOverview } from '@/services/api/model/AllocationModels';
 import type TimeseriesData from '@/services/timeseries/model/TimeseriesData';
 import { useTableView } from '@/composables/useTableView';
 
 const route = useRoute();
+
+const enableCommand =
+  'java -XX:StartFlightRecording=settings=profile,jdk.ObjectAllocationSample#enabled=true,filename=app.jfr,dumponexit=true -jar app.jar';
+
+const jfcSnippet = `<?xml version="1.0" encoding="UTF-8"?>
+<configuration version="2.0">
+  <event name="jdk.ObjectAllocationSample">
+    <setting name="enabled">true</setting>
+    <setting name="stackTrace">true</setting>
+    <setting name="throttle">300/s</setting>
+  </event>
+</configuration>`;
 
 const loading = ref(true);
 const error = ref(false);
@@ -208,6 +277,8 @@ const topTypes = ref<AllocatedType[]>([]);
 const typesView = useTableView<AllocatedType>(topTypes, { searchableText: r => r.className });
 
 const activeTab = ref('rate');
+
+const heapBeforeAfterGcSeries = ref<number[][]>([]);
 
 const rateSeries = computed<number[][]>(() => timeline.value?.series?.[0]?.data ?? []);
 const maxTypeBytes = computed(() => (topTypes.value.length > 0 ? topTypes.value[0].bytes : 0));
@@ -221,6 +292,7 @@ const shareWidth = (bytes: number): number => {
 
 const tabs = computed<TabBarItem[]>(() => [
   { id: 'rate', label: 'Allocation Rate', icon: 'graph-up' },
+  { id: 'heap-gc', label: 'Before/After GC', icon: 'memory' },
   {
     id: 'types',
     label: 'Top Allocated Types',
@@ -279,16 +351,20 @@ onMounted(async () => {
   try {
     const profileId = route.params.profileId as string;
     const client = new ProfileAllocationClient(profileId);
+    const heapMemoryClient = new ProfileHeapMemoryClient(profileId);
 
-    const [overviewResult, timelineResult, topTypesResult] = await Promise.all([
-      client.getOverview(),
-      client.getTimeline(),
-      client.getTopTypes()
-    ]);
+    const [overviewResult, timelineResult, topTypesResult, heapBeforeAfterGcResult] =
+      await Promise.all([
+        client.getOverview(),
+        client.getTimeline(),
+        client.getTopTypes(),
+        heapMemoryClient.getTimeseries(HeapMemoryTimeseriesType.HEAP_BEFORE_AFTER_GC)
+      ]);
 
     overview.value = overviewResult;
     timeline.value = timelineResult;
     topTypes.value = topTypesResult;
+    heapBeforeAfterGcSeries.value = heapBeforeAfterGcResult.data;
 
     loading.value = false;
   } catch (e) {
@@ -339,5 +415,19 @@ onMounted(async () => {
   height: 100%;
   border-radius: var(--radius-sm);
   background: var(--color-primary);
+}
+
+.jfc-block {
+  margin: 8px 0 12px;
+  padding: 12px 14px;
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-family: SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: var(--color-text);
+  overflow-x: auto;
+  white-space: pre;
 }
 </style>

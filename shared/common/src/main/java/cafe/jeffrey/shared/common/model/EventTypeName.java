@@ -20,6 +20,12 @@ package cafe.jeffrey.shared.common.model;
 
 public abstract class EventTypeName {
 
+    /**
+     * Namespace prefix async-profiler uses for every event type it emits (e.g. {@code profiler.Malloc},
+     * {@code profiler.WallClockSample}, {@code profiler.Span}). Used to classify the recording source.
+     */
+    public static final String ASYNC_PROFILER_NAMESPACE = "profiler.";
+
     public static final String EXECUTION_SAMPLE = "jdk.ExecutionSample";
     public static final String CPU_TIME_SAMPLE = "jdk.CPUTimeSample";
     public static final String CPU_TIME_SAMPLES_LOST = "jdk.CPUTimeSamplesLost";

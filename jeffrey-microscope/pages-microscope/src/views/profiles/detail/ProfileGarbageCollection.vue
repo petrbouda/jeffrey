@@ -472,12 +472,39 @@
         shows="Parallel GC sub-phases (jdk.GCPhaseParallel) aggregated by name across all GC worker threads and collections — e.g. Ext Root Scanning, Object Copy, Termination."
         use-case="Find which sub-phase dominates a stop-the-world pause: heavy Object Copy points at high promotion, heavy Termination at worker load imbalance."
       />
-      <EmptyState
+      <DisabledEventsNotice
         v-if="!phaseParallelData || phaseParallelData.length === 0"
-        icon="bi-layers"
         title="No parallel sub-phase events"
-        description="This recording has no jdk.GCPhaseParallel events (sub-phase detail is off in many GC configs)."
-      />
+        icon="bi-layers"
+        action-label="Record with the detailed GC tier, then re-record and re-import"
+        :command="detailedGcCommand"
+      >
+        <p>
+          The parallel sub-phase breakdown comes from <code>jdk.GCPhaseParallel</code>, a
+          detailed-tier GC event. The bundled <code>default</code> config records GC at the
+          <code>normal</code> detail level, where it is effectively <strong>off</strong>, while the
+          <code>profile</code> config sets the GC detail level to <code>detailed</code> and turns it
+          on.
+        </p>
+        <p>
+          Re-record with <code>settings=profile</code> (which selects the <code>detailed</code> GC
+          level), or enable the specific events inline with the command above.
+        </p>
+
+        <template #action>
+          <p>
+            <strong>A — inline, no extra file.</strong> Use the copyable command above: it keeps the
+            bundled <code>profile</code> config and adds the detailed-tier GC events on top.
+          </p>
+          <p>
+            <strong>B — a reusable <code>.jfc</code> overlay.</strong> Save this as
+            <code>gc-detailed.jfc</code> and record with
+            <code>settings=profile,settings=gc-detailed.jfc</code>:
+          </p>
+          <pre class="jfc-block">{{ gcDetailedJfcSnippet }}</pre>
+          <p>Re-import the <code>.jfr</code> afterwards to populate the sub-phase breakdown.</p>
+        </template>
+      </DisabledEventsNotice>
       <DataTable v-else>
         <template #toolbar>
           <TableToolbar v-model="phaseParallelView.query" search-placeholder="Filter phases...">
@@ -531,12 +558,23 @@
         shows="G1 promotion-buffer (PLAB) evacuation statistics per young/old evacuation (jdk.G1EvacuationYoungStatistics, jdk.G1EvacuationOldStatistics) — bytes allocated for copying survivors vs. bytes wasted (alignment, refill, undo, evacuation failure), with a waste %."
         use-case="High waste % means PLABs are poorly sized — tune -XX:*PLABSize / -XX:+ResizePLAB. Non-zero failure bytes indicate to-space exhaustion (evacuation failure), the usual cause of surprise Full GCs."
       />
-      <EmptyState
+      <DisabledEventsNotice
         v-if="!plabData || plabData.length === 0"
-        icon="bi-speedometer"
         title="No G1 PLAB statistics"
-        description="This recording has no jdk.G1EvacuationYoungStatistics / jdk.G1EvacuationOldStatistics events — emitted only by the G1 collector, and in the JFR 'Detailed' category (off in most configs)."
-      />
+        icon="bi-speedometer"
+        action-label="Record with the detailed GC tier, then re-record and re-import"
+        :command="detailedGcCommand"
+      >
+        <p>
+          PLAB statistics come from <code>jdk.G1EvacuationYoungStatistics</code> and
+          <code>jdk.G1EvacuationOldStatistics</code> — emitted only by the G1 collector, and part of
+          the detailed GC tier. The bundled <code>default</code> config records GC at the
+          <code>normal</code> detail level, where they are effectively <strong>off</strong>; the
+          <code>profile</code> config sets the GC detail level to <code>detailed</code> and turns
+          them on. Re-record with <code>settings=profile</code>, or enable the specific events inline
+          with the command above.
+        </p>
+      </DisabledEventsNotice>
       <DataTable v-else>
         <template #toolbar>
           <TableToolbar v-model="plabView.query" search-placeholder="Filter by generation...">
@@ -660,34 +698,34 @@
         icon="bi-funnel"
         title="No causes match the current filter"
       />
-      <div v-else class="table-responsive">
-        <table class="table table-sm table-hover mb-0 pause-types-table">
-          <thead>
-            <tr>
-              <th>Cause</th>
-              <th>Category</th>
-              <th>Description</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="item in pauseTypesView.visible" :key="item.name">
-              <td class="pause-type-name">{{ item.name }}</td>
-              <td>
-                <Badge :value="item.group.shortLabel" :variant="item.group.variant" size="s" />
-              </td>
-              <td class="pause-type-desc">{{ item.description }}</td>
-            </tr>
-          </tbody>
-        </table>
-        <TableShowMore
-          :shown="pauseTypesView.visible.length"
-          :match-count="pauseTypesView.matchCount"
-          :total="pauseTypesView.total"
-          :expanded="pauseTypesView.expanded"
-          :page-size="pauseTypesView.pageSize"
-          @toggle="pauseTypesView.toggle"
-        />
-      </div>
+      <DataTable v-else table-class="pause-types-table">
+        <thead>
+          <tr>
+            <th>Cause</th>
+            <th>Category</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="item in pauseTypesView.visible" :key="item.name">
+            <td class="pause-type-name">{{ item.name }}</td>
+            <td>
+              <Badge :value="item.group.shortLabel" :variant="item.group.variant" size="s" />
+            </td>
+            <td class="pause-type-desc">{{ item.description }}</td>
+          </tr>
+        </tbody>
+        <template #footer>
+          <TableShowMore
+            :shown="pauseTypesView.visible.length"
+            :match-count="pauseTypesView.matchCount"
+            :total="pauseTypesView.total"
+            :expanded="pauseTypesView.expanded"
+            :page-size="pauseTypesView.pageSize"
+            @toggle="pauseTypesView.toggle"
+          />
+        </template>
+      </DataTable>
     </div>
 
     <!-- How It Works Tab -->
@@ -859,6 +897,7 @@ import LoadingState from '@/components/LoadingState.vue';
 import ErrorState from '@/components/ErrorState.vue';
 import TabBar from '@/components/TabBar.vue';
 import EmptyState from '@/components/EmptyState.vue';
+import DisabledEventsNotice from '@/components/alerts/DisabledEventsNotice.vue';
 import Badge from '@/components/Badge.vue';
 import DataTable from '@/components/table/DataTable.vue';
 import TableToolbar from '@/components/table/TableToolbar.vue';
@@ -892,6 +931,24 @@ import { GarbageCollectionCauseDescriptions } from '@/services/api/model/Garbage
 import '@/styles/shared-components.css';
 
 const route = useRoute();
+
+const detailedGcCommand =
+  'java -XX:StartFlightRecording=settings=profile,jdk.GCPhaseParallel#enabled=true,jdk.G1EvacuationYoungStatistics#enabled=true,jdk.G1EvacuationOldStatistics#enabled=true,filename=app.jfr,dumponexit=true -jar app.jar';
+
+const gcDetailedJfcSnippet = `<?xml version="1.0" encoding="UTF-8"?>
+<configuration version="2.0">
+  <event name="jdk.GCPhaseParallel">
+    <setting name="enabled">true</setting>
+    <setting name="threshold">0 ms</setting>
+  </event>
+  <event name="jdk.G1EvacuationYoungStatistics">
+    <setting name="enabled">true</setting>
+  </event>
+  <event name="jdk.G1EvacuationOldStatistics">
+    <setting name="enabled">true</setting>
+  </event>
+</configuration>`;
+
 const loading = ref(true);
 const error = ref<string | null>(null);
 
@@ -1502,6 +1559,20 @@ onUnmounted(() => {
 /* Promotion & Tenuring / IHOP tabs */
 .gc-id-column {
   width: 90px;
+}
+
+.jfc-block {
+  margin: 8px 0 12px;
+  padding: 12px 14px;
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-family: SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: var(--color-text);
+  overflow-x: auto;
+  white-space: pre;
 }
 
 .toolbar-info {

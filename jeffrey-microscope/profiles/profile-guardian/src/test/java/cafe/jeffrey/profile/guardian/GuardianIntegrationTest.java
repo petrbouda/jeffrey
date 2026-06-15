@@ -94,8 +94,8 @@ class GuardianIntegrationTest {
 
         List<GuardianResult> results = guardian.process();
 
-        assertEquals(4, results.size(),
-                "With no events, only the 4 Prerequisites checks should fire");
+        assertEquals(3, results.size(),
+                "With no events, only the 3 Prerequisites checks should fire");
         for (GuardianResult r : results) {
             GuardAnalysisResult item = r.analysisItem();
             assertEquals(Guard.Category.PREREQUISITES, item.category());
@@ -109,7 +109,7 @@ class GuardianIntegrationTest {
     }
 
     @Test
-    void allFourPrerequisiteChecksAreProduced() {
+    void allPrerequisiteChecksAreProduced() {
         Guardian guardian = new Guardian(
                 profileInfo(),
                 new EmptyEventRepository(),
@@ -122,7 +122,6 @@ class GuardianIntegrationTest {
                 .map(r -> r.analysisItem().rule())
                 .toList();
 
-        assertTrue(rules.contains("Event Source"), "Event Source check missing");
         assertTrue(rules.contains("Recording Duration"), "Recording Duration check missing");
         assertTrue(rules.contains("Event Coverage"), "Event Coverage check missing");
         assertTrue(rules.contains("Debug Symbols"), "Debug Symbols check missing");

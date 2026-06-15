@@ -20,7 +20,7 @@ package cafe.jeffrey.provider.profile.jdbc;
 
 import cafe.jeffrey.provider.profile.api.*;
 
-import cafe.jeffrey.shared.common.model.RecordingEventSource;
+import cafe.jeffrey.shared.common.model.EventSourceResolver;
 import cafe.jeffrey.shared.common.model.Type;
 import cafe.jeffrey.shared.common.settings.ActiveSetting;
 import cafe.jeffrey.shared.common.settings.ActiveSettings;
@@ -108,12 +108,6 @@ public class WriterResultCollector {
                 new WallClockSamplesWeightEnhancer(settings),
                 new ExecutionSamplesWeightEnhancer(settings),
 
-                // Fixed source enhancers (parameterized)
-                new FixedSourceEnhancer(Type.CPU_TIME_SAMPLE, RecordingEventSource.JDK),
-                new FixedSourceEnhancer(Type.WALL_CLOCK_SAMPLE, RecordingEventSource.ASYNC_PROFILER),
-                new FixedSourceEnhancer(Type.MALLOC, RecordingEventSource.ASYNC_PROFILER),
-                new FixedSourceEnhancer(Type.JAVA_MONITOR_WAIT, RecordingEventSource.JDK),
-
                 // Settings-based source enhancers (parameterized)
                 new SettingsBasedSourceEnhancer(
                         Type.OBJECT_ALLOCATION_IN_NEW_TLAB,
@@ -132,6 +126,12 @@ public class WriterResultCollector {
 
     private static void applyEnhancers(List<EventTypeEnhancer> enhancers, EventTypeBuilder builder) {
         Type type = Type.fromCode(builder.getEventType().name());
+
+        // Baseline source from the event-type name (profiler.* -> async-profiler, otherwise JDK). The
+        // subtype/settings enhancers below run afterwards and override it where needed (e.g. the
+        // jdk.ExecutionSample subtype, allocation/monitor events captured by async-profiler).
+        builder.withSource(EventSourceResolver.fromEventTypeName(type.code()));
+
         if (enhancers != null) {
             for (EventTypeEnhancer enhancer : enhancers) {
                 if (enhancer.isApplicable(type)) {

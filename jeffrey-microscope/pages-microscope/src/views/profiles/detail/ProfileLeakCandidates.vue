@@ -10,21 +10,58 @@
         icon="bi-bug"
       />
 
-      <div class="mb-4">
-        <StatsTable :metrics="metricsData" />
-      </div>
-
-      <TabBar v-model="activeTab" :tabs="tabs" class="mb-3" />
-
-      <div v-show="activeTab === 'candidates'">
-      <EmptyState
+      <DisabledEventsNotice
         v-if="candidates.length === 0"
-        icon="bi-bug"
         title="No leak candidates recorded"
-        description="This recording has no jdk.OldObjectSample events. Enable the old-object sampler (-XX:+UnlockDiagnosticVMOptions or the 'profile' JFR settings) to capture potential leaks."
-      />
-      <DataTable v-else>
-        <template #toolbar>
+        icon="bi-bug"
+        action-label="Enable the old-object sampler, then re-record and re-import"
+        :command="leakEnableCommand"
+      >
+        <p>
+          Leak candidates come from <code>jdk.OldObjectSample</code> — JFR's built-in old-object
+          sampler. It tags a fraction of allocations and reports the ones still alive at dump time,
+          surfacing long-lived objects (and the sites that allocated them) as potential leaks.
+        </p>
+        <p>
+          The event is <strong>disabled</strong> in the lean <code>default</code> config and
+          <strong>enabled</strong> in <code>profile</code>. Crucially, the allocation
+          <strong>stack trace is off by default</strong> and only on under <code>profile</code> —
+          without it a candidate is just a class name, with no allocation site to chase. Record
+          with the <code>profile</code> config (or enable the event explicitly) and keep
+          <code>stackTrace=true</code> so the leak sites are usable.
+        </p>
+
+        <template #action>
+          <p>
+            <strong>A — inline, no extra file.</strong> Use the copyable command above: it records
+            with the bundled <code>profile</code> config and sets
+            <code>jdk.OldObjectSample#enabled=true</code> with
+            <code>stackTrace=true</code> so survivors carry their allocation stacks.
+          </p>
+          <p>
+            <strong>B — a reusable <code>.jfc</code> overlay.</strong> Save this as
+            <code>leak.jfc</code> and record with
+            <code>settings=profile,settings=leak.jfc</code>:
+          </p>
+          <pre class="jfc-block">{{ leakJfcSnippet }}</pre>
+          <p>
+            Re-import the <code>.jfr</code> afterwards. The <code>cutoff</code> of <code>0 ns</code>
+            keeps every surviving sample; raise it to keep only objects that have outlived a minimum
+            age.
+          </p>
+        </template>
+      </DisabledEventsNotice>
+
+      <template v-else>
+        <div class="mb-4">
+          <StatsTable :metrics="metricsData" />
+        </div>
+
+        <TabBar v-model="activeTab" :tabs="tabs" class="mb-3" />
+
+        <div v-show="activeTab === 'candidates'">
+          <DataTable>
+            <template #toolbar>
           <TableToolbar v-model="candidatesView.query" search-placeholder="Filter classes...">
             <span class="toolbar-info">Leak candidates</span>
             <template #filters>
@@ -67,11 +104,11 @@
             @toggle="candidatesView.toggle"
           />
         </template>
-      </DataTable>
-      </div>
+          </DataTable>
+        </div>
 
-      <!-- How It Works Tab -->
-      <div v-show="activeTab === 'about'">
+        <!-- How It Works Tab -->
+        <div v-show="activeTab === 'about'">
         <AboutPanel
           icon="bi-question-circle"
           title="Understanding Leak Candidates"
@@ -148,7 +185,8 @@
             </p>
           </AboutSection>
         </AboutPanel>
-      </div>
+        </div>
+      </template>
     </div>
   </div>
 </template>
@@ -171,7 +209,7 @@ import TableToolbar from '@/components/table/TableToolbar.vue';
 import TableShowMore from '@/components/table/TableShowMore.vue';
 import ClassNameDisplay from '@/components/heap/ClassNameDisplay.vue';
 import Badge from '@/components/Badge.vue';
-import EmptyState from '@/components/EmptyState.vue';
+import DisabledEventsNotice from '@/components/alerts/DisabledEventsNotice.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import ErrorState from '@/components/ErrorState.vue';
 import FormattingService from '@/services/FormattingService';
@@ -180,6 +218,18 @@ import type { LeakCandidate, LeakOverview } from '@/services/api/model/LeakModel
 import { useTableView } from '@/composables/useTableView';
 
 const route = useRoute();
+
+const leakEnableCommand =
+  'java -XX:StartFlightRecording=settings=profile,jdk.OldObjectSample#enabled=true,jdk.OldObjectSample#stackTrace=true,filename=app.jfr,dumponexit=true -jar app.jar';
+
+const leakJfcSnippet = `<?xml version="1.0" encoding="UTF-8"?>
+<configuration version="2.0">
+  <event name="jdk.OldObjectSample">
+    <setting name="enabled">true</setting>
+    <setting name="stackTrace">true</setting>
+    <setting name="cutoff">0 ns</setting>
+  </event>
+</configuration>`;
 
 const loading = ref(true);
 const error = ref(false);
@@ -275,5 +325,19 @@ onMounted(async () => {
 
 .class-cell {
   max-width: 520px;
+}
+
+.jfc-block {
+  margin: 8px 0 12px;
+  padding: 12px 14px;
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-family: SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: var(--color-text);
+  overflow-x: auto;
+  white-space: pre;
 }
 </style>

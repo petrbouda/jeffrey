@@ -28,12 +28,49 @@
       icon="bi-box-arrow-in-down"
     />
 
-    <EmptyState
+    <DisabledEventsNotice
       v-if="!hasData"
+      title="No native-library load events in this recording"
       icon="bi-box-arrow-in-down"
-      title="No native-library load events"
-      description="This recording contains no jdk.NativeLibraryLoad or jdk.NativeLibraryUnload events (requires JDK 24+)."
-    />
+      action-label="Confirm JDK 24+, then re-record and re-import"
+      :command="enableCommand"
+    >
+      <p>
+        <code>jdk.NativeLibraryLoad</code> and <code>jdk.NativeLibraryUnload</code> record each
+        native dynamic-library load/unload with its <strong>duration</strong> and a
+        <strong>success</strong> flag — unlike the static <code>jdk.NativeLibrary</code> inventory on
+        the Native Memory page. This page stays empty until at least one of them is present.
+      </p>
+      <p>
+        Both events were <strong>added in JDK&nbsp;24</strong>, where they are
+        <strong>enabled by default</strong> in the bundled <code>default</code> and
+        <code>profile</code> configurations (with <code>stackTrace=true</code> and a
+        <code>0&nbsp;ms</code> threshold). The most common reason for an empty page is therefore a
+        recording captured on a <strong>JDK older than 24</strong>, where these events simply do not
+        exist — upgrade to JDK&nbsp;24+ and re-record. If you are already on JDK&nbsp;24+ and still see
+        nothing, a minimal or custom configuration disabled them; the command above re-enables them on
+        top of the <code>profile</code> config.
+      </p>
+
+      <template #action>
+        <p>
+          <strong>Reusable <code>.jfc</code> overlay.</strong> Save this as
+          <code>native-library-loads.jfc</code> if you would rather keep the settings in a file (still
+          requires JDK&nbsp;24+):
+        </p>
+        <pre class="jfc-block">{{ jfcSnippet }}</pre>
+        <ul>
+          <li>
+            At launch —
+            <code>java -XX:StartFlightRecording=settings=profile,settings=native-library-loads.jfc,filename=app.jfr,dumponexit=true -jar app.jar</code>
+          </li>
+          <li>
+            On a running JVM —
+            <code>jcmd &lt;pid&gt; JFR.start name=libs settings=profile settings=native-library-loads.jfc filename=app.jfr</code>
+          </li>
+        </ul>
+      </template>
+    </DisabledEventsNotice>
 
     <div v-else>
       <div class="mb-4">
@@ -186,7 +223,7 @@ import AboutSection from '@/components/about/AboutSection.vue';
 import FeatureGrid from '@/components/about/FeatureGrid.vue';
 import FeatureCard from '@/components/about/FeatureCard.vue';
 import Badge from '@/components/Badge.vue';
-import EmptyState from '@/components/EmptyState.vue';
+import DisabledEventsNotice from '@/components/alerts/DisabledEventsNotice.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import ErrorState from '@/components/ErrorState.vue';
 import FormattingService from '@/services/FormattingService';
@@ -199,6 +236,23 @@ import type {
 import { useTableView } from '@/composables/useTableView';
 
 const route = useRoute();
+
+const enableCommand =
+  'java -XX:StartFlightRecording=settings=profile,jdk.NativeLibraryLoad#enabled=true,jdk.NativeLibraryUnload#enabled=true,filename=app.jfr,dumponexit=true -jar app.jar';
+
+const jfcSnippet = `<?xml version="1.0" encoding="UTF-8"?>
+<configuration version="2.0">
+  <event name="jdk.NativeLibraryLoad">
+    <setting name="enabled">true</setting>
+    <setting name="stackTrace">true</setting>
+    <setting name="threshold">0 ms</setting>
+  </event>
+  <event name="jdk.NativeLibraryUnload">
+    <setting name="enabled">true</setting>
+    <setting name="stackTrace">true</setting>
+    <setting name="threshold">0 ms</setting>
+  </event>
+</configuration>`;
 
 const loading = ref(true);
 const error = ref(false);
@@ -327,5 +381,19 @@ onMounted(loadData);
   font-size: 0.8rem;
   color: var(--color-text-muted);
   cursor: pointer;
+}
+
+.jfc-block {
+  margin: 8px 0 12px;
+  padding: 12px 14px;
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-family: SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: var(--color-text);
+  overflow-x: auto;
+  white-space: pre;
 }
 </style>

@@ -28,12 +28,25 @@
       icon="bi-link-45deg"
     />
 
-    <EmptyState
+    <DisabledEventsNotice
       v-if="!hasData"
+      title="No reference-processing events in this recording"
       icon="bi-link-45deg"
-      title="No reference-processing events"
-      description="This recording contains no jdk.GCReferenceStatistics events."
-    />
+    >
+      <p>
+        These views are built from <code>jdk.GCReferenceStatistics</code>, which a garbage collector
+        emits each time it processes the JDK's reference objects (Soft, Weak, Final, Phantom). This
+        event is <strong>enabled by default</strong> — in both the bundled <code>default</code> and
+        <code>profile</code> configs — because it is tied to GC being recorded at the normal level.
+      </p>
+      <p>
+        So an empty page here is <strong>not a configuration gap</strong>. It means no qualifying GC
+        reference-processing happened during the recording: the run was very short, no GC cycles
+        occurred, or the collector/phase that ran did not report reference statistics. Capture a
+        longer run, or one with real GC activity, and these views will populate on their own.
+        Recording with <code>settings=profile</code> ensures the full GC detail is present.
+      </p>
+    </DisabledEventsNotice>
 
     <div v-else>
       <div class="mb-4">
@@ -69,27 +82,43 @@
           shows="Total and average-per-GC references processed, by reference type"
           use-case="Compare which reference kinds dominate processing work across the whole recording"
         />
-        <div class="table-responsive">
-          <table class="table table-sm table-hover mb-0">
-            <thead>
-              <tr>
-                <th>Reference Type</th>
-                <th class="text-end">Total Processed</th>
-                <th class="text-end">Avg / GC</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="stat in data!.byType" :key="stat.type">
-                <td>
-                  <span class="type-swatch" :style="{ background: colorForType(stat.type) }"></span>
-                  {{ stat.type }}
-                </td>
-                <td class="text-end">{{ FormattingService.formatNumber(stat.total) }}</td>
-                <td class="text-end">{{ FormattingService.formatNumber(stat.avgPerGc) }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <DataTable>
+          <template #toolbar>
+            <TableToolbar v-model="byTypeView.query" search-placeholder="Filter reference types...">
+              <span class="toolbar-info">By Type</span>
+              <template #filters>
+                <Badge key-label="Total" :value="byTypeView.matchCount" variant="secondary" size="s" borderless />
+              </template>
+            </TableToolbar>
+          </template>
+          <thead>
+            <tr>
+              <th>Reference Type</th>
+              <th class="text-end">Total Processed</th>
+              <th class="text-end">Avg / GC</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="stat in byTypeView.visible" :key="stat.type">
+              <td>
+                <span class="type-swatch" :style="{ background: colorForType(stat.type) }"></span>
+                {{ stat.type }}
+              </td>
+              <td class="text-end">{{ FormattingService.formatNumber(stat.total) }}</td>
+              <td class="text-end">{{ FormattingService.formatNumber(stat.avgPerGc) }}</td>
+            </tr>
+          </tbody>
+          <template #footer>
+            <TableShowMore
+              :shown="byTypeView.visible.length"
+              :match-count="byTypeView.matchCount"
+              :total="byTypeView.total"
+              :expanded="byTypeView.expanded"
+              :page-size="byTypeView.pageSize"
+              @toggle="byTypeView.toggle"
+            />
+          </template>
+        </DataTable>
       </div>
 
       <!-- Per-GC -->
@@ -98,32 +127,52 @@
           shows="Per-collection reference totals, ranked by total references processed"
           use-case="Pinpoint the individual GC cycles that did the heaviest reference processing"
         />
-        <div class="table-responsive">
-          <table class="table table-sm table-hover mb-0">
-            <thead>
-              <tr>
-                <th>GC ID</th>
-                <th v-for="type in typeColumns" :key="type" class="text-end">{{ type }}</th>
-                <th class="text-end">Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="gc in data!.perGc" :key="gc.gcId">
-                <td>{{ gc.gcId }}</td>
-                <td v-for="type in typeColumns" :key="type" class="text-end">
-                  {{ FormattingService.formatNumber(gc.countsByType[type] ?? 0) }}
-                </td>
-                <td class="text-end fw-semibold">{{ FormattingService.formatNumber(gc.total) }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <DataTable>
+          <template #toolbar>
+            <TableToolbar :show-search="false">
+              <span class="toolbar-info">Per-GC</span>
+              <template #filters>
+                <Badge key-label="Total" :value="perGcView.matchCount" variant="secondary" size="s" borderless />
+              </template>
+            </TableToolbar>
+          </template>
+          <thead>
+            <tr>
+              <th>GC ID</th>
+              <th v-for="type in typeColumns" :key="type" class="text-end">{{ type }}</th>
+              <th class="text-end">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="gc in perGcView.visible" :key="gc.gcId">
+              <td>{{ gc.gcId }}</td>
+              <td v-for="type in typeColumns" :key="type" class="text-end">
+                {{ FormattingService.formatNumber(gc.countsByType[type] ?? 0) }}
+              </td>
+              <td class="text-end fw-semibold">{{ FormattingService.formatNumber(gc.total) }}</td>
+            </tr>
+          </tbody>
+          <template #footer>
+            <TableShowMore
+              :shown="perGcView.visible.length"
+              :match-count="perGcView.matchCount"
+              :total="perGcView.total"
+              :expanded="perGcView.expanded"
+              :page-size="perGcView.pageSize"
+              @toggle="perGcView.toggle"
+            />
+          </template>
+        </DataTable>
       </div>
 
-      <!-- About -->
+      <!-- How It Works -->
       <div v-show="activeTab === 'about'">
-        <AboutPanel>
-          <AboutSection icon="bi-link-45deg" title="What Reference Processing Tells You">
+        <AboutPanel
+          icon="bi-question-circle"
+          title="Understanding Reference Processing"
+          subtitle="How each GC handles Soft / Weak / Final / Phantom references"
+        >
+          <AboutCallout variant="intro">
             <p>
               Each GC cycle processes the JDK's reference objects:
               <strong>Soft</strong> (memory-sensitive caches), <strong>Weak</strong> (canonicalizing
@@ -132,13 +181,9 @@
               <code>jdk.GCReferenceStatistics</code> reports, per collection, how many references of
               each type were processed.
             </p>
-            <AboutCallout variant="info" title="Counts only on JDK 26" icon="bi-info-circle-fill">
-              The JDK 26 event carries only the processed <em>count</em> per type and the GC id — there
-              is no per-phase processing time — so every view here is count-based.
-            </AboutCallout>
-          </AboutSection>
+          </AboutCallout>
 
-          <AboutSection icon="bi-graph-up" title="Reading the Views">
+          <AboutSection icon="bi-graph-up" title="What the Views Show">
             <FeatureGrid>
               <FeatureCard icon="bi-activity" variant="danger" title="Timeline">
                 References processed per second, stacked by type. Soft-reference bursts line up with
@@ -152,6 +197,26 @@
                 breakdown.
               </FeatureCard>
             </FeatureGrid>
+          </AboutSection>
+
+          <AboutCallout variant="note" title="Counts only on JDK 26" icon="bi-info-circle-fill">
+            The JDK 26 event carries only the processed <em>count</em> per type and the GC id — there
+            is no per-phase processing time — so every view here is count-based.
+          </AboutCallout>
+
+          <AboutSection icon="bi-broadcast" title="How JFR Emits This">
+            <ul>
+              <li>
+                <code>jdk.GCReferenceStatistics</code> — emitted per GC cycle: the count of
+                Soft/Weak/Final/Phantom references processed, along with the GC id. On JDK 26 it
+                carries counts only (no per-phase time).
+              </li>
+            </ul>
+            <p>
+              It is <strong>enabled</strong> in both the bundled <code>default</code> and
+              <code>profile</code> configs — tied to GC being recorded at the normal level — so an
+              empty page means no qualifying GC ran, not a missing setting.
+            </p>
           </AboutSection>
         </AboutPanel>
       </div>
@@ -168,9 +233,13 @@ import PageHeader from '@/components/layout/PageHeader.vue';
 import StatsTable from '@/components/StatsTable.vue';
 import TabBar from '@/components/TabBar.vue';
 import ChartDescription from '@/components/ChartDescription.vue';
+import DataTable from '@/components/table/DataTable.vue';
+import TableToolbar from '@/components/table/TableToolbar.vue';
+import TableShowMore from '@/components/table/TableShowMore.vue';
+import Badge from '@/components/Badge.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import ErrorState from '@/components/ErrorState.vue';
-import EmptyState from '@/components/EmptyState.vue';
+import DisabledEventsNotice from '@/components/alerts/DisabledEventsNotice.vue';
 import AboutPanel from '@/components/about/AboutPanel.vue';
 import AboutSection from '@/components/about/AboutSection.vue';
 import AboutCallout from '@/components/about/AboutCallout.vue';
@@ -178,6 +247,7 @@ import FeatureGrid from '@/components/about/FeatureGrid.vue';
 import FeatureCard from '@/components/about/FeatureCard.vue';
 import ProfileGCClient from '@/services/api/ProfileGCClient';
 import FormattingService from '@/services/FormattingService';
+import { useTableView } from '@/composables/useTableView';
 import type { ReferenceProcessingData } from '@/services/api/model/GCReferenceModels';
 
 const route = useRoute();
@@ -192,7 +262,7 @@ const tabs = [
   { id: 'timeline', label: 'Timeline', icon: 'activity' },
   { id: 'by-type', label: 'By Type', icon: 'list-ol' },
   { id: 'per-gc', label: 'Per-GC', icon: 'bar-chart-steps' },
-  { id: 'about', label: 'About', icon: 'info-circle' }
+  { id: 'about', label: 'How It Works', icon: 'book' }
 ];
 const activeTab = ref(tabs[0].id);
 
@@ -210,6 +280,11 @@ const colorForType = (type: string): string => TYPE_COLORS[type] ?? FALLBACK_COL
 
 const hasData = computed(() => (data.value?.header.totalReferences ?? 0) > 0);
 const typeColumns = computed(() => (data.value?.byType ?? []).map(stat => stat.type));
+
+const byTypeView = useTableView(() => data.value?.byType ?? [], {
+  searchableText: stat => stat.type
+});
+const perGcView = useTableView(() => data.value?.perGc ?? []);
 
 const metrics = computed(() => {
   const h = data.value?.header;
@@ -349,6 +424,12 @@ onUnmounted(() => {
   display: flex;
   justify-content: flex-end;
   margin-bottom: 0.5rem;
+}
+
+.toolbar-info {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--color-text);
 }
 
 .type-swatch {

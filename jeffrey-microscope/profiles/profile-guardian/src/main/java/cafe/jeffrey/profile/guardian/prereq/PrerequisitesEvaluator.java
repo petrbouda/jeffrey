@@ -50,35 +50,10 @@ public final class PrerequisitesEvaluator {
 
     public static List<GuardianResult> evaluate(ProfileInfo profileInfo, Preconditions preconditions) {
         List<GuardianResult> results = new ArrayList<>();
-        results.add(eventSource(preconditions));
         results.add(recordingDuration(profileInfo));
         results.add(eventCoverage(preconditions));
         results.add(debugSymbols(preconditions));
         return results;
-    }
-
-    // ===== Event Source =====
-
-    private static GuardianResult eventSource(Preconditions preconditions) {
-        RecordingEventSource source = preconditions.eventSource();
-        String label = source == null ? "Unknown" : source.toString();
-
-        if (source == RecordingEventSource.ASYNC_PROFILER) {
-            return build("Event Source", Severity.OK, label,
-                    "Recording was produced by async-profiler.",
-                    "JVM-internal guards (JIT, Safepoint, VM Operation, Deoptimization, GC-by-thread) require async-profiler's native stacks — those guards will run as normal.",
-                    null);
-        }
-        if (source == RecordingEventSource.JDK) {
-            return build("Event Source", Severity.INFO, label,
-                    "Recording was produced by the JDK's built-in JFR (not async-profiler).",
-                    "JVM-internal guards that rely on native stack frames (JIT, Safepoint, VM Operation, Deoptimization, per-GC attribution) will be Not Applicable on this recording. This is not an error — it is a capability limit of JDK JFR.",
-                    "Re-record with async-profiler if you need JVM-internal guard coverage.");
-        }
-        return build("Event Source", Severity.INFO, label,
-                "Recording source could not be determined from metadata.",
-                "Several JVM-internal guards may be marked Not Applicable because their preconditions cannot be verified.",
-                null);
     }
 
     // ===== Recording Duration =====

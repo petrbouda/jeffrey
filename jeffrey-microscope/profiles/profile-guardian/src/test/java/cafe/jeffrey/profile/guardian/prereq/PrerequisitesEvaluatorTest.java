@@ -76,37 +76,9 @@ class PrerequisitesEvaluatorTest {
                         .withEventTypes(List.of(summary(Type.EXECUTION_SAMPLE), summary(Type.JAVA_MONITOR_ENTER)))
                         .build());
 
-        assertEquals(4, results.size(), "Four prereq checks: event source, duration, coverage, debug symbols");
+        assertEquals(3, results.size(), "Three prereq checks: duration, coverage, debug symbols");
         for (GuardianResult r : results) {
             assertEquals(Guard.Category.PREREQUISITES, r.analysisItem().category());
-        }
-    }
-
-    @Nested
-    class EventSourceCheck {
-
-        @Test
-        void asyncProfiler_isOk() {
-            List<GuardianResult> results = PrerequisitesEvaluator.evaluate(
-                    profile(T0, T0.plusSeconds(120)),
-                    Preconditions.builder().withEventSource(RecordingEventSource.ASYNC_PROFILER).build());
-            assertEquals(Severity.OK, findByRule(results, "Event Source").severity());
-        }
-
-        @Test
-        void jdkJfr_isInfo() {
-            List<GuardianResult> results = PrerequisitesEvaluator.evaluate(
-                    profile(T0, T0.plusSeconds(120)),
-                    Preconditions.builder().withEventSource(RecordingEventSource.JDK).build());
-            assertEquals(Severity.INFO, findByRule(results, "Event Source").severity());
-        }
-
-        @Test
-        void unknown_isInfo() {
-            List<GuardianResult> results = PrerequisitesEvaluator.evaluate(
-                    profile(T0, T0.plusSeconds(120)),
-                    Preconditions.builder().build()); // null source
-            assertEquals(Severity.INFO, findByRule(results, "Event Source").severity());
         }
     }
 

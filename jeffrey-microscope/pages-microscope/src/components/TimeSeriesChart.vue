@@ -3,7 +3,7 @@
   <div
     class="apex-time-series-chart"
     ref="chartContainer"
-    v-show="!isLoading && effectivePrimaryData && effectivePrimaryData.length > 0"
+    v-show="!isLoading && hasRenderableData"
   >
     <div class="chart-content">
       <!-- Main chart -->
@@ -48,19 +48,32 @@
 
       <!-- Title with colored icons -->
       <div class="graph-title">
-        <div v-if="props.primaryTitle" class="graph-title-item">
-          <span class="graph-title-icon" :style="`background-color: ${primaryColor};`"></span>
-          <span class="graph-title-text">{{ props.primaryTitle }}</span>
-        </div>
-        <div v-if="props.secondaryTitle" class="graph-title-item">
-          <span class="graph-title-icon" :style="`background-color: ${secondaryColor};`"></span>
-          <span class="graph-title-text">{{ props.secondaryTitle }}</span>
-        </div>
-        <div v-if="props.tertiaryTitle" class="graph-title-item">
-          <span class="graph-title-icon" :style="`background-color: ${tertiaryColor};`"></span>
-          <span class="graph-title-text">{{ props.tertiaryTitle }}</span>
-        </div>
+        <template v-if="isMultiSeries">
+          <div v-for="serie in resolvedSeries" :key="serie.name" class="graph-title-item">
+            <span class="graph-title-icon" :style="`background-color: ${serie.color};`"></span>
+            <span class="graph-title-text">{{ serie.name }}</span>
+          </div>
+        </template>
+        <template v-else>
+          <div v-if="props.primaryTitle" class="graph-title-item">
+            <span class="graph-title-icon" :style="`background-color: ${primaryColor};`"></span>
+            <span class="graph-title-text">{{ props.primaryTitle }}</span>
+          </div>
+          <div v-if="props.secondaryTitle" class="graph-title-item">
+            <span class="graph-title-icon" :style="`background-color: ${secondaryColor};`"></span>
+            <span class="graph-title-text">{{ props.secondaryTitle }}</span>
+          </div>
+          <div v-if="props.tertiaryTitle" class="graph-title-item">
+            <span class="graph-title-icon" :style="`background-color: ${tertiaryColor};`"></span>
+            <span class="graph-title-text">{{ props.tertiaryTitle }}</span>
+          </div>
+        </template>
       </div>
+    </div>
+
+    <!-- Custom hover tooltip for annotation markers (annotations have no native tooltip) -->
+    <div v-show="annoTipVisible" ref="annoTip" class="tsc-anno-tip">
+      <div v-html="annoTipHtml"></div>
     </div>
   </div>
 </template>
@@ -76,11 +89,31 @@ import AxisFormatType from '@/services/timeseries/AxisFormatType.ts';
 import TimeConverter, { type TimeUnit } from '@/services/timeseries/TimeConverter.ts';
 import MessageBus from '@/services/MessageBus.ts';
 
+// A vertical marker drawn on the main chart at time `x` (data units), with a small chip
+// label and an optional hover tooltip body (raw HTML). Used e.g. to mark deadlocks.
+export interface ChartAnnotation {
+  x: number;
+  label: string;
+  color?: string;
+  tooltipHtml?: string;
+}
+
+// A named data series for the N-series stacked mode. Use this (instead of the fixed
+// primary/secondary/tertiary channels) when a chart has an arbitrary number of series —
+// e.g. NMT committed bytes per category. When `seriesData` is provided it takes precedence
+// over the primary/secondary/tertiary props.
+export interface ChartSeries {
+  name: string;
+  data: number[][];
+  color?: string;
+}
+
 // Define props
 const props = defineProps<{
   primaryData?: number[][];
   secondaryData?: number[][];
   tertiaryData?: number[][];
+  seriesData?: ChartSeries[];
   searchData?: number[][];
   primaryTitle?: string;
   secondaryTitle?: string;
@@ -101,6 +134,7 @@ const props = defineProps<{
   zoomEnabled?: boolean; // Whether to emit time range updates on brush selection
   graphUpdater?: GraphUpdater; // Optional: When provided, component manages data internally
   fixedWindowMinutes?: number; // Optional: When provided, selection window is fixed to this many minutes
+  xAnnotations?: ChartAnnotation[]; // Optional: vertical event markers on the main chart
 }>();
 
 // Define emits
@@ -184,6 +218,49 @@ let lastProcessedSelection = { min: 0, max: 0 }; // Track last processed selecti
 const primaryColor = props.primaryColor || '#2E93fA';
 const secondaryColor = props.secondaryColor || '#E53935';
 const tertiaryColor = props.tertiaryColor || '#EA4335';
+const annotationColor = '#e53935'; // default marker color (danger red)
+
+// Palette for the N-series stacked mode (`seriesData`). Applied per-index when a series does
+// not carry its own color. Starts with the single/dual/triple-series defaults for visual parity.
+const multiSeriesPalette = [
+  primaryColor,
+  '#66DA26',
+  '#546E7A',
+  '#E91E63',
+  '#FF9800',
+  '#00D9E9',
+  '#775DD0',
+  '#F86624',
+  '#9C27B0',
+  '#1B998B'
+];
+
+// True when the chart is driven by an arbitrary list of series rather than the fixed
+// primary/secondary/tertiary channels.
+const isMultiSeries = computed(() => !!props.seriesData && props.seriesData.length > 0);
+
+// Series resolved with a concrete color (own color, else palette by index).
+const resolvedSeries = computed(() =>
+  (props.seriesData ?? []).map((serie, index) => ({
+    name: serie.name,
+    data: serie.data,
+    color: serie.color ?? multiSeriesPalette[index % multiSeriesPalette.length]
+  }))
+);
+
+// Whether there is any data to render, across both the multi-series and fixed-channel modes.
+const hasRenderableData = computed(() => {
+  if (isMultiSeries.value) {
+    return resolvedSeries.value.some(serie => serie.data.length > 0);
+  }
+  const data = effectivePrimaryData.value;
+  return !!data && data.length > 0;
+});
+
+// Custom hover tooltip for annotations (ApexCharts annotations have no native tooltip)
+const annoTip = ref<HTMLDivElement | null>(null);
+const annoTipHtml = ref('');
+const annoTipVisible = ref(false);
 
 // Time converter for consistent time handling
 const timeConverter = computed(() => new TimeConverter(props.timeUnit));
@@ -247,6 +324,29 @@ const findMaxValueInSeries = (data: number[][] | undefined, axisType?: AxisForma
 };
 
 const calculateMaxYValues = (): void => {
+  if (isMultiSeries.value) {
+    // Stacked across all series: the axis must fit the maximum column sum at any point.
+    const list = resolvedSeries.value;
+    const length = list[0]?.data.length ?? 0;
+    let maxSum = 0;
+    for (let i = 0; i < length; i++) {
+      let sum = 0;
+      for (let s = 0; s < list.length; s++) {
+        sum += list[s].data[i]?.[1] || 0;
+      }
+      if (sum > maxSum) {
+        maxSum = sum;
+      }
+    }
+    if (props.primaryAxisType === AxisFormatType.BYTES) {
+      primaryMaxValue.value = roundToNiceBytes(maxSum * 1.1);
+    } else {
+      primaryMaxValue.value = maxSum > 0 ? maxSum * 1.1 : 0;
+    }
+    secondaryMaxValue.value = primaryMaxValue.value;
+    return;
+  }
+
   const primaryData = effectivePrimaryData.value;
   const secondaryData = effectiveSecondaryData.value;
   const tertiaryData = effectiveTertiaryData.value;
@@ -280,8 +380,11 @@ const calculateMaxYValues = (): void => {
 
 // Calculate min/max time values
 const calculateMinMaxTimeValues = (): void => {
-  const primaryData = effectivePrimaryData.value;
-  const secondaryData = effectiveSecondaryData.value;
+  // In multi-series mode every series shares the same x timeline, so the first series defines it.
+  const primaryData = isMultiSeries.value
+    ? resolvedSeries.value[0]?.data
+    : effectivePrimaryData.value;
+  const secondaryData = isMultiSeries.value ? undefined : effectiveSecondaryData.value;
 
   if (!Array.isArray(primaryData) || primaryData.length === 0) {
     dataMinTime.value = 0;
@@ -386,6 +489,66 @@ const onSelectEntireRange = async (): Promise<void> => {
   }
 };
 
+// ---- Annotation hover tooltips ------------------------------------------------
+const moveAnnoTip = (evt: MouseEvent): void => {
+  const el = annoTip.value;
+  if (!el) {
+    return;
+  }
+  const pad = 14;
+  let x = evt.clientX + pad;
+  let y = evt.clientY + pad;
+  const r = el.getBoundingClientRect();
+  if (x + r.width > window.innerWidth) {
+    x = evt.clientX - r.width - pad;
+  }
+  if (y + r.height > window.innerHeight) {
+    y = evt.clientY - r.height - pad;
+  }
+  el.style.left = `${x}px`;
+  el.style.top = `${y}px`;
+};
+
+const hideAnnoTip = (): void => {
+  annoTipVisible.value = false;
+};
+
+const showAnnoTip = (evt: MouseEvent, annotation: ChartAnnotation): void => {
+  annoTipHtml.value = annotation.tooltipHtml || '';
+  annoTipVisible.value = true;
+  nextTick(() => moveAnnoTip(evt));
+};
+
+// Each annotation renders as 3 sibling SVG nodes: <line> <rect(chip bg)> <text(chip)>.
+// Only the text carries our cssClass, so walk back to grab the rect and the line too,
+// giving a tall hover target (the whole vertical line) plus the chip.
+const attachAnnotationTooltips = (): void => {
+  const root = chartContainer.value;
+  const annotations = props.xAnnotations;
+  if (!root || !annotations || annotations.length === 0) {
+    return;
+  }
+  annotations.forEach((annotation, i) => {
+    const text = root.querySelector<SVGElement>(`.tsc-anno-${i}`);
+    if (!text || text.dataset.tscBound === '1') {
+      return;
+    }
+    text.dataset.tscBound = '1';
+    const rect = text.previousElementSibling as HTMLElement | null;
+    const line = (rect ? rect.previousElementSibling : null) as HTMLElement | null;
+    [text as unknown as HTMLElement, rect, line].forEach(target => {
+      if (!target) {
+        return;
+      }
+      target.style.cursor = 'pointer';
+      target.style.pointerEvents = 'all';
+      target.addEventListener('mouseenter', e => showAnnoTip(e as MouseEvent, annotation));
+      target.addEventListener('mousemove', e => moveAnnoTip(e as MouseEvent));
+      target.addEventListener('mouseleave', hideAnnoTip);
+    });
+  });
+};
+
 // Convert data format for ApexCharts with optional downsampling
 const processDataForApex = (
   data: number[][] = [],
@@ -442,6 +605,14 @@ const getVisibleData = (data: number[][] = []): Array<{ x: number; y: number }> 
 
 // Main chart series
 const mainChartSeries = computed(() => {
+  if (isMultiSeries.value) {
+    return resolvedSeries.value.map(serie => ({
+      name: serie.name,
+      data: getVisibleData(serie.data),
+      color: serie.color
+    }));
+  }
+
   const series = [];
   const primaryData = effectivePrimaryData.value;
   const secondaryData = effectiveSecondaryData.value;
@@ -486,6 +657,14 @@ const mainChartSeries = computed(() => {
 
 // Brush chart series (full data)
 const brushChartSeries = computed(() => {
+  if (isMultiSeries.value) {
+    return resolvedSeries.value.map(serie => ({
+      name: serie.name,
+      data: processDataForApex(serie.data, 1500),
+      color: serie.color
+    }));
+  }
+
   const series = [];
   const primaryData = effectivePrimaryData.value;
   const secondaryData = effectiveSecondaryData.value;
@@ -549,7 +728,35 @@ const mainChartOptions = computed(() => {
       },
       interactions: {
         enabled: false
+      },
+      events: {
+        // ApexCharts recreates the annotation SVG nodes on every (re)render, so
+        // re-attach the custom hover tooltips each time the chart settles.
+        mounted: () => attachAnnotationTooltips(),
+        updated: () => attachAnnotationTooltips()
       }
+    },
+    annotations: {
+      xaxis: (props.xAnnotations || []).map((a, i) => ({
+        x: timeConverter.value.toChartTime(a.x),
+        borderColor: a.color || annotationColor,
+        strokeDashArray: 0,
+        borderWidth: 1.5,
+        label: {
+          text: a.label,
+          orientation: 'horizontal',
+          position: 'top',
+          borderColor: a.color || annotationColor,
+          style: {
+            background: a.color || annotationColor,
+            color: '#fff',
+            fontSize: '11px',
+            fontWeight: 600,
+            cssClass: `tsc-anno tsc-anno-${i}`,
+            padding: { left: 6, right: 6, top: 2, bottom: 2 }
+          }
+        }
+      }))
     },
     plotOptions: isBarChart
       ? {
@@ -672,6 +879,10 @@ const mainChartOptions = computed(() => {
       },
       y: {
         formatter: function (value: number, { seriesIndex }: { seriesIndex: number }) {
+          // Multi-series mode: every series shares the primary axis type (e.g. all bytes).
+          if (isMultiSeries.value) {
+            return formatValue(value, props.primaryAxisType);
+          }
           // Series order: Primary (0), Secondary (1 if present), Tertiary (2 if present), Search Results (last if present)
           const hasSecondaryData =
             effectiveSecondaryData.value && effectiveSecondaryData.value.length > 0;
@@ -868,6 +1079,15 @@ const brushChartOptions = computed(() => ({
       enabled: true
     }
   },
+  // Echo the annotation markers as bare vertical lines (no chip, no tooltip) on the navigator.
+  annotations: {
+    xaxis: (props.xAnnotations || []).map(a => ({
+      x: timeConverter.value.toChartTime(a.x),
+      borderColor: a.color || annotationColor,
+      strokeDashArray: 0,
+      borderWidth: 1
+    }))
+  },
   dataLabels: {
     enabled: false
   },
@@ -993,6 +1213,23 @@ watch(
   () => {
     // Recalculate max values when secondary data changes
     calculateMaxYValues();
+  },
+  { immediate: true }
+);
+
+// Multi-series mode is driven by `seriesData`, not the primary channel, so it needs its own
+// initialization when that list arrives or changes.
+watch(
+  () => props.seriesData,
+  () => {
+    if (!isMultiSeries.value) {
+      return;
+    }
+    calculateMinMaxTimeValues();
+    lastProcessedSelection = {
+      min: timeConverter.value.toChartTime(visibleStartTime.value),
+      max: timeConverter.value.toChartTime(visibleEndTime.value)
+    };
   },
   { immediate: true }
 );
@@ -1209,5 +1446,41 @@ defineExpose({
   .brush-chart-container {
     height: 80px;
   }
+}
+
+/* Custom annotation hover tooltip */
+.tsc-anno-tip {
+  position: fixed;
+  z-index: 9999;
+  pointer-events: none;
+  max-width: 280px;
+  padding: 8px 12px;
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-left: 3px solid var(--color-danger);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: var(--color-text);
+}
+
+.tsc-anno-tip :deep(strong) {
+  font-weight: 700;
+}
+
+.tsc-anno-tip :deep(.tsc-anno-tip-title) {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+  color: var(--color-danger);
+  margin-bottom: 3px;
+}
+
+.tsc-anno-tip :deep(.tsc-anno-tip-time) {
+  color: var(--color-text-muted);
+  font-size: 0.76rem;
+  margin-top: 3px;
 }
 </style>

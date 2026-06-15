@@ -18,12 +18,10 @@
 
 package cafe.jeffrey.profile.guardian.preconditions;
 
-import cafe.jeffrey.shared.common.model.RecordingEventSource;
 import cafe.jeffrey.profile.common.event.GarbageCollectorType;
 
 public record GuardianInformation(
         boolean debugSymbolsAvailable,
         boolean kernelSymbolsAvailable,
-        RecordingEventSource eventSource,
         GarbageCollectorType garbageCollectorType) {
 }

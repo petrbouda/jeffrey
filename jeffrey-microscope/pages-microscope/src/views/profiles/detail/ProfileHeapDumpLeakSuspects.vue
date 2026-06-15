@@ -49,10 +49,6 @@
     <div v-if="visibleLoaders.length > 0" class="top-loaders-card mb-4">
       <div class="top-loaders-header">
         <div>
-          <h6 class="top-loaders-title">
-            <i class="bi bi-hdd-stack me-2"></i>
-            Top Leaking Class Loaders
-          </h6>
           <p class="top-loaders-sub">
             Cluster-root classes grouped by the loader that defined them.
           </p>
@@ -62,29 +58,45 @@
           <span class="form-check-label">Include bootstrap</span>
         </label>
       </div>
-      <div class="table-responsive">
-        <table class="table table-sm table-hover mb-0">
-          <thead>
-            <tr>
-              <th>Class Loader</th>
-              <th class="text-end">Total Retained</th>
-              <th class="text-end">Suspects</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="l in visibleLoaders" :key="l.classLoaderId">
-              <td>
-                <span class="font-monospace">{{ simpleClassName(l.classLoaderClassName) }}</span>
-                <span v-if="l.classLoaderId === 0" class="ms-2 text-muted small">(bootstrap)</span>
-              </td>
-              <td class="text-end font-monospace">
-                {{ FormattingService.formatBytes(l.totalRetainedSize) }}
-              </td>
-              <td class="text-end font-monospace">{{ l.suspectCount }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <DataTable>
+        <template #toolbar>
+          <TableToolbar v-model="loadersView.query" search-placeholder="Filter class loaders...">
+            <span class="toolbar-info">Top Leaking Class Loaders</span>
+            <template #filters>
+              <Badge key-label="Total" :value="loadersView.matchCount" variant="secondary" size="s" borderless />
+            </template>
+          </TableToolbar>
+        </template>
+        <thead>
+          <tr>
+            <th>Class Loader</th>
+            <th class="text-end">Total Retained</th>
+            <th class="text-end">Suspects</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="l in loadersView.visible" :key="l.classLoaderId">
+            <td>
+              <span class="font-monospace">{{ simpleClassName(l.classLoaderClassName) }}</span>
+              <span v-if="l.classLoaderId === 0" class="ms-2 text-muted small">(bootstrap)</span>
+            </td>
+            <td class="text-end font-monospace">
+              {{ FormattingService.formatBytes(l.totalRetainedSize) }}
+            </td>
+            <td class="text-end font-monospace">{{ l.suspectCount }}</td>
+          </tr>
+        </tbody>
+        <template #footer>
+          <TableShowMore
+            :shown="loadersView.visible.length"
+            :match-count="loadersView.matchCount"
+            :total="loadersView.total"
+            :expanded="loadersView.expanded"
+            :page-size="loadersView.pageSize"
+            @toggle="loadersView.toggle"
+          />
+        </template>
+      </DataTable>
     </div>
 
     <!-- Suspect cards -->
@@ -144,30 +156,28 @@
               class="va-histogram"
             >
               <summary>Top contributing classes ({{ suspect.dominatedHistogram.length }})</summary>
-              <div class="table-responsive">
-                <table class="table table-sm table-hover mb-0">
-                  <thead>
-                    <tr>
-                      <th>Class</th>
-                      <th class="text-end">Instances</th>
-                      <th class="text-end">Retained</th>
-                      <th class="text-end">% of Cluster</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr v-for="(h, idx) in suspect.dominatedHistogram" :key="idx">
-                      <td class="font-monospace">{{ simpleClassName(h.className) }}</td>
-                      <td class="text-end font-monospace">
-                        {{ FormattingService.formatNumber(h.instanceCount) }}
-                      </td>
-                      <td class="text-end font-monospace">
-                        {{ FormattingService.formatBytes(h.retainedSize) }}
-                      </td>
-                      <td class="text-end font-monospace">{{ h.percentOfCluster.toFixed(1) }}%</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
+              <DataTable>
+                <thead>
+                  <tr>
+                    <th>Class</th>
+                    <th class="text-end">Instances</th>
+                    <th class="text-end">Retained</th>
+                    <th class="text-end">% of Cluster</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="(h, idx) in suspect.dominatedHistogram" :key="idx">
+                    <td class="font-monospace">{{ simpleClassName(h.className) }}</td>
+                    <td class="text-end font-monospace">
+                      {{ FormattingService.formatNumber(h.instanceCount) }}
+                    </td>
+                    <td class="text-end font-monospace">
+                      {{ FormattingService.formatBytes(h.retainedSize) }}
+                    </td>
+                    <td class="text-end font-monospace">{{ h.percentOfCluster.toFixed(1) }}%</td>
+                  </tr>
+                </tbody>
+              </DataTable>
             </details>
           </div>
           <div class="va-percent">
@@ -214,8 +224,13 @@ import StatsTable from '@/components/StatsTable.vue';
 import HeapDumpNotInitialized from '@/components/HeapDumpNotInitialized.vue';
 import InstanceActionButtons from '@/components/heap/InstanceActionButtons.vue';
 import InstanceTreeModal from '@/components/heap/InstanceTreeModal.vue';
+import DataTable from '@/components/table/DataTable.vue';
+import TableToolbar from '@/components/table/TableToolbar.vue';
+import TableShowMore from '@/components/table/TableShowMore.vue';
+import Badge from '@/components/Badge.vue';
+import { useTableView } from '@/composables/useTableView';
 import HeapDumpClient from '@/services/api/HeapDumpClient';
-import LeakSuspectsReport, { LeakSuspect } from '@/services/api/model/LeakSuspectsReport';
+import LeakSuspectsReport, { LeakSuspect, ClassLoaderLeakSummary } from '@/services/api/model/LeakSuspectsReport';
 import FormattingService from '@/services/FormattingService';
 const route = useRoute();
 const router = useRouter();
@@ -232,6 +247,10 @@ const visibleLoaders = computed(() => {
   if (!report.value) return [];
   const loaders = report.value.topLeakingClassLoaders ?? [];
   return includeBootstrap.value ? loaders : loaders.filter(l => l.classLoaderId !== 0);
+});
+
+const loadersView = useTableView<ClassLoaderLeakSummary>(visibleLoaders, {
+  searchableText: l => l.classLoaderClassName
 });
 
 // Modal state
@@ -541,6 +560,12 @@ onMounted(() => {
   margin: 0.15rem 0 0;
   font-size: 0.75rem;
   color: var(--color-text-muted);
+}
+
+.toolbar-info {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--color-text);
 }
 
 /* Dominated-histogram details */

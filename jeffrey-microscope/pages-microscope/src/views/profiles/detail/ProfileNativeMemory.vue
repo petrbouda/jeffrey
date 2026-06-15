@@ -57,12 +57,26 @@
 
       <!-- Native Libraries -->
       <div v-show="activeTab === 'native-libraries'">
-        <EmptyState
+        <DisabledEventsNotice
           v-if="nativeLibraries.length === 0"
+          title="No native libraries in this recording"
           icon="bi-collection"
-          title="No native libraries recorded"
-          description="This recording has no jdk.NativeLibrary events."
-        />
+          action-label="Re-enable the event, then re-record and re-import"
+          :command="enableNativeLibraryCommand"
+        >
+          <p>
+            <code>jdk.NativeLibrary</code> is a periodic snapshot of the native libraries mapped into
+            the process (<code>.so</code> / <code>.dll</code> / <code>.dylib</code> — the JVM itself,
+            JDK libraries, and JNI dependencies). It is taken once <code>everyChunk</code>, so a single
+            chunk is enough to populate this inventory.
+          </p>
+          <p>
+            The event is <strong>enabled by default</strong> in both the JDK's bundled
+            <code>default</code> and <code>profile</code> configurations, so an empty list almost always
+            means the recording used a minimal or custom configuration that turned it off. The command
+            below re-enables it on top of the <code>profile</code> config.
+          </p>
+        </DisabledEventsNotice>
         <DataTable v-else>
           <template #toolbar>
             <TableToolbar v-model="librariesView.query" search-placeholder="Filter libraries...">
@@ -194,7 +208,7 @@ import AboutSection from '@/components/about/AboutSection.vue';
 import FeatureGrid from '@/components/about/FeatureGrid.vue';
 import FeatureCard from '@/components/about/FeatureCard.vue';
 import Badge from '@/components/Badge.vue';
-import EmptyState from '@/components/EmptyState.vue';
+import DisabledEventsNotice from '@/components/alerts/DisabledEventsNotice.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import ErrorState from '@/components/ErrorState.vue';
 import FormattingService from '@/services/FormattingService';
@@ -205,6 +219,9 @@ import type TimeseriesData from '@/services/timeseries/model/TimeseriesData';
 import { useTableView } from '@/composables/useTableView';
 
 const route = useRoute();
+
+const enableNativeLibraryCommand =
+  'java -XX:StartFlightRecording=settings=profile,jdk.NativeLibrary#enabled=true,filename=app.jfr,dumponexit=true -jar app.jar';
 
 const loading = ref(true);
 const error = ref(false);

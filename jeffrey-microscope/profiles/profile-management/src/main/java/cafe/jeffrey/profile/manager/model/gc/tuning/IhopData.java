@@ -43,7 +43,9 @@ public record IhopData(TimeseriesData ihopTimeline, List<GcCpuEntry> cpuTimes, L
     /**
      * Pause-target adherence for one collection: how long GC ran within the MMU time slice versus
      * the configured pause target. {@code gcTimeNanos > pauseTargetNanos} means the target was missed.
+     * {@code timeOffsetMillis} is the collection's offset from the recording start, used to place a
+     * missed-target marker on the IHOP timeline.
      */
-    public record MmuEntry(long gcId, long gcTimeNanos, long pauseTargetNanos) {
+    public record MmuEntry(long gcId, long gcTimeNanos, long pauseTargetNanos, long timeOffsetMillis) {
     }
 }

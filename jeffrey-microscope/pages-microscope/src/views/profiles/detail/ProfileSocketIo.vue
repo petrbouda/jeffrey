@@ -37,12 +37,41 @@
 
       <!-- Top Peers -->
       <div v-show="activeTab === 'peers'">
-        <EmptyState
+        <DisabledEventsNotice
           v-if="peers.length === 0"
-          icon="bi-hdd-network"
           title="No socket I/O recorded"
-          description="This recording has no jdk.SocketRead / jdk.SocketWrite events."
-        />
+          icon="bi-hdd-network"
+          action-label="Un-gate the socket I/O events, then re-record and re-import"
+          :command="ioEnableCommand"
+        >
+          <p>
+            Per-peer totals come from <code>jdk.SocketRead</code> and <code>jdk.SocketWrite</code>. In
+            the bundled <code>default</code>/<code>profile</code> configs these are
+            <strong>enabled but threshold-gated</strong> (≈1&nbsp;ms) and throttled, so light or fast
+            socket I/O leaves this empty — only operations that block longer than the threshold are
+            recorded. The copyable command keeps the <code>profile</code> config and sets both events
+            to <code>threshold=0ms</code> to capture every operation.
+          </p>
+
+          <template #action>
+            <p>
+              <strong>A — inline, no extra file.</strong> Use the copyable command above: it keeps the
+              bundled <code>profile</code> config and adds <code>jdk.SocketRead#threshold=0ms</code> /
+              <code>jdk.SocketWrite#threshold=0ms</code> so every read and write is captured.
+            </p>
+            <p>
+              <strong>B — a reusable <code>.jfc</code> overlay.</strong> Save this as
+              <code>socket-io.jfc</code> and record with
+              <code>settings=profile,settings=socket-io.jfc</code>:
+            </p>
+            <pre class="jfc-block">{{ ioJfcSnippet }}</pre>
+            <p>
+              Re-import the <code>.jfr</code> afterwards. Raise the <code>threshold</code> (e.g. to
+              <code>1ms</code>) to keep only the slow, latency-relevant operations — chatty or slow
+              socket I/O is a classic source of tail latency against a slow or saturated peer.
+            </p>
+          </template>
+        </DisabledEventsNotice>
         <DataTable v-else>
           <template #toolbar>
             <TableToolbar v-model="peersView.query" search-placeholder="Filter peers...">
@@ -91,12 +120,21 @@
 
       <!-- Slowest Operations -->
       <div v-show="activeTab === 'slowest'">
-        <EmptyState
+        <DisabledEventsNotice
           v-if="slowest.length === 0"
-          icon="bi-hourglass-split"
           title="No socket operations recorded"
-          description="This recording has no socket I/O events."
-        />
+          icon="bi-hourglass-split"
+          action-label="Un-gate the socket I/O events, then re-record and re-import"
+          :command="ioEnableCommand"
+        >
+          <p>
+            The slowest-operations list is built from individual <code>jdk.SocketRead</code> /
+            <code>jdk.SocketWrite</code> events, which are <strong>enabled but threshold-gated</strong>
+            (≈1&nbsp;ms) and throttled in the bundled configs. With no qualifying operations the list
+            stays empty — the command above captures every read/write by setting
+            <code>threshold=0ms</code>.
+          </p>
+        </DisabledEventsNotice>
         <DataTable v-else>
           <template #toolbar>
             <TableToolbar v-model="slowestView.query" search-placeholder="Filter operations...">
@@ -215,7 +253,7 @@ import AboutSection from '@/components/about/AboutSection.vue';
 import FeatureGrid from '@/components/about/FeatureGrid.vue';
 import FeatureCard from '@/components/about/FeatureCard.vue';
 import Badge from '@/components/Badge.vue';
-import EmptyState from '@/components/EmptyState.vue';
+import DisabledEventsNotice from '@/components/alerts/DisabledEventsNotice.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import ErrorState from '@/components/ErrorState.vue';
 import FormattingService from '@/services/FormattingService';
@@ -227,6 +265,23 @@ import type { Variant } from '@/types/ui';
 import type TimeseriesData from '@/services/timeseries/model/TimeseriesData';
 
 const route = useRoute();
+
+const ioEnableCommand =
+  'java -XX:StartFlightRecording=settings=profile,jdk.SocketRead#enabled=true,jdk.SocketRead#threshold=0ms,jdk.SocketWrite#enabled=true,jdk.SocketWrite#threshold=0ms,filename=app.jfr,dumponexit=true -jar app.jar';
+
+const ioJfcSnippet = `<?xml version="1.0" encoding="UTF-8"?>
+<configuration version="2.0">
+  <event name="jdk.SocketRead">
+    <setting name="enabled">true</setting>
+    <setting name="stackTrace">true</setting>
+    <setting name="threshold">0 ms</setting>
+  </event>
+  <event name="jdk.SocketWrite">
+    <setting name="enabled">true</setting>
+    <setting name="stackTrace">true</setting>
+    <setting name="threshold">0 ms</setting>
+  </event>
+</configuration>`;
 
 const loading = ref(true);
 const error = ref(false);
@@ -372,5 +427,19 @@ onMounted(async () => {
   height: 100%;
   border-radius: var(--radius-sm);
   background: var(--color-primary);
+}
+
+.jfc-block {
+  margin: 8px 0 12px;
+  padding: 12px 14px;
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-family: SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: var(--color-text);
+  overflow-x: auto;
+  white-space: pre;
 }
 </style>
