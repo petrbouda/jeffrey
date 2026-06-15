@@ -32,7 +32,7 @@ INSERT INTO guardian_group_settings (group_kind, min_samples) VALUES
 
 
 -- Built-in guard definitions (73 rows). Generated; edit via the Microscope UI.
-INSERT INTO guardian_guards (guard_id, name, enabled, built_in, group_kind, category, result_type, target_frame, matching_type, info_threshold, warning_threshold, matcher_spec, preconditions, summary_noun, explanation, solution, created_at) VALUES
+INSERT INTO guardians (guard_id, name, enabled, built_in, group_kind, category, result_type, target_frame, matching_type, info_threshold, warning_threshold, matcher_spec, preconditions, summary_noun, explanation, solution, created_at) VALUES
     ('exec-logback', $g$Logback CPU Overhead$g$, true, true, 'EXECUTION_SAMPLE', 'APPLICATION', 'SAMPLES', 'JAVA', 'FULL_MATCH', 0.02, 0.03, '{"anchor":{"type":"Predicate","op":"PREFIX","value":"ch.qos.logback"}}', NULL, $g$the logging$g$, $g$Extensive logging can cause significant overhead in allocation and CPU usage. Some application
 with a lower number of transactions/requests can log even detailed information, however, when the
 application is under a heavy load, the logging can become a bottleneck.$g$, $g$<ul>
@@ -266,7 +266,7 @@ and longer response times.$g$, $g$<ul>
     <li>consider a different GC if the response time is the application's issue
 </ul>$g$, TIMESTAMPTZ '2026-01-01 00:00:00+00');
 
-INSERT INTO guardian_guards (guard_id, name, enabled, built_in, group_kind, category, result_type, target_frame, matching_type, info_threshold, warning_threshold, matcher_spec, preconditions, summary_noun, explanation, solution, created_at) VALUES
+INSERT INTO guardians (guard_id, name, enabled, built_in, group_kind, category, result_type, target_frame, matching_type, info_threshold, warning_threshold, matcher_spec, preconditions, summary_noun, explanation, solution, created_at) VALUES
     ('cputime-logback', $g$Logback CPU Overhead$g$, true, true, 'CPU_TIME_SAMPLE', 'APPLICATION', 'SAMPLES', 'JAVA', 'FULL_MATCH', 0.02, 0.03, '{"anchor":{"type":"Predicate","op":"PREFIX","value":"ch.qos.logback"}}', NULL, $g$the logging$g$, $g$Extensive logging can cause significant overhead in allocation and CPU usage. Some application
 with a lower number of transactions/requests can log even detailed information, however, when the
 application is under a heavy load, the logging can become a bottleneck.$g$, $g$<ul>
@@ -500,7 +500,7 @@ and longer response times.$g$, $g$<ul>
     <li>consider a different GC if the response time is the application's issue
 </ul>$g$, TIMESTAMPTZ '2026-01-01 00:00:00+00');
 
-INSERT INTO guardian_guards (guard_id, name, enabled, built_in, group_kind, category, result_type, target_frame, matching_type, info_threshold, warning_threshold, matcher_spec, preconditions, summary_noun, explanation, solution, created_at) VALUES
+INSERT INTO guardians (guard_id, name, enabled, built_in, group_kind, category, result_type, target_frame, matching_type, info_threshold, warning_threshold, matcher_spec, preconditions, summary_noun, explanation, solution, created_at) VALUES
     ('alloc-logback', $g$Logback Allocation Overhead$g$, true, true, 'ALLOCATION', 'APPLICATION', 'WEIGHT', 'JAVA', 'FULL_MATCH', 0.07, 0.1, '{"anchor":{"type":"Predicate","op":"PREFIX","value":"ch.qos.logback"}}', NULL, $g$the logging$g$, $g$Extensive logging can cause significant overhead in allocation and CPU usage. Some application
 with a lower number of transactions/requests can log even detailed information, however, when the
 application is under a heavy load, the logging can become a bottleneck.$g$, $g$<ul>
@@ -562,7 +562,7 @@ leading to wasted allocations and copying overhead.$g$, $g$<ul>
     <li>Profile which collection types are resizing most frequently
 </ul>$g$, TIMESTAMPTZ '2026-01-01 00:00:00+00');
 
-INSERT INTO guardian_guards (guard_id, name, enabled, built_in, group_kind, category, result_type, target_frame, matching_type, info_threshold, warning_threshold, matcher_spec, preconditions, summary_noun, explanation, solution, created_at) VALUES
+INSERT INTO guardians (guard_id, name, enabled, built_in, group_kind, category, result_type, target_frame, matching_type, info_threshold, warning_threshold, matcher_spec, preconditions, summary_noun, explanation, solution, created_at) VALUES
     ('wall-logback', $g$Logback Wall-Clock Overhead$g$, true, true, 'WALL_CLOCK', 'APPLICATION', 'SAMPLES', 'JAVA', 'FULL_MATCH', 0.02, 0.03, '{"anchor":{"type":"Predicate","op":"PREFIX","value":"ch.qos.logback"}}', NULL, $g$the logging$g$, $g$Extensive logging can cause significant overhead in allocation and CPU usage. Some application
 with a lower number of transactions/requests can log even detailed information, however, when the
 application is under a heavy load, the logging can become a bottleneck.$g$, $g$<ul>
@@ -642,7 +642,7 @@ and can become a scalability bottleneck.$g$, $g$<ul>
     <li>Consider lock-free algorithms or atomic operations for simple counters and flags
 </ul>$g$, TIMESTAMPTZ '2026-01-01 00:00:00+00');
 
-INSERT INTO guardian_guards (guard_id, name, enabled, built_in, group_kind, category, result_type, target_frame, matching_type, info_threshold, warning_threshold, matcher_spec, preconditions, summary_noun, explanation, solution, created_at) VALUES
+INSERT INTO guardians (guard_id, name, enabled, built_in, group_kind, category, result_type, target_frame, matching_type, info_threshold, warning_threshold, matcher_spec, preconditions, summary_noun, explanation, solution, created_at) VALUES
     ('blocking-dbpool', $g$DB Connection Pool Blocking$g$, true, true, 'BLOCKING', 'APPLICATION', 'WEIGHT', 'JAVA', 'FULL_MATCH', 0.03, 0.05, '{"anchor":{"type":"AnyOf","of":[{"type":"Predicate","op":"PREFIX","value":"com.zaxxer.hikari."},{"type":"Predicate","op":"PREFIX","value":"org.apache.commons.dbcp2."},{"type":"Predicate","op":"PREFIX","value":"com.mchange.v2.c3p0."},{"type":"Predicate","op":"PREFIX","value":"org.apache.tomcat.jdbc.pool."}]}}', NULL, $g$database connections$g$, $g$Threads are blocked waiting to acquire a database connection from the connection pool.
 This indicates the pool is exhausted - all connections are in use and new requests must wait.
 This is a common bottleneck in database-heavy applications under load.$g$, $g$<ul>

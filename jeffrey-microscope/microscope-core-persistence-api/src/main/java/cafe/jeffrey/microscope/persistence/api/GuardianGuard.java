@@ -21,7 +21,7 @@ package cafe.jeffrey.microscope.persistence.api;
 import java.time.Instant;
 
 /**
- * One row of the {@code guardian_guards} table — the raw, persistence-level view of a Guardian guard
+ * One row of the {@code guardians} table — the raw, persistence-level view of a Guardian guard
  * definition. {@code matcherSpec} and {@code preconditions} hold JSON as text; the domain mapping into
  * the typed {@code MatchExpr} / {@code TraversalStrategy} model happens above this layer so the
  * persistence module stays free of the profile-guardian domain types.

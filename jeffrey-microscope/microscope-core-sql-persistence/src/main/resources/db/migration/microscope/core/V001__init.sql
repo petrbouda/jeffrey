@@ -145,14 +145,14 @@ CREATE TABLE IF NOT EXISTS settings
 );
 
 --
--- GUARDIAN GUARDS
+-- GUARDIANS
 -- Central, editable definitions of every Guardian guard. Built-in guards (built_in = true) are
 -- seeded below; users can edit them or add custom guards from the Microscope UI. matcher_spec and
 -- preconditions hold JSON (stored as text; parsed in Java) — see the MatchExpr / TraversalStrategy
 -- sealed types in the profile-guardian module.
 --
 
-CREATE TABLE IF NOT EXISTS guardian_guards
+CREATE TABLE IF NOT EXISTS guardians
 (
     guard_id          VARCHAR     NOT NULL PRIMARY KEY,
     name              VARCHAR     NOT NULL,

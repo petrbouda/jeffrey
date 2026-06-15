@@ -31,7 +31,7 @@ import java.time.Clock;
 
 /**
  * Wires the database-backed Guardian guard configuration: the CRUD repository over the central
- * {@code guardian_guards} table and the {@link GuardDefinitions} provider that maps rows into the
+ * {@code guardians} table and the {@link GuardDefinitions} provider that maps rows into the
  * Guardian engine's domain model.
  */
 @Configuration

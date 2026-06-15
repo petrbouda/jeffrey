@@ -32,7 +32,7 @@ import java.util.List;
 
 /**
  * Translates the persisted {@code matcher_spec} / {@code preconditions} JSON (see the
- * {@code guardian_guards} table) into the typed {@link MatchExpr} / {@link TraversalStrategy} /
+ * {@code guardians} table) into the typed {@link MatchExpr} / {@link TraversalStrategy} /
  * {@link GuardPreconditions} model. Hand-rolled with {@link JsonNode} so the domain records stay free
  * of Jackson annotations.
  */

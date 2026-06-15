@@ -34,7 +34,7 @@ import cafe.jeffrey.profile.guardian.traverse.TargetFrameType;
 import java.util.List;
 
 /**
- * Loads guard definitions from the central database (the {@code guardian_guards} and
+ * Loads guard definitions from the central database (the {@code guardians} and
  * {@code guardian_group_settings} tables) and maps the raw rows into the typed domain model the
  * Guardian engine consumes. Queries live on each call so edits made through the UI take effect on the
  * next Guardian run.

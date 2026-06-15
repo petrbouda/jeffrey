@@ -587,7 +587,7 @@ const router = createRouter({
         {
           path: 'guardian-guards',
           name: 'guardian-guards',
-          component: () => import('@/views/global/GuardianGuardsView.vue')
+          component: () => import('@/views/global/GuardiansView.vue')
         }
       ]
     },

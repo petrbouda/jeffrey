@@ -37,15 +37,15 @@ public class JdbcGuardianGuardRepository implements GuardianGuardRepository {
 
     //language=SQL
     private static final String SELECT_ALL =
-            "SELECT * FROM guardian_guards ORDER BY guard_id";
+            "SELECT * FROM guardians ORDER BY guard_id";
 
     //language=SQL
     private static final String SELECT_BY_ID =
-            "SELECT * FROM guardian_guards WHERE guard_id = :guard_id";
+            "SELECT * FROM guardians WHERE guard_id = :guard_id";
 
     //language=SQL
     private static final String INSERT = """
-            INSERT INTO guardian_guards
+            INSERT INTO guardians
                 (guard_id, name, enabled, built_in, group_kind, category, result_type, target_frame,
                  matching_type, info_threshold, warning_threshold, matcher_spec, preconditions,
                  summary_noun, explanation, solution, created_at)
@@ -56,7 +56,7 @@ public class JdbcGuardianGuardRepository implements GuardianGuardRepository {
 
     //language=SQL
     private static final String UPDATE = """
-            UPDATE guardian_guards SET
+            UPDATE guardians SET
                 name = :name, enabled = :enabled, built_in = :built_in, group_kind = :group_kind,
                 category = :category, result_type = :result_type, target_frame = :target_frame,
                 matching_type = :matching_type, info_threshold = :info_threshold,
@@ -67,7 +67,7 @@ public class JdbcGuardianGuardRepository implements GuardianGuardRepository {
 
     //language=SQL
     private static final String DELETE =
-            "DELETE FROM guardian_guards WHERE guard_id = :guard_id";
+            "DELETE FROM guardians WHERE guard_id = :guard_id";
 
     //language=SQL
     private static final String SELECT_GROUP_SETTINGS =

@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * CRUD access to the central {@code guardian_guards} table and the companion
+ * CRUD access to the central {@code guardians} table and the companion
  * {@code guardian_group_settings} table.
  */
 public interface GuardianGuardRepository {
