@@ -22,27 +22,27 @@ import cafe.jeffrey.profile.common.config.GraphParameters;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
 import cafe.jeffrey.shared.common.model.Type;
 import cafe.jeffrey.shared.common.settings.ActiveSettings;
-import cafe.jeffrey.profile.guardian.GuardianProperties;
+import cafe.jeffrey.profile.guardian.definition.GuardDefinitions;
 import cafe.jeffrey.profile.guardian.guard.GroupKind;
 import cafe.jeffrey.profile.guardian.guard.Guard;
-import cafe.jeffrey.profile.guardian.guard.GuardRegistry;
+import cafe.jeffrey.profile.guardian.guard.GuardFactory;
 import cafe.jeffrey.provider.profile.api.ProfileEventStreamRepository;
 
 import java.util.List;
 
 public class WallClockGuardianGroup extends AbstractGuardianGroup {
 
-    private final GuardianProperties props;
+    private final GuardDefinitions definitions;
 
     public WallClockGuardianGroup(
             ProfileInfo profileInfo,
             ProfileEventStreamRepository eventRepository,
             ActiveSettings settings,
-            GuardianProperties props) {
+            GuardDefinitions definitions) {
 
         super("Wall Clock", profileInfo, eventRepository, settings,
-                "Minimum for Wall Clock Samples", props.minSamplesWallClock());
-        this.props = props;
+                "Minimum for Wall Clock Samples", definitions.minSamples(GroupKind.WALL_CLOCK));
+        this.definitions = definitions;
     }
 
     @Override
@@ -59,6 +59,6 @@ public class WallClockGuardianGroup extends AbstractGuardianGroup {
 
     @Override
     List<? extends Guard> candidateGuards(Guard.ProfileInfo profileInfo) {
-        return GuardRegistry.instantiateFor(GroupKind.WALL_CLOCK, profileInfo, props);
+        return GuardFactory.instantiateFor(GroupKind.WALL_CLOCK, profileInfo, definitions);
     }
 }

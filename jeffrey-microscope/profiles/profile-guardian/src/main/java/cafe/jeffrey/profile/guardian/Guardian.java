@@ -33,9 +33,7 @@ import cafe.jeffrey.profile.guardian.preconditions.GuardianInformation;
 import cafe.jeffrey.profile.guardian.preconditions.GuardianInformationBuilder;
 import cafe.jeffrey.profile.guardian.preconditions.Preconditions;
 import cafe.jeffrey.profile.guardian.preconditions.PreconditionsBuilder;
-import cafe.jeffrey.profile.guardian.metadata.SafepointOutlierEvaluator;
-import cafe.jeffrey.profile.guardian.metadata.TlabWasteEvaluator;
-import cafe.jeffrey.profile.guardian.metadata.VirtualThreadPinningEvaluator;
+import cafe.jeffrey.profile.guardian.definition.GuardDefinitions;
 import cafe.jeffrey.profile.guardian.prereq.PrerequisitesEvaluator;
 import cafe.jeffrey.profile.guardian.type.AllocationGuardianGroup;
 import cafe.jeffrey.profile.guardian.type.BlockingGuardianGroup;
@@ -60,7 +58,7 @@ public class Guardian {
     private final ProfileEventStreamRepository eventStreamRepository;
     private final ProfileEventTypeRepository eventTypeRepository;
     private final ActiveSettings activeSettings;
-    private final GuardianProperties props;
+    private final GuardDefinitions definitions;
 
     public Guardian(
             ProfileInfo profileInfo,
@@ -68,14 +66,14 @@ public class Guardian {
             ProfileEventStreamRepository eventStreamRepository,
             ProfileEventTypeRepository eventTypeRepository,
             ActiveSettings activeSettings,
-            GuardianProperties props) {
+            GuardDefinitions definitions) {
 
         this.profileInfo = profileInfo;
         this.eventRepository = eventRepository;
         this.eventStreamRepository = eventStreamRepository;
         this.eventTypeRepository = eventTypeRepository;
         this.activeSettings = activeSettings;
-        this.props = props;
+        this.definitions = definitions;
     }
 
     public List<GuardianResult> process() {
@@ -98,11 +96,11 @@ public class Guardian {
                 .build();
 
         List<GuardianGroup> groups = List.of(
-                new ExecutionSampleGuardianGroup(profileInfo, eventStreamRepository, activeSettings, props),
-                new CpuTimeSampleGuardianGroup(profileInfo, eventStreamRepository, activeSettings, props),
-                new AllocationGuardianGroup(profileInfo, eventStreamRepository, activeSettings, props),
-                new WallClockGuardianGroup(profileInfo, eventStreamRepository, activeSettings, props),
-                new BlockingGuardianGroup(profileInfo, eventStreamRepository, activeSettings, props)
+                new ExecutionSampleGuardianGroup(profileInfo, eventStreamRepository, activeSettings, definitions),
+                new CpuTimeSampleGuardianGroup(profileInfo, eventStreamRepository, activeSettings, definitions),
+                new AllocationGuardianGroup(profileInfo, eventStreamRepository, activeSettings, definitions),
+                new WallClockGuardianGroup(profileInfo, eventStreamRepository, activeSettings, definitions),
+                new BlockingGuardianGroup(profileInfo, eventStreamRepository, activeSettings, definitions)
         );
 
         List<GuardianResult> results = new ArrayList<>();
@@ -124,14 +122,6 @@ public class Guardian {
                 }
             }
         }
-
-        // Metadata-based guards run without frame-tree traversal.
-        TlabWasteEvaluator.evaluate(eventSummaries, props).ifPresent(r ->
-                results.add(new GuardianResult(r.analysisItem().withGroup("Allocation"), r.frame())));
-        SafepointOutlierEvaluator.evaluate(eventRepository, props).ifPresent(r ->
-                results.add(new GuardianResult(r.analysisItem().withGroup("JIT & Runtime"), r.frame())));
-        VirtualThreadPinningEvaluator.evaluate(eventRepository, props).ifPresent(r ->
-                results.add(new GuardianResult(r.analysisItem().withGroup("Concurrency"), r.frame())));
 
         return results;
     }

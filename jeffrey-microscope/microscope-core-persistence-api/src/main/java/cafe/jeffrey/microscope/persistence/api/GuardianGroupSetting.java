@@ -16,17 +16,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.profile.guardian.guard;
+package cafe.jeffrey.microscope.persistence.api;
 
 /**
- * The Guardian event groups that frame-tree-traversing guards belong to. Each guard definition is
- * tagged with one of these so a {@code GuardianGroup} can instantiate the subset relevant to it via
- * {@code GuardFactory}.
+ * One row of the {@code guardian_group_settings} table — the minimum number of samples a guard group
+ * must have before its guards run.
  */
-public enum GroupKind {
-    EXECUTION_SAMPLE,
-    CPU_TIME_SAMPLE,
-    ALLOCATION,
-    WALL_CLOCK,
-    BLOCKING
+public record GuardianGroupSetting(String groupKind, long minSamples) {
 }

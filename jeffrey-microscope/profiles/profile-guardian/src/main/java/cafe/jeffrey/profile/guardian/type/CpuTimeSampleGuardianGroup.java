@@ -22,10 +22,10 @@ import cafe.jeffrey.profile.common.config.GraphParameters;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
 import cafe.jeffrey.shared.common.model.Type;
 import cafe.jeffrey.shared.common.settings.ActiveSettings;
-import cafe.jeffrey.profile.guardian.GuardianProperties;
+import cafe.jeffrey.profile.guardian.definition.GuardDefinitions;
 import cafe.jeffrey.profile.guardian.guard.GroupKind;
 import cafe.jeffrey.profile.guardian.guard.Guard;
-import cafe.jeffrey.profile.guardian.guard.GuardRegistry;
+import cafe.jeffrey.profile.guardian.guard.GuardFactory;
 import cafe.jeffrey.provider.profile.api.ProfileEventStreamRepository;
 
 import java.util.List;
@@ -37,17 +37,17 @@ import java.util.List;
  */
 public class CpuTimeSampleGuardianGroup extends AbstractGuardianGroup {
 
-    private final GuardianProperties props;
+    private final GuardDefinitions definitions;
 
     public CpuTimeSampleGuardianGroup(
             ProfileInfo profileInfo,
             ProfileEventStreamRepository eventRepository,
             ActiveSettings settings,
-            GuardianProperties props) {
+            GuardDefinitions definitions) {
 
         super("CPU Time Sample", profileInfo, eventRepository, settings,
-                "Minimum for CPU Time Samples", props.minSamplesCpuTime());
-        this.props = props;
+                "Minimum for CPU Time Samples", definitions.minSamples(GroupKind.CPU_TIME_SAMPLE));
+        this.definitions = definitions;
     }
 
     @Override
@@ -64,6 +64,6 @@ public class CpuTimeSampleGuardianGroup extends AbstractGuardianGroup {
 
     @Override
     List<? extends Guard> candidateGuards(Guard.ProfileInfo profileInfo) {
-        return GuardRegistry.instantiateFor(GroupKind.CPU_TIME_SAMPLE, profileInfo, props);
+        return GuardFactory.instantiateFor(GroupKind.CPU_TIME_SAMPLE, profileInfo, definitions);
     }
 }

@@ -16,17 +16,26 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.profile.guardian.guard;
+package cafe.jeffrey.microscope.persistence.api;
+
+import java.util.List;
+import java.util.Optional;
 
 /**
- * The Guardian event groups that frame-tree-traversing guards belong to. Each guard definition is
- * tagged with one of these so a {@code GuardianGroup} can instantiate the subset relevant to it via
- * {@code GuardFactory}.
+ * CRUD access to the central {@code guardian_guards} table and the companion
+ * {@code guardian_group_settings} table.
  */
-public enum GroupKind {
-    EXECUTION_SAMPLE,
-    CPU_TIME_SAMPLE,
-    ALLOCATION,
-    WALL_CLOCK,
-    BLOCKING
+public interface GuardianGuardRepository {
+
+    List<GuardianGuard> findAll();
+
+    Optional<GuardianGuard> find(String guardId);
+
+    void insert(GuardianGuard guard);
+
+    void update(GuardianGuard guard);
+
+    void delete(String guardId);
+
+    List<GuardianGroupSetting> findAllGroupSettings();
 }
