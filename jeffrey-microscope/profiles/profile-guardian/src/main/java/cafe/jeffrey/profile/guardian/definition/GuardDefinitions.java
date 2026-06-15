@@ -15,19 +15,18 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-module cafe.jeffrey.microscope.profile.guardian {
-    requires transitive cafe.jeffrey.microscope.profile.frame.ir;
-    requires transitive cafe.jeffrey.microscope.profile.persistence.api;
-    requires cafe.jeffrey.shared.common;
-    requires spring.boot;
-    requires org.slf4j;
-    requires tools.jackson.databind;
 
-    exports cafe.jeffrey.profile.guardian;
-    exports cafe.jeffrey.profile.guardian.definition;
-    exports cafe.jeffrey.profile.guardian.guard;
-    exports cafe.jeffrey.profile.guardian.matcher;
-    exports cafe.jeffrey.profile.guardian.preconditions;
-    exports cafe.jeffrey.profile.guardian.prereq;
-    exports cafe.jeffrey.profile.guardian.traverse;
+package cafe.jeffrey.profile.guardian.definition;
+
+import java.util.List;
+
+/**
+ * Supplies the effective guard definitions that drive a Guardian run. Implemented in core-microscope
+ * by reading the central database, keeping the {@code profile-guardian} module free of any persistence
+ * dependency. Guardian groups the definitions by their {@link GuardDefinition#eventType()} at runtime.
+ */
+public interface GuardDefinitions {
+
+    /** All enabled guard definitions, across every event type. */
+    List<GuardDefinition> all();
 }

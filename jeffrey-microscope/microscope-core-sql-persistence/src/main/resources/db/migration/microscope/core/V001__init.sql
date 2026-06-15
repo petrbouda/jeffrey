@@ -144,3 +144,34 @@ CREATE TABLE IF NOT EXISTS settings
     PRIMARY KEY (category, name)
 );
 
+--
+-- GUARDIANS
+-- Central, editable definitions of every Guardian guard. Built-in guards (built_in = true) are
+-- seeded below; users can edit them or add custom guards from the Microscope UI. event_type is the
+-- free-form JFR event type (e.g. jdk.ExecutionSample) whose stacktraces the guard analyses — any
+-- event type carrying stacktraces is allowed. matcher_spec and preconditions hold JSON (stored as
+-- text; parsed in Java) — see the MatchExpr / TraversalStrategy sealed types in the profile-guardian
+-- module.
+--
+
+CREATE TABLE IF NOT EXISTS guardians
+(
+    guard_id          VARCHAR     NOT NULL PRIMARY KEY,
+    name              VARCHAR     NOT NULL,
+    enabled           BOOLEAN     NOT NULL DEFAULT true,
+    built_in          BOOLEAN     NOT NULL DEFAULT false,
+    event_type        VARCHAR     NOT NULL,
+    category          VARCHAR     NOT NULL,
+    result_type       VARCHAR     NOT NULL,
+    target_frame      VARCHAR     NOT NULL,
+    matching_type     VARCHAR     NOT NULL,
+    info_threshold    DOUBLE      NOT NULL,
+    warning_threshold DOUBLE      NOT NULL,
+    min_samples       BIGINT      NOT NULL DEFAULT 1000,
+    matcher_spec      VARCHAR     NOT NULL,
+    preconditions     VARCHAR,
+    summary_noun      VARCHAR,
+    explanation       VARCHAR,
+    solution          VARCHAR,
+    created_at        TIMESTAMPTZ NOT NULL
+);

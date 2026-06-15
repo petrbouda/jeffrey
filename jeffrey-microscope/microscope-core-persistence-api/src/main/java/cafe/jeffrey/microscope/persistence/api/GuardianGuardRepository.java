@@ -15,19 +15,24 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-module cafe.jeffrey.microscope.profile.guardian {
-    requires transitive cafe.jeffrey.microscope.profile.frame.ir;
-    requires transitive cafe.jeffrey.microscope.profile.persistence.api;
-    requires cafe.jeffrey.shared.common;
-    requires spring.boot;
-    requires org.slf4j;
-    requires tools.jackson.databind;
 
-    exports cafe.jeffrey.profile.guardian;
-    exports cafe.jeffrey.profile.guardian.definition;
-    exports cafe.jeffrey.profile.guardian.guard;
-    exports cafe.jeffrey.profile.guardian.matcher;
-    exports cafe.jeffrey.profile.guardian.preconditions;
-    exports cafe.jeffrey.profile.guardian.prereq;
-    exports cafe.jeffrey.profile.guardian.traverse;
+package cafe.jeffrey.microscope.persistence.api;
+
+import java.util.List;
+import java.util.Optional;
+
+/**
+ * CRUD access to the central {@code guardians} table.
+ */
+public interface GuardianGuardRepository {
+
+    List<GuardianGuard> findAll();
+
+    Optional<GuardianGuard> find(String guardId);
+
+    void insert(GuardianGuard guard);
+
+    void update(GuardianGuard guard);
+
+    void delete(String guardId);
 }

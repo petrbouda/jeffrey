@@ -40,18 +40,15 @@ onMounted(() => {
   setHeadings(headings);
 });
 
-const propertiesExample = `# application.properties — only override what you need to tune.
-# Every field defaults to the value shipped with Jeffrey; omit the rest.
-
-jeffrey.microscope.guardian.reflection-warning-threshold=0.08
-jeffrey.microscope.guardian.reflection-info-threshold=0.04
-
-# Latency-tail guards are millisecond-based, not fractions.
-jeffrey.microscope.guardian.safepoint-outlier-warning-millis=150
-jeffrey.microscope.guardian.vthread-pinned-outlier-warning-millis=25
-
-# Group-level minima: raise to require more data before a group runs.
-jeffrey.microscope.guardian.min-samples-execution=5000`;
+const matcherSpecExample = `{
+  "anchor": {
+    "type": "AllOf",
+    "of": [
+      { "type": "Predicate", "op": "PREFIX",   "value": "com.acme." },
+      { "type": "Not", "expr": { "type": "Predicate", "op": "CONTAINS", "value": "$Proxy" } }
+    ]
+  }
+}`;
 </script>
 
 <template>
@@ -62,7 +59,7 @@ jeffrey.microscope.guardian.min-samples-execution=5000`;
     />
 
     <div class="docs-content">
-      <p>Guardian is Jeffrey's automated analysis layer — a curated set of rules that walk the profile's stacktraces, allocation bytes, blocking durations, and metadata events and surface the ones that warrant human attention. It's the <strong>first page to open</strong> after processing a recording: it tells you whether the JVM looks healthy, where the hot spots are, and which deeper analysis pages to visit next.</p>
+      <p>Guardian is Jeffrey's automated analysis layer — a curated, fully configurable set of rules that walk the profile's stacktraces, allocation bytes, and blocking durations and surface the ones that warrant human attention. It's the <strong>first page to open</strong> after processing a recording: it tells you whether the JVM looks healthy, where the hot spots are, and which deeper analysis pages to visit next.</p>
 
       <div class="docs-images-grid">
         <img src="/images/feature-screenshots/profile_guardian.png" alt="Guardian overview" class="docs-feature-screenshot" />
@@ -71,17 +68,22 @@ jeffrey.microscope.guardian.min-samples-execution=5000`;
 
       <h2 id="overview">Overview</h2>
 
-      <p>Every rule falls into one of five execution groups plus a prerequisites row and a handful of metadata-latency checks:</p>
+      <p>Each guard targets a <strong>free-form JFR event type</strong> whose stacktraces it analyses — any
+      stacktrace-carrying event works, including custom ones — and is grouped in the UI by its
+      <strong>category</strong>. Guardian builds one (weighted) frame tree per event type present in the recording
+      and runs every guard for that type over it; a guard reads samples or weight depending on its result type.
+      The built-in guards cover the common dimensions:</p>
 
       <ul>
-        <li><strong>Execution Sample</strong> — CPU-time ratios from <code>jdk.ExecutionSample</code> (Logback CPU, Regex, Reflection, JIT, Safepoint, VM Operation, per-GC, …).</li>
-        <li><strong>CPU Time Sample</strong> — the same CPU-overhead rules applied to the JDK 25 CPU-time profiler (<code>jdk.CPUTimeSample</code>); shown when the recording uses CPU-time profiling.</li>
-        <li><strong>Allocation</strong> — byte-weight ratios from <code>jdk.ObjectAllocation*</code> (Logback Alloc, Exception Alloc, Boxing, Collection, TLAB Waste, …).</li>
-        <li><strong>Wall Clock</strong> — wall-time ratios from <code>profiler.WallClockSample</code> (Reflection Wall-Clock, Class Loading Wall-Clock, Thread Sync Wall-Clock, …).</li>
-        <li><strong>Blocking</strong> — duration-weight ratios from <code>jdk.JavaMonitorEnter</code>, <code>jdk.ThreadPark</code>, <code>jdk.ThreadSleep</code> (Lock Contention, I/O Blocking, DB Pool Blocking, HTTP Client, …).</li>
+        <li><code>jdk.ExecutionSample</code> — CPU-time overheads (Logback CPU, Regex, Reflection, JIT, Safepoint, VM Operation, per-GC, …) and, by weight, the allocation overheads (Logback Alloc, Boxing, Collection, …).</li>
+        <li><code>jdk.CPUTimeSample</code> — the same CPU-overhead checks for the JDK 25 CPU-time profiler.</li>
+        <li><code>profiler.WallClockSample</code> — wall-time overheads (Reflection, Class Loading, Thread Sync, …).</li>
+        <li><code>jdk.JavaMonitorEnter</code> — blocking/contention by duration weight (Lock Contention, I/O, DB Pool, HTTP Client, …).</li>
         <li><strong>Prerequisites</strong> — data-quality checks that help interpret everything else.</li>
-        <li><strong>Metadata / latency-tail</strong> — Safepoint Outliers (p99), Virtual Thread Pinning (worst pin) — these read raw event durations from DuckDB rather than walking the frame tree.</li>
       </ul>
+
+      <p>Because the event type is just a string on each guard, you can point a custom guard at any other
+      event type (e.g. <code>jdk.ObjectAllocationSample</code> or your own application event) from the UI.</p>
 
       <h2 id="severity-model">Severity Model</h2>
 
@@ -237,41 +239,26 @@ jeffrey.microscope.guardian.min-samples-execution=5000`;
 
       <h2 id="configuration">Configuration</h2>
 
-      <p>Every threshold and minimum-sample gate is bound to a property under <code>jeffrey.microscope.guardian.*</code>. All defaults ship with Jeffrey — you only set a property when you want to override one.</p>
+      <p>Guards are no longer hard-coded. Every guard is a row in a central <code>guardian_guards</code> table in the Microscope core database, seeded with all the built-in guards on first start (via the Flyway migration). Manage them from the <strong>Guardians</strong> page in the Microscope — edit any built-in guard, toggle it on/off, or add your own. Configuration is shared across all profiles, not per-recording.</p>
 
-      <DocsCodeBlock :code="propertiesExample" language="properties" />
+      <p>Each guard row carries its event type, category, result type, target-frame type, matching type, the INFO/WARNING thresholds, a per-guard minimum-sample gate, optional preconditions (event source, GC type), the summary/explanation/solution text, and a <strong>matcher spec</strong>. The matcher spec is a small JSON predicate tree — a leaf <code>Predicate</code> tests a frame name with one of <code>PREFIX</code>, <code>SUFFIX</code>, <code>CONTAINS</code>, <code>EQUALS</code>, or <code>REGEX</code>, and <code>AnyOf</code> / <code>AllOf</code> / <code>Not</code> compose leaves into arbitrary boolean expressions. This means a custom matcher can be expressed entirely from the UI without any code change:</p>
 
-      <p>Each rule in the frame-tree groups carries a pair:</p>
-      <ul>
-        <li><code>jeffrey.microscope.guardian.&lt;name&gt;-info-threshold</code> — ratio above which severity becomes INFO.</li>
-        <li><code>jeffrey.microscope.guardian.&lt;name&gt;-warning-threshold</code> — ratio above which severity becomes WARNING.</li>
-      </ul>
-      <p>If the two are set equal, the INFO band collapses — the rule behaves as a binary OK/WARNING flip (the pre-0.7 behaviour).</p>
+      <DocsCodeBlock :code="matcherSpecExample" language="json" />
 
-      <p>Group-level gates prevent noisy results on under-sized recordings:</p>
-      <ul>
-        <li><code>jeffrey.microscope.guardian.min-samples-execution</code> — default <code>1000</code></li>
-        <li><code>jeffrey.microscope.guardian.min-samples-allocation</code> — default <code>1000</code></li>
-        <li><code>jeffrey.microscope.guardian.min-samples-wall-clock</code> — default <code>1000</code></li>
-        <li><code>jeffrey.microscope.guardian.min-samples-blocking</code> — default <code>100</code></li>
-      </ul>
+      <p>For guards that must descend through intermediate frames (the GC guards), the spec adds a <code>traversal</code> of type <code>Descend</code> with <code>ByName</code> / <code>ByMatcher</code> steps; omitting it defaults to matching the anchor frame itself.</p>
 
-      <p>Latency-tail guards use millisecond thresholds, not ratios:</p>
-      <ul>
-        <li><code>jeffrey.microscope.guardian.safepoint-outlier-warning-millis</code> / <code>-info-millis</code></li>
-        <li><code>jeffrey.microscope.guardian.vthread-pinned-outlier-warning-millis</code> / <code>-info-millis</code></li>
-      </ul>
+      <p>The INFO and WARNING thresholds work as before — if the two are set equal, the INFO band collapses and the guard behaves as a binary OK/WARNING flip. Each guard also carries a <code>min_samples</code> gate (default <code>1000</code>) that prevents noisy results: its event type must have at least that many samples in the recording before the guard runs.</p>
 
       <DocsCallout type="tip">
-        The full, authoritative list of every property is the record <code>GuardianProperties.java</code> in <code>jeffrey-microscope/profiles/profile-guardian</code>. Each field's <code>@DefaultValue</code> annotation is the shipped default; each field name <code>camelCase</code> maps to the kebab-case property suffix shown above.
+        The built-in guard definitions and the table schema are seeded in <code>V001__init.sql</code> in <code>jeffrey-microscope/microscope-core-sql-persistence</code>; the matcher/traversal model is the <code>MatchExpr</code> / <code>TraversalStrategy</code> sealed types in <code>jeffrey-microscope/profiles/profile-guardian</code>.
       </DocsCallout>
 
       <h2 id="cache-invalidation">Cache Invalidation</h2>
 
-      <p>Guardian results are cached per profile — the analysis only runs once per recording, subsequent views serve from DuckDB. Starting in Jeffrey 0.7 the cache key is <strong>versioned</strong>: it contains an 8-hex fingerprint of the effective <code>GuardianProperties</code>. Any override you add to <code>application.properties</code> automatically invalidates stale results on the next request — no manual cache flush, no recording re-import.</p>
+      <p>Guardian results are cached per profile — the analysis only runs once per recording, subsequent views serve from DuckDB. The cache key is <strong>versioned</strong>: it contains an 8-hex fingerprint of the effective guard definitions. Editing, adding, disabling, or removing a guard automatically invalidates stale results on the next request — no manual cache flush, no recording re-import.</p>
 
       <DocsCallout type="info">
-        Cache lifetime is still per-profile, not per-instance. If you change a threshold and want to see the effect on an already-imported profile, just re-open the Guardian page — the cache hash will differ and Guardian will re-run.
+        Cache lifetime is per-profile, not per-instance. After changing a guard, just re-open the Guardian page on an already-imported profile — the cache hash will differ and Guardian will re-run.
       </DocsCallout>
 
       <DocsNavFooter

@@ -430,10 +430,10 @@ When unsure whether a request is "make it cleaner" or "make it faster", ask. Def
 - No `duckdb` CLI or python module is installed by default; quickest path is a throwaway venv: `python3 -m venv /tmp/ddbvenv && /tmp/ddbvenv/bin/pip install duckdb`, then `duckdb.connect(path, read_only=True)`.
 
 ### Database Schema
-- Microscope Core migrations: `jeffrey-microscope/microscope-core-sql-persistence/src/main/resources/db/migration/microscope/core/V001__init.sql`
+- Microscope Core migrations: `jeffrey-microscope/microscope-core-sql-persistence/src/main/resources/db/migration/microscope/core/` — `V001__init.sql` (table schema) + `V002__guardians_seed.sql` (built-in Guardian guard seed data)
 - Server migrations: `jeffrey-server/server-sql-persistence/src/main/resources/db/migration/server/V001__init.sql`
 - Profile migrations: `jeffrey-microscope/profiles/profile-sql-persistence/src/main/resources/db/migration/profile/V001__init.sql`
-- **Migration policy**: Never create new migration files (V002, V003, etc.). Always modify the existing V001 file directly. The database is recreated from scratch on each startup.
+- **Migration policy**: Keep table schema (`CREATE TABLE`) in `V001__init.sql` and edit it in place for schema changes. Seed data may live in a separate, purpose-named migration (e.g. `V002__guardians_seed.sql`) to keep schema and data concerns separated. The database is recreated from scratch on each startup, so editing these in development is safe.
 - JFR Event Types reference: https://sap.github.io/jfrevents/ (select Java version for event details)
 - JSONB `fields` column in the `events` table contains event-specific data — see `/jfr-event-fields` skill for full field reference per event type
 

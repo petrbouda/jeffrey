@@ -19,7 +19,6 @@
 package cafe.jeffrey.profile.configuration;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -31,9 +30,9 @@ import cafe.jeffrey.profile.ProfileInitializer;
 import cafe.jeffrey.profile.ProfileInitializerImpl;
 import cafe.jeffrey.profile.guardian.CachingGuardianProvider;
 import cafe.jeffrey.profile.guardian.Guardian;
-import cafe.jeffrey.profile.guardian.GuardianProperties;
 import cafe.jeffrey.profile.guardian.GuardianProvider;
 import cafe.jeffrey.profile.guardian.ParsingGuardianProvider;
+import cafe.jeffrey.profile.guardian.definition.GuardDefinitions;
 import cafe.jeffrey.profile.manager.*;
 // Explicit import: disambiguates from java.lang.SecurityManager (both match the wildcard above)
 import cafe.jeffrey.profile.manager.SecurityManager;
@@ -76,7 +75,6 @@ import java.util.Optional;
 import java.util.function.Supplier;
 
 @Import(ProfileCustomFactoriesConfiguration.class)
-@EnableConfigurationProperties(GuardianProperties.class)
 public class ProfileFactoriesConfiguration {
 
     public static final String RECORDINGS_PATH = "recordings-path";
@@ -317,7 +315,7 @@ public class ProfileFactoriesConfiguration {
     @Bean
     public GuardianManager.Factory guardianFactory(
             ActiveSettingsProvider.Factory settingsProviderFactory,
-            GuardianProperties guardianProperties) {
+            GuardDefinitions guardDefinitions) {
         return (profileInfo) -> {
             DataSource profileDb = databaseManagerResolver.open(profileInfo);
             ProfileEventRepository eventsRepository = profileRepositories.newEventRepository(profileDb);
@@ -328,10 +326,10 @@ public class ProfileFactoriesConfiguration {
 
             Guardian guardian = new Guardian(
                     profileInfo, eventsRepository, eventsStreamRepository, eventsTypeRepository,
-                    settingsProvider.get(), guardianProperties);
+                    settingsProvider.get(), guardDefinitions);
 
             GuardianProvider guardianProvider = new CachingGuardianProvider(
-                    cacheRepository, new ParsingGuardianProvider(guardian), guardianProperties);
+                    cacheRepository, new ParsingGuardianProvider(guardian), guardDefinitions);
 
             return new GuardianManagerImpl(guardianProvider);
         };

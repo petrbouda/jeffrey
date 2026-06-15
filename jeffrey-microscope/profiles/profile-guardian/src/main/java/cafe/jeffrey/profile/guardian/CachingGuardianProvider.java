@@ -19,19 +19,20 @@
 package cafe.jeffrey.profile.guardian;
 
 import tools.jackson.core.type.TypeReference;
+import cafe.jeffrey.profile.guardian.definition.GuardDefinition;
+import cafe.jeffrey.profile.guardian.definition.GuardDefinitions;
 import cafe.jeffrey.provider.profile.api.CachingSupplier;
 import cafe.jeffrey.provider.profile.api.ProfileCacheRepository;
 import cafe.jeffrey.shared.common.CacheKey;
 
 import java.util.List;
-import java.util.Objects;
 
 /**
  * A caching decorator for {@link GuardianProvider} that caches the result in a {@link ProfileCacheRepository}.
  * <p>
- * The cache key is versioned with a short stable hash of the current {@link GuardianProperties} so that changing
- * any threshold silently invalidates the existing cached analysis — without this, operators tweaking
- * {@code jeffrey.microscope.guardian.*} properties would keep seeing stale results from before the change.
+ * The cache key is versioned with a short stable hash of the effective {@link GuardDefinitions} so that
+ * editing, adding, disabling, or removing a guard silently invalidates the existing cached analysis —
+ * without this, users tuning guards from the UI would keep seeing stale results from before the change.
  */
 public class CachingGuardianProvider implements GuardianProvider {
 
@@ -44,21 +45,24 @@ public class CachingGuardianProvider implements GuardianProvider {
     public CachingGuardianProvider(
             ProfileCacheRepository cacheRepository,
             GuardianProvider delegate,
-            GuardianProperties props) {
-        String versionedKey = CacheKey.PROFILE_GUARDIAN + ":" + configHash(props);
+            GuardDefinitions definitions) {
+        String versionedKey = CacheKey.PROFILE_GUARDIAN + ":" + configHash(definitions);
         this.cachingSupplier = new CachingSupplier<>(
                 delegate, cacheRepository, versionedKey, GUARDIAN_RESULT_TYPE);
     }
 
     /**
-     * Stable 8-hex-digit fingerprint of the effective threshold configuration. Uses Java's
-     * default {@code Objects.hash} over the record fields (records inherit a deterministic
-     * hashCode based on component values), so any change to any threshold produces a different
-     * hash — thereby a different cache key — on the very next call.
+     * Stable 8-hex-digit fingerprint of the effective guard configuration. Built from the record
+     * {@code toString()} of every definition plus the per-group minimum-sample gates and hashed with
+     * {@link String#hashCode()} — deterministic across JVM runs (unlike {@code enum.hashCode()}), so a
+     * persisted cache survives a restart yet flips the moment any guard definition changes.
      */
-    private static String configHash(GuardianProperties props) {
-        int h = Objects.hashCode(props);
-        return String.format("%08x", h);
+    private static String configHash(GuardDefinitions definitions) {
+        StringBuilder fingerprint = new StringBuilder();
+        for (GuardDefinition definition : definitions.all()) {
+            fingerprint.append(definition).append('\n');
+        }
+        return String.format("%08x", fingerprint.toString().hashCode());
     }
 
     @Override
