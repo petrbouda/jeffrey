@@ -563,8 +563,7 @@ onMounted(load);
 }
 
 .toolbar-search {
-  flex: 1 1 240px;
-  min-width: 200px;
+  flex: 0 0 280px;
 }
 
 .toolbar-search-icon {
@@ -572,8 +571,7 @@ onMounted(load);
 }
 
 .toolbar-select {
-  flex: 0 0 auto;
-  min-width: 160px;
+  flex: 0 0 170px;
 }
 
 .segmented {
