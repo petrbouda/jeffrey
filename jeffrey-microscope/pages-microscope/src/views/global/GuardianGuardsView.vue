@@ -67,21 +67,25 @@
               <tr v-for="guard in filtered" :key="guard.guardId">
                 <td>{{ guard.name }}</td>
                 <td>
-                  <Badge variant="secondary" size="s">{{ guard.groupKind }}</Badge>
+                  <Badge :value="guard.groupKind" variant="secondary" size="s" />
                 </td>
                 <td>
-                  <Badge variant="info" size="s">{{ guard.category }}</Badge>
+                  <Badge :value="guard.category" variant="info" size="s" />
                 </td>
                 <td>{{ guard.resultType }}</td>
                 <td>
-                  <Badge :variant="guard.enabled ? 'success' : 'secondary'" size="s">
-                    {{ guard.enabled ? 'Enabled' : 'Disabled' }}
-                  </Badge>
+                  <Badge
+                    :value="guard.enabled ? 'Enabled' : 'Disabled'"
+                    :variant="guard.enabled ? 'success' : 'secondary'"
+                    size="s"
+                  />
                 </td>
                 <td>
-                  <Badge :variant="guard.builtIn ? 'primary' : 'warning'" size="s">
-                    {{ guard.builtIn ? 'Built-in' : 'Custom' }}
-                  </Badge>
+                  <Badge
+                    :value="guard.builtIn ? 'Built-in' : 'Custom'"
+                    :variant="guard.builtIn ? 'primary' : 'warning'"
+                    size="s"
+                  />
                 </td>
                 <td class="text-end">
                   <button class="btn btn-sm btn-outline-secondary me-1" @click="openEdit(guard)">
