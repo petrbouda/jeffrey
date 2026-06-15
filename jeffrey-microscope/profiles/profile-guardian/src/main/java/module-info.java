@@ -24,15 +24,9 @@ module cafe.jeffrey.microscope.profile.guardian {
     requires tools.jackson.databind;
 
     exports cafe.jeffrey.profile.guardian;
+    exports cafe.jeffrey.profile.guardian.definition;
     exports cafe.jeffrey.profile.guardian.guard;
-    exports cafe.jeffrey.profile.guardian.guard.alloc;
-    exports cafe.jeffrey.profile.guardian.guard.app;
-    exports cafe.jeffrey.profile.guardian.guard.blocking;
-    exports cafe.jeffrey.profile.guardian.guard.gc;
-    exports cafe.jeffrey.profile.guardian.guard.jit;
-    exports cafe.jeffrey.profile.guardian.guard.jvm;
     exports cafe.jeffrey.profile.guardian.matcher;
-    exports cafe.jeffrey.profile.guardian.metadata;
     exports cafe.jeffrey.profile.guardian.preconditions;
     exports cafe.jeffrey.profile.guardian.prereq;
     exports cafe.jeffrey.profile.guardian.traverse;
