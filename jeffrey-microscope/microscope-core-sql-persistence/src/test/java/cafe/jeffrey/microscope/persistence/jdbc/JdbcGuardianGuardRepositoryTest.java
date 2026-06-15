@@ -18,7 +18,6 @@
 
 package cafe.jeffrey.microscope.persistence.jdbc;
 
-import cafe.jeffrey.microscope.persistence.api.GuardianGroupSetting;
 import cafe.jeffrey.microscope.persistence.api.GuardianGuard;
 import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
 import cafe.jeffrey.test.DuckDBTest;
@@ -47,8 +46,8 @@ class JdbcGuardianGuardRepositoryTest {
     private static GuardianGuard customGuard(String id) {
         return new GuardianGuard(
                 id, "Acme Overhead", true, false,
-                "EXECUTION_SAMPLE", "APPLICATION", "SAMPLES", "JAVA", "FULL_MATCH",
-                0.03, 0.05,
+                "jdk.ExecutionSample", "APPLICATION", "SAMPLES", "JAVA", "FULL_MATCH",
+                0.03, 0.05, 1000,
                 "{\"anchor\":{\"type\":\"Predicate\",\"op\":\"PREFIX\",\"value\":\"com.acme.\"}}",
                 null, "Acme activity", "explanation", "solution",
                 Instant.parse("2026-06-15T10:00:00Z"));
@@ -61,8 +60,8 @@ class JdbcGuardianGuardRepositoryTest {
         void loadsAllBuiltInGuards(DataSource dataSource) {
             List<GuardianGuard> guards = repository(dataSource).findAll();
 
-            // The V001 migration seeds every built-in guard (25 CPU-overhead guards mirrored across
-            // EXECUTION_SAMPLE + CPU_TIME_SAMPLE, plus the allocation, wall-clock and blocking sets).
+            // V001 + V002 seed every built-in guard (25 CPU-overhead guards on jdk.ExecutionSample and
+            // jdk.CPUTimeSample, plus the allocation, wall-clock and blocking sets).
             assertEquals(73, guards.size());
             assertTrue(guards.stream().allMatch(GuardianGuard::builtIn), "all seeded guards are built-in");
             assertTrue(guards.stream().allMatch(GuardianGuard::enabled), "all seeded guards are enabled");
@@ -75,24 +74,18 @@ class JdbcGuardianGuardRepositoryTest {
 
             GuardianGuard logback = byId.get("exec-logback");
             assertEquals("Logback CPU Overhead", logback.name());
-            assertEquals("EXECUTION_SAMPLE", logback.groupKind());
+            assertEquals("jdk.ExecutionSample", logback.eventType());
             assertEquals("APPLICATION", logback.category());
+            assertEquals(1000L, logback.minSamples());
             assertTrue(logback.matcherSpec().contains("ch.qos.logback"));
+
+            // Blocking guards analyse the monitor-enter event type.
+            assertEquals("jdk.JavaMonitorEnter", byId.get("blocking-lock").eventType());
 
             // GC guard carries async-profiler + GC-type preconditions and a descend traversal.
             GuardianGuard g1 = byId.get("exec-gc-g1");
             assertTrue(g1.preconditions().contains("G1"));
             assertTrue(g1.matcherSpec().contains("Descend"));
-        }
-
-        @Test
-        void seedsGroupSampleGates(DataSource dataSource) {
-            Map<String, Long> minSamples = repository(dataSource).findAllGroupSettings().stream()
-                    .collect(Collectors.toMap(GuardianGroupSetting::groupKind, GuardianGroupSetting::minSamples));
-
-            assertEquals(5, minSamples.size());
-            assertEquals(1000L, minSamples.get("EXECUTION_SAMPLE"));
-            assertEquals(100L, minSamples.get("BLOCKING"));
         }
     }
 
@@ -107,6 +100,7 @@ class JdbcGuardianGuardRepositoryTest {
             Optional<GuardianGuard> found = repository.find("custom-1");
             assertTrue(found.isPresent());
             assertEquals("Acme Overhead", found.get().name());
+            assertEquals("jdk.ExecutionSample", found.get().eventType());
             assertFalse(found.get().builtIn());
             assertEquals(0.05, found.get().warningThreshold());
         }
@@ -118,15 +112,17 @@ class JdbcGuardianGuardRepositoryTest {
 
             GuardianGuard original = repository.find("custom-2").orElseThrow();
             GuardianGuard modified = new GuardianGuard(
-                    original.guardId(), "Renamed", false, original.builtIn(), original.groupKind(),
+                    original.guardId(), "Renamed", false, original.builtIn(), "jdk.CPUTimeSample",
                     original.category(), original.resultType(), original.targetFrame(), original.matchingType(),
-                    0.1, 0.2, original.matcherSpec(), original.preconditions(), original.summaryNoun(),
+                    0.1, 0.2, 500, original.matcherSpec(), original.preconditions(), original.summaryNoun(),
                     original.explanation(), original.solution(), original.createdAt());
             repository.update(modified);
 
             GuardianGuard reloaded = repository.find("custom-2").orElseThrow();
             assertEquals("Renamed", reloaded.name());
             assertFalse(reloaded.enabled());
+            assertEquals("jdk.CPUTimeSample", reloaded.eventType());
+            assertEquals(500L, reloaded.minSamples());
             assertEquals(0.2, reloaded.warningThreshold());
         }
 

@@ -38,9 +38,9 @@
           </div>
 
           <div class="field-wrap toolbar-select">
-            <select v-model="groupFilter" class="field-input">
-              <option value="">All groups</option>
-              <option v-for="g in groupOptions" :key="g" :value="g">{{ g }}</option>
+            <select v-model="eventTypeFilter" class="field-input">
+              <option value="">All event types</option>
+              <option v-for="et in eventTypeOptions" :key="et" :value="et">{{ et }}</option>
             </select>
           </div>
 
@@ -92,7 +92,7 @@
             <thead>
               <tr>
                 <th>Name</th>
-                <th>Group</th>
+                <th>Event type</th>
                 <th>Category</th>
                 <th>Result</th>
                 <th>Status</th>
@@ -104,7 +104,7 @@
               <tr v-for="guard in filtered" :key="guard.guardId">
                 <td>{{ guard.name }}</td>
                 <td>
-                  <Badge :value="guard.groupKind" variant="secondary" size="s" />
+                  <Badge :value="guard.eventType" variant="secondary" size="s" :uppercase="false" />
                 </td>
                 <td>
                   <Badge :value="guard.category" variant="info" size="s" />
@@ -170,15 +170,23 @@
             </label>
           </div>
 
-          <div class="field-group c2">
-            <label class="field-label">Group</label>
+          <div class="field-group c3">
+            <label class="field-label">Event type <span class="field-required">*</span></label>
             <div class="field-wrap">
-              <select v-model="form.groupKind" class="field-input">
-                <option v-for="g in GROUP_KINDS" :key="g" :value="g">{{ g }}</option>
-              </select>
+              <input
+                v-model="form.eventType"
+                class="field-input is-mono"
+                type="text"
+                list="guardian-event-types"
+                placeholder="e.g. jdk.ExecutionSample"
+                required
+              />
             </div>
+            <datalist id="guardian-event-types">
+              <option v-for="et in COMMON_EVENT_TYPES" :key="et" :value="et" />
+            </datalist>
           </div>
-          <div class="field-group c2">
+          <div class="field-group c3">
             <label class="field-label">Category</label>
             <div class="field-wrap">
               <select v-model="form.category" class="field-input">
@@ -186,6 +194,7 @@
               </select>
             </div>
           </div>
+
           <div class="field-group c2">
             <label class="field-label">Result type</label>
             <div class="field-wrap">
@@ -194,7 +203,6 @@
               </select>
             </div>
           </div>
-
           <div class="field-group c2">
             <label class="field-label">Target frame</label>
             <div class="field-wrap">
@@ -211,7 +219,8 @@
               </select>
             </div>
           </div>
-          <div class="field-group c1">
+
+          <div class="field-group c2">
             <label class="field-label">Info ≥</label>
             <div class="field-wrap">
               <input
@@ -222,7 +231,7 @@
               />
             </div>
           </div>
-          <div class="field-group c1">
+          <div class="field-group c2">
             <label class="field-label">Warn ≥</label>
             <div class="field-wrap">
               <input
@@ -230,6 +239,18 @@
                 class="field-input"
                 type="number"
                 step="0.01"
+              />
+            </div>
+          </div>
+          <div class="field-group c2">
+            <label class="field-label">Min samples</label>
+            <div class="field-wrap">
+              <input
+                v-model.number="form.minSamples"
+                class="field-input"
+                type="number"
+                step="100"
+                min="0"
               />
             </div>
           </div>
@@ -328,7 +349,15 @@ import GuardianGuardsClient from '@/services/api/GuardianGuardsClient';
 import type GuardianGuard from '@/services/api/model/GuardianGuard';
 import type { GuardianGuardRequest } from '@/services/api/model/GuardianGuard';
 
-const GROUP_KINDS = ['EXECUTION_SAMPLE', 'CPU_TIME_SAMPLE', 'ALLOCATION', 'WALL_CLOCK', 'BLOCKING'];
+// Suggestions only — the event type is free-form, so any stacktrace-carrying JFR event works.
+const COMMON_EVENT_TYPES = [
+  'jdk.ExecutionSample',
+  'jdk.CPUTimeSample',
+  'profiler.WallClockSample',
+  'jdk.JavaMonitorEnter',
+  'jdk.ThreadPark',
+  'jdk.ObjectAllocationSample'
+];
 const CATEGORIES = ['PREREQUISITES', 'GARBAGE_COLLECTION', 'JIT', 'APPLICATION', 'OTHERS'];
 const RESULT_TYPES = ['SAMPLES', 'WEIGHT', 'SELF_SAMPLES', 'SELF_WEIGHT'];
 const TARGET_FRAMES = ['JAVA', 'JVM', 'ALL'];
@@ -347,7 +376,7 @@ const loading = ref(true);
 const error = ref<string | null>(null);
 const guards = ref<GuardianGuard[]>([]);
 const search = ref('');
-const groupFilter = ref('');
+const eventTypeFilter = ref('');
 const categoryFilter = ref('');
 const statusFilter = ref<StatusFilter>('all');
 const showBuiltIn = ref(true);
@@ -363,7 +392,7 @@ const deleteTarget = ref<GuardianGuard | null>(null);
 
 const editorTitle = computed(() => (editingId.value ? 'Edit guard' : 'New guard'));
 
-const groupOptions = computed(() => [...new Set(guards.value.map(g => g.groupKind))].sort());
+const eventTypeOptions = computed(() => [...new Set(guards.value.map(g => g.eventType))].sort());
 const categoryOptions = computed(() => [...new Set(guards.value.map(g => g.category))].sort());
 
 const filtered = computed(() => {
@@ -372,7 +401,7 @@ const filtered = computed(() => {
     if (!showBuiltIn.value && guard.builtIn) {
       return false;
     }
-    if (groupFilter.value && guard.groupKind !== groupFilter.value) {
+    if (eventTypeFilter.value && guard.eventType !== eventTypeFilter.value) {
       return false;
     }
     if (categoryFilter.value && guard.category !== categoryFilter.value) {
@@ -388,7 +417,7 @@ const filtered = computed(() => {
       term &&
       !(
         guard.name.toLowerCase().includes(term) ||
-        guard.groupKind.toLowerCase().includes(term) ||
+        guard.eventType.toLowerCase().includes(term) ||
         guard.category.toLowerCase().includes(term)
       )
     ) {
@@ -401,7 +430,7 @@ const filtered = computed(() => {
 const filtersActive = computed(
   () =>
     search.value.trim() !== '' ||
-    groupFilter.value !== '' ||
+    eventTypeFilter.value !== '' ||
     categoryFilter.value !== '' ||
     statusFilter.value !== 'all' ||
     !showBuiltIn.value
@@ -409,7 +438,7 @@ const filtersActive = computed(
 
 function resetFilters(): void {
   search.value = '';
-  groupFilter.value = '';
+  eventTypeFilter.value = '';
   categoryFilter.value = '';
   statusFilter.value = 'all';
   showBuiltIn.value = true;
@@ -419,13 +448,14 @@ function emptyForm(): GuardianGuardRequest {
   return {
     name: '',
     enabled: true,
-    groupKind: 'EXECUTION_SAMPLE',
+    eventType: 'jdk.ExecutionSample',
     category: 'APPLICATION',
     resultType: 'SAMPLES',
     targetFrame: 'JAVA',
     matchingType: 'FULL_MATCH',
     infoThreshold: 0.03,
     warningThreshold: 0.05,
+    minSamples: 1000,
     matcherSpec: '{"anchor":{"type":"Predicate","op":"PREFIX","value":""}}',
     preconditions: null,
     summaryNoun: '',
@@ -458,13 +488,14 @@ function openEdit(guard: GuardianGuard): void {
   form.value = {
     name: guard.name,
     enabled: guard.enabled,
-    groupKind: guard.groupKind,
+    eventType: guard.eventType,
     category: guard.category,
     resultType: guard.resultType,
     targetFrame: guard.targetFrame,
     matchingType: guard.matchingType,
     infoThreshold: guard.infoThreshold,
     warningThreshold: guard.warningThreshold,
+    minSamples: guard.minSamples,
     matcherSpec: guard.matcherSpec,
     preconditions: guard.preconditions,
     summaryNoun: guard.summaryNoun,
@@ -478,6 +509,10 @@ function openEdit(guard: GuardianGuard): void {
 function validate(): boolean {
   if (!form.value.name.trim()) {
     formError.value = 'Name is required';
+    return false;
+  }
+  if (!form.value.eventType.trim()) {
+    formError.value = 'Event type is required';
     return false;
   }
   try {
@@ -699,6 +734,9 @@ onMounted(load);
 }
 .c2 {
   grid-column: span 2;
+}
+.c3 {
+  grid-column: span 3;
 }
 .c4 {
   grid-column: span 4;

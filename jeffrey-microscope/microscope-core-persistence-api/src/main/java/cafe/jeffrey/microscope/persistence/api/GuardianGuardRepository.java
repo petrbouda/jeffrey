@@ -22,8 +22,7 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * CRUD access to the central {@code guardians} table and the companion
- * {@code guardian_group_settings} table.
+ * CRUD access to the central {@code guardians} table.
  */
 public interface GuardianGuardRepository {
 
@@ -36,6 +35,4 @@ public interface GuardianGuardRepository {
     void update(GuardianGuard guard);
 
     void delete(String guardId);
-
-    List<GuardianGroupSetting> findAllGroupSettings();
 }

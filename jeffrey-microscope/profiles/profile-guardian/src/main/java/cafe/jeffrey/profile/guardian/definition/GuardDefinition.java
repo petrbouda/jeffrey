@@ -19,7 +19,6 @@
 package cafe.jeffrey.profile.guardian.definition;
 
 import cafe.jeffrey.profile.guardian.guard.Guard;
-import cafe.jeffrey.profile.guardian.guard.GroupKind;
 import cafe.jeffrey.profile.guardian.traverse.MatchingType;
 import cafe.jeffrey.profile.guardian.traverse.ResultType;
 import cafe.jeffrey.profile.guardian.traverse.TargetFrameType;
@@ -33,13 +32,14 @@ import cafe.jeffrey.profile.guardian.traverse.TargetFrameType;
  * @param name             display name shown in the Guardian results table
  * @param enabled          whether the guard participates in analysis
  * @param builtIn          true for shipped defaults, false for user-created guards
- * @param group            the event dimension the guard runs against
+ * @param eventType        the JFR event type whose stacktraces form the frame tree (e.g. {@code jdk.ExecutionSample})
  * @param category         UI grouping bucket
  * @param resultType       how the matched subtree is measured (samples / weight / self-*)
  * @param targetFrameType  whether the matcher walks Java, JVM/native, or all frames
  * @param matchingType     stop at the first match or accumulate all matches
  * @param infoThreshold    ratio above which severity flips to INFO
  * @param warningThreshold ratio above which severity flips to WARNING
+ * @param minSamples       minimum samples the event type must have before the guard runs
  * @param anchor           generic predicate tree locating the anchor frame
  * @param traversal        how observed frames are reached from the anchor
  * @param preconditions    applicability constraints (event source, GC type, symbols)
@@ -52,13 +52,14 @@ public record GuardDefinition(
         String name,
         boolean enabled,
         boolean builtIn,
-        GroupKind group,
+        String eventType,
         Guard.Category category,
         ResultType resultType,
         TargetFrameType targetFrameType,
         MatchingType matchingType,
         double infoThreshold,
         double warningThreshold,
+        long minSamples,
         MatchExpr anchor,
         TraversalStrategy traversal,
         GuardPreconditions preconditions,
@@ -70,8 +71,8 @@ public record GuardDefinition(
         if (name == null || name.isBlank()) {
             throw new IllegalArgumentException("Guard name must not be blank");
         }
-        if (group == null) {
-            throw new IllegalArgumentException("Guard group must not be null");
+        if (eventType == null || eventType.isBlank()) {
+            throw new IllegalArgumentException("Guard event type must not be blank");
         }
         if (category == null) {
             throw new IllegalArgumentException("Guard category must not be null");

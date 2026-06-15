@@ -56,9 +56,9 @@ class ConfigurableGuardTest {
     private static GuardDefinition definition(GuardPreconditions preconditions) {
         return new GuardDefinition(
                 "acme", "Acme Overhead", true, false,
-                GroupKind.EXECUTION_SAMPLE, Guard.Category.APPLICATION,
+                "jdk.ExecutionSample", Guard.Category.APPLICATION,
                 ResultType.SAMPLES, TargetFrameType.JAVA, MatchingType.FULL_MATCH,
-                INFO_THRESHOLD, WARNING_THRESHOLD,
+                INFO_THRESHOLD, WARNING_THRESHOLD, 1000,
                 MatchExpr.prefix("com.acme"), TraversalStrategy.CURRENT_FRAME,
                 preconditions, "Acme activity", "explanation", "solution");
     }

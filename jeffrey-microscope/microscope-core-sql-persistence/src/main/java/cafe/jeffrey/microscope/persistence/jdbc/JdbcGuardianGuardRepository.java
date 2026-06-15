@@ -18,7 +18,6 @@
 
 package cafe.jeffrey.microscope.persistence.jdbc;
 
-import cafe.jeffrey.microscope.persistence.api.GuardianGroupSetting;
 import cafe.jeffrey.microscope.persistence.api.GuardianGuard;
 import cafe.jeffrey.microscope.persistence.api.GuardianGuardRepository;
 import org.springframework.jdbc.core.RowMapper;
@@ -46,21 +45,21 @@ public class JdbcGuardianGuardRepository implements GuardianGuardRepository {
     //language=SQL
     private static final String INSERT = """
             INSERT INTO guardians
-                (guard_id, name, enabled, built_in, group_kind, category, result_type, target_frame,
-                 matching_type, info_threshold, warning_threshold, matcher_spec, preconditions,
+                (guard_id, name, enabled, built_in, event_type, category, result_type, target_frame,
+                 matching_type, info_threshold, warning_threshold, min_samples, matcher_spec, preconditions,
                  summary_noun, explanation, solution, created_at)
             VALUES
-                (:guard_id, :name, :enabled, :built_in, :group_kind, :category, :result_type, :target_frame,
-                 :matching_type, :info_threshold, :warning_threshold, :matcher_spec, :preconditions,
+                (:guard_id, :name, :enabled, :built_in, :event_type, :category, :result_type, :target_frame,
+                 :matching_type, :info_threshold, :warning_threshold, :min_samples, :matcher_spec, :preconditions,
                  :summary_noun, :explanation, :solution, :created_at)""";
 
     //language=SQL
     private static final String UPDATE = """
             UPDATE guardians SET
-                name = :name, enabled = :enabled, built_in = :built_in, group_kind = :group_kind,
+                name = :name, enabled = :enabled, built_in = :built_in, event_type = :event_type,
                 category = :category, result_type = :result_type, target_frame = :target_frame,
                 matching_type = :matching_type, info_threshold = :info_threshold,
-                warning_threshold = :warning_threshold, matcher_spec = :matcher_spec,
+                warning_threshold = :warning_threshold, min_samples = :min_samples, matcher_spec = :matcher_spec,
                 preconditions = :preconditions, summary_noun = :summary_noun, explanation = :explanation,
                 solution = :solution
             WHERE guard_id = :guard_id""";
@@ -68,10 +67,6 @@ public class JdbcGuardianGuardRepository implements GuardianGuardRepository {
     //language=SQL
     private static final String DELETE =
             "DELETE FROM guardians WHERE guard_id = :guard_id";
-
-    //language=SQL
-    private static final String SELECT_GROUP_SETTINGS =
-            "SELECT * FROM guardian_group_settings ORDER BY group_kind";
 
     private final DatabaseClient databaseClient;
 
@@ -116,28 +111,20 @@ public class JdbcGuardianGuardRepository implements GuardianGuardRepository {
         databaseClient.update(StatementLabel.DELETE_GUARDIAN_GUARD, DELETE, params);
     }
 
-    @Override
-    public List<GuardianGroupSetting> findAllGroupSettings() {
-        return databaseClient.query(
-                StatementLabel.FIND_ALL_GUARDIAN_GROUP_SETTINGS,
-                SELECT_GROUP_SETTINGS,
-                new MapSqlParameterSource(),
-                (rs, _) -> new GuardianGroupSetting(rs.getString("group_kind"), rs.getLong("min_samples")));
-    }
-
     private static MapSqlParameterSource guardParams(GuardianGuard guard) {
         return new MapSqlParameterSource()
                 .addValue("guard_id", guard.guardId())
                 .addValue("name", guard.name())
                 .addValue("enabled", guard.enabled())
                 .addValue("built_in", guard.builtIn())
-                .addValue("group_kind", guard.groupKind())
+                .addValue("event_type", guard.eventType())
                 .addValue("category", guard.category())
                 .addValue("result_type", guard.resultType())
                 .addValue("target_frame", guard.targetFrame())
                 .addValue("matching_type", guard.matchingType())
                 .addValue("info_threshold", guard.infoThreshold())
                 .addValue("warning_threshold", guard.warningThreshold())
+                .addValue("min_samples", guard.minSamples())
                 .addValue("matcher_spec", guard.matcherSpec())
                 .addValue("preconditions", guard.preconditions())
                 .addValue("summary_noun", guard.summaryNoun())
@@ -154,13 +141,14 @@ public class JdbcGuardianGuardRepository implements GuardianGuardRepository {
                     rs.getString("name"),
                     rs.getBoolean("enabled"),
                     rs.getBoolean("built_in"),
-                    rs.getString("group_kind"),
+                    rs.getString("event_type"),
                     rs.getString("category"),
                     rs.getString("result_type"),
                     rs.getString("target_frame"),
                     rs.getString("matching_type"),
                     rs.getDouble("info_threshold"),
                     rs.getDouble("warning_threshold"),
+                    rs.getLong("min_samples"),
                     rs.getString("matcher_spec"),
                     rs.getString("preconditions"),
                     rs.getString("summary_noun"),

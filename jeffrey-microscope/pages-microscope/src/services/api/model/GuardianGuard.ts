@@ -25,13 +25,14 @@ export default interface GuardianGuard {
   name: string;
   enabled: boolean;
   builtIn: boolean;
-  groupKind: string;
+  eventType: string;
   category: string;
   resultType: string;
   targetFrame: string;
   matchingType: string;
   infoThreshold: number;
   warningThreshold: number;
+  minSamples: number;
   matcherSpec: string;
   preconditions: string | null;
   summaryNoun: string | null;

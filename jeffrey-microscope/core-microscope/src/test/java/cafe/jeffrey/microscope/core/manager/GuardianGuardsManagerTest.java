@@ -18,7 +18,6 @@
 
 package cafe.jeffrey.microscope.core.manager;
 
-import cafe.jeffrey.microscope.persistence.api.GuardianGroupSetting;
 import cafe.jeffrey.microscope.persistence.api.GuardianGuard;
 import cafe.jeffrey.microscope.persistence.api.GuardianGuardRepository;
 import org.junit.jupiter.api.Test;
@@ -48,8 +47,8 @@ class GuardianGuardsManagerTest {
     private static GuardianGuard draft(String name) {
         return new GuardianGuard(
                 null, name, true, false,
-                "EXECUTION_SAMPLE", "APPLICATION", "SAMPLES", "JAVA", "FULL_MATCH",
-                0.03, 0.05,
+                "jdk.ExecutionSample", "APPLICATION", "SAMPLES", "JAVA", "FULL_MATCH",
+                0.03, 0.05, 1000,
                 "{\"anchor\":{\"type\":\"Predicate\",\"op\":\"PREFIX\",\"value\":\"com.acme.\"}}",
                 null, "Acme activity", "explanation", "solution", null);
     }
@@ -71,8 +70,8 @@ class GuardianGuardsManagerTest {
         Instant originalCreatedAt = Instant.parse("2026-01-01T00:00:00Z");
         repository.insert(new GuardianGuard(
                 "exec-logback", "Logback CPU Overhead", true, true,
-                "EXECUTION_SAMPLE", "APPLICATION", "SAMPLES", "JAVA", "FULL_MATCH",
-                0.02, 0.03, "{\"anchor\":{\"type\":\"Predicate\",\"op\":\"PREFIX\",\"value\":\"ch.qos.logback\"}}",
+                "jdk.ExecutionSample", "APPLICATION", "SAMPLES", "JAVA", "FULL_MATCH",
+                0.02, 0.03, 1000, "{\"anchor\":{\"type\":\"Predicate\",\"op\":\"PREFIX\",\"value\":\"ch.qos.logback\"}}",
                 null, "the logging", "e", "s", originalCreatedAt));
 
         Optional<GuardianGuard> updated = manager.update("exec-logback", draft("Edited"));
@@ -122,11 +121,6 @@ class GuardianGuardsManagerTest {
         @Override
         public void delete(String guardId) {
             store.remove(guardId);
-        }
-
-        @Override
-        public List<GuardianGroupSetting> findAllGroupSettings() {
-            return List.of();
         }
     }
 }

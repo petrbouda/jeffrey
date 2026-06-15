@@ -30,5 +30,4 @@ module cafe.jeffrey.microscope.profile.guardian {
     exports cafe.jeffrey.profile.guardian.preconditions;
     exports cafe.jeffrey.profile.guardian.prereq;
     exports cafe.jeffrey.profile.guardian.traverse;
-    exports cafe.jeffrey.profile.guardian.type;
 }

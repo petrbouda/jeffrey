@@ -21,7 +21,6 @@ package cafe.jeffrey.profile.guardian;
 import tools.jackson.core.type.TypeReference;
 import cafe.jeffrey.profile.guardian.definition.GuardDefinition;
 import cafe.jeffrey.profile.guardian.definition.GuardDefinitions;
-import cafe.jeffrey.profile.guardian.guard.GroupKind;
 import cafe.jeffrey.provider.profile.api.CachingSupplier;
 import cafe.jeffrey.provider.profile.api.ProfileCacheRepository;
 import cafe.jeffrey.shared.common.CacheKey;
@@ -62,9 +61,6 @@ public class CachingGuardianProvider implements GuardianProvider {
         StringBuilder fingerprint = new StringBuilder();
         for (GuardDefinition definition : definitions.all()) {
             fingerprint.append(definition).append('\n');
-        }
-        for (GroupKind kind : GroupKind.values()) {
-            fingerprint.append(kind).append('=').append(definitions.minSamples(kind)).append('\n');
         }
         return String.format("%08x", fingerprint.toString().hashCode());
     }

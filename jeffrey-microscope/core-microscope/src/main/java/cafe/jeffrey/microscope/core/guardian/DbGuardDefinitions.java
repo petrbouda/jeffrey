@@ -19,13 +19,11 @@
 package cafe.jeffrey.microscope.core.guardian;
 
 import cafe.jeffrey.microscope.core.guardian.GuardSpecJson.ParsedSpec;
-import cafe.jeffrey.microscope.persistence.api.GuardianGroupSetting;
 import cafe.jeffrey.microscope.persistence.api.GuardianGuard;
 import cafe.jeffrey.microscope.persistence.api.GuardianGuardRepository;
 import cafe.jeffrey.profile.guardian.definition.GuardDefinition;
 import cafe.jeffrey.profile.guardian.definition.GuardDefinitions;
 import cafe.jeffrey.profile.guardian.definition.GuardPreconditions;
-import cafe.jeffrey.profile.guardian.guard.GroupKind;
 import cafe.jeffrey.profile.guardian.guard.Guard;
 import cafe.jeffrey.profile.guardian.traverse.MatchingType;
 import cafe.jeffrey.profile.guardian.traverse.ResultType;
@@ -34,10 +32,9 @@ import cafe.jeffrey.profile.guardian.traverse.TargetFrameType;
 import java.util.List;
 
 /**
- * Loads guard definitions from the central database (the {@code guardians} and
- * {@code guardian_group_settings} tables) and maps the raw rows into the typed domain model the
- * Guardian engine consumes. Queries live on each call so edits made through the UI take effect on the
- * next Guardian run.
+ * Loads guard definitions from the central {@code guardians} table and maps the raw rows into the
+ * typed domain model the Guardian engine consumes. Queries live on each call so edits made through
+ * the UI take effect on the next Guardian run.
  */
 public class DbGuardDefinitions implements GuardDefinitions {
 
@@ -55,15 +52,6 @@ public class DbGuardDefinitions implements GuardDefinitions {
                 .toList();
     }
 
-    @Override
-    public long minSamples(GroupKind group) {
-        return repository.findAllGroupSettings().stream()
-                .filter(setting -> setting.groupKind().equals(group.name()))
-                .mapToLong(GuardianGroupSetting::minSamples)
-                .findFirst()
-                .orElse(0L);
-    }
-
     private static GuardDefinition toDefinition(GuardianGuard guard) {
         ParsedSpec spec = GuardSpecJson.parseSpec(guard.matcherSpec());
         GuardPreconditions preconditions = GuardSpecJson.parsePreconditions(guard.preconditions());
@@ -72,13 +60,14 @@ public class DbGuardDefinitions implements GuardDefinitions {
                 guard.name(),
                 guard.enabled(),
                 guard.builtIn(),
-                GroupKind.valueOf(guard.groupKind()),
+                guard.eventType(),
                 Guard.Category.valueOf(guard.category()),
                 ResultType.valueOf(guard.resultType()),
                 TargetFrameType.valueOf(guard.targetFrame()),
                 MatchingType.valueOf(guard.matchingType()),
                 guard.infoThreshold(),
                 guard.warningThreshold(),
+                guard.minSamples(),
                 spec.anchor(),
                 spec.traversal(),
                 preconditions,

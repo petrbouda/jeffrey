@@ -18,27 +18,15 @@
 
 package cafe.jeffrey.profile.guardian.definition;
 
-import cafe.jeffrey.profile.guardian.guard.GroupKind;
-
 import java.util.List;
 
 /**
- * Supplies the effective guard definitions and the per-group minimum-sample gates that drive a
- * Guardian run. Implemented in core-microscope by reading the central database, keeping the
- * {@code profile-guardian} module free of any persistence dependency.
+ * Supplies the effective guard definitions that drive a Guardian run. Implemented in core-microscope
+ * by reading the central database, keeping the {@code profile-guardian} module free of any persistence
+ * dependency. Guardian groups the definitions by their {@link GuardDefinition#eventType()} at runtime.
  */
 public interface GuardDefinitions {
 
-    /** All enabled guard definitions, across every group. */
+    /** All enabled guard definitions, across every event type. */
     List<GuardDefinition> all();
-
-    /** Enabled guard definitions belonging to the given group. */
-    default List<GuardDefinition> forGroup(GroupKind group) {
-        return all().stream()
-                .filter(definition -> definition.group() == group)
-                .toList();
-    }
-
-    /** Minimum number of samples a group must have before its guards run. */
-    long minSamples(GroupKind group);
 }
