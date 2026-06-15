@@ -21,10 +21,13 @@ package cafe.jeffrey.microscope.core.configuration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import cafe.jeffrey.microscope.core.guardian.DbGuardDefinitions;
+import cafe.jeffrey.microscope.core.manager.GuardianGuardsManager;
 import cafe.jeffrey.microscope.persistence.api.GuardianGuardRepository;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCorePersistenceProvider;
 import cafe.jeffrey.microscope.persistence.jdbc.JdbcGuardianGuardRepository;
 import cafe.jeffrey.profile.guardian.definition.GuardDefinitions;
+
+import java.time.Clock;
 
 /**
  * Wires the database-backed Guardian guard configuration: the CRUD repository over the central
@@ -42,5 +45,10 @@ public class GuardianConfiguration {
     @Bean
     public GuardDefinitions guardDefinitions(GuardianGuardRepository guardianGuardRepository) {
         return new DbGuardDefinitions(guardianGuardRepository);
+    }
+
+    @Bean
+    public GuardianGuardsManager guardianGuardsManager(GuardianGuardRepository guardianGuardRepository, Clock clock) {
+        return new GuardianGuardsManager(guardianGuardRepository, clock);
     }
 }
