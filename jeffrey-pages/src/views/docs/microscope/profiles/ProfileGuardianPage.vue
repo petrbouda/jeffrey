@@ -234,7 +234,7 @@ const matcherSpecExample = `{
 
       <h2 id="configuration">Configuration</h2>
 
-      <p>Guards are no longer hard-coded. Every guard is a row in a central <code>guardian_guards</code> table in the Microscope core database, seeded with all the built-in guards on first start (via the Flyway migration). Manage them from the <strong>Guardian Guards</strong> page in the Microscope — edit any built-in guard, toggle it on/off, or add your own. Configuration is shared across all profiles, not per-recording.</p>
+      <p>Guards are no longer hard-coded. Every guard is a row in a central <code>guardian_guards</code> table in the Microscope core database, seeded with all the built-in guards on first start (via the Flyway migration). Manage them from the <strong>Guardians</strong> page in the Microscope — edit any built-in guard, toggle it on/off, or add your own. Configuration is shared across all profiles, not per-recording.</p>
 
       <p>Each guard row carries its group, category, result type, target-frame type, matching type, the INFO/WARNING thresholds, optional preconditions (event source, GC type), the summary/explanation/solution text, and a <strong>matcher spec</strong>. The matcher spec is a small JSON predicate tree — a leaf <code>Predicate</code> tests a frame name with one of <code>PREFIX</code>, <code>SUFFIX</code>, <code>CONTAINS</code>, <code>EQUALS</code>, or <code>REGEX</code>, and <code>AnyOf</code> / <code>AllOf</code> / <code>Not</code> compose leaves into arbitrary boolean expressions. This means a custom matcher can be expressed entirely from the UI without any code change:</p>
 

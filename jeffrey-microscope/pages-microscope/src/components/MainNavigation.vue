@@ -16,7 +16,7 @@
         </router-link>
         <router-link to="/guardian-guards" class="nav-pill" active-class="active">
           <i class="bi bi-shield-check"></i>
-          <span>Guardian Guards</span>
+          <span>Guardians</span>
         </router-link>
       </div>
     </div>

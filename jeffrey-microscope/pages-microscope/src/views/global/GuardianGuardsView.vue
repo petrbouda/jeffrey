@@ -20,7 +20,7 @@
   <div>
     <MainCard>
       <template #header>
-        <MainCardHeader icon="bi bi-shield-check" title="Guardian Guards" />
+        <MainCardHeader icon="bi bi-shield-check" title="Guardians" />
       </template>
 
       <p class="text-muted mb-3">
