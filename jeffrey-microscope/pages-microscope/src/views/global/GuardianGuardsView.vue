@@ -66,8 +66,12 @@
             <tbody>
               <tr v-for="guard in filtered" :key="guard.guardId">
                 <td>{{ guard.name }}</td>
-                <td><Badge variant="secondary" size="s">{{ guard.groupKind }}</Badge></td>
-                <td><Badge variant="info" size="s">{{ guard.category }}</Badge></td>
+                <td>
+                  <Badge variant="secondary" size="s">{{ guard.groupKind }}</Badge>
+                </td>
+                <td>
+                  <Badge variant="info" size="s">{{ guard.category }}</Badge>
+                </td>
                 <td>{{ guard.resultType }}</td>
                 <td>
                   <Badge :variant="guard.enabled ? 'success' : 'secondary'" size="s">
@@ -104,7 +108,12 @@
           </div>
           <div class="col-md-4 d-flex align-items-end">
             <div class="form-check">
-              <input id="guard-enabled" v-model="form.enabled" class="form-check-input" type="checkbox" />
+              <input
+                id="guard-enabled"
+                v-model="form.enabled"
+                class="form-check-input"
+                type="checkbox"
+              />
               <label class="form-check-label" for="guard-enabled">Enabled</label>
             </div>
           </div>
@@ -142,11 +151,21 @@
           </div>
           <div class="col-md-2">
             <label class="form-label">Info ≥</label>
-            <input v-model.number="form.infoThreshold" type="number" step="0.01" class="form-control form-control-sm" />
+            <input
+              v-model.number="form.infoThreshold"
+              type="number"
+              step="0.01"
+              class="form-control form-control-sm"
+            />
           </div>
           <div class="col-md-2">
             <label class="form-label">Warn ≥</label>
-            <input v-model.number="form.warningThreshold" type="number" step="0.01" class="form-control form-control-sm" />
+            <input
+              v-model.number="form.warningThreshold"
+              type="number"
+              step="0.01"
+              class="form-control form-control-sm"
+            />
           </div>
 
           <div class="col-12">
@@ -156,28 +175,50 @@
           <div class="col-12">
             <label class="form-label">
               Matcher spec (JSON) —
-              <span class="text-muted">e.g. {"anchor":{"type":"Predicate","op":"PREFIX","value":"com.acme."}}</span>
+              <span class="text-muted"
+                >e.g. {"anchor":{"type":"Predicate","op":"PREFIX","value":"com.acme."}}</span
+              >
             </label>
-            <textarea v-model="form.matcherSpec" rows="4" class="form-control form-control-sm font-monospace"></textarea>
+            <textarea
+              v-model="form.matcherSpec"
+              rows="4"
+              class="form-control form-control-sm font-monospace"
+            ></textarea>
           </div>
           <div class="col-12">
             <label class="form-label">Preconditions (JSON, optional)</label>
-            <textarea v-model="form.preconditions" rows="2" class="form-control form-control-sm font-monospace"></textarea>
+            <textarea
+              v-model="form.preconditions"
+              rows="2"
+              class="form-control form-control-sm font-monospace"
+            ></textarea>
           </div>
           <div class="col-12">
             <label class="form-label">Explanation (HTML, optional)</label>
-            <textarea v-model="form.explanation" rows="3" class="form-control form-control-sm"></textarea>
+            <textarea
+              v-model="form.explanation"
+              rows="3"
+              class="form-control form-control-sm"
+            ></textarea>
           </div>
           <div class="col-12">
             <label class="form-label">Solution (HTML, optional)</label>
-            <textarea v-model="form.solution" rows="3" class="form-control form-control-sm"></textarea>
+            <textarea
+              v-model="form.solution"
+              rows="3"
+              class="form-control form-control-sm"
+            ></textarea>
           </div>
         </div>
 
         <div v-if="formError" class="text-danger small mt-2">{{ formError }}</div>
 
         <div class="d-flex justify-content-end gap-2 mt-3">
-          <button type="button" class="btn btn-sm btn-outline-secondary" @click="showEditor = false">
+          <button
+            type="button"
+            class="btn btn-sm btn-outline-secondary"
+            @click="showEditor = false"
+          >
             Cancel
           </button>
           <button type="submit" class="btn btn-sm btn-primary" :disabled="saving">
@@ -189,7 +230,10 @@
 
     <!-- Delete confirmation -->
     <GenericModal v-model:show="showDelete" title="Delete guard" size="sm" :show-footer="false">
-      <p>Delete guard <strong>{{ deleteTarget?.name }}</strong>? This cannot be undone.</p>
+      <p>
+        Delete guard <strong>{{ deleteTarget?.name }}</strong
+        >? This cannot be undone.
+      </p>
       <div class="d-flex justify-content-end gap-2">
         <button class="btn btn-sm btn-outline-secondary" @click="showDelete = false">Cancel</button>
         <button class="btn btn-sm btn-danger" :disabled="saving" @click="doDelete">Delete</button>
@@ -272,8 +316,8 @@ async function load(): Promise<void> {
   error.value = null;
   try {
     guards.value = await client.list();
-  } catch (e: any) {
-    error.value = e?.message ?? 'Failed to load guards';
+  } catch (e: unknown) {
+    error.value = e instanceof Error ? e.message : 'Failed to load guards';
   } finally {
     loading.value = false;
   }
@@ -346,8 +390,8 @@ async function save(): Promise<void> {
     }
     showEditor.value = false;
     await load();
-  } catch (e: any) {
-    formError.value = e?.message ?? 'Failed to save guard';
+  } catch (e: unknown) {
+    formError.value = e instanceof Error ? e.message : 'Failed to save guard';
   } finally {
     saving.value = false;
   }
