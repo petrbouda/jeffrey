@@ -31,17 +31,54 @@
       <LoadingState v-if="loading" />
       <ErrorState v-else-if="error" :message="error" />
       <template v-else>
-        <div class="d-flex justify-content-between align-items-center mb-3 gap-2">
-          <input
-            v-model="search"
-            type="text"
-            class="form-control form-control-sm"
-            style="max-width: 320px"
-            placeholder="Search guards…"
-          />
-          <button class="btn btn-sm btn-primary" @click="openCreate">
-            <i class="bi bi-plus-lg"></i> New Guard
-          </button>
+        <div class="guardians-toolbar">
+          <div class="field-wrap toolbar-search">
+            <i class="bi bi-search toolbar-search-icon"></i>
+            <input v-model="search" class="field-input" type="text" placeholder="Search guards…" />
+          </div>
+
+          <div class="field-wrap toolbar-select">
+            <select v-model="groupFilter" class="field-input">
+              <option value="">All groups</option>
+              <option v-for="g in groupOptions" :key="g" :value="g">{{ g }}</option>
+            </select>
+          </div>
+
+          <div class="field-wrap toolbar-select">
+            <select v-model="categoryFilter" class="field-input">
+              <option value="">All categories</option>
+              <option v-for="c in categoryOptions" :key="c" :value="c">{{ c }}</option>
+            </select>
+          </div>
+
+          <div class="segmented" role="group" aria-label="Status filter">
+            <button
+              v-for="opt in STATUS_OPTIONS"
+              :key="opt.value"
+              type="button"
+              class="segmented-btn"
+              :class="{ active: statusFilter === opt.value }"
+              @click="statusFilter = opt.value"
+            >
+              {{ opt.label }}
+            </button>
+          </div>
+
+          <label class="toolbar-switch" :class="{ on: showBuiltIn }">
+            <input v-model="showBuiltIn" type="checkbox" />
+            <span class="switch-track"><span class="switch-knob"></span></span>
+            <span class="switch-text">Built-in</span>
+          </label>
+
+          <div class="toolbar-right">
+            <span class="toolbar-count">{{ filtered.length }} of {{ guards.length }}</span>
+            <button v-if="filtersActive" type="button" class="toolbar-reset" @click="resetFilters">
+              <i class="bi bi-x-circle"></i> Reset
+            </button>
+            <button class="btn btn-sm btn-primary" @click="openCreate">
+              <i class="bi bi-plus-lg"></i> New Guard
+            </button>
+          </div>
         </div>
 
         <EmptyState
@@ -299,10 +336,21 @@ const MATCHING_TYPES = ['FULL_MATCH', 'SINGLE_MATCH'];
 
 const client = new GuardianGuardsClient();
 
+type StatusFilter = 'all' | 'enabled' | 'disabled';
+const STATUS_OPTIONS: { value: StatusFilter; label: string }[] = [
+  { value: 'all', label: 'All' },
+  { value: 'enabled', label: 'Enabled' },
+  { value: 'disabled', label: 'Disabled' }
+];
+
 const loading = ref(true);
 const error = ref<string | null>(null);
 const guards = ref<GuardianGuard[]>([]);
 const search = ref('');
+const groupFilter = ref('');
+const categoryFilter = ref('');
+const statusFilter = ref<StatusFilter>('all');
+const showBuiltIn = ref(true);
 
 const showEditor = ref(false);
 const editingId = ref<string | null>(null);
@@ -315,18 +363,57 @@ const deleteTarget = ref<GuardianGuard | null>(null);
 
 const editorTitle = computed(() => (editingId.value ? 'Edit guard' : 'New guard'));
 
+const groupOptions = computed(() => [...new Set(guards.value.map(g => g.groupKind))].sort());
+const categoryOptions = computed(() => [...new Set(guards.value.map(g => g.category))].sort());
+
 const filtered = computed(() => {
   const term = search.value.trim().toLowerCase();
-  if (!term) {
-    return guards.value;
-  }
-  return guards.value.filter(
-    g =>
-      g.name.toLowerCase().includes(term) ||
-      g.groupKind.toLowerCase().includes(term) ||
-      g.category.toLowerCase().includes(term)
-  );
+  return guards.value.filter(guard => {
+    if (!showBuiltIn.value && guard.builtIn) {
+      return false;
+    }
+    if (groupFilter.value && guard.groupKind !== groupFilter.value) {
+      return false;
+    }
+    if (categoryFilter.value && guard.category !== categoryFilter.value) {
+      return false;
+    }
+    if (statusFilter.value === 'enabled' && !guard.enabled) {
+      return false;
+    }
+    if (statusFilter.value === 'disabled' && guard.enabled) {
+      return false;
+    }
+    if (
+      term &&
+      !(
+        guard.name.toLowerCase().includes(term) ||
+        guard.groupKind.toLowerCase().includes(term) ||
+        guard.category.toLowerCase().includes(term)
+      )
+    ) {
+      return false;
+    }
+    return true;
+  });
 });
+
+const filtersActive = computed(
+  () =>
+    search.value.trim() !== '' ||
+    groupFilter.value !== '' ||
+    categoryFilter.value !== '' ||
+    statusFilter.value !== 'all' ||
+    !showBuiltIn.value
+);
+
+function resetFilters(): void {
+  search.value = '';
+  groupFilter.value = '';
+  categoryFilter.value = '';
+  statusFilter.value = 'all';
+  showBuiltIn.value = true;
+}
 
 function emptyForm(): GuardianGuardRequest {
   return {
@@ -457,6 +544,145 @@ onMounted(load);
 </script>
 
 <style scoped>
+/* ===== Filter toolbar ===== */
+.guardians-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+  background: var(--color-neutral-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.guardians-toolbar .field-wrap {
+  height: 40px;
+  background: var(--color-white);
+}
+
+.toolbar-search {
+  flex: 1 1 240px;
+  min-width: 200px;
+}
+
+.toolbar-search-icon {
+  color: var(--color-text-muted);
+}
+
+.toolbar-select {
+  flex: 0 0 auto;
+  min-width: 160px;
+}
+
+.segmented {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.segmented-btn {
+  border: none;
+  background: transparent;
+  padding: 6px 12px;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-muted);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.segmented-btn:hover {
+  color: var(--color-dark);
+}
+
+.segmented-btn.active {
+  background: var(--color-primary);
+  color: var(--color-white);
+}
+
+.toolbar-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.toolbar-switch input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.switch-track {
+  position: relative;
+  flex: 0 0 auto;
+  width: 38px;
+  height: 22px;
+  border-radius: var(--radius-lg);
+  background: var(--color-border);
+  transition: background var(--transition-base);
+}
+
+.switch-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--color-white);
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--transition-base);
+}
+
+.toolbar-switch.on .switch-track {
+  background: var(--color-primary);
+}
+
+.toolbar-switch.on .switch-knob {
+  transform: translateX(16px);
+}
+
+.switch-text {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-dark);
+}
+
+.toolbar-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.toolbar-count {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.toolbar-reset {
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  padding: 4px 6px;
+}
+
+.toolbar-reset:hover {
+  color: var(--color-danger);
+}
+
 .guard-form {
   display: flex;
   flex-direction: column;
