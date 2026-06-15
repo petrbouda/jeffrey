@@ -14,6 +14,10 @@
           <i class="bi bi-sliders"></i>
           <span>Settings</span>
         </router-link>
+        <router-link to="/guardian-guards" class="nav-pill" active-class="active">
+          <i class="bi bi-shield-check"></i>
+          <span>Guardian Guards</span>
+        </router-link>
       </div>
     </div>
   </div>

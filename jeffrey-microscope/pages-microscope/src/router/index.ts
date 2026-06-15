@@ -583,6 +583,11 @@ const router = createRouter({
           path: 'settings',
           name: 'settings',
           component: () => import('@/views/global/SettingsView.vue')
+        },
+        {
+          path: 'guardian-guards',
+          name: 'guardian-guards',
+          component: () => import('@/views/global/GuardianGuardsView.vue')
         }
       ]
     },
