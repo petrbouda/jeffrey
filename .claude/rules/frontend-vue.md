@@ -19,17 +19,39 @@ paths:
 
 ### Required Components
 - Badges: use `Badge.vue` component (never raw `<span class="badge">`)
-- Modals: use `GenericModal` with `v-model:show`
-- Page headers: use `layout/PageHeader.vue` or `MainCardHeader.vue`
-- Sortable tables: use `SortableTableHeader`
+- Modals: use `GenericModal` with `v-model:show` (see Modals below); wide modals use the `events-modal-dialog` pattern
+- Page headers: use `MainCardHeader.vue` inside `MainCard` (or `layout/PageHeader.vue` for non-card pages)
+- Tables: use the `components/table/DataTable.vue` family (see Tables below)
 
 ### Three-State View Pattern
-- Every async view: `<LoadingState v-if="loading" />` -> `<ErrorState v-else-if="error" />` -> content
-- Empty tables: show `<EmptyState>` component
+- Every async view: `<LoadingState v-if="loading" />` -> `<ErrorState v-else-if="error" :message="error" />` -> `<template v-else>` content
+- Empty content/tables: show `<EmptyState>` component
+
+### Pages
+- Scaffold a new page with `MainCard` -> `#header` slot holds `MainCardHeader` (props `icon`, `title`, `:badge?`, `#actions` slot) -> three-state pattern in the default slot
+- Live in `views/global/` (workspace/project scope) or `views/profiles/` (profile scope); API client extends `BasePlatformClient` or `BaseProfileClient`
+- Use the `/global-page` skill for the full scaffold. References: `views/global/RecordingsView.vue`, `views/global/GuardiansView.vue`
 
 ### Tables
-- CSS classes: `table table-sm table-hover mb-0`
-- Wrap in `<div class="table-responsive">`
+- Use the `components/table/DataTable.vue` family — do NOT hand-roll `<div class="table-responsive"><table>`; `DataTable` already renders the `table table-sm table-hover mb-0` markup inside a card
+- `DataTable` slots: `#toolbar` (use `TableToolbar` — `v-model` search + `#filters` slot), default (your `<thead>`/`<tbody>`), `#footer` (use `TableShowMore` for pagination)
+- Sortable columns: `SortableTableHeader` (props `column`, `label`, `sortColumn`, `sortDirection`, `align`, `width?`; emits `sort`); right-align numerics with `text-end`
+- Empty data: render `<EmptyState>` as a sibling instead of an empty `DataTable`
+- Use the `/data-table` skill for the full scaffold. Reference: `views/profiles/detail/ProfileThreadDumps.vue`
+
+### Modals
+- Always `GenericModal` with `v-model:show` — never a custom overlay. Props: `modalId`, `title`, `icon`, `size` (`sm|md|lg|xl|fullscreen`), `modalDialogClass`, `showFooter`; slots: default body, `#header`, `#title`, `#footer`
+- Size guide: `md` simple forms · `lg` lists / single column · `xl` rich / two-column · **wide near-fullscreen** for large editors
+- Wide pattern (equal gutters, body is the single scroll container, footer pinned):
+  ```vue
+  <GenericModal ... size="xl"
+    modal-dialog-class="my-modal-dialog events-modal-dialog modal-dialog-centered">
+  ```
+  ```css
+  /* scoped */
+  :deep(.modal-dialog.my-modal-dialog) { max-width: none; width: calc(100vw - 3.5rem); }
+  ```
+  `events-modal-dialog` is defined globally in `assets/styles.scss`. Use the `/new-modal` skill. Reference: `views/global/GuardiansView.vue`
 
 ### Shared CSS
 - Check `@/styles/shared-components.css` and `@/assets/_sidebar-menu.scss` before adding scoped styles

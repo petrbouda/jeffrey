@@ -20,13 +20,14 @@
   <div>
     <MainCard>
       <template #header>
-        <MainCardHeader icon="bi bi-shield-check" title="Guardians" />
+        <MainCardHeader icon="bi bi-shield-check" title="Guardians" :badge="guards.length">
+          <template #actions>
+            <button class="btn btn-sm btn-primary" @click="openCreate">
+              <i class="bi bi-plus-lg"></i> New Guard
+            </button>
+          </template>
+        </MainCardHeader>
       </template>
-
-      <p class="text-muted mb-3">
-        Guardian guards are loaded from the central database. Built-in guards ship as defaults; you
-        can edit any of them or add your own custom guard.
-      </p>
 
       <LoadingState v-if="loading" />
       <ErrorState v-else-if="error" :message="error" />
@@ -75,9 +76,6 @@
             <button v-if="filtersActive" type="button" class="toolbar-reset" @click="resetFilters">
               <i class="bi bi-x-circle"></i> Reset
             </button>
-            <button class="btn btn-sm btn-primary" @click="openCreate">
-              <i class="bi bi-plus-lg"></i> New Guard
-            </button>
           </div>
         </div>
 
@@ -87,217 +85,309 @@
           title="No guards"
           description="No Guardian guards match the current search."
         />
-        <div v-else class="table-responsive">
-          <table class="table table-sm table-hover mb-0">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Event type</th>
-                <th>Category</th>
-                <th>Result</th>
-                <th>Status</th>
-                <th>Origin</th>
-                <th class="text-end">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="guard in filtered" :key="guard.guardId">
-                <td>{{ guard.name }}</td>
-                <td>
-                  <Badge :value="guard.eventType" variant="secondary" size="s" :uppercase="false" />
-                </td>
-                <td>
-                  <Badge :value="guard.category" variant="info" size="s" />
-                </td>
-                <td>{{ guard.resultType }}</td>
-                <td>
+        <div v-else class="md-split">
+          <!-- Master: compact list -->
+          <div class="md-list">
+            <button
+              v-for="guard in filtered"
+              :key="guard.guardId"
+              type="button"
+              class="md-item"
+              :class="{ active: guard.guardId === selectedGuardId }"
+              @click="selectedGuardId = guard.guardId"
+            >
+              <span class="mi-name">{{ guard.name }}</span>
+              <span class="mi-evt">{{ guard.eventType }}</span>
+              <span class="mi-badges">
+                <Badge
+                  :value="guard.enabled ? 'Enabled' : 'Disabled'"
+                  :variant="guard.enabled ? 'success' : 'grey'"
+                  size="xs"
+                />
+                <Badge
+                  :value="guard.builtIn ? 'Built-in' : 'Custom'"
+                  :variant="guard.builtIn ? 'primary' : 'warning'"
+                  size="xs"
+                />
+              </span>
+            </button>
+          </div>
+
+          <!-- Detail: read-only inspection of the selected guard -->
+          <div v-if="selectedGuard" class="md-detail">
+            <div class="detail-head">
+              <div>
+                <h3 class="detail-title">{{ selectedGuard.name }}</h3>
+                <p v-if="selectedGuard.summaryNoun" class="detail-sub">
+                  Summarises {{ selectedGuard.summaryNoun }}
+                </p>
+              </div>
+              <div class="detail-actions">
+                <button class="btn btn-sm btn-outline-secondary" @click="openEdit(selectedGuard)">
+                  <i class="bi bi-pencil"></i> Edit
+                </button>
+                <button class="btn btn-sm btn-outline-danger" @click="confirmDelete(selectedGuard)">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </div>
+            </div>
+
+            <div class="detail-badges">
+              <Badge
+                :value="selectedGuard.enabled ? 'Enabled' : 'Disabled'"
+                :variant="selectedGuard.enabled ? 'success' : 'grey'"
+                size="s"
+              />
+              <Badge
+                :value="selectedGuard.builtIn ? 'Built-in' : 'Custom'"
+                :variant="selectedGuard.builtIn ? 'primary' : 'warning'"
+                size="s"
+              />
+              <Badge :value="selectedGuard.category" variant="info" size="s" />
+            </div>
+
+            <div class="detail-grid">
+              <div class="dfield">
+                <div class="dkey">Event type</div>
+                <div class="dval">
                   <Badge
-                    :value="guard.enabled ? 'Enabled' : 'Disabled'"
-                    :variant="guard.enabled ? 'success' : 'secondary'"
+                    :value="selectedGuard.eventType"
+                    variant="secondary"
                     size="s"
+                    :uppercase="false"
                   />
-                </td>
-                <td>
-                  <Badge
-                    :value="guard.builtIn ? 'Built-in' : 'Custom'"
-                    :variant="guard.builtIn ? 'primary' : 'warning'"
-                    size="s"
-                  />
-                </td>
-                <td class="text-end">
-                  <button class="btn btn-sm btn-outline-secondary me-1" @click="openEdit(guard)">
-                    <i class="bi bi-pencil"></i>
-                  </button>
-                  <button class="btn btn-sm btn-outline-danger" @click="confirmDelete(guard)">
-                    <i class="bi bi-trash"></i>
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+                </div>
+              </div>
+              <div class="dfield">
+                <div class="dkey">Result · Frame</div>
+                <div class="dval">{{ selectedGuard.resultType }} · {{ selectedGuard.targetFrame }}</div>
+              </div>
+              <div class="dfield">
+                <div class="dkey">Info threshold</div>
+                <div class="dval threshold-info">≥ {{ formatThreshold(selectedGuard.infoThreshold) }}</div>
+              </div>
+              <div class="dfield">
+                <div class="dkey">Warning threshold</div>
+                <div class="dval threshold-warn">≥ {{ formatThreshold(selectedGuard.warningThreshold) }}</div>
+              </div>
+              <div class="dfield">
+                <div class="dkey">Minimum samples</div>
+                <div class="dval">{{ selectedGuard.minSamples.toLocaleString() }}</div>
+              </div>
+              <div class="dfield">
+                <div class="dkey">Matching</div>
+                <div class="dval">{{ selectedGuard.matchingType }}</div>
+              </div>
+            </div>
+
+            <div class="detail-block">
+              <div class="dkey">Matcher spec</div>
+              <JsonHighlight :value="selectedGuard.matcherSpec" />
+            </div>
+            <div class="detail-block">
+              <div class="dkey">Preconditions</div>
+              <JsonHighlight :value="selectedGuard.preconditions" empty-text="No preconditions" />
+            </div>
+            <div v-if="selectedGuard.explanation" class="detail-block">
+              <div class="dkey">Explanation</div>
+              <div class="detail-html" v-html="selectedGuard.explanation"></div>
+            </div>
+            <div v-if="selectedGuard.solution" class="detail-block">
+              <div class="dkey">Solution</div>
+              <div class="detail-html" v-html="selectedGuard.solution"></div>
+            </div>
+          </div>
         </div>
       </template>
     </MainCard>
 
-    <!-- Create / Edit modal -->
+    <!-- Create / Edit modal — two-column layout -->
     <GenericModal
       v-model:show="showEditor"
       modal-id="guardianGuardModal"
       :title="editorTitle"
       icon="bi bi-shield-check"
       size="xl"
-      modal-dialog-class="modal-dialog-centered modal-dialog-scrollable"
+      modal-dialog-class="guard-modal-dialog events-modal-dialog modal-dialog-centered"
     >
       <form id="guardianGuardForm" class="guard-form" @submit.prevent="save">
-        <div class="guard-grid">
-          <div class="field-group c4">
-            <label class="field-label">Name <span class="field-required">*</span></label>
-            <div class="field-wrap">
-              <input
-                v-model="form.name"
-                class="field-input"
-                type="text"
-                placeholder="Guard name"
-                required
-              />
+        <div class="guard-columns">
+          <!-- Left: configuration -->
+          <div class="guard-col">
+            <div class="form-grid">
+              <div class="field-group c4">
+                <label class="field-label">Name <span class="field-required">*</span></label>
+                <div class="field-wrap">
+                  <input
+                    v-model="form.name"
+                    class="field-input"
+                    type="text"
+                    placeholder="Guard name"
+                    required
+                  />
+                </div>
+              </div>
+              <div class="field-group c2">
+                <label class="field-label">Status</label>
+                <label class="guard-switch">
+                  <input v-model="form.enabled" type="checkbox" />
+                  <span>{{ form.enabled ? 'Enabled' : 'Disabled' }}</span>
+                </label>
+              </div>
+
+              <div class="field-group c6">
+                <label class="field-label">Event type <span class="field-required">*</span></label>
+                <EventTypeCombobox v-model="form.eventType" :options="eventTypes" />
+                <p class="field-hint">
+                  Pick any stack-trace event reported by the backend, or type a custom one.
+                </p>
+              </div>
+
+              <div class="field-group c3">
+                <label class="field-label">Category</label>
+                <div class="field-wrap">
+                  <select v-model="form.category" class="field-input">
+                    <option v-for="c in CATEGORIES" :key="c" :value="c">{{ c }}</option>
+                  </select>
+                </div>
+              </div>
+              <div class="field-group c3">
+                <label class="field-label"
+                  >Matching
+                  <i
+                    class="bi bi-info-circle label-info"
+                    title="How far traversal goes: FULL_MATCH sums every matching frame in the tree; SINGLE_MATCH stops at the first match (one occurrence)."
+                  ></i
+                ></label>
+                <div class="field-wrap">
+                  <select v-model="form.matchingType" class="field-input">
+                    <option v-for="m in MATCHING_TYPES" :key="m" :value="m">{{ m }}</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="field-group c3">
+                <label class="field-label"
+                  >Result type
+                  <i
+                    class="bi bi-info-circle label-info"
+                    title="What gets measured: SAMPLES/WEIGHT count the whole matched subtree (including callees); SELF_SAMPLES/SELF_WEIGHT count only time spent in the matched frames themselves."
+                  ></i
+                ></label>
+                <div class="field-wrap">
+                  <select v-model="form.resultType" class="field-input">
+                    <option v-for="r in RESULT_TYPES" :key="r" :value="r">{{ r }}</option>
+                  </select>
+                </div>
+              </div>
+              <div class="field-group c3">
+                <label class="field-label"
+                  >Target frame
+                  <i
+                    class="bi bi-info-circle label-info"
+                    title="Which frames the matcher walks: JAVA = user/Java frames, JVM = native/VM-internal frames, ALL = both."
+                  ></i
+                ></label>
+                <div class="field-wrap">
+                  <select v-model="form.targetFrame" class="field-input">
+                    <option v-for="t in TARGET_FRAMES" :key="t" :value="t">{{ t }}</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="field-group c2">
+                <label class="field-label"
+                  >Info ≥
+                  <i
+                    class="bi bi-info-circle label-info"
+                    title="Severity becomes INFO (notice) once the matched share of the total reaches this fraction. E.g. 0.03 = 3%."
+                  ></i
+                ></label>
+                <div class="field-wrap">
+                  <input
+                    v-model.number="form.infoThreshold"
+                    class="field-input"
+                    type="number"
+                    step="0.01"
+                  />
+                </div>
+              </div>
+              <div class="field-group c2">
+                <label class="field-label"
+                  >Warn ≥
+                  <i
+                    class="bi bi-info-circle label-info"
+                    title="Severity becomes WARNING (alert) once the matched share of the total reaches this fraction. Should be ≥ the info threshold. E.g. 0.05 = 5%."
+                  ></i
+                ></label>
+                <div class="field-wrap">
+                  <input
+                    v-model.number="form.warningThreshold"
+                    class="field-input"
+                    type="number"
+                    step="0.01"
+                  />
+                </div>
+              </div>
+              <div class="field-group c2">
+                <label class="field-label">Min samples</label>
+                <div class="field-wrap">
+                  <input
+                    v-model.number="form.minSamples"
+                    class="field-input"
+                    type="number"
+                    step="100"
+                    min="0"
+                  />
+                </div>
+              </div>
+
+              <div class="field-group c6">
+                <label class="field-label">Summary noun</label>
+                <div class="field-wrap">
+                  <input
+                    v-model="form.summaryNoun"
+                    class="field-input"
+                    type="text"
+                    placeholder="e.g. the logging"
+                  />
+                </div>
+              </div>
             </div>
-          </div>
-          <div class="field-group c2">
-            <label class="field-label">Status</label>
-            <label class="guard-switch">
-              <input v-model="form.enabled" type="checkbox" />
-              <span>{{ form.enabled ? 'Enabled' : 'Disabled' }}</span>
-            </label>
           </div>
 
-          <div class="field-group c3">
-            <label class="field-label">Event type <span class="field-required">*</span></label>
-            <div class="field-wrap">
-              <input
-                v-model="form.eventType"
-                class="field-input is-mono"
-                type="text"
-                list="guardian-event-types"
-                placeholder="e.g. jdk.ExecutionSample"
-                required
-              />
+          <!-- Right: matcher, preconditions and documentation -->
+          <div class="guard-col guard-col-right">
+            <div class="form-grid">
+              <div class="field-group c6">
+                <label class="field-label">Matcher spec <span class="field-muted">(JSON)</span></label>
+                <textarea v-model="form.matcherSpec" class="field-textarea is-mono" rows="6"></textarea>
+              </div>
+              <div class="field-group c6">
+                <label class="field-label"
+                  >Preconditions <span class="field-muted">(JSON, optional)</span></label
+                >
+                <textarea
+                  v-model="form.preconditions"
+                  class="field-textarea is-mono"
+                  rows="3"
+                ></textarea>
+              </div>
+              <div class="field-group c6">
+                <label class="field-label"
+                  >Explanation <span class="field-muted">(HTML, optional)</span></label
+                >
+                <textarea v-model="form.explanation" class="field-textarea" rows="4"></textarea>
+              </div>
+              <div class="field-group c6">
+                <label class="field-label"
+                  >Solution <span class="field-muted">(HTML, optional)</span></label
+                >
+                <textarea v-model="form.solution" class="field-textarea" rows="4"></textarea>
+              </div>
             </div>
-            <datalist id="guardian-event-types">
-              <option v-for="et in COMMON_EVENT_TYPES" :key="et" :value="et" />
-            </datalist>
-          </div>
-          <div class="field-group c3">
-            <label class="field-label">Category</label>
-            <div class="field-wrap">
-              <select v-model="form.category" class="field-input">
-                <option v-for="c in CATEGORIES" :key="c" :value="c">{{ c }}</option>
-              </select>
-            </div>
-          </div>
 
-          <div class="field-group c2">
-            <label class="field-label">Result type</label>
-            <div class="field-wrap">
-              <select v-model="form.resultType" class="field-input">
-                <option v-for="r in RESULT_TYPES" :key="r" :value="r">{{ r }}</option>
-              </select>
-            </div>
-          </div>
-          <div class="field-group c2">
-            <label class="field-label">Target frame</label>
-            <div class="field-wrap">
-              <select v-model="form.targetFrame" class="field-input">
-                <option v-for="t in TARGET_FRAMES" :key="t" :value="t">{{ t }}</option>
-              </select>
-            </div>
-          </div>
-          <div class="field-group c2">
-            <label class="field-label">Matching</label>
-            <div class="field-wrap">
-              <select v-model="form.matchingType" class="field-input">
-                <option v-for="m in MATCHING_TYPES" :key="m" :value="m">{{ m }}</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="field-group c2">
-            <label class="field-label">Info ≥</label>
-            <div class="field-wrap">
-              <input
-                v-model.number="form.infoThreshold"
-                class="field-input"
-                type="number"
-                step="0.01"
-              />
-            </div>
-          </div>
-          <div class="field-group c2">
-            <label class="field-label">Warn ≥</label>
-            <div class="field-wrap">
-              <input
-                v-model.number="form.warningThreshold"
-                class="field-input"
-                type="number"
-                step="0.01"
-              />
-            </div>
-          </div>
-          <div class="field-group c2">
-            <label class="field-label">Min samples</label>
-            <div class="field-wrap">
-              <input
-                v-model.number="form.minSamples"
-                class="field-input"
-                type="number"
-                step="100"
-                min="0"
-              />
-            </div>
-          </div>
-
-          <div class="field-group c6">
-            <label class="field-label">Summary noun</label>
-            <div class="field-wrap">
-              <input
-                v-model="form.summaryNoun"
-                class="field-input"
-                type="text"
-                placeholder="e.g. the logging"
-              />
-            </div>
-          </div>
-
-          <div class="field-group c6">
-            <label class="field-label">Matcher spec <span class="field-muted">(JSON)</span></label>
-            <textarea v-model="form.matcherSpec" class="field-textarea is-mono" rows="6"></textarea>
-            <p class="field-hint">
-              e.g. <code>{"anchor":{"type":"Predicate","op":"PREFIX","value":"com.acme."}}</code> —
-              combine with <code>AnyOf</code> / <code>AllOf</code> / <code>Not</code>; ops:
-              <code>PREFIX</code>, <code>SUFFIX</code>, <code>CONTAINS</code>, <code>EQUALS</code>,
-              <code>REGEX</code>.
-            </p>
-          </div>
-          <div class="field-group c6">
-            <label class="field-label"
-              >Preconditions <span class="field-muted">(JSON, optional)</span></label
-            >
-            <textarea
-              v-model="form.preconditions"
-              class="field-textarea is-mono"
-              rows="3"
-            ></textarea>
-          </div>
-          <div class="field-group c6">
-            <label class="field-label"
-              >Explanation <span class="field-muted">(HTML, optional)</span></label
-            >
-            <textarea v-model="form.explanation" class="field-textarea" rows="4"></textarea>
-          </div>
-          <div class="field-group c6">
-            <label class="field-label"
-              >Solution <span class="field-muted">(HTML, optional)</span></label
-            >
-            <textarea v-model="form.solution" class="field-textarea" rows="4"></textarea>
+            <GuardianMatcherHelp class="guard-help" @insert="onInsertExample" />
           </div>
         </div>
 
@@ -337,7 +427,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import MainCard from '@/components/MainCard.vue';
 import MainCardHeader from '@/components/MainCardHeader.vue';
 import Badge from '@/components/Badge.vue';
@@ -345,25 +435,23 @@ import GenericModal from '@/components/GenericModal.vue';
 import EmptyState from '@/components/EmptyState.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import ErrorState from '@/components/ErrorState.vue';
+import EventTypeCombobox from '@/components/form/EventTypeCombobox.vue';
+import JsonHighlight from '@/components/common/JsonHighlight.vue';
+import GuardianMatcherHelp from '@/components/guardian/GuardianMatcherHelp.vue';
+import FormattingService from '@/services/FormattingService';
 import GuardianGuardsClient from '@/services/api/GuardianGuardsClient';
+import GuardianEventTypesClient from '@/services/api/GuardianEventTypesClient';
 import type GuardianGuard from '@/services/api/model/GuardianGuard';
 import type { GuardianGuardRequest } from '@/services/api/model/GuardianGuard';
+import type GuardianEventTypeOption from '@/services/api/model/GuardianEventTypeOption';
 
-// Suggestions only — the event type is free-form, so any stacktrace-carrying JFR event works.
-const COMMON_EVENT_TYPES = [
-  'jdk.ExecutionSample',
-  'jdk.CPUTimeSample',
-  'profiler.WallClockSample',
-  'jdk.JavaMonitorEnter',
-  'jdk.ThreadPark',
-  'jdk.ObjectAllocationSample'
-];
 const CATEGORIES = ['PREREQUISITES', 'GARBAGE_COLLECTION', 'JIT', 'APPLICATION', 'OTHERS'];
 const RESULT_TYPES = ['SAMPLES', 'WEIGHT', 'SELF_SAMPLES', 'SELF_WEIGHT'];
 const TARGET_FRAMES = ['JAVA', 'JVM', 'ALL'];
 const MATCHING_TYPES = ['FULL_MATCH', 'SINGLE_MATCH'];
 
 const client = new GuardianGuardsClient();
+const eventTypesClient = new GuardianEventTypesClient();
 
 type StatusFilter = 'all' | 'enabled' | 'disabled';
 const STATUS_OPTIONS: { value: StatusFilter; label: string }[] = [
@@ -375,11 +463,13 @@ const STATUS_OPTIONS: { value: StatusFilter; label: string }[] = [
 const loading = ref(true);
 const error = ref<string | null>(null);
 const guards = ref<GuardianGuard[]>([]);
+const eventTypes = ref<GuardianEventTypeOption[]>([]);
 const search = ref('');
 const eventTypeFilter = ref('');
 const categoryFilter = ref('');
 const statusFilter = ref<StatusFilter>('all');
 const showBuiltIn = ref(true);
+const selectedGuardId = ref<string | null>(null);
 
 const showEditor = ref(false);
 const editingId = ref<string | null>(null);
@@ -427,6 +517,22 @@ const filtered = computed(() => {
   });
 });
 
+const selectedGuard = computed(
+  () => filtered.value.find(g => g.guardId === selectedGuardId.value) ?? null
+);
+
+// Keep a valid selection: when the filtered set changes and the current selection drops out of it,
+// fall back to the first visible guard.
+watch(
+  filtered,
+  list => {
+    if (!list.some(g => g.guardId === selectedGuardId.value)) {
+      selectedGuardId.value = list.length > 0 ? list[0].guardId : null;
+    }
+  },
+  { immediate: true }
+);
+
 const filtersActive = computed(
   () =>
     search.value.trim() !== '' ||
@@ -442,6 +548,15 @@ function resetFilters(): void {
   categoryFilter.value = '';
   statusFilter.value = 'all';
   showBuiltIn.value = true;
+}
+
+function formatThreshold(value: number): string {
+  return FormattingService.formatPercentage(value);
+}
+
+// Drop a guide example into the matching JSON field of the editor form.
+function onInsertExample(payload: { field: 'matcherSpec' | 'preconditions'; value: string }): void {
+  form.value[payload.field] = payload.value;
 }
 
 function emptyForm(): GuardianGuardRequest {
@@ -473,6 +588,15 @@ async function load(): Promise<void> {
     error.value = e instanceof Error ? e.message : 'Failed to load guards';
   } finally {
     loading.value = false;
+  }
+}
+
+async function loadEventTypes(): Promise<void> {
+  try {
+    eventTypes.value = await eventTypesClient.list();
+  } catch {
+    // Non-fatal: the combobox still allows typing a custom event type.
+    eventTypes.value = [];
   }
 }
 
@@ -541,13 +665,15 @@ async function save(): Promise<void> {
   }
   saving.value = true;
   try {
+    let saved: GuardianGuard;
     if (editingId.value) {
-      await client.update(editingId.value, form.value);
+      saved = await client.update(editingId.value, form.value);
     } else {
-      await client.create(form.value);
+      saved = await client.create(form.value);
     }
     showEditor.value = false;
     await load();
+    selectedGuardId.value = saved.guardId;
   } catch (e: unknown) {
     formError.value = e instanceof Error ? e.message : 'Failed to save guard';
   } finally {
@@ -575,7 +701,10 @@ async function doDelete(): Promise<void> {
   }
 }
 
-onMounted(load);
+onMounted(() => {
+  load();
+  loadEventTypes();
+});
 </script>
 
 <style scoped>
@@ -716,22 +845,181 @@ onMounted(load);
   color: var(--color-danger);
 }
 
+/* ===== Master–detail split ===== */
+.md-split {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  min-height: 460px;
+}
+
+.md-list {
+  border-right: 1px solid var(--color-border);
+  background: var(--color-light);
+  overflow: auto;
+  max-height: 70vh;
+}
+
+.md-item {
+  width: 100%;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 11px 14px;
+  border: none;
+  border-bottom: 1px solid var(--color-border);
+  background: transparent;
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.md-item:hover {
+  background: var(--color-white);
+}
+
+.md-item.active {
+  background: var(--color-white);
+  box-shadow: inset 3px 0 0 var(--color-primary);
+}
+
+.mi-name {
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-dark);
+  font-size: 0.85rem;
+}
+
+.mi-evt {
+  margin: 3px 0 5px;
+  font-size: 0.72rem;
+  font-weight: var(--font-weight-normal);
+  color: var(--color-text-muted);
+  letter-spacing: 0.01em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mi-badges {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+/* ===== Detail pane ===== */
+.md-detail {
+  padding: 22px;
+  background: var(--color-white);
+  overflow: auto;
+  max-height: 70vh;
+}
+
+.detail-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.detail-title {
+  margin: 0 0 2px;
+  font-size: 1.05rem;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-dark);
+}
+
+.detail-sub {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+}
+
+.detail-actions {
+  display: flex;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.detail-badges {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px 22px;
+  margin-top: 18px;
+}
+
+.dkey {
+  font-size: 0.66rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+  margin-bottom: 4px;
+}
+
+.dval {
+  font-weight: var(--font-weight-medium);
+  color: var(--color-dark);
+}
+
+.threshold-info {
+  color: var(--color-info);
+}
+
+.threshold-warn {
+  color: var(--color-warning);
+}
+
+.detail-block {
+  margin-top: 18px;
+}
+
+.detail-html {
+  font-size: 0.82rem;
+  line-height: 1.6;
+  color: var(--color-text);
+}
+
+/* Widen the editor so the left/right gutters match Bootstrap's 1.75rem top/bottom dialog margin. */
+:deep(.modal-dialog.guard-modal-dialog) {
+  max-width: none;
+  width: calc(100vw - 3.5rem);
+}
+
+/* ===== Editor form ===== */
 .guard-form {
   display: flex;
   flex-direction: column;
   gap: 1rem;
 }
 
-/* Responsive 6-column grid; fields span a subset via the c1..c6 helpers. */
-.guard-grid {
+.guard-columns {
+  display: grid;
+  grid-template-columns: 2fr 3fr;
+  gap: 24px;
+}
+
+.guard-col-right {
+  border-left: 1px solid var(--color-border);
+  padding-left: 24px;
+}
+
+.guard-help {
+  margin-top: 16px;
+}
+
+.form-grid {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
   gap: 1rem 1.25rem;
 }
 
-.c1 {
-  grid-column: span 1;
-}
 .c2 {
   grid-column: span 2;
 }
@@ -748,6 +1036,18 @@ onMounted(load);
 .field-muted {
   color: var(--color-text-muted);
   font-weight: var(--font-weight-normal);
+}
+
+/* Info icon next to a field label; native title attribute carries the description. */
+.label-info {
+  margin-left: 4px;
+  color: var(--color-text-light);
+  cursor: help;
+  font-size: 0.8rem;
+}
+
+.label-info:hover {
+  color: var(--color-primary);
 }
 
 /* Enable/disable toggle styled to line up with the bordered field controls. */
@@ -799,12 +1099,29 @@ onMounted(load);
   font-size: var(--font-size-sm);
 }
 
-@media (max-width: 768px) {
-  .guard-grid {
+@media (max-width: 992px) {
+  .guard-columns {
     grid-template-columns: 1fr;
   }
 
-  .guard-grid > * {
+  .guard-col-right {
+    border-left: none;
+    padding-left: 0;
+    border-top: 1px solid var(--color-border);
+    padding-top: 16px;
+  }
+}
+
+@media (max-width: 768px) {
+  .md-split {
+    grid-template-columns: 1fr;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .form-grid > * {
     grid-column: 1 / -1;
   }
 }
