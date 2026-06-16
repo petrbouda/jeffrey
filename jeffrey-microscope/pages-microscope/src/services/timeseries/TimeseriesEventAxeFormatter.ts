@@ -28,7 +28,8 @@ export default class TimeseriesEventAxeFormatter {
     if (
       EventTypes.isBlockingEventType(eventTypeCode) ||
       EventTypes.isWallClock(eventTypeCode) ||
-      EventTypes.isMethodTraceEventType(eventTypeCode)
+      EventTypes.isMethodTraceEventType(eventTypeCode) ||
+      EventTypes.isCpuTimeSample(eventTypeCode)
     ) {
       return AxisFormatType.DURATION_IN_NANOS;
     } else if (EventTypes.isAllocationEventType(eventTypeCode)) {

@@ -406,6 +406,10 @@ public record Type(String code, boolean calculated) {
         return Type.METHOD_TRACE.equals(this);
     }
 
+    public boolean isCpuTimeEvent() {
+        return Type.CPU_TIME_SAMPLE.equals(this);
+    }
+
     /**
      * Calculated event means that the event is artificial. Very likely the event is calculated/derived from other
      * event. e.g. {@link #NATIVE_LEAK} is a calculated event from {@link #MALLOC} and {@link #FREE}.

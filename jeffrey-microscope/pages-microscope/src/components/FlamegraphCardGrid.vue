@@ -57,7 +57,7 @@
       :thread-mode-selected="false"
       weight-desc="CPU Time"
       :weight-opt="true"
-      :weight-selected="true"
+      :weight-selected="false"
       :weight-formatter="FormattingService.formatDuration2Units"
       :exclude-non-java-samples-opt="false"
       :exclude-non-java-samples-selected="false"

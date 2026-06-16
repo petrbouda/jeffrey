@@ -54,6 +54,9 @@ public class FlameGraphProtoBuilder implements GraphBuilder<cafe.jeffrey.frameir
     private static final Function<Long, String> LATENCY_FORMATTER =
             weight -> DurationUtils.formatNanos2Units(weight) + " Latency";
 
+    private static final Function<Long, String> CPU_TIME_FORMATTER =
+            weight -> DurationUtils.formatNanos2Units(weight) + " CPU";
+
     private final boolean withMarker;
     private final boolean withWeight;
     private final double minFrameThresholdPct;
@@ -81,6 +84,10 @@ public class FlameGraphProtoBuilder implements GraphBuilder<cafe.jeffrey.frameir
 
     public static FlameGraphProtoBuilder latency(boolean withMarker, double minFrameThresholdPct) {
         return new FlameGraphProtoBuilder(withMarker, minFrameThresholdPct, LATENCY_FORMATTER);
+    }
+
+    public static FlameGraphProtoBuilder cpu(boolean withMarker, double minFrameThresholdPct) {
+        return new FlameGraphProtoBuilder(withMarker, minFrameThresholdPct, CPU_TIME_FORMATTER);
     }
 
     public FlameGraphProtoBuilder(boolean withMarker, double minFrameThresholdPct, boolean withWeight, Function<Long, String> weightFormatter) {

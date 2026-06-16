@@ -134,6 +134,8 @@ public class FlamegraphDataProvider {
             return FlameGraphProtoBuilder.blocking(withMarker, minFrameThresholdPct);
         } else if (params.eventType().isMethodTraceEvent()) {
             return FlameGraphProtoBuilder.latency(withMarker, minFrameThresholdPct);
+        } else if (params.eventType().isCpuTimeEvent()) {
+            return FlameGraphProtoBuilder.cpu(withMarker, minFrameThresholdPct);
         } else {
             return FlameGraphProtoBuilder.simple(withMarker, minFrameThresholdPct);
         }

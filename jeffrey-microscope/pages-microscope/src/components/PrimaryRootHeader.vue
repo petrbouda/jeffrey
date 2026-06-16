@@ -63,7 +63,7 @@ const formattedWeight = computed(() => {
   if (EventTypes.isAllocationEventType(props.eventType)) {
     return FormattingService.formatBytes(weight);
   }
-  if (EventTypes.isBlockingEventType(props.eventType)) {
+  if (EventTypes.isBlockingEventType(props.eventType) || EventTypes.isCpuTimeSample(props.eventType)) {
     return FormattingService.formatDuration2Units(weight);
   }
   return weight.toLocaleString();
@@ -72,6 +72,9 @@ const formattedWeight = computed(() => {
 const weightLabel = computed(() => {
   if (EventTypes.isAllocationEventType(props.eventType)) {
     return 'Allocated';
+  }
+  if (EventTypes.isCpuTimeSample(props.eventType)) {
+    return 'CPU Time';
   }
   if (EventTypes.isBlockingEventType(props.eventType)) {
     return 'Duration';
