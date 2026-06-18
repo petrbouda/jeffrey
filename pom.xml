@@ -31,6 +31,7 @@
         <module>shared</module>
         <module>jeffrey-server</module>
         <module>jeffrey-microscope</module>
+        <module>jeffrey-performance-analyst</module>
         <module>jeffrey-cli</module>
         <module>jeffrey-agent</module>
         <module>utilities</module>
@@ -122,6 +123,16 @@
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
+                <artifactId>pages-performance-analyst</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>core-performance-analyst</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
                 <artifactId>server-api</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -148,6 +159,11 @@
             <dependency>
                 <groupId>${project.groupId}</groupId>
                 <artifactId>microscope-core-sql-persistence</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>grpc-client</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

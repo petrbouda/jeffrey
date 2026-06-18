@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Jeffrey
+  ~ Copyright (C) 2026 Petr Bouda
+  ~
+  ~ This program is free software: you can redistribute it and/or modify
+  ~ it under the terms of the GNU Affero General Public License as published by
+  ~ the Free Software Foundation, either version 3 of the License, or
+  ~ (at your option) any later version.
+  ~
+  ~ This program is distributed in the hope that it will be useful,
+  ~ but WITHOUT ANY WARRANTY; without even the implied warranty of
+  ~ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  ~ GNU Affero General Public License for more details.
+  ~
+  ~ You should have received a copy of the GNU Affero General Public License
+  ~ along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  -->
+
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>cafe.jeffrey</groupId>
+        <artifactId>build</artifactId>
+        <version>1.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>build-performance-analyst-jib</artifactId>
+
+    <properties>
+        <mainClass>cafe.jeffrey.performance.analyst.PerformanceAnalystApplication</mainClass>
+        <finalName>jeffrey-performance-analyst</finalName>
+        <jib-maven-plugin.version>3.4.6</jib-maven-plugin.version>
+        <jeffrey-jib-maven.version>1.0-SNAPSHOT</jeffrey-jib-maven.version>
+        <image.from>eclipse-temurin:25-jdk</image.from>
+        <image.to>petrbouda/jeffrey-performance-analyst:${project.version}</image.to>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>core-performance-analyst</artifactId>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>com.google.cloud.tools</groupId>
+                <artifactId>jib-maven-plugin</artifactId>
+                <version>${jib-maven-plugin.version}</version>
+                <dependencies>
+                    <dependency>
+                        <groupId>cafe.jeffrey-analyst</groupId>
+                        <artifactId>jeffrey-jib-maven</artifactId>
+                        <version>${jeffrey-jib-maven.version}</version>
+                    </dependency>
+                </dependencies>
+                <configuration>
+                    <from>
+                        <image>${image.from}</image>
+                        <!-- Multi-arch manifest. The bundled native CLI + libasyncProfiler are
+                             arch-suffixed (jeffrey-cli-{amd64,arm64}, libasyncProfiler-{amd64,arm64}.so);
+                             the runtime wrapper and jeffrey-cli pick the matching binary via uname -m
+                             / os.arch, so applications profiled via the shared volume can be either arch
+                             regardless of which arch the app itself runs on. -->
+                        <platforms>
+                            <platform>
+                                <architecture>amd64</architecture>
+                                <os>linux</os>
+                            </platform>
+                            <platform>
+                                <architecture>arm64</architecture>
+                                <os>linux</os>
+                            </platform>
+                        </platforms>
+                    </from>
+                    <to>
+                        <image>${image.to}</image>
+                    </to>
+                    <container>
+                        <mainClass>${mainClass}</mainClass>
+                        <ports>
+                            <port>8080</port>
+                        </ports>
+                        <!-- Image-level default: profiling off. Pod env overrides to "true" to enable. -->
+                        <environment>
+                            <JEFFREY_ENABLED>false</JEFFREY_ENABLED>
+                        </environment>
+                        <!-- Empty: let the jeffrey-jib wrapper own JVM configuration via the argfile.
+                             Per JeffreyBuildPlanExtender javadoc, JVM flags here would be moved into CMD
+                             and applied AFTER the argfile, silently overriding profiling settings. -->
+                        <jvmFlags/>
+                    </container>
+                    <pluginExtensions>
+                        <pluginExtension>
+                            <implementation>cafe.jeffrey.jib.maven.JeffreyJibMavenExtension</implementation>
+                            <configuration implementation="cafe.jeffrey.jib.JeffreyJibConfig">
+                                <!-- enabled=true (default): wrapper layer is installed and ENTRYPOINT is rewritten.
+                                     jeffreyHome / configs remain unset — those are deployment-specific (shared
+                                     volume mount, ConfigMap path) and provided by the operator via pod env.
+
+                                     cliPath / profilerPath / agentPath point at the in-image /jeffrey-libs/ bundle
+                                     so the app's own self-profiling does not depend on the shared volume
+                                     being populated at startup. The {arch} placeholder is expanded at container
+                                     start by jeffrey-entrypoint.sh after `uname -m` detects the running platform
+                                     — both arch variants of the CLI binary and async-profiler .so ship in every
+                                     per-platform image. -->
+                                <cliPath>/jeffrey-libs/jeffrey-cli-{arch}</cliPath>
+                                <profilerPath>/jeffrey-libs/libasyncProfiler-{arch}.so</profilerPath>
+                                <agentPath>/jeffrey-libs/jeffrey-agent.jar</agentPath>
+                            </configuration>
+                        </pluginExtension>
+                    </pluginExtensions>
+                    <!--
+                      Bundled accessory artifacts under /jeffrey-libs/. CI stages these files into
+                      src/main/jib/jeffrey-libs/ before running jib:build:
+                        - jeffrey-cli.jar
+                        - jeffrey-cli-amd64, jeffrey-cli-arm64 (native GraalVM binaries; need 0755)
+                        - jeffrey-agent.jar
+                        - libasyncProfiler-amd64.so, libasyncProfiler-arm64.so
+                      All four arch variants ship in every per-platform image (~6MB extra) — Jib's
+                      extraDirectories aren't per-platform, and the wrapper / InitConfig pick the
+                      arch-matching files at runtime via uname -m / os.arch.
+                      Jib's default extraDirectories convention copies src/main/jib/<path> → /<path>.
+                    -->
+                    <extraDirectories>
+                        <permissions>
+                            <permission>
+                                <file>/jeffrey-libs/jeffrey-cli-amd64</file>
+                                <mode>755</mode>
+                            </permission>
+                            <permission>
+                                <file>/jeffrey-libs/jeffrey-cli-arm64</file>
+                                <mode>755</mode>
+                            </permission>
+                        </permissions>
+                    </extraDirectories>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>

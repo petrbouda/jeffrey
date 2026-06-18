@@ -1,0 +1,6 @@
+# Placeholder. CI stages the following files here before `jib:build`
+# (mirrors .github/workflows/release-server.yml):
+#   - jeffrey-cli.jar
+#   - jeffrey-cli-amd64, jeffrey-cli-arm64  (native GraalVM binaries, 0755)
+#   - jeffrey-agent.jar
+#   - libasyncProfiler-amd64.so, libasyncProfiler-arm64.so
