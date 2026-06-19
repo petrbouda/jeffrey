@@ -20,35 +20,35 @@ package cafe.jeffrey.microscope.core.web;
 
 import cafe.jeffrey.microscope.core.manager.project.ProjectManager;
 import cafe.jeffrey.microscope.core.manager.project.ProjectsManager;
-import cafe.jeffrey.microscope.core.manager.server.RemoteServerManager;
-import cafe.jeffrey.microscope.core.manager.server.RemoteServersManager;
+import cafe.jeffrey.microscope.core.manager.server.HubManager;
+import cafe.jeffrey.microscope.core.manager.server.HubsManager;
 import cafe.jeffrey.microscope.core.manager.workspace.WorkspaceManager;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 
 /**
- * Resolves a (serverId, workspaceId, projectId) tuple to the corresponding
+ * Resolves a (hubId, workspaceId, projectId) tuple to the corresponding
  * {@link ProjectManager}. Used by every workspace/project-scoped controller.
  */
 public class ProjectManagerResolver {
 
-    private final RemoteServersManager remoteServersManager;
+    private final HubsManager remoteServersManager;
 
-    public ProjectManagerResolver(RemoteServersManager remoteServersManager) {
+    public ProjectManagerResolver(HubsManager remoteServersManager) {
         this.remoteServersManager = remoteServersManager;
     }
 
-    public RemoteServerManager resolveServer(String serverId) {
-        return remoteServersManager.findById(serverId)
-                .orElseThrow(() -> Exceptions.invalidRequest("Remote server not found: " + serverId));
+    public HubManager resolveServer(String hubId) {
+        return remoteServersManager.findById(hubId)
+                .orElseThrow(() -> Exceptions.invalidRequest("Hub not found: " + hubId));
     }
 
-    public WorkspaceManager resolveWorkspace(String serverId, String workspaceId) {
-        return resolveServer(serverId).workspace(workspaceId)
+    public WorkspaceManager resolveWorkspace(String hubId, String workspaceId) {
+        return resolveServer(hubId).workspace(workspaceId)
                 .orElseThrow(() -> Exceptions.workspaceNotFound(workspaceId));
     }
 
-    public ProjectContext resolve(String serverId, String workspaceId, String projectId) {
-        WorkspaceManager workspace = resolveWorkspace(serverId, workspaceId);
+    public ProjectContext resolve(String hubId, String workspaceId, String projectId) {
+        WorkspaceManager workspace = resolveWorkspace(hubId, workspaceId);
         ProjectsManager projectsManager = workspace.projectsManager();
         ProjectManager projectManager = projectsManager.project(projectId)
                 .orElseThrow(() -> Exceptions.projectNotFound(projectId));

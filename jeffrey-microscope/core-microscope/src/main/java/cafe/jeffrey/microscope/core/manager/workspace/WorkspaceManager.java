@@ -18,7 +18,7 @@
 
 package cafe.jeffrey.microscope.core.manager.workspace;
 
-import cafe.jeffrey.microscope.core.client.RemoteProfilerClient;
+import cafe.jeffrey.hub.client.ProfilerClient;
 import cafe.jeffrey.microscope.core.resources.response.WorkspaceEventsResponse;
 import cafe.jeffrey.microscope.core.manager.project.ProjectsManager;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceInfo;
@@ -35,7 +35,7 @@ public interface WorkspaceManager {
     WorkspaceInfo localInfo();
 
     /**
-     * Returns a fresh workspace snapshot from the remote server.
+     * Returns a fresh workspace snapshot from the hub.
      * May involve a network call; falls back to OFFLINE status on failure.
      */
     WorkspaceInfo resolveInfo();
@@ -51,7 +51,7 @@ public interface WorkspaceManager {
      * Returns the remote profiler client for this workspace's server, if available.
      * Only remote workspaces have a profiler client.
      */
-    default Optional<RemoteProfilerClient> profilerClient() {
+    default Optional<ProfilerClient> profilerClient() {
         return Optional.empty();
     }
 
@@ -79,7 +79,7 @@ public interface WorkspaceManager {
      * level. The caller decides which is "effectively in force" — workspace
      * overrides global.
      */
-    RemoteProfilerClient.WorkspaceProfilerLevels fetchEffectiveProfilerSettings();
+    ProfilerClient.WorkspaceProfilerLevels fetchEffectiveProfilerSettings();
 
     /**
      * Removes the workspace-level profiler settings, causing the workspace

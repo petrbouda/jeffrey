@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 module cafe.jeffrey.microscope.grpc.client {
-    requires transitive cafe.jeffrey.shared.server.api;
+    requires transitive cafe.jeffrey.shared.hub.api;
     requires transitive cafe.jeffrey.microscope.persistence.api;
     requires io.grpc;
     requires io.grpc.netty;

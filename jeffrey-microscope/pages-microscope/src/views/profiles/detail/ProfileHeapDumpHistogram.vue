@@ -309,8 +309,8 @@ import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
 import PageHeader from '@/components/layout/PageHeader.vue';
-import LoadingState from '@/components/LoadingState.vue';
-import ErrorState from '@/components/ErrorState.vue';
+import LoadingState from '@shared/components/LoadingState.vue';
+import ErrorState from '@shared/components/ErrorState.vue';
 import StatsTable from '@/components/StatsTable.vue';
 import HeapDumpNotInitialized from '@/components/HeapDumpNotInitialized.vue';
 import ClassNameDisplay from '@/components/heap/ClassNameDisplay.vue';
@@ -320,14 +320,14 @@ import InstanceTreeModal from '@/components/heap/InstanceTreeModal.vue';
 import SortableTableHeader from '@/components/table/SortableTableHeader.vue';
 import DataTable from '@/components/table/DataTable.vue';
 import TableToolbar from '@/components/table/TableToolbar.vue';
-import EmptyState from '@/components/EmptyState.vue';
-import Badge from '@/components/Badge.vue';
+import EmptyState from '@shared/components/EmptyState.vue';
+import Badge from '@shared/components/Badge.vue';
 import HeapDumpClient from '@/services/api/HeapDumpClient';
 import ClassHistogramEntry from '@/services/api/model/ClassHistogramEntry';
 import type ClassInstancesResponse from '@/services/api/model/ClassInstancesResponse';
 import type { ClassInstanceEntry } from '@/services/api/model/ClassInstancesResponse';
 import HeapSummary from '@/services/api/model/HeapSummary';
-import FormattingService from '@/services/FormattingService';
+import FormattingService from '@shared/services/FormattingService';
 
 const TOP_INSTANCES_LIMIT = 20;
 

@@ -32,11 +32,11 @@ jobs:
         name: microscope-jar
         path: ./build/build-microscope/target/microscope.jar
 
-    - name: Upload jeffrey-server.jar
+    - name: Upload jeffrey-hub.jar
       uses: actions/upload-artifact@v7
       with:
-        name: jeffrey-server-jar
-        path: ./build/build-server/target/jeffrey-server.jar
+        name: jeffrey-hub-jar
+        path: ./build/build-hub/target/jeffrey-hub.jar
 
     - name: Upload jeffrey-cli.jar
       uses: actions/upload-artifact@v7
@@ -78,10 +78,10 @@ jobs:
         name: microscope-jar
         path: ./artifacts
 
-    - name: Download jeffrey-server.jar
+    - name: Download jeffrey-hub.jar
       uses: actions/download-artifact@v8
       with:
-        name: jeffrey-server-jar
+        name: jeffrey-hub-jar
         path: ./artifacts
 
     - name: Download jeffrey-cli.jar

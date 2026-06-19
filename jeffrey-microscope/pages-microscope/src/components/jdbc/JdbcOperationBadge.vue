@@ -4,8 +4,8 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import Badge from '@/components/Badge.vue';
-import type { Size, Variant } from '@/types/ui';
+import Badge from '@shared/components/Badge.vue';
+import type { Size, Variant } from '@shared/types/ui';
 import JdbcUtils from '@/services/api/model/JdbcUtils.ts';
 
 interface Props {

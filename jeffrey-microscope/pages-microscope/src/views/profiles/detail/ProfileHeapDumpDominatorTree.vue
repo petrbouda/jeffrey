@@ -204,21 +204,21 @@
 import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import PageHeader from '@/components/layout/PageHeader.vue';
-import LoadingState from '@/components/LoadingState.vue';
-import ErrorState from '@/components/ErrorState.vue';
+import LoadingState from '@shared/components/LoadingState.vue';
+import ErrorState from '@shared/components/ErrorState.vue';
 import StatsTable from '@/components/StatsTable.vue';
 import HeapDumpNotInitialized from '@/components/HeapDumpNotInitialized.vue';
 import ClassNameDisplay from '@/components/heap/ClassNameDisplay.vue';
 import InstanceActionButtons from '@/components/heap/InstanceActionButtons.vue';
 import InstanceDetailPanel from '@/components/heap/InstanceDetailPanel.vue';
 import InstanceTreeModal from '@/components/heap/InstanceTreeModal.vue';
-import EmptyState from '@/components/EmptyState.vue';
-import Badge from '@/components/Badge.vue';
+import EmptyState from '@shared/components/EmptyState.vue';
+import Badge from '@shared/components/Badge.vue';
 import DataTable from '@/components/table/DataTable.vue';
 import HeapDumpClient from '@/services/api/HeapDumpClient';
 import type DominatorTreeResponse from '@/services/api/model/DominatorTreeResponse';
 import type { DominatorNode } from '@/services/api/model/DominatorTreeResponse';
-import FormattingService from '@/services/FormattingService';
+import FormattingService from '@shared/services/FormattingService';
 
 interface TreeItem {
   node: DominatorNode;

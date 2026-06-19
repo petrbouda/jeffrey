@@ -16,18 +16,18 @@ Analyze changed files to determine affected modules and run only the relevant te
    - `jeffrey-microscope/profiles/heap-dump/` -> `-pl jeffrey-microscope/profiles/heap-dump`
    - `jeffrey-microscope/profiles/recording-parser/*/` -> `-pl` the specific parser module
    - `jeffrey-microscope/microscope-core-sql-persistence/` -> `-pl jeffrey-microscope/microscope-core-sql-persistence`
-   - `jeffrey-server/core-server/` -> `-pl jeffrey-server/core-server`
-   - `jeffrey-server/server-sql-persistence/` -> `-pl jeffrey-server/server-sql-persistence`
+   - `jeffrey-hub/core-hub/` -> `-pl jeffrey-hub/core-hub`
+   - `jeffrey-hub/hub-sql-persistence/` -> `-pl jeffrey-hub/hub-sql-persistence`
    - `shared/common/` -> `-pl shared/common`
    - `shared/persistence/` -> `-pl shared/persistence`
    - `shared/sql-builder/` -> `-pl shared/sql-builder`
-   - `shared/server-api/` -> `-pl shared/server-api`
+   - `shared/hub-api/` -> `-pl shared/hub-api`
    - For other modules, derive the Maven module path from the file path
 
 3. **Handle shared module changes**: If files in `shared/` are changed, also include dependent modules that likely need testing:
-   - `shared/common/` -> also test `jeffrey-server/core-server`, `jeffrey-microscope/profiles/profile-management`
+   - `shared/common/` -> also test `jeffrey-hub/core-hub`, `jeffrey-microscope/profiles/profile-management`
    - `shared/persistence/` -> also test all `*-sql-persistence` modules
-   - `shared/server-api/` -> also test `jeffrey-server/core-server`
+   - `shared/hub-api/` -> also test `jeffrey-hub/core-hub`
 
 4. **Run targeted tests**:
    ```bash

@@ -9,7 +9,7 @@ Review API contracts for consistency between backend (Java), frontend (TypeScrip
    - Java DTOs/records used in API responses
    - TypeScript API clients (`jeffrey-microscope/pages-microscope/src/services/api/*.ts`)
    - TypeScript model types (`jeffrey-microscope/pages-microscope/src/services/api/model/*.ts`)
-   - Proto files (`shared/server-api/src/main/proto/**/*.proto`)
+   - Proto files (`shared/hub-api/src/main/proto/**/*.proto`)
    - gRPC service implementations (`*GrpcService.java`)
    - gRPC clients (`Remote*Client.java`)
 
@@ -23,7 +23,7 @@ Review API contracts for consistency between backend (Java), frontend (TypeScrip
    - Proto service RPCs must have corresponding methods in `*GrpcService.java` implementations
    - Proto message fields must match the data being serialized in gRPC service implementations
    - gRPC client methods (`Remote*Client.java`) must match proto service definitions
-   - `RemoteClients` record must include all gRPC clients
+   - `HubClients` record must include all gRPC clients
 
 4. **Check REST-to-gRPC parity** (for features that support both local and remote):
    - Internal REST endpoints in `jeffrey-microscope` should have corresponding gRPC service methods

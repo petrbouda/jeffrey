@@ -19,8 +19,28 @@
 <template>
   <div class="app-container">
     <router-view />
+
+    <!-- Global Download Assistant (floating progress panel for remote recording downloads) -->
+    <DownloadAssistant
+      :is-open="downloadStore.isOpen.value"
+      :is-expanded="downloadStore.isExpanded.value"
+      :downloads="downloadStore.allDownloads.value"
+      :aggregate-progress="downloadStore.aggregateProgress.value"
+      :aggregate-status="downloadStore.aggregateStatus.value"
+      :has-active-downloads="downloadStore.hasActiveDownloads.value"
+      @expand="downloadStore.expand"
+      @minimize="downloadStore.minimize"
+      @close="downloadStore.closePanel"
+      @cancel-download="downloadStore.cancelDownload"
+      @close-download="downloadStore.closeDownload"
+    />
   </div>
 </template>
+
+<script setup lang="ts">
+import DownloadAssistant from '@workspaces/components/assistants/global/DownloadAssistant.vue';
+import { downloadAssistantStore as downloadStore } from '@workspaces/stores/assistants/downloadAssistantStore';
+</script>
 
 <style>
 .app-container {

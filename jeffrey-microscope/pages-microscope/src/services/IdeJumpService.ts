@@ -20,7 +20,7 @@ import ideConfigStore from '@/stores/ideConfigStore';
 import IdeClient from '@/services/api/IdeClient';
 import type { IdeFailureReason } from '@/services/api/IdeClient';
 import ideProfileTargetStore from '@/stores/ideProfileTargetStore';
-import { ToastService } from '@/services/ToastService';
+import { ToastService } from '@shared/services/ToastService';
 
 /**
  * Drives "Open in IDE" jumps. The backend tries the cached window directly (no discovery); only when

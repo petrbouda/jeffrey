@@ -26,7 +26,7 @@ const { setHeadings } = useDocHeadings();
 
 const headings = [
   { id: 'architecture', text: 'Architecture', level: 2 },
-  { id: 'server-connection', text: 'Connection to Jeffrey Server', level: 3 },
+  { id: 'server-connection', text: 'Connection to Jeffrey Hub', level: 3 },
   { id: 'recording-pipeline', text: 'Recording → Profile Pipeline', level: 3 },
   { id: 'ai-integration', text: 'AI Integration', level: 3 }
 ];
@@ -45,7 +45,7 @@ onMounted(() => {
 
     <div class="docs-content">
       <h2 id="architecture">Architecture</h2>
-      <p>Microscope analyzes recordings in two ways: it can load a JFR file directly, or connect to a Jeffrey Server over gRPC to read recordings from remote workspaces. From Microscope's perspective, the server is an external dependency — its internals are documented separately.</p>
+      <p>Microscope analyzes recordings in two ways: it can load a JFR file directly, or connect to a Jeffrey Hub over gRPC to read recordings from remote workspaces. From Microscope's perspective, the server is an external dependency — its internals are documented separately.</p>
 
       <div class="arch-diagram">
         <div class="arch-apps">
@@ -97,22 +97,22 @@ onMounted(() => {
           <div class="arch-app server blackbox">
             <div class="arch-app-header server-header">
               <i class="bi bi-cloud"></i>
-              <span>Jeffrey Server</span>
+              <span>Jeffrey Hub</span>
               <small>Remote</small>
             </div>
             <div class="arch-blackbox-body">
               <i class="bi bi-box"></i>
               <p>External service.</p>
-              <router-link to="/docs/server" class="arch-blackbox-link">
-                See Jeffrey Server <i class="bi bi-arrow-right"></i>
+              <router-link to="/docs/hub" class="arch-blackbox-link">
+                See Jeffrey Hub <i class="bi bi-arrow-right"></i>
               </router-link>
             </div>
           </div>
         </div>
       </div>
 
-      <h3 id="server-connection">Connection to Jeffrey Server</h3>
-      <p>When a workspace is bound to a remote, Microscope opens one cached gRPC client per service, all bundled into a <code>RemoteClients</code> record. Recording downloads stream as 64&nbsp;KB chunks, and live JFR events flow over a separate event-streaming channel. With no remote bound, Microscope is fully offline and operates only on local files and heap dumps.</p>
+      <h3 id="server-connection">Connection to Jeffrey Hub</h3>
+      <p>When a workspace is bound to a remote, Microscope opens one cached gRPC client per service, all bundled into a <code>HubClients</code> record. Recording downloads stream as 64&nbsp;KB chunks, and live JFR events flow over a separate event-streaming channel. With no remote bound, Microscope is fully offline and operates only on local files and heap dumps.</p>
 
       <div class="service-chips">
         <div class="service-chip"><i class="bi bi-compass"></i> Discovery</div>

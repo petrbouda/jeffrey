@@ -25,7 +25,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import StatsTable from '@/components/StatsTable.vue';
-import FormattingService from '@/services/FormattingService.ts';
+import FormattingService from '@shared/services/FormattingService.ts';
 import JdbcHeader from '@/services/api/model/JdbcHeader.ts';
 
 const props = defineProps<{

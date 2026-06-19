@@ -22,8 +22,8 @@ import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import cafe.jeffrey.microscope.grpc.client.RemoteEventStreamingClient.EventStreamingSubscription;
-import cafe.jeffrey.server.api.v1.EventBatch;
+import cafe.jeffrey.microscope.grpc.client.EventStreamingClient.EventStreamingSubscription;
+import cafe.jeffrey.hub.api.v1.EventBatch;
 
 import java.util.Set;
 

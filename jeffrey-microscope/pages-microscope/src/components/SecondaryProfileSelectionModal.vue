@@ -168,12 +168,12 @@
 import { ref, computed, watch } from 'vue';
 import GenericModal from '@/components/GenericModal.vue';
 import type { ProfileListResponse } from '@/services/api/DirectProfileClient';
-import RecordingsClient from '@/services/api/RecordingsClient';
-import type RecordingGroup from '@/services/api/model/RecordingGroup';
+import RecordingsClient from '@workspaces/services/api/RecordingsClient';
+import type RecordingGroup from '@workspaces/services/api/model/RecordingGroup';
 
 const recordingsClient = new RecordingsClient();
-import FormattingService from '@/services/FormattingService';
-import ToastService from '@/services/ToastService';
+import FormattingService from '@shared/services/FormattingService';
+import ToastService from '@shared/services/ToastService';
 import Profile from '@/services/api/model/Profile';
 
 interface Props {

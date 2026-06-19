@@ -18,8 +18,8 @@
 
 import axios from 'axios';
 import GlobalVars from '@/services/GlobalVars';
-import HttpUtils from '@/services/HttpUtils';
-import type { RequestOptions } from '@/services/api/BasePlatformClient';
+import HttpUtils from '@shared/services/HttpUtils';
+import type { RequestOptions } from '@shared/services/api/BasePlatformClient';
 
 /**
  * Base class for profile feature API clients.

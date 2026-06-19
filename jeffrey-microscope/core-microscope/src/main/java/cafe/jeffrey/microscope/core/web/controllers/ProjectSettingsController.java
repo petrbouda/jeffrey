@@ -30,7 +30,7 @@ import cafe.jeffrey.microscope.core.resources.response.ProjectSettingsResponse;
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
 
 @RestController
-@RequestMapping("/api/internal/remote-servers/{serverId}/workspaces/{workspaceId}/projects/{projectId}/settings")
+@RequestMapping("/api/internal/hubs/{hubId}/workspaces/{workspaceId}/projects/{projectId}/settings")
 public class ProjectSettingsController {
 
     private final ProjectManagerResolver resolver;
@@ -41,20 +41,20 @@ public class ProjectSettingsController {
 
     @GetMapping
     public ProjectSettingsResponse settings(
-            @PathVariable("serverId") String serverId,
+            @PathVariable("hubId") String hubId,
             @PathVariable("workspaceId") String workspaceId,
             @PathVariable("projectId") String projectId) {
-        ProjectManager pm = resolver.resolve(serverId, workspaceId, projectId).projectManager();
+        ProjectManager pm = resolver.resolve(hubId, workspaceId, projectId).projectManager();
         return ProjectSettingsResponse.create(pm.info());
     }
 
     @PostMapping
     public void update(
-            @PathVariable("serverId") String serverId,
+            @PathVariable("hubId") String hubId,
             @PathVariable("workspaceId") String workspaceId,
             @PathVariable("projectId") String projectId,
             @RequestBody ProjectSettingsUpdateRequest request) {
-        ProjectManager pm = resolver.resolve(serverId, workspaceId, projectId).projectManager();
+        ProjectManager pm = resolver.resolve(hubId, workspaceId, projectId).projectManager();
         if (request.name() != null) {
             pm.updateName(request.name());
         }

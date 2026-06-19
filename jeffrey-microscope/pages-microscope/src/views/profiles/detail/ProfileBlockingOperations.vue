@@ -390,11 +390,11 @@ import AboutCallout from '@/components/about/AboutCallout.vue';
 import AboutSection from '@/components/about/AboutSection.vue';
 import FeatureGrid from '@/components/about/FeatureGrid.vue';
 import FeatureCard from '@/components/about/FeatureCard.vue';
-import Badge from '@/components/Badge.vue';
-import EmptyState from '@/components/EmptyState.vue';
-import LoadingState from '@/components/LoadingState.vue';
-import ErrorState from '@/components/ErrorState.vue';
-import FormattingService from '@/services/FormattingService';
+import Badge from '@shared/components/Badge.vue';
+import EmptyState from '@shared/components/EmptyState.vue';
+import LoadingState from '@shared/components/LoadingState.vue';
+import ErrorState from '@shared/components/ErrorState.vue';
+import FormattingService from '@shared/services/FormattingService';
 import ProfileBlockingOperationsClient from '@/services/api/ProfileBlockingOperationsClient';
 import { useTableView } from '@/composables/useTableView';
 import type {

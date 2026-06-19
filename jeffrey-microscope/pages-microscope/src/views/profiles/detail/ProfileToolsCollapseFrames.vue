@@ -228,11 +228,11 @@
 import { ref, computed, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import PageHeader from '@/components/layout/PageHeader.vue';
-import Badge from '@/components/Badge.vue';
+import Badge from '@shared/components/Badge.vue';
 import ProfileToolsClient from '@/services/api/ProfileToolsClient';
 import type CollapseFramesPreview from '@/services/api/model/CollapseFramesPreview';
 import type CollapseFramesResult from '@/services/api/model/CollapseFramesResult';
-import ToastService from '@/services/ToastService';
+import ToastService from '@shared/services/ToastService';
 import '@/styles/shared-components.css';
 
 type ToolState =

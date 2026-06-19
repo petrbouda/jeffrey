@@ -132,7 +132,7 @@ import { ref, computed, onUnmounted, watch } from 'vue';
 import type { AiAnalysisChatMessage as ChatMessageType } from '@/composables/useAiAnalysis';
 import type AiStatusResponse from '@/services/api/model/AiStatusResponse';
 import AiAnalysisChatMessage from '@/components/ai-analysis/AiAnalysisChatMessage.vue';
-import Badge from '@/components/Badge.vue';
+import Badge from '@shared/components/Badge.vue';
 
 export interface PromptSection {
   label: string;

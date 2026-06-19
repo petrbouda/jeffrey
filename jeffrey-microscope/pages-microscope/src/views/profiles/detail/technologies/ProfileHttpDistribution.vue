@@ -37,8 +37,8 @@ import HttpDistributionCharts from '@/components/http/HttpDistributionCharts.vue
 import ProfileHttpClient from '@/services/api/ProfileHttpClient';
 import HttpOverviewData from '@/services/api/model/HttpOverviewData';
 import HttpOverviewStats from '@/components/http/HttpOverviewStats.vue';
-import LoadingState from '@/components/LoadingState.vue';
-import ErrorState from '@/components/ErrorState.vue';
+import LoadingState from '@shared/components/LoadingState.vue';
+import ErrorState from '@shared/components/ErrorState.vue';
 import CustomDisabledFeatureAlert from '@/components/alerts/CustomDisabledFeatureAlert.vue';
 import FeatureType from '@/services/api/model/FeatureType';
 import { useTechnologyData } from '@/composables/useTechnologyData';

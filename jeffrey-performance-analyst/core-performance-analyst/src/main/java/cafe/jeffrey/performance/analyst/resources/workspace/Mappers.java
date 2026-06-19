@@ -19,7 +19,7 @@
 package cafe.jeffrey.performance.analyst.resources.workspace;
 
 import cafe.jeffrey.performance.analyst.resources.response.ProjectResponse;
-import cafe.jeffrey.performance.analyst.resources.response.RemoteProjectResponse;
+import cafe.jeffrey.hub.client.dto.RemoteProjectResponse;
 import cafe.jeffrey.performance.analyst.resources.response.WorkspaceResponse;
 import cafe.jeffrey.shared.common.InstantUtils;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceInfo;

@@ -348,11 +348,11 @@ import AboutCallout from '@/components/about/AboutCallout.vue';
 import AboutSection from '@/components/about/AboutSection.vue';
 import FeatureGrid from '@/components/about/FeatureGrid.vue';
 import FeatureCard from '@/components/about/FeatureCard.vue';
-import Badge from '@/components/Badge.vue';
+import Badge from '@shared/components/Badge.vue';
 import DisabledEventsNotice from '@/components/alerts/DisabledEventsNotice.vue';
-import LoadingState from '@/components/LoadingState.vue';
-import ErrorState from '@/components/ErrorState.vue';
-import FormattingService from '@/services/FormattingService';
+import LoadingState from '@shared/components/LoadingState.vue';
+import ErrorState from '@shared/components/ErrorState.vue';
+import FormattingService from '@shared/services/FormattingService';
 import AxisFormatType from '@/services/timeseries/AxisFormatType';
 import ProfileSystemClient from '@/services/api/ProfileSystemClient';
 import type {

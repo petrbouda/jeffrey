@@ -9,7 +9,7 @@ import { computed, onMounted, ref } from 'vue';
 import StatsTable from '@/components/StatsTable.vue';
 import ProfileGCClient from '@/services/api/ProfileGCClient';
 import GCOverviewData from '@/services/api/model/GCOverviewData';
-import FormattingService from '@/services/FormattingService';
+import FormattingService from '@shared/services/FormattingService';
 
 const props = defineProps<{
   profileId: string;

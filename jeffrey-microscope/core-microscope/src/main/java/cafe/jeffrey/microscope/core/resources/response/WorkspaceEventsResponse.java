@@ -18,6 +18,8 @@
 
 package cafe.jeffrey.microscope.core.resources.response;
 
+import cafe.jeffrey.hub.client.dto.WorkspaceEventResponse;
+
 import java.util.List;
 
 /**

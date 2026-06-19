@@ -30,8 +30,8 @@
 </template>
 
 <script setup lang="ts">
-import Badge from '@/components/Badge.vue';
-import type { Variant } from '@/types/ui';
+import Badge from '@shared/components/Badge.vue';
+import type { Variant } from '@shared/types/ui';
 
 export interface TabBarItem {
   /** Stable identifier emitted via v-model when this tab is selected. */

@@ -176,9 +176,9 @@ onMounted(() => {
             icon="bi bi-pc-display"
           />
           <DocsLinkCard
-            title="Jeffrey Server"
+            title="Jeffrey Hub"
             description="The recording collection server for production/cloud environments. Continuously collects JFR recordings from running applications."
-            to="/docs/server/overview"
+            to="/docs/hub/overview"
             icon="bi bi-cloud"
           />
           <DocsLinkCard

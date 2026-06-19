@@ -92,7 +92,7 @@ const v080TwoProductsImages: GalleryImage[] = [
 ]
 
 const v080RemoteWorkspaceImages: GalleryImage[] = [
-  { src: '/images/release-notes/v0.8.0/workspaces.png', caption: 'Workspaces — connect Microscope to a remote Jeffrey Server' },
+  { src: '/images/release-notes/v0.8.0/workspaces.png', caption: 'Workspaces — connect Microscope to a remote Jeffrey Hub' },
 ]
 
 const v080TimelineImages: GalleryImage[] = [
@@ -318,7 +318,7 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
           <div class="hero-eyebrow">Release Notes</div>
           <h1 class="hero-title"><span>Two Products</span> Release</h1>
           <p class="hero-version">Version 0.8.0 &middot; May 2026</p>
-          <p class="hero-summary">A clean split between Jeffrey Microscope and Jeffrey Server, a redesigned remote-workspace connection, a per-project instance timeline, a brand-new JIT Deoptimizations dashboard, and a fully reorganized documentation site.</p>
+          <p class="hero-summary">A clean split between Jeffrey Microscope and Jeffrey Hub, a redesigned remote-workspace connection, a per-project instance timeline, a brand-new JIT Deoptimizations dashboard, and a fully reorganized documentation site.</p>
         </div>
       </div>
     </section>
@@ -663,7 +663,7 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
             <div class="feature-text">
               <div class="feature-number">Feature 01</div>
               <h2>Heap Dump Workspace</h2>
-              <p>Upload an <code>.hprof</code> file (or load one captured by Jeffrey Server) and get a guided workspace built around the dump. The summary surfaces total heap size, object counts and GC-root mix at a glance, the class histogram is sortable by shallow size, retained size and instance count, and every row in every view drills down into the same <strong>Instance Details</strong> panel &mdash; fields, referrers, reachables, and a one-click path back to a GC root.</p>
+              <p>Upload an <code>.hprof</code> file (or load one captured by Jeffrey Hub) and get a guided workspace built around the dump. The summary surfaces total heap size, object counts and GC-root mix at a glance, the class histogram is sortable by shallow size, retained size and instance count, and every row in every view drills down into the same <strong>Instance Details</strong> panel &mdash; fields, referrers, reachables, and a one-click path back to a GC root.</p>
               <p>Indexing is cached: re-opening a previously analysed dump is instant, no re-parse, no re-walk.</p>
               <div class="feature-highlights">
                 <span class="feature-highlight"><i class="bi bi-upload"></i> .hprof &amp; .hprof.gz</span>
@@ -847,8 +847,8 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
             <div class="feature-text">
               <div class="feature-number">Feature 01</div>
               <h2>Two Products: Microscope &amp; Server</h2>
-              <p>Jeffrey now ships as <strong>two clearly separated products</strong>. <strong>Jeffrey Microscope</strong> is the standalone analyst &mdash; a single-user app that opens JFR recordings and heap dumps locally with full visualization, guardian and AI features. <strong>Jeffrey Server</strong> is the headless multi-workspace collector that continuously gathers JFR recordings from running applications and serves them over gRPC.</p>
-              <p>Pick the one that matches how you use Jeffrey, or run them together &mdash; Microscope can connect to a remote Server and pull artifacts directly.</p>
+              <p>Jeffrey now ships as <strong>two clearly separated products</strong>. <strong>Jeffrey Microscope</strong> is the standalone analyst &mdash; a single-user app that opens JFR recordings and heap dumps locally with full visualization, guardian and AI features. <strong>Jeffrey Hub</strong> is the headless multi-workspace collector that continuously gathers JFR recordings from running applications and serves them over gRPC.</p>
+              <p>Pick the one that matches how you use Jeffrey, or run them together &mdash; Microscope can connect to a hub and pull artifacts directly.</p>
               <div class="feature-highlights">
                 <span class="feature-highlight"><i class="bi bi-search"></i> Microscope &mdash; at the desk</span>
                 <span class="feature-highlight"><i class="bi bi-cloud"></i> Server &mdash; in production</span>
@@ -871,7 +871,7 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
           <div class="feature-text">
             <div class="feature-number">Feature 02</div>
             <h2>Remote Workspace Connection</h2>
-            <p>Connecting Microscope to a remote Jeffrey Server has been completely revisited. A new dedicated <strong>Workspaces</strong> page lets you organize multiple stacks, browse projects within each workspace, and switch between them with a single click.</p>
+            <p>Connecting Microscope to a remote Jeffrey Hub has been completely revisited. A new dedicated <strong>Workspaces</strong> page lets you organize multiple stacks, browse projects within each workspace, and switch between them with a single click.</p>
             <p>Each project surfaces its instances and sessions inline &mdash; no more navigating through nested menus to find the recording you actually want to look at.</p>
             <div class="feature-highlights">
               <span class="feature-highlight"><i class="bi bi-hdd-network"></i> Multi-stack</span>
@@ -965,7 +965,7 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
             <div class="feature-text">
               <div class="feature-number">Feature 05</div>
               <h2>Jeffrey JIB Extension</h2>
-              <p>The new <a href="https://www.jeffrey-analyst.cafe/docs/jib/overview" target="_blank">Jeffrey JIB Extension</a> is a first-class <a href="https://github.com/GoogleContainerTools/jib" target="_blank">JIB</a> plugin extension that wires Jeffrey straight into your container builds. Drop one dependency into the JIB plugin's <code>pluginExtensions</code>, point <code>jeffreyHome</code> at your shared volume, and the produced image is ready to be discovered, profiled and managed by Jeffrey Server &mdash; no agent path, no JFR flags, no startup script edits.</p>
+              <p>The new <a href="https://www.jeffrey-analyst.cafe/docs/jib/overview" target="_blank">Jeffrey JIB Extension</a> is a first-class <a href="https://github.com/GoogleContainerTools/jib" target="_blank">JIB</a> plugin extension that wires Jeffrey straight into your container builds. Drop one dependency into the JIB plugin's <code>pluginExtensions</code>, point <code>jeffreyHome</code> at your shared volume, and the produced image is ready to be discovered, profiled and managed by Jeffrey Hub &mdash; no agent path, no JFR flags, no startup script edits.</p>
               <p>Available for both <strong>Maven</strong> and <strong>Gradle</strong>. <code>JEFFREY_HOME</code> can be baked in at image build time or supplied as a runtime env var; if it's missing, the wrapper warns and starts the app without profiling so you never break a deploy. <a href="https://www.jeffrey-analyst.cafe/docs/jib/overview" target="_blank">Read the full guide &rarr;</a></p>
               <div class="feature-highlights">
                 <span class="feature-highlight"><i class="bi bi-box-seam"></i> Maven &amp; Gradle</span>
@@ -1003,8 +1003,8 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
             <div class="improvement-tile improvement-tile-text">
               <div class="imp-tile-body">
                 <h3>Deployment by Examples</h3>
-                <p>A new <strong>Deployment by Examples</strong> guide walks through deploying Jeffrey Server alongside your applications &mdash; concrete, copy-pasteable setups instead of abstract reference docs.</p>
-                <a href="https://www.jeffrey-analyst.cafe/docs/server/deployment" target="_blank" class="imp-link">Open deployment guide <i class="bi bi-arrow-right"></i></a>
+                <p>A new <strong>Deployment by Examples</strong> guide walks through deploying Jeffrey Hub alongside your applications &mdash; concrete, copy-pasteable setups instead of abstract reference docs.</p>
+                <a href="https://www.jeffrey-analyst.cafe/docs/hub/deployment" target="_blank" class="imp-link">Open deployment guide <i class="bi bi-arrow-right"></i></a>
               </div>
             </div>
           </div>
@@ -1096,7 +1096,7 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
             <div class="feature-text">
               <div class="feature-number">Feature 03</div>
               <h2>Server Continuous Recording</h2>
-              <p>A split architecture with <strong>jeffrey-server</strong> collecting recordings in Kubernetes and <strong>jeffrey-microscope</strong> providing full analysis on your machine. Applications write JFR chunks to shared storage, and Jeffrey discovers sessions, instances, and artifacts automatically.</p>
+              <p>A split architecture with <strong>jeffrey-hub</strong> collecting recordings in Kubernetes and <strong>jeffrey-microscope</strong> providing full analysis on your machine. Applications write JFR chunks to shared storage, and Jeffrey discovers sessions, instances, and artifacts automatically.</p>
               <p>Visualize application instance timelines, browse recording sessions, and merge JFR chunks for deep analysis. Artifacts include heap dumps, JVM logs, and performance counters &mdash; all collected continuously alongside your JFR recordings.</p>
               <div class="feature-highlights">
                 <span class="feature-highlight"><i class="bi bi-cloud"></i> Kubernetes</span>

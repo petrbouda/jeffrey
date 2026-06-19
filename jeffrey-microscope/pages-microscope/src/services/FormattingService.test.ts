@@ -1,4 +1,4 @@
-import FormattingService from './FormattingService';
+import FormattingService from '@shared/services/FormattingService';
 
 describe('FormattingService', () => {
   describe('formatBytes', () => {

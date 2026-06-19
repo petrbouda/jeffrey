@@ -52,14 +52,14 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
-import LoadingState from '@/components/LoadingState.vue';
-import ErrorState from '@/components/ErrorState.vue';
-import EmptyState from '@/components/EmptyState.vue';
+import LoadingState from '@shared/components/LoadingState.vue';
+import ErrorState from '@shared/components/ErrorState.vue';
+import EmptyState from '@shared/components/EmptyState.vue';
 import ClassNameDisplay from '@/components/heap/ClassNameDisplay.vue';
 import InstanceActionButtons from '@/components/heap/InstanceActionButtons.vue';
 import type HeapDumpClient from '@/services/api/HeapDumpClient';
 import type GCRootRetainer from '@/services/api/model/GCRootRetainer';
-import FormattingService from '@/services/FormattingService';
+import FormattingService from '@shared/services/FormattingService';
 
 // HPROF root-kind sub-tags
 const ROOT_JNI_GLOBAL = 0x01;

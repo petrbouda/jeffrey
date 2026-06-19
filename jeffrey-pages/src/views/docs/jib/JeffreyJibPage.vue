@@ -84,7 +84,7 @@ onMounted(() => {
 
         <p>At container start, the wrapper runs <code>jeffrey-cli init</code> &mdash; resolved from
           <code>${JEFFREY_HOME}/libs/current/jeffrey-cli-&lt;arch&gt;</code> on a shared volume populated by
-          Jeffrey Server's <code>copy-libs</code> feature &mdash; and then <code>exec</code>s the original JIB
+          Jeffrey Hub's <code>copy-libs</code> feature &mdash; and then <code>exec</code>s the original JIB
           command with the CLI-produced argfile inserted right after the <code>java</code> binary.
           If the shared-volume root is not configured at runtime (neither <code>JEFFREY_HOME</code> nor
           <code>JEFFREY_CLI_PATH</code> is set), the wrapper logs a warning and skips init entirely &mdash;
@@ -92,7 +92,7 @@ onMounted(() => {
 
         <DocsCallout type="info">
           <strong>Why a shared volume?</strong> The extension does <strong>not</strong> bake Jeffrey
-          binaries into your image. It relies on a Jeffrey Server running elsewhere in the cluster
+          binaries into your image. It relies on a Jeffrey Hub running elsewhere in the cluster
           with <code>copy-libs.enabled=true</code> to populate the shared <code>jeffrey-home</code>
           volume that your app pods also mount. Keeps the extension JAR tiny and versioning automatic.
         </DocsCallout>
@@ -200,12 +200,12 @@ onMounted(() => {
 
         <DocsCallout type="warning">
           <strong><code>jeffreyHome</code> must point at a shared volume / disk.</strong>
-          Jeffrey Server (with <code>copy-libs.enabled=true</code>) writes the CLI binaries and
+          Jeffrey Hub (with <code>copy-libs.enabled=true</code>) writes the CLI binaries and
           libs to this path, and every monitored application pod must mount the <em>same</em>
           volume at the <em>same</em> path so its entrypoint wrapper can resolve
           <code>${JEFFREY_HOME}/libs/current/jeffrey-cli-&lt;arch&gt;</code> at container start. A
           host-local directory or a per-pod ephemeral volume will not work &mdash; both endpoints
-          need to see the bytes Jeffrey Server published.
+          need to see the bytes Jeffrey Hub published.
         </DocsCallout>
 
         <p>Add explicit overrides via the string <code>properties</code> DSL &mdash; for example,
@@ -297,7 +297,7 @@ jib {
           </div>
           <div class="feature-item feature-item-warning">
             <i class="bi bi-exclamation-triangle-fill"></i>
-            <div><strong>Requires Jeffrey Server elsewhere in the cluster</strong> with
+            <div><strong>Requires Jeffrey Hub elsewhere in the cluster</strong> with
               <code>copy-libs.enabled=true</code>, writing to the shared <code>jeffrey-home</code>
               volume your app pods mount. Without it, the wrapper cannot locate
               <code>jeffrey-cli-&lt;arch&gt;</code> at runtime.</div>

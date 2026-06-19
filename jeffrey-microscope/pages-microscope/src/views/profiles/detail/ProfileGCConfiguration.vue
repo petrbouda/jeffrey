@@ -209,11 +209,11 @@ import { useRoute } from 'vue-router';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import StatsTable from '@/components/StatsTable.vue';
 import ConfigurationSection from '@/components/ConfigurationSection.vue';
-import LoadingState from '@/components/LoadingState.vue';
-import ErrorState from '@/components/ErrorState.vue';
+import LoadingState from '@shared/components/LoadingState.vue';
+import ErrorState from '@shared/components/ErrorState.vue';
 import ProfileGCClient from '@/services/api/ProfileGCClient';
 import GCConfigurationData from '@/services/api/model/GCConfigurationData';
-import FormattingService from '@/services/FormattingService';
+import FormattingService from '@shared/services/FormattingService';
 
 const route = useRoute();
 

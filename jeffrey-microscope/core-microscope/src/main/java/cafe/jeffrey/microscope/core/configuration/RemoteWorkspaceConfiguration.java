@@ -19,17 +19,17 @@
 package cafe.jeffrey.microscope.core.configuration;
 
 import cafe.jeffrey.microscope.core.MicroscopeJeffreyDirs;
-import cafe.jeffrey.microscope.core.client.CachedRemoteClientsFactory;
-import cafe.jeffrey.microscope.core.client.RemoteClients;
+import cafe.jeffrey.hub.client.CachedHubClientsFactory;
+import cafe.jeffrey.hub.client.HubClients;
 import cafe.jeffrey.microscope.core.manager.ProfilesManager;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
-import cafe.jeffrey.microscope.core.manager.server.RemoteServerManager;
-import cafe.jeffrey.microscope.core.manager.server.RemoteServersManager;
+import cafe.jeffrey.microscope.core.manager.server.HubManager;
+import cafe.jeffrey.microscope.core.manager.server.HubsManager;
 import cafe.jeffrey.microscope.core.manager.workspace.RemoteWorkspaceManager;
 import cafe.jeffrey.microscope.core.manager.workspace.WorkspaceManagerFactory;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCorePersistenceProvider;
-import cafe.jeffrey.microscope.persistence.api.RemoteServersRepository;
-import cafe.jeffrey.microscope.persistence.jdbc.JdbcRemoteServersRepository;
+import cafe.jeffrey.microscope.persistence.api.HubsRepository;
+import cafe.jeffrey.microscope.persistence.jdbc.JdbcHubsRepository;
 import cafe.jeffrey.microscope.persistence.jdbc.JdbcWorkspaceRepository;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -42,13 +42,13 @@ import java.time.Clock;
 public class RemoteWorkspaceConfiguration {
 
     @Bean
-    public RemoteServersRepository remoteServersRepository(MicroscopeCorePersistenceProvider provider) {
-        return new JdbcRemoteServersRepository(provider.databaseClientProvider());
+    public HubsRepository remoteServersRepository(MicroscopeCorePersistenceProvider provider) {
+        return new JdbcHubsRepository(provider.databaseClientProvider());
     }
 
     @Bean(destroyMethod = "close")
-    public CachedRemoteClientsFactory remoteClientsFactory() {
-        return new CachedRemoteClientsFactory();
+    public CachedHubClientsFactory remoteClientsFactory() {
+        return new CachedHubClientsFactory();
     }
 
     @Bean
@@ -69,14 +69,14 @@ public class RemoteWorkspaceConfiguration {
     }
 
     @Bean
-    public RemoteServerManager.Factory remoteServerManagerFactory(
-            CachedRemoteClientsFactory remoteClientsFactory,
+    public HubManager.Factory remoteServerManagerFactory(
+            CachedHubClientsFactory remoteClientsFactory,
             WorkspaceManagerFactory workspaceManagerFactory,
-            RemoteServersRepository remoteServersRepository) {
+            HubsRepository remoteServersRepository) {
 
         return serverInfo -> {
-            RemoteClients clients = remoteClientsFactory.apply(serverInfo.address());
-            return new RemoteServerManager(
+            HubClients clients = remoteClientsFactory.apply(serverInfo.address());
+            return new HubManager(
                     serverInfo,
                     clients,
                     workspaceManagerFactory,
@@ -86,11 +86,11 @@ public class RemoteWorkspaceConfiguration {
     }
 
     @Bean
-    public RemoteServersManager remoteServersManager(
-            RemoteServersRepository remoteServersRepository,
-            RemoteServerManager.Factory remoteServerManagerFactory,
+    public HubsManager remoteServersManager(
+            HubsRepository remoteServersRepository,
+            HubManager.Factory remoteServerManagerFactory,
             Clock clock) {
 
-        return new RemoteServersManager(remoteServersRepository, remoteServerManagerFactory, clock);
+        return new HubsManager(remoteServersRepository, remoteServerManagerFactory, clock);
     }
 }

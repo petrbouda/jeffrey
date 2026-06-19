@@ -64,7 +64,7 @@ class ProjectSettingsControllerTest {
 
         MockMvcTester mvc = mockMvcTesterFor(new ProjectSettingsController(resolver));
 
-        assertThat(mvc.get().uri("/api/internal/remote-servers/srv-1/workspaces/ws-1/projects/p-1/settings"))
+        assertThat(mvc.get().uri("/api/internal/hubs/srv-1/workspaces/ws-1/projects/p-1/settings"))
                 .hasStatusOk()
                 .bodyJson()
                 .extractingPath("$.name").asString().isEqualTo("demo");
@@ -76,7 +76,7 @@ class ProjectSettingsControllerTest {
 
         MockMvcTester mvc = mockMvcTesterFor(new ProjectSettingsController(resolver));
 
-        assertThat(mvc.get().uri("/api/internal/remote-servers/srv-1/workspaces/ws-1/projects/ghost/settings"))
+        assertThat(mvc.get().uri("/api/internal/hubs/srv-1/workspaces/ws-1/projects/ghost/settings"))
                 .hasStatus(404)
                 .bodyJson()
                 .extractingPath("$.code").asString().isEqualTo("PROJECT_NOT_FOUND");

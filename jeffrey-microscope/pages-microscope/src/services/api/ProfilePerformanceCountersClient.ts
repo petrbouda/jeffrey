@@ -20,7 +20,7 @@ import BaseProfileClient from '@/services/api/BaseProfileClient';
 import PerformanceCounter from '@/services/api/model/PerformanceCounter.ts';
 import PerformanceCounterEnhanced from '@/services/api/model/PerformanceCounterEnhanced.ts';
 import PerformanceCounterDataType from '@/services/api/model/PerformanceCounterDataType.ts';
-import FormattingService from '@/services/FormattingService.ts';
+import FormattingService from '@shared/services/FormattingService.ts';
 
 export default class ProfilePerformanceCountersClient extends BaseProfileClient {
   constructor(profileId: string) {

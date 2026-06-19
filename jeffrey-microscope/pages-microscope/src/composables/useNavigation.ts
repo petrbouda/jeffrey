@@ -25,7 +25,7 @@ export function useNavigation() {
   const router = useRouter();
 
   // Route params (with profileStore fallback for the simplified profile URL pattern)
-  const serverId = computed(() => (route.params.serverId as string) || profileStore.serverId.value);
+  const hubId = computed(() => (route.params.hubId as string) || profileStore.hubId.value);
   const workspaceId = computed(
     () => (route.params.workspaceId as string) || profileStore.workspaceId.value
   );
@@ -43,14 +43,14 @@ export function useNavigation() {
   );
 
   const projectRoot = (sId: string, wId: string, pId: string) =>
-    `/remote-servers/${sId}/workspaces/${wId}/projects/${pId}`;
+    `/hubs/${sId}/workspaces/${wId}/projects/${pId}`;
 
   const navigateToWorkspace = (sId: string, wId: string) => {
-    router.push(`/remote-servers/${sId}/workspaces/${wId}`);
+    router.push(`/hubs/${sId}/workspaces/${wId}`);
   };
 
   const navigateToWorkspaceProjects = (sId: string, wId: string) => {
-    router.push(`/remote-servers/${sId}/workspaces/${wId}/projects`);
+    router.push(`/hubs/${sId}/workspaces/${wId}/projects`);
   };
 
   const navigateToProject = (sId: string, pId: string, wId?: string) => {
@@ -67,17 +67,17 @@ export function useNavigation() {
 
   /**
    * Navigate back to the project's recordings list.
-   * Uses serverId/workspaceId/projectId from profileStore when using simplified URLs.
+   * Uses hubId/workspaceId/projectId from profileStore when using simplified URLs.
    */
   const navigateToProjectRecordings = (sId?: string, wId?: string, pId?: string) => {
-    const targetServerId = sId || serverId.value;
+    const targetServerId = sId || hubId.value;
     const targetWorkspaceId = wId || workspaceId.value;
     const targetProjectId = pId || projectId.value;
     router.push(`${projectRoot(targetServerId, targetWorkspaceId, targetProjectId)}/recordings`);
   };
 
   const generateProjectUrl = (path: string, sId?: string, pId?: string, wId?: string) => {
-    const targetServerId = sId || serverId.value;
+    const targetServerId = sId || hubId.value;
     const targetWorkspaceId = wId || workspaceId.value;
     const targetProjectId = pId || projectId.value;
     return `${projectRoot(targetServerId, targetWorkspaceId, targetProjectId)}/${path}`;
@@ -101,7 +101,7 @@ export function useNavigation() {
     pId?: string,
     wId?: string
   ) => {
-    const targetServerId = sId || serverId.value;
+    const targetServerId = sId || hubId.value;
     const targetWorkspaceId = wId || workspaceId.value;
     const targetProjectId = pId || projectId.value;
     const basePath = `${projectRoot(targetServerId, targetWorkspaceId, targetProjectId)}/instances/${instId}`;
@@ -149,7 +149,7 @@ export function useNavigation() {
 
   return {
     // Route params (with profileStore fallback)
-    serverId,
+    hubId,
     workspaceId,
     projectId,
     profileId,

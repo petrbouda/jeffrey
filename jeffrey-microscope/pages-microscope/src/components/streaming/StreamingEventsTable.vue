@@ -58,7 +58,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import FormattingService from '@/services/FormattingService';
+import FormattingService from '@shared/services/FormattingService';
 import Utils from '@/services/Utils';
 import type { StreamingEvent } from '@/services/api/EventStreamingClient';
 

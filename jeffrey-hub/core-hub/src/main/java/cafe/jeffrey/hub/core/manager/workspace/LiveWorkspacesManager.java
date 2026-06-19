@@ -1,0 +1,102 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2026 Petr Bouda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+package cafe.jeffrey.hub.core.manager.workspace;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import cafe.jeffrey.hub.persistence.api.WorkspacesRepository;
+import cafe.jeffrey.shared.common.model.workspace.WorkspaceInfo;
+import cafe.jeffrey.shared.common.model.workspace.WorkspaceStatus;
+
+import java.time.Clock;
+import java.util.List;
+import java.util.Optional;
+
+public final class LiveWorkspacesManager implements WorkspacesManager {
+
+    private static final Logger LOG = LoggerFactory.getLogger(LiveWorkspacesManager.class);
+
+    private final Clock clock;
+    private final WorkspacesRepository workspacesRepository;
+    private final WorkspaceManager.Factory workspaceManagerFactory;
+
+    public LiveWorkspacesManager(
+            Clock clock,
+            WorkspacesRepository workspacesRepository,
+            WorkspaceManager.Factory workspaceManagerFactory) {
+
+        this.clock = clock;
+        this.workspacesRepository = workspacesRepository;
+        this.workspaceManagerFactory = workspaceManagerFactory;
+    }
+
+    @Override
+    public WorkspaceInfo create(CreateWorkspaceRequest request) {
+        LOG.debug("Creating live workspace: name={}", request.name());
+        if (request.name() == null || request.name().isBlank()) {
+            throw new IllegalArgumentException("Workspace Name cannot be null or empty");
+        }
+
+        String trimmedSourceId = request.referenceId().trim();
+        String trimmedName = request.name().trim();
+
+        if (findByReferenceId(trimmedSourceId).isPresent()) {
+            throw new WorkspaceAlreadyExistsException(
+                    "Workspace with reference ID '" + trimmedSourceId + "' already exists");
+        }
+
+        if (workspacesRepository.existsByName(trimmedName)) {
+            throw new WorkspaceAlreadyExistsException(
+                    "Workspace with name '" + trimmedName + "' already exists");
+        }
+
+        WorkspaceInfo workspaceInfo = new WorkspaceInfo(
+                null,
+                trimmedSourceId,
+                trimmedSourceId,
+                trimmedName,
+                request.location(),
+                request.baseLocation(),
+                clock.instant(),
+                WorkspaceStatus.UNKNOWN,
+                0
+        );
+
+        return workspacesRepository.create(workspaceInfo);
+    }
+
+    @Override
+    public List<? extends WorkspaceManager> findAll() {
+        return workspacesRepository.findAll().stream()
+                .map(workspaceManagerFactory)
+                .toList();
+    }
+
+    @Override
+    public Optional<WorkspaceManager> findById(String workspaceId) {
+        return workspacesRepository.find(workspaceId)
+                .map(workspaceManagerFactory);
+    }
+
+    @Override
+    public Optional<WorkspaceManager> findByReferenceId(String referenceId) {
+        return workspacesRepository.findByReferenceId(referenceId)
+                .map(workspaceManagerFactory);
+    }
+}

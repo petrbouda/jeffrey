@@ -140,24 +140,24 @@ import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useNavigation } from '@/composables/useNavigation';
 import ProjectSettingsClient from '@/services/api/ProjectSettingsClient';
-import ProjectClient from '@/services/api/ProjectClient';
-import ToastService from '@/services/ToastService';
+import ProjectClient from '@workspaces/services/api/ProjectClient';
+import ToastService from '@shared/services/ToastService';
 import GenericModal from '@/components/GenericModal.vue';
-import LoadingState from '@/components/LoadingState.vue';
+import LoadingState from '@shared/components/LoadingState.vue';
 import MainCard from '@/components/MainCard.vue';
 import MainCardHeader from '@/components/MainCardHeader.vue';
 import '@/styles/shared-components.css';
 
 const router = useRouter();
-const { serverId, workspaceId, projectId } = useNavigation();
+const { hubId, workspaceId, projectId } = useNavigation();
 
 // Create clients
 const settingsClient = new ProjectSettingsClient(
-  serverId.value,
+  hubId.value,
   workspaceId.value!,
   projectId.value!
 );
-const projectClient = new ProjectClient(serverId.value, workspaceId.value!, projectId.value!);
+const projectClient = new ProjectClient(hubId.value, workspaceId.value!, projectId.value!);
 
 // State variables
 const originalProjectName = ref('');

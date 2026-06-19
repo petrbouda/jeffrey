@@ -25,12 +25,23 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import cafe.jeffrey.microscope.core.initializer.RecordingSeedInitializer;
+import cafe.jeffrey.microscope.core.manager.recordings.JfrRecordingMetadataParserAdapter;
+import cafe.jeffrey.microscope.core.manager.recordings.MicroscopeProfileCleanup;
+import cafe.jeffrey.microscope.core.manager.recordings.ProfileRecordingsManager;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
-import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManagerImpl;
-import cafe.jeffrey.microscope.core.manager.server.RemoteServersManager;
+import cafe.jeffrey.microscope.core.manager.server.HubsManager;
+import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
+import cafe.jeffrey.provider.profile.api.RecordingInformationParser;
+import cafe.jeffrey.recordings.core.manager.RecordingsCoreManager;
+import cafe.jeffrey.recordings.core.manager.RecordingsCoreManagerImpl;
+import cafe.jeffrey.microscope.core.web.MicroscopeRecordingProfileInfoProvider;
+import cafe.jeffrey.microscope.core.web.MicroscopeRemoteProjectAccess;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
 import cafe.jeffrey.microscope.core.web.WebInfrastructureConfig;
+import cafe.jeffrey.shared.ui.workspace.bridge.RecordingProfileInfoProvider;
+import cafe.jeffrey.shared.ui.workspace.bridge.RemoteProjectAccess;
+import cafe.jeffrey.shared.ui.workspace.config.WorkspacesFeatureConfiguration;
 import cafe.jeffrey.profile.ProfileInitializer;
 import cafe.jeffrey.profile.ProfileInitializerImpl;
 import cafe.jeffrey.profile.configuration.ProfileFactoriesConfiguration;
@@ -54,7 +65,7 @@ import java.time.Clock;
  * Configuration beans specific to LOCAL mode: Recordings, web controllers, resolvers.
  */
 @Configuration
-@Import(WebInfrastructureConfig.class)
+@Import({WebInfrastructureConfig.class, WorkspacesFeatureConfiguration.class})
 public class MicroscopeAppConfiguration {
 
     @Bean
@@ -79,14 +90,28 @@ public class MicroscopeAppConfiguration {
                 profileDataInitializer,
                 clock);
 
-        return new RecordingsManagerImpl(
+        MicroscopeCoreRepositories repos = localCorePersistenceProvider.localCoreRepositories();
+        RecordingInformationParser recordingInformationParser = new JfrRecordingInformationParser(jeffreyDirs);
+        MicroscopeProfileCleanup profileCleanup = new MicroscopeProfileCleanup(jeffreyDirs, repos);
+
+        RecordingsCoreManager core = new RecordingsCoreManagerImpl(
+                clock,
+                recordingsPath,
+                repos.newRecordingRepository(null),
+                repos.recordingTagsRepository(),
+                new JfrRecordingMetadataParserAdapter(recordingInformationParser),
+                profileCleanup);
+
+        return new ProfileRecordingsManager(
+                core,
                 clock,
                 jeffreyDirs,
                 recordingsPath,
-                new JfrRecordingInformationParser(jeffreyDirs),
+                recordingInformationParser,
                 recordingsProfileInitializer,
                 profileManagerFactory,
-                localCorePersistenceProvider.localCoreRepositories());
+                repos,
+                profileCleanup);
     }
 
     @Bean
@@ -101,13 +126,25 @@ public class MicroscopeAppConfiguration {
     // --- Resolvers (centralise profileId / projectId lookups for controllers) ---
 
     @Bean
-    public ProjectManagerResolver projectManagerResolver(RemoteServersManager remoteServersManager) {
+    public ProjectManagerResolver projectManagerResolver(HubsManager remoteServersManager) {
         return new ProjectManagerResolver(remoteServersManager);
+    }
+
+    // --- Bridges for the shared workspaces controllers ---
+
+    @Bean
+    public RemoteProjectAccess remoteProjectAccess(ProjectManagerResolver projectManagerResolver) {
+        return new MicroscopeRemoteProjectAccess(projectManagerResolver);
+    }
+
+    @Bean
+    public RecordingProfileInfoProvider recordingProfileInfoProvider(RecordingsManager recordingsManager) {
+        return new MicroscopeRecordingProfileInfoProvider(recordingsManager);
     }
 
     @Bean
     public ProfileManagerResolver profileManagerResolver(
-            RemoteServersManager remoteServersManager,
+            HubsManager remoteServersManager,
             Optional<RecordingsManager> recordingsManager,
             MicroscopeCorePersistenceProvider localCorePersistenceProvider) {
         return new ProfileManagerResolver(

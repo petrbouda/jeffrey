@@ -104,9 +104,9 @@
 <script setup lang="ts">
 import GenericModal from '@/components/GenericModal.vue';
 import JdbcSlowStatement from '@/services/api/model/JdbcSlowStatement.ts';
-import FormattingService from '@/services/FormattingService.ts';
+import FormattingService from '@shared/services/FormattingService.ts';
 import JdbcOperationBadge from '@/components/jdbc/JdbcOperationBadge.vue';
-import Badge from '@/components/Badge.vue';
+import Badge from '@shared/components/Badge.vue';
 
 interface Props {
   statement: JdbcSlowStatement | null;

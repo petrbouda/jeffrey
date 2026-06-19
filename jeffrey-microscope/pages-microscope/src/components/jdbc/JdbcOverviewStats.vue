@@ -8,7 +8,7 @@
 import { computed } from 'vue';
 import StatsTable from '@/components/StatsTable.vue';
 import JdbcHeader from '@/services/api/model/JdbcHeader';
-import FormattingService from '@/services/FormattingService';
+import FormattingService from '@shared/services/FormattingService';
 
 const props = defineProps<{
   jdbcHeader: JdbcHeader;

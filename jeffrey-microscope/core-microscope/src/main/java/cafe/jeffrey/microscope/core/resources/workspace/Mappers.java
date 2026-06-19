@@ -23,7 +23,7 @@ import cafe.jeffrey.shared.common.model.workspace.WorkspaceEvent;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 import cafe.jeffrey.microscope.core.manager.project.ProjectManager.DetailedProjectInfo;
 import cafe.jeffrey.microscope.core.resources.response.ProjectResponse;
-import cafe.jeffrey.microscope.core.resources.response.WorkspaceEventResponse;
+import cafe.jeffrey.hub.client.dto.WorkspaceEventResponse;
 import cafe.jeffrey.microscope.core.resources.response.WorkspaceResponse;
 
 

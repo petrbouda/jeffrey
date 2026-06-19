@@ -1,8 +1,8 @@
-# Profiling Java in Kubernetes: Continuous Recording with Jeffrey Server
+# Profiling Java in Kubernetes: Continuous Recording with Jeffrey Hub
 
 You can't attach a profiler to a Kubernetes pod the way you'd connect VisualVM to a local process. Pods are ephemeral — they scale up, crash, get evicted, and restart. By the time you notice a performance problem, the pod that exhibited it may be gone, along with all its profiling data.
 
-Jeffrey solves this with a three-component architecture designed for production environments: **Jeffrey CLI** initializes containers for profiling, **Jeffrey Server** collects JFR recordings from running applications, and **Jeffrey Local** analyzes the data on your developer machine. The expensive computation happens locally, not in the cloud.
+Jeffrey solves this with a three-component architecture designed for production environments: **Jeffrey CLI** initializes containers for profiling, **Jeffrey Hub** collects JFR recordings from running applications, and **Jeffrey Local** analyzes the data on your developer machine. The expensive computation happens locally, not in the cloud.
 
 This article — the final in our series on Java profiling with Jeffrey — shows how to set up continuous profiling for Java applications in Kubernetes.
 
@@ -13,13 +13,13 @@ Jeffrey splits profiling into distinct responsibilities:
 ![Jeffrey Local + Server architecture](images/release-notes/server-recording/01-architecture.png)
 *Split architecture: Server collects in the cloud, Local analyzes on your machine.*
 
-**Jeffrey CLI** runs as an init step in your Docker container. It reads a configuration file, generates JVM arguments for Async Profiler, creates the directory structure on shared storage, and registers the application instance with Jeffrey Server. It runs once before your Java application starts.
+**Jeffrey CLI** runs as an init step in your Docker container. It reads a configuration file, generates JVM arguments for Async Profiler, creates the directory structure on shared storage, and registers the application instance with Jeffrey Hub. It runs once before your Java application starts.
 
-**Jeffrey Server** runs as a service in your Kubernetes cluster. It watches shared storage for new JFR files and metadata, tracks recording sessions, manages instance lifecycles, and exposes a gRPC API for remote access. It collects — it doesn't analyze.
+**Jeffrey Hub** runs as a service in your Kubernetes cluster. It watches shared storage for new JFR files and metadata, tracks recording sessions, manages instance lifecycles, and exposes a gRPC API for remote access. It collects — it doesn't analyze.
 
-**Jeffrey Local** runs on your developer machine. It connects to Jeffrey Server as a "remote workspace," lets you browse instances and sessions, download recordings, and perform full analysis — flamegraphs, GC analysis, heap dumps, AI, everything covered in previous articles.
+**Jeffrey Local** runs on your developer machine. It connects to Jeffrey Hub as a "remote workspace," lets you browse instances and sessions, download recordings, and perform full analysis — flamegraphs, GC analysis, heap dumps, AI, everything covered in previous articles.
 
-This separation keeps analysis costs off your cloud infrastructure. JFR recording has negligible overhead on the profiled application (under 2%), and Jeffrey Server is a lightweight collector. The heavy processing happens on your local machine where compute is free.
+This separation keeps analysis costs off your cloud infrastructure. JFR recording has negligible overhead on the profiled application (under 2%), and Jeffrey Hub is a lightweight collector. The heavy processing happens on your local machine where compute is free.
 
 ## Setting Up Jeffrey CLI in Your Container
 
@@ -56,21 +56,21 @@ A typical configuration enables:
 - **Heartbeat monitoring** — Periodic signals so the Server knows the session is alive
 - **JVM diagnostic logging** — Captured alongside JFR data
 
-The CLI also publishes workspace events that Jeffrey Server watches to auto-discover new instances.
+The CLI also publishes workspace events that Jeffrey Hub watches to auto-discover new instances.
 
-## Deploying Jeffrey Server
+## Deploying Jeffrey Hub
 
-Jeffrey Server is a Spring Boot application that runs in your Kubernetes cluster. It needs access to the same shared storage where your profiled applications write JFR files.
+Jeffrey Hub is a Spring Boot application that runs in your Kubernetes cluster. It needs access to the same shared storage where your profiled applications write JFR files.
 
 ```bash
 docker run -it --network host \
   -v /mnt/jeffrey-data:/data/jeffrey \
-  petrbouda/jeffrey-server
+  petrbouda/jeffrey-hub
 ```
 
-In Kubernetes, this typically means a shared PersistentVolumeClaim (PVC) or NFS mount that both the profiled pods and Jeffrey Server can access.
+In Kubernetes, this typically means a shared PersistentVolumeClaim (PVC) or NFS mount that both the profiled pods and Jeffrey Hub can access.
 
-Jeffrey Server exposes two ports:
+Jeffrey Hub exposes two ports:
 
 - **HTTP (8081)** — A minimal web UI for browsing workspaces and sessions directly
 - **gRPC (9090)** — The primary API used by Jeffrey Local to connect remotely
@@ -105,7 +105,7 @@ An **instance** represents a single pod lifecycle — from startup to terminatio
 ![Instances overview and lifecycle](images/release-notes/server-recording/02-instances-overview.png)
 *Instance list showing lifecycle state, session count, and timestamps.*
 
-Jeffrey detects session liveness through a **dual heartbeat mechanism**. The Jeffrey Agent (bundled with your application) emits periodic JFR heartbeat events and writes timestamp files to shared storage. When heartbeats stop arriving, Jeffrey Server marks the session as finished. This also detects JVM crashes — if an `hs_err_pid` log file appears, the Server records it as a crash event.
+Jeffrey detects session liveness through a **dual heartbeat mechanism**. The Jeffrey Agent (bundled with your application) emits periodic JFR heartbeat events and writes timestamp files to shared storage. When heartbeats stop arriving, Jeffrey Hub marks the session as finished. This also detects JVM crashes — if an `hs_err_pid` log file appears, the Server records it as a crash event.
 
 ![Instance timeline](images/release-notes/server-recording/03-instance-timeline.png)
 *Timeline view showing instance activity, sessions, and events over time.*
@@ -121,13 +121,13 @@ A **recording session** is the core unit of profiling data. It contains:
 ![Session detail and artifacts](images/release-notes/server-recording/04-session-detail.png)
 *Session detail view showing JFR files, artifacts, and metadata.*
 
-Sessions are created automatically when your application starts with Jeffrey CLI configuration. JFR chunks are written continuously to shared storage, so Jeffrey Server sees them in near real-time. You don't need to wait for the application to stop before analyzing data.
+Sessions are created automatically when your application starts with Jeffrey CLI configuration. JFR chunks are written continuously to shared storage, so Jeffrey Hub sees them in near real-time. You don't need to wait for the application to stop before analyzing data.
 
 ## Connecting Jeffrey Local to Server
 
 On your developer machine, open Jeffrey Local and add a **remote workspace** connection:
 
-1. Enter the Jeffrey Server hostname and gRPC port (default: 9090)
+1. Enter the Jeffrey Hub hostname and gRPC port (default: 9090)
 2. Jeffrey Local connects and discovers all workspaces, projects, and instances
 3. Browse the recording history just like a local workspace
 
@@ -161,7 +161,7 @@ Settings are propagated to shared storage, and Jeffrey CLI picks them up on the 
 
 ## Background Jobs
 
-Jeffrey Server runs background scheduler jobs to maintain data hygiene:
+Jeffrey Hub runs background scheduler jobs to maintain data hygiene:
 
 - **Session finish detection** — Evaluates heartbeats and marks sessions as finished when pods terminate
 - **Instance expiration** — Cleans up old instances after the configured retention period
@@ -175,7 +175,7 @@ These jobs ensure that shared storage doesn't grow unbounded, even in high-scale
 The typical workflow for production profiling with Jeffrey:
 
 1. **Once:** Add Jeffrey CLI and Async Profiler to your Docker image, configure the init step
-2. **Once:** Deploy Jeffrey Server in your cluster with access to shared storage
+2. **Once:** Deploy Jeffrey Hub in your cluster with access to shared storage
 3. **Continuously:** Your applications run with profiling enabled (negligible overhead)
 4. **On demand:** Connect Jeffrey Local to the Server, browse instances, download the recording that covers the time period you're investigating
 5. **Analyze:** Create a profile and use every tool in Jeffrey — flamegraphs, GC analysis, heap dumps, custom event dashboards, AI-assisted investigation
@@ -191,6 +191,6 @@ Over six articles, we've covered the complete Jeffrey profiling workflow:
 3. **[Memory Investigation](03-finding-and-fixing-memory-leaks.md)** — GC analysis, heap trends, heap dump deep dives
 4. **[Application Monitoring](04-monitoring-http-database-grpc-with-custom-jfr-events.md)** — HTTP, database, gRPC, connection pools with custom JFR events
 5. **[AI-Powered Analysis](05-ai-powered-java-profiling.md)** — Natural language queries against profiling data
-6. **Production Profiling** (this article) — Continuous recording in Kubernetes with Jeffrey Server
+6. **Production Profiling** (this article) — Continuous recording in Kubernetes with Jeffrey Hub
 
 You can find the source code at [github.com/petrbouda/jeffrey](https://github.com/petrbouda/jeffrey) and the full documentation at [jeffrey-analyst.cafe](https://jeffrey-analyst.cafe).

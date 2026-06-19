@@ -82,8 +82,8 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 
-import LoadingState from '@/components/LoadingState.vue';
-import EmptyState from '@/components/EmptyState.vue';
+import LoadingState from '@shared/components/LoadingState.vue';
+import EmptyState from '@shared/components/EmptyState.vue';
 import GenericModal from '@/components/GenericModal.vue';
 import FlamegraphComponent from '@/components/FlamegraphComponent.vue';
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue';

@@ -114,13 +114,13 @@ import HttpDistributionCharts from '@/components/http/HttpDistributionCharts.vue
 import TabBar from '@/components/TabBar.vue';
 import HttpEndpointList from '@/components/http/HttpEndpointList.vue';
 import HttpSlowestRequests from '@/components/http/HttpSlowestRequests.vue';
-import EmptyState from '@/components/EmptyState.vue';
+import EmptyState from '@shared/components/EmptyState.vue';
 import ProfileHttpClient from '@/services/api/ProfileHttpClient.ts';
 import HttpOverviewData from '@/services/api/model/HttpOverviewData.ts';
 import HttpSingleUriData from '@/services/api/model/HttpSingleUriData.ts';
 import HttpSlowRequest from '@/services/api/model/HttpSlowRequest.ts';
-import LoadingState from '@/components/LoadingState.vue';
-import ErrorState from '@/components/ErrorState.vue';
+import LoadingState from '@shared/components/LoadingState.vue';
+import ErrorState from '@shared/components/ErrorState.vue';
 import CustomDisabledFeatureAlert from '@/components/alerts/CustomDisabledFeatureAlert.vue';
 import FeatureType from '@/services/api/model/FeatureType';
 import AxisFormatType from '@/services/timeseries/AxisFormatType.ts';

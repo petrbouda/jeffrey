@@ -164,7 +164,7 @@ You now have the complete Jeffrey analysis toolkit:
 3. **Application monitoring** — HTTP, database, gRPC, connection pools
 4. **AI-powered analysis** — Natural language queries backed by real data
 
-In the final article, we'll cover **production profiling at scale** — deploying Jeffrey Server in Kubernetes for continuous JFR recording collection, with Jeffrey CLI for container initialization and Jeffrey Local for analysis on your developer machine.
+In the final article, we'll cover **production profiling at scale** — deploying Jeffrey Hub in Kubernetes for continuous JFR recording collection, with Jeffrey CLI for container initialization and Jeffrey Local for analysis on your developer machine.
 
 You can find the source code at [github.com/petrbouda/jeffrey](https://github.com/petrbouda/jeffrey) and the full documentation at [jeffrey-analyst.cafe](https://jeffrey-analyst.cafe). To try it right now:
 

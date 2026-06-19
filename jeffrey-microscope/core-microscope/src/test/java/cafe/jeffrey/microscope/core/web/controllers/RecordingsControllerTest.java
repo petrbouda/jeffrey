@@ -26,6 +26,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
+import cafe.jeffrey.shared.ui.workspace.bridge.RecordingProfileInfoProvider;
+import cafe.jeffrey.shared.ui.workspace.controller.RecordingsController;
 
 import java.util.List;
 
@@ -44,7 +46,7 @@ class RecordingsControllerTest {
     void createsGroup() {
         when(recordingsManager.createGroup("My Group")).thenReturn("group-1");
 
-        MockMvcTester mvc = mockMvcTesterFor(new RecordingsController(recordingsManager));
+        MockMvcTester mvc = mockMvcTesterFor(new RecordingsController(recordingsManager, RecordingProfileInfoProvider.NOOP));
 
         assertThat(mvc.post().uri("/api/internal/recordings/groups")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -57,7 +59,7 @@ class RecordingsControllerTest {
 
     @Test
     void rejectsBlankGroupName() {
-        MockMvcTester mvc = mockMvcTesterFor(new RecordingsController(recordingsManager));
+        MockMvcTester mvc = mockMvcTesterFor(new RecordingsController(recordingsManager, RecordingProfileInfoProvider.NOOP));
 
         assertThat(mvc.post().uri("/api/internal/recordings/groups")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -72,7 +74,7 @@ class RecordingsControllerTest {
     void importsFromPath() {
         when(recordingsManager.importRecordingFromPath(any())).thenReturn("rec-1");
 
-        MockMvcTester mvc = mockMvcTesterFor(new RecordingsController(recordingsManager));
+        MockMvcTester mvc = mockMvcTesterFor(new RecordingsController(recordingsManager, RecordingProfileInfoProvider.NOOP));
 
         assertThat(mvc.post().uri("/api/internal/recordings/from-path")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -85,7 +87,7 @@ class RecordingsControllerTest {
 
     @Test
     void rejectsBlankPath() {
-        MockMvcTester mvc = mockMvcTesterFor(new RecordingsController(recordingsManager));
+        MockMvcTester mvc = mockMvcTesterFor(new RecordingsController(recordingsManager, RecordingProfileInfoProvider.NOOP));
 
         assertThat(mvc.post().uri("/api/internal/recordings/from-path")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -100,7 +102,7 @@ class RecordingsControllerTest {
     void listsRecordings() {
         when(recordingsManager.listRecordings()).thenReturn(List.of());
 
-        MockMvcTester mvc = mockMvcTesterFor(new RecordingsController(recordingsManager));
+        MockMvcTester mvc = mockMvcTesterFor(new RecordingsController(recordingsManager, RecordingProfileInfoProvider.NOOP));
 
         assertThat(mvc.get().uri("/api/internal/recordings/recordings"))
                 .hasStatusOk()

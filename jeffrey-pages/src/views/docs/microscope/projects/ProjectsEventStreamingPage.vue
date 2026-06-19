@@ -50,11 +50,11 @@ onMounted(() => {
       <p>Event Streaming lets you inspect JFR events from a project's recording sessions. <strong>Live Stream</strong> subscribes to events as the JVM emits them; <strong>Replay Stream</strong> reads historical events from the dumped recording files of a past session. Both pages deliver events to the browser via Server-Sent Events (SSE).</p>
 
       <DocsCallout type="info">
-        <strong>Server Connection Required:</strong> Both Live Stream and Replay Stream operate on project instances and their sessions, so a workspace connected to a jeffrey-server instance is required.
+        <strong>Server Connection Required:</strong> Both Live Stream and Replay Stream operate on project instances and their sessions, so a workspace connected to a jeffrey-hub instance is required.
       </DocsCallout>
 
       <h2 id="how-it-works">How It Works</h2>
-      <p>Sessions belong to project instances. Live Stream opens a subscription against the session's <em>streaming repository</em> on the remote JVM — events are micro-batched on JFR's flush cycle (~1 second). Replay Stream reads the session's already-dumped <code>.jfr</code> / <code>.jfr.lz4</code> files. In both cases, batches travel from Jeffrey Server to Jeffrey Microscope over gRPC and are forwarded to the browser over SSE.</p>
+      <p>Sessions belong to project instances. Live Stream opens a subscription against the session's <em>streaming repository</em> on the remote JVM — events are micro-batched on JFR's flush cycle (~1 second). Replay Stream reads the session's already-dumped <code>.jfr</code> / <code>.jfr.lz4</code> files. In both cases, batches travel from Jeffrey Hub to Jeffrey Microscope over gRPC and are forwarded to the browser over SSE.</p>
 
       <div class="flow-diagram">
         <div class="flow-step">
@@ -64,7 +64,7 @@ onMounted(() => {
         <div class="flow-arrow"><i class="bi bi-arrow-right"></i></div>
         <div class="flow-step">
           <div class="flow-icon"><i class="bi bi-cloud"></i></div>
-          <div class="flow-label">Jeffrey Server reads and batches events via gRPC</div>
+          <div class="flow-label">Jeffrey Hub reads and batches events via gRPC</div>
         </div>
         <div class="flow-arrow"><i class="bi bi-arrow-right"></i></div>
         <div class="flow-step">
@@ -214,7 +214,7 @@ onMounted(() => {
       </table>
 
       <h2 id="workspace-availability">Workspace Availability</h2>
-      <p>Both Live Stream and Replay Stream require a workspace connected to a jeffrey-server instance, because they operate on project instances and their sessions. Workspaces that do not expose instances will not show the Event Streaming sidebar items.</p>
+      <p>Both Live Stream and Replay Stream require a workspace connected to a jeffrey-hub instance, because they operate on project instances and their sessions. Workspaces that do not expose instances will not show the Event Streaming sidebar items.</p>
     </div>
 
     <DocsNavFooter />

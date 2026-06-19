@@ -97,7 +97,7 @@
 
 <script setup lang="ts">
 import { GCRootPath } from '@/services/api/model/GCRootPath';
-import FormattingService from '@/services/FormattingService';
+import FormattingService from '@shared/services/FormattingService';
 
 defineProps<{
   paths: GCRootPath[];

@@ -18,7 +18,7 @@
 
 import Frame from '@/services/api/model/Frame';
 import EventTypes from '@/services/EventTypes';
-import FormattingService from '@/services/FormattingService';
+import FormattingService from '@shared/services/FormattingService';
 import FramePosition from '@/services/api/model/FramePosition';
 import FrameSampleTypes from '@/services/api/model/FrameSampleTypes';
 import JavaMethodParser from '@/services/flamegraphs/JavaMethodParser';

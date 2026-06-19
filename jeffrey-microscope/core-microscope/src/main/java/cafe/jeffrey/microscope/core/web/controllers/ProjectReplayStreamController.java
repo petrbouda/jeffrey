@@ -29,7 +29,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
-import cafe.jeffrey.microscope.grpc.client.RemoteEventStreamingClient.EventStreamingSubscription;
+import cafe.jeffrey.microscope.grpc.client.EventStreamingClient.EventStreamingSubscription;
 import cafe.jeffrey.microscope.grpc.client.ReplaySubscriptionRequest;
 import cafe.jeffrey.microscope.core.manager.EventStreamingManager;
 import cafe.jeffrey.microscope.core.manager.project.ProjectManager;
@@ -47,7 +47,7 @@ import java.util.stream.Collectors;
  * dumped recording files and streams them to the client.
  */
 @RestController
-@RequestMapping("/api/internal/remote-servers/{serverId}/workspaces/{workspaceId}/projects/{projectId}/replay-stream")
+@RequestMapping("/api/internal/hubs/{hubId}/workspaces/{workspaceId}/projects/{projectId}/replay-stream")
 public class ProjectReplayStreamController {
 
     private static final Logger LOG = LoggerFactory.getLogger(ProjectReplayStreamController.class);
@@ -60,7 +60,7 @@ public class ProjectReplayStreamController {
 
     @GetMapping(value = "/subscribe", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter subscribe(
-            @PathVariable("serverId") String serverId,
+            @PathVariable("hubId") String hubId,
             @PathVariable("workspaceId") String workspaceId,
             @PathVariable("projectId") String projectId,
             @RequestParam("sessionId") String sessionId,
@@ -75,7 +75,7 @@ public class ProjectReplayStreamController {
             throw Exceptions.invalidRequest("startTime must be strictly before endTime");
         }
 
-        ProjectManager pm = resolver.resolve(serverId, workspaceId, projectId).projectManager();
+        ProjectManager pm = resolver.resolve(hubId, workspaceId, projectId).projectManager();
         EventStreamingManager streamingManager = pm.eventStreamingManager();
 
         var request = new ReplaySubscriptionRequest(

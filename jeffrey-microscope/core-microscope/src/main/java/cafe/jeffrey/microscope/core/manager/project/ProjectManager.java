@@ -18,6 +18,8 @@
 
 package cafe.jeffrey.microscope.core.manager.project;
 
+import cafe.jeffrey.hub.client.manager.RemoteInstancesManager;
+
 import cafe.jeffrey.microscope.core.manager.EventStreamingManager;
 import cafe.jeffrey.shared.common.model.ProjectInfo;
 import cafe.jeffrey.shared.common.model.RecordingEventSource;
@@ -25,8 +27,8 @@ import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceEventCreator;
 import cafe.jeffrey.microscope.core.manager.ProfilerSettingsManager;
 import cafe.jeffrey.microscope.core.manager.ProfilesManager;
-import cafe.jeffrey.microscope.core.manager.RecordingsDownloadManager;
-import cafe.jeffrey.microscope.core.manager.RepositoryManager;
+import cafe.jeffrey.recordings.core.RecordingsDownloadManager;
+import cafe.jeffrey.hub.client.manager.RepositoryManager;
 import java.util.function.Function;
 
 public interface ProjectManager {
@@ -65,7 +67,7 @@ public interface ProjectManager {
 
     /**
      * Returns the event streaming manager for subscribing to live JFR events
-     * from the remote server. Only available for remote workspace projects.
+     * from the hub. Only available for remote workspace projects.
      *
      * @return the event streaming manager, or null for local projects
      */

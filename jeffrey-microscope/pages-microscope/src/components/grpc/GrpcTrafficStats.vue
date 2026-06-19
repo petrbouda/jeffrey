@@ -8,7 +8,7 @@
 import { computed } from 'vue';
 import StatsTable from '@/components/StatsTable.vue';
 import type { GrpcHeader } from '@/services/api/ProfileGrpcClient';
-import FormattingService from '@/services/FormattingService';
+import FormattingService from '@shared/services/FormattingService';
 
 const props = defineProps<{
   header: GrpcHeader;

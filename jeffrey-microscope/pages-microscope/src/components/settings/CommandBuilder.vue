@@ -437,7 +437,7 @@
                         </button>
                       </div>
                       <div class="form-help">Java Methods: java.lang.Thread.*, *.&lt;init&gt;</div>
-                      <div class="form-help">All in Package: cafe.jeffrey.server.core.grpc.*.*</div>
+                      <div class="form-help">All in Package: cafe.jeffrey.hub.core.grpc.*.*</div>
                       <div class="form-help">
                         Native Methods: Java_java_lang_Throwable_fillInStackTrace
                       </div>
@@ -741,7 +741,7 @@
 import { ref, computed, watch } from 'vue';
 import ConfigCard from '@/components/settings/ConfigCard.vue';
 import { useProfilerConfig } from '@/composables/useProfilerConfig';
-import ToastService from '@/services/ToastService';
+import ToastService from '@shared/services/ToastService';
 
 interface Props {
   agentMode?: 'jeffrey' | 'custom';

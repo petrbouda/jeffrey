@@ -183,11 +183,11 @@ import AboutSection from '@/components/about/AboutSection.vue';
 import FeatureGrid from '@/components/about/FeatureGrid.vue';
 import FeatureCard from '@/components/about/FeatureCard.vue';
 import ConfigurationSection from '@/components/ConfigurationSection.vue';
-import LoadingState from '@/components/LoadingState.vue';
-import ErrorState from '@/components/ErrorState.vue';
+import LoadingState from '@shared/components/LoadingState.vue';
+import ErrorState from '@shared/components/ErrorState.vue';
 import ProfileContainerClient from '@/services/api/ProfileContainerClient';
 import ContainerConfigurationData from '@/services/api/model/ContainerConfigurationData';
-import FormattingService from '@/services/FormattingService';
+import FormattingService from '@shared/services/FormattingService';
 import FeatureType from '@/services/api/model/FeatureType';
 import ContainerNotAvailableAlert from '@/components/alerts/ContainerNotAvailableAlert.vue';
 

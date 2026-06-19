@@ -26,7 +26,7 @@
 import { computed } from 'vue';
 import StatsTable from '@/components/StatsTable.vue';
 import type MethodTracingHeader from '@/services/api/model/MethodTracingHeader';
-import FormattingService from '@/services/FormattingService';
+import FormattingService from '@shared/services/FormattingService';
 
 const props = defineProps<{
   header: MethodTracingHeader;

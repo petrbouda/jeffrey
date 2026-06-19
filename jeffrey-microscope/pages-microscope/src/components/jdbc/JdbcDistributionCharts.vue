@@ -27,7 +27,7 @@ import DualPanel from '@/components/DualPanel.vue';
 import DonutWithLegend from '@/components/DonutWithLegend.vue';
 import type { DonutChartData } from '@/components/DonutWithLegend.vue';
 import JdbcUtils from '@/services/api/model/JdbcUtils.ts';
-import FormattingService from '@/services/FormattingService';
+import FormattingService from '@shared/services/FormattingService';
 
 const defaultColors = [
   '#4285F4',

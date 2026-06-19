@@ -166,11 +166,11 @@ import { computed, onMounted, ref } from 'vue';
 import EventViewerClient from '@/services/api/EventViewerClient';
 import EventTypeDescription from '@/services/api/model/EventTypeDescription';
 import EventFieldDescription from '@/services/api/model/EventFieldDescription';
-import FormattingService from '@/services/FormattingService';
+import FormattingService from '@shared/services/FormattingService';
 import { useRoute } from 'vue-router';
 
 import PageHeader from '@/components/layout/PageHeader.vue';
-import Badge from '@/components/Badge.vue';
+import Badge from '@shared/components/Badge.vue';
 import DataTable from '@/components/table/DataTable.vue';
 import '@/styles/shared-components.css';
 

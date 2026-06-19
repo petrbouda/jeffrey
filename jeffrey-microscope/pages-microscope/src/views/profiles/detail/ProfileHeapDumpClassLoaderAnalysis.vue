@@ -644,23 +644,23 @@ import { computed, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
 
 import PageHeader from '@/components/layout/PageHeader.vue';
-import LoadingState from '@/components/LoadingState.vue';
-import ErrorState from '@/components/ErrorState.vue';
+import LoadingState from '@shared/components/LoadingState.vue';
+import ErrorState from '@shared/components/ErrorState.vue';
 import StatsTable from '@/components/StatsTable.vue';
 import HeapDumpNotInitialized from '@/components/HeapDumpNotInitialized.vue';
 import TabBar from '@/components/TabBar.vue';
 import SortableTableHeader from '@/components/table/SortableTableHeader.vue';
 import DataTable from '@/components/table/DataTable.vue';
 import TableToolbar from '@/components/table/TableToolbar.vue';
-import Badge from '@/components/Badge.vue';
+import Badge from '@shared/components/Badge.vue';
 import ClassNameDisplay from '@/components/heap/ClassNameDisplay.vue';
 import ClassLoaderHierarchyTree from '@/components/heap/ClassLoaderHierarchyTree.vue';
 import ClassLoaderDetailDrawer from '@/components/heap/ClassLoaderDetailDrawer.vue';
 import HeapDumpClient from '@/services/api/HeapDumpClient';
 import type ClassLoaderReport from '@/services/api/model/ClassLoaderReport';
 import type { CauseHint } from '@/services/api/model/ClassLoaderReport';
-import FormattingService from '@/services/FormattingService';
-import type { Variant } from '@/types/ui';
+import FormattingService from '@shared/services/FormattingService';
+import type { Variant } from '@shared/types/ui';
 
 const route = useRoute();
 

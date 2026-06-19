@@ -163,15 +163,15 @@ import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
 import PoolData from '@/services/api/model/PoolData.ts';
 import PoolEventStatistics from '@/services/api/model/PoolEventStatistics.ts';
 import ProfileJdbcPoolClient from '@/services/api/ProfileJdbcPoolClient.ts';
-import FormattingService from '@/services/FormattingService.ts';
-import LoadingState from '@/components/LoadingState.vue';
-import ErrorState from '@/components/ErrorState.vue';
+import FormattingService from '@shared/services/FormattingService.ts';
+import LoadingState from '@shared/components/LoadingState.vue';
+import ErrorState from '@shared/components/ErrorState.vue';
 import DataTable from '@/components/table/DataTable.vue';
 import CustomDisabledFeatureAlert from '@/components/alerts/CustomDisabledFeatureAlert.vue';
 import FeatureType from '@/services/api/model/FeatureType';
 import AxisFormatType from '@/services/timeseries/AxisFormatType.ts';
 
-import type { Variant } from '@/types/ui';
+import type { Variant } from '@shared/types/ui';
 
 // Define props
 interface Props {

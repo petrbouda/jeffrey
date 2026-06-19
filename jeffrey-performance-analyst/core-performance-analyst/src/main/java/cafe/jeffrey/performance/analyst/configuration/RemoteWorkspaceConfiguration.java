@@ -23,32 +23,54 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import cafe.jeffrey.performance.analyst.client.RemoteConnections;
-import cafe.jeffrey.performance.analyst.manager.server.RemoteServerManager;
-import cafe.jeffrey.performance.analyst.manager.server.RemoteServersManager;
+import org.springframework.context.annotation.Import;
+import cafe.jeffrey.performance.analyst.manager.server.HubManager;
+import cafe.jeffrey.performance.analyst.manager.server.HubsManager;
+import cafe.jeffrey.performance.analyst.web.AnalystRemoteProjectAccess;
+import cafe.jeffrey.performance.analyst.web.RemoteProjectResolver;
 import cafe.jeffrey.performance.analyst.web.ServerResolver;
+import cafe.jeffrey.shared.ui.workspace.bridge.RecordingProfileInfoProvider;
+import cafe.jeffrey.shared.ui.workspace.bridge.RemoteProjectAccess;
+import cafe.jeffrey.shared.ui.workspace.config.WorkspacesFeatureConfiguration;
+import cafe.jeffrey.recordings.core.manager.RecordingMetadataParser;
+import cafe.jeffrey.recordings.core.manager.RecordingProfileCleanup;
+import cafe.jeffrey.recordings.core.manager.RecordingsCoreManager;
+import cafe.jeffrey.recordings.core.manager.RecordingsCoreManagerImpl;
+import cafe.jeffrey.hub.client.CachedHubClientsFactory;
+import cafe.jeffrey.hub.client.manager.TempDirProvider;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCorePersistenceProvider;
-import cafe.jeffrey.microscope.persistence.api.RemoteServersRepository;
+import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
+import cafe.jeffrey.microscope.persistence.api.HubsRepository;
 import cafe.jeffrey.microscope.persistence.jdbc.DuckDBMicroscopeCorePersistenceProvider;
-import cafe.jeffrey.microscope.persistence.jdbc.JdbcRemoteServersRepository;
+import cafe.jeffrey.microscope.persistence.jdbc.JdbcHubsRepository;
+import cafe.jeffrey.shared.common.filesystem.TempDirectory;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
+import java.util.UUID;
 
 /**
- * Wiring for browsing remote jeffrey-server workspaces/projects over gRPC.
- * Reuses the microscope core persistence (the {@code remote_servers} table) and the gRPC
- * connection infrastructure, but with NO profile/recording managers — discovery only.
+ * Wiring for browsing remote jeffrey-hub workspaces/projects over gRPC and downloading
+ * recordings into the local core store. Reuses the microscope core persistence (the
+ * {@code hubs} + {@code recordings} tables) and the shared gRPC client / recordings-core
+ * modules. No profiles — downloaded recordings are listed but never analyzed.
+ *
+ * <p>{@code @Import}s the shared {@link WorkspacesFeatureConfiguration} (instances / repository /
+ * download / recordings controllers) and supplies the deployment bridges: an
+ * {@link AnalystRemoteProjectAccess} over {@link RemoteProjectResolver}, and
+ * {@link RecordingProfileInfoProvider#NOOP} (the analyst has no profiles).
  */
 @Configuration
+@Import(WorkspacesFeatureConfiguration.class)
 public class RemoteWorkspaceConfiguration {
 
     private static final Logger LOG = LoggerFactory.getLogger(RemoteWorkspaceConfiguration.class);
 
     private static final String CORE_DATABASE_FILE = "jeffrey-data.db";
+    private static final String HOME_DIR = "${jeffrey.performance-analyst.home.dir:${user.home}/.jeffrey-performance-analyst}";
 
     @Bean
     public Clock applicationClock() {
@@ -57,7 +79,7 @@ public class RemoteWorkspaceConfiguration {
 
     @Bean
     public MicroscopeCorePersistenceProvider corePersistenceProvider(
-            @Value("${jeffrey.performance-analyst.home.dir:${user.home}/.jeffrey-performance-analyst}") String homeDir,
+            @Value(HOME_DIR) String homeDir,
             Clock clock) {
 
         Path homeDirPath = Path.of(homeDir);
@@ -75,38 +97,93 @@ public class RemoteWorkspaceConfiguration {
     }
 
     @Bean
-    public RemoteServersRepository remoteServersRepository(MicroscopeCorePersistenceProvider provider) {
-        return new JdbcRemoteServersRepository(provider.databaseClientProvider());
+    public HubsRepository remoteServersRepository(MicroscopeCorePersistenceProvider provider) {
+        return new JdbcHubsRepository(provider.databaseClientProvider());
     }
 
     @Bean(destroyMethod = "close")
-    public RemoteConnections remoteConnections() {
-        return new RemoteConnections();
+    public CachedHubClientsFactory cachedHubClientsFactory() {
+        return new CachedHubClientsFactory();
     }
 
     @Bean
-    public RemoteServerManager.Factory remoteServerManagerFactory(
-            RemoteConnections remoteConnections,
-            RemoteServersRepository remoteServersRepository) {
+    public HubManager.Factory remoteServerManagerFactory(
+            CachedHubClientsFactory cachedHubClientsFactory,
+            HubsRepository remoteServersRepository) {
 
-        return serverInfo -> new RemoteServerManager(
+        return serverInfo -> new HubManager(
                 serverInfo,
-                remoteConnections.discovery(serverInfo.address()),
-                remoteServersRepository,
-                remoteConnections);
+                cachedHubClientsFactory,
+                remoteServersRepository);
     }
 
     @Bean
-    public RemoteServersManager remoteServersManager(
-            RemoteServersRepository remoteServersRepository,
-            RemoteServerManager.Factory remoteServerManagerFactory,
+    public HubsManager remoteServersManager(
+            HubsRepository remoteServersRepository,
+            HubManager.Factory remoteServerManagerFactory,
             Clock clock) {
 
-        return new RemoteServersManager(remoteServersRepository, remoteServerManagerFactory, clock);
+        return new HubsManager(remoteServersRepository, remoteServerManagerFactory, clock);
     }
 
     @Bean
-    public ServerResolver serverResolver(RemoteServersManager remoteServersManager) {
+    public ServerResolver serverResolver(HubsManager remoteServersManager) {
         return new ServerResolver(remoteServersManager);
+    }
+
+    @Bean
+    public TempDirProvider tempDirProvider(@Value(HOME_DIR) String homeDir) {
+        Path tempBase = Path.of(homeDir).resolve("temp");
+        try {
+            Files.createDirectories(tempBase);
+        } catch (IOException e) {
+            throw new UncheckedIOException("Failed to create temp directory: " + tempBase, e);
+        }
+        return () -> new TempDirectory(tempBase.resolve(UUID.randomUUID().toString()));
+    }
+
+    @Bean
+    public RecordingsCoreManager recordingsCoreManager(
+            MicroscopeCorePersistenceProvider provider,
+            Clock clock,
+            @Value(HOME_DIR) String homeDir) {
+
+        Path recordingsDir = Path.of(homeDir).resolve("recordings");
+        try {
+            Files.createDirectories(recordingsDir);
+        } catch (IOException e) {
+            throw new UncheckedIOException("Failed to create recordings directory: " + recordingsDir, e);
+        }
+
+        MicroscopeCoreRepositories repos = provider.localCoreRepositories();
+        return new RecordingsCoreManagerImpl(
+                clock,
+                recordingsDir,
+                repos.newRecordingRepository(null),
+                repos.recordingTagsRepository(),
+                RecordingMetadataParser.NOOP,
+                RecordingProfileCleanup.NOOP);
+    }
+
+    @Bean
+    public RemoteProjectResolver remoteProjectResolver(
+            HubsManager remoteServersManager,
+            TempDirProvider tempDirProvider,
+            RecordingsCoreManager recordingsCoreManager) {
+
+        return new RemoteProjectResolver(remoteServersManager, tempDirProvider, recordingsCoreManager);
+    }
+
+    // --- Bridges for the shared workspaces controllers ---
+
+    @Bean
+    public RemoteProjectAccess remoteProjectAccess(RemoteProjectResolver remoteProjectResolver) {
+        return new AnalystRemoteProjectAccess(remoteProjectResolver);
+    }
+
+    @Bean
+    public RecordingProfileInfoProvider recordingProfileInfoProvider() {
+        // The analyst never analyzes recordings into profiles.
+        return RecordingProfileInfoProvider.NOOP;
     }
 }

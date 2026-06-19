@@ -303,8 +303,8 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
-import ToastService from '@/services/ToastService';
-import FormattingService from '@/services/FormattingService';
+import ToastService from '@shared/services/ToastService';
+import FormattingService from '@shared/services/FormattingService';
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
 import ChartSection from '@/components/ChartSection.vue';
 import { useRoute } from 'vue-router';
@@ -323,9 +323,9 @@ import ChartDescription from '@/components/ChartDescription.vue';
 import DataTable from '@/components/table/DataTable.vue';
 import TableToolbar from '@/components/table/TableToolbar.vue';
 import TableShowMore from '@/components/table/TableShowMore.vue';
-import Badge from '@/components/Badge.vue';
+import Badge from '@shared/components/Badge.vue';
 import { useTableView } from '@/composables/useTableView';
-import EmptyState from '@/components/EmptyState.vue';
+import EmptyState from '@shared/components/EmptyState.vue';
 import type ReservedStackActivation from '@/services/api/model/ReservedStackActivation';
 import FlamegraphComponent from '@/components/FlamegraphComponent.vue';
 import SearchBarComponent from '@/components/SearchBarComponent.vue';

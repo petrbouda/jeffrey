@@ -10,12 +10,12 @@ This is a full-stack application with two deployment modes:
 - **Build System**: Maven (Java) + Vite (Frontend)
 - **Database**: DuckDB 1.5.0.0 (three-tier: microscope core DB + server DB + per-profile DBs)
 - **AI Integration**: Spring AI 2.0.0-M3 (Claude/OpenAI providers)
-- **Remote Communication**: gRPC (proto files in `shared/server-api/`)
+- **Remote Communication**: gRPC (proto files in `shared/hub-api/`)
 - **CLI**: GraalVM Native Image
 
 ### Deployment Architecture
 
-The project supports two deployment modes: **jeffrey-microscope** (standalone) and **jeffrey-server** (multi-workspace server). They share common modules via **shared/**.
+The project supports two deployment modes: **jeffrey-microscope** (standalone) and **jeffrey-hub** (multi-workspace server). They share common modules via **shared/**.
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -35,22 +35,22 @@ The project supports two deployment modes: **jeffrey-microscope** (standalone) a
                            ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │                     JEFFREY-SERVER (remote)                       │
-│  ServerApplication — multi-workspace server with scheduling      │
+│  HubApplication — multi-workspace server with scheduling      │
 │                                                                  │
 │  ┌──────────────┐  ┌──────────────────┐  ┌──────────────────┐  │
-│  │  core-server  │  │  pages-server     │  │  shared/          │  │
+│  │  core-hub  │  │  pages-hub     │  │  shared/          │  │
 │  │  gRPC services│  │  Minimal Vue 3    │  │  persistent-queue │  │
 │  │  scheduler    │  │  UI               │  │                   │  │
 │  └──────────────┘  └──────────────────┘  └──────────────────┘  │
 │                                                                  │
-│  Persistence: server-sql-persistence (server DB)                 │
+│  Persistence: hub-sql-persistence (server DB)                 │
 └─────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────┐
 │                        SHARED                                    │
 │  Common utilities, persistence abstractions, test infrastructure │
 │  gRPC proto definitions, storage, SQL builder                    │
-│  Modules: common, persistence, test, server-api, sql-builder,   │
+│  Modules: common, persistence, test, hub-api, sql-builder,   │
 │           recording-storage-api, filesystem-recording-storage,   │
 │           folder-queue, persistent-queue                         │
 └─────────────────────────────────────────────────────────────────┘
@@ -76,18 +76,18 @@ The project supports two deployment modes: **jeffrey-microscope** (standalone) a
 - `oql-assistant` — OQL AI assistant
 - `duckdb-ai-mcp`, `heap-dump-ai-mcp` — MCP servers for AI integration
 
-**jeffrey-server** (`jeffrey-server/`):
-- `core-server` — Main Spring Boot app (ServerApplication), gRPC service implementations, scheduler/jobs, JFR streaming
-- `server-persistence-api` — Persistence interfaces for server domain
-- `server-sql-persistence` — DuckDB persistence for server (workspaces, projects, scheduling)
-- `pages-server` — Minimal Vue 3 frontend
+**jeffrey-hub** (`jeffrey-hub/`):
+- `core-hub` — Main Spring Boot app (HubApplication), gRPC service implementations, scheduler/jobs, JFR streaming
+- `hub-persistence-api` — Persistence interfaces for server domain
+- `hub-sql-persistence` — DuckDB persistence for server (workspaces, projects, scheduling)
+- `pages-hub` — Minimal Vue 3 frontend
 - `shared/persistent-queue` — Server-specific persistent queue
 
 **shared** (`shared/`):
 - `common` — Shared utilities and models
 - `persistence` — Common persistence abstractions
 - `test` — Test infrastructure (`@DuckDBTest` annotation, test utilities)
-- `server-api` — gRPC proto files at `src/main/proto/jeffrey/api/v1/`
+- `hub-api` — gRPC proto files at `src/main/proto/jeffrey/api/v1/`
 - `sql-builder` — SQL query building utilities
 - `recording-storage-api` — Storage interfaces
 - `filesystem-recording-storage` — Filesystem storage implementation
@@ -129,7 +129,7 @@ jeffrey/
 ├── jeffrey-microscope/                     # Standalone deployment
 │   ├── core-microscope/                    # Main Spring Boot app (MicroscopeApplication)
 │   │   └── src/.../microscope/core/
-│   │       ├── client/                # gRPC clients (RemoteClients, Remote*Client)
+│   │       ├── client/                # gRPC clients (HubClients, Remote*Client)
 │   │       ├── manager/               # Managers (project/, workspace/, downloads, recordings, etc.)
 │   │       └── resources/             # REST resources (project/, workspace/, ProfilesResource, etc.)
 │   ├── microscope-core-persistence-api/    # Microscope core persistence interfaces
@@ -168,24 +168,24 @@ jeffrey/
 │       ├── oql-assistant/             # OQL AI assistant
 │       ├── duckdb-ai-mcp/            # DuckDB MCP server for AI
 │       └── heap-dump-ai-mcp/         # Heap dump MCP server for AI
-├── jeffrey-server/                    # Multi-workspace server deployment
-│   ├── core-server/                   # Main Spring Boot app (ServerApplication)
+├── jeffrey-hub/                    # Multi-workspace server deployment
+│   ├── core-hub/                   # Main Spring Boot app (HubApplication)
 │   │   └── src/.../server/core/
 │   │       ├── grpc/                  # gRPC service implementations
 │   │       ├── scheduler/             # Job scheduler, job definitions
 │   │       │   └── job/               # Job implementations + descriptor/
 │   │       ├── resources/             # REST resources (WorkspacesResource, GrpcDocsResource)
 │   │       └── streaming/             # JFR streaming
-│   ├── server-persistence-api/        # Server persistence interfaces
-│   ├── server-sql-persistence/        # Server DuckDB persistence
-│   ├── pages-server/                  # Minimal Vue 3 frontend
+│   ├── hub-persistence-api/        # Server persistence interfaces
+│   ├── hub-sql-persistence/        # Server DuckDB persistence
+│   ├── pages-hub/                  # Minimal Vue 3 frontend
 │   └── shared/                        # Server-specific shared modules
 │       └── persistent-queue/          # Server persistent queue
 ├── shared/                            # Shared modules (used by both deployments)
 │   ├── common/                        # Common utilities and models
 │   ├── persistence/                   # Common persistence abstractions
 │   ├── test/                          # Test infrastructure (@DuckDBTest)
-│   ├── server-api/                    # gRPC proto definitions
+│   ├── hub-api/                    # gRPC proto definitions
 │   │   └── src/main/proto/jeffrey/api/v1/  # Proto files
 │   ├── sql-builder/                   # SQL query building
 │   ├── recording-storage-api/         # Storage interfaces
@@ -197,7 +197,7 @@ jeffrey/
 ├── jeffrey-pages/                     # Documentation site
 ├── build/                             # Build configurations
 │   ├── build-microscope/                   # Local application assembly
-│   ├── build-server/                  # Server application assembly
+│   ├── build-hub/                  # Server application assembly
 │   ├── build-cli/                     # CLI build
 │   ├── build-cli-native/             # Native image build
 │   ├── build-agent/                   # Agent build
@@ -245,7 +245,7 @@ When unsure whether a request is "make it cleaner" or "make it faster", ask. Def
   Same rule for `else`, `else if`, `for`, `while`. If the body is empty, use `{ }` not `;`. This is non-negotiable — the goal is consistent diff-friendly bodies and to eliminate the "dangling-statement" foot-gun.
 
 ### Java Backend
-- **Package Structure**: `cafe.jeffrey.microscope.*` for microscope deployment, `cafe.jeffrey.server.*` for server deployment, `cafe.jeffrey.profile.*` for profiles, `cafe.jeffrey.*` for shared modules
+- **Package Structure**: `cafe.jeffrey.microscope.*` for microscope deployment, `cafe.jeffrey.hub.*` for server deployment, `cafe.jeffrey.profile.*` for profiles, `cafe.jeffrey.*` for shared modules
 - **Naming**: PascalCase for classes, camelCase for methods/fields
 - **Imports**: Always use import statements; never use fully qualified class names inline in code
 - **Annotation Placement**: Annotations on **classes**, **fields**, and **methods** always go on their own line directly above the declaration — never inline on the same line. Applies to `@Bean`, `@Configuration`, `@RequestMapping`, `@ResponseBody`, `@GetMapping` / `@PostMapping` / etc., `@Mock`, `@Test`, `@ExtendWith`, custom annotations, and so on. Annotations on **method/constructor parameters** (e.g. `@PathVariable`, `@RequestParam`, `@RequestBody`) stay inline next to the parameter — that's the standard form and keeps signatures readable.
@@ -270,7 +270,7 @@ When unsure whether a request is "make it cleaner" or "make it faster", ask. Def
 - **Architecture**: Manager pattern with service layer separation
 - **REST**: Spring MVC controllers annotated with `@RestController` + `@RequestMapping` at class level (this is the **only** stereotype the project allows — see Spring Bean Registration). Constructor injection only — never `@Autowired`. Controllers are picked up by Spring Boot's component scan rooted at the application's package; do not declare them as `@Bean` methods.
 - **Spring Bean Registration**: Never use stereotype annotations (`@Component`, `@Service`, `@Repository`, `@Controller`) or `@Autowired`. **Exception:** `@RestController` is allowed (and required) on Spring MVC controllers — this is the only stereotype on the allow-list, because the controller layer is the single place where component scanning is more pragmatic than explicit wiring. Everything else (managers, services, factories, resolvers, web infrastructure) must be registered explicitly via `@Bean` methods in `@Configuration` classes or Spring 4 `BeanRegistrar`. This keeps wiring visible and explicit while letting the dispatcher discover handlers normally.
-- **gRPC**: Proto files in `shared/server-api/` (package `cafe.jeffrey.server.api.v1`), implementations in `jeffrey-server/core-server/.../grpc/`, clients in `jeffrey-microscope/core-microscope/.../client/`
+- **gRPC**: Proto files in `shared/hub-api/` (package `cafe.jeffrey.hub.api.v1`), implementations in `jeffrey-hub/core-hub/.../grpc/`, clients in `jeffrey-microscope/core-microscope/.../client/`
 - **Sealed Interfaces**: Used for type-safe hierarchies (e.g., `JobDescriptor`, `WorkspacesManager`, `TimeRange`)
 - **Records**: Used for DTOs and immutable data
 - **Three-Tier Persistence**: Local Core DB (workspaces, projects, recordings) + Server DB (server workspaces, projects, scheduling) + Profile DB (isolated per profile)
@@ -379,10 +379,10 @@ When unsure whether a request is "make it cleaner" or "make it faster", ask. Def
 ## API Structure
 - **jeffrey-microscope REST**: `/api/internal/` for frontend-facing APIs — resources in `jeffrey-microscope/core-microscope/.../resources/`
 - **Profile REST**: `/api/internal/profiles/{profileId}/` for profile features — resources in `jeffrey-microscope/profiles/profile-management/.../resources/`
-- **jeffrey-server REST**: `/api/internal/` for minimal server UI — resources in `jeffrey-server/core-server/.../resources/`
-- **gRPC**: Remote workspace communication between jeffrey-microscope and jeffrey-server — proto definitions in `shared/server-api/src/main/proto/jeffrey/api/v1/`, service implementations in `jeffrey-server/core-server/.../grpc/`, clients in `jeffrey-microscope/core-microscope/.../client/`
+- **jeffrey-hub REST**: `/api/internal/` for minimal server UI — resources in `jeffrey-hub/core-hub/.../resources/`
+- **gRPC**: Remote workspace communication between jeffrey-microscope and jeffrey-hub — proto definitions in `shared/hub-api/src/main/proto/jeffrey/api/v1/`, service implementations in `jeffrey-hub/core-hub/.../grpc/`, clients in `jeffrey-microscope/core-microscope/.../client/`
 - gRPC proto files: `workspace_service.proto`, `project_service.proto`, `instance_service.proto`, `recording_download_service.proto`, `repository_service.proto`, `profiler_settings_service.proto`, `messages_service.proto`
-- gRPC clients: `RemoteClients` record containing `RemoteDiscoveryClient`, `RemoteRepositoryClient`, `RemoteRecordingStreamClient`, `RemoteProfilerClient`, `RemoteMessagesClient`, `RemoteInstancesClient`, `RemoteProjectsClient`
+- gRPC clients: `HubClients` record containing `DiscoveryClient`, `RepositoryClient`, `RecordingStreamClient`, `ProfilerClient`, `RemoteMessagesClient`, `InstancesClient`, `ProjectsClient`
 - Implemented using Jersey/JAX-RS (not Spring MVC) for REST
 - JSON data exchange format for REST, Protobuf for gRPC
 - Multi-part file uploads for JFR files
@@ -431,7 +431,7 @@ When unsure whether a request is "make it cleaner" or "make it faster", ask. Def
 
 ### Database Schema
 - Microscope Core migrations: `jeffrey-microscope/microscope-core-sql-persistence/src/main/resources/db/migration/microscope/core/` — `V001__init.sql` (table schema) + `V002__guardians_seed.sql` (built-in Guardian guard seed data)
-- Server migrations: `jeffrey-server/server-sql-persistence/src/main/resources/db/migration/server/V001__init.sql`
+- Server migrations: `jeffrey-hub/hub-sql-persistence/src/main/resources/db/migration/server/V001__init.sql`
 - Profile migrations: `jeffrey-microscope/profiles/profile-sql-persistence/src/main/resources/db/migration/profile/V001__init.sql`
 - **Migration policy**: Keep table schema (`CREATE TABLE`) in `V001__init.sql` and edit it in place for schema changes. Seed data may live in a separate, purpose-named migration (e.g. `V002__guardians_seed.sql`) to keep schema and data concerns separated. The database is recreated from scratch on each startup, so editing these in development is safe.
 - JFR Event Types reference: https://sap.github.io/jfrevents/ (select Java version for event details)
@@ -444,7 +444,7 @@ When modifying code, keep the corresponding documentation pages in `jeffrey-page
 | Code module | Documentation pages |
 |---|---|
 | `jeffrey-microscope/core-microscope` | `jeffrey-pages/src/views/docs/platform/` — workspaces, projects, recordings, sessions, profiler settings, alerts |
-| `jeffrey-server/core-server` | `jeffrey-pages/src/views/docs/platform/` — scheduler |
+| `jeffrey-hub/core-hub` | `jeffrey-pages/src/views/docs/platform/` — scheduler |
 | `jeffrey-microscope/profiles/profile-management` | `jeffrey-pages/src/views/docs/profiles/` — visualization, application analysis, JVM internals, heap dump analysis |
 | `jeffrey-cli/` | `jeffrey-pages/src/views/docs/cli/` — CLI overview, configuration, directory structure, generated output |
 | Architecture changes | `jeffrey-pages/src/views/docs/architecture/` — overview, public API, storage |

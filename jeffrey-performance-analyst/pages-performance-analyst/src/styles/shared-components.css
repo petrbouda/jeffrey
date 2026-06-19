@@ -252,6 +252,33 @@
 }
 
 /* ===========================================
+   Search pill (compact inline search input)
+   Reference: WorkspacesBrowser.vue main header / per-tab header controls.
+   Shared so slot-injected search inputs match the built-in one.
+   =========================================== */
+.search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px var(--spacing-3);
+  background: var(--color-light);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-base);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-light);
+  width: 220px;
+}
+
+.search input {
+  border: none;
+  outline: none;
+  background: transparent;
+  flex: 1;
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
+}
+
+/* ===========================================
    Session Status Card (canonical pattern)
    Reference: RecordingSessionList.vue
    Use these utilities for any list of recording sessions to keep

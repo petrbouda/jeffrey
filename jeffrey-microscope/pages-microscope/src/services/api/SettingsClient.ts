@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import BasePlatformClient from '@/services/api/BasePlatformClient';
+import BasePlatformClient from '@shared/services/api/BasePlatformClient';
 import type Setting from '@/services/api/model/Setting';
 
 export default class SettingsClient extends BasePlatformClient {

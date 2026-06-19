@@ -25,7 +25,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import cafe.jeffrey.performance.analyst.manager.server.RemoteServerManager;
+import cafe.jeffrey.performance.analyst.manager.server.HubManager;
 import cafe.jeffrey.performance.analyst.resources.response.ProjectResponse;
 import cafe.jeffrey.performance.analyst.resources.workspace.Mappers;
 import cafe.jeffrey.performance.analyst.web.ServerResolver;
@@ -33,7 +33,7 @@ import cafe.jeffrey.performance.analyst.web.ServerResolver;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/internal/remote-servers/{serverId}/workspaces/{workspaceId}/projects")
+@RequestMapping("/api/internal/hubs/{hubId}/workspaces/{workspaceId}/projects")
 public class WorkspaceProjectsController {
 
     private static final Logger LOG = LoggerFactory.getLogger(WorkspaceProjectsController.class);
@@ -46,10 +46,10 @@ public class WorkspaceProjectsController {
 
     @GetMapping
     public List<ProjectResponse> projects(
-            @PathVariable("serverId") String serverId,
+            @PathVariable("hubId") String hubId,
             @PathVariable("workspaceId") String workspaceId,
             @RequestParam(value = "includeDeleted", defaultValue = "false") boolean includeDeleted) {
-        RemoteServerManager server = resolver.resolveServer(serverId);
+        HubManager server = resolver.resolveServer(hubId);
         var result = server.projects(workspaceId, includeDeleted).stream()
                 .map(Mappers::toProjectResponse)
                 .toList();

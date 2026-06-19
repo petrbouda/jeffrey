@@ -45,7 +45,7 @@ onMounted(() => {
 
       <div class="docs-content">
         <h2 id="overview">Overview</h2>
-        <p><strong>Jeffrey Agent</strong> is a lightweight Java agent (~11 KB, zero external dependencies) that runs inside your Java application's JVM process. Its sole purpose is <strong>heartbeat monitoring</strong> — it periodically writes a timestamp to the filesystem so Jeffrey Server can detect when a profiled application has stopped.</p>
+        <p><strong>Jeffrey Agent</strong> is a lightweight Java agent (~11 KB, zero external dependencies) that runs inside your Java application's JVM process. Its sole purpose is <strong>heartbeat monitoring</strong> — it periodically writes a timestamp to the filesystem so Jeffrey Hub can detect when a profiled application has stopped.</p>
 
         <DocsCallout type="info">
           Jeffrey Agent is automatically configured by <router-link to="/docs/cli/overview">Jeffrey CLI</router-link> when initializing a profiling session. You do not need to set up the agent manually.
@@ -56,7 +56,7 @@ onMounted(() => {
             <div class="agent-card-icon"><i class="bi bi-heart-pulse"></i></div>
             <div class="agent-card-content">
               <h4>Heartbeat Signal</h4>
-              <p>Writes the current epoch timestamp to a file every 5 seconds (configurable). Jeffrey Server polls this file to determine whether the application is still running.</p>
+              <p>Writes the current epoch timestamp to a file every 5 seconds (configurable). Jeffrey Hub polls this file to determine whether the application is still running.</p>
             </div>
           </div>
           <div class="agent-card">
@@ -139,7 +139,7 @@ onMounted(() => {
         </div>
 
         <h2 id="server-side-detection">Server-Side Detection</h2>
-        <p>Jeffrey Server runs a periodic job that polls heartbeat files for all active sessions. When a heartbeat becomes stale (older than a configured threshold, typically ~5 minutes), the server marks the session as finished and uses the last heartbeat timestamp as the session end time. If no heartbeat file exists and the session is old enough, a fallback finish time is used instead.</p>
+        <p>Jeffrey Hub runs a periodic job that polls heartbeat files for all active sessions. When a heartbeat becomes stale (older than a configured threshold, typically ~5 minutes), the server marks the session as finished and uses the last heartbeat timestamp as the session end time. If no heartbeat file exists and the session is old enough, a fallback finish time is used instead.</p>
 
       </div>
 

@@ -23,7 +23,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
-import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
+import cafe.jeffrey.shared.ui.workspace.bridge.RemoteProjectAccess;
+import cafe.jeffrey.shared.ui.workspace.controller.ProjectDownloadTaskController;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static cafe.jeffrey.microscope.core.web.MockMvcSupport.mockMvcTesterFor;
@@ -32,15 +33,15 @@ import static cafe.jeffrey.microscope.core.web.MockMvcSupport.mockMvcTesterFor;
 class ProjectDownloadTaskControllerTest {
 
     @Mock
-    ProjectManagerResolver resolver;
+    RemoteProjectAccess projectAccess;
 
     @Test
     void unknownTaskReturnsBadRequest() {
-        MockMvcTester mvc = mockMvcTesterFor(new ProjectDownloadTaskController(resolver));
+        MockMvcTester mvc = mockMvcTesterFor(new ProjectDownloadTaskController(projectAccess));
 
         // No task is registered for "ghost-task" — controller throws
         // Exceptions.invalidRequest, mapped to 400.
-        assertThat(mvc.get().uri("/api/internal/remote-servers/srv-1/workspaces/ws-1/projects/p-1/download/ghost-task/status"))
+        assertThat(mvc.get().uri("/api/internal/hubs/srv-1/workspaces/ws-1/projects/p-1/download/ghost-task/status"))
                 .hasStatus(400)
                 .bodyJson()
                 .extractingPath("$.code").asString().isEqualTo("INVALID_REQUEST");
@@ -48,9 +49,9 @@ class ProjectDownloadTaskControllerTest {
 
     @Test
     void cancelUnknownTaskReturns404() {
-        MockMvcTester mvc = mockMvcTesterFor(new ProjectDownloadTaskController(resolver));
+        MockMvcTester mvc = mockMvcTesterFor(new ProjectDownloadTaskController(projectAccess));
 
-        assertThat(mvc.delete().uri("/api/internal/remote-servers/srv-1/workspaces/ws-1/projects/p-1/download/ghost-task"))
+        assertThat(mvc.delete().uri("/api/internal/hubs/srv-1/workspaces/ws-1/projects/p-1/download/ghost-task"))
                 .hasStatus(404);
     }
 }

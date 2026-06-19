@@ -75,8 +75,8 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
 import GenericModal from '@/components/GenericModal.vue';
-import Badge from '@/components/Badge.vue';
-import EmptyState from '@/components/EmptyState.vue';
+import Badge from '@shared/components/Badge.vue';
+import EmptyState from '@shared/components/EmptyState.vue';
 import ideTargetPickerStore from '@/stores/ideTargetPickerStore';
 
 const store = ideTargetPickerStore;

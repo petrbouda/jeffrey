@@ -172,7 +172,7 @@
 <script setup lang="ts">
 import { ref, watch, nextTick, onMounted } from 'vue';
 import OqlChatMessage from '@/components/oql/OqlChatMessage.vue';
-import Badge from '@/components/Badge.vue';
+import Badge from '@shared/components/Badge.vue';
 import { useOqlAssistant } from '@/composables/useOqlAssistant';
 import AssistantPanel from '@/components/assistants/AssistantPanel.vue';
 import AssistantMinimizedButton from '@/components/assistants/AssistantMinimizedButton.vue';

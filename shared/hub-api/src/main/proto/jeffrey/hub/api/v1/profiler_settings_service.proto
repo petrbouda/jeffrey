@@ -1,0 +1,126 @@
+syntax = "proto3";
+
+package jeffrey.hub.api.v1;
+
+option java_package = "cafe.jeffrey.hub.api.v1";
+option java_multiple_files = true;
+
+// Manages profiler agent settings at three hierarchy levels: global, workspace, and project.
+// Settings are resolved using inheritance: project overrides workspace, workspace overrides global.
+// The profiler agent reads the effective settings to configure JFR recording parameters.
+service ProfilerSettingsService {
+  // Gets the effective profiler settings for a project, resolved from the hierarchy
+  // (project > workspace > global). Returns the settings and the level they were found at.
+  rpc GetSettings(GetProfilerSettingsRequest) returns (GetProfilerSettingsResponse);
+
+  // Creates or updates project-level profiler settings.
+  rpc UpsertSettings(UpsertProfilerSettingsRequest) returns (UpsertProfilerSettingsResponse);
+
+  // Deletes project-level profiler settings, causing the project to fall back
+  // to workspace-level or global-level settings.
+  rpc DeleteSettings(DeleteProfilerSettingsRequest) returns (DeleteProfilerSettingsResponse);
+
+  // Lists all profiler settings entries at all hierarchy levels on this server.
+  // Returns raw entries without inheritance resolution.
+  rpc ListAllSettings(ListAllProfilerSettingsRequest) returns (ListAllProfilerSettingsResponse);
+
+  // Creates or updates profiler settings at any hierarchy level.
+  // The level is determined by which IDs are provided:
+  // both empty = global, workspace_id only = workspace, both set = project.
+  rpc UpsertSettingsAtLevel(UpsertProfilerSettingsAtLevelRequest) returns (UpsertProfilerSettingsAtLevelResponse);
+
+  // Deletes profiler settings at any hierarchy level.
+  rpc DeleteSettingsAtLevel(DeleteProfilerSettingsAtLevelRequest) returns (DeleteProfilerSettingsAtLevelResponse);
+
+  // Returns the workspace-level and global-level profiler settings for a
+  // workspace. Both fields are optional — present only if a row exists at
+  // that level. The caller decides which is "effectively in force"
+  // (workspace overrides global).
+  rpc GetWorkspaceEffectiveSettings(GetWorkspaceEffectiveSettingsRequest)
+      returns (GetWorkspaceEffectiveSettingsResponse);
+}
+
+message GetProfilerSettingsRequest {
+  string project_id = 1;
+}
+
+message GetProfilerSettingsResponse {
+  // The profiler agent command/settings string (e.g., async-profiler arguments).
+  string agent_settings = 1;
+  // The hierarchy level where these settings were found.
+  SettingsLevel level = 2;
+}
+
+message UpsertProfilerSettingsRequest {
+  string project_id = 1;
+  // The profiler agent command/settings string to set.
+  string agent_settings = 2;
+}
+
+message UpsertProfilerSettingsResponse {}
+
+message DeleteProfilerSettingsRequest {
+  string project_id = 1;
+}
+
+message DeleteProfilerSettingsResponse {}
+
+// The hierarchy level at which profiler settings are defined.
+enum SettingsLevel {
+  SETTINGS_LEVEL_UNSPECIFIED = 0;
+  // Global default settings, used when no workspace or project override exists.
+  SETTINGS_LEVEL_GLOBAL = 1;
+  // Workspace-level settings, overrides global for all projects in the workspace.
+  SETTINGS_LEVEL_WORKSPACE = 2;
+  // Project-level settings, highest priority override.
+  SETTINGS_LEVEL_PROJECT = 3;
+}
+
+message ListAllProfilerSettingsRequest {}
+
+message ListAllProfilerSettingsResponse {
+  // All settings entries across all levels, without inheritance resolution.
+  repeated ProfilerSettingsEntry settings = 1;
+}
+
+// A single profiler settings entry at a specific hierarchy level.
+message ProfilerSettingsEntry {
+  // Workspace ID (empty for global-level settings).
+  string workspace_id = 1;
+  // Project ID (empty for workspace-level or global-level settings).
+  string project_id = 2;
+  // The profiler agent command/settings string.
+  string agent_settings = 3;
+}
+
+message UpsertProfilerSettingsAtLevelRequest {
+  // Workspace ID. Empty string means global level.
+  string workspace_id = 1;
+  // Project ID. Empty string means workspace or global level.
+  string project_id = 2;
+  // The profiler agent command/settings string to set.
+  string agent_settings = 3;
+}
+
+message UpsertProfilerSettingsAtLevelResponse {}
+
+message DeleteProfilerSettingsAtLevelRequest {
+  // Workspace ID. Empty string means global level.
+  string workspace_id = 1;
+  // Project ID. Empty string means workspace or global level.
+  string project_id = 2;
+}
+
+message DeleteProfilerSettingsAtLevelResponse {}
+
+message GetWorkspaceEffectiveSettingsRequest {
+  // The workspace to look up. Required.
+  string workspace_id = 1;
+}
+
+message GetWorkspaceEffectiveSettingsResponse {
+  // Workspace-level settings, if a row exists at that level.
+  optional string workspace_agent_settings = 1;
+  // Global-level settings, if a row exists at that level.
+  optional string global_agent_settings = 2;
+}

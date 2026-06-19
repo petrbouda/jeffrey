@@ -89,8 +89,8 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import SearchableSelect from '@/components/form/SearchableSelect.vue';
-import Badge from '@/components/Badge.vue';
-import FormattingService from '@/services/FormattingService.ts';
+import Badge from '@shared/components/Badge.vue';
+import FormattingService from '@shared/services/FormattingService.ts';
 
 export interface FilterBarItem {
   label: string;

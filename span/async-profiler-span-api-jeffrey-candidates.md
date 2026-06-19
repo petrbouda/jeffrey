@@ -39,7 +39,7 @@ these over scattering `Span.start()/end()` across dozens of methods.
 |------------|----------|--------|-------|
 | **REST profile dispatch** | `core-microscope/.../web/ProfileManagerResolver.java:56` (`resolve(profileId)`) | Every `/api/internal/profiles/{profileId}/…` endpoint (~20 controllers all start with `resolver.resolve(...)`) | Even better: a Spring `HandlerInterceptor` on `/api/internal/**` using the matched URI template as the tag — one span per HTTP request, zero controller edits. **None exists today** — `MicroscopeApplication` already implements `WebMvcConfigurer` but only overrides `addResourceHandlers`/`addViewControllers`, so `addInterceptors(...)` is the single drop-in point. |
 | **DB query execution** | `shared/persistence/.../DatabaseClient.java:337` (`queryStream`) and `:259` (`query`) | All streaming flamegraph/timeseries/subsecond queries + all named reads | `StatementLabel`/`groupLabel` already in scope → high-quality tag. **Already emits a JFR event** — Span is additive (adds `Contextual` correlation). |
-| **gRPC binary streaming** | `core-microscope/.../client/RemoteRecordingStreamClient.java` — private helpers `streamChunksToConsumer` (~:145) / `collectChunksToResource` (~:120) | Every remote recording/artifact download (the highest-latency IO in the app) | All three public stream methods funnel through these two helpers. |
+| **gRPC binary streaming** | `core-microscope/.../client/RecordingStreamClient.java` — private helpers `streamChunksToConsumer` (~:145) / `collectChunksToResource` (~:120) | Every remote recording/artifact download (the highest-latency IO in the app) | All three public stream methods funnel through these two helpers. |
 
 ---
 
@@ -98,11 +98,11 @@ Tags are suggestions.
 
 | Location | Method | Tag | Rank |
 |----------|--------|-----|------|
-| `core-microscope/.../client/RemoteRecordingStreamClient.java:53` | `downloadRecordings(sessionId, ids)` | `grpc.download-recordings` | High |
+| `core-microscope/.../client/RecordingStreamClient.java:53` | `downloadRecordings(sessionId, ids)` | `grpc.download-recordings` | High |
 | `core-microscope/.../manager/workspace/RemoteRecordingsDownloadManager.java:174` | `mergeAndDownloadRecordingsWithProgress(...)` | `download.stream-and-persist` | High |
-| `core-microscope/.../client/RemoteRepositoryClient.java:44/64` | `recordingSessions` / `repositoryStatistics` | `grpc.list-sessions` / `grpc.repo-stats` | Medium |
-| `core-microscope/.../client/RemoteDiscoveryClient.java:68/120` | `allWorkspaces` / `allProjects` | `grpc.list-workspaces` / `grpc.list-projects` | Medium |
-| `core-microscope/.../client/RemoteInstancesClient.java:46/72` | `projectInstances` / `instanceDetail` | `grpc.list-instances` / `grpc.instance-detail` | Medium |
+| `core-microscope/.../client/RepositoryClient.java:44/64` | `recordingSessions` / `repositoryStatistics` | `grpc.list-sessions` / `grpc.repo-stats` | Medium |
+| `core-microscope/.../client/DiscoveryClient.java:68/120` | `allWorkspaces` / `allProjects` | `grpc.list-workspaces` / `grpc.list-projects` | Medium |
+| `core-microscope/.../client/InstancesClient.java:46/72` | `projectInstances` / `instanceDetail` | `grpc.list-instances` / `grpc.instance-detail` | Medium |
 
 ### 2f. MCP tool calls — child spans under the agentic AI call (rank: **HIGH**, the new gap)
 
@@ -151,9 +151,9 @@ those leaves.
 |----------|---------------|-----|-----|
 | `core-microscope/.../manager/workspace/WorkspaceManager.java` | `resolveInfo` :41 / `fetchEffectiveProfilerSettings` :82 | `workspace.resolve` | Composite remote snapshot refresh; may traverse multiple connected servers. |
 | `core-microscope/.../web/ProfileManagerResolver.java` | `find` :61 | `profile.resolve` | Recordings → local DB → remote-server walk; the parent of the §2e gRPC calls (and of a REST request, §3 chain D). |
-| `core-microscope/.../client/RemoteProfilerClient.java` | `upsertProfilerSettings` :57 / `upsertSettingsAtLevel` :91 | `grpc.profiler-settings.upsert` | gRPC round-trip persisting agent settings to a remote instance. |
+| `core-microscope/.../client/ProfilerClient.java` | `upsertProfilerSettings` :57 / `upsertSettingsAtLevel` :91 | `grpc.profiler-settings.upsert` | gRPC round-trip persisting agent settings to a remote instance. |
 
-> Out of scope here: `jeffrey-server`'s `ReplayStreamingSubscriber.start()/readAllFiles()` (per-file
+> Out of scope here: `jeffrey-hub`'s `ReplayStreamingSubscriber.start()/readAllFiles()` (per-file
 > replay reads) are also good span points, but they live in the **server** deployment, not Microscope.
 
 ---

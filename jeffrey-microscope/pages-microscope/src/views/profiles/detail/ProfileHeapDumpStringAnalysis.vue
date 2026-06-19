@@ -581,8 +581,8 @@ import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
 import PageHeader from '@/components/layout/PageHeader.vue';
-import LoadingState from '@/components/LoadingState.vue';
-import ErrorState from '@/components/ErrorState.vue';
+import LoadingState from '@shared/components/LoadingState.vue';
+import ErrorState from '@shared/components/ErrorState.vue';
 import StatsTable from '@/components/StatsTable.vue';
 import HeapDumpNotInitialized from '@/components/HeapDumpNotInitialized.vue';
 import TabBar from '@/components/TabBar.vue';
@@ -605,7 +605,7 @@ import StringAnalysisReport, { JvmStringFlag } from '@/services/api/model/String
 import StringDeduplicationEntry from '@/services/api/model/StringDeduplicationEntry';
 import StringInstanceEntry from '@/services/api/model/StringInstanceEntry';
 import StringTopEntry from '@/services/api/model/StringTopEntry';
-import FormattingService from '@/services/FormattingService';
+import FormattingService from '@shared/services/FormattingService';
 const route = useRoute();
 const router = useRouter();
 

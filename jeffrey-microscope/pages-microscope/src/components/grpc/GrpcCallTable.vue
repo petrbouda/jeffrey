@@ -56,9 +56,9 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import FormattingService from '@/services/FormattingService';
-import Badge from '@/components/Badge.vue';
-import type { Variant } from '@/types/ui';
+import FormattingService from '@shared/services/FormattingService';
+import Badge from '@shared/components/Badge.vue';
+import type { Variant } from '@shared/types/ui';
 
 interface GrpcCall {
   service: string;

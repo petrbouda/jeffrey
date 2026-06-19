@@ -17,12 +17,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 import { computed } from 'vue';
-import RepositoryStatistics from '@/services/api/model/RepositoryStatistics.ts';
-import RecordingStatus from '@/services/api/model/RecordingStatus.ts';
+import RepositoryStatistics from '@workspaces/services/api/model/RepositoryStatistics.ts';
+import RecordingStatus from '@workspaces/services/api/model/RecordingStatus.ts';
 import Utils from '@/services/Utils';
-import Badge from '@/components/Badge.vue';
-import FormattingService from '@/services/FormattingService.ts';
-import type { Variant } from '@/types/ui.ts';
+import Badge from '@shared/components/Badge.vue';
+import FormattingService from '@shared/services/FormattingService.ts';
+import type { Variant } from '@shared/types/ui.ts';
 
 interface Props {
   statistics: RepositoryStatistics | null;

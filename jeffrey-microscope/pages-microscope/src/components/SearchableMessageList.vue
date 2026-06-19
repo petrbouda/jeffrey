@@ -55,9 +55,9 @@
 </template>
 
 <script setup lang="ts">
-import Badge from '@/components/Badge.vue';
+import Badge from '@shared/components/Badge.vue';
 import TableShowMore from '@/components/table/TableShowMore.vue';
-import FormattingService from '@/services/FormattingService';
+import FormattingService from '@shared/services/FormattingService';
 import { useTableView } from '@/composables/useTableView';
 import type { ExceptionMessageCount } from '@/services/api/model/ExceptionsModels';
 

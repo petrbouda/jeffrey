@@ -58,9 +58,9 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
-import Badge from '@/components/Badge.vue';
-import EmptyState from '@/components/EmptyState.vue';
-import FormattingService from '@/services/FormattingService';
+import Badge from '@shared/components/Badge.vue';
+import EmptyState from '@shared/components/EmptyState.vue';
+import FormattingService from '@shared/services/FormattingService';
 import type { RegionSnapshot } from '@/services/api/model/G1AnalysisData';
 
 const props = defineProps<{

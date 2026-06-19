@@ -1,0 +1,53 @@
+syntax = "proto3";
+
+package jeffrey.hub.api.v1;
+
+option java_package = "cafe.jeffrey.hub.api.v1";
+option java_multiple_files = true;
+
+// Provides server-streaming RPCs for downloading recordings and artifacts.
+// Files are streamed in 64KB chunks to support efficient transfer of large files
+// (JFR recordings, heap dumps) without loading them entirely into memory.
+service RecordingDownloadService {
+  // Merges selected JFR recording files from a session into a single file
+  // and streams the result. If no file_ids are specified, all finished recordings
+  // in the session are merged.
+  rpc DownloadMergedRecordings(DownloadMergedRecordingsRequest) returns (stream DataChunk);
+
+  // Streams a single artifact file (heap dump, log, error log, etc.) from a session.
+  // The file must exist and be in FINISHED status.
+  rpc DownloadArtifactFile(DownloadArtifactFileRequest) returns (stream DataChunk);
+
+  // Streams a single JFR recording file from a session.
+  // The file must exist and be in FINISHED status.
+  rpc DownloadRecordingFile(DownloadRecordingFileRequest) returns (stream DataChunk);
+}
+
+message DownloadMergedRecordingsRequest {
+  // The recording session containing the files to merge.
+  string session_id = 1;
+  // Specific file IDs to merge. If empty, all finished recordings are merged.
+  repeated string file_ids = 2;
+}
+
+message DownloadArtifactFileRequest {
+  string session_id = 1;
+  // The ID of the artifact file to download.
+  string file_id = 2;
+}
+
+message DownloadRecordingFileRequest {
+  string session_id = 1;
+  // The ID of the JFR recording file to download.
+  string file_id = 2;
+}
+
+// A chunk of binary data for streaming file transfers.
+// The stream consists of sequential chunks that, when concatenated,
+// form the complete file.
+message DataChunk {
+  // Binary content of this chunk (up to 64KB).
+  bytes data = 1;
+  // Total size of the complete file in bytes (same value in every chunk).
+  int64 total_size = 2;
+}

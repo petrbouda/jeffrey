@@ -22,14 +22,14 @@
 --
 
 --
--- REMOTE SERVER TABLES
--- One row per connected jeffrey-server. Workspaces are NOT stored locally —
+-- HUB TABLES
+-- One row per connected jeffrey-hub. Workspaces are NOT stored locally —
 -- they are listed live from the server via gRPC ListWorkspaces.
 --
 
-CREATE TABLE IF NOT EXISTS remote_servers
+CREATE TABLE IF NOT EXISTS hubs
 (
-    server_id   VARCHAR PRIMARY KEY,
+    hub_id   VARCHAR PRIMARY KEY,
     name        VARCHAR NOT NULL,
     hostname    VARCHAR NOT NULL,
     port        INTEGER NOT NULL DEFAULT 443,

@@ -37,12 +37,12 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
-import LoadingState from '@/components/LoadingState.vue';
-import ErrorState from '@/components/ErrorState.vue';
-import EmptyState from '@/components/EmptyState.vue';
+import LoadingState from '@shared/components/LoadingState.vue';
+import ErrorState from '@shared/components/ErrorState.vue';
+import EmptyState from '@shared/components/EmptyState.vue';
 import type HeapDumpClient from '@/services/api/HeapDumpClient';
 import type GCRootClassLoaderAggregate from '@/services/api/model/GCRootClassLoaderAggregate';
-import FormattingService from '@/services/FormattingService';
+import FormattingService from '@shared/services/FormattingService';
 
 const props = defineProps<{
   client: HeapDumpClient;

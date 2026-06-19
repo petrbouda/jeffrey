@@ -70,8 +70,8 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import FormattingService from '@/services/FormattingService';
-import Badge from '@/components/Badge.vue';
+import FormattingService from '@shared/services/FormattingService';
+import Badge from '@shared/components/Badge.vue';
 import SlowestCountHeader from '@/components/SlowestCountHeader.vue';
 
 const DISPLAY_LIMIT = 50;

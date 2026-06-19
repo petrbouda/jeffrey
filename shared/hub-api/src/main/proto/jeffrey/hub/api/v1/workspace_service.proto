@@ -1,0 +1,102 @@
+syntax = "proto3";
+
+package jeffrey.hub.api.v1;
+
+option java_package = "cafe.jeffrey.hub.api.v1";
+option java_multiple_files = true;
+
+// Manages workspace discovery and lifecycle.
+// Workspaces are top-level containers that group projects. They are explicitly
+// created via CreateWorkspace; the CLI's project.workspace-id must match an
+// existing workspace's reference_id for events to be accepted.
+service WorkspaceService {
+  // Returns the Jeffrey server version and API version for compatibility checks.
+  rpc GetApiInfo(GetApiInfoRequest) returns (GetApiInfoResponse);
+
+  // Lists all workspaces registered on this server.
+  rpc ListWorkspaces(ListWorkspacesRequest) returns (ListWorkspacesResponse);
+
+  // Gets a single workspace by its internal ID.
+  rpc GetWorkspace(GetWorkspaceRequest) returns (GetWorkspaceResponse);
+
+  // Creates a new workspace with a user-supplied reference_id (used by the CLI
+  // to route recordings via project.workspace-id). The reference_id must be
+  // unique on this server.
+  rpc CreateWorkspace(CreateWorkspaceRequest) returns (CreateWorkspaceResponse);
+
+  // Deletes a workspace and all its data.
+  rpc DeleteWorkspace(DeleteWorkspaceRequest) returns (DeleteWorkspaceResponse);
+}
+
+message GetApiInfoRequest {}
+
+message GetApiInfoResponse {
+  // The Jeffrey server version (e.g., "1.0.0").
+  string version = 1;
+  // The gRPC API version number for client compatibility checks.
+  int32 api_version = 2;
+}
+
+message ListWorkspacesRequest {}
+
+message ListWorkspacesResponse {
+  repeated WorkspaceInfo workspaces = 1;
+}
+
+message GetWorkspaceRequest {
+  // The internal workspace ID (not the origin/source ID).
+  string workspace_id = 1;
+}
+
+message GetWorkspaceResponse {
+  WorkspaceInfo workspace = 1;
+}
+
+message DeleteWorkspaceRequest {
+  // The workspace to delete.
+  string workspace_id = 1;
+}
+
+message DeleteWorkspaceResponse {}
+
+message CreateWorkspaceRequest {
+  // The reference ID — used by jeffrey-cli's `project.workspace-id` to route
+  // recordings to this workspace. Must be unique on this server.
+  string reference_id = 1;
+  // Display name (required).
+  string name = 2;
+}
+
+message CreateWorkspaceResponse {
+  WorkspaceInfo workspace = 1;
+}
+
+// Represents a workspace — a top-level container for projects.
+// Workspaces are explicitly created via CreateWorkspace; the reference_id
+// is what the CLI uses to address them.
+message WorkspaceInfo {
+  // Internal unique identifier for the workspace.
+  string id = 1;
+  // Display name of the workspace.
+  string name = 2;
+  // Reference ID — the user-supplied id the CLI's project.workspace-id binds to.
+  string reference_id = 3;
+  // Timestamp when the workspace was created (epoch millis).
+  int64 created_at = 4;
+  // Number of projects currently in this workspace.
+  int32 project_count = 5;
+  // Current availability status of the workspace.
+  WorkspaceStatus status = 6;
+}
+
+// Availability status of a workspace.
+enum WorkspaceStatus {
+  // Status has not been determined yet.
+  WORKSPACE_STATUS_UNSPECIFIED = 0;
+  // Workspace is available and operational.
+  WORKSPACE_STATUS_AVAILABLE = 1;
+  // Workspace is no longer available (may have been removed from the filesystem).
+  WORKSPACE_STATUS_UNAVAILABLE = 2;
+  // Workspace exists but is incompatible with the current server version.
+  WORKSPACE_STATUS_INCOMPATIBLE = 3;
+}

@@ -164,19 +164,19 @@
 import { computed, ref, watch } from 'vue';
 import WorkspaceEvent from '@/services/api/model/WorkspaceEvent';
 import WorkspaceEventType from '@/services/api/model/WorkspaceEventType';
-import WorkspaceClient from '@/services/api/WorkspaceClient';
+import WorkspaceEventsClient from '@/services/api/WorkspaceEventsClient';
 import { EventContentParser } from '@/services/EventContentParser';
-import FormattingService from '@/services/FormattingService';
-import Badge from '@/components/Badge.vue';
+import FormattingService from '@shared/services/FormattingService';
+import Badge from '@shared/components/Badge.vue';
 import GenericModal from '@/components/GenericModal.vue';
-import LoadingState from '@/components/LoadingState.vue';
-import EmptyState from '@/components/EmptyState.vue';
+import LoadingState from '@shared/components/LoadingState.vue';
+import EmptyState from '@shared/components/EmptyState.vue';
 
 const DEFAULT_LIMIT = 100;
 
 const props = withDefaults(
   defineProps<{
-    serverId: string;
+    hubId: string;
     workspaceId: string;
     searchQuery?: string;
     limit?: number;
@@ -218,7 +218,7 @@ const filteredEvents = computed(() => {
 });
 
 const refresh = async () => {
-  if (!props.serverId || !props.workspaceId) {
+  if (!props.hubId || !props.workspaceId) {
     events.value = [];
     totalCount.value = 0;
     emit('update:count', 0);
@@ -229,7 +229,7 @@ const refresh = async () => {
   errorMessage.value = '';
 
   try {
-    const client = new WorkspaceClient(props.serverId);
+    const client = new WorkspaceEventsClient(props.hubId);
     const response = await client.getEvents(props.workspaceId, props.limit);
     const fetched = [...response.events].sort((a, b) => b.originCreatedAt - a.originCreatedAt);
     events.value = fetched;
@@ -246,7 +246,7 @@ const refresh = async () => {
 };
 
 watch(
-  () => [props.serverId, props.workspaceId] as const,
+  () => [props.hubId, props.workspaceId] as const,
   () => {
     selectedEventType.value = '';
     refresh();

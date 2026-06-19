@@ -18,24 +18,24 @@
 
 package cafe.jeffrey.performance.analyst.web;
 
-import cafe.jeffrey.performance.analyst.manager.server.RemoteServerManager;
-import cafe.jeffrey.performance.analyst.manager.server.RemoteServersManager;
+import cafe.jeffrey.performance.analyst.manager.server.HubManager;
+import cafe.jeffrey.performance.analyst.manager.server.HubsManager;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 
 /**
- * Resolves a {@code serverId} to its {@link RemoteServerManager}. Used by every
+ * Resolves a {@code hubId} to its {@link HubManager}. Used by every
  * workspace/project-scoped controller.
  */
 public class ServerResolver {
 
-    private final RemoteServersManager remoteServersManager;
+    private final HubsManager remoteServersManager;
 
-    public ServerResolver(RemoteServersManager remoteServersManager) {
+    public ServerResolver(HubsManager remoteServersManager) {
         this.remoteServersManager = remoteServersManager;
     }
 
-    public RemoteServerManager resolveServer(String serverId) {
-        return remoteServersManager.findById(serverId)
-                .orElseThrow(() -> Exceptions.invalidRequest("Remote server not found: " + serverId));
+    public HubManager resolveServer(String hubId) {
+        return remoteServersManager.findById(hubId)
+                .orElseThrow(() -> Exceptions.invalidRequest("Hub not found: " + hubId));
     }
 }

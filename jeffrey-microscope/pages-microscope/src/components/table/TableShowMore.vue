@@ -32,7 +32,7 @@
 </template>
 
 <script setup lang="ts">
-import FormattingService from '@/services/FormattingService';
+import FormattingService from '@shared/services/FormattingService';
 
 defineProps<{
   shown: number;

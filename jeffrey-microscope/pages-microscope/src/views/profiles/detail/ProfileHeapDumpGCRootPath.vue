@@ -117,10 +117,10 @@
 <script setup lang="ts">
 import { onMounted, ref, shallowRef } from 'vue';
 import { useRoute } from 'vue-router';
-import Badge from '@/components/Badge.vue';
+import Badge from '@shared/components/Badge.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
-import LoadingState from '@/components/LoadingState.vue';
-import ErrorState from '@/components/ErrorState.vue';
+import LoadingState from '@shared/components/LoadingState.vue';
+import ErrorState from '@shared/components/ErrorState.vue';
 import HeapDumpNotInitialized from '@/components/HeapDumpNotInitialized.vue';
 import GCRootPathVisualization from '@/components/heap/GCRootPathVisualization.vue';
 import InstanceDetailPanel from '@/components/heap/InstanceDetailPanel.vue';

@@ -35,7 +35,7 @@ import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 
 @RestController
-@RequestMapping("/api/internal/remote-servers/{serverId}/workspaces/{workspaceId}/profiler/settings")
+@RequestMapping("/api/internal/hubs/{hubId}/workspaces/{workspaceId}/profiler/settings")
 public class WorkspaceProfilerSettingsController {
 
     private static final Logger LOG = LoggerFactory.getLogger(WorkspaceProfilerSettingsController.class);
@@ -48,13 +48,13 @@ public class WorkspaceProfilerSettingsController {
 
     @GetMapping
     public CurrentProfilerSettingsResponse fetchCurrent(
-            @PathVariable("serverId") String serverId,
+            @PathVariable("hubId") String hubId,
             @PathVariable("workspaceId") String workspaceId) {
 
-        WorkspaceManager workspace = resolver.resolveWorkspace(serverId, workspaceId);
+        WorkspaceManager workspace = resolver.resolveWorkspace(hubId, workspaceId);
         var levels = workspace.fetchEffectiveProfilerSettings();
-        LOG.debug("Fetched workspace profiler settings: serverId={} workspaceId={} workspaceSet={} globalSet={}",
-                serverId, workspaceId,
+        LOG.debug("Fetched workspace profiler settings: hubId={} workspaceId={} workspaceSet={} globalSet={}",
+                hubId, workspaceId,
                 levels.workspaceSettings() != null,
                 levels.globalSettings() != null);
         return CurrentProfilerSettingsResponse.from(levels);
@@ -62,7 +62,7 @@ public class WorkspaceProfilerSettingsController {
 
     @PostMapping
     public void upsert(
-            @PathVariable("serverId") String serverId,
+            @PathVariable("hubId") String hubId,
             @PathVariable("workspaceId") String workspaceId,
             @RequestBody ProfilerSettingsRequest request) {
 
@@ -70,19 +70,19 @@ public class WorkspaceProfilerSettingsController {
             throw Exceptions.invalidRequest("agentSettings is required");
         }
 
-        WorkspaceManager workspace = resolver.resolveWorkspace(serverId, workspaceId);
+        WorkspaceManager workspace = resolver.resolveWorkspace(hubId, workspaceId);
         workspace.upsertProfilerSettings(request.agentSettings());
-        LOG.debug("Upserted workspace profiler settings: serverId={} workspaceId={}", serverId, workspaceId);
+        LOG.debug("Upserted workspace profiler settings: hubId={} workspaceId={}", hubId, workspaceId);
     }
 
     @DeleteMapping
     public ResponseEntity<Void> delete(
-            @PathVariable("serverId") String serverId,
+            @PathVariable("hubId") String hubId,
             @PathVariable("workspaceId") String workspaceId) {
 
-        WorkspaceManager workspace = resolver.resolveWorkspace(serverId, workspaceId);
+        WorkspaceManager workspace = resolver.resolveWorkspace(hubId, workspaceId);
         workspace.deleteProfilerSettings();
-        LOG.debug("Removed workspace profiler settings override: serverId={} workspaceId={}", serverId, workspaceId);
+        LOG.debug("Removed workspace profiler settings override: hubId={} workspaceId={}", hubId, workspaceId);
         return ResponseEntity.noContent().build();
     }
 }

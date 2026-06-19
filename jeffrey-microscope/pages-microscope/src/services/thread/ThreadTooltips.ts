@@ -18,7 +18,7 @@
 
 import ThreadRectangle from '@/services/thread/ThreadRectangle';
 import EventMetadata from '@/services/thread/model/EventMetadata';
-import FormattingService from '@/services/FormattingService';
+import FormattingService from '@shared/services/FormattingService';
 
 export default class ThreadTooltips {
   static header(javaName: string): string {

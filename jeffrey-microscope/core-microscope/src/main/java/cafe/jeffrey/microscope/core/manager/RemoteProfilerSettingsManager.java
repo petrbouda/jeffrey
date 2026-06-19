@@ -18,7 +18,7 @@
 
 package cafe.jeffrey.microscope.core.manager;
 
-import cafe.jeffrey.microscope.core.client.RemoteProfilerClient;
+import cafe.jeffrey.hub.client.ProfilerClient;
 import cafe.jeffrey.shared.common.model.EffectiveProfilerSettings;
 
 /**
@@ -27,11 +27,11 @@ import cafe.jeffrey.shared.common.model.EffectiveProfilerSettings;
  */
 public class RemoteProfilerSettingsManager implements ProfilerSettingsManager {
 
-    private final RemoteProfilerClient profilerClient;
+    private final ProfilerClient profilerClient;
     private final String projectId;
 
     public RemoteProfilerSettingsManager(
-            RemoteProfilerClient profilerClient,
+            ProfilerClient profilerClient,
             String projectId) {
 
         this.profilerClient = profilerClient;

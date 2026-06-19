@@ -33,7 +33,7 @@ import cafe.jeffrey.microscope.core.resources.response.ProfilerSettingsResponse;
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
 
 @RestController
-@RequestMapping("/api/internal/remote-servers/{serverId}/workspaces/{workspaceId}/projects/{projectId}/profiler/settings")
+@RequestMapping("/api/internal/hubs/{hubId}/workspaces/{workspaceId}/projects/{projectId}/profiler/settings")
 public class ProjectProfilerSettingsController {
 
     private final ProjectManagerResolver resolver;
@@ -44,33 +44,33 @@ public class ProjectProfilerSettingsController {
 
     @GetMapping
     public ProfilerSettingsResponse fetchSettings(
-            @PathVariable("serverId") String serverId,
+            @PathVariable("hubId") String hubId,
             @PathVariable("workspaceId") String workspaceId,
             @PathVariable("projectId") String projectId) {
-        ProfilerSettingsManager mgr = managerFor(serverId, workspaceId, projectId);
+        ProfilerSettingsManager mgr = managerFor(hubId, workspaceId, projectId);
         return ProfilerSettingsResponse.from(mgr.fetchEffectiveSettings());
     }
 
     @PostMapping
     public void upsertSettings(
-            @PathVariable("serverId") String serverId,
+            @PathVariable("hubId") String hubId,
             @PathVariable("workspaceId") String workspaceId,
             @PathVariable("projectId") String projectId,
             @RequestBody ProfilerSettingsRequest request) {
-        managerFor(serverId, workspaceId, projectId).upsertSettings(request.agentSettings());
+        managerFor(hubId, workspaceId, projectId).upsertSettings(request.agentSettings());
     }
 
     @DeleteMapping
     public ResponseEntity<Void> deleteSettings(
-            @PathVariable("serverId") String serverId,
+            @PathVariable("hubId") String hubId,
             @PathVariable("workspaceId") String workspaceId,
             @PathVariable("projectId") String projectId) {
-        managerFor(serverId, workspaceId, projectId).deleteSettings();
+        managerFor(hubId, workspaceId, projectId).deleteSettings();
         return ResponseEntity.noContent().build();
     }
 
-    private ProfilerSettingsManager managerFor(String serverId, String workspaceId, String projectId) {
-        ProjectManager pm = resolver.resolve(serverId, workspaceId, projectId).projectManager();
+    private ProfilerSettingsManager managerFor(String hubId, String workspaceId, String projectId) {
+        ProjectManager pm = resolver.resolve(hubId, workspaceId, projectId).projectManager();
         return pm.profilerSettingsManager();
     }
 }

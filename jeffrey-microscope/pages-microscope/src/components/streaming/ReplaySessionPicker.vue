@@ -67,14 +67,14 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
-import Badge from '@/components/Badge.vue';
-import LoadingState from '@/components/LoadingState.vue';
-import EmptyState from '@/components/EmptyState.vue';
+import Badge from '@shared/components/Badge.vue';
+import LoadingState from '@shared/components/LoadingState.vue';
+import EmptyState from '@shared/components/EmptyState.vue';
 import SearchInput from '@/components/form/SearchInput.vue';
-import FormattingService from '@/services/FormattingService';
-import ProjectInstanceClient from '@/services/api/ProjectInstanceClient';
-import type ProjectInstance from '@/services/api/model/ProjectInstance';
-import type ProjectInstanceSession from '@/services/api/model/ProjectInstanceSession';
+import FormattingService from '@shared/services/FormattingService';
+import ProjectInstanceClient from '@workspaces/services/api/ProjectInstanceClient';
+import type ProjectInstance from '@workspaces/services/api/model/ProjectInstance';
+import type ProjectInstanceSession from '@workspaces/services/api/model/ProjectInstanceSession';
 import type { SelectedSession } from './streamingTypes';
 
 interface InstanceGroup {
@@ -83,7 +83,7 @@ interface InstanceGroup {
 }
 
 const props = defineProps<{
-  serverId: string;
+  hubId: string;
   workspaceId: string;
   projectId: string;
   selected: SelectedSession | null;
@@ -118,7 +118,7 @@ const hiddenInstanceCount = computed(
 async function loadSessions() {
   loading.value = true;
   try {
-    const client = new ProjectInstanceClient(props.serverId, props.workspaceId, props.projectId);
+    const client = new ProjectInstanceClient(props.hubId, props.workspaceId, props.projectId);
     const instances = await client.list(true);
 
     instances.sort((a, b) => {

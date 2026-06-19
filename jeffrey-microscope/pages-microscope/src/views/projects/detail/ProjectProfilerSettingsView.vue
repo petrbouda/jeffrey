@@ -52,7 +52,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { useNavigation } from '@/composables/useNavigation';
 import ProjectProfilerClient from '@/services/api/ProjectProfilerClient';
-import ToastService from '@/services/ToastService';
+import ToastService from '@shared/services/ToastService';
 import MainCard from '@/components/MainCard.vue';
 import MainCardHeader from '@/components/MainCardHeader.vue';
 import TabBar, { type TabBarItem } from '@/components/TabBar.vue';
@@ -63,9 +63,9 @@ import SettingsBreadcrumbs from '@/components/settings/SettingsBreadcrumbs.vue';
 import type { BreadcrumbItem } from '@/components/settings/SettingsBreadcrumbs.vue';
 import type ProfilerSettings from '@/services/api/model/ProfilerSettings';
 
-const { serverId, workspaceId, projectId } = useNavigation();
+const { hubId, workspaceId, projectId } = useNavigation();
 const profilerClient = new ProjectProfilerClient(
-  serverId.value,
+  hubId.value,
   workspaceId.value,
   projectId.value
 );

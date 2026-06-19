@@ -252,7 +252,7 @@
 import { computed } from 'vue';
 import FlamegraphCard from '@/components/FlamegraphCard.vue';
 import type { FlamegraphCardViewPayload } from '@/components/FlamegraphCard.vue';
-import FormattingService from '@/services/FormattingService';
+import FormattingService from '@shared/services/FormattingService';
 import GraphType from '@/services/flamegraphs/GraphType';
 import EventSummary from '@/services/api/model/EventSummary';
 import EventSummaryDetail from '@/services/api/model/EventSummaryDetail';

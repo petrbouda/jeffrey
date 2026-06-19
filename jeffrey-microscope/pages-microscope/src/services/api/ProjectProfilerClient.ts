@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import BasePlatformClient from '@/services/api/BasePlatformClient';
+import BasePlatformClient from '@shared/services/api/BasePlatformClient';
 import ProfilerSettings from '@/services/api/model/ProfilerSettings.ts';
 
 /**
@@ -24,9 +24,9 @@ import ProfilerSettings from '@/services/api/model/ProfilerSettings.ts';
  * Works for both LIVE and REMOTE workspaces - the backend handles the delegation.
  */
 export default class ProjectProfilerClient extends BasePlatformClient {
-  constructor(serverId: string, workspaceId: string, projectId: string) {
+  constructor(hubId: string, workspaceId: string, projectId: string) {
     super(
-      `/remote-servers/${serverId}/workspaces/${workspaceId}/projects/${projectId}/profiler/settings`
+      `/hubs/${hubId}/workspaces/${workspaceId}/projects/${projectId}/profiler/settings`
     );
   }
 

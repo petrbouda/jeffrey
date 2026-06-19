@@ -119,7 +119,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
-import FormattingService from '@/services/FormattingService';
+import FormattingService from '@shared/services/FormattingService';
 import type HeapDumpClient from '@/services/api/HeapDumpClient';
 import type InstanceTreeNode from '@/services/api/model/InstanceTreeNode';
 

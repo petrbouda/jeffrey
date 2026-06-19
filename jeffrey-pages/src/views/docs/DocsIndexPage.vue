@@ -53,8 +53,8 @@ onMounted(() => {
           cta-text="Open Microscope docs"
         />
         <DocsProductCard
-          to="/docs/server"
-          title="Jeffrey Server"
+          to="/docs/hub"
+          title="Jeffrey Hub"
           role="Headless · Multi-workspace"
           description="The headless multi-workspace server. Continuously collect JFR recordings from running applications and serve them to Microscope clients."
           icon="bi bi-cloud"

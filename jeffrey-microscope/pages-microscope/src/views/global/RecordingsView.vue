@@ -353,19 +353,19 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
-import RecordingsClient from '@/services/api/RecordingsClient';
+import RecordingsClient from '@workspaces/services/api/RecordingsClient';
 import MainCard from '@/components/MainCard.vue';
 import MainCardHeader from '@/components/MainCardHeader.vue';
-import RecordingCard from '@/components/RecordingCard.vue';
-import Badge from '@/components/Badge.vue';
+import RecordingCard from '@workspaces/components/RecordingCard.vue';
+import Badge from '@shared/components/Badge.vue';
 import EditNameModal from '@/components/EditNameModal.vue';
-import ConfirmationDialog from '@/components/ConfirmationDialog.vue';
-import EmptyState from '@/components/EmptyState.vue';
-import RecordingFileGroupList from '@/components/RecordingFileGroupList.vue';
-import FormattingService from '@/services/FormattingService';
-import ToastService from '@/services/ToastService';
-import type RecordingGroup from '@/services/api/model/RecordingGroup';
-import type Recording from '@/services/api/model/Recording';
+import ConfirmationDialog from '@shared/components/ConfirmationDialog.vue';
+import EmptyState from '@shared/components/EmptyState.vue';
+import RecordingFileGroupList from '@workspaces/components/RecordingFileGroupList.vue';
+import FormattingService from '@shared/services/FormattingService';
+import ToastService from '@shared/services/ToastService';
+import type RecordingGroup from '@workspaces/services/api/model/RecordingGroup';
+import type Recording from '@workspaces/services/api/model/Recording';
 
 const HEAP_DUMP_SOURCE = 'HEAP_DUMP';
 const UNGROUPED_KEY = '__ungrouped__';

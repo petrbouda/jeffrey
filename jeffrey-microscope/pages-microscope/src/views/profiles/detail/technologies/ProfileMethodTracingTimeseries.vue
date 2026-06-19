@@ -71,9 +71,9 @@ import { useRoute } from 'vue-router';
 
 import ChartSection from '@/components/ChartSection.vue';
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
-import LoadingState from '@/components/LoadingState.vue';
-import ErrorState from '@/components/ErrorState.vue';
-import EmptyState from '@/components/EmptyState.vue';
+import LoadingState from '@shared/components/LoadingState.vue';
+import ErrorState from '@shared/components/ErrorState.vue';
+import EmptyState from '@shared/components/EmptyState.vue';
 import TracingDisabledFeatureAlert from '@/components/alerts/TracingDisabledFeatureAlert.vue';
 import MethodTracingOverviewStats from '@/components/method-tracing/MethodTracingOverviewStats.vue';
 import ProfileMethodTracingClient from '@/services/api/ProfileMethodTracingClient';

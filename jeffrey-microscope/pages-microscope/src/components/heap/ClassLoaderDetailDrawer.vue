@@ -183,18 +183,18 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 
-import Badge from '@/components/Badge.vue';
-import EmptyState from '@/components/EmptyState.vue';
-import ErrorState from '@/components/ErrorState.vue';
+import Badge from '@shared/components/Badge.vue';
+import EmptyState from '@shared/components/EmptyState.vue';
+import ErrorState from '@shared/components/ErrorState.vue';
 import GenericModal from '@/components/GenericModal.vue';
-import LoadingState from '@/components/LoadingState.vue';
+import LoadingState from '@shared/components/LoadingState.vue';
 import SortableTableHeader from '@/components/table/SortableTableHeader.vue';
 import SearchInput from '@/components/form/SearchInput.vue';
 import ClassNameDisplay from '@/components/heap/ClassNameDisplay.vue';
 import HeapDumpClient from '@/services/api/HeapDumpClient';
 import type ClassLoaderDetail from '@/services/api/model/ClassLoaderDetail';
-import FormattingService from '@/services/FormattingService';
-import type { Variant } from '@/types/ui';
+import FormattingService from '@shared/services/FormattingService';
+import type { Variant } from '@shared/types/ui';
 
 const PAGE_SIZE = 50;
 

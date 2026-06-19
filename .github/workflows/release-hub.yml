@@ -1,0 +1,93 @@
+name: Docker Server Image (Jib)
+
+on:
+  workflow_call:
+
+jobs:
+  docker-server:
+    runs-on: ubuntu-latest
+    container:
+      image: petrbouda/jeffrey-builder:25
+
+    steps:
+    - uses: actions/checkout@v6
+
+    - name: Extract version
+      id: version
+      run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+    # Stage the bundled /jeffrey-libs/ artifacts into Jib's extraDirectories source.
+    # Jib's convention: build/build-hub-jib/src/main/jib/<path> → /<path> in the image.
+    - name: Download jeffrey-cli.jar
+      uses: actions/download-artifact@v8
+      with:
+        name: jeffrey-cli-jar
+        path: ./build/build-hub-jib/src/main/jib/jeffrey-libs
+
+    - name: Download jeffrey-agent.jar
+      uses: actions/download-artifact@v8
+      with:
+        name: jeffrey-agent-jar
+        path: ./build/build-hub-jib/src/main/jib/jeffrey-libs
+
+    - name: Download native CLI (amd64)
+      uses: actions/download-artifact@v8
+      with:
+        name: jeffrey-cli-amd64
+        path: ./build/build-hub-jib/src/main/jib/jeffrey-libs/cli-amd64
+
+    - name: Download native CLI (arm64)
+      uses: actions/download-artifact@v8
+      with:
+        name: jeffrey-cli-arm64
+        path: ./build/build-hub-jib/src/main/jib/jeffrey-libs/cli-arm64
+
+    - name: Download async-profiler (linux/amd64 + linux/arm64)
+      run: |
+        AP_VERSION=$(curl -s https://api.github.com/repos/async-profiler/async-profiler/releases/latest \
+          | grep '"tag_name"' | sed 's/.*"v\([^"]*\)".*/\1/')
+        for AP_ARCH_PAIR in "x64:amd64" "arm64:arm64"; do
+          AP_ARCH="${AP_ARCH_PAIR%%:*}"
+          OUT_ARCH="${AP_ARCH_PAIR##*:}"
+          curl -L "https://github.com/async-profiler/async-profiler/releases/download/v${AP_VERSION}/async-profiler-${AP_VERSION}-linux-${AP_ARCH}.tar.gz" \
+            | tar -xz -C /tmp
+          cp /tmp/async-profiler-${AP_VERSION}-linux-${AP_ARCH}/lib/libasyncProfiler.so \
+             ./build/build-hub-jib/src/main/jib/jeffrey-libs/libasyncProfiler-${OUT_ARCH}.so
+          rm -rf /tmp/async-profiler-${AP_VERSION}-linux-${AP_ARCH}
+        done
+
+    - name: Stage native CLI binaries
+      run: |
+        mv ./build/build-hub-jib/src/main/jib/jeffrey-libs/cli-amd64/jeffrey-cli \
+           ./build/build-hub-jib/src/main/jib/jeffrey-libs/jeffrey-cli-amd64
+        rm -rf ./build/build-hub-jib/src/main/jib/jeffrey-libs/cli-amd64
+        mv ./build/build-hub-jib/src/main/jib/jeffrey-libs/cli-arm64/jeffrey-cli \
+           ./build/build-hub-jib/src/main/jib/jeffrey-libs/jeffrey-cli-arm64
+        rm -rf ./build/build-hub-jib/src/main/jib/jeffrey-libs/cli-arm64
+        ls -la ./build/build-hub-jib/src/main/jib/jeffrey-libs/
+
+    # Two-step: jib: prefix goal can only be invoked at the project level, so we install
+    # the reactor up to build-hub-jib first, then run jib:build scoped to that module.
+    - name: Install reactor up to build-hub-jib
+      env:
+        JEFFREY_TAG_VERSION: ${{ steps.version.outputs.VERSION }}
+      run: mvn -pl build/build-hub-jib -am -DskipTests=true install
+
+    # docker/login-action shells out to `docker login`; the petrbouda/jeffrey-builder:25
+    # container has no docker CLI, so we write ~/.docker/config.json directly. Jib reads it
+    # automatically and Docker Hub accepts the same auth scheme docker login produces.
+    - name: Configure Docker Hub auth for Jib
+      env:
+        DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+        DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+      run: |
+        mkdir -p ~/.docker
+        AUTH=$(printf '%s' "${DOCKERHUB_USERNAME}:${DOCKERHUB_TOKEN}" | base64 | tr -d '\n')
+        printf '{"auths":{"https://index.docker.io/v1/":{"auth":"%s"}}}\n' "${AUTH}" > ~/.docker/config.json
+        chmod 600 ~/.docker/config.json
+
+    - name: Build & push image with Jib
+      run: |
+        mvn -pl build/build-hub-jib compile jib:build \
+          -Djib.to.image=petrbouda/jeffrey-hub:${{ steps.version.outputs.VERSION }} \
+          -Djib.to.tags=latest

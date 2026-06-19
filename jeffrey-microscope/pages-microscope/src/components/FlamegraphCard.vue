@@ -253,10 +253,10 @@ import { useRouter, useRoute } from 'vue-router';
 import { computed, ref } from 'vue';
 import EventSummary from '@/services/api/model/EventSummary';
 import Utils from '@/services/Utils';
-import FormattingService from '@/services/FormattingService';
-import Badge from '@/components/Badge.vue';
-import EmptyState from '@/components/EmptyState.vue';
-import type { Variant } from '@/types/ui';
+import FormattingService from '@shared/services/FormattingService';
+import Badge from '@shared/components/Badge.vue';
+import EmptyState from '@shared/components/EmptyState.vue';
+import type { Variant } from '@shared/types/ui';
 
 interface DeltaInfo {
   text: string;

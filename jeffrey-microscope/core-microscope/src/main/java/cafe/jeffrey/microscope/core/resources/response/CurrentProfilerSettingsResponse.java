@@ -18,7 +18,7 @@
 
 package cafe.jeffrey.microscope.core.resources.response;
 
-import cafe.jeffrey.microscope.core.client.RemoteProfilerClient.WorkspaceProfilerLevels;
+import cafe.jeffrey.hub.client.ProfilerClient.WorkspaceProfilerLevels;
 
 /**
  * Response describing the profiler settings configured for a workspace at

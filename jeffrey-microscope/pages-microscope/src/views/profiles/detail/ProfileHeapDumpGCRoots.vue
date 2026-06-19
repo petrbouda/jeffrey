@@ -206,8 +206,8 @@ import { computed, onMounted, ref, shallowRef } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
 import PageHeader from '@/components/layout/PageHeader.vue';
-import LoadingState from '@/components/LoadingState.vue';
-import ErrorState from '@/components/ErrorState.vue';
+import LoadingState from '@shared/components/LoadingState.vue';
+import ErrorState from '@shared/components/ErrorState.vue';
 import StatsTable from '@/components/StatsTable.vue';
 import HeapDumpNotInitialized from '@/components/HeapDumpNotInitialized.vue';
 import TabBar from '@/components/TabBar.vue';
@@ -228,7 +228,7 @@ import GCRootsNativeAudit from '@/components/gcroots/GCRootsNativeAudit.vue';
 import GCRootsLeakHints from '@/components/gcroots/GCRootsLeakHints.vue';
 import HeapDumpClient from '@/services/api/HeapDumpClient';
 import GCRootSummary from '@/services/api/model/GCRootSummary';
-import FormattingService from '@/services/FormattingService';
+import FormattingService from '@shared/services/FormattingService';
 
 const route = useRoute();
 const router = useRouter();

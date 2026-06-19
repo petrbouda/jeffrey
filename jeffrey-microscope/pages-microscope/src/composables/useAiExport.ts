@@ -17,7 +17,7 @@
  */
 
 import FlamegraphAiExportClient from '@/services/api/FlamegraphAiExportClient';
-import ToastService from '@/services/ToastService';
+import ToastService from '@shared/services/ToastService';
 
 const DOWNLOAD_MIME = 'text/markdown';
 

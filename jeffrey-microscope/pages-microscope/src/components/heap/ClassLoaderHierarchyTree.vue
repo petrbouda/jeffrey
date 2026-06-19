@@ -104,17 +104,17 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 
-import Badge from '@/components/Badge.vue';
-import EmptyState from '@/components/EmptyState.vue';
+import Badge from '@shared/components/Badge.vue';
+import EmptyState from '@shared/components/EmptyState.vue';
 import ClassNameDisplay from '@/components/heap/ClassNameDisplay.vue';
-import FormattingService from '@/services/FormattingService';
+import FormattingService from '@shared/services/FormattingService';
 import type {
   ClassLoaderHierarchyEdge,
   ClassLoaderInfo,
   ClassLoaderUnloadability,
   LoaderType
 } from '@/services/api/model/ClassLoaderReport';
-import type { Variant } from '@/types/ui';
+import type { Variant } from '@shared/types/ui';
 
 const BOOTSTRAP_LOADER_ID = 0;
 

@@ -15,7 +15,7 @@ without forcing operators to override the container `command:` in Kubernetes YAM
 The extension installs `/usr/local/bin/jeffrey-entrypoint` into a new image layer, makes it
 the `ENTRYPOINT`, and moves JIB's auto-derived `java -cp … <MainClass>` into `CMD`. At
 container start the wrapper runs `jeffrey-cli init` (resolved from
-`$JEFFREY_HOME/libs/current/` — populated by `jeffrey-server`'s `copy-libs` feature on a
+`$JEFFREY_HOME/libs/current/` — populated by `jeffrey-hub`'s `copy-libs` feature on a
 shared volume) and `exec`s the JIB command with the CLI-produced argfile inserted right
 after the `java` binary.
 
@@ -90,7 +90,7 @@ Kubernetes pod-level env vars still override them.
 - Requires a POSIX shell in the base image. True distroless images (`gcr.io/distroless/java-*`)
   lack `/bin/sh` and are incompatible — use the status-quo Kubernetes `command:` pattern
   instead.
-- Requires a running `jeffrey-server` elsewhere in the cluster with `copy-libs.enabled=true`
+- Requires a running `jeffrey-hub` elsewhere in the cluster with `copy-libs.enabled=true`
   to populate `${JEFFREY_HOME}/libs/current/` on the shared volume.
 
 ## License

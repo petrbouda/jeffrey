@@ -15,9 +15,9 @@ Jeffrey has two types of workspaces:
 - **REMOTE workspaces**: Workspaces that connect to a remote Jeffrey server and proxy operations to it via gRPC
 
 When extending a feature to support REMOTE workspaces, you need to:
-1. Define the gRPC service contract in a **proto file** on the shared server-api module
-2. Implement the gRPC service on **jeffrey-server**
-3. Create a **gRPC client** on jeffrey-microscope to call the remote server
+1. Define the gRPC service contract in a **proto file** on the shared hub-api module
+2. Implement the gRPC service on **jeffrey-hub**
+3. Create a **gRPC client** on jeffrey-microscope to call the hub
 4. Create **managers** that delegate to either local or remote implementations
 5. The **frontend** calls the same internal REST API regardless of workspace type
 
@@ -30,10 +30,10 @@ jeffrey-microscope (Local Instance)
 ├── ProjectManager interface
 │   ├── ProjectManager (local) → direct implementation
 │   └── RemoteProjectManager (remote) → delegates to gRPC client
-└── gRPC Clients (RemoteClients)
-    └── RemoteYourFeatureClient → calls jeffrey-server gRPC
+└── gRPC Clients (HubClients)
+    └── RemoteYourFeatureClient → calls jeffrey-hub gRPC
 
-jeffrey-server (Remote Server Instance)
+jeffrey-hub (Hub Instance)
 └── gRPC Services
     └── YourFeatureGrpcService (implements proto-generated service)
 ```
@@ -42,7 +42,7 @@ jeffrey-server (Remote Server Instance)
 
 ### Step 1: Define gRPC Service in Proto File
 
-Create or extend a proto file in `shared/server-api/src/main/proto/jeffrey/api/v1/`:
+Create or extend a proto file in `shared/hub-api/src/main/proto/jeffrey/api/v1/`:
 
 ```protobuf
 // your_feature_service.proto
@@ -87,11 +87,11 @@ message DeleteYourFeatureResponse {}
 
 ### Step 2: Generate gRPC Stubs
 
-Run `mvn compile` on `shared/server-api` to generate the Java gRPC stubs from the proto file. This generates the `*Grpc` stub classes and message classes in the `cafe.jeffrey.api.v1` package.
+Run `mvn compile` on `shared/hub-api` to generate the Java gRPC stubs from the proto file. This generates the `*Grpc` stub classes and message classes in the `cafe.jeffrey.api.v1` package.
 
-### Step 3: Implement gRPC Service on jeffrey-server
+### Step 3: Implement gRPC Service on jeffrey-hub
 
-Create a gRPC service in `jeffrey-server/core-server/src/main/java/pbouda/jeffrey/server/core/grpc/`:
+Create a gRPC service in `jeffrey-hub/core-hub/src/main/java/pbouda/jeffrey/server/core/grpc/`:
 
 ```java
 /*
@@ -112,7 +112,7 @@ Create a gRPC service in `jeffrey-server/core-server/src/main/java/pbouda/jeffre
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.server.core.grpc;
+package cafe.jeffrey.hub.core.grpc;
 
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
@@ -120,9 +120,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import cafe.jeffrey.api.v1.*;
-import cafe.jeffrey.server.core.manager.project.ProjectManager;
-import cafe.jeffrey.server.core.manager.workspace.WorkspaceManager;
-import cafe.jeffrey.server.core.manager.workspace.WorkspacesManager;
+import cafe.jeffrey.hub.core.manager.project.ProjectManager;
+import cafe.jeffrey.hub.core.manager.workspace.WorkspaceManager;
+import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
 
 @Component
 public class YourFeatureGrpcService extends YourFeatureServiceGrpc.YourFeatureServiceImplBase {
@@ -241,7 +241,7 @@ public class RemoteYourFeatureClient {
 
     private final YourFeatureServiceGrpc.YourFeatureServiceBlockingStub stub;
 
-    public RemoteYourFeatureClient(GrpcServerConnection connection) {
+    public RemoteYourFeatureClient(GrpcHubConnection connection) {
         this.stub = YourFeatureServiceGrpc.newBlockingStub(connection.getChannel());
     }
 
@@ -280,29 +280,29 @@ public class RemoteYourFeatureClient {
 }
 ```
 
-### Step 5: Wire Client into RemoteClients Record
+### Step 5: Wire Client into HubClients Record
 
-Add the new client to the `RemoteClients` record in `jeffrey-microscope/core-microscope/src/main/java/pbouda/jeffrey/local/core/client/RemoteClients.java`:
+Add the new client to the `HubClients` record in `jeffrey-microscope/core-microscope/src/main/java/pbouda/jeffrey/local/core/client/HubClients.java`:
 
 ```java
-public record RemoteClients(
-        RemoteDiscoveryClient discovery,
-        RemoteRepositoryClient repository,
-        RemoteRecordingStreamClient recordings,
-        RemoteProfilerClient profiler,
+public record HubClients(
+        DiscoveryClient discovery,
+        RepositoryClient repository,
+        RecordingStreamClient recordings,
+        ProfilerClient profiler,
         RemoteMessagesClient messages,
-        RemoteInstancesClient instances,
-        RemoteProjectsClient projects,
+        InstancesClient instances,
+        ProjectsClient projects,
         RemoteYourFeatureClient yourFeature      // ADD THIS
 ) {
 
     @FunctionalInterface
-    public interface Factory extends Function<URI, RemoteClients> {
+    public interface Factory extends Function<URI, HubClients> {
     }
 }
 ```
 
-Also update the factory method that creates `RemoteClients` to instantiate `RemoteYourFeatureClient` from the `GrpcServerConnection`.
+Also update the factory method that creates `HubClients` to instantiate `RemoteYourFeatureClient` from the `GrpcHubConnection`.
 
 ### Step 6: Create Manager Interface
 
@@ -495,11 +495,11 @@ const data = await YourFeatureClient.fetchProjectFeature(workspaceId.value, proj
 
 | Component | Path |
 |-----------|------|
-| Proto files | `shared/server-api/src/main/proto/jeffrey/api/v1/` |
-| gRPC service implementations | `jeffrey-server/core-server/src/main/java/pbouda/jeffrey/server/core/grpc/` |
+| Proto files | `shared/hub-api/src/main/proto/jeffrey/api/v1/` |
+| gRPC service implementations | `jeffrey-hub/core-hub/src/main/java/pbouda/jeffrey/server/core/grpc/` |
 | gRPC clients | `jeffrey-microscope/core-microscope/src/main/java/pbouda/jeffrey/local/core/client/` |
-| RemoteClients record | `jeffrey-microscope/core-microscope/src/main/java/pbouda/jeffrey/local/core/client/RemoteClients.java` |
-| GrpcServerConnection | `jeffrey-microscope/core-microscope/src/main/java/pbouda/jeffrey/local/core/client/GrpcServerConnection.java` |
+| HubClients record | `jeffrey-microscope/core-microscope/src/main/java/pbouda/jeffrey/local/core/client/HubClients.java` |
+| GrpcHubConnection | `jeffrey-microscope/core-microscope/src/main/java/pbouda/jeffrey/local/core/client/GrpcHubConnection.java` |
 | Manager interfaces | `jeffrey-microscope/core-microscope/src/main/java/pbouda/jeffrey/local/core/manager/` |
 | ProjectManager interface | `jeffrey-microscope/core-microscope/src/main/java/pbouda/jeffrey/local/core/manager/project/ProjectManager.java` |
 | RemoteProjectManager | `jeffrey-microscope/core-microscope/src/main/java/pbouda/jeffrey/local/core/manager/project/RemoteProjectManager.java` |
@@ -518,7 +518,7 @@ After implementation:
 
 1. **Unified API**: Frontend always calls internal REST API; backend handles delegation to local or remote
 2. **Manager Pattern**: Use interface + local/remote implementations for delegation
-3. **gRPC Contract**: Proto files in `shared/server-api` define the contract between jeffrey-microscope and jeffrey-server
+3. **gRPC Contract**: Proto files in `shared/hub-api` define the contract between jeffrey-microscope and jeffrey-hub
 4. **gRPC Replaces REST Public API**: Remote workspace communication uses gRPC, not REST public endpoints
-5. **RemoteClients Record**: All gRPC clients are grouped in the `RemoteClients` record for clean dependency injection
-6. **GrpcServerConnection**: Manages the underlying `ManagedChannel` for creating gRPC stubs; supports both plaintext and TLS
+5. **HubClients Record**: All gRPC clients are grouped in the `HubClients` record for clean dependency injection
+6. **GrpcHubConnection**: Manages the underlying `ManagedChannel` for creating gRPC stubs; supports both plaintext and TLS

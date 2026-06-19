@@ -449,18 +449,18 @@ import AboutSection from '@/components/about/AboutSection.vue';
 import AboutCallout from '@/components/about/AboutCallout.vue';
 import FeatureGrid from '@/components/about/FeatureGrid.vue';
 import FeatureCard from '@/components/about/FeatureCard.vue';
-import Badge from '@/components/Badge.vue';
+import Badge from '@shared/components/Badge.vue';
 import ClassNameDisplay from '@/components/heap/ClassNameDisplay.vue';
 import DisabledEventsNotice from '@/components/alerts/DisabledEventsNotice.vue';
-import LoadingState from '@/components/LoadingState.vue';
-import ErrorState from '@/components/ErrorState.vue';
-import EmptyState from '@/components/EmptyState.vue';
+import LoadingState from '@shared/components/LoadingState.vue';
+import ErrorState from '@shared/components/ErrorState.vue';
+import EmptyState from '@shared/components/EmptyState.vue';
 import DataTable from '@/components/table/DataTable.vue';
 import TableToolbar from '@/components/table/TableToolbar.vue';
 import TableShowMore from '@/components/table/TableShowMore.vue';
 import { useTableView } from '@/composables/useTableView';
 import ProfileThreadClient from '@/services/api/ProfileThreadClient';
-import FormattingService from '@/services/FormattingService';
+import FormattingService from '@shared/services/FormattingService';
 import type {
   DeadlockEntry,
   ParsedDump,
@@ -469,7 +469,7 @@ import type {
   ThreadLockKind,
   ThreadState
 } from '@/services/api/model/ThreadDumpModels';
-import type { Variant } from '@/types/ui';
+import type { Variant } from '@shared/types/ui';
 
 const route = useRoute();
 

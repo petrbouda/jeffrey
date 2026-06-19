@@ -19,8 +19,8 @@
 package cafe.jeffrey.microscope.core.web;
 
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
-import cafe.jeffrey.microscope.core.manager.server.RemoteServerManager;
-import cafe.jeffrey.microscope.core.manager.server.RemoteServersManager;
+import cafe.jeffrey.microscope.core.manager.server.HubManager;
+import cafe.jeffrey.microscope.core.manager.server.HubsManager;
 import cafe.jeffrey.microscope.core.manager.workspace.WorkspaceManager;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
 import cafe.jeffrey.profile.manager.ProfileManager;
@@ -34,18 +34,18 @@ import java.util.Optional;
  * Checks the Recordings store first, then falls back to a direct DB
  * lookup against the microscope-core profile repository.
  *
- * <p>For workspace-scoped profiles, walks the connected remote servers in order
+ * <p>For workspace-scoped profiles, walks the connected hubs in order
  * and returns the first hit — workspace IDs are server-generated UUIDs so a
  * given profile belongs to exactly one server.
  */
 public class ProfileManagerResolver {
 
-    private final RemoteServersManager remoteServersManager;
+    private final HubsManager remoteServersManager;
     private final RecordingsManager recordingsManager;
     private final MicroscopeCoreRepositories localCoreRepositories;
 
     public ProfileManagerResolver(
-            RemoteServersManager remoteServersManager,
+            HubsManager remoteServersManager,
             RecordingsManager recordingsManager,
             MicroscopeCoreRepositories localCoreRepositories) {
         this.remoteServersManager = remoteServersManager;
@@ -72,7 +72,7 @@ public class ProfileManagerResolver {
         }
 
         ProfileInfo profileInfo = profileInfoOpt.get();
-        for (RemoteServerManager server : remoteServersManager.findAll()) {
+        for (HubManager server : remoteServersManager.findAll()) {
             Optional<WorkspaceManager> ws = server.workspace(profileInfo.workspaceId());
             if (ws.isEmpty()) {
                 continue;

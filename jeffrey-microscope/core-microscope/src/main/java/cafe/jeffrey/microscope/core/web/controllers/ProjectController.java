@@ -33,7 +33,7 @@ import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceEventCreator;
 
 @RestController
-@RequestMapping("/api/internal/remote-servers/{serverId}/workspaces/{workspaceId}/projects/{projectId}")
+@RequestMapping("/api/internal/hubs/{hubId}/workspaces/{workspaceId}/projects/{projectId}")
 public class ProjectController {
 
     private static final Logger LOG = LoggerFactory.getLogger(ProjectController.class);
@@ -46,20 +46,20 @@ public class ProjectController {
 
     @GetMapping
     public ProjectResponse info(
-            @PathVariable("serverId") String serverId,
+            @PathVariable("hubId") String hubId,
             @PathVariable("workspaceId") String workspaceId,
             @PathVariable("projectId") String projectId) {
-        ProjectManager pm = resolver.resolve(serverId, workspaceId, projectId).projectManager();
+        ProjectManager pm = resolver.resolve(hubId, workspaceId, projectId).projectManager();
         LOG.debug("Fetching project info: projectId={}", pm.info().id());
         return Mappers.toProjectResponse(pm.detailedInfo());
     }
 
     @DeleteMapping
     public void delete(
-            @PathVariable("serverId") String serverId,
+            @PathVariable("hubId") String hubId,
             @PathVariable("workspaceId") String workspaceId,
             @PathVariable("projectId") String projectId) {
-        ProjectManager pm = resolver.resolve(serverId, workspaceId, projectId).projectManager();
+        ProjectManager pm = resolver.resolve(hubId, workspaceId, projectId).projectManager();
         LOG.debug("Deleting project: projectId={}", pm.info().id());
         pm.delete(WorkspaceEventCreator.MANUAL);
     }
@@ -71,10 +71,10 @@ public class ProjectController {
 
     @PostMapping("/restore")
     public void restore(
-            @PathVariable("serverId") String serverId,
+            @PathVariable("hubId") String hubId,
             @PathVariable("workspaceId") String workspaceId,
             @PathVariable("projectId") String projectId) {
-        ProjectManager pm = resolver.resolve(serverId, workspaceId, projectId).projectManager();
+        ProjectManager pm = resolver.resolve(hubId, workspaceId, projectId).projectManager();
         LOG.debug("Restoring project: projectId={}", pm.info().id());
         pm.restore();
     }

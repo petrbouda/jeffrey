@@ -51,8 +51,8 @@
 
 <script setup lang="ts">
 import JdbcGroup from '@/services/api/model/JdbcGroup.ts';
-import FormattingService from '@/services/FormattingService.ts';
-import Badge from '@/components/Badge.vue';
+import FormattingService from '@shared/services/FormattingService.ts';
+import Badge from '@shared/components/Badge.vue';
 import StatusBadge from '@/components/common/StatusBadge.vue';
 import MetricCardList from '@/components/common/MetricCardList.vue';
 import MetricName from '@/components/common/MetricName.vue';

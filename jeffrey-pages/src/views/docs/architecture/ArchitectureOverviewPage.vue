@@ -40,10 +40,10 @@ onMounted(() => {
       />
 
       <div class="docs-content">
-        <p>Jeffrey consists of two applications: <strong>Jeffrey Microscope</strong> (an analysis tool for visualizing and exploring JFR profiles) and <strong>Jeffrey Server</strong> (a recording collection service that manages workspaces, sessions, and live recordings). Jeffrey Microscope connects to Jeffrey Server via gRPC to access remote workspaces, and also offers <strong>Recordings</strong> for analyzing JFR files directly without a server connection.</p>
+        <p>Jeffrey consists of two applications: <strong>Jeffrey Microscope</strong> (an analysis tool for visualizing and exploring JFR profiles) and <strong>Jeffrey Hub</strong> (a recording collection service that manages workspaces, sessions, and live recordings). Jeffrey Microscope connects to Jeffrey Hub via gRPC to access remote workspaces, and also offers <strong>Recordings</strong> for analyzing JFR files directly without a server connection.</p>
 
         <h2 id="high-level-architecture">High-Level Architecture</h2>
-        <p>Jeffrey runs as two separate applications. Jeffrey Server collects and stores recordings from Java applications, while Jeffrey Microscope provides the analysis UI and connects to the server via gRPC:</p>
+        <p>Jeffrey runs as two separate applications. Jeffrey Hub collects and stores recordings from Java applications, while Jeffrey Microscope provides the analysis UI and connects to the server via gRPC:</p>
 
         <div class="arch-diagram">
           <!-- Two apps side by side -->
@@ -95,11 +95,11 @@ onMounted(() => {
               <div class="grpc-line"></div>
             </div>
 
-            <!-- Jeffrey Server -->
+            <!-- Jeffrey Hub -->
             <div class="arch-app server">
               <div class="arch-app-header server-header">
                 <i class="bi bi-cloud"></i>
-                <span>Jeffrey Server</span>
+                <span>Jeffrey Hub</span>
                 <small>Kubernetes / Server</small>
               </div>
               <div class="arch-app-body">
@@ -139,7 +139,7 @@ onMounted(() => {
             <div class="arch-bottom-spacer"></div>
             <!-- Connector spacer for gRPC column -->
             <div class="arch-bottom-connector-spacer"></div>
-            <!-- Right side: aligned under Jeffrey Server -->
+            <!-- Right side: aligned under Jeffrey Hub -->
             <div class="arch-bottom-server-col">
               <div class="arch-reads-arrow">
                 <small>reads</small>

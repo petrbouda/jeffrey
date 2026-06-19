@@ -23,7 +23,7 @@ import java.net.URI;
 /**
  * Exception that preserves the origin context of an error received from a remote Jeffrey instance.
  * Unlike a plain {@link JeffreyException}, this carries the remote URI so logs and error handlers
- * can distinguish locally thrown exceptions from those propagated from a remote server.
+ * can distinguish locally thrown exceptions from those propagated from a hub.
  */
 public class RemoteJeffreyException extends JeffreyException {
 

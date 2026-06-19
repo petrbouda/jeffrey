@@ -26,7 +26,7 @@ import type {
 import type { PickedTarget } from '@/stores/ideTargetPickerStore';
 import ideTargetPickerStore from '@/stores/ideTargetPickerStore';
 import MessageBus from '@/services/MessageBus';
-import { ToastService } from '@/services/ToastService';
+import { ToastService } from '@shared/services/ToastService';
 
 const NO_IDE_TITLE = 'No running IntelliJ found';
 const NO_IDE_MESSAGE =

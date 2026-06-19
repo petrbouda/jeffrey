@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import axios from 'axios';
-import HttpUtils from '@/services/HttpUtils';
+import HttpUtils from '@shared/services/HttpUtils';
 import TimeRange from '@/services/api/model/TimeRange';
 import GraphComponents from '@/services/api/model/GraphComponents';
 import PrimaryFlamegraphClient from '@/services/api/PrimaryFlamegraphClient';

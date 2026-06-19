@@ -16,8 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import BasePlatformClient from '@/services/api/BasePlatformClient';
-import Project from '@/services/api/model/Project.ts';
+import BasePlatformClient from '@shared/services/api/BasePlatformClient';
+import Project from '@workspaces/services/api/model/Project.ts';
 
 export default class ProjectsClient extends BasePlatformClient {
   constructor() {

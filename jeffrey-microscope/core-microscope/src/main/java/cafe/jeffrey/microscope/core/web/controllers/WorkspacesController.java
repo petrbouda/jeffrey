@@ -32,7 +32,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import cafe.jeffrey.microscope.core.manager.server.RemoteServerManager;
+import cafe.jeffrey.microscope.core.manager.server.HubManager;
 import cafe.jeffrey.microscope.core.manager.workspace.WorkspaceManager;
 import cafe.jeffrey.microscope.core.resources.request.CreateWorkspaceRequest;
 import cafe.jeffrey.microscope.core.resources.response.WorkspaceEventsResponse;
@@ -46,7 +46,7 @@ import cafe.jeffrey.shared.common.model.workspace.WorkspaceReferenceId;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/internal/remote-servers/{serverId}/workspaces")
+@RequestMapping("/api/internal/hubs/{hubId}/workspaces")
 public class WorkspacesController {
 
     private static final Logger LOG = LoggerFactory.getLogger(WorkspacesController.class);
@@ -58,47 +58,47 @@ public class WorkspacesController {
     }
 
     @GetMapping
-    public List<WorkspaceResponse> workspaces(@PathVariable("serverId") String serverId) {
-        RemoteServerManager server = resolver.resolveServer(serverId);
+    public List<WorkspaceResponse> workspaces(@PathVariable("hubId") String hubId) {
+        HubManager server = resolver.resolveServer(hubId);
         var result = server.workspaces().stream()
                 .map(Mappers::toResponse)
                 .toList();
-        LOG.debug("Listed workspaces: serverId={} count={}", serverId, result.size());
+        LOG.debug("Listed workspaces: hubId={} count={}", hubId, result.size());
         return result;
     }
 
     @GetMapping("/{workspaceId}")
     public WorkspaceResponse workspace(
-            @PathVariable("serverId") String serverId,
+            @PathVariable("hubId") String hubId,
             @PathVariable("workspaceId") String workspaceId) {
 
-        WorkspaceManager workspace = resolver.resolveWorkspace(serverId, workspaceId);
+        WorkspaceManager workspace = resolver.resolveWorkspace(hubId, workspaceId);
         return Mappers.toResponse(workspace.resolveInfo());
     }
 
     @DeleteMapping("/{workspaceId}")
     public ResponseEntity<Void> delete(
-            @PathVariable("serverId") String serverId,
+            @PathVariable("hubId") String hubId,
             @PathVariable("workspaceId") String workspaceId) {
 
-        WorkspaceManager workspace = resolver.resolveWorkspace(serverId, workspaceId);
+        WorkspaceManager workspace = resolver.resolveWorkspace(hubId, workspaceId);
         workspace.delete();
         return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/{workspaceId}/events")
     public WorkspaceEventsResponse events(
-            @PathVariable("serverId") String serverId,
+            @PathVariable("hubId") String hubId,
             @PathVariable("workspaceId") String workspaceId,
             @RequestParam(name = "limit", defaultValue = "100") int limit) {
 
         LOG.debug("Fetching workspace events: workspaceId={} limit={}", workspaceId, limit);
-        return resolver.resolveWorkspace(serverId, workspaceId).events(limit);
+        return resolver.resolveWorkspace(hubId, workspaceId).events(limit);
     }
 
     @PostMapping
     public ResponseEntity<WorkspaceResponse> create(
-            @PathVariable("serverId") String serverId,
+            @PathVariable("hubId") String hubId,
             @RequestBody CreateWorkspaceRequest request) {
 
         if (request.referenceId() == null || request.referenceId().isBlank()) {
@@ -113,7 +113,7 @@ public class WorkspacesController {
                     "Invalid workspace reference ID: " + WorkspaceReferenceId.DESCRIPTION);
         }
 
-        RemoteServerManager server = resolver.resolveServer(serverId);
+        HubManager server = resolver.resolveServer(hubId);
         try {
             WorkspaceInfo created = server.createWorkspace(referenceId, request.name().trim());
             return ResponseEntity.status(HttpStatus.CREATED).body(Mappers.toResponse(created));

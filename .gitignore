@@ -29,13 +29,13 @@ jeffrey-microscope/pages-microscope/dist-ssr
 jeffrey-microscope/pages-microscope/coverage
 jeffrey-microscope/pages-microscope/*.local
 
-# pages-server dependencies and build output
-jeffrey-server/pages-server/node_modules
-jeffrey-server/pages-server/package-lock.json
-jeffrey-server/pages-server/.DS_Store
-jeffrey-server/pages-server/dist
-jeffrey-server/pages-server/coverage
-jeffrey-server/pages-server/*.local
+# pages-hub dependencies and build output
+jeffrey-hub/pages-hub/node_modules
+jeffrey-hub/pages-hub/package-lock.json
+jeffrey-hub/pages-hub/.DS_Store
+jeffrey-hub/pages-hub/dist
+jeffrey-hub/pages-hub/coverage
+jeffrey-hub/pages-hub/*.local
 
 # pages-performance-analyst dependencies and build output
 jeffrey-performance-analyst/pages-performance-analyst/node_modules
@@ -78,7 +78,7 @@ jmh-tests/dependency-reduced-pom.xml
 .superpowers
 
 # Local IntelliJ HTTP Client test files
-jeffrey-server/http-client/
+jeffrey-hub/http-client/
 
 /azure-sf
 

@@ -110,7 +110,7 @@ onMounted(() => {
           color="blue"
           icon="bi bi-cloud-arrow-down"
           title="Remote Workspaces"
-          description="Connect to Jeffrey Server, browse production sessions, and pull only the recordings you want to investigate."
+          description="Connect to Jeffrey Hub, browse production sessions, and pull only the recordings you want to investigate."
         />
         <DocsFeatureCard
           color="neutral"
@@ -126,7 +126,7 @@ onMounted(() => {
         <li><i class="bi bi-check2-circle"></i> Quick ad-hoc profiling investigations directly on your laptop.</li>
         <li><i class="bi bi-check2-circle"></i> Deep, side-by-side comparisons with differential flame graphs and timeseries.</li>
         <li><i class="bi bi-check2-circle"></i> Hunting memory leaks and oversized retention with heap-dump tooling.</li>
-        <li><i class="bi bi-check2-circle"></i> Connecting to Jeffrey Server for centralised, production-grade recording collection.</li>
+        <li><i class="bi bi-check2-circle"></i> Connecting to Jeffrey Hub for centralised, production-grade recording collection.</li>
       </ul>
 
     </div>

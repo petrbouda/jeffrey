@@ -25,7 +25,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.microscope.core.manager.project.ProjectManager;
-import cafe.jeffrey.microscope.core.manager.server.RemoteServerManager;
+import cafe.jeffrey.microscope.core.manager.server.HubManager;
 import cafe.jeffrey.microscope.core.manager.workspace.WorkspaceManager;
 import cafe.jeffrey.microscope.core.resources.response.ProfileWithContextResponse;
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
@@ -39,10 +39,10 @@ import java.util.Comparator;
 import java.util.List;
 
 /**
- * Lists all profiles across all workspaces on a single connected jeffrey-server.
+ * Lists all profiles across all workspaces on a single connected jeffrey-hub.
  */
 @RestController
-@RequestMapping("/api/internal/remote-servers/{serverId}/profiles")
+@RequestMapping("/api/internal/hubs/{hubId}/profiles")
 public class ProfilesController {
 
     private static final Logger LOG = LoggerFactory.getLogger(ProfilesController.class);
@@ -54,8 +54,8 @@ public class ProfilesController {
     }
 
     @GetMapping
-    public List<ProfileWithContextResponse> listAllProfiles(@PathVariable("serverId") String serverId) {
-        RemoteServerManager server = resolver.resolveServer(serverId);
+    public List<ProfileWithContextResponse> listAllProfiles(@PathVariable("hubId") String hubId) {
+        HubManager server = resolver.resolveServer(hubId);
         List<ProfileWithContextResponse> allProfiles = new ArrayList<>();
 
         for (WorkspaceInfo workspaceInfo : server.workspaces()) {
@@ -76,7 +76,7 @@ public class ProfilesController {
         var result = allProfiles.stream()
                 .sorted(Comparator.comparing(ProfileWithContextResponse::createdAt).reversed())
                 .toList();
-        LOG.debug("Listed all profiles on server: server_id={} count={}", serverId, result.size());
+        LOG.debug("Listed all profiles on server: hub_id={} count={}", hubId, result.size());
         return result;
     }
 

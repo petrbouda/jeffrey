@@ -7,7 +7,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import StatsTable from '@/components/StatsTable.vue';
-import FormattingService from '@/services/FormattingService.ts';
+import FormattingService from '@shared/services/FormattingService.ts';
 import HttpHeader from '@/services/api/model/HttpHeader.ts';
 
 const props = defineProps<{

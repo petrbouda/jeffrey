@@ -99,7 +99,7 @@ const getSinglePageLink = (section: DocSection): string => {
 };
 
 // Sidebar items mark themselves active when the current URL matches their target.
-// Anchor-targeted items (e.g. /docs/server#architecture) require a hash match too,
+// Anchor-targeted items (e.g. /docs/hub#architecture) require a hash match too,
 // so plain "Overview" and anchor "Architecture" don't both light up on the same path.
 const isItemActive = (sectionPath: string, page: DocPage): boolean => {
   const href = pageHref(sectionPath, page);
@@ -128,7 +128,7 @@ const isSectionActive = (section: DocSection): boolean => {
 watch(
   [currentCategory, currentPage, currentProduct, () => route.fullPath],
   ([newCategory, newPage, product]) => {
-    // /docs/microscope and /docs/server are product-level URLs whose category
+    // /docs/microscope and /docs/hub are product-level URLs whose category
     // is the product id, not a section path — expand the lead section instead.
     const isProductRoute = newCategory === 'microscope' || newCategory === 'server';
     if (newCategory && !isProductRoute) {

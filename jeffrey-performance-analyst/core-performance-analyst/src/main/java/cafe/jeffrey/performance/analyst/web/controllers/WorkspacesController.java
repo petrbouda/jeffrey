@@ -31,8 +31,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import cafe.jeffrey.performance.analyst.client.RemoteDiscoveryClient;
-import cafe.jeffrey.performance.analyst.manager.server.RemoteServerManager;
+import cafe.jeffrey.hub.client.DiscoveryClient;
+import cafe.jeffrey.performance.analyst.manager.server.HubManager;
 import cafe.jeffrey.performance.analyst.resources.request.CreateWorkspaceRequest;
 import cafe.jeffrey.performance.analyst.resources.response.WorkspaceResponse;
 import cafe.jeffrey.performance.analyst.resources.workspace.Mappers;
@@ -44,7 +44,7 @@ import cafe.jeffrey.shared.common.model.workspace.WorkspaceReferenceId;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/internal/remote-servers/{serverId}/workspaces")
+@RequestMapping("/api/internal/hubs/{hubId}/workspaces")
 public class WorkspacesController {
 
     private static final Logger LOG = LoggerFactory.getLogger(WorkspacesController.class);
@@ -56,22 +56,22 @@ public class WorkspacesController {
     }
 
     @GetMapping
-    public List<WorkspaceResponse> workspaces(@PathVariable("serverId") String serverId) {
-        RemoteServerManager server = resolver.resolveServer(serverId);
+    public List<WorkspaceResponse> workspaces(@PathVariable("hubId") String hubId) {
+        HubManager server = resolver.resolveServer(hubId);
         var result = server.workspaces().stream()
                 .map(Mappers::toResponse)
                 .toList();
-        LOG.debug("Listed workspaces: serverId={} count={}", serverId, result.size());
+        LOG.debug("Listed workspaces: hubId={} count={}", hubId, result.size());
         return result;
     }
 
     @GetMapping("/{workspaceId}")
     public WorkspaceResponse workspace(
-            @PathVariable("serverId") String serverId,
+            @PathVariable("hubId") String hubId,
             @PathVariable("workspaceId") String workspaceId) {
 
-        RemoteServerManager server = resolver.resolveServer(serverId);
-        RemoteDiscoveryClient.WorkspaceResult result = server.workspace(workspaceId);
+        HubManager server = resolver.resolveServer(hubId);
+        DiscoveryClient.WorkspaceResult result = server.workspace(workspaceId);
         if (result.info() == null) {
             throw Exceptions.workspaceNotFound(workspaceId);
         }
@@ -80,16 +80,16 @@ public class WorkspacesController {
 
     @DeleteMapping("/{workspaceId}")
     public ResponseEntity<Void> delete(
-            @PathVariable("serverId") String serverId,
+            @PathVariable("hubId") String hubId,
             @PathVariable("workspaceId") String workspaceId) {
 
-        resolver.resolveServer(serverId).deleteWorkspace(workspaceId);
+        resolver.resolveServer(hubId).deleteWorkspace(workspaceId);
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping
     public ResponseEntity<WorkspaceResponse> create(
-            @PathVariable("serverId") String serverId,
+            @PathVariable("hubId") String hubId,
             @RequestBody CreateWorkspaceRequest request) {
 
         if (request.referenceId() == null || request.referenceId().isBlank()) {
@@ -104,7 +104,7 @@ public class WorkspacesController {
                     "Invalid workspace reference ID: " + WorkspaceReferenceId.DESCRIPTION);
         }
 
-        RemoteServerManager server = resolver.resolveServer(serverId);
+        HubManager server = resolver.resolveServer(hubId);
         try {
             WorkspaceInfo created = server.createWorkspace(referenceId, request.name().trim());
             return ResponseEntity.status(HttpStatus.CREATED).body(Mappers.toResponse(created));

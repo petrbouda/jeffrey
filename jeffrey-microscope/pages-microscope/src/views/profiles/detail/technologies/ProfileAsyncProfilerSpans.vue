@@ -54,9 +54,9 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 
-import LoadingState from '@/components/LoadingState.vue';
-import ErrorState from '@/components/ErrorState.vue';
-import EmptyState from '@/components/EmptyState.vue';
+import LoadingState from '@shared/components/LoadingState.vue';
+import ErrorState from '@shared/components/ErrorState.vue';
+import EmptyState from '@shared/components/EmptyState.vue';
 import DetailBreadcrumb from '@/components/DetailBreadcrumb.vue';
 import SpanOverviewStats from '@/components/span/SpanOverviewStats.vue';
 import SpanTagStats from '@/components/span/SpanTagStats.vue';

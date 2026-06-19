@@ -29,7 +29,7 @@
 
     <modules>
         <module>shared</module>
-        <module>jeffrey-server</module>
+        <module>jeffrey-hub</module>
         <module>jeffrey-microscope</module>
         <module>jeffrey-performance-analyst</module>
         <module>jeffrey-cli</module>
@@ -118,7 +118,7 @@
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>pages-server</artifactId>
+                <artifactId>pages-hub</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -133,7 +133,7 @@
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>server-api</artifactId>
+                <artifactId>hub-api</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -143,7 +143,7 @@
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>core-server</artifactId>
+                <artifactId>core-hub</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -168,12 +168,27 @@
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>server-persistence-api</artifactId>
+                <artifactId>hub-client</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>server-sql-persistence</artifactId>
+                <artifactId>recordings-core</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>workspaces</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>hub-persistence-api</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>hub-sql-persistence</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

@@ -18,12 +18,17 @@
 
 package cafe.jeffrey.microscope.core.manager.project;
 
+import cafe.jeffrey.hub.client.manager.RemoteInstancesManager;
+import cafe.jeffrey.hub.client.manager.RemoteRepositoryManager;
+import cafe.jeffrey.hub.client.manager.RepositoryManager;
+
 import cafe.jeffrey.microscope.core.MicroscopeJeffreyDirs;
-import cafe.jeffrey.microscope.core.client.RemoteClients;
+import cafe.jeffrey.hub.client.HubClients;
 import cafe.jeffrey.microscope.core.manager.*;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
-import cafe.jeffrey.microscope.core.manager.workspace.OriginContext;
-import cafe.jeffrey.microscope.core.manager.workspace.RemoteRecordingsDownloadManager;
+import cafe.jeffrey.recordings.core.OriginContext;
+import cafe.jeffrey.recordings.core.RecordingsDownloadManager;
+import cafe.jeffrey.recordings.core.RemoteRecordingsDownloadManager;
 import cafe.jeffrey.microscope.core.recording.ProjectRecordingInitializer;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
 import cafe.jeffrey.shared.common.model.ProjectInfo;
@@ -33,7 +38,7 @@ public class RemoteProjectManager implements ProjectManager {
 
     private final MicroscopeJeffreyDirs jeffreyDirs;
     private final DetailedProjectInfo detailedProjectInfo;
-    private final RemoteClients remoteClients;
+    private final HubClients remoteClients;
     private final ProfilesManager.Factory profilesManagerFactory;
     private final RecordingsManager recordingsManager;
     private final OriginContext originContext;
@@ -41,7 +46,7 @@ public class RemoteProjectManager implements ProjectManager {
     public RemoteProjectManager(
             MicroscopeJeffreyDirs jeffreyDirs,
             DetailedProjectInfo detailedProjectInfo,
-            RemoteClients remoteClients,
+            HubClients remoteClients,
             ProfilesManager.Factory profilesManagerFactory,
             RecordingsManager recordingsManager,
             OriginContext originContext) {
@@ -72,7 +77,7 @@ public class RemoteProjectManager implements ProjectManager {
     @Override
     public RecordingsDownloadManager recordingsDownloadManager() {
         return new RemoteRecordingsDownloadManager(
-                jeffreyDirs,
+                jeffreyDirs::newTempDir,
                 remoteClients.recordings(),
                 remoteClients.repository(),
                 recordingsManager,
@@ -83,7 +88,7 @@ public class RemoteProjectManager implements ProjectManager {
     @Override
     public RepositoryManager repositoryManager() {
         return new RemoteRepositoryManager(
-                jeffreyDirs,
+                jeffreyDirs::newTempDir,
                 detailedProjectInfo.projectInfo(),
                 remoteClients.repository(),
                 remoteClients.recordings());

@@ -34,11 +34,11 @@ import { useRoute } from 'vue-router';
 import ProfileGrpcClient from '@/services/api/ProfileGrpcClient';
 import type { GrpcTrafficData } from '@/services/api/ProfileGrpcClient';
 import StatsTable from '@/components/StatsTable.vue';
-import LoadingState from '@/components/LoadingState.vue';
-import ErrorState from '@/components/ErrorState.vue';
+import LoadingState from '@shared/components/LoadingState.vue';
+import ErrorState from '@shared/components/ErrorState.vue';
 import CustomDisabledFeatureAlert from '@/components/alerts/CustomDisabledFeatureAlert.vue';
 import FeatureType from '@/services/api/model/FeatureType';
-import FormattingService from '@/services/FormattingService';
+import FormattingService from '@shared/services/FormattingService';
 import { useTechnologyData } from '@/composables/useTechnologyData';
 
 // Define props

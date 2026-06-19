@@ -28,6 +28,10 @@
           <i class="bi bi-folder"></i>
           <span>Workspaces</span>
         </router-link>
+        <router-link to="/recordings" class="nav-pill" active-class="active">
+          <i class="bi bi-record-circle"></i>
+          <span>Recordings</span>
+        </router-link>
       </div>
     </div>
   </div>

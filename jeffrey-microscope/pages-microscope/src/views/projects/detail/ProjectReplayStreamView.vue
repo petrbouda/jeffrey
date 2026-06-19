@@ -55,9 +55,9 @@
               }}</span>
             </div>
             <div class="summary-detail-body">
-              <template v-if="editing === 'session' && serverId && workspaceId && projectId">
+              <template v-if="editing === 'session' && hubId && workspaceId && projectId">
                 <ReplaySessionPicker
-                  :server-id="serverId"
+                  :hub-id="hubId"
                   :workspace-id="workspaceId"
                   :project-id="projectId"
                   :selected="session"
@@ -309,7 +309,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
-import EmptyState from '@/components/EmptyState.vue';
+import EmptyState from '@shared/components/EmptyState.vue';
 import MainCard from '@/components/MainCard.vue';
 import MainCardHeader from '@/components/MainCardHeader.vue';
 import StreamingEventsTable from '@/components/streaming/StreamingEventsTable.vue';
@@ -320,10 +320,10 @@ import type {
   ReplayEndMode,
   SelectedSession
 } from '@/components/streaming/streamingTypes';
-import FormattingService from '@/services/FormattingService';
+import FormattingService from '@shared/services/FormattingService';
 import ReplayStreamClient from '@/services/api/ReplayStreamClient';
 import type { StreamingEvent } from '@/services/api/EventStreamingClient';
-import ToastService from '@/services/ToastService';
+import ToastService from '@shared/services/ToastService';
 import { useNavigation } from '@/composables/useNavigation';
 
 type EditingCard = 'session' | 'events' | 'time' | null;

@@ -336,17 +336,17 @@ import { useRoute } from 'vue-router';
 
 import PageHeader from '@/components/layout/PageHeader.vue';
 import StatsTable from '@/components/StatsTable.vue';
-import LoadingState from '@/components/LoadingState.vue';
-import ErrorState from '@/components/ErrorState.vue';
-import ConfirmationDialog from '@/components/ConfirmationDialog.vue';
+import LoadingState from '@shared/components/LoadingState.vue';
+import ErrorState from '@shared/components/ErrorState.vue';
+import ConfirmationDialog from '@shared/components/ConfirmationDialog.vue';
 import HeapDumpClient from '@/services/api/HeapDumpClient';
 import HeapDumpInitTimeline, { type TimelineStep } from '@/components/HeapDumpInitTimeline.vue';
 import HeapSummary from '@/services/api/model/HeapSummary';
 import HeapDumpConfig from '@/services/api/model/HeapDumpConfig';
 import type InitPipelineResult from '@/services/api/model/InitPipelineResult';
 import type { SubPhaseTiming } from '@/services/api/model/InitPipelineResult';
-import FormattingService from '@/services/FormattingService';
-import { ToastService } from '@/services/ToastService';
+import FormattingService from '@shared/services/FormattingService';
+import { ToastService } from '@shared/services/ToastService';
 import MessageBus from '@/services/MessageBus';
 import { ApiError } from '@/services/HttpInterceptor';
 

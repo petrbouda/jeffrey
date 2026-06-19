@@ -21,17 +21,17 @@ package cafe.jeffrey.microscope.core.manager.workspace;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.microscope.core.MicroscopeJeffreyDirs;
-import cafe.jeffrey.microscope.core.client.RemoteClients;
-import cafe.jeffrey.microscope.core.client.RemoteDiscoveryClient;
-import cafe.jeffrey.microscope.core.client.RemoteProfilerClient;
+import cafe.jeffrey.hub.client.HubClients;
+import cafe.jeffrey.hub.client.DiscoveryClient;
+import cafe.jeffrey.hub.client.ProfilerClient;
 import cafe.jeffrey.microscope.core.manager.ProfilesManager;
 import cafe.jeffrey.microscope.core.manager.project.ProjectsManager;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.microscope.core.recording.ProjectRecordingInitializer;
-import cafe.jeffrey.microscope.core.client.RemoteWorkspaceEventsClient;
+import cafe.jeffrey.hub.client.WorkspaceEventsClient;
 import cafe.jeffrey.microscope.core.resources.response.WorkspaceEventsResponse;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
-import cafe.jeffrey.microscope.persistence.api.RemoteServerInfo;
+import cafe.jeffrey.microscope.persistence.api.HubInfo;
 import cafe.jeffrey.microscope.persistence.api.WorkspaceRepository;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceInfo;
@@ -45,19 +45,19 @@ public class RemoteWorkspaceManager implements WorkspaceManager {
     private static final Logger LOG = LoggerFactory.getLogger(RemoteWorkspaceManager.class);
 
     private final MicroscopeJeffreyDirs jeffreyDirs;
-    private final RemoteServerInfo serverInfo;
+    private final HubInfo serverInfo;
     private final WorkspaceInfo workspaceInfo;
     private final WorkspaceRepository workspaceRepository;
-    private final RemoteClients remoteClients;
+    private final HubClients remoteClients;
     private final ProfilesManager.Factory profilesManagerFactory;
     private final RecordingsManager recordingsManager;
 
     public RemoteWorkspaceManager(
             MicroscopeJeffreyDirs jeffreyDirs,
-            RemoteServerInfo serverInfo,
+            HubInfo serverInfo,
             WorkspaceInfo workspaceInfo,
             WorkspaceRepository workspaceRepository,
-            RemoteClients remoteClients,
+            HubClients remoteClients,
             ProfilesManager.Factory profilesManagerFactory,
             RecordingsManager recordingsManager) {
 
@@ -78,7 +78,7 @@ public class RemoteWorkspaceManager implements WorkspaceManager {
     @Override
     public WorkspaceInfo resolveInfo() {
         try {
-            RemoteDiscoveryClient.WorkspaceResult result = remoteClients.discovery().workspace(workspaceInfo.id());
+            DiscoveryClient.WorkspaceResult result = remoteClients.discovery().workspace(workspaceInfo.id());
             return switch (result.status()) {
                 case AVAILABLE -> result.info();
                 case UNAVAILABLE -> workspaceInfo.withStatus(WorkspaceStatus.UNAVAILABLE);
@@ -86,7 +86,7 @@ public class RemoteWorkspaceManager implements WorkspaceManager {
                 case UNKNOWN -> throw new IllegalStateException("Unknown remote workspace status");
             };
         } catch (Exception e) {
-            LOG.warn("Cannot reach remote server, marking as offline: workspaceId={}", workspaceInfo.id());
+            LOG.warn("Cannot reach hub, marking as offline: workspaceId={}", workspaceInfo.id());
             return workspaceInfo.withStatus(WorkspaceStatus.OFFLINE);
         }
     }
@@ -104,13 +104,13 @@ public class RemoteWorkspaceManager implements WorkspaceManager {
 
     @Override
     public WorkspaceEventsResponse events(int limit) {
-        RemoteWorkspaceEventsClient.WorkspaceEventsResult result =
+        WorkspaceEventsClient.WorkspaceEventsResult result =
                 remoteClients.workspaceEvents().getEvents(workspaceInfo.id(), limit);
         return new WorkspaceEventsResponse(result.events(), result.totalCount(), limit);
     }
 
     @Override
-    public Optional<RemoteProfilerClient> profilerClient() {
+    public Optional<ProfilerClient> profilerClient() {
         return Optional.of(remoteClients.profiler());
     }
 
@@ -121,7 +121,7 @@ public class RemoteWorkspaceManager implements WorkspaceManager {
     }
 
     @Override
-    public RemoteProfilerClient.WorkspaceProfilerLevels fetchEffectiveProfilerSettings() {
+    public ProfilerClient.WorkspaceProfilerLevels fetchEffectiveProfilerSettings() {
         return remoteClients.profiler().getWorkspaceEffectiveSettings(workspaceInfo.id());
     }
 
@@ -133,7 +133,7 @@ public class RemoteWorkspaceManager implements WorkspaceManager {
 
     @Override
     public void delete() {
-        // Best-effort: drop the workspace on the remote server via gRPC.
+        // Best-effort: drop the workspace on the hub via gRPC.
         try {
             remoteClients.discovery().deleteWorkspace(workspaceInfo.id());
         } catch (Exception e) {

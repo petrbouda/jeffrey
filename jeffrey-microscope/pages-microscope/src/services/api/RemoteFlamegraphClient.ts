@@ -17,7 +17,7 @@
  */
 
 import axios from 'axios';
-import HttpUtils from '@/services/HttpUtils';
+import HttpUtils from '@shared/services/HttpUtils';
 import FlamegraphClient from '@/services/api/FlamegraphClient';
 import FlamegraphData from '@/services/api/model/FlamegraphData';
 import TimeseriesData from '@/services/timeseries/model/TimeseriesData';

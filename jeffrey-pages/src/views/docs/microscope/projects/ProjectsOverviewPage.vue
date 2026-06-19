@@ -58,7 +58,7 @@ onMounted(() => {
       <DocsCallout type="tip">
         <strong>Just want to analyse a JFR file?</strong> Skip projects entirely — drop the file on the global
         <router-link to="/docs/microscope/recordings">Recordings</router-link> page.
-        Projects are for staying connected to live applications via Jeffrey Server.
+        Projects are for staying connected to live applications via Jeffrey Hub.
       </DocsCallout>
 
       <h2 id="project-page">The Project Page</h2>

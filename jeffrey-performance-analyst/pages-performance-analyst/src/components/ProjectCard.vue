@@ -38,14 +38,14 @@
 <script setup lang="ts">
 import { computed, defineProps, defineEmits } from 'vue';
 import { useRouter } from 'vue-router';
-import Project from '@/services/api/model/Project.ts';
-import RecordingStatus from '@/services/api/model/RecordingStatus.ts';
-import Badge from '@/components/Badge.vue';
-import type { Variant } from '@/types/ui';
+import Project from '@workspaces/services/api/model/Project.ts';
+import RecordingStatus from '@workspaces/services/api/model/RecordingStatus.ts';
+import Badge from '@shared/components/Badge.vue';
+import type { Variant } from '@shared/types/ui';
 
 const props = defineProps<{
   project: Project;
-  serverId: string;
+  hubId: string;
   workspaceId: string;
 }>();
 
@@ -60,7 +60,7 @@ const handleClick = () => {
     router.push({
       name: 'project',
       params: {
-        serverId: props.serverId,
+        hubId: props.hubId,
         workspaceId: props.workspaceId,
         projectId: props.project.id
       }

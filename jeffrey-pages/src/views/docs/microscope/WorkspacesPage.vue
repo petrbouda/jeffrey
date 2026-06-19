@@ -27,7 +27,7 @@ const { setHeadings } = useDocHeadings();
 
 const headings = [
   { id: 'overview', text: 'Overview', level: 2 },
-  { id: 'add-server', text: 'Step 1 — Add a Remote Server', level: 2 },
+  { id: 'add-server', text: 'Step 1 — Add a Hub', level: 2 },
   { id: 'create-workspace', text: 'Step 2 — Create a Workspace', level: 2 },
   { id: 'status', text: 'Workspace Status', level: 2 },
   { id: 'tabs', text: 'Per-Workspace Tabs', level: 2 },
@@ -49,9 +49,9 @@ onMounted(() => {
     <div class="docs-content">
       <h2 id="overview">Overview</h2>
       <p>
-        A <strong>workspace</strong> is a folder that lives on a Jeffrey Server. It groups projects,
+        A <strong>workspace</strong> is a folder that lives on a Jeffrey Hub. It groups projects,
         their JVM instances, and their recording sessions. Microscope connects to one or more
-        Jeffrey Servers and lets you browse the workspaces hosted there. Heavy analysis still runs
+        Jeffrey Hubs and lets you browse the workspaces hosted there. Heavy analysis still runs
         locally — Microscope just borrows the data.
       </p>
       <p>
@@ -59,7 +59,7 @@ onMounted(() => {
         create or pick a workspace inside it.
       </p>
 
-      <h2 id="add-server">Step 1 — Add a Remote Server</h2>
+      <h2 id="add-server">Step 1 — Add a Hub</h2>
       <p>
         Open the <strong>Workspaces</strong> page from the top navigation. The left rail lists the
         servers Microscope knows about; click the <strong>+</strong> button to add a new one.
@@ -79,7 +79,7 @@ onMounted(() => {
           </tr>
           <tr>
             <td><strong>Hostname</strong></td>
-            <td>The host that runs Jeffrey Server (e.g. <code>jeffrey.internal</code> or an IP).</td>
+            <td>The host that runs Jeffrey Hub (e.g. <code>jeffrey.internal</code> or an IP).</td>
           </tr>
           <tr>
             <td><strong>Port</strong></td>

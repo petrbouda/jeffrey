@@ -253,8 +253,8 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
-import FormattingService from '@/services/FormattingService';
-import ToastService from '@/services/ToastService';
+import FormattingService from '@shared/services/FormattingService';
+import ToastService from '@shared/services/ToastService';
 import type HeapDumpClient from '@/services/api/HeapDumpClient';
 import type InstanceDetail from '@/services/api/model/InstanceDetail';
 import type InstanceField from '@/services/api/model/InstanceField';

@@ -64,7 +64,7 @@ const cliArgExample = `java -jar microscope.jar \\
       </p>
 
       <DocsCallout type="info">
-        <strong>Microscope-only:</strong> Jeffrey Server has no concept of API keys. Secrets only
+        <strong>Microscope-only:</strong> Jeffrey Hub has no concept of API keys. Secrets only
         apply when the AI features are enabled in Microscope.
       </DocsCallout>
 

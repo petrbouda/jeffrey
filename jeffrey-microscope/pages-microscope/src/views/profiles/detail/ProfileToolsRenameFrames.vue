@@ -173,11 +173,11 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
 import { useRoute } from 'vue-router';
-import Badge from '@/components/Badge.vue';
+import Badge from '@shared/components/Badge.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import ProfileToolsClient from '@/services/api/ProfileToolsClient';
 import type RenameFramesPreview from '@/services/api/model/RenameFramesPreview';
-import ToastService from '@/services/ToastService';
+import ToastService from '@shared/services/ToastService';
 import '@/styles/shared-components.css';
 
 type ToolState =

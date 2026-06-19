@@ -1287,16 +1287,16 @@
 import { computed, onMounted, onUnmounted, ref, watch, nextTick } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useNavigation } from '@/composables/useNavigation';
-import ToastService from '@/services/ToastService';
+import ToastService from '@shared/services/ToastService';
 import Profile from '@/services/api/model/Profile.ts';
 import DirectProfileClient from '@/services/api/DirectProfileClient.ts';
 
 const directProfileClient = new DirectProfileClient();
 import ProfileInfo from '@/services/api/model/ProfileInfo.ts';
-import RecordingEventSource from '@/services/api/model/RecordingEventSource.ts';
+import RecordingEventSource from '@workspaces/services/api/model/RecordingEventSource.ts';
 import SecondaryProfileService from '@/services/SecondaryProfileService.ts';
 import SecondaryProfileSelectionModal from '@/components/SecondaryProfileSelectionModal.vue';
-import Badge from '@/components/Badge.vue';
+import Badge from '@shared/components/Badge.vue';
 import MessageBus from '@/services/MessageBus.ts';
 import ProfileFeaturesClient from '@/services/api/ProfileFeaturesClient';
 import FeatureType from '@/services/api/model/FeatureType';

@@ -20,7 +20,11 @@ import { createRouter, createWebHistory } from 'vue-router';
 import AppLayout from '@/layout/AppLayout.vue';
 import OverviewView from '@/views/OverviewView.vue';
 import ProjectsView from '@/views/projects/ProjectsView.vue';
-import ProjectPlaceholderView from '@/views/projects/ProjectPlaceholderView.vue';
+import ProjectDetail from '@/views/projects/detail/ProjectDetail.vue';
+import InstancesOverview from '@instances/InstancesOverview.vue';
+import InstancesTimeline from '@instances/InstancesTimeline.vue';
+import InstanceDetail from '@instances/InstanceDetail.vue';
+import RecordingsView from '@/views/global/RecordingsView.vue';
 
 const router = createRouter({
     history: createWebHistory(),
@@ -40,9 +44,35 @@ const router = createRouter({
                     component: ProjectsView
                 },
                 {
-                    path: 'remote-servers/:serverId/workspaces/:workspaceId/projects/:projectId',
-                    name: 'project',
-                    component: ProjectPlaceholderView
+                    path: 'recordings',
+                    name: 'recordings',
+                    component: RecordingsView
+                },
+                {
+                    path: 'hubs/:hubId/workspaces/:workspaceId/projects/:projectId',
+                    component: ProjectDetail,
+                    children: [
+                        {
+                            path: '',
+                            name: 'project',
+                            redirect: to => ({ name: 'project-instances', params: to.params })
+                        },
+                        {
+                            path: 'instances',
+                            name: 'project-instances',
+                            component: InstancesOverview
+                        },
+                        {
+                            path: 'instances/timeline',
+                            name: 'project-timeline',
+                            component: InstancesTimeline
+                        },
+                        {
+                            path: 'instances/:instanceId',
+                            name: 'project-instance-detail',
+                            component: InstanceDetail
+                        }
+                    ]
                 }
             ]
         },

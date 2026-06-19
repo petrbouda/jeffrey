@@ -18,7 +18,7 @@
 
 import TimeRange from '@/services/api/model/TimeRange';
 import type { TypedValue } from '@/services/api/EventStreamingClient';
-import type { Variant } from '@/types/ui';
+import type { Variant } from '@shared/types/ui';
 
 export default class Utils {
   static capitalize(str: string) {

@@ -22,14 +22,14 @@
 
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue';
-import LoadingState from '@/components/LoadingState.vue';
-import ErrorState from '@/components/ErrorState.vue';
-import EmptyState from '@/components/EmptyState.vue';
-import Badge from '@/components/Badge.vue';
+import LoadingState from '@shared/components/LoadingState.vue';
+import ErrorState from '@shared/components/ErrorState.vue';
+import EmptyState from '@shared/components/EmptyState.vue';
+import Badge from '@shared/components/Badge.vue';
 import type HeapDumpClient from '@/services/api/HeapDumpClient';
 import type LeakHintFinding from '@/services/api/model/LeakHintFinding';
 import type { LeakHintSeverity } from '@/services/api/model/LeakHintFinding';
-import type { Variant } from '@/types/ui';
+import type { Variant } from '@shared/types/ui';
 
 const props = defineProps<{
   client: HeapDumpClient;

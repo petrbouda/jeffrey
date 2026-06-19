@@ -41,7 +41,7 @@ MY_NEW_JOB(Group.PROJECT),  // or GLOBAL
 
 #### 2.2 Create Job Descriptor
 
-**File:** `jeffrey-server/core-server/src/main/java/pbouda/jeffrey/server/core/scheduler/job/descriptor/{JobName}JobDescriptor.java`
+**File:** `jeffrey-hub/core-hub/src/main/java/pbouda/jeffrey/server/core/scheduler/job/descriptor/{JobName}JobDescriptor.java`
 
 Use this template:
 
@@ -64,7 +64,7 @@ Use this template:
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.server.core.scheduler.job.descriptor;
+package cafe.jeffrey.hub.core.scheduler.job.descriptor;
 
 import cafe.jeffrey.shared.common.model.job.JobType;
 
@@ -101,7 +101,7 @@ public record {JobName}JobDescriptor(/* parameters if needed */)
 
 #### 2.3 Update JobDescriptor Sealed Interface
 
-**File:** `jeffrey-server/core-server/src/main/java/pbouda/jeffrey/server/core/scheduler/job/descriptor/JobDescriptor.java`
+**File:** `jeffrey-hub/core-hub/src/main/java/pbouda/jeffrey/server/core/scheduler/job/descriptor/JobDescriptor.java`
 
 Add the new descriptor to the permits clause:
 
@@ -113,7 +113,7 @@ public sealed interface JobDescriptor<T extends JobDescriptor<T>>
 
 #### 2.4 Update JobDescriptorFactory
 
-**File:** `jeffrey-server/core-server/src/main/java/pbouda/jeffrey/server/core/scheduler/job/descriptor/JobDescriptorFactory.java`
+**File:** `jeffrey-hub/core-hub/src/main/java/pbouda/jeffrey/server/core/scheduler/job/descriptor/JobDescriptorFactory.java`
 
 Add case in the switch statement:
 
@@ -123,7 +123,7 @@ case {JOB_TYPE_ENUM} -> new {JobName}JobDescriptor();  // or .of(params) if has 
 
 #### 2.5 Create Job Implementation
 
-**File:** `jeffrey-server/core-server/src/main/java/pbouda/jeffrey/server/core/scheduler/job/{JobName}Job.java`
+**File:** `jeffrey-hub/core-hub/src/main/java/pbouda/jeffrey/server/core/scheduler/job/{JobName}Job.java`
 
 For PROJECT scope (extends RepositoryProjectJob):
 
@@ -146,16 +146,16 @@ For PROJECT scope (extends RepositoryProjectJob):
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.server.core.scheduler.job;
+package cafe.jeffrey.hub.core.scheduler.job;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.shared.common.model.job.JobType;
-import cafe.jeffrey.server.core.manager.workspace.WorkspacesManager;
-import cafe.jeffrey.server.core.project.repository.RepositoryStorage;
-import cafe.jeffrey.server.core.scheduler.job.descriptor.JobDescriptorFactory;
-import cafe.jeffrey.server.core.scheduler.job.descriptor.{JobName}JobDescriptor;
-import cafe.jeffrey.server.core.manager.project.ProjectManager;
+import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
+import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
+import cafe.jeffrey.hub.core.scheduler.job.descriptor.JobDescriptorFactory;
+import cafe.jeffrey.hub.core.scheduler.job.descriptor.{JobName}JobDescriptor;
+import cafe.jeffrey.hub.core.manager.project.ProjectManager;
 
 import java.time.Duration;
 
@@ -215,8 +215,8 @@ public class {JobName}Job extends WorkspaceJob<{JobName}JobDescriptor> {
 
 Job beans are split into two configuration classes based on scope:
 
-- **PROJECT jobs:** `jeffrey-server/core-server/src/main/java/pbouda/jeffrey/server/core/configuration/ProjectJobsConfiguration.java`
-- **GLOBAL jobs:** `jeffrey-server/core-server/src/main/java/pbouda/jeffrey/server/core/configuration/GlobalJobsConfiguration.java`
+- **PROJECT jobs:** `jeffrey-hub/core-hub/src/main/java/pbouda/jeffrey/server/core/configuration/ProjectJobsConfiguration.java`
+- **GLOBAL jobs:** `jeffrey-hub/core-hub/src/main/java/pbouda/jeffrey/server/core/configuration/GlobalJobsConfiguration.java`
 
 Add bean method to the appropriate configuration class:
 
@@ -235,25 +235,25 @@ public {JobName}Job {jobName}Job() {
 
 Each job supports a configurable execution period via Spring properties:
 
-- **Property name**: `jeffrey.server.job.{job-name-kebab}.period`
+- **Property name**: `jeffrey.hub.job.{job-name-kebab}.period`
 - **Format**: ISO-8601 duration (e.g., `PT1M` for 1 minute, `PT5M` for 5 minutes, `PT1H` for 1 hour)
-- **Default**: Falls back to `jeffrey.server.job.default.period` (default: 1 minute) if not specified
+- **Default**: Falls back to `jeffrey.hub.job.default.period` (default: 1 minute) if not specified
 - **Custom default**: Use `jobProperties.resolvePeriod("{job-name-kebab}", Duration.ofHours(1))` to specify a fallback
 
 Example configuration in `application.properties`:
 
 ```properties
 # Global default period for all jobs
-jeffrey.server.job.default.period=PT1M
+jeffrey.hub.job.default.period=PT1M
 # Override period for specific job
-jeffrey.server.job.my-custom-job.period=PT5M
+jeffrey.hub.job.my-custom-job.period=PT5M
 ```
 
 #### 2.7 For PROJECT Jobs: Add to Default Job Definitions
 
 If the job should be auto-configured for new projects, add it to the default configuration files:
 
-**File:** `jeffrey-server/core-server/src/main/resources/job-definitions/default-job-definitions.json`
+**File:** `jeffrey-hub/core-hub/src/main/resources/job-definitions/default-job-definitions.json`
 
 Add a new job definition entry:
 
@@ -265,7 +265,7 @@ Add a new job definition entry:
 }
 ```
 
-**File:** `jeffrey-server/core-server/src/main/resources/project-templates/default-project-templates.json`
+**File:** `jeffrey-hub/core-hub/src/main/resources/project-templates/default-project-templates.json`
 
 Add the job ID to the `jobDefinitions` array in the appropriate templates:
 
@@ -289,13 +289,13 @@ Add the job ID to the `jobDefinitions` array in the appropriate templates:
 
 #### 2.8 For GLOBAL Jobs: Update ApplicationInitializer
 
-**File:** `jeffrey-server/core-server/src/main/java/pbouda/jeffrey/server/core/appinitializer/ApplicationInitializer.java`
+**File:** `jeffrey-hub/core-hub/src/main/java/pbouda/jeffrey/server/core/appinitializer/ApplicationInitializer.java`
 
 Add in `initializeGlobalJobs()`:
 
 ```java
 boolean {jobName}Create = environment.getProperty(
-        "jeffrey.server.job.{job-name-kebab}.create-if-not-exists", Boolean.class, true);
+        "jeffrey.hub.job.{job-name-kebab}.create-if-not-exists", Boolean.class, true);
 if ({jobName}Create) {
     JobDescriptor<?> descriptor = new {JobName}JobDescriptor();
     schedulerManager.create(descriptor.type(), descriptor.params());
@@ -304,15 +304,15 @@ if ({jobName}Create) {
 
 #### 2.9 For GLOBAL Jobs: Add Application Properties
 
-**File:** `jeffrey-server/core-server/src/main/resources/application.properties`
+**File:** `jeffrey-hub/core-hub/src/main/resources/application.properties`
 
 Add properties for auto-creation and period:
 
 ```properties
 # The following properties are used to configure the {job-name} job
 # It is a global job that {description}
-jeffrey.server.job.{job-name-kebab}.create-if-not-exists=true
-jeffrey.server.job.{job-name-kebab}.period=5m
+jeffrey.hub.job.{job-name-kebab}.create-if-not-exists=true
+jeffrey.hub.job.{job-name-kebab}.period=5m
 ```
 
 ### Step 3: Generate Frontend Files
@@ -360,16 +360,16 @@ After generating all files, provide a summary:
 | Component                | Path                                                                                                                       |
 |--------------------------|----------------------------------------------------------------------------------------------------------------------------|
 | JobType enum (backend)   | `shared/common/src/main/java/pbouda/jeffrey/shared/common/model/job/JobType.java`                                         |
-| Job descriptor           | `jeffrey-server/core-server/src/main/java/pbouda/jeffrey/server/core/scheduler/job/descriptor/`                            |
-| JobDescriptor interface  | `jeffrey-server/core-server/src/main/java/pbouda/jeffrey/server/core/scheduler/job/descriptor/JobDescriptor.java`          |
-| JobDescriptorFactory     | `jeffrey-server/core-server/src/main/java/pbouda/jeffrey/server/core/scheduler/job/descriptor/JobDescriptorFactory.java`   |
-| Job implementation       | `jeffrey-server/core-server/src/main/java/pbouda/jeffrey/server/core/scheduler/job/`                                       |
-| GlobalJobsConfiguration  | `jeffrey-server/core-server/src/main/java/pbouda/jeffrey/server/core/configuration/GlobalJobsConfiguration.java`           |
-| ProjectJobsConfiguration | `jeffrey-server/core-server/src/main/java/pbouda/jeffrey/server/core/configuration/ProjectJobsConfiguration.java`          |
-| ApplicationInitializer   | `jeffrey-server/core-server/src/main/java/pbouda/jeffrey/server/core/appinitializer/ApplicationInitializer.java`           |
-| Application properties   | `jeffrey-server/core-server/src/main/resources/application.properties`                                                     |
-| Default job definitions  | `jeffrey-server/core-server/src/main/resources/job-definitions/default-job-definitions.json`                               |
-| Project templates        | `jeffrey-server/core-server/src/main/resources/project-templates/default-project-templates.json`                           |
+| Job descriptor           | `jeffrey-hub/core-hub/src/main/java/pbouda/jeffrey/server/core/scheduler/job/descriptor/`                            |
+| JobDescriptor interface  | `jeffrey-hub/core-hub/src/main/java/pbouda/jeffrey/server/core/scheduler/job/descriptor/JobDescriptor.java`          |
+| JobDescriptorFactory     | `jeffrey-hub/core-hub/src/main/java/pbouda/jeffrey/server/core/scheduler/job/descriptor/JobDescriptorFactory.java`   |
+| Job implementation       | `jeffrey-hub/core-hub/src/main/java/pbouda/jeffrey/server/core/scheduler/job/`                                       |
+| GlobalJobsConfiguration  | `jeffrey-hub/core-hub/src/main/java/pbouda/jeffrey/server/core/configuration/GlobalJobsConfiguration.java`           |
+| ProjectJobsConfiguration | `jeffrey-hub/core-hub/src/main/java/pbouda/jeffrey/server/core/configuration/ProjectJobsConfiguration.java`          |
+| ApplicationInitializer   | `jeffrey-hub/core-hub/src/main/java/pbouda/jeffrey/server/core/appinitializer/ApplicationInitializer.java`           |
+| Application properties   | `jeffrey-hub/core-hub/src/main/resources/application.properties`                                                     |
+| Default job definitions  | `jeffrey-hub/core-hub/src/main/resources/job-definitions/default-job-definitions.json`                               |
+| Project templates        | `jeffrey-hub/core-hub/src/main/resources/project-templates/default-project-templates.json`                           |
 | JobType enum (frontend)  | `jeffrey-microscope/pages-microscope/src/services/api/model/JobType.ts`                                                              |
 | SchedulerList            | `jeffrey-microscope/pages-microscope/src/views/projects/detail/SchedulerList.vue`                                                    |
 | Modal components         | `jeffrey-microscope/pages-microscope/src/components/scheduler/modal/`                                                                |

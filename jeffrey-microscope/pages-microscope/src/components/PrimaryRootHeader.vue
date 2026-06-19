@@ -42,7 +42,7 @@
 import { computed } from 'vue';
 import Frame from '@/services/api/model/Frame';
 import EventTypes from '@/services/EventTypes';
-import FormattingService from '@/services/FormattingService';
+import FormattingService from '@shared/services/FormattingService';
 
 interface Props {
   frame: Frame;

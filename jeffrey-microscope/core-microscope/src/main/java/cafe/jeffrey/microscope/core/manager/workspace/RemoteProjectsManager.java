@@ -28,11 +28,12 @@ import cafe.jeffrey.microscope.core.manager.project.ProjectsManager;
 import cafe.jeffrey.microscope.core.manager.project.RemoteProjectManager;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.microscope.core.recording.ProjectRecordingInitializer;
-import cafe.jeffrey.microscope.core.client.RemoteClients;
+import cafe.jeffrey.recordings.core.OriginContext;
+import cafe.jeffrey.hub.client.HubClients;
 import cafe.jeffrey.microscope.core.client.RemoteMappers;
-import cafe.jeffrey.microscope.core.resources.response.RemoteProjectResponse;
+import cafe.jeffrey.hub.client.dto.RemoteProjectResponse;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
-import cafe.jeffrey.microscope.persistence.api.RemoteServerInfo;
+import cafe.jeffrey.microscope.persistence.api.HubInfo;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 
 import java.util.List;
@@ -43,17 +44,17 @@ public class RemoteProjectsManager implements ProjectsManager {
     private static final Logger LOG = LoggerFactory.getLogger(RemoteProjectsManager.class);
 
     private final MicroscopeJeffreyDirs jeffreyDirs;
-    private final RemoteServerInfo serverInfo;
+    private final HubInfo serverInfo;
     private final WorkspaceInfo workspaceInfo;
-    private final RemoteClients remoteClients;
+    private final HubClients remoteClients;
     private final ProfilesManager.Factory profilesManagerFactory;
     private final RecordingsManager recordingsManager;
 
     public RemoteProjectsManager(
             MicroscopeJeffreyDirs jeffreyDirs,
-            RemoteServerInfo serverInfo,
+            HubInfo serverInfo,
             WorkspaceInfo workspaceInfo,
-            RemoteClients remoteClients,
+            HubClients remoteClients,
             ProfilesManager.Factory profilesManagerFactory,
             RecordingsManager recordingsManager) {
 
@@ -99,7 +100,7 @@ public class RemoteProjectsManager implements ProjectsManager {
 
     @Override
     public Optional<ProjectManager> project(String projectId) {
-        // In remote-only mode, we look up the single project from the remote server.
+        // In remote-only mode, we look up the single project from the hub.
         // The server returns deleted projects as well so restore/management lookups work.
         Optional<RemoteProjectResponse> remoteProject;
         try {
@@ -116,7 +117,7 @@ public class RemoteProjectsManager implements ProjectsManager {
 
     private ProjectManager toRemoteProjectManager(DetailedProjectInfo projectInfo) {
         OriginContext originContext = new OriginContext(
-                serverInfo.serverId(),
+                serverInfo.hubId(),
                 serverInfo.name(),
                 workspaceInfo.id(),
                 workspaceInfo.referenceId(),

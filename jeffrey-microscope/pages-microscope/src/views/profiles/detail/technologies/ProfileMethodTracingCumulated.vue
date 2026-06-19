@@ -139,15 +139,15 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
 
-import Badge from '@/components/Badge.vue';
+import Badge from '@shared/components/Badge.vue';
 import MethodTracingOverviewStats from '@/components/method-tracing/MethodTracingOverviewStats.vue';
-import LoadingState from '@/components/LoadingState.vue';
-import ErrorState from '@/components/ErrorState.vue';
-import EmptyState from '@/components/EmptyState.vue';
+import LoadingState from '@shared/components/LoadingState.vue';
+import ErrorState from '@shared/components/ErrorState.vue';
+import EmptyState from '@shared/components/EmptyState.vue';
 import TracingDisabledFeatureAlert from '@/components/alerts/TracingDisabledFeatureAlert.vue';
 import ChartSection from '@/components/ChartSection.vue';
 import DataTable from '@/components/table/DataTable.vue';
-import FormattingService from '@/services/FormattingService';
+import FormattingService from '@shared/services/FormattingService';
 import ProfileMethodTracingClient from '@/services/api/ProfileMethodTracingClient';
 import '@/styles/shared-components.css';
 import type MethodTracingCumulatedData from '@/services/api/model/MethodTracingCumulatedData';

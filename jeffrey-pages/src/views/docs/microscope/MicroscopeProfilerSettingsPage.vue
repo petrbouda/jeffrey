@@ -58,7 +58,7 @@ onMounted(() => {
       <DocsCallout type="info">
         <strong>Two editable scopes.</strong> Profiler Settings are edited at the
         <em>Workspace</em> or <em>Project</em> level; the <em>Global</em> baseline is shipped by
-        Jeffrey Server itself and is read-only in Microscope. This page covers both <em>where</em>
+        Jeffrey Hub itself and is read-only in Microscope. This page covers both <em>where</em>
         settings live and how they resolve, and the full <a href="#settings-builder">Settings Builder</a> field reference.
       </DocsCallout>
 
@@ -75,7 +75,7 @@ onMounted(() => {
           <tr>
             <td><strong>Global</strong></td>
             <td>Server-wide baseline applied to every workspace and project.</td>
-            <td>Read-only. Configured by Jeffrey Server (server property).</td>
+            <td>Read-only. Configured by Jeffrey Hub (server property).</td>
           </tr>
           <tr>
             <td><strong>Workspace</strong></td>
@@ -121,7 +121,7 @@ onMounted(() => {
       <h2 id="where-to-edit">Where to Edit Settings</h2>
       <ul>
         <li>
-          <strong>Global</strong> — read-only. The baseline is shipped by Jeffrey Server through
+          <strong>Global</strong> — read-only. The baseline is shipped by Jeffrey Hub through
           a server-side configuration property; you can see it in the workspace Profiler Settings
           view but it isn't editable from Microscope.
         </li>

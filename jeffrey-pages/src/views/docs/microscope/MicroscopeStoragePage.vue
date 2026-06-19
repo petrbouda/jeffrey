@@ -90,7 +90,7 @@ onMounted(() => {
       </div>
 
       <h2 id="platform-database">Platform Database</h2>
-      <p>Microscope's platform database holds your local catalog: workspaces, projects, recordings, profile metadata, and the connections to remote Jeffrey Server instances.</p>
+      <p>Microscope's platform database holds your local catalog: workspaces, projects, recordings, profile metadata, and the connections to remote Jeffrey Hub instances.</p>
 
       <div class="db-card platform">
         <div class="card-header">
@@ -100,7 +100,7 @@ onMounted(() => {
         </div>
         <div class="card-body">
           <p class="file-path"><i class="bi bi-file-earmark"></i> <code>~/.jeffrey-microscope/jeffrey-data.db</code></p>
-          <p><strong>Purpose:</strong> Manages your local catalog of recordings and profiles, plus pointers to remote workspaces on Jeffrey Server.</p>
+          <p><strong>Purpose:</strong> Manages your local catalog of recordings and profiles, plus pointers to remote workspaces on Jeffrey Hub.</p>
           <h5>Contains:</h5>
           <ul>
             <li>Workspaces and projects</li>

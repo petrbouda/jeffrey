@@ -37,15 +37,15 @@
 
 <script setup lang="ts">
 import { computed, defineProps, defineEmits } from 'vue';
-import Project from '@/services/api/model/Project.ts';
-import RecordingStatus from '@/services/api/model/RecordingStatus.ts';
+import Project from '@workspaces/services/api/model/Project.ts';
+import RecordingStatus from '@workspaces/services/api/model/RecordingStatus.ts';
 import { useNavigation } from '@/composables/useNavigation';
-import Badge from '@/components/Badge.vue';
-import type { Variant } from '@/types/ui';
+import Badge from '@shared/components/Badge.vue';
+import type { Variant } from '@shared/types/ui';
 
 const props = defineProps<{
   project: Project;
-  serverId: string;
+  hubId: string;
   workspaceId: string;
 }>();
 
@@ -57,7 +57,7 @@ const { navigateToProject } = useNavigation();
 
 const handleClick = () => {
   if (!props.project.isDeleted) {
-    navigateToProject(props.serverId, props.project.id, props.workspaceId);
+    navigateToProject(props.hubId, props.project.id, props.workspaceId);
   }
 };
 

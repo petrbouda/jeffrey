@@ -65,7 +65,7 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>server-api</artifactId>
+            <artifactId>hub-api</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
@@ -78,6 +78,29 @@
         <dependency>
             <groupId>io.grpc</groupId>
             <artifactId>grpc-netty</artifactId>
+        </dependency>
+
+        <!-- Shared remote-workspace clients/managers/DTOs + recording download/core -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>hub-client</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>recordings-core</artifactId>
+        </dependency>
+        <!-- Shared remote-workspace controllers (instances/repository/download/recordings) -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>workspaces</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>recording-storage-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>filesystem-recording-storage</artifactId>
         </dependency>
 
         <!-- Frontend -->

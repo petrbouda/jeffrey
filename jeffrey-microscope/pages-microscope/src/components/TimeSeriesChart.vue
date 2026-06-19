@@ -80,7 +80,7 @@
 
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
-import FormattingService from '@/services/FormattingService.ts';
+import FormattingService from '@shared/services/FormattingService.ts';
 import GraphUpdater from '@/services/flamegraphs/updater/GraphUpdater';
 import TimeseriesData from '@/services/timeseries/model/TimeseriesData';
 import TimeRange from '@/services/api/model/TimeRange';

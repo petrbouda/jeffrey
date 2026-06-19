@@ -76,10 +76,26 @@
             <artifactId>jeffrey-events</artifactId>
         </dependency>
 
-        <!-- gRPC remote clients (brings in server-api + grpc-netty transitively) -->
+        <!-- gRPC remote clients (brings in hub-api + grpc-netty transitively) -->
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>grpc-client</artifactId>
+        </dependency>
+
+        <!-- Shared remote-workspace clients/DTOs/managers (extracted from core) -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>hub-client</artifactId>
+        </dependency>
+        <!-- Shared recording store + remote download machinery (extracted from core) -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>recordings-core</artifactId>
+        </dependency>
+        <!-- Shared remote-workspace controllers (instances/repository/download/recordings) -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>workspaces</artifactId>
         </dependency>
 
         <!-- Frontend -->

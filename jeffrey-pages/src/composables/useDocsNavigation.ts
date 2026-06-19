@@ -43,9 +43,9 @@ export const PRODUCTS: Record<Product, ProductInfo> = {
   },
   server: {
     id: 'server',
-    title: 'Jeffrey Server',
+    title: 'Jeffrey Hub',
     icon: 'bi-cloud',
-    hubPath: '/docs/server'
+    hubPath: '/docs/hub'
   }
 };
 
@@ -151,7 +151,7 @@ export const microscopeNavigation: DocSection[] = [
 ];
 
 export const serverNavigation: DocSection[] = [
-  // Top-level single-page entries — promoted out of the "Jeffrey Server" group
+  // Top-level single-page entries — promoted out of the "Jeffrey Hub" group
   // so the most-used links sit at the root of the sidebar. Synthetic section paths
   // (prefixed with `_`) keep them out of the breadcrumb/section auto-expand logic
   // that matches against the URL's first segment.
@@ -159,18 +159,18 @@ export const serverNavigation: DocSection[] = [
     title: 'Overview',
     path: '_server-overview',
     icon: 'bi-info-circle',
-    children: [{ title: 'Overview', to: '/docs/server' }]
+    children: [{ title: 'Overview', to: '/docs/hub' }]
   },
   {
     title: 'Deployment by Example',
     path: 'server/deployment',
     icon: 'bi-cloud-upload',
     children: [
-      { title: 'Overview', to: '/docs/server/deployment' },
-      { title: 'Jeffrey JIB Extension', to: '/docs/server/deployment/jeffrey-jib' },
-      { title: 'Shared Volume', to: '/docs/server/deployment/shared-volume' },
-      { title: 'Jeffrey CLI', to: '/docs/server/deployment/jeffrey-cli' },
-      { title: 'Helm Chart', to: '/docs/server/deployment/helm-chart' }
+      { title: 'Overview', to: '/docs/hub/deployment' },
+      { title: 'Jeffrey JIB Extension', to: '/docs/hub/deployment/jeffrey-jib' },
+      { title: 'Shared Volume', to: '/docs/hub/deployment/shared-volume' },
+      { title: 'Jeffrey CLI', to: '/docs/hub/deployment/jeffrey-cli' },
+      { title: 'Helm Chart', to: '/docs/hub/deployment/helm-chart' }
     ]
   },
   {
@@ -178,9 +178,9 @@ export const serverNavigation: DocSection[] = [
     path: '_server-architecture',
     icon: 'bi-diagram-3',
     children: [
-      { title: 'Overview', to: '/docs/server/architecture' },
-      { title: 'Storage', to: '/docs/server/storage' },
-      { title: 'gRPC API', to: '/docs/server/grpc-api' }
+      { title: 'Overview', to: '/docs/hub/architecture' },
+      { title: 'Storage', to: '/docs/hub/storage' },
+      { title: 'gRPC API', to: '/docs/hub/grpc-api' }
     ]
   },
   {
@@ -188,16 +188,16 @@ export const serverNavigation: DocSection[] = [
     path: 'server/recording-sessions',
     icon: 'bi-collection',
     children: [
-      { title: 'Overview', to: '/docs/server/recording-sessions/overview' },
-      { title: 'Configuration', to: '/docs/server/recording-sessions/configuration' },
-      { title: 'Lifecycle', to: '/docs/server/recording-sessions/lifecycle' }
+      { title: 'Overview', to: '/docs/hub/recording-sessions/overview' },
+      { title: 'Configuration', to: '/docs/hub/recording-sessions/configuration' },
+      { title: 'Lifecycle', to: '/docs/hub/recording-sessions/lifecycle' }
     ]
   },
   {
     title: 'Configuration',
     path: '_server-configuration',
     icon: 'bi-gear',
-    children: [{ title: 'Configuration', to: '/docs/server/configuration' }]
+    children: [{ title: 'Configuration', to: '/docs/hub/configuration' }]
   },
   {
     title: 'Jeffrey CLI',
@@ -325,8 +325,8 @@ export function getAdjacentPages(routePath: string): AdjacentPages {
     }
   }
 
-  // Strip query / hash from both sides — entries like `/docs/server#architecture`
-  // should still align with `/docs/server` so the prev/next pair stays sensible.
+  // Strip query / hash from both sides — entries like `/docs/hub#architecture`
+  // should still align with `/docs/hub` so the prev/next pair stays sensible.
   const normalize = (url: string | undefined) => (url ?? '').split(/[#?]/)[0];
   const targetPath = normalize(routePath);
   const currentIndex = allPages.findIndex(p => normalize(p.to) === targetPath);

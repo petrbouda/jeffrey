@@ -133,7 +133,7 @@ const productTabs: ProductTab[] = [
   },
   {
     id: 'server',
-    name: 'Jeffrey Server',
+    name: 'Jeffrey Hub',
     icon: 'bi-cloud-fill',
     tagline: 'Collector for application data and lifecycle events.',
     oneLiner: 'Runs in Kubernetes. Captures recordings, artifacts and lifecycle events via shared volume. Streams over gRPC.',
@@ -151,10 +151,10 @@ const productTabs: ProductTab[] = [
       topology: [
         { kind: 'apps', icon: 'bi-app-indicator', label: 'Your services', em: '+ jeffrey-cli' },
         { kind: 'volume', icon: 'bi-hdd-stack', code: '/mnt/jeffrey-home', label: 'shared volume' },
-        { kind: 'server', icon: 'bi-cloud-fill', label: 'Jeffrey Server', badge: 'gRPC API' }
+        { kind: 'server', icon: 'bi-cloud-fill', label: 'Jeffrey Hub', badge: 'gRPC API' }
       ]
     },
-    docsRoute: '/docs/server/deployment',
+    docsRoute: '/docs/hub/deployment',
     cta: 'Read deployment guide'
   }
 ];
@@ -190,7 +190,7 @@ function copyCmd(): void {
         </h1>
         <p class="product-subtitle">
           A deep analyzer for JFR recordings, heap dumps and logs. Upload a file, or connect
-          to a Jeffrey Server and pull artifacts directly.
+          to a Jeffrey Hub and pull artifacts directly.
         </p>
         <ul class="bullet-list">
           <li v-for="(b, i) in microscopeHeroBullets" :key="i">
@@ -220,7 +220,7 @@ function copyCmd(): void {
         <div class="product-eyebrow eyebrow--server">
           <span class="eyebrow-icon"><i class="bi bi-cloud-fill"></i></span>
           <span class="eyebrow-text">
-            <strong class="eyebrow-name">Jeffrey Server</strong>
+            <strong class="eyebrow-name">Jeffrey Hub</strong>
             <span class="eyebrow-tag">in production</span>
           </span>
         </div>
@@ -240,8 +240,8 @@ function copyCmd(): void {
           </li>
         </ul>
         <div class="cta-row">
-          <router-link to="/docs/server/overview" class="cta cta--primary cta--server">
-            <span>Explore Jeffrey Server</span>
+          <router-link to="/docs/hub/overview" class="cta cta--primary cta--server">
+            <span>Explore Jeffrey Hub</span>
             <i class="bi bi-arrow-right"></i>
           </router-link>
           <a href="https://github.com/petrbouda/jeffrey" class="cta cta--ghost" target="_blank">
@@ -384,7 +384,7 @@ function copyCmd(): void {
           </div>
           <div class="cf-node cf-node-server">
             <i class="bi bi-cloud-fill"></i>
-            <span>Jeffrey Server</span>
+            <span>Jeffrey Hub</span>
           </div>
           <div class="cf-arrow cf-arrow-grpc">
             <span>gRPC</span>

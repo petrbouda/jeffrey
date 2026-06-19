@@ -474,8 +474,8 @@ import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
 import PageHeader from '@/components/layout/PageHeader.vue';
-import LoadingState from '@/components/LoadingState.vue';
-import ErrorState from '@/components/ErrorState.vue';
+import LoadingState from '@shared/components/LoadingState.vue';
+import ErrorState from '@shared/components/ErrorState.vue';
 import HeapDumpNotInitialized from '@/components/HeapDumpNotInitialized.vue';
 import OqlAssistant from '@/components/oql/OqlAssistant.vue';
 import InstanceTreeModal from '@/components/heap/InstanceTreeModal.vue';
@@ -488,7 +488,7 @@ import TabBar, { type TabBarItem } from '@/components/TabBar.vue';
 import HeapDumpClient from '@/services/api/HeapDumpClient';
 import OqlAssistantClient from '@/services/api/OqlAssistantClient';
 import OQLQueryResult from '@/services/api/model/OQLQueryResult';
-import FormattingService from '@/services/FormattingService';
+import FormattingService from '@shared/services/FormattingService';
 
 const route = useRoute();
 const router = useRouter();

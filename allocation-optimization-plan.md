@@ -132,3 +132,4 @@ Items #1–#5 together cover **~70 %** of TLAB bytes. Remaining ~30 % is driver 
 ## Open question
 
 Start with #1 (biggest single win, ~21.7 %, but a real data-model change in `DominatorTreeBuilder`), or sequence #2 → #3 → #1 to land easier wins first?
+``

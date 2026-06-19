@@ -61,9 +61,9 @@
               }}</span>
             </div>
             <div class="summary-detail-body">
-              <template v-if="editing === 'sessions' && serverId && workspaceId && projectId">
+              <template v-if="editing === 'sessions' && hubId && workspaceId && projectId">
                 <LiveSessionPicker
-                  :server-id="serverId"
+                  :hub-id="hubId"
                   :workspace-id="workspaceId"
                   :project-id="projectId"
                   :selected="sessions"
@@ -279,14 +279,14 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
-import EmptyState from '@/components/EmptyState.vue';
+import EmptyState from '@shared/components/EmptyState.vue';
 import MainCard from '@/components/MainCard.vue';
 import MainCardHeader from '@/components/MainCardHeader.vue';
 import StreamingEventsTable from '@/components/streaming/StreamingEventsTable.vue';
 import EventTypeSelector from '@/components/streaming/EventTypeSelector.vue';
 import LiveSessionPicker from '@/components/streaming/LiveSessionPicker.vue';
 import type { SelectedSession } from '@/components/streaming/streamingTypes';
-import FormattingService from '@/services/FormattingService';
+import FormattingService from '@shared/services/FormattingService';
 import EventStreamingClient, { type StreamingEvent } from '@/services/api/EventStreamingClient';
 import { useNavigation } from '@/composables/useNavigation';
 

@@ -19,11 +19,11 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import InformationClient from '@/services/api/InformationClient';
-import FormattingService from '@/services/FormattingService';
+import FormattingService from '@shared/services/FormattingService';
 import { useRoute } from 'vue-router';
 
 import PageHeader from '@/components/layout/PageHeader.vue';
-import EmptyState from '@/components/EmptyState.vue';
+import EmptyState from '@shared/components/EmptyState.vue';
 import DataTable from '@/components/table/DataTable.vue';
 
 interface SectionRow {

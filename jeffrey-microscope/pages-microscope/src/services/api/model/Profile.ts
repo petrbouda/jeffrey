@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import RecordingEventSource from '@/services/api/model/RecordingEventSource.ts';
+import RecordingEventSource from '@workspaces/services/api/model/RecordingEventSource.ts';
 
 export default class Profile {
   public deleting: boolean = false;

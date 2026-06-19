@@ -37,8 +37,8 @@ import GrpcDistributionCharts from '@/components/grpc/GrpcDistributionCharts.vue
 import ProfileGrpcClient from '@/services/api/ProfileGrpcClient';
 import type { GrpcOverviewData } from '@/services/api/ProfileGrpcClient';
 import GrpcOverviewStats from '@/components/grpc/GrpcOverviewStats.vue';
-import LoadingState from '@/components/LoadingState.vue';
-import ErrorState from '@/components/ErrorState.vue';
+import LoadingState from '@shared/components/LoadingState.vue';
+import ErrorState from '@shared/components/ErrorState.vue';
 import CustomDisabledFeatureAlert from '@/components/alerts/CustomDisabledFeatureAlert.vue';
 import FeatureType from '@/services/api/model/FeatureType';
 import { useTechnologyData } from '@/composables/useTechnologyData';

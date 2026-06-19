@@ -60,7 +60,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue';
-import LoadingState from '@/components/LoadingState.vue';
+import LoadingState from '@shared/components/LoadingState.vue';
 import TabBar from '@/components/TabBar.vue';
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
 import SpanSlowestList from '@/components/span/SpanSlowestList.vue';

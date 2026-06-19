@@ -57,7 +57,7 @@ class ProjectControllerTest {
     void initializingAlwaysFalse() {
         MockMvcTester mvc = mockMvcTesterFor(new ProjectController(resolver));
 
-        assertThat(mvc.get().uri("/api/internal/remote-servers/srv-1/workspaces/ws-1/projects/p-1/initializing"))
+        assertThat(mvc.get().uri("/api/internal/hubs/srv-1/workspaces/ws-1/projects/p-1/initializing"))
                 .hasStatusOk()
                 .bodyText().isEqualTo("false");
     }
@@ -72,7 +72,7 @@ class ProjectControllerTest {
 
         MockMvcTester mvc = mockMvcTesterFor(new ProjectController(resolver));
 
-        assertThat(mvc.post().uri("/api/internal/remote-servers/srv-1/workspaces/ws-1/projects/p-1/restore"))
+        assertThat(mvc.post().uri("/api/internal/hubs/srv-1/workspaces/ws-1/projects/p-1/restore"))
                 .hasStatusOk();
     }
 
@@ -82,7 +82,7 @@ class ProjectControllerTest {
 
         MockMvcTester mvc = mockMvcTesterFor(new ProjectController(resolver));
 
-        assertThat(mvc.get().uri("/api/internal/remote-servers/srv-1/workspaces/ws-1/projects/ghost"))
+        assertThat(mvc.get().uri("/api/internal/hubs/srv-1/workspaces/ws-1/projects/ghost"))
                 .hasStatus(404)
                 .bodyJson()
                 .extractingPath("$.code").asString().isEqualTo("PROJECT_NOT_FOUND");
@@ -94,7 +94,7 @@ class ProjectControllerTest {
 
         MockMvcTester mvc = mockMvcTesterFor(new ProjectController(resolver));
 
-        assertThat(mvc.get().uri("/api/internal/remote-servers/srv-1/workspaces/ghost/projects/p-1"))
+        assertThat(mvc.get().uri("/api/internal/hubs/srv-1/workspaces/ghost/projects/p-1"))
                 .hasStatus(404)
                 .bodyJson()
                 .extractingPath("$.code").asString().isEqualTo("WORKSPACE_NOT_FOUND");

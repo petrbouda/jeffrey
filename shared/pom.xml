@@ -36,11 +36,14 @@
         <module>folder-queue</module>
         <module>persistence</module>
         <module>persistent-queue</module>
-        <module>server-api</module>
+        <module>hub-api</module>
         <module>test</module>
         <module>sql-builder</module>
         <module>recording-storage-api</module>
         <module>filesystem-recording-storage</module>
+        <module>hub-client</module>
+        <module>recordings-core</module>
+        <module>ui</module>
     </modules>
 
     <dependencyManagement>

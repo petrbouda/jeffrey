@@ -61,11 +61,11 @@ import hljs from 'highlight.js/lib/core';
 import java from 'highlight.js/lib/languages/java';
 import 'highlight.js/styles/github.css';
 import GenericModal from '@/components/GenericModal.vue';
-import Badge from '@/components/Badge.vue';
+import Badge from '@shared/components/Badge.vue';
 import MessageBus from '@/services/MessageBus';
 import IdeClient from '@/services/api/IdeClient';
 import IdeTargetService from '@/services/IdeTargetService';
-import { ToastService } from '@/services/ToastService';
+import { ToastService } from '@shared/services/ToastService';
 
 hljs.registerLanguage('java', java);
 

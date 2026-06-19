@@ -82,7 +82,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import FormattingService from '@/services/FormattingService';
+import FormattingService from '@shared/services/FormattingService';
 
 export interface MetricSortOption {
   key: string;

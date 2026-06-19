@@ -58,7 +58,7 @@ signing:
 files:
   artifacts:
     - path: artifacts/microscope.jar
-    - path: artifacts/jeffrey-server.jar
+    - path: artifacts/jeffrey-hub.jar
     - path: artifacts/jeffrey-cli.jar
     - path: artifacts/jeffrey-agent.jar
     - path: artifacts/jeffrey-cli-amd64

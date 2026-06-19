@@ -45,7 +45,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import Badge from '@/components/Badge.vue';
+import Badge from '@shared/components/Badge.vue';
 
 const props = withDefaults(
   defineProps<{

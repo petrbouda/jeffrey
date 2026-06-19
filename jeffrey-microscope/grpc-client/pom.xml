@@ -33,14 +33,14 @@
         <!-- Proto stubs (EventStreamingServiceGrpc, etc.) -->
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>server-api</artifactId>
+            <artifactId>hub-api</artifactId>
         </dependency>
         <!-- ManagedChannel + Netty -->
         <dependency>
             <groupId>io.grpc</groupId>
             <artifactId>grpc-netty</artifactId>
         </dependency>
-        <!-- WorkspaceAddress record used by GrpcServerConnection -->
+        <!-- WorkspaceAddress record used by GrpcHubConnection -->
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>microscope-core-persistence-api</artifactId>

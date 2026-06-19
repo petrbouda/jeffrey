@@ -85,7 +85,7 @@
               <pre v-if="globalCommand" class="cmd-text">{{ globalCommand }}</pre>
               <div v-else class="empty-current">
                 No global profiler settings configured. The cluster admin can seed a default via
-                <code>jeffrey.server.profiler.global-settings.command</code>.
+                <code>jeffrey.hub.profiler.global-settings.command</code>.
               </div>
             </div>
             <div v-if="globalCommand && !workspaceCommand" class="level-card-foot">
@@ -224,13 +224,13 @@ import { computed, onMounted, ref, watch } from 'vue';
 import ConfigureCommand from '@/components/settings/ConfigureCommand.vue';
 import CommandBuilder from '@/components/settings/CommandBuilder.vue';
 import AsyncProfilerHelpPanel from '@/components/settings/AsyncProfilerHelpPanel.vue';
-import ConfirmationDialog from '@/components/ConfirmationDialog.vue';
+import ConfirmationDialog from '@shared/components/ConfirmationDialog.vue';
 import TabBar, { type TabBarItem } from '@/components/TabBar.vue';
 import WorkspaceProfilerSettingsClient from '@/services/api/WorkspaceProfilerSettingsClient';
-import ToastService from '@/services/ToastService';
+import ToastService from '@shared/services/ToastService';
 
 const props = defineProps<{
-  serverId: string;
+  hubId: string;
   workspaceId: string;
   workspaceName?: string;
 }>();
@@ -271,14 +271,14 @@ const settingsTabs = computed<TabBarItem[]>(() => [
 const builderRef = ref<InstanceType<typeof CommandBuilder> | null>(null);
 
 const fetchCurrent = async () => {
-  if (!props.serverId || !props.workspaceId) {
+  if (!props.hubId || !props.workspaceId) {
     workspaceCommand.value = null;
     globalCommand.value = null;
     return;
   }
   loadingCurrent.value = true;
   try {
-    const client = new WorkspaceProfilerSettingsClient(props.serverId, props.workspaceId);
+    const client = new WorkspaceProfilerSettingsClient(props.hubId, props.workspaceId);
     const response = await client.fetchCurrent();
     workspaceCommand.value = response.workspaceAgentSettings;
     globalCommand.value = response.globalAgentSettings;
@@ -292,7 +292,7 @@ const fetchCurrent = async () => {
 };
 
 onMounted(fetchCurrent);
-watch(() => [props.serverId, props.workspaceId] as const, fetchCurrent);
+watch(() => [props.hubId, props.workspaceId] as const, fetchCurrent);
 
 interface Recommendation {
   title: string;
@@ -339,7 +339,7 @@ const applyCommand = async (command: string) => {
   if (!command) return;
   applying.value = true;
   try {
-    const client = new WorkspaceProfilerSettingsClient(props.serverId, props.workspaceId);
+    const client = new WorkspaceProfilerSettingsClient(props.hubId, props.workspaceId);
     await client.upsert(command);
     ToastService.success(
       'Configuration Applied',
@@ -391,7 +391,7 @@ const copyCommandText = async (cmd: string | null | undefined) => {
 const removeWorkspaceOverride = async () => {
   deleting.value = true;
   try {
-    const client = new WorkspaceProfilerSettingsClient(props.serverId, props.workspaceId);
+    const client = new WorkspaceProfilerSettingsClient(props.hubId, props.workspaceId);
     await client.delete();
     ToastService.success(
       'Workspace Override Removed',

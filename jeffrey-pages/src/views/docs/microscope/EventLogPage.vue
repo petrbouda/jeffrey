@@ -63,7 +63,7 @@ onMounted(() => {
         </div>
 
         <DocsCallout type="info">
-          <strong>Server-side origin:</strong> Events are produced by Jeffrey Server as projects, instances, and sessions change. Microscope fetches them on demand — there is no local event store.
+          <strong>Server-side origin:</strong> Events are produced by Jeffrey Hub as projects, instances, and sessions change. Microscope fetches them on demand — there is no local event store.
         </DocsCallout>
 
         <h2 id="event-types">Event Types</h2>

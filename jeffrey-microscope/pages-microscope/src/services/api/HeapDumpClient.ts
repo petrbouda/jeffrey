@@ -18,7 +18,7 @@
 
 import axios from 'axios';
 import BaseProfileClient from '@/services/api/BaseProfileClient';
-import HttpUtils from '@/services/HttpUtils';
+import HttpUtils from '@shared/services/HttpUtils';
 import HeapSummary from '@/services/api/model/HeapSummary';
 import type InitializeResult from '@/services/api/model/InitializeResult';
 import ClassHistogramEntry from '@/services/api/model/ClassHistogramEntry';

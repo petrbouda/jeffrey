@@ -58,11 +58,11 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import JdbcOperationBadge from '@/components/jdbc/JdbcOperationBadge.vue';
-import Badge from '@/components/Badge.vue';
+import Badge from '@shared/components/Badge.vue';
 import SlowestCountHeader from '@/components/SlowestCountHeader.vue';
 import JdbcSlowStatement from '@/services/api/model/JdbcSlowStatement.ts';
 import JdbcUtils from '@/services/api/model/JdbcUtils.ts';
-import FormattingService from '@/services/FormattingService.ts';
+import FormattingService from '@shared/services/FormattingService.ts';
 
 interface Props {
   statements: JdbcSlowStatement[];

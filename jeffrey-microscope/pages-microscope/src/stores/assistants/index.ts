@@ -16,5 +16,5 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-export { downloadAssistantStore } from './downloadAssistantStore';
+export { downloadAssistantStore } from '@workspaces/stores/assistants/downloadAssistantStore';
 export { recordingsAssistantStore } from './recordingsAssistantStore';

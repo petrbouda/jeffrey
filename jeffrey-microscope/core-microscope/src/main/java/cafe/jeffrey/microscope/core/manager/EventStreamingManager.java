@@ -25,13 +25,13 @@ import tools.jackson.databind.node.ObjectNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.microscope.grpc.client.LiveSubscriptionRequest;
-import cafe.jeffrey.microscope.grpc.client.RemoteEventStreamingClient;
-import cafe.jeffrey.microscope.grpc.client.RemoteEventStreamingClient.EventStreamingSubscription;
+import cafe.jeffrey.microscope.grpc.client.EventStreamingClient;
+import cafe.jeffrey.microscope.grpc.client.EventStreamingClient.EventStreamingSubscription;
 import cafe.jeffrey.microscope.grpc.client.ReplaySubscriptionRequest;
 import cafe.jeffrey.microscope.grpc.client.StreamingCallbacks;
-import cafe.jeffrey.server.api.v1.EventBatch;
-import cafe.jeffrey.server.api.v1.StreamingEvent;
-import cafe.jeffrey.server.api.v1.TypedValue;
+import cafe.jeffrey.hub.api.v1.EventBatch;
+import cafe.jeffrey.hub.api.v1.StreamingEvent;
+import cafe.jeffrey.hub.api.v1.TypedValue;
 import cafe.jeffrey.shared.common.Json;
 
 import java.util.ArrayList;
@@ -47,9 +47,9 @@ import java.util.function.Consumer;
 public class EventStreamingManager {
 
     private static final Logger LOG = LoggerFactory.getLogger(EventStreamingManager.class);
-    private final RemoteEventStreamingClient eventStreamingClient;
+    private final EventStreamingClient eventStreamingClient;
 
-    public EventStreamingManager(RemoteEventStreamingClient eventStreamingClient) {
+    public EventStreamingManager(EventStreamingClient eventStreamingClient) {
         this.eventStreamingClient = eventStreamingClient;
     }
 

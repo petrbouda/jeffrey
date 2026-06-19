@@ -77,16 +77,16 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import ToastService from '@/services/ToastService';
-import ProjectClient from '@/services/api/ProjectClient.ts';
-import Project from '@/services/api/model/Project.ts';
-import WorkspaceClient from '@/services/api/WorkspaceClient.ts';
-import Workspace from '@/services/api/model/Workspace.ts';
+import ToastService from '@shared/services/ToastService';
+import ProjectClient from '@workspaces/services/api/ProjectClient.ts';
+import Project from '@workspaces/services/api/model/Project.ts';
+import WorkspaceClient from '@workspaces/services/api/WorkspaceClient.ts';
+import Workspace from '@workspaces/services/api/model/Workspace.ts';
 import { useNavigation } from '@/composables/useNavigation';
 
 const route = useRoute();
 const router = useRouter();
-const { serverId, workspaceId, projectId, generateProjectUrl } = useNavigation();
+const { hubId, workspaceId, projectId, generateProjectUrl } = useNavigation();
 
 const projectInfo = ref<Project | null>(null);
 const workspaceInfo = ref<Workspace | null>(null);
@@ -102,11 +102,11 @@ const isInstancesActive = computed(() => {
 });
 
 async function initializeProject() {
-  if (!projectId.value || !workspaceId.value || !serverId.value) return;
+  if (!projectId.value || !workspaceId.value || !hubId.value) return;
 
   try {
-    const projectClient = new ProjectClient(serverId.value, workspaceId.value, projectId.value);
-    const workspaceClient = new WorkspaceClient(serverId.value);
+    const projectClient = new ProjectClient(hubId.value, workspaceId.value, projectId.value);
+    const workspaceClient = new WorkspaceClient(hubId.value);
 
     const [project, workspace] = await Promise.all([
       projectClient.get(),

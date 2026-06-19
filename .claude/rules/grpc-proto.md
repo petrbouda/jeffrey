@@ -12,7 +12,7 @@ paths:
 - Package: `jeffrey.api.v1`
 - Java package: `cafe.jeffrey.api.v1` (via `option java_package`)
 - Always set `option java_multiple_files = true`
-- Location: `shared/server-api/src/main/proto/jeffrey/api/v1/`
+- Location: `shared/hub-api/src/main/proto/jeffrey/api/v1/`
 
 ### Backward Compatibility (IMPORTANT)
 - **Default: no backward compatibility** — when removing or renaming fields, just delete them and reuse field numbers freely. Do NOT use the `reserved` keyword.
@@ -26,7 +26,7 @@ paths:
 - Field numbering: sequential
 
 ### gRPC Service Implementation
-- Implementations go in `jeffrey-server/core-server/.../grpc/`
+- Implementations go in `jeffrey-hub/core-hub/.../grpc/`
 - Must handle errors with proper gRPC status codes: `NOT_FOUND`, `INVALID_ARGUMENT`, `INTERNAL`
 - Use `GrpcExceptions` utility for common status patterns
 - Map domain exceptions to gRPC status at the service boundary, not in domain code
@@ -34,8 +34,8 @@ paths:
 ### gRPC Clients
 - Clients go in `jeffrey-microscope/core-microscope/.../client/`
 - Use blocking stubs for request-response, async stubs for streaming
-- Add new clients to the `RemoteClients` record
-- Update the factory method that creates `RemoteClients`
+- Add new clients to the `HubClients` record
+- Update the factory method that creates `HubClients`
 
 ### Testing
 - Every gRPC service must have an in-process integration test

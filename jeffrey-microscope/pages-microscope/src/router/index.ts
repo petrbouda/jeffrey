@@ -609,15 +609,15 @@ const router = createRouter({
         }
       ]
     },
-    // Workspace-based routes (nested under remote-servers)
+    // Workspace-based routes (nested under hubs)
     {
-      path: '/remote-servers/:serverId/workspaces/:workspaceId',
+      path: '/hubs/:hubId/workspaces/:workspaceId',
       component: () => import('@/layout/WorkspaceLayout.vue'),
       children: [
         {
           path: '',
           redirect: to =>
-            `/remote-servers/${to.params.serverId}/workspaces/${to.params.workspaceId}/projects`
+            `/hubs/${to.params.hubId}/workspaces/${to.params.workspaceId}/projects`
         },
         {
           path: 'projects',
@@ -638,7 +638,7 @@ const router = createRouter({
                   path: '',
                   name: 'project-default',
                   redirect: to =>
-                    `/remote-servers/${to.params.serverId}/workspaces/${to.params.workspaceId}/projects/${to.params.projectId}/instances/timeline`
+                    `/hubs/${to.params.hubId}/workspaces/${to.params.workspaceId}/projects/${to.params.projectId}/instances/timeline`
                 },
                 {
                   path: 'settings',
@@ -656,7 +656,7 @@ const router = createRouter({
                 {
                   path: 'event-streaming',
                   redirect: to =>
-                    `/remote-servers/${to.params.serverId}/workspaces/${to.params.workspaceId}/projects/${to.params.projectId}/events/live-stream`
+                    `/hubs/${to.params.hubId}/workspaces/${to.params.workspaceId}/projects/${to.params.projectId}/events/live-stream`
                 },
                 {
                   path: 'events/live-stream',
@@ -674,20 +674,20 @@ const router = createRouter({
                   path: 'instances',
                   name: 'project-instances-overview',
                   component: () =>
-                    import('@/views/projects/detail/instances/InstancesOverview.vue'),
+                    import('@instances/InstancesOverview.vue'),
                   meta: { layout: 'project' }
                 },
                 {
                   path: 'instances/timeline',
                   name: 'project-instances-timeline',
                   component: () =>
-                    import('@/views/projects/detail/instances/InstancesTimeline.vue'),
+                    import('@instances/InstancesTimeline.vue'),
                   meta: { layout: 'project' }
                 },
                 {
                   path: 'instances/:instanceId',
                   name: 'project-instance-detail',
-                  component: () => import('@/views/projects/detail/instances/InstanceDetail.vue'),
+                  component: () => import('@instances/InstanceDetail.vue'),
                   meta: { layout: 'project' }
                 }
               ]

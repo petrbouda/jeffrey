@@ -91,9 +91,9 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import Badge from '@/components/Badge.vue';
-import FormattingService from '@/services/FormattingService';
-import type { Variant } from '@/types/ui';
+import Badge from '@shared/components/Badge.vue';
+import FormattingService from '@shared/services/FormattingService';
+import type { Variant } from '@shared/types/ui';
 
 export interface MetricDefinition {
   key: string;

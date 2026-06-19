@@ -106,7 +106,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import FormattingService from '@/services/FormattingService';
+import FormattingService from '@shared/services/FormattingService';
 import type { SubPhaseTiming } from '@/services/api/model/InitPipelineResult';
 
 export interface TimelineStep {

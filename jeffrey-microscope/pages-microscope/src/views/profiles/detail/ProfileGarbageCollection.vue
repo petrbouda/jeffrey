@@ -893,17 +893,17 @@ import { useRoute } from 'vue-router';
 import ApexCharts from 'apexcharts';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import GCMetricsStatsRow from '@/components/gc/GCMetricsStatsRow.vue';
-import LoadingState from '@/components/LoadingState.vue';
-import ErrorState from '@/components/ErrorState.vue';
+import LoadingState from '@shared/components/LoadingState.vue';
+import ErrorState from '@shared/components/ErrorState.vue';
 import TabBar from '@/components/TabBar.vue';
-import EmptyState from '@/components/EmptyState.vue';
+import EmptyState from '@shared/components/EmptyState.vue';
 import DisabledEventsNotice from '@/components/alerts/DisabledEventsNotice.vue';
-import Badge from '@/components/Badge.vue';
+import Badge from '@shared/components/Badge.vue';
 import DataTable from '@/components/table/DataTable.vue';
 import TableToolbar from '@/components/table/TableToolbar.vue';
 import TableShowMore from '@/components/table/TableShowMore.vue';
 import { useTableView } from '@/composables/useTableView';
-import type { Variant } from '@/types/ui';
+import type { Variant } from '@shared/types/ui';
 import GCEventDetailsModal from '@/components/gc/GCEventDetailsModal.vue';
 import GCPauseDetailsModal from '@/components/gc/GCPauseDetailsModal.vue';
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
@@ -921,7 +921,7 @@ import ProfileGCClient from '@/services/api/ProfileGCClient';
 import GCOverviewData from '@/services/api/model/GCOverviewData';
 import ConcurrentEvent from '@/services/api/model/ConcurrentEvent';
 import GCEvent from '@/services/api/model/GCEvent';
-import FormattingService from '@/services/FormattingService';
+import FormattingService from '@shared/services/FormattingService';
 import {
   getConcurrentBadgeValue,
   getConcurrentBadgeVariant,

@@ -206,11 +206,11 @@
 <script setup lang="ts">
 import { ref, computed, watch, onUnmounted } from 'vue';
 import GenericModal from '@/components/GenericModal.vue';
-import LoadingState from '@/components/LoadingState.vue';
-import EmptyState from '@/components/EmptyState.vue';
+import LoadingState from '@shared/components/LoadingState.vue';
+import EmptyState from '@shared/components/EmptyState.vue';
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
 import FlamegraphComponent from '@/components/FlamegraphComponent.vue';
-import FormattingService from '@/services/FormattingService';
+import FormattingService from '@shared/services/FormattingService';
 import EventTypes from '@/services/EventTypes';
 import ProfileAsyncProfilerClient from '@/services/api/ProfileAsyncProfilerClient';
 import SingleSpanFlamegraphClient from '@/services/api/SingleSpanFlamegraphClient';

@@ -46,7 +46,7 @@
 </template>
 
 <script setup lang="ts">
-import ToastService from '@/services/ToastService';
+import ToastService from '@shared/services/ToastService';
 
 const props = withDefaults(
   defineProps<{

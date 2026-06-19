@@ -23,13 +23,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
-import cafe.jeffrey.microscope.core.manager.RepositoryManager;
-import cafe.jeffrey.microscope.core.manager.project.ProjectManager;
-import cafe.jeffrey.microscope.core.manager.project.ProjectsManager;
-import cafe.jeffrey.microscope.core.manager.workspace.WorkspaceManager;
-import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
-import cafe.jeffrey.microscope.core.web.ProjectManagerResolver.ProjectContext;
+import cafe.jeffrey.hub.client.manager.RepositoryManager;
 import cafe.jeffrey.shared.common.exception.Exceptions;
+import cafe.jeffrey.shared.ui.workspace.bridge.RemoteProjectAccess;
+import cafe.jeffrey.shared.ui.workspace.controller.ProjectRepositoryController;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -44,31 +41,20 @@ import static cafe.jeffrey.microscope.core.web.MockMvcSupport.mockMvcTesterFor;
 class ProjectRepositoryControllerTest {
 
     @Mock
-    ProjectManagerResolver resolver;
-
-    @Mock
-    WorkspaceManager workspaceManager;
-
-    @Mock
-    ProjectsManager projectsManager;
-
-    @Mock
-    ProjectManager projectManager;
+    RemoteProjectAccess projectAccess;
 
     @Mock
     RepositoryManager repositoryManager;
 
     @Test
     void listsEmptySessions() {
-        when(resolver.resolve("srv-1", "ws-1", "p-1"))
-                .thenReturn(new ProjectContext(workspaceManager, projectsManager, projectManager));
-        when(projectManager.repositoryManager()).thenReturn(repositoryManager);
+        when(projectAccess.repositoryManager("srv-1", "ws-1", "p-1")).thenReturn(repositoryManager);
         when(repositoryManager.listRecordingSessions(true)).thenReturn(List.of());
 
         Clock clock = Clock.fixed(Instant.parse("2026-04-26T12:00:00Z"), ZoneOffset.UTC);
-        MockMvcTester mvc = mockMvcTesterFor(new ProjectRepositoryController(resolver, clock));
+        MockMvcTester mvc = mockMvcTesterFor(new ProjectRepositoryController(projectAccess, clock));
 
-        assertThat(mvc.get().uri("/api/internal/remote-servers/srv-1/workspaces/ws-1/projects/p-1/repository/sessions"))
+        assertThat(mvc.get().uri("/api/internal/hubs/srv-1/workspaces/ws-1/projects/p-1/repository/sessions"))
                 .hasStatusOk()
                 .bodyJson()
                 .extractingPath("$").asArray().isEmpty();
@@ -76,12 +62,13 @@ class ProjectRepositoryControllerTest {
 
     @Test
     void projectNotFoundReturns404() {
-        when(resolver.resolve("srv-1", "ws-1", "ghost")).thenThrow(Exceptions.projectNotFound("ghost"));
+        when(projectAccess.repositoryManager("srv-1", "ws-1", "ghost"))
+                .thenThrow(Exceptions.projectNotFound("ghost"));
 
         Clock clock = Clock.fixed(Instant.parse("2026-04-26T12:00:00Z"), ZoneOffset.UTC);
-        MockMvcTester mvc = mockMvcTesterFor(new ProjectRepositoryController(resolver, clock));
+        MockMvcTester mvc = mockMvcTesterFor(new ProjectRepositoryController(projectAccess, clock));
 
-        assertThat(mvc.get().uri("/api/internal/remote-servers/srv-1/workspaces/ws-1/projects/ghost/repository/sessions"))
+        assertThat(mvc.get().uri("/api/internal/hubs/srv-1/workspaces/ws-1/projects/ghost/repository/sessions"))
                 .hasStatus(404)
                 .bodyJson()
                 .extractingPath("$.code").asString().isEqualTo("PROJECT_NOT_FOUND");

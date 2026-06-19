@@ -18,77 +18,17 @@
 
 package cafe.jeffrey.microscope.core.manager.recordings;
 
-import cafe.jeffrey.microscope.persistence.api.RecordingGroup;
-import cafe.jeffrey.microscope.persistence.api.RecordingTag;
 import cafe.jeffrey.profile.manager.ProfileManager;
-import cafe.jeffrey.shared.common.model.Recording;
+import cafe.jeffrey.recordings.core.manager.RecordingsCoreManager;
 
-import java.io.InputStream;
-import java.nio.file.Path;
-import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
-public interface RecordingsManager {
-
-    // Group operations
-    String createGroup(String groupName);
-
-    List<RecordingGroup> listGroups();
-
-    void deleteGroup(String groupId);
-
-    // Recording operations
-    String uploadRecording(String filename, InputStream inputStream, String groupId);
-
-    /**
-     * Reads a JFR file from a local filesystem path and ingests it as an ungrouped recording
-     * ({@code project_id = group_id = NULL}). Used by the quick-open deep link, where an external
-     * tool (e.g. the IntelliJ plugin) hands Jeffrey the path of a file that lives on the same
-     * machine as the microscope process. Returns the newly created recording id.
-     *
-     * @throws IllegalArgumentException if the path is null, does not point to a regular file,
-     *                                  or is not a supported recording type
-     */
-    String importRecordingFromPath(Path path);
-
-    /**
-     * Persist a recording downloaded from a project session. The merged recording file
-     * and any artifact files (heap dumps, logs) are moved into QA storage and recorded
-     * with {@code project_id = NULL}; {@code originTags} are written to {@code recording_tags}
-     * so the recording can be traced back to its source.
-     *
-     * @param recordingName name to attach to the new recording row
-     * @param mergedRecordingFile path to the merged JFR file (in a temp dir owned by the caller)
-     * @param artifactFiles heap dumps / logs / etc. associated with the same session
-     * @param originTags system tags identifying the source (typically {@code origin.*} keys)
-     * @return the newly created QA recording id
-     */
-    String createDownloadedRecording(
-            String recordingName,
-            Path mergedRecordingFile,
-            List<Path> artifactFiles,
-            Map<String, String> originTags);
-
-    void moveRecordingToGroup(String recordingId, String groupId);
-
-    List<Recording> listRecordings();
-
-    /**
-     * Returns tags for many recordings in a single query.
-     * Recordings with no tags do not appear in the result map.
-     */
-    Map<String, List<RecordingTag>> tagsForRecordings(java.util.Collection<String> recordingIds);
-
-    void deleteRecording(String recordingId);
-
-    /**
-     * Resolves the on-disk path of a single file belonging to a recording.
-     * Used by the download endpoint to stream individual artifact files (heap dumps,
-     * logs, etc.) attached to a recording. Returns empty if the recording or file id
-     * is unknown.
-     */
-    Optional<Path> findRecordingFile(String recordingId, String fileId);
+/**
+ * Microscope's recording manager: the deployment-agnostic store operations (inherited from
+ * {@link RecordingsCoreManager}) plus the profile-creation / profile-lifecycle operations that
+ * only the full microscope deployment provides.
+ */
+public interface RecordingsManager extends RecordingsCoreManager {
 
     // Profile operations
     String analyzeRecording(String recordingId);

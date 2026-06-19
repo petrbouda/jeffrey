@@ -22,7 +22,7 @@ import {
   isErrorResponse,
   isNotFoundError
 } from '@/services/api/model/ErrorResponse';
-import { ToastService } from '@/services/ToastService';
+import { ToastService } from '@shared/services/ToastService';
 
 /**
  * Extended Axios request config with custom options
@@ -96,7 +96,7 @@ function getErrorTitle(error: ApiError): string {
       case 'RECORDING_FILE_NOT_FOUND':
         return 'Recording File Not Found';
       case 'REMOTE_JEFFREY_UNAVAILABLE':
-        return 'Remote Server Unavailable';
+        return 'Hub Unavailable';
       case 'EMPTY_RECORDING_SESSION':
         return 'Empty Recording Session';
       case 'INVALID_REQUEST':

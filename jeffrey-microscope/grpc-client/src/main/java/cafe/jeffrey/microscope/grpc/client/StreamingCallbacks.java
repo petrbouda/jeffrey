@@ -18,7 +18,7 @@
 
 package cafe.jeffrey.microscope.grpc.client;
 
-import cafe.jeffrey.server.api.v1.EventBatch;
+import cafe.jeffrey.hub.api.v1.EventBatch;
 
 import java.util.function.Consumer;
 
