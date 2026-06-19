@@ -18,6 +18,9 @@
 
 package cafe.jeffrey.hub.stub.grpc;
 
+import cafe.jeffrey.hub.api.v1.DataChunk;
+import cafe.jeffrey.hub.api.v1.DownloadArtifactFileRequest;
+import cafe.jeffrey.hub.api.v1.DownloadMergedRecordingsRequest;
 import cafe.jeffrey.hub.api.v1.GetApiInfoRequest;
 import cafe.jeffrey.hub.api.v1.GetApiInfoResponse;
 import cafe.jeffrey.hub.api.v1.GetInstanceSessionDetailRequest;
@@ -37,6 +40,7 @@ import cafe.jeffrey.hub.api.v1.ListWorkspacesRequest;
 import cafe.jeffrey.hub.api.v1.ListWorkspacesResponse;
 import cafe.jeffrey.hub.api.v1.ProjectInfo;
 import cafe.jeffrey.hub.api.v1.ProjectServiceGrpc;
+import cafe.jeffrey.hub.api.v1.RecordingDownloadServiceGrpc;
 import cafe.jeffrey.hub.api.v1.RepositoryServiceGrpc;
 import cafe.jeffrey.hub.api.v1.WorkspaceInfo;
 import cafe.jeffrey.hub.api.v1.WorkspaceServiceGrpc;
@@ -44,13 +48,17 @@ import cafe.jeffrey.hub.stub.data.StubDataFactory;
 import cafe.jeffrey.hub.stub.data.StubDataset;
 import io.grpc.ManagedChannel;
 import io.grpc.Server;
+import io.grpc.Status;
+import io.grpc.StatusRuntimeException;
 import io.grpc.inprocess.InProcessChannelBuilder;
 import io.grpc.inprocess.InProcessServerBuilder;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.Iterator;
 import java.util.Set;
 import java.time.Clock;
 import java.time.Instant;
@@ -59,6 +67,7 @@ import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class StubServicesInProcessTest {
@@ -79,6 +88,7 @@ class StubServicesInProcessTest {
                 .addService(new StubProjectService(dataset))
                 .addService(new StubInstanceService(dataset))
                 .addService(new StubRepositoryService(dataset))
+                .addService(new StubRecordingDownloadService(dataset))
                 .addService(new StubWorkspaceEventsService(dataset))
                 .addService(new StubProfilerSettingsService())
                 .build()
@@ -184,6 +194,95 @@ class StubServicesInProcessTest {
             }
         }
         assertTrue(files > 0, "expected at least one repository file");
+    }
+
+    @Test
+    void downloadMergedRecordingsStreamsTheBundledJfrForAKnownSession() {
+        String projectId = dataset.workspaces().getFirst().projects().getFirst().id();
+        String sessionId = dataset.sessionsForProject(projectId).getFirst().id();
+
+        Iterator<DataChunk> chunks = RecordingDownloadServiceGrpc.newBlockingStub(channel)
+                .downloadMergedRecordings(DownloadMergedRecordingsRequest.newBuilder()
+                        .setSessionId(sessionId)
+                        .build());
+
+        ByteArrayOutputStream collected = new ByteArrayOutputStream();
+        long totalSizeFromFirstChunk = -1;
+        boolean firstChunk = true;
+        while (chunks.hasNext()) {
+            DataChunk chunk = chunks.next();
+            if (firstChunk) {
+                totalSizeFromFirstChunk = chunk.getTotalSize();
+                firstChunk = false;
+            }
+            collected.writeBytes(chunk.getData().toByteArray());
+        }
+
+        byte[] bytes = collected.toByteArray();
+        assertTrue(bytes.length > 0, "expected a non-empty merged recording");
+        assertEquals(bytes.length, totalSizeFromFirstChunk, "total_size must match the streamed byte count");
+        // LZ4 frame magic (0x04 0x22 0x4D 0x18) — confirms the bundled .jfr.lz4 streamed intact.
+        assertEquals(0x04, bytes[0] & 0xFF);
+        assertEquals(0x22, bytes[1] & 0xFF);
+        assertEquals(0x4D, bytes[2] & 0xFF);
+        assertEquals(0x18, bytes[3] & 0xFF);
+    }
+
+    @Test
+    void downloadMergedRecordingsAlwaysReturnsTheSameBytesAcrossSessions() {
+        RecordingDownloadServiceGrpc.RecordingDownloadServiceBlockingStub stub =
+                RecordingDownloadServiceGrpc.newBlockingStub(channel);
+
+        long first = countBytes(stub, "sess-inst-checkout-blue-1");
+        long second = countBytes(stub, "sess-inst-inventory-1-1");
+
+        assertTrue(first > 0);
+        assertEquals(first, second, "the merged download must be the same fixed file for every session");
+    }
+
+    @Test
+    void downloadArtifactFileReturnsAnEmptyFileForAKnownSession() {
+        String projectId = dataset.workspaces().getFirst().projects().getFirst().id();
+        String sessionId = dataset.sessionsForProject(projectId).getFirst().id();
+
+        Iterator<DataChunk> chunks = RecordingDownloadServiceGrpc.newBlockingStub(channel)
+                .downloadArtifactFile(DownloadArtifactFileRequest.newBuilder()
+                        .setSessionId(sessionId)
+                        .setFileId("any-artifact")
+                        .build());
+
+        long total = 0;
+        while (chunks.hasNext()) {
+            total += chunks.next().getData().size();
+        }
+        assertEquals(0, total, "artifacts are served as empty files");
+    }
+
+    @Test
+    void downloadMergedRecordingsForUnknownSessionReturnsNotFound() {
+        Iterator<DataChunk> chunks = RecordingDownloadServiceGrpc.newBlockingStub(channel)
+                .downloadMergedRecordings(DownloadMergedRecordingsRequest.newBuilder()
+                        .setSessionId("does-not-exist")
+                        .build());
+
+        StatusRuntimeException error = assertThrows(StatusRuntimeException.class, () -> {
+            while (chunks.hasNext()) {
+                chunks.next();
+            }
+        });
+        assertEquals(Status.Code.NOT_FOUND, error.getStatus().getCode());
+    }
+
+    private static long countBytes(
+            RecordingDownloadServiceGrpc.RecordingDownloadServiceBlockingStub stub, String sessionId) {
+        Iterator<DataChunk> chunks = stub.downloadMergedRecordings(DownloadMergedRecordingsRequest.newBuilder()
+                .setSessionId(sessionId)
+                .build());
+        long total = 0;
+        while (chunks.hasNext()) {
+            total += chunks.next().getData().size();
+        }
+        return total;
     }
 
     @Test

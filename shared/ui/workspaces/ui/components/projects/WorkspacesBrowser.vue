@@ -459,9 +459,15 @@ const props = withDefaults(
   defineProps<{
     appDescription: string;
     extraTabs?: ExtraTab[];
+    // Optional deep-link: preselect a server + workspace on first load (e.g. from a
+    // breadcrumb). Only seeds the INITIAL default; manual selection still wins afterwards.
+    initialHubId?: string | null;
+    initialWorkspaceId?: string | null;
   }>(),
   {
-    extraTabs: () => []
+    extraTabs: () => [],
+    initialHubId: null,
+    initialWorkspaceId: null
   }
 );
 
@@ -476,6 +482,22 @@ type ServerStatus = 'online' | 'offline' | 'unknown';
 const PROJECTS_TAB_ID = 'projects';
 
 const remoteServerClient = new HubClient();
+
+const preferredServerId = (): string | null => {
+  const wanted = props.initialHubId;
+  if (wanted && servers.value.some(s => s.id === wanted)) {
+    return wanted;
+  }
+  return servers.value[0]?.id ?? null;
+};
+
+const preferredWorkspaceId = (): string | null => {
+  const wanted = props.initialWorkspaceId;
+  if (wanted && workspaces.value.some(w => w.id === wanted)) {
+    return wanted;
+  }
+  return workspaces.value[0]?.id ?? null;
+};
 
 const servers = ref<RemoteServer[]>([]);
 const selectedServerId = ref<string | null>(null);
@@ -606,7 +628,7 @@ const refreshServers = async () => {
     Promise.all(servers.value.map(s => probeServer(s.id)));
 
     if (!selectedServerId.value && servers.value.length > 0) {
-      selectedServerId.value = servers.value[0].id;
+      selectedServerId.value = preferredServerId();
       await refreshWorkspaces();
     } else if (servers.value.length === 0) {
       selectedServerId.value = null;
@@ -614,7 +636,7 @@ const refreshServers = async () => {
       selectedWorkspaceId.value = null;
       projects.value = [];
     } else if (!servers.value.some(s => s.id === selectedServerId.value)) {
-      selectedServerId.value = servers.value[0].id;
+      selectedServerId.value = preferredServerId();
       await refreshWorkspaces();
     }
   } catch {
@@ -642,7 +664,7 @@ const refreshWorkspaces = async () => {
       !selectedWorkspaceId.value ||
       !workspaces.value.some(w => w.id === selectedWorkspaceId.value)
     ) {
-      selectedWorkspaceId.value = workspaces.value[0]?.id ?? null;
+      selectedWorkspaceId.value = preferredWorkspaceId();
     }
     if (selectedWorkspaceId.value) {
       await refreshProjects();

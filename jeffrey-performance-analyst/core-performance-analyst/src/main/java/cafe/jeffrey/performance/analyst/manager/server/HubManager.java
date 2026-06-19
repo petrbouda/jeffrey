@@ -24,6 +24,7 @@ import cafe.jeffrey.hub.client.CachedHubClientsFactory;
 import cafe.jeffrey.hub.client.HubClients;
 import cafe.jeffrey.hub.client.DiscoveryClient;
 import cafe.jeffrey.hub.client.dto.RemoteProjectResponse;
+import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.microscope.persistence.api.HubInfo;
 import cafe.jeffrey.microscope.persistence.api.HubsRepository;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceInfo;
@@ -100,6 +101,14 @@ public class HubManager {
      */
     public List<RemoteProjectResponse> projects(String workspaceId, boolean includeDeleted) {
         return discovery().allProjects(workspaceId, includeDeleted);
+    }
+
+    /**
+     * Fetches a single project of a workspace on this server (live gRPC GetProject call).
+     */
+    public RemoteProjectResponse project(String workspaceId, String projectId) {
+        return discovery().project(workspaceId, projectId)
+                .orElseThrow(() -> Exceptions.projectNotFound(projectId));
     }
 
     /**

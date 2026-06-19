@@ -55,7 +55,7 @@ const router = createRouter({
                         {
                             path: '',
                             name: 'project',
-                            redirect: to => ({ name: 'project-instances', params: to.params })
+                            redirect: to => ({ name: 'project-timeline', params: to.params })
                         },
                         {
                             path: 'instances',

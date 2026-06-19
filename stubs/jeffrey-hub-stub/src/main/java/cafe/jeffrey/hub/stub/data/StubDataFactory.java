@@ -156,7 +156,7 @@ public class StubDataFactory {
     private Session activeSession(String instanceId, String sessionId, Instant createdAt) {
         List<File> files = List.of(
                 file(sessionId, "recording-live.jfr", createdAt, 18 * MEGABYTE, FileKind.JFR, RecState.ACTIVE),
-                file(sessionId, "gc.log", createdAt, 512 * 1024L, FileKind.GC_LOG, RecState.ACTIVE));
+                file(sessionId, "gc-jvm.log", createdAt, 512 * 1024L, FileKind.GC_LOG, RecState.ACTIVE));
         return new Session(sessionId, "repo-" + instanceId, "Live recording", instanceId,
                 createdAt, null, true, RecState.ACTIVE, files);
     }
@@ -165,8 +165,8 @@ public class StubDataFactory {
         Instant finishedAt = createdAt.plus(length);
         List<File> files = new ArrayList<>();
         files.add(file(sessionId, "recording.jfr", createdAt, 42 * MEGABYTE, FileKind.JFR, RecState.FINISHED));
-        files.add(file(sessionId, "gc.log", createdAt, 768 * 1024L, FileKind.GC_LOG, RecState.FINISHED));
-        files.add(file(sessionId, "application.log", createdAt, 1280 * 1024L, FileKind.APP_LOG, RecState.FINISHED));
+        files.add(file(sessionId, "gc-jvm.log", createdAt, 768 * 1024L, FileKind.GC_LOG, RecState.FINISHED));
+        files.add(file(sessionId, "application-app.log", createdAt, 1280 * 1024L, FileKind.APP_LOG, RecState.FINISHED));
         if (sessionId.endsWith("-1")) {
             files.add(file(sessionId, "heapdump.hprof", finishedAt, 256 * MEGABYTE, FileKind.HEAP_DUMP, RecState.FINISHED));
         }

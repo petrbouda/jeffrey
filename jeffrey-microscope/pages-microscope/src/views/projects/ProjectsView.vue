@@ -20,6 +20,8 @@
   <WorkspacesBrowser
     :app-description="HERO"
     :extra-tabs="EXTRA_TABS"
+    :initial-hub-id="initialHubId"
+    :initial-workspace-id="initialWorkspaceId"
     @refresh-tab="onRefreshTab"
     @tab-change="onTabChange"
   >
@@ -70,7 +72,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
+import { useRoute } from 'vue-router';
 import WorkspacesBrowser from '@workspaces/components/projects/WorkspacesBrowser.vue';
 import ProjectCard from '@/components/ProjectCard.vue';
 import Badge from '@shared/components/Badge.vue';
@@ -84,6 +87,16 @@ const EXTRA_TABS = [
   { id: 'events', label: 'Event Log', icon: 'bi-list-ul', refreshable: true },
   { id: 'settings', label: 'Profiler Settings', icon: 'bi-gear', refreshable: false }
 ];
+
+// Optional deep-link from a breadcrumb (`/workspaces?hubId=…&workspaceId=…`) so the
+// browser opens with that server + workspace preselected instead of the first one.
+const route = useRoute();
+const queryParam = (key: string): string | null => {
+  const value = route.query[key];
+  return typeof value === 'string' ? value : null;
+};
+const initialHubId = computed(() => queryParam('hubId'));
+const initialWorkspaceId = computed(() => queryParam('workspaceId'));
 
 const eventSearchQuery = ref('');
 const eventsCount = ref(0);

@@ -361,7 +361,7 @@ spring.profiles.include=trace-file-log"
       <h2 id="side-by-side">Side-by-Side: direct vs dom</h2>
       <p>
         The headline value of this layout: one chart, two distinct projects in Jeffrey
-        Server, ready for differential analysis in Microscope.
+        Hub, ready for differential analysis in Microscope.
       </p>
 
       <DocsCodeBlock

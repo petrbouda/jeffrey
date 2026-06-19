@@ -8,7 +8,7 @@
           <i class="bi bi-chevron-right crumb-sep"></i>
           <router-link
             v-if="workspaceInfo"
-            :to="`/workspaces/${workspaceInfo.id}/projects`"
+            :to="{ path: '/workspaces', query: { hubId: hubId, workspaceId: workspaceInfo.id } }"
             class="crumb"
           >
             {{ workspaceInfo.name ?? workspaceInfo.id }}
