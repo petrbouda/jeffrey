@@ -171,7 +171,7 @@ onMounted(() => {
       </div>
 
       <DocsCallout type="tip">
-        Override the home directory with <code>jeffrey.hub.home.dir</code> in <code>application.properties</code> or via the <code>JEFFREY_SERVER_HOME_DIR</code> environment variable. The <code>recordings/</code> directory is typically mounted from a shared volume regardless of where the home itself lives.
+        Override the home directory with <code>jeffrey.hub.home.dir</code> in <code>application.properties</code> or via the <code>JEFFREY_HUB_HOME_DIR</code> environment variable. The <code>recordings/</code> directory is typically mounted from a shared volume regardless of where the home itself lives.
       </DocsCallout>
     </div>
 

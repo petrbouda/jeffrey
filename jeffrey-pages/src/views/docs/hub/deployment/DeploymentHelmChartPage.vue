@@ -128,7 +128,7 @@ sharedVolume:
 jeffrey:
   baseConfigPath: /jeffrey/jeffrey-base.conf
   enabled: true
-  serverHost: jeffrey-hub:8080`;
+  hubHost: jeffrey-hub:8080`;
 
 const testappEnv = `env:
   # Additional-location MERGES with the image-bundled application.properties
@@ -158,14 +158,14 @@ initContainers:
       - sh
       - -c
       - |
-        until wget -q --spider "http://\${JEFFREY_SERVER_HOST}/actuator/health/readiness"; do
-          echo "waiting for http://\${JEFFREY_SERVER_HOST}/actuator/health/readiness ..."
+        until wget -q --spider "http://\${JEFFREY_HUB_HOST}/actuator/health/readiness"; do
+          echo "waiting for http://\${JEFFREY_HUB_HOST}/actuator/health/readiness ..."
           sleep 2
         done
         echo "jeffrey-hub is ready, starting application."
     env:
-      - name: JEFFREY_SERVER_HOST
-        value: {{ .Values.jeffrey.serverHost | quote }}
+      - name: JEFFREY_HUB_HOST
+        value: {{ .Values.jeffrey.hubHost | quote }}
     # requests == limits keeps the pod in QoS class Guaranteed.
     resources:
       limits:   { cpu: 50m, memory: 32Mi }

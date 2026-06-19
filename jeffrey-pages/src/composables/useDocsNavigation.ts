@@ -25,7 +25,7 @@ export interface BreadcrumbItem {
   to?: string
 }
 
-export type Product = 'microscope' | 'server';
+export type Product = 'microscope' | 'hub';
 
 export interface ProductInfo {
   id: Product;
@@ -41,8 +41,8 @@ export const PRODUCTS: Record<Product, ProductInfo> = {
     icon: 'bi-pc-display',
     hubPath: '/docs/microscope'
   },
-  server: {
-    id: 'server',
+  hub: {
+    id: 'hub',
     title: 'Jeffrey Hub',
     icon: 'bi-cloud',
     hubPath: '/docs/hub'
@@ -53,7 +53,9 @@ export const PRODUCTS: Record<Product, ProductInfo> = {
 // 'local' is kept here so a direct hit on a legacy URL still resolves to the Microscope sidebar
 // in the brief moment before the router redirects to /docs/microscope/*.
 const MICROSCOPE_SEGMENTS = new Set(['microscope', 'local', 'events', 'ai']);
-const SERVER_SEGMENTS = new Set(['server', 'cli', 'agent', 'jib']);
+// 'server' is kept alongside 'hub' so a direct hit on a legacy /docs/server/* URL still
+// resolves to the Hub sidebar in the brief moment before the router redirects to /docs/hub/*.
+const HUB_SEGMENTS = new Set(['hub', 'server', 'cli', 'agent', 'jib']);
 
 export const microscopeNavigation: DocSection[] = [
   // Top-level single-page entries — promoted out of the "Jeffrey Microscope" group
@@ -150,20 +152,20 @@ export const microscopeNavigation: DocSection[] = [
   }
 ];
 
-export const serverNavigation: DocSection[] = [
+export const hubNavigation: DocSection[] = [
   // Top-level single-page entries — promoted out of the "Jeffrey Hub" group
   // so the most-used links sit at the root of the sidebar. Synthetic section paths
   // (prefixed with `_`) keep them out of the breadcrumb/section auto-expand logic
   // that matches against the URL's first segment.
   {
     title: 'Overview',
-    path: '_server-overview',
+    path: '_hub-overview',
     icon: 'bi-info-circle',
     children: [{ title: 'Overview', to: '/docs/hub' }]
   },
   {
     title: 'Deployment by Example',
-    path: 'server/deployment',
+    path: 'hub/deployment',
     icon: 'bi-cloud-upload',
     children: [
       { title: 'Overview', to: '/docs/hub/deployment' },
@@ -175,7 +177,7 @@ export const serverNavigation: DocSection[] = [
   },
   {
     title: 'Architecture',
-    path: '_server-architecture',
+    path: '_hub-architecture',
     icon: 'bi-diagram-3',
     children: [
       { title: 'Overview', to: '/docs/hub/architecture' },
@@ -185,7 +187,7 @@ export const serverNavigation: DocSection[] = [
   },
   {
     title: 'Recording Sessions',
-    path: 'server/recording-sessions',
+    path: 'hub/recording-sessions',
     icon: 'bi-collection',
     children: [
       { title: 'Overview', to: '/docs/hub/recording-sessions/overview' },
@@ -195,7 +197,7 @@ export const serverNavigation: DocSection[] = [
   },
   {
     title: 'Configuration',
-    path: '_server-configuration',
+    path: '_hub-configuration',
     icon: 'bi-gear',
     children: [{ title: 'Configuration', to: '/docs/hub/configuration' }]
   },
@@ -229,19 +231,19 @@ export const serverNavigation: DocSection[] = [
 ];
 
 // Union — used by global helpers like getAllDocs/search and as a back-compat export.
-export const docsNavigation: DocSection[] = [...microscopeNavigation, ...serverNavigation];
+export const docsNavigation: DocSection[] = [...microscopeNavigation, ...hubNavigation];
 
 export function getProductForPath(routePath: string): Product | null {
   const cleaned = routePath.replace(/^\/docs\/?/, '');
   if (!cleaned) return null;
   const first = cleaned.split('/')[0];
   if (MICROSCOPE_SEGMENTS.has(first)) return 'microscope';
-  if (SERVER_SEGMENTS.has(first)) return 'server';
+  if (HUB_SEGMENTS.has(first)) return 'hub';
   return null;
 }
 
 export function navigationForProduct(product: Product): DocSection[] {
-  return product === 'microscope' ? microscopeNavigation : serverNavigation;
+  return product === 'microscope' ? microscopeNavigation : hubNavigation;
 }
 
 // Resolve the URL for a sidebar page entry, honoring the absolute `to` override.

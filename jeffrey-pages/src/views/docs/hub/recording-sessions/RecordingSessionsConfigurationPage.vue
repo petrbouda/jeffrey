@@ -73,7 +73,7 @@ onMounted(() => {
         </div>
 
         <h2 id="jeffrey-cli-setup">Jeffrey CLI Setup</h2>
-        <p>Jeffrey CLI connects to your Jeffrey server and generates the JVM arguments needed to start profiling.</p>
+        <p>Jeffrey CLI connects to your Jeffrey Hub and generates the JVM arguments needed to start profiling.</p>
 
         <DocsLinkCard
           to="/docs/cli/overview"

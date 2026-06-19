@@ -27,7 +27,7 @@ const { setHeadings } = useDocHeadings();
 
 const headings = [
   { id: 'overview', text: 'Overview', level: 2 },
-  { id: 'add-server', text: 'Step 1 — Add a Hub', level: 2 },
+  { id: 'add-hub', text: 'Step 1 — Add a Hub', level: 2 },
   { id: 'create-workspace', text: 'Step 2 — Create a Workspace', level: 2 },
   { id: 'status', text: 'Workspace Status', level: 2 },
   { id: 'tabs', text: 'Per-Workspace Tabs', level: 2 },
@@ -59,7 +59,7 @@ onMounted(() => {
         create or pick a workspace inside it.
       </p>
 
-      <h2 id="add-server">Step 1 — Add a Hub</h2>
+      <h2 id="add-hub">Step 1 — Add a Hub</h2>
       <p>
         Open the <strong>Workspaces</strong> page from the top navigation. The left rail lists the
         servers Microscope knows about; click the <strong>+</strong> button to add a new one.

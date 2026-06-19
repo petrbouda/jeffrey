@@ -130,7 +130,7 @@ watch(
   ([newCategory, newPage, product]) => {
     // /docs/microscope and /docs/hub are product-level URLs whose category
     // is the product id, not a section path — expand the lead section instead.
-    const isProductRoute = newCategory === 'microscope' || newCategory === 'server';
+    const isProductRoute = newCategory === 'microscope' || newCategory === 'hub';
     if (newCategory && !isProductRoute) {
       expandedSections.value.add(newCategory);
     }
@@ -285,8 +285,8 @@ watch(
   padding-top: 1.25rem;
 }
 
-/* Per-product accent — Server gets the violet that already brands its hub. */
-.sidebar-content.product-server {
+/* Per-product accent — Hub gets the violet that already brands it. */
+.sidebar-content.product-hub {
   --color-primary: #7c3aed;
   --color-primary-light: rgba(124, 58, 237, 0.10);
   --color-primary-lighter: rgba(124, 58, 237, 0.05);

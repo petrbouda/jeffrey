@@ -99,7 +99,7 @@ onMounted(() => {
             <td><code>jeffrey.hub.home.dir</code></td>
             <td><code>${user.home}/.jeffrey-hub</code></td>
             <td>
-              Base directory for all Jeffrey Hub data. Env var: <code>JEFFREY_SERVER_HOME_DIR</code>
+              Base directory for all Jeffrey Hub data. Env var: <code>JEFFREY_HUB_HOME_DIR</code>
             </td>
           </tr>
           <tr>
