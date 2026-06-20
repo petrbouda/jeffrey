@@ -18,8 +18,8 @@
 
 package cafe.jeffrey.performance.analyst.web;
 
-import cafe.jeffrey.performance.analyst.manager.server.HubManager;
-import cafe.jeffrey.performance.analyst.manager.server.HubsManager;
+import cafe.jeffrey.performance.analyst.manager.HubManager;
+import cafe.jeffrey.performance.analyst.manager.HubsManager;
 import cafe.jeffrey.recordings.core.OriginContext;
 import cafe.jeffrey.recordings.core.RemoteRecordingsDownloadManager;
 import cafe.jeffrey.recordings.core.manager.RecordingsCoreManager;

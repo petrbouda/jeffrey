@@ -20,6 +20,7 @@ package cafe.jeffrey.hub.core.web.controllers;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
+import cafe.jeffrey.shared.ui.version.VersionController;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static cafe.jeffrey.hub.core.web.MockMvcSupport.mockMvcTesterFor;

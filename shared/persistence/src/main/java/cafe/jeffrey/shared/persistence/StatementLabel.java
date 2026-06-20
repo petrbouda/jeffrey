@@ -220,6 +220,15 @@ public enum StatementLabel {
     DELETE_PROFILER_SETTINGS,
 
     /**
+     * {@link GroupLabel#PROJECTS} (AI configuration) / {@link GroupLabel#AI_PROMPTS}
+     */
+    UPSERT_PROJECT_AI_CONFIG,
+    FIND_PROJECT_AI_CONFIG,
+    UPSERT_AI_PROMPT,
+    FIND_AI_PROMPTS_BY_RECORDING,
+    DELETE_AI_PROMPTS_BY_RECORDING,
+
+    /**
      * {@link GroupLabel#PROJECT_INSTANCES}
      */
     FIND_ALL_PROJECT_INSTANCES,

@@ -23,6 +23,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import cafe.jeffrey.performance.analyst.flamegraph.RecordingAiPromptManager;
 import cafe.jeffrey.performance.analyst.flamegraph.RecordingFlamegraphAiExporter;
+import cafe.jeffrey.performance.analyst.persistence.GeneratedPromptRepository;
 import cafe.jeffrey.recordings.core.manager.RecordingsCoreManager;
 import cafe.jeffrey.shared.common.compression.Lz4Compressor;
 import cafe.jeffrey.shared.common.filesystem.TempDirFactory;
@@ -31,9 +32,11 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Clock;
 
 /**
- * Wiring for the in-memory JFR → Frame → AI-prompt flamegraph export and its filesystem cache.
+ * Wiring for the in-memory JFR → Frame → AI-prompt flamegraph export. Generated prompts are persisted
+ * in the SQLite store (see {@link PerformanceAnalystPersistenceConfiguration}).
  */
 @Configuration
 public class FlamegraphAiExportConfiguration {
@@ -41,7 +44,6 @@ public class FlamegraphAiExportConfiguration {
     private static final String HOME_DIR =
             "${jeffrey.performance-analyst.home.dir:${user.home}/.jeffrey-performance-analyst}";
     private static final String TEMP_SUBDIR = "temp";
-    private static final String AI_PROMPTS_SUBDIR = "ai-prompts";
 
     @Bean
     public RecordingFlamegraphAiExporter recordingFlamegraphAiExporter(@Value(HOME_DIR) String homeDir) {
@@ -59,11 +61,12 @@ public class FlamegraphAiExportConfiguration {
 
     @Bean
     public RecordingAiPromptManager recordingAiPromptManager(
-            @Value(HOME_DIR) String homeDir,
             RecordingsCoreManager recordingsCoreManager,
-            RecordingFlamegraphAiExporter recordingFlamegraphAiExporter) {
+            RecordingFlamegraphAiExporter recordingFlamegraphAiExporter,
+            GeneratedPromptRepository generatedPromptRepository,
+            Clock clock) {
 
-        Path cacheBaseDir = Path.of(homeDir).resolve(AI_PROMPTS_SUBDIR);
-        return new RecordingAiPromptManager(recordingsCoreManager, recordingFlamegraphAiExporter, cacheBaseDir);
+        return new RecordingAiPromptManager(
+                recordingsCoreManager, recordingFlamegraphAiExporter, generatedPromptRepository, clock);
     }
 }

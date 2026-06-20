@@ -55,6 +55,7 @@
         <!-- flyway-core upgraded ahead of flyway-database-duckdb (which has no 12.x release).
              12.x brings Jackson 3.x (tools.jackson.*), eliminating the legacy Jackson 2.x dependency tree. -->
         <flyway-core.version>12.8.1</flyway-core.version>
+        <sqlite-jdbc.version>3.49.1.0</sqlite-jdbc.version>
         <grpc.version>1.81.0</grpc.version>
         <netty.version>4.2.15.Final</netty.version>
         <protobuf.version>4.35.0</protobuf.version>
@@ -179,6 +180,11 @@
             <dependency>
                 <groupId>${project.groupId}</groupId>
                 <artifactId>workspaces</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>version</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -332,6 +338,13 @@
                 <groupId>org.flywaydb</groupId>
                 <artifactId>flyway-core</artifactId>
                 <version>${flyway-core.version}</version>
+            </dependency>
+            <!-- SQLite driver for the performance-analyst projects/prompts store. flyway-core 12.x
+                 bundles SQLite support, so no separate flyway-database-sqlite module is needed. -->
+            <dependency>
+                <groupId>org.xerial</groupId>
+                <artifactId>sqlite-jdbc</artifactId>
+                <version>${sqlite-jdbc.version}</version>
             </dependency>
 
             <!-- ANTLR4 runtime — used by heapdump-oql for the OQL grammar -->

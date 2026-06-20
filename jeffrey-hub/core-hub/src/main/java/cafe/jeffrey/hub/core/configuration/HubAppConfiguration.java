@@ -50,6 +50,7 @@ import cafe.jeffrey.hub.core.streaming.LiveStreamingManager;
 import cafe.jeffrey.hub.core.streaming.ReplayStreamingManager;
 import cafe.jeffrey.hub.core.streaming.FileHeartbeatReader;
 import cafe.jeffrey.hub.core.web.WebInfrastructureConfig;
+import cafe.jeffrey.shared.ui.version.VersionFeatureConfiguration;
 import cafe.jeffrey.hub.core.workspace.WorkspaceEventPublisher;
 import cafe.jeffrey.hub.persistence.jdbc.DuckDBHubPersistenceProvider;
 import cafe.jeffrey.hub.persistence.api.HubPersistenceProvider;
@@ -69,7 +70,8 @@ import java.time.Clock;
         GlobalJobsConfiguration.class,
         ProjectJobsConfiguration.class,
         JobsConfiguration.class,
-        WebInfrastructureConfig.class
+        WebInfrastructureConfig.class,
+        VersionFeatureConfiguration.class
 })
 @EnableConfigurationProperties({ProjectProperties.class, SchedulerJobsProperties.class})
 @PropertySource("classpath:scheduler-defaults.properties")

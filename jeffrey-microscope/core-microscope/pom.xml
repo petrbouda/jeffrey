@@ -97,6 +97,11 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>workspaces</artifactId>
         </dependency>
+        <!-- Shared version controller (GET /api/internal/version) -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>version</artifactId>
+        </dependency>
 
         <!-- Frontend -->
         <dependency>

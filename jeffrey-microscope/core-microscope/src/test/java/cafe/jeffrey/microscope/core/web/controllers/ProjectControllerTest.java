@@ -23,16 +23,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
-import cafe.jeffrey.microscope.core.manager.project.ProjectManager;
-import cafe.jeffrey.microscope.core.manager.project.ProjectsManager;
-import cafe.jeffrey.microscope.core.manager.workspace.WorkspaceManager;
-import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
-import cafe.jeffrey.microscope.core.web.ProjectManagerResolver.ProjectContext;
 import cafe.jeffrey.shared.common.exception.Exceptions;
-import cafe.jeffrey.shared.common.model.ProjectInfo;
-
-import java.time.Instant;
-import java.util.Map;
+import cafe.jeffrey.shared.ui.workspace.bridge.WorkspaceBrowserAccess;
+import cafe.jeffrey.shared.ui.workspace.controller.ProjectController;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
@@ -42,20 +35,11 @@ import static cafe.jeffrey.microscope.core.web.MockMvcSupport.mockMvcTesterFor;
 class ProjectControllerTest {
 
     @Mock
-    ProjectManagerResolver resolver;
-
-    @Mock
-    WorkspaceManager workspaceManager;
-
-    @Mock
-    ProjectsManager projectsManager;
-
-    @Mock
-    ProjectManager projectManager;
+    WorkspaceBrowserAccess access;
 
     @Test
     void initializingAlwaysFalse() {
-        MockMvcTester mvc = mockMvcTesterFor(new ProjectController(resolver));
+        MockMvcTester mvc = mockMvcTesterFor(new ProjectController(access));
 
         assertThat(mvc.get().uri("/api/internal/hubs/srv-1/workspaces/ws-1/projects/p-1/initializing"))
                 .hasStatusOk()
@@ -63,24 +47,10 @@ class ProjectControllerTest {
     }
 
     @Test
-    void restoreInvokesManager() {
-        when(resolver.resolve("srv-1", "ws-1", "p-1"))
-                .thenReturn(new ProjectContext(workspaceManager, projectsManager, projectManager));
-        when(projectManager.info()).thenReturn(new ProjectInfo(
-                "p-1", "p-1", "demo", "Demo", "demo", "ws-1",
-                Instant.EPOCH, Instant.EPOCH, Map.of(), null));
-
-        MockMvcTester mvc = mockMvcTesterFor(new ProjectController(resolver));
-
-        assertThat(mvc.post().uri("/api/internal/hubs/srv-1/workspaces/ws-1/projects/p-1/restore"))
-                .hasStatusOk();
-    }
-
-    @Test
     void projectNotFoundReturns404() {
-        when(resolver.resolve("srv-1", "ws-1", "ghost")).thenThrow(Exceptions.projectNotFound("ghost"));
+        when(access.project("srv-1", "ws-1", "ghost")).thenThrow(Exceptions.projectNotFound("ghost"));
 
-        MockMvcTester mvc = mockMvcTesterFor(new ProjectController(resolver));
+        MockMvcTester mvc = mockMvcTesterFor(new ProjectController(access));
 
         assertThat(mvc.get().uri("/api/internal/hubs/srv-1/workspaces/ws-1/projects/ghost"))
                 .hasStatus(404)
@@ -90,9 +60,9 @@ class ProjectControllerTest {
 
     @Test
     void workspaceNotFoundReturns404() {
-        when(resolver.resolve("srv-1", "ghost", "p-1")).thenThrow(Exceptions.workspaceNotFound("ghost"));
+        when(access.project("srv-1", "ghost", "p-1")).thenThrow(Exceptions.workspaceNotFound("ghost"));
 
-        MockMvcTester mvc = mockMvcTesterFor(new ProjectController(resolver));
+        MockMvcTester mvc = mockMvcTesterFor(new ProjectController(access));
 
         assertThat(mvc.get().uri("/api/internal/hubs/srv-1/workspaces/ghost/projects/p-1"))
                 .hasStatus(404)

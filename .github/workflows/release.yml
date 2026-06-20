@@ -63,8 +63,13 @@ jobs:
     uses: ./.github/workflows/release-hub.yml
     secrets: inherit
 
+  docker-performance-analyst:
+    needs: [build, cli-native]
+    uses: ./.github/workflows/release-performance-analyst.yml
+    secrets: inherit
+
   create-release:
-    needs: [docker-microscope, docker-hub, cli-native]
+    needs: [docker-microscope, docker-hub, docker-performance-analyst, cli-native]
     runs-on: ubuntu-latest
     permissions: write-all
 

@@ -18,14 +18,12 @@
 
 package cafe.jeffrey.provider.profile.jdbc;
 
-import cafe.jeffrey.provider.profile.api.*;
-
 import org.flywaydb.core.Flyway;
 import cafe.jeffrey.shared.common.Schedulers;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.shared.persistence.DataSourceParams;
 import cafe.jeffrey.shared.persistence.DatabaseManager;
-import cafe.jeffrey.shared.persistence.DuckDBDataSourceProvider;
+import cafe.jeffrey.shared.persistence.DataSourceProvider;
 
 import javax.sql.DataSource;
 import java.nio.file.Path;
@@ -113,6 +111,6 @@ public class DuckDBProfileDatabaseManager implements DatabaseManager {
                 .additionalProperty(PRESERVE_INSERTION_ORDER_SETTING, PRESERVE_INSERTION_ORDER_VALUE)
                 .build();
 
-        return DuckDBDataSourceProvider.open(params);
+        return DataSourceProvider.open(params);
     }
 }

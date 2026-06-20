@@ -77,6 +77,12 @@
             <artifactId>jeffrey-events</artifactId>
         </dependency>
 
+        <!-- Shared version controller (GET /api/internal/version) -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>version</artifactId>
+        </dependency>
+
         <!-- gRPC -->
         <dependency>
             <groupId>${project.groupId}</groupId>

@@ -20,13 +20,20 @@ package cafe.jeffrey.shared.ui.workspace.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import cafe.jeffrey.hub.client.HubClients;
 import cafe.jeffrey.recordings.core.manager.RecordingsCoreManager;
+import cafe.jeffrey.shared.ui.workspace.bridge.HubRegistry;
 import cafe.jeffrey.shared.ui.workspace.bridge.RecordingProfileInfoProvider;
 import cafe.jeffrey.shared.ui.workspace.bridge.RemoteProjectAccess;
+import cafe.jeffrey.shared.ui.workspace.bridge.WorkspaceBrowserAccess;
+import cafe.jeffrey.shared.ui.workspace.controller.HubsController;
+import cafe.jeffrey.shared.ui.workspace.controller.ProjectController;
 import cafe.jeffrey.shared.ui.workspace.controller.ProjectDownloadTaskController;
 import cafe.jeffrey.shared.ui.workspace.controller.ProjectInstancesController;
 import cafe.jeffrey.shared.ui.workspace.controller.ProjectRepositoryController;
 import cafe.jeffrey.shared.ui.workspace.controller.RecordingsController;
+import cafe.jeffrey.shared.ui.workspace.controller.WorkspaceProjectsController;
+import cafe.jeffrey.shared.ui.workspace.controller.WorkspacesController;
 
 import java.time.Clock;
 
@@ -70,5 +77,27 @@ public class WorkspacesFeatureConfiguration {
             RecordingsCoreManager recordingsCoreManager,
             RecordingProfileInfoProvider profileInfoProvider) {
         return new RecordingsController(recordingsCoreManager, profileInfoProvider);
+    }
+
+    @Bean
+    public HubsController workspacesFeatureHubsController(
+            HubRegistry hubRegistry,
+            HubClients.Factory clientsFactory) {
+        return new HubsController(hubRegistry, clientsFactory);
+    }
+
+    @Bean
+    public WorkspacesController workspacesFeatureWorkspacesController(WorkspaceBrowserAccess workspaceBrowserAccess) {
+        return new WorkspacesController(workspaceBrowserAccess);
+    }
+
+    @Bean
+    public ProjectController workspacesFeatureProjectController(WorkspaceBrowserAccess workspaceBrowserAccess) {
+        return new ProjectController(workspaceBrowserAccess);
+    }
+
+    @Bean
+    public WorkspaceProjectsController workspacesFeatureWorkspaceProjectsController(WorkspaceBrowserAccess workspaceBrowserAccess) {
+        return new WorkspaceProjectsController(workspaceBrowserAccess);
     }
 }

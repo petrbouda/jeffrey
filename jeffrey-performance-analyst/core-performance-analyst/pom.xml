@@ -67,13 +67,10 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>hub-api</artifactId>
         </dependency>
+        <!-- Persistence interfaces + domain models (Hub*/Recording*) — SQLite-native repos live here -->
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>microscope-core-persistence-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>microscope-core-sql-persistence</artifactId>
         </dependency>
         <dependency>
             <groupId>io.grpc</groupId>
@@ -93,6 +90,11 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>workspaces</artifactId>
+        </dependency>
+        <!-- Shared version controller (GET /api/internal/version) -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>version</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
@@ -131,6 +133,17 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>common-profile</artifactId>
+        </dependency>
+
+        <!-- SQLite store (projects, project AI config, generated prompts). Flyway migrations live in
+             core-performance-analyst; flyway-core 12.x bundles SQLite support. -->
+        <dependency>
+            <groupId>org.xerial</groupId>
+            <artifactId>sqlite-jdbc</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-core</artifactId>
         </dependency>
 
         <!-- Frontend -->

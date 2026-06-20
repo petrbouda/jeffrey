@@ -21,7 +21,7 @@ package cafe.jeffrey.hub.persistence.jdbc;
 import org.flywaydb.core.Flyway;
 import cafe.jeffrey.shared.persistence.DataSourceParams;
 import cafe.jeffrey.shared.persistence.DatabaseManager;
-import cafe.jeffrey.shared.persistence.DuckDBDataSourceProvider;
+import cafe.jeffrey.shared.persistence.DataSourceProvider;
 
 import javax.sql.DataSource;
 
@@ -49,7 +49,7 @@ public class DuckDBHubDatabaseManager implements DatabaseManager {
                 .maxPoolSize(MAX_POOL_SIZE)
                 .enableMetrics(true);
 
-        return DuckDBDataSourceProvider.open(dataSourceParams.build());
+        return DataSourceProvider.open(dataSourceParams.build());
     }
 
     @Override

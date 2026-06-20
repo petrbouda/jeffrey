@@ -36,12 +36,17 @@ import cafe.jeffrey.recordings.core.manager.RecordingsCoreManager;
 import cafe.jeffrey.recordings.core.manager.RecordingsCoreManagerImpl;
 import cafe.jeffrey.microscope.core.web.MicroscopeRecordingProfileInfoProvider;
 import cafe.jeffrey.microscope.core.web.MicroscopeRemoteProjectAccess;
+import cafe.jeffrey.microscope.core.web.MicroscopeWorkspaceBrowserAccess;
+import cafe.jeffrey.microscope.core.web.MicroscopeHubRegistry;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
 import cafe.jeffrey.microscope.core.web.WebInfrastructureConfig;
 import cafe.jeffrey.shared.ui.workspace.bridge.RecordingProfileInfoProvider;
+import cafe.jeffrey.shared.ui.workspace.bridge.HubRegistry;
 import cafe.jeffrey.shared.ui.workspace.bridge.RemoteProjectAccess;
+import cafe.jeffrey.shared.ui.workspace.bridge.WorkspaceBrowserAccess;
 import cafe.jeffrey.shared.ui.workspace.config.WorkspacesFeatureConfiguration;
+import cafe.jeffrey.shared.ui.version.VersionFeatureConfiguration;
 import cafe.jeffrey.profile.ProfileInitializer;
 import cafe.jeffrey.profile.ProfileInitializerImpl;
 import cafe.jeffrey.profile.configuration.ProfileFactoriesConfiguration;
@@ -65,7 +70,7 @@ import java.time.Clock;
  * Configuration beans specific to LOCAL mode: Recordings, web controllers, resolvers.
  */
 @Configuration
-@Import({WebInfrastructureConfig.class, WorkspacesFeatureConfiguration.class})
+@Import({WebInfrastructureConfig.class, WorkspacesFeatureConfiguration.class, VersionFeatureConfiguration.class})
 public class MicroscopeAppConfiguration {
 
     @Bean
@@ -135,6 +140,16 @@ public class MicroscopeAppConfiguration {
     @Bean
     public RemoteProjectAccess remoteProjectAccess(ProjectManagerResolver projectManagerResolver) {
         return new MicroscopeRemoteProjectAccess(projectManagerResolver);
+    }
+
+    @Bean
+    public WorkspaceBrowserAccess workspaceBrowserAccess(ProjectManagerResolver projectManagerResolver) {
+        return new MicroscopeWorkspaceBrowserAccess(projectManagerResolver);
+    }
+
+    @Bean
+    public HubRegistry hubRegistry(HubsManager remoteServersManager) {
+        return new MicroscopeHubRegistry(remoteServersManager);
     }
 
     @Bean

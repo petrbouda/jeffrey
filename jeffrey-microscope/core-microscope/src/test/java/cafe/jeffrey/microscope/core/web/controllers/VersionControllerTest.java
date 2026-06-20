@@ -19,42 +19,21 @@
 package cafe.jeffrey.microscope.core.web.controllers;
 
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
-import cafe.jeffrey.microscope.core.manager.GitHubReleaseChecker;
-
-import java.util.Optional;
+import cafe.jeffrey.shared.ui.version.VersionController;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.when;
 import static cafe.jeffrey.microscope.core.web.MockMvcSupport.mockMvcTesterFor;
 
-@ExtendWith(MockitoExtension.class)
 class VersionControllerTest {
-
-    @Mock
-    GitHubReleaseChecker releaseChecker;
 
     @Test
     void returnsCurrentVersion() {
-        MockMvcTester mvc = mockMvcTesterFor(new VersionController(releaseChecker));
+        MockMvcTester mvc = mockMvcTesterFor(new VersionController());
 
         assertThat(mvc.get().uri("/api/internal/version"))
                 .hasStatusOk()
                 .bodyJson()
                 .extractingPath("$.version").asString().isNotEmpty();
-    }
-
-    @Test
-    void updateCheckReturns204WhenNoReleaseInfo() {
-        when(releaseChecker.check(anyString())).thenReturn(Optional.empty());
-
-        MockMvcTester mvc = mockMvcTesterFor(new VersionController(releaseChecker));
-
-        assertThat(mvc.get().uri("/api/internal/version/update-check"))
-                .hasStatus(204);
     }
 }

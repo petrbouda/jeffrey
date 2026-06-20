@@ -22,9 +22,9 @@ import cafe.jeffrey.shared.common.model.ProjectInfo;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceEvent;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 import cafe.jeffrey.microscope.core.manager.project.ProjectManager.DetailedProjectInfo;
-import cafe.jeffrey.microscope.core.resources.response.ProjectResponse;
+import cafe.jeffrey.shared.ui.workspace.dto.ProjectResponse;
 import cafe.jeffrey.hub.client.dto.WorkspaceEventResponse;
-import cafe.jeffrey.microscope.core.resources.response.WorkspaceResponse;
+import cafe.jeffrey.shared.ui.workspace.dto.WorkspaceResponse;
 
 
 public abstract class Mappers {

@@ -23,15 +23,13 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
-import cafe.jeffrey.microscope.core.manager.project.ProjectsManager;
-import cafe.jeffrey.microscope.core.manager.workspace.WorkspaceManager;
-import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
 import cafe.jeffrey.shared.common.exception.Exceptions;
+import cafe.jeffrey.shared.ui.workspace.bridge.WorkspaceBrowserAccess;
+import cafe.jeffrey.shared.ui.workspace.controller.WorkspaceProjectsController;
 
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.when;
 import static cafe.jeffrey.microscope.core.web.MockMvcSupport.mockMvcTesterFor;
 
@@ -39,35 +37,13 @@ import static cafe.jeffrey.microscope.core.web.MockMvcSupport.mockMvcTesterFor;
 class WorkspaceProjectsControllerTest {
 
     @Mock
-    ProjectManagerResolver resolver;
-
-    @Mock
-    WorkspaceManager workspaceManager;
-
-    @Mock
-    ProjectsManager projectsManager;
-
-    @Test
-    void listsNamespaces() {
-        when(resolver.resolveWorkspace("srv-1", "ws-1")).thenReturn(workspaceManager);
-        when(workspaceManager.projectsManager()).thenReturn(projectsManager);
-        when(projectsManager.findAllNamespaces()).thenReturn(List.of("billing", "auth"));
-
-        MockMvcTester mvc = mockMvcTesterFor(new WorkspaceProjectsController(resolver));
-
-        assertThat(mvc.get().uri("/api/internal/hubs/srv-1/workspaces/ws-1/projects/namespaces"))
-                .hasStatusOk()
-                .bodyJson()
-                .hasPathSatisfying("$[0]", v -> assertThat(v).asString().isEqualTo("billing"));
-    }
+    WorkspaceBrowserAccess access;
 
     @Test
     void listsEmptyProjects() {
-        when(resolver.resolveWorkspace("srv-1", "ws-1")).thenReturn(workspaceManager);
-        when(workspaceManager.projectsManager()).thenReturn(projectsManager);
-        doReturn(List.of()).when(projectsManager).findAll();
+        when(access.projects("srv-1", "ws-1", false)).thenReturn(List.of());
 
-        MockMvcTester mvc = mockMvcTesterFor(new WorkspaceProjectsController(resolver));
+        MockMvcTester mvc = mockMvcTesterFor(new WorkspaceProjectsController(access));
 
         assertThat(mvc.get().uri("/api/internal/hubs/srv-1/workspaces/ws-1/projects"))
                 .hasStatusOk()
@@ -77,9 +53,9 @@ class WorkspaceProjectsControllerTest {
 
     @Test
     void workspaceNotFoundReturns404() {
-        when(resolver.resolveWorkspace("srv-1", "ghost")).thenThrow(Exceptions.workspaceNotFound("ghost"));
+        when(access.projects("srv-1", "ghost", false)).thenThrow(Exceptions.workspaceNotFound("ghost"));
 
-        MockMvcTester mvc = mockMvcTesterFor(new WorkspaceProjectsController(resolver));
+        MockMvcTester mvc = mockMvcTesterFor(new WorkspaceProjectsController(access));
 
         assertThat(mvc.get().uri("/api/internal/hubs/srv-1/workspaces/ghost/projects"))
                 .hasStatus(404)

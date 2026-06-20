@@ -33,5 +33,6 @@
     <!-- Aggregator for shared UI feature modules (backend + co-located Vue under each module's ui/). -->
     <modules>
         <module>workspaces</module>
+        <module>version</module>
     </modules>
 </project>
