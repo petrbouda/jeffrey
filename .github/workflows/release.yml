@@ -58,13 +58,13 @@ jobs:
     uses: ./.github/workflows/release-microscope.yml
     secrets: inherit
 
-  docker-server:
+  docker-hub:
     needs: [build, cli-native]
-    uses: ./.github/workflows/release-server.yml
+    uses: ./.github/workflows/release-hub.yml
     secrets: inherit
 
   create-release:
-    needs: [docker-microscope, docker-server, cli-native]
+    needs: [docker-microscope, docker-hub, cli-native]
     runs-on: ubuntu-latest
     permissions: write-all
 
