@@ -26,8 +26,8 @@ import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.shared.common.model.Type;
 import cafe.jeffrey.jfrparser.api.type.JfrMethod;
 import cafe.jeffrey.jfrparser.api.type.JfrThread;
-import cafe.jeffrey.jfrparser.db.type.DbJfrMethod;
-import cafe.jeffrey.jfrparser.db.type.DbJfrThread;
+import cafe.jeffrey.jfrparser.api.type.JfrMethodImpl;
+import cafe.jeffrey.jfrparser.api.type.JfrThreadImpl;
 import cafe.jeffrey.provider.profile.api.EventQueryConfigurer;
 import cafe.jeffrey.provider.profile.api.GenericRecord;
 
@@ -66,7 +66,7 @@ public class GenericRecordRowMapper implements RowMapper<GenericRecord> {
 
         JfrThread thread = null;
         if (useThreads) {
-            thread = new DbJfrThread(
+            thread = new JfrThreadImpl(
                     rs.getLong("os_id"),
                     rs.getLong("java_id"),
                     rs.getString("name"),
@@ -80,7 +80,7 @@ public class GenericRecordRowMapper implements RowMapper<GenericRecord> {
 
         JfrMethod weightEntityMethod = null;
         if (weightEntity != null) {
-            weightEntityMethod = DbJfrMethod.of(weightEntity);
+            weightEntityMethod = JfrMethodImpl.of(weightEntity);
         }
 
         ObjectNode jsonFields = null;

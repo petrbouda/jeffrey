@@ -22,9 +22,9 @@ import cafe.jeffrey.provider.profile.api.*;
 
 import org.springframework.jdbc.core.RowMapper;
 import cafe.jeffrey.shared.common.model.Type;
-import cafe.jeffrey.jfrparser.db.type.DbJfrMethod;
-import cafe.jeffrey.jfrparser.db.type.DbJfrStackTrace;
-import cafe.jeffrey.jfrparser.db.type.DbJfrThread;
+import cafe.jeffrey.jfrparser.api.type.JfrMethodImpl;
+import cafe.jeffrey.jfrparser.api.type.JfrStackTraceImpl;
+import cafe.jeffrey.jfrparser.api.type.JfrThreadImpl;
 import cafe.jeffrey.provider.profile.api.FlamegraphRecord;
 
 import java.sql.ResultSet;
@@ -38,16 +38,16 @@ public record FlamegraphRecordRowMapper(Type eventType, boolean withThreads) imp
 
     @Override
     public FlamegraphRecord mapRow(ResultSet rs, int rowNum) throws SQLException {
-        DbJfrStackTrace stacktrace = new DbJfrStackTrace(
+        JfrStackTraceImpl stacktrace = new JfrStackTraceImpl(
                 rs.getLong("stacktrace_hash"), FlamegraphMapperUtils.getStackFrames(rs));
 
-        DbJfrThread thread = withThreads ? FlamegraphMapperUtils.getThread(rs) : null;
+        JfrThreadImpl thread = withThreads ? FlamegraphMapperUtils.getThread(rs) : null;
 
         return new FlamegraphRecord(
                 eventType,
                 stacktrace,
                 thread,
-                DbJfrMethod.ofClass(rs.getString("weight_entity")),
+                JfrMethodImpl.ofClass(rs.getString("weight_entity")),
                 rs.getLong("total_samples"),
                 rs.getLong("total_weight")
         );

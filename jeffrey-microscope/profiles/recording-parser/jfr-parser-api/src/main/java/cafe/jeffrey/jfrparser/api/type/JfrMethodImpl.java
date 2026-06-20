@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,13 +16,17 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.jfrparser.db.type;
+package cafe.jeffrey.jfrparser.api.type;
 
-import cafe.jeffrey.jfrparser.api.type.JfrClass;
-import cafe.jeffrey.jfrparser.api.type.JfrMethod;
+/**
+ * Plain in-memory {@link JfrMethod}. Shared by every parser path (DB row mappers, in-memory JFR
+ * parsing) so a class/method pair has a single canonical carrier.
+ */
+public record JfrMethodImpl(String className, String methodName) implements JfrMethod, JfrClass {
 
-public record DbJfrMethod(String className, String methodName) implements JfrMethod, JfrClass {
-
+    /**
+     * Parses an entity of the form {@code Class#method} (or just {@code Class}) into a method.
+     */
     public static JfrMethod of(String entity) {
         if (entity == null || entity.isBlank()) {
             return null;
@@ -34,14 +38,14 @@ public record DbJfrMethod(String className, String methodName) implements JfrMet
         }
 
         if (split.length == 2) {
-            return new DbJfrMethod(split[0], split[1]);
+            return new JfrMethodImpl(split[0], split[1]);
         } else {
-            return new DbJfrMethod(split[0], null);
+            return new JfrMethodImpl(split[0], null);
         }
     }
 
     public static JfrClass ofClass(String className) {
-        return new DbJfrMethod(className, null);
+        return new JfrMethodImpl(className, null);
     }
 
     @Override

@@ -22,7 +22,7 @@ import cafe.jeffrey.provider.profile.api.*;
 
 import org.eclipse.collections.api.map.primitive.LongObjectMap;
 import org.eclipse.collections.impl.map.mutable.primitive.LongObjectHashMap;
-import cafe.jeffrey.jfrparser.db.type.DbJfrStackFrame;
+import cafe.jeffrey.jfrparser.api.type.JfrStackFrameImpl;
 import cafe.jeffrey.shared.persistence.StatementLabel;
 import cafe.jeffrey.shared.persistence.client.DatabaseClient;
 
@@ -36,9 +36,9 @@ import java.util.List;
  */
 public class FramesCache {
 
-    private final LongObjectMap<DbJfrStackFrame> framesMap;
+    private final LongObjectMap<JfrStackFrameImpl> framesMap;
 
-    private FramesCache(LongObjectMap<DbJfrStackFrame> framesMap) {
+    private FramesCache(LongObjectMap<JfrStackFrameImpl> framesMap) {
         this.framesMap = framesMap;
     }
 
@@ -49,14 +49,14 @@ public class FramesCache {
      * @return a new FramesCache with all frames loaded
      */
     public static FramesCache load(DatabaseClient databaseClient) {
-        LongObjectHashMap<DbJfrStackFrame> framesMap = new LongObjectHashMap<>();
+        LongObjectHashMap<JfrStackFrameImpl> framesMap = new LongObjectHashMap<>();
 
         List<FrameEntry> entries = databaseClient.query(
                 StatementLabel.LOAD_FRAMES_CACHE,
                 DuckDBFlamegraphQueries.ALL_FRAMES,
                 (rs, rowNum) -> new FrameEntry(
                         rs.getLong("frame_hash"),
-                        new DbJfrStackFrame(
+                        new JfrStackFrameImpl(
                                 rs.getString("class_name"),
                                 rs.getString("method_name"),
                                 rs.getString("frame_type"),
@@ -73,7 +73,7 @@ public class FramesCache {
         return new FramesCache(framesMap);
     }
 
-    private record FrameEntry(long hash, DbJfrStackFrame frame) {
+    private record FrameEntry(long hash, JfrStackFrameImpl frame) {
     }
 
     /**
@@ -82,14 +82,14 @@ public class FramesCache {
      * @param frameHashes array of frame hashes to resolve
      * @return list of resolved frames, may be smaller if some hashes are not found
      */
-    public List<DbJfrStackFrame> resolveFrames(long[] frameHashes) {
+    public List<JfrStackFrameImpl> resolveFrames(long[] frameHashes) {
         if (frameHashes == null) {
             return null;
         }
 
-        List<DbJfrStackFrame> frames = new ArrayList<>(frameHashes.length);
+        List<JfrStackFrameImpl> frames = new ArrayList<>(frameHashes.length);
         for (long hash : frameHashes) {
-            DbJfrStackFrame frame = framesMap.get(hash);
+            JfrStackFrameImpl frame = framesMap.get(hash);
             if (frame != null) {
                 frames.add(frame);
             }

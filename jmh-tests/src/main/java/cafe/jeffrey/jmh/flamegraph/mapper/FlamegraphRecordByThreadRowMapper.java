@@ -19,7 +19,7 @@
 package cafe.jeffrey.jmh.flamegraph.mapper;
 
 import org.springframework.jdbc.core.RowMapper;
-import cafe.jeffrey.jfrparser.db.type.DbJfrStackTrace;
+import cafe.jeffrey.jfrparser.api.type.JfrStackTraceImpl;
 import cafe.jeffrey.provider.profile.api.FlamegraphRecord;
 import cafe.jeffrey.provider.profile.jdbc.FlamegraphMapperUtils;
 import cafe.jeffrey.shared.common.model.Type;
@@ -34,7 +34,7 @@ public record FlamegraphRecordByThreadRowMapper(Type eventType) implements RowMa
 
     @Override
     public FlamegraphRecord mapRow(ResultSet rs, int rowNum) throws SQLException {
-        DbJfrStackTrace stacktrace = new DbJfrStackTrace(
+        JfrStackTraceImpl stacktrace = new JfrStackTraceImpl(
                 rs.getLong("stacktrace_hash"), FlamegraphMapperUtils.getStackFrames(rs));
 
         return new FlamegraphRecord(

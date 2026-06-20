@@ -19,7 +19,6 @@ module cafe.jeffrey.microscope.profile.subsecond {
     requires transitive cafe.jeffrey.shared.common;
     requires transitive cafe.jeffrey.microscope.profile.persistence.api;
     requires cafe.jeffrey.microscope.profile.parser.jdk;
-    requires cafe.jeffrey.microscope.profile.parser.db;
     requires org.eclipse.collections.api;
     requires tools.jackson.databind;
 

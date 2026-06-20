@@ -57,6 +57,16 @@
                   <span class="meta-sep">{{ formatTimestamp(recording.uploadedAt) }}</span>
                 </div>
               </div>
+              <button
+                v-if="hasJfr(recording)"
+                class="btn btn-sm btn-outline-primary ai-prompt-btn"
+                :disabled="generating[recording.id]"
+                title="Generate AI flamegraph prompt"
+                @click.stop="generateAiPrompt(recording)"
+              >
+                <i class="bi" :class="generating[recording.id] ? 'bi-hourglass-split' : 'bi-robot'"></i>
+                {{ generating[recording.id] ? 'Generating…' : 'AI Prompt' }}
+              </button>
             </div>
             <div v-if="isExpanded(recording.id)" class="recording-files">
               <RecordingFileGroupList
@@ -83,14 +93,19 @@ import Badge from '@shared/components/Badge.vue';
 import RecordingFileGroupList from '@workspaces/components/RecordingFileGroupList.vue';
 import RecordingsClient from '@workspaces/services/api/RecordingsClient';
 import type Recording from '@workspaces/services/api/model/Recording';
+import RecordingFileType from '@workspaces/services/api/model/RecordingFileType';
 import FormattingService from '@shared/services/FormattingService';
+import ToastService from '@shared/services/ToastService';
+import FlamegraphAiExportClient from '@/services/api/FlamegraphAiExportClient';
 
 const recordingsClient = new RecordingsClient();
+const aiExportClient = new FlamegraphAiExportClient();
 
 const recordings = ref<Recording[]>([]);
 const loading = ref(true);
 const error = ref<string | null>(null);
 const expanded = ref<Record<string, boolean>>({});
+const generating = ref<Record<string, boolean>>({});
 
 const formatBytes = (bytes: number) => FormattingService.formatBytes(bytes);
 const formatTimestamp = (millis: number) => FormattingService.formatTimestamp(millis);
@@ -104,6 +119,27 @@ const toggleExpand = (recordingId: string) => {
 
 const downloadFile = (recordingId: string, fileId: string) => {
   recordingsClient.downloadFile(recordingId, fileId);
+};
+
+const hasJfr = (recording: Recording): boolean =>
+  recording.files.some(
+    file => file.type === RecordingFileType.JFR || file.type === RecordingFileType.JFR_LZ4
+  );
+
+const generateAiPrompt = async (recording: Recording) => {
+  generating.value[recording.id] = true;
+  try {
+    await aiExportClient.generate(recording.id);
+    ToastService.success(
+      'AI prompt generated',
+      'Flamegraph AI prompt(s) printed to the server console.'
+    );
+  } catch (e) {
+    console.error('Failed to generate AI prompt:', e);
+    ToastService.error('Generation failed', 'Could not generate the AI flamegraph prompt.');
+  } finally {
+    generating.value[recording.id] = false;
+  }
 };
 
 const loadRecordings = async () => {
@@ -160,6 +196,11 @@ onMounted(loadRecordings);
 .recording-main {
   flex: 1;
   min-width: 0;
+}
+
+.ai-prompt-btn {
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .recording-name {

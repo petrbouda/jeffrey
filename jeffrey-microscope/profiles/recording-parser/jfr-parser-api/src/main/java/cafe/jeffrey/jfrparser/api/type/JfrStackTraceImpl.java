@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,11 +16,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.jfrparser.db.type;
-
-import cafe.jeffrey.jfrparser.api.type.JfrStackTrace;
+package cafe.jeffrey.jfrparser.api.type;
 
 import java.util.List;
 
-public record DbJfrStackTrace(long id, List<DbJfrStackFrame> frames) implements JfrStackTrace {
+/**
+ * Plain in-memory {@link JfrStackTrace}. Frames are stored caller-first (root → leaf).
+ */
+public record JfrStackTraceImpl(long id, List<JfrStackFrameImpl> frames) implements JfrStackTrace {
 }

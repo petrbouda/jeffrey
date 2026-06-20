@@ -92,6 +92,10 @@
 
         <!-- JFR Parsing -->
         <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>jfr-parser-api</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.openjdk.jmc</groupId>
             <artifactId>flightrecorder.rules.jdk</artifactId>
         </dependency>

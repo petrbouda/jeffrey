@@ -40,7 +40,7 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>db-jfr-parser</artifactId>
+            <artifactId>jfr-parser-api</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>

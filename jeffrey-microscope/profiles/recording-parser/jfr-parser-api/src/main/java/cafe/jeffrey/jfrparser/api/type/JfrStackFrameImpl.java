@@ -15,8 +15,17 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-module cafe.jeffrey.microscope.profile.parser.db {
-    requires transitive cafe.jeffrey.microscope.profile.parser.api;
 
-    exports cafe.jeffrey.jfrparser.db.type;
+package cafe.jeffrey.jfrparser.api.type;
+
+/**
+ * Plain in-memory {@link JfrStackFrame}. The {@code type} is the raw JFR frame type string
+ * (e.g. "Interpreted", "JIT compiled", "Inlined") that {@code FrameType.fromCode} understands.
+ */
+public record JfrStackFrameImpl(
+        JfrMethodImpl method, String type, int lineNumber, int bytecodeIndex) implements JfrStackFrame {
+
+    public JfrStackFrameImpl(String className, String methodName, String type, int lineNumber, int bytecodeIndex) {
+        this(new JfrMethodImpl(className, methodName), type, lineNumber, bytecodeIndex);
+    }
 }

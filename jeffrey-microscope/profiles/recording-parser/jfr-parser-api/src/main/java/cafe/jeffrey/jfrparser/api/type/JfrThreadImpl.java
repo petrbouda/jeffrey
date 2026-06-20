@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,14 +16,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.jfrparser.db.type;
+package cafe.jeffrey.jfrparser.api.type;
 
-import cafe.jeffrey.jfrparser.api.type.JfrStackFrame;
-
-public record DbJfrStackFrame(
-        DbJfrMethod method, String type, int lineNumber, int bytecodeIndex) implements JfrStackFrame {
-
-    public DbJfrStackFrame(String className, String methodName, String type, int lineNumber, int bytecodeIndex) {
-        this(new DbJfrMethod(className, methodName), type, lineNumber, bytecodeIndex);
-    }
+/**
+ * Plain in-memory {@link JfrThread}.
+ */
+public record JfrThreadImpl(long osThreadId, long javaThreadId, String name, boolean isVirtual) implements JfrThread {
 }

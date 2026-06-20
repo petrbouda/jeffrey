@@ -2,8 +2,8 @@ package cafe.jeffrey.provider.profile.jdbc;
 
 import cafe.jeffrey.provider.profile.api.*;
 
-import cafe.jeffrey.jfrparser.db.type.DbJfrStackFrame;
-import cafe.jeffrey.jfrparser.db.type.DbJfrThread;
+import cafe.jeffrey.jfrparser.api.type.JfrStackFrameImpl;
+import cafe.jeffrey.jfrparser.api.type.JfrThreadImpl;
 
 import java.sql.Array;
 import java.sql.ResultSet;
@@ -14,9 +14,9 @@ import java.util.List;
 
 public abstract class FlamegraphMapperUtils {
 
-    public static List<DbJfrStackFrame> getStackFrames(ResultSet rs) throws SQLException {
+    public static List<JfrStackFrameImpl> getStackFrames(ResultSet rs) throws SQLException {
         Array framesArray = rs.getArray("frames");
-        List<DbJfrStackFrame> frames = null;
+        List<JfrStackFrameImpl> frames = null;
         if (framesArray != null) {
             Object[] objects = (Object[]) framesArray.getArray();
             frames = new ArrayList<>(objects.length);
@@ -24,7 +24,7 @@ public abstract class FlamegraphMapperUtils {
             for (Object obj : objects) {
                 Struct struct = (Struct) obj;
                 Object[] attrs = struct.getAttributes();
-                frames.add(new DbJfrStackFrame(
+                frames.add(new JfrStackFrameImpl(
                         (String) attrs[0],  // class_name
                         (String) attrs[1],  // method_name
                         (String) attrs[2],  // type
@@ -63,7 +63,7 @@ public abstract class FlamegraphMapperUtils {
         };
     }
 
-    public static DbJfrThread getThread(ResultSet rs) throws SQLException {
+    public static JfrThreadImpl getThread(ResultSet rs) throws SQLException {
         Struct threadStruct = (Struct) rs.getObject("thread");
         if (threadStruct != null) {
             Object[] attrs = threadStruct.getAttributes();
@@ -73,7 +73,7 @@ public abstract class FlamegraphMapperUtils {
                 String name = (String) attrs[2];
                 boolean isVirtual = toBoolean(attrs[3]);
 
-                return new DbJfrThread(osId, javaId, name, isVirtual);
+                return new JfrThreadImpl(osId, javaId, name, isVirtual);
             }
         }
         return null;

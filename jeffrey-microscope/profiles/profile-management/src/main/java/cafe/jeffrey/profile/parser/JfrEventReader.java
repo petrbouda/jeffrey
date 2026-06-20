@@ -63,6 +63,7 @@ public class JfrEventReader implements EventProcessor<Void> {
     }
 
     private final SingleThreadedEventWriter writer;
+    private final ProcessableEvents processableEvents;
 
     private final Map<Long, EventThread> threads = new HashMap<>();
     private final Map<RecordedStackTrace, Long> stacktracesById = new IdentityHashMap<>();
@@ -78,13 +79,18 @@ public class JfrEventReader implements EventProcessor<Void> {
     private final Map<String, jdk.jfr.EventType> eventTypeMap = new HashMap<>();
 
     public JfrEventReader(SingleThreadedEventWriter writer) {
+        this(writer, ProcessableEvents.all());
+    }
+
+    public JfrEventReader(SingleThreadedEventWriter writer, ProcessableEvents processableEvents) {
         this.writer = writer;
+        this.processableEvents = processableEvents;
         this.eventFieldsMapper = new EventFieldsToJsonMapper();
     }
 
     @Override
     public ProcessableEvents processableEvents() {
-        return ProcessableEvents.all();
+        return processableEvents;
     }
 
     @Override

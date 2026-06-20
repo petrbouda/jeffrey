@@ -22,10 +22,10 @@ import cafe.jeffrey.provider.profile.api.*;
 
 import org.springframework.jdbc.core.RowMapper;
 import cafe.jeffrey.jfrparser.api.type.JfrClass;
-import cafe.jeffrey.jfrparser.db.type.DbJfrMethod;
-import cafe.jeffrey.jfrparser.db.type.DbJfrStackFrame;
-import cafe.jeffrey.jfrparser.db.type.DbJfrStackTrace;
-import cafe.jeffrey.jfrparser.db.type.DbJfrThread;
+import cafe.jeffrey.jfrparser.api.type.JfrMethodImpl;
+import cafe.jeffrey.jfrparser.api.type.JfrStackFrameImpl;
+import cafe.jeffrey.jfrparser.api.type.JfrStackTraceImpl;
+import cafe.jeffrey.jfrparser.api.type.JfrThreadImpl;
 import cafe.jeffrey.provider.profile.api.FlamegraphRecord;
 import cafe.jeffrey.shared.common.model.Type;
 
@@ -53,18 +53,18 @@ public record CachingFlamegraphRecordRowMapper(
 
         // Get frame_hashes array and resolve using cache
         Array frameHashesArray = rs.getArray("frame_hashes");
-        List<DbJfrStackFrame> frames = null;
+        List<JfrStackFrameImpl> frames = null;
         if (frameHashesArray != null) {
             long[] hashes = FlamegraphMapperUtils.toFrameHashArray(frameHashesArray);
             frames = framesCache.resolveFrames(hashes);
         }
 
-        DbJfrStackTrace stacktrace = new DbJfrStackTrace(stacktraceHash, frames);
-        DbJfrThread thread = withThreads ? FlamegraphMapperUtils.getThread(rs) : null;
+        JfrStackTraceImpl stacktrace = new JfrStackTraceImpl(stacktraceHash, frames);
+        JfrThreadImpl thread = withThreads ? FlamegraphMapperUtils.getThread(rs) : null;
 
         JfrClass weightEntity = null;
         if (hasWeightEntity) {
-            weightEntity = DbJfrMethod.ofClass(rs.getString("weight_entity"));
+            weightEntity = JfrMethodImpl.ofClass(rs.getString("weight_entity"));
         }
 
         return new FlamegraphRecord(

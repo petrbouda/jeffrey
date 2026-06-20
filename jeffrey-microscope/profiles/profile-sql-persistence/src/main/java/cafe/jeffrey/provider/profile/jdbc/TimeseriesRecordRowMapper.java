@@ -21,7 +21,7 @@ package cafe.jeffrey.provider.profile.jdbc;
 import cafe.jeffrey.provider.profile.api.*;
 
 import org.springframework.jdbc.core.RowMapper;
-import cafe.jeffrey.jfrparser.db.type.DbJfrStackTrace;
+import cafe.jeffrey.jfrparser.api.type.JfrStackTraceImpl;
 import cafe.jeffrey.provider.profile.api.SecondValue;
 import cafe.jeffrey.provider.profile.api.TimeseriesRecord;
 
@@ -53,7 +53,7 @@ public class TimeseriesRecordRowMapper implements RowMapper<TimeseriesRecord> {
             }
         }
 
-        DbJfrStackTrace stacktrace = new DbJfrStackTrace(
+        JfrStackTraceImpl stacktrace = new JfrStackTraceImpl(
                 rs.getLong("stacktrace_hash"),
                 FlamegraphMapperUtils.getStackFrames(rs));
 
