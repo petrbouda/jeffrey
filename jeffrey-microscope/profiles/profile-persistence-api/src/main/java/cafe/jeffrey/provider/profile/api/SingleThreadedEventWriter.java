@@ -18,8 +18,32 @@
 
 package cafe.jeffrey.provider.profile.api;
 
-import cafe.jeffrey.provider.profile.api.*;
-
+/**
+ * Sink for the events parsed out of a single JFR recording (or chunk).
+ *
+ * <h2>Threading</h2>
+ * A given instance is driven by exactly <strong>one</strong> thread: every method is invoked
+ * sequentially, never concurrently, so implementations need no synchronization or thread-safe
+ * collections. Parallel parsing uses a separate instance per chunk (see
+ * {@link EventWriter#newSingleThreadedWriter()}); combining those partial results is the
+ * {@link EventWriter}'s responsibility, not this writer's.
+ *
+ * <h2>Call protocol</h2>
+ * <ol>
+ *   <li>{@link #onThreadStart()} once, before any event.</li>
+ *   <li>For each parsed event, its thread and stacktrace are <em>deduplicated</em>:
+ *       {@link #onEventThread(EventThread)} and {@link #onEventStacktrace(EventStacktrace)} are called
+ *       only the <em>first</em> time a distinct thread/stacktrace is seen, immediately before the
+ *       {@link #onEvent(Event)} that introduced it. Each returns an id, which is then stamped onto
+ *       {@link Event#threadId()} / {@link Event#stacktraceId()} of that event and of every later event
+ *       that reuses the same thread/stacktrace. Reuses arrive as {@link #onEvent(Event)} only — there is
+ *       <em>no</em> re-announce. An implementation that needs the thread/stacktrace at {@code onEvent}
+ *       time must therefore retain it, keyed by the id it handed back.</li>
+ *   <li>{@link #onEventSetting(EventSetting)} and {@link #onEventType(EventType)} may arrive at any
+ *       point and may be delivered more than once.</li>
+ *   <li>{@link #onThreadComplete()} once, after the last event.</li>
+ * </ol>
+ */
 public interface SingleThreadedEventWriter {
 
     /**
@@ -33,7 +57,8 @@ public interface SingleThreadedEventWriter {
      *
      * @param event the event to be written
      */
-    void onEvent(Event event);
+    default void onEvent(Event event) {
+    }
 
     /**
      * This method is called when an event setting is received.
@@ -41,7 +66,8 @@ public interface SingleThreadedEventWriter {
      *
      * @param setting the event setting to be written
      */
-    void onEventSetting(EventSetting setting);
+    default void onEventSetting(EventSetting setting) {
+    }
 
     /**
      * This method is called when an event type is received.
@@ -49,28 +75,38 @@ public interface SingleThreadedEventWriter {
      *
      * @param eventType the event type to be written
      */
-    void onEventType(EventType eventType);
+    default void onEventType(EventType eventType) {
+    }
 
     /**
-     * This method is called when an event stacktrace is received.
+     * Called once per <em>distinct</em> stacktrace, immediately before the {@link #onEvent(Event)} that
+     * first uses it. The returned id is reused via {@link Event#stacktraceId()} by every later event with
+     * the same stacktrace (those arrive as {@code onEvent} only). Implementations that need the frames at
+     * {@code onEvent} time must retain this stacktrace keyed by the returned id.
      *
      * @param stacktrace the event stacktrace to be written
-     * @return ID of the stacktrace
+     * @return ID of the stacktrace, later referenced by {@link Event#stacktraceId()}
      */
-    long onEventStacktrace(EventStacktrace stacktrace);
+    default long onEventStacktrace(EventStacktrace stacktrace) {
+        return -1;
+    }
 
     /**
-     * This method is called when an event thread is received.
-     * {@link EventThread} can be received multiple times and duplicated.
+     * Called once per <em>distinct</em> thread, immediately before the {@link #onEvent(Event)} that first
+     * uses it. The returned id is reused via {@link Event#threadId()} by every later event on the same
+     * thread (those arrive as {@code onEvent} only).
      *
      * @param thread the event thread to be written
-     * @return ID of the thread
+     * @return ID of the thread, later referenced by {@link Event#threadId()}
      */
-    long onEventThread(EventThread thread);
+    default long onEventThread(EventThread thread) {
+        return -1;
+    }
 
     /**
      * This method is called when the thread that pushes the data to persist finishes.
      * All threads that participates needs to call this method.
      */
-    void onThreadComplete();
+    default void onThreadComplete() {
+    }
 }

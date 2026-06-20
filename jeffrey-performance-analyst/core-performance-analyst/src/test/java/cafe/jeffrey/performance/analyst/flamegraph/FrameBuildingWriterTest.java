@@ -65,11 +65,14 @@ class FrameBuildingWriterTest {
 
         @Test
         void accumulatesAndBranchesAcrossEvents() {
+            // Mirrors JfrEventReader's protocol: a stacktrace is announced once, immediately before the
+            // event that first uses it; a later event that reuses it arrives as onEvent only (the reader
+            // dedups stacktraces and reuses the returned id), with no re-announce.
             FrameBuildingSingleThreadedEventWriter writer = new FrameBuildingSingleThreadedEventWriter();
             long shared = writer.onEventStacktrace(stack(frame("C", "a"), frame("C", "b")));
-            long branch = writer.onEventStacktrace(stack(frame("C", "a"), frame("C", "d")));
             writer.onEvent(execEvent(shared, 5));
-            writer.onEvent(execEvent(shared, 1));
+            writer.onEvent(execEvent(shared, 1));   // reuse of "shared": onEvent only, no re-announce
+            long branch = writer.onEventStacktrace(stack(frame("C", "a"), frame("C", "d")));
             writer.onEvent(execEvent(branch, 4));
 
             Frame root = writer.result().get(Type.EXECUTION_SAMPLE);
@@ -84,8 +87,8 @@ class FrameBuildingWriterTest {
         void keepsOneTreePerEventType() {
             FrameBuildingSingleThreadedEventWriter writer = new FrameBuildingSingleThreadedEventWriter();
             long exec = writer.onEventStacktrace(stack(frame("C", "a")));
-            long wall = writer.onEventStacktrace(stack(frame("C", "b")));
             writer.onEvent(execEvent(exec, 3));
+            long wall = writer.onEventStacktrace(stack(frame("C", "b")));
             writer.onEvent(wallEvent(wall, 7));
 
             Map<Type, Frame> result = writer.result();

@@ -25,10 +25,7 @@ import cafe.jeffrey.jfrparser.api.type.JfrStackTrace;
 import cafe.jeffrey.jfrparser.api.type.JfrStackTraceImpl;
 import cafe.jeffrey.provider.profile.api.Event;
 import cafe.jeffrey.provider.profile.api.EventFrame;
-import cafe.jeffrey.provider.profile.api.EventSetting;
 import cafe.jeffrey.provider.profile.api.EventStacktrace;
-import cafe.jeffrey.provider.profile.api.EventThread;
-import cafe.jeffrey.provider.profile.api.EventType;
 import cafe.jeffrey.provider.profile.api.FlamegraphRecord;
 import cafe.jeffrey.provider.profile.api.SingleThreadedEventWriter;
 import cafe.jeffrey.shared.common.model.Type;
@@ -45,8 +42,8 @@ import java.util.Map;
  * {@link EventFrame}s as a {@link JfrStackTrace} and feed a per-event-type {@link FrameBuilder}.
  *
  * <p>Threads are unused for the flamegraph (thread-mode is off, so {@code FrameNameBuilder} never reads
- * the thread). We still return a real id from {@link #onEventThread} because {@code JfrEventReader}
- * records a stacktrace only when the event has a non-null thread id.
+ * the thread), so {@code onEventThread} is left as the interface default. Its {@code -1} return is still
+ * load-bearing: {@code JfrEventReader} records a stacktrace only when the event has a non-null thread id.
  */
 public class FrameBuildingSingleThreadedEventWriter implements SingleThreadedEventWriter {
 
@@ -56,12 +53,6 @@ public class FrameBuildingSingleThreadedEventWriter implements SingleThreadedEve
     private final Map<Type, FrameBuilder> builders = new HashMap<>();
 
     private long stacktraceIdSeq = 0;
-    private long threadIdSeq = 0;
-
-    @Override
-    public long onEventThread(EventThread thread) {
-        return ++threadIdSeq;
-    }
 
     @Override
     public long onEventStacktrace(EventStacktrace stacktrace) {
@@ -84,19 +75,7 @@ public class FrameBuildingSingleThreadedEventWriter implements SingleThreadedEve
         Type type = Type.fromCode(event.eventType());
         long weight = event.weight() == null ? NO_WEIGHT : event.weight();
         FlamegraphRecord record = new FlamegraphRecord(type, stackTrace, null, null, event.samples(), weight);
-        builders.computeIfAbsent(type, t -> newFrameBuilder()).onRecord(record);
-    }
-
-    @Override
-    public void onEventSetting(EventSetting setting) {
-    }
-
-    @Override
-    public void onEventType(EventType eventType) {
-    }
-
-    @Override
-    public void onThreadComplete() {
+        builders.computeIfAbsent(type, _ -> newFrameBuilder()).onRecord(record);
     }
 
     /**
