@@ -18,67 +18,37 @@
 
 package cafe.jeffrey.performance.analyst.web.controllers;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import cafe.jeffrey.performance.analyst.flamegraph.RecordingFlamegraphAiExporter;
-import cafe.jeffrey.recordings.core.manager.RecordingsCoreManager;
-import cafe.jeffrey.shared.common.exception.Exceptions;
-import cafe.jeffrey.shared.common.model.Recording;
-import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
+import cafe.jeffrey.performance.analyst.flamegraph.FlamegraphAiPrompt;
+import cafe.jeffrey.performance.analyst.flamegraph.RecordingAiPromptManager;
 
-import java.nio.file.Path;
 import java.util.List;
-import java.util.Optional;
-import java.util.Set;
 
 /**
- * Generates AI flamegraph prompts for a downloaded recording by parsing its JFR file(s) in memory.
- * The prompts are printed to STDOUT and also returned as markdown so the UI can confirm.
+ * Returns the AI flamegraph prompts for a downloaded recording (one per sample event type), parsing the
+ * recording's JFR file(s) in memory on first request and serving the cached markdown thereafter.
  */
 @RestController
 @RequestMapping("/api/internal/recordings")
 public class FlamegraphAiExportController {
 
-    private static final Logger LOG = LoggerFactory.getLogger(FlamegraphAiExportController.class);
+    private final RecordingAiPromptManager promptManager;
 
-    private static final Set<SupportedRecordingFile> JFR_FILE_TYPES =
-            Set.of(SupportedRecordingFile.JFR, SupportedRecordingFile.JFR_LZ4);
-
-    private static final String PROMPT_SEPARATOR = "\n\n---\n\n";
-
-    private final RecordingsCoreManager recordingsManager;
-    private final RecordingFlamegraphAiExporter exporter;
-
-    public FlamegraphAiExportController(
-            RecordingsCoreManager recordingsManager,
-            RecordingFlamegraphAiExporter exporter) {
-        this.recordingsManager = recordingsManager;
-        this.exporter = exporter;
+    public FlamegraphAiExportController(RecordingAiPromptManager promptManager) {
+        this.promptManager = promptManager;
     }
 
-    @PostMapping(value = "/{recordingId}/ai-flamegraph-export", produces = "text/markdown")
-    public String aiExport(@PathVariable("recordingId") String recordingId) {
-        Recording recording = recordingsManager.listRecordings().stream()
-                .filter(r -> r.id().equals(recordingId))
-                .findFirst()
-                .orElseThrow(() -> Exceptions.invalidRequest("Recording not found: " + recordingId));
+    @PostMapping("/{recordingId}/ai-flamegraph-export")
+    public List<FlamegraphAiPrompt> aiExport(@PathVariable("recordingId") String recordingId) {
+        return promptManager.getPrompts(recordingId);
+    }
 
-        List<Path> jfrFiles = recording.files().stream()
-                .filter(file -> JFR_FILE_TYPES.contains(file.recordingFileType()))
-                .map(file -> recordingsManager.findRecordingFile(recordingId, file.id()))
-                .flatMap(Optional::stream)
-                .toList();
-
-        if (jfrFiles.isEmpty()) {
-            throw Exceptions.invalidRequest("Recording has no JFR files: " + recordingId);
-        }
-
-        LOG.info("Generating AI flamegraph prompts: recording_id={} jfr_files={}", recordingId, jfrFiles.size());
-        List<String> prompts = exporter.export(jfrFiles);
-        return String.join(PROMPT_SEPARATOR, prompts);
+    @GetMapping("/{recordingId}/ai-flamegraph-export")
+    public List<FlamegraphAiPrompt> peek(@PathVariable("recordingId") String recordingId) {
+        return promptManager.peekPrompts(recordingId);
     }
 }

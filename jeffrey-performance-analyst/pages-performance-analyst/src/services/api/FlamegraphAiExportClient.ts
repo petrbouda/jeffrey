@@ -16,8 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import axios from 'axios';
 import BasePlatformClient from '@shared/services/api/BasePlatformClient';
+import type AiPrompt from '@/services/api/model/AiPrompt';
 
 export default class FlamegraphAiExportClient extends BasePlatformClient {
   constructor() {
@@ -25,13 +25,18 @@ export default class FlamegraphAiExportClient extends BasePlatformClient {
   }
 
   /**
-   * Parses the recording's JFR file(s) in memory and builds the AI flamegraph prompt(s) for the
-   * jdk.ExecutionSample and profiler.WallClockSample events. The backend prints them to STDOUT and
-   * returns the combined markdown.
+   * Parses the recording's JFR file(s) (server-side, cached after first call) and returns one AI
+   * flamegraph prompt per sample event type (jdk.ExecutionSample, profiler.WallClockSample).
    */
-  async generate(recordingId: string): Promise<string> {
-    const url = `${this.baseUrl}/${recordingId}/ai-flamegraph-export`;
-    const response = await axios.post<string>(url, null, { headers: { Accept: 'text/markdown' } });
-    return response.data;
+  async generate(recordingId: string): Promise<AiPrompt[]> {
+    return this.post<AiPrompt[]>(`/${recordingId}/ai-flamegraph-export`);
+  }
+
+  /**
+   * Returns the already-cached prompts without generating anything (empty if none yet). Used to show
+   * the "AI prompts ready" status on the recording row.
+   */
+  async peek(recordingId: string): Promise<AiPrompt[]> {
+    return this.get<AiPrompt[]>(`/${recordingId}/ai-flamegraph-export`);
   }
 }

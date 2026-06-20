@@ -43,15 +43,14 @@ import java.util.function.Supplier;
 /**
  * Parses recording JFR file(s) in memory — restricted to the two sample event types — folds them into
  * {@link Frame} trees (no DuckDB), and renders one AI flamegraph prompt per present event type, the same
- * markdown the microscope Flamegraph "Copy for AI" export produces. The prompts are printed to STDOUT
- * (this first iteration) and returned to the caller.
+ * markdown the microscope Flamegraph "Copy for AI" export produces. The prompts are printed to STDOUT and
+ * returned to the caller (caching is handled by {@link RecordingAiPromptManager}).
  */
 public class RecordingFlamegraphAiExporter {
 
     private static final Logger LOG = LoggerFactory.getLogger(RecordingFlamegraphAiExporter.class);
 
-    private static final Set<Type> SAMPLE_EVENT_TYPES = Set.of(Type.EXECUTION_SAMPLE, Type.WALL_CLOCK_SAMPLE);
-    private static final List<Type> PROMPT_ORDER = List.of(Type.EXECUTION_SAMPLE, Type.WALL_CLOCK_SAMPLE);
+    private static final Set<Type> SAMPLE_EVENT_TYPES = AiPromptType.eventTypes();
     private static final double MIN_FRAME_THRESHOLD_PCT = 1.0;
     private static final String CHUNKS_DIR = "chunks";
 
@@ -66,25 +65,26 @@ public class RecordingFlamegraphAiExporter {
     /**
      * Parses the given JFR files and builds one AI prompt per sample event type that produced samples.
      */
-    public List<String> export(List<Path> jfrFiles) {
+    public List<FlamegraphAiPrompt> export(List<Path> jfrFiles) {
         Map<Type, Frame> framesByType = parse(jfrFiles);
 
         AiExportConfig config = new AiExportConfig(MIN_FRAME_THRESHOLD_PCT);
-        List<String> prompts = new ArrayList<>();
-        for (Type type : PROMPT_ORDER) {
-            Frame root = framesByType.get(type);
+        List<FlamegraphAiPrompt> prompts = new ArrayList<>();
+        for (AiPromptType promptType : AiPromptType.values()) {
+            Frame root = framesByType.get(promptType.eventType());
             if (root == null || root.totalSamples() == 0) {
                 continue;
             }
 
-            String prompt = new FlamegraphAiMarkdownBuilder(type, config)
+            String markdown = new FlamegraphAiMarkdownBuilder(promptType.eventType(), config)
                     .withThreadMode(false)
                     .build(root);
-            prompts.add(prompt);
+            prompts.add(new FlamegraphAiPrompt(
+                    promptType.eventType().code(), promptType.label(), root.totalSamples(), markdown));
 
             LOG.info("Generated AI flamegraph prompt: event_type={} total_samples={}",
-                    type.code(), root.totalSamples());
-            System.out.println(prompt);
+                    promptType.eventType().code(), root.totalSamples());
+            System.out.println(markdown);
         }
         return prompts;
     }

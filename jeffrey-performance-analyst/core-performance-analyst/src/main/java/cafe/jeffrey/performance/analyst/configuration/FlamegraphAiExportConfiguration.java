@@ -21,7 +21,9 @@ package cafe.jeffrey.performance.analyst.configuration;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import cafe.jeffrey.performance.analyst.flamegraph.RecordingAiPromptManager;
 import cafe.jeffrey.performance.analyst.flamegraph.RecordingFlamegraphAiExporter;
+import cafe.jeffrey.recordings.core.manager.RecordingsCoreManager;
 import cafe.jeffrey.shared.common.compression.Lz4Compressor;
 import cafe.jeffrey.shared.common.filesystem.TempDirFactory;
 
@@ -31,7 +33,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 /**
- * Wiring for the in-memory JFR → Frame → AI-prompt flamegraph export.
+ * Wiring for the in-memory JFR → Frame → AI-prompt flamegraph export and its filesystem cache.
  */
 @Configuration
 public class FlamegraphAiExportConfiguration {
@@ -39,6 +41,7 @@ public class FlamegraphAiExportConfiguration {
     private static final String HOME_DIR =
             "${jeffrey.performance-analyst.home.dir:${user.home}/.jeffrey-performance-analyst}";
     private static final String TEMP_SUBDIR = "temp";
+    private static final String AI_PROMPTS_SUBDIR = "ai-prompts";
 
     @Bean
     public RecordingFlamegraphAiExporter recordingFlamegraphAiExporter(@Value(HOME_DIR) String homeDir) {
@@ -52,5 +55,15 @@ public class FlamegraphAiExportConfiguration {
         TempDirFactory tempDirFactory = TempDirFactory.of(tempBase);
         Lz4Compressor lz4Compressor = new Lz4Compressor(tempDirFactory);
         return new RecordingFlamegraphAiExporter(tempDirFactory, lz4Compressor);
+    }
+
+    @Bean
+    public RecordingAiPromptManager recordingAiPromptManager(
+            @Value(HOME_DIR) String homeDir,
+            RecordingsCoreManager recordingsCoreManager,
+            RecordingFlamegraphAiExporter recordingFlamegraphAiExporter) {
+
+        Path cacheBaseDir = Path.of(homeDir).resolve(AI_PROMPTS_SUBDIR);
+        return new RecordingAiPromptManager(recordingsCoreManager, recordingFlamegraphAiExporter, cacheBaseDir);
     }
 }
