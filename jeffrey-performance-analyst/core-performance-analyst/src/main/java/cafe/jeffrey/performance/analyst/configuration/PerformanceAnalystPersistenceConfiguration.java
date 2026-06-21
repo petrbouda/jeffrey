@@ -26,6 +26,10 @@ import cafe.jeffrey.performance.analyst.persistence.ProjectRepository;
 import cafe.jeffrey.performance.analyst.persistence.JdbcGeneratedPromptRepository;
 import cafe.jeffrey.performance.analyst.persistence.JdbcProjectAiConfigurationRepository;
 import cafe.jeffrey.performance.analyst.persistence.JdbcProjectRepository;
+import cafe.jeffrey.performance.analyst.persistence.JdbcVersionSystemStore;
+import cafe.jeffrey.performance.analyst.persistence.VersionSystemStore;
+import cafe.jeffrey.shared.common.encryption.MachineFingerprint;
+import cafe.jeffrey.shared.common.encryption.SecretEncryptor;
 import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
 
 /**
@@ -50,5 +54,16 @@ public class PerformanceAnalystPersistenceConfiguration {
     @Bean
     public ProjectAiConfigurationRepository projectAiConfigurationRepository(DatabaseClientProvider databaseClientProvider) {
         return new JdbcProjectAiConfigurationRepository(databaseClientProvider);
+    }
+
+    @Bean
+    public SecretEncryptor secretEncryptor() {
+        return new SecretEncryptor(new MachineFingerprint());
+    }
+
+    @Bean
+    public VersionSystemStore versionSystemStore(
+            DatabaseClientProvider databaseClientProvider, SecretEncryptor secretEncryptor) {
+        return new JdbcVersionSystemStore(databaseClientProvider, secretEncryptor);
     }
 }

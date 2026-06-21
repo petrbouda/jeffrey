@@ -53,6 +53,25 @@ CREATE TABLE IF NOT EXISTS project_ai_configuration
 );
 
 --
+-- VERSION SYSTEMS
+-- Per-project version-control integration (GitHub/GitLab). project_id references a remote
+-- jeffrey-hub workspace project (browsed via WorkspacesBrowser), so it is a soft reference rather
+-- than a foreign key into the local projects table. credentials holds an encrypted, platform-specific
+-- JSON blob (null/empty for public repositories). One row per project.
+--
+CREATE TABLE IF NOT EXISTS version_systems
+(
+    id           TEXT NOT NULL PRIMARY KEY,
+    project_id   TEXT NOT NULL,
+    platform     TEXT NOT NULL,            -- 'github' | 'gitlab'
+    url          TEXT NOT NULL,
+    credentials  TEXT,                     -- encrypted (Base64) JSON, nullable for public repositories
+    created_at   INTEGER NOT NULL,
+    modified_at  INTEGER NOT NULL,
+    UNIQUE (project_id)
+);
+
+--
 -- PROJECT RECORDINGS (membership)
 -- Links a project to the recordings it groups. recording_id is a soft reference to the
 -- recording stored in the recordings table below.

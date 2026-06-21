@@ -36,6 +36,14 @@
             <i class="bi bi-grid"></i>
             <span>Instances</span>
           </router-link>
+          <router-link
+            :to="generateProjectUrl('version-system')"
+            class="nav-pill"
+            active-class="active"
+          >
+            <i class="bi bi-git"></i>
+            <span>Version System</span>
+          </router-link>
         </nav>
       </div>
     </div>

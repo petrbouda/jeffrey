@@ -27,6 +27,8 @@ import cafe.jeffrey.microscope.persistence.api.HubInfo;
 import cafe.jeffrey.microscope.persistence.api.RecordingGroup;
 import cafe.jeffrey.microscope.persistence.api.RecordingTag;
 import cafe.jeffrey.performance.analyst.configuration.DataSourceConfiguration;
+import cafe.jeffrey.shared.common.encryption.MachineFingerprint;
+import cafe.jeffrey.shared.common.encryption.SecretEncryptor;
 import cafe.jeffrey.shared.common.model.Recording;
 import cafe.jeffrey.shared.common.model.RecordingEventSource;
 import cafe.jeffrey.shared.common.model.RecordingFile;
@@ -152,6 +154,64 @@ class SqlitePersistenceTest {
             // ON DELETE CASCADE only fires when foreign_keys is enforced — proves the pragma is on.
             new JdbcProjectRepository(clientProvider).delete("p3");
             assertFalse(aiRepo.find("p3").isPresent());
+        }
+    }
+
+    @Nested
+    class VersionSystems {
+
+        private static final String CREDENTIALS_JSON = "{\"token\":\"secret-token\"}";
+
+        private JdbcVersionSystemStore store() {
+            return new JdbcVersionSystemStore(clientProvider, new SecretEncryptor(new MachineFingerprint()));
+        }
+
+        @Test
+        void upsertReadsBackDecryptedAndOverwrites() throws Exception {
+            // project_id is a soft reference to a remote workspace project — no local projects row needed.
+            JdbcVersionSystemStore store = store();
+            assertTrue(store.findByProject("vp1").isEmpty());
+
+            store.upsert(new VersionSystem(
+                    "vs1", "vp1", Platform.GITHUB, "https://github.com/petrbouda/jeffrey.git", CREDENTIALS_JSON, T, T));
+
+            VersionSystem loaded = store.findByProject("vp1").orElseThrow();
+            assertEquals(Platform.GITHUB, loaded.platform());
+            assertEquals("https://github.com/petrbouda/jeffrey.git", loaded.url());
+            assertEquals(CREDENTIALS_JSON, loaded.credentials());
+            assertTrue(loaded.hasCredentials());
+
+            // credentials are encrypted at rest: the raw column never contains the plaintext token
+            assertFalse(readRawCredentials("vp1").contains("secret-token"));
+
+            // upsert on the project key overwrites in place; a null token clears the stored credentials
+            store.upsert(new VersionSystem(
+                    "vs1", "vp1", Platform.GITLAB, "https://gitlab.com/group/repo.git", null, T, T));
+            VersionSystem updated = store.findByProject("vp1").orElseThrow();
+            assertEquals(Platform.GITLAB, updated.platform());
+            assertEquals("https://gitlab.com/group/repo.git", updated.url());
+            assertFalse(updated.hasCredentials());
+        }
+
+        @Test
+        void deleteRemovesTheRow() {
+            JdbcVersionSystemStore store = store();
+            store.upsert(new VersionSystem(
+                    "vs2", "vp2", Platform.GITHUB, "https://example.com/repo.git", null, T, T));
+            assertTrue(store.findByProject("vp2").isPresent());
+
+            store.delete("vp2");
+            assertFalse(store.findByProject("vp2").isPresent());
+        }
+
+        private String readRawCredentials(String projectId) throws Exception {
+            try (Connection connection = clientProvider.dataSource().getConnection();
+                 Statement statement = connection.createStatement();
+                 ResultSet rs = statement.executeQuery(
+                         "SELECT credentials FROM version_systems WHERE project_id = '" + projectId + "'")) {
+                assertTrue(rs.next());
+                return rs.getString(1);
+            }
         }
     }
 

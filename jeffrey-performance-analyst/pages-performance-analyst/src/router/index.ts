@@ -25,6 +25,7 @@ import InstancesOverview from '@instances/InstancesOverview.vue';
 import InstancesTimeline from '@instances/InstancesTimeline.vue';
 import InstanceDetail from '@instances/InstanceDetail.vue';
 import RecordingsView from '@/views/global/RecordingsView.vue';
+import VersionSystemView from '@/views/projects/detail/VersionSystemView.vue';
 
 const router = createRouter({
     history: createWebHistory(),
@@ -71,6 +72,11 @@ const router = createRouter({
                             path: 'instances/:instanceId',
                             name: 'project-instance-detail',
                             component: InstanceDetail
+                        },
+                        {
+                            path: 'version-system',
+                            name: 'project-version-system',
+                            component: VersionSystemView
                         }
                     ]
                 }

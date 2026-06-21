@@ -229,6 +229,13 @@ public enum StatementLabel {
     DELETE_AI_PROMPTS_BY_RECORDING,
 
     /**
+     * {@link GroupLabel#PROJECTS} (version-control integration)
+     */
+    UPSERT_VERSION_SYSTEM,
+    FIND_VERSION_SYSTEM,
+    DELETE_VERSION_SYSTEM,
+
+    /**
      * {@link GroupLabel#PROJECT_INSTANCES}
      */
     FIND_ALL_PROJECT_INSTANCES,
