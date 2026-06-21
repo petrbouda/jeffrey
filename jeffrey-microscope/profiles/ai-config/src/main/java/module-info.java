@@ -28,6 +28,7 @@ module cafe.jeffrey.microscope.profile.ai.config {
     requires spring.core;
     requires cafe.jeffrey.shared.common;
     requires org.slf4j;
+    requires com.fasterxml.jackson.databind;
     // Spring AI 2.0.0 exposes these SDK types in its public API (OpenAiSetup/AnthropicSetup
     // return types and ObservationRegistry parameters): named modules must read them explicitly.
     requires micrometer.observation;

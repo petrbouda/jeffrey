@@ -88,6 +88,7 @@
               :disabled="!aiEnabled"
             >
               <option value="claude">Claude (Anthropic)</option>
+              <option value="claude-code">Claude Code (subscription)</option>
               <option value="chatgpt">ChatGPT (OpenAI)</option>
               <option value="ollama">Ollama (self-hosted)</option>
             </select>
@@ -124,6 +125,27 @@
               <i class="bi bi-hdd-network"></i> URL of your self-hosted Ollama server
             </div>
           </div>
+          <div v-else-if="isClaudeCode" class="settings-form-group">
+            <label class="settings-label">Claude CLI Path</label>
+            <input
+              type="text"
+              :value="settings.get('jeffrey.microscope.ai.cli-path')"
+              @input="
+                setSetting(
+                  'jeffrey.microscope.ai.cli-path',
+                  ($event.target as HTMLInputElement).value
+                )
+              "
+              class="form-control"
+              :disabled="!aiEnabled"
+              placeholder="claude"
+            />
+            <div class="settings-hint">
+              <i class="bi bi-terminal"></i> Uses your logged-in Claude subscription via the Claude
+              Code CLI — no API key required. The CLI must be installed and authenticated on the
+              host running Jeffrey.
+            </div>
+          </div>
           <div v-else class="settings-form-group">
             <label class="settings-label">API Key</label>
             <div class="password-wrap">
@@ -148,7 +170,7 @@
               <i class="bi bi-lock"></i> Encrypted at rest with machine-bound key
             </div>
           </div>
-          <div class="settings-form-group">
+          <div v-if="!isClaudeCode" class="settings-form-group">
             <label class="settings-label">Max Tokens</label>
             <input
               type="number"
@@ -164,6 +186,26 @@
               placeholder="128000"
             />
             <div class="settings-hint">Maximum token limit per AI request</div>
+          </div>
+          <div v-if="isClaudeCode" class="settings-form-group">
+            <label class="settings-label">Timeout (seconds)</label>
+            <input
+              type="number"
+              :value="settings.get('jeffrey.microscope.ai.timeout-seconds')"
+              @input="
+                setSetting(
+                  'jeffrey.microscope.ai.timeout-seconds',
+                  ($event.target as HTMLInputElement).value
+                )
+              "
+              class="form-control"
+              :disabled="!aiEnabled"
+              placeholder="120"
+            />
+            <div class="settings-hint">
+              Maximum time to wait for a Claude Code response. Agentic tool loops can take longer
+              than a single API call.
+            </div>
           </div>
         </div>
 
@@ -406,10 +448,13 @@ const aiToggle = ref(false);
 const aiEnabled = computed(() => aiToggle.value);
 
 const isOllama = computed(() => settings.get('jeffrey.microscope.ai.provider') === 'ollama');
+const isClaudeCode = computed(
+  () => settings.get('jeffrey.microscope.ai.provider') === 'claude-code'
+);
 
 const currentModels = computed(() => {
   const provider = settings.get('jeffrey.microscope.ai.provider');
-  if (provider === 'claude') return claudeModels;
+  if (provider === 'claude' || provider === 'claude-code') return claudeModels;
   if (provider === 'chatgpt') return chatgptModels;
   if (provider === 'ollama') return ollamaModels;
   return [];
@@ -606,6 +651,18 @@ async function saveAiSettings() {
         'ai',
         'jeffrey.microscope.ai.base-url',
         settings.get('jeffrey.microscope.ai.base-url') || '',
+        false
+      ),
+      client.upsert(
+        'ai',
+        'jeffrey.microscope.ai.cli-path',
+        settings.get('jeffrey.microscope.ai.cli-path') || 'claude',
+        false
+      ),
+      client.upsert(
+        'ai',
+        'jeffrey.microscope.ai.timeout-seconds',
+        settings.get('jeffrey.microscope.ai.timeout-seconds') || '120',
         false
       ),
       ...(apiKey && !apiKey.includes('****')

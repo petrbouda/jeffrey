@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,25 +16,21 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.profile.ai.duckdb.heapdump.model;
+package cafe.jeffrey.microscope.core.mcp;
 
-import cafe.jeffrey.profile.ai.chat.ChatMessage;
-
-import java.util.List;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 /**
- * Request for heap dump AI analysis.
+ * The {@code tools/list} description of a single MCP tool: its name, human-readable description, and
+ * JSON-Schema input definition.
  *
- * @param profileId the profile under analysis (used to scope the Claude Code MCP toolset)
- * @param message   the user's question or analysis request
- * @param history   optional conversation history for context
+ * @param name        the tool name as seen by the model ({@code mcp__<server>__<name>})
+ * @param description the tool description
+ * @param inputSchema the JSON-Schema object describing the tool's arguments
  */
-public record HeapDumpAnalysisRequest(
-        String profileId,
-        String message,
-        List<ChatMessage> history
+public record McpToolSpec(
+        String name,
+        String description,
+        ObjectNode inputSchema
 ) {
-    public HeapDumpAnalysisRequest(String profileId, String message) {
-        this(profileId, message, List.of());
-    }
 }

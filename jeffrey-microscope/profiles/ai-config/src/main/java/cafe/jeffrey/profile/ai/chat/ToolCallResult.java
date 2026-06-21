@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,25 +16,23 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.profile.ai.duckdb.heapdump.model;
-
-import cafe.jeffrey.profile.ai.chat.ChatMessage;
+package cafe.jeffrey.profile.ai.chat;
 
 import java.util.List;
 
 /**
- * Request for heap dump AI analysis.
+ * Raw outcome of a tool-enabled model call: the assistant text and the names of any tools the model
+ * invoked. Domain services enrich this into an {@link AssistantResponse} (adding follow-up
+ * suggestions).
  *
- * @param profileId the profile under analysis (used to scope the Claude Code MCP toolset)
- * @param message   the user's question or analysis request
- * @param history   optional conversation history for context
+ * @param text      the assistant's response text
+ * @param toolsUsed the names of tools the model invoked during the call (never null)
  */
-public record HeapDumpAnalysisRequest(
-        String profileId,
-        String message,
-        List<ChatMessage> history
+public record ToolCallResult(
+        String text,
+        List<String> toolsUsed
 ) {
-    public HeapDumpAnalysisRequest(String profileId, String message) {
-        this(profileId, message, List.of());
+    public ToolCallResult {
+        toolsUsed = toolsUsed == null ? List.of() : List.copyOf(toolsUsed);
     }
 }

@@ -18,48 +18,48 @@
 
 package cafe.jeffrey.profile.ai.oql.service;
 
-import cafe.jeffrey.profile.ai.oql.model.*;
-import cafe.jeffrey.shared.common.span.Spans;
+import cafe.jeffrey.profile.ai.chat.AiChatBackend;
+import cafe.jeffrey.profile.ai.chat.ChatExchange;
+import cafe.jeffrey.profile.ai.chat.ChatMessage;
+import cafe.jeffrey.profile.ai.oql.model.AiStatusResponse;
+import cafe.jeffrey.profile.ai.oql.model.HeapDumpContext;
+import cafe.jeffrey.profile.ai.oql.model.OqlChatRequest;
+import cafe.jeffrey.profile.ai.oql.model.OqlChatResponse;
+import cafe.jeffrey.profile.ai.oql.prompt.OqlSystemPrompt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.chat.messages.AssistantMessage;
-import org.springframework.ai.chat.messages.Message;
-import org.springframework.ai.chat.messages.UserMessage;
 
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Implementation of OQL Assistant Service using Spring AI ChatClient.
+ * Implementation of OQL Assistant Service over the provider-agnostic {@link AiChatBackend}.
  */
 public class OqlAssistantServiceImpl implements OqlAssistantService {
 
     private static final Logger LOG = LoggerFactory.getLogger(OqlAssistantServiceImpl.class);
 
-    private final ChatClient chatClient;
-    private final String providerName;
+    private static final String AI_CALL_SPAN_NAME = "ai.oql.call";
+
+    private final AiChatBackend chatBackend;
     private final HeapDumpContextExtractor contextExtractor;
     private final OqlExtractor oqlExtractor;
 
-    public OqlAssistantServiceImpl(
-            ChatClient chatClient,
-            String providerName) {
-        this.chatClient = chatClient;
-        this.providerName = providerName;
+    public OqlAssistantServiceImpl(AiChatBackend chatBackend) {
+        this.chatBackend = chatBackend;
         this.contextExtractor = new HeapDumpContextExtractor();
         this.oqlExtractor = new OqlExtractor();
-        LOG.info("OQL Assistant initialized: provider={}", providerName);
+        LOG.info("OQL Assistant initialized: provider={}", chatBackend.providerName());
     }
 
     @Override
     public boolean isAvailable() {
-        return true;
+        return chatBackend.isAvailable();
     }
 
     @Override
     public AiStatusResponse getStatus() {
-        return new AiStatusResponse(true, providerName, isAvailable());
+        return new AiStatusResponse(true, chatBackend.providerName(), isAvailable());
     }
 
     @Override
@@ -69,23 +69,13 @@ public class OqlAssistantServiceImpl implements OqlAssistantService {
         }
 
         try {
-            // Format heap context for the prompt
             String contextText = contextExtractor.formatForPrompt(context);
+            ChatExchange exchange = new ChatExchange(
+                    OqlSystemPrompt.SYSTEM_PROMPT,
+                    convertHistory(request),
+                    buildUserMessage(request, contextText));
 
-            // Build conversation messages
-            List<Message> messages = buildMessages(request, contextText);
-
-            // Call the AI
-            long aiSpan = Spans.start();
-            String response;
-            try {
-                response = chatClient.prompt()
-                        .messages(messages)
-                        .call()
-                        .content();
-            } finally {
-                Spans.end(aiSpan, "ai.oql.call");
-            }
+            String response = chatBackend.chat(exchange, AI_CALL_SPAN_NAME);
 
             // Extract OQL from response
             String extractedOql = oqlExtractor.extract(response);
@@ -104,36 +94,33 @@ public class OqlAssistantServiceImpl implements OqlAssistantService {
         }
     }
 
-    private List<Message> buildMessages(OqlChatRequest request, String contextText) {
-        List<Message> messages = new ArrayList<>();
-
-        // Add conversation history
-        if (request.history() != null) {
-            for (ChatMessage msg : request.history()) {
-                if (msg.isUser()) {
-                    messages.add(new UserMessage(msg.content()));
-                } else {
-                    // Include OQL in assistant message if present
-                    String content = msg.oql() != null
-                            ? msg.content() + "\n```sql\n" + msg.oql() + "\n```"
-                            : msg.content();
-                    messages.add(new AssistantMessage(content));
-                }
+    private List<ChatMessage> convertHistory(OqlChatRequest request) {
+        List<ChatMessage> messages = new ArrayList<>();
+        if (request.history() == null) {
+            return messages;
+        }
+        for (var msg : request.history()) {
+            if (msg.isUser()) {
+                messages.add(ChatMessage.user(msg.content()));
+            } else {
+                // Include OQL in assistant message if present so the model sees its prior query.
+                String content = msg.oql() != null
+                        ? msg.content() + "\n```sql\n" + msg.oql() + "\n```"
+                        : msg.content();
+                messages.add(ChatMessage.assistant(content));
             }
         }
+        return messages;
+    }
 
-        // Add current user message with heap context
-        String userMessageWithContext = """
+    private String buildUserMessage(OqlChatRequest request, String contextText) {
+        return """
                 ## Current Heap Dump Context
                 %s
-                
+
                 ## User Request
                 %s
                 """.formatted(contextText, request.message());
-
-        messages.add(new UserMessage(userMessageWithContext));
-
-        return messages;
     }
 
     private List<String> generateFollowupSuggestions(String oql) {
