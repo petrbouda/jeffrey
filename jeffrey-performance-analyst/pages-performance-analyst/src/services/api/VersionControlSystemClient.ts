@@ -17,9 +17,9 @@
  */
 
 import BasePlatformClient from '@shared/services/api/BasePlatformClient';
-import type VersionSystemConfig from '@/services/api/model/VersionSystemConfig';
+import type VersionControlSystemConfig from '@/services/api/model/VersionControlSystemConfig';
 
-export interface VersionSystemSaveRequest {
+export interface VersionControlSystemSaveRequest {
   platform: string;
   url: string;
   // Leave empty on an update to preserve the previously stored token.
@@ -29,16 +29,16 @@ export interface VersionSystemSaveRequest {
 /**
  * Reads and writes the version-control integration (GitHub/GitLab) registered for a project.
  */
-export default class VersionSystemClient extends BasePlatformClient {
+export default class VersionControlSystemClient extends BasePlatformClient {
   constructor(hubId: string, workspaceId: string, projectId: string) {
-    super(`/hubs/${hubId}/workspaces/${workspaceId}/projects/${projectId}/version-system`);
+    super(`/hubs/${hubId}/workspaces/${workspaceId}/projects/${projectId}/version-control-system`);
   }
 
-  load(): Promise<VersionSystemConfig> {
-    return super.get<VersionSystemConfig>();
+  load(): Promise<VersionControlSystemConfig> {
+    return super.get<VersionControlSystemConfig>();
   }
 
-  save(request: VersionSystemSaveRequest): Promise<VersionSystemConfig> {
-    return super.put<VersionSystemConfig>('', request);
+  save(request: VersionControlSystemSaveRequest): Promise<VersionControlSystemConfig> {
+    return super.put<VersionControlSystemConfig>('', request);
   }
 }

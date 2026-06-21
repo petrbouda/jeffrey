@@ -30,70 +30,70 @@ import java.time.Instant;
 import java.util.Optional;
 
 /**
- * SQLite-backed {@link VersionSystemStore}. The {@code credentials} JSON is encrypted via
+ * SQLite-backed {@link VersionControlSystemStore}. The {@code credentials} JSON is encrypted via
  * {@link SecretEncryptor} before it is written and decrypted when a row is read, so the plaintext
  * token never touches disk.
  */
-public class JdbcVersionSystemStore implements VersionSystemStore {
+public class JdbcVersionControlSystemStore implements VersionControlSystemStore {
 
     //language=SQL
     private static final String SELECT_BY_PROJECT =
-            "SELECT * FROM version_systems WHERE project_id = :project_id";
+            "SELECT * FROM version_control_systems WHERE project_id = :project_id";
 
     //language=SQL
     private static final String UPSERT = """
-            INSERT INTO version_systems (id, project_id, platform, url, credentials, created_at, modified_at)
+            INSERT INTO version_control_systems (id, project_id, platform, url, credentials, created_at, modified_at)
             VALUES (:id, :project_id, :platform, :url, :credentials, :created_at, :modified_at)
             ON CONFLICT (project_id) DO UPDATE SET
                 platform = :platform, url = :url, credentials = :credentials, modified_at = :modified_at""";
 
     //language=SQL
-    private static final String DELETE = "DELETE FROM version_systems WHERE project_id = :project_id";
+    private static final String DELETE = "DELETE FROM version_control_systems WHERE project_id = :project_id";
 
     private final DatabaseClient databaseClient;
     private final SecretEncryptor secretEncryptor;
 
-    public JdbcVersionSystemStore(DatabaseClientProvider databaseClientProvider, SecretEncryptor secretEncryptor) {
+    public JdbcVersionControlSystemStore(DatabaseClientProvider databaseClientProvider, SecretEncryptor secretEncryptor) {
         this.databaseClient = databaseClientProvider.provide(GroupLabel.PROJECTS);
         this.secretEncryptor = secretEncryptor;
     }
 
     @Override
-    public Optional<VersionSystem> findByProject(String projectId) {
+    public Optional<VersionControlSystem> findByProject(String projectId) {
         MapSqlParameterSource params = new MapSqlParameterSource().addValue("project_id", projectId);
-        return databaseClient.querySingle(StatementLabel.FIND_VERSION_SYSTEM, SELECT_BY_PROJECT, params, versionSystemMapper());
+        return databaseClient.querySingle(StatementLabel.FIND_VERSION_CONTROL_SYSTEM, SELECT_BY_PROJECT, params, versionControlSystemMapper());
     }
 
     @Override
-    public void upsert(VersionSystem versionSystem) {
-        String encryptedCredentials = versionSystem.hasCredentials()
-                ? secretEncryptor.encrypt(versionSystem.credentials())
+    public void upsert(VersionControlSystem versionControlSystem) {
+        String encryptedCredentials = versionControlSystem.hasCredentials()
+                ? secretEncryptor.encrypt(versionControlSystem.credentials())
                 : null;
 
         MapSqlParameterSource params = new MapSqlParameterSource()
-                .addValue("id", versionSystem.id())
-                .addValue("project_id", versionSystem.projectId())
-                .addValue("platform", versionSystem.platform().code())
-                .addValue("url", versionSystem.url())
+                .addValue("id", versionControlSystem.id())
+                .addValue("project_id", versionControlSystem.projectId())
+                .addValue("platform", versionControlSystem.platform().code())
+                .addValue("url", versionControlSystem.url())
                 .addValue("credentials", encryptedCredentials)
-                .addValue("created_at", versionSystem.createdAt().toEpochMilli())
-                .addValue("modified_at", versionSystem.modifiedAt().toEpochMilli());
-        databaseClient.update(StatementLabel.UPSERT_VERSION_SYSTEM, UPSERT, params);
+                .addValue("created_at", versionControlSystem.createdAt().toEpochMilli())
+                .addValue("modified_at", versionControlSystem.modifiedAt().toEpochMilli());
+        databaseClient.update(StatementLabel.UPSERT_VERSION_CONTROL_SYSTEM, UPSERT, params);
     }
 
     @Override
     public void delete(String projectId) {
         MapSqlParameterSource params = new MapSqlParameterSource().addValue("project_id", projectId);
-        databaseClient.delete(StatementLabel.DELETE_VERSION_SYSTEM, DELETE, params);
+        databaseClient.delete(StatementLabel.DELETE_VERSION_CONTROL_SYSTEM, DELETE, params);
     }
 
-    private RowMapper<VersionSystem> versionSystemMapper() {
+    private RowMapper<VersionControlSystem> versionControlSystemMapper() {
         return (rs, _) -> {
             String storedCredentials = rs.getString("credentials");
             String credentials = (storedCredentials == null || storedCredentials.isBlank())
                     ? null
                     : secretEncryptor.decrypt(storedCredentials);
-            return new VersionSystem(
+            return new VersionControlSystem(
                     rs.getString("id"),
                     rs.getString("project_id"),
                     Platform.fromCode(rs.getString("platform")),

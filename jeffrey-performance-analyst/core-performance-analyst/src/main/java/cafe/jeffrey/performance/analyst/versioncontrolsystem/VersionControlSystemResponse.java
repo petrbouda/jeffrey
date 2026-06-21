@@ -16,25 +16,25 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.performance.analyst.versionsystem;
+package cafe.jeffrey.performance.analyst.versioncontrolsystem;
 
-import cafe.jeffrey.performance.analyst.persistence.VersionSystem;
+import cafe.jeffrey.performance.analyst.persistence.VersionControlSystem;
 
 /**
- * Response describing a project's version-system integration. The raw access token is never returned —
+ * Response describing a project's version-control-system integration. The raw access token is never returned —
  * only a {@code hasCredentials} flag indicating whether one is stored.
  */
-public record VersionSystemResponse(boolean configured, String platform, String url, boolean hasCredentials) {
+public record VersionControlSystemResponse(boolean configured, String platform, String url, boolean hasCredentials) {
 
-    public static VersionSystemResponse empty() {
-        return new VersionSystemResponse(false, null, null, false);
+    public static VersionControlSystemResponse empty() {
+        return new VersionControlSystemResponse(false, null, null, false);
     }
 
-    public static VersionSystemResponse of(VersionSystem versionSystem) {
-        return new VersionSystemResponse(
+    public static VersionControlSystemResponse of(VersionControlSystem versionControlSystem) {
+        return new VersionControlSystemResponse(
                 true,
-                versionSystem.platform().code(),
-                versionSystem.url(),
-                versionSystem.hasCredentials());
+                versionControlSystem.platform().code(),
+                versionControlSystem.url(),
+                versionControlSystem.hasCredentials());
     }
 }

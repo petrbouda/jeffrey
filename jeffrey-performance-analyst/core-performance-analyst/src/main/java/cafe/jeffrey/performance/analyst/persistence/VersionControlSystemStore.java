@@ -16,12 +16,19 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.performance.analyst.versionsystem;
+package cafe.jeffrey.performance.analyst.persistence;
+
+import java.util.Optional;
 
 /**
- * Platform-specific credentials for a version-control integration, serialized to the encrypted
- * {@code credentials} JSON blob persisted with a {@code VersionSystem}. For now both GitHub and GitLab
- * authenticate with a single personal access token over HTTPS.
+ * Persistence for a project's {@link VersionControlSystem} integration (one row per project). Credentials are
+ * encrypted at rest and decrypted on read inside the implementation.
  */
-public record VersionSystemCredentials(String token) {
+public interface VersionControlSystemStore {
+
+    Optional<VersionControlSystem> findByProject(String projectId);
+
+    void upsert(VersionControlSystem versionControlSystem);
+
+    void delete(String projectId);
 }

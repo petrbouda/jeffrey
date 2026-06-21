@@ -20,8 +20,8 @@ package cafe.jeffrey.performance.analyst.configuration;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import cafe.jeffrey.performance.analyst.persistence.VersionSystemStore;
-import cafe.jeffrey.performance.analyst.versionsystem.VersionSystemManager;
+import cafe.jeffrey.performance.analyst.persistence.VersionControlSystemStore;
+import cafe.jeffrey.performance.analyst.versioncontrolsystem.VersionControlSystemManager;
 
 import java.time.Clock;
 
@@ -30,10 +30,10 @@ import java.time.Clock;
  * repository URL, and (encrypted) credentials. Cloning the repository is a separate, later concern.
  */
 @Configuration
-public class VersionSystemConfiguration {
+public class VersionControlSystemConfiguration {
 
     @Bean
-    public VersionSystemManager versionSystemManager(VersionSystemStore versionSystemStore, Clock clock) {
-        return new VersionSystemManager(versionSystemStore, clock);
+    public VersionControlSystemManager versionControlSystemManager(VersionControlSystemStore versionControlSystemStore, Clock clock) {
+        return new VersionControlSystemManager(versionControlSystemStore, clock);
     }
 }

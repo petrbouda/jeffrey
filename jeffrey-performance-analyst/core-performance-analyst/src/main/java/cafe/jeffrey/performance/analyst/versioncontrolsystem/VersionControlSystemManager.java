@@ -16,13 +16,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.performance.analyst.versionsystem;
+package cafe.jeffrey.performance.analyst.versioncontrolsystem;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.performance.analyst.persistence.Platform;
-import cafe.jeffrey.performance.analyst.persistence.VersionSystem;
-import cafe.jeffrey.performance.analyst.persistence.VersionSystemStore;
+import cafe.jeffrey.performance.analyst.persistence.VersionControlSystem;
+import cafe.jeffrey.performance.analyst.persistence.VersionControlSystemStore;
 import cafe.jeffrey.shared.common.IDGenerator;
 import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.shared.common.exception.Exceptions;
@@ -32,63 +32,63 @@ import java.time.Instant;
 import java.util.Optional;
 
 /**
- * Reads and writes a project's {@link VersionSystem} integration. Credentials arrive as a single access
+ * Reads and writes a project's {@link VersionControlSystem} integration. Credentials arrive as a single access
  * token, are wrapped into a platform-specific JSON blob, and are encrypted at the persistence boundary.
  * When a save omits the token, the previously stored credentials are preserved.
  */
-public class VersionSystemManager {
+public class VersionControlSystemManager {
 
-    private static final Logger LOG = LoggerFactory.getLogger(VersionSystemManager.class);
+    private static final Logger LOG = LoggerFactory.getLogger(VersionControlSystemManager.class);
 
-    private final VersionSystemStore versionSystemStore;
+    private final VersionControlSystemStore versionControlSystemStore;
     private final Clock clock;
 
-    public VersionSystemManager(VersionSystemStore versionSystemStore, Clock clock) {
-        this.versionSystemStore = versionSystemStore;
+    public VersionControlSystemManager(VersionControlSystemStore versionControlSystemStore, Clock clock) {
+        this.versionControlSystemStore = versionControlSystemStore;
         this.clock = clock;
     }
 
-    public Optional<VersionSystem> find(String projectId) {
-        return versionSystemStore.findByProject(projectId);
+    public Optional<VersionControlSystem> find(String projectId) {
+        return versionControlSystemStore.findByProject(projectId);
     }
 
-    public VersionSystem save(String projectId, String platformCode, String url, String token) {
+    public VersionControlSystem save(String projectId, String platformCode, String url, String token) {
         if (url == null || url.isBlank()) {
             throw Exceptions.invalidRequest("Repository URL must not be blank");
         }
 
         Platform platform = parsePlatform(platformCode);
-        Optional<VersionSystem> existing = versionSystemStore.findByProject(projectId);
+        Optional<VersionControlSystem> existing = versionControlSystemStore.findByProject(projectId);
         Instant now = clock.instant();
 
-        VersionSystem versionSystem = new VersionSystem(
-                existing.map(VersionSystem::id).orElseGet(IDGenerator::generate),
+        VersionControlSystem versionControlSystem = new VersionControlSystem(
+                existing.map(VersionControlSystem::id).orElseGet(IDGenerator::generate),
                 projectId,
                 platform,
                 url,
                 resolveCredentials(token, existing),
-                existing.map(VersionSystem::createdAt).orElse(now),
+                existing.map(VersionControlSystem::createdAt).orElse(now),
                 now);
 
-        versionSystemStore.upsert(versionSystem);
-        LOG.info("Saved version system: project_id={} platform={} has_credentials={}",
-                projectId, platform.code(), versionSystem.hasCredentials());
-        return versionSystem;
+        versionControlSystemStore.upsert(versionControlSystem);
+        LOG.info("Saved version control system: project_id={} platform={} has_credentials={}",
+                projectId, platform.code(), versionControlSystem.hasCredentials());
+        return versionControlSystem;
     }
 
-    private String resolveCredentials(String token, Optional<VersionSystem> existing) {
+    private String resolveCredentials(String token, Optional<VersionControlSystem> existing) {
         if (token != null && !token.isBlank()) {
-            return Json.toString(new VersionSystemCredentials(token));
+            return Json.toString(new VersionControlSystemCredentials(token));
         }
         // No new token supplied — keep whatever was previously stored (URL-only edits keep the token).
-        return existing.map(VersionSystem::credentials).orElse(null);
+        return existing.map(VersionControlSystem::credentials).orElse(null);
     }
 
     private Platform parsePlatform(String platformCode) {
         try {
             return Platform.fromCode(platformCode);
         } catch (IllegalArgumentException e) {
-            throw Exceptions.invalidRequest("Unsupported version-system platform: " + platformCode);
+            throw Exceptions.invalidRequest("Unsupported version-control-system platform: " + platformCode);
         }
     }
 }

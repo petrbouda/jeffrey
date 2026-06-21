@@ -231,9 +231,9 @@ public enum StatementLabel {
     /**
      * {@link GroupLabel#PROJECTS} (version-control integration)
      */
-    UPSERT_VERSION_SYSTEM,
-    FIND_VERSION_SYSTEM,
-    DELETE_VERSION_SYSTEM,
+    UPSERT_VERSION_CONTROL_SYSTEM,
+    FIND_VERSION_CONTROL_SYSTEM,
+    DELETE_VERSION_CONTROL_SYSTEM,
 
     /**
      * {@link GroupLabel#PROJECT_INSTANCES}

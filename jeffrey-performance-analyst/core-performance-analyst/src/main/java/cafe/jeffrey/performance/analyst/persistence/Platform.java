@@ -24,7 +24,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
- * Supported version-control platforms for a project's {@link VersionSystem} integration. The
+ * Supported version-control platforms for a project's {@link VersionControlSystem} integration. The
  * {@link #code()} is the persisted/transport form ({@code github}, {@code gitlab}).
  */
 public enum Platform {
@@ -48,7 +48,7 @@ public enum Platform {
     public static Platform fromCode(String code) {
         Platform platform = BY_CODE.get(code);
         if (platform == null) {
-            throw new IllegalArgumentException("Unknown version-system platform: " + code);
+            throw new IllegalArgumentException("Unknown version-control-system platform: " + code);
         }
         return platform;
     }

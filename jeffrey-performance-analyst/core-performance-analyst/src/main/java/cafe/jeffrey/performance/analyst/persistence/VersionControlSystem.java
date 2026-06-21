@@ -25,9 +25,9 @@ import java.time.Instant;
  * platform-specific credentials JSON blob (e.g. an access token). One per project.
  *
  * <p>{@code credentials} is the <em>decrypted</em> JSON in this domain object; encryption at rest is
- * handled at the persistence boundary (see {@code JdbcVersionSystemStore}).</p>
+ * handled at the persistence boundary (see {@code JdbcVersionControlSystemStore}).</p>
  */
-public record VersionSystem(
+public record VersionControlSystem(
         String id,
         String projectId,
         Platform platform,

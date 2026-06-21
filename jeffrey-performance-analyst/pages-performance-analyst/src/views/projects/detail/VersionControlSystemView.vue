@@ -22,11 +22,11 @@
       <template #header>
         <MainCardHeader
           icon="bi bi-git"
-          title="Version System"
+          title="Version Control System"
         />
       </template>
 
-      <LoadingState v-if="loading" message="Loading version system..." />
+      <LoadingState v-if="loading" message="Loading version control system..." />
       <ErrorState v-else-if="error" :message="error" />
 
       <template v-else>
@@ -58,7 +58,7 @@
         </div>
 
         <!-- Platform-specific form -->
-        <form v-if="selectedPlatform" class="version-system-form" @submit.prevent="save">
+        <form v-if="selectedPlatform" class="version-control-system-form" @submit.prevent="save">
           <div class="form-card">
             <div class="form-card-header">
               <i class="bi" :class="selectedPlatformIcon"></i>
@@ -119,7 +119,7 @@ import LoadingState from '@shared/components/LoadingState.vue';
 import ErrorState from '@shared/components/ErrorState.vue';
 import ToastService from '@shared/services/ToastService';
 import { useNavigation } from '@/composables/useNavigation';
-import VersionSystemClient from '@/services/api/VersionSystemClient';
+import VersionControlSystemClient from '@/services/api/VersionControlSystemClient';
 
 interface PlatformOption {
   code: string;
@@ -133,7 +133,7 @@ const PLATFORMS: PlatformOption[] = [
 ];
 
 const { hubId, workspaceId, projectId } = useNavigation();
-const client = new VersionSystemClient(hubId.value, workspaceId.value, projectId.value);
+const client = new VersionControlSystemClient(hubId.value, workspaceId.value, projectId.value);
 
 const loading = ref(true);
 const error = ref<string | null>(null);
@@ -170,8 +170,8 @@ onMounted(async () => {
       hasCredentials.value = config.hasCredentials;
     }
   } catch (e) {
-    console.error('Failed to load version system:', e);
-    error.value = 'Could not load the version system configuration.';
+    console.error('Failed to load version control system:', e);
+    error.value = 'Could not load the version control system configuration.';
   } finally {
     loading.value = false;
   }
@@ -192,10 +192,10 @@ async function save() {
     configuredPlatform.value = config.platform;
     hasCredentials.value = config.hasCredentials;
     token.value = '';
-    ToastService.success('Version system saved', 'The repository has been linked to this project.');
+    ToastService.success('Version Control System saved', 'The repository has been linked to this project.');
   } catch (e) {
-    console.error('Failed to save version system:', e);
-    ToastService.error('Error', 'Could not save the version system configuration.');
+    console.error('Failed to save version control system:', e);
+    ToastService.error('Error', 'Could not save the version control system configuration.');
   } finally {
     saving.value = false;
   }

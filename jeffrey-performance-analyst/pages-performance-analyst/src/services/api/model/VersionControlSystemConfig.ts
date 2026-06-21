@@ -16,11 +16,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.performance.analyst.versionsystem;
-
 /**
- * Request body for saving a project's version-system integration. {@code token} is the access token to
- * store; when left blank on an update the previously saved token is preserved.
+ * A project's version-control integration as returned by the backend. The raw access token is never
+ * exposed — only {@link hasCredentials} indicates whether one is stored.
  */
-public record VersionSystemRequest(String platform, String url, String token) {
+export default interface VersionControlSystemConfig {
+  configured: boolean;
+  platform: string | null;
+  url: string | null;
+  hasCredentials: boolean;
 }

@@ -16,13 +16,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+package cafe.jeffrey.performance.analyst.versioncontrolsystem;
+
 /**
- * A project's version-control integration as returned by the backend. The raw access token is never
- * exposed — only {@link hasCredentials} indicates whether one is stored.
+ * Platform-specific credentials for a version-control integration, serialized to the encrypted
+ * {@code credentials} JSON blob persisted with a {@code VersionControlSystem}. For now both GitHub and GitLab
+ * authenticate with a single personal access token over HTTPS.
  */
-export default interface VersionSystemConfig {
-  configured: boolean;
-  platform: string | null;
-  url: string | null;
-  hasCredentials: boolean;
+public record VersionControlSystemCredentials(String token) {
 }

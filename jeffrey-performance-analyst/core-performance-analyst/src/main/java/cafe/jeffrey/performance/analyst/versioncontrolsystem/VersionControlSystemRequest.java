@@ -16,19 +16,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.performance.analyst.persistence;
-
-import java.util.Optional;
+package cafe.jeffrey.performance.analyst.versioncontrolsystem;
 
 /**
- * Persistence for a project's {@link VersionSystem} integration (one row per project). Credentials are
- * encrypted at rest and decrypted on read inside the implementation.
+ * Request body for saving a project's version-control-system integration. {@code token} is the access token to
+ * store; when left blank on an update the previously saved token is preserved.
  */
-public interface VersionSystemStore {
-
-    Optional<VersionSystem> findByProject(String projectId);
-
-    void upsert(VersionSystem versionSystem);
-
-    void delete(String projectId);
+public record VersionControlSystemRequest(String platform, String url, String token) {
 }

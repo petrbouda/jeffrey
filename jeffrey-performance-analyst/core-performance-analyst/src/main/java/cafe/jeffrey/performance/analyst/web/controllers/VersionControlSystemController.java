@@ -24,36 +24,36 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import cafe.jeffrey.performance.analyst.versionsystem.VersionSystemManager;
-import cafe.jeffrey.performance.analyst.versionsystem.VersionSystemRequest;
-import cafe.jeffrey.performance.analyst.versionsystem.VersionSystemResponse;
+import cafe.jeffrey.performance.analyst.versioncontrolsystem.VersionControlSystemManager;
+import cafe.jeffrey.performance.analyst.versioncontrolsystem.VersionControlSystemRequest;
+import cafe.jeffrey.performance.analyst.versioncontrolsystem.VersionControlSystemResponse;
 
 /**
  * Reads and writes the version-control integration (GitHub/GitLab) registered for a project. The raw
  * access token is accepted on save but never returned; the GET response only flags whether one is stored.
  */
 @RestController
-@RequestMapping("/api/internal/hubs/{hubId}/workspaces/{workspaceId}/projects/{projectId}/version-system")
-public class VersionSystemController {
+@RequestMapping("/api/internal/hubs/{hubId}/workspaces/{workspaceId}/projects/{projectId}/version-control-system")
+public class VersionControlSystemController {
 
-    private final VersionSystemManager versionSystemManager;
+    private final VersionControlSystemManager versionControlSystemManager;
 
-    public VersionSystemController(VersionSystemManager versionSystemManager) {
-        this.versionSystemManager = versionSystemManager;
+    public VersionControlSystemController(VersionControlSystemManager versionControlSystemManager) {
+        this.versionControlSystemManager = versionControlSystemManager;
     }
 
     @GetMapping
-    public VersionSystemResponse get(@PathVariable("projectId") String projectId) {
-        return versionSystemManager.find(projectId)
-                .map(VersionSystemResponse::of)
-                .orElseGet(VersionSystemResponse::empty);
+    public VersionControlSystemResponse get(@PathVariable("projectId") String projectId) {
+        return versionControlSystemManager.find(projectId)
+                .map(VersionControlSystemResponse::of)
+                .orElseGet(VersionControlSystemResponse::empty);
     }
 
     @PutMapping
-    public VersionSystemResponse save(
+    public VersionControlSystemResponse save(
             @PathVariable("projectId") String projectId,
-            @RequestBody VersionSystemRequest request) {
-        return VersionSystemResponse.of(
-                versionSystemManager.save(projectId, request.platform(), request.url(), request.token()));
+            @RequestBody VersionControlSystemRequest request) {
+        return VersionControlSystemResponse.of(
+                versionControlSystemManager.save(projectId, request.platform(), request.url(), request.token()));
     }
 }

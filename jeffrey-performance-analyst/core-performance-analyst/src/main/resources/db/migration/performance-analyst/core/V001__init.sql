@@ -53,13 +53,13 @@ CREATE TABLE IF NOT EXISTS project_ai_configuration
 );
 
 --
--- VERSION SYSTEMS
+-- VERSION CONTROL SYSTEMS
 -- Per-project version-control integration (GitHub/GitLab). project_id references a remote
 -- jeffrey-hub workspace project (browsed via WorkspacesBrowser), so it is a soft reference rather
 -- than a foreign key into the local projects table. credentials holds an encrypted, platform-specific
 -- JSON blob (null/empty for public repositories). One row per project.
 --
-CREATE TABLE IF NOT EXISTS version_systems
+CREATE TABLE IF NOT EXISTS version_control_systems
 (
     id           TEXT NOT NULL PRIMARY KEY,
     project_id   TEXT NOT NULL,
