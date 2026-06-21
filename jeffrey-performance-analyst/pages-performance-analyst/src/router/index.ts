@@ -77,6 +77,17 @@ const router = createRouter({
                             path: 'version-control-system',
                             name: 'project-version-control-system',
                             component: VersionControlSystemView
+                        },
+                        {
+                            path: 'recordings',
+                            name: 'project-recordings',
+                            component: RecordingsView,
+                            props: route => ({
+                                hubId: route.params.hubId,
+                                workspaceId: route.params.workspaceId,
+                                projectId: route.params.projectId,
+                                title: 'Recordings'
+                            })
                         }
                     ]
                 }

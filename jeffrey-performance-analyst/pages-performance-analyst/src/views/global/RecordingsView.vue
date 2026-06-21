@@ -21,7 +21,7 @@
       <template #header>
         <MainCardHeader
           icon="bi-record-circle"
-          title="Recordings"
+          :title="props.title ?? 'Recordings'"
           :badge="recordings.length"
         />
       </template>
@@ -152,7 +152,19 @@ import RecordingFileType from '@workspaces/services/api/model/RecordingFileType'
 import FormattingService from '@shared/services/FormattingService';
 import ToastService from '@shared/services/ToastService';
 import FlamegraphAiExportClient from '@/services/api/FlamegraphAiExportClient';
+import ProjectRecordingsClient from '@/services/api/ProjectRecordingsClient';
+import RecentRecordingsClient from '@/services/api/RecentRecordingsClient';
 import type AiPrompt from '@/services/api/model/AiPrompt';
+
+// Optional project scope. When projectId is set the list shows that project's recordings; otherwise the
+// global view shows the latest recordings across all projects. Per-recording actions (download, AI) use
+// the global by-id endpoints regardless.
+const props = defineProps<{
+  hubId?: string;
+  workspaceId?: string;
+  projectId?: string;
+  title?: string;
+}>();
 
 interface AiState {
   loading: boolean;
@@ -166,6 +178,7 @@ const EMPTY_AI_STATE: AiState = { loading: false, error: null, prompts: null };
 
 const recordingsClient = new RecordingsClient();
 const aiExportClient = new FlamegraphAiExportClient();
+const recentRecordingsClient = new RecentRecordingsClient();
 
 const recordings = ref<Recording[]>([]);
 const loading = ref(true);
@@ -322,7 +335,16 @@ const loadRecordings = async () => {
   loading.value = true;
   error.value = null;
   try {
-    recordings.value = await recordingsClient.listRecordings();
+    if (props.projectId) {
+      const projectRecordingsClient = new ProjectRecordingsClient(
+        props.hubId!,
+        props.workspaceId!,
+        props.projectId
+      );
+      recordings.value = await projectRecordingsClient.listRecordings();
+    } else {
+      recordings.value = await recentRecordingsClient.listRecordings();
+    }
     recordings.value.filter(hasJfr).forEach(recording => peekPrompts(recording.id));
   } catch (e) {
     console.error('Failed to load recordings:', e);

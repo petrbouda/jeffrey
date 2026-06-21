@@ -37,6 +37,14 @@
             <span>Instances</span>
           </router-link>
           <router-link
+            :to="generateProjectUrl('recordings')"
+            class="nav-pill"
+            active-class="active"
+          >
+            <i class="bi bi-record-circle"></i>
+            <span>Recordings</span>
+          </router-link>
+          <router-link
             :to="generateProjectUrl('version-control-system')"
             class="nav-pill"
             active-class="active"

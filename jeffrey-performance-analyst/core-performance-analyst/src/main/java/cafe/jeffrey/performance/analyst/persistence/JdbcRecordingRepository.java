@@ -78,10 +78,13 @@ public class JdbcRecordingRepository implements RecordingRepository {
 
     @Override
     public Optional<Recording> findRecording(String recordingId) {
+        // Recording IDs are UUIDs (globally unique), so by-id reads are project-agnostic — the same
+        // rationale as deleteRecordingWithFiles. This lets the global by-id endpoints (file download,
+        // AI export) serve recordings regardless of which project they belong to.
         //language=sql
-        String sql = "SELECT * FROM recordings WHERE " + projectIdCondition + " AND id = :recording_id";
+        String sql = "SELECT * FROM recordings WHERE id = :recording_id";
 
-        MapSqlParameterSource params = projectParams()
+        MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("recording_id", recordingId);
 
         Optional<Recording> recordingOpt = databaseClient.querySingle(
@@ -89,7 +92,7 @@ public class JdbcRecordingRepository implements RecordingRepository {
 
         if (recordingOpt.isPresent()) {
             //language=sql
-            String filesSql = "SELECT * FROM recording_files WHERE " + projectIdCondition + " AND recording_id = :recording_id";
+            String filesSql = "SELECT * FROM recording_files WHERE recording_id = :recording_id";
             List<RecordingFile> files = databaseClient.query(
                     StatementLabel.FIND_RECORDING_FILES, filesSql, params, recordingFileMapper());
             return recordingOpt.map(recording -> recording.withFiles(files));
@@ -140,14 +143,51 @@ public class JdbcRecordingRepository implements RecordingRepository {
 
     @Override
     public Optional<Recording> findById(String recordingId) {
+        // Project-agnostic by-id read — see findRecording for the rationale (UUID recording IDs).
         //language=sql
-        String sql = "SELECT * FROM recordings WHERE " + projectIdCondition + " AND id = :recording_id";
+        String sql = "SELECT * FROM recordings WHERE id = :recording_id";
 
-        MapSqlParameterSource params = projectParams()
+        MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("recording_id", recordingId);
 
         return databaseClient.querySingle(
                 StatementLabel.FIND_RECORDING, sql, params, recordingMapper());
+    }
+
+    /**
+     * Lists the most-recent recordings across <em>all</em> projects (ignores the construction-time
+     * project scope), newest first, capped at {@code limit}. Backs the analyst's global recordings view.
+     */
+    public List<Recording> findLatestRecordings(int limit) {
+        //language=sql
+        String recordingsSql = "SELECT * FROM recordings ORDER BY created_at DESC LIMIT :limit";
+
+        MapSqlParameterSource params = new MapSqlParameterSource().addValue("limit", limit);
+
+        List<Recording> recordings = databaseClient.query(
+                StatementLabel.FIND_LATEST_RECORDINGS, recordingsSql, params, recordingMapper());
+
+        if (recordings.isEmpty()) {
+            return recordings;
+        }
+
+        List<String> recordingIds = recordings.stream().map(Recording::id).toList();
+        //language=sql
+        String filesSql = "SELECT * FROM recording_files WHERE recording_id IN (:recording_ids)";
+        MapSqlParameterSource fileParams = new MapSqlParameterSource().addValue("recording_ids", recordingIds);
+
+        List<RecordingFile> recordingFiles = databaseClient.query(
+                StatementLabel.FIND_ALL_RECORDING_FILES, filesSql, fileParams, recordingFileMapper());
+
+        Map<String, List<RecordingFile>> filesPerRecording = recordingFiles.stream()
+                .collect(Collectors.groupingBy(RecordingFile::recordingId));
+
+        return recordings.stream()
+                .map(recording -> {
+                    List<RecordingFile> files = filesPerRecording.get(recording.id());
+                    return files == null ? recording : recording.withFiles(files);
+                })
+                .toList();
     }
 
     @Override
