@@ -20,11 +20,11 @@ package cafe.jeffrey.profile.ai.duckdb.jfr.config;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
+import cafe.jeffrey.profile.ai.chat.AiChatBackend;
+import cafe.jeffrey.profile.ai.chat.McpToolsetFactory;
 import cafe.jeffrey.profile.ai.duckdb.jfr.service.JfrAnalysisAssistantService;
 import cafe.jeffrey.profile.ai.duckdb.jfr.service.JfrAnalysisAssistantServiceImpl;
 import cafe.jeffrey.profile.ai.duckdb.jfr.service.NoOpJfrAnalysisAssistantService;
@@ -39,17 +39,17 @@ public class DuckDbMcpConfiguration {
 
     /**
      * Create the JFR Analysis Assistant Service when AI is enabled.
-     * Requires a ChatClient.Builder and DatabaseManagerResolver to be available.
+     * Requires an AiChatBackend and DatabaseManagerResolver to be available.
      */
     @Bean
     @ConditionalOnExpression("'${jeffrey.microscope.ai.provider:none}' != 'none'")
     public JfrAnalysisAssistantService jfrAnalysisAssistantService(
-            ChatClient.Builder chatClientBuilder,
+            AiChatBackend chatBackend,
             DatabaseManagerResolver databaseManagerResolver,
-            @Value("${jeffrey.microscope.ai.model:}") String modelName,
-            @Value("${jeffrey.microscope.ai.provider}") String providerName) {
-        LOG.info("Creating JFR Analysis Assistant Service with MCP tools: provider={} model={}", providerName, modelName);
-        return new JfrAnalysisAssistantServiceImpl(chatClientBuilder, databaseManagerResolver, modelName, providerName);
+            McpToolsetFactory mcpToolsetFactory) {
+        LOG.info("Creating JFR Analysis Assistant Service with MCP tools: provider={} model={}",
+                chatBackend.providerName(), chatBackend.modelName());
+        return new JfrAnalysisAssistantServiceImpl(chatBackend, databaseManagerResolver, mcpToolsetFactory);
     }
 
     /**

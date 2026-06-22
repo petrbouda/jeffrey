@@ -51,6 +51,7 @@
         <module>tools</module>
         <module>duckdb-jfr-mcp</module>
         <module>duckdb-heapdump-mcp</module>
+        <module>claude-code-headless</module>
     </modules>
 
     <properties>
@@ -145,6 +146,11 @@
             <dependency>
                 <groupId>${project.groupId}</groupId>
                 <artifactId>duckdb-heapdump-mcp</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>claude-code-headless</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

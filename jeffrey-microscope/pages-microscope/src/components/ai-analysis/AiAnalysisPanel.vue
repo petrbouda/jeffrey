@@ -105,10 +105,15 @@
             </div>
             <div class="message-content">
               <div class="typing-indicator">
-                <span></span>
-                <span></span>
-                <span></span>
-                <span v-if="elapsedSeconds > 0" class="elapsed-time">{{ elapsedSeconds }}s</span>
+                <span class="ti-dots">
+                  <span></span>
+                  <span></span>
+                  <span></span>
+                </span>
+                <span class="ti-label">Thinking</span>
+                <span v-if="elapsedSeconds > 0" class="ti-elapsed">
+                  <i class="bi-clock"></i>{{ formattedElapsed }}
+                </span>
               </div>
             </div>
           </div>
@@ -167,6 +172,17 @@ const inputRef = ref<HTMLTextAreaElement | null>(null);
 // Timer for tracking AI response duration
 const elapsedSeconds = ref(0);
 let timerInterval: ReturnType<typeof setInterval> | null = null;
+
+// Compact elapsed label: "41s" under a minute, "1:35" (m:ss) once it passes one minute.
+const formattedElapsed = computed(() => {
+  const total = elapsedSeconds.value;
+  if (total < 60) {
+    return `${total}s`;
+  }
+  const minutes = Math.floor(total / 60);
+  const seconds = total % 60;
+  return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+});
 
 watch(
   () => props.isLoading,
@@ -455,36 +471,60 @@ defineExpose({ prefillInput });
 }
 
 .typing-indicator {
-  display: flex;
-  gap: 4px;
-  padding: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 8px 7px 12px;
+  background: var(--color-light);
+  border: 1px solid var(--color-border-light);
+  border-radius: 999px;
 }
 
-.typing-indicator span {
-  width: 8px;
-  height: 8px;
-  background-color: var(--color-accent-blue);
+.typing-indicator .ti-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.typing-indicator .ti-dots span {
+  display: block;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-violet));
   animation: typing 1.4s infinite ease-in-out both;
 }
 
-.typing-indicator span:nth-child(1) {
+.typing-indicator .ti-dots span:nth-child(1) {
   animation-delay: -0.32s;
 }
 
-.typing-indicator span:nth-child(2) {
+.typing-indicator .ti-dots span:nth-child(2) {
   animation-delay: -0.16s;
 }
 
-.typing-indicator .elapsed-time {
-  font-size: 0.75rem;
-  color: var(--color-slate-muted);
-  margin-left: 0.25rem;
-  animation: none;
-  width: auto;
-  height: auto;
-  background-color: transparent;
-  border-radius: 0;
+.typing-indicator .ti-label {
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+.typing-indicator .ti-elapsed {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 9px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  font-variant-numeric: tabular-nums;
+}
+
+.typing-indicator .ti-elapsed i {
+  font-size: 0.72rem;
 }
 
 @keyframes typing {

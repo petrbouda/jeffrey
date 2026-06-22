@@ -20,11 +20,11 @@ package cafe.jeffrey.profile.ai.duckdb.heapdump.config;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
+import cafe.jeffrey.profile.ai.chat.AiChatBackend;
+import cafe.jeffrey.profile.ai.chat.McpToolsetFactory;
 import cafe.jeffrey.profile.ai.duckdb.heapdump.service.HeapDumpAnalysisAssistantService;
 import cafe.jeffrey.profile.ai.duckdb.heapdump.service.HeapDumpAnalysisAssistantServiceImpl;
 import cafe.jeffrey.profile.ai.duckdb.heapdump.service.NoOpHeapDumpAnalysisAssistantService;
@@ -39,11 +39,11 @@ public class HeapDumpMcpConfiguration {
     @Bean
     @ConditionalOnExpression("'${jeffrey.microscope.ai.provider:none}' != 'none'")
     public HeapDumpAnalysisAssistantService heapDumpAnalysisAssistantService(
-            ChatClient.Builder chatClientBuilder,
-            @Value("${jeffrey.microscope.ai.model:}") String modelName,
-            @Value("${jeffrey.microscope.ai.provider}") String providerName) {
-        LOG.info("Creating Heap Dump Analysis Assistant Service with MCP tools: provider={} model={}", providerName, modelName);
-        return new HeapDumpAnalysisAssistantServiceImpl(chatClientBuilder, modelName, providerName);
+            AiChatBackend chatBackend,
+            McpToolsetFactory mcpToolsetFactory) {
+        LOG.info("Creating Heap Dump Analysis Assistant Service with MCP tools: provider={} model={}",
+                chatBackend.providerName(), chatBackend.modelName());
+        return new HeapDumpAnalysisAssistantServiceImpl(chatBackend, mcpToolsetFactory);
     }
 
     @Bean

@@ -18,32 +18,24 @@
 
 package cafe.jeffrey.profile.ai.oql.config;
 
+import cafe.jeffrey.profile.ai.chat.AiChatBackend;
 import cafe.jeffrey.profile.ai.oql.service.HeapDumpContextExtractor;
 import cafe.jeffrey.profile.ai.oql.service.NoOpOqlAssistantService;
 import cafe.jeffrey.profile.ai.oql.service.OqlAssistantService;
 import cafe.jeffrey.profile.ai.oql.service.OqlAssistantServiceImpl;
-import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.chat.model.ChatModel;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
-import cafe.jeffrey.profile.ai.oql.prompt.OqlSystemPrompt;
 
 public class AiAssistantConfiguration {
 
     /**
-     * Create the OQL Assistant Service when AI is enabled and a ChatModel is available.
+     * Create the OQL Assistant Service when AI is enabled and a chat backend is available.
      */
     @Bean
     @ConditionalOnExpression("'${jeffrey.microscope.ai.provider:none}' != 'none'")
-    public OqlAssistantService oqlAssistantService(
-            ChatModel chatModel,
-            @Value("${jeffrey.microscope.ai.provider}") String providerName) {
-        ChatClient chatClient = ChatClient.builder(chatModel)
-                .defaultSystem(OqlSystemPrompt.SYSTEM_PROMPT)
-                .build();
-        return new OqlAssistantServiceImpl(chatClient, providerName);
+    public OqlAssistantService oqlAssistantService(AiChatBackend chatBackend) {
+        return new OqlAssistantServiceImpl(chatBackend);
     }
 
     /**
