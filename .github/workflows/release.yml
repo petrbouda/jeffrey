@@ -38,6 +38,12 @@ jobs:
         name: jeffrey-hub-jar
         path: ./build/build-hub/target/jeffrey-hub.jar
 
+    - name: Upload jeffrey-performance-analyst.jar
+      uses: actions/upload-artifact@v7
+      with:
+        name: jeffrey-performance-analyst-jar
+        path: ./build/build-performance-analyst/target/jeffrey-performance-analyst.jar
+
     - name: Upload jeffrey-cli.jar
       uses: actions/upload-artifact@v7
       with:
@@ -87,6 +93,12 @@ jobs:
       uses: actions/download-artifact@v8
       with:
         name: jeffrey-hub-jar
+        path: ./artifacts
+
+    - name: Download jeffrey-performance-analyst.jar
+      uses: actions/download-artifact@v8
+      with:
+        name: jeffrey-performance-analyst-jar
         path: ./artifacts
 
     - name: Download jeffrey-cli.jar
