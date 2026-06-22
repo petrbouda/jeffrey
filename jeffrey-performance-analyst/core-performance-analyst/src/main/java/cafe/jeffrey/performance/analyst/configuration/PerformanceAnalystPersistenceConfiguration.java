@@ -21,11 +21,17 @@ package cafe.jeffrey.performance.analyst.configuration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import cafe.jeffrey.performance.analyst.persistence.GeneratedPromptRepository;
+import cafe.jeffrey.performance.analyst.persistence.GeneratedRecommendationRepository;
 import cafe.jeffrey.performance.analyst.persistence.ProjectAiConfigurationRepository;
 import cafe.jeffrey.performance.analyst.persistence.ProjectRepository;
 import cafe.jeffrey.performance.analyst.persistence.JdbcGeneratedPromptRepository;
+import cafe.jeffrey.performance.analyst.persistence.JdbcGeneratedRecommendationRepository;
 import cafe.jeffrey.performance.analyst.persistence.JdbcProjectAiConfigurationRepository;
 import cafe.jeffrey.performance.analyst.persistence.JdbcProjectRepository;
+import cafe.jeffrey.performance.analyst.persistence.JdbcVersionControlSystemStore;
+import cafe.jeffrey.performance.analyst.persistence.VersionControlSystemStore;
+import cafe.jeffrey.shared.common.encryption.MachineFingerprint;
+import cafe.jeffrey.shared.common.encryption.SecretEncryptor;
 import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
 
 /**
@@ -43,6 +49,11 @@ public class PerformanceAnalystPersistenceConfiguration {
     }
 
     @Bean
+    public GeneratedRecommendationRepository generatedRecommendationRepository(DatabaseClientProvider databaseClientProvider) {
+        return new JdbcGeneratedRecommendationRepository(databaseClientProvider);
+    }
+
+    @Bean
     public ProjectRepository projectRepository(DatabaseClientProvider databaseClientProvider) {
         return new JdbcProjectRepository(databaseClientProvider);
     }
@@ -50,5 +61,16 @@ public class PerformanceAnalystPersistenceConfiguration {
     @Bean
     public ProjectAiConfigurationRepository projectAiConfigurationRepository(DatabaseClientProvider databaseClientProvider) {
         return new JdbcProjectAiConfigurationRepository(databaseClientProvider);
+    }
+
+    @Bean
+    public SecretEncryptor secretEncryptor() {
+        return new SecretEncryptor(new MachineFingerprint());
+    }
+
+    @Bean
+    public VersionControlSystemStore versionControlSystemStore(
+            DatabaseClientProvider databaseClientProvider, SecretEncryptor secretEncryptor) {
+        return new JdbcVersionControlSystemStore(databaseClientProvider, secretEncryptor);
     }
 }

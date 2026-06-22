@@ -27,6 +27,8 @@ import cafe.jeffrey.performance.analyst.manager.HubsManager;
 import cafe.jeffrey.performance.analyst.web.AnalystRemoteProjectAccess;
 import cafe.jeffrey.performance.analyst.web.AnalystWorkspaceBrowserAccess;
 import cafe.jeffrey.performance.analyst.web.AnalystHubRegistry;
+import cafe.jeffrey.performance.analyst.recordings.ProjectRecordingsManagerFactory;
+import cafe.jeffrey.performance.analyst.recordings.RecentRecordingsManager;
 import cafe.jeffrey.performance.analyst.web.RemoteProjectResolver;
 import cafe.jeffrey.shared.ui.workspace.bridge.RecordingProfileInfoProvider;
 import cafe.jeffrey.shared.ui.workspace.bridge.HubRegistry;
@@ -34,10 +36,7 @@ import cafe.jeffrey.shared.ui.workspace.bridge.RemoteProjectAccess;
 import cafe.jeffrey.shared.ui.workspace.bridge.WorkspaceBrowserAccess;
 import cafe.jeffrey.shared.ui.workspace.config.WorkspacesFeatureConfiguration;
 import cafe.jeffrey.shared.ui.version.VersionFeatureConfiguration;
-import cafe.jeffrey.recordings.core.manager.RecordingMetadataParser;
-import cafe.jeffrey.recordings.core.manager.RecordingProfileCleanup;
 import cafe.jeffrey.recordings.core.manager.RecordingsCoreManager;
-import cafe.jeffrey.recordings.core.manager.RecordingsCoreManagerImpl;
 import cafe.jeffrey.hub.client.CachedHubClientsFactory;
 import cafe.jeffrey.hub.client.manager.TempDirProvider;
 import cafe.jeffrey.microscope.persistence.api.HubsRepository;
@@ -120,7 +119,7 @@ public class RemoteWorkspaceConfiguration {
     }
 
     @Bean
-    public RecordingsCoreManager recordingsCoreManager(
+    public ProjectRecordingsManagerFactory projectRecordingsManagerFactory(
             DatabaseClientProvider databaseClientProvider,
             Clock clock,
             @Value(HOME_DIR) String homeDir) {
@@ -132,22 +131,34 @@ public class RemoteWorkspaceConfiguration {
             throw new UncheckedIOException("Failed to create recordings directory: " + recordingsDir, e);
         }
 
-        return new RecordingsCoreManagerImpl(
-                clock,
-                recordingsDir,
+        return new ProjectRecordingsManagerFactory(clock, recordingsDir, databaseClientProvider);
+    }
+
+    @Bean
+    public RecordingsCoreManager recordingsCoreManager(ProjectRecordingsManagerFactory projectRecordingsManagerFactory) {
+        // The unscoped manager (project_id IS NULL) backs the shared global recordings + AI controllers.
+        return projectRecordingsManagerFactory.forProject(null);
+    }
+
+    @Bean
+    public RecentRecordingsManager recentRecordingsManager(
+            DatabaseClientProvider databaseClientProvider,
+            Clock clock,
+            RecordingProfileInfoProvider recordingProfileInfoProvider) {
+
+        return new RecentRecordingsManager(
                 new JdbcRecordingRepository(databaseClientProvider, null, clock),
                 new JdbcRecordingTagsRepository(databaseClientProvider),
-                RecordingMetadataParser.NOOP,
-                RecordingProfileCleanup.NOOP);
+                recordingProfileInfoProvider);
     }
 
     @Bean
     public RemoteProjectResolver remoteProjectResolver(
             HubsManager remoteServersManager,
             TempDirProvider tempDirProvider,
-            RecordingsCoreManager recordingsCoreManager) {
+            ProjectRecordingsManagerFactory projectRecordingsManagerFactory) {
 
-        return new RemoteProjectResolver(remoteServersManager, tempDirProvider, recordingsCoreManager);
+        return new RemoteProjectResolver(remoteServersManager, tempDirProvider, projectRecordingsManagerFactory);
     }
 
     // --- Bridges for the shared workspaces controllers ---

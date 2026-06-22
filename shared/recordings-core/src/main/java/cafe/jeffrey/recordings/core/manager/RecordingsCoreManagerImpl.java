@@ -278,6 +278,11 @@ public class RecordingsCoreManagerImpl implements RecordingsCoreManager {
     }
 
     @Override
+    public Optional<Recording> findRecording(String recordingId) {
+        return recordingRepository.findRecording(recordingId);
+    }
+
+    @Override
     public Map<String, List<RecordingTag>> tagsForRecordings(Collection<String> recordingIds) {
         return recordingTagsRepository.listForRecordings(recordingIds);
     }

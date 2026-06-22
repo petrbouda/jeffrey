@@ -21,19 +21,20 @@ package cafe.jeffrey.performance.analyst.persistence;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 import cafe.jeffrey.microscope.persistence.api.HubAddress;
 import cafe.jeffrey.microscope.persistence.api.HubInfo;
 import cafe.jeffrey.microscope.persistence.api.RecordingGroup;
 import cafe.jeffrey.microscope.persistence.api.RecordingTag;
-import cafe.jeffrey.performance.analyst.configuration.DataSourceConfiguration;
+import cafe.jeffrey.shared.common.encryption.MachineFingerprint;
+import cafe.jeffrey.shared.common.encryption.SecretEncryptor;
 import cafe.jeffrey.shared.common.model.Recording;
 import cafe.jeffrey.shared.common.model.RecordingEventSource;
 import cafe.jeffrey.shared.common.model.RecordingFile;
 import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
 import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
+import cafe.jeffrey.test.SQLiteTest;
 
-import java.nio.file.Path;
+import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.Statement;
@@ -48,11 +49,12 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Verifies the SQLite store end-to-end: the production wiring in {@link DataSourceConfiguration} opens
- * the database and runs the V001 Flyway schema (flyway-core's bundled SQLite support), and the JDBC
- * repositories round-trip against a real on-disk SQLite database, with the WAL pragmas and foreign-key
- * enforcement actually applied.
+ * Verifies the SQLite store end-to-end: the V001 Flyway schema (flyway-core's bundled SQLite support)
+ * is applied to a fresh in-memory SQLite database per test via {@link SQLiteTest}, and the JDBC
+ * repositories round-trip against it with foreign-key enforcement (so {@code ON DELETE CASCADE} fires).
+ * The production WAL/pragma wiring is covered separately by {@code DataSourceConfigurationTest}.
  */
+@SQLiteTest(migration = "classpath:db/migration/performance-analyst/core")
 class SqlitePersistenceTest {
 
     private static final Instant T = Instant.ofEpochMilli(1_000L);
@@ -61,29 +63,8 @@ class SqlitePersistenceTest {
     private DatabaseClientProvider clientProvider;
 
     @BeforeEach
-    void setUp(@TempDir Path tempDir) {
-        clientProvider = new DataSourceConfiguration()
-                .analystDatabaseClientProvider(tempDir.toString());
-    }
-
-    @Nested
-    class Pragmas {
-
-        @Test
-        void walModeAndForeignKeysAreEnabled() throws Exception {
-            try (Connection connection = clientProvider.dataSource().getConnection();
-                 Statement statement = connection.createStatement()) {
-
-                try (ResultSet rs = statement.executeQuery("PRAGMA journal_mode")) {
-                    assertTrue(rs.next());
-                    assertEquals("wal", rs.getString(1).toLowerCase());
-                }
-                try (ResultSet rs = statement.executeQuery("PRAGMA foreign_keys")) {
-                    assertTrue(rs.next());
-                    assertEquals(1, rs.getInt(1));
-                }
-            }
-        }
+    void setUp(DataSource dataSource) {
+        clientProvider = new DatabaseClientProvider(dataSource);
     }
 
     @Nested
@@ -152,6 +133,64 @@ class SqlitePersistenceTest {
             // ON DELETE CASCADE only fires when foreign_keys is enforced — proves the pragma is on.
             new JdbcProjectRepository(clientProvider).delete("p3");
             assertFalse(aiRepo.find("p3").isPresent());
+        }
+    }
+
+    @Nested
+    class VersionControlSystems {
+
+        private static final String CREDENTIALS_JSON = "{\"token\":\"secret-token\"}";
+
+        private JdbcVersionControlSystemStore store() {
+            return new JdbcVersionControlSystemStore(clientProvider, new SecretEncryptor(new MachineFingerprint()));
+        }
+
+        @Test
+        void upsertReadsBackDecryptedAndOverwrites() throws Exception {
+            // project_id is a soft reference to a remote workspace project — no local projects row needed.
+            JdbcVersionControlSystemStore store = store();
+            assertTrue(store.findByProject("vp1").isEmpty());
+
+            store.upsert(new VersionControlSystem(
+                    "vs1", "vp1", Platform.GITHUB, "https://github.com/petrbouda/jeffrey.git", CREDENTIALS_JSON, T, T));
+
+            VersionControlSystem loaded = store.findByProject("vp1").orElseThrow();
+            assertEquals(Platform.GITHUB, loaded.platform());
+            assertEquals("https://github.com/petrbouda/jeffrey.git", loaded.url());
+            assertEquals(CREDENTIALS_JSON, loaded.credentials());
+            assertTrue(loaded.hasCredentials());
+
+            // credentials are encrypted at rest: the raw column never contains the plaintext token
+            assertFalse(readRawCredentials("vp1").contains("secret-token"));
+
+            // upsert on the project key overwrites in place; a null token clears the stored credentials
+            store.upsert(new VersionControlSystem(
+                    "vs1", "vp1", Platform.GITLAB, "https://gitlab.com/group/repo.git", null, T, T));
+            VersionControlSystem updated = store.findByProject("vp1").orElseThrow();
+            assertEquals(Platform.GITLAB, updated.platform());
+            assertEquals("https://gitlab.com/group/repo.git", updated.url());
+            assertFalse(updated.hasCredentials());
+        }
+
+        @Test
+        void deleteRemovesTheRow() {
+            JdbcVersionControlSystemStore store = store();
+            store.upsert(new VersionControlSystem(
+                    "vs2", "vp2", Platform.GITHUB, "https://example.com/repo.git", null, T, T));
+            assertTrue(store.findByProject("vp2").isPresent());
+
+            store.delete("vp2");
+            assertFalse(store.findByProject("vp2").isPresent());
+        }
+
+        private String readRawCredentials(String projectId) throws Exception {
+            try (Connection connection = clientProvider.dataSource().getConnection();
+                 Statement statement = connection.createStatement();
+                 ResultSet rs = statement.executeQuery(
+                         "SELECT credentials FROM version_control_systems WHERE project_id = '" + projectId + "'")) {
+                assertTrue(rs.next());
+                return rs.getString(1);
+            }
         }
     }
 

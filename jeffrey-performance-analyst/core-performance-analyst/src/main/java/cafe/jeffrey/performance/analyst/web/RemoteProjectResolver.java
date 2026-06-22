@@ -20,9 +20,9 @@ package cafe.jeffrey.performance.analyst.web;
 
 import cafe.jeffrey.performance.analyst.manager.HubManager;
 import cafe.jeffrey.performance.analyst.manager.HubsManager;
+import cafe.jeffrey.performance.analyst.recordings.ProjectRecordingsManagerFactory;
 import cafe.jeffrey.recordings.core.OriginContext;
 import cafe.jeffrey.recordings.core.RemoteRecordingsDownloadManager;
-import cafe.jeffrey.recordings.core.manager.RecordingsCoreManager;
 import cafe.jeffrey.hub.client.HubClients;
 import cafe.jeffrey.hub.client.dto.RemoteProjectResponse;
 import cafe.jeffrey.hub.client.manager.RemoteInstancesManager;
@@ -44,16 +44,16 @@ public class RemoteProjectResolver {
 
     private final HubsManager remoteServersManager;
     private final TempDirProvider tempDirProvider;
-    private final RecordingsCoreManager recordingsCoreManager;
+    private final ProjectRecordingsManagerFactory recordingsManagerFactory;
 
     public RemoteProjectResolver(
             HubsManager remoteServersManager,
             TempDirProvider tempDirProvider,
-            RecordingsCoreManager recordingsCoreManager) {
+            ProjectRecordingsManagerFactory recordingsManagerFactory) {
 
         this.remoteServersManager = remoteServersManager;
         this.tempDirProvider = tempDirProvider;
-        this.recordingsCoreManager = recordingsCoreManager;
+        this.recordingsManagerFactory = recordingsManagerFactory;
     }
 
     public RemoteInstancesManager instancesManager(String hubId, String workspaceId, String projectId) {
@@ -83,7 +83,7 @@ public class RemoteProjectResolver {
                 tempDirProvider,
                 rp.clients().recordings(),
                 rp.clients().repository(),
-                recordingsCoreManager,
+                recordingsManagerFactory.forProject(projectId),
                 origin,
                 rp.projectInfo().name());
     }

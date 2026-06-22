@@ -99,9 +99,7 @@ public class RecordingAiPromptManager {
     }
 
     private List<Path> resolveJfrFiles(String recordingId) {
-        Recording recording = recordingsManager.listRecordings().stream()
-                .filter(r -> r.id().equals(recordingId))
-                .findFirst()
+        Recording recording = recordingsManager.findRecording(recordingId)
                 .orElseThrow(() -> Exceptions.invalidRequest("Recording not found: " + recordingId));
 
         List<Path> jfrFiles = recording.files().stream()

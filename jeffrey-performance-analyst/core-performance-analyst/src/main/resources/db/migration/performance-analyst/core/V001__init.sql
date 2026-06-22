@@ -53,6 +53,25 @@ CREATE TABLE IF NOT EXISTS project_ai_configuration
 );
 
 --
+-- VERSION CONTROL SYSTEMS
+-- Per-project version-control integration (GitHub/GitLab). project_id references a remote
+-- jeffrey-hub workspace project (browsed via WorkspacesBrowser), so it is a soft reference rather
+-- than a foreign key into the local projects table. credentials holds an encrypted, platform-specific
+-- JSON blob (null/empty for public repositories). One row per project.
+--
+CREATE TABLE IF NOT EXISTS version_control_systems
+(
+    id           TEXT NOT NULL PRIMARY KEY,
+    project_id   TEXT NOT NULL,
+    platform     TEXT NOT NULL,            -- 'github' | 'gitlab'
+    url          TEXT NOT NULL,
+    credentials  TEXT,                     -- encrypted (Base64) JSON, nullable for public repositories
+    created_at   INTEGER NOT NULL,
+    modified_at  INTEGER NOT NULL,
+    UNIQUE (project_id)
+);
+
+--
 -- PROJECT RECORDINGS (membership)
 -- Links a project to the recordings it groups. recording_id is a soft reference to the
 -- recording stored in the recordings table below.
@@ -84,6 +103,31 @@ CREATE TABLE IF NOT EXISTS generated_prompts
 );
 
 CREATE INDEX IF NOT EXISTS idx_generated_prompts_recording ON generated_prompts (recording_id);
+
+--
+-- GENERATED RECOMMENDATIONS
+-- One AI recommendation result per (recording, sample event type): the AI-graded overall severity, the
+-- human-readable recommendations markdown plus an optional applicable patch (unified diff). The
+-- hub/workspace/project identity (+ denormalized project_name) is captured so the global Overview can
+-- rank, label and deep-link to the recording. Re-generation upserts on the (recording_id, event_type) key.
+--
+CREATE TABLE IF NOT EXISTS generated_recommendations
+(
+    recording_id     TEXT NOT NULL,
+    event_type       TEXT NOT NULL,
+    hub_id           TEXT,
+    workspace_id     TEXT,
+    project_id       TEXT,
+    project_name     TEXT,
+    severity         TEXT NOT NULL DEFAULT 'MEDIUM',
+    recommendations  TEXT NOT NULL,
+    patch            TEXT,
+    generated_at     INTEGER NOT NULL,
+    PRIMARY KEY (recording_id, event_type)
+);
+
+CREATE INDEX IF NOT EXISTS idx_generated_recommendations_recording ON generated_recommendations (recording_id);
+CREATE INDEX IF NOT EXISTS idx_generated_recommendations_severity ON generated_recommendations (severity, generated_at);
 
 --
 -- HUBS (remote jeffrey-hub registry)

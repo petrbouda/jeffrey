@@ -1520,7 +1520,7 @@ onMounted(async () => {
 
 .reason-desc {
   display: block;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  font-family: var(--font-family-base);
   font-size: 0.74rem;
   line-height: 1.5;
   color: var(--color-text-muted);
@@ -1688,7 +1688,7 @@ onMounted(async () => {
 .kv.kv-desc .v {
   text-align: left;
   font-weight: 500;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  font-family: var(--font-family-base);
   font-size: 0.74rem;
   line-height: 1.5;
   color: var(--color-text-muted);
