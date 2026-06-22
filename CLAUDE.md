@@ -75,6 +75,7 @@ The project supports two deployment modes: **jeffrey-microscope** (standalone) a
 - `ai-config` — AI configuration for profile analysis
 - `oql-assistant` — OQL AI assistant
 - `duckdb-ai-mcp`, `heap-dump-ai-mcp` — MCP servers for AI integration
+- `claude-code-headless` — Claude Code (headless) AI backend + reusable MCP tool machinery (`ReflectiveToolset`)
 
 **jeffrey-hub** (`jeffrey-hub/`):
 - `core-hub` — Main Spring Boot app (HubApplication), gRPC service implementations, scheduler/jobs, JFR streaming

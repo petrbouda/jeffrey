@@ -20,9 +20,13 @@ package cafe.jeffrey.profile.ai.duckdb.heapdump.service;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.ai.chat.client.ChatClient;
+import cafe.jeffrey.profile.ai.chat.AiChatBackend;
 import cafe.jeffrey.profile.ai.chat.AssistantResponse;
-import cafe.jeffrey.profile.ai.chat.ToolCallingChatSession;
+import cafe.jeffrey.profile.ai.chat.McpToolset;
+import cafe.jeffrey.profile.ai.chat.McpToolsetFactory;
+import cafe.jeffrey.profile.ai.chat.ToolBinding;
+import cafe.jeffrey.profile.ai.chat.ToolCallResult;
+import cafe.jeffrey.profile.ai.chat.ToolExchange;
 import cafe.jeffrey.profile.ai.duckdb.heapdump.model.HeapDumpAnalysisRequest;
 import cafe.jeffrey.profile.ai.duckdb.heapdump.prompt.HeapDumpAnalysisSystemPrompt;
 import cafe.jeffrey.profile.ai.duckdb.heapdump.tools.HeapDumpMcpTools;
@@ -32,7 +36,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Implementation of heap dump analysis assistant using Spring AI with heap dump tools.
+ * Implementation of heap dump analysis assistant over the provider-agnostic {@link AiChatBackend}.
  */
 public class HeapDumpAnalysisAssistantServiceImpl implements HeapDumpAnalysisAssistantService {
 
@@ -40,48 +44,51 @@ public class HeapDumpAnalysisAssistantServiceImpl implements HeapDumpAnalysisAss
 
     private static final String AI_CALL_SPAN_NAME = "ai.heapdump-analysis.call";
 
-    private final ToolCallingChatSession chatSession;
-    private final String modelName;
-    private final String providerName;
+    private final AiChatBackend chatBackend;
+    private final McpToolsetFactory mcpToolsetFactory;
 
     public HeapDumpAnalysisAssistantServiceImpl(
-            ChatClient.Builder chatClientBuilder,
-            String modelName,
-            String providerName) {
-        ChatClient chatClient = chatClientBuilder
-                .defaultSystem(HeapDumpAnalysisSystemPrompt.SYSTEM_PROMPT)
-                .build();
-        this.chatSession = new ToolCallingChatSession(chatClient, AI_CALL_SPAN_NAME);
-        this.modelName = modelName;
-        this.providerName = providerName;
-        LOG.info("Heap Dump Analysis Assistant initialized: provider={} model={}", providerName, modelName);
+            AiChatBackend chatBackend,
+            McpToolsetFactory mcpToolsetFactory) {
+        this.chatBackend = chatBackend;
+        this.mcpToolsetFactory = mcpToolsetFactory;
+        LOG.info("Heap Dump Analysis Assistant initialized: provider={} model={}",
+                chatBackend.providerName(), chatBackend.modelName());
     }
 
     @Override
     public boolean isAvailable() {
-        return true;
+        return chatBackend.isAvailable();
     }
 
     @Override
     public String getModelName() {
-        return modelName;
+        return chatBackend.modelName();
     }
 
     @Override
     public String getProviderName() {
-        return providerName;
+        return chatBackend.providerName();
     }
 
     @Override
     public AssistantResponse analyze(HeapDumpToolsDelegate delegate, HeapDumpAnalysisRequest request) {
         try {
             HeapDumpMcpTools tools = new HeapDumpMcpTools(delegate);
+            McpToolset mcpToolset = mcpToolsetFactory.forHeap(request.profileId());
+            ToolBinding toolBinding = new ToolBinding(tools, mcpToolset);
 
-            String response = chatSession.call(request.history(), request.message(), tools);
+            ToolExchange exchange = new ToolExchange(
+                    HeapDumpAnalysisSystemPrompt.SYSTEM_PROMPT,
+                    request.history(),
+                    request.message(),
+                    toolBinding,
+                    AI_CALL_SPAN_NAME);
+            ToolCallResult result = chatBackend.analyze(exchange);
 
-            List<String> suggestions = generateSuggestions(request.message(), response);
+            List<String> suggestions = generateSuggestions(request.message(), result.text());
 
-            return new AssistantResponse(response, suggestions, List.of());
+            return new AssistantResponse(result.text(), suggestions, result.toolsUsed());
         } catch (Exception e) {
             LOG.error("Error during heap dump analysis: message={}", e.getMessage(), e);
             return AssistantResponse.error("Analysis failed: " + e.getMessage());

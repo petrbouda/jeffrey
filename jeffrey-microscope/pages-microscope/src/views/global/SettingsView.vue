@@ -73,6 +73,32 @@
           </div>
         </div>
 
+        <div v-if="isClaudeCode" class="ai-subscription-panel">
+          <i class="bi bi-stars ai-sub-icon"></i>
+          <div class="ai-sub-body">
+            <div class="ai-sub-title">Claude Code uses your Claude subscription</div>
+            <div class="ai-sub-point">
+              <i class="bi bi-credit-card-2-front"></i>
+              <span>
+                Your <strong>Claude (Anthropic) subscription will be used</strong> — no API key
+                required.
+              </span>
+            </div>
+            <div class="ai-sub-point">
+              <i class="bi bi-shield-check"></i>
+              <span>
+                By enabling, you <strong>agree to comply with Anthropic's
+                  <a
+                    href="https://www.anthropic.com/legal/consumer-terms"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    >Terms of Service</a
+                  ></strong>.
+              </span>
+            </div>
+          </div>
+        </div>
+
         <div class="settings-form-grid" :class="{ 'settings-form-disabled': !aiEnabled }">
           <div class="settings-form-group">
             <label class="settings-label">Provider</label>
@@ -88,6 +114,7 @@
               :disabled="!aiEnabled"
             >
               <option value="claude">Claude (Anthropic)</option>
+              <option value="claude-code">Claude Code (subscription)</option>
               <option value="chatgpt">ChatGPT (OpenAI)</option>
               <option value="ollama">Ollama (self-hosted)</option>
             </select>
@@ -124,6 +151,27 @@
               <i class="bi bi-hdd-network"></i> URL of your self-hosted Ollama server
             </div>
           </div>
+          <div v-else-if="isClaudeCode" class="settings-form-group">
+            <label class="settings-label">Claude CLI Path</label>
+            <input
+              type="text"
+              :value="settings.get('jeffrey.microscope.ai.cli-path')"
+              @input="
+                setSetting(
+                  'jeffrey.microscope.ai.cli-path',
+                  ($event.target as HTMLInputElement).value
+                )
+              "
+              class="form-control"
+              :disabled="!aiEnabled"
+              placeholder="claude"
+            />
+            <div class="settings-hint">
+              <i class="bi bi-terminal"></i> Uses your logged-in Claude subscription via the Claude
+              Code CLI — no API key required. The CLI must be installed and authenticated on the
+              host running Jeffrey.
+            </div>
+          </div>
           <div v-else class="settings-form-group">
             <label class="settings-label">API Key</label>
             <div class="password-wrap">
@@ -148,7 +196,7 @@
               <i class="bi bi-lock"></i> Encrypted at rest with machine-bound key
             </div>
           </div>
-          <div class="settings-form-group">
+          <div v-if="!isClaudeCode" class="settings-form-group">
             <label class="settings-label">Max Tokens</label>
             <input
               type="number"
@@ -164,6 +212,26 @@
               placeholder="128000"
             />
             <div class="settings-hint">Maximum token limit per AI request</div>
+          </div>
+          <div v-if="isClaudeCode" class="settings-form-group">
+            <label class="settings-label">Timeout (seconds)</label>
+            <input
+              type="number"
+              :value="settings.get('jeffrey.microscope.ai.timeout-seconds')"
+              @input="
+                setSetting(
+                  'jeffrey.microscope.ai.timeout-seconds',
+                  ($event.target as HTMLInputElement).value
+                )
+              "
+              class="form-control"
+              :disabled="!aiEnabled"
+              placeholder="120"
+            />
+            <div class="settings-hint">
+              Maximum time to wait for a Claude Code response. Agentic tool loops can take longer
+              than a single API call.
+            </div>
           </div>
         </div>
 
@@ -344,6 +412,7 @@ import '@/styles/shared-components.css';
 import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import SettingsClient from '@/services/api/SettingsClient';
+import { useRestartRequired } from '@/stores/restartStore';
 import MainCard from '@/components/MainCard.vue';
 import MainCardHeader from '@/components/MainCardHeader.vue';
 import DataTable from '@/components/table/DataTable.vue';
@@ -391,7 +460,8 @@ watch(activeTab, tab => {
     nextTick(() => drawPreviews());
   }
 });
-const restartRequired = ref(false);
+// Shared with the header indicator: saving any setting marks a restart as required.
+const restartRequired = useRestartRequired();
 const showApiKey = ref(false);
 const saving = ref(false);
 const encryptionMode = ref('');
@@ -406,10 +476,13 @@ const aiToggle = ref(false);
 const aiEnabled = computed(() => aiToggle.value);
 
 const isOllama = computed(() => settings.get('jeffrey.microscope.ai.provider') === 'ollama');
+const isClaudeCode = computed(
+  () => settings.get('jeffrey.microscope.ai.provider') === 'claude-code'
+);
 
 const currentModels = computed(() => {
   const provider = settings.get('jeffrey.microscope.ai.provider');
-  if (provider === 'claude') return claudeModels;
+  if (provider === 'claude' || provider === 'claude-code') return claudeModels;
   if (provider === 'chatgpt') return chatgptModels;
   if (provider === 'ollama') return ollamaModels;
   return [];
@@ -608,6 +681,18 @@ async function saveAiSettings() {
         settings.get('jeffrey.microscope.ai.base-url') || '',
         false
       ),
+      client.upsert(
+        'ai',
+        'jeffrey.microscope.ai.cli-path',
+        settings.get('jeffrey.microscope.ai.cli-path') || 'claude',
+        false
+      ),
+      client.upsert(
+        'ai',
+        'jeffrey.microscope.ai.timeout-seconds',
+        settings.get('jeffrey.microscope.ai.timeout-seconds') || '120',
+        false
+      ),
       ...(apiKey && !apiKey.includes('****')
         ? [client.upsert('ai', 'jeffrey.microscope.ai.api-key', apiKey, true)]
         : [])
@@ -800,6 +885,67 @@ async function saveAiExportSettings() {
   font-size: 11px;
   color: var(--color-text-muted);
   margin-top: 4px;
+}
+
+/* Claude Code subscription / ToS notice */
+.ai-subscription-panel {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 14px 16px;
+  margin-bottom: 22px;
+  border-radius: 10px;
+  border: 1px solid var(--color-primary-border, #9ba8ff);
+  background: linear-gradient(120deg, var(--color-primary-light), rgba(139, 92, 246, 0.08));
+}
+
+.ai-sub-icon {
+  font-size: 1.3rem;
+  color: var(--color-primary);
+  margin-top: 1px;
+}
+
+.ai-sub-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.ai-sub-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--color-dark);
+  margin-bottom: 7px;
+}
+
+.ai-sub-point {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--color-text);
+  line-height: 1.5;
+  margin: 5px 0;
+}
+
+.ai-sub-point i {
+  color: var(--color-primary);
+  margin-top: 2px;
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+
+.ai-sub-point strong {
+  color: var(--color-dark);
+  font-weight: 700;
+}
+
+.ai-sub-point a {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.ai-sub-point a:hover {
+  text-decoration: underline;
 }
 
 .password-wrap {

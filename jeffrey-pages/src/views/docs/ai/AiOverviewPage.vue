@@ -48,7 +48,7 @@ onMounted(() => {
     />
 
     <div class="docs-content">
-      <p>Jeffrey integrates AI-powered analysis to help you understand JFR recordings and heap dumps faster. Ask questions in natural language and get insights powered by Claude, ChatGPT, or a self-hosted Ollama server.</p>
+      <p>Jeffrey integrates AI-powered analysis to help you understand JFR recordings and heap dumps faster. Ask questions in natural language and get insights powered by Claude, ChatGPT, a self-hosted Ollama server, or your Claude subscription via the Claude Code CLI.</p>
 
       <h2 id="ai-features">AI Features</h2>
       <div class="docs-grid docs-grid-2">
@@ -83,7 +83,7 @@ onMounted(() => {
         <tbody>
           <tr>
             <td><strong>Provider</strong></td>
-            <td>AI service provider (Claude, ChatGPT, or Ollama)</td>
+            <td>AI service provider (Claude, Claude Code, ChatGPT, or Ollama)</td>
             <td>None (disabled)</td>
           </tr>
           <tr>
@@ -102,8 +102,18 @@ onMounted(() => {
             <td>http://localhost:11434</td>
           </tr>
           <tr>
+            <td><strong>Claude CLI Path</strong></td>
+            <td>Path to the <code>claude</code> executable (Claude Code only)</td>
+            <td>claude</td>
+          </tr>
+          <tr>
+            <td><strong>Timeout (seconds)</strong></td>
+            <td>Maximum time to wait for a Claude Code response (Claude Code only)</td>
+            <td>120</td>
+          </tr>
+          <tr>
             <td><strong>Max Tokens</strong></td>
-            <td>Maximum tokens per request</td>
+            <td>Maximum tokens per request (not used by Claude Code)</td>
             <td>128000</td>
           </tr>
         </tbody>
@@ -116,7 +126,10 @@ onMounted(() => {
       <h2 id="supported-providers">Supported Providers</h2>
 
       <h3>Claude (Anthropic)</h3>
-      <p>Recommended provider. Available models include <code>claude-opus-4-6</code> and <code>claude-sonnet-4-6</code>.</p>
+      <p>Recommended provider. Available models include <code>claude-opus-4-6</code> and <code>claude-sonnet-4-6</code>. Authenticates with an Anthropic API key and is billed per token.</p>
+
+      <h3>Claude Code (subscription)</h3>
+      <p>Drives the <a href="https://code.claude.com/docs" target="_blank" rel="noopener">Claude Code CLI</a> in headless mode, authenticating with your existing <strong>Claude Pro/Max subscription</strong> instead of an API key &mdash; so AI analysis incurs no per-token API charges. The <code>claude</code> CLI must be installed and logged in on the host running Jeffrey Microscope. Tool-driven JFR and heap dump analysis is served through an in-process MCP server that the CLI connects to over localhost, restricted to Jeffrey's read-only analysis tools (no shell or filesystem access). Best suited to the standalone single-user Microscope deployment.</p>
 
       <h3>ChatGPT (OpenAI)</h3>
       <p>Alternative provider. Available models include <code>gpt-4o</code>, <code>gpt-4-turbo</code>, and others.</p>
