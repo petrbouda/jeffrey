@@ -105,6 +105,31 @@ CREATE TABLE IF NOT EXISTS generated_prompts
 CREATE INDEX IF NOT EXISTS idx_generated_prompts_recording ON generated_prompts (recording_id);
 
 --
+-- GENERATED RECOMMENDATIONS
+-- One AI recommendation result per (recording, sample event type): the AI-graded overall severity, the
+-- human-readable recommendations markdown plus an optional applicable patch (unified diff). The
+-- hub/workspace/project identity (+ denormalized project_name) is captured so the global Overview can
+-- rank, label and deep-link to the recording. Re-generation upserts on the (recording_id, event_type) key.
+--
+CREATE TABLE IF NOT EXISTS generated_recommendations
+(
+    recording_id     TEXT NOT NULL,
+    event_type       TEXT NOT NULL,
+    hub_id           TEXT,
+    workspace_id     TEXT,
+    project_id       TEXT,
+    project_name     TEXT,
+    severity         TEXT NOT NULL DEFAULT 'MEDIUM',
+    recommendations  TEXT NOT NULL,
+    patch            TEXT,
+    generated_at     INTEGER NOT NULL,
+    PRIMARY KEY (recording_id, event_type)
+);
+
+CREATE INDEX IF NOT EXISTS idx_generated_recommendations_recording ON generated_recommendations (recording_id);
+CREATE INDEX IF NOT EXISTS idx_generated_recommendations_severity ON generated_recommendations (severity, generated_at);
+
+--
 -- HUBS (remote jeffrey-hub registry)
 -- Connected jeffrey-hub servers browsed in WorkspacesBrowser. plaintext: gRPC client uses
 -- cleartext h2c when 1, TLS when 0.

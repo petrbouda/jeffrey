@@ -57,6 +57,14 @@ public interface RecordingsCoreManager {
 
     List<Recording> listRecordings();
 
+    /**
+     * Resolves a single recording by its (globally unique) id, irrespective of project scope. Unlike
+     * {@link #listRecordings()} — which is constrained to the manager's construction-time project scope —
+     * this is the project-agnostic by-id read that backs the global per-recording endpoints (file
+     * download, AI flamegraph export).
+     */
+    Optional<Recording> findRecording(String recordingId);
+
     Map<String, List<RecordingTag>> tagsForRecordings(Collection<String> recordingIds);
 
     void deleteRecording(String recordingId);

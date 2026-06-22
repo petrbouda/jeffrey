@@ -165,6 +165,12 @@
             <artifactId>spring-ai-client-chat</artifactId>
         </dependency>
 
+        <!-- JGit — clones a project's configured repository for AI recommendation generation. -->
+        <dependency>
+            <groupId>org.eclipse.jgit</groupId>
+            <artifactId>org.eclipse.jgit</artifactId>
+        </dependency>
+
         <!-- Frontend -->
         <dependency>
             <groupId>${project.groupId}</groupId>
@@ -175,6 +181,11 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>test</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

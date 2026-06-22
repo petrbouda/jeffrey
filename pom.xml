@@ -60,6 +60,7 @@
         <netty.version>4.2.15.Final</netty.version>
         <protobuf.version>4.35.0</protobuf.version>
         <antlr4.version>4.13.2</antlr4.version>
+        <jgit.version>7.7.0.202606012155-r</jgit.version>
         <!-- Vendored async-profiler Java API (span-api branch), served from the in-repo lib/m2 repository. -->
         <async-profiler.version>4.4-span</async-profiler.version>
     </properties>
@@ -352,6 +353,14 @@
                 <groupId>org.antlr</groupId>
                 <artifactId>antlr4-runtime</artifactId>
                 <version>${antlr4.version}</version>
+            </dependency>
+
+            <!-- JGit — pure-Java git client used by performance-analyst to clone project repositories
+                 for AI recommendation generation (no external git binary required). -->
+            <dependency>
+                <groupId>org.eclipse.jgit</groupId>
+                <artifactId>org.eclipse.jgit</artifactId>
+                <version>${jgit.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

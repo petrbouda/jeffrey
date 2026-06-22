@@ -63,7 +63,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed, provide, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import ToastService from '@shared/services/ToastService';
 import ProjectClient from '@workspaces/services/api/ProjectClient.ts';
@@ -78,6 +78,13 @@ const { hubId, workspaceId, projectId, generateProjectUrl } = useNavigation();
 
 const projectInfo = ref<Project | null>(null);
 const workspaceInfo = ref<Workspace | null>(null);
+
+// Expose the human project name to child route views (e.g. RecordingsView) so they can denormalize it
+// onto generated recommendations for the global Overview. Null until the project info has loaded.
+provide(
+  'projectName',
+  computed(() => projectInfo.value?.name ?? null)
+);
 
 // Scheduler is always disabled in local mode; Collector-only mode is never active.
 const isCollectorOnly = computed(() => false);

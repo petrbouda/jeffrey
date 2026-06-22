@@ -141,6 +141,11 @@ public class ProfileRecordingsManager implements RecordingsManager {
     }
 
     @Override
+    public Optional<Recording> findRecording(String recordingId) {
+        return core.findRecording(recordingId);
+    }
+
+    @Override
     public Map<String, List<RecordingTag>> tagsForRecordings(Collection<String> recordingIds) {
         return core.tagsForRecordings(recordingIds);
     }

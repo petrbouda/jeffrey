@@ -21,9 +21,11 @@ package cafe.jeffrey.performance.analyst.configuration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import cafe.jeffrey.performance.analyst.persistence.GeneratedPromptRepository;
+import cafe.jeffrey.performance.analyst.persistence.GeneratedRecommendationRepository;
 import cafe.jeffrey.performance.analyst.persistence.ProjectAiConfigurationRepository;
 import cafe.jeffrey.performance.analyst.persistence.ProjectRepository;
 import cafe.jeffrey.performance.analyst.persistence.JdbcGeneratedPromptRepository;
+import cafe.jeffrey.performance.analyst.persistence.JdbcGeneratedRecommendationRepository;
 import cafe.jeffrey.performance.analyst.persistence.JdbcProjectAiConfigurationRepository;
 import cafe.jeffrey.performance.analyst.persistence.JdbcProjectRepository;
 import cafe.jeffrey.performance.analyst.persistence.JdbcVersionControlSystemStore;
@@ -44,6 +46,11 @@ public class PerformanceAnalystPersistenceConfiguration {
     @Bean
     public GeneratedPromptRepository generatedPromptRepository(DatabaseClientProvider databaseClientProvider) {
         return new JdbcGeneratedPromptRepository(databaseClientProvider);
+    }
+
+    @Bean
+    public GeneratedRecommendationRepository generatedRecommendationRepository(DatabaseClientProvider databaseClientProvider) {
+        return new JdbcGeneratedRecommendationRepository(databaseClientProvider);
     }
 
     @Bean

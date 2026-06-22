@@ -125,4 +125,32 @@ class RecordingsCoreManagerImplTest {
             assertEquals(null, persisted.groupId());
         }
     }
+
+    @Nested
+    class FindRecording {
+
+        // Regression: by-id reads must be project-agnostic. A recording downloaded into a project has a
+        // non-null project_id, so resolving it via the (project-scoped) listRecordings() would miss it and
+        // fail the global AI-export / download endpoints with "Recording not found". findRecording must
+        // delegate to the repository's project-agnostic by-id lookup instead.
+        @Test
+        void delegatesToProjectAgnosticByIdLookup() {
+            Recording projectScoped = new Recording(
+                    "rec-1", "recording.jfr", "project-42", null, RecordingEventSource.JDK,
+                    NOW, NOW, NOW.plusSeconds(60), false, null, null, java.util.List.of());
+            when(recordingRepository.findRecording("rec-1")).thenReturn(Optional.of(projectScoped));
+
+            Optional<Recording> found = manager.findRecording("rec-1");
+
+            assertEquals(Optional.of(projectScoped), found);
+            verify(recordingRepository).findRecording("rec-1");
+        }
+
+        @Test
+        void returnsEmptyWhenMissing() {
+            when(recordingRepository.findRecording("missing")).thenReturn(Optional.empty());
+
+            assertEquals(Optional.empty(), manager.findRecording("missing"));
+        }
+    }
 }

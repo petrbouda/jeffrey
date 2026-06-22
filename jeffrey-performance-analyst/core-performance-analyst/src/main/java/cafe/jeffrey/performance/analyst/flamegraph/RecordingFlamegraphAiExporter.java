@@ -84,7 +84,6 @@ public class RecordingFlamegraphAiExporter {
 
             LOG.info("Generated AI flamegraph prompt: event_type={} total_samples={}",
                     promptType.eventType().code(), root.totalSamples());
-            System.out.println(markdown);
         }
         return prompts;
     }
