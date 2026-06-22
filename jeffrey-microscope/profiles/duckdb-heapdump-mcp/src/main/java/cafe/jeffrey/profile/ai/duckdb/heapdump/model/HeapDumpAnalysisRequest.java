@@ -25,14 +25,16 @@ import java.util.List;
 /**
  * Request for heap dump AI analysis.
  *
- * @param message the user's question or analysis request
- * @param history optional conversation history for context
+ * @param profileId the profile under analysis (used to scope the Claude Code MCP toolset)
+ * @param message   the user's question or analysis request
+ * @param history   optional conversation history for context
  */
 public record HeapDumpAnalysisRequest(
+        String profileId,
         String message,
         List<ChatMessage> history
 ) {
-    public HeapDumpAnalysisRequest(String message) {
-        this(message, List.of());
+    public HeapDumpAnalysisRequest(String profileId, String message) {
+        this(profileId, message, List.of());
     }
 }

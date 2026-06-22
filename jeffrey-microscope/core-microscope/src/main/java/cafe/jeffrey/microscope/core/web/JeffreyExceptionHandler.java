@@ -20,14 +20,19 @@ package cafe.jeffrey.microscope.core.web;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.HttpMediaTypeNotAcceptableException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import cafe.jeffrey.shared.common.exception.ErrorCode;
 import cafe.jeffrey.shared.common.exception.ErrorResponse;
 import cafe.jeffrey.shared.common.exception.ErrorType;
 import cafe.jeffrey.shared.common.exception.JeffreyException;
+
+import java.util.Set;
 
 /**
  * Maps Jeffrey-specific and standard exceptions to JSON {@link ErrorResponse}
@@ -59,6 +64,33 @@ public class JeffreyExceptionHandler {
         LOG.warn("Handling an IllegalArgumentException: message={}", ex.getMessage(), ex);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(new ErrorResponse(ErrorType.CLIENT, ErrorCode.INVALID_REQUEST, ex.getMessage()));
+    }
+
+    /**
+     * A client called an endpoint with an unsupported HTTP method (e.g. a GET against a POST-only route).
+     * Respond with a plain 405 + {@code Allow} header and no body: this is a client mistake (logged at
+     * debug, not error), and emitting a JSON body would force content negotiation that fails for clients
+     * whose {@code Accept} excludes JSON (e.g. an EventSource sending {@code text/event-stream}).
+     */
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<Void> handleMethodNotSupported(HttpRequestMethodNotSupportedException ex) {
+        LOG.debug("Unsupported HTTP method: {}", ex.getMessage());
+        ResponseEntity.BodyBuilder builder = ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED);
+        Set<HttpMethod> supported = ex.getSupportedHttpMethods();
+        if (supported != null && !supported.isEmpty()) {
+            builder.allow(supported.toArray(new HttpMethod[0]));
+        }
+        return builder.build();
+    }
+
+    /**
+     * Content negotiation produced no writable representation for the client's {@code Accept} header.
+     * Respond with a bodyless 406 instead of letting it bubble up as an internal error.
+     */
+    @ExceptionHandler(HttpMediaTypeNotAcceptableException.class)
+    public ResponseEntity<Void> handleMediaTypeNotAcceptable(HttpMediaTypeNotAcceptableException ex) {
+        LOG.debug("No acceptable representation for request: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).build();
     }
 
     @ExceptionHandler(Exception.class)

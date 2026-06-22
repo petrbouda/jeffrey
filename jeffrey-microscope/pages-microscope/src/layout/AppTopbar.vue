@@ -20,6 +20,19 @@
         </div>
 
         <div class="hero-actions">
+          <!-- Restart-required indicator (a setting changed that only applies after a restart) -->
+          <span
+            v-if="restartRequired"
+            class="restart-indicator"
+            title="Restart Jeffrey to apply configuration changes"
+          >
+            <span class="restart-tile"><i class="bi bi-arrow-repeat"></i></span>
+            <span class="restart-text">
+              <span class="restart-title">Restart required</span>
+              <span class="restart-sub">to apply configuration changes</span>
+            </span>
+          </span>
+
           <!-- Back to Recordings button (only shown on profile pages) -->
           <button
             v-if="isProfilePage"
@@ -51,11 +64,14 @@
 import { computed, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import VersionClient from '@/services/api/VersionClient';
+import { useRestartRequired, refreshRestartRequired } from '@/stores/restartStore';
 
 const route = useRoute();
 
 const version = ref('');
 const versionClient = new VersionClient();
+
+const restartRequired = useRestartRequired();
 
 const isProfilePage = computed(() => route.meta.layout === 'profile');
 
@@ -69,6 +85,8 @@ onMounted(async () => {
   } catch {
     version.value = '';
   }
+  // Reflect a pending restart (e.g. user changed settings in a previous session).
+  refreshRestartRequired();
 });
 </script>
 
@@ -157,8 +175,52 @@ onMounted(async () => {
 .hero-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 14px;
   margin-left: auto;
+}
+
+/* Restart-required indicator — solid amber card with dark text (high-contrast) */
+.restart-indicator {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 6px 14px 6px 8px;
+  border-radius: 11px;
+  background: linear-gradient(135deg, var(--color-amber-badge-border), var(--color-amber));
+  border: 1px solid rgba(120, 53, 15, 0.45);
+  box-shadow: 0 6px 20px rgba(245, 158, 11, 0.45);
+}
+
+.restart-tile {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: rgba(120, 53, 15, 0.16);
+  color: var(--color-amber-dark);
+  font-size: 1.05rem;
+}
+
+.restart-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.restart-title {
+  font-size: 0.84rem;
+  font-weight: 800;
+  color: var(--color-amber-dark);
+  line-height: 1.15;
+}
+
+.restart-sub {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--color-amber-message);
+  margin-top: 1px;
 }
 
 /* Decorative circles */

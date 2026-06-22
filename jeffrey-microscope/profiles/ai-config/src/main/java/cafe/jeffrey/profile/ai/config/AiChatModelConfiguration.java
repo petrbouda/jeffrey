@@ -36,20 +36,26 @@ import org.springframework.ai.openai.setup.OpenAiSetup;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.context.annotation.Bean;
+import cafe.jeffrey.profile.ai.chat.AiChatBackend;
+import cafe.jeffrey.profile.ai.chat.McpToolsetFactory;
+import cafe.jeffrey.profile.ai.chat.SpringAiChatBackend;
 
 import java.time.Duration;
 import java.util.List;
 
 /**
- * Manual configuration of Spring AI ChatModel and ChatClient beans.
- * Replaces the auto-configuration starters with explicit bean creation
- * based on {@code jeffrey.ai.provider} property.
+ * Manual configuration of the AI backend. Produces a single provider-agnostic {@link AiChatBackend}
+ * bean from the {@code jeffrey.microscope.ai.*} settings.
  * <p>
- * Active when {@code jeffrey.microscope.ai.provider} is set to a real provider (not {@code none}).
+ * The API-key providers (Claude via the Anthropic API, ChatGPT, Ollama) are backed by Spring AI.
+ * The {@code claude-code} provider is wired separately by {@code ClaudeCodeConfiguration} (in the
+ * {@code claude-code-headless} module), since it drives the Claude Code CLI rather than a Spring AI
+ * {@link ChatModel}.
  * <p>
- * Database-stored settings are injected into the Spring Environment on startup
- * by {@code SettingsConfiguration}, so they are available via {@code @Value} annotations
- * and {@code @ConditionalOnExpression} without this class needing to depend on persistence.
+ * The {@code mcpToolsetFactory} bean is active for any real provider (not {@code none}), while the
+ * Spring AI {@code aiChatBackend} bean is active only for the API-key providers. Database-stored
+ * settings are injected into the Spring Environment on startup by {@code SettingsConfiguration}, so
+ * they are available via {@code @Value} and {@code @ConditionalOnExpression}.
  */
 @ConditionalOnExpression("'${jeffrey.microscope.ai.provider:none}' != 'none'")
 public class AiChatModelConfiguration {
@@ -60,26 +66,46 @@ public class AiChatModelConfiguration {
     private static final int OPENAI_CLIENT_MAX_RETRIES = 2;
     private static final String DEFAULT_OLLAMA_BASE_URL = "http://localhost:11434";
 
+    private static final String PROVIDER_CLAUDE = "claude";
+    private static final String PROVIDER_CHATGPT = "chatgpt";
+    private static final String PROVIDER_OLLAMA = "ollama";
+
+    private static final String DISPLAY_CLAUDE = "Claude";
+    private static final String DISPLAY_CHATGPT = "ChatGPT";
+    private static final String DISPLAY_OLLAMA = "Ollama";
+
     @Bean
-    public ChatModel chatModel(
+    public McpToolsetFactory mcpToolsetFactory(
+            @Value("${jeffrey.microscope.ai.mcp-url:http://127.0.0.1:8080/api/internal/mcp/claude-code}") String mcpUrl) {
+        return new McpToolsetFactory(mcpUrl);
+    }
+
+    @Bean
+    @ConditionalOnExpression("'${jeffrey.microscope.ai.provider:none}' == 'claude'"
+            + " or '${jeffrey.microscope.ai.provider:none}' == 'chatgpt'"
+            + " or '${jeffrey.microscope.ai.provider:none}' == 'ollama'")
+    public AiChatBackend aiChatBackend(
             @Value("${jeffrey.microscope.ai.provider}") String provider,
-            @Value("${jeffrey.microscope.ai.model}") String modelName,
+            @Value("${jeffrey.microscope.ai.model:}") String modelName,
             @Value("${jeffrey.microscope.ai.max-tokens:4096}") int maxTokens,
             @Value("${jeffrey.microscope.ai.api-key:}") String apiKey,
             @Value("${jeffrey.microscope.ai.base-url:" + DEFAULT_OLLAMA_BASE_URL + "}") String baseUrl) {
 
         return switch (provider.toLowerCase()) {
-            case "claude" -> createAnthropicChatModel(apiKey, modelName, maxTokens);
-            case "chatgpt" -> createOpenAiChatModel(apiKey, modelName, maxTokens);
-            case "ollama" -> createOllamaChatModel(baseUrl, modelName, maxTokens);
+            case PROVIDER_CLAUDE -> springAiBackend(
+                    createAnthropicChatModel(apiKey, modelName, maxTokens), DISPLAY_CLAUDE, modelName);
+            case PROVIDER_CHATGPT -> springAiBackend(
+                    createOpenAiChatModel(apiKey, modelName, maxTokens), DISPLAY_CHATGPT, modelName);
+            case PROVIDER_OLLAMA -> springAiBackend(
+                    createOllamaChatModel(baseUrl, modelName, maxTokens), DISPLAY_OLLAMA, modelName);
             default -> throw new IllegalArgumentException("Unknown AI provider: " + provider
                     + ". Supported providers: claude, chatgpt, ollama");
         };
     }
 
-    @Bean
-    public ChatClient.Builder chatClientBuilder(ChatModel chatModel) {
-        return ChatClient.builder(chatModel);
+    private AiChatBackend springAiBackend(ChatModel chatModel, String providerDisplayName, String modelName) {
+        ChatClient chatClient = ChatClient.builder(chatModel).build();
+        return new SpringAiChatBackend(chatClient, providerDisplayName, modelName);
     }
 
     private ChatModel createAnthropicChatModel(String apiKey, String modelName, int maxTokens) {
