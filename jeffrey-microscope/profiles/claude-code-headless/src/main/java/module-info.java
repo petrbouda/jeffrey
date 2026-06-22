@@ -15,27 +15,20 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-module cafe.jeffrey.microscope.profile.ai.config {
-    requires transitive spring.ai.client.chat;
-    requires transitive spring.ai.model;
-    requires spring.ai.anthropic;
-    requires spring.ai.ollama;
-    requires spring.ai.openai;
+module cafe.jeffrey.microscope.profile.ai.claudecode {
+    requires transitive cafe.jeffrey.microscope.profile.ai.config;
+    requires cafe.jeffrey.shared.common;
+    requires spring.ai.model;
     requires spring.boot;
     requires spring.boot.autoconfigure;
     requires spring.context;
     requires spring.beans;
     requires spring.core;
-    requires cafe.jeffrey.shared.common;
+    requires com.fasterxml.jackson.databind;
     requires org.slf4j;
-    // Spring AI 2.0.0 exposes these SDK types in its public API (OpenAiSetup/AnthropicSetup
-    // return types and ObservationRegistry parameters): named modules must read them explicitly.
-    requires micrometer.observation;
-    requires openai.java.core;
-    requires anthropic.java.core;
 
-    exports cafe.jeffrey.profile.ai.config;
-    exports cafe.jeffrey.profile.ai.chat;
+    exports cafe.jeffrey.profile.ai.claudecode.config;
+    exports cafe.jeffrey.profile.ai.claudecode.mcp;
 
-    opens cafe.jeffrey.profile.ai.config to spring.core, spring.beans, spring.context;
+    opens cafe.jeffrey.profile.ai.claudecode.config to spring.core, spring.beans, spring.context;
 }

@@ -34,6 +34,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
 import cafe.jeffrey.microscope.core.web.controllers.profile.HeapDumpManagerToolsDelegate;
+import cafe.jeffrey.profile.ai.claudecode.mcp.McpToolSpec;
+import cafe.jeffrey.profile.ai.claudecode.mcp.ReflectiveToolset;
 import cafe.jeffrey.profile.ai.duckdb.heapdump.tools.HeapDumpMcpTools;
 import cafe.jeffrey.profile.ai.duckdb.jfr.tools.DuckDbMcpTools;
 import cafe.jeffrey.provider.profile.api.DatabaseManagerResolver;

@@ -27,29 +27,17 @@
         <version>1.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>ai-config</artifactId>
-    <description>Shared AI ChatModel configuration for Claude, OpenAI, and Ollama providers</description>
+    <artifactId>claude-code-headless</artifactId>
+    <description>Claude Code (headless) AI backend and reusable MCP tool machinery</description>
 
     <dependencies>
-        <!-- Spring AI - Anthropic Claude -->
+        <!-- AI seam (AiChatBackend, ChatExchange, McpToolset, ...) -->
         <dependency>
-            <groupId>org.springframework.ai</groupId>
-            <artifactId>spring-ai-anthropic</artifactId>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>ai-config</artifactId>
         </dependency>
 
-        <!-- Spring AI - OpenAI ChatGPT -->
-        <dependency>
-            <groupId>org.springframework.ai</groupId>
-            <artifactId>spring-ai-openai</artifactId>
-        </dependency>
-
-        <!-- Spring AI - Ollama (self-hosted) -->
-        <dependency>
-            <groupId>org.springframework.ai</groupId>
-            <artifactId>spring-ai-ollama</artifactId>
-        </dependency>
-
-        <!-- Spring AI - ChatClient -->
+        <!-- Spring AI - ChatClient (brings spring-ai-model for the @Tool annotations) -->
         <dependency>
             <groupId>org.springframework.ai</groupId>
             <artifactId>spring-ai-client-chat</artifactId>
@@ -71,6 +59,13 @@
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
+        </dependency>
+
+        <!-- Testing -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 </project>
