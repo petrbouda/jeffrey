@@ -26,9 +26,10 @@
   position: fixed !important;
   top: 20px !important;
   right: 20px !important;
-  max-width: 360px !important;
+  max-width: min(480px, calc(100vw - 40px)) !important;
   display: flex;
   flex-direction: column;
+  align-items: flex-end;
   gap: 10px;
 }
 
@@ -322,6 +323,167 @@
 .update-download-btn:hover {
   transform: translateY(-1px);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Enable Claude Code toast — larger, persistent (no auto-hide) */
+.cc-enable-toast {
+  min-width: 440px !important;
+  max-width: 480px !important;
+  border-radius: 14px !important;
+}
+
+.cc-enable-toast .toast-accent {
+  width: 5px;
+  background: linear-gradient(180deg, var(--color-primary), var(--color-violet));
+}
+
+.cc-enable-toast .toast-content {
+  padding: 18px 20px;
+}
+
+.cc-enable-toast .toast-title {
+  font-size: 15.5px;
+  font-weight: 800;
+}
+
+.cc-stars {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  color: #fff;
+  font-size: 1rem;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-violet));
+}
+
+.cc-desc {
+  font-size: 13px;
+  color: var(--color-text);
+  line-height: 1.5;
+}
+
+.cc-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-primary);
+  background: var(--color-primary-light);
+  border-radius: 999px;
+  padding: 3px 11px;
+}
+
+.cc-chip i {
+  font-size: 0.75rem;
+}
+
+.cc-foot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.cc-action {
+  display: inline-flex;
+  align-items: center;
+}
+
+.cc-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #fff;
+  border: none;
+  border-radius: 9px;
+  padding: 10px 16px;
+  cursor: pointer;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-violet));
+  box-shadow: 0 3px 10px rgba(94, 100, 255, 0.28);
+  transition:
+    filter 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.cc-btn:hover {
+  filter: brightness(0.96);
+  box-shadow: 0 4px 14px rgba(94, 100, 255, 0.38);
+}
+
+.cc-dismiss {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.cc-dismiss:hover {
+  color: var(--color-dark);
+}
+
+.cc-tos {
+  font-size: 11.5px;
+  color: var(--color-text-muted);
+  line-height: 1.45;
+}
+
+.cc-tos a {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.cc-tos a:hover {
+  text-decoration: underline;
+}
+
+.cc-enabling {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cc-enabled-note {
+  font-size: 12.5px;
+  color: var(--color-success-dark, #0b8a59);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cc-enabled-note i {
+  color: var(--color-success);
+}
+
+.cc-error {
+  font-size: 11.5px;
+  color: var(--color-danger);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cc-spin {
+  animation: cc-spin 1s linear infinite;
+}
+
+@keyframes cc-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Flamegraph Grid - Shared responsive grid layout */

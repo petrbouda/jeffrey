@@ -18,14 +18,9 @@
 
 package cafe.jeffrey.microscope.core.mcp;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -39,7 +34,11 @@ import cafe.jeffrey.profile.ai.claudecode.mcp.ReflectiveToolset;
 import cafe.jeffrey.profile.ai.duckdb.heapdump.tools.HeapDumpMcpTools;
 import cafe.jeffrey.profile.ai.duckdb.jfr.tools.DuckDbMcpTools;
 import cafe.jeffrey.provider.profile.api.DatabaseManagerResolver;
+import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.ArrayNode;
+import tools.jackson.databind.node.ObjectNode;
 
 /**
  * Minimal MCP Streamable-HTTP server exposing Jeffrey's profile analysis tools to the Claude Code CLI.
@@ -79,15 +78,12 @@ public class McpStreamableHttpController {
     private static final int ERROR_INVALID_PARAMS = -32602;
     private static final int ERROR_INTERNAL = -32603;
 
-    private final ObjectMapper objectMapper;
     private final ProfileManagerResolver profileManagerResolver;
     private final DatabaseManagerResolver databaseManagerResolver;
 
     public McpStreamableHttpController(
-            ObjectMapper objectMapper,
             ProfileManagerResolver profileManagerResolver,
             DatabaseManagerResolver databaseManagerResolver) {
-        this.objectMapper = objectMapper;
         this.profileManagerResolver = profileManagerResolver;
         this.databaseManagerResolver = databaseManagerResolver;
     }
@@ -98,7 +94,7 @@ public class McpStreamableHttpController {
             @RequestParam("toolset") String toolset,
             @RequestBody JsonNode request) {
 
-        String method = request.path("method").asText("");
+        String method = request.path("method").asString();
         JsonNode id = request.get("id");
 
         // JSON-RPC notifications (no id) require no response body.
@@ -109,7 +105,7 @@ public class McpStreamableHttpController {
         try {
             return switch (method) {
                 case METHOD_INITIALIZE -> ResponseEntity.ok(initializeResult(id, request));
-                case METHOD_PING -> ResponseEntity.ok(success(id, objectMapper.createObjectNode()));
+                case METHOD_PING -> ResponseEntity.ok(success(id, Json.createObject()));
                 case METHOD_TOOLS_LIST -> ResponseEntity.ok(toolsList(id, profileId, toolset));
                 case METHOD_TOOLS_CALL -> ResponseEntity.ok(toolsCall(id, profileId, toolset, request.path("params")));
                 default -> ResponseEntity.ok(error(id, ERROR_METHOD_NOT_FOUND, "Method not found: " + method));
@@ -124,8 +120,9 @@ public class McpStreamableHttpController {
     }
 
     private JsonNode initializeResult(JsonNode id, JsonNode request) {
-        String protocolVersion = request.path("params").path("protocolVersion").asText(DEFAULT_PROTOCOL_VERSION);
-        ObjectNode result = objectMapper.createObjectNode();
+        String requestedProtocol = request.path("params").path("protocolVersion").asString();
+        String protocolVersion = requestedProtocol.isEmpty() ? DEFAULT_PROTOCOL_VERSION : requestedProtocol;
+        ObjectNode result = Json.createObject();
         result.put("protocolVersion", protocolVersion);
         result.putObject("capabilities").putObject("tools").put("listChanged", false);
         ObjectNode serverInfo = result.putObject("serverInfo");
@@ -136,7 +133,7 @@ public class McpStreamableHttpController {
 
     private JsonNode toolsList(JsonNode id, String profileId, String toolset) {
         ReflectiveToolset reflectiveToolset = toolsetFor(profileId, toolset);
-        ObjectNode result = objectMapper.createObjectNode();
+        ObjectNode result = Json.createObject();
         ArrayNode tools = result.putArray("tools");
         for (McpToolSpec spec : reflectiveToolset.specs()) {
             ObjectNode tool = tools.addObject();
@@ -148,11 +145,11 @@ public class McpStreamableHttpController {
     }
 
     private JsonNode toolsCall(JsonNode id, String profileId, String toolset, JsonNode params) {
-        String toolName = params.path("name").asText("");
+        String toolName = params.path("name").asString();
         JsonNode arguments = params.get("arguments");
         ReflectiveToolset reflectiveToolset = toolsetFor(profileId, toolset);
 
-        ObjectNode result = objectMapper.createObjectNode();
+        ObjectNode result = Json.createObject();
         ArrayNode content = result.putArray("content");
         try {
             String text = reflectiveToolset.call(toolName, arguments);
@@ -171,19 +168,19 @@ public class McpStreamableHttpController {
             case TOOLSET_JFR -> {
                 ProfileInfo profileInfo = profileManagerResolver.resolve(profileId).info();
                 yield new ReflectiveToolset(
-                        objectMapper, new DuckDbMcpTools(databaseManagerResolver.open(profileInfo)), TOOLSET_JFR);
+                        new DuckDbMcpTools(databaseManagerResolver.open(profileInfo)), TOOLSET_JFR);
             }
             case TOOLSET_HEAP -> {
                 HeapDumpManagerToolsDelegate delegate =
                         new HeapDumpManagerToolsDelegate(profileManagerResolver.resolve(profileId).heapDumpManager());
-                yield new ReflectiveToolset(objectMapper, new HeapDumpMcpTools(delegate), TOOLSET_HEAP);
+                yield new ReflectiveToolset(new HeapDumpMcpTools(delegate), TOOLSET_HEAP);
             }
             default -> throw new IllegalArgumentException("Unknown toolset: " + toolset);
         };
     }
 
     private JsonNode success(JsonNode id, JsonNode result) {
-        ObjectNode response = objectMapper.createObjectNode();
+        ObjectNode response = Json.createObject();
         response.put("jsonrpc", JSONRPC_VERSION);
         response.set("id", id);
         response.set("result", result);
@@ -191,7 +188,7 @@ public class McpStreamableHttpController {
     }
 
     private JsonNode error(JsonNode id, int code, String message) {
-        ObjectNode response = objectMapper.createObjectNode();
+        ObjectNode response = Json.createObject();
         response.put("jsonrpc", JSONRPC_VERSION);
         response.set("id", id);
         ObjectNode error = response.putObject("error");

@@ -18,11 +18,11 @@
 
 package cafe.jeffrey.profile.ai.claudecode.mcp;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
+import cafe.jeffrey.shared.common.Json;
+import tools.jackson.databind.node.ObjectNode;
 
 import java.util.List;
 
@@ -32,8 +32,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ReflectiveToolsetTest {
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
-    private final ReflectiveToolset toolset = new ReflectiveToolset(objectMapper, new SampleTools(), "test");
+    private final ReflectiveToolset toolset = new ReflectiveToolset(new SampleTools(), "test");
 
     @Test
     void exposesEachToolMethodWithPrefixedName() {
@@ -49,30 +48,30 @@ class ReflectiveToolsetTest {
                 .findFirst()
                 .orElseThrow();
         ObjectNode properties = (ObjectNode) add.inputSchema().get("properties");
-        assertEquals("integer", properties.get("a").get("type").asText());
-        assertEquals("integer", properties.get("b").get("type").asText());
+        assertEquals("integer", properties.get("a").get("type").asString());
+        assertEquals("integer", properties.get("b").get("type").asString());
     }
 
     @Test
     void invokesStringTool() {
-        assertEquals("echo:hello", toolset.call("test_echo", objectMapper.createObjectNode().put("message", "hello")));
+        assertEquals("echo:hello", toolset.call("test_echo", Json.createObject().put("message", "hello")));
     }
 
     @Test
     void invokesNumericToolAndCoercesArguments() {
         assertEquals("5", toolset.call("test_add",
-                objectMapper.createObjectNode().put("a", 2).put("b", 3)));
+                Json.createObject().put("a", 2).put("b", 3)));
     }
 
     @Test
     void defaultsMissingPrimitiveArgumentsToZero() {
-        assertEquals("2", toolset.call("test_add", objectMapper.createObjectNode().put("a", 2)));
+        assertEquals("2", toolset.call("test_add", Json.createObject().put("a", 2)));
     }
 
     @Test
     void rejectsUnknownTool() {
         assertThrows(IllegalArgumentException.class,
-                () -> toolset.call("test_missing", objectMapper.createObjectNode()));
+                () -> toolset.call("test_missing", Json.createObject()));
     }
 
     static class SampleTools {

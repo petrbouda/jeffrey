@@ -25,9 +25,8 @@ import cafe.jeffrey.profile.ai.chat.McpToolset;
 import cafe.jeffrey.profile.ai.chat.ToolCallResult;
 import cafe.jeffrey.profile.ai.chat.ToolExchange;
 import cafe.jeffrey.shared.common.span.Spans;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import cafe.jeffrey.shared.common.Json;
+import tools.jackson.databind.node.ObjectNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,7 +49,6 @@ public final class ClaudeCodeChatBackend implements AiChatBackend {
 
     private final ClaudeCodeCliClient cliClient;
     private final String modelName;
-    private final ObjectMapper objectMapper = new ObjectMapper();
 
     public ClaudeCodeChatBackend(ClaudeCodeCliClient cliClient, String modelName) {
         this.cliClient = cliClient;
@@ -114,16 +112,12 @@ public final class ClaudeCodeChatBackend implements AiChatBackend {
     }
 
     private String buildMcpConfigJson(McpToolset toolset) {
-        ObjectNode root = objectMapper.createObjectNode();
+        ObjectNode root = Json.createObject();
         ObjectNode servers = root.putObject(MCP_SERVERS_FIELD);
         ObjectNode server = servers.putObject(toolset.serverName());
         server.put("type", MCP_TYPE_HTTP);
         server.put("url", toolset.url());
-        try {
-            return objectMapper.writeValueAsString(root);
-        } catch (JsonProcessingException e) {
-            throw new IllegalStateException("Failed to serialize MCP config", e);
-        }
+        return Json.toString(root);
     }
 
     private static String buildPrompt(List<ChatMessage> history, String userMessage) {

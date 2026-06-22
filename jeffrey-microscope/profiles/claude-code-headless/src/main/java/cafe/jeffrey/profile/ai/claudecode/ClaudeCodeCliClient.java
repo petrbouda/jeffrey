@@ -18,7 +18,6 @@
 
 package cafe.jeffrey.profile.ai.claudecode;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -64,7 +63,7 @@ public final class ClaudeCodeCliClient {
 
     private final String cliPath;
     private final Duration timeout;
-    private final ClaudeCodeOutputParser outputParser = new ClaudeCodeOutputParser(new ObjectMapper());
+    private final ClaudeCodeOutputParser outputParser = new ClaudeCodeOutputParser();
 
     private volatile Boolean available;
 

@@ -16,21 +16,25 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.profile.ai.claudecode.mcp;
+import BasePlatformClient from '@shared/services/api/BasePlatformClient';
 
-import tools.jackson.databind.node.ObjectNode;
+export interface ClaudeCodeDetectResponse {
+  aiConfigured: boolean;
+  claudeCodeDetected: boolean;
+}
 
 /**
- * The {@code tools/list} description of a single MCP tool: its name, human-readable description, and
- * JSON-Schema input definition.
- *
- * @param name        the tool name as seen by the model ({@code mcp__<server>__<name>})
- * @param description the tool description
- * @param inputSchema the JSON-Schema object describing the tool's arguments
+ * Checks, on startup, whether the Claude Code CLI is installed while no AI provider is configured. The
+ * backend returns 204 (→ empty/null here) when there is nothing to prompt.
  */
-public record McpToolSpec(
-        String name,
-        String description,
-        ObjectNode inputSchema
-) {
+export default class AiProviderDetectClient extends BasePlatformClient {
+  constructor() {
+    super('/ai');
+  }
+
+  detect(): Promise<ClaudeCodeDetectResponse | null> {
+    return this.get<ClaudeCodeDetectResponse>('/claude-code-detect', undefined, {
+      suppressToast: true
+    }).catch(() => null);
+  }
 }

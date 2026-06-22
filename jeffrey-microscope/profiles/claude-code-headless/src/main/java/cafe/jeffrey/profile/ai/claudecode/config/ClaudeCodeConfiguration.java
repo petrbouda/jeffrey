@@ -51,7 +51,7 @@ public class ClaudeCodeConfiguration {
     public AiChatBackend aiChatBackend(
             @Value("${jeffrey.microscope.ai.model:}") String modelName,
             @Value("${jeffrey.microscope.ai.cli-path:claude}") String cliPath,
-            @Value("${jeffrey.microscope.ai.timeout-seconds:120}") int timeoutSeconds) {
+            @Value("${jeffrey.microscope.ai.timeout-seconds:600}") int timeoutSeconds) {
 
         LOG.info("Creating Claude Code backend: cli_path={} model={} timeout_in_sec={}",
                 cliPath, modelName.isBlank() ? CLI_DEFAULT_MODEL : modelName, timeoutSeconds);

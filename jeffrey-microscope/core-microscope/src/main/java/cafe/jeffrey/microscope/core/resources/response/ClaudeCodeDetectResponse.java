@@ -16,21 +16,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.profile.ai.claudecode.mcp;
-
-import tools.jackson.databind.node.ObjectNode;
+package cafe.jeffrey.microscope.core.resources.response;
 
 /**
- * The {@code tools/list} description of a single MCP tool: its name, human-readable description, and
- * JSON-Schema input definition.
- *
- * @param name        the tool name as seen by the model ({@code mcp__<server>__<name>})
- * @param description the tool description
- * @param inputSchema the JSON-Schema object describing the tool's arguments
+ * Result of the startup Claude Code detection: whether an AI provider is already configured, and whether
+ * the Claude Code CLI is installed. The frontend prompts the user to enable Claude Code only when it is
+ * detected but no provider is configured.
  */
-public record McpToolSpec(
-        String name,
-        String description,
-        ObjectNode inputSchema
-) {
+public record ClaudeCodeDetectResponse(boolean aiConfigured, boolean claudeCodeDetected) {
 }

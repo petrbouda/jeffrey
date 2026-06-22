@@ -73,6 +73,32 @@
           </div>
         </div>
 
+        <div v-if="isClaudeCode" class="ai-subscription-panel">
+          <i class="bi bi-stars ai-sub-icon"></i>
+          <div class="ai-sub-body">
+            <div class="ai-sub-title">Claude Code uses your Claude subscription</div>
+            <div class="ai-sub-point">
+              <i class="bi bi-credit-card-2-front"></i>
+              <span>
+                Your <strong>Claude (Anthropic) subscription will be used</strong> — no API key
+                required.
+              </span>
+            </div>
+            <div class="ai-sub-point">
+              <i class="bi bi-shield-check"></i>
+              <span>
+                By enabling, you <strong>agree to comply with Anthropic's
+                  <a
+                    href="https://www.anthropic.com/legal/consumer-terms"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    >Terms of Service</a
+                  ></strong>.
+              </span>
+            </div>
+          </div>
+        </div>
+
         <div class="settings-form-grid" :class="{ 'settings-form-disabled': !aiEnabled }">
           <div class="settings-form-group">
             <label class="settings-label">Provider</label>
@@ -386,6 +412,7 @@ import '@/styles/shared-components.css';
 import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import SettingsClient from '@/services/api/SettingsClient';
+import { useRestartRequired } from '@/stores/restartStore';
 import MainCard from '@/components/MainCard.vue';
 import MainCardHeader from '@/components/MainCardHeader.vue';
 import DataTable from '@/components/table/DataTable.vue';
@@ -433,7 +460,8 @@ watch(activeTab, tab => {
     nextTick(() => drawPreviews());
   }
 });
-const restartRequired = ref(false);
+// Shared with the header indicator: saving any setting marks a restart as required.
+const restartRequired = useRestartRequired();
 const showApiKey = ref(false);
 const saving = ref(false);
 const encryptionMode = ref('');
@@ -857,6 +885,67 @@ async function saveAiExportSettings() {
   font-size: 11px;
   color: var(--color-text-muted);
   margin-top: 4px;
+}
+
+/* Claude Code subscription / ToS notice */
+.ai-subscription-panel {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 14px 16px;
+  margin-bottom: 22px;
+  border-radius: 10px;
+  border: 1px solid var(--color-primary-border, #9ba8ff);
+  background: linear-gradient(120deg, var(--color-primary-light), rgba(139, 92, 246, 0.08));
+}
+
+.ai-sub-icon {
+  font-size: 1.3rem;
+  color: var(--color-primary);
+  margin-top: 1px;
+}
+
+.ai-sub-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.ai-sub-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--color-dark);
+  margin-bottom: 7px;
+}
+
+.ai-sub-point {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--color-text);
+  line-height: 1.5;
+  margin: 5px 0;
+}
+
+.ai-sub-point i {
+  color: var(--color-primary);
+  margin-top: 2px;
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+
+.ai-sub-point strong {
+  color: var(--color-dark);
+  font-weight: 700;
+}
+
+.ai-sub-point a {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.ai-sub-point a:hover {
+  text-decoration: underline;
 }
 
 .password-wrap {

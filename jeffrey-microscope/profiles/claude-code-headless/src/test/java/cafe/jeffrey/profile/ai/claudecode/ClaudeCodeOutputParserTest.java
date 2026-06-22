@@ -18,7 +18,6 @@
 
 package cafe.jeffrey.profile.ai.claudecode;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
@@ -30,7 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ClaudeCodeOutputParserTest {
 
-    private final ClaudeCodeOutputParser parser = new ClaudeCodeOutputParser(new ObjectMapper());
+    private final ClaudeCodeOutputParser parser = new ClaudeCodeOutputParser();
 
     @Nested
     class SuccessfulOutput {

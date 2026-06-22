@@ -18,11 +18,11 @@
 
 package cafe.jeffrey.profile.ai.claudecode.mcp;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
+import cafe.jeffrey.shared.common.Json;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.ObjectNode;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -50,14 +50,12 @@ public final class ReflectiveToolset {
     private static final String JSON_TYPE_NUMBER = "number";
     private static final String JSON_TYPE_BOOLEAN = "boolean";
 
-    private final ObjectMapper objectMapper;
     private final Object target;
     private final String prefix;
     private final Map<String, Method> methodsByToolName = new LinkedHashMap<>();
     private final List<McpToolSpec> specs = new ArrayList<>();
 
-    public ReflectiveToolset(ObjectMapper objectMapper, Object target, String prefix) {
-        this.objectMapper = objectMapper;
+    public ReflectiveToolset(Object target, String prefix) {
         this.target = target;
         this.prefix = prefix;
         index();
@@ -102,7 +100,7 @@ public final class ReflectiveToolset {
     }
 
     private ObjectNode buildInputSchema(Method method) {
-        ObjectNode schema = objectMapper.createObjectNode();
+        ObjectNode schema = Json.createObject();
         schema.put("type", JSON_TYPE_OBJECT);
         ObjectNode properties = schema.putObject("properties");
         for (Parameter parameter : method.getParameters()) {
@@ -131,7 +129,7 @@ public final class ReflectiveToolset {
     private Object convert(JsonNode value, Class<?> type) {
         boolean missing = value == null || value.isNull();
         if (type == String.class) {
-            return missing ? null : value.asText();
+            return missing ? null : value.asString();
         }
         if (type == int.class) {
             return missing ? 0 : value.asInt();
@@ -158,7 +156,7 @@ public final class ReflectiveToolset {
             return missing ? null : value.asDouble();
         }
         // Fallback: pass the raw text (or null) for any other type.
-        return missing ? null : value.asText();
+        return missing ? null : value.asString();
     }
 
     private static String jsonType(Class<?> type) {
