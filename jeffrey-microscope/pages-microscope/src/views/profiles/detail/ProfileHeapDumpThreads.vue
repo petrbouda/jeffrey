@@ -373,19 +373,19 @@
 import { computed, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
 
-import PageHeader from '@/components/layout/PageHeader.vue';
+import PageHeader from '@shared/components/layout/PageHeader.vue';
 import LoadingState from '@shared/components/LoadingState.vue';
 import ErrorState from '@shared/components/ErrorState.vue';
-import StatsTable from '@/components/StatsTable.vue';
+import StatsTable from '@shared/components/table/StatsTable.vue';
 import HeapDumpNotInitialized from '@/components/HeapDumpNotInitialized.vue';
 import ClassNameDisplay from '@/components/heap/ClassNameDisplay.vue';
 import InstanceTreeModal from '@/components/heap/InstanceTreeModal.vue';
 import InstanceActionButtons from '@/components/heap/InstanceActionButtons.vue';
 import Badge from '@shared/components/Badge.vue';
-import DataTable from '@/components/table/DataTable.vue';
-import TableToolbar from '@/components/table/TableToolbar.vue';
+import DataTable from '@shared/components/table/DataTable.vue';
+import TableToolbar from '@shared/components/table/TableToolbar.vue';
 import HeapDumpClient from '@/services/api/HeapDumpClient';
-import '@/styles/shared-components.css';
+import '@shared/styles/shared-components.css';
 import HeapThreadInfo from '@/services/api/model/HeapThreadInfo';
 import type ThreadStackFrame from '@/services/api/model/ThreadStackFrame';
 import FormattingService from '@shared/services/FormattingService';

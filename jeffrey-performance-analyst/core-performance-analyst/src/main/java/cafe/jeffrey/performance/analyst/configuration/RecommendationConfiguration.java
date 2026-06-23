@@ -18,17 +18,19 @@
 
 package cafe.jeffrey.performance.analyst.configuration;
 
-import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import cafe.jeffrey.performance.analyst.flamegraph.RecordingAiPromptManager;
+import cafe.jeffrey.performance.analyst.mcp.RepoToolsRegistry;
+import cafe.jeffrey.performance.analyst.mcp.RepoToolsetFactory;
 import cafe.jeffrey.performance.analyst.persistence.GeneratedRecommendationRepository;
 import cafe.jeffrey.performance.analyst.recommendations.RecommendationTaskRegistry;
 import cafe.jeffrey.performance.analyst.recommendations.RecordingRecommendationManager;
 import cafe.jeffrey.performance.analyst.recommendations.RepositoryCloner;
 import cafe.jeffrey.performance.analyst.versioncontrolsystem.VersionControlSystemManager;
+import cafe.jeffrey.profile.ai.chat.AiChatBackend;
 import cafe.jeffrey.shared.common.filesystem.TempDirFactory;
 
 import java.io.IOException;
@@ -53,6 +55,9 @@ public class RecommendationConfiguration {
             "${jeffrey.performance-analyst.home.dir:${user.home}/.jeffrey-performance-analyst}";
     private static final String TEMP_SUBDIR = "temp";
 
+    private static final String MCP_URL =
+            "${jeffrey.performance-analyst.ai.mcp-url:http://127.0.0.1:8080/api/internal/mcp/claude-code}";
+
     @Bean
     public RepositoryCloner repositoryCloner(@Value(HOME_DIR) String homeDir) {
         Path tempBase = Path.of(homeDir).resolve(TEMP_SUBDIR);
@@ -70,15 +75,27 @@ public class RecommendationConfiguration {
     }
 
     @Bean
+    public RepoToolsRegistry repoToolsRegistry() {
+        return new RepoToolsRegistry();
+    }
+
+    @Bean
+    public RepoToolsetFactory repoToolsetFactory(@Value(MCP_URL) String mcpUrl) {
+        return new RepoToolsetFactory(mcpUrl);
+    }
+
+    @Bean
     public RecordingRecommendationManager recordingRecommendationManager(
             VersionControlSystemManager versionControlSystemManager,
             RecordingAiPromptManager recordingAiPromptManager,
             RepositoryCloner repositoryCloner,
-            ChatClient.Builder chatClientBuilder,
+            AiChatBackend aiChatBackend,
+            RepoToolsRegistry repoToolsRegistry,
+            RepoToolsetFactory repoToolsetFactory,
             GeneratedRecommendationRepository generatedRecommendationRepository,
             Clock clock) {
         return new RecordingRecommendationManager(
-                versionControlSystemManager, recordingAiPromptManager, repositoryCloner, chatClientBuilder,
-                generatedRecommendationRepository, clock);
+                versionControlSystemManager, recordingAiPromptManager, repositoryCloner, aiChatBackend,
+                repoToolsRegistry, repoToolsetFactory, generatedRecommendationRepository, clock);
     }
 }

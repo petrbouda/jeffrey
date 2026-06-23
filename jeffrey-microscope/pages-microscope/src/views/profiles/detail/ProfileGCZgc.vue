@@ -389,11 +389,11 @@
 import { computed, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
 
-import PageHeader from '@/components/layout/PageHeader.vue';
-import StatsTable from '@/components/StatsTable.vue';
-import TabBar from '@/components/TabBar.vue';
+import PageHeader from '@shared/components/layout/PageHeader.vue';
+import StatsTable from '@shared/components/table/StatsTable.vue';
+import TabBar from '@shared/components/TabBar.vue';
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
-import ChartDescription from '@/components/ChartDescription.vue';
+import ChartDescription from '@shared/components/ChartDescription.vue';
 import AboutPanel from '@/components/about/AboutPanel.vue';
 import AboutCallout from '@/components/about/AboutCallout.vue';
 import AboutSection from '@/components/about/AboutSection.vue';
@@ -403,9 +403,9 @@ import LoadingState from '@shared/components/LoadingState.vue';
 import ErrorState from '@shared/components/ErrorState.vue';
 import EmptyState from '@shared/components/EmptyState.vue';
 import Badge from '@shared/components/Badge.vue';
-import DataTable from '@/components/table/DataTable.vue';
-import TableToolbar from '@/components/table/TableToolbar.vue';
-import TableShowMore from '@/components/table/TableShowMore.vue';
+import DataTable from '@shared/components/table/DataTable.vue';
+import TableToolbar from '@shared/components/table/TableToolbar.vue';
+import TableShowMore from '@shared/components/table/TableShowMore.vue';
 import { useTableView } from '@/composables/useTableView';
 import ProfileGCClient from '@/services/api/ProfileGCClient';
 import FormattingService from '@shared/services/FormattingService';

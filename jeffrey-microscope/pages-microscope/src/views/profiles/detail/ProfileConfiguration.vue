@@ -22,9 +22,9 @@ import InformationClient from '@/services/api/InformationClient';
 import FormattingService from '@shared/services/FormattingService';
 import { useRoute } from 'vue-router';
 
-import PageHeader from '@/components/layout/PageHeader.vue';
+import PageHeader from '@shared/components/layout/PageHeader.vue';
 import EmptyState from '@shared/components/EmptyState.vue';
-import DataTable from '@/components/table/DataTable.vue';
+import DataTable from '@shared/components/table/DataTable.vue';
 
 interface SectionRow {
   key: string;

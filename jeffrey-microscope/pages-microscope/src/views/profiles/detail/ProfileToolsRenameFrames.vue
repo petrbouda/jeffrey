@@ -174,11 +174,11 @@
 import { ref, computed, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import Badge from '@shared/components/Badge.vue';
-import PageHeader from '@/components/layout/PageHeader.vue';
+import PageHeader from '@shared/components/layout/PageHeader.vue';
 import ProfileToolsClient from '@/services/api/ProfileToolsClient';
 import type RenameFramesPreview from '@/services/api/model/RenameFramesPreview';
 import ToastService from '@shared/services/ToastService';
-import '@/styles/shared-components.css';
+import '@shared/styles/shared-components.css';
 
 type ToolState =
   | 'idle'

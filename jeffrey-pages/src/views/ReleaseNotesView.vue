@@ -19,12 +19,44 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 
-const selectedVersion = ref('0.10.0')
+const selectedVersion = ref('0.11.0')
 
 interface GalleryImage {
   src: string
   caption: string
 }
+
+// ───────────────────────── 0.11.0 galleries ─────────────────────────
+
+const v110AiImages: GalleryImage[] = [
+  { src: '/images/release-notes/v0.11.0/ai-backends/detected.png', caption: 'Claude Code detected — enable AI features that run on your local subscription' },
+  { src: '/images/release-notes/v0.11.0/ai-backends/config.png', caption: 'AI Configuration — Claude Code uses your Claude subscription, no API key required' },
+  { src: '/images/release-notes/v0.11.0/ai-backends/jfr-ai.png', caption: 'Ask anything about a JFR profile — read-only or modifying, powered by Claude Code' },
+  { src: '/images/release-notes/v0.11.0/ai-backends/jfr-gc-analysis.png', caption: 'AI analysis of a JFR profile — GC pauses graded with a clear verdict' },
+  { src: '/images/release-notes/v0.11.0/ai-backends/jfr-gc-analysis-detail.png', caption: 'Deeper findings — pause distribution, allocation pressure and health signals' },
+  { src: '/images/release-notes/v0.11.0/ai-backends/heap-dump-ai.png', caption: 'Heap Dump AI — an instant overview of a 1.6 GiB, 42M-object heap' },
+  { src: '/images/release-notes/v0.11.0/ai-backends/heap-dump-ai-detail.png', caption: 'Where the memory really goes — biggest consumers and suggested next steps' },
+  { src: '/images/release-notes/v0.11.0/ai-backends/oql-assistant.png', caption: 'OQL Assistant — describe what you want and Claude Code writes the query' },
+  { src: '/images/release-notes/v0.11.0/ai-backends/oql-results.png', caption: 'Run it inline — results with full instance details' },
+]
+
+const v110SpansImages: GalleryImage[] = [
+  { src: '/images/release-notes/v0.11.0/spans/dashboard.png', caption: 'Technologies → Async-Profiler Spans — span-level latency, by tag and slowest' },
+  { src: '/images/release-notes/v0.11.0/spans/spans-by-tag.png', caption: 'Spans by Tag — every span tag with total, average, P95 and max duration' },
+  { src: '/images/release-notes/v0.11.0/spans/span-flamegraphs.png', caption: 'Per-span flame graphs — CPU, Wall-Clock and Allocation samples side by side' },
+  { src: '/images/release-notes/v0.11.0/spans/flamegraph.png', caption: 'Open the CPU flame graph for a span — with its activity timeline' },
+  { src: '/images/release-notes/v0.11.0/spans/flamegraph-detail.png', caption: 'Drill into the stacks — every frame that ran inside the span' },
+  { src: '/images/release-notes/v0.11.0/spans/slowest-spans.png', caption: 'Slowest Spans — the heaviest spans in the recording, ranked by duration' },
+  { src: '/images/release-notes/v0.11.0/spans/events-during-span.png', caption: 'Events during a span — Wall-Clock, CPU and ThreadCPULoad in one window' },
+]
+
+const v110PerfAnalystImages: GalleryImage[] = [
+  { src: '/images/release-notes/v0.11.0/performance-analyst/overview.png', caption: 'Performance Overview — your services ranked by AI severity across every project' },
+  { src: '/images/release-notes/v0.11.0/performance-analyst/workspaces.png', caption: 'Connect to a Jeffrey Hub and browse its workspaces, projects and recordings' },
+  { src: '/images/release-notes/v0.11.0/performance-analyst/prompt.png', caption: 'Each recording becomes a focused flame-graph prompt — CPU & Wall-Clock' },
+  { src: '/images/release-notes/v0.11.0/performance-analyst/recommendations.png', caption: 'AI recommendations — severity, root cause and concrete fixes in plain English' },
+  { src: '/images/release-notes/v0.11.0/performance-analyst/patch.png', caption: 'A ready-to-apply patch — the fix as a unified diff against your code' },
+]
 
 // ───────────────────────── 0.10.0 galleries ─────────────────────────
 
@@ -179,6 +211,10 @@ const profilerSettingsImages: GalleryImage[] = [
 ]
 
 const activeImages = ref<Record<string, number>>({
+  // 0.11.0
+  aiBackends: 0,
+  spans: 0,
+  perfAnalyst: 0,
   // 0.10.0
   navigation: 0,
   inlineSource: 0,
@@ -254,8 +290,37 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
 
 <template>
   <div class="release-notes-page">
+    <!-- ─────────────────────── 0.11.0 Hero ─────────────────────── -->
+    <section v-if="selectedVersion === '0.11.0'" class="hero-banner hero-banner-110">
+      <div class="hero-inner">
+        <div class="hero-version-card">
+          <div class="hero-version-badge">v0.11.0</div>
+          <div class="hero-version-meta">
+            <span class="hero-version-dot internals"></span>
+            Performance
+          </div>
+          <div class="hero-version-meta">
+            <span class="hero-version-dot deepdive"></span>
+            AI-Driven
+          </div>
+        </div>
+        <div class="hero-text">
+          <div class="hero-eyebrow">Release Notes</div>
+          <h1 class="hero-title"><span>Performance Analysis</span> Release</h1>
+          <p class="hero-version">Version 0.11.0 &middot; June 2026</p>
+          <p class="hero-summary">Headlined by the new <strong>Jeffrey Performance Analyst</strong>, which turns profiles into AI-driven, code-level fixes &mdash; severity-ranked recommendations and ready-to-apply patches. Plus a <strong>Claude Code</strong> AI backend that runs on your local subscription, initial <strong>AsyncProfiler span</strong> analysis, and a deep new layer of low-level profiling: GC internals, Virtual Threads, Native Memory Tracking, Security &amp; TLS and more.</p>
+          <div class="hero-docs">
+            <span class="hero-docs-label"><i class="bi bi-journal-text"></i> Documentation</span>
+            <router-link to="/docs/microscope" class="hero-docs-btn"><i class="bi bi-search"></i> Microscope</router-link>
+            <router-link to="/docs/hub" class="hero-docs-btn"><i class="bi bi-cloud"></i> Hub</router-link>
+            <router-link to="/docs/perf-analyst" class="hero-docs-btn"><i class="bi bi-speedometer2"></i> Performance Analyst</router-link>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- ─────────────────────── 0.10.0 Hero ─────────────────────── -->
-    <section v-if="selectedVersion === '0.10.0'" class="hero-banner hero-banner-100">
+    <section v-else-if="selectedVersion === '0.10.0'" class="hero-banner hero-banner-100">
       <div class="hero-inner">
         <div class="hero-version-card">
           <div class="hero-version-badge">v0.10.0</div>
@@ -344,6 +409,7 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
         <div class="version-bar-left">
           <h3>Release Notes</h3>
           <select v-model="selectedVersion" class="version-select">
+            <option value="0.11.0">0.11.0 &mdash; Performance Analysis Release</option>
             <option value="0.10.0">0.10.0 &mdash; IDE Release</option>
             <option value="0.9.0">0.9.0 &mdash; Heap Dumps Release</option>
             <option value="0.8.0">0.8.0 &mdash; Two Products Release</option>
@@ -513,8 +579,178 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
       </div>
     </section>
 
+    <!-- ──────────────────────── 0.11.0 features ──────────────────────── -->
+    <template v-if="selectedVersion === '0.11.0'">
+      <!-- Feature 01: Jeffrey Performance Analyst (highlighted) -->
+      <section class="feature-section">
+        <div class="feature-frame">
+          <div class="feature-frame-ribbon">New</div>
+          <div class="feature-row">
+            <div class="feature-text">
+              <div class="feature-number">Feature 01</div>
+              <h2>Jeffrey Performance Analyst <span class="feature-tag-incubating"><i class="bi bi-egg-fried"></i> Incubating</span></h2>
+              <p>A brand-new member of the Jeffrey family, still <strong>incubating</strong>, with a single job: turn your profiles into concrete, code-level fixes. <strong>Performance Analyst</strong> takes the JFR recordings your Jeffrey Hub collects and builds a focused prompt from each flame graph&rsquo;s <strong>collapsed stacks</strong> &mdash; a precise summary of exactly where the time goes.</p>
+              <p>That prompt is then applied to your real code through <strong>GitHub or GitLab</strong> access, using any of the supported <strong>AI providers</strong>. The AI grades the <strong>severity</strong>, writes the <strong>recommendations</strong>, and generates concrete fixes as a ready-to-apply <strong>patch file</strong>.</p>
+              <div class="feature-highlights">
+                <span class="feature-highlight"><i class="bi bi-exclamation-diamond"></i> Severity-ranked findings</span>
+                <span class="feature-highlight"><i class="bi bi-file-earmark-diff"></i> Ready-to-apply patches</span>
+                <span class="feature-highlight"><i class="bi bi-list-ol"></i> Fix the worst first</span>
+              </div>
+            </div>
+            <div class="feature-gallery">
+              <div class="gallery-main" @click="openLightbox(v110PerfAnalystImages, activeImages.perfAnalyst)">
+                <img :src="v110PerfAnalystImages[activeImages.perfAnalyst].src" :alt="v110PerfAnalystImages[activeImages.perfAnalyst].caption">
+                <div class="gallery-caption">{{ v110PerfAnalystImages[activeImages.perfAnalyst].caption }}</div>
+              </div>
+              <div class="gallery-thumbs">
+                <button
+                  v-for="(img, i) in v110PerfAnalystImages"
+                  :key="i"
+                  class="gallery-thumb"
+                  :class="{ active: activeImages.perfAnalyst === i }"
+                  @click="selectImage('perfAnalyst', i)"
+                >
+                  <img :src="img.src" :alt="img.caption">
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Feature 02: Claude Code AI Backend -->
+      <section class="feature-section">
+        <div class="feature-row reverse">
+          <div class="feature-text">
+            <div class="feature-number">Feature 02</div>
+            <h2>Claude Code AI Backend</h2>
+            <p>Jeffrey&rsquo;s AI analysis can now run through <strong>Claude Code (headless)</strong> &mdash; using the <strong>Claude subscription you already have</strong> on your machine. No API keys, no per-token billing: if you&rsquo;re signed in to Claude Code locally, Jeffrey drives it directly.</p>
+            <p>Jeffrey invokes Claude Code exactly the way you would from a terminal, so usage stays within your plan and in <strong>full compliance with Anthropic&rsquo;s Terms of Service</strong>.</p>
+            <div class="feature-highlights">
+              <span class="feature-highlight"><i class="bi bi-terminal"></i> Claude Code headless</span>
+              <span class="feature-highlight"><i class="bi bi-person-badge"></i> Local subscription</span>
+            </div>
+          </div>
+          <div class="feature-gallery">
+            <div class="gallery-main" @click="openLightbox(v110AiImages, activeImages.aiBackends)">
+              <img :src="v110AiImages[activeImages.aiBackends].src" :alt="v110AiImages[activeImages.aiBackends].caption">
+              <div class="gallery-caption">{{ v110AiImages[activeImages.aiBackends].caption }}</div>
+            </div>
+            <div class="gallery-thumbs">
+              <button
+                v-for="(img, i) in v110AiImages"
+                :key="i"
+                class="gallery-thumb"
+                :class="{ active: activeImages.aiBackends === i }"
+                @click="selectImage('aiBackends', i)"
+              >
+                <img :src="img.src" :alt="img.caption">
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Feature 03: AsyncProfiler Spans -->
+      <div class="feature-section-bg">
+        <section class="feature-section">
+          <div class="feature-row">
+            <div class="feature-text">
+              <div class="feature-number">Feature 03</div>
+              <h2>AsyncProfiler Spans <span class="feature-tag-initial">Initial</span></h2>
+              <p>The first step toward user-defined span analysis. When async-profiler emits spans, Jeffrey now collects them and gives you an <strong>overview</strong> of span counts and durations, a <strong>slowest-spans</strong> ranking, and per-tag statistics.</p>
+              <p>Best of all, each span carries its own flame graphs &mdash; <strong>CPU</strong>, <strong>Allocations</strong> and <strong>Wall-Clock</strong> &mdash; so you can see exactly where a given span spent its time and memory, and optimize it further.</p>
+              <div class="feature-highlights">
+                <span class="feature-highlight"><i class="bi bi-bounding-box"></i> Span overview</span>
+                <span class="feature-highlight"><i class="bi bi-hourglass-split"></i> Slowest spans</span>
+                <span class="feature-highlight"><i class="bi bi-fire"></i> Per-span flamegraphs</span>
+              </div>
+            </div>
+            <div class="feature-gallery">
+              <div class="gallery-main" @click="openLightbox(v110SpansImages, activeImages.spans)">
+                <img :src="v110SpansImages[activeImages.spans].src" :alt="v110SpansImages[activeImages.spans].caption">
+                <div class="gallery-caption">{{ v110SpansImages[activeImages.spans].caption }}</div>
+              </div>
+              <div class="gallery-thumbs">
+                <button
+                  v-for="(img, i) in v110SpansImages"
+                  :key="i"
+                  class="gallery-thumb"
+                  :class="{ active: activeImages.spans === i }"
+                  @click="selectImage('spans', i)"
+                >
+                  <img :src="img.src" :alt="img.caption">
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- 0.11.0 Improvements -->
+      <div class="improvements-section">
+        <div class="improvements-inner">
+          <div class="improvements-header">
+            <div class="improvements-header-line"></div>
+            <h2><i class="bi bi-wrench"></i> Improvements</h2>
+            <div class="improvements-header-line"></div>
+          </div>
+          <div class="improvements-grid">
+            <div class="improvement-tile improvement-tile-text">
+              <div class="imp-tile-body">
+                <h3>Garbage Collection Deep Dive</h3>
+                <p>Dedicated deep-dive pages for <strong>G1</strong> and <strong>ZGC</strong> (heap regions, evacuation pauses, concurrent cycles), a <strong>Unified Stop-The-World timeline</strong>, plus new <strong>Reference Processing</strong>, <strong>String &amp; Symbol Tables</strong> and <strong>Finalizers</strong> pages &mdash; the GC sub-systems that usually stay invisible until they hurt.</p>
+              </div>
+            </div>
+            <div class="improvement-tile improvement-tile-text">
+              <div class="imp-tile-body">
+                <h3>Virtual Threads &amp; Thread Dumps</h3>
+                <p>A <strong>Project Loom</strong> dashboard tracking virtual-thread lifecycle, scheduling and <strong>pinning</strong> events, plus a new <strong>Thread Dumps</strong> page with per-thread state and monitor contention.</p>
+              </div>
+            </div>
+            <div class="improvement-tile improvement-tile-text">
+              <div class="imp-tile-body">
+                <h3>Security &amp; TLS</h3>
+                <p>A new page surfacing the JVM&rsquo;s security telemetry: <strong>TLS handshakes</strong> with protocol, cipher and peer, <strong>X.509 certificate validation</strong>, and the <strong>cryptographic operations</strong> running across the recording.</p>
+              </div>
+            </div>
+            <div class="improvement-tile improvement-tile-text">
+              <div class="imp-tile-body">
+                <h3>Native Memory Tracking</h3>
+                <p><strong>NMT</strong> breaks committed native memory down by category and reconciles it against real <strong>RSS</strong>, while <strong>Native Library Loads</strong> and a direct-buffer view explain off-heap usage the heap graph never showed.</p>
+              </div>
+            </div>
+            <div class="improvement-tile improvement-tile-text">
+              <div class="imp-tile-body">
+                <h3>Socket &amp; File I/O</h3>
+                <p>New <strong>Socket I/O</strong> and <strong>File I/O</strong> pages surface where your application spends time reading and writing &mdash; by peer, path and duration &mdash; so slow disks and chatty connections stop hiding inside the wall-clock.</p>
+              </div>
+            </div>
+            <div class="improvement-tile improvement-tile-text">
+              <div class="imp-tile-body">
+                <h3>Configurable Guardians</h3>
+                <p>The Guardian checks are rebuilt as a <strong>configurable engine</strong> &mdash; guards are data, not code &mdash; with a redesigned page and an interactive <strong>guard editor</strong> to tweak thresholds and add checks without rebuilding.</p>
+              </div>
+            </div>
+            <div class="improvement-tile improvement-tile-text">
+              <div class="imp-tile-body">
+                <h3>JDK 25 CPU-Time Profiler</h3>
+                <p>Full support for <code>jdk.CPUTimeSample</code>, the new CPU-time-based profiler shipped in <strong>JDK 25</strong>. It attributes samples by the <strong>actual on-CPU time</strong> a thread consumed, and Jeffrey renders flame graphs, time series and weights correctly from it &mdash; a truer picture of where the cores actually went.</p>
+              </div>
+            </div>
+            <div class="improvement-tile improvement-tile-text">
+              <div class="imp-tile-body">
+                <h3>Ollama Provider</h3>
+                <p>For fully local, offline analysis, <strong>Ollama</strong> is now a supported AI provider alongside Claude and ChatGPT. Run a local LLM on your own hardware &mdash; the analysis features stay identical, with nothing leaving your machine.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </template>
+
     <!-- ──────────────────────── 0.10.0 features ──────────────────────── -->
-    <template v-if="selectedVersion === '0.10.0'">
+    <template v-else-if="selectedVersion === '0.10.0'">
       <!-- Feature 01: Frame-to-Source Navigation -->
       <div class="feature-section-bg">
         <section class="feature-section">
@@ -1381,6 +1617,16 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
     radial-gradient(circle at 75% 40%, rgba(168, 85, 247, 0.14) 0%, transparent 55%);
 }
 
+.hero-banner-110 {
+  background: linear-gradient(135deg, #07201f 0%, #0d2f33 50%, #0a3a46 100%);
+}
+
+.hero-banner-110::before {
+  background:
+    radial-gradient(circle at 25% 50%, rgba(20, 184, 166, 0.20) 0%, transparent 55%),
+    radial-gradient(circle at 75% 40%, rgba(6, 182, 212, 0.16) 0%, transparent 55%);
+}
+
 .hero-inner {
   max-width: 900px;
   margin: 0 auto;
@@ -1482,6 +1728,56 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
   box-shadow: 0 0 8px #ffab00;
 }
 
+.hero-docs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.hero-docs-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: rgba(255, 255, 255, 0.6);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.hero-docs-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 16px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #fff;
+  text-decoration: none;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.hero-docs-btn:hover {
+  background: rgba(20, 184, 166, 0.22);
+  border-color: rgba(20, 184, 166, 0.55);
+  color: #fff;
+}
+
+.hero-version-dot.internals {
+  background: #14b8a6;
+  box-shadow: 0 0 8px #14b8a6;
+}
+
+.hero-version-dot.deepdive {
+  background: #06b6d4;
+  box-shadow: 0 0 8px #06b6d4;
+}
+
 .hero-text {
   text-align: left;
   flex: 1;
@@ -1523,6 +1819,15 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
   color: rgba(255, 255, 255, 0.5);
   line-height: 1.65;
   margin: 0;
+}
+
+/* 0.11.0 hero gradient is darker — brighten its text for legibility */
+.hero-banner-110 .hero-summary {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.hero-banner-110 .hero-version {
+  color: rgba(255, 255, 255, 0.6);
 }
 
 /* Version Bar */
@@ -1957,6 +2262,71 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
   color: #343a40;
   margin-bottom: 16px;
   line-height: 1.2;
+}
+
+.feature-tag-initial {
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: 10px;
+  padding: 3px 10px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-radius: 999px;
+  color: #fff;
+  background: #0891b2;
+}
+
+/* ── Feature 01 highlight — Jeffrey Performance Analyst ── */
+.feature-frame {
+  position: relative;
+  overflow: hidden;
+  border-radius: 20px;
+  padding: 36px 40px;
+  border: 3px solid transparent;
+  background:
+    linear-gradient(#fff, #fff) padding-box,
+    linear-gradient(120deg, #14b8a6, #06b6d4, #22d3ee, #14b8a6) border-box;
+  background-size: 100% 100%, 300% 300%;
+  animation: frameFlow 6s ease infinite;
+  box-shadow: 0 18px 50px -12px rgba(20, 184, 166, 0.45);
+}
+
+@keyframes frameFlow {
+  0% { background-position: 0% 0%, 0% 50%; }
+  50% { background-position: 0% 0%, 100% 50%; }
+  100% { background-position: 0% 0%, 0% 50%; }
+}
+
+.feature-frame-ribbon {
+  position: absolute;
+  top: 20px;
+  right: -46px;
+  z-index: 2;
+  transform: rotate(45deg);
+  padding: 6px 56px;
+  background: #f59e0b;
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18);
+}
+
+.feature-tag-incubating {
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: 10px;
+  padding: 3px 11px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-radius: 999px;
+  color: #fff;
+  background: #f59e0b;
 }
 
 .feature-text p {

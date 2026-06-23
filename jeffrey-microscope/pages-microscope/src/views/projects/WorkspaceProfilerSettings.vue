@@ -225,7 +225,7 @@ import ConfigureCommand from '@/components/settings/ConfigureCommand.vue';
 import CommandBuilder from '@/components/settings/CommandBuilder.vue';
 import AsyncProfilerHelpPanel from '@/components/settings/AsyncProfilerHelpPanel.vue';
 import ConfirmationDialog from '@shared/components/ConfirmationDialog.vue';
-import TabBar, { type TabBarItem } from '@/components/TabBar.vue';
+import TabBar, { type TabBarItem } from '@shared/components/TabBar.vue';
 import WorkspaceProfilerSettingsClient from '@/services/api/WorkspaceProfilerSettingsClient';
 import ToastService from '@shared/services/ToastService';
 

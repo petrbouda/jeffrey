@@ -16,7 +16,9 @@ export default defineConfig({
       { find: '@shared', replacement: fileURLToPath(new URL('../../shared/ui/common/src', import.meta.url)) },
       { find: '@', replacement: fileURLToPath(new URL('./src', import.meta.url)) },
       { find: /^vue$/, replacement: fileURLToPath(new URL('./node_modules/vue', import.meta.url)) },
-      { find: /^axios$/, replacement: fileURLToPath(new URL('./node_modules/axios', import.meta.url)) }
+      { find: /^axios$/, replacement: fileURLToPath(new URL('./node_modules/axios', import.meta.url)) },
+      // Pinned for shared chart components (e.g. @shared DonutWithLegend) that bare-import apexcharts.
+      { find: /^apexcharts$/, replacement: fileURLToPath(new URL('./node_modules/apexcharts', import.meta.url)) }
     ]
   },
   server: {

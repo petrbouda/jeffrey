@@ -196,8 +196,8 @@ import { computed } from 'vue';
 import FormattingService from '@shared/services/FormattingService';
 import DownloadProgress from '@workspaces/services/api/model/DownloadProgress';
 import DownloadTaskStatus from '@workspaces/services/api/model/DownloadTaskStatus';
-import AssistantPanel from '@/components/assistants/AssistantPanel.vue';
-import AssistantMinimizedButton from '@/components/assistants/AssistantMinimizedButton.vue';
+import AssistantPanel from '@shared/components/assistants/AssistantPanel.vue';
+import AssistantMinimizedButton from '@shared/components/assistants/AssistantMinimizedButton.vue';
 
 interface Props {
   isOpen: boolean;

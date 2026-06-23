@@ -174,8 +174,8 @@ import { ref, watch, nextTick, onMounted } from 'vue';
 import OqlChatMessage from '@/components/oql/OqlChatMessage.vue';
 import Badge from '@shared/components/Badge.vue';
 import { useOqlAssistant } from '@/composables/useOqlAssistant';
-import AssistantPanel from '@/components/assistants/AssistantPanel.vue';
-import AssistantMinimizedButton from '@/components/assistants/AssistantMinimizedButton.vue';
+import AssistantPanel from '@shared/components/assistants/AssistantPanel.vue';
+import AssistantMinimizedButton from '@shared/components/assistants/AssistantMinimizedButton.vue';
 
 const props = defineProps<{
   isOpen: boolean;

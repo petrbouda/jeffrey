@@ -166,7 +166,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
-import GenericModal from '@/components/GenericModal.vue';
+import GenericModal from '@shared/components/GenericModal.vue';
 import type { ProfileListResponse } from '@/services/api/DirectProfileClient';
 import RecordingsClient from '@workspaces/services/api/RecordingsClient';
 import type RecordingGroup from '@workspaces/services/api/model/RecordingGroup';

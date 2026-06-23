@@ -205,14 +205,14 @@ onMounted(() => {
 .header-left h4 {
   margin: 0;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--color-heading-dark);
 }
 
 .version-badge {
   font-size: 0.72rem;
   font-weight: 500;
-  color: #6b7280;
-  background: #f3f4f6;
+  color: var(--color-slate-muted);
+  background: var(--color-grey-bg);
   padding: 2px 8px;
   border-radius: 10px;
   font-variant-numeric: tabular-nums;
@@ -221,7 +221,7 @@ onMounted(() => {
 .header-nav {
   display: flex;
   gap: 2px;
-  background: #f3f4f6;
+  background: var(--color-grey-bg);
   border-radius: 8px;
   padding: 3px;
 }
@@ -231,18 +231,18 @@ onMounted(() => {
   border-radius: 6px;
   font-size: 0.78rem;
   font-weight: 500;
-  color: #6b7280;
+  color: var(--color-slate-muted);
   text-decoration: none;
   transition: all 0.15s ease;
 }
 
 .nav-tab:hover {
-  color: #374151;
+  color: var(--color-slate-text);
 }
 
 .nav-tab.router-link-active {
   background: white;
-  color: #5e64ff;
+  color: var(--color-primary);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
@@ -257,7 +257,7 @@ onMounted(() => {
   left: 14px;
   top: 50%;
   transform: translateY(-50%);
-  color: #9ca3af;
+  color: var(--color-text-light);
   font-size: 0.85rem;
   pointer-events: none;
 }
@@ -266,21 +266,21 @@ onMounted(() => {
   width: 100%;
   height: 42px;
   padding: 0 36px 0 38px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--color-border);
   border-radius: 8px;
   font-size: 0.88rem;
-  color: #1f2937;
+  color: var(--color-heading-dark);
   background: white;
   outline: none;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .search-input::placeholder {
-  color: #9ca3af;
+  color: var(--color-text-light);
 }
 
 .search-input:focus {
-  border-color: #5e64ff;
+  border-color: var(--color-primary);
   box-shadow: 0 0 0 3px rgba(94, 100, 255, 0.1);
 }
 
@@ -291,7 +291,7 @@ onMounted(() => {
   transform: translateY(-50%);
   background: none;
   border: none;
-  color: #9ca3af;
+  color: var(--color-text-light);
   cursor: pointer;
   padding: 4px;
   display: flex;
@@ -299,7 +299,7 @@ onMounted(() => {
 }
 
 .clear-btn:hover {
-  color: #6b7280;
+  color: var(--color-slate-muted);
 }
 
 /* Loading / Empty */
@@ -310,7 +310,7 @@ onMounted(() => {
   align-items: center;
   gap: 10px;
   padding: 60px 20px;
-  color: #9ca3af;
+  color: var(--color-text-light);
 }
 
 .empty-state i {
@@ -319,7 +319,7 @@ onMounted(() => {
 
 .empty-hint {
   font-size: 0.8rem;
-  color: #d1d5db;
+  color: var(--color-muted-separator);
 }
 
 /* Workspaces */
@@ -331,7 +331,7 @@ onMounted(() => {
 
 .workspace-section {
   background: white;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--color-border);
   border-radius: 10px;
   overflow: hidden;
 }
@@ -341,38 +341,38 @@ onMounted(() => {
   align-items: center;
   gap: 10px;
   padding: 14px 18px;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid var(--color-grey-bg);
   cursor: pointer;
   user-select: none;
   transition: background-color 0.15s ease;
 }
 
 .workspace-header:hover {
-  background-color: #f9fafb;
+  background-color: var(--color-neutral-bg);
 }
 
 .chevron-icon {
   font-size: 0.75rem;
-  color: #9ca3af;
+  color: var(--color-text-light);
   transition: transform 0.15s ease;
 }
 
 .workspace-icon {
   font-size: 1.1rem;
-  color: #5e64ff;
+  color: var(--color-primary);
 }
 
 .workspace-name {
   font-weight: 600;
   font-size: 0.95rem;
-  color: #1f2937;
+  color: var(--color-heading-dark);
 }
 
 .project-count {
   margin-left: auto;
   font-size: 0.75rem;
   font-weight: 600;
-  color: #5e64ff;
+  color: var(--color-primary);
   background: rgba(94, 100, 255, 0.08);
   padding: 2px 8px;
   border-radius: 10px;
@@ -381,7 +381,7 @@ onMounted(() => {
 .no-projects {
   padding: 20px 18px;
   font-size: 0.85rem;
-  color: #9ca3af;
+  color: var(--color-text-light);
 }
 
 .project-list {
@@ -393,12 +393,12 @@ onMounted(() => {
   align-items: center;
   gap: 10px;
   padding: 10px 18px;
-  color: #6b7280;
+  color: var(--color-slate-muted);
   font-size: 0.9rem;
 }
 
 .project-row.project-active {
-  color: #1f2937;
+  color: var(--color-heading-dark);
   font-weight: 500;
 }
 
@@ -406,7 +406,7 @@ onMounted(() => {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #10b981;
+  background: var(--color-emerald);
   flex-shrink: 0;
 }
 

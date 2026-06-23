@@ -60,7 +60,7 @@ import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue';
 import hljs from 'highlight.js/lib/core';
 import java from 'highlight.js/lib/languages/java';
 import 'highlight.js/styles/github.css';
-import GenericModal from '@/components/GenericModal.vue';
+import GenericModal from '@shared/components/GenericModal.vue';
 import Badge from '@shared/components/Badge.vue';
 import MessageBus from '@/services/MessageBus';
 import IdeClient from '@/services/api/IdeClient';

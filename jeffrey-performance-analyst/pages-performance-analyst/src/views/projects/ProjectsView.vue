@@ -24,14 +24,18 @@
         :hub-id="hubId"
         :workspace-id="workspaceId"
         @restore="restore"
+        @open="(t) => router.push({ name: 'project', params: { hubId: t.hubId, workspaceId: t.workspaceId, projectId: t.projectId } })"
       />
     </template>
   </WorkspacesBrowser>
 </template>
 
 <script setup lang="ts">
+import { useRouter } from 'vue-router';
 import WorkspacesBrowser from '@workspaces/components/projects/WorkspacesBrowser.vue';
-import ProjectCard from '@/components/ProjectCard.vue';
+import ProjectCard from '@shared/components/projects/ProjectCard.vue';
+
+const router = useRouter();
 
 const HERO =
   'The Performance Analyst analyzes profiles served by Jeffrey servers. Add a hub to browse its workspaces and projects.';

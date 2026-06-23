@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import BasePlatformClient from '@/services/api/BasePlatformClient';
+import BasePlatformClient from '@shared/services/api/BasePlatformClient';
 import type Project from '@/services/api/model/Project';
 
 export default class WorkspaceProjectsClient extends BasePlatformClient {

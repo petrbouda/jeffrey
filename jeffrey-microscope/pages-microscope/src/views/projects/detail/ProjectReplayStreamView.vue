@@ -310,8 +310,8 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import EmptyState from '@shared/components/EmptyState.vue';
-import MainCard from '@/components/MainCard.vue';
-import MainCardHeader from '@/components/MainCardHeader.vue';
+import MainCard from '@shared/components/MainCard.vue';
+import MainCardHeader from '@shared/components/MainCardHeader.vue';
 import StreamingEventsTable from '@/components/streaming/StreamingEventsTable.vue';
 import EventTypeSelector from '@/components/streaming/EventTypeSelector.vue';
 import ReplaySessionPicker from '@/components/streaming/ReplaySessionPicker.vue';

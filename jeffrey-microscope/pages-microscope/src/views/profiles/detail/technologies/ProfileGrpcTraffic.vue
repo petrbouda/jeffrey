@@ -33,7 +33,7 @@ import { computed } from 'vue';
 import { useRoute } from 'vue-router';
 import ProfileGrpcClient from '@/services/api/ProfileGrpcClient';
 import type { GrpcTrafficData } from '@/services/api/ProfileGrpcClient';
-import StatsTable from '@/components/StatsTable.vue';
+import StatsTable from '@shared/components/table/StatsTable.vue';
 import LoadingState from '@shared/components/LoadingState.vue';
 import ErrorState from '@shared/components/ErrorState.vue';
 import CustomDisabledFeatureAlert from '@/components/alerts/CustomDisabledFeatureAlert.vue';

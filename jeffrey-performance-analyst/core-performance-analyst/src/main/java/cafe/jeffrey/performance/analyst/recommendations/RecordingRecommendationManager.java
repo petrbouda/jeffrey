@@ -20,19 +20,24 @@ package cafe.jeffrey.performance.analyst.recommendations;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.ai.chat.client.ChatClient;
 import cafe.jeffrey.performance.analyst.flamegraph.FlamegraphAiPrompt;
 import cafe.jeffrey.performance.analyst.flamegraph.RecordingAiPromptManager;
+import cafe.jeffrey.performance.analyst.mcp.RepoToolsRegistry;
+import cafe.jeffrey.performance.analyst.mcp.RepoToolsetFactory;
 import cafe.jeffrey.performance.analyst.persistence.GeneratedRecommendation;
 import cafe.jeffrey.performance.analyst.persistence.GeneratedRecommendationRepository;
 import cafe.jeffrey.performance.analyst.persistence.VersionControlSystem;
 import cafe.jeffrey.performance.analyst.versioncontrolsystem.VersionControlSystemCredentials;
 import cafe.jeffrey.performance.analyst.versioncontrolsystem.VersionControlSystemManager;
+import cafe.jeffrey.profile.ai.chat.AiChatBackend;
+import cafe.jeffrey.profile.ai.chat.ToolBinding;
+import cafe.jeffrey.profile.ai.chat.ToolExchange;
 import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 
 import java.time.Clock;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Generates repository-aware AI recommendations for a recording. It resolves the project's configured
@@ -44,10 +49,14 @@ public class RecordingRecommendationManager {
 
     private static final Logger LOG = LoggerFactory.getLogger(RecordingRecommendationManager.class);
 
+    private static final String SPAN_NAME = "performance-analyst.recommendation";
+
     private final VersionControlSystemManager versionControlSystemManager;
     private final RecordingAiPromptManager promptManager;
     private final RepositoryCloner repositoryCloner;
-    private final ChatClient.Builder chatClientBuilder;
+    private final AiChatBackend aiChatBackend;
+    private final RepoToolsRegistry repoToolsRegistry;
+    private final RepoToolsetFactory repoToolsetFactory;
     private final GeneratedRecommendationRepository recommendationRepository;
     private final Clock clock;
 
@@ -55,13 +64,17 @@ public class RecordingRecommendationManager {
             VersionControlSystemManager versionControlSystemManager,
             RecordingAiPromptManager promptManager,
             RepositoryCloner repositoryCloner,
-            ChatClient.Builder chatClientBuilder,
+            AiChatBackend aiChatBackend,
+            RepoToolsRegistry repoToolsRegistry,
+            RepoToolsetFactory repoToolsetFactory,
             GeneratedRecommendationRepository recommendationRepository,
             Clock clock) {
         this.versionControlSystemManager = versionControlSystemManager;
         this.promptManager = promptManager;
         this.repositoryCloner = repositoryCloner;
-        this.chatClientBuilder = chatClientBuilder;
+        this.aiChatBackend = aiChatBackend;
+        this.repoToolsRegistry = repoToolsRegistry;
+        this.repoToolsetFactory = repoToolsetFactory;
         this.recommendationRepository = recommendationRepository;
         this.clock = clock;
     }
@@ -88,14 +101,7 @@ public class RecordingRecommendationManager {
         try (ClonedRepository repository = repositoryCloner.clone(vcs.url(), token, vcs.platform())) {
             sink.analyzing();
 
-            RepoAnalysisTools tools = new RepoAnalysisTools(repository.root());
-            String raw = chatClientBuilder.build()
-                    .prompt()
-                    .system(RecommendationPrompts.SYSTEM_PROMPT)
-                    .user(RecommendationPrompts.userMessage(prompt.label(), prompt.markdown()))
-                    .tools(tools)
-                    .call()
-                    .content();
+            String raw = analyze(prompt, new RepoAnalysisTools(repository.root()));
 
             RecommendationResult result = RecommendationOutputParser.parse(raw);
             recommendationRepository.upsert(new GeneratedRecommendation(
@@ -105,6 +111,29 @@ public class RecordingRecommendationManager {
             LOG.info("Generated AI recommendations: projectId={} recordingId={} eventType={} severity={} recommendations_length={} has_patch={}",
                     projectId, recordingId, eventType, result.severity(), result.recommendations().length(), result.hasPatch());
             return result;
+        }
+    }
+
+    /**
+     * Runs the configured AI backend over the cloned checkout, exposing {@code tools} both in-process
+     * (Spring AI providers) and over the run-scoped MCP endpoint (the Claude Code CLI). The {@code runId}
+     * binds the tools in {@link RepoToolsRegistry} only for the duration of this call, since the clone is
+     * deleted when the caller's try-with-resources closes.
+     */
+    private String analyze(FlamegraphAiPrompt prompt, RepoAnalysisTools tools) {
+        String runId = UUID.randomUUID().toString();
+        repoToolsRegistry.register(runId, tools);
+        try {
+            ToolBinding toolBinding = new ToolBinding(tools, repoToolsetFactory.forRun(runId));
+            ToolExchange exchange = new ToolExchange(
+                    RecommendationPrompts.SYSTEM_PROMPT,
+                    null,
+                    RecommendationPrompts.userMessage(prompt.label(), prompt.markdown()),
+                    toolBinding,
+                    SPAN_NAME);
+            return aiChatBackend.analyze(exchange).text();
+        } finally {
+            repoToolsRegistry.unregister(runId);
         }
     }
 

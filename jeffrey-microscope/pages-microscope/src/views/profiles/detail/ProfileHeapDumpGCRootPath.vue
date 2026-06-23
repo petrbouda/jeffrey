@@ -118,7 +118,7 @@
 import { onMounted, ref, shallowRef } from 'vue';
 import { useRoute } from 'vue-router';
 import Badge from '@shared/components/Badge.vue';
-import PageHeader from '@/components/layout/PageHeader.vue';
+import PageHeader from '@shared/components/layout/PageHeader.vue';
 import LoadingState from '@shared/components/LoadingState.vue';
 import ErrorState from '@shared/components/ErrorState.vue';
 import HeapDumpNotInitialized from '@/components/HeapDumpNotInitialized.vue';

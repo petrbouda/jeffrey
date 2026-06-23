@@ -94,11 +94,11 @@ import { onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
-import ChartDescription from '@/components/ChartDescription.vue';
-import PageHeader from '@/components/layout/PageHeader.vue';
+import ChartDescription from '@shared/components/ChartDescription.vue';
+import PageHeader from '@shared/components/layout/PageHeader.vue';
 import LoadingState from '@shared/components/LoadingState.vue';
 import ErrorState from '@shared/components/ErrorState.vue';
-import TabBar from '@/components/TabBar.vue';
+import TabBar from '@shared/components/TabBar.vue';
 import GCMetricsStatsRow from '@/components/gc/GCMetricsStatsRow.vue';
 import ProfileGCClient from '@/services/api/ProfileGCClient';
 import GCTimeseriesType from '@/services/api/model/GCTimeseriesType';

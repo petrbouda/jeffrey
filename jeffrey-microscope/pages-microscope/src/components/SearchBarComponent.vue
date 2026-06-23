@@ -20,7 +20,7 @@
 import { onMounted, ref } from 'vue';
 import GraphUpdater from '@/services/flamegraphs/updater/GraphUpdater';
 import Utils from '@/services/Utils';
-import '@/styles/shared-components.css';
+import '@shared/styles/shared-components.css';
 
 const props = withDefaults(
   defineProps<{

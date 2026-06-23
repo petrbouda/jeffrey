@@ -12,10 +12,10 @@ import RepositoryFile from '@workspaces/services/api/model/RepositoryFile.ts';
 import ConfirmationDialog from '@shared/components/ConfirmationDialog.vue';
 import Badge from '@shared/components/Badge.vue';
 import RecordingFileRow from '@workspaces/components/RecordingFileRow.vue';
-import SectionHeaderBar from '@/components/SectionHeaderBar.vue';
+import SectionHeaderBar from '@shared/components/SectionHeaderBar.vue';
 import type { Variant } from '@shared/types/ui';
 import FormattingService from '@shared/services/FormattingService.ts';
-import TimelineBar from '@/components/TimelineBar.vue';
+import TimelineBar from '@shared/components/TimelineBar.vue';
 
 interface Props {
   sessions: RecordingSession[];

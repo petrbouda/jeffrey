@@ -84,7 +84,7 @@ import { computed, ref } from 'vue';
 
 import LoadingState from '@shared/components/LoadingState.vue';
 import EmptyState from '@shared/components/EmptyState.vue';
-import GenericModal from '@/components/GenericModal.vue';
+import GenericModal from '@shared/components/GenericModal.vue';
 import FlamegraphComponent from '@/components/FlamegraphComponent.vue';
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
 import FlamegraphCardGrid from '@/components/FlamegraphCardGrid.vue';

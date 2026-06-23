@@ -130,7 +130,7 @@ watch(
   ([newCategory, newPage, product]) => {
     // /docs/microscope and /docs/hub are product-level URLs whose category
     // is the product id, not a section path — expand the lead section instead.
-    const isProductRoute = newCategory === 'microscope' || newCategory === 'hub';
+    const isProductRoute = newCategory === 'microscope' || newCategory === 'hub' || newCategory === 'perf-analyst';
     if (newCategory && !isProductRoute) {
       expandedSections.value.add(newCategory);
     }
@@ -290,6 +290,13 @@ watch(
   --color-primary: #7c3aed;
   --color-primary-light: rgba(124, 58, 237, 0.10);
   --color-primary-lighter: rgba(124, 58, 237, 0.05);
+}
+
+/* Performance Analyst gets the emerald that brands its own app. */
+.sidebar-content.product-perf-analyst {
+  --color-primary: #059669;
+  --color-primary-light: rgba(16, 185, 129, 0.10);
+  --color-primary-lighter: rgba(16, 185, 129, 0.05);
 }
 
 /* ============================

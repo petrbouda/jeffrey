@@ -36,7 +36,7 @@
       </div>
     </div>
 
-    <MainNavigation />
+    <MainNavigation :items="navItems" />
 
     <!-- Main Content -->
     <div class="container-fluid px-4">
@@ -47,9 +47,17 @@
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
-import MainNavigation from '@/components/MainNavigation.vue';
+import MainNavigation from '@shared/components/MainNavigation.vue';
+import type { NavItem } from '@shared/types/ui';
 import VersionClient from '@/services/api/VersionClient';
 import { useRestartRequired, refreshRestartRequired } from '@/stores/restartStore';
+
+const navItems: NavItem[] = [
+  { to: '/recordings', icon: 'bi bi-record-circle', label: 'Recordings' },
+  { to: '/workspaces', icon: 'bi bi-folder', label: 'Workspaces' },
+  { to: '/settings', icon: 'bi bi-sliders', label: 'Settings' },
+  { to: '/guardian-guards', icon: 'bi bi-shield-check', label: 'Guardians' }
+];
 
 const version = ref('');
 const versionClient = new VersionClient();

@@ -107,8 +107,8 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
-import MainCard from '@/components/MainCard.vue';
-import MainCardHeader from '@/components/MainCardHeader.vue';
+import MainCard from '@shared/components/MainCard.vue';
+import MainCardHeader from '@shared/components/MainCardHeader.vue';
 import Badge from '@shared/components/Badge.vue';
 import LoadingState from '@shared/components/LoadingState.vue';
 import ErrorState from '@shared/components/ErrorState.vue';

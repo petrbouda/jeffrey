@@ -61,14 +61,14 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue';
 import LoadingState from '@shared/components/LoadingState.vue';
-import TabBar from '@/components/TabBar.vue';
+import TabBar from '@shared/components/TabBar.vue';
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
 import SpanSlowestList from '@/components/span/SpanSlowestList.vue';
 import SpanEventsModal from '@/components/span/SpanEventsModal.vue';
 import SpanTagFlamegraphs from '@/components/span/SpanTagFlamegraphs.vue';
 import AxisFormatType from '@/services/timeseries/AxisFormatType';
 import ProfileAsyncProfilerClient from '@/services/api/ProfileAsyncProfilerClient';
-import type { TabBarItem } from '@/components/TabBar.vue';
+import type { TabBarItem } from '@shared/components/TabBar.vue';
 import type { SpanDetailRow } from '@/services/api/model/span/SpanModels';
 
 const TIMELINE_BUCKETS = 40;

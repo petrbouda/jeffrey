@@ -76,5 +76,5 @@ jeffrey.ai.api-key=sk-ant-...
 </template>
 
 <style>
-@import '@/styles/shared-components.css';
+@import '@shared/styles/shared-components.css';
 </style>

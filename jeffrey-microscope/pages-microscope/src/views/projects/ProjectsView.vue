@@ -31,6 +31,7 @@
         :hub-id="hubId"
         :workspace-id="workspaceId"
         @restore="restore"
+        @open="(t) => navigateToProject(t.hubId, t.projectId, t.workspaceId)"
       />
     </template>
 
@@ -75,7 +76,10 @@
 import { computed, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import WorkspacesBrowser from '@workspaces/components/projects/WorkspacesBrowser.vue';
-import ProjectCard from '@/components/ProjectCard.vue';
+import ProjectCard from '@shared/components/projects/ProjectCard.vue';
+import { useNavigation } from '@/composables/useNavigation';
+
+const { navigateToProject } = useNavigation();
 import Badge from '@shared/components/Badge.vue';
 import WorkspaceEventLog from '@/views/projects/WorkspaceEventLog.vue';
 import WorkspaceProfilerSettings from '@/views/projects/WorkspaceProfilerSettings.vue';
@@ -116,5 +120,5 @@ const onTabChange = (tabId: string) => {
 </script>
 
 <style scoped>
-@import '@/styles/shared-components.css';
+@import '@shared/styles/shared-components.css';
 </style>

@@ -253,7 +253,7 @@ import { useRoute, useRouter } from 'vue-router';
 
 import EventViewerClient from '@/services/api/EventViewerClient';
 import EventType from '@/services/api/model/EventType';
-import GenericModal from '@/components/GenericModal.vue';
+import GenericModal from '@shared/components/GenericModal.vue';
 import PrimaryFlamegraphClient from '@/services/api/PrimaryFlamegraphClient';
 import FlamegraphTooltipFactory from '@/services/flamegraphs/tooltips/FlamegraphTooltipFactory';
 import FlamegraphTooltip from '@/services/flamegraphs/tooltips/FlamegraphTooltip';
@@ -262,12 +262,12 @@ import Badge from '@shared/components/Badge.vue';
 import FullGraphUpdater from '@/services/flamegraphs/updater/FullGraphUpdater';
 import FlamegraphComponent from '@/components/FlamegraphComponent.vue';
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
-import PageHeader from '@/components/layout/PageHeader.vue';
+import PageHeader from '@shared/components/layout/PageHeader.vue';
 import AxisFormatType from '@/services/timeseries/AxisFormatType.ts';
 import EventTypes from '@/services/EventTypes';
-import StatsTable from '@/components/StatsTable.vue';
-import DataTable from '@/components/table/DataTable.vue';
-import '@/styles/shared-components.css';
+import StatsTable from '@shared/components/table/StatsTable.vue';
+import DataTable from '@shared/components/table/DataTable.vue';
+import '@shared/styles/shared-components.css';
 
 // Props definition
 const props = defineProps({

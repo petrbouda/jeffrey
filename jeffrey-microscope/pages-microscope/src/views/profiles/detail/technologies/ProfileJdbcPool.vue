@@ -156,9 +156,9 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
-import StatsTable from '@/components/StatsTable.vue';
+import StatsTable from '@shared/components/table/StatsTable.vue';
 import ChartSection from '@/components/ChartSection.vue';
-import TabBar from '@/components/TabBar.vue';
+import TabBar from '@shared/components/TabBar.vue';
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
 import PoolData from '@/services/api/model/PoolData.ts';
 import PoolEventStatistics from '@/services/api/model/PoolEventStatistics.ts';
@@ -166,7 +166,7 @@ import ProfileJdbcPoolClient from '@/services/api/ProfileJdbcPoolClient.ts';
 import FormattingService from '@shared/services/FormattingService.ts';
 import LoadingState from '@shared/components/LoadingState.vue';
 import ErrorState from '@shared/components/ErrorState.vue';
-import DataTable from '@/components/table/DataTable.vue';
+import DataTable from '@shared/components/table/DataTable.vue';
 import CustomDisabledFeatureAlert from '@/components/alerts/CustomDisabledFeatureAlert.vue';
 import FeatureType from '@/services/api/model/FeatureType';
 import AxisFormatType from '@/services/timeseries/AxisFormatType.ts';

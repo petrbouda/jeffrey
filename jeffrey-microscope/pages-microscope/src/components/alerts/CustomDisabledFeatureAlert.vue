@@ -73,5 +73,5 @@ const props = withDefaults(defineProps<Props>(), {
 </script>
 
 <style>
-@import '@/styles/shared-components.css';
+@import '@shared/styles/shared-components.css';
 </style>

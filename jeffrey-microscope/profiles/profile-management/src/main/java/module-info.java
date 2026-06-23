@@ -66,6 +66,7 @@ module cafe.jeffrey.microscope.profile.management {
 
     exports cafe.jeffrey.profile;
     exports cafe.jeffrey.profile.configuration;
+    exports cafe.jeffrey.profile.mcp;
     exports cafe.jeffrey.profile.feature;
     exports cafe.jeffrey.profile.feature.checker;
     exports cafe.jeffrey.profile.manager;

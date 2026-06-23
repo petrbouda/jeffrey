@@ -205,20 +205,20 @@
 import { computed, onMounted, ref, shallowRef } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
-import PageHeader from '@/components/layout/PageHeader.vue';
+import PageHeader from '@shared/components/layout/PageHeader.vue';
 import LoadingState from '@shared/components/LoadingState.vue';
 import ErrorState from '@shared/components/ErrorState.vue';
-import StatsTable from '@/components/StatsTable.vue';
+import StatsTable from '@shared/components/table/StatsTable.vue';
 import HeapDumpNotInitialized from '@/components/HeapDumpNotInitialized.vue';
-import TabBar from '@/components/TabBar.vue';
+import TabBar from '@shared/components/TabBar.vue';
 import AboutPanel from '@/components/about/AboutPanel.vue';
 import AboutCallout from '@/components/about/AboutCallout.vue';
 import AboutSection from '@/components/about/AboutSection.vue';
 import FeatureGrid from '@/components/about/FeatureGrid.vue';
 import FeatureCard from '@/components/about/FeatureCard.vue';
-import DualPanel from '@/components/DualPanel.vue';
-import DonutWithLegend from '@/components/DonutWithLegend.vue';
-import type { DonutChartData } from '@/components/DonutWithLegend.vue';
+import DualPanel from '@shared/components/DualPanel.vue';
+import DonutWithLegend from '@shared/components/DonutWithLegend.vue';
+import type { DonutChartData } from '@shared/components/DonutWithLegend.vue';
 import InstanceTreeModal from '@/components/heap/InstanceTreeModal.vue';
 import InstanceDetailPanel from '@/components/heap/InstanceDetailPanel.vue';
 import GCRootsTopRetainers from '@/components/gcroots/GCRootsTopRetainers.vue';

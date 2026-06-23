@@ -304,8 +304,8 @@
 import { computed, inject, onMounted, onUnmounted, ref, type ComputedRef } from 'vue';
 import { useRoute } from 'vue-router';
 import { marked } from 'marked';
-import MainCard from '@/components/MainCard.vue';
-import MainCardHeader from '@/components/MainCardHeader.vue';
+import MainCard from '@shared/components/MainCard.vue';
+import MainCardHeader from '@shared/components/MainCardHeader.vue';
 import LoadingState from '@shared/components/LoadingState.vue';
 import ErrorState from '@shared/components/ErrorState.vue';
 import EmptyState from '@shared/components/EmptyState.vue';

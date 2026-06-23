@@ -267,6 +267,43 @@ function copyCmd(): void {
     </div>
   </section>
 
+  <!-- Incubating: Performance Analyst -->
+  <section class="incubating">
+    <div class="container-wide">
+      <div class="incubating-panel">
+        <div class="inc-glow"></div>
+        <div class="inc-head">
+          <span class="inc-badge"><i class="bi bi-stars"></i> Incubating in Jeffrey</span>
+          <h2>Performance Analyst is growing inside Jeffrey</h2>
+          <p>
+            An AI-assisted analyst that turns the JFR recordings your Jeffrey Hub collects into
+            source-code-level performance recommendations — with severity grades and ready-to-apply patches.
+          </p>
+        </div>
+        <div class="inc-flow">
+          <div class="inc-node inc-node--jeffrey">
+            <i class="bi bi-cloud-fill"></i>
+            <span>Jeffrey Hub</span>
+            <span class="inc-node-tag">collects JFR</span>
+          </div>
+          <div class="inc-cable"><span class="inc-runner"></span></div>
+          <div class="inc-node inc-node--pa">
+            <i class="bi bi-robot"></i>
+            <span>Performance Analyst</span>
+            <span class="inc-node-tag">Coming soon</span>
+          </div>
+        </div>
+        <div class="inc-actions">
+          <router-link to="/docs/perf-analyst" class="inc-cta">
+            <i class="bi bi-book"></i>
+            <span>Read the documentation</span>
+            <i class="bi bi-arrow-right"></i>
+          </router-link>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- Tabbed showcase -->
   <section class="tab-showcase" :data-active="activeTab">
     <div class="container-wide">
@@ -768,6 +805,189 @@ function copyCmd(): void {
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
+}
+
+/* ============ INCUBATING: PERFORMANCE ANALYST ============ */
+.incubating {
+  background: linear-gradient(180deg, #ffffff 0%, #f0fdf4 100%);
+  padding: 4rem 0 0;
+}
+
+.incubating-panel {
+  position: relative;
+  overflow: hidden;
+  border-radius: 18px;
+  border: 1px solid #bbf7d0;
+  background: linear-gradient(180deg, #f0fdf4 0%, #ffffff 100%);
+  padding: 2.6rem 2.4rem;
+}
+
+.inc-glow {
+  position: absolute;
+  width: 320px;
+  height: 320px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.16) 0%, transparent 70%);
+  filter: blur(40px);
+  top: -120px;
+  right: -40px;
+  pointer-events: none;
+}
+
+.inc-head {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  margin-bottom: 1.8rem;
+}
+
+.inc-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-bottom: 0.9rem;
+  padding: 0.3rem 0.85rem;
+  border-radius: 999px;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  color: #047857;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.incubating h2 {
+  font-size: 1.9rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin: 0 0 0.6rem;
+  color: #064e3b;
+}
+
+.incubating p {
+  font-size: 1rem;
+  line-height: 1.6;
+  color: #475569;
+  margin: 0 auto;
+  max-width: 700px;
+}
+
+.inc-flow {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1.6rem;
+}
+
+.inc-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 160px;
+  padding: 1rem 1.4rem;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #0f172a;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+}
+
+.inc-node i {
+  font-size: 1.5rem;
+}
+
+.inc-node--jeffrey i {
+  color: #a855f7;
+}
+
+.inc-node--pa {
+  border-color: #a7f3d0;
+  background: linear-gradient(180deg, #ecfdf5 0%, #fff 100%);
+}
+
+.inc-node--pa i {
+  color: #059669;
+}
+
+.inc-node-tag {
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #94a3b8;
+}
+
+.inc-node--pa .inc-node-tag {
+  color: #059669;
+}
+
+.inc-cable {
+  position: relative;
+  flex: 0 0 120px;
+  height: 3px;
+  background: repeating-linear-gradient(90deg, #34d399 0 8px, transparent 8px 16px);
+}
+
+.inc-runner {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: #10b981;
+  transform: translateY(-50%);
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.8);
+  animation: incRun 2.4s linear infinite;
+}
+
+@keyframes incRun {
+  0% { left: 0; opacity: 0; }
+  12% { opacity: 1; }
+  88% { opacity: 1; }
+  100% { left: 100%; opacity: 0; }
+}
+
+@keyframes incRunVertical {
+  0% { top: 0; opacity: 0; }
+  12% { opacity: 1; }
+  88% { opacity: 1; }
+  100% { top: 100%; opacity: 0; }
+}
+
+.inc-actions {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  justify-content: center;
+  margin-top: 1.8rem;
+}
+
+.inc-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.7rem 1.3rem;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 0.92rem;
+  text-decoration: none;
+  color: #fff;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.35);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.inc-cta:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 26px rgba(16, 185, 129, 0.45);
+  color: #fff;
 }
 
 /* ============ TAB SHOWCASE ============ */
@@ -1335,6 +1555,21 @@ function copyCmd(): void {
   }
   .product-title { font-size: 2.1rem; }
   .tab-panel-header h2 { font-size: 1.7rem; }
+  .incubating h2 { font-size: 1.55rem; }
+  .inc-flow { flex-direction: column; }
+  .inc-node { width: 100%; max-width: 280px; }
+  .inc-cable {
+    flex-basis: 40px;
+    width: 3px;
+    height: 40px;
+    background: repeating-linear-gradient(180deg, #34d399 0 8px, transparent 8px 16px);
+  }
+  .inc-runner {
+    left: 50%;
+    top: 0;
+    transform: translateX(-50%);
+    animation-name: incRunVertical;
+  }
 }
 
 @media (max-width: 760px) {

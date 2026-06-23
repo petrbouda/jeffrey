@@ -16,7 +16,10 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@shared/*": ["../../shared/ui/common/src/*"],
+      "@workspaces/*": ["../../shared/ui/workspaces/ui/*"],
+      "@instances/*": ["../../shared/ui/instances/src/*"]
     }
   },
   "include": ["src/**/*.ts", "src/**/*.d.ts", "src/**/*.tsx", "src/**/*.vue", "src/vite-env.d.ts"],

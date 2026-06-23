@@ -112,11 +112,11 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import DetailBreadcrumb from '@/components/DetailBreadcrumb.vue';
+import DetailBreadcrumb from '@shared/components/DetailBreadcrumb.vue';
 import JdbcGroupList from '@/components/jdbc/JdbcGroupList.vue';
 import JdbcOverviewStats from '@/components/jdbc/JdbcOverviewStats.vue';
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
-import TabBar from '@/components/TabBar.vue';
+import TabBar from '@shared/components/TabBar.vue';
 import SearchableFilterBar from '@/components/form/SearchableFilterBar.vue';
 import JdbcStatementModal from '@/components/jdbc/JdbcStatementModal.vue';
 import JdbcSlowestStatements from '@/components/jdbc/JdbcSlowestStatements.vue';

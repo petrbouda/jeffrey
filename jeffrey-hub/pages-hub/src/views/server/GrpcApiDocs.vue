@@ -83,8 +83,13 @@
                 <div class="method-info">
                   <span class="method-name">{{ method.name }}</span>
                   <div class="method-badges">
-                    <span v-if="method.responseStreaming" class="badge badge-stream">stream</span>
-                    <span v-else class="badge badge-unary">unary</span>
+                    <Badge
+                      v-if="method.responseStreaming"
+                      value="stream"
+                      variant="orange"
+                      size="xxs"
+                    />
+                    <Badge v-else value="unary" variant="green" size="xxs" />
                   </div>
                 </div>
                 <p v-if="method.description" class="method-desc">{{ method.description }}</p>
@@ -229,6 +234,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
+import Badge from '@shared/components/Badge.vue';
 import GrpcDocsClient from '@/services/api/GrpcDocsClient';
 import VersionClient from '@/services/api/VersionClient';
 import type { GrpcDocs, GrpcField, GrpcMessage, GrpcService, GrpcEnum } from '@/services/api/GrpcDocsClient';
@@ -363,14 +369,14 @@ onMounted(async () => {
 .header-left h4 {
   margin: 0;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--color-heading-dark);
 }
 
 .version-badge {
   font-size: 0.72rem;
   font-weight: 500;
-  color: #6b7280;
-  background: #f3f4f6;
+  color: var(--color-slate-muted);
+  background: var(--color-grey-bg);
   padding: 2px 8px;
   border-radius: 10px;
   font-variant-numeric: tabular-nums;
@@ -379,7 +385,7 @@ onMounted(async () => {
 .header-nav {
   display: flex;
   gap: 2px;
-  background: #f3f4f6;
+  background: var(--color-grey-bg);
   border-radius: 8px;
   padding: 3px;
 }
@@ -389,18 +395,18 @@ onMounted(async () => {
   border-radius: 6px;
   font-size: 0.78rem;
   font-weight: 500;
-  color: #6b7280;
+  color: var(--color-slate-muted);
   text-decoration: none;
   transition: all 0.15s ease;
 }
 
 .nav-tab:hover {
-  color: #374151;
+  color: var(--color-slate-text);
 }
 
 .nav-tab.router-link-active {
   background: white;
-  color: #5e64ff;
+  color: var(--color-primary);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
@@ -412,12 +418,12 @@ onMounted(async () => {
   align-items: center;
   gap: 10px;
   padding: 60px 20px;
-  color: #9ca3af;
+  color: var(--color-text-light);
 }
 
 .error-state i {
   font-size: 2rem;
-  color: #ef4444;
+  color: var(--color-red-border);
 }
 
 /* Service nav pills */
@@ -433,24 +439,24 @@ onMounted(async () => {
   align-items: center;
   gap: 6px;
   padding: 5px 12px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--color-border);
   border-radius: 6px;
   background: white;
   font-size: 0.75rem;
   font-weight: 500;
-  color: #374151;
+  color: var(--color-slate-text);
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .service-nav-item:hover {
-  border-color: #5e64ff;
-  color: #5e64ff;
+  border-color: var(--color-primary);
+  color: var(--color-primary);
 }
 
 .service-nav-item.active {
-  background: #5e64ff;
-  border-color: #5e64ff;
+  background: var(--color-primary);
+  border-color: var(--color-primary);
   color: white;
 }
 
@@ -461,8 +467,8 @@ onMounted(async () => {
 
 .method-count {
   font-size: 0.65rem;
-  background: #f3f4f6;
-  color: #9ca3af;
+  background: var(--color-grey-bg);
+  color: var(--color-text-light);
   padding: 1px 6px;
   border-radius: 8px;
 }
@@ -491,19 +497,19 @@ onMounted(async () => {
 .service-name {
   font-size: 1rem;
   font-weight: 700;
-  color: #1f2937;
+  color: var(--color-heading-dark);
 }
 
 .service-pkg {
   font-size: 0.7rem;
-  color: #9ca3af;
+  color: var(--color-text-light);
   font-family: 'SF Mono', 'Fira Code', monospace;
 }
 
 .service-desc {
   margin: 4px 0 0;
   font-size: 0.8rem;
-  color: #6b7280;
+  color: var(--color-slate-muted);
 }
 
 /* Methods */
@@ -514,7 +520,7 @@ onMounted(async () => {
 }
 
 .method-card {
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--color-border);
   border-radius: 8px;
   background: white;
   overflow: hidden;
@@ -522,7 +528,7 @@ onMounted(async () => {
 }
 
 .method-card:hover {
-  border-color: #d1d5db;
+  border-color: var(--color-muted-separator);
 }
 
 .method-header {
@@ -540,33 +546,14 @@ onMounted(async () => {
 .method-name {
   font-size: 0.85rem;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--color-heading-dark);
   font-family: 'SF Mono', 'Fira Code', monospace;
 }
 
 .method-desc {
   margin: 2px 0 6px;
   font-size: 0.75rem;
-  color: #6b7280;
-}
-
-.badge {
-  font-size: 0.6rem;
-  font-weight: 600;
-  padding: 1px 6px;
-  border-radius: 3px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.badge-unary {
-  background: rgba(16, 185, 129, 0.1);
-  color: #059669;
-}
-
-.badge-stream {
-  background: rgba(245, 158, 11, 0.1);
-  color: #d97706;
+  color: var(--color-slate-muted);
 }
 
 .method-signature {
@@ -583,30 +570,30 @@ onMounted(async () => {
 }
 
 .sig-req {
-  background: #f0f2ff;
-  color: #5e64ff;
+  background: var(--color-indigo-bg-light);
+  color: var(--color-primary);
 }
 
 .sig-res {
-  background: #ecfdf5;
-  color: #059669;
+  background: var(--color-success-bg);
+  color: var(--color-emerald);
 }
 
 .sig-stream {
-  background: #fffbeb;
-  color: #d97706;
+  background: var(--color-amber-bg);
+  color: var(--color-amber-highlight);
 }
 
 .sig-arrow {
   font-size: 0.65rem;
-  color: #d1d5db;
+  color: var(--color-muted-separator);
 }
 
 /* Method detail (expanded) */
 .method-detail {
-  border-top: 1px solid #f3f4f6;
+  border-top: 1px solid var(--color-grey-bg);
   padding: 12px 14px;
-  background: #fafbfc;
+  background: var(--color-light);
 }
 
 .schema-pair {
@@ -624,21 +611,21 @@ onMounted(async () => {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: #9ca3af;
+  color: var(--color-text-light);
   margin-bottom: 2px;
 }
 
 .schema-name {
   font-size: 0.78rem;
   font-weight: 600;
-  color: #374151;
+  color: var(--color-slate-text);
   font-family: 'SF Mono', 'Fira Code', monospace;
   margin-bottom: 6px;
 }
 
 .empty-msg {
   font-size: 0.72rem;
-  color: #d1d5db;
+  color: var(--color-muted-separator);
   font-style: italic;
 }
 
@@ -652,18 +639,18 @@ onMounted(async () => {
 .fields-table th {
   text-align: left;
   font-weight: 600;
-  color: #9ca3af;
+  color: var(--color-text-light);
   font-size: 0.65rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   padding: 4px 8px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .fields-table td {
   padding: 4px 8px;
-  border-bottom: 1px solid #f3f4f6;
-  color: #374151;
+  border-bottom: 1px solid var(--color-grey-bg);
+  color: var(--color-slate-text);
 }
 
 .fields-table tr:last-child td {
@@ -673,16 +660,16 @@ onMounted(async () => {
 .field-name {
   font-family: 'SF Mono', 'Fira Code', monospace;
   font-weight: 500;
-  color: #1f2937;
+  color: var(--color-heading-dark);
 }
 
 .field-type {
   font-family: 'SF Mono', 'Fira Code', monospace;
-  color: #5e64ff;
+  color: var(--color-primary);
 }
 
 .field-label {
-  color: #9ca3af;
+  color: var(--color-text-light);
 }
 
 .type-link {
@@ -693,7 +680,7 @@ onMounted(async () => {
 }
 
 .type-link:hover {
-  color: #4c52ff;
+  color: var(--color-primary-hover);
 }
 
 .fields-table.compact {
@@ -708,7 +695,7 @@ onMounted(async () => {
 }
 
 .message-card {
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--color-border);
   border-radius: 8px;
   background: white;
   padding: 10px 14px;
@@ -716,7 +703,7 @@ onMounted(async () => {
 }
 
 .message-card.highlighted {
-  border-color: #5e64ff;
+  border-color: var(--color-primary);
   box-shadow: 0 0 0 3px rgba(94, 100, 255, 0.1);
 }
 
@@ -730,12 +717,12 @@ onMounted(async () => {
 .msg-name {
   font-size: 0.82rem;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--color-heading-dark);
   font-family: 'SF Mono', 'Fira Code', monospace;
 }
 
 .msg-desc {
   font-size: 0.72rem;
-  color: #9ca3af;
+  color: var(--color-text-light);
 }
 </style>

@@ -182,13 +182,13 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
-import PageHeader from '@/components/layout/PageHeader.vue';
-import TabBar from '@/components/TabBar.vue';
-import type { TabBarItem } from '@/components/TabBar.vue';
-import DataTable from '@/components/table/DataTable.vue';
-import TableToolbar from '@/components/table/TableToolbar.vue';
-import TableShowMore from '@/components/table/TableShowMore.vue';
-import ChartDescription from '@/components/ChartDescription.vue';
+import PageHeader from '@shared/components/layout/PageHeader.vue';
+import TabBar from '@shared/components/TabBar.vue';
+import type { TabBarItem } from '@shared/components/TabBar.vue';
+import DataTable from '@shared/components/table/DataTable.vue';
+import TableToolbar from '@shared/components/table/TableToolbar.vue';
+import TableShowMore from '@shared/components/table/TableShowMore.vue';
+import ChartDescription from '@shared/components/ChartDescription.vue';
 import Badge from '@shared/components/Badge.vue';
 import DisabledEventsNotice from '@/components/alerts/DisabledEventsNotice.vue';
 import LoadingState from '@shared/components/LoadingState.vue';

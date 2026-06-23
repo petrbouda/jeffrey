@@ -905,7 +905,7 @@ defineExpose({
 </script>
 
 <style scoped>
-@import '@/styles/form-utilities.css';
+@import '@shared/styles/form-utilities.css';
 
 .command-builder {
   width: 100%;

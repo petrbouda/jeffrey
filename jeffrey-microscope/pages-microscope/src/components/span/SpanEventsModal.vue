@@ -205,7 +205,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onUnmounted } from 'vue';
-import GenericModal from '@/components/GenericModal.vue';
+import GenericModal from '@shared/components/GenericModal.vue';
 import LoadingState from '@shared/components/LoadingState.vue';
 import EmptyState from '@shared/components/EmptyState.vue';
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue';

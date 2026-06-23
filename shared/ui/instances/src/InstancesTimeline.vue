@@ -479,8 +479,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import LoadingState from '@shared/components/LoadingState.vue';
-import MainCard from '@/components/MainCard.vue';
-import MainCardHeader from '@/components/MainCardHeader.vue';
+import MainCard from '@shared/components/MainCard.vue';
+import MainCardHeader from '@shared/components/MainCardHeader.vue';
 import Badge from '@shared/components/Badge.vue';
 import EmptyState from '@shared/components/EmptyState.vue';
 import ProjectInstanceClient from '@workspaces/services/api/ProjectInstanceClient';
@@ -490,7 +490,7 @@ import ProjectInstanceSession from '@workspaces/services/api/model/ProjectInstan
 import ProjectInstanceSessionDetail from '@workspaces/services/api/model/ProjectInstanceSessionDetail';
 import FormattingService from '@shared/services/FormattingService';
 import { useNavigation } from '@/composables/useNavigation';
-import '@/styles/shared-components.css';
+import '@shared/styles/shared-components.css';
 
 const {
   hubId,

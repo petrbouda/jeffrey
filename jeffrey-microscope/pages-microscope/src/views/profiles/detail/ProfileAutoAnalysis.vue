@@ -204,14 +204,14 @@ import { useRoute } from 'vue-router';
 
 import AutoAnalysisClient from '@/services/api/AutoAnalysisClient';
 import AnalysisResult from '@/services/api/model/AnalysisResult';
-import PageHeader from '@/components/layout/PageHeader.vue';
+import PageHeader from '@shared/components/layout/PageHeader.vue';
 import LoadingState from '@shared/components/LoadingState.vue';
-import DataTable from '@/components/table/DataTable.vue';
-import TableToolbar from '@/components/table/TableToolbar.vue';
+import DataTable from '@shared/components/table/DataTable.vue';
+import TableToolbar from '@shared/components/table/TableToolbar.vue';
 import Badge from '@shared/components/Badge.vue';
-import DualPanel from '@/components/DualPanel.vue';
-import DonutWithLegend from '@/components/DonutWithLegend.vue';
-import type { DonutChartData } from '@/components/DonutWithLegend.vue';
+import DualPanel from '@shared/components/DualPanel.vue';
+import DonutWithLegend from '@shared/components/DonutWithLegend.vue';
+import type { DonutChartData } from '@shared/components/DonutWithLegend.vue';
 
 const route = useRoute();
 

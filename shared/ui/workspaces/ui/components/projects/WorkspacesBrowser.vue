@@ -258,11 +258,7 @@
       icon="bi-folder-plus"
       @submit="submitCreate"
     >
-      <div v-if="selectedServer" class="drawer-section">
-        <div class="drawer-section-label">
-          <i class="bi bi-hdd-network"></i>
-          Target Server
-        </div>
+      <DrawerSection v-if="selectedServer" label="Target Server" icon="bi-hdd-network">
         <div class="server-context-card">
           <div class="server-context-name">{{ selectedServer.name }}</div>
           <span class="server-context-pill">
@@ -270,59 +266,39 @@
             Active
           </span>
         </div>
-      </div>
+      </DrawerSection>
 
-      <div class="drawer-section">
-        <div class="drawer-section-label">
-          <i class="bi bi-folder-plus"></i>
-          Workspace
-        </div>
+      <DrawerSection label="Workspace" icon="bi-folder-plus">
+        <DrawerField
+          label="Workspace Name"
+          required
+          hint="Shown in the workspace list and project header."
+          :disabled="creating"
+        >
+          <input
+            v-model="createForm.name"
+            type="text"
+            class="field-input"
+            placeholder="e.g. dev-pb"
+            :disabled="creating"
+          />
+        </DrawerField>
 
-        <div class="field-group">
-          <label class="field-label">
-            Workspace Name
-            <span class="field-required">*</span>
-          </label>
-          <div class="field-wrap" :class="{ 'is-disabled': creating }">
-            <input
-              v-model="createForm.name"
-              type="text"
-              class="field-input"
-              placeholder="e.g. dev-pb"
-              :disabled="creating"
-            />
-          </div>
-          <div class="field-hint">Shown in the workspace list and project header.</div>
-        </div>
-
-        <div class="field-group">
-          <label class="field-label">
-            Reference ID
-            <span class="field-required">*</span>
-          </label>
-          <div
-            class="field-wrap"
-            :class="{ 'is-disabled': creating, 'is-invalid': !!referenceIdError }"
-          >
-            <input
-              v-model="createForm.referenceId"
-              type="text"
-              class="field-input is-mono"
-              placeholder="e.g. jeffrey-testapp-1"
-              :disabled="creating"
-            />
-          </div>
-          <div v-if="referenceIdError" class="field-error">
-            <i class="bi bi-exclamation-circle"></i>
-            <span>{{ referenceIdError }}</span>
-          </div>
-          <div v-else class="field-hint">
+        <DrawerField label="Reference ID" required :error="referenceIdError" :disabled="creating">
+          <input
+            v-model="createForm.referenceId"
+            type="text"
+            class="field-input is-mono"
+            placeholder="e.g. jeffrey-testapp-1"
+            :disabled="creating"
+          />
+          <template #hint>
             Used by <strong>jeffrey-cli</strong>'s <code>project.workspace-ref-id</code>. Must be
             unique on this server.
             {{ WORKSPACE_REF_ID_HINT }}
-          </div>
-        </div>
-      </div>
+          </template>
+        </DrawerField>
+      </DrawerSection>
 
       <div v-if="createError" class="field-alert" role="alert">
         <i class="bi bi-exclamation-triangle"></i>
@@ -350,72 +326,39 @@
       title="Workspace Info"
       icon="bi-info-circle"
     >
-      <div class="drawer-section">
-        <div class="drawer-section-label">
-          <i class="bi bi-folder"></i>
-          Workspace
-        </div>
-
+      <DrawerSection label="Workspace" icon="bi-folder">
         <div class="info-rows">
-          <div class="info-row">
-            <div class="info-row-label">Name</div>
-            <div class="info-row-value">{{ selectedWorkspace.name }}</div>
-          </div>
+          <InfoRow label="Name">{{ selectedWorkspace.name }}</InfoRow>
 
-          <div class="info-row">
-            <div class="info-row-label">Reference ID</div>
-            <div class="info-row-value is-mono">
-              <span class="info-row-text">{{ selectedWorkspace.referenceId || '—' }}</span>
-              <button
-                v-if="selectedWorkspace.referenceId"
-                class="info-copy-btn"
-                title="Copy"
-                @click="copyText(selectedWorkspace.referenceId)"
-              >
-                <i class="bi bi-clipboard"></i>
-              </button>
-            </div>
-          </div>
+          <InfoRow label="Reference ID" mono>
+            <span class="info-row-text">{{ selectedWorkspace.referenceId || '—' }}</span>
+            <button
+              v-if="selectedWorkspace.referenceId"
+              class="info-copy-btn"
+              title="Copy"
+              @click="copyText(selectedWorkspace.referenceId)"
+            >
+              <i class="bi bi-clipboard"></i>
+            </button>
+          </InfoRow>
 
-          <div class="info-row">
-            <div class="info-row-label">Workspace ID</div>
-            <div class="info-row-value is-mono">
-              <span class="info-row-text">{{ selectedWorkspace.id }}</span>
-              <button class="info-copy-btn" title="Copy" @click="copyText(selectedWorkspace.id)">
-                <i class="bi bi-clipboard"></i>
-              </button>
-            </div>
-          </div>
+          <InfoRow label="Workspace ID" mono>
+            <span class="info-row-text">{{ selectedWorkspace.id }}</span>
+            <button class="info-copy-btn" title="Copy" @click="copyText(selectedWorkspace.id)">
+              <i class="bi bi-clipboard"></i>
+            </button>
+          </InfoRow>
 
-          <div class="info-row">
-            <div class="info-row-label">Projects</div>
-            <div class="info-row-value">
-              {{ selectedWorkspace.projectCount }}
-            </div>
-          </div>
+          <InfoRow label="Projects">{{ selectedWorkspace.projectCount }}</InfoRow>
         </div>
-      </div>
+      </DrawerSection>
 
-      <div v-if="selectedServer" class="drawer-section">
-        <div class="drawer-section-label">
-          <i class="bi bi-hdd-network"></i>
-          Server
-        </div>
-
+      <DrawerSection v-if="selectedServer" label="Server" icon="bi-hdd-network">
         <div class="info-rows">
-          <div class="info-row">
-            <div class="info-row-label">Name</div>
-            <div class="info-row-value">{{ selectedServer.name }}</div>
-          </div>
-
-          <div class="info-row">
-            <div class="info-row-label">Address</div>
-            <div class="info-row-value is-mono">
-              {{ selectedServer.hostname }}:{{ selectedServer.port }}
-            </div>
-          </div>
+          <InfoRow label="Name">{{ selectedServer.name }}</InfoRow>
+          <InfoRow label="Address" mono>{{ selectedServer.hostname }}:{{ selectedServer.port }}</InfoRow>
         </div>
-      </div>
+      </DrawerSection>
     </LeftDrawer>
 
     <ConfirmationDialog
@@ -438,6 +381,9 @@ import EmptyState from '@shared/components/EmptyState.vue';
 import ConfirmationDialog from '@shared/components/ConfirmationDialog.vue';
 import AddHubModal from '@workspaces/components/projects/AddHubModal.vue';
 import LeftDrawer from '@shared/components/LeftDrawer.vue';
+import DrawerSection from '@shared/components/drawer/DrawerSection.vue';
+import DrawerField from '@shared/components/drawer/DrawerField.vue';
+import InfoRow from '@shared/components/drawer/InfoRow.vue';
 import Badge from '@shared/components/Badge.vue';
 import ToastService from '@shared/services/ToastService';
 import HubClient from '@workspaces/services/api/HubClient';
@@ -860,7 +806,7 @@ onMounted(refreshServers);
 </script>
 
 <style scoped>
-@import '@/styles/shared-components.css';
+@import '@shared/styles/shared-components.css';
 
 /* ============== Layout ============== */
 .projects-layout {
@@ -1409,56 +1355,7 @@ onMounted(refreshServers);
 }
 
 /* ============== Workspace Info drawer ============== */
-.info-rows {
-  display: flex;
-  flex-direction: column;
-}
-
-.info-row {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-3);
-  padding: 10px 0;
-  border-bottom: 1px solid var(--color-border-light);
-}
-
-.info-row:last-child {
-  border-bottom: none;
-}
-
-.info-row-label {
-  flex-shrink: 0;
-  width: 130px;
-  font-size: 0.78rem;
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-text-muted);
-}
-
-.info-row-value {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: var(--font-size-base);
-  font-weight: var(--font-weight-medium);
-  color: var(--color-dark);
-}
-
-.info-row-value.is-mono {
-  font-family: 'SF Mono', Monaco, Menlo, Consolas, monospace;
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-regular);
-}
-
-.info-row-text {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
+/* .info-rows / .info-row* now live in shared-components.css (used by InfoRow.vue) */
 .info-copy-btn {
   display: inline-flex;
   align-items: center;

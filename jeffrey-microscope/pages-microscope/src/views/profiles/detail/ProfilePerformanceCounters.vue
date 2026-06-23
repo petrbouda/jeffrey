@@ -199,11 +199,11 @@ import FeatureType from '@/services/api/model/FeatureType';
 import PerformanceCountersNotAvailableAlert from '@/components/alerts/PerformanceCountersNotAvailableAlert.vue';
 import EmptyState from '@shared/components/EmptyState.vue';
 import Badge from '@shared/components/Badge.vue';
-import DataTable from '@/components/table/DataTable.vue';
-import StatsTable from '@/components/StatsTable.vue';
-import PageHeader from '@/components/layout/PageHeader.vue';
+import DataTable from '@shared/components/table/DataTable.vue';
+import StatsTable from '@shared/components/table/StatsTable.vue';
+import PageHeader from '@shared/components/layout/PageHeader.vue';
 import type { PropType } from 'vue';
-import '@/styles/shared-components.css';
+import '@shared/styles/shared-components.css';
 
 // Define props
 const props = defineProps({

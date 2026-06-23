@@ -66,10 +66,10 @@
 <script setup lang="ts">
 import FormattingService from '@shared/services/FormattingService';
 import Badge from '@shared/components/Badge.vue';
-import MetricCardList from '@/components/common/MetricCardList.vue';
+import MetricCardList from '@shared/components/MetricCardList.vue';
 import MetricName from '@/components/common/MetricName.vue';
 import { parseGroupedName } from '@/services/metricName';
-import type { MetricSortOption } from '@/components/common/MetricCardList.vue';
+import type { MetricSortOption } from '@shared/components/MetricCardList.vue';
 import type { SpanTagStat } from '@/services/api/model/span/SpanModels';
 
 defineProps<{

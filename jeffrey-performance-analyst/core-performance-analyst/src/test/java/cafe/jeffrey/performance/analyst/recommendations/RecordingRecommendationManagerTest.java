@@ -23,14 +23,17 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.ArgumentCaptor;
-import org.springframework.ai.chat.client.ChatClient;
 import cafe.jeffrey.performance.analyst.flamegraph.FlamegraphAiPrompt;
 import cafe.jeffrey.performance.analyst.flamegraph.RecordingAiPromptManager;
+import cafe.jeffrey.performance.analyst.mcp.RepoToolsRegistry;
+import cafe.jeffrey.performance.analyst.mcp.RepoToolsetFactory;
 import cafe.jeffrey.performance.analyst.persistence.GeneratedRecommendation;
 import cafe.jeffrey.performance.analyst.persistence.GeneratedRecommendationRepository;
 import cafe.jeffrey.performance.analyst.persistence.Platform;
 import cafe.jeffrey.performance.analyst.persistence.VersionControlSystem;
 import cafe.jeffrey.performance.analyst.versioncontrolsystem.VersionControlSystemManager;
+import cafe.jeffrey.profile.ai.chat.AiChatBackend;
+import cafe.jeffrey.profile.ai.chat.ToolCallResult;
 import cafe.jeffrey.shared.common.exception.JeffreyClientException;
 import cafe.jeffrey.shared.common.filesystem.TempDirectory;
 import cafe.jeffrey.shared.common.model.Severity;
@@ -48,9 +51,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -74,10 +75,13 @@ class RecordingRecommendationManagerTest {
     @TempDir
     Path tempBase;
 
+    private static final String MCP_URL = "http://127.0.0.1:8080/api/internal/mcp/claude-code";
+
     private VersionControlSystemManager versionControlSystemManager;
     private RecordingAiPromptManager promptManager;
     private RepositoryCloner repositoryCloner;
-    private ChatClient.Builder chatClientBuilder;
+    private AiChatBackend aiChatBackend;
+    private RepoToolsRegistry repoToolsRegistry;
     private GeneratedRecommendationRepository recommendationRepository;
     private RecordingRecommendationManager manager;
 
@@ -86,11 +90,12 @@ class RecordingRecommendationManagerTest {
         versionControlSystemManager = mock(VersionControlSystemManager.class);
         promptManager = mock(RecordingAiPromptManager.class);
         repositoryCloner = mock(RepositoryCloner.class);
-        chatClientBuilder = mock(ChatClient.Builder.class, RETURNS_DEEP_STUBS);
+        aiChatBackend = mock(AiChatBackend.class);
+        repoToolsRegistry = new RepoToolsRegistry();
         recommendationRepository = mock(GeneratedRecommendationRepository.class);
         manager = new RecordingRecommendationManager(
-                versionControlSystemManager, promptManager, repositoryCloner, chatClientBuilder,
-                recommendationRepository, FIXED_CLOCK);
+                versionControlSystemManager, promptManager, repositoryCloner, aiChatBackend,
+                repoToolsRegistry, new RepoToolsetFactory(MCP_URL), recommendationRepository, FIXED_CLOCK);
     }
 
     private VersionControlSystem vcs() {
@@ -147,12 +152,7 @@ class RecordingRecommendationManagerTest {
                     diff --git a/Order.java b/Order.java
                     +cache
                     """;
-            when(chatClientBuilder.build().prompt()
-                    .system(anyString())
-                    .user(anyString())
-                    .tools(any())
-                    .call()
-                    .content()).thenReturn(rawModelOutput);
+            when(aiChatBackend.analyze(any())).thenReturn(new ToolCallResult(rawModelOutput, List.of()));
 
             RecommendationProgressSink sink = mock(RecommendationProgressSink.class);
             RecommendationResult result = manager.generate(target(), sink);

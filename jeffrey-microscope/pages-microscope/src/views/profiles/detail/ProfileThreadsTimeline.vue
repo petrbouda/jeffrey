@@ -261,17 +261,17 @@ import ThreadCommon from '@/services/api/model/ThreadCommon';
 import ThreadRowData from '@/services/api/model/ThreadRowData';
 import Konva from 'konva';
 import ThreadRow from '@/services/thread/ThreadRow';
-import PageHeader from '@/components/layout/PageHeader.vue';
-import GenericModal from '@/components/GenericModal.vue';
-import TabBar from '@/components/TabBar.vue';
+import PageHeader from '@shared/components/layout/PageHeader.vue';
+import GenericModal from '@shared/components/GenericModal.vue';
+import TabBar from '@shared/components/TabBar.vue';
 import AboutPanel from '@/components/about/AboutPanel.vue';
 import AboutCallout from '@/components/about/AboutCallout.vue';
 import AboutSection from '@/components/about/AboutSection.vue';
 import FeatureGrid from '@/components/about/FeatureGrid.vue';
 import FeatureCard from '@/components/about/FeatureCard.vue';
-import DataTable from '@/components/table/DataTable.vue';
+import DataTable from '@shared/components/table/DataTable.vue';
 import type { PropType } from 'vue';
-import '@/styles/shared-components.css';
+import '@shared/styles/shared-components.css';
 
 // Props definition
 const props = defineProps({

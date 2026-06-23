@@ -177,7 +177,7 @@
 </template>
 
 <script setup lang="ts">
-import GenericModal from '@/components/GenericModal.vue';
+import GenericModal from '@shared/components/GenericModal.vue';
 import Badge from '@shared/components/Badge.vue';
 import GCEvent from '@/services/api/model/GCEvent';
 import GCGenerationType from '@/services/api/model/GCGenerationType';

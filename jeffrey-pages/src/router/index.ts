@@ -97,6 +97,7 @@ const routes: RouteRecordRaw[] = [
       },
       {
         path: 'server',
+        alias: 'hub',
         name: 'DocsServer',
         component: () => import('@/views/docs/hub/HubOverviewPage.vue')
       },
@@ -108,33 +109,61 @@ const routes: RouteRecordRaw[] = [
       // Deployment — worked example based on the jeffrey-testapp repo.
       {
         path: 'server/deployment',
+        alias: 'hub/deployment',
         name: 'DocsServerDeploymentOverview',
         component: () => import('@/views/docs/hub/deployment/DeploymentOverviewPage.vue')
       },
       {
         path: 'server/deployment/jeffrey-jib',
+        alias: 'hub/deployment/jeffrey-jib',
         name: 'DocsServerDeploymentJeffreyJib',
         component: () => import('@/views/docs/hub/deployment/DeploymentJeffreyJibPage.vue')
       },
       {
         path: 'server/deployment/shared-volume',
+        alias: 'hub/deployment/shared-volume',
         name: 'DocsServerDeploymentSharedVolume',
         component: () => import('@/views/docs/hub/deployment/DeploymentSharedVolumePage.vue')
       },
       {
         path: 'server/deployment/jeffrey-cli',
+        alias: 'hub/deployment/jeffrey-cli',
         name: 'DocsServerDeploymentJeffreyCli',
         component: () => import('@/views/docs/hub/deployment/DeploymentJeffreyCliPage.vue')
       },
       {
         path: 'server/deployment/helm-chart',
+        alias: 'hub/deployment/helm-chart',
         name: 'DocsServerDeploymentHelmChart',
         component: () => import('@/views/docs/hub/deployment/DeploymentHelmChartPage.vue')
       },
       {
         path: 'server/architecture',
+        alias: 'hub/architecture',
         name: 'DocsServerArchitecture',
         component: () => import('@/views/docs/hub/HubArchitectureOverviewPage.vue')
+      },
+
+      // ──── Performance Analyst (incubating) ────
+      {
+        path: 'perf-analyst',
+        name: 'DocsPerformanceAnalyst',
+        component: () => import('@/views/docs/perf-analyst/PerformanceAnalystOverviewPage.vue')
+      },
+      {
+        path: 'perf-analyst/quick-start',
+        name: 'DocsPerformanceAnalystQuickStart',
+        component: () => import('@/views/docs/perf-analyst/PerformanceAnalystQuickStartPage.vue')
+      },
+      {
+        path: 'perf-analyst/architecture',
+        name: 'DocsPerformanceAnalystArchitecture',
+        component: () => import('@/views/docs/perf-analyst/PerformanceAnalystArchitecturePage.vue')
+      },
+      {
+        path: 'perf-analyst/hub-connection',
+        name: 'DocsPerformanceAnalystHubConnection',
+        component: () => import('@/views/docs/perf-analyst/PerformanceAnalystHubConnectionPage.vue')
       },
 
       // ──── Getting Started ────
@@ -364,6 +393,7 @@ const routes: RouteRecordRaw[] = [
       // ──── Jeffrey Hub ────
       {
         path: 'server/storage',
+        alias: 'hub/storage',
         name: 'DocsServerStorage',
         component: () => import('@/views/docs/hub/HubStoragePage.vue')
       },
@@ -374,28 +404,33 @@ const routes: RouteRecordRaw[] = [
       // Recording Sessions
       {
         path: 'server/recording-sessions/overview',
+        alias: 'hub/recording-sessions/overview',
         name: 'DocsRecordingSessionsOverview',
         component: () => import('@/views/docs/hub/recording-sessions/RecordingSessionsOverviewPage.vue')
       },
       {
         path: 'server/recording-sessions/configuration',
+        alias: 'hub/recording-sessions/configuration',
         name: 'DocsRecordingSessionsConfiguration',
         component: () => import('@/views/docs/hub/recording-sessions/RecordingSessionsConfigurationPage.vue')
       },
       {
         path: 'server/recording-sessions/lifecycle',
+        alias: 'hub/recording-sessions/lifecycle',
         name: 'DocsRecordingSessionsLifecycle',
         component: () => import('@/views/docs/hub/recording-sessions/RecordingSessionsLifecyclePage.vue')
       },
       // Server gRPC API
       {
         path: 'server/grpc-api',
+        alias: 'hub/grpc-api',
         name: 'DocsServerGrpcApi',
         component: () => import('@/views/docs/hub/HubGrpcApiPage.vue')
       },
       // Server Configuration — single merged page
       {
         path: 'server/configuration',
+        alias: 'hub/configuration',
         name: 'DocsServerConfiguration',
         component: () => import('@/views/docs/hub/configuration/HubConfigurationPage.vue')
       },

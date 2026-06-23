@@ -70,7 +70,7 @@ import { computed, onMounted, ref } from 'vue';
 import Badge from '@shared/components/Badge.vue';
 import LoadingState from '@shared/components/LoadingState.vue';
 import EmptyState from '@shared/components/EmptyState.vue';
-import SearchInput from '@/components/form/SearchInput.vue';
+import SearchInput from '@shared/components/form/SearchInput.vue';
 import FormattingService from '@shared/services/FormattingService';
 import ProjectInstanceClient from '@workspaces/services/api/ProjectInstanceClient';
 import type ProjectInstance from '@workspaces/services/api/model/ProjectInstance';

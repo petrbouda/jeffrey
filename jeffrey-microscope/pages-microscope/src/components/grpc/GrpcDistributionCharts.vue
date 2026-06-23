@@ -23,9 +23,9 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import DualPanel from '@/components/DualPanel.vue';
-import DonutWithLegend from '@/components/DonutWithLegend.vue';
-import type { DonutChartData } from '@/components/DonutWithLegend.vue';
+import DualPanel from '@shared/components/DualPanel.vue';
+import DonutWithLegend from '@shared/components/DonutWithLegend.vue';
+import type { DonutChartData } from '@shared/components/DonutWithLegend.vue';
 import type { GrpcStatusStats, GrpcServiceInfo } from '@/services/api/ProfileGrpcClient';
 import FormattingService from '@shared/services/FormattingService';
 

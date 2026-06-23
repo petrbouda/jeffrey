@@ -28,7 +28,7 @@ import FlamegraphData from '@/services/api/model/FlamegraphData';
 import GuardMatched from '@/services/api/model/GuardMatched';
 import SettingsClient from '@/services/api/SettingsClient';
 import MessageBus from '@/services/MessageBus.ts';
-import LoadingIndicator from '@/components/LoadingIndicator.vue';
+import LoadingIndicator from '@shared/components/LoadingIndicator.vue';
 import AiExportButton from '@/components/flamegraph/AiExportButton.vue';
 import DifferentialRootHeader from '@/components/DifferentialRootHeader.vue';
 import PrimaryRootHeader from '@/components/PrimaryRootHeader.vue';

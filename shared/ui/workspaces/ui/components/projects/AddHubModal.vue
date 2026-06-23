@@ -6,70 +6,46 @@
     @update:show="reset"
     @submit="submit"
   >
-    <div class="drawer-section">
-      <div class="drawer-section-label">
-        <i class="bi bi-bookmark-fill"></i>
-        Identity
-      </div>
+    <DrawerSection label="Identity" icon="bi-bookmark-fill">
+      <DrawerField
+        label="Server Name"
+        required
+        hint="Display name shown in the server switcher."
+        :disabled="loading"
+      >
+        <input
+          v-model="form.name"
+          type="text"
+          class="field-input"
+          placeholder="e.g. production"
+          :disabled="loading"
+        />
+      </DrawerField>
+    </DrawerSection>
 
-      <div class="field-group">
-        <label class="field-label">
-          Server Name
-          <span class="field-required">*</span>
-        </label>
-        <div class="field-wrap" :class="{ 'is-disabled': loading }">
+    <DrawerSection label="Connection" icon="bi-router">
+      <div class="field-row">
+        <DrawerField label="Hostname" required :disabled="loading">
           <input
-            v-model="form.name"
+            v-model="form.hostname"
             type="text"
-            class="field-input"
-            placeholder="e.g. production"
+            class="field-input is-mono"
+            placeholder="grpc.example.com"
             :disabled="loading"
           />
-        </div>
-        <div class="field-hint">Display name shown in the server switcher.</div>
-      </div>
-    </div>
+        </DrawerField>
 
-    <div class="drawer-section">
-      <div class="drawer-section-label">
-        <i class="bi bi-router"></i>
-        Connection
-      </div>
-
-      <div class="field-row">
-        <div class="field-group">
-          <label class="field-label">
-            Hostname
-            <span class="field-required">*</span>
-          </label>
-          <div class="field-wrap" :class="{ 'is-disabled': loading }">
-            <input
-              v-model="form.hostname"
-              type="text"
-              class="field-input is-mono"
-              placeholder="grpc.example.com"
-              :disabled="loading"
-            />
-          </div>
-        </div>
-
-        <div class="field-group">
-          <label class="field-label">
-            Port
-            <span class="field-required">*</span>
-          </label>
-          <div class="field-wrap" :class="{ 'is-disabled': loading }">
-            <input
-              v-model.number="form.port"
-              type="number"
-              class="field-input is-mono"
-              placeholder="9090"
-              min="1"
-              max="65535"
-              :disabled="loading"
-            />
-          </div>
-        </div>
+        <DrawerField label="Port" required :disabled="loading">
+          <input
+            v-model.number="form.port"
+            type="number"
+            class="field-input is-mono"
+            placeholder="9090"
+            min="1"
+            max="65535"
+            :disabled="loading"
+          />
+        </DrawerField>
       </div>
 
       <label class="setting-row">
@@ -89,7 +65,7 @@
           <span class="toggle-slider"></span>
         </span>
       </label>
-    </div>
+    </DrawerSection>
 
     <div v-if="error" class="field-alert" role="alert">
       <i class="bi bi-exclamation-triangle"></i>
@@ -109,9 +85,11 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import LeftDrawer from '@shared/components/LeftDrawer.vue';
+import DrawerSection from '@shared/components/drawer/DrawerSection.vue';
+import DrawerField from '@shared/components/drawer/DrawerField.vue';
 import HubClient from '@workspaces/services/api/HubClient';
 import ToastService from '@shared/services/ToastService';
-import '@/styles/shared-components.css';
+import '@shared/styles/shared-components.css';
 
 const props = defineProps<{ show: boolean }>();
 const emit = defineEmits<{

@@ -88,9 +88,11 @@
                             </div>
                         </td>
                         <td>
-                            <span class="level-pill" :class="levelClass(job.executionLevel)">
-                                {{ levelLabel(job.executionLevel) }}
-                            </span>
+                            <Badge
+                                :value="levelLabel(job.executionLevel)"
+                                :variant="levelVariant(job.executionLevel)"
+                                size="xs"
+                            />
                         </td>
                         <td class="period-cell">{{ formatPeriod(job.period) }}</td>
                         <td class="params-cell">
@@ -102,12 +104,22 @@
                             <span v-else class="pdash">—</span>
                         </td>
                         <td>
-                            <span v-if="job.enabled" class="badge-pill badge-on">
-                                <i class="bi bi-check-circle-fill"></i> Enabled
-                            </span>
-                            <span v-else class="badge-pill badge-off">
-                                <i class="bi bi-pause-circle"></i> Disabled
-                            </span>
+                            <Badge
+                                v-if="job.enabled"
+                                value="Enabled"
+                                variant="green"
+                                size="xs"
+                                icon="bi bi-check-circle-fill"
+                                :uppercase="false"
+                            />
+                            <Badge
+                                v-else
+                                value="Disabled"
+                                variant="grey"
+                                size="xs"
+                                icon="bi bi-pause-circle"
+                                :uppercase="false"
+                            />
                         </td>
                     </tr>
                     </tbody>
@@ -130,6 +142,8 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
+import Badge from '@shared/components/Badge.vue';
+import type { Variant } from '@shared/types/ui';
 import SchedulerClient from '@/services/api/SchedulerClient';
 import VersionClient from '@/services/api/VersionClient';
 import { type ExecutionLevel, formatPeriod, type JobView } from '@/services/api/model/JobView';
@@ -222,7 +236,13 @@ const levelLabels: Record<ExecutionLevel, string> = {
     PROJECT: 'Per project'
 };
 const levelLabel = (lvl: ExecutionLevel) => levelLabels[lvl];
-const levelClass = (lvl: ExecutionLevel) => `level-${lvl.toLowerCase()}`;
+
+const levelVariants: Record<ExecutionLevel, Variant> = {
+    GLOBAL: 'violet',
+    WORKSPACE: 'blue',
+    PROJECT: 'primary'
+};
+const levelVariant = (lvl: ExecutionLevel): Variant => levelVariants[lvl];
 
 const keyFor = (jobType: string) => jobType.toLowerCase().replace(/_/g, '-');
 
@@ -282,13 +302,13 @@ onMounted(async () => {
 .header-left h4 {
     margin: 0;
     font-weight: 600;
-    color: #1f2937;
+    color: var(--color-heading-dark);
 }
 .version-badge {
     font-size: 0.72rem;
     font-weight: 500;
-    color: #6b7280;
-    background: #f3f4f6;
+    color: var(--color-slate-muted);
+    background: var(--color-grey-bg);
     padding: 2px 8px;
     border-radius: 10px;
     font-variant-numeric: tabular-nums;
@@ -296,7 +316,7 @@ onMounted(async () => {
 .header-nav {
     display: flex;
     gap: 2px;
-    background: #f3f4f6;
+    background: var(--color-grey-bg);
     border-radius: 8px;
     padding: 3px;
 }
@@ -305,22 +325,22 @@ onMounted(async () => {
     border-radius: 6px;
     font-size: 0.78rem;
     font-weight: 500;
-    color: #6b7280;
+    color: var(--color-slate-muted);
     text-decoration: none;
     transition: all 0.15s ease;
 }
-.nav-tab:hover { color: #374151; }
+.nav-tab:hover { color: var(--color-slate-text); }
 .nav-tab.router-link-active {
     background: white;
-    color: #5e64ff;
+    color: var(--color-primary);
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 .hint {
     font-size: 0.78rem;
-    color: #6b7280;
-    background: #eef5ff;
-    border: 1px solid #d6e6ff;
+    color: var(--color-slate-muted);
+    background: var(--color-blue-bg-lighter);
+    border: 1px solid var(--color-accent-blue-light-bg);
     padding: 10px 14px;
     border-radius: 8px;
     margin: 22px 0 18px;
@@ -328,14 +348,14 @@ onMounted(async () => {
     align-items: center;
     gap: 8px;
 }
-.hint i { color: #5e64ff; }
+.hint i { color: var(--color-primary); }
 .hint code {
     background: white;
-    border: 1px solid #e5e7eb;
+    border: 1px solid var(--color-border);
     padding: 1px 6px;
     border-radius: 3px;
     font-size: 0.72rem;
-    color: #1f2937;
+    color: var(--color-heading-dark);
 }
 
 .loading-state, .empty-state {
@@ -344,12 +364,12 @@ onMounted(async () => {
     align-items: center;
     gap: 10px;
     padding: 60px 20px;
-    color: #9ca3af;
+    color: var(--color-text-light);
 }
 .empty-state i { font-size: 3rem; }
 .empty-hint {
     font-size: 0.8rem;
-    color: #d1d5db;
+    color: var(--color-muted-separator);
 }
 
 .filter-bar {
@@ -363,25 +383,25 @@ onMounted(async () => {
     border-radius: 20px;
     font-size: 0.74rem;
     font-weight: 500;
-    color: #6b7280;
+    color: var(--color-slate-muted);
     background: white;
-    border: 1px solid #e5e7eb;
+    border: 1px solid var(--color-border);
     cursor: pointer;
     user-select: none;
     font-family: inherit;
 }
 .filter-chip.active {
-    background: #5e64ff;
+    background: var(--color-primary);
     color: white;
-    border-color: #5e64ff;
+    border-color: var(--color-primary);
 }
 .chip-count { opacity: 0.6; }
 .filter-spacer { flex: 1; }
-.filter-meta { font-size: 0.72rem; color: #9ca3af; }
+.filter-meta { font-size: 0.72rem; color: var(--color-text-light); }
 
 .section-card {
     background: white;
-    border: 1px solid #e5e7eb;
+    border: 1px solid var(--color-border);
     border-radius: 10px;
     overflow: visible;
 }
@@ -396,20 +416,20 @@ onMounted(async () => {
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.04em;
-    color: #9ca3af;
+    color: var(--color-text-light);
     padding: 10px 18px;
-    background: #fafbfd;
-    border-bottom: 1px solid #f3f4f6;
+    background: var(--color-light);
+    border-bottom: 1px solid var(--color-grey-bg);
 }
 .jobs-table tbody td {
     padding: 14px 18px;
-    border-bottom: 1px solid #f3f4f6;
+    border-bottom: 1px solid var(--color-grey-bg);
     font-size: 0.82rem;
-    color: #1f2937;
+    color: var(--color-heading-dark);
     vertical-align: middle;
 }
 .jobs-table tbody tr:last-child td { border-bottom: none; }
-.jobs-table tbody tr:hover { background: #fafbfd; }
+.jobs-table tbody tr:hover { background: var(--color-light); }
 
 .job-name-cell {
     display: flex;
@@ -426,13 +446,13 @@ onMounted(async () => {
     top: calc(100% + 10px);
     left: 0;
     background: white;
-    color: #1f2937;
+    color: var(--color-heading-dark);
     font-size: 0.78rem;
     line-height: 1.55;
     padding: 14px 16px 14px 18px;
     border-radius: 10px;
-    border: 1px solid #e5e7eb;
-    border-left: 3px solid #5e64ff;
+    border: 1px solid var(--color-border);
+    border-left: 3px solid var(--color-primary);
     width: 380px;
     box-shadow: 0 12px 32px rgba(0, 0, 0, 0.10);
     transition: visibility 0s linear 0.18s, opacity 0.18s ease, transform 0.18s ease;
@@ -446,7 +466,7 @@ onMounted(async () => {
 .job-tooltip-title {
     font-size: 0.7rem;
     font-weight: 600;
-    color: #5e64ff;
+    color: var(--color-primary);
     text-transform: uppercase;
     letter-spacing: 0.05em;
     margin: 0 0 6px;
@@ -468,60 +488,31 @@ onMounted(async () => {
     font-size: 0.95rem;
     flex-shrink: 0;
 }
-.job-icon-trash  { background: #e0f2f1; color: #00695c; }
-.job-icon-zip    { background: #fff3e0; color: #ef6c00; }
-.job-icon-check  { background: #e0f7fa; color: #006064; }
-.job-icon-sync   { background: #ede9fe; color: #6d28d9; }
-.job-icon-bell   { background: #fef3c7; color: #92400e; }
-.job-icon-broom  { background: #ffebee; color: #c62828; }
-.job-icon-cpu    { background: #e8eaf6; color: #3f51b5; }
-.job-icon-default { background: #f3f4f6; color: #6b7280; }
+.job-icon-trash  { background: var(--color-teal-bg); color: var(--color-teal-text); }
+.job-icon-zip    { background: var(--color-orange-bg); color: var(--color-orange-text); }
+.job-icon-check  { background: var(--color-cyan-bg); color: var(--color-teal-text); }
+.job-icon-sync   { background: var(--color-violet-lightest-bg); color: var(--color-violet-deeper); }
+.job-icon-bell   { background: var(--color-amber-light); color: var(--color-amber-text); }
+.job-icon-broom  { background: var(--color-red-bg); color: var(--color-red-text); }
+.job-icon-cpu    { background: var(--color-indigo-bg); color: var(--color-indigo-text); }
+.job-icon-default { background: var(--color-grey-bg); color: var(--color-slate-muted); }
 
-.job-name { font-weight: 600; color: #1f2937; font-size: 0.86rem; }
-
-.level-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 3px 9px;
-    border-radius: 12px;
-    font-size: 0.68rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-    white-space: nowrap;
-}
-.level-global    { background: #ede9fe; color: #5b21b6; }
-.level-workspace { background: #dbeafe; color: #1e40af; }
-.level-project   { background: rgba(94, 100, 255, 0.08); color: #5e64ff; }
-
-.badge-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 3px 9px;
-    border-radius: 12px;
-    font-size: 0.7rem;
-    font-weight: 600;
-    line-height: 1.2;
-}
-.badge-on  { background: #ecfdf5; color: #047857; }
-.badge-off { background: #f3f4f6; color: #6b7280; }
+.job-name { font-weight: 600; color: var(--color-heading-dark); font-size: 0.86rem; }
 
 .params-cell {
     font-family: 'SFMono-Regular', Consolas, monospace;
     font-size: 0.73rem;
-    color: #6b7280;
+    color: var(--color-slate-muted);
     line-height: 1.5;
 }
 .params-cell .param-pair { display: inline-block; margin-right: 12px; }
-.params-cell .pkey { color: #9ca3af; }
-.params-cell .pdash { color: #9ca3af; }
+.params-cell .pkey { color: var(--color-text-light); }
+.params-cell .pdash { color: var(--color-text-light); }
 
 .period-cell {
     font-family: 'SFMono-Regular', Consolas, monospace;
     font-size: 0.78rem;
-    color: #1f2937;
+    color: var(--color-heading-dark);
     font-weight: 500;
 }
 
@@ -536,35 +527,35 @@ onMounted(async () => {
     margin-bottom: 12px;
     flex-wrap: wrap;
 }
-.config-source-icon { color: #5e64ff; font-size: 1rem; }
+.config-source-icon { color: var(--color-primary); font-size: 1rem; }
 .config-source-title {
     font-weight: 600;
-    color: #1f2937;
+    color: var(--color-heading-dark);
     font-size: 0.86rem;
 }
 .config-source-hint {
     font-size: 0.74rem;
-    color: #9ca3af;
+    color: var(--color-text-light);
     flex: 1;
     min-width: 240px;
 }
 .config-source-hint code {
-    background: #f3f4f6;
+    background: var(--color-grey-bg);
     padding: 1px 5px;
     border-radius: 3px;
     font-size: 0.7rem;
-    color: #1f2937;
+    color: var(--color-heading-dark);
 }
 .config-source-pre {
     margin: 0;
-    background: #fafbfd;
-    border: 1px solid #f3f4f6;
+    background: var(--color-light);
+    border: 1px solid var(--color-grey-bg);
     border-radius: 6px;
     padding: 12px 14px;
     font-family: 'SFMono-Regular', Consolas, monospace;
     font-size: 0.72rem;
     line-height: 1.65;
-    color: #4a5568;
+    color: var(--color-slate-text);
     overflow-x: auto;
     white-space: pre;
 }

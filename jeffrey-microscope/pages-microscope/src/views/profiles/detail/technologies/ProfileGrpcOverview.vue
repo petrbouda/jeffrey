@@ -41,7 +41,7 @@ import { useRoute, useRouter } from 'vue-router';
 import GrpcServiceList from '@/components/grpc/GrpcServiceList.vue';
 import ProfileGrpcClient from '@/services/api/ProfileGrpcClient';
 import type { GrpcOverviewData } from '@/services/api/ProfileGrpcClient';
-import StatsTable from '@/components/StatsTable.vue';
+import StatsTable from '@shared/components/table/StatsTable.vue';
 import LoadingState from '@shared/components/LoadingState.vue';
 import ErrorState from '@shared/components/ErrorState.vue';
 import CustomDisabledFeatureAlert from '@/components/alerts/CustomDisabledFeatureAlert.vue';

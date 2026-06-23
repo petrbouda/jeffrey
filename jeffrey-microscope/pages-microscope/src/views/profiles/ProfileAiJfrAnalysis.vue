@@ -54,14 +54,14 @@
 </template>
 
 <script setup lang="ts">
-import '@/styles/shared-components.css';
+import '@shared/styles/shared-components.css';
 import { ref, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { useAiAnalysis } from '@/composables/useAiAnalysis';
 import AiAnalysisPanel from '@/components/ai-analysis/AiAnalysisPanel.vue';
 import type { PromptSection } from '@/components/ai-analysis/AiAnalysisPanel.vue';
 import AiDisabledFeatureAlert from '@/components/alerts/AiDisabledFeatureAlert.vue';
-import PageHeader from '@/components/layout/PageHeader.vue';
+import PageHeader from '@shared/components/layout/PageHeader.vue';
 
 const route = useRoute();
 const profileId = route.params.profileId as string;

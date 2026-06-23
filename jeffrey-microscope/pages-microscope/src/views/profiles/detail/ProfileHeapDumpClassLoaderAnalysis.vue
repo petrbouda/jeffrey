@@ -643,15 +643,15 @@
 import { computed, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
 
-import PageHeader from '@/components/layout/PageHeader.vue';
+import PageHeader from '@shared/components/layout/PageHeader.vue';
 import LoadingState from '@shared/components/LoadingState.vue';
 import ErrorState from '@shared/components/ErrorState.vue';
-import StatsTable from '@/components/StatsTable.vue';
+import StatsTable from '@shared/components/table/StatsTable.vue';
 import HeapDumpNotInitialized from '@/components/HeapDumpNotInitialized.vue';
-import TabBar from '@/components/TabBar.vue';
-import SortableTableHeader from '@/components/table/SortableTableHeader.vue';
-import DataTable from '@/components/table/DataTable.vue';
-import TableToolbar from '@/components/table/TableToolbar.vue';
+import TabBar from '@shared/components/TabBar.vue';
+import SortableTableHeader from '@shared/components/table/SortableTableHeader.vue';
+import DataTable from '@shared/components/table/DataTable.vue';
+import TableToolbar from '@shared/components/table/TableToolbar.vue';
 import Badge from '@shared/components/Badge.vue';
 import ClassNameDisplay from '@/components/heap/ClassNameDisplay.vue';
 import ClassLoaderHierarchyTree from '@/components/heap/ClassLoaderHierarchyTree.vue';

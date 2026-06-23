@@ -24,7 +24,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import StatsTable from '@/components/StatsTable.vue';
+import StatsTable from '@shared/components/table/StatsTable.vue';
 import FormattingService from '@shared/services/FormattingService';
 import type { SpanTagStat } from '@/services/api/model/span/SpanModels';
 

@@ -428,15 +428,15 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
-import MainCard from '@/components/MainCard.vue';
-import MainCardHeader from '@/components/MainCardHeader.vue';
+import MainCard from '@shared/components/MainCard.vue';
+import MainCardHeader from '@shared/components/MainCardHeader.vue';
 import Badge from '@shared/components/Badge.vue';
-import GenericModal from '@/components/GenericModal.vue';
+import GenericModal from '@shared/components/GenericModal.vue';
 import EmptyState from '@shared/components/EmptyState.vue';
 import LoadingState from '@shared/components/LoadingState.vue';
 import ErrorState from '@shared/components/ErrorState.vue';
 import EventTypeCombobox from '@/components/form/EventTypeCombobox.vue';
-import JsonHighlight from '@/components/common/JsonHighlight.vue';
+import JsonHighlight from '@shared/components/JsonHighlight.vue';
 import GuardianMatcherHelp from '@/components/guardian/GuardianMatcherHelp.vue';
 import FormattingService from '@shared/services/FormattingService';
 import GuardianGuardsClient from '@/services/api/GuardianGuardsClient';

@@ -407,15 +407,15 @@
 </template>
 
 <script setup lang="ts">
-import '@/styles/form-utilities.css';
-import '@/styles/shared-components.css';
+import '@shared/styles/form-utilities.css';
+import '@shared/styles/shared-components.css';
 import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import SettingsClient from '@/services/api/SettingsClient';
 import { useRestartRequired } from '@/stores/restartStore';
-import MainCard from '@/components/MainCard.vue';
-import MainCardHeader from '@/components/MainCardHeader.vue';
-import DataTable from '@/components/table/DataTable.vue';
+import MainCard from '@shared/components/MainCard.vue';
+import MainCardHeader from '@shared/components/MainCardHeader.vue';
+import DataTable from '@shared/components/table/DataTable.vue';
 
 const route = useRoute();
 const SUPPORTED_TABS: ReadonlySet<string> = new Set([

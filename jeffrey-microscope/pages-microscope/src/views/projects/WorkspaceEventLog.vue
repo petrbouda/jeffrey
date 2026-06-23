@@ -168,7 +168,7 @@ import WorkspaceEventsClient from '@/services/api/WorkspaceEventsClient';
 import { EventContentParser } from '@/services/EventContentParser';
 import FormattingService from '@shared/services/FormattingService';
 import Badge from '@shared/components/Badge.vue';
-import GenericModal from '@/components/GenericModal.vue';
+import GenericModal from '@shared/components/GenericModal.vue';
 import LoadingState from '@shared/components/LoadingState.vue';
 import EmptyState from '@shared/components/EmptyState.vue';
 

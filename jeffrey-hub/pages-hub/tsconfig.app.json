@@ -4,7 +4,10 @@
     "composite": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@shared/*": ["../../shared/ui/common/src/*"],
+      "@workspaces/*": ["../../shared/ui/workspaces/ui/*"],
+      "@instances/*": ["../../shared/ui/instances/src/*"]
     }
   },
   "include": ["src/**/*.ts", "src/**/*.d.ts", "src/**/*.tsx", "src/**/*.vue"]

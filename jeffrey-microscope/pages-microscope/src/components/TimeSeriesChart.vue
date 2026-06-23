@@ -84,7 +84,7 @@ import FormattingService from '@shared/services/FormattingService.ts';
 import GraphUpdater from '@/services/flamegraphs/updater/GraphUpdater';
 import TimeseriesData from '@/services/timeseries/model/TimeseriesData';
 import TimeRange from '@/services/api/model/TimeRange';
-import LoadingIndicator from '@/components/LoadingIndicator.vue';
+import LoadingIndicator from '@shared/components/LoadingIndicator.vue';
 import AxisFormatType from '@/services/timeseries/AxisFormatType.ts';
 import TimeConverter, { type TimeUnit } from '@/services/timeseries/TimeConverter.ts';
 import MessageBus from '@/services/MessageBus.ts';

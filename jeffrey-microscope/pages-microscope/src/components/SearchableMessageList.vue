@@ -56,7 +56,7 @@
 
 <script setup lang="ts">
 import Badge from '@shared/components/Badge.vue';
-import TableShowMore from '@/components/table/TableShowMore.vue';
+import TableShowMore from '@shared/components/table/TableShowMore.vue';
 import FormattingService from '@shared/services/FormattingService';
 import { useTableView } from '@/composables/useTableView';
 import type { ExceptionMessageCount } from '@/services/api/model/ExceptionsModels';

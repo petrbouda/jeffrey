@@ -227,13 +227,13 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
 import { useRoute } from 'vue-router';
-import PageHeader from '@/components/layout/PageHeader.vue';
+import PageHeader from '@shared/components/layout/PageHeader.vue';
 import Badge from '@shared/components/Badge.vue';
 import ProfileToolsClient from '@/services/api/ProfileToolsClient';
 import type CollapseFramesPreview from '@/services/api/model/CollapseFramesPreview';
 import type CollapseFramesResult from '@/services/api/model/CollapseFramesResult';
 import ToastService from '@shared/services/ToastService';
-import '@/styles/shared-components.css';
+import '@shared/styles/shared-components.css';
 
 type ToolState =
   | 'idle'

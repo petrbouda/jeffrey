@@ -66,11 +66,11 @@
 <script setup lang="ts">
 import FormattingService from '@shared/services/FormattingService';
 import Badge from '@shared/components/Badge.vue';
-import StatusBadge from '@/components/common/StatusBadge.vue';
-import MetricCardList from '@/components/common/MetricCardList.vue';
+import StatusBadge from '@shared/components/StatusBadge.vue';
+import MetricCardList from '@shared/components/MetricCardList.vue';
 import MetricName from '@/components/common/MetricName.vue';
 import { parseQualifiedName } from '@/services/metricName';
-import type { MetricSortOption } from '@/components/common/MetricCardList.vue';
+import type { MetricSortOption } from '@shared/components/MetricCardList.vue';
 import type { GrpcServiceInfo } from '@/services/api/ProfileGrpcClient';
 
 interface Props {

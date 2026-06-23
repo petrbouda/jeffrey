@@ -270,15 +270,15 @@ import FlamegraphTooltipFactory from '@/services/flamegraphs/tooltips/Flamegraph
 import GraphUpdater from '@/services/flamegraphs/updater/GraphUpdater';
 import FullGraphUpdater from '@/services/flamegraphs/updater/FullGraphUpdater';
 import TimeseriesEventAxeFormatter from '@/services/timeseries/TimeseriesEventAxeFormatter';
-import PageHeader from '@/components/layout/PageHeader.vue';
+import PageHeader from '@shared/components/layout/PageHeader.vue';
 import LoadingState from '@shared/components/LoadingState.vue';
-import GenericModal from '@/components/GenericModal.vue';
-import DualPanel from '@/components/DualPanel.vue';
-import DonutWithLegend from '@/components/DonutWithLegend.vue';
-import DataTable from '@/components/table/DataTable.vue';
-import TableToolbar from '@/components/table/TableToolbar.vue';
+import GenericModal from '@shared/components/GenericModal.vue';
+import DualPanel from '@shared/components/DualPanel.vue';
+import DonutWithLegend from '@shared/components/DonutWithLegend.vue';
+import DataTable from '@shared/components/table/DataTable.vue';
+import TableToolbar from '@shared/components/table/TableToolbar.vue';
 import Badge from '@shared/components/Badge.vue';
-import type { DonutChartData } from '@/components/DonutWithLegend.vue';
+import type { DonutChartData } from '@shared/components/DonutWithLegend.vue';
 
 // Constants
 const PREREQUISITES_CATEGORY = 'Prerequisites';

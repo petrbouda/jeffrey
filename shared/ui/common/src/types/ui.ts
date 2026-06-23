@@ -17,6 +17,16 @@
  */
 
 // UI component types
+
+/** A single tab in {@link MainNavigation}: a router target with an icon and label. */
+export interface NavItem {
+  to: string;
+  icon: string;
+  label: string;
+  /** When true, the link is only active on an exact route match (e.g. the root "/" tab). */
+  exact?: boolean;
+}
+
 export type Size = 'xxs' | 'xs' | 's' | 'm' | 'l' | 'xl';
 export type Variant =
   | 'primary'

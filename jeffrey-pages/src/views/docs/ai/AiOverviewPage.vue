@@ -89,7 +89,7 @@ onMounted(() => {
           <tr>
             <td><strong>Model</strong></td>
             <td>Model name to use</td>
-            <td>claude-opus-4-6</td>
+            <td>claude-opus-4-8</td>
           </tr>
           <tr>
             <td><strong>API Key</strong></td>
@@ -126,16 +126,16 @@ onMounted(() => {
       <h2 id="supported-providers">Supported Providers</h2>
 
       <h3>Claude (Anthropic)</h3>
-      <p>Recommended provider. Available models include <code>claude-opus-4-6</code> and <code>claude-sonnet-4-6</code>. Authenticates with an Anthropic API key and is billed per token.</p>
+      <p>Recommended provider. Available models include <code>claude-opus-4-8</code>, <code>claude-sonnet-4-6</code>, and <code>claude-haiku-4-5</code>. Authenticates with an Anthropic API key and is billed per token.</p>
 
       <h3>Claude Code (subscription)</h3>
-      <p>Drives the <a href="https://code.claude.com/docs" target="_blank" rel="noopener">Claude Code CLI</a> in headless mode, authenticating with your existing <strong>Claude Pro/Max subscription</strong> instead of an API key &mdash; so AI analysis incurs no per-token API charges. The <code>claude</code> CLI must be installed and logged in on the host running Jeffrey Microscope. Tool-driven JFR and heap dump analysis is served through an in-process MCP server that the CLI connects to over localhost, restricted to Jeffrey's read-only analysis tools (no shell or filesystem access). Best suited to the standalone single-user Microscope deployment.</p>
+      <p>Drives the <a href="https://code.claude.com/docs" target="_blank" rel="noopener">Claude Code CLI</a> in headless mode, authenticating with your existing <strong>Claude Pro/Max subscription</strong> instead of an API key &mdash; so AI analysis incurs no per-token API charges. The <code>claude</code> CLI must be installed and logged in on the host running Jeffrey. Tool-driven analysis is served through an in-process MCP server that the CLI connects to over localhost, restricted to Jeffrey's read-only analysis tools (no shell or filesystem access). Available in both the <strong>Microscope</strong> (JFR and heap dump analysis) and <strong>Performance Analyst</strong> (repository-aware recommendations) deployments.</p>
 
       <h3>ChatGPT (OpenAI)</h3>
-      <p>Alternative provider. Available models include <code>gpt-4o</code>, <code>gpt-4-turbo</code>, and others.</p>
+      <p>Alternative provider. Available models include <code>gpt-5.5</code>, <code>gpt-5.4</code>, <code>gpt-4.1</code>, and <code>gpt-4o</code>.</p>
 
       <h3>Ollama (self-hosted)</h3>
-      <p>Run models locally on your own infrastructure &mdash; no API key required, just the server's <strong>Base URL</strong> (default <code>http://localhost:11434</code>). Choose a <strong>tool-capable</strong> model such as <code>llama3.1</code>, <code>llama3.3</code>, or <code>qwen2.5</code>, since the analysis features rely on tool calling; models without tool support will not be able to query your data.</p>
+      <p>Run models locally on your own infrastructure &mdash; no API key required, just the server's <strong>Base URL</strong> (default <code>http://localhost:11434</code>). Choose a <strong>tool-capable</strong> model such as <code>llama4</code>, <code>qwen3</code>, <code>gemma4</code>, or <code>mistral-small</code>, since the analysis features rely on tool calling; models without tool support will not be able to query your data.</p>
 
       <h2 id="how-it-works">How It Works</h2>
       <p>Jeffrey uses <strong>tool-calling</strong> (MCP-style) to provide accurate, data-driven answers:</p>

@@ -6,10 +6,13 @@ paths:
 
 ## Vue/TypeScript Frontend Rules
 
-### Component Reuse
-- Always prefer existing Vue components over creating new ones
-- Search `src/components/` for existing shared components before writing new markup
-- If a reusable pattern is needed but doesn't exist, suggest creating a shared component via `/vue-component` skill
+### Component Reuse (shared-first — MUST)
+- Before writing any new markup or component, you MUST first check the shared UI modules for something to use, compose, or extend:
+  - `@shared` → `shared/ui/common/src` (generic components, services, styles, design tokens)
+  - `@workspaces` → `shared/ui/workspaces/ui` (remote-workspace/recording components + clients)
+  - `@instances` → `shared/ui/instances/src` (instance views)
+- Only write custom markup or a new component when no shared one fits. Never duplicate a shared component locally.
+- Where a new component lives: if it is generic (no page/JFR-domain semantics — chart, table, form input, badge, breadcrumb, layout, modal, drawer, etc.), create it under `shared/ui/common/src/components/` (`@shared`), NOT app-local. App `src/components/` is reserved for components tied to a specific page/feature (profile analysis, flamegraph, heap, gc, jdbc, grpc, span, streaming, …). When unsure, prefer `@shared`.
 
 ### Design Tokens
 - No hardcoded hex colors in `<style>` blocks — use `var(--color-*)` from `design-tokens.css`

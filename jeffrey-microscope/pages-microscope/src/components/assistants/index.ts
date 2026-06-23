@@ -17,8 +17,8 @@
  */
 
 // Shared assistant components
-export { default as AssistantPanel } from './AssistantPanel.vue';
-export { default as AssistantMinimizedButton } from './AssistantMinimizedButton.vue';
+export { default as AssistantPanel } from '@shared/components/assistants/AssistantPanel.vue';
+export { default as AssistantMinimizedButton } from '@shared/components/assistants/AssistantMinimizedButton.vue';
 export { default as AssistantMinimizedContainer } from './AssistantMinimizedContainer.vue';
 
 // Global assistants

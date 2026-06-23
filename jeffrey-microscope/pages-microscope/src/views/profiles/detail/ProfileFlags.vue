@@ -305,21 +305,21 @@
 import { computed, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
 
-import PageHeader from '@/components/layout/PageHeader.vue';
+import PageHeader from '@shared/components/layout/PageHeader.vue';
 import LoadingState from '@shared/components/LoadingState.vue';
 import ErrorState from '@shared/components/ErrorState.vue';
-import StatsTable from '@/components/StatsTable.vue';
-import TabBar from '@/components/TabBar.vue';
-import SortableTableHeader from '@/components/table/SortableTableHeader.vue';
+import StatsTable from '@shared/components/table/StatsTable.vue';
+import TabBar from '@shared/components/TabBar.vue';
+import SortableTableHeader from '@shared/components/table/SortableTableHeader.vue';
 import Badge from '@shared/components/Badge.vue';
-import DataTable from '@/components/table/DataTable.vue';
+import DataTable from '@shared/components/table/DataTable.vue';
 import AboutPanel from '@/components/about/AboutPanel.vue';
 import AboutCallout from '@/components/about/AboutCallout.vue';
 import AboutSection from '@/components/about/AboutSection.vue';
 import FeatureGrid from '@/components/about/FeatureGrid.vue';
 import FeatureCard from '@/components/about/FeatureCard.vue';
 import FlagsClient from '@/services/api/FlagsClient';
-import '@/styles/shared-components.css';
+import '@shared/styles/shared-components.css';
 import FlagsData from '@/services/api/model/FlagsData';
 import JvmFlag from '@/services/api/model/JvmFlag';
 import FormattingService from '@shared/services/FormattingService';

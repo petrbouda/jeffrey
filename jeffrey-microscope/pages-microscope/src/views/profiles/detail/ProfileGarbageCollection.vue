@@ -891,23 +891,23 @@
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import ApexCharts from 'apexcharts';
-import PageHeader from '@/components/layout/PageHeader.vue';
+import PageHeader from '@shared/components/layout/PageHeader.vue';
 import GCMetricsStatsRow from '@/components/gc/GCMetricsStatsRow.vue';
 import LoadingState from '@shared/components/LoadingState.vue';
 import ErrorState from '@shared/components/ErrorState.vue';
-import TabBar from '@/components/TabBar.vue';
+import TabBar from '@shared/components/TabBar.vue';
 import EmptyState from '@shared/components/EmptyState.vue';
 import DisabledEventsNotice from '@/components/alerts/DisabledEventsNotice.vue';
 import Badge from '@shared/components/Badge.vue';
-import DataTable from '@/components/table/DataTable.vue';
-import TableToolbar from '@/components/table/TableToolbar.vue';
-import TableShowMore from '@/components/table/TableShowMore.vue';
+import DataTable from '@shared/components/table/DataTable.vue';
+import TableToolbar from '@shared/components/table/TableToolbar.vue';
+import TableShowMore from '@shared/components/table/TableShowMore.vue';
 import { useTableView } from '@/composables/useTableView';
 import type { Variant } from '@shared/types/ui';
 import GCEventDetailsModal from '@/components/gc/GCEventDetailsModal.vue';
 import GCPauseDetailsModal from '@/components/gc/GCPauseDetailsModal.vue';
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
-import ChartDescription from '@/components/ChartDescription.vue';
+import ChartDescription from '@shared/components/ChartDescription.vue';
 import AboutPanel from '@/components/about/AboutPanel.vue';
 import AboutCallout from '@/components/about/AboutCallout.vue';
 import AboutSection from '@/components/about/AboutSection.vue';
@@ -928,7 +928,7 @@ import {
   getGenerationTypeBadgeVariant
 } from '@/services/api/model/GarbageCollectionUtils';
 import { GarbageCollectionCauseDescriptions } from '@/services/api/model/GarbageCollectionCauseDescriptions';
-import '@/styles/shared-components.css';
+import '@shared/styles/shared-components.css';
 
 const route = useRoute();
 

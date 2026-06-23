@@ -49,7 +49,7 @@ import GraphUpdater from '@/services/flamegraphs/updater/GraphUpdater';
 import OnlyFlamegraphGraphUpdater from '@/services/flamegraphs/updater/OnlyFlamegraphGraphUpdater';
 import TimeRange from '@/services/api/model/TimeRange';
 import TimeseriesEventAxeFormatter from '@/services/timeseries/TimeseriesEventAxeFormatter';
-import GenericModal from '@/components/GenericModal.vue';
+import GenericModal from '@shared/components/GenericModal.vue';
 
 const route = useRoute();
 

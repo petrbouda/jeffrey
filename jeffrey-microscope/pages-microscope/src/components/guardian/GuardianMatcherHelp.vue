@@ -119,7 +119,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import Badge from '@shared/components/Badge.vue';
-import JsonHighlight from '@/components/common/JsonHighlight.vue';
+import JsonHighlight from '@shared/components/JsonHighlight.vue';
 import type { Variant } from '@shared/types/ui';
 
 type GuardField = 'matcherSpec' | 'preconditions';

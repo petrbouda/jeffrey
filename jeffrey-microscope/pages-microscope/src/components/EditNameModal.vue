@@ -18,7 +18,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import GenericModal from '@/components/GenericModal.vue';
+import GenericModal from '@shared/components/GenericModal.vue';
 
 const props = withDefaults(
   defineProps<{

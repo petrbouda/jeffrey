@@ -8,7 +8,7 @@ import 'bootstrap-icons/font/bootstrap-icons.css';
 import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 
 // Import design tokens (single source of :root CSS custom properties)
-import './assets/design-tokens.css';
+import '@shared/assets/design-tokens.css';
 // Global styles (toast notifications, scrollbars, utilities)
 import './styles/global.css';
 

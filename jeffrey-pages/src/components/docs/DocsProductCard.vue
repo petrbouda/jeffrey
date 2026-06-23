@@ -25,7 +25,7 @@ defineProps<{
   role: string
   components: string[]
   ctaText: string
-  variant?: 'primary' | 'secondary'
+  variant?: 'primary' | 'secondary' | 'tertiary'
 }>()
 </script>
 
@@ -33,7 +33,10 @@ defineProps<{
   <router-link
     :to="to"
     class="product-card"
-    :class="{ 'variant-secondary': variant === 'secondary' }"
+    :class="{
+      'variant-secondary': variant === 'secondary',
+      'variant-tertiary': variant === 'tertiary'
+    }"
   >
     <div class="card-rail"></div>
 
@@ -89,6 +92,14 @@ defineProps<{
   --accent-tint: #ede9fe;
   --accent-soft: #f5f3ff;
   --accent-shadow: rgba(139, 92, 246, 0.35);
+}
+
+.product-card.variant-tertiary {
+  /* tertiary: Performance Analyst — emerald, matching its own app brand */
+  --accent: #10b981;
+  --accent-tint: #ecfdf5;
+  --accent-soft: #f0fdf4;
+  --accent-shadow: rgba(16, 185, 129, 0.35);
 }
 
 .product-card:hover {

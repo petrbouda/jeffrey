@@ -106,12 +106,12 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import DetailBreadcrumb from '@/components/DetailBreadcrumb.vue';
+import DetailBreadcrumb from '@shared/components/DetailBreadcrumb.vue';
 import HttpOverviewStats from '@/components/http/HttpOverviewStats.vue';
 import DashboardSection from '@/components/DashboardSection.vue';
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
 import HttpDistributionCharts from '@/components/http/HttpDistributionCharts.vue';
-import TabBar from '@/components/TabBar.vue';
+import TabBar from '@shared/components/TabBar.vue';
 import HttpEndpointList from '@/components/http/HttpEndpointList.vue';
 import HttpSlowestRequests from '@/components/http/HttpSlowestRequests.vue';
 import EmptyState from '@shared/components/EmptyState.vue';

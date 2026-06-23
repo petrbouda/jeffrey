@@ -88,7 +88,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import SearchableSelect from '@/components/form/SearchableSelect.vue';
+import SearchableSelect from '@shared/components/form/SearchableSelect.vue';
 import Badge from '@shared/components/Badge.vue';
 import FormattingService from '@shared/services/FormattingService.ts';
 

@@ -248,7 +248,7 @@ Coul<!--
 </template>
 
 <script setup lang="ts">
-import '@/styles/shared-components.css';
+import '@shared/styles/shared-components.css';
 import { useRouter, useRoute } from 'vue-router';
 import { computed, ref } from 'vue';
 import EventSummary from '@/services/api/model/EventSummary';

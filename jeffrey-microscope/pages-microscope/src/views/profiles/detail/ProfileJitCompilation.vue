@@ -489,11 +489,11 @@
 import { onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
 
-import PageHeader from '@/components/layout/PageHeader.vue';
-import StatsTable from '@/components/StatsTable.vue';
-import TabBar from '@/components/TabBar.vue';
-import type { TabBarItem } from '@/components/TabBar.vue';
-import GenericModal from '@/components/GenericModal.vue';
+import PageHeader from '@shared/components/layout/PageHeader.vue';
+import StatsTable from '@shared/components/table/StatsTable.vue';
+import TabBar from '@shared/components/TabBar.vue';
+import type { TabBarItem } from '@shared/components/TabBar.vue';
+import GenericModal from '@shared/components/GenericModal.vue';
 import LoadingState from '@shared/components/LoadingState.vue';
 import ErrorState from '@shared/components/ErrorState.vue';
 import FormattingService from '@shared/services/FormattingService.ts';
@@ -502,10 +502,10 @@ import ProfileCompilationClient from '@/services/api/ProfileCompilationClient.ts
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
 import Badge from '@shared/components/Badge.vue';
 import EmptyState from '@shared/components/EmptyState.vue';
-import DataTable from '@/components/table/DataTable.vue';
-import TableToolbar from '@/components/table/TableToolbar.vue';
-import TableShowMore from '@/components/table/TableShowMore.vue';
-import ChartDescription from '@/components/ChartDescription.vue';
+import DataTable from '@shared/components/table/DataTable.vue';
+import TableToolbar from '@shared/components/table/TableToolbar.vue';
+import TableShowMore from '@shared/components/table/TableShowMore.vue';
+import ChartDescription from '@shared/components/ChartDescription.vue';
 import AboutPanel from '@/components/about/AboutPanel.vue';
 import AboutCallout from '@/components/about/AboutCallout.vue';
 import AboutSection from '@/components/about/AboutSection.vue';

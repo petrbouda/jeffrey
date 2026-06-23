@@ -169,10 +169,10 @@ import EventFieldDescription from '@/services/api/model/EventFieldDescription';
 import FormattingService from '@shared/services/FormattingService';
 import { useRoute } from 'vue-router';
 
-import PageHeader from '@/components/layout/PageHeader.vue';
+import PageHeader from '@shared/components/layout/PageHeader.vue';
 import Badge from '@shared/components/Badge.vue';
-import DataTable from '@/components/table/DataTable.vue';
-import '@/styles/shared-components.css';
+import DataTable from '@shared/components/table/DataTable.vue';
+import '@shared/styles/shared-components.css';
 
 const route = useRoute();
 

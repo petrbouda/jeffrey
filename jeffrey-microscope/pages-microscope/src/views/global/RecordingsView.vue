@@ -354,8 +354,8 @@
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import RecordingsClient from '@workspaces/services/api/RecordingsClient';
-import MainCard from '@/components/MainCard.vue';
-import MainCardHeader from '@/components/MainCardHeader.vue';
+import MainCard from '@shared/components/MainCard.vue';
+import MainCardHeader from '@shared/components/MainCardHeader.vue';
 import RecordingCard from '@workspaces/components/RecordingCard.vue';
 import Badge from '@shared/components/Badge.vue';
 import EditNameModal from '@/components/EditNameModal.vue';
@@ -908,7 +908,7 @@ const onDragEnd = () => {
 </script>
 
 <style scoped>
-@import '@/styles/shared-components.css';
+@import '@shared/styles/shared-components.css';
 
 /* ============ Upload section ============ */
 .upload-section {

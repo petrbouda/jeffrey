@@ -335,7 +335,7 @@ When unsure whether a request is "make it cleaner" or "make it faster", ask. Def
 - **Components**: PascalCase for component names
 - **Composition API**: Preferred over Options API
 - **TypeScript**: Strict typing with interfaces for API models
-- **Design Tokens**: CSS custom properties in `jeffrey-microscope/pages-microscope/src/assets/design-tokens.css` — always use these for colors, spacing, typography
+- **Design Tokens**: CSS custom properties in `shared/ui/common/src/assets/design-tokens.css` (import as `@shared/assets/design-tokens.css`) — always use these for colors, spacing, typography
 - **Composables**: Reusable reactive logic in `jeffrey-microscope/pages-microscope/src/composables/` (useModal, useNavigation, useAiAnalysis, useWorkspaceType, etc.)
 - **API Clients**: Two base classes in `jeffrey-microscope/pages-microscope/src/services/api/`:
   - `BasePlatformClient` — for workspace/project APIs (used by WorkspaceClient, ProjectClient)
@@ -343,16 +343,20 @@ When unsure whether a request is "make it cleaner" or "make it faster", ask. Def
 - **State Management**: Simple ref-based stores in `jeffrey-microscope/pages-microscope/src/stores/` (not Pinia)
 - **Protobuf**: Used for flamegraph binary data; regenerate with `npm run proto:generate`
 - **Styling**: Use shared CSS files first, then scoped CSS for component-specific styles
-  - **Shared CSS files** (import via `import '@/styles/...'` or `@import` in SCSS):
-    - `@/styles/shared-components.css` - Common UI patterns (search-container, cards, buttons, loading/empty states)
-    - `@/assets/_sidebar-menu.scss` - Sidebar navigation styles (nav-item, nav-submenu, disabled-feature)
+  - **Shared CSS files** (live in `shared/ui/common/src/styles/`, import via `@shared/...` or `@import` in SCSS):
+    - `@shared/styles/shared-components.css` - Common UI patterns (search-container, cards, buttons, loading/empty states, drawer sections, form fields, info rows)
+    - `@/assets/_sidebar-menu.scss` - Sidebar navigation styles (nav-item, nav-submenu, disabled-feature) — still app-local
   - Always check shared CSS files before adding new scoped styles
-  - Add commonly reused styles to shared files to avoid duplication
+  - Add commonly reused styles to `@shared/styles/shared-components.css` to avoid duplication
 - **File Organization**: Feature-based grouping with shared components
 - **Timestamps**: All timestamps are UTC epoch millis (numbers). Never use `new Date()` for parsing or formatting — always use `FormattingService` methods. Never propagate date strings from the backend; always use numeric UTC timestamps. Frontend form inputs like `datetime-local` must be converted to/from epoch millis at the boundary.
 - Formatting values use FormattingService, which provides consistent formatting across the application, propose a new function if you miss something
-- Always try to use Vue Components first. If you need create a new to deduplicate code, suggest it and create it.
-- **Reuse before creating**: Before creating new components or styling, always search for existing shared components (`src/components/`), shared CSS (`src/styles/shared-components.css`), and design tokens (`src/assets/design-tokens.css`) that can be reused or extended. Only create new shared components/styles when no suitable existing pattern exists. When you do create new shared patterns, add them to shared CSS or create a component — never leave reusable patterns only in scoped styles.
+- **Shared UI modules** (consumed via Vite aliases, defined identically in every `pages-*` app):
+  - `@shared` → `shared/ui/common/src` — generic components, services (FormattingService, BasePlatformClient, HttpUtils, ToastService), styles, and design tokens
+  - `@workspaces` → `shared/ui/workspaces/ui` — remote-workspace/recording components + API clients
+  - `@instances` → `shared/ui/instances/src` — instance views
+- **Shared-first (MUST, non-negotiable)**: Before writing any new markup or component, you MUST first check the shared modules — `@shared` first, then `@workspaces`/`@instances` — for an existing component to use, compose, or extend, and check `@shared/assets/design-tokens.css` + `@shared/styles/shared-components.css` for existing styles. Only write custom markup or a new component when no shared one fits. Never duplicate a shared component locally.
+- **Where a new component lives**: If it is **generic** (no page- or JFR-domain semantics — a chart, table, form input, badge, breadcrumb, layout container, modal, drawer, etc.), create it under `shared/ui/common/src/components/` (`@shared`), NOT app-local. An app's `src/components/` is reserved for components tied to a specific page/feature (profile analysis, flamegraph, heap, gc, jdbc, grpc, span, streaming, etc.). When unsure whether a component is generic, prefer `@shared`.
 
 #### UI Consistency Rules
 - **No Hardcoded Colors in CSS**: Never use hex color literals (`#f8f9fa`, `#28a745`, etc.) in `<style>` blocks. Always use CSS custom properties from `design-tokens.css` (e.g., `var(--color-light)`, `var(--color-success)`, `var(--color-danger)`, `var(--table-header-bg)`)

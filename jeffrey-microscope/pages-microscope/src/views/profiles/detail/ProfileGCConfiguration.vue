@@ -206,8 +206,8 @@
 import { computed, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
 
-import PageHeader from '@/components/layout/PageHeader.vue';
-import StatsTable from '@/components/StatsTable.vue';
+import PageHeader from '@shared/components/layout/PageHeader.vue';
+import StatsTable from '@shared/components/table/StatsTable.vue';
 import ConfigurationSection from '@/components/ConfigurationSection.vue';
 import LoadingState from '@shared/components/LoadingState.vue';
 import ErrorState from '@shared/components/ErrorState.vue';

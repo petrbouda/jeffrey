@@ -6,7 +6,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import StatsTable from '@/components/StatsTable.vue';
+import StatsTable from '@shared/components/table/StatsTable.vue';
 import FormattingService from '@shared/services/FormattingService.ts';
 import HttpHeader from '@/services/api/model/HttpHeader.ts';
 

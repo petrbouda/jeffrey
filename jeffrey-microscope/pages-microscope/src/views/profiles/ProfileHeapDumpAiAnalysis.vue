@@ -32,7 +32,7 @@ import { useHeapDumpAiAnalysis } from '@/composables/useHeapDumpAiAnalysis';
 import AiAnalysisPanel from '@/components/ai-analysis/AiAnalysisPanel.vue';
 import type { PromptSection } from '@/components/ai-analysis/AiAnalysisPanel.vue';
 import AiDisabledFeatureAlert from '@/components/alerts/AiDisabledFeatureAlert.vue';
-import PageHeader from '@/components/layout/PageHeader.vue';
+import PageHeader from '@shared/components/layout/PageHeader.vue';
 
 const route = useRoute();
 const profileId = route.params.profileId as string;

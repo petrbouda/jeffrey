@@ -75,9 +75,9 @@
 import { computed } from 'vue';
 import { useRoute } from 'vue-router';
 
-import DualPanel from '@/components/DualPanel.vue';
-import DonutWithLegend from '@/components/DonutWithLegend.vue';
-import type { DonutChartData } from '@/components/DonutWithLegend.vue';
+import DualPanel from '@shared/components/DualPanel.vue';
+import DonutWithLegend from '@shared/components/DonutWithLegend.vue';
+import type { DonutChartData } from '@shared/components/DonutWithLegend.vue';
 import LoadingState from '@shared/components/LoadingState.vue';
 import ErrorState from '@shared/components/ErrorState.vue';
 import EmptyState from '@shared/components/EmptyState.vue';

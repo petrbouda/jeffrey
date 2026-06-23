@@ -89,17 +89,17 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import DetailBreadcrumb from '@/components/DetailBreadcrumb.vue';
+import DetailBreadcrumb from '@shared/components/DetailBreadcrumb.vue';
 import GrpcOverviewStats from '@/components/grpc/GrpcOverviewStats.vue';
-import TabBar from '@/components/TabBar.vue';
+import TabBar from '@shared/components/TabBar.vue';
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
 import AxisFormatType from '@/services/timeseries/AxisFormatType';
 import GrpcServiceList from '@/components/grpc/GrpcServiceList.vue';
 
 import GrpcSlowestCalls from '@/components/grpc/GrpcSlowestCalls.vue';
-import DualPanel from '@/components/DualPanel.vue';
-import DonutWithLegend from '@/components/DonutWithLegend.vue';
-import type { DonutChartData } from '@/components/DonutWithLegend.vue';
+import DualPanel from '@shared/components/DualPanel.vue';
+import DonutWithLegend from '@shared/components/DonutWithLegend.vue';
+import type { DonutChartData } from '@shared/components/DonutWithLegend.vue';
 import ProfileGrpcClient from '@/services/api/ProfileGrpcClient';
 import type { GrpcOverviewData, GrpcServiceDetailData } from '@/services/api/ProfileGrpcClient';
 import LoadingState from '@shared/components/LoadingState.vue';

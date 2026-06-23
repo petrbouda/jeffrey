@@ -473,7 +473,7 @@
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
-import PageHeader from '@/components/layout/PageHeader.vue';
+import PageHeader from '@shared/components/layout/PageHeader.vue';
 import LoadingState from '@shared/components/LoadingState.vue';
 import ErrorState from '@shared/components/ErrorState.vue';
 import HeapDumpNotInitialized from '@/components/HeapDumpNotInitialized.vue';
@@ -481,10 +481,10 @@ import OqlAssistant from '@/components/oql/OqlAssistant.vue';
 import InstanceTreeModal from '@/components/heap/InstanceTreeModal.vue';
 import InstanceActionButtons from '@/components/heap/InstanceActionButtons.vue';
 import InstanceDetailPanel from '@/components/heap/InstanceDetailPanel.vue';
-import SortableTableHeader from '@/components/table/SortableTableHeader.vue';
-import DataTable from '@/components/table/DataTable.vue';
-import TableToolbar from '@/components/table/TableToolbar.vue';
-import TabBar, { type TabBarItem } from '@/components/TabBar.vue';
+import SortableTableHeader from '@shared/components/table/SortableTableHeader.vue';
+import DataTable from '@shared/components/table/DataTable.vue';
+import TableToolbar from '@shared/components/table/TableToolbar.vue';
+import TabBar, { type TabBarItem } from '@shared/components/TabBar.vue';
 import HeapDumpClient from '@/services/api/HeapDumpClient';
 import OqlAssistantClient from '@/services/api/OqlAssistantClient';
 import OQLQueryResult from '@/services/api/model/OQLQueryResult';
