@@ -39,8 +39,8 @@
         <module>build-hub-jib</module>
         <module>build-performance-analyst</module>
         <module>build-performance-analyst-jib</module>
-        <module>build-cli</module>
-        <module>build-cli-native</module>
+        <module>build-provisioner</module>
+        <module>build-provisioner-native</module>
         <module>build-agent</module>
     </modules>
 

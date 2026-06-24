@@ -37,7 +37,7 @@
           A normal (transitive) compile dependency: every module that depends on `common` therefore has
           the one.profiler.* classes on its classpath, so instrumented code (and its unit tests) can load
           Spans without NoClassDefFoundError. Calls are no-ops unless the native agent is attached.
-          The GraalVM-native jeffrey-cli/server inherit the 9 KB jar but never call Spans, so it is
+          The GraalVM-native jeffrey-provisioner/server inherit the 9 KB jar but never call Spans, so it is
           unreachable and pruned from the native image (module-info uses `requires static`).
         -->
         <dependency>

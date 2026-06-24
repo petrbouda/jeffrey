@@ -25,7 +25,7 @@ defineProps<{
   role: string
   components: string[]
   ctaText: string
-  variant?: 'primary' | 'secondary' | 'tertiary'
+  variant?: 'primary' | 'secondary' | 'tertiary' | 'quaternary'
 }>()
 </script>
 
@@ -35,7 +35,8 @@ defineProps<{
     class="product-card"
     :class="{
       'variant-secondary': variant === 'secondary',
-      'variant-tertiary': variant === 'tertiary'
+      'variant-tertiary': variant === 'tertiary',
+      'variant-quaternary': variant === 'quaternary'
     }"
   >
     <div class="card-rail"></div>
@@ -100,6 +101,14 @@ defineProps<{
   --accent-tint: #ecfdf5;
   --accent-soft: #f0fdf4;
   --accent-shadow: rgba(16, 185, 129, 0.35);
+}
+
+.product-card.variant-quaternary {
+  /* quaternary: Provisioner — amber, evoking the build/bootstrap tooling */
+  --accent: #f59e0b;
+  --accent-tint: #fef3c7;
+  --accent-soft: #fffbeb;
+  --accent-shadow: rgba(245, 158, 11, 0.35);
 }
 
 .product-card:hover {

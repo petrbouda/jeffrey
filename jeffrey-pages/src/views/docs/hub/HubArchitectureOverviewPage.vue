@@ -139,7 +139,7 @@ onMounted(() => {
               <div class="arch-cli-app-row">
                 <div class="arch-cli">
                   <i class="bi bi-terminal"></i>
-                  <span>Jeffrey CLI</span>
+                  <span>Jeffrey Provisioner</span>
                 </div>
                 <div class="arch-starts-arrow">
                   <span>runs before</span>
@@ -160,11 +160,11 @@ onMounted(() => {
       </div>
 
       <p>
-        Around the Server, the <router-link to="/docs/cli/overview">Jeffrey CLI</router-link>
+        Around the Server, the <router-link to="/docs/provisioner/overview">Jeffrey Provisioner</router-link>
         prepares the Async-Profiler agent's JVM arguments before the application starts, and the
         <router-link to="/docs/agent/overview">Jeffrey Agent</router-link> writes JFR recordings
         to the shared filesystem the Server reads from. The
-        <router-link to="/docs/jib/overview">Jeffrey JIB</router-link> module packages the CLI
+        <router-link to="/docs/jib/overview">Jeffrey JIB</router-link> module packages the provisioner
         and Agent alongside your application image.
       </p>
 

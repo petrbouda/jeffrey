@@ -25,7 +25,7 @@ export interface BreadcrumbItem {
   to?: string
 }
 
-export type Product = 'microscope' | 'hub' | 'perf-analyst';
+export type Product = 'microscope' | 'hub' | 'perf-analyst' | 'provisioner';
 
 export interface ProductInfo {
   id: Product;
@@ -52,6 +52,12 @@ export const PRODUCTS: Record<Product, ProductInfo> = {
     title: 'Performance Analyst',
     icon: 'bi-robot',
     hubPath: '/docs/perf-analyst'
+  },
+  provisioner: {
+    id: 'provisioner',
+    title: 'Jeffrey Provisioner',
+    icon: 'bi-terminal',
+    hubPath: '/docs/provisioner'
   }
 };
 
@@ -61,9 +67,12 @@ export const PRODUCTS: Record<Product, ProductInfo> = {
 const MICROSCOPE_SEGMENTS = new Set(['microscope', 'local', 'events', 'ai']);
 // 'server' is kept alongside 'hub' so a direct hit on a legacy /docs/server/* URL still
 // resolves to the Hub sidebar in the brief moment before the router redirects to /docs/hub/*.
-const HUB_SEGMENTS = new Set(['hub', 'server', 'cli', 'agent', 'jib']);
+const HUB_SEGMENTS = new Set(['hub', 'server', 'agent', 'jib']);
 // Performance Analyst (incubating) owns a single top-level segment.
 const PERF_ANALYST_SEGMENTS = new Set(['perf-analyst']);
+// The Provisioner is its own product. 'cli' is kept so a direct hit on a legacy
+// /docs/cli/* URL still resolves to the Provisioner sidebar before the router redirects.
+const PROVISIONER_SEGMENTS = new Set(['provisioner', 'cli']);
 
 export const microscopeNavigation: DocSection[] = [
   // Top-level single-page entries — promoted out of the "Jeffrey Microscope" group
@@ -179,7 +188,7 @@ export const hubNavigation: DocSection[] = [
       { title: 'Overview', to: '/docs/hub/deployment' },
       { title: 'Jeffrey JIB Extension', to: '/docs/hub/deployment/jeffrey-jib' },
       { title: 'Shared Volume', to: '/docs/hub/deployment/shared-volume' },
-      { title: 'Jeffrey CLI', to: '/docs/hub/deployment/jeffrey-cli' },
+      { title: 'Jeffrey Provisioner', to: '/docs/hub/deployment/jeffrey-provisioner' },
       { title: 'Helm Chart', to: '/docs/hub/deployment/helm-chart' }
     ]
   },
@@ -210,15 +219,11 @@ export const hubNavigation: DocSection[] = [
     children: [{ title: 'Configuration', to: '/docs/hub/configuration' }]
   },
   {
-    title: 'Jeffrey CLI',
-    path: 'cli',
+    // The Provisioner has its own top-level documentation section; Hub keeps just a link.
+    title: 'Jeffrey Provisioner',
+    path: '_hub-provisioner-link',
     icon: 'bi-terminal',
-    children: [
-      { title: 'Overview', path: 'overview' },
-      { title: 'Configuration', path: 'configuration' },
-      { title: 'Generated Output', path: 'generated-output' },
-      { title: 'Directory Structure', path: 'directory-structure' }
-    ]
+    children: [{ title: 'Provisioner docs', to: '/docs/provisioner' }]
   },
   {
     title: 'Jeffrey Agent',
@@ -265,8 +270,44 @@ export const perfAnalystNavigation: DocSection[] = [
   }
 ];
 
+export const provisionerNavigation: DocSection[] = [
+  // Standalone product section for the Provisioner. Overview is promoted to the root
+  // of the sidebar (synthetic `_` path); the remaining pages follow as single entries.
+  {
+    title: 'Overview',
+    path: '_provisioner-overview',
+    icon: 'bi-info-circle',
+    children: [{ title: 'Overview', to: '/docs/provisioner' }]
+  },
+  {
+    title: 'Configuration',
+    path: '_provisioner-configuration',
+    icon: 'bi-gear',
+    children: [{ title: 'Configuration', to: '/docs/provisioner/configuration' }]
+  },
+  {
+    title: 'Generated Output',
+    path: '_provisioner-generated-output',
+    icon: 'bi-file-earmark-text',
+    children: [{ title: 'Generated Output', to: '/docs/provisioner/generated-output' }]
+  },
+  {
+    title: 'Directory Structure',
+    path: '_provisioner-directory-structure',
+    icon: 'bi-folder2-open',
+    children: [{ title: 'Directory Structure', to: '/docs/provisioner/directory-structure' }]
+  },
+  {
+    // Cross-link into the Hub deployment example that wires the Provisioner into a cluster.
+    title: 'Deployment',
+    path: '_provisioner-deployment',
+    icon: 'bi-cloud-upload',
+    children: [{ title: 'Deploying with the Hub', to: '/docs/hub/deployment/jeffrey-provisioner' }]
+  }
+];
+
 // Union — used by global helpers like getAllDocs/search and as a back-compat export.
-export const docsNavigation: DocSection[] = [...microscopeNavigation, ...hubNavigation, ...perfAnalystNavigation];
+export const docsNavigation: DocSection[] = [...microscopeNavigation, ...hubNavigation, ...perfAnalystNavigation, ...provisionerNavigation];
 
 export function getProductForPath(routePath: string): Product | null {
   const cleaned = routePath.replace(/^\/docs\/?/, '');
@@ -275,6 +316,7 @@ export function getProductForPath(routePath: string): Product | null {
   if (MICROSCOPE_SEGMENTS.has(first)) return 'microscope';
   if (HUB_SEGMENTS.has(first)) return 'hub';
   if (PERF_ANALYST_SEGMENTS.has(first)) return 'perf-analyst';
+  if (PROVISIONER_SEGMENTS.has(first)) return 'provisioner';
   return null;
 }
 
@@ -284,6 +326,9 @@ export function navigationForProduct(product: Product): DocSection[] {
   }
   if (product === 'perf-analyst') {
     return perfAnalystNavigation;
+  }
+  if (product === 'provisioner') {
+    return provisionerNavigation;
   }
   return microscopeNavigation;
 }

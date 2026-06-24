@@ -60,7 +60,7 @@ message DeleteWorkspaceRequest {
 message DeleteWorkspaceResponse {}
 
 message CreateWorkspaceRequest {
-  // The reference ID — used by jeffrey-cli's `project.workspace-id` to route
+  // The reference ID — used by jeffrey-provisioner's `project.workspace-id` to route
   // recordings to this workspace. Must be unique on this server.
   string reference_id = 1;
   // Display name (required).

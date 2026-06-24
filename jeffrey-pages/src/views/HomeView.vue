@@ -149,7 +149,7 @@ const productTabs: ProductTab[] = [
       title: 'Deploys to Kubernetes',
       desc: 'Hub runs alongside your services with shared-volume integration and gRPC exposure.',
       topology: [
-        { kind: 'apps', icon: 'bi-app-indicator', label: 'Your services', em: '+ jeffrey-cli' },
+        { kind: 'apps', icon: 'bi-app-indicator', label: 'Your services', em: '+ provisioner' },
         { kind: 'volume', icon: 'bi-hdd-stack', code: '/mnt/jeffrey-home', label: 'shared volume' },
         { kind: 'server', icon: 'bi-cloud-fill', label: 'Jeffrey Hub', badge: 'gRPC API' }
       ]

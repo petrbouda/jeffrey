@@ -126,10 +126,10 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/docs/hub/deployment/DeploymentSharedVolumePage.vue')
       },
       {
-        path: 'server/deployment/jeffrey-cli',
-        alias: 'hub/deployment/jeffrey-cli',
-        name: 'DocsServerDeploymentJeffreyCli',
-        component: () => import('@/views/docs/hub/deployment/DeploymentJeffreyCliPage.vue')
+        path: 'server/deployment/jeffrey-provisioner',
+        alias: ['hub/deployment/jeffrey-provisioner', 'server/deployment/jeffrey-cli', 'hub/deployment/jeffrey-cli'],
+        name: 'DocsServerDeploymentJeffreyProvisioner',
+        component: () => import('@/views/docs/hub/deployment/DeploymentJeffreyProvisionerPage.vue')
       },
       {
         path: 'server/deployment/helm-chart',
@@ -438,27 +438,33 @@ const routes: RouteRecordRaw[] = [
       { path: 'server/configuration/application-properties', redirect: '/docs/hub/configuration' },
       { path: 'server/configuration/advanced-properties', redirect: '/docs/hub/configuration' },
 
-      // ──── Jeffrey CLI ────
+      // ──── Jeffrey Provisioner (standalone product) ────
       {
-        path: 'cli/overview',
-        name: 'DocsCliOverview',
-        component: () => import('@/views/docs/cli/CliOverviewPage.vue')
+        path: 'provisioner',
+        name: 'DocsProvisioner',
+        component: () => import('@/views/docs/provisioner/ProvisionerOverviewPage.vue')
       },
       {
-        path: 'cli/configuration',
-        name: 'DocsCliConfiguration',
-        component: () => import('@/views/docs/cli/CliConfigurationPage.vue')
+        path: 'provisioner/configuration',
+        name: 'DocsProvisionerConfiguration',
+        component: () => import('@/views/docs/provisioner/ProvisionerConfigurationPage.vue')
       },
       {
-        path: 'cli/directory-structure',
-        name: 'DocsCliDirectoryStructure',
-        component: () => import('@/views/docs/cli/CliDirectoryStructurePage.vue')
+        path: 'provisioner/directory-structure',
+        name: 'DocsProvisionerDirectoryStructure',
+        component: () => import('@/views/docs/provisioner/ProvisionerDirectoryStructurePage.vue')
       },
       {
-        path: 'cli/generated-output',
-        name: 'DocsCliGeneratedOutput',
-        component: () => import('@/views/docs/cli/CliGeneratedOutputPage.vue')
+        path: 'provisioner/generated-output',
+        name: 'DocsProvisionerGeneratedOutput',
+        component: () => import('@/views/docs/provisioner/ProvisionerGeneratedOutputPage.vue')
       },
+      // Back-compat redirects: the old promoted overview path and the legacy /docs/cli/* paths.
+      { path: 'provisioner/overview', redirect: '/docs/provisioner' },
+      { path: 'cli/overview', redirect: '/docs/provisioner' },
+      { path: 'cli/configuration', redirect: '/docs/provisioner/configuration' },
+      { path: 'cli/directory-structure', redirect: '/docs/provisioner/directory-structure' },
+      { path: 'cli/generated-output', redirect: '/docs/provisioner/generated-output' },
 
       // ──── Jeffrey Agent ────
       {

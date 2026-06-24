@@ -124,9 +124,9 @@ onMounted(() => {
           <tr>
             <td><strong>Reference ID</strong></td>
             <td>
-              A stable identifier the workspace exposes to <code>jeffrey-cli</code>. The CLI uses
+              A stable identifier the workspace exposes to <code>provisioner</code>. The provisioner uses
               this ID to route uploads to the right workspace, so it has to match the value in
-              your CLI's configuration.
+              your provisioner's configuration.
             </td>
           </tr>
         </tbody>
@@ -134,7 +134,7 @@ onMounted(() => {
 
       <DocsCallout type="warning">
         <strong>Reference ID is permanent.</strong> It cannot be changed after creation, and
-        any CLI clients that already point at the old value will stop uploading. Pick it
+        any provisioner clients that already point at the old value will stop uploading. Pick it
         deliberately — typically a short slug like <code>prod-eu</code> or <code>staging</code>.
       </DocsCallout>
 

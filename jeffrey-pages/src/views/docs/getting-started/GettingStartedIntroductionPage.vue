@@ -182,9 +182,9 @@ onMounted(() => {
             icon="bi bi-cloud"
           />
           <DocsLinkCard
-            title="Jeffrey CLI"
+            title="Jeffrey Provisioner"
             description="Command-line tool for automated container profiling. Initializes profiler agent configuration for containerized Java applications."
-            to="/docs/cli/overview"
+            to="/docs/provisioner/overview"
             icon="bi bi-terminal"
           />
           <DocsLinkCard

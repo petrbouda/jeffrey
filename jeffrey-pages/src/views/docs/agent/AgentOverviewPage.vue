@@ -48,7 +48,7 @@ onMounted(() => {
         <p><strong>Jeffrey Agent</strong> is a lightweight Java agent (~11 KB, zero external dependencies) that runs inside your Java application's JVM process. Its sole purpose is <strong>heartbeat monitoring</strong> — it periodically writes a timestamp to the filesystem so Jeffrey Hub can detect when a profiled application has stopped.</p>
 
         <DocsCallout type="info">
-          Jeffrey Agent is automatically configured by <router-link to="/docs/cli/overview">Jeffrey CLI</router-link> when initializing a profiling session. You do not need to set up the agent manually.
+          Jeffrey Agent is automatically configured by <router-link to="/docs/provisioner/overview">Jeffrey Provisioner</router-link> when initializing a profiling session. You do not need to set up the agent manually.
         </DocsCallout>
 
         <div class="agent-cards">
@@ -83,7 +83,7 @@ onMounted(() => {
         </div>
 
         <h2 id="how-it-works">How It Works</h2>
-        <p>Jeffrey Agent is loaded via the standard <code>-javaagent</code> JVM option. Jeffrey CLI automatically constructs this flag when starting a profiled application:</p>
+        <p>Jeffrey Agent is loaded via the standard <code>-javaagent</code> JVM option. Jeffrey Provisioner automatically constructs this flag when starting a profiled application:</p>
         <pre class="agent-code"><code>-javaagent:/path/to/jeffrey-agent.jar=heartbeat.dir=/sessions/session-123/.heartbeat</code></pre>
 
         <div class="agent-lifecycle">

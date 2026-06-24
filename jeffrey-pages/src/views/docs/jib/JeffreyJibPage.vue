@@ -82,12 +82,12 @@ onMounted(() => {
           </div>
         </div>
 
-        <p>At container start, the wrapper runs <code>jeffrey-cli init</code> &mdash; resolved from
-          <code>${JEFFREY_HOME}/libs/current/jeffrey-cli-&lt;arch&gt;</code> on a shared volume populated by
+        <p>At container start, the wrapper runs <code>provisioner init</code> &mdash; resolved from
+          <code>${JEFFREY_HOME}/libs/current/provisioner-&lt;arch&gt;</code> on a shared volume populated by
           Jeffrey Hub's <code>copy-libs</code> feature &mdash; and then <code>exec</code>s the original JIB
-          command with the CLI-produced argfile inserted right after the <code>java</code> binary.
+          command with the provisioner-produced argfile inserted right after the <code>java</code> binary.
           If the shared-volume root is not configured at runtime (neither <code>JEFFREY_HOME</code> nor
-          <code>JEFFREY_CLI_PATH</code> is set), the wrapper logs a warning and skips init entirely &mdash;
+          <code>JEFFREY_PROVISIONER_PATH</code> is set), the wrapper logs a warning and skips init entirely &mdash;
           see <a href="#runtime-kill-switch">Runtime Kill Switch</a>.</p>
 
         <DocsCallout type="info">
@@ -118,7 +118,7 @@ onMounted(() => {
                 <td><code>jeffreyHome</code></td>
                 <td><code>JEFFREY_HOME</code></td>
                 <td>&mdash; <span class="prop-type">(must be set)</span></td>
-                <td>Shared-volume root. Wrapper resolves the CLI at <code>&lt;home&gt;/libs/current/jeffrey-cli-&lt;arch&gt;</code>. If neither this nor <code>cliPath</code> is set, the wrapper warns and falls through &mdash; the container still starts, just without profiling.</td>
+                <td>Shared-volume root. Wrapper resolves the provisioner at <code>&lt;home&gt;/libs/current/provisioner-&lt;arch&gt;</code>. If neither this nor <code>provisionerPath</code> is set, the wrapper warns and falls through &mdash; the container still starts, just without profiling.</td>
               </tr>
               <tr>
                 <td><code>baseConfig</code></td>
@@ -130,13 +130,13 @@ onMounted(() => {
                 <td><code>overrideConfig</code></td>
                 <td><code>JEFFREY_OVERRIDE_CONFIG</code></td>
                 <td><code>/jeffrey/jeffrey-overrides.conf</code></td>
-                <td>Path to per-service override HOCON. The wrapper only passes it to <code>jeffrey-cli init</code> if the file actually exists, so it's effectively optional at runtime.</td>
+                <td>Path to per-service override HOCON. The wrapper only passes it to <code>provisioner init</code> if the file actually exists, so it's effectively optional at runtime.</td>
               </tr>
               <tr>
-                <td><code>cliPath</code></td>
-                <td><code>JEFFREY_CLI_PATH</code></td>
+                <td><code>provisionerPath</code></td>
+                <td><code>JEFFREY_PROVISIONER_PATH</code></td>
                 <td>derived from <code>jeffreyHome</code></td>
-                <td>Explicit CLI binary path. Bypasses the <code>&lt;home&gt;/libs/current/*</code> resolution when you bundle the CLI into your image yourself.</td>
+                <td>Explicit provisioner binary path. Bypasses the <code>&lt;home&gt;/libs/current/*</code> resolution when you bundle the provisioner into your image yourself.</td>
               </tr>
               <tr>
                 <td><code>argFile</code></td>
@@ -151,7 +151,7 @@ onMounted(() => {
         <h2 id="runtime-kill-switch">Runtime Kill Switch</h2>
         <p><strong>Explicit opt-out.</strong> Set <code>JEFFREY_ENABLED=false</code> (or <code>0</code>,
           <code>no</code>, <code>off</code>, case-insensitive) in the container env to bypass profiling
-          entirely. The wrapper skips <code>jeffrey-cli init</code>, async-profiler, and argfile
+          entirely. The wrapper skips <code>provisioner init</code>, async-profiler, and argfile
           injection, and <code>exec</code>s the JIB-produced <code>java</code> command verbatim &mdash;
           identical behaviour to a non-instrumented image, no rebuild required.</p>
 
@@ -159,7 +159,7 @@ onMounted(() => {
           volume, and A/B comparisons.</p>
 
         <p><strong>Implicit fallthrough (fail-open).</strong> If neither <code>JEFFREY_HOME</code> nor
-          <code>JEFFREY_CLI_PATH</code> is set at container start, the wrapper logs a warning to
+          <code>JEFFREY_PROVISIONER_PATH</code> is set at container start, the wrapper logs a warning to
           stderr (&ldquo;Jeffrey is disabled, starting application without profiling&rdquo;) and
           <code>exec</code>s the JIB command verbatim. Misconfiguration can never prevent an app
           from booting &mdash; the worst case is profiling silently turning off, which the warning
@@ -193,17 +193,17 @@ onMounted(() => {
 }</code></pre>
         </div>
 
-        <p>This builds an image whose wrapper resolves the CLI from
-          <code>${JEFFREY_HOME}/libs/current/jeffrey-cli-&lt;arch&gt;</code> on the shared volume you
+        <p>This builds an image whose wrapper resolves the provisioner from
+          <code>${JEFFREY_HOME}/libs/current/provisioner-&lt;arch&gt;</code> on the shared volume you
           mount at that path. Every other property has a sensible default; you only set them to
           override.</p>
 
         <DocsCallout type="warning">
           <strong><code>jeffreyHome</code> must point at a shared volume / disk.</strong>
-          Jeffrey Hub (with <code>copy-libs.enabled=true</code>) writes the CLI binaries and
+          Jeffrey Hub (with <code>copy-libs.enabled=true</code>) writes the provisioner binaries and
           libs to this path, and every monitored application pod must mount the <em>same</em>
           volume at the <em>same</em> path so its entrypoint wrapper can resolve
-          <code>${JEFFREY_HOME}/libs/current/jeffrey-cli-&lt;arch&gt;</code> at container start. A
+          <code>${JEFFREY_HOME}/libs/current/provisioner-&lt;arch&gt;</code> at container start. A
           host-local directory or a per-pod ephemeral volume will not work &mdash; both endpoints
           need to see the bytes Jeffrey Hub published.
         </DocsCallout>
@@ -300,7 +300,7 @@ jib {
             <div><strong>Requires Jeffrey Hub elsewhere in the cluster</strong> with
               <code>copy-libs.enabled=true</code>, writing to the shared <code>jeffrey-home</code>
               volume your app pods mount. Without it, the wrapper cannot locate
-              <code>jeffrey-cli-&lt;arch&gt;</code> at runtime.</div>
+              <code>provisioner-&lt;arch&gt;</code> at runtime.</div>
           </div>
         </div>
       </div>

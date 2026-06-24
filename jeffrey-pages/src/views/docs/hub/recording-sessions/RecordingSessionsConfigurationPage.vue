@@ -27,7 +27,7 @@ const { setHeadings } = useDocHeadings();
 
 const headings = [
   { id: 'configuration-overview', text: 'Configuration Overview', level: 2 },
-  { id: 'jeffrey-cli-setup', text: 'Jeffrey CLI Setup', level: 2 }
+  { id: 'provisioner-setup', text: 'Jeffrey Provisioner Setup', level: 2 }
 ];
 
 onMounted(() => {
@@ -43,7 +43,7 @@ onMounted(() => {
       />
 
       <div class="docs-content">
-        <p>Recording sessions are configured using <router-link to="/docs/cli/overview">Jeffrey CLI</router-link>, which generates the necessary JVM arguments to start Async-Profiler with proper output directories and settings.</p>
+        <p>Recording sessions are configured using <router-link to="/docs/provisioner/overview">Jeffrey Provisioner</router-link>, which generates the necessary JVM arguments to start Async-Profiler with proper output directories and settings.</p>
 
         <h2 id="configuration-overview">Configuration Overview</h2>
         <p>To create recording sessions, you need to configure your Java application with:</p>
@@ -59,8 +59,8 @@ onMounted(() => {
           <div class="config-step">
             <div class="step-number">2</div>
             <div class="step-content">
-              <h4>Jeffrey CLI</h4>
-              <p>Use Jeffrey CLI to generate JVM arguments that configure Async-Profiler with the correct output paths and settings.</p>
+              <h4>Jeffrey Provisioner</h4>
+              <p>Use Jeffrey Provisioner to generate JVM arguments that configure Async-Profiler with the correct output paths and settings.</p>
             </div>
           </div>
           <div class="config-step">
@@ -72,14 +72,14 @@ onMounted(() => {
           </div>
         </div>
 
-        <h2 id="jeffrey-cli-setup">Jeffrey CLI Setup</h2>
-        <p>Jeffrey CLI connects to your Jeffrey Hub and generates the JVM arguments needed to start profiling.</p>
+        <h2 id="provisioner-setup">Jeffrey Provisioner Setup</h2>
+        <p>Jeffrey Provisioner connects to your Jeffrey Hub and generates the JVM arguments needed to start profiling.</p>
 
         <DocsLinkCard
-          to="/docs/cli/overview"
+          to="/docs/provisioner/overview"
           icon="bi bi-terminal"
-          title="Jeffrey CLI"
-          description="Learn how to use Jeffrey CLI to generate JVM arguments, configure profiling options, and set up recording sessions for your applications."
+          title="Jeffrey Provisioner"
+          description="Learn how to use Jeffrey Provisioner to generate JVM arguments, configure profiling options, and set up recording sessions for your applications."
         />
 
         <p>The generated configuration includes:</p>
@@ -92,10 +92,10 @@ onMounted(() => {
         </ul>
 
         <DocsLinkCard
-          to="/docs/cli/directory-structure"
+          to="/docs/provisioner/directory-structure"
           icon="bi bi-folder-fill"
           title="Directory Structure"
-          description="Learn about the file and directory structure created by Jeffrey CLI for workspaces, projects, and recording sessions."
+          description="Learn about the file and directory structure created by Jeffrey Provisioner for workspaces, projects, and recording sessions."
           variant="secondary"
         />
       </div>

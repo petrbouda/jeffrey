@@ -210,7 +210,7 @@
               v-else-if="filteredProjects.length === 0"
               icon="bi-folder-plus"
               title="No projects in this workspace"
-              description="Projects appear here when jeffrey-cli reports them via workspace events."
+              description="Projects appear here when provisioner reports them via workspace events."
             />
             <div v-else class="project-grid">
               <slot
@@ -242,7 +242,7 @@
           <h5>No workspace selected</h5>
           <p>
             Create a workspace in the panel on the left — its
-            <strong>Reference ID</strong> becomes <code>jeffrey-cli</code>'s
+            <strong>Reference ID</strong> becomes <code>provisioner</code>'s
             <code>project.workspace-ref-id</code>.
           </p>
         </div>
@@ -293,7 +293,7 @@
             :disabled="creating"
           />
           <template #hint>
-            Used by <strong>jeffrey-cli</strong>'s <code>project.workspace-ref-id</code>. Must be
+            Used by <strong>provisioner</strong>'s <code>project.workspace-ref-id</code>. Must be
             unique on this server.
             {{ WORKSPACE_REF_ID_HINT }}
           </template>

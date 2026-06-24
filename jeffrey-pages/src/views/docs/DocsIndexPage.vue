@@ -25,8 +25,9 @@ import { useDocHeadings } from '@/composables/useDocHeadings';
 const { setHeadings } = useDocHeadings();
 
 const microscopeComponents = ['Flamegraph', 'Timeseries', 'Guardian', 'Heap dump', 'AI assistant', 'Events'];
-const serverComponents = ['Continuous recording', 'Scheduler', 'gRPC API', 'CLI', 'Agent', 'JIB'];
+const serverComponents = ['Continuous recording', 'Scheduler', 'gRPC API', 'Agent', 'JIB'];
 const perfAnalystComponents = ['Hub-connected', 'AI recommendations', 'Severity grading', 'Patches'];
+const provisionerComponents = ['HOCON config', 'JVM argfile', 'Session layout', 'Workspace events', 'Native binary'];
 
 onMounted(() => {
   setHeadings([]);
@@ -41,7 +42,7 @@ onMounted(() => {
     />
 
     <div class="docs-content">
-      <p class="docs-lede">Jeffrey ships as three products. Pick the one that matches how you use it.</p>
+      <p class="docs-lede">Jeffrey ships as four products. Pick the one that matches how you use it.</p>
 
       <div class="product-grid">
         <DocsProductCard
@@ -72,6 +73,16 @@ onMounted(() => {
           :components="perfAnalystComponents"
           cta-text="Open Performance Analyst docs"
           variant="tertiary"
+        />
+        <DocsProductCard
+          to="/docs/provisioner"
+          title="Jeffrey Provisioner"
+          role="Standalone · Session bootstrap"
+          description="The profiling-session bootstrap tool. Reads a HOCON config to lay out the workspace/project/session tree, register sessions with the Hub, and generate the JVM argfile that starts your app under the profiler."
+          icon="bi bi-terminal"
+          :components="provisionerComponents"
+          cta-text="Open Provisioner docs"
+          variant="quaternary"
         />
       </div>
     </div>

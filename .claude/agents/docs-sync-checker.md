@@ -15,7 +15,7 @@ Audit documentation accuracy by comparing user-visible features against document
    | `jeffrey-microscope/core-microscope` | `jeffrey-pages/src/views/docs/platform/` |
    | `jeffrey-hub/core-hub` | `jeffrey-pages/src/views/docs/platform/` (scheduler) |
    | `jeffrey-microscope/profiles/profile-management` | `jeffrey-pages/src/views/docs/profiles/` |
-   | `jeffrey-cli/` | `jeffrey-pages/src/views/docs/cli/` |
+   | `jeffrey-provisioner/` | `jeffrey-pages/src/views/docs/provisioner/` |
    | Architecture changes | `jeffrey-pages/src/views/docs/architecture/` |
    | Deployment changes | `jeffrey-pages/src/views/docs/deployments/` |
 

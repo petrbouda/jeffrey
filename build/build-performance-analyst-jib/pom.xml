@@ -61,9 +61,9 @@
                 <configuration>
                     <from>
                         <image>${image.from}</image>
-                        <!-- Multi-arch manifest. The bundled native CLI + libasyncProfiler are
-                             arch-suffixed (jeffrey-cli-{amd64,arm64}, libasyncProfiler-{amd64,arm64}.so);
-                             the runtime wrapper and jeffrey-cli pick the matching binary via uname -m
+                        <!-- Multi-arch manifest. The bundled native provisioner + libasyncProfiler are
+                             arch-suffixed (provisioner-{amd64,arm64}, libasyncProfiler-{amd64,arm64}.so);
+                             the runtime wrapper and provisioner pick the matching binary via uname -m
                              / os.arch, so applications profiled via the shared volume can be either arch
                              regardless of which arch the app itself runs on. -->
                         <platforms>
@@ -102,13 +102,13 @@
                                      jeffreyHome / configs remain unset — those are deployment-specific (shared
                                      volume mount, ConfigMap path) and provided by the operator via pod env.
 
-                                     cliPath / profilerPath / agentPath point at the in-image /jeffrey-libs/ bundle
+                                     provisionerPath / profilerPath / agentPath point at the in-image /jeffrey-libs/ bundle
                                      so the app's own self-profiling does not depend on the shared volume
                                      being populated at startup. The {arch} placeholder is expanded at container
                                      start by jeffrey-entrypoint.sh after `uname -m` detects the running platform
-                                     — both arch variants of the CLI binary and async-profiler .so ship in every
+                                     — both arch variants of the provisioner binary and async-profiler .so ship in every
                                      per-platform image. -->
-                                <cliPath>/jeffrey-libs/jeffrey-cli-{arch}</cliPath>
+                                <provisionerPath>/jeffrey-libs/provisioner-{arch}</provisionerPath>
                                 <profilerPath>/jeffrey-libs/libasyncProfiler-{arch}.so</profilerPath>
                                 <agentPath>/jeffrey-libs/jeffrey-agent.jar</agentPath>
                             </configuration>
@@ -117,8 +117,8 @@
                     <!--
                       Bundled accessory artifacts under /jeffrey-libs/. CI stages these files into
                       src/main/jib/jeffrey-libs/ before running jib:build:
-                        - jeffrey-cli.jar
-                        - jeffrey-cli-amd64, jeffrey-cli-arm64 (native GraalVM binaries; need 0755)
+                        - provisioner.jar
+                        - provisioner-amd64, provisioner-arm64 (native GraalVM binaries; need 0755)
                         - jeffrey-agent.jar
                         - libasyncProfiler-amd64.so, libasyncProfiler-arm64.so
                       All four arch variants ship in every per-platform image (~6MB extra) — Jib's
@@ -129,11 +129,11 @@
                     <extraDirectories>
                         <permissions>
                             <permission>
-                                <file>/jeffrey-libs/jeffrey-cli-amd64</file>
+                                <file>/jeffrey-libs/provisioner-amd64</file>
                                 <mode>755</mode>
                             </permission>
                             <permission>
-                                <file>/jeffrey-libs/jeffrey-cli-arm64</file>
+                                <file>/jeffrey-libs/provisioner-arm64</file>
                                 <mode>755</mode>
                             </permission>
                         </permissions>

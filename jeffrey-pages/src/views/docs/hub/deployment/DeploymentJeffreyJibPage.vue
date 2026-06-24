@@ -112,7 +112,7 @@ const moduleClient = `<plugin>
         <a href="https://github.com/GoogleContainerTools/jib" target="_blank" rel="noopener">jib-maven-plugin</a>
         and modifies the image's entrypoint at build time. The result: a Spring Boot image
         that, when launched in a pod with <code>JEFFREY_ENABLED=true</code> and a populated
-        <code>JEFFREY_HOME</code>, automatically runs <code>jeffrey-cli init</code> before
+        <code>JEFFREY_HOME</code>, automatically runs <code>provisioner init</code> before
         the JVM starts and boots with the right <code>-javaagent</code> + async-profiler
         flags. There is no Dockerfile, no shell script, and no agent or profiler binary
         baked into the image.
@@ -141,13 +141,13 @@ const moduleClient = `<plugin>
       </div>
 
       <p>
-        At container start, the wrapper runs <code>jeffrey-cli init</code> — resolved from
-        <code>${JEFFREY_HOME}/libs/current/jeffrey-cli-&lt;arch&gt;</code> on the shared
+        At container start, the wrapper runs <code>provisioner init</code> — resolved from
+        <code>${JEFFREY_HOME}/libs/current/provisioner-&lt;arch&gt;</code> on the shared
         volume populated by Jeffrey Hub's
         <router-link to="/docs/hub/deployment/shared-volume">copy-libs</router-link>
         feature — and then <code>exec</code>s the original JIB command with the
         profiler-agent flags merged in. If the shared-volume root is not configured at
-        runtime (neither <code>JEFFREY_HOME</code> nor <code>JEFFREY_CLI_PATH</code> is
+        runtime (neither <code>JEFFREY_HOME</code> nor <code>JEFFREY_PROVISIONER_PATH</code> is
         set), the wrapper logs a warning and skips init entirely — useful for "build once,
         ship to dev/prod with profiling, ship to CI without".
       </p>
@@ -251,14 +251,14 @@ const moduleClient = `<plugin>
       <h2 id="no-baked-binaries">No Agent or Profiler in the Image</h2>
       <p>
         A deliberate property of the testapp setup: <strong>the application image contains
-        only the entrypoint wrapper</strong>. The CLI binary, agent JAR, and async-profiler
+        only the entrypoint wrapper</strong>. The provisioner binary, agent JAR, and async-profiler
         library are not baked into the image — they are delivered to every monitored pod at
         runtime via the shared <code>jeffrey-pvc</code>, populated by Jeffrey Hub's
         <code>copy-libs</code> feature.
       </p>
 
       <DocsCallout type="tip">
-        <strong>Why bother?</strong> One Jeffrey Hub upgrade publishes a new CLI bundle
+        <strong>Why bother?</strong> One Jeffrey Hub upgrade publishes a new provisioner bundle
         for every monitored pod in the namespace — you never rebuild your application
         image to pick up an agent fix. The trade-off is a runtime dependency on the
         shared volume (and on Jeffrey Hub having finished publishing into it before the

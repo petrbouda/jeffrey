@@ -95,8 +95,8 @@ spring.profiles.include=trace-file-log`;
 const onDiskTree = `/mnt/jeffrey/                                # JEFFREY_HOME (from sharedVolume.mountPath)
 └── libs/
     └── current/                             # symlink → versioned bundle
-        ├── jeffrey-cli-amd64                # per-arch CLI binary
-        ├── jeffrey-cli-aarch64
+        ├── provisioner-amd64                # per-arch provisioner binary
+        ├── provisioner-aarch64
         ├── jeffrey-agent.jar                # JVMTI agent
         └── libasyncProfiler.so              # async-profiler shared library`;
 </script>
@@ -112,15 +112,15 @@ const onDiskTree = `/mnt/jeffrey/                                # JEFFREY_HOME 
       <p>
         Jeffrey Hub and the monitored applications coordinate through a single
         <strong>ReadWriteMany</strong> PersistentVolumeClaim. Jeffrey Hub writes the
-        CLI bundle into <code>${JEFFREY_HOME}/libs/current/</code>; every monitored
+        provisioner bundle into <code>${JEFFREY_HOME}/libs/current/</code>; every monitored
         pod mounts the same PVC and reads the bundle when its
         <router-link to="/docs/hub/deployment/jeffrey-jib">JIB-wrapped entrypoint</router-link>
-        runs <code>jeffrey-cli init</code>.
+        runs <code>provisioner init</code>.
       </p>
 
       <h2 id="why-shared">Why a Shared Volume?</h2>
       <p>
-        The application image deliberately contains <strong>no</strong> CLI binary, agent
+        The application image deliberately contains <strong>no</strong> provisioner binary, agent
         JAR, or profiler library — those are owned by Jeffrey Hub and delivered at
         runtime. Upgrading Jeffrey Hub upgrades the agent / profiler for every
         monitored pod in the namespace; no rebuild of your application image is required.
@@ -247,13 +247,13 @@ const onDiskTree = `/mnt/jeffrey/                                # JEFFREY_HOME 
         <strong>Cleanup gotcha.</strong> Statically-defined hostPath PVs default to
         <code>reclaimPolicy=Retain</code>, so <code>helm uninstall</code> tears down the
         PV resource but leaves the contents on the node (e.g. <code>/tmp/jeffrey-data</code>
-        on OrbStack). The next install would inherit a stale CLI bundle — wipe the host
+        on OrbStack). The next install would inherit a stale provisioner bundle — wipe the host
         directory yourself before re-installing on dev clusters.
       </DocsCallout>
 
       <h2 id="copy-libs">copy-libs Properties</h2>
       <p>
-        Jeffrey Hub's <code>copy-libs</code> feature publishes the CLI bundle into the
+        Jeffrey Hub's <code>copy-libs</code> feature publishes the provisioner bundle into the
         shared volume after the JVM has started. Activate it with three lines in
         <a href="https://github.com/petrbouda/jeffrey-testapp/blob/main/helm/jeffrey-hub/application.properties" target="_blank" rel="noopener">
           <code>helm/jeffrey-hub/application.properties</code></a>:
@@ -297,7 +297,7 @@ const onDiskTree = `/mnt/jeffrey/                                # JEFFREY_HOME 
       />
 
       <p>
-        The wrapped entrypoint resolves <code>jeffrey-cli-&lt;arch&gt;</code> against
+        The wrapped entrypoint resolves <code>provisioner-&lt;arch&gt;</code> against
         <code>uname -m</code> at container start; the testapp Helm charts assume
         <code>amd64</code> on x86_64 nodes and <code>aarch64</code> on ARM64 (no operator
         intervention needed).

@@ -41,8 +41,8 @@ import java.util.Map;
  * <p>The extender installs a shell wrapper at {@code /usr/local/bin/jeffrey-entrypoint} into a new
  * image layer, promotes that wrapper to the image ENTRYPOINT, and moves JIB's auto-derived java
  * command ({@code java -cp @/app/jib-classpath-file <MainClass>}) into CMD. At container start the
- * wrapper runs {@code jeffrey-cli init} (resolved from {@code $JEFFREY_HOME/libs/current/}) and
- * then execs the original command with the CLI-produced argfile prepended.
+ * wrapper runs {@code provisioner init} (resolved from {@code $JEFFREY_HOME/libs/current/}) and
+ * then execs the original command with the provisioner-produced argfile prepended.
  *
  * <p>Non-null string fields on the {@link JeffreyJibConfig} are baked as image-level ENV
  * defaults on the build plan (wrapper reads them at runtime; Kubernetes pod env still wins).
@@ -135,7 +135,7 @@ public final class JeffreyBuildPlanExtender {
         putIfPresent(env, "JEFFREY_HOME", config.getJeffreyHome());
         putIfPresent(env, "JEFFREY_BASE_CONFIG", config.getBaseConfig());
         putIfPresent(env, "JEFFREY_OVERRIDE_CONFIG", config.getOverrideConfig());
-        putIfPresent(env, "JEFFREY_CLI_PATH", config.getCliPath());
+        putIfPresent(env, "JEFFREY_PROVISIONER_PATH", config.getProvisionerPath());
         putIfPresent(env, "JEFFREY_ARG_FILE", config.getArgFile());
         putIfPresent(env, "JEFFREY_PROFILER_PATH", config.getProfilerPath());
         putIfPresent(env, "JEFFREY_AGENT_PATH", config.getAgentPath());
@@ -156,7 +156,7 @@ public final class JeffreyBuildPlanExtender {
      *
      * <p>Recognised keys map one-to-one to the {@link JeffreyJibConfig} setters:
      * {@code enabled}, {@code keepJvmFlags}, {@code jeffreyHome}, {@code baseConfig},
-     * {@code overrideConfig}, {@code cliPath}, {@code argFile}, {@code profilerPath},
+     * {@code overrideConfig}, {@code provisionerPath}, {@code argFile}, {@code profilerPath},
      * {@code agentPath}. Null / empty values are ignored; unknown keys are logged at WARN
      * and otherwise ignored.
      */
@@ -179,7 +179,7 @@ public final class JeffreyBuildPlanExtender {
                 case JeffreyJibConfig.JEFFREY_HOME -> config.setJeffreyHome(value);
                 case JeffreyJibConfig.BASE_CONFIG -> config.setBaseConfig(value);
                 case JeffreyJibConfig.OVERRIDE_CONFIG -> config.setOverrideConfig(value);
-                case JeffreyJibConfig.CLI_PATH -> config.setCliPath(value);
+                case JeffreyJibConfig.PROVISIONER_PATH -> config.setProvisionerPath(value);
                 case JeffreyJibConfig.ARG_FILE -> config.setArgFile(value);
                 case JeffreyJibConfig.PROFILER_PATH -> config.setProfilerPath(value);
                 case JeffreyJibConfig.AGENT_PATH -> config.setAgentPath(value);
