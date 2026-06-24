@@ -27,7 +27,6 @@ const { setHeadings } = useDocHeadings();
 
 const headings = [
   { id: 'what-it-does', text: 'What It Does', level: 2 },
-  { id: 'install', text: 'Install', level: 2 },
   { id: 'how-pairing-works', text: 'How Pairing Works', level: 2 },
   { id: 'features', text: 'Features in Microscope', level: 2 }
 ];
@@ -40,7 +39,7 @@ onMounted(() => {
 <template>
   <article class="docs-article">
     <DocsPageHeader
-      title="Jeffrey Microscope Plugin"
+      title="IntelliJ Plugin"
       icon="bi bi-window-stack"
     />
 
@@ -57,6 +56,12 @@ onMounted(() => {
         </p>
       </section>
 
+      <p>
+        Ready to wire it up? See <router-link to="/docs/intellij-plugin/setup">Setup</router-link>
+        to install the plugin and <router-link to="/docs/intellij-plugin/configuration">Configuration</router-link>
+        for the port range and trusted-project rules.
+      </p>
+
       <h2 id="what-it-does">What It Does</h2>
       <p>
         Once installed and running, the plugin lets Microscope ask the IDE three things:
@@ -65,46 +70,6 @@ onMounted(() => {
         It also exposes an action that opens any <code>.jfr</code> file in your project directly
         in Microscope, without going through the Recordings upload flow.
       </p>
-
-      <h2 id="install">Install</h2>
-
-      <h3>From the JetBrains Marketplace (recommended)</h3>
-      <ol>
-        <li>In IntelliJ: <strong>Settings → Plugins → Marketplace</strong> and search for
-          <strong>Jeffrey Microscope</strong>.</li>
-        <li>Click <strong>Install</strong> and restart the IDE when prompted.</li>
-      </ol>
-      <p>
-        Or open the plugin page directly:
-        <a href="https://plugins.jetbrains.com/plugin/31963-jeffrey-microscope" target="_blank" rel="noopener noreferrer">
-          plugins.jetbrains.com/plugin/31963-jeffrey-microscope
-        </a> and click <strong>Install to IDE</strong>.
-      </p>
-
-      <h3>From source (development)</h3>
-      <ol>
-        <li>Build the plugin from the Jeffrey repo — it's a standalone Gradle project, not part of
-          the Maven reactor:
-          <pre><code>cd jeffrey-intellij-plugin
-./gradlew buildPlugin</code></pre>
-          The output is <code>build/distributions/jeffrey-intellij-plugin-&lt;version&gt;.zip</code>.
-        </li>
-        <li>In IntelliJ: <strong>Settings → Plugins → ⚙ → Install Plugin from Disk…</strong>,
-          select the zip, and restart the IDE.</li>
-      </ol>
-
-      <h3>Verify</h3>
-      <p>
-        Open <strong>Settings → Tools → Jeffrey Microscope Plugin</strong> — this view shows the
-        bound built-in-server port that Microscope's discovery scan will land on, plus the active
-        plugin version.
-      </p>
-
-      <DocsCallout type="info">
-        <strong>Target IDE:</strong> IntelliJ IDEA 2025.1+ (<code>since-build = 251</code>).
-        The plugin runs on the JetBrains Runtime (Java 21) and is unrelated to the Java version
-        you use for the JVM under analysis.
-      </DocsCallout>
 
       <h2 id="how-pairing-works">How Pairing Works</h2>
       <p>
@@ -132,11 +97,10 @@ onMounted(() => {
       </p>
 
       <DocsCallout type="info">
-        <strong>Custom port range.</strong> The default range is 63342&ndash;63362 (IntelliJ's
-        built-in server defaults). Override in <code>application.properties</code> if you need to:
-        <code>jeffrey.microscope.ide.scan.port-start</code> and
-        <code>jeffrey.microscope.ide.scan.port-end</code>. Only trusted projects are exposed by the
-        plugin — untrusted projects never show up in the picker.
+        <strong>Custom port range &amp; trusted projects.</strong> The default scan range is
+        63342&ndash;63362 (IntelliJ's built-in server defaults), and only trusted projects are
+        exposed. Both are covered in
+        <router-link to="/docs/intellij-plugin/configuration">Configuration</router-link>.
       </DocsCallout>
 
       <h2 id="features">Features in Microscope</h2>
@@ -149,7 +113,7 @@ onMounted(() => {
 
       <p>
         Prefer to point Microscope at a different IDE plugin instead? See
-        <router-link to="/docs/microscope/intellij-plugin/jfr-profiler">Java JFR Profiler Plugin</router-link>.
+        <router-link to="/docs/intellij-plugin/jfr-profiler">Java JFR Profiler Plugin</router-link>.
       </p>
     </div>
 

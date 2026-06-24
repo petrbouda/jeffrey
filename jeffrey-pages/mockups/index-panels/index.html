@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jeffrey index — ecosystem panel mockups</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #e2e8f0;
+    background: radial-gradient(900px 500px at 20% 0%, rgba(56,189,248,.12), transparent 60%),
+                radial-gradient(900px 500px at 85% 100%, rgba(168,85,247,.14), transparent 60%), #0a0f1e;
+    min-height: 100vh; padding: 4rem 2rem; }
+  .wrap { max-width: 980px; margin: 0 auto; }
+  h1 { font-size: 2rem; font-weight: 800; color: #fff; letter-spacing: -.02em; margin-bottom: .5rem; }
+  .sub { color: #94a3b8; margin-bottom: 2.4rem; line-height: 1.6; }
+  .list { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.1rem; }
+  a.mk { display: flex; gap: 1rem; align-items: flex-start; text-decoration: none; padding: 1.3rem 1.4rem; border-radius: 14px;
+    background: rgba(255,255,255,.045); border: 1px solid rgba(255,255,255,.1); transition: transform .2s, border-color .2s, background .2s; }
+  a.mk:hover { transform: translateY(-4px); border-color: rgba(56,189,248,.45); background: rgba(255,255,255,.07); }
+  .num { width: 40px; height: 40px; flex-shrink: 0; border-radius: 11px; display: grid; place-items: center; font-weight: 800; color: #fff;
+    background: linear-gradient(135deg, #38bdf8, #6366f1); box-shadow: 0 6px 16px rgba(56,189,248,.4); }
+  .mk h3 { color: #fff; font-size: 1.04rem; font-weight: 700; margin-bottom: .25rem; }
+  .mk p { color: #94a3b8; font-size: .85rem; line-height: 1.45; }
+  .foot { margin-top: 2.4rem; color: #64748b; font-size: .82rem; line-height: 1.6; }
+  code { color: #7dd3fc; background: rgba(255,255,255,.06); padding: .1rem .35rem; border-radius: 5px; font-size: .82em; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Index page — ecosystem panel mockups</h1>
+    <p class="sub">Five design directions for a new panel row below the Microscope + Hub dual hero, surfacing the four sub-projects:
+      <strong>Provisioner</strong>, <strong>IntelliJ Plugin</strong>, <strong>Performance Analyst</strong> (New / Incubating) and <strong>Jeffrey JIB</strong>.
+      Each mockup recreates the dual hero on top so you see the panels in context.</p>
+
+    <div class="list">
+      <a class="mk" href="mockup-1-glass-dark.html">
+        <div class="num">1</div>
+        <div><h3>Glass on dark band</h3><p>Glassmorphism cards on a dark gradient band that continues the hero. Per-card colored glow on hover.</p></div>
+      </a>
+      <a class="mk" href="mockup-2-ecosystem-light.html">
+        <div class="num">2</div>
+        <div><h3>Ecosystem light grid</h3><p>Clean light section with colored top-border cards, category pills, and a "New" corner ribbon.</p></div>
+      </a>
+      <a class="mk" href="mockup-3-feature-strip.html">
+        <div class="num">3</div>
+        <div><h3>Feature strip</h3><p>Tall vertical cards, big gradient icons, animated underline; Performance Analyst card elevated.</p></div>
+      </a>
+      <a class="mk" href="mockup-4-bento.html">
+        <div class="num">4</div>
+        <div><h3>Bento mosaic</h3><p>Bento layout — one large highlighted Performance Analyst tile plus three gradient tiles.</p></div>
+      </a>
+      <a class="mk" href="mockup-5-devtool-ribbons.html">
+        <div class="num">5</div>
+        <div><h3>Dev-tool ribbons</h3><p>Dark developer-tool panels with corner ribbons and monospace command hints (<code>provisioner init</code>, <code>jib:build</code>).</p></div>
+      </a>
+    </div>
+
+    <p class="foot">Standalone HTML previews — not wired into the app. After you pick a direction, the chosen design gets ported into
+      <code>jeffrey-pages/src/views/HomeView.vue</code> using the existing scoped-CSS patterns.</p>
+  </div>
+</body>
+</html>

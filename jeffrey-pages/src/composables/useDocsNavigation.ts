@@ -25,7 +25,7 @@ export interface BreadcrumbItem {
   to?: string
 }
 
-export type Product = 'microscope' | 'hub' | 'perf-analyst' | 'provisioner';
+export type Product = 'microscope' | 'hub' | 'perf-analyst' | 'provisioner' | 'jib' | 'intellij-plugin';
 
 export interface ProductInfo {
   id: Product;
@@ -58,6 +58,18 @@ export const PRODUCTS: Record<Product, ProductInfo> = {
     title: 'Jeffrey Provisioner',
     icon: 'bi-terminal',
     hubPath: '/docs/provisioner'
+  },
+  jib: {
+    id: 'jib',
+    title: 'Jeffrey JIB',
+    icon: 'bi-box-seam',
+    hubPath: '/docs/jib'
+  },
+  'intellij-plugin': {
+    id: 'intellij-plugin',
+    title: 'IntelliJ Plugin',
+    icon: 'bi-window-stack',
+    hubPath: '/docs/intellij-plugin'
   }
 };
 
@@ -67,12 +79,16 @@ export const PRODUCTS: Record<Product, ProductInfo> = {
 const MICROSCOPE_SEGMENTS = new Set(['microscope', 'local', 'events', 'ai']);
 // 'server' is kept alongside 'hub' so a direct hit on a legacy /docs/server/* URL still
 // resolves to the Hub sidebar in the brief moment before the router redirects to /docs/hub/*.
-const HUB_SEGMENTS = new Set(['hub', 'server', 'agent', 'jib']);
+const HUB_SEGMENTS = new Set(['hub', 'server', 'agent']);
 // Performance Analyst (incubating) owns a single top-level segment.
 const PERF_ANALYST_SEGMENTS = new Set(['perf-analyst']);
 // The Provisioner is its own product. 'cli' is kept so a direct hit on a legacy
 // /docs/cli/* URL still resolves to the Provisioner sidebar before the router redirects.
 const PROVISIONER_SEGMENTS = new Set(['provisioner', 'cli']);
+// Jeffrey JIB is its own product (previously a single page under Hub).
+const JIB_SEGMENTS = new Set(['jib']);
+// The IntelliJ Plugin is its own product (previously a group under Microscope).
+const INTELLIJ_PLUGIN_SEGMENTS = new Set(['intellij-plugin']);
 
 export const microscopeNavigation: DocSection[] = [
   // Top-level single-page entries — promoted out of the "Jeffrey Microscope" group
@@ -110,13 +126,11 @@ export const microscopeNavigation: DocSection[] = [
     ]
   },
   {
+    // The IntelliJ Plugin has its own top-level documentation section; Microscope keeps just a link.
     title: 'IntelliJ Plugin',
-    path: '_microscope-intellij-plugin',
+    path: '_microscope-intellij-plugin-link',
     icon: 'bi-window-stack',
-    children: [
-      { title: 'Jeffrey Microscope Plugin', to: '/docs/microscope/intellij-plugin/jeffrey-microscope' },
-      { title: 'Java JFR Profiler Plugin', to: '/docs/microscope/intellij-plugin/jfr-profiler' }
-    ]
+    children: [{ title: 'IntelliJ Plugin docs', to: '/docs/intellij-plugin' }]
   },
   {
     title: 'Server Integration',
@@ -234,12 +248,11 @@ export const hubNavigation: DocSection[] = [
     ]
   },
   {
+    // Jeffrey JIB has its own top-level documentation section; Hub keeps just a link.
     title: 'Jeffrey JIB',
-    path: 'jib',
+    path: '_hub-jib-link',
     icon: 'bi-box-seam',
-    children: [
-      { title: 'Overview', path: 'overview' }
-    ]
+    children: [{ title: 'Jeffrey JIB docs', to: '/docs/jib' }]
   }
 ];
 
@@ -306,8 +319,67 @@ export const provisionerNavigation: DocSection[] = [
   }
 ];
 
+export const jibNavigation: DocSection[] = [
+  // Standalone product section for Jeffrey JIB. Overview is promoted to the root of the
+  // sidebar (synthetic `_` path); the remaining pages follow as single entries.
+  {
+    title: 'Overview',
+    path: '_jib-overview',
+    icon: 'bi-info-circle',
+    children: [{ title: 'Overview', to: '/docs/jib' }]
+  },
+  {
+    title: 'Configuration',
+    path: '_jib-configuration',
+    icon: 'bi-gear',
+    children: [{ title: 'Configuration', to: '/docs/jib/configuration' }]
+  },
+  {
+    title: 'Build Setup',
+    path: '_jib-setup',
+    icon: 'bi-hammer',
+    children: [{ title: 'Build Setup', to: '/docs/jib/setup' }]
+  },
+  {
+    // Cross-link into the Hub deployment example that wires JIB into a cluster.
+    title: 'Deployment',
+    path: '_jib-deployment',
+    icon: 'bi-cloud-upload',
+    children: [{ title: 'Deploying with the Hub', to: '/docs/hub/deployment/jeffrey-jib' }]
+  }
+];
+
+export const intellijPluginNavigation: DocSection[] = [
+  // Standalone product section for the IntelliJ Plugin. Overview is promoted to the root of the
+  // sidebar (synthetic `_` path); the remaining pages follow as single entries.
+  {
+    title: 'Overview',
+    path: '_intellij-plugin-overview',
+    icon: 'bi-info-circle',
+    children: [{ title: 'Overview', to: '/docs/intellij-plugin' }]
+  },
+  {
+    title: 'Configuration',
+    path: '_intellij-plugin-configuration',
+    icon: 'bi-gear',
+    children: [{ title: 'Configuration', to: '/docs/intellij-plugin/configuration' }]
+  },
+  {
+    title: 'Setup',
+    path: '_intellij-plugin-setup',
+    icon: 'bi-download',
+    children: [{ title: 'Setup', to: '/docs/intellij-plugin/setup' }]
+  },
+  {
+    title: 'Java JFR Profiler Plugin',
+    path: '_intellij-plugin-jfr-profiler',
+    icon: 'bi-window-stack',
+    children: [{ title: 'Java JFR Profiler Plugin', to: '/docs/intellij-plugin/jfr-profiler' }]
+  }
+];
+
 // Union — used by global helpers like getAllDocs/search and as a back-compat export.
-export const docsNavigation: DocSection[] = [...microscopeNavigation, ...hubNavigation, ...perfAnalystNavigation, ...provisionerNavigation];
+export const docsNavigation: DocSection[] = [...microscopeNavigation, ...hubNavigation, ...perfAnalystNavigation, ...provisionerNavigation, ...jibNavigation, ...intellijPluginNavigation];
 
 export function getProductForPath(routePath: string): Product | null {
   const cleaned = routePath.replace(/^\/docs\/?/, '');
@@ -317,6 +389,8 @@ export function getProductForPath(routePath: string): Product | null {
   if (HUB_SEGMENTS.has(first)) return 'hub';
   if (PERF_ANALYST_SEGMENTS.has(first)) return 'perf-analyst';
   if (PROVISIONER_SEGMENTS.has(first)) return 'provisioner';
+  if (JIB_SEGMENTS.has(first)) return 'jib';
+  if (INTELLIJ_PLUGIN_SEGMENTS.has(first)) return 'intellij-plugin';
   return null;
 }
 
@@ -329,6 +403,12 @@ export function navigationForProduct(product: Product): DocSection[] {
   }
   if (product === 'provisioner') {
     return provisionerNavigation;
+  }
+  if (product === 'jib') {
+    return jibNavigation;
+  }
+  if (product === 'intellij-plugin') {
+    return intellijPluginNavigation;
   }
   return microscopeNavigation;
 }
