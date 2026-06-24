@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mockup 2 — Ecosystem light grid</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+<style>
+  :root {
+    --ms: #38bdf8; --ms-d: #2563eb; --ms-l: #7dd3fc;
+    --hub: #a855f7; --hub-d: #7c3aed; --hub-l: #d8b4fe;
+    --prov: #f59e0b; --ide: #fb923c; --pa: #10b981; --jib: #6366f1;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #0f172a; background: #f8fafc; }
+
+  /* ===== DUAL HERO ===== */
+  .dual-hero { position: relative; display: grid; grid-template-columns: 1fr 1fr; min-height: 460px; overflow: hidden; }
+  .hero-half { position: relative; padding: 3.4rem 3rem; display: flex; flex-direction: column; justify-content: center; }
+  .hero-microscope { background: linear-gradient(135deg, #061528 0%, #0e2a4d 50%, #1e3a8a 100%); }
+  .hero-server { background: linear-gradient(135deg, #1a0b2e 0%, #2d1657 50%, #4c1d95 100%); }
+  .bg-grid { position: absolute; inset: 0; background-image:
+      linear-gradient(rgba(255,255,255,.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px);
+    background-size: 60px 60px; pointer-events: none; }
+  .eyebrow { display: inline-flex; align-items: center; gap: .6rem; padding: .45rem .85rem; border-radius: 999px; width: fit-content; margin-bottom: 1.4rem; }
+  .eyebrow--ms { background: rgba(56,189,248,.12); border: 1px solid rgba(56,189,248,.45); }
+  .eyebrow--hub { background: rgba(168,85,247,.12); border: 1px solid rgba(168,85,247,.45); }
+  .eyebrow i { width: 30px; height: 30px; display: grid; place-items: center; border-radius: 9px; color: #fff; font-size: .95rem; }
+  .eyebrow--ms i { background: linear-gradient(135deg, var(--ms), var(--ms-d)); }
+  .eyebrow--hub i { background: linear-gradient(135deg, var(--hub), var(--hub-d)); }
+  .eyebrow b { color: #fff; font-size: .95rem; }
+  .eyebrow span { font-size: .8rem; }
+  .eyebrow--ms span { color: var(--ms-l); }
+  .eyebrow--hub span { color: var(--hub-l); }
+  .hero-half h1 { color: #fff; font-size: 2.4rem; font-weight: 800; line-height: 1.07; letter-spacing: -.02em; margin-bottom: 1rem; }
+  .accent-ms { background: linear-gradient(135deg, #7dd3fc, #38bdf8 50%, #6366f1); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+  .accent-hub { background: linear-gradient(135deg, #c084fc, #f0abfc 50%, #fb7185); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+  .hero-half p { color: rgba(255,255,255,.72); font-size: 1rem; line-height: 1.55; max-width: 30rem; }
+  .seam { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); z-index: 3; width: 46px; height: 46px; border-radius: 50%;
+    background: rgba(10,15,30,.85); border: 1px solid rgba(255,255,255,.18); display: grid; place-items: center; color: #fff; }
+
+  /* ===== ECOSYSTEM (light) ===== */
+  .ecosystem { padding: 4.8rem 2rem 5.4rem; background: linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%); }
+  .wrap { max-width: 1240px; margin: 0 auto; }
+  .eco-head { text-align: center; margin-bottom: 3rem; }
+  .eco-eyebrow { display: inline-flex; gap: .5rem; align-items: center; color: #6366f1; font-size: .8rem; font-weight: 700; text-transform: uppercase; letter-spacing: .12em; padding: .4rem .9rem; background: #fff; border: 1px solid #e2e8f0; border-radius: 999px; margin-bottom: 1rem; box-shadow: 0 4px 14px rgba(15,23,42,.05); }
+  .eco-head h2 { color: #0f172a; font-size: 2rem; font-weight: 800; letter-spacing: -.02em; }
+  .eco-head p { color: #475569; margin-top: .6rem; font-size: 1.05rem; }
+
+  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.4rem; }
+  .card {
+    position: relative; background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 1.7rem 1.5rem;
+    border-top: 4px solid var(--c); overflow: hidden; transition: transform .25s, box-shadow .25s;
+    box-shadow: 0 6px 18px rgba(15,23,42,.06); display: flex; flex-direction: column;
+  }
+  .card:hover { transform: translateY(-6px); box-shadow: 0 18px 38px rgba(15,23,42,.12); }
+  .card-icon { width: 48px; height: 48px; border-radius: 12px; display: grid; place-items: center; font-size: 1.35rem; color: #fff; margin-bottom: 1.1rem;
+    background: linear-gradient(135deg, var(--c), color-mix(in srgb, var(--c) 60%, #000)); box-shadow: 0 6px 16px color-mix(in srgb, var(--c) 40%, transparent); }
+  .card h3 { font-size: 1.12rem; font-weight: 700; margin-bottom: .55rem; color: #0f172a; }
+  .card p { color: #475569; font-size: .9rem; line-height: 1.55; margin-bottom: 1.1rem; flex: 1; }
+  .pill { display: inline-flex; align-items: center; gap: .35rem; font-size: .72rem; font-weight: 600; color: var(--c);
+    background: color-mix(in srgb, var(--c) 12%, #fff); border: 1px solid color-mix(in srgb, var(--c) 30%, #fff); padding: .28rem .65rem; border-radius: 999px; width: fit-content; margin-bottom: 1rem; }
+  .learn { display: inline-flex; align-items: center; gap: .4rem; color: var(--c); font-size: .85rem; font-weight: 600; text-decoration: none; }
+  .card:hover .learn i { transform: translateX(4px); }
+  .learn i { transition: transform .2s; }
+
+  .ribbon { position: absolute; top: 14px; right: -34px; transform: rotate(45deg); background: linear-gradient(135deg, #34d399, #10b981);
+    color: #052e1a; font-size: .64rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; padding: .3rem 2.6rem; box-shadow: 0 4px 10px rgba(16,185,129,.4); }
+
+  @media (max-width: 1000px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 760px) { .dual-hero { grid-template-columns: 1fr; } .grid { grid-template-columns: 1fr; } .hero-half { padding: 2.4rem 1.6rem; } }
+</style>
+</head>
+<body>
+
+  <!-- DUAL HERO -->
+  <section class="dual-hero">
+    <div class="hero-half hero-microscope">
+      <div class="bg-grid"></div>
+      <div class="eyebrow eyebrow--ms"><i class="bi bi-search-heart-fill"></i><b>Jeffrey Microscope</b><span>at the desk</span></div>
+      <h1>Analyze recordings<br><span class="accent-ms">on your desk.</span></h1>
+      <p>A deep analyzer for JFR recordings, heap dumps and logs. Upload a file, or connect to a Jeffrey Hub and pull artifacts directly.</p>
+    </div>
+    <div class="hero-half hero-server">
+      <div class="bg-grid"></div>
+      <div class="eyebrow eyebrow--hub"><i class="bi bi-cloud-fill"></i><b>Jeffrey Hub</b><span>in production</span></div>
+      <h1>Collect runtime data<br><span class="accent-hub">from running services.</span></h1>
+      <p>A containerised collector for Kubernetes. Captures JFR recordings, artifacts and session data — and serves it over gRPC.</p>
+    </div>
+    <div class="seam"><i class="bi bi-arrow-left-right"></i></div>
+  </section>
+
+  <!-- ECOSYSTEM PANELS -->
+  <section class="ecosystem">
+    <div class="wrap">
+      <div class="eco-head">
+        <span class="eco-eyebrow"><i class="bi bi-diagram-3"></i> The Jeffrey ecosystem</span>
+        <h2>Built around the two flagships</h2>
+        <p>Four focused tools that get profiling on, into your IDE, and acted upon.</p>
+      </div>
+      <div class="grid">
+
+        <article class="card" style="--c: var(--prov);">
+          <div class="card-icon"><i class="bi bi-sliders"></i></div>
+          <h3>Provisioner</h3>
+          <span class="pill"><i class="bi bi-terminal"></i> CLI · Stable</span>
+          <p>Turn on profiling without touching your app. One config file → the right JVM flags injected into any container. Zero code changes.</p>
+          <a class="learn" href="#">Read the docs <i class="bi bi-arrow-right"></i></a>
+        </article>
+
+        <article class="card" style="--c: var(--jib);">
+          <div class="card-icon"><i class="bi bi-box-seam"></i></div>
+          <h3>Jeffrey JIB</h3>
+          <span class="pill"><i class="bi bi-hammer"></i> Build-time · Maven/Gradle</span>
+          <p>Profiling baked into your image at build time. A Jib extension wraps your entrypoint — no Kubernetes YAML to override.</p>
+          <a class="learn" href="#">Read the docs <i class="bi bi-arrow-right"></i></a>
+        </article>
+
+        <article class="card" style="--c: var(--ide);">
+          <div class="card-icon"><i class="bi bi-window-stack"></i></div>
+          <h3>IntelliJ Plugin</h3>
+          <span class="pill"><i class="bi bi-puzzle"></i> IDE · JetBrains</span>
+          <p>From a hot frame to the exact source line. Click any frame in Microscope and land on the method in your open IntelliJ — Java &amp; Kotlin.</p>
+          <a class="learn" href="#">Read the docs <i class="bi bi-arrow-right"></i></a>
+        </article>
+
+        <article class="card" style="--c: var(--pa);">
+          <div class="ribbon">New</div>
+          <div class="card-icon"><i class="bi bi-robot"></i></div>
+          <h3>Performance Analyst</h3>
+          <span class="pill"><i class="bi bi-stars"></i> AI · Incubating</span>
+          <p>AI that reads your recordings and writes the fix — graded, source-level recommendations and ready-to-apply patches.</p>
+          <a class="learn" href="#">Read the docs <i class="bi bi-arrow-right"></i></a>
+        </article>
+
+      </div>
+    </div>
+  </section>
+
+</body>
+</html>

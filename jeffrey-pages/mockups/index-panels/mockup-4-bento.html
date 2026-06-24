@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mockup 4 — Bento mosaic</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+<style>
+  :root {
+    --ms: #38bdf8; --ms-d: #2563eb; --ms-l: #7dd3fc;
+    --hub: #a855f7; --hub-d: #7c3aed; --hub-l: #d8b4fe;
+    --prov: #f59e0b; --ide: #fb923c; --pa: #10b981; --jib: #6366f1;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #0f172a; background: #0a0f1e; }
+
+  /* ===== DUAL HERO ===== */
+  .dual-hero { position: relative; display: grid; grid-template-columns: 1fr 1fr; min-height: 460px; overflow: hidden; }
+  .hero-half { position: relative; padding: 3.4rem 3rem; display: flex; flex-direction: column; justify-content: center; }
+  .hero-microscope { background: linear-gradient(135deg, #061528 0%, #0e2a4d 50%, #1e3a8a 100%); }
+  .hero-server { background: linear-gradient(135deg, #1a0b2e 0%, #2d1657 50%, #4c1d95 100%); }
+  .bg-grid { position: absolute; inset: 0; background-image:
+      linear-gradient(rgba(255,255,255,.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px);
+    background-size: 60px 60px; pointer-events: none; }
+  .eyebrow { display: inline-flex; align-items: center; gap: .6rem; padding: .45rem .85rem; border-radius: 999px; width: fit-content; margin-bottom: 1.4rem; }
+  .eyebrow--ms { background: rgba(56,189,248,.12); border: 1px solid rgba(56,189,248,.45); }
+  .eyebrow--hub { background: rgba(168,85,247,.12); border: 1px solid rgba(168,85,247,.45); }
+  .eyebrow i { width: 30px; height: 30px; display: grid; place-items: center; border-radius: 9px; color: #fff; font-size: .95rem; }
+  .eyebrow--ms i { background: linear-gradient(135deg, var(--ms), var(--ms-d)); }
+  .eyebrow--hub i { background: linear-gradient(135deg, var(--hub), var(--hub-d)); }
+  .eyebrow b { color: #fff; font-size: .95rem; }
+  .eyebrow span { font-size: .8rem; }
+  .eyebrow--ms span { color: var(--ms-l); }
+  .eyebrow--hub span { color: var(--hub-l); }
+  .hero-half h1 { color: #fff; font-size: 2.4rem; font-weight: 800; line-height: 1.07; letter-spacing: -.02em; margin-bottom: 1rem; }
+  .accent-ms { background: linear-gradient(135deg, #7dd3fc, #38bdf8 50%, #6366f1); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+  .accent-hub { background: linear-gradient(135deg, #c084fc, #f0abfc 50%, #fb7185); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+  .hero-half p { color: rgba(255,255,255,.72); font-size: 1rem; line-height: 1.55; max-width: 30rem; }
+  .seam { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); z-index: 3; width: 46px; height: 46px; border-radius: 50%;
+    background: rgba(10,15,30,.85); border: 1px solid rgba(255,255,255,.18); display: grid; place-items: center; color: #fff; }
+
+  /* ===== BENTO ===== */
+  .ecosystem { padding: 4.6rem 2rem 5.4rem; background: radial-gradient(1000px 500px at 50% -10%, rgba(99,102,241,.14), transparent 60%), #0a0f1e; }
+  .wrap { max-width: 1240px; margin: 0 auto; }
+  .eco-head { text-align: center; margin-bottom: 2.6rem; }
+  .eco-eyebrow { display: inline-flex; gap: .5rem; align-items: center; color: #94a3b8; font-size: .8rem; font-weight: 700; text-transform: uppercase; letter-spacing: .12em; padding: .4rem .9rem; border: 1px solid rgba(255,255,255,.12); border-radius: 999px; margin-bottom: 1rem; }
+  .eco-head h2 { color: #fff; font-size: 2rem; font-weight: 800; letter-spacing: -.02em; }
+  .eco-head p { color: #94a3b8; margin-top: .6rem; font-size: 1.02rem; }
+
+  .bento { display: grid; grid-template-columns: 1fr 1fr 1.6fr; grid-template-rows: auto auto; gap: 1.2rem; }
+  .tile {
+    position: relative; border-radius: 18px; padding: 1.7rem; overflow: hidden; text-decoration: none; display: flex; flex-direction: column;
+    border: 1px solid color-mix(in srgb, var(--c) 30%, transparent); background:
+      radial-gradient(420px 200px at 0% 0%, color-mix(in srgb, var(--c) 24%, transparent), transparent 70%),
+      linear-gradient(160deg, rgba(255,255,255,.05), rgba(255,255,255,.015));
+    transition: transform .25s, box-shadow .25s, border-color .25s;
+  }
+  .tile:hover { transform: translateY(-5px); border-color: color-mix(in srgb, var(--c) 55%, transparent); box-shadow: 0 18px 42px rgba(0,0,0,.45); }
+  .tile-icon { width: 52px; height: 52px; border-radius: 14px; display: grid; place-items: center; font-size: 1.5rem; color: #fff; margin-bottom: 1rem;
+    background: linear-gradient(135deg, var(--c), color-mix(in srgb, var(--c) 55%, #000)); box-shadow: 0 8px 22px color-mix(in srgb, var(--c) 45%, transparent); }
+  .tile h3 { color: #fff; font-size: 1.15rem; font-weight: 800; margin-bottom: .5rem; display: flex; align-items: center; gap: .6rem; }
+  .tile p { color: #b6c2d4; font-size: .9rem; line-height: 1.55; flex: 1; }
+  .tile .tag { margin-top: 1.1rem; display: inline-flex; align-items: center; gap: .35rem; font-size: .72rem; font-weight: 600; color: var(--c);
+    background: color-mix(in srgb, var(--c) 14%, transparent); border: 1px solid color-mix(in srgb, var(--c) 35%, transparent); padding: .25rem .6rem; border-radius: 999px; width: fit-content; }
+
+  /* feature tile sits on the right, spanning both rows */
+  .tile.feature { grid-column: 3; grid-row: 1 / span 2; }
+  .tile.wide { grid-column: span 2; }
+  .tile.feature .tile-icon { width: 70px; height: 70px; font-size: 2rem; border-radius: 18px; }
+  .tile.feature h3 { font-size: 1.6rem; }
+  .tile.feature p { font-size: 1rem; max-width: 30rem; }
+  .new-badge { font-size: .64rem; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; color: #052e1a;
+    background: linear-gradient(135deg, #34d399, #10b981); padding: .22rem .6rem; border-radius: 999px; box-shadow: 0 0 0 0 rgba(16,185,129,.5); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(16,185,129,.5);} 50% { box-shadow: 0 0 0 7px rgba(16,185,129,0);} }
+  .go { margin-top: 1.4rem; display: inline-flex; align-items: center; gap: .4rem; color: var(--c); font-size: .88rem; font-weight: 700; }
+  .tile:hover .go i { transform: translateX(4px); }
+  .go i { transition: transform .2s; }
+
+  @media (max-width: 1000px) { .bento { grid-template-columns: 1fr 1fr; } .tile.feature { grid-row: auto; grid-column: span 2; } }
+  @media (max-width: 760px) { .dual-hero { grid-template-columns: 1fr; } .bento { grid-template-columns: 1fr; } .tile.feature, .tile.wide { grid-column: auto; } .hero-half { padding: 2.4rem 1.6rem; } }
+</style>
+</head>
+<body>
+
+  <!-- DUAL HERO -->
+  <section class="dual-hero">
+    <div class="hero-half hero-microscope">
+      <div class="bg-grid"></div>
+      <div class="eyebrow eyebrow--ms"><i class="bi bi-search-heart-fill"></i><b>Jeffrey Microscope</b><span>at the desk</span></div>
+      <h1>Analyze recordings<br><span class="accent-ms">on your desk.</span></h1>
+      <p>A deep analyzer for JFR recordings, heap dumps and logs. Upload a file, or connect to a Jeffrey Hub and pull artifacts directly.</p>
+    </div>
+    <div class="hero-half hero-server">
+      <div class="bg-grid"></div>
+      <div class="eyebrow eyebrow--hub"><i class="bi bi-cloud-fill"></i><b>Jeffrey Hub</b><span>in production</span></div>
+      <h1>Collect runtime data<br><span class="accent-hub">from running services.</span></h1>
+      <p>A containerised collector for Kubernetes. Captures JFR recordings, artifacts and session data — and serves it over gRPC.</p>
+    </div>
+    <div class="seam"><i class="bi bi-arrow-left-right"></i></div>
+  </section>
+
+  <!-- BENTO -->
+  <section class="ecosystem">
+    <div class="wrap">
+      <div class="eco-head">
+        <span class="eco-eyebrow"><i class="bi bi-grid-1x2"></i> The Jeffrey ecosystem</span>
+        <h2>More than the two flagships</h2>
+        <p>A growing family of tools — with AI-assisted analysis leading the way.</p>
+      </div>
+
+      <div class="bento">
+
+        <a class="tile" href="#" style="--c: var(--prov);">
+          <div class="tile-icon"><i class="bi bi-sliders"></i></div>
+          <h3>Provisioner</h3>
+          <p>Turn on profiling without touching your app. One config file → the right JVM flags in any container.</p>
+          <span class="go">Explore <i class="bi bi-arrow-right"></i></span>
+        </a>
+
+        <a class="tile" href="#" style="--c: var(--jib);">
+          <div class="tile-icon"><i class="bi bi-box-seam"></i></div>
+          <h3>Jeffrey JIB</h3>
+          <p>Profiling baked into your image at build time. A Jib extension wraps your container entrypoint — no Kubernetes YAML to override.</p>
+          <span class="go">Explore <i class="bi bi-arrow-right"></i></span>
+        </a>
+
+        <a class="tile wide" href="#" style="--c: var(--ide);">
+          <div class="tile-icon"><i class="bi bi-window-stack"></i></div>
+          <h3>IntelliJ Plugin</h3>
+          <p>From a hot flame-graph frame to the exact source line in your open IntelliJ — Java &amp; Kotlin, with graceful line → method → class fallback.</p>
+          <span class="go">Explore <i class="bi bi-arrow-right"></i></span>
+        </a>
+
+        <a class="tile feature" href="#" style="--c: var(--pa);">
+          <div class="tile-icon"><i class="bi bi-robot"></i></div>
+          <h3>Performance Analyst <span class="new-badge">New · Incubating</span></h3>
+          <p>AI that reads your recordings and writes the fix. It turns the JFR data your Hub already collects into graded, source-level performance recommendations — and ready-to-apply patches.</p>
+          <span class="tag"><i class="bi bi-stars"></i> AI · Coming soon</span>
+          <span class="go">Read the documentation <i class="bi bi-arrow-right"></i></span>
+        </a>
+
+      </div>
+    </div>
+  </section>
+
+</body>
+</html>
