@@ -1,0 +1,39 @@
+name: Build Native Provisioner
+
+on:
+  workflow_call:
+
+jobs:
+  build-provisioner-native:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            arch: amd64
+          - os: ubuntu-24.04-arm
+            arch: arm64
+
+    steps:
+    - uses: actions/checkout@v6
+
+    - name: Setup GraalVM
+      uses: graalvm/setup-graalvm@v1
+      with:
+        java-version: '25'
+        distribution: 'graalvm-community'
+
+    - name: Extract version
+      id: version
+      run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+    - name: Build native provisioner
+      env:
+        JEFFREY_TAG_VERSION: ${{ steps.version.outputs.VERSION }}
+      run: mvn -e -pl build/build-provisioner-native -am -Pnative package -DskipTests
+
+    - name: Upload native provisioner
+      uses: actions/upload-artifact@v7
+      with:
+        name: provisioner-${{ matrix.arch }}
+        path: ./build/build-provisioner-native/target/provisioner

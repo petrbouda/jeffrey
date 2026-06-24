@@ -44,11 +44,11 @@ jobs:
         name: jeffrey-performance-analyst-jar
         path: ./build/build-performance-analyst/target/jeffrey-performance-analyst.jar
 
-    - name: Upload jeffrey-cli.jar
+    - name: Upload provisioner.jar
       uses: actions/upload-artifact@v7
       with:
-        name: jeffrey-cli-jar
-        path: ./build/build-cli/target/jeffrey-cli.jar
+        name: provisioner-jar
+        path: ./build/build-provisioner/target/provisioner.jar
 
     - name: Upload jeffrey-agent.jar
       uses: actions/upload-artifact@v7
@@ -56,8 +56,8 @@ jobs:
         name: jeffrey-agent-jar
         path: ./build/build-agent/target/jeffrey-agent.jar
 
-  cli-native:
-    uses: ./.github/workflows/release-cli.yml
+  provisioner-native:
+    uses: ./.github/workflows/release-provisioner.yml
 
   docker-microscope:
     needs: [build]
@@ -65,17 +65,17 @@ jobs:
     secrets: inherit
 
   docker-hub:
-    needs: [build, cli-native]
+    needs: [build, provisioner-native]
     uses: ./.github/workflows/release-hub.yml
     secrets: inherit
 
   docker-performance-analyst:
-    needs: [build, cli-native]
+    needs: [build, provisioner-native]
     uses: ./.github/workflows/release-performance-analyst.yml
     secrets: inherit
 
   create-release:
-    needs: [docker-microscope, docker-hub, docker-performance-analyst, cli-native]
+    needs: [docker-microscope, docker-hub, docker-performance-analyst, provisioner-native]
     runs-on: ubuntu-latest
     permissions: write-all
 
@@ -101,10 +101,10 @@ jobs:
         name: jeffrey-performance-analyst-jar
         path: ./artifacts
 
-    - name: Download jeffrey-cli.jar
+    - name: Download provisioner.jar
       uses: actions/download-artifact@v8
       with:
-        name: jeffrey-cli-jar
+        name: provisioner-jar
         path: ./artifacts
 
     - name: Download jeffrey-agent.jar
@@ -113,22 +113,22 @@ jobs:
         name: jeffrey-agent-jar
         path: ./artifacts
 
-    - name: Download native CLI (amd64)
+    - name: Download native provisioner (amd64)
       uses: actions/download-artifact@v8
       with:
-        name: jeffrey-cli-amd64
+        name: provisioner-amd64
         path: ./artifacts/native-amd64
 
-    - name: Download native CLI (arm64)
+    - name: Download native provisioner (arm64)
       uses: actions/download-artifact@v8
       with:
-        name: jeffrey-cli-arm64
+        name: provisioner-arm64
         path: ./artifacts/native-arm64
 
     - name: Prepare release assets
       run: |
-        mv ./artifacts/native-amd64/jeffrey-cli ./artifacts/jeffrey-cli-amd64
-        mv ./artifacts/native-arm64/jeffrey-cli ./artifacts/jeffrey-cli-arm64
+        mv ./artifacts/native-amd64/provisioner ./artifacts/provisioner-amd64
+        mv ./artifacts/native-arm64/provisioner ./artifacts/provisioner-arm64
         rm -rf ./artifacts/native-amd64 ./artifacts/native-arm64
 
     - name: Extract version

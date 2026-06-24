@@ -168,7 +168,7 @@ onMounted(() => {
                   <div class="arch-cli-app-row">
                     <div class="arch-cli">
                       <i class="bi bi-terminal"></i>
-                      <span>Jeffrey CLI</span>
+                      <span>Jeffrey Provisioner</span>
                     </div>
                     <div class="arch-starts-arrow">
                       <span>runs before</span>

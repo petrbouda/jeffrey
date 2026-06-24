@@ -1,0 +1,365 @@
+<!--
+  - Jeffrey
+  - Copyright (C) 2025 Petr Bouda
+  -
+  - This program is free software: you can redistribute it and/or modify
+  - it under the terms of the GNU Affero General Public License as published by
+  - the Free Software Foundation, either version 3 of the License, or
+  - (at your option) any later version.
+  -
+  - This program is distributed in the hope that it will be useful,
+  - but WITHOUT ANY WARRANTY; without even the implied warranty of
+  - MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  - GNU Affero General Public License for more details.
+  -
+  - You should have received a copy of the GNU Affero General Public License
+  - along with this program.  If not, see <http://www.gnu.org/licenses/>.
+-->
+
+<script setup lang="ts">
+import { onMounted } from 'vue';
+import DocsCodeBlock from '@/components/docs/DocsCodeBlock.vue';
+import DocsCallout from '@/components/docs/DocsCallout.vue';
+import DocsNavFooter from '@/components/docs/DocsNavFooter.vue';
+import DocsPageHeader from '@/components/docs/DocsPageHeader.vue';
+import { useDocHeadings } from '@/composables/useDocHeadings';
+
+const { setHeadings } = useDocHeadings();
+
+const headings = [
+  { id: 'config-file', text: 'Configuration File', level: 2 },
+  { id: 'configuration-options', text: 'Configuration Options', level: 2 },
+  { id: 'features', text: 'Features', level: 2 }
+];
+
+onMounted(() => {
+  setHeadings(headings);
+});
+
+const minimalConfig = `jeffrey-home = "/opt/jeffrey"
+project {
+    workspace-id = "production"
+    name = "my-service"
+}`;
+
+const fullConfig = `jeffrey-home = "/opt/jeffrey"
+profiler-path = "/opt/async-profiler/libasyncProfiler.so"
+agent-path = "/opt/jeffrey/libs/current/jeffrey-agent.jar"
+arg-file = "/tmp/jvm.args"
+project {
+    workspace-id = "production"
+    name = "my-service"
+    label = "My Service"
+}
+attributes { cluster = "blue", namespace = "production" }
+
+debug-non-safepoints { enabled = true }
+perf-counters { enabled = true }
+heap-dump { enabled = true, type = "crash" }
+jvm-logging {
+  enabled = true
+  command = "jfr*=trace:file=<<JEFFREY_CURRENT_SESSION>>/jfr-jvm.log::filecount=3,filesize=5m"
+}
+messaging { enabled = true }
+alerting { enabled = true }
+streaming { max-age = "2d" }
+heartbeat { enabled = true }
+jdk-java-options { enabled = true }
+additional-jvm-options = "-Xmx2g -Xms2g -Djeffrey.logging.trace-file.path=<<JEFFREY_CURRENT_SESSION>>/jeffrey-app.log"`;
+</script>
+
+<template>
+  <article class="docs-article">
+      <DocsPageHeader
+        title="Configuration"
+        icon="bi bi-gear"
+      />
+
+      <div class="docs-content">
+        <p>Jeffrey Provisioner uses <strong>HOCON</strong> (Human-Optimized Config Object Notation) for configuration. HOCON is a superset of JSON with more readable syntax.</p>
+
+        <h2 id="config-file">Configuration File</h2>
+
+        <h3>Minimal Configuration</h3>
+        <p>The minimum required settings to start profiling:</p>
+        <DocsCodeBlock
+          language="hocon"
+          :code="minimalConfig"
+        />
+
+        <h3>Full Configuration</h3>
+        <p>A complete configuration with all features enabled:</p>
+        <DocsCodeBlock
+          language="hocon"
+          :code="fullConfig"
+        />
+
+        <DocsCallout type="tip">
+          <strong>Environment variables:</strong> HOCON supports environment variable substitution. Use <code>${VAR}</code> for required variables or <code>${?VAR}</code> for optional ones.
+        </DocsCallout>
+
+        <h2 id="configuration-options">Configuration Options</h2>
+
+        <p>Several path-style settings accept an environment-variable override when the HOCON entry is left blank — useful when the value is baked into a container image (see <router-link to="/docs/jib/overview">Jeffrey JIB</router-link>) or supplied by the orchestrator at runtime. Resolution order is always <strong>HOCON value &rarr; environment variable &rarr; built-in default</strong>.</p>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Option</th>
+              <th>Required</th>
+              <th>Env override</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>jeffrey-home</code></td>
+              <td>Yes</td>
+              <td><code>JEFFREY_HOME</code></td>
+              <td>Base directory for Jeffrey data. Falls back to the <code>JEFFREY_HOME</code> env var when neither <code>jeffrey-home</code> nor <code>workspaces-dir</code> is set in HOCON.</td>
+            </tr>
+            <tr>
+              <td><code>project.workspace-ref-id</code></td>
+              <td>No</td>
+              <td>—</td>
+              <td>
+                Reference ID of the workspace on the target Jeffrey Hub. Optional — when
+                omitted (or blank), events route to the server's default workspace
+                (<code>$default</code> unless reconfigured via
+                <code>jeffrey.hub.default-workspace.reference-id</code> on the server).
+                If set, the value must match an existing workspace's reference ID — unknown
+                IDs are dropped server-side with a warning.
+              </td>
+            </tr>
+            <tr>
+              <td><code>project.name</code></td>
+              <td>Yes</td>
+              <td>—</td>
+              <td>Project name for organizing recordings</td>
+            </tr>
+            <tr>
+              <td><code>profiler-path</code></td>
+              <td>No</td>
+              <td><code>JEFFREY_PROFILER_PATH</code></td>
+              <td>Path to <code>libasyncProfiler.so</code>. When unset, auto-resolved from <code>libs/current/libasyncProfiler-&#123;arch&#125;.so</code> under <code>jeffrey-home</code> — the <code>&#123;arch&#125;</code> suffix is detected from the JVM's <code>os.arch</code> (<code>amd64</code> or <code>arm64</code>).</td>
+            </tr>
+            <tr>
+              <td><code>project.instance-name</code></td>
+              <td>No</td>
+              <td>—</td>
+              <td>Instance name (defaults to <code>HOSTNAME</code> environment variable or generated UUID)</td>
+            </tr>
+            <tr>
+              <td><code>project.label</code></td>
+              <td>No</td>
+              <td>—</td>
+              <td>Human-readable project label</td>
+            </tr>
+            <tr>
+              <td><code>agent-path</code></td>
+              <td>No</td>
+              <td><code>JEFFREY_AGENT_PATH</code></td>
+              <td>Path to <code>jeffrey-agent.jar</code>. Auto-resolved from <code>libs/current/jeffrey-agent.jar</code> when <code>jeffrey-home</code> is set.</td>
+            </tr>
+            <tr>
+              <td><code>env-file</code></td>
+              <td>No</td>
+              <td>—</td>
+              <td>Path to write the <code>.env</code> file with shell export statements</td>
+            </tr>
+            <tr>
+              <td><code>arg-file</code></td>
+              <td>No</td>
+              <td><code>JEFFREY_ARG_FILE</code></td>
+              <td>Path to write the JVM arguments file (Java @argfile format, one arg per line). Defaults to <code>/tmp/jvm.args</code> — override this when running on a read-only root filesystem.</td>
+            </tr>
+            <tr>
+              <td><code>print-env</code></td>
+              <td>No</td>
+              <td>—</td>
+              <td>Print the <code>.env</code> file content to stdout (default: <code>false</code>)</td>
+            </tr>
+            <tr>
+              <td><code>attributes</code></td>
+              <td>No</td>
+              <td>—</td>
+              <td>Custom key-value metadata (e.g., cluster, namespace)</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <DocsCallout type="info">
+          <strong>Architecture detection:</strong> the auto-resolved <code>profiler-path</code> reads <code>os.arch</code> at startup and looks for <code>libasyncProfiler-amd64.so</code> on x86_64 or <code>libasyncProfiler-arm64.so</code> on aarch64. On any other architecture (e.g. <code>ppc64le</code>, <code>s390x</code>) the provisioner logs a warning and skips profiler setup — <strong>your application still starts</strong>, just without async-profiler attached. Set <code>profiler-path</code> explicitly if you have a custom build.
+        </DocsCallout>
+
+        <h2 id="features">Features</h2>
+        <p>Jeffrey Provisioner can enable additional features that capture more diagnostic data alongside JFR recordings:</p>
+
+        <div class="features-grid">
+          <div class="feature-card debug-safepoints">
+            <div class="feature-icon"><i class="bi bi-bullseye"></i></div>
+            <h4>Debug Non-Safepoints</h4>
+            <p>Enables precise profiling by recording method information at non-safepoint locations. Provides more accurate stack traces for CPU profiling. Enabled by default.</p>
+            <code>debug-non-safepoints { enabled = true }</code>
+          </div>
+          <div class="feature-card perf">
+            <div class="feature-icon"><i class="bi bi-speedometer2"></i></div>
+            <h4>Perf Counters</h4>
+            <p>Captures JVM performance data via <code>-XX:+UsePerfData</code>. Provides low-level metrics about JVM internals.</p>
+            <code>perf-counters { enabled = true }</code>
+          </div>
+          <div class="feature-card heap">
+            <div class="feature-icon"><i class="bi bi-memory"></i></div>
+            <h4>Heap Dump</h4>
+            <p>Automatic heap dumps on OutOfMemoryError or JVM crash. Compressed with gzip for efficient storage.</p>
+            <code>heap-dump { enabled = true; type = "crash" }</code>
+          </div>
+          <div class="feature-card logging">
+            <div class="feature-icon"><i class="bi bi-file-text"></i></div>
+            <h4>JVM Logging</h4>
+            <p>Structured JVM diagnostic logging including GC events, JIT compilation, and JFR activity. Files with <code>-jvm.log</code> suffix are automatically recognized as JVM log artifacts. Use <code>&lt;&lt;JEFFREY_CURRENT_SESSION&gt;&gt;</code> placeholder in the command for the session directory path.</p>
+            <code>jvm-logging { enabled = true }</code>
+          </div>
+          <div class="feature-card messaging">
+            <div class="feature-icon"><i class="bi bi-broadcast"></i></div>
+            <h4>Messaging</h4>
+            <p>Enables <code>jeffrey.ImportantMessage</code> JFR events for real-time message consumption via the streaming repository.</p>
+            <code>messaging { enabled = true }</code>
+          </div>
+          <div class="feature-card alerting">
+            <div class="feature-icon"><i class="bi bi-exclamation-triangle"></i></div>
+            <h4>Alerting</h4>
+            <p>Enables <code>jeffrey.Alert</code> JFR events for real-time alert consumption via the streaming repository.</p>
+            <code>alerting { enabled = true }</code>
+          </div>
+          <div class="feature-card streaming">
+            <div class="feature-icon"><i class="bi bi-arrow-repeat"></i></div>
+            <h4>Streaming</h4>
+            <p>Controls the JFR streaming recording shared by messaging, alerting, and heartbeat. Configures <code>max-age</code> for streaming data retention.</p>
+            <code>streaming { max-age = "2d" }</code>
+          </div>
+          <div class="feature-card heartbeat">
+            <div class="feature-icon"><i class="bi bi-heart-pulse"></i></div>
+            <h4>Heartbeat</h4>
+            <p>Enables periodic <code>jeffrey.Heartbeat</code> JFR events for reliable session liveness detection.</p>
+            <code>heartbeat { enabled = true }</code>
+          </div>
+          <div class="feature-card jdk-options">
+            <div class="feature-icon"><i class="bi bi-gear-wide-connected"></i></div>
+            <h4>JDK Java Options</h4>
+            <p>Exports <code>JDK_JAVA_OPTIONS</code> environment variable. The JVM picks this up automatically.</p>
+            <code>jdk-java-options { enabled = true }</code>
+          </div>
+          <div class="feature-card jdk-options">
+            <div class="feature-icon"><i class="bi bi-plus-circle"></i></div>
+            <h4>Additional JVM Options</h4>
+            <p>Extra JVM flags added to the argfile and profiler settings, independent of <code>JDK_JAVA_OPTIONS</code> export.</p>
+            <code>additional-jvm-options = "-Xmx2g -Xms2g"</code>
+          </div>
+        </div>
+
+        <DocsCallout type="info">
+          <strong>Path placeholders:</strong> Use <code>&lt;&lt;JEFFREY_CURRENT_SESSION&gt;&gt;</code> in configuration values to reference the session directory path. This is replaced at runtime with the actual path.
+        </DocsCallout>
+      </div>
+
+      <DocsNavFooter />
+  </article>
+</template>
+
+<style scoped>
+@import '@/views/docs/docs-page.css';
+
+/* Features Grid */
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+
+.feature-card {
+  padding: 1.25rem;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+}
+
+.feature-card .feature-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  color: #fff;
+  margin-bottom: 0.75rem;
+}
+
+.feature-card h4 {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #343a40;
+}
+
+.feature-card p {
+  margin: 0 0 0.75rem 0;
+  font-size: 0.85rem;
+  color: #5e6e82;
+}
+
+.feature-card code {
+  display: block;
+  font-size: 0.75rem;
+  background: #f8fafc;
+  padding: 0.5rem;
+  border-radius: 4px;
+  color: #6c757d;
+}
+
+/* Feature card themes */
+.feature-card.perf .feature-icon {
+  background: linear-gradient(135deg, #5e64ff 0%, #4338ca 100%);
+}
+
+.feature-card.heap .feature-icon {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+}
+
+.feature-card.logging .feature-icon {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+.feature-card.messaging .feature-icon {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+}
+
+.feature-card.debug-safepoints .feature-icon {
+  background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+}
+
+.feature-card.alerting .feature-icon {
+  background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%);
+}
+
+.feature-card.streaming .feature-icon {
+  background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%);
+}
+
+.feature-card.heartbeat .feature-icon {
+  background: linear-gradient(135deg, #ec4899 0%, #db2777 100%);
+}
+
+.feature-card.jdk-options .feature-icon {
+  background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .features-grid {
+    grid-template-columns: 1fr;
+  }
+}
+</style>

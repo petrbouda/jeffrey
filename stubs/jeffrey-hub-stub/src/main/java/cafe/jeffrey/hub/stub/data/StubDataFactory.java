@@ -48,7 +48,7 @@ public class StubDataFactory {
     private static final String EVENT_PROJECT_CREATED = "PROJECT_CREATED";
     private static final String EVENT_SESSION_STARTED = "SESSION_STARTED";
     private static final String EVENT_SESSION_FINISHED = "SESSION_FINISHED";
-    private static final String CREATED_BY_CLI = "jeffrey-cli";
+    private static final String CREATED_BY_PROVISIONER = "jeffrey-provisioner";
     private static final String CREATED_BY_SYSTEM = "system";
 
     private final Clock clock;
@@ -183,7 +183,7 @@ public class StubDataFactory {
         for (Project project : projects) {
             events.add(event(project.id(), workspaceRefId, EVENT_PROJECT_CREATED,
                     "{\"projectName\":\"" + project.name() + "\"}",
-                    project.createdAt(), CREATED_BY_CLI));
+                    project.createdAt(), CREATED_BY_PROVISIONER));
             for (Instance instance : project.instances()) {
                 for (Session session : instance.sessions()) {
                     events.add(event(project.id(), workspaceRefId, EVENT_SESSION_STARTED,

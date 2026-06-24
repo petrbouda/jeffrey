@@ -40,7 +40,7 @@ public class JeffreyJibConfig {
     public static final String JEFFREY_HOME = "jeffreyHome";
     public static final String BASE_CONFIG = "baseConfig";
     public static final String OVERRIDE_CONFIG = "overrideConfig";
-    public static final String CLI_PATH = "cliPath";
+    public static final String PROVISIONER_PATH = "provisionerPath";
     public static final String ARG_FILE = "argFile";
     public static final String PROFILER_PATH = "profilerPath";
     public static final String AGENT_PATH = "agentPath";
@@ -49,7 +49,7 @@ public class JeffreyJibConfig {
     private String jeffreyHome;
     private String baseConfig;
     private String overrideConfig;
-    private String cliPath;
+    private String provisionerPath;
     private String argFile;
     private String profilerPath;
     private String agentPath;
@@ -86,12 +86,12 @@ public class JeffreyJibConfig {
         this.overrideConfig = overrideConfig;
     }
 
-    public String getCliPath() {
-        return cliPath;
+    public String getProvisionerPath() {
+        return provisionerPath;
     }
 
-    public void setCliPath(String cliPath) {
-        this.cliPath = cliPath;
+    public void setProvisionerPath(String provisionerPath) {
+        this.provisionerPath = provisionerPath;
     }
 
     public String getArgFile() {

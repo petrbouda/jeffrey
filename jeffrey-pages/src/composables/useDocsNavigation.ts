@@ -61,7 +61,7 @@ export const PRODUCTS: Record<Product, ProductInfo> = {
 const MICROSCOPE_SEGMENTS = new Set(['microscope', 'local', 'events', 'ai']);
 // 'server' is kept alongside 'hub' so a direct hit on a legacy /docs/server/* URL still
 // resolves to the Hub sidebar in the brief moment before the router redirects to /docs/hub/*.
-const HUB_SEGMENTS = new Set(['hub', 'server', 'cli', 'agent', 'jib']);
+const HUB_SEGMENTS = new Set(['hub', 'server', 'provisioner', 'cli', 'agent', 'jib']);
 // Performance Analyst (incubating) owns a single top-level segment.
 const PERF_ANALYST_SEGMENTS = new Set(['perf-analyst']);
 
@@ -179,7 +179,7 @@ export const hubNavigation: DocSection[] = [
       { title: 'Overview', to: '/docs/hub/deployment' },
       { title: 'Jeffrey JIB Extension', to: '/docs/hub/deployment/jeffrey-jib' },
       { title: 'Shared Volume', to: '/docs/hub/deployment/shared-volume' },
-      { title: 'Jeffrey CLI', to: '/docs/hub/deployment/jeffrey-cli' },
+      { title: 'Jeffrey Provisioner', to: '/docs/hub/deployment/jeffrey-provisioner' },
       { title: 'Helm Chart', to: '/docs/hub/deployment/helm-chart' }
     ]
   },
@@ -210,8 +210,8 @@ export const hubNavigation: DocSection[] = [
     children: [{ title: 'Configuration', to: '/docs/hub/configuration' }]
   },
   {
-    title: 'Jeffrey CLI',
-    path: 'cli',
+    title: 'Jeffrey Provisioner',
+    path: 'provisioner',
     icon: 'bi-terminal',
     children: [
       { title: 'Overview', path: 'overview' },

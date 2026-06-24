@@ -2,7 +2,7 @@
 
 You can't attach a profiler to a Kubernetes pod the way you'd connect VisualVM to a local process. Pods are ephemeral — they scale up, crash, get evicted, and restart. By the time you notice a performance problem, the pod that exhibited it may be gone, along with all its profiling data.
 
-Jeffrey solves this with a three-component architecture designed for production environments: **Jeffrey CLI** initializes containers for profiling, **Jeffrey Hub** collects JFR recordings from running applications, and **Jeffrey Local** analyzes the data on your developer machine. The expensive computation happens locally, not in the cloud.
+Jeffrey solves this with a three-component architecture designed for production environments: **Jeffrey Provisioner** initializes containers for profiling, **Jeffrey Hub** collects JFR recordings from running applications, and **Jeffrey Local** analyzes the data on your developer machine. The expensive computation happens locally, not in the cloud.
 
 This article — the final in our series on Java profiling with Jeffrey — shows how to set up continuous profiling for Java applications in Kubernetes.
 
@@ -13,7 +13,7 @@ Jeffrey splits profiling into distinct responsibilities:
 ![Jeffrey Local + Server architecture](images/release-notes/server-recording/01-architecture.png)
 *Split architecture: Server collects in the cloud, Local analyzes on your machine.*
 
-**Jeffrey CLI** runs as an init step in your Docker container. It reads a configuration file, generates JVM arguments for Async Profiler, creates the directory structure on shared storage, and registers the application instance with Jeffrey Hub. It runs once before your Java application starts.
+**Jeffrey Provisioner** runs as an init step in your Docker container. It reads a configuration file, generates JVM arguments for Async Profiler, creates the directory structure on shared storage, and registers the application instance with Jeffrey Hub. It runs once before your Java application starts.
 
 **Jeffrey Hub** runs as a service in your Kubernetes cluster. It watches shared storage for new JFR files and metadata, tracks recording sessions, manages instance lifecycles, and exposes a gRPC API for remote access. It collects — it doesn't analyze.
 
@@ -21,15 +21,15 @@ Jeffrey splits profiling into distinct responsibilities:
 
 This separation keeps analysis costs off your cloud infrastructure. JFR recording has negligible overhead on the profiled application (under 2%), and Jeffrey Hub is a lightweight collector. The heavy processing happens on your local machine where compute is free.
 
-## Setting Up Jeffrey CLI in Your Container
+## Setting Up Jeffrey Provisioner in Your Container
 
-Jeffrey CLI is a small JAR that runs before your application starts. It reads a HOCON configuration file and generates JVM arguments for Async Profiler.
+Jeffrey Provisioner is a small JAR that runs before your application starts. It reads a HOCON configuration file and generates JVM arguments for Async Profiler.
 
 Add it to your Dockerfile:
 
 ```dockerfile
-# Copy Jeffrey CLI and Async Profiler
-COPY jeffrey-cli.jar /data/jeffrey/libs/current/jeffrey-cli.jar
+# Copy Jeffrey Provisioner and Async Profiler
+COPY provisioner.jar /data/jeffrey/libs/current/provisioner.jar
 COPY libasyncProfiler.so /data/jeffrey/libs/current/libasyncProfiler.so
 ```
 
@@ -38,14 +38,14 @@ Create an entrypoint script:
 ```bash
 #!/bin/sh
 # Initialize profiling configuration
-java -jar /data/jeffrey/libs/current/jeffrey-cli.jar \
+java -jar /data/jeffrey/libs/current/provisioner.jar \
   init --base-config /mnt/config/jeffrey-init.conf
 
 # Start the application with generated JVM arguments
 exec java @/tmp/jvm.args -jar /app/my-service.jar
 ```
 
-The CLI reads the configuration, generates an `@argfile` with all necessary JVM flags (Async Profiler agent path, output directory, profiling events, JFR sync), and creates the directory structure on shared storage.
+The provisioner reads the configuration, generates an `@argfile` with all necessary JVM flags (Async Profiler agent path, output directory, profiling events, JFR sync), and creates the directory structure on shared storage.
 
 A typical configuration enables:
 
@@ -56,7 +56,7 @@ A typical configuration enables:
 - **Heartbeat monitoring** — Periodic signals so the Server knows the session is alive
 - **JVM diagnostic logging** — Captured alongside JFR data
 
-The CLI also publishes workspace events that Jeffrey Hub watches to auto-discover new instances.
+The provisioner also publishes workspace events that Jeffrey Hub watches to auto-discover new instances.
 
 ## Deploying Jeffrey Hub
 
@@ -97,7 +97,7 @@ Each project can have multiple **instances** (pods), and each instance can have 
 
 An **instance** represents a single pod lifecycle — from startup to termination. Jeffrey tracks instances through four states:
 
-- **PENDING** — Created by CLI, waiting for the first recording session to start
+- **PENDING** — Created by provisioner, waiting for the first recording session to start
 - **ACTIVE** — At least one recording session is producing JFR data
 - **FINISHED** — All sessions have ended (pod terminated)
 - **EXPIRED** — Cleaned up after the configured retention period
@@ -121,7 +121,7 @@ A **recording session** is the core unit of profiling data. It contains:
 ![Session detail and artifacts](images/release-notes/server-recording/04-session-detail.png)
 *Session detail view showing JFR files, artifacts, and metadata.*
 
-Sessions are created automatically when your application starts with Jeffrey CLI configuration. JFR chunks are written continuously to shared storage, so Jeffrey Hub sees them in near real-time. You don't need to wait for the application to stop before analyzing data.
+Sessions are created automatically when your application starts with Jeffrey Provisioner configuration. JFR chunks are written continuously to shared storage, so Jeffrey Hub sees them in near real-time. You don't need to wait for the application to stop before analyzing data.
 
 ## Connecting Jeffrey Local to Server
 
@@ -157,7 +157,7 @@ Jeffrey provides a **visual profiler settings builder** that generates Async Pro
 ![Visual Builder for profiler settings](images/release-notes/profiler-settings/01-visual-builder.png)
 *Configure profiling events, sampling rates, and output options from the UI.*
 
-Settings are propagated to shared storage, and Jeffrey CLI picks them up on the next application restart. This means you can change profiling configuration without redeploying your application — just update the settings and wait for the next pod rollout.
+Settings are propagated to shared storage, and Jeffrey Provisioner picks them up on the next application restart. This means you can change profiling configuration without redeploying your application — just update the settings and wait for the next pod rollout.
 
 ## Background Jobs
 
@@ -174,7 +174,7 @@ These jobs ensure that shared storage doesn't grow unbounded, even in high-scale
 
 The typical workflow for production profiling with Jeffrey:
 
-1. **Once:** Add Jeffrey CLI and Async Profiler to your Docker image, configure the init step
+1. **Once:** Add Jeffrey Provisioner and Async Profiler to your Docker image, configure the init step
 2. **Once:** Deploy Jeffrey Hub in your cluster with access to shared storage
 3. **Continuously:** Your applications run with profiling enabled (negligible overhead)
 4. **On demand:** Connect Jeffrey Local to the Server, browse instances, download the recording that covers the time period you're investigating

@@ -204,7 +204,7 @@ class JeffreyBuildPlanExtenderTest {
             config.setJeffreyHome("/mnt/data/jeffrey");
             config.setBaseConfig("/etc/jeffrey/base.conf");
             config.setOverrideConfig("/etc/jeffrey/override.conf");
-            config.setCliPath("/opt/jeffrey/bin/jeffrey-cli");
+            config.setProvisionerPath("/opt/jeffrey/bin/provisioner");
             config.setArgFile("/var/jeffrey/jvm.args");
 
             Map<String, String> env = extender.extend(input, config, logger).getEnvironment();
@@ -212,7 +212,7 @@ class JeffreyBuildPlanExtenderTest {
             assertEquals("/mnt/data/jeffrey", env.get("JEFFREY_HOME"));
             assertEquals("/etc/jeffrey/base.conf", env.get("JEFFREY_BASE_CONFIG"));
             assertEquals("/etc/jeffrey/override.conf", env.get("JEFFREY_OVERRIDE_CONFIG"));
-            assertEquals("/opt/jeffrey/bin/jeffrey-cli", env.get("JEFFREY_CLI_PATH"));
+            assertEquals("/opt/jeffrey/bin/provisioner", env.get("JEFFREY_PROVISIONER_PATH"));
             assertEquals("/var/jeffrey/jvm.args", env.get("JEFFREY_ARG_FILE"));
         }
 
@@ -228,7 +228,7 @@ class JeffreyBuildPlanExtenderTest {
             assertFalse(env.containsKey("JEFFREY_HOME"));
             assertFalse(env.containsKey("JEFFREY_BASE_CONFIG"));
             assertFalse(env.containsKey("JEFFREY_OVERRIDE_CONFIG"));
-            assertFalse(env.containsKey("JEFFREY_CLI_PATH"));
+            assertFalse(env.containsKey("JEFFREY_PROVISIONER_PATH"));
             assertFalse(env.containsKey("JEFFREY_ARG_FILE"));
         }
 

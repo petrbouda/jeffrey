@@ -193,14 +193,14 @@ jeffrey/
 │   ├── filesystem-recording-storage/  # Filesystem storage implementation
 │   ├── folder-queue/                  # File-based queue
 │   └── persistent-queue/             # Durable event queue
-├── jeffrey-cli/                       # CLI tool (GraalVM Native Image)
+├── jeffrey-provisioner/               # Provisioner tool (GraalVM Native Image)
 ├── jeffrey-agent/                     # Agent module
 ├── jeffrey-pages/                     # Documentation site
 ├── build/                             # Build configurations
 │   ├── build-microscope/                   # Local application assembly
 │   ├── build-hub/                  # Server application assembly
-│   ├── build-cli/                     # CLI build
-│   ├── build-cli-native/             # Native image build
+│   ├── build-provisioner/             # Provisioner build
+│   ├── build-provisioner-native/     # Native image build
 │   ├── build-agent/                   # Agent build
 │   └── scripts/                       # Build scripts
 ├── jmh-tests/                         # JMH benchmarks
@@ -451,7 +451,7 @@ When modifying code, keep the corresponding documentation pages in `jeffrey-page
 | `jeffrey-microscope/core-microscope` | `jeffrey-pages/src/views/docs/platform/` — workspaces, projects, recordings, sessions, profiler settings, alerts |
 | `jeffrey-hub/core-hub` | `jeffrey-pages/src/views/docs/platform/` — scheduler |
 | `jeffrey-microscope/profiles/profile-management` | `jeffrey-pages/src/views/docs/profiles/` — visualization, application analysis, JVM internals, heap dump analysis |
-| `jeffrey-cli/` | `jeffrey-pages/src/views/docs/cli/` — CLI overview, configuration, directory structure, generated output |
+| `jeffrey-provisioner/` | `jeffrey-pages/src/views/docs/provisioner/` — Provisioner overview, configuration, directory structure, generated output |
 | Architecture changes | `jeffrey-pages/src/views/docs/architecture/` — overview, public API, storage |
 | Deployment changes | `jeffrey-pages/src/views/docs/deployments/` — JAR, container, live recording |
 

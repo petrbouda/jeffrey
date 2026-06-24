@@ -63,7 +63,7 @@ onMounted(() => {
         <div class="artifact-tile tile-jfr">
           <div class="artifact-icon"><i class="bi bi-record-circle"></i></div>
           <h3>JFR Recordings</h3>
-          <p>Java Flight Recorder files captured by async-profiler, the JDK, or the Jeffrey CLI.</p>
+          <p>Java Flight Recorder files captured by async-profiler, the JDK, or the Jeffrey Provisioner.</p>
           <ul class="artifact-features">
             <li><i class="bi bi-fire"></i> Flame graphs &amp; differential views</li>
             <li><i class="bi bi-graph-up"></i> Timeseries &amp; sub-second timelines</li>

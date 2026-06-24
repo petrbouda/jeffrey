@@ -96,7 +96,7 @@ public class HubManager {
     /**
      * Creates a new workspace on this server via the gRPC CreateWorkspace RPC.
      *
-     * @param referenceId stable user-supplied id; jeffrey-cli's project.workspace-ref-id
+     * @param referenceId stable user-supplied id; jeffrey-provisioner's project.workspace-ref-id
      *                    must match this value to route recordings to the workspace
      * @param name        display name
      */

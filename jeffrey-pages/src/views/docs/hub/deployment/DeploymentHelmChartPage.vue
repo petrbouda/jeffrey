@@ -46,7 +46,7 @@ const chartStructure = `helm/
 │   ├── Chart.yaml
 │   ├── values.yaml                   # image tag, sharedVolume, ports, ingress, probes
 │   ├── application.properties        # Spring Boot config (copy-libs, home.dir)
-│   ├── jeffrey-base.conf             # CLI init config for self-profiling
+│   ├── jeffrey-base.conf             # provisioner init config for self-profiling
 │   └── templates/
 │       ├── deployment.yaml
 │       ├── service.yaml              # HTTP 8080 + gRPC 9090
@@ -60,7 +60,7 @@ const chartStructure = `helm/
 ├── jeffrey-testapp-server/
 │   ├── Chart.yaml
 │   ├── values.yaml                   # mode toggle, sharedVolume, jeffrey env, probes
-│   ├── jeffrey-base.conf             # CLI init config for the monitored service
+│   ├── jeffrey-base.conf             # provisioner init config for the monitored service
 │   └── templates/
 │       ├── deployment.yaml           # JIB image + wait-for-jeffrey-hub init container
 │       ├── service.yaml              # HTTP 8080
@@ -72,7 +72,7 @@ const chartStructure = `helm/
 └── jeffrey-testapp-client/
     ├── Chart.yaml
     ├── values.yaml                   # load config, sharedVolume, jeffrey env, TCP probes
-    ├── jeffrey-base.conf             # CLI init config for the load generator
+    ├── jeffrey-base.conf             # provisioner init config for the load generator
     └── templates/                    # same shape as testapp-server (no DB mount)
         ├── deployment.yaml
         ├── service.yaml
@@ -148,8 +148,8 @@ const testappEnv = `env:
 
 const initContainer = `# Block the main container until jeffrey-hub reports ready via its actuator
 # readiness endpoint. By the time the readiness probe passes, jeffrey-hub's
-# copy-libs has published the CLI bundle to the shared volume, so the JIB
-# entrypoint finds jeffrey-cli + agent + libasyncProfiler on first start
+# copy-libs has published the provisioner bundle to the shared volume, so the JIB
+# entrypoint finds provisioner + agent + libasyncProfiler on first start
 # instead of fail-opening (no profiling) for the first minute or two.
 initContainers:
   - name: wait-for-jeffrey-hub
@@ -251,7 +251,7 @@ helm upgrade --install jeffrey-hub helm/jeffrey-hub \\
         Each chart follows the standard Helm v3 layout (<code>Chart.yaml</code> +
         <code>values.yaml</code> + <code>templates/</code>). The two project-config files
         unique to this stack are <code>application.properties</code> (Spring Boot) and
-        <code>jeffrey-base.conf</code> (HOCON for the CLI) — both live next to
+        <code>jeffrey-base.conf</code> (HOCON for the provisioner) — both live next to
         <code>values.yaml</code> and are pulled into ConfigMaps by the templates via
         <code>.Files.Get</code>.
       </p>
@@ -320,7 +320,7 @@ spring.profiles.include=trace-file-log"
       <p>
         The Deployment wires <code>JEFFREY_HOME</code>, <code>JEFFREY_BASE_CONFIG</code>,
         and <code>JEFFREY_ENABLED</code> into the application container — see the
-        <router-link to="/docs/hub/deployment/jeffrey-cli">Jeffrey CLI</router-link>
+        <router-link to="/docs/hub/deployment/jeffrey-provisioner">Jeffrey Provisioner</router-link>
         page for the full env-var contract:
       </p>
 
@@ -352,7 +352,7 @@ spring.profiles.include=trace-file-log"
       />
 
       <p>
-        Without this gate, the JIB entrypoint runs <code>jeffrey-cli init</code> against
+        Without this gate, the JIB entrypoint runs <code>provisioner init</code> against
         a half-populated <code>libs/current/</code> the first time the pod schedules,
         fail-opens to plain <code>java</code> (no profiling), and stays that way until
         you restart the pod manually.
@@ -373,7 +373,7 @@ spring.profiles.include=trace-file-log"
         Inside the application container, <code>jeffrey-base.conf</code> reads
         <code>JEFFREY_TESTAPP_MODE</code> via HOCON variable substitution to set the
         project name and label — see the
-        <router-link to="/docs/hub/deployment/jeffrey-cli#project-block">Project Block</router-link>
+        <router-link to="/docs/hub/deployment/jeffrey-provisioner#project-block">Project Block</router-link>
         section for the substitution syntax. In Microscope, opening both projects
         side-by-side gives a one-click differential flame graph between the efficient
         and inefficient code paths.
@@ -428,7 +428,7 @@ helm uninstall jeffrey-hub         --namespace jeffrey-testapp"
         The default <code>reclaimPolicy</code> for a manually-created PV is
         <code>Retain</code>, so the directory on the cluster node (e.g.
         <code>/tmp/jeffrey-data</code> on OrbStack) keeps the contents Jeffrey Hub
-        wrote into it. The next install would inherit a stale CLI bundle. On dev
+        wrote into it. The next install would inherit a stale provisioner bundle. On dev
         clusters, wipe the directory yourself before re-installing. On real clusters
         with a dynamic RWX provisioner, the <code>StorageClass</code> owns the reclaim
         policy and the cleanup is automatic.

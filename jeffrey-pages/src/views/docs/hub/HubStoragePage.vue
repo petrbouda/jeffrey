@@ -63,7 +63,7 @@ onMounted(() => {
           <div class="card-icon"><i class="bi bi-hdd-network"></i></div>
           <div class="card-content">
             <h4>Shared filesystem for recordings</h4>
-            <p>Producers (CLI + Agent) and Server share an NFS / PVC-backed directory.</p>
+            <p>Producers (Provisioner + Agent) and Server share an NFS / PVC-backed directory.</p>
           </div>
         </div>
         <div class="principle-card">
@@ -125,7 +125,7 @@ onMounted(() => {
       <p>Each session ends up with one main JFR file and a directory of optional artifacts (heap dumps, JVM logs, perf-counters). The path makes it cheap to enumerate everything for a workspace, project, or session without touching the database.</p>
 
       <h2 id="shared-filesystem">Shared Filesystem</h2>
-      <p>Server is designed to sit next to a shared volume (NFS, PVC, or any POSIX filesystem) that the producer side — Jeffrey CLI plus Jeffrey Agent — also mounts. The producers write JFR files; Server discovers and serves them.</p>
+      <p>Server is designed to sit next to a shared volume (NFS, PVC, or any POSIX filesystem) that the producer side — Jeffrey Provisioner plus Jeffrey Agent — also mounts. The producers write JFR files; Server discovers and serves them.</p>
 
       <div class="db-card profile">
         <div class="card-header">
@@ -134,7 +134,7 @@ onMounted(() => {
           <span class="badge">Filesystem</span>
         </div>
         <div class="card-body">
-          <h5>Written by Jeffrey CLI:</h5>
+          <h5>Written by Jeffrey Provisioner:</h5>
           <ul>
             <li>Instance and session directory structure</li>
             <li>Session metadata files</li>

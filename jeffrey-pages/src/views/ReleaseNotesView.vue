@@ -1463,7 +1463,7 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
               <div class="feature-number">Feature 07</div>
               <h2>Profiler Settings</h2>
               <p>Configure Async-Profiler directly from Jeffrey's UI. Define profiling parameters &mdash; sampling interval, event types, stack depth, and output format &mdash; at global, workspace, or project level with an inheritance hierarchy that lets you override settings where needed.</p>
-              <p>Settings are automatically propagated to shared storage and picked up by Jeffrey CLI, so your applications start profiling with the right configuration without any manual setup.</p>
+              <p>Settings are automatically propagated to shared storage and picked up by Jeffrey Provisioner, so your applications start profiling with the right configuration without any manual setup.</p>
               <div class="feature-highlights">
                 <span class="feature-highlight"><i class="bi bi-sliders"></i> Async-Profiler Config</span>
                 <span class="feature-highlight"><i class="bi bi-layers"></i> Settings Inheritance</span>

@@ -55,7 +55,7 @@ onMounted(() => {
           <a href="https://github.com/petrbouda/jeffrey-testapp" target="_blank" rel="noopener">jeffrey-testapp</a>
           repository — a two-module Spring Boot 4 setup deployed via three Helm charts. It
           shows the full collection pipeline: the Jeffrey JIB extension at build time, the
-          shared-volume <code>copy-libs</code> pattern at deploy time, and the CLI-driven init
+          shared-volume <code>copy-libs</code> pattern at deploy time, and the provisioner-driven init
           flow at container start. Every YAML, <code>pom.xml</code>, and <code>jeffrey-base.conf</code>
           snippet on the following pages is taken verbatim from that repo.
         </p>
@@ -82,7 +82,7 @@ onMounted(() => {
           <div class="release-icon"><i class="bi bi-cloud"></i></div>
           <div class="release-body">
             <h3>jeffrey-hub</h3>
-            <p>The Jeffrey Hub itself. Owns <code>jeffrey-pvc</code>; <code>copy-libs</code> publishes the CLI bundle, agent JAR, and async-profiler library into the shared volume for the testapp pods to consume. Exposes HTTP <code>8080</code> + gRPC <code>9090</code>.</p>
+            <p>The Jeffrey Hub itself. Owns <code>jeffrey-pvc</code>; <code>copy-libs</code> publishes the provisioner bundle, agent JAR, and async-profiler library into the shared volume for the testapp pods to consume. Exposes HTTP <code>8080</code> + gRPC <code>9090</code>.</p>
           </div>
         </div>
         <div class="release-tile tile-direct">
@@ -119,9 +119,9 @@ onMounted(() => {
       <h2 id="topology">Topology</h2>
       <p>
         The diagram below shows the runtime topology — one PVC, four pods, one direction of
-        data flow per arrow. <code>jeffrey-hub</code> publishes the CLI bundle into
+        data flow per arrow. <code>jeffrey-hub</code> publishes the provisioner bundle into
         <code>/mnt/jeffrey/libs/current/</code>; the three monitored pods read it back when
-        their JIB-wrapped entrypoints run <code>jeffrey-cli init</code>; profile data flows
+        their JIB-wrapped entrypoints run <code>provisioner init</code>; profile data flows
         back to <code>jeffrey-hub</code> over gRPC <code>9090</code>.
       </p>
 
@@ -144,7 +144,7 @@ onMounted(() => {
         <div class="cluster-pvc">
           <i class="bi bi-hdd-stack"></i>
           <span>jeffrey-pvc</span>
-          <small>RWX · /mnt/jeffrey · libs/current/{jeffrey-cli, agent, libasyncProfiler}</small>
+          <small>RWX · /mnt/jeffrey · libs/current/{provisioner, agent, libasyncProfiler}</small>
         </div>
 
         <div class="diagram-arrow-block">
@@ -184,28 +184,28 @@ onMounted(() => {
           <div class="step-number">1</div>
           <div class="step-content">
             <h4><i class="bi bi-box-seam"></i> Build the image</h4>
-            <p>The application's <code>pom.xml</code> wires the <strong>Jeffrey JIB extension</strong> into the <code>jib-maven-plugin</code>. <code>mvn jib:dockerBuild</code> produces an image whose entrypoint is wrapped to invoke <code>jeffrey-cli init</code> at container start. No agent or profiler binaries get baked in. <router-link to="/docs/hub/deployment/jeffrey-jib">→ Jeffrey JIB Extension</router-link></p>
+            <p>The application's <code>pom.xml</code> wires the <strong>Jeffrey JIB extension</strong> into the <code>jib-maven-plugin</code>. <code>mvn jib:dockerBuild</code> produces an image whose entrypoint is wrapped to invoke <code>provisioner init</code> at container start. No agent or profiler binaries get baked in. <router-link to="/docs/hub/deployment/jeffrey-jib">→ Jeffrey JIB Extension</router-link></p>
           </div>
         </div>
         <div class="lifecycle-step">
           <div class="step-number">2</div>
           <div class="step-content">
             <h4><i class="bi bi-hdd-stack"></i> Provision the shared volume</h4>
-            <p><code>jeffrey-hub</code>'s Helm chart creates a <code>ReadWriteMany</code> PVC; <code>copy-libs</code> populates <code>libs/current/</code> with the per-arch CLI binary, agent JAR, and async-profiler library. <router-link to="/docs/hub/deployment/shared-volume">→ Shared Volume</router-link></p>
+            <p><code>jeffrey-hub</code>'s Helm chart creates a <code>ReadWriteMany</code> PVC; <code>copy-libs</code> populates <code>libs/current/</code> with the per-arch provisioner binary, agent JAR, and async-profiler library. <router-link to="/docs/hub/deployment/shared-volume">→ Shared Volume</router-link></p>
           </div>
         </div>
         <div class="lifecycle-step">
           <div class="step-number">3</div>
           <div class="step-content">
-            <h4><i class="bi bi-terminal"></i> Configure the CLI</h4>
-            <p>Each monitored pod mounts a small <code>jeffrey-base.conf</code> via ConfigMap. The wrapped entrypoint runs <code>jeffrey-cli init</code> against that config to generate the JVM-arg response file before the JVM boots. <router-link to="/docs/hub/deployment/jeffrey-cli">→ Jeffrey CLI</router-link></p>
+            <h4><i class="bi bi-terminal"></i> Configure the provisioner</h4>
+            <p>Each monitored pod mounts a small <code>jeffrey-base.conf</code> via ConfigMap. The wrapped entrypoint runs <code>provisioner init</code> against that config to generate the JVM-arg response file before the JVM boots. <router-link to="/docs/hub/deployment/jeffrey-provisioner">→ Jeffrey Provisioner</router-link></p>
           </div>
         </div>
         <div class="lifecycle-step">
           <div class="step-number">4</div>
           <div class="step-content">
             <h4><i class="bi bi-file-earmark-code"></i> Deploy with Helm</h4>
-            <p>Three Helm charts (<code>jeffrey-hub</code> + two flavours of the testapp) installed with vanilla <code>helm upgrade --install</code>. An init container on the testapp pods polls <code>jeffrey-hub</code>'s readiness probe so <code>copy-libs</code> always finishes before the JIB entrypoint looks for the CLI. <router-link to="/docs/hub/deployment/helm-chart">→ Helm Chart</router-link></p>
+            <p>Three Helm charts (<code>jeffrey-hub</code> + two flavours of the testapp) installed with vanilla <code>helm upgrade --install</code>. An init container on the testapp pods polls <code>jeffrey-hub</code>'s readiness probe so <code>copy-libs</code> always finishes before the JIB entrypoint looks for the provisioner. <router-link to="/docs/hub/deployment/helm-chart">→ Helm Chart</router-link></p>
           </div>
         </div>
       </div>
@@ -233,9 +233,9 @@ onMounted(() => {
           <h4>Shared Volume</h4>
           <p>The <code>copy-libs</code> pattern, PVC contract, and OrbStack/minikube fallback.</p>
         </router-link>
-        <router-link class="next-card" to="/docs/hub/deployment/jeffrey-cli">
+        <router-link class="next-card" to="/docs/hub/deployment/jeffrey-provisioner">
           <div class="next-icon"><i class="bi bi-terminal"></i></div>
-          <h4>Jeffrey CLI</h4>
+          <h4>Jeffrey Provisioner</h4>
           <p>Anatomy of <code>jeffrey-base.conf</code> and the runtime env-var contract.</p>
         </router-link>
         <router-link class="next-card" to="/docs/hub/deployment/helm-chart">

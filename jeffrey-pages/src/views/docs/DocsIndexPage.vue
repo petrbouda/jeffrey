@@ -25,7 +25,7 @@ import { useDocHeadings } from '@/composables/useDocHeadings';
 const { setHeadings } = useDocHeadings();
 
 const microscopeComponents = ['Flamegraph', 'Timeseries', 'Guardian', 'Heap dump', 'AI assistant', 'Events'];
-const serverComponents = ['Continuous recording', 'Scheduler', 'gRPC API', 'CLI', 'Agent', 'JIB'];
+const serverComponents = ['Continuous recording', 'Scheduler', 'gRPC API', 'Provisioner', 'Agent', 'JIB'];
 const perfAnalystComponents = ['Hub-connected', 'AI recommendations', 'Severity grading', 'Patches'];
 
 onMounted(() => {

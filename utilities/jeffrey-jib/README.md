@@ -14,9 +14,9 @@ without forcing operators to override the container `command:` in Kubernetes YAM
 
 The extension installs `/usr/local/bin/jeffrey-entrypoint` into a new image layer, makes it
 the `ENTRYPOINT`, and moves JIB's auto-derived `java -cp … <MainClass>` into `CMD`. At
-container start the wrapper runs `jeffrey-cli init` (resolved from
+container start the wrapper runs `provisioner init` (resolved from
 `$JEFFREY_HOME/libs/current/` — populated by `jeffrey-hub`'s `copy-libs` feature on a
-shared volume) and `exec`s the JIB command with the CLI-produced argfile inserted right
+shared volume) and `exec`s the JIB command with the provisioner-produced argfile inserted right
 after the `java` binary.
 
 ## Gradle usage
@@ -79,7 +79,7 @@ comparisons. No rebuild required.
 | `jeffreyHome` | `JEFFREY_HOME` | `/mnt/azure/runtime/shared/jeffrey` |
 | `baseConfig` | `JEFFREY_BASE_CONFIG` | `/jeffrey/jeffrey-base.conf` |
 | `overrideConfig` | `JEFFREY_OVERRIDE_CONFIG` | `/jeffrey/jeffrey-overrides.conf` (optional) |
-| `cliPath` | `JEFFREY_CLI_PATH` | `${JEFFREY_HOME}/libs/current/jeffrey-cli-<arch>` |
+| `provisionerPath` | `JEFFREY_PROVISIONER_PATH` | `${JEFFREY_HOME}/libs/current/provisioner-<arch>` |
 | `argFile` | `JEFFREY_ARG_FILE` | `/tmp/jvm.args` |
 
 All string properties are optional. Non-null values are baked as image-level ENV defaults;

@@ -51,7 +51,7 @@ onMounted(() => {
         </DocsCallout>
 
         <h2 id="what-are-recording-sessions">What are Recording Sessions?</h2>
-        <p>A recording session is created when you start profiling a Java application using Async-Profiler configured through <router-link to="/docs/cli/overview">Jeffrey CLI</router-link>. Each session represents a continuous profiling period and collects:</p>
+        <p>A recording session is created when you start profiling a Java application using Async-Profiler configured through <router-link to="/docs/provisioner/overview">Jeffrey Provisioner</router-link>. Each session represents a continuous profiling period and collects:</p>
         <ul>
           <li><strong>JFR recording chunks</strong> - Profiling data split into time-based files</li>
           <li><strong>Artifacts</strong> - Additional diagnostic files (heap dumps, logs, perf counters)</li>

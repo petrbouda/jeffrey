@@ -18,10 +18,10 @@ jobs:
 
     # Stage the bundled /jeffrey-libs/ artifacts into Jib's extraDirectories source.
     # Jib's convention: build/build-performance-analyst-jib/src/main/jib/<path> → /<path> in the image.
-    - name: Download jeffrey-cli.jar
+    - name: Download provisioner.jar
       uses: actions/download-artifact@v8
       with:
-        name: jeffrey-cli-jar
+        name: provisioner-jar
         path: ./build/build-performance-analyst-jib/src/main/jib/jeffrey-libs
 
     - name: Download jeffrey-agent.jar
@@ -30,17 +30,17 @@ jobs:
         name: jeffrey-agent-jar
         path: ./build/build-performance-analyst-jib/src/main/jib/jeffrey-libs
 
-    - name: Download native CLI (amd64)
+    - name: Download native provisioner (amd64)
       uses: actions/download-artifact@v8
       with:
-        name: jeffrey-cli-amd64
-        path: ./build/build-performance-analyst-jib/src/main/jib/jeffrey-libs/cli-amd64
+        name: provisioner-amd64
+        path: ./build/build-performance-analyst-jib/src/main/jib/jeffrey-libs/provisioner-dl-amd64
 
-    - name: Download native CLI (arm64)
+    - name: Download native provisioner (arm64)
       uses: actions/download-artifact@v8
       with:
-        name: jeffrey-cli-arm64
-        path: ./build/build-performance-analyst-jib/src/main/jib/jeffrey-libs/cli-arm64
+        name: provisioner-arm64
+        path: ./build/build-performance-analyst-jib/src/main/jib/jeffrey-libs/provisioner-dl-arm64
 
     - name: Download async-profiler (linux/amd64 + linux/arm64)
       run: |
@@ -56,14 +56,14 @@ jobs:
           rm -rf /tmp/async-profiler-${AP_VERSION}-linux-${AP_ARCH}
         done
 
-    - name: Stage native CLI binaries
+    - name: Stage native provisioner binaries
       run: |
-        mv ./build/build-performance-analyst-jib/src/main/jib/jeffrey-libs/cli-amd64/jeffrey-cli \
-           ./build/build-performance-analyst-jib/src/main/jib/jeffrey-libs/jeffrey-cli-amd64
-        rm -rf ./build/build-performance-analyst-jib/src/main/jib/jeffrey-libs/cli-amd64
-        mv ./build/build-performance-analyst-jib/src/main/jib/jeffrey-libs/cli-arm64/jeffrey-cli \
-           ./build/build-performance-analyst-jib/src/main/jib/jeffrey-libs/jeffrey-cli-arm64
-        rm -rf ./build/build-performance-analyst-jib/src/main/jib/jeffrey-libs/cli-arm64
+        mv ./build/build-performance-analyst-jib/src/main/jib/jeffrey-libs/provisioner-dl-amd64/provisioner \
+           ./build/build-performance-analyst-jib/src/main/jib/jeffrey-libs/provisioner-amd64
+        rm -rf ./build/build-performance-analyst-jib/src/main/jib/jeffrey-libs/provisioner-dl-amd64
+        mv ./build/build-performance-analyst-jib/src/main/jib/jeffrey-libs/provisioner-dl-arm64/provisioner \
+           ./build/build-performance-analyst-jib/src/main/jib/jeffrey-libs/provisioner-arm64
+        rm -rf ./build/build-performance-analyst-jib/src/main/jib/jeffrey-libs/provisioner-dl-arm64
         ls -la ./build/build-performance-analyst-jib/src/main/jib/jeffrey-libs/
 
     # Two-step: jib: prefix goal can only be invoked at the project level, so we install

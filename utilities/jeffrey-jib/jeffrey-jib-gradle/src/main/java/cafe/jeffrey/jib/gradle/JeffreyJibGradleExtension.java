@@ -58,11 +58,11 @@ import java.util.Optional;
  *       {@code "false"} to skip wrapping entirely — the produced image is identical to one
  *       built without this extension. Useful for conditionally disabling profiling per
  *       environment without ripping the extension out of the build file.
- *   <li>{@code jeffreyHome} — shared-volume root containing the CLI and libs.
+ *   <li>{@code jeffreyHome} — shared-volume root containing the provisioner and libs.
  *   <li>{@code baseConfig} — default {@code /jeffrey/jeffrey-base.conf}.
  *   <li>{@code overrideConfig} — optional per-deploy override, default
  *       {@code /jeffrey/jeffrey-overrides.conf}.
- *   <li>{@code cliPath} — bypass {@code jeffreyHome} and point directly at the CLI binary.
+ *   <li>{@code provisionerPath} — bypass {@code jeffreyHome} and point directly at the provisioner binary.
  *   <li>{@code argFile} — location of the generated JVM argfile, default {@code /tmp/jvm.args}.
  * </ul>
  *
