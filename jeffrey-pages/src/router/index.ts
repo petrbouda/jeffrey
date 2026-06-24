@@ -438,10 +438,10 @@ const routes: RouteRecordRaw[] = [
       { path: 'server/configuration/application-properties', redirect: '/docs/hub/configuration' },
       { path: 'server/configuration/advanced-properties', redirect: '/docs/hub/configuration' },
 
-      // ──── Jeffrey Provisioner ────
+      // ──── Jeffrey Provisioner (standalone product) ────
       {
-        path: 'provisioner/overview',
-        name: 'DocsProvisionerOverview',
+        path: 'provisioner',
+        name: 'DocsProvisioner',
         component: () => import('@/views/docs/provisioner/ProvisionerOverviewPage.vue')
       },
       {
@@ -459,8 +459,9 @@ const routes: RouteRecordRaw[] = [
         name: 'DocsProvisionerGeneratedOutput',
         component: () => import('@/views/docs/provisioner/ProvisionerGeneratedOutputPage.vue')
       },
-      // Back-compat redirects from the old /docs/cli/* paths.
-      { path: 'cli/overview', redirect: '/docs/provisioner/overview' },
+      // Back-compat redirects: the old promoted overview path and the legacy /docs/cli/* paths.
+      { path: 'provisioner/overview', redirect: '/docs/provisioner' },
+      { path: 'cli/overview', redirect: '/docs/provisioner' },
       { path: 'cli/configuration', redirect: '/docs/provisioner/configuration' },
       { path: 'cli/directory-structure', redirect: '/docs/provisioner/directory-structure' },
       { path: 'cli/generated-output', redirect: '/docs/provisioner/generated-output' },

@@ -130,7 +130,7 @@ watch(
   ([newCategory, newPage, product]) => {
     // /docs/microscope and /docs/hub are product-level URLs whose category
     // is the product id, not a section path — expand the lead section instead.
-    const isProductRoute = newCategory === 'microscope' || newCategory === 'hub' || newCategory === 'perf-analyst';
+    const isProductRoute = newCategory === 'microscope' || newCategory === 'hub' || newCategory === 'perf-analyst' || newCategory === 'provisioner';
     if (newCategory && !isProductRoute) {
       expandedSections.value.add(newCategory);
     }
