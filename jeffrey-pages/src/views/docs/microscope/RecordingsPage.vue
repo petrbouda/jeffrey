@@ -121,7 +121,7 @@ onMounted(() => {
           <div class="step-number">1c</div>
           <div class="step-content">
             <h4><i class="bi bi-box-arrow-in-right"></i> Open by path (deep link)</h4>
-            <p>Open <code>/quick-open?path=&lt;absolute-path-to-jfr&gt;</code> and Jeffrey reads that local file, adds it as an ungrouped recording, builds the profile, and jumps straight in — all steps below happen automatically. Used by the <router-link to="/docs/microscope/intellij-plugin/jeffrey-microscope">Jeffrey Microscope plugin</router-link> to send a <code>.jfr</code> straight from the IDE.</p>
+            <p>Open <code>/quick-open?path=&lt;absolute-path-to-jfr&gt;</code> and Jeffrey reads that local file, adds it as an ungrouped recording, builds the profile, and jumps straight in — all steps below happen automatically. Used by the <router-link to="/docs/intellij-plugin">Jeffrey Microscope plugin</router-link> to send a <code>.jfr</code> straight from the IDE.</p>
           </div>
         </div>
         <div class="workflow-step">

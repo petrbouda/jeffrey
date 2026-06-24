@@ -46,7 +46,7 @@ onMounted(() => {
         analyzing Java Flight Recorder files inside the IDE. Microscope can route its
         <em>Open in IDE</em> and <em>View Source</em> requests to it as an alternative to the
         first-party
-        <router-link to="/docs/microscope/intellij-plugin/jeffrey-microscope">Jeffrey Microscope Plugin</router-link>.
+        <router-link to="/docs/intellij-plugin">Jeffrey Microscope Plugin</router-link>.
       </p>
 
       <h2 id="install">Install</h2>

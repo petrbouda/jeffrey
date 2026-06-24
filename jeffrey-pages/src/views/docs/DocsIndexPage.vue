@@ -25,9 +25,11 @@ import { useDocHeadings } from '@/composables/useDocHeadings';
 const { setHeadings } = useDocHeadings();
 
 const microscopeComponents = ['Flamegraph', 'Timeseries', 'Guardian', 'Heap dump', 'AI assistant', 'Events'];
-const serverComponents = ['Continuous recording', 'Scheduler', 'gRPC API', 'Agent', 'JIB'];
+const serverComponents = ['Continuous recording', 'Scheduler', 'gRPC API', 'Agent'];
 const perfAnalystComponents = ['Hub-connected', 'AI recommendations', 'Severity grading', 'Patches'];
 const provisionerComponents = ['HOCON config', 'JVM argfile', 'Session layout', 'Workspace events', 'Native binary'];
+const jibComponents = ['Gradle/Maven', 'Entrypoint wrapper', 'Shared volume', 'Kill switch'];
+const pluginComponents = ['Open in IDE', 'Inline source', 'Java & Kotlin', 'Auto-pairing'];
 
 onMounted(() => {
   setHeadings([]);
@@ -42,7 +44,7 @@ onMounted(() => {
     />
 
     <div class="docs-content">
-      <p class="docs-lede">Jeffrey ships as four products. Pick the one that matches how you use it.</p>
+      <p class="docs-lede">Jeffrey ships as six products. Pick the one that matches how you use it.</p>
 
       <div class="product-grid">
         <DocsProductCard
@@ -83,6 +85,26 @@ onMounted(() => {
           :components="provisionerComponents"
           cta-text="Open Provisioner docs"
           variant="quaternary"
+        />
+        <DocsProductCard
+          to="/docs/jib"
+          title="Jeffrey JIB"
+          role="Standalone · Build-time"
+          description="A Jib (Gradle/Maven) plugin extension that wraps the container entrypoint so Jeffrey profiling initialises before your app starts — no Kubernetes command: override and no binaries baked into your image."
+          icon="bi bi-box-seam"
+          :components="jibComponents"
+          cta-text="Open JIB docs"
+          variant="quinary"
+        />
+        <DocsProductCard
+          to="/docs/intellij-plugin"
+          title="IntelliJ Plugin"
+          role="IDE · Companion"
+          description="The IDE bridge. Jump from a Microscope flame-graph frame straight to the source line in your open IntelliJ window, and view inline source pulled live from the IDE — Java and Kotlin."
+          icon="bi bi-window-stack"
+          :components="pluginComponents"
+          cta-text="Open IntelliJ Plugin docs"
+          variant="senary"
         />
       </div>
     </div>

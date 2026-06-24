@@ -128,7 +128,7 @@ const productTabs: ProductTab[] = [
         ]
       }
     },
-    docsRoute: '/docs/microscope/intellij-plugin/jeffrey-microscope',
+    docsRoute: '/docs/intellij-plugin',
     cta: 'Read plugin docs'
   },
   {

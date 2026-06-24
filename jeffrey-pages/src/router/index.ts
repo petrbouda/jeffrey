@@ -209,17 +209,10 @@ const routes: RouteRecordRaw[] = [
         name: 'DocsRecordings',
         component: () => import('@/views/docs/microscope/RecordingsPage.vue')
       },
-      { path: 'microscope/intellij-plugin', redirect: '/docs/microscope/intellij-plugin/jeffrey-microscope' },
-      {
-        path: 'microscope/intellij-plugin/jeffrey-microscope',
-        name: 'DocsIntelliJJeffreyPlugin',
-        component: () => import('@/views/docs/microscope/JeffreyMicroscopePluginPage.vue')
-      },
-      {
-        path: 'microscope/intellij-plugin/jfr-profiler',
-        name: 'DocsIntelliJJfrProfilerPlugin',
-        component: () => import('@/views/docs/microscope/JfrProfilerPluginPage.vue')
-      },
+      // The IntelliJ Plugin moved to its own top-level product at /docs/intellij-plugin.
+      { path: 'microscope/intellij-plugin', redirect: '/docs/intellij-plugin' },
+      { path: 'microscope/intellij-plugin/jeffrey-microscope', redirect: '/docs/intellij-plugin' },
+      { path: 'microscope/intellij-plugin/jfr-profiler', redirect: '/docs/intellij-plugin/jfr-profiler' },
       // Profiles
       {
         path: 'microscope/profiles',
@@ -502,11 +495,45 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/docs/events/JeffreyJfrEventsPage.vue')
       },
 
-      // ──── Jeffrey JIB ────
+      // ──── Jeffrey JIB (standalone product) ────
       {
-        path: 'jib/overview',
+        path: 'jib',
         name: 'DocsJeffreyJib',
-        component: () => import('@/views/docs/jib/JeffreyJibPage.vue')
+        component: () => import('@/views/docs/jib/JibOverviewPage.vue')
+      },
+      {
+        path: 'jib/configuration',
+        name: 'DocsJeffreyJibConfiguration',
+        component: () => import('@/views/docs/jib/JibConfigurationPage.vue')
+      },
+      {
+        path: 'jib/setup',
+        name: 'DocsJeffreyJibSetup',
+        component: () => import('@/views/docs/jib/JibSetupPage.vue')
+      },
+      // Back-compat redirect: the old promoted overview path.
+      { path: 'jib/overview', redirect: '/docs/jib' },
+
+      // ──── IntelliJ Plugin (standalone product) ────
+      {
+        path: 'intellij-plugin',
+        name: 'DocsIntelliJPlugin',
+        component: () => import('@/views/docs/intellij-plugin/IntelliJPluginOverviewPage.vue')
+      },
+      {
+        path: 'intellij-plugin/configuration',
+        name: 'DocsIntelliJPluginConfiguration',
+        component: () => import('@/views/docs/intellij-plugin/IntelliJPluginConfigurationPage.vue')
+      },
+      {
+        path: 'intellij-plugin/setup',
+        name: 'DocsIntelliJPluginSetup',
+        component: () => import('@/views/docs/intellij-plugin/IntelliJPluginSetupPage.vue')
+      },
+      {
+        path: 'intellij-plugin/jfr-profiler',
+        name: 'DocsIntelliJJfrProfilerPlugin',
+        component: () => import('@/views/docs/intellij-plugin/JfrProfilerPluginPage.vue')
       },
 
       // ──── Redirects from old paths ────

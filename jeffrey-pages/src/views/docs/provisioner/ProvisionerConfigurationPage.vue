@@ -100,7 +100,7 @@ additional-jvm-options = "-Xmx2g -Xms2g -Djeffrey.logging.trace-file.path=<<JEFF
 
         <h2 id="configuration-options">Configuration Options</h2>
 
-        <p>Several path-style settings accept an environment-variable override when the HOCON entry is left blank — useful when the value is baked into a container image (see <router-link to="/docs/jib/overview">Jeffrey JIB</router-link>) or supplied by the orchestrator at runtime. Resolution order is always <strong>HOCON value &rarr; environment variable &rarr; built-in default</strong>.</p>
+        <p>Several path-style settings accept an environment-variable override when the HOCON entry is left blank — useful when the value is baked into a container image (see <router-link to="/docs/jib">Jeffrey JIB</router-link>) or supplied by the orchestrator at runtime. Resolution order is always <strong>HOCON value &rarr; environment variable &rarr; built-in default</strong>.</p>
 
         <table>
           <thead>

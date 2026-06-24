@@ -25,7 +25,7 @@ defineProps<{
   role: string
   components: string[]
   ctaText: string
-  variant?: 'primary' | 'secondary' | 'tertiary' | 'quaternary'
+  variant?: 'primary' | 'secondary' | 'tertiary' | 'quaternary' | 'quinary' | 'senary'
 }>()
 </script>
 
@@ -36,7 +36,9 @@ defineProps<{
     :class="{
       'variant-secondary': variant === 'secondary',
       'variant-tertiary': variant === 'tertiary',
-      'variant-quaternary': variant === 'quaternary'
+      'variant-quaternary': variant === 'quaternary',
+      'variant-quinary': variant === 'quinary',
+      'variant-senary': variant === 'senary'
     }"
   >
     <div class="card-rail"></div>
@@ -109,6 +111,22 @@ defineProps<{
   --accent-tint: #fef3c7;
   --accent-soft: #fffbeb;
   --accent-shadow: rgba(245, 158, 11, 0.35);
+}
+
+.product-card.variant-quinary {
+  /* quinary: Jeffrey JIB — indigo, matching the home-page ecosystem panel */
+  --accent: #6366f1;
+  --accent-tint: #e0e7ff;
+  --accent-soft: #eef2ff;
+  --accent-shadow: rgba(99, 102, 241, 0.35);
+}
+
+.product-card.variant-senary {
+  /* senary: IntelliJ Plugin — orange, matching the plugin brand */
+  --accent: #fb923c;
+  --accent-tint: #ffedd5;
+  --accent-soft: #fff7ed;
+  --accent-shadow: rgba(251, 146, 60, 0.35);
 }
 
 .product-card:hover {
