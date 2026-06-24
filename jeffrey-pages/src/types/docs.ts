@@ -29,6 +29,9 @@ export interface DocSection {
   path: string;
   icon: string;
   children: DocPage[];
+  // Marks a single-page section that links into ANOTHER product's docs.
+  // The sidebar renders a "Docs ↗" badge on these so the cross-product jump is visible.
+  crossLink?: boolean;
 }
 
 export interface DocHeading {

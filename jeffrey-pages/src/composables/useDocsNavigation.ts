@@ -130,6 +130,7 @@ export const microscopeNavigation: DocSection[] = [
     title: 'IntelliJ Plugin',
     path: '_microscope-intellij-plugin-link',
     icon: 'bi-window-stack',
+    crossLink: true,
     children: [{ title: 'IntelliJ Plugin docs', to: '/docs/intellij-plugin' }]
   },
   {
@@ -237,6 +238,7 @@ export const hubNavigation: DocSection[] = [
     title: 'Jeffrey Provisioner',
     path: '_hub-provisioner-link',
     icon: 'bi-terminal',
+    crossLink: true,
     children: [{ title: 'Provisioner docs', to: '/docs/provisioner' }]
   },
   {
@@ -252,6 +254,7 @@ export const hubNavigation: DocSection[] = [
     title: 'Jeffrey JIB',
     path: '_hub-jib-link',
     icon: 'bi-box-seam',
+    crossLink: true,
     children: [{ title: 'Jeffrey JIB docs', to: '/docs/jib' }]
   }
 ];
@@ -315,6 +318,7 @@ export const provisionerNavigation: DocSection[] = [
     title: 'Deployment',
     path: '_provisioner-deployment',
     icon: 'bi-cloud-upload',
+    crossLink: true,
     children: [{ title: 'Deploying with the Hub', to: '/docs/hub/deployment/jeffrey-provisioner' }]
   }
 ];
@@ -345,6 +349,7 @@ export const jibNavigation: DocSection[] = [
     title: 'Deployment',
     path: '_jib-deployment',
     icon: 'bi-cloud-upload',
+    crossLink: true,
     children: [{ title: 'Deploying with the Hub', to: '/docs/hub/deployment/jeffrey-jib' }]
   }
 ];

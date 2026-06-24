@@ -140,12 +140,12 @@ onMounted(() => {
       </div>
 
       <h3 id="ai-integration">AI Integration</h3>
-      <p>The assistant is wired through Spring AI with pluggable Claude and OpenAI providers, selected by <code>jeffrey.ai.provider</code> and <code>jeffrey.ai.model</code>. Two MCP servers expose the data: <code>duckdb-ai-mcp</code> answers JFR questions by running OQL against the active profile's DuckDB, and <code>heap-dump-ai-mcp</code> handles heap-dump queries. Configuration and capability detail live on the <router-link to="/docs/ai/overview">AI Overview</router-link> page.</p>
+      <p>The assistant is wired through Spring AI with pluggable Claude, ChatGPT, Ollama, and Claude Code providers, selected by <code>jeffrey.microscope.ai.provider</code> and <code>jeffrey.microscope.ai.model</code>. Two MCP servers expose the data: <code>duckdb-jfr-mcp</code> answers JFR questions by running OQL against the active profile's DuckDB, and <code>duckdb-heapdump-mcp</code> handles heap-dump queries. Configuration and capability detail live on the <router-link to="/docs/ai/overview">AI Overview</router-link> page.</p>
 
       <div class="arch-flow">
         <div class="flow-node"><i class="bi bi-chat-dots"></i><span>Assistant</span></div>
         <div class="flow-arrow"><i class="bi bi-arrow-right"></i></div>
-        <div class="flow-node"><i class="bi bi-robot"></i><span>Spring AI<br><small>Claude / OpenAI</small></span></div>
+        <div class="flow-node"><i class="bi bi-robot"></i><span>Spring AI<br><small>Claude / ChatGPT / Ollama / Claude Code</small></span></div>
         <div class="flow-arrow"><i class="bi bi-arrow-right"></i></div>
         <div class="flow-node"><i class="bi bi-plug"></i><span>MCP Server</span></div>
         <div class="flow-arrow"><i class="bi bi-arrow-right"></i></div>

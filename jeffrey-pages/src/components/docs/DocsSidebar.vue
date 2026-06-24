@@ -197,6 +197,9 @@ watch(
         >
           <i class="bi section-icon" :class="section.icon"></i>
           <span class="section-title">{{ section.title }}</span>
+          <span v-if="section.crossLink" class="xlink-badge">
+            Docs<i class="bi bi-arrow-up-right"></i>
+          </span>
         </router-link>
 
         <!-- Multi-page section: collapsible -->
@@ -297,6 +300,27 @@ watch(
   --color-primary: #059669;
   --color-primary-light: rgba(16, 185, 129, 0.10);
   --color-primary-lighter: rgba(16, 185, 129, 0.05);
+}
+
+/* Provisioner — rose, matching its ecosystem/card accent. */
+.sidebar-content.product-provisioner {
+  --color-primary: #e11d48;
+  --color-primary-light: rgba(225, 29, 72, 0.10);
+  --color-primary-lighter: rgba(225, 29, 72, 0.05);
+}
+
+/* Jeffrey JIB — indigo. */
+.sidebar-content.product-jib {
+  --color-primary: #4f46e5;
+  --color-primary-light: rgba(79, 70, 229, 0.10);
+  --color-primary-lighter: rgba(79, 70, 229, 0.05);
+}
+
+/* IntelliJ Plugin — orange. */
+.sidebar-content.product-intellij-plugin {
+  --color-primary: #ea580c;
+  --color-primary-light: rgba(234, 88, 12, 0.10);
+  --color-primary-lighter: rgba(234, 88, 12, 0.05);
 }
 
 /* ============================
@@ -494,6 +518,26 @@ watch(
 
 .nav-section-direct.active-section .section-icon {
   color: var(--color-primary);
+}
+
+/* Cross-product link badge — marks a section that jumps into another product's docs. */
+.nav-section-direct .xlink-badge {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  font-size: 0.56rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-primary);
+  background: var(--color-primary-light);
+  border-radius: 999px;
+  padding: 0.1rem 0.4rem;
+}
+
+.nav-section-direct .xlink-badge i {
+  font-size: 0.6rem;
 }
 
 /* ============================

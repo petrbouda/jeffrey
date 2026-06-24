@@ -106,11 +106,11 @@ defineProps<{
 }
 
 .product-card.variant-quaternary {
-  /* quaternary: Provisioner — amber, evoking the build/bootstrap tooling */
-  --accent: #f59e0b;
-  --accent-tint: #fef3c7;
-  --accent-soft: #fffbeb;
-  --accent-shadow: rgba(245, 158, 11, 0.35);
+  /* quaternary: Provisioner — rose, kept distinct from the IntelliJ Plugin's orange */
+  --accent: #f43f5e;
+  --accent-tint: #ffe4e6;
+  --accent-soft: #fff1f2;
+  --accent-shadow: rgba(244, 63, 94, 0.35);
 }
 
 .product-card.variant-quinary {

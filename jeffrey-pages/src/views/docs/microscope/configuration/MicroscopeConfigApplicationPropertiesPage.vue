@@ -167,12 +167,12 @@ onMounted(() => {
             <td><code>jeffrey.microscope.ai.provider</code></td>
             <td><code>none</code></td>
             <td>
-              AI provider. One of <code>claude</code>, <code>openai</code>, or <code>none</code> (disabled).
+              AI provider. One of <code>claude</code>, <code>chatgpt</code>, <code>ollama</code>, <code>claude-code</code>, or <code>none</code> (disabled).
             </td>
           </tr>
           <tr>
             <td><code>jeffrey.microscope.ai.model</code></td>
-            <td><code>claude-opus-4-6</code></td>
+            <td><code>claude-opus-4-8</code></td>
             <td>Model identifier matching the chosen provider.</td>
           </tr>
           <tr>

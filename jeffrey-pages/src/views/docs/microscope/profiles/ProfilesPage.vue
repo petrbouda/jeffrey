@@ -253,6 +253,11 @@ const folderStructure = `$JEFFREY_HOME/
           title="Method Tracing"
           description="Wall-clock flamegraphs from traced methods, slowest traces, cumulated analysis, and per-method drill-down."
         />
+        <DocsFeatureCard
+          icon="bi bi-bounding-box"
+          title="Async-Profiler Spans"
+          description="Span-level latency from async-profiler spans — overview by tag with total, average, P95 and max duration, slowest spans ranked by duration, per-span CPU / Wall-Clock / Allocation flame graphs, and the events that ran during a span."
+        />
       </div>
 
       <h2 id="heap-dump-analysis">Heap Dump Analysis</h2>

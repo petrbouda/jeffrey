@@ -49,7 +49,7 @@ onMounted(() => {
       <div class="product-grid">
         <DocsProductCard
           to="/docs/microscope"
-          title="Jeffrey Microscope"
+          title="Microscope"
           role="Standalone · Single-user"
           description="The standalone analyst. Open JFR recordings and heap dumps locally with full visualization, guardian, and AI features."
           icon="bi bi-pc-display"
@@ -58,7 +58,7 @@ onMounted(() => {
         />
         <DocsProductCard
           to="/docs/hub"
-          title="Jeffrey Hub"
+          title="Hub"
           role="Headless · Multi-workspace"
           description="The headless multi-workspace server. Continuously collect JFR recordings from running applications and serve them to Microscope clients."
           icon="bi bi-cloud"
@@ -78,7 +78,7 @@ onMounted(() => {
         />
         <DocsProductCard
           to="/docs/provisioner"
-          title="Jeffrey Provisioner"
+          title="Provisioner"
           role="Standalone · Session bootstrap"
           description="The profiling-session bootstrap tool. Reads a HOCON config to lay out the workspace/project/session tree, register sessions with the Hub, and generate the JVM argfile that starts your app under the profiler."
           icon="bi bi-terminal"
