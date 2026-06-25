@@ -190,7 +190,7 @@ class RepositoryGrpcServiceTest {
 
             var repoManagerFactory = mock(RepositoryManager.Factory.class);
 
-            var stub = startServer(new RepositoryGrpcService(platformRepositories, repoManagerFactory));
+            var stub = startServer(new RepositoryGrpcService(new GrpcLookups(platformRepositories, repoManagerFactory, null)));
 
             StatusRuntimeException ex = assertThrows(StatusRuntimeException.class, () ->
                     stub.getSession(
@@ -297,7 +297,7 @@ class RepositoryGrpcServiceTest {
 
             var repoManagerFactory = mock(RepositoryManager.Factory.class);
 
-            var stub = startServer(new RepositoryGrpcService(platformRepositories, repoManagerFactory));
+            var stub = startServer(new RepositoryGrpcService(new GrpcLookups(platformRepositories, repoManagerFactory, null)));
 
             StatusRuntimeException ex = assertThrows(StatusRuntimeException.class, () ->
                     stub.deleteSession(
@@ -339,7 +339,7 @@ class RepositoryGrpcServiceTest {
 
             var repoManagerFactory = mock(RepositoryManager.Factory.class);
 
-            var stub = startServer(new RepositoryGrpcService(platformRepositories, repoManagerFactory));
+            var stub = startServer(new RepositoryGrpcService(new GrpcLookups(platformRepositories, repoManagerFactory, null)));
 
             StatusRuntimeException ex = assertThrows(StatusRuntimeException.class, () ->
                     stub.deleteFilesInSession(
@@ -370,7 +370,7 @@ class RepositoryGrpcServiceTest {
         var repoManagerFactory = mock(RepositoryManager.Factory.class);
         when(repoManagerFactory.apply(TEST_PROJECT_INFO)).thenReturn(repoManager);
 
-        return new RepositoryGrpcService(platformRepositories, repoManagerFactory);
+        return new RepositoryGrpcService(new GrpcLookups(platformRepositories, repoManagerFactory, null));
     }
 
     /**
@@ -386,7 +386,7 @@ class RepositoryGrpcServiceTest {
         var repoManagerFactory = mock(RepositoryManager.Factory.class);
         when(repoManagerFactory.apply(TEST_PROJECT_INFO)).thenReturn(repoManager);
 
-        return new RepositoryGrpcService(platformRepositories, repoManagerFactory);
+        return new RepositoryGrpcService(new GrpcLookups(platformRepositories, repoManagerFactory, null));
     }
 
     /**
@@ -401,6 +401,6 @@ class RepositoryGrpcServiceTest {
 
         var repoManagerFactory = mock(RepositoryManager.Factory.class);
 
-        return new RepositoryGrpcService(platformRepositories, repoManagerFactory);
+        return new RepositoryGrpcService(new GrpcLookups(platformRepositories, repoManagerFactory, null));
     }
 }

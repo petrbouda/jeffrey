@@ -56,6 +56,19 @@ public class GrpcServerConfiguration {
         return new JfrGrpcServerInterceptor();
     }
 
+    /**
+     * Shared resource-resolution collaborator for the gRPC services. Carries the repositories and
+     * manager factories so the services can resolve workspaces/projects/sessions/instances by id
+     * with consistent NOT_FOUND handling, instead of each repeating the lookup wiring.
+     */
+    @Bean
+    public GrpcLookups grpcLookups(
+            HubPlatformRepositories platformRepositories,
+            RepositoryManager.Factory repositoryManagerFactory,
+            ProjectManager.Factory projectManagerFactory) {
+        return new GrpcLookups(platformRepositories, repositoryManagerFactory, projectManagerFactory);
+    }
+
     @Bean
     public BindableService workspaceGrpcService(
             WorkspacesManager workspacesManager,
@@ -65,40 +78,33 @@ public class GrpcServerConfiguration {
     }
 
     @Bean
-    public BindableService projectGrpcService(
-            WorkspacesManager workspacesManager,
-            HubPlatformRepositories platformRepositories,
-            ProjectManager.Factory projectManagerFactory) {
-        return new ProjectGrpcService(workspacesManager, platformRepositories, projectManagerFactory);
+    public BindableService projectGrpcService(WorkspacesManager workspacesManager, GrpcLookups grpcLookups) {
+        return new ProjectGrpcService(workspacesManager, grpcLookups);
     }
 
     @Bean
     public BindableService instanceGrpcService(
             HubPlatformRepositories platformRepositories,
-            RepositoryManager.Factory repositoryManagerFactory,
+            GrpcLookups grpcLookups,
             Clock clock) {
-        return new InstanceGrpcService(platformRepositories, repositoryManagerFactory, clock);
+        return new InstanceGrpcService(platformRepositories, grpcLookups, clock);
     }
 
     @Bean
     public BindableService profilerSettingsGrpcService(
             HubPlatformRepositories platformRepositories,
-            ProjectManager.Factory projectManagerFactory) {
-        return new ProfilerSettingsGrpcService(platformRepositories, projectManagerFactory);
+            GrpcLookups grpcLookups) {
+        return new ProfilerSettingsGrpcService(platformRepositories, grpcLookups);
     }
 
     @Bean
-    public BindableService repositoryGrpcService(
-            HubPlatformRepositories platformRepositories,
-            RepositoryManager.Factory repositoryManagerFactory) {
-        return new RepositoryGrpcService(platformRepositories, repositoryManagerFactory);
+    public BindableService repositoryGrpcService(GrpcLookups grpcLookups) {
+        return new RepositoryGrpcService(grpcLookups);
     }
 
     @Bean
-    public BindableService recordingDownloadGrpcService(
-            HubPlatformRepositories platformRepositories,
-            RepositoryManager.Factory repositoryManagerFactory) {
-        return new RecordingDownloadGrpcService(platformRepositories, repositoryManagerFactory);
+    public BindableService recordingDownloadGrpcService(GrpcLookups grpcLookups) {
+        return new RecordingDownloadGrpcService(grpcLookups);
     }
 
     @Bean

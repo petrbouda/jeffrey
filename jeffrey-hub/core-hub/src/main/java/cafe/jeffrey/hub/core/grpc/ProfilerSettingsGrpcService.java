@@ -34,30 +34,25 @@ public class ProfilerSettingsGrpcService extends ProfilerSettingsServiceGrpc.Pro
 
     private static final Logger LOG = LoggerFactory.getLogger(ProfilerSettingsGrpcService.class);
 
-    private final HubPlatformRepositories platformRepositories;
-    private final ProjectManager.Factory projectManagerFactory;
+    private final GrpcLookups lookups;
     private final ProfilerRepository profilerRepository;
 
-    public ProfilerSettingsGrpcService(
-            HubPlatformRepositories platformRepositories,
-            ProjectManager.Factory projectManagerFactory) {
-
-        this.platformRepositories = platformRepositories;
-        this.projectManagerFactory = projectManagerFactory;
+    public ProfilerSettingsGrpcService(HubPlatformRepositories platformRepositories, GrpcLookups lookups) {
+        this.lookups = lookups;
         this.profilerRepository = platformRepositories.newProfilerRepository();
     }
 
     @Override
     public void getSettings(GetProfilerSettingsRequest request, StreamObserver<GetProfilerSettingsResponse> responseObserver) {
         GrpcUnary.respond(responseObserver, () -> {
-            ProjectManager project = findProject(request.getProjectId());
+            ProjectManager project = lookups.projectManager(request.getProjectId());
             EffectiveProfilerSettings settings = project.profilerSettingsManager().fetchEffectiveSettings();
 
             LOG.debug("Fetched profiler settings via gRPC: projectId={}", request.getProjectId());
 
             return GetProfilerSettingsResponse.newBuilder()
-                    .setAgentSettings(settings.agentSettings() != null ? settings.agentSettings() : "")
-                    .setLevel(toProtoLevel(settings.level()))
+                    .setAgentSettings(ProtoMappers.orEmpty(settings.agentSettings()))
+                    .setLevel(ProtoMappers.settingsLevel(settings.level()))
                     .build();
         });
     }
@@ -65,7 +60,7 @@ public class ProfilerSettingsGrpcService extends ProfilerSettingsServiceGrpc.Pro
     @Override
     public void upsertSettings(UpsertProfilerSettingsRequest request, StreamObserver<UpsertProfilerSettingsResponse> responseObserver) {
         GrpcUnary.respond(responseObserver, () -> {
-            ProjectManager project = findProject(request.getProjectId());
+            ProjectManager project = lookups.projectManager(request.getProjectId());
             project.profilerSettingsManager().upsertSettings(request.getAgentSettings());
 
             LOG.debug("Upserted profiler settings via gRPC: projectId={}", request.getProjectId());
@@ -77,7 +72,7 @@ public class ProfilerSettingsGrpcService extends ProfilerSettingsServiceGrpc.Pro
     @Override
     public void deleteSettings(DeleteProfilerSettingsRequest request, StreamObserver<DeleteProfilerSettingsResponse> responseObserver) {
         GrpcUnary.respond(responseObserver, () -> {
-            ProjectManager project = findProject(request.getProjectId());
+            ProjectManager project = lookups.projectManager(request.getProjectId());
             project.profilerSettingsManager().deleteSettings();
 
             LOG.debug("Deleted profiler settings via gRPC: projectId={}", request.getProjectId());
@@ -94,9 +89,9 @@ public class ProfilerSettingsGrpcService extends ProfilerSettingsServiceGrpc.Pro
             ListAllProfilerSettingsResponse.Builder responseBuilder = ListAllProfilerSettingsResponse.newBuilder();
             for (ProfilerInfo info : allSettings) {
                 responseBuilder.addSettings(ProfilerSettingsEntry.newBuilder()
-                        .setWorkspaceId(info.workspaceId() != null ? info.workspaceId() : "")
-                        .setProjectId(info.projectId() != null ? info.projectId() : "")
-                        .setAgentSettings(info.agentSettings() != null ? info.agentSettings() : "")
+                        .setWorkspaceId(ProtoMappers.orEmpty(info.workspaceId()))
+                        .setProjectId(ProtoMappers.orEmpty(info.projectId()))
+                        .setAgentSettings(ProtoMappers.orEmpty(info.agentSettings()))
                         .build());
             }
 
@@ -184,18 +179,4 @@ public class ProfilerSettingsGrpcService extends ProfilerSettingsServiceGrpc.Pro
         });
     }
 
-    private ProjectManager findProject(String projectId) {
-        return platformRepositories.newProjectRepository(projectId).find()
-                .map(projectManagerFactory)
-                .orElseThrow(() -> GrpcExceptions.notFound("Project not found: " + projectId));
-    }
-
-    private static SettingsLevel toProtoLevel(EffectiveProfilerSettings.SettingsLevel level) {
-        return switch (level) {
-            case PROJECT -> SettingsLevel.SETTINGS_LEVEL_PROJECT;
-            case WORKSPACE -> SettingsLevel.SETTINGS_LEVEL_WORKSPACE;
-            case GLOBAL -> SettingsLevel.SETTINGS_LEVEL_GLOBAL;
-            case NONE -> SettingsLevel.SETTINGS_LEVEL_UNSPECIFIED;
-        };
-    }
 }

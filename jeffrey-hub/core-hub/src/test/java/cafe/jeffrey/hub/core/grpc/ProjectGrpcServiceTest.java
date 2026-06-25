@@ -234,7 +234,7 @@ class ProjectGrpcServiceTest {
         var platformRepositories = mock(HubPlatformRepositories.class);
         var projectManagerFactory = mock(ProjectManager.Factory.class);
 
-        return new ProjectGrpcService(workspacesManager, platformRepositories, projectManagerFactory);
+        return new ProjectGrpcService(workspacesManager, new GrpcLookups(platformRepositories, null, projectManagerFactory));
     }
 
     /**
@@ -318,7 +318,7 @@ class ProjectGrpcServiceTest {
         var platformRepositories = mock(HubPlatformRepositories.class);
         var projectManagerFactory = mock(ProjectManager.Factory.class);
 
-        return new ProjectGrpcService(workspacesManager, platformRepositories, projectManagerFactory);
+        return new ProjectGrpcService(workspacesManager, new GrpcLookups(platformRepositories, null, projectManagerFactory));
     }
 
     /**
@@ -336,7 +336,7 @@ class ProjectGrpcServiceTest {
 
         var workspacesManager = mock(WorkspacesManager.class);
 
-        return new ProjectGrpcService(workspacesManager, platformRepositories, projectManagerFactory);
+        return new ProjectGrpcService(workspacesManager, new GrpcLookups(platformRepositories, null, projectManagerFactory));
     }
 
     /**
@@ -349,7 +349,7 @@ class ProjectGrpcServiceTest {
         var platformRepositories = mock(HubPlatformRepositories.class);
         var projectManagerFactory = mock(ProjectManager.Factory.class);
 
-        return new ProjectGrpcService(workspacesManager, platformRepositories, projectManagerFactory);
+        return new ProjectGrpcService(workspacesManager, new GrpcLookups(platformRepositories, null, projectManagerFactory));
     }
 
     /**
@@ -372,7 +372,7 @@ class ProjectGrpcServiceTest {
 
         var workspacesManager = mock(WorkspacesManager.class);
 
-        return new ProjectGrpcService(workspacesManager, platformRepositories, projectManagerFactory);
+        return new ProjectGrpcService(workspacesManager, new GrpcLookups(platformRepositories, null, projectManagerFactory));
     }
 
     /**
@@ -389,7 +389,7 @@ class ProjectGrpcServiceTest {
         var projectManagerFactory = mock(ProjectManager.Factory.class);
         var workspacesManager = mock(WorkspacesManager.class);
 
-        return new ProjectGrpcService(workspacesManager, platformRepositories, projectManagerFactory);
+        return new ProjectGrpcService(workspacesManager, new GrpcLookups(platformRepositories, null, projectManagerFactory));
     }
 
     private static DetailedProjectInfo testDetailedInfo() {

@@ -27,7 +27,6 @@ import cafe.jeffrey.hub.core.manager.project.ProjectManager.DetailedProjectInfo;
 import cafe.jeffrey.hub.core.manager.project.ProjectsManager;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspaceManager;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
-import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceEventCreator;
 
 import java.util.List;
@@ -38,17 +37,11 @@ public class ProjectGrpcService extends ProjectServiceGrpc.ProjectServiceImplBas
     private static final Logger LOG = LoggerFactory.getLogger(ProjectGrpcService.class);
 
     private final WorkspacesManager workspacesManager;
-    private final HubPlatformRepositories platformRepositories;
-    private final ProjectManager.Factory projectManagerFactory;
+    private final GrpcLookups lookups;
 
-    public ProjectGrpcService(
-            WorkspacesManager workspacesManager,
-            HubPlatformRepositories platformRepositories,
-            ProjectManager.Factory projectManagerFactory) {
-
+    public ProjectGrpcService(WorkspacesManager workspacesManager, GrpcLookups lookups) {
         this.workspacesManager = workspacesManager;
-        this.platformRepositories = platformRepositories;
-        this.projectManagerFactory = projectManagerFactory;
+        this.lookups = lookups;
     }
 
     @Override
@@ -96,7 +89,7 @@ public class ProjectGrpcService extends ProjectServiceGrpc.ProjectServiceImplBas
     @Override
     public void deleteProject(DeleteProjectRequest request, StreamObserver<DeleteProjectResponse> responseObserver) {
         GrpcUnary.respond(responseObserver, () -> {
-            ProjectManager project = findProject(request.getProjectId());
+            ProjectManager project = lookups.projectManager(request.getProjectId());
             project.delete(WorkspaceEventCreator.MANUAL);
 
             LOG.debug("Deleted project via gRPC: projectId={}", request.getProjectId());
@@ -108,30 +101,13 @@ public class ProjectGrpcService extends ProjectServiceGrpc.ProjectServiceImplBas
     @Override
     public void restoreProject(RestoreProjectRequest request, StreamObserver<RestoreProjectResponse> responseObserver) {
         GrpcUnary.respond(responseObserver, () -> {
-            ProjectManager project = findProjectIncludingDeleted(request.getProjectId());
+            ProjectManager project = lookups.projectManagerIncludingDeleted(request.getProjectId());
             project.restore();
 
             LOG.info("Restored project via gRPC: projectId={}", request.getProjectId());
 
             return RestoreProjectResponse.getDefaultInstance();
         });
-    }
-
-    private ProjectManager findProject(String projectId) {
-        return platformRepositories.newProjectRepository(projectId).find()
-                .map(projectManagerFactory)
-                .orElseThrow(() -> GrpcExceptions.notFound("Project not found: " + projectId));
-    }
-
-    /**
-     * Resolves a project regardless of its soft-deleted state. Restore must see
-     * soft-deleted projects — the active-only {@link #findProject(String)} filters
-     * them out, which would make restoring impossible.
-     */
-    private ProjectManager findProjectIncludingDeleted(String projectId) {
-        return platformRepositories.newProjectRepository(projectId).findIncludingDeleted()
-                .map(projectManagerFactory)
-                .orElseThrow(() -> GrpcExceptions.notFound("Project not found: " + projectId));
     }
 
     /**
@@ -162,13 +138,13 @@ public class ProjectGrpcService extends ProjectServiceGrpc.ProjectServiceImplBas
 
         var builder = ProjectInfo.newBuilder()
                 .setId(info.id())
-                .setOriginId(info.originId() != null ? info.originId() : "")
+                .setOriginId(ProtoMappers.orEmpty(info.originId()))
                 .setName(info.name())
-                .setLabel(info.label() != null ? info.label() : "")
-                .setNamespace(info.namespace() != null ? info.namespace() : "")
+                .setLabel(ProtoMappers.orEmpty(info.label()))
+                .setNamespace(ProtoMappers.orEmpty(info.namespace()))
                 .setCreatedAt(info.createdAt() != null ? info.createdAt().toEpochMilli() : 0)
                 .setWorkspaceId(info.workspaceId())
-                .setStatus(toProtoRecordingStatus(detail.status()))
+                .setStatus(ProtoMappers.recordingStatus(detail.status()))
                 .setSessionCount(detail.sessionCount());
 
         if (info.deletedAt() != null) {
@@ -176,17 +152,5 @@ public class ProjectGrpcService extends ProjectServiceGrpc.ProjectServiceImplBas
         }
 
         return builder.build();
-    }
-
-    private static cafe.jeffrey.hub.api.v1.RecordingStatus toProtoRecordingStatus(
-            cafe.jeffrey.shared.common.model.repository.RecordingStatus status) {
-        if (status == null) {
-            return cafe.jeffrey.hub.api.v1.RecordingStatus.RECORDING_STATUS_UNKNOWN;
-        }
-        return switch (status) {
-            case ACTIVE -> cafe.jeffrey.hub.api.v1.RecordingStatus.RECORDING_STATUS_ACTIVE;
-            case FINISHED -> cafe.jeffrey.hub.api.v1.RecordingStatus.RECORDING_STATUS_FINISHED;
-            case UNKNOWN -> cafe.jeffrey.hub.api.v1.RecordingStatus.RECORDING_STATUS_UNKNOWN;
-        };
     }
 }

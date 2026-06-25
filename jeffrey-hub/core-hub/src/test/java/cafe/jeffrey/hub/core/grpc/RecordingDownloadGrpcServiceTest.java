@@ -239,7 +239,7 @@ class RecordingDownloadGrpcServiceTest {
         var repoManagerFactory = mock(RepositoryManager.Factory.class);
         when(repoManagerFactory.apply(TEST_PROJECT_INFO)).thenReturn(repoManager);
 
-        return new RecordingDownloadGrpcService(platformRepositories, repoManagerFactory);
+        return new RecordingDownloadGrpcService(new GrpcLookups(platformRepositories, repoManagerFactory, null));
     }
 
     /**
@@ -251,7 +251,7 @@ class RecordingDownloadGrpcServiceTest {
 
         var repoManagerFactory = mock(RepositoryManager.Factory.class);
 
-        return new RecordingDownloadGrpcService(platformRepositories, repoManagerFactory);
+        return new RecordingDownloadGrpcService(new GrpcLookups(platformRepositories, repoManagerFactory, null));
     }
 
     private static void assertStatus(Status.Code expected, Throwable error) {

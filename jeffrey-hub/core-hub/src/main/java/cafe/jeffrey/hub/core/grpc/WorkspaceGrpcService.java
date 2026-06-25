@@ -28,7 +28,6 @@ import cafe.jeffrey.hub.core.manager.workspace.WorkspaceManager;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceReferenceId;
-import cafe.jeffrey.shared.common.model.workspace.WorkspaceStatus;
 
 import java.time.Clock;
 import java.util.List;
@@ -144,19 +143,11 @@ public class WorkspaceGrpcService extends WorkspaceServiceGrpc.WorkspaceServiceI
         var builder = cafe.jeffrey.hub.api.v1.WorkspaceInfo.newBuilder()
                 .setId(info.id())
                 .setName(info.name())
-                .setReferenceId(info.referenceId() != null ? info.referenceId() : "")
+                .setReferenceId(ProtoMappers.orEmpty(info.referenceId()))
                 .setCreatedAt(info.createdAt().toEpochMilli())
                 .setProjectCount(info.projectCount())
-                .setStatus(toProtoStatus(info.status()));
+                .setStatus(ProtoMappers.workspaceStatus(info.status()));
 
         return builder.build();
-    }
-
-    private static cafe.jeffrey.hub.api.v1.WorkspaceStatus toProtoStatus(WorkspaceStatus status) {
-        return switch (status) {
-            case AVAILABLE -> cafe.jeffrey.hub.api.v1.WorkspaceStatus.WORKSPACE_STATUS_AVAILABLE;
-            case UNAVAILABLE -> cafe.jeffrey.hub.api.v1.WorkspaceStatus.WORKSPACE_STATUS_UNAVAILABLE;
-            case OFFLINE, UNKNOWN -> cafe.jeffrey.hub.api.v1.WorkspaceStatus.WORKSPACE_STATUS_INCOMPATIBLE;
-        };
     }
 }

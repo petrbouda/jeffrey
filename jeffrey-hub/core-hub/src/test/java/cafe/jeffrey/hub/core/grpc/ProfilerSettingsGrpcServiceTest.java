@@ -485,7 +485,7 @@ class ProfilerSettingsGrpcServiceTest {
         var projectManagerFactory = mock(ProjectManager.Factory.class);
         when(projectManagerFactory.apply(TEST_PROJECT_INFO)).thenReturn(projectManager);
 
-        return new ProfilerSettingsGrpcService(platformRepositories, projectManagerFactory);
+        return new ProfilerSettingsGrpcService(platformRepositories, new GrpcLookups(platformRepositories, null, projectManagerFactory));
     }
 
     /**
@@ -501,7 +501,7 @@ class ProfilerSettingsGrpcServiceTest {
 
         var projectManagerFactory = mock(ProjectManager.Factory.class);
 
-        return new ProfilerSettingsGrpcService(platformRepositories, projectManagerFactory);
+        return new ProfilerSettingsGrpcService(platformRepositories, new GrpcLookups(platformRepositories, null, projectManagerFactory));
     }
 
     /**
@@ -513,6 +513,6 @@ class ProfilerSettingsGrpcServiceTest {
 
         var projectManagerFactory = mock(ProjectManager.Factory.class);
 
-        return new ProfilerSettingsGrpcService(platformRepositories, projectManagerFactory);
+        return new ProfilerSettingsGrpcService(platformRepositories, new GrpcLookups(platformRepositories, null, projectManagerFactory));
     }
 }

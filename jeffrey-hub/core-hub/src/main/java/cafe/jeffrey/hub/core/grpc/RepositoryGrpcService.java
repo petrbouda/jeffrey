@@ -23,9 +23,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.hub.api.v1.*;
 import cafe.jeffrey.hub.core.manager.RepositoryManager;
-import cafe.jeffrey.hub.persistence.api.SessionWithRepository;
-import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
-import cafe.jeffrey.shared.common.model.ProjectInfo;
 import cafe.jeffrey.shared.common.model.repository.RepositoryStatistics;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceEventCreator;
 
@@ -35,21 +32,16 @@ public class RepositoryGrpcService extends RepositoryServiceGrpc.RepositoryServi
 
     private static final Logger LOG = LoggerFactory.getLogger(RepositoryGrpcService.class);
 
-    private final HubPlatformRepositories platformRepositories;
-    private final RepositoryManager.Factory repositoryManagerFactory;
+    private final GrpcLookups lookups;
 
-    public RepositoryGrpcService(
-            HubPlatformRepositories platformRepositories,
-            RepositoryManager.Factory repositoryManagerFactory) {
-
-        this.platformRepositories = platformRepositories;
-        this.repositoryManagerFactory = repositoryManagerFactory;
+    public RepositoryGrpcService(GrpcLookups lookups) {
+        this.lookups = lookups;
     }
 
     @Override
     public void listSessions(ListSessionsRequest request, StreamObserver<ListSessionsResponse> responseObserver) {
         GrpcUnary.respond(responseObserver, () -> {
-            RepositoryManager repoManager = repositoryManagerForProject(request.getProjectId());
+            RepositoryManager repoManager = lookups.repositoryManagerForProject(request.getProjectId());
 
             List<RecordingSession> sessions = repoManager.listRecordingSessions(true).stream()
                     .map(RepositoryGrpcService::toProto)
@@ -66,7 +58,7 @@ public class RepositoryGrpcService extends RepositoryServiceGrpc.RepositoryServi
     @Override
     public void getSession(GetSessionRequest request, StreamObserver<GetSessionResponse> responseObserver) {
         GrpcUnary.respond(responseObserver, () -> {
-            RepositoryManager repoManager = repositoryManagerForSession(request.getSessionId());
+            RepositoryManager repoManager = lookups.repositoryManagerForSession(request.getSessionId());
 
             cafe.jeffrey.shared.common.model.repository.RecordingSession session =
                     repoManager.findRecordingSessions(request.getSessionId())
@@ -83,14 +75,14 @@ public class RepositoryGrpcService extends RepositoryServiceGrpc.RepositoryServi
     @Override
     public void getRepositoryStatistics(GetRepositoryStatisticsRequest request, StreamObserver<GetRepositoryStatisticsResponse> responseObserver) {
         GrpcUnary.respond(responseObserver, () -> {
-            RepositoryManager repoManager = repositoryManagerForProject(request.getProjectId());
+            RepositoryManager repoManager = lookups.repositoryManagerForProject(request.getProjectId());
             RepositoryStatistics stats = repoManager.calculateRepositoryStatistics();
 
             LOG.debug("Fetched repository statistics via gRPC: projectId={}", request.getProjectId());
 
             return GetRepositoryStatisticsResponse.newBuilder()
                     .setTotalSessions(stats.totalSessions())
-                    .setSessionStatus(toProtoRecordingStatus(stats.latestSessionStatus()))
+                    .setSessionStatus(ProtoMappers.recordingStatus(stats.latestSessionStatus()))
                     .setLastActivityTime(stats.lastActivityTimeMillis())
                     .setTotalSize(stats.totalSizeBytes())
                     .setTotalFiles(stats.totalFiles())
@@ -114,7 +106,7 @@ public class RepositoryGrpcService extends RepositoryServiceGrpc.RepositoryServi
     @Override
     public void deleteSession(DeleteSessionRequest request, StreamObserver<DeleteSessionResponse> responseObserver) {
         GrpcUnary.respond(responseObserver, () -> {
-            RepositoryManager repoManager = repositoryManagerForSession(request.getSessionId());
+            RepositoryManager repoManager = lookups.repositoryManagerForSession(request.getSessionId());
             repoManager.deleteRecordingSession(request.getSessionId(), WorkspaceEventCreator.MANUAL);
 
             LOG.debug("Deleted session via gRPC: sessionId={}", request.getSessionId());
@@ -126,7 +118,7 @@ public class RepositoryGrpcService extends RepositoryServiceGrpc.RepositoryServi
     @Override
     public void deleteFilesInSession(DeleteFilesInSessionRequest request, StreamObserver<DeleteFilesInSessionResponse> responseObserver) {
         GrpcUnary.respond(responseObserver, () -> {
-            RepositoryManager repoManager = repositoryManagerForSession(request.getSessionId());
+            RepositoryManager repoManager = lookups.repositoryManagerForSession(request.getSessionId());
             repoManager.deleteFilesInSession(request.getSessionId(), request.getFileIdsList());
 
             LOG.debug("Deleted files in session via gRPC: sessionId={} fileCount={}",
@@ -136,26 +128,14 @@ public class RepositoryGrpcService extends RepositoryServiceGrpc.RepositoryServi
         });
     }
 
-    private RepositoryManager repositoryManagerForProject(String projectId) {
-        ProjectInfo projectInfo = platformRepositories.newProjectRepository(projectId).find()
-                .orElseThrow(() -> GrpcExceptions.notFound("Project not found: " + projectId));
-        return repositoryManagerFactory.apply(projectInfo);
-    }
-
-    private RepositoryManager repositoryManagerForSession(String sessionId) {
-        SessionWithRepository session = platformRepositories.findSessionWithRepositoryById(sessionId)
-                .orElseThrow(() -> GrpcExceptions.notFound("Session not found: " + sessionId));
-        return repositoryManagerFactory.apply(session.projectInfo());
-    }
-
     static RecordingSession toProto(
             cafe.jeffrey.shared.common.model.repository.RecordingSession session) {
 
         RecordingSession.Builder builder = RecordingSession.newBuilder()
                 .setId(session.id())
-                .setName(session.name() != null ? session.name() : "")
+                .setName(ProtoMappers.orEmpty(session.name()))
                 .setCreatedAt(session.createdAt().toEpochMilli())
-                .setStatus(toProtoRecordingStatus(session.status()));
+                .setStatus(ProtoMappers.recordingStatus(session.status()));
 
         if (session.instanceId() != null) {
             builder.setInstanceId(session.instanceId());
@@ -178,21 +158,8 @@ public class RepositoryGrpcService extends RepositoryServiceGrpc.RepositoryServi
                 .setCreatedAt(file.createdAt() != null ? file.createdAt().toEpochMilli() : 0)
                 .setSize(file.size() != null ? file.size() : 0)
                 .setFileType(file.fileType() != null ? file.fileType().name() : "")
-                .setStatus(toProtoRecordingStatus(file.status()))
+                .setStatus(ProtoMappers.recordingStatus(file.status()))
                 .setIsRecording(file.isRecordingFile())
                 .build();
     }
-
-    private static cafe.jeffrey.hub.api.v1.RecordingStatus toProtoRecordingStatus(
-            cafe.jeffrey.shared.common.model.repository.RecordingStatus status) {
-        if (status == null) {
-            return cafe.jeffrey.hub.api.v1.RecordingStatus.RECORDING_STATUS_UNKNOWN;
-        }
-        return switch (status) {
-            case ACTIVE -> cafe.jeffrey.hub.api.v1.RecordingStatus.RECORDING_STATUS_ACTIVE;
-            case FINISHED -> cafe.jeffrey.hub.api.v1.RecordingStatus.RECORDING_STATUS_FINISHED;
-            case UNKNOWN -> cafe.jeffrey.hub.api.v1.RecordingStatus.RECORDING_STATUS_UNKNOWN;
-        };
-    }
-
 }

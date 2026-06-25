@@ -89,14 +89,14 @@ public class WorkspaceEventsGrpcService extends WorkspaceEventsServiceGrpc.Works
     private static WorkspaceEventInfo toProto(WorkspaceEvent event) {
         return WorkspaceEventInfo.newBuilder()
                 .setEventId(event.eventId() != null ? event.eventId() : 0)
-                .setOriginEventId(event.originEventId() != null ? event.originEventId() : "")
-                .setProjectId(event.projectId() != null ? event.projectId() : "")
-                .setWorkspaceRefId(event.workspaceRefId() != null ? event.workspaceRefId() : "")
+                .setOriginEventId(ProtoMappers.orEmpty(event.originEventId()))
+                .setProjectId(ProtoMappers.orEmpty(event.projectId()))
+                .setWorkspaceRefId(ProtoMappers.orEmpty(event.workspaceRefId()))
                 .setEventType(event.eventType() != null ? event.eventType().name() : "")
-                .setContent(event.content() != null ? event.content() : "")
+                .setContent(ProtoMappers.orEmpty(event.content()))
                 .setOriginCreatedAt(event.originCreatedAt() != null ? event.originCreatedAt().toEpochMilli() : 0)
                 .setCreatedAt(event.createdAt() != null ? event.createdAt().toEpochMilli() : 0)
-                .setCreatedBy(event.createdBy() != null ? event.createdBy() : "")
+                .setCreatedBy(ProtoMappers.orEmpty(event.createdBy()))
                 .build();
     }
 }

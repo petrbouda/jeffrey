@@ -45,8 +45,8 @@ public class ProfilerClient {
                         .setProjectId(projectId)
                         .build());
 
-        String agentSettings = response.getAgentSettings().isEmpty() ? null : response.getAgentSettings();
-        SettingsLevel level = fromProtoLevel(response.getLevel());
+        String agentSettings = ClientProtoMappers.nullIfEmpty(response.getAgentSettings());
+        SettingsLevel level = ClientProtoMappers.settingsLevel(response.getLevel());
 
         LOG.debug("Fetched profiler settings via gRPC: projectId={} level={}",
                 projectId, level);
@@ -79,9 +79,9 @@ public class ProfilerClient {
 
         List<ProfilerInfo> result = response.getSettingsList().stream()
                 .map(entry -> new ProfilerInfo(
-                        entry.getWorkspaceId().isEmpty() ? null : entry.getWorkspaceId(),
-                        entry.getProjectId().isEmpty() ? null : entry.getProjectId(),
-                        entry.getAgentSettings().isEmpty() ? null : entry.getAgentSettings()))
+                        ClientProtoMappers.nullIfEmpty(entry.getWorkspaceId()),
+                        ClientProtoMappers.nullIfEmpty(entry.getProjectId()),
+                        ClientProtoMappers.nullIfEmpty(entry.getAgentSettings())))
                 .toList();
 
         LOG.debug("Listed all profiler settings via gRPC: count={}", result.size());
@@ -91,9 +91,9 @@ public class ProfilerClient {
     public void upsertSettingsAtLevel(String workspaceId, String projectId, String agentSettings) {
         stub.upsertSettingsAtLevel(
                 UpsertProfilerSettingsAtLevelRequest.newBuilder()
-                        .setWorkspaceId(workspaceId != null ? workspaceId : "")
-                        .setProjectId(projectId != null ? projectId : "")
-                        .setAgentSettings(agentSettings != null ? agentSettings : "")
+                        .setWorkspaceId(ClientProtoMappers.orEmpty(workspaceId))
+                        .setProjectId(ClientProtoMappers.orEmpty(projectId))
+                        .setAgentSettings(ClientProtoMappers.orEmpty(agentSettings))
                         .build());
 
         LOG.debug("Upserted profiler settings at level via gRPC: workspaceId={} projectId={}", workspaceId, projectId);
@@ -124,19 +124,11 @@ public class ProfilerClient {
     public void deleteSettingsAtLevel(String workspaceId, String projectId) {
         stub.deleteSettingsAtLevel(
                 DeleteProfilerSettingsAtLevelRequest.newBuilder()
-                        .setWorkspaceId(workspaceId != null ? workspaceId : "")
-                        .setProjectId(projectId != null ? projectId : "")
+                        .setWorkspaceId(ClientProtoMappers.orEmpty(workspaceId))
+                        .setProjectId(ClientProtoMappers.orEmpty(projectId))
                         .build());
 
         LOG.debug("Deleted profiler settings at level via gRPC: workspaceId={} projectId={}", workspaceId, projectId);
     }
 
-    private static SettingsLevel fromProtoLevel(cafe.jeffrey.hub.api.v1.SettingsLevel level) {
-        return switch (level) {
-            case SETTINGS_LEVEL_PROJECT -> SettingsLevel.PROJECT;
-            case SETTINGS_LEVEL_WORKSPACE -> SettingsLevel.WORKSPACE;
-            case SETTINGS_LEVEL_GLOBAL -> SettingsLevel.GLOBAL;
-            default -> SettingsLevel.NONE;
-        };
-    }
 }
