@@ -18,10 +18,8 @@
 
 package cafe.jeffrey.jfr.events;
 
-import cafe.jeffrey.jfr.events.appinfo.AppInformationEvent;
 import cafe.jeffrey.jfr.events.grpc.GrpcClientExchangeEvent;
 import cafe.jeffrey.jfr.events.grpc.GrpcServerExchangeEvent;
-import cafe.jeffrey.jfr.events.heartbeat.HeartbeatEvent;
 import cafe.jeffrey.jfr.events.http.HttpClientExchangeEvent;
 import cafe.jeffrey.jfr.events.http.HttpServerExchangeEvent;
 import cafe.jeffrey.jfr.events.jdbc.pool.*;
@@ -35,8 +33,6 @@ import java.util.List;
 public abstract class JeffreyEventRegistry {
 
     private static final List<Class<? extends Event>> EVENTS = List.of(
-            AppInformationEvent.class,
-            HeartbeatEvent.class,
             GrpcClientExchangeEvent.class,
             GrpcServerExchangeEvent.class,
             HttpClientExchangeEvent.class,
