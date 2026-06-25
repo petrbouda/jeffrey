@@ -18,7 +18,6 @@
 
 package cafe.jeffrey.hub.core.grpc;
 
-import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,44 +48,39 @@ public class WorkspaceEventsGrpcService extends WorkspaceEventsServiceGrpc.Works
         String workspaceId = request.getWorkspaceId();
         int limit = (request.hasLimit() && request.getLimit() > 0) ? request.getLimit() : DEFAULT_LIMIT;
 
+        long totalCount = workspaceEventReader.count(workspaceId);
+
+        // When filtering by type, fetch all events and apply the limit after filtering
+        // so callers asking for the latest N of a specific type get a useful result.
+        // Without a filter, push the limit to the queue for the cheap path.
+        int fetchLimit = request.hasEventType() ? -1 : limit;
+        Stream<WorkspaceEvent> eventStream = workspaceEventReader.findAll(workspaceId, fetchLimit).stream();
+
+        if (request.hasEventType()) {
+            WorkspaceEventType filterType = parseEventType(request.getEventType());
+            eventStream = eventStream
+                    .filter(event -> event.eventType() == filterType)
+                    .limit(limit);
+        }
+
+        List<WorkspaceEventInfo> events = eventStream
+                .map(WorkspaceEventsGrpcService::toProto)
+                .toList();
+
+        LOG.debug("Fetched workspace events via gRPC: workspaceId={} count={} total={} limit={}",
+                workspaceId, events.size(), totalCount, limit);
+
+        GrpcResponses.complete(responseObserver, GetWorkspaceEventsResponse.newBuilder()
+                .addAllEvents(events)
+                .setTotalCount(totalCount)
+                .build());
+    }
+
+    private static WorkspaceEventType parseEventType(String raw) {
         try {
-            long totalCount = workspaceEventReader.count(workspaceId);
-
-            // When filtering by type, fetch all events and apply the limit after filtering
-            // so callers asking for the latest N of a specific type get a useful result.
-            // Without a filter, push the limit to the queue for the cheap path.
-            int fetchLimit = request.hasEventType() ? -1 : limit;
-            Stream<WorkspaceEvent> eventStream = workspaceEventReader.findAll(workspaceId, fetchLimit).stream();
-
-            if (request.hasEventType()) {
-                WorkspaceEventType filterType = WorkspaceEventType.valueOf(request.getEventType());
-                eventStream = eventStream
-                        .filter(event -> event.eventType() == filterType)
-                        .limit(limit);
-            }
-
-            List<WorkspaceEventInfo> events = eventStream
-                    .map(WorkspaceEventsGrpcService::toProto)
-                    .toList();
-
-            LOG.debug("Fetched workspace events via gRPC: workspaceId={} count={} total={} limit={}",
-                    workspaceId, events.size(), totalCount, limit);
-
-            GetWorkspaceEventsResponse response = GetWorkspaceEventsResponse.newBuilder()
-                    .addAllEvents(events)
-                    .setTotalCount(totalCount)
-                    .build();
-            responseObserver.onNext(response);
-            responseObserver.onCompleted();
+            return WorkspaceEventType.valueOf(raw);
         } catch (IllegalArgumentException e) {
-            responseObserver.onError(Status.INVALID_ARGUMENT
-                    .withDescription("Invalid event type: " + request.getEventType())
-                    .asRuntimeException());
-        } catch (io.grpc.StatusRuntimeException e) {
-            responseObserver.onError(e);
-        } catch (Exception e) {
-            LOG.error("Failed to get workspace events: workspaceId={}", workspaceId, e);
-            responseObserver.onError(Status.INTERNAL.withDescription(e.getMessage()).asRuntimeException());
+            throw GrpcExceptions.invalidArgument("Invalid event type: " + raw);
         }
     }
 

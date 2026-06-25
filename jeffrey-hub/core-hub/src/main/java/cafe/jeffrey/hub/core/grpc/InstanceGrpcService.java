@@ -19,7 +19,6 @@
 package cafe.jeffrey.hub.core.grpc;
 
 import tools.jackson.databind.node.ObjectNode;
-import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,158 +56,113 @@ public class InstanceGrpcService extends InstanceServiceGrpc.InstanceServiceImpl
 
     @Override
     public void listInstances(ListInstancesRequest request, StreamObserver<ListInstancesResponse> responseObserver) {
-        try {
-            String projectId = request.getProjectId();
-            List<ProjectInstanceInfo> rawInstances = platformRepositories
-                    .newProjectInstanceRepository(projectId).findAll();
+        String projectId = request.getProjectId();
+        List<ProjectInstanceInfo> rawInstances = platformRepositories
+                .newProjectInstanceRepository(projectId).findAll();
 
-            Map<String, List<ProjectInstanceSessionInfo>> sessionsByInstanceId;
-            if (request.getIncludeSessions()) {
-                sessionsByInstanceId = platformRepositories.findSessionsByProjectId(projectId).stream()
-                        .collect(Collectors.groupingBy(ProjectInstanceSessionInfo::instanceId));
-            } else {
-                sessionsByInstanceId = Map.of();
-            }
-
-            List<InstanceInfo> instances = rawInstances.stream()
-                    .map(info -> toProto(info, sessionsByInstanceId.getOrDefault(info.id(), List.of()), clock))
-                    .toList();
-
-            LOG.debug("Listed instances via gRPC: projectId={} count={} include_sessions={}",
-                    projectId, instances.size(), request.getIncludeSessions());
-
-            responseObserver.onNext(ListInstancesResponse.newBuilder()
-                    .addAllInstances(instances)
-                    .build());
-            responseObserver.onCompleted();
-        } catch (io.grpc.StatusRuntimeException e) {
-            responseObserver.onError(e);
-        } catch (Exception e) {
-            LOG.error("Failed to list instances: projectId={}", request.getProjectId(), e);
-            responseObserver.onError(Status.INTERNAL.withDescription(e.getMessage()).asRuntimeException());
+        Map<String, List<ProjectInstanceSessionInfo>> sessionsByInstanceId;
+        if (request.getIncludeSessions()) {
+            sessionsByInstanceId = platformRepositories.findSessionsByProjectId(projectId).stream()
+                    .collect(Collectors.groupingBy(ProjectInstanceSessionInfo::instanceId));
+        } else {
+            sessionsByInstanceId = Map.of();
         }
+
+        List<InstanceInfo> instances = rawInstances.stream()
+                .map(info -> toProto(info, sessionsByInstanceId.getOrDefault(info.id(), List.of()), clock))
+                .toList();
+
+        LOG.debug("Listed instances via gRPC: projectId={} count={} include_sessions={}",
+                projectId, instances.size(), request.getIncludeSessions());
+
+        GrpcResponses.complete(responseObserver, ListInstancesResponse.newBuilder()
+                .addAllInstances(instances)
+                .build());
     }
 
     @Override
     public void getInstance(GetInstanceRequest request, StreamObserver<GetInstanceResponse> responseObserver) {
-        try {
-            ProjectInstanceInfo instance = platformRepositories.findInstanceById(request.getInstanceId())
-                    .orElseThrow(() -> GrpcExceptions.notFound("Instance not found: " + request.getInstanceId()));
+        ProjectInstanceInfo instance = platformRepositories.findInstanceById(request.getInstanceId())
+                .orElseThrow(() -> GrpcExceptions.notFound("Instance not found: " + request.getInstanceId()));
 
-            LOG.debug("Fetched instance via gRPC: instanceId={}", request.getInstanceId());
+        LOG.debug("Fetched instance via gRPC: instanceId={}", request.getInstanceId());
 
-            responseObserver.onNext(GetInstanceResponse.newBuilder()
-                    .setInstance(toProto(instance, List.of(), clock))
-                    .build());
-            responseObserver.onCompleted();
-        } catch (io.grpc.StatusRuntimeException e) {
-            responseObserver.onError(e);
-        } catch (Exception e) {
-            LOG.error("Failed to get instance: instanceId={}", request.getInstanceId(), e);
-            responseObserver.onError(Status.INTERNAL.withDescription(e.getMessage()).asRuntimeException());
-        }
+        GrpcResponses.complete(responseObserver, GetInstanceResponse.newBuilder()
+                .setInstance(toProto(instance, List.of(), clock))
+                .build());
     }
 
     @Override
     public void listInstanceSessions(ListInstanceSessionsRequest request, StreamObserver<ListInstanceSessionsResponse> responseObserver) {
-        try {
-            List<InstanceSessionInfo> sessions = platformRepositories
-                    .findSessionsByInstanceId(request.getInstanceId()).stream()
-                    .map(s -> toSessionProto(s, clock))
-                    .toList();
+        List<InstanceSessionInfo> sessions = platformRepositories
+                .findSessionsByInstanceId(request.getInstanceId()).stream()
+                .map(s -> toSessionProto(s, clock))
+                .toList();
 
-            LOG.debug("Listed instance sessions via gRPC: instanceId={} count={}",
-                    request.getInstanceId(), sessions.size());
+        LOG.debug("Listed instance sessions via gRPC: instanceId={} count={}",
+                request.getInstanceId(), sessions.size());
 
-            responseObserver.onNext(ListInstanceSessionsResponse.newBuilder()
-                    .addAllSessions(sessions)
-                    .build());
-            responseObserver.onCompleted();
-        } catch (io.grpc.StatusRuntimeException e) {
-            responseObserver.onError(e);
-        } catch (Exception e) {
-            LOG.error("Failed to list instance sessions: instanceId={}", request.getInstanceId(), e);
-            responseObserver.onError(Status.INTERNAL.withDescription(e.getMessage()).asRuntimeException());
-        }
+        GrpcResponses.complete(responseObserver, ListInstanceSessionsResponse.newBuilder()
+                .addAllSessions(sessions)
+                .build());
     }
 
     @Override
     public void getInstanceDetail(GetInstanceDetailRequest request, StreamObserver<GetInstanceDetailResponse> responseObserver) {
-        try {
-            String instanceId = request.getInstanceId();
+        String instanceId = request.getInstanceId();
 
-            ProjectInstanceInfo info = platformRepositories.findInstanceById(instanceId)
-                    .orElseThrow(() -> GrpcExceptions.notFound("Instance not found: " + instanceId));
+        ProjectInstanceInfo info = platformRepositories.findInstanceById(instanceId)
+                .orElseThrow(() -> GrpcExceptions.notFound("Instance not found: " + instanceId));
 
-            List<ProjectInstanceSessionInfo> sessions = platformRepositories.findSessionsByInstanceId(instanceId);
+        List<ProjectInstanceSessionInfo> sessions = platformRepositories.findSessionsByInstanceId(instanceId);
 
-            ProjectInfo projectInfo = platformRepositories.newProjectRepository(info.projectId()).find()
-                    .orElseThrow(() -> GrpcExceptions.notFound("Project not found: " + info.projectId()));
-            RepositoryManager repoManager = repositoryManagerFactory.apply(projectInfo);
-            InstanceStats stats = repoManager.instanceStats(instanceId);
+        ProjectInfo projectInfo = platformRepositories.newProjectRepository(info.projectId()).find()
+                .orElseThrow(() -> GrpcExceptions.notFound("Project not found: " + info.projectId()));
+        RepositoryManager repoManager = repositoryManagerFactory.apply(projectInfo);
+        InstanceStats stats = repoManager.instanceStats(instanceId);
 
-            LOG.debug("Fetched instance detail via gRPC: instanceId={} sessions={} files={} totalSize={}",
-                    instanceId, sessions.size(), stats.fileCount(), stats.totalSizeBytes());
+        LOG.debug("Fetched instance detail via gRPC: instanceId={} sessions={} files={} totalSize={}",
+                instanceId, sessions.size(), stats.fileCount(), stats.totalSizeBytes());
 
-            GetInstanceDetailResponse response = GetInstanceDetailResponse.newBuilder()
-                    .setInstance(toProto(info, sessions, clock))
-                    .setStats(toProtoStats(stats))
-                    .build();
-
-            responseObserver.onNext(response);
-            responseObserver.onCompleted();
-        } catch (io.grpc.StatusRuntimeException e) {
-            responseObserver.onError(e);
-        } catch (Exception e) {
-            LOG.error("Failed to get instance detail: instanceId={}", request.getInstanceId(), e);
-            responseObserver.onError(Status.INTERNAL.withDescription(e.getMessage()).asRuntimeException());
-        }
+        GrpcResponses.complete(responseObserver, GetInstanceDetailResponse.newBuilder()
+                .setInstance(toProto(info, sessions, clock))
+                .setStats(toProtoStats(stats))
+                .build());
     }
 
     @Override
     public void getInstanceSessionDetail(
             GetInstanceSessionDetailRequest request,
             StreamObserver<GetInstanceSessionDetailResponse> responseObserver) {
-        try {
-            String instanceId = request.getInstanceId();
-            String sessionId = request.getSessionId();
+        String instanceId = request.getInstanceId();
+        String sessionId = request.getSessionId();
 
-            ProjectInstanceInfo instance = platformRepositories.findInstanceById(instanceId)
-                    .orElseThrow(() -> GrpcExceptions.notFound("Instance not found: " + instanceId));
+        ProjectInstanceInfo instance = platformRepositories.findInstanceById(instanceId)
+                .orElseThrow(() -> GrpcExceptions.notFound("Instance not found: " + instanceId));
 
-            ProjectInstanceSessionInfo sessionInfo = platformRepositories.findSessionsByInstanceId(instanceId).stream()
-                    .filter(s -> s.sessionId().equals(sessionId))
-                    .findFirst()
-                    .orElseThrow(() -> GrpcExceptions.notFound(
-                            "Session not found in instance: instanceId=" + instanceId + " sessionId=" + sessionId));
+        ProjectInstanceSessionInfo sessionInfo = platformRepositories.findSessionsByInstanceId(instanceId).stream()
+                .filter(s -> s.sessionId().equals(sessionId))
+                .findFirst()
+                .orElseThrow(() -> GrpcExceptions.notFound(
+                        "Session not found in instance: instanceId=" + instanceId + " sessionId=" + sessionId));
 
-            ProjectInfo projectInfo = platformRepositories.newProjectRepository(instance.projectId()).find()
-                    .orElseThrow(() -> GrpcExceptions.notFound("Project not found: " + instance.projectId()));
-            RepositoryManager repoManager = repositoryManagerFactory.apply(projectInfo);
+        ProjectInfo projectInfo = platformRepositories.newProjectRepository(instance.projectId()).find()
+                .orElseThrow(() -> GrpcExceptions.notFound("Project not found: " + instance.projectId()));
+        RepositoryManager repoManager = repositoryManagerFactory.apply(projectInfo);
 
-            boolean expectShutdown = sessionInfo.finishedAt() != null;
-            Optional<ObjectNode> environment = repoManager.sessionEnvironment(sessionId, expectShutdown);
+        boolean expectShutdown = sessionInfo.finishedAt() != null;
+        Optional<ObjectNode> environment = repoManager.sessionEnvironment(sessionId, expectShutdown);
 
-            String environmentJson = environment.map(Json::toString).orElse("");
+        String environmentJson = environment.map(Json::toString).orElse("");
 
-            LOG.debug("Fetched instance session detail via gRPC: instanceId={} sessionId={} envTypes={}",
-                    instanceId, sessionId,
-                    environment.map(node -> List.copyOf(node.propertyNames())).orElse(List.of()));
+        LOG.debug("Fetched instance session detail via gRPC: instanceId={} sessionId={} envTypes={}",
+                instanceId, sessionId,
+                environment.map(node -> List.copyOf(node.propertyNames())).orElse(List.of()));
 
-            GetInstanceSessionDetailResponse response = GetInstanceSessionDetailResponse.newBuilder()
-                    .setSession(toSessionProto(sessionInfo, clock))
-                    .setEnvironmentJsonFields(environmentJson)
-                    .build();
-
-            responseObserver.onNext(response);
-            responseObserver.onCompleted();
-        } catch (io.grpc.StatusRuntimeException e) {
-            responseObserver.onError(e);
-        } catch (Exception e) {
-            LOG.error("Failed to get instance session detail: instanceId={} sessionId={}",
-                    request.getInstanceId(), request.getSessionId(), e);
-            responseObserver.onError(Status.INTERNAL.withDescription(e.getMessage()).asRuntimeException());
-        }
+        GrpcResponses.complete(responseObserver, GetInstanceSessionDetailResponse.newBuilder()
+                .setSession(toSessionProto(sessionInfo, clock))
+                .setEnvironmentJsonFields(environmentJson)
+                .build());
     }
 
     private static cafe.jeffrey.hub.api.v1.InstanceStats toProtoStats(InstanceStats stats) {

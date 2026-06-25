@@ -18,7 +18,6 @@
 
 package cafe.jeffrey.hub.core.grpc;
 
-import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,94 +53,60 @@ public class ProjectGrpcService extends ProjectServiceGrpc.ProjectServiceImplBas
 
     @Override
     public void listProjects(ListProjectsRequest request, StreamObserver<ListProjectsResponse> responseObserver) {
-        try {
-            WorkspaceManager workspace = workspacesManager.findById(request.getWorkspaceId())
-                    .orElseThrow(() -> GrpcExceptions.notFound("Workspace not found: " + request.getWorkspaceId()));
+        WorkspaceManager workspace = workspacesManager.findById(request.getWorkspaceId())
+                .orElseThrow(() -> GrpcExceptions.notFound("Workspace not found: " + request.getWorkspaceId()));
 
-            var projectsManager = workspace.projectsManager();
-            var managers = request.getIncludeDeleted()
-                    ? projectsManager.findAllIncludingDeleted()
-                    : projectsManager.findAll();
+        var projectsManager = workspace.projectsManager();
+        var managers = request.getIncludeDeleted()
+                ? projectsManager.findAllIncludingDeleted()
+                : projectsManager.findAll();
 
-            List<ProjectInfo> projects = managers.stream()
-                    .map(ProjectManager::detailedInfo)
-                    .map(ProjectGrpcService::toProto)
-                    .toList();
+        List<ProjectInfo> projects = managers.stream()
+                .map(ProjectManager::detailedInfo)
+                .map(ProjectGrpcService::toProto)
+                .toList();
 
-            LOG.debug("Listed projects via gRPC: workspaceId={} count={}", request.getWorkspaceId(), projects.size());
+        LOG.debug("Listed projects via gRPC: workspaceId={} count={}", request.getWorkspaceId(), projects.size());
 
-            ListProjectsResponse response = ListProjectsResponse.newBuilder()
-                    .addAllProjects(projects)
-                    .build();
-            responseObserver.onNext(response);
-            responseObserver.onCompleted();
-        } catch (io.grpc.StatusRuntimeException e) {
-            responseObserver.onError(e);
-        } catch (Exception e) {
-            LOG.error("Failed to list projects: workspaceId={}", request.getWorkspaceId(), e);
-            responseObserver.onError(Status.INTERNAL.withDescription(e.getMessage()).asRuntimeException());
-        }
+        GrpcResponses.complete(responseObserver, ListProjectsResponse.newBuilder()
+                .addAllProjects(projects)
+                .build());
     }
 
     @Override
     public void getProject(GetProjectRequest request, StreamObserver<GetProjectResponse> responseObserver) {
-        try {
-            WorkspaceManager workspace = workspacesManager.findById(request.getWorkspaceId())
-                    .orElseThrow(() -> GrpcExceptions.notFound("Workspace not found: " + request.getWorkspaceId()));
+        WorkspaceManager workspace = workspacesManager.findById(request.getWorkspaceId())
+                .orElseThrow(() -> GrpcExceptions.notFound("Workspace not found: " + request.getWorkspaceId()));
 
-            ProjectManager project = findProjectInWorkspace(
-                    workspace, request.getWorkspaceId(), request.getProjectId());
+        ProjectManager project = findProjectInWorkspace(
+                workspace, request.getWorkspaceId(), request.getProjectId());
 
-            LOG.debug("Fetched project via gRPC: workspaceId={} projectId={}",
-                    request.getWorkspaceId(), request.getProjectId());
+        LOG.debug("Fetched project via gRPC: workspaceId={} projectId={}",
+                request.getWorkspaceId(), request.getProjectId());
 
-            responseObserver.onNext(GetProjectResponse.newBuilder()
-                    .setProject(toProto(project.detailedInfo()))
-                    .build());
-            responseObserver.onCompleted();
-        } catch (io.grpc.StatusRuntimeException e) {
-            responseObserver.onError(e);
-        } catch (Exception e) {
-            LOG.error("Failed to get project: workspaceId={} projectId={}",
-                    request.getWorkspaceId(), request.getProjectId(), e);
-            responseObserver.onError(Status.INTERNAL.withDescription(e.getMessage()).asRuntimeException());
-        }
+        GrpcResponses.complete(responseObserver, GetProjectResponse.newBuilder()
+                .setProject(toProto(project.detailedInfo()))
+                .build());
     }
 
     @Override
     public void deleteProject(DeleteProjectRequest request, StreamObserver<DeleteProjectResponse> responseObserver) {
-        try {
-            ProjectManager project = findProject(request.getProjectId());
-            project.delete(WorkspaceEventCreator.MANUAL);
+        ProjectManager project = findProject(request.getProjectId());
+        project.delete(WorkspaceEventCreator.MANUAL);
 
-            LOG.debug("Deleted project via gRPC: projectId={}", request.getProjectId());
+        LOG.debug("Deleted project via gRPC: projectId={}", request.getProjectId());
 
-            responseObserver.onNext(DeleteProjectResponse.getDefaultInstance());
-            responseObserver.onCompleted();
-        } catch (io.grpc.StatusRuntimeException e) {
-            responseObserver.onError(e);
-        } catch (Exception e) {
-            LOG.error("Failed to delete project: projectId={}", request.getProjectId(), e);
-            responseObserver.onError(Status.INTERNAL.withDescription(e.getMessage()).asRuntimeException());
-        }
+        GrpcResponses.complete(responseObserver, DeleteProjectResponse.getDefaultInstance());
     }
 
     @Override
     public void restoreProject(RestoreProjectRequest request, StreamObserver<RestoreProjectResponse> responseObserver) {
-        try {
-            ProjectManager project = findProjectIncludingDeleted(request.getProjectId());
-            project.restore();
+        ProjectManager project = findProjectIncludingDeleted(request.getProjectId());
+        project.restore();
 
-            LOG.info("Restored project via gRPC: projectId={}", request.getProjectId());
+        LOG.info("Restored project via gRPC: projectId={}", request.getProjectId());
 
-            responseObserver.onNext(RestoreProjectResponse.getDefaultInstance());
-            responseObserver.onCompleted();
-        } catch (io.grpc.StatusRuntimeException e) {
-            responseObserver.onError(e);
-        } catch (Exception e) {
-            LOG.error("Failed to restore project: projectId={}", request.getProjectId(), e);
-            responseObserver.onError(Status.INTERNAL.withDescription(e.getMessage()).asRuntimeException());
-        }
+        GrpcResponses.complete(responseObserver, RestoreProjectResponse.getDefaultInstance());
     }
 
     private ProjectManager findProject(String projectId) {

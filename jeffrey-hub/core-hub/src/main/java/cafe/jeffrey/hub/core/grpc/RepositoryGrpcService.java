@@ -18,7 +18,6 @@
 
 package cafe.jeffrey.hub.core.grpc;
 
-import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,122 +48,82 @@ public class RepositoryGrpcService extends RepositoryServiceGrpc.RepositoryServi
 
     @Override
     public void listSessions(ListSessionsRequest request, StreamObserver<ListSessionsResponse> responseObserver) {
-        try {
-            RepositoryManager repoManager = repositoryManagerForProject(request.getProjectId());
+        RepositoryManager repoManager = repositoryManagerForProject(request.getProjectId());
 
-            List<RecordingSession> sessions = repoManager.listRecordingSessions(true).stream()
-                    .map(RepositoryGrpcService::toProto)
-                    .toList();
+        List<RecordingSession> sessions = repoManager.listRecordingSessions(true).stream()
+                .map(RepositoryGrpcService::toProto)
+                .toList();
 
-            LOG.debug("Listed sessions via gRPC: projectId={} count={}", request.getProjectId(), sessions.size());
+        LOG.debug("Listed sessions via gRPC: projectId={} count={}", request.getProjectId(), sessions.size());
 
-            responseObserver.onNext(ListSessionsResponse.newBuilder()
-                    .addAllSessions(sessions)
-                    .build());
-            responseObserver.onCompleted();
-        } catch (io.grpc.StatusRuntimeException e) {
-            responseObserver.onError(e);
-        } catch (Exception e) {
-            LOG.error("Failed to list sessions: projectId={}", request.getProjectId(), e);
-            responseObserver.onError(Status.INTERNAL.withDescription(e.getMessage()).asRuntimeException());
-        }
+        GrpcResponses.complete(responseObserver, ListSessionsResponse.newBuilder()
+                .addAllSessions(sessions)
+                .build());
     }
 
     @Override
     public void getSession(GetSessionRequest request, StreamObserver<GetSessionResponse> responseObserver) {
-        try {
-            RepositoryManager repoManager = repositoryManagerForSession(request.getSessionId());
+        RepositoryManager repoManager = repositoryManagerForSession(request.getSessionId());
 
-            cafe.jeffrey.shared.common.model.repository.RecordingSession session =
-                    repoManager.findRecordingSessions(request.getSessionId())
-                            .orElseThrow(() -> GrpcExceptions.notFound("Session not found: " + request.getSessionId()));
+        cafe.jeffrey.shared.common.model.repository.RecordingSession session =
+                repoManager.findRecordingSessions(request.getSessionId())
+                        .orElseThrow(() -> GrpcExceptions.notFound("Session not found: " + request.getSessionId()));
 
-            LOG.debug("Fetched session via gRPC: sessionId={}", request.getSessionId());
+        LOG.debug("Fetched session via gRPC: sessionId={}", request.getSessionId());
 
-            responseObserver.onNext(GetSessionResponse.newBuilder()
-                    .setSession(toProto(session))
-                    .build());
-            responseObserver.onCompleted();
-        } catch (io.grpc.StatusRuntimeException e) {
-            responseObserver.onError(e);
-        } catch (Exception e) {
-            LOG.error("Failed to get session: sessionId={}", request.getSessionId(), e);
-            responseObserver.onError(Status.INTERNAL.withDescription(e.getMessage()).asRuntimeException());
-        }
+        GrpcResponses.complete(responseObserver, GetSessionResponse.newBuilder()
+                .setSession(toProto(session))
+                .build());
     }
 
     @Override
     public void getRepositoryStatistics(GetRepositoryStatisticsRequest request, StreamObserver<GetRepositoryStatisticsResponse> responseObserver) {
-        try {
-            RepositoryManager repoManager = repositoryManagerForProject(request.getProjectId());
-            RepositoryStatistics stats = repoManager.calculateRepositoryStatistics();
+        RepositoryManager repoManager = repositoryManagerForProject(request.getProjectId());
+        RepositoryStatistics stats = repoManager.calculateRepositoryStatistics();
 
-            LOG.debug("Fetched repository statistics via gRPC: projectId={}", request.getProjectId());
+        LOG.debug("Fetched repository statistics via gRPC: projectId={}", request.getProjectId());
 
-            responseObserver.onNext(GetRepositoryStatisticsResponse.newBuilder()
-                    .setTotalSessions(stats.totalSessions())
-                    .setSessionStatus(toProtoRecordingStatus(stats.latestSessionStatus()))
-                    .setLastActivityTime(stats.lastActivityTimeMillis())
-                    .setTotalSize(stats.totalSizeBytes())
-                    .setTotalFiles(stats.totalFiles())
-                    .setBiggestSessionSize(stats.biggestSessionSizeBytes())
-                    .setJfrFiles(stats.jfr().count())
-                    .setJfrSize(stats.jfr().size())
-                    .setHeapDumpFiles(stats.heapDump().count())
-                    .setHeapDumpSize(stats.heapDump().size())
-                    .setLogFiles(stats.log().count())
-                    .setLogSize(stats.log().size())
-                    .setAppLogFiles(stats.appLog().count())
-                    .setAppLogSize(stats.appLog().size())
-                    .setErrorLogFiles(stats.errorLog().count())
-                    .setErrorLogSize(stats.errorLog().size())
-                    .setOtherFiles(stats.other().count())
-                    .setOtherSize(stats.other().size())
-                    .build());
-            responseObserver.onCompleted();
-        } catch (io.grpc.StatusRuntimeException e) {
-            responseObserver.onError(e);
-        } catch (Exception e) {
-            LOG.error("Failed to get repository statistics: projectId={}", request.getProjectId(), e);
-            responseObserver.onError(Status.INTERNAL.withDescription(e.getMessage()).asRuntimeException());
-        }
+        GrpcResponses.complete(responseObserver, GetRepositoryStatisticsResponse.newBuilder()
+                .setTotalSessions(stats.totalSessions())
+                .setSessionStatus(toProtoRecordingStatus(stats.latestSessionStatus()))
+                .setLastActivityTime(stats.lastActivityTimeMillis())
+                .setTotalSize(stats.totalSizeBytes())
+                .setTotalFiles(stats.totalFiles())
+                .setBiggestSessionSize(stats.biggestSessionSizeBytes())
+                .setJfrFiles(stats.jfr().count())
+                .setJfrSize(stats.jfr().size())
+                .setHeapDumpFiles(stats.heapDump().count())
+                .setHeapDumpSize(stats.heapDump().size())
+                .setLogFiles(stats.log().count())
+                .setLogSize(stats.log().size())
+                .setAppLogFiles(stats.appLog().count())
+                .setAppLogSize(stats.appLog().size())
+                .setErrorLogFiles(stats.errorLog().count())
+                .setErrorLogSize(stats.errorLog().size())
+                .setOtherFiles(stats.other().count())
+                .setOtherSize(stats.other().size())
+                .build());
     }
 
     @Override
     public void deleteSession(DeleteSessionRequest request, StreamObserver<DeleteSessionResponse> responseObserver) {
-        try {
-            RepositoryManager repoManager = repositoryManagerForSession(request.getSessionId());
-            repoManager.deleteRecordingSession(request.getSessionId(), WorkspaceEventCreator.MANUAL);
+        RepositoryManager repoManager = repositoryManagerForSession(request.getSessionId());
+        repoManager.deleteRecordingSession(request.getSessionId(), WorkspaceEventCreator.MANUAL);
 
-            LOG.debug("Deleted session via gRPC: sessionId={}", request.getSessionId());
+        LOG.debug("Deleted session via gRPC: sessionId={}", request.getSessionId());
 
-            responseObserver.onNext(DeleteSessionResponse.getDefaultInstance());
-            responseObserver.onCompleted();
-        } catch (io.grpc.StatusRuntimeException e) {
-            responseObserver.onError(e);
-        } catch (Exception e) {
-            LOG.error("Failed to delete session: sessionId={}", request.getSessionId(), e);
-            responseObserver.onError(Status.INTERNAL.withDescription(e.getMessage()).asRuntimeException());
-        }
+        GrpcResponses.complete(responseObserver, DeleteSessionResponse.getDefaultInstance());
     }
 
     @Override
     public void deleteFilesInSession(DeleteFilesInSessionRequest request, StreamObserver<DeleteFilesInSessionResponse> responseObserver) {
-        try {
-            RepositoryManager repoManager = repositoryManagerForSession(request.getSessionId());
-            repoManager.deleteFilesInSession(request.getSessionId(), request.getFileIdsList());
+        RepositoryManager repoManager = repositoryManagerForSession(request.getSessionId());
+        repoManager.deleteFilesInSession(request.getSessionId(), request.getFileIdsList());
 
-            LOG.debug("Deleted files in session via gRPC: sessionId={} fileCount={}",
-                    request.getSessionId(), request.getFileIdsCount());
+        LOG.debug("Deleted files in session via gRPC: sessionId={} fileCount={}",
+                request.getSessionId(), request.getFileIdsCount());
 
-            responseObserver.onNext(DeleteFilesInSessionResponse.getDefaultInstance());
-            responseObserver.onCompleted();
-        } catch (io.grpc.StatusRuntimeException e) {
-            responseObserver.onError(e);
-        } catch (Exception e) {
-            LOG.error("Failed to delete files in session: sessionId={}", request.getSessionId(), e);
-            responseObserver.onError(Status.INTERNAL.withDescription(e.getMessage()).asRuntimeException());
-        }
+        GrpcResponses.complete(responseObserver, DeleteFilesInSessionResponse.getDefaultInstance());
     }
 
     private RepositoryManager repositoryManagerForProject(String projectId) {

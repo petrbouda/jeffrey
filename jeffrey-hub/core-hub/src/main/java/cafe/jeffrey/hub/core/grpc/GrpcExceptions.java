@@ -35,6 +35,10 @@ public abstract class GrpcExceptions {
         return Status.INVALID_ARGUMENT.withDescription(description).asRuntimeException();
     }
 
+    public static StatusRuntimeException failedPrecondition(String description) {
+        return Status.FAILED_PRECONDITION.withDescription(description).asRuntimeException();
+    }
+
     public static StatusRuntimeException unavailable(String description) {
         return Status.UNAVAILABLE.withDescription(description).asRuntimeException();
     }
