@@ -23,7 +23,6 @@ import io.grpc.ManagedChannel;
 import io.grpc.Server;
 import io.grpc.inprocess.InProcessChannelBuilder;
 import io.grpc.inprocess.InProcessServerBuilder;
-import org.springframework.grpc.server.exception.GrpcExceptionHandlerInterceptor;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -34,9 +33,8 @@ import java.io.UncheckedIOException;
  * {@code InProcessServerBuilder}/{@code InProcessChannelBuilder} boilerplate; create one per test
  * and close it (directly or via {@code @AfterEach}) to release the server and channel.
  *
- * <p>The same {@link JeffreyGrpcExceptionHandler} the production server uses is applied here, so
- * the fast service tests observe the real exception-to-status mapping even though they bypass the
- * Spring context.
+ * <p>Error mapping is handled inside the service methods by {@link GrpcUnary}/{@link GrpcExceptions},
+ * so the in-process tests observe the real exception-to-status mapping without extra wiring.
  */
 public final class InProcessGrpcServer implements AutoCloseable {
 
@@ -53,7 +51,6 @@ public final class InProcessGrpcServer implements AutoCloseable {
         try {
             Server server = InProcessServerBuilder.forName(name)
                     .directExecutor()
-                    .intercept(new GrpcExceptionHandlerInterceptor(new JeffreyGrpcExceptionHandler()))
                     .addService(service)
                     .build()
                     .start();

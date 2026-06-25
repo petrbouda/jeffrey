@@ -53,7 +53,7 @@ public class WorkspaceGrpcService extends WorkspaceServiceGrpc.WorkspaceServiceI
 
     @Override
     public void getApiInfo(GetApiInfoRequest request, StreamObserver<GetApiInfoResponse> responseObserver) {
-        GrpcResponses.complete(responseObserver, GetApiInfoResponse.newBuilder()
+        GrpcUnary.respond(responseObserver, () -> GetApiInfoResponse.newBuilder()
                 .setVersion(JeffreyVersion.resolveJeffreyVersion())
                 .setApiVersion(CURRENT_API_VERSION)
                 .build());
@@ -61,70 +61,78 @@ public class WorkspaceGrpcService extends WorkspaceServiceGrpc.WorkspaceServiceI
 
     @Override
     public void listWorkspaces(ListWorkspacesRequest request, StreamObserver<ListWorkspacesResponse> responseObserver) {
-        List<cafe.jeffrey.hub.api.v1.WorkspaceInfo> workspaces = workspacesManager.findAll().stream()
-                .map(WorkspaceManager::resolveInfo)
-                .map(WorkspaceGrpcService::toProto)
-                .toList();
+        GrpcUnary.respond(responseObserver, () -> {
+            List<cafe.jeffrey.hub.api.v1.WorkspaceInfo> workspaces = workspacesManager.findAll().stream()
+                    .map(WorkspaceManager::resolveInfo)
+                    .map(WorkspaceGrpcService::toProto)
+                    .toList();
 
-        LOG.debug("Listed workspaces via gRPC: count={}", workspaces.size());
+            LOG.debug("Listed workspaces via gRPC: count={}", workspaces.size());
 
-        GrpcResponses.complete(responseObserver, ListWorkspacesResponse.newBuilder()
-                .addAllWorkspaces(workspaces)
-                .build());
+            return ListWorkspacesResponse.newBuilder()
+                    .addAllWorkspaces(workspaces)
+                    .build();
+        });
     }
 
     @Override
     public void getWorkspace(GetWorkspaceRequest request, StreamObserver<GetWorkspaceResponse> responseObserver) {
-        WorkspaceManager workspace = findWorkspace(request.getWorkspaceId());
+        GrpcUnary.respond(responseObserver, () -> {
+            WorkspaceManager workspace = findWorkspace(request.getWorkspaceId());
 
-        LOG.debug("Fetched workspace via gRPC: workspaceId={}", request.getWorkspaceId());
+            LOG.debug("Fetched workspace via gRPC: workspaceId={}", request.getWorkspaceId());
 
-        GrpcResponses.complete(responseObserver, GetWorkspaceResponse.newBuilder()
-                .setWorkspace(toProto(workspace.resolveInfo()))
-                .build());
+            return GetWorkspaceResponse.newBuilder()
+                    .setWorkspace(toProto(workspace.resolveInfo()))
+                    .build();
+        });
     }
 
     @Override
     public void createWorkspace(
             CreateWorkspaceRequest request,
             StreamObserver<CreateWorkspaceResponse> responseObserver) {
-        if (WorkspaceReferenceId.isSystem(request.getReferenceId())) {
-            throw GrpcExceptions.invalidArgument(
-                    "Reference IDs starting with '$' are reserved for system workspaces.");
-        }
+        GrpcUnary.respond(responseObserver, () -> {
+            if (WorkspaceReferenceId.isSystem(request.getReferenceId())) {
+                throw GrpcExceptions.invalidArgument(
+                        "Reference IDs starting with '$' are reserved for system workspaces.");
+            }
 
-        WorkspaceInfo created = workspacesManager.create(
-                WorkspacesManager.CreateWorkspaceRequest.builder()
-                        .referenceId(request.getReferenceId())
-                        .name(request.getName())
-                        .build());
+            WorkspaceInfo created = workspacesManager.create(
+                    WorkspacesManager.CreateWorkspaceRequest.builder()
+                            .referenceId(request.getReferenceId())
+                            .name(request.getName())
+                            .build());
 
-        LOG.info("Created workspace via gRPC: workspace_id={} reference_id={} name={}",
-                created.id(), created.referenceId(), created.name());
+            LOG.info("Created workspace via gRPC: workspace_id={} reference_id={} name={}",
+                    created.id(), created.referenceId(), created.name());
 
-        GrpcResponses.complete(responseObserver, CreateWorkspaceResponse.newBuilder()
-                .setWorkspace(toProto(created))
-                .build());
+            return CreateWorkspaceResponse.newBuilder()
+                    .setWorkspace(toProto(created))
+                    .build();
+        });
     }
 
     @Override
     public void deleteWorkspace(DeleteWorkspaceRequest request, StreamObserver<DeleteWorkspaceResponse> responseObserver) {
-        WorkspaceManager workspace = findWorkspace(request.getWorkspaceId());
+        GrpcUnary.respond(responseObserver, () -> {
+            WorkspaceManager workspace = findWorkspace(request.getWorkspaceId());
 
-        String defaultRefId = defaultWorkspaceProperties.getReferenceId();
-        String workspaceRefId = workspace.resolveInfo().referenceId();
-        if (defaultRefId.equals(workspaceRefId)) {
-            throw GrpcExceptions.failedPrecondition(
-                    "Cannot delete the default workspace (" + defaultRefId + "). "
-                            + "Reconfigure jeffrey.hub.default-workspace.reference-id "
-                            + "and restart to change it.");
-        }
+            String defaultRefId = defaultWorkspaceProperties.getReferenceId();
+            String workspaceRefId = workspace.resolveInfo().referenceId();
+            if (defaultRefId.equals(workspaceRefId)) {
+                throw GrpcExceptions.failedPrecondition(
+                        "Cannot delete the default workspace (" + defaultRefId + "). "
+                                + "Reconfigure jeffrey.hub.default-workspace.reference-id "
+                                + "and restart to change it.");
+            }
 
-        workspace.delete();
+            workspace.delete();
 
-        LOG.info("Deleted workspace via gRPC: workspaceId={}", request.getWorkspaceId());
+            LOG.info("Deleted workspace via gRPC: workspaceId={}", request.getWorkspaceId());
 
-        GrpcResponses.complete(responseObserver, DeleteWorkspaceResponse.getDefaultInstance());
+            return DeleteWorkspaceResponse.getDefaultInstance();
+        });
     }
 
     private WorkspaceManager findWorkspace(String workspaceId) {

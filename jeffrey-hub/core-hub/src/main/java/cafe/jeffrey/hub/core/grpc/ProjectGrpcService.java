@@ -53,60 +53,68 @@ public class ProjectGrpcService extends ProjectServiceGrpc.ProjectServiceImplBas
 
     @Override
     public void listProjects(ListProjectsRequest request, StreamObserver<ListProjectsResponse> responseObserver) {
-        WorkspaceManager workspace = workspacesManager.findById(request.getWorkspaceId())
-                .orElseThrow(() -> GrpcExceptions.notFound("Workspace not found: " + request.getWorkspaceId()));
+        GrpcUnary.respond(responseObserver, () -> {
+            WorkspaceManager workspace = workspacesManager.findById(request.getWorkspaceId())
+                    .orElseThrow(() -> GrpcExceptions.notFound("Workspace not found: " + request.getWorkspaceId()));
 
-        var projectsManager = workspace.projectsManager();
-        var managers = request.getIncludeDeleted()
-                ? projectsManager.findAllIncludingDeleted()
-                : projectsManager.findAll();
+            var projectsManager = workspace.projectsManager();
+            var managers = request.getIncludeDeleted()
+                    ? projectsManager.findAllIncludingDeleted()
+                    : projectsManager.findAll();
 
-        List<ProjectInfo> projects = managers.stream()
-                .map(ProjectManager::detailedInfo)
-                .map(ProjectGrpcService::toProto)
-                .toList();
+            List<ProjectInfo> projects = managers.stream()
+                    .map(ProjectManager::detailedInfo)
+                    .map(ProjectGrpcService::toProto)
+                    .toList();
 
-        LOG.debug("Listed projects via gRPC: workspaceId={} count={}", request.getWorkspaceId(), projects.size());
+            LOG.debug("Listed projects via gRPC: workspaceId={} count={}", request.getWorkspaceId(), projects.size());
 
-        GrpcResponses.complete(responseObserver, ListProjectsResponse.newBuilder()
-                .addAllProjects(projects)
-                .build());
+            return ListProjectsResponse.newBuilder()
+                    .addAllProjects(projects)
+                    .build();
+        });
     }
 
     @Override
     public void getProject(GetProjectRequest request, StreamObserver<GetProjectResponse> responseObserver) {
-        WorkspaceManager workspace = workspacesManager.findById(request.getWorkspaceId())
-                .orElseThrow(() -> GrpcExceptions.notFound("Workspace not found: " + request.getWorkspaceId()));
+        GrpcUnary.respond(responseObserver, () -> {
+            WorkspaceManager workspace = workspacesManager.findById(request.getWorkspaceId())
+                    .orElseThrow(() -> GrpcExceptions.notFound("Workspace not found: " + request.getWorkspaceId()));
 
-        ProjectManager project = findProjectInWorkspace(
-                workspace, request.getWorkspaceId(), request.getProjectId());
+            ProjectManager project = findProjectInWorkspace(
+                    workspace, request.getWorkspaceId(), request.getProjectId());
 
-        LOG.debug("Fetched project via gRPC: workspaceId={} projectId={}",
-                request.getWorkspaceId(), request.getProjectId());
+            LOG.debug("Fetched project via gRPC: workspaceId={} projectId={}",
+                    request.getWorkspaceId(), request.getProjectId());
 
-        GrpcResponses.complete(responseObserver, GetProjectResponse.newBuilder()
-                .setProject(toProto(project.detailedInfo()))
-                .build());
+            return GetProjectResponse.newBuilder()
+                    .setProject(toProto(project.detailedInfo()))
+                    .build();
+        });
     }
 
     @Override
     public void deleteProject(DeleteProjectRequest request, StreamObserver<DeleteProjectResponse> responseObserver) {
-        ProjectManager project = findProject(request.getProjectId());
-        project.delete(WorkspaceEventCreator.MANUAL);
+        GrpcUnary.respond(responseObserver, () -> {
+            ProjectManager project = findProject(request.getProjectId());
+            project.delete(WorkspaceEventCreator.MANUAL);
 
-        LOG.debug("Deleted project via gRPC: projectId={}", request.getProjectId());
+            LOG.debug("Deleted project via gRPC: projectId={}", request.getProjectId());
 
-        GrpcResponses.complete(responseObserver, DeleteProjectResponse.getDefaultInstance());
+            return DeleteProjectResponse.getDefaultInstance();
+        });
     }
 
     @Override
     public void restoreProject(RestoreProjectRequest request, StreamObserver<RestoreProjectResponse> responseObserver) {
-        ProjectManager project = findProjectIncludingDeleted(request.getProjectId());
-        project.restore();
+        GrpcUnary.respond(responseObserver, () -> {
+            ProjectManager project = findProjectIncludingDeleted(request.getProjectId());
+            project.restore();
 
-        LOG.info("Restored project via gRPC: projectId={}", request.getProjectId());
+            LOG.info("Restored project via gRPC: projectId={}", request.getProjectId());
 
-        GrpcResponses.complete(responseObserver, RestoreProjectResponse.getDefaultInstance());
+            return RestoreProjectResponse.getDefaultInstance();
+        });
     }
 
     private ProjectManager findProject(String projectId) {

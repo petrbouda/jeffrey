@@ -23,7 +23,6 @@ import io.grpc.ServerInterceptor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.grpc.server.GlobalServerInterceptor;
-import org.springframework.grpc.server.exception.GrpcExceptionHandler;
 import cafe.jeffrey.hub.core.HubJeffreyDirs;
 import cafe.jeffrey.hub.core.configuration.properties.DefaultWorkspaceProperties;
 import cafe.jeffrey.hub.core.manager.RepositoryManager;
@@ -55,16 +54,6 @@ public class GrpcServerConfiguration {
     @GlobalServerInterceptor
     public ServerInterceptor jfrGrpcServerInterceptor() {
         return new JfrGrpcServerInterceptor();
-    }
-
-    /**
-     * Central exception mapper for all services. Spring gRPC's auto-configuration detects this
-     * bean and registers the interceptor that routes service exceptions through it, which lets the
-     * service methods throw instead of repeating try/catch/onError in every RPC.
-     */
-    @Bean
-    public GrpcExceptionHandler jeffreyGrpcExceptionHandler() {
-        return new JeffreyGrpcExceptionHandler();
     }
 
     @Bean
