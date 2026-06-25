@@ -21,8 +21,10 @@ package cafe.jeffrey.agent;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.Base64;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -138,6 +140,76 @@ class AgentArgsTest {
 
             assertEquals(Path.of("/tmp"), args.heartbeatDir());
             assertEquals(Duration.ofMillis(3000), args.heartbeatInterval());
+        }
+    }
+
+    @Nested
+    class AppInfo {
+
+        private static String base64(String value) {
+            return Base64.getEncoder().encodeToString(value.getBytes(StandardCharsets.UTF_8));
+        }
+
+        @Test
+        void noAppArgsYieldsNullAppInfo() {
+            AgentArgs args = AgentArgs.parse("heartbeat.dir=/tmp");
+
+            assertNull(args.appInfo());
+        }
+
+        @Test
+        void sessionIdIsRequiredForAppInfo() {
+            AgentArgs args = AgentArgs.parse("app.workspaceId=$default,app.projectId=p-1");
+
+            assertNull(args.appInfo());
+        }
+
+        @Test
+        void parsesFullIdentity() {
+            String parsed = String.join(",",
+                    "heartbeat.dir=/tmp/.heartbeat",
+                    "app.workspaceId=$default",
+                    "app.projectId=11111111-2222-3333-4444-555555555555",
+                    "app.projectName=payments-api",
+                    "app.projectLabel=" + base64("Payments API (prod)"),
+                    "app.instanceId=pod-7c9",
+                    "app.sessionId=aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+                    "app.sessionOrder=3",
+                    "app.attributes=" + base64("cluster=eu;namespace=prod"),
+                    "app.provisionedAt=1700000000000");
+
+            AppInformation info = AgentArgs.parse(parsed).appInfo();
+
+            assertNotNull(info);
+            assertEquals("$default", info.workspaceId());
+            assertEquals("11111111-2222-3333-4444-555555555555", info.projectId());
+            assertEquals("payments-api", info.projectName());
+            assertEquals("Payments API (prod)", info.projectLabel());
+            assertEquals("pod-7c9", info.instanceId());
+            assertEquals("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee", info.sessionId());
+            assertEquals(3, info.sessionOrder());
+            assertEquals("cluster=eu;namespace=prod", info.attributes());
+            assertEquals(1700000000000L, info.provisionedAt());
+            // Heartbeat parsing is unaffected.
+            assertEquals(Path.of("/tmp/.heartbeat"), AgentArgs.parse(parsed).heartbeatDir());
+        }
+
+        @Test
+        void base64ValuesSurviveDelimiterCharacters() {
+            // A label and attributes containing ',' and ';' would break the
+            // comma-separated agent-arg parsing if not Base64-encoded.
+            String label = "Team A, B & C; v2";
+            String attributes = "region=eu-west,1;team=core,platform";
+            String parsed = String.join(",",
+                    "app.sessionId=s-1",
+                    "app.projectLabel=" + base64(label),
+                    "app.attributes=" + base64(attributes));
+
+            AppInformation info = AgentArgs.parse(parsed).appInfo();
+
+            assertNotNull(info);
+            assertEquals(label, info.projectLabel());
+            assertEquals(attributes, info.attributes());
         }
     }
 }

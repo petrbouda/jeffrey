@@ -30,6 +30,13 @@ public class JeffreyAgent {
     public static void premain(String args, Instrumentation inst) {
         AgentArgs agentArgs = AgentArgs.parse(args);
 
+        startHeartbeat(agentArgs);
+        startAppInformation(agentArgs);
+    }
+
+    // Heartbeat writes a liveness file; AppInformation emits a JFR event. They are
+    // independent concerns and either can run without the other.
+    private static void startHeartbeat(AgentArgs agentArgs) {
         Path heartbeatDir = agentArgs.heartbeatDir();
         if (!agentArgs.heartbeatEnabled() || heartbeatDir == null) {
             LOG.log(Level.INFO, "Heartbeat is disabled or no heartbeat directory configured");
@@ -46,5 +53,16 @@ public class JeffreyAgent {
         producer.start();
 
         LOG.log(Level.INFO, "Heartbeat started: dir=" + heartbeatDir + " interval=" + agentArgs.heartbeatInterval());
+    }
+
+    private static void startAppInformation(AgentArgs agentArgs) {
+        AppInformation appInfo = agentArgs.appInfo();
+        if (appInfo == null) {
+            LOG.log(Level.INFO, "Application information is not configured, skipping jeffrey.AppInformation emission");
+            return;
+        }
+
+        AppInformationEmitter.start(appInfo);
+        LOG.log(Level.INFO, "Application information emitter started: sessionId=" + appInfo.sessionId());
     }
 }
