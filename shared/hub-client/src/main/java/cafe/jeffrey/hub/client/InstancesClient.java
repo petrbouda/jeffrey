@@ -125,8 +125,8 @@ public class InstancesClient {
 
         return new InstanceResponse(
                 proto.getId(),
-                proto.getInstanceName().isEmpty() ? null : proto.getInstanceName(),
-                fromProtoInstanceStatus(proto.getStatus()),
+                ClientProtoMappers.nullIfEmpty(proto.getInstanceName()),
+                ClientProtoMappers.instanceStatus(proto.getStatus()),
                 proto.getCreatedAt(),
                 proto.hasFinishedAt() ? proto.getFinishedAt() : null,
                 proto.hasExpiringAt() ? proto.getExpiringAt() : null,
@@ -140,20 +140,11 @@ public class InstancesClient {
     private static InstanceSessionResponse toSessionResponse(InstanceSessionInfo proto) {
         return new InstanceSessionResponse(
                 proto.getId(),
-                proto.getRepositoryId().isEmpty() ? null : proto.getRepositoryId(),
+                ClientProtoMappers.nullIfEmpty(proto.getRepositoryId()),
                 proto.getCreatedAt(),
                 proto.hasFinishedAt() ? proto.getFinishedAt() : null,
                 proto.getIsActive(),
                 proto.hasFinishedAt() ? proto.getFinishedAt() - proto.getCreatedAt() : null);
     }
 
-    private static String fromProtoInstanceStatus(cafe.jeffrey.hub.api.v1.InstanceStatus status) {
-        return switch (status) {
-            case INSTANCE_STATUS_PENDING -> "PENDING";
-            case INSTANCE_STATUS_ACTIVE -> "ACTIVE";
-            case INSTANCE_STATUS_FINISHED -> "FINISHED";
-            case INSTANCE_STATUS_EXPIRED -> "EXPIRED";
-            default -> "UNKNOWN";
-        };
-    }
 }

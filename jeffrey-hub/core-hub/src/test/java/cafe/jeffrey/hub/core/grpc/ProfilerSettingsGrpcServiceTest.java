@@ -18,12 +18,8 @@
 
 package cafe.jeffrey.hub.core.grpc;
 
-import io.grpc.ManagedChannel;
-import io.grpc.Server;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
-import io.grpc.inprocess.InProcessChannelBuilder;
-import io.grpc.inprocess.InProcessServerBuilder;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -50,31 +46,18 @@ class ProfilerSettingsGrpcServiceTest {
     private static final String PROJECT_ID = "proj-1";
     private static final String AGENT_SETTINGS = "start,event=cpu,interval=10ms";
 
-    private Server server;
-    private ManagedChannel channel;
+    private InProcessGrpcServer grpc;
 
     private ProfilerSettingsServiceGrpc.ProfilerSettingsServiceBlockingStub startServer(
-            ProfilerSettingsGrpcService service) throws IOException {
-
-        String name = InProcessServerBuilder.generateName();
-        server = InProcessServerBuilder.forName(name)
-                .directExecutor()
-                .addService(service)
-                .build()
-                .start();
-        channel = InProcessChannelBuilder.forName(name)
-                .directExecutor()
-                .build();
-        return ProfilerSettingsServiceGrpc.newBlockingStub(channel);
+            ProfilerSettingsGrpcService service) {
+        grpc = InProcessGrpcServer.start(service);
+        return ProfilerSettingsServiceGrpc.newBlockingStub(grpc.channel());
     }
 
     @AfterEach
     void shutdown() {
-        if (channel != null) {
-            channel.shutdownNow();
-        }
-        if (server != null) {
-            server.shutdownNow();
+        if (grpc != null) {
+            grpc.close();
         }
     }
 
@@ -502,7 +485,7 @@ class ProfilerSettingsGrpcServiceTest {
         var projectManagerFactory = mock(ProjectManager.Factory.class);
         when(projectManagerFactory.apply(TEST_PROJECT_INFO)).thenReturn(projectManager);
 
-        return new ProfilerSettingsGrpcService(platformRepositories, projectManagerFactory);
+        return new ProfilerSettingsGrpcService(platformRepositories, new GrpcLookups(platformRepositories, null, projectManagerFactory));
     }
 
     /**
@@ -518,7 +501,7 @@ class ProfilerSettingsGrpcServiceTest {
 
         var projectManagerFactory = mock(ProjectManager.Factory.class);
 
-        return new ProfilerSettingsGrpcService(platformRepositories, projectManagerFactory);
+        return new ProfilerSettingsGrpcService(platformRepositories, new GrpcLookups(platformRepositories, null, projectManagerFactory));
     }
 
     /**
@@ -530,6 +513,6 @@ class ProfilerSettingsGrpcServiceTest {
 
         var projectManagerFactory = mock(ProjectManager.Factory.class);
 
-        return new ProfilerSettingsGrpcService(platformRepositories, projectManagerFactory);
+        return new ProfilerSettingsGrpcService(platformRepositories, new GrpcLookups(platformRepositories, null, projectManagerFactory));
     }
 }

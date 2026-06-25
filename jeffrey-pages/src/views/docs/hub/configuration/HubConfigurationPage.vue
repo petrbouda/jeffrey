@@ -121,7 +121,7 @@ onMounted(() => {
         </thead>
         <tbody>
           <tr>
-            <td><code>jeffrey.hub.grpc.port</code></td>
+            <td><code>spring.grpc.server.port</code></td>
             <td><code>9090</code></td>
             <td>gRPC server port for Jeffrey Microscope connections</td>
           </tr>

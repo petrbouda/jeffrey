@@ -18,7 +18,6 @@
 
 package cafe.jeffrey.hub.core.grpc;
 
-import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,10 +45,10 @@ public class WorkspaceEventsGrpcService extends WorkspaceEventsServiceGrpc.Works
             GetWorkspaceEventsRequest request,
             StreamObserver<GetWorkspaceEventsResponse> responseObserver) {
 
-        String workspaceId = request.getWorkspaceId();
-        int limit = (request.hasLimit() && request.getLimit() > 0) ? request.getLimit() : DEFAULT_LIMIT;
+        GrpcUnary.respond(responseObserver, () -> {
+            String workspaceId = request.getWorkspaceId();
+            int limit = (request.hasLimit() && request.getLimit() > 0) ? request.getLimit() : DEFAULT_LIMIT;
 
-        try {
             long totalCount = workspaceEventReader.count(workspaceId);
 
             // When filtering by type, fetch all events and apply the limit after filtering
@@ -59,7 +58,7 @@ public class WorkspaceEventsGrpcService extends WorkspaceEventsServiceGrpc.Works
             Stream<WorkspaceEvent> eventStream = workspaceEventReader.findAll(workspaceId, fetchLimit).stream();
 
             if (request.hasEventType()) {
-                WorkspaceEventType filterType = WorkspaceEventType.valueOf(request.getEventType());
+                WorkspaceEventType filterType = parseEventType(request.getEventType());
                 eventStream = eventStream
                         .filter(event -> event.eventType() == filterType)
                         .limit(limit);
@@ -72,35 +71,32 @@ public class WorkspaceEventsGrpcService extends WorkspaceEventsServiceGrpc.Works
             LOG.debug("Fetched workspace events via gRPC: workspaceId={} count={} total={} limit={}",
                     workspaceId, events.size(), totalCount, limit);
 
-            GetWorkspaceEventsResponse response = GetWorkspaceEventsResponse.newBuilder()
+            return GetWorkspaceEventsResponse.newBuilder()
                     .addAllEvents(events)
                     .setTotalCount(totalCount)
                     .build();
-            responseObserver.onNext(response);
-            responseObserver.onCompleted();
+        });
+    }
+
+    private static WorkspaceEventType parseEventType(String raw) {
+        try {
+            return WorkspaceEventType.valueOf(raw);
         } catch (IllegalArgumentException e) {
-            responseObserver.onError(Status.INVALID_ARGUMENT
-                    .withDescription("Invalid event type: " + request.getEventType())
-                    .asRuntimeException());
-        } catch (io.grpc.StatusRuntimeException e) {
-            responseObserver.onError(e);
-        } catch (Exception e) {
-            LOG.error("Failed to get workspace events: workspaceId={}", workspaceId, e);
-            responseObserver.onError(Status.INTERNAL.withDescription(e.getMessage()).asRuntimeException());
+            throw GrpcExceptions.invalidArgument("Invalid event type: " + raw);
         }
     }
 
     private static WorkspaceEventInfo toProto(WorkspaceEvent event) {
         return WorkspaceEventInfo.newBuilder()
                 .setEventId(event.eventId() != null ? event.eventId() : 0)
-                .setOriginEventId(event.originEventId() != null ? event.originEventId() : "")
-                .setProjectId(event.projectId() != null ? event.projectId() : "")
-                .setWorkspaceRefId(event.workspaceRefId() != null ? event.workspaceRefId() : "")
+                .setOriginEventId(ProtoMappers.orEmpty(event.originEventId()))
+                .setProjectId(ProtoMappers.orEmpty(event.projectId()))
+                .setWorkspaceRefId(ProtoMappers.orEmpty(event.workspaceRefId()))
                 .setEventType(event.eventType() != null ? event.eventType().name() : "")
-                .setContent(event.content() != null ? event.content() : "")
+                .setContent(ProtoMappers.orEmpty(event.content()))
                 .setOriginCreatedAt(event.originCreatedAt() != null ? event.originCreatedAt().toEpochMilli() : 0)
                 .setCreatedAt(event.createdAt() != null ? event.createdAt().toEpochMilli() : 0)
-                .setCreatedBy(event.createdBy() != null ? event.createdBy() : "")
+                .setCreatedBy(ProtoMappers.orEmpty(event.createdBy()))
                 .build();
     }
 }
