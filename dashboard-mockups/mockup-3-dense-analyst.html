@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mockup 3 · Dense Analyst — Jeffrey Recording Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<style>
+:root{
+  --primary:#5e64ff;--success:#00d27a;--danger:#e63757;--warning:#f5803e;--info:#39afd1;
+  --dark:#0b1727;--text:#5e6e82;--muted:#748194;
+  --bg:#edf2f9;--card:#fff;--light:#f9fafd;--border:#eaedf1;
+  --radius:8px;--shadow:0 0 .375rem 0 rgba(0,0,0,.1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Poppins',-apple-system,sans-serif;background:var(--bg);color:var(--text);font-size:.85rem;padding:20px;line-height:1.45}
+.wrap{max-width:1240px;margin:0 auto}
+
+/* page header (PageHeader.vue style) */
+.phead{display:flex;align-items:center;gap:14px;background:linear-gradient(135deg,#f9fafd,#fff);border:1px solid var(--border);border-left:4px solid var(--primary);border-radius:var(--radius);padding:14px 20px;margin-bottom:16px;box-shadow:var(--shadow)}
+.phead .ic{width:42px;height:42px;border-radius:11px;background:linear-gradient(135deg,#5e64ff,#4c52db);color:#fff;display:grid;place-items:center;font-size:1.25rem}
+.phead h1{font-size:1.15rem;font-weight:700;color:var(--dark);letter-spacing:-.01em}
+.phead .sub{font-size:.74rem;color:var(--muted)}
+.phead .right{margin-left:auto;display:flex;gap:8px;align-items:center}
+.bdg{font-size:.64rem;font-weight:600;padding:4px 10px;border-radius:6px;border:1px solid;display:inline-flex;align-items:center;gap:5px}
+.bdg.ok{background:rgba(0,210,122,.1);border-color:var(--success);color:var(--success)}
+.bdg.pr{background:#e2e7fd;border-color:#9ba8ff;color:#1565c0}
+.bdg.gr{background:#f5f5f5;border-color:#bdbdbd;color:#424242}
+
+.layout{display:grid;grid-template-columns:300px 1fr;gap:16px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:16px}
+.card-h{display:flex;align-items:center;gap:8px;padding:11px 15px;background:var(--light);border-bottom:1px solid var(--border);border-radius:var(--radius) var(--radius) 0 0}
+.card-h i{color:var(--primary)}.card-h .t{font-weight:600;color:var(--text);font-size:.8rem}
+.card-h .badge{margin-left:auto;font-size:.6rem;font-weight:600;padding:2px 8px;border-radius:5px;background:#e2e7fd;border:1px solid #9ba8ff;color:#1565c0}
+.card-b{padding:13px 15px}
+
+/* identity rows */
+.ir{display:flex;flex-direction:column;padding:8px 0;border-bottom:1px solid var(--border)}
+.ir:last-child{border-bottom:none}
+.ir .k{font-size:.6rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:600}
+.ir .v{font-size:.82rem;color:var(--dark);font-weight:600;margin-top:2px;word-break:break-all}
+.ir .v.mono{font-family:'SF Mono',monospace;font-size:.74rem}
+.chip{display:inline-block;font-size:.66rem;font-weight:500;padding:3px 8px;border-radius:5px;background:#e8eaf6;color:#3f51b5;margin:2px 3px 0 0}
+
+/* mini stat grid */
+.mini{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+.m{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:12px 14px;display:flex;align-items:center;gap:11px}
+.m .ic{width:36px;height:36px;border-radius:9px;display:grid;place-items:center;font-size:1.05rem;color:#fff;flex-shrink:0}
+.m .num{font-size:1.15rem;font-weight:700;color:var(--dark);line-height:1.1}
+.m .lbl{font-size:.66rem;color:var(--muted)}
+.bp{background:linear-gradient(135deg,#5e64ff,#4c52db)}.bi2{background:linear-gradient(135deg,#39afd1,#2e9bb8)}
+.bs{background:linear-gradient(135deg,#00d27a,#00a863)}.bw{background:linear-gradient(135deg,#f5803e,#e4702d)}
+.bv{background:linear-gradient(135deg,#8b5cf6,#7c3aed)}.bd{background:linear-gradient(135deg,#e63757,#d12548)}
+
+/* tables */
+table{width:100%;border-collapse:collapse;font-size:.78rem}
+thead th{text-align:left;font-size:.6rem;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);font-weight:600;padding:8px 12px;background:var(--light);border-bottom:1px solid var(--border)}
+tbody td{padding:8px 12px;border-bottom:1px solid var(--border);color:var(--dark)}
+tbody tr:hover{background:var(--light)}
+tbody tr:last-child td{border-bottom:none}
+.evt{font-family:'SF Mono',monospace;font-size:.74rem;font-weight:500}
+.rt{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+.muted{color:var(--muted);font-weight:400}
+.minibar{height:5px;border-radius:3px;background:#eef0ff;overflow:hidden;margin-top:4px}
+.minibar i{display:block;height:100%;border-radius:3px;background:linear-gradient(90deg,#5e64ff,#9ba8ff)}
+.src{font-size:.58rem;font-weight:600;padding:1px 6px;border-radius:4px}
+.src.jdk{background:#e8f5e8;color:#2e7d32}.src.ap{background:#fff3e0;color:#ef6c00}
+
+/* timeline */
+.tl{display:flex;align-items:flex-end;gap:2px;height:64px}
+.tl i{flex:1;background:linear-gradient(180deg,#5e64ff,#c3c7ff);border-radius:2px 2px 0 0;min-height:3px}
+.tl-ax{display:flex;justify-content:space-between;font-size:.6rem;color:var(--muted);margin-top:5px}
+
+.two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.kv{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:.78rem}
+.kv:last-child{border-bottom:none}.kv .k{color:var(--muted)}.kv .v{color:var(--dark);font-weight:600}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- header -->
+  <div class="phead">
+    <div class="ic"><i class="bi bi-speedometer2"></i></div>
+    <div>
+      <h1>Recording Overview</h1>
+      <div class="sub">Payments API (prod) · recording <code>rec-2026-0625-0914</code></div>
+    </div>
+    <div class="right">
+      <span class="bdg ok"><i class="bi bi-patch-check-fill"></i> Handled by Jeffrey</span>
+      <span class="bdg pr"><i class="bi bi-cpu"></i> async-profiler</span>
+      <span class="bdg gr"><i class="bi bi-layers"></i> 3 chunks</span>
+    </div>
+  </div>
+
+  <div class="layout">
+    <!-- LEFT sidebar: jeffrey.AppInformation -->
+    <div>
+      <div class="card">
+        <div class="card-h"><i class="bi bi-fingerprint"></i><span class="t">Application Identity</span><span class="badge">AppInformation</span></div>
+        <div class="card-b">
+          <div class="ir"><span class="k">Project label</span><span class="v">Payments API (prod)</span></div>
+          <div class="ir"><span class="k">Project name</span><span class="v mono">payments-api</span></div>
+          <div class="ir"><span class="k">Workspace</span><span class="v mono">$default</span></div>
+          <div class="ir"><span class="k">Project ID</span><span class="v mono">11111111-2222-…-555555555555</span></div>
+          <div class="ir"><span class="k">Instance</span><span class="v mono">pod-7c9f4</span></div>
+          <div class="ir"><span class="k">Session · order</span><span class="v mono">aaaaaaaa-… · #3</span></div>
+          <div class="ir"><span class="k">JVM started</span><span class="v">2026-06-25 09:14:02</span></div>
+          <div class="ir"><span class="k">Provisioned</span><span class="v">2026-06-25 09:13:58</span></div>
+          <div class="ir"><span class="k">Attributes</span><span class="v">
+            <span class="chip">cluster=eu-west</span><span class="chip">namespace=prod</span><span class="chip">env=production</span>
+          </span></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-h"><i class="bi bi-recycle"></i><span class="t">Garbage Collection</span></div>
+        <div class="card-b" style="padding-top:4px">
+          <div class="kv"><span class="k">Collections</span><span class="v">142</span></div>
+          <div class="kv"><span class="k">Young / Old / Full</span><span class="v">128 / 12 / 2</span></div>
+          <div class="kv"><span class="k">Max pause</span><span class="v">61 ms</span></div>
+          <div class="kv"><span class="k">p99 pause</span><span class="v">38 ms</span></div>
+          <div class="kv"><span class="k">Overhead</span><span class="v" style="color:var(--success)">1.2%</span></div>
+          <div class="kv"><span class="k">Freed total</span><span class="v">11.4 GB</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT main -->
+    <div>
+      <div class="mini">
+        <div class="m"><div class="ic bp"><i class="bi bi-stack"></i></div><div><div class="num">2,421,068</div><div class="lbl">Total events</div></div></div>
+        <div class="m"><div class="ic bi2"><i class="bi bi-stopwatch"></i></div><div><div class="num">5m 32s</div><div class="lbl">Duration</div></div></div>
+        <div class="m"><div class="ic bs"><i class="bi bi-hdd"></i></div><div><div class="num">184 MB</div><div class="lbl">Size on disk</div></div></div>
+        <div class="m"><div class="ic bw"><i class="bi bi-cpu-fill"></i></div><div><div class="num">47% / 82%</div><div class="lbl">CPU avg / peak</div></div></div>
+        <div class="m"><div class="ic bv"><i class="bi bi-list-columns"></i></div><div><div class="num">42</div><div class="lbl">Event types</div></div></div>
+        <div class="m"><div class="ic bd"><i class="bi bi-diagram-2"></i></div><div><div class="num">318</div><div class="lbl">Threads (14 virtual)</div></div></div>
+      </div>
+
+      <div class="card">
+        <div class="card-h"><i class="bi bi-activity"></i><span class="t">Event Generation Timeline</span><span class="badge">10s buckets · all types</span></div>
+        <div class="card-b">
+          <div class="tl">
+            <i style="height:30%"></i><i style="height:42%"></i><i style="height:55%"></i><i style="height:49%"></i><i style="height:66%"></i><i style="height:80%"></i><i style="height:92%"></i><i style="height:100%"></i><i style="height:84%"></i><i style="height:71%"></i><i style="height:62%"></i><i style="height:70%"></i><i style="height:58%"></i><i style="height:50%"></i><i style="height:44%"></i><i style="height:38%"></i><i style="height:48%"></i><i style="height:40%"></i><i style="height:33%"></i><i style="height:27%"></i>
+          </div>
+          <div class="tl-ax"><span>09:14:00</span><span>09:16:00</span><span>09:18:00</span><span>09:20:00</span></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-h"><i class="bi bi-bar-chart-line-fill"></i><span class="t">Top Event Types</span><span class="badge">5 of 42</span></div>
+        <table>
+          <thead><tr><th>Event type</th><th>Source</th><th style="width:26%">Share</th><th class="rt">Count</th><th class="rt">%</th></tr></thead>
+          <tbody>
+            <tr><td class="evt">jdk.ExecutionSample</td><td><span class="src jdk">JDK</span></td><td><div class="minibar"><i style="width:100%"></i></div></td><td class="rt">1,204,332</td><td class="rt muted">49.7%</td></tr>
+            <tr><td class="evt">jdk.ObjectAllocationSample</td><td><span class="src jdk">JDK</span></td><td><div class="minibar"><i style="width:51%"></i></div></td><td class="rt">612,004</td><td class="rt muted">25.3%</td></tr>
+            <tr><td class="evt">jdk.JavaMonitorEnter</td><td><span class="src jdk">JDK</span></td><td><div class="minibar"><i style="width:8%"></i></div></td><td class="rt">88,210</td><td class="rt muted">3.6%</td></tr>
+            <tr><td class="evt">jdk.ThreadPark</td><td><span class="src jdk">JDK</span></td><td><div class="minibar"><i style="width:5%"></i></div></td><td class="rt">54,120</td><td class="rt muted">2.2%</td></tr>
+            <tr><td class="evt">jdk.SocketRead</td><td><span class="src ap">A-P</span></td><td><div class="minibar"><i style="width:3%"></i></div></td><td class="rt">31,402</td><td class="rt muted">1.3%</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="two">
+        <div class="card">
+          <div class="card-h"><i class="bi bi-gear-wide-connected"></i><span class="t">JVM &amp; Heap</span></div>
+          <div class="card-b" style="padding-top:5px">
+            <div class="kv"><span class="k">Version</span><span class="v">OpenJDK 25.0.1</span></div>
+            <div class="kv"><span class="k">Vendor</span><span class="v">Amazon Corretto</span></div>
+            <div class="kv"><span class="k">GC</span><span class="v">G1 (young + old)</span></div>
+            <div class="kv"><span class="k">Heap min / max</span><span class="v">512 MB / 4.0 GB</span></div>
+            <div class="kv"><span class="k">Compressed oops</span><span class="v">Zero based</span></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-h"><i class="bi bi-hdd-rack"></i><span class="t">OS &amp; Host</span></div>
+          <div class="card-b" style="padding-top:5px">
+            <div class="kv"><span class="k">OS</span><span class="v">Linux 6.18</span></div>
+            <div class="kv"><span class="k">Arch / cores</span><span class="v">x86_64 · 8</span></div>
+            <div class="kv"><span class="k">Container limit</span><span class="v">2 vCPU · 4 GB</span></div>
+            <div class="kv"><span class="k">Context switches</span><span class="v">12.4k/s peak</span></div>
+            <div class="kv"><span class="k">Processes seen</span><span class="v">37</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

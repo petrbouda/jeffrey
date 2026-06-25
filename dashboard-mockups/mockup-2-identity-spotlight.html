@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mockup 2 · Identity Spotlight — Jeffrey Recording Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<style>
+:root{
+  --primary:#5e64ff;--success:#00d27a;--danger:#e63757;--warning:#f5803e;--info:#39afd1;--purple:#7b1fa2;
+  --dark:#0b1727;--text:#5e6e82;--muted:#748194;
+  --bg:#edf2f9;--card:#fff;--light:#f9fafd;--border:#eaedf1;
+  --radius:8px;--shadow:0 0 .375rem 0 rgba(0,0,0,.1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Poppins',-apple-system,sans-serif;background:var(--bg);color:var(--text);font-size:.875rem;padding:24px;line-height:1.5}
+.wrap{max-width:1180px;margin:0 auto;display:grid;grid-template-columns:360px 1fr;gap:18px}
+
+/* ===== Identity spotlight card (left) ===== */
+.identity{border-radius:14px;overflow:hidden;box-shadow:0 12px 34px rgba(49,46,129,.28);align-self:start;position:sticky;top:24px}
+.id-head{background:linear-gradient(150deg,#1e1b4b,#312e81 55%,#4338ca);padding:24px 22px;color:#fff;position:relative;overflow:hidden}
+.id-head::after{content:"";position:absolute;right:-40px;bottom:-50px;width:180px;height:180px;border-radius:50%;background:radial-gradient(circle,rgba(94,100,255,.4),transparent 70%)}
+.id-badge{display:inline-flex;align-items:center;gap:6px;font-size:.62rem;font-weight:600;padding:5px 11px;border-radius:20px;background:rgba(0,210,122,.2);border:1px solid rgba(0,210,122,.35);color:#6ee7b7;position:relative;z-index:1}
+.id-logo{width:58px;height:58px;border-radius:16px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);display:grid;place-items:center;font-size:1.7rem;margin:16px 0 12px;position:relative;z-index:1}
+.id-name{font-size:1.5rem;font-weight:700;letter-spacing:-.02em;position:relative;z-index:1}
+.id-slug{font-size:.74rem;color:rgba(255,255,255,.6);font-family:'SF Mono',monospace;margin-top:3px;position:relative;z-index:1}
+.id-body{background:var(--card);padding:6px 22px 18px}
+.id-row{display:flex;align-items:center;gap:11px;padding:11px 0;border-bottom:1px solid var(--border)}
+.id-row:last-child{border-bottom:none}
+.id-row .ic{width:32px;height:32px;border-radius:9px;background:#eef0ff;color:var(--primary);display:grid;place-items:center;font-size:.95rem;flex-shrink:0}
+.id-row .k{font-size:.64rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:600}
+.id-row .v{font-size:.84rem;color:var(--dark);font-weight:600;word-break:break-all}
+.attrs{padding:14px 22px;background:var(--light);border-top:1px solid var(--border)}
+.attrs .lbl{font-size:.62rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:600;margin-bottom:8px}
+.chip{display:inline-block;font-size:.68rem;font-weight:500;padding:4px 9px;border-radius:6px;background:#e8eaf6;color:#3f51b5;margin:0 4px 4px 0}
+
+/* ===== Right column ===== */
+.col{display:flex;flex-direction:column;gap:18px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow)}
+.card-h{display:flex;align-items:center;gap:9px;padding:13px 18px;background:var(--light);border-bottom:1px solid var(--border);border-radius:var(--radius) var(--radius) 0 0}
+.card-h i{color:var(--primary);font-size:1.05rem}.card-h .t{font-weight:600;color:var(--text);font-size:.86rem}
+.card-h .badge{margin-left:auto;font-size:.62rem;font-weight:600;padding:3px 9px;border-radius:6px;background:#e2e7fd;border:1px solid #9ba8ff;color:#1565c0}
+.card-b{padding:18px}
+
+/* stat strip */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.stat{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:15px 16px;position:relative}
+.stat .ic{position:absolute;right:14px;top:14px;font-size:1.3rem;opacity:.22}
+.stat .num{font-size:1.55rem;font-weight:700;color:var(--dark);letter-spacing:-.02em;line-height:1}
+.stat .lbl{font-size:.7rem;color:var(--muted);margin-top:5px;font-weight:500}
+.c1{color:var(--primary)}.c2{color:var(--info)}.c3{color:var(--success)}.c4{color:var(--warning)}
+
+/* donut + legend */
+.donut-wrap{display:flex;align-items:center;gap:26px}
+.donut{width:170px;height:170px;border-radius:50%;flex-shrink:0;
+  background:conic-gradient(#5e64ff 0 50%,#39afd1 50% 75%,#00d27a 75% 87%,#f5803e 87% 94%,#e63757 94% 100%);
+  position:relative;display:grid;place-items:center}
+.donut::after{content:"";position:absolute;width:104px;height:104px;border-radius:50%;background:var(--card)}
+.donut .ctr{position:relative;z-index:1;text-align:center}
+.donut .ctr b{font-size:1.3rem;color:var(--dark);font-weight:700;display:block;line-height:1}
+.donut .ctr span{font-size:.62rem;color:var(--muted)}
+.lgnd{flex:1}
+.lg{display:flex;align-items:center;gap:9px;padding:7px 0;border-bottom:1px solid var(--border);font-size:.78rem}
+.lg:last-child{border-bottom:none}
+.lg .sw{width:11px;height:11px;border-radius:3px;flex-shrink:0}
+.lg .nm{font-family:'SF Mono',monospace;font-size:.74rem;color:var(--dark);flex:1}
+.lg .ct{font-weight:600;color:var(--dark);font-variant-numeric:tabular-nums}
+.lg .pc{color:var(--muted);font-size:.72rem;width:46px;text-align:right}
+
+.irow{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border);font-size:.8rem}
+.irow:last-child{border-bottom:none}.irow .k{color:var(--muted)}.irow .v{color:var(--dark);font-weight:600}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 26px}
+
+/* fallback note */
+.fallback{margin-top:18px;border:1.5px dashed #d8e2ef;border-radius:var(--radius);background:repeating-linear-gradient(45deg,#fbfcfe,#fbfcfe 10px,#f6f8fc 10px,#f6f8fc 20px);padding:18px 20px;display:flex;gap:14px;align-items:center}
+.fallback .ic{width:42px;height:42px;border-radius:11px;background:#fff3e0;color:#ef6c00;display:grid;place-items:center;font-size:1.3rem;flex-shrink:0}
+.fallback .tt{font-weight:600;color:var(--dark);font-size:.84rem}
+.fallback .ds{font-size:.74rem;color:var(--muted);margin-top:2px}
+.tag{font-size:.6rem;font-weight:600;padding:2px 7px;border-radius:5px;background:#f5f5f5;border:1px solid #bdbdbd;color:#424242;margin-left:8px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ============ LEFT: jeffrey.AppInformation spotlight ============ -->
+  <div>
+    <div class="identity">
+      <div class="id-head">
+        <span class="id-badge"><i class="bi bi-patch-check-fill"></i> jeffrey.AppInformation detected</span>
+        <div class="id-logo"><i class="bi bi-box-seam"></i></div>
+        <div class="id-name">Payments API <span style="opacity:.55;font-weight:500">(prod)</span></div>
+        <div class="id-slug">payments-api</div>
+      </div>
+      <div class="id-body">
+        <div class="id-row"><div class="ic"><i class="bi bi-folder2"></i></div><div><div class="k">Workspace</div><div class="v">$default</div></div></div>
+        <div class="id-row"><div class="ic"><i class="bi bi-hdd-network"></i></div><div><div class="k">Instance</div><div class="v">pod-7c9f4</div></div></div>
+        <div class="id-row"><div class="ic"><i class="bi bi-diagram-3"></i></div><div><div class="k">Session · order #3</div><div class="v">aaaaaaaa-bbbb-cccc-dddd-…</div></div></div>
+        <div class="id-row"><div class="ic"><i class="bi bi-clock-history"></i></div><div><div class="k">JVM started</div><div class="v">2026-06-25 09:14:02 UTC</div></div></div>
+        <div class="id-row"><div class="ic"><i class="bi bi-rocket-takeoff"></i></div><div><div class="k">Provisioned at</div><div class="v">2026-06-25 09:13:58 UTC</div></div></div>
+      </div>
+      <div class="attrs">
+        <div class="lbl">Custom Attributes</div>
+        <span class="chip">cluster=eu-west</span><span class="chip">namespace=prod</span><span class="chip">env=production</span>
+      </div>
+    </div>
+
+    <!-- Fallback state preview (shown when event absent) -->
+    <div class="fallback">
+      <div class="ic"><i class="bi bi-question-circle"></i></div>
+      <div>
+        <div class="tt">Fallback state <span class="tag">no event</span></div>
+        <div class="ds">Recording not handled by Jeffrey — <code>jeffrey.AppInformation</code> was not found in any chunk.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ RIGHT ============ -->
+  <div class="col">
+
+    <div class="stats">
+      <div class="stat"><i class="bi bi-stack ic c1"></i><div class="num c1">2.42M</div><div class="lbl">Total events</div></div>
+      <div class="stat"><i class="bi bi-stopwatch ic c2"></i><div class="num c2">5m 32s</div><div class="lbl">Duration</div></div>
+      <div class="stat"><i class="bi bi-hdd ic c3"></i><div class="num c3">184 MB</div><div class="lbl">Size</div></div>
+      <div class="stat"><i class="bi bi-list-columns ic c4"></i><div class="num c4">42</div><div class="lbl">Event types</div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-h"><i class="bi bi-pie-chart-fill"></i><span class="t">Event Distribution — Top 5</span><span class="badge">by samples</span></div>
+      <div class="card-b">
+        <div class="donut-wrap">
+          <div class="donut"><div class="ctr"><b>2.42M</b><span>events</span></div></div>
+          <div class="lgnd">
+            <div class="lg"><span class="sw" style="background:#5e64ff"></span><span class="nm">jdk.ExecutionSample</span><span class="ct">1,204,332</span><span class="pc">49.7%</span></div>
+            <div class="lg"><span class="sw" style="background:#39afd1"></span><span class="nm">jdk.ObjectAllocationSample</span><span class="ct">612,004</span><span class="pc">25.3%</span></div>
+            <div class="lg"><span class="sw" style="background:#00d27a"></span><span class="nm">jdk.JavaMonitorEnter</span><span class="ct">88,210</span><span class="pc">3.6%</span></div>
+            <div class="lg"><span class="sw" style="background:#f5803e"></span><span class="nm">jdk.ThreadPark</span><span class="ct">54,120</span><span class="pc">2.2%</span></div>
+            <div class="lg"><span class="sw" style="background:#e63757"></span><span class="nm">jdk.SocketRead</span><span class="ct">31,402</span><span class="pc">1.3%</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-h"><i class="bi bi-cpu"></i><span class="t">Environment &amp; Runtime</span></div>
+      <div class="card-b">
+        <div class="grid2">
+          <div>
+            <div class="irow"><span class="k">JVM version</span><span class="v">OpenJDK 25.0.1</span></div>
+            <div class="irow"><span class="k">Vendor</span><span class="v">Amazon Corretto</span></div>
+            <div class="irow"><span class="k">GC</span><span class="v">G1</span></div>
+            <div class="irow"><span class="k">Heap max</span><span class="v">4.0 GB</span></div>
+          </div>
+          <div>
+            <div class="irow"><span class="k">OS</span><span class="v">Linux 6.18 · x86_64</span></div>
+            <div class="irow"><span class="k">CPU cores</span><span class="v">8</span></div>
+            <div class="irow"><span class="k">Avg / peak CPU</span><span class="v">47% / 82%</span></div>
+            <div class="irow"><span class="k">GC overhead</span><span class="v" style="color:var(--success)">1.2%</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</body>
+</html>

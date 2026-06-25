@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mockup 5 · Glass Cards — Jeffrey Recording Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<style>
+:root{
+  --primary:#5e64ff;--success:#00d27a;--danger:#e63757;--warning:#f5803e;--info:#39afd1;
+  --dark:#0b1727;--text:#5e6e82;--muted:#748194;--border:#eaedf1;--radius:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Poppins',-apple-system,sans-serif;font-size:.875rem;line-height:1.5;color:var(--text);
+  background:radial-gradient(1200px 600px at 80% -10%,#e7e9ff,transparent),radial-gradient(900px 500px at -10% 110%,#dff7ec,transparent),#eef1f9;
+  padding:26px;min-height:100vh}
+.wrap{max-width:1240px;margin:0 auto}
+
+/* hero identity */
+.hero{position:relative;overflow:hidden;border-radius:20px;padding:26px 30px;margin-bottom:20px;color:#fff;
+  background:linear-gradient(125deg,#312e81,#4338ca 45%,#5e64ff 100%)}
+.hero::before{content:"";position:absolute;inset:0;background:
+  radial-gradient(420px 220px at 88% 0%,rgba(0,210,122,.35),transparent),
+  radial-gradient(360px 240px at 10% 120%,rgba(139,92,246,.4),transparent)}
+.hero>*{position:relative;z-index:1}
+.hero-top{display:flex;align-items:center;gap:18px}
+.hlogo{width:62px;height:62px;border-radius:18px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.22);backdrop-filter:blur(12px);display:grid;place-items:center;font-size:1.9rem}
+.htitle{font-size:1.7rem;font-weight:800;letter-spacing:-.02em;line-height:1}
+.hsub{font-size:.8rem;color:rgba(255,255,255,.65);margin-top:5px}
+.hsub code{color:#a5abff;background:rgba(255,255,255,.08);padding:1px 7px;border-radius:5px}
+.hok{margin-left:auto;display:flex;flex-direction:column;gap:7px;align-items:flex-end}
+.pill{font-size:.64rem;font-weight:600;padding:6px 13px;border-radius:20px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.24);display:inline-flex;align-items:center;gap:6px}
+.pill.ok{background:rgba(0,210,122,.22);border-color:rgba(0,210,122,.4);color:#9af5cd}
+.hglass{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-top:22px}
+.hg{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.16);backdrop-filter:blur(10px);border-radius:13px;padding:12px 14px}
+.hg .k{font-size:.58rem;text-transform:uppercase;letter-spacing:.06em;color:rgba(255,255,255,.55);font-weight:600}
+.hg .v{font-size:.84rem;font-weight:700;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* stat cards */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px}
+.scard{position:relative;overflow:hidden;border-radius:var(--radius);padding:20px;color:#fff;box-shadow:0 10px 26px rgba(49,46,129,.18)}
+.scard .ic{font-size:1.5rem;opacity:.85}
+.scard .num{font-size:2rem;font-weight:800;letter-spacing:-.02em;line-height:1;margin-top:12px}
+.scard .lbl{font-size:.74rem;opacity:.85;margin-top:5px;font-weight:500}
+.scard .spark{position:absolute;right:0;bottom:0;left:0;height:42px;opacity:.5}
+.g1{background:linear-gradient(135deg,#5e64ff,#7c3aed)}
+.g2{background:linear-gradient(135deg,#39afd1,#0d9488)}
+.g3{background:linear-gradient(135deg,#00d27a,#0d9488)}
+.g4{background:linear-gradient(135deg,#f5803e,#e63757)}
+
+.grid{display:grid;grid-template-columns:1.25fr 1fr;gap:16px}
+.glass{background:rgba(255,255,255,.82);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.7);border-radius:var(--radius);box-shadow:0 8px 30px rgba(31,38,84,.08)}
+.gh{display:flex;align-items:center;gap:10px;padding:15px 20px;border-bottom:1px solid var(--border)}
+.gh i{color:var(--primary);font-size:1.1rem}.gh .t{font-weight:700;color:var(--dark);font-size:.92rem}
+.gh .badge{margin-left:auto;font-size:.62rem;font-weight:600;padding:3px 10px;border-radius:20px;background:#eef0ff;color:var(--primary)}
+.gb{padding:8px 20px 18px}
+
+/* event rows */
+.er{display:flex;align-items:center;gap:13px;padding:11px 0;border-bottom:1px solid var(--border)}
+.er:last-child{border-bottom:none}
+.er .rk{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;font-size:.72rem;font-weight:700;color:#fff;flex-shrink:0}
+.er .nm{font-family:'SF Mono',monospace;font-size:.78rem;color:var(--dark);font-weight:500;flex-shrink:0;width:200px}
+.er .track{flex:1;height:8px;border-radius:5px;background:#eef0ff;overflow:hidden}
+.er .track i{display:block;height:100%;border-radius:5px}
+.er .ct{font-weight:700;color:var(--dark);font-variant-numeric:tabular-nums;width:90px;text-align:right;font-size:.8rem}
+
+/* runtime list */
+.rl{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid var(--border);font-size:.82rem}
+.rl:last-child{border-bottom:none}
+.rl .k{color:var(--muted);display:flex;align-items:center;gap:8px}
+.rl .k i{color:var(--primary);font-size:.95rem}
+.rl .v{color:var(--dark);font-weight:700}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+
+/* fallback variant */
+.fallback{margin-top:20px;border-radius:var(--radius);overflow:hidden;border:1px solid rgba(245,128,62,.25);box-shadow:0 8px 30px rgba(31,38,84,.06)}
+.fb-h{background:linear-gradient(135deg,#fff8e1,#fff);padding:14px 20px;display:flex;align-items:center;gap:11px;border-bottom:1px solid rgba(245,128,62,.18)}
+.fb-h i{font-size:1.25rem;color:#ef6c00}.fb-h .t{font-weight:700;color:#8d6e00}.fb-h .tag{margin-left:auto;font-size:.6rem;font-weight:600;padding:3px 9px;border-radius:20px;background:#fff3e0;border:1px solid #ffb74d;color:#ef6c00}
+.fb-b{background:rgba(255,255,255,.85);padding:28px 20px;text-align:center}
+.fb-b .big{font-size:1.05rem;font-weight:700;color:var(--dark)}
+.fb-b .sm{font-size:.78rem;color:var(--muted);margin-top:6px}
+.fb-b code{background:#f5f5f5;padding:1px 7px;border-radius:5px;color:#424242;font-size:.74rem}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-top">
+      <div class="hlogo"><i class="bi bi-box-seam"></i></div>
+      <div>
+        <div class="htitle">Payments API <span style="opacity:.6;font-weight:600">(prod)</span></div>
+        <div class="hsub">Recording self-identified via <code>jeffrey.AppInformation</code></div>
+      </div>
+      <div class="hok">
+        <span class="pill ok"><i class="bi bi-patch-check-fill"></i> Handled by Jeffrey</span>
+        <span class="pill"><i class="bi bi-cpu"></i> async-profiler · 3 chunks</span>
+      </div>
+    </div>
+    <div class="hglass">
+      <div class="hg"><div class="k">Workspace</div><div class="v">$default</div></div>
+      <div class="hg"><div class="k">Project</div><div class="v">payments-api</div></div>
+      <div class="hg"><div class="k">Instance</div><div class="v">pod-7c9f4</div></div>
+      <div class="hg"><div class="k">Session</div><div class="v">#3 · aaaaaaaa…</div></div>
+      <div class="hg"><div class="k">JVM started</div><div class="v">09:14:02 UTC</div></div>
+      <div class="hg"><div class="k">Provisioned</div><div class="v">09:13:58 UTC</div></div>
+    </div>
+  </div>
+
+  <!-- STAT CARDS -->
+  <div class="stats">
+    <div class="scard g1"><i class="bi bi-stack ic"></i><div class="num">2.42M</div><div class="lbl">Total events · 42 types</div>
+      <svg class="spark" viewBox="0 0 100 42" preserveAspectRatio="none"><path d="M0,42 L0,30 C20,26 30,18 50,14 C70,10 80,22 100,18 L100,42 Z" fill="#fff"/></svg></div>
+    <div class="scard g2"><i class="bi bi-stopwatch ic"></i><div class="num">5m 32s</div><div class="lbl">Duration · 184 MB</div>
+      <svg class="spark" viewBox="0 0 100 42" preserveAspectRatio="none"><path d="M0,42 L0,24 C25,20 35,28 55,22 C75,16 85,26 100,20 L100,42 Z" fill="#fff"/></svg></div>
+    <div class="scard g3"><i class="bi bi-cpu ic"></i><div class="num">G1 · 4 GB</div><div class="lbl">OpenJDK 25.0.1 · 8 cores</div>
+      <svg class="spark" viewBox="0 0 100 42" preserveAspectRatio="none"><path d="M0,42 L0,28 C20,30 35,16 50,20 C70,24 85,12 100,16 L100,42 Z" fill="#fff"/></svg></div>
+    <div class="scard g4"><i class="bi bi-graph-up ic"></i><div class="num">47%</div><div class="lbl">Avg CPU · peak 82%</div>
+      <svg class="spark" viewBox="0 0 100 42" preserveAspectRatio="none"><path d="M0,42 L0,26 C20,14 35,30 55,18 C75,8 88,24 100,14 L100,42 Z" fill="#fff"/></svg></div>
+  </div>
+
+  <!-- GRID -->
+  <div class="grid">
+    <div class="glass">
+      <div class="gh"><i class="bi bi-bar-chart-line-fill"></i><span class="t">Top 5 Event Types</span><span class="badge">by sample count</span></div>
+      <div class="gb">
+        <div class="er"><span class="rk" style="background:#5e64ff">1</span><span class="nm">jdk.ExecutionSample</span><span class="track"><i style="width:100%;background:linear-gradient(90deg,#5e64ff,#7c3aed)"></i></span><span class="ct">1.20M</span></div>
+        <div class="er"><span class="rk" style="background:#39afd1">2</span><span class="nm">jdk.ObjectAllocationSample</span><span class="track"><i style="width:51%;background:linear-gradient(90deg,#39afd1,#0d9488)"></i></span><span class="ct">612k</span></div>
+        <div class="er"><span class="rk" style="background:#00d27a">3</span><span class="nm">jdk.JavaMonitorEnter</span><span class="track"><i style="width:8%;background:#00d27a"></i></span><span class="ct">88.2k</span></div>
+        <div class="er"><span class="rk" style="background:#f5803e">4</span><span class="nm">jdk.ThreadPark</span><span class="track"><i style="width:5%;background:#f5803e"></i></span><span class="ct">54.1k</span></div>
+        <div class="er"><span class="rk" style="background:#e63757">5</span><span class="nm">jdk.SocketRead</span><span class="track"><i style="width:3%;background:#e63757"></i></span><span class="ct">31.4k</span></div>
+      </div>
+    </div>
+
+    <div class="glass">
+      <div class="gh"><i class="bi bi-gear-wide-connected"></i><span class="t">Runtime &amp; Environment</span></div>
+      <div class="gb">
+        <div class="rl"><span class="k"><i class="bi bi-cup-hot"></i>JVM</span><span class="v">OpenJDK 25.0.1 · Corretto</span></div>
+        <div class="rl"><span class="k"><i class="bi bi-recycle"></i>Collector</span><span class="v"><span class="dot" style="background:var(--success)"></span> G1</span></div>
+        <div class="rl"><span class="k"><i class="bi bi-memory"></i>Heap max</span><span class="v">4.0 GB</span></div>
+        <div class="rl"><span class="k"><i class="bi bi-hdd-rack"></i>OS</span><span class="v">Linux 6.18 · x86_64</span></div>
+        <div class="rl"><span class="k"><i class="bi bi-diagram-2"></i>Threads</span><span class="v">318 (14 virtual)</span></div>
+        <div class="rl"><span class="k"><i class="bi bi-tags"></i>Attributes</span><span class="v">cluster=eu-west +2</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FALLBACK VARIANT -->
+  <div class="fallback">
+    <div class="fb-h"><i class="bi bi-exclamation-triangle-fill"></i><span class="t">Same panel — fallback when the event is absent</span><span class="tag">no AppInformation</span></div>
+    <div class="fb-b">
+      <div class="big"><i class="bi bi-question-circle"></i> Recording not handled by Jeffrey</div>
+      <div class="sm">No <code>jeffrey.AppInformation</code> event was found in this recording, so workspace / project / session identity is unavailable. Generic recording metrics are still shown below.</div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
