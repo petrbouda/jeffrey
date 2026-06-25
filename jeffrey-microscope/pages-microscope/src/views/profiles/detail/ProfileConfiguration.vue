@@ -49,6 +49,10 @@ let formatMap: Record<string, ValueFormatter> = {};
 
 onMounted(() => {
   formatMap = {
+    'Application Information - Provisioned At': (value: unknown) =>
+      FormattingService.formatTimestamp(parseInt(String(value), 10)),
+    'Application Information - JVM Started At': (value: unknown) =>
+      FormattingService.formatTimestamp(parseInt(String(value), 10)),
     'JVM Information - JVM Start Time': (value: unknown) => {
       return value + ' (' + new Date(parseInt(String(value), 10)) + ')';
     },

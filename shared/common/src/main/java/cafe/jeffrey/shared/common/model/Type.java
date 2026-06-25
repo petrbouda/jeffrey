@@ -183,6 +183,9 @@ public record Type(String code, boolean calculated) {
     // Application events - JEFFREY
     // ----------------------------
 
+    // Application information
+    public static final Type APP_INFORMATION = new Type(EventTypeName.APP_INFORMATION);
+
     // JDBC Pool events
     public static final Type JDBC_POOL_STATISTICS = new Type(EventTypeName.JDBC_POOL_STATISTICS);
     public static final Type ACQUIRING_POOLED_JDBC_CONNECTION_TIMEOUT =
@@ -377,7 +380,8 @@ public record Type(String code, boolean calculated) {
                 CONTAINER_CPU_THROTTLING,
                 CONTAINER_MEMORY_USAGE,
                 CONTAINER_IO_USAGE,
-                SPAN
+                SPAN,
+                APP_INFORMATION
         ).collect(Collectors.toMap(Type::code, Function.identity()));
     }
 
