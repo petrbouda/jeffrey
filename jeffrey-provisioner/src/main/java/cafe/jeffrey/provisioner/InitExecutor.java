@@ -128,6 +128,27 @@ public class InitExecutor {
         createDirectories(newSessionPath.resolve(FeatureBuilder.STREAMING_REPO_DIR));
         createDirectories(newSessionPath.resolve(FeatureBuilder.HEARTBEAT_DIR));
 
+        // Calculate order: find max order from existing sessions + 1. Computed
+        // before building features so the agent can emit it in jeffrey.AppInformation.
+        List<RemoteProjectInstanceSession> existingSessions = repository.findSessionsInInstance(instancePath);
+        int maxOrder = existingSessions.stream()
+                .mapToInt(RemoteProjectInstanceSession::order)
+                .max()
+                .orElse(0);
+        int order = maxOrder + 1;
+
+        long provisionedAt = CLOCK.millis();
+        AppIdentity appIdentity = new AppIdentity(
+                config.getWorkspaceRefId(),
+                projectId,
+                config.getProjectName(),
+                config.getProjectLabel(),
+                instanceId,
+                sessionId,
+                order,
+                config.getAttributes(),
+                provisionedAt);
+
         String features = new FeatureBuilder()
                 .setDebugNonSafepointsEnabled(config.isDebugNonSafepointsEnabled())
                 .setHeapDumpEnabled(config.resolveHeapDumpType())
@@ -135,6 +156,7 @@ public class InitExecutor {
                 .setJvmLogging(config.getJvmLoggingCommand())
                 .setAgentPath(config.getAgentPath())
                 .setAdditionalJvmOptions(config.getAdditionalJvmOptions())
+                .setAppIdentity(appIdentity)
                 .build(newSessionPath);
 
         String profilerSettings = new ProfilerSettingsResolver().resolve(
@@ -144,14 +166,6 @@ public class InitExecutor {
                 config.getProjectName(),
                 newSessionPath,
                 features);
-
-        // Calculate order: find max order from existing sessions + 1
-        List<RemoteProjectInstanceSession> existingSessions = repository.findSessionsInInstance(instancePath);
-        int maxOrder = existingSessions.stream()
-                .mapToInt(RemoteProjectInstanceSession::order)
-                .max()
-                .orElse(0);
-        int order = maxOrder + 1;
 
         repository.addSession(
                 sessionId,

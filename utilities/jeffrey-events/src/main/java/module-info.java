@@ -20,7 +20,6 @@ module cafe.jeffrey.jfr.events {
 
     exports cafe.jeffrey.jfr.events;
     exports cafe.jeffrey.jfr.events.grpc;
-    exports cafe.jeffrey.jfr.events.heartbeat;
     exports cafe.jeffrey.jfr.events.http;
     exports cafe.jeffrey.jfr.events.jdbc.pool;
     exports cafe.jeffrey.jfr.events.jdbc.statement;
@@ -30,7 +29,6 @@ module cafe.jeffrey.jfr.events {
     // MethodHandles.privateLookupIn(eventClass, ...); the event packages
     // must be open to jdk.jfr or commit() fails with IllegalAccessException.
     opens cafe.jeffrey.jfr.events.grpc to jdk.jfr;
-    opens cafe.jeffrey.jfr.events.heartbeat to jdk.jfr;
     opens cafe.jeffrey.jfr.events.http to jdk.jfr;
     opens cafe.jeffrey.jfr.events.jdbc.pool to jdk.jfr;
     opens cafe.jeffrey.jfr.events.jdbc.statement to jdk.jfr;

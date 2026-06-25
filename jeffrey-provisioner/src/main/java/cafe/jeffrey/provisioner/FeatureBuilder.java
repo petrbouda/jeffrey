@@ -1,10 +1,14 @@
 package cafe.jeffrey.provisioner;
 
 import cafe.jeffrey.provisioner.model.HeapDumpType;
+import cafe.jeffrey.shared.common.AppInfoConstants;
 import cafe.jeffrey.shared.common.CliConstants;
 import cafe.jeffrey.shared.common.HeartbeatConstants;
 
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.util.Base64;
+import java.util.Map;
 
 public class FeatureBuilder {
 
@@ -34,8 +38,11 @@ public class FeatureBuilder {
     private static final String STREAMING_FLIGHT_RECORDER_OPTIONS =
             "-XX:FlightRecorderOptions=repository=" + CliConstants.CURRENT_SESSION + "/" + STREAMING_REPO_DIR + "";
 
-    /* Agent JVM option template (passes heartbeat directory as agent argument) */
-    private static final String AGENT_OPTION_TEMPLATE = "-javaagent:%s=" + HeartbeatConstants.PARAM_DIR + "=%s";
+    /* Agent JVM option prefix (passes heartbeat directory as the first agent argument) */
+    private static final String AGENT_OPTION_PREFIX = "-javaagent:%s=" + HeartbeatConstants.PARAM_DIR + "=%s";
+
+    private static final String AGENT_ARG_SEPARATOR = ",";
+    private static final String AGENT_ARG_ASSIGN = "=";
 
     /* Debug Non-Safepoints JVM options for more precise profiling */
     private static final String DEBUG_NON_SAFEPOINTS_OPTIONS = "-XX:+UnlockDiagnosticVMOptions -XX:+DebugNonSafepoints";
@@ -46,6 +53,7 @@ public class FeatureBuilder {
     private String jvmLogging;
     private String agentPath;
     private String additionalJvmOptions;
+    private AppIdentity appIdentity;
 
     public FeatureBuilder setDebugNonSafepointsEnabled(boolean enabled) {
         this.debugNonSafepointsEnabled = enabled;
@@ -74,6 +82,11 @@ public class FeatureBuilder {
 
     public FeatureBuilder setAdditionalJvmOptions(String additionalJvmOptions) {
         this.additionalJvmOptions = additionalJvmOptions;
+        return this;
+    }
+
+    public FeatureBuilder setAppIdentity(AppIdentity appIdentity) {
+        this.appIdentity = appIdentity;
         return this;
     }
 
@@ -107,7 +120,9 @@ public class FeatureBuilder {
 
         if (agentPath != null && !agentPath.isBlank()) {
             String heartbeatDirPath = currentSessionPath.resolve(HEARTBEAT_DIR).toString();
-            options.append(String.format(AGENT_OPTION_TEMPLATE, agentPath, heartbeatDirPath));
+            StringBuilder agentOption = new StringBuilder(String.format(AGENT_OPTION_PREFIX, agentPath, heartbeatDirPath));
+            appendAppIdentity(agentOption);
+            options.append(agentOption);
             options.append(" ");
             options.append(STREAMING_FLIGHT_RECORDER_OPTIONS.replace(CliConstants.CURRENT_SESSION, currentSessionPath.toString()));
             options.append(" ");
@@ -119,5 +134,56 @@ public class FeatureBuilder {
         }
 
         return options.toString().trim();
+    }
+
+    /**
+     * Appends the {@code jeffrey.AppInformation} identity as additional agent
+     * arguments. The two free-form values (project label and serialized
+     * attributes) are Base64-encoded because the agent splits its argument string
+     * on {@code ','}; all other values are delimiter-safe.
+     */
+    private void appendAppIdentity(StringBuilder agentOption) {
+        if (appIdentity == null) {
+            return;
+        }
+        appendArg(agentOption, AppInfoConstants.PARAM_WORKSPACE_ID, appIdentity.workspaceId());
+        appendArg(agentOption, AppInfoConstants.PARAM_PROJECT_ID, appIdentity.projectId());
+        appendArg(agentOption, AppInfoConstants.PARAM_PROJECT_NAME, appIdentity.projectName());
+        appendArg(agentOption, AppInfoConstants.PARAM_PROJECT_LABEL, encodeBase64(appIdentity.projectLabel()));
+        appendArg(agentOption, AppInfoConstants.PARAM_INSTANCE_ID, appIdentity.instanceId());
+        appendArg(agentOption, AppInfoConstants.PARAM_SESSION_ID, appIdentity.sessionId());
+        appendArg(agentOption, AppInfoConstants.PARAM_SESSION_ORDER, Integer.toString(appIdentity.sessionOrder()));
+        appendArg(agentOption, AppInfoConstants.PARAM_ATTRIBUTES, encodeBase64(serializeAttributes(appIdentity.attributes())));
+        appendArg(agentOption, AppInfoConstants.PARAM_PROVISIONED_AT, Long.toString(appIdentity.provisionedAt()));
+    }
+
+    private static void appendArg(StringBuilder agentOption, String key, String value) {
+        if (value == null || value.isBlank()) {
+            return;
+        }
+        agentOption.append(AGENT_ARG_SEPARATOR).append(key).append(AGENT_ARG_ASSIGN).append(value);
+    }
+
+    private static String serializeAttributes(Map<String, String> attributes) {
+        if (attributes == null || attributes.isEmpty()) {
+            return "";
+        }
+        StringBuilder serialized = new StringBuilder();
+        for (Map.Entry<String, String> entry : attributes.entrySet()) {
+            if (!serialized.isEmpty()) {
+                serialized.append(AppInfoConstants.ATTRIBUTE_PAIR_SEPARATOR);
+            }
+            serialized.append(entry.getKey())
+                    .append(AppInfoConstants.ATTRIBUTE_KV_SEPARATOR)
+                    .append(entry.getValue());
+        }
+        return serialized.toString();
+    }
+
+    private static String encodeBase64(String value) {
+        if (value == null || value.isEmpty()) {
+            return "";
+        }
+        return Base64.getEncoder().encodeToString(value.getBytes(StandardCharsets.UTF_8));
     }
 }

@@ -1,4 +1,18 @@
 [ {
+  "type" : "jeffrey.AppInformation",
+  "fields" : {
+    "workspaceId" : "Workspace ID",
+    "projectId" : "Project ID",
+    "projectName" : "Project Name",
+    "projectLabel" : "Project Label",
+    "instanceId" : "Instance ID",
+    "sessionId" : "Session ID",
+    "sessionOrder" : "Session Order",
+    "attributes" : "Attributes",
+    "provisionedAt" : "Provisioned At",
+    "jvmStartedAt" : "JVM Started At"
+  }
+}, {
   "type" : "jdk.JavaMonitorEnter",
   "fields" : {
     "startTime" : "Start Time",

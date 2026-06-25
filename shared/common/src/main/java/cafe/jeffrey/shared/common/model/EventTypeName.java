@@ -179,6 +179,9 @@ public abstract class EventTypeName {
     // Application events - JEFFREY
     // ----------------------------
 
+    // Application information
+    public static final String APP_INFORMATION = "jeffrey.AppInformation";
+
     // JDBC POOL events
     public static final String JDBC_POOL_STATISTICS = "jeffrey.JdbcPoolStatistics";
     public static final String ACQUIRING_POOLED_JDBC_CONNECTION_TIMEOUT = "jeffrey.AcquiringPooledJdbcConnectionTimeout";

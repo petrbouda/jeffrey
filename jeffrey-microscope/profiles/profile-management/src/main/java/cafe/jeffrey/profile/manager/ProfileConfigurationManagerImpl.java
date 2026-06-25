@@ -54,6 +54,7 @@ public class ProfileConfigurationManagerImpl implements ProfileConfigurationMana
     }
 
     private static final List<Type> EVENT_TYPES = List.of(
+            Type.APP_INFORMATION,
             Type.JVM_INFORMATION,
             Type.CONTAINER_CONFIGURATION,
             Type.CPU_INFORMATION,
