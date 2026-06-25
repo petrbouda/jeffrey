@@ -18,12 +18,8 @@
 
 package cafe.jeffrey.hub.core.grpc;
 
-import io.grpc.ManagedChannel;
-import io.grpc.Server;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
-import io.grpc.inprocess.InProcessChannelBuilder;
-import io.grpc.inprocess.InProcessServerBuilder;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -45,31 +41,18 @@ class WorkspaceEventsGrpcServiceTest {
     private static final String WORKSPACE_ID = "ws-1";
     private static final Instant FIXED_TIME = Instant.parse("2026-01-15T10:00:00Z");
 
-    private Server server;
-    private ManagedChannel channel;
+    private InProcessGrpcServer grpc;
 
     private WorkspaceEventsServiceGrpc.WorkspaceEventsServiceBlockingStub startServer(
-            WorkspaceEventsGrpcService service) throws IOException {
-
-        String name = InProcessServerBuilder.generateName();
-        server = InProcessServerBuilder.forName(name)
-                .directExecutor()
-                .addService(service)
-                .build()
-                .start();
-        channel = InProcessChannelBuilder.forName(name)
-                .directExecutor()
-                .build();
-        return WorkspaceEventsServiceGrpc.newBlockingStub(channel);
+            WorkspaceEventsGrpcService service) {
+        grpc = InProcessGrpcServer.start(service);
+        return WorkspaceEventsServiceGrpc.newBlockingStub(grpc.channel());
     }
 
     @AfterEach
     void shutdown() {
-        if (channel != null) {
-            channel.shutdownNow();
-        }
-        if (server != null) {
-            server.shutdownNow();
+        if (grpc != null) {
+            grpc.close();
         }
     }
 

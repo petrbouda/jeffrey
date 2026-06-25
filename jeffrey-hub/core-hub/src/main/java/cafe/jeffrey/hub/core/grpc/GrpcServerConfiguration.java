@@ -18,16 +18,11 @@
 
 package cafe.jeffrey.hub.core.grpc;
 
-import io.grpc.Server;
-import io.grpc.ServerBuilder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
+import io.grpc.BindableService;
+import io.grpc.ServerInterceptor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.event.ContextClosedEvent;
-import org.springframework.context.event.ContextRefreshedEvent;
-import org.springframework.context.event.EventListener;
+import org.springframework.grpc.server.GlobalServerInterceptor;
 import cafe.jeffrey.hub.core.HubJeffreyDirs;
 import cafe.jeffrey.hub.core.configuration.properties.DefaultWorkspaceProperties;
 import cafe.jeffrey.hub.core.manager.RepositoryManager;
@@ -39,72 +34,86 @@ import cafe.jeffrey.hub.core.streaming.ReplayStreamingManager;
 import cafe.jeffrey.hub.core.workspace.WorkspaceEventReader;
 import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
 
-import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.time.Clock;
-import java.util.concurrent.TimeUnit;
 
+/**
+ * Wires the hub's gRPC services as Spring beans. Spring gRPC's auto-configuration owns the
+ * server lifecycle (start/stop, port, transport) — it collects every {@link BindableService}
+ * bean declared here and registers it with the Netty server. The server port and the
+ * disabling of the built-in health/reflection services are configured in application.properties
+ * (spring.grpc.server.*).
+ */
 @Configuration
 public class GrpcServerConfiguration {
 
-    private static final Logger LOG = LoggerFactory.getLogger(GrpcServerConfiguration.class);
-
-    private final int grpcPort;
-
-    public GrpcServerConfiguration(@Value("${jeffrey.hub.grpc.port:9090}") int grpcPort) {
-        this.grpcPort = grpcPort;
+    /**
+     * Emits a JFR {@code GrpcServerExchangeEvent} for every RPC. Marked as a global interceptor
+     * so Spring gRPC applies it to all registered services.
+     */
+    @Bean
+    @GlobalServerInterceptor
+    public ServerInterceptor jfrGrpcServerInterceptor() {
+        return new JfrGrpcServerInterceptor();
     }
 
     @Bean
-    public Server grpcServer(
+    public BindableService workspaceGrpcService(
             WorkspacesManager workspacesManager,
-            WorkspaceEventReader workspaceEventReader,
+            Clock clock,
+            DefaultWorkspaceProperties defaultWorkspaceProperties) {
+        return new WorkspaceGrpcService(workspacesManager, clock, defaultWorkspaceProperties);
+    }
+
+    @Bean
+    public BindableService projectGrpcService(
+            WorkspacesManager workspacesManager,
             HubPlatformRepositories platformRepositories,
-            ProjectManager.Factory projectManagerFactory,
+            ProjectManager.Factory projectManagerFactory) {
+        return new ProjectGrpcService(workspacesManager, platformRepositories, projectManagerFactory);
+    }
+
+    @Bean
+    public BindableService instanceGrpcService(
+            HubPlatformRepositories platformRepositories,
             RepositoryManager.Factory repositoryManagerFactory,
+            Clock clock) {
+        return new InstanceGrpcService(platformRepositories, repositoryManagerFactory, clock);
+    }
+
+    @Bean
+    public BindableService profilerSettingsGrpcService(
+            HubPlatformRepositories platformRepositories,
+            ProjectManager.Factory projectManagerFactory) {
+        return new ProfilerSettingsGrpcService(platformRepositories, projectManagerFactory);
+    }
+
+    @Bean
+    public BindableService repositoryGrpcService(
+            HubPlatformRepositories platformRepositories,
+            RepositoryManager.Factory repositoryManagerFactory) {
+        return new RepositoryGrpcService(platformRepositories, repositoryManagerFactory);
+    }
+
+    @Bean
+    public BindableService recordingDownloadGrpcService(
+            HubPlatformRepositories platformRepositories,
+            RepositoryManager.Factory repositoryManagerFactory) {
+        return new RecordingDownloadGrpcService(platformRepositories, repositoryManagerFactory);
+    }
+
+    @Bean
+    public BindableService workspaceEventsGrpcService(WorkspaceEventReader workspaceEventReader) {
+        return new WorkspaceEventsGrpcService(workspaceEventReader);
+    }
+
+    @Bean
+    public BindableService eventStreamingGrpcService(
             HubJeffreyDirs jeffreyDirs,
+            HubPlatformRepositories platformRepositories,
             LiveStreamingManager liveStreamingManager,
             ReplayStreamingManager replayStreamingManager,
-            RepositoryStorage.Factory repositoryStorageFactory,
-            DefaultWorkspaceProperties defaultWorkspaceProperties,
-            Clock clock) {
-
-        return ServerBuilder.forPort(grpcPort)
-                .intercept(new JfrGrpcServerInterceptor())
-                .addService(new WorkspaceGrpcService(workspacesManager, clock, defaultWorkspaceProperties))
-                .addService(new ProjectGrpcService(workspacesManager, platformRepositories, projectManagerFactory))
-                .addService(new InstanceGrpcService(platformRepositories, repositoryManagerFactory, clock))
-                .addService(new ProfilerSettingsGrpcService(platformRepositories, projectManagerFactory))
-                .addService(new RepositoryGrpcService(platformRepositories, repositoryManagerFactory))
-                .addService(new RecordingDownloadGrpcService(platformRepositories, repositoryManagerFactory))
-                .addService(new WorkspaceEventsGrpcService(workspaceEventReader))
-                .addService(new EventStreamingGrpcService(jeffreyDirs, platformRepositories, liveStreamingManager, replayStreamingManager, repositoryStorageFactory))
-                 .build();
-    }
-
-    @EventListener(ContextRefreshedEvent.class)
-    public void startGrpcServer(ContextRefreshedEvent event) {
-        Server server = event.getApplicationContext().getBean(Server.class);
-        try {
-            server.start();
-            LOG.info("gRPC server started: port={}", grpcPort);
-        } catch (IOException e) {
-            throw new UncheckedIOException("Failed to start gRPC server on port " + grpcPort, e);
-        }
-    }
-
-    @EventListener(ContextClosedEvent.class)
-    public void stopGrpcServer(ContextClosedEvent event) {
-        Server server = event.getApplicationContext().getBean(Server.class);
-        LOG.info("Shutting down gRPC server: port={}", grpcPort);
-        server.shutdown();
-        try {
-            if (!server.awaitTermination(30, TimeUnit.SECONDS)) {
-                server.shutdownNow();
-            }
-        } catch (InterruptedException e) {
-            server.shutdownNow();
-            Thread.currentThread().interrupt();
-        }
+            RepositoryStorage.Factory repositoryStorageFactory) {
+        return new EventStreamingGrpcService(
+                jeffreyDirs, platformRepositories, liveStreamingManager, replayStreamingManager, repositoryStorageFactory);
     }
 }

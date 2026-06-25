@@ -18,12 +18,8 @@
 
 package cafe.jeffrey.hub.core.grpc;
 
-import io.grpc.ManagedChannel;
-import io.grpc.Server;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
-import io.grpc.inprocess.InProcessChannelBuilder;
-import io.grpc.inprocess.InProcessServerBuilder;
 import io.grpc.stub.StreamObserver;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Nested;
@@ -57,31 +53,18 @@ class RecordingDownloadGrpcServiceTest {
     private static final String SESSION_ID = "session-1";
     private static final String FILE_ID = "file-1";
 
-    private Server server;
-    private ManagedChannel channel;
+    private InProcessGrpcServer grpc;
 
     private RecordingDownloadServiceGrpc.RecordingDownloadServiceStub startServer(
-            RecordingDownloadGrpcService service) throws IOException {
-
-        String name = InProcessServerBuilder.generateName();
-        server = InProcessServerBuilder.forName(name)
-                .directExecutor()
-                .addService(service)
-                .build()
-                .start();
-        channel = InProcessChannelBuilder.forName(name)
-                .directExecutor()
-                .build();
-        return RecordingDownloadServiceGrpc.newStub(channel);
+            RecordingDownloadGrpcService service) {
+        grpc = InProcessGrpcServer.start(service);
+        return RecordingDownloadServiceGrpc.newStub(grpc.channel());
     }
 
     @AfterEach
     void shutdown() {
-        if (channel != null) {
-            channel.shutdownNow();
-        }
-        if (server != null) {
-            server.shutdownNow();
+        if (grpc != null) {
+            grpc.close();
         }
     }
 
