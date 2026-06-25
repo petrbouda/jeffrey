@@ -14,6 +14,12 @@ const profileChildRoutes = [
     meta: { layout: 'profile' }
   },
   {
+    path: 'dashboard',
+    name: 'profile-dashboard',
+    component: () => import('@/views/profiles/detail/ProfileRecordingDashboard.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
     path: 'guardian',
     name: 'profile-guardian',
     component: () => import('@/views/profiles/detail/ProfileGuardian.vue'),

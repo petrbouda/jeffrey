@@ -143,6 +143,14 @@
                   <div class="nav-section-title">ANALYSIS</div>
                   <div class="nav-items">
                     <router-link
+                      :to="`/profiles/${profileId}/dashboard`"
+                      class="nav-item"
+                      active-class="active"
+                    >
+                      <i class="bi bi-speedometer2"></i>
+                      <span>Dashboard</span>
+                    </router-link>
+                    <router-link
                       :to="`/profiles/${profileId}/ai-analysis`"
                       class="nav-item nav-item-ai"
                       :class="{ 'disabled-feature': isFeatureDisabled('ai-analysis') }"
