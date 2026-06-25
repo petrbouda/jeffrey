@@ -25,7 +25,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.hub.api.v1.*;
 import cafe.jeffrey.hub.client.dto.RemoteProjectResponse;
-import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceStatus;
 
@@ -81,7 +80,7 @@ public class DiscoveryClient {
 
             return WorkspaceResult.of(toWorkspaceInfo(response.getWorkspace()));
         } catch (StatusRuntimeException e) {
-            if (e.getStatus().getCode() == io.grpc.Status.Code.NOT_FOUND) {
+            if (GrpcClientErrors.isNotFound(e)) {
                 LOG.debug("Workspace not found via gRPC: workspaceId={}", workspaceId);
                 return WorkspaceResult.of(WorkspaceStatus.UNAVAILABLE);
             }
@@ -139,7 +138,7 @@ public class DiscoveryClient {
 
             return Optional.of(toRemoteProjectResponse(response.getProject()));
         } catch (StatusRuntimeException e) {
-            if (e.getStatus().getCode() == io.grpc.Status.Code.NOT_FOUND) {
+            if (GrpcClientErrors.isNotFound(e)) {
                 LOG.debug("Project not found via gRPC: workspaceId={} projectId={}", workspaceId, projectId);
                 return Optional.empty();
             }
@@ -156,38 +155,21 @@ public class DiscoveryClient {
                 null,
                 null,
                 Instant.ofEpochMilli(proto.getCreatedAt()),
-                fromProtoStatus(proto.getStatus()),
+                ClientProtoMappers.workspaceStatus(proto.getStatus()),
                 proto.getProjectCount());
     }
 
     private static RemoteProjectResponse toRemoteProjectResponse(ProjectInfo proto) {
         return new RemoteProjectResponse(
                 proto.getId(),
-                proto.getOriginId().isEmpty() ? null : proto.getOriginId(),
+                ClientProtoMappers.nullIfEmpty(proto.getOriginId()),
                 proto.getName(),
-                proto.getLabel().isEmpty() ? null : proto.getLabel(),
-                proto.getNamespace().isEmpty() ? null : proto.getNamespace(),
+                ClientProtoMappers.nullIfEmpty(proto.getLabel()),
+                ClientProtoMappers.nullIfEmpty(proto.getNamespace()),
                 proto.getCreatedAt() != 0 ? InstantUtils.formatInstant(Instant.ofEpochMilli(proto.getCreatedAt())) : null,
                 proto.getWorkspaceId(),
-                fromProtoRecordingStatus(proto.getStatus()),
+                ClientProtoMappers.recordingStatus(proto.getStatus()),
                 proto.getSessionCount(),
                 proto.hasDeletedAt() ? Instant.ofEpochMilli(proto.getDeletedAt()) : null);
-    }
-
-    private static RecordingStatus fromProtoRecordingStatus(cafe.jeffrey.hub.api.v1.RecordingStatus status) {
-        return switch (status) {
-            case RECORDING_STATUS_ACTIVE -> RecordingStatus.ACTIVE;
-            case RECORDING_STATUS_FINISHED -> RecordingStatus.FINISHED;
-            default -> RecordingStatus.UNKNOWN;
-        };
-    }
-
-    private static WorkspaceStatus fromProtoStatus(cafe.jeffrey.hub.api.v1.WorkspaceStatus status) {
-        return switch (status) {
-            case WORKSPACE_STATUS_AVAILABLE -> WorkspaceStatus.AVAILABLE;
-            case WORKSPACE_STATUS_UNAVAILABLE -> WorkspaceStatus.UNAVAILABLE;
-            case WORKSPACE_STATUS_INCOMPATIBLE -> WorkspaceStatus.UNKNOWN;
-            default -> WorkspaceStatus.UNKNOWN;
-        };
     }
 }

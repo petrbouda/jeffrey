@@ -88,9 +88,12 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>hub-api</artifactId>
         </dependency>
+        <!-- Spring Boot gRPC server starter (Boot 4.1's first-class gRPC support). Owns the gRPC
+             server lifecycle and collects BindableService beans; replaces the manual ServerBuilder
+             bootstrap. Pulls grpc-netty + spring-grpc-core (GlobalServerInterceptor) transitively. -->
         <dependency>
-            <groupId>io.grpc</groupId>
-            <artifactId>grpc-netty</artifactId>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-grpc-server</artifactId>
         </dependency>
         <dependency>
             <groupId>io.grpc</groupId>

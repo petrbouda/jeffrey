@@ -18,12 +18,8 @@
 
 package cafe.jeffrey.hub.core.grpc;
 
-import io.grpc.ManagedChannel;
-import io.grpc.Server;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
-import io.grpc.inprocess.InProcessChannelBuilder;
-import io.grpc.inprocess.InProcessServerBuilder;
 import io.grpc.stub.StreamObserver;
 import jdk.jfr.Recording;
 import org.junit.jupiter.api.AfterAll;
@@ -70,31 +66,18 @@ class EventStreamingGrpcServiceTest {
 
     private static final String SESSION_ID = "session-001";
 
-    private Server server;
-    private ManagedChannel channel;
+    private InProcessGrpcServer grpc;
 
     private EventStreamingServiceGrpc.EventStreamingServiceStub startServer(
-            EventStreamingGrpcService service) throws IOException {
-
-        String name = InProcessServerBuilder.generateName();
-        server = InProcessServerBuilder.forName(name)
-                .directExecutor()
-                .addService(service)
-                .build()
-                .start();
-        channel = InProcessChannelBuilder.forName(name)
-                .directExecutor()
-                .build();
-        return EventStreamingServiceGrpc.newStub(channel);
+            EventStreamingGrpcService service) {
+        grpc = InProcessGrpcServer.start(service);
+        return EventStreamingServiceGrpc.newStub(grpc.channel());
     }
 
     @AfterEach
     void shutdown() {
-        if (channel != null) {
-            channel.shutdownNow();
-        }
-        if (server != null) {
-            server.shutdownNow();
+        if (grpc != null) {
+            grpc.close();
         }
     }
 
@@ -331,7 +314,7 @@ class EventStreamingGrpcServiceTest {
                     observer.batches.stream().anyMatch(b -> b.getEventsCount() > 0));
 
             // Cancel the stream by shutting down the channel
-            channel.shutdownNow();
+            grpc.channel().shutdownNow();
         }
     }
 

@@ -18,12 +18,8 @@
 
 package cafe.jeffrey.hub.core.grpc;
 
-import io.grpc.ManagedChannel;
-import io.grpc.Server;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
-import io.grpc.inprocess.InProcessChannelBuilder;
-import io.grpc.inprocess.InProcessServerBuilder;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -56,31 +52,18 @@ class InstanceGrpcServiceTest {
     private static final Instant FIXED_TIME = Instant.parse("2026-01-15T10:00:00Z");
     private static final Clock FIXED_CLOCK = Clock.fixed(FIXED_TIME, ZoneId.of("UTC"));
 
-    private Server server;
-    private ManagedChannel channel;
+    private InProcessGrpcServer grpc;
 
     private InstanceServiceGrpc.InstanceServiceBlockingStub startServer(
-            InstanceGrpcService service) throws IOException {
-
-        String name = InProcessServerBuilder.generateName();
-        server = InProcessServerBuilder.forName(name)
-                .directExecutor()
-                .addService(service)
-                .build()
-                .start();
-        channel = InProcessChannelBuilder.forName(name)
-                .directExecutor()
-                .build();
-        return InstanceServiceGrpc.newBlockingStub(channel);
+            InstanceGrpcService service) {
+        grpc = InProcessGrpcServer.start(service);
+        return InstanceServiceGrpc.newBlockingStub(grpc.channel());
     }
 
     @AfterEach
     void shutdown() {
-        if (channel != null) {
-            channel.shutdownNow();
-        }
-        if (server != null) {
-            server.shutdownNow();
+        if (grpc != null) {
+            grpc.close();
         }
     }
 
@@ -106,7 +89,7 @@ class InstanceGrpcServiceTest {
             var platformRepositories = mock(HubPlatformRepositories.class);
             when(platformRepositories.newProjectInstanceRepository(PROJECT_ID)).thenReturn(instanceRepo);
 
-            var stub = startServer(new InstanceGrpcService(platformRepositories, mock(RepositoryManager.Factory.class), FIXED_CLOCK));
+            var stub = startServer(new InstanceGrpcService(platformRepositories, new GrpcLookups(platformRepositories, mock(RepositoryManager.Factory.class), null), FIXED_CLOCK));
 
             ListInstancesResponse response = stub.listInstances(
                     ListInstancesRequest.newBuilder()
@@ -139,7 +122,7 @@ class InstanceGrpcServiceTest {
             var platformRepositories = mock(HubPlatformRepositories.class);
             when(platformRepositories.newProjectInstanceRepository(PROJECT_ID)).thenReturn(instanceRepo);
 
-            var stub = startServer(new InstanceGrpcService(platformRepositories, mock(RepositoryManager.Factory.class), FIXED_CLOCK));
+            var stub = startServer(new InstanceGrpcService(platformRepositories, new GrpcLookups(platformRepositories, mock(RepositoryManager.Factory.class), null), FIXED_CLOCK));
 
             ListInstancesResponse response = stub.listInstances(
                     ListInstancesRequest.newBuilder()
@@ -162,7 +145,7 @@ class InstanceGrpcServiceTest {
             var platformRepositories = mock(HubPlatformRepositories.class);
             when(platformRepositories.newProjectInstanceRepository(PROJECT_ID)).thenReturn(instanceRepo);
 
-            var stub = startServer(new InstanceGrpcService(platformRepositories, mock(RepositoryManager.Factory.class), FIXED_CLOCK));
+            var stub = startServer(new InstanceGrpcService(platformRepositories, new GrpcLookups(platformRepositories, mock(RepositoryManager.Factory.class), null), FIXED_CLOCK));
 
             ListInstancesResponse response = stub.listInstances(
                     ListInstancesRequest.newBuilder()
@@ -203,7 +186,7 @@ class InstanceGrpcServiceTest {
                             FIXED_TIME, FIXED_TIME.plusSeconds(3600))
             ));
 
-            var stub = startServer(new InstanceGrpcService(platformRepositories, mock(RepositoryManager.Factory.class), FIXED_CLOCK));
+            var stub = startServer(new InstanceGrpcService(platformRepositories, new GrpcLookups(platformRepositories, mock(RepositoryManager.Factory.class), null), FIXED_CLOCK));
 
             ListInstancesResponse response = stub.listInstances(
                     ListInstancesRequest.newBuilder()
@@ -244,7 +227,7 @@ class InstanceGrpcServiceTest {
                             3, null)
             ));
 
-            var stub = startServer(new InstanceGrpcService(platformRepositories, mock(RepositoryManager.Factory.class), FIXED_CLOCK));
+            var stub = startServer(new InstanceGrpcService(platformRepositories, new GrpcLookups(platformRepositories, mock(RepositoryManager.Factory.class), null), FIXED_CLOCK));
 
             GetInstanceResponse response = stub.getInstance(
                     GetInstanceRequest.newBuilder()
@@ -271,7 +254,7 @@ class InstanceGrpcServiceTest {
             var platformRepositories = mock(HubPlatformRepositories.class);
             when(platformRepositories.findInstanceById("non-existent")).thenReturn(Optional.empty());
 
-            var stub = startServer(new InstanceGrpcService(platformRepositories, mock(RepositoryManager.Factory.class), FIXED_CLOCK));
+            var stub = startServer(new InstanceGrpcService(platformRepositories, new GrpcLookups(platformRepositories, mock(RepositoryManager.Factory.class), null), FIXED_CLOCK));
 
             StatusRuntimeException ex = assertThrows(StatusRuntimeException.class, () ->
                     stub.getInstance(
@@ -303,7 +286,7 @@ class InstanceGrpcServiceTest {
                             FIXED_TIME.plusSeconds(1200))
             ));
 
-            var stub = startServer(new InstanceGrpcService(platformRepositories, mock(RepositoryManager.Factory.class), FIXED_CLOCK));
+            var stub = startServer(new InstanceGrpcService(platformRepositories, new GrpcLookups(platformRepositories, mock(RepositoryManager.Factory.class), null), FIXED_CLOCK));
 
             ListInstanceSessionsResponse response = stub.listInstanceSessions(
                     ListInstanceSessionsRequest.newBuilder()
@@ -331,7 +314,7 @@ class InstanceGrpcServiceTest {
             var platformRepositories = mock(HubPlatformRepositories.class);
             when(platformRepositories.findSessionsByInstanceId(INSTANCE_ID)).thenReturn(List.of());
 
-            var stub = startServer(new InstanceGrpcService(platformRepositories, mock(RepositoryManager.Factory.class), FIXED_CLOCK));
+            var stub = startServer(new InstanceGrpcService(platformRepositories, new GrpcLookups(platformRepositories, mock(RepositoryManager.Factory.class), null), FIXED_CLOCK));
 
             ListInstanceSessionsResponse response = stub.listInstanceSessions(
                     ListInstanceSessionsRequest.newBuilder()
@@ -380,7 +363,8 @@ class InstanceGrpcServiceTest {
                     .thenReturn(new cafe.jeffrey.shared.common.model.repository.InstanceStats(5, 12_345_678L));
             RepositoryManager.Factory factory = p -> repoManager;
 
-            var stub = startServer(new InstanceGrpcService(platformRepositories, factory, FIXED_CLOCK));
+            var stub = startServer(new InstanceGrpcService(
+                    platformRepositories, new GrpcLookups(platformRepositories, factory, null), FIXED_CLOCK));
 
             GetInstanceDetailResponse response = stub.getInstanceDetail(
                     GetInstanceDetailRequest.newBuilder()
@@ -407,7 +391,7 @@ class InstanceGrpcServiceTest {
             when(platformRepositories.findInstanceById("non-existent")).thenReturn(Optional.empty());
 
             var stub = startServer(new InstanceGrpcService(
-                    platformRepositories, mock(RepositoryManager.Factory.class), FIXED_CLOCK));
+                    platformRepositories, new GrpcLookups(platformRepositories, mock(RepositoryManager.Factory.class), null), FIXED_CLOCK));
 
             StatusRuntimeException ex = assertThrows(StatusRuntimeException.class, () ->
                     stub.getInstanceDetail(

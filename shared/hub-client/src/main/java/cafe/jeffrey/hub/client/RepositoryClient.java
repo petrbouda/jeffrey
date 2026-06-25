@@ -26,7 +26,6 @@ import cafe.jeffrey.hub.api.v1.*;
 import cafe.jeffrey.hub.client.dto.RecordingSessionResponse;
 import cafe.jeffrey.hub.client.dto.RepositoryFileResponse;
 import cafe.jeffrey.hub.client.dto.RepositoryStatisticsResponse;
-import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
 import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
 
 import java.util.List;
@@ -69,7 +68,7 @@ public class RepositoryClient {
 
         return new RepositoryStatisticsResponse(
                 response.getTotalSessions(),
-                fromProtoRecordingStatus(response.getSessionStatus()),
+                ClientProtoMappers.recordingStatus(response.getSessionStatus()),
                 response.getLastActivityTime(),
                 response.getTotalSize(),
                 response.getTotalFiles(),
@@ -115,11 +114,11 @@ public class RepositoryClient {
 
         return new RecordingSessionResponse(
                 proto.getId(),
-                proto.getName().isEmpty() ? null : proto.getName(),
+                ClientProtoMappers.nullIfEmpty(proto.getName()),
                 proto.hasInstanceId() ? proto.getInstanceId() : null,
                 proto.getCreatedAt(),
                 proto.hasFinishedAt() ? proto.getFinishedAt() : null,
-                fromProtoRecordingStatus(proto.getStatus()),
+                ClientProtoMappers.recordingStatus(proto.getStatus()),
                 proto.hasFinishedAt() ? proto.getFinishedAt() - proto.getCreatedAt() : null,
                 files);
     }
@@ -131,16 +130,8 @@ public class RepositoryClient {
                 proto.getCreatedAt() != 0 ? proto.getCreatedAt() : null,
                 proto.getSize(),
                 parseFileType(proto.getFileType()),
-                fromProtoRecordingStatus(proto.getStatus()),
+                ClientProtoMappers.recordingStatus(proto.getStatus()),
                 proto.getIsRecording());
-    }
-
-    private static RecordingStatus fromProtoRecordingStatus(cafe.jeffrey.hub.api.v1.RecordingStatus status) {
-        return switch (status) {
-            case RECORDING_STATUS_ACTIVE -> RecordingStatus.ACTIVE;
-            case RECORDING_STATUS_FINISHED -> RecordingStatus.FINISHED;
-            default -> RecordingStatus.UNKNOWN;
-        };
     }
 
     private static SupportedRecordingFile parseFileType(String fileType) {
