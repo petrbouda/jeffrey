@@ -32,7 +32,8 @@ public interface TimeseriesManager {
     record Generate(
             Type eventType,
             GraphParameters graphParameters,
-            ThreadInfo threadInfo) {
+            ThreadInfo threadInfo,
+            Integer targetBuckets) {
     }
 
     @FunctionalInterface

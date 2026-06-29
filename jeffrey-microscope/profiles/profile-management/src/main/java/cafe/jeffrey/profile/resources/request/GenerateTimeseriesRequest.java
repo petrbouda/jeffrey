@@ -18,12 +18,21 @@
 
 package cafe.jeffrey.profile.resources.request;
 
+import cafe.jeffrey.profile.TimeRangeRequest;
 import cafe.jeffrey.shared.common.model.ThreadInfo;
 import cafe.jeffrey.shared.common.model.Type;
 import cafe.jeffrey.profile.common.analysis.marker.Marker;
 
 import java.util.List;
 
+/**
+ * @param timeRange     optional window (relative millis from recording start) to restrict the
+ *                      query to; {@code null} means the whole recording.
+ * @param targetBuckets optional cap on the number of returned points. When set, the series is
+ *                      aggregated server-side into at most this many buckets (SUM plus a MAX peak
+ *                      series), so long recordings stay readable; {@code null} keeps the full
+ *                      per-second resolution (backward compatible).
+ */
 public record GenerateTimeseriesRequest(
         Type eventType,
         String search,
@@ -32,5 +41,7 @@ public record GenerateTimeseriesRequest(
         boolean excludeIdleSamples,
         boolean onlyUnsafeAllocationSamples,
         ThreadInfo threadInfo,
-        List<Marker> markers) {
+        List<Marker> markers,
+        TimeRangeRequest timeRange,
+        Integer targetBuckets) {
 }

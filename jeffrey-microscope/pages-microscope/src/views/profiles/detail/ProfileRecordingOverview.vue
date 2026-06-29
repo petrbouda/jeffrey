@@ -75,8 +75,11 @@
       <TimeSeriesChart
         :key="chartResetKey"
         :primary-data="activityData"
+        :secondary-data="peakData"
         :primary-title="activityLabel"
+        secondary-title="Peak"
         :primary-axis-type="AxisFormatType.NUMBER"
+        :secondary-axis-type="AxisFormatType.NUMBER"
         :visible-minutes="overviewVisibleMinutes"
         :zoom-enabled="true"
         @update:time-range="onTimeRangeChange"
@@ -118,7 +121,7 @@ import FormattingService from '@shared/services/FormattingService';
 import EventSummariesClient from '@/services/api/EventSummariesClient';
 import EventSummary from '@/services/api/model/EventSummary';
 import EventTypes from '@/services/EventTypes';
-import PrimaryFlamegraphClient from '@/services/api/PrimaryFlamegraphClient';
+import ProfileTimeseriesClient from '@/services/api/ProfileTimeseriesClient';
 import { useProfileTimeWindow } from '@/composables/useProfileTimeWindow';
 
 // A selection covering at least this fraction of the recording is treated as
@@ -126,6 +129,11 @@ import { useProfileTimeWindow } from '@/composables/useProfileTimeWindow';
 const WHOLE_RECORDING_FRACTION = 0.99;
 const MILLIS_PER_SECOND = 1000;
 const MILLIS_PER_MINUTE = 60_000;
+
+// Upper bound on points the overview navigator requests. The backend aggregates
+// the recording into at most this many buckets (plus a peak series), so even a
+// multi-hour recording stays light instead of returning one point per second.
+const OVERVIEW_TARGET_BUCKETS = 1500;
 
 const route = useRoute();
 const router = useRouter();
@@ -145,6 +153,7 @@ const loading = ref(true);
 const error = ref<string | null>(null);
 
 const activityData = ref<number[][]>([]);
+const peakData = ref<number[][]>([]);
 const activityLabel = ref('');
 
 // Bumping this key remounts the chart, resetting its visible range to the full
@@ -268,23 +277,21 @@ async function load(): Promise<void> {
     const chosen = pickActivityEvent(summaries);
     if (chosen === null) {
       activityData.value = [];
+      peakData.value = [];
       activityLabel.value = '';
       return;
     }
 
     activityLabel.value = chosen.label;
-    const client = new PrimaryFlamegraphClient(
-      profileId.value,
+    // Whole recording, bounded server-side. The endpoint returns a SUM series plus a
+    // peak (MAX) series so transient spikes survive the aggregation.
+    const timeseries = await new ProfileTimeseriesClient(profileId.value).getTimeseries(
       chosen.code,
-      false,
-      false,
-      false,
-      false,
-      false,
-      null
+      null,
+      OVERVIEW_TARGET_BUCKETS
     );
-    const timeseries = await client.provideTimeseries(null);
     activityData.value = timeseries.series?.[0]?.data ?? [];
+    peakData.value = timeseries.series?.[1]?.data ?? [];
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Unknown error occurred';
     console.error('Error loading recording overview:', err);

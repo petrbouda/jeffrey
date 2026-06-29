@@ -24,6 +24,7 @@ import cafe.jeffrey.shared.common.model.time.RelativeTimeRange;
 import cafe.jeffrey.provider.profile.api.EventQueryConfigurer;
 import cafe.jeffrey.provider.profile.api.ProfileEventStreamRepository;
 import cafe.jeffrey.timeseries.TimeseriesData;
+import cafe.jeffrey.timeseries.TimeseriesDownsampler;
 import cafe.jeffrey.timeseries.TimeseriesResolver;
 
 public class PrimaryTimeseriesManager implements TimeseriesManager {
@@ -43,12 +44,25 @@ public class PrimaryTimeseriesManager implements TimeseriesManager {
     public TimeseriesData timeseries(Generate generate) {
         GraphParameters params = generate.graphParameters();
 
+        // The request may restrict the query to a window; otherwise the whole recording is used.
+        // The effective range must also reach the builder (via params) so its bucket pre-fill spans
+        // exactly the queried range.
+        RelativeTimeRange effectiveRange = params.timeRange() != null ? params.timeRange() : timeRange;
+        GraphParameters effectiveParams = params.toBuilder().withTimeRange(effectiveRange).build();
+
         EventQueryConfigurer configurer = new EventQueryConfigurer()
                 .withEventType(generate.eventType())
-                .withTimeRange(timeRange)
+                .withTimeRange(effectiveRange)
                 .withWeight(params.useWeight())
                 .withThreads(params.threadMode());
 
-        return eventStreamRepository.timeseriesStreamer(configurer, TimeseriesResolver.resolve(params));
+        TimeseriesData data = eventStreamRepository.timeseriesStreamer(
+                configurer, TimeseriesResolver.resolve(effectiveParams));
+
+        Integer targetBuckets = generate.targetBuckets();
+        if (targetBuckets == null) {
+            return data;
+        }
+        return TimeseriesDownsampler.downsample(data, targetBuckets);
     }
 }
