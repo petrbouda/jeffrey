@@ -61,6 +61,7 @@ public class EventQueryConfigurer {
     private String searchPattern;
     private List<SpanInterval> spanIntervals;
     private boolean orderedByTime;
+    private boolean allEventTypes;
 
     /**
      * Include all types of events in the event-stream.
@@ -69,6 +70,17 @@ public class EventQueryConfigurer {
      */
     public EventQueryConfigurer withEventTypes(List<Type> eventTypes) {
         this.eventTypes = eventTypes;
+        return this;
+    }
+
+    /**
+     * Aggregate across every event type, ignoring the configured event type filter. Used by the
+     * recording-overview activity query to produce a total-activity timeseries.
+     *
+     * @return instance of the event-stream configurer
+     */
+    public EventQueryConfigurer withAllEventTypes(boolean allEventTypes) {
+        this.allEventTypes = allEventTypes;
         return this;
     }
 
@@ -235,6 +247,10 @@ public class EventQueryConfigurer {
 
     public List<Type> eventTypes() {
         return eventTypes;
+    }
+
+    public boolean allEventTypes() {
+        return allEventTypes;
     }
 
     public RelativeTimeRange timeRange() {

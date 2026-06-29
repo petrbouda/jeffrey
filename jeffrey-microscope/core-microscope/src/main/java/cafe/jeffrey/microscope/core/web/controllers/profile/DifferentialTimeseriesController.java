@@ -69,6 +69,8 @@ public class DifferentialTimeseriesController {
         return diffMgr.timeseries(new TimeseriesManager.Generate(
                 request.eventType(),
                 graphParameters,
-                request.threadInfo()));
+                request.threadInfo(),
+                request.targetBuckets(),
+                request.allEventTypes()));
     }
 }

@@ -26,9 +26,12 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
+import cafe.jeffrey.profile.TimeRangeRequest;
 import cafe.jeffrey.profile.common.config.GraphParameters;
+import cafe.jeffrey.profile.common.config.GraphParametersBuilder;
 import cafe.jeffrey.profile.manager.TimeseriesManager;
 import cafe.jeffrey.profile.resources.request.GenerateTimeseriesRequest;
+import cafe.jeffrey.shared.common.model.time.RelativeTimeRange;
 import cafe.jeffrey.timeseries.TimeseriesData;
 
 @RestController
@@ -52,18 +55,24 @@ public class TimeseriesController {
     }
 
     private static TimeseriesManager.Generate mapToGenerateRequest(GenerateTimeseriesRequest request) {
-        GraphParameters graphParameters = GraphParameters.builder()
+        GraphParametersBuilder builder = GraphParameters.builder()
                 .withSearchPattern(request.search())
                 .withUseWeight(request.useWeight())
                 .withExcludeNonJavaSamples(request.excludeNonJavaSamples())
                 .withExcludeIdleSamples(request.excludeIdleSamples())
                 .withOnlyUnsafeAllocationSamples(request.onlyUnsafeAllocationSamples())
-                .withMarkers(request.markers())
-                .build();
+                .withMarkers(request.markers());
+
+        TimeRangeRequest timeRange = request.timeRange();
+        if (timeRange != null) {
+            builder.withTimeRange(new RelativeTimeRange(timeRange.start(), timeRange.end()));
+        }
 
         return new TimeseriesManager.Generate(
                 request.eventType(),
-                graphParameters,
-                request.threadInfo());
+                builder.build(),
+                request.threadInfo(),
+                request.targetBuckets(),
+                request.allEventTypes());
     }
 }

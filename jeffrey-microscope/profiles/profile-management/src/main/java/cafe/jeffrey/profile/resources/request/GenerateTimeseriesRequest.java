@@ -18,12 +18,24 @@
 
 package cafe.jeffrey.profile.resources.request;
 
+import cafe.jeffrey.profile.TimeRangeRequest;
 import cafe.jeffrey.shared.common.model.ThreadInfo;
 import cafe.jeffrey.shared.common.model.Type;
 import cafe.jeffrey.profile.common.analysis.marker.Marker;
 
 import java.util.List;
 
+/**
+ * @param timeRange     optional window (relative millis from recording start) to restrict the
+ *                      query to; {@code null} means the whole recording.
+ * @param targetBuckets optional cap on the number of returned points. When set, the series is
+ *                      aggregated server-side into at most this many buckets, so long recordings
+ *                      stay readable; {@code null} keeps the full per-second resolution (backward
+ *                      compatible). Presence of {@code targetBuckets} also selects the overview
+ *                      activity query (no stacktrace join).
+ * @param allEventTypes when {@code true}, aggregate across every event type (total activity) and
+ *                      ignore {@code eventType}. Only honoured by the overview query.
+ */
 public record GenerateTimeseriesRequest(
         Type eventType,
         String search,
@@ -32,5 +44,8 @@ public record GenerateTimeseriesRequest(
         boolean excludeIdleSamples,
         boolean onlyUnsafeAllocationSamples,
         ThreadInfo threadInfo,
-        List<Marker> markers) {
+        List<Marker> markers,
+        TimeRangeRequest timeRange,
+        Integer targetBuckets,
+        boolean allEventTypes) {
 }

@@ -28,6 +28,13 @@ public interface ProfileEventStreamRepository {
 
     <T> T timeseriesStreamer(EventQueryConfigurer configurer, RecordBuilder<TimeseriesRecord, T> builder);
 
+    /**
+     * Total-activity timeseries for the recording overview. Unlike {@link #timeseriesStreamer} it
+     * runs the overview query (no stacktrace join, so stackless event types are included) and
+     * honours {@link EventQueryConfigurer#allEventTypes()} to aggregate across all event types.
+     */
+    <T> T overviewTimeseriesStreamer(EventQueryConfigurer configurer, RecordBuilder<TimeseriesRecord, T> builder);
+
     <T> T timeseriesSearchingStreamer(EventQueryConfigurer configurer, RecordBuilder<TimeseriesSearchRecord, T> builder);
 
     <T> T filterableTimeseriesStreamer(EventQueryConfigurer configurer, RecordBuilder<SecondValue, T> builder);
