@@ -5,7 +5,14 @@ import AppLayout from '@/layout/AppLayout.vue';
 const profileChildRoutes = [
   {
     path: '',
-    redirect: (to: { params: { profileId: string } }) => `/profiles/${to.params.profileId}/overview`
+    redirect: (to: { params: { profileId: string } }) =>
+      `/profiles/${to.params.profileId}/recording-overview`
+  },
+  {
+    path: 'recording-overview',
+    name: 'profile-recording-overview',
+    component: () => import('@/views/profiles/detail/ProfileRecordingOverview.vue'),
+    meta: { layout: 'profile' }
   },
   {
     path: 'overview',

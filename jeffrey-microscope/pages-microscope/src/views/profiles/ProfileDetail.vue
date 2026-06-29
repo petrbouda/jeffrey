@@ -143,6 +143,14 @@
                   <div class="nav-section-title">ANALYSIS</div>
                   <div class="nav-items">
                     <router-link
+                      :to="`/profiles/${profileId}/recording-overview`"
+                      class="nav-item"
+                      active-class="active"
+                    >
+                      <i class="bi bi-clock-history"></i>
+                      <span>Recording Overview</span>
+                    </router-link>
+                    <router-link
                       :to="`/profiles/${profileId}/ai-analysis`"
                       class="nav-item nav-item-ai"
                       :class="{ 'disabled-feature': isFeatureDisabled('ai-analysis') }"
@@ -1566,7 +1574,7 @@ const selectMode = (mode: 'JVM' | 'Technologies' | 'Visualization' | 'HeapDump' 
 
   // Navigate to the first item in the selected mode's menu (simplified URLs)
   const firstRoutes: Record<string, string> = {
-    JVM: `/profiles/${profileId}/overview`,
+    JVM: `/profiles/${profileId}/recording-overview`,
     Technologies: `/profiles/${profileId}/technologies/hub`,
     Visualization: `/profiles/${profileId}/flamegraphs/primary`,
     HeapDump: `/profiles/${profileId}/heap-dump/settings`,
