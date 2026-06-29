@@ -72,6 +72,7 @@ public class TimeseriesController {
                 request.eventType(),
                 builder.build(),
                 request.threadInfo(),
-                request.targetBuckets());
+                request.targetBuckets(),
+                request.allEventTypes());
     }
 }

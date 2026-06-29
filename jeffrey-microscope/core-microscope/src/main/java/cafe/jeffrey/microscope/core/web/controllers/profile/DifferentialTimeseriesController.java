@@ -70,6 +70,7 @@ public class DifferentialTimeseriesController {
                 request.eventType(),
                 graphParameters,
                 request.threadInfo(),
-                request.targetBuckets()));
+                request.targetBuckets(),
+                request.allEventTypes()));
     }
 }

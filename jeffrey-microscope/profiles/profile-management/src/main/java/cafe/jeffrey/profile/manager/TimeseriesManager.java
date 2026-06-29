@@ -33,7 +33,8 @@ public interface TimeseriesManager {
             Type eventType,
             GraphParameters graphParameters,
             ThreadInfo threadInfo,
-            Integer targetBuckets) {
+            Integer targetBuckets,
+            boolean allEventTypes) {
     }
 
     @FunctionalInterface

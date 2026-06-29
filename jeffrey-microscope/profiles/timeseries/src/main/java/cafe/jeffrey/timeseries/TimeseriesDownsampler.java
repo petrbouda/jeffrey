@@ -25,16 +25,11 @@ import java.util.List;
  * Reduces a per-second timeseries to at most a target number of points so long recordings stay
  * readable, instead of shipping tens of thousands of points and decimating (and losing spikes) on
  * the client. Consecutive points are grouped into equal-width buckets; each bucket's value is the
- * SUM of the grouped values, so no sample mass is lost.
- *
- * <p>When the input has a single series an additional {@code Peak} series (the MAX value within each
- * bucket) is appended, so a transient spike that a coarse SUM would blend into its neighbours stays
- * visible as a peak. Multi-series inputs (e.g. differential or matched/total splits) are reduced
- * with SUM only, preserving their series count and pairing.
+ * SUM of the grouped values, so no sample mass is lost. Multi-series inputs (e.g. differential or
+ * matched/total splits) keep their series count and pairing.
  */
 public final class TimeseriesDownsampler {
 
-    private static final String PEAK_SERIE_NAME = "Peak";
     private static final int TIME_INDEX = 0;
     private static final int VALUE_INDEX = 1;
 
@@ -46,21 +41,17 @@ public final class TimeseriesDownsampler {
             return data;
         }
 
-        boolean singleSerie = data.series().size() == 1;
         List<SingleSerie> result = new ArrayList<>();
         for (SingleSerie serie : data.series()) {
-            result.add(reduce(serie.name(), serie.data(), targetBuckets, false));
-            if (singleSerie) {
-                result.add(reduce(PEAK_SERIE_NAME, serie.data(), targetBuckets, true));
-            }
+            result.add(reduce(serie.name(), serie.data(), targetBuckets));
         }
         return new TimeseriesData(result);
     }
 
-    private static SingleSerie reduce(String name, List<List<Long>> points, int targetBuckets, boolean peak) {
+    private static SingleSerie reduce(String name, List<List<Long>> points, int targetBuckets) {
         int size = points.size();
         if (size <= targetBuckets) {
-            // Already within budget: every bucket holds a single point, so SUM and MAX both equal it.
+            // Already within budget: every bucket holds a single point.
             List<List<Long>> copy = new ArrayList<>(size);
             for (List<Long> point : points) {
                 copy.add(point(point.get(TIME_INDEX), point.get(VALUE_INDEX)));
@@ -73,16 +64,11 @@ public final class TimeseriesDownsampler {
         for (int start = 0; start < size; start += groupSize) {
             int end = Math.min(start + groupSize, size);
             long bucketTime = points.get(start).get(TIME_INDEX);
-            long aggregate = peak ? Long.MIN_VALUE : 0L;
+            long sum = 0L;
             for (int i = start; i < end; i++) {
-                long value = points.get(i).get(VALUE_INDEX);
-                if (peak) {
-                    aggregate = Math.max(aggregate, value);
-                } else {
-                    aggregate += value;
-                }
+                sum += points.get(i).get(VALUE_INDEX);
             }
-            reduced.add(point(bucketTime, aggregate));
+            reduced.add(point(bucketTime, sum));
         }
         return new SingleSerie(name, reduced);
     }

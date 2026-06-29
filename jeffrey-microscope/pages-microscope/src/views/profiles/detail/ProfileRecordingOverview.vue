@@ -61,25 +61,23 @@
     </div>
 
     <EmptyState
-      v-if="activityData.length === 0"
+      v-if="!hasEvents"
       icon="bi-clock-history"
       title="No time-based events in this recording"
       description="This profile has no sampled events to plot over time (for example a heap-dump-only profile). The recording window selector is unavailable."
     />
 
     <template v-else>
+      <TabBar v-model="activeTab" :tabs="tabs" class="overview-tabs" />
       <ChartDescription
-        :shows="`${activityLabel} activity over the whole recording`"
-        use-case="Drag on the lower navigator to select a window; the selection drives every other view."
+        :shows="`${activeLabel} over the whole recording (events per second)`"
+        use-case="Pick an event type above; drag on the lower navigator to select a window that drives every other view."
       />
       <TimeSeriesChart
-        :key="chartResetKey"
+        :key="`${activeTab}-${chartResetKey}`"
         :primary-data="activityData"
-        :secondary-data="peakData"
-        :primary-title="activityLabel"
-        secondary-title="Peak"
+        :primary-title="activeLabel"
         :primary-axis-type="AxisFormatType.NUMBER"
-        :secondary-axis-type="AxisFormatType.NUMBER"
         :visible-minutes="overviewVisibleMinutes"
         :zoom-enabled="true"
         @update:time-range="onTimeRangeChange"
@@ -105,10 +103,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter, type LocationQueryRaw } from 'vue-router';
 
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
+import TabBar from '@shared/components/TabBar.vue';
 import ChartDescription from '@shared/components/ChartDescription.vue';
 import PageHeader from '@shared/components/layout/PageHeader.vue';
 import LoadingState from '@shared/components/LoadingState.vue';
@@ -118,9 +117,8 @@ import AxisFormatType from '@/services/timeseries/AxisFormatType.ts';
 import TimeConverter from '@/services/timeseries/TimeConverter.ts';
 import FormattingService from '@shared/services/FormattingService';
 
-import EventSummariesClient from '@/services/api/EventSummariesClient';
-import EventSummary from '@/services/api/model/EventSummary';
 import EventTypes from '@/services/EventTypes';
+import EventViewerClient from '@/services/api/EventViewerClient';
 import ProfileTimeseriesClient from '@/services/api/ProfileTimeseriesClient';
 import { useProfileTimeWindow } from '@/composables/useProfileTimeWindow';
 
@@ -128,12 +126,22 @@ import { useProfileTimeWindow } from '@/composables/useProfileTimeWindow';
 // "the whole recording" — so dragging to the edges clears the window cleanly.
 const WHOLE_RECORDING_FRACTION = 0.99;
 const MILLIS_PER_SECOND = 1000;
-const MILLIS_PER_MINUTE = 60_000;
+const SECONDS_PER_MINUTE = 60;
 
 // Upper bound on points the overview navigator requests. The backend aggregates
-// the recording into at most this many buckets (plus a peak series), so even a
-// multi-hour recording stays light instead of returning one point per second.
+// the recording into at most this many buckets, so even a multi-hour recording
+// stays light instead of returning one point per second.
 const OVERVIEW_TARGET_BUCKETS = 1500;
+
+// GC events are stackless; classify them locally since EventTypes has no GC helper.
+const GC_EVENT_CODES = [
+  'jdk.GarbageCollection',
+  'jdk.YoungGarbageCollection',
+  'jdk.OldGarbageCollection',
+  'jdk.G1GarbageCollection',
+  'jdk.ZYoungGarbageCollection',
+  'jdk.ZOldGarbageCollection'
+];
 
 const route = useRoute();
 const router = useRouter();
@@ -153,8 +161,8 @@ const loading = ref(true);
 const error = ref<string | null>(null);
 
 const activityData = ref<number[][]>([]);
-const peakData = ref<number[][]>([]);
-const activityLabel = ref('');
+const presentTypes = ref<{ code: string; count: number }[]>([]);
+const activeTab = ref('all');
 
 // Bumping this key remounts the chart, resetting its visible range to the full
 // recording when the user clears the window from the header.
@@ -162,11 +170,17 @@ const chartResetKey = ref(0);
 
 const profileId = computed(() => route.params.profileId as string);
 
-// The navigator (and ApexCharts) work in seconds-from-start; the chart's initial
-// visible window is expressed in minutes, so show the whole recording by default.
-const overviewVisibleMinutes = computed(() =>
-  Math.max(1, Math.ceil(recordingDurationMillis.value / MILLIS_PER_MINUTE))
-);
+// Default the visible window (and thus the brush selection) to the whole interval by
+// sizing it from the loaded data span — not from profileStore, which is still 0 when
+// this child view mounts. The chart re-runs its range init when the data arrives.
+const overviewVisibleMinutes = computed(() => {
+  const data = activityData.value;
+  if (data.length === 0) {
+    return 1;
+  }
+  const maxSecond = data[data.length - 1][0];
+  return Math.max(1, Math.ceil(maxSecond / SECONDS_PER_MINUTE) + 1);
+});
 
 // Formats a relative offset (millis from recording start) as HH:MM:SS, matching
 // the chart's own axis labels.
@@ -214,35 +228,71 @@ const jumpTiles: JumpTile[] = [
   { name: 'profile-threads-timeline', label: 'Threads', icon: 'bi-diagram-3' }
 ];
 
-// Priority order for the representative "activity" series: CPU first, then
-// allocation/blocking, finally whatever has the most samples.
-const ACTIVITY_PRIORITIES: Array<(code: string) => boolean> = [
-  code => EventTypes.isExecutionEventType(code),
-  code => EventTypes.isCpuTimeSample(code),
-  code => EventTypes.isWallClock(code),
-  code => EventTypes.isAllocationEventType(code),
-  code => EventTypes.isBlockingEventType(code)
-];
-
-function maxBySamples(events: EventSummary[]): EventSummary {
-  return events.reduce((best, candidate) =>
-    (candidate.primary?.samples ?? 0) > (best.primary?.samples ?? 0) ? candidate : best
-  );
+interface OverviewCategory {
+  id: string;
+  label: string;
+  matches: (code: string) => boolean;
 }
 
-function pickActivityEvent(events: EventSummary[]): EventSummary | null {
-  if (!events || events.length === 0) {
+// Rendered after the always-present "All events" tab, in this order; a category only
+// appears when the profile actually contains a matching event type.
+const CATEGORIES: OverviewCategory[] = [
+  {
+    id: 'execution',
+    label: 'Execution Samples',
+    matches: code => EventTypes.isExecutionEventType(code) || EventTypes.isCpuTimeSample(code)
+  },
+  {
+    id: 'allocation',
+    label: 'Allocation',
+    matches: code => EventTypes.isAllocationEventType(code)
+  },
+  { id: 'wallclock', label: 'Wall Clock', matches: code => EventTypes.isWallClock(code) },
+  { id: 'locks', label: 'Locks / Monitor', matches: code => EventTypes.isBlockingEventType(code) },
+  { id: 'gc', label: 'Garbage Collection', matches: code => GC_EVENT_CODES.includes(code) }
+];
+
+const ALL_EVENTS_TAB_ID = 'all';
+
+const hasEvents = computed(() => presentTypes.value.length > 0);
+
+// Most frequent present event type. Used as the (filter-ignored) event-type param for
+// the all-events request, which still needs a concrete code for parameter binding.
+const fallbackCode = computed(() => {
+  if (presentTypes.value.length === 0) {
+    return '';
+  }
+  return presentTypes.value.reduce((best, type) => (type.count > best.count ? type : best)).code;
+});
+
+// The representative (most frequent present) code for a category, or null if absent.
+function dominantCode(matches: (code: string) => boolean): string | null {
+  const candidates = presentTypes.value.filter(type => matches(type.code));
+  if (candidates.length === 0) {
     return null;
   }
-  const withSamples = events.filter(event => (event.primary?.samples ?? 0) > 0);
-  const pool = withSamples.length > 0 ? withSamples : events;
-  for (const matches of ACTIVITY_PRIORITIES) {
-    const candidates = pool.filter(event => matches(event.code));
-    if (candidates.length > 0) {
-      return maxBySamples(candidates);
+  return candidates.reduce((best, type) => (type.count > best.count ? type : best)).code;
+}
+
+const tabs = computed(() => {
+  const items: { id: string; label: string }[] = [{ id: ALL_EVENTS_TAB_ID, label: 'All events' }];
+  for (const category of CATEGORIES) {
+    if (dominantCode(category.matches) !== null) {
+      items.push({ id: category.id, label: category.label });
     }
   }
-  return maxBySamples(pool);
+  return items;
+});
+
+const activeLabel = computed(() => tabs.value.find(tab => tab.id === activeTab.value)?.label ?? '');
+
+// Resolves the request parameters (event code + all-events flag) for a tab.
+function requestForTab(tabId: string): { code: string; allEventTypes: boolean } {
+  if (tabId === ALL_EVENTS_TAB_ID) {
+    return { code: fallbackCode.value, allEventTypes: true };
+  }
+  const category = CATEGORIES.find(item => item.id === tabId);
+  return { code: category ? (dominantCode(category.matches) ?? '') : '', allEventTypes: false };
 }
 
 function onTimeRangeChange(payload: { start: number; end: number; isZoomed: boolean }): void {
@@ -268,30 +318,37 @@ function resetWindow(): void {
   chartResetKey.value += 1;
 }
 
+async function loadSeries(tabId: string): Promise<void> {
+  const { code, allEventTypes } = requestForTab(tabId);
+  if (!code) {
+    activityData.value = [];
+    return;
+  }
+  // Whole recording, bounded server-side (≈ recording / targetBuckets per point).
+  const timeseries = await new ProfileTimeseriesClient(profileId.value).getTimeseries(
+    code,
+    null,
+    OVERVIEW_TARGET_BUCKETS,
+    allEventTypes
+  );
+  activityData.value = timeseries.series?.[0]?.data ?? [];
+}
+
 async function load(): Promise<void> {
   try {
     loading.value = true;
     error.value = null;
 
-    const summaries = await EventSummariesClient.primary(profileId.value).events();
-    const chosen = pickActivityEvent(summaries);
-    if (chosen === null) {
+    presentTypes.value = (await new EventViewerClient(profileId.value).eventTypes())
+      .filter(type => type.count > 0)
+      .map(type => ({ code: type.code, count: type.count }));
+
+    if (presentTypes.value.length === 0) {
       activityData.value = [];
-      peakData.value = [];
-      activityLabel.value = '';
       return;
     }
-
-    activityLabel.value = chosen.label;
-    // Whole recording, bounded server-side. The endpoint returns a SUM series plus a
-    // peak (MAX) series so transient spikes survive the aggregation.
-    const timeseries = await new ProfileTimeseriesClient(profileId.value).getTimeseries(
-      chosen.code,
-      null,
-      OVERVIEW_TARGET_BUCKETS
-    );
-    activityData.value = timeseries.series?.[0]?.data ?? [];
-    peakData.value = timeseries.series?.[1]?.data ?? [];
+    activeTab.value = ALL_EVENTS_TAB_ID;
+    await loadSeries(ALL_EVENTS_TAB_ID);
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Unknown error occurred';
     console.error('Error loading recording overview:', err);
@@ -299,6 +356,14 @@ async function load(): Promise<void> {
     loading.value = false;
   }
 }
+
+// User switches event type → reload that series (the initial 'all' load runs in load()).
+watch(activeTab, tabId => {
+  loadSeries(tabId).catch(err => {
+    error.value = err instanceof Error ? err.message : 'Unknown error occurred';
+    console.error('Error loading recording overview series:', err);
+  });
+});
 
 onMounted(() => {
   initFromQuery(route.query);
@@ -398,6 +463,11 @@ onMounted(() => {
   font-size: 11.5px;
   color: var(--color-text-muted);
   white-space: nowrap;
+}
+
+/* ----- Event-type selector ----- */
+.overview-tabs {
+  margin-bottom: 12px;
 }
 
 /* ----- Jump tiles ----- */

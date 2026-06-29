@@ -47,6 +47,13 @@ public interface ComplexQueries {
         String filterable(EventQueryConfigurer configurer);
 
         String frameBased(EventQueryConfigurer configurer);
+
+        /**
+         * Total-activity timeseries for the recording overview: bucketed {@code SUM} of the value,
+         * with no stacktrace join (so stackless event types such as GC are included) and an
+         * event-type filter that is omitted when {@link EventQueryConfigurer#allEventTypes()}.
+         */
+        String overview(EventQueryConfigurer configurer);
     }
 
     interface SubSecond {

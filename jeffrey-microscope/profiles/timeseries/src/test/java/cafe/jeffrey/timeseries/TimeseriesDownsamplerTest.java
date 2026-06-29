@@ -55,16 +55,13 @@ class TimeseriesDownsamplerTest {
     class SingleSerieInput {
 
         @Test
-        void boundsThePointCountAndAppendsPeak() {
+        void boundsThePointCount() {
             TimeseriesData input = new TimeseriesData(serie("Samples", 10_000));
 
             TimeseriesData result = TimeseriesDownsampler.downsample(input, 1_000);
 
-            assertEquals(2, result.series().size());
-            SingleSerie samples = byName(result, "Samples");
-            SingleSerie peak = byName(result, "Peak");
-            assertTrue(samples.data().size() <= 1_000);
-            assertEquals(samples.data().size(), peak.data().size());
+            assertEquals(1, result.series().size());
+            assertTrue(byName(result, "Samples").data().size() <= 1_000);
         }
 
         @Test
@@ -77,7 +74,7 @@ class TimeseriesDownsamplerTest {
         }
 
         @Test
-        void peakKeepsTransientSpikeThatSumWouldBlend() {
+        void aggregatesSpikeMassIntoItsBucket() {
             List<List<Long>> data = new ArrayList<>();
             for (long second = 0; second < 1_000; second++) {
                 List<Long> point = new ArrayList<>(2);
@@ -89,22 +86,18 @@ class TimeseriesDownsamplerTest {
 
             TimeseriesData result = TimeseriesDownsampler.downsample(input, 100);
 
-            long maxPeak = byName(result, "Peak").data().stream()
-                    .mapToLong(point -> point.get(1))
-                    .max()
-                    .orElseThrow();
-            assertEquals(400L, maxPeak);
+            // Total mass (999 ones + one 400) is preserved by SUM.
+            assertEquals(999L + 400L, totalValue(byName(result, "Samples")));
         }
 
         @Test
-        void smallInputIsReturnedWithinBudgetWithPeak() {
+        void smallInputIsReturnedUnchanged() {
             TimeseriesData input = new TimeseriesData(serie("Samples", 50));
 
             TimeseriesData result = TimeseriesDownsampler.downsample(input, 1_000);
 
-            assertEquals(2, result.series().size());
+            assertEquals(1, result.series().size());
             assertEquals(50, byName(result, "Samples").data().size());
-            assertEquals(50, byName(result, "Peak").data().size());
         }
     }
 
@@ -112,7 +105,7 @@ class TimeseriesDownsamplerTest {
     class MultiSerieInput {
 
         @Test
-        void reducesEachSerieWithoutAddingPeak() {
+        void reducesEachSerieKeepingSeriesCount() {
             TimeseriesData input = new TimeseriesData(
                     serie("Samples", 5_000),
                     serie("Matched Samples", 5_000));

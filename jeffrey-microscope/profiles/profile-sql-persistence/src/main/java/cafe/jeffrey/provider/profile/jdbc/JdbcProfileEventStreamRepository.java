@@ -106,6 +106,23 @@ public class JdbcProfileEventStreamRepository implements ProfileEventStreamRepos
     }
 
     @Override
+    public <T> T overviewTimeseriesStreamer(EventQueryConfigurer configurer, RecordBuilder<TimeseriesRecord, T> builder) {
+        QueryBuilderFactory factory = queryBuilderFactoryResolver.resolve(configurer.eventTypes());
+
+        MapSqlParameterSource baseParams = createBaseParams(configurer);
+
+        ComplexQueries.Timeseries timeseries = factory.complexQueries().timeseries();
+        databaseClient.queryStream(
+                StatementLabel.STREAM_EVENTS,
+                timeseries.overview(configurer),
+                baseParams,
+                (r, _) -> TimeseriesRecord.secondsAndValues(r.getLong("seconds"), r.getLong("value")),
+                builder::onRecord);
+
+        return builder.build();
+    }
+
+    @Override
     public <T> T timeseriesSearchingStreamer(EventQueryConfigurer configurer, RecordBuilder<TimeseriesSearchRecord, T> builder) {
         QueryBuilderFactory factory = queryBuilderFactoryResolver.resolve(configurer.eventTypes());
 

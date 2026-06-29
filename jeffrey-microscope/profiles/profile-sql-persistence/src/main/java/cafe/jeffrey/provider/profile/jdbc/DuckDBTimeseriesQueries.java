@@ -36,8 +36,12 @@ public class DuckDBTimeseriesQueries implements ComplexQueries.Timeseries {
     private static final String PLACEHOLDER_EVENT_TYPE = "<<event_type>>";
     private static final String PLACEHOLDER_TARGET_VALUE = "<<target_value>>";
     private static final String PLACEHOLDER_THREAD_JOIN = "<<thread_join>>";
+    private static final String PLACEHOLDER_EVENT_TYPE_FILTER = "<<event_type_filter>>";
 
     private static final String THREAD_JOIN = "LEFT JOIN threads t ON e.thread_hash = t.thread_hash";
+
+    /** Single-event-type predicate for the overview query; omitted when querying all events. */
+    private static final String EVENT_TYPE_FILTER_CLAUSE = "AND e.event_type = :event_type\n";
 
     /** Width of a single timeseries bucket in milliseconds (one bucket per second). */
     private static final int BUCKET_SIZE_MS = 1000;
@@ -178,16 +182,30 @@ public class DuckDBTimeseriesQueries implements ComplexQueries.Timeseries {
             CROSS JOIN frame_lookup fl;
             """;
 
+    //language=SQL
+    private static final String OVERVIEW = """
+            SELECT (e.start_timestamp_from_beginning // <<bucket_size_ms>>) AS seconds,
+                   SUM(<<target_value>>) AS value
+            FROM events e
+            WHERE 1 = 1
+                <<event_type_filter>>
+                <<time_filters>>
+            GROUP BY seconds
+            ORDER BY seconds
+            """;
+
     private final String simple;
     private final String simpleSearch;
     private final String filterable;
     private final String frameBased;
+    private final String overview;
 
     private DuckDBTimeseriesQueries(String eventType, String additionalFilters) {
         this.simple = prepare(SIMPLE, eventType, additionalFilters);
         this.simpleSearch = prepare(SIMPLE_SEARCH, eventType, additionalFilters);
         this.filterable = prepare(FILTERABLE, eventType, additionalFilters);
         this.frameBased = prepare(FRAME_BASED, eventType, additionalFilters);
+        this.overview = prepare(OVERVIEW, eventType, additionalFilters);
     }
 
     private static String prepare(String template, String eventType, String additionalFilters) {
@@ -208,10 +226,12 @@ public class DuckDBTimeseriesQueries implements ComplexQueries.Timeseries {
     private static String render(String sql, EventQueryConfigurer configurer) {
         String valueField = configurer.useWeight() ? "e.weight" : "e.samples";
         String threadJoin = configurer.specifiedThread() != null ? THREAD_JOIN : "";
+        String eventTypeFilter = configurer.allEventTypes() ? "" : EVENT_TYPE_FILTER_CLAUSE;
 
         String result = sql
                 .replace(PLACEHOLDER_TARGET_VALUE, valueField)
-                .replace(PLACEHOLDER_THREAD_JOIN, threadJoin);
+                .replace(PLACEHOLDER_THREAD_JOIN, threadJoin)
+                .replace(PLACEHOLDER_EVENT_TYPE_FILTER, eventTypeFilter);
 
         return EventQueryFilters.splice(result, configurer);
     }
@@ -234,5 +254,10 @@ public class DuckDBTimeseriesQueries implements ComplexQueries.Timeseries {
     @Override
     public String frameBased(EventQueryConfigurer configurer) {
         return render(frameBased, configurer);
+    }
+
+    @Override
+    public String overview(EventQueryConfigurer configurer) {
+        return render(overview, configurer);
     }
 }

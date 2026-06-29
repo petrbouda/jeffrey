@@ -32,14 +32,16 @@ export default class ProfileTimeseriesClient extends BaseProfileClient {
   }
 
   /**
-   * @param eventType     event type code (e.g. `jdk.ExecutionSample`)
+   * @param eventType     event type code (e.g. `jdk.ExecutionSample`); ignored when allEventTypes
    * @param timeRange     window to restrict to, or null for the whole recording
    * @param targetBuckets maximum number of points to return
+   * @param allEventTypes when true, aggregate across every event type (total activity)
    */
   getTimeseries(
     eventType: string,
     timeRange: TimeRange | null,
-    targetBuckets: number
+    targetBuckets: number,
+    allEventTypes: boolean
   ): Promise<TimeseriesData> {
     return this.post<TimeseriesData>('', {
       eventType: eventType,
@@ -51,7 +53,8 @@ export default class ProfileTimeseriesClient extends BaseProfileClient {
       threadInfo: null,
       markers: [],
       timeRange: timeRange,
-      targetBuckets: targetBuckets
+      targetBuckets: targetBuckets,
+      allEventTypes: allEventTypes
     });
   }
 }

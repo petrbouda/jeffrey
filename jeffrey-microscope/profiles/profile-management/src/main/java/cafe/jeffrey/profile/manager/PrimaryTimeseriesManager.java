@@ -23,6 +23,7 @@ import cafe.jeffrey.shared.common.model.ProfilingStartEnd;
 import cafe.jeffrey.shared.common.model.time.RelativeTimeRange;
 import cafe.jeffrey.provider.profile.api.EventQueryConfigurer;
 import cafe.jeffrey.provider.profile.api.ProfileEventStreamRepository;
+import cafe.jeffrey.timeseries.SimpleTimeseriesBuilder;
 import cafe.jeffrey.timeseries.TimeseriesData;
 import cafe.jeffrey.timeseries.TimeseriesDownsampler;
 import cafe.jeffrey.timeseries.TimeseriesResolver;
@@ -45,24 +46,34 @@ public class PrimaryTimeseriesManager implements TimeseriesManager {
         GraphParameters params = generate.graphParameters();
 
         // The request may restrict the query to a window; otherwise the whole recording is used.
-        // The effective range must also reach the builder (via params) so its bucket pre-fill spans
-        // exactly the queried range.
         RelativeTimeRange effectiveRange = params.timeRange() != null ? params.timeRange() : timeRange;
-        GraphParameters effectiveParams = params.toBuilder().withTimeRange(effectiveRange).build();
 
+        // The recording-overview navigator always sends targetBuckets. It uses the overview activity
+        // query (no stacktrace join, so stackless event types like GC are included) and may aggregate
+        // across all event types. The result is then bounded to the requested number of buckets.
+        Integer targetBuckets = generate.targetBuckets();
+        if (targetBuckets != null) {
+            EventQueryConfigurer overviewConfigurer = new EventQueryConfigurer()
+                    .withEventType(generate.eventType())
+                    .withTimeRange(effectiveRange)
+                    .withWeight(params.useWeight())
+                    .withAllEventTypes(generate.allEventTypes());
+
+            TimeseriesData data = eventStreamRepository.overviewTimeseriesStreamer(
+                    overviewConfigurer, new SimpleTimeseriesBuilder(effectiveRange));
+            return TimeseriesDownsampler.downsample(data, targetBuckets);
+        }
+
+        // Legacy per-event-type series (full per-second resolution). The effective range must also
+        // reach the builder (via params) so its bucket pre-fill spans exactly the queried range.
+        GraphParameters effectiveParams = params.toBuilder().withTimeRange(effectiveRange).build();
         EventQueryConfigurer configurer = new EventQueryConfigurer()
                 .withEventType(generate.eventType())
                 .withTimeRange(effectiveRange)
                 .withWeight(params.useWeight())
                 .withThreads(params.threadMode());
 
-        TimeseriesData data = eventStreamRepository.timeseriesStreamer(
+        return eventStreamRepository.timeseriesStreamer(
                 configurer, TimeseriesResolver.resolve(effectiveParams));
-
-        Integer targetBuckets = generate.targetBuckets();
-        if (targetBuckets == null) {
-            return data;
-        }
-        return TimeseriesDownsampler.downsample(data, targetBuckets);
     }
 }
