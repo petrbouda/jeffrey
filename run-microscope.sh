@@ -28,17 +28,24 @@
 # /root/.jeffrey-microscope) before launch, so the run starts from clean data. All other arguments
 # are forwarded to the application.
 #
+# Pass --no-profiler (or NO_PROFILER=1) to launch plain Java with no async-profiler agent at all —
+# no -agentpath, no jeffrey-%t.jfr output, no perf_event kernel tuning, no method tracing. Useful
+# for a quick run where self-profiling overhead/output isn't wanted.
+#
 # Local-only helper — gitignored, not committed.
 #
 set -euo pipefail
 
-# Parse our own flags (e.g. --clean) out of the args; everything else is forwarded to the jar.
+# Parse our own flags (e.g. --clean, --no-profiler) out of the args; everything else is forwarded
+# to the jar.
 CLEAN=0
+NO_PROFILER="${NO_PROFILER:-0}"
 REST=()
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --clean) CLEAN=1; shift ;;
-        *)       REST+=("$1"); shift ;;
+        --clean)       CLEAN=1; shift ;;
+        --no-profiler) NO_PROFILER=1; shift ;;
+        *)             REST+=("$1"); shift ;;
     esac
 done
 set -- "${REST[@]+"${REST[@]}"}"
@@ -55,7 +62,7 @@ DATA_DIR="${HOME}/.jeffrey-microscope"
 # enabled), so the VT events are merged straight into async-profiler's jeffrey-%t.jfr output.
 AGENT_OPTS_BASE="start,event=${EVENT},wall,alloc,lock,file=${REPO_DIR}/jeffrey-%t.jfr"
 
-if [[ ! -f "${ASPROF}" ]]; then
+if [[ "${NO_PROFILER}" -eq 0 && ! -f "${ASPROF}" ]]; then
     echo "error: libasyncProfiler.so not found at ${ASPROF}" >&2
     echo "       build it: (cd /home/pbouda/IdeaProjects/async-profiler && make build/lib/libasyncProfiler.so)" >&2
     exit 1
@@ -67,7 +74,8 @@ if [[ ! -f "${JAR}" ]]; then
 fi
 
 # perf_events CPU sampling requires relaxed kernel limits → set them automatically (needs root).
-if [[ "${EVENT}" == "cpu" ]]; then
+# Not needed at all when the profiler agent is disabled.
+if [[ "${NO_PROFILER}" -eq 0 && "${EVENT}" == "cpu" ]]; then
     if [[ "${EUID}" -ne 0 ]]; then
         echo "error: event=cpu sets kernel perf limits and must be run with sudo:" >&2
         echo "       sudo ${BASH_SOURCE[0]}" >&2
@@ -100,6 +108,8 @@ if [[ -z "${JAVA_BIN}" ]]; then
     echo "       or:      sudo JAVA_BIN=\"\$(command -v java)\" ${BASH_SOURCE[0]}" >&2
     exit 1
 fi
+
+if [[ "${NO_PROFILER}" -eq 0 ]]; then
 
 # Build a custom JFR config from the JDK's profile.jfc with virtual-thread events enabled, so the VT
 # events are merged into async-profiler's output via jfrsync (no separate JVM recording needed):
@@ -169,6 +179,8 @@ done
 
 AGENT_OPTS="${AGENT_OPTS_BASE},jfrsync=${VT_JFC}${TRACE_OPTS}"
 
+fi # NO_PROFILER
+
 # --clean: wipe the data dir for a fresh-data run. Guard against a misresolved/empty path so a bad
 # expansion can never turn this into a catastrophic rm.
 if [[ "${CLEAN}" -eq 1 ]]; then
@@ -179,6 +191,14 @@ if [[ "${CLEAN}" -eq 1 ]]; then
     echo "Cleaning data dir (--clean): ${DATA_DIR}"
     rm -rf "${DATA_DIR}"
     echo
+fi
+
+if [[ "${NO_PROFILER}" -eq 1 ]]; then
+    echo "Starting microscope (no profiler agent — plain JVM):"
+    echo "  java  : ${JAVA_BIN}"
+    echo "  jar   : ${JAR}"
+    echo
+    exec "${JAVA_BIN}" --add-modules jdk.incubator.vector -XX:NativeMemoryTracking=summary -jar "${JAR}" "$@"
 fi
 
 echo "Starting microscope with async-profiler agent:"
@@ -196,4 +216,4 @@ else
 fi
 echo
 
-exec "${JAVA_BIN}" "-agentpath:${ASPROF}=${AGENT_OPTS}" -XX:NativeMemoryTracking=summary -jar "${JAR}" "$@"
+exec "${JAVA_BIN}" "-agentpath:${ASPROF}=${AGENT_OPTS}" --add-modules jdk.incubator.vector -XX:NativeMemoryTracking=summary -jar "${JAR}" "$@"
