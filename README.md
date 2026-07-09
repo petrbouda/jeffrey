@@ -176,17 +176,6 @@ builds a profile you can explore.
 
 ---
 
-## 🙌 Standing on the shoulders of giants
-
-Jeffrey wouldn't exist without the people who came before. Huge thanks to:
-
-- [async-profiler](https://github.com/async-profiler/async-profiler) — the profiling engine
-- [JDK Mission Control](https://github.com/openjdk/jmc) — the original JFR analyst
-- [Netflix FlameScope](https://github.com/Netflix/flamescope) — sub-second inspiration
-- [ApexCharts](https://apexcharts.com/) — the charts you see everywhere in the UI
-
----
-
 ## 📖 Links
 
 - 🌐 **Website:** https://www.jeffrey-analyst.cafe/
