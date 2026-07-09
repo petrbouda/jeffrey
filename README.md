@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="static/header.png" alt="Jeffrey — the JFR Analyst" />
+  <img src="static/logo/jeffrey-icon.svg" alt="Jeffrey" width="120" />
 </p>
 
 <h1 align="center">Jeffrey — the JFR Analyst 🔬</h1>
