@@ -1,6 +1,6 @@
 <h1 align="center">
   <img src="static/logo/jeffrey-icon.svg" alt="" width="34" valign="middle" />
-  Jeffrey — the JFR Analyst
+  Jeffrey — Performance Analyst
 </h1>
 
 <p align="center">
