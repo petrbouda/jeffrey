@@ -78,7 +78,7 @@ const closeMenu = () => {
       <div class="container-wide">
         <div class="row">
           <div class="col-md-6">
-            <p>&copy; 2025 Jeffrey - Java Profiling Tool</p>
+            <p>&copy; 2025 Jeffrey - Performance Analyst</p>
           </div>
           <div class="col-md-6 text-end">
             <a href="https://github.com/petrbouda/jeffrey" class="text-white me-3" target="_blank">
