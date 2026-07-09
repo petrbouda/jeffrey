@@ -60,7 +60,9 @@ public record ProjectInstanceInfo(
         public Set<ProjectInstanceStatus> validFromStatuses() {
             return switch (this) {
                 case PENDING -> Set.of();
-                case ACTIVE -> Set.of(PENDING, FINISHED);
+                // EXPIRED is a valid predecessor: an expired instance that starts streaming
+                // a new session is reactivated by the session-created consumer
+                case ACTIVE -> Set.of(PENDING, FINISHED, EXPIRED);
                 case FINISHED -> Set.of(ACTIVE);
                 case EXPIRED -> Set.of(FINISHED);
             };

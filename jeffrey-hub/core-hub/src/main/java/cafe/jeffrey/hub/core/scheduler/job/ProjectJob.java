@@ -26,6 +26,7 @@ import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
 import cafe.jeffrey.hub.core.scheduler.Job;
 import cafe.jeffrey.hub.core.scheduler.JobContext;
 import cafe.jeffrey.hub.core.scheduler.job.descriptor.JobDescriptor;
+import cafe.jeffrey.shared.common.measure.Measuring;
 
 import java.time.Duration;
 
@@ -53,12 +54,18 @@ public abstract class ProjectJob<T extends JobDescriptor<T>> implements Job {
 
         for (WorkspaceManager workspaceManager : workspacesManager.findAll()) {
             for (ProjectManager projectManager : workspaceManager.projectsManager().findAll()) {
-                long start = System.nanoTime();
-                execute(projectManager, jobDescriptor, context);
-                Duration elapsed = Duration.ofNanos(System.nanoTime() - start);
-                LOG.debug("Job completed: job={} elapsed_ms={} workspace_id={} project_id={}",
-                        simpleName, elapsed.toMillis(),
-                        workspaceManager.resolveInfo().id(), projectManager.info().id());
+                // Isolate per-project failures: one broken project (vanished session directory,
+                // storage hiccup) must not abort the tick for every remaining project.
+                try {
+                    Duration elapsed = Measuring.r(() -> execute(projectManager, jobDescriptor, context));
+                    LOG.debug("Job completed: job={} elapsed_ms={} workspace_id={} project_id={}",
+                            simpleName, elapsed.toMillis(),
+                            workspaceManager.resolveInfo().id(), projectManager.info().id());
+                } catch (Exception e) {
+                    LOG.error("Job failed for project, continuing with remaining projects: " +
+                                    "job={} workspace_id={} project_id={}",
+                            simpleName, workspaceManager.resolveInfo().id(), projectManager.info().id(), e);
+                }
             }
         }
     }

@@ -20,6 +20,7 @@ package cafe.jeffrey.hub.persistence.api;
 
 import cafe.jeffrey.shared.common.model.ProjectInfo;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -71,4 +72,14 @@ public interface ProjectsRepository {
      * @return list of distinct namespace names (excluding null values)
      */
     List<String> findAllNamespaces();
+
+    /**
+     * Hard-delete soft-deleted projects whose {@code deleted_at} is older than the given
+     * cutoff, together with any child rows that may still reference them. Keeps the
+     * projects table from growing forever with tombstone rows.
+     *
+     * @param deletedBefore projects soft-deleted before this instant are purged
+     * @return number of purged project rows
+     */
+    int purgeDeletedProjects(Instant deletedBefore);
 }

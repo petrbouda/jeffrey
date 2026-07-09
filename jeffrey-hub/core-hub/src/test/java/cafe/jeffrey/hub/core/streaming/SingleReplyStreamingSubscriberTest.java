@@ -30,7 +30,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -130,10 +129,9 @@ class SingleReplyStreamingSubscriberTest {
 
             AtomicBoolean closed = new AtomicBoolean(true);
             List<EventBatch> batches = new ArrayList<>();
-            AtomicInteger errorCount = new AtomicInteger(0);
 
             var reader = new SingleReplyStreamingSubscriber(
-                    subscription, tempDir, batches::add, _ -> errorCount.incrementAndGet(), closed::get);
+                    subscription, tempDir, batches::add, closed::get);
 
             reader.read(JfrTestFiles.resolve(JfrTestFiles.PROFILE_1));
 
@@ -146,18 +144,17 @@ class SingleReplyStreamingSubscriberTest {
     class ErrorHandling {
 
         @Test
-        void reportsErrorsForCorruptedFile(@TempDir Path tempDir) throws IOException {
+        void toleratesCorruptedFile_withoutThrowing(@TempDir Path tempDir) throws IOException {
             Path corrupted = JfrTestFiles.createCorruptedFile(tempDir);
             var subscription = new ReplayStreamSubscription(
                     SESSION_ID, List.of(), Set.of("jdk.CPULoad"), StreamingWindow.UNBOUNDED, tempDir);
 
             List<EventBatch> batches = new ArrayList<>();
-            AtomicInteger errorCount = new AtomicInteger(0);
 
             var reader = new SingleReplyStreamingSubscriber(
-                    subscription, tempDir, batches::add, _ -> errorCount.incrementAndGet(), () -> false);
+                    subscription, tempDir, batches::add, () -> false);
 
-            // Should not throw — errors reported via callback
+            // Chunk errors are logged and skipped — never escalated to the terminal callback
             assertDoesNotThrow(() -> reader.read(corrupted));
         }
     }
@@ -169,10 +166,9 @@ class SingleReplyStreamingSubscriberTest {
                 SESSION_ID, List.of(), eventTypes, window, tempDir);
 
         List<EventBatch> batches = new ArrayList<>();
-        AtomicInteger errorCount = new AtomicInteger(0);
 
         var reader = new SingleReplyStreamingSubscriber(
-                subscription, tempDir, batches::add, _ -> errorCount.incrementAndGet(), () -> false);
+                subscription, tempDir, batches::add, () -> false);
 
         reader.read(JfrTestFiles.resolve(jfrFileName));
         return batches;

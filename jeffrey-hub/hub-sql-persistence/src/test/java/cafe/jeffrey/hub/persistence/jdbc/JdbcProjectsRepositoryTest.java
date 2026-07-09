@@ -330,4 +330,48 @@ class JdbcProjectsRepositoryTest {
             assertEquals("proj-003", visible.get().id());
         }
     }
+
+    @Nested
+    class PurgeDeletedProjectsMethod {
+
+        @Test
+        void purgesOnlyProjectsDeletedBeforeCutoff_withChildRows(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
+            TestUtils.executeSql(dataSource, "sql/workspace/insert-workspace-full-graph.sql");
+            JdbcProjectsRepository repository = new JdbcProjectsRepository(provider);
+
+            // proj-002 was soft-deleted at 2025-01-02; proj-001 and proj-101 are live
+            int purged = repository.purgeDeletedProjects(Instant.parse("2025-02-01T00:00:00Z"));
+
+            assertEquals(1, purged, "Only the tombstoned project older than the cutoff is purged");
+            assertEquals(0, countRows(dataSource, "SELECT COUNT(*) FROM projects WHERE project_id = 'proj-002'"));
+            assertEquals(0, countRows(dataSource, "SELECT COUNT(*) FROM repositories WHERE project_id = 'proj-002'"));
+
+            // Live projects and their children stay
+            assertEquals(1, countRows(dataSource, "SELECT COUNT(*) FROM projects WHERE project_id = 'proj-001'"));
+            assertEquals(1, countRows(dataSource, "SELECT COUNT(*) FROM projects WHERE project_id = 'proj-101'"));
+            assertEquals(1, countRows(dataSource, "SELECT COUNT(*) FROM repositories WHERE project_id = 'proj-001'"));
+        }
+
+        @Test
+        void keepsTombstones_youngerThanCutoff(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
+            TestUtils.executeSql(dataSource, "sql/workspace/insert-workspace-full-graph.sql");
+            JdbcProjectsRepository repository = new JdbcProjectsRepository(provider);
+
+            int purged = repository.purgeDeletedProjects(Instant.parse("2025-01-01T00:00:00Z"));
+
+            assertEquals(0, purged, "Tombstone is younger than the cutoff — still restorable");
+            assertEquals(1, countRows(dataSource, "SELECT COUNT(*) FROM projects WHERE project_id = 'proj-002'"));
+        }
+
+        private int countRows(DataSource dataSource, String sql) throws SQLException {
+            try (Connection conn = dataSource.getConnection();
+                 Statement stmt = conn.createStatement();
+                 var rs = stmt.executeQuery(sql)) {
+                rs.next();
+                return rs.getInt(1);
+            }
+        }
+    }
 }

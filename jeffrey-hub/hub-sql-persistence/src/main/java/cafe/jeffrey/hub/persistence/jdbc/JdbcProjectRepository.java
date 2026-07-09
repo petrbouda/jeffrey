@@ -26,6 +26,7 @@ import cafe.jeffrey.shared.persistence.StatementLabel;
 import cafe.jeffrey.shared.persistence.client.DatabaseClient;
 import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
 
+import java.util.List;
 import java.util.Optional;
 
 public class JdbcProjectRepository implements ProjectRepository {
@@ -51,12 +52,12 @@ public class JdbcProjectRepository implements ProjectRepository {
             "UPDATE projects SET deleted_at = NULL WHERE project_id = :project_id";
 
     //language=SQL
-    private static final String DELETE_PROJECT_CASCADE = """
-            DELETE FROM project_instance_sessions WHERE repository_id IN (SELECT repository_id FROM repositories WHERE project_id = '%project_id%');
-            DELETE FROM project_instances WHERE project_id = '%project_id%';
-            DELETE FROM repositories WHERE project_id = '%project_id%';
-            DELETE FROM profiler_settings WHERE project_id = '%project_id%';
-            UPDATE projects SET deleted_at = CURRENT_TIMESTAMP WHERE project_id = '%project_id%'""";
+    private static final List<String> DELETE_PROJECT_CASCADE = List.of(
+            "DELETE FROM project_instance_sessions WHERE repository_id IN (SELECT repository_id FROM repositories WHERE project_id = :project_id)",
+            "DELETE FROM project_instances WHERE project_id = :project_id",
+            "DELETE FROM repositories WHERE project_id = :project_id",
+            "DELETE FROM profiler_settings WHERE project_id = :project_id",
+            "UPDATE projects SET deleted_at = CURRENT_TIMESTAMP WHERE project_id = :project_id");
 
     private final String projectId;
     private final DatabaseClient databaseClient;
@@ -68,8 +69,12 @@ public class JdbcProjectRepository implements ProjectRepository {
 
     @Override
     public void delete() {
-        String sql = DELETE_PROJECT_CASCADE.replaceAll("%project_id%", projectId);
-        databaseClient.delete(StatementLabel.DELETE_PROJECT, sql);
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("project_id", projectId);
+
+        for (String sql : DELETE_PROJECT_CASCADE) {
+            databaseClient.delete(StatementLabel.DELETE_PROJECT, sql, paramSource);
+        }
     }
 
     @Override

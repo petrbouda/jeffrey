@@ -45,9 +45,16 @@ public class ProjectsSynchronizerJob extends WorkspaceJob<ProjectsSynchronizerJo
 
     private static final WorkspaceEventConsumerType CONSUMER = WorkspaceEventConsumerType.PROJECT_SYNCHRONIZER_CONSUMER;
 
+    /**
+     * How many times a failing event is retried (one attempt per job tick) before it is
+     * dropped as a poison message so it cannot block the queue forever.
+     */
+    private static final int MAX_PROCESSING_ATTEMPTS = 5;
+
     private final List<WorkspaceEventConsumer> consumers;
     private final PersistentQueue<WorkspaceEvent> workspaceEventQueue;
     private final Duration period;
+    private final EventProcessingAttempts processingAttempts = new EventProcessingAttempts();
 
     public ProjectsSynchronizerJob(
             List<WorkspaceEventConsumer> consumers,
@@ -100,10 +107,27 @@ public class ProjectsSynchronizerJob extends WorkspaceJob<ProjectsSynchronizerJo
                                 event.eventType(), entry.offset(), consumer.getClass().getSimpleName());
                     }
                 }
+                processingAttempts.clear(workspaceId);
             } catch (Exception e) {
                 JfrMessageEmitter.eventProcessingFailed(event.eventType().name(), event.projectId(), e.getMessage());
-                LOG.error("Failed to process workspace event, skipping: event_type={} event_id={} project_id={}",
-                        event.eventType(), entry.offset(), event.projectId(), e);
+
+                int attempts = processingAttempts.recordFailure(workspaceId, entry.offset());
+                if (attempts < MAX_PROCESSING_ATTEMPTS) {
+                    // Do not advance past the failed event: it stays at the head of the queue and
+                    // is retried (together with everything after it) on the next tick. Events are
+                    // ordered, so later events must not overtake a failed one.
+                    LOG.warn("Failed to process workspace event, will retry: event_type={} event_id={} " +
+                                    "project_id={} attempts={} max_attempts={}",
+                            event.eventType(), entry.offset(), event.projectId(), attempts, MAX_PROCESSING_ATTEMPTS, e);
+                    break;
+                }
+
+                // Poison message: drop it after the retry budget is exhausted so it cannot block
+                // the queue forever, and continue with the remaining events.
+                LOG.error("Dropping workspace event after repeated failures: event_type={} event_id={} " +
+                                "project_id={} attempts={}",
+                        event.eventType(), entry.offset(), event.projectId(), attempts, e);
+                processingAttempts.clear(workspaceId);
             }
             latestOffset = entry.offset();
         }

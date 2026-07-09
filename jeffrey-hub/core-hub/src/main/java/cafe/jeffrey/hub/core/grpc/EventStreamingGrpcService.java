@@ -19,6 +19,7 @@
 package cafe.jeffrey.hub.core.grpc;
 
 import io.grpc.Context;
+import io.grpc.stub.ServerCallStreamObserver;
 import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -76,14 +77,8 @@ public class EventStreamingGrpcService extends EventStreamingServiceGrpc.EventSt
 
         try {
             Optional<SessionWithRepository> sessionOpt =
-                    platformRepositories.findSessionWithRepositoryById(sessionId);
+                    resolveValidatedSession(sessionId, request.getEventTypesList(), observer);
             if (sessionOpt.isEmpty()) {
-                observer.onError(GrpcExceptions.notFound("Session not found: " + sessionId));
-                return;
-            }
-
-            if (request.getEventTypesList().isEmpty()) {
-                observer.onError(GrpcExceptions.invalidArgument("At least one event type must be specified"));
                 return;
             }
 
@@ -106,10 +101,8 @@ public class EventStreamingGrpcService extends EventStreamingServiceGrpc.EventSt
 
             String subscriptionId = liveStreamingManager.subscribe(subscription, callbacks);
 
-            Context.current().addListener(_ -> {
-                LOG.info("Client disconnected, closing live stream: subscription={}", subscription);
-                liveStreamingManager.unsubscribe(subscriptionId);
-            }, Runnable::run);
+            unsubscribeOnDisconnect("live", subscription,
+                    () -> liveStreamingManager.unsubscribe(subscriptionId));
         } catch (Exception e) {
             LOG.error("Failed to start live streaming: sessionId={}", sessionId, e);
             observer.onError(GrpcExceptions.internal(e));
@@ -120,16 +113,16 @@ public class EventStreamingGrpcService extends EventStreamingServiceGrpc.EventSt
     public void replayStreaming(ReplayStreamingRequest request, StreamObserver<EventBatch> observer) {
         String sessionId = request.getSessionId();
 
+        // Replay produces batches as fast as the files can be read, so the producer must be
+        // paused while the client is slow — otherwise gRPC buffers every batch in memory.
+        // The gate must be attached here, on the handler thread, before this method returns.
+        ServerCallStreamObserver<EventBatch> serverObserver = (ServerCallStreamObserver<EventBatch>) observer;
+        ReadyGate gate = ReadyGate.attach(serverObserver);
+
         try {
             Optional<SessionWithRepository> sessionOpt =
-                    platformRepositories.findSessionWithRepositoryById(sessionId);
+                    resolveValidatedSession(sessionId, request.getEventTypesList(), observer);
             if (sessionOpt.isEmpty()) {
-                observer.onError(GrpcExceptions.notFound("Session not found: " + sessionId));
-                return;
-            }
-
-            if (request.getEventTypesList().isEmpty()) {
-                observer.onError(GrpcExceptions.invalidArgument("At least one event type must be specified"));
                 return;
             }
 
@@ -149,16 +142,14 @@ public class EventStreamingGrpcService extends EventStreamingServiceGrpc.EventSt
                     window, jeffreyDirs.temp());
 
             var callbacks = new StreamingCallbacks(
-                    observer::onNext,
+                    batch -> sendWithBackpressure(serverObserver, gate, batch),
                     observer::onCompleted,
                     t -> observer.onError(GrpcExceptions.internal(t)));
 
             String replayId = replayStreamingManager.subscribe(replaySubscription, callbacks);
 
-            Context.current().addListener(_ -> {
-                LOG.info("Client disconnected, closing replay stream: subscription={}", replaySubscription);
-                replayStreamingManager.unsubscribe(replayId);
-            }, Runnable::run);
+            unsubscribeOnDisconnect("replay", replaySubscription,
+                    () -> replayStreamingManager.unsubscribe(replayId));
         } catch (IllegalArgumentException e) {
             observer.onError(GrpcExceptions.invalidArgument(e.getMessage()));
         } catch (Exception e) {
@@ -168,6 +159,57 @@ public class EventStreamingGrpcService extends EventStreamingServiceGrpc.EventSt
     }
 
     // ========== Helpers ==========
+
+    /**
+     * Resolves the session and validates the request. When the session is missing or the
+     * event-type list is empty, the appropriate terminal error is already sent to the
+     * observer and an empty Optional is returned — the caller just stops.
+     */
+    private Optional<SessionWithRepository> resolveValidatedSession(
+            String sessionId, List<String> eventTypes, StreamObserver<EventBatch> observer) {
+
+        Optional<SessionWithRepository> sessionOpt =
+                platformRepositories.findSessionWithRepositoryById(sessionId);
+        if (sessionOpt.isEmpty()) {
+            observer.onError(GrpcExceptions.notFound("Session not found: " + sessionId));
+            return Optional.empty();
+        }
+
+        if (eventTypes.isEmpty()) {
+            observer.onError(GrpcExceptions.invalidArgument("At least one event type must be specified"));
+            return Optional.empty();
+        }
+
+        return sessionOpt;
+    }
+
+    /**
+     * Unsubscribes the streaming subscription when the client disconnects (gRPC context
+     * cancellation), releasing the subscriber and its resources.
+     */
+    private static void unsubscribeOnDisconnect(String streamKind, Object subscription, Runnable unsubscribe) {
+        Context.current().addListener(_ -> {
+            LOG.info("Client disconnected, closing {} stream: subscription={}", streamKind, subscription);
+            unsubscribe.run();
+        }, Runnable::run);
+    }
+
+    /**
+     * Delivers a batch to the client, pausing on the streaming thread until the channel
+     * is ready to accept more data. Batches produced after cancellation are dropped.
+     */
+    private static void sendWithBackpressure(
+            ServerCallStreamObserver<EventBatch> observer, ReadyGate gate, EventBatch batch) {
+        try {
+            gate.awaitReady();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return;
+        }
+        if (!gate.isCancelled()) {
+            observer.onNext(batch);
+        }
+    }
 
     private static StreamingWindow resolveStreamingWindow(ReplayStreamingRequest request) {
         Instant startTime = request.hasStartTime()

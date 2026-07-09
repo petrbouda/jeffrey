@@ -27,7 +27,10 @@ import cafe.jeffrey.test.DuckDBTest;
 import cafe.jeffrey.test.TestUtils;
 
 import javax.sql.DataSource;
+import java.sql.Connection;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.List;
 import java.util.Optional;
 
@@ -51,6 +54,57 @@ class JdbcWorkspaceRepositoryTest {
             JdbcWorkspacesRepository workspacesRepo = new JdbcWorkspacesRepository(provider);
             Optional<WorkspaceInfo> result = workspacesRepo.find("ws-001");
             assertTrue(result.isEmpty());
+        }
+
+        @Test
+        void cascadesToAllChildRows_andKeepsOtherWorkspacesIntact(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
+            TestUtils.executeSql(dataSource, "sql/workspace/insert-workspace-full-graph.sql");
+            JdbcWorkspaceRepository repository = new JdbcWorkspaceRepository("ws-001", provider);
+
+            repository.delete();
+
+            // Everything reachable only through ws-001 must be gone, including soft-deleted projects
+            assertEquals(0, countRows(dataSource, "SELECT COUNT(*) FROM projects WHERE workspace_id = 'ws-001'"));
+            assertEquals(0, countRows(dataSource, "SELECT COUNT(*) FROM repositories WHERE project_id IN ('proj-001', 'proj-002')"));
+            assertEquals(0, countRows(dataSource, "SELECT COUNT(*) FROM project_instances WHERE project_id = 'proj-001'"));
+            assertEquals(0, countRows(dataSource, "SELECT COUNT(*) FROM project_instance_sessions WHERE repository_id = 'repo-001'"));
+            assertEquals(0, countRows(dataSource, "SELECT COUNT(*) FROM profiler_settings WHERE workspace_id = 'ws-001' OR project_id = 'proj-001'"));
+            assertEquals(0, countRows(dataSource, "SELECT COUNT(*) FROM persistent_queue_events WHERE scope_id = 'ws-001'"));
+            assertEquals(0, countRows(dataSource, "SELECT COUNT(*) FROM persistent_queue_consumers WHERE scope_id = 'ws-001'"));
+
+            // The sibling workspace and global settings must remain untouched
+            assertEquals(1, countRows(dataSource, "SELECT COUNT(*) FROM workspaces WHERE workspace_id = 'ws-002'"));
+            assertEquals(1, countRows(dataSource, "SELECT COUNT(*) FROM projects WHERE workspace_id = 'ws-002'"));
+            assertEquals(1, countRows(dataSource, "SELECT COUNT(*) FROM repositories WHERE project_id = 'proj-101'"));
+            assertEquals(1, countRows(dataSource, "SELECT COUNT(*) FROM project_instances WHERE project_id = 'proj-101'"));
+            assertEquals(1, countRows(dataSource, "SELECT COUNT(*) FROM project_instance_sessions WHERE repository_id = 'repo-101'"));
+            assertEquals(1, countRows(dataSource, "SELECT COUNT(*) FROM profiler_settings WHERE workspace_id IS NULL AND project_id IS NULL"));
+            assertEquals(1, countRows(dataSource, "SELECT COUNT(*) FROM profiler_settings WHERE workspace_id = 'ws-002'"));
+            assertEquals(1, countRows(dataSource, "SELECT COUNT(*) FROM persistent_queue_events WHERE scope_id = 'ws-002'"));
+            assertEquals(1, countRows(dataSource, "SELECT COUNT(*) FROM persistent_queue_consumers WHERE scope_id = 'ws-002'"));
+        }
+
+        @Test
+        void treatsWorkspaceIdAsDataNotSql(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
+            TestUtils.executeSql(dataSource, "sql/workspaces/insert-workspace.sql");
+            String maliciousId = "ws-001'; DELETE FROM workspaces; --";
+            JdbcWorkspaceRepository repository = new JdbcWorkspaceRepository(maliciousId, provider);
+
+            repository.delete();
+
+            // The malicious value is bound as data: nothing matches, nothing is dropped
+            assertEquals(1, countRows(dataSource, "SELECT COUNT(*) FROM workspaces WHERE workspace_id = 'ws-001'"));
+        }
+
+        private int countRows(DataSource dataSource, String sql) throws SQLException {
+            try (Connection conn = dataSource.getConnection();
+                 Statement stmt = conn.createStatement();
+                 ResultSet rs = stmt.executeQuery(sql)) {
+                rs.next();
+                return rs.getInt(1);
+            }
         }
     }
 

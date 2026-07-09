@@ -18,6 +18,8 @@
 
 package cafe.jeffrey.hub.persistence.jdbc;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import cafe.jeffrey.hub.persistence.api.ProjectsRepository;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import cafe.jeffrey.shared.common.Json;
@@ -28,11 +30,14 @@ import cafe.jeffrey.shared.persistence.StatementLabel;
 import cafe.jeffrey.shared.persistence.client.DatabaseClient;
 import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
 
+import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 
 public class JdbcProjectsRepository implements ProjectsRepository {
+
+    private static final Logger LOG = LoggerFactory.getLogger(JdbcProjectsRepository.class);
 
     //language=SQL
     private static final String SELECT_PROJECT_BY_ORIGIN_ID = """
@@ -81,6 +86,23 @@ public class JdbcProjectsRepository implements ProjectsRepository {
             WHERE namespace IS NOT NULL AND deleted_at IS NULL
             ORDER BY namespace""";
 
+    /**
+     * Children are normally removed when the project is soft-deleted; the child deletes here
+     * are defensive so a purge never strands rows that survived an interrupted soft-delete.
+     * The purge of the {@code projects} rows themselves must run last.
+     */
+    //language=SQL
+    private static final List<String> PURGE_DELETED_PROJECTS_CASCADE = List.of(
+            """
+            DELETE FROM project_instance_sessions WHERE repository_id IN (
+                SELECT r.repository_id FROM repositories r
+                JOIN projects p ON r.project_id = p.project_id
+                WHERE p.deleted_at < :deleted_before)""",
+            "DELETE FROM project_instances WHERE project_id IN (SELECT project_id FROM projects WHERE deleted_at < :deleted_before)",
+            "DELETE FROM repositories WHERE project_id IN (SELECT project_id FROM projects WHERE deleted_at < :deleted_before)",
+            "DELETE FROM profiler_settings WHERE project_id IN (SELECT project_id FROM projects WHERE deleted_at < :deleted_before)",
+            "DELETE FROM projects WHERE deleted_at < :deleted_before");
+
     private final DatabaseClient databaseClient;
 
     public JdbcProjectsRepository(DatabaseClientProvider databaseClientProvider) {
@@ -124,11 +146,16 @@ public class JdbcProjectsRepository implements ProjectsRepository {
                 .addValue("attributes", Json.toString(newProject.attributes()))
                 .addValue("graph_visualization", Json.toString(project.graphVisualization()));
 
-        databaseClient.insert(StatementLabel.INSERT_PROJECT, INSERT_PROJECT, paramSource);
+        int inserted = databaseClient.insert(StatementLabel.INSERT_PROJECT, INSERT_PROJECT, paramSource);
 
         if (newProject.originId() != null) {
             return findByOriginProjectId(newProject.originId())
                     .orElse(newProject);
+        }
+        if (inserted == 0) {
+            // Should not happen for locally generated IDs — make it visible instead of
+            // silently returning a project object that was never persisted
+            LOG.warn("Project insert was skipped (conflicting project_id): project_id={}", newProject.id());
         }
         return newProject;
     }
@@ -149,5 +176,18 @@ public class JdbcProjectsRepository implements ProjectsRepository {
                 StatementLabel.FIND_ALL_PROJECT_NAMESPACES,
                 SELECT_ALL_NAMESPACES,
                 (rs, _) -> rs.getString("namespace"));
+    }
+
+    @Override
+    public int purgeDeletedProjects(Instant deletedBefore) {
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("deleted_before", deletedBefore.atOffset(ZoneOffset.UTC));
+
+        int purgedProjects = 0;
+        for (String sql : PURGE_DELETED_PROJECTS_CASCADE) {
+            purgedProjects = databaseClient.delete(StatementLabel.PURGE_DELETED_PROJECTS, sql, paramSource);
+        }
+        // The last statement of the cascade deletes the projects rows themselves
+        return purgedProjects;
     }
 }

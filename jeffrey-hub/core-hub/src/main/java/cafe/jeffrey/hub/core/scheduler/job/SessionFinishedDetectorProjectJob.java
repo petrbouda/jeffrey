@@ -38,7 +38,6 @@ import cafe.jeffrey.shared.common.model.job.JobType;
 import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
 
 import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
@@ -140,7 +139,10 @@ public class SessionFinishedDetectorProjectJob extends RepositoryProjectJob<Sess
         try (Stream<Path> files = Files.list(sessionPath)) {
             return files.anyMatch(SupportedRecordingFile.HS_JVM_ERROR_LOG::matches);
         } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            // The crash-log check is best-effort: an unreadable/vanished session directory
+            // must not abort the detector for the remaining sessions and projects.
+            LOG.warn("Cannot inspect session directory for hs_err log: session_path={}", sessionPath, e);
+            return false;
         }
     }
 

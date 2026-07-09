@@ -18,6 +18,8 @@
 
 package cafe.jeffrey.hub.core.scheduler.job;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import cafe.jeffrey.shared.common.model.ProfilerInfo;
 import cafe.jeffrey.shared.common.model.job.JobType;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspaceManager;
@@ -37,6 +39,8 @@ import java.util.Map;
 
 public class ProfilerSettingsSynchronizerJob extends
         WorkspaceJob<ProfilerSettingsSynchronizerJobDescriptor> {
+
+    private static final Logger LOG = LoggerFactory.getLogger(ProfilerSettingsSynchronizerJob.class);
 
     private final Duration period;
     private final ProfilerRepository profilerRepository;
@@ -81,7 +85,17 @@ public class ProfilerSettingsSynchronizerJob extends
             } else {
                 platformRepositories.newProjectRepository(profilerInfo.projectId())
                         .find()
-                        .ifPresent(info -> projectSettings.put(info.name(), profilerInfo.agentSettings()));
+                        .ifPresent(info -> {
+                            // The uploaded bundle is keyed by project NAME — that is the lookup
+                            // contract of the provisioner-side resolver. Two same-named projects
+                            // would silently overwrite each other, so make the collision visible.
+                            String previous = projectSettings.put(info.name(), profilerInfo.agentSettings());
+                            if (previous != null && !previous.equals(profilerInfo.agentSettings())) {
+                                LOG.warn("Multiple projects share the same name, their profiler settings " +
+                                                "overwrite each other in the uploaded bundle: project_name={} project_id={}",
+                                        info.name(), profilerInfo.projectId());
+                            }
+                        });
             }
         }
 

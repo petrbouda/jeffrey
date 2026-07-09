@@ -26,7 +26,7 @@ public record ProjectResponse(
         String name,
         String label,
         String namespace,
-        String createdAt,
+        long createdAt,
         String workspaceId,
         RecordingStatus status,
         int sessionCount,

@@ -63,7 +63,7 @@ public class ReplayStreamingSubscriber implements Closeable {
 
     private void readAllFiles() {
         SingleReplyStreamingSubscriber fileReader =
-                new SingleReplyStreamingSubscriber(subscription, replayTempDir, callbacks.onNext(), callbacks.onError(), closed::get);
+                new SingleReplyStreamingSubscriber(subscription, replayTempDir, callbacks.onNext(), closed::get);
 
         try {
             for (Path file : subscription.recordingFiles()) {
@@ -73,8 +73,11 @@ public class ReplayStreamingSubscriber implements Closeable {
                 try {
                     fileReader.read(file);
                 } catch (Exception e) {
-                    LOG.warn("Skipping corrupted recording file: file={} subscription={}", file.getFileName(), subscription, e);
-                    callbacks.onError().accept(e);
+                    // A corrupted file is recoverable: skip it and continue with the remaining
+                    // files. The terminal onError is reserved for fatal errors — calling it here
+                    // would close the stream and make every subsequent onNext/onComplete illegal.
+                    LOG.warn("Skipping corrupted recording file: file={} subscription={}",
+                            file.getFileName(), subscription, e);
                 }
             }
 

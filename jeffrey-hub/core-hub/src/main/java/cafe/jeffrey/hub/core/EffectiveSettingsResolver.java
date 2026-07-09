@@ -22,7 +22,9 @@ import cafe.jeffrey.shared.common.model.EffectiveProfilerSettings;
 import cafe.jeffrey.shared.common.model.EffectiveProfilerSettings.SettingsLevel;
 import cafe.jeffrey.shared.common.model.ProfilerInfo;
 
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Utility class for resolving effective profiler settings from a list of settings
@@ -41,34 +43,28 @@ public abstract class EffectiveSettingsResolver {
      * @return the effective settings based on hierarchy
      */
     public static EffectiveProfilerSettings resolve(List<ProfilerInfo> allSettings) {
-        if (allSettings.isEmpty()) {
-            return EffectiveProfilerSettings.none();
+        Map<SettingsLevel, ProfilerInfo> firstByLevel = new EnumMap<>(SettingsLevel.class);
+        for (ProfilerInfo info : allSettings) {
+            firstByLevel.putIfAbsent(determineLevel(info), info);
         }
 
-        ProfilerInfo projectSettings = findByLevel(allSettings, SettingsLevel.PROJECT);
-        ProfilerInfo workspaceSettings = findByLevel(allSettings, SettingsLevel.WORKSPACE);
-        ProfilerInfo globalSettings = findByLevel(allSettings, SettingsLevel.GLOBAL);
-
-        if (projectSettings != null) {
-            return new EffectiveProfilerSettings(projectSettings.agentSettings(), SettingsLevel.PROJECT);
-        } else if (workspaceSettings != null) {
-            return new EffectiveProfilerSettings(workspaceSettings.agentSettings(), SettingsLevel.WORKSPACE);
-        } else if (globalSettings != null) {
-            return new EffectiveProfilerSettings(globalSettings.agentSettings(), SettingsLevel.GLOBAL);
-        } else {
-            return EffectiveProfilerSettings.none();
+        for (SettingsLevel level : LEVELS_BY_PRIORITY) {
+            ProfilerInfo info = firstByLevel.get(level);
+            if (info != null) {
+                return new EffectiveProfilerSettings(info.agentSettings(), level);
+            }
         }
+        return EffectiveProfilerSettings.none();
     }
 
-    private static ProfilerInfo findByLevel(List<ProfilerInfo> settings, SettingsLevel level) {
-        return settings.stream()
-                .filter(s -> determineLevel(s) == level)
-                .findFirst()
-                .orElse(null);
-    }
+    private static final List<SettingsLevel> LEVELS_BY_PRIORITY =
+            List.of(SettingsLevel.PROJECT, SettingsLevel.WORKSPACE, SettingsLevel.GLOBAL);
 
     private static SettingsLevel determineLevel(ProfilerInfo info) {
-        if (info.workspaceId() != null && info.projectId() != null) {
+        // A project-scoped row is PROJECT-level whether or not it also carries a workspace id —
+        // classifying (workspaceId == null, projectId != null) as GLOBAL would silently promote
+        // a single project's settings to every agent
+        if (info.projectId() != null) {
             return SettingsLevel.PROJECT;
         } else if (info.workspaceId() != null) {
             return SettingsLevel.WORKSPACE;

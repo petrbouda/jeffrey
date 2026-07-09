@@ -32,6 +32,8 @@ import cafe.jeffrey.hub.core.configuration.properties.SchedulerJobsProperties;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
 import cafe.jeffrey.hub.core.scheduler.*;
 import cafe.jeffrey.hub.core.scheduler.JobRegistry;
+import cafe.jeffrey.hub.core.scheduler.job.DeletedProjectsCleanerJob;
+import cafe.jeffrey.hub.core.scheduler.job.TempDirectoryCleanerJob;
 import cafe.jeffrey.hub.core.scheduler.job.WorkspaceEventsCleanerJob;
 import cafe.jeffrey.hub.core.scheduler.job.ProjectsSynchronizerJob;
 import cafe.jeffrey.hub.core.scheduler.job.WorkspaceEventsReplicatorJob;
@@ -64,6 +66,17 @@ import static cafe.jeffrey.hub.core.configuration.HubAppConfiguration.PROJECTS_S
 public class GlobalJobsConfiguration {
 
     private static final Logger LOG = LoggerFactory.getLogger(GlobalJobsConfiguration.class);
+
+    private static final String PARAM_MAX_VERSIONS = "max-versions";
+    private static final String PARAM_QUEUE_EVENTS_RETENTION = "queue-events-retention";
+    private static final String PARAM_PROCESSED_FILES_RETENTION = "processed-files-retention";
+    private static final String PARAM_RETENTION = "retention";
+
+    private static final int DEFAULT_MAX_VERSIONS = 5;
+    private static final String DEFAULT_QUEUE_EVENTS_RETENTION = "P31D";
+    private static final String DEFAULT_PROCESSED_FILES_RETENTION = "P31D";
+    private static final String DEFAULT_TEMP_FILES_RETENTION = "P1D";
+    private static final String DEFAULT_DELETED_PROJECTS_RETENTION = "P14D";
 
     private final WorkspacesManager workspacesManager;
     private final SchedulerJobsProperties schedulerJobsProperties;
@@ -139,7 +152,7 @@ public class GlobalJobsConfiguration {
         SchedulerJobsProperties.JobConfig config =
                 schedulerJobsProperties.forType(JobType.PROFILER_SETTINGS_SYNCHRONIZER);
 
-        int maxVersions = parseInt(config.params().get("max-versions"), 5);
+        int maxVersions = parseInt(config.params().get(PARAM_MAX_VERSIONS), DEFAULT_MAX_VERSIONS);
 
         return new ProfilerSettingsSynchronizerJob(
                 config.period(),
@@ -152,17 +165,41 @@ public class GlobalJobsConfiguration {
     @Bean
     public WorkspaceEventsCleanerJob workspaceEventsCleanerJob(
             PersistentQueue<WorkspaceEvent> workspaceEventQueue,
+            HubJeffreyDirs jeffreyDirs,
             Clock clock) {
 
         SchedulerJobsProperties.JobConfig config = schedulerJobsProperties.forType(JobType.WORKSPACE_EVENTS_CLEANER);
-        Duration queueEventsRetention = Duration.parse(
-                normalizeDuration(config.params().getOrDefault("queue-events-retention", "P31D")));
+        Duration queueEventsRetention = parseDurationParam(
+                config, PARAM_QUEUE_EVENTS_RETENTION, DEFAULT_QUEUE_EVENTS_RETENTION);
+        Duration processedFilesRetention = parseDurationParam(
+                config, PARAM_PROCESSED_FILES_RETENTION, DEFAULT_PROCESSED_FILES_RETENTION);
 
         return new WorkspaceEventsCleanerJob(
                 workspaceEventQueue,
+                new FolderQueue(jeffreyDirs.workspaceEvents(), clock),
                 clock,
                 config.period(),
-                queueEventsRetention);
+                queueEventsRetention,
+                processedFilesRetention);
+    }
+
+    @Bean
+    public TempDirectoryCleanerJob tempDirectoryCleanerJob(HubJeffreyDirs jeffreyDirs, Clock clock) {
+        SchedulerJobsProperties.JobConfig config = schedulerJobsProperties.forType(JobType.TEMP_DIRECTORY_CLEANER);
+        Duration retention = parseDurationParam(config, PARAM_RETENTION, DEFAULT_TEMP_FILES_RETENTION);
+
+        return new TempDirectoryCleanerJob(jeffreyDirs.temp(), clock, config.period(), retention);
+    }
+
+    @Bean
+    public DeletedProjectsCleanerJob deletedProjectsCleanerJob(
+            HubPlatformRepositories platformRepositories, Clock clock) {
+
+        SchedulerJobsProperties.JobConfig config = schedulerJobsProperties.forType(JobType.DELETED_PROJECTS_CLEANER);
+        Duration retention = parseDurationParam(config, PARAM_RETENTION, DEFAULT_DELETED_PROJECTS_RETENTION);
+
+        return new DeletedProjectsCleanerJob(
+                platformRepositories.newProjectsRepository(), clock, config.period(), retention);
     }
 
     @Bean
@@ -175,6 +212,11 @@ public class GlobalJobsConfiguration {
             @Qualifier(GLOBAL_SCHEDULER) ObjectFactory<Scheduler> scheduler,
             ProjectsSynchronizerJob projectsSynchronizerJob) {
         return new SchedulerTriggerImpl(scheduler, projectsSynchronizerJob);
+    }
+
+    private static Duration parseDurationParam(
+            SchedulerJobsProperties.JobConfig config, String param, String fallbackIso) {
+        return Duration.parse(normalizeDuration(config.params().getOrDefault(param, fallbackIso)));
     }
 
     private static int parseInt(String value, int fallback) {

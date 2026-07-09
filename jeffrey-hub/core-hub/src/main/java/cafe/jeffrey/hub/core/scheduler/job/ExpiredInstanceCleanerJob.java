@@ -36,7 +36,9 @@ import java.time.Instant;
 import java.util.List;
 
 /**
- * Deletes EXPIRED instance rows that have been expired longer than the configured retention period.
+ * Deletes dead instance rows: EXPIRED instances past their retention period, and abandoned
+ * PENDING instances (agents that registered but never streamed a session) older than the
+ * same retention — no lifecycle event would ever move those out of PENDING.
  */
 public class ExpiredInstanceCleanerJob extends ProjectJob<ExpiredInstanceCleanerJobDescriptor> {
 
@@ -81,6 +83,12 @@ public class ExpiredInstanceCleanerJob extends ProjectJob<ExpiredInstanceCleaner
 
         if (deletedCount > 0) {
             LOG.debug("Expired instance cleanup completed: project='{}' deleted={}", projectName, deletedCount);
+        }
+
+        int stalePending = instanceRepo.deleteStalePendingInstances(currentTime.minus(retentionPeriod));
+        if (stalePending > 0) {
+            LOG.info("Deleted abandoned PENDING instances: project='{}' count={} retention={}",
+                    projectName, stalePending, retentionPeriod);
         }
     }
 

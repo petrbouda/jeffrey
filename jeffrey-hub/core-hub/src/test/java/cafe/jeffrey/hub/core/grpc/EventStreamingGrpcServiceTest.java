@@ -51,6 +51,7 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -182,6 +183,38 @@ class EventStreamingGrpcServiceTest {
             observer.batches.stream()
                     .flatMap(batch -> batch.getEventsList().stream())
                     .forEach(event -> assertEquals("jdk.CPULoad", event.getEventType()));
+        }
+
+        @Test
+        void corruptedFileInTheMiddle_isSkipped_andStreamCompletesWithRemainingEvents(@TempDir Path tempDir) throws Exception {
+            // A truncated JFR file between two valid ones: the corrupted file must be skipped
+            // without terminating the call, and events from BOTH valid files must arrive,
+            // followed by a single onCompleted (never onError).
+            Path corrupted = tempDir.resolve("corrupted.jfr");
+            byte[] valid = Files.readAllBytes(resolveJfr("profile-1.jfr"));
+            Files.write(corrupted, Arrays.copyOf(valid, 1024));
+
+            var service = serviceWithSession(tempDir, List.of(
+                    resolveJfr("profile-1.jfr"), corrupted, resolveJfr("profile-2.jfr")));
+            var stub = startServer(service);
+            var observer = new TestStreamObserver();
+
+            stub.replayStreaming(
+                    ReplayStreamingRequest.newBuilder()
+                            .setSessionId(SESSION_ID)
+                            .addEventTypes("jdk.CPULoad")
+                            .build(),
+                    observer);
+
+            assertTrue(observer.completeLatch.await(30, TimeUnit.SECONDS),
+                    "Stream should complete despite the corrupted file");
+            assertNull(observer.error, "A skipped corrupted file must not produce a terminal error");
+
+            // profile-1.jfr alone has ~899 CPULoad events — receiving more proves that the
+            // stream continued into profile-2.jfr after skipping the corrupted file
+            long totalEvents = observer.batches.stream().mapToInt(EventBatch::getEventsCount).sum();
+            assertTrue(totalEvents > 899,
+                    "Expected events from both valid files around the corrupted one, got " + totalEvents);
         }
 
         @Test

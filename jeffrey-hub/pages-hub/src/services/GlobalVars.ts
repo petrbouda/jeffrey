@@ -16,6 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+// Consumed by the shared BasePlatformClient via the app-local `@/services/GlobalVars`
+// alias — every pages-* app provides its own instance of this file.
 export default class GlobalVars {
     static internalUrl = '/api/internal'
 }
