@@ -50,10 +50,8 @@ curl -L -o microscope.jar \
 java -jar microscope.jar
 ```
 
-Then open **http://localhost:8080**, go to **Recordings → upload a `.jfr` or heap dump → Analyze**,
+Then open **http://localhost:8080**, go to **Recordings → upload a JFR or Heap dump → Analyze**,
 and Jeffrey builds a profile you can explore. That's it. 🎉
-
----
 
 ## 🧩 The Jeffrey ecosystem
 
@@ -69,8 +67,6 @@ The complete toolbox — Microscope and Hub are the core, the rest round it out:
 | **Jeffrey Agent** | A tiny `-javaagent` that writes a heartbeat file to the shared volume, so the Hub can track liveness and tell a clean shutdown from a crash. No network, no gRPC. |
 | **Performance Analyst** 🆕 | *Incubating.* An AI companion that pulls recordings from a Hub and turns each profile into source-code-level recommendations — severity-graded, with ready-to-apply patches. From profiles to pull requests. |
 | **[Jeffrey Events](https://central.sonatype.com/artifact/cafe.jeffrey-analyst/jeffrey-events)** | A lightweight custom-JFR-event library (HTTP, gRPC, database, connection-pool, heartbeat) that powers the tech dashboards. |
-
----
 
 ## 📖 Links
 
