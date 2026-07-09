@@ -1,7 +1,7 @@
-# Jeffrey - JFR Analyst Project
+# Jeffrey - Performance Analyst
 
 ## Project Overview
-Jeffrey is a JFR (Java Flight Recorder) analysis tool that specializes in visualizing JFR events using various types of graphs. The project helps developers profile Java applications and identify performance bottlenecks to optimize code for better speed and resource consumption.
+Jeffrey is a self-hosted performance analyst for the JVM. It ingests JVM diagnostic artifacts — JFR (Java Flight Recorder) recordings and heap dumps today, with more recording types coming — and turns them into fast, readable visual analysis (flamegraphs, timeseries, heap analysis, JVM dashboards) plus an AI assistant. The project helps developers profile Java applications and identify performance bottlenecks and memory issues to optimize code for better speed and resource consumption.
 
 ## Architecture
 This is a full-stack application with two deployment modes:

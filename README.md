@@ -4,8 +4,8 @@
 </h1>
 
 <p align="center">
-  <strong>Open a JFR recording and read flamegraphs that <em>finally</em> render fast.</strong><br/>
-  A self-hosted profiling &amp; diagnostics tool for the JVM — flamegraphs, heap dumps, JVM dashboards and an AI assistant, all in one app.
+  <strong>Open a JFR recording or heap dump and read flamegraphs that <em>finally</em> render fast.</strong><br/>
+  A self-hosted performance analyst for the JVM — flamegraphs, heap dumps, JVM dashboards and an AI assistant, all in one app.
 </p>
 
 <p align="center">
