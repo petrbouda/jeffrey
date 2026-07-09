@@ -26,11 +26,6 @@
 
 ---
 
-> 👋 **Hi, I'm Jeffrey.** I turn your JDK Flight Recorder recordings into graphs you'll actually
-> understand — and I hunt down the spots in your code that make it slow or greedy with resources.
-> Drop a `.jfr` file on me and start investigating in seconds. No workspace, no project setup, no
-> cloud bill.
-
 ## ⚡ Try me in one command
 
 Pre-loaded with sample recordings — nothing to configure, just look around:
