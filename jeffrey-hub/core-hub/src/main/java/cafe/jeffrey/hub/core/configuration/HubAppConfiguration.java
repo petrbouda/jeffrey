@@ -18,6 +18,33 @@
 
 package cafe.jeffrey.hub.core.configuration;
 
+import cafe.jeffrey.hub.core.HubJeffreyDirs;
+import cafe.jeffrey.hub.core.appinitializer.CopyLibsInitializer;
+import cafe.jeffrey.hub.core.configuration.properties.DefaultWorkspaceProperties;
+import cafe.jeffrey.hub.core.configuration.properties.ProjectProperties;
+import cafe.jeffrey.hub.core.configuration.properties.SchedulerJobsProperties;
+import cafe.jeffrey.hub.core.manager.RepositoryManager;
+import cafe.jeffrey.hub.core.manager.RepositoryManagerImpl;
+import cafe.jeffrey.hub.core.manager.project.HubProjectManager;
+import cafe.jeffrey.hub.core.manager.project.ProjectManager;
+import cafe.jeffrey.hub.core.project.repository.AsprofFileRepositoryStorage;
+import cafe.jeffrey.hub.core.project.repository.InstanceEnvironmentParser;
+import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
+import cafe.jeffrey.hub.core.project.repository.file.AsprofFileInfoProcessor;
+import cafe.jeffrey.hub.core.scheduler.SchedulerTrigger;
+import cafe.jeffrey.hub.core.scheduler.job.descriptor.JobDescriptorFactory;
+import cafe.jeffrey.hub.core.streaming.FileHeartbeatReader;
+import cafe.jeffrey.hub.core.streaming.LiveStreamingManager;
+import cafe.jeffrey.hub.core.streaming.ReplayStreamingManager;
+import cafe.jeffrey.hub.core.web.WebInfrastructureConfig;
+import cafe.jeffrey.hub.core.workspace.WorkspaceEventPublisher;
+import cafe.jeffrey.hub.persistence.api.HubPersistenceProvider;
+import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
+import cafe.jeffrey.hub.persistence.jdbc.DuckDBHubPersistenceProvider;
+import cafe.jeffrey.shared.common.JeffreyVersion;
+import cafe.jeffrey.shared.common.StringUtils;
+import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
+import cafe.jeffrey.shared.ui.version.VersionFeatureConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectFactory;
@@ -29,38 +56,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.PropertySource;
-import org.springframework.jdbc.datasource.DataSourceTransactionManager;
-import org.springframework.transaction.support.TransactionOperations;
-import org.springframework.transaction.support.TransactionTemplate;
-import cafe.jeffrey.hub.core.configuration.properties.DefaultWorkspaceProperties;
-import cafe.jeffrey.hub.core.configuration.properties.SchedulerJobsProperties;
-import cafe.jeffrey.hub.core.scheduler.job.descriptor.JobDescriptorFactory;
-import cafe.jeffrey.shared.common.JeffreyVersion;
-import cafe.jeffrey.hub.core.appinitializer.CopyLibsInitializer;
-import cafe.jeffrey.hub.core.configuration.properties.ProjectProperties;
-import cafe.jeffrey.hub.core.manager.RepositoryManager;
-import cafe.jeffrey.hub.core.manager.RepositoryManagerImpl;
-import cafe.jeffrey.hub.core.manager.project.ProjectManager;
-import cafe.jeffrey.hub.core.manager.project.HubProjectManager;
-import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
-import cafe.jeffrey.hub.core.project.repository.AsprofFileRepositoryStorage;
-import cafe.jeffrey.hub.core.project.repository.InstanceEnvironmentParser;
-import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
-import cafe.jeffrey.hub.core.project.repository.file.AsprofFileInfoProcessor;
-import cafe.jeffrey.hub.core.scheduler.Scheduler;
-import cafe.jeffrey.hub.core.scheduler.SchedulerTrigger;
-import cafe.jeffrey.hub.core.streaming.LiveStreamingManager;
-import cafe.jeffrey.hub.core.streaming.ReplayStreamingManager;
-import cafe.jeffrey.hub.core.streaming.FileHeartbeatReader;
-import cafe.jeffrey.hub.core.web.WebInfrastructureConfig;
-import cafe.jeffrey.shared.ui.version.VersionFeatureConfiguration;
-import cafe.jeffrey.hub.core.workspace.WorkspaceEventPublisher;
-import cafe.jeffrey.hub.persistence.jdbc.DuckDBHubPersistenceProvider;
-import cafe.jeffrey.hub.persistence.api.HubPersistenceProvider;
-import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
-import cafe.jeffrey.shared.common.StringUtils;
-import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
-import cafe.jeffrey.hub.core.HubJeffreyDirs;
 
 import java.nio.file.Path;
 import java.time.Clock;
@@ -120,16 +115,6 @@ public class HubAppConfiguration {
     @Bean
     public DatabaseClientProvider databaseClientProvider(HubPersistenceProvider serverPersistenceProvider) {
         return serverPersistenceProvider.databaseClientProvider();
-    }
-
-    /**
-     * Transaction boundary over the hub database. Every {@code DatabaseClient} runs on the
-     * same {@code DataSource}, so code wrapped by these operations (e.g. one workspace event:
-     * all consumer writes + the offset acknowledge) commits or rolls back as a single unit.
-     */
-    @Bean
-    public TransactionOperations hubTransactionOperations(DatabaseClientProvider databaseClientProvider) {
-        return new TransactionTemplate(new DataSourceTransactionManager(databaseClientProvider.dataSource()));
     }
 
     @Bean
