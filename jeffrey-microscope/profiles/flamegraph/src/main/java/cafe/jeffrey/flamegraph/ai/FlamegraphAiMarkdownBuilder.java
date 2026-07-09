@@ -54,7 +54,7 @@ public final class FlamegraphAiMarkdownBuilder {
             # How to read this profile
 
             This document is a **single flamegraph snapshot** exported by Jeffrey
-            (a JFR analysis tool) for AI-assisted interpretation. Treat it as
+            (a JVM performance analyst) for AI-assisted interpretation. Treat it as
             the authoritative description of one event type over one time
             window — not as a generic stack-trace dump.
 

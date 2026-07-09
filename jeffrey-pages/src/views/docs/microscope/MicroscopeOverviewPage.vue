@@ -45,7 +45,7 @@ onMounted(() => {
     <div class="docs-content">
  
       <section class="hero">
-        <p class="hero-eyebrow"><i class="bi bi-stars"></i> Standalone JFR Analyst</p>
+        <p class="hero-eyebrow"><i class="bi bi-stars"></i> Standalone Performance Analyst</p>
         <h2 class="hero-title">Open a recording. See everything.</h2>
         <p class="hero-lede">
           Microscope turns JFR recordings and heap dumps into rich, interactive analysis —

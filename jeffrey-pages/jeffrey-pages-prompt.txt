@@ -14,7 +14,7 @@ Front Page:
         - Contact should redirect to linked in page: https://www.linkedin.com/in/petr-bouda/
     
     Introduction:
-        - Part of the frontpage with just a little bit of text about Jeffrey and it's description. Something like "Java Profiling and Performance Analysis Tool" and "Advanced JFR analysis tool for identifying and resolving performance bottlenecks in your Java applications quickly and efficiently."
+        - Part of the frontpage with just a little bit of text about Jeffrey and it's description. Something like "JVM Performance Analyst" and "Advanced performance analyst for identifying and resolving performance bottlenecks and memory issues in your Java applications quickly and efficiently, from JFR recordings to heap dumps."
         - Avatar image of the project images/avatar.jpg in the current
         - Two buttons
             - Download Jeffrey: https://github.com/petrbouda/jeffrey/releases/latest/download/jeffrey.jar

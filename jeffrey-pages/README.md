@@ -13,4 +13,4 @@ npm run build
 
 ## Author
 
-Created for the Jeffrey Java Profiling Tool project.
+Created for the Jeffrey Performance Analyst project.

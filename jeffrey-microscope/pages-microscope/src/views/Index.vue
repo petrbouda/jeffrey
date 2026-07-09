@@ -17,7 +17,7 @@
               <h1 class="hero-title">Jeffrey</h1>
               <span v-if="version" class="hero-version">{{ version }}</span>
             </div>
-            <p class="hero-subtitle">JDK Flight Recorder Analysis Tool</p>
+            <p class="hero-subtitle">Performance Analyst</p>
           </div>
 
           <!-- Restart-required indicator (a setting changed that only applies after a restart) -->
