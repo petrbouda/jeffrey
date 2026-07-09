@@ -43,7 +43,7 @@ import java.util.List;
  * <p>Follows the same type resolution as
  * {@code cafe.jeffrey.profile.parser.fields.EventFieldsToJsonMapper}.</p>
  */
-public abstract  class RecordedEventMapper {
+public abstract class RecordedEventMapper {
 
     private static final String TIMESTAMP_TYPE = Timestamp.class.getTypeName();
     private static final String PERCENTAGE_TYPE = Percentage.class.getTypeName();
@@ -83,12 +83,12 @@ public abstract  class RecordedEventMapper {
             String typeName = annotation.getTypeName();
             if (TIMESTAMP_TYPE.equals(typeName)) {
                 Instant instant = event.getInstant(field.getName());
-                return instant == Instant.MIN ? null : longValue(instant.toEpochMilli());
+                return Instant.MIN.equals(instant) ? null : longValue(instant.toEpochMilli());
             } else if (PERCENTAGE_TYPE.equals(typeName)) {
                 return floatValue(event.getFloat(field.getName()));
             } else if (TIMESPAN_TYPE.equals(typeName)) {
                 Duration duration = event.getDuration(field.getName());
-                return duration.isNegative() || duration == Duration.ZERO
+                return duration.isNegative() || duration.isZero()
                         ? null : longValue(duration.toNanos());
             }
         }

@@ -30,12 +30,26 @@ import java.util.List;
 
 public class JdbcWorkspaceRepository implements WorkspaceRepository {
 
+    /**
+     * Cascade covering all rows reachable only through the workspace. Projects (including soft-deleted
+     * ones) and their children must go too — once the workspace row is gone, every project query
+     * (INNER JOIN workspaces) can no longer see them, so leftover rows would be unreachable garbage.
+     */
     //language=SQL
-    private static final String DELETE_WORKSPACE = """
-            DELETE FROM profiler_settings WHERE workspace_id = '%workspace_id%' AND project_id IS NULL;
-            DELETE FROM persistent_queue_consumers WHERE scope_id = '%workspace_id%';
-            DELETE FROM persistent_queue_events WHERE scope_id = '%workspace_id%';
-            DELETE FROM workspaces WHERE workspace_id = '%workspace_id%'""";
+    private static final List<String> DELETE_WORKSPACE_CASCADE = List.of(
+            """
+            DELETE FROM project_instance_sessions WHERE repository_id IN (
+                SELECT r.repository_id FROM repositories r
+                JOIN projects p ON r.project_id = p.project_id
+                WHERE p.workspace_id = :workspace_id)""",
+            "DELETE FROM project_instances WHERE project_id IN (SELECT project_id FROM projects WHERE workspace_id = :workspace_id)",
+            "DELETE FROM repositories WHERE project_id IN (SELECT project_id FROM projects WHERE workspace_id = :workspace_id)",
+            "DELETE FROM profiler_settings WHERE project_id IN (SELECT project_id FROM projects WHERE workspace_id = :workspace_id)",
+            "DELETE FROM profiler_settings WHERE workspace_id = :workspace_id AND project_id IS NULL",
+            "DELETE FROM persistent_queue_consumers WHERE scope_id = :workspace_id",
+            "DELETE FROM persistent_queue_events WHERE scope_id = :workspace_id",
+            "DELETE FROM projects WHERE workspace_id = :workspace_id",
+            "DELETE FROM workspaces WHERE workspace_id = :workspace_id");
 
     //language=SQL
     private static final String SELECT_PROJECTS_BY_WORKSPACE_ID = """
@@ -53,8 +67,12 @@ public class JdbcWorkspaceRepository implements WorkspaceRepository {
 
     @Override
     public void delete() {
-        String sql = DELETE_WORKSPACE.replaceAll("%workspace_id%", workspaceId);
-        databaseClient.delete(StatementLabel.DELETE_WORKSPACE, sql);
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("workspace_id", workspaceId);
+
+        for (String sql : DELETE_WORKSPACE_CASCADE) {
+            databaseClient.delete(StatementLabel.DELETE_WORKSPACE, sql, paramSource);
+        }
     }
 
     @Override

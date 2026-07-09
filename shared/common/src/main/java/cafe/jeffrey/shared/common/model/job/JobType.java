@@ -21,6 +21,8 @@ package cafe.jeffrey.shared.common.model.job;
 public enum JobType {
     WORKSPACE_EVENTS_REPLICATOR(ExecutionLevel.GLOBAL),
     WORKSPACE_EVENTS_CLEANER(ExecutionLevel.GLOBAL),
+    TEMP_DIRECTORY_CLEANER(ExecutionLevel.GLOBAL),
+    DELETED_PROJECTS_CLEANER(ExecutionLevel.GLOBAL),
     PROJECTS_SYNCHRONIZER(ExecutionLevel.WORKSPACE),
     PROFILER_SETTINGS_SYNCHRONIZER(ExecutionLevel.WORKSPACE),
     PROJECT_INSTANCE_SESSION_CLEANER(ExecutionLevel.PROJECT),

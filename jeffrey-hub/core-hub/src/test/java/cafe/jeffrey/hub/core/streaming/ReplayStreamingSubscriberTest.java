@@ -116,6 +116,11 @@ class ReplayStreamingSubscriberTest {
             assertTrue(latch.await(30, TimeUnit.SECONDS), "Replay should complete within 30 seconds");
             assertTrue(completed.get(), "onComplete should be called even with corrupted files");
 
+            // The terminal onError closes the stream — a skipped corrupted file must never
+            // trigger it, otherwise the events of the remaining valid files could not be
+            // delivered (the call would already be half-closed).
+            assertEquals(0, errorCount.get(), "Skipping a corrupted file must not fire the terminal onError");
+
             int totalEvents;
             synchronized (batches) {
                 totalEvents = batches.stream().mapToInt(EventBatch::getEventsCount).sum();

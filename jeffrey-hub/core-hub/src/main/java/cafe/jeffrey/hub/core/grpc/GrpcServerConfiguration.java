@@ -72,9 +72,8 @@ public class GrpcServerConfiguration {
     @Bean
     public BindableService workspaceGrpcService(
             WorkspacesManager workspacesManager,
-            Clock clock,
             DefaultWorkspaceProperties defaultWorkspaceProperties) {
-        return new WorkspaceGrpcService(workspacesManager, clock, defaultWorkspaceProperties);
+        return new WorkspaceGrpcService(workspacesManager, defaultWorkspaceProperties);
     }
 
     @Bean

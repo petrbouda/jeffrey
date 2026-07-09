@@ -27,6 +27,7 @@ import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
 import cafe.jeffrey.hub.core.scheduler.Job;
 import cafe.jeffrey.hub.core.scheduler.JobContext;
 import cafe.jeffrey.hub.core.scheduler.job.descriptor.JobDescriptor;
+import cafe.jeffrey.shared.common.measure.Measuring;
 
 import java.nio.file.Path;
 import java.time.Duration;
@@ -66,11 +67,16 @@ public abstract class WorkspaceJob<T extends JobDescriptor<T>> implements Job {
             LOG.debug("Executing Job: job={} workspace={} workspace_dir={}",
                     simpleName, workspaceInfo.id(), workspacePath);
 
-            long start = System.nanoTime();
-            executeOnWorkspace(workspaceManager, jobDescriptor, context);
-            Duration elapsed = Duration.ofNanos(System.nanoTime() - start);
-            LOG.debug("Job completed: job={} elapsed_ms={} workspace_id={} workspace_dir={}",
-                    simpleName, elapsed.toMillis(), workspaceInfo.id(), workspacePath);
+            // Isolate per-workspace failures: one broken workspace must not abort the tick
+            // for every remaining workspace.
+            try {
+                Duration elapsed = Measuring.r(() -> executeOnWorkspace(workspaceManager, jobDescriptor, context));
+                LOG.debug("Job completed: job={} elapsed_ms={} workspace_id={} workspace_dir={}",
+                        simpleName, elapsed.toMillis(), workspaceInfo.id(), workspacePath);
+            } catch (Exception e) {
+                LOG.error("Job failed for workspace, continuing with remaining workspaces: " +
+                        "job={} workspace_id={}", simpleName, workspaceInfo.id(), e);
+            }
         }
     }
 

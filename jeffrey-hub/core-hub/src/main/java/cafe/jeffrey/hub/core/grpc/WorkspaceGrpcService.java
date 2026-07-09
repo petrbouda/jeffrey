@@ -29,7 +29,6 @@ import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceReferenceId;
 
-import java.time.Clock;
 import java.util.List;
 
 public class WorkspaceGrpcService extends WorkspaceServiceGrpc.WorkspaceServiceImplBase {
@@ -38,15 +37,12 @@ public class WorkspaceGrpcService extends WorkspaceServiceGrpc.WorkspaceServiceI
     private static final int CURRENT_API_VERSION = 1;
 
     private final WorkspacesManager workspacesManager;
-    private final Clock clock;
     private final DefaultWorkspaceProperties defaultWorkspaceProperties;
 
     public WorkspaceGrpcService(
             WorkspacesManager workspacesManager,
-            Clock clock,
             DefaultWorkspaceProperties defaultWorkspaceProperties) {
         this.workspacesManager = workspacesManager;
-        this.clock = clock;
         this.defaultWorkspaceProperties = defaultWorkspaceProperties;
     }
 

@@ -98,6 +98,15 @@ public class JdbcProjectInstanceRepository implements ProjectInstanceRepository 
             UPDATE project_instances SET status = :status
             WHERE instance_id = :instance_id AND status IN (:valid_from_statuses)""";
 
+    /**
+     * Reactivation clears the lifecycle timestamps of the previous FINISHED/EXPIRED cycle —
+     * a running instance with a stale {@code expiring_at} would be re-expired by the cleaners.
+     */
+    //language=SQL
+    private static final String UPDATE_STATUS_REACTIVATE = """
+            UPDATE project_instances SET status = :status, finished_at = NULL, expiring_at = NULL, expired_at = NULL
+            WHERE instance_id = :instance_id AND status IN (:valid_from_statuses)""";
+
     //language=SQL
     private static final String UPDATE_STATUS_AND_FINISHED_AT = """
             UPDATE project_instances SET status = :status, finished_at = :finished_at
@@ -115,6 +124,19 @@ public class JdbcProjectInstanceRepository implements ProjectInstanceRepository 
     //language=SQL
     private static final String DELETE_INSTANCE = """
             DELETE FROM project_instances WHERE instance_id = :instance_id""";
+
+    /**
+     * An abandoned PENDING instance has no sessions — the session-created consumer would
+     * have transitioned it to ACTIVE otherwise. The session guard is defensive against
+     * out-of-order event processing.
+     */
+    //language=SQL
+    private static final String DELETE_STALE_PENDING_INSTANCES = """
+            DELETE FROM project_instances
+            WHERE project_id = :project_id AND status = :status AND started_at < :started_before
+              AND NOT EXISTS (
+                  SELECT 1 FROM project_instance_sessions s
+                  WHERE s.instance_id = project_instances.instance_id)""";
 
     private final String projectId;
     private final DatabaseClient databaseClient;
@@ -170,7 +192,7 @@ public class JdbcProjectInstanceRepository implements ProjectInstanceRepository 
                 StatementLabel.FIND_PROJECT_INSTANCE_SESSIONS,
                 SELECT_PROJECT_INSTANCE_SESSIONS,
                 paramSource,
-                projectInstanceSessionMapper());
+                HubMappers.projectInstanceSessionMapper());
     }
 
     @Override
@@ -187,17 +209,26 @@ public class JdbcProjectInstanceRepository implements ProjectInstanceRepository 
 
     @Override
     public void updateStatus(String instanceId, ProjectInstanceStatus status) {
+        if (rejectInitialStateTransition(instanceId, status)) {
+            return;
+        }
+
         MapSqlParameterSource paramSource = new MapSqlParameterSource()
                 .addValue("instance_id", instanceId)
                 .addValue("status", status.name())
                 .addValue("valid_from_statuses", validFromStatusNames(status));
 
-        int updated = databaseClient.update(StatementLabel.UPDATE_PROJECT_INSTANCE_STATUS, UPDATE_STATUS, paramSource);
+        String sql = status == ProjectInstanceStatus.ACTIVE ? UPDATE_STATUS_REACTIVATE : UPDATE_STATUS;
+        int updated = databaseClient.update(StatementLabel.UPDATE_PROJECT_INSTANCE_STATUS, sql, paramSource);
         logIfNoRowsUpdated(updated, instanceId, status);
     }
 
     @Override
     public void updateStatusAndFinishedAt(String instanceId, ProjectInstanceStatus status, Instant finishedAt) {
+        if (rejectInitialStateTransition(instanceId, status)) {
+            return;
+        }
+
         MapSqlParameterSource paramSource = new MapSqlParameterSource()
                 .addValue("instance_id", instanceId)
                 .addValue("status", status.name())
@@ -210,6 +241,10 @@ public class JdbcProjectInstanceRepository implements ProjectInstanceRepository 
 
     @Override
     public void updateStatusAndExpiredAt(String instanceId, ProjectInstanceStatus status, Instant expiredAt) {
+        if (rejectInitialStateTransition(instanceId, status)) {
+            return;
+        }
+
         MapSqlParameterSource paramSource = new MapSqlParameterSource()
                 .addValue("instance_id", instanceId)
                 .addValue("status", status.name())
@@ -224,6 +259,20 @@ public class JdbcProjectInstanceRepository implements ProjectInstanceRepository 
         return targetStatus.validFromStatuses().stream()
                 .map(ProjectInstanceStatus::name)
                 .toList();
+    }
+
+    /**
+     * A status with no valid predecessors is an initial state, reachable only via insert.
+     * Rejecting it here keeps the guarded UPDATE from expanding to an empty {@code IN ()},
+     * which is a SQL syntax error rather than the intended 0-row no-op.
+     */
+    private static boolean rejectInitialStateTransition(String instanceId, ProjectInstanceStatus status) {
+        if (status.validFromStatuses().isEmpty()) {
+            LOG.warn("Rejected transition to an initial-only status: instanceId={} targetStatus={}",
+                    instanceId, status);
+            return true;
+        }
+        return false;
     }
 
     private static void logIfNoRowsUpdated(int updated, String instanceId, ProjectInstanceStatus targetStatus) {
@@ -250,6 +299,17 @@ public class JdbcProjectInstanceRepository implements ProjectInstanceRepository 
         databaseClient.delete(StatementLabel.DELETE_PROJECT_INSTANCE, DELETE_INSTANCE, paramSource);
     }
 
+    @Override
+    public int deleteStalePendingInstances(Instant startedBefore) {
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("project_id", projectId)
+                .addValue("status", ProjectInstanceStatus.PENDING.name())
+                .addValue("started_before", startedBefore.atOffset(ZoneOffset.UTC));
+
+        return databaseClient.delete(
+                StatementLabel.DELETE_STALE_PENDING_INSTANCES, DELETE_STALE_PENDING_INSTANCES, paramSource);
+    }
+
     private static RowMapper<ProjectInstanceInfo> projectInstanceInfoMapper() {
         return (rs, _) -> {
             String statusStr = rs.getString("status");
@@ -269,15 +329,4 @@ public class JdbcProjectInstanceRepository implements ProjectInstanceRepository 
         };
     }
 
-    private static RowMapper<ProjectInstanceSessionInfo> projectInstanceSessionMapper() {
-        return (rs, _) -> new ProjectInstanceSessionInfo(
-                rs.getString("session_id"),
-                rs.getString("repository_id"),
-                rs.getString("instance_id"),
-                rs.getInt("session_order"),
-                Path.of(rs.getString("relative_session_path")),
-                HubMappers.instant(rs, "origin_created_at"),
-                HubMappers.instant(rs, "created_at"),
-                HubMappers.instant(rs, "finished_at"));
-    }
 }

@@ -111,4 +111,15 @@ public interface ProjectInstanceRepository {
      * @param instanceId the instance ID to delete
      */
     void delete(String instanceId);
+
+    /**
+     * Delete PENDING instances that never produced a session and were started before the
+     * given cutoff. Such instances belong to agents that registered but crashed or were
+     * aborted before streaming anything — no lifecycle event will ever move them out of
+     * PENDING, so without this reaper they would stay in the table forever.
+     *
+     * @param startedBefore instances started before this instant are considered abandoned
+     * @return number of deleted instances
+     */
+    int deleteStalePendingInstances(Instant startedBefore);
 }

@@ -42,6 +42,8 @@ import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
 import cafe.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceEvent;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceEventCreator;
+import cafe.jeffrey.shared.common.measure.Elapsed;
+import cafe.jeffrey.shared.common.measure.Measuring;
 
 import java.nio.file.Path;
 import java.time.Clock;
@@ -103,10 +105,10 @@ public class RepositoryManagerImpl implements RepositoryManager {
     @Override
     public StreamedRecordingFile mergeAndStreamRecordings(String sessionId, List<String> recordingFileIds) {
         LOG.debug("Merging and streaming recordings: sessionId={} fileCount={}", sessionId, recordingFileIds.size());
-        long startTime = System.nanoTime();
-        MergedRecording merged = repositoryStorage.mergeRecordings(sessionId, recordingFileIds);
-        LOG.debug("Merging and streaming recordings completed: sessionId={} durationMs={}", sessionId, Duration.ofNanos(System.nanoTime() - startTime).toMillis());
-        return new StreamedRecordingFile(merged.filename(), merged.path(), merged::close);
+        Elapsed<MergedRecording> merged = Measuring.s(() -> repositoryStorage.mergeRecordings(sessionId, recordingFileIds));
+        LOG.debug("Merging and streaming recordings completed: sessionId={} durationMs={}",
+                sessionId, merged.duration().toMillis());
+        return new StreamedRecordingFile(merged.entity().filename(), merged.entity().path(), merged.entity()::close);
     }
 
     @Override

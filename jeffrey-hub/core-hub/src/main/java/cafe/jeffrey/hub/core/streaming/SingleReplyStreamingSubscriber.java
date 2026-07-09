@@ -51,20 +51,17 @@ public class SingleReplyStreamingSubscriber {
     private final ReplayStreamSubscription subscription;
     private final Path tempDir;
     private final Consumer<EventBatch> consumer;
-    private final Consumer<Throwable> onError;
     private final Supplier<Boolean> isClosed;
 
     public SingleReplyStreamingSubscriber(
             ReplayStreamSubscription subscription,
             Path tempDir,
             Consumer<EventBatch> consumer,
-            Consumer<Throwable> onError,
             Supplier<Boolean> isClosed) {
 
         this.subscription = subscription;
         this.tempDir = tempDir;
         this.consumer = consumer;
-        this.onError = onError;
         this.isClosed = isClosed;
     }
 
@@ -93,11 +90,11 @@ public class SingleReplyStreamingSubscriber {
                 stream.onEvent(eventType, event -> bufferEvent(event, buffer));
             }
 
-            stream.onError(t -> {
-                LOG.warn("Error in recording file, skipping chunk: file={} error={}",
-                        file.getFileName(), t.getMessage());
-                onError.accept(t);
-            });
+            // Chunk-level errors are recoverable: EventStream skips the corrupted chunk and
+            // continues with the next one. They must never reach the terminal gRPC onError —
+            // that would close the call while more events are still being delivered.
+            stream.onError(t -> LOG.warn("Error in recording file, skipping chunk: file={} error={}",
+                    file.getFileName(), t.getMessage()));
 
             stream.onClose(() -> {
                 if (!buffer.isEmpty() && !isClosed.get()) {

@@ -428,5 +428,51 @@ class DuckDBPersistentQueueTest {
 
             assertEquals(0, deleted);
         }
+
+        @Test
+        void keepsOldEvents_thatALaggingConsumerHasNotConsumedYet(DataSource dataSource) {
+            var provider = new DatabaseClientProvider(dataSource);
+            var oldQueue = new DuckDBPersistentQueue<>(provider, "test-queue", new StringSerializer(false), OLD_CLOCK);
+            oldQueue.append("scope-1", "consumed-event");
+            oldQueue.append("scope-1", "unconsumed-event-1");
+            oldQueue.append("scope-1", "unconsumed-event-2");
+
+            // The consumer has only processed the first event; the remaining two are old but
+            // still pending — retention must not destroy them
+            List<QueueEntry<String>> entries = oldQueue.poll("scope-1", "lagging-consumer");
+            oldQueue.acknowledge("scope-1", "lagging-consumer", entries.getFirst().offset());
+
+            int deleted = oldQueue.deleteEventsOlderThan(CUTOFF);
+
+            assertEquals(1, deleted, "Only the acknowledged event may be deleted");
+            List<QueueEntry<String>> remaining = oldQueue.poll("scope-1", "lagging-consumer");
+            assertEquals(
+                    List.of("unconsumed-event-1", "unconsumed-event-2"),
+                    remaining.stream().map(QueueEntry::payload).toList(),
+                    "Unconsumed events must survive age-based retention");
+        }
+    }
+
+    @Nested
+    class MonotonicAcknowledge {
+
+        @Test
+        void acknowledge_neverMovesOffsetBackwards(DataSource dataSource) {
+            var provider = new DatabaseClientProvider(dataSource);
+            var queue = new DuckDBPersistentQueue<>(provider, "test-queue", new StringSerializer(false), FIXED_CLOCK);
+            queue.append("scope-1", "event-1");
+            queue.append("scope-1", "event-2");
+            queue.append("scope-1", "event-3");
+
+            List<QueueEntry<String>> entries = queue.poll("scope-1", "consumer-1");
+            queue.acknowledge("scope-1", "consumer-1", entries.getLast().offset());
+
+            // A stale acknowledge with an older offset must not rewind the consumer —
+            // that would redeliver (and re-process) events that were already handled
+            queue.acknowledge("scope-1", "consumer-1", entries.getFirst().offset());
+
+            assertTrue(queue.poll("scope-1", "consumer-1").isEmpty(),
+                    "No events may be redelivered after a stale acknowledge");
+        }
     }
 }

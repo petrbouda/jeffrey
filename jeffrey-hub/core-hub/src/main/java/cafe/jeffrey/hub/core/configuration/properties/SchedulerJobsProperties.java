@@ -110,5 +110,63 @@ public class SchedulerJobsProperties {
         public void setParams(Map<String, String> params) {
             this.params = params;
         }
+
+        /**
+         * Resolves a required duration param. Every job param has a built-in default in
+         * {@code scheduler-defaults.properties} (the single source of default values), so a
+         * missing key means a broken configuration — fail fast with a clear message instead
+         * of falling back to a value hidden in code. Supports the {@code 31d}/{@code 1h}/
+         * {@code 5m}/{@code 10s} shorthand notation in addition to ISO-8601.
+         */
+        public Duration durationParam(String name) {
+            return Duration.parse(normalizeDuration(requiredParam(name)));
+        }
+
+        /**
+         * Resolves a required integer param — same contract as {@link #durationParam}.
+         */
+        public int intParam(String name) {
+            String value = requiredParam(name);
+            try {
+                return Integer.parseInt(value.trim());
+            } catch (NumberFormatException e) {
+                throw new IllegalArgumentException(
+                        "Scheduler job param is not a valid integer: param=" + name + " value=" + value);
+            }
+        }
+
+        private String requiredParam(String name) {
+            String value = params.get(name);
+            if (value == null || value.isBlank()) {
+                throw new IllegalArgumentException(
+                        "Missing scheduler job param (no default in scheduler-defaults.properties?): param=" + name);
+            }
+            return value;
+        }
+
+        /**
+         * Allows users to write {@code 31d} / {@code 5m} / {@code 1h} in property values
+         * (Spring's {@code @DurationUnit}-style notation) by translating them to ISO-8601
+         * before {@link Duration#parse} consumes them.
+         */
+        private static String normalizeDuration(String value) {
+            String trimmed = value.trim().toLowerCase(Locale.ROOT);
+            if (trimmed.startsWith("p") || trimmed.startsWith("-p")) {
+                return value.trim().toUpperCase(Locale.ROOT);
+            }
+            if (trimmed.endsWith("d")) {
+                return "P" + trimmed.substring(0, trimmed.length() - 1) + "D";
+            }
+            if (trimmed.endsWith("h")) {
+                return "PT" + trimmed.substring(0, trimmed.length() - 1) + "H";
+            }
+            if (trimmed.endsWith("m")) {
+                return "PT" + trimmed.substring(0, trimmed.length() - 1) + "M";
+            }
+            if (trimmed.endsWith("s")) {
+                return "PT" + trimmed.substring(0, trimmed.length() - 1) + "S";
+            }
+            return "PT" + trimmed + "S";
+        }
     }
 }

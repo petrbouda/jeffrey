@@ -78,6 +78,10 @@ public class LiveStreamingSubscriber implements Closeable {
             } catch (Exception e) {
                 LOG.info("Observer already closed on stream end: subscription={}", subscription);
             }
+            // The stream is terminating on its own (e.g. the session finished) — run the cleanup
+            // callback here as well, so subscriber removal does not depend on the gRPC context
+            // listener firing. Without this, a naturally ended stream leaks its subscription.
+            completeCleanup();
         });
 
         eventStream.onError(t -> {
@@ -120,8 +124,20 @@ public class LiveStreamingSubscriber implements Closeable {
     @Override
     public void close() {
         LOG.info("Closing live stream: subscription={}", subscription);
-        if (alreadyClosed.compareAndSet(false, true) && eventStream != null) {
-            eventStream.close();
+        if (alreadyClosed.compareAndSet(false, true)) {
+            if (eventStream != null) {
+                eventStream.close();
+            }
+            callbacks.onClose().run();
+        }
+    }
+
+    /**
+     * Marks the subscriber closed and runs the cleanup callback without touching the
+     * event stream — used when the stream is already terminating on its own.
+     */
+    private void completeCleanup() {
+        if (alreadyClosed.compareAndSet(false, true)) {
             callbacks.onClose().run();
         }
     }

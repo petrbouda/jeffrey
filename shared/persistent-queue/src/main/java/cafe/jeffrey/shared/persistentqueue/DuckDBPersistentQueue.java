@@ -29,6 +29,7 @@ import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
@@ -81,9 +82,20 @@ public class DuckDBPersistentQueue<T> implements PersistentQueue<T> {
             SELECT COUNT(*) FROM persistent_queue_events
             WHERE queue_name = :queue_name AND scope_id = :scope_id""";
 
+    /**
+     * Age-based retention must never destroy events that a registered consumer has not
+     * consumed yet — a lagging consumer would silently lose them (poll only returns offsets
+     * greater than its acknowledged offset). Events of scopes without any consumer are
+     * eligible: nothing will ever read them.
+     */
     //language=SQL
-    private static final String DELETE_OLD_EVENTS =
-            "DELETE FROM persistent_queue_events WHERE created_at < :cutoff";
+    private static final String DELETE_OLD_EVENTS = """
+            DELETE FROM persistent_queue_events e
+            WHERE e.created_at < :cutoff
+              AND NOT EXISTS (
+                  SELECT 1 FROM persistent_queue_consumers c
+                  WHERE c.queue_name = e.queue_name AND c.scope_id = e.scope_id
+                    AND c.last_offset < e.offset_id)""";
 
     //language=SQL
     private static final String INSERT_CONSUMER = """
@@ -91,11 +103,16 @@ public class DuckDBPersistentQueue<T> implements PersistentQueue<T> {
             VALUES (:consumer_id, :queue_name, :scope_id, 0, :created_at)
             ON CONFLICT DO NOTHING""";
 
+    /**
+     * The offset only ever advances: a stale or out-of-order acknowledge must not rewind
+     * the consumer, which would redeliver already-processed events.
+     */
     //language=SQL
     private static final String UPDATE_CONSUMER_OFFSET = """
             UPDATE persistent_queue_consumers
             SET last_offset = :last_offset, last_execution_at = :last_execution_at
-            WHERE consumer_id = :consumer_id AND queue_name = :queue_name AND scope_id = :scope_id""";
+            WHERE consumer_id = :consumer_id AND queue_name = :queue_name AND scope_id = :scope_id
+              AND last_offset < :last_offset""";
 
     //language=SQL
     private static final String SELECT_CONSUMER = """
@@ -262,7 +279,9 @@ public class DuckDBPersistentQueue<T> implements PersistentQueue<T> {
         return (rs, _) -> {
             long offsetId = rs.getLong("offset_id");
             String payload = rs.getString("payload");
-            Instant createdAt = rs.getTimestamp("created_at").toInstant();
+            // Read TIMESTAMPTZ as OffsetDateTime: getTimestamp() would interpret the value
+            // in the JVM default timezone and shift instants on non-UTC machines
+            Instant createdAt = rs.getObject("created_at", OffsetDateTime.class).toInstant();
             return new QueueEntry<>(offsetId, serializer.deserialize(payload), createdAt);
         };
     }

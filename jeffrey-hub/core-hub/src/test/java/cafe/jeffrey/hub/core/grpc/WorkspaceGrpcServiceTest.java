@@ -32,9 +32,7 @@ import cafe.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceStatus;
 
 import java.io.IOException;
-import java.time.Clock;
 import java.time.Instant;
-import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 
@@ -49,7 +47,6 @@ class WorkspaceGrpcServiceTest {
 
     private static final String WORKSPACE_ID = "ws-1";
     private static final Instant FIXED_TIME = Instant.parse("2026-01-15T10:00:00Z");
-    private static final Clock FIXED_CLOCK = Clock.fixed(FIXED_TIME, ZoneOffset.UTC);
 
     private InProcessGrpcServer grpc;
 
@@ -71,7 +68,7 @@ class WorkspaceGrpcServiceTest {
 
         @Test
         void returnsVersionAndApiVersion() throws IOException {
-            var stub = startServer(new WorkspaceGrpcService(mock(WorkspacesManager.class), FIXED_CLOCK, defaultProperties()));
+            var stub = startServer(new WorkspaceGrpcService(mock(WorkspacesManager.class), defaultProperties()));
 
             GetApiInfoResponse response = stub.getApiInfo(GetApiInfoRequest.getDefaultInstance());
 
@@ -90,7 +87,7 @@ class WorkspaceGrpcServiceTest {
             when(workspaceManager.resolveInfo()).thenReturn(testWorkspaceInfo());
             doReturn(List.of(workspaceManager)).when(workspacesManager).findAll();
 
-            var stub = startServer(new WorkspaceGrpcService(workspacesManager, FIXED_CLOCK, defaultProperties()));
+            var stub = startServer(new WorkspaceGrpcService(workspacesManager, defaultProperties()));
 
             ListWorkspacesResponse response = stub.listWorkspaces(ListWorkspacesRequest.getDefaultInstance());
 
@@ -104,7 +101,7 @@ class WorkspaceGrpcServiceTest {
             var workspacesManager = mock(WorkspacesManager.class);
             doReturn(List.of()).when(workspacesManager).findAll();
 
-            var stub = startServer(new WorkspaceGrpcService(workspacesManager, FIXED_CLOCK, defaultProperties()));
+            var stub = startServer(new WorkspaceGrpcService(workspacesManager, defaultProperties()));
 
             ListWorkspacesResponse response = stub.listWorkspaces(ListWorkspacesRequest.getDefaultInstance());
 
@@ -122,7 +119,7 @@ class WorkspaceGrpcServiceTest {
             when(workspaceManager.resolveInfo()).thenReturn(testWorkspaceInfo());
             when(workspacesManager.findById(WORKSPACE_ID)).thenReturn(Optional.of(workspaceManager));
 
-            var stub = startServer(new WorkspaceGrpcService(workspacesManager, FIXED_CLOCK, defaultProperties()));
+            var stub = startServer(new WorkspaceGrpcService(workspacesManager, defaultProperties()));
 
             GetWorkspaceResponse response = stub.getWorkspace(
                     GetWorkspaceRequest.newBuilder().setWorkspaceId(WORKSPACE_ID).build());
@@ -138,7 +135,7 @@ class WorkspaceGrpcServiceTest {
             var workspacesManager = mock(WorkspacesManager.class);
             when(workspacesManager.findById(any())).thenReturn(Optional.empty());
 
-            var stub = startServer(new WorkspaceGrpcService(workspacesManager, FIXED_CLOCK, defaultProperties()));
+            var stub = startServer(new WorkspaceGrpcService(workspacesManager, defaultProperties()));
 
             var ex = assertThrows(StatusRuntimeException.class, () ->
                     stub.getWorkspace(GetWorkspaceRequest.newBuilder().setWorkspaceId("missing").build()));
@@ -154,7 +151,7 @@ class WorkspaceGrpcServiceTest {
             var workspacesManager = mock(WorkspacesManager.class);
             when(workspacesManager.create(any())).thenReturn(testWorkspaceInfo());
 
-            var stub = startServer(new WorkspaceGrpcService(workspacesManager, FIXED_CLOCK, defaultProperties()));
+            var stub = startServer(new WorkspaceGrpcService(workspacesManager, defaultProperties()));
 
             CreateWorkspaceResponse response = stub.createWorkspace(
                     CreateWorkspaceRequest.newBuilder()
@@ -173,7 +170,7 @@ class WorkspaceGrpcServiceTest {
                     .thenThrow(new WorkspaceAlreadyExistsException(
                             "Workspace with reference ID 'origin-1' already exists"));
 
-            var stub = startServer(new WorkspaceGrpcService(workspacesManager, FIXED_CLOCK, defaultProperties()));
+            var stub = startServer(new WorkspaceGrpcService(workspacesManager, defaultProperties()));
 
             var ex = assertThrows(StatusRuntimeException.class, () ->
                     stub.createWorkspace(CreateWorkspaceRequest.newBuilder()
@@ -189,7 +186,7 @@ class WorkspaceGrpcServiceTest {
             when(workspacesManager.create(any()))
                     .thenThrow(new IllegalArgumentException("Workspace Source ID cannot be null or empty"));
 
-            var stub = startServer(new WorkspaceGrpcService(workspacesManager, FIXED_CLOCK, defaultProperties()));
+            var stub = startServer(new WorkspaceGrpcService(workspacesManager, defaultProperties()));
 
             var ex = assertThrows(StatusRuntimeException.class, () ->
                     stub.createWorkspace(CreateWorkspaceRequest.newBuilder()
@@ -205,7 +202,7 @@ class WorkspaceGrpcServiceTest {
             when(workspacesManager.create(any()))
                     .thenThrow(new IllegalArgumentException("Workspace Name cannot be null or empty"));
 
-            var stub = startServer(new WorkspaceGrpcService(workspacesManager, FIXED_CLOCK, defaultProperties()));
+            var stub = startServer(new WorkspaceGrpcService(workspacesManager, defaultProperties()));
 
             var ex = assertThrows(StatusRuntimeException.class, () ->
                     stub.createWorkspace(CreateWorkspaceRequest.newBuilder()
@@ -226,7 +223,7 @@ class WorkspaceGrpcServiceTest {
             when(workspaceManager.resolveInfo()).thenReturn(testWorkspaceInfo());
             when(workspacesManager.findById(WORKSPACE_ID)).thenReturn(Optional.of(workspaceManager));
 
-            var stub = startServer(new WorkspaceGrpcService(workspacesManager, FIXED_CLOCK, defaultProperties()));
+            var stub = startServer(new WorkspaceGrpcService(workspacesManager, defaultProperties()));
 
             stub.deleteWorkspace(DeleteWorkspaceRequest.newBuilder().setWorkspaceId(WORKSPACE_ID).build());
 
@@ -238,7 +235,7 @@ class WorkspaceGrpcServiceTest {
             var workspacesManager = mock(WorkspacesManager.class);
             when(workspacesManager.findById(any())).thenReturn(Optional.empty());
 
-            var stub = startServer(new WorkspaceGrpcService(workspacesManager, FIXED_CLOCK, defaultProperties()));
+            var stub = startServer(new WorkspaceGrpcService(workspacesManager, defaultProperties()));
 
             var ex = assertThrows(StatusRuntimeException.class, () ->
                     stub.deleteWorkspace(DeleteWorkspaceRequest.newBuilder().setWorkspaceId("missing").build()));
@@ -260,7 +257,7 @@ class WorkspaceGrpcServiceTest {
         @Test
         void dollarPrefixedReferenceId_returnsInvalidArgument() throws IOException {
             var workspacesManager = mock(WorkspacesManager.class);
-            var stub = startServer(new WorkspaceGrpcService(workspacesManager, FIXED_CLOCK, defaultProperties()));
+            var stub = startServer(new WorkspaceGrpcService(workspacesManager, defaultProperties()));
 
             CreateWorkspaceRequest request = CreateWorkspaceRequest.newBuilder()
                     .setReferenceId("$myws")
@@ -280,7 +277,7 @@ class WorkspaceGrpcServiceTest {
         void plainReferenceId_passesThroughToManager() throws IOException {
             var workspacesManager = mock(WorkspacesManager.class);
             when(workspacesManager.create(any())).thenReturn(testWorkspaceInfo());
-            var stub = startServer(new WorkspaceGrpcService(workspacesManager, FIXED_CLOCK, defaultProperties()));
+            var stub = startServer(new WorkspaceGrpcService(workspacesManager, defaultProperties()));
 
             CreateWorkspaceRequest request = CreateWorkspaceRequest.newBuilder()
                     .setReferenceId("uat")
@@ -306,7 +303,7 @@ class WorkspaceGrpcServiceTest {
             when(workspaceManager.resolveInfo()).thenReturn(defaultInfo);
             when(workspacesManager.findById(WORKSPACE_ID)).thenReturn(Optional.of(workspaceManager));
 
-            var stub = startServer(new WorkspaceGrpcService(workspacesManager, FIXED_CLOCK, defaultProperties()));
+            var stub = startServer(new WorkspaceGrpcService(workspacesManager, defaultProperties()));
 
             StatusRuntimeException ex = assertThrows(StatusRuntimeException.class,
                     () -> stub.deleteWorkspace(DeleteWorkspaceRequest.newBuilder()
@@ -329,7 +326,7 @@ class WorkspaceGrpcServiceTest {
             when(workspaceManager.resolveInfo()).thenReturn(info);
             when(workspacesManager.findById(WORKSPACE_ID)).thenReturn(Optional.of(workspaceManager));
 
-            var stub = startServer(new WorkspaceGrpcService(workspacesManager, FIXED_CLOCK, defaultProperties()));
+            var stub = startServer(new WorkspaceGrpcService(workspacesManager, defaultProperties()));
 
             stub.deleteWorkspace(DeleteWorkspaceRequest.newBuilder()
                     .setWorkspaceId(WORKSPACE_ID)

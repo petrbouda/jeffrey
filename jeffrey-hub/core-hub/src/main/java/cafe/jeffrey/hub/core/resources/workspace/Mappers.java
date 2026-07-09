@@ -23,7 +23,6 @@ import cafe.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 import cafe.jeffrey.hub.core.manager.project.ProjectManager.DetailedProjectInfo;
 import cafe.jeffrey.hub.core.resources.response.ProjectResponse;
 import cafe.jeffrey.hub.core.resources.response.WorkspaceResponse;
-import cafe.jeffrey.shared.common.InstantUtils;
 
 public abstract class Mappers {
 
@@ -45,7 +44,7 @@ public abstract class Mappers {
                 projectInfo.name(),
                 projectInfo.label(),
                 projectInfo.namespace(),
-                InstantUtils.formatInstant(projectInfo.createdAt()),
+                projectInfo.createdAt().toEpochMilli(),
                 projectInfo.workspaceId(),
                 detail.status(),
                 detail.sessionCount(),

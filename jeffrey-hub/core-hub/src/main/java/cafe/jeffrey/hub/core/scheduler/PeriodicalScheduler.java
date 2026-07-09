@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -58,7 +58,8 @@ public class PeriodicalScheduler implements Scheduler {
     public CompletableFuture<Void> submit(Job job, JobContext context) {
         if (scheduler == null) {
             LOG.warn("Scheduler is not started, cannot execute job immediately: job_type={}", job.jobType());
-            return null;
+            return CompletableFuture.failedFuture(
+                    new IllegalStateException("Scheduler is not started: job_type=" + job.jobType()));
         }
 
         Future<Void> future = scheduler.submit(new ExecutedJob(job, context), null);
@@ -79,8 +80,11 @@ public class PeriodicalScheduler implements Scheduler {
         public void run() {
             try {
                 job.execute(context);
-            } catch (Exception e) {
-                LOG.error("An error occurred during the job execution: job_type={}", job.jobType(), e);
+            } catch (Throwable t) {
+                // Deliberately Throwable, not Exception: anything escaping run() makes
+                // scheduleAtFixedRate silently cancel this job for the rest of the process
+                // lifetime. A single bad tick must never unschedule a job.
+                LOG.error("An error occurred during the job execution: job_type={}", job.jobType(), t);
             }
         }
     }

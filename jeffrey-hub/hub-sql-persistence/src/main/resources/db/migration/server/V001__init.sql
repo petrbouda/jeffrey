@@ -61,6 +61,10 @@ CREATE TABLE IF NOT EXISTS projects
 
 CREATE INDEX IF NOT EXISTS idx_projects_workspace_id ON projects(workspace_id);
 CREATE INDEX IF NOT EXISTS idx_projects_namespace ON projects(namespace);
+-- Supports findByOriginProjectId and the synchronizer's duplicate-origin guard.
+-- Not UNIQUE: a soft-deleted project may legitimately coexist with its re-created successor,
+-- and DuckDB has no partial indexes to scope uniqueness to deleted_at IS NULL rows.
+CREATE INDEX IF NOT EXISTS idx_projects_origin_project_id ON projects(origin_project_id);
 
 --
 -- REPOSITORY TABLES
@@ -77,6 +81,10 @@ CREATE TABLE IF NOT EXISTS repositories
     PRIMARY KEY (project_id, repository_id)
 );
 
+-- The event-streaming hot path joins repositories by repository_id alone, which is not the
+-- leftmost column of the primary key and would otherwise require a full scan per lookup.
+CREATE INDEX IF NOT EXISTS idx_repositories_repository_id ON repositories(repository_id);
+
 CREATE TABLE IF NOT EXISTS project_instance_sessions
 (
     session_id            VARCHAR NOT NULL,
@@ -92,6 +100,9 @@ CREATE TABLE IF NOT EXISTS project_instance_sessions
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_project_instance_sessions_session_path ON project_instance_sessions(repository_id, relative_session_path);
 CREATE INDEX IF NOT EXISTS idx_project_instance_sessions_instance_id ON project_instance_sessions(instance_id);
+-- The event-streaming hot path looks sessions up by session_id alone, which is not the
+-- leftmost column of the primary key and would otherwise require a full scan per lookup.
+CREATE INDEX IF NOT EXISTS idx_project_instance_sessions_session_id ON project_instance_sessions(session_id);
 
 --
 -- PROJECT INSTANCE TABLES

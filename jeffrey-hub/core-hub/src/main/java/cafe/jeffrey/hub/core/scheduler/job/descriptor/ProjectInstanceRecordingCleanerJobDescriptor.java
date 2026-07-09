@@ -22,18 +22,12 @@ import cafe.jeffrey.shared.common.model.job.JobType;
 
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
-import java.util.Arrays;
 import java.util.Map;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 public record ProjectInstanceRecordingCleanerJobDescriptor(
         long duration,
         ChronoUnit timeUnit
 ) implements JobDescriptor<ProjectInstanceRecordingCleanerJobDescriptor> {
-
-    private static final Map<String, ChronoUnit> CHRONO_UNITS = Arrays.stream(ChronoUnit.values())
-            .collect(Collectors.toMap(ChronoUnit::toString, Function.identity()));
 
     private static final String PARAM_DURATION = "duration";
     private static final String PARAM_TIME_UNIT = "time-unit";
@@ -55,16 +49,8 @@ public record ProjectInstanceRecordingCleanerJobDescriptor(
     }
 
     public static ProjectInstanceRecordingCleanerJobDescriptor of(Map<String, String> params) {
-        String durationStr = params.get(PARAM_DURATION);
-        String timeUnit = params.get(PARAM_TIME_UNIT);
-        return new ProjectInstanceRecordingCleanerJobDescriptor(Long.parseLong(durationStr), parseTimeUnit(timeUnit));
-    }
-
-    private static ChronoUnit parseTimeUnit(String timeUnit) {
-        ChronoUnit chronoUnit = CHRONO_UNITS.get(timeUnit);
-        if (chronoUnit == null) {
-            throw new IllegalArgumentException("Unknown time unit: " + timeUnit);
-        }
-        return chronoUnit;
+        return new ProjectInstanceRecordingCleanerJobDescriptor(
+                JobDescriptorUtils.resolveLong(params, PARAM_DURATION),
+                JobDescriptorUtils.resolveChronoUnit(params, PARAM_TIME_UNIT));
     }
 }

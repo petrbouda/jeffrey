@@ -18,9 +18,16 @@
 
 package cafe.jeffrey.hub.core.scheduler.job.descriptor;
 
+import java.time.temporal.ChronoUnit;
+import java.util.Arrays;
 import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public abstract class JobDescriptorUtils {
+
+    private static final Map<String, ChronoUnit> CHRONO_UNITS = Arrays.stream(ChronoUnit.values())
+            .collect(Collectors.toMap(ChronoUnit::toString, Function.identity()));
 
     public static String resolveString(Map<String, String> params, String name) {
         String value = params.get(name);
@@ -33,5 +40,19 @@ public abstract class JobDescriptorUtils {
     public static int resolveInt(Map<String, String> params, String name) {
         String value = resolveString(params, name);
         return Integer.parseInt(value);
+    }
+
+    public static long resolveLong(Map<String, String> params, String name) {
+        String value = resolveString(params, name);
+        return Long.parseLong(value);
+    }
+
+    public static ChronoUnit resolveChronoUnit(Map<String, String> params, String name) {
+        String value = resolveString(params, name);
+        ChronoUnit chronoUnit = CHRONO_UNITS.get(value);
+        if (chronoUnit == null) {
+            throw new IllegalArgumentException("Unknown time unit: " + value);
+        }
+        return chronoUnit;
     }
 }

@@ -255,4 +255,35 @@ class InstanceLifecycleIntegrationTest {
             assertEquals("session-001", unfinished.getFirst().sessionId());
         }
     }
+
+    @Nested
+    class StalePendingCleanup {
+
+        @Test
+        void deletesOnlyAbandonedPendingInstances(DataSource dataSource) throws SQLException {
+            TestUtils.executeSql(dataSource, "sql/instances/insert-project-with-instances.sql");
+            var provider = new DatabaseClientProvider(dataSource);
+            var instanceRepo = new JdbcProjectInstanceRepository(PROJECT_ID, provider);
+
+            // A stale PENDING instance without sessions, and a fresh PENDING one
+            instanceRepo.insert(pendingInstance("inst-stale", Instant.parse("2025-01-01T12:00:00Z")));
+            instanceRepo.insert(pendingInstance("inst-fresh", Instant.parse("2025-06-15T11:00:00Z")));
+
+            int deleted = instanceRepo.deleteStalePendingInstances(Instant.parse("2025-06-01T00:00:00Z"));
+
+            assertEquals(1, deleted, "Only the abandoned PENDING instance is deleted");
+            assertTrue(instanceRepo.find("inst-stale").isEmpty());
+            assertTrue(instanceRepo.find("inst-fresh").isPresent());
+
+            // Instances with sessions are untouched even though they are old
+            assertTrue(instanceRepo.find("inst-001").isPresent());
+            assertTrue(instanceRepo.find("inst-002").isPresent());
+        }
+
+        private ProjectInstanceInfo pendingInstance(String instanceId, Instant startedAt) {
+            return new ProjectInstanceInfo(
+                    instanceId, PROJECT_ID, instanceId + "-host", ProjectInstanceStatus.PENDING,
+                    startedAt, null, null, null, 0, null);
+        }
+    }
 }

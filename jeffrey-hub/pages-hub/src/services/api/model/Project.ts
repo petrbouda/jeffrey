@@ -23,7 +23,8 @@ export default class Project {
         public id: string,
         public name: string,
         public label: string | null,
-        public createdAt: string,
+        // UTC epoch millis — format with FormattingService, never by parsing date strings
+        public createdAt: number,
         public workspaceId: string,
         public status: RecordingStatus) {
     }

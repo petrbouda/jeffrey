@@ -20,6 +20,8 @@ package cafe.jeffrey.hub.core.scheduler.job;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import cafe.jeffrey.hub.core.configuration.properties.SchedulerJobsProperties.JobConfig;
+import cafe.jeffrey.shared.folderqueue.FolderQueue;
 import cafe.jeffrey.shared.persistentqueue.PersistentQueue;
 import cafe.jeffrey.hub.core.scheduler.Job;
 import cafe.jeffrey.hub.core.scheduler.JobContext;
@@ -30,34 +32,44 @@ import java.time.Duration;
 import java.time.Instant;
 
 /**
- * Trims the persistent workspace-events queue, deleting entries older than the
- * configured retention window so storage stays bounded.
+ * Trims the workspace-events pipeline storage: entries in the persistent DB queue older
+ * than the retention window, and CLI event files already replicated into the DB queue
+ * (moved to the folder queue's {@code .processed/} directory) — without this second
+ * step every event file ever processed would accumulate on disk forever.
  */
 public class WorkspaceEventsCleanerJob implements Job {
 
     private static final Logger LOG = LoggerFactory.getLogger(WorkspaceEventsCleanerJob.class);
 
+    private static final String PARAM_QUEUE_EVENTS_RETENTION = "queue-events-retention";
+    private static final String PARAM_PROCESSED_FILES_RETENTION = "processed-files-retention";
+
     private final PersistentQueue<?> persistentQueue;
+    private final FolderQueue folderQueue;
     private final Clock clock;
     private final Duration period;
     private final Duration queueEventsRetention;
+    private final Duration processedFilesRetention;
 
     public WorkspaceEventsCleanerJob(
             PersistentQueue<?> persistentQueue,
+            FolderQueue folderQueue,
             Clock clock,
-            Duration period,
-            Duration queueEventsRetention) {
+            JobConfig config) {
 
         this.persistentQueue = persistentQueue;
+        this.folderQueue = folderQueue;
         this.clock = clock;
-        this.period = period;
-        this.queueEventsRetention = queueEventsRetention;
+        this.period = config.period();
+        this.queueEventsRetention = config.durationParam(PARAM_QUEUE_EVENTS_RETENTION);
+        this.processedFilesRetention = config.durationParam(PARAM_PROCESSED_FILES_RETENTION);
     }
 
     @Override
     public void execute(JobContext context) {
         Instant now = clock.instant();
         deleteOldQueueEvents(now);
+        folderQueue.cleanup(processedFilesRetention);
     }
 
     private void deleteOldQueueEvents(Instant now) {

@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -27,9 +27,13 @@ import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.*;
 
 class PeriodicalSchedulerTest {
@@ -44,6 +48,10 @@ class PeriodicalSchedulerTest {
     }
 
     private static Job testJob(Runnable action, Duration period) {
+        return testJob(action, period, JobType.PROJECTS_SYNCHRONIZER);
+    }
+
+    private static Job testJob(Runnable action, Duration period, JobType jobType) {
         return new Job() {
             @Override
             public void execute(JobContext context) {
@@ -57,7 +65,7 @@ class PeriodicalSchedulerTest {
 
             @Override
             public JobType jobType() {
-                return JobType.PROJECTS_SYNCHRONIZER;
+                return jobType;
             }
         };
     }
@@ -77,7 +85,7 @@ class PeriodicalSchedulerTest {
         }
 
         @Test
-        void startIsIdempotent_calledTwice_onlyOneScheduler() throws InterruptedException {
+        void startIsIdempotent_calledTwice_onlyOneScheduler() {
             AtomicInteger counter = new AtomicInteger();
             Job job = testJob(counter::incrementAndGet, Duration.ofMillis(50));
 
@@ -85,9 +93,10 @@ class PeriodicalSchedulerTest {
             scheduler.start();
             scheduler.start();
 
-            Thread.sleep(200);
-            // If two schedulers were created, counter would grow much faster
-            // With one scheduler at 50ms intervals over 200ms, we'd expect around 4-5 executions
+            // With one scheduler at 50ms intervals, the counter grows steadily; a duplicated
+            // schedule would roughly double the rate. Wait for a few executions and check
+            // the count stayed in the single-schedule range.
+            await().atMost(2, SECONDS).until(() -> counter.get() >= 3);
             assertTrue(counter.get() < 10);
         }
     }
@@ -110,13 +119,65 @@ class PeriodicalSchedulerTest {
         }
 
         @Test
-        void returnsNull_whenSchedulerNotStarted() {
+        void returnsFailedFuture_whenSchedulerNotStarted() {
             Job job = testJob(() -> {}, Duration.ofSeconds(60));
             scheduler = new PeriodicalScheduler(List.of());
 
             CompletableFuture<Void> result = scheduler.submit(job);
 
-            assertNull(result);
+            // Never null — callers chain orTimeout()/whenComplete() directly on the result
+            assertNotNull(result);
+            assertTrue(result.isCompletedExceptionally());
+            ExecutionException e = assertThrows(ExecutionException.class, result::get);
+            assertInstanceOf(IllegalStateException.class, e.getCause());
+        }
+    }
+
+    @Nested
+    class FailureResilience {
+
+        @Test
+        void jobThrowingError_staysScheduled() {
+            AtomicInteger executions = new AtomicInteger();
+            Job job = testJob(() -> {
+                if (executions.incrementAndGet() == 1) {
+                    // An Error (not an Exception) escaping the tick would silently cancel
+                    // the job in scheduleAtFixedRate for the process lifetime
+                    throw new AssertionError("boom on first tick");
+                }
+            }, Duration.ofMillis(50));
+
+            scheduler = new PeriodicalScheduler(List.of(job));
+            scheduler.start();
+
+            await().atMost(2, SECONDS).until(() -> executions.get() >= 3);
+        }
+
+        @Test
+        void sameJob_neverRunsConcurrently_periodicAndOnDemand() throws Exception {
+            AtomicInteger concurrent = new AtomicInteger();
+            AtomicInteger maxConcurrent = new AtomicInteger();
+            Job job = testJob(() -> {
+                int current = concurrent.incrementAndGet();
+                maxConcurrent.accumulateAndGet(current, Math::max);
+                try {
+                    Thread.sleep(50);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                } finally {
+                    concurrent.decrementAndGet();
+                }
+            }, Duration.ofMillis(20));
+
+            scheduler = new PeriodicalScheduler(List.of(job));
+            scheduler.start();
+
+            // Fire on-demand executions while the periodic schedule is running
+            CompletableFuture<Void> submitted = scheduler.submit(job);
+            submitted.get(5, TimeUnit.SECONDS);
+
+            await().atMost(2, SECONDS).until(() -> maxConcurrent.get() >= 1);
+            assertEquals(1, maxConcurrent.get(), "The same job type must be serialized");
         }
     }
 
@@ -124,20 +185,26 @@ class PeriodicalSchedulerTest {
     class Close {
 
         @Test
-        void shutsDownExecutor() throws InterruptedException {
+        void shutsDownExecutor() {
             AtomicInteger counter = new AtomicInteger();
             Job job = testJob(counter::incrementAndGet, Duration.ofMillis(50));
 
             scheduler = new PeriodicalScheduler(List.of(job));
             scheduler.start();
-            Thread.sleep(100);
+            await().atMost(2, SECONDS).until(() -> counter.get() > 0);
 
             scheduler.close();
-            int countAfterClose = counter.get();
-            Thread.sleep(200);
 
-            // No more executions should happen after close
-            assertEquals(countAfterClose, counter.get());
+            // An in-flight tick may still finish right after close(); wait until the counter
+            // settles, then require it to stay flat — no new executions after shutdown
+            AtomicInteger lastSeen = new AtomicInteger(counter.get());
+            await().atMost(2, SECONDS).until(() -> {
+                int current = counter.get();
+                return current == lastSeen.getAndSet(current);
+            });
+            int countAfterClose = counter.get();
+            await().during(300, MILLISECONDS).atMost(2, SECONDS)
+                    .until(() -> counter.get() == countAfterClose);
         }
 
         @Test

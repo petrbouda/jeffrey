@@ -50,6 +50,12 @@
       <span>Loading workspaces...</span>
     </div>
 
+    <div v-else-if="error" class="empty-state">
+      <i class="bi bi-exclamation-triangle"></i>
+      <span>Failed to load workspaces</span>
+      <span class="empty-hint">{{ error }}</span>
+    </div>
+
     <div v-else-if="workspaces.length === 0" class="empty-state">
       <i class="bi bi-inbox"></i>
       <span>No workspaces registered</span>
@@ -110,6 +116,7 @@ interface WorkspaceWithProjects {
 const workspaceClient = new WorkspaceClient();
 const versionClient = new VersionClient();
 const loading = ref(true);
+const error = ref<string | null>(null);
 const workspaces = ref<WorkspaceWithProjects[]>([]);
 const searchQuery = ref('');
 const expandedWorkspaces = ref(new Set<string>());
@@ -149,20 +156,22 @@ const loadDashboard = async () => {
   try {
     const allWorkspaces = await workspaceClient.list();
 
-    const results: WorkspaceWithProjects[] = [];
-    for (const ws of allWorkspaces) {
-      const projectsClient = new WorkspaceProjectsClient(ws.id);
-      try {
-        const projects = await projectsClient.list();
-        results.push({ workspace: ws, projects });
-      } catch {
-        results.push({ workspace: ws, projects: [] });
-      }
-    }
-
-    workspaces.value = results;
-  } catch (error) {
-    console.error('Failed to load dashboard:', error);
+    // Fetch the project lists of all workspaces concurrently — a serial per-workspace
+    // round-trip makes the dashboard load time grow linearly with the workspace count
+    workspaces.value = await Promise.all(
+        allWorkspaces.map(async (ws): Promise<WorkspaceWithProjects> => {
+          const projectsClient = new WorkspaceProjectsClient(ws.id);
+          try {
+            return { workspace: ws, projects: await projectsClient.list() };
+          } catch {
+            return { workspace: ws, projects: [] };
+          }
+        })
+    );
+    error.value = null;
+  } catch (e) {
+    console.error('Failed to load dashboard:', e);
+    error.value = e instanceof Error ? e.message : 'Unexpected error while loading workspaces';
   } finally {
     loading.value = false;
   }

@@ -32,6 +32,8 @@ import cafe.jeffrey.hub.core.configuration.properties.SchedulerJobsProperties;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
 import cafe.jeffrey.hub.core.scheduler.*;
 import cafe.jeffrey.hub.core.scheduler.JobRegistry;
+import cafe.jeffrey.hub.core.scheduler.job.DeletedProjectsCleanerJob;
+import cafe.jeffrey.hub.core.scheduler.job.TempDirectoryCleanerJob;
 import cafe.jeffrey.hub.core.scheduler.job.WorkspaceEventsCleanerJob;
 import cafe.jeffrey.hub.core.scheduler.job.ProjectsSynchronizerJob;
 import cafe.jeffrey.hub.core.scheduler.job.WorkspaceEventsReplicatorJob;
@@ -45,7 +47,6 @@ import cafe.jeffrey.shared.folderqueue.FolderQueue;
 import cafe.jeffrey.shared.persistentqueue.PersistentQueue;
 
 import java.time.Clock;
-import java.time.Duration;
 import java.util.List;
 
 import static cafe.jeffrey.hub.core.configuration.HubAppConfiguration.GLOBAL_SCHEDULER;
@@ -139,30 +140,43 @@ public class GlobalJobsConfiguration {
         SchedulerJobsProperties.JobConfig config =
                 schedulerJobsProperties.forType(JobType.PROFILER_SETTINGS_SYNCHRONIZER);
 
-        int maxVersions = parseInt(config.params().get("max-versions"), 5);
-
         return new ProfilerSettingsSynchronizerJob(
                 config.period(),
                 platformRepositories.newProfilerRepository(),
                 workspacesManager,
-                new ProfilerSettingsSynchronizerJobDescriptor(maxVersions),
+                ProfilerSettingsSynchronizerJobDescriptor.of(config.params()),
                 platformRepositories);
     }
 
     @Bean
     public WorkspaceEventsCleanerJob workspaceEventsCleanerJob(
             PersistentQueue<WorkspaceEvent> workspaceEventQueue,
+            HubJeffreyDirs jeffreyDirs,
             Clock clock) {
-
-        SchedulerJobsProperties.JobConfig config = schedulerJobsProperties.forType(JobType.WORKSPACE_EVENTS_CLEANER);
-        Duration queueEventsRetention = Duration.parse(
-                normalizeDuration(config.params().getOrDefault("queue-events-retention", "P31D")));
 
         return new WorkspaceEventsCleanerJob(
                 workspaceEventQueue,
+                new FolderQueue(jeffreyDirs.workspaceEvents(), clock),
                 clock,
-                config.period(),
-                queueEventsRetention);
+                schedulerJobsProperties.forType(JobType.WORKSPACE_EVENTS_CLEANER));
+    }
+
+    @Bean
+    public TempDirectoryCleanerJob tempDirectoryCleanerJob(HubJeffreyDirs jeffreyDirs, Clock clock) {
+        return new TempDirectoryCleanerJob(
+                jeffreyDirs.temp(),
+                clock,
+                schedulerJobsProperties.forType(JobType.TEMP_DIRECTORY_CLEANER));
+    }
+
+    @Bean
+    public DeletedProjectsCleanerJob deletedProjectsCleanerJob(
+            HubPlatformRepositories platformRepositories, Clock clock) {
+
+        return new DeletedProjectsCleanerJob(
+                platformRepositories.newProjectsRepository(),
+                clock,
+                schedulerJobsProperties.forType(JobType.DELETED_PROJECTS_CLEANER));
     }
 
     @Bean
@@ -175,44 +189,5 @@ public class GlobalJobsConfiguration {
             @Qualifier(GLOBAL_SCHEDULER) ObjectFactory<Scheduler> scheduler,
             ProjectsSynchronizerJob projectsSynchronizerJob) {
         return new SchedulerTriggerImpl(scheduler, projectsSynchronizerJob);
-    }
-
-    private static int parseInt(String value, int fallback) {
-        if (value == null || value.isBlank()) {
-            return fallback;
-        }
-        try {
-            return Integer.parseInt(value.trim());
-        } catch (NumberFormatException e) {
-            return fallback;
-        }
-    }
-
-    /**
-     * Allows users to write {@code 31d} / {@code 5m} / {@code 1h} in property
-     * values (Spring's {@code @DurationUnit}-style notation) by translating
-     * them to ISO-8601 before {@link Duration#parse} consumes them.
-     */
-    private static String normalizeDuration(String value) {
-        if (value == null || value.isBlank()) {
-            return "PT0S";
-        }
-        String trimmed = value.trim().toLowerCase();
-        if (trimmed.startsWith("p") || trimmed.startsWith("-p")) {
-            return value.trim().toUpperCase();
-        }
-        if (trimmed.endsWith("d")) {
-            return "P" + trimmed.substring(0, trimmed.length() - 1) + "D";
-        }
-        if (trimmed.endsWith("h")) {
-            return "PT" + trimmed.substring(0, trimmed.length() - 1) + "H";
-        }
-        if (trimmed.endsWith("m")) {
-            return "PT" + trimmed.substring(0, trimmed.length() - 1) + "M";
-        }
-        if (trimmed.endsWith("s")) {
-            return "PT" + trimmed.substring(0, trimmed.length() - 1) + "S";
-        }
-        return "PT" + trimmed + "S";
     }
 }

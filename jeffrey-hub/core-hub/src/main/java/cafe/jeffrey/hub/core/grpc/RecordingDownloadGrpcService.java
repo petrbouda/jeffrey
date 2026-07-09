@@ -32,7 +32,6 @@ import cafe.jeffrey.shared.common.model.repository.StreamedRecordingFile;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
-import java.util.concurrent.Semaphore;
 import java.util.function.Supplier;
 
 public class RecordingDownloadGrpcService extends RecordingDownloadServiceGrpc.RecordingDownloadServiceImplBase {
@@ -143,43 +142,4 @@ public class RecordingDownloadGrpcService extends RecordingDownloadServiceGrpc.R
         }
     }
 
-    /**
-     * Backpressure gate for a server-streaming call. Pauses the producer when the
-     * channel is not ready, resumes when gRPC fires onReady, and short-circuits when
-     * the call is cancelled by the client.
-     */
-    private static final class ReadyGate {
-
-        private final ServerCallStreamObserver<?> observer;
-        private final Semaphore permits = new Semaphore(0);
-        private volatile boolean cancelled = false;
-
-        private ReadyGate(ServerCallStreamObserver<?> observer) {
-            this.observer = observer;
-        }
-
-        static ReadyGate attach(ServerCallStreamObserver<?> observer) {
-            ReadyGate gate = new ReadyGate(observer);
-            observer.setOnReadyHandler(gate.permits::release);
-            observer.setOnCancelHandler(() -> {
-                gate.cancelled = true;
-                gate.permits.release();
-            });
-            return gate;
-        }
-
-        boolean isCancelled() {
-            return cancelled || observer.isCancelled();
-        }
-
-        void awaitReady() throws InterruptedException {
-            if (observer.isReady() || isCancelled()) {
-                return;
-            }
-            permits.drainPermits();
-            while (!observer.isReady() && !isCancelled()) {
-                permits.acquire();
-            }
-        }
-    }
 }
