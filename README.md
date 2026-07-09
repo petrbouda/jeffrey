@@ -1,8 +1,7 @@
-<p align="center">
-  <img src="static/logo/jeffrey-icon.svg" alt="Jeffrey" width="120" />
-</p>
-
-<h1 align="center">Jeffrey — the JFR Analyst 🔬</h1>
+<h1 align="center">
+  <img src="static/logo/jeffrey-icon.svg" alt="" width="34" valign="middle" />
+  Jeffrey — the JFR Analyst
+</h1>
 
 <p align="center">
   <strong>Open a JFR recording and read flamegraphs that <em>finally</em> render fast.</strong><br/>
