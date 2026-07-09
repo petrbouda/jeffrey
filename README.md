@@ -55,29 +55,6 @@ builds a profile you can explore. That's it. 🎉
 
 ---
 
-## ☁️ Going to production? Meet Jeffrey Hub
-
-**One JFR pipeline. Two halves that work alone.**
-
-Microscope lives on your desk. **Jeffrey Hub** is its counterpart in the cluster — a containerised
-collector that runs alongside your Java fleet and **collects runtime data from running services**:
-JFR recordings, artifacts and lifecycle events. It catalogs them by workspace, project and instance,
-schedules recording jobs, and serves everything over gRPC.
-
-```
-Your services  ──collect──▶  Jeffrey Hub  ──gRPC──▶  Microscope
-```
-
-- 🧊 **Runs as a container** in Kubernetes, right next to your apps
-- 💾 **Shared-volume collection** — zero agent overhead, cheap integration
-- 📡 **Live streaming, replay sessions & merged downloads** over gRPC
-- 🔌 Serve **Microscope**, your own custom consumer, or both at once
-
-No analysis happens on the server — that's Microscope's job, on demand, on your machine (so you
-keep the expensive compute off your cloud bill).
-
----
-
 ## 🧩 The Jeffrey ecosystem
 
 Microscope and Hub are the core. A few friends round out the toolbox:
