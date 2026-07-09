@@ -54,7 +54,14 @@ public class DeleteProjectWorkspaceEventConsumer implements WorkspaceEventConsum
         }
         ProjectManager projectManager = project.get();
 
-        // 1. Delete remote repository storage sessions
+        // 1. SQL cascade deletes all project metadata (instances, sessions, schedulers, etc.).
+        //    Runs first: the event executes inside a database transaction, and the remote-storage
+        //    cleanup below is an irreversible side effect that must not precede a possible rollback
+        platformRepositories.newProjectRepository(projectManager.info().id())
+                .delete();
+
+        // 2. Delete remote repository storage sessions (best-effort: a failure here must not
+        //    fail the event — orphaned files are cheaper than a permanently stuck project delete)
         try {
             RepositoryStorage remoteStorage = remoteRepositoryStorageFactory.apply(projectManager.info());
             remoteStorage.listSessions(false).forEach(session -> {
@@ -67,10 +74,6 @@ public class DeleteProjectWorkspaceEventConsumer implements WorkspaceEventConsum
         } catch (Exception e) {
             LOG.warn("Failed to clean up remote storage for project: projectId={}", event.projectId(), e);
         }
-
-        // 2. SQL cascade deletes all project metadata (instances, sessions, schedulers, etc.)
-        platformRepositories.newProjectRepository(projectManager.info().id())
-                .delete();
 
         LOG.debug("Deleted project from workspace event: project_id={}", event.projectId());
         JfrMessageEmitter.projectDeleted(event.projectId());

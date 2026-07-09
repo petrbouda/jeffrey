@@ -45,6 +45,7 @@ import cafe.jeffrey.shared.common.model.job.JobType;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceEvent;
 import cafe.jeffrey.shared.folderqueue.FolderQueue;
 import cafe.jeffrey.shared.persistentqueue.PersistentQueue;
+import org.springframework.transaction.support.TransactionOperations;
 
 import java.time.Clock;
 import java.util.List;
@@ -106,11 +107,13 @@ public class GlobalJobsConfiguration {
     @Bean
     public ProjectsSynchronizerJob projectsSynchronizerJob(
             List<WorkspaceEventConsumer> consumers,
-            PersistentQueue<WorkspaceEvent> workspaceEventQueue) {
+            PersistentQueue<WorkspaceEvent> workspaceEventQueue,
+            TransactionOperations hubTransactionOperations) {
 
         return new ProjectsSynchronizerJob(
                 consumers,
                 workspaceEventQueue,
+                hubTransactionOperations,
                 workspacesManager,
                 schedulerJobsProperties.forType(JobType.PROJECTS_SYNCHRONIZER).period());
     }

@@ -183,11 +183,8 @@ public class JdbcProjectsRepository implements ProjectsRepository {
         MapSqlParameterSource paramSource = new MapSqlParameterSource()
                 .addValue("deleted_before", deletedBefore.atOffset(ZoneOffset.UTC));
 
-        int purgedProjects = 0;
-        for (String sql : PURGE_DELETED_PROJECTS_CASCADE) {
-            purgedProjects = databaseClient.delete(StatementLabel.PURGE_DELETED_PROJECTS, sql, paramSource);
-        }
         // The last statement of the cascade deletes the projects rows themselves
-        return purgedProjects;
+        return databaseClient.deleteCascade(
+                StatementLabel.PURGE_DELETED_PROJECTS, PURGE_DELETED_PROJECTS_CASCADE, paramSource);
     }
 }

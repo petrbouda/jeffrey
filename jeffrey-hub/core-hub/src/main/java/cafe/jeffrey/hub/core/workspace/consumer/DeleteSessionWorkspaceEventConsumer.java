@@ -74,13 +74,6 @@ public class DeleteSessionWorkspaceEventConsumer implements WorkspaceEventConsum
         // Delete session from project repository (from Database)
         repoRepo.deleteSession(event.originEventId());
 
-        // Delete session from remote storage (e.g., S3, filesystem)
-        remoteRepositoryStorageFactory.apply(projectManager.info())
-                .deleteSession(event.originEventId());
-
-        LOG.debug("Deleted session from workspace event: project_id={} session_id={}", event.projectId(), event.originEventId());
-        JfrMessageEmitter.sessionDeleted(event.originEventId(), projectId);
-
         // Update instance expiring/expired status
         if (instanceId != null) {
             ProjectInstanceRepository instanceRepo = platformRepositories.newProjectInstanceRepository(projectId);
@@ -103,6 +96,15 @@ public class DeleteSessionWorkspaceEventConsumer implements WorkspaceEventConsum
                 }
             }
         }
+
+        // Delete session from remote storage (e.g., S3, filesystem) LAST: the event runs inside
+        // a database transaction, and file removal cannot be rolled back — all DB writes must
+        // succeed before the irreversible side effect happens
+        remoteRepositoryStorageFactory.apply(projectManager.info())
+                .deleteSession(event.originEventId());
+
+        LOG.debug("Deleted session from workspace event: project_id={} session_id={}", event.projectId(), event.originEventId());
+        JfrMessageEmitter.sessionDeleted(event.originEventId(), projectId);
     }
 
     @Override

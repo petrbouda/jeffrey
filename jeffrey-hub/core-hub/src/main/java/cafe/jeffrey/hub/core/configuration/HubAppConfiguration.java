@@ -29,6 +29,9 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.PropertySource;
+import org.springframework.jdbc.datasource.DataSourceTransactionManager;
+import org.springframework.transaction.support.TransactionOperations;
+import org.springframework.transaction.support.TransactionTemplate;
 import cafe.jeffrey.hub.core.configuration.properties.DefaultWorkspaceProperties;
 import cafe.jeffrey.hub.core.configuration.properties.SchedulerJobsProperties;
 import cafe.jeffrey.hub.core.scheduler.job.descriptor.JobDescriptorFactory;
@@ -117,6 +120,16 @@ public class HubAppConfiguration {
     @Bean
     public DatabaseClientProvider databaseClientProvider(HubPersistenceProvider serverPersistenceProvider) {
         return serverPersistenceProvider.databaseClientProvider();
+    }
+
+    /**
+     * Transaction boundary over the hub database. Every {@code DatabaseClient} runs on the
+     * same {@code DataSource}, so code wrapped by these operations (e.g. one workspace event:
+     * all consumer writes + the offset acknowledge) commits or rolls back as a single unit.
+     */
+    @Bean
+    public TransactionOperations hubTransactionOperations(DatabaseClientProvider databaseClientProvider) {
+        return new TransactionTemplate(new DataSourceTransactionManager(databaseClientProvider.dataSource()));
     }
 
     @Bean
