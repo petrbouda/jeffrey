@@ -80,8 +80,11 @@ public class PeriodicalScheduler implements Scheduler {
         public void run() {
             try {
                 job.execute(context);
-            } catch (Exception e) {
-                LOG.error("An error occurred during the job execution: job_type={}", job.jobType(), e);
+            } catch (Throwable t) {
+                // Deliberately Throwable, not Exception: anything escaping run() makes
+                // scheduleAtFixedRate silently cancel this job for the rest of the process
+                // lifetime. A single bad tick must never unschedule a job.
+                LOG.error("An error occurred during the job execution: job_type={}", job.jobType(), t);
             }
         }
     }
