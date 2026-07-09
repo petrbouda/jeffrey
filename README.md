@@ -68,7 +68,7 @@ The complete toolbox — Microscope and Hub are the core, the rest round it out:
 | **Jeffrey JIB** | A Jib (Gradle/Maven) extension that wraps your container entrypoint so profiling starts before your app does — no command override, no binaries baked into the image. |
 | **Jeffrey Agent** | A tiny `-javaagent` that writes a heartbeat file to the shared volume, so the Hub can track liveness and tell a clean shutdown from a crash. No network, no gRPC. |
 | **Performance Analyst** 🆕 | *Incubating.* An AI companion that pulls recordings from a Hub and turns each profile into source-code-level recommendations — severity-graded, with ready-to-apply patches. From profiles to pull requests. |
-| **[Jeffrey Events](https://github.com/petrbouda/jeffrey-events)** | A lightweight custom-JFR-event library (HTTP, gRPC, database, connection-pool, heartbeat) that powers the tech dashboards. |
+| **[Jeffrey Events](https://central.sonatype.com/artifact/cafe.jeffrey-analyst/jeffrey-events)** | A lightweight custom-JFR-event library (HTTP, gRPC, database, connection-pool, heartbeat) that powers the tech dashboards. |
 
 ---
 
@@ -77,7 +77,7 @@ The complete toolbox — Microscope and Hub are the core, the rest round it out:
 - 🌐 **Website:** https://www.jeffrey-analyst.cafe/
 - 📦 **Releases:** https://github.com/petrbouda/jeffrey/releases
 - 🧩 **IntelliJ plugin:** https://plugins.jetbrains.com/plugin/31963-jeffrey-microscope
-- 📡 **Jeffrey Events:** https://github.com/petrbouda/jeffrey-events
+- 📡 **Jeffrey Events:** https://central.sonatype.com/artifact/cafe.jeffrey-analyst/jeffrey-events
 
 ## 📄 License
 
