@@ -47,7 +47,6 @@ import cafe.jeffrey.shared.folderqueue.FolderQueue;
 import cafe.jeffrey.shared.persistentqueue.PersistentQueue;
 
 import java.time.Clock;
-import java.time.Duration;
 import java.util.List;
 
 import static cafe.jeffrey.hub.core.configuration.HubAppConfiguration.GLOBAL_SCHEDULER;
@@ -67,16 +66,12 @@ public class GlobalJobsConfiguration {
 
     private static final Logger LOG = LoggerFactory.getLogger(GlobalJobsConfiguration.class);
 
+    // Param KEYS only — the default VALUES live exclusively in scheduler-defaults.properties
+    // (jeffrey.hub.scheduler.jobs.<job>.params.<key>), overridable via application.properties
     private static final String PARAM_MAX_VERSIONS = "max-versions";
     private static final String PARAM_QUEUE_EVENTS_RETENTION = "queue-events-retention";
     private static final String PARAM_PROCESSED_FILES_RETENTION = "processed-files-retention";
     private static final String PARAM_RETENTION = "retention";
-
-    private static final int DEFAULT_MAX_VERSIONS = 5;
-    private static final String DEFAULT_QUEUE_EVENTS_RETENTION = "P31D";
-    private static final String DEFAULT_PROCESSED_FILES_RETENTION = "P31D";
-    private static final String DEFAULT_TEMP_FILES_RETENTION = "P1D";
-    private static final String DEFAULT_DELETED_PROJECTS_RETENTION = "P14D";
 
     private final WorkspacesManager workspacesManager;
     private final SchedulerJobsProperties schedulerJobsProperties;
@@ -152,7 +147,7 @@ public class GlobalJobsConfiguration {
         SchedulerJobsProperties.JobConfig config =
                 schedulerJobsProperties.forType(JobType.PROFILER_SETTINGS_SYNCHRONIZER);
 
-        int maxVersions = parseInt(config.params().get(PARAM_MAX_VERSIONS), DEFAULT_MAX_VERSIONS);
+        int maxVersions = config.intParam(PARAM_MAX_VERSIONS);
 
         return new ProfilerSettingsSynchronizerJob(
                 config.period(),
@@ -169,26 +164,22 @@ public class GlobalJobsConfiguration {
             Clock clock) {
 
         SchedulerJobsProperties.JobConfig config = schedulerJobsProperties.forType(JobType.WORKSPACE_EVENTS_CLEANER);
-        Duration queueEventsRetention = parseDurationParam(
-                config, PARAM_QUEUE_EVENTS_RETENTION, DEFAULT_QUEUE_EVENTS_RETENTION);
-        Duration processedFilesRetention = parseDurationParam(
-                config, PARAM_PROCESSED_FILES_RETENTION, DEFAULT_PROCESSED_FILES_RETENTION);
 
         return new WorkspaceEventsCleanerJob(
                 workspaceEventQueue,
                 new FolderQueue(jeffreyDirs.workspaceEvents(), clock),
                 clock,
                 config.period(),
-                queueEventsRetention,
-                processedFilesRetention);
+                config.durationParam(PARAM_QUEUE_EVENTS_RETENTION),
+                config.durationParam(PARAM_PROCESSED_FILES_RETENTION));
     }
 
     @Bean
     public TempDirectoryCleanerJob tempDirectoryCleanerJob(HubJeffreyDirs jeffreyDirs, Clock clock) {
         SchedulerJobsProperties.JobConfig config = schedulerJobsProperties.forType(JobType.TEMP_DIRECTORY_CLEANER);
-        Duration retention = parseDurationParam(config, PARAM_RETENTION, DEFAULT_TEMP_FILES_RETENTION);
 
-        return new TempDirectoryCleanerJob(jeffreyDirs.temp(), clock, config.period(), retention);
+        return new TempDirectoryCleanerJob(
+                jeffreyDirs.temp(), clock, config.period(), config.durationParam(PARAM_RETENTION));
     }
 
     @Bean
@@ -196,10 +187,9 @@ public class GlobalJobsConfiguration {
             HubPlatformRepositories platformRepositories, Clock clock) {
 
         SchedulerJobsProperties.JobConfig config = schedulerJobsProperties.forType(JobType.DELETED_PROJECTS_CLEANER);
-        Duration retention = parseDurationParam(config, PARAM_RETENTION, DEFAULT_DELETED_PROJECTS_RETENTION);
 
         return new DeletedProjectsCleanerJob(
-                platformRepositories.newProjectsRepository(), clock, config.period(), retention);
+                platformRepositories.newProjectsRepository(), clock, config.period(), config.durationParam(PARAM_RETENTION));
     }
 
     @Bean
@@ -212,49 +202,5 @@ public class GlobalJobsConfiguration {
             @Qualifier(GLOBAL_SCHEDULER) ObjectFactory<Scheduler> scheduler,
             ProjectsSynchronizerJob projectsSynchronizerJob) {
         return new SchedulerTriggerImpl(scheduler, projectsSynchronizerJob);
-    }
-
-    private static Duration parseDurationParam(
-            SchedulerJobsProperties.JobConfig config, String param, String fallbackIso) {
-        return Duration.parse(normalizeDuration(config.params().getOrDefault(param, fallbackIso)));
-    }
-
-    private static int parseInt(String value, int fallback) {
-        if (value == null || value.isBlank()) {
-            return fallback;
-        }
-        try {
-            return Integer.parseInt(value.trim());
-        } catch (NumberFormatException e) {
-            return fallback;
-        }
-    }
-
-    /**
-     * Allows users to write {@code 31d} / {@code 5m} / {@code 1h} in property
-     * values (Spring's {@code @DurationUnit}-style notation) by translating
-     * them to ISO-8601 before {@link Duration#parse} consumes them.
-     */
-    private static String normalizeDuration(String value) {
-        if (value == null || value.isBlank()) {
-            return "PT0S";
-        }
-        String trimmed = value.trim().toLowerCase();
-        if (trimmed.startsWith("p") || trimmed.startsWith("-p")) {
-            return value.trim().toUpperCase();
-        }
-        if (trimmed.endsWith("d")) {
-            return "P" + trimmed.substring(0, trimmed.length() - 1) + "D";
-        }
-        if (trimmed.endsWith("h")) {
-            return "PT" + trimmed.substring(0, trimmed.length() - 1) + "H";
-        }
-        if (trimmed.endsWith("m")) {
-            return "PT" + trimmed.substring(0, trimmed.length() - 1) + "M";
-        }
-        if (trimmed.endsWith("s")) {
-            return "PT" + trimmed.substring(0, trimmed.length() - 1) + "S";
-        }
-        return "PT" + trimmed + "S";
     }
 }
