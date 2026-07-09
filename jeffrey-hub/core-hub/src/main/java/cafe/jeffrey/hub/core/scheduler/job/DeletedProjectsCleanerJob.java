@@ -20,6 +20,7 @@ package cafe.jeffrey.hub.core.scheduler.job;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import cafe.jeffrey.hub.core.configuration.properties.SchedulerJobsProperties.JobConfig;
 import cafe.jeffrey.hub.core.scheduler.Job;
 import cafe.jeffrey.hub.core.scheduler.JobContext;
 import cafe.jeffrey.hub.persistence.api.ProjectsRepository;
@@ -39,6 +40,8 @@ public class DeletedProjectsCleanerJob implements Job {
 
     private static final Logger LOG = LoggerFactory.getLogger(DeletedProjectsCleanerJob.class);
 
+    private static final String PARAM_RETENTION = "retention";
+
     private final ProjectsRepository projectsRepository;
     private final Clock clock;
     private final Duration period;
@@ -47,13 +50,12 @@ public class DeletedProjectsCleanerJob implements Job {
     public DeletedProjectsCleanerJob(
             ProjectsRepository projectsRepository,
             Clock clock,
-            Duration period,
-            Duration retention) {
+            JobConfig config) {
 
         this.projectsRepository = projectsRepository;
         this.clock = clock;
-        this.period = period;
-        this.retention = retention;
+        this.period = config.period();
+        this.retention = config.durationParam(PARAM_RETENTION);
     }
 
     @Override

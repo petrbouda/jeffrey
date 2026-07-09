@@ -20,6 +20,7 @@ package cafe.jeffrey.hub.core.scheduler.job;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import cafe.jeffrey.hub.core.configuration.properties.SchedulerJobsProperties.JobConfig;
 import cafe.jeffrey.hub.core.scheduler.JobContext;
 
 import java.io.IOException;
@@ -30,6 +31,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -42,7 +44,8 @@ class TempDirectoryCleanerJobTest {
     private static final Duration RETENTION = Duration.ofHours(24);
 
     private static TempDirectoryCleanerJob job(Path tempDir) {
-        return new TempDirectoryCleanerJob(tempDir, FIXED_CLOCK, Duration.ofHours(1), RETENTION);
+        JobConfig config = new JobConfig(true, Duration.ofHours(1), Map.of("retention", "24h"));
+        return new TempDirectoryCleanerJob(tempDir, FIXED_CLOCK, config);
     }
 
     private static void setModified(Path path, Instant instant) throws IOException {

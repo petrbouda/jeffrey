@@ -20,6 +20,7 @@ package cafe.jeffrey.hub.core.scheduler.job;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import cafe.jeffrey.hub.core.configuration.properties.SchedulerJobsProperties.JobConfig;
 import cafe.jeffrey.hub.core.scheduler.Job;
 import cafe.jeffrey.hub.core.scheduler.JobContext;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
@@ -45,16 +46,18 @@ public class TempDirectoryCleanerJob implements Job {
 
     private static final Logger LOG = LoggerFactory.getLogger(TempDirectoryCleanerJob.class);
 
+    private static final String PARAM_RETENTION = "retention";
+
     private final Path tempDir;
     private final Clock clock;
     private final Duration period;
     private final Duration retention;
 
-    public TempDirectoryCleanerJob(Path tempDir, Clock clock, Duration period, Duration retention) {
+    public TempDirectoryCleanerJob(Path tempDir, Clock clock, JobConfig config) {
         this.tempDir = tempDir;
         this.clock = clock;
-        this.period = period;
-        this.retention = retention;
+        this.period = config.period();
+        this.retention = config.durationParam(PARAM_RETENTION);
     }
 
     @Override

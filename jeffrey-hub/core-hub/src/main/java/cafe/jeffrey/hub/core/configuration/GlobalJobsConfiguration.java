@@ -66,13 +66,6 @@ public class GlobalJobsConfiguration {
 
     private static final Logger LOG = LoggerFactory.getLogger(GlobalJobsConfiguration.class);
 
-    // Param KEYS only — the default VALUES live exclusively in scheduler-defaults.properties
-    // (jeffrey.hub.scheduler.jobs.<job>.params.<key>), overridable via application.properties
-    private static final String PARAM_MAX_VERSIONS = "max-versions";
-    private static final String PARAM_QUEUE_EVENTS_RETENTION = "queue-events-retention";
-    private static final String PARAM_PROCESSED_FILES_RETENTION = "processed-files-retention";
-    private static final String PARAM_RETENTION = "retention";
-
     private final WorkspacesManager workspacesManager;
     private final SchedulerJobsProperties schedulerJobsProperties;
 
@@ -147,13 +140,11 @@ public class GlobalJobsConfiguration {
         SchedulerJobsProperties.JobConfig config =
                 schedulerJobsProperties.forType(JobType.PROFILER_SETTINGS_SYNCHRONIZER);
 
-        int maxVersions = config.intParam(PARAM_MAX_VERSIONS);
-
         return new ProfilerSettingsSynchronizerJob(
                 config.period(),
                 platformRepositories.newProfilerRepository(),
                 workspacesManager,
-                new ProfilerSettingsSynchronizerJobDescriptor(maxVersions),
+                ProfilerSettingsSynchronizerJobDescriptor.of(config.params()),
                 platformRepositories);
     }
 
@@ -163,33 +154,29 @@ public class GlobalJobsConfiguration {
             HubJeffreyDirs jeffreyDirs,
             Clock clock) {
 
-        SchedulerJobsProperties.JobConfig config = schedulerJobsProperties.forType(JobType.WORKSPACE_EVENTS_CLEANER);
-
         return new WorkspaceEventsCleanerJob(
                 workspaceEventQueue,
                 new FolderQueue(jeffreyDirs.workspaceEvents(), clock),
                 clock,
-                config.period(),
-                config.durationParam(PARAM_QUEUE_EVENTS_RETENTION),
-                config.durationParam(PARAM_PROCESSED_FILES_RETENTION));
+                schedulerJobsProperties.forType(JobType.WORKSPACE_EVENTS_CLEANER));
     }
 
     @Bean
     public TempDirectoryCleanerJob tempDirectoryCleanerJob(HubJeffreyDirs jeffreyDirs, Clock clock) {
-        SchedulerJobsProperties.JobConfig config = schedulerJobsProperties.forType(JobType.TEMP_DIRECTORY_CLEANER);
-
         return new TempDirectoryCleanerJob(
-                jeffreyDirs.temp(), clock, config.period(), config.durationParam(PARAM_RETENTION));
+                jeffreyDirs.temp(),
+                clock,
+                schedulerJobsProperties.forType(JobType.TEMP_DIRECTORY_CLEANER));
     }
 
     @Bean
     public DeletedProjectsCleanerJob deletedProjectsCleanerJob(
             HubPlatformRepositories platformRepositories, Clock clock) {
 
-        SchedulerJobsProperties.JobConfig config = schedulerJobsProperties.forType(JobType.DELETED_PROJECTS_CLEANER);
-
         return new DeletedProjectsCleanerJob(
-                platformRepositories.newProjectsRepository(), clock, config.period(), config.durationParam(PARAM_RETENTION));
+                platformRepositories.newProjectsRepository(),
+                clock,
+                schedulerJobsProperties.forType(JobType.DELETED_PROJECTS_CLEANER));
     }
 
     @Bean

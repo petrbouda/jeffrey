@@ -20,6 +20,7 @@ package cafe.jeffrey.hub.core.scheduler.job;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import cafe.jeffrey.hub.core.configuration.properties.SchedulerJobsProperties.JobConfig;
 import cafe.jeffrey.shared.folderqueue.FolderQueue;
 import cafe.jeffrey.shared.persistentqueue.PersistentQueue;
 import cafe.jeffrey.hub.core.scheduler.Job;
@@ -40,6 +41,9 @@ public class WorkspaceEventsCleanerJob implements Job {
 
     private static final Logger LOG = LoggerFactory.getLogger(WorkspaceEventsCleanerJob.class);
 
+    private static final String PARAM_QUEUE_EVENTS_RETENTION = "queue-events-retention";
+    private static final String PARAM_PROCESSED_FILES_RETENTION = "processed-files-retention";
+
     private final PersistentQueue<?> persistentQueue;
     private final FolderQueue folderQueue;
     private final Clock clock;
@@ -51,16 +55,14 @@ public class WorkspaceEventsCleanerJob implements Job {
             PersistentQueue<?> persistentQueue,
             FolderQueue folderQueue,
             Clock clock,
-            Duration period,
-            Duration queueEventsRetention,
-            Duration processedFilesRetention) {
+            JobConfig config) {
 
         this.persistentQueue = persistentQueue;
         this.folderQueue = folderQueue;
         this.clock = clock;
-        this.period = period;
-        this.queueEventsRetention = queueEventsRetention;
-        this.processedFilesRetention = processedFilesRetention;
+        this.period = config.period();
+        this.queueEventsRetention = config.durationParam(PARAM_QUEUE_EVENTS_RETENTION);
+        this.processedFilesRetention = config.durationParam(PARAM_PROCESSED_FILES_RETENTION);
     }
 
     @Override

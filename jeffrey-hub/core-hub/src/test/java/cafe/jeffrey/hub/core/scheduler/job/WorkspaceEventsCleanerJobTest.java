@@ -22,6 +22,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import cafe.jeffrey.hub.core.configuration.properties.SchedulerJobsProperties.JobConfig;
 import cafe.jeffrey.shared.folderqueue.FolderQueue;
 import cafe.jeffrey.shared.persistentqueue.DuckDBPersistentQueue;
 import cafe.jeffrey.shared.persistentqueue.EventSerializer;
@@ -78,13 +79,15 @@ class WorkspaceEventsCleanerJobTest {
                     }
                 }, FIXED_CLOCK);
 
+        JobConfig config = new JobConfig(true, PERIOD, Map.of(
+                "queue-events-retention", "31d",
+                "processed-files-retention", "31d"));
+
         return new WorkspaceEventsCleanerJob(
                 queue,
                 new FolderQueue(queueDir, FIXED_CLOCK),
                 FIXED_CLOCK,
-                PERIOD,
-                RETENTION,
-                RETENTION);
+                config);
     }
 
     private static long countRows(DataSource dataSource, String table) {
