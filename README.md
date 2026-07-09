@@ -36,10 +36,6 @@ docker run -it --network host petrbouda/microscope-examples
 
 Then open **http://localhost:8080** and start clicking. That's it. 🎉
 
-<p align="center">
-  <img src="static/screenshots/flamegraph.png" alt="Jeffrey flamegraph with timeseries and frame details" width="900" />
-</p>
-
 ---
 
 ## ✨ What I can do for you
@@ -52,18 +48,10 @@ Interactive flamegraphs for **every** JFR event that carries a stacktrace: CPU, 
 allocations, locks, and more. Shipped a change and want to know if it regressed? Put two profiles
 side by side and let the **differential flamegraph** show you exactly what got worse.
 
-<p align="center">
-  <img src="static/screenshots/differential.png" alt="Differential flamegraph comparing two profiles" width="820" />
-</p>
-
 ### ⏱️ Sub-second timelines
 
 Averages hide the spike that took your service down. **Zoom into the millisecond your service
 stalled** with sub-second heatmaps — and compare them across profiles.
-
-<p align="center">
-  <img src="static/screenshots/subsecond.png" alt="Sub-second heatmap timeline" width="820" />
-</p>
 
 ### 🛡️ Guardian & Auto-Analysis — I find the problems for you
 
@@ -71,28 +59,16 @@ You don't need to be a JVM wizard. Dozens of automated checks flag the usual cul
 **lock contention, GC pressure, safepoint outliers, HashMap collisions, excessive allocations** —
 and color-code them OK / Warning / Critical so you know where to look first.
 
-<p align="center">
-  <img src="static/screenshots/guardian.png" alt="Guardian automated analysis with color-coded results" width="900" />
-</p>
-
 ### 📊 Purpose-built JVM dashboards
 
 Specialized views instead of a raw event dump: **Garbage Collection**, **Thread Statistics &
 Timeline**, **JIT Compilation**, **Heap Memory**, JVM flags, event types and a full event viewer.
-
-<p align="center">
-  <img src="static/screenshots/thread-timeline.png" alt="Thread timeline view" width="900" />
-</p>
 
 ### 🌐 Tech dashboards — observability without the agent zoo
 
 Paired with the [Jeffrey Events](https://github.com/petrbouda/jeffrey-events) library, get
 application-level dashboards straight from JFR: **HTTP server & client**, **JDBC statements**,
 **connection pools**, and method tracing — response times, P99s, success rates and slowest traces.
-
-<p align="center">
-  <img src="static/screenshots/tech-dashboards.png" alt="HTTP server exchange dashboard" width="900" />
-</p>
 
 ### 🩺 Heap dump forensics
 
