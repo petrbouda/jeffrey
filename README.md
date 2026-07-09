@@ -57,10 +57,12 @@ builds a profile you can explore. That's it. 🎉
 
 ## 🧩 The Jeffrey ecosystem
 
-Microscope and Hub are the core. A few friends round out the toolbox:
+The complete toolbox — Microscope and Hub are the core, the rest round it out:
 
 | Product | What it does |
 |---|---|
+| **Jeffrey Microscope** | The standalone analyzer. Open a JFR recording or heap dump — or connect to a Hub — and read flamegraphs, sub-second timelines, JVM & tech dashboards, plus an AI assistant. Runs as a JAR or container. |
+| **Jeffrey Hub** | A containerised collector for Kubernetes. Collects JFR recordings, artifacts and lifecycle events from your running services via shared volume, and serves them over gRPC to Microscope. |
 | **[IntelliJ Plugin](https://plugins.jetbrains.com/plugin/31963-jeffrey-microscope)** | Jump from any flamegraph frame straight to the source line in your open IntelliJ — Java & Kotlin — or pull inline source back into the profile. |
 | **Provisioner** | One HOCON file lays out your workspace / project / session tree, registers sessions with the Hub, and generates the JVM argfile that starts your app under the profiler. |
 | **Jeffrey JIB** | A Jib (Gradle/Maven) extension that wraps your container entrypoint so profiling starts before your app does — no command override, no binaries baked into the image. |
