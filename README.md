@@ -186,4 +186,3 @@ builds a profile you can explore.
 ## 📄 License
 
 Jeffrey is released under the **[GNU Affero General Public License v3.0](LICENSE)** (AGPL-3.0).
-The IntelliJ plugin is licensed separately under **Apache-2.0**.
