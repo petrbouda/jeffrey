@@ -66,7 +66,7 @@ onMounted(() => {
       <p>All native libraries mapped into the process with their mapped address-range sizes, from <code>jdk.NativeLibrary</code>. Useful to confirm which JNI-backed dependencies are present when chasing a native leak suspect.</p>
 
       <h2 id="native-library-loads">Native Library Loads</h2>
-      <p>A dedicated page (<strong>Native Library Loads</strong> in the sidebar) for the load/unload <em>operations</em> from <code>jdk.NativeLibraryLoad</code> / <code>jdk.NativeLibraryUnload</code> (JDK 24+) — unlike the static inventory above, these carry each operation's <strong>duration</strong> and a <strong>success</strong> flag. The Operations tab lists every load/unload slowest-first (with a failures-only filter); a failed load (a missing or ABI-incompatible native dependency) is the earliest signal of an eventual <code>UnsatisfiedLinkError</code>. The Timeline tab shows loads/unloads per second — loads cluster at startup, so later bursts reveal lazy JNI loading or class-loader churn.</p>
+      <p>The load/unload <em>operations</em> from <code>jdk.NativeLibraryLoad</code> / <code>jdk.NativeLibraryUnload</code> (JDK 24+) — unlike the static inventory above, these carry each operation's <strong>duration</strong> and a <strong>success</strong> flag. The Operations tab lists every load/unload slowest-first (with a failures-only filter); a failed load (a missing or ABI-incompatible native dependency) is the earliest signal of an eventual <code>UnsatisfiedLinkError</code>. The Timeline tab shows loads/unloads per second — loads cluster at startup, so later bursts reveal lazy JNI loading or class-loader churn.</p>
 
       <h2 id="events">Source Events</h2>
       <ul>
