@@ -18,12 +18,6 @@
 
 package cafe.jeffrey.hub.core.configuration;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.ObjectFactory;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import cafe.jeffrey.hub.core.HubJeffreyDirs;
 import cafe.jeffrey.hub.core.appinitializer.ApplicationInitializer;
 import cafe.jeffrey.hub.core.appinitializer.DefaultWorkspaceInitializer;
@@ -31,20 +25,23 @@ import cafe.jeffrey.hub.core.configuration.properties.DefaultWorkspaceProperties
 import cafe.jeffrey.hub.core.configuration.properties.SchedulerJobsProperties;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
 import cafe.jeffrey.hub.core.scheduler.*;
-import cafe.jeffrey.hub.core.scheduler.JobRegistry;
-import cafe.jeffrey.hub.core.scheduler.job.DeletedProjectsCleanerJob;
-import cafe.jeffrey.hub.core.scheduler.job.TempDirectoryCleanerJob;
-import cafe.jeffrey.hub.core.scheduler.job.WorkspaceEventsCleanerJob;
-import cafe.jeffrey.hub.core.scheduler.job.ProjectsSynchronizerJob;
-import cafe.jeffrey.hub.core.scheduler.job.WorkspaceEventsReplicatorJob;
-import cafe.jeffrey.hub.core.scheduler.job.ProfilerSettingsSynchronizerJob;
+import cafe.jeffrey.hub.core.scheduler.job.*;
 import cafe.jeffrey.hub.core.scheduler.job.descriptor.ProfilerSettingsSynchronizerJobDescriptor;
 import cafe.jeffrey.hub.core.workspace.consumer.WorkspaceEventConsumer;
 import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
 import cafe.jeffrey.shared.common.model.job.JobType;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceEvent;
 import cafe.jeffrey.shared.folderqueue.FolderQueue;
+import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
 import cafe.jeffrey.shared.persistentqueue.PersistentQueue;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ObjectFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.jdbc.datasource.DataSourceTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.Clock;
 import java.util.List;
@@ -106,11 +103,13 @@ public class GlobalJobsConfiguration {
     @Bean
     public ProjectsSynchronizerJob projectsSynchronizerJob(
             List<WorkspaceEventConsumer> consumers,
-            PersistentQueue<WorkspaceEvent> workspaceEventQueue) {
+            PersistentQueue<WorkspaceEvent> workspaceEventQueue,
+            DatabaseClientProvider databaseClientProvider) {
 
         return new ProjectsSynchronizerJob(
                 consumers,
                 workspaceEventQueue,
+                new TransactionTemplate(new DataSourceTransactionManager(databaseClientProvider.dataSource())),
                 workspacesManager,
                 schedulerJobsProperties.forType(JobType.PROJECTS_SYNCHRONIZER).period());
     }

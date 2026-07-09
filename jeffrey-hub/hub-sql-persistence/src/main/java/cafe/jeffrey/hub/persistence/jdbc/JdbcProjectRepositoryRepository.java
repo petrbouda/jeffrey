@@ -36,10 +36,13 @@ import java.util.Optional;
 
 public class JdbcProjectRepositoryRepository implements ProjectRepositoryRepository {
 
+    // ON CONFLICT DO NOTHING keeps the insert idempotent: the workspace-event pipeline
+    // delivers at-least-once, so a replayed event must not fail on the primary key
     //language=sql
     private static final String INSERT_REPOSITORY = """
             INSERT INTO repositories (project_id, repository_id, repository_type, workspaces_path, relative_workspace_path, relative_project_path)
-            VALUES (:project_id, :repository_id, :repository_type, :workspaces_path, :relative_workspace_path, :relative_project_path)""";
+            VALUES (:project_id, :repository_id, :repository_type, :workspaces_path, :relative_workspace_path, :relative_project_path)
+            ON CONFLICT DO NOTHING""";
 
     //language=sql
     private static final String ALL_IN_PROJECT = "SELECT * FROM repositories WHERE project_id = :project_id";

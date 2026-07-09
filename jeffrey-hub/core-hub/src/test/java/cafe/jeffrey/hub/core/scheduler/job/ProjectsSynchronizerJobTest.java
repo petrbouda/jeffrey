@@ -37,6 +37,7 @@ import cafe.jeffrey.shared.common.model.workspace.WorkspaceLocation;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceStatus;
 import cafe.jeffrey.shared.persistentqueue.PersistentQueue;
 import cafe.jeffrey.shared.persistentqueue.QueueEntry;
+import org.springframework.transaction.support.TransactionOperations;
 
 import java.nio.file.Path;
 import java.time.Duration;
@@ -97,7 +98,8 @@ class ProjectsSynchronizerJobTest {
         lenient().when(consumer.isApplicable(any())).thenReturn(true);
 
         job = new ProjectsSynchronizerJob(
-                List.of(consumer), workspaceEventQueue, workspacesManager, Duration.ofSeconds(30));
+                List.of(consumer), workspaceEventQueue, TransactionOperations.withoutTransaction(),
+                workspacesManager, Duration.ofSeconds(30));
     }
 
     private static QueueEntry<WorkspaceEvent> entry(long offset) {
@@ -128,12 +130,15 @@ class ProjectsSynchronizerJobTest {
     class SuccessfulProcessing {
 
         @Test
-        void processesAllEvents_andAcknowledgesLatestOffset() {
+        void processesAllEvents_andAcknowledgesEachOffset() {
             queueReturns(entry(1), entry(2), entry(3));
 
             job.execute(JobContext.EMPTY);
 
             verify(consumer, times(3)).on(any(), eq(projectsManager));
+            // Each event is acknowledged within its own processing transaction
+            verify(workspaceEventQueue).acknowledge(WORKSPACE_ID, CONSUMER_ID, 1);
+            verify(workspaceEventQueue).acknowledge(WORKSPACE_ID, CONSUMER_ID, 2);
             verify(workspaceEventQueue).acknowledge(WORKSPACE_ID, CONSUMER_ID, 3);
         }
 
@@ -161,6 +166,8 @@ class ProjectsSynchronizerJobTest {
             // queue, and event 3 must not overtake it
             verify(consumer, times(2)).on(any(), eq(projectsManager));
             verify(workspaceEventQueue).acknowledge(WORKSPACE_ID, CONSUMER_ID, 1);
+            verify(workspaceEventQueue, never()).acknowledge(WORKSPACE_ID, CONSUMER_ID, 2);
+            verify(workspaceEventQueue, never()).acknowledge(WORKSPACE_ID, CONSUMER_ID, 3);
         }
 
         @Test
@@ -198,11 +205,13 @@ class ProjectsSynchronizerJobTest {
             }
             verify(workspaceEventQueue, never()).acknowledge(any(), any(), anyLong());
 
-            // The fifth attempt exhausts the retry budget: the poison event is dropped and
-            // the following event is finally processed and acknowledged
+            // The fifth attempt exhausts the retry budget: the poison event is dropped
+            // (acknowledged without processing) and the following event is finally
+            // processed and acknowledged
             job.execute(JobContext.EMPTY);
 
             verify(consumer).on(argThat(e -> e != null && e.eventId() == 2L), eq(projectsManager));
+            verify(workspaceEventQueue).acknowledge(WORKSPACE_ID, CONSUMER_ID, 1);
             verify(workspaceEventQueue).acknowledge(WORKSPACE_ID, CONSUMER_ID, 2);
         }
     }

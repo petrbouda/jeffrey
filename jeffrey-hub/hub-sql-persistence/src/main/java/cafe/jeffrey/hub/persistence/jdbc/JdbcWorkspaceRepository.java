@@ -70,9 +70,7 @@ public class JdbcWorkspaceRepository implements WorkspaceRepository {
         MapSqlParameterSource paramSource = new MapSqlParameterSource()
                 .addValue("workspace_id", workspaceId);
 
-        for (String sql : DELETE_WORKSPACE_CASCADE) {
-            databaseClient.delete(StatementLabel.DELETE_WORKSPACE, sql, paramSource);
-        }
+        databaseClient.deleteCascade(StatementLabel.DELETE_WORKSPACE, DELETE_WORKSPACE_CASCADE, paramSource);
     }
 
     @Override

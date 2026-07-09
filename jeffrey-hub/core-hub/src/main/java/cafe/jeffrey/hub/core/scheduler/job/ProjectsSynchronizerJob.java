@@ -34,6 +34,7 @@ import cafe.jeffrey.shared.common.model.job.JobType;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceEvent;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceEventType;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceInfo;
+import org.springframework.transaction.support.TransactionOperations;
 
 import java.time.Duration;
 import java.util.Comparator;
@@ -53,18 +54,21 @@ public class ProjectsSynchronizerJob extends WorkspaceJob<ProjectsSynchronizerJo
 
     private final List<WorkspaceEventConsumer> consumers;
     private final PersistentQueue<WorkspaceEvent> workspaceEventQueue;
+    private final TransactionOperations transactionOperations;
     private final Duration period;
     private final EventProcessingAttempts processingAttempts = new EventProcessingAttempts();
 
     public ProjectsSynchronizerJob(
             List<WorkspaceEventConsumer> consumers,
             PersistentQueue<WorkspaceEvent> workspaceEventQueue,
+            TransactionOperations transactionOperations,
             WorkspacesManager workspacesManager,
             Duration period) {
 
         super(workspacesManager, new ProjectsSynchronizerJobDescriptor());
         this.consumers = consumers;
         this.workspaceEventQueue = workspaceEventQueue;
+        this.transactionOperations = transactionOperations;
         this.period = period;
     }
 
@@ -88,32 +92,35 @@ public class ProjectsSynchronizerJob extends WorkspaceJob<ProjectsSynchronizerJo
                 .sorted(Comparator.comparingLong(QueueEntry::offset))
                 .toList();
 
-        long latestOffset = -1;
-
         for (QueueEntry<WorkspaceEvent> entry : sortedEntries) {
             WorkspaceEvent event = fromQueueEntry(entry);
             try {
-                if (shouldSkipEvent(event, projectsManager)) {
-                    LOG.debug("Skipping event for unknown or deleted project: event_type={} project_id={}",
-                            event.eventType(), event.projectId());
-                    latestOffset = entry.offset();
-                    continue;
-                }
-
-                for (WorkspaceEventConsumer consumer : consumers) {
-                    if (consumer.isApplicable(event)) {
-                        consumer.on(event, projectsManager);
-                        LOG.debug("Successfully processed: event_type={} event_id={} consumer={}",
-                                event.eventType(), entry.offset(), consumer.getClass().getSimpleName());
+                // One transaction per event: every consumer write AND the offset acknowledge
+                // commit together or roll back together. A failure cannot leave partial state
+                // behind (e.g. a created session with a stale instance status), and a processed
+                // event can never be replayed after its acknowledge was committed.
+                transactionOperations.executeWithoutResult(_ -> {
+                    if (shouldSkipEvent(event, projectsManager)) {
+                        LOG.debug("Skipping event for unknown or deleted project: event_type={} project_id={}",
+                                event.eventType(), event.projectId());
+                    } else {
+                        for (WorkspaceEventConsumer consumer : consumers) {
+                            if (consumer.isApplicable(event)) {
+                                consumer.on(event, projectsManager);
+                                LOG.debug("Successfully processed: event_type={} event_id={} consumer={}",
+                                        event.eventType(), entry.offset(), consumer.getClass().getSimpleName());
+                            }
+                        }
                     }
-                }
+                    workspaceEventQueue.acknowledge(workspaceId, CONSUMER.name(), entry.offset());
+                });
                 processingAttempts.clear(workspaceId);
             } catch (Exception e) {
                 JfrMessageEmitter.eventProcessingFailed(event.eventType().name(), event.projectId(), e.getMessage());
 
                 int attempts = processingAttempts.recordFailure(workspaceId, entry.offset());
                 if (attempts < MAX_PROCESSING_ATTEMPTS) {
-                    // Do not advance past the failed event: it stays at the head of the queue and
+                    // The transaction rolled back, so the offset stays before the failed event: it
                     // is retried (together with everything after it) on the next tick. Events are
                     // ordered, so later events must not overtake a failed one.
                     LOG.warn("Failed to process workspace event, will retry: event_type={} event_id={} " +
@@ -123,26 +130,22 @@ public class ProjectsSynchronizerJob extends WorkspaceJob<ProjectsSynchronizerJo
                 }
 
                 // Poison message: drop it after the retry budget is exhausted so it cannot block
-                // the queue forever, and continue with the remaining events.
+                // the queue forever — acknowledge it and continue with the remaining events.
                 LOG.error("Dropping workspace event after repeated failures: event_type={} event_id={} " +
                                 "project_id={} attempts={}",
                         event.eventType(), entry.offset(), event.projectId(), attempts, e);
+                acknowledgeDroppedEvent(workspaceId, entry.offset());
                 processingAttempts.clear(workspaceId);
             }
-            latestOffset = entry.offset();
         }
+    }
 
-        // Acknowledge the latest processed offset
-        if (latestOffset != -1) {
-            try {
-                workspaceEventQueue.acknowledge(workspaceId, CONSUMER.name(), latestOffset);
-
-                LOG.info("Updated consumer state for workspace: workspace_id={} consumer={} offset={}",
-                        workspaceId, CONSUMER, latestOffset);
-
-            } catch (Exception e) {
-                LOG.error("Failed to update consumer state for workspace: {}", workspaceId, e);
-            }
+    private void acknowledgeDroppedEvent(String workspaceId, long offset) {
+        try {
+            workspaceEventQueue.acknowledge(workspaceId, CONSUMER.name(), offset);
+        } catch (Exception e) {
+            LOG.error("Failed to acknowledge dropped workspace event: workspace_id={} offset={}",
+                    workspaceId, offset, e);
         }
     }
 

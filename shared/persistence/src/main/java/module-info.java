@@ -24,6 +24,7 @@ module cafe.jeffrey.shared.persistence {
     requires cafe.jeffrey.jfr.events;
     requires transitive com.zaxxer.hikari;
     requires transitive spring.jdbc;
+    requires spring.tx;
     requires tools.jackson.databind;
 
     exports cafe.jeffrey.shared.persistence;

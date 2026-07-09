@@ -88,10 +88,13 @@ public class JdbcProjectInstanceRepository implements ProjectInstanceRepository 
             WHERE rs.instance_id = :instance_id
             ORDER BY rs.created_at DESC""";
 
+    // ON CONFLICT DO NOTHING keeps the insert idempotent: the workspace-event pipeline
+    // delivers at-least-once, so a replayed event must not fail on the primary key
     //language=SQL
     private static final String INSERT_PROJECT_INSTANCE = """
             INSERT INTO project_instances (instance_id, project_id, instance_name, status, started_at)
-            VALUES (:instance_id, :project_id, :instance_name, :status, :started_at)""";
+            VALUES (:instance_id, :project_id, :instance_name, :status, :started_at)
+            ON CONFLICT DO NOTHING""";
 
     //language=SQL
     private static final String UPDATE_STATUS = """

@@ -72,9 +72,7 @@ public class JdbcProjectRepository implements ProjectRepository {
         MapSqlParameterSource paramSource = new MapSqlParameterSource()
                 .addValue("project_id", projectId);
 
-        for (String sql : DELETE_PROJECT_CASCADE) {
-            databaseClient.delete(StatementLabel.DELETE_PROJECT, sql, paramSource);
-        }
+        databaseClient.deleteCascade(StatementLabel.DELETE_PROJECT, DELETE_PROJECT_CASCADE, paramSource);
     }
 
     @Override

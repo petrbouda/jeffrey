@@ -27,6 +27,9 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcOperations;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.jdbc.core.support.SqlLobValue;
+import org.springframework.jdbc.datasource.DataSourceTransactionManager;
+import org.springframework.transaction.support.TransactionOperations;
+import org.springframework.transaction.support.TransactionTemplate;
 import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.shared.persistence.GroupLabel;
 import cafe.jeffrey.shared.persistence.StatementLabel;
@@ -49,11 +52,13 @@ public class DatabaseClient {
     private static final String RENAME_TABLE_TEMPLATE = "ALTER TABLE %s RENAME TO %s";
 
     private final NamedParameterJdbcOperations delegate;
+    private final TransactionOperations transactionOperations;
 
     private final String groupLabel;
 
     public DatabaseClient(DataSource dataSource, GroupLabel groupLabel) {
         this.delegate = new NamedParameterJdbcTemplate(dataSource);
+        this.transactionOperations = new TransactionTemplate(new DataSourceTransactionManager(dataSource));
         this.groupLabel = groupLabel.name().toLowerCase();
     }
 
@@ -174,6 +179,25 @@ public class DatabaseClient {
         }
 
         return rows;
+    }
+
+    /**
+     * Executes a multi-statement delete cascade atomically: either every statement commits,
+     * or a failure rolls all of them back — a half-executed cascade would strand orphaned
+     * child rows. Joins an already active transaction on the same {@code DataSource} if one
+     * is bound to the calling thread.
+     *
+     * @return affected rows of the LAST statement (by convention the root-entity delete)
+     */
+    public int deleteCascade(StatementLabel statement, List<String> sqls, SqlParameterSource paramSource) {
+        Integer rows = transactionOperations.execute(_ -> {
+            int lastStatementRows = 0;
+            for (String sql : sqls) {
+                lastStatementRows = delete(statement, sql, paramSource);
+            }
+            return lastStatementRows;
+        });
+        return rows != null ? rows : 0;
     }
 
     public int delete(StatementLabel statement, String sql) {
