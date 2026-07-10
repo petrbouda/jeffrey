@@ -115,6 +115,8 @@ public class ProjectsSynchronizerJob extends WorkspaceJob<ProjectsSynchronizerJo
                     workspaceEventQueue.acknowledge(workspaceId, CONSUMER.name(), entry.offset());
                 });
                 processingAttempts.clear(workspaceId);
+                context.report().item("workspace=" + workspaceId + " processed: " + event.eventType()
+                        + " project=" + event.projectId());
             } catch (Exception e) {
                 JfrMessageEmitter.eventProcessingFailed(event.eventType().name(), event.projectId(), e.getMessage());
 
@@ -126,6 +128,9 @@ public class ProjectsSynchronizerJob extends WorkspaceJob<ProjectsSynchronizerJo
                     LOG.warn("Failed to process workspace event, will retry: event_type={} event_id={} " +
                                     "project_id={} attempts={} max_attempts={}",
                             event.eventType(), entry.offset(), event.projectId(), attempts, MAX_PROCESSING_ATTEMPTS, e);
+                    context.report().failure("workspace=" + workspaceId + " failed (will retry): "
+                            + event.eventType() + " project=" + event.projectId()
+                            + " attempts=" + attempts + " error=" + e);
                     break;
                 }
 
@@ -134,6 +139,8 @@ public class ProjectsSynchronizerJob extends WorkspaceJob<ProjectsSynchronizerJo
                 LOG.error("Dropping workspace event after repeated failures: event_type={} event_id={} " +
                                 "project_id={} attempts={}",
                         event.eventType(), entry.offset(), event.projectId(), attempts, e);
+                context.report().failure("workspace=" + workspaceId + " dropped poison event: "
+                        + event.eventType() + " project=" + event.projectId() + " attempts=" + attempts);
                 acknowledgeDroppedEvent(workspaceId, entry.offset());
                 processingAttempts.clear(workspaceId);
             }

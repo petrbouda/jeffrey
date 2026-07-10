@@ -76,6 +76,7 @@ public abstract class WorkspaceJob<T extends JobDescriptor<T>> implements Job {
             } catch (Exception e) {
                 LOG.error("Job failed for workspace, continuing with remaining workspaces: " +
                         "job={} workspace_id={}", simpleName, workspaceInfo.id(), e);
+                context.report().failure("workspace=" + workspaceInfo.id() + " failed: " + e);
             }
         }
     }

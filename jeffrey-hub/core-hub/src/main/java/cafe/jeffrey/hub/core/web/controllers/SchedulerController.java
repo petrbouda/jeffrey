@@ -21,7 +21,9 @@ package cafe.jeffrey.hub.core.web.controllers;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import cafe.jeffrey.hub.core.resources.response.JobExecutionResponse;
 import cafe.jeffrey.hub.core.scheduler.JobRegistry;
+import cafe.jeffrey.hub.core.scheduler.history.JobExecutionHistory;
 import cafe.jeffrey.shared.common.model.job.JobInfo;
 
 import java.util.List;
@@ -29,20 +31,30 @@ import java.util.List;
 /**
  * Read-only view of all scheduler jobs configured on this server. The list is
  * resolved from {@code application.properties} at startup; to change a job's
- * settings edit the properties file and restart the server.
+ * settings edit the properties file and restart the server. The execution history
+ * is an in-memory debugging aid (bounded per job type, lost on restart).
  */
 @RestController
 @RequestMapping("/api/internal/scheduler")
 public class SchedulerController {
 
     private final JobRegistry jobRegistry;
+    private final JobExecutionHistory jobExecutionHistory;
 
-    public SchedulerController(JobRegistry jobRegistry) {
+    public SchedulerController(JobRegistry jobRegistry, JobExecutionHistory jobExecutionHistory) {
         this.jobRegistry = jobRegistry;
+        this.jobExecutionHistory = jobExecutionHistory;
     }
 
     @GetMapping("/jobs")
     public List<JobInfo> jobs() {
         return jobRegistry.all();
+    }
+
+    @GetMapping("/executions")
+    public List<JobExecutionResponse> executions() {
+        return jobExecutionHistory.all().stream()
+                .map(JobExecutionResponse::from)
+                .toList();
     }
 }

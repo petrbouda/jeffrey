@@ -86,6 +86,10 @@ public class JdbcProjectsRepository implements ProjectsRepository {
             WHERE namespace IS NOT NULL AND deleted_at IS NULL
             ORDER BY namespace""";
 
+    //language=SQL
+    private static final String SELECT_DELETED_PROJECT_NAMES_FOR_PURGE =
+            "SELECT project_name FROM projects WHERE deleted_at < :deleted_before";
+
     /**
      * Children are normally removed when the project is soft-deleted; the child deletes here
      * are defensive so a purge never strands rows that survived an interrupted soft-delete.
@@ -179,12 +183,22 @@ public class JdbcProjectsRepository implements ProjectsRepository {
     }
 
     @Override
-    public int purgeDeletedProjects(Instant deletedBefore) {
+    public List<String> purgeDeletedProjects(Instant deletedBefore) {
         MapSqlParameterSource paramSource = new MapSqlParameterSource()
                 .addValue("deleted_before", deletedBefore.atOffset(ZoneOffset.UTC));
 
+        // Resolved before the cascade removes the rows; the scheduler is the only writer
+        // of tombstones, so both statements see the same set of expired projects
+        List<String> purgedNames = databaseClient.query(
+                StatementLabel.FIND_DELETED_PROJECT_NAMES_FOR_PURGE, SELECT_DELETED_PROJECT_NAMES_FOR_PURGE,
+                paramSource, (rs, _) -> rs.getString("project_name"));
+        if (purgedNames.isEmpty()) {
+            return List.of();
+        }
+
         // The last statement of the cascade deletes the projects rows themselves
-        return databaseClient.deleteCascade(
+        databaseClient.deleteCascade(
                 StatementLabel.PURGE_DELETED_PROJECTS, PURGE_DELETED_PROJECTS_CASCADE, paramSource);
+        return purgedNames;
     }
 }

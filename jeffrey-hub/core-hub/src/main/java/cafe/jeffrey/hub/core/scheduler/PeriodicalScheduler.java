@@ -20,10 +20,17 @@ package cafe.jeffrey.hub.core.scheduler;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import cafe.jeffrey.hub.core.scheduler.history.CollectingJobExecutionReport;
+import cafe.jeffrey.hub.core.scheduler.history.JobExecution;
+import cafe.jeffrey.hub.core.scheduler.history.JobExecutionHistory;
+import cafe.jeffrey.hub.core.scheduler.history.JobExecutionStatus;
 import cafe.jeffrey.shared.common.CompletableFutures;
 import cafe.jeffrey.shared.common.Schedulers;
+import cafe.jeffrey.shared.common.measure.Measuring;
 
+import java.time.Clock;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.*;
 
@@ -34,11 +41,15 @@ public class PeriodicalScheduler implements Scheduler {
     private static final Duration DEFAULT_POLLING_DURATION = Duration.ofMillis(10);
 
     private final List<? extends Job> jobs;
+    private final JobExecutionHistory executionHistory;
+    private final Clock clock;
 
     private ScheduledExecutorService scheduler;
 
-    public PeriodicalScheduler(List<? extends Job> jobs) {
+    public PeriodicalScheduler(List<? extends Job> jobs, JobExecutionHistory executionHistory, Clock clock) {
         this.jobs = jobs;
+        this.executionHistory = executionHistory;
+        this.clock = clock;
     }
 
     @Override
@@ -49,7 +60,8 @@ public class PeriodicalScheduler implements Scheduler {
 
             for (Job job : jobs) {
                 scheduler.scheduleAtFixedRate(
-                        new ExecutedJob(job, JobContext.EMPTY), 0, job.period().toMillis(), TimeUnit.MILLISECONDS);
+                        new ExecutedJob(job, JobContext.EMPTY, executionHistory, clock),
+                        0, job.period().toMillis(), TimeUnit.MILLISECONDS);
             }
         }
     }
@@ -62,7 +74,7 @@ public class PeriodicalScheduler implements Scheduler {
                     new IllegalStateException("Scheduler is not started: job_type=" + job.jobType()));
         }
 
-        Future<Void> future = scheduler.submit(new ExecutedJob(job, context), null);
+        Future<Void> future = scheduler.submit(new ExecutedJob(job, context, executionHistory, clock), null);
 
         LOG.debug("Submitted job immediately: job_type={} context={}", job.jobType(), context.parameters());
         return CompletableFutures.from(future, scheduler, DEFAULT_POLLING_DURATION);
@@ -75,16 +87,47 @@ public class PeriodicalScheduler implements Scheduler {
         }
     }
 
-    private record ExecutedJob(Job job, JobContext context) implements Runnable {
+    private record ExecutedJob(Job job, JobContext context, JobExecutionHistory history, Clock clock)
+            implements Runnable {
+
         @Override
         public void run() {
+            CollectingJobExecutionReport report = new CollectingJobExecutionReport();
+            JobContext runContext = context.withReport(report);
+            Instant startedAt = clock.instant();
+
+            Duration elapsed;
+            JobExecutionStatus status;
+            String error;
             try {
-                job.execute(context);
+                elapsed = Measuring.r(() -> job.execute(runContext));
+                if (report.hasFailures()) {
+                    status = JobExecutionStatus.FAILURE;
+                    error = report.firstFailure().orElse(null);
+                } else {
+                    status = JobExecutionStatus.SUCCESS;
+                    error = null;
+                }
             } catch (Throwable t) {
                 // Deliberately Throwable, not Exception: anything escaping run() makes
                 // scheduleAtFixedRate silently cancel this job for the rest of the process
                 // lifetime. A single bad tick must never unschedule a job.
                 LOG.error("An error occurred during the job execution: job_type={}", job.jobType(), t);
+                elapsed = Duration.between(startedAt, clock.instant());
+                status = JobExecutionStatus.FAILURE;
+                error = t.toString();
+            }
+
+            record(new JobExecution(
+                    job.jobType(), startedAt, elapsed, status, report.summary(), report.items(), error));
+        }
+
+        private void record(JobExecution execution) {
+            try {
+                history.add(execution);
+            } catch (Throwable t) {
+                // Same Throwable-safety as above: a history bug must never unschedule a job
+                LOG.error("Failed to record job execution history: job_type={}", execution.jobType(), t);
             }
         }
     }

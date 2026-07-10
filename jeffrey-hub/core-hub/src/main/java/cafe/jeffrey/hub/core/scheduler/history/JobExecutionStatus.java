@@ -16,20 +16,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import BasePlatformClient from '@shared/services/api/BasePlatformClient';
-import type { JobView } from '@/services/api/model/JobView';
-import type { JobExecutionView } from '@/services/api/model/JobExecutionView';
+package cafe.jeffrey.hub.core.scheduler.history;
 
-export default class SchedulerClient extends BasePlatformClient {
-    constructor() {
-        super('/scheduler');
-    }
-
-    jobs(): Promise<JobView[]> {
-        return this.get<JobView[]>('/jobs');
-    }
-
-    executions(): Promise<JobExecutionView[]> {
-        return this.get<JobExecutionView[]>('/executions');
-    }
+/**
+ * Outcome of a single job run. A run is {@link #FAILURE} when the job threw, or
+ * when it reported at least one partial failure (e.g. one broken project out of
+ * many) while otherwise completing.
+ */
+public enum JobExecutionStatus {
+    SUCCESS,
+    FAILURE
 }

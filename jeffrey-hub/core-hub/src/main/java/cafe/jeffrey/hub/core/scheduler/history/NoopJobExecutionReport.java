@@ -16,20 +16,28 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import BasePlatformClient from '@shared/services/api/BasePlatformClient';
-import type { JobView } from '@/services/api/model/JobView';
-import type { JobExecutionView } from '@/services/api/model/JobExecutionView';
+package cafe.jeffrey.hub.core.scheduler.history;
 
-export default class SchedulerClient extends BasePlatformClient {
-    constructor() {
-        super('/scheduler');
+/**
+ * Discards everything. Used by job contexts created outside the scheduler funnel
+ * so jobs can report unconditionally without null-checks.
+ */
+public final class NoopJobExecutionReport implements JobExecutionReport {
+
+    public static final NoopJobExecutionReport INSTANCE = new NoopJobExecutionReport();
+
+    private NoopJobExecutionReport() {
     }
 
-    jobs(): Promise<JobView[]> {
-        return this.get<JobView[]>('/jobs');
+    @Override
+    public void summary(String summary) {
     }
 
-    executions(): Promise<JobExecutionView[]> {
-        return this.get<JobExecutionView[]>('/executions');
+    @Override
+    public void item(String item) {
+    }
+
+    @Override
+    public void failure(String item) {
     }
 }

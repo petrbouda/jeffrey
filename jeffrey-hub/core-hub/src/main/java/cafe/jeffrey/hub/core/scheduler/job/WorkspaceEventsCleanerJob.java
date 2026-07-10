@@ -68,14 +68,15 @@ public class WorkspaceEventsCleanerJob implements Job {
     @Override
     public void execute(JobContext context) {
         Instant now = clock.instant();
-        deleteOldQueueEvents(now);
+        deleteOldQueueEvents(now, context);
         folderQueue.cleanup(processedFilesRetention);
     }
 
-    private void deleteOldQueueEvents(Instant now) {
+    private void deleteOldQueueEvents(Instant now, JobContext context) {
         int deleted = persistentQueue.deleteEventsOlderThan(now.minus(queueEventsRetention));
         if (deleted > 0) {
             LOG.info("Deleted old queue events: count={} retention={}", deleted, queueEventsRetention);
+            context.report().summary("Deleted " + deleted + " old queue events");
         }
     }
 

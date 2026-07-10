@@ -21,15 +21,22 @@ package cafe.jeffrey.hub.core.scheduler;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import cafe.jeffrey.hub.core.scheduler.history.JobExecution;
+import cafe.jeffrey.hub.core.scheduler.history.JobExecutionHistory;
+import cafe.jeffrey.hub.core.scheduler.history.JobExecutionStatus;
 import cafe.jeffrey.shared.common.model.job.JobType;
 
+import java.time.Clock;
 import java.time.Duration;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -37,6 +44,11 @@ import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.*;
 
 class PeriodicalSchedulerTest {
+
+    private static final Clock FIXED_CLOCK =
+            Clock.fixed(Instant.parse("2026-01-01T00:00:00Z"), ZoneOffset.UTC);
+
+    private final JobExecutionHistory history = new JobExecutionHistory();
 
     private PeriodicalScheduler scheduler;
 
@@ -47,15 +59,23 @@ class PeriodicalSchedulerTest {
         }
     }
 
+    private PeriodicalScheduler newScheduler(List<? extends Job> jobs) {
+        return new PeriodicalScheduler(jobs, history, FIXED_CLOCK);
+    }
+
     private static Job testJob(Runnable action, Duration period) {
         return testJob(action, period, JobType.PROJECTS_SYNCHRONIZER);
     }
 
     private static Job testJob(Runnable action, Duration period, JobType jobType) {
+        return reportingTestJob(_ -> action.run(), period, jobType);
+    }
+
+    private static Job reportingTestJob(Consumer<JobContext> action, Duration period, JobType jobType) {
         return new Job() {
             @Override
             public void execute(JobContext context) {
-                action.run();
+                action.accept(context);
             }
 
             @Override
@@ -78,7 +98,7 @@ class PeriodicalSchedulerTest {
             CountDownLatch latch = new CountDownLatch(2);
             Job job = testJob(latch::countDown, Duration.ofMillis(50));
 
-            scheduler = new PeriodicalScheduler(List.of(job));
+            scheduler = newScheduler(List.of(job));
             scheduler.start();
 
             assertTrue(latch.await(2, TimeUnit.SECONDS));
@@ -89,7 +109,7 @@ class PeriodicalSchedulerTest {
             AtomicInteger counter = new AtomicInteger();
             Job job = testJob(counter::incrementAndGet, Duration.ofMillis(50));
 
-            scheduler = new PeriodicalScheduler(List.of(job));
+            scheduler = newScheduler(List.of(job));
             scheduler.start();
             scheduler.start();
 
@@ -110,7 +130,7 @@ class PeriodicalSchedulerTest {
             Job periodicJob = testJob(() -> {}, Duration.ofSeconds(60));
             Job immediateJob = testJob(latch::countDown, Duration.ofSeconds(60));
 
-            scheduler = new PeriodicalScheduler(List.of(periodicJob));
+            scheduler = newScheduler(List.of(periodicJob));
             scheduler.start();
 
             CompletableFuture<Void> future = scheduler.submit(immediateJob);
@@ -121,7 +141,7 @@ class PeriodicalSchedulerTest {
         @Test
         void returnsFailedFuture_whenSchedulerNotStarted() {
             Job job = testJob(() -> {}, Duration.ofSeconds(60));
-            scheduler = new PeriodicalScheduler(List.of());
+            scheduler = newScheduler(List.of());
 
             CompletableFuture<Void> result = scheduler.submit(job);
 
@@ -147,7 +167,7 @@ class PeriodicalSchedulerTest {
                 }
             }, Duration.ofMillis(50));
 
-            scheduler = new PeriodicalScheduler(List.of(job));
+            scheduler = newScheduler(List.of(job));
             scheduler.start();
 
             await().atMost(2, SECONDS).until(() -> executions.get() >= 3);
@@ -169,7 +189,7 @@ class PeriodicalSchedulerTest {
                 }
             }, Duration.ofMillis(20));
 
-            scheduler = new PeriodicalScheduler(List.of(job));
+            scheduler = newScheduler(List.of(job));
             scheduler.start();
 
             // Fire on-demand executions while the periodic schedule is running
@@ -189,7 +209,7 @@ class PeriodicalSchedulerTest {
             AtomicInteger counter = new AtomicInteger();
             Job job = testJob(counter::incrementAndGet, Duration.ofMillis(50));
 
-            scheduler = new PeriodicalScheduler(List.of(job));
+            scheduler = newScheduler(List.of(job));
             scheduler.start();
             await().atMost(2, SECONDS).until(() -> counter.get() > 0);
 
@@ -209,8 +229,99 @@ class PeriodicalSchedulerTest {
 
         @Test
         void closeIsNoOp_whenNeverStarted() {
-            scheduler = new PeriodicalScheduler(List.of());
+            scheduler = newScheduler(List.of());
             assertDoesNotThrow(() -> scheduler.close());
+        }
+    }
+
+    @Nested
+    class ExecutionHistoryRecording {
+
+        @Test
+        void successfulRun_recordsSummaryAndItems() throws Exception {
+            Job job = reportingTestJob(context -> {
+                context.report().summary("Purged 2 soft-deleted projects");
+                context.report().item("Purged project: legacy-billing");
+                context.report().item("Purged project: demo-sandbox");
+            }, Duration.ofSeconds(60), JobType.DELETED_PROJECTS_CLEANER);
+
+            scheduler = newScheduler(List.of());
+            scheduler.start();
+            scheduler.submit(job).get(5, TimeUnit.SECONDS);
+
+            await().atMost(2, SECONDS).untilAsserted(() -> {
+                List<JobExecution> executions = history.all();
+                assertEquals(1, executions.size());
+                JobExecution execution = executions.getFirst();
+                assertEquals(JobType.DELETED_PROJECTS_CLEANER, execution.jobType());
+                assertEquals(JobExecutionStatus.SUCCESS, execution.status());
+                assertEquals(FIXED_CLOCK.instant(), execution.startedAt());
+                assertEquals("Purged 2 soft-deleted projects", execution.summary());
+                assertEquals(
+                        List.of("Purged project: legacy-billing", "Purged project: demo-sandbox"),
+                        execution.items());
+                assertNull(execution.error());
+                assertFalse(execution.noop());
+            });
+        }
+
+        @Test
+        void runReportingNothing_isRecordedAsNoop() throws Exception {
+            Job job = testJob(() -> {}, Duration.ofSeconds(60), JobType.TEMP_DIRECTORY_CLEANER);
+
+            scheduler = newScheduler(List.of());
+            scheduler.start();
+            scheduler.submit(job).get(5, TimeUnit.SECONDS);
+
+            await().atMost(2, SECONDS).untilAsserted(() -> {
+                List<JobExecution> executions = history.all();
+                assertEquals(1, executions.size());
+                JobExecution execution = executions.getFirst();
+                assertEquals(JobExecutionStatus.SUCCESS, execution.status());
+                assertTrue(execution.noop());
+            });
+        }
+
+        @Test
+        void throwingRun_isRecordedAsFailure_withError() {
+            Job job = testJob(() -> {
+                throw new IllegalStateException("boom");
+            }, Duration.ofMillis(50), JobType.WORKSPACE_EVENTS_REPLICATOR);
+
+            scheduler = newScheduler(List.of(job));
+            scheduler.start();
+
+            await().atMost(2, SECONDS).untilAsserted(() -> {
+                List<JobExecution> executions = history.all();
+                assertFalse(executions.isEmpty());
+                JobExecution execution = executions.getFirst();
+                assertEquals(JobExecutionStatus.FAILURE, execution.status());
+                assertTrue(execution.error().contains("boom"));
+                assertFalse(execution.noop());
+            });
+        }
+
+        @Test
+        void reportedPartialFailure_marksRunAsFailure() throws Exception {
+            Job job = reportingTestJob(context -> {
+                context.report().item("project=proj-001 cleaned");
+                context.report().failure("project=proj-002 failed: storage unreachable");
+            }, Duration.ofSeconds(60), JobType.EXPIRED_INSTANCE_CLEANER);
+
+            scheduler = newScheduler(List.of());
+            scheduler.start();
+            scheduler.submit(job).get(5, TimeUnit.SECONDS);
+
+            await().atMost(2, SECONDS).untilAsserted(() -> {
+                List<JobExecution> executions = history.all();
+                assertEquals(1, executions.size());
+                JobExecution execution = executions.getFirst();
+                assertEquals(JobExecutionStatus.FAILURE, execution.status());
+                assertEquals("project=proj-002 failed: storage unreachable", execution.error());
+                assertEquals(
+                        List.of("project=proj-001 cleaned", "project=proj-002 failed: storage unreachable"),
+                        execution.items());
+            });
         }
     }
 }

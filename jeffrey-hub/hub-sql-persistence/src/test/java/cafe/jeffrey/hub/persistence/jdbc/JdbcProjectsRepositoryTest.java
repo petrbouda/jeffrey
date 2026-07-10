@@ -341,9 +341,9 @@ class JdbcProjectsRepositoryTest {
             JdbcProjectsRepository repository = new JdbcProjectsRepository(provider);
 
             // proj-002 was soft-deleted at 2025-01-02; proj-001 and proj-101 are live
-            int purged = repository.purgeDeletedProjects(Instant.parse("2025-02-01T00:00:00Z"));
+            List<String> purged = repository.purgeDeletedProjects(Instant.parse("2025-02-01T00:00:00Z"));
 
-            assertEquals(1, purged, "Only the tombstoned project older than the cutoff is purged");
+            assertEquals(1, purged.size(), "Only the tombstoned project older than the cutoff is purged");
             assertEquals(0, countRows(dataSource, "SELECT COUNT(*) FROM projects WHERE project_id = 'proj-002'"));
             assertEquals(0, countRows(dataSource, "SELECT COUNT(*) FROM repositories WHERE project_id = 'proj-002'"));
 
@@ -359,9 +359,9 @@ class JdbcProjectsRepositoryTest {
             TestUtils.executeSql(dataSource, "sql/workspace/insert-workspace-full-graph.sql");
             JdbcProjectsRepository repository = new JdbcProjectsRepository(provider);
 
-            int purged = repository.purgeDeletedProjects(Instant.parse("2025-01-01T00:00:00Z"));
+            List<String> purged = repository.purgeDeletedProjects(Instant.parse("2025-01-01T00:00:00Z"));
 
-            assertEquals(0, purged, "Tombstone is younger than the cutoff — still restorable");
+            assertTrue(purged.isEmpty(), "Tombstone is younger than the cutoff — still restorable");
             assertEquals(1, countRows(dataSource, "SELECT COUNT(*) FROM projects WHERE project_id = 'proj-002'"));
         }
 

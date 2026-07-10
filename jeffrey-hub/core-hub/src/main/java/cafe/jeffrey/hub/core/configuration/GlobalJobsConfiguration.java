@@ -25,6 +25,7 @@ import cafe.jeffrey.hub.core.configuration.properties.DefaultWorkspaceProperties
 import cafe.jeffrey.hub.core.configuration.properties.SchedulerJobsProperties;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
 import cafe.jeffrey.hub.core.scheduler.*;
+import cafe.jeffrey.hub.core.scheduler.history.JobExecutionHistory;
 import cafe.jeffrey.hub.core.scheduler.job.*;
 import cafe.jeffrey.hub.core.scheduler.job.descriptor.ProfilerSettingsSynchronizerJobDescriptor;
 import cafe.jeffrey.hub.core.workspace.consumer.WorkspaceEventConsumer;
@@ -75,7 +76,7 @@ public class GlobalJobsConfiguration {
     }
 
     @Bean(name = GLOBAL_SCHEDULER, destroyMethod = "close")
-    public Scheduler scheduler(List<Job> jobs) {
+    public Scheduler scheduler(List<Job> jobs, JobExecutionHistory jobExecutionHistory, Clock clock) {
         List<Job> enabled = jobs.stream()
                 .filter(j -> {
                     boolean on = schedulerJobsProperties.forType(j.jobType()).enabled();
@@ -86,7 +87,12 @@ public class GlobalJobsConfiguration {
                 })
                 .toList();
         LOG.info("Registered scheduler jobs: enabled={} total={}", enabled.size(), jobs.size());
-        return new PeriodicalScheduler(enabled);
+        return new PeriodicalScheduler(enabled, jobExecutionHistory, clock);
+    }
+
+    @Bean
+    public JobExecutionHistory jobExecutionHistory() {
+        return new JobExecutionHistory();
     }
 
     @Bean

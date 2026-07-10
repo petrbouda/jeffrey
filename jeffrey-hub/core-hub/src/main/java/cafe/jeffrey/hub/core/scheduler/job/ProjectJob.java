@@ -65,6 +65,7 @@ public abstract class ProjectJob<T extends JobDescriptor<T>> implements Job {
                     LOG.error("Job failed for project, continuing with remaining projects: " +
                                     "job={} workspace_id={} project_id={}",
                             simpleName, workspaceManager.resolveInfo().id(), projectManager.info().id(), e);
+                    context.report().failure("project=" + projectManager.info().id() + " failed: " + e);
                 }
             }
         }

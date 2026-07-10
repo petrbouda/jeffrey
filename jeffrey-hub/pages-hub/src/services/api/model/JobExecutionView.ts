@@ -16,20 +16,22 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import BasePlatformClient from '@shared/services/api/BasePlatformClient';
-import type { JobView } from '@/services/api/model/JobView';
-import type { JobExecutionView } from '@/services/api/model/JobExecutionView';
+import type { ExecutionLevel } from '@/services/api/model/JobView';
 
-export default class SchedulerClient extends BasePlatformClient {
-    constructor() {
-        super('/scheduler');
-    }
+export type JobExecutionStatus = 'SUCCESS' | 'FAILURE';
 
-    jobs(): Promise<JobView[]> {
-        return this.get<JobView[]>('/jobs');
-    }
-
-    executions(): Promise<JobExecutionView[]> {
-        return this.get<JobExecutionView[]>('/executions');
-    }
+/**
+ * One entry of the in-memory scheduler job execution history
+ * (GET /api/internal/scheduler/executions). Timestamps are UTC epoch millis.
+ */
+export interface JobExecutionView {
+    jobType: string;
+    executionLevel: ExecutionLevel;
+    startedAt: number;
+    durationMs: number;
+    status: JobExecutionStatus;
+    noop: boolean;
+    summary: string | null;
+    items: string[];
+    error: string | null;
 }

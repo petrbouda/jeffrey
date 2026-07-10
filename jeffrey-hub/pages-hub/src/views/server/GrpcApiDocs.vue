@@ -18,19 +18,7 @@
 
 <template>
   <div class="docs-page">
-    <!-- Shared header with nav -->
-    <div class="page-header">
-      <div class="header-left">
-        <img src="/jeffrey-icon.svg" alt="Jeffrey" class="header-logo">
-        <h4>Jeffrey Hub</h4>
-        <span v-if="version" class="version-badge">{{ version }}</span>
-      </div>
-      <nav class="header-nav">
-        <router-link to="/" class="nav-tab">Workspaces</router-link>
-        <router-link to="/scheduler" class="nav-tab">Scheduler</router-link>
-        <router-link to="/api-docs" class="nav-tab">API Documentation</router-link>
-      </nav>
-    </div>
+    <HubHeader />
 
     <div v-if="loading" class="loading-state">
       <div class="spinner-border spinner-border-sm text-secondary" role="status"></div>
@@ -235,19 +223,17 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import Badge from '@shared/components/Badge.vue';
+import HubHeader from '@/components/HubHeader.vue';
 import GrpcDocsClient from '@/services/api/GrpcDocsClient';
-import VersionClient from '@/services/api/VersionClient';
 import type { GrpcDocs, GrpcField, GrpcMessage, GrpcService, GrpcEnum } from '@/services/api/GrpcDocsClient';
 
 const client = new GrpcDocsClient();
-const versionClient = new VersionClient();
 const loading = ref(true);
 const error = ref<string | null>(null);
 const docs = ref<GrpcDocs | null>(null);
 const expandedMethods = ref<Set<string>>(new Set());
 const activeService = ref<string>('');
 const highlightedMessage = ref<string | null>(null);
-const version = ref<string>('');
 
 const SCALAR_TYPES = new Set([
   'double', 'float', 'int32', 'int64', 'uint32', 'uint64',
@@ -323,9 +309,6 @@ const expandNestedMessage = (typeName: string) => {
 };
 
 onMounted(async () => {
-  versionClient.getVersion()
-      .then(v => { version.value = v; })
-      .catch(err => console.error('Failed to load version:', err));
   try {
     docs.value = await client.getDocs();
     if (allServices.value.length > 0) {
@@ -345,69 +328,6 @@ onMounted(async () => {
   max-width: 1100px;
   margin: 0 auto;
   padding: 32px 24px;
-}
-
-/* Header (shared with dashboard) */
-.page-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 24px;
-}
-
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.header-logo {
-  width: 32px;
-  height: 32px;
-}
-
-.header-left h4 {
-  margin: 0;
-  font-weight: 600;
-  color: var(--color-heading-dark);
-}
-
-.version-badge {
-  font-size: 0.72rem;
-  font-weight: 500;
-  color: var(--color-slate-muted);
-  background: var(--color-grey-bg);
-  padding: 2px 8px;
-  border-radius: 10px;
-  font-variant-numeric: tabular-nums;
-}
-
-.header-nav {
-  display: flex;
-  gap: 2px;
-  background: var(--color-grey-bg);
-  border-radius: 8px;
-  padding: 3px;
-}
-
-.nav-tab {
-  padding: 6px 14px;
-  border-radius: 6px;
-  font-size: 0.78rem;
-  font-weight: 500;
-  color: var(--color-slate-muted);
-  text-decoration: none;
-  transition: all 0.15s ease;
-}
-
-.nav-tab:hover {
-  color: var(--color-slate-text);
-}
-
-.nav-tab.router-link-active {
-  background: white;
-  color: var(--color-primary);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 /* Loading / Error */

@@ -29,6 +29,7 @@ import cafe.jeffrey.shared.common.model.job.JobType;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 
 /**
  * Purges soft-deleted project rows once their retention window has passed. A deleted
@@ -61,9 +62,13 @@ public class DeletedProjectsCleanerJob implements Job {
     @Override
     public void execute(JobContext context) {
         Instant cutoff = clock.instant().minus(retention);
-        int purged = projectsRepository.purgeDeletedProjects(cutoff);
-        if (purged > 0) {
-            LOG.info("Purged soft-deleted projects: count={} retention={}", purged, retention);
+        List<String> purged = projectsRepository.purgeDeletedProjects(cutoff);
+        if (!purged.isEmpty()) {
+            LOG.info("Purged soft-deleted projects: count={} retention={}", purged.size(), retention);
+            context.report().summary("Purged " + purged.size() + " soft-deleted projects");
+            for (String projectName : purged) {
+                context.report().item("Purged project: " + projectName);
+            }
         }
     }
 

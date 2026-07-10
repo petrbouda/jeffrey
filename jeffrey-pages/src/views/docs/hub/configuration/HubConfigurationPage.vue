@@ -165,6 +165,14 @@ onMounted(() => {
 
       <h2 id="job-scheduler">Job Scheduler</h2>
       <p>Background job scheduling configuration for recording collection and management.</p>
+      <p>
+        The Hub UI provides a <strong>Job Executions</strong> tab with an in-memory execution history
+        for debugging: every job run is recorded with its measured duration, success/failure status,
+        a short summary and detail items (e.g. names of purged projects, processed workspace events).
+        The history keeps the last 100 runs per job type, is served by
+        <code>GET /api/internal/scheduler/executions</code>, and is intentionally not persisted —
+        it is cleared on every restart.
+      </p>
 
       <table>
         <thead>

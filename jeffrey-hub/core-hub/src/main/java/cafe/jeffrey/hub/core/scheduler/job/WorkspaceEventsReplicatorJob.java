@@ -26,6 +26,7 @@ import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
 import cafe.jeffrey.hub.core.scheduler.Job;
 import cafe.jeffrey.hub.core.scheduler.JobContext;
 import cafe.jeffrey.hub.core.scheduler.SchedulerTrigger;
+import cafe.jeffrey.hub.core.scheduler.history.JobExecutionReport;
 import cafe.jeffrey.hub.core.workspace.WorkspaceEventConverter;
 import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.shared.common.model.job.JobType;
@@ -93,17 +94,18 @@ public class WorkspaceEventsReplicatorJob implements Job {
     @Override
     public void execute(JobContext context) {
         try {
-            long processed = processEvents();
+            long processed = processEvents(context.report());
             if (processed > 0) {
                 migrationCallback.execute()
                         .orTimeout(5, TimeUnit.SECONDS);
             }
         } catch (Exception e) {
             LOG.error("Failed to process shared workspace events", e);
+            context.report().failure("Replication tick failed: " + e);
         }
     }
 
-    private long processEvents() {
+    private long processEvents(JobExecutionReport report) {
         List<FolderQueueEntry<CLIWorkspaceEvent>> entries = folderQueue.poll(JSON_EVENT_PARSER);
         if (entries.isEmpty()) {
             return 0;
@@ -124,6 +126,8 @@ public class WorkspaceEventsReplicatorJob implements Job {
                                 event.workspaceRefId(), event.eventType());
                     }
                     folderQueue.acknowledge(entry.filePath());
+                    report.item("Discarded event (workspace not found): " + event.eventType()
+                            + " file=" + entry.filename());
                     continue;
                 }
 
@@ -132,16 +136,21 @@ public class WorkspaceEventsReplicatorJob implements Job {
                 folderQueue.acknowledge(entry.filePath());
                 replicatedCount++;
 
+                report.item("Replicated event: " + event.eventType() + " file=" + entry.filename()
+                        + " workspace=" + internalWorkspaceId);
                 LOG.debug("Replicated folder event to persistent queue: event_type={} file={} workspace_id={}",
                         event.eventType(), entry.filename(), internalWorkspaceId);
             } catch (Exception e) {
                 LOG.error("Failed to replicate folder event, will retry: event_type={} file={} workspace_id={}",
                         event.eventType(), entry.filename(), event.workspaceRefId(), e);
+                report.failure("Failed to replicate event: " + event.eventType()
+                        + " file=" + entry.filename() + " error=" + e);
             }
         }
 
         if (replicatedCount > 0) {
             LOG.info("Replicated shared workspace events to persistent queue: replicated={} total={}", replicatedCount, entries.size());
+            report.summary("Replicated " + replicatedCount + " of " + entries.size() + " event files");
         }
 
         return replicatedCount;

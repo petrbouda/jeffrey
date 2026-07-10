@@ -19,6 +19,7 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import ServerDashboard from '@/views/server/ServerDashboard.vue';
 import SchedulerView from '@/views/server/SchedulerView.vue';
+import JobExecutionsView from '@/views/server/JobExecutionsView.vue';
 import GrpcApiDocs from '@/views/server/GrpcApiDocs.vue';
 
 const router = createRouter({
@@ -33,6 +34,11 @@ const router = createRouter({
             path: '/scheduler',
             name: 'scheduler',
             component: SchedulerView
+        },
+        {
+            path: '/job-executions',
+            name: 'job-executions',
+            component: JobExecutionsView
         },
         {
             path: '/api-docs',

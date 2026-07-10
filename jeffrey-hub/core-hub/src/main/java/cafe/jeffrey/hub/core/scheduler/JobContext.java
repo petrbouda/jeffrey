@@ -18,15 +18,20 @@
 
 package cafe.jeffrey.hub.core.scheduler;
 
+import cafe.jeffrey.hub.core.scheduler.history.JobExecutionReport;
+import cafe.jeffrey.hub.core.scheduler.history.NoopJobExecutionReport;
+
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 
 /**
- * Context object for job execution containing runtime parameters.
- * Used to pass dynamic data to jobs during on-demand execution.
+ * Context object for job execution containing runtime parameters and the per-run
+ * {@link JobExecutionReport} the job writes its execution details into. Contexts
+ * created via the factories carry a no-op report; the scheduler swaps in a fresh
+ * collecting report for every run via {@link #withReport(JobExecutionReport)}.
  */
-public record JobContext(Map<String, String> parameters) {
+public record JobContext(Map<String, String> parameters, JobExecutionReport report) {
 
     /**
      * Empty context for default/periodic execution.
@@ -35,6 +40,11 @@ public record JobContext(Map<String, String> parameters) {
 
     public JobContext {
         parameters = parameters == null ? Map.of() : Collections.unmodifiableMap(parameters);
+        report = report == null ? NoopJobExecutionReport.INSTANCE : report;
+    }
+
+    public JobContext(Map<String, String> parameters) {
+        this(parameters, NoopJobExecutionReport.INSTANCE);
     }
 
     /**
@@ -49,6 +59,13 @@ public record JobContext(Map<String, String> parameters) {
      */
     public static JobContext of(Map<String, String> params) {
         return new JobContext(params);
+    }
+
+    /**
+     * Copy of this context carrying the given per-run report.
+     */
+    public JobContext withReport(JobExecutionReport report) {
+        return new JobContext(parameters, report);
     }
 
     /**

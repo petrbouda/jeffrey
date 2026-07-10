@@ -32,6 +32,7 @@ import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -75,15 +76,20 @@ public class TempDirectoryCleanerJob implements Job {
             return;
         }
 
-        int removed = 0;
+        List<Path> removed = new ArrayList<>();
         for (Path entry : entries) {
             if (removeIfExpired(entry, cutoff)) {
-                removed++;
+                removed.add(entry);
             }
         }
 
-        if (removed > 0) {
-            LOG.info("Removed leaked temp entries: temp_dir={} count={} retention={}", tempDir, removed, retention);
+        if (!removed.isEmpty()) {
+            LOG.info("Removed leaked temp entries: temp_dir={} count={} retention={}",
+                    tempDir, removed.size(), retention);
+            context.report().summary("Removed " + removed.size() + " leaked temp entries");
+            for (Path entry : removed) {
+                context.report().item("Removed temp entry: " + entry.getFileName());
+            }
         }
     }
 

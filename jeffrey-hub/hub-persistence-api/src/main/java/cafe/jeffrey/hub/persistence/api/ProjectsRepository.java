@@ -79,7 +79,7 @@ public interface ProjectsRepository {
      * projects table from growing forever with tombstone rows.
      *
      * @param deletedBefore projects soft-deleted before this instant are purged
-     * @return number of purged project rows
+     * @return names of the purged projects
      */
-    int purgeDeletedProjects(Instant deletedBefore);
+    List<String> purgeDeletedProjects(Instant deletedBefore);
 }
