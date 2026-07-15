@@ -34,7 +34,7 @@ import cafe.jeffrey.profile.ai.oql.model.OqlChatResponse;
 import cafe.jeffrey.profile.ai.oql.service.HeapDumpContextExtractor;
 import cafe.jeffrey.profile.ai.oql.service.OqlAssistantService;
 import cafe.jeffrey.profile.heapdump.model.SortBy;
-import cafe.jeffrey.profile.manager.HeapDumpManager;
+import cafe.jeffrey.profile.manager.heapdump.HeapDumpManager;
 
 @RestController
 @RequestMapping("/api/internal/profiles/{profileId}/heap/oql-assistant")

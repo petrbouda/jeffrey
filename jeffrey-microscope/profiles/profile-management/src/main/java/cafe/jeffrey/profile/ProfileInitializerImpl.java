@@ -20,7 +20,7 @@ package cafe.jeffrey.profile;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import cafe.jeffrey.profile.manager.AdditionalFilesManager;
+import cafe.jeffrey.profile.manager.additional.AdditionalFilesManager;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.profile.manager.action.ProfileDataInitializer;
 import cafe.jeffrey.provider.profile.api.EventWriter;

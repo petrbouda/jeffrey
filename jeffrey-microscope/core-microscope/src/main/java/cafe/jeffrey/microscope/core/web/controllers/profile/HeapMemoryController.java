@@ -26,7 +26,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
-import cafe.jeffrey.profile.manager.HeapMemoryManager;
+import cafe.jeffrey.profile.manager.memory.HeapMemoryManager;
 import cafe.jeffrey.profile.manager.model.heap.HeapMemoryOverviewData;
 import cafe.jeffrey.profile.manager.model.heap.HeapMemoryTimeseriesType;
 import cafe.jeffrey.timeseries.SingleSerie;

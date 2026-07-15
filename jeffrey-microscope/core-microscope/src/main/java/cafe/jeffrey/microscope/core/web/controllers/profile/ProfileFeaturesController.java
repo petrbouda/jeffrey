@@ -27,7 +27,7 @@ import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
 import cafe.jeffrey.profile.ai.duckdb.jfr.service.JfrAnalysisAssistantService;
 import cafe.jeffrey.profile.feature.FeatureType;
-import cafe.jeffrey.profile.manager.HeapDumpManager;
+import cafe.jeffrey.profile.manager.heapdump.HeapDumpManager;
 import cafe.jeffrey.profile.manager.ProfileManager;
 
 import java.util.ArrayList;

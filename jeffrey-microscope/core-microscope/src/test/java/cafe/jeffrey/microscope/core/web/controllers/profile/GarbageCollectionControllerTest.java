@@ -24,7 +24,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
-import cafe.jeffrey.profile.manager.GarbageCollectionManager;
+import cafe.jeffrey.profile.manager.gc.GarbageCollectionManager;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.profile.manager.model.gc.GCTimeseriesType;
 import cafe.jeffrey.profile.manager.model.gc.g1.G1AnalysisData;

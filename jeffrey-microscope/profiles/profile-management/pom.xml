@@ -81,7 +81,23 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>profile-thread</artifactId>
+            <artifactId>profile-threads</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>profile-gc</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>profile-memory</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>profile-custom-events</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>profile-heapdump-orchestration</artifactId>
         </dependency>
 
         <!-- Persistence (transitive: profile-persistence-api) -->

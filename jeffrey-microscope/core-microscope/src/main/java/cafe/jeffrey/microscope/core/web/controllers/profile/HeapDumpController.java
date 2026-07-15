@@ -34,7 +34,7 @@ import cafe.jeffrey.profile.heapdump.model.HeapDumpConfig;
 import cafe.jeffrey.profile.heapdump.model.HeapSummary;
 import cafe.jeffrey.profile.heapdump.model.InitPipelineResult;
 import cafe.jeffrey.profile.heapdump.model.InitializeResult;
-import cafe.jeffrey.profile.manager.HeapDumpManager;
+import cafe.jeffrey.profile.manager.heapdump.HeapDumpManager;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 
 import java.io.IOException;

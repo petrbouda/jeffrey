@@ -25,7 +25,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
-import cafe.jeffrey.profile.manager.ThreadManager;
+import cafe.jeffrey.profile.manager.thread.ThreadManager;
 import cafe.jeffrey.profile.manager.model.thread.ReservedStackActivation;
 import cafe.jeffrey.profile.manager.model.thread.ThreadCpuLoads;
 import cafe.jeffrey.profile.manager.model.thread.ThreadStats;

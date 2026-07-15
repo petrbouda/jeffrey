@@ -34,7 +34,7 @@ import cafe.jeffrey.profile.heapdump.model.ConsumerReport;
 import cafe.jeffrey.profile.heapdump.model.LeakSuspectsReport;
 import cafe.jeffrey.profile.heapdump.model.StringAnalysisReport;
 import cafe.jeffrey.profile.heapdump.model.ThreadAnalysisReport;
-import cafe.jeffrey.profile.manager.HeapDumpManager;
+import cafe.jeffrey.profile.manager.heapdump.HeapDumpManager;
 
 /**
  * Heap-dump analysis-report endpoints: string, thread, collection, class-loader,
