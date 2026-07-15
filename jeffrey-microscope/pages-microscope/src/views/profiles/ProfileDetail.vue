@@ -8,8 +8,8 @@
           v-if="!isHeapDumpOnlyProfile"
           class="nav-pill"
           :class="{ active: selectedMode === 'JVM' }"
-          @click="selectMode('JVM')"
           title="Core JVM metrics and analysis"
+          @click="selectMode('JVM')"
         >
           <div class="pill-content">
             <div class="title-row">
@@ -24,8 +24,8 @@
           v-if="!isHeapDumpOnlyProfile"
           class="nav-pill"
           :class="{ active: selectedMode === 'Technologies' }"
-          @click="selectMode('Technologies')"
           title="Technology-specific analysis"
+          @click="selectMode('Technologies')"
         >
           <div class="pill-content">
             <div class="title-row">
@@ -40,8 +40,8 @@
           v-if="!isHeapDumpOnlyProfile"
           class="nav-pill"
           :class="{ active: selectedMode === 'Visualization' }"
-          @click="selectMode('Visualization')"
           title="Profiling graphs and visualizations"
+          @click="selectMode('Visualization')"
         >
           <div class="pill-content">
             <div class="title-row">
@@ -55,8 +55,8 @@
         <div
           class="nav-pill"
           :class="{ active: selectedMode === 'HeapDump' }"
-          @click="selectMode('HeapDump')"
           title="Heap dump memory analysis"
+          @click="selectMode('HeapDump')"
         >
           <div class="pill-content">
             <div class="title-row">
@@ -71,8 +71,8 @@
           v-if="!isHeapDumpOnlyProfile"
           class="nav-pill"
           :class="{ active: selectedMode === 'Tools' }"
-          @click="selectMode('Tools')"
           title="Profile data transformations"
+          @click="selectMode('Tools')"
         >
           <div class="pill-content">
             <div class="title-row">
@@ -89,8 +89,8 @@
             type="button"
             class="comparison-toggle-btn"
             :class="{ active: ideTargetPanelVisible }"
-            @click="toggleIdePanel"
             :title="ideTargetStatus.linked ? 'IDE linked — show details' : 'Set up IDE integration'"
+            @click="toggleIdePanel"
           >
             <i class="bi bi-window-stack"></i>
             <span class="toggle-label">IDE</span>
@@ -105,8 +105,8 @@
           <button
             class="comparison-toggle-btn"
             :class="{ active: comparisonPanelVisible, 'has-profile': secondaryProfile }"
-            @click="toggleComparisonPanel"
             :title="comparisonPanelVisible ? 'Hide differential panel' : 'Show differential panel'"
+            @click="toggleComparisonPanel"
           >
             <i class="bi bi-layers"></i>
             <span class="toggle-label">Secondary Profile</span>
@@ -120,1039 +120,23 @@
 
     <div class="d-flex w-100">
       <!-- Sidebar Menu (hidden on Technologies Hub page) -->
-      <div
+      <ProfileSidebar
         v-if="!isTechnologiesHub"
-        class="detail-sidebar"
-        :class="{ collapsed: sidebarCollapsed }"
-      >
-        <div class="sidebar" :class="{ collapsed: sidebarCollapsed }">
-          <div class="edge-toggle" @click="toggleSidebar">
-            <div class="edge-toggle-line">
-              <i class="bi" :class="sidebarCollapsed ? 'bi-chevron-right' : 'bi-chevron-left'"></i>
-            </div>
-          </div>
-
-          <div class="scrollbar" style="height: 100%">
-            <!-- Profile Header spacer (hidden for Technologies drilled-in state) -->
-            <div v-if="!(selectedMode === 'Technologies' && activeTechnology)" class="p-2" />
-
-            <div class="sidebar-menu" v-if="!sidebarCollapsed">
-              <!-- JVM Internals Mode Menu -->
-              <template v-if="selectedMode === 'JVM'">
-                <div class="nav-section">
-                  <div class="nav-section-title">ANALYSIS</div>
-                  <div class="nav-items">
-                    <router-link
-                      :to="`/profiles/${profileId}/ai-analysis`"
-                      class="nav-item nav-item-ai"
-                      :class="{ 'disabled-feature': isFeatureDisabled('ai-analysis') }"
-                      active-class="active"
-                    >
-                      <i class="bi bi-stars"></i>
-                      <span>JFR AI Analysis</span>
-                    </router-link>
-                    <router-link
-                      :to="`/profiles/${profileId}/overview`"
-                      class="nav-item"
-                      active-class="active"
-                    >
-                      <i class="bi bi-gear"></i>
-                      <span>Configuration</span>
-                    </router-link>
-                    <router-link
-                      :to="`/profiles/${profileId}/guardian`"
-                      class="nav-item"
-                      active-class="active"
-                    >
-                      <i class="bi bi-shield-check"></i>
-                      <span>Guardian Analysis</span>
-                    </router-link>
-                    <router-link
-                      :to="`/profiles/${profileId}/auto-analysis`"
-                      class="nav-item"
-                      active-class="active"
-                    >
-                      <i class="bi bi-robot"></i>
-                      <span>Auto Analysis</span>
-                    </router-link>
-                    <router-link
-                      :to="`/profiles/${profileId}/performance-counters`"
-                      class="nav-item"
-                      :class="{ 'disabled-feature': isFeatureDisabled('performance-counters') }"
-                      active-class="active"
-                    >
-                      <i class="bi bi-speedometer2"></i>
-                      <span>Performance Counters</span>
-                    </router-link>
-                    <router-link
-                      :to="`/profiles/${profileId}/class-loading`"
-                      class="nav-item"
-                      active-class="active"
-                    >
-                      <i class="bi bi-box-seam"></i>
-                      <span>Class Loading</span>
-                    </router-link>
-                    <router-link
-                      :to="`/profiles/${profileId}/exceptions`"
-                      class="nav-item"
-                      active-class="active"
-                    >
-                      <i class="bi bi-exclamation-octagon"></i>
-                      <span>Exceptions</span>
-                    </router-link>
-                    <router-link
-                      :to="`/profiles/${profileId}/vm-operations`"
-                      class="nav-item"
-                      active-class="active"
-                    >
-                      <i class="bi bi-stopwatch"></i>
-                      <span>VM Operations</span>
-                    </router-link>
-                    <router-link
-                      :to="`/profiles/${profileId}/blocking-operations`"
-                      class="nav-item"
-                      active-class="active"
-                    >
-                      <i class="bi bi-lock"></i>
-                      <span>Blocking Operations</span>
-                    </router-link>
-                    <router-link
-                      :to="`/profiles/${profileId}/socket-io`"
-                      class="nav-item"
-                      active-class="active"
-                    >
-                      <i class="bi bi-ethernet"></i>
-                      <span>Socket I/O</span>
-                    </router-link>
-                    <router-link
-                      :to="`/profiles/${profileId}/file-io`"
-                      class="nav-item"
-                      active-class="active"
-                    >
-                      <i class="bi bi-file-earmark"></i>
-                      <span>File I/O</span>
-                    </router-link>
-                    <router-link
-                      :to="`/profiles/${profileId}/security`"
-                      class="nav-item"
-                      active-class="active"
-                    >
-                      <i class="bi bi-shield-lock"></i>
-                      <span>Security &amp; TLS</span>
-                    </router-link>
-                  </div>
-                </div>
-
-                <div class="nav-section">
-                  <div class="nav-section-title">EVENTS</div>
-                  <div class="nav-items">
-                    <router-link
-                      :to="`/profiles/${profileId}/event-types`"
-                      class="nav-item"
-                      active-class="active"
-                    >
-                      <i class="bi bi-list-check"></i>
-                      <span>Event Types</span>
-                    </router-link>
-                    <router-link
-                      :to="`/profiles/${profileId}/events`"
-                      class="nav-item"
-                      active-class="active"
-                    >
-                      <i class="bi bi-collection"></i>
-                      <span>Event Viewer</span>
-                    </router-link>
-                    <router-link
-                      :to="`/profiles/${profileId}/flags`"
-                      class="nav-item"
-                      active-class="active"
-                    >
-                      <i class="bi bi-flag"></i>
-                      <span>JVM Flags</span>
-                    </router-link>
-                  </div>
-                </div>
-
-                <div class="nav-section">
-                  <div class="nav-section-title">THREADS</div>
-                  <div class="nav-items">
-                    <router-link
-                      :to="`/profiles/${profileId}/thread-statistics`"
-                      class="nav-item"
-                      active-class="active"
-                    >
-                      <i class="bi bi-graph-up"></i>
-                      <span>Statistics</span>
-                    </router-link>
-                    <router-link
-                      :to="`/profiles/${profileId}/threads-timeline`"
-                      class="nav-item"
-                      active-class="active"
-                    >
-                      <i class="bi bi-clock-history"></i>
-                      <span>Timeline</span>
-                    </router-link>
-                    <router-link
-                      :to="`/profiles/${profileId}/virtual-threads`"
-                      class="nav-item"
-                      active-class="active"
-                    >
-                      <i class="bi bi-pin-angle"></i>
-                      <span>Virtual Threads</span>
-                    </router-link>
-                    <router-link
-                      :to="`/profiles/${profileId}/thread-dumps`"
-                      class="nav-item"
-                      active-class="active"
-                    >
-                      <i class="bi bi-file-earmark-text"></i>
-                      <span>Thread Dumps</span>
-                    </router-link>
-                  </div>
-                </div>
-
-                <div class="nav-section">
-                  <div class="nav-section-title">HEAP MEMORY</div>
-                  <div class="nav-items">
-                    <router-link
-                      :to="`/profiles/${profileId}/allocations`"
-                      class="nav-item"
-                      active-class="active"
-                    >
-                      <i class="bi bi-box"></i>
-                      <span>Heap Allocations</span>
-                    </router-link>
-                    <!-- Garbage Collection with Submenu -->
-                    <div class="nav-item-group">
-                      <div
-                        class="nav-item nav-item-parent"
-                        @click="toggleGCSubmenu"
-                        :class="{
-                          active: $route.path.includes('/garbage-collection'),
-                          expanded: gcSubmenuExpanded
-                        }"
-                      >
-                        <i class="bi bi-recycle"></i>
-                        <span>Garbage Collection</span>
-                        <i
-                          class="bi bi-chevron-right submenu-arrow"
-                          :class="{ rotated: gcSubmenuExpanded }"
-                        ></i>
-                      </div>
-                      <div class="nav-submenu" :class="{ expanded: gcSubmenuExpanded }">
-                        <router-link
-                          :to="`/profiles/${profileId}/garbage-collection`"
-                          class="nav-item nav-subitem"
-                          active-class="active"
-                        >
-                          <i class="bi bi-bar-chart-line"></i>
-                          <span>Overview</span>
-                        </router-link>
-                        <router-link
-                          :to="`/profiles/${profileId}/garbage-collection/timeseries`"
-                          class="nav-item nav-subitem"
-                          active-class="active"
-                        >
-                          <i class="bi bi-graph-up-arrow"></i>
-                          <span>Timeseries</span>
-                        </router-link>
-                        <router-link
-                          :to="`/profiles/${profileId}/garbage-collection/configuration`"
-                          class="nav-item nav-subitem"
-                          active-class="active"
-                        >
-                          <i class="bi bi-gear"></i>
-                          <span>Configuration</span>
-                        </router-link>
-                        <router-link
-                          :to="`/profiles/${profileId}/garbage-collection/g1`"
-                          class="nav-item nav-subitem"
-                          active-class="active"
-                        >
-                          <i class="bi bi-diagram-3"></i>
-                          <span>G1 Analysis</span>
-                        </router-link>
-                        <router-link
-                          :to="`/profiles/${profileId}/garbage-collection/zgc`"
-                          class="nav-item nav-subitem"
-                          active-class="active"
-                        >
-                          <i class="bi bi-cpu"></i>
-                          <span>ZGC Analysis</span>
-                        </router-link>
-                      </div>
-                    </div>
-                    <router-link
-                      :to="`/profiles/${profileId}/string-symbol-tables`"
-                      class="nav-item"
-                      active-class="active"
-                    >
-                      <i class="bi bi-fonts"></i>
-                      <span>String &amp; Symbol Tables</span>
-                    </router-link>
-                    <router-link
-                      :to="`/profiles/${profileId}/leak-candidates`"
-                      class="nav-item"
-                      active-class="active"
-                    >
-                      <i class="bi bi-bug"></i>
-                      <span>Leak Candidates</span>
-                    </router-link>
-                    <router-link
-                      :to="`/profiles/${profileId}/garbage-collection/finalizers`"
-                      class="nav-item"
-                      active-class="active"
-                    >
-                      <i class="bi bi-hourglass-split"></i>
-                      <span>Finalizers</span>
-                    </router-link>
-                    <router-link
-                      :to="`/profiles/${profileId}/garbage-collection/reference-processing`"
-                      class="nav-item"
-                      active-class="active"
-                    >
-                      <i class="bi bi-link-45deg"></i>
-                      <span>Reference Processing</span>
-                    </router-link>
-                  </div>
-                </div>
-
-                <div class="nav-section">
-                  <div class="nav-section-title">NATIVE MEMORY</div>
-                  <div class="nav-items">
-                    <router-link
-                      :to="`/profiles/${profileId}/native-memory`"
-                      class="nav-item"
-                      active-class="active"
-                    >
-                      <i class="bi bi-hdd-stack"></i>
-                      <span>Native Memory</span>
-                    </router-link>
-                    <router-link
-                      :to="`/profiles/${profileId}/native-library-loads`"
-                      class="nav-item"
-                      active-class="active"
-                    >
-                      <i class="bi bi-box-arrow-in-down"></i>
-                      <span>Native Library Loads</span>
-                    </router-link>
-                    <router-link
-                      :to="`/profiles/${profileId}/nmt`"
-                      class="nav-item"
-                      active-class="active"
-                    >
-                      <i class="bi bi-pie-chart"></i>
-                      <span>Native Memory Tracking</span>
-                    </router-link>
-                  </div>
-                </div>
-
-                <div class="nav-section">
-                  <div class="nav-section-title">COMPILER</div>
-                  <div class="nav-items">
-                    <router-link
-                      :to="`/profiles/${profileId}/jit-compilation`"
-                      class="nav-item"
-                      active-class="active"
-                      :class="{
-                        active: $route.path === `/profiles/${profileId}/jit-compilation`
-                      }"
-                    >
-                      <i class="bi bi-bar-chart-line"></i>
-                      <span>Compilations</span>
-                    </router-link>
-                    <router-link
-                      :to="`/profiles/${profileId}/jit-compilation/deoptimizations`"
-                      class="nav-item"
-                      active-class="active"
-                    >
-                      <i class="bi bi-arrow-counterclockwise"></i>
-                      <span>Deoptimizations</span>
-                    </router-link>
-                  </div>
-                </div>
-
-                <div class="nav-section">
-                  <div class="nav-section-title">INFRASTRUCTURE</div>
-                  <div class="nav-items">
-                    <router-link
-                      :to="`/profiles/${profileId}/container/configuration`"
-                      class="nav-item"
-                      :class="{ 'disabled-feature': isFeatureDisabled('container') }"
-                      active-class="active"
-                    >
-                      <i class="bi bi-server"></i>
-                      <span>Container Configuration</span>
-                    </router-link>
-                    <router-link
-                      :to="`/profiles/${profileId}/system`"
-                      class="nav-item"
-                      active-class="active"
-                    >
-                      <i class="bi bi-cpu"></i>
-                      <span>System &amp; Host</span>
-                    </router-link>
-                    <router-link
-                      :to="`/profiles/${profileId}/modules`"
-                      class="nav-item"
-                      active-class="active"
-                    >
-                      <i class="bi bi-boxes"></i>
-                      <span>Modules</span>
-                    </router-link>
-                  </div>
-                </div>
-              </template>
-
-              <!-- Technologies Mode Menu -->
-              <template v-else-if="selectedMode === 'Technologies'">
-                <!-- Hub state: no sidebar menu items -->
-                <template v-if="isTechnologiesHub"> </template>
-
-                <!-- Drilled-in state: back link + technology sub-pages -->
-                <template v-else-if="activeTechnology">
-                  <div class="tech-sidebar-header">
-                    <a
-                      class="tech-back-link"
-                      @click.prevent="router.push(`/profiles/${profileId}/technologies/hub`)"
-                    >
-                      <i class="bi bi-arrow-left"></i>
-                    </a>
-                    <div class="tech-header-title">
-                      <i class="bi" :class="technologyLabels[activeTechnology]?.icon"></i>
-                      {{ technologyLabels[activeTechnology]?.name }}
-                    </div>
-                  </div>
-
-                  <div class="nav-section">
-                    <!-- HTTP Server sub-pages -->
-                    <div v-if="activeTechnology === 'http-server'" class="nav-items">
-                      <router-link
-                        :to="`/profiles/${profileId}/technologies/http/timeseries?mode=server`"
-                        class="nav-item"
-                        :class="{
-                          active:
-                            $route.path.includes('/technologies/http/timeseries') &&
-                            ($route.query.mode === 'server' || !$route.query.mode)
-                        }"
-                      >
-                        <i class="bi bi-graph-up"></i>
-                        <span>Timeseries</span>
-                      </router-link>
-                      <router-link
-                        :to="`/profiles/${profileId}/technologies/http/distribution?mode=server`"
-                        class="nav-item"
-                        :class="{
-                          active:
-                            $route.path.includes('/technologies/http/distribution') &&
-                            ($route.query.mode === 'server' || !$route.query.mode)
-                        }"
-                      >
-                        <i class="bi bi-pie-chart"></i>
-                        <span>Distribution</span>
-                      </router-link>
-                      <router-link
-                        :to="`/profiles/${profileId}/technologies/http/slowest?mode=server`"
-                        class="nav-item"
-                        :class="{
-                          active:
-                            $route.path.includes('/technologies/http/slowest') &&
-                            ($route.query.mode === 'server' || !$route.query.mode)
-                        }"
-                      >
-                        <i class="bi bi-clock-history"></i>
-                        <span>Slowest Requests</span>
-                      </router-link>
-                      <router-link
-                        :to="`/profiles/${profileId}/technologies/http/endpoints?mode=server`"
-                        class="nav-item"
-                        :class="{
-                          active:
-                            $route.path.includes('/technologies/http/endpoints') &&
-                            ($route.query.mode === 'server' || !$route.query.mode)
-                        }"
-                      >
-                        <i class="bi bi-share"></i>
-                        <span>Endpoint Details</span>
-                      </router-link>
-                    </div>
-
-                    <!-- HTTP Client sub-pages -->
-                    <div v-else-if="activeTechnology === 'http-client'" class="nav-items">
-                      <router-link
-                        :to="`/profiles/${profileId}/technologies/http/timeseries?mode=client`"
-                        class="nav-item"
-                        :class="{
-                          active:
-                            $route.path.includes('/technologies/http/timeseries') &&
-                            $route.query.mode === 'client'
-                        }"
-                      >
-                        <i class="bi bi-graph-up"></i>
-                        <span>Timeseries</span>
-                      </router-link>
-                      <router-link
-                        :to="`/profiles/${profileId}/technologies/http/distribution?mode=client`"
-                        class="nav-item"
-                        :class="{
-                          active:
-                            $route.path.includes('/technologies/http/distribution') &&
-                            $route.query.mode === 'client'
-                        }"
-                      >
-                        <i class="bi bi-pie-chart"></i>
-                        <span>Distribution</span>
-                      </router-link>
-                      <router-link
-                        :to="`/profiles/${profileId}/technologies/http/slowest?mode=client`"
-                        class="nav-item"
-                        :class="{
-                          active:
-                            $route.path.includes('/technologies/http/slowest') &&
-                            $route.query.mode === 'client'
-                        }"
-                      >
-                        <i class="bi bi-clock-history"></i>
-                        <span>Slowest Requests</span>
-                      </router-link>
-                      <router-link
-                        :to="`/profiles/${profileId}/technologies/http/endpoints?mode=client`"
-                        class="nav-item"
-                        :class="{
-                          active:
-                            $route.path.includes('/technologies/http/endpoints') &&
-                            $route.query.mode === 'client'
-                        }"
-                      >
-                        <i class="bi bi-share"></i>
-                        <span>Endpoint Details</span>
-                      </router-link>
-                    </div>
-
-                    <!-- gRPC Server sub-pages -->
-                    <div v-else-if="activeTechnology === 'grpc-server'" class="nav-items">
-                      <div class="nav-section-title">OVERVIEW</div>
-                      <router-link
-                        :to="`/profiles/${profileId}/technologies/grpc/timeseries?mode=server`"
-                        class="nav-item"
-                        :class="{
-                          active:
-                            $route.path.includes('/technologies/grpc/timeseries') &&
-                            ($route.query.mode === 'server' || !$route.query.mode)
-                        }"
-                      >
-                        <i class="bi bi-graph-up"></i>
-                        <span>Timeseries</span>
-                      </router-link>
-                      <router-link
-                        :to="`/profiles/${profileId}/technologies/grpc/distribution?mode=server`"
-                        class="nav-item"
-                        :class="{
-                          active:
-                            $route.path.includes('/technologies/grpc/distribution') &&
-                            ($route.query.mode === 'server' || !$route.query.mode)
-                        }"
-                      >
-                        <i class="bi bi-pie-chart"></i>
-                        <span>Distribution</span>
-                      </router-link>
-                      <router-link
-                        :to="`/profiles/${profileId}/technologies/grpc/slowest?mode=server`"
-                        class="nav-item"
-                        :class="{
-                          active:
-                            $route.path.includes('/technologies/grpc/slowest') &&
-                            ($route.query.mode === 'server' || !$route.query.mode)
-                        }"
-                      >
-                        <i class="bi bi-clock-history"></i>
-                        <span>Slowest Calls</span>
-                      </router-link>
-                      <router-link
-                        :to="`/profiles/${profileId}/technologies/grpc/services?mode=server`"
-                        class="nav-item"
-                        :class="{
-                          active:
-                            $route.path.includes('/technologies/grpc/services') &&
-                            ($route.query.mode === 'server' || !$route.query.mode)
-                        }"
-                      >
-                        <i class="bi bi-diagram-3"></i>
-                        <span>Service Details</span>
-                      </router-link>
-                      <div class="nav-section-title">TRAFFIC</div>
-                      <router-link
-                        :to="`/profiles/${profileId}/technologies/grpc/size-timeseries?mode=server`"
-                        class="nav-item"
-                        :class="{
-                          active:
-                            $route.path.includes('/technologies/grpc/size-timeseries') &&
-                            ($route.query.mode === 'server' || !$route.query.mode)
-                        }"
-                      >
-                        <i class="bi bi-graph-up"></i>
-                        <span>Size Over Time</span>
-                      </router-link>
-                      <router-link
-                        :to="`/profiles/${profileId}/technologies/grpc/size-distribution?mode=server`"
-                        class="nav-item"
-                        :class="{
-                          active:
-                            $route.path.includes('/technologies/grpc/size-distribution') &&
-                            ($route.query.mode === 'server' || !$route.query.mode)
-                        }"
-                      >
-                        <i class="bi bi-bar-chart"></i>
-                        <span>Size Distribution</span>
-                      </router-link>
-                      <router-link
-                        :to="`/profiles/${profileId}/technologies/grpc/largest?mode=server`"
-                        class="nav-item"
-                        :class="{
-                          active:
-                            $route.path.includes('/technologies/grpc/largest') &&
-                            ($route.query.mode === 'server' || !$route.query.mode)
-                        }"
-                      >
-                        <i class="bi bi-box-seam"></i>
-                        <span>Largest Calls</span>
-                      </router-link>
-                    </div>
-
-                    <!-- gRPC Client sub-pages -->
-                    <div v-else-if="activeTechnology === 'grpc-client'" class="nav-items">
-                      <div class="nav-section-title">OVERVIEW</div>
-                      <router-link
-                        :to="`/profiles/${profileId}/technologies/grpc/timeseries?mode=client`"
-                        class="nav-item"
-                        :class="{
-                          active:
-                            $route.path.includes('/technologies/grpc/timeseries') &&
-                            $route.query.mode === 'client'
-                        }"
-                      >
-                        <i class="bi bi-graph-up"></i>
-                        <span>Timeseries</span>
-                      </router-link>
-                      <router-link
-                        :to="`/profiles/${profileId}/technologies/grpc/distribution?mode=client`"
-                        class="nav-item"
-                        :class="{
-                          active:
-                            $route.path.includes('/technologies/grpc/distribution') &&
-                            $route.query.mode === 'client'
-                        }"
-                      >
-                        <i class="bi bi-pie-chart"></i>
-                        <span>Distribution</span>
-                      </router-link>
-                      <router-link
-                        :to="`/profiles/${profileId}/technologies/grpc/slowest?mode=client`"
-                        class="nav-item"
-                        :class="{
-                          active:
-                            $route.path.includes('/technologies/grpc/slowest') &&
-                            $route.query.mode === 'client'
-                        }"
-                      >
-                        <i class="bi bi-clock-history"></i>
-                        <span>Slowest Calls</span>
-                      </router-link>
-                      <router-link
-                        :to="`/profiles/${profileId}/technologies/grpc/services?mode=client`"
-                        class="nav-item"
-                        :class="{
-                          active:
-                            $route.path.includes('/technologies/grpc/services') &&
-                            $route.query.mode === 'client'
-                        }"
-                      >
-                        <i class="bi bi-diagram-3"></i>
-                        <span>Service Details</span>
-                      </router-link>
-                      <div class="nav-section-title">TRAFFIC</div>
-                      <router-link
-                        :to="`/profiles/${profileId}/technologies/grpc/size-timeseries?mode=client`"
-                        class="nav-item"
-                        :class="{
-                          active:
-                            $route.path.includes('/technologies/grpc/size-timeseries') &&
-                            $route.query.mode === 'client'
-                        }"
-                      >
-                        <i class="bi bi-graph-up"></i>
-                        <span>Size Over Time</span>
-                      </router-link>
-                      <router-link
-                        :to="`/profiles/${profileId}/technologies/grpc/size-distribution?mode=client`"
-                        class="nav-item"
-                        :class="{
-                          active:
-                            $route.path.includes('/technologies/grpc/size-distribution') &&
-                            $route.query.mode === 'client'
-                        }"
-                      >
-                        <i class="bi bi-bar-chart"></i>
-                        <span>Size Distribution</span>
-                      </router-link>
-                      <router-link
-                        :to="`/profiles/${profileId}/technologies/grpc/largest?mode=client`"
-                        class="nav-item"
-                        :class="{
-                          active:
-                            $route.path.includes('/technologies/grpc/largest') &&
-                            $route.query.mode === 'client'
-                        }"
-                      >
-                        <i class="bi bi-box-seam"></i>
-                        <span>Largest Calls</span>
-                      </router-link>
-                    </div>
-
-                    <!-- JDBC sub-pages -->
-                    <div v-else-if="activeTechnology === 'jdbc'" class="nav-items">
-                      <div class="nav-section-title">OVERVIEW</div>
-                      <router-link
-                        :to="`/profiles/${profileId}/technologies/jdbc/timeseries`"
-                        class="nav-item"
-                        active-class="active"
-                      >
-                        <i class="bi bi-graph-up"></i>
-                        <span>Timeseries</span>
-                      </router-link>
-                      <router-link
-                        :to="`/profiles/${profileId}/technologies/jdbc/distribution`"
-                        class="nav-item"
-                        active-class="active"
-                      >
-                        <i class="bi bi-pie-chart"></i>
-                        <span>Distribution</span>
-                      </router-link>
-                      <router-link
-                        :to="`/profiles/${profileId}/technologies/jdbc/slowest-statements`"
-                        class="nav-item"
-                        active-class="active"
-                      >
-                        <i class="bi bi-clock-history"></i>
-                        <span>Slowest Statements</span>
-                      </router-link>
-                      <router-link
-                        :to="`/profiles/${profileId}/technologies/jdbc/statement-groups`"
-                        class="nav-item"
-                        active-class="active"
-                      >
-                        <i class="bi bi-collection"></i>
-                        <span>Statement Groups</span>
-                      </router-link>
-                      <router-link
-                        :to="`/profiles/${profileId}/technologies/jdbc-pool`"
-                        class="nav-item"
-                        active-class="active"
-                      >
-                        <i class="bi bi-diagram-3"></i>
-                        <span>Connection Pools</span>
-                      </router-link>
-                    </div>
-
-                    <!-- Method Tracing sub-pages -->
-                    <div v-else-if="activeTechnology === 'method-tracing'" class="nav-items">
-                      <div class="nav-section-title">OVERVIEW</div>
-                      <router-link
-                        :to="`/profiles/${profileId}/technologies/method-tracing/timeseries`"
-                        class="nav-item"
-                        active-class="active"
-                      >
-                        <i class="bi bi-graph-up"></i>
-                        <span>Timeseries</span>
-                      </router-link>
-                      <router-link
-                        :to="`/profiles/${profileId}/technologies/method-tracing/distribution`"
-                        class="nav-item"
-                        active-class="active"
-                      >
-                        <i class="bi bi-pie-chart"></i>
-                        <span>Distribution</span>
-                      </router-link>
-                      <div class="nav-section-title">ANALYSIS</div>
-                      <router-link
-                        :to="`/profiles/${profileId}/technologies/method-tracing/flamegraph`"
-                        class="nav-item"
-                        active-class="active"
-                      >
-                        <i class="bi bi-fire"></i>
-                        <span>Flamegraph</span>
-                      </router-link>
-                      <router-link
-                        :to="`/profiles/${profileId}/technologies/method-tracing/slowest`"
-                        class="nav-item"
-                        active-class="active"
-                      >
-                        <i class="bi bi-hourglass-split"></i>
-                        <span>Slowest Traces</span>
-                      </router-link>
-                      <router-link
-                        :to="`/profiles/${profileId}/technologies/method-tracing/cumulated`"
-                        class="nav-item"
-                        active-class="active"
-                      >
-                        <i class="bi bi-layers"></i>
-                        <span>Cumulated Traces</span>
-                      </router-link>
-                    </div>
-                    <div v-else-if="activeTechnology === 'async-profiler'" class="nav-items">
-                      <router-link
-                        :to="`/profiles/${profileId}/technologies/async-profiler/spans`"
-                        class="nav-item"
-                        active-class="active"
-                      >
-                        <i class="bi bi-table"></i>
-                        <span>Spans by Tag</span>
-                      </router-link>
-                      <router-link
-                        :to="`/profiles/${profileId}/technologies/async-profiler/slowest-spans`"
-                        class="nav-item"
-                        active-class="active"
-                      >
-                        <i class="bi bi-hourglass-split"></i>
-                        <span>Slowest Spans</span>
-                      </router-link>
-                    </div>
-                  </div>
-                </template>
-              </template>
-
-              <!-- Visualization Mode Menu -->
-              <template v-else-if="selectedMode === 'Visualization'">
-                <div class="nav-section">
-                  <div class="nav-section-title">FLAMEGRAPHS</div>
-                  <div class="nav-items">
-                    <router-link
-                      :to="`/profiles/${profileId}/flamegraphs/primary`"
-                      class="nav-item"
-                      active-class="active"
-                    >
-                      <i class="bi bi-fire"></i>
-                      <span>Primary</span>
-                    </router-link>
-                    <a
-                      href="#"
-                      @click.prevent="navigateToDifferentialPage('flamegraphs')"
-                      class="nav-item"
-                      :class="{ active: $route.path.includes('/flamegraphs/differential') }"
-                    >
-                      <i class="bi bi-file-diff"></i>
-                      <span>Differential</span>
-                      <i
-                        v-if="!secondaryProfile"
-                        class="bi bi-lock ms-auto"
-                        title="Select a secondary profile to enable this page"
-                      ></i>
-                    </a>
-                  </div>
-                </div>
-
-                <div class="nav-section">
-                  <div class="nav-section-title">SUBSECOND</div>
-                  <div class="nav-items">
-                    <router-link
-                      :to="`/profiles/${profileId}/subsecond/primary`"
-                      class="nav-item"
-                      active-class="active"
-                    >
-                      <i class="bi bi-bar-chart"></i>
-                      <span>Primary</span>
-                    </router-link>
-                    <a
-                      href="#"
-                      @click.prevent="navigateToDifferentialPage('subsecond')"
-                      class="nav-item"
-                      :class="{ active: $route.path.includes('/subsecond/differential') }"
-                    >
-                      <i class="bi bi-file-bar-graph"></i>
-                      <span>Differential</span>
-                      <i
-                        v-if="!secondaryProfile"
-                        class="bi bi-lock ms-auto"
-                        title="Select a secondary profile to enable this page"
-                      ></i>
-                    </a>
-                  </div>
-                </div>
-              </template>
-
-              <!-- Heap Dump Analysis Mode Menu -->
-              <template v-else-if="selectedMode === 'HeapDump'">
-                <div class="nav-section">
-                  <div class="nav-section-title">OVERVIEW</div>
-                  <div class="nav-items">
-                    <router-link
-                      :to="`/profiles/${profileId}/heap-dump/settings`"
-                      class="nav-item"
-                      active-class="active"
-                    >
-                      <i class="bi bi-memory"></i>
-                      <span>Heap Dump Overview</span>
-                    </router-link>
-                    <router-link
-                      :to="`/profiles/${profileId}/heap-dump/ai-analysis`"
-                      class="nav-item nav-item-ai"
-                      :class="{
-                        'disabled-feature':
-                          isFeatureDisabled('heap-dump') || isFeatureDisabled('ai-analysis')
-                      }"
-                      active-class="active"
-                    >
-                      <i class="bi bi-stars"></i>
-                      <span>AI Analysis</span>
-                    </router-link>
-                    <router-link
-                      :to="`/profiles/${profileId}/heap-dump/oql`"
-                      class="nav-item"
-                      :class="{ 'disabled-feature': isFeatureDisabled('heap-dump') }"
-                      active-class="active"
-                    >
-                      <i class="bi bi-terminal"></i>
-                      <span>OQL Query</span>
-                    </router-link>
-                  </div>
-                </div>
-
-                <div class="nav-section">
-                  <div class="nav-section-title">MEMORY ANALYSIS</div>
-                  <div class="nav-items">
-                    <router-link
-                      :to="`/profiles/${profileId}/heap-dump/histogram`"
-                      class="nav-item"
-                      :class="{ 'disabled-feature': isFeatureDisabled('heap-dump') }"
-                      active-class="active"
-                    >
-                      <i class="bi bi-list-ol"></i>
-                      <span>Class Histogram</span>
-                    </router-link>
-                    <router-link
-                      :to="`/profiles/${profileId}/heap-dump/dominator-tree`"
-                      class="nav-item"
-                      :class="{ 'disabled-feature': isFeatureDisabled('heap-dump') }"
-                      active-class="active"
-                    >
-                      <i class="bi bi-diagram-2"></i>
-                      <span>Dominator Tree</span>
-                    </router-link>
-                    <router-link
-                      :to="`/profiles/${profileId}/heap-dump/leak-suspects`"
-                      class="nav-item"
-                      :class="{ 'disabled-feature': isFeatureDisabled('heap-dump') }"
-                      active-class="active"
-                    >
-                      <i class="bi bi-bug"></i>
-                      <span>Leak Suspects</span>
-                    </router-link>
-                    <router-link
-                      :to="`/profiles/${profileId}/heap-dump/gc-root-path`"
-                      class="nav-item"
-                      :class="{ 'disabled-feature': isFeatureDisabled('heap-dump') }"
-                      active-class="active"
-                    >
-                      <i class="bi bi-signpost-2"></i>
-                      <span>Path to GC Root</span>
-                    </router-link>
-                    <router-link
-                      :to="`/profiles/${profileId}/heap-dump/gc-roots`"
-                      class="nav-item"
-                      :class="{ 'disabled-feature': isFeatureDisabled('heap-dump') }"
-                      active-class="active"
-                    >
-                      <i class="bi bi-diagram-3"></i>
-                      <span>GC Roots</span>
-                    </router-link>
-                    <router-link
-                      :to="`/profiles/${profileId}/heap-dump/collection-analysis`"
-                      class="nav-item"
-                      :class="{ 'disabled-feature': isFeatureDisabled('heap-dump') }"
-                      active-class="active"
-                    >
-                      <i class="bi bi-collection"></i>
-                      <span>Collection Analysis</span>
-                    </router-link>
-                    <router-link
-                      :to="`/profiles/${profileId}/heap-dump/biggest-collections`"
-                      class="nav-item"
-                      :class="{ 'disabled-feature': isFeatureDisabled('heap-dump') }"
-                      active-class="active"
-                    >
-                      <i class="bi bi-collection-fill"></i>
-                      <span>Biggest Collections</span>
-                    </router-link>
-                    <router-link
-                      :to="`/profiles/${profileId}/heap-dump/string-analysis`"
-                      class="nav-item"
-                      :class="{ 'disabled-feature': isFeatureDisabled('heap-dump') }"
-                      active-class="active"
-                    >
-                      <i class="bi bi-fonts"></i>
-                      <span>String Analysis</span>
-                    </router-link>
-                  </div>
-                </div>
-
-                <div class="nav-section">
-                  <div class="nav-section-title">RUNTIME</div>
-                  <div class="nav-items">
-                    <router-link
-                      :to="`/profiles/${profileId}/heap-dump/threads`"
-                      class="nav-item"
-                      :class="{ 'disabled-feature': isFeatureDisabled('heap-dump') }"
-                      active-class="active"
-                    >
-                      <i class="bi bi-cpu"></i>
-                      <span>Threads</span>
-                    </router-link>
-                    <router-link
-                      :to="`/profiles/${profileId}/heap-dump/classloader-analysis`"
-                      class="nav-item"
-                      :class="{ 'disabled-feature': isFeatureDisabled('heap-dump') }"
-                      active-class="active"
-                    >
-                      <i class="bi bi-diagram-2"></i>
-                      <span>Class Loaders</span>
-                    </router-link>
-                  </div>
-                </div>
-              </template>
-
-              <!-- Tools Mode Menu -->
-              <template v-else-if="selectedMode === 'Tools'">
-                <div class="nav-section">
-                  <div class="nav-section-title">TRANSFORM</div>
-                  <div class="nav-items">
-                    <router-link
-                      :to="`/profiles/${profileId}/tools/rename-frames`"
-                      class="nav-item"
-                      active-class="active"
-                    >
-                      <i class="bi bi-pencil-square"></i>
-                      <span>Rename Frames</span>
-                    </router-link>
-                    <router-link
-                      :to="`/profiles/${profileId}/tools/collapse-frames`"
-                      class="nav-item"
-                      active-class="active"
-                    >
-                      <i class="bi bi-layers"></i>
-                      <span>Collapse Frames</span>
-                    </router-link>
-                  </div>
-                </div>
-              </template>
-            </div>
-          </div>
-        </div>
-      </div>
+        :profile-id="profileId"
+        :mode="selectedMode"
+        :collapsed="sidebarCollapsed"
+        :is-feature-disabled="isFeatureDisabled"
+        :has-secondary-profile="!!secondaryProfile"
+        :active-technology="activeTechnology"
+        @toggle-collapse="toggleSidebar"
+        @navigate-differential="navigateToDifferentialPage"
+        @navigate-technologies-hub="navigateToTechnologiesHub"
+      />
 
       <!-- Main Content -->
       <div class="detail-main-content" :class="{ 'no-sidebar': isTechnologiesHub }">
         <!-- Heap Dump Profile Info (replaces comparison bar for heap-dump-only profiles) -->
-        <div class="heap-dump-profile-info mb-3" v-if="selectedMode === 'HeapDump' && profile">
+        <div v-if="selectedMode === 'HeapDump' && profile" class="heap-dump-profile-info mb-3">
           <i class="bi bi-file-earmark"></i>
           <span class="profile-name">{{ profile.name }}</span>
           <span class="info-separator">&middot;</span>
@@ -1161,8 +145,8 @@
 
         <!-- Compact Differential Analysis Bar -->
         <div
-          class="compact-comparison-bar mb-3"
           v-if="selectedMode !== 'HeapDump' && !sidebarCollapsed && comparisonPanelVisible"
+          class="compact-comparison-bar mb-3"
         >
           <div class="comparison-cards">
             <!-- Primary Profile -->
@@ -1223,15 +207,15 @@
                     <div class="card-actions">
                       <button
                         class="action-btn"
-                        @click="openSecondaryProfileModal"
                         title="Change profile"
+                        @click="openSecondaryProfileModal"
                       >
                         <i class="bi bi-arrow-repeat"></i>
                       </button>
                       <button
                         class="action-btn remove"
-                        @click="clearSecondaryProfile"
                         title="Remove profile"
+                        @click="clearSecondaryProfile"
                       >
                         <i class="bi bi-x-lg"></i>
                       </button>
@@ -1272,8 +256,8 @@
               <router-view
                 v-if="profile"
                 :profile="profile"
-                :secondaryProfile="secondaryProfile"
-                :disabledFeatures="disabledFeatures"
+                :secondary-profile="secondaryProfile"
+                :disabled-features="disabledFeatures"
               ></router-view>
             </div>
           </div>
@@ -1304,6 +288,8 @@ import { profileStore, ProfileWithContext } from '@/stores/profileStore';
 import IdeTargetBar from '@/components/IdeTargetBar.vue';
 import ideConfigStore from '@/stores/ideConfigStore';
 import ideProfileTargetStore from '@/stores/ideProfileTargetStore';
+import ProfileSidebar from '@/components/profile/ProfileSidebar.vue';
+import { DifferentialType, ProfileMode } from '@/views/profiles/navigation/profileNavConfig';
 const route = useRoute();
 const router = useRouter();
 const { workspaceId, projectId, navigateToProjectRecordings } = useNavigation();
@@ -1359,47 +345,46 @@ const isTechnologiesHub = computed(() => route.name === 'profile-technologies-hu
 const activeTechnology = computed<string | null>(() => {
   const path = route.path;
   const mode = route.query.mode as string | undefined;
-  if (path.includes('/technologies/http/'))
+  if (path.includes('/technologies/http/')) {
     return mode === 'client' ? 'http-client' : 'http-server';
-  if (path.includes('/technologies/grpc/'))
+  }
+  if (path.includes('/technologies/grpc/')) {
     return mode === 'client' ? 'grpc-client' : 'grpc-server';
-  if (path.includes('/technologies/jdbc')) return 'jdbc';
-  if (path.includes('/technologies/method-tracing/')) return 'method-tracing';
+  }
+  if (path.includes('/technologies/jdbc')) {
+    return 'jdbc';
+  }
+  if (path.includes('/technologies/method-tracing/')) {
+    return 'method-tracing';
+  }
   if (path.includes('/technologies/async-profiler/')) {
     return 'async-profiler';
   }
   return null;
 });
 
-const technologyLabels: Record<string, { name: string; icon: string }> = {
-  'http-server': { name: 'HTTP Server', icon: 'bi-globe2' },
-  'http-client': { name: 'HTTP Client', icon: 'bi-send' },
-  'grpc-server': { name: 'gRPC Server', icon: 'bi-diagram-3' },
-  'grpc-client': { name: 'gRPC Client', icon: 'bi-arrow-left-right' },
-  jdbc: { name: 'Database (JDBC)', icon: 'bi-database' },
-  'method-tracing': { name: 'Method Tracing', icon: 'bi-speedometer2' },
-  'async-profiler': { name: 'Async-Profiler Spans', icon: 'bi-bounding-box' }
-};
-
 // Derive mode from the current route path so refresh preserves the active section
-function getModeFromPath(
-  path: string
-): 'JVM' | 'Technologies' | 'Visualization' | 'HeapDump' | 'Tools' {
-  if (path.includes('/technologies/')) return 'Technologies';
+function getModeFromPath(path: string): ProfileMode {
+  if (path.includes('/technologies/')) {
+    return 'Technologies';
+  }
   if (
     path.includes('/flamegraphs/') ||
     path.includes('/subsecond/') ||
     path.includes('/timeseries/')
-  )
+  ) {
     return 'Visualization';
-  if (path.includes('/heap-dump/')) return 'HeapDump';
-  if (path.includes('/tools/')) return 'Tools';
+  }
+  if (path.includes('/heap-dump/')) {
+    return 'HeapDump';
+  }
+  if (path.includes('/tools/')) {
+    return 'Tools';
+  }
   return 'JVM';
 }
 // (heap-dump-only profiles override this to 'HeapDump' in onMounted)
-const selectedMode = ref(getModeFromPath(route.path));
-const gcSubmenuExpanded = ref(false);
-const jitCompilationSubmenuExpanded = ref(false);
+const selectedMode = ref<ProfileMode>(getModeFromPath(route.path));
 
 // Initialize comparison panel visibility from sessionStorage
 const getStoredComparisonPanelState = (): boolean => {
@@ -1417,8 +402,7 @@ const toggleComparisonPanel = () => {
 const ideTargetStatus = ideProfileTargetStore.status;
 const ideControlVisible = computed(
   () =>
-    ideConfigStore.isEnabled() &&
-    (ideTargetStatus.value.selectable || ideTargetStatus.value.linked)
+    ideConfigStore.isEnabled() && (ideTargetStatus.value.selectable || ideTargetStatus.value.linked)
 );
 
 const getStoredIdePanelState = (): boolean => {
@@ -1443,20 +427,6 @@ watch(selectedMode, newMode => {
 watch(comparisonPanelVisible, newValue => {
   sessionStorage.setItem('profile-comparison-panel-visible', String(newValue));
 });
-
-// Watch for route changes to auto-expand submenus
-watch(
-  () => route.path,
-  newPath => {
-    if (newPath.includes('/garbage-collection')) {
-      gcSubmenuExpanded.value = true;
-    }
-    if (newPath.includes('/jit-compilation')) {
-      jitCompilationSubmenuExpanded.value = true;
-    }
-  },
-  { immediate: true }
-);
 
 // Scroll to top when route changes within profile
 watch(
@@ -1561,7 +531,7 @@ const toggleSidebar = () => {
   MessageBus.emit(MessageBus.SIDEBAR_CHANGED, null);
 };
 
-const selectMode = (mode: 'JVM' | 'Technologies' | 'Visualization' | 'HeapDump' | 'Tools') => {
+const selectMode = (mode: ProfileMode) => {
   selectedMode.value = mode;
 
   // Navigate to the first item in the selected mode's menu (simplified URLs)
@@ -1576,16 +546,13 @@ const selectMode = (mode: 'JVM' | 'Technologies' | 'Visualization' | 'HeapDump' 
   router.push(firstRoutes[mode]);
 };
 
-const toggleGCSubmenu = () => {
-  gcSubmenuExpanded.value = !gcSubmenuExpanded.value;
-};
-
-const toggleJitCompilationSubmenu = () => {
-  jitCompilationSubmenuExpanded.value = !jitCompilationSubmenuExpanded.value;
+// Back navigation from a drilled-in technology to the Technologies hub
+const navigateToTechnologiesHub = () => {
+  router.push(`/profiles/${profileId}/technologies/hub`);
 };
 
 // Navigate to differential pages only if secondary profile is selected (simplified URLs)
-const navigateToDifferentialPage = (type: 'flamegraphs' | 'subsecond') => {
+const navigateToDifferentialPage = (type: DifferentialType) => {
   if (secondaryProfile.value) {
     router.push(`/profiles/${profileId}/${type}/differential`);
   } else {
@@ -1649,46 +616,7 @@ onUnmounted(() => {
 <style scoped>
 /* ProfileDetail-specific styles */
 /* Common sidebar styles are in @/assets/_sidebar-menu.scss */
-
-/* Technology sidebar header */
-.tech-sidebar-header {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-2);
-  padding: var(--spacing-3) var(--spacing-4);
-  margin-bottom: var(--spacing-2);
-}
-
-.tech-back-link {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: var(--radius-md);
-  color: var(--color-primary);
-  cursor: pointer;
-  transition: background var(--transition-fast);
-  flex-shrink: 0;
-}
-
-.tech-back-link:hover {
-  background: var(--color-primary-light);
-}
-
-.tech-header-title {
-  font-weight: var(--font-weight-semibold);
-  font-size: var(--font-size-base);
-  color: var(--color-dark);
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-2);
-}
-
-.tech-header-title i {
-  color: var(--color-primary);
-  font-size: var(--font-size-md);
-}
+/* Sidebar-specific styles (tech header etc.) live in @/components/profile/ProfileSidebar.vue */
 
 /* Heap Dump Profile Info */
 .heap-dump-profile-info {
