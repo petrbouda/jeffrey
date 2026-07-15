@@ -23,7 +23,7 @@ import cafe.jeffrey.profile.heapdump.oql.compiler.ExecutionPlan.HybridPlan;
 import cafe.jeffrey.profile.heapdump.oql.compiler.ExecutionPlan.PrePass.ClassHierarchyExpansion;
 import cafe.jeffrey.profile.heapdump.oql.compiler.ExecutionPlan.SqlPlan;
 import cafe.jeffrey.profile.heapdump.oql.compiler.OqlCompiler;
-import cafe.jeffrey.profile.heapdump.parser.HeapView;
+import cafe.jeffrey.profile.heapdump.view.HeapView;
 
 import java.sql.SQLException;
 import java.util.ArrayList;

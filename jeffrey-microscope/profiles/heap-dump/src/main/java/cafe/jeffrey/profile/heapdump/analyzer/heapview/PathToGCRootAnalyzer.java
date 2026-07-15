@@ -31,12 +31,12 @@ import java.util.Queue;
 import java.util.Set;
 import cafe.jeffrey.profile.heapdump.model.GCRootPath;
 import cafe.jeffrey.profile.heapdump.model.PathStep;
-import cafe.jeffrey.profile.heapdump.parser.HeapView;
-import cafe.jeffrey.profile.heapdump.parser.HprofTag;
-import cafe.jeffrey.profile.heapdump.parser.InstanceFieldDescriptor;
-import cafe.jeffrey.profile.heapdump.parser.InstanceRow;
-import cafe.jeffrey.profile.heapdump.parser.JavaClassRow;
-import cafe.jeffrey.profile.heapdump.parser.OutboundRefRow;
+import cafe.jeffrey.profile.heapdump.view.HeapView;
+import cafe.jeffrey.profile.heapdump.view.HprofTag;
+import cafe.jeffrey.profile.heapdump.view.InstanceFieldDescriptor;
+import cafe.jeffrey.profile.heapdump.view.InstanceRow;
+import cafe.jeffrey.profile.heapdump.view.JavaClassRow;
+import cafe.jeffrey.profile.heapdump.view.OutboundRefRow;
 
 /**
  * HeapView-backed equivalent of

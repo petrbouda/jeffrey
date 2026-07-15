@@ -18,7 +18,7 @@
 
 package cafe.jeffrey.profile.manager.heapdump.analysis;
 
-import cafe.jeffrey.profile.heapdump.parser.HeapView;
+import cafe.jeffrey.profile.heapdump.view.HeapView;
 
 import java.sql.SQLException;
 

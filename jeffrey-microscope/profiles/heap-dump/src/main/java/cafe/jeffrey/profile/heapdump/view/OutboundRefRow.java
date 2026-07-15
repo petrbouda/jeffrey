@@ -15,28 +15,17 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cafe.jeffrey.profile.heapdump.parser;
-
-import java.sql.ResultSet;
-import java.sql.SQLException;
+package cafe.jeffrey.profile.heapdump.view;
 
 /**
- * Boxes a JDBC primitive column to {@code null} when the column was SQL NULL.
- * Reads the primitive once and consults {@link ResultSet#wasNull()} — the
- * standard idiom that every analyzer kept re-inlining.
+ * One row of the {@code outbound_ref} table — a single object-to-object
+ * reference extracted during the index build.
+ *
+ * @param sourceId  the holder
+ * @param targetId  the referenced object
+ * @param fieldKind 0 = instance field, 1 = array element, 2 = class static
+ * @param fieldId   field declaration index for instance/static refs;
+ *                  array index for array refs
  */
-public final class JdbcNullable {
-
-    private JdbcNullable() {
-    }
-
-    public static Integer nullableInt(ResultSet rs, int column) throws SQLException {
-        int v = rs.getInt(column);
-        return rs.wasNull() ? null : v;
-    }
-
-    public static Long nullableLong(ResultSet rs, int column) throws SQLException {
-        long v = rs.getLong(column);
-        return rs.wasNull() ? null : v;
-    }
+public record OutboundRefRow(long sourceId, long targetId, int fieldKind, int fieldId) {
 }

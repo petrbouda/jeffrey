@@ -15,10 +15,8 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cafe.jeffrey.profile.heapdump.parser.parquet;
+package cafe.jeffrey.profile.heapdump.persistence;
 
-import cafe.jeffrey.profile.heapdump.persistence.HeapDumpDatabaseClient;
-import cafe.jeffrey.profile.heapdump.persistence.HeapDumpStatement;
 
 import java.io.IOException;
 import java.nio.file.DirectoryStream;

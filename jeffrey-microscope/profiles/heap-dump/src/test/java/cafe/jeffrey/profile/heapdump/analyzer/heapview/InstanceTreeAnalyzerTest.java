@@ -31,8 +31,8 @@ import org.junit.jupiter.api.io.TempDir;
 
 import cafe.jeffrey.profile.heapdump.model.InstanceTreeRequest;
 import cafe.jeffrey.profile.heapdump.model.InstanceTreeResponse;
-import cafe.jeffrey.profile.heapdump.parser.HeapDumpIndexPaths;
-import cafe.jeffrey.profile.heapdump.parser.HeapView;
+import cafe.jeffrey.profile.heapdump.persistence.HeapDumpIndexPaths;
+import cafe.jeffrey.profile.heapdump.view.HeapView;
 import cafe.jeffrey.profile.heapdump.parser.HprofIndex;
 import cafe.jeffrey.profile.heapdump.parser.HprofMappedFile;
 import cafe.jeffrey.profile.heapdump.parser.SyntheticHprof;

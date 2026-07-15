@@ -22,7 +22,7 @@ import cafe.jeffrey.profile.heapdump.analyzer.heapview.DominatorTreeAnalyzer;
 import cafe.jeffrey.profile.heapdump.model.BiggestObjectEntry;
 import cafe.jeffrey.profile.heapdump.model.BiggestObjectsReport;
 import cafe.jeffrey.profile.heapdump.model.DominatorTreeResponse;
-import cafe.jeffrey.profile.heapdump.parser.HeapView;
+import cafe.jeffrey.profile.heapdump.view.HeapView;
 
 import java.sql.SQLException;
 import java.util.List;

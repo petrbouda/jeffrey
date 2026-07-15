@@ -20,7 +20,7 @@ package cafe.jeffrey.profile.manager.heapdump;
 
 import cafe.jeffrey.profile.common.event.GCHeapConfiguration;
 import cafe.jeffrey.profile.heapdump.model.HeapDumpConfig;
-import cafe.jeffrey.profile.heapdump.parser.HeapDumpSession;
+import cafe.jeffrey.profile.heapdump.persistence.HeapDumpSession;
 import cafe.jeffrey.provider.profile.api.ProfileEventRepository;
 import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.shared.common.model.ProfileInfo;

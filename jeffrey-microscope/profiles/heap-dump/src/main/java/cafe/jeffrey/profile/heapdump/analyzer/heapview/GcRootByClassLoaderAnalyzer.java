@@ -25,7 +25,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import cafe.jeffrey.profile.heapdump.model.GCRootClassLoaderAggregate;
-import cafe.jeffrey.profile.heapdump.parser.HeapView;
+import cafe.jeffrey.profile.heapdump.view.HeapView;
 
 /**
  * Aggregates GC roots by the classloader that loaded the rooted class —

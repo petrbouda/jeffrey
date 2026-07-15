@@ -22,8 +22,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import cafe.jeffrey.profile.heapdump.model.ClassLoaderHierarchyEdge;
-import cafe.jeffrey.profile.heapdump.parser.HeapView;
-import cafe.jeffrey.profile.heapdump.parser.InstanceFieldValue;
+import cafe.jeffrey.profile.heapdump.view.HeapView;
+import cafe.jeffrey.profile.heapdump.view.InstanceFieldValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

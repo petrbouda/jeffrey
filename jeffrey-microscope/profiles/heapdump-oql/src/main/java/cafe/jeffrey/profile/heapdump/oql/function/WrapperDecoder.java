@@ -17,9 +17,9 @@
  */
 package cafe.jeffrey.profile.heapdump.oql.function;
 
-import cafe.jeffrey.profile.heapdump.parser.HeapView;
-import cafe.jeffrey.profile.heapdump.parser.InstanceFieldValue;
-import cafe.jeffrey.profile.heapdump.parser.JavaClassRow;
+import cafe.jeffrey.profile.heapdump.view.HeapView;
+import cafe.jeffrey.profile.heapdump.view.InstanceFieldValue;
+import cafe.jeffrey.profile.heapdump.view.JavaClassRow;
 
 import java.sql.SQLException;
 import java.util.List;

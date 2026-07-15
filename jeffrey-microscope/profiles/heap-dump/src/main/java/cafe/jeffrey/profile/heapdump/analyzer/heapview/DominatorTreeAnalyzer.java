@@ -29,9 +29,9 @@ import java.util.Map;
 import java.util.Set;
 import cafe.jeffrey.profile.heapdump.model.DominatorNode;
 import cafe.jeffrey.profile.heapdump.model.DominatorTreeResponse;
-import cafe.jeffrey.profile.heapdump.parser.DominatorTreeBuilder;
-import cafe.jeffrey.profile.heapdump.parser.HeapView;
-import cafe.jeffrey.profile.heapdump.parser.HprofTag;
+import cafe.jeffrey.profile.heapdump.persistence.DominatorTreeBuilder;
+import cafe.jeffrey.profile.heapdump.view.HeapView;
+import cafe.jeffrey.profile.heapdump.view.HprofTag;
 
 /**
  * HeapView-backed equivalent of

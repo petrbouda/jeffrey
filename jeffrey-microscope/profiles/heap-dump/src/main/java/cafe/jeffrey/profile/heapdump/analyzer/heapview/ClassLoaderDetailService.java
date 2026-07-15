@@ -32,8 +32,8 @@ import cafe.jeffrey.profile.heapdump.model.ClassLoaderHierarchyEdge;
 import cafe.jeffrey.profile.heapdump.model.ClassLoaderUnloadability;
 import cafe.jeffrey.profile.heapdump.model.LoaderType;
 import cafe.jeffrey.profile.heapdump.model.UnloadabilityVerdict;
-import cafe.jeffrey.profile.heapdump.parser.HeapView;
-import cafe.jeffrey.profile.heapdump.parser.InstanceFieldValue;
+import cafe.jeffrey.profile.heapdump.view.HeapView;
+import cafe.jeffrey.profile.heapdump.view.InstanceFieldValue;
 
 /**
  * On-demand loader for the Class Loader Detail drawer. Pulls one loader's

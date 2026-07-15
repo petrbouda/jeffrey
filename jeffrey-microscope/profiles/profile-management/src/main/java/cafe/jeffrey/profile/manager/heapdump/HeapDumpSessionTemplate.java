@@ -18,8 +18,8 @@
 
 package cafe.jeffrey.profile.manager.heapdump;
 
-import cafe.jeffrey.profile.heapdump.parser.HeapDumpIndexPaths;
-import cafe.jeffrey.profile.heapdump.parser.HeapDumpSession;
+import cafe.jeffrey.profile.heapdump.persistence.HeapDumpIndexPaths;
+import cafe.jeffrey.profile.heapdump.persistence.HeapDumpSession;
 import cafe.jeffrey.profile.manager.AdditionalFilesManager;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.shared.common.model.ProfileInfo;

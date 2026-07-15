@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cafe.jeffrey.profile.heapdump.parser;
+package cafe.jeffrey.profile.heapdump.persistence;
 
 import cafe.jeffrey.profile.heapdump.model.SubPhaseTiming;
 import org.slf4j.Logger;
@@ -28,6 +28,9 @@ import java.sql.SQLException;
 import java.time.Clock;
 import java.util.List;
 import java.util.Optional;
+import cafe.jeffrey.profile.heapdump.parser.HprofIndex;
+import cafe.jeffrey.profile.heapdump.parser.HprofMappedFile;
+import cafe.jeffrey.profile.heapdump.view.HeapView;
 
 /**
  * Bundle holding the open {@link HprofMappedFile} and {@link HeapView} for a

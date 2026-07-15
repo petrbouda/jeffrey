@@ -15,15 +15,27 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cafe.jeffrey.profile.heapdump.parser;
+package cafe.jeffrey.profile.heapdump.view;
 
 /**
- * One row of {@code class_instance_field}: a class's instance field declaration.
+ * The single row of the {@code dump_metadata} table.
  *
- * @param classId    the class that declares the field
- * @param fieldIndex 0-based position within this class only
- * @param name       resolved field name (from the HPROF string pool)
- * @param basicType  HPROF basic-type byte (see {@link HprofTag.BasicType})
+ * Surfaces parse health (truncated, warning_count) and provenance
+ * (parser_version, parsed_at_ms) so the UI can decide whether the index
+ * needs rebuilding without reading the .hprof file directly.
  */
-public record InstanceFieldDescriptor(long classId, int fieldIndex, String name, int basicType) {
+public record DumpMetadata(
+        String hprofPath,
+        long hprofSizeBytes,
+        long hprofMtimeMs,
+        int idSize,
+        String hprofVersion,
+        long timestampMs,
+        long bytesParsed,
+        long recordCount,
+        long warningCount,
+        boolean truncated,
+        String parserVersion,
+        long parsedAtMs,
+        boolean compressedOops) {
 }

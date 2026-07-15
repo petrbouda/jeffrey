@@ -15,19 +15,20 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cafe.jeffrey.profile.heapdump.parser;
+package cafe.jeffrey.profile.heapdump.view;
 
 /**
- * One row of the {@code gc_root} table.
- *
- * {@code rootKind} is the raw HPROF sub-tag byte (see {@link HprofTag.Sub}).
- * {@code threadSerial} and {@code frameIndex} are null for root kinds that
- * don't carry that data (e.g. {@code ROOT_STICKY_CLASS}).
+ * JDK instance-field names that the heap-dump analyzers match against. Kept
+ * in one place so the same literal isn't scattered across analyzers that all
+ * need to recognise {@code String.value}, {@code String.coder}, or
+ * {@code Thread.name}.
  */
-public record GcRootRow(
-        long instanceId,
-        int rootKind,
-        Integer threadSerial,
-        Integer frameIndex,
-        long fileOffset) {
+public final class JdkFieldNames {
+
+    public static final String STRING_VALUE = "value";
+    public static final String STRING_CODER = "coder";
+    public static final String THREAD_NAME = "name";
+
+    private JdkFieldNames() {
+    }
 }

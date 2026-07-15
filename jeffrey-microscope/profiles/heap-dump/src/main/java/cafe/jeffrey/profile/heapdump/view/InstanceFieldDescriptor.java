@@ -15,21 +15,15 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cafe.jeffrey.profile.heapdump.parser;
+package cafe.jeffrey.profile.heapdump.view;
 
 /**
- * One row of a class histogram: per-class instance count and total shallow size.
+ * One row of {@code class_instance_field}: a class's instance field declaration.
  *
- * Produced by SQL aggregation against the {@code instance} table — the canonical
- * cheap query that motivates the SQL-pushdown design of the new index.
- *
- * {@code className} is null when an instance points to a class id that has no
- * {@code class} row (e.g. corrupt reference, primitive array which has no class
- * entry of its own).
+ * @param classId    the class that declares the field
+ * @param fieldIndex 0-based position within this class only
+ * @param name       resolved field name (from the HPROF string pool)
+ * @param basicType  HPROF basic-type byte (see {@link HprofTag.BasicType})
  */
-public record HistogramRow(
-        Long classId,
-        String className,
-        long instanceCount,
-        long totalShallowSize) {
+public record InstanceFieldDescriptor(long classId, int fieldIndex, String name, int basicType) {
 }

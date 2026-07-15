@@ -25,6 +25,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.function.Consumer;
+import cafe.jeffrey.profile.heapdump.view.HprofTag;
 
 /**
  * Test-only fluent builder for synthesising HPROF binary streams.

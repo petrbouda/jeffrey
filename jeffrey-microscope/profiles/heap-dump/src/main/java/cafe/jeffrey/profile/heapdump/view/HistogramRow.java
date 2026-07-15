@@ -15,23 +15,21 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cafe.jeffrey.profile.heapdump.parser;
+package cafe.jeffrey.profile.heapdump.view;
 
 /**
- * A single decoded instance field value.
+ * One row of a class histogram: per-class instance count and total shallow size.
  *
- * {@code value} is boxed:
- * <ul>
- *   <li>OBJECT → {@link Long} (referenced instance id; 0 if null reference)</li>
- *   <li>BOOLEAN → {@link Boolean}</li>
- *   <li>BYTE → {@link Byte}</li>
- *   <li>CHAR → {@link Character}</li>
- *   <li>SHORT → {@link Short}</li>
- *   <li>INT → {@link Integer}</li>
- *   <li>FLOAT → {@link Float}</li>
- *   <li>LONG → {@link Long}</li>
- *   <li>DOUBLE → {@link Double}</li>
- * </ul>
+ * Produced by SQL aggregation against the {@code instance} table — the canonical
+ * cheap query that motivates the SQL-pushdown design of the new index.
+ *
+ * {@code className} is null when an instance points to a class id that has no
+ * {@code class} row (e.g. corrupt reference, primitive array which has no class
+ * entry of its own).
  */
-public record InstanceFieldValue(String name, int basicType, Object value) {
+public record HistogramRow(
+        Long classId,
+        String className,
+        long instanceCount,
+        long totalShallowSize) {
 }

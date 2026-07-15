@@ -21,7 +21,7 @@ package cafe.jeffrey.profile.manager.heapdump.analysis;
 import cafe.jeffrey.profile.heapdump.analyzer.heapview.ThreadAnalyzer;
 import cafe.jeffrey.profile.heapdump.model.HeapThreadInfo;
 import cafe.jeffrey.profile.heapdump.model.ThreadAnalysisReport;
-import cafe.jeffrey.profile.heapdump.parser.HeapView;
+import cafe.jeffrey.profile.heapdump.view.HeapView;
 
 import java.sql.SQLException;
 import java.util.List;

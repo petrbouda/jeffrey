@@ -27,7 +27,7 @@ import cafe.jeffrey.profile.heapdump.model.ClassLoaderInfo;
 import cafe.jeffrey.profile.heapdump.model.ClassLoaderLeakChain;
 import cafe.jeffrey.profile.heapdump.model.ClassLoaderReport;
 import cafe.jeffrey.profile.heapdump.model.ClassLoaderUnloadability;
-import cafe.jeffrey.profile.heapdump.parser.HeapView;
+import cafe.jeffrey.profile.heapdump.view.HeapView;
 
 import java.sql.SQLException;
 import java.util.ArrayList;

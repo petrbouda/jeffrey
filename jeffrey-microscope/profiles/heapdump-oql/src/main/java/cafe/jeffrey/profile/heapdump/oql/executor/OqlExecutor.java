@@ -24,7 +24,7 @@ import cafe.jeffrey.profile.heapdump.oql.compiler.ExecutionPlan.JavaPlan;
 import cafe.jeffrey.profile.heapdump.oql.compiler.ExecutionPlan.RetainedSetPlan;
 import cafe.jeffrey.profile.heapdump.oql.compiler.ExecutionPlan.SqlPlan;
 import cafe.jeffrey.profile.heapdump.oql.compiler.ExecutionPlan.StringFallbackPlan;
-import cafe.jeffrey.profile.heapdump.parser.HeapView;
+import cafe.jeffrey.profile.heapdump.view.HeapView;
 
 import java.sql.SQLException;
 

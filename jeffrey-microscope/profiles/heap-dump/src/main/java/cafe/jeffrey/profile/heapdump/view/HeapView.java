@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cafe.jeffrey.profile.heapdump.parser;
+package cafe.jeffrey.profile.heapdump.view;
 
 import cafe.jeffrey.profile.heapdump.persistence.HeapDumpDatabaseClient;
 
@@ -25,6 +25,8 @@ import java.sql.SQLException;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
+import cafe.jeffrey.profile.heapdump.parser.HprofMappedFile;
+import cafe.jeffrey.profile.heapdump.persistence.DuckDbHeapView;
 
 /**
  * Read-side façade over a heap-dump index DB.
@@ -43,7 +45,7 @@ public interface HeapView extends AutoCloseable {
 
     /**
      * Opens a {@link HeapView} over the given index DB file. The file must
-     * already have been built by {@link HprofIndex#build}; no schema is
+     * already have been built by {@link cafe.jeffrey.profile.heapdump.parser.HprofIndex#build}; no schema is
      * applied here. Field-value reading methods will throw because no .hprof
      * is attached.
      */

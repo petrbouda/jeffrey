@@ -27,9 +27,9 @@ import java.util.Set;
 import cafe.jeffrey.profile.heapdump.model.ClassHistogramEntry;
 import cafe.jeffrey.profile.heapdump.model.ReferrerSummary;
 import cafe.jeffrey.profile.heapdump.model.SortBy;
-import cafe.jeffrey.profile.heapdump.parser.HeapView;
-import cafe.jeffrey.profile.heapdump.parser.HistogramRow;
-import cafe.jeffrey.profile.heapdump.parser.JavaClassRow;
+import cafe.jeffrey.profile.heapdump.view.HeapView;
+import cafe.jeffrey.profile.heapdump.view.HistogramRow;
+import cafe.jeffrey.profile.heapdump.view.JavaClassRow;
 
 /**
  * HeapView-backed equivalent of

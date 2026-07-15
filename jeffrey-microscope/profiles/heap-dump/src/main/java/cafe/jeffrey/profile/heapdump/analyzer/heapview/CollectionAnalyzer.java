@@ -30,10 +30,10 @@ import cafe.jeffrey.profile.heapdump.model.ClassWasteEntry;
 import cafe.jeffrey.profile.heapdump.model.CollectionAnalysisReport;
 import cafe.jeffrey.profile.heapdump.model.CollectionStats;
 import cafe.jeffrey.profile.heapdump.model.FillDistribution;
-import cafe.jeffrey.profile.heapdump.parser.HeapView;
-import cafe.jeffrey.profile.heapdump.parser.HprofTypeSize;
-import cafe.jeffrey.profile.heapdump.parser.InstanceFieldDescriptor;
-import cafe.jeffrey.profile.heapdump.parser.JavaClassRow;
+import cafe.jeffrey.profile.heapdump.view.HeapView;
+import cafe.jeffrey.profile.heapdump.view.HprofTypeSize;
+import cafe.jeffrey.profile.heapdump.view.InstanceFieldDescriptor;
+import cafe.jeffrey.profile.heapdump.view.JavaClassRow;
 
 /**
  * Bulk-SQL collection analysis.

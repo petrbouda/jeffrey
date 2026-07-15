@@ -17,8 +17,8 @@
  */
 package cafe.jeffrey.profile.heapdump.parser;
 
-import cafe.jeffrey.profile.heapdump.parser.parquet.ParquetSink;
-import cafe.jeffrey.profile.heapdump.parser.parquet.ParquetStaging;
+import cafe.jeffrey.profile.heapdump.persistence.ParquetSink;
+import cafe.jeffrey.profile.heapdump.persistence.ParquetStaging;
 import cafe.jeffrey.profile.heapdump.persistence.HeapDumpDatabaseClient;
 import cafe.jeffrey.profile.heapdump.persistence.HeapDumpStatement;
 import org.duckdb.DuckDBAppender;
@@ -40,6 +40,8 @@ import java.util.concurrent.Future;
 import static cafe.jeffrey.profile.heapdump.parser.HprofAppenderUtils.appendNullableId;
 import static cafe.jeffrey.profile.heapdump.parser.HprofAppenderUtils.appendNullableInt;
 import static cafe.jeffrey.profile.heapdump.parser.HprofAppenderUtils.primArrayClassId;
+import cafe.jeffrey.profile.heapdump.view.HprofTag;
+import cafe.jeffrey.profile.heapdump.view.HprofTypeSize;
 
 /**
  * Phase 5 — Pass B. Fused parallel walk that fans the instance / gc_root /

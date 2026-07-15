@@ -36,6 +36,7 @@ import java.time.ZoneOffset;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import cafe.jeffrey.profile.heapdump.persistence.HeapDumpIndexPaths;
 
 /**
  * End-to-end coverage of {@link HprofMetadataWriter}: drives synthetic dumps

@@ -15,13 +15,9 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cafe.jeffrey.profile.heapdump.parser;
+package cafe.jeffrey.profile.heapdump.persistence;
 
 import cafe.jeffrey.profile.heapdump.model.SubPhaseTiming;
-import cafe.jeffrey.profile.heapdump.parser.parquet.ParquetSink;
-import cafe.jeffrey.profile.heapdump.parser.parquet.ParquetStaging;
-import cafe.jeffrey.profile.heapdump.persistence.HeapDumpDatabaseClient;
-import cafe.jeffrey.profile.heapdump.persistence.HeapDumpStatement;
 import cafe.jeffrey.shared.common.measure.Elapsed;
 import cafe.jeffrey.shared.common.measure.Measuring;
 import cafe.jeffrey.shared.persistence.GroupLabel;
@@ -44,6 +40,7 @@ import org.duckdb.DuckDBAppender;
 import org.duckdb.DuckDBConnection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import cafe.jeffrey.profile.heapdump.parser.FutureJoin;
 
 /**
  * Computes the dominator tree of the heap reference graph and the retained

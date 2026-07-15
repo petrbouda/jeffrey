@@ -15,9 +15,8 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cafe.jeffrey.profile.heapdump.parser;
+package cafe.jeffrey.profile.heapdump.persistence;
 
-import cafe.jeffrey.profile.heapdump.persistence.HeapDumpDatabaseClient;
 import cafe.jeffrey.shared.persistence.GroupLabel;
 import org.duckdb.DuckDBConnection;
 import org.slf4j.Logger;
@@ -33,8 +32,20 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
-import static cafe.jeffrey.profile.heapdump.parser.JdbcNullable.nullableInt;
-import static cafe.jeffrey.profile.heapdump.parser.JdbcNullable.nullableLong;
+import static cafe.jeffrey.profile.heapdump.view.JdbcNullable.nullableInt;
+import static cafe.jeffrey.profile.heapdump.view.JdbcNullable.nullableLong;
+import cafe.jeffrey.profile.heapdump.parser.HprofMappedFile;
+import cafe.jeffrey.profile.heapdump.view.DumpMetadata;
+import cafe.jeffrey.profile.heapdump.view.GcRootRow;
+import cafe.jeffrey.profile.heapdump.view.HeapView;
+import cafe.jeffrey.profile.heapdump.view.HistogramRow;
+import cafe.jeffrey.profile.heapdump.view.HprofTag;
+import cafe.jeffrey.profile.heapdump.view.HprofTypeSize;
+import cafe.jeffrey.profile.heapdump.view.InstanceFieldDescriptor;
+import cafe.jeffrey.profile.heapdump.view.InstanceFieldValue;
+import cafe.jeffrey.profile.heapdump.view.InstanceRow;
+import cafe.jeffrey.profile.heapdump.view.JavaClassRow;
+import cafe.jeffrey.profile.heapdump.view.OutboundRefRow;
 
 /**
  * DuckDB-backed implementation of {@link HeapView}.
@@ -42,7 +53,7 @@ import static cafe.jeffrey.profile.heapdump.parser.JdbcNullable.nullableLong;
  * Opens the index DB in {@code access_mode=read_only} so multiple views can
  * coexist and so an accidental UPDATE can't corrupt a built index.
  */
-final class DuckDbHeapView implements HeapView {
+public final class DuckDbHeapView implements HeapView {
 
     private static final Logger LOG = LoggerFactory.getLogger(DuckDbHeapView.class);
 
@@ -159,7 +170,7 @@ final class DuckDbHeapView implements HeapView {
         this.hprof = hprof;
     }
 
-    static DuckDbHeapView open(Path indexDbPath, HprofMappedFile hprof) throws SQLException, IOException {
+    public static DuckDbHeapView open(Path indexDbPath, HprofMappedFile hprof) throws SQLException, IOException {
         if (indexDbPath == null) {
             throw new IllegalArgumentException("indexDbPath must not be null");
         }

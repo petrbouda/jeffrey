@@ -18,8 +18,8 @@
 package cafe.jeffrey.profile.heapdump.parser;
 
 import cafe.jeffrey.profile.heapdump.analyzer.heapview.JavaStringDecoder;
-import cafe.jeffrey.profile.heapdump.parser.parquet.ParquetSink;
-import cafe.jeffrey.profile.heapdump.parser.parquet.ParquetStaging;
+import cafe.jeffrey.profile.heapdump.persistence.ParquetSink;
+import cafe.jeffrey.profile.heapdump.persistence.ParquetStaging;
 import cafe.jeffrey.profile.heapdump.persistence.HeapDumpDatabaseClient;
 import cafe.jeffrey.profile.heapdump.persistence.HeapDumpStatement;
 import org.duckdb.DuckDBAppender;
@@ -37,6 +37,9 @@ import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import cafe.jeffrey.profile.heapdump.view.HprofTag;
+import cafe.jeffrey.profile.heapdump.view.HprofTypeSize;
+import cafe.jeffrey.profile.heapdump.view.JdkFieldNames;
 
 /**
  * Phase 7 — decodes every {@code java.lang.String} instance and writes one row

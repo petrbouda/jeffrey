@@ -28,8 +28,8 @@ import cafe.jeffrey.profile.heapdump.oql.function.RootPathFunction;
 import cafe.jeffrey.profile.heapdump.oql.function.StringAccessors;
 import cafe.jeffrey.profile.heapdump.oql.function.StringFunctions;
 import cafe.jeffrey.profile.heapdump.oql.function.StringPredicates;
-import cafe.jeffrey.profile.heapdump.parser.InstanceRow;
-import cafe.jeffrey.profile.heapdump.parser.JavaClassRow;
+import cafe.jeffrey.profile.heapdump.view.InstanceRow;
+import cafe.jeffrey.profile.heapdump.view.JavaClassRow;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
