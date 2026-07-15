@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,17 +16,25 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.profile.parser.chunk;
+package cafe.jeffrey.jfrparser.raw;
 
-record RawChunkHeader(
-        int magic,
-        int version,
-        long size,
-        long offsetConstantPool,
-        long offsetMeta,
-        long startNanos,
-        long durationNanos,
-        long startTicks,
-        long ticksPerSecond,
-        int features) {
+/**
+ * Constants for JFR chunk parsing.
+ */
+public interface JfrChunkConstants {
+
+    /**
+     * Size of the JFR chunk header in bytes.
+     */
+    int CHUNK_HEADER_SIZE = 68;
+
+    /**
+     * Magic number identifying a JFR chunk ("FLR\0").
+     */
+    int CHUNK_MAGIC = 0x464c5200;
+
+    /**
+     * Feature flag mask indicating this is the final chunk in a recording.
+     */
+    int MASK_FINAL_CHUNK = 1 << 1;
 }

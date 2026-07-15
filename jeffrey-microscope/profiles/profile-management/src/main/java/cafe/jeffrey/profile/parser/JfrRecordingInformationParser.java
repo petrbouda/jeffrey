@@ -26,7 +26,7 @@ import cafe.jeffrey.shared.common.filesystem.TempDirFactory;
 import cafe.jeffrey.shared.common.filesystem.TempDirectory;
 import cafe.jeffrey.provider.profile.api.RecordingInformationParser;
 import cafe.jeffrey.provider.profile.api.RecordingInformation;
-import cafe.jeffrey.profile.parser.chunk.JfrParser;
+import cafe.jeffrey.jfrparser.raw.JfrParser;
 
 import java.io.InputStream;
 import java.nio.file.Path;

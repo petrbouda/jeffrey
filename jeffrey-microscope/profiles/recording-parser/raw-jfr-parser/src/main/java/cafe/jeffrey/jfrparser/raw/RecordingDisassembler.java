@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.profile.parser.chunk;
+package cafe.jeffrey.jfrparser.raw;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -62,7 +62,7 @@ public abstract class RecordingDisassembler implements JfrChunkConstants {
             try (InputStream input = Lz4Compressor.decompressStream(recording)) {
                 return disassembleStream(input, outputDir);
             } catch (IOException e) {
-                throw new RuntimeException("Failed to disassemble LZ4 recording: " + recording, e);
+                throw new JfrChunkParsingException("Failed to disassemble LZ4 recording: " + recording, e);
             }
         } else {
             return disassembleFile(recording, outputDir);
@@ -86,7 +86,7 @@ public abstract class RecordingDisassembler implements JfrChunkConstants {
         try {
             Files.createDirectories(outputDir);
         } catch (IOException e) {
-            throw new RuntimeException("Failed to create output directory: " + outputDir, e);
+            throw new JfrChunkParsingException("Failed to create output directory: " + outputDir, e);
         }
 
         try {
@@ -130,7 +130,7 @@ public abstract class RecordingDisassembler implements JfrChunkConstants {
                 chunkIndex++;
             }
         } catch (IOException e) {
-            throw new RuntimeException("Failed to disassemble recording stream at chunk " + chunkIndex, e);
+            throw new JfrChunkParsingException("Failed to disassemble recording stream at chunk " + chunkIndex, e);
         }
 
         LOG.debug("Disassembled {} chunks from stream", chunkFiles.size());
@@ -152,7 +152,7 @@ public abstract class RecordingDisassembler implements JfrChunkConstants {
         try {
             Files.createDirectories(outputDir);
         } catch (IOException e) {
-            throw new RuntimeException("Failed to create output directory: " + outputDir, e);
+            throw new JfrChunkParsingException("Failed to create output directory: " + outputDir, e);
         }
 
         try (FileChannel channel = FileChannel.open(recording)) {
@@ -205,7 +205,7 @@ public abstract class RecordingDisassembler implements JfrChunkConstants {
                 chunkIndex++;
             }
         } catch (IOException e) {
-            throw new RuntimeException("Failed to disassemble recording: " + recording, e);
+            throw new JfrChunkParsingException("Failed to disassemble recording: " + recording, e);
         }
 
         LOG.debug("Disassembled {} chunks from file: {}", chunkFiles.size(), recording);
@@ -230,7 +230,7 @@ public abstract class RecordingDisassembler implements JfrChunkConstants {
         long size = buffer.getLong();     // bytes 8-15
 
         if (magic != CHUNK_MAGIC) {
-            throw new RuntimeException("Invalid JFR chunk magic: " + Integer.toHexString(magic) +
+            throw new JfrChunkParsingException("Invalid JFR chunk magic: " + Integer.toHexString(magic) +
                     ", expected: " + Integer.toHexString(CHUNK_MAGIC));
         }
 

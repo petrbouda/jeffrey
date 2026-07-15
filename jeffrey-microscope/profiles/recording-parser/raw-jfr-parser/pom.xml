@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
   ~ Jeffrey
-  ~ Copyright (C) 2024 Petr Bouda
+  ~ Copyright (C) 2026 Petr Bouda
   ~
   ~ This program is free software: you can redistribute it and/or modify
   ~ it under the terms of the GNU Affero General Public License as published by
@@ -23,17 +23,34 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>cafe.jeffrey</groupId>
-        <artifactId>profiles</artifactId>
+        <artifactId>recording-parser</artifactId>
         <version>1.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>recording-parser</artifactId>
+    <artifactId>raw-jfr-parser</artifactId>
+    <description>Hand-rolled binary JFR chunk parser (disassembling, chunk headers, event types)</description>
 
-    <packaging>pom</packaging>
+    <dependencies>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>common</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>profile-persistence-api</artifactId>
+        </dependency>
 
-    <modules>
-        <module>jfr-parser-api</module>
-        <module>jdk-jfr-parser</module>
-        <module>raw-jfr-parser</module>
-    </modules>
+        <!-- Logging -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+        </dependency>
+
+        <!-- Test dependencies -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
 </project>

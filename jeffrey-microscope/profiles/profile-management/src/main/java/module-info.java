@@ -37,6 +37,7 @@ module cafe.jeffrey.microscope.profile.management {
     requires cafe.jeffrey.microscope.profile.frame.ir;
     requires cafe.jeffrey.microscope.profile.parser.jdk;
     requires cafe.jeffrey.microscope.profile.parser.api;
+    requires cafe.jeffrey.microscope.profile.parser.raw;
     requires cafe.jeffrey.shared.common;
     requires cafe.jeffrey.shared.persistence;
     requires cafe.jeffrey.shared.storage.recording.api;
@@ -90,7 +91,6 @@ module cafe.jeffrey.microscope.profile.management {
     exports cafe.jeffrey.profile.manager.registry;
     exports cafe.jeffrey.profile.model;
     exports cafe.jeffrey.profile.parser;
-    exports cafe.jeffrey.profile.parser.chunk;
     exports cafe.jeffrey.profile.parser.data;
     exports cafe.jeffrey.profile.parser.fields;
     exports cafe.jeffrey.profile.parser.stacktrace;

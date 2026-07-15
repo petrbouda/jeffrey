@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.profile.parser.chunk;
+package cafe.jeffrey.jfrparser.raw;
 
 import jdk.jfr.Event;
 
@@ -149,7 +149,7 @@ public abstract class EventTypeParser implements JfrChunkConstants {
         // Read root element and check it's valid
         Element root = readElement(buffer, strings, false);
         if (!root.name.equals("root")) {
-            throw new RuntimeException("Expected root element, got " + root.name);
+            throw new JfrChunkParsingException("Expected root element, got " + root.name);
         }
 
         // Read metadata element
@@ -183,7 +183,7 @@ public abstract class EventTypeParser implements JfrChunkConstants {
             } else if (meta.name.equals("region")) {
                 // Skip region
             } else {
-                throw new RuntimeException("Unexpected element " + meta.name);
+                throw new JfrChunkParsingException("Unexpected element " + meta.name);
             }
         }
 
@@ -193,7 +193,7 @@ public abstract class EventTypeParser implements JfrChunkConstants {
     private static Element readElement(ByteBuffer buffer, String[] strings, boolean needAttributes) {
         int nameIndex = readVarInt(buffer);
         if (nameIndex < 0 || nameIndex >= strings.length) {
-            throw new RuntimeException("Invalid string index: " + nameIndex);
+            throw new JfrChunkParsingException("Invalid string index: " + nameIndex);
         }
 
         String name = strings[nameIndex];
@@ -208,7 +208,7 @@ public abstract class EventTypeParser implements JfrChunkConstants {
 
                 if (attrNameIndex < 0 || attrNameIndex >= strings.length ||
                         attrValueIndex < 0 || attrValueIndex >= strings.length) {
-                    throw new RuntimeException("Invalid attribute index");
+                    throw new JfrChunkParsingException("Invalid attribute index");
                 }
 
                 attributes.put(strings[attrNameIndex], strings[attrValueIndex]);
@@ -229,7 +229,7 @@ public abstract class EventTypeParser implements JfrChunkConstants {
         int value = 0;
         for (int shift = 0; shift < 32; shift += 7) {
             if (buffer.remaining() == 0) {
-                throw new RuntimeException("Unexpected end of buffer");
+                throw new JfrChunkParsingException("Unexpected end of buffer");
             }
 
             byte b = buffer.get();
@@ -245,7 +245,7 @@ public abstract class EventTypeParser implements JfrChunkConstants {
         long value = 0;
         for (int shift = 0; shift <= 56; shift += 7) {
             if (buffer.remaining() == 0) {
-                throw new RuntimeException("Unexpected end of buffer");
+                throw new JfrChunkParsingException("Unexpected end of buffer");
             }
 
             byte b = buffer.get();
@@ -271,14 +271,14 @@ public abstract class EventTypeParser implements JfrChunkConstants {
                 yield new String(bytes);
             }
             case 4 -> readCharArrayString(buffer);
-            default -> throw new RuntimeException("Unknown string type: " + type);
+            default -> throw new JfrChunkParsingException("Unknown string type: " + type);
         };
     }
 
     private static String readCharArrayString(ByteBuffer buffer) {
         int length = readVarInt(buffer);
         if (length < 0) {
-            throw new RuntimeException("Invalid string length");
+            throw new JfrChunkParsingException("Invalid string length");
         }
 
         StringBuilder sb = new StringBuilder(length);
@@ -293,11 +293,11 @@ public abstract class EventTypeParser implements JfrChunkConstants {
     private static byte[] readBytes(ByteBuffer buffer) {
         int length = readVarInt(buffer);
         if (length < 0) {
-            throw new RuntimeException("Invalid byte array length");
+            throw new JfrChunkParsingException("Invalid byte array length");
         }
 
         if (buffer.remaining() < length) {
-            throw new RuntimeException("Unexpected end of buffer");
+            throw new JfrChunkParsingException("Unexpected end of buffer");
         }
 
         byte[] bytes = new byte[length];

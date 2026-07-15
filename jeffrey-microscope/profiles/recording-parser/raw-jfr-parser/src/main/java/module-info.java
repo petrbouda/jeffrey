@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -15,17 +15,11 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+module cafe.jeffrey.microscope.profile.parser.raw {
+    requires transitive cafe.jeffrey.shared.common;
+    requires transitive cafe.jeffrey.microscope.profile.persistence.api;
+    requires jdk.jfr;
+    requires org.slf4j;
 
-package cafe.jeffrey.profile.parser.chunk;
-
-import java.time.Duration;
-import java.time.Instant;
-import java.util.Set;
-
-public record JfrChunk(
-        Instant startTime,
-        Duration duration,
-        long sizeInBytes,
-        Set<String> eventTypes,
-        boolean latestChunk) {
+    exports cafe.jeffrey.jfrparser.raw;
 }

@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.profile.parser.chunk;
+package cafe.jeffrey.jfrparser.raw;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -88,7 +88,7 @@ public abstract class ChunkIterator implements JfrChunkConstants {
                 channel.position(currentPosition + header.size());
             }
         } catch (IOException e) {
-            throw new RuntimeException("Cannot iterate over chunks in recording: " + recording, e);
+            throw new JfrChunkParsingException("Cannot iterate over chunks in recording: " + recording, e);
         }
     }
 
@@ -146,7 +146,7 @@ public abstract class ChunkIterator implements JfrChunkConstants {
                 channel.position(currentPosition + header.size());
             }
         } catch (IOException e) {
-            throw new RuntimeException("Cannot iterate over chunk headers in recording: " + recording, e);
+            throw new JfrChunkParsingException("Cannot iterate over chunk headers in recording: " + recording, e);
         }
     }
 
@@ -192,7 +192,7 @@ public abstract class ChunkIterator implements JfrChunkConstants {
                 RawChunkHeader header = readChunkHeader(buffer);
 
                 if (!isValidHeader(header)) {
-                    throw new RuntimeException("Invalid chunk header in stream");
+                    throw new JfrChunkParsingException("Invalid chunk header in stream");
                 }
 
                 JfrChunkHeader chunkHeader = formatChunkHeader(header);
@@ -204,7 +204,7 @@ public abstract class ChunkIterator implements JfrChunkConstants {
                 consumer.accept(chunk);
             }
         } catch (IOException e) {
-            throw new RuntimeException("Cannot iterate over chunks from stream", e);
+            throw new JfrChunkParsingException("Cannot iterate over chunks from stream", e);
         }
     }
 
@@ -250,7 +250,7 @@ public abstract class ChunkIterator implements JfrChunkConstants {
                 RawChunkHeader header = readChunkHeader(buffer);
 
                 if (!isValidHeader(header)) {
-                    throw new RuntimeException("Invalid chunk header in stream");
+                    throw new JfrChunkParsingException("Invalid chunk header in stream");
                 }
 
                 JfrChunkHeader chunkHeader = formatChunkHeader(header);
@@ -261,7 +261,7 @@ public abstract class ChunkIterator implements JfrChunkConstants {
                 StreamUtils.skipFully(input, toSkip);
             }
         } catch (IOException e) {
-            throw new RuntimeException("Cannot iterate over chunk headers from stream", e);
+            throw new JfrChunkParsingException("Cannot iterate over chunk headers from stream", e);
         }
     }
 

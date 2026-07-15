@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.profile.parser.chunk;
+package cafe.jeffrey.jfrparser.raw;
 
 import cafe.jeffrey.shared.common.compression.Lz4Compressor;
 import org.junit.jupiter.api.DisplayName;
