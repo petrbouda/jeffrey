@@ -21,6 +21,7 @@ package cafe.jeffrey.profile.parser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.shared.common.compression.Lz4Compressor;
+import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.shared.common.filesystem.TempDirFactory;
 import cafe.jeffrey.shared.common.filesystem.TempDirectory;
 import cafe.jeffrey.provider.profile.api.RecordingInformationParser;
@@ -65,7 +66,7 @@ public class JfrRecordingInformationParser implements RecordingInformationParser
             Path decompressed = lz4Compressor.decompressToDir(recordingPath, tempDir.path());
             return JfrParser.recordingInfo(decompressed);
         } catch (Exception e) {
-            throw new RuntimeException("Cannot read LZ4 recording info: " + recordingPath, e);
+            throw Exceptions.internal("Cannot read LZ4 recording info: " + recordingPath, e);
         }
     }
 }

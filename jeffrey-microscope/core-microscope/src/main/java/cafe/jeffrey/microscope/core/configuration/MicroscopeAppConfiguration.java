@@ -49,7 +49,7 @@ import cafe.jeffrey.shared.ui.workspace.config.WorkspacesFeatureConfiguration;
 import cafe.jeffrey.shared.ui.version.VersionFeatureConfiguration;
 import cafe.jeffrey.profile.ProfileInitializer;
 import cafe.jeffrey.profile.ProfileInitializerImpl;
-import cafe.jeffrey.profile.configuration.ProfileFactoriesConfiguration;
+import cafe.jeffrey.profile.configuration.ProfilesConfiguration;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.profile.manager.action.ProfileDataInitializer;
 import cafe.jeffrey.profile.parser.JfrRecordingEventParser;
@@ -77,7 +77,7 @@ public class MicroscopeAppConfiguration {
     public RecordingsManager recordingsManager(
             Clock clock,
             MicroscopeJeffreyDirs jeffreyDirs,
-            @Qualifier(ProfileFactoriesConfiguration.RECORDINGS_PATH) Path recordingsPath,
+            @Qualifier(ProfilesConfiguration.RECORDINGS_PATH) Path recordingsPath,
             ProfileManager.Factory profileManagerFactory,
             ProfileDataInitializer profileDataInitializer,
             MicroscopeCorePersistenceProvider localCorePersistenceProvider,

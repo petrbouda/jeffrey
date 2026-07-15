@@ -28,6 +28,7 @@ import cafe.jeffrey.profile.manager.heapdump.analysis.LeakSuspectsAnalysis;
 import cafe.jeffrey.profile.manager.heapdump.analysis.StringHeapAnalysis;
 import cafe.jeffrey.profile.manager.heapdump.analysis.ThreadHeapAnalysis;
 import cafe.jeffrey.shared.common.Json;
+import cafe.jeffrey.shared.common.exception.Exceptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tools.jackson.core.JacksonException;
@@ -113,7 +114,7 @@ public final class HeapDumpReportStore {
             LOG.info("{} saved: path={}", displayName, filePath);
         } catch (IOException | JacksonException e) {
             LOG.error("Failed to save {}: path={}", displayName, analysisDir, e);
-            throw new RuntimeException("Failed to save " + displayName + ": " + e.getMessage(), e);
+            throw Exceptions.internal("Failed to save " + displayName + ": " + e.getMessage(), e);
         }
     }
 

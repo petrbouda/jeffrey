@@ -27,6 +27,7 @@ import org.openjdk.jmc.flightrecorder.rules.util.RulesToolkit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.profile.common.analysis.AutoAnalysisResult;
+import cafe.jeffrey.shared.common.exception.Exceptions;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -66,7 +67,10 @@ public class AutoAnalysisDataProvider {
 
             return results;
         } catch (Throwable t) {
-            throw new RuntimeException("Got exception when creating report for " + recording, t);
+            if (t instanceof Error error) {
+                throw error;
+            }
+            throw Exceptions.internal("Got exception when creating report for " + recording, (Exception) t);
         }
     }
 

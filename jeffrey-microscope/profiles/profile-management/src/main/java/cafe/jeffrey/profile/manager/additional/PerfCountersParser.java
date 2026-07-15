@@ -20,6 +20,7 @@ package cafe.jeffrey.profile.manager.additional;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import cafe.jeffrey.shared.common.exception.Exceptions;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -80,7 +81,7 @@ public class PerfCountersParser {
 
             return parsePerfData(path, true);
         } catch (Exception e) {
-            throw new RuntimeException("Error parsing PerfData file: " + path, e);
+            throw Exceptions.internal("Error parsing PerfData file: " + path, e);
         }
     }
 

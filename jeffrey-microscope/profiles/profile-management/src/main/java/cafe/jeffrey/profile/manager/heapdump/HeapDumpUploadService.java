@@ -20,6 +20,7 @@ package cafe.jeffrey.profile.manager.heapdump;
 
 import cafe.jeffrey.profile.heapdump.parser.HeapDumpIndexPaths;
 import cafe.jeffrey.profile.manager.AdditionalFilesManager;
+import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
 import cafe.jeffrey.shared.common.model.repository.FileExtensions;
@@ -96,7 +97,7 @@ public final class HeapDumpUploadService {
             LOG.info("Heap dump uploaded: profileId={} path={}", profileInfo.id(), targetPath);
         } catch (IOException e) {
             LOG.error("Failed to upload heap dump: profileId={} filename={}", profileInfo.id(), filename, e);
-            throw new RuntimeException("Failed to upload heap dump: " + e.getMessage(), e);
+            throw Exceptions.internal("Failed to upload heap dump: " + e.getMessage(), e);
         }
     }
 
