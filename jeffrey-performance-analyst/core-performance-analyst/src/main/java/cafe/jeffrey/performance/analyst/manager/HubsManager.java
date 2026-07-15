@@ -20,9 +20,9 @@ package cafe.jeffrey.performance.analyst.manager;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import cafe.jeffrey.microscope.persistence.api.HubInfo;
+import cafe.jeffrey.shared.common.model.hub.HubInfo;
 import cafe.jeffrey.microscope.persistence.api.HubsRepository;
-import cafe.jeffrey.microscope.persistence.api.HubAddress;
+import cafe.jeffrey.shared.common.model.hub.HubAddress;
 import cafe.jeffrey.shared.common.IDGenerator;
 
 import java.time.Clock;

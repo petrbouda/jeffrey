@@ -32,7 +32,6 @@ module cafe.jeffrey.microscope.profile.management {
     requires cafe.jeffrey.microscope.profile.subsecond;
     requires cafe.jeffrey.microscope.profile.guardian;
     requires cafe.jeffrey.microscope.profile.thread;
-    requires cafe.jeffrey.microscope.profile.tools;
     requires cafe.jeffrey.microscope.profile.timeseries;
     requires cafe.jeffrey.microscope.profile.frame.ir;
     requires cafe.jeffrey.microscope.profile.parser.jdk;
@@ -97,6 +96,7 @@ module cafe.jeffrey.microscope.profile.management {
     exports cafe.jeffrey.profile.parser.tag;
     exports cafe.jeffrey.profile.resources.request;
     exports cafe.jeffrey.profile.settings;
+    exports cafe.jeffrey.profile.tools.collapse;
 
     // Spring + Jackson reflection — opens broadly, can be tightened later
     opens cafe.jeffrey.profile to spring.core, spring.beans, spring.context;

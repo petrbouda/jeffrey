@@ -23,7 +23,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import cafe.jeffrey.microscope.core.resources.response.ClaudeCodeDetectResponse;
+import cafe.jeffrey.microscope.core.web.dto.response.ClaudeCodeDetectResponse;
 import cafe.jeffrey.profile.ai.claudecode.config.ClaudeCodeDetector;
 
 /**

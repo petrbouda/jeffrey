@@ -19,7 +19,7 @@
 package cafe.jeffrey.microscope.core.manager.workspace;
 
 import cafe.jeffrey.hub.client.HubClients;
-import cafe.jeffrey.microscope.persistence.api.HubInfo;
+import cafe.jeffrey.shared.common.model.hub.HubInfo;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 
 @FunctionalInterface

@@ -45,11 +45,6 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>common</artifactId>
         </dependency>
-        <!-- HubAddress -->
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>microscope-core-persistence-api</artifactId>
-        </dependency>
         <!-- ManagedChannel + Netty -->
         <dependency>
             <groupId>io.grpc</groupId>

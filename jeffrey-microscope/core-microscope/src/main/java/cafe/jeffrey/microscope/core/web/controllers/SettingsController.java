@@ -27,8 +27,8 @@ import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.microscope.core.configuration.SettingDescriptor;
 import cafe.jeffrey.microscope.core.configuration.SettingsMetadata;
 import cafe.jeffrey.microscope.core.manager.SettingsManager;
-import cafe.jeffrey.microscope.core.resources.request.SettingsRequest;
-import cafe.jeffrey.microscope.core.resources.response.SettingsResponse;
+import cafe.jeffrey.microscope.core.web.dto.request.SettingsRequest;
+import cafe.jeffrey.microscope.core.web.dto.response.SettingsResponse;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 
 import java.util.List;

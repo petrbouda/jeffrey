@@ -21,7 +21,7 @@ package cafe.jeffrey.microscope.core.web;
 import cafe.jeffrey.microscope.core.manager.project.ProjectManager;
 import cafe.jeffrey.microscope.core.manager.project.ProjectsManager;
 import cafe.jeffrey.microscope.core.manager.workspace.WorkspaceManager;
-import cafe.jeffrey.microscope.core.resources.workspace.Mappers;
+import cafe.jeffrey.microscope.core.web.dto.workspace.Mappers;
 import cafe.jeffrey.shared.ui.workspace.bridge.WorkspaceBrowserAccess;
 import cafe.jeffrey.shared.ui.workspace.dto.ProjectResponse;
 import cafe.jeffrey.shared.ui.workspace.dto.WorkspaceResponse;

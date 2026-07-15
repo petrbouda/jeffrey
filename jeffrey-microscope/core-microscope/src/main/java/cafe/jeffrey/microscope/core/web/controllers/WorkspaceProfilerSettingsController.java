@@ -29,8 +29,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.microscope.core.manager.workspace.WorkspaceManager;
-import cafe.jeffrey.microscope.core.resources.request.ProfilerSettingsRequest;
-import cafe.jeffrey.microscope.core.resources.response.CurrentProfilerSettingsResponse;
+import cafe.jeffrey.microscope.core.web.dto.request.ProfilerSettingsRequest;
+import cafe.jeffrey.microscope.core.web.dto.response.CurrentProfilerSettingsResponse;
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 

@@ -19,7 +19,7 @@
 package cafe.jeffrey.microscope.core.manager.workspace;
 
 import cafe.jeffrey.hub.client.ProfilerClient;
-import cafe.jeffrey.microscope.core.resources.response.WorkspaceEventsResponse;
+import cafe.jeffrey.microscope.core.web.dto.response.WorkspaceEventsResponse;
 import cafe.jeffrey.microscope.core.manager.project.ProjectsManager;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 

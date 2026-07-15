@@ -23,7 +23,7 @@ import org.springframework.context.annotation.Bean;
 import cafe.jeffrey.flamegraph.ai.AiExportConfig;
 import cafe.jeffrey.flamegraph.api.DbBasedFlamegraphGenerator;
 import cafe.jeffrey.flamegraph.diff.DbBasedDiffgraphGenerator;
-import cafe.jeffrey.generator.subsecond.db.api.DbBasedSubSecondGeneratorImpl;
+import cafe.jeffrey.subsecond.db.api.DbBasedSubSecondGeneratorImpl;
 import cafe.jeffrey.profile.manager.DiffFlamegraphManagerImpl;
 import cafe.jeffrey.profile.manager.DiffTimeseriesManager;
 import cafe.jeffrey.profile.manager.FlamegraphManager;

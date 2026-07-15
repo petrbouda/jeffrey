@@ -25,7 +25,7 @@ import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import cafe.jeffrey.microscope.persistence.api.HubAddress;
+import cafe.jeffrey.shared.common.model.hub.HubAddress;
 
 import javax.net.ssl.SSLException;
 import java.io.Closeable;

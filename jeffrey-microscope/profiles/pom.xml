@@ -48,7 +48,6 @@
         <module>profile-persistence-api</module>
         <module>profile-sql-persistence</module>
         <module>profile-management</module>
-        <module>tools</module>
         <module>duckdb-jfr-mcp</module>
         <module>duckdb-heapdump-mcp</module>
         <module>claude-code-headless</module>
@@ -156,11 +155,6 @@
             <dependency>
                 <groupId>${project.groupId}</groupId>
                 <artifactId>claude-code-headless</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>tools</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <!-- Service modules that profile depends on -->
