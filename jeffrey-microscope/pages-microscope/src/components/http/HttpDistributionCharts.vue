@@ -1,32 +1,21 @@
 <template>
-  <DualPanel
+  <DistributionChartsPanel
     :title="title"
     :icon="icon"
     :embedded="embedded"
     left-title="Status Codes"
     right-title="HTTP Methods"
-  >
-    <template #left>
-      <DonutWithLegend
-        :data="statusCodeChartData"
-        :tooltip-formatter="(val: number) => val + ' requests'"
-      />
-    </template>
-    <template #right>
-      <DonutWithLegend
-        :data="httpMethodChartData"
-        :tooltip-formatter="(val: number) => val + ' requests'"
-      />
-    </template>
-  </DualPanel>
+    :left-data="statusCodeChartData"
+    :right-data="httpMethodChartData"
+    tooltip-suffix="requests"
+  />
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import DualPanel from '@shared/components/DualPanel.vue';
-import DonutWithLegend from '@shared/components/DonutWithLegend.vue';
-import type { DonutChartData } from '@shared/components/DonutWithLegend.vue';
-import FormattingService from '@shared/services/FormattingService';
+import DistributionChartsPanel from '@shared/components/DistributionChartsPanel.vue';
+import { buildDonutData } from '@shared/services/DonutData';
+import ChartColors from '@shared/services/ChartColors';
 
 interface StatusCode {
   code: number;
@@ -54,53 +43,59 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const statusCodeColor = (code: number): string => {
-  if (code >= 200 && code < 300) return '#5cb85c';
-  if (code >= 300 && code < 400) return '#5a9fd4';
-  if (code >= 400 && code < 500) return '#f0ad4e';
-  if (code >= 500) return '#d9534f';
-  return '#6c757d';
+  if (code >= 200 && code < 300) {
+    return ChartColors.chartColor('color-success');
+  }
+  if (code >= 300 && code < 400) {
+    return ChartColors.chartColor('primary');
+  }
+  if (code >= 400 && code < 500) {
+    return ChartColors.chartColor('color-warning');
+  }
+  if (code >= 500) {
+    return ChartColors.chartColor('color-danger');
+  }
+  return ChartColors.chartColor('color-text-muted');
 };
 
 const httpMethodColor = (method: string): string => {
   switch (method.toUpperCase()) {
     case 'GET':
-      return '#5a9fd4';
+      return ChartColors.chartColor('primary');
     case 'POST':
-      return '#5cb85c';
+      return ChartColors.chartColor('color-success');
     case 'PUT':
-      return '#f0ad4e';
+      return ChartColors.chartColor('color-warning');
     case 'DELETE':
-      return '#d9534f';
+      return ChartColors.chartColor('color-danger');
     case 'PATCH':
-      return '#6c757d';
+      return ChartColors.chartColor('color-text-muted');
     case 'OPTIONS':
-      return '#9b59b6';
+      return ChartColors.chartColor('color-purple');
     default:
-      return '#95a5a6';
+      return ChartColors.chartColor('color-text-muted');
   }
 };
 
-const statusCodeChartData = computed<DonutChartData>(() => ({
-  series: props.statusCodes.map(s => s.count),
-  labels: props.statusCodes.map(s => s.code.toString()),
-  colors: props.statusCodes.map(s => statusCodeColor(s.code)),
-  totalValue: FormattingService.formatNumber(props.totalRequests),
-  legendItems: props.statusCodes.map(s => ({
-    color: statusCodeColor(s.code),
-    label: s.code.toString(),
-    value: FormattingService.formatNumber(s.count)
-  }))
-}));
+const statusCodeChartData = computed(() =>
+  buildDonutData(
+    props.statusCodes.map(s => ({
+      label: s.code.toString(),
+      value: s.count,
+      color: statusCodeColor(s.code)
+    })),
+    props.totalRequests
+  )
+);
 
-const httpMethodChartData = computed<DonutChartData>(() => ({
-  series: props.methods.map(m => m.count),
-  labels: props.methods.map(m => m.method),
-  colors: props.methods.map(m => httpMethodColor(m.method)),
-  totalValue: FormattingService.formatNumber(props.totalRequests),
-  legendItems: props.methods.map(m => ({
-    color: httpMethodColor(m.method),
-    label: m.method,
-    value: FormattingService.formatNumber(m.count)
-  }))
-}));
+const httpMethodChartData = computed(() =>
+  buildDonutData(
+    props.methods.map(m => ({
+      label: m.method,
+      value: m.count,
+      color: httpMethodColor(m.method)
+    })),
+    props.totalRequests
+  )
+);
 </script>

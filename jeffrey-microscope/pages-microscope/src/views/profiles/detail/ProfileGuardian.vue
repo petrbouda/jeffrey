@@ -254,6 +254,7 @@
 </template>
 
 <script setup lang="ts">
+import ChartColors from '@shared/services/ChartColors';
 import { computed, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
 
@@ -401,10 +402,10 @@ const severityCounts = computed(() => ({
 // Computed: Chart data for DonutWithLegend
 const chartData = computed<DonutChartData>(() => {
   const items = [
-    { label: 'Passed', count: severityCounts.value.ok, color: '#28a745' },
-    { label: 'Warnings', count: severityCounts.value.warning, color: '#dc3545' },
-    { label: 'Info', count: severityCounts.value.info, color: '#0d6efd' },
-    { label: 'N/A', count: severityCounts.value.na, color: '#6c757d' }
+    { label: 'Passed', count: severityCounts.value.ok, color: ChartColors.chartColor('color-success') },
+    { label: 'Warnings', count: severityCounts.value.warning, color: ChartColors.chartColor('color-danger') },
+    { label: 'Info', count: severityCounts.value.info, color: ChartColors.chartColor('color-accent-blue') },
+    { label: 'N/A', count: severityCounts.value.na, color: ChartColors.chartColor('color-text-muted') }
   ].filter(i => i.count > 0);
 
   return {
@@ -485,16 +486,16 @@ function getSeverityTextClass(severity: string): string {
 function getSeverityColor(severity: string): string {
   switch (severity) {
     case 'OK':
-      return '#198754';
+      return ChartColors.chartColor('color-success');
     case 'WARNING':
-      return '#dc3545';
+      return ChartColors.chartColor('color-danger');
     case 'INFO':
-      return '#0d6efd';
+      return ChartColors.chartColor('color-accent-blue');
     case 'NA':
     case 'IGNORE':
-      return '#6c757d';
+      return ChartColors.chartColor('color-text-muted');
     default:
-      return '#6c757d';
+      return ChartColors.chartColor('color-text-muted');
   }
 }
 

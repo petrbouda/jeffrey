@@ -1,44 +1,22 @@
 <template>
-  <DualPanel
+  <DistributionChartsPanel
     :title="title"
     :icon="icon"
     :embedded="embedded"
     left-title="Operation Types"
     :right-title="secondChartTitle"
-  >
-    <template #left>
-      <DonutWithLegend
-        :data="operationChartData"
-        :tooltip-formatter="(val: number) => formatNumber(val) + ' invocations'"
-      />
-    </template>
-    <template #right>
-      <DonutWithLegend
-        :data="secondDonutData"
-        :tooltip-formatter="(val: number) => formatNumber(val) + ' invocations'"
-      />
-    </template>
-  </DualPanel>
+    :left-data="operationChartData"
+    :right-data="secondDonutData"
+    :tooltip-format="(val: number) => formatNumber(val) + ' invocations'"
+  />
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import DualPanel from '@shared/components/DualPanel.vue';
-import DonutWithLegend from '@shared/components/DonutWithLegend.vue';
-import type { DonutChartData } from '@shared/components/DonutWithLegend.vue';
+import DistributionChartsPanel from '@shared/components/DistributionChartsPanel.vue';
+import { buildDonutData } from '@shared/services/DonutData';
+import ChartColors from '@shared/services/ChartColors';
 import JdbcUtils from '@/services/api/model/JdbcUtils.ts';
-import FormattingService from '@shared/services/FormattingService';
-
-const defaultColors = [
-  '#4285F4',
-  '#EA4335',
-  '#FBBC05',
-  '#34A853',
-  '#9C27B0',
-  '#FF5722',
-  '#00BCD4',
-  '#795548'
-];
 
 interface Props {
   operations: { label: string; value: number }[];
@@ -57,41 +35,36 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const formatNumber = (num: number): string => {
-  if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
-  if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+  if (num >= 1000000) {
+    return (num / 1000000).toFixed(1) + 'M';
+  }
+  if (num >= 1000) {
+    return (num / 1000).toFixed(1) + 'K';
+  }
   return num.toString();
 };
 
-const operationChartData = computed<DonutChartData>(() => {
+const operationChartData = computed(() => {
   const items = props.operations.map(op => ({
     label: JdbcUtils.cleanOperationName(op.label),
     value: op.value
   }));
-  return {
-    series: items.map(i => i.value),
-    labels: items.map(i => i.label),
-    colors: items.map((_, idx) => defaultColors[idx % defaultColors.length]),
-    totalValue: FormattingService.formatNumber(props.total),
-    legendItems: items.map((i, idx) => ({
-      color: defaultColors[idx % defaultColors.length],
-      label: i.label,
-      value: FormattingService.formatNumber(i.value)
-    }))
-  };
+  const palette = ChartColors.chartPalette(Math.max(items.length, 1));
+  return buildDonutData(
+    items.map((item, idx) => ({ ...item, color: palette[idx % palette.length] })),
+    props.total
+  );
 });
 
-const secondDonutData = computed<DonutChartData>(() => {
-  const items = props.secondChartData;
-  return {
-    series: items.map(i => i.value),
-    labels: items.map(i => i.label),
-    colors: items.map((_, idx) => defaultColors[idx % defaultColors.length]),
-    totalValue: FormattingService.formatNumber(props.total),
-    legendItems: items.map((i, idx) => ({
-      color: defaultColors[idx % defaultColors.length],
-      label: i.label,
-      value: FormattingService.formatNumber(i.value)
-    }))
-  };
+const secondDonutData = computed(() => {
+  const palette = ChartColors.chartPalette(Math.max(props.secondChartData.length, 1));
+  return buildDonutData(
+    props.secondChartData.map((item, idx) => ({
+      label: item.label,
+      value: item.value,
+      color: palette[idx % palette.length]
+    })),
+    props.total
+  );
 });
 </script>

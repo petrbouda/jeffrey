@@ -10,6 +10,7 @@ import StatsTable from '@shared/components/table/StatsTable.vue';
 import ProfileGCClient from '@/services/api/ProfileGCClient';
 import GCOverviewData from '@/services/api/model/GCOverviewData';
 import FormattingService from '@shared/services/FormattingService';
+import ChartColors from '@shared/services/ChartColors';
 
 const props = defineProps<{
   profileId: string;
@@ -57,17 +58,17 @@ const metricsData = computed(() => {
         {
           label: 'Young',
           value: gcSummary.value.youngCollections,
-          color: '#4285F4'
+          color: ChartColors.chartColor('primary')
         },
         {
           label: 'Old',
           value: gcSummary.value.oldCollections,
-          color: '#4285F4'
+          color: ChartColors.chartColor('primary')
         },
         {
           label: 'Full',
           value: gcSummary.value.fullCollections,
-          color: '#EA4335'
+          color: ChartColors.chartColor('secondary')
         }
       ]
     },
@@ -80,12 +81,12 @@ const metricsData = computed(() => {
         {
           label: '99th',
           value: gcSummary.value.p99PauseTime,
-          color: '#FBBC05'
+          color: ChartColors.chartColor('color-amber')
         },
         {
           label: '95th',
           value: gcSummary.value.p95PauseTime,
-          color: '#FBBC05'
+          color: ChartColors.chartColor('color-amber')
         }
       ]
     },
@@ -98,12 +99,12 @@ const metricsData = computed(() => {
         {
           label: 'Throughput',
           value: gcSummary.value.gcThroughput,
-          color: '#34A853'
+          color: ChartColors.chartColor('color-success')
         },
         {
           label: 'Frequency',
           value: gcSummary.value.collectionFrequency,
-          color: '#34A853'
+          color: ChartColors.chartColor('color-success')
         }
       ]
     },
@@ -116,12 +117,12 @@ const metricsData = computed(() => {
         {
           label: 'System GC',
           value: gcSummary.value.systemGCCalls,
-          color: '#FBBC05'
+          color: ChartColors.chartColor('color-amber')
         },
         {
           label: 'Diagnostic Cmd',
           value: gcSummary.value.diagnosticCommandCalls,
-          color: '#FBBC05'
+          color: ChartColors.chartColor('color-amber')
         }
       ]
     }

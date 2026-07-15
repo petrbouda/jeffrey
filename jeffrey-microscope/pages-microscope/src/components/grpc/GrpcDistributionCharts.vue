@@ -1,44 +1,44 @@
 <template>
-  <DualPanel
+  <DistributionChartsPanel
     :title="title"
     :icon="icon"
     :embedded="embedded"
     left-title="Status Codes"
     right-title="Services"
-  >
-    <template #left>
-      <DonutWithLegend
-        :data="statusCodeChartData"
-        :tooltip-formatter="(val: number) => val + ' calls'"
-      />
-    </template>
-    <template #right>
-      <DonutWithLegend
-        :data="serviceChartData"
-        :tooltip-formatter="(val: number) => val + ' calls'"
-      />
-    </template>
-  </DualPanel>
+    :left-data="statusCodeChartData"
+    :right-data="serviceChartData"
+    tooltip-suffix="calls"
+  />
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import DualPanel from '@shared/components/DualPanel.vue';
-import DonutWithLegend from '@shared/components/DonutWithLegend.vue';
-import type { DonutChartData } from '@shared/components/DonutWithLegend.vue';
+import DistributionChartsPanel from '@shared/components/DistributionChartsPanel.vue';
+import { buildDonutData } from '@shared/services/DonutData';
+import ChartColors from '@shared/services/ChartColors';
 import type { GrpcStatusStats, GrpcServiceInfo } from '@/services/api/ProfileGrpcClient';
-import FormattingService from '@shared/services/FormattingService';
 
-const defaultColors = [
-  '#4285F4',
-  '#EA4335',
-  '#FBBC05',
-  '#34A853',
-  '#9C27B0',
-  '#FF5722',
-  '#00BCD4',
-  '#795548'
-];
+const CANCELLED_STATUSES = new Set([
+  'CANCELLED',
+  'INVALID_ARGUMENT',
+  'NOT_FOUND',
+  'ALREADY_EXISTS',
+  'PERMISSION_DENIED',
+  'FAILED_PRECONDITION',
+  'OUT_OF_RANGE',
+  'UNAUTHENTICATED'
+]);
+
+const FAILURE_STATUSES = new Set([
+  'UNKNOWN',
+  'DEADLINE_EXCEEDED',
+  'RESOURCE_EXHAUSTED',
+  'ABORTED',
+  'UNIMPLEMENTED',
+  'INTERNAL',
+  'UNAVAILABLE',
+  'DATA_LOSS'
+]);
 
 interface Props {
   statusCodes: GrpcStatusStats[];
@@ -56,31 +56,16 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const statusCodeColor = (label: string): string => {
-  switch (label) {
-    case 'OK':
-      return '#5cb85c';
-    case 'CANCELLED':
-      return '#f0ad4e';
-    case 'INVALID_ARGUMENT':
-    case 'NOT_FOUND':
-    case 'ALREADY_EXISTS':
-    case 'PERMISSION_DENIED':
-    case 'FAILED_PRECONDITION':
-    case 'OUT_OF_RANGE':
-    case 'UNAUTHENTICATED':
-      return '#f0ad4e';
-    case 'UNKNOWN':
-    case 'DEADLINE_EXCEEDED':
-    case 'RESOURCE_EXHAUSTED':
-    case 'ABORTED':
-    case 'UNIMPLEMENTED':
-    case 'INTERNAL':
-    case 'UNAVAILABLE':
-    case 'DATA_LOSS':
-      return '#d9534f';
-    default:
-      return '#6c757d';
+  if (label === 'OK') {
+    return ChartColors.chartColor('color-success');
   }
+  if (CANCELLED_STATUSES.has(label)) {
+    return ChartColors.chartColor('color-warning');
+  }
+  if (FAILURE_STATUSES.has(label)) {
+    return ChartColors.chartColor('color-danger');
+  }
+  return ChartColors.chartColor('color-text-muted');
 };
 
 const shortServiceName = (fullName: string): string => {
@@ -88,30 +73,27 @@ const shortServiceName = (fullName: string): string => {
   return lastDot >= 0 ? fullName.substring(lastDot + 1) : fullName;
 };
 
-const statusCodeChartData = computed<DonutChartData>(() => ({
-  series: props.statusCodes.map(s => s.count),
-  labels: props.statusCodes.map(s => s.status),
-  colors: props.statusCodes.map(s => statusCodeColor(s.status)),
-  totalValue: FormattingService.formatNumber(props.totalCalls),
-  legendItems: props.statusCodes.map(s => ({
-    color: statusCodeColor(s.status),
-    label: s.status,
-    value: FormattingService.formatNumber(s.count)
-  }))
-}));
+const statusCodeChartData = computed(() =>
+  buildDonutData(
+    props.statusCodes.map(s => ({
+      label: s.status,
+      value: s.count,
+      color: statusCodeColor(s.status)
+    })),
+    props.totalCalls
+  )
+);
 
-const serviceChartData = computed<DonutChartData>(() => {
+const serviceChartData = computed(() => {
   const sorted = [...props.services].sort((a, b) => b.callCount - a.callCount);
-  return {
-    series: sorted.map(s => s.callCount),
-    labels: sorted.map(s => shortServiceName(s.service)),
-    colors: sorted.map((_, idx) => defaultColors[idx % defaultColors.length]),
-    totalValue: FormattingService.formatNumber(props.totalCalls),
-    legendItems: sorted.map((s, idx) => ({
-      color: defaultColors[idx % defaultColors.length],
+  const palette = ChartColors.chartPalette(Math.max(sorted.length, 1));
+  return buildDonutData(
+    sorted.map((s, idx) => ({
       label: shortServiceName(s.service),
-      value: FormattingService.formatNumber(s.callCount)
-    }))
-  };
+      value: s.callCount,
+      color: palette[idx % palette.length]
+    })),
+    props.totalCalls
+  );
 });
 </script>

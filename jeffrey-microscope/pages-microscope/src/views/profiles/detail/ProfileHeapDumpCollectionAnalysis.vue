@@ -387,6 +387,7 @@ import CollectionAnalysisReport, {
   CollectionStats
 } from '@/services/api/model/CollectionAnalysisReport';
 import FormattingService from '@shared/services/FormattingService';
+import ChartColors from '@shared/services/ChartColors';
 
 const route = useRoute();
 
@@ -419,7 +420,7 @@ const fillChartLabels = [
   'High (76-99%)',
   'Full (100%)'
 ];
-const fillChartColors = ['#EA4335', '#FBBC05', '#4285F4', '#34A853', '#185ABC'];
+const fillChartColors = ChartColors.chartPalette(5);
 
 const fillChartData = computed<DonutChartData>(() => {
   if (!report.value) return { series: [], labels: [], colors: [], legendItems: [], totalValue: '' };

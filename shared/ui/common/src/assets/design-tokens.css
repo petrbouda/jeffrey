@@ -48,6 +48,23 @@
   --flamegraph-color-pink: #ff9dce;
   --flamegraph-color-teal: #9dffee;
 
+  /* Chart series palette — categorical colors for ApexCharts/donut series.
+     Resolve in JS via the ChartColors service (@shared/services/ChartColors);
+     never hardcode hex palettes in chart components. */
+  --chart-series-1: #2e93fa;
+  --chart-series-2: #66da26;
+  --chart-series-3: #546e7a;
+  --chart-series-4: #e91e63;
+  --chart-series-5: #ff9800;
+  --chart-series-6: #00d9e9;
+  --chart-series-7: #775dd0;
+  --chart-series-8: #f86624;
+  --chart-series-9: #9c27b0;
+  --chart-series-10: #1b998b;
+  --chart-color-primary: #2e93fa;
+  --chart-color-secondary: #e53935;
+  --chart-color-highlight: #8e44ad;
+
   /* Indigo palette (hero gradients) */
   --color-indigo-dark: #1e1b4b;
   --color-indigo: #312e81;
