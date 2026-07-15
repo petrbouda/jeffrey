@@ -577,7 +577,7 @@ const router = createRouter({
         {
           path: 'workspaces',
           name: 'workspaces',
-          component: () => import('@/views/projects/ProjectsView.vue')
+          component: () => import('@/views/workspaces/WorkspacesView.vue')
         },
         {
           path: 'settings',
@@ -590,11 +590,6 @@ const router = createRouter({
           component: () => import('@/views/global/GuardiansView.vue')
         }
       ]
-    },
-    // Legacy redirect for old projects URL
-    {
-      path: '/projects',
-      redirect: '/recordings'
     },
     // Simplified profile routes - /profiles/:profileId/...
     {
@@ -622,7 +617,7 @@ const router = createRouter({
         {
           path: 'projects',
           name: 'workspace-projects',
-          component: () => import('@/views/projects/ProjectsView.vue')
+          component: () => import('@/views/workspaces/WorkspacesView.vue')
         },
         {
           path: 'projects/:projectId',
@@ -631,7 +626,7 @@ const router = createRouter({
             {
               path: '',
               name: 'project',
-              component: () => import('@/views/projects/detail/ProjectDetail.vue'),
+              component: () => import('@/views/workspaces/detail/ProjectDetail.vue'),
               meta: { layout: 'project' },
               children: [
                 {
@@ -643,31 +638,26 @@ const router = createRouter({
                 {
                   path: 'settings',
                   name: 'project-settings',
-                  component: () => import('@/views/projects/detail/SettingsView.vue'),
+                  component: () => import('@/views/workspaces/detail/SettingsView.vue'),
                   meta: { layout: 'project' }
                 },
                 {
                   path: 'profiler-settings',
                   name: 'project-profiler-settings',
                   component: () =>
-                    import('@/views/projects/detail/ProjectProfilerSettingsView.vue'),
+                    import('@/views/workspaces/detail/ProjectProfilerSettingsView.vue'),
                   meta: { layout: 'project' }
-                },
-                {
-                  path: 'event-streaming',
-                  redirect: to =>
-                    `/hubs/${to.params.hubId}/workspaces/${to.params.workspaceId}/projects/${to.params.projectId}/events/live-stream`
                 },
                 {
                   path: 'events/live-stream',
                   name: 'project-live-stream',
-                  component: () => import('@/views/projects/detail/ProjectLiveStreamView.vue'),
+                  component: () => import('@/views/workspaces/detail/ProjectLiveStreamView.vue'),
                   meta: { layout: 'project' }
                 },
                 {
                   path: 'events/replay-stream',
                   name: 'project-replay-stream',
-                  component: () => import('@/views/projects/detail/ProjectReplayStreamView.vue'),
+                  component: () => import('@/views/workspaces/detail/ProjectReplayStreamView.vue'),
                   meta: { layout: 'project' }
                 },
                 {
@@ -695,25 +685,6 @@ const router = createRouter({
           ]
         }
       ]
-    },
-    // Legacy redirects for old project routes
-    {
-      path: '/projects/:projectId',
-      redirect: () => {
-        // For legacy routes, we'll need to determine workspace from project
-        // For now, redirect to workspaces to let user select
-        return '/workspaces';
-      }
-    },
-    // Legacy redirect for old profile routes to simplified URLs
-    {
-      path: '/workspaces/:workspaceId/projects/:projectId/profiles/:profileId/:pathMatch(.*)*',
-      redirect: to => {
-        const profileId = to.params.profileId;
-        const pathMatch = to.params.pathMatch;
-        const subPath = Array.isArray(pathMatch) ? pathMatch.join('/') : pathMatch || 'overview';
-        return `/profiles/${profileId}/${subPath}`;
-      }
     },
     {
       path: '/:pathMatch(.*)*',

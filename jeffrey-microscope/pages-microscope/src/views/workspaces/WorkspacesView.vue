@@ -81,8 +81,8 @@ import { useNavigation } from '@/composables/useNavigation';
 
 const { navigateToProject } = useNavigation();
 import Badge from '@shared/components/Badge.vue';
-import WorkspaceEventLog from '@/views/projects/WorkspaceEventLog.vue';
-import WorkspaceProfilerSettings from '@/views/projects/WorkspaceProfilerSettings.vue';
+import WorkspaceEventLog from '@/components/workspace/WorkspaceEventLog.vue';
+import WorkspaceProfilerSettings from '@/components/workspace/WorkspaceProfilerSettings.vue';
 
 const HERO =
   'Microscope analyzes profiles served by Jeffrey servers. Add a hub to browse its workspaces and projects.';
