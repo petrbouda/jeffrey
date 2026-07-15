@@ -1,62 +1,47 @@
 <template>
-  <div>
-    <!-- Feature Disabled State -->
-    <CustomDisabledFeatureAlert
-      v-if="isHttpDashboardDisabled"
-      :title="mode === 'client' ? 'HTTP Client Dashboard' : 'HTTP Server Dashboard'"
-      eventType="HTTP exchange"
-    />
-
-    <div v-else>
-      <!-- Loading state -->
-      <LoadingState v-if="isLoading" />
-
-      <!-- Error state -->
-      <ErrorState v-else-if="error" :message="error" />
-
-      <!-- Dashboard content -->
-      <div v-if="httpOverviewData" class="dashboard-container">
-        <!-- HTTP Overview Cards -->
-        <div class="mb-4">
-          <StatsTable :metrics="metricsData" />
-        </div>
-
-        <!-- HTTP Metrics Timeline -->
-        <HttpTimeseries
-          :response-time-data="httpOverviewData?.responseTimeSerie.data || []"
-          :request-count-data="httpOverviewData?.requestCountSerie.data || []"
-        />
-
-        <!-- HTTP Endpoints List -->
-        <HttpEndpointList
-          :endpoints="httpOverviewData?.uris || []"
-          :selected-endpoint="selectedEndpoint"
-          @endpoint-click="navigateToUri"
-        />
-
-        <!-- Status Codes and Methods Distribution -->
-        <HttpDistributionCharts
-          title="HTTP Distribution"
-          icon="pie-chart"
-          :status-codes="httpOverviewData?.statusCodes || []"
-          :methods="httpOverviewData?.methods || []"
-          :total-requests="httpOverviewData?.header.requestCount || 0"
-        />
-
-        <!-- Slowest HTTP Requests -->
-        <HttpSlowestRequests
-          :requests="getSortedSlowRequests()"
-          :total-request-count="httpOverviewData?.header.requestCount || 0"
-        />
+  <TechnologyDashboard
+    :fetch="() => client.getOverview()"
+    :disabled="isHttpDashboardDisabled"
+    :disabled-title="mode === 'client' ? 'HTTP Client Dashboard' : 'HTTP Server Dashboard'"
+    event-type="HTTP exchange"
+    no-data-title="No HTTP Data Available"
+    no-data-message="No HTTP exchange events found for this profile"
+  >
+    <template #default="{ data }">
+      <!-- HTTP Overview Cards -->
+      <div class="mb-4">
+        <StatsTable :metrics="metricsData(data)" />
       </div>
 
-      <!-- No data state -->
-      <div v-else class="p-4 text-center">
-        <h3 class="text-muted">No HTTP Data Available</h3>
-        <p class="text-muted">No HTTP exchange events found for this profile</p>
-      </div>
-    </div>
-  </div>
+      <!-- HTTP Metrics Timeline -->
+      <HttpTimeseries
+        :response-time-data="data.responseTimeSerie.data || []"
+        :request-count-data="data.requestCountSerie.data || []"
+      />
+
+      <!-- HTTP Endpoints List -->
+      <HttpEndpointList
+        :endpoints="data.uris || []"
+        :selected-endpoint="selectedEndpoint"
+        @endpoint-click="navigateToUri"
+      />
+
+      <!-- Status Codes and Methods Distribution -->
+      <HttpDistributionCharts
+        title="HTTP Distribution"
+        icon="pie-chart"
+        :status-codes="data.statusCodes || []"
+        :methods="data.methods || []"
+        :total-requests="data.header.requestCount || 0"
+      />
+
+      <!-- Slowest HTTP Requests -->
+      <HttpSlowestRequests
+        :requests="getSortedSlowRequests(data)"
+        :total-request-count="data.header.requestCount || 0"
+      />
+    </template>
+  </TechnologyDashboard>
 </template>
 
 <script setup lang="ts">
@@ -69,12 +54,9 @@ import HttpSlowestRequests from '@/components/http/HttpSlowestRequests.vue';
 import ProfileHttpClient from '@/services/api/ProfileHttpClient.ts';
 import HttpOverviewData from '@/services/api/model/HttpOverviewData.ts';
 import StatsTable from '@shared/components/table/StatsTable.vue';
-import LoadingState from '@shared/components/LoadingState.vue';
-import ErrorState from '@shared/components/ErrorState.vue';
-import CustomDisabledFeatureAlert from '@/components/alerts/CustomDisabledFeatureAlert.vue';
+import TechnologyDashboard from '@/components/technologies/TechnologyDashboard.vue';
 import FeatureType from '@/services/api/model/FeatureType';
 import FormattingService from '@shared/services/FormattingService';
-import { useTechnologyData } from '@/composables/useTechnologyData';
 
 // Define props
 interface Props {
@@ -101,11 +83,9 @@ const isHttpDashboardDisabled = computed(() => {
   return props.disabledFeatures.includes(featureType);
 });
 
-// Computed metrics for StatsTable
-const metricsData = computed(() => {
-  if (!httpOverviewData.value?.header) return [];
-
-  const header = httpOverviewData.value.header;
+// Metrics for StatsTable derived from the loaded overview data
+const metricsData = (data: HttpOverviewData) => {
+  const header = data.header;
 
   return [
     {
@@ -186,23 +166,15 @@ const metricsData = computed(() => {
       ]
     }
   ];
-});
+};
 
 // Client initialization
 const client = new ProfileHttpClient(mode, route.params.profileId as string);
 
-const {
-  data: httpOverviewData,
-  isLoading,
-  error
-} = useTechnologyData<HttpOverviewData>(() => client.getOverview(), isHttpDashboardDisabled);
-
 // Helper functions
-const getSortedSlowRequests = () => {
-  if (!httpOverviewData.value) return [];
-
+const getSortedSlowRequests = (data: HttpOverviewData) => {
   // Sort slow requests by response time in descending order (slowest first)
-  return [...httpOverviewData.value.slowRequests].sort((a, b) => b.responseTime - a.responseTime);
+  return [...data.slowRequests].sort((a, b) => b.responseTime - a.responseTime);
 };
 
 // Navigation method
@@ -213,5 +185,3 @@ const navigateToUri = (uri: string) => {
   });
 };
 </script>
-
-<style scoped></style>

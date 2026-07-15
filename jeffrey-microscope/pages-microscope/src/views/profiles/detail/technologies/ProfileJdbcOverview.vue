@@ -1,23 +1,16 @@
 <template>
   <div>
-    <!-- Feature Disabled State -->
-    <CustomDisabledFeatureAlert
-      v-if="isJdbcStatementsDisabled"
-      title="JDBC Statements Dashboard"
-      eventType="JDBC statement"
-    />
-
-    <div v-else>
-      <!-- Loading state -->
-      <LoadingState v-if="isLoading" />
-
-      <!-- Error state -->
-      <ErrorState v-else-if="error" :message="error" />
-
-      <!-- Dashboard content -->
-      <div v-if="jdbcOverviewData" class="dashboard-container">
+    <TechnologyDashboard
+      :fetch="() => client.getOverview()"
+      :disabled="isJdbcStatementsDisabled"
+      disabled-title="JDBC Statements Dashboard"
+      event-type="JDBC statement"
+      no-data-title="No JDBC Data Available"
+      no-data-message="No JDBC statement events found for this profile"
+    >
+      <template #default="{ data }">
         <!-- JDBC Overview Cards -->
-        <JdbcDashboardSection :jdbc-header="jdbcOverviewData.header" />
+        <JdbcDashboardSection :jdbc-header="data.header" />
 
         <!-- JDBC Metrics Timeline -->
         <ChartSection
@@ -27,9 +20,9 @@
           container-class="apex-chart-container"
         >
           <TimeSeriesChart
-            :primary-data="jdbcOverviewData?.executionTimeSerie.data || []"
+            :primary-data="data.executionTimeSerie.data || []"
             primary-title="Execution Time"
-            :secondary-data="jdbcOverviewData?.statementCountSerie.data || []"
+            :secondary-data="data.statementCountSerie.data || []"
             secondary-title="Executions"
             :visible-minutes="60"
             :independentSecondaryAxis="true"
@@ -40,32 +33,23 @@
 
         <!-- Statement Groups Section -->
         <JdbcGroupList
-          :groups="jdbcOverviewData.groups"
+          :groups="data.groups"
           :selected-group="null"
           @group-click="handleGroupClick"
         />
 
         <!-- JDBC Distribution Charts -->
         <JdbcDistributionCharts
-          :operations="jdbcOverviewData?.operations || []"
+          :operations="data.operations || []"
           second-chart-title="Statement Groups Distribution"
-          :second-chart-data="getStatementGroupsData()"
-          :total="jdbcOverviewData.header.statementCount"
+          :second-chart-data="getStatementGroupsData(data)"
+          :total="data.header.statementCount"
         />
 
         <!-- Slowest Statements -->
-        <JdbcSlowestStatements
-          :statements="jdbcOverviewData.slowStatements"
-          @sql-button-click="showSqlModal"
-        />
-      </div>
-
-      <!-- No data state -->
-      <div v-else class="p-4 text-center">
-        <h3 class="text-muted">No JDBC Data Available</h3>
-        <p class="text-muted">No JDBC statement events found for this profile</p>
-      </div>
-    </div>
+        <JdbcSlowestStatements :statements="data.slowStatements" @sql-button-click="showSqlModal" />
+      </template>
+    </TechnologyDashboard>
 
     <!-- JDBC Statement Modal -->
     <JdbcStatementModal
@@ -91,12 +75,9 @@ import ProfileJdbcStatementClient from '@/services/api/ProfileJdbcStatementClien
 import JdbcOverviewData from '@/services/api/model/JdbcOverviewData.ts';
 import JdbcSlowStatement from '@/services/api/model/JdbcSlowStatement.ts';
 import JdbcGroup from '@/services/api/model/JdbcGroup.ts';
-import LoadingState from '@shared/components/LoadingState.vue';
-import ErrorState from '@shared/components/ErrorState.vue';
-import CustomDisabledFeatureAlert from '@/components/alerts/CustomDisabledFeatureAlert.vue';
+import TechnologyDashboard from '@/components/technologies/TechnologyDashboard.vue';
 import FeatureType from '@/services/api/model/FeatureType';
 import AxisFormatType from '@/services/timeseries/AxisFormatType.ts';
-import { useTechnologyData } from '@/composables/useTechnologyData';
 
 // Define props
 interface Props {
@@ -122,15 +103,8 @@ const isJdbcStatementsDisabled = computed(() => {
 // Client initialization
 const client = new ProfileJdbcStatementClient(route.params.profileId as string);
 
-const {
-  data: jdbcOverviewData,
-  isLoading,
-  error
-} = useTechnologyData<JdbcOverviewData>(() => client.getOverview(), isJdbcStatementsDisabled);
-
-const getStatementGroupsData = () => {
-  if (!jdbcOverviewData.value) return [];
-  return jdbcOverviewData.value.groups.map((group: JdbcGroup) => ({
+const getStatementGroupsData = (data: JdbcOverviewData) => {
+  return data.groups.map((group: JdbcGroup) => ({
     label: group.group,
     value: group.count
   }));
@@ -148,11 +122,3 @@ const handleGroupClick = (group: string) => {
   });
 };
 </script>
-
-<style scoped>
-@media (max-width: 768px) {
-  .dashboard-container {
-    padding: 1rem;
-  }
-}
-</style>

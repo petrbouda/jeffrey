@@ -1,30 +1,20 @@
 <template>
-  <div>
-    <CustomDisabledFeatureAlert
-      v-if="isGrpcDashboardDisabled"
-      :title="mode === 'client' ? 'gRPC Client Dashboard' : 'gRPC Server Dashboard'"
-      eventType="gRPC exchange"
-    />
-
-    <div v-else>
-      <LoadingState v-if="isLoading" />
-
-      <ErrorState v-else-if="error" :message="error" />
-
-      <div v-if="trafficData" class="dashboard-container">
-        <GrpcTrafficStats :header="trafficData.header" />
-        <GrpcSizeTimeseries
-          :request-size-data="trafficData.requestSizeSerie.data || []"
-          :response-size-data="trafficData.responseSizeSerie.data || []"
-        />
-      </div>
-
-      <div v-else-if="!isLoading && !error" class="p-4 text-center">
-        <h3 class="text-muted">No gRPC Traffic Data Available</h3>
-        <p class="text-muted">No gRPC traffic data found for this profile</p>
-      </div>
-    </div>
-  </div>
+  <TechnologyDashboard
+    :fetch="() => client.getTraffic()"
+    :disabled="isGrpcDashboardDisabled"
+    :disabled-title="mode === 'client' ? 'gRPC Client Dashboard' : 'gRPC Server Dashboard'"
+    event-type="gRPC exchange"
+    no-data-title="No gRPC Traffic Data Available"
+    no-data-message="No gRPC traffic data found for this profile"
+  >
+    <template #default="{ data }">
+      <GrpcTrafficStats :header="data.header" />
+      <GrpcSizeTimeseries
+        :request-size-data="data.requestSizeSerie.data || []"
+        :response-size-data="data.responseSizeSerie.data || []"
+      />
+    </template>
+  </TechnologyDashboard>
 </template>
 
 <script setup lang="ts">
@@ -32,13 +22,9 @@ import { computed } from 'vue';
 import { useRoute } from 'vue-router';
 import GrpcSizeTimeseries from '@/components/grpc/GrpcSizeTimeseries.vue';
 import ProfileGrpcClient from '@/services/api/ProfileGrpcClient';
-import type { GrpcTrafficData } from '@/services/api/ProfileGrpcClient';
 import GrpcTrafficStats from '@/components/grpc/GrpcTrafficStats.vue';
-import LoadingState from '@shared/components/LoadingState.vue';
-import ErrorState from '@shared/components/ErrorState.vue';
-import CustomDisabledFeatureAlert from '@/components/alerts/CustomDisabledFeatureAlert.vue';
+import TechnologyDashboard from '@/components/technologies/TechnologyDashboard.vue';
 import FeatureType from '@/services/api/model/FeatureType';
-import { useTechnologyData } from '@/composables/useTechnologyData';
 
 interface Props {
   disabledFeatures?: FeatureType[];
@@ -59,10 +45,4 @@ const isGrpcDashboardDisabled = computed(() => {
 });
 
 const client = new ProfileGrpcClient(mode, route.params.profileId as string);
-
-const {
-  data: trafficData,
-  isLoading,
-  error
-} = useTechnologyData<GrpcTrafficData>(() => client.getTraffic(), isGrpcDashboardDisabled);
 </script>

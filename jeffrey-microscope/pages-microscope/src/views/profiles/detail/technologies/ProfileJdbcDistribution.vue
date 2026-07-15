@@ -1,60 +1,45 @@
 <template>
-  <div>
-    <!-- Feature Disabled State -->
-    <CustomDisabledFeatureAlert
-      v-if="isJdbcStatementsDisabled"
-      title="JDBC Statements Dashboard"
-      eventType="JDBC statement"
-    />
+  <TechnologyDashboard
+    :fetch="() => client.getOverview()"
+    :disabled="isJdbcStatementsDisabled"
+    disabled-title="JDBC Statements Dashboard"
+    event-type="JDBC statement"
+    no-data-title="No JDBC Data Available"
+    no-data-message="No JDBC statement events found for this profile"
+  >
+    <template #default="{ data }">
+      <!-- JDBC Overview Stats -->
+      <JdbcOverviewStats :jdbc-header="data.header" />
 
-    <div v-else>
-      <!-- Loading state -->
-      <LoadingState v-if="isLoading" />
+      <!-- Group Filter Bar -->
+      <SearchableFilterBar
+        v-if="data.groups.length > 0"
+        v-model="selectedGroup"
+        :items="groupItems(data)"
+        label="Statement Group"
+        placeholder="All Groups"
+        search-placeholder="Search groups..."
+        items-label="groups"
+        :total-count="data.header.statementCount"
+      />
 
-      <!-- Error state -->
-      <ErrorState v-else-if="error" :message="error" />
-
-      <!-- Dashboard content -->
-      <div v-if="jdbcOverviewData" class="dashboard-container">
-        <!-- JDBC Overview Stats -->
-        <JdbcOverviewStats :jdbc-header="jdbcOverviewData.header" />
-
-        <!-- Group Filter Bar -->
-        <SearchableFilterBar
-          v-if="jdbcOverviewData.groups.length > 0"
-          v-model="selectedGroup"
-          :items="groupItems"
-          label="Statement Group"
-          placeholder="All Groups"
-          search-placeholder="Search groups..."
-          items-label="groups"
-          :total-count="jdbcOverviewData.header.statementCount"
-        />
-
-        <!-- Loading state for group data -->
-        <div v-if="isGroupLoading" class="p-4 text-center">
-          <div class="spinner-border spinner-border-sm text-primary" role="status">
-            <span class="visually-hidden">Loading...</span>
-          </div>
+      <!-- Loading state for group data -->
+      <div v-if="isGroupLoading" class="p-4 text-center">
+        <div class="spinner-border spinner-border-sm text-primary" role="status">
+          <span class="visually-hidden">Loading...</span>
         </div>
-
-        <!-- JDBC Distribution Charts -->
-        <JdbcDistributionCharts
-          v-else
-          :operations="currentOperations"
-          :second-chart-title="currentSecondChartTitle"
-          :second-chart-data="currentSecondChartData"
-          :total="currentTotal"
-        />
       </div>
 
-      <!-- No data state -->
-      <div v-else-if="!isLoading" class="p-4 text-center">
-        <h3 class="text-muted">No JDBC Data Available</h3>
-        <p class="text-muted">No JDBC statement events found for this profile</p>
-      </div>
-    </div>
-  </div>
+      <!-- JDBC Distribution Charts -->
+      <JdbcDistributionCharts
+        v-else
+        :operations="currentOperations(data)"
+        :second-chart-title="currentSecondChartTitle"
+        :second-chart-data="currentSecondChartData(data)"
+        :total="currentTotal(data)"
+      />
+    </template>
+  </TechnologyDashboard>
 </template>
 
 <script setup lang="ts">
@@ -66,11 +51,8 @@ import SearchableFilterBar from '@/components/form/SearchableFilterBar.vue';
 import ProfileJdbcStatementClient from '@/services/api/ProfileJdbcStatementClient.ts';
 import JdbcOverviewData from '@/services/api/model/JdbcOverviewData.ts';
 import JdbcGroup from '@/services/api/model/JdbcGroup.ts';
-import LoadingState from '@shared/components/LoadingState.vue';
-import ErrorState from '@shared/components/ErrorState.vue';
-import CustomDisabledFeatureAlert from '@/components/alerts/CustomDisabledFeatureAlert.vue';
+import TechnologyDashboard from '@/components/technologies/TechnologyDashboard.vue';
 import FeatureType from '@/services/api/model/FeatureType';
-import { useTechnologyData } from '@/composables/useTechnologyData';
 
 // Define props
 interface Props {
@@ -96,52 +78,44 @@ const isJdbcStatementsDisabled = computed(() => {
 // Client initialization
 const client = new ProfileJdbcStatementClient(route.params.profileId as string);
 
-const {
-  data: jdbcOverviewData,
-  isLoading,
-  error
-} = useTechnologyData<JdbcOverviewData>(() => client.getOverview(), isJdbcStatementsDisabled);
-
 // Group items for SearchableFilterBar
-const groupItems = computed(() => {
-  if (!jdbcOverviewData.value) return [];
-  return jdbcOverviewData.value.groups.map((g: JdbcGroup) => ({
+const groupItems = (data: JdbcOverviewData) => {
+  return data.groups.map((g: JdbcGroup) => ({
     label: g.group,
     count: g.count,
     p99: g.p99ExecutionTime
   }));
-});
+};
 
 // Current chart data based on filter
-const currentOperations = computed(() => {
+const currentOperations = (data: JdbcOverviewData) => {
   if (selectedGroup.value && singleGroupData.value) {
     return singleGroupData.value.operations;
   }
-  return jdbcOverviewData.value?.operations || [];
-});
+  return data.operations || [];
+};
 
 const currentSecondChartTitle = computed(() => {
   return selectedGroup.value ? 'Statement Names' : 'Statement Groups';
 });
 
-const currentSecondChartData = computed(() => {
+const currentSecondChartData = (data: JdbcOverviewData) => {
   if (selectedGroup.value && singleGroupData.value) {
     const group = singleGroupData.value.groups[0];
     return group?.statementNames || [];
   }
-  if (!jdbcOverviewData.value) return [];
-  return jdbcOverviewData.value.groups.map((g: JdbcGroup) => ({
+  return data.groups.map((g: JdbcGroup) => ({
     label: g.group,
     value: g.count
   }));
-});
+};
 
-const currentTotal = computed(() => {
+const currentTotal = (data: JdbcOverviewData) => {
   if (selectedGroup.value && singleGroupData.value) {
     return singleGroupData.value.header.statementCount;
   }
-  return jdbcOverviewData.value?.header.statementCount || 0;
-});
+  return data.header.statementCount || 0;
+};
 
 // Watch group selection
 watch(selectedGroup, async newGroup => {
@@ -160,11 +134,3 @@ watch(selectedGroup, async newGroup => {
   }
 });
 </script>
-
-<style scoped>
-@media (max-width: 768px) {
-  .dashboard-container {
-    padding: 1rem;
-  }
-}
-</style>
