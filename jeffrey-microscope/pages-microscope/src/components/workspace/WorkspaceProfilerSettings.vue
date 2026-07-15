@@ -20,10 +20,19 @@
   <div class="workspace-profiler-settings">
     <AsyncProfilerHelpPanel />
 
-    <TabBar v-model="activeTab" :tabs="settingsTabs" />
-
-    <div class="tab-content">
-      <template v-if="activeTab === 'current'">
+    <ProfilerSettingsPanel
+      ref="panelRef"
+      v-model="activeTab"
+      v-model:manual-command="manualCommand"
+      :tabs="settingsTabs"
+      hide-manual-actions
+      builder-hide-live-preview
+      builder-hide-help-header
+      builder-agent-mode="jeffrey"
+      @manual-accept="onManualAccept"
+      @builder-accept="onBuilderAccept"
+    >
+      <template #current>
         <div v-if="loadingCurrent" class="current-loading">
           <span class="spinner-border spinner-border-sm me-2" role="status"></span>
           Loading current configuration…
@@ -107,8 +116,7 @@
         />
       </template>
 
-      <template v-else-if="activeTab === 'manual'">
-        <ConfigureCommand v-model="manualCommand" hide-actions @accept-command="onManualAccept" />
+      <template #manual-footer>
         <div class="manual-actions">
           <button
             type="button"
@@ -127,7 +135,7 @@
         </div>
       </template>
 
-      <template v-else>
+      <template #builder-prelude>
         <template v-if="hasCommand">
           <div
             class="warning-panel clickable-cmd"
@@ -206,26 +214,17 @@
             <span class="section-delimiter-line"></span>
           </div>
         </template>
-
-        <CommandBuilder
-          ref="builderRef"
-          hide-live-preview
-          hide-help-header
-          agent-mode="jeffrey"
-          @accept-command="onBuilderAccept"
-        />
       </template>
-    </div>
+    </ProfilerSettingsPanel>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
-import ConfigureCommand from '@/components/settings/ConfigureCommand.vue';
-import CommandBuilder from '@/components/settings/CommandBuilder.vue';
 import AsyncProfilerHelpPanel from '@/components/settings/AsyncProfilerHelpPanel.vue';
+import ProfilerSettingsPanel from '@/components/profiler-settings/ProfilerSettingsPanel.vue';
 import ConfirmationDialog from '@shared/components/ConfirmationDialog.vue';
-import TabBar, { type TabBarItem } from '@shared/components/TabBar.vue';
+import type { TabBarItem } from '@shared/components/TabBar.vue';
 import WorkspaceProfilerSettingsClient from '@/services/api/WorkspaceProfilerSettingsClient';
 import ToastService from '@shared/services/ToastService';
 
@@ -235,8 +234,7 @@ const props = defineProps<{
   workspaceName?: string;
 }>();
 
-type TabKey = 'current' | 'builder' | 'manual';
-const activeTab = ref<TabKey>('current');
+const activeTab = ref<string>('current');
 
 const manualCommand = ref('');
 const applying = ref(false);
@@ -268,7 +266,7 @@ const settingsTabs = computed<TabBarItem[]>(() => [
   { id: 'manual', label: 'Manual' }
 ]);
 
-const builderRef = ref<InstanceType<typeof CommandBuilder> | null>(null);
+const panelRef = ref<InstanceType<typeof ProfilerSettingsPanel> | null>(null);
 
 const fetchCurrent = async () => {
   if (!props.hubId || !props.workspaceId) {
@@ -301,7 +299,7 @@ interface Recommendation {
 }
 
 const livePreview = computed(() => {
-  const r = builderRef.value;
+  const r = panelRef.value?.builder;
   if (!r) {
     return {
       command: '',
@@ -482,7 +480,14 @@ const removeWorkspaceOverride = async () => {
   cursor: not-allowed;
 }
 
-.tab-content {
+/* ProfilerSettingsPanel internals — keep the original TabBar/tab-content spacing */
+.profiler-settings-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+:deep(.tab-content) {
   min-width: 0;
   display: flex;
   flex-direction: column;

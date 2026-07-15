@@ -19,6 +19,8 @@
 <template>
   <LoadingState v-if="loading" message="Loading auto analysis..." />
 
+  <ErrorState v-else-if="loadError" :message="loadError" />
+
   <div v-else>
     <PageHeader title="Auto Analysis" icon="bi-robot">
       <!-- Idle State: Hero CTA -->
@@ -207,6 +209,7 @@ import AutoAnalysisClient from '@/services/api/AutoAnalysisClient';
 import AnalysisResult from '@/services/api/model/AnalysisResult';
 import PageHeader from '@shared/components/layout/PageHeader.vue';
 import LoadingState from '@shared/components/LoadingState.vue';
+import ErrorState from '@shared/components/ErrorState.vue';
 import DataTable from '@shared/components/table/DataTable.vue';
 import TableToolbar from '@shared/components/table/TableToolbar.vue';
 import Badge from '@shared/components/Badge.vue';
@@ -220,6 +223,7 @@ type Phase = 'idle' | 'running' | 'results' | 'error';
 
 const rules = ref<AnalysisResult[]>([]);
 const loading = ref(true);
+const loadError = ref<string | null>(null);
 const phase = ref<Phase>('idle');
 const errorMessage = ref('');
 
@@ -263,10 +267,26 @@ const severityCounts = computed(() => ({
 
 const chartData = computed<DonutChartData>(() => {
   const items = [
-    { label: 'Passed', count: severityCounts.value.ok, color: ChartColors.chartColor('color-success') },
-    { label: 'Warnings', count: severityCounts.value.warning, color: ChartColors.chartColor('color-danger') },
-    { label: 'Info', count: severityCounts.value.info, color: ChartColors.chartColor('color-accent-blue') },
-    { label: 'N/A', count: severityCounts.value.na, color: ChartColors.chartColor('color-text-muted') }
+    {
+      label: 'Passed',
+      count: severityCounts.value.ok,
+      color: ChartColors.chartColor('color-success')
+    },
+    {
+      label: 'Warnings',
+      count: severityCounts.value.warning,
+      color: ChartColors.chartColor('color-danger')
+    },
+    {
+      label: 'Info',
+      count: severityCounts.value.info,
+      color: ChartColors.chartColor('color-accent-blue')
+    },
+    {
+      label: 'N/A',
+      count: severityCounts.value.na,
+      color: ChartColors.chartColor('color-text-muted')
+    }
   ].filter(i => i.count > 0);
 
   return {
@@ -294,8 +314,9 @@ onMounted(async () => {
     } else {
       phase.value = 'idle';
     }
-  } catch {
-    phase.value = 'idle';
+  } catch (err) {
+    console.error('Failed to load auto analysis rules:', err);
+    loadError.value = err instanceof Error ? err.message : 'Failed to load auto analysis rules';
   } finally {
     loading.value = false;
   }

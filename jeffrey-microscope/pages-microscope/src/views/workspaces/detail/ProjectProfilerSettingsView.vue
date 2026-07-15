@@ -26,23 +26,16 @@
           </template>
         </CommandDisplay>
 
-        <!-- Tab Bar -->
-        <TabBar v-model="activeTab" :tabs="builderTabs" />
-
-        <!-- Tab Content -->
-        <div class="tab-content">
-          <ConfigureCommand
-            v-if="activeTab === 'manual'"
-            v-model="newCommand"
-            @accept-command="applySettings"
-            @clear="newCommand = ''"
-          />
-          <CommandBuilder
-            v-if="activeTab === 'builder'"
-            @cancel="cancelBuilder"
-            @accept-command="acceptBuilderCommand"
-          />
-        </div>
+        <!-- Tabs + Manual/Builder panes -->
+        <ProfilerSettingsPanel
+          v-model="activeTab"
+          v-model:manual-command="newCommand"
+          :tabs="builderTabs"
+          @manual-accept="applySettings"
+          @manual-clear="newCommand = ''"
+          @builder-cancel="cancelBuilder"
+          @builder-accept="acceptBuilderCommand"
+        />
       </div>
     </MainCard>
   </div>
@@ -55,25 +48,20 @@ import ProjectProfilerClient from '@/services/api/ProjectProfilerClient';
 import ToastService from '@shared/services/ToastService';
 import MainCard from '@shared/components/MainCard.vue';
 import MainCardHeader from '@shared/components/MainCardHeader.vue';
-import TabBar, { type TabBarItem } from '@shared/components/TabBar.vue';
-import ConfigureCommand from '@/components/settings/ConfigureCommand.vue';
-import CommandBuilder from '@/components/settings/CommandBuilder.vue';
+import type { TabBarItem } from '@shared/components/TabBar.vue';
+import ProfilerSettingsPanel from '@/components/profiler-settings/ProfilerSettingsPanel.vue';
 import CommandDisplay from '@/components/settings/CommandDisplay.vue';
 import SettingsBreadcrumbs from '@/components/settings/SettingsBreadcrumbs.vue';
 import type { BreadcrumbItem } from '@/components/settings/SettingsBreadcrumbs.vue';
 import type ProfilerSettings from '@/services/api/model/ProfilerSettings';
 
 const { hubId, workspaceId, projectId } = useNavigation();
-const profilerClient = new ProjectProfilerClient(
-  hubId.value,
-  workspaceId.value,
-  projectId.value
-);
+const profilerClient = new ProjectProfilerClient(hubId.value, workspaceId.value, projectId.value);
 
 // State
 const isLoading = ref(true);
 const isDeleting = ref(false);
-const activeTab = ref<'manual' | 'builder'>('manual');
+const activeTab = ref<string>('manual');
 
 const builderTabs: TabBarItem[] = [
   { id: 'manual', label: 'Manual' },
@@ -184,28 +172,28 @@ onMounted(() => {
   color: var(--color-text-muted);
 }
 
-/* Tab Content */
-.tab-content {
+/* Tab Content (rendered inside ProfilerSettingsPanel) */
+:deep(.tab-content) {
   padding-top: 16px;
   min-width: 0;
   overflow-x: hidden;
 }
 
 /* Constrain child component flex layouts to available width */
-.tab-content :deep(.builder-and-command-layout) {
+:deep(.tab-content .builder-and-command-layout) {
   min-width: 0;
 }
 
-.tab-content :deep(.builder-panel),
-.tab-content :deep(.live-command-panel) {
+:deep(.tab-content .builder-panel),
+:deep(.tab-content .live-command-panel) {
   min-width: 0;
 }
 
-.tab-content :deep(.command-actions) {
+:deep(.tab-content .command-actions) {
   flex-wrap: wrap;
 }
 
-.tab-content :deep(.command-help) {
+:deep(.tab-content .command-help) {
   overflow-wrap: break-word;
   word-break: break-all;
 }

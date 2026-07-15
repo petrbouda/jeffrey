@@ -1,163 +1,168 @@
 <template>
   <PageHeader title="Events" description="View and analyze profile events" icon="bi-collection">
-    <!-- Event Type Selector -->
-    <div>
-      <div v-if="!selectedEventType || showEventTypeList">
-        <div class="mb-3">
-          <div class="input-group search-container">
-            <span class="input-group-text"><i class="bi bi-search search-icon"></i></span>
-            <input
-              id="searchFilter"
-              type="text"
-              class="form-control search-input"
-              v-model="searchTerm"
-              placeholder="Filter event types..."
-              aria-label="Filter event types"
-              autocomplete="off"
-            />
-            <button
-              v-if="searchTerm"
-              class="btn btn-outline-secondary clear-btn"
-              type="button"
-              @click="searchTerm = ''"
-            >
-              <i class="bi bi-x-lg"></i>
-            </button>
-          </div>
-        </div>
+    <!-- Error state -->
+    <ErrorState v-if="error" :message="error" />
 
-        <div
-          class="event-type-list"
-          :class="{ 'limit-height': selectedEventType && showEventTypeList }"
-        >
-          <div v-if="loading" class="text-center py-3">
-            <div class="spinner-border spinner-border-sm" role="status">
-              <span class="visually-hidden">Loading...</span>
+    <template v-else>
+      <!-- Event Type Selector -->
+      <div>
+        <div v-if="!selectedEventType || showEventTypeList">
+          <div class="mb-3">
+            <div class="input-group search-container">
+              <span class="input-group-text"><i class="bi bi-search search-icon"></i></span>
+              <input
+                id="searchFilter"
+                type="text"
+                class="form-control search-input"
+                v-model="searchTerm"
+                placeholder="Filter event types..."
+                aria-label="Filter event types"
+                autocomplete="off"
+              />
+              <button
+                v-if="searchTerm"
+                class="btn btn-outline-secondary clear-btn"
+                type="button"
+                @click="searchTerm = ''"
+              >
+                <i class="bi bi-x-lg"></i>
+              </button>
             </div>
-            <span class="ms-2">Loading event types...</span>
           </div>
-          <div v-else-if="filteredEventTypes.length === 0" class="text-center py-3">
-            <i class="bi bi-exclamation-circle me-2"></i>
-            No event types found matching your filter
-          </div>
-          <div v-else class="list-group">
-            <button
-              v-for="eventType in filteredEventTypes"
-              :key="eventType.code"
-              class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
-              :class="{ active: selectedEventType?.code === eventType.code }"
-              @click="selectAndHideList(eventType)"
-            >
-              <div>
-                <div class="fw-medium">{{ eventType.name }}</div>
-                <div class="small text-muted">{{ eventType.code }}</div>
+
+          <div
+            class="event-type-list"
+            :class="{ 'limit-height': selectedEventType && showEventTypeList }"
+          >
+            <div v-if="loading" class="text-center py-3">
+              <div class="spinner-border spinner-border-sm" role="status">
+                <span class="visually-hidden">Loading...</span>
               </div>
-              <Badge :value="String(eventType.count)" variant="grey" size="xs" />
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Selected Event Type Config Panel -->
-    <div v-if="selectedEventType" class="event-config-card mb-2">
-      <div class="event-config-main">
-        <div class="event-config-icon"><i class="bi bi-cpu"></i></div>
-        <div class="event-config-info">
-          <div class="event-config-name">{{ selectedEventType.name }}</div>
-          <div class="event-config-code">{{ selectedEventType.code }}</div>
-        </div>
-      </div>
-      <div class="event-config-stats">
-        <div class="event-config-stat">
-          <div class="event-config-stat-value">
-            {{ FormattingService.formatNumber(selectedEventType.count) }}
-          </div>
-          <div class="event-config-stat-label">Total Samples</div>
-        </div>
-        <div class="event-config-stat">
-          <div class="event-config-stat-value">
-            {{ FormattingService.formatNumber(Math.min(200, filteredEventData.length)) }}
-          </div>
-          <div class="event-config-stat-label">Showing</div>
-        </div>
-      </div>
-      <div class="event-config-actions">
-        <button v-if="!showEventTypeList" class="event-config-btn" @click="toggleEventTypeList">
-          <i class="bi bi-pencil"></i> Change
-        </button>
-      </div>
-    </div>
-
-    <!-- Event Data Table -->
-    <div v-if="selectedEventType">
-      <div v-if="loadingEventData" class="p-4 text-center">
-        <div class="spinner-border spinner-border-sm" role="status">
-          <span class="visually-hidden">Loading...</span>
-        </div>
-        <span class="ms-2">Loading event data...</span>
-      </div>
-      <div v-else-if="eventColumns.length === 0" class="p-4 text-center">
-        <i class="bi bi-exclamation-triangle me-2"></i>
-        No event columns found for this event type
-      </div>
-      <div v-else-if="eventData.length === 0" class="p-4 text-center">
-        <i class="bi bi-info-circle me-2"></i>
-        No event data found for this event type
-      </div>
-      <div v-else>
-        <DataTable table-class="event-tree-table">
-          <thead>
-            <tr>
-              <th v-for="column in eventColumns" :key="column.field">
-                <div class="d-flex flex-column">
-                  <!-- Column header -->
-                  <div
-                    class="d-flex align-items-center mb-1"
-                    :class="{ sortable: isSortableField(column.type) }"
-                    @click="isSortableField(column.type) && toggleSort(column.field)"
-                  >
-                    <span>{{ column.header }}</span>
-                    <span v-if="isSortableField(column.type)" class="ms-1">
-                      <i
-                        v-if="sortConfig && sortConfig.field === column.field"
-                        :class="
-                          sortConfig.direction === 'asc' ? 'bi bi-sort-up' : 'bi bi-sort-down'
-                        "
-                      ></i>
-                      <i v-else class="bi bi-sort text-muted"></i>
-                    </span>
-                  </div>
-
-                  <!-- Filter input for string columns -->
-                  <div v-if="isStringField(column.field, column.type)" class="column-filter">
-                    <input
-                      type="text"
-                      class="form-control form-control-sm filter-input"
-                      :placeholder="'Filter...'"
-                      v-model="columnFilters[column.field]"
-                      @click.stop
-                      @input="applyFilters"
-                    />
-                  </div>
+              <span class="ms-2">Loading event types...</span>
+            </div>
+            <div v-else-if="filteredEventTypes.length === 0" class="text-center py-3">
+              <i class="bi bi-exclamation-circle me-2"></i>
+              No event types found matching your filter
+            </div>
+            <div v-else class="list-group">
+              <button
+                v-for="eventType in filteredEventTypes"
+                :key="eventType.code"
+                class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
+                :class="{ active: selectedEventType?.code === eventType.code }"
+                @click="selectAndHideList(eventType)"
+              >
+                <div>
+                  <div class="fw-medium">{{ eventType.name }}</div>
+                  <div class="small text-muted">{{ eventType.code }}</div>
                 </div>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr class="leaf-row" v-for="(event, index) in limitedEventData" :key="index">
-              <td v-for="column in eventColumns" :key="column.field" class="event-cell">
-                <div class="event-name-cell">
-                  <span class="event-value">{{
-                    FormattingService.format(event[column.field], column.type || '')
-                  }}</span>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </DataTable>
+                <Badge :value="String(eventType.count)" variant="grey" size="xs" />
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
-    </div>
+
+      <!-- Selected Event Type Config Panel -->
+      <div v-if="selectedEventType" class="event-config-card mb-2">
+        <div class="event-config-main">
+          <div class="event-config-icon"><i class="bi bi-cpu"></i></div>
+          <div class="event-config-info">
+            <div class="event-config-name">{{ selectedEventType.name }}</div>
+            <div class="event-config-code">{{ selectedEventType.code }}</div>
+          </div>
+        </div>
+        <div class="event-config-stats">
+          <div class="event-config-stat">
+            <div class="event-config-stat-value">
+              {{ FormattingService.formatNumber(selectedEventType.count) }}
+            </div>
+            <div class="event-config-stat-label">Total Samples</div>
+          </div>
+          <div class="event-config-stat">
+            <div class="event-config-stat-value">
+              {{ FormattingService.formatNumber(Math.min(200, filteredEventData.length)) }}
+            </div>
+            <div class="event-config-stat-label">Showing</div>
+          </div>
+        </div>
+        <div class="event-config-actions">
+          <button v-if="!showEventTypeList" class="event-config-btn" @click="toggleEventTypeList">
+            <i class="bi bi-pencil"></i> Change
+          </button>
+        </div>
+      </div>
+
+      <!-- Event Data Table -->
+      <div v-if="selectedEventType">
+        <div v-if="loadingEventData" class="p-4 text-center">
+          <div class="spinner-border spinner-border-sm" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </div>
+          <span class="ms-2">Loading event data...</span>
+        </div>
+        <div v-else-if="eventColumns.length === 0" class="p-4 text-center">
+          <i class="bi bi-exclamation-triangle me-2"></i>
+          No event columns found for this event type
+        </div>
+        <div v-else-if="eventData.length === 0" class="p-4 text-center">
+          <i class="bi bi-info-circle me-2"></i>
+          No event data found for this event type
+        </div>
+        <div v-else>
+          <DataTable table-class="event-tree-table">
+            <thead>
+              <tr>
+                <th v-for="column in eventColumns" :key="column.field">
+                  <div class="d-flex flex-column">
+                    <!-- Column header -->
+                    <div
+                      class="d-flex align-items-center mb-1"
+                      :class="{ sortable: isSortableField(column.type) }"
+                      @click="isSortableField(column.type) && toggleSort(column.field)"
+                    >
+                      <span>{{ column.header }}</span>
+                      <span v-if="isSortableField(column.type)" class="ms-1">
+                        <i
+                          v-if="sortConfig && sortConfig.field === column.field"
+                          :class="
+                            sortConfig.direction === 'asc' ? 'bi bi-sort-up' : 'bi bi-sort-down'
+                          "
+                        ></i>
+                        <i v-else class="bi bi-sort text-muted"></i>
+                      </span>
+                    </div>
+
+                    <!-- Filter input for string columns -->
+                    <div v-if="isStringField(column.field, column.type)" class="column-filter">
+                      <input
+                        type="text"
+                        class="form-control form-control-sm filter-input"
+                        :placeholder="'Filter...'"
+                        v-model="columnFilters[column.field]"
+                        @click.stop
+                        @input="applyFilters"
+                      />
+                    </div>
+                  </div>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="leaf-row" v-for="(event, index) in limitedEventData" :key="index">
+                <td v-for="column in eventColumns" :key="column.field" class="event-cell">
+                  <div class="event-name-cell">
+                    <span class="event-value">{{
+                      FormattingService.format(event[column.field], column.type || '')
+                    }}</span>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </DataTable>
+        </div>
+      </div>
+    </template>
   </PageHeader>
 </template>
 
@@ -172,6 +177,7 @@ import { useRoute } from 'vue-router';
 import PageHeader from '@shared/components/layout/PageHeader.vue';
 import Badge from '@shared/components/Badge.vue';
 import DataTable from '@shared/components/table/DataTable.vue';
+import ErrorState from '@shared/components/ErrorState.vue';
 import '@shared/styles/shared-components.css';
 
 const route = useRoute();
@@ -183,6 +189,7 @@ const eventTypes = ref<EventTypeDescription[]>([]);
 const selectedEventType = ref<EventTypeDescription | null>(null);
 const searchTerm = ref('');
 const loading = ref(false);
+const error = ref<string | null>(null);
 const showEventTypeList = ref(false);
 const eventColumns = ref<EventFieldDescription[]>([]);
 const eventData = ref<Record<string, string | number>[]>([]);
@@ -298,6 +305,7 @@ async function selectEventType(eventType: EventTypeDescription) {
 
   if (eventType && eventType.code) {
     loadingEventData.value = true;
+    error.value = null;
     try {
       const client = new EventViewerClient(profileId);
 
@@ -320,8 +328,9 @@ async function selectEventType(eventType: EventTypeDescription) {
       } else {
         sortConfig.value = null;
       }
-    } catch (error) {
-      console.error(`Failed to load event data for ${eventType.code}:`, error);
+    } catch (err) {
+      console.error(`Failed to load event data for ${eventType.code}:`, err);
+      error.value = err instanceof Error ? err.message : 'Failed to load event data';
       eventColumns.value = [];
       eventData.value = [];
       columnFilters.value = {};
@@ -414,8 +423,9 @@ onMounted(async () => {
       selectedEventType.value = null;
       showEventTypeList.value = true;
     }
-  } catch (error) {
-    console.error('Failed to load event types:', error);
+  } catch (err) {
+    console.error('Failed to load event types:', err);
+    error.value = err instanceof Error ? err.message : 'Failed to load event types';
   } finally {
     loading.value = false;
   }

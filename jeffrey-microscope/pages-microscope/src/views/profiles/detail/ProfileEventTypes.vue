@@ -5,22 +5,10 @@
     icon="bi-list-check"
   >
     <!-- Loading state -->
-    <div v-if="loading" class="row">
-      <div class="col-12">
-        <div class="d-flex justify-content-center my-5">
-          <div class="spinner-border text-primary" role="status">
-            <span class="visually-hidden">Loading...</span>
-          </div>
-        </div>
-      </div>
-    </div>
+    <LoadingState v-if="loading" message="Loading event types..." />
 
     <!-- Error state -->
-    <div v-else-if="error" class="row">
-      <div class="col-12">
-        <div class="alert alert-danger" role="alert">Failed to load event types.</div>
-      </div>
-    </div>
+    <ErrorState v-else-if="error" :message="error" />
 
     <!-- Content state -->
     <div v-else class="row">
@@ -267,6 +255,8 @@ import AxisFormatType from '@/services/timeseries/AxisFormatType.ts';
 import EventTypes from '@/services/EventTypes';
 import StatsTable from '@shared/components/table/StatsTable.vue';
 import DataTable from '@shared/components/table/DataTable.vue';
+import LoadingState from '@shared/components/LoadingState.vue';
+import ErrorState from '@shared/components/ErrorState.vue';
 import '@shared/styles/shared-components.css';
 
 // Props definition
@@ -292,7 +282,7 @@ const profileId = route.params.profileId as string;
 
 // State variables
 const loading = ref(true);
-const error = ref(false);
+const error = ref<string | null>(null);
 const allEvents = ref<EventType[]>([]);
 const filteredEvents = ref<EventType[]>([]);
 const expandedNodes = ref<Set<string>>(new Set());
@@ -350,7 +340,7 @@ onMounted(async () => {
     loading.value = false;
   } catch (err) {
     console.error('Failed to load event types:', err);
-    error.value = true;
+    error.value = err instanceof Error ? err.message : 'Failed to load event types';
     loading.value = false;
   }
 });

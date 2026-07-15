@@ -37,9 +37,7 @@
     <LoadingState v-if="loading" message="Loading workspace events…" />
 
     <div v-else-if="errorMessage" class="event-error">
-      <i class="event-error-icon bi bi-exclamation-triangle-fill"></i>
-      <h5>Failed to load events</h5>
-      <p>{{ errorMessage }}</p>
+      <ErrorState :message="errorMessage" />
       <button class="btn btn-primary" @click="refresh">
         <i class="bi bi-arrow-clockwise me-2"></i>Retry
       </button>
@@ -170,6 +168,7 @@ import FormattingService from '@shared/services/FormattingService';
 import Badge from '@shared/components/Badge.vue';
 import GenericModal from '@shared/components/GenericModal.vue';
 import LoadingState from '@shared/components/LoadingState.vue';
+import ErrorState from '@shared/components/ErrorState.vue';
 import EmptyState from '@shared/components/EmptyState.vue';
 
 const DEFAULT_LIMIT = 100;
@@ -480,13 +479,12 @@ defineExpose({ refresh });
   flex-direction: column;
   align-items: center;
   gap: 8px;
-  padding: 32px 16px;
+  padding: 16px;
   text-align: center;
   color: var(--color-text);
 }
-.event-error-icon {
-  font-size: 28px;
-  color: var(--color-danger);
+.event-error :deep(.error-state) {
+  padding: 1rem;
 }
 
 .event-modal-body {
