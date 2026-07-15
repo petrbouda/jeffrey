@@ -6,8 +6,11 @@ paths:
 ## Java Backend Rules
 
 ### Bean Registration
-- Never use `@Component`, `@Service`, `@Repository`, `@Controller`, `@RestController`, or `@Autowired`
-- Always register beans via `@Bean` methods in `@Configuration` classes or Spring 4 `BeanRegistrar`
+- Never use `@Component`, `@Service`, `@Repository`, `@Controller`, or `@Autowired`
+- Exceptions on the allow-list (the only stereotypes permitted, both web-boundary concerns):
+  - `@RestController` is required on Spring MVC controllers (see CLAUDE.md)
+  - `@ControllerAdvice` is allowed on the central exception handler (`JeffreyExceptionHandler`)
+- Everything else is registered via `@Bean` methods in `@Configuration` classes or Spring 4 `BeanRegistrar`
 
 ### Time Handling
 - Never use `Instant.now()` or `System.currentTimeMillis()`

@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -53,6 +53,11 @@ public abstract class Exceptions {
     public static JeffreyClientException profileNotFound(String profileId) {
         return new JeffreyClientException(
                 ErrorCode.PROFILE_NOT_FOUND, "Profile not found: %s".formatted(profileId));
+    }
+
+    public static JeffreyClientException recordingNotFound(String recordingId) {
+        return new JeffreyClientException(
+                ErrorCode.RECORDING_NOT_FOUND, "Recording not found: %s".formatted(recordingId));
     }
 
     public static JeffreyClientException recordingSessionNotFound(String sessionId) {

@@ -91,6 +91,8 @@ function getErrorTitle(error: ApiError): string {
         return 'Workspace Not Found';
       case 'PROJECT_NOT_FOUND':
         return 'Project Not Found';
+      case 'RECORDING_NOT_FOUND':
+        return 'Recording Not Found';
       case 'RECORDING_SESSION_NOT_FOUND':
         return 'Recording Session Not Found';
       case 'RECORDING_FILE_NOT_FOUND':

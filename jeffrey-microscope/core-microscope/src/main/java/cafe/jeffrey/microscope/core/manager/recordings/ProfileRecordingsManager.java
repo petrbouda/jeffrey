@@ -32,6 +32,7 @@ import cafe.jeffrey.provider.profile.api.RecordingInformation;
 import cafe.jeffrey.provider.profile.api.RecordingInformationParser;
 import cafe.jeffrey.recordings.core.manager.RecordingsCoreManager;
 import cafe.jeffrey.shared.common.IDGenerator;
+import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
 import cafe.jeffrey.shared.common.model.Recording;
@@ -165,7 +166,7 @@ public class ProfileRecordingsManager implements RecordingsManager {
     @Override
     public String analyzeRecording(String recordingId) {
         Recording recording = recordingRepository.findRecording(recordingId)
-                .orElseThrow(() -> new IllegalArgumentException("Recording not found: " + recordingId));
+                .orElseThrow(() -> Exceptions.recordingNotFound(recordingId));
 
         if (recording.hasProfile()) {
             return recording.profileId();
@@ -186,7 +187,7 @@ public class ProfileRecordingsManager implements RecordingsManager {
     private String analyzeJfr(Recording recording, RecordingFile file) {
         Path filePath = resolveRecordingFilePath(file);
         if (!Files.exists(filePath)) {
-            throw new IllegalArgumentException("Recording file does not exist: " + filePath);
+            throw Exceptions.internal("Recording file does not exist: %s".formatted(filePath));
         }
 
         String profileId = IDGenerator.generate();
@@ -279,10 +280,10 @@ public class ProfileRecordingsManager implements RecordingsManager {
     @Override
     public void deleteProfile(String recordingId) {
         Recording recording = recordingRepository.findRecording(recordingId)
-                .orElseThrow(() -> new IllegalArgumentException("Recording not found: " + recordingId));
+                .orElseThrow(() -> Exceptions.recordingNotFound(recordingId));
 
         if (!recording.hasProfile()) {
-            throw new IllegalStateException("Recording has no profile: " + recordingId);
+            throw Exceptions.invalidRequest("Recording has no profile: %s".formatted(recordingId));
         }
 
         profileCleanup.deleteProfile(recording.profileId());

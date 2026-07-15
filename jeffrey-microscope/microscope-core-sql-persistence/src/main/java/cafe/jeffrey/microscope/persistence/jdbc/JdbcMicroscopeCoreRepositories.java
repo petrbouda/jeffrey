@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -54,7 +54,7 @@ public class JdbcMicroscopeCoreRepositories implements MicroscopeCoreRepositorie
 
     @Override
     public RecordingRepository newRecordingRepository(String projectId) {
-        return new JdbcRecordingRepository(projectId, databaseClientProvider);
+        return new JdbcRecordingRepository(projectId, databaseClientProvider, clock);
     }
 
     @Override

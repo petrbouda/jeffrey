@@ -18,10 +18,14 @@
 
 package cafe.jeffrey.shared.common.exception;
 
+import java.util.EnumSet;
+import java.util.Set;
+
 public enum ErrorCode {
     WORKSPACE_NOT_FOUND,
     PROJECT_NOT_FOUND,
     PROFILE_NOT_FOUND,
+    RECORDING_NOT_FOUND,
     RECORDING_SESSION_NOT_FOUND,
     RECORDING_FILE_NOT_FOUND,
     REPOSITORY_NOT_FOUND,
@@ -49,14 +53,18 @@ public enum ErrorCode {
     // Generic not-found error for Jersey WebApplicationExceptions
     RESOURCE_NOT_FOUND;
 
+    private static final Set<ErrorCode> NOT_FOUND_CODES = EnumSet.of(
+            WORKSPACE_NOT_FOUND,
+            PROJECT_NOT_FOUND,
+            PROFILE_NOT_FOUND,
+            RECORDING_NOT_FOUND,
+            RECORDING_SESSION_NOT_FOUND,
+            RECORDING_FILE_NOT_FOUND,
+            REPOSITORY_NOT_FOUND,
+            SCHEDULER_JOB_NOT_FOUND,
+            RESOURCE_NOT_FOUND);
+
     public boolean isNotFound() {
-        return this == WORKSPACE_NOT_FOUND
-               || this == PROJECT_NOT_FOUND
-               || this == PROFILE_NOT_FOUND
-               || this == RECORDING_SESSION_NOT_FOUND
-               || this == RECORDING_FILE_NOT_FOUND
-               || this == REPOSITORY_NOT_FOUND
-               || this == SCHEDULER_JOB_NOT_FOUND
-               || this == RESOURCE_NOT_FOUND;
+        return NOT_FOUND_CODES.contains(this);
     }
 }
