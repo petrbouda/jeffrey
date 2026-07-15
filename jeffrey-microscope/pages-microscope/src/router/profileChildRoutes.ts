@@ -1,6 +1,9 @@
-// Profile child routes - shared between simplified and legacy routes, and imported
-// by tests to verify the sidebar navigation config resolves to real routes.
-export const profileChildRoutes = [
+// Profile child routes, grouped by feature domain. The groups are concatenated into
+// one flat child list under /profiles/:profileId — grouping is organizational only.
+// Imported by tests to verify the sidebar navigation config resolves to real routes.
+
+// Overview, analysis, and event browsing
+const analysisRoutes = [
   {
     path: '',
     redirect: (to: { params: { profileId: string } }) => `/profiles/${to.params.profileId}/overview`
@@ -36,6 +39,28 @@ export const profileChildRoutes = [
     meta: { layout: 'profile' }
   },
   {
+    path: 'events',
+    name: 'profile-events',
+    component: () => import('@/views/profiles/detail/ProfileEvents.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
+    path: 'flags',
+    name: 'profile-flags',
+    component: () => import('@/views/profiles/detail/ProfileFlags.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
+    path: 'performance-counters',
+    name: 'profile-performance-counters',
+    component: () => import('@/views/profiles/detail/ProfilePerformanceCounters.vue'),
+    meta: { layout: 'profile' }
+  }
+];
+
+// Flamegraphs and sub-second visualizations
+const visualizationRoutes = [
+  {
     path: 'flamegraphs/primary',
     name: 'profile-flamegraphs-primary',
     component: () => import('@/views/profiles/detail/ProfileFlamegraphsPrimary.vue'),
@@ -70,55 +95,11 @@ export const profileChildRoutes = [
     name: 'subsecond',
     component: () => import('@/views/profiles/detail/ProfileSubSecondView.vue'),
     meta: { layout: 'profile' }
-  },
-  {
-    path: 'events',
-    name: 'profile-events',
-    component: () => import('@/views/profiles/detail/ProfileEvents.vue'),
-    meta: { layout: 'profile' }
-  },
-  {
-    path: 'flags',
-    name: 'profile-flags',
-    component: () => import('@/views/profiles/detail/ProfileFlags.vue'),
-    meta: { layout: 'profile' }
-  },
-  {
-    path: 'thread-statistics',
-    name: 'profile-thread-statistics',
-    component: () => import('@/views/profiles/detail/ProfileThreadStatistics.vue'),
-    meta: { layout: 'profile' }
-  },
-  {
-    path: 'threads-timeline',
-    name: 'profile-threads-timeline',
-    component: () => import('@/views/profiles/detail/ProfileThreadsTimeline.vue'),
-    meta: { layout: 'profile' }
-  },
-  {
-    path: 'virtual-threads',
-    name: 'profile-virtual-threads',
-    component: () => import('@/views/profiles/detail/ProfileVirtualThreads.vue'),
-    meta: { layout: 'profile' }
-  },
-  {
-    path: 'thread-dumps',
-    name: 'profile-thread-dumps',
-    component: () => import('@/views/profiles/detail/ProfileThreadDumps.vue'),
-    meta: { layout: 'profile' }
-  },
-  {
-    path: 'jit-compilation',
-    name: 'profile-jit-compilation',
-    component: () => import('@/views/profiles/detail/ProfileJitCompilation.vue'),
-    meta: { layout: 'profile' }
-  },
-  {
-    path: 'jit-compilation/deoptimizations',
-    name: 'profile-jit-deoptimizations',
-    component: () => import('@/views/profiles/detail/ProfileJitDeoptimizations.vue'),
-    meta: { layout: 'profile' }
-  },
+  }
+];
+
+// Garbage collection
+const gcRoutes = [
   {
     path: 'garbage-collection',
     name: 'profile-garbage-collection',
@@ -166,19 +147,55 @@ export const profileChildRoutes = [
     name: 'profile-garbage-collection-reference-processing',
     component: () => import('@/views/profiles/detail/ProfileGCReferenceProcessing.vue'),
     meta: { layout: 'profile' }
-  },
+  }
+];
+
+// Threads
+const threadRoutes = [
   {
-    path: 'class-loading',
-    name: 'profile-class-loading',
-    component: () => import('@/views/profiles/detail/ProfileClassLoading.vue'),
+    path: 'thread-statistics',
+    name: 'profile-thread-statistics',
+    component: () => import('@/views/profiles/detail/ProfileThreadStatistics.vue'),
     meta: { layout: 'profile' }
   },
   {
-    path: 'exceptions',
-    name: 'profile-exceptions',
-    component: () => import('@/views/profiles/detail/ProfileExceptions.vue'),
+    path: 'threads-timeline',
+    name: 'profile-threads-timeline',
+    component: () => import('@/views/profiles/detail/ProfileThreadsTimeline.vue'),
     meta: { layout: 'profile' }
   },
+  {
+    path: 'virtual-threads',
+    name: 'profile-virtual-threads',
+    component: () => import('@/views/profiles/detail/ProfileVirtualThreads.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
+    path: 'thread-dumps',
+    name: 'profile-thread-dumps',
+    component: () => import('@/views/profiles/detail/ProfileThreadDumps.vue'),
+    meta: { layout: 'profile' }
+  }
+];
+
+// JIT compiler
+const jitRoutes = [
+  {
+    path: 'jit-compilation',
+    name: 'profile-jit-compilation',
+    component: () => import('@/views/profiles/detail/ProfileJitCompilation.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
+    path: 'jit-compilation/deoptimizations',
+    name: 'profile-jit-deoptimizations',
+    component: () => import('@/views/profiles/detail/ProfileJitDeoptimizations.vue'),
+    meta: { layout: 'profile' }
+  }
+];
+
+// Memory (allocations, native memory, leaks)
+const memoryRoutes = [
   {
     path: 'native-memory',
     name: 'profile-native-memory',
@@ -195,6 +212,34 @@ export const profileChildRoutes = [
     path: 'nmt',
     name: 'profile-nmt',
     component: () => import('@/views/profiles/detail/ProfileNmt.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
+    path: 'allocations',
+    name: 'profile-allocations',
+    component: () => import('@/views/profiles/detail/ProfileAllocations.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
+    path: 'leak-candidates',
+    name: 'profile-leak-candidates',
+    component: () => import('@/views/profiles/detail/ProfileLeakCandidates.vue'),
+    meta: { layout: 'profile' }
+  }
+];
+
+// JVM runtime and infrastructure
+const runtimeRoutes = [
+  {
+    path: 'class-loading',
+    name: 'profile-class-loading',
+    component: () => import('@/views/profiles/detail/ProfileClassLoading.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
+    path: 'exceptions',
+    name: 'profile-exceptions',
+    component: () => import('@/views/profiles/detail/ProfileExceptions.vue'),
     meta: { layout: 'profile' }
   },
   {
@@ -234,23 +279,21 @@ export const profileChildRoutes = [
     meta: { layout: 'profile' }
   },
   {
-    path: 'allocations',
-    name: 'profile-allocations',
-    component: () => import('@/views/profiles/detail/ProfileAllocations.vue'),
-    meta: { layout: 'profile' }
-  },
-  {
-    path: 'leak-candidates',
-    name: 'profile-leak-candidates',
-    component: () => import('@/views/profiles/detail/ProfileLeakCandidates.vue'),
-    meta: { layout: 'profile' }
-  },
-  {
     path: 'security',
     name: 'profile-security',
     component: () => import('@/views/profiles/detail/ProfileSecurity.vue'),
     meta: { layout: 'profile' }
   },
+  {
+    path: 'container/configuration',
+    name: 'profile-container-configuration',
+    component: () => import('@/views/profiles/detail/ProfileContainerConfiguration.vue'),
+    meta: { layout: 'profile' }
+  }
+];
+
+// Heap dump analysis
+const heapDumpRoutes = [
   {
     path: 'heap-dump/settings',
     name: 'profile-heap-dump-settings',
@@ -328,32 +371,11 @@ export const profileChildRoutes = [
     name: 'profile-heap-dump-classloader-analysis',
     component: () => import('@/views/profiles/detail/ProfileHeapDumpClassLoaderAnalysis.vue'),
     meta: { layout: 'profile' }
-  },
-  {
-    path: 'tools/rename-frames',
-    name: 'profile-tools-rename-frames',
-    component: () => import('@/views/profiles/detail/ProfileToolsRenameFrames.vue'),
-    meta: { layout: 'profile' }
-  },
-  {
-    path: 'tools/collapse-frames',
-    name: 'profile-tools-collapse-frames',
-    component: () => import('@/views/profiles/detail/ProfileToolsCollapseFrames.vue'),
-    meta: { layout: 'profile' }
-  },
-  {
-    path: 'container/configuration',
-    name: 'profile-container-configuration',
-    component: () => import('@/views/profiles/detail/ProfileContainerConfiguration.vue'),
-    meta: { layout: 'profile' }
-  },
-  {
-    path: 'performance-counters',
-    name: 'profile-performance-counters',
-    component: () => import('@/views/profiles/detail/ProfilePerformanceCounters.vue'),
-    meta: { layout: 'profile' }
-  },
-  // Technologies mode routes
+  }
+];
+
+// Technologies (HTTP, gRPC, JDBC, tracing)
+const technologyRoutes = [
   {
     path: 'technologies/hub',
     name: 'profile-technologies-hub',
@@ -534,4 +556,33 @@ export const profileChildRoutes = [
     component: () => import('@/views/profiles/detail/technologies/ProfileGrpcLargestCalls.vue'),
     meta: { layout: 'profile' }
   }
+];
+
+// Recording tools
+const toolsRoutes = [
+  {
+    path: 'tools/rename-frames',
+    name: 'profile-tools-rename-frames',
+    component: () => import('@/views/profiles/detail/ProfileToolsRenameFrames.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
+    path: 'tools/collapse-frames',
+    name: 'profile-tools-collapse-frames',
+    component: () => import('@/views/profiles/detail/ProfileToolsCollapseFrames.vue'),
+    meta: { layout: 'profile' }
+  }
+];
+
+export const profileChildRoutes = [
+  ...analysisRoutes,
+  ...visualizationRoutes,
+  ...gcRoutes,
+  ...threadRoutes,
+  ...jitRoutes,
+  ...memoryRoutes,
+  ...runtimeRoutes,
+  ...heapDumpRoutes,
+  ...technologyRoutes,
+  ...toolsRoutes
 ];
