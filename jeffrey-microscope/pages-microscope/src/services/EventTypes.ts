@@ -33,6 +33,13 @@ export default class EventTypes {
   static NATIVE_MALLOC_ALLOCATION = 'profiler.Malloc';
   static NATIVE_LEAK = 'jeffrey.NativeLeak';
 
+  // OpenTelemetry profiles (synthesized from OTLP sample types)
+  static OTEL_CPU = 'otel.cpu';
+  static OTEL_SAMPLES = 'otel.samples';
+  static OTEL_WALL = 'otel.wall';
+  static OTEL_ALLOC = 'otel.alloc';
+  static OTEL_LOCK = 'otel.lock';
+
   static isObjectAllocationInNewTLAB(code: string) {
     return code === this.OBJECT_ALLOCATION_IN_NEW_TLAB;
   }
@@ -62,14 +69,15 @@ export default class EventTypes {
   }
 
   static isWallClock(code: string) {
-    return code === this.WALL_CLOCK;
+    return code === this.WALL_CLOCK || code === this.OTEL_WALL;
   }
 
   static isAllocationEventType(code: string) {
     return (
       this.isObjectAllocationInNewTLAB(code) ||
       this.isObjectAllocationOutsideTLAB(code) ||
-      this.isObjectAllocationSample(code)
+      this.isObjectAllocationSample(code) ||
+      code === this.OTEL_ALLOC
     );
   }
 
@@ -78,7 +86,8 @@ export default class EventTypes {
       this.isJavaMonitorEnter(code) ||
       this.isJavaMonitorWait(code) ||
       this.isThreadPark(code) ||
-      this.isVirtualThreadPinned(code)
+      this.isVirtualThreadPinned(code) ||
+      code === this.OTEL_LOCK
     );
   }
 
@@ -92,7 +101,7 @@ export default class EventTypes {
   }
 
   static isExecutionEventType(code: string) {
-    return code === this.EXECUTION_SAMPLE;
+    return code === this.EXECUTION_SAMPLE || code === this.OTEL_CPU || code === this.OTEL_SAMPLES;
   }
 
   static isCpuTimeSample(code: string) {

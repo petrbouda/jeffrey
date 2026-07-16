@@ -32,13 +32,13 @@ import java.util.Optional;
  * {@code recordings-core} {@link RecordingMetadataParser} SPI, swallowing parse failures
  * (so ingestion falls back to filename-based event-source detection, matching prior behavior).
  */
-public class JfrRecordingMetadataParserAdapter implements RecordingMetadataParser {
+public class RecordingMetadataParserAdapter implements RecordingMetadataParser {
 
-    private static final Logger LOG = LoggerFactory.getLogger(JfrRecordingMetadataParserAdapter.class);
+    private static final Logger LOG = LoggerFactory.getLogger(RecordingMetadataParserAdapter.class);
 
     private final RecordingInformationParser delegate;
 
-    public JfrRecordingMetadataParserAdapter(RecordingInformationParser delegate) {
+    public RecordingMetadataParserAdapter(RecordingInformationParser delegate) {
         this.delegate = delegate;
     }
 

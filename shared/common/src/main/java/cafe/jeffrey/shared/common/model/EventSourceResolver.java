@@ -38,25 +38,36 @@ public final class EventSourceResolver {
     /**
      * Resolves the source of a single event type from its name.
      *
-     * @return {@link RecordingEventSource#ASYNC_PROFILER} for events in the {@code profiler.} namespace,
+     * @return {@link RecordingEventSource#OPEN_TELEMETRY} for events in the {@code otel.} namespace,
+     * {@link RecordingEventSource#ASYNC_PROFILER} for events in the {@code profiler.} namespace,
      * otherwise {@link RecordingEventSource#JDK}
      */
     public static RecordingEventSource fromEventTypeName(String eventTypeName) {
-        return isAsyncProfilerEvent(eventTypeName)
-                ? RecordingEventSource.ASYNC_PROFILER
-                : RecordingEventSource.JDK;
+        if (isOtelEvent(eventTypeName)) {
+            return RecordingEventSource.OPEN_TELEMETRY;
+        }
+        if (isAsyncProfilerEvent(eventTypeName)) {
+            return RecordingEventSource.ASYNC_PROFILER;
+        }
+        return RecordingEventSource.JDK;
     }
 
     /**
      * Resolves the recording-level source from the set of event type names it contains. A recording is
-     * treated as async-profiler as soon as a single {@code profiler.} event is present.
+     * treated as OpenTelemetry as soon as a single {@code otel.} event is present, then as async-profiler
+     * as soon as a single {@code profiler.} event is present.
      *
-     * @return {@link RecordingEventSource#ASYNC_PROFILER} if any name is in the {@code profiler.} namespace,
+     * @return {@link RecordingEventSource#OPEN_TELEMETRY} if any name is in the {@code otel.} namespace,
+     * {@link RecordingEventSource#ASYNC_PROFILER} if any name is in the {@code profiler.} namespace,
      * otherwise {@link RecordingEventSource#JDK}
      */
     public static RecordingEventSource fromEventTypeNames(Collection<String> eventTypeNames) {
         if (eventTypeNames == null) {
             return RecordingEventSource.JDK;
+        }
+        boolean anyOtel = eventTypeNames.stream().anyMatch(EventSourceResolver::isOtelEvent);
+        if (anyOtel) {
+            return RecordingEventSource.OPEN_TELEMETRY;
         }
         boolean anyAsyncProfiler = eventTypeNames.stream().anyMatch(EventSourceResolver::isAsyncProfilerEvent);
         return anyAsyncProfiler ? RecordingEventSource.ASYNC_PROFILER : RecordingEventSource.JDK;
@@ -67,5 +78,12 @@ public final class EventSourceResolver {
      */
     public static boolean isAsyncProfilerEvent(String eventTypeName) {
         return eventTypeName != null && eventTypeName.startsWith(EventTypeName.ASYNC_PROFILER_NAMESPACE);
+    }
+
+    /**
+     * @return {@code true} if the event type belongs to the OpenTelemetry ({@code otel.}) namespace
+     */
+    public static boolean isOtelEvent(String eventTypeName) {
+        return eventTypeName != null && eventTypeName.startsWith(EventTypeName.OTEL_NAMESPACE);
     }
 }

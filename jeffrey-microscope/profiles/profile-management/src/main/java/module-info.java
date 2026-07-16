@@ -36,6 +36,7 @@ module cafe.jeffrey.microscope.profile.management {
     requires cafe.jeffrey.microscope.profile.timeseries;
     requires cafe.jeffrey.microscope.profile.frame.ir;
     requires cafe.jeffrey.microscope.profile.parser.jdk;
+    requires cafe.jeffrey.microscope.profile.parser.otlp;
     requires cafe.jeffrey.microscope.profile.parser.api;
     requires cafe.jeffrey.shared.common;
     requires cafe.jeffrey.shared.persistence;

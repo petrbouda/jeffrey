@@ -284,6 +284,10 @@ onBeforeUnmount(() => {
   background: var(--color-teal-light);
   color: var(--color-teal);
 }
+.ets-tag--otel {
+  background: var(--color-orange-bg);
+  color: var(--color-orange);
+}
 .ets-tag--custom {
   background: var(--color-amber-light);
   color: var(--color-amber-text);

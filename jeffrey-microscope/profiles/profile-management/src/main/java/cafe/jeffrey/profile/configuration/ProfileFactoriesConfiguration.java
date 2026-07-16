@@ -50,6 +50,7 @@ import cafe.jeffrey.profile.manager.registry.AnalysisFactories;
 import cafe.jeffrey.profile.manager.registry.JvmInsightFactories;
 import cafe.jeffrey.profile.manager.registry.ProfileManagerFactoryRegistry;
 import cafe.jeffrey.profile.manager.registry.VisualizationFactories;
+import cafe.jeffrey.otlpparser.OtlpRecordingEventParser;
 import cafe.jeffrey.profile.parser.JfrRecordingEventParser;
 import cafe.jeffrey.profile.settings.ActiveSettingsProvider;
 import cafe.jeffrey.profile.settings.CachedActiveSettingsProvider;
@@ -63,6 +64,7 @@ import cafe.jeffrey.provider.profile.api.*;
 import cafe.jeffrey.shared.common.compression.Lz4Compressor;
 import cafe.jeffrey.shared.common.filesystem.TempDirFactory;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
+import cafe.jeffrey.shared.common.model.RecordingEventSource;
 import cafe.jeffrey.shared.persistence.DatabaseManager;
 import cafe.jeffrey.storage.recording.api.RecordingStorage;
 
@@ -71,6 +73,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.Supplier;
 
@@ -455,11 +458,24 @@ public class ProfileFactoriesConfiguration {
         return new ProfileInitializerImpl(
                 profileRepositories,
                 profileDatabaseProvider,
-                new JfrRecordingEventParser(tempDirFactory, new Lz4Compressor(tempDirFactory)),
+                recordingEventParserResolver(tempDirFactory),
                 eventWriterFactory,
                 profileManagerFactory,
                 profileDataInitializer,
                 clock);
+    }
+
+    /**
+     * JFR-based sources (JDK, async-profiler) parse with the JFR parser — including {@code UNKNOWN},
+     * which preserves the previous behavior for recordings whose metadata parse failed at upload time.
+     * OpenTelemetry recordings parse with the OTLP parser.
+     */
+    private static RecordingEventParserResolver recordingEventParserResolver(TempDirFactory tempDirFactory) {
+        JfrRecordingEventParser jfrParser =
+                new JfrRecordingEventParser(tempDirFactory, new Lz4Compressor(tempDirFactory));
+        return RecordingEventParserResolver.of(
+                Map.of(RecordingEventSource.OPEN_TELEMETRY, new OtlpRecordingEventParser()),
+                jfrParser);
     }
 
     @Bean

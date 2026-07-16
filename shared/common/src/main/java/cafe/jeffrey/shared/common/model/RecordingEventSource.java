@@ -22,7 +22,8 @@ public enum RecordingEventSource {
     ASYNC_PROFILER(0, "Async-Profiler"),
     JDK(1, "JDK"),
     UNKNOWN(2, "Unknown"),
-    HEAP_DUMP(3, "Heap Dump");
+    HEAP_DUMP(3, "Heap Dump"),
+    OPEN_TELEMETRY(4, "OpenTelemetry");
 
     private final int id;
     private final String label;

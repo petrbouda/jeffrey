@@ -97,6 +97,25 @@ describe('EventTypes', () => {
     });
   });
 
+  describe('OpenTelemetry event types', () => {
+    it('otel execution samples bucket with execution events', () => {
+      expect(EventTypes.isExecutionEventType('otel.cpu')).toBe(true);
+      expect(EventTypes.isExecutionEventType('otel.samples')).toBe(true);
+    });
+
+    it('otel wall clock buckets with wall-clock events', () => {
+      expect(EventTypes.isWallClock('otel.wall')).toBe(true);
+    });
+
+    it('otel allocations bucket with allocation events', () => {
+      expect(EventTypes.isAllocationEventType('otel.alloc')).toBe(true);
+    });
+
+    it('otel lock contention buckets with blocking events', () => {
+      expect(EventTypes.isBlockingEventType('otel.lock')).toBe(true);
+    });
+  });
+
   describe('getSapDocumentationUrl', () => {
     it('returns URL for jdk-prefixed event', () => {
       const url = EventTypes.getSapDocumentationUrl('jdk.ExecutionSample');

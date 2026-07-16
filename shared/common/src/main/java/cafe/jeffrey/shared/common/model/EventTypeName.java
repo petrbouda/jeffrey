@@ -26,6 +26,19 @@ public abstract class EventTypeName {
      */
     public static final String ASYNC_PROFILER_NAMESPACE = "profiler.";
 
+    /**
+     * Namespace prefix for every event type synthesized from an OpenTelemetry profiles recording
+     * (e.g. {@code otel.cpu}, {@code otel.alloc}). Used to classify the recording source.
+     */
+    public static final String OTEL_NAMESPACE = "otel.";
+
+    // OpenTelemetry profile sample types mapped to Jeffrey event types (see otlp-parser)
+    public static final String OTEL_CPU = "otel.cpu";
+    public static final String OTEL_SAMPLES = "otel.samples";
+    public static final String OTEL_WALL = "otel.wall";
+    public static final String OTEL_ALLOC = "otel.alloc";
+    public static final String OTEL_LOCK = "otel.lock";
+
     public static final String EXECUTION_SAMPLE = "jdk.ExecutionSample";
     public static final String CPU_TIME_SAMPLE = "jdk.CPUTimeSample";
     public static final String CPU_TIME_SAMPLES_LOST = "jdk.CPUTimeSamplesLost";

@@ -176,14 +176,19 @@ public class ProfileRecordingsManager implements RecordingsManager {
         if (recording.eventSource() == RecordingEventSource.HEAP_DUMP) {
             profileId = analyzeHeapDump(recording, file);
         } else {
-            profileId = analyzeJfr(recording, file);
+            profileId = analyzeEvents(recording, file);
         }
 
         LOG.info("Quick analysis recording analyzed: recordingId={} profileId={}", recordingId, profileId);
         return profileId;
     }
 
-    private String analyzeJfr(Recording recording, RecordingFile file) {
+    /**
+     * Analysis path for every event-based recording (JFR, async-profiler, OpenTelemetry profiles):
+     * the concrete parser is resolved from the recording's event source inside the profile
+     * initializer.
+     */
+    private String analyzeEvents(Recording recording, RecordingFile file) {
         Path filePath = resolveRecordingFilePath(file);
         if (!Files.exists(filePath)) {
             throw new IllegalArgumentException("Recording file does not exist: " + filePath);
@@ -217,8 +222,8 @@ public class ProfileRecordingsManager implements RecordingsManager {
 
     /**
      * Prefers the recording metadata persisted at upload time (event source + profiling start/end)
-     * and re-parses the JFR file only when any of them is missing — e.g. when the metadata parse
-     * failed during the upload.
+     * and re-parses the recording file only when any of them is missing — e.g. when the metadata
+     * parse failed during the upload.
      */
     private RecordingInformation resolveRecordingInformation(Recording recording, Path filePath) {
         boolean persistedInfoComplete = recording.eventSource() != null

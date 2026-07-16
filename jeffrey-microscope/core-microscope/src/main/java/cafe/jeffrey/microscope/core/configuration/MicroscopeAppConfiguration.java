@@ -25,8 +25,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import cafe.jeffrey.microscope.core.initializer.RecordingSeedInitializer;
-import cafe.jeffrey.microscope.core.manager.recordings.JfrRecordingMetadataParserAdapter;
 import cafe.jeffrey.microscope.core.manager.recordings.MicroscopeProfileCleanup;
+import cafe.jeffrey.microscope.core.manager.recordings.RecordingMetadataParserAdapter;
 import cafe.jeffrey.microscope.core.manager.recordings.ProfileRecordingsManager;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.microscope.core.manager.server.HubsManager;
@@ -52,8 +52,13 @@ import cafe.jeffrey.profile.ProfileInitializerImpl;
 import cafe.jeffrey.profile.configuration.ProfileFactoriesConfiguration;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.profile.manager.action.ProfileDataInitializer;
+import cafe.jeffrey.otlpparser.OtlpRecordingEventParser;
+import cafe.jeffrey.otlpparser.OtlpRecordingInformationParser;
+import cafe.jeffrey.profile.parser.FileTypeDispatchingRecordingInformationParser;
 import cafe.jeffrey.profile.parser.JfrRecordingEventParser;
 import cafe.jeffrey.profile.parser.JfrRecordingInformationParser;
+import cafe.jeffrey.provider.profile.api.RecordingEventParserResolver;
+import cafe.jeffrey.shared.common.model.RecordingEventSource;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCorePersistenceProvider;
 import cafe.jeffrey.provider.profile.jdbc.DuckDBProfilePersistenceProvider;
 import cafe.jeffrey.provider.profile.api.ProfilePersistenceProvider;
@@ -61,6 +66,7 @@ import cafe.jeffrey.shared.common.FrameResolutionMode;
 import cafe.jeffrey.shared.common.compression.Lz4Compressor;
 import cafe.jeffrey.microscope.core.MicroscopeJeffreyDirs;
 
+import java.util.Map;
 import java.util.Optional;
 
 import java.nio.file.Path;
@@ -86,17 +92,23 @@ public class MicroscopeAppConfiguration {
         ProfilePersistenceProvider quickProvider =
                 new DuckDBProfilePersistenceProvider(jeffreyDirs.profiles(), frameResolutionMode, clock);
 
+        RecordingEventParserResolver parserResolver = RecordingEventParserResolver.of(
+                Map.of(RecordingEventSource.OPEN_TELEMETRY, new OtlpRecordingEventParser()),
+                new JfrRecordingEventParser(jeffreyDirs, new Lz4Compressor(jeffreyDirs)));
+
         ProfileInitializer recordingsProfileInitializer = new ProfileInitializerImpl(
                 quickProvider.repositories(),
                 quickProvider.databaseManager(),
-                new JfrRecordingEventParser(jeffreyDirs, new Lz4Compressor(jeffreyDirs)),
+                parserResolver,
                 quickProvider.eventWriterFactory(),
                 profileManagerFactory,
                 profileDataInitializer,
                 clock);
 
         MicroscopeCoreRepositories repos = localCorePersistenceProvider.localCoreRepositories();
-        RecordingInformationParser recordingInformationParser = new JfrRecordingInformationParser(jeffreyDirs);
+        RecordingInformationParser recordingInformationParser = new FileTypeDispatchingRecordingInformationParser(
+                new JfrRecordingInformationParser(jeffreyDirs),
+                new OtlpRecordingInformationParser());
         MicroscopeProfileCleanup profileCleanup = new MicroscopeProfileCleanup(jeffreyDirs, repos);
 
         RecordingsCoreManager core = new RecordingsCoreManagerImpl(
@@ -104,7 +116,7 @@ public class MicroscopeAppConfiguration {
                 recordingsPath,
                 repos.newRecordingRepository(null),
                 repos.recordingTagsRepository(),
-                new JfrRecordingMetadataParserAdapter(recordingInformationParser),
+                new RecordingMetadataParserAdapter(recordingInformationParser),
                 profileCleanup);
 
         return new ProfileRecordingsManager(

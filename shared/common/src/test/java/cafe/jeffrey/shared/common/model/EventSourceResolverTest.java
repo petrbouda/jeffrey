@@ -52,6 +52,12 @@ class EventSourceResolverTest {
             assertEquals(RecordingEventSource.JDK, EventSourceResolver.fromEventTypeName(""));
             assertEquals(RecordingEventSource.JDK, EventSourceResolver.fromEventTypeName(null));
         }
+
+        @Test
+        void otelNamespaceIsOpenTelemetry() {
+            assertEquals(RecordingEventSource.OPEN_TELEMETRY, EventSourceResolver.fromEventTypeName("otel.cpu"));
+            assertEquals(RecordingEventSource.OPEN_TELEMETRY, EventSourceResolver.fromEventTypeName("otel.alloc"));
+        }
     }
 
     @Nested
@@ -73,6 +79,12 @@ class EventSourceResolverTest {
         void emptyOrNullIsJdk() {
             assertEquals(RecordingEventSource.JDK, EventSourceResolver.fromEventTypeNames(List.of()));
             assertEquals(RecordingEventSource.JDK, EventSourceResolver.fromEventTypeNames(null));
+        }
+
+        @Test
+        void anyOtelEventMakesTheRecordingOpenTelemetry() {
+            List<String> names = List.of("jdk.ExecutionSample", "profiler.Span", "otel.cpu");
+            assertEquals(RecordingEventSource.OPEN_TELEMETRY, EventSourceResolver.fromEventTypeNames(names));
         }
     }
 

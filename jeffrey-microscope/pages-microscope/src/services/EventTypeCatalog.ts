@@ -9,10 +9,19 @@ export interface EventTypeCategory {
   events: EventTypeEntry[];
 }
 
-export function getEventTypePrefix(name: string): 'jdk' | 'jeffrey' | 'profiler' | 'custom' {
-  if (name.startsWith('jdk.')) return 'jdk';
-  if (name.startsWith('jeffrey.')) return 'jeffrey';
-  if (name.startsWith('profiler.')) return 'profiler';
+export function getEventTypePrefix(name: string): 'jdk' | 'jeffrey' | 'profiler' | 'otel' | 'custom' {
+  if (name.startsWith('jdk.')) {
+    return 'jdk';
+  }
+  if (name.startsWith('jeffrey.')) {
+    return 'jeffrey';
+  }
+  if (name.startsWith('profiler.')) {
+    return 'profiler';
+  }
+  if (name.startsWith('otel.')) {
+    return 'otel';
+  }
   return 'custom';
 }
 

@@ -84,6 +84,12 @@ public enum SupportedRecordingFile {
             new AppLogFileMatcher(),
             FileCategory.ARTIFACT
     ),
+    OTLP_PROFILE(
+            "OpenTelemetry Profiles",
+            FileExtensions.OTLP,
+            filename -> filename.endsWith("." + FileExtensions.OTLP),
+            FileCategory.RECORDING
+    ),
     UNKNOWN(
             "Unsupported File Type",
             null,
