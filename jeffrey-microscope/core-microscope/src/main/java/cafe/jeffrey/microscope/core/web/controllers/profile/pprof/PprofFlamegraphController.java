@@ -25,7 +25,9 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
+import cafe.jeffrey.profile.common.pprof.PprofEventCategory;
 import cafe.jeffrey.profile.manager.ProfileManager;
+import cafe.jeffrey.profile.model.EventSummaryResult;
 
 import java.util.List;
 
@@ -49,10 +51,16 @@ public class PprofFlamegraphController {
     }
 
     @GetMapping("/events")
-    public List<PprofEventSummaryResult> events(@PathVariable("profileId") String profileId) {
+    public List<EventSummaryResult> events(@PathVariable("profileId") String profileId) {
         ProfileManager pm = resolver.resolve(profileId);
-        List<PprofEventSummaryResult> result = PprofEventSummaryResult.from(pm.flamegraphManager().eventSummaries());
+        List<EventSummaryResult> result = withCategories(pm.flamegraphManager().eventSummaries());
         LOG.debug("Listed pprof flamegraph event types: profileId={} count={}", profileId, result.size());
         return result;
+    }
+
+    static List<EventSummaryResult> withCategories(List<EventSummaryResult> summaries) {
+        return summaries.stream()
+                .map(summary -> summary.withCategory(PprofEventCategory.resolve(summary.code()).name()))
+                .toList();
     }
 }

@@ -27,8 +27,11 @@ import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
 import cafe.jeffrey.profile.manager.FlamegraphManager;
 import cafe.jeffrey.profile.manager.ProfileManager;
+import cafe.jeffrey.profile.model.EventSummaryResult;
 
 import java.util.List;
+
+import static cafe.jeffrey.microscope.core.web.controllers.profile.pprof.PprofFlamegraphController.withCategories;
 
 /**
  * pprof-format differential flamegraph endpoints. Mirrors
@@ -49,13 +52,13 @@ public class PprofDifferentialFlamegraphController {
     }
 
     @GetMapping("/events")
-    public List<PprofEventSummaryResult> events(
+    public List<EventSummaryResult> events(
             @PathVariable("primaryProfileId") String primaryProfileId,
             @PathVariable("secondaryProfileId") String secondaryProfileId) {
         ProfileManager primary = resolver.resolve(primaryProfileId);
         ProfileManager secondary = resolver.resolve(secondaryProfileId);
         FlamegraphManager diffManager = primary.diffFlamegraphManager(secondary);
-        List<PprofEventSummaryResult> result = PprofEventSummaryResult.from(diffManager.eventSummaries());
+        List<EventSummaryResult> result = withCategories(diffManager.eventSummaries());
         LOG.debug("Listed pprof diff flamegraph event types: profileId={} count={}", primaryProfileId, result.size());
         return result;
     }

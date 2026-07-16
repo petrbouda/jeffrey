@@ -23,14 +23,24 @@ import cafe.jeffrey.shared.common.model.EventSummary;
 
 import java.util.Map;
 
-public record EventSummaryResult(String code, String label, SingleResult primary, SingleResult secondary) {
+public record EventSummaryResult(
+        String code, String label, String category, SingleResult primary, SingleResult secondary) {
 
     public EventSummaryResult(EventSummary primary) {
-        this(primary.name(), primary.label(), new SingleResult(primary), null);
+        this(primary.name(), primary.label(), null, new SingleResult(primary), null);
     }
 
     public EventSummaryResult(EventSummary primary, EventSummary secondary) {
-        this(primary.name(), primary.label(), new SingleResult(primary), new SingleResult(secondary));
+        this(primary.name(), primary.label(), null, new SingleResult(primary), new SingleResult(secondary));
+    }
+
+    /**
+     * @return a copy tagged with the given logical flamegraph category. Format-specific controllers
+     * (e.g. pprof) resolve the category server-side; the generic path leaves it {@code null} and the
+     * client categorizes by event-type code.
+     */
+    public EventSummaryResult withCategory(String category) {
+        return new EventSummaryResult(code, label, category, primary, secondary);
     }
 
     public record SingleResult(
