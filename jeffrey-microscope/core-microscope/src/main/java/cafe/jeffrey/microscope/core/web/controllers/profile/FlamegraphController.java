@@ -107,6 +107,7 @@ public class FlamegraphController {
                 .withGraphComponents(request.components())
                 .withSearchPattern(request.search())
                 .withMarkers(request.markers())
+                .withJsonFieldFilter(request.toJsonFieldFilter())
                 .build();
     }
 

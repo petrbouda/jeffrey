@@ -96,6 +96,7 @@ public class DuckDBFlamegraphQueries implements ComplexQueries.Flamegraph {
                 WHERE e.event_type = <<event_type>>
                     <<time_filters>>
                     <<span_filter>>
+                    <<json_field_filter>>
                     <<stacktrace_filters>>
                 <<additional_filters>>
                 GROUP BY s.stacktrace_hash, s.frame_hashes
@@ -142,6 +143,7 @@ public class DuckDBFlamegraphQueries implements ComplexQueries.Flamegraph {
             WHERE e.event_type = <<event_type>>
                 <<time_filters>>
                 <<span_filter>>
+                <<json_field_filter>>
                 <<stacktrace_filters>>
                 <<additional_filters>>
             GROUP BY s.stacktrace_hash, s.frame_hashes;
@@ -165,6 +167,7 @@ public class DuckDBFlamegraphQueries implements ComplexQueries.Flamegraph {
                 WHERE e.event_type = <<event_type>>
                     <<time_filters>>
                     <<span_filter>>
+                    <<json_field_filter>>
                     <<stacktrace_filters>>
                     <<additional_filters>>
                 GROUP BY s.stacktrace_hash, s.frame_hashes, e.weight_entity
@@ -213,6 +216,7 @@ public class DuckDBFlamegraphQueries implements ComplexQueries.Flamegraph {
             WHERE e.event_type = <<event_type>>
                 <<time_filters>>
                 <<span_filter>>
+                <<json_field_filter>>
                 <<stacktrace_filters>>
                 <<additional_filters>>
             GROUP BY s.stacktrace_hash, s.frame_hashes, e.weight_entity;
@@ -250,6 +254,7 @@ public class DuckDBFlamegraphQueries implements ComplexQueries.Flamegraph {
                 WHERE e.event_type = <<event_type>>
                     <<time_filters>>
                     <<span_filter>>
+                    <<json_field_filter>>
                     <<thread_filters>>
                     <<stacktrace_filters>>
                     <<additional_filters>>
@@ -307,6 +312,7 @@ public class DuckDBFlamegraphQueries implements ComplexQueries.Flamegraph {
                 WHERE e.event_type = <<event_type>>
                     <<time_filters>>
                     <<span_filter>>
+                    <<json_field_filter>>
                     <<thread_filters>>
                     <<stacktrace_filters>>
                     <<additional_filters>>
@@ -363,6 +369,7 @@ public class DuckDBFlamegraphQueries implements ComplexQueries.Flamegraph {
             WHERE e.event_type = <<event_type>>
                 <<time_filters>>
                 <<span_filter>>
+                <<json_field_filter>>
                 <<thread_filters>>
                 <<stacktrace_filters>>
                 <<additional_filters>>
@@ -393,6 +400,7 @@ public class DuckDBFlamegraphQueries implements ComplexQueries.Flamegraph {
             WHERE e.event_type = <<event_type>>
                 <<time_filters>>
                 <<span_filter>>
+                <<json_field_filter>>
                 <<thread_filters>>
                 <<stacktrace_filters>>
                 <<additional_filters>>

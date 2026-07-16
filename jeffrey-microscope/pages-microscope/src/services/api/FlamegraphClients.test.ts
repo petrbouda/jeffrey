@@ -192,6 +192,40 @@ describe('PrimaryFlamegraphClient payloads', () => {
       })
     );
   });
+
+  it('sends trace and span correlation keys only when set', async () => {
+    const scoped = new PrimaryFlamegraphClient(
+      'p1',
+      'otel.cpu',
+      true,
+      false,
+      true,
+      false,
+      true,
+      null,
+      'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+      '1111111111111111'
+    );
+
+    await scoped.provideBoth(GraphComponents.BOTH, timeRange, null);
+
+    expect(lastPost().bodyJson).toBe(
+      expectJson({
+        eventType: 'otel.cpu',
+        useWeight: false,
+        useThreadMode: true,
+        timeRange: { start: 1000, end: 2000, absoluteTime: true },
+        search: null,
+        excludeNonJavaSamples: true,
+        excludeIdleSamples: false,
+        onlyUnsafeAllocationSamples: true,
+        threadInfo: null,
+        components: 'BOTH',
+        traceId: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+        spanId: '1111111111111111'
+      })
+    );
+  });
 });
 
 describe('SingleSpanFlamegraphClient payloads', () => {

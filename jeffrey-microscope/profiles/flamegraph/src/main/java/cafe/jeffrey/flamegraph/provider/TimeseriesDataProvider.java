@@ -53,6 +53,12 @@ public class TimeseriesDataProvider {
                     .withSpecifiedThread(graphParameters.threadInfo())
                     .withSpanIntervals(graphParameters.spanIntervals());
 
+            if (graphParameters.jsonFieldFilter() != null) {
+                configurer.withJsonFieldEquals(
+                        graphParameters.jsonFieldFilter().field(),
+                        graphParameters.jsonFieldFilter().value());
+            }
+
             if (timeseriesType == TimeseriesType.SIMPLE) {
                 return eventStreamRepository.timeseriesStreamer(configurer, TimeseriesResolver.resolve(graphParameters));
             } else if (timeseriesType == TimeseriesType.SEARCHING) {

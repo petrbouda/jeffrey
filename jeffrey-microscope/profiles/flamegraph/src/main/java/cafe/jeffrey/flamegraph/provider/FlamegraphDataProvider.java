@@ -117,6 +117,12 @@ public class FlamegraphDataProvider {
                 .withWeight(graphParameters.useWeight())
                 .withSpanIntervals(graphParameters.spanIntervals());
 
+        if (graphParameters.jsonFieldFilter() != null) {
+            configurer.withJsonFieldEquals(
+                    graphParameters.jsonFieldFilter().field(),
+                    graphParameters.jsonFieldFilter().value());
+        }
+
         Frame frame = eventStreamRepository.flamegraphStreamer(configurer, frameBuilder);
 
         if (graphParameters.markers() != null) {

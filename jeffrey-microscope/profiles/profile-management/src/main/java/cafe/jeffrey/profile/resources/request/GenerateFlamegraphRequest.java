@@ -19,6 +19,7 @@
 package cafe.jeffrey.profile.resources.request;
 
 import cafe.jeffrey.profile.TimeRangeRequest;
+import cafe.jeffrey.shared.common.model.JsonFieldFilter;
 import cafe.jeffrey.shared.common.model.ThreadInfo;
 import cafe.jeffrey.shared.common.model.Type;
 import cafe.jeffrey.profile.common.analysis.marker.Marker;
@@ -38,5 +39,21 @@ public record GenerateFlamegraphRequest(
         boolean onlyUnsafeAllocationSamples,
         ThreadInfo threadInfo,
         GraphComponents components,
-        List<Marker> markers) {
+        List<Marker> markers,
+        String traceId,
+        String spanId) {
+
+    /**
+     * OpenTelemetry trace-correlation scope of the graph: the more specific span id wins over the
+     * trace id, {@code null} when the request carries neither.
+     */
+    public JsonFieldFilter toJsonFieldFilter() {
+        if (spanId != null && !spanId.isBlank()) {
+            return JsonFieldFilter.bySpanId(spanId);
+        }
+        if (traceId != null && !traceId.isBlank()) {
+            return JsonFieldFilter.byTraceId(traceId);
+        }
+        return null;
+    }
 }

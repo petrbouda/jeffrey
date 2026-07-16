@@ -59,6 +59,7 @@ public class TimeseriesController {
                 .withExcludeIdleSamples(request.excludeIdleSamples())
                 .withOnlyUnsafeAllocationSamples(request.onlyUnsafeAllocationSamples())
                 .withMarkers(request.markers())
+                .withJsonFieldFilter(request.toJsonFieldFilter())
                 .build();
 
         return new TimeseriesManager.Generate(

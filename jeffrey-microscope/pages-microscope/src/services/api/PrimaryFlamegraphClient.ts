@@ -30,6 +30,8 @@ export default class PrimaryFlamegraphClient extends RemoteFlamegraphClient {
   private readonly excludeIdleSamples: boolean;
   private readonly onlyUnsafeAllocationSamples: boolean;
   private readonly threadInfo: ThreadInfo | null;
+  private readonly traceId: string | null;
+  private readonly spanId: string | null;
 
   constructor(
     profileId: string,
@@ -39,7 +41,9 @@ export default class PrimaryFlamegraphClient extends RemoteFlamegraphClient {
     excludeNonJavaSamples: boolean,
     excludeIdleSamples: boolean,
     onlyUnsafeAllocationSamples: boolean,
-    threadInfo: ThreadInfo | null
+    threadInfo: ThreadInfo | null,
+    traceId: string | null = null,
+    spanId: string | null = null
   ) {
     super(GlobalVars.internalUrl + '/profiles/' + profileId + '/flamegraph');
     this.eventType = eventType;
@@ -49,6 +53,8 @@ export default class PrimaryFlamegraphClient extends RemoteFlamegraphClient {
     this.excludeIdleSamples = excludeIdleSamples;
     this.onlyUnsafeAllocationSamples = onlyUnsafeAllocationSamples;
     this.threadInfo = threadInfo;
+    this.traceId = traceId;
+    this.spanId = spanId;
   }
 
   protected bothContent(
@@ -56,7 +62,7 @@ export default class PrimaryFlamegraphClient extends RemoteFlamegraphClient {
     timeRange: TimeRange | null | undefined,
     search: string | null | undefined
   ): Record<string, unknown> {
-    return {
+    const content: Record<string, unknown> = {
       eventType: this.eventType,
       useWeight: this.useWeight,
       useThreadMode: this.useThreadMode,
@@ -68,6 +74,13 @@ export default class PrimaryFlamegraphClient extends RemoteFlamegraphClient {
       threadInfo: this.threadInfo,
       components: components
     };
+    if (this.traceId !== null) {
+      content.traceId = this.traceId;
+    }
+    if (this.spanId !== null) {
+      content.spanId = this.spanId;
+    }
+    return content;
   }
 
   save(

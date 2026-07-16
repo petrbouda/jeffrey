@@ -127,7 +127,6 @@ public class JdbcProfileEventStreamRepository implements ProfileEventStreamRepos
         QueryBuilderFactory factory = queryBuilderFactoryResolver.resolve(configurer.eventTypes());
 
         MapSqlParameterSource baseParams = createBaseParams(configurer);
-        applyJsonFieldFilter(baseParams, configurer.jsonFieldFilter());
 
         databaseClient.queryStream(
                 StatementLabel.STREAM_EVENTS,
@@ -295,6 +294,7 @@ public class JdbcProfileEventStreamRepository implements ProfileEventStreamRepos
         }
 
         SpanIntervalParams.apply(baseParams, configurer.spanIntervals());
+        applyJsonFieldFilter(baseParams, configurer.jsonFieldFilter());
 
         return baseParams;
     }

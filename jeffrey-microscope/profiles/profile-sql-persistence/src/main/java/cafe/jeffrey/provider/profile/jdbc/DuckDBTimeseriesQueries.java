@@ -50,6 +50,7 @@ public class DuckDBTimeseriesQueries implements ComplexQueries.Timeseries {
             WHERE e.event_type = <<event_type>>
                 <<time_filters>>
                 <<span_filter>>
+                <<json_field_filter>>
                 <<thread_filters>>
                 AND EXISTS (
                     SELECT 1
@@ -74,6 +75,7 @@ public class DuckDBTimeseriesQueries implements ComplexQueries.Timeseries {
                 WHERE e.event_type = <<event_type>>
                     <<time_filters>>
                     <<span_filter>>
+                    <<json_field_filter>>
                     <<thread_filters>>
             ),
             relevant_stacktraces AS (
@@ -146,6 +148,7 @@ public class DuckDBTimeseriesQueries implements ComplexQueries.Timeseries {
                 WHERE e.event_type = <<event_type>>
                     <<time_filters>>
                     <<span_filter>>
+                    <<json_field_filter>>
                     <<stacktrace_filters>>
                     <<additional_filters>>
                 GROUP BY seconds, s.stacktrace_hash, s.frame_hashes

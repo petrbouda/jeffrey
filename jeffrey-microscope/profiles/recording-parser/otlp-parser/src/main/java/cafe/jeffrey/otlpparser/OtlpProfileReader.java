@@ -45,6 +45,7 @@ import cafe.jeffrey.provider.profile.api.EventThread;
 import cafe.jeffrey.provider.profile.api.EventType;
 import cafe.jeffrey.provider.profile.api.SingleThreadedEventWriter;
 import cafe.jeffrey.shared.common.Json;
+import cafe.jeffrey.shared.common.model.JsonFieldFilter;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.ObjectNode;
 
@@ -70,8 +71,8 @@ public class OtlpProfileReader {
 
     private static final Logger LOG = LoggerFactory.getLogger(OtlpProfileReader.class);
 
-    private static final String FIELD_TRACE_ID = "trace_id";
-    private static final String FIELD_SPAN_ID = "span_id";
+    private static final String FIELD_TRACE_ID = JsonFieldFilter.TRACE_ID_FIELD;
+    private static final String FIELD_SPAN_ID = JsonFieldFilter.SPAN_ID_FIELD;
 
     private static final String SETTING_PERIOD = "otel.period";
 

@@ -19,6 +19,7 @@
 package cafe.jeffrey.profile.common.config;
 
 import cafe.jeffrey.shared.common.GraphType;
+import cafe.jeffrey.shared.common.model.JsonFieldFilter;
 import cafe.jeffrey.shared.common.model.SpanInterval;
 import cafe.jeffrey.shared.common.model.ThreadInfo;
 import cafe.jeffrey.shared.common.model.Type;
@@ -44,7 +45,8 @@ public record GraphParameters(
         List<Marker> markers,
         GraphType graphType,
         GraphComponents graphComponents,
-        List<SpanInterval> spanIntervals) {
+        List<SpanInterval> spanIntervals,
+        JsonFieldFilter jsonFieldFilter) {
 
     public List<StacktraceTag> stacktraceTags() {
         List<StacktraceTag> tags = new ArrayList<>();
@@ -88,7 +90,8 @@ public record GraphParameters(
                 .withMarkers(markers)
                 .withGraphType(graphType)
                 .withGraphComponents(graphComponents)
-                .withSpanIntervals(spanIntervals);
+                .withSpanIntervals(spanIntervals)
+                .withJsonFieldFilter(jsonFieldFilter);
     }
 
     public static GraphParametersBuilder builder() {
