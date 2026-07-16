@@ -122,7 +122,8 @@ export const microscopeNavigation: DocSection[] = [
     icon: 'bi-collection-play',
     children: [
       { title: 'Recordings', to: '/docs/microscope/recordings' },
-      { title: 'Profiles', to: '/docs/microscope/profiles' }
+      { title: 'Profiles', to: '/docs/microscope/profiles' },
+      { title: 'OpenTelemetry Profiles', to: '/docs/microscope/profiles/opentelemetry' }
     ]
   },
   {

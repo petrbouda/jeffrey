@@ -220,6 +220,11 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/docs/microscope/profiles/ProfilesPage.vue')
       },
       {
+        path: 'microscope/profiles/opentelemetry',
+        name: 'DocsProfilesOpenTelemetry',
+        component: () => import('@/views/docs/microscope/profiles/ProfileOpenTelemetryPage.vue')
+      },
+      {
         path: 'microscope/profiles/guardian',
         name: 'DocsProfilesGuardian',
         component: () => import('@/views/docs/microscope/profiles/ProfileGuardianPage.vue')
