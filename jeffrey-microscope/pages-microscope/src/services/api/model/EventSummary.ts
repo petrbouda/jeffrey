@@ -23,6 +23,10 @@ export default class EventSummary {
     public code: string,
     public label: string,
     public primary: EventSummaryDetail,
-    public secondary: EventSummaryDetail | null
+    public secondary: EventSummaryDetail | null,
+    // Present only for format-specific summaries (e.g. pprof), where the backend resolves the logical
+    // flamegraph category (EXECUTION / ALLOCATION / BLOCKING / WALL / OTHER). Absent for JFR, which is
+    // categorized client-side by event-type code.
+    public category?: string
   ) {}
 }

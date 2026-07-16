@@ -24,11 +24,14 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
+import { useRoute } from 'vue-router';
 import GraphType from '@/services/flamegraphs/GraphType';
 import PageHeader from '@shared/components/layout/PageHeader.vue';
 import LoadingState from '@shared/components/LoadingState.vue';
 import FlamegraphCardGrid from '@/components/FlamegraphCardGrid.vue';
 import { useFlamegraphEvents } from '@/composables/useFlamegraphEvents';
+import PprofEventSummariesClient from '@/services/api/PprofEventSummariesClient';
+import SecondaryProfileService from '@/services/SecondaryProfileService';
 import type Profile from '@/services/api/model/Profile';
 import RecordingEventSource from '@workspaces/services/api/model/RecordingEventSource.ts';
 
@@ -38,6 +41,18 @@ const props = defineProps<{
 
 const isPprofProfile = computed(() => props.profile?.eventSource === RecordingEventSource.PPROF);
 
+const route = useRoute();
+const profileId = route.params.profileId as string;
+const fetchEvents = isPprofProfile.value
+  ? () => {
+      const secondaryId = SecondaryProfileService.id();
+      if (!secondaryId) {
+        return Promise.resolve([]);
+      }
+      return PprofEventSummariesClient.differential(profileId, secondaryId).events();
+    }
+  : undefined;
+
 const {
   loaded,
   executionSampleEvents,
@@ -45,5 +60,5 @@ const {
   methodTraceEvents,
   objectAllocationEvents,
   wallClockEvents
-} = useFlamegraphEvents(GraphType.DIFFERENTIAL);
+} = useFlamegraphEvents(GraphType.DIFFERENTIAL, fetchEvents);
 </script>

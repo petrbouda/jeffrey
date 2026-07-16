@@ -66,6 +66,23 @@ export function useFlamegraphEvents(
     nativeLeakEvents.value = [];
 
     for (const event of eventTypes) {
+      // Format-specific summaries (pprof) arrive with a backend-resolved category, so the
+      // pprof-vs-JFR event-type mapping stays on the server. JFR summaries have no category and
+      // fall through to the client-side code-based predicates below.
+      if (event.category) {
+        if (event.category === 'EXECUTION') {
+          executionSampleEvents.value.push(event);
+        } else if (event.category === 'ALLOCATION') {
+          objectAllocationEvents.value.push(event);
+        } else if (event.category === 'BLOCKING') {
+          blockingEvents.value.push(event);
+        } else if (event.category === 'WALL') {
+          wallClockEvents.value.push(event);
+        }
+        // OTHER categories carry no flamegraph card and are intentionally dropped.
+        continue;
+      }
+
       if (EventTypes.isExecutionEventType(event.code)) {
         executionSampleEvents.value.push(event);
       } else if (EventTypes.isCpuTimeSample(event.code)) {

@@ -25,11 +25,13 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
+import { useRoute } from 'vue-router';
 import GraphType from '@/services/flamegraphs/GraphType';
 import PageHeader from '@shared/components/layout/PageHeader.vue';
 import LoadingState from '@shared/components/LoadingState.vue';
 import FlamegraphCardGrid from '@/components/FlamegraphCardGrid.vue';
 import { useFlamegraphEvents } from '@/composables/useFlamegraphEvents';
+import PprofEventSummariesClient from '@/services/api/PprofEventSummariesClient';
 import type Profile from '@/services/api/model/Profile';
 import RecordingEventSource from '@workspaces/services/api/model/RecordingEventSource.ts';
 
@@ -41,6 +43,14 @@ const props = defineProps<{
 // greyed JFR placeholder cards so the grid isn't cluttered with categories pprof never produces.
 const isPprofProfile = computed(() => props.profile?.eventSource === RecordingEventSource.PPROF);
 
+// pprof profiles fetch their event summaries from the pprof-specific controller, which returns the
+// format-resolved category; JFR profiles use the default generic flamegraph endpoint.
+const route = useRoute();
+const profileId = route.params.profileId as string;
+const fetchEvents = isPprofProfile.value
+  ? () => PprofEventSummariesClient.primary(profileId).events()
+  : undefined;
+
 const {
   loaded,
   executionSampleEvents,
@@ -51,7 +61,7 @@ const {
   blockingEvents,
   nativeAllocationEvents,
   nativeLeakEvents
-} = useFlamegraphEvents(GraphType.PRIMARY);
+} = useFlamegraphEvents(GraphType.PRIMARY, fetchEvents);
 </script>
 
 <style scoped>
