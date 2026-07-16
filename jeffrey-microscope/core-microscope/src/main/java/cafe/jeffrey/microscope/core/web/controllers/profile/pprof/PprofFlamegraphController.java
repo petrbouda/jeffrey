@@ -53,7 +53,7 @@ public class PprofFlamegraphController {
     @GetMapping("/events")
     public List<EventSummaryResult> events(@PathVariable("profileId") String profileId) {
         ProfileManager pm = resolver.resolve(profileId);
-        List<EventSummaryResult> result = withCategories(pm.flamegraphManager().eventSummaries());
+        List<EventSummaryResult> result = withCategories(pm.flamegraphManager().allEventSummaries());
         LOG.debug("Listed pprof flamegraph event types: profileId={} count={}", profileId, result.size());
         return result;
     }

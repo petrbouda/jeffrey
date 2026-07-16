@@ -58,7 +58,7 @@ public class PprofDifferentialFlamegraphController {
         ProfileManager primary = resolver.resolve(primaryProfileId);
         ProfileManager secondary = resolver.resolve(secondaryProfileId);
         FlamegraphManager diffManager = primary.diffFlamegraphManager(secondary);
-        List<EventSummaryResult> result = withCategories(diffManager.eventSummaries());
+        List<EventSummaryResult> result = withCategories(diffManager.allEventSummaries());
         LOG.debug("Listed pprof diff flamegraph event types: profileId={} count={}", primaryProfileId, result.size());
         return result;
     }

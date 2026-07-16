@@ -22,10 +22,14 @@ import com.google.perftools.profiles.ProfileProto.Profile;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import cafe.jeffrey.provider.profile.jdbc.DuckDBEventWriters;
+import cafe.jeffrey.provider.profile.jdbc.DuckDBSQLFormatter;
+import cafe.jeffrey.provider.profile.jdbc.JdbcProfileEventTypeRepository;
 import cafe.jeffrey.provider.profile.jdbc.SQLEventWriter;
 import cafe.jeffrey.provider.profile.api.EventWriter;
 import cafe.jeffrey.shared.common.Schedulers;
+import cafe.jeffrey.shared.common.model.EventSummary;
 import cafe.jeffrey.shared.common.model.RecordingEventSource;
+import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
 import cafe.jeffrey.test.DuckDBTest;
 
 import javax.sql.DataSource;
@@ -39,6 +43,8 @@ import java.sql.SQLException;
 import java.time.Instant;
 import java.util.List;
 import java.util.zip.GZIPOutputStream;
+
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * End-to-end round trip of a pprof recording through the real DuckDB event-writing pipeline:
@@ -109,6 +115,18 @@ class PprofRecordingRoundTripTest {
 
         // the thread recovered from the sample labels survived the round trip
         assertCount(dataSource, "SELECT COUNT(*) FROM threads WHERE name = 'worker-1'", 1);
+
+        // The flamegraph event-type listing must surface pprof types. The JFR-curated
+        // eventSummaries(SUPPORTED_EVENTS) path filters them out (they are not JFR Type enum values),
+        // so the all-types query — which allEventSummaries() wraps — is what makes them visible.
+        JdbcProfileEventTypeRepository eventTypeRepository =
+                new JdbcProfileEventTypeRepository(new DuckDBSQLFormatter(), new DatabaseClientProvider(dataSource));
+        List<String> listedTypes = eventTypeRepository.eventSummaries().stream()
+                .filter(summary -> summary.samples() > 0)
+                .map(EventSummary::name)
+                .toList();
+        assertTrue(listedTypes.contains("pprof.cpu"), listedTypes.toString());
+        assertTrue(listedTypes.contains("pprof.samples"), listedTypes.toString());
     }
 
     private Path writeGzipped(Profile profile) {
