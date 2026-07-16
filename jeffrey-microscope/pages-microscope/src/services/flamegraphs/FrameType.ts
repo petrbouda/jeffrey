@@ -29,6 +29,16 @@ export default class FrameType {
   static JIT_COMPILED = 'JIT_COMPILED';
   static INLINED = 'INLINED';
   static KERNEL = 'KERNEL';
+  static PYTHON = 'PYTHON';
+  static JAVASCRIPT = 'JAVASCRIPT';
+  static GO = 'GO';
+  static DOTNET = 'DOTNET';
+  static RUBY = 'RUBY';
+  static PHP = 'PHP';
+  static PERL = 'PERL';
+  static BEAM = 'BEAM';
+  static RUST = 'RUST';
+  static LUA = 'LUA';
   static THREAD_NAME_SYNTHETIC = 'THREAD_NAME_SYNTHETIC';
   static ALLOCATED_OBJECT_SYNTHETIC = 'ALLOCATED_OBJECT_SYNTHETIC';
   static ALLOCATED_OBJECT_IN_NEW_TLAB_SYNTHETIC = 'ALLOCATED_OBJECT_IN_NEW_TLAB_SYNTHETIC';

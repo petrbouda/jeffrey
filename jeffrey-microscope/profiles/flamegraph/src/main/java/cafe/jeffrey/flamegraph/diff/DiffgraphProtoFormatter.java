@@ -326,6 +326,16 @@ public class DiffgraphProtoFormatter {
             case JIT_COMPILED -> cafe.jeffrey.flamegraph.proto.FrameType.FRAME_TYPE_JIT_COMPILED;
             case INLINED -> cafe.jeffrey.flamegraph.proto.FrameType.FRAME_TYPE_INLINED;
             case KERNEL -> cafe.jeffrey.flamegraph.proto.FrameType.FRAME_TYPE_KERNEL;
+            case PYTHON -> cafe.jeffrey.flamegraph.proto.FrameType.FRAME_TYPE_PYTHON;
+            case JAVASCRIPT -> cafe.jeffrey.flamegraph.proto.FrameType.FRAME_TYPE_JAVASCRIPT;
+            case GO -> cafe.jeffrey.flamegraph.proto.FrameType.FRAME_TYPE_GO;
+            case DOTNET -> cafe.jeffrey.flamegraph.proto.FrameType.FRAME_TYPE_DOTNET;
+            case RUBY -> cafe.jeffrey.flamegraph.proto.FrameType.FRAME_TYPE_RUBY;
+            case PHP -> cafe.jeffrey.flamegraph.proto.FrameType.FRAME_TYPE_PHP;
+            case PERL -> cafe.jeffrey.flamegraph.proto.FrameType.FRAME_TYPE_PERL;
+            case BEAM -> cafe.jeffrey.flamegraph.proto.FrameType.FRAME_TYPE_BEAM;
+            case RUST -> cafe.jeffrey.flamegraph.proto.FrameType.FRAME_TYPE_RUST;
+            case LUA -> cafe.jeffrey.flamegraph.proto.FrameType.FRAME_TYPE_LUA;
             case THREAD_NAME_SYNTHETIC -> cafe.jeffrey.flamegraph.proto.FrameType.FRAME_TYPE_THREAD_NAME_SYNTHETIC;
             case ALLOCATED_OBJECT_SYNTHETIC ->
                     cafe.jeffrey.flamegraph.proto.FrameType.FRAME_TYPE_ALLOCATED_OBJECT_SYNTHETIC;

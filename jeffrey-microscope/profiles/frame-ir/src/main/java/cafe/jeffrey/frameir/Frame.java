@@ -51,6 +51,12 @@ public class Frame extends TreeMap<String, Frame> {
     private long inlinedSamples;
     private long kernelSamples;
 
+    // Non-JVM language runtimes share a single counter + last-seen type instead of one counter
+    // field per language: a frame practically never mixes samples of two different language
+    // runtimes (mirrors the syntheticFrameType mechanism above).
+    private FrameType languageFrameType;
+    private long languageSamples;
+
     private final Frame parent;
 
     public Frame(Frame parent, String methodName, int lineNumber, int bci) {
@@ -72,6 +78,10 @@ public class Frame extends TreeMap<String, Frame> {
         jitCompiledSamples += frame.jitCompiledSamples;
         inlinedSamples += frame.inlinedSamples;
         kernelSamples += frame.kernelSamples;
+        languageSamples += frame.languageSamples;
+        if (frame.languageFrameType != null) {
+            languageFrameType = frame.languageFrameType;
+        }
     }
 
     public void increment(FrameType type, long weight, long samples, boolean isTopFrame) {
@@ -91,6 +101,10 @@ public class Frame extends TreeMap<String, Frame> {
             case JIT_COMPILED -> jitCompiledSamples += samples;
             case INLINED -> inlinedSamples += samples;
             case KERNEL -> kernelSamples += samples;
+            case PYTHON, JAVASCRIPT, GO, DOTNET, RUBY, PHP, PERL, BEAM, RUST, LUA -> {
+                languageFrameType = type;
+                languageSamples += samples;
+            }
             case THREAD_NAME_SYNTHETIC,
                  ALLOCATED_OBJECT_SYNTHETIC,
                  ALLOCATED_OBJECT_IN_NEW_TLAB_SYNTHETIC,
@@ -141,6 +155,8 @@ public class Frame extends TreeMap<String, Frame> {
             return FrameType.CPP;
         } else if (kernelSamples > 0) {
             return FrameType.KERNEL;
+        } else if (languageSamples > 0 && languageFrameType != null) {
+            return languageFrameType;
         } else if (nativeSamples > 0) {
             return FrameType.NATIVE;
         } else if (syntheticFrameType != null) {
@@ -245,8 +261,10 @@ public class Frame extends TreeMap<String, Frame> {
                 && c1Samples == frame.c1Samples && nativeSamples == frame.nativeSamples
                 && cppSamples == frame.cppSamples && interpretedSamples == frame.interpretedSamples
                 && jitCompiledSamples == frame.jitCompiledSamples && inlinedSamples == frame.inlinedSamples
-                && kernelSamples == frame.kernelSamples && Objects.equals(methodName, frame.methodName)
-                && syntheticFrameType == frame.syntheticFrameType;
+                && kernelSamples == frame.kernelSamples && languageSamples == frame.languageSamples
+                && Objects.equals(methodName, frame.methodName)
+                && syntheticFrameType == frame.syntheticFrameType
+                && languageFrameType == frame.languageFrameType;
     }
 
     @Override
@@ -267,6 +285,8 @@ public class Frame extends TreeMap<String, Frame> {
         result = 31 * result + Long.hashCode(jitCompiledSamples);
         result = 31 * result + Long.hashCode(inlinedSamples);
         result = 31 * result + Long.hashCode(kernelSamples);
+        result = 31 * result + Objects.hashCode(languageFrameType);
+        result = 31 * result + Long.hashCode(languageSamples);
         return result;
     }
 
@@ -288,6 +308,8 @@ public class Frame extends TreeMap<String, Frame> {
                 ", jitCompiledSamples=" + jitCompiledSamples +
                 ", inlinedSamples=" + inlinedSamples +
                 ", kernelSamples=" + kernelSamples +
+                ", languageFrameType=" + languageFrameType +
+                ", languageSamples=" + languageSamples +
                 '}';
     }
 

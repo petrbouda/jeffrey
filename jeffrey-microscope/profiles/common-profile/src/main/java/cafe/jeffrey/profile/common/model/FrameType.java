@@ -29,6 +29,18 @@ public enum FrameType {
     JIT_COMPILED("JIT compiled", true, "JIT-compiled (JAVA)"),
     INLINED("Inlined", true, "Inlined (JAVA)"),
     KERNEL("Kernel", false, "Kernel"),
+    // Non-JVM language runtimes (mixed-language stacks from whole-system profilers, e.g. the
+    // OpenTelemetry eBPF profiler; codes match the persisted frames.frame_type strings)
+    PYTHON("Python", false, "Python"),
+    JAVASCRIPT("JavaScript", false, "JavaScript (V8)"),
+    GO("Go", false, "Go"),
+    DOTNET(".NET", false, ".NET"),
+    RUBY("Ruby", false, "Ruby"),
+    PHP("PHP", false, "PHP"),
+    PERL("Perl", false, "Perl"),
+    BEAM("BEAM", false, "Erlang/Elixir (BEAM)"),
+    RUST("Rust", false, "Rust"),
+    LUA("Lua", false, "Lua (LuaJIT)"),
     THREAD_NAME_SYNTHETIC("Thread Name (Synthetic)"),
     ALLOCATED_OBJECT_SYNTHETIC("Allocated Object (Synthetic)"),
     ALLOCATED_OBJECT_IN_NEW_TLAB_SYNTHETIC("Allocated in New TLAB (Synthetic)"),

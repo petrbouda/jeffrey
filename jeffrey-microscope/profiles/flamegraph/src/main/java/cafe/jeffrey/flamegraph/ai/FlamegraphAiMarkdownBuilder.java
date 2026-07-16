@@ -400,6 +400,8 @@ public final class FlamegraphAiMarkdownBuilder {
             case CPP -> TAG_CPP;
             case KERNEL -> TAG_KERNEL;
             case UNKNOWN -> TAG_UNKNOWN;
+            // Language runtimes tag with their enum name (PYTHON, GO, ...)
+            case PYTHON, JAVASCRIPT, GO, DOTNET, RUBY, PHP, PERL, BEAM, RUST, LUA -> frameType.name();
             case THREAD_NAME_SYNTHETIC,
                  ALLOCATED_OBJECT_SYNTHETIC,
                  ALLOCATED_OBJECT_IN_NEW_TLAB_SYNTHETIC,

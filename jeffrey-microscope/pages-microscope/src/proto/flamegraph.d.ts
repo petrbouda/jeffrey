@@ -1,5 +1,6 @@
 import * as $protobuf from "protobufjs";
 import Long = require("long");
+
 /** Namespace cafe. */
 export namespace cafe {
 
@@ -12,37 +13,38 @@ export namespace cafe {
             /** Namespace proto. */
             namespace proto {
 
-                /** Properties of a GraphData. */
-                interface IGraphData {
-
-                    /** GraphData flamegraph */
-                    flamegraph?: (cafe.jeffrey.flamegraph.proto.IFlamegraphData|null);
-
-                    /** GraphData timeseries */
-                    timeseries?: (cafe.jeffrey.flamegraph.proto.ITimeseriesData|null);
+                /**
+                 * Properties of a GraphData.
+                 * @deprecated Use cafe.jeffrey.flamegraph.proto.GraphData.$Properties instead.
+                 */
+                interface IGraphData extends cafe.jeffrey.flamegraph.proto.GraphData.$Properties {
                 }
 
                 /** Represents a GraphData. */
-                class GraphData implements IGraphData {
+                class GraphData {
 
                     /**
                      * Constructs a new GraphData.
                      * @param [properties] Properties to set
                      */
-                    constructor(properties?: cafe.jeffrey.flamegraph.proto.IGraphData);
+                    constructor(properties?: cafe.jeffrey.flamegraph.proto.GraphData.$Properties);
+
+                    /** Unknown fields preserved while decoding when enabled */
+                    $unknowns?: Uint8Array[];
 
                     /** GraphData flamegraph. */
-                    public flamegraph?: (cafe.jeffrey.flamegraph.proto.IFlamegraphData|null);
+                    flamegraph?: (cafe.jeffrey.flamegraph.proto.FlamegraphData.$Properties|null);
 
                     /** GraphData timeseries. */
-                    public timeseries?: (cafe.jeffrey.flamegraph.proto.ITimeseriesData|null);
+                    timeseries?: (cafe.jeffrey.flamegraph.proto.TimeseriesData.$Properties|null);
 
                     /**
                      * Creates a new GraphData instance using the specified properties.
                      * @param [properties] Properties to set
                      * @returns GraphData instance
                      */
-                    public static create(properties?: cafe.jeffrey.flamegraph.proto.IGraphData): cafe.jeffrey.flamegraph.proto.GraphData;
+                    static create(properties: cafe.jeffrey.flamegraph.proto.GraphData.$Shape): cafe.jeffrey.flamegraph.proto.GraphData & cafe.jeffrey.flamegraph.proto.GraphData.$Shape;
+                    static create(properties?: cafe.jeffrey.flamegraph.proto.GraphData.$Properties): cafe.jeffrey.flamegraph.proto.GraphData;
 
                     /**
                      * Encodes the specified GraphData message. Does not implicitly {@link cafe.jeffrey.flamegraph.proto.GraphData.verify|verify} messages.
@@ -50,7 +52,7 @@ export namespace cafe {
                      * @param [writer] Writer to encode to
                      * @returns Writer
                      */
-                    public static encode(message: cafe.jeffrey.flamegraph.proto.IGraphData, writer?: $protobuf.Writer): $protobuf.Writer;
+                    static encode(message: cafe.jeffrey.flamegraph.proto.GraphData.$Properties, writer?: $protobuf.Writer): $protobuf.Writer;
 
                     /**
                      * Encodes the specified GraphData message, length delimited. Does not implicitly {@link cafe.jeffrey.flamegraph.proto.GraphData.verify|verify} messages.
@@ -58,40 +60,40 @@ export namespace cafe {
                      * @param [writer] Writer to encode to
                      * @returns Writer
                      */
-                    public static encodeDelimited(message: cafe.jeffrey.flamegraph.proto.IGraphData, writer?: $protobuf.Writer): $protobuf.Writer;
+                    static encodeDelimited(message: cafe.jeffrey.flamegraph.proto.GraphData.$Properties, writer?: $protobuf.Writer): $protobuf.Writer;
 
                     /**
                      * Decodes a GraphData message from the specified reader or buffer.
                      * @param reader Reader or buffer to decode from
                      * @param [length] Message length if known beforehand
-                     * @returns GraphData
+                     * @returns {cafe.jeffrey.flamegraph.proto.GraphData & cafe.jeffrey.flamegraph.proto.GraphData.$Shape} GraphData
                      * @throws {Error} If the payload is not a reader or valid buffer
                      * @throws {$protobuf.util.ProtocolError} If required fields are missing
                      */
-                    public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): cafe.jeffrey.flamegraph.proto.GraphData;
+                    static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): cafe.jeffrey.flamegraph.proto.GraphData & cafe.jeffrey.flamegraph.proto.GraphData.$Shape;
 
                     /**
                      * Decodes a GraphData message from the specified reader or buffer, length delimited.
                      * @param reader Reader or buffer to decode from
-                     * @returns GraphData
+                     * @returns {cafe.jeffrey.flamegraph.proto.GraphData & cafe.jeffrey.flamegraph.proto.GraphData.$Shape} GraphData
                      * @throws {Error} If the payload is not a reader or valid buffer
                      * @throws {$protobuf.util.ProtocolError} If required fields are missing
                      */
-                    public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): cafe.jeffrey.flamegraph.proto.GraphData;
+                    static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): cafe.jeffrey.flamegraph.proto.GraphData & cafe.jeffrey.flamegraph.proto.GraphData.$Shape;
 
                     /**
                      * Verifies a GraphData message.
                      * @param message Plain object to verify
                      * @returns `null` if valid, otherwise the reason why it is not
                      */
-                    public static verify(message: { [k: string]: any }): (string|null);
+                    static verify(message: { [k: string]: any }): (string|null);
 
                     /**
                      * Creates a GraphData message from a plain object. Also converts values to their respective internal types.
                      * @param object Plain object
                      * @returns GraphData
                      */
-                    public static fromObject(object: { [k: string]: any }): cafe.jeffrey.flamegraph.proto.GraphData;
+                    static fromObject(object: { [k: string]: any }): cafe.jeffrey.flamegraph.proto.GraphData;
 
                     /**
                      * Creates a plain object from a GraphData message. Also converts values to other types if specified.
@@ -99,59 +101,76 @@ export namespace cafe {
                      * @param [options] Conversion options
                      * @returns Plain object
                      */
-                    public static toObject(message: cafe.jeffrey.flamegraph.proto.GraphData, options?: $protobuf.IConversionOptions): { [k: string]: any };
+                    static toObject(message: cafe.jeffrey.flamegraph.proto.GraphData, options?: $protobuf.IConversionOptions): { [k: string]: any };
 
                     /**
                      * Converts this GraphData to JSON.
                      * @returns JSON object
                      */
-                    public toJSON(): { [k: string]: any };
+                    toJSON(): { [k: string]: any };
 
                     /**
-                     * Gets the default type url for GraphData
-                     * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
-                     * @returns The default type url
+                     * Gets the type url for GraphData
+                     * @param [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                     * @returns The type url
                      */
-                    public static getTypeUrl(typeUrlPrefix?: string): string;
+                    static getTypeUrl(prefix?: string): string;
                 }
 
-                /** Properties of a FlamegraphData. */
-                interface IFlamegraphData {
+                namespace GraphData {
 
-                    /** FlamegraphData depth */
-                    depth?: (number|null);
+                    /** Properties of a GraphData. */
+                    interface $Properties {
 
-                    /** FlamegraphData levels */
-                    levels?: (cafe.jeffrey.flamegraph.proto.ILevel[]|null);
+                        /** GraphData flamegraph */
+                        flamegraph?: (cafe.jeffrey.flamegraph.proto.FlamegraphData.$Properties|null);
 
-                    /** FlamegraphData titlePool */
-                    titlePool?: (string[]|null);
+                        /** GraphData timeseries */
+                        timeseries?: (cafe.jeffrey.flamegraph.proto.TimeseriesData.$Properties|null);
+
+                        /** Unknown fields preserved while decoding when enabled */
+                        $unknowns?: Uint8Array[];
+                    }
+
+                    /** Shape of a GraphData. */
+                    type $Shape = cafe.jeffrey.flamegraph.proto.GraphData.$Properties;
+                }
+
+                /**
+                 * Properties of a FlamegraphData.
+                 * @deprecated Use cafe.jeffrey.flamegraph.proto.FlamegraphData.$Properties instead.
+                 */
+                interface IFlamegraphData extends cafe.jeffrey.flamegraph.proto.FlamegraphData.$Properties {
                 }
 
                 /** Represents a FlamegraphData. */
-                class FlamegraphData implements IFlamegraphData {
+                class FlamegraphData {
 
                     /**
                      * Constructs a new FlamegraphData.
                      * @param [properties] Properties to set
                      */
-                    constructor(properties?: cafe.jeffrey.flamegraph.proto.IFlamegraphData);
+                    constructor(properties?: cafe.jeffrey.flamegraph.proto.FlamegraphData.$Properties);
+
+                    /** Unknown fields preserved while decoding when enabled */
+                    $unknowns?: Uint8Array[];
 
                     /** FlamegraphData depth. */
-                    public depth: number;
+                    depth: number;
 
                     /** FlamegraphData levels. */
-                    public levels: cafe.jeffrey.flamegraph.proto.ILevel[];
+                    levels: cafe.jeffrey.flamegraph.proto.Level.$Properties[];
 
                     /** FlamegraphData titlePool. */
-                    public titlePool: string[];
+                    titlePool: string[];
 
                     /**
                      * Creates a new FlamegraphData instance using the specified properties.
                      * @param [properties] Properties to set
                      * @returns FlamegraphData instance
                      */
-                    public static create(properties?: cafe.jeffrey.flamegraph.proto.IFlamegraphData): cafe.jeffrey.flamegraph.proto.FlamegraphData;
+                    static create(properties: cafe.jeffrey.flamegraph.proto.FlamegraphData.$Shape): cafe.jeffrey.flamegraph.proto.FlamegraphData & cafe.jeffrey.flamegraph.proto.FlamegraphData.$Shape;
+                    static create(properties?: cafe.jeffrey.flamegraph.proto.FlamegraphData.$Properties): cafe.jeffrey.flamegraph.proto.FlamegraphData;
 
                     /**
                      * Encodes the specified FlamegraphData message. Does not implicitly {@link cafe.jeffrey.flamegraph.proto.FlamegraphData.verify|verify} messages.
@@ -159,7 +178,7 @@ export namespace cafe {
                      * @param [writer] Writer to encode to
                      * @returns Writer
                      */
-                    public static encode(message: cafe.jeffrey.flamegraph.proto.IFlamegraphData, writer?: $protobuf.Writer): $protobuf.Writer;
+                    static encode(message: cafe.jeffrey.flamegraph.proto.FlamegraphData.$Properties, writer?: $protobuf.Writer): $protobuf.Writer;
 
                     /**
                      * Encodes the specified FlamegraphData message, length delimited. Does not implicitly {@link cafe.jeffrey.flamegraph.proto.FlamegraphData.verify|verify} messages.
@@ -167,40 +186,40 @@ export namespace cafe {
                      * @param [writer] Writer to encode to
                      * @returns Writer
                      */
-                    public static encodeDelimited(message: cafe.jeffrey.flamegraph.proto.IFlamegraphData, writer?: $protobuf.Writer): $protobuf.Writer;
+                    static encodeDelimited(message: cafe.jeffrey.flamegraph.proto.FlamegraphData.$Properties, writer?: $protobuf.Writer): $protobuf.Writer;
 
                     /**
                      * Decodes a FlamegraphData message from the specified reader or buffer.
                      * @param reader Reader or buffer to decode from
                      * @param [length] Message length if known beforehand
-                     * @returns FlamegraphData
+                     * @returns {cafe.jeffrey.flamegraph.proto.FlamegraphData & cafe.jeffrey.flamegraph.proto.FlamegraphData.$Shape} FlamegraphData
                      * @throws {Error} If the payload is not a reader or valid buffer
                      * @throws {$protobuf.util.ProtocolError} If required fields are missing
                      */
-                    public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): cafe.jeffrey.flamegraph.proto.FlamegraphData;
+                    static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): cafe.jeffrey.flamegraph.proto.FlamegraphData & cafe.jeffrey.flamegraph.proto.FlamegraphData.$Shape;
 
                     /**
                      * Decodes a FlamegraphData message from the specified reader or buffer, length delimited.
                      * @param reader Reader or buffer to decode from
-                     * @returns FlamegraphData
+                     * @returns {cafe.jeffrey.flamegraph.proto.FlamegraphData & cafe.jeffrey.flamegraph.proto.FlamegraphData.$Shape} FlamegraphData
                      * @throws {Error} If the payload is not a reader or valid buffer
                      * @throws {$protobuf.util.ProtocolError} If required fields are missing
                      */
-                    public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): cafe.jeffrey.flamegraph.proto.FlamegraphData;
+                    static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): cafe.jeffrey.flamegraph.proto.FlamegraphData & cafe.jeffrey.flamegraph.proto.FlamegraphData.$Shape;
 
                     /**
                      * Verifies a FlamegraphData message.
                      * @param message Plain object to verify
                      * @returns `null` if valid, otherwise the reason why it is not
                      */
-                    public static verify(message: { [k: string]: any }): (string|null);
+                    static verify(message: { [k: string]: any }): (string|null);
 
                     /**
                      * Creates a FlamegraphData message from a plain object. Also converts values to their respective internal types.
                      * @param object Plain object
                      * @returns FlamegraphData
                      */
-                    public static fromObject(object: { [k: string]: any }): cafe.jeffrey.flamegraph.proto.FlamegraphData;
+                    static fromObject(object: { [k: string]: any }): cafe.jeffrey.flamegraph.proto.FlamegraphData;
 
                     /**
                      * Creates a plain object from a FlamegraphData message. Also converts values to other types if specified.
@@ -208,47 +227,73 @@ export namespace cafe {
                      * @param [options] Conversion options
                      * @returns Plain object
                      */
-                    public static toObject(message: cafe.jeffrey.flamegraph.proto.FlamegraphData, options?: $protobuf.IConversionOptions): { [k: string]: any };
+                    static toObject(message: cafe.jeffrey.flamegraph.proto.FlamegraphData, options?: $protobuf.IConversionOptions): { [k: string]: any };
 
                     /**
                      * Converts this FlamegraphData to JSON.
                      * @returns JSON object
                      */
-                    public toJSON(): { [k: string]: any };
+                    toJSON(): { [k: string]: any };
 
                     /**
-                     * Gets the default type url for FlamegraphData
-                     * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
-                     * @returns The default type url
+                     * Gets the type url for FlamegraphData
+                     * @param [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                     * @returns The type url
                      */
-                    public static getTypeUrl(typeUrlPrefix?: string): string;
+                    static getTypeUrl(prefix?: string): string;
                 }
 
-                /** Properties of a TimeseriesData. */
-                interface ITimeseriesData {
+                namespace FlamegraphData {
 
-                    /** TimeseriesData series */
-                    series?: (cafe.jeffrey.flamegraph.proto.ITimeseriesSeries[]|null);
+                    /** Properties of a FlamegraphData. */
+                    interface $Properties {
+
+                        /** FlamegraphData depth */
+                        depth?: (number|null);
+
+                        /** FlamegraphData levels */
+                        levels?: (cafe.jeffrey.flamegraph.proto.Level.$Properties[]|null);
+
+                        /** FlamegraphData titlePool */
+                        titlePool?: (string[]|null);
+
+                        /** Unknown fields preserved while decoding when enabled */
+                        $unknowns?: Uint8Array[];
+                    }
+
+                    /** Shape of a FlamegraphData. */
+                    type $Shape = cafe.jeffrey.flamegraph.proto.FlamegraphData.$Properties;
+                }
+
+                /**
+                 * Properties of a TimeseriesData.
+                 * @deprecated Use cafe.jeffrey.flamegraph.proto.TimeseriesData.$Properties instead.
+                 */
+                interface ITimeseriesData extends cafe.jeffrey.flamegraph.proto.TimeseriesData.$Properties {
                 }
 
                 /** Represents a TimeseriesData. */
-                class TimeseriesData implements ITimeseriesData {
+                class TimeseriesData {
 
                     /**
                      * Constructs a new TimeseriesData.
                      * @param [properties] Properties to set
                      */
-                    constructor(properties?: cafe.jeffrey.flamegraph.proto.ITimeseriesData);
+                    constructor(properties?: cafe.jeffrey.flamegraph.proto.TimeseriesData.$Properties);
+
+                    /** Unknown fields preserved while decoding when enabled */
+                    $unknowns?: Uint8Array[];
 
                     /** TimeseriesData series. */
-                    public series: cafe.jeffrey.flamegraph.proto.ITimeseriesSeries[];
+                    series: cafe.jeffrey.flamegraph.proto.TimeseriesSeries.$Properties[];
 
                     /**
                      * Creates a new TimeseriesData instance using the specified properties.
                      * @param [properties] Properties to set
                      * @returns TimeseriesData instance
                      */
-                    public static create(properties?: cafe.jeffrey.flamegraph.proto.ITimeseriesData): cafe.jeffrey.flamegraph.proto.TimeseriesData;
+                    static create(properties: cafe.jeffrey.flamegraph.proto.TimeseriesData.$Shape): cafe.jeffrey.flamegraph.proto.TimeseriesData & cafe.jeffrey.flamegraph.proto.TimeseriesData.$Shape;
+                    static create(properties?: cafe.jeffrey.flamegraph.proto.TimeseriesData.$Properties): cafe.jeffrey.flamegraph.proto.TimeseriesData;
 
                     /**
                      * Encodes the specified TimeseriesData message. Does not implicitly {@link cafe.jeffrey.flamegraph.proto.TimeseriesData.verify|verify} messages.
@@ -256,7 +301,7 @@ export namespace cafe {
                      * @param [writer] Writer to encode to
                      * @returns Writer
                      */
-                    public static encode(message: cafe.jeffrey.flamegraph.proto.ITimeseriesData, writer?: $protobuf.Writer): $protobuf.Writer;
+                    static encode(message: cafe.jeffrey.flamegraph.proto.TimeseriesData.$Properties, writer?: $protobuf.Writer): $protobuf.Writer;
 
                     /**
                      * Encodes the specified TimeseriesData message, length delimited. Does not implicitly {@link cafe.jeffrey.flamegraph.proto.TimeseriesData.verify|verify} messages.
@@ -264,40 +309,40 @@ export namespace cafe {
                      * @param [writer] Writer to encode to
                      * @returns Writer
                      */
-                    public static encodeDelimited(message: cafe.jeffrey.flamegraph.proto.ITimeseriesData, writer?: $protobuf.Writer): $protobuf.Writer;
+                    static encodeDelimited(message: cafe.jeffrey.flamegraph.proto.TimeseriesData.$Properties, writer?: $protobuf.Writer): $protobuf.Writer;
 
                     /**
                      * Decodes a TimeseriesData message from the specified reader or buffer.
                      * @param reader Reader or buffer to decode from
                      * @param [length] Message length if known beforehand
-                     * @returns TimeseriesData
+                     * @returns {cafe.jeffrey.flamegraph.proto.TimeseriesData & cafe.jeffrey.flamegraph.proto.TimeseriesData.$Shape} TimeseriesData
                      * @throws {Error} If the payload is not a reader or valid buffer
                      * @throws {$protobuf.util.ProtocolError} If required fields are missing
                      */
-                    public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): cafe.jeffrey.flamegraph.proto.TimeseriesData;
+                    static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): cafe.jeffrey.flamegraph.proto.TimeseriesData & cafe.jeffrey.flamegraph.proto.TimeseriesData.$Shape;
 
                     /**
                      * Decodes a TimeseriesData message from the specified reader or buffer, length delimited.
                      * @param reader Reader or buffer to decode from
-                     * @returns TimeseriesData
+                     * @returns {cafe.jeffrey.flamegraph.proto.TimeseriesData & cafe.jeffrey.flamegraph.proto.TimeseriesData.$Shape} TimeseriesData
                      * @throws {Error} If the payload is not a reader or valid buffer
                      * @throws {$protobuf.util.ProtocolError} If required fields are missing
                      */
-                    public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): cafe.jeffrey.flamegraph.proto.TimeseriesData;
+                    static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): cafe.jeffrey.flamegraph.proto.TimeseriesData & cafe.jeffrey.flamegraph.proto.TimeseriesData.$Shape;
 
                     /**
                      * Verifies a TimeseriesData message.
                      * @param message Plain object to verify
                      * @returns `null` if valid, otherwise the reason why it is not
                      */
-                    public static verify(message: { [k: string]: any }): (string|null);
+                    static verify(message: { [k: string]: any }): (string|null);
 
                     /**
                      * Creates a TimeseriesData message from a plain object. Also converts values to their respective internal types.
                      * @param object Plain object
                      * @returns TimeseriesData
                      */
-                    public static fromObject(object: { [k: string]: any }): cafe.jeffrey.flamegraph.proto.TimeseriesData;
+                    static fromObject(object: { [k: string]: any }): cafe.jeffrey.flamegraph.proto.TimeseriesData;
 
                     /**
                      * Creates a plain object from a TimeseriesData message. Also converts values to other types if specified.
@@ -305,53 +350,70 @@ export namespace cafe {
                      * @param [options] Conversion options
                      * @returns Plain object
                      */
-                    public static toObject(message: cafe.jeffrey.flamegraph.proto.TimeseriesData, options?: $protobuf.IConversionOptions): { [k: string]: any };
+                    static toObject(message: cafe.jeffrey.flamegraph.proto.TimeseriesData, options?: $protobuf.IConversionOptions): { [k: string]: any };
 
                     /**
                      * Converts this TimeseriesData to JSON.
                      * @returns JSON object
                      */
-                    public toJSON(): { [k: string]: any };
+                    toJSON(): { [k: string]: any };
 
                     /**
-                     * Gets the default type url for TimeseriesData
-                     * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
-                     * @returns The default type url
+                     * Gets the type url for TimeseriesData
+                     * @param [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                     * @returns The type url
                      */
-                    public static getTypeUrl(typeUrlPrefix?: string): string;
+                    static getTypeUrl(prefix?: string): string;
                 }
 
-                /** Properties of a TimeseriesSeries. */
-                interface ITimeseriesSeries {
+                namespace TimeseriesData {
 
-                    /** TimeseriesSeries name */
-                    name?: (string|null);
+                    /** Properties of a TimeseriesData. */
+                    interface $Properties {
 
-                    /** TimeseriesSeries data */
-                    data?: (cafe.jeffrey.flamegraph.proto.ITimeseriesPoint[]|null);
+                        /** TimeseriesData series */
+                        series?: (cafe.jeffrey.flamegraph.proto.TimeseriesSeries.$Properties[]|null);
+
+                        /** Unknown fields preserved while decoding when enabled */
+                        $unknowns?: Uint8Array[];
+                    }
+
+                    /** Shape of a TimeseriesData. */
+                    type $Shape = cafe.jeffrey.flamegraph.proto.TimeseriesData.$Properties;
+                }
+
+                /**
+                 * Properties of a TimeseriesSeries.
+                 * @deprecated Use cafe.jeffrey.flamegraph.proto.TimeseriesSeries.$Properties instead.
+                 */
+                interface ITimeseriesSeries extends cafe.jeffrey.flamegraph.proto.TimeseriesSeries.$Properties {
                 }
 
                 /** Represents a TimeseriesSeries. */
-                class TimeseriesSeries implements ITimeseriesSeries {
+                class TimeseriesSeries {
 
                     /**
                      * Constructs a new TimeseriesSeries.
                      * @param [properties] Properties to set
                      */
-                    constructor(properties?: cafe.jeffrey.flamegraph.proto.ITimeseriesSeries);
+                    constructor(properties?: cafe.jeffrey.flamegraph.proto.TimeseriesSeries.$Properties);
+
+                    /** Unknown fields preserved while decoding when enabled */
+                    $unknowns?: Uint8Array[];
 
                     /** TimeseriesSeries name. */
-                    public name: string;
+                    name: string;
 
                     /** TimeseriesSeries data. */
-                    public data: cafe.jeffrey.flamegraph.proto.ITimeseriesPoint[];
+                    data: cafe.jeffrey.flamegraph.proto.TimeseriesPoint.$Properties[];
 
                     /**
                      * Creates a new TimeseriesSeries instance using the specified properties.
                      * @param [properties] Properties to set
                      * @returns TimeseriesSeries instance
                      */
-                    public static create(properties?: cafe.jeffrey.flamegraph.proto.ITimeseriesSeries): cafe.jeffrey.flamegraph.proto.TimeseriesSeries;
+                    static create(properties: cafe.jeffrey.flamegraph.proto.TimeseriesSeries.$Shape): cafe.jeffrey.flamegraph.proto.TimeseriesSeries & cafe.jeffrey.flamegraph.proto.TimeseriesSeries.$Shape;
+                    static create(properties?: cafe.jeffrey.flamegraph.proto.TimeseriesSeries.$Properties): cafe.jeffrey.flamegraph.proto.TimeseriesSeries;
 
                     /**
                      * Encodes the specified TimeseriesSeries message. Does not implicitly {@link cafe.jeffrey.flamegraph.proto.TimeseriesSeries.verify|verify} messages.
@@ -359,7 +421,7 @@ export namespace cafe {
                      * @param [writer] Writer to encode to
                      * @returns Writer
                      */
-                    public static encode(message: cafe.jeffrey.flamegraph.proto.ITimeseriesSeries, writer?: $protobuf.Writer): $protobuf.Writer;
+                    static encode(message: cafe.jeffrey.flamegraph.proto.TimeseriesSeries.$Properties, writer?: $protobuf.Writer): $protobuf.Writer;
 
                     /**
                      * Encodes the specified TimeseriesSeries message, length delimited. Does not implicitly {@link cafe.jeffrey.flamegraph.proto.TimeseriesSeries.verify|verify} messages.
@@ -367,40 +429,40 @@ export namespace cafe {
                      * @param [writer] Writer to encode to
                      * @returns Writer
                      */
-                    public static encodeDelimited(message: cafe.jeffrey.flamegraph.proto.ITimeseriesSeries, writer?: $protobuf.Writer): $protobuf.Writer;
+                    static encodeDelimited(message: cafe.jeffrey.flamegraph.proto.TimeseriesSeries.$Properties, writer?: $protobuf.Writer): $protobuf.Writer;
 
                     /**
                      * Decodes a TimeseriesSeries message from the specified reader or buffer.
                      * @param reader Reader or buffer to decode from
                      * @param [length] Message length if known beforehand
-                     * @returns TimeseriesSeries
+                     * @returns {cafe.jeffrey.flamegraph.proto.TimeseriesSeries & cafe.jeffrey.flamegraph.proto.TimeseriesSeries.$Shape} TimeseriesSeries
                      * @throws {Error} If the payload is not a reader or valid buffer
                      * @throws {$protobuf.util.ProtocolError} If required fields are missing
                      */
-                    public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): cafe.jeffrey.flamegraph.proto.TimeseriesSeries;
+                    static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): cafe.jeffrey.flamegraph.proto.TimeseriesSeries & cafe.jeffrey.flamegraph.proto.TimeseriesSeries.$Shape;
 
                     /**
                      * Decodes a TimeseriesSeries message from the specified reader or buffer, length delimited.
                      * @param reader Reader or buffer to decode from
-                     * @returns TimeseriesSeries
+                     * @returns {cafe.jeffrey.flamegraph.proto.TimeseriesSeries & cafe.jeffrey.flamegraph.proto.TimeseriesSeries.$Shape} TimeseriesSeries
                      * @throws {Error} If the payload is not a reader or valid buffer
                      * @throws {$protobuf.util.ProtocolError} If required fields are missing
                      */
-                    public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): cafe.jeffrey.flamegraph.proto.TimeseriesSeries;
+                    static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): cafe.jeffrey.flamegraph.proto.TimeseriesSeries & cafe.jeffrey.flamegraph.proto.TimeseriesSeries.$Shape;
 
                     /**
                      * Verifies a TimeseriesSeries message.
                      * @param message Plain object to verify
                      * @returns `null` if valid, otherwise the reason why it is not
                      */
-                    public static verify(message: { [k: string]: any }): (string|null);
+                    static verify(message: { [k: string]: any }): (string|null);
 
                     /**
                      * Creates a TimeseriesSeries message from a plain object. Also converts values to their respective internal types.
                      * @param object Plain object
                      * @returns TimeseriesSeries
                      */
-                    public static fromObject(object: { [k: string]: any }): cafe.jeffrey.flamegraph.proto.TimeseriesSeries;
+                    static fromObject(object: { [k: string]: any }): cafe.jeffrey.flamegraph.proto.TimeseriesSeries;
 
                     /**
                      * Creates a plain object from a TimeseriesSeries message. Also converts values to other types if specified.
@@ -408,53 +470,73 @@ export namespace cafe {
                      * @param [options] Conversion options
                      * @returns Plain object
                      */
-                    public static toObject(message: cafe.jeffrey.flamegraph.proto.TimeseriesSeries, options?: $protobuf.IConversionOptions): { [k: string]: any };
+                    static toObject(message: cafe.jeffrey.flamegraph.proto.TimeseriesSeries, options?: $protobuf.IConversionOptions): { [k: string]: any };
 
                     /**
                      * Converts this TimeseriesSeries to JSON.
                      * @returns JSON object
                      */
-                    public toJSON(): { [k: string]: any };
+                    toJSON(): { [k: string]: any };
 
                     /**
-                     * Gets the default type url for TimeseriesSeries
-                     * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
-                     * @returns The default type url
+                     * Gets the type url for TimeseriesSeries
+                     * @param [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                     * @returns The type url
                      */
-                    public static getTypeUrl(typeUrlPrefix?: string): string;
+                    static getTypeUrl(prefix?: string): string;
                 }
 
-                /** Properties of a TimeseriesPoint. */
-                interface ITimeseriesPoint {
+                namespace TimeseriesSeries {
 
-                    /** TimeseriesPoint timestamp */
-                    timestamp?: (number|Long|null);
+                    /** Properties of a TimeseriesSeries. */
+                    interface $Properties {
 
-                    /** TimeseriesPoint value */
-                    value?: (number|Long|null);
+                        /** TimeseriesSeries name */
+                        name?: (string|null);
+
+                        /** TimeseriesSeries data */
+                        data?: (cafe.jeffrey.flamegraph.proto.TimeseriesPoint.$Properties[]|null);
+
+                        /** Unknown fields preserved while decoding when enabled */
+                        $unknowns?: Uint8Array[];
+                    }
+
+                    /** Shape of a TimeseriesSeries. */
+                    type $Shape = cafe.jeffrey.flamegraph.proto.TimeseriesSeries.$Properties;
+                }
+
+                /**
+                 * Properties of a TimeseriesPoint.
+                 * @deprecated Use cafe.jeffrey.flamegraph.proto.TimeseriesPoint.$Properties instead.
+                 */
+                interface ITimeseriesPoint extends cafe.jeffrey.flamegraph.proto.TimeseriesPoint.$Properties {
                 }
 
                 /** Represents a TimeseriesPoint. */
-                class TimeseriesPoint implements ITimeseriesPoint {
+                class TimeseriesPoint {
 
                     /**
                      * Constructs a new TimeseriesPoint.
                      * @param [properties] Properties to set
                      */
-                    constructor(properties?: cafe.jeffrey.flamegraph.proto.ITimeseriesPoint);
+                    constructor(properties?: cafe.jeffrey.flamegraph.proto.TimeseriesPoint.$Properties);
+
+                    /** Unknown fields preserved while decoding when enabled */
+                    $unknowns?: Uint8Array[];
 
                     /** TimeseriesPoint timestamp. */
-                    public timestamp: (number|Long);
+                    timestamp: (number|Long);
 
                     /** TimeseriesPoint value. */
-                    public value: (number|Long);
+                    value: (number|Long);
 
                     /**
                      * Creates a new TimeseriesPoint instance using the specified properties.
                      * @param [properties] Properties to set
                      * @returns TimeseriesPoint instance
                      */
-                    public static create(properties?: cafe.jeffrey.flamegraph.proto.ITimeseriesPoint): cafe.jeffrey.flamegraph.proto.TimeseriesPoint;
+                    static create(properties: cafe.jeffrey.flamegraph.proto.TimeseriesPoint.$Shape): cafe.jeffrey.flamegraph.proto.TimeseriesPoint & cafe.jeffrey.flamegraph.proto.TimeseriesPoint.$Shape;
+                    static create(properties?: cafe.jeffrey.flamegraph.proto.TimeseriesPoint.$Properties): cafe.jeffrey.flamegraph.proto.TimeseriesPoint;
 
                     /**
                      * Encodes the specified TimeseriesPoint message. Does not implicitly {@link cafe.jeffrey.flamegraph.proto.TimeseriesPoint.verify|verify} messages.
@@ -462,7 +544,7 @@ export namespace cafe {
                      * @param [writer] Writer to encode to
                      * @returns Writer
                      */
-                    public static encode(message: cafe.jeffrey.flamegraph.proto.ITimeseriesPoint, writer?: $protobuf.Writer): $protobuf.Writer;
+                    static encode(message: cafe.jeffrey.flamegraph.proto.TimeseriesPoint.$Properties, writer?: $protobuf.Writer): $protobuf.Writer;
 
                     /**
                      * Encodes the specified TimeseriesPoint message, length delimited. Does not implicitly {@link cafe.jeffrey.flamegraph.proto.TimeseriesPoint.verify|verify} messages.
@@ -470,40 +552,40 @@ export namespace cafe {
                      * @param [writer] Writer to encode to
                      * @returns Writer
                      */
-                    public static encodeDelimited(message: cafe.jeffrey.flamegraph.proto.ITimeseriesPoint, writer?: $protobuf.Writer): $protobuf.Writer;
+                    static encodeDelimited(message: cafe.jeffrey.flamegraph.proto.TimeseriesPoint.$Properties, writer?: $protobuf.Writer): $protobuf.Writer;
 
                     /**
                      * Decodes a TimeseriesPoint message from the specified reader or buffer.
                      * @param reader Reader or buffer to decode from
                      * @param [length] Message length if known beforehand
-                     * @returns TimeseriesPoint
+                     * @returns {cafe.jeffrey.flamegraph.proto.TimeseriesPoint & cafe.jeffrey.flamegraph.proto.TimeseriesPoint.$Shape} TimeseriesPoint
                      * @throws {Error} If the payload is not a reader or valid buffer
                      * @throws {$protobuf.util.ProtocolError} If required fields are missing
                      */
-                    public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): cafe.jeffrey.flamegraph.proto.TimeseriesPoint;
+                    static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): cafe.jeffrey.flamegraph.proto.TimeseriesPoint & cafe.jeffrey.flamegraph.proto.TimeseriesPoint.$Shape;
 
                     /**
                      * Decodes a TimeseriesPoint message from the specified reader or buffer, length delimited.
                      * @param reader Reader or buffer to decode from
-                     * @returns TimeseriesPoint
+                     * @returns {cafe.jeffrey.flamegraph.proto.TimeseriesPoint & cafe.jeffrey.flamegraph.proto.TimeseriesPoint.$Shape} TimeseriesPoint
                      * @throws {Error} If the payload is not a reader or valid buffer
                      * @throws {$protobuf.util.ProtocolError} If required fields are missing
                      */
-                    public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): cafe.jeffrey.flamegraph.proto.TimeseriesPoint;
+                    static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): cafe.jeffrey.flamegraph.proto.TimeseriesPoint & cafe.jeffrey.flamegraph.proto.TimeseriesPoint.$Shape;
 
                     /**
                      * Verifies a TimeseriesPoint message.
                      * @param message Plain object to verify
                      * @returns `null` if valid, otherwise the reason why it is not
                      */
-                    public static verify(message: { [k: string]: any }): (string|null);
+                    static verify(message: { [k: string]: any }): (string|null);
 
                     /**
                      * Creates a TimeseriesPoint message from a plain object. Also converts values to their respective internal types.
                      * @param object Plain object
                      * @returns TimeseriesPoint
                      */
-                    public static fromObject(object: { [k: string]: any }): cafe.jeffrey.flamegraph.proto.TimeseriesPoint;
+                    static fromObject(object: { [k: string]: any }): cafe.jeffrey.flamegraph.proto.TimeseriesPoint;
 
                     /**
                      * Creates a plain object from a TimeseriesPoint message. Also converts values to other types if specified.
@@ -511,47 +593,70 @@ export namespace cafe {
                      * @param [options] Conversion options
                      * @returns Plain object
                      */
-                    public static toObject(message: cafe.jeffrey.flamegraph.proto.TimeseriesPoint, options?: $protobuf.IConversionOptions): { [k: string]: any };
+                    static toObject(message: cafe.jeffrey.flamegraph.proto.TimeseriesPoint, options?: $protobuf.IConversionOptions): { [k: string]: any };
 
                     /**
                      * Converts this TimeseriesPoint to JSON.
                      * @returns JSON object
                      */
-                    public toJSON(): { [k: string]: any };
+                    toJSON(): { [k: string]: any };
 
                     /**
-                     * Gets the default type url for TimeseriesPoint
-                     * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
-                     * @returns The default type url
+                     * Gets the type url for TimeseriesPoint
+                     * @param [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                     * @returns The type url
                      */
-                    public static getTypeUrl(typeUrlPrefix?: string): string;
+                    static getTypeUrl(prefix?: string): string;
                 }
 
-                /** Properties of a Level. */
-                interface ILevel {
+                namespace TimeseriesPoint {
 
-                    /** Level frames */
-                    frames?: (cafe.jeffrey.flamegraph.proto.IFrame[]|null);
+                    /** Properties of a TimeseriesPoint. */
+                    interface $Properties {
+
+                        /** TimeseriesPoint timestamp */
+                        timestamp?: (number|Long|null);
+
+                        /** TimeseriesPoint value */
+                        value?: (number|Long|null);
+
+                        /** Unknown fields preserved while decoding when enabled */
+                        $unknowns?: Uint8Array[];
+                    }
+
+                    /** Shape of a TimeseriesPoint. */
+                    type $Shape = cafe.jeffrey.flamegraph.proto.TimeseriesPoint.$Properties;
+                }
+
+                /**
+                 * Properties of a Level.
+                 * @deprecated Use cafe.jeffrey.flamegraph.proto.Level.$Properties instead.
+                 */
+                interface ILevel extends cafe.jeffrey.flamegraph.proto.Level.$Properties {
                 }
 
                 /** Represents a Level. */
-                class Level implements ILevel {
+                class Level {
 
                     /**
                      * Constructs a new Level.
                      * @param [properties] Properties to set
                      */
-                    constructor(properties?: cafe.jeffrey.flamegraph.proto.ILevel);
+                    constructor(properties?: cafe.jeffrey.flamegraph.proto.Level.$Properties);
+
+                    /** Unknown fields preserved while decoding when enabled */
+                    $unknowns?: Uint8Array[];
 
                     /** Level frames. */
-                    public frames: cafe.jeffrey.flamegraph.proto.IFrame[];
+                    frames: cafe.jeffrey.flamegraph.proto.Frame.$Properties[];
 
                     /**
                      * Creates a new Level instance using the specified properties.
                      * @param [properties] Properties to set
                      * @returns Level instance
                      */
-                    public static create(properties?: cafe.jeffrey.flamegraph.proto.ILevel): cafe.jeffrey.flamegraph.proto.Level;
+                    static create(properties: cafe.jeffrey.flamegraph.proto.Level.$Shape): cafe.jeffrey.flamegraph.proto.Level & cafe.jeffrey.flamegraph.proto.Level.$Shape;
+                    static create(properties?: cafe.jeffrey.flamegraph.proto.Level.$Properties): cafe.jeffrey.flamegraph.proto.Level;
 
                     /**
                      * Encodes the specified Level message. Does not implicitly {@link cafe.jeffrey.flamegraph.proto.Level.verify|verify} messages.
@@ -559,7 +664,7 @@ export namespace cafe {
                      * @param [writer] Writer to encode to
                      * @returns Writer
                      */
-                    public static encode(message: cafe.jeffrey.flamegraph.proto.ILevel, writer?: $protobuf.Writer): $protobuf.Writer;
+                    static encode(message: cafe.jeffrey.flamegraph.proto.Level.$Properties, writer?: $protobuf.Writer): $protobuf.Writer;
 
                     /**
                      * Encodes the specified Level message, length delimited. Does not implicitly {@link cafe.jeffrey.flamegraph.proto.Level.verify|verify} messages.
@@ -567,40 +672,40 @@ export namespace cafe {
                      * @param [writer] Writer to encode to
                      * @returns Writer
                      */
-                    public static encodeDelimited(message: cafe.jeffrey.flamegraph.proto.ILevel, writer?: $protobuf.Writer): $protobuf.Writer;
+                    static encodeDelimited(message: cafe.jeffrey.flamegraph.proto.Level.$Properties, writer?: $protobuf.Writer): $protobuf.Writer;
 
                     /**
                      * Decodes a Level message from the specified reader or buffer.
                      * @param reader Reader or buffer to decode from
                      * @param [length] Message length if known beforehand
-                     * @returns Level
+                     * @returns {cafe.jeffrey.flamegraph.proto.Level & cafe.jeffrey.flamegraph.proto.Level.$Shape} Level
                      * @throws {Error} If the payload is not a reader or valid buffer
                      * @throws {$protobuf.util.ProtocolError} If required fields are missing
                      */
-                    public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): cafe.jeffrey.flamegraph.proto.Level;
+                    static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): cafe.jeffrey.flamegraph.proto.Level & cafe.jeffrey.flamegraph.proto.Level.$Shape;
 
                     /**
                      * Decodes a Level message from the specified reader or buffer, length delimited.
                      * @param reader Reader or buffer to decode from
-                     * @returns Level
+                     * @returns {cafe.jeffrey.flamegraph.proto.Level & cafe.jeffrey.flamegraph.proto.Level.$Shape} Level
                      * @throws {Error} If the payload is not a reader or valid buffer
                      * @throws {$protobuf.util.ProtocolError} If required fields are missing
                      */
-                    public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): cafe.jeffrey.flamegraph.proto.Level;
+                    static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): cafe.jeffrey.flamegraph.proto.Level & cafe.jeffrey.flamegraph.proto.Level.$Shape;
 
                     /**
                      * Verifies a Level message.
                      * @param message Plain object to verify
                      * @returns `null` if valid, otherwise the reason why it is not
                      */
-                    public static verify(message: { [k: string]: any }): (string|null);
+                    static verify(message: { [k: string]: any }): (string|null);
 
                     /**
                      * Creates a Level message from a plain object. Also converts values to their respective internal types.
                      * @param object Plain object
                      * @returns Level
                      */
-                    public static fromObject(object: { [k: string]: any }): cafe.jeffrey.flamegraph.proto.Level;
+                    static fromObject(object: { [k: string]: any }): cafe.jeffrey.flamegraph.proto.Level;
 
                     /**
                      * Creates a plain object from a Level message. Also converts values to other types if specified.
@@ -608,113 +713,100 @@ export namespace cafe {
                      * @param [options] Conversion options
                      * @returns Plain object
                      */
-                    public static toObject(message: cafe.jeffrey.flamegraph.proto.Level, options?: $protobuf.IConversionOptions): { [k: string]: any };
+                    static toObject(message: cafe.jeffrey.flamegraph.proto.Level, options?: $protobuf.IConversionOptions): { [k: string]: any };
 
                     /**
                      * Converts this Level to JSON.
                      * @returns JSON object
                      */
-                    public toJSON(): { [k: string]: any };
+                    toJSON(): { [k: string]: any };
 
                     /**
-                     * Gets the default type url for Level
-                     * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
-                     * @returns The default type url
+                     * Gets the type url for Level
+                     * @param [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                     * @returns The type url
                      */
-                    public static getTypeUrl(typeUrlPrefix?: string): string;
+                    static getTypeUrl(prefix?: string): string;
                 }
 
-                /** Properties of a Frame. */
-                interface IFrame {
+                namespace Level {
 
-                    /** Frame leftSamples */
-                    leftSamples?: (number|Long|null);
+                    /** Properties of a Level. */
+                    interface $Properties {
 
-                    /** Frame totalSamples */
-                    totalSamples?: (number|Long|null);
+                        /** Level frames */
+                        frames?: (cafe.jeffrey.flamegraph.proto.Frame.$Properties[]|null);
 
-                    /** Frame titleIndex */
-                    titleIndex?: (number|null);
+                        /** Unknown fields preserved while decoding when enabled */
+                        $unknowns?: Uint8Array[];
+                    }
 
-                    /** Frame type */
-                    type?: (cafe.jeffrey.flamegraph.proto.FrameType|null);
+                    /** Shape of a Level. */
+                    type $Shape = cafe.jeffrey.flamegraph.proto.Level.$Properties;
+                }
 
-                    /** Frame leftWeight */
-                    leftWeight?: (number|Long|null);
-
-                    /** Frame totalWeight */
-                    totalWeight?: (number|Long|null);
-
-                    /** Frame selfSamples */
-                    selfSamples?: (number|Long|null);
-
-                    /** Frame position */
-                    position?: (cafe.jeffrey.flamegraph.proto.IFramePosition|null);
-
-                    /** Frame sampleTypes */
-                    sampleTypes?: (cafe.jeffrey.flamegraph.proto.IFrameSampleTypes|null);
-
-                    /** Frame diffDetails */
-                    diffDetails?: (cafe.jeffrey.flamegraph.proto.IDiffDetails|null);
-
-                    /** Frame beforeMarker */
-                    beforeMarker?: (boolean|null);
-
-                    /** Frame prunedChildrenCount */
-                    prunedChildrenCount?: (number|null);
+                /**
+                 * Properties of a Frame.
+                 * @deprecated Use cafe.jeffrey.flamegraph.proto.Frame.$Properties instead.
+                 */
+                interface IFrame extends cafe.jeffrey.flamegraph.proto.Frame.$Properties {
                 }
 
                 /** Represents a Frame. */
-                class Frame implements IFrame {
+                class Frame {
 
                     /**
                      * Constructs a new Frame.
                      * @param [properties] Properties to set
                      */
-                    constructor(properties?: cafe.jeffrey.flamegraph.proto.IFrame);
+                    constructor(properties?: cafe.jeffrey.flamegraph.proto.Frame.$Properties);
+
+                    /** Unknown fields preserved while decoding when enabled */
+                    $unknowns?: Uint8Array[];
 
                     /** Frame leftSamples. */
-                    public leftSamples: (number|Long);
+                    leftSamples: (number|Long);
 
                     /** Frame totalSamples. */
-                    public totalSamples: (number|Long);
+                    totalSamples: (number|Long);
 
                     /** Frame titleIndex. */
-                    public titleIndex: number;
+                    titleIndex: number;
 
                     /** Frame type. */
-                    public type: cafe.jeffrey.flamegraph.proto.FrameType;
+                    type: cafe.jeffrey.flamegraph.proto.FrameType;
 
                     /** Frame leftWeight. */
-                    public leftWeight: (number|Long);
+                    leftWeight: (number|Long);
 
                     /** Frame totalWeight. */
-                    public totalWeight: (number|Long);
+                    totalWeight: (number|Long);
 
                     /** Frame selfSamples. */
-                    public selfSamples: (number|Long);
+                    selfSamples: (number|Long);
 
                     /** Frame position. */
-                    public position?: (cafe.jeffrey.flamegraph.proto.IFramePosition|null);
+                    position?: (cafe.jeffrey.flamegraph.proto.FramePosition.$Properties|null);
 
                     /** Frame sampleTypes. */
-                    public sampleTypes?: (cafe.jeffrey.flamegraph.proto.IFrameSampleTypes|null);
+                    sampleTypes?: (cafe.jeffrey.flamegraph.proto.FrameSampleTypes.$Properties|null);
 
                     /** Frame diffDetails. */
-                    public diffDetails?: (cafe.jeffrey.flamegraph.proto.IDiffDetails|null);
+                    diffDetails?: (cafe.jeffrey.flamegraph.proto.DiffDetails.$Properties|null);
 
                     /** Frame beforeMarker. */
-                    public beforeMarker: boolean;
+                    beforeMarker: boolean;
 
                     /** Frame prunedChildrenCount. */
-                    public prunedChildrenCount: number;
+                    prunedChildrenCount: number;
 
                     /**
                      * Creates a new Frame instance using the specified properties.
                      * @param [properties] Properties to set
                      * @returns Frame instance
                      */
-                    public static create(properties?: cafe.jeffrey.flamegraph.proto.IFrame): cafe.jeffrey.flamegraph.proto.Frame;
+                    static create(properties: cafe.jeffrey.flamegraph.proto.Frame.$Shape): cafe.jeffrey.flamegraph.proto.Frame & cafe.jeffrey.flamegraph.proto.Frame.$Shape;
+                    static create(properties?: cafe.jeffrey.flamegraph.proto.Frame.$Properties): cafe.jeffrey.flamegraph.proto.Frame;
 
                     /**
                      * Encodes the specified Frame message. Does not implicitly {@link cafe.jeffrey.flamegraph.proto.Frame.verify|verify} messages.
@@ -722,7 +814,7 @@ export namespace cafe {
                      * @param [writer] Writer to encode to
                      * @returns Writer
                      */
-                    public static encode(message: cafe.jeffrey.flamegraph.proto.IFrame, writer?: $protobuf.Writer): $protobuf.Writer;
+                    static encode(message: cafe.jeffrey.flamegraph.proto.Frame.$Properties, writer?: $protobuf.Writer): $protobuf.Writer;
 
                     /**
                      * Encodes the specified Frame message, length delimited. Does not implicitly {@link cafe.jeffrey.flamegraph.proto.Frame.verify|verify} messages.
@@ -730,40 +822,40 @@ export namespace cafe {
                      * @param [writer] Writer to encode to
                      * @returns Writer
                      */
-                    public static encodeDelimited(message: cafe.jeffrey.flamegraph.proto.IFrame, writer?: $protobuf.Writer): $protobuf.Writer;
+                    static encodeDelimited(message: cafe.jeffrey.flamegraph.proto.Frame.$Properties, writer?: $protobuf.Writer): $protobuf.Writer;
 
                     /**
                      * Decodes a Frame message from the specified reader or buffer.
                      * @param reader Reader or buffer to decode from
                      * @param [length] Message length if known beforehand
-                     * @returns Frame
+                     * @returns {cafe.jeffrey.flamegraph.proto.Frame & cafe.jeffrey.flamegraph.proto.Frame.$Shape} Frame
                      * @throws {Error} If the payload is not a reader or valid buffer
                      * @throws {$protobuf.util.ProtocolError} If required fields are missing
                      */
-                    public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): cafe.jeffrey.flamegraph.proto.Frame;
+                    static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): cafe.jeffrey.flamegraph.proto.Frame & cafe.jeffrey.flamegraph.proto.Frame.$Shape;
 
                     /**
                      * Decodes a Frame message from the specified reader or buffer, length delimited.
                      * @param reader Reader or buffer to decode from
-                     * @returns Frame
+                     * @returns {cafe.jeffrey.flamegraph.proto.Frame & cafe.jeffrey.flamegraph.proto.Frame.$Shape} Frame
                      * @throws {Error} If the payload is not a reader or valid buffer
                      * @throws {$protobuf.util.ProtocolError} If required fields are missing
                      */
-                    public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): cafe.jeffrey.flamegraph.proto.Frame;
+                    static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): cafe.jeffrey.flamegraph.proto.Frame & cafe.jeffrey.flamegraph.proto.Frame.$Shape;
 
                     /**
                      * Verifies a Frame message.
                      * @param message Plain object to verify
                      * @returns `null` if valid, otherwise the reason why it is not
                      */
-                    public static verify(message: { [k: string]: any }): (string|null);
+                    static verify(message: { [k: string]: any }): (string|null);
 
                     /**
                      * Creates a Frame message from a plain object. Also converts values to their respective internal types.
                      * @param object Plain object
                      * @returns Frame
                      */
-                    public static fromObject(object: { [k: string]: any }): cafe.jeffrey.flamegraph.proto.Frame;
+                    static fromObject(object: { [k: string]: any }): cafe.jeffrey.flamegraph.proto.Frame;
 
                     /**
                      * Creates a plain object from a Frame message. Also converts values to other types if specified.
@@ -771,74 +863,188 @@ export namespace cafe {
                      * @param [options] Conversion options
                      * @returns Plain object
                      */
-                    public static toObject(message: cafe.jeffrey.flamegraph.proto.Frame, options?: $protobuf.IConversionOptions): { [k: string]: any };
+                    static toObject(message: cafe.jeffrey.flamegraph.proto.Frame, options?: $protobuf.IConversionOptions): { [k: string]: any };
 
                     /**
                      * Converts this Frame to JSON.
                      * @returns JSON object
                      */
-                    public toJSON(): { [k: string]: any };
+                    toJSON(): { [k: string]: any };
 
                     /**
-                     * Gets the default type url for Frame
-                     * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
-                     * @returns The default type url
+                     * Gets the type url for Frame
+                     * @param [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                     * @returns The type url
                      */
-                    public static getTypeUrl(typeUrlPrefix?: string): string;
+                    static getTypeUrl(prefix?: string): string;
+                }
+
+                namespace Frame {
+
+                    /** Properties of a Frame. */
+                    interface $Properties {
+
+                        /** Frame leftSamples */
+                        leftSamples?: (number|Long|null);
+
+                        /** Frame totalSamples */
+                        totalSamples?: (number|Long|null);
+
+                        /** Frame titleIndex */
+                        titleIndex?: (number|null);
+
+                        /** Frame type */
+                        type?: (cafe.jeffrey.flamegraph.proto.FrameType|null);
+
+                        /** Frame leftWeight */
+                        leftWeight?: (number|Long|null);
+
+                        /** Frame totalWeight */
+                        totalWeight?: (number|Long|null);
+
+                        /** Frame selfSamples */
+                        selfSamples?: (number|Long|null);
+
+                        /** Frame position */
+                        position?: (cafe.jeffrey.flamegraph.proto.FramePosition.$Properties|null);
+
+                        /** Frame sampleTypes */
+                        sampleTypes?: (cafe.jeffrey.flamegraph.proto.FrameSampleTypes.$Properties|null);
+
+                        /** Frame diffDetails */
+                        diffDetails?: (cafe.jeffrey.flamegraph.proto.DiffDetails.$Properties|null);
+
+                        /** Frame beforeMarker */
+                        beforeMarker?: (boolean|null);
+
+                        /** Frame prunedChildrenCount */
+                        prunedChildrenCount?: (number|null);
+
+                        /** Unknown fields preserved while decoding when enabled */
+                        $unknowns?: Uint8Array[];
+                    }
+
+                    /** Shape of a Frame. */
+                    type $Shape = cafe.jeffrey.flamegraph.proto.Frame.$Properties;
                 }
 
                 /** FrameType enum. */
                 enum FrameType {
+
+                    /** FRAME_TYPE_UNKNOWN value */
                     FRAME_TYPE_UNKNOWN = 0,
+
+                    /** FRAME_TYPE_C1_COMPILED value */
                     FRAME_TYPE_C1_COMPILED = 1,
+
+                    /** FRAME_TYPE_NATIVE value */
                     FRAME_TYPE_NATIVE = 2,
+
+                    /** FRAME_TYPE_CPP value */
                     FRAME_TYPE_CPP = 3,
+
+                    /** FRAME_TYPE_INTERPRETED value */
                     FRAME_TYPE_INTERPRETED = 4,
+
+                    /** FRAME_TYPE_JIT_COMPILED value */
                     FRAME_TYPE_JIT_COMPILED = 5,
+
+                    /** FRAME_TYPE_INLINED value */
                     FRAME_TYPE_INLINED = 6,
+
+                    /** FRAME_TYPE_KERNEL value */
                     FRAME_TYPE_KERNEL = 7,
+
+                    /** FRAME_TYPE_THREAD_NAME_SYNTHETIC value */
                     FRAME_TYPE_THREAD_NAME_SYNTHETIC = 8,
+
+                    /** FRAME_TYPE_ALLOCATED_OBJECT_SYNTHETIC value */
                     FRAME_TYPE_ALLOCATED_OBJECT_SYNTHETIC = 9,
+
+                    /** FRAME_TYPE_ALLOCATED_OBJECT_IN_NEW_TLAB_SYNTHETIC value */
                     FRAME_TYPE_ALLOCATED_OBJECT_IN_NEW_TLAB_SYNTHETIC = 10,
+
+                    /** FRAME_TYPE_ALLOCATED_OBJECT_OUTSIDE_TLAB_SYNTHETIC value */
                     FRAME_TYPE_ALLOCATED_OBJECT_OUTSIDE_TLAB_SYNTHETIC = 11,
+
+                    /** FRAME_TYPE_BLOCKING_OBJECT_SYNTHETIC value */
                     FRAME_TYPE_BLOCKING_OBJECT_SYNTHETIC = 12,
+
+                    /** FRAME_TYPE_LAMBDA_SYNTHETIC value */
                     FRAME_TYPE_LAMBDA_SYNTHETIC = 13,
+
+                    /** FRAME_TYPE_HIGHLIGHTED_WARNING value */
                     FRAME_TYPE_HIGHLIGHTED_WARNING = 14,
+
+                    /** FRAME_TYPE_COLLAPSED_SYNTHETIC value */
                     FRAME_TYPE_COLLAPSED_SYNTHETIC = 15,
-                    FRAME_TYPE_TRUNCATED_SYNTHETIC = 16
+
+                    /** FRAME_TYPE_TRUNCATED_SYNTHETIC value */
+                    FRAME_TYPE_TRUNCATED_SYNTHETIC = 16,
+
+                    /** FRAME_TYPE_PYTHON value */
+                    FRAME_TYPE_PYTHON = 17,
+
+                    /** FRAME_TYPE_JAVASCRIPT value */
+                    FRAME_TYPE_JAVASCRIPT = 18,
+
+                    /** FRAME_TYPE_GO value */
+                    FRAME_TYPE_GO = 19,
+
+                    /** FRAME_TYPE_DOTNET value */
+                    FRAME_TYPE_DOTNET = 20,
+
+                    /** FRAME_TYPE_RUBY value */
+                    FRAME_TYPE_RUBY = 21,
+
+                    /** FRAME_TYPE_PHP value */
+                    FRAME_TYPE_PHP = 22,
+
+                    /** FRAME_TYPE_PERL value */
+                    FRAME_TYPE_PERL = 23,
+
+                    /** FRAME_TYPE_BEAM value */
+                    FRAME_TYPE_BEAM = 24,
+
+                    /** FRAME_TYPE_RUST value */
+                    FRAME_TYPE_RUST = 25,
+
+                    /** FRAME_TYPE_LUA value */
+                    FRAME_TYPE_LUA = 26
                 }
 
-                /** Properties of a FramePosition. */
-                interface IFramePosition {
-
-                    /** FramePosition bci */
-                    bci?: (number|null);
-
-                    /** FramePosition line */
-                    line?: (number|null);
+                /**
+                 * Properties of a FramePosition.
+                 * @deprecated Use cafe.jeffrey.flamegraph.proto.FramePosition.$Properties instead.
+                 */
+                interface IFramePosition extends cafe.jeffrey.flamegraph.proto.FramePosition.$Properties {
                 }
 
                 /** Represents a FramePosition. */
-                class FramePosition implements IFramePosition {
+                class FramePosition {
 
                     /**
                      * Constructs a new FramePosition.
                      * @param [properties] Properties to set
                      */
-                    constructor(properties?: cafe.jeffrey.flamegraph.proto.IFramePosition);
+                    constructor(properties?: cafe.jeffrey.flamegraph.proto.FramePosition.$Properties);
+
+                    /** Unknown fields preserved while decoding when enabled */
+                    $unknowns?: Uint8Array[];
 
                     /** FramePosition bci. */
-                    public bci: number;
+                    bci: number;
 
                     /** FramePosition line. */
-                    public line: number;
+                    line: number;
 
                     /**
                      * Creates a new FramePosition instance using the specified properties.
                      * @param [properties] Properties to set
                      * @returns FramePosition instance
                      */
-                    public static create(properties?: cafe.jeffrey.flamegraph.proto.IFramePosition): cafe.jeffrey.flamegraph.proto.FramePosition;
+                    static create(properties: cafe.jeffrey.flamegraph.proto.FramePosition.$Shape): cafe.jeffrey.flamegraph.proto.FramePosition & cafe.jeffrey.flamegraph.proto.FramePosition.$Shape;
+                    static create(properties?: cafe.jeffrey.flamegraph.proto.FramePosition.$Properties): cafe.jeffrey.flamegraph.proto.FramePosition;
 
                     /**
                      * Encodes the specified FramePosition message. Does not implicitly {@link cafe.jeffrey.flamegraph.proto.FramePosition.verify|verify} messages.
@@ -846,7 +1052,7 @@ export namespace cafe {
                      * @param [writer] Writer to encode to
                      * @returns Writer
                      */
-                    public static encode(message: cafe.jeffrey.flamegraph.proto.IFramePosition, writer?: $protobuf.Writer): $protobuf.Writer;
+                    static encode(message: cafe.jeffrey.flamegraph.proto.FramePosition.$Properties, writer?: $protobuf.Writer): $protobuf.Writer;
 
                     /**
                      * Encodes the specified FramePosition message, length delimited. Does not implicitly {@link cafe.jeffrey.flamegraph.proto.FramePosition.verify|verify} messages.
@@ -854,40 +1060,40 @@ export namespace cafe {
                      * @param [writer] Writer to encode to
                      * @returns Writer
                      */
-                    public static encodeDelimited(message: cafe.jeffrey.flamegraph.proto.IFramePosition, writer?: $protobuf.Writer): $protobuf.Writer;
+                    static encodeDelimited(message: cafe.jeffrey.flamegraph.proto.FramePosition.$Properties, writer?: $protobuf.Writer): $protobuf.Writer;
 
                     /**
                      * Decodes a FramePosition message from the specified reader or buffer.
                      * @param reader Reader or buffer to decode from
                      * @param [length] Message length if known beforehand
-                     * @returns FramePosition
+                     * @returns {cafe.jeffrey.flamegraph.proto.FramePosition & cafe.jeffrey.flamegraph.proto.FramePosition.$Shape} FramePosition
                      * @throws {Error} If the payload is not a reader or valid buffer
                      * @throws {$protobuf.util.ProtocolError} If required fields are missing
                      */
-                    public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): cafe.jeffrey.flamegraph.proto.FramePosition;
+                    static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): cafe.jeffrey.flamegraph.proto.FramePosition & cafe.jeffrey.flamegraph.proto.FramePosition.$Shape;
 
                     /**
                      * Decodes a FramePosition message from the specified reader or buffer, length delimited.
                      * @param reader Reader or buffer to decode from
-                     * @returns FramePosition
+                     * @returns {cafe.jeffrey.flamegraph.proto.FramePosition & cafe.jeffrey.flamegraph.proto.FramePosition.$Shape} FramePosition
                      * @throws {Error} If the payload is not a reader or valid buffer
                      * @throws {$protobuf.util.ProtocolError} If required fields are missing
                      */
-                    public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): cafe.jeffrey.flamegraph.proto.FramePosition;
+                    static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): cafe.jeffrey.flamegraph.proto.FramePosition & cafe.jeffrey.flamegraph.proto.FramePosition.$Shape;
 
                     /**
                      * Verifies a FramePosition message.
                      * @param message Plain object to verify
                      * @returns `null` if valid, otherwise the reason why it is not
                      */
-                    public static verify(message: { [k: string]: any }): (string|null);
+                    static verify(message: { [k: string]: any }): (string|null);
 
                     /**
                      * Creates a FramePosition message from a plain object. Also converts values to their respective internal types.
                      * @param object Plain object
                      * @returns FramePosition
                      */
-                    public static fromObject(object: { [k: string]: any }): cafe.jeffrey.flamegraph.proto.FramePosition;
+                    static fromObject(object: { [k: string]: any }): cafe.jeffrey.flamegraph.proto.FramePosition;
 
                     /**
                      * Creates a plain object from a FramePosition message. Also converts values to other types if specified.
@@ -895,65 +1101,79 @@ export namespace cafe {
                      * @param [options] Conversion options
                      * @returns Plain object
                      */
-                    public static toObject(message: cafe.jeffrey.flamegraph.proto.FramePosition, options?: $protobuf.IConversionOptions): { [k: string]: any };
+                    static toObject(message: cafe.jeffrey.flamegraph.proto.FramePosition, options?: $protobuf.IConversionOptions): { [k: string]: any };
 
                     /**
                      * Converts this FramePosition to JSON.
                      * @returns JSON object
                      */
-                    public toJSON(): { [k: string]: any };
+                    toJSON(): { [k: string]: any };
 
                     /**
-                     * Gets the default type url for FramePosition
-                     * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
-                     * @returns The default type url
+                     * Gets the type url for FramePosition
+                     * @param [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                     * @returns The type url
                      */
-                    public static getTypeUrl(typeUrlPrefix?: string): string;
+                    static getTypeUrl(prefix?: string): string;
                 }
 
-                /** Properties of a FrameSampleTypes. */
-                interface IFrameSampleTypes {
+                namespace FramePosition {
 
-                    /** FrameSampleTypes inlined */
-                    inlined?: (number|Long|null);
+                    /** Properties of a FramePosition. */
+                    interface $Properties {
 
-                    /** FrameSampleTypes c1 */
-                    c1?: (number|Long|null);
+                        /** FramePosition bci */
+                        bci?: (number|null);
 
-                    /** FrameSampleTypes interpret */
-                    interpret?: (number|Long|null);
+                        /** FramePosition line */
+                        line?: (number|null);
 
-                    /** FrameSampleTypes jit */
-                    jit?: (number|Long|null);
+                        /** Unknown fields preserved while decoding when enabled */
+                        $unknowns?: Uint8Array[];
+                    }
+
+                    /** Shape of a FramePosition. */
+                    type $Shape = cafe.jeffrey.flamegraph.proto.FramePosition.$Properties;
+                }
+
+                /**
+                 * Properties of a FrameSampleTypes.
+                 * @deprecated Use cafe.jeffrey.flamegraph.proto.FrameSampleTypes.$Properties instead.
+                 */
+                interface IFrameSampleTypes extends cafe.jeffrey.flamegraph.proto.FrameSampleTypes.$Properties {
                 }
 
                 /** Represents a FrameSampleTypes. */
-                class FrameSampleTypes implements IFrameSampleTypes {
+                class FrameSampleTypes {
 
                     /**
                      * Constructs a new FrameSampleTypes.
                      * @param [properties] Properties to set
                      */
-                    constructor(properties?: cafe.jeffrey.flamegraph.proto.IFrameSampleTypes);
+                    constructor(properties?: cafe.jeffrey.flamegraph.proto.FrameSampleTypes.$Properties);
+
+                    /** Unknown fields preserved while decoding when enabled */
+                    $unknowns?: Uint8Array[];
 
                     /** FrameSampleTypes inlined. */
-                    public inlined: (number|Long);
+                    inlined: (number|Long);
 
                     /** FrameSampleTypes c1. */
-                    public c1: (number|Long);
+                    c1: (number|Long);
 
                     /** FrameSampleTypes interpret. */
-                    public interpret: (number|Long);
+                    interpret: (number|Long);
 
                     /** FrameSampleTypes jit. */
-                    public jit: (number|Long);
+                    jit: (number|Long);
 
                     /**
                      * Creates a new FrameSampleTypes instance using the specified properties.
                      * @param [properties] Properties to set
                      * @returns FrameSampleTypes instance
                      */
-                    public static create(properties?: cafe.jeffrey.flamegraph.proto.IFrameSampleTypes): cafe.jeffrey.flamegraph.proto.FrameSampleTypes;
+                    static create(properties: cafe.jeffrey.flamegraph.proto.FrameSampleTypes.$Shape): cafe.jeffrey.flamegraph.proto.FrameSampleTypes & cafe.jeffrey.flamegraph.proto.FrameSampleTypes.$Shape;
+                    static create(properties?: cafe.jeffrey.flamegraph.proto.FrameSampleTypes.$Properties): cafe.jeffrey.flamegraph.proto.FrameSampleTypes;
 
                     /**
                      * Encodes the specified FrameSampleTypes message. Does not implicitly {@link cafe.jeffrey.flamegraph.proto.FrameSampleTypes.verify|verify} messages.
@@ -961,7 +1181,7 @@ export namespace cafe {
                      * @param [writer] Writer to encode to
                      * @returns Writer
                      */
-                    public static encode(message: cafe.jeffrey.flamegraph.proto.IFrameSampleTypes, writer?: $protobuf.Writer): $protobuf.Writer;
+                    static encode(message: cafe.jeffrey.flamegraph.proto.FrameSampleTypes.$Properties, writer?: $protobuf.Writer): $protobuf.Writer;
 
                     /**
                      * Encodes the specified FrameSampleTypes message, length delimited. Does not implicitly {@link cafe.jeffrey.flamegraph.proto.FrameSampleTypes.verify|verify} messages.
@@ -969,40 +1189,40 @@ export namespace cafe {
                      * @param [writer] Writer to encode to
                      * @returns Writer
                      */
-                    public static encodeDelimited(message: cafe.jeffrey.flamegraph.proto.IFrameSampleTypes, writer?: $protobuf.Writer): $protobuf.Writer;
+                    static encodeDelimited(message: cafe.jeffrey.flamegraph.proto.FrameSampleTypes.$Properties, writer?: $protobuf.Writer): $protobuf.Writer;
 
                     /**
                      * Decodes a FrameSampleTypes message from the specified reader or buffer.
                      * @param reader Reader or buffer to decode from
                      * @param [length] Message length if known beforehand
-                     * @returns FrameSampleTypes
+                     * @returns {cafe.jeffrey.flamegraph.proto.FrameSampleTypes & cafe.jeffrey.flamegraph.proto.FrameSampleTypes.$Shape} FrameSampleTypes
                      * @throws {Error} If the payload is not a reader or valid buffer
                      * @throws {$protobuf.util.ProtocolError} If required fields are missing
                      */
-                    public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): cafe.jeffrey.flamegraph.proto.FrameSampleTypes;
+                    static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): cafe.jeffrey.flamegraph.proto.FrameSampleTypes & cafe.jeffrey.flamegraph.proto.FrameSampleTypes.$Shape;
 
                     /**
                      * Decodes a FrameSampleTypes message from the specified reader or buffer, length delimited.
                      * @param reader Reader or buffer to decode from
-                     * @returns FrameSampleTypes
+                     * @returns {cafe.jeffrey.flamegraph.proto.FrameSampleTypes & cafe.jeffrey.flamegraph.proto.FrameSampleTypes.$Shape} FrameSampleTypes
                      * @throws {Error} If the payload is not a reader or valid buffer
                      * @throws {$protobuf.util.ProtocolError} If required fields are missing
                      */
-                    public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): cafe.jeffrey.flamegraph.proto.FrameSampleTypes;
+                    static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): cafe.jeffrey.flamegraph.proto.FrameSampleTypes & cafe.jeffrey.flamegraph.proto.FrameSampleTypes.$Shape;
 
                     /**
                      * Verifies a FrameSampleTypes message.
                      * @param message Plain object to verify
                      * @returns `null` if valid, otherwise the reason why it is not
                      */
-                    public static verify(message: { [k: string]: any }): (string|null);
+                    static verify(message: { [k: string]: any }): (string|null);
 
                     /**
                      * Creates a FrameSampleTypes message from a plain object. Also converts values to their respective internal types.
                      * @param object Plain object
                      * @returns FrameSampleTypes
                      */
-                    public static fromObject(object: { [k: string]: any }): cafe.jeffrey.flamegraph.proto.FrameSampleTypes;
+                    static fromObject(object: { [k: string]: any }): cafe.jeffrey.flamegraph.proto.FrameSampleTypes;
 
                     /**
                      * Creates a plain object from a FrameSampleTypes message. Also converts values to other types if specified.
@@ -1010,77 +1230,91 @@ export namespace cafe {
                      * @param [options] Conversion options
                      * @returns Plain object
                      */
-                    public static toObject(message: cafe.jeffrey.flamegraph.proto.FrameSampleTypes, options?: $protobuf.IConversionOptions): { [k: string]: any };
+                    static toObject(message: cafe.jeffrey.flamegraph.proto.FrameSampleTypes, options?: $protobuf.IConversionOptions): { [k: string]: any };
 
                     /**
                      * Converts this FrameSampleTypes to JSON.
                      * @returns JSON object
                      */
-                    public toJSON(): { [k: string]: any };
+                    toJSON(): { [k: string]: any };
 
                     /**
-                     * Gets the default type url for FrameSampleTypes
-                     * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
-                     * @returns The default type url
+                     * Gets the type url for FrameSampleTypes
+                     * @param [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                     * @returns The type url
                      */
-                    public static getTypeUrl(typeUrlPrefix?: string): string;
+                    static getTypeUrl(prefix?: string): string;
                 }
 
-                /** Properties of a DiffDetails. */
-                interface IDiffDetails {
+                namespace FrameSampleTypes {
 
-                    /** DiffDetails samples */
-                    samples?: (number|Long|null);
+                    /** Properties of a FrameSampleTypes. */
+                    interface $Properties {
 
-                    /** DiffDetails weight */
-                    weight?: (number|Long|null);
+                        /** FrameSampleTypes inlined */
+                        inlined?: (number|Long|null);
 
-                    /** DiffDetails percentSamples */
-                    percentSamples?: (number|null);
+                        /** FrameSampleTypes c1 */
+                        c1?: (number|Long|null);
 
-                    /** DiffDetails percentWeight */
-                    percentWeight?: (number|null);
+                        /** FrameSampleTypes interpret */
+                        interpret?: (number|Long|null);
 
-                    /** DiffDetails secondarySamples */
-                    secondarySamples?: (number|Long|null);
+                        /** FrameSampleTypes jit */
+                        jit?: (number|Long|null);
 
-                    /** DiffDetails secondaryWeight */
-                    secondaryWeight?: (number|Long|null);
+                        /** Unknown fields preserved while decoding when enabled */
+                        $unknowns?: Uint8Array[];
+                    }
+
+                    /** Shape of a FrameSampleTypes. */
+                    type $Shape = cafe.jeffrey.flamegraph.proto.FrameSampleTypes.$Properties;
+                }
+
+                /**
+                 * Properties of a DiffDetails.
+                 * @deprecated Use cafe.jeffrey.flamegraph.proto.DiffDetails.$Properties instead.
+                 */
+                interface IDiffDetails extends cafe.jeffrey.flamegraph.proto.DiffDetails.$Properties {
                 }
 
                 /** Represents a DiffDetails. */
-                class DiffDetails implements IDiffDetails {
+                class DiffDetails {
 
                     /**
                      * Constructs a new DiffDetails.
                      * @param [properties] Properties to set
                      */
-                    constructor(properties?: cafe.jeffrey.flamegraph.proto.IDiffDetails);
+                    constructor(properties?: cafe.jeffrey.flamegraph.proto.DiffDetails.$Properties);
+
+                    /** Unknown fields preserved while decoding when enabled */
+                    $unknowns?: Uint8Array[];
 
                     /** DiffDetails samples. */
-                    public samples: (number|Long);
+                    samples: (number|Long);
 
                     /** DiffDetails weight. */
-                    public weight: (number|Long);
+                    weight: (number|Long);
 
                     /** DiffDetails percentSamples. */
-                    public percentSamples: number;
+                    percentSamples: number;
 
                     /** DiffDetails percentWeight. */
-                    public percentWeight: number;
+                    percentWeight: number;
 
                     /** DiffDetails secondarySamples. */
-                    public secondarySamples: (number|Long);
+                    secondarySamples: (number|Long);
 
                     /** DiffDetails secondaryWeight. */
-                    public secondaryWeight: (number|Long);
+                    secondaryWeight: (number|Long);
 
                     /**
                      * Creates a new DiffDetails instance using the specified properties.
                      * @param [properties] Properties to set
                      * @returns DiffDetails instance
                      */
-                    public static create(properties?: cafe.jeffrey.flamegraph.proto.IDiffDetails): cafe.jeffrey.flamegraph.proto.DiffDetails;
+                    static create(properties: cafe.jeffrey.flamegraph.proto.DiffDetails.$Shape): cafe.jeffrey.flamegraph.proto.DiffDetails & cafe.jeffrey.flamegraph.proto.DiffDetails.$Shape;
+                    static create(properties?: cafe.jeffrey.flamegraph.proto.DiffDetails.$Properties): cafe.jeffrey.flamegraph.proto.DiffDetails;
 
                     /**
                      * Encodes the specified DiffDetails message. Does not implicitly {@link cafe.jeffrey.flamegraph.proto.DiffDetails.verify|verify} messages.
@@ -1088,7 +1322,7 @@ export namespace cafe {
                      * @param [writer] Writer to encode to
                      * @returns Writer
                      */
-                    public static encode(message: cafe.jeffrey.flamegraph.proto.IDiffDetails, writer?: $protobuf.Writer): $protobuf.Writer;
+                    static encode(message: cafe.jeffrey.flamegraph.proto.DiffDetails.$Properties, writer?: $protobuf.Writer): $protobuf.Writer;
 
                     /**
                      * Encodes the specified DiffDetails message, length delimited. Does not implicitly {@link cafe.jeffrey.flamegraph.proto.DiffDetails.verify|verify} messages.
@@ -1096,40 +1330,40 @@ export namespace cafe {
                      * @param [writer] Writer to encode to
                      * @returns Writer
                      */
-                    public static encodeDelimited(message: cafe.jeffrey.flamegraph.proto.IDiffDetails, writer?: $protobuf.Writer): $protobuf.Writer;
+                    static encodeDelimited(message: cafe.jeffrey.flamegraph.proto.DiffDetails.$Properties, writer?: $protobuf.Writer): $protobuf.Writer;
 
                     /**
                      * Decodes a DiffDetails message from the specified reader or buffer.
                      * @param reader Reader or buffer to decode from
                      * @param [length] Message length if known beforehand
-                     * @returns DiffDetails
+                     * @returns {cafe.jeffrey.flamegraph.proto.DiffDetails & cafe.jeffrey.flamegraph.proto.DiffDetails.$Shape} DiffDetails
                      * @throws {Error} If the payload is not a reader or valid buffer
                      * @throws {$protobuf.util.ProtocolError} If required fields are missing
                      */
-                    public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): cafe.jeffrey.flamegraph.proto.DiffDetails;
+                    static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): cafe.jeffrey.flamegraph.proto.DiffDetails & cafe.jeffrey.flamegraph.proto.DiffDetails.$Shape;
 
                     /**
                      * Decodes a DiffDetails message from the specified reader or buffer, length delimited.
                      * @param reader Reader or buffer to decode from
-                     * @returns DiffDetails
+                     * @returns {cafe.jeffrey.flamegraph.proto.DiffDetails & cafe.jeffrey.flamegraph.proto.DiffDetails.$Shape} DiffDetails
                      * @throws {Error} If the payload is not a reader or valid buffer
                      * @throws {$protobuf.util.ProtocolError} If required fields are missing
                      */
-                    public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): cafe.jeffrey.flamegraph.proto.DiffDetails;
+                    static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): cafe.jeffrey.flamegraph.proto.DiffDetails & cafe.jeffrey.flamegraph.proto.DiffDetails.$Shape;
 
                     /**
                      * Verifies a DiffDetails message.
                      * @param message Plain object to verify
                      * @returns `null` if valid, otherwise the reason why it is not
                      */
-                    public static verify(message: { [k: string]: any }): (string|null);
+                    static verify(message: { [k: string]: any }): (string|null);
 
                     /**
                      * Creates a DiffDetails message from a plain object. Also converts values to their respective internal types.
                      * @param object Plain object
                      * @returns DiffDetails
                      */
-                    public static fromObject(object: { [k: string]: any }): cafe.jeffrey.flamegraph.proto.DiffDetails;
+                    static fromObject(object: { [k: string]: any }): cafe.jeffrey.flamegraph.proto.DiffDetails;
 
                     /**
                      * Creates a plain object from a DiffDetails message. Also converts values to other types if specified.
@@ -1137,20 +1371,51 @@ export namespace cafe {
                      * @param [options] Conversion options
                      * @returns Plain object
                      */
-                    public static toObject(message: cafe.jeffrey.flamegraph.proto.DiffDetails, options?: $protobuf.IConversionOptions): { [k: string]: any };
+                    static toObject(message: cafe.jeffrey.flamegraph.proto.DiffDetails, options?: $protobuf.IConversionOptions): { [k: string]: any };
 
                     /**
                      * Converts this DiffDetails to JSON.
                      * @returns JSON object
                      */
-                    public toJSON(): { [k: string]: any };
+                    toJSON(): { [k: string]: any };
 
                     /**
-                     * Gets the default type url for DiffDetails
-                     * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
-                     * @returns The default type url
+                     * Gets the type url for DiffDetails
+                     * @param [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                     * @returns The type url
                      */
-                    public static getTypeUrl(typeUrlPrefix?: string): string;
+                    static getTypeUrl(prefix?: string): string;
+                }
+
+                namespace DiffDetails {
+
+                    /** Properties of a DiffDetails. */
+                    interface $Properties {
+
+                        /** DiffDetails samples */
+                        samples?: (number|Long|null);
+
+                        /** DiffDetails weight */
+                        weight?: (number|Long|null);
+
+                        /** DiffDetails percentSamples */
+                        percentSamples?: (number|null);
+
+                        /** DiffDetails percentWeight */
+                        percentWeight?: (number|null);
+
+                        /** DiffDetails secondarySamples */
+                        secondarySamples?: (number|Long|null);
+
+                        /** DiffDetails secondaryWeight */
+                        secondaryWeight?: (number|Long|null);
+
+                        /** Unknown fields preserved while decoding when enabled */
+                        $unknowns?: Uint8Array[];
+                    }
+
+                    /** Shape of a DiffDetails. */
+                    type $Shape = cafe.jeffrey.flamegraph.proto.DiffDetails.$Properties;
                 }
             }
         }
