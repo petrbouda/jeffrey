@@ -33,6 +33,35 @@ export default class EventTypes {
   static NATIVE_MALLOC_ALLOCATION = 'profiler.Malloc';
   static NATIVE_LEAK = 'jeffrey.NativeLeak';
 
+  // pprof profiles carry one event type per sample-value dimension, namespaced `pprof.<type>`
+  // (matching the backend PprofEventTypeNaming). The dimension name drives which analysis cards
+  // a pprof event type lights up.
+  static PPROF_NAMESPACE = 'pprof.';
+  static PPROF_EXECUTION_TYPES = ['cpu', 'samples'];
+  static PPROF_WALL_TYPES = ['wall'];
+  static PPROF_ALLOCATION_TYPES = [
+    'alloc_space',
+    'alloc_objects',
+    'inuse_space',
+    'inuse_objects',
+    'allocations',
+    'space',
+    'alloc',
+    'inuse'
+  ];
+  static PPROF_BLOCKING_TYPES = ['contentions', 'delay', 'block', 'mutex'];
+
+  static isPprofEvent(code: string) {
+    return code != null && code.startsWith(this.PPROF_NAMESPACE);
+  }
+
+  private static isPprofOfType(code: string, types: string[]) {
+    if (!this.isPprofEvent(code)) {
+      return false;
+    }
+    return types.includes(code.substring(this.PPROF_NAMESPACE.length));
+  }
+
   static isObjectAllocationInNewTLAB(code: string) {
     return code === this.OBJECT_ALLOCATION_IN_NEW_TLAB;
   }
@@ -62,14 +91,15 @@ export default class EventTypes {
   }
 
   static isWallClock(code: string) {
-    return code === this.WALL_CLOCK;
+    return code === this.WALL_CLOCK || this.isPprofOfType(code, this.PPROF_WALL_TYPES);
   }
 
   static isAllocationEventType(code: string) {
     return (
       this.isObjectAllocationInNewTLAB(code) ||
       this.isObjectAllocationOutsideTLAB(code) ||
-      this.isObjectAllocationSample(code)
+      this.isObjectAllocationSample(code) ||
+      this.isPprofOfType(code, this.PPROF_ALLOCATION_TYPES)
     );
   }
 
@@ -78,7 +108,8 @@ export default class EventTypes {
       this.isJavaMonitorEnter(code) ||
       this.isJavaMonitorWait(code) ||
       this.isThreadPark(code) ||
-      this.isVirtualThreadPinned(code)
+      this.isVirtualThreadPinned(code) ||
+      this.isPprofOfType(code, this.PPROF_BLOCKING_TYPES)
     );
   }
 
@@ -92,7 +123,7 @@ export default class EventTypes {
   }
 
   static isExecutionEventType(code: string) {
-    return code === this.EXECUTION_SAMPLE;
+    return code === this.EXECUTION_SAMPLE || this.isPprofOfType(code, this.PPROF_EXECUTION_TYPES);
   }
 
   static isCpuTimeSample(code: string) {

@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -15,19 +15,15 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+module cafe.jeffrey.microscope.profile.parser.pprof {
+    requires transitive cafe.jeffrey.microscope.profile.persistence.api;
+    requires transitive cafe.jeffrey.shared.common;
+    requires cafe.jeffrey.microscope.profile.common;
+    requires com.google.protobuf;
+    requires tools.jackson.databind;
+    requires org.slf4j;
 
-enum RecordingFileType {
-  JFR_LZ4 = 'JFR_LZ4',
-  JFR = 'JFR',
-  HEAP_DUMP_GZ = 'HEAP_DUMP_GZ',
-  HEAP_DUMP = 'HEAP_DUMP',
-  ASPROF = 'ASPROF_TEMP',
-  PERF_COUNTERS = 'PERF_COUNTERS',
-  JVM_LOG = 'JVM_LOG',
-  HS_JVM_ERROR_LOG = 'HS_JVM_ERROR_LOG',
-  APP_LOG = 'APP_LOG',
-  PPROF = 'PPROF',
-  UNKNOWN = 'UNKNOWN'
+    // The vendored pprof protobuf classes (com.google.perftools.profiles.*) stay module-internal —
+    // only the parser entry points are part of the module's API.
+    exports cafe.jeffrey.pprofparser;
 }
-
-export default RecordingFileType;

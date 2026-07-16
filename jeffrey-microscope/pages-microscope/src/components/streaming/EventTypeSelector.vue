@@ -284,6 +284,10 @@ onBeforeUnmount(() => {
   background: var(--color-teal-light);
   color: var(--color-teal);
 }
+.ets-tag--pprof {
+  background: var(--color-emerald-light);
+  color: var(--color-emerald-text);
+}
 .ets-tag--custom {
   background: var(--color-amber-light);
   color: var(--color-amber-text);
@@ -390,6 +394,10 @@ onBeforeUnmount(() => {
 .ets-cat-badge--profiler {
   background: var(--color-teal-light);
   color: var(--color-teal);
+}
+.ets-cat-badge--pprof {
+  background: var(--color-emerald-light);
+  color: var(--color-emerald-text);
 }
 
 .ets-event-item {

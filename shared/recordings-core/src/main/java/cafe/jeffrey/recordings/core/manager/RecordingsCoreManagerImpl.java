@@ -327,6 +327,9 @@ public class RecordingsCoreManagerImpl implements RecordingsCoreManager {
         if (lower.endsWith(".hprof") || lower.endsWith(".hprof.gz")) {
             return RecordingEventSource.HEAP_DUMP;
         }
+        if (SupportedRecordingFile.of(filename) == SupportedRecordingFile.PPROF) {
+            return RecordingEventSource.PPROF;
+        }
         return RecordingEventSource.UNKNOWN;
     }
 }
