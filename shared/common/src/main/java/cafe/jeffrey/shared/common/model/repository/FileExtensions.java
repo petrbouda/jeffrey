@@ -30,5 +30,7 @@ public abstract class FileExtensions {
     public static final String JVM_LOG = "-jvm.log(.[0-9]+)?";
     public static final String HS_JVM_ERROR_LOG = "hs-jvm-err.log";
     public static final String APP_LOG = "-app.log(..+)?";
+    public static final String PPROF = "pprof";
+    public static final String PPROF_PB_GZ = "pb.gz";
 
 }

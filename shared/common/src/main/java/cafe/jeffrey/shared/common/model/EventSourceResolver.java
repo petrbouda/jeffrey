@@ -38,25 +38,35 @@ public final class EventSourceResolver {
     /**
      * Resolves the source of a single event type from its name.
      *
-     * @return {@link RecordingEventSource#ASYNC_PROFILER} for events in the {@code profiler.} namespace,
+     * @return {@link RecordingEventSource#PPROF} for events in the {@code pprof.} namespace,
+     * {@link RecordingEventSource#ASYNC_PROFILER} for events in the {@code profiler.} namespace,
      * otherwise {@link RecordingEventSource#JDK}
      */
     public static RecordingEventSource fromEventTypeName(String eventTypeName) {
-        return isAsyncProfilerEvent(eventTypeName)
-                ? RecordingEventSource.ASYNC_PROFILER
-                : RecordingEventSource.JDK;
+        if (isPprofEvent(eventTypeName)) {
+            return RecordingEventSource.PPROF;
+        }
+        if (isAsyncProfilerEvent(eventTypeName)) {
+            return RecordingEventSource.ASYNC_PROFILER;
+        }
+        return RecordingEventSource.JDK;
     }
 
     /**
      * Resolves the recording-level source from the set of event type names it contains. A recording is
-     * treated as async-profiler as soon as a single {@code profiler.} event is present.
+     * treated as pprof as soon as a single {@code pprof.} event is present, then as async-profiler as
+     * soon as a single {@code profiler.} event is present.
      *
-     * @return {@link RecordingEventSource#ASYNC_PROFILER} if any name is in the {@code profiler.} namespace,
+     * @return {@link RecordingEventSource#PPROF} if any name is in the {@code pprof.} namespace,
+     * {@link RecordingEventSource#ASYNC_PROFILER} if any name is in the {@code profiler.} namespace,
      * otherwise {@link RecordingEventSource#JDK}
      */
     public static RecordingEventSource fromEventTypeNames(Collection<String> eventTypeNames) {
         if (eventTypeNames == null) {
             return RecordingEventSource.JDK;
+        }
+        if (eventTypeNames.stream().anyMatch(EventSourceResolver::isPprofEvent)) {
+            return RecordingEventSource.PPROF;
         }
         boolean anyAsyncProfiler = eventTypeNames.stream().anyMatch(EventSourceResolver::isAsyncProfilerEvent);
         return anyAsyncProfiler ? RecordingEventSource.ASYNC_PROFILER : RecordingEventSource.JDK;
@@ -67,5 +77,12 @@ public final class EventSourceResolver {
      */
     public static boolean isAsyncProfilerEvent(String eventTypeName) {
         return eventTypeName != null && eventTypeName.startsWith(EventTypeName.ASYNC_PROFILER_NAMESPACE);
+    }
+
+    /**
+     * @return {@code true} if the event type belongs to the pprof ({@code pprof.}) namespace
+     */
+    public static boolean isPprofEvent(String eventTypeName) {
+        return eventTypeName != null && eventTypeName.startsWith(EventTypeName.PPROF_NAMESPACE);
     }
 }

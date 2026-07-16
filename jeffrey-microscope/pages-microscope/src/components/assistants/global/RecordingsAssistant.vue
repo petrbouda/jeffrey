@@ -67,7 +67,7 @@
           <input
             ref="fileInputRef"
             type="file"
-            accept=".jfr,.lz4,.hprof,.gz"
+            accept=".jfr,.lz4,.hprof,.gz,.pprof,.pb.gz"
             class="file-input-hidden"
             @change="handleFileSelect"
           />
@@ -75,9 +75,9 @@
           <!-- Default state -->
           <template v-if="!isProcessing && !selectedFile">
             <i class="bi bi-cloud-upload dropzone-icon"></i>
-            <span class="dropzone-text">Drop your JFR or Heap Dump file here</span>
+            <span class="dropzone-text">Drop your JFR, pprof or Heap Dump file here</span>
             <span class="dropzone-subtext"
-              >or click to select (.jfr, .jfr.lz4, .hprof, .hprof.gz)</span
+              >or click to select (.jfr, .jfr.lz4, .pprof, .pb.gz, .hprof, .hprof.gz)</span
             >
           </template>
 

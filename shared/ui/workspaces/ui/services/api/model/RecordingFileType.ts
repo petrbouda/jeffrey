@@ -26,6 +26,7 @@ enum RecordingFileType {
   JVM_LOG = 'JVM_LOG',
   HS_JVM_ERROR_LOG = 'HS_JVM_ERROR_LOG',
   APP_LOG = 'APP_LOG',
+  PPROF = 'PPROF',
   UNKNOWN = 'UNKNOWN'
 }
 

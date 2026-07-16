@@ -276,6 +276,11 @@ interface Props {
   hideMethod?: boolean;
   hideNative?: boolean;
   hideBlocking?: boolean;
+  // Suppress the greyed "No data" placeholder cards for empty categories. JFR profiles keep them so
+  // the full set of standard categories stays visible; non-JFR profiles (e.g. pprof, which only ever
+  // carries a subset like Execution or Allocation) pass this true so empty JFR categories don't clutter
+  // the grid with irrelevant placeholders.
+  suppressEmptyPlaceholders?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -307,6 +312,9 @@ const showBlockingEvents = computed(() => !props.hideBlocking && isFlamegraphRou
 function withPlaceholder(events: EventSummary[], code: string, label: string): EventSummary[] {
   if (events.length > 0) {
     return events;
+  }
+  if (props.suppressEmptyPlaceholders) {
+    return [];
   }
   return [
     new EventSummary(

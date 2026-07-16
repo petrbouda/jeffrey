@@ -34,6 +34,7 @@ import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
 import cafe.jeffrey.profile.ProfileInitializer;
 import cafe.jeffrey.profile.configuration.ProfilesConfiguration;
 import cafe.jeffrey.profile.manager.ProfileManager;
+import cafe.jeffrey.profile.parser.FileTypeDispatchingRecordingInformationParser;
 import cafe.jeffrey.profile.parser.JfrRecordingInformationParser;
 import cafe.jeffrey.provider.profile.api.DatabaseManagerResolver;
 import cafe.jeffrey.provider.profile.jdbc.DatabaseManagerResolverImpl;
@@ -192,7 +193,8 @@ public class AppConfiguration {
     @Bean
     public RecordingStorage projectRecordingStorage(MicroscopeJeffreyDirs jeffreyDirs) {
         return new FilesystemRecordingStorage(
-                jeffreyDirs.recordings(), List.of(SupportedRecordingFile.JFR_LZ4, SupportedRecordingFile.JFR));
+                jeffreyDirs.recordings(),
+                List.of(SupportedRecordingFile.JFR_LZ4, SupportedRecordingFile.JFR, SupportedRecordingFile.PPROF));
     }
 
     @Bean
@@ -208,6 +210,6 @@ public class AppConfiguration {
                 projectInfo,
                 recordingStorage.projectRecordingStorage(projectInfo.id()),
                 localCoreRepositories.newRecordingRepository(projectInfo.id()),
-                new JfrRecordingInformationParser(jeffreyDirs));
+                new FileTypeDispatchingRecordingInformationParser(new JfrRecordingInformationParser(jeffreyDirs)));
     }
 }

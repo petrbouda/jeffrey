@@ -84,6 +84,13 @@ public enum SupportedRecordingFile {
             new AppLogFileMatcher(),
             FileCategory.ARTIFACT
     ),
+    PPROF(
+            "pprof Profile",
+            FileExtensions.PPROF,
+            filename -> filename.endsWith("." + FileExtensions.PPROF)
+                    || filename.endsWith("." + FileExtensions.PPROF_PB_GZ),
+            FileCategory.RECORDING
+    ),
     UNKNOWN(
             "Unsupported File Type",
             null,

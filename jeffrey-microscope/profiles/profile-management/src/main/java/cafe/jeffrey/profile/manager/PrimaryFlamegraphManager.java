@@ -78,6 +78,14 @@ public class PrimaryFlamegraphManager implements FlamegraphManager {
     }
 
     @Override
+    public List<EventSummaryResult> allEventSummaries() {
+        return eventTypeRepository.eventSummaries().stream()
+                .filter(eventSummary -> eventSummary.samples() > 0)
+                .map(EventSummaryResult::new)
+                .toList();
+    }
+
+    @Override
     public byte[] generate(GraphParameters params) {
         LOG.debug("Generating flamegraph: eventType={} graphType={}", params.eventType(), params.graphType());
         long startTime = System.nanoTime();

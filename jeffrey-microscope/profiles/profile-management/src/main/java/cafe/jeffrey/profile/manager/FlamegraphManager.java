@@ -40,6 +40,13 @@ public interface FlamegraphManager {
     List<EventSummaryResult> eventSummaries();
 
     /**
+     * Summaries for <em>every</em> event type present in the profile, not just the curated JFR
+     * {@code SUPPORTED_EVENTS} set. Used by format-specific views (e.g. pprof) whose event types are
+     * not part of the JFR {@code Type} enum and would otherwise be filtered out.
+     */
+    List<EventSummaryResult> allEventSummaries();
+
+    /**
      * Per-event-type summaries scoped to the union of the given span (thread, window) intervals, so the
      * span flamegraph cards show the real sample/weight counts those spans cover (not profile-wide totals).
      *

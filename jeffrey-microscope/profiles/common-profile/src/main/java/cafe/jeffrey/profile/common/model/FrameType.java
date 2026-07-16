@@ -114,6 +114,14 @@ public enum FrameType {
         throw new RuntimeException("Frame type does not exists: " + code);
     }
 
+    /**
+     * @return the persisted string code of the frame type (e.g. {@code "Native"}), or {@code null}
+     * for synthetic frame types that are never emitted by a parser
+     */
+    public String code() {
+        return code;
+    }
+
     public boolean isSynthetic() {
         return synthetic;
     }

@@ -35,5 +35,6 @@
         <module>jfr-parser-api</module>
         <module>jdk-jfr-parser</module>
         <module>raw-jfr-parser</module>
+        <module>pprof-parser</module>
     </modules>
 </project>

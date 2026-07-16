@@ -5,14 +5,15 @@ export interface EventTypeEntry {
 
 export interface EventTypeCategory {
   label: string;
-  badge: 'jdk' | 'jeffrey' | 'profiler';
+  badge: 'jdk' | 'jeffrey' | 'profiler' | 'pprof';
   events: EventTypeEntry[];
 }
 
-export function getEventTypePrefix(name: string): 'jdk' | 'jeffrey' | 'profiler' | 'custom' {
+export function getEventTypePrefix(name: string): 'jdk' | 'jeffrey' | 'profiler' | 'pprof' | 'custom' {
   if (name.startsWith('jdk.')) return 'jdk';
   if (name.startsWith('jeffrey.')) return 'jeffrey';
   if (name.startsWith('profiler.')) return 'profiler';
+  if (name.startsWith('pprof.')) return 'pprof';
   return 'custom';
 }
 
@@ -425,6 +426,22 @@ const EVENT_TYPE_CATALOG: EventTypeCategory[] = [
       { name: 'profiler.Malloc', description: 'Native allocations' },
       { name: 'profiler.Free', description: 'Native deallocations' },
       { name: 'profiler.LiveObject', description: 'Live objects' }
+    ]
+  },
+  // ── pprof ──
+  {
+    label: 'pprof',
+    badge: 'pprof',
+    events: [
+      { name: 'pprof.cpu', description: 'CPU time (pprof)' },
+      { name: 'pprof.samples', description: 'Execution samples (pprof)' },
+      { name: 'pprof.wall', description: 'Wall clock (pprof)' },
+      { name: 'pprof.alloc_space', description: 'Allocated space (pprof)' },
+      { name: 'pprof.alloc_objects', description: 'Allocated objects (pprof)' },
+      { name: 'pprof.inuse_space', description: 'In-use space (pprof)' },
+      { name: 'pprof.inuse_objects', description: 'In-use objects (pprof)' },
+      { name: 'pprof.contentions', description: 'Lock contentions (pprof)' },
+      { name: 'pprof.delay', description: 'Lock delay (pprof)' }
     ]
   }
 ];

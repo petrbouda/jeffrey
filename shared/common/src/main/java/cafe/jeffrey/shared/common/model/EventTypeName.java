@@ -26,6 +26,12 @@ public abstract class EventTypeName {
      */
     public static final String ASYNC_PROFILER_NAMESPACE = "profiler.";
 
+    /**
+     * Namespace prefix for every event type synthesized from a pprof recording
+     * (e.g. {@code pprof.cpu}, {@code pprof.alloc_space}). Used to classify the recording source.
+     */
+    public static final String PPROF_NAMESPACE = "pprof.";
+
     public static final String EXECUTION_SAMPLE = "jdk.ExecutionSample";
     public static final String CPU_TIME_SAMPLE = "jdk.CPUTimeSample";
     public static final String CPU_TIME_SAMPLES_LOST = "jdk.CPUTimeSamplesLost";

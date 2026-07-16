@@ -95,6 +95,24 @@ public class DiffFlamegraphManagerImpl implements FlamegraphManager {
                 "Span-scoped event summaries are not supported for differential flamegraphs");
     }
 
+    @Override
+    public List<EventSummaryResult> allEventSummaries() {
+        List<EventSummary> primaryEvents = primaryEventTypeRepository.eventSummaries().stream()
+                .filter(eventSummary -> eventSummary.samples() > 0)
+                .toList();
+
+        List<EventSummary> secondaryEvents = secondaryEventTypeRepository.eventSummaries().stream()
+                .filter(eventSummary -> eventSummary.samples() > 0)
+                .toList();
+
+        List<EventSummaryResult> results = new ArrayList<>();
+        for (EventSummary primary : primaryEvents) {
+            findEventType(secondaryEvents, primary.name())
+                    .ifPresent(secondary -> results.add(new EventSummaryResult(primary, secondary)));
+        }
+        return results;
+    }
+
     private static Optional<EventSummary> findEventType(List<EventSummary> secondary, String eventType) {
         return secondary.stream()
                 .filter(e -> eventType.equals(e.name()))
