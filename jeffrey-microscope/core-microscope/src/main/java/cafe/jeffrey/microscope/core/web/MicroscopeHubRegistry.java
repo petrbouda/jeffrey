@@ -20,8 +20,8 @@ package cafe.jeffrey.microscope.core.web;
 
 import cafe.jeffrey.microscope.core.manager.server.HubManager;
 import cafe.jeffrey.microscope.core.manager.server.HubsManager;
-import cafe.jeffrey.microscope.persistence.api.HubAddress;
-import cafe.jeffrey.microscope.persistence.api.HubInfo;
+import cafe.jeffrey.shared.common.model.hub.HubAddress;
+import cafe.jeffrey.shared.common.model.hub.HubInfo;
 import cafe.jeffrey.shared.ui.workspace.bridge.HubRegistry;
 
 import java.util.List;

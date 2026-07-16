@@ -35,6 +35,7 @@ module cafe.jeffrey.shared.common {
     exports cafe.jeffrey.shared.common.jfr;
     exports cafe.jeffrey.shared.common.measure;
     exports cafe.jeffrey.shared.common.model;
+    exports cafe.jeffrey.shared.common.model.hub;
     exports cafe.jeffrey.shared.common.model.job;
     exports cafe.jeffrey.shared.common.model.repository;
     exports cafe.jeffrey.shared.common.model.repository.matcher;

@@ -25,8 +25,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.microscope.core.manager.project.ProjectManager;
-import cafe.jeffrey.microscope.core.resources.request.ProjectSettingsUpdateRequest;
-import cafe.jeffrey.microscope.core.resources.response.ProjectSettingsResponse;
+import cafe.jeffrey.microscope.core.web.dto.request.ProjectSettingsUpdateRequest;
+import cafe.jeffrey.microscope.core.web.dto.response.ProjectSettingsResponse;
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
 
 @RestController

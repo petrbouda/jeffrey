@@ -32,7 +32,6 @@ import cafe.jeffrey.microscope.persistence.jdbc.DuckDBMicroscopeCorePersistenceP
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCorePersistenceProvider;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
 import cafe.jeffrey.profile.ProfileInitializer;
-import cafe.jeffrey.profile.configuration.ProfileFactoriesConfiguration;
 import cafe.jeffrey.profile.configuration.ProfilesConfiguration;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.profile.parser.JfrRecordingInformationParser;
@@ -180,12 +179,12 @@ public class AppConfiguration {
                         profileInitializer);
     }
 
-    @Bean(ProfileFactoriesConfiguration.PROFILES_PATH)
+    @Bean(ProfilesConfiguration.PROFILES_PATH)
     public Path profilesPath(MicroscopeJeffreyDirs jeffreyDirs) {
         return jeffreyDirs.profiles();
     }
 
-    @Bean(ProfileFactoriesConfiguration.RECORDINGS_PATH)
+    @Bean(ProfilesConfiguration.RECORDINGS_PATH)
     public Path recordingsPath(MicroscopeJeffreyDirs jeffreyDirs) {
         return jeffreyDirs.recordings();
     }

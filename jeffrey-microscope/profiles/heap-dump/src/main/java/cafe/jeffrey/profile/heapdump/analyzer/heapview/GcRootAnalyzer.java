@@ -21,8 +21,8 @@ import java.sql.SQLException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import cafe.jeffrey.profile.heapdump.model.GCRootSummary;
-import cafe.jeffrey.profile.heapdump.parser.HeapView;
-import cafe.jeffrey.profile.heapdump.parser.HprofTag;
+import cafe.jeffrey.profile.heapdump.view.HeapView;
+import cafe.jeffrey.profile.heapdump.view.HprofTag;
 import cafe.jeffrey.profile.heapdump.persistence.HeapDumpStatement;
 
 /**

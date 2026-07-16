@@ -35,6 +35,9 @@ import org.junit.jupiter.api.io.TempDir;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import cafe.jeffrey.profile.heapdump.persistence.HeapDumpIndexDb;
+import cafe.jeffrey.profile.heapdump.persistence.HeapDumpIndexPaths;
+import cafe.jeffrey.profile.heapdump.view.HprofTag;
 
 class HprofIndexTest {
 

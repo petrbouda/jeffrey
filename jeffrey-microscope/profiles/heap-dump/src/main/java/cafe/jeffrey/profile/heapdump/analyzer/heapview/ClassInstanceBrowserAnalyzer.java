@@ -29,9 +29,9 @@ import java.util.Map;
 import cafe.jeffrey.profile.heapdump.model.ClassInstanceEntry;
 import cafe.jeffrey.profile.heapdump.model.ClassInstancesResponse;
 import cafe.jeffrey.profile.heapdump.model.InstanceSortBy;
-import cafe.jeffrey.profile.heapdump.parser.HeapView;
-import cafe.jeffrey.profile.heapdump.parser.InstanceFieldValue;
-import cafe.jeffrey.profile.heapdump.parser.JavaClassRow;
+import cafe.jeffrey.profile.heapdump.view.HeapView;
+import cafe.jeffrey.profile.heapdump.view.InstanceFieldValue;
+import cafe.jeffrey.profile.heapdump.view.JavaClassRow;
 
 /**
  * HeapView-backed equivalent of

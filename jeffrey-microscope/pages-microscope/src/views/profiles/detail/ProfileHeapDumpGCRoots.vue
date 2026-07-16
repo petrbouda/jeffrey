@@ -229,6 +229,7 @@ import GCRootsLeakHints from '@/components/gcroots/GCRootsLeakHints.vue';
 import HeapDumpClient from '@/services/api/HeapDumpClient';
 import GCRootSummary from '@/services/api/model/GCRootSummary';
 import FormattingService from '@shared/services/FormattingService';
+import ChartColors from '@shared/services/ChartColors';
 
 const route = useRoute();
 const router = useRouter();
@@ -267,18 +268,7 @@ const openInstanceDetailPanel = (objectId: number) => {
   detailPanelOpen.value = true;
 };
 
-const rootTypeColors = [
-  '#4285F4',
-  '#EA4335',
-  '#FBBC05',
-  '#34A853',
-  '#9C27B0',
-  '#FF5722',
-  '#00BCD4',
-  '#795548',
-  '#607D8B',
-  '#E91E63'
-];
+const rootTypeColors = ChartColors.chartPalette(10);
 
 const analysisTabs = [
   { id: 'overview', label: 'Overview', icon: 'pie-chart' },

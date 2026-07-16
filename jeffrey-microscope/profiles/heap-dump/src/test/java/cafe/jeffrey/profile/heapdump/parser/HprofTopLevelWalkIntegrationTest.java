@@ -34,6 +34,7 @@ import java.time.ZoneOffset;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import cafe.jeffrey.profile.heapdump.persistence.HeapDumpIndexPaths;
 
 /**
  * End-to-end coverage of {@link HprofTopLevelWalk}: drives every kind of

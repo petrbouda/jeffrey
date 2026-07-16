@@ -20,8 +20,8 @@ package cafe.jeffrey.profile.heapdump.analyzer.heapview;
 import java.sql.SQLException;
 import java.time.Instant;
 import cafe.jeffrey.profile.heapdump.model.HeapSummary;
-import cafe.jeffrey.profile.heapdump.parser.DumpMetadata;
-import cafe.jeffrey.profile.heapdump.parser.HeapView;
+import cafe.jeffrey.profile.heapdump.view.DumpMetadata;
+import cafe.jeffrey.profile.heapdump.view.HeapView;
 
 /**
  * HeapView-backed equivalent of

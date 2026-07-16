@@ -31,6 +31,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import cafe.jeffrey.profile.heapdump.persistence.HeapDumpIndexPaths;
+import cafe.jeffrey.profile.heapdump.view.HeapView;
+import cafe.jeffrey.profile.heapdump.view.HprofTag;
+import cafe.jeffrey.profile.heapdump.view.InstanceRow;
 
 /**
  * Covers the shallow-size accounting in {@link HprofIndex}:

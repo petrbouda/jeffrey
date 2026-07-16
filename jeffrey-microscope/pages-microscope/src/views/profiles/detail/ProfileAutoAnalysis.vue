@@ -19,6 +19,8 @@
 <template>
   <LoadingState v-if="loading" message="Loading auto analysis..." />
 
+  <ErrorState v-else-if="loadError" :message="loadError" />
+
   <div v-else>
     <PageHeader title="Auto Analysis" icon="bi-robot">
       <!-- Idle State: Hero CTA -->
@@ -199,6 +201,7 @@
 </template>
 
 <script setup lang="ts">
+import ChartColors from '@shared/services/ChartColors';
 import { computed, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
 
@@ -206,6 +209,7 @@ import AutoAnalysisClient from '@/services/api/AutoAnalysisClient';
 import AnalysisResult from '@/services/api/model/AnalysisResult';
 import PageHeader from '@shared/components/layout/PageHeader.vue';
 import LoadingState from '@shared/components/LoadingState.vue';
+import ErrorState from '@shared/components/ErrorState.vue';
 import DataTable from '@shared/components/table/DataTable.vue';
 import TableToolbar from '@shared/components/table/TableToolbar.vue';
 import Badge from '@shared/components/Badge.vue';
@@ -219,6 +223,7 @@ type Phase = 'idle' | 'running' | 'results' | 'error';
 
 const rules = ref<AnalysisResult[]>([]);
 const loading = ref(true);
+const loadError = ref<string | null>(null);
 const phase = ref<Phase>('idle');
 const errorMessage = ref('');
 
@@ -262,10 +267,26 @@ const severityCounts = computed(() => ({
 
 const chartData = computed<DonutChartData>(() => {
   const items = [
-    { label: 'Passed', count: severityCounts.value.ok, color: '#28a745' },
-    { label: 'Warnings', count: severityCounts.value.warning, color: '#dc3545' },
-    { label: 'Info', count: severityCounts.value.info, color: '#0d6efd' },
-    { label: 'N/A', count: severityCounts.value.na, color: '#6c757d' }
+    {
+      label: 'Passed',
+      count: severityCounts.value.ok,
+      color: ChartColors.chartColor('color-success')
+    },
+    {
+      label: 'Warnings',
+      count: severityCounts.value.warning,
+      color: ChartColors.chartColor('color-danger')
+    },
+    {
+      label: 'Info',
+      count: severityCounts.value.info,
+      color: ChartColors.chartColor('color-accent-blue')
+    },
+    {
+      label: 'N/A',
+      count: severityCounts.value.na,
+      color: ChartColors.chartColor('color-text-muted')
+    }
   ].filter(i => i.count > 0);
 
   return {
@@ -293,8 +314,9 @@ onMounted(async () => {
     } else {
       phase.value = 'idle';
     }
-  } catch {
-    phase.value = 'idle';
+  } catch (err) {
+    console.error('Failed to load auto analysis rules:', err);
+    loadError.value = err instanceof Error ? err.message : 'Failed to load auto analysis rules';
   } finally {
     loading.value = false;
   }
@@ -363,16 +385,16 @@ function getSeverityTextClass(severity: string): string {
 function getSeverityColor(severity: string): string {
   switch (severity) {
     case 'OK':
-      return '#198754';
+      return ChartColors.chartColor('color-success');
     case 'WARNING':
-      return '#dc3545';
+      return ChartColors.chartColor('color-danger');
     case 'INFO':
-      return '#0d6efd';
+      return ChartColors.chartColor('color-accent-blue');
     case 'NA':
     case 'IGNORE':
-      return '#6c757d';
+      return ChartColors.chartColor('color-text-muted');
     default:
-      return '#6c757d';
+      return ChartColors.chartColor('color-text-muted');
   }
 }
 </script>

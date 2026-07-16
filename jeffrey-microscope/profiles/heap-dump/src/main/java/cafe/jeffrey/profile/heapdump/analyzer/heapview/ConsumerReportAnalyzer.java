@@ -29,7 +29,7 @@ import java.util.Map;
 import cafe.jeffrey.profile.heapdump.model.ComponentEntry;
 import cafe.jeffrey.profile.heapdump.model.ConsumerEntry;
 import cafe.jeffrey.profile.heapdump.model.ConsumerReport;
-import cafe.jeffrey.profile.heapdump.parser.HeapView;
+import cafe.jeffrey.profile.heapdump.view.HeapView;
 
 /**
  * HeapView-backed equivalent of

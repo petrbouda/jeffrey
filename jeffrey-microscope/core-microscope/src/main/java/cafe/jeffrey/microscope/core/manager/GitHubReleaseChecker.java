@@ -22,7 +22,7 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import cafe.jeffrey.microscope.core.resources.response.UpdateCheckResult;
+import cafe.jeffrey.microscope.core.web.dto.response.UpdateCheckResult;
 import cafe.jeffrey.shared.common.SemanticVersion;
 
 import java.net.URI;

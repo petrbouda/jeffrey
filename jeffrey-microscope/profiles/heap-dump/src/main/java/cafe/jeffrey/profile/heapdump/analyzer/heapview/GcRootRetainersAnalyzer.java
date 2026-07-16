@@ -23,8 +23,8 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import cafe.jeffrey.profile.heapdump.model.GCRootRetainer;
-import cafe.jeffrey.profile.heapdump.parser.HeapView;
-import cafe.jeffrey.profile.heapdump.parser.HprofTag;
+import cafe.jeffrey.profile.heapdump.view.HeapView;
+import cafe.jeffrey.profile.heapdump.view.HprofTag;
 
 /**
  * Ranks individual GC roots by retained size — the "Top Retainers" view.

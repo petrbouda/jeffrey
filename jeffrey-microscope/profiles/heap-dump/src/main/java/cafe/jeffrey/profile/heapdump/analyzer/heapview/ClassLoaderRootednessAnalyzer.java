@@ -24,7 +24,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import cafe.jeffrey.profile.heapdump.model.ClassLoaderHierarchyEdge;
-import cafe.jeffrey.profile.heapdump.parser.HeapView;
+import cafe.jeffrey.profile.heapdump.view.HeapView;
 
 /**
  * Computes the set of loaders that are <em>effectively</em> rooted — i.e.

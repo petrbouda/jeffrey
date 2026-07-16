@@ -19,7 +19,7 @@ package cafe.jeffrey.profile.heapdump.oql.function;
 
 import cafe.jeffrey.profile.heapdump.analyzer.heapview.PathToGCRootAnalyzer;
 import cafe.jeffrey.profile.heapdump.model.GCRootPath;
-import cafe.jeffrey.profile.heapdump.parser.HeapView;
+import cafe.jeffrey.profile.heapdump.view.HeapView;
 
 import java.sql.SQLException;
 import java.util.List;

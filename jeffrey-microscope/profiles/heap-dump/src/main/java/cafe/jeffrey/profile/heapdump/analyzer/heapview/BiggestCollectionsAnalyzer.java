@@ -30,10 +30,10 @@ import java.util.PriorityQueue;
 import java.util.Set;
 import cafe.jeffrey.profile.heapdump.model.BiggestCollectionEntry;
 import cafe.jeffrey.profile.heapdump.model.BiggestCollectionsReport;
-import cafe.jeffrey.profile.heapdump.parser.HeapView;
-import cafe.jeffrey.profile.heapdump.parser.HprofTypeSize;
-import cafe.jeffrey.profile.heapdump.parser.InstanceFieldDescriptor;
-import cafe.jeffrey.profile.heapdump.parser.JavaClassRow;
+import cafe.jeffrey.profile.heapdump.view.HeapView;
+import cafe.jeffrey.profile.heapdump.view.HprofTypeSize;
+import cafe.jeffrey.profile.heapdump.view.InstanceFieldDescriptor;
+import cafe.jeffrey.profile.heapdump.view.JavaClassRow;
 
 /**
  * Bulk-SQL analyzer that finds the biggest individual collections in the heap,
@@ -53,7 +53,7 @@ import cafe.jeffrey.profile.heapdump.parser.JavaClassRow;
  *
  * <p>Requires the dominator tree to have been built so {@code retained_size} is
  * populated; callers should invoke
- * {@link cafe.jeffrey.profile.heapdump.parser.HeapDumpSession#buildDominatorTreeIfNeeded()}
+ * {@link cafe.jeffrey.profile.heapdump.persistence.HeapDumpSession#buildDominatorTreeIfNeeded()}
  * before calling this analyzer.
  *
  * <p>Supported shapes:

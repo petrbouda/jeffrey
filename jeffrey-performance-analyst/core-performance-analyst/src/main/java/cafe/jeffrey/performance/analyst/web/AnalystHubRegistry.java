@@ -20,8 +20,8 @@ package cafe.jeffrey.performance.analyst.web;
 
 import cafe.jeffrey.performance.analyst.manager.HubManager;
 import cafe.jeffrey.performance.analyst.manager.HubsManager;
-import cafe.jeffrey.microscope.persistence.api.HubAddress;
-import cafe.jeffrey.microscope.persistence.api.HubInfo;
+import cafe.jeffrey.shared.common.model.hub.HubAddress;
+import cafe.jeffrey.shared.common.model.hub.HubInfo;
 import cafe.jeffrey.shared.ui.workspace.bridge.HubRegistry;
 
 import java.util.List;

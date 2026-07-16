@@ -25,7 +25,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
-import cafe.jeffrey.profile.manager.NativeMemoryManager;
+import cafe.jeffrey.profile.manager.memory.NativeMemoryManager;
 import cafe.jeffrey.profile.manager.model.nativememory.NativeLibraryActivityData;
 import cafe.jeffrey.profile.manager.model.nativememory.NativeLibraryInfo;
 import cafe.jeffrey.profile.manager.model.nativememory.NativeMemoryOverview;

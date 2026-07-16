@@ -19,6 +19,8 @@
 <template>
   <LoadingState v-if="loading" message="Loading guardian analysis..." />
 
+  <ErrorState v-else-if="error" :message="error" />
+
   <div v-else>
     <PageHeader
       title="Guardian Analysis"
@@ -254,6 +256,7 @@
 </template>
 
 <script setup lang="ts">
+import ChartColors from '@shared/services/ChartColors';
 import { computed, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
 
@@ -272,6 +275,7 @@ import FullGraphUpdater from '@/services/flamegraphs/updater/FullGraphUpdater';
 import TimeseriesEventAxeFormatter from '@/services/timeseries/TimeseriesEventAxeFormatter';
 import PageHeader from '@shared/components/layout/PageHeader.vue';
 import LoadingState from '@shared/components/LoadingState.vue';
+import ErrorState from '@shared/components/ErrorState.vue';
 import GenericModal from '@shared/components/GenericModal.vue';
 import DualPanel from '@shared/components/DualPanel.vue';
 import DonutWithLegend from '@shared/components/DonutWithLegend.vue';
@@ -294,6 +298,7 @@ const route = useRoute();
 // Data
 const guards = ref<GuardResponse[]>([]);
 const loading = ref(true);
+const error = ref<string | null>(null);
 
 // Filter State
 const groupFilter = ref('');
@@ -401,10 +406,26 @@ const severityCounts = computed(() => ({
 // Computed: Chart data for DonutWithLegend
 const chartData = computed<DonutChartData>(() => {
   const items = [
-    { label: 'Passed', count: severityCounts.value.ok, color: '#28a745' },
-    { label: 'Warnings', count: severityCounts.value.warning, color: '#dc3545' },
-    { label: 'Info', count: severityCounts.value.info, color: '#0d6efd' },
-    { label: 'N/A', count: severityCounts.value.na, color: '#6c757d' }
+    {
+      label: 'Passed',
+      count: severityCounts.value.ok,
+      color: ChartColors.chartColor('color-success')
+    },
+    {
+      label: 'Warnings',
+      count: severityCounts.value.warning,
+      color: ChartColors.chartColor('color-danger')
+    },
+    {
+      label: 'Info',
+      count: severityCounts.value.info,
+      color: ChartColors.chartColor('color-accent-blue')
+    },
+    {
+      label: 'N/A',
+      count: severityCounts.value.na,
+      color: ChartColors.chartColor('color-text-muted')
+    }
   ].filter(i => i.count > 0);
 
   return {
@@ -422,16 +443,15 @@ const chartData = computed<DonutChartData>(() => {
 });
 
 // Lifecycle
-onMounted(() => {
-  new GuardianClient(route.params.profileId as string)
-    .list()
-    .then((data: GuardResponse[]) => {
-      guards.value = data;
-      loading.value = false;
-    })
-    .catch(() => {
-      loading.value = false;
-    });
+onMounted(async () => {
+  try {
+    guards.value = await new GuardianClient(route.params.profileId as string).list();
+  } catch (err) {
+    console.error('Failed to load guardian analysis:', err);
+    error.value = err instanceof Error ? err.message : 'Failed to load guardian analysis';
+  } finally {
+    loading.value = false;
+  }
 });
 
 // Helper Functions
@@ -485,16 +505,16 @@ function getSeverityTextClass(severity: string): string {
 function getSeverityColor(severity: string): string {
   switch (severity) {
     case 'OK':
-      return '#198754';
+      return ChartColors.chartColor('color-success');
     case 'WARNING':
-      return '#dc3545';
+      return ChartColors.chartColor('color-danger');
     case 'INFO':
-      return '#0d6efd';
+      return ChartColors.chartColor('color-accent-blue');
     case 'NA':
     case 'IGNORE':
-      return '#6c757d';
+      return ChartColors.chartColor('color-text-muted');
     default:
-      return '#6c757d';
+      return ChartColors.chartColor('color-text-muted');
   }
 }
 

@@ -22,8 +22,8 @@ import tools.jackson.databind.JsonNode;
 import cafe.jeffrey.shared.common.model.Type;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
 import cafe.jeffrey.shared.common.model.time.RelativeTimeRange;
-import cafe.jeffrey.generator.subsecond.db.SubSecondConfig;
-import cafe.jeffrey.generator.subsecond.db.api.SubSecondGenerator;
+import cafe.jeffrey.subsecond.db.SubSecondConfig;
+import cafe.jeffrey.subsecond.db.api.SubSecondGenerator;
 
 import java.time.Duration;
 

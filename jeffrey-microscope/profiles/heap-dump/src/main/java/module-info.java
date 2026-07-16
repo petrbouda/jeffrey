@@ -30,5 +30,6 @@ module cafe.jeffrey.microscope.profile.heapdump {
     exports cafe.jeffrey.profile.heapdump.analyzer.heapview;
     exports cafe.jeffrey.profile.heapdump.model;
     exports cafe.jeffrey.profile.heapdump.parser;
+    exports cafe.jeffrey.profile.heapdump.view;
     exports cafe.jeffrey.profile.heapdump.persistence;
 }

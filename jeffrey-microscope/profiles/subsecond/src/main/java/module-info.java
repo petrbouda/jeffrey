@@ -22,6 +22,6 @@ module cafe.jeffrey.microscope.profile.subsecond {
     requires org.eclipse.collections.api;
     requires tools.jackson.databind;
 
-    exports cafe.jeffrey.generator.subsecond.db;
-    exports cafe.jeffrey.generator.subsecond.db.api;
+    exports cafe.jeffrey.subsecond.db;
+    exports cafe.jeffrey.subsecond.db.api;
 }

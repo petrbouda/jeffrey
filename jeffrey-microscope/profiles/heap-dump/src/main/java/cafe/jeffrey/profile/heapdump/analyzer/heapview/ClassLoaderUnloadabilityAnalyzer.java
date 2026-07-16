@@ -30,7 +30,7 @@ import cafe.jeffrey.profile.heapdump.model.BlockingClass;
 import cafe.jeffrey.profile.heapdump.model.ClassLoaderHierarchyEdge;
 import cafe.jeffrey.profile.heapdump.model.ClassLoaderUnloadability;
 import cafe.jeffrey.profile.heapdump.model.UnloadabilityVerdict;
-import cafe.jeffrey.profile.heapdump.parser.HeapView;
+import cafe.jeffrey.profile.heapdump.view.HeapView;
 
 /**
  * Answers, for every class loader, the question "could this loader be

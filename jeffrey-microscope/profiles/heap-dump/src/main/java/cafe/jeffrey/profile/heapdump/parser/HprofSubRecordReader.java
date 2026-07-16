@@ -17,6 +17,9 @@
  */
 package cafe.jeffrey.profile.heapdump.parser;
 
+import cafe.jeffrey.profile.heapdump.view.HprofTag;
+import cafe.jeffrey.profile.heapdump.view.HprofTypeSize;
+
 /**
  * Streams sub-records out of a HEAP_DUMP or HEAP_DUMP_SEGMENT region.
  *

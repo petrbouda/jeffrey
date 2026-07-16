@@ -1,10 +1,7 @@
 <template>
-  <div v-if="loading" class="text-center py-5">
-    <div class="spinner-border text-primary" role="status">
-      <span class="visually-hidden">Loading...</span>
-    </div>
-    <p class="mt-2">Loading thread data...</p>
-  </div>
+  <LoadingState v-if="loading" message="Loading thread data..." />
+
+  <ErrorState v-else-if="error" :message="error" />
 
   <div v-else class="threads-container">
     <!-- Header Section -->
@@ -191,10 +188,19 @@
         />
         <DataTable v-if="reservedStackActivations.length > 0">
           <template #toolbar>
-            <TableToolbar v-model="reservedStackView.query" search-placeholder="Filter activations...">
+            <TableToolbar
+              v-model="reservedStackView.query"
+              search-placeholder="Filter activations..."
+            >
               <span class="toolbar-info">Reserved Stack Activations</span>
               <template #filters>
-                <Badge key-label="Total" :value="reservedStackView.matchCount" variant="secondary" size="s" borderless />
+                <Badge
+                  key-label="Total"
+                  :value="reservedStackView.matchCount"
+                  variant="secondary"
+                  size="s"
+                  borderless
+                />
               </template>
             </TableToolbar>
           </template>
@@ -303,7 +309,6 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
-import ToastService from '@shared/services/ToastService';
 import FormattingService from '@shared/services/FormattingService';
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
 import ChartSection from '@/components/ChartSection.vue';
@@ -326,6 +331,8 @@ import TableShowMore from '@shared/components/table/TableShowMore.vue';
 import Badge from '@shared/components/Badge.vue';
 import { useTableView } from '@/composables/useTableView';
 import EmptyState from '@shared/components/EmptyState.vue';
+import LoadingState from '@shared/components/LoadingState.vue';
+import ErrorState from '@shared/components/ErrorState.vue';
 import type ReservedStackActivation from '@/services/api/model/ReservedStackActivation';
 import FlamegraphComponent from '@/components/FlamegraphComponent.vue';
 import SearchBarComponent from '@/components/SearchBarComponent.vue';
@@ -345,6 +352,7 @@ const profileId = route.params.profileId as string;
 // State
 const chartLoading = ref<boolean>(true);
 const loading = ref<boolean>(true);
+const error = ref<string | null>(null);
 const activeTab = ref('overview');
 const tabs = [
   { id: 'overview', label: 'Statistics', icon: 'graph-up' },
@@ -465,9 +473,9 @@ const loadThreadStatistics = async (): Promise<void> => {
 
     // Update thread serie for chart using the separate timeseries API call
     threadSerie.value = timeseriesResponse.data;
-  } catch (error) {
-    console.error('Failed to load thread statistics:', error);
-    ToastService.error('Thread Statistics', 'Failed to load thread statistics');
+  } catch (err) {
+    console.error('Failed to load thread statistics:', err);
+    error.value = err instanceof Error ? err.message : 'Failed to load thread statistics';
   } finally {
     loading.value = false;
     chartLoading.value = false;

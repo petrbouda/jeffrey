@@ -33,7 +33,7 @@ import cafe.jeffrey.hub.client.HubClients;
 import cafe.jeffrey.microscope.core.client.RemoteMappers;
 import cafe.jeffrey.hub.client.dto.RemoteProjectResponse;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
-import cafe.jeffrey.microscope.persistence.api.HubInfo;
+import cafe.jeffrey.shared.common.model.hub.HubInfo;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 
 import java.util.List;

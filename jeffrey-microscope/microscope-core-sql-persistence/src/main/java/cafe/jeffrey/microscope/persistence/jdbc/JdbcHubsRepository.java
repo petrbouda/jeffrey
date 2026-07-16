@@ -20,9 +20,9 @@ package cafe.jeffrey.microscope.persistence.jdbc;
 
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import cafe.jeffrey.microscope.persistence.api.HubInfo;
+import cafe.jeffrey.shared.common.model.hub.HubInfo;
 import cafe.jeffrey.microscope.persistence.api.HubsRepository;
-import cafe.jeffrey.microscope.persistence.api.HubAddress;
+import cafe.jeffrey.shared.common.model.hub.HubAddress;
 import cafe.jeffrey.shared.persistence.GroupLabel;
 import cafe.jeffrey.shared.persistence.StatementLabel;
 import cafe.jeffrey.shared.persistence.client.DatabaseClient;

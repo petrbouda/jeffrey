@@ -31,6 +31,8 @@ import java.sql.SQLException;
 import java.time.Clock;
 import java.time.Duration;
 import java.util.List;
+import cafe.jeffrey.profile.heapdump.persistence.HeapDumpIndexDb;
+import cafe.jeffrey.profile.heapdump.persistence.HeapDumpIndexPaths;
 
 /**
  * Builds a DuckDB index ({@code .idx.duckdb}) for an HPROF heap dump.
@@ -278,7 +280,7 @@ public final class HprofIndex {
 
     /**
      * {@link Measuring#s} adapter for phases that throw {@link SQLException} or
-     * {@link IOException}. Mirrors the same helper in {@link DominatorTreeBuilder}.
+     * {@link IOException}. Mirrors the same helper in {@link cafe.jeffrey.profile.heapdump.persistence.DominatorTreeBuilder}.
      */
     private static <T> Elapsed<T> measureSql(SqlSupplier<T> body) {
         return Measuring.s(() -> {

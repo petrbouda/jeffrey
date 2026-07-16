@@ -17,7 +17,7 @@
  */
 package cafe.jeffrey.profile.heapdump.analyzer.heapview;
 
-import cafe.jeffrey.profile.heapdump.parser.HprofTag;
+import cafe.jeffrey.profile.heapdump.view.HprofTag;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 

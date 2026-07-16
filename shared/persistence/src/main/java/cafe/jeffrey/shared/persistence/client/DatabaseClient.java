@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -179,6 +179,16 @@ public class DatabaseClient {
         }
 
         return rows;
+    }
+
+    /**
+     * Runs the given work atomically: either every statement inside commits, or a failure
+     * rolls all of them back. Joins an already active transaction on the same
+     * {@code DataSource} if one is bound to the calling thread, so nested calls compose
+     * into a single transaction.
+     */
+    public void inTransaction(Runnable work) {
+        transactionOperations.executeWithoutResult(_ -> work.run());
     }
 
     /**

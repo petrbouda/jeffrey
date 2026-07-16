@@ -25,7 +25,7 @@ import cafe.jeffrey.profile.heapdump.oql.compiler.OqlCompiler;
 import cafe.jeffrey.profile.heapdump.oql.executor.OqlExecutor;
 import cafe.jeffrey.profile.heapdump.oql.parser.OqlParseException;
 import cafe.jeffrey.profile.heapdump.oql.parser.OqlParserFactory;
-import cafe.jeffrey.profile.heapdump.parser.HeapView;
+import cafe.jeffrey.profile.heapdump.view.HeapView;
 
 import java.sql.SQLException;
 

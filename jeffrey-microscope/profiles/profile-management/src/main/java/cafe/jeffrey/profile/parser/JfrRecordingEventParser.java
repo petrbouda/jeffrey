@@ -22,7 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.jfrparser.jdk.EventProcessor;
 import cafe.jeffrey.jfrparser.jdk.JdkRecordingIterators;
-import cafe.jeffrey.profile.parser.chunk.JfrParser;
+import cafe.jeffrey.jfrparser.raw.JfrParser;
 import cafe.jeffrey.provider.profile.api.EventWriter;
 import cafe.jeffrey.provider.profile.api.RecordingEventParser;
 import cafe.jeffrey.shared.common.compression.Lz4Compressor;

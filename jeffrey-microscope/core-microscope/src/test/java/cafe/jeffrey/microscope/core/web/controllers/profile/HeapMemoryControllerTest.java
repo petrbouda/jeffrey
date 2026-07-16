@@ -24,7 +24,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
-import cafe.jeffrey.profile.manager.HeapMemoryManager;
+import cafe.jeffrey.profile.manager.memory.HeapMemoryManager;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.profile.manager.model.heap.HeapMemoryTimeseriesType;
 import cafe.jeffrey.shared.common.exception.Exceptions;

@@ -31,14 +31,14 @@ import cafe.jeffrey.profile.heapdump.model.DominatedClassEntry;
 import cafe.jeffrey.profile.heapdump.model.LeakSuspect;
 import cafe.jeffrey.profile.heapdump.model.LeakSuspectsReport;
 import cafe.jeffrey.profile.heapdump.model.PathStep;
-import cafe.jeffrey.profile.heapdump.parser.HeapView;
+import cafe.jeffrey.profile.heapdump.view.HeapView;
 
 /**
  * HeapView-backed equivalent of
  * {@link cafe.jeffrey.profile.heapdump.analyzer.LeakSuspectsAnalyzer}.
  *
  * Requires the dominator tree to be built first — call
- * {@link cafe.jeffrey.profile.heapdump.parser.DominatorTreeBuilder#build}
+ * {@link cafe.jeffrey.profile.heapdump.persistence.DominatorTreeBuilder#build}
  * (typically lazy, on first access).
  *
  * Heuristic (basic): the top instances by retained size whose retained size

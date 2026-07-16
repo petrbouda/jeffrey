@@ -25,7 +25,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
-import cafe.jeffrey.profile.manager.NativeMemoryTrackingManager;
+import cafe.jeffrey.profile.manager.memory.NativeMemoryTrackingManager;
 import cafe.jeffrey.profile.manager.model.nmt.NmtCategory;
 import cafe.jeffrey.profile.manager.model.nmt.NmtOverview;
 import cafe.jeffrey.timeseries.TimeseriesData;

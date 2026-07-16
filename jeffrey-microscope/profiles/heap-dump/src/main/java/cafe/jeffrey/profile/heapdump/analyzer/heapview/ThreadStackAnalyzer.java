@@ -24,8 +24,8 @@ import java.util.ArrayList;
 import java.util.List;
 import cafe.jeffrey.profile.heapdump.model.StackFrameLocal;
 import cafe.jeffrey.profile.heapdump.model.ThreadStackFrame;
-import cafe.jeffrey.profile.heapdump.parser.HeapView;
-import cafe.jeffrey.profile.heapdump.parser.HprofTag;
+import cafe.jeffrey.profile.heapdump.view.HeapView;
+import cafe.jeffrey.profile.heapdump.view.HprofTag;
 
 /**
  * Assembles the per-thread call stack for the Threads page's "Stack" expansion.

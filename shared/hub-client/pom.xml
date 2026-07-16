@@ -45,11 +45,6 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>common</artifactId>
         </dependency>
-        <!-- HubAddress -->
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>microscope-core-persistence-api</artifactId>
-        </dependency>
         <!-- ManagedChannel + Netty -->
         <dependency>
             <groupId>io.grpc</groupId>
@@ -74,6 +69,12 @@
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>5.13.4</version>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 </project>

@@ -19,9 +19,9 @@ package cafe.jeffrey.profile.heapdump.oql.executor;
 
 import cafe.jeffrey.profile.heapdump.model.OQLQueryResult;
 import cafe.jeffrey.profile.heapdump.model.OQLResultEntry;
-import cafe.jeffrey.profile.heapdump.parser.HeapView;
-import cafe.jeffrey.profile.heapdump.parser.InstanceRow;
-import cafe.jeffrey.profile.heapdump.parser.JavaClassRow;
+import cafe.jeffrey.profile.heapdump.view.HeapView;
+import cafe.jeffrey.profile.heapdump.view.InstanceRow;
+import cafe.jeffrey.profile.heapdump.view.JavaClassRow;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;

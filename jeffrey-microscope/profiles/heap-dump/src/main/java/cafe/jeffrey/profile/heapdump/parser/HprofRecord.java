@@ -148,7 +148,7 @@ public sealed interface HprofRecord {
 
     /**
      * PRIMITIVE_ARRAY_DUMP (tag 0x23): a primitive array. {@code elementType}
-     * is the HPROF basic-type byte (see {@link HprofTag.BasicType}).
+     * is the HPROF basic-type byte (see {@link cafe.jeffrey.profile.heapdump.view.HprofTag.BasicType}).
      */
     record PrimitiveArrayDump(long arrayId, int traceSerial, int length, int elementType,
                               long fileOffset) implements Sub {

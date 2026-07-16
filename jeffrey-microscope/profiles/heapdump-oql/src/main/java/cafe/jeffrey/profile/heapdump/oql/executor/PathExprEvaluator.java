@@ -18,11 +18,11 @@
 package cafe.jeffrey.profile.heapdump.oql.executor;
 
 import cafe.jeffrey.profile.heapdump.oql.ast.PathSegment;
-import cafe.jeffrey.profile.heapdump.parser.DumpMetadata;
-import cafe.jeffrey.profile.heapdump.parser.HeapView;
-import cafe.jeffrey.profile.heapdump.parser.InstanceFieldValue;
-import cafe.jeffrey.profile.heapdump.parser.InstanceRow;
-import cafe.jeffrey.profile.heapdump.parser.JavaClassRow;
+import cafe.jeffrey.profile.heapdump.view.DumpMetadata;
+import cafe.jeffrey.profile.heapdump.view.HeapView;
+import cafe.jeffrey.profile.heapdump.view.InstanceFieldValue;
+import cafe.jeffrey.profile.heapdump.view.InstanceRow;
+import cafe.jeffrey.profile.heapdump.view.JavaClassRow;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;

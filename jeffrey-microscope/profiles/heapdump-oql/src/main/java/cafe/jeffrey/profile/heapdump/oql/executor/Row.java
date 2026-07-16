@@ -17,9 +17,9 @@
  */
 package cafe.jeffrey.profile.heapdump.oql.executor;
 
-import cafe.jeffrey.profile.heapdump.parser.HeapView;
-import cafe.jeffrey.profile.heapdump.parser.InstanceRow;
-import cafe.jeffrey.profile.heapdump.parser.JavaClassRow;
+import cafe.jeffrey.profile.heapdump.view.HeapView;
+import cafe.jeffrey.profile.heapdump.view.InstanceRow;
+import cafe.jeffrey.profile.heapdump.view.JavaClassRow;
 
 /**
  * Per-iteration context passed to {@link ExprEvaluator}. {@code instance} is

@@ -31,9 +31,9 @@ import cafe.jeffrey.profile.heapdump.oql.compiler.ExecutionPlan;
 import cafe.jeffrey.profile.heapdump.oql.compiler.ExecutionPlan.JavaPlan;
 import cafe.jeffrey.profile.heapdump.oql.compiler.ExecutionPlan.PrePass.ClassHierarchyExpansion;
 import cafe.jeffrey.profile.heapdump.oql.function.RegexPatternCache;
-import cafe.jeffrey.profile.heapdump.parser.HeapView;
-import cafe.jeffrey.profile.heapdump.parser.InstanceRow;
-import cafe.jeffrey.profile.heapdump.parser.JavaClassRow;
+import cafe.jeffrey.profile.heapdump.view.HeapView;
+import cafe.jeffrey.profile.heapdump.view.InstanceRow;
+import cafe.jeffrey.profile.heapdump.view.JavaClassRow;
 
 import java.sql.SQLException;
 import java.util.ArrayList;

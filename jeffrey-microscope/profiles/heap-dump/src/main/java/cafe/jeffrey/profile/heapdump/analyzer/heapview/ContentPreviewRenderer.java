@@ -28,9 +28,9 @@ import java.time.LocalTime;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import cafe.jeffrey.profile.heapdump.parser.HeapView;
-import cafe.jeffrey.profile.heapdump.parser.InstanceFieldValue;
-import cafe.jeffrey.profile.heapdump.parser.JdkFieldNames;
+import cafe.jeffrey.profile.heapdump.view.HeapView;
+import cafe.jeffrey.profile.heapdump.view.InstanceFieldValue;
+import cafe.jeffrey.profile.heapdump.view.JdkFieldNames;
 
 /**
  * Renders a human-readable preview of an instance's content — the decoded

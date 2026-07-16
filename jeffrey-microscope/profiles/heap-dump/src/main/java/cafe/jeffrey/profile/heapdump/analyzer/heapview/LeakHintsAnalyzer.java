@@ -24,8 +24,8 @@ import java.util.ArrayList;
 import java.util.List;
 import cafe.jeffrey.profile.heapdump.model.LeakHintFinding;
 import cafe.jeffrey.profile.heapdump.model.LeakHintFinding.Severity;
-import cafe.jeffrey.profile.heapdump.parser.HeapView;
-import cafe.jeffrey.profile.heapdump.parser.HprofTag;
+import cafe.jeffrey.profile.heapdump.view.HeapView;
+import cafe.jeffrey.profile.heapdump.view.HprofTag;
 
 /**
  * Runs a small set of heuristic rules over the GC root set and returns

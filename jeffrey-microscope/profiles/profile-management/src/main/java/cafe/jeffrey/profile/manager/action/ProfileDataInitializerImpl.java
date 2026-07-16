@@ -21,6 +21,7 @@ package cafe.jeffrey.profile.manager.action;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.shared.common.Schedulers;
+import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
 import cafe.jeffrey.profile.manager.ProfileManager;
 
@@ -87,7 +88,10 @@ public class ProfileDataInitializerImpl implements ProfileDataInitializer {
         return throwable -> {
             String message = "Failed to generate %s: profile_id=%s profile_name=%s"
                     .formatted(component, profileInfo.id(), profileInfo.name());
-            throw new RuntimeException(message, throwable);
+            if (throwable instanceof Error error) {
+                throw error;
+            }
+            throw Exceptions.internal(message, (Exception) throwable);
         };
     }
 }

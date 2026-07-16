@@ -1,37 +1,21 @@
 <template>
   <div>
-    <!-- Feature Disabled State -->
-    <CustomDisabledFeatureAlert
-      v-if="isJdbcStatementsDisabled"
-      title="JDBC Statements Dashboard"
-      eventType="JDBC statement"
-    />
-
-    <div v-else>
-      <!-- Loading state -->
-      <LoadingState v-if="isLoading" />
-
-      <!-- Error state -->
-      <ErrorState v-else-if="error" :message="error" />
-
-      <!-- Dashboard content -->
-      <div v-if="jdbcOverviewData" class="dashboard-container">
+    <TechnologyDashboard
+      :fetch="() => client.getOverview()"
+      :disabled="isJdbcStatementsDisabled"
+      disabled-title="JDBC Statements Dashboard"
+      event-type="JDBC statement"
+      no-data-title="No JDBC Data Available"
+      no-data-message="No JDBC statement events found for this profile"
+    >
+      <template #default="{ data }">
         <!-- JDBC Overview Stats -->
-        <JdbcOverviewStats :jdbc-header="jdbcOverviewData.header" />
+        <JdbcOverviewStats :jdbc-header="data.header" />
 
         <!-- Slowest Statements -->
-        <JdbcSlowestStatements
-          :statements="jdbcOverviewData.slowStatements"
-          @sql-button-click="showSqlModal"
-        />
-      </div>
-
-      <!-- No data state -->
-      <div v-else-if="!isLoading" class="p-4 text-center">
-        <h3 class="text-muted">No JDBC Data Available</h3>
-        <p class="text-muted">No JDBC statement events found for this profile</p>
-      </div>
-    </div>
+        <JdbcSlowestStatements :statements="data.slowStatements" @sql-button-click="showSqlModal" />
+      </template>
+    </TechnologyDashboard>
 
     <!-- JDBC Statement Modal -->
     <JdbcStatementModal
@@ -50,13 +34,9 @@ import JdbcOverviewStats from '@/components/jdbc/JdbcOverviewStats.vue';
 import JdbcSlowestStatements from '@/components/jdbc/JdbcSlowestStatements.vue';
 import JdbcStatementModal from '@/components/jdbc/JdbcStatementModal.vue';
 import ProfileJdbcStatementClient from '@/services/api/ProfileJdbcStatementClient.ts';
-import JdbcOverviewData from '@/services/api/model/JdbcOverviewData.ts';
 import JdbcSlowStatement from '@/services/api/model/JdbcSlowStatement.ts';
-import LoadingState from '@shared/components/LoadingState.vue';
-import ErrorState from '@shared/components/ErrorState.vue';
-import CustomDisabledFeatureAlert from '@/components/alerts/CustomDisabledFeatureAlert.vue';
+import TechnologyDashboard from '@/components/technologies/TechnologyDashboard.vue';
 import FeatureType from '@/services/api/model/FeatureType';
-import { useTechnologyData } from '@/composables/useTechnologyData';
 
 // Define props
 interface Props {
@@ -81,22 +61,8 @@ const isJdbcStatementsDisabled = computed(() => {
 // Client initialization
 const client = new ProfileJdbcStatementClient(route.params.profileId as string);
 
-const {
-  data: jdbcOverviewData,
-  isLoading,
-  error
-} = useTechnologyData<JdbcOverviewData>(() => client.getOverview(), isJdbcStatementsDisabled);
-
 const showSqlModal = (statement: JdbcSlowStatement) => {
   selectedStatement.value = statement;
   showModal.value = true;
 };
 </script>
-
-<style scoped>
-@media (max-width: 768px) {
-  .dashboard-container {
-    padding: 1rem;
-  }
-}
-</style>

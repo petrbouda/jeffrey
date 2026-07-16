@@ -25,8 +25,8 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
-import cafe.jeffrey.profile.manager.AdditionalFilesManager;
-import cafe.jeffrey.profile.manager.model.PerfCounter;
+import cafe.jeffrey.profile.manager.additional.AdditionalFilesManager;
+import cafe.jeffrey.profile.manager.additional.PerfCounter;
 
 import java.util.List;
 

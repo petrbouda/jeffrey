@@ -30,8 +30,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.microscope.core.manager.ProfilesManager;
 import cafe.jeffrey.microscope.core.manager.project.ProjectManager;
-import cafe.jeffrey.microscope.core.resources.request.CreateProfileRequest;
-import cafe.jeffrey.microscope.core.resources.response.ProfileSummaryResponse;
+import cafe.jeffrey.microscope.core.web.dto.request.CreateProfileRequest;
+import cafe.jeffrey.microscope.core.web.dto.response.ProfileSummaryResponse;
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
 import cafe.jeffrey.profile.manager.ProfileManager;
 

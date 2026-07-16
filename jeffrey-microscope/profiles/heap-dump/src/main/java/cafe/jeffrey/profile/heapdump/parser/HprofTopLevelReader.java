@@ -17,6 +17,8 @@
  */
 package cafe.jeffrey.profile.heapdump.parser;
 
+import cafe.jeffrey.profile.heapdump.view.HprofTag;
+
 /**
  * Streams top-level records out of an {@link HprofMappedFile}.
  * <p>

@@ -84,6 +84,7 @@ import EmptyState from '@shared/components/EmptyState.vue';
 import TracingDisabledFeatureAlert from '@/components/alerts/TracingDisabledFeatureAlert.vue';
 import MethodTracingOverviewStats from '@/components/method-tracing/MethodTracingOverviewStats.vue';
 import FormattingService from '@shared/services/FormattingService';
+import ChartColors from '@shared/services/ChartColors';
 import ProfileMethodTracingClient from '@/services/api/ProfileMethodTracingClient';
 import type MethodTracingOverviewData from '@/services/api/model/MethodTracingOverviewData';
 import FeatureType from '@/services/api/model/FeatureType';
@@ -118,7 +119,7 @@ const {
 } = useTechnologyData<MethodTracingOverviewData>(() => client.getOverview(), isTracingDisabled);
 
 // Chart colors palette
-const CHART_COLORS = ['#5a9fd4', '#5cb85c', '#f0ad4e', '#d9534f', '#9b59b6', '#6c757d'];
+const CHART_COLORS = ChartColors.chartPalette(6);
 
 // Computed properties
 const invocationChartData = computed<DonutChartData>(() => {

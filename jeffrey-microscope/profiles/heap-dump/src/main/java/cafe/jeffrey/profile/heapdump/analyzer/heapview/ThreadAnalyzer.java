@@ -25,13 +25,13 @@ import java.util.List;
 import java.util.Optional;
 import cafe.jeffrey.profile.heapdump.model.HeapThreadInfo;
 import cafe.jeffrey.profile.heapdump.model.HeapThreadState;
-import cafe.jeffrey.profile.heapdump.parser.HeapView;
-import cafe.jeffrey.profile.heapdump.parser.HprofTag;
-import cafe.jeffrey.profile.heapdump.parser.InstanceFieldValue;
-import cafe.jeffrey.profile.heapdump.parser.JdkFieldNames;
+import cafe.jeffrey.profile.heapdump.view.HeapView;
+import cafe.jeffrey.profile.heapdump.view.HprofTag;
+import cafe.jeffrey.profile.heapdump.view.InstanceFieldValue;
+import cafe.jeffrey.profile.heapdump.view.JdkFieldNames;
 
-import static cafe.jeffrey.profile.heapdump.parser.JdbcNullable.nullableInt;
-import static cafe.jeffrey.profile.heapdump.parser.JdbcNullable.nullableLong;
+import static cafe.jeffrey.profile.heapdump.view.JdbcNullable.nullableInt;
+import static cafe.jeffrey.profile.heapdump.view.JdbcNullable.nullableLong;
 
 /**
  * HeapView-backed equivalent of
@@ -50,7 +50,7 @@ import static cafe.jeffrey.profile.heapdump.parser.JdbcNullable.nullableLong;
  * pre-computed up front without pulling every frame for every thread.
  *
  * {@code retainedSize} is null until callers run
- * {@link cafe.jeffrey.profile.heapdump.parser.DominatorTreeBuilder}. When the
+ * {@link cafe.jeffrey.profile.heapdump.persistence.DominatorTreeBuilder}. When the
  * dominator tree is present, retained size is populated from the index.
  */
 public final class ThreadAnalyzer {

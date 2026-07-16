@@ -32,9 +32,9 @@
         tertiary-title="Full GC"
         :primary-axis-type="AxisFormatType.NUMBER"
         :visible-minutes="60"
-        primary-color="#4285F4"
-        secondary-color="#FBBC04"
-        tertiary-color="#EA4335"
+        :primary-color="gcPrimaryColor"
+        :secondary-color="gcSecondaryColor"
+        :tertiary-color="gcTertiaryColor"
         :stacked="true"
       />
     </div>
@@ -56,9 +56,9 @@
         :secondary-axis-type="AxisFormatType.DURATION_IN_NANOS"
         :tertiary-axis-type="AxisFormatType.DURATION_IN_NANOS"
         :visible-minutes="60"
-        primary-color="#4285F4"
-        secondary-color="#FBBC04"
-        tertiary-color="#EA4335"
+        :primary-color="gcPrimaryColor"
+        :secondary-color="gcSecondaryColor"
+        :tertiary-color="gcTertiaryColor"
         :stacked="true"
       />
     </div>
@@ -80,9 +80,9 @@
         :secondary-axis-type="AxisFormatType.DURATION_IN_NANOS"
         :tertiary-axis-type="AxisFormatType.DURATION_IN_NANOS"
         :visible-minutes="60"
-        primary-color="#4285F4"
-        secondary-color="#FBBC04"
-        tertiary-color="#EA4335"
+        :primary-color="gcPrimaryColor"
+        :secondary-color="gcSecondaryColor"
+        :tertiary-color="gcTertiaryColor"
         :stacked="true"
       />
     </div>
@@ -92,6 +92,11 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
+import ChartColors from '@shared/services/ChartColors';
+
+const gcPrimaryColor = ChartColors.chartColor('primary');
+const gcSecondaryColor = ChartColors.chartColor('color-amber');
+const gcTertiaryColor = ChartColors.chartColor('secondary');
 
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
 import ChartDescription from '@shared/components/ChartDescription.vue';

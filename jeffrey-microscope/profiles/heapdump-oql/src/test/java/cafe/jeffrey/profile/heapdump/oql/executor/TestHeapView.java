@@ -17,15 +17,15 @@
  */
 package cafe.jeffrey.profile.heapdump.oql.executor;
 
-import cafe.jeffrey.profile.heapdump.parser.DumpMetadata;
-import cafe.jeffrey.profile.heapdump.parser.GcRootRow;
-import cafe.jeffrey.profile.heapdump.parser.HeapView;
-import cafe.jeffrey.profile.heapdump.parser.HistogramRow;
-import cafe.jeffrey.profile.heapdump.parser.InstanceFieldDescriptor;
-import cafe.jeffrey.profile.heapdump.parser.InstanceFieldValue;
-import cafe.jeffrey.profile.heapdump.parser.InstanceRow;
-import cafe.jeffrey.profile.heapdump.parser.JavaClassRow;
-import cafe.jeffrey.profile.heapdump.parser.OutboundRefRow;
+import cafe.jeffrey.profile.heapdump.view.DumpMetadata;
+import cafe.jeffrey.profile.heapdump.view.GcRootRow;
+import cafe.jeffrey.profile.heapdump.view.HeapView;
+import cafe.jeffrey.profile.heapdump.view.HistogramRow;
+import cafe.jeffrey.profile.heapdump.view.InstanceFieldDescriptor;
+import cafe.jeffrey.profile.heapdump.view.InstanceFieldValue;
+import cafe.jeffrey.profile.heapdump.view.InstanceRow;
+import cafe.jeffrey.profile.heapdump.view.JavaClassRow;
+import cafe.jeffrey.profile.heapdump.view.OutboundRefRow;
 import cafe.jeffrey.profile.heapdump.persistence.HeapDumpDatabaseClient;
 import cafe.jeffrey.shared.persistence.GroupLabel;
 import org.duckdb.DuckDBConnection;

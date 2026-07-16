@@ -1,33 +1,23 @@
 <template>
-  <div>
-    <CustomDisabledFeatureAlert
-      v-if="isHttpDashboardDisabled"
-      :title="mode === 'client' ? 'HTTP Client Dashboard' : 'HTTP Server Dashboard'"
-      eventType="HTTP exchange"
-    />
-
-    <div v-else>
-      <LoadingState v-if="isLoading" />
-
-      <ErrorState v-else-if="error" :message="error" />
-
-      <div v-if="httpOverviewData" class="dashboard-container">
-        <HttpOverviewStats :header="httpOverviewData.header" />
-        <HttpDistributionCharts
-          title="HTTP Distribution"
-          icon="pie-chart"
-          :status-codes="httpOverviewData.statusCodes || []"
-          :methods="httpOverviewData.methods || []"
-          :total-requests="httpOverviewData.header.requestCount || 0"
-        />
-      </div>
-
-      <div v-else-if="!isLoading && !error" class="p-4 text-center">
-        <h3 class="text-muted">No HTTP Data Available</h3>
-        <p class="text-muted">No HTTP exchange events found for this profile</p>
-      </div>
-    </div>
-  </div>
+  <TechnologyDashboard
+    :fetch="() => client.getOverview()"
+    :disabled="isHttpDashboardDisabled"
+    :disabled-title="mode === 'client' ? 'HTTP Client Dashboard' : 'HTTP Server Dashboard'"
+    event-type="HTTP exchange"
+    no-data-title="No HTTP Data Available"
+    no-data-message="No HTTP exchange events found for this profile"
+  >
+    <template #default="{ data }">
+      <HttpOverviewStats :header="data.header" />
+      <HttpDistributionCharts
+        title="HTTP Distribution"
+        icon="pie-chart"
+        :status-codes="data.statusCodes || []"
+        :methods="data.methods || []"
+        :total-requests="data.header.requestCount || 0"
+      />
+    </template>
+  </TechnologyDashboard>
 </template>
 
 <script setup lang="ts">
@@ -35,13 +25,9 @@ import { computed } from 'vue';
 import { useRoute } from 'vue-router';
 import HttpDistributionCharts from '@/components/http/HttpDistributionCharts.vue';
 import ProfileHttpClient from '@/services/api/ProfileHttpClient';
-import HttpOverviewData from '@/services/api/model/HttpOverviewData';
 import HttpOverviewStats from '@/components/http/HttpOverviewStats.vue';
-import LoadingState from '@shared/components/LoadingState.vue';
-import ErrorState from '@shared/components/ErrorState.vue';
-import CustomDisabledFeatureAlert from '@/components/alerts/CustomDisabledFeatureAlert.vue';
+import TechnologyDashboard from '@/components/technologies/TechnologyDashboard.vue';
 import FeatureType from '@/services/api/model/FeatureType';
-import { useTechnologyData } from '@/composables/useTechnologyData';
 
 interface Props {
   disabledFeatures?: FeatureType[];
@@ -62,10 +48,4 @@ const isHttpDashboardDisabled = computed(() => {
 });
 
 const client = new ProfileHttpClient(mode, route.params.profileId as string);
-
-const {
-  data: httpOverviewData,
-  isLoading,
-  error
-} = useTechnologyData<HttpOverviewData>(() => client.getOverview(), isHttpDashboardDisabled);
 </script>

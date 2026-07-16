@@ -81,6 +81,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import FormattingService from '@shared/services/FormattingService.ts';
+import ChartColors from '@shared/services/ChartColors.ts';
 import GraphUpdater from '@/services/flamegraphs/updater/GraphUpdater';
 import TimeseriesData from '@/services/timeseries/model/TimeseriesData';
 import TimeRange from '@/services/api/model/TimeRange';
@@ -142,8 +143,8 @@ const emit = defineEmits<{
   'update:timeRange': [payload: { start: number; end: number; isZoomed: boolean }];
 }>();
 
-// Search highlight color (purple)
-const searchHighlightColor = '#8E44AD';
+// Search highlight color
+const searchHighlightColor = ChartColors.chartColor('highlight');
 
 // Computed chart type based on props
 const effectiveChartType = computed(() => {
@@ -215,25 +216,14 @@ let isUpdatingSelection = false; // Flag to prevent re-entrant selection events 
 let lastProcessedSelection = { min: 0, max: 0 }; // Track last processed selection to avoid duplicates
 
 // Colors
-const primaryColor = props.primaryColor || '#2E93fA';
-const secondaryColor = props.secondaryColor || '#E53935';
-const tertiaryColor = props.tertiaryColor || '#EA4335';
-const annotationColor = '#e53935'; // default marker color (danger red)
+const primaryColor = props.primaryColor || ChartColors.chartColor('primary');
+const secondaryColor = props.secondaryColor || ChartColors.chartColor('secondary');
+const tertiaryColor = props.tertiaryColor || ChartColors.chartColor('color-danger');
+const annotationColor = ChartColors.chartColor('secondary'); // default marker color (danger red)
 
 // Palette for the N-series stacked mode (`seriesData`). Applied per-index when a series does
 // not carry its own color. Starts with the single/dual/triple-series defaults for visual parity.
-const multiSeriesPalette = [
-  primaryColor,
-  '#66DA26',
-  '#546E7A',
-  '#E91E63',
-  '#FF9800',
-  '#00D9E9',
-  '#775DD0',
-  '#F86624',
-  '#9C27B0',
-  '#1B998B'
-];
+const multiSeriesPalette = [primaryColor, ...ChartColors.chartPalette().slice(1)];
 
 // True when the chart is driven by an arbitrary list of series rather than the fixed
 // primary/secondary/tertiary channels.
@@ -749,7 +739,7 @@ const mainChartOptions = computed(() => {
           borderColor: a.color || annotationColor,
           style: {
             background: a.color || annotationColor,
-            color: '#fff',
+            color: ChartColors.chartColor('color-white'),
             fontSize: '11px',
             fontWeight: 600,
             cssClass: `tsc-anno tsc-anno-${i}`,
@@ -799,7 +789,7 @@ const mainChartOptions = computed(() => {
       ? {
           size: 6,
           strokeWidth: 2,
-          strokeColors: '#fff',
+          strokeColors: ChartColors.chartColor('color-white'),
           hover: {
             size: 8
           }
@@ -910,7 +900,7 @@ const mainChartOptions = computed(() => {
       show: false
     },
     grid: {
-      borderColor: '#e9ecef'
+      borderColor: ChartColors.chartColor('color-border')
     },
     animations: {
       enabled: false
@@ -939,12 +929,12 @@ const brushChartOptions = computed(() => ({
       enabled: true,
       type: 'x',
       fill: {
-        color: '#2E93fA',
+        color: primaryColor,
         opacity: 0.15
       },
       stroke: {
         width: 2,
-        color: '#2E93fA',
+        color: primaryColor,
         opacity: 0.6,
         dashArray: 4
       },

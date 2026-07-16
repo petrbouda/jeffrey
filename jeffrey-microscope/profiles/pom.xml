@@ -37,7 +37,11 @@
         <module>frame-ir</module>
         <module>recording-parser</module>
         <module>profile-guardian</module>
-        <module>profile-thread</module>
+        <module>profile-threads</module>
+        <module>profile-gc</module>
+        <module>profile-memory</module>
+        <module>profile-custom-events</module>
+        <module>profile-heapdump-orchestration</module>
         <module>flamegraph</module>
         <module>subsecond</module>
         <module>timeseries</module>
@@ -48,7 +52,6 @@
         <module>profile-persistence-api</module>
         <module>profile-sql-persistence</module>
         <module>profile-management</module>
-        <module>tools</module>
         <module>duckdb-jfr-mcp</module>
         <module>duckdb-heapdump-mcp</module>
         <module>claude-code-headless</module>
@@ -90,6 +93,11 @@
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
+                <artifactId>raw-jfr-parser</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
                 <artifactId>flamegraph</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -105,7 +113,27 @@
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>profile-thread</artifactId>
+                <artifactId>profile-threads</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>profile-gc</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>profile-memory</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>profile-custom-events</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>profile-heapdump-orchestration</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -151,11 +179,6 @@
             <dependency>
                 <groupId>${project.groupId}</groupId>
                 <artifactId>claude-code-headless</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>tools</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <!-- Service modules that profile depends on -->

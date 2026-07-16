@@ -27,7 +27,7 @@ import cafe.jeffrey.jfrparser.jdk.EventProcessor;
 import cafe.jeffrey.jfrparser.jdk.JdkRecordingIterators;
 import cafe.jeffrey.jfrparser.jdk.ProcessableEvents;
 import cafe.jeffrey.profile.parser.JfrEventReader;
-import cafe.jeffrey.profile.parser.chunk.JfrParser;
+import cafe.jeffrey.jfrparser.raw.JfrParser;
 import cafe.jeffrey.shared.common.compression.Lz4Compressor;
 import cafe.jeffrey.shared.common.filesystem.TempDirFactory;
 import cafe.jeffrey.shared.common.filesystem.TempDirectory;

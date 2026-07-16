@@ -37,6 +37,8 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import cafe.jeffrey.profile.heapdump.persistence.HeapDumpIndexPaths;
+import cafe.jeffrey.profile.heapdump.view.HprofTag;
 
 /**
  * End-to-end coverage of {@link HprofAppenderUtils#primArrayName} and

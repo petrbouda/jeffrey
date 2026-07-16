@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -30,7 +30,7 @@ import cafe.jeffrey.shared.persistence.StatementLabel;
 import cafe.jeffrey.shared.persistence.client.DatabaseClient;
 import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
 
-import java.time.Instant;
+import java.time.Clock;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
@@ -39,15 +39,23 @@ import java.util.stream.Collectors;
 
 public class JdbcRecordingRepository implements RecordingRepository {
 
+    //language=sql
+    private static final String SELECT_RECORDINGS_WITH_PROFILE = """
+            SELECT r.*, p.profile_id, p.profile_name, (p.profile_id IS NOT NULL) AS has_profile
+            FROM recordings r LEFT JOIN profiles p ON p.recording_id = r.id
+            WHERE r.""";
+
     private final String projectId;
     private final DatabaseClient databaseClient;
+    private final Clock clock;
 
     // Dynamic WHERE clause: "project_id = :project_id" or "project_id IS NULL"
     private final String projectIdCondition;
 
-    public JdbcRecordingRepository(String projectId, DatabaseClientProvider databaseClientProvider) {
+    public JdbcRecordingRepository(String projectId, DatabaseClientProvider databaseClientProvider, Clock clock) {
         this.projectId = projectId;
         this.databaseClient = databaseClientProvider.provide(GroupLabel.PROJECT_RECORDINGS);
+        this.clock = clock;
         this.projectIdCondition = projectId != null
                 ? "project_id = :project_id"
                 : "project_id IS NULL";
@@ -58,30 +66,59 @@ public class JdbcRecordingRepository implements RecordingRepository {
                 .addValue("project_id", projectId);
     }
 
+    /**
+     * A SQL statement together with the {@link StatementLabel} it is reported under
+     * in JDBC statement metrics.
+     */
+    private record LabeledQuery(StatementLabel label, String sql) {
+    }
+
+    /**
+     * Loads recordings and their files with two queries sharing the same parameters,
+     * then attaches the files to their owning recordings. The files query is skipped
+     * entirely when the recordings query returns no rows.
+     */
+    private List<Recording> findRecordingsWithFiles(
+            LabeledQuery recordingsQuery, LabeledQuery filesQuery, MapSqlParameterSource params) {
+
+        List<Recording> recordings = databaseClient.query(
+                recordingsQuery.label(), recordingsQuery.sql(), params, Mappers.projectRecordingMapper());
+
+        if (recordings.isEmpty()) {
+            return recordings;
+        }
+
+        List<RecordingFile> recordingFiles = databaseClient.query(
+                filesQuery.label(), filesQuery.sql(), params, Mappers.projectRecordingFileMapper());
+
+        Map<String, List<RecordingFile>> filesPerRecording = recordingFiles.stream()
+                .collect(Collectors.groupingBy(RecordingFile::recordingId));
+
+        return recordings.stream()
+                .map(recording -> {
+                    List<RecordingFile> files = filesPerRecording.get(recording.id());
+                    return files == null ? recording : recording.withFiles(files);
+                })
+                .toList();
+    }
+
     // --- Recording operations ---
 
     @Override
     public Optional<Recording> findRecording(String recordingId) {
+        String recordingsSql = SELECT_RECORDINGS_WITH_PROFILE + projectIdCondition + " AND r.id = :recording_id";
         //language=sql
-        String sql = """
-                SELECT r.*, p.profile_id, p.profile_name, (p.profile_id IS NOT NULL) AS has_profile
-                FROM recordings r LEFT JOIN profiles p ON p.recording_id = r.id
-                WHERE r.""" + projectIdCondition + " AND r.id = :recording_id";
+        String filesSql = "SELECT * FROM recording_files WHERE " + projectIdCondition + " AND recording_id = :recording_id";
 
         MapSqlParameterSource params = projectParams()
                 .addValue("recording_id", recordingId);
 
-        Optional<Recording> recordingOpt = databaseClient.querySingle(
-                StatementLabel.FIND_RECORDING, sql, params, Mappers.projectRecordingMapper());
-
-        if (recordingOpt.isPresent()) {
-            //language=sql
-            String filesSql = "SELECT * FROM recording_files WHERE " + projectIdCondition + " AND recording_id = :recording_id";
-            List<RecordingFile> files = databaseClient.query(
-                    StatementLabel.FIND_RECORDING_FILES, filesSql, params, Mappers.projectRecordingFileMapper());
-            return recordingOpt.map(recording -> recording.withFiles(files));
-        }
-        return recordingOpt;
+        return findRecordingsWithFiles(
+                new LabeledQuery(StatementLabel.FIND_RECORDING, recordingsSql),
+                new LabeledQuery(StatementLabel.FIND_RECORDING_FILES, filesSql),
+                params)
+                .stream()
+                .findFirst();
     }
 
     @Override
@@ -95,47 +132,27 @@ public class JdbcRecordingRepository implements RecordingRepository {
 
         var params = new MapSqlParameterSource().addValue("recording_id", recordingId);
 
-        databaseClient.delete(StatementLabel.DELETE_RECORDING_FILES, deleteFilesSql, params);
-        databaseClient.delete(StatementLabel.DELETE_RECORDING, deleteRecordingSql, params);
+        databaseClient.inTransaction(() -> {
+            databaseClient.delete(StatementLabel.DELETE_RECORDING_FILES, deleteFilesSql, params);
+            databaseClient.delete(StatementLabel.DELETE_RECORDING, deleteRecordingSql, params);
+        });
     }
 
     @Override
     public List<Recording> findAllRecordings() {
-        //language=sql
-        String recordingsSql = """
-                SELECT r.*, p.profile_id, p.profile_name, (p.profile_id IS NOT NULL) AS has_profile
-                FROM recordings r LEFT JOIN profiles p ON p.recording_id = r.id
-                WHERE r.""" + projectIdCondition;
-
+        String recordingsSql = SELECT_RECORDINGS_WITH_PROFILE + projectIdCondition;
         //language=sql
         String filesSql = "SELECT * FROM recording_files WHERE " + projectIdCondition;
 
-        MapSqlParameterSource params = projectParams();
-
-        List<Recording> recordings = databaseClient.query(
-                StatementLabel.FIND_ALL_RECORDINGS, recordingsSql, params, Mappers.projectRecordingMapper());
-
-        List<RecordingFile> recordingFiles = databaseClient.query(
-                StatementLabel.FIND_ALL_RECORDING_FILES, filesSql, params, Mappers.projectRecordingFileMapper());
-
-        Map<String, List<RecordingFile>> filesPerRecording = recordingFiles.stream()
-                .collect(Collectors.groupingBy(RecordingFile::recordingId));
-
-        return recordings.stream()
-                .map(recording -> {
-                    List<RecordingFile> files = filesPerRecording.get(recording.id());
-                    return files == null ? recording : recording.withFiles(files);
-                })
-                .toList();
+        return findRecordingsWithFiles(
+                new LabeledQuery(StatementLabel.FIND_ALL_RECORDINGS, recordingsSql),
+                new LabeledQuery(StatementLabel.FIND_ALL_RECORDING_FILES, filesSql),
+                projectParams());
     }
 
     @Override
     public Optional<Recording> findById(String recordingId) {
-        //language=sql
-        String sql = """
-                SELECT r.*, p.profile_id, p.profile_name, (p.profile_id IS NOT NULL) AS has_profile
-                FROM recordings r LEFT JOIN profiles p ON p.recording_id = r.id
-                WHERE r.""" + projectIdCondition + " AND r.id = :recording_id";
+        String sql = SELECT_RECORDINGS_WITH_PROFILE + projectIdCondition + " AND r.id = :recording_id";
 
         MapSqlParameterSource params = projectParams()
                 .addValue("recording_id", recordingId);
@@ -163,8 +180,10 @@ public class JdbcRecordingRepository implements RecordingRepository {
                 .addValue("recording_finished_at", recording.recordingFinishedAt() != null
                         ? recording.recordingFinishedAt().atOffset(ZoneOffset.UTC) : null);
 
-        databaseClient.insert(StatementLabel.INSERT_RECORDING, sql, params);
-        insertRecordingFile(recordingFile);
+        databaseClient.inTransaction(() -> {
+            databaseClient.insert(StatementLabel.INSERT_RECORDING, sql, params);
+            insertRecordingFile(recordingFile);
+        });
     }
 
     @Override
@@ -209,7 +228,7 @@ public class JdbcRecordingRepository implements RecordingRepository {
         MapSqlParameterSource params = projectParams()
                 .addValue("id", groupId)
                 .addValue("name", groupName)
-                .addValue("created_at", Instant.now().atOffset(ZoneOffset.UTC));
+                .addValue("created_at", clock.instant().atOffset(ZoneOffset.UTC));
 
         databaseClient.insert(StatementLabel.INSERT_GROUP, sql, params);
         return groupId;
@@ -235,7 +254,7 @@ public class JdbcRecordingRepository implements RecordingRepository {
                 .addValue("group_id", groupId);
 
         return databaseClient.querySingle(
-                StatementLabel.FIND_ALL_GROUPS, sql, params, Mappers.projectRecordingGroupMapper());
+                StatementLabel.FIND_GROUP, sql, params, Mappers.projectRecordingGroupMapper());
     }
 
     @Override
@@ -259,21 +278,18 @@ public class JdbcRecordingRepository implements RecordingRepository {
                 StatementLabel.FIND_RECORDINGS_IN_GROUP, findRecordingsSql, params,
                 (rs, _) -> rs.getString("id"));
 
-        recordingIds.forEach(this::deleteRecordingWithFiles);
-
         //language=sql
         String deleteGroupSql = "DELETE FROM recording_groups WHERE id = :group_id";
-        databaseClient.delete(StatementLabel.DELETE_GROUP, deleteGroupSql, new MapSqlParameterSource().addValue("group_id", groupId));
+
+        databaseClient.inTransaction(() -> {
+            recordingIds.forEach(this::deleteRecordingWithFiles);
+            databaseClient.delete(StatementLabel.DELETE_GROUP, deleteGroupSql, new MapSqlParameterSource().addValue("group_id", groupId));
+        });
     }
 
     @Override
     public List<Recording> findRecordingsByGroupId(String groupId) {
-        //language=sql
-        String recordingsSql = """
-                SELECT r.*, p.profile_id, p.profile_name, (p.profile_id IS NOT NULL) AS has_profile
-                FROM recordings r LEFT JOIN profiles p ON p.recording_id = r.id
-                WHERE r.""" + projectIdCondition + " AND r.group_id = :group_id";
-
+        String recordingsSql = SELECT_RECORDINGS_WITH_PROFILE + projectIdCondition + " AND r.group_id = :group_id";
         //language=sql
         String filesSql = "SELECT rf.* FROM recording_files rf JOIN recordings r ON rf.recording_id = r.id WHERE r."
                 + projectIdCondition + " AND r.group_id = :group_id";
@@ -281,20 +297,9 @@ public class JdbcRecordingRepository implements RecordingRepository {
         MapSqlParameterSource params = projectParams()
                 .addValue("group_id", groupId);
 
-        List<Recording> recordings = databaseClient.query(
-                StatementLabel.FIND_ALL_RECORDINGS, recordingsSql, params, Mappers.projectRecordingMapper());
-
-        List<RecordingFile> recordingFiles = databaseClient.query(
-                StatementLabel.FIND_ALL_RECORDING_FILES, filesSql, params, Mappers.projectRecordingFileMapper());
-
-        Map<String, List<RecordingFile>> filesPerRecording = recordingFiles.stream()
-                .collect(Collectors.groupingBy(RecordingFile::recordingId));
-
-        return recordings.stream()
-                .map(recording -> {
-                    List<RecordingFile> files = filesPerRecording.get(recording.id());
-                    return files == null ? recording : recording.withFiles(files);
-                })
-                .toList();
+        return findRecordingsWithFiles(
+                new LabeledQuery(StatementLabel.FIND_ALL_RECORDINGS, recordingsSql),
+                new LabeledQuery(StatementLabel.FIND_ALL_RECORDING_FILES, filesSql),
+                params);
     }
 }

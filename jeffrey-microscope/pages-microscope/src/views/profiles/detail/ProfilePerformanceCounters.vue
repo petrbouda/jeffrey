@@ -9,15 +9,10 @@
     icon="bi-speedometer2"
   >
     <!-- Loading state -->
-    <div v-if="loading" class="row">
-      <div class="col-12">
-        <div class="d-flex justify-content-center my-5">
-          <div class="spinner-border text-primary" role="status">
-            <span class="visually-hidden">Loading...</span>
-          </div>
-        </div>
-      </div>
-    </div>
+    <LoadingState v-if="loading" message="Loading performance counters..." />
+
+    <!-- Error state -->
+    <ErrorState v-else-if="error" :message="error" />
 
     <!-- Empty state -->
     <EmptyState
@@ -198,6 +193,8 @@ import PerformanceCounterEnhanced from '@/services/api/model/PerformanceCounterE
 import FeatureType from '@/services/api/model/FeatureType';
 import PerformanceCountersNotAvailableAlert from '@/components/alerts/PerformanceCountersNotAvailableAlert.vue';
 import EmptyState from '@shared/components/EmptyState.vue';
+import LoadingState from '@shared/components/LoadingState.vue';
+import ErrorState from '@shared/components/ErrorState.vue';
 import Badge from '@shared/components/Badge.vue';
 import DataTable from '@shared/components/table/DataTable.vue';
 import StatsTable from '@shared/components/table/StatsTable.vue';
@@ -222,6 +219,7 @@ const isPerformanceCountersDisabled = computed(() => {
 
 // State
 const loading = ref(true);
+const error = ref<string | null>(null);
 const allCounters = ref<PerformanceCounterEnhanced[]>([]);
 const filteredCounters = ref<PerformanceCounterEnhanced[]>([]);
 const searchQuery = ref('');
@@ -295,8 +293,9 @@ const loadPerformanceCounters = async () => {
 
     // All categories start collapsed by default
     filterCounters();
-  } catch (error) {
-    console.error('Failed to load performance counters:', error);
+  } catch (err) {
+    console.error('Failed to load performance counters:', err);
+    error.value = err instanceof Error ? err.message : 'Failed to load performance counters';
   } finally {
     loading.value = false;
   }

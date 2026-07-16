@@ -31,10 +31,10 @@ import cafe.jeffrey.profile.heapdump.model.StringAnalysisReport;
 import cafe.jeffrey.profile.heapdump.model.StringDeduplicationEntry;
 import cafe.jeffrey.profile.heapdump.model.StringInstanceEntry;
 import cafe.jeffrey.profile.heapdump.model.StringTopEntry;
-import cafe.jeffrey.profile.heapdump.parser.HeapView;
-import cafe.jeffrey.profile.heapdump.parser.InstanceFieldDescriptor;
-import cafe.jeffrey.profile.heapdump.parser.JavaClassRow;
-import cafe.jeffrey.profile.heapdump.parser.JdkFieldNames;
+import cafe.jeffrey.profile.heapdump.view.HeapView;
+import cafe.jeffrey.profile.heapdump.view.InstanceFieldDescriptor;
+import cafe.jeffrey.profile.heapdump.view.JavaClassRow;
+import cafe.jeffrey.profile.heapdump.view.JdkFieldNames;
 
 /**
  * Bulk-SQL String analysis.

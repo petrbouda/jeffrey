@@ -21,6 +21,16 @@ package cafe.jeffrey.profile.manager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.profile.manager.registry.ProfileManagerFactoryRegistry;
+import cafe.jeffrey.profile.manager.additional.AdditionalFilesManager;
+import cafe.jeffrey.profile.manager.gc.GarbageCollectionManager;
+import cafe.jeffrey.profile.manager.heapdump.HeapDumpManager;
+import cafe.jeffrey.profile.manager.memory.AllocationManager;
+import cafe.jeffrey.profile.manager.memory.HeapMemoryManager;
+import cafe.jeffrey.profile.manager.memory.LeakCandidatesManager;
+import cafe.jeffrey.profile.manager.memory.NativeMemoryManager;
+import cafe.jeffrey.profile.manager.memory.NativeMemoryTrackingManager;
+import cafe.jeffrey.profile.manager.thread.ThreadManager;
+import cafe.jeffrey.profile.manager.thread.VirtualThreadManager;
 import cafe.jeffrey.profile.tools.collapse.CollapseFramesManager;
 
 

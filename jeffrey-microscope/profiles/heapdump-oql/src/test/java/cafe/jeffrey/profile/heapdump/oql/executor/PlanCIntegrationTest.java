@@ -21,7 +21,7 @@ import cafe.jeffrey.profile.heapdump.model.OQLQueryResult;
 import cafe.jeffrey.profile.heapdump.oql.OqlEngine;
 import cafe.jeffrey.profile.heapdump.oql.ast.OqlStatement;
 import cafe.jeffrey.profile.heapdump.oql.compiler.ExecutionPlan;
-import cafe.jeffrey.profile.heapdump.parser.InstanceFieldValue;
+import cafe.jeffrey.profile.heapdump.view.InstanceFieldValue;
 import cafe.jeffrey.test.DuckDBTest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;

@@ -24,6 +24,7 @@ import org.eclipse.collections.api.map.primitive.LongObjectMap;
 import org.eclipse.collections.api.map.primitive.MutableLongIntMap;
 import org.eclipse.collections.api.tuple.primitive.LongIntPair;
 import org.eclipse.collections.impl.map.mutable.primitive.LongIntHashMap;
+import cafe.jeffrey.profile.heapdump.view.HprofTag;
 
 /**
  * Phase 6 — corrects instance.shallow_size to match the JVM's allocated size:

@@ -1,38 +1,23 @@
 <template>
-  <div>
-    <!-- Feature Disabled State -->
-    <CustomDisabledFeatureAlert
-      v-if="isGrpcDashboardDisabled"
-      :title="mode === 'client' ? 'gRPC Client Dashboard' : 'gRPC Server Dashboard'"
-      eventType="gRPC exchange"
-    />
-
-    <div v-else>
-      <!-- Loading state -->
-      <LoadingState v-if="isLoading" />
-
-      <!-- Error state -->
-      <ErrorState v-else-if="error" :message="error" />
-
-      <!-- Dashboard content -->
-      <div v-if="grpcOverviewData" class="dashboard-container">
-        <div class="mb-4">
-          <StatsTable :metrics="metricsData" />
-        </div>
-        <GrpcServiceList
-          :services="grpcOverviewData?.services || []"
-          :selected-service="selectedService"
-          @service-click="navigateToService"
-        />
+  <TechnologyDashboard
+    :fetch="() => client.getOverview()"
+    :disabled="isGrpcDashboardDisabled"
+    :disabled-title="mode === 'client' ? 'gRPC Client Dashboard' : 'gRPC Server Dashboard'"
+    event-type="gRPC exchange"
+    no-data-title="No gRPC Data Available"
+    no-data-message="No gRPC exchange events found for this profile"
+  >
+    <template #default="{ data }">
+      <div class="mb-4">
+        <StatsTable :metrics="metricsData(data)" />
       </div>
-
-      <!-- No data state -->
-      <div v-else class="p-4 text-center">
-        <h3 class="text-muted">No gRPC Data Available</h3>
-        <p class="text-muted">No gRPC exchange events found for this profile</p>
-      </div>
-    </div>
-  </div>
+      <GrpcServiceList
+        :services="data.services || []"
+        :selected-service="selectedService"
+        @service-click="navigateToService"
+      />
+    </template>
+  </TechnologyDashboard>
 </template>
 
 <script setup lang="ts">
@@ -42,12 +27,9 @@ import GrpcServiceList from '@/components/grpc/GrpcServiceList.vue';
 import ProfileGrpcClient from '@/services/api/ProfileGrpcClient';
 import type { GrpcOverviewData } from '@/services/api/ProfileGrpcClient';
 import StatsTable from '@shared/components/table/StatsTable.vue';
-import LoadingState from '@shared/components/LoadingState.vue';
-import ErrorState from '@shared/components/ErrorState.vue';
-import CustomDisabledFeatureAlert from '@/components/alerts/CustomDisabledFeatureAlert.vue';
+import TechnologyDashboard from '@/components/technologies/TechnologyDashboard.vue';
 import FeatureType from '@/services/api/model/FeatureType';
 import FormattingService from '@shared/services/FormattingService';
-import { useTechnologyData } from '@/composables/useTechnologyData';
 
 // Define props
 interface Props {
@@ -74,11 +56,9 @@ const isGrpcDashboardDisabled = computed(() => {
   return props.disabledFeatures.includes(featureType);
 });
 
-// Computed metrics for StatsTable
-const metricsData = computed(() => {
-  if (!grpcOverviewData.value?.header) return [];
-
-  const header = grpcOverviewData.value.header;
+// Metrics for StatsTable derived from the loaded overview data
+const metricsData = (data: GrpcOverviewData) => {
+  const header = data.header;
 
   return [
     {
@@ -146,16 +126,10 @@ const metricsData = computed(() => {
       ]
     }
   ];
-});
+};
 
 // Client initialization
 const client = new ProfileGrpcClient(mode, route.params.profileId as string);
-
-const {
-  data: grpcOverviewData,
-  isLoading,
-  error
-} = useTechnologyData<GrpcOverviewData>(() => client.getOverview(), isGrpcDashboardDisabled);
 
 // Navigation method
 const navigateToService = (service: string) => {
@@ -165,5 +139,3 @@ const navigateToService = (service: string) => {
   });
 };
 </script>
-
-<style scoped></style>

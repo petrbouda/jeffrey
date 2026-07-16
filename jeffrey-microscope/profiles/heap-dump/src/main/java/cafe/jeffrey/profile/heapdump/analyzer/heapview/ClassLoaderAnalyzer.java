@@ -34,7 +34,7 @@ import cafe.jeffrey.profile.heapdump.model.ClassLoaderReport;
 import cafe.jeffrey.profile.heapdump.model.ClassLoaderUnloadability;
 import cafe.jeffrey.profile.heapdump.model.DuplicateClassInfo;
 import cafe.jeffrey.profile.heapdump.model.LoaderType;
-import cafe.jeffrey.profile.heapdump.parser.HeapView;
+import cafe.jeffrey.profile.heapdump.view.HeapView;
 
 /**
  * Per-class-loader byte attribution for the Class Loader page.

@@ -38,6 +38,14 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import cafe.jeffrey.profile.heapdump.persistence.HeapDumpIndexPaths;
+import cafe.jeffrey.profile.heapdump.view.DumpMetadata;
+import cafe.jeffrey.profile.heapdump.view.GcRootRow;
+import cafe.jeffrey.profile.heapdump.view.HeapView;
+import cafe.jeffrey.profile.heapdump.view.HistogramRow;
+import cafe.jeffrey.profile.heapdump.view.HprofTag;
+import cafe.jeffrey.profile.heapdump.view.InstanceRow;
+import cafe.jeffrey.profile.heapdump.view.JavaClassRow;
 
 class HeapViewTest {
 

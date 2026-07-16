@@ -1,30 +1,20 @@
 <template>
-  <div>
-    <CustomDisabledFeatureAlert
-      v-if="isGrpcDashboardDisabled"
-      :title="mode === 'client' ? 'gRPC Client Dashboard' : 'gRPC Server Dashboard'"
-      eventType="gRPC exchange"
-    />
-
-    <div v-else>
-      <LoadingState v-if="isLoading" />
-
-      <ErrorState v-else-if="error" :message="error" />
-
-      <div v-if="trafficData" class="dashboard-container">
-        <GrpcTrafficStats :header="trafficData.header" />
-        <GrpcLargestCalls
-          :calls="sortedLargestCalls"
-          :total-call-count="trafficData.header.callCount || 0"
-        />
-      </div>
-
-      <div v-else-if="!isLoading && !error" class="p-4 text-center">
-        <h3 class="text-muted">No gRPC Traffic Data Available</h3>
-        <p class="text-muted">No gRPC traffic data found for this profile</p>
-      </div>
-    </div>
-  </div>
+  <TechnologyDashboard
+    :fetch="() => client.getTraffic()"
+    :disabled="isGrpcDashboardDisabled"
+    :disabled-title="mode === 'client' ? 'gRPC Client Dashboard' : 'gRPC Server Dashboard'"
+    event-type="gRPC exchange"
+    no-data-title="No gRPC Traffic Data Available"
+    no-data-message="No gRPC traffic data found for this profile"
+  >
+    <template #default="{ data }">
+      <GrpcTrafficStats :header="data.header" />
+      <GrpcLargestCalls
+        :calls="sortedLargestCalls(data)"
+        :total-call-count="data.header.callCount || 0"
+      />
+    </template>
+  </TechnologyDashboard>
 </template>
 
 <script setup lang="ts">
@@ -34,11 +24,8 @@ import GrpcLargestCalls from '@/components/grpc/GrpcLargestCalls.vue';
 import ProfileGrpcClient from '@/services/api/ProfileGrpcClient';
 import type { GrpcTrafficData } from '@/services/api/ProfileGrpcClient';
 import GrpcTrafficStats from '@/components/grpc/GrpcTrafficStats.vue';
-import LoadingState from '@shared/components/LoadingState.vue';
-import ErrorState from '@shared/components/ErrorState.vue';
-import CustomDisabledFeatureAlert from '@/components/alerts/CustomDisabledFeatureAlert.vue';
+import TechnologyDashboard from '@/components/technologies/TechnologyDashboard.vue';
 import FeatureType from '@/services/api/model/FeatureType';
-import { useTechnologyData } from '@/composables/useTechnologyData';
 
 interface Props {
   disabledFeatures?: FeatureType[];
@@ -60,14 +47,7 @@ const isGrpcDashboardDisabled = computed(() => {
 
 const client = new ProfileGrpcClient(mode, route.params.profileId as string);
 
-const {
-  data: trafficData,
-  isLoading,
-  error
-} = useTechnologyData<GrpcTrafficData>(() => client.getTraffic(), isGrpcDashboardDisabled);
-
-const sortedLargestCalls = computed(() => {
-  if (!trafficData.value) return [];
-  return [...trafficData.value.largestCalls].sort((a, b) => b.totalSize - a.totalSize);
-});
+const sortedLargestCalls = (data: GrpcTrafficData) => {
+  return [...data.largestCalls].sort((a, b) => b.totalSize - a.totalSize);
+};
 </script>

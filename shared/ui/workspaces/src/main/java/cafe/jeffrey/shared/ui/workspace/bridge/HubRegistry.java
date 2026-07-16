@@ -18,8 +18,8 @@
 
 package cafe.jeffrey.shared.ui.workspace.bridge;
 
-import cafe.jeffrey.microscope.persistence.api.HubAddress;
-import cafe.jeffrey.microscope.persistence.api.HubInfo;
+import cafe.jeffrey.shared.common.model.hub.HubAddress;
+import cafe.jeffrey.shared.common.model.hub.HubInfo;
 
 import java.util.List;
 import java.util.Optional;
