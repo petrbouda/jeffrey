@@ -183,141 +183,93 @@
         </button>
       </div>
 
-      <!-- 3. Two-column lists -->
+      <!-- 3. Type filter + unified recordings list -->
       <EmptyState
         v-if="allRecordings.length === 0 && allGroups.length === 0"
         icon="bi-record-circle"
         title="No recordings yet"
-        description="Drop a JFR or heap dump file above to get started"
+        description="Drop a JFR, pprof or heap dump file above to get started"
       />
-      <EmptyState
-        v-else-if="jfrRecordings.length === 0 && heapRecordings.length === 0"
-        icon="bi-search"
-        title="No recordings match the current filter"
-      />
-      <div v-else class="recordings-columns">
-        <!-- JFR column -->
-        <div class="rec-column">
-          <div class="col-head col-head-jfr">
-            <span class="col-pill col-pill-jfr">
-              <i class="bi bi-activity"></i>
-              JFR Recordings
-            </span>
-            <Badge :value="jfrRecordings.length" variant="indigo" size="s" />
-            <span v-if="viewFilter !== 'all'" class="col-context">
-              Group: <strong>{{ activeFilterLabel }}</strong>
-            </span>
-          </div>
-          <div class="card-stack">
-            <RecordingCard
-              v-for="recording in jfrRecordings"
-              :key="recording.id"
-              :recording-id="recording.id"
-              :name="recording.profileName ?? recording.filename"
-              :size-in-bytes="recording.sizeInBytes"
-              :duration-in-millis="recording.durationInMillis"
-              :uploaded-at="recording.uploadedAt"
-              :source-type="recording.eventSource"
-              :has-profile="recording.hasProfile"
-              :profile-id="recording.profileId"
-              :profile-size-in-bytes="recording.profileSizeInBytes"
-              :profile-modified="recording.profileModified"
-              :analyzing="analyzingRecordings.has(recording.id)"
-              :draggable="true"
-              :origin="buildOrigin(recording)"
-              :file-count="recording.files?.length ?? 0"
-              :expandable="(recording.files?.length ?? 0) > 1"
-              :expanded="expandedRecordings.has(recording.id)"
-              @click="handleCardClick(recording)"
-              @create-profile="analyzeRecording(recording.id)"
-              @open-profile="openProfile(recording)"
-              @edit-profile="startEditProfile(recording)"
-              @delete-profile="deleteProfileFromRecording(recording.id)"
-              @delete-recording="deleteRecording(recording.id)"
-              @toggle-expand="toggleRecordingFiles(recording.id)"
-              @dragend="onDragEnd"
-            >
-              <template #expanded-content>
-                <RecordingFileGroupList
-                  v-if="recording.files && recording.files.length > 0"
-                  :recording-id="recording.id"
-                  :files="recording.files"
-                  @download="downloadFile"
-                />
-                <div v-else class="small py-1 text-muted">
-                  <i class="bi bi-exclamation-circle me-1"></i>
-                  No recording files available
-                </div>
-              </template>
-            </RecordingCard>
-            <div v-if="jfrRecordings.length === 0" class="col-empty">
-              <i class="bi bi-activity"></i>
-              <span>No JFR recordings{{ viewFilter !== 'all' ? ' in this group' : '' }}</span>
-            </div>
-          </div>
+      <template v-else>
+        <!-- Type filter pills -->
+        <div class="type-filter">
+          <button
+            class="type-chip"
+            :class="{ active: typeFilter === 'all' }"
+            type="button"
+            @click="selectTypeFilter('all')"
+          >
+            All
+            <span class="type-count">{{ filteredRecordings.length }}</span>
+          </button>
+          <button
+            v-for="tf in TYPE_FILTERS"
+            :key="tf.key"
+            class="type-chip"
+            :class="[`type-chip--${tf.variant}`, { active: typeFilter === tf.key }]"
+            type="button"
+            @click="selectTypeFilter(tf.key)"
+          >
+            <i class="bi" :class="tf.icon"></i>
+            {{ tf.label }}
+            <span class="type-count">{{ typeCounts[tf.key] }}</span>
+          </button>
         </div>
 
-        <!-- Heap column -->
-        <div class="rec-column">
-          <div class="col-head col-head-heap">
-            <span class="col-pill col-pill-heap">
-              <i class="bi bi-pie-chart-fill"></i>
-              Heap Dumps
-            </span>
-            <Badge :value="heapRecordings.length" variant="purple" size="s" />
-            <span v-if="viewFilter !== 'all'" class="col-context">
-              Group: <strong>{{ activeFilterLabel }}</strong>
-            </span>
-          </div>
-          <div class="card-stack">
-            <RecordingCard
-              v-for="recording in heapRecordings"
-              :key="recording.id"
-              :recording-id="recording.id"
-              :name="recording.profileName ?? recording.filename"
-              :size-in-bytes="recording.sizeInBytes"
-              :duration-in-millis="recording.durationInMillis"
-              :uploaded-at="recording.uploadedAt"
-              :source-type="recording.eventSource"
-              :has-profile="recording.hasProfile"
-              :profile-id="recording.profileId"
-              :profile-size-in-bytes="recording.profileSizeInBytes"
-              :profile-modified="recording.profileModified"
-              :analyzing="analyzingRecordings.has(recording.id)"
-              :draggable="true"
-              :origin="buildOrigin(recording)"
-              :file-count="recording.files?.length ?? 0"
-              :expandable="(recording.files?.length ?? 0) > 1"
-              :expanded="expandedRecordings.has(recording.id)"
-              @click="handleCardClick(recording)"
-              @create-profile="analyzeRecording(recording.id)"
-              @open-profile="openProfile(recording)"
-              @edit-profile="startEditProfile(recording)"
-              @delete-profile="deleteProfileFromRecording(recording.id)"
-              @delete-recording="deleteRecording(recording.id)"
-              @toggle-expand="toggleRecordingFiles(recording.id)"
-              @dragend="onDragEnd"
-            >
-              <template #expanded-content>
-                <RecordingFileGroupList
-                  v-if="recording.files && recording.files.length > 0"
-                  :recording-id="recording.id"
-                  :files="recording.files"
-                  @download="downloadFile"
-                />
-                <div v-else class="small py-1 text-muted">
-                  <i class="bi bi-exclamation-circle me-1"></i>
-                  No recording files available
-                </div>
-              </template>
-            </RecordingCard>
-            <div v-if="heapRecordings.length === 0" class="col-empty">
-              <i class="bi bi-pie-chart-fill"></i>
-              <span>No heap dumps{{ viewFilter !== 'all' ? ' in this group' : '' }}</span>
-            </div>
-          </div>
+        <EmptyState
+          v-if="filteredRecordings.length === 0"
+          icon="bi-search"
+          title="No recordings match the current filter"
+        />
+        <EmptyState
+          v-else-if="visibleRecordings.length === 0"
+          icon="bi-funnel"
+          title="No recordings of this type in the current selection"
+        />
+        <div v-else class="card-stack recordings-list">
+          <RecordingCard
+            v-for="recording in visibleRecordings"
+            :key="recording.id"
+            :recording-id="recording.id"
+            :name="recording.profileName ?? recording.filename"
+            :size-in-bytes="recording.sizeInBytes"
+            :duration-in-millis="recording.durationInMillis"
+            :uploaded-at="recording.uploadedAt"
+            :source-type="recording.eventSource"
+            :has-profile="recording.hasProfile"
+            :profile-id="recording.profileId"
+            :profile-size-in-bytes="recording.profileSizeInBytes"
+            :profile-modified="recording.profileModified"
+            :analyzing="analyzingRecordings.has(recording.id)"
+            :draggable="true"
+            :origin="buildOrigin(recording)"
+            :file-count="recording.files?.length ?? 0"
+            :expandable="(recording.files?.length ?? 0) > 1"
+            :expanded="expandedRecordings.has(recording.id)"
+            @click="handleCardClick(recording)"
+            @create-profile="analyzeRecording(recording.id)"
+            @open-profile="openProfile(recording)"
+            @edit-profile="startEditProfile(recording)"
+            @delete-profile="deleteProfileFromRecording(recording.id)"
+            @delete-recording="deleteRecording(recording.id)"
+            @toggle-expand="toggleRecordingFiles(recording.id)"
+            @dragend="onDragEnd"
+          >
+            <template #expanded-content>
+              <RecordingFileGroupList
+                v-if="recording.files && recording.files.length > 0"
+                :recording-id="recording.id"
+                :files="recording.files"
+                @download="downloadFile"
+              />
+              <div v-else class="small py-1 text-muted">
+                <i class="bi bi-exclamation-circle me-1"></i>
+                No recording files available
+              </div>
+            </template>
+          </RecordingCard>
         </div>
-      </div>
+      </template>
     </MainCard>
 
     <!-- Create Group modal -->
@@ -515,16 +467,6 @@ const uploadTargetLabel = computed(() => {
   return groupNameById.value.get(selectedGroupId.value) ?? 'No group';
 });
 
-const activeFilterLabel = computed(() => {
-  if (viewFilter.value === 'all') {
-    return 'All';
-  }
-  if (viewFilter.value === UNGROUPED_KEY) {
-    return 'Ungrouped';
-  }
-  return groupNameById.value.get(viewFilter.value) ?? 'Unknown';
-});
-
 const filteredRecordings = computed<Recording[]>(() => {
   let recs = allRecordings.value;
 
@@ -555,13 +497,49 @@ const sortRecordings = (recs: Recording[]): Recording[] => {
   });
 };
 
-const jfrRecordings = computed(() =>
-  sortRecordings(filteredRecordings.value.filter(r => r.eventSource !== HEAP_DUMP_SOURCE))
-);
+// Recording format taxonomy — the single source of truth for how a recording is typed in the UI.
+type RecordingType = 'JFR' | 'PPROF' | 'HEAP';
+type TypeFilter = 'all' | RecordingType;
 
-const heapRecordings = computed(() =>
-  sortRecordings(filteredRecordings.value.filter(r => r.eventSource === HEAP_DUMP_SOURCE))
-);
+const recordingType = (recording: Recording): RecordingType => {
+  if (recording.eventSource === HEAP_DUMP_SOURCE) {
+    return 'HEAP';
+  }
+  if (recording.eventSource === PPROF_SOURCE) {
+    return 'PPROF';
+  }
+  return 'JFR';
+};
+
+const typeFilter = ref<TypeFilter>('all');
+
+// Counts per format within the current group/search selection — drives the type filter pills.
+const typeCounts = computed<Record<RecordingType, number>>(() => {
+  const counts: Record<RecordingType, number> = { JFR: 0, PPROF: 0, HEAP: 0 };
+  for (const recording of filteredRecordings.value) {
+    counts[recordingType(recording)]++;
+  }
+  return counts;
+});
+
+// Recordings shown in the list: the group/search selection, narrowed by the active type filter.
+const visibleRecordings = computed(() => {
+  let recs = filteredRecordings.value;
+  if (typeFilter.value !== 'all') {
+    recs = recs.filter(recording => recordingType(recording) === typeFilter.value);
+  }
+  return sortRecordings(recs);
+});
+
+const TYPE_FILTERS: { key: RecordingType; label: string; icon: string; variant: string }[] = [
+  { key: 'JFR', label: 'JFR', icon: 'bi-activity', variant: 'indigo' },
+  { key: 'PPROF', label: 'pprof', icon: 'bi-fire', variant: 'teal' },
+  { key: 'HEAP', label: 'Heap Dumps', icon: 'bi-pie-chart-fill', variant: 'purple' }
+];
+
+const selectTypeFilter = (type: TypeFilter) => {
+  typeFilter.value = type;
+};
 
 // Origin breadcrumb derivation
 interface RecordingOrigin {
@@ -1324,57 +1302,73 @@ const onDragEnd = () => {
   color: var(--color-primary);
 }
 
-/* ============ Recordings columns ============ */
-.recordings-columns {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  margin-top: 12px;
-}
-
-.rec-column {
+/* ============ Type filter + recordings list ============ */
+.type-filter {
   display: flex;
-  flex-direction: column;
-  min-width: 0;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0 14px;
 }
 
-.col-head {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding-bottom: 10px;
-  margin-bottom: 10px;
-  border-bottom: 1px solid var(--color-border-light);
-}
-
-.col-pill {
+.type-chip {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
+  gap: 7px;
+  padding: 6px 12px;
   border-radius: var(--radius-base);
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
-  color: var(--color-white);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font-family: inherit;
+  transition: all var(--transition-base);
 }
 
-.col-pill-jfr {
-  background: var(--color-primary);
+.type-chip:hover {
+  color: var(--color-text);
 }
 
-.col-pill-heap {
-  background: var(--color-purple);
+.type-chip i {
+  font-size: 0.85rem;
 }
 
-.col-context {
-  margin-left: auto;
+.type-count {
+  font-variant-numeric: tabular-nums;
   font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  padding: 0 6px;
+  border-radius: var(--radius-base);
+  background: var(--color-light);
   color: var(--color-text-muted);
 }
 
-.col-context strong {
-  color: var(--color-primary);
-  font-weight: var(--font-weight-semibold);
+/* Active: "All" is neutral (dark), each type adopts its format hue */
+.type-chip.active {
+  color: var(--color-white);
+  background: var(--color-text);
+  border-color: var(--color-text);
+}
+
+.type-chip.active .type-count {
+  background: var(--color-white);
+  color: var(--color-text);
+}
+
+.type-chip--indigo.active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.type-chip--teal.active {
+  background: var(--color-teal);
+  border-color: var(--color-teal);
+}
+
+.type-chip--purple.active {
+  background: var(--color-purple);
+  border-color: var(--color-purple);
 }
 
 .card-stack {
@@ -1383,25 +1377,7 @@ const onDragEnd = () => {
   gap: 6px;
 }
 
-.col-empty {
-  padding: 24px 0;
-  text-align: center;
-  color: var(--color-text-light);
-  font-size: var(--font-size-sm);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-}
-
-.col-empty i {
-  font-size: 1.4rem;
-  opacity: 0.4;
-}
-
-@media (max-width: 960px) {
-  .recordings-columns {
-    grid-template-columns: 1fr;
-  }
+.recordings-list {
+  margin-top: 4px;
 }
 </style>

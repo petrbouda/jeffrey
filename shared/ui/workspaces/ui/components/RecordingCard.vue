@@ -17,7 +17,7 @@
   -->
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import FormattingService from '@shared/services/FormattingService';
 
 interface RecordingOrigin {
@@ -69,6 +69,41 @@ const emit = defineEmits<{
   (e: 'toggle-expand'): void;
   (e: 'dragend'): void;
 }>();
+
+const SOURCE_HEAP_DUMP = 'HEAP_DUMP';
+const SOURCE_PPROF = 'PPROF';
+
+// The recording's format drives its icon, colored type tag, and left-border accent so JFR, pprof
+// and heap-dump recordings are visually distinct at a glance.
+const iconClass = computed(() => {
+  if (props.sourceType === SOURCE_HEAP_DUMP) {
+    return 'bi bi-pie-chart-fill';
+  }
+  if (props.sourceType === SOURCE_PPROF) {
+    return 'bi bi-fire';
+  }
+  return 'bi bi-activity';
+});
+
+const typeLabel = computed(() => {
+  if (props.sourceType === SOURCE_HEAP_DUMP) {
+    return 'Heap';
+  }
+  if (props.sourceType === SOURCE_PPROF) {
+    return 'pprof';
+  }
+  return 'JFR';
+});
+
+const typeTagClass = computed(() => {
+  if (props.sourceType === SOURCE_HEAP_DUMP) {
+    return 'rec-card__type--heap';
+  }
+  if (props.sourceType === SOURCE_PPROF) {
+    return 'rec-card__type--pprof';
+  }
+  return 'rec-card__type--jfr';
+});
 
 const isTransitional = () =>
   props.analyzing ||
@@ -146,6 +181,7 @@ onBeforeUnmount(() => {
         analyzing || creatingProfile || (hasProfile && !profileEnabled && !deletingProfile),
       'rec-card--deleting': deletingProfile,
       'rec-card--heap-dump': sourceType === 'HEAP_DUMP',
+      'rec-card--pprof': sourceType === 'PPROF',
       'rec-card--menu-open': menuOpen
     }"
     @click="handleClick"
@@ -155,10 +191,8 @@ onBeforeUnmount(() => {
       <!-- Left: info -->
       <div class="rec-card__info">
         <div class="rec-card__line1">
-          <i
-            class="rec-card__icon"
-            :class="sourceType === 'HEAP_DUMP' ? 'bi bi-pie-chart-fill' : 'bi bi-activity'"
-          ></i>
+          <i class="rec-card__icon" :class="iconClass"></i>
+          <span class="rec-card__type" :class="typeTagClass">{{ typeLabel }}</span>
           <span class="rec-card__name">{{ name }}</span>
           <span
             v-if="origin"
@@ -392,6 +426,46 @@ onBeforeUnmount(() => {
 
 .rec-card--heap-dump.rec-card--analyzed .rec-card__profile-info {
   color: var(--color-purple);
+}
+
+/* pprof accent */
+.rec-card--pprof {
+  border-left: 3px solid var(--color-teal);
+}
+
+.rec-card--pprof:hover {
+  border-left-color: var(--color-teal);
+  box-shadow: var(--shadow-sm);
+}
+
+.rec-card--pprof .rec-card__icon {
+  color: var(--color-teal);
+}
+
+/* Format type tag (JFR / pprof / Heap) */
+.rec-card__type {
+  flex: none;
+  font-size: 0.625rem;
+  font-weight: 700;
+  line-height: 1;
+  padding: 3px 7px;
+  border-radius: var(--radius-pill, 999px);
+  letter-spacing: 0.02em;
+}
+
+.rec-card__type--jfr {
+  background: var(--color-indigo-bg);
+  color: var(--color-indigo-text);
+}
+
+.rec-card__type--pprof {
+  background: var(--color-teal-bg);
+  color: var(--color-teal-text);
+}
+
+.rec-card__type--heap {
+  background: var(--color-purple-bg);
+  color: var(--color-purple-text);
 }
 
 @keyframes rec-card-pulse {
