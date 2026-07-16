@@ -29,13 +29,8 @@ public enum FrameType {
     JIT_COMPILED("JIT compiled", true, "JIT-compiled (JAVA)"),
     INLINED("Inlined", true, "Inlined (JAVA)"),
     KERNEL("Kernel", false, "Kernel"),
-    // Non-JVM language runtimes (mixed-language stacks from whole-system profilers, e.g. the
-    // OpenTelemetry eBPF profiler; codes match the persisted frames.frame_type strings). Only the
-    // runtimes realistically co-located with a JVM get a first-class type; everything else folds
-    // into OTHER_RUNTIME.
-    PYTHON("Python", false, "Python"),
-    JAVASCRIPT("JavaScript", false, "JavaScript (V8)"),
-    GO("Go", false, "Go"),
+    // Any non-JVM language runtime frame (mixed-language stacks from whole-system profilers,
+    // e.g. the OpenTelemetry eBPF profiler); the code matches the persisted frames.frame_type string
     OTHER_RUNTIME("Runtime", false, "Other Runtime (non-JVM)"),
     THREAD_NAME_SYNTHETIC("Thread Name (Synthetic)"),
     ALLOCATED_OBJECT_SYNTHETIC("Allocated Object (Synthetic)"),

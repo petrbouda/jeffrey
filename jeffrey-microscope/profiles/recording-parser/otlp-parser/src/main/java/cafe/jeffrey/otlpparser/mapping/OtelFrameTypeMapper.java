@@ -28,10 +28,9 @@ import java.util.Map;
  * {@link FrameType} codes.
  * <p>
  * OTLP does not distinguish interpreted/JIT-compiled/inlined JVM frames, so {@code jvm} maps to
- * {@link FrameType#JIT_COMPILED} (the dominant state, rendered as a Java frame). The language
- * runtimes realistically co-located with a JVM (Python, JavaScript, Go) map to dedicated frame
- * types with their own colors; the remaining semconv runtimes fold into
- * {@link FrameType#OTHER_RUNTIME}.
+ * {@link FrameType#JIT_COMPILED} (the dominant state, rendered as a Java frame). Every non-JVM
+ * language runtime folds into {@link FrameType#OTHER_RUNTIME} — a single dedicated color that makes
+ * non-JVM runtime frames stand out in mixed-language stacks without diluting the palette.
  */
 public final class OtelFrameTypeMapper {
 
@@ -57,9 +56,9 @@ public final class OtelFrameTypeMapper {
             Map.entry(FRAME_TYPE_JVM, FrameType.JIT_COMPILED),
             Map.entry(FRAME_TYPE_KERNEL, FrameType.KERNEL),
             Map.entry(FRAME_TYPE_NATIVE, FrameType.NATIVE),
-            Map.entry(FRAME_TYPE_CPYTHON, FrameType.PYTHON),
-            Map.entry(FRAME_TYPE_V8JS, FrameType.JAVASCRIPT),
-            Map.entry(FRAME_TYPE_GO, FrameType.GO),
+            Map.entry(FRAME_TYPE_CPYTHON, FrameType.OTHER_RUNTIME),
+            Map.entry(FRAME_TYPE_V8JS, FrameType.OTHER_RUNTIME),
+            Map.entry(FRAME_TYPE_GO, FrameType.OTHER_RUNTIME),
             Map.entry(FRAME_TYPE_DOTNET, FrameType.OTHER_RUNTIME),
             Map.entry(FRAME_TYPE_RUBY, FrameType.OTHER_RUNTIME),
             Map.entry(FRAME_TYPE_PHP, FrameType.OTHER_RUNTIME),

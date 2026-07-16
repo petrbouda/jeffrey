@@ -25,11 +25,11 @@ import cafe.jeffrey.profile.common.model.FrameType;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
- * Language-runtime frames (mixed-language stacks from whole-system profilers) share a single
- * counter + last-seen type instead of per-language counter fields — these tests pin the dominant
- * type resolution and merging semantics of that mechanism.
+ * Non-JVM language runtime frames (mixed-language stacks from whole-system profilers) accumulate
+ * into the OTHER_RUNTIME counter — these tests pin the dominant-type resolution and merging
+ * semantics of that counter.
  */
-class FrameLanguageTypeTest {
+class FrameOtherRuntimeTypeTest {
 
     private static Frame frame() {
         return new Frame(null, "sample_function", 0, 0);
@@ -39,34 +39,24 @@ class FrameLanguageTypeTest {
     class DominantType {
 
         @Test
-        void languageOnlyFrameResolvesToItsLanguage() {
+        void runtimeOnlyFrameResolvesToOtherRuntime() {
             Frame frame = frame();
-            frame.increment(FrameType.PYTHON, 10, 10, true);
+            frame.increment(FrameType.OTHER_RUNTIME, 10, 10, true);
 
-            assertEquals(FrameType.PYTHON, frame.frameType());
+            assertEquals(FrameType.OTHER_RUNTIME, frame.frameType());
         }
 
         @Test
-        void everyLanguageRuntimeIsResolvable() {
-            for (FrameType language : new FrameType[]{
-                    FrameType.PYTHON, FrameType.JAVASCRIPT, FrameType.GO, FrameType.OTHER_RUNTIME}) {
-                Frame frame = frame();
-                frame.increment(language, 1, 1, true);
-                assertEquals(language, frame.frameType(), "language=" + language);
-            }
-        }
-
-        @Test
-        void languageWinsOverNativeSamples() {
+        void runtimeWinsOverNativeSamples() {
             Frame frame = frame();
-            frame.increment(FrameType.GO, 5, 5, true);
+            frame.increment(FrameType.OTHER_RUNTIME, 5, 5, true);
             frame.increment(FrameType.NATIVE, 1, 1, true);
 
-            assertEquals(FrameType.GO, frame.frameType());
+            assertEquals(FrameType.OTHER_RUNTIME, frame.frameType());
         }
 
         @Test
-        void kernelStillWinsOverLanguageSamples() {
+        void kernelStillWinsOverRuntimeSamples() {
             Frame frame = frame();
             frame.increment(FrameType.OTHER_RUNTIME, 5, 5, true);
             frame.increment(FrameType.KERNEL, 1, 1, true);
@@ -79,30 +69,17 @@ class FrameLanguageTypeTest {
     class Merging {
 
         @Test
-        void mergePropagatesLanguageTypeAndSamples() {
+        void mergePropagatesRuntimeSamples() {
             Frame target = frame();
             target.increment(FrameType.NATIVE, 1, 1, true);
 
             Frame source = frame();
-            source.increment(FrameType.PYTHON, 7, 7, true);
-
-            target.merge(source);
-
-            assertEquals(FrameType.PYTHON, target.frameType());
-            assertEquals(8, target.totalSamples());
-        }
-
-        @Test
-        void mergeWithoutLanguageKeepsExistingLanguage() {
-            Frame target = frame();
-            target.increment(FrameType.OTHER_RUNTIME, 3, 3, true);
-
-            Frame source = frame();
-            source.increment(FrameType.NATIVE, 1, 1, true);
+            source.increment(FrameType.OTHER_RUNTIME, 7, 7, true);
 
             target.merge(source);
 
             assertEquals(FrameType.OTHER_RUNTIME, target.frameType());
+            assertEquals(8, target.totalSamples());
         }
     }
 }

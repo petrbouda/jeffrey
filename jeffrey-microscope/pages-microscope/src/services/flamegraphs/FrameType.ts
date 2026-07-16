@@ -29,9 +29,6 @@ export default class FrameType {
   static JIT_COMPILED = 'JIT_COMPILED';
   static INLINED = 'INLINED';
   static KERNEL = 'KERNEL';
-  static PYTHON = 'PYTHON';
-  static JAVASCRIPT = 'JAVASCRIPT';
-  static GO = 'GO';
   static OTHER_RUNTIME = 'OTHER_RUNTIME';
   static THREAD_NAME_SYNTHETIC = 'THREAD_NAME_SYNTHETIC';
   static ALLOCATED_OBJECT_SYNTHETIC = 'ALLOCATED_OBJECT_SYNTHETIC';

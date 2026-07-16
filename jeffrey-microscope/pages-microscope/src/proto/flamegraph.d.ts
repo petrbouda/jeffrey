@@ -982,17 +982,8 @@ export namespace cafe {
                     /** FRAME_TYPE_TRUNCATED_SYNTHETIC value */
                     FRAME_TYPE_TRUNCATED_SYNTHETIC = 16,
 
-                    /** FRAME_TYPE_PYTHON value */
-                    FRAME_TYPE_PYTHON = 17,
-
-                    /** FRAME_TYPE_JAVASCRIPT value */
-                    FRAME_TYPE_JAVASCRIPT = 18,
-
-                    /** FRAME_TYPE_GO value */
-                    FRAME_TYPE_GO = 19,
-
                     /** FRAME_TYPE_OTHER_RUNTIME value */
-                    FRAME_TYPE_OTHER_RUNTIME = 20
+                    FRAME_TYPE_OTHER_RUNTIME = 17
                 }
 
                 /**

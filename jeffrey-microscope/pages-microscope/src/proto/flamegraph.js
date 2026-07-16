@@ -2413,21 +2413,9 @@ export const cafe = $root.cafe = (() => {
                             case 16:
                                 message.type = 16;
                                 break;
-                            case "FRAME_TYPE_PYTHON":
+                            case "FRAME_TYPE_OTHER_RUNTIME":
                             case 17:
                                 message.type = 17;
-                                break;
-                            case "FRAME_TYPE_JAVASCRIPT":
-                            case 18:
-                                message.type = 18;
-                                break;
-                            case "FRAME_TYPE_GO":
-                            case 19:
-                                message.type = 19;
-                                break;
-                            case "FRAME_TYPE_OTHER_RUNTIME":
-                            case 20:
-                                message.type = 20;
                                 break;
                             default:
                                 if (typeof object.type === "number" && (object.type | 0) === object.type)
@@ -2639,10 +2627,7 @@ export const cafe = $root.cafe = (() => {
                  * @property {number} FRAME_TYPE_HIGHLIGHTED_WARNING=14 FRAME_TYPE_HIGHLIGHTED_WARNING value
                  * @property {number} FRAME_TYPE_COLLAPSED_SYNTHETIC=15 FRAME_TYPE_COLLAPSED_SYNTHETIC value
                  * @property {number} FRAME_TYPE_TRUNCATED_SYNTHETIC=16 FRAME_TYPE_TRUNCATED_SYNTHETIC value
-                 * @property {number} FRAME_TYPE_PYTHON=17 FRAME_TYPE_PYTHON value
-                 * @property {number} FRAME_TYPE_JAVASCRIPT=18 FRAME_TYPE_JAVASCRIPT value
-                 * @property {number} FRAME_TYPE_GO=19 FRAME_TYPE_GO value
-                 * @property {number} FRAME_TYPE_OTHER_RUNTIME=20 FRAME_TYPE_OTHER_RUNTIME value
+                 * @property {number} FRAME_TYPE_OTHER_RUNTIME=17 FRAME_TYPE_OTHER_RUNTIME value
                  */
                 proto.FrameType = (function() {
                     const valuesById = $Object.create(null), values = $Object.create(valuesById);
@@ -2663,10 +2648,7 @@ export const cafe = $root.cafe = (() => {
                     values[valuesById[14] = "FRAME_TYPE_HIGHLIGHTED_WARNING"] = 14;
                     values[valuesById[15] = "FRAME_TYPE_COLLAPSED_SYNTHETIC"] = 15;
                     values[valuesById[16] = "FRAME_TYPE_TRUNCATED_SYNTHETIC"] = 16;
-                    values[valuesById[17] = "FRAME_TYPE_PYTHON"] = 17;
-                    values[valuesById[18] = "FRAME_TYPE_JAVASCRIPT"] = 18;
-                    values[valuesById[19] = "FRAME_TYPE_GO"] = 19;
-                    values[valuesById[20] = "FRAME_TYPE_OTHER_RUNTIME"] = 20;
+                    values[valuesById[17] = "FRAME_TYPE_OTHER_RUNTIME"] = 17;
                     return values;
                 })();
 

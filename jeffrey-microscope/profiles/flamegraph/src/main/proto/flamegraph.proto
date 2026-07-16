@@ -96,11 +96,8 @@ enum FrameType {
     FRAME_TYPE_HIGHLIGHTED_WARNING = 14;
     FRAME_TYPE_COLLAPSED_SYNTHETIC = 15;
     FRAME_TYPE_TRUNCATED_SYNTHETIC = 16;
-    // Non-JVM language runtimes (mixed-language stacks, e.g. OpenTelemetry eBPF profiles)
-    FRAME_TYPE_PYTHON = 17;
-    FRAME_TYPE_JAVASCRIPT = 18;
-    FRAME_TYPE_GO = 19;
-    FRAME_TYPE_OTHER_RUNTIME = 20;
+    // Any non-JVM language runtime (mixed-language stacks, e.g. OpenTelemetry eBPF profiles)
+    FRAME_TYPE_OTHER_RUNTIME = 17;
 }
 
 // Position information for source code navigation

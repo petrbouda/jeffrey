@@ -183,6 +183,7 @@ public final class FlamegraphAiMarkdownBuilder {
     private static final String TAG_CPP = "CPP";
     private static final String TAG_KERNEL = "KERNEL";
     private static final String TAG_UNKNOWN = "UNKNOWN";
+    private static final String TAG_RUNTIME = "RUNTIME";
     private static final String TAG_SYNTHETIC = "SYNTHETIC";
 
     private static final String THREADS_MODE_HEADER = "threads_mode";
@@ -400,8 +401,7 @@ public final class FlamegraphAiMarkdownBuilder {
             case CPP -> TAG_CPP;
             case KERNEL -> TAG_KERNEL;
             case UNKNOWN -> TAG_UNKNOWN;
-            // Language runtimes tag with their enum name (PYTHON, GO, ...)
-            case PYTHON, JAVASCRIPT, GO, OTHER_RUNTIME -> frameType.name();
+            case OTHER_RUNTIME -> TAG_RUNTIME;
             case THREAD_NAME_SYNTHETIC,
                  ALLOCATED_OBJECT_SYNTHETIC,
                  ALLOCATED_OBJECT_IN_NEW_TLAB_SYNTHETIC,

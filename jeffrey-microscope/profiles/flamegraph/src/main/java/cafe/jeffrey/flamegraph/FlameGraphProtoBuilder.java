@@ -270,9 +270,6 @@ public class FlameGraphProtoBuilder implements GraphBuilder<cafe.jeffrey.frameir
             case JIT_COMPILED -> cafe.jeffrey.flamegraph.proto.FrameType.FRAME_TYPE_JIT_COMPILED;
             case INLINED -> cafe.jeffrey.flamegraph.proto.FrameType.FRAME_TYPE_INLINED;
             case KERNEL -> cafe.jeffrey.flamegraph.proto.FrameType.FRAME_TYPE_KERNEL;
-            case PYTHON -> cafe.jeffrey.flamegraph.proto.FrameType.FRAME_TYPE_PYTHON;
-            case JAVASCRIPT -> cafe.jeffrey.flamegraph.proto.FrameType.FRAME_TYPE_JAVASCRIPT;
-            case GO -> cafe.jeffrey.flamegraph.proto.FrameType.FRAME_TYPE_GO;
             case OTHER_RUNTIME -> cafe.jeffrey.flamegraph.proto.FrameType.FRAME_TYPE_OTHER_RUNTIME;
             case THREAD_NAME_SYNTHETIC -> cafe.jeffrey.flamegraph.proto.FrameType.FRAME_TYPE_THREAD_NAME_SYNTHETIC;
             case ALLOCATED_OBJECT_SYNTHETIC -> cafe.jeffrey.flamegraph.proto.FrameType.FRAME_TYPE_ALLOCATED_OBJECT_SYNTHETIC;

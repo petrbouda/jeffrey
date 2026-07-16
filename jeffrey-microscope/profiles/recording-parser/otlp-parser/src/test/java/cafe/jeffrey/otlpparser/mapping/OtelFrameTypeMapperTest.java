@@ -39,15 +39,11 @@ class OtelFrameTypeMapperTest {
     }
 
     @Test
-    void commonJvmNeighborsMapToDedicatedFrameTypes() {
+    void everyLanguageRuntimeFoldsIntoOtherRuntime() {
         assertEquals(FrameType.NATIVE, OtelFrameTypeMapper.map("native"));
-        assertEquals(FrameType.PYTHON, OtelFrameTypeMapper.map("cpython"));
-        assertEquals(FrameType.JAVASCRIPT, OtelFrameTypeMapper.map("v8js"));
-        assertEquals(FrameType.GO, OtelFrameTypeMapper.map("go"));
-    }
-
-    @Test
-    void rareRuntimesFoldIntoOtherRuntime() {
+        assertEquals(FrameType.OTHER_RUNTIME, OtelFrameTypeMapper.map("cpython"));
+        assertEquals(FrameType.OTHER_RUNTIME, OtelFrameTypeMapper.map("v8js"));
+        assertEquals(FrameType.OTHER_RUNTIME, OtelFrameTypeMapper.map("go"));
         assertEquals(FrameType.OTHER_RUNTIME, OtelFrameTypeMapper.map("dotnet"));
         assertEquals(FrameType.OTHER_RUNTIME, OtelFrameTypeMapper.map("ruby"));
         assertEquals(FrameType.OTHER_RUNTIME, OtelFrameTypeMapper.map("php"));
@@ -70,8 +66,7 @@ class OtelFrameTypeMapperTest {
         assertEquals(FrameType.JIT_COMPILED, FrameType.fromCode(OtelFrameTypeMapper.map("jvm").code()));
         assertEquals(FrameType.KERNEL, FrameType.fromCode(OtelFrameTypeMapper.map("kernel").code()));
         assertEquals(FrameType.NATIVE, FrameType.fromCode(OtelFrameTypeMapper.map("native").code()));
-        assertEquals(FrameType.PYTHON, FrameType.fromCode(OtelFrameTypeMapper.map("cpython").code()));
-        assertEquals(FrameType.GO, FrameType.fromCode(OtelFrameTypeMapper.map("go").code()));
-        assertEquals(FrameType.OTHER_RUNTIME, FrameType.fromCode(OtelFrameTypeMapper.map("luajit").code()));
+        assertEquals(FrameType.OTHER_RUNTIME, FrameType.fromCode(OtelFrameTypeMapper.map("cpython").code()));
+        assertEquals(FrameType.OTHER_RUNTIME, FrameType.fromCode(OtelFrameTypeMapper.map("go").code()));
     }
 }
