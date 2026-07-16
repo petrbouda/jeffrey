@@ -42,7 +42,7 @@
           <input
             ref="fileInputRef"
             type="file"
-            accept=".jfr,.lz4,.hprof,.gz"
+            accept=".jfr,.lz4,.hprof,.gz,.otlp"
             multiple
             class="file-input-hidden"
             @change="handleFileInput"
@@ -62,6 +62,8 @@
                 <Badge value=".jfr" variant="indigo" size="s" :uppercase="false" borderless />
                 <Badge value=".jfr.lz4" variant="indigo" size="s" :uppercase="false" borderless />
                 JFR recordings ·
+                <Badge value=".otlp" variant="orange" size="s" :uppercase="false" borderless />
+                OpenTelemetry profiles ·
                 <Badge value=".hprof" variant="purple" size="s" :uppercase="false" borderless />
                 <Badge value=".hprof.gz" variant="purple" size="s" :uppercase="false" borderless />
                 heap dumps
@@ -369,7 +371,7 @@ import type Recording from '@workspaces/services/api/model/Recording';
 
 const HEAP_DUMP_SOURCE = 'HEAP_DUMP';
 const UNGROUPED_KEY = '__ungrouped__';
-const ALLOWED_FILE_SUFFIXES = ['.jfr', '.jfr.lz4', '.hprof', '.hprof.gz'];
+const ALLOWED_FILE_SUFFIXES = ['.jfr', '.jfr.lz4', '.hprof', '.hprof.gz', '.otlp'];
 
 type ViewFilter = 'all' | typeof UNGROUPED_KEY | string;
 
