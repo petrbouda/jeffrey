@@ -40,5 +40,6 @@
     <modules>
         <module>jeffrey-events</module>
         <module>jeffrey-jib</module>
+        <module>jfr-otlp-converter</module>
     </modules>
 </project>
