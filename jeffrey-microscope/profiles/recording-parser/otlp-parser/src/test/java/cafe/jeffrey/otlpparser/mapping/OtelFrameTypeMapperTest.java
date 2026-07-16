@@ -39,18 +39,22 @@ class OtelFrameTypeMapperTest {
     }
 
     @Test
-    void languageRuntimesMapToDedicatedFrameTypes() {
+    void commonJvmNeighborsMapToDedicatedFrameTypes() {
         assertEquals(FrameType.NATIVE, OtelFrameTypeMapper.map("native"));
         assertEquals(FrameType.PYTHON, OtelFrameTypeMapper.map("cpython"));
         assertEquals(FrameType.JAVASCRIPT, OtelFrameTypeMapper.map("v8js"));
         assertEquals(FrameType.GO, OtelFrameTypeMapper.map("go"));
-        assertEquals(FrameType.DOTNET, OtelFrameTypeMapper.map("dotnet"));
-        assertEquals(FrameType.RUBY, OtelFrameTypeMapper.map("ruby"));
-        assertEquals(FrameType.PHP, OtelFrameTypeMapper.map("php"));
-        assertEquals(FrameType.PERL, OtelFrameTypeMapper.map("perl"));
-        assertEquals(FrameType.BEAM, OtelFrameTypeMapper.map("beam"));
-        assertEquals(FrameType.RUST, OtelFrameTypeMapper.map("rust"));
-        assertEquals(FrameType.LUA, OtelFrameTypeMapper.map("luajit"));
+    }
+
+    @Test
+    void rareRuntimesFoldIntoOtherRuntime() {
+        assertEquals(FrameType.OTHER_RUNTIME, OtelFrameTypeMapper.map("dotnet"));
+        assertEquals(FrameType.OTHER_RUNTIME, OtelFrameTypeMapper.map("ruby"));
+        assertEquals(FrameType.OTHER_RUNTIME, OtelFrameTypeMapper.map("php"));
+        assertEquals(FrameType.OTHER_RUNTIME, OtelFrameTypeMapper.map("perl"));
+        assertEquals(FrameType.OTHER_RUNTIME, OtelFrameTypeMapper.map("beam"));
+        assertEquals(FrameType.OTHER_RUNTIME, OtelFrameTypeMapper.map("rust"));
+        assertEquals(FrameType.OTHER_RUNTIME, OtelFrameTypeMapper.map("luajit"));
     }
 
     @Test
@@ -68,6 +72,6 @@ class OtelFrameTypeMapperTest {
         assertEquals(FrameType.NATIVE, FrameType.fromCode(OtelFrameTypeMapper.map("native").code()));
         assertEquals(FrameType.PYTHON, FrameType.fromCode(OtelFrameTypeMapper.map("cpython").code()));
         assertEquals(FrameType.GO, FrameType.fromCode(OtelFrameTypeMapper.map("go").code()));
-        assertEquals(FrameType.LUA, FrameType.fromCode(OtelFrameTypeMapper.map("luajit").code()));
+        assertEquals(FrameType.OTHER_RUNTIME, FrameType.fromCode(OtelFrameTypeMapper.map("luajit").code()));
     }
 }

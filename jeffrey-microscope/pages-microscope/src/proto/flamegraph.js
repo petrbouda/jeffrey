@@ -2425,33 +2425,9 @@ export const cafe = $root.cafe = (() => {
                             case 19:
                                 message.type = 19;
                                 break;
-                            case "FRAME_TYPE_DOTNET":
+                            case "FRAME_TYPE_OTHER_RUNTIME":
                             case 20:
                                 message.type = 20;
-                                break;
-                            case "FRAME_TYPE_RUBY":
-                            case 21:
-                                message.type = 21;
-                                break;
-                            case "FRAME_TYPE_PHP":
-                            case 22:
-                                message.type = 22;
-                                break;
-                            case "FRAME_TYPE_PERL":
-                            case 23:
-                                message.type = 23;
-                                break;
-                            case "FRAME_TYPE_BEAM":
-                            case 24:
-                                message.type = 24;
-                                break;
-                            case "FRAME_TYPE_RUST":
-                            case 25:
-                                message.type = 25;
-                                break;
-                            case "FRAME_TYPE_LUA":
-                            case 26:
-                                message.type = 26;
                                 break;
                             default:
                                 if (typeof object.type === "number" && (object.type | 0) === object.type)
@@ -2666,13 +2642,7 @@ export const cafe = $root.cafe = (() => {
                  * @property {number} FRAME_TYPE_PYTHON=17 FRAME_TYPE_PYTHON value
                  * @property {number} FRAME_TYPE_JAVASCRIPT=18 FRAME_TYPE_JAVASCRIPT value
                  * @property {number} FRAME_TYPE_GO=19 FRAME_TYPE_GO value
-                 * @property {number} FRAME_TYPE_DOTNET=20 FRAME_TYPE_DOTNET value
-                 * @property {number} FRAME_TYPE_RUBY=21 FRAME_TYPE_RUBY value
-                 * @property {number} FRAME_TYPE_PHP=22 FRAME_TYPE_PHP value
-                 * @property {number} FRAME_TYPE_PERL=23 FRAME_TYPE_PERL value
-                 * @property {number} FRAME_TYPE_BEAM=24 FRAME_TYPE_BEAM value
-                 * @property {number} FRAME_TYPE_RUST=25 FRAME_TYPE_RUST value
-                 * @property {number} FRAME_TYPE_LUA=26 FRAME_TYPE_LUA value
+                 * @property {number} FRAME_TYPE_OTHER_RUNTIME=20 FRAME_TYPE_OTHER_RUNTIME value
                  */
                 proto.FrameType = (function() {
                     const valuesById = $Object.create(null), values = $Object.create(valuesById);
@@ -2696,13 +2666,7 @@ export const cafe = $root.cafe = (() => {
                     values[valuesById[17] = "FRAME_TYPE_PYTHON"] = 17;
                     values[valuesById[18] = "FRAME_TYPE_JAVASCRIPT"] = 18;
                     values[valuesById[19] = "FRAME_TYPE_GO"] = 19;
-                    values[valuesById[20] = "FRAME_TYPE_DOTNET"] = 20;
-                    values[valuesById[21] = "FRAME_TYPE_RUBY"] = 21;
-                    values[valuesById[22] = "FRAME_TYPE_PHP"] = 22;
-                    values[valuesById[23] = "FRAME_TYPE_PERL"] = 23;
-                    values[valuesById[24] = "FRAME_TYPE_BEAM"] = 24;
-                    values[valuesById[25] = "FRAME_TYPE_RUST"] = 25;
-                    values[valuesById[26] = "FRAME_TYPE_LUA"] = 26;
+                    values[valuesById[20] = "FRAME_TYPE_OTHER_RUNTIME"] = 20;
                     return values;
                 })();
 

@@ -49,9 +49,7 @@ class FrameLanguageTypeTest {
         @Test
         void everyLanguageRuntimeIsResolvable() {
             for (FrameType language : new FrameType[]{
-                    FrameType.PYTHON, FrameType.JAVASCRIPT, FrameType.GO, FrameType.DOTNET,
-                    FrameType.RUBY, FrameType.PHP, FrameType.PERL, FrameType.BEAM,
-                    FrameType.RUST, FrameType.LUA}) {
+                    FrameType.PYTHON, FrameType.JAVASCRIPT, FrameType.GO, FrameType.OTHER_RUNTIME}) {
                 Frame frame = frame();
                 frame.increment(language, 1, 1, true);
                 assertEquals(language, frame.frameType(), "language=" + language);
@@ -70,7 +68,7 @@ class FrameLanguageTypeTest {
         @Test
         void kernelStillWinsOverLanguageSamples() {
             Frame frame = frame();
-            frame.increment(FrameType.RUBY, 5, 5, true);
+            frame.increment(FrameType.OTHER_RUNTIME, 5, 5, true);
             frame.increment(FrameType.KERNEL, 1, 1, true);
 
             assertEquals(FrameType.KERNEL, frame.frameType());
@@ -97,14 +95,14 @@ class FrameLanguageTypeTest {
         @Test
         void mergeWithoutLanguageKeepsExistingLanguage() {
             Frame target = frame();
-            target.increment(FrameType.LUA, 3, 3, true);
+            target.increment(FrameType.OTHER_RUNTIME, 3, 3, true);
 
             Frame source = frame();
             source.increment(FrameType.NATIVE, 1, 1, true);
 
             target.merge(source);
 
-            assertEquals(FrameType.LUA, target.frameType());
+            assertEquals(FrameType.OTHER_RUNTIME, target.frameType());
         }
     }
 }

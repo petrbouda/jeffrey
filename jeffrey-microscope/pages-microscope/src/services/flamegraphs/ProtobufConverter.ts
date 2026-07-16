@@ -61,13 +61,7 @@ const FRAME_TYPE_MAP: Record<number, string> = {
   [FrameTypeEnum.FRAME_TYPE_PYTHON]: FrameType.PYTHON,
   [FrameTypeEnum.FRAME_TYPE_JAVASCRIPT]: FrameType.JAVASCRIPT,
   [FrameTypeEnum.FRAME_TYPE_GO]: FrameType.GO,
-  [FrameTypeEnum.FRAME_TYPE_DOTNET]: FrameType.DOTNET,
-  [FrameTypeEnum.FRAME_TYPE_RUBY]: FrameType.RUBY,
-  [FrameTypeEnum.FRAME_TYPE_PHP]: FrameType.PHP,
-  [FrameTypeEnum.FRAME_TYPE_PERL]: FrameType.PERL,
-  [FrameTypeEnum.FRAME_TYPE_BEAM]: FrameType.BEAM,
-  [FrameTypeEnum.FRAME_TYPE_RUST]: FrameType.RUST,
-  [FrameTypeEnum.FRAME_TYPE_LUA]: FrameType.LUA
+  [FrameTypeEnum.FRAME_TYPE_OTHER_RUNTIME]: FrameType.OTHER_RUNTIME
 };
 
 /**

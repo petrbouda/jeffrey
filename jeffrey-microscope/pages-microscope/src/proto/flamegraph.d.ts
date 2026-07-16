@@ -991,26 +991,8 @@ export namespace cafe {
                     /** FRAME_TYPE_GO value */
                     FRAME_TYPE_GO = 19,
 
-                    /** FRAME_TYPE_DOTNET value */
-                    FRAME_TYPE_DOTNET = 20,
-
-                    /** FRAME_TYPE_RUBY value */
-                    FRAME_TYPE_RUBY = 21,
-
-                    /** FRAME_TYPE_PHP value */
-                    FRAME_TYPE_PHP = 22,
-
-                    /** FRAME_TYPE_PERL value */
-                    FRAME_TYPE_PERL = 23,
-
-                    /** FRAME_TYPE_BEAM value */
-                    FRAME_TYPE_BEAM = 24,
-
-                    /** FRAME_TYPE_RUST value */
-                    FRAME_TYPE_RUST = 25,
-
-                    /** FRAME_TYPE_LUA value */
-                    FRAME_TYPE_LUA = 26
+                    /** FRAME_TYPE_OTHER_RUNTIME value */
+                    FRAME_TYPE_OTHER_RUNTIME = 20
                 }
 
                 /**

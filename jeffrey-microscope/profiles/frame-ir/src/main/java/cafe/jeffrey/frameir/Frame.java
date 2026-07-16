@@ -101,7 +101,7 @@ public class Frame extends TreeMap<String, Frame> {
             case JIT_COMPILED -> jitCompiledSamples += samples;
             case INLINED -> inlinedSamples += samples;
             case KERNEL -> kernelSamples += samples;
-            case PYTHON, JAVASCRIPT, GO, DOTNET, RUBY, PHP, PERL, BEAM, RUST, LUA -> {
+            case PYTHON, JAVASCRIPT, GO, OTHER_RUNTIME -> {
                 languageFrameType = type;
                 languageSamples += samples;
             }
