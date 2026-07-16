@@ -371,6 +371,7 @@ import type RecordingGroup from '@workspaces/services/api/model/RecordingGroup';
 import type Recording from '@workspaces/services/api/model/Recording';
 
 const HEAP_DUMP_SOURCE = 'HEAP_DUMP';
+const PPROF_SOURCE = 'PPROF';
 const UNGROUPED_KEY = '__ungrouped__';
 const ALLOWED_FILE_SUFFIXES = ['.jfr', '.jfr.lz4', '.hprof', '.hprof.gz', '.pprof', '.pb.gz'];
 
@@ -758,6 +759,9 @@ const openProfile = async (recording: Recording) => {
   }
   if (recording.eventSource === HEAP_DUMP_SOURCE) {
     await router.push(`/profiles/${recording.profileId}/heap-dump/settings`);
+  } else if (recording.eventSource === PPROF_SOURCE) {
+    // pprof profiles are stack-samples only — land directly on the flamegraph
+    await router.push(`/profiles/${recording.profileId}/flamegraphs/primary`);
   } else {
     await router.push(`/profiles/${recording.profileId}/overview`);
   }

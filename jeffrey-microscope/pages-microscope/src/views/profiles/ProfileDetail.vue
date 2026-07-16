@@ -3,9 +3,9 @@
     <!-- Feature Collection Navigation -->
     <div class="feature-collection-nav normal-nav content-aligned">
       <div class="nav-container">
-        <!-- JVM Internals mode (hidden for heap-dump-only profiles) -->
+        <!-- JVM Internals mode (hidden for heap-dump-only and pprof profiles) -->
         <div
-          v-if="!isHeapDumpOnlyProfile"
+          v-if="!isHeapDumpOnlyProfile && !isPprofOnlyProfile"
           class="nav-pill"
           :class="{ active: selectedMode === 'JVM' }"
           title="Core JVM metrics and analysis"
@@ -19,9 +19,9 @@
             <small>Core JVM metrics and analysis</small>
           </div>
         </div>
-        <!-- Technologies mode (hidden for heap-dump-only profiles) -->
+        <!-- Technologies mode (hidden for heap-dump-only and pprof profiles) -->
         <div
-          v-if="!isHeapDumpOnlyProfile"
+          v-if="!isHeapDumpOnlyProfile && !isPprofOnlyProfile"
           class="nav-pill"
           :class="{ active: selectedMode === 'Technologies' }"
           title="Technology-specific analysis"
@@ -51,8 +51,9 @@
             <small>Profiling graphs and visualizations</small>
           </div>
         </div>
-        <!-- Heap Dump mode (always visible) -->
+        <!-- Heap Dump mode (always visible except for pprof profiles, which have no heap data) -->
         <div
+          v-if="!isPprofOnlyProfile"
           class="nav-pill"
           :class="{ active: selectedMode === 'HeapDump' }"
           title="Heap dump memory analysis"
@@ -66,9 +67,9 @@
             <small>Memory analysis from heap dumps</small>
           </div>
         </div>
-        <!-- Tools mode (hidden for heap-dump-only profiles) -->
+        <!-- Tools mode (hidden for heap-dump-only and pprof profiles) -->
         <div
-          v-if="!isHeapDumpOnlyProfile"
+          v-if="!isHeapDumpOnlyProfile && !isPprofOnlyProfile"
           class="nav-pill"
           :class="{ active: selectedMode === 'Tools' }"
           title="Profile data transformations"
@@ -305,6 +306,7 @@ const sidebarCollapsed = ref(false);
 const showSecondaryProfileSelectionModal = ref(false);
 const disabledFeatures = ref<FeatureType[]>([]);
 const isHeapDumpOnlyProfile = ref(false);
+const isPprofOnlyProfile = ref(false);
 
 /**
  * Check if the profile is a heap-dump-only profile (no JFR data).
@@ -312,6 +314,14 @@ const isHeapDumpOnlyProfile = ref(false);
  */
 const checkHeapDumpOnlyProfile = (p: Profile): boolean => {
   return p.eventSource === RecordingEventSource.HEAP_DUMP;
+};
+
+/**
+ * Check if the profile is a pprof profile. pprof carries stack samples only (no GC, JVM internals,
+ * heap dump or technology events), so these profiles expose only the stack-based Visualization mode.
+ */
+const checkPprofOnlyProfile = (p: Profile): boolean => {
+  return p.eventSource === RecordingEventSource.PPROF;
 };
 
 // Mapping function to determine which features are associated with menu items
@@ -456,6 +466,16 @@ onMounted(async () => {
     if (isHeapDumpOnlyProfile.value) {
       // Auto-select HeapDump mode for heap-dump-only profiles
       selectedMode.value = 'HeapDump';
+    }
+
+    // pprof profiles are stack-samples only: force the Visualization mode and, if the URL landed on
+    // a non-visualization section (e.g. the JFR /overview default), redirect to the flamegraph.
+    isPprofOnlyProfile.value = checkPprofOnlyProfile(profileWithContext);
+    if (isPprofOnlyProfile.value) {
+      selectedMode.value = 'Visualization';
+      if (getModeFromPath(route.path) !== 'Visualization') {
+        router.replace(`/profiles/${profileId}/flamegraphs/primary`);
+      }
     }
 
     // Load disabled features (includes heap dump status)
