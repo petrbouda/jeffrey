@@ -108,23 +108,36 @@ export default abstract class FlamegraphTooltip {
             </div>`;
   }
 
-  static position(position: FramePosition) {
+  static position(position: FramePosition, frameType: string | undefined) {
     if (position == null) {
       return '';
     }
 
-    return `
-            ${FlamegraphTooltip.divider('Positioning')}
-            <div style="padding:2px 10px 8px">
-                <div class="d-flex justify-content-between align-items-center" style="padding:2px 0">
+    // Bytecode index is JVM-bytecode-specific — only Java (JIT/C1/interpreted/inlined) frames carry
+    // it. pprof and native/C++/kernel frames have no bci, so drop that row for them. Line numbers
+    // exist beyond the JVM (pprof records them in its Line message), so show a line only when set.
+    const showBci = frameType != null && JavaMethodParser.isJavaFrame(frameType);
+    const showLine = position.line > 0;
+    if (!showBci && !showLine) {
+      return '';
+    }
+
+    const bciRow = showBci
+      ? `<div class="d-flex justify-content-between align-items-center" style="padding:2px 0">
                     <span class="small text-muted">Bytecode (bci):</span>
                     <span class="small fw-semibold ms-2">${position.bci}</span>
-                </div>
-                <div class="d-flex justify-content-between align-items-center" style="padding:2px 0">
+                </div>`
+      : '';
+    const lineRow = showLine
+      ? `<div class="d-flex justify-content-between align-items-center" style="padding:2px 0">
                     <span class="small text-muted">Line number:</span>
                     <span class="small fw-semibold ms-2">${position.line}</span>
-                </div>
-            </div>`;
+                </div>`
+      : '';
+
+    return `
+            ${FlamegraphTooltip.divider('Positioning')}
+            <div style="padding:2px 10px 8px">${bciRow}${lineRow}</div>`;
   }
 
   static divider(text: string) {
