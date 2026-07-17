@@ -27,7 +27,6 @@ import cafe.jeffrey.jfrparser.api.type.JfrThread;
 import cafe.jeffrey.profile.common.model.FrameType;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class FrameNameBuilderTest {
 
@@ -110,6 +109,15 @@ class FrameNameBuilderTest {
             String result = builder.generateName(frame, createThread("main", 1, 100, false), FrameType.NATIVE);
 
             assertEquals("pthread_mutex_lock", result);
+        }
+
+        @Test
+        void unknownFrameReturnsMethodNameOnly() {
+            JfrStackFrame frame = createFrame("com.example.Test", "test", "Unknown");
+
+            String result = builder.generateName(frame, createThread("main", 1, 100, false), FrameType.UNKNOWN);
+
+            assertEquals("test", result);
         }
     }
 
@@ -207,17 +215,6 @@ class FrameNameBuilderTest {
         }
     }
 
-    @Nested
-    class ErrorCases {
-
-        @Test
-        void unknownFrameTypeThrowsException() {
-            JfrStackFrame frame = createFrame("com.example.Test", "test", "Unknown");
-
-            assertThrows(IllegalArgumentException.class, () ->
-                    builder.generateName(frame, createThread("main", 1, 100, false), FrameType.UNKNOWN));
-        }
-    }
 
     private static JfrStackFrame createFrame(String className, String methodName, String type) {
         return new JfrStackFrame() {

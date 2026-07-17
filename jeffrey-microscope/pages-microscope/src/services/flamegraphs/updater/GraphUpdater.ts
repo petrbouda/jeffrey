@@ -69,10 +69,18 @@ export default abstract class GraphUpdater {
   protected searchBarOnUpdateFinishedCallback: () => void = () => {};
 
   protected timeseriesSearchEnabled: boolean = true;
+  // When false the graph has no timeseries at all (no chart is mounted, so no timeseries callbacks
+  // ever register). Initialization must then proceed on the flamegraph alone. Used for aggregated
+  // recordings without a time dimension (e.g. pprof).
+  protected timeseriesEnabled: boolean = true;
   protected initialVisibleMinutes: number | null = null;
 
   public setTimeseriesSearchEnabled(enabled: boolean): void {
     this.timeseriesSearchEnabled = enabled;
+  }
+
+  public setTimeseriesEnabled(enabled: boolean): void {
+    this.timeseriesEnabled = enabled;
   }
 
   public setInitialVisibleMinutes(minutes: number): void {

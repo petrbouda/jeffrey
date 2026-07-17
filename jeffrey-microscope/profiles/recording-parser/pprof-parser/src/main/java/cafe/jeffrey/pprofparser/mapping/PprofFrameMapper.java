@@ -34,7 +34,7 @@ import java.util.List;
  * Maps a pprof sample's leaf-first {@code location_id} list onto Jeffrey's root-first frame model.
  * <p>
  * pprof carries no frame-type information (no equivalent of OTLP's {@code profile.frame.type}), so
- * every frame is emitted as {@link FrameType#NATIVE} — these are the runtime's own application
+ * every frame is emitted as {@link FrameType#UNKNOWN} — these are the runtime's own application
  * frames, but the format does not tell us the language or compilation tier.
  */
 public final class PprofFrameMapper {
@@ -45,7 +45,7 @@ public final class PprofFrameMapper {
     private static final long UNKNOWN_BYTECODE_INDEX = -1;
     private static final String ADDRESS_PREFIX = "0x";
     private static final String UNKNOWN_MODULE = "unknown";
-    private static final String FRAME_TYPE_CODE = FrameType.NATIVE.code();
+    private static final String FRAME_TYPE_CODE = FrameType.UNKNOWN.code();
 
     private PprofFrameMapper() {
     }

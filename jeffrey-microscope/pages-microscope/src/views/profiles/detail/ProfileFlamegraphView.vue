@@ -21,10 +21,11 @@ import FlamegraphComponent from '@/components/FlamegraphComponent.vue';
 import type { AiExportContext } from '@/components/FlamegraphComponent.vue';
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
 import SearchBarComponent from '@/components/SearchBarComponent.vue';
-import { onBeforeMount, ref } from 'vue';
+import { computed, onBeforeMount, ref } from 'vue';
 import SecondaryProfileService from '@/services/SecondaryProfileService';
 import GraphType from '@/services/flamegraphs/GraphType';
 import { useRoute } from 'vue-router';
+import FeatureType from '@/services/api/model/FeatureType';
 
 import PrimaryFlamegraphClient from '@/services/api/PrimaryFlamegraphClient';
 import DifferentialFlamegraphClient from '@/services/api/DifferentialFlamegraphClient';
@@ -35,6 +36,18 @@ import FullGraphUpdater from '@/services/flamegraphs/updater/FullGraphUpdater';
 import TimeseriesEventAxeFormatter from '@/services/timeseries/TimeseriesEventAxeFormatter.ts';
 
 const route = useRoute();
+
+// `disabledFeatures` is provided by ProfileDetail's router-view (already resolved by the time this
+// view is opened). The timeseries strip is hidden when the backend disables TIMESERIES, e.g. for
+// pprof profiles, which are aggregated and carry no per-sample timestamps (all samples share the
+// profile's collection time, so the timeseries collapses into a single meaningless spike).
+const props = defineProps<{
+  disabledFeatures?: FeatureType[];
+}>();
+
+const showTimeseries = computed(
+  () => !(props.disabledFeatures ?? []).includes(FeatureType.TIMESERIES)
+);
 
 let flamegraphTooltip: FlamegraphTooltip;
 let graphUpdater: GraphUpdater;
@@ -97,7 +110,8 @@ onBeforeMount(() => {
   }
 
   graphUpdater = new FullGraphUpdater(flamegraphClient, true);
-  graphUpdater.setTimeseriesSearchEnabled(isPrimaryValue);
+  graphUpdater.setTimeseriesEnabled(showTimeseries.value);
+  graphUpdater.setTimeseriesSearchEnabled(isPrimaryValue && showTimeseries.value);
   flamegraphTooltip = FlamegraphTooltipFactory.create(
     eventTypeValue,
     useWeightValue,
@@ -119,8 +133,9 @@ onBeforeMount(() => {
 
 <template>
   <div style="padding-left: 5px; padding-right: 5px">
-    <SearchBarComponent :graph-updater="graphUpdater" :with-timeseries="true" />
+    <SearchBarComponent :graph-updater="graphUpdater" :with-timeseries="showTimeseries" />
     <TimeSeriesChart
+      v-if="showTimeseries"
       :graph-updater="graphUpdater"
       :primary-title="isDifferential ? 'Primary' : undefined"
       :secondary-title="isDifferential ? 'Secondary' : undefined"
@@ -130,7 +145,7 @@ onBeforeMount(() => {
       time-unit="seconds"
     />
     <FlamegraphComponent
-      :with-timeseries="isPrimary"
+      :with-timeseries="isPrimary && showTimeseries"
       :use-weight="useWeight"
       :use-guardian="null"
       :scrollable-wrapper-class="null"

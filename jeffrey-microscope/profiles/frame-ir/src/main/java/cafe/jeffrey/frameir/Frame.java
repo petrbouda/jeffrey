@@ -50,6 +50,7 @@ public class Frame extends TreeMap<String, Frame> {
     private long jitCompiledSamples;
     private long inlinedSamples;
     private long kernelSamples;
+    private long unknownSamples;
 
     private final Frame parent;
 
@@ -72,6 +73,7 @@ public class Frame extends TreeMap<String, Frame> {
         jitCompiledSamples += frame.jitCompiledSamples;
         inlinedSamples += frame.inlinedSamples;
         kernelSamples += frame.kernelSamples;
+        unknownSamples += frame.unknownSamples;
     }
 
     public void increment(FrameType type, long weight, long samples, boolean isTopFrame) {
@@ -91,6 +93,7 @@ public class Frame extends TreeMap<String, Frame> {
             case JIT_COMPILED -> jitCompiledSamples += samples;
             case INLINED -> inlinedSamples += samples;
             case KERNEL -> kernelSamples += samples;
+            case UNKNOWN -> unknownSamples += samples;
             case THREAD_NAME_SYNTHETIC,
                  ALLOCATED_OBJECT_SYNTHETIC,
                  ALLOCATED_OBJECT_IN_NEW_TLAB_SYNTHETIC,
@@ -143,6 +146,8 @@ public class Frame extends TreeMap<String, Frame> {
             return FrameType.KERNEL;
         } else if (nativeSamples > 0) {
             return FrameType.NATIVE;
+        } else if (unknownSamples > 0) {
+            return FrameType.UNKNOWN;
         } else if (syntheticFrameType != null) {
             return syntheticFrameType;
         } else {

@@ -27,7 +27,21 @@ export default class FullGraphUpdater extends GraphUpdater {
   }
 
   public initialize(): void {
-    if (!this.flamegraphRegistered || !this.timeseriesRegistered) {
+    if (!this.flamegraphRegistered) {
+      return;
+    }
+    // With a timeseries, wait for its chart to register too (init is a barrier over both). Without
+    // one (e.g. pprof), no timeseries chart is mounted, so proceed on the flamegraph alone.
+    if (this.timeseriesEnabled && !this.timeseriesRegistered) {
+      return;
+    }
+
+    if (!this.timeseriesEnabled) {
+      this.flamegraphOnUpdateStartedCallback();
+      this.httpClient.provide(null).then(flamegraph => {
+        this.flamegraphOnInitCallback(flamegraph);
+        this.flamegraphOnUpdateFinishedCallback();
+      });
       return;
     }
 

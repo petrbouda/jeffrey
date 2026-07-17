@@ -23,6 +23,7 @@ import FramePosition from '@/services/api/model/FramePosition';
 import FrameSampleTypes from '@/services/api/model/FrameSampleTypes';
 import JavaMethodParser from '@/services/flamegraphs/JavaMethodParser';
 import FrameColorResolver from '@/services/flamegraphs/FrameColorResolver';
+import FrameType from '@/services/flamegraphs/FrameType';
 import ideConfigStore from '@/stores/ideConfigStore';
 
 export default abstract class FlamegraphTooltip {
@@ -149,9 +150,12 @@ export default abstract class FlamegraphTooltip {
       titleHtml = `<div style="font-weight:700;font-size:12px;color:#0b1727">${frame.title}</div>`;
     }
 
-    const typeBadge = typeTitle
-      ? `<span style="display:inline-block;padding:1px 6px;border-radius:3px;font-size:10px;font-weight:600;background:${color}40;color:#0b1727">${typeTitle}</span>`
-      : '';
+    // UNKNOWN conveys nothing useful (e.g. every pprof frame is UNKNOWN, as pprof carries no
+    // frame-type info), so omit the type badge entirely for it.
+    const typeBadge =
+      typeTitle && frame.type !== FrameType.UNKNOWN
+        ? `<span style="display:inline-block;padding:1px 6px;border-radius:3px;font-size:10px;font-weight:600;background:${color}40;color:#0b1727">${typeTitle}</span>`
+        : '';
 
     return `<div style="padding:10px 12px;border-bottom:1px solid #eaedf1;background:#f9fafd">
             ${titleHtml}

@@ -428,17 +428,38 @@ onBeforeUnmount(() => {
   color: var(--color-purple);
 }
 
-/* pprof accent */
+/* pprof: not analyzed */
 .rec-card--pprof {
-  border-left: 3px solid var(--color-teal);
+  border-left: 3px dashed color-mix(in srgb, var(--color-teal) 40%, transparent);
 }
 
 .rec-card--pprof:hover {
+  border-color: color-mix(in srgb, var(--color-teal) 30%, transparent);
   border-left-color: var(--color-teal);
-  box-shadow: var(--shadow-sm);
+  border-left-style: solid;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--color-teal) 4%, transparent), color-mix(in srgb, var(--color-teal) 2%, transparent));
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--color-teal) 12%, transparent);
 }
 
-.rec-card--pprof .rec-card__icon {
+/* pprof: analyzed */
+.rec-card--pprof.rec-card--analyzed {
+  border-left: 3px solid var(--color-teal);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--color-teal) 3%, transparent), var(--color-white));
+}
+
+.rec-card--pprof.rec-card--analyzed:hover {
+  border-color: color-mix(in srgb, var(--color-teal) 30%, transparent);
+  border-left-color: var(--color-teal-700);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--color-teal) 8%, transparent), color-mix(in srgb, var(--color-teal) 4%, transparent));
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--color-teal) 15%, transparent);
+}
+
+.rec-card--pprof .rec-card__icon,
+.rec-card--pprof.rec-card--analyzed .rec-card__icon {
+  color: var(--color-teal);
+}
+
+.rec-card--pprof.rec-card--analyzed .rec-card__profile-info {
   color: var(--color-teal);
 }
 

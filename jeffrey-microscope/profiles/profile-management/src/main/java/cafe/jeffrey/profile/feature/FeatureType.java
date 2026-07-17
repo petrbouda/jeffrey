@@ -30,5 +30,7 @@ public enum FeatureType {
     TRACING_DASHBOARD,
     ASYNC_PROFILER_SPANS,
     AI_ANALYSIS,
-    HEAP_DUMP
+    HEAP_DUMP,
+    SUBSECOND,
+    TIMESERIES
 }

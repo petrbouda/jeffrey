@@ -131,11 +131,21 @@ const emit = defineEmits<{
 
 const route = useRoute();
 
+// The SUBSECOND section is hidden entirely when the backend reports the subsecond feature as
+// disabled (e.g. pprof profiles, which are aggregated and carry no per-sample timestamps, so the
+// subsecond/timeseries views collapse into a single spike).
+const SUBSECOND_SECTION_TITLE = 'SUBSECOND';
+const SUBSECOND_FEATURE_KEY = 'subsecond';
+
 const sections = computed<ProfileNavSection[]>(() => {
   if (props.mode === 'Technologies') {
     return [];
   }
-  return profileNavSections[props.mode];
+  const modeSections = profileNavSections[props.mode];
+  if (props.isFeatureDisabled(SUBSECOND_FEATURE_KEY)) {
+    return modeSections.filter(section => section.title !== SUBSECOND_SECTION_TITLE);
+  }
+  return modeSections;
 });
 
 const technology = computed<TechnologyNav | null>(() => {

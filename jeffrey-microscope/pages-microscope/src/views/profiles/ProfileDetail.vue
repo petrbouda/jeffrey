@@ -338,7 +338,8 @@ const getFeatureTypeForMenuItem = (menuItem: string): FeatureType | null => {
     'method-tracing': FeatureType.TRACING_DASHBOARD,
     'async-profiler': FeatureType.ASYNC_PROFILER_SPANS,
     'ai-analysis': FeatureType.AI_ANALYSIS,
-    'heap-dump': FeatureType.HEAP_DUMP
+    'heap-dump': FeatureType.HEAP_DUMP,
+    subsecond: FeatureType.SUBSECOND
   };
   return featureMapping[menuItem] || null;
 };

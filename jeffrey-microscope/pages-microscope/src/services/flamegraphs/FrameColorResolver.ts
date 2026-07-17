@@ -35,7 +35,7 @@ export default class FrameColorResolver {
     [FrameType.LAMBDA_SYNTHETIC]: '#b3c6ff',
     [FrameType.COLLAPSED_SYNTHETIC]: '#b3c6ff',
     [FrameType.TRUNCATED_SYNTHETIC]: '#fbcfe8',
-    [FrameType.UNKNOWN]: '#000000'
+    [FrameType.UNKNOWN]: '#8ed98e'
   };
 
   private static readonly FRAME_TYPE_TITLES: Record<string, string> = {
