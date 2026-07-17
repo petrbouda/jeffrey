@@ -34,9 +34,10 @@ import java.util.Set;
  */
 public final class PprofEventTypeNaming {
 
-    public record PprofEventType(String name, String label, List<String> categories) {
+    public record PprofEventType(String name, String label, List<String> categories, String sampleType) {
     }
 
+    private static final String SAMPLE_TYPE_SEPARATOR = "/";
     private static final String CATEGORY_PPROF = "pprof";
     private static final String CATEGORY_CPU = "CPU";
     private static final String CATEGORY_ALLOCATION = "Allocation";
@@ -74,7 +75,12 @@ public final class PprofEventTypeNaming {
 
         String name = EventTypeName.PPROF_NAMESPACE + sanitize(type);
         String label = LABEL_OVERRIDES.getOrDefault(lower, prettify(type)) + " (pprof)";
-        return new PprofEventType(name, label, categories(lower));
+        // The original pprof sample_type as `type/unit` (e.g. `samples/count`, `cpu/nanoseconds`),
+        // preserved so the UI can show it verbatim with its unit rather than just the event name.
+        String fullSampleType = sampleUnit == null || sampleUnit.isBlank()
+                ? type
+                : type + SAMPLE_TYPE_SEPARATOR + sampleUnit;
+        return new PprofEventType(name, label, categories(lower), fullSampleType);
     }
 
     private static List<String> categories(String lowerType) {

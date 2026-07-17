@@ -24,6 +24,7 @@ import FrameSampleTypes from '@/services/api/model/FrameSampleTypes';
 import JavaMethodParser from '@/services/flamegraphs/JavaMethodParser';
 import FrameColorResolver from '@/services/flamegraphs/FrameColorResolver';
 import FrameType from '@/services/flamegraphs/FrameType';
+import { parseUnknownFrame, type ParsedFrameName } from '@/services/flamegraphs/FrameNameParser';
 import ideConfigStore from '@/stores/ideConfigStore';
 
 export default abstract class FlamegraphTooltip {
@@ -137,15 +138,24 @@ export default abstract class FlamegraphTooltip {
     const color = frame.type ? FrameColorResolver.resolveByType(frame.type) : '#888';
     const typeTitle = frame.type ? FrameColorResolver.resolveTitle(frame.type) : '';
 
-    let titleHtml: string;
+    // Split JFR Java frames, and pprof (UNKNOWN) frames carrying the '#' boundary, into package
+    // (muted) + class (bold) + method (italic). C++ frames use '::' as the method separator.
+    let parsed: ParsedFrameName | null = null;
     if (frame.type && JavaMethodParser.isJavaFrame(frame.type)) {
-      const parsed = JavaMethodParser.parse(frame.title);
-      if (parsed && parsed.packageName) {
-        titleHtml = `<div style="font-size:12px;color:#0b1727"><span style="font-weight:700">${parsed.className}</span><span style="font-style:italic">.${parsed.methodName}</span></div>
-                    <div style="font-size:11px;color:#748194;margin-top:1px">${parsed.packageName}</div>`;
-      } else {
-        titleHtml = `<div style="font-weight:700;font-size:12px;color:#0b1727">${frame.title}</div>`;
-      }
+      const java = JavaMethodParser.parse(frame.title);
+      parsed = java
+        ? { pkg: java.packageName, className: java.className, separator: '.', methodName: java.methodName }
+        : null;
+    } else if (frame.type === FrameType.UNKNOWN && frame.title.includes('#')) {
+      parsed = parseUnknownFrame(frame.title);
+    }
+
+    let titleHtml: string;
+    if (parsed && parsed.pkg) {
+      titleHtml = `<div style="font-size:12px;color:#0b1727"><span style="font-weight:700">${parsed.className}</span><span style="font-style:italic">${parsed.separator}${parsed.methodName}</span></div>
+                    <div style="font-size:11px;color:#748194;margin-top:1px">${parsed.pkg}</div>`;
+    } else if (parsed) {
+      titleHtml = `<div style="font-size:12px;color:#0b1727"><span style="font-weight:700">${parsed.className}</span><span style="font-style:italic">${parsed.separator}${parsed.methodName}</span></div>`;
     } else {
       titleHtml = `<div style="font-weight:700;font-size:12px;color:#0b1727">${frame.title}</div>`;
     }

@@ -63,6 +63,8 @@ public final class PprofProfileReader {
     private static final String COLUMN_TYPE_TEXT = "text";
     private static final String COLUMN_TYPE_NUMBER = "number";
     private static final String SYNTHETIC_THREAD_NAME = "pprof-samples";
+    // Event-type extras key carrying the original pprof sample_type (e.g. `samples/count`) for display.
+    private static final String EXTRA_SAMPLE_TYPE = "sampleType";
 
     private final SingleThreadedEventWriter writer;
 
@@ -97,7 +99,8 @@ public final class PprofProfileReader {
                     null,
                     null,
                     dimension.eventType().categories(),
-                    columns));
+                    columns,
+                    Map.of(EXTRA_SAMPLE_TYPE, dimension.eventType().sampleType())));
         }
 
         writer.onThreadComplete();

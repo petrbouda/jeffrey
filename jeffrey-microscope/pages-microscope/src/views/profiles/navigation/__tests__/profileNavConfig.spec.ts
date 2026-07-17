@@ -64,9 +64,9 @@ describe('profileNavConfig', () => {
   const allItems = collectAllItems();
 
   it('collects a sane number of nav items', () => {
-    // 38 JVM (incl. GC parent + 5 GC children) + 4 Visualization + 13 HeapDump + 2 Tools
+    // 38 JVM (incl. GC parent + 5 GC children) + 4 Visualization + 13 HeapDump + 3 Tools
     // + 34 Technologies
-    expect(allItems.length).toBe(91);
+    expect(allItems.length).toBe(92);
   });
 
   it('every item has a label and a bootstrap icon', () => {

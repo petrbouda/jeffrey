@@ -46,13 +46,16 @@ class ToolsControllerTest {
     @Mock
     ProfileToolsManager toolsManager;
 
+    @Mock
+    cafe.jeffrey.recordings.core.manager.RecordingsCoreManager recordingsManager;
+
     @Test
     void previewsRename() {
         when(resolver.resolve("p-1")).thenReturn(profileManager);
         when(profileManager.toolsManager()).thenReturn(toolsManager);
         when(toolsManager.previewRename(any())).thenReturn(new ProfileToolsManager.RenamePreviewResult(0, java.util.List.of()));
 
-        MockMvcTester mvc = mockMvcTesterFor(new ToolsController(resolver));
+        MockMvcTester mvc = mockMvcTesterFor(new ToolsController(resolver, recordingsManager));
 
         assertThat(mvc.post().uri("/api/internal/profiles/p-1/tools/rename-frames/preview")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -65,7 +68,7 @@ class ToolsControllerTest {
     void profileNotFoundReturns404() {
         when(resolver.resolve("ghost")).thenThrow(Exceptions.profileNotFound("ghost"));
 
-        MockMvcTester mvc = mockMvcTesterFor(new ToolsController(resolver));
+        MockMvcTester mvc = mockMvcTesterFor(new ToolsController(resolver, recordingsManager));
 
         assertThat(mvc.post().uri("/api/internal/profiles/ghost/tools/rename-frames/preview")
                 .contentType(MediaType.APPLICATION_JSON)

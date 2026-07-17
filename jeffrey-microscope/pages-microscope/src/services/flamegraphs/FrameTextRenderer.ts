@@ -17,6 +17,8 @@
  */
 
 import JavaMethodParser from '@/services/flamegraphs/JavaMethodParser';
+import FrameType from '@/services/flamegraphs/FrameType';
+import { parseUnknownFrame } from '@/services/flamegraphs/FrameNameParser';
 
 export interface FrameTextRenderer {
   readonly frameHeight: number;
@@ -64,7 +66,17 @@ function parseFrame(title: string, frameType: string | undefined): ParsedFrame |
     }
   }
 
-  // C++: Class::method
+  // pprof (UNKNOWN) frames carry a '#' boundary from the backend: `package.Class#method` (Java) or
+  // `module#Class::method` (C++ in a shared library — the module becomes the package). Handle this
+  // before the generic '::' below so a C++ module isn't swallowed into the class name.
+  if (frameType === FrameType.UNKNOWN && title.includes('#')) {
+    const parsed = parseUnknownFrame(title);
+    if (parsed) {
+      return parsed;
+    }
+  }
+
+  // C++: Class::method (JFR native frames, or classless pprof symbols with no '#')
   const idx = title.indexOf('::');
   if (idx > 0 && idx < title.length - 2) {
     return {

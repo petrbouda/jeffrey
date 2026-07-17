@@ -112,12 +112,30 @@ class FrameNameBuilderTest {
         }
 
         @Test
-        void unknownFrameReturnsMethodNameOnly() {
-            JfrStackFrame frame = createFrame("com.example.Test", "test", "Unknown");
+        void unknownFrameWithClassRejoinsClassAndMethod() {
+            JfrStackFrame frame = createFrame("org/springframework/web/filter/OncePerRequestFilter", "doFilter", "Unknown");
 
             String result = builder.generateName(frame, createThread("main", 1, 100, false), FrameType.UNKNOWN);
 
-            assertEquals("test", result);
+            assertEquals("org/springframework/web/filter/OncePerRequestFilter#doFilter", result);
+        }
+
+        @Test
+        void unknownFrameWithoutClassReturnsMethodOnly() {
+            JfrStackFrame frame = createFrame("", "Thread::call_run", "Unknown");
+
+            String result = builder.generateName(frame, createThread("main", 1, 100, false), FrameType.UNKNOWN);
+
+            assertEquals("Thread::call_run", result);
+        }
+
+        @Test
+        void unknownCppFrameSeparatesModuleWithHash() {
+            JfrStackFrame frame = createFrame("libjvm.so", "Thread::call_run", "Unknown");
+
+            String result = builder.generateName(frame, createThread("main", 1, 100, false), FrameType.UNKNOWN);
+
+            assertEquals("libjvm.so#Thread::call_run", result);
         }
     }
 

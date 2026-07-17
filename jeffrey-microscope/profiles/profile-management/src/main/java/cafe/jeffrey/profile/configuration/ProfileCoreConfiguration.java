@@ -49,6 +49,7 @@ import cafe.jeffrey.profile.manager.registry.VisualizationFactories;
 import cafe.jeffrey.profile.parser.JfrRecordingEventParser;
 import cafe.jeffrey.pprofparser.PprofRecordingEventParser;
 import cafe.jeffrey.profile.tools.collapse.CollapseFramesManager;
+import cafe.jeffrey.profile.tools.pprof.PprofExportManager;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCorePersistenceProvider;
 import cafe.jeffrey.provider.profile.api.DatabaseManagerResolver;
 import cafe.jeffrey.provider.profile.api.EventWriter;
@@ -107,6 +108,7 @@ public class ProfileCoreConfiguration {
             AdditionalFilesManager.Factory additionalFilesFactory,
             ProfileToolsManager.Factory toolsFactory,
             CollapseFramesManager.Factory collapseFramesFactory,
+            PprofExportManager.Factory pprofExportFactory,
             ProfileCustomManager.Factory customFactory) {
 
         return new ProfileManagerFactoryRegistry(
@@ -118,7 +120,19 @@ public class ProfileCoreConfiguration {
                 additionalFilesFactory,
                 toolsFactory,
                 collapseFramesFactory,
+                pprofExportFactory,
                 customFactory);
+    }
+
+    @Bean
+    public PprofExportManager.Factory pprofExportManagerFactory() {
+        return profileInfo -> {
+            DataSource profileDb = databaseManagerResolver.open(profileInfo);
+            return new PprofExportManager(
+                    profileInfo,
+                    profileRepositories.newEventTypeRepository(profileDb),
+                    profileRepositories.newEventStreamRepository(profileDb));
+        };
     }
 
     @Bean

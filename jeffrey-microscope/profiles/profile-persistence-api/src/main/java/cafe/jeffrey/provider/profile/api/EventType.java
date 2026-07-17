@@ -22,6 +22,7 @@ import tools.jackson.databind.JsonNode;
 import cafe.jeffrey.shared.common.model.Type;
 
 import java.util.List;
+import java.util.Map;
 
 public record EventType(
         String name,
@@ -29,7 +30,14 @@ public record EventType(
         Long typeId,
         String description,
         List<String> categories,
-        JsonNode columns) {
+        JsonNode columns,
+        Map<String, String> extras) {
+
+    /** Convenience constructor for readers that attach no import-time extras. */
+    public EventType(String name, String label, Long typeId, String description,
+                     List<String> categories, JsonNode columns) {
+        this(name, label, typeId, description, categories, columns, Map.of());
+    }
 
     public Type type() {
         return Type.fromCode(name);

@@ -16,11 +16,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+import axios from 'axios';
 import BaseProfileClient from '@/services/api/BaseProfileClient';
 import type RenameFramesPreview from '@/services/api/model/RenameFramesPreview';
 import type RenameFramesResult from '@/services/api/model/RenameFramesResult';
 import type CollapseFramesPreview from '@/services/api/model/CollapseFramesPreview';
 import type CollapseFramesResult from '@/services/api/model/CollapseFramesResult';
+import type PprofExportEventType from '@/services/api/model/PprofExportEventType';
 
 export default class ProfileToolsClient extends BaseProfileClient {
   constructor(profileId: string) {
@@ -45,5 +47,34 @@ export default class ProfileToolsClient extends BaseProfileClient {
 
   public executeCollapse(patterns: string[], label: string): Promise<CollapseFramesResult> {
     return this.post<CollapseFramesResult>('/collapse-frames', { patterns, label });
+  }
+
+  // --- Convert to pprof ---
+
+  /** Lists the profile's stack-based event types eligible for pprof export. */
+  public pprofEventTypes(): Promise<PprofExportEventType[]> {
+    return this.get<PprofExportEventType[]>('/pprof/event-types');
+  }
+
+  /** Generates a pprof (.pb.gz) for a single event type and returns it as a binary blob. */
+  public downloadPprof(eventType: string, includeWeight: boolean): Promise<Blob> {
+    return axios
+      .post<Blob>(
+        `${this.baseUrl}/pprof/download`,
+        { eventType, includeWeight },
+        { responseType: 'blob' }
+      )
+      .then(response => response.data);
+  }
+
+  /** Generates a pprof for a single event type and adds it to the profile's project as a recording. */
+  public addPprofToRecordings(
+    eventType: string,
+    includeWeight: boolean
+  ): Promise<{ recordingId: string }> {
+    return this.post<{ recordingId: string }>('/pprof/add-to-recordings', {
+      eventType,
+      includeWeight
+    });
   }
 }

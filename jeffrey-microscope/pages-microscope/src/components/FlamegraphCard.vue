@@ -38,13 +38,13 @@ Coul<!--
           <span class="detail-value" v-if="containsSecondary() && !isSameType()">
             <span class="secondary-value">{{ event.secondary?.code }}</span>
             <span class="delimiter"> → </span>
-            <span class="primary-value">{{ event.primary.code }}</span>
+            <span class="primary-value">{{ primaryTypeText }}</span>
             <span class="calculated-indicator" v-if="Utils.parseBoolean(event.primary.calculated)"
               >(calculated)</span
             >
           </span>
           <span class="detail-value" v-else>
-            {{ event.primary.code }}
+            {{ primaryTypeText }}
             <span class="calculated-indicator" v-if="Utils.parseBoolean(event.primary.calculated)"
               >(calculated)</span
             >
@@ -340,6 +340,15 @@ const onlyUnsafeAllocationSamples = ref(
   Utils.parseBoolean(props.onlyUnsafeAllocationSamplesSelected)
 );
 const weightDescription = ref(props.weightDesc);
+
+// pprof events carry their original sample_type (e.g. `samples/count`, `cpu/nanoseconds`) in
+// extras; show that verbatim (with its unit) instead of the `pprof.<type>` event-type code.
+// Other sources have no such extra, so this falls back to the code unchanged.
+const primaryTypeText = computed(() => {
+  const extras = props.event.primary.extras;
+  const sampleType = extras && typeof extras === 'object' ? extras.sampleType : undefined;
+  return sampleType || props.event.primary.code;
+});
 
 // Get category-specific styling
 const getCategoryClass = () => {

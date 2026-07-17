@@ -377,6 +377,10 @@ export const profileNavSections: Record<
         item('Rename Frames', 'bi-pencil-square', '/tools/rename-frames'),
         item('Collapse Frames', 'bi-layers', '/tools/collapse-frames')
       ]
+    },
+    {
+      title: 'CONVERT',
+      items: [item('To PPROF', 'bi-download', '/tools/to-pprof')]
     }
   ]
 };

@@ -40,9 +40,11 @@ public class FrameNameBuilder {
                 yield jfrClass.className() + "#" + frame.method().methodName();
             }
             case COLLAPSED_SYNTHETIC -> frame.method().clazz().className();
-            // UNKNOWN frames carry no language/tier info (e.g. every pprof frame): name them by the
-            // bare method, same as the other non-Java leaf types.
-            case CPP, KERNEL, NATIVE, UNKNOWN -> frame.method().methodName();
+            case CPP, KERNEL, NATIVE -> frame.method().methodName();
+            // UNKNOWN frames carry no language/tier info (every pprof frame is UNKNOWN); FrameNames
+            // picks the class/method delimiter ('#' for Java-like, dotted '::' for C++). See FrameNames.
+            case UNKNOWN -> FrameNames.joinUnknown(
+                    frame.method().clazz().className(), frame.method().methodName());
             case THREAD_NAME_SYNTHETIC -> methodNameBasedThread(thread);
             default -> throw new IllegalStateException("Unexpected value: " + frameType);
         };

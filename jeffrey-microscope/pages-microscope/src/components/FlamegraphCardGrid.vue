@@ -25,7 +25,7 @@
       title="Execution Samples"
       color="blue"
       icon="bi-sprint"
-      :thread-mode-opt="isPrimary"
+      :thread-mode-opt="threadModeOpt"
       :thread-mode-selected="false"
       :weight-desc="null"
       :weight-opt="false"
@@ -53,7 +53,7 @@
       title="CPU-Time Samples"
       color="blue"
       icon="bi-cpu"
-      :thread-mode-opt="isPrimary"
+      :thread-mode-opt="threadModeOpt"
       :thread-mode-selected="false"
       weight-desc="CPU Time"
       :weight-opt="true"
@@ -82,7 +82,7 @@
       title="Method Traces"
       color="blue"
       icon="bi-sprint"
-      :thread-mode-opt="isPrimary"
+      :thread-mode-opt="threadModeOpt"
       :thread-mode-selected="false"
       weight-desc="Total Time"
       :weight-opt="isPrimary"
@@ -110,7 +110,7 @@
       title="Wall-Clock Samples"
       color="purple"
       icon="bi-alarm"
-      :thread-mode-opt="isPrimary"
+      :thread-mode-opt="threadModeOpt"
       :thread-mode-selected="true"
       :weight-desc="null"
       :weight-opt="false"
@@ -138,7 +138,7 @@
       title="Allocation Samples"
       color="green"
       icon="bi-memory"
-      :thread-mode-opt="isPrimary"
+      :thread-mode-opt="threadModeOpt"
       :thread-mode-selected="false"
       weight-desc="Total Allocation"
       :weight-opt="true"
@@ -167,7 +167,7 @@
       title="Native Allocation Samples"
       color="pink"
       icon="bi-memory"
-      :thread-mode-opt="true"
+      :thread-mode-opt="threadModeOptAlways"
       :thread-mode-selected="false"
       weight-desc="Total Allocation"
       :weight-opt="true"
@@ -196,7 +196,7 @@
       title="Native Allocation Leaks"
       color="pink"
       icon="bi-memory"
-      :thread-mode-opt="true"
+      :thread-mode-opt="threadModeOptAlways"
       :thread-mode-selected="false"
       weight-desc="Total Allocation"
       :weight-opt="true"
@@ -225,7 +225,7 @@
       :title="event.label"
       color="red"
       icon="bi-lock"
-      :thread-mode-opt="true"
+      :thread-mode-opt="threadModeOptAlways"
       :thread-mode-selected="false"
       :weight-opt="true"
       :weight-selected="true"
@@ -281,6 +281,10 @@ interface Props {
   // carries a subset like Execution or Allocation) pass this true so empty JFR categories don't clutter
   // the grid with irrelevant placeholders.
   suppressEmptyPlaceholders?: boolean;
+  // Hide the "Use Thread-mode" card toggle. pprof profiles are aggregated (one Sample per stack,
+  // thread only survivable as a non-standard label), so their samples collapse onto a single
+  // synthetic thread and thread-mode is meaningless — pass this true for them.
+  hideThreadMode?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -298,6 +302,12 @@ const emit = defineEmits<{
 }>();
 
 const isPrimary = computed(() => props.graphMode === GraphType.PRIMARY);
+
+// Thread-mode is offered for primary flamegraphs, but suppressed entirely when hideThreadMode is set
+// (aggregated pprof profiles have no real per-thread data). threadModeOptAlways covers the cards that
+// otherwise offer thread-mode regardless of primary/secondary.
+const threadModeOpt = computed(() => isPrimary.value && !props.hideThreadMode);
+const threadModeOptAlways = computed(() => !props.hideThreadMode);
 
 // Native/blocking shown for primary flamegraph mode (not subsecond), unless explicitly overridden.
 const isFlamegraphRoute = computed(() => isPrimary.value && props.routeName === 'flamegraph');

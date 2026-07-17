@@ -37,6 +37,11 @@ public class EventTypeBuilder {
     public static EventTypeBuilder newBuilder(EventType eventType) {
         EventTypeBuilder builder = new EventTypeBuilder();
         builder.eventType = eventType;
+        // Carry any import-time extras the reader attached (e.g. the pprof sample_type); enhancers
+        // may still add more later via putExtras.
+        if (eventType.extras() != null && !eventType.extras().isEmpty()) {
+            builder.extras = new HashMap<>(eventType.extras());
+        }
         return builder;
     }
 

@@ -20,6 +20,10 @@ package cafe.jeffrey.microscope.core.web.controllers.profile;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -33,6 +37,12 @@ import cafe.jeffrey.profile.manager.ProfileToolsManager.RenameResult;
 import cafe.jeffrey.profile.tools.collapse.CollapseFramesManager.CollapseApplyResult;
 import cafe.jeffrey.profile.tools.collapse.CollapseFramesManager.CollapsePreviewResult;
 import cafe.jeffrey.profile.tools.collapse.CollapseFramesManager.CollapseRequest;
+import cafe.jeffrey.profile.tools.pprof.PprofExportManager.PprofExportEventType;
+import cafe.jeffrey.recordings.core.manager.RecordingsCoreManager;
+
+import java.io.ByteArrayInputStream;
+import java.util.List;
+import java.util.Locale;
 
 @RestController
 @RequestMapping("/api/internal/profiles/{profileId}/tools")
@@ -40,10 +50,75 @@ public class ToolsController {
 
     private static final Logger LOG = LoggerFactory.getLogger(ToolsController.class);
 
-    private final ProfileManagerResolver resolver;
+    private static final String PPROF_FILE_SUFFIX = ".pb.gz";
+    private static final String EVENT_TYPE_NAMESPACE_SEPARATOR = ".";
+    private static final String FILENAME_FALLBACK = "profile";
+    private static final String FILENAME_SANITIZE_PATTERN = "[^a-z0-9_-]";
+    private static final String FILENAME_SANITIZE_REPLACEMENT = "_";
 
-    public ToolsController(ProfileManagerResolver resolver) {
+    private final ProfileManagerResolver resolver;
+    private final RecordingsCoreManager recordingsManager;
+
+    public ToolsController(ProfileManagerResolver resolver, RecordingsCoreManager recordingsManager) {
         this.resolver = resolver;
+        this.recordingsManager = recordingsManager;
+    }
+
+    public record PprofExportRequest(String eventType, boolean includeWeight) {
+    }
+
+    public record AddToRecordingsResponse(String recordingId) {
+    }
+
+    @GetMapping("/pprof/event-types")
+    public List<PprofExportEventType> pprofEventTypes(@PathVariable("profileId") String profileId) {
+        LOG.debug("Listing stack-based event types for pprof export: profileId={}", profileId);
+        return resolver.resolve(profileId).pprofExportManager().stackBasedEventTypes();
+    }
+
+    @PostMapping(value = "/pprof/download", produces = MediaType.APPLICATION_OCTET_STREAM_VALUE)
+    public ResponseEntity<byte[]> downloadPprof(
+            @PathVariable("profileId") String profileId,
+            @RequestBody PprofExportRequest request) {
+        LOG.info("Exporting pprof for download: profileId={} eventType={} includeWeight={}",
+                profileId, request.eventType(), request.includeWeight());
+        ProfileManager pm = resolver.resolve(profileId);
+        byte[] pprof = pm.pprofExportManager().export(request.eventType(), request.includeWeight());
+        String filename = pprofFilename(pm.info().name(), request.eventType());
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .body(pprof);
+    }
+
+    @PostMapping(value = "/pprof/add-to-recordings", produces = MediaType.APPLICATION_JSON_VALUE)
+    public AddToRecordingsResponse addPprofToRecordings(
+            @PathVariable("profileId") String profileId,
+            @RequestBody PprofExportRequest request) {
+        LOG.info("Exporting pprof into recordings: profileId={} eventType={} includeWeight={}",
+                profileId, request.eventType(), request.includeWeight());
+        ProfileManager pm = resolver.resolve(profileId);
+        byte[] pprof = pm.pprofExportManager().export(request.eventType(), request.includeWeight());
+        String filename = pprofFilename(pm.info().name(), request.eventType());
+        String recordingId = recordingsManager.uploadRecording(filename, new ByteArrayInputStream(pprof), null);
+        LOG.info("Added exported pprof to recordings: profileId={} recordingId={}", profileId, recordingId);
+        return new AddToRecordingsResponse(recordingId);
+    }
+
+    private static String pprofFilename(String profileName, String eventType) {
+        return sanitize(profileName) + "-" + sanitize(eventTypeShort(eventType)) + PPROF_FILE_SUFFIX;
+    }
+
+    private static String eventTypeShort(String eventType) {
+        int lastDot = eventType.lastIndexOf(EVENT_TYPE_NAMESPACE_SEPARATOR);
+        return lastDot >= 0 ? eventType.substring(lastDot + 1) : eventType;
+    }
+
+    private static String sanitize(String value) {
+        if (value == null || value.isBlank()) {
+            return FILENAME_FALLBACK;
+        }
+        return value.toLowerCase(Locale.ROOT).replaceAll(FILENAME_SANITIZE_PATTERN, FILENAME_SANITIZE_REPLACEMENT);
     }
 
     @PostMapping("/rename-frames/preview")

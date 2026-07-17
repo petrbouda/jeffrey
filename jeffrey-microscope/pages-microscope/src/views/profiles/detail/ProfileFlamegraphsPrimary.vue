@@ -19,6 +19,7 @@
       :native-allocation-events="nativeAllocationEvents"
       :native-leak-events="nativeLeakEvents"
       :suppress-empty-placeholders="isPprofProfile"
+      :hide-thread-mode="isPprofProfile"
     />
   </div>
 </template>

@@ -103,15 +103,16 @@ class PprofRecordingRoundTripTest {
         String pprofSourceId = String.valueOf(RecordingEventSource.PPROF.getId());
         assertCount(dataSource, "SELECT COUNT(*) FROM event_types WHERE source = '" + pprofSourceId + "'", 2);
 
-        // one deduplicated stacktrace shared across the two dimensions, two native frames root-first
+        // one deduplicated stacktrace shared across the two dimensions, two frames root-first;
+        // pprof carries no frame-type info so every frame is emitted as Unknown
         assertCount(dataSource, "SELECT COUNT(*) FROM stacktraces", 1);
         assertCount(dataSource, "SELECT COUNT(*) FROM frames", 2);
         assertCount(dataSource,
                 "SELECT COUNT(*) FROM frames WHERE class_name = 'main' AND method_name = 'main' "
-                        + "AND frame_type = 'Native'", 1);
+                        + "AND frame_type = 'Unknown'", 1);
         assertCount(dataSource,
                 "SELECT COUNT(*) FROM frames WHERE class_name = 'main' AND method_name = 'doWork' "
-                        + "AND frame_type = 'Native'", 1);
+                        + "AND frame_type = 'Unknown'", 1);
 
         // the thread recovered from the sample labels survived the round trip
         assertCount(dataSource, "SELECT COUNT(*) FROM threads WHERE name = 'worker-1'", 1);

@@ -20,15 +20,18 @@ package cafe.jeffrey.pprofparser.mapping;
 
 /**
  * Splits a pprof function name into the class/module and method parts of Jeffrey's frame model.
- * pprof names are language-native display names (e.g. Go's {@code main.processOrder},
- * {@code runtime.mallocgc}, {@code github.com/x/y.(*T).M}); splitting at the last {@code '.'} keeps
- * the package/type context as the "class" and the function as the "method".
+ * <p>
+ * When the producer marks the class/method boundary with {@code '#'} (as Jeffrey's own exporter
+ * does, e.g. {@code com.example.Foo#bar}), split there — the class keeps its dotted package context.
+ * Otherwise fall back to the last {@code '.'}, which handles language-native dotted names (Go's
+ * {@code main.processOrder}, {@code runtime.mallocgc}, {@code github.com/x/y.(*T).M}).
  */
 public final class FunctionNameSplitter {
 
     public record SplitName(String clazz, String method) {
     }
 
+    private static final char METHOD_SEPARATOR = '#';
     private static final char SEPARATOR = '.';
 
     private FunctionNameSplitter() {
@@ -37,6 +40,10 @@ public final class FunctionNameSplitter {
     public static SplitName split(String functionName) {
         if (functionName == null || functionName.isBlank()) {
             return new SplitName("", "");
+        }
+        int hash = functionName.indexOf(METHOD_SEPARATOR);
+        if (hash >= 0) {
+            return new SplitName(functionName.substring(0, hash), functionName.substring(hash + 1));
         }
         int lastDot = functionName.lastIndexOf(SEPARATOR);
         if (lastDot < 0) {

@@ -571,6 +571,12 @@ const toolsRoutes = [
     name: 'profile-tools-collapse-frames',
     component: () => import('@/views/profiles/detail/ProfileToolsCollapseFrames.vue'),
     meta: { layout: 'profile' }
+  },
+  {
+    path: 'tools/to-pprof',
+    name: 'profile-tools-to-pprof',
+    component: () => import('@/views/profiles/detail/ProfileToolsToPprof.vue'),
+    meta: { layout: 'profile' }
   }
 ];
 

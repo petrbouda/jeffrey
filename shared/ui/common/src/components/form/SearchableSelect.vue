@@ -17,7 +17,13 @@
       ></i>
     </div>
 
-    <div v-if="isOpen" class="searchable-select-dropdown" ref="dropdownRef">
+    <Teleport to="body">
+    <div
+      v-if="isOpen"
+      class="searchable-select-dropdown"
+      ref="dropdownRef"
+      :style="dropdownStyle"
+    >
       <div class="dropdown-search">
         <i class="bi bi-search"></i>
         <input
@@ -50,6 +56,7 @@
         <div v-if="filteredItems.length === 0" class="dropdown-empty">No matches found</div>
       </div>
     </div>
+    </Teleport>
   </div>
 </template>
 
@@ -84,6 +91,26 @@ const searchInputRef = ref<HTMLInputElement | null>(null);
 const isOpen = ref(false);
 const searchQuery = ref('');
 
+// The dropdown is teleported to <body> so it escapes any `overflow: hidden` ancestor (e.g. cards).
+// Its position is anchored to the trigger via fixed coordinates recomputed on open/scroll/resize.
+const DROPDOWN_GAP_PX = 4;
+const DROPDOWN_MIN_WIDTH_PX = 300;
+const dropdownStyle = ref<Record<string, string>>({});
+
+const updatePosition = () => {
+  const trigger = containerRef.value;
+  if (!trigger) {
+    return;
+  }
+  const rect = trigger.getBoundingClientRect();
+  dropdownStyle.value = {
+    position: 'fixed',
+    top: `${rect.bottom + DROPDOWN_GAP_PX}px`,
+    left: `${rect.left}px`,
+    minWidth: `${Math.max(DROPDOWN_MIN_WIDTH_PX, rect.width)}px`
+  };
+};
+
 const selectedItem = computed(() => {
   if (props.modelValue == null) return null;
   return props.items.find(item => item.label === props.modelValue) || null;
@@ -113,7 +140,9 @@ const toggleDropdown = () => {
 const openDropdown = () => {
   isOpen.value = true;
   searchQuery.value = '';
+  updatePosition();
   nextTick(() => {
+    updatePosition();
     searchInputRef.value?.focus();
   });
 };
@@ -134,9 +163,12 @@ const selectItem = (item: SelectItem) => {
 };
 
 const onClickOutside = (event: MouseEvent) => {
-  if (!isOpen.value) return;
+  if (!isOpen.value) {
+    return;
+  }
   const target = event.target as Node;
-  if (containerRef.value?.contains(target)) {
+  // The dropdown is teleported out of the container, so check it explicitly too.
+  if (containerRef.value?.contains(target) || dropdownRef.value?.contains(target)) {
     return;
   }
   closeDropdown();
@@ -145,13 +177,20 @@ const onClickOutside = (event: MouseEvent) => {
 watch(isOpen, open => {
   if (open) {
     document.addEventListener('click', onClickOutside, true);
+    // Capture-phase catches scroll from any ancestor scroller so the dropdown tracks the trigger.
+    document.addEventListener('scroll', updatePosition, true);
+    window.addEventListener('resize', updatePosition);
   } else {
     document.removeEventListener('click', onClickOutside, true);
+    document.removeEventListener('scroll', updatePosition, true);
+    window.removeEventListener('resize', updatePosition);
   }
 });
 
 onBeforeUnmount(() => {
   document.removeEventListener('click', onClickOutside, true);
+  document.removeEventListener('scroll', updatePosition, true);
+  window.removeEventListener('resize', updatePosition);
 });
 </script>
 
@@ -208,9 +247,7 @@ onBeforeUnmount(() => {
 }
 
 .searchable-select-dropdown {
-  position: absolute;
-  top: calc(100% + 4px);
-  left: 0;
+  /* Positioned via inline fixed coordinates (teleported to body); see updatePosition(). */
   min-width: 300px;
   background: var(--color-bg-card);
   border-radius: var(--radius-md);
