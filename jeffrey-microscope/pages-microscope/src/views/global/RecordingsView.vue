@@ -42,7 +42,7 @@
           <input
             ref="fileInputRef"
             type="file"
-            accept=".jfr,.lz4,.hprof,.gz,.pprof,.pb.gz"
+            :accept="UPLOAD_ACCEPT_ATTRIBUTE"
             multiple
             class="file-input-hidden"
             @change="handleFileInput"
@@ -59,15 +59,20 @@
             <div class="drop-body">
               <div class="drop-title">Drop Recordings</div>
               <div class="drop-hint">
-                <Badge value=".jfr" variant="indigo" size="s" :uppercase="false" borderless />
-                <Badge value=".jfr.lz4" variant="indigo" size="s" :uppercase="false" borderless />
-                JFR recordings ·
-                <Badge value=".pprof" variant="teal" size="s" :uppercase="false" borderless />
-                <Badge value=".pb.gz" variant="teal" size="s" :uppercase="false" borderless />
-                pprof profiles ·
-                <Badge value=".hprof" variant="purple" size="s" :uppercase="false" borderless />
-                <Badge value=".hprof.gz" variant="purple" size="s" :uppercase="false" borderless />
-                heap dumps
+                <template v-for="(format, index) in RECORDING_FORMATS" :key="format.key">
+                  <Badge
+                    v-for="suffix in format.uploadSuffixes"
+                    :key="suffix"
+                    :value="suffix"
+                    :variant="format.variant"
+                    size="s"
+                    :uppercase="false"
+                    borderless
+                  />
+                  {{ format.dropHintLabel }}<template v-if="index < RECORDING_FORMATS.length - 1">
+                    ·
+                  </template>
+                </template>
                 <span class="upload-target-hint">
                   · uploads to <strong>{{ uploadTargetLabel }}</strong>
                 </span>
@@ -321,11 +326,15 @@ import FormattingService from '@shared/services/FormattingService';
 import ToastService from '@shared/services/ToastService';
 import type RecordingGroup from '@workspaces/services/api/model/RecordingGroup';
 import type Recording from '@workspaces/services/api/model/Recording';
+import {
+  ALL_UPLOAD_SUFFIXES,
+  RECORDING_FORMATS,
+  UPLOAD_ACCEPT_ATTRIBUTE,
+  recordingFormatOf,
+  type RecordingFormatKey
+} from '@workspaces/services/recordingFormats';
 
-const HEAP_DUMP_SOURCE = 'HEAP_DUMP';
-const PPROF_SOURCE = 'PPROF';
 const UNGROUPED_KEY = '__ungrouped__';
-const ALLOWED_FILE_SUFFIXES = ['.jfr', '.jfr.lz4', '.hprof', '.hprof.gz', '.pprof', '.pb.gz'];
 
 type ViewFilter = 'all' | typeof UNGROUPED_KEY | string;
 
@@ -497,25 +506,20 @@ const sortRecordings = (recs: Recording[]): Recording[] => {
   });
 };
 
-// Recording format taxonomy — the single source of truth for how a recording is typed in the UI.
-type RecordingType = 'JFR' | 'PPROF' | 'HEAP';
-type TypeFilter = 'all' | RecordingType;
+// Recording format taxonomy — driven by the shared format descriptors, so a new format shows up
+// in the filter pills and counts without touching this view.
+type TypeFilter = 'all' | RecordingFormatKey;
 
-const recordingType = (recording: Recording): RecordingType => {
-  if (recording.eventSource === HEAP_DUMP_SOURCE) {
-    return 'HEAP';
-  }
-  if (recording.eventSource === PPROF_SOURCE) {
-    return 'PPROF';
-  }
-  return 'JFR';
-};
+const recordingType = (recording: Recording): RecordingFormatKey =>
+  recordingFormatOf(recording.eventSource).key;
 
 const typeFilter = ref<TypeFilter>('all');
 
 // Counts per format within the current group/search selection — drives the type filter pills.
-const typeCounts = computed<Record<RecordingType, number>>(() => {
-  const counts: Record<RecordingType, number> = { JFR: 0, PPROF: 0, HEAP: 0 };
+const typeCounts = computed<Record<RecordingFormatKey, number>>(() => {
+  const counts = Object.fromEntries(
+    RECORDING_FORMATS.map(format => [format.key, 0])
+  ) as Record<RecordingFormatKey, number>;
   for (const recording of filteredRecordings.value) {
     counts[recordingType(recording)]++;
   }
@@ -531,11 +535,12 @@ const visibleRecordings = computed(() => {
   return sortRecordings(recs);
 });
 
-const TYPE_FILTERS: { key: RecordingType; label: string; icon: string; variant: string }[] = [
-  { key: 'JFR', label: 'JFR', icon: 'bi-activity', variant: 'indigo' },
-  { key: 'PPROF', label: 'pprof', icon: 'bi-fire', variant: 'teal' },
-  { key: 'HEAP', label: 'Heap Dumps', icon: 'bi-pie-chart-fill', variant: 'purple' }
-];
+const TYPE_FILTERS = RECORDING_FORMATS.map(format => ({
+  key: format.key,
+  label: format.filterLabel,
+  icon: format.filterIcon,
+  variant: format.variant
+}));
 
 const selectTypeFilter = (type: TypeFilter) => {
   typeFilter.value = type;
@@ -609,7 +614,7 @@ const triggerFileInput = () => {
 
 const isAcceptedFile = (filename: string): boolean => {
   const lower = filename.toLowerCase();
-  return ALLOWED_FILE_SUFFIXES.some(suffix => lower.endsWith(suffix));
+  return ALL_UPLOAD_SUFFIXES.some(suffix => lower.endsWith(suffix));
 };
 
 const filterAcceptedFiles = (files: File[]): File[] => {
@@ -624,7 +629,7 @@ const filterAcceptedFiles = (files: File[]): File[] => {
   }
   if (rejected.length > 0) {
     const noun = rejected.length === 1 ? 'file' : 'files';
-    errorMessage.value = `Unsupported ${noun}: ${rejected.join(', ')}. Allowed: ${ALLOWED_FILE_SUFFIXES.join(', ')}`;
+    errorMessage.value = `Unsupported ${noun}: ${rejected.join(', ')}. Allowed: ${ALL_UPLOAD_SUFFIXES.join(', ')}`;
   } else if (accepted.length > 0) {
     errorMessage.value = null;
   }
@@ -735,14 +740,7 @@ const openProfile = async (recording: Recording) => {
   if (!recording.profileId) {
     return;
   }
-  if (recording.eventSource === HEAP_DUMP_SOURCE) {
-    await router.push(`/profiles/${recording.profileId}/heap-dump/settings`);
-  } else if (recording.eventSource === PPROF_SOURCE) {
-    // pprof profiles are stack-samples only — land directly on the flamegraph
-    await router.push(`/profiles/${recording.profileId}/flamegraphs/primary`);
-  } else {
-    await router.push(`/profiles/${recording.profileId}/overview`);
-  }
+  await router.push(recordingFormatOf(recording.eventSource).profileLandingPath(recording.profileId));
 };
 
 // --- Group CRUD ---

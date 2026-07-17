@@ -323,13 +323,6 @@ public class RecordingsCoreManagerImpl implements RecordingsCoreManager {
     }
 
     private static RecordingEventSource detectEventSource(String filename) {
-        String lower = filename.toLowerCase();
-        if (lower.endsWith(".hprof") || lower.endsWith(".hprof.gz")) {
-            return RecordingEventSource.HEAP_DUMP;
-        }
-        if (SupportedRecordingFile.of(filename) == SupportedRecordingFile.PPROF) {
-            return RecordingEventSource.PPROF;
-        }
-        return RecordingEventSource.UNKNOWN;
+        return SupportedRecordingFile.of(filename).eventSource();
     }
 }

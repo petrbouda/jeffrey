@@ -19,18 +19,30 @@
 package cafe.jeffrey.shared.common.model;
 
 import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 
 /**
- * Single source of truth for deciding whether an event type (or a whole recording) originates from
- * async-profiler or the JDK's built-in JFR.
+ * Single source of truth for deciding which source an event type (or a whole recording)
+ * originates from.
  * <p>
- * The rule is name-based: async-profiler emits every event it produces under the
- * {@link EventTypeName#ASYNC_PROFILER_NAMESPACE} ({@code profiler.}) namespace, while JDK JFR events use the
- * {@code jdk.} namespace. Centralising this here keeps the parser (recording-level source), the persistence
- * enhancers (per-event-type source written to {@code event_types.source}) and Guardian's preconditions in
+ * The rule is name-based: each non-JDK source emits every event it produces under its own
+ * namespace prefix ({@code profiler.} for async-profiler, {@code pprof.} for pprof), while JDK JFR
+ * events use the {@code jdk.} namespace. The namespaces are declared once in
+ * {@link #NAMESPACE_SOURCES}; adding a format means adding one entry there, no new branches.
+ * Centralising this here keeps the parser (recording-level source), the persistence enhancers
+ * (per-event-type source written to {@code event_types.source}) and Guardian's preconditions in
  * agreement.
  */
 public final class EventSourceResolver {
+
+    /**
+     * Namespace-prefix to source mapping in priority order: for recording-level resolution the
+     * first namespace with at least one matching event type wins.
+     */
+    private static final List<Map.Entry<String, RecordingEventSource>> NAMESPACE_SOURCES = List.of(
+            Map.entry(EventTypeName.PPROF_NAMESPACE, RecordingEventSource.PPROF),
+            Map.entry(EventTypeName.ASYNC_PROFILER_NAMESPACE, RecordingEventSource.ASYNC_PROFILER));
 
     private EventSourceResolver() {
     }
@@ -38,51 +50,48 @@ public final class EventSourceResolver {
     /**
      * Resolves the source of a single event type from its name.
      *
-     * @return {@link RecordingEventSource#PPROF} for events in the {@code pprof.} namespace,
-     * {@link RecordingEventSource#ASYNC_PROFILER} for events in the {@code profiler.} namespace,
-     * otherwise {@link RecordingEventSource#JDK}
+     * @return the source whose namespace prefix matches the event type name, otherwise
+     * {@link RecordingEventSource#JDK}
      */
     public static RecordingEventSource fromEventTypeName(String eventTypeName) {
-        if (isPprofEvent(eventTypeName)) {
-            return RecordingEventSource.PPROF;
-        }
-        if (isAsyncProfilerEvent(eventTypeName)) {
-            return RecordingEventSource.ASYNC_PROFILER;
+        for (Map.Entry<String, RecordingEventSource> namespaceSource : NAMESPACE_SOURCES) {
+            if (hasNamespace(eventTypeName, namespaceSource.getKey())) {
+                return namespaceSource.getValue();
+            }
         }
         return RecordingEventSource.JDK;
     }
 
     /**
-     * Resolves the recording-level source from the set of event type names it contains. A recording is
-     * treated as pprof as soon as a single {@code pprof.} event is present, then as async-profiler as
-     * soon as a single {@code profiler.} event is present.
+     * Resolves the recording-level source from the set of event type names it contains. Namespaces
+     * are checked in {@link #NAMESPACE_SOURCES} priority order; a recording is attributed to the
+     * first source with at least one matching event type.
      *
-     * @return {@link RecordingEventSource#PPROF} if any name is in the {@code pprof.} namespace,
-     * {@link RecordingEventSource#ASYNC_PROFILER} if any name is in the {@code profiler.} namespace,
-     * otherwise {@link RecordingEventSource#JDK}
+     * @return the first source with a matching event type name, otherwise
+     * {@link RecordingEventSource#JDK}
      */
     public static RecordingEventSource fromEventTypeNames(Collection<String> eventTypeNames) {
         if (eventTypeNames == null) {
             return RecordingEventSource.JDK;
         }
-        if (eventTypeNames.stream().anyMatch(EventSourceResolver::isPprofEvent)) {
-            return RecordingEventSource.PPROF;
+        for (Map.Entry<String, RecordingEventSource> namespaceSource : NAMESPACE_SOURCES) {
+            boolean anyMatch = eventTypeNames.stream()
+                    .anyMatch(name -> hasNamespace(name, namespaceSource.getKey()));
+            if (anyMatch) {
+                return namespaceSource.getValue();
+            }
         }
-        boolean anyAsyncProfiler = eventTypeNames.stream().anyMatch(EventSourceResolver::isAsyncProfilerEvent);
-        return anyAsyncProfiler ? RecordingEventSource.ASYNC_PROFILER : RecordingEventSource.JDK;
+        return RecordingEventSource.JDK;
     }
 
     /**
      * @return {@code true} if the event type belongs to the async-profiler ({@code profiler.}) namespace
      */
     public static boolean isAsyncProfilerEvent(String eventTypeName) {
-        return eventTypeName != null && eventTypeName.startsWith(EventTypeName.ASYNC_PROFILER_NAMESPACE);
+        return hasNamespace(eventTypeName, EventTypeName.ASYNC_PROFILER_NAMESPACE);
     }
 
-    /**
-     * @return {@code true} if the event type belongs to the pprof ({@code pprof.}) namespace
-     */
-    public static boolean isPprofEvent(String eventTypeName) {
-        return eventTypeName != null && eventTypeName.startsWith(EventTypeName.PPROF_NAMESPACE);
+    private static boolean hasNamespace(String eventTypeName, String namespace) {
+        return eventTypeName != null && eventTypeName.startsWith(namespace);
     }
 }

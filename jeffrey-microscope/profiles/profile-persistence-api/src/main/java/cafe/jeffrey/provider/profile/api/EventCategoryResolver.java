@@ -15,15 +15,21 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-module cafe.jeffrey.microscope.profile.common {
-    requires transitive cafe.jeffrey.shared.common;
-    requires transitive tools.jackson.databind;
-    requires org.slf4j;
 
-    exports cafe.jeffrey.profile.common.analysis;
-    exports cafe.jeffrey.profile.common.analysis.marker;
-    exports cafe.jeffrey.profile.common.config;
-    exports cafe.jeffrey.profile.common.event;
-    exports cafe.jeffrey.profile.common.model;
-    exports cafe.jeffrey.profile.common.treetable;
+package cafe.jeffrey.provider.profile.api;
+
+/**
+ * Maps a concrete event-type code to the logical flamegraph category it belongs to
+ * (e.g. {@code EXECUTION}, {@code ALLOCATION}). Formats name their sample dimensions
+ * differently, so the mapping is provided per {@link RecordingFormat}; the UI groups
+ * event summaries by the resolved category without hard-coding any format's codes.
+ */
+@FunctionalInterface
+public interface EventCategoryResolver {
+
+    /**
+     * @param eventTypeCode a full event-type code (e.g. {@code pprof.cpu})
+     * @return the logical category name, never {@code null} (formats define their own fallback)
+     */
+    String resolve(String eventTypeCode);
 }

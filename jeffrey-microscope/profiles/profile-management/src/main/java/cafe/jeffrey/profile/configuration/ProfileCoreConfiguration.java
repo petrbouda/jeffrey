@@ -46,23 +46,20 @@ import cafe.jeffrey.profile.manager.registry.AnalysisFactories;
 import cafe.jeffrey.profile.manager.registry.JvmInsightFactories;
 import cafe.jeffrey.profile.manager.registry.ProfileManagerFactoryRegistry;
 import cafe.jeffrey.profile.manager.registry.VisualizationFactories;
-import cafe.jeffrey.profile.parser.JfrRecordingEventParser;
-import cafe.jeffrey.pprofparser.PprofRecordingEventParser;
+import cafe.jeffrey.profile.parser.JfrFormat;
+import cafe.jeffrey.pprofparser.PprofFormat;
 import cafe.jeffrey.profile.tools.collapse.CollapseFramesManager;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCorePersistenceProvider;
 import cafe.jeffrey.provider.profile.api.DatabaseManagerResolver;
 import cafe.jeffrey.provider.profile.api.EventWriter;
 import cafe.jeffrey.provider.profile.api.ProfilePersistenceProvider;
-import cafe.jeffrey.provider.profile.api.RecordingEventParser;
-import cafe.jeffrey.provider.profile.api.RecordingEventParserResolver;
+import cafe.jeffrey.provider.profile.api.RecordingFormatRegistry;
 import cafe.jeffrey.provider.profile.api.ProfileRepositories;
-import cafe.jeffrey.shared.common.model.RecordingEventSource;
-import cafe.jeffrey.shared.common.compression.Lz4Compressor;
 import cafe.jeffrey.shared.common.filesystem.TempDirFactory;
 import cafe.jeffrey.shared.persistence.DatabaseManager;
 import cafe.jeffrey.storage.recording.api.RecordingStorage;
 
-import java.util.Map;
+import java.util.List;
 
 import javax.sql.DataSource;
 import java.nio.file.Path;
@@ -190,22 +187,30 @@ public class ProfileCoreConfiguration {
         };
     }
 
+    /**
+     * The single registration point for recording formats: a new format plugs in by adding its
+     * {@link cafe.jeffrey.provider.profile.api.RecordingFormat} implementation to this list.
+     * JFR is the default and also covers recordings whose source is resolved later from the
+     * recorded event types.
+     */
+    @Bean
+    public RecordingFormatRegistry recordingFormats(TempDirFactory tempDirFactory) {
+        return RecordingFormatRegistry.of(
+                List.of(new PprofFormat()),
+                new JfrFormat(tempDirFactory));
+    }
+
     @Bean
     public ProfileInitializer profileInitializer(
             ProfileManager.Factory profileManagerFactory,
             ProfileDataInitializer profileDataInitializer,
-            TempDirFactory tempDirFactory,
+            RecordingFormatRegistry recordingFormats,
             Clock clock) {
-        RecordingEventParser jfrParser =
-                new JfrRecordingEventParser(tempDirFactory, new Lz4Compressor(tempDirFactory));
-        RecordingEventParserResolver parserResolver = RecordingEventParserResolver.of(
-                Map.of(RecordingEventSource.PPROF, new PprofRecordingEventParser()),
-                jfrParser);
 
         return new ProfileInitializerImpl(
                 profileRepositories,
                 profileDatabaseProvider,
-                parserResolver,
+                recordingFormats,
                 eventWriterFactory,
                 profileManagerFactory,
                 profileDataInitializer,

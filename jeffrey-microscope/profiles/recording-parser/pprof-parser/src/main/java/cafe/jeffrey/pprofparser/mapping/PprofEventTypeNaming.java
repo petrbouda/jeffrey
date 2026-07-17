@@ -43,12 +43,8 @@ public final class PprofEventTypeNaming {
     private static final String CATEGORY_BLOCKING = "Blocking";
     private static final String CATEGORY_WALL = "Wall-Clock";
 
-    private static final Set<String> CPU_TYPES = Set.of("cpu", "samples");
-    private static final Set<String> WALL_TYPES = Set.of("wall");
-    private static final Set<String> ALLOCATION_TYPES = Set.of(
-            "alloc_space", "alloc_objects", "inuse_space", "inuse_objects",
-            "allocations", "space", "alloc", "inuse");
-    private static final Set<String> BLOCKING_TYPES = Set.of("contentions", "delay", "block", "mutex");
+    private static final String FALLBACK_TYPE = "samples";
+    private static final String LABEL_SUFFIX = " (pprof)";
 
     private static final Map<String, String> LABEL_OVERRIDES = Map.ofEntries(
             Map.entry("cpu", "CPU"),
@@ -69,28 +65,22 @@ public final class PprofEventTypeNaming {
     }
 
     public static PprofEventType resolve(String sampleType, String sampleUnit) {
-        String type = sampleType == null || sampleType.isBlank() ? "samples" : sampleType;
+        String type = sampleType == null || sampleType.isBlank() ? FALLBACK_TYPE : sampleType;
         String lower = type.toLowerCase(Locale.ROOT);
 
         String name = EventTypeName.PPROF_NAMESPACE + sanitize(type);
-        String label = LABEL_OVERRIDES.getOrDefault(lower, prettify(type)) + " (pprof)";
+        String label = LABEL_OVERRIDES.getOrDefault(lower, prettify(type)) + LABEL_SUFFIX;
         return new PprofEventType(name, label, categories(lower));
     }
 
     private static List<String> categories(String lowerType) {
-        if (CPU_TYPES.contains(lowerType)) {
-            return List.of(CATEGORY_PPROF, CATEGORY_CPU);
-        }
-        if (WALL_TYPES.contains(lowerType)) {
-            return List.of(CATEGORY_PPROF, CATEGORY_WALL);
-        }
-        if (ALLOCATION_TYPES.contains(lowerType)) {
-            return List.of(CATEGORY_PPROF, CATEGORY_ALLOCATION);
-        }
-        if (BLOCKING_TYPES.contains(lowerType)) {
-            return List.of(CATEGORY_PPROF, CATEGORY_BLOCKING);
-        }
-        return List.of(CATEGORY_PPROF);
+        return switch (PprofEventCategory.ofDimension(lowerType)) {
+            case EXECUTION -> List.of(CATEGORY_PPROF, CATEGORY_CPU);
+            case WALL -> List.of(CATEGORY_PPROF, CATEGORY_WALL);
+            case ALLOCATION -> List.of(CATEGORY_PPROF, CATEGORY_ALLOCATION);
+            case BLOCKING -> List.of(CATEGORY_PPROF, CATEGORY_BLOCKING);
+            case OTHER -> List.of(CATEGORY_PPROF);
+        };
     }
 
     private static String sanitize(String type) {

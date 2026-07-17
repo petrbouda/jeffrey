@@ -19,6 +19,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import FormattingService from '@shared/services/FormattingService';
+import { recordingFormatOf } from '../services/recordingFormats';
 
 interface RecordingOrigin {
   server: string;
@@ -70,40 +71,9 @@ const emit = defineEmits<{
   (e: 'dragend'): void;
 }>();
 
-const SOURCE_HEAP_DUMP = 'HEAP_DUMP';
-const SOURCE_PPROF = 'PPROF';
-
 // The recording's format drives its icon, colored type tag, and left-border accent so JFR, pprof
 // and heap-dump recordings are visually distinct at a glance.
-const iconClass = computed(() => {
-  if (props.sourceType === SOURCE_HEAP_DUMP) {
-    return 'bi bi-pie-chart-fill';
-  }
-  if (props.sourceType === SOURCE_PPROF) {
-    return 'bi bi-fire';
-  }
-  return 'bi bi-activity';
-});
-
-const typeLabel = computed(() => {
-  if (props.sourceType === SOURCE_HEAP_DUMP) {
-    return 'Heap';
-  }
-  if (props.sourceType === SOURCE_PPROF) {
-    return 'pprof';
-  }
-  return 'JFR';
-});
-
-const typeTagClass = computed(() => {
-  if (props.sourceType === SOURCE_HEAP_DUMP) {
-    return 'rec-card__type--heap';
-  }
-  if (props.sourceType === SOURCE_PPROF) {
-    return 'rec-card__type--pprof';
-  }
-  return 'rec-card__type--jfr';
-});
+const format = computed(() => recordingFormatOf(props.sourceType));
 
 const isTransitional = () =>
   props.analyzing ||
@@ -175,15 +145,16 @@ onBeforeUnmount(() => {
   <div
     ref="cardRef"
     class="rec-card"
-    :class="{
-      'rec-card--analyzed': hasProfile && profileEnabled && !deletingProfile,
-      'rec-card--analyzing':
-        analyzing || creatingProfile || (hasProfile && !profileEnabled && !deletingProfile),
-      'rec-card--deleting': deletingProfile,
-      'rec-card--heap-dump': sourceType === 'HEAP_DUMP',
-      'rec-card--pprof': sourceType === 'PPROF',
-      'rec-card--menu-open': menuOpen
-    }"
+    :class="[
+      {
+        'rec-card--analyzed': hasProfile && profileEnabled && !deletingProfile,
+        'rec-card--analyzing':
+          analyzing || creatingProfile || (hasProfile && !profileEnabled && !deletingProfile),
+        'rec-card--deleting': deletingProfile,
+        'rec-card--menu-open': menuOpen
+      },
+      format.cardClass
+    ]"
     @click="handleClick"
   >
     <!-- Two-column layout: left (name + metadata), right (actions) -->
@@ -191,8 +162,8 @@ onBeforeUnmount(() => {
       <!-- Left: info -->
       <div class="rec-card__info">
         <div class="rec-card__line1">
-          <i class="rec-card__icon" :class="iconClass"></i>
-          <span class="rec-card__type" :class="typeTagClass">{{ typeLabel }}</span>
+          <i class="rec-card__icon" :class="format.icon"></i>
+          <span class="rec-card__type" :class="format.typeTagClass">{{ format.label }}</span>
           <span class="rec-card__name">{{ name }}</span>
           <span
             v-if="origin"
@@ -236,12 +207,10 @@ onBeforeUnmount(() => {
           <span
             v-if="!isTransitional()"
             class="rec-card__hint"
-            :class="{
-              'rec-card__hint--analyze': !hasProfile,
-              'rec-card__hint--open': hasProfile && profileEnabled && sourceType !== 'HEAP_DUMP',
-              'rec-card__hint--open-heap':
-                hasProfile && profileEnabled && sourceType === 'HEAP_DUMP'
-            }"
+            :class="[
+              { 'rec-card__hint--analyze': !hasProfile },
+              hasProfile && profileEnabled ? format.openHintClass : null
+            ]"
           >
             <template v-if="!hasProfile">Click to analyze</template>
             <template v-else>Open profile</template>

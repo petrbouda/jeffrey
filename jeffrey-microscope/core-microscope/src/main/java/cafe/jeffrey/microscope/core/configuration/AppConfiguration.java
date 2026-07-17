@@ -34,9 +34,8 @@ import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
 import cafe.jeffrey.profile.ProfileInitializer;
 import cafe.jeffrey.profile.configuration.ProfilesConfiguration;
 import cafe.jeffrey.profile.manager.ProfileManager;
-import cafe.jeffrey.profile.parser.FileTypeDispatchingRecordingInformationParser;
-import cafe.jeffrey.profile.parser.JfrRecordingInformationParser;
 import cafe.jeffrey.provider.profile.api.DatabaseManagerResolver;
+import cafe.jeffrey.provider.profile.api.RecordingFormatRegistry;
 import cafe.jeffrey.provider.profile.jdbc.DatabaseManagerResolverImpl;
 import cafe.jeffrey.provider.profile.jdbc.DuckDBProfilePersistenceProvider;
 import cafe.jeffrey.provider.profile.api.ProfilePersistenceProvider;
@@ -202,7 +201,7 @@ public class AppConfiguration {
             Clock applicationClock,
             RecordingStorage recordingStorage,
             MicroscopeCorePersistenceProvider localCorePersistenceProvider,
-            MicroscopeJeffreyDirs jeffreyDirs) {
+            RecordingFormatRegistry recordingFormats) {
 
         MicroscopeCoreRepositories localCoreRepositories = localCorePersistenceProvider.localCoreRepositories();
         return projectInfo -> new ProjectRecordingInitializer(
@@ -210,6 +209,6 @@ public class AppConfiguration {
                 projectInfo,
                 recordingStorage.projectRecordingStorage(projectInfo.id()),
                 localCoreRepositories.newRecordingRepository(projectInfo.id()),
-                new FileTypeDispatchingRecordingInformationParser(new JfrRecordingInformationParser(jeffreyDirs)));
+                recordingFormats.informationParser());
     }
 }

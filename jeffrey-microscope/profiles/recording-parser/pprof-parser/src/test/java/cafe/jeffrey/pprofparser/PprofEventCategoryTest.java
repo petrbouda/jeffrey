@@ -18,7 +18,7 @@
 
 package cafe.jeffrey.pprofparser;
 
-import cafe.jeffrey.profile.common.pprof.PprofEventCategory;
+import cafe.jeffrey.pprofparser.mapping.PprofEventCategory;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;

@@ -32,6 +32,7 @@ import cafe.jeffrey.profile.common.config.GraphParameters;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.profile.model.EventSummaryResult;
 import cafe.jeffrey.profile.resources.request.GenerateFlamegraphRequest;
+import cafe.jeffrey.provider.profile.api.RecordingFormatRegistry;
 import cafe.jeffrey.shared.common.GraphType;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
 import cafe.jeffrey.shared.common.model.ProfilingStartEnd;
@@ -51,9 +52,11 @@ public class FlamegraphController {
     private static final Logger LOG = LoggerFactory.getLogger(FlamegraphController.class);
 
     private final ProfileManagerResolver resolver;
+    private final RecordingFormatRegistry recordingFormats;
 
-    public FlamegraphController(ProfileManagerResolver resolver) {
+    public FlamegraphController(ProfileManagerResolver resolver, RecordingFormatRegistry recordingFormats) {
         this.resolver = resolver;
+        this.recordingFormats = recordingFormats;
     }
 
     @PostMapping(produces = PROTOBUF_MEDIA_TYPE)
@@ -79,7 +82,8 @@ public class FlamegraphController {
     @GetMapping("/events")
     public List<EventSummaryResult> events(@PathVariable("profileId") String profileId) {
         ProfileManager pm = resolver.resolve(profileId);
-        var result = pm.flamegraphManager().eventSummaries();
+        var format = recordingFormats.bySource(pm.info().eventSource());
+        var result = EventSummariesByFormat.list(format, pm.flamegraphManager());
         LOG.debug("Listed flamegraph event types: profileId={} count={}", profileId, result.size());
         return result;
     }

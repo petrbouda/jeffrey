@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.profile.common.pprof;
+package cafe.jeffrey.pprofparser.mapping;
 
 import cafe.jeffrey.shared.common.model.EventTypeName;
 
@@ -27,8 +27,8 @@ import java.util.Set;
  * The logical flamegraph category a pprof event type belongs to. pprof names its sample dimensions
  * differently from JFR (a CPU profile is {@code pprof.cpu} / {@code pprof.samples}, not
  * {@code jdk.ExecutionSample}), so the mapping from a concrete event type to a logical category is
- * format-specific. This enum is the pprof side of that mapping; the pprof flamegraph controller
- * stamps it onto each event summary so the UI can group cards without hard-coding pprof codes.
+ * format-specific. This enum is the single owner of the pprof dimension vocabulary — both the
+ * event-type naming at ingest time and the category stamping on event summaries resolve through it.
  */
 public enum PprofEventCategory {
     EXECUTION,
@@ -52,17 +52,25 @@ public enum PprofEventCategory {
         if (eventTypeCode == null || !eventTypeCode.startsWith(EventTypeName.PPROF_NAMESPACE)) {
             return OTHER;
         }
-        String dimension = eventTypeCode.substring(EventTypeName.PPROF_NAMESPACE.length()).toLowerCase(Locale.ROOT);
-        if (EXECUTION_TYPES.contains(dimension)) {
+        return ofDimension(eventTypeCode.substring(EventTypeName.PPROF_NAMESPACE.length()));
+    }
+
+    /**
+     * @param dimension a bare pprof sample-type dimension (e.g. {@code cpu}, {@code alloc_space})
+     * @return the logical category, or {@link #OTHER} for unrecognized dimensions
+     */
+    public static PprofEventCategory ofDimension(String dimension) {
+        String lower = dimension.toLowerCase(Locale.ROOT);
+        if (EXECUTION_TYPES.contains(lower)) {
             return EXECUTION;
         }
-        if (ALLOCATION_TYPES.contains(dimension)) {
+        if (ALLOCATION_TYPES.contains(lower)) {
             return ALLOCATION;
         }
-        if (BLOCKING_TYPES.contains(dimension)) {
+        if (BLOCKING_TYPES.contains(lower)) {
             return BLOCKING;
         }
-        if (WALL_TYPES.contains(dimension)) {
+        if (WALL_TYPES.contains(lower)) {
             return WALL;
         }
         return OTHER;

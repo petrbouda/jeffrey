@@ -27,6 +27,7 @@ import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
 import cafe.jeffrey.profile.manager.FlamegraphManager;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.shared.common.exception.Exceptions;
+import cafe.jeffrey.shared.common.model.RecordingEventSource;
 
 import java.util.List;
 
@@ -53,10 +54,12 @@ class DifferentialFlamegraphControllerTest {
     void listsEvents() {
         when(resolver.resolve("p-1")).thenReturn(primary);
         when(resolver.resolve("p-2")).thenReturn(secondary);
+        when(primary.info()).thenReturn(FormatTestSupport.profileInfo("p-1", RecordingEventSource.JDK));
         when(primary.diffFlamegraphManager(secondary)).thenReturn(diffManager);
         when(diffManager.eventSummaries()).thenReturn(List.of());
 
-        MockMvcTester mvc = mockMvcTesterFor(new DifferentialFlamegraphController(resolver));
+        MockMvcTester mvc = mockMvcTesterFor(
+                new DifferentialFlamegraphController(resolver, FormatTestSupport.recordingFormats()));
 
         assertThat(mvc.get().uri("/api/internal/profiles/p-1/diff/p-2/differential-flamegraph/events"))
                 .hasStatusOk()
@@ -68,7 +71,8 @@ class DifferentialFlamegraphControllerTest {
     void primaryProfileNotFoundReturns404() {
         when(resolver.resolve("ghost")).thenThrow(Exceptions.profileNotFound("ghost"));
 
-        MockMvcTester mvc = mockMvcTesterFor(new DifferentialFlamegraphController(resolver));
+        MockMvcTester mvc = mockMvcTesterFor(
+                new DifferentialFlamegraphController(resolver, FormatTestSupport.recordingFormats()));
 
         assertThat(mvc.get().uri("/api/internal/profiles/ghost/diff/p-2/differential-flamegraph/events"))
                 .hasStatus(404)

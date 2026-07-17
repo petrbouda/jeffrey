@@ -25,7 +25,7 @@ import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.profile.manager.action.ProfileDataInitializer;
 import cafe.jeffrey.provider.profile.api.EventWriter;
 import cafe.jeffrey.provider.profile.api.RecordingEventParser;
-import cafe.jeffrey.provider.profile.api.RecordingEventParserResolver;
+import cafe.jeffrey.provider.profile.api.RecordingFormatRegistry;
 import cafe.jeffrey.provider.profile.api.ProfileInfoRepository;
 import cafe.jeffrey.provider.profile.api.ProfileRepositories;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
@@ -59,7 +59,7 @@ public class ProfileInitializerImpl implements ProfileInitializer {
 
     private final ProfileRepositories profileRepositories;
     private final DatabaseManager databaseManager;
-    private final RecordingEventParserResolver recordingEventParserResolver;
+    private final RecordingFormatRegistry recordingFormats;
     private final EventWriter.Factory eventWriterFactory;
     private final ProfileManager.Factory profileManagerFactory;
     private final ProfileDataInitializer profileDataInitializer;
@@ -68,7 +68,7 @@ public class ProfileInitializerImpl implements ProfileInitializer {
     public ProfileInitializerImpl(
             ProfileRepositories profileRepositories,
             DatabaseManager databaseManager,
-            RecordingEventParserResolver recordingEventParserResolver,
+            RecordingFormatRegistry recordingFormats,
             EventWriter.Factory eventWriterFactory,
             ProfileManager.Factory profileManagerFactory,
             ProfileDataInitializer profileDataInitializer,
@@ -76,7 +76,7 @@ public class ProfileInitializerImpl implements ProfileInitializer {
 
         this.profileRepositories = profileRepositories;
         this.databaseManager = databaseManager;
-        this.recordingEventParserResolver = recordingEventParserResolver;
+        this.recordingFormats = recordingFormats;
         this.eventWriterFactory = eventWriterFactory;
         this.profileManagerFactory = profileManagerFactory;
         this.profileDataInitializer = profileDataInitializer;
@@ -108,7 +108,7 @@ public class ProfileInitializerImpl implements ProfileInitializer {
             // Parse recording and store events into the database
             // The profiling start is the zero point of the relative event timeline persisted with every event
             EventWriter eventWriter = eventWriterFactory.create(dataSource, profileInfo.profilingStartedAt());
-            RecordingEventParser recordingEventParser = recordingEventParserResolver.resolve(profileInfo.eventSource());
+            RecordingEventParser recordingEventParser = recordingFormats.bySource(profileInfo.eventSource()).eventParser();
             recordingEventParser.start(eventWriter, recordingPath);
             eventWriter.onComplete();
 

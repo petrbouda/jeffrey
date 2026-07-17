@@ -32,6 +32,7 @@ import cafe.jeffrey.profile.manager.FlamegraphManager;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.profile.model.EventSummaryResult;
 import cafe.jeffrey.profile.resources.request.GenerateFlamegraphRequest;
+import cafe.jeffrey.provider.profile.api.RecordingFormatRegistry;
 import cafe.jeffrey.shared.common.GraphType;
 
 import java.util.List;
@@ -49,9 +50,11 @@ public class DifferentialFlamegraphController {
     private static final Logger LOG = LoggerFactory.getLogger(DifferentialFlamegraphController.class);
 
     private final ProfileManagerResolver resolver;
+    private final RecordingFormatRegistry recordingFormats;
 
-    public DifferentialFlamegraphController(ProfileManagerResolver resolver) {
+    public DifferentialFlamegraphController(ProfileManagerResolver resolver, RecordingFormatRegistry recordingFormats) {
         this.resolver = resolver;
+        this.recordingFormats = recordingFormats;
     }
 
     @PostMapping(produces = PROTOBUF_MEDIA_TYPE)
@@ -70,8 +73,10 @@ public class DifferentialFlamegraphController {
     public List<EventSummaryResult> events(
             @PathVariable("primaryProfileId") String primaryProfileId,
             @PathVariable("secondaryProfileId") String secondaryProfileId) {
+        ProfileManager primary = resolver.resolve(primaryProfileId);
         FlamegraphManager diffManager = diffManager(primaryProfileId, secondaryProfileId);
-        var result = diffManager.eventSummaries();
+        var format = recordingFormats.bySource(primary.info().eventSource());
+        var result = EventSummariesByFormat.list(format, diffManager);
         LOG.debug("Listed diff flamegraph event types: profileId={} count={}", primaryProfileId, result.size());
         return result;
     }

@@ -3,9 +3,9 @@
     <!-- Feature Collection Navigation -->
     <div class="feature-collection-nav normal-nav content-aligned">
       <div class="nav-container">
-        <!-- JVM Internals mode (hidden for heap-dump-only and pprof profiles) -->
+        <!-- JVM Internals mode (only for formats that record JVM data) -->
         <div
-          v-if="!isHeapDumpOnlyProfile && !isPprofOnlyProfile"
+          v-if="hasSection('JVM')"
           class="nav-pill"
           :class="{ active: selectedMode === 'JVM' }"
           title="Core JVM metrics and analysis"
@@ -19,9 +19,9 @@
             <small>Core JVM metrics and analysis</small>
           </div>
         </div>
-        <!-- Technologies mode (hidden for heap-dump-only and pprof profiles) -->
+        <!-- Technologies mode (only for formats that record technology events) -->
         <div
-          v-if="!isHeapDumpOnlyProfile && !isPprofOnlyProfile"
+          v-if="hasSection('Technologies')"
           class="nav-pill"
           :class="{ active: selectedMode === 'Technologies' }"
           title="Technology-specific analysis"
@@ -35,9 +35,9 @@
             <small>Technology-specific analysis</small>
           </div>
         </div>
-        <!-- Visualization mode (hidden for heap-dump-only profiles) -->
+        <!-- Visualization mode (only for formats with stack-based events) -->
         <div
-          v-if="!isHeapDumpOnlyProfile"
+          v-if="hasSection('Visualization')"
           class="nav-pill"
           :class="{ active: selectedMode === 'Visualization' }"
           title="Profiling graphs and visualizations"
@@ -51,9 +51,9 @@
             <small>Profiling graphs and visualizations</small>
           </div>
         </div>
-        <!-- Heap Dump mode (always visible except for pprof profiles, which have no heap data) -->
+        <!-- Heap Dump mode (only for formats that can carry heap data) -->
         <div
-          v-if="!isPprofOnlyProfile"
+          v-if="hasSection('HeapDump')"
           class="nav-pill"
           :class="{ active: selectedMode === 'HeapDump' }"
           title="Heap dump memory analysis"
@@ -67,9 +67,9 @@
             <small>Memory analysis from heap dumps</small>
           </div>
         </div>
-        <!-- Tools mode (hidden for heap-dump-only and pprof profiles) -->
+        <!-- Tools mode (only for full JFR profiles) -->
         <div
-          v-if="!isHeapDumpOnlyProfile && !isPprofOnlyProfile"
+          v-if="hasSection('Tools')"
           class="nav-pill"
           :class="{ active: selectedMode === 'Tools' }"
           title="Profile data transformations"
@@ -101,8 +101,8 @@
           </button>
         </div>
 
-        <!-- Comparison Panel Toggle (hidden for heap-dump-only profiles) -->
-        <div v-if="!isHeapDumpOnlyProfile" class="comparison-toggle-wrapper">
+        <!-- Comparison Panel Toggle (only for formats with stack-based visualizations) -->
+        <div v-if="hasSection('Visualization')" class="comparison-toggle-wrapper">
           <button
             class="comparison-toggle-btn"
             :class="{ active: comparisonPanelVisible, 'has-profile': secondaryProfile }"
@@ -278,7 +278,10 @@ import DirectProfileClient from '@/services/api/DirectProfileClient.ts';
 
 const directProfileClient = new DirectProfileClient();
 import ProfileInfo from '@/services/api/model/ProfileInfo.ts';
-import RecordingEventSource from '@workspaces/services/api/model/RecordingEventSource.ts';
+import {
+  recordingFormatOf,
+  type ProfileSection
+} from '@workspaces/services/recordingFormats';
 import SecondaryProfileService from '@/services/SecondaryProfileService.ts';
 import SecondaryProfileSelectionModal from '@/components/SecondaryProfileSelectionModal.vue';
 import Badge from '@shared/components/Badge.vue';
@@ -305,24 +308,13 @@ const loading = ref(true);
 const sidebarCollapsed = ref(false);
 const showSecondaryProfileSelectionModal = ref(false);
 const disabledFeatures = ref<FeatureType[]>([]);
-const isHeapDumpOnlyProfile = ref(false);
-const isPprofOnlyProfile = ref(false);
+// Which nav sections this profile exposes is format metadata (JFR shows everything, heap dumps
+// only the heap section, pprof only the stack-based visualization) — resolved from the shared
+// recording-format descriptor once the profile is loaded.
+const profileFormat = ref(recordingFormatOf(null));
 
-/**
- * Check if the profile is a heap-dump-only profile (no JFR data).
- * These profiles have HEAP_DUMP event source.
- */
-const checkHeapDumpOnlyProfile = (p: Profile): boolean => {
-  return p.eventSource === RecordingEventSource.HEAP_DUMP;
-};
-
-/**
- * Check if the profile is a pprof profile. pprof carries stack samples only (no GC, JVM internals,
- * heap dump or technology events), so these profiles expose only the stack-based Visualization mode.
- */
-const checkPprofOnlyProfile = (p: Profile): boolean => {
-  return p.eventSource === RecordingEventSource.PPROF;
-};
+const hasSection = (section: ProfileSection): boolean =>
+  profileFormat.value.profileSections.includes(section);
 
 // Mapping function to determine which features are associated with menu items
 const getFeatureTypeForMenuItem = (menuItem: string): FeatureType | null => {
@@ -394,7 +386,7 @@ function getModeFromPath(path: string): ProfileMode {
   }
   return 'JVM';
 }
-// (heap-dump-only profiles override this to 'HeapDump' in onMounted)
+// (formats with a restricted section set override this to their initial section in onMounted)
 const selectedMode = ref<ProfileMode>(getModeFromPath(route.path));
 
 // Initialize comparison panel visibility from sessionStorage
@@ -462,20 +454,14 @@ onMounted(async () => {
     // Store profile context in profileStore for navigation
     profileStore.setProfile(profileWithContext);
 
-    // Check if this is a heap-dump-only profile (no JFR data)
-    isHeapDumpOnlyProfile.value = checkHeapDumpOnlyProfile(profileWithContext);
-    if (isHeapDumpOnlyProfile.value) {
-      // Auto-select HeapDump mode for heap-dump-only profiles
-      selectedMode.value = 'HeapDump';
-    }
-
-    // pprof profiles are stack-samples only: force the Visualization mode and, if the URL landed on
-    // a non-visualization section (e.g. the JFR /overview default), redirect to the flamegraph.
-    isPprofOnlyProfile.value = checkPprofOnlyProfile(profileWithContext);
-    if (isPprofOnlyProfile.value) {
-      selectedMode.value = 'Visualization';
-      if (getModeFromPath(route.path) !== 'Visualization') {
-        router.replace(`/profiles/${profileId}/flamegraphs/primary`);
+    // Formats with a restricted section set (heap dump, pprof) force their initial section and,
+    // if the URL landed on a section the format doesn't have (e.g. the JFR /overview default),
+    // redirect to the format's landing page.
+    profileFormat.value = recordingFormatOf(profileWithContext.eventSource);
+    if (profileFormat.value.initialSection) {
+      selectedMode.value = profileFormat.value.initialSection;
+      if (!hasSection(getModeFromPath(route.path))) {
+        router.replace(profileFormat.value.profileLandingPath(profileId));
       }
     }
 

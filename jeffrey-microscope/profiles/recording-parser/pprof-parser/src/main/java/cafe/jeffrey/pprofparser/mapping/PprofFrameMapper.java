@@ -45,6 +45,7 @@ public final class PprofFrameMapper {
     private static final long UNKNOWN_BYTECODE_INDEX = -1;
     private static final String ADDRESS_PREFIX = "0x";
     private static final String UNKNOWN_MODULE = "unknown";
+    private static final String UNKNOWN_METHOD = "unknown";
     private static final String FRAME_TYPE_CODE = FrameType.UNKNOWN.code();
 
     private PprofFrameMapper() {
@@ -80,7 +81,7 @@ public final class PprofFrameMapper {
         Function function = tables.function(line.getFunctionId());
         String functionName = resolveFunctionName(function, tables);
         if (functionName.isBlank()) {
-            return new EventFrame(UNKNOWN_MODULE, "unknown", FRAME_TYPE_CODE, UNKNOWN_BYTECODE_INDEX, line.getLine());
+            return new EventFrame(UNKNOWN_MODULE, UNKNOWN_METHOD, FRAME_TYPE_CODE, UNKNOWN_BYTECODE_INDEX, line.getLine());
         }
         FunctionNameSplitter.SplitName split = FunctionNameSplitter.split(functionName);
         return new EventFrame(split.clazz(), split.method(), FRAME_TYPE_CODE, UNKNOWN_BYTECODE_INDEX, line.getLine());

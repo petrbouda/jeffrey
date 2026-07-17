@@ -45,6 +45,11 @@ export function useFlamegraphEvents(
   const loaded = ref(false);
   const error = ref<string | null>(null);
 
+  // True when the summaries arrived with backend-resolved categories (formats like pprof whose
+  // event-type vocabulary lives on the server). Views use this to adapt the grid — e.g. suppress
+  // the greyed placeholder cards for JFR categories such formats never produce.
+  const hasCategorizedEvents = ref(false);
+
   const executionSampleEvents = ref<EventSummary[]>([]);
   const cpuTimeSampleEvents = ref<EventSummary[]>([]);
   const methodTraceEvents = ref<EventSummary[]>([]);
@@ -65,9 +70,11 @@ export function useFlamegraphEvents(
     nativeAllocationEvents.value = [];
     nativeLeakEvents.value = [];
 
+    hasCategorizedEvents.value = eventTypes.some(event => !!event.category);
+
     for (const event of eventTypes) {
-      // Format-specific summaries (pprof) arrive with a backend-resolved category, so the
-      // pprof-vs-JFR event-type mapping stays on the server. JFR summaries have no category and
+      // Format-specific summaries (e.g. pprof) arrive with a backend-resolved category, so the
+      // format's event-type mapping stays on the server. JFR summaries have no category and
       // fall through to the client-side code-based predicates below.
       if (event.category) {
         if (event.category === 'EXECUTION') {
@@ -140,6 +147,7 @@ export function useFlamegraphEvents(
   return {
     loaded,
     error,
+    hasCategorizedEvents,
     executionSampleEvents,
     cpuTimeSampleEvents,
     methodTraceEvents,

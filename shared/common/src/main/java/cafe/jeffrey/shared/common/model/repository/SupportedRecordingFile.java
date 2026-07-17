@@ -18,6 +18,7 @@
 
 package cafe.jeffrey.shared.common.model.repository;
 
+import cafe.jeffrey.shared.common.model.RecordingEventSource;
 import cafe.jeffrey.shared.common.model.repository.matcher.AppLogFileMatcher;
 import cafe.jeffrey.shared.common.model.repository.matcher.AsprofCacheFileMatcher;
 import cafe.jeffrey.shared.common.model.repository.matcher.JvmLogFileMatcher;
@@ -52,13 +53,15 @@ public enum SupportedRecordingFile {
             "GZ Compressed  Heap Dump",
             FileExtensions.HPROF_GZ,
             filename -> filename.endsWith("." + FileExtensions.HPROF_GZ),
-            FileCategory.ARTIFACT
+            FileCategory.ARTIFACT,
+            RecordingEventSource.HEAP_DUMP
     ),
     HEAP_DUMP(
             "Heap Dump",
             FileExtensions.HPROF,
             filename -> filename.endsWith("." + FileExtensions.HPROF),
-            FileCategory.ARTIFACT
+            FileCategory.ARTIFACT,
+            RecordingEventSource.HEAP_DUMP
     ),
     PERF_COUNTERS(
             "HotSpot Performance Counters",
@@ -89,7 +92,8 @@ public enum SupportedRecordingFile {
             FileExtensions.PPROF,
             filename -> filename.endsWith("." + FileExtensions.PPROF)
                     || filename.endsWith("." + FileExtensions.PPROF_PB_GZ),
-            FileCategory.RECORDING
+            FileCategory.RECORDING,
+            RecordingEventSource.PPROF
     ),
     UNKNOWN(
             "Unsupported File Type",
@@ -110,6 +114,7 @@ public enum SupportedRecordingFile {
     private final String fileExtension;
     private final Predicate<String> filenameMatcher;
     private final FileCategory fileCategory;
+    private final RecordingEventSource eventSource;
 
     SupportedRecordingFile(
             String description,
@@ -117,10 +122,23 @@ public enum SupportedRecordingFile {
             Predicate<String> filenameMatcher,
             FileCategory fileCategory) {
 
+        // JFR-based recordings resolve their real source (JDK vs async-profiler) later from the
+        // recorded event types, so file recognition alone reports UNKNOWN for them.
+        this(description, fileExtension, filenameMatcher, fileCategory, RecordingEventSource.UNKNOWN);
+    }
+
+    SupportedRecordingFile(
+            String description,
+            String fileExtension,
+            Predicate<String> filenameMatcher,
+            FileCategory fileCategory,
+            RecordingEventSource eventSource) {
+
         this.description = description;
         this.fileExtension = fileExtension;
         this.filenameMatcher = filenameMatcher;
         this.fileCategory = fileCategory;
+        this.eventSource = eventSource;
     }
 
     public static SupportedRecordingFile of(Path path) {
@@ -167,5 +185,13 @@ public enum SupportedRecordingFile {
 
     public FileCategory fileCategory() {
         return fileCategory;
+    }
+
+    /**
+     * The event source detectable from the file type alone at upload time; {@link
+     * RecordingEventSource#UNKNOWN} when the source is resolved later from the recording's content.
+     */
+    public RecordingEventSource eventSource() {
+        return eventSource;
     }
 }

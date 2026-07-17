@@ -35,9 +35,9 @@ public record EventSummaryResult(
     }
 
     /**
-     * @return a copy tagged with the given logical flamegraph category. Format-specific controllers
-     * (e.g. pprof) resolve the category server-side; the generic path leaves it {@code null} and the
-     * client categorizes by event-type code.
+     * @return a copy tagged with the given logical flamegraph category. Formats with an
+     * {@code EventCategoryResolver} get the category resolved server-side; the curated path leaves
+     * it {@code null} and the client categorizes by event-type code.
      */
     public EventSummaryResult withCategory(String category) {
         return new EventSummaryResult(code, label, category, primary, secondary);

@@ -29,6 +29,7 @@ import cafe.jeffrey.profile.manager.heapdump.HeapDumpManager;
 import cafe.jeffrey.profile.manager.ProfileFeaturesManager;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.shared.common.exception.Exceptions;
+import cafe.jeffrey.shared.common.model.RecordingEventSource;
 
 import java.util.List;
 
@@ -57,13 +58,15 @@ class ProfileFeaturesControllerTest {
     @Test
     void disabledIncludesAiAndHeapDumpWhenUnavailable() {
         when(resolver.resolve("p-1")).thenReturn(profileManager);
+        when(profileManager.info()).thenReturn(FormatTestSupport.profileInfo("p-1", RecordingEventSource.JDK));
         when(profileManager.featuresManager()).thenReturn(featuresManager);
         when(profileManager.heapDumpManager()).thenReturn(heapDumpManager);
         when(featuresManager.getDisabledFeatures()).thenReturn(List.of());
         when(assistantService.isAvailable()).thenReturn(false);
         when(heapDumpManager.heapDumpExists()).thenReturn(false);
 
-        MockMvcTester mvc = mockMvcTesterFor(new ProfileFeaturesController(resolver, assistantService));
+        MockMvcTester mvc = mockMvcTesterFor(
+                new ProfileFeaturesController(resolver, assistantService, FormatTestSupport.recordingFormats()));
 
         assertThat(mvc.get().uri("/api/internal/profiles/p-1/features/disabled"))
                 .hasStatusOk()
@@ -72,10 +75,30 @@ class ProfileFeaturesControllerTest {
     }
 
     @Test
+    void disabledIncludesTimeResolvedViewsForFormatsWithoutTimestamps() {
+        when(resolver.resolve("p-1")).thenReturn(profileManager);
+        when(profileManager.info()).thenReturn(FormatTestSupport.profileInfo("p-1", RecordingEventSource.PPROF));
+        when(profileManager.featuresManager()).thenReturn(featuresManager);
+        when(profileManager.heapDumpManager()).thenReturn(heapDumpManager);
+        when(featuresManager.getDisabledFeatures()).thenReturn(List.of());
+        when(assistantService.isAvailable()).thenReturn(true);
+        when(heapDumpManager.heapDumpExists()).thenReturn(false);
+
+        MockMvcTester mvc = mockMvcTesterFor(
+                new ProfileFeaturesController(resolver, assistantService, FormatTestSupport.recordingFormats()));
+
+        assertThat(mvc.get().uri("/api/internal/profiles/p-1/features/disabled"))
+                .hasStatusOk()
+                .bodyJson()
+                .hasPathSatisfying("$", v -> assertThat(v).asArray().contains("SUBSECOND", "TIMESERIES"));
+    }
+
+    @Test
     void profileNotFoundReturns404() {
         when(resolver.resolve("ghost")).thenThrow(Exceptions.profileNotFound("ghost"));
 
-        MockMvcTester mvc = mockMvcTesterFor(new ProfileFeaturesController(resolver, assistantService));
+        MockMvcTester mvc = mockMvcTesterFor(
+                new ProfileFeaturesController(resolver, assistantService, FormatTestSupport.recordingFormats()));
 
         assertThat(mvc.get().uri("/api/internal/profiles/ghost/features/disabled"))
                 .hasStatus(404)

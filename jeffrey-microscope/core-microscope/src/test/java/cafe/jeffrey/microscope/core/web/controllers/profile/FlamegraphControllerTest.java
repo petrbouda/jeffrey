@@ -26,7 +26,9 @@ import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
 import cafe.jeffrey.profile.manager.FlamegraphManager;
 import cafe.jeffrey.profile.manager.ProfileManager;
+import cafe.jeffrey.profile.model.EventSummaryResult;
 import cafe.jeffrey.shared.common.exception.Exceptions;
+import cafe.jeffrey.shared.common.model.RecordingEventSource;
 
 import java.util.List;
 
@@ -49,10 +51,11 @@ class FlamegraphControllerTest {
     @Test
     void listsEvents() {
         when(resolver.resolve("p-1")).thenReturn(profileManager);
+        when(profileManager.info()).thenReturn(FormatTestSupport.profileInfo("p-1", RecordingEventSource.JDK));
         when(profileManager.flamegraphManager()).thenReturn(flamegraphManager);
         when(flamegraphManager.eventSummaries()).thenReturn(List.of());
 
-        MockMvcTester mvc = mockMvcTesterFor(new FlamegraphController(resolver));
+        MockMvcTester mvc = mockMvcTesterFor(new FlamegraphController(resolver, FormatTestSupport.recordingFormats()));
 
         assertThat(mvc.get().uri("/api/internal/profiles/p-1/flamegraph/events"))
                 .hasStatusOk()
@@ -61,10 +64,28 @@ class FlamegraphControllerTest {
     }
 
     @Test
+    void listsAllEventsWithCategoriesForPprofProfile() {
+        when(resolver.resolve("p-1")).thenReturn(profileManager);
+        when(profileManager.info()).thenReturn(FormatTestSupport.profileInfo("p-1", RecordingEventSource.PPROF));
+        when(profileManager.flamegraphManager()).thenReturn(flamegraphManager);
+        when(flamegraphManager.allEventSummaries()).thenReturn(List.of(
+                new EventSummaryResult("pprof.cpu", "CPU (pprof)", null, null, null),
+                new EventSummaryResult("pprof.alloc_space", "Allocated Space (pprof)", null, null, null)));
+
+        MockMvcTester mvc = mockMvcTesterFor(new FlamegraphController(resolver, FormatTestSupport.recordingFormats()));
+
+        assertThat(mvc.get().uri("/api/internal/profiles/p-1/flamegraph/events"))
+                .hasStatusOk()
+                .bodyJson()
+                .hasPathSatisfying("$[0].category", v -> assertThat(v).asString().isEqualTo("EXECUTION"))
+                .hasPathSatisfying("$[1].category", v -> assertThat(v).asString().isEqualTo("ALLOCATION"));
+    }
+
+    @Test
     void profileNotFoundReturns404() {
         when(resolver.resolve("ghost")).thenThrow(Exceptions.profileNotFound("ghost"));
 
-        MockMvcTester mvc = mockMvcTesterFor(new FlamegraphController(resolver));
+        MockMvcTester mvc = mockMvcTesterFor(new FlamegraphController(resolver, FormatTestSupport.recordingFormats()));
 
         assertThat(mvc.get().uri("/api/internal/profiles/ghost/flamegraph/events"))
                 .hasStatus(404)

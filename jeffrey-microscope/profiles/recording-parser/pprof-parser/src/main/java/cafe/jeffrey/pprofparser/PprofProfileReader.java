@@ -64,6 +64,11 @@ public final class PprofProfileReader {
     private static final String COLUMN_TYPE_NUMBER = "number";
     private static final String SYNTHETIC_THREAD_NAME = "pprof-samples";
 
+    private static final String COLUMN_FIELD = "field";
+    private static final String COLUMN_HEADER = "header";
+    private static final String COLUMN_TYPE = "type";
+    private static final String COLUMN_DESCRIPTION = "description";
+
     private final SingleThreadedEventWriter writer;
 
     public PprofProfileReader(SingleThreadedEventWriter writer) {
@@ -75,21 +80,20 @@ public final class PprofProfileReader {
 
         PprofTables tables = new PprofTables(profile);
         List<Dimension> dimensions = resolveDimensions(profile, tables);
-        Instant profileTime = Instant.ofEpochSecond(0, profile.getTimeNanos());
-        EventThread syntheticThread = new EventThread(SYNTHETIC_THREAD_NAME, null, null, false);
-
-        Map<EventThread, Long> threadIds = new HashMap<>();
-        Map<List<Long>, Long> stacktraceIds = new HashMap<>();
-        // Label key -> column content type, accumulated across all samples so the Event Viewer can
-        // render the labels of every pprof event type.
-        Map<String, String> labelColumnTypes = new LinkedHashMap<>();
+        EmissionContext context = new EmissionContext(
+                tables,
+                dimensions,
+                Instant.ofEpochSecond(0, profile.getTimeNanos()),
+                new EventThread(SYNTHETIC_THREAD_NAME, null, null, false),
+                new HashMap<>(),
+                new HashMap<>(),
+                new LinkedHashMap<>());
 
         for (Sample sample : profile.getSampleList()) {
-            emitSample(sample, tables, dimensions, profileTime, syntheticThread,
-                    threadIds, stacktraceIds, labelColumnTypes);
+            emitSample(sample, context);
         }
 
-        JsonNode columns = buildColumns(labelColumnTypes);
+        JsonNode columns = buildColumns(context.labelColumnTypes());
         for (Dimension dimension : dimensions) {
             writer.onEventType(new EventType(
                     dimension.eventType().name(),
@@ -103,32 +107,24 @@ public final class PprofProfileReader {
         writer.onThreadComplete();
     }
 
-    private void emitSample(
-            Sample sample,
-            PprofTables tables,
-            List<Dimension> dimensions,
-            Instant profileTime,
-            EventThread syntheticThread,
-            Map<EventThread, Long> threadIds,
-            Map<List<Long>, Long> stacktraceIds,
-            Map<String, String> labelColumnTypes) {
-
+    private void emitSample(Sample sample, EmissionContext context) {
+        PprofTables tables = context.tables();
         List<Label> labels = sample.getLabelList();
-        recordLabelColumns(labels, tables, labelColumnTypes);
+        recordLabelColumns(labels, tables, context.labelColumnTypes());
 
         EventThread resolvedThread = PprofLabels.resolveThread(labels, tables);
-        EventThread thread = resolvedThread != null ? resolvedThread : syntheticThread;
-        long threadId = threadIds.computeIfAbsent(thread, writer::onEventThread);
+        EventThread thread = resolvedThread != null ? resolvedThread : context.syntheticThread();
+        long threadId = context.threadIds().computeIfAbsent(thread, writer::onEventThread);
 
         List<Long> locationIds = sample.getLocationIdList();
-        long stacktraceId = stacktraceIds.computeIfAbsent(locationIds, ids -> {
+        long stacktraceId = context.stacktraceIds().computeIfAbsent(locationIds, ids -> {
             MappedStack mapped = PprofFrameMapper.mapStack(ids, tables);
             return writer.onEventStacktrace(new EventStacktrace(mapped.type(), mapped.frames()));
         });
 
         ObjectNode fields = PprofLabels.toFields(labels, tables);
 
-        for (Dimension dimension : dimensions) {
+        for (Dimension dimension : context.dimensions()) {
             if (dimension.index() >= sample.getValueCount()) {
                 continue;
             }
@@ -140,7 +136,7 @@ public final class PprofProfileReader {
             SampleMagnitude magnitude = magnitude(dimension.unit(), rawValue);
             Event event = new Event(
                     dimension.eventType().name(),
-                    profileTime,
+                    context.profileTime(),
                     null,
                     magnitude.samples(),
                     magnitude.weight(),
@@ -156,6 +152,23 @@ public final class PprofProfileReader {
     }
 
     private record SampleMagnitude(long samples, Long weight) {
+    }
+
+    /**
+     * Per-read emission state threaded through every sample: the profile's lookup tables and
+     * dimensions, the profile-wide event time (pprof has no per-sample timestamps), the fallback
+     * thread for samples without thread labels, the announce-once dedup maps, and the label
+     * key -> column content type accumulator that lets the Event Viewer render the labels of every
+     * pprof event type.
+     */
+    private record EmissionContext(
+            PprofTables tables,
+            List<Dimension> dimensions,
+            Instant profileTime,
+            EventThread syntheticThread,
+            Map<EventThread, Long> threadIds,
+            Map<List<Long>, Long> stacktraceIds,
+            Map<String, String> labelColumnTypes) {
     }
 
     private List<Dimension> resolveDimensions(Profile profile, PprofTables tables) {
@@ -195,10 +208,10 @@ public final class PprofProfileReader {
         List<ObjectNode> columns = new ArrayList<>(labelColumnTypes.size());
         for (Map.Entry<String, String> entry : labelColumnTypes.entrySet()) {
             columns.add(Json.createObject()
-                    .put("field", entry.getKey())
-                    .put("header", entry.getKey())
-                    .put("type", entry.getValue())
-                    .putNull("description"));
+                    .put(COLUMN_FIELD, entry.getKey())
+                    .put(COLUMN_HEADER, entry.getKey())
+                    .put(COLUMN_TYPE, entry.getValue())
+                    .putNull(COLUMN_DESCRIPTION));
         }
         return Json.mapper().valueToTree(columns);
     }

@@ -29,7 +29,7 @@ import cafe.jeffrey.profile.ai.duckdb.jfr.service.JfrAnalysisAssistantService;
 import cafe.jeffrey.profile.feature.FeatureType;
 import cafe.jeffrey.profile.manager.heapdump.HeapDumpManager;
 import cafe.jeffrey.profile.manager.ProfileManager;
-import cafe.jeffrey.shared.common.model.RecordingEventSource;
+import cafe.jeffrey.provider.profile.api.RecordingFormatRegistry;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -42,12 +42,15 @@ public class ProfileFeaturesController {
 
     private final ProfileManagerResolver resolver;
     private final JfrAnalysisAssistantService assistantService;
+    private final RecordingFormatRegistry recordingFormats;
 
     public ProfileFeaturesController(
             ProfileManagerResolver resolver,
-            JfrAnalysisAssistantService assistantService) {
+            JfrAnalysisAssistantService assistantService,
+            RecordingFormatRegistry recordingFormats) {
         this.resolver = resolver;
         this.assistantService = assistantService;
+        this.recordingFormats = recordingFormats;
     }
 
     @GetMapping("/disabled")
@@ -62,10 +65,11 @@ public class ProfileFeaturesController {
         if (!heapDumpManager.heapDumpExists() || !heapDumpManager.isCacheReady()) {
             disabled.add(FeatureType.HEAP_DUMP);
         }
-        // pprof profiles are aggregated and carry no per-sample timestamps, so the time-resolved
+        // Aggregated formats (e.g. pprof) carry no per-sample timestamps, so the time-resolved
         // views (subsecond section + the timeseries strip above the flamegraph) collapse into a
         // single spike and convey no information.
-        if (pm.info().eventSource() == RecordingEventSource.PPROF) {
+        var format = recordingFormats.bySource(pm.info().eventSource());
+        if (!format.capabilities().timestampedEvents()) {
             disabled.add(FeatureType.SUBSECOND);
             disabled.add(FeatureType.TIMESERIES);
         }
