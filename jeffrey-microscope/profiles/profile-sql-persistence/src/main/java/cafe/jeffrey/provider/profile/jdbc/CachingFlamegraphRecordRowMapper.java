@@ -64,7 +64,13 @@ public record CachingFlamegraphRecordRowMapper(
 
         JfrClass weightEntity = null;
         if (hasWeightEntity) {
-            weightEntity = JfrMethodImpl.ofClass(rs.getString("weight_entity"));
+            // The column is present but its value may be NULL (e.g. OTLP/pprof allocation events carry no
+            // allocated class). Keep the entity null in that case rather than wrapping null, so downstream
+            // top-frame processors correctly skip the synthetic allocated/blocking-object leaf.
+            String weightEntityName = rs.getString("weight_entity");
+            if (weightEntityName != null) {
+                weightEntity = JfrMethodImpl.ofClass(weightEntityName);
+            }
         }
 
         return new FlamegraphRecord(

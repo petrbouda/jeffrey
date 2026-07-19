@@ -56,6 +56,9 @@ public class AllocationTopFrameProcessor extends SingleFrameProcessor {
 
     @Override
     public boolean isApplicable(FlamegraphRecord record, List<? extends JfrStackFrame> stacktrace, int currIndex) {
-        return currIndex == (stacktrace.size() - 1);
+        // Only synthesize the allocated-object leaf when the record carries a weight entity (the allocated
+        // class). OTLP/pprof allocation events have no per-sample class, so skip it there (as the blocking
+        // processor already does) rather than dereferencing a null entity.
+        return currIndex == (stacktrace.size() - 1) && record.weightEntity() != null;
     }
 }

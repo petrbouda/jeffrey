@@ -34,6 +34,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class FrameBuilderTest {
 
@@ -182,6 +183,29 @@ class FrameBuilderTest {
             assertEquals(0, frameB.selfSamples(), "Real leaf must not double-count self next to the synthetic child");
             assertEquals(5, synthetic.totalSamples());
             assertEquals(5, synthetic.selfSamples());
+            assertSampleConservation(root);
+        }
+
+        @Test
+        void allocationWithoutWeightEntitySkipsSyntheticLeaf() {
+            // OTLP/pprof allocation events carry no allocated class (null weight entity); the processor
+            // must skip the synthetic leaf rather than dereferencing null, leaving self on the real leaf.
+            FrameBuilder builder = new FrameBuilder(false, false, false, new AllocationTopFrameProcessor());
+            FlamegraphRecord record = new FlamegraphRecord(
+                    Type.OTEL_ALLOC,
+                    new TestStackTrace(1, List.of(frame("com.Foo", "a"), frame("com.Foo", "b"))),
+                    mainThread(),
+                    null,
+                    5,
+                    500);
+            builder.onRecord(record);
+
+            Frame root = builder.build();
+            Frame frameB = root.get(frameName("com.Foo", "a")).get(frameName("com.Foo", "b"));
+            assertNotNull(frameB);
+            assertTrue(frameB.values().isEmpty(), "No synthetic allocated-object leaf when weight entity is null");
+            assertEquals(5, frameB.totalSamples());
+            assertEquals(5, frameB.selfSamples(), "Self stays on the real leaf when no synthetic child is added");
             assertSampleConservation(root);
         }
 
