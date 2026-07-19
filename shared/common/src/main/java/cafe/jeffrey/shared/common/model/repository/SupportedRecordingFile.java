@@ -91,6 +91,12 @@ public enum SupportedRecordingFile {
                     || filename.endsWith("." + FileExtensions.PPROF_PB_GZ),
             FileCategory.RECORDING
     ),
+    OTLP_PROFILE(
+            "OpenTelemetry Profiles",
+            FileExtensions.OTLP,
+            filename -> filename.endsWith("." + FileExtensions.OTLP),
+            FileCategory.RECORDING
+    ),
     UNKNOWN(
             "Unsupported File Type",
             null,

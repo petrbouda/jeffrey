@@ -23,6 +23,7 @@ import type RenameFramesResult from '@/services/api/model/RenameFramesResult';
 import type CollapseFramesPreview from '@/services/api/model/CollapseFramesPreview';
 import type CollapseFramesResult from '@/services/api/model/CollapseFramesResult';
 import type PprofExportEventType from '@/services/api/model/PprofExportEventType';
+import type OtlpExportEventType from '@/services/api/model/OtlpExportEventType';
 
 export default class ProfileToolsClient extends BaseProfileClient {
   constructor(profileId: string) {
@@ -73,6 +74,35 @@ export default class ProfileToolsClient extends BaseProfileClient {
     includeWeight: boolean
   ): Promise<{ recordingId: string }> {
     return this.post<{ recordingId: string }>('/pprof/add-to-recordings', {
+      eventType,
+      includeWeight
+    });
+  }
+
+  // --- Convert to OTLP ---
+
+  /** Lists the profile's stack-based event types eligible for OTLP export. */
+  public otlpEventTypes(): Promise<OtlpExportEventType[]> {
+    return this.get<OtlpExportEventType[]>('/otlp/event-types');
+  }
+
+  /** Generates an OpenTelemetry profiles (.otlp) file for a single event type as a binary blob. */
+  public downloadOtlp(eventType: string, includeWeight: boolean): Promise<Blob> {
+    return axios
+      .post<Blob>(
+        `${this.baseUrl}/otlp/download`,
+        { eventType, includeWeight },
+        { responseType: 'blob' }
+      )
+      .then(response => response.data);
+  }
+
+  /** Generates an OTLP file for a single event type and adds it to the profile's project as a recording. */
+  public addOtlpToRecordings(
+    eventType: string,
+    includeWeight: boolean
+  ): Promise<{ recordingId: string }> {
+    return this.post<{ recordingId: string }>('/otlp/add-to-recordings', {
       eventType,
       includeWeight
     });

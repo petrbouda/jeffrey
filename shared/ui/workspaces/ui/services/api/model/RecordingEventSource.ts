@@ -21,7 +21,8 @@ enum RecordingEventSource {
   ASYNC_PROFILER = 'ASYNC_PROFILER',
   UNKNOWN = 'UNKNOWN',
   HEAP_DUMP = 'HEAP_DUMP',
-  PPROF = 'PPROF'
+  PPROF = 'PPROF',
+  OPEN_TELEMETRY = 'OPEN_TELEMETRY'
 }
 
 export default RecordingEventSource;

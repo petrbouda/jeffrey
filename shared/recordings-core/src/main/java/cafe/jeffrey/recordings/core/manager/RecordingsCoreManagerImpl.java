@@ -330,6 +330,9 @@ public class RecordingsCoreManagerImpl implements RecordingsCoreManager {
         if (SupportedRecordingFile.of(filename) == SupportedRecordingFile.PPROF) {
             return RecordingEventSource.PPROF;
         }
+        if (SupportedRecordingFile.of(filename) == SupportedRecordingFile.OTLP_PROFILE) {
+            return RecordingEventSource.OPEN_TELEMETRY;
+        }
         return RecordingEventSource.UNKNOWN;
     }
 }

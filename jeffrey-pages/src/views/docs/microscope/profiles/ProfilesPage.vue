@@ -306,7 +306,7 @@ const folderStructure = `$JEFFREY_HOME/
       </p>
 
       <h2 id="tools">Tools</h2>
-      <p>Utility operations for modifying profile data — anonymization and simplification.</p>
+      <p>Utility operations for a profile — anonymization, simplification, and exporting a stack-based event type to an interchange format.</p>
 
       <div class="docs-grid docs-grid-2">
         <DocsFeatureCard
@@ -319,10 +319,20 @@ const folderStructure = `$JEFFREY_HOME/
           title="Collapse Frames"
           description="Replace consecutive framework frames with a single synthetic frame. Simplifies deep Spring, Hibernate, or Netty call stacks."
         />
+        <DocsFeatureCard
+          icon="bi bi-box"
+          title="Convert to OTLP"
+          description="Export a single stack-based event type to an OpenTelemetry profiles (.otlp) file — download it or add it back to Recordings. Each frame keeps its profile.frame.type attribute so Java, native, and kernel frames survive the round-trip."
+        />
+        <DocsFeatureCard
+          icon="bi bi-fire"
+          title="Convert to pprof"
+          description="Export a single stack-based event type to a gzip-compressed pprof (.pb.gz) file, optionally including a weight dimension — interoperable with the wider pprof tooling ecosystem."
+        />
       </div>
 
-      <DocsCallout type="warning">
-        <strong>Permanent operations:</strong> Rename and Collapse tools modify profile data directly. Both support a preview-then-apply workflow, but changes cannot be undone. Recreate the profile from the original recording to revert.
+      <DocsCallout type="info">
+        <strong>Non-destructive vs permanent:</strong> the <strong>Convert</strong> tools only read the profile — they produce a new file and never alter it. <strong>Rename</strong> and <strong>Collapse</strong>, in contrast, modify profile data directly: both offer a preview-then-apply workflow, but changes cannot be undone — recreate the profile from the original recording to revert.
       </DocsCallout>
     </div>
 

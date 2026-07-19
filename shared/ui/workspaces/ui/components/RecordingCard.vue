@@ -72,15 +72,19 @@ const emit = defineEmits<{
 
 const SOURCE_HEAP_DUMP = 'HEAP_DUMP';
 const SOURCE_PPROF = 'PPROF';
+const SOURCE_OTEL = 'OPEN_TELEMETRY';
 
-// The recording's format drives its icon, colored type tag, and left-border accent so JFR, pprof
-// and heap-dump recordings are visually distinct at a glance.
+// The recording's format drives its icon, colored type tag, and left-border accent so JFR, pprof,
+// OTLP and heap-dump recordings are visually distinct at a glance.
 const iconClass = computed(() => {
   if (props.sourceType === SOURCE_HEAP_DUMP) {
     return 'bi bi-pie-chart-fill';
   }
   if (props.sourceType === SOURCE_PPROF) {
     return 'bi bi-fire';
+  }
+  if (props.sourceType === SOURCE_OTEL) {
+    return 'bi bi-box';
   }
   return 'bi bi-activity';
 });
@@ -92,6 +96,9 @@ const typeLabel = computed(() => {
   if (props.sourceType === SOURCE_PPROF) {
     return 'pprof';
   }
+  if (props.sourceType === SOURCE_OTEL) {
+    return 'OTLP';
+  }
   return 'JFR';
 });
 
@@ -101,6 +108,9 @@ const typeTagClass = computed(() => {
   }
   if (props.sourceType === SOURCE_PPROF) {
     return 'rec-card__type--pprof';
+  }
+  if (props.sourceType === SOURCE_OTEL) {
+    return 'rec-card__type--otel';
   }
   return 'rec-card__type--jfr';
 });
@@ -182,6 +192,7 @@ onBeforeUnmount(() => {
       'rec-card--deleting': deletingProfile,
       'rec-card--heap-dump': sourceType === 'HEAP_DUMP',
       'rec-card--pprof': sourceType === 'PPROF',
+      'rec-card--otel': sourceType === 'OPEN_TELEMETRY',
       'rec-card--menu-open': menuOpen
     }"
     @click="handleClick"
@@ -463,7 +474,42 @@ onBeforeUnmount(() => {
   color: var(--color-teal);
 }
 
-/* Format type tag (JFR / pprof / Heap) */
+/* OTLP: not analyzed */
+.rec-card--otel {
+  border-left: 3px dashed color-mix(in srgb, var(--color-orange) 40%, transparent);
+}
+
+.rec-card--otel:hover {
+  border-color: color-mix(in srgb, var(--color-orange) 30%, transparent);
+  border-left-color: var(--color-orange);
+  border-left-style: solid;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--color-orange) 4%, transparent), color-mix(in srgb, var(--color-orange) 2%, transparent));
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--color-orange) 12%, transparent);
+}
+
+/* OTLP: analyzed */
+.rec-card--otel.rec-card--analyzed {
+  border-left: 3px solid var(--color-orange);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--color-orange) 3%, transparent), var(--color-white));
+}
+
+.rec-card--otel.rec-card--analyzed:hover {
+  border-color: color-mix(in srgb, var(--color-orange) 30%, transparent);
+  border-left-color: var(--color-orange-accent);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--color-orange) 8%, transparent), color-mix(in srgb, var(--color-orange) 4%, transparent));
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--color-orange) 15%, transparent);
+}
+
+.rec-card--otel .rec-card__icon,
+.rec-card--otel.rec-card--analyzed .rec-card__icon {
+  color: var(--color-orange);
+}
+
+.rec-card--otel.rec-card--analyzed .rec-card__profile-info {
+  color: var(--color-orange);
+}
+
+/* Format type tag (JFR / pprof / OTLP / Heap) */
 .rec-card__type {
   flex: none;
   font-size: 0.625rem;
@@ -482,6 +528,11 @@ onBeforeUnmount(() => {
 .rec-card__type--pprof {
   background: var(--color-teal-bg);
   color: var(--color-teal-text);
+}
+
+.rec-card__type--otel {
+  background: var(--color-orange-bg);
+  color: var(--color-orange-text);
 }
 
 .rec-card__type--heap {

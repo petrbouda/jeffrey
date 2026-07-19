@@ -36,5 +36,6 @@
         <module>jdk-jfr-parser</module>
         <module>raw-jfr-parser</module>
         <module>pprof-parser</module>
+        <module>otlp-parser</module>
     </modules>
 </project>

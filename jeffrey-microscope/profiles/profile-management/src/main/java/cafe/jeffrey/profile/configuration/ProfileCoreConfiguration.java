@@ -47,8 +47,10 @@ import cafe.jeffrey.profile.manager.registry.JvmInsightFactories;
 import cafe.jeffrey.profile.manager.registry.ProfileManagerFactoryRegistry;
 import cafe.jeffrey.profile.manager.registry.VisualizationFactories;
 import cafe.jeffrey.profile.parser.JfrRecordingEventParser;
+import cafe.jeffrey.otlpparser.OtlpRecordingEventParser;
 import cafe.jeffrey.pprofparser.PprofRecordingEventParser;
 import cafe.jeffrey.profile.tools.collapse.CollapseFramesManager;
+import cafe.jeffrey.profile.tools.otlp.OtlpExportManager;
 import cafe.jeffrey.profile.tools.pprof.PprofExportManager;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCorePersistenceProvider;
 import cafe.jeffrey.provider.profile.api.DatabaseManagerResolver;
@@ -109,6 +111,7 @@ public class ProfileCoreConfiguration {
             ProfileToolsManager.Factory toolsFactory,
             CollapseFramesManager.Factory collapseFramesFactory,
             PprofExportManager.Factory pprofExportFactory,
+            OtlpExportManager.Factory otlpExportFactory,
             ProfileCustomManager.Factory customFactory) {
 
         return new ProfileManagerFactoryRegistry(
@@ -121,6 +124,7 @@ public class ProfileCoreConfiguration {
                 toolsFactory,
                 collapseFramesFactory,
                 pprofExportFactory,
+                otlpExportFactory,
                 customFactory);
     }
 
@@ -129,6 +133,17 @@ public class ProfileCoreConfiguration {
         return profileInfo -> {
             DataSource profileDb = databaseManagerResolver.open(profileInfo);
             return new PprofExportManager(
+                    profileInfo,
+                    profileRepositories.newEventTypeRepository(profileDb),
+                    profileRepositories.newEventStreamRepository(profileDb));
+        };
+    }
+
+    @Bean
+    public OtlpExportManager.Factory otlpExportManagerFactory() {
+        return profileInfo -> {
+            DataSource profileDb = databaseManagerResolver.open(profileInfo);
+            return new OtlpExportManager(
                     profileInfo,
                     profileRepositories.newEventTypeRepository(profileDb),
                     profileRepositories.newEventStreamRepository(profileDb));
@@ -213,7 +228,9 @@ public class ProfileCoreConfiguration {
         RecordingEventParser jfrParser =
                 new JfrRecordingEventParser(tempDirFactory, new Lz4Compressor(tempDirFactory));
         RecordingEventParserResolver parserResolver = RecordingEventParserResolver.of(
-                Map.of(RecordingEventSource.PPROF, new PprofRecordingEventParser()),
+                Map.of(
+                        RecordingEventSource.PPROF, new PprofRecordingEventParser(),
+                        RecordingEventSource.OPEN_TELEMETRY, new OtlpRecordingEventParser()),
                 jfrParser);
 
         return new ProfileInitializerImpl(

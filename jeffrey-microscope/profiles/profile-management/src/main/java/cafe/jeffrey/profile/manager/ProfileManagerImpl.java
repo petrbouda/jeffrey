@@ -32,6 +32,7 @@ import cafe.jeffrey.profile.manager.memory.NativeMemoryTrackingManager;
 import cafe.jeffrey.profile.manager.thread.ThreadManager;
 import cafe.jeffrey.profile.manager.thread.VirtualThreadManager;
 import cafe.jeffrey.profile.tools.collapse.CollapseFramesManager;
+import cafe.jeffrey.profile.tools.otlp.OtlpExportManager;
 import cafe.jeffrey.profile.tools.pprof.PprofExportManager;
 
 
@@ -240,6 +241,11 @@ public class ProfileManagerImpl implements ProfileManager {
     @Override
     public PprofExportManager pprofExportManager() {
         return registry.pprofExport().apply(profileInfo);
+    }
+
+    @Override
+    public OtlpExportManager otlpExportManager() {
+        return registry.otlpExport().apply(profileInfo);
     }
 
     @Override

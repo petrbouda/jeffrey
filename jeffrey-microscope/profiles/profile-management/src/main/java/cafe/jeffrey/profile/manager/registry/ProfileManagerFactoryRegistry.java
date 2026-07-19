@@ -24,6 +24,7 @@ import cafe.jeffrey.profile.manager.ProfileCustomManager;
 import cafe.jeffrey.profile.manager.ProfileFeaturesManager;
 import cafe.jeffrey.profile.manager.ProfileToolsManager;
 import cafe.jeffrey.profile.tools.collapse.CollapseFramesManager;
+import cafe.jeffrey.profile.tools.otlp.OtlpExportManager;
 import cafe.jeffrey.profile.tools.pprof.PprofExportManager;
 
 
@@ -37,5 +38,6 @@ public record ProfileManagerFactoryRegistry(
         ProfileToolsManager.Factory tools,
         CollapseFramesManager.Factory collapseFrames,
         PprofExportManager.Factory pprofExport,
+        OtlpExportManager.Factory otlpExport,
         ProfileCustomManager.Factory custom) {
 }

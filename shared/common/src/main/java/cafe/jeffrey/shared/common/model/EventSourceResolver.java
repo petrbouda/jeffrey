@@ -38,11 +38,15 @@ public final class EventSourceResolver {
     /**
      * Resolves the source of a single event type from its name.
      *
-     * @return {@link RecordingEventSource#PPROF} for events in the {@code pprof.} namespace,
+     * @return {@link RecordingEventSource#OPEN_TELEMETRY} for events in the {@code otel.} namespace,
+     * {@link RecordingEventSource#PPROF} for events in the {@code pprof.} namespace,
      * {@link RecordingEventSource#ASYNC_PROFILER} for events in the {@code profiler.} namespace,
      * otherwise {@link RecordingEventSource#JDK}
      */
     public static RecordingEventSource fromEventTypeName(String eventTypeName) {
+        if (isOtelEvent(eventTypeName)) {
+            return RecordingEventSource.OPEN_TELEMETRY;
+        }
         if (isPprofEvent(eventTypeName)) {
             return RecordingEventSource.PPROF;
         }
@@ -57,13 +61,17 @@ public final class EventSourceResolver {
      * treated as pprof as soon as a single {@code pprof.} event is present, then as async-profiler as
      * soon as a single {@code profiler.} event is present.
      *
-     * @return {@link RecordingEventSource#PPROF} if any name is in the {@code pprof.} namespace,
+     * @return {@link RecordingEventSource#OPEN_TELEMETRY} if any name is in the {@code otel.} namespace,
+     * {@link RecordingEventSource#PPROF} if any name is in the {@code pprof.} namespace,
      * {@link RecordingEventSource#ASYNC_PROFILER} if any name is in the {@code profiler.} namespace,
      * otherwise {@link RecordingEventSource#JDK}
      */
     public static RecordingEventSource fromEventTypeNames(Collection<String> eventTypeNames) {
         if (eventTypeNames == null) {
             return RecordingEventSource.JDK;
+        }
+        if (eventTypeNames.stream().anyMatch(EventSourceResolver::isOtelEvent)) {
+            return RecordingEventSource.OPEN_TELEMETRY;
         }
         if (eventTypeNames.stream().anyMatch(EventSourceResolver::isPprofEvent)) {
             return RecordingEventSource.PPROF;
@@ -84,5 +92,12 @@ public final class EventSourceResolver {
      */
     public static boolean isPprofEvent(String eventTypeName) {
         return eventTypeName != null && eventTypeName.startsWith(EventTypeName.PPROF_NAMESPACE);
+    }
+
+    /**
+     * @return {@code true} if the event type belongs to the OpenTelemetry ({@code otel.}) namespace
+     */
+    public static boolean isOtelEvent(String eventTypeName) {
+        return eventTypeName != null && eventTypeName.startsWith(EventTypeName.OTEL_NAMESPACE);
     }
 }

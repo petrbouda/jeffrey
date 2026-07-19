@@ -288,6 +288,10 @@ onBeforeUnmount(() => {
   background: var(--color-emerald-light);
   color: var(--color-emerald-text);
 }
+.ets-tag--otel {
+  background: var(--color-orange-bg);
+  color: var(--color-orange-text);
+}
 .ets-tag--custom {
   background: var(--color-amber-light);
   color: var(--color-amber-text);
@@ -398,6 +402,10 @@ onBeforeUnmount(() => {
 .ets-cat-badge--pprof {
   background: var(--color-emerald-light);
   color: var(--color-emerald-text);
+}
+.ets-cat-badge--otel {
+  background: var(--color-orange-bg);
+  color: var(--color-orange-text);
 }
 
 .ets-event-item {

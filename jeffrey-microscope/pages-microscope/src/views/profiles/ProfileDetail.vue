@@ -3,9 +3,9 @@
     <!-- Feature Collection Navigation -->
     <div class="feature-collection-nav normal-nav content-aligned">
       <div class="nav-container">
-        <!-- JVM Internals mode (hidden for heap-dump-only and pprof profiles) -->
+        <!-- JVM Internals mode (hidden for heap-dump-only, pprof and OTLP profiles) -->
         <div
-          v-if="!isHeapDumpOnlyProfile && !isPprofOnlyProfile"
+          v-if="!isHeapDumpOnlyProfile && !isPprofOnlyProfile && !isOtlpOnlyProfile"
           class="nav-pill"
           :class="{ active: selectedMode === 'JVM' }"
           title="Core JVM metrics and analysis"
@@ -19,9 +19,9 @@
             <small>Core JVM metrics and analysis</small>
           </div>
         </div>
-        <!-- Technologies mode (hidden for heap-dump-only and pprof profiles) -->
+        <!-- Technologies mode (hidden for heap-dump-only, pprof and OTLP profiles) -->
         <div
-          v-if="!isHeapDumpOnlyProfile && !isPprofOnlyProfile"
+          v-if="!isHeapDumpOnlyProfile && !isPprofOnlyProfile && !isOtlpOnlyProfile"
           class="nav-pill"
           :class="{ active: selectedMode === 'Technologies' }"
           title="Technology-specific analysis"
@@ -51,9 +51,9 @@
             <small>Profiling graphs and visualizations</small>
           </div>
         </div>
-        <!-- Heap Dump mode (always visible except for pprof profiles, which have no heap data) -->
+        <!-- Heap Dump mode (always visible except for pprof/OTLP profiles, which have no heap data) -->
         <div
-          v-if="!isPprofOnlyProfile"
+          v-if="!isPprofOnlyProfile && !isOtlpOnlyProfile"
           class="nav-pill"
           :class="{ active: selectedMode === 'HeapDump' }"
           title="Heap dump memory analysis"
@@ -67,7 +67,7 @@
             <small>Memory analysis from heap dumps</small>
           </div>
         </div>
-        <!-- Tools mode (hidden for heap-dump-only and pprof profiles) -->
+        <!-- Tools mode (hidden for heap-dump-only and pprof profiles; kept for OTLP, which can export) -->
         <div
           v-if="!isHeapDumpOnlyProfile && !isPprofOnlyProfile"
           class="nav-pill"
@@ -307,6 +307,7 @@ const showSecondaryProfileSelectionModal = ref(false);
 const disabledFeatures = ref<FeatureType[]>([]);
 const isHeapDumpOnlyProfile = ref(false);
 const isPprofOnlyProfile = ref(false);
+const isOtlpOnlyProfile = ref(false);
 
 /**
  * Check if the profile is a heap-dump-only profile (no JFR data).
@@ -322,6 +323,15 @@ const checkHeapDumpOnlyProfile = (p: Profile): boolean => {
  */
 const checkPprofOnlyProfile = (p: Profile): boolean => {
   return p.eventSource === RecordingEventSource.PPROF;
+};
+
+/**
+ * Check if the profile is an OpenTelemetry (OTLP) profile. Like pprof, OTLP carries stack samples only
+ * (no GC, JVM internals, heap dump or technology events), so these profiles expose the stack-based
+ * Visualization mode — plus Tools, since an OTLP profile can be re-exported.
+ */
+const checkOtlpOnlyProfile = (p: Profile): boolean => {
+  return p.eventSource === RecordingEventSource.OPEN_TELEMETRY;
 };
 
 // Mapping function to determine which features are associated with menu items
@@ -476,6 +486,21 @@ onMounted(async () => {
       selectedMode.value = 'Visualization';
       if (getModeFromPath(route.path) !== 'Visualization') {
         router.replace(`/profiles/${profileId}/flamegraphs/primary`);
+      }
+    }
+
+    // OTLP profiles are stack-samples only too, but keep the Tools mode (they can be re-exported).
+    // Land on the flamegraph by default, without bouncing a valid Tools deep-link.
+    isOtlpOnlyProfile.value = checkOtlpOnlyProfile(profileWithContext);
+    if (isOtlpOnlyProfile.value) {
+      const currentMode = getModeFromPath(route.path);
+      if (currentMode === 'Tools') {
+        selectedMode.value = 'Tools';
+      } else {
+        selectedMode.value = 'Visualization';
+        if (currentMode !== 'Visualization') {
+          router.replace(`/profiles/${profileId}/flamegraphs/primary`);
+        }
       }
     }
 

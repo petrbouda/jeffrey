@@ -15,7 +15,7 @@
       :method-trace-events="methodTraceEvents"
       :object-allocation-events="objectAllocationEvents"
       :wall-clock-events="wallClockEvents"
-      :suppress-empty-placeholders="isPprofProfile"
+      :suppress-empty-placeholders="isStackSampleProfile"
     />
   </div>
 </template>
@@ -29,6 +29,7 @@ import LoadingState from '@shared/components/LoadingState.vue';
 import FlamegraphCardGrid from '@/components/FlamegraphCardGrid.vue';
 import { useFlamegraphEvents } from '@/composables/useFlamegraphEvents';
 import PprofEventSummariesClient from '@/services/api/PprofEventSummariesClient';
+import OtelEventSummariesClient from '@/services/api/OtelEventSummariesClient';
 import SecondaryProfileService from '@/services/SecondaryProfileService';
 import type Profile from '@/services/api/model/Profile';
 import RecordingEventSource from '@workspaces/services/api/model/RecordingEventSource.ts';
@@ -38,6 +39,10 @@ const props = defineProps<{
 }>();
 
 const isPprofProfile = computed(() => props.profile?.eventSource === RecordingEventSource.PPROF);
+const isOtelProfile = computed(
+  () => props.profile?.eventSource === RecordingEventSource.OPEN_TELEMETRY
+);
+const isStackSampleProfile = computed(() => isPprofProfile.value || isOtelProfile.value);
 
 const route = useRoute();
 const profileId = route.params.profileId as string;
@@ -49,7 +54,15 @@ const fetchEvents = isPprofProfile.value
       }
       return PprofEventSummariesClient.differential(profileId, secondaryId).events();
     }
-  : undefined;
+  : isOtelProfile.value
+    ? () => {
+        const secondaryId = SecondaryProfileService.id();
+        if (!secondaryId) {
+          return Promise.resolve([]);
+        }
+        return OtelEventSummariesClient.differential(profileId, secondaryId).events();
+      }
+    : undefined;
 
 const {
   loaded,

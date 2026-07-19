@@ -55,6 +55,7 @@ import cafe.jeffrey.profile.manager.action.ProfileDataInitializer;
 import cafe.jeffrey.profile.parser.FileTypeDispatchingRecordingInformationParser;
 import cafe.jeffrey.profile.parser.JfrRecordingEventParser;
 import cafe.jeffrey.profile.parser.JfrRecordingInformationParser;
+import cafe.jeffrey.otlpparser.OtlpRecordingEventParser;
 import cafe.jeffrey.pprofparser.PprofRecordingEventParser;
 import cafe.jeffrey.provider.profile.api.RecordingEventParser;
 import cafe.jeffrey.provider.profile.api.RecordingEventParserResolver;
@@ -95,7 +96,9 @@ public class MicroscopeAppConfiguration {
         RecordingEventParser jfrParser =
                 new JfrRecordingEventParser(jeffreyDirs, new Lz4Compressor(jeffreyDirs));
         RecordingEventParserResolver parserResolver = RecordingEventParserResolver.of(
-                Map.of(RecordingEventSource.PPROF, new PprofRecordingEventParser()),
+                Map.of(
+                        RecordingEventSource.PPROF, new PprofRecordingEventParser(),
+                        RecordingEventSource.OPEN_TELEMETRY, new OtlpRecordingEventParser()),
                 jfrParser);
 
         ProfileInitializer recordingsProfileInitializer = new ProfileInitializerImpl(

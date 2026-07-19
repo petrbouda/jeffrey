@@ -5,15 +5,18 @@ export interface EventTypeEntry {
 
 export interface EventTypeCategory {
   label: string;
-  badge: 'jdk' | 'jeffrey' | 'profiler' | 'pprof';
+  badge: 'jdk' | 'jeffrey' | 'profiler' | 'pprof' | 'otel';
   events: EventTypeEntry[];
 }
 
-export function getEventTypePrefix(name: string): 'jdk' | 'jeffrey' | 'profiler' | 'pprof' | 'custom' {
+export function getEventTypePrefix(
+  name: string
+): 'jdk' | 'jeffrey' | 'profiler' | 'pprof' | 'otel' | 'custom' {
   if (name.startsWith('jdk.')) return 'jdk';
   if (name.startsWith('jeffrey.')) return 'jeffrey';
   if (name.startsWith('profiler.')) return 'profiler';
   if (name.startsWith('pprof.')) return 'pprof';
+  if (name.startsWith('otel.')) return 'otel';
   return 'custom';
 }
 
@@ -442,6 +445,18 @@ const EVENT_TYPE_CATALOG: EventTypeCategory[] = [
       { name: 'pprof.inuse_objects', description: 'In-use objects (pprof)' },
       { name: 'pprof.contentions', description: 'Lock contentions (pprof)' },
       { name: 'pprof.delay', description: 'Lock delay (pprof)' }
+    ]
+  },
+  // ── OpenTelemetry ──
+  {
+    label: 'OpenTelemetry',
+    badge: 'otel',
+    events: [
+      { name: 'otel.cpu', description: 'CPU time (OpenTelemetry)' },
+      { name: 'otel.samples', description: 'Execution samples (OpenTelemetry)' },
+      { name: 'otel.wall', description: 'Wall clock (OpenTelemetry)' },
+      { name: 'otel.alloc', description: 'Allocations (OpenTelemetry)' },
+      { name: 'otel.lock', description: 'Lock / blocking (OpenTelemetry)' }
     ]
   }
 ];

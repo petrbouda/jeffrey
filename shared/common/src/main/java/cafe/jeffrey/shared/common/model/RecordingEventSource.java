@@ -23,7 +23,8 @@ public enum RecordingEventSource {
     JDK(1, "JDK"),
     UNKNOWN(2, "Unknown"),
     HEAP_DUMP(3, "Heap Dump"),
-    PPROF(4, "pprof");
+    PPROF(4, "pprof"),
+    OPEN_TELEMETRY(5, "OpenTelemetry");
 
     private final int id;
     private final String label;

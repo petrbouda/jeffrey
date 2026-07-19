@@ -89,7 +89,30 @@ onMounted(() => {
             <code>.hprof</code> &nbsp;·&nbsp; <code>.hprof.gz</code>
           </p>
         </div>
+
+        <div class="artifact-tile tile-otlp">
+          <div class="artifact-icon"><i class="bi bi-box"></i></div>
+          <h3>OpenTelemetry Profiles</h3>
+          <p>The OpenTelemetry profiling signal (<code>ProfilesData</code>, <code>v1development</code>) — CPU, allocation, and lock profiles from async-profiler, the OpenTelemetry eBPF profiler, and other producers.</p>
+          <ul class="artifact-features">
+            <li><i class="bi bi-fire"></i> Flame graphs &amp; differential views</li>
+            <li><i class="bi bi-palette"></i> Java, native &amp; kernel frames coloured apart</li>
+            <li><i class="bi bi-diagram-2"></i> Mixed-language (polyglot) stacks</li>
+            <li><i class="bi bi-box-arrow-up"></i> Re-export from any profile via Tools</li>
+          </ul>
+          <p class="artifact-extension">
+            <code>.otlp</code>
+          </p>
+        </div>
       </section>
+
+      <DocsCallout type="tip">
+        <strong>Why OpenTelemetry profiles matter.</strong> OTLP carries a <code>profile.frame.type</code>
+        attribute on every frame, so Jeffrey renders Java, native, and kernel frames distinctly instead of
+        painting everything as "native". You can also <strong>export</strong> any analyzed profile back to
+        <code>.otlp</code> from <strong>Tools → Convert to OTLP</strong> — Jeffrey stamps that same frame-type
+        attribute on the way out, keeping the round-trip lossless for downstream tools.
+      </DocsCallout>
 
       <DocsCallout type="info">
         <strong>Where do recordings come from?</strong> Manual upload directly on this page <em>or</em>
@@ -106,7 +129,7 @@ onMounted(() => {
           <div class="step-number">1a</div>
           <div class="step-content">
             <h4><i class="bi bi-upload"></i> Manual upload</h4>
-            <p>Drop one or more files onto the dashed <strong>Drop Recordings</strong> zone at the top of the page, or click <strong>Browse files…</strong>. Only <code>.jfr</code>, <code>.jfr.lz4</code>, <code>.hprof</code>, and <code>.hprof.gz</code> are accepted — anything else is rejected inline with an error message and the valid files keep uploading.</p>
+            <p>Drop one or more files onto the dashed <strong>Drop Recordings</strong> zone at the top of the page, or click <strong>Browse files…</strong>. Only <code>.jfr</code>, <code>.jfr.lz4</code>, <code>.hprof</code>, <code>.hprof.gz</code>, and <code>.otlp</code> are accepted — anything else is rejected inline with an error message and the valid files keep uploading.</p>
             <p>Uploads start <strong>automatically</strong> the moment files are dropped or selected — there is no &ldquo;Upload all&rdquo; button. Each file gets its own progress row inside the same panel; a completed row disappears about 5 seconds after that individual file finishes, so adding new files mid-batch never wipes earlier ones. Failed rows stay visible with a dismiss button. The active <strong>group</strong> chip on the row below the drop zone is the target group for these uploads — switch it before dropping to land in a different group.</p>
           </div>
         </div>
@@ -248,7 +271,7 @@ onMounted(() => {
 /* ============ ARTIFACT TILES ============ */
 .artifact-tiles {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 1rem;
   margin: 0.75rem 0 1.75rem;
 }
@@ -299,6 +322,9 @@ onMounted(() => {
 
 .tile-heap .artifact-icon { background: #fee2e2; color: #b91c1c; }
 .tile-heap:hover         { border-color: #fca5a5; }
+
+.tile-otlp .artifact-icon { background: #ffedd5; color: #ea580c; }
+.tile-otlp:hover         { border-color: #fdba74; }
 
 .artifact-features {
   list-style: none;

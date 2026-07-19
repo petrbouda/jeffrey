@@ -32,5 +32,6 @@ public abstract class FileExtensions {
     public static final String APP_LOG = "-app.log(..+)?";
     public static final String PPROF = "pprof";
     public static final String PPROF_PB_GZ = "pb.gz";
+    public static final String OTLP = "otlp";
 
 }

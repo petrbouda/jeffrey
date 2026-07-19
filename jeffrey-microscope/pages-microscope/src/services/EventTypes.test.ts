@@ -97,6 +97,28 @@ describe('EventTypes', () => {
     });
   });
 
+  describe('OpenTelemetry (OTLP) event types', () => {
+    it('isOtelEvent matches only the otel. namespace', () => {
+      expect(EventTypes.isOtelEvent('otel.cpu')).toBe(true);
+      expect(EventTypes.isOtelEvent('otel.alloc')).toBe(true);
+      expect(EventTypes.isOtelEvent('jdk.ExecutionSample')).toBe(false);
+      expect(EventTypes.isOtelEvent('pprof.cpu')).toBe(false);
+    });
+
+    it('classifies otel dimensions into the right analysis groups', () => {
+      expect(EventTypes.isExecutionEventType('otel.cpu')).toBe(true);
+      expect(EventTypes.isExecutionEventType('otel.samples')).toBe(true);
+      expect(EventTypes.isWallClock('otel.wall')).toBe(true);
+      expect(EventTypes.isAllocationEventType('otel.alloc')).toBe(true);
+      expect(EventTypes.isBlockingEventType('otel.lock')).toBe(true);
+    });
+
+    it('does not classify unknown otel dimensions', () => {
+      expect(EventTypes.isExecutionEventType('otel.mystery')).toBe(false);
+      expect(EventTypes.isAllocationEventType('otel.mystery')).toBe(false);
+    });
+  });
+
   describe('getSapDocumentationUrl', () => {
     it('returns URL for jdk-prefixed event', () => {
       const url = EventTypes.getSapDocumentationUrl('jdk.ExecutionSample');

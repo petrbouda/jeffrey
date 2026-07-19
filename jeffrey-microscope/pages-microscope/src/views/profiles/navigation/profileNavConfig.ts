@@ -380,7 +380,10 @@ export const profileNavSections: Record<
     },
     {
       title: 'CONVERT',
-      items: [item('To PPROF', 'bi-download', '/tools/to-pprof')]
+      items: [
+        item('To PPROF', 'bi-download', '/tools/to-pprof'),
+        item('To OTLP', 'bi-box-arrow-down', '/tools/to-otlp')
+      ]
     }
   ]
 };

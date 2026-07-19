@@ -51,6 +51,20 @@ export default class EventTypes {
   ];
   static PPROF_BLOCKING_TYPES = ['contentions', 'delay', 'block', 'mutex'];
 
+  // OpenTelemetry (OTLP) profiles carry one event type per sample-value dimension, namespaced
+  // `otel.<type>` (matching the backend OtelEventTypeNaming). The dimension name drives which analysis
+  // cards an OTLP event type lights up.
+  static OTEL_NAMESPACE = 'otel.';
+  static OTEL_CPU = 'otel.cpu';
+  static OTEL_SAMPLES = 'otel.samples';
+  static OTEL_WALL = 'otel.wall';
+  static OTEL_ALLOC = 'otel.alloc';
+  static OTEL_LOCK = 'otel.lock';
+  static OTEL_EXECUTION_TYPES = ['cpu', 'samples'];
+  static OTEL_WALL_TYPES = ['wall'];
+  static OTEL_ALLOCATION_TYPES = ['alloc', 'allocations', 'alloc_space', 'alloc_objects'];
+  static OTEL_BLOCKING_TYPES = ['lock', 'block', 'mutex', 'contentions', 'delay'];
+
   static isPprofEvent(code: string) {
     return code != null && code.startsWith(this.PPROF_NAMESPACE);
   }
@@ -60,6 +74,17 @@ export default class EventTypes {
       return false;
     }
     return types.includes(code.substring(this.PPROF_NAMESPACE.length));
+  }
+
+  static isOtelEvent(code: string) {
+    return code != null && code.startsWith(this.OTEL_NAMESPACE);
+  }
+
+  private static isOtelOfType(code: string, types: string[]) {
+    if (!this.isOtelEvent(code)) {
+      return false;
+    }
+    return types.includes(code.substring(this.OTEL_NAMESPACE.length));
   }
 
   static isObjectAllocationInNewTLAB(code: string) {
@@ -91,7 +116,11 @@ export default class EventTypes {
   }
 
   static isWallClock(code: string) {
-    return code === this.WALL_CLOCK || this.isPprofOfType(code, this.PPROF_WALL_TYPES);
+    return (
+      code === this.WALL_CLOCK ||
+      this.isPprofOfType(code, this.PPROF_WALL_TYPES) ||
+      this.isOtelOfType(code, this.OTEL_WALL_TYPES)
+    );
   }
 
   static isAllocationEventType(code: string) {
@@ -99,7 +128,8 @@ export default class EventTypes {
       this.isObjectAllocationInNewTLAB(code) ||
       this.isObjectAllocationOutsideTLAB(code) ||
       this.isObjectAllocationSample(code) ||
-      this.isPprofOfType(code, this.PPROF_ALLOCATION_TYPES)
+      this.isPprofOfType(code, this.PPROF_ALLOCATION_TYPES) ||
+      this.isOtelOfType(code, this.OTEL_ALLOCATION_TYPES)
     );
   }
 
@@ -109,7 +139,8 @@ export default class EventTypes {
       this.isJavaMonitorWait(code) ||
       this.isThreadPark(code) ||
       this.isVirtualThreadPinned(code) ||
-      this.isPprofOfType(code, this.PPROF_BLOCKING_TYPES)
+      this.isPprofOfType(code, this.PPROF_BLOCKING_TYPES) ||
+      this.isOtelOfType(code, this.OTEL_BLOCKING_TYPES)
     );
   }
 
@@ -123,7 +154,11 @@ export default class EventTypes {
   }
 
   static isExecutionEventType(code: string) {
-    return code === this.EXECUTION_SAMPLE || this.isPprofOfType(code, this.PPROF_EXECUTION_TYPES);
+    return (
+      code === this.EXECUTION_SAMPLE ||
+      this.isPprofOfType(code, this.PPROF_EXECUTION_TYPES) ||
+      this.isOtelOfType(code, this.OTEL_EXECUTION_TYPES)
+    );
   }
 
   static isCpuTimeSample(code: string) {

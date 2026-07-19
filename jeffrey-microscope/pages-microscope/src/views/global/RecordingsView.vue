@@ -42,7 +42,7 @@
           <input
             ref="fileInputRef"
             type="file"
-            accept=".jfr,.lz4,.hprof,.gz,.pprof,.pb.gz"
+            accept=".jfr,.lz4,.hprof,.gz,.pprof,.pb.gz,.otlp"
             multiple
             class="file-input-hidden"
             @change="handleFileInput"
@@ -65,6 +65,8 @@
                 <Badge value=".pprof" variant="teal" size="s" :uppercase="false" borderless />
                 <Badge value=".pb.gz" variant="teal" size="s" :uppercase="false" borderless />
                 pprof profiles ·
+                <Badge value=".otlp" variant="orange" size="s" :uppercase="false" borderless />
+                OpenTelemetry profiles ·
                 <Badge value=".hprof" variant="purple" size="s" :uppercase="false" borderless />
                 <Badge value=".hprof.gz" variant="purple" size="s" :uppercase="false" borderless />
                 heap dumps
@@ -324,8 +326,17 @@ import type Recording from '@workspaces/services/api/model/Recording';
 
 const HEAP_DUMP_SOURCE = 'HEAP_DUMP';
 const PPROF_SOURCE = 'PPROF';
+const OTEL_SOURCE = 'OPEN_TELEMETRY';
 const UNGROUPED_KEY = '__ungrouped__';
-const ALLOWED_FILE_SUFFIXES = ['.jfr', '.jfr.lz4', '.hprof', '.hprof.gz', '.pprof', '.pb.gz'];
+const ALLOWED_FILE_SUFFIXES = [
+  '.jfr',
+  '.jfr.lz4',
+  '.hprof',
+  '.hprof.gz',
+  '.pprof',
+  '.pb.gz',
+  '.otlp'
+];
 
 type ViewFilter = 'all' | typeof UNGROUPED_KEY | string;
 
@@ -498,7 +509,7 @@ const sortRecordings = (recs: Recording[]): Recording[] => {
 };
 
 // Recording format taxonomy — the single source of truth for how a recording is typed in the UI.
-type RecordingType = 'JFR' | 'PPROF' | 'HEAP';
+type RecordingType = 'JFR' | 'PPROF' | 'OTLP' | 'HEAP';
 type TypeFilter = 'all' | RecordingType;
 
 const recordingType = (recording: Recording): RecordingType => {
@@ -508,6 +519,9 @@ const recordingType = (recording: Recording): RecordingType => {
   if (recording.eventSource === PPROF_SOURCE) {
     return 'PPROF';
   }
+  if (recording.eventSource === OTEL_SOURCE) {
+    return 'OTLP';
+  }
   return 'JFR';
 };
 
@@ -515,7 +529,7 @@ const typeFilter = ref<TypeFilter>('all');
 
 // Counts per format within the current group/search selection — drives the type filter pills.
 const typeCounts = computed<Record<RecordingType, number>>(() => {
-  const counts: Record<RecordingType, number> = { JFR: 0, PPROF: 0, HEAP: 0 };
+  const counts: Record<RecordingType, number> = { JFR: 0, PPROF: 0, OTLP: 0, HEAP: 0 };
   for (const recording of filteredRecordings.value) {
     counts[recordingType(recording)]++;
   }
@@ -534,6 +548,7 @@ const visibleRecordings = computed(() => {
 const TYPE_FILTERS: { key: RecordingType; label: string; icon: string; variant: string }[] = [
   { key: 'JFR', label: 'JFR', icon: 'bi-activity', variant: 'indigo' },
   { key: 'PPROF', label: 'pprof', icon: 'bi-fire', variant: 'teal' },
+  { key: 'OTLP', label: 'OpenTelemetry', icon: 'bi-box', variant: 'orange' },
   { key: 'HEAP', label: 'Heap Dumps', icon: 'bi-pie-chart-fill', variant: 'purple' }
 ];
 
@@ -739,6 +754,9 @@ const openProfile = async (recording: Recording) => {
     await router.push(`/profiles/${recording.profileId}/heap-dump/settings`);
   } else if (recording.eventSource === PPROF_SOURCE) {
     // pprof profiles are stack-samples only — land directly on the flamegraph
+    await router.push(`/profiles/${recording.profileId}/flamegraphs/primary`);
+  } else if (recording.eventSource === OTEL_SOURCE) {
+    // OTLP profiles are stack-samples only — land directly on the flamegraph
     await router.push(`/profiles/${recording.profileId}/flamegraphs/primary`);
   } else {
     await router.push(`/profiles/${recording.profileId}/overview`);

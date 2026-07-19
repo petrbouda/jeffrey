@@ -120,6 +120,10 @@
             <artifactId>pprof-parser</artifactId>
         </dependency>
         <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>otlp-parser</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.openjdk.jmc</groupId>
             <artifactId>flightrecorder.rules.jdk</artifactId>
         </dependency>

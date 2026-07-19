@@ -577,6 +577,12 @@ const toolsRoutes = [
     name: 'profile-tools-to-pprof',
     component: () => import('@/views/profiles/detail/ProfileToolsToPprof.vue'),
     meta: { layout: 'profile' }
+  },
+  {
+    path: 'tools/to-otlp',
+    name: 'profile-tools-to-otlp',
+    component: () => import('@/views/profiles/detail/ProfileToolsToOtlp.vue'),
+    meta: { layout: 'profile' }
   }
 ];
 

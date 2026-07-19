@@ -29,6 +29,7 @@ import cafe.jeffrey.profile.manager.memory.NativeMemoryTrackingManager;
 import cafe.jeffrey.profile.manager.thread.ThreadManager;
 import cafe.jeffrey.profile.manager.thread.VirtualThreadManager;
 import cafe.jeffrey.profile.tools.collapse.CollapseFramesManager;
+import cafe.jeffrey.profile.tools.otlp.OtlpExportManager;
 import cafe.jeffrey.profile.tools.pprof.PprofExportManager;
 
 
@@ -113,6 +114,8 @@ public interface ProfileManager {
     CollapseFramesManager collapseFramesManager();
 
     PprofExportManager pprofExportManager();
+
+    OtlpExportManager otlpExportManager();
 
     ProfileCustomManager custom();
 

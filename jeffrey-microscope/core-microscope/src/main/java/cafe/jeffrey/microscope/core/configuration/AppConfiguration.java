@@ -194,7 +194,8 @@ public class AppConfiguration {
     public RecordingStorage projectRecordingStorage(MicroscopeJeffreyDirs jeffreyDirs) {
         return new FilesystemRecordingStorage(
                 jeffreyDirs.recordings(),
-                List.of(SupportedRecordingFile.JFR_LZ4, SupportedRecordingFile.JFR, SupportedRecordingFile.PPROF));
+                List.of(SupportedRecordingFile.JFR_LZ4, SupportedRecordingFile.JFR,
+                        SupportedRecordingFile.PPROF, SupportedRecordingFile.OTLP_PROFILE));
     }
 
     @Bean

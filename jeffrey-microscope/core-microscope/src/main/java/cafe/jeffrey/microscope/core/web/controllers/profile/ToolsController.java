@@ -37,6 +37,7 @@ import cafe.jeffrey.profile.manager.ProfileToolsManager.RenameResult;
 import cafe.jeffrey.profile.tools.collapse.CollapseFramesManager.CollapseApplyResult;
 import cafe.jeffrey.profile.tools.collapse.CollapseFramesManager.CollapsePreviewResult;
 import cafe.jeffrey.profile.tools.collapse.CollapseFramesManager.CollapseRequest;
+import cafe.jeffrey.profile.tools.otlp.OtlpExportManager.OtlpExportEventType;
 import cafe.jeffrey.profile.tools.pprof.PprofExportManager.PprofExportEventType;
 import cafe.jeffrey.recordings.core.manager.RecordingsCoreManager;
 
@@ -51,6 +52,7 @@ public class ToolsController {
     private static final Logger LOG = LoggerFactory.getLogger(ToolsController.class);
 
     private static final String PPROF_FILE_SUFFIX = ".pb.gz";
+    private static final String OTLP_FILE_SUFFIX = ".otlp";
     private static final String EVENT_TYPE_NAMESPACE_SEPARATOR = ".";
     private static final String FILENAME_FALLBACK = "profile";
     private static final String FILENAME_SANITIZE_PATTERN = "[^a-z0-9_-]";
@@ -65,6 +67,9 @@ public class ToolsController {
     }
 
     public record PprofExportRequest(String eventType, boolean includeWeight) {
+    }
+
+    public record OtlpExportRequest(String eventType, boolean includeWeight) {
     }
 
     public record AddToRecordingsResponse(String recordingId) {
@@ -105,8 +110,47 @@ public class ToolsController {
         return new AddToRecordingsResponse(recordingId);
     }
 
+    @GetMapping("/otlp/event-types")
+    public List<OtlpExportEventType> otlpEventTypes(@PathVariable("profileId") String profileId) {
+        LOG.debug("Listing stack-based event types for OTLP export: profileId={}", profileId);
+        return resolver.resolve(profileId).otlpExportManager().stackBasedEventTypes();
+    }
+
+    @PostMapping(value = "/otlp/download", produces = MediaType.APPLICATION_OCTET_STREAM_VALUE)
+    public ResponseEntity<byte[]> downloadOtlp(
+            @PathVariable("profileId") String profileId,
+            @RequestBody OtlpExportRequest request) {
+        LOG.info("Exporting OTLP for download: profileId={} eventType={} includeWeight={}",
+                profileId, request.eventType(), request.includeWeight());
+        ProfileManager pm = resolver.resolve(profileId);
+        byte[] otlp = pm.otlpExportManager().export(request.eventType(), request.includeWeight());
+        String filename = otlpFilename(pm.info().name(), request.eventType());
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .body(otlp);
+    }
+
+    @PostMapping(value = "/otlp/add-to-recordings", produces = MediaType.APPLICATION_JSON_VALUE)
+    public AddToRecordingsResponse addOtlpToRecordings(
+            @PathVariable("profileId") String profileId,
+            @RequestBody OtlpExportRequest request) {
+        LOG.info("Exporting OTLP into recordings: profileId={} eventType={} includeWeight={}",
+                profileId, request.eventType(), request.includeWeight());
+        ProfileManager pm = resolver.resolve(profileId);
+        byte[] otlp = pm.otlpExportManager().export(request.eventType(), request.includeWeight());
+        String filename = otlpFilename(pm.info().name(), request.eventType());
+        String recordingId = recordingsManager.uploadRecording(filename, new ByteArrayInputStream(otlp), null);
+        LOG.info("Added exported OTLP to recordings: profileId={} recordingId={}", profileId, recordingId);
+        return new AddToRecordingsResponse(recordingId);
+    }
+
     private static String pprofFilename(String profileName, String eventType) {
         return sanitize(profileName) + "-" + sanitize(eventTypeShort(eventType)) + PPROF_FILE_SUFFIX;
+    }
+
+    private static String otlpFilename(String profileName, String eventType) {
+        return sanitize(profileName) + "-" + sanitize(eventTypeShort(eventType)) + OTLP_FILE_SUFFIX;
     }
 
     private static String eventTypeShort(String eventType) {
