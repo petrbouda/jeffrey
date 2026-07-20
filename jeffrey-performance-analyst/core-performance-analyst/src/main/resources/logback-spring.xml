@@ -17,6 +17,8 @@
   -->
 
 <configuration>
+    <logger name="com.zaxxer.hikari.pool.HikariPool" level="ERROR" />
+
     <!-- Without debug-file-log/trace-file-log: standard console, level controlled by logging.level property -->
     <springProfile name="!debug-file-log &amp; !trace-file-log">
         <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
