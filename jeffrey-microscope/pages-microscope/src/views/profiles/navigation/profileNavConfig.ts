@@ -5,7 +5,14 @@
  * rendered by `@/components/profile/ProfileSidebar.vue` + `ProfileSidebarItem.vue`.
  */
 
-export type ProfileMode = 'JVM' | 'Technologies' | 'Visualization' | 'HeapDump' | 'Tools';
+export type ProfileMode =
+  | 'Overview'
+  | 'JVM'
+  | 'Application'
+  | 'Technologies'
+  | 'Visualization'
+  | 'HeapDump'
+  | 'Tools';
 
 export type DifferentialType = 'flamegraphs' | 'subsecond';
 
@@ -17,6 +24,8 @@ export interface ProfileNavItem {
   icon: string;
   /** Absolute route path (may include a query string). Absent only on submenu parents. */
   path?: (profileId: string) => string;
+  /** Sub-path relative to `/profiles/{profileId}`; set by the `item` helper and used to derive the mode for a URL. */
+  subPath?: string;
   /** Feature keys checked via `isFeatureDisabled`; the item is disabled when ANY key is disabled. */
   disabledKeys?: string[];
   /** Extra CSS class rendered next to `nav-item` (e.g. `nav-item-ai`). */
@@ -61,7 +70,7 @@ function item(
   subPath: string,
   options: Partial<ProfileNavItem> = {}
 ): ProfileNavItem {
-  return { label, icon, path: profilePath(subPath), ...options };
+  return { label, icon, subPath, path: profilePath(subPath), ...options };
 }
 
 /** Technologies item carrying a `?mode=server|client` query with manual active matching. */
@@ -209,50 +218,35 @@ export const profileNavSections: Record<
   Exclude<ProfileMode, 'Technologies'>,
   ProfileNavSection[]
 > = {
-  JVM: [
+  Overview: [
     {
-      title: 'ANALYSIS',
+      title: 'DASHBOARDS',
+      items: [item('Summary', 'bi-grid-1x2', '/dashboard')]
+    },
+    {
+      title: 'INSIGHTS',
       items: [
         item('JFR AI Analysis', 'bi-stars', '/ai-analysis', {
           disabledKeys: [AI_ANALYSIS_KEY],
           cssClass: AI_ITEM_CLASS
         }),
-        item('Configuration', 'bi-gear', '/overview'),
         item('Guardian Analysis', 'bi-shield-check', '/guardian'),
-        item('Auto Analysis', 'bi-robot', '/auto-analysis'),
-        item('Performance Counters', 'bi-speedometer2', '/performance-counters', {
-          disabledKeys: ['performance-counters']
-        }),
-        item('Class Loading', 'bi-box-seam', '/class-loading'),
-        item('Exceptions', 'bi-exclamation-octagon', '/exceptions'),
-        item('VM Operations', 'bi-stopwatch', '/vm-operations'),
-        item('Blocking Operations', 'bi-lock', '/blocking-operations'),
-        item('Socket I/O', 'bi-ethernet', '/socket-io'),
-        item('File I/O', 'bi-file-earmark', '/file-io'),
-        item('Security & TLS', 'bi-shield-lock', '/security')
+        item('Auto Analysis', 'bi-robot', '/auto-analysis')
       ]
     },
     {
-      title: 'EVENTS',
+      title: 'PROFILE',
       items: [
+        item('Configuration', 'bi-gear', '/overview'),
         item('Event Types', 'bi-list-check', '/event-types'),
-        item('Event Viewer', 'bi-collection', '/events'),
-        item('JVM Flags', 'bi-flag', '/flags')
+        item('Event Viewer', 'bi-collection', '/events')
       ]
-    },
+    }
+  ],
+  JVM: [
     {
-      title: 'THREADS',
+      title: 'MEMORY',
       items: [
-        item('Statistics', 'bi-graph-up', '/thread-statistics'),
-        item('Timeline', 'bi-clock-history', '/threads-timeline'),
-        item('Virtual Threads', 'bi-pin-angle', '/virtual-threads'),
-        item('Thread Dumps', 'bi-file-earmark-text', '/thread-dumps')
-      ]
-    },
-    {
-      title: 'HEAP MEMORY',
-      items: [
-        item('Heap Allocations', 'bi-box', '/allocations'),
         {
           label: 'Garbage Collection',
           icon: 'bi-recycle',
@@ -265,10 +259,7 @@ export const profileNavSections: Record<
             item('ZGC Analysis', 'bi-cpu', '/garbage-collection/zgc')
           ]
         },
-        item('String & Symbol Tables', 'bi-fonts', '/string-symbol-tables'),
-        item('Leak Candidates', 'bi-bug', '/leak-candidates'),
-        item('Finalizers', 'bi-hourglass-split', '/garbage-collection/finalizers'),
-        item('Reference Processing', 'bi-link-45deg', '/garbage-collection/reference-processing')
+        item('String & Symbol Tables', 'bi-fonts', '/string-symbol-tables')
       ]
     },
     {
@@ -280,20 +271,88 @@ export const profileNavSections: Record<
       ]
     },
     {
-      title: 'COMPILER',
+      title: 'CODE',
       items: [
-        item('Compilations', 'bi-bar-chart-line', '/jit-compilation', { activeExactPath: true }),
-        item('Deoptimizations', 'bi-arrow-counterclockwise', '/jit-compilation/deoptimizations')
+        {
+          label: 'JIT Compilation',
+          icon: 'bi-bar-chart-line',
+          activePathIncludes: '/jit-compilation',
+          children: [
+            item('Compilations', 'bi-bar-chart-line', '/jit-compilation', {
+              activeExactPath: true
+            }),
+            item('Deoptimizations', 'bi-arrow-counterclockwise', '/jit-compilation/deoptimizations')
+          ]
+        },
+        item('Class Loading', 'bi-box-seam', '/class-loading')
       ]
     },
     {
-      title: 'INFRASTRUCTURE',
+      title: 'RUNTIME',
+      items: [
+        item('JVM Flags', 'bi-flag', '/flags'),
+        item('Performance Counters', 'bi-speedometer2', '/performance-counters', {
+          disabledKeys: ['performance-counters']
+        }),
+        item('VM Operations', 'bi-stopwatch', '/vm-operations'),
+        item('Modules', 'bi-boxes', '/modules')
+      ]
+    },
+    {
+      title: 'ENVIRONMENT',
+      items: [item('System & Host', 'bi-cpu', '/system')]
+    }
+  ],
+  Application: [
+    {
+      title: 'MEMORY',
+      items: [
+        item('Heap Allocations', 'bi-box', '/allocations'),
+        {
+          label: 'Memory Issues',
+          icon: 'bi-bug',
+          activePathIncludes: '/memory-issues',
+          children: [
+            item('Leak Candidates', 'bi-bug', '/memory-issues/leak-candidates'),
+            item('Finalizers', 'bi-hourglass-split', '/memory-issues/finalizers'),
+            item('Reference Processing', 'bi-link-45deg', '/memory-issues/reference-processing')
+          ]
+        }
+      ]
+    },
+    {
+      title: 'THREADS',
+      items: [
+        item('Statistics', 'bi-graph-up', '/thread-statistics'),
+        item('Timeline', 'bi-clock-history', '/threads-timeline'),
+        item('Virtual Threads', 'bi-pin-angle', '/virtual-threads'),
+        item('Thread Dumps', 'bi-file-earmark-text', '/thread-dumps')
+      ]
+    },
+    {
+      title: 'BEHAVIOR',
+      items: [
+        item('Exceptions', 'bi-exclamation-octagon', '/exceptions'),
+        item('Blocking Operations', 'bi-lock', '/blocking-operations')
+      ]
+    },
+    {
+      title: 'I/O & SECURITY',
+      items: [
+        item('File I/O', 'bi-file-earmark', '/file-io'),
+        item('Socket I/O', 'bi-ethernet', '/socket-io'),
+        item('Security & TLS', 'bi-shield-lock', '/security')
+      ]
+    },
+    {
+      title: 'CONTAINERS',
       items: [
         item('Container Configuration', 'bi-server', '/container/configuration', {
           disabledKeys: ['container']
         }),
-        item('System & Host', 'bi-cpu', '/system'),
-        item('Modules', 'bi-boxes', '/modules')
+        item('CPU Throttling Detector', 'bi-thermometer-half', '/container/cpu-throttling', {
+          disabledKeys: ['container']
+        })
       ]
     }
   ],
@@ -387,3 +446,66 @@ export const profileNavSections: Record<
     }
   ]
 };
+
+// Sub-paths (relative to /profiles/{profileId}) owned by the Overview and Application modes,
+// derived from the nav config itself so moving an item between modes keeps `getModeForPath`
+// in sync automatically. Anything not matched by a prefix rule or one of these sets falls
+// back to JVM Internals.
+function collectSubPaths(sections: ProfileNavSection[]): Set<string> {
+  const subPaths = new Set<string>();
+  const addItem = (navItem: ProfileNavItem): void => {
+    if (navItem.subPath) {
+      subPaths.add(navItem.subPath.split('?')[0]);
+    }
+    for (const child of navItem.children ?? []) {
+      addItem(child);
+    }
+  };
+  for (const section of sections) {
+    for (const navItem of section.items) {
+      addItem(navItem);
+    }
+  }
+  return subPaths;
+}
+
+const OVERVIEW_SUB_PATHS = collectSubPaths(profileNavSections.Overview);
+const APPLICATION_SUB_PATHS = collectSubPaths(profileNavSections.Application);
+
+const PROFILE_PATH_PREFIX = /^\/profiles\/[^/]+/;
+
+const VISUALIZATION_PATH_MARKERS = [
+  '/flamegraphs/',
+  '/subsecond/',
+  '/timeseries/',
+  '/flamegraph-view',
+  '/subsecond-view'
+];
+
+/**
+ * Derive the active mode (top navigation pill) from a route path, so refreshes and
+ * cross-mode navigations keep the pill row in sync. Single source of truth shared by
+ * `ProfileDetail.vue`.
+ */
+export function getModeForPath(path: string): ProfileMode {
+  if (path.includes('/technologies/')) {
+    return 'Technologies';
+  }
+  if (VISUALIZATION_PATH_MARKERS.some(marker => path.includes(marker))) {
+    return 'Visualization';
+  }
+  if (path.includes('/heap-dump/')) {
+    return 'HeapDump';
+  }
+  if (path.includes('/tools/')) {
+    return 'Tools';
+  }
+  const subPath = path.replace(PROFILE_PATH_PREFIX, '');
+  if (OVERVIEW_SUB_PATHS.has(subPath)) {
+    return 'Overview';
+  }
+  if (APPLICATION_SUB_PATHS.has(subPath)) {
+    return 'Application';
+  }
+  return 'JVM';
+}

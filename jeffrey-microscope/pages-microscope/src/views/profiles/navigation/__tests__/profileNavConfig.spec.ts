@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { createMemoryHistory, createRouter } from 'vue-router';
 import { profileChildRoutes } from '@/router/profileChildRoutes';
 import {
+  getModeForPath,
   ProfileNavItem,
   profileNavSections,
   technologiesNav
@@ -64,9 +65,10 @@ describe('profileNavConfig', () => {
   const allItems = collectAllItems();
 
   it('collects a sane number of nav items', () => {
-    // 38 JVM (incl. GC parent + 5 GC children) + 4 Visualization + 13 HeapDump + 3 Tools
-    // + 34 Technologies
-    expect(allItems.length).toBe(92);
+    // 7 Overview (incl. Dashboards) + 19 JVM (incl. GC/JIT submenu parents + children)
+    // + 16 Application (incl. Memory Issues submenu) + 4 Visualization + 13 HeapDump
+    // + 4 Tools + 34 Technologies
+    expect(allItems.length).toBe(97);
   });
 
   it('every item has a label and a bootstrap icon', () => {
@@ -109,5 +111,54 @@ describe('profileNavConfig', () => {
       expect(parent.activePathIncludes, parent.label).toBeTruthy();
       expect(parent.children?.length, parent.label).toBeGreaterThan(0);
     }
+  });
+
+  // Pages that moved under the Memory Issues submenu: old sub-path -> new sub-path
+  const LEGACY_REDIRECTS: Array<[string, string]> = [
+    ['leak-candidates', 'memory-issues/leak-candidates'],
+    ['garbage-collection/finalizers', 'memory-issues/finalizers'],
+    ['garbage-collection/reference-processing', 'memory-issues/reference-processing']
+  ];
+
+  it('legacy paths redirect to their new location', () => {
+    for (const [oldSubPath, newSubPath] of LEGACY_REDIRECTS) {
+      const record = profileChildRoutes.find(route => route.path === oldSubPath);
+      expect(record, oldSubPath).toBeDefined();
+
+      const redirect = (
+        record as unknown as {
+          redirect: (to: { params: { profileId: string } }) => string;
+        }
+      ).redirect;
+      expect(redirect, `${oldSubPath} must be a redirect record`).toBeTypeOf('function');
+
+      const target = redirect({ params: { profileId: SAMPLE_PROFILE_ID } });
+      expect(target, oldSubPath).toBe(`/profiles/${SAMPLE_PROFILE_ID}/${newSubPath}`);
+    }
+  });
+
+  it('derives the mode pill from a route path', () => {
+    const profilePath = (subPath: string) => `/profiles/${SAMPLE_PROFILE_ID}${subPath}`;
+
+    expect(getModeForPath(profilePath('/overview'))).toBe('Overview');
+    expect(getModeForPath(profilePath('/ai-analysis'))).toBe('Overview');
+    expect(getModeForPath(profilePath('/event-types'))).toBe('Overview');
+    expect(getModeForPath(profilePath('/events'))).toBe('Overview');
+    expect(getModeForPath(profilePath('/thread-statistics'))).toBe('Application');
+    expect(getModeForPath(profilePath('/file-io'))).toBe('Application');
+    expect(getModeForPath(profilePath('/socket-io'))).toBe('Application');
+    expect(getModeForPath(profilePath('/security'))).toBe('Application');
+    expect(getModeForPath(profilePath('/blocking-operations'))).toBe('Application');
+    expect(getModeForPath(profilePath('/allocations'))).toBe('Application');
+    expect(getModeForPath(profilePath('/memory-issues/leak-candidates'))).toBe('Application');
+    expect(getModeForPath(profilePath('/container/configuration'))).toBe('Application');
+    expect(getModeForPath(profilePath('/container/cpu-throttling'))).toBe('Application');
+    expect(getModeForPath(profilePath('/garbage-collection'))).toBe('JVM');
+    expect(getModeForPath(profilePath('/string-symbol-tables'))).toBe('JVM');
+    expect(getModeForPath(profilePath('/technologies/hub'))).toBe('Technologies');
+    expect(getModeForPath(profilePath('/flamegraphs/primary'))).toBe('Visualization');
+    expect(getModeForPath(profilePath('/subsecond/primary'))).toBe('Visualization');
+    expect(getModeForPath(profilePath('/heap-dump/settings'))).toBe('HeapDump');
+    expect(getModeForPath(profilePath('/tools/rename-frames'))).toBe('Tools');
   });
 });

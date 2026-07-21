@@ -30,6 +30,7 @@ const { setHeadings } = useDocHeadings();
 const headings = [
   { id: 'what-are-profiles', text: 'What are Profiles?', level: 2 },
   { id: 'profile-storage', text: 'Profile Storage', level: 2 },
+  { id: 'summary-dashboard', text: 'Summary Dashboard', level: 2 },
   { id: 'visualization', text: 'Visualization', level: 2 },
   { id: 'jvm-internals', text: 'JVM Internals', level: 2 },
   { id: 'technologies', text: 'Technologies', level: 2 },
@@ -72,6 +73,17 @@ const folderStructure = `$JEFFREY_HOME/
       <p>Every profile has its own dedicated <strong>DuckDB database</strong> — independent, portable, and easy to clean up.</p>
 
       <DocsCodeBlock :code="folderStructure" language="text" />
+
+      <h2 id="summary-dashboard">Summary Dashboard</h2>
+      <p>Opening a profile lands on the <strong>Summary dashboard</strong> (Overview &rarr; Dashboards &rarr; Summary) — a single screen answering three questions: what is this recording, is it healthy, and where should I look first? Every tile is clickable and navigates to the corresponding detail page.</p>
+      <ul>
+        <li><strong>Identity band</strong> — recording duration, JVM version, garbage collector, heap limits, CPU topology, and container runtime.</li>
+        <li><strong>Health at a glance</strong> — verdict chips for Guardian analysis, Auto Analysis, and container CPU throttling.</li>
+        <li><strong>Key metrics</strong> — JVM/machine CPU load, GC throughput and pauses, allocations, threads, exceptions, and safepoints.</li>
+        <li><strong>Recording timeline</strong> — sparklines of JVM CPU, heap usage, GC pauses, and allocation rate over the whole recording.</li>
+        <li><strong>Container panel</strong> — cgroup configuration, CPU throttling verdict, and memory limits; collapses when the JVM did not run in a container.</li>
+        <li><strong>Top event types</strong> — the largest event types in the recording by samples, linking to flamegraphs and the event-type browser.</li>
+      </ul>
 
       <h2 id="visualization">Visualization</h2>
       <p>Profiling graphs for deep performance analysis — flamegraphs and sub-second analysis tools.</p>

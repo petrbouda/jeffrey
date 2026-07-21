@@ -5,7 +5,8 @@
         v-for="(metric, index) in metrics"
         :key="index"
         class="stats-row"
-        :class="metric.variant"
+        :class="[metric.variant, { clickable: clickableRows }]"
+        @click="onRowClick(index, metric)"
       >
         <!-- Icon Column -->
         <div
@@ -59,7 +60,18 @@ interface Metric {
 
 const props = defineProps<{
   metrics: Metric[];
+  clickableRows?: boolean;
 }>();
+
+const emit = defineEmits<{
+  (e: 'metric-click', index: number, metric: Metric): void;
+}>();
+
+const onRowClick = (index: number, metric: Metric): void => {
+  if (props.clickableRows) {
+    emit('metric-click', index, metric);
+  }
+};
 
 const getIconBg = (variant?: string): string => {
   switch (variant) {
@@ -155,6 +167,10 @@ const getVariantColor = (variant?: string): string => {
 
 .stats-row:hover {
   background-color: var(--color-bg-hover);
+}
+
+.stats-row.clickable {
+  cursor: pointer;
 }
 
 /* Icon Column */

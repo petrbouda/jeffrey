@@ -2,11 +2,24 @@
 // one flat child list under /profiles/:profileId — grouping is organizational only.
 // Imported by tests to verify the sidebar navigation config resolves to real routes.
 
+// Redirect factory for pages that moved to a new sub-path — keeps old bookmarks and
+// deep-links working.
+function redirectTo(targetSubPath: string) {
+  return (to: { params: { profileId: string } }) =>
+    `/profiles/${to.params.profileId}/${targetSubPath}`;
+}
+
 // Overview, analysis, and event browsing
 const analysisRoutes = [
   {
     path: '',
-    redirect: (to: { params: { profileId: string } }) => `/profiles/${to.params.profileId}/overview`
+    redirect: (to: { params: { profileId: string } }) => `/profiles/${to.params.profileId}/dashboard`
+  },
+  {
+    path: 'dashboard',
+    name: 'profile-dashboard',
+    component: () => import('@/views/profiles/detail/dashboard/ProfileSummaryDashboard.vue'),
+    meta: { layout: 'profile' }
   },
   {
     path: 'overview',
@@ -136,17 +149,14 @@ const gcRoutes = [
     component: () => import('@/views/profiles/detail/ProfileGCStringSymbolTables.vue'),
     meta: { layout: 'profile' }
   },
+  // Finalizers and reference processing moved under the Memory Issues submenu.
   {
     path: 'garbage-collection/finalizers',
-    name: 'profile-garbage-collection-finalizers',
-    component: () => import('@/views/profiles/detail/ProfileGCFinalizers.vue'),
-    meta: { layout: 'profile' }
+    redirect: redirectTo('memory-issues/finalizers')
   },
   {
     path: 'garbage-collection/reference-processing',
-    name: 'profile-garbage-collection-reference-processing',
-    component: () => import('@/views/profiles/detail/ProfileGCReferenceProcessing.vue'),
-    meta: { layout: 'profile' }
+    redirect: redirectTo('memory-issues/reference-processing')
   }
 ];
 
@@ -221,10 +231,26 @@ const memoryRoutes = [
     meta: { layout: 'profile' }
   },
   {
-    path: 'leak-candidates',
-    name: 'profile-leak-candidates',
+    path: 'memory-issues/leak-candidates',
+    name: 'profile-memory-issues-leak-candidates',
     component: () => import('@/views/profiles/detail/ProfileLeakCandidates.vue'),
     meta: { layout: 'profile' }
+  },
+  {
+    path: 'memory-issues/finalizers',
+    name: 'profile-memory-issues-finalizers',
+    component: () => import('@/views/profiles/detail/ProfileGCFinalizers.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
+    path: 'memory-issues/reference-processing',
+    name: 'profile-memory-issues-reference-processing',
+    component: () => import('@/views/profiles/detail/ProfileGCReferenceProcessing.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
+    path: 'leak-candidates',
+    redirect: redirectTo('memory-issues/leak-candidates')
   }
 ];
 
@@ -288,6 +314,12 @@ const runtimeRoutes = [
     path: 'container/configuration',
     name: 'profile-container-configuration',
     component: () => import('@/views/profiles/detail/ProfileContainerConfiguration.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
+    path: 'container/cpu-throttling',
+    name: 'profile-container-cpu-throttling',
+    component: () => import('@/views/profiles/detail/ProfileContainerCpuThrottling.vue'),
     meta: { layout: 'profile' }
   }
 ];

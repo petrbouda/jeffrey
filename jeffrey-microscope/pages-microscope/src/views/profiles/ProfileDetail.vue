@@ -3,6 +3,22 @@
     <!-- Feature Collection Navigation -->
     <div class="feature-collection-nav normal-nav content-aligned">
       <div class="nav-container">
+        <!-- Overview mode (hidden for heap-dump-only, pprof and OTLP profiles) -->
+        <div
+          v-if="!isHeapDumpOnlyProfile && !isPprofOnlyProfile && !isOtlpOnlyProfile"
+          class="nav-pill"
+          :class="{ active: selectedMode === 'Overview' }"
+          title="Dashboards, insights and profile information"
+          @click="selectMode('Overview')"
+        >
+          <div class="pill-content">
+            <div class="title-row">
+              <i class="bi bi-compass"></i>
+              <span>Overview</span>
+            </div>
+            <small>Dashboards, insights &amp; profile info</small>
+          </div>
+        </div>
         <!-- JVM Internals mode (hidden for heap-dump-only, pprof and OTLP profiles) -->
         <div
           v-if="!isHeapDumpOnlyProfile && !isPprofOnlyProfile && !isOtlpOnlyProfile"
@@ -17,6 +33,22 @@
               <span>JVM Internals</span>
             </div>
             <small>Core JVM metrics and analysis</small>
+          </div>
+        </div>
+        <!-- Application mode (hidden for heap-dump-only, pprof and OTLP profiles) -->
+        <div
+          v-if="!isHeapDumpOnlyProfile && !isPprofOnlyProfile && !isOtlpOnlyProfile"
+          class="nav-pill"
+          :class="{ active: selectedMode === 'Application' }"
+          title="Threads, behavior and I/O"
+          @click="selectMode('Application')"
+        >
+          <div class="pill-content">
+            <div class="title-row">
+              <i class="bi bi-activity"></i>
+              <span>Application</span>
+            </div>
+            <small>Threads, behavior and I/O</small>
           </div>
         </div>
         <!-- Technologies mode (hidden for heap-dump-only, pprof and OTLP profiles) -->
@@ -51,22 +83,6 @@
             <small>Profiling graphs and visualizations</small>
           </div>
         </div>
-        <!-- Heap Dump mode (always visible except for pprof/OTLP profiles, which have no heap data) -->
-        <div
-          v-if="!isPprofOnlyProfile && !isOtlpOnlyProfile"
-          class="nav-pill"
-          :class="{ active: selectedMode === 'HeapDump' }"
-          title="Heap dump memory analysis"
-          @click="selectMode('HeapDump')"
-        >
-          <div class="pill-content">
-            <div class="title-row">
-              <i class="bi bi-database"></i>
-              <span>Heap Dump</span>
-            </div>
-            <small>Memory analysis from heap dumps</small>
-          </div>
-        </div>
         <!-- Tools mode (hidden for heap-dump-only and pprof profiles; kept for OTLP, which can export) -->
         <div
           v-if="!isHeapDumpOnlyProfile && !isPprofOnlyProfile"
@@ -81,6 +97,22 @@
               <span>Tools</span>
             </div>
             <small>Profile data transformations</small>
+          </div>
+        </div>
+        <!-- Heap Dump mode (only when a heap dump is attached; pprof/OTLP profiles have no heap data) -->
+        <div
+          v-if="!isPprofOnlyProfile && !isOtlpOnlyProfile && heapDumpAttached"
+          class="nav-pill"
+          :class="{ active: selectedMode === 'HeapDump' }"
+          title="Heap dump memory analysis"
+          @click="selectMode('HeapDump')"
+        >
+          <div class="pill-content">
+            <div class="title-row">
+              <i class="bi bi-database"></i>
+              <span>Heap Dump</span>
+            </div>
+            <small>Memory analysis from heap dumps</small>
           </div>
         </div>
 
@@ -284,13 +316,18 @@ import SecondaryProfileSelectionModal from '@/components/SecondaryProfileSelecti
 import Badge from '@shared/components/Badge.vue';
 import MessageBus from '@/services/MessageBus.ts';
 import ProfileFeaturesClient from '@/services/api/ProfileFeaturesClient';
+import HeapDumpClient from '@/services/api/HeapDumpClient';
 import FeatureType from '@/services/api/model/FeatureType';
 import { profileStore, ProfileWithContext } from '@/stores/profileStore';
 import IdeTargetBar from '@/components/IdeTargetBar.vue';
 import ideConfigStore from '@/stores/ideConfigStore';
 import ideProfileTargetStore from '@/stores/ideProfileTargetStore';
 import ProfileSidebar from '@/components/profile/ProfileSidebar.vue';
-import { DifferentialType, ProfileMode } from '@/views/profiles/navigation/profileNavConfig';
+import {
+  DifferentialType,
+  getModeForPath,
+  ProfileMode
+} from '@/views/profiles/navigation/profileNavConfig';
 const route = useRoute();
 const router = useRouter();
 const { workspaceId, projectId, navigateToProjectRecordings } = useNavigation();
@@ -308,6 +345,9 @@ const disabledFeatures = ref<FeatureType[]>([]);
 const isHeapDumpOnlyProfile = ref(false);
 const isPprofOnlyProfile = ref(false);
 const isOtlpOnlyProfile = ref(false);
+// True when the recording carries a heap dump (heap-dump-only profile or an attached .hprof file);
+// the Heap Dump pill is hidden entirely when there is none.
+const heapDumpAttached = ref(false);
 
 /**
  * Check if the profile is a heap-dump-only profile (no JFR data).
@@ -384,28 +424,22 @@ const activeTechnology = computed<string | null>(() => {
   return null;
 });
 
-// Derive mode from the current route path so refresh preserves the active section
-function getModeFromPath(path: string): ProfileMode {
-  if (path.includes('/technologies/')) {
-    return 'Technologies';
-  }
-  if (
-    path.includes('/flamegraphs/') ||
-    path.includes('/subsecond/') ||
-    path.includes('/timeseries/')
-  ) {
-    return 'Visualization';
-  }
-  if (path.includes('/heap-dump/')) {
-    return 'HeapDump';
-  }
-  if (path.includes('/tools/')) {
-    return 'Tools';
-  }
-  return 'JVM';
-}
+// Mode is derived from the current route path (single source of truth in profileNavConfig)
+// so refresh preserves the active section.
 // (heap-dump-only profiles override this to 'HeapDump' in onMounted)
-const selectedMode = ref<ProfileMode>(getModeFromPath(route.path));
+const selectedMode = ref<ProfileMode>(getModeForPath(route.path));
+
+// Keep the active pill in sync when navigation crosses modes without a pill click
+// (e.g. legacy bookmarks redirecting into another mode's page).
+watch(
+  () => route.path,
+  newPath => {
+    if (isHeapDumpOnlyProfile.value) {
+      return;
+    }
+    selectedMode.value = getModeForPath(newPath);
+  }
+);
 
 // Initialize comparison panel visibility from sessionStorage
 const getStoredComparisonPanelState = (): boolean => {
@@ -484,7 +518,7 @@ onMounted(async () => {
     isPprofOnlyProfile.value = checkPprofOnlyProfile(profileWithContext);
     if (isPprofOnlyProfile.value) {
       selectedMode.value = 'Visualization';
-      if (getModeFromPath(route.path) !== 'Visualization') {
+      if (getModeForPath(route.path) !== 'Visualization') {
         router.replace(`/profiles/${profileId}/flamegraphs/primary`);
       }
     }
@@ -493,7 +527,7 @@ onMounted(async () => {
     // Land on the flamegraph by default, without bouncing a valid Tools deep-link.
     isOtlpOnlyProfile.value = checkOtlpOnlyProfile(profileWithContext);
     if (isOtlpOnlyProfile.value) {
-      const currentMode = getModeFromPath(route.path);
+      const currentMode = getModeForPath(route.path);
       if (currentMode === 'Tools') {
         selectedMode.value = 'Tools';
       } else {
@@ -501,6 +535,18 @@ onMounted(async () => {
         if (currentMode !== 'Visualization') {
           router.replace(`/profiles/${profileId}/flamegraphs/primary`);
         }
+      }
+    }
+
+    // Heap-dump-only profiles ARE a heap dump; for JFR profiles ask the backend whether
+    // a heap dump file is attached to the recording (pprof/OTLP profiles never have one).
+    if (isHeapDumpOnlyProfile.value) {
+      heapDumpAttached.value = true;
+    } else if (!isPprofOnlyProfile.value && !isOtlpOnlyProfile.value) {
+      try {
+        heapDumpAttached.value = await new HeapDumpClient(profileId).exists();
+      } catch (error) {
+        console.error('Failed to check heap dump existence:', error);
       }
     }
 
@@ -582,7 +628,9 @@ const selectMode = (mode: ProfileMode) => {
 
   // Navigate to the first item in the selected mode's menu (simplified URLs)
   const firstRoutes: Record<string, string> = {
-    JVM: `/profiles/${profileId}/overview`,
+    Overview: `/profiles/${profileId}/dashboard`,
+    JVM: `/profiles/${profileId}/garbage-collection`,
+    Application: `/profiles/${profileId}/allocations`,
     Technologies: `/profiles/${profileId}/technologies/hub`,
     Visualization: `/profiles/${profileId}/flamegraphs/primary`,
     HeapDump: `/profiles/${profileId}/heap-dump/settings`,
@@ -643,6 +691,8 @@ const handleSecondaryProfileCleared = () => {
 // Handle heap dump status changes
 const handleHeapDumpStatusChanged = (ready: boolean) => {
   if (ready) {
+    // A ready heap dump implies one is attached (e.g. just uploaded on the settings page).
+    heapDumpAttached.value = true;
     disabledFeatures.value = disabledFeatures.value.filter(f => f !== FeatureType.HEAP_DUMP);
   } else {
     if (!disabledFeatures.value.includes(FeatureType.HEAP_DUMP)) {
