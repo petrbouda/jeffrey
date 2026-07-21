@@ -20,7 +20,9 @@ package cafe.jeffrey.microscope.core.web.controllers.profile;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -31,9 +33,11 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
 import cafe.jeffrey.profile.heapdump.model.HeapDumpConfig;
+import cafe.jeffrey.profile.heapdump.model.HeapDumpInitProgress;
 import cafe.jeffrey.profile.heapdump.model.HeapSummary;
 import cafe.jeffrey.profile.heapdump.model.InitPipelineResult;
 import cafe.jeffrey.profile.heapdump.model.InitializeResult;
+import cafe.jeffrey.profile.manager.heapdump.HeapDumpInitService;
 import cafe.jeffrey.profile.manager.heapdump.HeapDumpManager;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 
@@ -54,8 +58,11 @@ public class HeapDumpController {
 
     private final ProfileManagerResolver resolver;
 
-    public HeapDumpController(ProfileManagerResolver resolver) {
+    private final HeapDumpInitService initService;
+
+    public HeapDumpController(ProfileManagerResolver resolver, HeapDumpInitService initService) {
         this.resolver = resolver;
+        this.initService = initService;
     }
 
     @GetMapping("/exists")
@@ -117,6 +124,25 @@ public class HeapDumpController {
             @PathVariable("profileId") String profileId,
             @RequestParam(value = "compressedOops", required = false) Boolean compressedOops) {
         return mgr(profileId).initialize(compressedOops);
+    }
+
+    /**
+     * Starts the full initialization pipeline (index build, dominator tree and
+     * every cached analysis) as a background run; poll {@code /init-progress}
+     * for per-stage statuses. Returns 202 whether a new run was started or one
+     * was already in flight.
+     */
+    @PostMapping("/initialize-all")
+    public ResponseEntity<Void> initializeAll(
+            @PathVariable("profileId") String profileId,
+            @RequestParam(value = "compressedOops", required = false) Boolean compressedOops) {
+        initService.start(profileId, mgr(profileId), compressedOops);
+        return ResponseEntity.status(HttpStatus.ACCEPTED).build();
+    }
+
+    @GetMapping("/init-progress")
+    public HeapDumpInitProgress initProgress(@PathVariable("profileId") String profileId) {
+        return initService.progress(profileId);
     }
 
     @GetMapping("/config")

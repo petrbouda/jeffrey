@@ -24,6 +24,7 @@ import cafe.jeffrey.profile.manager.heapdump.analysis.CachedAnalysis;
 import cafe.jeffrey.profile.manager.heapdump.analysis.ClassLoaderHeapAnalysis;
 import cafe.jeffrey.profile.manager.heapdump.analysis.CollectionHeapAnalysis;
 import cafe.jeffrey.profile.manager.heapdump.analysis.ConsumerReportAnalysis;
+import cafe.jeffrey.profile.manager.heapdump.analysis.DuplicateDataAnalysis;
 import cafe.jeffrey.profile.manager.heapdump.analysis.LeakSuspectsAnalysis;
 import cafe.jeffrey.profile.manager.heapdump.analysis.StringHeapAnalysis;
 import cafe.jeffrey.profile.manager.heapdump.analysis.ThreadHeapAnalysis;
@@ -61,7 +62,8 @@ public final class HeapDumpReportStore {
             new BiggestObjectsAnalysis(),
             new BiggestCollectionsAnalysis(),
             new ClassLoaderHeapAnalysis(),
-            new ConsumerReportAnalysis());
+            new ConsumerReportAnalysis(),
+            new DuplicateDataAnalysis());
 
     private final Path analysisDir;
 

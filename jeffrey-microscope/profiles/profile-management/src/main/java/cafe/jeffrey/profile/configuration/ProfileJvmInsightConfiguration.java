@@ -38,6 +38,7 @@ import cafe.jeffrey.profile.manager.memory.NativeMemoryTrackingManagerImpl;
 import cafe.jeffrey.profile.manager.gc.GarbageCollectionManagerImpl;
 import cafe.jeffrey.profile.manager.heapdump.HeapDumpManager;
 import cafe.jeffrey.profile.manager.heapdump.HeapDumpManagerImpl;
+import cafe.jeffrey.profile.manager.heapdump.HeapDumpInitService;
 import cafe.jeffrey.profile.manager.heapdump.HeapDumpSessionCache;
 import cafe.jeffrey.profile.manager.registry.JvmInsightFactories;
 import cafe.jeffrey.profile.manager.thread.ThreadManager;
@@ -193,6 +194,11 @@ public class ProfileJvmInsightConfiguration {
     @Bean(destroyMethod = "close")
     public HeapDumpSessionCache heapDumpSessionCache(Clock clock) {
         return new HeapDumpSessionCache(clock);
+    }
+
+    @Bean
+    public HeapDumpInitService heapDumpInitService(Clock clock) {
+        return new HeapDumpInitService(clock);
     }
 
     @Bean

@@ -43,7 +43,8 @@ public sealed interface CachedAnalysis<T> permits
         BiggestObjectsAnalysis,
         BiggestCollectionsAnalysis,
         ClassLoaderHeapAnalysis,
-        ConsumerReportAnalysis {
+        ConsumerReportAnalysis,
+        DuplicateDataAnalysis {
 
     String fileName();
 

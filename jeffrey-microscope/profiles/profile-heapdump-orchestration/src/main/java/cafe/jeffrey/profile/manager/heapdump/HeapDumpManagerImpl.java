@@ -42,6 +42,7 @@ import cafe.jeffrey.profile.heapdump.model.ClassLoaderDetail;
 import cafe.jeffrey.profile.heapdump.model.ClassLoaderReport;
 import cafe.jeffrey.profile.heapdump.model.CollectionAnalysisReport;
 import cafe.jeffrey.profile.heapdump.model.ConsumerReport;
+import cafe.jeffrey.profile.heapdump.model.DuplicateDataReport;
 import cafe.jeffrey.profile.heapdump.model.DominatorTreeResponse;
 import cafe.jeffrey.profile.heapdump.model.GCRootClassAggregate;
 import cafe.jeffrey.profile.heapdump.model.GCRootClassLoaderAggregate;
@@ -85,6 +86,7 @@ import cafe.jeffrey.profile.manager.heapdump.analysis.BiggestObjectsAnalysis;
 import cafe.jeffrey.profile.manager.heapdump.analysis.ClassLoaderHeapAnalysis;
 import cafe.jeffrey.profile.manager.heapdump.analysis.CollectionHeapAnalysis;
 import cafe.jeffrey.profile.manager.heapdump.analysis.ConsumerReportAnalysis;
+import cafe.jeffrey.profile.manager.heapdump.analysis.DuplicateDataAnalysis;
 import cafe.jeffrey.profile.manager.heapdump.analysis.LeakSuspectsAnalysis;
 import cafe.jeffrey.profile.manager.heapdump.analysis.StringHeapAnalysis;
 import cafe.jeffrey.profile.manager.heapdump.analysis.ThreadHeapAnalysis;
@@ -592,5 +594,22 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
     @Override
     public void runConsumerReport() {
         runner.run(new ConsumerReportAnalysis());
+    }
+
+    // --- Duplicate Data --------------------------------------------------
+
+    @Override
+    public boolean duplicateDataExists() {
+        return reports.exists(new DuplicateDataAnalysis());
+    }
+
+    @Override
+    public DuplicateDataReport getDuplicateData() {
+        return reports.read(new DuplicateDataAnalysis()).orElse(null);
+    }
+
+    @Override
+    public void runDuplicateData(int topN) {
+        runner.run(new DuplicateDataAnalysis(topN));
     }
 }

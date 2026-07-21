@@ -45,6 +45,7 @@ import cafe.jeffrey.profile.heapdump.model.OQLQueryRequest;
 import cafe.jeffrey.profile.heapdump.model.OQLQueryResult;
 import cafe.jeffrey.profile.heapdump.model.SortBy;
 import cafe.jeffrey.profile.heapdump.model.ConsumerReport;
+import cafe.jeffrey.profile.heapdump.model.DuplicateDataReport;
 import cafe.jeffrey.profile.heapdump.model.StringAnalysisReport;
 import cafe.jeffrey.profile.heapdump.model.SubPhaseTiming;
 import cafe.jeffrey.profile.heapdump.model.ThreadAnalysisReport;
@@ -503,5 +504,22 @@ public interface HeapDumpManager {
      * Run the consumer / component analysis and save results to JSON file.
      */
     void runConsumerReport();
+
+    // --- Duplicate Data ---
+
+    /**
+     * Check if the duplicate-data (byte-identical primitive arrays) report exists for this profile.
+     */
+    boolean duplicateDataExists();
+
+    /**
+     * Get the pre-computed duplicate-data report.
+     */
+    DuplicateDataReport getDuplicateData();
+
+    /**
+     * Run the duplicate-data analysis and save results to JSON file.
+     */
+    void runDuplicateData(int topN);
 
 }
