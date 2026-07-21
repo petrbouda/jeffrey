@@ -387,7 +387,8 @@ export const profileNavSections: Record<
           disabledKeys: [HEAP_DUMP_KEY, AI_ANALYSIS_KEY],
           cssClass: AI_ITEM_CLASS
         }),
-        item('OQL Query', 'bi-terminal', '/heap-dump/oql', { disabledKeys: [HEAP_DUMP_KEY] })
+        item('OQL Query', 'bi-terminal', '/heap-dump/oql', { disabledKeys: [HEAP_DUMP_KEY] }),
+        item('Heap Diff', 'bi-layers-half', '/heap-dump/diff', { disabledKeys: [HEAP_DUMP_KEY] })
       ]
     },
     {
@@ -408,6 +409,12 @@ export const profileNavSections: Record<
         item('GC Roots', 'bi-diagram-3', '/heap-dump/gc-roots', {
           disabledKeys: [HEAP_DUMP_KEY]
         }),
+        item('Biggest Objects', 'bi-box-seam-fill', '/heap-dump/biggest-objects', {
+          disabledKeys: [HEAP_DUMP_KEY]
+        }),
+        item('Memory Consumers', 'bi-pie-chart-fill', '/heap-dump/consumers', {
+          disabledKeys: [HEAP_DUMP_KEY]
+        }),
         item('Collection Analysis', 'bi-collection', '/heap-dump/collection-analysis', {
           disabledKeys: [HEAP_DUMP_KEY]
         }),
@@ -415,6 +422,9 @@ export const profileNavSections: Record<
           disabledKeys: [HEAP_DUMP_KEY]
         }),
         item('String Analysis', 'bi-fonts', '/heap-dump/string-analysis', {
+          disabledKeys: [HEAP_DUMP_KEY]
+        }),
+        item('Duplicate Data', 'bi-files', '/heap-dump/duplicate-data', {
           disabledKeys: [HEAP_DUMP_KEY]
         })
       ]
