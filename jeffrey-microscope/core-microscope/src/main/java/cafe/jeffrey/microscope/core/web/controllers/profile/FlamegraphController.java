@@ -31,6 +31,9 @@ import cafe.jeffrey.profile.TimeRangeRequest;
 import cafe.jeffrey.profile.common.config.GraphParameters;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.profile.model.EventSummaryResult;
+import cafe.jeffrey.profile.model.FlamegraphPanel;
+import cafe.jeffrey.profile.panel.JfrFlamegraphPanelProvider;
+import cafe.jeffrey.profile.panel.PanelContext;
 import cafe.jeffrey.profile.resources.request.GenerateFlamegraphRequest;
 import cafe.jeffrey.shared.common.GraphType;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
@@ -51,9 +54,11 @@ public class FlamegraphController {
     private static final Logger LOG = LoggerFactory.getLogger(FlamegraphController.class);
 
     private final ProfileManagerResolver resolver;
+    private final JfrFlamegraphPanelProvider panelProvider;
 
-    public FlamegraphController(ProfileManagerResolver resolver) {
+    public FlamegraphController(ProfileManagerResolver resolver, JfrFlamegraphPanelProvider panelProvider) {
         this.resolver = resolver;
+        this.panelProvider = panelProvider;
     }
 
     @PostMapping(produces = PROTOBUF_MEDIA_TYPE)
@@ -82,6 +87,14 @@ public class FlamegraphController {
         var result = pm.flamegraphManager().eventSummaries();
         LOG.debug("Listed flamegraph event types: profileId={} count={}", profileId, result.size());
         return result;
+    }
+
+    @GetMapping("/panels")
+    public List<FlamegraphPanel> panels(@PathVariable("profileId") String profileId) {
+        ProfileManager pm = resolver.resolve(profileId);
+        List<FlamegraphPanel> panels = panelProvider.panels(pm.flamegraphManager().eventSummaries(), PanelContext.PRIMARY);
+        LOG.debug("Listed flamegraph panels: profileId={} count={}", profileId, panels.size());
+        return panels;
     }
 
     static GraphParameters mapToGenerateRequest(

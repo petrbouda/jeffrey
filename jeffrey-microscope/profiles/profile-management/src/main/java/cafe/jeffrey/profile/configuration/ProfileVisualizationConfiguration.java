@@ -33,6 +33,8 @@ import cafe.jeffrey.profile.manager.SubSecondManager;
 import cafe.jeffrey.profile.manager.SubSecondManagerImpl;
 import cafe.jeffrey.profile.manager.TimeseriesManager;
 import cafe.jeffrey.profile.manager.registry.VisualizationFactories;
+import cafe.jeffrey.profile.panel.JfrFlamegraphPanelProvider;
+import cafe.jeffrey.profile.panel.StackSampleFlamegraphPanelProvider;
 import cafe.jeffrey.provider.profile.api.DatabaseManagerResolver;
 import cafe.jeffrey.provider.profile.api.ProfileEventStreamRepository;
 import cafe.jeffrey.provider.profile.api.ProfileEventTypeRepository;
@@ -51,6 +53,16 @@ public class ProfileVisualizationConfiguration {
             DatabaseManagerResolver databaseManagerResolver) {
         this.profileRepositories = persistenceProvider.repositories();
         this.databaseManagerResolver = databaseManagerResolver;
+    }
+
+    @Bean
+    public JfrFlamegraphPanelProvider jfrFlamegraphPanelProvider() {
+        return new JfrFlamegraphPanelProvider();
+    }
+
+    @Bean
+    public StackSampleFlamegraphPanelProvider stackSampleFlamegraphPanelProvider() {
+        return new StackSampleFlamegraphPanelProvider();
     }
 
     @Bean

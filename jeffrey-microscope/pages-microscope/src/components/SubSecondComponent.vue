@@ -27,6 +27,9 @@ import SubSecondDataProvider from '@/services/subsecond/SubSecondDataProvider';
 import TimeRange from '@/services/api/model/TimeRange';
 import { computeDifference } from '@/services/subsecond/SubSecondDifferenceUtils';
 import SubSecondData from '@/services/subsecond/model/SubSecondData';
+import MarginalRenderer from '@/services/subsecond/MarginalRenderer';
+import EventTypes from '@/services/EventTypes';
+import FormattingService from '@shared/services/FormattingService';
 
 const props = defineProps<{
   primaryDataProvider: SubSecondDataProvider;
@@ -36,6 +39,8 @@ const props = defineProps<{
   tooltip: HeatmapTooltip;
   eventType: string;
   useWeight: boolean;
+  bucketSizeMs?: number;
+  initialTimeRange?: TimeRange;
 }>();
 
 let primaryHeatmap: HeatmapGraph | null = null;
@@ -54,6 +59,112 @@ let cachedSecondaryData: SubSecondData | null = null;
 let currentTimeRange: TimeRange | undefined = undefined;
 
 const isDifferential = props.secondaryDataProvider !== null;
+
+// Marginal ("Σ per bucket") bars + value colorbar — only for the single-heatmap (non-differential) view.
+const COLORBAR_BINS = 6;
+const showMarginal = !isDifferential;
+const marginalCanvas = ref<HTMLCanvasElement | null>(null);
+const colorbarCanvas = ref<HTMLCanvasElement | null>(null);
+let marginalRenderer: MarginalRenderer | null = null;
+let marginalRowSums: number[] | null = null;
+let marginalMax = 0;
+
+function computeRowSums(data: SubSecondData): number[] {
+  return data.series.map(serie => {
+    let sum = 0;
+    for (const point of serie.data as any[]) {
+      sum += point?.y ?? point?.[1] ?? 0;
+    }
+    return sum;
+  });
+}
+
+function marginalValueMeta(): { label: string; format: (value: number) => string } {
+  if (EventTypes.isAllocationEventType(props.eventType) && props.useWeight) {
+    return { label: 'allocated', format: (value: number) => FormattingService.formatBytes(value) };
+  }
+  if (EventTypes.isBlockingEventType(props.eventType) && props.useWeight) {
+    return { label: 'blocked time', format: (value: number) => FormattingService.formatDuration(value) };
+  }
+  return { label: 'samples', format: (value: number) => FormattingService.formatNumber(value) };
+}
+
+function renderMarginal() {
+  if (!showMarginal || marginalRenderer == null || marginalRowSums == null) {
+    return;
+  }
+  marginalRenderer.render(marginalRowSums);
+}
+
+function cssVar(name: string, fallback: string): string {
+  const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  return value || fallback;
+}
+
+function parseRgb(hex: string): [number, number, number] {
+  let normalized = hex.replace('#', '');
+  if (normalized.length === 3) {
+    normalized = normalized
+      .split('')
+      .map(ch => ch + ch)
+      .join('');
+  }
+  const num = parseInt(normalized, 16);
+  return [(num >> 16) & 255, (num >> 8) & 255, num & 255];
+}
+
+function mixRgb(a: [number, number, number], b: [number, number, number], t: number): string {
+  return `rgb(${Math.round(a[0] + (b[0] - a[0]) * t)},${Math.round(a[1] + (b[1] - a[1]) * t)},${Math.round(a[2] + (b[2] - a[2]) * t)})`;
+}
+
+// Value colorbar under the heatmap: stepped swatches (white -> cell hue) with bin-boundary labels.
+function renderColorbar() {
+  if (!showMarginal) {
+    return;
+  }
+  const canvas = colorbarCanvas.value;
+  if (canvas == null) {
+    return;
+  }
+  const format = marginalValueMeta().format;
+  const cssWidth = 384;
+  const cssHeight = 40;
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  canvas.style.width = cssWidth + 'px';
+  canvas.style.height = cssHeight + 'px';
+  canvas.width = Math.round(cssWidth * dpr);
+  canvas.height = Math.round(cssHeight * dpr);
+  const ctx = canvas.getContext('2d')!;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, cssWidth, cssHeight);
+
+  const cell = parseRgb(cssVar('--color-subsecond-cell', '#0022ff'));
+  const white = parseRgb(cssVar('--color-white', '#ffffff'));
+  const border = cssVar('--color-border', '#eaedf1');
+  const text = cssVar('--color-text', '#5e6e82');
+
+  const x = 14;
+  const y = 6;
+  const h = 14;
+  const w = cssWidth - x - 24;
+  const binWidth = w / COLORBAR_BINS;
+
+  for (let i = 0; i < COLORBAR_BINS; i++) {
+    ctx.fillStyle = mixRgb(white, cell, (i + 1) / COLORBAR_BINS);
+    ctx.fillRect(x + i * binWidth, y, binWidth - 1, h);
+    ctx.strokeStyle = border;
+    ctx.lineWidth = 1;
+    ctx.strokeRect(x + i * binWidth + 0.5, y + 0.5, binWidth - 1, h - 1);
+  }
+
+  ctx.fillStyle = text;
+  ctx.font = "600 10px ui-monospace, monospace";
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+  for (let i = 0; i <= COLORBAR_BINS; i++) {
+    ctx.fillText(format(Math.round((marginalMax * i) / COLORBAR_BINS)), x + i * binWidth, y + h + 5);
+  }
+}
 
 // Wrapper to add time range offset to selection callbacks
 function createOffsetCallback(callback: any) {
@@ -78,12 +189,15 @@ onMounted(() => {
   MessageBus.on(MessageBus.SIDEBAR_CHANGED, () => handleResize(null, 200));
 
   heatmapComponent = document.getElementById('heatmaps')!;
+  if (showMarginal && marginalCanvas.value) {
+    marginalRenderer = new MarginalRenderer(marginalCanvas.value, 'primary');
+  }
   handleResize(null);
 
   // Add window resize event listener
   window.addEventListener('resize', event => handleResize(event));
 
-  initializeHeatmaps();
+  initializeHeatmaps(props.initialTimeRange);
   MessageBus.on(MessageBus.SUBSECOND_SELECTION_CLEAR, () => heatmapsCleanup());
 });
 
@@ -104,15 +218,15 @@ function handleResize(event: any, delay: number = 100) {
     event.preventDefault();
   }
 
-  heatmapComponent.style.width = '0px';
+  // The heatmap sizing is handled by flexbox (heatmap-container is flex: 1, min-width: 0);
+  // on layout changes we only need to re-align the pinned marginal to the heatmap rows.
   if (resizeTimer) {
     clearTimeout(resizeTimer);
   }
 
   resizeTimer = window.setTimeout(() => {
-    // 75 cumulative padding to avoid browser's scrollbar
-    const clientWidth = (heatmapComponent?.parentElement?.clientWidth as number) - 75 || 0;
-    heatmapComponent.style.width = clientWidth + 'px';
+    renderMarginal();
+    renderColorbar();
   }, delay);
 }
 
@@ -135,6 +249,8 @@ onBeforeUnmount(() => {
 
 onUnmounted(() => {
   heatmapsCleanup();
+  marginalRenderer?.destroy();
+  marginalRenderer = null;
   MessageBus.off(MessageBus.SUBSECOND_SELECTION_CLEAR);
   MessageBus.off(MessageBus.SIDEBAR_CHANGED);
 });
@@ -192,9 +308,17 @@ const initializeHeatmaps = (timeRange?: TimeRange) => {
           subSecondData,
           heatmapComponent,
           createOffsetCallback(props.primarySelectedCallback),
-          props.tooltip
+          props.tooltip,
+          props.bucketSizeMs
         );
         primaryHeatmap.render();
+
+        if (showMarginal) {
+          marginalRowSums = computeRowSums(subSecondData);
+          marginalMax = subSecondData.maxvalue;
+          renderMarginal();
+          renderColorbar();
+        }
       })
       .catch(error => console.error('Error loading primary heatmap data:', error))
       .finally(() => (initialized.value = true));
@@ -246,7 +370,8 @@ function renderAbsoluteHeatmaps(primaryData: SubSecondData, secondaryData: SubSe
     primaryData,
     heatmapComponent,
     createOffsetCallback(props.primarySelectedCallback),
-    props.tooltip
+    props.tooltip,
+    props.bucketSizeMs
   );
   primaryHeatmap.render();
 
@@ -255,7 +380,8 @@ function renderAbsoluteHeatmaps(primaryData: SubSecondData, secondaryData: SubSe
     secondaryData,
     heatmapComponent,
     createOffsetCallback(props.secondarySelectedCallback),
-    props.tooltip
+    props.tooltip,
+    props.bucketSizeMs
   );
   secondaryHeatmap.render();
 }
@@ -312,13 +438,27 @@ function renderDifferenceHeatmap(primaryData: SubSecondData, secondaryData: SubS
     </div>
   </div>
 
-  <div class="heatmap-container" id="heatmaps" style="overflow-x: scroll">
-    <!-- Difference heatmap (shown in difference mode) -->
-    <div v-show="mode === 'difference' && isDifferential" id="difference"></div>
+  <div class="subsecond-stage">
+    <!-- Pinned Σ-per-bucket bars (outside the horizontal scroll) -->
+    <div v-if="showMarginal" class="subsecond-marginal">
+      <canvas ref="marginalCanvas"></canvas>
+    </div>
 
-    <!-- Absolute heatmaps (shown in absolute mode or non-differential) -->
-    <div v-show="mode === 'absolute' || !isDifferential" id="primary"></div>
-    <div v-show="mode === 'absolute' && isDifferential" id="secondary"></div>
+    <div class="subsecond-main">
+      <div class="heatmap-container" id="heatmaps" style="overflow-x: scroll">
+        <!-- Difference heatmap (shown in difference mode) -->
+        <div v-show="mode === 'difference' && isDifferential" id="difference"></div>
+
+        <!-- Absolute heatmaps (shown in absolute mode or non-differential) -->
+        <div v-show="mode === 'absolute' || !isDifferential" id="primary"></div>
+        <div v-show="mode === 'absolute' && isDifferential" id="secondary"></div>
+      </div>
+
+      <!-- Value colorbar legend, below the heatmap -->
+      <div v-if="showMarginal" class="subsecond-colorbar">
+        <canvas ref="colorbarCanvas"></canvas>
+      </div>
+    </div>
   </div>
 
   <!-- Fixed centered legend for difference mode -->
@@ -357,6 +497,42 @@ function renderDifferenceHeatmap(primaryData: SubSecondData, secondaryData: SubS
 </style>
 
 <style scoped lang="scss">
+/* Marginal ("Σ per bucket") panel — pinned left, outside the heatmap's horizontal scroll */
+.subsecond-stage {
+  display: flex;
+  align-items: flex-start;
+  width: 100%;
+}
+
+.subsecond-main {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.subsecond-stage .heatmap-container {
+  min-width: 0;
+}
+
+.subsecond-marginal {
+  flex: none;
+  background-color: var(--color-white);
+  margin-right: 10px;
+}
+
+.subsecond-marginal canvas {
+  display: block;
+}
+
+.subsecond-colorbar {
+  padding: 8px 0 0 36px;
+}
+
+.subsecond-colorbar canvas {
+  display: block;
+}
+
 /* Bootstrap preloader styles */
 #preloaderComponent {
   background-color: var(--color-white);

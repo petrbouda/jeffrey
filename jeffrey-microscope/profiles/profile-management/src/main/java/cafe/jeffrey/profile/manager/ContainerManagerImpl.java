@@ -19,8 +19,12 @@
 package cafe.jeffrey.profile.manager;
 
 import cafe.jeffrey.shared.common.model.Type;
+import cafe.jeffrey.profile.common.event.ContainerConfiguration;
 import cafe.jeffrey.profile.manager.builder.ContainerConfigurationEventBuilder;
+import cafe.jeffrey.profile.manager.builder.ContainerCpuThrottlingEventBuilder;
 import cafe.jeffrey.profile.manager.model.container.ContainerConfigurationData;
+import cafe.jeffrey.profile.manager.model.container.ContainerCpuThrottlingData;
+import cafe.jeffrey.profile.manager.model.container.ThrottlingSample;
 import cafe.jeffrey.provider.profile.api.EventQueryConfigurer;
 import cafe.jeffrey.provider.profile.api.ProfileEventStreamRepository;
 
@@ -44,5 +48,20 @@ public class ContainerManagerImpl implements ContainerManager {
                 .orderedByTime();
 
         return eventStreamRepository.genericStreaming(configurer, new ContainerConfigurationEventBuilder());
+    }
+
+    @Override
+    public ContainerCpuThrottlingData throttling() {
+        // Cumulative counters must be streamed in time order so the analyzer can delta consecutive samples.
+        EventQueryConfigurer configurer = new EventQueryConfigurer()
+                .withEventTypes(List.of(Type.CONTAINER_CPU_THROTTLING))
+                .withJsonFields()
+                .orderedByTime();
+
+        List<ThrottlingSample> samples =
+                eventStreamRepository.genericStreaming(configurer, new ContainerCpuThrottlingEventBuilder());
+
+        ContainerConfiguration config = configuration().configuration();
+        return ContainerCpuThrottlingAnalyzer.analyze(samples, config);
     }
 }

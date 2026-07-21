@@ -36,9 +36,14 @@ public interface RecordingProfileInfoProvider {
      */
     ProfileInfo profileInfo(Recording recording);
 
-    record ProfileInfo(long profileSizeInBytes, boolean profileModified) {
+    /**
+     * @param profileCreatedAt when the profile was created (analyzed), as epoch millis; {@code 0} when the
+     *                         recording has no profile. Lets the UI sort initialized recordings by analysis
+     *                         time rather than upload time.
+     */
+    record ProfileInfo(long profileSizeInBytes, boolean profileModified, long profileCreatedAt) {
 
-        public static final ProfileInfo NONE = new ProfileInfo(0L, false);
+        public static final ProfileInfo NONE = new ProfileInfo(0L, false, 0L);
     }
 
     RecordingProfileInfoProvider NOOP = recording -> ProfileInfo.NONE;

@@ -83,6 +83,7 @@ module cafe.jeffrey.microscope.profile.management {
     exports cafe.jeffrey.profile.manager.model.span;
     exports cafe.jeffrey.profile.manager.registry;
     exports cafe.jeffrey.profile.model;
+    exports cafe.jeffrey.profile.panel;
     exports cafe.jeffrey.profile.parser;
     exports cafe.jeffrey.profile.parser.data;
     exports cafe.jeffrey.profile.parser.fields;

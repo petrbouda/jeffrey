@@ -18,64 +18,26 @@
 
 package cafe.jeffrey.otlpparser.mapping;
 
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
 import cafe.jeffrey.otlpparser.mapping.OtelEventTypeNaming.OtelEventType;
-import cafe.jeffrey.shared.common.model.EventTypeName;
+import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class OtelEventTypeNamingTest {
 
-    @Nested
-    class WellKnownTypes {
+    @Test
+    void codeAndLabelAreTheRawSampleTypeVerbatim() {
+        assertEquals("cpu", OtelEventTypeNaming.resolve("cpu").name());
+        assertEquals("alloc", OtelEventTypeNaming.resolve("alloc").name());
+        assertEquals("alloc_space", OtelEventTypeNaming.resolve("alloc_space").name());
 
-        @Test
-        void asyncProfilerSampleTypes() {
-            assertEquals(EventTypeName.OTEL_CPU, OtelEventTypeNaming.resolve("cpu", "nanoseconds").name());
-            assertEquals(EventTypeName.OTEL_WALL, OtelEventTypeNaming.resolve("wall", "nanoseconds").name());
-            assertEquals(EventTypeName.OTEL_ALLOC, OtelEventTypeNaming.resolve("alloc", "bytes").name());
-            assertEquals(EventTypeName.OTEL_LOCK, OtelEventTypeNaming.resolve("lock", "nanoseconds").name());
-        }
-
-        @Test
-        void ebpfProfilerSampleTypes() {
-            assertEquals(EventTypeName.OTEL_SAMPLES, OtelEventTypeNaming.resolve("samples", "count").name());
-        }
-
-        @Test
-        void pprofHeapAliases() {
-            assertEquals(EventTypeName.OTEL_ALLOC, OtelEventTypeNaming.resolve("alloc_space", "bytes").name());
-            assertEquals(EventTypeName.OTEL_ALLOC, OtelEventTypeNaming.resolve("allocated_objects", "count").name());
-        }
-
-        @Test
-        void matchingIsCaseInsensitive() {
-            assertEquals(EventTypeName.OTEL_CPU, OtelEventTypeNaming.resolve("CPU", "nanoseconds").name());
-        }
-
-        @Test
-        void blankTypeFallsBackToSamples() {
-            assertEquals(EventTypeName.OTEL_SAMPLES, OtelEventTypeNaming.resolve("", "count").name());
-            assertEquals(EventTypeName.OTEL_SAMPLES, OtelEventTypeNaming.resolve(null, null).name());
-        }
+        OtelEventType resolved = OtelEventTypeNaming.resolve("alloc");
+        assertEquals("alloc", resolved.label());
     }
 
-    @Nested
-    class CustomTypes {
-
-        @Test
-        void sanitizesUnknownSampleTypes() {
-            OtelEventType custom = OtelEventTypeNaming.resolve("off cpu/waits", "nanoseconds");
-            assertEquals("otel.off_cpu_waits", custom.name());
-            assertTrue(custom.label().contains("off cpu/waits"));
-        }
-
-        @Test
-        void categoriesAlwaysContainOpenTelemetry() {
-            assertTrue(OtelEventTypeNaming.resolve("custom_metric", "count").categories().contains("OpenTelemetry"));
-            assertTrue(OtelEventTypeNaming.resolve("cpu", "nanoseconds").categories().contains("OpenTelemetry"));
-        }
+    @Test
+    void blankTypeFallsBackToSamples() {
+        assertEquals("samples", OtelEventTypeNaming.resolve("").name());
+        assertEquals("samples", OtelEventTypeNaming.resolve(null).name());
     }
 }

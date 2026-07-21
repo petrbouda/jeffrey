@@ -27,7 +27,6 @@ import cafe.jeffrey.otlpparser.mapping.OtelSemconv;
 import cafe.jeffrey.provider.profile.api.Event;
 import cafe.jeffrey.provider.profile.api.EventStacktrace;
 import cafe.jeffrey.provider.profile.api.EventType;
-import cafe.jeffrey.shared.common.model.EventTypeName;
 import cafe.jeffrey.shared.common.model.StacktraceType;
 
 import java.nio.file.Path;
@@ -103,7 +102,7 @@ class OtlpProfileReaderTest {
 
             assertEquals(2, writer.events.size());
             Event first = writer.events.getFirst();
-            assertEquals(EventTypeName.OTEL_CPU, first.eventType());
+            assertEquals("cpu", first.eventType());
             assertEquals(Instant.ofEpochSecond(0, BASE_TIME_NANOS), first.startTimestamp());
             assertEquals(1, first.samples());
             assertEquals(10_000_000L, first.weight());
@@ -157,16 +156,15 @@ class OtlpProfileReaderTest {
         }
 
         @Test
-        void emitsEventTypeWithOtelCategoriesAndSettings() {
+        void emitsEventTypeWithSettings() {
             new OtlpProfileReader(writer).read(writeRecording(cpuFrame()));
 
             assertEquals(1, writer.eventTypes.size());
             EventType eventType = writer.eventTypes.getFirst();
-            assertEquals(EventTypeName.OTEL_CPU, eventType.name());
-            assertTrue(eventType.categories().contains("OpenTelemetry"));
+            assertEquals("cpu", eventType.name());
 
             boolean serviceNameSetting = writer.settings.stream()
-                    .anyMatch(s -> s.eventType().equals(EventTypeName.OTEL_CPU)
+                    .anyMatch(s -> s.eventType().equals("cpu")
                             && s.name().equals(OtelSemconv.SERVICE_NAME)
                             && s.value().equals("checkout-service"));
             assertTrue(serviceNameSetting);
@@ -245,7 +243,7 @@ class OtlpProfileReaderTest {
             new OtlpProfileReader(writer).read(writeRecording(fixtures.build()));
 
             Event event = writer.events.getFirst();
-            assertEquals(EventTypeName.OTEL_ALLOC, event.eventType());
+            assertEquals("alloc", event.eventType());
             assertEquals(1, event.samples());
             assertEquals(4096L, event.weight());
             assertEquals("byte[]", event.weightEntity());

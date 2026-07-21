@@ -42,6 +42,7 @@ public record RecordingResponse(
         boolean hasProfile,
         long profileSizeInBytes,
         boolean profileModified,
+        long profileCreatedAt,
         String profileName,
         List<RecordingFileResponse> files,
         List<RecordingTagResponse> tags) {
@@ -74,6 +75,7 @@ public record RecordingResponse(
                 recording.hasProfile(),
                 profileInfo.profileSizeInBytes(),
                 profileInfo.profileModified(),
+                profileInfo.profileCreatedAt(),
                 recording.profileName(),
                 fileResponses,
                 tags.stream().map(RecordingTagResponse::from).toList());

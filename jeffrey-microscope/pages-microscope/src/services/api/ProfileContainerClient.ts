@@ -18,6 +18,7 @@
 
 import BaseProfileClient from '@/services/api/BaseProfileClient';
 import ContainerConfigurationData from '@/services/api/model/ContainerConfigurationData';
+import ContainerCpuThrottlingData from '@/services/api/model/ContainerCpuThrottlingData';
 
 export default class ProfileContainerClient extends BaseProfileClient {
   constructor(profileId: string) {
@@ -26,5 +27,9 @@ export default class ProfileContainerClient extends BaseProfileClient {
 
   public getConfiguration(): Promise<ContainerConfigurationData> {
     return this.get<ContainerConfigurationData>('/configuration');
+  }
+
+  public getCpuThrottling(): Promise<ContainerCpuThrottlingData> {
+    return this.get<ContainerCpuThrottlingData>('/cpu-throttling');
   }
 }

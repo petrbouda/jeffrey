@@ -30,10 +30,7 @@
     <FlamegraphCardGrid
       v-else
       :graph-mode="GraphType.PRIMARY"
-      :execution-sample-events="executionSampleEvents"
-      :method-trace-events="[]"
-      :object-allocation-events="objectAllocationEvents"
-      :wall-clock-events="wallClockEvents"
+      :panels="panels"
       :hide-method="true"
       :hide-native="true"
       :hide-blocking="true"
@@ -98,7 +95,7 @@ import FullGraphUpdater from '@/services/flamegraphs/updater/FullGraphUpdater';
 import FlamegraphTooltip from '@/services/flamegraphs/tooltips/FlamegraphTooltip';
 import FlamegraphTooltipFactory from '@/services/flamegraphs/tooltips/FlamegraphTooltipFactory';
 import TimeseriesEventAxeFormatter from '@/services/timeseries/TimeseriesEventAxeFormatter';
-import { useFlamegraphEvents } from '@/composables/useFlamegraphEvents';
+import { useFlamegraphPanels } from '@/composables/useFlamegraphPanels';
 
 const MODAL_INIT_DELAY_MS = 200;
 
@@ -107,19 +104,13 @@ const props = defineProps<{
   tag: string;
 }>();
 
-// Span-scoped event summaries so the cards show the real per-span sample/weight counts (matching the
-// flamegraph), not the profile-wide totals.
-const { loaded, executionSampleEvents, wallClockEvents, objectAllocationEvents } = useFlamegraphEvents(
-  GraphType.PRIMARY,
-  () => new ProfileAsyncProfilerClient(props.profileId).getEventSummaries(props.tag)
+// Span-scoped panels so the cards show the real per-span sample/weight counts (matching the flamegraph),
+// not the profile-wide totals.
+const { loaded, panels } = useFlamegraphPanels(GraphType.PRIMARY, () =>
+  new ProfileAsyncProfilerClient(props.profileId).getPanels(props.tag)
 );
 
-const hasEvents = computed(
-  () =>
-    executionSampleEvents.value.length > 0 ||
-    wallClockEvents.value.length > 0 ||
-    objectAllocationEvents.value.length > 0
-);
+const hasEvents = computed(() => panels.value.some((panel) => panel.event.primary.samples > 0));
 
 // Flamegraph modal state
 const showDialog = ref(false);

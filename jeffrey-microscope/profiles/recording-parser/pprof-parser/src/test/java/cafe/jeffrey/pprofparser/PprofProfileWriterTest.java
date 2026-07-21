@@ -87,14 +87,14 @@ class PprofProfileWriterTest {
 
         // samples dimension (count) sums to 10; the reader names it pprof.samples
         long totalSamples = stub.events.stream()
-                .filter(e -> "pprof.samples".equals(e.eventType()))
+                .filter(e -> "samples".equals(e.eventType()))
                 .mapToLong(Event::samples)
                 .sum();
         assertEquals(10, totalSamples);
 
         // cpu dimension (nanoseconds) is carried as weight, not samples
         long totalCpuWeight = stub.events.stream()
-                .filter(e -> "pprof.cpu".equals(e.eventType()))
+                .filter(e -> "cpu".equals(e.eventType()))
                 .mapToLong(e -> e.weight() == null ? 0 : e.weight())
                 .sum();
         assertEquals(14_000, totalCpuWeight);

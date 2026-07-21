@@ -41,6 +41,8 @@ public class SubSecondController {
 
     private static final Logger LOG = LoggerFactory.getLogger(SubSecondController.class);
 
+    private static final int DEFAULT_BUCKET_SIZE_MS = 20;
+
     private final ProfileManagerResolver resolver;
 
     public SubSecondController(ProfileManagerResolver resolver) {
@@ -60,6 +62,8 @@ public class SubSecondController {
                     profileInfo.profilingStartedAt(), profileInfo.profilingFinishedAt());
             relativeTimeRange = toTimeRange(request.timeRange()).toRelativeTimeRange(startEnd);
         }
-        return pm.subSecondManager().generate(request.eventType(), request.useWeight(), relativeTimeRange);
+        int bucketSizeMs = request.bucketSizeMs() != null ? request.bucketSizeMs() : DEFAULT_BUCKET_SIZE_MS;
+        return pm.subSecondManager().generate(
+                request.eventType(), request.useWeight(), relativeTimeRange, bucketSizeMs);
     }
 }

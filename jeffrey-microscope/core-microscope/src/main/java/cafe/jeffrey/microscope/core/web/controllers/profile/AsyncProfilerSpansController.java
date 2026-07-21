@@ -36,7 +36,9 @@ import cafe.jeffrey.profile.manager.model.span.SpanEventRow;
 import cafe.jeffrey.profile.manager.model.span.SpanOverview;
 import cafe.jeffrey.profile.manager.model.span.SpanSlowestRow;
 import cafe.jeffrey.profile.manager.model.span.SpanTagStat;
-import cafe.jeffrey.profile.model.EventSummaryResult;
+import cafe.jeffrey.profile.model.FlamegraphPanel;
+import cafe.jeffrey.profile.panel.JfrFlamegraphPanelProvider;
+import cafe.jeffrey.profile.panel.PanelContext;
 import cafe.jeffrey.profile.resources.request.GenerateSingleSpanFlamegraphRequest;
 import cafe.jeffrey.profile.resources.request.GenerateSpanFlamegraphRequest;
 import cafe.jeffrey.profile.resources.request.SpanFlamegraphOptions;
@@ -58,9 +60,11 @@ public class AsyncProfilerSpansController {
     private static final String DEFAULT_SLOWEST_LIMIT = "50";
 
     private final ProfileManagerResolver resolver;
+    private final JfrFlamegraphPanelProvider panelProvider;
 
-    public AsyncProfilerSpansController(ProfileManagerResolver resolver) {
+    public AsyncProfilerSpansController(ProfileManagerResolver resolver, JfrFlamegraphPanelProvider panelProvider) {
         this.resolver = resolver;
+        this.panelProvider = panelProvider;
     }
 
     @GetMapping("/spans/overview")
@@ -102,14 +106,14 @@ public class AsyncProfilerSpansController {
         return mgr(profileId).spanEvents(threadHash, fromMillis, toMillis);
     }
 
-    @GetMapping("/spans/event-summaries")
-    public List<EventSummaryResult> spanEventSummaries(
+    @GetMapping("/spans/panels")
+    public List<FlamegraphPanel> spanPanels(
             @PathVariable("profileId") String profileId,
             @RequestParam("tag") String tag) {
-        LOG.debug("Building span-scoped event summaries: profileId={} tag={}", profileId, tag);
+        LOG.debug("Building span-scoped flamegraph panels: profileId={} tag={}", profileId, tag);
         ProfileManager pm = resolver.resolve(profileId);
         List<SpanInterval> intervals = pm.spanManager().tagIntervals(tag);
-        return pm.flamegraphManager().eventSummaries(intervals);
+        return panelProvider.panels(pm.flamegraphManager().eventSummaries(intervals), PanelContext.PRIMARY);
     }
 
     @PostMapping(value = "/spans/flamegraph", produces = FlamegraphController.PROTOBUF_MEDIA_TYPE)

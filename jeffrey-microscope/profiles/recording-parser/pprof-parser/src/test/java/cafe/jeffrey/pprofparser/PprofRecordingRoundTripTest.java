@@ -88,16 +88,16 @@ class PprofRecordingRoundTripTest {
         eventWriter.onComplete();
 
         // one event per non-zero sample dimension
-        assertCount(dataSource, "SELECT COUNT(*) FROM events WHERE event_type = 'pprof.samples'", 1);
-        assertCount(dataSource, "SELECT COUNT(*) FROM events WHERE event_type = 'pprof.cpu'", 1);
+        assertCount(dataSource, "SELECT COUNT(*) FROM events WHERE event_type = 'samples'", 1);
+        assertCount(dataSource, "SELECT COUNT(*) FROM events WHERE event_type = 'cpu'", 1);
 
         // samples dimension carries the count; cpu dimension carries the nanosecond weight
-        assertCount(dataSource, "SELECT samples FROM events WHERE event_type = 'pprof.samples'", 4);
-        assertCount(dataSource, "SELECT weight FROM events WHERE event_type = 'pprof.cpu'", 8_000_000);
+        assertCount(dataSource, "SELECT samples FROM events WHERE event_type = 'samples'", 4);
+        assertCount(dataSource, "SELECT weight FROM events WHERE event_type = 'cpu'", 8_000_000);
 
         // relative timeline starts at zero (all events at the profile collection time)
         assertCount(dataSource,
-                "SELECT MIN(start_timestamp_from_beginning) FROM events WHERE event_type = 'pprof.cpu'", 0);
+                "SELECT MIN(start_timestamp_from_beginning) FROM events WHERE event_type = 'cpu'", 0);
 
         // both event types resolve their source to pprof (persisted as the source id)
         String pprofSourceId = String.valueOf(RecordingEventSource.PPROF.getId());
@@ -126,8 +126,8 @@ class PprofRecordingRoundTripTest {
                 .filter(summary -> summary.samples() > 0)
                 .map(EventSummary::name)
                 .toList();
-        assertTrue(listedTypes.contains("pprof.cpu"), listedTypes.toString());
-        assertTrue(listedTypes.contains("pprof.samples"), listedTypes.toString());
+        assertTrue(listedTypes.contains("cpu"), listedTypes.toString());
+        assertTrue(listedTypes.contains("samples"), listedTypes.toString());
     }
 
     private Path writeGzipped(Profile profile) {

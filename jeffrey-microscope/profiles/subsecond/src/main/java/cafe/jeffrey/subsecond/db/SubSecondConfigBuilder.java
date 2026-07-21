@@ -25,10 +25,14 @@ import cafe.jeffrey.shared.common.model.time.RelativeTimeRange;
 import java.util.Objects;
 
 public final class SubSecondConfigBuilder {
+
+    private static final int DEFAULT_BUCKET_SIZE_MS = 20;
+
     private ProfileInfo profileInfo;
     private Type eventType;
     private RelativeTimeRange timeRange;
     private boolean collectWeight;
+    private int bucketSizeMs = DEFAULT_BUCKET_SIZE_MS;
 
     public SubSecondConfigBuilder withProfileInfo(ProfileInfo profileInfo) {
         this.profileInfo = profileInfo;
@@ -50,6 +54,11 @@ public final class SubSecondConfigBuilder {
         return this;
     }
 
+    public SubSecondConfigBuilder withBucketSizeMs(int bucketSizeMs) {
+        this.bucketSizeMs = bucketSizeMs;
+        return this;
+    }
+
     public SubSecondConfig build() {
         Objects.requireNonNull(eventType, "Type of the event needs to be specified");
 
@@ -57,6 +66,7 @@ public final class SubSecondConfigBuilder {
                 profileInfo,
                 eventType,
                 timeRange,
-                collectWeight);
+                collectWeight,
+                bucketSizeMs);
     }
 }

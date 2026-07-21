@@ -56,17 +56,17 @@ class PprofProfileReaderTest {
 
         // one event type per dimension
         List<String> typeNames = writer.eventTypes.stream().map(EventType::name).toList();
-        assertTrue(typeNames.contains("pprof.samples"), typeNames.toString());
-        assertTrue(typeNames.contains("pprof.cpu"), typeNames.toString());
+        assertTrue(typeNames.contains("samples"), typeNames.toString());
+        assertTrue(typeNames.contains("cpu"), typeNames.toString());
 
         // one event per non-zero dimension value
         assertEquals(2, writer.events.size());
 
-        Event samplesEvent = eventOfType(writer, "pprof.samples");
+        Event samplesEvent = eventOfType(writer, "samples");
         assertEquals(3, samplesEvent.samples());
         assertNull(samplesEvent.weight());
 
-        Event cpuEvent = eventOfType(writer, "pprof.cpu");
+        Event cpuEvent = eventOfType(writer, "cpu");
         assertEquals(1, cpuEvent.samples());
         assertEquals(7_000_000L, cpuEvent.weight());
 
@@ -119,7 +119,7 @@ class PprofProfileReaderTest {
 
         assertEquals(1, writer.events.size());
         Event event = writer.events.get(0);
-        assertEquals("pprof.alloc_space", event.eventType());
+        assertEquals("alloc_space", event.eventType());
         assertEquals(4096L, event.weight());
         assertEquals(1, event.samples());
     }

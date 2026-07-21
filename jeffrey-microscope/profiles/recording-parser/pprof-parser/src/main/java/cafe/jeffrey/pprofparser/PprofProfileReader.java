@@ -35,6 +35,7 @@ import cafe.jeffrey.provider.profile.api.Event;
 import cafe.jeffrey.provider.profile.api.EventStacktrace;
 import cafe.jeffrey.provider.profile.api.EventThread;
 import cafe.jeffrey.provider.profile.api.EventType;
+import cafe.jeffrey.shared.common.model.RecordingEventSource;
 import cafe.jeffrey.provider.profile.api.SingleThreadedEventWriter;
 import cafe.jeffrey.shared.common.Json;
 import tools.jackson.databind.JsonNode;
@@ -98,9 +99,10 @@ public final class PprofProfileReader {
                     dimension.eventType().label(),
                     null,
                     null,
-                    dimension.eventType().categories(),
+                    List.of(),
                     columns,
-                    Map.of(EXTRA_SAMPLE_TYPE, dimension.eventType().sampleType())));
+                    Map.of(EXTRA_SAMPLE_TYPE, dimension.eventType().sampleType()),
+                    RecordingEventSource.PPROF));
         }
 
         writer.onThreadComplete();

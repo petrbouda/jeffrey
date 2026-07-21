@@ -26,7 +26,8 @@ public record SubSecondConfig(
         ProfileInfo profileInfo,
         Type eventType,
         RelativeTimeRange timeRange,
-        boolean collectWeight) {
+        boolean collectWeight,
+        int bucketSizeMs) {
 
     public static SubSecondConfigBuilder builder() {
         return new SubSecondConfigBuilder();

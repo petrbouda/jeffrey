@@ -228,48 +228,67 @@
           icon="bi-funnel"
           title="No recordings of this type in the current selection"
         />
-        <div v-else class="card-stack recordings-list">
-          <RecordingCard
-            v-for="recording in visibleRecordings"
-            :key="recording.id"
-            :recording-id="recording.id"
-            :name="recording.profileName ?? recording.filename"
-            :size-in-bytes="recording.sizeInBytes"
-            :duration-in-millis="recording.durationInMillis"
-            :uploaded-at="recording.uploadedAt"
-            :source-type="recording.eventSource"
-            :has-profile="recording.hasProfile"
-            :profile-id="recording.profileId"
-            :profile-size-in-bytes="recording.profileSizeInBytes"
-            :profile-modified="recording.profileModified"
-            :analyzing="analyzingRecordings.has(recording.id)"
-            :draggable="true"
-            :origin="buildOrigin(recording)"
-            :file-count="recording.files?.length ?? 0"
-            :expandable="(recording.files?.length ?? 0) > 1"
-            :expanded="expandedRecordings.has(recording.id)"
-            @click="handleCardClick(recording)"
-            @create-profile="analyzeRecording(recording.id)"
-            @open-profile="openProfile(recording)"
-            @edit-profile="startEditProfile(recording)"
-            @delete-profile="deleteProfileFromRecording(recording.id)"
-            @delete-recording="deleteRecording(recording.id)"
-            @toggle-expand="toggleRecordingFiles(recording.id)"
-            @dragend="onDragEnd"
+        <div v-else class="recordings-split">
+          <section
+            v-for="column in recordingColumns"
+            :key="column.key"
+            class="rec-col"
+            :class="`rec-col--${column.key}`"
           >
-            <template #expanded-content>
-              <RecordingFileGroupList
-                v-if="recording.files && recording.files.length > 0"
+            <div class="rec-col__head">
+              <span class="rec-col__dot" :class="`rec-col__dot--${column.key}`"></span>
+              {{ column.label }}
+              <span class="rec-col__count">{{ column.items.length }}</span>
+            </div>
+            <div v-if="column.items.length > 0" class="card-stack recordings-list">
+              <RecordingCard
+                v-for="recording in column.items"
+                :key="recording.id"
                 :recording-id="recording.id"
-                :files="recording.files"
-                @download="downloadFile"
-              />
-              <div v-else class="small py-1 text-muted">
-                <i class="bi bi-exclamation-circle me-1"></i>
-                No recording files available
-              </div>
-            </template>
-          </RecordingCard>
+                :name="recording.profileName ?? recording.filename"
+                :size-in-bytes="recording.sizeInBytes"
+                :duration-in-millis="recording.durationInMillis"
+                :uploaded-at="recording.uploadedAt"
+                :source-type="recording.eventSource"
+                :has-profile="recording.hasProfile"
+                :profile-id="recording.profileId"
+                :profile-size-in-bytes="recording.profileSizeInBytes"
+                :profile-created-at="recording.profileCreatedAt"
+                :profile-modified="recording.profileModified"
+                :analyzing="analyzingRecordings.has(recording.id)"
+                :draggable="true"
+                :origin="buildOrigin(recording)"
+                :file-count="recording.files?.length ?? 0"
+                :expandable="(recording.files?.length ?? 0) > 1"
+                :expanded="expandedRecordings.has(recording.id)"
+                @click="handleCardClick(recording)"
+                @create-profile="analyzeRecording(recording.id)"
+                @open-profile="openProfile(recording)"
+                @edit-profile="startEditProfile(recording)"
+                @delete-profile="deleteProfileFromRecording(recording.id)"
+                @delete-recording="deleteRecording(recording.id)"
+                @toggle-expand="toggleRecordingFiles(recording.id)"
+                @dragend="onDragEnd"
+              >
+                <template #expanded-content>
+                  <RecordingFileGroupList
+                    v-if="recording.files && recording.files.length > 0"
+                    :recording-id="recording.id"
+                    :files="recording.files"
+                    @download="downloadFile"
+                  />
+                  <div v-else class="small py-1 text-muted">
+                    <i class="bi bi-exclamation-circle me-1"></i>
+                    No recording files available
+                  </div>
+                </template>
+              </RecordingCard>
+            </div>
+            <div v-else class="rec-col__empty">
+              <i class="bi" :class="column.emptyIcon"></i>
+              <span>{{ column.emptyText }}</span>
+            </div>
+          </section>
         </div>
       </template>
     </MainCard>
@@ -543,6 +562,44 @@ const visibleRecordings = computed(() => {
     recs = recs.filter(recording => recordingType(recording) === typeFilter.value);
   }
   return sortRecordings(recs);
+});
+
+// The list is split into two columns by whether the recording has a built profile: not-initialized
+// (raw uploads, "Click to analyze") on the left, initialized (has a profile) on the right.
+interface RecordingColumn {
+  key: 'raw' | 'initialized';
+  label: string;
+  items: Recording[];
+  emptyIcon: string;
+  emptyText: string;
+}
+
+const recordingColumns = computed<RecordingColumn[]>(() => {
+  const notInitialized: Recording[] = [];
+  const initialized: Recording[] = [];
+  for (const recording of visibleRecordings.value) {
+    (recording.hasProfile ? initialized : notInitialized).push(recording);
+  }
+  // Not-initialized: newest upload first. Initialized: most recently analyzed first (falling back to
+  // upload time) so a recording you just analyzed surfaces at the top instead of sinking to its upload slot.
+  notInitialized.sort((a, b) => b.uploadedAt - a.uploadedAt);
+  initialized.sort((a, b) => (b.profileCreatedAt || b.uploadedAt) - (a.profileCreatedAt || a.uploadedAt));
+  return [
+    {
+      key: 'raw',
+      label: 'Not initialized',
+      items: notInitialized,
+      emptyIcon: 'bi-check2-all',
+      emptyText: 'All recordings here are initialized'
+    },
+    {
+      key: 'initialized',
+      label: 'Initialized',
+      items: initialized,
+      emptyIcon: 'bi-hourglass-split',
+      emptyText: 'No profiles yet — initialize a recording on the left'
+    }
+  ];
 });
 
 const TYPE_FILTERS: { key: RecordingType; label: string; icon: string; variant: string }[] = [
@@ -1397,5 +1454,73 @@ const onDragEnd = () => {
 
 .recordings-list {
   margin-top: 4px;
+}
+
+/* Two-column split: not-initialized (left) | initialized (right). */
+.recordings-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+  align-items: start;
+  margin-top: 0.5rem;
+}
+
+.rec-col {
+  min-width: 0;
+}
+
+.rec-col__head {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-text-muted);
+  margin-bottom: 0.6rem;
+}
+
+.rec-col__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.rec-col__dot--raw {
+  background: var(--color-amber);
+}
+
+.rec-col__dot--initialized {
+  background: var(--color-success);
+}
+
+.rec-col__count {
+  background: var(--color-lighter);
+  color: var(--color-text);
+  border-radius: var(--radius-pill, 999px);
+  padding: 1px 8px;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.rec-col__empty {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1.1rem 1rem;
+  border: 1px dashed var(--color-border-input);
+  border-radius: var(--radius-md);
+  background: var(--color-light);
+  color: var(--color-text-muted);
+  font-size: 0.78rem;
+}
+
+@media (max-width: 900px) {
+  .recordings-split {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
 }
 </style>

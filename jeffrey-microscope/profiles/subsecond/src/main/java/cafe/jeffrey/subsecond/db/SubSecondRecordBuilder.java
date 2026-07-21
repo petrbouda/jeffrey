@@ -28,10 +28,16 @@ public class SubSecondRecordBuilder implements RecordBuilder<SubSecondRecord, Si
 
     private final List<SecondColumn> columns = new ArrayList<>();
     private final long timeRangeStartMillis;
+    private final int bucketSizeMs;
     private long maxvalue = 0;
 
     public SubSecondRecordBuilder(long timeRangeStartMillis) {
+        this(timeRangeStartMillis, SecondColumn.BUCKET_SIZE);
+    }
+
+    public SubSecondRecordBuilder(long timeRangeStartMillis, int bucketSizeMs) {
         this.timeRangeStartMillis = timeRangeStartMillis;
+        this.bucketSizeMs = bucketSizeMs;
     }
 
     @Override
@@ -57,7 +63,7 @@ public class SubSecondRecordBuilder implements RecordBuilder<SubSecondRecord, Si
     private void appendMoreColumns(long newSize) {
         long columnsToAdd = newSize - columns.size();
         for (int i = 0; i < columnsToAdd; i++) {
-            columns.add(new SecondColumn());
+            columns.add(new SecondColumn(bucketSizeMs));
         }
     }
 

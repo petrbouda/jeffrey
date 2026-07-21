@@ -105,12 +105,12 @@ class OtlpRecordingRoundTripTest {
         new OtlpRecordingEventParser().start(eventWriter, recording);
         eventWriter.onComplete();
 
-        assertEquals(2, count(dataSource, "SELECT COUNT(*) FROM events WHERE event_type = 'otel.cpu'"));
-        assertEquals(1, count(dataSource, "SELECT COUNT(*) FROM events WHERE event_type = 'otel.alloc'"));
+        assertEquals(2, count(dataSource, "SELECT COUNT(*) FROM events WHERE event_type = 'cpu'"));
+        assertEquals(1, count(dataSource, "SELECT COUNT(*) FROM events WHERE event_type = 'alloc'"));
 
         // relative timeline starts at zero for the first cpu event
         assertEquals(0, count(dataSource,
-                "SELECT MIN(start_timestamp_from_beginning) FROM events WHERE event_type = 'otel.cpu'"));
+                "SELECT MIN(start_timestamp_from_beginning) FROM events WHERE event_type = 'cpu'"));
 
         // both event types resolve their source to OpenTelemetry (persisted as the source id)
         String openTelemetrySourceId = String.valueOf(RecordingEventSource.OPEN_TELEMETRY.getId());
@@ -130,9 +130,9 @@ class OtlpRecordingRoundTripTest {
 
         // allocation weight and entity survived the round trip
         assertEquals(4096, count(dataSource,
-                "SELECT weight FROM events WHERE event_type = 'otel.alloc'"));
+                "SELECT weight FROM events WHERE event_type = 'alloc'"));
         assertTrue(queryString(dataSource,
-                "SELECT weight_entity FROM events WHERE event_type = 'otel.alloc'").contains("byte[]"));
+                "SELECT weight_entity FROM events WHERE event_type = 'alloc'").contains("byte[]"));
     }
 
     private static long count(DataSource dataSource, String sql) throws SQLException {

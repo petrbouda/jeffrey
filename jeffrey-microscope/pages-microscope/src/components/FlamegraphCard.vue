@@ -33,7 +33,7 @@ Coul<!--
     <div class="settings-panel">
       <!-- Event Details -->
       <div class="event-details">
-        <div class="detail-row">
+        <div class="detail-row" v-if="showType">
           <span class="detail-label">Type:</span>
           <span class="detail-value" v-if="containsSecondary() && !isSameType()">
             <span class="secondary-value">{{ event.secondary?.code }}</span>
@@ -60,18 +60,6 @@ Coul<!--
           </span>
           <span class="detail-value" v-else>
             {{ event.primary.subtype }}
-          </span>
-        </div>
-
-        <div class="detail-row">
-          <span class="detail-label">Source:</span>
-          <span class="detail-value" v-if="containsSecondary() && !isSameSource()">
-            <span class="secondary-value">{{ event.secondary?.source }}</span>
-            <span class="delimiter"> → </span>
-            <span class="primary-value">{{ event.primary.source }}</span>
-          </span>
-          <span class="detail-value" v-else>
-            {{ event.primary.source }}
           </span>
         </div>
 
@@ -308,6 +296,8 @@ interface Props {
   onlyUnsafeAllocationSamplesSelected: boolean;
   event: EventSummary;
   enabled: boolean;
+  // Whether to show the raw event-type "Type" detail row (JFR only; the backend decides per format).
+  showType: boolean;
   routeName?: string;
   buttonText?: string;
   emitView?: boolean;
@@ -371,12 +361,6 @@ const containsSecondary = () => {
 
 const isSameType = () => {
   return props.event.secondary != null && props.event.primary.code === props.event.secondary.code;
-};
-
-const isSameSource = () => {
-  return (
-    props.event.secondary != null && props.event.primary.source === props.event.secondary.source
-  );
 };
 
 const samplesDelta = computed(() =>

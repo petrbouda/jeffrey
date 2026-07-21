@@ -97,25 +97,20 @@ describe('EventTypes', () => {
     });
   });
 
-  describe('OpenTelemetry (OTLP) event types', () => {
-    it('isOtelEvent matches only the otel. namespace', () => {
-      expect(EventTypes.isOtelEvent('otel.cpu')).toBe(true);
-      expect(EventTypes.isOtelEvent('otel.alloc')).toBe(true);
-      expect(EventTypes.isOtelEvent('jdk.ExecutionSample')).toBe(false);
-      expect(EventTypes.isOtelEvent('pprof.cpu')).toBe(false);
+  describe('stack-sample (pprof / OTLP) event types', () => {
+    it('classifies raw sample dimensions into the right analysis groups', () => {
+      expect(EventTypes.isExecutionEventType('cpu')).toBe(true);
+      expect(EventTypes.isExecutionEventType('samples')).toBe(true);
+      expect(EventTypes.isWallClock('wall')).toBe(true);
+      expect(EventTypes.isAllocationEventType('alloc')).toBe(true);
+      expect(EventTypes.isAllocationEventType('alloc_space')).toBe(true);
+      expect(EventTypes.isBlockingEventType('lock')).toBe(true);
+      expect(EventTypes.isBlockingEventType('contentions')).toBe(true);
     });
 
-    it('classifies otel dimensions into the right analysis groups', () => {
-      expect(EventTypes.isExecutionEventType('otel.cpu')).toBe(true);
-      expect(EventTypes.isExecutionEventType('otel.samples')).toBe(true);
-      expect(EventTypes.isWallClock('otel.wall')).toBe(true);
-      expect(EventTypes.isAllocationEventType('otel.alloc')).toBe(true);
-      expect(EventTypes.isBlockingEventType('otel.lock')).toBe(true);
-    });
-
-    it('does not classify unknown otel dimensions', () => {
-      expect(EventTypes.isExecutionEventType('otel.mystery')).toBe(false);
-      expect(EventTypes.isAllocationEventType('otel.mystery')).toBe(false);
+    it('does not classify unknown dimensions', () => {
+      expect(EventTypes.isExecutionEventType('mystery')).toBe(false);
+      expect(EventTypes.isAllocationEventType('mystery')).toBe(false);
     });
   });
 

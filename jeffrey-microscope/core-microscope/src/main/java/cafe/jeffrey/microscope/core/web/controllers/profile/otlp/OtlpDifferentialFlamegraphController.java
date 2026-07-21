@@ -27,17 +27,15 @@ import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
 import cafe.jeffrey.profile.manager.FlamegraphManager;
 import cafe.jeffrey.profile.manager.ProfileManager;
-import cafe.jeffrey.profile.model.EventSummaryResult;
+import cafe.jeffrey.profile.model.FlamegraphPanel;
+import cafe.jeffrey.profile.panel.PanelContext;
+import cafe.jeffrey.profile.panel.StackSampleFlamegraphPanelProvider;
 
 import java.util.List;
 
-import static cafe.jeffrey.microscope.core.web.controllers.profile.otlp.OtlpFlamegraphController.withCategories;
-
 /**
- * OTLP-format differential flamegraph endpoints. Mirrors
- * {@link cafe.jeffrey.microscope.core.web.controllers.profile.DifferentialFlamegraphController}'s
- * {@code /events} interface at an OTLP-specific path, tagging each event summary with its OTLP category
- * so the differential flamegraph UI groups cards the same way the primary view does.
+ * OTLP-format differential flamegraph endpoints, serving the differential card grid at an OTLP-specific
+ * path so the UI can pick a client by format.
  */
 @RestController
 @RequestMapping("/api/internal/profiles/{primaryProfileId}/otlp/diff/{secondaryProfileId}/differential-flamegraph")
@@ -46,20 +44,22 @@ public class OtlpDifferentialFlamegraphController {
     private static final Logger LOG = LoggerFactory.getLogger(OtlpDifferentialFlamegraphController.class);
 
     private final ProfileManagerResolver resolver;
+    private final StackSampleFlamegraphPanelProvider panelProvider;
 
-    public OtlpDifferentialFlamegraphController(ProfileManagerResolver resolver) {
+    public OtlpDifferentialFlamegraphController(ProfileManagerResolver resolver, StackSampleFlamegraphPanelProvider panelProvider) {
         this.resolver = resolver;
+        this.panelProvider = panelProvider;
     }
 
-    @GetMapping("/events")
-    public List<EventSummaryResult> events(
+    @GetMapping("/panels")
+    public List<FlamegraphPanel> panels(
             @PathVariable("primaryProfileId") String primaryProfileId,
             @PathVariable("secondaryProfileId") String secondaryProfileId) {
         ProfileManager primary = resolver.resolve(primaryProfileId);
         ProfileManager secondary = resolver.resolve(secondaryProfileId);
         FlamegraphManager diffManager = primary.diffFlamegraphManager(secondary);
-        List<EventSummaryResult> result = withCategories(diffManager.allEventSummaries());
-        LOG.debug("Listed OTLP diff flamegraph event types: profileId={} count={}", primaryProfileId, result.size());
-        return result;
+        List<FlamegraphPanel> panels = panelProvider.panels(diffManager.allEventSummaries(), PanelContext.DIFFERENTIAL);
+        LOG.debug("Listed OTLP diff flamegraph panels: profileId={} count={}", primaryProfileId, panels.size());
+        return panels;
     }
 }

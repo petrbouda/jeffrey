@@ -21,5 +21,9 @@ package cafe.jeffrey.profile.resources.request;
 import cafe.jeffrey.profile.TimeRangeRequest;
 import cafe.jeffrey.shared.common.model.Type;
 
-public record GetSubSecondRequest(Type eventType, boolean useWeight, TimeRangeRequest timeRange) {
+public record GetSubSecondRequest(
+        Type eventType,
+        boolean useWeight,
+        TimeRangeRequest timeRange,
+        Integer bucketSizeMs) {
 }

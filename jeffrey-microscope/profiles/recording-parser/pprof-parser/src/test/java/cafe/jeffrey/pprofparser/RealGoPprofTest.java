@@ -43,8 +43,8 @@ class RealGoPprofTest {
         RecordingEventWriterStub writer = read("pprof/go-cpu.pprof");
 
         List<String> typeNames = writer.eventTypes.stream().map(EventType::name).toList();
-        assertTrue(typeNames.contains("pprof.samples"), typeNames.toString());
-        assertTrue(typeNames.contains("pprof.cpu"), typeNames.toString());
+        assertTrue(typeNames.contains("samples"), typeNames.toString());
+        assertTrue(typeNames.contains("cpu"), typeNames.toString());
         assertFalse(writer.events.isEmpty());
 
         // The Go generator recurses through fib(), so at least one Go frame must be present and
@@ -58,10 +58,10 @@ class RealGoPprofTest {
         RecordingEventWriterStub writer = read("pprof/go-heap.pprof");
 
         List<String> typeNames = writer.eventTypes.stream().map(EventType::name).toList();
-        assertTrue(typeNames.contains("pprof.alloc_objects"), typeNames.toString());
-        assertTrue(typeNames.contains("pprof.alloc_space"), typeNames.toString());
-        assertTrue(typeNames.contains("pprof.inuse_objects"), typeNames.toString());
-        assertTrue(typeNames.contains("pprof.inuse_space"), typeNames.toString());
+        assertTrue(typeNames.contains("alloc_objects"), typeNames.toString());
+        assertTrue(typeNames.contains("alloc_space"), typeNames.toString());
+        assertTrue(typeNames.contains("inuse_objects"), typeNames.toString());
+        assertTrue(typeNames.contains("inuse_space"), typeNames.toString());
         assertFalse(writer.events.isEmpty());
     }
 

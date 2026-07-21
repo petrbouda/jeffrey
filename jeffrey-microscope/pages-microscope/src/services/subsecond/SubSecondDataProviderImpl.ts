@@ -27,17 +27,20 @@ export default class SubSecondDataProviderImpl implements SubSecondDataProvider 
   private readonly baseUrl: string;
   private readonly eventType: string;
   private readonly useWeight: boolean;
+  private readonly bucketSizeMs?: number;
 
-  constructor(profileId: string, eventType: string, useWeight: boolean) {
+  constructor(profileId: string, eventType: string, useWeight: boolean, bucketSizeMs?: number) {
     this.baseUrl = GlobalVars.internalUrl + '/profiles/' + profileId + '/subsecond';
     this.eventType = eventType;
     this.useWeight = useWeight;
+    this.bucketSizeMs = bucketSizeMs;
   }
 
   provide(timeRange?: TimeRange): Promise<SubSecondData> {
     const content = {
       eventType: this.eventType,
       useWeight: this.useWeight,
+      bucketSizeMs: this.bucketSizeMs ?? null,
       timeRange: timeRange
         ? {
             start: timeRange.start,

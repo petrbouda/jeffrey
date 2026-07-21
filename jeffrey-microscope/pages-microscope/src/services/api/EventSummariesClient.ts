@@ -18,6 +18,7 @@
 
 import BaseProfileClient from '@/services/api/BaseProfileClient';
 import EventSummary from '@/services/api/model/EventSummary';
+import FlamegraphPanel from '@/services/api/model/FlamegraphPanel';
 
 export default class EventSummariesClient extends BaseProfileClient {
   private constructor(profileId: string, featurePath: string) {
@@ -43,5 +44,9 @@ export default class EventSummariesClient extends BaseProfileClient {
 
   events(): Promise<EventSummary[]> {
     return super.get<EventSummary[]>('/events');
+  }
+
+  panels(): Promise<FlamegraphPanel[]> {
+    return super.get<FlamegraphPanel[]>('/panels');
   }
 }

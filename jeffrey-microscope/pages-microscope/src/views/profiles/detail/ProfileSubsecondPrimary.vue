@@ -10,14 +10,9 @@
 
     <FlamegraphCardGrid
       :graph-mode="GraphType.PRIMARY"
-      :execution-sample-events="executionSampleEvents"
-      :cpu-time-sample-events="cpuTimeSampleEvents"
-      :method-trace-events="methodTraceEvents"
-      :object-allocation-events="objectAllocationEvents"
-      :wall-clock-events="wallClockEvents"
+      :panels="panels"
       route-name="subsecond"
       button-text="Show SubSecond Graph"
-      :suppress-empty-placeholders="isStackSampleProfile"
     />
   </div>
 </template>
@@ -29,7 +24,7 @@ import GraphType from '@/services/flamegraphs/GraphType';
 import PageHeader from '@shared/components/layout/PageHeader.vue';
 import LoadingState from '@shared/components/LoadingState.vue';
 import FlamegraphCardGrid from '@/components/FlamegraphCardGrid.vue';
-import { useFlamegraphEvents } from '@/composables/useFlamegraphEvents';
+import { useFlamegraphPanels } from '@/composables/useFlamegraphPanels';
 import PprofEventSummariesClient from '@/services/api/PprofEventSummariesClient';
 import OtelEventSummariesClient from '@/services/api/OtelEventSummariesClient';
 import type Profile from '@/services/api/model/Profile';
@@ -43,22 +38,14 @@ const isPprofProfile = computed(() => props.profile?.eventSource === RecordingEv
 const isOtelProfile = computed(
   () => props.profile?.eventSource === RecordingEventSource.OPEN_TELEMETRY
 );
-const isStackSampleProfile = computed(() => isPprofProfile.value || isOtelProfile.value);
 
 const route = useRoute();
 const profileId = route.params.profileId as string;
-const fetchEvents = isPprofProfile.value
-  ? () => PprofEventSummariesClient.primary(profileId).events()
+const fetchPanels = isPprofProfile.value
+  ? () => PprofEventSummariesClient.primary(profileId).panels()
   : isOtelProfile.value
-    ? () => OtelEventSummariesClient.primary(profileId).events()
+    ? () => OtelEventSummariesClient.primary(profileId).panels()
     : undefined;
 
-const {
-  loaded,
-  executionSampleEvents,
-  cpuTimeSampleEvents,
-  methodTraceEvents,
-  objectAllocationEvents,
-  wallClockEvents
-} = useFlamegraphEvents(GraphType.PRIMARY, fetchEvents);
+const { loaded, panels } = useFlamegraphPanels(GraphType.PRIMARY, fetchPanels);
 </script>

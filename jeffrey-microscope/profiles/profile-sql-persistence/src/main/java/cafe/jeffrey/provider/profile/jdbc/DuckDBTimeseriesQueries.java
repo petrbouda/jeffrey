@@ -178,16 +178,64 @@ public class DuckDBTimeseriesQueries implements ComplexQueries.Timeseries {
             CROSS JOIN frame_lookup fl;
             """;
 
+    // Per-event variant of FRAME_BASED: no per-second bucketing — one event_values entry per event, whose
+    // `second` slot carries the raw millisecond offset (start_timestamp_from_beginning), not a second index.
+    // Lets a weighted OTLP export emit one observation per sample so the exact sample count round-trips.
+    private static final String FRAME_BASED_EVENTS = """
+            WITH filtered_data AS (
+                SELECT
+                    e.start_timestamp_from_beginning AS ts_ms,
+                    s.stacktrace_hash,
+                    s.frame_hashes,
+                    <<target_value>> AS value
+                FROM events e
+                INNER JOIN stacktraces s ON e.stacktrace_hash = s.stacktrace_hash
+                WHERE e.event_type = <<event_type>>
+                    <<time_filters>>
+                    <<span_filter>>
+                    <<stacktrace_filters>>
+                    <<additional_filters>>
+            ),
+            frame_lookup AS (
+                SELECT MAP_FROM_ENTRIES(
+                    LIST({'key': frame_hash, 'value': STRUCT_PACK(
+                        class_name := class_name,
+                        method_name := method_name,
+                        frame_type := frame_type,
+                        line_number := line_number,
+                        bytecode_index := bytecode_index
+                    )})
+                ) AS frames_map
+                FROM frames
+            ),
+            aggregated_events AS (
+                SELECT
+                    fd.stacktrace_hash,
+                    fd.frame_hashes,
+                    LIST(STRUCT_PACK(second := fd.ts_ms, value := fd.value) ORDER BY fd.ts_ms) AS event_values
+                FROM filtered_data fd
+                GROUP BY fd.stacktrace_hash, fd.frame_hashes
+            )
+            SELECT
+                ae.stacktrace_hash,
+                list_transform(ae.frame_hashes, fh -> fl.frames_map[fh]) AS frames,
+                ae.event_values
+            FROM aggregated_events ae
+            CROSS JOIN frame_lookup fl;
+            """;
+
     private final String simple;
     private final String simpleSearch;
     private final String filterable;
     private final String frameBased;
+    private final String frameBasedEvents;
 
     private DuckDBTimeseriesQueries(String eventType, String additionalFilters) {
         this.simple = prepare(SIMPLE, eventType, additionalFilters);
         this.simpleSearch = prepare(SIMPLE_SEARCH, eventType, additionalFilters);
         this.filterable = prepare(FILTERABLE, eventType, additionalFilters);
         this.frameBased = prepare(FRAME_BASED, eventType, additionalFilters);
+        this.frameBasedEvents = prepare(FRAME_BASED_EVENTS, eventType, additionalFilters);
     }
 
     private static String prepare(String template, String eventType, String additionalFilters) {
@@ -234,5 +282,10 @@ public class DuckDBTimeseriesQueries implements ComplexQueries.Timeseries {
     @Override
     public String frameBased(EventQueryConfigurer configurer) {
         return render(frameBased, configurer);
+    }
+
+    @Override
+    public String frameBasedEvents(EventQueryConfigurer configurer) {
+        return render(frameBasedEvents, configurer);
     }
 }

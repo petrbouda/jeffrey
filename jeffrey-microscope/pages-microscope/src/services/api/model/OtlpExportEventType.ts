@@ -22,7 +22,7 @@
 export default interface OtlpExportEventType {
   /** Event type code, e.g. `jdk.ExecutionSample`. */
   code: string;
-  /** Human-readable label, e.g. `Execution Samples`. */
+  /** Human-readable label, e.g. `Samples`. */
   label: string;
   /** Total sample count. */
   samples: number;

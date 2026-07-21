@@ -32,10 +32,12 @@ export default class HeatmapGraph {
   private readonly scrollerElement: HTMLElement;
   private readonly heatmapTooltip: HeatmapTooltip;
 
-  // definition of the heatmap
-  private readonly millisInBucket = 20;
-  private readonly sizeY = 50;
+  // definition of the heatmap — bucket width (ms) and row count are derived from the data so the
+  // same renderer serves any resolution (default 20 ms / 50 rows, or e.g. 1–5 ms for Period Detail)
+  private readonly millisInBucket: number;
+  private readonly sizeY: number;
   private readonly cellWidth = 10; // pixels per column (second)
+  private readonly cellHeight = 10; // pixels per row (bucket)
 
   private firstSelected: HeatmapPoint | null = null;
 
@@ -47,9 +49,12 @@ export default class HeatmapGraph {
     data: SubSecondData,
     elementHeatmaps: HTMLElement,
     selectedCallback: any,
-    heatmapTooltip: HeatmapTooltip
+    heatmapTooltip: HeatmapTooltip,
+    bucketSizeMs: number = 20
   ) {
     this.heatmapTooltip = heatmapTooltip;
+    this.millisInBucket = bucketSizeMs;
+    this.sizeY = data.series.length > 0 ? data.series.length : 1000 / bucketSizeMs;
     this.maxValue = data.maxvalue;
     this.selectedCallback = selectedCallback;
     this.elementHeatmaps = elementHeatmaps;
@@ -128,11 +133,18 @@ export default class HeatmapGraph {
     // Calculate width based on number of columns (seconds)
     const numColumns =
       seriesData.length > 0 && seriesData[0].data.length > 0 ? seriesData[0].data.length : 300; // default to 300 seconds (5 minutes)
-    const chartWidth = Math.max(numColumns * this.cellWidth, 500); // minimum 500px
+    // Width is exactly one cell per column so cells keep a consistent size regardless of how many
+    // columns there are (a narrow window must not stretch its cells wider than a full recording).
+    const chartWidth = numColumns * this.cellWidth;
+
+    // Single source of truth for the cell hue, shared with the marginal colorbar legend
+    const cellColor =
+      getComputedStyle(document.documentElement).getPropertyValue('--color-subsecond-cell').trim() ||
+      '#0022ff';
 
     return {
       chart: {
-        height: 500,
+        height: Math.max(500, this.sizeY * this.cellHeight),
         width: chartWidth,
         type: 'heatmap',
         offsetY: -20,
@@ -173,7 +185,7 @@ export default class HeatmapGraph {
           }
         }
       },
-      colors: ['#0022ff'],
+      colors: [cellColor],
       plotOptions: {
         heatmap: {
           shadeIntensity: 1
@@ -189,12 +201,12 @@ export default class HeatmapGraph {
           const dataPointIndex = options.dataPointIndex;
           const w = options.w;
 
-          const timeBucket = seriesIndex * 20;
+          const timeBucket = seriesIndex * this.millisInBucket;
 
           if (w.globals.seriesNames[seriesIndex] !== '') {
             const value = series[seriesIndex][dataPointIndex];
             const second = dataPointIndex;
-            const millis = `${timeBucket}-${timeBucket + 20}`;
+            const millis = `${timeBucket}-${timeBucket + this.millisInBucket}`;
             return this.heatmapTooltip.generate(value, second, millis);
           } else {
             return '';

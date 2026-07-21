@@ -43,6 +43,7 @@ import cafe.jeffrey.provider.profile.api.EventSetting;
 import cafe.jeffrey.provider.profile.api.EventStacktrace;
 import cafe.jeffrey.provider.profile.api.EventThread;
 import cafe.jeffrey.provider.profile.api.EventType;
+import cafe.jeffrey.shared.common.model.RecordingEventSource;
 import cafe.jeffrey.provider.profile.api.SingleThreadedEventWriter;
 import cafe.jeffrey.shared.common.Json;
 import tools.jackson.databind.JsonNode;
@@ -72,6 +73,10 @@ public class OtlpProfileReader {
 
     private static final String FIELD_TRACE_ID = "trace_id";
     private static final String FIELD_SPAN_ID = "span_id";
+    // The raw OTLP sample type as `type/unit`, stored so the flamegraph panel can format the weight from
+    // the unit without inspecting the event code (mirrors the pprof parser's extras key).
+    private static final String EXTRA_SAMPLE_TYPE = "sampleType";
+    private static final String SAMPLE_TYPE_SEPARATOR = "/";
 
     private static final String SETTING_PERIOD = "otel.period";
 
@@ -146,7 +151,7 @@ public class OtlpProfileReader {
         String sampleType = dictionary.string(profile.getSampleType().getTypeStrindex());
         String sampleUnitName = dictionary.string(profile.getSampleType().getUnitStrindex());
 
-        OtelEventType otelEventType = OtelEventTypeNaming.resolve(sampleType, sampleUnitName);
+        OtelEventType otelEventType = OtelEventTypeNaming.resolve(sampleType);
         OtelSampleUnit sampleUnit = OtelSampleUnit.fromUnitString(sampleUnitName);
 
         EventTypeState state = eventTypesByName.computeIfAbsent(
@@ -387,8 +392,10 @@ public class OtlpProfileReader {
                     state.otelEventType.label(),
                     state.typeId,
                     describe(state),
-                    state.otelEventType.categories(),
-                    buildColumns(state)));
+                    List.of(),
+                    buildColumns(state),
+                    Map.of(EXTRA_SAMPLE_TYPE, state.sampleType + SAMPLE_TYPE_SEPARATOR + state.sampleUnit),
+                    RecordingEventSource.OPEN_TELEMETRY));
         }
     }
 

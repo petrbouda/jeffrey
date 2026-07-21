@@ -17,7 +17,7 @@
  */
 
 import BaseProfileClient from '@/services/api/BaseProfileClient';
-import EventSummary from '@/services/api/model/EventSummary';
+import FlamegraphPanel from '@/services/api/model/FlamegraphPanel';
 import type {
   SpanDetailRow,
   SpanEventRow,
@@ -56,10 +56,10 @@ export default class ProfileAsyncProfilerClient extends BaseProfileClient {
   }
 
   /**
-   * Per-event-type summaries scoped to the spans of the given tag, so the flamegraph cards show the
-   * real sample/weight counts those spans cover (not the profile-wide totals).
+   * The flamegraph card grid scoped to the spans of the given tag, so the cards show the real
+   * sample/weight counts those spans cover (not the profile-wide totals).
    */
-  public getEventSummaries(tag: string): Promise<EventSummary[]> {
-    return this.get<EventSummary[]>('/spans/event-summaries', { tag });
+  public getPanels(tag: string): Promise<FlamegraphPanel[]> {
+    return this.get<FlamegraphPanel[]>('/spans/panels', { tag });
   }
 }

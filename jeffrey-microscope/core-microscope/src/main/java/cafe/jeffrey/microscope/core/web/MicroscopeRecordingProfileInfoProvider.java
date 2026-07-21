@@ -44,6 +44,9 @@ public class MicroscopeRecordingProfileInfoProvider implements RecordingProfileI
         if (profileManager == null) {
             return ProfileInfo.NONE;
         }
-        return new ProfileInfo(profileManager.sizeInBytes(), profileManager.info().modified());
+        return new ProfileInfo(
+                profileManager.sizeInBytes(),
+                profileManager.info().modified(),
+                profileManager.info().createdAt().toEpochMilli());
     }
 }

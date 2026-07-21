@@ -188,11 +188,11 @@ class FrameBuilderTest {
 
         @Test
         void allocationWithoutWeightEntitySkipsSyntheticLeaf() {
-            // OTLP/pprof allocation events carry no allocated class (null weight entity); the processor
+            // A stack-sample allocation without an allocated class (null weight entity); the processor
             // must skip the synthetic leaf rather than dereferencing null, leaving self on the real leaf.
             FrameBuilder builder = new FrameBuilder(false, false, false, new AllocationTopFrameProcessor());
             FlamegraphRecord record = new FlamegraphRecord(
-                    Type.OTEL_ALLOC,
+                    Type.fromCode("alloc"),
                     new TestStackTrace(1, List.of(frame("com.Foo", "a"), frame("com.Foo", "b"))),
                     mainThread(),
                     null,

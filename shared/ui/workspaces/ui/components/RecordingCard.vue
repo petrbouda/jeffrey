@@ -38,6 +38,7 @@ interface Props {
   profileId?: string | null;
   profileEnabled?: boolean;
   profileSizeInBytes?: number;
+  profileCreatedAt?: number;
   profileModified?: boolean;
   analyzing?: boolean;
   creatingProfile?: boolean;
@@ -74,6 +75,14 @@ const SOURCE_HEAP_DUMP = 'HEAP_DUMP';
 const SOURCE_PPROF = 'PPROF';
 const SOURCE_OTEL = 'OPEN_TELEMETRY';
 
+// Initialized recordings show when their profile was built; everything else shows the upload time.
+const showsInitializedTime = computed(
+  () => props.hasProfile && props.profileCreatedAt != null && props.profileCreatedAt > 0
+);
+const displayedTime = computed(() =>
+  showsInitializedTime.value ? props.profileCreatedAt! : props.uploadedAt
+);
+
 // The recording's format drives its icon, colored type tag, and left-border accent so JFR, pprof,
 // OTLP and heap-dump recordings are visually distinct at a glance.
 const iconClass = computed(() => {
@@ -94,7 +103,7 @@ const typeLabel = computed(() => {
     return 'Heap';
   }
   if (props.sourceType === SOURCE_PPROF) {
-    return 'pprof';
+    return 'PPROF';
   }
   if (props.sourceType === SOURCE_OTEL) {
     return 'OTLP';
@@ -229,7 +238,10 @@ onBeforeUnmount(() => {
             }}</span>
           </template>
           <span class="rec-card__sep">&middot;</span>
-          <span class="rec-card__meta">{{ formatRelativeTime(uploadedAt) }}</span>
+          <span
+            class="rec-card__meta"
+            :title="(showsInitializedTime ? 'Initialized ' : 'Uploaded ') + formatRelativeTime(displayedTime)"
+          >{{ formatRelativeTime(displayedTime) }}</span>
           <template v-if="hasProfile && profileSizeInBytes && profileSizeInBytes > 0">
             <span class="rec-card__sep">&middot;</span>
             <span class="rec-card__profile-info">
@@ -254,7 +266,7 @@ onBeforeUnmount(() => {
                 hasProfile && profileEnabled && sourceType === 'HEAP_DUMP'
             }"
           >
-            <template v-if="!hasProfile">Click to analyze</template>
+            <template v-if="!hasProfile">Click to initialize</template>
             <template v-else>Open profile</template>
           </span>
         </div>
@@ -277,7 +289,7 @@ onBeforeUnmount(() => {
         <!-- Transitional spinner pills -->
         <span v-if="analyzing || creatingProfile" class="rec-card__spinner-pill">
           <span class="rec-card__spinner"></span>
-          {{ analyzing ? 'Analyzing…' : 'Creating…' }}
+          {{ analyzing ? 'Initializing…' : 'Creating…' }}
         </span>
         <span
           v-else-if="deletingProfile"

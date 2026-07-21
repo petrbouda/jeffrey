@@ -25,18 +25,18 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
-import cafe.jeffrey.profile.common.pprof.PprofEventCategory;
 import cafe.jeffrey.profile.manager.ProfileManager;
-import cafe.jeffrey.profile.model.EventSummaryResult;
+import cafe.jeffrey.profile.model.FlamegraphPanel;
+import cafe.jeffrey.profile.panel.PanelContext;
+import cafe.jeffrey.profile.panel.StackSampleFlamegraphPanelProvider;
 
 import java.util.List;
 
 /**
- * pprof-format flamegraph endpoints. Mirrors {@link cafe.jeffrey.microscope.core.web.controllers.profile.FlamegraphController}'s
- * {@code /events} interface at a pprof-specific path so the UI can pick a client by format. The
- * flamegraph generation itself stays on the shared generic endpoint (it is format-agnostic — it
- * takes an event-type code and reads the shared events table); only the event-summary discovery
- * differs, because the set of possible event types and their category mapping is format-specific.
+ * pprof-format flamegraph endpoints. Serves the flamegraph card grid at a pprof-specific path so the UI
+ * can pick a client by format. Flamegraph generation itself stays on the shared generic endpoint (it is
+ * format-agnostic — it takes an event-type code and reads the shared events table); only the panel
+ * discovery differs, because the set of event types is format-specific.
  */
 @RestController
 @RequestMapping("/api/internal/profiles/{profileId}/pprof/flamegraph")
@@ -45,22 +45,18 @@ public class PprofFlamegraphController {
     private static final Logger LOG = LoggerFactory.getLogger(PprofFlamegraphController.class);
 
     private final ProfileManagerResolver resolver;
+    private final StackSampleFlamegraphPanelProvider panelProvider;
 
-    public PprofFlamegraphController(ProfileManagerResolver resolver) {
+    public PprofFlamegraphController(ProfileManagerResolver resolver, StackSampleFlamegraphPanelProvider panelProvider) {
         this.resolver = resolver;
+        this.panelProvider = panelProvider;
     }
 
-    @GetMapping("/events")
-    public List<EventSummaryResult> events(@PathVariable("profileId") String profileId) {
+    @GetMapping("/panels")
+    public List<FlamegraphPanel> panels(@PathVariable("profileId") String profileId) {
         ProfileManager pm = resolver.resolve(profileId);
-        List<EventSummaryResult> result = withCategories(pm.flamegraphManager().allEventSummaries());
-        LOG.debug("Listed pprof flamegraph event types: profileId={} count={}", profileId, result.size());
-        return result;
-    }
-
-    static List<EventSummaryResult> withCategories(List<EventSummaryResult> summaries) {
-        return summaries.stream()
-                .map(summary -> summary.withCategory(PprofEventCategory.resolve(summary.code()).name()))
-                .toList();
+        List<FlamegraphPanel> panels = panelProvider.panels(pm.flamegraphManager().allEventSummaries(), PanelContext.PRIMARY);
+        LOG.debug("Listed pprof flamegraph panels: profileId={} count={}", profileId, panels.size());
+        return panels;
     }
 }

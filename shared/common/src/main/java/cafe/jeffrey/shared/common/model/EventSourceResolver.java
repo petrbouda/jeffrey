@@ -21,14 +21,12 @@ package cafe.jeffrey.shared.common.model;
 import java.util.Collection;
 
 /**
- * Single source of truth for deciding whether an event type (or a whole recording) originates from
- * async-profiler or the JDK's built-in JFR.
+ * Deduces a JFR recording's source from its event-type names: async-profiler emits everything under the
+ * {@link EventTypeName#ASYNC_PROFILER_NAMESPACE} ({@code profiler.}) namespace, JDK JFR under {@code jdk.}.
  * <p>
- * The rule is name-based: async-profiler emits every event it produces under the
- * {@link EventTypeName#ASYNC_PROFILER_NAMESPACE} ({@code profiler.}) namespace, while JDK JFR events use the
- * {@code jdk.} namespace. Centralising this here keeps the parser (recording-level source), the persistence
- * enhancers (per-event-type source written to {@code event_types.source}) and Guardian's preconditions in
- * agreement.
+ * pprof and OTLP are NOT resolved here — their raw sample-type codes carry no namespace, so those readers
+ * set {@link RecordingEventSource#PPROF} / {@link RecordingEventSource#OPEN_TELEMETRY} explicitly at import
+ * (per-event-type via {@code EventType.source}, recording-level via their {@code RecordingInformationParser}).
  */
 public final class EventSourceResolver {
 
@@ -36,45 +34,22 @@ public final class EventSourceResolver {
     }
 
     /**
-     * Resolves the source of a single event type from its name.
-     *
-     * @return {@link RecordingEventSource#OPEN_TELEMETRY} for events in the {@code otel.} namespace,
-     * {@link RecordingEventSource#PPROF} for events in the {@code pprof.} namespace,
-     * {@link RecordingEventSource#ASYNC_PROFILER} for events in the {@code profiler.} namespace,
+     * @return {@link RecordingEventSource#ASYNC_PROFILER} for events in the {@code profiler.} namespace,
      * otherwise {@link RecordingEventSource#JDK}
      */
     public static RecordingEventSource fromEventTypeName(String eventTypeName) {
-        if (isOtelEvent(eventTypeName)) {
-            return RecordingEventSource.OPEN_TELEMETRY;
-        }
-        if (isPprofEvent(eventTypeName)) {
-            return RecordingEventSource.PPROF;
-        }
-        if (isAsyncProfilerEvent(eventTypeName)) {
-            return RecordingEventSource.ASYNC_PROFILER;
-        }
-        return RecordingEventSource.JDK;
+        return isAsyncProfilerEvent(eventTypeName)
+                ? RecordingEventSource.ASYNC_PROFILER
+                : RecordingEventSource.JDK;
     }
 
     /**
-     * Resolves the recording-level source from the set of event type names it contains. A recording is
-     * treated as pprof as soon as a single {@code pprof.} event is present, then as async-profiler as
-     * soon as a single {@code profiler.} event is present.
-     *
-     * @return {@link RecordingEventSource#OPEN_TELEMETRY} if any name is in the {@code otel.} namespace,
-     * {@link RecordingEventSource#PPROF} if any name is in the {@code pprof.} namespace,
-     * {@link RecordingEventSource#ASYNC_PROFILER} if any name is in the {@code profiler.} namespace,
+     * @return {@link RecordingEventSource#ASYNC_PROFILER} if any name is in the {@code profiler.} namespace,
      * otherwise {@link RecordingEventSource#JDK}
      */
     public static RecordingEventSource fromEventTypeNames(Collection<String> eventTypeNames) {
         if (eventTypeNames == null) {
             return RecordingEventSource.JDK;
-        }
-        if (eventTypeNames.stream().anyMatch(EventSourceResolver::isOtelEvent)) {
-            return RecordingEventSource.OPEN_TELEMETRY;
-        }
-        if (eventTypeNames.stream().anyMatch(EventSourceResolver::isPprofEvent)) {
-            return RecordingEventSource.PPROF;
         }
         boolean anyAsyncProfiler = eventTypeNames.stream().anyMatch(EventSourceResolver::isAsyncProfilerEvent);
         return anyAsyncProfiler ? RecordingEventSource.ASYNC_PROFILER : RecordingEventSource.JDK;
@@ -85,19 +60,5 @@ public final class EventSourceResolver {
      */
     public static boolean isAsyncProfilerEvent(String eventTypeName) {
         return eventTypeName != null && eventTypeName.startsWith(EventTypeName.ASYNC_PROFILER_NAMESPACE);
-    }
-
-    /**
-     * @return {@code true} if the event type belongs to the pprof ({@code pprof.}) namespace
-     */
-    public static boolean isPprofEvent(String eventTypeName) {
-        return eventTypeName != null && eventTypeName.startsWith(EventTypeName.PPROF_NAMESPACE);
-    }
-
-    /**
-     * @return {@code true} if the event type belongs to the OpenTelemetry ({@code otel.}) namespace
-     */
-    public static boolean isOtelEvent(String eventTypeName) {
-        return eventTypeName != null && eventTypeName.startsWith(EventTypeName.OTEL_NAMESPACE);
     }
 }

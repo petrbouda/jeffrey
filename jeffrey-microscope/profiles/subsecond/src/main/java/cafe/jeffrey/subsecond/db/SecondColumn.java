@@ -22,18 +22,27 @@ public final class SecondColumn {
 
     private static final int MILLIS = 1000;
 
+    /** Default sub-second bucket width (ms) and row count, kept for back-compatible callers. */
     public static final int BUCKET_SIZE = 20;
     public static final int BUCKET_COUNT = MILLIS / BUCKET_SIZE;
 
+    private final int bucketSize;
+    private final int bucketCount;
     private final long[] buckets;
     private long maxValue;
 
     public SecondColumn() {
-        this.buckets = new long[BUCKET_COUNT];
+        this(BUCKET_SIZE);
+    }
+
+    public SecondColumn(int bucketSize) {
+        this.bucketSize = bucketSize;
+        this.bucketCount = MILLIS / bucketSize;
+        this.buckets = new long[bucketCount];
     }
 
     public long increment(int i, long value) {
-        int bucket = i / BUCKET_SIZE;
+        int bucket = i / bucketSize;
         long newValue = buckets[bucket] + value;
         buckets[bucket] = newValue;
         maxValue = Math.max(maxValue, newValue);
@@ -42,5 +51,13 @@ public final class SecondColumn {
 
     public long[] getBuckets() {
         return buckets;
+    }
+
+    public int getBucketSize() {
+        return bucketSize;
+    }
+
+    public int getBucketCount() {
+        return bucketCount;
     }
 }

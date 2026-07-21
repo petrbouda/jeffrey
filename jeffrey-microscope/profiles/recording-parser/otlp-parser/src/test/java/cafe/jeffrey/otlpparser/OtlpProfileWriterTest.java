@@ -20,13 +20,15 @@ package cafe.jeffrey.otlpparser;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import io.opentelemetry.proto.profiles.v1development.ProfilesData;
+import io.opentelemetry.proto.profiles.v1development.ScopeProfiles;
 import cafe.jeffrey.otlpparser.OtlpProfileWriter.ExportFrame;
 import cafe.jeffrey.otlpparser.OtlpProfileWriter.ExportSample;
+import cafe.jeffrey.otlpparser.OtlpProfileWriter.ProfileEntry;
 import cafe.jeffrey.otlpparser.OtlpProfileWriter.SampleValueType;
 import cafe.jeffrey.provider.profile.api.Event;
 import cafe.jeffrey.provider.profile.api.EventFrame;
 import cafe.jeffrey.provider.profile.api.EventStacktrace;
-import cafe.jeffrey.shared.common.model.EventTypeName;
 
 import java.nio.file.Path;
 import java.time.Instant;
@@ -72,12 +74,12 @@ class OtlpProfileWriterTest {
         RecordingEventWriterStub stub = new RecordingEventWriterStub();
         new OtlpProfileReader(stub).read(file);
 
-        assertTrue(stub.eventTypes.stream().anyMatch(t -> t.name().equals(EventTypeName.OTEL_SAMPLES)),
+        assertTrue(stub.eventTypes.stream().anyMatch(t -> t.name().equals("samples")),
                 "expected an otel.samples event type: " + stub.eventTypes);
 
         // One event per observation, each at its own timestamp — the timing is preserved, not collapsed.
         List<Event> events = stub.events.stream()
-                .filter(e -> EventTypeName.OTEL_SAMPLES.equals(e.eventType()))
+                .filter(e -> "samples".equals(e.eventType()))
                 .toList();
         assertEquals(2, events.size(), "expected one event per observation bucket");
         assertEquals(2, events.stream().map(Event::startTimestamp).distinct().count(),
@@ -101,6 +103,54 @@ class OtlpProfileWriterTest {
         EventFrame root = stacktrace.frames().getFirst();
         assertEquals("Native", root.type());
         assertTrue(root.method().contains("__libc_start_main"), "native symbol should survive: " + root.method());
+    }
+
+    @Test
+    void writesMultipleEventTypesAsSeparateProfilesSharingOneDictionary() {
+        // Two dimensions exported together: a count profile (samples) and a weighted profile (alloc/bytes),
+        // both observed on the SAME stack so the shared dictionary should deduplicate it.
+        long[] countTimestamps = {TIME_NANOS, TIME_NANOS + ONE_SECOND_NANOS};
+        long[] countValues = {3, 7};
+        ProfileEntry countEntry = new ProfileEntry(SAMPLES,
+                List.of(new ExportSample(List.of(NATIVE_ROOT, JVM_LEAF), countTimestamps, countValues)));
+
+        long[] allocTimestamps = {TIME_NANOS, TIME_NANOS + 2 * ONE_SECOND_NANOS};
+        long[] allocValues = {1024, 2048};
+        ProfileEntry allocEntry = new ProfileEntry(new SampleValueType("alloc", "bytes"),
+                List.of(new ExportSample(List.of(NATIVE_ROOT, JVM_LEAF), allocTimestamps, allocValues)));
+
+        byte[] otlp = new OtlpProfileWriter()
+                .write(List.of(countEntry, allocEntry), TIME_NANOS, DURATION_NANOS, "checkout-service");
+
+        // The file carries exactly two Profile messages in one ScopeProfiles, and the shared stack is stored
+        // once (stack table = zero value + the one deduplicated stack).
+        ProfilesData data = parse(otlp);
+        assertEquals(1, data.getResourceProfilesCount());
+        ScopeProfiles scope = data.getResourceProfiles(0).getScopeProfiles(0);
+        assertEquals(2, scope.getProfilesCount(), "each event type must be its own Profile");
+        assertEquals(2, data.getDictionary().getStackTableCount(),
+                "the stack common to both profiles must be shared, not duplicated");
+
+        Path file = tempDir.resolve("multi.otlp");
+        OtlpTestFiles.writeRaw(file, data);
+
+        RecordingEventWriterStub stub = new RecordingEventWriterStub();
+        new OtlpProfileReader(stub).read(file);
+
+        // Both dimensions re-import as distinct event types.
+        assertTrue(stub.eventTypes.stream().anyMatch(t -> t.name().equals("samples")), stub.eventTypes.toString());
+        assertTrue(stub.eventTypes.stream().anyMatch(t -> t.name().equals("alloc")), stub.eventTypes.toString());
+
+        // Count dimension: per-observation values become per-event samples; total is exact.
+        List<Event> countEvents = stub.events.stream().filter(e -> "samples".equals(e.eventType())).toList();
+        assertEquals(2, countEvents.size());
+        assertEquals(10, countEvents.stream().mapToLong(Event::samples).sum());
+
+        // Weighted dimension: one event per observation (samples=1), weights preserved exactly.
+        List<Event> allocEvents = stub.events.stream().filter(e -> "alloc".equals(e.eventType())).toList();
+        assertEquals(2, allocEvents.size());
+        assertEquals(2, allocEvents.stream().mapToLong(Event::samples).sum());
+        assertEquals(3072, allocEvents.stream().mapToLong(e -> e.weight() == null ? 0 : e.weight()).sum());
     }
 
     private static io.opentelemetry.proto.profiles.v1development.ProfilesData parse(byte[] bytes) {

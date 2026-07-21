@@ -25,6 +25,7 @@ import cafe.jeffrey.jfrparser.api.type.JfrStackTrace;
 import cafe.jeffrey.otlpparser.OtlpProfileWriter;
 import cafe.jeffrey.otlpparser.OtlpProfileWriter.ExportFrame;
 import cafe.jeffrey.otlpparser.OtlpProfileWriter.ExportSample;
+import cafe.jeffrey.otlpparser.OtlpProfileWriter.ProfileEntry;
 import cafe.jeffrey.otlpparser.OtlpProfileWriter.SampleValueType;
 import cafe.jeffrey.provider.profile.api.EventQueryConfigurer;
 import cafe.jeffrey.provider.profile.api.ProfileEventStreamRepository;
@@ -86,16 +87,25 @@ public class OtlpExportManager {
             String sampleType) {
     }
 
+    /**
+     * One event type chosen for export and whether to export its weight metric (vs the sample count).
+     *
+     * @param eventType     event type code (e.g. {@code jdk.ExecutionSample})
+     * @param includeWeight export the weight dimension instead of the sample count (honored only when the
+     *                      event actually carries a weight)
+     */
+    public record OtlpExportSelection(String eventType, boolean includeWeight) {
+    }
+
     private static final Logger LOG = LoggerFactory.getLogger(OtlpExportManager.class);
 
+    // OTLP has no naming convention for sample types, so a profile's type carries the source JFR event code
+    // verbatim (e.g. "jdk.ObjectAllocationInNewTLAB"); the dimension is conveyed by the UNIT (count / bytes /
+    // nanoseconds). Panels for pprof/OTLP are always rendered by the generic StackSample provider and the
+    // flamegraph generator keys purely off the unit for imported sources, so the JFR code is a safe label.
     private static final String UNIT_NANOSECONDS = "nanoseconds";
-    // OTLP-idiomatic sample_type names per metric so a re-import maps cleanly onto otel.* event types.
-    private static final SampleValueType COUNT_VALUE_TYPE = new SampleValueType("samples", "count");
-    private static final SampleValueType ALLOCATION_WEIGHT_TYPE = new SampleValueType("alloc", "bytes");
-    private static final SampleValueType CPU_WEIGHT_TYPE = new SampleValueType("cpu", UNIT_NANOSECONDS);
-    private static final SampleValueType BLOCKING_WEIGHT_TYPE = new SampleValueType("lock", UNIT_NANOSECONDS);
-    private static final SampleValueType WALL_WEIGHT_TYPE = new SampleValueType("wall", UNIT_NANOSECONDS);
-    private static final SampleValueType DURATION_WEIGHT_TYPE = new SampleValueType("lock", UNIT_NANOSECONDS);
+    private static final String UNIT_BYTES = "bytes";
+    private static final String COUNT_UNIT = "count";
 
     private static final String CATEGORY_CPU = "CPU";
     private static final String CATEGORY_ALLOCATION = "Allocation";
@@ -103,7 +113,9 @@ public class OtlpExportManager {
     private static final String CATEGORY_WALL = "Wall-Clock";
     private static final String CATEGORY_OTHER = "Other";
     private static final String SAMPLE_TYPE_SEPARATOR = "/";
-    private static final String SAMPLE_TYPE_LABEL = "samples" + SAMPLE_TYPE_SEPARATOR + "count";
+
+    // Turns a streamed event's millisecond offset (from frameBasedEventStreamer) into absolute nanos-from-start.
+    private static final long NANOS_PER_MILLISECOND = 1_000_000L;
 
     private final ProfileInfo profileInfo;
     private final ProfileEventTypeRepository eventTypeRepository;
@@ -137,66 +149,93 @@ public class OtlpExportManager {
                     hasWeight,
                     hasWeight ? weightSampleType(summary) : null,
                     classify(summary),
-                    SAMPLE_TYPE_LABEL));
+                    summary.name() + SAMPLE_TYPE_SEPARATOR + COUNT_UNIT));
         }
         return result;
     }
 
     /**
-     * Builds an OpenTelemetry profiles message for a single stack-based event type.
+     * Builds an OpenTelemetry profiles message for a single stack-based event type. Convenience wrapper
+     * over {@link #export(List)}.
      *
      * @param eventType     the event type code to export
-     * @param includeWeight when {@code true} and the event carries a weight, export the weight metric
-     *                      (e.g. {@code cpu}/{@code nanoseconds}) instead of the sample count
+     * @param includeWeight when {@code true} and the event carries a weight, export its weight metric
+     *                      (e.g. {@code /nanoseconds}) instead of the plain count
      * @return the serialized {@code .otlp} bytes
      */
     public byte[] export(String eventType, boolean includeWeight) {
-        Type type = Type.fromCode(eventType);
-        EventSummary summary = eventTypeRepository.eventSummaries(type)
-                .orElseThrow(() -> new IllegalArgumentException("Unknown event type: " + eventType));
-        if (!summary.hasStacktrace()) {
-            throw new IllegalArgumentException("Event type is not stack-based: " + eventType);
-        }
-
-        boolean useWeight = includeWeight && summary.weight() > 0;
-        SampleValueType valueType = useWeight ? weightValueType(summary) : COUNT_VALUE_TYPE;
-
-        LOG.info("Exporting OTLP: profileId={} eventType={} useWeight={} sampleType={}/{}",
-                profileInfo.id(), eventType, useWeight, valueType.type(), valueType.unit());
-
-        EventQueryConfigurer configurer = new EventQueryConfigurer().withEventType(type).withWeight(useWeight);
-        return eventStreamRepository.frameBasedTimeseriesStreamer(
-                configurer,
-                new OtlpRecordBuilder(valueType, timeNanos(), durationNanos(), profileInfo.name()));
+        return export(List.of(new OtlpExportSelection(eventType, includeWeight)));
     }
 
     /**
-     * Collects streamed {@link TimeseriesRecord}s (one per unique stack, each carrying its per-second
-     * value buckets) into OTLP samples that keep per-observation timing, then hands them to
-     * {@link OtlpProfileWriter} on {@link #build()}.
+     * Builds an OpenTelemetry profiles message carrying one
+     * {@link io.opentelemetry.proto.profiles.v1development.Profile} per selected event type — the weight
+     * profile when the selection asks for weight and the event carries one, otherwise the count profile. The
+     * weight profile already carries the sample count (one event per observation, {@code samples=1}), so a
+     * separate count profile is not needed. Both dimensions name their {@code sample_type} after the source
+     * event code; only the unit ({@code count} / {@code bytes} / {@code nanoseconds}) differs. All profiles are
+     * serialized by one {@link OtlpProfileWriter} so they share a single dictionary.
+     *
+     * @param selections the event types to export, each with its own weight choice; must be non-empty
+     * @return the serialized {@code .otlp} bytes
      */
-    private static final class OtlpRecordBuilder implements RecordBuilder<TimeseriesRecord, byte[]> {
+    public byte[] export(List<OtlpExportSelection> selections) {
+        if (selections == null || selections.isEmpty()) {
+            throw new IllegalArgumentException("At least one event type must be selected for export");
+        }
 
-        // frameBasedTimeseriesStreamer buckets observations into whole seconds; convert a bucket index
-        // back to an absolute timestamp relative to the profiling start.
-        private static final long NANOS_PER_BUCKET = 1_000_000_000L;
+        List<ProfileEntry> entries = new ArrayList<>();
+        for (OtlpExportSelection selection : selections) {
+            Type type = Type.fromCode(selection.eventType());
+            EventSummary summary = eventTypeRepository.eventSummaries(type)
+                    .orElseThrow(() -> new IllegalArgumentException("Unknown event type: " + selection.eventType()));
+            if (!summary.hasStacktrace()) {
+                throw new IllegalArgumentException("Event type is not stack-based: " + selection.eventType());
+            }
+
+            boolean useWeight = selection.includeWeight() && summary.weight() > 0;
+            SampleValueType valueType = useWeight ? weightValueType(summary) : countValueType(type);
+            entries.add(streamEntry(type, valueType, useWeight));
+        }
+        return new OtlpProfileWriter().write(entries, timeNanos(), durationNanos(), profileInfo.name());
+    }
+
+    /**
+     * Streams one dimension of an event type into a {@link ProfileEntry} (its {@link SampleValueType} plus
+     * per-stack OTLP samples). Weighted dimensions stream one observation per event so the exact count
+     * round-trips; the count dimension uses the smaller per-second buckets whose value already IS the count.
+     */
+    private ProfileEntry streamEntry(Type type, SampleValueType valueType, boolean useWeight) {
+        LOG.info("Exporting OTLP profile: profileId={} eventType={} useWeight={} sampleType={}/{}",
+                profileInfo.id(), type.code(), useWeight, valueType.type(), valueType.unit());
+
+        // Both count and weight stream ONE observation per original event (not per-second buckets) so every
+        // event keeps its real millisecond timestamp. That preserves the exact sample count AND the sub-second
+        // distribution on re-import — bucketing would snap every event to a whole second and flatten the
+        // SubSecond view onto millisecond 0.
+        EventQueryConfigurer configurer = new EventQueryConfigurer().withEventType(type).withWeight(useWeight);
+        OtlpRecordBuilder builder = new OtlpRecordBuilder(valueType, timeNanos(), NANOS_PER_MILLISECOND);
+        return eventStreamRepository.frameBasedEventStreamer(configurer, builder);
+    }
+
+    /**
+     * Collects streamed {@link TimeseriesRecord}s (one per unique stack, each carrying its value buckets)
+     * into OTLP samples that keep per-observation timing, then yields them as a {@link ProfileEntry} on
+     * {@link #build()} for the writer to serialize alongside the other selected event types.
+     */
+    private static final class OtlpRecordBuilder implements RecordBuilder<TimeseriesRecord, ProfileEntry> {
 
         private final SampleValueType valueType;
         private final long timeNanos;
-        private final long durationNanos;
-        private final String serviceName;
+        // Nanos multiplier for the streamed time slot, which for frameBasedEventStreamer is a millisecond
+        // offset — so this turns it into an absolute timestamp relative to the profiling start.
+        private final long nanosPerTimeUnit;
         private final List<ExportSample> samples = new ArrayList<>();
 
-        private OtlpRecordBuilder(
-                SampleValueType valueType,
-                long timeNanos,
-                long durationNanos,
-                String serviceName) {
-
+        private OtlpRecordBuilder(SampleValueType valueType, long timeNanos, long nanosPerTimeUnit) {
             this.valueType = valueType;
             this.timeNanos = timeNanos;
-            this.durationNanos = durationNanos;
-            this.serviceName = serviceName;
+            this.nanosPerTimeUnit = nanosPerTimeUnit;
         }
 
         @Override
@@ -218,15 +257,15 @@ public class OtlpExportManager {
             long[] values = new long[buckets.size()];
             for (int i = 0; i < buckets.size(); i++) {
                 SecondValue bucket = buckets.get(i);
-                timestampsNanos[i] = timeNanos + bucket.second() * NANOS_PER_BUCKET;
+                timestampsNanos[i] = timeNanos + bucket.second() * nanosPerTimeUnit;
                 values[i] = bucket.value();
             }
             samples.add(new ExportSample(frames, timestampsNanos, values));
         }
 
         @Override
-        public byte[] build() {
-            return new OtlpProfileWriter().write(valueType, samples, timeNanos, durationNanos, serviceName);
+        public ProfileEntry build() {
+            return new ProfileEntry(valueType, samples);
         }
     }
 
@@ -250,19 +289,27 @@ public class OtlpExportManager {
         return instant.getEpochSecond() * 1_000_000_000L + instant.getNano();
     }
 
+    /**
+     * The count dimension's OTLP {@code sample_type}: the source event code verbatim as the {@code type}
+     * (so distinct event types stay distinct panels on re-import) with {@code count} as the unit.
+     */
+    private static SampleValueType countValueType(Type type) {
+        return new SampleValueType(type.code(), COUNT_UNIT);
+    }
+
     private static String weightSampleType(EventSummary summary) {
         SampleValueType valueType = weightValueType(summary);
         return valueType.type() + SAMPLE_TYPE_SEPARATOR + valueType.unit();
     }
 
+    /**
+     * The weight dimension's OTLP {@code sample_type}: the source event code verbatim as the {@code type}
+     * (matching the count dimension), with the unit chosen from the event's category — allocation weighs in
+     * {@code bytes}, everything else (CPU / blocking / wall) in {@code nanoseconds}.
+     */
     private static SampleValueType weightValueType(EventSummary summary) {
-        return switch (classify(summary)) {
-            case CATEGORY_ALLOCATION -> ALLOCATION_WEIGHT_TYPE;
-            case CATEGORY_CPU -> CPU_WEIGHT_TYPE;
-            case CATEGORY_BLOCKING -> BLOCKING_WEIGHT_TYPE;
-            case CATEGORY_WALL -> WALL_WEIGHT_TYPE;
-            default -> DURATION_WEIGHT_TYPE;
-        };
+        String unit = CATEGORY_ALLOCATION.equals(classify(summary)) ? UNIT_BYTES : UNIT_NANOSECONDS;
+        return new SampleValueType(summary.name(), unit);
     }
 
     private static String classify(EventSummary summary) {

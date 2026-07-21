@@ -430,35 +430,10 @@ const EVENT_TYPE_CATALOG: EventTypeCategory[] = [
       { name: 'profiler.Free', description: 'Native deallocations' },
       { name: 'profiler.LiveObject', description: 'Live objects' }
     ]
-  },
-  // ── pprof ──
-  {
-    label: 'pprof',
-    badge: 'pprof',
-    events: [
-      { name: 'pprof.cpu', description: 'CPU time (pprof)' },
-      { name: 'pprof.samples', description: 'Execution samples (pprof)' },
-      { name: 'pprof.wall', description: 'Wall clock (pprof)' },
-      { name: 'pprof.alloc_space', description: 'Allocated space (pprof)' },
-      { name: 'pprof.alloc_objects', description: 'Allocated objects (pprof)' },
-      { name: 'pprof.inuse_space', description: 'In-use space (pprof)' },
-      { name: 'pprof.inuse_objects', description: 'In-use objects (pprof)' },
-      { name: 'pprof.contentions', description: 'Lock contentions (pprof)' },
-      { name: 'pprof.delay', description: 'Lock delay (pprof)' }
-    ]
-  },
-  // ── OpenTelemetry ──
-  {
-    label: 'OpenTelemetry',
-    badge: 'otel',
-    events: [
-      { name: 'otel.cpu', description: 'CPU time (OpenTelemetry)' },
-      { name: 'otel.samples', description: 'Execution samples (OpenTelemetry)' },
-      { name: 'otel.wall', description: 'Wall clock (OpenTelemetry)' },
-      { name: 'otel.alloc', description: 'Allocations (OpenTelemetry)' },
-      { name: 'otel.lock', description: 'Lock / blocking (OpenTelemetry)' }
-    ]
   }
+  // Note: pprof / OpenTelemetry event types are intentionally absent. This catalog feeds the live &
+  // replay JFR stream picker, and those are import-only formats — a running JVM never emits pprof.* /
+  // otel.* into a JFR stream, so they can't be subscribed to here.
 ];
 
 export default EVENT_TYPE_CATALOG;

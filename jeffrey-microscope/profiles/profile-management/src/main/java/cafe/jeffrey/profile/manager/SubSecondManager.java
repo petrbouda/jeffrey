@@ -31,5 +31,5 @@ public interface SubSecondManager {
     interface Factory extends Function<ProfileInfo, SubSecondManager> {
     }
 
-    JsonNode generate(Type eventType, boolean collectWeight, RelativeTimeRange timeRange);
+    JsonNode generate(Type eventType, boolean collectWeight, RelativeTimeRange timeRange, int bucketSizeMs);
 }

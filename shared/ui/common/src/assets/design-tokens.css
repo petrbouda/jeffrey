@@ -37,6 +37,9 @@
   --color-goldenrod: #b8860b;
   --color-goldenrod-dark: #daa520;
 
+  /* SubSecond heatmap cell hue (shared by the heatmap and its colorbar legend) */
+  --color-subsecond-cell: #0022ff;
+
   /* Flamegraph demo palette */
   --flamegraph-color-red: #ff9d9d;
   --flamegraph-color-orange: #ffbf9d;

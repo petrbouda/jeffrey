@@ -35,6 +35,7 @@ export default interface Recording {
   hasProfile: boolean;
   profileSizeInBytes: number;
   profileModified: boolean;
+  profileCreatedAt: number;
   profileName: string | null;
   files: RecordingFile[];
   tags: RecordingTag[];

@@ -17,7 +17,7 @@
  */
 
 import BaseProfileClient from '@/services/api/BaseProfileClient';
-import EventSummary from '@/services/api/model/EventSummary';
+import FlamegraphPanel from '@/services/api/model/FlamegraphPanel';
 
 /**
  * Event-summaries client for OpenTelemetry (OTLP) profiles. Same interface as {@link EventSummariesClient}
@@ -44,7 +44,7 @@ export default class OtelEventSummariesClient extends BaseProfileClient {
     );
   }
 
-  events(): Promise<EventSummary[]> {
-    return super.get<EventSummary[]>('/events');
+  panels(): Promise<FlamegraphPanel[]> {
+    return super.get<FlamegraphPanel[]>('/panels');
   }
 }

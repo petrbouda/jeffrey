@@ -22,29 +22,25 @@ import cafe.jeffrey.pprofparser.mapping.PprofEventTypeNaming.PprofEventType;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class PprofEventTypeNamingTest {
 
     @Test
-    void namespacesAndSanitizesTheSampleType() {
-        assertEquals("pprof.cpu", PprofEventTypeNaming.resolve("cpu", "nanoseconds").name());
-        assertEquals("pprof.alloc_space", PprofEventTypeNaming.resolve("alloc_space", "bytes").name());
-        // disallowed characters (here a space) are replaced with '_', hyphens/underscores are kept
-        assertEquals("pprof.inuse_objects", PprofEventTypeNaming.resolve("inuse objects", "count").name());
+    void codeIsTheRawSampleTypeVerbatim() {
+        assertEquals("cpu", PprofEventTypeNaming.resolve("cpu", "nanoseconds").name());
+        assertEquals("alloc_space", PprofEventTypeNaming.resolve("alloc_space", "bytes").name());
     }
 
     @Test
-    void bucketsCpuAllocationAndBlockingTypesIntoCategories() {
-        assertTrue(PprofEventTypeNaming.resolve("cpu", "nanoseconds").categories().contains("CPU"));
-        assertTrue(PprofEventTypeNaming.resolve("alloc_space", "bytes").categories().contains("Allocation"));
-        assertTrue(PprofEventTypeNaming.resolve("contentions", "count").categories().contains("Blocking"));
-        assertTrue(PprofEventTypeNaming.resolve("wall", "nanoseconds").categories().contains("Wall-Clock"));
+    void labelIsTheRawSampleTypeAndKeepsTheUnit() {
+        PprofEventType resolved = PprofEventTypeNaming.resolve("alloc_space", "bytes");
+        assertEquals("alloc_space", resolved.label());
+        assertEquals("alloc_space/bytes", resolved.sampleType());
     }
 
     @Test
     void fallsBackToSamplesForBlankType() {
         PprofEventType resolved = PprofEventTypeNaming.resolve("", "count");
-        assertEquals("pprof.samples", resolved.name());
+        assertEquals("samples", resolved.name());
     }
 }

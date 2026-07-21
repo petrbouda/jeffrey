@@ -47,10 +47,6 @@ public record Type(String code, boolean calculated) {
     public static final Type OBJECT_ALLOCATION_IN_NEW_TLAB = new Type(EventTypeName.OBJECT_ALLOCATION_IN_NEW_TLAB);
     public static final Type OBJECT_ALLOCATION_OUTSIDE_TLAB = new Type(EventTypeName.OBJECT_ALLOCATION_OUTSIDE_TLAB);
     public static final Type OBJECT_ALLOCATION_SAMPLE = new Type(EventTypeName.OBJECT_ALLOCATION_SAMPLE);
-    // OpenTelemetry weight-bearing event types (synthesized on import from an OTLP sample_type).
-    public static final Type OTEL_ALLOC = new Type(EventTypeName.OTEL_ALLOC);
-    public static final Type OTEL_LOCK = new Type(EventTypeName.OTEL_LOCK);
-    public static final Type OTEL_CPU = new Type(EventTypeName.OTEL_CPU);
     public static final Type OLD_OBJECT_SAMPLE = new Type(EventTypeName.OLD_OBJECT_SAMPLE);
     public static final Type SOCKET_READ = new Type(EventTypeName.SOCKET_READ);
     public static final Type SOCKET_WRITE = new Type(EventTypeName.SOCKET_WRITE);
@@ -231,7 +227,7 @@ public record Type(String code, boolean calculated) {
     public static final Type ALERT = new Type(EventTypeName.ALERT);
 
     private static final Set<Type> BLOCKING_EVENTS =
-            Set.of(JAVA_MONITOR_ENTER, JAVA_MONITOR_WAIT, THREAD_PARK, THREAD_SLEEP, OTEL_LOCK);
+            Set.of(JAVA_MONITOR_ENTER, JAVA_MONITOR_WAIT, THREAD_PARK, THREAD_SLEEP);
 
     private static final Map<String, Type> KNOWN_TYPES;
 
@@ -403,7 +399,7 @@ public record Type(String code, boolean calculated) {
     }
 
     public boolean isAllocationEvent() {
-        return isTlabAllocationSamples() || isObjectAllocationSamples() || Type.OTEL_ALLOC.equals(this);
+        return isTlabAllocationSamples() || isObjectAllocationSamples();
     }
 
     public boolean isBlockingEvent() {
@@ -415,7 +411,7 @@ public record Type(String code, boolean calculated) {
     }
 
     public boolean isCpuTimeEvent() {
-        return Type.CPU_TIME_SAMPLE.equals(this) || Type.OTEL_CPU.equals(this);
+        return Type.CPU_TIME_SAMPLE.equals(this);
     }
 
     /**

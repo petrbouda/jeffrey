@@ -26,6 +26,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
 import cafe.jeffrey.profile.manager.model.container.ContainerConfigurationData;
+import cafe.jeffrey.profile.manager.model.container.ContainerCpuThrottlingData;
 
 @RestController
 @RequestMapping("/api/internal/profiles/{profileId}/container")
@@ -43,5 +44,11 @@ public class ContainerOverviewController {
     public ContainerConfigurationData configuration(@PathVariable("profileId") String profileId) {
         LOG.debug("Fetching container configuration");
         return resolver.resolve(profileId).containerManager().configuration();
+    }
+
+    @GetMapping("/cpu-throttling")
+    public ContainerCpuThrottlingData cpuThrottling(@PathVariable("profileId") String profileId) {
+        LOG.debug("Fetching container CPU throttling");
+        return resolver.resolve(profileId).containerManager().throttling();
     }
 }

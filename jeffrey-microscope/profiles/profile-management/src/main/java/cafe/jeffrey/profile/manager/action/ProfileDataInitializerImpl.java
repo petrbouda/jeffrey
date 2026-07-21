@@ -48,6 +48,16 @@ public class ProfileDataInitializerImpl implements ProfileDataInitializer {
         LOG.info("Start initializing data of the profile: profile_id={} profile_name={} blocking={} concurrent={}",
                 profileInfo.id(), profileInfo.name(), blocking, concurrent);
 
+        // pprof/OTLP profiles are stack-sample imports visualized only as flamegraphs (generated on demand).
+        // The pre-computed views below — event viewer, guardian, thread viewer — are JFR-specific and read
+        // JFR-shaped fields these imports don't have, so they are skipped for such sources.
+        if (profileInfo.eventSource().isFlamegraphOnlyImport()) {
+            LOG.info("Skipping JFR-specific initialization for a flamegraph-only profile: "
+                            + "profile_id={} profile_name={} event_source={}",
+                    profileInfo.id(), profileInfo.name(), profileInfo.eventSource());
+            return;
+        }
+
         ExecutorService executor = this.concurrent ? Schedulers.sharedParallel() : Schedulers.sharedSingle();
 
         // Create and cache data for EventViewer

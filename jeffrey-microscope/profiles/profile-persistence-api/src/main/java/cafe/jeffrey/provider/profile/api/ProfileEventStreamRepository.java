@@ -34,5 +34,12 @@ public interface ProfileEventStreamRepository {
 
     <T> T frameBasedTimeseriesStreamer(EventQueryConfigurer configurer, RecordBuilder<TimeseriesRecord, T> builder);
 
+    /**
+     * Like {@link #frameBasedTimeseriesStreamer} but emits one {@link SecondValue} per original event instead
+     * of per-second buckets — the {@code SecondValue.second} slot then carries milliseconds-from-start, not a
+     * second index. Used by the weighted OTLP export so the exact per-sample count round-trips.
+     */
+    <T> T frameBasedEventStreamer(EventQueryConfigurer configurer, RecordBuilder<TimeseriesRecord, T> builder);
+
     <T> T flamegraphStreamer(EventQueryConfigurer configurer, RecordBuilder<FlamegraphRecord, T> builder);
 }

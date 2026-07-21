@@ -22,6 +22,7 @@ import cafe.jeffrey.shared.common.GraphType;
 import cafe.jeffrey.shared.common.model.SpanInterval;
 import cafe.jeffrey.shared.common.model.ThreadInfo;
 import cafe.jeffrey.shared.common.model.Type;
+import cafe.jeffrey.shared.common.model.WeightUnit;
 import cafe.jeffrey.profile.common.analysis.marker.Marker;
 import cafe.jeffrey.shared.common.model.time.RelativeTimeRange;
 
@@ -43,6 +44,8 @@ public class GraphParametersBuilder {
     private GraphType graphType;
     private GraphComponents graphComponents;
     private List<SpanInterval> spanIntervals;
+    private WeightUnit weightUnit = WeightUnit.NONE;
+    private boolean flamegraphOnlyImport;
 
     public GraphParametersBuilder withEventType(Type eventType) {
         this.eventType = eventType;
@@ -114,6 +117,16 @@ public class GraphParametersBuilder {
         return this;
     }
 
+    public GraphParametersBuilder withWeightUnit(WeightUnit weightUnit) {
+        this.weightUnit = weightUnit != null ? weightUnit : WeightUnit.NONE;
+        return this;
+    }
+
+    public GraphParametersBuilder withFlamegraphOnlyImport(boolean flamegraphOnlyImport) {
+        this.flamegraphOnlyImport = flamegraphOnlyImport;
+        return this;
+    }
+
     public GraphParameters build() {
         return new GraphParameters(
                 eventType,
@@ -129,6 +142,8 @@ public class GraphParametersBuilder {
                 markers,
                 graphType,
                 graphComponents,
-                spanIntervals);
+                spanIntervals,
+                weightUnit,
+                flamegraphOnlyImport);
     }
 }

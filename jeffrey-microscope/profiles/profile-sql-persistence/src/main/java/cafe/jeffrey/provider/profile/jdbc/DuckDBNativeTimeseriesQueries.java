@@ -45,4 +45,9 @@ public class DuckDBNativeTimeseriesQueries implements ComplexQueries.Timeseries 
     public String frameBased(EventQueryConfigurer configurer) {
         return QUERIES.frameBased(configurer);
     }
+
+    @Override
+    public String frameBasedEvents(EventQueryConfigurer configurer) {
+        return QUERIES.frameBasedEvents(configurer);
+    }
 }

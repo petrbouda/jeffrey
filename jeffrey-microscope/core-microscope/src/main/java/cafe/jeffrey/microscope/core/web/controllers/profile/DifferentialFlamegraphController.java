@@ -31,6 +31,9 @@ import cafe.jeffrey.profile.common.config.GraphParameters;
 import cafe.jeffrey.profile.manager.FlamegraphManager;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.profile.model.EventSummaryResult;
+import cafe.jeffrey.profile.model.FlamegraphPanel;
+import cafe.jeffrey.profile.panel.JfrFlamegraphPanelProvider;
+import cafe.jeffrey.profile.panel.PanelContext;
 import cafe.jeffrey.profile.resources.request.GenerateFlamegraphRequest;
 import cafe.jeffrey.shared.common.GraphType;
 
@@ -49,9 +52,11 @@ public class DifferentialFlamegraphController {
     private static final Logger LOG = LoggerFactory.getLogger(DifferentialFlamegraphController.class);
 
     private final ProfileManagerResolver resolver;
+    private final JfrFlamegraphPanelProvider panelProvider;
 
-    public DifferentialFlamegraphController(ProfileManagerResolver resolver) {
+    public DifferentialFlamegraphController(ProfileManagerResolver resolver, JfrFlamegraphPanelProvider panelProvider) {
         this.resolver = resolver;
+        this.panelProvider = panelProvider;
     }
 
     @PostMapping(produces = PROTOBUF_MEDIA_TYPE)
@@ -74,6 +79,16 @@ public class DifferentialFlamegraphController {
         var result = diffManager.eventSummaries();
         LOG.debug("Listed diff flamegraph event types: profileId={} count={}", primaryProfileId, result.size());
         return result;
+    }
+
+    @GetMapping("/panels")
+    public List<FlamegraphPanel> panels(
+            @PathVariable("primaryProfileId") String primaryProfileId,
+            @PathVariable("secondaryProfileId") String secondaryProfileId) {
+        FlamegraphManager diffManager = diffManager(primaryProfileId, secondaryProfileId);
+        List<FlamegraphPanel> panels = panelProvider.panels(diffManager.eventSummaries(), PanelContext.DIFFERENTIAL);
+        LOG.debug("Listed diff flamegraph panels: profileId={} count={}", primaryProfileId, panels.size());
+        return panels;
     }
 
     private FlamegraphManager diffManager(String primaryId, String secondaryId) {

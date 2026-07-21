@@ -1,26 +1,8 @@
-<!--
-  - Jeffrey
-  - Copyright (C) 2026 Petr Bouda
-  -
-  - This program is free software: you can redistribute it and/or modify
-  - it under the terms of the GNU Affero General Public License as published by
-  - the Free Software Foundation, either version 3 of the License, or
-  - (at your option) any later version.
-  -
-  - This program is distributed in the hope that it will be useful,
-  - but WITHOUT ANY WARRANTY; without even the implied warranty of
-  - MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  - GNU Affero General Public License for more details.
-  -
-  - You should have received a copy of the GNU Affero General Public License
-  - along with this program.  If not, see <http://www.gnu.org/licenses/>.
-  -->
-
 <template>
   <PageHeader
     icon="bi-box-arrow-down"
     title="Convert to OTLP"
-    description="Export a single stack-based event type as a standard OpenTelemetry profiles (.otlp) file — download it or add it back to Recordings. Each frame keeps its profile.frame.type so Java, native and kernel frames stay distinguishable."
+    description="Export one or more stack-based event types as a single OpenTelemetry profiles (.otlp) file — download it or add it back to Recordings. Each type exports its sample count; enable Weight to export its weight metric (bytes/nanoseconds) instead — the flamegraph still lets you switch back to sample count. Every frame keeps its profile.frame.type so Java, native and kernel frames stay distinguishable."
   >
     <LoadingState v-if="loading" message="Loading event types..." />
     <ErrorState v-else-if="loadError" :message="loadError" />
@@ -30,133 +12,140 @@
       This profile has no stack-based event types to export.
     </div>
 
-    <div v-else class="row g-4">
-      <!-- Left: form -->
-      <div class="col-lg-6">
-        <label class="form-label mb-1 small text-uppercase fw-semibold text-muted">Event type</label>
-        <SearchableSelect
-          v-model="selectedLabel"
-          :items="selectItems"
-          placeholder="Select an event type"
-          search-placeholder="Search events..."
-        >
-          <template #item="{ item }">
-            <div class="item-label">{{ item.label }}</div>
-            <div class="item-sub">
-              <span class="mono">{{ item.code }}</span> ·
-              {{ FormattingService.formatNumber(item.samples) }} samples
+    <template v-else>
+      <DualPanel :left-title="availableTitle" :right-title="selectedTitle">
+        <!-- Left: searchable pool of available event types -->
+        <template #left>
+          <SearchInput v-model="search" placeholder="Search event types..." class="otlp-search" />
+          <div v-if="availableEvents.length === 0" class="empty-hint">
+            {{ search ? 'No event types match your search.' : 'All event types are selected.' }}
+          </div>
+          <div v-else class="evt-list">
+            <button
+              v-for="event in availableEvents"
+              :key="event.code"
+              type="button"
+              class="evt evt-available"
+              @click="addEvent(event)"
+            >
+              <i class="bi bi-plus-lg evt-icon"></i>
+              <span class="evt-main">
+                <span class="evt-label">{{ event.label }}</span>
+                <span class="evt-sub">
+                  <span class="mono">{{ event.code }}</span> ·
+                  {{ FormattingService.formatNumber(event.samples) }} samples
+                </span>
+              </span>
+              <Badge :value="event.category" :variant="categoryVariant(event)" size="xxs" />
+            </button>
+          </div>
+        </template>
+
+        <!-- Right: chosen event types, each with its Count/Weight choice -->
+        <template #right>
+          <div v-if="selected.length === 0" class="empty-hint">
+            Select event types on the left to include them in the export.
+          </div>
+          <div v-else class="evt-list">
+            <div v-for="item in selected" :key="item.event.code" class="evt evt-selected">
+              <span class="evt-main">
+                <span class="evt-label">{{ item.event.label }}</span>
+                <span class="evt-sub">
+                  <span class="mono">{{ item.event.code }}</span> ·
+                  {{ FormattingService.formatNumber(item.event.samples) }} samples
+                </span>
+              </span>
+              <span class="count-tag">Count</span>
+              <span class="weight-toggle" :class="{ disabled: !item.event.hasWeight }">
+                <button
+                  type="button"
+                  class="switch"
+                  role="switch"
+                  :class="{ on: item.includeWeight && item.event.hasWeight }"
+                  :aria-checked="item.includeWeight && item.event.hasWeight"
+                  :disabled="!item.event.hasWeight"
+                  :title="item.event.hasWeight ? weightSampleTypeText(item.event) : 'This event has no weight dimension'"
+                  @click="toggleWeight(item)"
+                ></button>
+                <span class="weight-label" :class="{ on: item.includeWeight && item.event.hasWeight }">
+                  Weight
+                </span>
+              </span>
+              <button
+                type="button"
+                class="evt-remove"
+                aria-label="Remove from export"
+                @click="removeEvent(item.event.code)"
+              >
+                <i class="bi bi-x-lg"></i>
+              </button>
             </div>
-          </template>
-        </SearchableSelect>
+          </div>
+        </template>
+      </DualPanel>
 
-        <label
-          class="weight-option mt-4"
-          :class="{ disabled: !selectedEvent || !selectedEvent.hasWeight }"
-        >
-          <input
-            type="checkbox"
-            class="weight-option__box"
-            v-model="includeWeight"
-            :disabled="!selectedEvent || !selectedEvent.hasWeight || busy"
-          />
-          <span class="weight-option__body">
-            <span class="weight-option__title">Export the weight metric instead of sample count</span>
-            <span class="weight-option__hint">
-              <template v-if="selectedEvent && selectedEvent.hasWeight">
-                Uses the event's weight ({{ selectedEvent.category }}) as the OTLP sample type instead of the sample count.
-              </template>
-              <template v-else>This event has no weight dimension.</template>
-            </span>
-          </span>
-        </label>
-
-        <div class="mt-4">
+      <div class="row g-4 mt-1 align-items-end">
+        <div class="col-lg-6">
           <label class="form-label mb-1 small text-uppercase fw-semibold text-muted">Filename</label>
           <div class="filename-box mono">{{ filename }}</div>
         </div>
-      </div>
-
-      <!-- Right: live summary -->
-      <div class="col-lg-6">
-        <div class="summary-card">
-          <div class="summary-title">Selected event</div>
-          <template v-if="selectedEvent">
-            <div class="summary-row">
-              <span class="text-muted">Event</span><span class="fw-semibold">{{ selectedEvent.label }}</span>
-            </div>
-            <div class="summary-row">
-              <span class="text-muted">Code</span><span class="mono">{{ selectedEvent.code }}</span>
-            </div>
-            <div class="summary-row">
-              <span class="text-muted">Samples</span>
-              <span class="fw-semibold">{{ FormattingService.formatNumber(selectedEvent.samples) }}</span>
-            </div>
-            <div class="summary-row">
-              <span class="text-muted">Weight</span>
-              <span>{{ weightText }}</span>
-            </div>
-            <div class="summary-row">
-              <span class="text-muted">Category</span>
-              <Badge :value="selectedEvent.category" :variant="categoryVariant" size="xs" />
-            </div>
-            <div class="summary-kv">
-              <span>OTLP sample_type</span>
-              <span class="mono">{{ sampleTypeText }}</span>
-            </div>
-          </template>
-          <div v-else class="text-muted small py-3">
-            Select an event type to see its details and OTLP mapping.
+        <div class="col-lg-6">
+          <div class="d-flex gap-2">
+            <button
+              class="btn btn-sm btn-primary"
+              :disabled="selected.length === 0 || busy"
+              @click="convertAndDownload"
+            >
+              <span v-if="downloading" class="spinner-border spinner-border-sm me-1"></span>
+              <i v-else class="bi bi-download me-1"></i>
+              Convert &amp; Download
+            </button>
+            <button
+              class="btn btn-sm btn-outline-primary"
+              :disabled="selected.length === 0 || busy"
+              @click="addToRecordings"
+            >
+              <span v-if="adding" class="spinner-border spinner-border-sm me-1"></span>
+              <i v-else class="bi bi-collection me-1"></i>
+              Add to Recordings
+            </button>
           </div>
         </div>
-
-        <div class="d-flex gap-2 mt-3">
-          <button
-            class="btn btn-sm btn-primary"
-            :disabled="!selectedEvent || busy"
-            @click="convertAndDownload"
-          >
-            <span v-if="downloading" class="spinner-border spinner-border-sm me-1"></span>
-            <i v-else class="bi bi-download me-1"></i>
-            Convert &amp; Download
-          </button>
-          <button
-            class="btn btn-sm btn-outline-primary"
-            :disabled="!selectedEvent || busy"
-            @click="addToRecordings"
-          >
-            <span v-if="adding" class="spinner-border spinner-border-sm me-1"></span>
-            <i v-else class="bi bi-collection me-1"></i>
-            Add to Recordings
-          </button>
-        </div>
-
-        <div
-          v-if="addedRecordingId"
-          class="alert alert-success d-flex align-items-center justify-content-between mt-3 py-2 small"
-        >
-          <span><i class="bi bi-check-circle me-2"></i>Added to Recordings.</span>
-          <router-link class="btn btn-sm btn-outline-success" :to="{ name: 'recordings' }">
-            Open Recordings
-          </router-link>
-        </div>
       </div>
-    </div>
+
+      <div
+        v-if="addedRecordingId"
+        class="alert alert-success d-flex align-items-center justify-content-between mt-3 py-2 small"
+      >
+        <span><i class="bi bi-check-circle me-2"></i>Added to Recordings.</span>
+        <router-link class="btn btn-sm btn-outline-success" :to="{ name: 'recordings' }">
+          Open Recordings
+        </router-link>
+      </div>
+    </template>
   </PageHeader>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import Badge from '@shared/components/Badge.vue';
 import PageHeader from '@shared/components/layout/PageHeader.vue';
 import LoadingState from '@shared/components/LoadingState.vue';
 import ErrorState from '@shared/components/ErrorState.vue';
-import SearchableSelect from '@shared/components/form/SearchableSelect.vue';
+import DualPanel from '@shared/components/DualPanel.vue';
+import SearchInput from '@shared/components/form/SearchInput.vue';
 import FormattingService from '@shared/services/FormattingService';
 import ToastService from '@shared/services/ToastService';
 import ProfileToolsClient from '@/services/api/ProfileToolsClient';
 import type OtlpExportEventType from '@/services/api/model/OtlpExportEventType';
-import '@shared/styles/shared-components.css';
+import type OtlpExportSelection from '@/services/api/model/OtlpExportSelection';
+
+// One chosen event type plus whether to export its weight metric instead of the sample count.
+interface SelectedEvent {
+  event: OtlpExportEventType;
+  includeWeight: boolean;
+}
 
 const route = useRoute();
 const profileId = route.params.profileId as string;
@@ -165,28 +154,32 @@ const loading = ref(true);
 const loadError = ref<string | null>(null);
 const eventTypes = ref<OtlpExportEventType[]>([]);
 
-const selectedLabel = ref<string | null>(null);
-const includeWeight = ref(false);
+const search = ref('');
+const selected = ref<SelectedEvent[]>([]);
 const downloading = ref(false);
 const adding = ref(false);
 const addedRecordingId = ref<string | null>(null);
 
 const busy = computed(() => downloading.value || adding.value);
 
-const selectItems = computed(() => {
-  return eventTypes.value.map(event => ({
-    label: event.label,
-    code: event.code,
-    samples: event.samples
-  }));
+const selectedCodes = computed(() => new Set(selected.value.map(item => item.event.code)));
+
+// Available = every event type not yet selected, filtered by the search box (label or code).
+const availableEvents = computed(() => {
+  const query = search.value.trim().toLowerCase();
+  return eventTypes.value.filter(event => {
+    if (selectedCodes.value.has(event.code)) {
+      return false;
+    }
+    if (query === '') {
+      return true;
+    }
+    return event.label.toLowerCase().includes(query) || event.code.toLowerCase().includes(query);
+  });
 });
 
-const selectedEvent = computed<OtlpExportEventType | null>(() => {
-  if (selectedLabel.value == null) {
-    return null;
-  }
-  return eventTypes.value.find(event => event.label === selectedLabel.value) ?? null;
-});
+const availableTitle = computed(() => `Available · ${availableEvents.value.length}`);
+const selectedTitle = computed(() => `Selected for export · ${selected.value.length}`);
 
 const CATEGORY_VARIANTS: Record<string, string> = {
   CPU: 'blue',
@@ -195,68 +188,66 @@ const CATEGORY_VARIANTS: Record<string, string> = {
   Blocking: 'purple'
 };
 
-const categoryVariant = computed(() => {
-  if (!selectedEvent.value) {
-    return 'primary';
-  }
-  return CATEGORY_VARIANTS[selectedEvent.value.category] ?? 'primary';
-});
+function categoryVariant(event: OtlpExportEventType): string {
+  return CATEGORY_VARIANTS[event.category] ?? 'primary';
+}
 
-const sampleTypeText = computed(() => {
-  if (!selectedEvent.value) {
-    return '';
-  }
-  // OTLP carries a single sample_type: the weight metric when requested, otherwise the sample count.
-  if (includeWeight.value && selectedEvent.value.hasWeight && selectedEvent.value.weightSampleType) {
-    return selectedEvent.value.weightSampleType;
-  }
-  return selectedEvent.value.sampleType;
-});
+function weightSampleTypeText(event: OtlpExportEventType): string {
+  return event.weightSampleType
+    ? `Export weight as ${event.weightSampleType}`
+    : 'Export the weight metric';
+}
 
-const WEIGHT_UNIT_BYTES = 'bytes';
-const WEIGHT_UNIT_NANOSECONDS = 'nanoseconds';
-
-// Format the weight in the same units the rest of the app uses: bytes for allocation events,
-// a duration for time-based events, plain number otherwise.
-const weightText = computed(() => {
-  const event = selectedEvent.value;
-  if (!event || event.weight == null) {
-    return '—';
-  }
-  // weightSampleType is `type/unit` (e.g. `alloc/bytes`); the unit drives the formatter.
-  const unit = event.weightSampleType?.split('/')[1];
-  if (unit === WEIGHT_UNIT_BYTES) {
-    return FormattingService.formatBytes(event.weight);
-  }
-  if (unit === WEIGHT_UNIT_NANOSECONDS) {
-    return FormattingService.formatDuration2Units(event.weight);
-  }
-  return FormattingService.formatNumber(event.weight);
-});
-
+// Mirrors the backend filename: single type keeps the short event name, several become "<n>types".
 const filename = computed(() => {
   const safeProfileId = profileId.replace(/[^A-Za-z0-9_-]/g, '_').slice(0, 24);
-  const eventShort = selectedEvent.value
-    ? selectedEvent.value.code.replace(/^[a-z]+\./, '').toLowerCase()
-    : 'event';
-  return `jeffrey-${safeProfileId}-${eventShort}.otlp`;
+  if (selected.value.length === 1) {
+    const short = selected.value[0].event.code.replace(/^[a-z]+\./, '').toLowerCase();
+    return `jeffrey-${safeProfileId}-${short}.otlp`;
+  }
+  if (selected.value.length === 0) {
+    return `jeffrey-${safeProfileId}-event.otlp`;
+  }
+  return `jeffrey-${safeProfileId}-${selected.value.length}types.otlp`;
 });
 
-// Selecting a different event resets the weight toggle so it can never be stale for an event
-// that has no weight dimension.
-function resetToggleForSelection(): void {
-  includeWeight.value = false;
+function addEvent(event: OtlpExportEventType): void {
+  if (selectedCodes.value.has(event.code)) {
+    return;
+  }
+  selected.value.push({ event, includeWeight: false });
   addedRecordingId.value = null;
 }
 
+function removeEvent(code: string): void {
+  selected.value = selected.value.filter(item => item.event.code !== code);
+  addedRecordingId.value = null;
+}
+
+// Count is always exported; the toggle only adds/removes the optional weight profile.
+function toggleWeight(item: SelectedEvent): void {
+  if (!item.event.hasWeight) {
+    return;
+  }
+  item.includeWeight = !item.includeWeight;
+  addedRecordingId.value = null;
+}
+
+function toSelections(): OtlpExportSelection[] {
+  return selected.value.map(item => ({
+    eventType: item.event.code,
+    includeWeight: item.includeWeight
+  }));
+}
+
 async function convertAndDownload(): Promise<void> {
-  if (!selectedEvent.value || busy.value) {
+  if (selected.value.length === 0 || busy.value) {
     return;
   }
   downloading.value = true;
   try {
     const client = new ProfileToolsClient(profileId);
-    const blob = await client.downloadOtlp(selectedEvent.value.code, includeWeight.value);
+    const blob = await client.downloadOtlp(toSelections());
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement('a');
     anchor.href = url;
@@ -275,16 +266,13 @@ async function convertAndDownload(): Promise<void> {
 }
 
 async function addToRecordings(): Promise<void> {
-  if (!selectedEvent.value || busy.value) {
+  if (selected.value.length === 0 || busy.value) {
     return;
   }
   adding.value = true;
   try {
     const client = new ProfileToolsClient(profileId);
-    const result = await client.addOtlpToRecordings(
-      selectedEvent.value.code,
-      includeWeight.value
-    );
+    const result = await client.addOtlpToRecordings(toSelections());
     addedRecordingId.value = result.recordingId;
     ToastService.success('Added to Recordings', 'The OTLP file is available in Recordings.');
   } catch (error) {
@@ -306,81 +294,179 @@ onMounted(async () => {
     loading.value = false;
   }
 });
-
-// Re-run the reset whenever the selection changes.
-watch(selectedLabel, resetToggleForSelection);
 </script>
 
 <style scoped>
-.item-label {
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--color-dark);
-}
-
-.item-sub {
-  font-size: 0.7rem;
-  color: var(--color-text-muted);
-  margin-top: 1px;
+.otlp-search {
+  margin-bottom: 0.75rem;
 }
 
 .mono {
   font-family: var(--font-family-monospace, monospace);
 }
 
-.weight-option {
+.empty-hint {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  padding: 14px 4px;
+}
+
+.evt-list {
   display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 12px 14px;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 320px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.evt {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  padding: 9px 12px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-base);
   background: var(--color-light);
-  cursor: pointer;
+  text-align: left;
   transition:
     border-color var(--transition-fast) ease,
     background var(--transition-fast) ease;
 }
 
-.weight-option:hover:not(.disabled) {
+.evt-available {
+  cursor: pointer;
+}
+
+.evt-available:hover {
   border-color: var(--color-primary);
   background: color-mix(in srgb, var(--color-primary) 4%, transparent);
 }
 
-.weight-option__box {
-  width: 1.15rem;
-  height: 1.15rem;
-  margin: 1px 0 0;
-  accent-color: var(--color-primary);
-  cursor: pointer;
+.evt-selected {
+  border-color: var(--color-primary-border-light);
+  background: var(--color-primary-lighter);
+}
+
+.evt-icon {
+  color: var(--color-primary);
+  font-size: 0.85rem;
   flex-shrink: 0;
 }
 
-.weight-option__body {
+.evt-main {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
+  min-width: 0;
+  flex: 1;
 }
 
-.weight-option__title {
-  font-size: 0.9rem;
+.evt-label {
+  font-size: 0.85rem;
   font-weight: 600;
   color: var(--color-dark);
   line-height: 1.2;
 }
 
-.weight-option__hint {
-  font-size: 0.78rem;
+.evt-sub {
+  font-size: 0.72rem;
   color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.weight-option.disabled {
-  opacity: 0.6;
+/* Count is always exported (static marker); Weight is an optional on/off toggle switch. */
+.count-tag {
+  flex-shrink: 0;
+  font-size: 0.66rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  padding: 2px 8px;
+  border: 1px dashed var(--color-border-input);
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.weight-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  flex-shrink: 0;
+}
+
+.weight-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  transition: color var(--transition-fast) ease;
+}
+
+.weight-label.on {
+  color: var(--color-primary);
+}
+
+.switch {
+  position: relative;
+  width: 34px;
+  height: 19px;
+  border: none;
+  padding: 0;
+  border-radius: 999px;
+  background: var(--color-border-input);
+  cursor: pointer;
+  transition: background var(--transition-fast) ease;
+}
+
+.switch::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: var(--color-white);
+  box-shadow: var(--shadow-sm);
+  transition: left var(--transition-fast) ease;
+}
+
+.switch.on {
+  background: var(--color-primary);
+}
+
+.switch.on::after {
+  left: 17px;
+}
+
+.switch:disabled {
   cursor: default;
 }
 
-.weight-option.disabled .weight-option__box {
-  cursor: default;
+.weight-toggle.disabled {
+  opacity: 0.4;
+}
+
+.evt-remove {
+  flex-shrink: 0;
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  line-height: 1;
+  padding: 4px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition:
+    color var(--transition-fast) ease,
+    background var(--transition-fast) ease;
+}
+
+.evt-remove:hover {
+  color: var(--color-danger);
+  background: var(--color-danger-light);
 }
 
 .filename-box {
@@ -391,43 +477,5 @@ watch(selectedLabel, resetToggleForSelection);
   color: var(--color-text-secondary, var(--color-dark));
   font-size: 0.8rem;
   word-break: break-all;
-}
-
-.summary-card {
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-light);
-  padding: 14px 16px;
-}
-
-.summary-title {
-  font-size: 0.9rem;
-  font-weight: 700;
-  color: var(--color-dark);
-  margin-bottom: 10px;
-}
-
-.summary-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 5px 0;
-  border-bottom: 1px dashed var(--color-border-light);
-  font-size: 0.82rem;
-}
-
-.summary-row:last-of-type {
-  border-bottom: none;
-}
-
-.summary-kv {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px solid var(--color-border);
-  font-size: 0.78rem;
-  color: var(--color-text-muted);
 }
 </style>

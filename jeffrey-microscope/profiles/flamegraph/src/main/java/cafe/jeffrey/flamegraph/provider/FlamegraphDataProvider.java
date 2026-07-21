@@ -128,6 +128,24 @@ public class FlamegraphDataProvider {
     private static FlameGraphProtoBuilder resolveFlamegraphProtoBuilder(GraphParameters params, double minFrameThresholdPct) {
         boolean withMarker = params.containsMarkers();
 
+        // Aggregated stack-sample formats (pprof/OTLP) carry the weight unit; pick the weighted builder
+        // from it (bytes -> byte formatter, duration -> time formatter). JFR (unit NONE) is classified by
+        // the event-type Type instead.
+        switch (params.weightUnit()) {
+            case BYTES:
+                return FlameGraphProtoBuilder.allocation(withMarker, minFrameThresholdPct);
+            case DURATION:
+                return FlameGraphProtoBuilder.cpu(withMarker, minFrameThresholdPct);
+            case NONE:
+                break;
+        }
+
+        // Imported profiles (pprof/OTLP) are unit-driven only: a NONE unit is a plain count, even when the
+        // event code equals a JFR allocation/blocking code. Never fall back to the JFR event-type predicates.
+        if (params.flamegraphOnlyImport()) {
+            return FlameGraphProtoBuilder.simple(withMarker, minFrameThresholdPct);
+        }
+
         if (params.eventType().isAllocationEvent()) {
             return FlameGraphProtoBuilder.allocation(withMarker, minFrameThresholdPct);
         } else if (params.eventType().isBlockingEvent()) {

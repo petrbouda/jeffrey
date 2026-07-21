@@ -38,6 +38,7 @@ import cafe.jeffrey.profile.tools.collapse.CollapseFramesManager.CollapseApplyRe
 import cafe.jeffrey.profile.tools.collapse.CollapseFramesManager.CollapsePreviewResult;
 import cafe.jeffrey.profile.tools.collapse.CollapseFramesManager.CollapseRequest;
 import cafe.jeffrey.profile.tools.otlp.OtlpExportManager.OtlpExportEventType;
+import cafe.jeffrey.profile.tools.otlp.OtlpExportManager.OtlpExportSelection;
 import cafe.jeffrey.profile.tools.pprof.PprofExportManager.PprofExportEventType;
 import cafe.jeffrey.recordings.core.manager.RecordingsCoreManager;
 
@@ -55,6 +56,7 @@ public class ToolsController {
     private static final String OTLP_FILE_SUFFIX = ".otlp";
     private static final String EVENT_TYPE_NAMESPACE_SEPARATOR = ".";
     private static final String FILENAME_FALLBACK = "profile";
+    private static final String MULTI_TYPE_FILENAME_TOKEN = "types";
     private static final String FILENAME_SANITIZE_PATTERN = "[^a-z0-9_-]";
     private static final String FILENAME_SANITIZE_REPLACEMENT = "_";
 
@@ -69,7 +71,16 @@ public class ToolsController {
     public record PprofExportRequest(String eventType, boolean includeWeight) {
     }
 
-    public record OtlpExportRequest(String eventType, boolean includeWeight) {
+    /**
+     * One event type chosen for OTLP export and whether to export its weight metric instead of the count.
+     */
+    public record OtlpExportSelectionRequest(String eventType, boolean includeWeight) {
+    }
+
+    /**
+     * A multi-event-type OTLP export: each selection becomes its own {@code Profile} in the produced file.
+     */
+    public record OtlpExportRequest(List<OtlpExportSelectionRequest> selections) {
     }
 
     public record AddToRecordingsResponse(String recordingId) {
@@ -120,11 +131,10 @@ public class ToolsController {
     public ResponseEntity<byte[]> downloadOtlp(
             @PathVariable("profileId") String profileId,
             @RequestBody OtlpExportRequest request) {
-        LOG.info("Exporting OTLP for download: profileId={} eventType={} includeWeight={}",
-                profileId, request.eventType(), request.includeWeight());
+        LOG.info("Exporting OTLP for download: profileId={} selections={}", profileId, request.selections());
         ProfileManager pm = resolver.resolve(profileId);
-        byte[] otlp = pm.otlpExportManager().export(request.eventType(), request.includeWeight());
-        String filename = otlpFilename(pm.info().name(), request.eventType());
+        byte[] otlp = pm.otlpExportManager().export(toSelections(request));
+        String filename = otlpFilename(pm.info().name(), request.selections());
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
                 .contentType(MediaType.APPLICATION_OCTET_STREAM)
@@ -135,22 +145,31 @@ public class ToolsController {
     public AddToRecordingsResponse addOtlpToRecordings(
             @PathVariable("profileId") String profileId,
             @RequestBody OtlpExportRequest request) {
-        LOG.info("Exporting OTLP into recordings: profileId={} eventType={} includeWeight={}",
-                profileId, request.eventType(), request.includeWeight());
+        LOG.info("Exporting OTLP into recordings: profileId={} selections={}", profileId, request.selections());
         ProfileManager pm = resolver.resolve(profileId);
-        byte[] otlp = pm.otlpExportManager().export(request.eventType(), request.includeWeight());
-        String filename = otlpFilename(pm.info().name(), request.eventType());
+        byte[] otlp = pm.otlpExportManager().export(toSelections(request));
+        String filename = otlpFilename(pm.info().name(), request.selections());
         String recordingId = recordingsManager.uploadRecording(filename, new ByteArrayInputStream(otlp), null);
         LOG.info("Added exported OTLP to recordings: profileId={} recordingId={}", profileId, recordingId);
         return new AddToRecordingsResponse(recordingId);
+    }
+
+    private static List<OtlpExportSelection> toSelections(OtlpExportRequest request) {
+        return request.selections().stream()
+                .map(selection -> new OtlpExportSelection(selection.eventType(), selection.includeWeight()))
+                .toList();
     }
 
     private static String pprofFilename(String profileName, String eventType) {
         return sanitize(profileName) + "-" + sanitize(eventTypeShort(eventType)) + PPROF_FILE_SUFFIX;
     }
 
-    private static String otlpFilename(String profileName, String eventType) {
-        return sanitize(profileName) + "-" + sanitize(eventTypeShort(eventType)) + OTLP_FILE_SUFFIX;
+    private static String otlpFilename(String profileName, List<OtlpExportSelectionRequest> selections) {
+        String base = sanitize(profileName);
+        if (selections.size() == 1) {
+            return base + "-" + sanitize(eventTypeShort(selections.getFirst().eventType())) + OTLP_FILE_SUFFIX;
+        }
+        return base + "-" + selections.size() + MULTI_TYPE_FILENAME_TOKEN + OTLP_FILE_SUFFIX;
     }
 
     private static String eventTypeShort(String eventType) {

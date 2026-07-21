@@ -47,8 +47,17 @@
           <!-- All other modes: section list from the nav config -->
           <template v-else>
             <div v-for="section in sections" :key="section.title" class="nav-section">
-              <div class="nav-section-title">{{ section.title }}</div>
-              <div class="nav-items">
+              <div
+                class="nav-section-title nav-section-toggle"
+                @click="toggleSection(section.title)"
+              >
+                <span>{{ section.title }}</span>
+                <i
+                  class="bi bi-chevron-down section-arrow"
+                  :class="{ collapsed: isSectionCollapsed(section.title) }"
+                ></i>
+              </div>
+              <div v-show="!isSectionCollapsed(section.title)" class="nav-items">
                 <template v-for="navItem in section.items" :key="navItem.label">
                   <!-- Item with submenu (e.g. Garbage Collection) -->
                   <div v-if="navItem.children" class="nav-item-group">
@@ -182,13 +191,81 @@ const isSubmenuActive = (navItem: ProfileNavItem): boolean => {
   return route.path.includes(navItem.activePathIncludes);
 };
 
-// Auto-expand submenus when the route points inside them (mirrors the original watcher).
+// Collapsible sections: collapsed state is keyed by `${mode}:${title}` (default: all
+// expanded) and persisted so the preference survives reloads.
+const COLLAPSED_SECTIONS_STORAGE_KEY = 'jeffrey.profile-sidebar.collapsed-sections';
+
+function loadCollapsedSections(): Set<string> {
+  try {
+    const stored = localStorage.getItem(COLLAPSED_SECTIONS_STORAGE_KEY);
+    return stored ? new Set(JSON.parse(stored)) : new Set();
+  } catch {
+    return new Set();
+  }
+}
+
+const collapsedSections = ref<Set<string>>(loadCollapsedSections());
+
+const sectionKey = (title: string): string => {
+  return `${props.mode}:${title}`;
+};
+
+const isSectionCollapsed = (title: string): boolean => {
+  return collapsedSections.value.has(sectionKey(title));
+};
+
+const persistCollapsedSections = (): void => {
+  localStorage.setItem(
+    COLLAPSED_SECTIONS_STORAGE_KEY,
+    JSON.stringify([...collapsedSections.value])
+  );
+};
+
+const toggleSection = (title: string): void => {
+  const key = sectionKey(title);
+  if (collapsedSections.value.has(key)) {
+    collapsedSections.value.delete(key);
+  } else {
+    collapsedSections.value.add(key);
+  }
+  persistCollapsedSections();
+};
+
+// True when the section owns the current route (direct item path, prefix, an
+// `activePathIncludes` matcher, or any submenu child).
+const sectionContainsRoute = (section: ProfileNavSection, path: string): boolean => {
+  const matchesItem = (navItem: ProfileNavItem): boolean => {
+    if (navItem.activePathIncludes && path.includes(navItem.activePathIncludes)) {
+      return true;
+    }
+    if (navItem.path) {
+      const resolved = navItem.path(props.profileId).split('?')[0];
+      if (path === resolved || path.startsWith(`${resolved}/`)) {
+        return true;
+      }
+    }
+    return (navItem.children ?? []).some(matchesItem);
+  };
+  return section.items.some(matchesItem);
+};
+
+// Auto-expand submenus and the section owning the active route (the user can still
+// collapse other sections freely; only the active one is forced open).
 watch(
-  () => route.path,
-  newPath => {
+  [() => route.path, () => props.mode],
+  ([newPath]) => {
     for (const parent of submenuParents) {
       if (parent.activePathIncludes && newPath.includes(parent.activePathIncludes)) {
         expandedSubmenus.value.add(parent.label);
+      }
+    }
+    for (const section of sections.value) {
+      if (sectionContainsRoute(section, newPath)) {
+        const key = sectionKey(section.title);
+        if (collapsedSections.value.has(key)) {
+          collapsedSections.value.delete(key);
+          persistCollapsedSections();
+        }
       }
     }
   },

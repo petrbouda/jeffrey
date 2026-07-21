@@ -47,6 +47,14 @@ public interface ComplexQueries {
         String filterable(EventQueryConfigurer configurer);
 
         String frameBased(EventQueryConfigurer configurer);
+
+        /**
+         * Like {@link #frameBased} but WITHOUT per-second bucketing: one {@code event_values} entry per
+         * event ({@code (timestampFromStartMs, value)}), so a weighted export can emit one OTLP observation
+         * per sample and preserve the exact sample count. The {@code second} struct slot carries
+         * milliseconds-from-start, not a second index.
+         */
+        String frameBasedEvents(EventQueryConfigurer configurer);
     }
 
     interface SubSecond {

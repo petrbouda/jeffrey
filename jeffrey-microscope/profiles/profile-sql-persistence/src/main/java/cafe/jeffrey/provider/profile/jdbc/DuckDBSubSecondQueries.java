@@ -31,13 +31,6 @@ import static cafe.jeffrey.provider.profile.jdbc.DuckDBFlamegraphQueries.addQuot
  */
 public class DuckDBSubSecondQueries implements ComplexQueries.SubSecond {
 
-    /**
-     * Size of a single sub-second bucket in milliseconds. Must stay aligned with the bucket size
-     * used by the sub-second consumer ({@code SecondColumn.BUCKET_SIZE} in the subsecond module),
-     * so that SQL pre-aggregation lands events into the same buckets as the Java builder.
-     */
-    private static final int BUCKET_SIZE_MS = 20;
-
     /*
      * Events are pre-aggregated into <<bucket_size_ms>>-wide buckets directly in SQL, so the result
      * set contains one row per non-empty bucket instead of one row per event. The bucket origin is
@@ -64,10 +57,11 @@ public class DuckDBSubSecondQueries implements ComplexQueries.SubSecond {
     private final String simple;
 
     private DuckDBSubSecondQueries(String eventType, String additionalFilters) {
+        // The bucket size is spliced per request in simple(...), so the same query object serves any
+        // resolution (default 20 ms, or e.g. 1–5 ms for the Period Detail heatmap).
         this.simple = SIMPLE
                 .replace(PLACEHOLDER_EVENT_TYPE, eventType)
-                .replace(PLACEHOLDER_FILTERS, additionalFilters)
-                .replace(PLACEHOLDER_BUCKET_SIZE, String.valueOf(BUCKET_SIZE_MS));
+                .replace(PLACEHOLDER_FILTERS, additionalFilters);
     }
 
     public static DuckDBSubSecondQueries of() {
@@ -81,6 +75,7 @@ public class DuckDBSubSecondQueries implements ComplexQueries.SubSecond {
     @Override
     public String simple(EventQueryConfigurer configurer) {
         String valueField = configurer.useWeight() ? "e.weight" : "e.samples";
-        return EventQueryFilters.splice(simple.formatted(valueField), configurer);
+        String withBucket = simple.replace(PLACEHOLDER_BUCKET_SIZE, String.valueOf(configurer.bucketSizeMs()));
+        return EventQueryFilters.splice(withBucket.formatted(valueField), configurer);
     }
 }

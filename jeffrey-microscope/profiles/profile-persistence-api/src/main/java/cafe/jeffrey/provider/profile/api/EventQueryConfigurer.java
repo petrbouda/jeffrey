@@ -63,6 +63,13 @@ public class EventQueryConfigurer {
     private boolean orderedByTime;
 
     /**
+     * Sub-second bucket width in milliseconds (SubSecond queries only). Defaults to the historical
+     * 20 ms so existing callers are unaffected; the Period Detail heatmap overrides it (e.g. 1–5 ms).
+     */
+    private static final int DEFAULT_BUCKET_SIZE_MS = 20;
+    private int bucketSizeMs = DEFAULT_BUCKET_SIZE_MS;
+
+    /**
      * Include all types of events in the event-stream.
      *
      * @return instance of the event-stream configurer
@@ -203,6 +210,16 @@ public class EventQueryConfigurer {
         return this;
     }
 
+    /**
+     * Sub-second bucket width in milliseconds. Only used by SubSecond queries.
+     *
+     * @return instance of the event-stream configurer
+     */
+    public EventQueryConfigurer withBucketSizeMs(int bucketSizeMs) {
+        this.bucketSizeMs = bucketSizeMs;
+        return this;
+    }
+
     public EventQueryConfigurer withSearchPattern(String searchPattern) {
         this.searchPattern = searchPattern;
         return this;
@@ -263,6 +280,10 @@ public class EventQueryConfigurer {
 
     public boolean useWeight() {
         return useWeight != null && useWeight;
+    }
+
+    public int bucketSizeMs() {
+        return bucketSizeMs;
     }
 
     public boolean threads() {

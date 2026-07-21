@@ -38,7 +38,7 @@ public class SubSecondManagerImpl implements SubSecondManager {
     }
 
     @Override
-    public JsonNode generate(Type eventType, boolean collectWeight, RelativeTimeRange timeRange) {
+    public JsonNode generate(Type eventType, boolean collectWeight, RelativeTimeRange timeRange, int bucketSizeMs) {
         RelativeTimeRange effectiveRange = timeRange != null
                 ? timeRange
                 : new RelativeTimeRange(Duration.ZERO, Duration.ofMinutes(5));
@@ -48,6 +48,7 @@ public class SubSecondManagerImpl implements SubSecondManager {
                 .withEventType(eventType)
                 .withTimeRange(effectiveRange)
                 .withCollectWeight(collectWeight)
+                .withBucketSizeMs(bucketSizeMs)
                 .build();
 
         return subSecondGenerator.generate(subSecondConfig);

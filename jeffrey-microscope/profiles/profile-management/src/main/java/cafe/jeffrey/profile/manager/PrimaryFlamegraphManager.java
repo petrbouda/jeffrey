@@ -23,6 +23,9 @@ import org.slf4j.LoggerFactory;
 import cafe.jeffrey.profile.common.config.GraphParameters;
 import cafe.jeffrey.shared.common.model.SpanInterval;
 import cafe.jeffrey.shared.common.model.Type;
+import cafe.jeffrey.shared.common.model.WeightUnit;
+import cafe.jeffrey.shared.common.model.EventSummary;
+import cafe.jeffrey.shared.common.model.RecordingEventSource;
 import cafe.jeffrey.flamegraph.api.DbBasedFlamegraphGenerator;
 import cafe.jeffrey.profile.model.EventSummaryResult;
 import cafe.jeffrey.provider.profile.api.ProfileEventTypeRepository;
@@ -33,6 +36,9 @@ import java.util.List;
 public class PrimaryFlamegraphManager implements FlamegraphManager {
 
     private static final Logger LOG = LoggerFactory.getLogger(PrimaryFlamegraphManager.class);
+
+    // Extras key under which pprof/OTLP store the raw `type/unit` sample type.
+    private static final String EXTRA_SAMPLE_TYPE = "sampleType";
 
     private static final List<Type> SUPPORTED_EVENTS = List.of(
             Type.NATIVE_LEAK,
@@ -105,22 +111,44 @@ public class PrimaryFlamegraphManager implements FlamegraphManager {
     }
 
     private GraphParameters adjustParams(GraphParameters params) {
-        // Adjust the useWeight parameter based on event type if not explicitly set
+        // Resolve, from the single event summary: the sample weight unit (pprof/OTLP store it as `type/unit`
+        // in extras; JFR has none) and whether this is a flamegraph-only import. The generator then picks the
+        // builder/frame-processor by unit — and, for imports, ONLY by unit (never the event-code predicates) —
+        // and defaults useWeight from that when not explicitly set.
+        EventSummary summary = eventTypeRepository.eventSummaries(params.eventType()).orElse(null);
+        WeightUnit weightUnit = resolveWeightUnit(summary);
+        boolean flamegraphOnlyImport = summary != null
+                && summary.source() != null
+                && summary.source().isFlamegraphOnlyImport();
         return params.toBuilder()
-                .withUseWeight(resolveWeight(params))
+                .withWeightUnit(weightUnit)
+                .withFlamegraphOnlyImport(flamegraphOnlyImport)
+                .withUseWeight(resolveWeight(params, weightUnit, flamegraphOnlyImport))
                 .build();
     }
 
-    /**
-     * By default, use weight for allocation and blocking events if the weight is not explicitly specified.
-     *
-     * @param params original graph parameters
-     * @return true if weight should be used, false otherwise
-     */
-    private static boolean resolveWeight(GraphParameters params) {
-        if (params.useWeight() == null) {
-            return params.eventType().isAllocationEvent() || params.eventType().isBlockingEvent();
+    private static WeightUnit resolveWeightUnit(EventSummary summary) {
+        if (summary == null || summary.extras() == null) {
+            return WeightUnit.NONE;
         }
-        return params.useWeight();
+        return WeightUnit.fromSampleType(summary.extras().get(EXTRA_SAMPLE_TYPE));
+    }
+
+    /**
+     * Use weight by default for weighted (bytes/duration) samples and for JFR allocation/blocking events,
+     * unless the caller specified it explicitly. Imported profiles are unit-driven only, so a NONE unit is a
+     * plain count for them (never defaulted to weight via the event code).
+     */
+    private static boolean resolveWeight(GraphParameters params, WeightUnit weightUnit, boolean flamegraphOnlyImport) {
+        if (params.useWeight() != null) {
+            return params.useWeight();
+        }
+        if (weightUnit != WeightUnit.NONE) {
+            return true;
+        }
+        if (flamegraphOnlyImport) {
+            return false;
+        }
+        return params.eventType().isAllocationEvent() || params.eventType().isBlockingEvent();
     }
 }

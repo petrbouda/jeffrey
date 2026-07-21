@@ -29,7 +29,10 @@ import cafe.jeffrey.profile.manager.heapdump.HeapDumpManager;
 import cafe.jeffrey.profile.manager.ProfileFeaturesManager;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.shared.common.exception.Exceptions;
+import cafe.jeffrey.shared.common.model.ProfileInfo;
+import cafe.jeffrey.shared.common.model.RecordingEventSource;
 
+import java.time.Instant;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -59,6 +62,7 @@ class ProfileFeaturesControllerTest {
         when(resolver.resolve("p-1")).thenReturn(profileManager);
         when(profileManager.featuresManager()).thenReturn(featuresManager);
         when(profileManager.heapDumpManager()).thenReturn(heapDumpManager);
+        when(profileManager.info()).thenReturn(profileInfo(RecordingEventSource.JDK));
         when(featuresManager.getDisabledFeatures()).thenReturn(List.of());
         when(assistantService.isAvailable()).thenReturn(false);
         when(heapDumpManager.heapDumpExists()).thenReturn(false);
@@ -81,5 +85,11 @@ class ProfileFeaturesControllerTest {
                 .hasStatus(404)
                 .bodyJson()
                 .extractingPath("$.code").asString().isEqualTo("PROFILE_NOT_FOUND");
+    }
+
+    private static ProfileInfo profileInfo(RecordingEventSource eventSource) {
+        return new ProfileInfo(
+                "p-1", "proj-1", "ws-1", "profile", eventSource,
+                Instant.EPOCH, Instant.EPOCH, Instant.EPOCH, true, false, "rec-1");
     }
 }

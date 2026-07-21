@@ -131,6 +131,29 @@
   margin-bottom: 0.5rem;
 }
 
+// Opt-in collapsible section header (profile sidebar only — the project sidebar keeps
+// plain, non-interactive section titles).
+.nav-section-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
+
+  &:hover {
+    color: #5e64ff;
+  }
+
+  .section-arrow {
+    font-size: 0.65rem;
+    transition: transform 0.2s ease;
+
+    &.collapsed {
+      transform: rotate(-90deg);
+    }
+  }
+}
+
 .nav-items {
   display: flex;
   flex-direction: column;

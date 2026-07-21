@@ -26,6 +26,7 @@ import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
 import cafe.jeffrey.profile.manager.FlamegraphManager;
 import cafe.jeffrey.profile.manager.ProfileManager;
+import cafe.jeffrey.profile.panel.JfrFlamegraphPanelProvider;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 
 import java.util.List;
@@ -52,7 +53,7 @@ class FlamegraphControllerTest {
         when(profileManager.flamegraphManager()).thenReturn(flamegraphManager);
         when(flamegraphManager.eventSummaries()).thenReturn(List.of());
 
-        MockMvcTester mvc = mockMvcTesterFor(new FlamegraphController(resolver));
+        MockMvcTester mvc = mockMvcTesterFor(new FlamegraphController(resolver, new JfrFlamegraphPanelProvider()));
 
         assertThat(mvc.get().uri("/api/internal/profiles/p-1/flamegraph/events"))
                 .hasStatusOk()
@@ -61,10 +62,26 @@ class FlamegraphControllerTest {
     }
 
     @Test
+    void listsAllEightPanelSectionsInOrder() {
+        when(resolver.resolve("p-1")).thenReturn(profileManager);
+        when(profileManager.flamegraphManager()).thenReturn(flamegraphManager);
+        when(flamegraphManager.eventSummaries()).thenReturn(List.of());
+
+        MockMvcTester mvc = mockMvcTesterFor(new FlamegraphController(resolver, new JfrFlamegraphPanelProvider()));
+
+        assertThat(mvc.get().uri("/api/internal/profiles/p-1/flamegraph/panels"))
+                .hasStatusOk()
+                .bodyJson()
+                .extractingPath("$[*].section").asArray()
+                .containsExactly("execution", "cpu-time", "method", "wall",
+                        "allocation", "native-alloc", "native-leak", "blocking");
+    }
+
+    @Test
     void profileNotFoundReturns404() {
         when(resolver.resolve("ghost")).thenThrow(Exceptions.profileNotFound("ghost"));
 
-        MockMvcTester mvc = mockMvcTesterFor(new FlamegraphController(resolver));
+        MockMvcTester mvc = mockMvcTesterFor(new FlamegraphController(resolver, new JfrFlamegraphPanelProvider()));
 
         assertThat(mvc.get().uri("/api/internal/profiles/ghost/flamegraph/events"))
                 .hasStatus(404)

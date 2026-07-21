@@ -25,8 +25,10 @@
   <div class="chart-description">
     <span class="chart-description-text">
       <span class="chart-description-label">Shows:</span> <slot name="shows">{{ shows }}</slot>
-      <span class="chart-description-separator">|</span>
-      <span class="chart-description-label">Use case:</span> <slot name="use-case">{{ useCase }}</slot>
+      <template v-if="useCase || $slots['use-case']">
+        <span class="chart-description-separator">|</span>
+        <span class="chart-description-label">Use case:</span> <slot name="use-case">{{ useCase }}</slot>
+      </template>
     </span>
     <span v-if="$slots.actions" class="chart-description-actions"><slot name="actions" /></span>
   </div>

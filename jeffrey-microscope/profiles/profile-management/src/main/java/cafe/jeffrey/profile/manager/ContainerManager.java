@@ -20,6 +20,7 @@ package cafe.jeffrey.profile.manager;
 
 import cafe.jeffrey.shared.common.model.ProfileInfo;
 import cafe.jeffrey.profile.manager.model.container.ContainerConfigurationData;
+import cafe.jeffrey.profile.manager.model.container.ContainerCpuThrottlingData;
 
 import java.util.function.Function;
 
@@ -30,4 +31,6 @@ public interface ContainerManager {
     }
 
     ContainerConfigurationData configuration();
+
+    ContainerCpuThrottlingData throttling();
 }

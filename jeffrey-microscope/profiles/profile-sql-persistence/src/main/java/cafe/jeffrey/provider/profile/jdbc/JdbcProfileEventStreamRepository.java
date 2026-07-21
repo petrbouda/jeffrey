@@ -168,6 +168,22 @@ public class JdbcProfileEventStreamRepository implements ProfileEventStreamRepos
     }
 
     @Override
+    public <T> T frameBasedEventStreamer(EventQueryConfigurer configurer, RecordBuilder<TimeseriesRecord, T> builder) {
+        QueryBuilderFactory factory = queryBuilderFactoryResolver.resolve(configurer.eventTypes());
+
+        MapSqlParameterSource baseParams = createBaseParams(configurer);
+
+        databaseClient.queryStream(
+                StatementLabel.STREAM_EVENTS,
+                factory.complexQueries().timeseries().frameBasedEvents(configurer),
+                baseParams,
+                new TimeseriesRecordRowMapper(),
+                builder::onRecord);
+
+        return builder.build();
+    }
+
+    @Override
     public <T> T flamegraphStreamer(EventQueryConfigurer configurer, RecordBuilder<FlamegraphRecord, T> builder) {
         QueryBuilderFactory factory = queryBuilderFactoryResolver.resolve(configurer.eventTypes());
 

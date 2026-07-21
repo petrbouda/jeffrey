@@ -37,6 +37,7 @@ import java.time.Instant;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.when;
 import static cafe.jeffrey.microscope.core.web.MockMvcSupport.mockMvcTesterFor;
 
@@ -63,7 +64,7 @@ class SubSecondControllerTest {
                 Instant.parse("2026-04-01T10:10:00Z"),
                 true, false, "rec-1"));
         when(profileManager.subSecondManager()).thenReturn(subSecondManager);
-        when(subSecondManager.generate(any(), anyBoolean(), any())).thenReturn(node);
+        when(subSecondManager.generate(any(), anyBoolean(), any(), anyInt())).thenReturn(node);
 
         MockMvcTester mvc = mockMvcTesterFor(new SubSecondController(resolver));
 

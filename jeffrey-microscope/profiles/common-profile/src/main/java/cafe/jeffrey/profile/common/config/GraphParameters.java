@@ -22,6 +22,7 @@ import cafe.jeffrey.shared.common.GraphType;
 import cafe.jeffrey.shared.common.model.SpanInterval;
 import cafe.jeffrey.shared.common.model.ThreadInfo;
 import cafe.jeffrey.shared.common.model.Type;
+import cafe.jeffrey.shared.common.model.WeightUnit;
 import cafe.jeffrey.profile.common.analysis.marker.Marker;
 import cafe.jeffrey.shared.common.model.StacktraceTag;
 import cafe.jeffrey.shared.common.model.StacktraceType;
@@ -44,7 +45,15 @@ public record GraphParameters(
         List<Marker> markers,
         GraphType graphType,
         GraphComponents graphComponents,
-        List<SpanInterval> spanIntervals) {
+        List<SpanInterval> spanIntervals,
+        // How the sample weight is measured (bytes / duration / none). Resolved from the event type's
+        // stored sample unit; drives builder + frame-processor selection for aggregated stack-sample
+        // formats (pprof / OTLP). NONE for JFR (which is classified by the event-type Type instead).
+        WeightUnit weightUnit,
+        // Whether the profile is a flamegraph-only import (pprof / OTLP). When true the generator selects the
+        // builder / frame-processor purely from weightUnit and never falls back to JFR event-type predicates —
+        // so an imported count dimension whose code equals a JFR allocation/blocking code still renders plain.
+        boolean flamegraphOnlyImport) {
 
     public List<StacktraceTag> stacktraceTags() {
         List<StacktraceTag> tags = new ArrayList<>();
@@ -88,7 +97,9 @@ public record GraphParameters(
                 .withMarkers(markers)
                 .withGraphType(graphType)
                 .withGraphComponents(graphComponents)
-                .withSpanIntervals(spanIntervals);
+                .withSpanIntervals(spanIntervals)
+                .withWeightUnit(weightUnit)
+                .withFlamegraphOnlyImport(flamegraphOnlyImport);
     }
 
     public static GraphParametersBuilder builder() {

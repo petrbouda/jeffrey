@@ -35,13 +35,18 @@ public abstract class SubSecondCollectorUtils {
             return EMPTY_DATA;
         }
 
-        long[][] matrix = generateMatrix(combined.columns());
+        // All columns share the same bucket geometry (built by one SubSecondRecordBuilder).
+        SecondColumn firstColumn = combined.columns().getFirst();
+        int bucketSize = firstColumn.getBucketSize();
+        int bucketCount = firstColumn.getBucketCount();
+
+        long[][] matrix = generateMatrix(combined.columns(), bucketCount);
 
         return Json.mapper()
-                .valueToTree(new SubSecondModel(combined.maxValue(), formatMatrix(matrix)));
+                .valueToTree(new SubSecondModel(combined.maxValue(), formatMatrix(matrix, bucketSize)));
     }
 
-    private static ArrayNode formatMatrix(long[][] matrix) {
+    private static ArrayNode formatMatrix(long[][] matrix, int bucketSize) {
         ArrayNode output = Json.createArray();
 
         for (int i = 0; i < matrix.length; i++) {
@@ -54,7 +59,7 @@ public abstract class SubSecondCollectorUtils {
             }
 
             JsonNode row = Json.createObject()
-                    .put("name", String.valueOf(i * SecondColumn.BUCKET_SIZE))
+                    .put("name", String.valueOf(i * bucketSize))
                     .set("data", cells);
 
             output.add(row);
@@ -63,9 +68,9 @@ public abstract class SubSecondCollectorUtils {
         return output;
     }
 
-    private static long[][] generateMatrix(List<SecondColumn> columns) {
-        long[][] matrix = new long[SecondColumn.BUCKET_COUNT][];
-        for (int i = 0; i < SecondColumn.BUCKET_COUNT; i++) {
+    private static long[][] generateMatrix(List<SecondColumn> columns, int bucketCount) {
+        long[][] matrix = new long[bucketCount][];
+        for (int i = 0; i < bucketCount; i++) {
             long[] row = new long[columns.size()];
             for (int j = 0; j < columns.size(); j++) {
                 row[j] = columns.get(j).getBuckets()[i];

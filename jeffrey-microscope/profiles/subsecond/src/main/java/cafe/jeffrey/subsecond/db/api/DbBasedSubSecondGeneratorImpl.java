@@ -38,10 +38,13 @@ public class DbBasedSubSecondGeneratorImpl implements SubSecondGenerator {
     public JsonNode generate(SubSecondConfig config) {
         EventQueryConfigurer configurer = new EventQueryConfigurer()
                 .withEventType(config.eventType())
-                .withTimeRange(config.timeRange());
+                .withTimeRange(config.timeRange())
+                .withWeight(config.collectWeight())
+                .withBucketSizeMs(config.bucketSizeMs());
 
         long startOffsetMillis = config.timeRange() != null ? config.timeRange().start().toMillis() : 0;
-        SingleResult result = eventStreamRepository.subSecondStreamer(configurer, new SubSecondRecordBuilder(startOffsetMillis));
+        SubSecondRecordBuilder builder = new SubSecondRecordBuilder(startOffsetMillis, config.bucketSizeMs());
+        SingleResult result = eventStreamRepository.subSecondStreamer(configurer, builder);
         return SubSecondCollectorUtils.finisher(result);
     }
 }

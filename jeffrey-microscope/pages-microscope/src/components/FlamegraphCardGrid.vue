@@ -18,228 +18,28 @@
 
 <template>
   <div class="flamegraph-grid">
-    <!-- Execution Sample Events -->
     <FlamegraphCard
-      v-for="(event, index) in displayExecutionSampleEvents"
-      :key="'exec-' + index"
-      title="Execution Samples"
-      color="blue"
-      icon="bi-sprint"
-      :thread-mode-opt="threadModeOpt"
-      :thread-mode-selected="false"
-      :weight-desc="null"
-      :weight-opt="false"
-      :weight-selected="false"
-      :weight-formatter="FormattingService.formatDuration2Units"
-      :exclude-non-java-samples-opt="false"
-      :exclude-non-java-samples-selected="false"
-      :exclude-idle-samples-opt="false"
-      :exclude-idle-samples-selected="false"
-      :only-unsafe-allocation-samples-opt="false"
-      :only-unsafe-allocation-samples-selected="false"
+      v-for="panel in visiblePanels"
+      :key="panel.section + '-' + panel.event.code"
+      :title="panel.title"
+      :color="panel.color"
+      :icon="panel.icon"
+      :show-type="panel.showType"
+      :thread-mode-opt="panel.threadMode.applicable"
+      :thread-mode-selected="panel.threadMode.defaultOn"
+      :weight-opt="panel.weight.applicable"
+      :weight-selected="panel.weight.defaultOn"
+      :weight-desc="panel.weight.label"
+      :weight-formatter="weightFormatter(panel)"
+      :exclude-non-java-samples-opt="panel.excludeNonJava.applicable"
+      :exclude-non-java-samples-selected="panel.excludeNonJava.defaultOn"
+      :exclude-idle-samples-opt="panel.excludeIdle.applicable"
+      :exclude-idle-samples-selected="panel.excludeIdle.defaultOn"
+      :only-unsafe-allocation-samples-opt="panel.onlyUnsafe.applicable"
+      :only-unsafe-allocation-samples-selected="panel.onlyUnsafe.defaultOn"
       :graph-mode="graphMode"
-      :event="event"
-      :enabled="event.primary.samples > 0"
-      :route-name="routeName"
-      :button-text="buttonText"
-      :emit-view="emitView"
-      @view="emit('view', $event)"
-    />
-
-    <!-- CPU-Time Sample Events -->
-    <FlamegraphCard
-      v-for="(event, index) in displayCpuTimeSampleEvents"
-      :key="'cpu-' + index"
-      title="CPU-Time Samples"
-      color="blue"
-      icon="bi-cpu"
-      :thread-mode-opt="threadModeOpt"
-      :thread-mode-selected="false"
-      weight-desc="CPU Time"
-      :weight-opt="true"
-      :weight-selected="false"
-      :weight-formatter="FormattingService.formatDuration2Units"
-      :exclude-non-java-samples-opt="false"
-      :exclude-non-java-samples-selected="false"
-      :exclude-idle-samples-opt="false"
-      :exclude-idle-samples-selected="false"
-      :only-unsafe-allocation-samples-opt="false"
-      :only-unsafe-allocation-samples-selected="false"
-      :graph-mode="graphMode"
-      :event="event"
-      :enabled="event.primary.samples > 0"
-      :route-name="routeName"
-      :button-text="buttonText"
-      :emit-view="emitView"
-      @view="emit('view', $event)"
-    />
-
-    <!-- Method Trace Events -->
-    <FlamegraphCard
-      v-if="showMethodEvents"
-      v-for="(event, index) in displayMethodTraceEvents"
-      :key="'method-' + index"
-      title="Method Traces"
-      color="blue"
-      icon="bi-sprint"
-      :thread-mode-opt="threadModeOpt"
-      :thread-mode-selected="false"
-      weight-desc="Total Time"
-      :weight-opt="isPrimary"
-      :weight-selected="isPrimary"
-      :weight-formatter="FormattingService.formatDuration2Units"
-      :exclude-non-java-samples-opt="false"
-      :exclude-non-java-samples-selected="false"
-      :exclude-idle-samples-opt="false"
-      :exclude-idle-samples-selected="false"
-      :only-unsafe-allocation-samples-opt="false"
-      :only-unsafe-allocation-samples-selected="false"
-      :graph-mode="graphMode"
-      :event="event"
-      :enabled="event.primary.samples > 0"
-      :route-name="routeName"
-      :button-text="buttonText"
-      :emit-view="emitView"
-      @view="emit('view', $event)"
-    />
-
-    <!-- Wall-Clock Events -->
-    <FlamegraphCard
-      v-for="(event, index) in displayWallClockEvents"
-      :key="'wall-' + index"
-      title="Wall-Clock Samples"
-      color="purple"
-      icon="bi-alarm"
-      :thread-mode-opt="threadModeOpt"
-      :thread-mode-selected="true"
-      :weight-desc="null"
-      :weight-opt="false"
-      :weight-selected="false"
-      :weight-formatter="FormattingService.formatDuration2Units"
-      :exclude-non-java-samples-opt="true"
-      :exclude-non-java-samples-selected="true"
-      :exclude-idle-samples-opt="true"
-      :exclude-idle-samples-selected="true"
-      :only-unsafe-allocation-samples-opt="false"
-      :only-unsafe-allocation-samples-selected="false"
-      :graph-mode="graphMode"
-      :event="event"
-      :enabled="event.primary.samples > 0"
-      :route-name="routeName"
-      :button-text="buttonText"
-      :emit-view="emitView"
-      @view="emit('view', $event)"
-    />
-
-    <!-- Object Allocation Events -->
-    <FlamegraphCard
-      v-for="(event, index) in displayObjectAllocationEvents"
-      :key="'alloc-' + index"
-      title="Allocation Samples"
-      color="green"
-      icon="bi-memory"
-      :thread-mode-opt="threadModeOpt"
-      :thread-mode-selected="false"
-      weight-desc="Total Allocation"
-      :weight-opt="true"
-      :weight-selected="true"
-      :weight-formatter="FormattingService.formatBytes"
-      :exclude-non-java-samples-opt="false"
-      :exclude-non-java-samples-selected="false"
-      :exclude-idle-samples-opt="false"
-      :exclude-idle-samples-selected="false"
-      :only-unsafe-allocation-samples-opt="false"
-      :only-unsafe-allocation-samples-selected="false"
-      :graph-mode="graphMode"
-      :event="event"
-      :enabled="event.primary.samples > 0"
-      :route-name="routeName"
-      :button-text="buttonText"
-      :emit-view="emitView"
-      @view="emit('view', $event)"
-    />
-
-    <!-- Native Allocation Events (Primary only) -->
-    <FlamegraphCard
-      v-if="showNativeEvents"
-      v-for="(event, index) in displayNativeAllocationEvents"
-      :key="'native-alloc-' + index"
-      title="Native Allocation Samples"
-      color="pink"
-      icon="bi-memory"
-      :thread-mode-opt="threadModeOptAlways"
-      :thread-mode-selected="false"
-      weight-desc="Total Allocation"
-      :weight-opt="true"
-      :weight-selected="true"
-      :weight-formatter="FormattingService.formatBytes"
-      :exclude-non-java-samples-opt="false"
-      :exclude-non-java-samples-selected="false"
-      :exclude-idle-samples-opt="false"
-      :exclude-idle-samples-selected="false"
-      :only-unsafe-allocation-samples-opt="true"
-      :only-unsafe-allocation-samples-selected="true"
-      :graph-mode="graphMode"
-      :event="event"
-      :enabled="event.primary.samples > 0"
-      :route-name="routeName"
-      :button-text="buttonText"
-      :emit-view="emitView"
-      @view="emit('view', $event)"
-    />
-
-    <!-- Native Leak Events (Primary only) -->
-    <FlamegraphCard
-      v-if="showNativeEvents"
-      v-for="(event, index) in displayNativeLeakEvents"
-      :key="'native-leak-' + index"
-      title="Native Allocation Leaks"
-      color="pink"
-      icon="bi-memory"
-      :thread-mode-opt="threadModeOptAlways"
-      :thread-mode-selected="false"
-      weight-desc="Total Allocation"
-      :weight-opt="true"
-      :weight-selected="true"
-      :weight-formatter="FormattingService.formatBytes"
-      :exclude-non-java-samples-opt="false"
-      :exclude-non-java-samples-selected="false"
-      :exclude-idle-samples-opt="false"
-      :exclude-idle-samples-selected="false"
-      :only-unsafe-allocation-samples-opt="true"
-      :only-unsafe-allocation-samples-selected="true"
-      :graph-mode="graphMode"
-      :event="event"
-      :enabled="event.primary.samples > 0"
-      :route-name="routeName"
-      :button-text="buttonText"
-      :emit-view="emitView"
-      @view="emit('view', $event)"
-    />
-
-    <!-- Blocking Events (Primary flamegraph only) -->
-    <FlamegraphCard
-      v-if="showBlockingEvents"
-      v-for="(event, index) in displayBlockingEvents"
-      :key="'blocking-' + index"
-      :title="event.label"
-      color="red"
-      icon="bi-lock"
-      :thread-mode-opt="threadModeOptAlways"
-      :thread-mode-selected="false"
-      :weight-opt="true"
-      :weight-selected="true"
-      weight-desc="Blocked Time"
-      :weight-formatter="FormattingService.formatDuration2Units"
-      :exclude-non-java-samples-opt="false"
-      :exclude-non-java-samples-selected="false"
-      :exclude-idle-samples-opt="false"
-      :exclude-idle-samples-selected="false"
-      :only-unsafe-allocation-samples-opt="false"
-      :only-unsafe-allocation-samples-selected="false"
-      :graph-mode="graphMode"
-      :event="event"
-      :enabled="event.primary.samples > 0"
+      :event="panel.event"
+      :enabled="panel.event.primary.samples > 0"
       :route-name="routeName"
       :button-text="buttonText"
       :emit-view="emitView"
@@ -254,44 +54,25 @@ import FlamegraphCard from '@/components/FlamegraphCard.vue';
 import type { FlamegraphCardViewPayload } from '@/components/FlamegraphCard.vue';
 import FormattingService from '@shared/services/FormattingService';
 import GraphType from '@/services/flamegraphs/GraphType';
-import EventSummary from '@/services/api/model/EventSummary';
-import EventSummaryDetail from '@/services/api/model/EventSummaryDetail';
+import FlamegraphPanel from '@/services/api/model/FlamegraphPanel';
 
 interface Props {
   graphMode: string;
-  executionSampleEvents: EventSummary[];
-  cpuTimeSampleEvents?: EventSummary[];
-  methodTraceEvents: EventSummary[];
-  objectAllocationEvents: EventSummary[];
-  wallClockEvents: EventSummary[];
-  blockingEvents?: EventSummary[];
-  nativeAllocationEvents?: EventSummary[];
-  nativeLeakEvents?: EventSummary[];
+  // The backend-produced, ordered card grid. Every panel is fully self-describing; the frontend does no
+  // event-type inference — it only applies route-based show/hide off the panel's classification flags.
+  panels: FlamegraphPanel[];
   routeName?: string;
   buttonText?: string;
   emitView?: boolean;
-  // Suppress categories for views that don't want them (default: shown). Inverted (hide*) on purpose:
-  // Vue casts an absent boolean prop to false, so "default false = not hidden = shown" works correctly.
-  // The span view passes these true so it stays focused on Execution / Wall-Clock / Allocation.
+  // Suppress panels by role for views that don't want them (default: shown). Inverted (hide*) on purpose:
+  // Vue casts an absent boolean prop to false, so "default false = not hidden = shown" works. The span
+  // view passes these true so it stays focused on Execution / Wall-Clock / Allocation.
   hideMethod?: boolean;
   hideNative?: boolean;
   hideBlocking?: boolean;
-  // Suppress the greyed "No data" placeholder cards for empty categories. JFR profiles keep them so
-  // the full set of standard categories stays visible; non-JFR profiles (e.g. pprof, which only ever
-  // carries a subset like Execution or Allocation) pass this true so empty JFR categories don't clutter
-  // the grid with irrelevant placeholders.
-  suppressEmptyPlaceholders?: boolean;
-  // Hide the "Use Thread-mode" card toggle. pprof profiles are aggregated (one Sample per stack,
-  // thread only survivable as a non-standard label), so their samples collapse onto a single
-  // synthetic thread and thread-mode is meaningless — pass this true for them.
-  hideThreadMode?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  cpuTimeSampleEvents: () => [],
-  blockingEvents: () => [],
-  nativeAllocationEvents: () => [],
-  nativeLeakEvents: () => [],
   routeName: 'flamegraph',
   buttonText: 'View Flamegraph',
   emitView: false
@@ -302,62 +83,29 @@ const emit = defineEmits<{
 }>();
 
 const isPrimary = computed(() => props.graphMode === GraphType.PRIMARY);
-
-// Thread-mode is offered for primary flamegraphs, but suppressed entirely when hideThreadMode is set
-// (aggregated pprof profiles have no real per-thread data). threadModeOptAlways covers the cards that
-// otherwise offer thread-mode regardless of primary/secondary.
-const threadModeOpt = computed(() => isPrimary.value && !props.hideThreadMode);
-const threadModeOptAlways = computed(() => !props.hideThreadMode);
-
-// Native/blocking shown for primary flamegraph mode (not subsecond), unless explicitly overridden.
+// Native/blocking cards belong to the primary flamegraph route only (not subsecond); method tracing is
+// suppressed on views that pass hideMethod. All keyed on the panel's classification, never its code.
 const isFlamegraphRoute = computed(() => isPrimary.value && props.routeName === 'flamegraph');
-const showMethodEvents = computed(() => !props.hideMethod);
-const showNativeEvents = computed(() => !props.hideNative && isFlamegraphRoute.value);
-const showBlockingEvents = computed(() => !props.hideBlocking && isFlamegraphRoute.value);
 
-/**
- * Keep a card visible (disabled) when a category has no samples: if the real list is empty, render a
- * single zero-sample placeholder so the grid shows a greyed "No data" card instead of hiding it.
- */
-function withPlaceholder(events: EventSummary[], code: string, label: string): EventSummary[] {
-  if (events.length > 0) {
-    return events;
+function isVisible(panel: FlamegraphPanel): boolean {
+  if (panel.classification.method && props.hideMethod) {
+    return false;
   }
-  if (props.suppressEmptyPlaceholders) {
-    return [];
+  if (panel.classification.nativeMemory && (props.hideNative || !isFlamegraphRoute.value)) {
+    return false;
   }
-  return [
-    new EventSummary(
-      code,
-      label,
-      new EventSummaryDetail(code, label, '', '', 0, 0, false, null),
-      null
-    )
-  ];
+  if (panel.classification.blocking && (props.hideBlocking || !isFlamegraphRoute.value)) {
+    return false;
+  }
+  return true;
 }
 
-const displayExecutionSampleEvents = computed(() =>
-  withPlaceholder(props.executionSampleEvents, 'jdk.ExecutionSample', 'Execution')
-);
-const displayCpuTimeSampleEvents = computed(() =>
-  withPlaceholder(props.cpuTimeSampleEvents, 'jdk.CPUTimeSample', 'CPU-Time')
-);
-const displayMethodTraceEvents = computed(() =>
-  withPlaceholder(props.methodTraceEvents, 'jdk.MethodTrace', 'Method Trace')
-);
-const displayWallClockEvents = computed(() =>
-  withPlaceholder(props.wallClockEvents, 'profiler.WallClockSample', 'Wall-Clock')
-);
-const displayObjectAllocationEvents = computed(() =>
-  withPlaceholder(props.objectAllocationEvents, 'jdk.ObjectAllocationInNewTLAB', 'Allocation')
-);
-const displayNativeAllocationEvents = computed(() =>
-  withPlaceholder(props.nativeAllocationEvents, 'profiler.Malloc', 'Native Allocation')
-);
-const displayNativeLeakEvents = computed(() =>
-  withPlaceholder(props.nativeLeakEvents, 'jeffrey.NativeLeak', 'Native Allocation Leaks')
-);
-const displayBlockingEvents = computed(() =>
-  withPlaceholder(props.blockingEvents, 'jdk.JavaMonitorEnter', 'Locks & Blocking')
-);
+const visiblePanels = computed(() => props.panels.filter(isVisible));
+
+function weightFormatter(panel: FlamegraphPanel): (value: number) => string {
+  if (panel.weight.kind === 'BYTES') {
+    return FormattingService.formatBytes;
+  }
+  return FormattingService.formatDuration2Units;
+}
 </script>
