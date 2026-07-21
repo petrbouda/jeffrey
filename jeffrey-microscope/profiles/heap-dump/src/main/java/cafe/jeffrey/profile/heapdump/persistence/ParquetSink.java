@@ -26,6 +26,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * Per-worker parquet sink: an in-memory DuckDB instance plus one
@@ -45,6 +46,22 @@ import java.util.Map;
 public final class ParquetSink implements AutoCloseable {
 
     private static final String JDBC_URL = "jdbc:duckdb:";
+
+    /**
+     * Shard row order is irrelevant (the coordinator re-reads shards through
+     * DuckDB's parallel parquet reader), so skip the insertion-order
+     * bookkeeping on the staging tables and the {@code COPY} output.
+     */
+    private static final String SET_PRESERVE_INSERTION_ORDER = "SET preserve_insertion_order = false";
+
+    /**
+     * An in-memory DuckDB has no temp directory by default and therefore
+     * cannot spill — a worker whose slice outgrows the memory limit would
+     * hard-fail. Pointing {@code temp_directory} into the staging area (next
+     * to the shard this sink writes) restores spilling; the staging directory
+     * is deleted wholesale at the end of the build.
+     */
+    private static final String SPILL_DIR_PREFIX = "duckdb-spill-";
 
     private final DuckDBConnection conn;
 
@@ -82,6 +99,7 @@ public final class ParquetSink implements AutoCloseable {
 
         Map<String, TableSink> sinks = new LinkedHashMap<>();
         try {
+            configureSession(conn, outputPaths.values().iterator().next());
             for (Map.Entry<String, String> e : tableDdls.entrySet()) {
                 String table = e.getKey();
                 String columnDdl = e.getValue();
@@ -105,6 +123,16 @@ public final class ParquetSink implements AutoCloseable {
         }
 
         return new ParquetSink(conn, sinks);
+    }
+
+    private static void configureSession(DuckDBConnection conn, Path anyOutputPath) throws SQLException {
+        Path spillDir = anyOutputPath.toAbsolutePath().getParent()
+                .resolve(SPILL_DIR_PREFIX + UUID.randomUUID());
+        String escapedSpillDir = spillDir.toString().replace("'", "''");
+        try (Statement s = conn.createStatement()) {
+            s.execute(SET_PRESERVE_INSERTION_ORDER);
+            s.execute("SET temp_directory = '" + escapedSpillDir + "'");
+        }
     }
 
     /**

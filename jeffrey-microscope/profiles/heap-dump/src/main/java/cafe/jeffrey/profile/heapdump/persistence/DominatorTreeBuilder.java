@@ -84,6 +84,13 @@ public final class DominatorTreeBuilder {
      */
     private static final String PRAGMA_WAL_AUTOCHECKPOINT = "PRAGMA wal_autocheckpoint = '1TB'";
 
+    /**
+     * The dominator/retained-size bulk loads never rely on row order (reads are
+     * keyed or explicitly ordered), so let DuckDB parallelise the parquet load
+     * without the insertion-order bookkeeping.
+     */
+    private static final String PRAGMA_PRESERVE_INSERTION_ORDER = "SET preserve_insertion_order = false";
+
     public record BuildResult(int reachableInstances, int rootEdges, long iterations,
                               java.time.Duration buildTime, List<SubPhaseTiming> subPhases) {
 
@@ -116,6 +123,7 @@ public final class DominatorTreeBuilder {
             HeapDumpDatabaseClient client = new HeapDumpDatabaseClient(conn, GroupLabel.HEAP_DUMP_INDEX);
 
             client.execute(HeapDumpStatement.WAL_AUTOCHECKPOINT_PRAGMA, PRAGMA_WAL_AUTOCHECKPOINT);
+            client.execute(HeapDumpStatement.PRESERVE_INSERTION_ORDER_PRAGMA, PRAGMA_PRESERVE_INSERTION_ORDER);
             client.execute(HeapDumpStatement.DELETE_DOMINATOR, "DELETE FROM dominator");
             client.execute(HeapDumpStatement.DELETE_RETAINED_SIZE, "DELETE FROM retained_size");
 

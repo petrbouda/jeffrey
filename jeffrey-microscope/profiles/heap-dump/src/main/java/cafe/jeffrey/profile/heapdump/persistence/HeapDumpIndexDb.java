@@ -57,6 +57,14 @@ public final class HeapDumpIndexDb implements AutoCloseable {
      */
     private static final String PRAGMA_WAL_AUTOCHECKPOINT = "PRAGMA wal_autocheckpoint = '1TB'";
 
+    /**
+     * Insertion order is semantically irrelevant for every index table — all
+     * reads are keyed or carry an explicit {@code ORDER BY} — and dropping the
+     * guarantee lets DuckDB parallelise the {@code read_parquet} bulk loads
+     * more aggressively while using less memory.
+     */
+    private static final String PRAGMA_PRESERVE_INSERTION_ORDER = "SET preserve_insertion_order = false";
+
     private final Path path;
     private final DuckDBConnection connection;
     private final HeapDumpDatabaseClient databaseClient;
@@ -127,6 +135,7 @@ public final class HeapDumpIndexDb implements AutoCloseable {
         // DuckDB JDBC supports running multiple ;-delimited statements in a single execute.
         databaseClient.execute(HeapDumpStatement.APPLY_SCHEMA, loadResource(SCHEMA_RESOURCE));
         databaseClient.execute(HeapDumpStatement.WAL_AUTOCHECKPOINT_PRAGMA, PRAGMA_WAL_AUTOCHECKPOINT);
+        databaseClient.execute(HeapDumpStatement.PRESERVE_INSERTION_ORDER_PRAGMA, PRAGMA_PRESERVE_INSERTION_ORDER);
     }
 
     private static String loadResource(String resource) throws IOException {

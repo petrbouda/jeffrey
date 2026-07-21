@@ -31,6 +31,7 @@ public enum HeapDumpStatement {
     CREATE_INDEXES,
     CHECKPOINT,
     WAL_AUTOCHECKPOINT_PRAGMA,
+    PRESERVE_INSERTION_ORDER_PRAGMA,
     READ_ONLY_PRAGMA,
 
     // ---- appender writes (HprofIndex Pass 1/2A/2B + content phase) ----
