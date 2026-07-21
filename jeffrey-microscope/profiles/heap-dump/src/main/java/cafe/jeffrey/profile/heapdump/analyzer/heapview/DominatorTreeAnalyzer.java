@@ -67,16 +67,25 @@ public final class DominatorTreeAnalyzer {
     }
 
     public static DominatorTreeResponse children(HeapView view, long parentId) throws SQLException {
-        return children(view, parentId, DEFAULT_LIMIT);
+        return children(view, parentId, 0, DEFAULT_LIMIT);
     }
 
     public static DominatorTreeResponse children(HeapView view, long parentId, int limit) throws SQLException {
+        return children(view, parentId, 0, limit);
+    }
+
+    public static DominatorTreeResponse children(HeapView view, long parentId, int offset, int limit)
+            throws SQLException {
+
         if (!view.hasDominatorTree()) {
             throw new IllegalStateException(
                     "Dominator tree not built; call DominatorTreeBuilder.build(indexDb) first");
         }
         if (limit <= 0) {
             throw new IllegalArgumentException("limit must be positive: limit=" + limit);
+        }
+        if (offset < 0) {
+            throw new IllegalArgumentException("offset must not be negative: offset=" + offset);
         }
 
         long totalHeapSize = view.totalShallowSize();
@@ -94,7 +103,7 @@ public final class DominatorTreeAnalyzer {
                 : Map.of();
 
         // children: dominator(d.dominator_id = parent) joined to instance + class + retained.
-        // Fetch limit+1 to detect hasMore.
+        // instance_id is the tie-break so retained-size ties paginate deterministically.
         String sql = "SELECT d.instance_id, c.name, i.shallow_size, r.bytes, "
                 + "       EXISTS (SELECT 1 FROM dominator d2 WHERE d2.dominator_id = d.instance_id) AS has_children "
                 + "FROM dominator d "
@@ -102,8 +111,8 @@ public final class DominatorTreeAnalyzer {
                 + "LEFT JOIN class c ON i.class_id = c.class_id "
                 + "JOIN retained_size r ON r.instance_id = d.instance_id "
                 + "WHERE d.dominator_id = ? "
-                + "ORDER BY r.bytes DESC "
-                + "LIMIT ?";
+                + "ORDER BY r.bytes DESC, d.instance_id "
+                + "LIMIT ? OFFSET ?";
 
         // First pass: pull child rows and remember which byte[] (opaque-array) ids we need
         // to enrich with referrer hints. Building the final DominatorNode list is deferred
@@ -115,7 +124,8 @@ public final class DominatorTreeAnalyzer {
         List<Long> opaqueArrayIds = new ArrayList<>();
         try (PreparedStatement stmt = view.databaseClient().connection().prepareStatement(sql)) {
             stmt.setLong(1, parentId);
-            stmt.setInt(2, limit + 1);
+            stmt.setInt(2, limit);
+            stmt.setInt(3, offset);
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next() && rawRows.size() < limit) {
                     long instanceId = rs.getLong(1);
@@ -153,7 +163,7 @@ public final class DominatorTreeAnalyzer {
                     row.shallow(), row.retained(), row.percent(), row.hasChildren(), row.rootKind(),
                     referrers));
         }
-        boolean hasMore = nodes.size() == limit && countChildren(view, parentId) > limit;
+        boolean hasMore = nodes.size() == limit && countChildren(view, parentId) > offset + limit;
         boolean compressedOops = view.metadata().compressedOops();
 
         return new DominatorTreeResponse(nodes, totalHeapSize, compressedOops, hasMore);

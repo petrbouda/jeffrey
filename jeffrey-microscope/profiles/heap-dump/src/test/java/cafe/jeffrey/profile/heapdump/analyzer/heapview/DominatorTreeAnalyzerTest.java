@@ -182,6 +182,62 @@ class DominatorTreeAnalyzerTest {
     }
 
     @Test
+    void offsetPaginationReturnsDisjointPagesInStableOrder(@TempDir Path tmp) throws IOException, SQLException {
+        int idSize = 8;
+        long classId = 0xC001L;
+        long arrayId = 0x9000L;
+
+        long[] children = new long[20];
+        for (int i = 0; i < children.length; i++) {
+            children[i] = 0x1000L + i;
+        }
+
+        Path hprof = SyntheticHprof.create("1.0.2", idSize, 0L)
+                .string(0xA001L, "Holder")
+                .string(0xA002L, "next")
+                .loadClass(1, classId, 0, 0xA001L)
+                .heapDumpSegment(seg -> {
+                    seg.topLevelObjectClassDump(classId, 0xA002L);
+                    seg.gcRoot(HprofTag.Sub.ROOT_STICKY_CLASS, arrayId);
+                    seg.objectArrayDump(arrayId, classId, children);
+                    for (long id : children) {
+                        seg.instanceDump(id, classId, idBytes(0L, idSize));
+                    }
+                })
+                .heapDumpEnd()
+                .writeTo(tmp, "paging.hprof");
+        Path indexDb = HeapDumpIndexPaths.indexFor(hprof);
+        try (HprofMappedFile file = HprofMappedFile.open(hprof)) {
+            HprofIndex.build(file, indexDb, CLOCK);
+        }
+        DominatorTreeBuilder.build(indexDb);
+
+        try (HeapView view = HeapView.open(indexDb)) {
+            // All 20 leaves have identical retained sizes, so the instance_id
+            // tie-break alone defines the paging order.
+            DominatorTreeResponse firstPage = DominatorTreeAnalyzer.children(view, arrayId, 0, 5);
+            DominatorTreeResponse secondPage = DominatorTreeAnalyzer.children(view, arrayId, 5, 5);
+            DominatorTreeResponse lastPage = DominatorTreeAnalyzer.children(view, arrayId, 15, 5);
+            DominatorTreeResponse beyondEnd = DominatorTreeAnalyzer.children(view, arrayId, 20, 5);
+
+            assertEquals(List.of(0x1000L, 0x1001L, 0x1002L, 0x1003L, 0x1004L), objectIds(firstPage));
+            assertEquals(List.of(0x1005L, 0x1006L, 0x1007L, 0x1008L, 0x1009L), objectIds(secondPage));
+            assertTrue(firstPage.hasMore());
+            assertTrue(secondPage.hasMore());
+
+            assertEquals(List.of(0x100FL, 0x1010L, 0x1011L, 0x1012L, 0x1013L), objectIds(lastPage));
+            assertFalse(lastPage.hasMore(), "final full page must not report more children");
+
+            assertTrue(beyondEnd.nodes().isEmpty());
+            assertFalse(beyondEnd.hasMore());
+        }
+    }
+
+    private static List<Long> objectIds(DominatorTreeResponse response) {
+        return response.nodes().stream().map(DominatorNode::objectId).toList();
+    }
+
+    @Test
     void retainedPercentIsRelativeToParentNotTotalHeap(@TempDir Path tmp) throws IOException, SQLException {
         // Two independent GC-root subtrees:
         //   ROOT_A → arrayA → leafA1, leafA2     (one heavy subtree we will drill into)
