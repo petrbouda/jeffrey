@@ -96,16 +96,15 @@ import org.slf4j.LoggerFactory;
 
 import java.io.InputStream;
 import java.sql.SQLException;
-import java.time.Clock;
 import java.util.List;
 import java.util.Optional;
 
 /**
  * Implementation of HeapDumpManager on the native parser path
- * ({@link HeapDumpSession} + {@code analyzer.heapview}). Each method opens
- * a short-lived session over the heap dump's {@code .idx.duckdb} sibling,
- * runs the corresponding analyzer, and lets try-with-resources close the
- * session afterwards.
+ * ({@link HeapDumpSession} + {@code analyzer.heapview}). Each method runs
+ * the corresponding analyzer against the {@link HeapDumpSessionCache}-managed
+ * session over the heap dump's {@code .idx.duckdb} sibling; the session is
+ * kept open across requests and evicted when idle or invalidated.
  *
  * <p>Compressed-oops correction is not applied on this path; shallow sizes
  * are computed with the parser's fixed 16-byte header constant. The
@@ -141,17 +140,18 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
             ProfileInfo profileInfo,
             AdditionalFilesManager additionalFilesManager,
             ProfileEventRepository eventRepository,
-            Clock clock,
+            HeapDumpSessionCache sessionCache,
             OqlEngine oqlEngine) {
 
         this.oqlEngine = oqlEngine;
         this.reports = new HeapDumpReportStore(additionalFilesManager.getHeapDumpAnalysisPath());
-        this.sessions = new HeapDumpSessionTemplate(profileInfo, additionalFilesManager, clock);
+        this.sessions = new HeapDumpSessionTemplate(profileInfo, additionalFilesManager, sessionCache);
         this.runner = new CachedAnalysisRunner(sessions, reports);
         this.jvmStringFlagsProvider = new JvmStringFlagsProvider(eventRepository);
         this.compressedOopsResolver = new CompressedOopsResolver(profileInfo, sessions, eventRepository, reports);
         this.uploadService = new HeapDumpUploadService(
-                profileInfo, additionalFilesManager, reports, additionalFilesManager.getHeapDumpAnalysisPath());
+                profileInfo, additionalFilesManager, reports,
+                additionalFilesManager.getHeapDumpAnalysisPath(), sessionCache);
     }
 
     // --- Lifecycle helpers ------------------------------------------------
@@ -454,12 +454,9 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
 
     @Override
     public DominatorTreeResponse getDominatorTreeChildren(long objectId, int offset, int limit) {
-        // The native DominatorTreeAnalyzer does not currently support offset-based
-        // pagination; offset is ignored. The frontend uses lazy expansion, so the
-        // first `limit` children is what each call needs.
         return withSession(session -> {
             session.buildDominatorTreeIfNeeded();
-            return DominatorTreeAnalyzer.children(session.view(), objectId, limit);
+            return DominatorTreeAnalyzer.children(session.view(), objectId, offset, limit);
         }).orElse(EMPTY_DOMINATOR_TREE);
     }
 

@@ -48,7 +48,7 @@ public final class HeapDumpUploadService {
 
     private static final String HPROF_SUFFIX = "." + FileExtensions.HPROF;
 
-    private static final int GZ_SUFFIX_LENGTH = 3; // ".gz"
+    private static final String GZ_EXTENSION = ".gz";
 
     private static final Set<String> ACCEPTED_SUFFIXES = Set.of(HPROF_SUFFIX, GZ_SUFFIX);
 
@@ -68,20 +68,25 @@ public final class HeapDumpUploadService {
 
     private final Path heapDumpAnalysisPath;
 
+    private final HeapDumpSessionCache sessionCache;
+
     public HeapDumpUploadService(
             ProfileInfo profileInfo,
             AdditionalFilesManager additionalFilesManager,
             HeapDumpReportStore reports,
-            Path heapDumpAnalysisPath) {
+            Path heapDumpAnalysisPath,
+            HeapDumpSessionCache sessionCache) {
 
         this.profileInfo = profileInfo;
         this.additionalFilesManager = additionalFilesManager;
         this.reports = reports;
         this.heapDumpAnalysisPath = heapDumpAnalysisPath;
+        this.sessionCache = sessionCache;
     }
 
     public void upload(InputStream inputStream, String filename) {
         validateFilename(filename);
+        invalidateCachedSession();
 
         try {
             FileSystemUtils.removeDirectory(heapDumpAnalysisPath);
@@ -110,12 +115,17 @@ public final class HeapDumpUploadService {
     }
 
     public void unloadHeap() {
-        // The native parser path doesn't hold long-lived heap state; every
-        // analyzer call opens and closes its own short-lived session.
+        // Release the cached session for this dump; the next analyzer call
+        // transparently reopens it from the on-disk index.
+        invalidateCachedSession();
     }
 
     public void deleteCache() {
-        additionalFilesManager.getHeapDumpPath().ifPresent(path -> deleteIndex(HeapDumpIndexPaths.indexFor(path)));
+        additionalFilesManager.getHeapDumpPath().ifPresent(path -> {
+            Path hprofPath = HeapDumpDecompressor.analyzablePath(path);
+            sessionCache.invalidate(hprofPath);
+            deleteIndex(HeapDumpIndexPaths.indexFor(hprofPath));
+        });
         reports.deleteAllCachedAnalyses();
         reports.delete(CONFIG_FILE, CONFIG_DISPLAY_NAME);
         reports.delete(INIT_PIPELINE_RESULT_FILE, INIT_PIPELINE_DISPLAY_NAME);
@@ -128,28 +138,35 @@ public final class HeapDumpUploadService {
         }
 
         Path path = heapPath.get();
-        String fileName = path.getFileName().toString().toLowerCase();
 
         Path hprofPath;
         Path gzPath = null;
-        if (fileName.endsWith(GZ_SUFFIX)) {
+        if (HeapDumpDecompressor.isGzipped(path)) {
             gzPath = path;
-            String decompressedName = path.getFileName().toString();
-            decompressedName = decompressedName.substring(0, decompressedName.length() - GZ_SUFFIX_LENGTH);
-            hprofPath = path.resolveSibling(decompressedName);
+            hprofPath = HeapDumpDecompressor.analyzablePath(path);
         } else {
             hprofPath = path;
-            Path potentialGz = path.resolveSibling(path.getFileName() + ".gz");
+            Path potentialGz = path.resolveSibling(path.getFileName() + GZ_EXTENSION);
             if (Files.exists(potentialGz)) {
                 gzPath = potentialGz;
             }
         }
 
+        sessionCache.invalidate(hprofPath);
         deleteIndex(HeapDumpIndexPaths.indexFor(hprofPath));
         deleteIfPresent(hprofPath, "heap dump");
         if (gzPath != null) {
             deleteIfPresent(gzPath, "compressed heap dump");
         }
+    }
+
+    /**
+     * Releases the cached session (and its open file handles) for the current
+     * dump before the file layout changes underneath it.
+     */
+    private void invalidateCachedSession() {
+        additionalFilesManager.getHeapDumpPath().ifPresent(
+                path -> sessionCache.invalidate(HeapDumpDecompressor.analyzablePath(path)));
     }
 
     private void validateFilename(String filename) {
