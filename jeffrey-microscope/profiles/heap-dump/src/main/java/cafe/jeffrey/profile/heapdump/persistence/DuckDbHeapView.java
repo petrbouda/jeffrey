@@ -435,6 +435,16 @@ public final class DuckDbHeapView implements HeapView {
     }
 
     @Override
+    public long readLong(long fileOffset) {
+        if (hprof == null) {
+            throw new IllegalStateException(
+                    "HeapView opened without a .hprof file; readLong is unavailable. "
+                            + "Use HeapView.open(indexDb, hprof).");
+        }
+        return hprof.readLong(fileOffset);
+    }
+
+    @Override
     public List<InstanceFieldValue> readInstanceFields(long instanceId) throws SQLException {
         if (hprof == null) {
             throw new IllegalStateException(

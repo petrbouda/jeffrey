@@ -31,8 +31,6 @@ import java.util.Set;
 import cafe.jeffrey.profile.heapdump.model.BiggestCollectionEntry;
 import cafe.jeffrey.profile.heapdump.model.BiggestCollectionsReport;
 import cafe.jeffrey.profile.heapdump.view.HeapView;
-import cafe.jeffrey.profile.heapdump.view.HprofTypeSize;
-import cafe.jeffrey.profile.heapdump.view.InstanceFieldDescriptor;
 import cafe.jeffrey.profile.heapdump.view.JavaClassRow;
 
 /**
@@ -56,33 +54,14 @@ import cafe.jeffrey.profile.heapdump.view.JavaClassRow;
  * {@link cafe.jeffrey.profile.heapdump.persistence.HeapDumpSession#buildDominatorTreeIfNeeded()}
  * before calling this analyzer.
  *
- * <p>Supported shapes:
- * <ul>
- *   <li>{@code java.util.ArrayList}: {@code size} / {@code elementData}</li>
- *   <li>{@code java.util.Vector}: {@code elementCount} / {@code elementData}</li>
- *   <li>{@code java.util.HashMap}, {@code java.util.LinkedHashMap}: {@code size} / {@code table}</li>
- *   <li>{@code java.util.Hashtable}: {@code count} / {@code table}</li>
- *   <li>{@code java.util.PriorityQueue}: {@code size} / {@code queue}</li>
- * </ul>
+ * <p>Supported shapes: the shared array-backed catalog in
+ * {@link CollectionShapes} — ArrayList, Vector, HashMap, LinkedHashMap,
+ * Hashtable, PriorityQueue, ArrayDeque, ConcurrentHashMap (approximate count)
+ * and CopyOnWriteArrayList.
  */
 public final class BiggestCollectionsAnalyzer {
 
     private static final int DEFAULT_TOP_N = 50;
-
-    /** HPROF basic-type byte for OBJECT references. */
-    private static final int BASIC_TYPE_OBJECT = 2;
-
-    /** record_kind value for OBJECT_ARRAY_DUMP rows in the {@code instance} table. */
-    private static final byte RECORD_KIND_OBJECT_ARRAY = 1;
-
-    private static final List<Shape> SHAPES = List.of(
-            new Shape("java.util.ArrayList", "size", "elementData"),
-            new Shape("java.util.Vector", "elementCount", "elementData"),
-            new Shape("java.util.HashMap", "size", "table"),
-            new Shape("java.util.LinkedHashMap", "size", "table"),
-            new Shape("java.util.Hashtable", "count", "table"),
-            new Shape("java.util.PriorityQueue", "size", "queue")
-    );
 
     /**
      * Bulk per-shape join. Parameters: {@code 1 = field_id} of the
@@ -131,7 +110,7 @@ public final class BiggestCollectionsAnalyzer {
         }
 
         int idSize = view.metadata().idSize();
-        long instanceHeaderBytes = 2L * idSize + 8L;
+        long instanceHeaderBytes = CollectionShapes.instanceHeaderBytes(idSize);
 
         // class_id -> className for survivor lookups (per-shape, populated lazily).
         Map<Long, String> classNameByClassId = new HashMap<>();
@@ -142,17 +121,18 @@ public final class BiggestCollectionsAnalyzer {
                 topN + 1, Comparator.comparingLong(c -> c.retainedSize));
         int totalAnalyzed = 0;
 
-        for (Shape shape : SHAPES) {
-            for (JavaClassRow cls : view.findClassesByName(shape.className)) {
-                ClassLayout layout = computeLayout(view, cls.classId(), shape, idSize);
+        for (CollectionShapes.ArrayShape shape : CollectionShapes.arrayBackedShapes()) {
+            for (JavaClassRow cls : view.findClassesByName(shape.className())) {
+                CollectionShapes.ArrayLayout layout =
+                        CollectionShapes.computeArrayLayout(view, cls.classId(), shape, idSize);
                 if (layout == null) {
                     continue;
                 }
-                classNameByClassId.put(cls.classId(), shape.className);
+                classNameByClassId.put(cls.classId(), shape.className());
 
                 try (PreparedStatement stmt =
                              view.databaseClient().connection().prepareStatement(COLLECTIONS_SQL)) {
-                    stmt.setInt(1, layout.arrayFieldId);
+                    stmt.setInt(1, layout.arrayFieldId());
                     stmt.setLong(2, cls.classId());
                     try (ResultSet rs = stmt.executeQuery()) {
                         while (rs.next()) {
@@ -168,7 +148,7 @@ public final class BiggestCollectionsAnalyzer {
                                 continue;
                             }
                             int arrKind = rs.getInt(6);
-                            if (rs.wasNull() || arrKind != RECORD_KIND_OBJECT_ARRAY) {
+                            if (rs.wasNull() || arrKind != CollectionShapes.RECORD_KIND_OBJECT_ARRAY) {
                                 continue;
                             }
                             long retained = rs.getLong(7);
@@ -178,8 +158,8 @@ public final class BiggestCollectionsAnalyzer {
 
                             int size;
                             try {
-                                size = view.readInt(
-                                        collOffset + instanceHeaderBytes + layout.sizeFieldByteOffset);
+                                size = layout.sizeReader()
+                                        .read(view, collOffset + instanceHeaderBytes, arrLength);
                             } catch (RuntimeException ignored) {
                                 continue;
                             }
@@ -269,35 +249,6 @@ public final class BiggestCollectionsAnalyzer {
                     ownerClassName));
         }
         return out;
-    }
-
-    private static ClassLayout computeLayout(
-            HeapView view, long classId, Shape shape, int idSize) throws SQLException {
-        List<InstanceFieldDescriptor> chain = view.instanceFieldsWithChain(classId);
-        int arrayFieldId = -1;
-        int sizeFieldOffset = -1;
-        long cursor = 0;
-        for (int i = 0; i < chain.size(); i++) {
-            InstanceFieldDescriptor f = chain.get(i);
-            int fieldSize = HprofTypeSize.sizeOf(f.basicType(), idSize);
-            if (shape.sizeFieldName.equals(f.name()) && fieldSize == 4) {
-                sizeFieldOffset = (int) cursor;
-            }
-            if (shape.arrayFieldName.equals(f.name()) && f.basicType() == BASIC_TYPE_OBJECT) {
-                arrayFieldId = i;
-            }
-            cursor += fieldSize;
-        }
-        if (arrayFieldId < 0 || sizeFieldOffset < 0) {
-            return null;
-        }
-        return new ClassLayout(arrayFieldId, sizeFieldOffset);
-    }
-
-    private record Shape(String className, String sizeFieldName, String arrayFieldName) {
-    }
-
-    private record ClassLayout(int arrayFieldId, int sizeFieldByteOffset) {
     }
 
     private static final class Candidate {

@@ -289,6 +289,54 @@ public final class SyntheticHprof {
         }
 
         /**
+         * A static-field declaration with its value. OBJECT values are written
+         * as ids; INT as 4 bytes; LONG as 8 bytes (the types tests need).
+         */
+        public record StaticSpec(long nameId, int basicType, long value) {
+        }
+
+        /**
+         * CLASS_DUMP with static fields and an arbitrary instance-field list.
+         */
+        public SubBuilder classDumpWithStatics(long classId, long superClassId, long classloaderId,
+                                               int instanceSize, StaticSpec[] statics,
+                                               FieldSpec... fields) {
+            try {
+                out.writeByte(HprofTag.Sub.CLASS_DUMP);
+                writeId(classId);
+                out.writeInt(0);
+                writeId(superClassId);
+                writeId(classloaderId);
+                writeId(0L);
+                writeId(0L);
+                writeId(0L);
+                writeId(0L);
+                out.writeInt(instanceSize);
+                out.writeShort(0); // const pool count
+                out.writeShort(statics.length);
+                for (StaticSpec s : statics) {
+                    writeId(s.nameId());
+                    out.writeByte(s.basicType());
+                    switch (s.basicType()) {
+                        case HprofTag.BasicType.OBJECT -> writeId(s.value());
+                        case HprofTag.BasicType.INT -> out.writeInt((int) s.value());
+                        case HprofTag.BasicType.LONG -> out.writeLong(s.value());
+                        default -> throw new IllegalArgumentException(
+                                "Unsupported static basic type in fixture: " + s.basicType());
+                    }
+                }
+                out.writeShort(fields.length);
+                for (FieldSpec f : fields) {
+                    writeId(f.nameId());
+                    out.writeByte(f.basicType());
+                }
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+            return this;
+        }
+
+        /**
          * CLASS_DUMP with arbitrary field list. Useful for tests that need
          * specific multi-field layouts (e.g. String = [value:OBJECT, coder:BYTE, hash:INT]).
          */

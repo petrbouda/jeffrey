@@ -126,7 +126,19 @@ public sealed interface HprofRecord {
                      long signersId, long protectionDomainId, int instanceSize,
                      int instanceFieldsByteLength, int totalByteLength,
                      long[] instanceFieldNameIds, int[] instanceFieldTypes,
+                     StaticRef[] staticRefs, int staticFieldsByteLength,
                      long fileOffset) implements Sub {
+    }
+
+    /**
+     * One non-null OBJECT-typed static field of a CLASS_DUMP: the source of an
+     * {@code outbound_ref} row with {@code field_kind = 2} (class_static).
+     *
+     * @param fieldIndex index of the field within the class's static-field list
+     * @param nameId     HPROF string id of the field name
+     * @param targetId   referenced object id (never 0)
+     */
+    record StaticRef(int fieldIndex, long nameId, long targetId) {
     }
 
     /**

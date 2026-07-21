@@ -20,6 +20,9 @@ package cafe.jeffrey.profile.heapdump.parser;
 import cafe.jeffrey.profile.heapdump.view.HprofTag;
 import cafe.jeffrey.profile.heapdump.view.HprofTypeSize;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Streams sub-records out of a HEAP_DUMP or HEAP_DUMP_SEGMENT region.
  *
@@ -42,6 +45,9 @@ import cafe.jeffrey.profile.heapdump.view.HprofTypeSize;
  * because it carries 12 fields and only fires ~22 K times per dump.
  */
 public final class HprofSubRecordReader {
+
+    /** HPROF basic-type byte for OBJECT references. */
+    private static final int BASIC_TYPE_OBJECT = 2;
 
     /**
      * Visitor over sub-records. Each method has primitive arguments so the
@@ -213,17 +219,28 @@ public final class HprofSubRecordReader {
             cursor += sz;
         }
 
-        // Static fields
+        // Static fields — capture non-null OBJECT-typed values so the index
+        // builder can emit class_static outbound_ref rows (field_kind = 2).
         int staticFieldCount = Short.toUnsignedInt(file.readShort(cursor));
         cursor += 2;
+        int staticFieldsByteLength = 0;
+        List<HprofRecord.StaticRef> staticRefs = new ArrayList<>(0);
         for (int i = 0; i < staticFieldCount; i++) {
-            cursor += idSize; // id nameId
+            long staticNameId = file.readId(cursor);
+            cursor += idSize;
             int type = Byte.toUnsignedInt(file.readByte(cursor));
             cursor += 1;
             int sz = HprofTypeSize.sizeOf(type, idSize);
             if (sz < 0) {
                 throw new IllegalStateException("Unknown static-field type: type=" + type);
             }
+            if (type == BASIC_TYPE_OBJECT) {
+                long targetId = file.readId(cursor);
+                if (targetId != 0L) {
+                    staticRefs.add(new HprofRecord.StaticRef(i, staticNameId, targetId));
+                }
+            }
+            staticFieldsByteLength += sz;
             cursor += sz;
         }
 
@@ -256,7 +273,9 @@ public final class HprofSubRecordReader {
                 classId, traceSerial, superClassId, classloaderId,
                 signersId, protectionDomainId, instanceSize,
                 instanceFieldsByteLength, totalByteLength,
-                instanceFieldNameIds, instanceFieldTypes, bodyOffset));
+                instanceFieldNameIds, instanceFieldTypes,
+                staticRefs.toArray(new HprofRecord.StaticRef[0]), staticFieldsByteLength,
+                bodyOffset));
     }
 
     private static void emitInstanceDump(

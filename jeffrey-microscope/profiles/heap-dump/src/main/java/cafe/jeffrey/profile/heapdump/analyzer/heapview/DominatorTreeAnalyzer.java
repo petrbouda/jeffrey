@@ -52,6 +52,9 @@ public final class DominatorTreeAnalyzer {
 
     private static final int DEFAULT_LIMIT = 100;
 
+    /** Display prefix for class-object nodes (statics holders) in the tree. */
+    private static final String CLASS_NODE_NAME_PREFIX = "class ";
+
     /**
      * Class names whose instances are too opaque to be self-describing — knowing
      * "this is a byte[]" does not tell you whether it backs a String, a HeapByteBuffer,
@@ -103,12 +106,18 @@ public final class DominatorTreeAnalyzer {
                 : Map.of();
 
         // children: dominator(d.dominator_id = parent) joined to instance + class + retained.
+        // A node is either an instance (join via instance -> class) or a class
+        // object (statics holder; join class directly and label it "class <name>").
         // instance_id is the tie-break so retained-size ties paginate deterministically.
-        String sql = "SELECT d.instance_id, c.name, i.shallow_size, r.bytes, "
+        String sql = "SELECT d.instance_id, "
+                + "       COALESCE(ic.name, '" + CLASS_NODE_NAME_PREFIX + "' || cc.name) AS name, "
+                + "       COALESCE(i.shallow_size, cc.static_fields_size, 0) AS shallow, "
+                + "       r.bytes, "
                 + "       EXISTS (SELECT 1 FROM dominator d2 WHERE d2.dominator_id = d.instance_id) AS has_children "
                 + "FROM dominator d "
-                + "JOIN instance i ON i.instance_id = d.instance_id "
-                + "LEFT JOIN class c ON i.class_id = c.class_id "
+                + "LEFT JOIN instance i ON i.instance_id = d.instance_id "
+                + "LEFT JOIN class ic ON i.class_id = ic.class_id "
+                + "LEFT JOIN class cc ON cc.class_id = d.instance_id "
                 + "JOIN retained_size r ON r.instance_id = d.instance_id "
                 + "WHERE d.dominator_id = ? "
                 + "ORDER BY r.bytes DESC, d.instance_id "
