@@ -289,7 +289,22 @@ const folderStructure = `$JEFFREY_HOME/
         <DocsFeatureCard
           icon="bi bi-collection"
           title="Biggest Collections"
-          description="Find the largest collections by size, capacity, and fill ratio — surface over-allocated maps and lists that waste memory."
+          description="Find the largest collections by size, capacity, and fill ratio — surface over-allocated maps and lists that waste memory. Covers array-backed collections plus ArrayDeque, ConcurrentHashMap, TreeMap, LinkedList and the Set family."
+        />
+        <DocsFeatureCard
+          icon="bi bi-box-seam-fill"
+          title="Biggest Objects & Memory Consumers"
+          description="Single objects retaining the most memory (the dominator-tree roots), plus per-package and per-classloader rollups showing which subsystem owns the heap."
+        />
+        <DocsFeatureCard
+          icon="bi bi-files"
+          title="Duplicate Data"
+          description="Byte-identical primitive arrays that could be shared as a single copy — the raw storage behind buffers, caches and deserialized payloads — with reclaimable savings per group."
+        />
+        <DocsFeatureCard
+          icon="bi bi-layers-half"
+          title="Heap Diff"
+          description="Compare the current heap dump against a baseline profile's dump: per-class growth, new and removed classes — the classic before/after leak workflow."
         />
         <DocsFeatureCard
           icon="bi bi-fonts"
