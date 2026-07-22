@@ -44,6 +44,7 @@ public class JeffreyJibConfig {
     public static final String ARG_FILE = "argFile";
     public static final String PROFILER_PATH = "profilerPath";
     public static final String AGENT_PATH = "agentPath";
+    public static final String PROJECT_NAME = "projectName";
 
     private boolean enabled = true;
     private String jeffreyHome;
@@ -53,6 +54,7 @@ public class JeffreyJibConfig {
     private String argFile;
     private String profilerPath;
     private String agentPath;
+    private String projectName;
 
     public boolean isEnabled() {
         return enabled;
@@ -116,5 +118,13 @@ public class JeffreyJibConfig {
 
     public void setAgentPath(String agentPath) {
         this.agentPath = agentPath;
+    }
+
+    public String getProjectName() {
+        return projectName;
+    }
+
+    public void setProjectName(String projectName) {
+        this.projectName = projectName;
     }
 }

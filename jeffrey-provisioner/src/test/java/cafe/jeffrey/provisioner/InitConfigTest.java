@@ -29,6 +29,8 @@ import cafe.jeffrey.shared.common.model.RepositoryType;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Map;
+import java.util.function.Function;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -589,7 +591,7 @@ class InitConfigTest {
                     IllegalArgumentException.class,
                     () -> InitConfig.fromHoconFile(configFile, null)
             );
-            assertEquals("'project.name' must be specified", exception.getMessage());
+            assertEquals("'project.name' must be specified (HOCON 'project.name' or env JEFFREY_PROJECT_NAME)", exception.getMessage());
         }
 
         @Test
@@ -604,7 +606,7 @@ class InitConfigTest {
                     IllegalArgumentException.class,
                     () -> InitConfig.fromHoconFile(configFile, null)
             );
-            assertEquals("'project.name' must be specified", exception.getMessage());
+            assertEquals("'project.name' must be specified (HOCON 'project.name' or env JEFFREY_PROJECT_NAME)", exception.getMessage());
         }
 
         @Test
@@ -649,5 +651,123 @@ class InitConfigTest {
             assertEquals("my_project-123", config.getProjectName());
         }
 
+    }
+
+    @Nested
+    class EnvironmentOnlyConfig {
+
+        private static Function<String, String> env(Map<String, String> values) {
+            return values::get;
+        }
+
+        @Test
+        void minimalEnv_homeAndProjectName_producesValidConfig() {
+            InitConfig config = InitConfig.fromEnvironment(env(Map.of(
+                    "JEFFREY_HOME", "/mnt/jeffrey",
+                    "JEFFREY_PROJECT_NAME", "my-service")));
+
+            assertEquals("/mnt/jeffrey", config.getJeffreyHome());
+            assertEquals("my-service", config.getProjectName());
+            assertEquals(CliConstants.DEFAULT_WORKSPACE_REF_ID, config.getWorkspaceRefId());
+            assertEquals(Path.of("/tmp/jvm.args"), config.getArgFilePath());
+            assertTrue(config.isDebugNonSafepointsEnabled());
+            assertFalse(config.isPerfCountersEnabled());
+            assertNull(config.resolveHeapDumpType());
+        }
+
+        @Test
+        void fullEnv_allSettingsApplied() {
+            InitConfig config = InitConfig.fromEnvironment(env(Map.of(
+                    "JEFFREY_HOME", "/mnt/jeffrey",
+                    "JEFFREY_PROJECT_NAME", "my-service",
+                    "JEFFREY_PROJECT_LABEL", "My Service",
+                    "JEFFREY_WORKSPACE_REF_ID", "production",
+                    "JEFFREY_INSTANCE_NAME", "instance-7",
+                    "JEFFREY_ATTRIBUTES", "cluster=blue, namespace=klingon",
+                    "JEFFREY_HEAP_DUMP", "crash",
+                    "JEFFREY_PERF_COUNTERS", "true",
+                    "JEFFREY_JVM_LOGGING", "jfr*=trace:file=<<JEFFREY_CURRENT_SESSION>>/jfr-jvm.log",
+                    "JEFFREY_ADDITIONAL_JVM_OPTIONS", "-Xmx2g")));
+
+            assertEquals("My Service", config.getProjectLabel());
+            assertEquals("production", config.getWorkspaceRefId());
+            assertEquals("instance-7", config.getInstanceName());
+            assertEquals(Map.of("cluster", "blue", "namespace", "klingon"), config.getAttributes());
+            assertEquals(HeapDumpType.CRASH, config.resolveHeapDumpType());
+            assertTrue(config.isPerfCountersEnabled());
+            assertEquals("jfr*=trace:file=<<JEFFREY_CURRENT_SESSION>>/jfr-jvm.log", config.getJvmLoggingCommand());
+            assertEquals("-Xmx2g", config.getAdditionalJvmOptions());
+        }
+
+        @Test
+        void missingProjectName_failsWithEnvHint() {
+            IllegalArgumentException exception = assertThrows(
+                    IllegalArgumentException.class,
+                    () -> InitConfig.fromEnvironment(env(Map.of("JEFFREY_HOME", "/mnt/jeffrey"))));
+
+            assertTrue(exception.getMessage().contains("JEFFREY_PROJECT_NAME"));
+        }
+
+        @Test
+        void malformedAttributePairs_skipped() {
+            InitConfig config = InitConfig.fromEnvironment(env(Map.of(
+                    "JEFFREY_HOME", "/mnt/jeffrey",
+                    "JEFFREY_PROJECT_NAME", "my-service",
+                    "JEFFREY_ATTRIBUTES", "cluster=blue,broken,=novalue,region=eu")));
+
+            assertEquals(Map.of("cluster", "blue", "region", "eu"), config.getAttributes());
+        }
+
+        @Test
+        void unrecognizedHeapDumpValue_staysDisabled() {
+            InitConfig config = InitConfig.fromEnvironment(env(Map.of(
+                    "JEFFREY_HOME", "/mnt/jeffrey",
+                    "JEFFREY_PROJECT_NAME", "my-service",
+                    "JEFFREY_HEAP_DUMP", "sometimes")));
+
+            assertNull(config.resolveHeapDumpType());
+        }
+
+        @Test
+        void heapDumpOff_staysDisabled() {
+            InitConfig config = InitConfig.fromEnvironment(env(Map.of(
+                    "JEFFREY_HOME", "/mnt/jeffrey",
+                    "JEFFREY_PROJECT_NAME", "my-service",
+                    "JEFFREY_HEAP_DUMP", "off")));
+
+            assertNull(config.resolveHeapDumpType());
+        }
+    }
+
+    @Nested
+    class HoconEnvPrecedence {
+
+        @TempDir
+        Path tempDir;
+
+        @Test
+        void hoconProjectName_winsOverEnv() throws IOException {
+            Path configFile = tempDir.resolve("config.conf");
+            Files.writeString(configFile, configWithOverrides(
+                    "jeffrey-home = \"/tmp/jeffrey\"",
+                    "project { name = \"from-hocon\" }"
+            ));
+
+            InitConfig config = InitConfig.fromHoconFile(configFile, null,
+                    name -> name.equals("JEFFREY_PROJECT_NAME") ? "from-env" : null);
+
+            assertEquals("from-hocon", config.getProjectName());
+        }
+
+        @Test
+        void blankHoconProjectName_filledFromEnv() throws IOException {
+            Path configFile = tempDir.resolve("config.conf");
+            Files.writeString(configFile, configWithOverrides("jeffrey-home = \"/tmp/jeffrey\""));
+
+            InitConfig config = InitConfig.fromHoconFile(configFile, null,
+                    name -> name.equals("JEFFREY_PROJECT_NAME") ? "from-env" : null);
+
+            assertEquals("from-env", config.getProjectName());
+        }
     }
 }

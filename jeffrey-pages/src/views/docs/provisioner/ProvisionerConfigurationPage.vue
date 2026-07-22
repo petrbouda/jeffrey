@@ -27,6 +27,7 @@ import { useDocHeadings } from '@/composables/useDocHeadings';
 const { setHeadings } = useDocHeadings();
 
 const headings = [
+  { id: 'env-only', text: 'Environment-Only Configuration', level: 2 },
   { id: 'config-file', text: 'Configuration File', level: 2 },
   { id: 'configuration-options', text: 'Configuration Options', level: 2 },
   { id: 'features', text: 'Features', level: 2 }
@@ -35,6 +36,20 @@ const headings = [
 onMounted(() => {
   setHeadings(headings);
 });
+
+const envOnlySetup = `# The complete environment-only setup - no config file needed:
+JEFFREY_HOME=/mnt/jeffrey             # shared volume root (baked by jeffrey-jib)
+JEFFREY_PROJECT_NAME=my-service       # baked by jeffrey-jib from the artifactId
+JEFFREY_WORKSPACE_REF_ID=production   # optional (default: the hub's default workspace)
+
+# Optional extras:
+JEFFREY_PROJECT_LABEL="My Service"
+JEFFREY_INSTANCE_NAME=instance-1      # default: HOSTNAME (= pod name), then UUID
+JEFFREY_ATTRIBUTES="cluster=blue,namespace=production"
+JEFFREY_HEAP_DUMP=crash              # exit | crash | off
+JEFFREY_PERF_COUNTERS=true
+JEFFREY_JVM_LOGGING="jfr*=trace:file=<<JEFFREY_CURRENT_SESSION>>/jfr-jvm.log"
+JEFFREY_ADDITIONAL_JVM_OPTIONS="-Xmx2g"`;
 
 const minimalConfig = `jeffrey-home = "/opt/jeffrey"
 project {
@@ -73,7 +88,30 @@ additional-jvm-options = "-Xmx2g -Xms2g -Djeffrey.logging.trace-file.path=<<JEFF
       />
 
       <div class="docs-content">
-        <p>Jeffrey Provisioner uses <strong>HOCON</strong> (Human-Optimized Config Object Notation) for configuration. HOCON is a superset of JSON with more readable syntax.</p>
+        <p>Jeffrey Provisioner can be configured two ways: entirely through <strong><code>JEFFREY_*</code> environment variables</strong> (the zero-file path — recommended for containers) or through a <strong>HOCON</strong> configuration file for advanced setups. Resolution order is always <strong>HOCON value &rarr; environment variable &rarr; built-in default</strong>, so a config file wins wherever it sets a value.</p>
+
+        <h2 id="env-only">Environment-Only Configuration</h2>
+        <p>When <code>provisioner init</code> runs without <code>--base-config</code> (or the jeffrey-jib entrypoint finds no config file), it configures itself from environment variables. Images built with the jeffrey-jib extension already bake <code>JEFFREY_HOME</code> and <code>JEFFREY_PROJECT_NAME</code> (derived from the Maven artifactId / Gradle project name), so the common case needs <em>no per-application configuration at all</em> beyond mounting the shared volume:</p>
+        <DocsCodeBlock
+          language="bash"
+          :code="envOnlySetup"
+        />
+
+        <DocsCallout type="tip">
+          <strong>Fail-open:</strong> any misconfiguration (missing binaries, missing project name, broken config) starts the application <em>without profiling</em> instead of preventing it from starting — look for the single <code>Jeffrey profiling ENABLED: …</code> / <code>profiling DISABLED: &lt;reason&gt;</code> line in the container log to see the outcome.
+        </DocsCallout>
+
+        <DocsCallout type="warning">
+          <strong>The project name is a stable identity — keep it the same across deployments.</strong>
+          It keys the project directory on the shared volume (<code>workspaces/&lt;workspace&gt;/&lt;project-name&gt;/</code>),
+          and the project id stored there links all sessions to the same project on Jeffrey Hub.
+          Changing the name creates a <em>new</em> project; the old one stops receiving sessions and
+          keeps its history separately. If you rely on the jeffrey-jib default (the Maven artifactId /
+          Gradle project name), renaming the module changes the project too — pin
+          <code>projectName</code> in the jib configuration (or set <code>JEFFREY_PROJECT_NAME</code>
+          on the pod) to keep continuity. The <code>label</code> (<code>JEFFREY_PROJECT_LABEL</code>)
+          is display-only and can change freely.
+        </DocsCallout>
 
         <h2 id="config-file">Configuration File</h2>
 
@@ -124,7 +162,7 @@ additional-jvm-options = "-Xmx2g -Xms2g -Djeffrey.logging.trace-file.path=<<JEFF
             <tr>
               <td><code>project.workspace-ref-id</code></td>
               <td>No</td>
-              <td>—</td>
+              <td><code>JEFFREY_WORKSPACE_REF_ID</code></td>
               <td>
                 Reference ID of the workspace on the target Jeffrey Hub. Optional — when
                 omitted (or blank), events route to the server's default workspace
@@ -139,8 +177,8 @@ additional-jvm-options = "-Xmx2g -Xms2g -Djeffrey.logging.trace-file.path=<<JEFF
             <tr>
               <td><code>project.name</code></td>
               <td>Yes</td>
-              <td>—</td>
-              <td>Project name for organizing recordings</td>
+              <td><code>JEFFREY_PROJECT_NAME</code></td>
+              <td>Project name for organizing recordings. Images built with jeffrey-jib bake this env var from the Maven artifactId / Gradle project name.</td>
             </tr>
             <tr>
               <td><code>profiler-path</code></td>
@@ -151,13 +189,13 @@ additional-jvm-options = "-Xmx2g -Xms2g -Djeffrey.logging.trace-file.path=<<JEFF
             <tr>
               <td><code>project.instance-name</code></td>
               <td>No</td>
-              <td>—</td>
+              <td><code>JEFFREY_INSTANCE_NAME</code></td>
               <td>Instance name (defaults to <code>HOSTNAME</code> environment variable or generated UUID)</td>
             </tr>
             <tr>
               <td><code>project.label</code></td>
               <td>No</td>
-              <td>—</td>
+              <td><code>JEFFREY_PROJECT_LABEL</code></td>
               <td>Human-readable project label</td>
             </tr>
             <tr>
@@ -199,7 +237,7 @@ additional-jvm-options = "-Xmx2g -Xms2g -Djeffrey.logging.trace-file.path=<<JEFF
             <tr>
               <td><code>additional-jvm-options</code></td>
               <td>No</td>
-              <td>—</td>
+              <td><code>JEFFREY_ADDITIONAL_JVM_OPTIONS</code></td>
               <td>Extra JVM flags appended to the generated arguments. Supports the <code>&lt;&lt;JEFFREY_CURRENT_SESSION&gt;&gt;</code> placeholder.</td>
             </tr>
             <tr>
@@ -211,8 +249,26 @@ additional-jvm-options = "-Xmx2g -Xms2g -Djeffrey.logging.trace-file.path=<<JEFF
             <tr>
               <td><code>attributes</code></td>
               <td>No</td>
-              <td>—</td>
-              <td>Custom key-value metadata (e.g., cluster, namespace)</td>
+              <td><code>JEFFREY_ATTRIBUTES</code></td>
+              <td>Custom key-value metadata (e.g., cluster, namespace). Env form: <code>key=value,key=value</code></td>
+            </tr>
+            <tr>
+              <td><code>perf-counters.enabled</code></td>
+              <td>No</td>
+              <td><code>JEFFREY_PERF_COUNTERS</code></td>
+              <td>Save JVM performance counters into the session directory</td>
+            </tr>
+            <tr>
+              <td><code>heap-dump</code></td>
+              <td>No</td>
+              <td><code>JEFFREY_HEAP_DUMP</code></td>
+              <td>Heap dump on OutOfMemoryError. Env form: <code>exit</code> | <code>crash</code> | <code>off</code></td>
+            </tr>
+            <tr>
+              <td><code>jvm-logging.command</code></td>
+              <td>No</td>
+              <td><code>JEFFREY_JVM_LOGGING</code></td>
+              <td>JVM unified logging command (<code>-Xlog:&lt;command&gt;</code>); a non-blank env value enables the feature</td>
             </tr>
           </tbody>
         </table>

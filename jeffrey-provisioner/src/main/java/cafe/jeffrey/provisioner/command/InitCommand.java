@@ -24,37 +24,56 @@ import cafe.jeffrey.provisioner.InitConfig;
 import cafe.jeffrey.provisioner.InitExecutor;
 import cafe.jeffrey.provisioner.VerboseLogging;
 import picocli.CommandLine.Command;
+import picocli.CommandLine.ExitCode;
 import picocli.CommandLine.Option;
 
 import java.nio.file.Path;
+import java.util.concurrent.Callable;
 
 @Command(
         name = InitCommand.COMMAND_NAME,
-        description = "Initialize Jeffrey project and current session from a HOCON configuration file.",
+        description = "Initialize Jeffrey project and current session from a HOCON configuration file "
+                + "or, when no file is given, from JEFFREY_* environment variables.",
         mixinStandardHelpOptions = true
 )
-public class InitCommand implements Runnable {
+public class InitCommand implements Callable<Integer> {
 
     private static final Logger LOG = LoggerFactory.getLogger(InitCommand.class);
 
     public static final String COMMAND_NAME = "init";
 
-    @Option(names = "--base-config", required = true, description = "Path to the base HOCON configuration file.")
+    @Option(names = "--base-config", description = "Path to the base HOCON configuration file. "
+            + "Optional — without it, configuration is read from JEFFREY_* environment variables.")
     private Path baseConfigFile;
 
     @Option(names = "--override-config", description = "Path to an override HOCON configuration file.")
     private Path overrideConfigFile;
 
+    /**
+     * Returns a non-zero exit code on any failure so callers (the jeffrey-jib entrypoint
+     * wrapper) can distinguish "provisioned" from "failed" and start the application
+     * without profiling instead of pointing the JVM at an argfile that was never written.
+     */
     @Override
-    public void run() {
+    public Integer call() {
         try {
-            InitConfig config = InitConfig.fromHoconFile(baseConfigFile, overrideConfigFile);
+            InitConfig config = resolveConfig();
             if (config.isProvisionerVerbose()) {
                 VerboseLogging.enable();
             }
             new InitExecutor().execute(config);
+            return ExitCode.OK;
         } catch (Exception e) {
             LOG.error("Init failed", e);
+            return ExitCode.SOFTWARE;
         }
+    }
+
+    private InitConfig resolveConfig() {
+        if (baseConfigFile != null) {
+            return InitConfig.fromHoconFile(baseConfigFile, overrideConfigFile);
+        }
+        LOG.info("No --base-config given, configuring from JEFFREY_* environment variables");
+        return InitConfig.fromEnvironment();
     }
 }

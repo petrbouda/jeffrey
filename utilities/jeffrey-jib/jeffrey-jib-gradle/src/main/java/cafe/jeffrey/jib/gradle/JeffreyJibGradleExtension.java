@@ -64,6 +64,8 @@ import java.util.Optional;
  *       {@code /jeffrey/jeffrey-overrides.conf}.
  *   <li>{@code provisionerPath} — bypass {@code jeffreyHome} and point directly at the provisioner binary.
  *   <li>{@code argFile} — location of the generated JVM argfile, default {@code /tmp/jvm.args}.
+ *   <li>{@code projectName} — Jeffrey project name baked as {@code JEFFREY_PROJECT_NAME};
+ *       defaults to the Gradle project name. Pod-level env still overrides it.
  * </ul>
  *
  * <p>The typed {@code configuration(Action<JeffreyJibConfig>) { … }} DSL is also accepted, but
@@ -88,6 +90,39 @@ public class JeffreyJibGradleExtension implements JibGradlePluginExtension<Jeffr
 
         JeffreyJibConfig effective = config.orElseGet(JeffreyJibConfig::new);
         JeffreyBuildPlanExtender.applyProperties(effective, properties, logger);
+
+        // Default the Jeffrey project name to the Gradle project name — baked as the
+        // JEFFREY_PROJECT_NAME image ENV, it makes the image self-identifying so the
+        // container needs no config file and no per-pod env for the common case.
+        // A pod-level JEFFREY_PROJECT_NAME still overrides the baked default.
+        if (effective.getProjectName() == null) {
+            resolveGradleProjectName(gradleData, logger).ifPresent(effective::setProjectName);
+        }
+
         return new JeffreyBuildPlanExtender(getClass()).extend(buildPlan, effective, logger);
+    }
+
+    /**
+     * Reads {@code gradleData.getProject().getName()} reflectively. This module is built with
+     * Maven, where the Gradle API ({@code org.gradle.api.Project}) is not available as a compile
+     * dependency — at runtime inside a Gradle build the type is always present. Any reflective
+     * failure only skips the default; an explicit {@code projectName} property always works.
+     */
+    private static Optional<String> resolveGradleProjectName(GradleData gradleData, ExtensionLogger logger) {
+        if (gradleData == null) {
+            return Optional.empty();
+        }
+        try {
+            Object project = GradleData.class.getMethod("getProject").invoke(gradleData);
+            if (project == null) {
+                return Optional.empty();
+            }
+            Object name = project.getClass().getMethod("getName").invoke(project);
+            return Optional.ofNullable(name).map(Object::toString);
+        } catch (ReflectiveOperationException e) {
+            logger.log(ExtensionLogger.LogLevel.WARN,
+                    "jeffrey-jib: could not derive the default project name from the Gradle project: " + e);
+            return Optional.empty();
+        }
     }
 }
