@@ -138,6 +138,12 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/docs/hub/deployment/DeploymentHelmChartPage.vue')
       },
       {
+        path: 'server/deployment/kubernetes',
+        alias: 'hub/deployment/kubernetes',
+        name: 'DocsServerDeploymentKubernetes',
+        component: () => import('@/views/docs/hub/deployment/DeploymentKubernetesPage.vue')
+      },
+      {
         path: 'server/architecture',
         alias: 'hub/architecture',
         name: 'DocsServerArchitecture',

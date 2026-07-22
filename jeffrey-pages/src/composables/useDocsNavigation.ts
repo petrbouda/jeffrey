@@ -204,7 +204,8 @@ export const hubNavigation: DocSection[] = [
       { title: 'Jeffrey JIB Extension', to: '/docs/hub/deployment/jeffrey-jib' },
       { title: 'Shared Volume', to: '/docs/hub/deployment/shared-volume' },
       { title: 'Jeffrey Provisioner', to: '/docs/hub/deployment/jeffrey-provisioner' },
-      { title: 'Helm Chart', to: '/docs/hub/deployment/helm-chart' }
+      { title: 'Helm Chart', to: '/docs/hub/deployment/helm-chart' },
+      { title: 'Kubernetes Integration', to: '/docs/hub/deployment/kubernetes' }
     ]
   },
   {
