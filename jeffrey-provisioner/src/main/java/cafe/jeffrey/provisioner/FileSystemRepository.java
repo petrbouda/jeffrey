@@ -120,7 +120,8 @@ public class FileSystemRepository {
             String workspaceRefId,
             String instanceId,
             int order,
-            Path sessionPath) {
+            Path sessionPath,
+            ProfilerSettingsResolver.ResolvedProfilerSettings resolvedSettings) {
         LOG.debug("Adding session to filesystem repository: sessionId={} projectId={} instanceId={} sessionPath={}", sessionId, projectId, instanceId, sessionPath);
         try {
             // Build relative session path: instanceId/sessionId (instance is always required)
@@ -133,7 +134,9 @@ public class FileSystemRepository {
                     instanceId,
                     clock.instant().toEpochMilli(),
                     order,
-                    relativeSessionPath);
+                    relativeSessionPath,
+                    resolvedSettings.source().name(),
+                    resolvedSettings.command());
 
             Path sessionInfoFile = sessionPath.resolve(SESSION_INFO_FILENAME);
             Files.writeString(sessionInfoFile, Json.toString(session));

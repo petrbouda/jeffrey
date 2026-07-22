@@ -21,6 +21,8 @@ package cafe.jeffrey.provisioner;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import cafe.jeffrey.provisioner.ProfilerSettingsResolver.ResolvedProfilerSettings;
+import cafe.jeffrey.shared.common.model.repository.ProfilerSettingsSource;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -29,6 +31,20 @@ import java.nio.file.Path;
 import static org.junit.jupiter.api.Assertions.*;
 
 class ProfilerSettingsResolverTest {
+
+    private static final String PROJECT_ID = "proj-id-1";
+
+    private static ResolvedProfilerSettings resolve(
+            String profilerPath,
+            String profilerConfig,
+            Path workspacePath,
+            String projectName,
+            Path sessionPath,
+            String features) {
+
+        return new ProfilerSettingsResolver().resolve(
+                profilerPath, profilerConfig, workspacePath, PROJECT_ID, projectName, sessionPath, features);
+    }
 
     @Nested
     class DirectProfilerConfig {
@@ -42,17 +58,12 @@ class ProfilerSettingsResolverTest {
             Path sessionPath = tempDir.resolve("session");
             String profilerConfig = "-agentpath:/custom/path=start,event=cpu";
 
-            ProfilerSettingsResolver resolver = new ProfilerSettingsResolver();
-            String result = resolver.resolve(
-                    "/path/to/profiler",
-                    profilerConfig,
-                    workspacePath,
-                    "my-project",
-                    sessionPath,
-                    ""
-            );
+            ResolvedProfilerSettings resolved = resolve(
+                    "/path/to/profiler", profilerConfig, workspacePath, "my-project", sessionPath, "");
 
-            assertEquals(profilerConfig, result.trim());
+            assertEquals(profilerConfig, resolved.command().trim());
+            assertEquals(ProfilerSettingsSource.CLI_CONFIG, resolved.source());
+            assertNull(resolved.sourceDetail());
         }
 
         @Test
@@ -61,15 +72,8 @@ class ProfilerSettingsResolverTest {
             Path sessionPath = tempDir.resolve("session");
             String profilerConfig = "-agentpath:<<JEFFREY_PROFILER_PATH>>=start,file=<<JEFFREY_CURRENT_SESSION>>/output.jfr";
 
-            ProfilerSettingsResolver resolver = new ProfilerSettingsResolver();
-            String result = resolver.resolve(
-                    "/custom/profiler.so",
-                    profilerConfig,
-                    workspacePath,
-                    "my-project",
-                    sessionPath,
-                    ""
-            );
+            String result = resolve(
+                    "/custom/profiler.so", profilerConfig, workspacePath, "my-project", sessionPath, "").command();
 
             assertTrue(result.contains("/custom/profiler.so"));
             assertTrue(result.contains(sessionPath.toString()));
@@ -84,15 +88,8 @@ class ProfilerSettingsResolverTest {
             String profilerConfig = "-agentpath:/custom/path=start";
             String features = "-XX:+UsePerfData -XX:+HeapDumpOnOutOfMemoryError";
 
-            ProfilerSettingsResolver resolver = new ProfilerSettingsResolver();
-            String result = resolver.resolve(
-                    "/path/to/profiler",
-                    profilerConfig,
-                    workspacePath,
-                    "my-project",
-                    sessionPath,
-                    features
-            );
+            String result = resolve(
+                    "/path/to/profiler", profilerConfig, workspacePath, "my-project", sessionPath, features).command();
 
             assertTrue(result.startsWith("-agentpath:/custom/path=start"));
             assertTrue(result.endsWith(features));
@@ -103,19 +100,13 @@ class ProfilerSettingsResolverTest {
             Path workspacePath = Files.createDirectories(tempDir.resolve("workspace"));
             Path sessionPath = tempDir.resolve("session");
 
-            ProfilerSettingsResolver resolver = new ProfilerSettingsResolver();
-            String result = resolver.resolve(
-                    "/path/to/profiler.so",
-                    "   ",
-                    workspacePath,
-                    "my-project",
-                    sessionPath,
-                    ""
-            );
+            ResolvedProfilerSettings resolved = resolve(
+                    "/path/to/profiler.so", "   ", workspacePath, "my-project", sessionPath, "");
 
             // Should fall back to default config
-            assertTrue(result.contains("-agentpath:"));
-            assertTrue(result.contains("/path/to/profiler.so"));
+            assertTrue(resolved.command().contains("-agentpath:"));
+            assertTrue(resolved.command().contains("/path/to/profiler.so"));
+            assertEquals(ProfilerSettingsSource.BUILT_IN, resolved.source());
         }
     }
 
@@ -130,15 +121,9 @@ class ProfilerSettingsResolverTest {
             Path workspacePath = Files.createDirectories(tempDir.resolve("workspace"));
             Path sessionPath = tempDir.resolve("session");
 
-            ProfilerSettingsResolver resolver = new ProfilerSettingsResolver();
-            String result = resolver.resolve(
-                    "/path/to/profiler.so",
-                    null,
-                    workspacePath,
-                    "my-project",
-                    sessionPath,
-                    ""
-            );
+            ResolvedProfilerSettings resolved = resolve(
+                    "/path/to/profiler.so", null, workspacePath, "my-project", sessionPath, "");
+            String result = resolved.command();
 
             // Default config should contain these elements
             assertTrue(result.contains("-agentpath:/path/to/profiler.so"));
@@ -148,6 +133,8 @@ class ProfilerSettingsResolverTest {
             assertTrue(result.contains("event=ctimer"));
             assertTrue(result.contains("jfrsync=default"));
             assertTrue(result.contains(sessionPath.toString()));
+            assertEquals(ProfilerSettingsSource.BUILT_IN, resolved.source());
+            assertNull(resolved.sourceDetail());
         }
 
         @Test
@@ -158,15 +145,7 @@ class ProfilerSettingsResolverTest {
 
             assertFalse(Files.exists(settingsDir));
 
-            ProfilerSettingsResolver resolver = new ProfilerSettingsResolver();
-            resolver.resolve(
-                    "/path/to/profiler.so",
-                    null,
-                    workspacePath,
-                    "my-project",
-                    sessionPath,
-                    ""
-            );
+            resolve("/path/to/profiler.so", null, workspacePath, "my-project", sessionPath, "");
 
             assertTrue(Files.exists(settingsDir));
             assertTrue(Files.isDirectory(settingsDir));
@@ -177,15 +156,7 @@ class ProfilerSettingsResolverTest {
             Path workspacePath = Files.createDirectories(tempDir.resolve("workspace"));
             Path sessionPath = tempDir.resolve("session");
 
-            ProfilerSettingsResolver resolver = new ProfilerSettingsResolver();
-            String result = resolver.resolve(
-                    null,
-                    null,
-                    workspacePath,
-                    "my-project",
-                    sessionPath,
-                    ""
-            );
+            String result = resolve(null, null, workspacePath, "my-project", sessionPath, "").command();
 
             // Profiler path placeholder should be replaced with empty string
             assertTrue(result.contains("-agentpath:="));
@@ -215,19 +186,38 @@ class ProfilerSettingsResolverTest {
                     """;
             Files.writeString(settingsDir.resolve("settings-2025-01-15T120000000000.json"), settingsJson);
 
-            ProfilerSettingsResolver resolver = new ProfilerSettingsResolver();
-            String result = resolver.resolve(
-                    "/my/profiler.so",
-                    null,
-                    workspacePath,
-                    "unknown-project",
-                    sessionPath,
-                    ""
-            );
+            ResolvedProfilerSettings resolved = resolve(
+                    "/my/profiler.so", null, workspacePath, "unknown-project", sessionPath, "");
+            String result = resolved.command();
 
             assertTrue(result.contains("-agentpath:/my/profiler.so"));
             assertTrue(result.contains("event=wall"));
             assertTrue(result.contains(sessionPath.toString() + "/profile.jfr"));
+            assertEquals(ProfilerSettingsSource.HUB_WORKSPACE, resolved.source());
+            assertEquals("settings-2025-01-15T120000000000.json", resolved.sourceDetail());
+        }
+
+        @Test
+        void globalLevelDefaultSettings_reportedAsHubGlobal() throws IOException {
+            Path workspacePath = Files.createDirectories(tempDir.resolve("workspace"));
+            Path settingsDir = Files.createDirectories(workspacePath.resolve(".settings"));
+            Path sessionPath = tempDir.resolve("session");
+
+            String settingsJson = """
+                    {
+                        "profiler": {
+                            "defaultSettings": "-agentpath:<<JEFFREY_PROFILER_PATH>>=start,event=wall",
+                            "defaultSettingsLevel": "GLOBAL",
+                            "projectSettings": {}
+                        }
+                    }
+                    """;
+            Files.writeString(settingsDir.resolve("settings-2025-01-15T120000000000.json"), settingsJson);
+
+            ResolvedProfilerSettings resolved = resolve(
+                    "/my/profiler.so", null, workspacePath, "unknown-project", sessionPath, "");
+
+            assertEquals(ProfilerSettingsSource.HUB_GLOBAL, resolved.source());
         }
 
         @Test
@@ -249,20 +239,72 @@ class ProfilerSettingsResolverTest {
                     """;
             Files.writeString(settingsDir.resolve("settings-2025-01-15T120000000000.json"), settingsJson);
 
-            ProfilerSettingsResolver resolver = new ProfilerSettingsResolver();
-            String result = resolver.resolve(
-                    "/my/profiler.so",
-                    null,
-                    workspacePath,
-                    "my-project",
-                    sessionPath,
-                    ""
-            );
+            ResolvedProfilerSettings resolved = resolve(
+                    "/my/profiler.so", null, workspacePath, "my-project", sessionPath, "");
+            String result = resolved.command();
 
             // Should use project-specific settings, not default
             assertTrue(result.contains("event=cpu"));
             assertTrue(result.contains("alloc"));
             assertFalse(result.contains("event=wall"));
+            assertEquals(ProfilerSettingsSource.HUB_PROJECT, resolved.source());
+        }
+
+        @Test
+        void prefersIdKeyedSettings_overNameKeyed() throws IOException {
+            Path workspacePath = Files.createDirectories(tempDir.resolve("workspace"));
+            Path settingsDir = Files.createDirectories(workspacePath.resolve(".settings"));
+            Path sessionPath = tempDir.resolve("session");
+
+            String settingsJson = """
+                    {
+                        "profiler": {
+                            "defaultSettings": "-agentpath:<<JEFFREY_PROFILER_PATH>>=start,event=wall",
+                            "defaultSettingsLevel": "GLOBAL",
+                            "projectSettings": {
+                                "my-project": "-agentpath:<<JEFFREY_PROFILER_PATH>>=start,event=cpu"
+                            },
+                            "projectSettingsById": {
+                                "proj-id-1": "-agentpath:<<JEFFREY_PROFILER_PATH>>=start,event=itimer"
+                            }
+                        }
+                    }
+                    """;
+            Files.writeString(settingsDir.resolve("settings-2025-01-15T120000000000.json"), settingsJson);
+
+            ResolvedProfilerSettings resolved = resolve(
+                    "/my/profiler.so", null, workspacePath, "my-project", sessionPath, "");
+
+            assertTrue(resolved.command().contains("event=itimer"),
+                    "The id-keyed entry must win over the name-keyed one");
+            assertEquals(ProfilerSettingsSource.HUB_PROJECT, resolved.source());
+        }
+
+        @Test
+        void fallsBackToNameKeyedSettings_whenIdMapMissing() throws IOException {
+            Path workspacePath = Files.createDirectories(tempDir.resolve("workspace"));
+            Path settingsDir = Files.createDirectories(workspacePath.resolve(".settings"));
+            Path sessionPath = tempDir.resolve("session");
+
+            // Old-format settings file written by a hub that only publishes names
+            String settingsJson = """
+                    {
+                        "profiler": {
+                            "defaultSettings": "-agentpath:<<JEFFREY_PROFILER_PATH>>=start,event=wall",
+                            "defaultSettingsLevel": "GLOBAL",
+                            "projectSettings": {
+                                "my-project": "-agentpath:<<JEFFREY_PROFILER_PATH>>=start,event=cpu"
+                            }
+                        }
+                    }
+                    """;
+            Files.writeString(settingsDir.resolve("settings-2025-01-15T120000000000.json"), settingsJson);
+
+            ResolvedProfilerSettings resolved = resolve(
+                    "/my/profiler.so", null, workspacePath, "my-project", sessionPath, "");
+
+            assertTrue(resolved.command().contains("event=cpu"));
+            assertEquals(ProfilerSettingsSource.HUB_PROJECT, resolved.source());
         }
 
         @Test
@@ -282,15 +324,8 @@ class ProfilerSettingsResolverTest {
                     """;
             Files.writeString(settingsDir.resolve("settings-2025-01-15T120000000000.json"), settingsJson);
 
-            ProfilerSettingsResolver resolver = new ProfilerSettingsResolver();
-            String result = resolver.resolve(
-                    "/profiler.so",
-                    null,
-                    workspacePath,
-                    "my-project",
-                    sessionPath,
-                    ""
-            );
+            String result = resolve(
+                    "/profiler.so", null, workspacePath, "my-project", sessionPath, "").command();
 
             assertTrue(result.contains("custom-config"));
         }
@@ -305,18 +340,12 @@ class ProfilerSettingsResolverTest {
             Files.writeString(settingsDir.resolve("other-file.json"), "{}");
             Files.writeString(settingsDir.resolve("settings.txt"), "text file");
 
-            ProfilerSettingsResolver resolver = new ProfilerSettingsResolver();
-            String result = resolver.resolve(
-                    "/profiler.so",
-                    null,
-                    workspacePath,
-                    "my-project",
-                    sessionPath,
-                    ""
-            );
+            ResolvedProfilerSettings resolved = resolve(
+                    "/profiler.so", null, workspacePath, "my-project", sessionPath, "");
 
             // Should use built-in default since no valid settings files
-            assertTrue(result.contains("jfrsync=default"));
+            assertTrue(resolved.command().contains("jfrsync=default"));
+            assertEquals(ProfilerSettingsSource.BUILT_IN, resolved.source());
         }
     }
 
@@ -331,15 +360,9 @@ class ProfilerSettingsResolverTest {
             Path workspacePath = Files.createDirectories(tempDir.resolve("workspace"));
             Path sessionPath = tempDir.resolve("session");
 
-            ProfilerSettingsResolver resolver = new ProfilerSettingsResolver();
-            String result = resolver.resolve(
-                    "/custom/async-profiler/libasyncProfiler.so",
-                    null,
-                    workspacePath,
-                    "my-project",
-                    sessionPath,
-                    ""
-            );
+            String result = resolve(
+                    "/custom/async-profiler/libasyncProfiler.so", null, workspacePath,
+                    "my-project", sessionPath, "").command();
 
             assertTrue(result.contains("/custom/async-profiler/libasyncProfiler.so"));
             assertFalse(result.contains("<<JEFFREY_PROFILER_PATH>>"));
@@ -350,15 +373,8 @@ class ProfilerSettingsResolverTest {
             Path workspacePath = Files.createDirectories(tempDir.resolve("workspace"));
             Path sessionPath = tempDir.resolve("sessions/session-abc123");
 
-            ProfilerSettingsResolver resolver = new ProfilerSettingsResolver();
-            String result = resolver.resolve(
-                    "/profiler.so",
-                    null,
-                    workspacePath,
-                    "my-project",
-                    sessionPath,
-                    ""
-            );
+            String result = resolve(
+                    "/profiler.so", null, workspacePath, "my-project", sessionPath, "").command();
 
             assertTrue(result.contains(sessionPath.toString()));
             assertFalse(result.contains("<<JEFFREY_CURRENT_SESSION>>"));
@@ -376,15 +392,9 @@ class ProfilerSettingsResolverTest {
             Path workspacePath = Files.createDirectories(tempDir.resolve("workspace"));
             Path sessionPath = tempDir.resolve("session");
 
-            ProfilerSettingsResolver resolver = new ProfilerSettingsResolver();
-            String result = resolver.resolve(
-                    "/profiler.so",
-                    "-agentpath:/profiler.so=start",
-                    workspacePath,
-                    "my-project",
-                    sessionPath,
-                    ""
-            );
+            String result = resolve(
+                    "/profiler.so", "-agentpath:/profiler.so=start", workspacePath,
+                    "my-project", sessionPath, "").command();
 
             assertEquals("-agentpath:/profiler.so=start", result.trim());
         }
@@ -395,15 +405,9 @@ class ProfilerSettingsResolverTest {
             Path sessionPath = tempDir.resolve("session");
             String features = "-XX:+UsePerfData -XX:+HeapDumpOnOutOfMemoryError -Xlog:jfr*=trace";
 
-            ProfilerSettingsResolver resolver = new ProfilerSettingsResolver();
-            String result = resolver.resolve(
-                    "/profiler.so",
-                    "-agentpath:/profiler.so=start",
-                    workspacePath,
-                    "my-project",
-                    sessionPath,
-                    features
-            );
+            String result = resolve(
+                    "/profiler.so", "-agentpath:/profiler.so=start", workspacePath,
+                    "my-project", sessionPath, features).command();
 
             assertTrue(result.contains("-agentpath:/profiler.so=start"));
             assertTrue(result.contains("-XX:+UsePerfData"));

@@ -20,5 +20,21 @@ package cafe.jeffrey.shared.common.model.repository;
 
 import java.util.Map;
 
-public record ProfilerSettings(String defaultSettings, String defaultSettingsLevel, Map<String, String> projectSettings) {
+/**
+ * Profiler settings bundle uploaded by the hub into a workspace's
+ * {@code .settings/} directory and consumed by the provisioner on the next
+ * JVM launch.
+ *
+ * <p>Per-project settings are published under two keys: {@code projectSettingsById}
+ * keyed by the origin project id (the id the provisioner persisted in
+ * {@code .project-info.json}) and {@code projectSettings} keyed by project name.
+ * The id-keyed map is authoritative — names are mutable and can collide — while
+ * the name-keyed map keeps old provisioners working. Either map may be missing
+ * when reading files written by an older counterpart.</p>
+ */
+public record ProfilerSettings(
+        String defaultSettings,
+        String defaultSettingsLevel,
+        Map<String, String> projectSettings,
+        Map<String, String> projectSettingsById) {
 }

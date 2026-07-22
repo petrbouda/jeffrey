@@ -158,13 +158,15 @@ public class InitExecutor {
                 .setAppIdentity(appIdentity)
                 .build(newSessionPath);
 
-        String profilerSettings = new ProfilerSettingsResolver().resolve(
+        ProfilerSettingsResolver.ResolvedProfilerSettings resolvedSettings = new ProfilerSettingsResolver().resolve(
                 config.getProfilerPath(),
                 config.getProfilerConfig(),
                 workspacePath,
+                projectId,
                 config.getProjectName(),
                 newSessionPath,
                 features);
+        String profilerSettings = resolvedSettings.command();
 
         repository.addSession(
                 sessionId,
@@ -172,7 +174,8 @@ public class InitExecutor {
                 config.getWorkspaceRefId(),
                 instanceId,
                 order,
-                newSessionPath);
+                newSessionPath,
+                resolvedSettings);
 
         eventPublisher.publishSessionCreated(
                 sessionId, projectId, config.getWorkspaceRefId(),
