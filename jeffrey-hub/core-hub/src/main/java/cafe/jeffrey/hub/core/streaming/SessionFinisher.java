@@ -104,14 +104,25 @@ public class SessionFinisher {
             Path sessionPath,
             Instant fallbackFinishedAt) {
 
-        Optional<Instant> lastHeartbeat = fileHeartbeatReader.readLastHeartbeat(sessionPath);
-        Instant finishedAt = lastHeartbeat.orElse(fallbackFinishedAt);
+        Instant finishedAt = fileHeartbeatReader.readFinishedMarker(sessionPath)
+                .or(() -> fileHeartbeatReader.readLastHeartbeat(sessionPath))
+                .orElse(fallbackFinishedAt);
         markFinished(repositoryRepository, projectInfo, sessionInfo, finishedAt);
     }
 
     /**
-     * Determines the finish time from heartbeat file and marks session finished.
-     * Used by polling-based detection and auto-close of previous sessions.
+     * Determines the finish time from the clean-exit marker or the heartbeat file
+     * and marks the session finished. Used by polling-based detection and
+     * auto-close of previous sessions.
+     *
+     * <p>The clean-exit marker is checked first: it is a pure presence check and
+     * therefore immune to clock skew between the producing host and the hub (the
+     * producer-written timestamp is only recorded as the finish time, never
+     * compared against the hub clock). Heartbeat staleness remains the fallback
+     * for crashed JVMs that never ran the shutdown hook. A possible future
+     * improvement is a hub-side freshness tracker that remembers when each
+     * heartbeat value was first observed and computes staleness purely from hub
+     * clock deltas, removing skew sensitivity from the crash path too.</p>
      *
      * @return true if session was marked finished
      */
@@ -122,6 +133,14 @@ public class SessionFinisher {
             Path sessionPath,
             Duration heartbeatThreshold,
             Instant fallbackFinishedAt) {
+
+        // Case 0: Clean-exit marker written by the agent's shutdown hook
+        Optional<Instant> finishedMarker = fileHeartbeatReader.readFinishedMarker(sessionPath);
+        if (finishedMarker.isPresent()) {
+            LOG.trace("Case 0 clean-exit marker found, marking finished: sessionId={}", sessionInfo.sessionId());
+            markFinished(repositoryRepository, projectInfo, sessionInfo, finishedMarker.get());
+            return true;
+        }
 
         Optional<Instant> lastHeartbeat = fileHeartbeatReader.readLastHeartbeat(sessionPath);
 

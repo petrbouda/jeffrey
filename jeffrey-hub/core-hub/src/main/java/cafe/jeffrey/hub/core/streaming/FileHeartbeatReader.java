@@ -29,9 +29,9 @@ import java.time.Instant;
 import java.util.Optional;
 
 /**
- * Reads the file-based heartbeat written by the agent.
- * The heartbeat file contains epoch millis as plain text at
- * {@code {sessionPath}/.heartbeat/heartbeat}.
+ * Reads the file-based liveness files written by the agent into
+ * {@code {sessionPath}/.heartbeat/}: the periodic {@code heartbeat} file and
+ * the clean-exit {@code finished} marker. Both contain epoch millis as plain text.
  */
 public class FileHeartbeatReader {
 
@@ -44,26 +44,40 @@ public class FileHeartbeatReader {
      * @return the last heartbeat instant, or empty if file missing or unreadable
      */
     public Optional<Instant> readLastHeartbeat(Path sessionPath) {
-        Path heartbeatFile = sessionPath
+        return readEpochMillisFile(sessionPath
                 .resolve(HeartbeatConstants.HEARTBEAT_DIR)
-                .resolve(HeartbeatConstants.HEARTBEAT_FILE);
+                .resolve(HeartbeatConstants.HEARTBEAT_FILE));
+    }
 
-        if (!Files.exists(heartbeatFile)) {
+    /**
+     * Reads the clean-exit marker written by the agent's shutdown hook.
+     *
+     * @param sessionPath path to the session directory
+     * @return the clean-exit instant, or empty if the marker is missing or unreadable
+     */
+    public Optional<Instant> readFinishedMarker(Path sessionPath) {
+        return readEpochMillisFile(sessionPath
+                .resolve(HeartbeatConstants.HEARTBEAT_DIR)
+                .resolve(HeartbeatConstants.FINISHED_FILE));
+    }
+
+    private static Optional<Instant> readEpochMillisFile(Path file) {
+        if (!Files.exists(file)) {
             return Optional.empty();
         }
 
         try {
-            String content = Files.readString(heartbeatFile).strip();
+            String content = Files.readString(file).strip();
             if (content.isEmpty()) {
                 return Optional.empty();
             }
             long epochMillis = Long.parseLong(content);
             return Optional.of(Instant.ofEpochMilli(epochMillis));
         } catch (IOException e) {
-            LOG.warn("Failed to read heartbeat file: path={}", heartbeatFile, e);
+            LOG.warn("Failed to read heartbeat file: path={}", file, e);
             return Optional.empty();
         } catch (NumberFormatException e) {
-            LOG.warn("Invalid heartbeat file content: path={}", heartbeatFile, e);
+            LOG.warn("Invalid heartbeat file content: path={}", file, e);
             return Optional.empty();
         }
     }

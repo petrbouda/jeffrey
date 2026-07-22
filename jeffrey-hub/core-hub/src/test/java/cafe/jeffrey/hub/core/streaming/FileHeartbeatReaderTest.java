@@ -36,13 +36,21 @@ class FileHeartbeatReaderTest {
     private final FileHeartbeatReader reader = new FileHeartbeatReader();
 
     private Path writeHeartbeatFile(Path sessionDir, String content) throws IOException {
+        return writeHeartbeatDirFile(sessionDir, HeartbeatConstants.HEARTBEAT_FILE, content);
+    }
+
+    private Path writeFinishedMarkerFile(Path sessionDir, String content) throws IOException {
+        return writeHeartbeatDirFile(sessionDir, HeartbeatConstants.FINISHED_FILE, content);
+    }
+
+    private Path writeHeartbeatDirFile(Path sessionDir, String fileName, String content) throws IOException {
         Path heartbeatDir = sessionDir
                 .resolve(HeartbeatConstants.HEARTBEAT_DIR);
         Files.createDirectories(heartbeatDir);
 
-        Path heartbeatFile = heartbeatDir.resolve(HeartbeatConstants.HEARTBEAT_FILE);
-        Files.writeString(heartbeatFile, content);
-        return heartbeatFile;
+        Path file = heartbeatDir.resolve(fileName);
+        Files.writeString(file, content);
+        return file;
     }
 
     @Nested
@@ -88,6 +96,48 @@ class FileHeartbeatReaderTest {
             Optional<Instant> result = reader.readLastHeartbeat(tempDir);
 
             assertTrue(result.isEmpty(), "Expected empty when file is empty");
+        }
+    }
+
+    @Nested
+    class ReadFinishedMarker {
+
+        @Test
+        void presentMarker_returnsInstant(@TempDir Path tempDir) throws IOException {
+            long epochMillis = 1700000000000L;
+            writeFinishedMarkerFile(tempDir, String.valueOf(epochMillis));
+
+            Optional<Instant> result = reader.readFinishedMarker(tempDir);
+
+            assertAll(
+                    () -> assertTrue(result.isPresent(), "Expected a present Optional"),
+                    () -> assertEquals(Instant.ofEpochMilli(epochMillis), result.get())
+            );
+        }
+
+        @Test
+        void missingMarker_returnsEmpty(@TempDir Path tempDir) {
+            Optional<Instant> result = reader.readFinishedMarker(tempDir);
+
+            assertTrue(result.isEmpty(), "Expected empty when finished marker does not exist");
+        }
+
+        @Test
+        void heartbeatDoesNotLeakIntoMarker(@TempDir Path tempDir) throws IOException {
+            writeHeartbeatFile(tempDir, "1700000000000");
+
+            Optional<Instant> result = reader.readFinishedMarker(tempDir);
+
+            assertTrue(result.isEmpty(), "Heartbeat file must not be read as a finished marker");
+        }
+
+        @Test
+        void corruptMarker_returnsEmpty(@TempDir Path tempDir) throws IOException {
+            writeFinishedMarkerFile(tempDir, "not-a-number");
+
+            Optional<Instant> result = reader.readFinishedMarker(tempDir);
+
+            assertTrue(result.isEmpty(), "Expected empty when marker contains non-numeric content");
         }
     }
 }
