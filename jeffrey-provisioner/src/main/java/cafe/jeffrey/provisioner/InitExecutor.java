@@ -208,6 +208,11 @@ public class InitExecutor {
             Files.writeString(config.getArgFilePath(), argsContent);
             LOG.debug("Arg file written: argFile={}", config.getArgFilePath());
         }
+
+        // Single greppable verdict line — the one place that tells a user their setup works
+        LOG.info("Jeffrey profiling ENABLED: project={} workspace={} instance={} session={} profiler_source={} arg_file={}",
+                config.getProjectName(), config.getWorkspaceRefId(), instanceId, sessionId,
+                resolvedSettings.source(), config.getArgFilePath());
     }
 
     private static Path createDirectories(Path path) throws IOException {

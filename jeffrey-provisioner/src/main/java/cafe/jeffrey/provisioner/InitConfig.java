@@ -29,18 +29,49 @@ import cafe.jeffrey.shared.common.model.RepositoryType;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 
 /**
- * Configuration class for HOCON-based initialization.
- * Used with {@link com.typesafe.config.ConfigBeanFactory} for automatic parsing.
+ * Provisioner initialization configuration. Sources, highest priority first:
+ * override HOCON file &gt; base HOCON file &gt; {@code JEFFREY_*} environment
+ * variables &gt; built-in defaults. The HOCON files are optional — a container
+ * can be fully configured through environment variables alone
+ * ({@link #fromEnvironment()}), which removes the need to mount a config file
+ * for the common case.
  */
 public class InitConfig {
 
     private static final Logger LOG = LoggerFactory.getLogger(InitConfig.class);
 
     private static final String DEFAULT_AGENT_RELATIVE_PATH = "libs/current/jeffrey-agent.jar";
+
+    /* Environment variables accepted as fallbacks for blank/absent HOCON values.
+       JEFFREY_PROFILER_CONFIG is deliberately NOT an input — the generated .env
+       file exports a variable of that name as an OUTPUT, and accepting it as an
+       input would feed a previous run's fully-resolved command back in. */
+    private static final String ENV_JEFFREY_HOME = "JEFFREY_HOME";
+    private static final String ENV_PROFILER_PATH = "JEFFREY_PROFILER_PATH";
+    private static final String ENV_AGENT_PATH = "JEFFREY_AGENT_PATH";
+    private static final String ENV_ARG_FILE = "JEFFREY_ARG_FILE";
+    private static final String ENV_PROVISIONER_VERBOSE = "JEFFREY_PROVISIONER_VERBOSE";
+    private static final String ENV_PROJECT_NAME = "JEFFREY_PROJECT_NAME";
+    private static final String ENV_PROJECT_LABEL = "JEFFREY_PROJECT_LABEL";
+    private static final String ENV_WORKSPACE = "JEFFREY_WORKSPACE";
+    private static final String ENV_INSTANCE_NAME = "JEFFREY_INSTANCE_NAME";
+    private static final String ENV_ATTRIBUTES = "JEFFREY_ATTRIBUTES";
+    private static final String ENV_HEAP_DUMP = "JEFFREY_HEAP_DUMP";
+    private static final String ENV_PERF_COUNTERS = "JEFFREY_PERF_COUNTERS";
+    private static final String ENV_JVM_LOGGING = "JEFFREY_JVM_LOGGING";
+    private static final String ENV_ADDITIONAL_JVM_OPTIONS = "JEFFREY_ADDITIONAL_JVM_OPTIONS";
+
+    private static final String HEAP_DUMP_OFF = "off";
+    private static final Set<String> HEAP_DUMP_TYPES = Set.of("exit", "crash");
+
+    private static final String ATTRIBUTE_PAIR_SEPARATOR = ",";
+    private static final String ATTRIBUTE_KV_SEPARATOR = "=";
 
     /**
      * Detected runtime arch, null on unsupported platforms. Computed once at class load so
@@ -109,6 +140,23 @@ public class InitConfig {
         return fromHoconFile(baseConfigFile, overrideConfigFile, System::getenv);
     }
 
+    /**
+     * Creates an InitConfig purely from {@code JEFFREY_*} environment variables and built-in
+     * defaults — no HOCON file involved. This is the zero-file setup path: a container only
+     * needs {@code JEFFREY_HOME} (usually baked by jeffrey-jib) and {@code JEFFREY_PROJECT_NAME}
+     * to be fully configured.
+     */
+    public static InitConfig fromEnvironment() {
+        return fromEnvironment(System::getenv);
+    }
+
+    static InitConfig fromEnvironment(Function<String, String> envLookup) {
+        Config defaults = ConfigFactory.parseString(DEFAULTS);
+        InitConfig config = fromConfig(defaults.resolve(), envLookup);
+        config.validate();
+        return config;
+    }
+
     static InitConfig fromHoconFile(
             Path baseConfigFile, Path overrideConfigFile, Function<String, String> envLookup) {
         if (!Files.exists(baseConfigFile)) {
@@ -147,36 +195,40 @@ public class InitConfig {
         String jeffreyHome = resolved.getString("jeffrey-home");
         String workspacesDir = resolved.getString("workspaces-dir");
         if (isNullOrBlank(jeffreyHome) && isNullOrBlank(workspacesDir)) {
-            String envHome = envLookup.apply("JEFFREY_HOME");
+            String envHome = envLookup.apply(ENV_JEFFREY_HOME);
             if (!isNullOrBlank(envHome)) {
                 jeffreyHome = envHome;
             }
         }
         config.setJeffreyHome(jeffreyHome);
         config.setWorkspacesDir(workspacesDir);
-        config.setProfilerPath(resolveWithEnv(resolved.getString("profiler-path"), "JEFFREY_PROFILER_PATH", envLookup));
+        config.setProfilerPath(resolveWithEnv(resolved.getString("profiler-path"), ENV_PROFILER_PATH, envLookup));
         config.setProfilerConfig(resolved.getString("profiler-config"));
         config.setRepositoryType(resolved.getString("repository-type"));
-        config.setAgentPath(resolveWithEnv(resolved.getString("agent-path"), "JEFFREY_AGENT_PATH", envLookup));
+        config.setAgentPath(resolveWithEnv(resolved.getString("agent-path"), ENV_AGENT_PATH, envLookup));
         config.setEnvFilePath(resolved.getString("env-file"));
 
-        config.setArgFilePath(resolveWithEnv(resolved.getString("arg-file"), "JEFFREY_ARG_FILE", envLookup));
+        config.setArgFilePath(resolveWithEnv(resolved.getString("arg-file"), ENV_ARG_FILE, envLookup));
         config.setPrintEnv(resolved.getBoolean("print-env"));
-        config.setProvisionerVerbose(resolveBoolWithEnv(resolved.getBoolean("provisioner-verbose"), "JEFFREY_PROVISIONER_VERBOSE", envLookup));
+        config.setProvisionerVerbose(resolveBoolWithEnv(resolved.getBoolean("provisioner-verbose"), ENV_PROVISIONER_VERBOSE, envLookup));
 
         Config projectCfg = resolved.getConfig("project");
         ProjectConfig project = new ProjectConfig();
-        project.setWorkspaceRefId(projectCfg.getString("workspace-ref-id"));
-        project.setName(projectCfg.getString("name"));
-        project.setLabel(projectCfg.getString("label"));
-        project.setInstanceName(projectCfg.getString("instance-name"));
+        project.setWorkspaceRefId(resolveWithEnv(projectCfg.getString("workspace-ref-id"), ENV_WORKSPACE, envLookup));
+        project.setName(resolveWithEnv(projectCfg.getString("name"), ENV_PROJECT_NAME, envLookup));
+        project.setLabel(resolveWithEnv(projectCfg.getString("label"), ENV_PROJECT_LABEL, envLookup));
+        project.setInstanceName(resolveWithEnv(projectCfg.getString("instance-name"), ENV_INSTANCE_NAME, envLookup));
         config.setProject(project);
 
-        config.setAttributes(resolved.getObject("attributes").unwrapped());
+        Map<String, Object> attributes = resolved.getObject("attributes").unwrapped();
+        if (attributes.isEmpty()) {
+            attributes = parseAttributesEnv(envLookup.apply(ENV_ATTRIBUTES));
+        }
+        config.setAttributes(attributes);
 
         Config perfCfg = resolved.getConfig("perf-counters");
         PerfCountersConfig perfCounters = new PerfCountersConfig();
-        perfCounters.setEnabled(perfCfg.getBoolean("enabled"));
+        perfCounters.setEnabled(resolveBoolWithEnv(perfCfg.getBoolean("enabled"), ENV_PERF_COUNTERS, envLookup));
         config.setPerfCounters(perfCounters);
 
         Config heapCfg = resolved.getConfig("heap-dump");
@@ -185,6 +237,7 @@ public class InitConfig {
         if (heapCfg.hasPath("type")) {
             heapDump.setType(heapCfg.getString("type"));
         }
+        applyHeapDumpEnv(heapDump, envLookup.apply(ENV_HEAP_DUMP));
         config.setHeapDump(heapDump);
 
         Config jvmLogCfg = resolved.getConfig("jvm-logging");
@@ -193,6 +246,13 @@ public class InitConfig {
         if (jvmLogCfg.hasPath("command")) {
             jvmLogging.setCommand(jvmLogCfg.getString("command"));
         }
+        if (!jvmLogging.isEnabled()) {
+            String envCommand = envLookup.apply(ENV_JVM_LOGGING);
+            if (!isNullOrBlank(envCommand)) {
+                jvmLogging.setEnabled(true);
+                jvmLogging.setCommand(envCommand);
+            }
+        }
         config.setJvmLogging(jvmLogging);
 
         Config jdkCfg = resolved.getConfig("jdk-java-options");
@@ -200,7 +260,8 @@ public class InitConfig {
         jdkJavaOptions.setEnabled(jdkCfg.getBoolean("enabled"));
         config.setJdkJavaOptions(jdkJavaOptions);
 
-        config.setAdditionalJvmOptions(resolved.getString("additional-jvm-options"));
+        config.setAdditionalJvmOptions(
+                resolveWithEnv(resolved.getString("additional-jvm-options"), ENV_ADDITIONAL_JVM_OPTIONS, envLookup));
 
         Config dnsCfg = resolved.getConfig("debug-non-safepoints");
         DebugNonSafepointsConfig debugNonSafepoints = new DebugNonSafepointsConfig();
@@ -211,8 +272,57 @@ public class InitConfig {
     }
 
     /**
+     * Parses the {@code JEFFREY_ATTRIBUTES} value ({@code key=value,key=value}) into an
+     * attributes map. Malformed pairs are skipped with a warning — attributes are metadata
+     * and must never stop the application from being provisioned.
+     */
+    private static Map<String, Object> parseAttributesEnv(String envValue) {
+        Map<String, Object> attributes = new HashMap<>();
+        if (isNullOrBlank(envValue)) {
+            return attributes;
+        }
+        for (String pair : envValue.split(ATTRIBUTE_PAIR_SEPARATOR)) {
+            int separatorIndex = pair.indexOf(ATTRIBUTE_KV_SEPARATOR);
+            if (separatorIndex <= 0) {
+                LOG.warn("Skipping malformed attribute pair (expected key=value): pair={}", pair.trim());
+                continue;
+            }
+            String key = pair.substring(0, separatorIndex).trim();
+            String value = pair.substring(separatorIndex + 1).trim();
+            if (key.isEmpty()) {
+                LOG.warn("Skipping attribute pair with empty key: pair={}", pair.trim());
+                continue;
+            }
+            attributes.put(key, value);
+        }
+        return attributes;
+    }
+
+    /**
+     * Applies the {@code JEFFREY_HEAP_DUMP} value ({@code exit} | {@code crash} | {@code off})
+     * when HOCON left heap dumps disabled. HOCON wins when it enabled the feature; an
+     * unrecognized env value is skipped with a warning instead of failing provisioning.
+     */
+    private static void applyHeapDumpEnv(HeapDumpConfig heapDump, String envValue) {
+        if (heapDump.isEnabled() || isNullOrBlank(envValue)) {
+            return;
+        }
+        String normalized = envValue.trim().toLowerCase();
+        if (normalized.equals(HEAP_DUMP_OFF)) {
+            return;
+        }
+        if (!HEAP_DUMP_TYPES.contains(normalized)) {
+            LOG.warn("Unrecognized JEFFREY_HEAP_DUMP value, heap dumps stay disabled: value={} expected={}",
+                    envValue, HEAP_DUMP_TYPES);
+            return;
+        }
+        heapDump.setEnabled(true);
+        heapDump.setType(normalized);
+    }
+
+    /**
      * Returns {@code hoconValue} if non-blank; otherwise consults the named environment variable.
-     * Used for path-style settings that prefer HOCON but accept env-var defaults baked into the
+     * Used for settings that prefer HOCON but accept env-var defaults baked into the
      * image by jeffrey-jib (or set on the pod) when the HOCON entry is absent.
      */
     private static String resolveWithEnv(String hoconValue, String envName, Function<String, String> envLookup) {
@@ -632,7 +742,8 @@ public class InitConfig {
         }
 
         if (isNullOrBlank(project.getName())) {
-            throw new IllegalArgumentException("'project.name' must be specified");
+            throw new IllegalArgumentException(
+                    "'project.name' must be specified (HOCON 'project.name' or env JEFFREY_PROJECT_NAME)");
         }
 
         String projectName = project.getName();
