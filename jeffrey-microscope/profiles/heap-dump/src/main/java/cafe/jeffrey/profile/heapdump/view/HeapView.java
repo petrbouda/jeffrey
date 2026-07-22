@@ -256,6 +256,12 @@ public interface HeapView extends AutoCloseable {
      */
     int readInt(long fileOffset) throws SQLException;
 
+    /**
+     * Reads a big-endian {@code long} straight from the mapped {@code .hprof}
+     * at an absolute file offset. Same contract as {@link #readInt(long)}.
+     */
+    long readLong(long fileOffset) throws SQLException;
+
     // ---- Escape hatch ----------------------------------------------------
 
     /**

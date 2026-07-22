@@ -30,13 +30,13 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.SQLException;
-import java.time.Clock;
 import java.util.Optional;
 
 /**
- * Lifecycle wrapper around {@link HeapDumpSession}. Opens (or builds) a
- * short-lived session over a profile's heap dump, runs a unit of work, and
- * always closes the session afterwards.
+ * Lifecycle wrapper around {@link HeapDumpSession}. Resolves the profile's
+ * analyzable heap dump (decompressing a gzipped dump on first access), runs a
+ * unit of work against the {@link HeapDumpSessionCache}-managed session, and
+ * maps failures to the profile-scoped error contract.
  */
 public final class HeapDumpSessionTemplate {
 
@@ -46,16 +46,16 @@ public final class HeapDumpSessionTemplate {
 
     private final AdditionalFilesManager additionalFilesManager;
 
-    private final Clock clock;
+    private final HeapDumpSessionCache sessionCache;
 
     public HeapDumpSessionTemplate(
             ProfileInfo profileInfo,
             AdditionalFilesManager additionalFilesManager,
-            Clock clock) {
+            HeapDumpSessionCache sessionCache) {
 
         this.profileInfo = profileInfo;
         this.additionalFilesManager = additionalFilesManager;
-        this.clock = clock;
+        this.sessionCache = sessionCache;
     }
 
     @FunctionalInterface
@@ -69,8 +69,9 @@ public final class HeapDumpSessionTemplate {
             LOG.debug("No heap dump available: profileId={}", profileInfo.id());
             return Optional.empty();
         }
-        try (HeapDumpSession session = HeapDumpSession.openOrBuild(heapPath.get(), clock)) {
-            return Optional.ofNullable(work.apply(session));
+        try {
+            Path hprofPath = HeapDumpDecompressor.ensureDecompressed(heapPath.get());
+            return Optional.ofNullable(sessionCache.withSession(hprofPath, work::apply));
         } catch (IOException | SQLException e) {
             LOG.warn("Heap dump operation failed: profileId={} path={} error={}",
                     profileInfo.id(), heapPath.get(), e.getMessage());
@@ -87,12 +88,15 @@ public final class HeapDumpSessionTemplate {
         if (heapPath.isEmpty()) {
             return false;
         }
-        Path indexPath = HeapDumpIndexPaths.indexFor(heapPath.get());
-        if (!Files.exists(indexPath)) {
+        // The index sidecar is keyed on the decompressed .hprof, which for a
+        // gzipped dump may not have been materialized yet.
+        Path hprofPath = HeapDumpDecompressor.analyzablePath(heapPath.get());
+        Path indexPath = HeapDumpIndexPaths.indexFor(hprofPath);
+        if (!Files.exists(hprofPath) || !Files.exists(indexPath)) {
             return false;
         }
         try {
-            long hprofMtime = Files.getLastModifiedTime(heapPath.get()).toMillis();
+            long hprofMtime = Files.getLastModifiedTime(hprofPath).toMillis();
             long indexMtime = Files.getLastModifiedTime(indexPath).toMillis();
             return indexMtime >= hprofMtime;
         } catch (IOException e) {

@@ -34,7 +34,24 @@ public record BuildOptions(int stringContentThreshold, int walkWorkers) {
 
     public static final int DEFAULT_STRING_CONTENT_THRESHOLD = 4096;
 
-    public static final int DEFAULT_WALK_WORKERS = 4;
+    public static final int MIN_DEFAULT_WALK_WORKERS = 1;
+
+    /**
+     * Ceiling for the CPU-derived default: every Pass B worker owns a private
+     * in-memory DuckDB with open appenders, so the per-worker memory cost is
+     * real and the parquet bulk-load gains flatten out well before this point.
+     */
+    public static final int MAX_DEFAULT_WALK_WORKERS = 16;
+
+    /**
+     * CPU-scaled fanout: one worker per available core, clamped to
+     * [{@link #MIN_DEFAULT_WALK_WORKERS}, {@link #MAX_DEFAULT_WALK_WORKERS}].
+     * Computed once at class load.
+     */
+    public static final int DEFAULT_WALK_WORKERS = Math.clamp(
+            Runtime.getRuntime().availableProcessors(),
+            MIN_DEFAULT_WALK_WORKERS,
+            MAX_DEFAULT_WALK_WORKERS);
 
     public BuildOptions {
         if (walkWorkers < 1) {

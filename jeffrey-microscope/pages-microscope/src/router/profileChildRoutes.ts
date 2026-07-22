@@ -393,6 +393,12 @@ const heapDumpRoutes = [
     meta: { layout: 'profile' }
   },
   {
+    path: 'heap-dump/biggest-objects',
+    name: 'profile-heap-dump-biggest-objects',
+    component: () => import('@/views/profiles/detail/ProfileHeapDumpBiggestObjects.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
     path: 'heap-dump/biggest-collections',
     name: 'profile-heap-dump-biggest-collections',
     component: () => import('@/views/profiles/detail/ProfileHeapDumpBiggestCollections.vue'),
@@ -402,6 +408,24 @@ const heapDumpRoutes = [
     path: 'heap-dump/classloader-analysis',
     name: 'profile-heap-dump-classloader-analysis',
     component: () => import('@/views/profiles/detail/ProfileHeapDumpClassLoaderAnalysis.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
+    path: 'heap-dump/consumers',
+    name: 'profile-heap-dump-consumers',
+    component: () => import('@/views/profiles/detail/ProfileHeapDumpConsumers.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
+    path: 'heap-dump/duplicate-data',
+    name: 'profile-heap-dump-duplicate-data',
+    component: () => import('@/views/profiles/detail/ProfileHeapDumpDuplicateData.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
+    path: 'heap-dump/diff',
+    name: 'profile-heap-dump-diff',
+    component: () => import('@/views/profiles/detail/ProfileHeapDumpDiff.vue'),
     meta: { layout: 'profile' }
   }
 ];

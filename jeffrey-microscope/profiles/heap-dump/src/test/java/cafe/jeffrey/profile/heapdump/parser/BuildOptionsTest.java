@@ -42,8 +42,14 @@ class BuildOptionsTest {
         }
 
         @Test
-        void walkWorkersMatchesDocumentedValue() {
-            assertEquals(4, BuildOptions.DEFAULT_WALK_WORKERS);
+        void walkWorkersScaleWithAvailableCpusWithinClamp() {
+            int expected = Math.clamp(
+                    Runtime.getRuntime().availableProcessors(),
+                    BuildOptions.MIN_DEFAULT_WALK_WORKERS,
+                    BuildOptions.MAX_DEFAULT_WALK_WORKERS);
+            assertEquals(expected, BuildOptions.DEFAULT_WALK_WORKERS);
+            assertTrue(BuildOptions.DEFAULT_WALK_WORKERS >= BuildOptions.MIN_DEFAULT_WALK_WORKERS);
+            assertTrue(BuildOptions.DEFAULT_WALK_WORKERS <= BuildOptions.MAX_DEFAULT_WALK_WORKERS);
         }
     }
 

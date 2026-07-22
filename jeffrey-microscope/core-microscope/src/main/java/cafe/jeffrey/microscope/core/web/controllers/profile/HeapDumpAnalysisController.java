@@ -31,6 +31,7 @@ import cafe.jeffrey.profile.heapdump.model.ClassLoaderDetail;
 import cafe.jeffrey.profile.heapdump.model.ClassLoaderReport;
 import cafe.jeffrey.profile.heapdump.model.CollectionAnalysisReport;
 import cafe.jeffrey.profile.heapdump.model.ConsumerReport;
+import cafe.jeffrey.profile.heapdump.model.DuplicateDataReport;
 import cafe.jeffrey.profile.heapdump.model.LeakSuspectsReport;
 import cafe.jeffrey.profile.heapdump.model.StringAnalysisReport;
 import cafe.jeffrey.profile.heapdump.model.ThreadAnalysisReport;
@@ -185,6 +186,23 @@ public class HeapDumpAnalysisController {
     @PostMapping("/consumers/run")
     public void runConsumerReport(@PathVariable("profileId") String profileId) {
         mgr(profileId).runConsumerReport();
+    }
+
+    @GetMapping("/duplicate-data/exists")
+    public boolean duplicateDataExists(@PathVariable("profileId") String profileId) {
+        return mgr(profileId).duplicateDataExists();
+    }
+
+    @GetMapping("/duplicate-data")
+    public DuplicateDataReport getDuplicateData(@PathVariable("profileId") String profileId) {
+        return mgr(profileId).getDuplicateData();
+    }
+
+    @PostMapping("/duplicate-data/run")
+    public void runDuplicateData(
+            @PathVariable("profileId") String profileId,
+            @RequestParam(value = "topN", defaultValue = "50") int topN) {
+        mgr(profileId).runDuplicateData(topN);
     }
 
     private HeapDumpManager mgr(String profileId) {

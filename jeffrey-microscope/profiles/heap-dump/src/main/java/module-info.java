@@ -26,6 +26,7 @@ module cafe.jeffrey.microscope.profile.heapdump {
     requires org.slf4j;
     requires org.eclipse.collections.api;
     requires org.eclipse.collections.impl;
+    requires org.lz4.java;
 
     exports cafe.jeffrey.profile.heapdump.analyzer.heapview;
     exports cafe.jeffrey.profile.heapdump.model;

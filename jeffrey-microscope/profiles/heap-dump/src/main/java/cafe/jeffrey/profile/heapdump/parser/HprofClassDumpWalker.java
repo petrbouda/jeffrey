@@ -44,6 +44,9 @@ import static cafe.jeffrey.profile.heapdump.parser.HprofAppenderUtils.primArrayN
  */
 public final class HprofClassDumpWalker {
 
+    /** outbound_ref.field_kind value for class-static references. */
+    private static final byte FIELD_KIND_CLASS_STATIC = 2;
+
     private HprofClassDumpWalker() {
     }
 
@@ -85,7 +88,33 @@ public final class HprofClassDumpWalker {
                     }
                     return classCount[0];
                 });
+        appendStaticRefs(client, byId);
         return new ClassDumpIndex(byId, classCount[0], warnings);
+    }
+
+    /**
+     * Emits one {@code outbound_ref} row per non-null OBJECT-typed static
+     * field: {@code source_id} is the class object id, {@code field_kind = 2}
+     * (class_static), {@code field_id} the static-field index. These edges make
+     * objects retained only through statics reachable in the dominator graph.
+     */
+    private static void appendStaticRefs(
+            HeapDumpDatabaseClient client, MutableLongObjectMap<HprofRecord.ClassDump> byId) {
+        client.withAppender(HeapDumpStatement.APPEND_OUTBOUND_REF, "outbound_ref", app -> {
+            long emitted = 0;
+            for (HprofRecord.ClassDump cd : byId.values()) {
+                for (HprofRecord.StaticRef ref : cd.staticRefs()) {
+                    app.beginRow();
+                    app.append(cd.classId());
+                    app.append(ref.targetId());
+                    app.append(FIELD_KIND_CLASS_STATIC);
+                    app.append(ref.fieldIndex());
+                    app.endRow();
+                    emitted++;
+                }
+            }
+            return emitted;
+        });
     }
 
     private static void appendClass(
@@ -119,8 +148,7 @@ public final class HprofClassDumpWalker {
         appendNullableId(app, cd.signersId());
         appendNullableId(app, cd.protectionDomainId());
         app.append(cd.instanceSize());
-        // static_fields_size: not tracked separately yet; populate with 0 to satisfy NOT NULL.
-        app.append(0);
+        app.append(cd.staticFieldsByteLength());
         app.append(cd.fileOffset());
         app.endRow();
     }

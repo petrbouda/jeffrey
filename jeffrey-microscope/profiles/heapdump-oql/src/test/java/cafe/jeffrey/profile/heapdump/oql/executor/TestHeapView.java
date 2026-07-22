@@ -400,4 +400,9 @@ final class TestHeapView implements HeapView {
     public int readInt(long fileOffset) {
         throw new UnsupportedOperationException();
     }
+
+    @Override
+    public long readLong(long fileOffset) {
+        throw new UnsupportedOperationException();
+    }
 }

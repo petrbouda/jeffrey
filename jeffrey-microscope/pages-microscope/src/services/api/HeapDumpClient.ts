@@ -40,6 +40,9 @@ import ClassInstancesResponse from '@/services/api/model/ClassInstancesResponse'
 import LeakSuspectsReport from '@/services/api/model/LeakSuspectsReport';
 import BiggestObjectsReport from '@/services/api/model/BiggestObjectsReport';
 import BiggestCollectionsReport from '@/services/api/model/BiggestCollectionsReport';
+import type ConsumerReport from '@/services/api/model/ConsumerReport';
+import type DuplicateDataReport from '@/services/api/model/DuplicateDataReport';
+import type HeapDumpInitProgress from '@/services/api/model/HeapDumpInitProgress';
 import HeapDumpConfig from '@/services/api/model/HeapDumpConfig';
 import type InitPipelineResult from '@/services/api/model/InitPipelineResult';
 import type { SubPhaseTiming } from '@/services/api/model/InitPipelineResult';
@@ -62,6 +65,19 @@ export default class HeapDumpClient extends BaseProfileClient {
 
   public getSummary(): Promise<HeapSummary> {
     return this.get<HeapSummary>('/summary');
+  }
+
+  /**
+   * Starts the full server-side init pipeline in the background; poll
+   * getInitProgress() for per-stage statuses.
+   */
+  public initializeAll(compressedOops?: boolean): Promise<void> {
+    const params = compressedOops !== undefined ? `?compressedOops=${compressedOops}` : '';
+    return this.post<void>(`/initialize-all${params}`, {});
+  }
+
+  public getInitProgress(): Promise<HeapDumpInitProgress> {
+    return this.get<HeapDumpInitProgress>('/init-progress');
   }
 
   public getHistogram(topN: number = 100, sortBy: string = 'SIZE'): Promise<ClassHistogramEntry[]> {
@@ -293,6 +309,34 @@ export default class HeapDumpClient extends BaseProfileClient {
 
   public runBiggestObjects(topN: number = 20): Promise<void> {
     return this.post<void>(`/biggest-objects/run?topN=${topN}`, {});
+  }
+
+  // --- Duplicate Data ---
+
+  public duplicateDataExists(): Promise<boolean> {
+    return this.get<boolean>('/duplicate-data/exists');
+  }
+
+  public getDuplicateData(): Promise<DuplicateDataReport> {
+    return this.get<DuplicateDataReport>('/duplicate-data');
+  }
+
+  public runDuplicateData(topN: number = 50): Promise<void> {
+    return this.post<void>(`/duplicate-data/run?topN=${topN}`, {});
+  }
+
+  // --- Consumers (per-package) ---
+
+  public consumerReportExists(): Promise<boolean> {
+    return this.get<boolean>('/consumers/exists');
+  }
+
+  public getConsumerReport(): Promise<ConsumerReport> {
+    return this.get<ConsumerReport>('/consumers');
+  }
+
+  public runConsumerReport(): Promise<void> {
+    return this.post<void>('/consumers/run', {});
   }
 
   // --- Biggest Collections ---

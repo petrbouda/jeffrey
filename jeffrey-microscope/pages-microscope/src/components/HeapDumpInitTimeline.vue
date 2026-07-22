@@ -174,9 +174,11 @@ const phases: Phase[] = [
   {
     id: 'hotspots',
     name: 'Hotspots',
-    description: 'Class loaders, biggest collections',
+    description: 'Class loaders, biggest collections, waste',
     stages: [
       { id: 'classloaders', label: 'Analyzing class loaders' },
+      { id: 'consumers', label: 'Aggregating memory consumers' },
+      { id: 'duplicates', label: 'Detecting duplicate data' },
       { id: 'biggest-collections', label: 'Finding biggest collections' }
     ]
   }

@@ -84,6 +84,13 @@ public final class DominatorTreeBuilder {
      */
     private static final String PRAGMA_WAL_AUTOCHECKPOINT = "PRAGMA wal_autocheckpoint = '1TB'";
 
+    /**
+     * The dominator/retained-size bulk loads never rely on row order (reads are
+     * keyed or explicitly ordered), so let DuckDB parallelise the parquet load
+     * without the insertion-order bookkeeping.
+     */
+    private static final String PRAGMA_PRESERVE_INSERTION_ORDER = "SET preserve_insertion_order = false";
+
     public record BuildResult(int reachableInstances, int rootEdges, long iterations,
                               java.time.Duration buildTime, List<SubPhaseTiming> subPhases) {
 
@@ -116,6 +123,7 @@ public final class DominatorTreeBuilder {
             HeapDumpDatabaseClient client = new HeapDumpDatabaseClient(conn, GroupLabel.HEAP_DUMP_INDEX);
 
             client.execute(HeapDumpStatement.WAL_AUTOCHECKPOINT_PRAGMA, PRAGMA_WAL_AUTOCHECKPOINT);
+            client.execute(HeapDumpStatement.PRESERVE_INSERTION_ORDER_PRAGMA, PRAGMA_PRESERVE_INSERTION_ORDER);
             client.execute(HeapDumpStatement.DELETE_DOMINATOR, "DELETE FROM dominator");
             client.execute(HeapDumpStatement.DELETE_RETAINED_SIZE, "DELETE FROM retained_size");
 
@@ -606,16 +614,15 @@ public final class DominatorTreeBuilder {
     }
 
     private static InstanceMeta loadInstanceMeta(HeapDumpDatabaseClient client) {
-        int count = (int) client.queryLong(HeapDumpStatement.TOTAL_INSTANCE_COUNT, "SELECT COUNT(*) FROM instance");
+        int count = (int) client.queryLong(HeapDumpStatement.TOTAL_INSTANCE_COUNT, NODE_COUNT_SQL);
         long[] ids = new long[count];
         long[] shallow = new long[count];
         int[] iBox = {0};
-        client.rawStream(HeapDumpStatement.STREAM_INSTANCES_BY_CLASS,
-                "SELECT instance_id, shallow_size FROM instance ORDER BY instance_id",
+        client.rawStream(HeapDumpStatement.STREAM_INSTANCES_BY_CLASS, NODE_META_SQL,
                 rs -> {
                     while (rs.next() && iBox[0] < count) {
                         ids[iBox[0]] = rs.getLong(1);
-                        shallow[iBox[0]] = rs.getInt(2);
+                        shallow[iBox[0]] = rs.getLong(2);
                         iBox[0]++;
                     }
                     return iBox[0];
@@ -644,12 +651,33 @@ public final class DominatorTreeBuilder {
      * the translation into the engine's parallel hash join, replacing 87 M ×
      * two Java-side binary searches per pass with a single multi-threaded scan.
      */
+    /**
+     * The dominator graph's node set: every instance plus every class object.
+     * Class objects are graph nodes so class-static references (outbound_ref
+     * {@code field_kind = 2}, source = class id) and class-targeted GC roots
+     * (e.g. ROOT_STICKY_CLASS) contribute edges — without them, objects
+     * retained only through statics would be unreachable and get no retained
+     * size. A class node's "shallow size" is its static-field footprint.
+     */
+    private static final String NODE_SET_SQL = """
+            SELECT instance_id AS id, CAST(shallow_size AS BIGINT) AS shallow FROM instance
+            UNION ALL
+            SELECT class_id, CAST(static_fields_size AS BIGINT) FROM class
+            WHERE class_id NOT IN (SELECT instance_id FROM instance)
+            """;
+
+    private static final String NODE_COUNT_SQL =
+            "SELECT COUNT(*) FROM (" + NODE_SET_SQL + ")";
+
+    private static final String NODE_META_SQL =
+            "SELECT id, shallow FROM (" + NODE_SET_SQL + ") ORDER BY id";
+
     private static final String CREATE_ID_INDEX_SQL = """
             CREATE TEMP TABLE id_index AS
-            SELECT instance_id,
-                   CAST(ROW_NUMBER() OVER (ORDER BY instance_id) - 1 AS INTEGER) AS node_index
-            FROM instance
-            """;
+            SELECT id AS instance_id,
+                   CAST(ROW_NUMBER() OVER (ORDER BY id) - 1 AS INTEGER) AS node_index
+            FROM (
+            """ + NODE_SET_SQL + ")";
 
     private static final String DROP_ID_INDEX_SQL = "DROP TABLE id_index";
 

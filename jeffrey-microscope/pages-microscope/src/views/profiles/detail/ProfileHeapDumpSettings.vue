@@ -344,7 +344,7 @@ import HeapDumpInitTimeline, { type TimelineStep } from '@/components/HeapDumpIn
 import HeapSummary from '@/services/api/model/HeapSummary';
 import HeapDumpConfig from '@/services/api/model/HeapDumpConfig';
 import type InitPipelineResult from '@/services/api/model/InitPipelineResult';
-import type { SubPhaseTiming } from '@/services/api/model/InitPipelineResult';
+import type HeapDumpInitProgress from '@/services/api/model/HeapDumpInitProgress';
 import FormattingService from '@shared/services/FormattingService';
 import { ToastService } from '@shared/services/ToastService';
 import MessageBus from '@/services/MessageBus';
@@ -378,8 +378,6 @@ interface ProcessingStep extends TimelineStep {
 }
 
 const STAGE_IDS: string[] = [
-  'load',
-  'parse',
   'index',
   'strings',
   'dominator',
@@ -388,6 +386,8 @@ const STAGE_IDS: string[] = [
   'collections',
   'leaks',
   'classloaders',
+  'consumers',
+  'duplicates',
   'biggest-collections'
 ];
 
@@ -405,32 +405,6 @@ const findStep = (id: string): ProcessingStep | undefined =>
 const resetSteps = () => {
   // Rebuild steps based on current checkbox state
   processingSteps.value = getProcessingSteps();
-};
-
-const setStepStatus = (id: string, status: ProcessingStep['status']) => {
-  const step = findStep(id);
-  if (step) step.status = status;
-};
-
-const startStep = (id: string) => {
-  const step = findStep(id);
-  if (step) {
-    step.status = 'in_progress';
-    step.startMs = Date.now();
-  }
-};
-
-const completeStep = (id: string, subPhases?: SubPhaseTiming[]) => {
-  const step = findStep(id);
-  if (step) {
-    step.status = 'completed';
-    if (step.startMs != null) {
-      step.durationMs = Date.now() - step.startMs;
-    }
-    if (subPhases && subPhases.length > 0) {
-      step.subPhases = subPhases;
-    }
-  }
 };
 
 // Live tick for in-progress elapsed display
@@ -522,122 +496,100 @@ const summaryMetrics = computed(() => {
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
+const POLL_INTERVAL_MS = 750;
+
+/** Consecutive idle polls tolerated before treating the run as lost (e.g. backend restart). */
+const MAX_IDLE_POLLS = 5;
+
+/** Maps backend per-stage statuses onto the live timeline steps. */
+const applyProgress = (progress: HeapDumpInitProgress) => {
+  for (const stage of progress.stages) {
+    const step = findStep(stage.id);
+    if (!step) {
+      continue;
+    }
+    if (stage.status === 'in_progress') {
+      if (step.status !== 'in_progress') {
+        step.status = 'in_progress';
+        step.startMs = Date.now();
+      }
+    } else if (stage.status === 'completed') {
+      step.status = 'completed';
+      step.durationMs = stage.durationMs ?? undefined;
+      step.subPhases = stage.subPhases ?? undefined;
+    }
+    // 'failed' stages stay visually pending; the error panel reports the failure.
+  }
+};
+
+const handleInitFailure = (code: string | null, message: string | null) => {
+  if (code === 'HEAP_DUMP_NEEDS_SANITIZATION') {
+    needsSanitization.value = true;
+    // File still exists - don't set heapExists to false
+  } else if (code === 'HEAP_DUMP_CORRUPTED') {
+    initError.value = message ?? 'Heap dump is corrupted';
+    heapExists.value = false; // File was deleted by backend
+  } else {
+    error.value = message ?? 'Failed to process heap dump';
+  }
+};
+
 const processHeapDump = async () => {
   processing.value = true;
   resetSteps();
   startTick();
 
   try {
-    // Step 1: Load
-    startStep('load');
-    await sleep(300);
-    completeStep('load');
-
-    // Step 2: Parse
-    startStep('parse');
-    await sleep(300);
-    completeStep('parse');
-
-    // Step 3: Index (resolve compressed oops + build indexes)
-    startStep('index');
     const compressedOopsOverride =
       compressedOopsChoice.value === 'enabled'
         ? true
         : compressedOopsChoice.value === 'disabled'
           ? false
           : undefined;
-    const indexResult = await client.initialize(compressedOopsOverride);
-    lastSummary.value = indexResult.summary;
+
+    // One POST kicks off the whole pipeline server-side; from here on the
+    // frontend only mirrors the backend's per-stage progress.
+    await client.initializeAll(compressedOopsOverride);
+
+    let idlePolls = 0;
+    let progress = await client.getInitProgress();
+    while (progress.state === 'running' || progress.state === 'idle') {
+      if (progress.state === 'idle') {
+        idlePolls++;
+        if (idlePolls > MAX_IDLE_POLLS) {
+          throw new Error('Initialization run was lost — please try again.');
+        }
+      } else {
+        idlePolls = 0;
+        applyProgress(progress);
+      }
+      await sleep(POLL_INTERVAL_MS);
+      progress = await client.getInitProgress();
+    }
+    applyProgress(progress);
+
+    if (progress.state === 'failed') {
+      handleInitFailure(progress.errorCode, progress.errorMessage);
+      return;
+    }
+
+    // Completed — the backend owns the persisted snapshot now.
+    lastSummary.value = await client.getSummary();
     heapConfig.value = await client.getConfig();
-    completeStep('index', indexResult.subPhases);
-
-    // Step 4: Strings
-    startStep('strings');
-    await client.runStringAnalysis(100);
-    completeStep('strings');
-
-    // Step 5: Dominator Tree — pre-computed up front because (a) it owns the
-    // single biggest cost on large heaps and (b) retained sizes for threads,
-    // biggest objects, leak suspects and the dominator-tree view all read
-    // from it. Running it as its own stage keeps the timeline honest:
-    // previously this cost hid behind the "Analyzing threads" label because
-    // runThreadAnalysis() built the tree lazily.
-    startStep('dominator');
-    const dominatorSubPhases = await client.runComputeDominator();
-    completeStep('dominator', dominatorSubPhases);
-
-    // Step 6: Threads — tree is already built, so this is purely the
-    // SQL-based thread analysis (sub-second on typical heaps).
-    startStep('threads');
-    await client.runThreadAnalysis();
-    completeStep('threads');
-
-    // Step 7: Biggest Objects
-    startStep('biggest');
-    await client.runBiggestObjects(20);
-    completeStep('biggest');
-
-    // Step 8: Collections
-    startStep('collections');
-    await client.runCollectionAnalysis();
-    completeStep('collections');
-
-    // Step 9: Leak Suspects
-    startStep('leaks');
-    await client.runLeakSuspects();
-    completeStep('leaks');
-
-    // Step 10: Class Loaders
-    startStep('classloaders');
-    await client.runClassLoaderAnalysis();
-    completeStep('classloaders');
-
-    // Step 11: Biggest Collections
-    startStep('biggest-collections');
-    await client.runBiggestCollections(50);
-    completeStep('biggest-collections');
-
     cacheReady.value = true;
     MessageBus.emit(MessageBus.HEAP_DUMP_STATUS_CHANGED, true);
-
-    // Snapshot the timeline so the Overview page can display it on subsequent visits.
-    const snapshot: InitPipelineResult = {
-      totalElapsedMs: processingSteps.value.reduce((sum, s) => sum + (s.durationMs ?? 0), 0),
-      totalSteps: processingSteps.value.length,
-      completedSteps: processingSteps.value.filter(
-        s => s.status === 'completed' || s.status === 'skipped' || s.status === 'on_demand'
-      ).length,
-      completedAt: new Date().toISOString(),
-      stages: processingSteps.value.map(s => {
-        const status: 'completed' | 'skipped' | 'on_demand' =
-          s.status === 'completed'
-            ? 'completed'
-            : s.status === 'on_demand'
-              ? 'on_demand'
-              : 'skipped';
-        return {
-          id: s.id,
-          status,
-          durationMs: s.durationMs ?? null,
-          subPhases: s.subPhases ?? null
-        };
-      })
-    };
-    lastInitResult.value = snapshot;
     try {
-      await client.storeInitPipelineResult(snapshot);
-    } catch (storeErr) {
-      // Snapshot persistence is best-effort — log and move on.
-      console.warn('Failed to persist init pipeline result', storeErr);
+      lastInitResult.value = await client.getInitPipelineResult();
+    } catch (snapshotErr) {
+      console.warn('Failed to load init pipeline result', snapshotErr);
     }
   } catch (err) {
-    // Check if this is a heap dump corruption error that can be repaired
+    // Kick-off/polling errors (the pipeline itself reports failures via progress).
     if (err instanceof ApiError && err.errorResponse?.code === 'HEAP_DUMP_NEEDS_SANITIZATION') {
       needsSanitization.value = true;
-      // File still exists - don't set heapExists to false
     } else if (err instanceof ApiError && err.errorResponse?.code === 'HEAP_DUMP_CORRUPTED') {
       initError.value = err.errorResponse.message;
-      heapExists.value = false; // File was deleted by backend
+      heapExists.value = false;
     } else {
       error.value = err instanceof Error ? err.message : 'Failed to process heap dump';
     }
