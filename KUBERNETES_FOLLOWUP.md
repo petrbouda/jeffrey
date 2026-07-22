@@ -59,6 +59,44 @@ Kubernetes Integration docs page; they need to become chart templates:
 Reference: the exact YAML is in `DeploymentKubernetesPage.vue` (`rbacManifest`,
 `webhookManifest` constants).
 
+## 1b. Container-restart gap in webhook mode — REQUIRED, known defect
+
+A container restarted **inside** a running pod (OOM-kill, liveness-probe kill,
+graceful restart) does not delete the pod: the pod keeps its name, its phase
+stays `Running`, and only `status.containerStatuses[].restartCount` increments.
+
+- **Entrypoint (jeffrey-jib) mode is fine by design**: the provisioner is the
+  container entrypoint, so every container restart re-runs `provisioner init`
+  and creates a NEW session; the old one finishes via clean-exit marker or
+  heartbeat staleness, and the new-session event force-finishes any prior
+  unfinished session of the instance.
+- **Webhook mode is NOT fine**: Kubernetes re-runs init containers only when
+  the pod sandbox is recreated — an app-container restart reuses the same
+  argfile and the restarted JVM writes into the SAME session directory:
+  1. the session spans multiple JVM runs (`heap-dump.hprof.gz` /
+     `hs-jvm-err.log` have fixed names and get overwritten by a second crash);
+  2. during CrashLoopBackOff (up to 5 min) the heartbeat goes stale → the hub
+     finishes the session, then new chunks land in a finished session;
+  3. **worst**: after a graceful container restart the previous run's
+     `.heartbeat/finished` marker persists → `SessionFinisher` Case 0 finishes
+     the LIVE session immediately → `RepositoryCompressionProjectJob` may
+     compress `.jfr` files async-profiler is still writing.
+
+Fix plan (smallest first):
+1. **Agent deletes a leftover `finished` marker in premain/start** (before the
+   first heartbeat) — `jeffrey-agent/.../HeartbeatProducer.java`. Few lines,
+   zero-dependency, eliminates hazard (3); harmless in entrypoint mode.
+2. **Informer observes `restartCount`** in `PodLifecycleHandler.onUpdate` — it
+   cannot rotate the session (paths are baked into the running JVM's args) but
+   should log/emit a JFR message so multi-run sessions are visible.
+3. **Pod-liveness-aware finishing**: when K8s discovery is enabled, skip
+   heartbeat-staleness finishing for instances whose pod the informer knows is
+   alive (informer store lookup from `SessionFinishedDetectorProjectJob` or a
+   pluggable `InstanceLivenessProbe`); sessions then finish only on pod
+   termination or clean-exit marker. Makes "session = pod lifetime" the
+   coherent, documented semantic for webhook mode; document that
+   session-per-JVM-run workloads should prefer jib/entrypoint mode.
+
 ## 2. Live-cluster smoke test — REQUIRED before calling the integration done
 
 Everything is unit/integration tested, but neither feature has been exercised
