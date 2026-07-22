@@ -81,6 +81,15 @@ public class JeffreyJibMavenExtension implements JibMavenPluginExtension<Jeffrey
 
         JeffreyJibConfig effective = config.orElseGet(JeffreyJibConfig::new);
         JeffreyBuildPlanExtender.applyProperties(effective, properties, logger);
+
+        // Default the Jeffrey project name to the Maven artifactId — baked as the
+        // JEFFREY_PROJECT_NAME image ENV, it makes the image self-identifying so the
+        // container needs no config file and no per-pod env for the common case.
+        // A pod-level JEFFREY_PROJECT_NAME still overrides the baked default.
+        if (effective.getProjectName() == null && mavenData != null && mavenData.getMavenProject() != null) {
+            effective.setProjectName(mavenData.getMavenProject().getArtifactId());
+        }
+
         return new JeffreyBuildPlanExtender(getClass()).extend(buildPlan, effective, logger);
     }
 }

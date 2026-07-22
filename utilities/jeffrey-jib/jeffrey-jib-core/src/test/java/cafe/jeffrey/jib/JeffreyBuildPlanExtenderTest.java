@@ -206,6 +206,7 @@ class JeffreyBuildPlanExtenderTest {
             config.setOverrideConfig("/etc/jeffrey/override.conf");
             config.setProvisionerPath("/opt/jeffrey/bin/provisioner");
             config.setArgFile("/var/jeffrey/jvm.args");
+            config.setProjectName("my-service");
 
             Map<String, String> env = extender.extend(input, config, logger).getEnvironment();
 
@@ -214,6 +215,7 @@ class JeffreyBuildPlanExtenderTest {
             assertEquals("/etc/jeffrey/override.conf", env.get("JEFFREY_OVERRIDE_CONFIG"));
             assertEquals("/opt/jeffrey/bin/provisioner", env.get("JEFFREY_PROVISIONER_PATH"));
             assertEquals("/var/jeffrey/jvm.args", env.get("JEFFREY_ARG_FILE"));
+            assertEquals("my-service", env.get("JEFFREY_PROJECT_NAME"));
         }
 
         @Test
@@ -230,6 +232,7 @@ class JeffreyBuildPlanExtenderTest {
             assertFalse(env.containsKey("JEFFREY_OVERRIDE_CONFIG"));
             assertFalse(env.containsKey("JEFFREY_PROVISIONER_PATH"));
             assertFalse(env.containsKey("JEFFREY_ARG_FILE"));
+            assertFalse(env.containsKey("JEFFREY_PROJECT_NAME"));
         }
 
         @Test
