@@ -85,8 +85,9 @@ public class GlobalJobsConfiguration {
                     return on;
                 })
                 .toList();
-        LOG.info("Registered scheduler jobs: enabled={} total={}", enabled.size(), jobs.size());
-        return new PeriodicalScheduler(enabled);
+        LOG.info("Registered scheduler jobs: enabled={} total={} fan_out_pool_size={}",
+                enabled.size(), jobs.size(), schedulerJobsProperties.getFanOutPoolSize());
+        return new PeriodicalScheduler(enabled, schedulerJobsProperties.getFanOutPoolSize());
     }
 
     @Bean

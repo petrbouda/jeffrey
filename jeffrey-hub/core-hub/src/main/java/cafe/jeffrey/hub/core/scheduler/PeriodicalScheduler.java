@@ -26,65 +26,106 @@ import cafe.jeffrey.shared.common.Schedulers;
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.*;
+import java.util.concurrent.locks.ReentrantLock;
 
+/**
+ * Schedules jobs on two executors split by {@link Job.ExecutorGroup}:
+ * {@code GLOBAL} jobs (queue polling, cleaners) get a dedicated single thread,
+ * while {@code PROJECT_FAN_OUT} jobs (iterating all workspaces/projects) share
+ * a small pool — a slow fan-out can therefore never delay the global jobs.
+ *
+ * <p>Jobs are scheduled with fixed <em>delay</em> semantics: the period is
+ * measured from the end of one run to the start of the next, so a run that
+ * overruns its period never produces back-to-back catch-up executions.
+ * A per-job lock additionally guarantees that the same job never runs
+ * concurrently, even when an on-demand {@link #submit} races a periodic tick
+ * on the fan-out pool.</p>
+ */
 public class PeriodicalScheduler implements Scheduler {
 
     private static final Logger LOG = LoggerFactory.getLogger(PeriodicalScheduler.class);
 
     private static final Duration DEFAULT_POLLING_DURATION = Duration.ofMillis(10);
+    private static final int DEFAULT_FAN_OUT_POOL_SIZE = 1;
 
     private final List<? extends Job> jobs;
+    private final int fanOutPoolSize;
+    private final ConcurrentMap<Job, ReentrantLock> jobLocks = new ConcurrentHashMap<>();
 
-    private ScheduledExecutorService scheduler;
+    private ScheduledExecutorService globalScheduler;
+    private ScheduledExecutorService fanOutScheduler;
 
     public PeriodicalScheduler(List<? extends Job> jobs) {
+        this(jobs, DEFAULT_FAN_OUT_POOL_SIZE);
+    }
+
+    public PeriodicalScheduler(List<? extends Job> jobs, int fanOutPoolSize) {
         this.jobs = jobs;
+        this.fanOutPoolSize = fanOutPoolSize;
     }
 
     @Override
     public void start() {
-        if (scheduler == null) {
-            scheduler = Executors.newSingleThreadScheduledExecutor(
-                    Schedulers.platformThreadfactory("periodical-scheduler"));
+        if (globalScheduler == null) {
+            globalScheduler = Executors.newSingleThreadScheduledExecutor(
+                    Schedulers.platformThreadfactory("scheduler-global"));
+            fanOutScheduler = Executors.newScheduledThreadPool(
+                    fanOutPoolSize, Schedulers.platformThreadfactory("scheduler-fanout"));
 
             for (Job job : jobs) {
-                scheduler.scheduleAtFixedRate(
-                        new ExecutedJob(job, JobContext.EMPTY), 0, job.period().toMillis(), TimeUnit.MILLISECONDS);
+                executorFor(job).scheduleWithFixedDelay(
+                        executedJob(job, JobContext.EMPTY), 0, job.period().toMillis(), TimeUnit.MILLISECONDS);
             }
         }
     }
 
     @Override
     public CompletableFuture<Void> submit(Job job, JobContext context) {
-        if (scheduler == null) {
+        if (globalScheduler == null) {
             LOG.warn("Scheduler is not started, cannot execute job immediately: job_type={}", job.jobType());
             return CompletableFuture.failedFuture(
                     new IllegalStateException("Scheduler is not started: job_type=" + job.jobType()));
         }
 
-        Future<Void> future = scheduler.submit(new ExecutedJob(job, context), null);
+        ScheduledExecutorService executor = executorFor(job);
+        Future<Void> future = executor.submit(executedJob(job, context), null);
 
         LOG.debug("Submitted job immediately: job_type={} context={}", job.jobType(), context.parameters());
-        return CompletableFutures.from(future, scheduler, DEFAULT_POLLING_DURATION);
+        return CompletableFutures.from(future, executor, DEFAULT_POLLING_DURATION);
     }
 
     @Override
     public void close() {
-        if (scheduler != null) {
-            scheduler.shutdown();
+        if (globalScheduler != null) {
+            globalScheduler.shutdown();
+            fanOutScheduler.shutdown();
         }
     }
 
-    private record ExecutedJob(Job job, JobContext context) implements Runnable {
+    private ScheduledExecutorService executorFor(Job job) {
+        return job.executorGroup() == Job.ExecutorGroup.PROJECT_FAN_OUT ? fanOutScheduler : globalScheduler;
+    }
+
+    private ExecutedJob executedJob(Job job, JobContext context) {
+        ReentrantLock lock = jobLocks.computeIfAbsent(job, j -> new ReentrantLock());
+        return new ExecutedJob(job, context, lock);
+    }
+
+    private record ExecutedJob(Job job, JobContext context, ReentrantLock lock) implements Runnable {
         @Override
         public void run() {
+            // Serializes periodic and on-demand executions of the same job on the
+            // fan-out pool; fixed-delay already prevents periodic self-overlap.
+            lock.lock();
             try {
                 job.execute(context);
             } catch (Throwable t) {
                 // Deliberately Throwable, not Exception: anything escaping run() makes
-                // scheduleAtFixedRate silently cancel this job for the rest of the process
+                // scheduleWithFixedDelay silently cancel this job for the rest of the process
                 // lifetime. A single bad tick must never unschedule a job.
                 LOG.error("An error occurred during the job execution: job_type={}", job.jobType(), t);
+            } finally {
+                lock.unlock();
             }
         }
     }

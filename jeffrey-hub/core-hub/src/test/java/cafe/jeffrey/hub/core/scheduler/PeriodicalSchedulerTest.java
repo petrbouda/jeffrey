@@ -26,6 +26,7 @@ import cafe.jeffrey.shared.common.model.job.JobType;
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -48,10 +49,14 @@ class PeriodicalSchedulerTest {
     }
 
     private static Job testJob(Runnable action, Duration period) {
-        return testJob(action, period, JobType.PROJECTS_SYNCHRONIZER);
+        return testJob(action, period, JobType.PROJECTS_SYNCHRONIZER, Job.ExecutorGroup.GLOBAL);
     }
 
-    private static Job testJob(Runnable action, Duration period, JobType jobType) {
+    private static Job fanOutTestJob(Runnable action, Duration period) {
+        return testJob(action, period, JobType.SESSION_FINISHED_DETECTOR, Job.ExecutorGroup.PROJECT_FAN_OUT);
+    }
+
+    private static Job testJob(Runnable action, Duration period, JobType jobType, Job.ExecutorGroup executorGroup) {
         return new Job() {
             @Override
             public void execute(JobContext context) {
@@ -67,6 +72,11 @@ class PeriodicalSchedulerTest {
             public JobType jobType() {
                 return jobType;
             }
+
+            @Override
+            public ExecutorGroup executorGroup() {
+                return executorGroup;
+            }
         };
     }
 
@@ -74,7 +84,7 @@ class PeriodicalSchedulerTest {
     class Start {
 
         @Test
-        void schedulesAllJobs_atFixedRate() throws InterruptedException {
+        void schedulesAllJobs_periodically() throws InterruptedException {
             CountDownLatch latch = new CountDownLatch(2);
             Job job = testJob(latch::countDown, Duration.ofMillis(50));
 
@@ -82,6 +92,32 @@ class PeriodicalSchedulerTest {
             scheduler.start();
 
             assertTrue(latch.await(2, TimeUnit.SECONDS));
+        }
+
+        @Test
+        void fixedDelay_slowJob_neverProducesCatchUpBursts() {
+            // With fixed-rate semantics a 100ms job on a 100ms period starts back-to-back;
+            // with fixed-delay each start is >= sleep + period after the previous one.
+            List<Long> startTimes = new CopyOnWriteArrayList<>();
+            Job job = testJob(() -> {
+                startTimes.add(System.nanoTime());
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            }, Duration.ofMillis(100));
+
+            scheduler = new PeriodicalScheduler(List.of(job));
+            scheduler.start();
+
+            await().atMost(5, SECONDS).until(() -> startTimes.size() >= 3);
+
+            for (int i = 1; i < 3; i++) {
+                long gapMillis = TimeUnit.NANOSECONDS.toMillis(startTimes.get(i) - startTimes.get(i - 1));
+                assertTrue(gapMillis >= 180,
+                        "Fixed-delay start-to-start gap must be at least sleep + period, was " + gapMillis + "ms");
+            }
         }
 
         @Test
@@ -178,6 +214,82 @@ class PeriodicalSchedulerTest {
 
             await().atMost(2, SECONDS).until(() -> maxConcurrent.get() >= 1);
             assertEquals(1, maxConcurrent.get(), "The same job type must be serialized");
+        }
+    }
+
+    @Nested
+    class ExecutorGroups {
+
+        @Test
+        void slowFanOutJob_doesNotDelayGlobalJob() {
+            AtomicInteger globalTicks = new AtomicInteger();
+            Job slowFanOut = fanOutTestJob(() -> {
+                try {
+                    Thread.sleep(500);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            }, Duration.ofMillis(10));
+            Job fastGlobal = testJob(globalTicks::incrementAndGet, Duration.ofMillis(50));
+
+            scheduler = new PeriodicalScheduler(List.of(slowFanOut, fastGlobal), 1);
+            scheduler.start();
+
+            // On a shared single thread the 500ms fan-out job would starve the global job
+            await().atMost(2, SECONDS).until(() -> globalTicks.get() >= 5);
+        }
+
+        @Test
+        void differentFanOutJobs_runConcurrently_withPoolSizeTwo() {
+            AtomicInteger concurrent = new AtomicInteger();
+            AtomicInteger maxConcurrent = new AtomicInteger();
+            Runnable overlapping = () -> {
+                int current = concurrent.incrementAndGet();
+                maxConcurrent.accumulateAndGet(current, Math::max);
+                try {
+                    Thread.sleep(200);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                } finally {
+                    concurrent.decrementAndGet();
+                }
+            };
+            Job first = fanOutTestJob(overlapping, Duration.ofMillis(20));
+            Job second = fanOutTestJob(overlapping, Duration.ofMillis(20));
+
+            scheduler = new PeriodicalScheduler(List.of(first, second), 2);
+            scheduler.start();
+
+            await().atMost(2, SECONDS).until(() -> maxConcurrent.get() >= 2);
+        }
+
+        @Test
+        void sameFanOutJob_neverRunsConcurrently_evenWithLargerPool() throws Exception {
+            AtomicInteger concurrent = new AtomicInteger();
+            AtomicInteger maxConcurrent = new AtomicInteger();
+            AtomicInteger executions = new AtomicInteger();
+            Job job = fanOutTestJob(() -> {
+                int current = concurrent.incrementAndGet();
+                maxConcurrent.accumulateAndGet(current, Math::max);
+                try {
+                    Thread.sleep(50);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                } finally {
+                    executions.incrementAndGet();
+                    concurrent.decrementAndGet();
+                }
+            }, Duration.ofMillis(20));
+
+            scheduler = new PeriodicalScheduler(List.of(job), 4);
+            scheduler.start();
+
+            // Race an on-demand execution against the periodic schedule on the pool
+            CompletableFuture<Void> submitted = scheduler.submit(job);
+            submitted.get(5, TimeUnit.SECONDS);
+
+            await().atMost(2, SECONDS).until(() -> executions.get() >= 3);
+            assertEquals(1, maxConcurrent.get(), "The same job must be serialized even on a pool");
         }
     }
 

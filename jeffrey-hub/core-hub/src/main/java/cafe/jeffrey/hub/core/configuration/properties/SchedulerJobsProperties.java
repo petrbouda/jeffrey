@@ -39,7 +39,12 @@ import java.util.Map;
 @ConfigurationProperties("jeffrey.hub.scheduler")
 public class SchedulerJobsProperties {
 
+    private static final int DEFAULT_FAN_OUT_POOL_SIZE = 2;
+
     private Map<String, JobConfig> jobs = new HashMap<>();
+
+    /** Pool size for the PROJECT_FAN_OUT executor group (see {@code Job.ExecutorGroup}) */
+    private int fanOutPoolSize = DEFAULT_FAN_OUT_POOL_SIZE;
 
     public Map<String, JobConfig> getJobs() {
         return jobs;
@@ -47,6 +52,14 @@ public class SchedulerJobsProperties {
 
     public void setJobs(Map<String, JobConfig> jobs) {
         this.jobs = jobs;
+    }
+
+    public int getFanOutPoolSize() {
+        return fanOutPoolSize;
+    }
+
+    public void setFanOutPoolSize(int fanOutPoolSize) {
+        this.fanOutPoolSize = fanOutPoolSize;
     }
 
     public JobConfig forType(JobType jobType) {
