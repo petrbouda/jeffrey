@@ -38,13 +38,13 @@ onMounted(() => {
 });
 
 const envOnlySetup = `# The complete environment-only setup - no config file needed:
-JEFFREY_HOME=/mnt/jeffrey            # shared volume root (baked by jeffrey-jib)
-JEFFREY_PROJECT_NAME=my-service      # baked by jeffrey-jib from the artifactId
-JEFFREY_WORKSPACE_REF_ID=production         # optional (default: the hub's default workspace)
+JEFFREY_HOME=/mnt/jeffrey             # shared volume root (baked by jeffrey-jib)
+JEFFREY_PROJECT_NAME=my-service       # baked by jeffrey-jib from the artifactId
+JEFFREY_WORKSPACE_REF_ID=production   # optional (default: the hub's default workspace)
 
 # Optional extras:
 JEFFREY_PROJECT_LABEL="My Service"
-JEFFREY_INSTANCE_NAME=instance-1     # default: HOSTNAME (= pod name), then UUID
+JEFFREY_INSTANCE_NAME=instance-1      # default: HOSTNAME (= pod name), then UUID
 JEFFREY_ATTRIBUTES="cluster=blue,namespace=production"
 JEFFREY_HEAP_DUMP=crash              # exit | crash | off
 JEFFREY_PERF_COUNTERS=true
