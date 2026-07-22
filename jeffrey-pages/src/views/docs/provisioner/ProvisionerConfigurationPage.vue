@@ -101,6 +101,18 @@ additional-jvm-options = "-Xmx2g -Xms2g -Djeffrey.logging.trace-file.path=<<JEFF
           <strong>Fail-open:</strong> any misconfiguration (missing binaries, missing project name, broken config) starts the application <em>without profiling</em> instead of preventing it from starting — look for the single <code>Jeffrey profiling ENABLED: …</code> / <code>profiling DISABLED: &lt;reason&gt;</code> line in the container log to see the outcome.
         </DocsCallout>
 
+        <DocsCallout type="warning">
+          <strong>The project name is a stable identity — keep it the same across deployments.</strong>
+          It keys the project directory on the shared volume (<code>workspaces/&lt;workspace&gt;/&lt;project-name&gt;/</code>),
+          and the project id stored there links all sessions to the same project on Jeffrey Hub.
+          Changing the name creates a <em>new</em> project; the old one stops receiving sessions and
+          keeps its history separately. If you rely on the jeffrey-jib default (the Maven artifactId /
+          Gradle project name), renaming the module changes the project too — pin
+          <code>projectName</code> in the jib configuration (or set <code>JEFFREY_PROJECT_NAME</code>
+          on the pod) to keep continuity. The <code>label</code> (<code>JEFFREY_PROJECT_LABEL</code>)
+          is display-only and can change freely.
+        </DocsCallout>
+
         <h2 id="config-file">Configuration File</h2>
 
         <h3>Minimal Configuration</h3>

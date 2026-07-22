@@ -43,6 +43,12 @@ Optional pod-level env overrides: `JEFFREY_PROJECT_NAME`, `JEFFREY_WORKSPACE_REF
 `JEFFREY_JVM_LOGGING`, `JEFFREY_ADDITIONAL_JVM_OPTIONS`. A mounted HOCON file still wins
 over environment variables wherever it sets a value.
 
+**The project name is a stable identity** — it keys the project directory on the shared
+volume and links every session to the same project on Jeffrey Hub. Changing it creates a
+new project. If you rename the Maven artifactId / Gradle project, pin `projectName` in the
+jib configuration to keep the project's history continuous; only the label
+(`JEFFREY_PROJECT_LABEL`) is safe to change freely.
+
 ## Fail-open guarantee
 
 Any misconfiguration starts the application **without profiling** instead of preventing it
