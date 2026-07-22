@@ -1,15 +1,30 @@
-# Kubernetes Integration — Remaining Work
+# Kubernetes Integration — Design & Remaining Work
 
-Follow-up items from the provisioner/jeffrey-hub analysis and the Kubernetes
-integration work (branch `claude/provisioner-jeffrey-hub-analysis-2pvexl`).
-Each item is written to be executable later without the original session
-context.
+Follow-up items from the provisioner/jeffrey-hub analysis (branch
+`claude/provisioner-jeffrey-hub-analysis-2pvexl`). Each item is written to be
+executable later without the original session context.
 
-## Background — what is already done
+**Status:** only Phase 1 (the shared-filesystem hardening) is kept on this
+branch. The Kubernetes implementation (informer + admission webhook + docs
+page) was fully implemented, tested, and then **removed by request** — it
+lives in git history and can be restored wholesale:
+
+```
+# restore the full Kubernetes implementation (informer, webhook, docs):
+git cherry-pick d703309   # pod informer (fabric8 BOM, KubernetesDiscovery, PodLifecycleHandler, tests)
+git cherry-pick e2481a5   # mutating admission webhook (PodMutator, AdmissionWebhook, controller, tests)
+git cherry-pick 650a59e   # docs page (DeploymentKubernetesPage.vue, router, nav)
+```
+
+All three had green tests when removed (9 informer tests, 11 webhook tests,
+jeffrey-pages build passing). Before restoring, read section 1b — a real
+container-restart defect in webhook mode was found after implementation and
+its fixes are NOT part of those commits.
+
+## Background — what is kept on the branch (Phase 1)
 
 The shared-filesystem pipeline (provisioner → shared RWX volume → hub polling)
-was hardened and extended with two optional Kubernetes features. Key landmarks
-in the code:
+was hardened. Key landmarks in the code:
 
 | Area | Where |
 |---|---|
@@ -18,11 +33,36 @@ in the code:
 | Scheduler | `PeriodicalScheduler` — fixed-delay, split executors (`Job.ExecutorGroup`: GLOBAL single thread vs PROJECT_FAN_OUT pool, `jeffrey.hub.scheduler.fan-out-pool-size`) |
 | Workspace auto-create (filesystem path) | `WorkspaceEventsReplicatorJob`, opt-in `jeffrey.hub.workspaces.auto-create` |
 | Settings provenance + id keying | `ProfilerSettingsResolver.ResolvedProfilerSettings` (source stamped into `.session-info.json`); `ProfilerSettings.projectSettingsById` keyed by origin project id, name map kept for back-compat |
-| K8s pod informer | `jeffrey-hub/core-hub/.../kubernetes/{KubernetesDiscovery,PodLifecycleHandler,KubernetesConventions}.java`, enabled by `jeffrey.hub.kubernetes.enabled`; workspace auto-create from `jeffrey.cafe/workspace` label; pod termination → `SessionFinisher.forceFinish` for instance id = pod name |
-| Admission webhook | `.../kubernetes/{PodMutator,AdmissionWebhook}.java` + `web/controllers/KubernetesWebhookController.java`, enabled by `jeffrey.hub.kubernetes.webhook.enabled`; injects PVC + emptyDir volumes, provisioner init container, `JDK_JAVA_OPTIONS=@/jeffrey-work/jvm.args`; strictly fail-open |
-| Docs | `jeffrey-pages/src/views/docs/hub/deployment/DeploymentKubernetesPage.vue` (properties, annotated Deployment example, label/annotation reference, RBAC + MutatingWebhookConfiguration manifests) |
 
-Conventions established (do not change without updating both sides):
+## Design of the removed Kubernetes implementation
+
+What the reverted commits contain, so the design survives independently:
+
+- **Pod informer** (`jeffrey.hub.kubernetes.enabled`): fabric8 shared informer
+  over pods labeled `jeffrey.cafe/enabled=true`
+  (`jeffrey.hub.kubernetes.namespace` scopes it; empty = all). Pod appears →
+  auto-create the workspace named by the `jeffrey.cafe/workspace` label
+  (`jeffrey.hub.kubernetes.auto-create-workspaces`, default true). Pod deleted
+  or phase Succeeded/Failed → `SessionFinisher.forceFinish` for every
+  unfinished session of the instance whose id equals the pod name. Additive:
+  project/instance/session creation still flows through the filesystem event
+  queue; API failures only log. Dependency: `io.fabric8:kubernetes-client-bom`
+  (7.8.0) in the root pom + `kubernetes-client` in core-hub.
+- **Admission webhook** (`jeffrey.hub.kubernetes.webhook.enabled`):
+  `POST /api/kubernetes/webhook/mutate` processes AdmissionReview and, for pods
+  annotated `jeffrey.cafe/enabled=true`, injects: the shared PVC at
+  `/jeffrey-shared` + emptyDir at `/jeffrey-work`; an init container
+  (`webhook.init-image`, POSIX shell + glibc) that writes a minimal HOCON
+  config (project from `jeffrey.cafe/project` → `app` label → pod name;
+  workspace from `jeffrey.cafe/workspace`; instance from downward-API pod
+  name) and runs the arch-suffixed provisioner from the shared volume; and
+  `JDK_JAVA_OPTIONS=@/jeffrey-work/jvm.args` on the target container
+  (`jeffrey.cafe/container`, default first; existing value preserved,
+  reference appended). Single `replace /spec` JSON patch, base64-encoded.
+  Strictly fail-open (always `allowed=true`; errors → no patch) + idempotent
+  (skips pods already carrying the init container).
+
+Conventions (fixed by the reverted commits; keep if restoring):
 - Labels (informer): `jeffrey.cafe/enabled=true`, `jeffrey.cafe/workspace`.
 - Annotations (webhook): `jeffrey.cafe/enabled`, `jeffrey.cafe/workspace`,
   `jeffrey.cafe/project` (default: `app` label → pod name), `jeffrey.cafe/pvc`,
@@ -33,7 +73,7 @@ Conventions established (do not change without updating both sides):
 
 ---
 
-## 1. Helm chart wiring (external repo) — REQUIRED to use the new features
+## 1. Helm chart wiring (external repo) — required once the K8s code is restored
 
 The Helm charts live outside this repository (`helm/jeffrey-hub`, referenced by
 `jeffrey-pages` deployment docs). The manifests are already documented on the
@@ -56,10 +96,11 @@ Kubernetes Integration docs page; they need to become chart templates:
    `kubernetes.webhook.pvcClaimName`, mapped to the Spring properties
    (`jeffrey.hub.kubernetes.*`) via the hub Deployment env.
 
-Reference: the exact YAML is in `DeploymentKubernetesPage.vue` (`rbacManifest`,
+Reference: the exact YAML is in `DeploymentKubernetesPage.vue` — restored by
+cherry-picking `650a59e` (`rbacManifest`,
 `webhookManifest` constants).
 
-## 1b. Container-restart gap in webhook mode — REQUIRED, known defect
+## 1b. Container-restart gap in webhook mode — MUST-FIX when restoring the K8s code
 
 A container restarted **inside** a running pod (OOM-kill, liveness-probe kill,
 graceful restart) does not delete the pod: the pod keeps its name, its phase
@@ -106,7 +147,8 @@ against a real kube-apiserver. Suggested kind-based verification:
    features enabled and a `hostPath`-backed RWX PVC (see
    `DeploymentSharedVolumePage.vue` for the minikube/kind fallback pattern).
 2. Apply a Deployment whose pod template carries the labels + annotations from
-   the docs example (`DeploymentKubernetesPage.vue`, `annotatedDeployment`).
+   the docs example (`DeploymentKubernetesPage.vue` in commit `650a59e`,
+   `annotatedDeployment`).
 3. Assert:
    - webhook injected init container + volumes + `JDK_JAVA_OPTIONS`
      (`kubectl get pod -o yaml`),
