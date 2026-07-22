@@ -133,8 +133,8 @@
           </button>
         </div>
 
-        <!-- Comparison Panel Toggle (hidden for heap-dump-only profiles) -->
-        <div v-if="!isHeapDumpOnlyProfile" class="comparison-toggle-wrapper">
+        <!-- Comparison Panel Toggle (in Heap Dump mode the secondary profile is the diff baseline) -->
+        <div class="comparison-toggle-wrapper">
           <button
             class="comparison-toggle-btn"
             :class="{ active: comparisonPanelVisible, 'has-profile': secondaryProfile }"
@@ -168,8 +168,13 @@
 
       <!-- Main Content -->
       <div class="detail-main-content" :class="{ 'no-sidebar': isTechnologiesHub }">
-        <!-- Heap Dump Profile Info (replaces comparison bar for heap-dump-only profiles) -->
-        <div v-if="selectedMode === 'HeapDump' && profile" class="heap-dump-profile-info mb-3">
+        <!-- Heap Dump Profile Info (hidden while the comparison bar already shows the primary profile) -->
+        <div
+          v-if="
+            selectedMode === 'HeapDump' && profile && !(comparisonPanelVisible && !sidebarCollapsed)
+          "
+          class="heap-dump-profile-info mb-3"
+        >
           <i class="bi bi-file-earmark"></i>
           <span class="profile-name">{{ profile.name }}</span>
           <span class="info-separator">&middot;</span>
@@ -177,10 +182,7 @@
         </div>
 
         <!-- Compact Differential Analysis Bar -->
-        <div
-          v-if="selectedMode !== 'HeapDump' && !sidebarCollapsed && comparisonPanelVisible"
-          class="compact-comparison-bar mb-3"
-        >
+        <div v-if="!sidebarCollapsed && comparisonPanelVisible" class="compact-comparison-bar mb-3">
           <div class="comparison-cards">
             <!-- Primary Profile -->
             <div class="compact-card primary">
@@ -275,6 +277,7 @@
           :current-secondary-profile-id="selectedSecondaryProfileId"
           :current-secondary-project-id="selectedSecondaryProjectId"
           :workspace-id="workspaceId"
+          :heap-dump-baseline="selectedMode === 'HeapDump'"
           @profile-selected="handleSecondaryProfileSelected"
           @profile-cleared="handleSecondaryProfileCleared"
         />

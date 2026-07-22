@@ -21,7 +21,7 @@
     :show="show"
     @update:show="emit('update:show', $event)"
     modal-id="secondary-profile-selection"
-    title="Select Secondary Profile"
+    :title="modalTitle"
     icon="bi-layers-half"
     size="xl"
     :show-footer="true"
@@ -52,7 +52,13 @@
         <i class="bi bi-file-earmark-bar-graph"></i>
       </div>
       <h5>No profiles found</h5>
-      <p class="mb-0">No profiles available for selection</p>
+      <p class="mb-0">
+        {{
+          heapDumpBaseline
+            ? 'No heap dump profiles available for selection'
+            : 'No profiles available for selection'
+        }}
+      </p>
     </div>
 
     <!-- Split-Pane Layout -->
@@ -170,6 +176,9 @@ import GenericModal from '@shared/components/GenericModal.vue';
 import type { ProfileListResponse } from '@/services/api/DirectProfileClient';
 import RecordingsClient from '@workspaces/services/api/RecordingsClient';
 import type RecordingGroup from '@workspaces/services/api/model/RecordingGroup';
+import type Recording from '@workspaces/services/api/model/Recording';
+import RecordingEventSource from '@workspaces/services/api/model/RecordingEventSource';
+import RecordingFileType from '@workspaces/services/api/model/RecordingFileType';
 
 const recordingsClient = new RecordingsClient();
 import FormattingService from '@shared/services/FormattingService';
@@ -183,6 +192,8 @@ interface Props {
   currentSecondaryProfileId?: string;
   currentSecondaryProjectId?: string;
   workspaceId: string;
+  /** Restrict candidates to heap-dump-capable profiles (baseline selection for the Heap Diff). */
+  heapDumpBaseline?: boolean;
 }
 
 interface Emits {
@@ -206,6 +217,10 @@ const RECORDINGS_WORKSPACE_ID = 'recordings';
 const RECORDINGS_WORKSPACE_NAME = 'Recordings';
 const ALL_GROUP_KEY = 'all';
 const UNGROUPED_KEY = '__ungrouped__';
+const HEAP_DUMP_FILE_TYPES = new Set<RecordingFileType>([
+  RecordingFileType.HEAP_DUMP,
+  RecordingFileType.HEAP_DUMP_GZ
+]);
 
 const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
@@ -222,6 +237,19 @@ const selectedGroupKey = ref<string>(ALL_GROUP_KEY);
 
 // Saved state for search restore
 const savedSelectionState = ref<{ groupKey: string } | null>(null);
+
+const modalTitle = computed(() =>
+  props.heapDumpBaseline ? 'Select Baseline Heap Dump' : 'Select Secondary Profile'
+);
+
+// A profile qualifies as a heap-dump baseline when the recording itself is a heap dump
+// or carries an attached heap-dump file next to its JFR data.
+const hasHeapDump = (recording: Recording): boolean => {
+  if (recording.eventSource === RecordingEventSource.HEAP_DUMP) {
+    return true;
+  }
+  return (recording.files ?? []).some(file => HEAP_DUMP_FILE_TYPES.has(file.type));
+};
 
 // Computed properties
 const filteredProfiles = computed(() => {
@@ -375,7 +403,8 @@ const loadAllProfiles = async () => {
       recordingsClient.listProfiles(),
       recordingsClient.listGroups()
     ]);
-    allProfiles.value = profiles.map(p => ({
+    const candidates = props.heapDumpBaseline ? profiles.filter(hasHeapDump) : profiles;
+    allProfiles.value = candidates.map(p => ({
       id: p.profileId!,
       name: p.profileName || p.filename,
       projectId: RECORDINGS_WORKSPACE_ID,
