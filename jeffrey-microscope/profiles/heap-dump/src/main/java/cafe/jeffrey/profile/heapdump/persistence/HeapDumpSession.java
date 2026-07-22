@@ -17,6 +17,7 @@
  */
 package cafe.jeffrey.profile.heapdump.persistence;
 
+import cafe.jeffrey.profile.heapdump.model.IndexBuildProgressListener;
 import cafe.jeffrey.profile.heapdump.model.SubPhaseTiming;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -78,15 +79,27 @@ public final class HeapDumpSession implements AutoCloseable {
 
     /**
      * Opens the dump and returns a session. Builds the {@code .idx.duckdb}
-     * index sibling on first access; reuses an existing one if present and
-     * not stale (mtime check).
+     * index sibling on first access; reuses an existing one only when
+     * {@link #isIndexUsable(Path)} holds, rebuilding otherwise.
      */
     public static HeapDumpSession openOrBuild(Path hprofPath, Clock clock) throws IOException, SQLException {
+        return openOrBuild(hprofPath, clock, IndexBuildProgressListener.NOOP);
+    }
+
+    /**
+     * Same as {@link #openOrBuild(Path, Clock)} but notifies {@code listener} as
+     * each index-build sub-phase completes (only fires when a build actually runs).
+     */
+    public static HeapDumpSession openOrBuild(Path hprofPath, Clock clock, IndexBuildProgressListener listener)
+            throws IOException, SQLException {
         if (hprofPath == null) {
             throw new IllegalArgumentException("hprofPath must not be null");
         }
         if (clock == null) {
             throw new IllegalArgumentException("clock must not be null");
+        }
+        if (listener == null) {
+            throw new IllegalArgumentException("listener must not be null");
         }
         if (!Files.exists(hprofPath)) {
             throw new IOException("Heap dump file does not exist: path=" + hprofPath);
@@ -97,9 +110,9 @@ public final class HeapDumpSession implements AutoCloseable {
 
         try {
             List<SubPhaseTiming> subPhases = List.of();
-            if (needsRebuild(hprofPath, indexDbPath)) {
+            if (!isIndexUsable(hprofPath)) {
                 LOG.debug("Building heap dump index: hprof={} index={}", hprofPath, indexDbPath);
-                HprofIndex.IndexResult result = HprofIndex.build(hprof, indexDbPath, clock);
+                HprofIndex.IndexResult result = HprofIndex.build(hprof, indexDbPath, clock, listener);
                 subPhases = result.subPhases();
             } else {
                 LOG.debug("Reusing heap dump index: index={}", indexDbPath);
@@ -174,15 +187,27 @@ public final class HeapDumpSession implements AutoCloseable {
     }
 
     /**
-     * Returns true when the index is missing or older than the source dump
-     * (mtime check). Cheap to call.
+     * Returns true when the {@code .idx.duckdb} sibling of {@code hprofPath} is
+     * complete and safe to open: it exists, it is not older than the source
+     * dump (mtime check), and no {@code .wal} sibling is left over. A leftover
+     * WAL means the building connection never ran its close-time checkpoint
+     * (the build was interrupted), so the index content is incomplete and a
+     * read-only open would fail replaying the WAL. Cheap to call.
      */
-    private static boolean needsRebuild(Path hprof, Path indexDb) throws IOException {
+    public static boolean isIndexUsable(Path hprofPath) {
+        Path indexDb = HeapDumpIndexPaths.indexFor(hprofPath);
         if (!Files.exists(indexDb)) {
-            return true;
+            return false;
         }
-        long hprofMtime = Files.getLastModifiedTime(hprof).toMillis();
-        long indexMtime = Files.getLastModifiedTime(indexDb).toMillis();
-        return indexMtime < hprofMtime;
+        if (Files.exists(HeapDumpIndexPaths.indexWalFor(hprofPath))) {
+            return false;
+        }
+        try {
+            long hprofMtime = Files.getLastModifiedTime(hprofPath).toMillis();
+            long indexMtime = Files.getLastModifiedTime(indexDb).toMillis();
+            return indexMtime >= hprofMtime;
+        } catch (IOException e) {
+            return false;
+        }
     }
 }

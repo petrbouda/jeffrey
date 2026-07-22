@@ -35,6 +35,7 @@ import cafe.jeffrey.profile.heapdump.analyzer.heapview.PathToGCRootAnalyzer;
 import cafe.jeffrey.profile.heapdump.analyzer.heapview.ThreadAnalyzer;
 import cafe.jeffrey.profile.heapdump.analyzer.heapview.ThreadStackAnalyzer;
 import cafe.jeffrey.profile.heapdump.model.BiggestCollectionsReport;
+import cafe.jeffrey.profile.heapdump.model.IndexBuildProgressListener;
 import cafe.jeffrey.profile.heapdump.model.BiggestObjectsReport;
 import cafe.jeffrey.profile.heapdump.model.ClassHistogramEntry;
 import cafe.jeffrey.profile.heapdump.model.ClassInstancesResponse;
@@ -162,6 +163,11 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
         return sessions.execute(work);
     }
 
+    private <R> Optional<R> withSession(
+            HeapDumpSessionTemplate.SessionWork<R> work, IndexBuildProgressListener listener) {
+        return sessions.execute(work, listener);
+    }
+
     @Override
     public boolean heapDumpExists() {
         return sessions.heapDumpExists();
@@ -180,7 +186,7 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
     }
 
     @Override
-    public InitializeResult initialize(Boolean compressedOopsOverride) {
+    public InitializeResult initialize(Boolean compressedOopsOverride, IndexBuildProgressListener listener) {
         // Done inside a single withSession so the index rebuild (if any) and the
         // compressed-oops inference share one HeapDumpSession. Calling
         // resolveAndStoreCompressedOops() first would otherwise open *its own*
@@ -191,7 +197,7 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
             compressedOopsResolver.resolveAndStoreInSession(compressedOopsOverride, session);
             HeapSummary summary = HeapSummaryAnalyzer.analyze(session.view());
             return new InitializeResult(summary, session.lastBuildSubPhases());
-        }).orElseGet(() -> new InitializeResult(null, List.<SubPhaseTiming>of()));
+        }, listener).orElseGet(() -> new InitializeResult(null, List.<SubPhaseTiming>of()));
     }
 
     @Override

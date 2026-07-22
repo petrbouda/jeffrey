@@ -27,12 +27,16 @@ import java.util.List;
  *                   definition (e.g. "index", "dominator", "consumers")
  * @param status     {@code pending}, {@code in_progress}, {@code completed} or {@code failed}
  * @param durationMs elapsed milliseconds once terminal, else {@code null}
+ * @param elapsedMs  milliseconds spent so far while {@code in_progress}, measured
+ *                   with the backend clock so a reconnecting frontend can resume
+ *                   the stage timer without client/server clock skew; else {@code null}
  * @param subPhases  fine-grained timing breakdown when available, else {@code null}
  */
 public record HeapDumpInitStageProgress(
         String id,
         String status,
         Long durationMs,
+        Long elapsedMs,
         List<SubPhaseTiming> subPhases
 ) {
 

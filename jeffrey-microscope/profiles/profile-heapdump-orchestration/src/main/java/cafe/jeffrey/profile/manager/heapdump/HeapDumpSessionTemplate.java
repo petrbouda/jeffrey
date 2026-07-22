@@ -18,7 +18,7 @@
 
 package cafe.jeffrey.profile.manager.heapdump;
 
-import cafe.jeffrey.profile.heapdump.persistence.HeapDumpIndexPaths;
+import cafe.jeffrey.profile.heapdump.model.IndexBuildProgressListener;
 import cafe.jeffrey.profile.heapdump.persistence.HeapDumpSession;
 import cafe.jeffrey.profile.manager.additional.AdditionalFilesManager;
 import cafe.jeffrey.shared.common.exception.Exceptions;
@@ -64,6 +64,14 @@ public final class HeapDumpSessionTemplate {
     }
 
     public <R> Optional<R> execute(SessionWork<R> work) {
+        return execute(work, IndexBuildProgressListener.NOOP);
+    }
+
+    /**
+     * Same as {@link #execute(SessionWork)} but forwards {@code listener} to the
+     * index build so callers can observe sub-phase progress on a cold session.
+     */
+    public <R> Optional<R> execute(SessionWork<R> work, IndexBuildProgressListener listener) {
         Optional<Path> heapPath = additionalFilesManager.getHeapDumpPath();
         if (heapPath.isEmpty()) {
             LOG.debug("No heap dump available: profileId={}", profileInfo.id());
@@ -71,7 +79,7 @@ public final class HeapDumpSessionTemplate {
         }
         try {
             Path hprofPath = HeapDumpDecompressor.ensureDecompressed(heapPath.get());
-            return Optional.ofNullable(sessionCache.withSession(hprofPath, work::apply));
+            return Optional.ofNullable(sessionCache.withSession(hprofPath, listener, work::apply));
         } catch (IOException | SQLException e) {
             LOG.warn("Heap dump operation failed: profileId={} path={} error={}",
                     profileInfo.id(), heapPath.get(), e.getMessage());
@@ -91,16 +99,6 @@ public final class HeapDumpSessionTemplate {
         // The index sidecar is keyed on the decompressed .hprof, which for a
         // gzipped dump may not have been materialized yet.
         Path hprofPath = HeapDumpDecompressor.analyzablePath(heapPath.get());
-        Path indexPath = HeapDumpIndexPaths.indexFor(hprofPath);
-        if (!Files.exists(hprofPath) || !Files.exists(indexPath)) {
-            return false;
-        }
-        try {
-            long hprofMtime = Files.getLastModifiedTime(hprofPath).toMillis();
-            long indexMtime = Files.getLastModifiedTime(indexPath).toMillis();
-            return indexMtime >= hprofMtime;
-        } catch (IOException e) {
-            return false;
-        }
+        return Files.exists(hprofPath) && HeapDumpSession.isIndexUsable(hprofPath);
     }
 }

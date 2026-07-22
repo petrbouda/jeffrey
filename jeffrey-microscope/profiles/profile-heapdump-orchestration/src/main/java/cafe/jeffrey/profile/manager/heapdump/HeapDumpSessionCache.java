@@ -18,6 +18,7 @@
 
 package cafe.jeffrey.profile.manager.heapdump;
 
+import cafe.jeffrey.profile.heapdump.model.IndexBuildProgressListener;
 import cafe.jeffrey.profile.heapdump.persistence.HeapDumpIndexPaths;
 import cafe.jeffrey.profile.heapdump.persistence.HeapDumpSession;
 import org.slf4j.Logger;
@@ -121,6 +122,16 @@ public final class HeapDumpSessionCache implements AutoCloseable {
      * open afterwards for the next caller.
      */
     public <R> R withSession(Path hprofPath, SessionWork<R> work) throws IOException, SQLException {
+        return withSession(hprofPath, IndexBuildProgressListener.NOOP, work);
+    }
+
+    /**
+     * Same as {@link #withSession(Path, SessionWork)} but forwards {@code listener}
+     * to the index build so callers can observe sub-phase progress. The listener
+     * fires only when this call actually builds the index (cold session).
+     */
+    public <R> R withSession(Path hprofPath, IndexBuildProgressListener listener, SessionWork<R> work)
+            throws IOException, SQLException {
         Path key = cacheKey(hprofPath);
         while (true) {
             Entry entry = entries.computeIfAbsent(key, k -> new Entry());
@@ -130,7 +141,7 @@ public final class HeapDumpSessionCache implements AutoCloseable {
                     // Evicted/invalidated between lookup and lock — retry with a fresh entry.
                     continue;
                 }
-                ensureOpen(entry, key);
+                ensureOpen(entry, key, listener);
                 entry.lastUsed = clock.instant();
                 return work.apply(entry.session);
             } finally {
@@ -194,7 +205,8 @@ public final class HeapDumpSessionCache implements AutoCloseable {
         }
     }
 
-    private void ensureOpen(Entry entry, Path hprofPath) throws IOException, SQLException {
+    private void ensureOpen(Entry entry, Path hprofPath, IndexBuildProgressListener listener)
+            throws IOException, SQLException {
         long hprofMtime = Files.getLastModifiedTime(hprofPath).toMillis();
         if (entry.session != null) {
             boolean indexPresent = Files.exists(HeapDumpIndexPaths.indexFor(hprofPath));
@@ -204,7 +216,7 @@ public final class HeapDumpSessionCache implements AutoCloseable {
             LOG.debug("Cached heap dump session is stale, reopening: path={}", hprofPath);
             closeSession(entry);
         }
-        entry.session = HeapDumpSession.openOrBuild(hprofPath, clock);
+        entry.session = HeapDumpSession.openOrBuild(hprofPath, clock, listener);
         entry.hprofMtime = hprofMtime;
     }
 

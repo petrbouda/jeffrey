@@ -18,6 +18,7 @@
 
 package cafe.jeffrey.profile.manager.heapdump;
 
+import cafe.jeffrey.profile.heapdump.persistence.HeapDumpIndexPaths;
 import cafe.jeffrey.profile.manager.additional.AdditionalFilesManager;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
 import cafe.jeffrey.shared.common.model.RecordingEventSource;
@@ -39,6 +40,7 @@ import java.util.Optional;
 import java.util.zip.GZIPOutputStream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
@@ -74,6 +76,22 @@ class HeapDumpSessionTemplateTest {
         assertTrue(recordCount.get() > 0);
         assertTrue(Files.exists(dumpDir.resolve("dump.hprof")),
                 "decompressed sibling must be materialized next to the .gz");
+    }
+
+    @Test
+    void cacheNotReadyWhenLeftoverWalSiblingExists(@TempDir Path dumpDir) throws IOException {
+        Path hprof = SyntheticHeapDumps.writeMinimalDump(dumpDir, "dump.hprof");
+        when(additionalFilesManager.getHeapDumpPath()).thenReturn(Optional.of(hprof));
+        HeapDumpSessionTemplate template = new HeapDumpSessionTemplate(
+                profileInfo(), additionalFilesManager, cache);
+
+        template.execute(session -> session.view().metadata().recordCount());
+        assertTrue(template.isCacheReady(), "freshly built index must be ready");
+
+        // Simulate an interrupted build: a leftover WAL means the index content
+        // is incomplete and must not be reported as ready.
+        Files.writeString(HeapDumpIndexPaths.indexWalFor(hprof), "leftover-wal");
+        assertFalse(template.isCacheReady(), "leftover WAL marks the index as incomplete");
     }
 
     @Test

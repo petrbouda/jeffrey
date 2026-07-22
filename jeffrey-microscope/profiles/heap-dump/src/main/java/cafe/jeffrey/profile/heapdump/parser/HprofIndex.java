@@ -17,6 +17,7 @@
  */
 package cafe.jeffrey.profile.heapdump.parser;
 
+import cafe.jeffrey.profile.heapdump.model.IndexBuildProgressListener;
 import cafe.jeffrey.profile.heapdump.model.SubPhaseTiming;
 import cafe.jeffrey.profile.heapdump.persistence.HeapDumpDatabaseClient;
 import cafe.jeffrey.profile.heapdump.persistence.HeapDumpStatement;
@@ -30,6 +31,7 @@ import java.nio.file.Path;
 import java.sql.SQLException;
 import java.time.Clock;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import cafe.jeffrey.profile.heapdump.persistence.HeapDumpIndexDb;
 import cafe.jeffrey.profile.heapdump.persistence.HeapDumpIndexPaths;
@@ -113,6 +115,27 @@ public final class HprofIndex {
     public static IndexResult build(
             HprofMappedFile file, Path indexDbPath, Clock clock, BuildOptions options)
             throws IOException, SQLException {
+        return build(file, indexDbPath, clock, options, IndexBuildProgressListener.NOOP);
+    }
+
+    /**
+     * Builds (or rebuilds) the index with default options, notifying
+     * {@code listener} as each sub-phase completes (for real-time progress).
+     */
+    public static IndexResult build(
+            HprofMappedFile file, Path indexDbPath, Clock clock, IndexBuildProgressListener listener)
+            throws IOException, SQLException {
+        return build(file, indexDbPath, clock, BuildOptions.defaults(), listener);
+    }
+
+    /**
+     * Builds (or rebuilds) the index with custom {@link BuildOptions}, notifying
+     * {@code listener} as each sub-phase completes.
+     */
+    public static IndexResult build(
+            HprofMappedFile file, Path indexDbPath, Clock clock, BuildOptions options,
+            IndexBuildProgressListener listener)
+            throws IOException, SQLException {
         if (file == null) {
             throw new IllegalArgumentException("file must not be null");
         }
@@ -125,6 +148,9 @@ public final class HprofIndex {
         if (options == null) {
             throw new IllegalArgumentException("options must not be null");
         }
+        if (listener == null) {
+            throw new IllegalArgumentException("listener must not be null");
+        }
 
         long indexSpan = Spans.start();
         try {
@@ -134,7 +160,7 @@ public final class HprofIndex {
             Path stagingDir = HeapDumpIndexPaths.indexStagingFor(file.path());
             Elapsed<IndexResult> elapsed = Measuring.s(() -> {
                 try (HeapDumpIndexDb db = HeapDumpIndexDb.openAndInitialize(indexDbPath)) {
-                    return doBuild(file, db, clock, options, stagingDir);
+                    return doBuild(file, db, clock, options, stagingDir, listener);
                 } catch (IOException | SQLException e) {
                     throw new RuntimeException(e);
                 }
@@ -160,10 +186,12 @@ public final class HprofIndex {
     }
 
     private static IndexResult doBuild(
-            HprofMappedFile file, HeapDumpIndexDb db, Clock clock, BuildOptions options, Path stagingDir)
+            HprofMappedFile file, HeapDumpIndexDb db, Clock clock, BuildOptions options, Path stagingDir,
+            IndexBuildProgressListener listener)
             throws IOException, SQLException {
         HeapDumpDatabaseClient client = db.databaseClient();
         int idSize = file.header().idSize();
+        List<SubPhaseTiming> subPhases = new ArrayList<>();
         // Compressed-oops inference: 64-bit + heap below the JVM's 32 GiB threshold.
         // Total .hprof size is a coarse but reliable proxy for max heap.
         boolean compressedOops = (idSize == 8) && (file.size() < COMPRESSED_OOPS_HEAP_LIMIT);
@@ -171,18 +199,25 @@ public final class HprofIndex {
 
         Elapsed<TopLevelData> topE = measureSql(() -> HprofTopLevelWalk.walk(file, client));
         TopLevelData top = topE.entity();
+        emit(subPhases, listener, "walk_top_level", topE.duration().toMillis(),
+                top.stringCount + " strings");
 
         Duration stackTracesD = measureSqlVoid(() -> HprofStackTraceWriter.write(client, top));
+        emit(subPhases, listener, "write_stack_traces", stackTracesD.toMillis(),
+                top.stackFrames.size() + " frames");
 
         // Drop every non-PK index before the bulk writes so per-row writes
         // skip the per-insert ART-tree updates. Recreated in bulk at the end,
         // which DuckDB executes far faster than 30 M incremental inserts.
         Duration dropIndexesD = measureSqlVoid(() -> HprofNonPkIndexes.dropAll(client));
+        emit(subPhases, listener, "drop_indexes", dropIndexesD.toMillis(), null);
 
         // Pass A — sequential, class-dumps only. Produces the read-only
         // ClassDumpIndex that Pass B and downstream phases share.
         Elapsed<ClassDumpIndex> classesE = measureSql(() -> HprofClassDumpWalker.walk(file, client, top));
         ClassDumpIndex classes = classesE.entity();
+        emit(subPhases, listener, "walk_class_dumps", classesE.duration().toMillis(),
+                classes.classCount() + " classes");
 
         // Pass B — parallel fused walk. N virtual-thread workers each take a
         // slice of `top.regions`, decode the records themselves, and stream
@@ -202,6 +237,10 @@ public final class HprofIndex {
         boolean truncated = ParseWarning.anyError(top.warnings)
                 || ParseWarning.anyError(classes.warnings())
                 || ParseWarning.anyError(passB.warnings());
+        emit(subPhases, listener, "walk_pass_b", passBE.duration().toMillis(),
+                passB.instanceCount() + " inst, "
+                        + passB.outboundRefCount() + " edges, "
+                        + options.walkWorkers() + " workers");
 
         // Instance dumps are appended with the on-disk field-block size (idSize per
         // OOP, no alignment). Correct them now that the full class hierarchy is
@@ -209,6 +248,7 @@ public final class HprofIndex {
         // up to the JVM allocation boundary.
         Duration shallowCorrD = measureSqlVoid(() ->
                 HprofShallowSizeCorrector.apply(client, classes.byId(), layout));
+        emit(subPhases, listener, "apply_shallow_correction", shallowCorrD.toMillis(), null);
 
         // Materialise decoded java.lang.String content so OQL string predicates
         // push down to DuckDB varchar functions instead of decoding per-instance.
@@ -216,6 +256,8 @@ public final class HprofIndex {
                 HprofStringContentWriter.write(client, file, top, classes, passB.primArrInfo(), idSize,
                         options.stringContentThreshold(), stagingDir, options.walkWorkers()));
         long stringContentCount = stringContentE.entity();
+        emit(subPhases, listener, "write_string_content", stringContentE.duration().toMillis(),
+                stringContentCount + " strings");
 
         long totalRecordCount = top.recordCount + passB.subRecordCount();
         Duration metadataD = measureSqlVoid(() -> {
@@ -227,6 +269,7 @@ public final class HprofIndex {
             HprofMetadataWriter.writeWarnings(client, classes.warnings());
             HprofMetadataWriter.writeWarnings(client, passB.warnings());
         });
+        emit(subPhases, listener, "write_metadata", metadataD.toMillis(), null);
 
         // Recreate the indexes we dropped at the start. Bulk index creation
         // over populated tables is dramatically faster than per-row inserts
@@ -237,31 +280,14 @@ public final class HprofIndex {
         // only within a single table).
         Duration createIndexesD = measureSqlVoid(() ->
                 HprofNonPkIndexes.createAll(client, db.path(), options.walkWorkers()));
+        emit(subPhases, listener, "create_indexes", createIndexesD.toMillis(), null);
 
         // Force a checkpoint so all WAL contents land in the main DB file.
         // Without this, opening the file in read-only mode (HeapView) fails because
         // read-only connections cannot replay an outstanding WAL.
         Duration checkpointD = measureSqlVoid(() ->
                 client.execute(HeapDumpStatement.CHECKPOINT, "CHECKPOINT"));
-
-        List<SubPhaseTiming> subPhases = List.of(
-                new SubPhaseTiming("walk_top_level", topE.duration().toMillis(),
-                        top.stringCount + " strings"),
-                new SubPhaseTiming("write_stack_traces", stackTracesD.toMillis(),
-                        top.stackFrames.size() + " frames"),
-                new SubPhaseTiming("drop_indexes", dropIndexesD.toMillis(), null),
-                new SubPhaseTiming("walk_class_dumps", classesE.duration().toMillis(),
-                        classes.classCount() + " classes"),
-                new SubPhaseTiming("walk_pass_b", passBE.duration().toMillis(),
-                        passB.instanceCount() + " inst, "
-                                + passB.outboundRefCount() + " edges, "
-                                + options.walkWorkers() + " workers"),
-                new SubPhaseTiming("apply_shallow_correction", shallowCorrD.toMillis(), null),
-                new SubPhaseTiming("write_string_content", stringContentE.duration().toMillis(),
-                        stringContentCount + " strings"),
-                new SubPhaseTiming("write_metadata", metadataD.toMillis(), null),
-                new SubPhaseTiming("create_indexes", createIndexesD.toMillis(), null),
-                new SubPhaseTiming("checkpoint", checkpointD.toMillis(), null));
+        emit(subPhases, listener, "checkpoint", checkpointD.toMillis(), null);
 
         return new IndexResult(
                 top.stringCount,
@@ -276,6 +302,17 @@ public final class HprofIndex {
                 totalRecordCount,
                 Duration.ZERO, // overwritten by build()
                 subPhases);
+    }
+
+    /**
+     * Records a completed sub-phase into {@code out} and notifies {@code listener}
+     * so real-time progress and the final {@code IndexResult} stay in sync.
+     */
+    private static void emit(List<SubPhaseTiming> out, IndexBuildProgressListener listener,
+            String name, long durationMs, String note) {
+        SubPhaseTiming timing = new SubPhaseTiming(name, durationMs, note);
+        out.add(timing);
+        listener.onSubPhase(timing);
     }
 
     /**

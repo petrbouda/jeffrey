@@ -168,19 +168,6 @@
 
       <!-- Main Content -->
       <div class="detail-main-content" :class="{ 'no-sidebar': isTechnologiesHub }">
-        <!-- Heap Dump Profile Info (hidden while the comparison bar already shows the primary profile) -->
-        <div
-          v-if="
-            selectedMode === 'HeapDump' && profile && !(comparisonPanelVisible && !sidebarCollapsed)
-          "
-          class="heap-dump-profile-info mb-3"
-        >
-          <i class="bi bi-file-earmark"></i>
-          <span class="profile-name">{{ profile.name }}</span>
-          <span class="info-separator">&middot;</span>
-          <span class="profile-meta">{{ profileId }}</span>
-        </div>
-
         <!-- Compact Differential Analysis Bar -->
         <div v-if="!sidebarCollapsed && comparisonPanelVisible" class="compact-comparison-bar mb-3">
           <div class="comparison-cards">
@@ -716,39 +703,6 @@ onUnmounted(() => {
 /* ProfileDetail-specific styles */
 /* Common sidebar styles are in @/assets/_sidebar-menu.scss */
 /* Sidebar-specific styles (tech header etc.) live in @/components/profile/ProfileSidebar.vue */
-
-/* Heap Dump Profile Info */
-.heap-dump-profile-info {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  margin: 0 1rem;
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  font-size: var(--font-size-sm);
-  color: var(--color-text-muted);
-}
-
-.heap-dump-profile-info .bi-file-earmark {
-  color: var(--color-primary);
-  font-size: var(--font-size-base);
-}
-
-.heap-dump-profile-info .profile-name {
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-dark);
-  font-size: var(--font-size-base);
-}
-
-.heap-dump-profile-info .info-separator {
-  color: var(--color-text-light);
-}
-
-.heap-dump-profile-info .profile-meta {
-  color: var(--color-text-muted);
-}
 
 /* Compact Comparison Bar */
 .compact-comparison-bar {

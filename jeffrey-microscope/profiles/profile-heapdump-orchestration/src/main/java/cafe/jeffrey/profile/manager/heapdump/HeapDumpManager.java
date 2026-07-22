@@ -19,6 +19,7 @@
 package cafe.jeffrey.profile.manager.heapdump;
 
 import cafe.jeffrey.profile.heapdump.model.ClassHistogramEntry;
+import cafe.jeffrey.profile.heapdump.model.IndexBuildProgressListener;
 import cafe.jeffrey.profile.heapdump.model.ClassInstancesResponse;
 import cafe.jeffrey.profile.heapdump.model.ClassLoaderDetail;
 import cafe.jeffrey.profile.heapdump.model.ClassLoaderReport;
@@ -99,7 +100,16 @@ public interface HeapDumpManager {
      * @param compressedOopsOverride optional user override, see
      *                               {@link #resolveAndStoreCompressedOops(Boolean)}
      */
-    InitializeResult initialize(Boolean compressedOopsOverride);
+    default InitializeResult initialize(Boolean compressedOopsOverride) {
+        return initialize(compressedOopsOverride, IndexBuildProgressListener.NOOP);
+    }
+
+    /**
+     * Same as {@link #initialize(Boolean)} but notifies {@code listener} as each
+     * index-build sub-phase completes, so the caller can surface real-time
+     * progress instead of only the final per-phase timings.
+     */
+    InitializeResult initialize(Boolean compressedOopsOverride, IndexBuildProgressListener listener);
 
     /**
      * Get class histogram sorted by size.

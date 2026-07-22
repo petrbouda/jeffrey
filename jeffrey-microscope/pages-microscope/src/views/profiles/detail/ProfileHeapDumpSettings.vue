@@ -378,6 +378,8 @@ interface ProcessingStep extends TimelineStep {
 }
 
 const STAGE_IDS: string[] = [
+  'load',
+  'parse',
   'index',
   'strings',
   'dominator',
@@ -511,7 +513,9 @@ const applyProgress = (progress: HeapDumpInitProgress) => {
     if (stage.status === 'in_progress') {
       if (step.status !== 'in_progress') {
         step.status = 'in_progress';
-        step.startMs = Date.now();
+        // Backdate by the backend-measured elapsed time so a page reopened
+        // mid-run resumes the stage timer instead of restarting it from zero.
+        step.startMs = Date.now() - (stage.elapsedMs ?? 0);
       }
     } else if (stage.status === 'completed') {
       step.status = 'completed';
@@ -534,23 +538,17 @@ const handleInitFailure = (code: string | null, message: string | null) => {
   }
 };
 
-const processHeapDump = async () => {
+/**
+ * Mirrors the backend init run until it reaches a terminal state, then loads
+ * the results. Shared by processHeapDump (right after the kick-off POST) and
+ * loadData (resuming a run that is already in flight when the page opens).
+ */
+const followInitRun = async () => {
   processing.value = true;
   resetSteps();
   startTick();
 
   try {
-    const compressedOopsOverride =
-      compressedOopsChoice.value === 'enabled'
-        ? true
-        : compressedOopsChoice.value === 'disabled'
-          ? false
-          : undefined;
-
-    // One POST kicks off the whole pipeline server-side; from here on the
-    // frontend only mirrors the backend's per-stage progress.
-    await client.initializeAll(compressedOopsOverride);
-
     let idlePolls = 0;
     let progress = await client.getInitProgress();
     while (progress.state === 'running' || progress.state === 'idle') {
@@ -584,7 +582,7 @@ const processHeapDump = async () => {
       console.warn('Failed to load init pipeline result', snapshotErr);
     }
   } catch (err) {
-    // Kick-off/polling errors (the pipeline itself reports failures via progress).
+    // Polling errors (the pipeline itself reports failures via progress).
     if (err instanceof ApiError && err.errorResponse?.code === 'HEAP_DUMP_NEEDS_SANITIZATION') {
       needsSanitization.value = true;
     } else if (err instanceof ApiError && err.errorResponse?.code === 'HEAP_DUMP_CORRUPTED') {
@@ -597,6 +595,37 @@ const processHeapDump = async () => {
     stopTick();
     processing.value = false;
   }
+};
+
+const processHeapDump = async () => {
+  processing.value = true;
+  resetSteps();
+
+  try {
+    const compressedOopsOverride =
+      compressedOopsChoice.value === 'enabled'
+        ? true
+        : compressedOopsChoice.value === 'disabled'
+          ? false
+          : undefined;
+
+    // One POST kicks off the whole pipeline server-side; from here on the
+    // frontend only mirrors the backend's per-stage progress.
+    await client.initializeAll(compressedOopsOverride);
+  } catch (err) {
+    processing.value = false;
+    if (err instanceof ApiError && err.errorResponse?.code === 'HEAP_DUMP_NEEDS_SANITIZATION') {
+      needsSanitization.value = true;
+    } else if (err instanceof ApiError && err.errorResponse?.code === 'HEAP_DUMP_CORRUPTED') {
+      initError.value = err.errorResponse.message;
+      heapExists.value = false;
+    } else {
+      error.value = err instanceof Error ? err.message : 'Failed to process heap dump';
+    }
+    return;
+  }
+
+  await followInitRun();
 };
 
 const clearCache = async () => {
@@ -779,6 +808,15 @@ const loadData = async () => {
 
     if (!heapExists.value) {
       loading.value = false;
+      return;
+    }
+
+    // An init run may already be in flight (page reopened mid-initialization) —
+    // resume mirroring its progress instead of showing the "not initialized" card.
+    const initProgress = await client.getInitProgress();
+    if (initProgress.state === 'running') {
+      loading.value = false;
+      await followInitRun();
       return;
     }
 

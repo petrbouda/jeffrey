@@ -99,6 +99,26 @@ class HeapDumpSessionTest {
     }
 
     @Test
+    void rebuildsIndexWhenLeftoverWalSiblingExists(@TempDir Path tmp) throws IOException, SQLException {
+        Path hprof = simpleDump(tmp, "wal.hprof");
+        Path walPath = HeapDumpIndexPaths.indexWalFor(hprof);
+
+        try (HeapDumpSession ignored = HeapDumpSession.openOrBuild(hprof, CLOCK)) {
+            // initial build done
+        }
+        // Simulate an interrupted build: a leftover WAL means the building
+        // connection never ran its close-time checkpoint, so the index content
+        // is incomplete and a read-only open would fail replaying it.
+        Files.writeString(walPath, "leftover-wal");
+
+        try (HeapDumpSession session = HeapDumpSession.openOrBuild(hprof, CLOCK)) {
+            assertFalse(session.lastBuildSubPhases().isEmpty(), "leftover WAL must force a rebuild");
+            assertFalse(Files.exists(walPath), "rebuild must remove the leftover WAL");
+            assertTrue(session.view().classCount() >= 1);
+        }
+    }
+
+    @Test
     void throwsWhenHprofMissing(@TempDir Path tmp) {
         Path missing = tmp.resolve("nope.hprof");
         assertThrows(IOException.class, () -> HeapDumpSession.openOrBuild(missing, CLOCK));

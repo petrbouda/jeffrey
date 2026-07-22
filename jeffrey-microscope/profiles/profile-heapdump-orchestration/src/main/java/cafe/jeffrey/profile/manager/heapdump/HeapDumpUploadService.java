@@ -124,7 +124,7 @@ public final class HeapDumpUploadService {
         additionalFilesManager.getHeapDumpPath().ifPresent(path -> {
             Path hprofPath = HeapDumpDecompressor.analyzablePath(path);
             sessionCache.invalidate(hprofPath);
-            deleteIndex(HeapDumpIndexPaths.indexFor(hprofPath));
+            deleteIndex(hprofPath);
         });
         reports.deleteAllCachedAnalyses();
         reports.delete(CONFIG_FILE, CONFIG_DISPLAY_NAME);
@@ -153,7 +153,7 @@ public final class HeapDumpUploadService {
         }
 
         sessionCache.invalidate(hprofPath);
-        deleteIndex(HeapDumpIndexPaths.indexFor(hprofPath));
+        deleteIndex(hprofPath);
         deleteIfPresent(hprofPath, "heap dump");
         if (gzPath != null) {
             deleteIfPresent(gzPath, "compressed heap dump");
@@ -179,12 +179,13 @@ public final class HeapDumpUploadService {
         throw new IllegalArgumentException("Invalid file type. Only .hprof and .hprof.gz files are supported.");
     }
 
-    private void deleteIndex(Path indexPath) {
-        try {
-            Files.deleteIfExists(indexPath);
-        } catch (IOException e) {
-            LOG.error("Failed to delete heap dump index: profileId={} path={}", profileInfo.id(), indexPath, e);
-        }
+    /**
+     * Deletes the index sidecar of the given dump, including a WAL sibling
+     * possibly left over by an interrupted index build.
+     */
+    private void deleteIndex(Path hprofPath) {
+        deleteIfPresent(HeapDumpIndexPaths.indexFor(hprofPath), "heap dump index");
+        deleteIfPresent(HeapDumpIndexPaths.indexWalFor(hprofPath), "heap dump index WAL");
     }
 
     private void deleteIfPresent(Path path, String description) {

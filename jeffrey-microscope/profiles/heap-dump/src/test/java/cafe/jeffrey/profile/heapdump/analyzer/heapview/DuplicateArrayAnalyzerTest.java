@@ -44,6 +44,7 @@ class DuplicateArrayAnalyzerTest {
     private static final Clock CLOCK =
             Clock.fixed(Instant.ofEpochMilli(1L), ZoneOffset.UTC);
     private static final int ID_SIZE = 8;
+    private static final int TOP_N = 50;
 
     @Test
     void groupsByteIdenticalArraysAndComputesSavings(@TempDir Path tmp)
@@ -84,6 +85,77 @@ class DuplicateArrayAnalyzerTest {
             assertTrue(group.contentPreview().contains("this-content-repeats"),
                     "ASCII byte[] content must be previewed as text: " + group.contentPreview());
             assertEquals(3, group.sampleObjectIds().size());
+        }
+    }
+
+    @Test
+    void uniqueTypeLengthArrayIsExcludedFromCandidatesButStillCountedInTotals(@TempDir Path tmp)
+            throws IOException, SQLException {
+        byte[] shared = "shared-32-byte-array-abcdefghij!".getBytes(StandardCharsets.US_ASCII);
+        // A distinct length makes this array's (type,length) bucket unique, so the
+        // candidate pre-filter excludes it — it must never be read/hashed, yet it
+        // must still appear in the report totals (computed by a separate aggregate).
+        byte[] loner = "a-uniquely-sized-20b".getBytes(StandardCharsets.US_ASCII);
+
+        Path hprof = SyntheticHprof.create("1.0.2", ID_SIZE, 0L)
+                .heapDumpSegment(seg -> seg
+                        .primitiveArrayDump(0x100L, HprofTag.BasicType.BYTE, shared, shared.length)
+                        .primitiveArrayDump(0x101L, HprofTag.BasicType.BYTE, shared, shared.length)
+                        .primitiveArrayDump(0x200L, HprofTag.BasicType.BYTE, loner, loner.length))
+                .heapDumpEnd()
+                .writeTo(tmp, "loner.hprof");
+
+        Path indexDb = HeapDumpIndexPaths.indexFor(hprof);
+        try (HprofMappedFile file = HprofMappedFile.open(hprof)) {
+            HprofIndex.build(file, indexDb, CLOCK);
+        }
+        try (HprofMappedFile file = HprofMappedFile.open(hprof);
+             HeapView view = HeapView.open(indexDb, file)) {
+            DuplicateDataReport report = DuplicateArrayAnalyzer.analyze(view);
+
+            // The unique-length array is still counted in the totals...
+            assertEquals(3, report.totalPrimitiveArrays());
+            // ...only the two identical arrays form the single duplicate group.
+            assertEquals(1, report.duplicateGroups());
+            assertEquals(1, report.duplicateArrayCount());
+            assertEquals(1, report.topGroups().size());
+            assertEquals(2, report.topGroups().get(0).count());
+        }
+    }
+
+    @Test
+    void manyIdenticalCopiesGroupCorrectlyAcrossBatches(@TempDir Path tmp)
+            throws IOException, SQLException {
+        byte[] shared = "batch-boundary-content-32-bytes!".getBytes(StandardCharsets.US_ASCII);
+        int copies = 10;
+
+        Path hprof = SyntheticHprof.create("1.0.2", ID_SIZE, 0L)
+                .heapDumpSegment(seg -> {
+                    for (int i = 0; i < copies; i++) {
+                        seg.primitiveArrayDump(0x1000L + i, HprofTag.BasicType.BYTE, shared, shared.length);
+                    }
+                })
+                .heapDumpEnd()
+                .writeTo(tmp, "batches.hprof");
+
+        Path indexDb = HeapDumpIndexPaths.indexFor(hprof);
+        try (HprofMappedFile file = HprofMappedFile.open(hprof)) {
+            HprofIndex.build(file, indexDb, CLOCK);
+        }
+        try (HprofMappedFile file = HprofMappedFile.open(hprof);
+             HeapView view = HeapView.open(indexDb, file)) {
+            // batchSize=3 over 10 identical arrays forces four batches (4 partial
+            // maps) that must merge into one group — exercising the merge path.
+            DuplicateDataReport report = DuplicateArrayAnalyzer.analyze(view, TOP_N, 3);
+
+            assertEquals(copies, report.totalPrimitiveArrays());
+            assertEquals(1, report.duplicateGroups());
+            assertEquals(copies - 1, report.duplicateArrayCount());
+            assertEquals(1, report.topGroups().size());
+            DuplicateArrayGroup group = report.topGroups().get(0);
+            assertEquals(copies, group.count());
+            assertEquals((long) (copies - 1) * group.shallowSize(), group.wastedBytes());
+            assertEquals(3, group.sampleObjectIds().size(), "samples capped at three across the merge");
         }
     }
 
