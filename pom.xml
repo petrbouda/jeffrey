@@ -57,6 +57,7 @@
         <protobuf.version>4.35.0</protobuf.version>
         <antlr4.version>4.13.2</antlr4.version>
         <jgit.version>7.7.0.202606012155-r</jgit.version>
+        <fabric8.version>7.8.0</fabric8.version>
         <!-- Vendored async-profiler Java API (span-api branch), served from the in-repo lib/m2 repository. -->
         <async-profiler.version>4.4-span</async-profiler.version>
     </properties>
@@ -96,6 +97,13 @@
                 <groupId>org.springframework.ai</groupId>
                 <artifactId>spring-ai-bom</artifactId>
                 <version>${spring-ai.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>io.fabric8</groupId>
+                <artifactId>kubernetes-client-bom</artifactId>
+                <version>${fabric8.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>

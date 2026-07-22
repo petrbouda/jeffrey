@@ -69,7 +69,8 @@ import java.time.Clock;
         ProjectJobsConfiguration.class,
         JobsConfiguration.class,
         WebInfrastructureConfig.class,
-        VersionFeatureConfiguration.class
+        VersionFeatureConfiguration.class,
+        KubernetesDiscoveryConfiguration.class
 })
 @EnableConfigurationProperties({ProjectProperties.class, SchedulerJobsProperties.class})
 @PropertySource("classpath:scheduler-defaults.properties")
