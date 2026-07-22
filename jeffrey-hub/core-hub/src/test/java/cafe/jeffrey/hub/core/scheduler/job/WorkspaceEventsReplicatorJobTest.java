@@ -113,10 +113,20 @@ class WorkspaceEventsReplicatorJobTest {
             PersistentQueue<WorkspaceEvent> workspaceEventQueue,
             SchedulerTrigger migrationCallback) {
 
+        return createJob(workspacesManager, folderQueue, workspaceEventQueue, migrationCallback, false);
+    }
+
+    private WorkspaceEventsReplicatorJob createJob(
+            LiveWorkspacesManager workspacesManager,
+            FolderQueue folderQueue,
+            PersistentQueue<WorkspaceEvent> workspaceEventQueue,
+            SchedulerTrigger migrationCallback,
+            boolean autoCreateWorkspaces) {
+
         DefaultWorkspaceProperties properties = new DefaultWorkspaceProperties(DEFAULT_REF_ID, DEFAULT_REF_ID);
         return new WorkspaceEventsReplicatorJob(
                 workspacesManager, Duration.ofMinutes(1), FIXED_CLOCK, folderQueue,
-                workspaceEventQueue, migrationCallback, properties);
+                workspaceEventQueue, migrationCallback, properties, autoCreateWorkspaces);
     }
 
     @Nested
@@ -220,6 +230,92 @@ class WorkspaceEventsReplicatorJobTest {
             assertFalse(Files.exists(events.resolve("20260220120000100_aaaaaaaa.json")));
             assertTrue(Files.exists(events.resolve(".processed").resolve("20260220120000100_aaaaaaaa.json")));
 
+            verify(migrationCallback, never()).execute();
+        }
+    }
+
+    @Nested
+    class AutoCreateWorkspace {
+
+        @Mock
+        LiveWorkspacesManager workspacesManager;
+
+        @Mock
+        SchedulerTrigger migrationCallback;
+
+        @Mock
+        @SuppressWarnings("unchecked")
+        PersistentQueue<WorkspaceEvent> workspaceEventQueue;
+
+        private static final String CREATED_INTERNAL_ID = "ws-internal-created";
+        private static final WorkspaceInfo CREATED_WORKSPACE_INFO = new WorkspaceInfo(
+                CREATED_INTERNAL_ID, WORKSPACE_ID, WORKSPACE_ID, WORKSPACE_ID,
+                null, null, NOW, WorkspaceStatus.UNKNOWN, 0);
+
+        @Test
+        void enabled_unknownReferenceId_workspaceCreatedAndEventReplicated() throws Exception {
+            Path events = eventsDir();
+            writeEventFile(events, "20260220120000100_aaaaaaaa.json", instanceCreatedEvent("inst-001"));
+
+            when(workspacesManager.findByReferenceId(WORKSPACE_ID)).thenReturn(Optional.empty());
+            when(workspacesManager.create(any())).thenReturn(CREATED_WORKSPACE_INFO);
+            when(migrationCallback.execute()).thenReturn(CompletableFuture.completedFuture(null));
+
+            var folderQueue = new FolderQueue(jeffreyDirs().workspaces().resolve(".events"), FIXED_CLOCK);
+            var job = createJob(workspacesManager, folderQueue, workspaceEventQueue, migrationCallback, true);
+
+            job.execute(JobContext.EMPTY);
+
+            ArgumentCaptor<WorkspacesManager.CreateWorkspaceRequest> requestCaptor =
+                    ArgumentCaptor.forClass(WorkspacesManager.CreateWorkspaceRequest.class);
+            verify(workspacesManager).create(requestCaptor.capture());
+            assertEquals(WORKSPACE_ID, requestCaptor.getValue().referenceId());
+            assertEquals(WORKSPACE_ID, requestCaptor.getValue().name());
+
+            verify(workspaceEventQueue).append(eq(CREATED_INTERNAL_ID), any(WorkspaceEvent.class));
+            assertFalse(Files.exists(events.resolve("20260220120000100_aaaaaaaa.json")));
+            assertTrue(Files.exists(events.resolve(".processed").resolve("20260220120000100_aaaaaaaa.json")));
+            verify(migrationCallback).execute();
+        }
+
+        @Test
+        void enabled_blankReferenceId_defaultWorkspaceMissing_neverAutoCreated() throws Exception {
+            Path events = eventsDir();
+            ProjectCreatedEventContent content = new ProjectCreatedEventContent(
+                    "project-x", "X", "/workspaces", "ws-x", "proj-x",
+                    RepositoryType.ASYNC_PROFILER, Map.of());
+            CLIWorkspaceEvent blankRefEvent = new CLIWorkspaceEvent(ORIGIN_PROJECT_ID, ORIGIN_PROJECT_ID, null,
+                    WorkspaceEventType.PROJECT_CREATED, Json.toString(content), NOW.minusSeconds(60), "CLI");
+            writeEventFile(events, "20260220120000100_aaaaaaaa.json", blankRefEvent);
+
+            when(workspacesManager.findByReferenceId(DEFAULT_REF_ID)).thenReturn(Optional.empty());
+
+            var folderQueue = new FolderQueue(jeffreyDirs().workspaces().resolve(".events"), FIXED_CLOCK);
+            var job = createJob(workspacesManager, folderQueue, workspaceEventQueue, migrationCallback, true);
+
+            job.execute(JobContext.EMPTY);
+
+            verify(workspacesManager, never()).create(any());
+            verify(workspaceEventQueue, never()).append(any(), any());
+            assertTrue(Files.exists(events.resolve(".processed").resolve("20260220120000100_aaaaaaaa.json")));
+        }
+
+        @Test
+        void enabled_createFails_eventNotAcknowledged_retriesNextTick() throws Exception {
+            Path events = eventsDir();
+            writeEventFile(events, "20260220120000100_aaaaaaaa.json", instanceCreatedEvent("inst-001"));
+
+            when(workspacesManager.findByReferenceId(WORKSPACE_ID)).thenReturn(Optional.empty());
+            when(workspacesManager.create(any())).thenThrow(new RuntimeException("duplicate reference_id"));
+
+            var folderQueue = new FolderQueue(jeffreyDirs().workspaces().resolve(".events"), FIXED_CLOCK);
+            var job = createJob(workspacesManager, folderQueue, workspaceEventQueue, migrationCallback, true);
+
+            assertDoesNotThrow(() -> job.execute(JobContext.EMPTY));
+
+            verify(workspaceEventQueue, never()).append(any(), any());
+            assertTrue(Files.exists(events.resolve("20260220120000100_aaaaaaaa.json")),
+                    "A failed create must leave the event file for the next tick");
             verify(migrationCallback, never()).execute();
         }
     }

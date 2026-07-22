@@ -38,6 +38,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
@@ -121,7 +122,8 @@ public class GlobalJobsConfiguration {
             HubJeffreyDirs jeffreyDirs,
             PersistentQueue<WorkspaceEvent> workspaceEventQueue,
             DefaultWorkspaceProperties defaultWorkspaceProperties,
-            @Qualifier(PROJECTS_SYNCHRONIZER_TRIGGER) SchedulerTrigger projectsSynchronizerTrigger) {
+            @Qualifier(PROJECTS_SYNCHRONIZER_TRIGGER) SchedulerTrigger projectsSynchronizerTrigger,
+            @Value("${jeffrey.hub.workspaces.auto-create:false}") boolean autoCreateWorkspaces) {
 
         return new WorkspaceEventsReplicatorJob(
                 workspacesManager,
@@ -130,7 +132,8 @@ public class GlobalJobsConfiguration {
                 new FolderQueue(jeffreyDirs.workspaceEvents(), clock),
                 workspaceEventQueue,
                 projectsSynchronizerTrigger,
-                defaultWorkspaceProperties);
+                defaultWorkspaceProperties,
+                autoCreateWorkspaces);
     }
 
     @Bean

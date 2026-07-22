@@ -31,6 +31,7 @@ import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.shared.common.model.job.JobType;
 import cafe.jeffrey.shared.common.model.workspace.CLIWorkspaceEvent;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceEvent;
+import cafe.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 import cafe.jeffrey.shared.folderqueue.FolderQueue;
 import cafe.jeffrey.shared.folderqueue.FolderQueueEntry;
 import cafe.jeffrey.shared.folderqueue.FolderQueueEntryParser;
@@ -62,6 +63,7 @@ public class WorkspaceEventsReplicatorJob implements Job {
     private final PersistentQueue<WorkspaceEvent> workspaceEventQueue;
     private final SchedulerTrigger migrationCallback;
     private final DefaultWorkspaceProperties defaultWorkspaceProperties;
+    private final boolean autoCreateWorkspaces;
 
     private static final FolderQueueEntryParser<CLIWorkspaceEvent> JSON_EVENT_PARSER = (filePath, content) -> {
         try {
@@ -79,7 +81,8 @@ public class WorkspaceEventsReplicatorJob implements Job {
             FolderQueue folderQueue,
             PersistentQueue<WorkspaceEvent> workspaceEventQueue,
             SchedulerTrigger migrationCallback,
-            DefaultWorkspaceProperties defaultWorkspaceProperties) {
+            DefaultWorkspaceProperties defaultWorkspaceProperties,
+            boolean autoCreateWorkspaces) {
 
         this.workspacesManager = workspacesManager;
         this.period = period;
@@ -88,6 +91,7 @@ public class WorkspaceEventsReplicatorJob implements Job {
         this.workspaceEventQueue = workspaceEventQueue;
         this.migrationCallback = migrationCallback;
         this.defaultWorkspaceProperties = defaultWorkspaceProperties;
+        this.autoCreateWorkspaces = autoCreateWorkspaces;
     }
 
     @Override
@@ -115,19 +119,34 @@ public class WorkspaceEventsReplicatorJob implements Job {
             try {
                 String referenceId = resolveReferenceId(event.workspaceRefId());
                 Optional<WorkspaceManager> workspaceOpt = workspacesManager.findByReferenceId(referenceId);
-                if (workspaceOpt.isEmpty()) {
-                    if (isBlank(event.workspaceRefId())) {
-                        LOG.error("Default workspace missing, discarding event: configured_reference_id={} event_type={}",
-                                referenceId, event.eventType());
-                    } else {
-                        LOG.warn("Workspace not found, discarding event: reference_id={} event_type={}",
-                                event.workspaceRefId(), event.eventType());
-                    }
+
+                String internalWorkspaceId;
+                if (workspaceOpt.isPresent()) {
+                    internalWorkspaceId = workspaceOpt.get().localInfo().id();
+                } else if (isBlank(event.workspaceRefId())) {
+                    // The default workspace is owned by DefaultWorkspaceInitializer — never auto-create it here
+                    LOG.error("Default workspace missing, discarding event: configured_reference_id={} event_type={}",
+                            referenceId, event.eventType());
+                    folderQueue.acknowledge(entry.filePath());
+                    continue;
+                } else if (autoCreateWorkspaces) {
+                    // A failed create leaves the entry unacknowledged, so it retries next tick;
+                    // a create race between two hub replicas resolves the same way.
+                    WorkspaceInfo created = workspacesManager.create(
+                            WorkspacesManager.CreateWorkspaceRequest.builder()
+                                    .referenceId(referenceId)
+                                    .name(referenceId)
+                                    .build());
+                    internalWorkspaceId = created.id();
+                    LOG.info("Auto-created workspace for incoming event: reference_id={} workspace_id={}",
+                            referenceId, created.id());
+                } else {
+                    LOG.warn("Workspace not found, discarding event: reference_id={} event_type={}",
+                            event.workspaceRefId(), event.eventType());
                     folderQueue.acknowledge(entry.filePath());
                     continue;
                 }
 
-                String internalWorkspaceId = workspaceOpt.get().localInfo().id();
                 workspaceEventQueue.append(internalWorkspaceId, event);
                 folderQueue.acknowledge(entry.filePath());
                 replicatedCount++;
