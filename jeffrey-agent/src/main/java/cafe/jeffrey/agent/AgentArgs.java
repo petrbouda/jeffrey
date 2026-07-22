@@ -34,6 +34,7 @@ public record AgentArgs(Path heartbeatDir, Duration heartbeatInterval, boolean h
     private static final String PARAM_DIR = "heartbeat.dir";
     private static final String PARAM_INTERVAL = "heartbeat.interval";
     private static final String PARAM_ENABLED = "heartbeat.enabled";
+    // Must match HeartbeatConstants.DEFAULT_INTERVAL — both values move together
     private static final Duration DEFAULT_INTERVAL = Duration.ofSeconds(5);
 
     // Duplicated from AppInfoConstants — see note above

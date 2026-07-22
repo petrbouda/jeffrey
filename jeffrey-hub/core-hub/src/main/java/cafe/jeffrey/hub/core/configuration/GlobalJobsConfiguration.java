@@ -38,6 +38,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
@@ -85,8 +86,9 @@ public class GlobalJobsConfiguration {
                     return on;
                 })
                 .toList();
-        LOG.info("Registered scheduler jobs: enabled={} total={}", enabled.size(), jobs.size());
-        return new PeriodicalScheduler(enabled);
+        LOG.info("Registered scheduler jobs: enabled={} total={} fan_out_pool_size={}",
+                enabled.size(), jobs.size(), schedulerJobsProperties.getFanOutPoolSize());
+        return new PeriodicalScheduler(enabled, schedulerJobsProperties.getFanOutPoolSize());
     }
 
     @Bean
@@ -120,7 +122,8 @@ public class GlobalJobsConfiguration {
             HubJeffreyDirs jeffreyDirs,
             PersistentQueue<WorkspaceEvent> workspaceEventQueue,
             DefaultWorkspaceProperties defaultWorkspaceProperties,
-            @Qualifier(PROJECTS_SYNCHRONIZER_TRIGGER) SchedulerTrigger projectsSynchronizerTrigger) {
+            @Qualifier(PROJECTS_SYNCHRONIZER_TRIGGER) SchedulerTrigger projectsSynchronizerTrigger,
+            @Value("${jeffrey.hub.workspaces.auto-create:false}") boolean autoCreateWorkspaces) {
 
         return new WorkspaceEventsReplicatorJob(
                 workspacesManager,
@@ -129,7 +132,8 @@ public class GlobalJobsConfiguration {
                 new FolderQueue(jeffreyDirs.workspaceEvents(), clock),
                 workspaceEventQueue,
                 projectsSynchronizerTrigger,
-                defaultWorkspaceProperties);
+                defaultWorkspaceProperties,
+                autoCreateWorkspaces);
     }
 
     @Bean

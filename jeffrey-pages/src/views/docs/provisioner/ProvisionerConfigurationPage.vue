@@ -38,7 +38,7 @@ onMounted(() => {
 
 const minimalConfig = `jeffrey-home = "/opt/jeffrey"
 project {
-    workspace-id = "production"
+    workspace-ref-id = "production"
     name = "my-service"
 }`;
 
@@ -47,9 +47,10 @@ profiler-path = "/opt/async-profiler/libasyncProfiler.so"
 agent-path = "/opt/jeffrey/libs/current/jeffrey-agent.jar"
 arg-file = "/tmp/jvm.args"
 project {
-    workspace-id = "production"
+    workspace-ref-id = "production"
     name = "my-service"
     label = "My Service"
+    instance-name = "my-service-pod-1"
 }
 attributes { cluster = "blue", namespace = "production" }
 
@@ -60,10 +61,6 @@ jvm-logging {
   enabled = true
   command = "jfr*=trace:file=<<JEFFREY_CURRENT_SESSION>>/jfr-jvm.log::filecount=3,filesize=5m"
 }
-messaging { enabled = true }
-alerting { enabled = true }
-streaming { max-age = "2d" }
-heartbeat { enabled = true }
 jdk-java-options { enabled = true }
 additional-jvm-options = "-Xmx2g -Xms2g -Djeffrey.logging.trace-file.path=<<JEFFREY_CURRENT_SESSION>>/jeffrey-app.log"`;
 </script>
@@ -114,9 +111,15 @@ additional-jvm-options = "-Xmx2g -Xms2g -Djeffrey.logging.trace-file.path=<<JEFF
           <tbody>
             <tr>
               <td><code>jeffrey-home</code></td>
-              <td>Yes</td>
+              <td>One of</td>
               <td><code>JEFFREY_HOME</code></td>
-              <td>Base directory for Jeffrey data. Falls back to the <code>JEFFREY_HOME</code> env var when neither <code>jeffrey-home</code> nor <code>workspaces-dir</code> is set in HOCON.</td>
+              <td>Base directory for Jeffrey data; <code>workspaces/</code> is created under it. Exactly one of <code>jeffrey-home</code> / <code>workspaces-dir</code> must be set. Falls back to the <code>JEFFREY_HOME</code> env var when neither is set in HOCON.</td>
+            </tr>
+            <tr>
+              <td><code>workspaces-dir</code></td>
+              <td>One of</td>
+              <td>—</td>
+              <td>Points directly at an existing workspaces directory instead of deriving it from <code>jeffrey-home</code>. Mutually exclusive with <code>jeffrey-home</code>.</td>
             </tr>
             <tr>
               <td><code>project.workspace-ref-id</code></td>
@@ -128,7 +131,9 @@ additional-jvm-options = "-Xmx2g -Xms2g -Djeffrey.logging.trace-file.path=<<JEFF
                 (<code>$default</code> unless reconfigured via
                 <code>jeffrey.hub.default-workspace.reference-id</code> on the server).
                 If set, the value must match an existing workspace's reference ID — unknown
-                IDs are dropped server-side with a warning.
+                IDs are dropped server-side with a warning, unless the hub enables
+                <code>jeffrey.hub.workspaces.auto-create=true</code>, in which case the
+                workspace is created on the first incoming event.
               </td>
             </tr>
             <tr>
@@ -180,6 +185,30 @@ additional-jvm-options = "-Xmx2g -Xms2g -Djeffrey.logging.trace-file.path=<<JEFF
               <td>Print the <code>.env</code> file content to stdout (default: <code>false</code>)</td>
             </tr>
             <tr>
+              <td><code>profiler-config</code></td>
+              <td>No</td>
+              <td>—</td>
+              <td>Explicit async-profiler command string. Overrides both hub-pushed workspace settings and the built-in default. Supports the <code>&lt;&lt;JEFFREY_PROFILER_PATH&gt;&gt;</code> and <code>&lt;&lt;JEFFREY_CURRENT_SESSION&gt;&gt;</code> placeholders.</td>
+            </tr>
+            <tr>
+              <td><code>repository-type</code></td>
+              <td>No</td>
+              <td>—</td>
+              <td>Recording repository type: <code>ASYNC_PROFILER</code> (default) or <code>JDK</code>.</td>
+            </tr>
+            <tr>
+              <td><code>additional-jvm-options</code></td>
+              <td>No</td>
+              <td>—</td>
+              <td>Extra JVM flags appended to the generated arguments. Supports the <code>&lt;&lt;JEFFREY_CURRENT_SESSION&gt;&gt;</code> placeholder.</td>
+            </tr>
+            <tr>
+              <td><code>provisioner-verbose</code></td>
+              <td>No</td>
+              <td><code>JEFFREY_PROVISIONER_VERBOSE</code></td>
+              <td>Enables DEBUG logging of the provisioner itself (accepts <code>1</code>/<code>true</code>/<code>yes</code>/<code>on</code>).</td>
+            </tr>
+            <tr>
               <td><code>attributes</code></td>
               <td>No</td>
               <td>—</td>
@@ -220,29 +249,17 @@ additional-jvm-options = "-Xmx2g -Xms2g -Djeffrey.logging.trace-file.path=<<JEFF
             <p>Structured JVM diagnostic logging including GC events, JIT compilation, and JFR activity. Files with <code>-jvm.log</code> suffix are automatically recognized as JVM log artifacts. Use <code>&lt;&lt;JEFFREY_CURRENT_SESSION&gt;&gt;</code> placeholder in the command for the session directory path.</p>
             <code>jvm-logging { enabled = true }</code>
           </div>
-          <div class="feature-card messaging">
-            <div class="feature-icon"><i class="bi bi-broadcast"></i></div>
-            <h4>Messaging</h4>
-            <p>Enables <code>jeffrey.ImportantMessage</code> JFR events for real-time message consumption via the streaming repository.</p>
-            <code>messaging { enabled = true }</code>
-          </div>
-          <div class="feature-card alerting">
-            <div class="feature-icon"><i class="bi bi-exclamation-triangle"></i></div>
-            <h4>Alerting</h4>
-            <p>Enables <code>jeffrey.Alert</code> JFR events for real-time alert consumption via the streaming repository.</p>
-            <code>alerting { enabled = true }</code>
+          <div class="feature-card heartbeat">
+            <div class="feature-icon"><i class="bi bi-heart-pulse"></i></div>
+            <h4>Heartbeat &amp; Clean-Exit Marker</h4>
+            <p>Automatic whenever <code>agent-path</code> resolves — not a configuration block. The Jeffrey Agent writes <code>.heartbeat/heartbeat</code> (epoch millis) into the session directory every 5 seconds, and a <code>.heartbeat/finished</code> marker on clean JVM shutdown, so the hub detects finished sessions immediately and falls back to heartbeat staleness only after crashes.</p>
+            <code>agent-path = ".../jeffrey-agent.jar"</code>
           </div>
           <div class="feature-card streaming">
             <div class="feature-icon"><i class="bi bi-arrow-repeat"></i></div>
-            <h4>Streaming</h4>
-            <p>Controls the JFR streaming recording shared by messaging, alerting, and heartbeat. Configures <code>max-age</code> for streaming data retention.</p>
-            <code>streaming { max-age = "2d" }</code>
-          </div>
-          <div class="feature-card heartbeat">
-            <div class="feature-icon"><i class="bi bi-heart-pulse"></i></div>
-            <h4>Heartbeat</h4>
-            <p>Enables periodic <code>jeffrey.Heartbeat</code> JFR events for reliable session liveness detection.</p>
-            <code>heartbeat { enabled = true }</code>
+            <h4>JFR Streaming Repository</h4>
+            <p>Automatic whenever <code>agent-path</code> resolves. The JVM is started with <code>-XX:FlightRecorderOptions=repository=&lt;session&gt;/streaming-repo</code> so the hub can stream live JFR events from the session directory.</p>
+            <code>-XX:FlightRecorderOptions=repository=...</code>
           </div>
           <div class="feature-card jdk-options">
             <div class="feature-icon"><i class="bi bi-gear-wide-connected"></i></div>
@@ -332,16 +349,8 @@ additional-jvm-options = "-Xmx2g -Xms2g -Djeffrey.logging.trace-file.path=<<JEFF
   background: linear-gradient(135deg, #10b981 0%, #059669 100%);
 }
 
-.feature-card.messaging .feature-icon {
-  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-}
-
 .feature-card.debug-safepoints .feature-icon {
   background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
-}
-
-.feature-card.alerting .feature-icon {
-  background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%);
 }
 
 .feature-card.streaming .feature-icon {

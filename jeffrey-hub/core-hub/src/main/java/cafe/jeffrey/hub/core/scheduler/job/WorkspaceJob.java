@@ -51,6 +51,11 @@ public abstract class WorkspaceJob<T extends JobDescriptor<T>> implements Job {
     }
 
     @Override
+    public ExecutorGroup executorGroup() {
+        return ExecutorGroup.PROJECT_FAN_OUT;
+    }
+
+    @Override
     public void execute(JobContext context) {
         String simpleName = this.getClass().getSimpleName();
 

@@ -4,6 +4,7 @@ import cafe.jeffrey.provisioner.model.HeapDumpType;
 import cafe.jeffrey.shared.common.AppInfoConstants;
 import cafe.jeffrey.shared.common.CliConstants;
 import cafe.jeffrey.shared.common.HeartbeatConstants;
+import cafe.jeffrey.shared.common.JeffreyLayout;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
@@ -13,8 +14,6 @@ import java.util.Map;
 public class FeatureBuilder {
 
     public static final String PERF_COUNTERS_FILE = "perf-counters.hsperfdata";
-    public static final String STREAMING_REPO_DIR = "streaming-repo";
-    public static final String HEARTBEAT_DIR = HeartbeatConstants.HEARTBEAT_DIR;
 
     /* Performance data JVM options */
     private static final String PERF_DATA_OPTIONS = "-XX:+UsePerfData -XX:PerfDataSaveFile="
@@ -36,7 +35,7 @@ public class FeatureBuilder {
 
     /* Streaming JFR options (used by Jeffrey Agent for repository location) */
     private static final String STREAMING_FLIGHT_RECORDER_OPTIONS =
-            "-XX:FlightRecorderOptions=repository=" + CliConstants.CURRENT_SESSION + "/" + STREAMING_REPO_DIR + "";
+            "-XX:FlightRecorderOptions=repository=" + CliConstants.CURRENT_SESSION + "/" + JeffreyLayout.STREAMING_REPO_DIR;
 
     /* Agent JVM option prefix (passes heartbeat directory as the first agent argument) */
     private static final String AGENT_OPTION_PREFIX = "-javaagent:%s=" + HeartbeatConstants.PARAM_DIR + "=%s";
@@ -119,7 +118,7 @@ public class FeatureBuilder {
         }
 
         if (agentPath != null && !agentPath.isBlank()) {
-            String heartbeatDirPath = currentSessionPath.resolve(HEARTBEAT_DIR).toString();
+            String heartbeatDirPath = currentSessionPath.resolve(HeartbeatConstants.HEARTBEAT_DIR).toString();
             StringBuilder agentOption = new StringBuilder(String.format(AGENT_OPTION_PREFIX, agentPath, heartbeatDirPath));
             appendAppIdentity(agentOption);
             options.append(agentOption);

@@ -35,6 +35,14 @@ public abstract class HeartbeatConstants {
     /** Name of the heartbeat file (contains epoch millis) */
     public static final String HEARTBEAT_FILE = "heartbeat";
 
+    /**
+     * Name of the clean-exit marker file (contains epoch millis). Written into
+     * {@link #HEARTBEAT_DIR} by the agent's shutdown hook; its presence lets the
+     * hub finish a session deterministically instead of waiting for the
+     * heartbeat to go stale. Absent after a hard crash (kill -9, OOM kill).
+     */
+    public static final String FINISHED_FILE = "finished";
+
     /** Agent argument key for heartbeat directory path */
     public static final String PARAM_DIR = "heartbeat.dir";
 
@@ -44,6 +52,6 @@ public abstract class HeartbeatConstants {
     /** Agent argument key to enable/disable heartbeat (optional, defaults to true) */
     public static final String PARAM_ENABLED = "heartbeat.enabled";
 
-    /** Default heartbeat interval */
-    public static final Duration DEFAULT_INTERVAL = Duration.ofSeconds(10);
+    /** Default heartbeat interval. Must match {@code AgentArgs.DEFAULT_INTERVAL} in jeffrey-agent. */
+    public static final Duration DEFAULT_INTERVAL = Duration.ofSeconds(5);
 }

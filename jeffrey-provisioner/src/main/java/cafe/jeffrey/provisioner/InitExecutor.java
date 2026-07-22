@@ -20,7 +20,9 @@ package cafe.jeffrey.provisioner;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import cafe.jeffrey.shared.common.HeartbeatConstants;
 import cafe.jeffrey.shared.common.IDGenerator;
+import cafe.jeffrey.shared.common.JeffreyLayout;
 import cafe.jeffrey.shared.common.model.repository.RemoteProject;
 import cafe.jeffrey.shared.common.model.repository.RemoteProjectInstance;
 import cafe.jeffrey.shared.common.model.repository.RemoteProjectInstanceSession;
@@ -43,9 +45,6 @@ public class InitExecutor {
 
     private static final Clock CLOCK = Clock.systemUTC();
 
-    private static final String WORKSPACES_DIR_NAME = "workspaces";
-    private static final String EVENTS_DIR_NAME = ".events";
-
     /**
      * Executes the initialization with the given configuration.
      *
@@ -59,7 +58,7 @@ public class InitExecutor {
 
         if (config.useJeffreyHome()) {
             jeffreyHome = createDirectories(Path.of(config.getJeffreyHome()));
-            workspacesPath = createDirectories(jeffreyHome.resolve(WORKSPACES_DIR_NAME));
+            workspacesPath = createDirectories(jeffreyHome.resolve(JeffreyLayout.WORKSPACES_DIR));
         } else {
             workspacesPath = createDirectories(Path.of(config.getWorkspacesDir()));
             jeffreyHome = null;
@@ -69,7 +68,7 @@ public class InitExecutor {
             throw new RuntimeException("Cannot create parent directories: " + workspacesPath);
         }
 
-        Path eventsDir = workspacesPath.resolve(EVENTS_DIR_NAME);
+        Path eventsDir = workspacesPath.resolve(JeffreyLayout.EVENTS_DIR);
         FolderQueue folderQueue = new FolderQueue(eventsDir, CLOCK);
         EventPublisher eventPublisher = new EventPublisher(folderQueue, CLOCK);
 
@@ -125,8 +124,8 @@ public class InitExecutor {
         Path newSessionPath = createDirectories(instancePath.resolve(sessionId));
         LOG.debug("Session directory created: sessionId={} sessionPath={}", sessionId, newSessionPath);
 
-        createDirectories(newSessionPath.resolve(FeatureBuilder.STREAMING_REPO_DIR));
-        createDirectories(newSessionPath.resolve(FeatureBuilder.HEARTBEAT_DIR));
+        createDirectories(newSessionPath.resolve(JeffreyLayout.STREAMING_REPO_DIR));
+        createDirectories(newSessionPath.resolve(HeartbeatConstants.HEARTBEAT_DIR));
 
         // Calculate order: find max order from existing sessions + 1. Computed
         // before building features so the agent can emit it in jeffrey.AppInformation.
@@ -159,13 +158,15 @@ public class InitExecutor {
                 .setAppIdentity(appIdentity)
                 .build(newSessionPath);
 
-        String profilerSettings = new ProfilerSettingsResolver().resolve(
+        ProfilerSettingsResolver.ResolvedProfilerSettings resolvedSettings = new ProfilerSettingsResolver().resolve(
                 config.getProfilerPath(),
                 config.getProfilerConfig(),
                 workspacePath,
+                projectId,
                 config.getProjectName(),
                 newSessionPath,
                 features);
+        String profilerSettings = resolvedSettings.command();
 
         repository.addSession(
                 sessionId,
@@ -173,7 +174,8 @@ public class InitExecutor {
                 config.getWorkspaceRefId(),
                 instanceId,
                 order,
-                newSessionPath);
+                newSessionPath,
+                resolvedSettings);
 
         eventPublisher.publishSessionCreated(
                 sessionId, projectId, config.getWorkspaceRefId(),

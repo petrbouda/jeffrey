@@ -36,11 +36,16 @@ public class HeartbeatProducer implements Closeable {
 
     private static final System.Logger LOG = System.getLogger(HeartbeatProducer.class.getName());
 
+    // Duplicated from HeartbeatConstants — agent must stay zero-dependency for minimal JAR size
     private static final String HEARTBEAT_FILE_NAME = "heartbeat";
     private static final String HEARTBEAT_TMP_FILE_NAME = "heartbeat.tmp";
+    private static final String FINISHED_FILE_NAME = "finished";
+    private static final String FINISHED_TMP_FILE_NAME = "finished.tmp";
 
     private final Path heartbeatFile;
     private final Path heartbeatTmpFile;
+    private final Path finishedFile;
+    private final Path finishedTmpFile;
     private final Duration interval;
     private final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor(r -> {
         Thread t = new Thread(r, "jeffrey-heartbeat");
@@ -51,6 +56,8 @@ public class HeartbeatProducer implements Closeable {
     public HeartbeatProducer(Path heartbeatDir, Duration interval) {
         this.heartbeatFile = heartbeatDir.resolve(HEARTBEAT_FILE_NAME);
         this.heartbeatTmpFile = heartbeatDir.resolve(HEARTBEAT_TMP_FILE_NAME);
+        this.finishedFile = heartbeatDir.resolve(FINISHED_FILE_NAME);
+        this.finishedTmpFile = heartbeatDir.resolve(FINISHED_TMP_FILE_NAME);
         this.interval = interval;
     }
 
@@ -60,13 +67,7 @@ public class HeartbeatProducer implements Closeable {
 
     private void beat() {
         try {
-            long now = System.currentTimeMillis();
-            Files.writeString(heartbeatTmpFile, Long.toString(now));
-            try {
-                Files.move(heartbeatTmpFile, heartbeatFile, ATOMIC_MOVE, REPLACE_EXISTING);
-            } catch (AtomicMoveNotSupportedException e) {
-                Files.move(heartbeatTmpFile, heartbeatFile, REPLACE_EXISTING);
-            }
+            writeEpochFile(heartbeatTmpFile, heartbeatFile);
         } catch (Exception e) {
             LOG.log(WARNING, "Failed to write heartbeat file", e);
         }
@@ -76,9 +77,26 @@ public class HeartbeatProducer implements Closeable {
     public void close() {
         executor.shutdownNow();
         try {
+            // Clean-exit marker: its presence lets the hub finish the session
+            // deterministically instead of waiting for the heartbeat to go stale.
+            writeEpochFile(finishedTmpFile, finishedFile);
+        } catch (Exception e) {
+            LOG.log(WARNING, "Failed to write finished marker file", e);
+        }
+        try {
             Files.deleteIfExists(heartbeatTmpFile);
         } catch (IOException e) {
             // best-effort cleanup
+        }
+    }
+
+    private static void writeEpochFile(Path tmpFile, Path targetFile) throws IOException {
+        long now = System.currentTimeMillis();
+        Files.writeString(tmpFile, Long.toString(now));
+        try {
+            Files.move(tmpFile, targetFile, ATOMIC_MOVE, REPLACE_EXISTING);
+        } catch (AtomicMoveNotSupportedException e) {
+            Files.move(tmpFile, targetFile, REPLACE_EXISTING);
         }
     }
 }

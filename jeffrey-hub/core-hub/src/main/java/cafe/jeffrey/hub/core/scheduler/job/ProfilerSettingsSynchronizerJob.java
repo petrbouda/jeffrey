@@ -77,6 +77,7 @@ public class ProfilerSettingsSynchronizerJob extends
         String globalSettings = null;
         String workspaceSettings = null;
         Map<String, String> projectSettings = new HashMap<>();
+        Map<String, String> projectSettingsById = new HashMap<>();
         for (ProfilerInfo profilerInfo : profilerInfos) {
             if (profilerInfo.isGlobal()) {
                 globalSettings = profilerInfo.agentSettings();
@@ -86,13 +87,19 @@ public class ProfilerSettingsSynchronizerJob extends
                 platformRepositories.newProjectRepository(profilerInfo.projectId())
                         .find()
                         .ifPresent(info -> {
-                            // The uploaded bundle is keyed by project NAME — that is the lookup
-                            // contract of the provisioner-side resolver. Two same-named projects
-                            // would silently overwrite each other, so make the collision visible.
+                            // The bundle is published under two keys: the origin project id
+                            // (authoritative — the id the provisioner knows from .project-info.json)
+                            // and the project name (fallback for older provisioners). Two same-named
+                            // projects still overwrite each other in the name map, so make the
+                            // collision visible; the id-keyed lookup is unaffected by it.
+                            if (info.originId() != null) {
+                                projectSettingsById.put(info.originId(), profilerInfo.agentSettings());
+                            }
                             String previous = projectSettings.put(info.name(), profilerInfo.agentSettings());
                             if (previous != null && !previous.equals(profilerInfo.agentSettings())) {
                                 LOG.warn("Multiple projects share the same name, their profiler settings " +
-                                                "overwrite each other in the uploaded bundle: project_name={} project_id={}",
+                                                "overwrite each other in the uploaded bundle (id-keyed lookup " +
+                                                "is authoritative for new provisioners): project_name={} project_id={}",
                                         info.name(), profilerInfo.projectId());
                             }
                         });
@@ -101,7 +108,7 @@ public class ProfilerSettingsSynchronizerJob extends
 
         String defaultSettings = workspaceSettings != null ? workspaceSettings : globalSettings;
         String defaultSettingsLevel = workspaceSettings != null ? "WORKSPACE" : (globalSettings != null ? "GLOBAL" : null);
-        return new ProfilerSettings(defaultSettings, defaultSettingsLevel, projectSettings);
+        return new ProfilerSettings(defaultSettings, defaultSettingsLevel, projectSettings, projectSettingsById);
     }
 
     @Override

@@ -78,44 +78,41 @@ onMounted(() => {
 ├── profile-1704067200.jfr       # JFR chunk (timestamp-based naming)
 ├── profile-1704067800.jfr       # Next chunk after loop interval
 ├── profile-1704068400.jfr       # ... more chunks
+├── streaming-repo/              # JDK JFR streaming repository (always created)
+├── .heartbeat/                  # Agent liveness files
+│   ├── heartbeat                # Epoch millis, rewritten every 5 seconds
+│   └── finished                 # Clean-exit marker (written on JVM shutdown)
 ├── heap-dump.hprof.gz           # Heap dump (if captured)
 ├── jfr-jvm.log                  # JVM log (if enabled)
-├── perf-counters.hsperfdata     # Performance counters (finisher file)
-├── hs-jvm-err.log               # HotSpot error log (finisher file)
+├── perf-counters.hsperfdata     # Performance counters (if enabled)
+├── hs-jvm-err.log               # HotSpot error log (written on JVM crash)
 └── .session-info.json           # Session metadata</code></pre>
         </div>
 
         <p>Async-Profiler creates new chunks based on the <code>loop</code> and <code>chunksize</code> parameters. The <code>%t</code> placeholder in the file pattern is replaced with the current timestamp.</p>
 
         <DocsCallout type="info">
-          <strong>Additional files:</strong> <code>perf-counters.hsperfdata</code> (HotSpot Performance Counters) and <code>hs-jvm-err.log</code> (HotSpot JVM Error Log) are artifact files that can be viewed in the session details. The presence of <code>hs-jvm-err.log</code> indicates a JVM crash was detected.
+          <strong>Liveness files:</strong> the Jeffrey Agent rewrites <code>.heartbeat/heartbeat</code> every 5 seconds and writes <code>.heartbeat/finished</code> from its shutdown hook on clean exit. The hub finishes a session immediately when the <code>finished</code> marker appears, and falls back to heartbeat staleness for crashed JVMs. The presence of <code>hs-jvm-err.log</code> indicates a JVM crash was detected.
         </DocsCallout>
 
         <h2 id="streaming-repository">Streaming Repository</h2>
-        <p>When <code>messaging</code> is enabled, an additional <code>streaming-repo/</code> subdirectory is created for JDK's JFR streaming repository:</p>
+        <p>The <code>streaming-repo/</code> subdirectory is created unconditionally and the JVM is started with <code>-XX:FlightRecorderOptions=repository=&lt;session&gt;/streaming-repo</code>, so JDK's JFR streaming repository lives inside the session directory:</p>
 
         <div class="directory-structure">
           <pre><code>&lt;session-id&gt;/
 ├── profile-*.jfr                # Async-Profiler output
 ├── streaming-repo/              # JDK JFR streaming repository
-│   ├── repository/
-│   │   ├── metadata             # Repository metadata
-│   │   ├── chunk0               # Streaming chunks
-│   │   ├── chunk1
-│   │   └── ...
-│   └── .mark                    # Repository marker
+│   ├── metadata                 # Repository metadata
+│   ├── chunk0                   # Streaming chunks
+│   ├── chunk1
+│   └── ...
 └── .session-info.json</code></pre>
         </div>
 
-        <p>The streaming repository serves two purposes:</p>
-        <ul>
-          <li><strong>Heartbeat events</strong> - Periodic liveness signals emitted by the Jeffrey Agent, used by the platform to detect when sessions finish</li>
-          <li><strong>Application events</strong> - Messages and alerts emitted by the application for real-time processing</li>
-        </ul>
-        <p>Unlike Async-Profiler files which are written periodically, streaming events are captured in real-time and stored in the JDK's native repository format.</p>
+        <p>The streaming repository lets the hub stream live JFR events from a running session — including the <code>jeffrey.AppInformation</code> event the Jeffrey Agent emits at the start of every JFR chunk, which makes each chunk self-describing (workspace, project, instance, session, order).</p>
 
         <DocsCallout type="info">
-          <strong>Two recording mechanisms:</strong> Async-Profiler generates high-performance profiling data (CPU, allocation, lock) while the JDK streaming repository captures Heartbeat, Message, and Alert events. Both coexist in the same session directory.
+          <strong>Two recording mechanisms:</strong> Async-Profiler generates high-performance profiling data (CPU, allocation, lock) written as chunked <code>profile-*.jfr</code> files, while the JDK streaming repository captures live events for real-time streaming. Both coexist in the same session directory.
         </DocsCallout>
       </div>
 

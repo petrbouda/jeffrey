@@ -21,6 +21,8 @@ package cafe.jeffrey.provisioner;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import cafe.jeffrey.provisioner.model.HeapDumpType;
+import cafe.jeffrey.shared.common.HeartbeatConstants;
+import cafe.jeffrey.shared.common.JeffreyLayout;
 
 import java.nio.file.Path;
 
@@ -174,9 +176,9 @@ class FeatureBuilderTest {
                     .build(SESSION_PATH);
 
             assertTrue(result.contains("-javaagent:/path/to/jeffrey-agent.jar=heartbeat.dir="));
-            assertTrue(result.contains(SESSION_PATH.resolve(FeatureBuilder.HEARTBEAT_DIR).toString()));
+            assertTrue(result.contains(SESSION_PATH.resolve(HeartbeatConstants.HEARTBEAT_DIR).toString()));
             assertTrue(result.contains("-XX:FlightRecorderOptions=repository="));
-            assertTrue(result.contains(FeatureBuilder.STREAMING_REPO_DIR));
+            assertTrue(result.contains(JeffreyLayout.STREAMING_REPO_DIR));
         }
 
         @Test

@@ -101,6 +101,13 @@ class HeartbeatToSessionFinishIntegrationTest {
                 String.valueOf(timestamp.toEpochMilli()));
     }
 
+    private static void writeFinishedMarkerFile(Path sessionDir, Instant timestamp) throws IOException {
+        Path heartbeatDir = sessionDir.resolve(HeartbeatConstants.HEARTBEAT_DIR);
+        Files.createDirectories(heartbeatDir);
+        Files.writeString(heartbeatDir.resolve(HeartbeatConstants.FINISHED_FILE),
+                String.valueOf(timestamp.toEpochMilli()));
+    }
+
     @Nested
     class GracefulShutdownScenario {
         @Test
@@ -149,6 +156,69 @@ class HeartbeatToSessionFinishIntegrationTest {
                     () -> assertEquals(WorkspaceEventType.PROJECT_INSTANCE_SESSION_FINISHED, event.eventType()),
                     () -> assertEquals(SESSION_ID, event.originEventId())
             );
+        }
+    }
+
+    @Nested
+    class CleanExitMarkerScenario {
+
+        @Test
+        void freshHeartbeat_withFinishedMarker_sessionFinishedImmediately(
+                DataSource dataSource, @TempDir Path tempDir) throws SQLException, IOException {
+
+            TestUtils.executeSql(dataSource, "sql/e2e/insert-project-for-e2e.sql");
+
+            var clock = new MutableClock(NOW);
+            var repoRepo = createRepoRepository(clock, dataSource);
+            var queue = createQueue(clock, dataSource);
+            var emitter = new SessionFinishEventEmitter(clock, new QueueWorkspaceEventPublisher(queue));
+            var fileHeartbeatReader = new FileHeartbeatReader();
+            var platformRepositories = createHubPlatformRepositories(clock, dataSource);
+            var finisher = new SessionFinisher(clock, emitter, fileHeartbeatReader, platformRepositories);
+
+            // Heartbeat is completely fresh — a plain staleness check would skip this session
+            Path sessionDir = tempDir.resolve("session-2025-06-15");
+            Instant heartbeatTime = NOW.minusSeconds(1);
+            writeHeartbeatFile(sessionDir, heartbeatTime);
+
+            // The agent's shutdown hook wrote the clean-exit marker
+            Instant cleanExitTime = NOW;
+            writeFinishedMarkerFile(sessionDir, cleanExitTime);
+
+            ProjectInstanceSessionInfo sessionInfo = repoRepo.findSessionById(SESSION_ID).orElseThrow();
+
+            boolean finished = finisher.tryFinishFromHeartbeat(
+                    repoRepo, PROJECT_INFO, sessionInfo, sessionDir, HEARTBEAT_THRESHOLD, clock.instant());
+
+            assertTrue(finished, "Session must finish immediately when the clean-exit marker is present");
+
+            ProjectInstanceSessionInfo finishedSession = repoRepo.findSessionById(SESSION_ID).orElseThrow();
+            assertEquals(cleanExitTime, finishedSession.finishedAt());
+        }
+
+        @Test
+        void noMarker_freshHeartbeat_sessionStaysActive(
+                DataSource dataSource, @TempDir Path tempDir) throws SQLException, IOException {
+
+            TestUtils.executeSql(dataSource, "sql/e2e/insert-project-for-e2e.sql");
+
+            var clock = new MutableClock(NOW);
+            var repoRepo = createRepoRepository(clock, dataSource);
+            var queue = createQueue(clock, dataSource);
+            var emitter = new SessionFinishEventEmitter(clock, new QueueWorkspaceEventPublisher(queue));
+            var fileHeartbeatReader = new FileHeartbeatReader();
+            var platformRepositories = createHubPlatformRepositories(clock, dataSource);
+            var finisher = new SessionFinisher(clock, emitter, fileHeartbeatReader, platformRepositories);
+
+            Path sessionDir = tempDir.resolve("session-2025-06-15");
+            writeHeartbeatFile(sessionDir, NOW.minusSeconds(1));
+
+            ProjectInstanceSessionInfo sessionInfo = repoRepo.findSessionById(SESSION_ID).orElseThrow();
+
+            boolean finished = finisher.tryFinishFromHeartbeat(
+                    repoRepo, PROJECT_INFO, sessionInfo, sessionDir, HEARTBEAT_THRESHOLD, clock.instant());
+
+            assertFalse(finished, "Without a marker, a fresh heartbeat must keep the session active");
         }
     }
 

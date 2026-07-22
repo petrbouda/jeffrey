@@ -246,7 +246,7 @@ exec java @/tmp/jvm.args -jar /app/my-app.jar`;
           to="/docs/provisioner/configuration"
           icon="bi bi-gear"
           title="Configuration"
-          description="Learn about HOCON configuration files, available options, features (heap dumps, JVM logging, messaging), and profiler backends."
+          description="Learn about HOCON configuration files, available options, features (heap dumps, JVM logging, perf counters), and profiler backends."
         />
 
         <h2 id="integration">Integration with Jeffrey</h2>

@@ -167,6 +167,29 @@ class SessionFinisherIntegrationTest {
         }
 
         @Test
+        void prefersFinishedMarker_overHeartbeat(DataSource dataSource) throws SQLException {
+            TestUtils.executeSql(dataSource, "sql/session-finisher/insert-project-with-unfinished-session.sql");
+            var clock = new MutableClock(NOW);
+            var repository = createRepository(clock, dataSource);
+            var queue = createQueue(clock, dataSource);
+            var emitter = new SessionFinishEventEmitter(clock, new QueueWorkspaceEventPublisher(queue));
+            var platformRepositories = createHubPlatformRepositories(clock, dataSource);
+            var finisher = new SessionFinisher(clock, emitter, fileHeartbeatReader, platformRepositories);
+
+            Instant markerTimestamp = Instant.parse("2025-06-15T11:35:00Z");
+            when(fileHeartbeatReader.readFinishedMarker(SESSION_PATH))
+                    .thenReturn(Optional.of(markerTimestamp));
+
+            ProjectInstanceSessionInfo sessionInfo = repository.findSessionById(SESSION_ID).orElseThrow();
+            Instant fallback = Instant.parse("2025-06-15T11:00:00Z");
+
+            finisher.forceFinish(repository, PROJECT_INFO, sessionInfo, SESSION_PATH, fallback);
+
+            ProjectInstanceSessionInfo updated = repository.findSessionById(SESSION_ID).orElseThrow();
+            assertEquals(markerTimestamp, updated.finishedAt());
+        }
+
+        @Test
         void usesFallbackTimestamp_whenNoHeartbeat(DataSource dataSource) throws SQLException {
             TestUtils.executeSql(dataSource, "sql/session-finisher/insert-project-with-unfinished-session.sql");
             var clock = new MutableClock(NOW);

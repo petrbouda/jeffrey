@@ -20,6 +20,7 @@ package cafe.jeffrey.hub.core.repository;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import cafe.jeffrey.shared.common.JeffreyLayout;
 import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.shared.common.model.repository.RemoteProject;
@@ -46,7 +47,7 @@ public class FilesystemRemoteWorkspaceRepository implements RemoteWorkspaceRepos
     private static final Logger LOG = LoggerFactory.getLogger(FilesystemRemoteWorkspaceRepository.class);
 
     private static final DateTimeFormatter TIMESTAMP_FORMATTER =
-            DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HHmmssSSSSSS").withZone(ZoneOffset.UTC);
+            DateTimeFormatter.ofPattern(JeffreyLayout.SETTINGS_TIMESTAMP_PATTERN).withZone(ZoneOffset.UTC);
 
     private static final Comparator<Path> TIMESTAMP_FILE_COMPARATOR =
             Comparator.comparing((Path path) -> {
@@ -55,12 +56,12 @@ public class FilesystemRemoteWorkspaceRepository implements RemoteWorkspaceRepos
                 return Instant.from(TIMESTAMP_FORMATTER.parse(substring));
             }).reversed();
 
-    private static final String PROJECT_INFO_FILE = ".project-info.json";
-    private static final String INSTANCE_INFO_FILE = ".instance-info.json";
-    private static final String SESSION_INFO_FILE = ".session-info.json";
-    private static final String WORKSPACE_SETTINGS_PREFIX = "settings-";
+    private static final String PROJECT_INFO_FILE = JeffreyLayout.PROJECT_INFO_FILE;
+    private static final String INSTANCE_INFO_FILE = JeffreyLayout.INSTANCE_INFO_FILE;
+    private static final String SESSION_INFO_FILE = JeffreyLayout.SESSION_INFO_FILE;
+    private static final String WORKSPACE_SETTINGS_PREFIX = JeffreyLayout.SETTINGS_FILE_PREFIX;
     private static final String WORKSPACE_SETTINGS_FILE_PATTERN = WORKSPACE_SETTINGS_PREFIX + "<<timestamp>>.json";
-    private static final String WORKSPACE_SETTINGS_DIR = ".settings";
+    private static final String WORKSPACE_SETTINGS_DIR = JeffreyLayout.SETTINGS_DIR;
 
     private final Path workspacePath;
     private final Clock clock;
