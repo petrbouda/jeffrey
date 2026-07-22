@@ -12,8 +12,8 @@
       <div>
         <h6 class="mb-1">No Baseline Profile Selected</h6>
         <p class="mb-0 small">
-          Select a secondary profile (the baseline heap dump) using the secondary-profile selector
-          in the sidebar, then return to this page.
+          Open the <strong>Secondary Profile</strong> panel in the top navigation bar and select a
+          baseline heap dump to compare against.
         </p>
       </div>
     </div>
