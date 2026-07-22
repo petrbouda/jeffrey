@@ -20,6 +20,7 @@ package cafe.jeffrey.provisioner;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import cafe.jeffrey.shared.common.JeffreyLayout;
 import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.shared.common.model.RepositoryType;
 import cafe.jeffrey.shared.common.model.repository.RemoteProject;
@@ -39,9 +40,9 @@ public class FileSystemRepository {
 
     private static final Logger LOG = LoggerFactory.getLogger(FileSystemRepository.class);
 
-    private static final String PROJECT_INFO_FILENAME = ".project-info.json";
-    private static final String INSTANCE_INFO_FILENAME = ".instance-info.json";
-    private static final String SESSION_INFO_FILENAME = ".session-info.json";
+    private static final String PROJECT_INFO_FILENAME = JeffreyLayout.PROJECT_INFO_FILE;
+    private static final String INSTANCE_INFO_FILENAME = JeffreyLayout.INSTANCE_INFO_FILE;
+    private static final String SESSION_INFO_FILENAME = JeffreyLayout.SESSION_INFO_FILE;
 
     private final Clock clock;
 

@@ -18,6 +18,7 @@
 
 package cafe.jeffrey.hub.core;
 
+import cafe.jeffrey.shared.common.JeffreyLayout;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.shared.common.filesystem.TempDirFactory;
 import cafe.jeffrey.shared.common.filesystem.TempDirectory;
@@ -26,11 +27,8 @@ import java.nio.file.Path;
 
 public class HubJeffreyDirs implements TempDirFactory {
 
-    private static final String WORKSPACES_DIR = "workspaces";
     private static final String TMP_DIR = "tmp";
     private static final String LIBS_DIR = "libs";
-    private static final String EVENTS_DIR = ".events";
-    private static final String STREAMING_REPO_DIR = "streaming-repo";
 
     private final Path homeDir;
     private final Path tempDir;
@@ -51,11 +49,11 @@ public class HubJeffreyDirs implements TempDirFactory {
     }
 
     public Path resolveStreamingRepo(Path sessionPath) {
-        return sessionPath.resolve(STREAMING_REPO_DIR);
+        return sessionPath.resolve(JeffreyLayout.STREAMING_REPO_DIR);
     }
 
     public Path workspaces() {
-        return homeDir.resolve(WORKSPACES_DIR);
+        return homeDir.resolve(JeffreyLayout.WORKSPACES_DIR);
     }
 
     public Path homeDir() {
@@ -81,6 +79,6 @@ public class HubJeffreyDirs implements TempDirFactory {
     }
 
     public Path workspaceEvents() {
-        return workspaces().resolve(EVENTS_DIR);
+        return workspaces().resolve(JeffreyLayout.EVENTS_DIR);
     }
 }

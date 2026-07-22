@@ -3,6 +3,7 @@ package cafe.jeffrey.provisioner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.shared.common.CliConstants;
+import cafe.jeffrey.shared.common.JeffreyLayout;
 import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.shared.common.model.repository.ProfilerSettings;
@@ -21,11 +22,11 @@ public class ProfilerSettingsResolver {
 
     private static final Logger LOG = LoggerFactory.getLogger(ProfilerSettingsResolver.class);
 
-    private static final String WORKSPACE_SETTINGS_PREFIX = "settings-";
-    private static final String WORKSPACE_SETTINGS_DIR = ".settings";
+    private static final String WORKSPACE_SETTINGS_PREFIX = JeffreyLayout.SETTINGS_FILE_PREFIX;
+    private static final String WORKSPACE_SETTINGS_DIR = JeffreyLayout.SETTINGS_DIR;
 
     private static final DateTimeFormatter TIMESTAMP_FORMATTER =
-            DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HHmmssSSSSSS").withZone(ZoneOffset.UTC);
+            DateTimeFormatter.ofPattern(JeffreyLayout.SETTINGS_TIMESTAMP_PATTERN).withZone(ZoneOffset.UTC);
 
     private static final Comparator<Path> TIMESTAMP_FILE_COMPARATOR =
             Comparator.comparing((Path path) -> {

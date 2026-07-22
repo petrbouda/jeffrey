@@ -22,6 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.hub.core.project.repository.file.FileInfoProcessor;
 import cafe.jeffrey.hub.persistence.api.ProjectRepositoryRepository;
+import cafe.jeffrey.shared.common.JeffreyLayout;
 import cafe.jeffrey.shared.common.compression.Lz4Compressor;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
@@ -50,8 +51,6 @@ import java.util.stream.IntStream;
 public class AsprofFileRepositoryStorage implements RepositoryStorage {
 
     private static final Logger LOG = LoggerFactory.getLogger(AsprofFileRepositoryStorage.class);
-
-    public static final String STREAMING_REPO_DIR = "streaming-repo";
 
     // JFR_LZ4 must come first so removeExtension matches longer extension first (.jfr.lz4 before .jfr)
     private static final List<SupportedRecordingFile> RECORDING_FILE_TYPES =
@@ -203,7 +202,7 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
                 sessionInfo.finishedAt(),
                 recordingStatus,
                 sessionPath,
-                sessionPath.resolve(STREAMING_REPO_DIR),
+                sessionPath.resolve(JeffreyLayout.STREAMING_REPO_DIR),
                 repositoryFiles);
     }
 
