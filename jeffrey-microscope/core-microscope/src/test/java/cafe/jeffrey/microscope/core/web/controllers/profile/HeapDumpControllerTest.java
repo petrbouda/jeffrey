@@ -24,6 +24,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
+import cafe.jeffrey.profile.manager.heapdump.HeapDumpInitService;
 import cafe.jeffrey.profile.manager.heapdump.HeapDumpManager;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.shared.common.exception.Exceptions;
@@ -44,13 +45,16 @@ class HeapDumpControllerTest {
     @Mock
     HeapDumpManager heapDumpManager;
 
+    @Mock
+    HeapDumpInitService initService;
+
     @Test
     void existsReportsFalseWhenAbsent() {
         when(resolver.resolve("p-1")).thenReturn(profileManager);
         when(profileManager.heapDumpManager()).thenReturn(heapDumpManager);
         when(heapDumpManager.heapDumpExists()).thenReturn(false);
 
-        MockMvcTester mvc = mockMvcTesterFor(new HeapDumpController(resolver));
+        MockMvcTester mvc = mockMvcTesterFor(new HeapDumpController(resolver, initService));
 
         assertThat(mvc.get().uri("/api/internal/profiles/p-1/heap/exists"))
                 .hasStatusOk()
@@ -61,7 +65,7 @@ class HeapDumpControllerTest {
     void profileNotFoundReturns404() {
         when(resolver.resolve("ghost")).thenThrow(Exceptions.profileNotFound("ghost"));
 
-        MockMvcTester mvc = mockMvcTesterFor(new HeapDumpController(resolver));
+        MockMvcTester mvc = mockMvcTesterFor(new HeapDumpController(resolver, initService));
 
         assertThat(mvc.get().uri("/api/internal/profiles/ghost/heap/exists"))
                 .hasStatus(404)
