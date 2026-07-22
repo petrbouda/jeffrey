@@ -19,6 +19,40 @@ container start the wrapper runs `provisioner init` (resolved from
 shared volume) and `exec`s the JIB command with the provisioner-produced argfile inserted right
 after the `java` binary.
 
+## Zero-config setup
+
+The config file is optional. Without `/jeffrey/jeffrey-base.conf` the provisioner configures
+itself from `JEFFREY_*` environment variables, and the extension bakes
+`JEFFREY_PROJECT_NAME` into the image (from the `projectName` property, defaulting to the
+Maven artifactId / Gradle project name). An image built with this extension is therefore
+fully self-identifying — the only Kubernetes YAML an application needs is the shared-volume
+mount:
+
+```yaml
+containers:
+  - name: app                       # image built with jeffrey-jib
+    volumeMounts:
+      - { name: jeffrey, mountPath: /mnt/jeffrey }   # = JEFFREY_HOME
+volumes:
+  - { name: jeffrey, persistentVolumeClaim: { claimName: jeffrey-pvc } }
+```
+
+Optional pod-level env overrides: `JEFFREY_PROJECT_NAME`, `JEFFREY_WORKSPACE`,
+`JEFFREY_PROJECT_LABEL`, `JEFFREY_ATTRIBUTES` (`key=value,key=value`),
+`JEFFREY_HEAP_DUMP` (`exit`|`crash`|`off`), `JEFFREY_PERF_COUNTERS`,
+`JEFFREY_JVM_LOGGING`, `JEFFREY_ADDITIONAL_JVM_OPTIONS`. A mounted HOCON file still wins
+over environment variables wherever it sets a value.
+
+## Fail-open guarantee
+
+Any misconfiguration starts the application **without profiling** instead of preventing it
+from starting: a missing provisioner binary, a broken or missing config, or a failed
+`provisioner init` all log one `profiling DISABLED: <reason>` line and `exec` the original
+command. On success the provisioner logs a single greppable verdict:
+`Jeffrey profiling ENABLED: project=… workspace=… instance=… session=… profiler_source=…`.
+Set `JEFFREY_WAIT_FOR_LIBS=<seconds>` to wait for the hub's copy-libs to populate the shared
+volume on fresh clusters (default `0`).
+
 ## Gradle usage
 
 ```kotlin
@@ -77,10 +111,11 @@ comparisons. No rebuild required.
 |---|---|---|
 | `enabled` | — | `true` (build-time gate) |
 | `jeffreyHome` | `JEFFREY_HOME` | `/mnt/azure/runtime/shared/jeffrey` |
-| `baseConfig` | `JEFFREY_BASE_CONFIG` | `/jeffrey/jeffrey-base.conf` |
+| `baseConfig` | `JEFFREY_BASE_CONFIG` | `/jeffrey/jeffrey-base.conf` (optional file) |
 | `overrideConfig` | `JEFFREY_OVERRIDE_CONFIG` | `/jeffrey/jeffrey-overrides.conf` (optional) |
 | `provisionerPath` | `JEFFREY_PROVISIONER_PATH` | `${JEFFREY_HOME}/libs/current/provisioner-<arch>` |
 | `argFile` | `JEFFREY_ARG_FILE` | `/tmp/jvm.args` |
+| `projectName` | `JEFFREY_PROJECT_NAME` | Maven artifactId / Gradle project name |
 
 All string properties are optional. Non-null values are baked as image-level ENV defaults;
 Kubernetes pod-level env vars still override them.
