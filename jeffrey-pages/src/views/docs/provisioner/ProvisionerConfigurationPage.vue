@@ -40,7 +40,7 @@ onMounted(() => {
 const envOnlySetup = `# The complete environment-only setup - no config file needed:
 JEFFREY_HOME=/mnt/jeffrey            # shared volume root (baked by jeffrey-jib)
 JEFFREY_PROJECT_NAME=my-service      # baked by jeffrey-jib from the artifactId
-JEFFREY_WORKSPACE=production         # optional (default: the hub's default workspace)
+JEFFREY_WORKSPACE_REF_ID=production         # optional (default: the hub's default workspace)
 
 # Optional extras:
 JEFFREY_PROJECT_LABEL="My Service"
@@ -150,7 +150,7 @@ additional-jvm-options = "-Xmx2g -Xms2g -Djeffrey.logging.trace-file.path=<<JEFF
             <tr>
               <td><code>project.workspace-ref-id</code></td>
               <td>No</td>
-              <td><code>JEFFREY_WORKSPACE</code></td>
+              <td><code>JEFFREY_WORKSPACE_REF_ID</code></td>
               <td>
                 Reference ID of the workspace on the target Jeffrey Hub. Optional — when
                 omitted (or blank), events route to the server's default workspace

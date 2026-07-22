@@ -59,7 +59,7 @@ public class InitConfig {
     private static final String ENV_PROVISIONER_VERBOSE = "JEFFREY_PROVISIONER_VERBOSE";
     private static final String ENV_PROJECT_NAME = "JEFFREY_PROJECT_NAME";
     private static final String ENV_PROJECT_LABEL = "JEFFREY_PROJECT_LABEL";
-    private static final String ENV_WORKSPACE = "JEFFREY_WORKSPACE";
+    private static final String ENV_WORKSPACE_REF_ID = "JEFFREY_WORKSPACE_REF_ID";
     private static final String ENV_INSTANCE_NAME = "JEFFREY_INSTANCE_NAME";
     private static final String ENV_ATTRIBUTES = "JEFFREY_ATTRIBUTES";
     private static final String ENV_HEAP_DUMP = "JEFFREY_HEAP_DUMP";
@@ -214,7 +214,7 @@ public class InitConfig {
 
         Config projectCfg = resolved.getConfig("project");
         ProjectConfig project = new ProjectConfig();
-        project.setWorkspaceRefId(resolveWithEnv(projectCfg.getString("workspace-ref-id"), ENV_WORKSPACE, envLookup));
+        project.setWorkspaceRefId(resolveWithEnv(projectCfg.getString("workspace-ref-id"), ENV_WORKSPACE_REF_ID, envLookup));
         project.setName(resolveWithEnv(projectCfg.getString("name"), ENV_PROJECT_NAME, envLookup));
         project.setLabel(resolveWithEnv(projectCfg.getString("label"), ENV_PROJECT_LABEL, envLookup));
         project.setInstanceName(resolveWithEnv(projectCfg.getString("instance-name"), ENV_INSTANCE_NAME, envLookup));

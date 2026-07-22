@@ -15,7 +15,7 @@
 #   JEFFREY_PROVISIONER_PATH default ${JEFFREY_HOME}/libs/current/provisioner-<arch>
 #   JEFFREY_BASE_CONFIG   default /jeffrey/jeffrey-base.conf (optional — without the file,
 #                         the provisioner configures itself from JEFFREY_* env vars such as
-#                         JEFFREY_PROJECT_NAME and JEFFREY_WORKSPACE)
+#                         JEFFREY_PROJECT_NAME and JEFFREY_WORKSPACE_REF_ID)
 #   JEFFREY_OVERRIDE_CONFIG default /jeffrey/jeffrey-overrides.conf (optional)
 #   JEFFREY_ARG_FILE      default /tmp/jvm.args
 #   JEFFREY_WAIT_FOR_LIBS seconds to wait for the shared volume to contain the provisioner
@@ -101,7 +101,7 @@ ARG_FILE="${JEFFREY_ARG_FILE:-/tmp/jvm.args}"
 rm -f "$ARG_FILE"
 
 # The config file is optional: when absent, the provisioner configures itself from
-# JEFFREY_* environment variables (JEFFREY_PROJECT_NAME, JEFFREY_WORKSPACE, ...).
+# JEFFREY_* environment variables (JEFFREY_PROJECT_NAME, JEFFREY_WORKSPACE_REF_ID, ...).
 INIT_OK=true
 if [ -f "$BASE_CONFIG" ]; then
   if [ -f "$OVERRIDE_CONFIG" ]; then

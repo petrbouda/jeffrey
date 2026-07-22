@@ -681,7 +681,7 @@ class InitConfigTest {
                     "JEFFREY_HOME", "/mnt/jeffrey",
                     "JEFFREY_PROJECT_NAME", "my-service",
                     "JEFFREY_PROJECT_LABEL", "My Service",
-                    "JEFFREY_WORKSPACE", "production",
+                    "JEFFREY_WORKSPACE_REF_ID", "production",
                     "JEFFREY_INSTANCE_NAME", "instance-7",
                     "JEFFREY_ATTRIBUTES", "cluster=blue, namespace=klingon",
                     "JEFFREY_HEAP_DUMP", "crash",
