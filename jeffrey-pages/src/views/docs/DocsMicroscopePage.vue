@@ -127,7 +127,7 @@ onMounted(() => {
       </div>
 
       <h3 id="recording-pipeline">Recording → Profile Pipeline</h3>
-      <p>A recording is just a JFR file on disk. Initializing a profile runs the parser, which writes events into a fresh <strong>per-profile DuckDB</strong>. Analysis features (Flamegraph, Timeseries, Sub-Second, Guardian, Threads, Heap Dump) read from that database on demand. Each profile owns its DB, so dropping a profile is a single file delete and parses run in parallel without contention. See <router-link to="/docs/microscope/storage">Storage</router-link> for tier-by-tier details.</p>
+      <p>A recording is just a JFR file on disk. Initializing a profile runs the parser, which writes events into a fresh <strong>per-profile DuckDB</strong>. Analysis features (Flamegraph, Timeseries, Sub-Second, Guardian, Threads) read from that database on demand. Each profile owns its DB, so dropping a profile is a single file delete and parses run in parallel without contention. Heap dumps follow a separate flow — a one-time initialization builds a sibling index next to the <code>.hprof</code> (see the <router-link to="/docs/microscope/profiles/heap-dump">Heap Dump Analysis</router-link> reference). See <router-link to="/docs/microscope/storage">Storage</router-link> for tier-by-tier details.</p>
 
       <div class="arch-flow">
         <div class="flow-node"><i class="bi bi-file-earmark-binary"></i><span>Recording (JFR)</span></div>

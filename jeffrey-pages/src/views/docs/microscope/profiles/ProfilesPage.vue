@@ -274,6 +274,7 @@ const folderStructure = `$JEFFREY_HOME/
 
       <h2 id="heap-dump-analysis">Heap Dump Analysis</h2>
       <p>Memory analysis from heap dump snapshots (.hprof files). Requires a heap dump to be associated with the profile.</p>
+      <p>A heap dump is analyzed through a one-time <strong>initialization pipeline</strong> shown as staged progress: <strong>Heap Indexing</strong> (Loading heap dump &rarr; Parsing heap structure &rarr; Building indexes) builds a sibling index next to the <code>.hprof</code>; <strong>Memory Analysis</strong> then precomputes strings, the dominator tree, threads, biggest objects, collections and leak suspects; and <strong>Hotspots</strong> finishes class loaders, memory consumers, duplicate data and biggest collections. Once initialized, every feature below reads from the index instantly.</p>
 
       <div class="docs-grid docs-grid-2">
         <DocsFeatureCard
@@ -288,8 +289,13 @@ const folderStructure = `$JEFFREY_HOME/
         />
         <DocsFeatureCard
           icon="bi bi-collection"
+          title="Collection Analysis"
+          description="Find over-allocated and empty collections — poor fill ratios and wasted capacity across array-backed collections plus ArrayDeque, ConcurrentHashMap, TreeMap, LinkedList and the Set family."
+        />
+        <DocsFeatureCard
+          icon="bi bi-bar-chart-steps"
           title="Biggest Collections"
-          description="Find the largest collections by size, capacity, and fill ratio — surface over-allocated maps and lists that waste memory. Covers array-backed collections plus ArrayDeque, ConcurrentHashMap, TreeMap, LinkedList and the Set family."
+          description="The largest collection instances ranked by element count and retained size — the individual maps, lists and sets that hold the most memory."
         />
         <DocsFeatureCard
           icon="bi bi-box-seam-fill"
@@ -322,12 +328,20 @@ const folderStructure = `$JEFFREY_HOME/
           description="Loader hierarchy with per-loader unloadability verdict — unloadable, rooted (effectively rooted via the parent chain), or pinned (the classic redeploy-leak signature). Suspicious-loader and duplicate-class tabs surface common metaspace leaks."
         />
         <DocsFeatureCard
+          icon="bi bi-diagram-2"
+          title="Threads"
+          description="Reconstruct the threads captured in the heap dump — their stack frames and the objects they retain — straight from the snapshot, no live recording required."
+        />
+        <DocsFeatureCard
           icon="bi bi-stars"
           title="AI Heap Dump Analysis"
           description="Conversational analysis over your heap dump — ask about retained sizes, suspected leaks, dominator chains, and string duplication in natural language."
         />
       </div>
 
+      <p class="docs-read-more">
+        <router-link to="/docs/microscope/profiles/heap-dump">Read the Heap Dump Analysis reference &rarr;</router-link>
+      </p>
       <p class="docs-read-more">
         <router-link to="/docs/ai/heap-dump-analysis">Read the AI Heap Dump Analysis reference &rarr;</router-link>
       </p>

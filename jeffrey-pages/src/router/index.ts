@@ -220,6 +220,11 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/docs/microscope/profiles/ProfilesPage.vue')
       },
       {
+        path: 'microscope/profiles/heap-dump',
+        name: 'DocsProfilesHeapDump',
+        component: () => import('@/views/docs/microscope/profiles/HeapDumpAnalysisPage.vue')
+      },
+      {
         path: 'microscope/profiles/guardian',
         name: 'DocsProfilesGuardian',
         component: () => import('@/views/docs/microscope/profiles/ProfileGuardianPage.vue')
