@@ -228,7 +228,7 @@ public final class HeapDumpInitService {
     private static void runIndexGroup(RunState run, HeapDumpManager manager, Boolean compressedOopsOverride) {
         IndexGroupProgress progress = new IndexGroupProgress(run);
         try {
-            manager.initialize(compressedOopsOverride, progress::onSubPhase);
+            manager.initialize(compressedOopsOverride, progress);
         } catch (RuntimeException e) {
             run.failStages(INDEX_GROUP_STAGES);
             throw e;
@@ -248,12 +248,15 @@ public final class HeapDumpInitService {
 
     /**
      * Drives the load → parse → index stages from index-build sub-phase events.
-     * Sub-phases arrive in monotonic stage order (see {@link #LOAD_SUB_PHASES}), so
-     * each event either extends the current stage or advances to a later one,
-     * completing the stages it passes with their real accumulated durations. Not
-     * thread-safe — the build fires the listener single-threaded.
+     * Transitions happen when a sub-phase <em>starts</em> (via
+     * {@link #onSubPhaseStarted}), so a stage completes exactly at its real phase
+     * boundary rather than lagging a phase behind — e.g. "load" finishes the moment
+     * the first "parse" phase begins, not after it completes. Durations are
+     * accumulated from the completion events ({@link #onSubPhase}). Sub-phases arrive
+     * in monotonic stage order (see {@link #LOAD_SUB_PHASES}). Not thread-safe — the
+     * build fires the listener single-threaded.
      */
-    private static final class IndexGroupProgress {
+    private static final class IndexGroupProgress implements IndexBuildProgressListener {
 
         private final RunState run;
         private final Map<String, List<SubPhaseTiming>> subPhasesByStage = new LinkedHashMap<>();
@@ -267,14 +270,19 @@ public final class HeapDumpInitService {
             run.beginStage(INDEX_GROUP_STAGES.get(0));
         }
 
-        void onSubPhase(SubPhaseTiming timing) {
-            int stageIndex = INDEX_GROUP_STAGES.indexOf(stageForSubPhase(timing.name()));
+        @Override
+        public void onSubPhaseStarted(String subPhaseName) {
+            int stageIndex = INDEX_GROUP_STAGES.indexOf(stageForSubPhase(subPhaseName));
             while (activeIndex < stageIndex) {
-                completeActiveStage();
+                completeStage(INDEX_GROUP_STAGES.get(activeIndex));
                 activeIndex++;
                 run.beginStage(INDEX_GROUP_STAGES.get(activeIndex));
             }
-            subPhasesByStage.get(INDEX_GROUP_STAGES.get(activeIndex)).add(timing);
+        }
+
+        @Override
+        public void onSubPhase(SubPhaseTiming timing) {
+            subPhasesByStage.get(stageForSubPhase(timing.name())).add(timing);
         }
 
         void finish() {
@@ -282,10 +290,6 @@ public final class HeapDumpInitService {
                 completeStage(INDEX_GROUP_STAGES.get(i));
             }
             run.clearActiveStage();
-        }
-
-        private void completeActiveStage() {
-            completeStage(INDEX_GROUP_STAGES.get(activeIndex));
         }
 
         private void completeStage(String stageId) {

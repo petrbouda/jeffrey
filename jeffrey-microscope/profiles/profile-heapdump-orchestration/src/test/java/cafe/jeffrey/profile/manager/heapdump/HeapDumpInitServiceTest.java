@@ -36,6 +36,7 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.awaitility.Awaitility.await;
@@ -113,6 +114,7 @@ class HeapDumpInitServiceTest {
         when(manager.initialize(eq(null), any())).thenAnswer(invocation -> {
             IndexBuildProgressListener listener = invocation.getArgument(1);
             for (SubPhaseTiming timing : subPhases) {
+                listener.onSubPhaseStarted(timing.name());
                 listener.onSubPhase(timing);
             }
             return new InitializeResult(null, subPhases);
@@ -141,6 +143,48 @@ class HeapDumpInitServiceTest {
         assertEquals(HeapDumpInitStageProgress.STATUS_COMPLETED, index.status());
         assertEquals(420L, index.durationMs().longValue());
         assertEquals(3, index.subPhases().size());
+    }
+
+    @Test
+    void completesLoadTheMomentTheFirstParsePhaseStarts() throws InterruptedException {
+        HeapDumpInitService service = new HeapDumpInitService(
+                Clock.fixed(Instant.ofEpochMilli(0L), ZoneOffset.UTC));
+
+        CountDownLatch parsePhaseStarted = new CountDownLatch(1);
+        CountDownLatch releaseParsePhase = new CountDownLatch(1);
+        AtomicReference<HeapDumpInitProgress> snapshotAtParseStart = new AtomicReference<>();
+
+        when(manager.initialize(eq(null), any())).thenAnswer(invocation -> {
+            IndexBuildProgressListener listener = invocation.getArgument(1);
+            // Load-group phases run and complete.
+            listener.onSubPhaseStarted("walk_top_level");
+            listener.onSubPhase(new SubPhaseTiming("walk_top_level", 100L, null));
+            listener.onSubPhaseStarted("drop_indexes");
+            listener.onSubPhase(new SubPhaseTiming("drop_indexes", 10L, null));
+            // The first parse phase STARTS. Load must already be completed here —
+            // before this phase does any work — instead of lagging behind it.
+            listener.onSubPhaseStarted("walk_class_dumps");
+            snapshotAtParseStart.set(service.progress(PROFILE_ID));
+            parsePhaseStarted.countDown();
+            releaseParsePhase.await();
+            listener.onSubPhase(new SubPhaseTiming("walk_class_dumps", 200L, null));
+            return new InitializeResult(null, List.of());
+        });
+
+        assertTrue(service.start(PROFILE_ID, manager, null));
+        assertTrue(parsePhaseStarted.await(5, TimeUnit.SECONDS), "parse phase must start");
+
+        HeapDumpInitProgress atStart = snapshotAtParseStart.get();
+        assertEquals(HeapDumpInitStageProgress.STATUS_COMPLETED,
+                stageById(atStart, HeapDumpInitService.STAGE_LOAD).status(),
+                "load must be completed as soon as the first parse phase starts");
+        assertEquals(HeapDumpInitStageProgress.STATUS_IN_PROGRESS,
+                stageById(atStart, HeapDumpInitService.STAGE_PARSE).status(),
+                "parse must be active while its phase runs, not queued behind a completed load");
+
+        releaseParsePhase.countDown();
+        await().atMost(5, SECONDS).untilAsserted(() -> assertEquals(
+                HeapDumpInitProgress.STATE_COMPLETED, service.progress(PROFILE_ID).state()));
     }
 
     private static HeapDumpInitStageProgress stageById(HeapDumpInitProgress progress, String stageId) {

@@ -33,5 +33,14 @@ public interface IndexBuildProgressListener {
     IndexBuildProgressListener NOOP = timing -> {
     };
 
+    /**
+     * Called immediately before a sub-phase begins executing, so a listener can
+     * advance its stage view at the real phase boundary rather than lagging a
+     * phase behind (which it would if it only reacted to completions).
+     */
+    default void onSubPhaseStarted(String subPhaseName) {
+    }
+
+    /** Called once a sub-phase has completed, carrying its measured timing. */
     void onSubPhase(SubPhaseTiming timing);
 }

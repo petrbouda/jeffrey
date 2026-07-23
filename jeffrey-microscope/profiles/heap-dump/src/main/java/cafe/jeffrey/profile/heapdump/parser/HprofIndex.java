@@ -197,11 +197,13 @@ public final class HprofIndex {
         boolean compressedOops = (idSize == 8) && (file.size() < COMPRESSED_OOPS_HEAP_LIMIT);
         InstanceLayout layout = InstanceLayout.from(idSize, compressedOops);
 
+        listener.onSubPhaseStarted("walk_top_level");
         Elapsed<TopLevelData> topE = measureSql(() -> HprofTopLevelWalk.walk(file, client));
         TopLevelData top = topE.entity();
         emit(subPhases, listener, "walk_top_level", topE.duration().toMillis(),
                 top.stringCount + " strings");
 
+        listener.onSubPhaseStarted("write_stack_traces");
         Duration stackTracesD = measureSqlVoid(() -> HprofStackTraceWriter.write(client, top));
         emit(subPhases, listener, "write_stack_traces", stackTracesD.toMillis(),
                 top.stackFrames.size() + " frames");
@@ -209,11 +211,13 @@ public final class HprofIndex {
         // Drop every non-PK index before the bulk writes so per-row writes
         // skip the per-insert ART-tree updates. Recreated in bulk at the end,
         // which DuckDB executes far faster than 30 M incremental inserts.
+        listener.onSubPhaseStarted("drop_indexes");
         Duration dropIndexesD = measureSqlVoid(() -> HprofNonPkIndexes.dropAll(client));
         emit(subPhases, listener, "drop_indexes", dropIndexesD.toMillis(), null);
 
         // Pass A — sequential, class-dumps only. Produces the read-only
         // ClassDumpIndex that Pass B and downstream phases share.
+        listener.onSubPhaseStarted("walk_class_dumps");
         Elapsed<ClassDumpIndex> classesE = measureSql(() -> HprofClassDumpWalker.walk(file, client, top));
         ClassDumpIndex classes = classesE.entity();
         emit(subPhases, listener, "walk_class_dumps", classesE.duration().toMillis(),
@@ -229,6 +233,7 @@ public final class HprofIndex {
         // Fusing walkInstancesAndRoots + walkRegionsForRefs into one walk per
         // worker visits every region exactly once instead of twice — a free
         // win on top of the parallelism.
+        listener.onSubPhaseStarted("walk_pass_b");
         Elapsed<PassBOutput> passBE = measureSql(() ->
                 HprofPassBWalker.walk(file, client, top, classes, idSize, layout,
                         stagingDir, options.walkWorkers()));
@@ -246,12 +251,14 @@ public final class HprofIndex {
         // OOP, no alignment). Correct them now that the full class hierarchy is
         // known: subtract the compressed-oops over-count and round each instance
         // up to the JVM allocation boundary.
+        listener.onSubPhaseStarted("apply_shallow_correction");
         Duration shallowCorrD = measureSqlVoid(() ->
                 HprofShallowSizeCorrector.apply(client, classes.byId(), layout));
         emit(subPhases, listener, "apply_shallow_correction", shallowCorrD.toMillis(), null);
 
         // Materialise decoded java.lang.String content so OQL string predicates
         // push down to DuckDB varchar functions instead of decoding per-instance.
+        listener.onSubPhaseStarted("write_string_content");
         Elapsed<Long> stringContentE = measureSql(() ->
                 HprofStringContentWriter.write(client, file, top, classes, passB.primArrInfo(), idSize,
                         options.stringContentThreshold(), stagingDir, options.walkWorkers()));
@@ -259,6 +266,7 @@ public final class HprofIndex {
         emit(subPhases, listener, "write_string_content", stringContentE.duration().toMillis(),
                 stringContentCount + " strings");
 
+        listener.onSubPhaseStarted("write_metadata");
         long totalRecordCount = top.recordCount + passB.subRecordCount();
         Duration metadataD = measureSqlVoid(() -> {
             HprofMetadataWriter.writeMetadata(client, file, clock, top, totalRecordCount,
@@ -278,6 +286,7 @@ public final class HprofIndex {
         // different tables, so they parallelise cleanly across separate
         // connections to the same DuckDB file (DuckDB serialises ART writes
         // only within a single table).
+        listener.onSubPhaseStarted("create_indexes");
         Duration createIndexesD = measureSqlVoid(() ->
                 HprofNonPkIndexes.createAll(client, db.path(), options.walkWorkers()));
         emit(subPhases, listener, "create_indexes", createIndexesD.toMillis(), null);
@@ -285,6 +294,7 @@ public final class HprofIndex {
         // Force a checkpoint so all WAL contents land in the main DB file.
         // Without this, opening the file in read-only mode (HeapView) fails because
         // read-only connections cannot replay an outstanding WAL.
+        listener.onSubPhaseStarted("checkpoint");
         Duration checkpointD = measureSqlVoid(() ->
                 client.execute(HeapDumpStatement.CHECKPOINT, "CHECKPOINT"));
         emit(subPhases, listener, "checkpoint", checkpointD.toMillis(), null);
