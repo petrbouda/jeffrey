@@ -121,7 +121,6 @@ additional-jvm-options = "-Xmx1200m -Xms1200m -XX:+UseG1GC -XX:+AlwaysPreTouch -
 # Supports HOCON substitution: \${VAR} (required) or \${?VAR} (optional)
 attributes {
     cluster = "blue"
-    namespace = "klingon"
 }`;
 
 const generatedEnvOutput = `# ENV file with variables to source:

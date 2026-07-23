@@ -124,7 +124,6 @@ class InitConfigTest {
 
             assertNotNull(config.getAttributes());
             assertEquals("blue", config.getAttributes().get("cluster"));
-            assertEquals("klingon", config.getAttributes().get("namespace"));
         }
     }
 
@@ -683,7 +682,7 @@ class InitConfigTest {
                     "JEFFREY_PROJECT_LABEL", "My Service",
                     "JEFFREY_WORKSPACE_REF_ID", "production",
                     "JEFFREY_INSTANCE_NAME", "instance-7",
-                    "JEFFREY_ATTRIBUTES", "cluster=blue, namespace=klingon",
+                    "JEFFREY_ATTRIBUTES", "cluster=blue, namespace=test-namespace",
                     "JEFFREY_HEAP_DUMP", "crash",
                     "JEFFREY_PERF_COUNTERS", "true",
                     "JEFFREY_JVM_LOGGING", "jfr*=trace:file=<<JEFFREY_CURRENT_SESSION>>/jfr-jvm.log",
@@ -692,7 +691,7 @@ class InitConfigTest {
             assertEquals("My Service", config.getProjectLabel());
             assertEquals("production", config.getWorkspaceRefId());
             assertEquals("instance-7", config.getInstanceName());
-            assertEquals(Map.of("cluster", "blue", "namespace", "klingon"), config.getAttributes());
+            assertEquals(Map.of("cluster", "blue", "namespace", "test-namespace"), config.getAttributes());
             assertEquals(HeapDumpType.CRASH, config.resolveHeapDumpType());
             assertTrue(config.isPerfCountersEnabled());
             assertEquals("jfr*=trace:file=<<JEFFREY_CURRENT_SESSION>>/jfr-jvm.log", config.getJvmLoggingCommand());

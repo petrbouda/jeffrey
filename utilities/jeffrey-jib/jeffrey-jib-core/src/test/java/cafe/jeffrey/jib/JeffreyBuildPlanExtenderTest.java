@@ -63,7 +63,7 @@ class JeffreyBuildPlanExtenderTest {
         void wrapsJibEntrypointAndMovesOriginalToCmd() throws Exception {
             List<String> jibEntrypoint = List.of(
                     "java", "-cp", "@/app/jib-classpath-file",
-                    "secondfoundation.klingon.integration.schuetz.KlingonSchuetzService");
+                    "my-test-class");
 
             ContainerBuildPlan input = ContainerBuildPlan.builder()
                     .setBaseImage("eclipse-temurin:21-jre")
