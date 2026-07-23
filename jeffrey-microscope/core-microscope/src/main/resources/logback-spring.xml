@@ -19,7 +19,7 @@
 <configuration>
     <logger name="org.flywaydb" level="WARN" />
     <logger name="org.openjdk.jmc.flightrecorder.internal.parser" level="ERROR" />
-    <logger name="com.zaxxer.hikari.pool.HikariPool" level="ERROR" />
+    <logger name="com.zaxxer.hikari" level="ERROR" />
 
     <springProperty scope="context" name="HOME_DIR" source="jeffrey.microscope.home.dir"
                     defaultValue="${user.home}/.jeffrey-microscope"/>
