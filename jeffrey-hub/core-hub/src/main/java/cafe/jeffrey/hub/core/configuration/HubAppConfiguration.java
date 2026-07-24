@@ -88,7 +88,7 @@ public class HubAppConfiguration {
     @Bean
     public DefaultWorkspaceProperties defaultWorkspaceProperties(
             @Value("${jeffrey.hub.default-workspace.reference-id:#{T(cafe.jeffrey.shared.common.CliConstants).DEFAULT_WORKSPACE_REF_ID}}") String referenceId,
-            @Value("${jeffrey.hub.default-workspace.name:#{T(cafe.jeffrey.shared.common.CliConstants).DEFAULT_WORKSPACE_REF_ID}}}") String name) {
+            @Value("${jeffrey.hub.default-workspace.name:#{T(cafe.jeffrey.shared.common.CliConstants).DEFAULT_WORKSPACE_REF_ID}}") String name) {
         return new DefaultWorkspaceProperties(referenceId, name);
     }
 
