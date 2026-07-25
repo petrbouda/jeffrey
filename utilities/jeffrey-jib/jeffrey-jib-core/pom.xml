@@ -30,6 +30,7 @@
     <artifactId>jeffrey-jib-core</artifactId>
     <name>${project.groupId}:${project.artifactId}</name>
     <description>Shared ContainerBuildPlan transformation consumed by the Gradle and Maven JIB extensions.</description>
+    <url>https://github.com/petrbouda/jeffrey</url>
 
     <dependencies>
         <!-- Either extension-api artifact transitively pulls in the com.google.cloud.tools.jib.api.buildplan.*

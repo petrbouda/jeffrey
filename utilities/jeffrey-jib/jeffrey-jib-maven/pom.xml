@@ -30,6 +30,7 @@
     <artifactId>jeffrey-jib-maven</artifactId>
     <name>${project.groupId}:${project.artifactId}</name>
     <description>JIB Maven plugin extension that wraps the image entrypoint so Jeffrey profiling initialises before the app starts.</description>
+    <url>https://github.com/petrbouda/jeffrey</url>
 
     <dependencies>
         <dependency>
