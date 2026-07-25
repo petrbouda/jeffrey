@@ -69,7 +69,7 @@ const parentPom = `<plugin>
 const properties = `<properties>
     <springboot.version>4.0.6</springboot.version>
     <jib.version>3.5.1</jib.version>
-    <jeffrey-jib.version>0.0.1-b3</jeffrey-jib.version>
+    <jeffrey-jib.version>0.1.0</jeffrey-jib.version>
 </properties>`;
 
 const moduleServer = `<plugin>
