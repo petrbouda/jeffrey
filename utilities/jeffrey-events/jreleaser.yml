@@ -14,6 +14,9 @@ project:
   license: Apache-2.0
   links:
     homepage: https://github.com/petrbouda/jeffrey
+  languages:
+    java:
+      groupId: cafe.jeffrey-analyst
 
 release:
   github:
@@ -33,6 +36,7 @@ deploy:
       sonatype:
         active: ALWAYS
         url: https://central.sonatype.com/api/v1/publisher
+        namespace: cafe.jeffrey-analyst
         applyMavenCentralRules: true
         stagingRepositories:
           - target/staging-deploy
