@@ -22,6 +22,10 @@
     background: linear-gradient(135deg, #38bdf8, #6366f1); box-shadow: 0 6px 16px rgba(56,189,248,.4); }
   .mk h3 { color: #fff; font-size: 1.04rem; font-weight: 700; margin-bottom: .25rem; }
   .mk p { color: #94a3b8; font-size: .85rem; line-height: 1.45; }
+  a.mk.base { margin-bottom: 1.1rem; border-color: rgba(148,163,184,.28); background: rgba(255,255,255,.03); }
+  .num.zero { background: linear-gradient(135deg, #64748b, #475569); box-shadow: 0 6px 16px rgba(100,116,139,.35); }
+  .tag { font-size: .62rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; padding: .12rem .4rem;
+    border-radius: 4px; background: rgba(148,163,184,.18); color: #cbd5e1; vertical-align: middle; margin-left: .35rem; }
   .foot { margin-top: 2.4rem; color: #64748b; font-size: .82rem; line-height: 1.6; }
   code { color: #7dd3fc; background: rgba(255,255,255,.06); padding: .1rem .35rem; border-radius: 5px; font-size: .82em; }
   .facts { margin-top: 2rem; padding: 1.1rem 1.3rem; border-radius: 12px; background: rgba(255,255,255,.03);
@@ -35,7 +39,14 @@
     <h1>Microscope — live event stream mockups</h1>
     <p class="sub">Five design directions for the workspace <strong>Event Log</strong> now that it streams live over SSE and carries
       file events. Each mockup shows the same eight events — recording chunks, artifacts, session and instance lifecycle — so the
-      layouts can be compared directly.</p>
+      layouts can be compared directly, starting from the current design as a baseline.</p>
+
+    <a class="mk base" href="mockup-0-current.html">
+      <div class="num zero">0</div>
+      <div><h3>Current — as shipped <span class="tag">baseline</span></h3>
+        <p>The flat event list on <code>master</code> today, styles copied verbatim from the component. This is what the five
+          alternatives are competing against.</p></div>
+    </a>
 
     <div class="list">
       <a class="mk" href="mockup-1-timeline-rail.html">
