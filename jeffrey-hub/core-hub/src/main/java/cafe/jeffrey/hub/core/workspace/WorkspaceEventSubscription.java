@@ -18,6 +18,7 @@
 
 package cafe.jeffrey.hub.core.workspace;
 
+import cafe.jeffrey.shared.common.model.workspace.WorkspaceEvent;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceEventType;
 
 import java.util.Set;
@@ -28,6 +29,7 @@ import java.util.Set;
  * @param workspaceId the workspace to stream events for
  * @param fromOffset  exclusive lower bound; {@code 0} starts from the oldest retained event
  * @param eventTypes  types to deliver; an empty set means all types
+ * @param projectIds  projects to deliver events for; an empty set means all projects
  * @param sendEmptyBatches whether to emit empty batches as heartbeats while idle
  * @param batchSize   maximum events per delivered batch
  */
@@ -35,6 +37,7 @@ public record WorkspaceEventSubscription(
         String workspaceId,
         long fromOffset,
         Set<WorkspaceEventType> eventTypes,
+        Set<String> projectIds,
         boolean sendEmptyBatches,
         int batchSize) {
 
@@ -49,12 +52,26 @@ public record WorkspaceEventSubscription(
             throw new IllegalArgumentException("batchSize must be positive: " + batchSize);
         }
         eventTypes = eventTypes == null ? Set.of() : Set.copyOf(eventTypes);
+        projectIds = projectIds == null ? Set.of() : Set.copyOf(projectIds);
     }
 
     /**
-     * Whether the given type should be delivered. An empty filter accepts everything.
+     * Whether the event should be delivered. The two filters combine as AND, and each is
+     * permissive when empty.
+     *
+     * <p>Callers must still advance their cursor past events this rejects — the offset is the
+     * client's resume point, so holding it back would make a narrowly-filtered subscription
+     * rescan the same rejected events after every reconnect.
      */
-    public boolean accepts(WorkspaceEventType eventType) {
+    public boolean accepts(WorkspaceEvent event) {
+        return acceptsType(event.eventType()) && acceptsProject(event.projectId());
+    }
+
+    private boolean acceptsType(WorkspaceEventType eventType) {
         return eventTypes.isEmpty() || eventTypes.contains(eventType);
+    }
+
+    private boolean acceptsProject(String projectId) {
+        return projectIds.isEmpty() || (projectId != null && projectIds.contains(projectId));
     }
 }

@@ -39,6 +39,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -69,8 +70,12 @@ class WorkspaceEventStreamingManagerTest {
         private final AtomicInteger reads = new AtomicInteger();
 
         void add(WorkspaceEventType eventType) {
+            add(eventType, "proj-1");
+        }
+
+        void add(WorkspaceEventType eventType, String projectId) {
             long offset = events.size() + 1L;
-            events.add(new WorkspaceEvent(offset, "origin-" + offset, "proj-1", WORKSPACE_ID,
+            events.add(new WorkspaceEvent(offset, "origin-" + offset, projectId, WORKSPACE_ID,
                     eventType, null, FIXED_TIME, FIXED_TIME, "test"));
         }
 
@@ -137,7 +142,11 @@ class WorkspaceEventStreamingManagerTest {
     }
 
     private static WorkspaceEventSubscription subscription(long fromOffset, Set<WorkspaceEventType> types) {
-        return new WorkspaceEventSubscription(WORKSPACE_ID, fromOffset, types, false, 100);
+        return new WorkspaceEventSubscription(WORKSPACE_ID, fromOffset, types, Set.of(), false, 100);
+    }
+
+    private static WorkspaceEventSubscription projectSubscription(Set<String> projectIds) {
+        return new WorkspaceEventSubscription(WORKSPACE_ID, 0, Set.of(), projectIds, false, 100);
     }
 
     @Nested
@@ -206,7 +215,7 @@ class WorkspaceEventStreamingManagerTest {
             var recorder = Recorder.create();
 
             manager(reader, new WorkspaceEventNotifier(), SLOW_BACKSTOP).subscribe(
-                    new WorkspaceEventSubscription(WORKSPACE_ID, 0, Set.of(), false, 2),
+                    new WorkspaceEventSubscription(WORKSPACE_ID, 0, Set.of(), Set.of(), false, 2),
                     recorder.callbacks());
 
             await().atMost(5, SECONDS).untilAsserted(() ->
@@ -332,6 +341,61 @@ class WorkspaceEventStreamingManagerTest {
     }
 
     @Nested
+    class ProjectFiltering {
+
+        @Test
+        void onlyRequestedProjectsAreDelivered() {
+            var reader = new FakeReader();
+            reader.add(WorkspaceEventType.PROJECT_INSTANCE_SESSION_RECORDING_FILE_CREATED, "proj-1");
+            reader.add(WorkspaceEventType.PROJECT_INSTANCE_SESSION_RECORDING_FILE_CREATED, "proj-2");
+            reader.add(WorkspaceEventType.PROJECT_INSTANCE_SESSION_RECORDING_FILE_CREATED, "proj-1");
+            var recorder = Recorder.create();
+
+            manager(reader, new WorkspaceEventNotifier(), SLOW_BACKSTOP)
+                    .subscribe(projectSubscription(Set.of("proj-1")), recorder.callbacks());
+
+            await().atMost(5, SECONDS).untilAsserted(() ->
+                    assertEquals(List.of(1L, 3L),
+                            recorder.deliveredEvents().stream().map(WorkspaceEvent::eventId).toList()));
+        }
+
+        @Test
+        void severalProjectsCanBeWatchedAtOnce() {
+            var reader = new FakeReader();
+            reader.add(WorkspaceEventType.PROJECT_CREATED, "proj-1");
+            reader.add(WorkspaceEventType.PROJECT_CREATED, "proj-2");
+            reader.add(WorkspaceEventType.PROJECT_CREATED, "proj-3");
+            var recorder = Recorder.create();
+
+            manager(reader, new WorkspaceEventNotifier(), SLOW_BACKSTOP)
+                    .subscribe(projectSubscription(Set.of("proj-1", "proj-3")), recorder.callbacks());
+
+            await().atMost(5, SECONDS).untilAsserted(() ->
+                    assertEquals(List.of(1L, 3L),
+                            recorder.deliveredEvents().stream().map(WorkspaceEvent::eventId).toList()));
+        }
+
+        @Test
+        void lastOffsetAdvancesPastOtherProjectsEvents() {
+            var reader = new FakeReader();
+            for (int i = 0; i < 4; i++) {
+                reader.add(WorkspaceEventType.PROJECT_INSTANCE_SESSION_RECORDING_FILE_CREATED, "noisy-project");
+            }
+            var recorder = Recorder.create();
+
+            manager(reader, new WorkspaceEventNotifier(), SLOW_BACKSTOP)
+                    .subscribe(projectSubscription(Set.of("quiet-project")), recorder.callbacks());
+
+            // Without this a project-scoped subscriber on a busy workspace would rescan every other
+            // project's events after each reconnect, and its resume offset would never move.
+            await().atMost(5, SECONDS).untilAsserted(() -> assertAll(
+                    () -> assertTrue(recorder.deliveredEvents().isEmpty()),
+                    () -> assertEquals(4L, recorder.highestLastOffset(),
+                            "lastOffset must advance past other projects' events")));
+        }
+    }
+
+    @Nested
     class Lifecycle {
 
         @Test
@@ -387,20 +451,52 @@ class WorkspaceEventStreamingManagerTest {
         void rejectsInvalidParameters() {
             assertAll(
                     () -> assertThrows(IllegalArgumentException.class, () ->
-                            new WorkspaceEventSubscription(" ", 0, Set.of(), false, 10)),
+                            new WorkspaceEventSubscription(" ", 0, Set.of(), Set.of(), false, 10)),
                     () -> assertThrows(IllegalArgumentException.class, () ->
-                            new WorkspaceEventSubscription(WORKSPACE_ID, -1, Set.of(), false, 10)),
+                            new WorkspaceEventSubscription(WORKSPACE_ID, -1, Set.of(), Set.of(), false, 10)),
                     () -> assertThrows(IllegalArgumentException.class, () ->
-                            new WorkspaceEventSubscription(WORKSPACE_ID, 0, Set.of(), false, 0)));
+                            new WorkspaceEventSubscription(WORKSPACE_ID, 0, Set.of(), Set.of(), false, 0)));
         }
 
         @Test
-        void nullEventTypesMeansAllTypes() {
-            var created = new WorkspaceEventSubscription(WORKSPACE_ID, 0, null, false, 10);
+        void nullFiltersMeanEverything() {
+            var created = new WorkspaceEventSubscription(WORKSPACE_ID, 0, null, null, false, 10);
 
             assertAll(
                     () -> assertEquals(Set.of(), created.eventTypes()),
-                    () -> assertTrue(created.accepts(WorkspaceEventType.PROJECT_CREATED)));
+                    () -> assertEquals(Set.of(), created.projectIds()),
+                    () -> assertTrue(created.accepts(
+                            event(1L, WorkspaceEventType.PROJECT_CREATED, "any-project"))));
+        }
+
+        @Test
+        void filtersCombineAsAnd() {
+            var created = new WorkspaceEventSubscription(WORKSPACE_ID, 0,
+                    Set.of(WorkspaceEventType.PROJECT_CREATED), Set.of("proj-1"), false, 10);
+
+            assertAll(
+                    () -> assertTrue(created.accepts(
+                            event(1L, WorkspaceEventType.PROJECT_CREATED, "proj-1"))),
+                    () -> assertFalse(created.accepts(
+                            event(2L, WorkspaceEventType.PROJECT_CREATED, "proj-2")),
+                            "Right type, wrong project"),
+                    () -> assertFalse(created.accepts(
+                            event(3L, WorkspaceEventType.PROJECT_DELETED, "proj-1")),
+                            "Right project, wrong type"));
+        }
+
+        @Test
+        void nullProjectIdIsRejectedByAProjectFilter() {
+            var created = new WorkspaceEventSubscription(WORKSPACE_ID, 0, Set.of(), Set.of("proj-1"), false, 10);
+
+            assertFalse(created.accepts(
+                    new WorkspaceEvent(1L, "origin", null, WORKSPACE_ID,
+                            WorkspaceEventType.PROJECT_CREATED, null, FIXED_TIME, FIXED_TIME, "test")));
+        }
+
+        private static WorkspaceEvent event(long id, WorkspaceEventType type, String projectId) {
+            return new WorkspaceEvent(id, "origin-" + id, projectId, WORKSPACE_ID,
+                    type, null, FIXED_TIME, FIXED_TIME, "test");
         }
     }
 }

@@ -128,7 +128,14 @@ class WorkspaceEventsClientStreamTest {
     private static WorkspaceEventsClient.WorkspaceEventsSubscribeRequest request(
             long fromOffset, Set<WorkspaceEventType> types) {
 
-        return new WorkspaceEventsClient.WorkspaceEventsSubscribeRequest(fromOffset, types, true);
+        return request(fromOffset, types, Set.of());
+    }
+
+    private static WorkspaceEventsClient.WorkspaceEventsSubscribeRequest request(
+            long fromOffset, Set<WorkspaceEventType> types, Set<String> projectIds) {
+
+        return new WorkspaceEventsClient.WorkspaceEventsSubscribeRequest(
+                fromOffset, types, projectIds, true);
     }
 
     @Nested
@@ -231,6 +238,19 @@ class WorkspaceEventsClientStreamTest {
         }
 
         @Test
+        void sendsProjectFilter() {
+            startEchoServer();
+
+            client.streamEvents(WORKSPACE_ID,
+                    request(0, Set.of(), Set.of("proj-1")),
+                    Recorder.create().callbacks());
+
+            await().atMost(5, SECONDS).untilAsserted(() -> assertNotNull(received.get()));
+
+            assertEquals(List.of("proj-1"), received.get().getProjectIdsList());
+        }
+
+        @Test
         void omitsFromOffsetWhenStartingFromTheBeginning() {
             startEchoServer();
 
@@ -241,6 +261,8 @@ class WorkspaceEventsClientStreamTest {
             assertAll(
                     () -> assertTrue(received.get().getEventTypesList().isEmpty(),
                             "An empty filter must stay empty — the server reads that as all types"),
+                    () -> assertTrue(received.get().getProjectIdsList().isEmpty(),
+                            "An empty project filter means the whole workspace"),
                     () -> assertEquals(0L, received.get().getFromOffset()));
         }
     }

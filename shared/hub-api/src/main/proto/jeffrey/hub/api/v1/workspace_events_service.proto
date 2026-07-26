@@ -24,6 +24,8 @@ message GetWorkspaceEventsRequest {
   // Maximum number of events to return (latest first). When unset or <= 0,
   // the server applies a default cap.
   optional int32 limit = 3;
+  // Filter to these projects. Empty = every project in the workspace.
+  repeated string project_ids = 4;
 }
 
 message GetWorkspaceEventsResponse {
@@ -50,6 +52,11 @@ message StreamWorkspaceEventsRequest {
   optional bool send_empty_batches = 4;
   // Maximum events per batch during catch-up. Unset or <= 0 = server default.
   optional int32 batch_size = 5;
+  // Filter to these projects. Empty = every project in the workspace.
+  // Combined with event_types as AND: an event must match both filters.
+  // Note last_offset still advances past events dropped by this filter, so a
+  // single-project subscriber does not rescan the workspace on every reconnect.
+  repeated string project_ids = 6;
 }
 
 message WorkspaceEventBatch {

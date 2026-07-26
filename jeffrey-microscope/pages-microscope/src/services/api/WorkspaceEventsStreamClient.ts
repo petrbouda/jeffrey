@@ -54,6 +54,7 @@ export default class WorkspaceEventsStreamClient {
   private retryTimer: ReturnType<typeof setTimeout> | null = null;
   private retryDelayMs = INITIAL_RETRY_MS;
   private fromOffset = 0;
+  private projectIds: string[] = [];
   private stopped = false;
 
   constructor(hubId: string, workspaceId: string) {
@@ -67,16 +68,19 @@ export default class WorkspaceEventsStreamClient {
    * @param eventTypes type filter; an empty array means all types
    * @param onBatch called for each batch, including empty heartbeats
    * @param onState called whenever the connection state changes
+   * @param projectIds project filter; an empty array means the whole workspace
    */
   subscribe(
     fromOffset: number,
     eventTypes: string[],
     onBatch: (batch: WorkspaceEventsBatch) => void,
-    onState: (state: StreamState) => void
+    onState: (state: StreamState) => void,
+    projectIds: string[] = []
   ): void {
     this.unsubscribe();
     this.stopped = false;
     this.fromOffset = fromOffset;
+    this.projectIds = projectIds;
     this.retryDelayMs = INITIAL_RETRY_MS;
     this.open(eventTypes, onBatch, onState);
   }
@@ -96,6 +100,9 @@ export default class WorkspaceEventsStreamClient {
     params.set('fromOffset', String(this.fromOffset));
     if (eventTypes.length > 0) {
       params.set('eventTypes', eventTypes.join(','));
+    }
+    if (this.projectIds.length > 0) {
+      params.set('projectIds', this.projectIds.join(','));
     }
 
     const source = new EventSource(`${this.baseUrl}?${params.toString()}`);

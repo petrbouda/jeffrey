@@ -31,6 +31,7 @@ const headings = [
   { id: 'event-types', text: 'Event Types', level: 2 },
   { id: 'file-events', text: 'Recording and Artifact File Events', level: 2 },
   { id: 'live-updates', text: 'Live Updates', level: 2 },
+  { id: 'project-scope', text: 'Per-Project Activity', level: 2 },
   { id: 'filtering', text: 'Filtering and Search', level: 2 }
 ];
 
@@ -165,6 +166,21 @@ onMounted(() => {
           the client reconnects with backoff and resumes from that offset, so no event is missed
           and none is shown twice. Events already on screen from the initial load are de-duplicated
           against the stream's catch-up phase.
+        </p>
+
+        <h2 id="project-scope">Per-Project Activity</h2>
+
+        <p>
+          The same feed is available scoped to a single project, on the project's
+          <strong>Activity</strong> tab. Both the history load and the live stream are filtered on
+          the hub, so a project view on a busy workspace does not receive — or discard — every other
+          project's events.
+        </p>
+
+        <p>
+          Note this is distinct from the project's <strong>Live Stream</strong> and
+          <strong>Replay Stream</strong> tabs, which stream JFR events out of a recording session.
+          Activity is the workspace event log: projects, instances, sessions and files.
         </p>
 
         <h2 id="filtering">Filtering and Search</h2>

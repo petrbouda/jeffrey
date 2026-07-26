@@ -47,11 +47,20 @@ public class WorkspaceEventsClient implements Closeable {
     }
 
     public WorkspaceEventsResult getEvents(String workspaceId, int limit) {
+        return getEvents(workspaceId, limit, Set.of());
+    }
+
+    /**
+     * Fetches the latest events, optionally narrowed to a set of projects. An empty
+     * {@code projectIds} means every project in the workspace.
+     */
+    public WorkspaceEventsResult getEvents(String workspaceId, int limit, Set<String> projectIds) {
         GetWorkspaceEventsRequest.Builder builder = GetWorkspaceEventsRequest.newBuilder()
                 .setWorkspaceId(workspaceId);
         if (limit > 0) {
             builder.setLimit(limit);
         }
+        builder.addAllProjectIds(projectIds);
 
         GetWorkspaceEventsResponse response = stub.getWorkspaceEvents(builder.build());
 
@@ -89,6 +98,7 @@ public class WorkspaceEventsClient implements Closeable {
         request.eventTypes().stream()
                 .map(Enum::name)
                 .forEach(builder::addEventTypes);
+        builder.addAllProjectIds(request.projectIds());
 
         Context.CancellableContext cancellableContext = Context.current().withCancellation();
         var subscription = new WorkspaceEventsSubscription(cancellableContext, workspaceId);
@@ -97,8 +107,8 @@ public class WorkspaceEventsClient implements Closeable {
         cancellableContext.run(() -> asyncStub.streamWorkspaceEvents(builder.build(),
                 new WorkspaceEventBatchStreamObserver(workspaceId, subscription, activeSubscriptions, callbacks)));
 
-        LOG.info("Subscribed to workspace event stream: workspaceId={} fromOffset={}",
-                workspaceId, request.fromOffset());
+        LOG.info("Subscribed to workspace event stream: workspaceId={} fromOffset={} projects={}",
+                workspaceId, request.fromOffset(), request.projectIds().size());
         return subscription;
     }
 
@@ -107,15 +117,18 @@ public class WorkspaceEventsClient implements Closeable {
      *
      * @param fromOffset exclusive resume point; {@code 0} starts from the oldest retained event
      * @param eventTypes types to receive; empty means all types
+     * @param projectIds projects to receive events for; empty means all projects
      * @param sendEmptyBatches whether the server should emit heartbeats while idle
      */
     public record WorkspaceEventsSubscribeRequest(
             long fromOffset,
             Set<WorkspaceEventType> eventTypes,
+            Set<String> projectIds,
             boolean sendEmptyBatches) {
 
         public WorkspaceEventsSubscribeRequest {
             eventTypes = eventTypes == null ? Set.of() : Set.copyOf(eventTypes);
+            projectIds = projectIds == null ? Set.of() : Set.copyOf(projectIds);
         }
     }
 

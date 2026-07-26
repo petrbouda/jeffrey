@@ -27,6 +27,7 @@ import cafe.jeffrey.microscope.core.manager.project.ProjectsManager;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 
 import java.util.List;
+import java.util.Set;
 import java.util.Optional;
 
 public interface WorkspaceManager {
@@ -66,6 +67,15 @@ public interface WorkspaceManager {
      * @param limit maximum number of events to return
      */
     default WorkspaceEventsResponse events(int limit) {
+        return events(limit, Set.of());
+    }
+
+    /**
+     * Latest events, narrowed to the given projects. An empty set means every project.
+     *
+     * @param limit maximum number of events to return
+     */
+    default WorkspaceEventsResponse events(int limit, Set<String> projectIds) {
         return new WorkspaceEventsResponse(List.of(), 0L, limit);
     }
 

@@ -64,10 +64,13 @@ public class WorkspaceEventsController {
     public WorkspaceEventsResponse events(
             @PathVariable("hubId") String hubId,
             @PathVariable("workspaceId") String workspaceId,
-            @RequestParam(name = "limit", defaultValue = "100") int limit) {
+            @RequestParam(name = "limit", defaultValue = "100") int limit,
+            @RequestParam(name = "projectIds", defaultValue = "") String projectIds) {
 
-        LOG.debug("Fetching workspace events: workspaceId={} limit={}", workspaceId, limit);
-        return resolver.resolveWorkspace(hubId, workspaceId).events(limit);
+        Set<String> projects = Set.copyOf(RequestParams.parseCsv(projectIds));
+        LOG.debug("Fetching workspace events: workspaceId={} limit={} projects={}",
+                workspaceId, limit, projects.size());
+        return resolver.resolveWorkspace(hubId, workspaceId).events(limit, projects);
     }
 
     /**
@@ -75,20 +78,22 @@ public class WorkspaceEventsController {
      *
      * @param fromOffset exclusive resume point — the highest event id the client already has
      * @param eventTypes comma-separated type filter; empty means all types
+     * @param projectIds comma-separated project filter; empty means all projects
      */
     @GetMapping(value = "/events/subscribe", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter subscribe(
             @PathVariable("hubId") String hubId,
             @PathVariable("workspaceId") String workspaceId,
             @RequestParam(name = "fromOffset", defaultValue = "0") long fromOffset,
-            @RequestParam(name = "eventTypes", defaultValue = "") String eventTypes) {
+            @RequestParam(name = "eventTypes", defaultValue = "") String eventTypes,
+            @RequestParam(name = "projectIds", defaultValue = "") String projectIds) {
 
         if (fromOffset < 0) {
             throw Exceptions.invalidRequest("fromOffset must not be negative");
         }
 
         var request = new WorkspaceEventsClient.WorkspaceEventsSubscribeRequest(
-                fromOffset, parseEventTypes(eventTypes), true);
+                fromOffset, parseEventTypes(eventTypes), Set.copyOf(RequestParams.parseCsv(projectIds)), true);
 
         // No timeout: a workspace can be quiet for hours and the stream must survive that. The hub
         // sends heartbeat batches so the connection still proves itself alive.

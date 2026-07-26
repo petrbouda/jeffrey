@@ -40,6 +40,7 @@ import cafe.jeffrey.shared.common.model.workspace.WorkspaceStatus;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 public class RemoteWorkspaceManager implements WorkspaceManager {
 
@@ -104,9 +105,9 @@ public class RemoteWorkspaceManager implements WorkspaceManager {
     }
 
     @Override
-    public WorkspaceEventsResponse events(int limit) {
+    public WorkspaceEventsResponse events(int limit, Set<String> projectIds) {
         WorkspaceEventsClient.WorkspaceEventsResult result =
-                remoteClients.workspaceEvents().getEvents(workspaceInfo.id(), limit);
+                remoteClients.workspaceEvents().getEvents(workspaceInfo.id(), limit, projectIds);
         return new WorkspaceEventsResponse(result.events(), result.totalCount(), limit);
     }
 

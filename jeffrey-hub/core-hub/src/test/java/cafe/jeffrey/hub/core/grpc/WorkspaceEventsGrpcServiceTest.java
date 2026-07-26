@@ -196,6 +196,31 @@ class WorkspaceEventsGrpcServiceTest {
         }
 
         @Test
+        void filtersByProjectIds() throws IOException {
+            var mine = new WorkspaceEvent(1L, "origin-1", "proj-1", WORKSPACE_ID,
+                    WorkspaceEventType.PROJECT_CREATED, "{}", FIXED_TIME, FIXED_TIME, "system");
+            var other = new WorkspaceEvent(2L, "origin-2", "proj-2", WORKSPACE_ID,
+                    WorkspaceEventType.PROJECT_CREATED, "{}", FIXED_TIME, FIXED_TIME, "system");
+
+            var reader = mock(WorkspaceEventReader.class);
+            // A project filter takes the unbounded path so the limit applies after filtering.
+            when(reader.findAll(WORKSPACE_ID, -1)).thenReturn(List.of(mine, other));
+            when(reader.count(WORKSPACE_ID)).thenReturn(2L);
+
+            var stub = startServer(new WorkspaceEventsGrpcService(reader, streamingManager()));
+
+            GetWorkspaceEventsResponse response = stub.getWorkspaceEvents(
+                    GetWorkspaceEventsRequest.newBuilder()
+                            .setWorkspaceId(WORKSPACE_ID)
+                            .addProjectIds("proj-1")
+                            .build());
+
+            assertEquals(1, response.getEventsCount());
+            assertEquals("proj-1", response.getEvents(0).getProjectId());
+            assertEquals(2L, response.getTotalCount(), "totalCount stays unfiltered");
+        }
+
+        @Test
         void invalidEventType_returnsInvalidArgument() throws IOException {
             var reader = mock(WorkspaceEventReader.class);
             when(reader.findAll(WORKSPACE_ID, -1)).thenReturn(List.of());
@@ -220,7 +245,11 @@ class WorkspaceEventsGrpcServiceTest {
         }
 
         private static WorkspaceEvent eventAt(long offset, WorkspaceEventType eventType) {
-            return new WorkspaceEvent(offset, "origin-" + offset, "proj-1", WORKSPACE_ID,
+            return eventAt(offset, eventType, "proj-1");
+        }
+
+        private static WorkspaceEvent eventAt(long offset, WorkspaceEventType eventType, String projectId) {
+            return new WorkspaceEvent(offset, "origin-" + offset, projectId, WORKSPACE_ID,
                     eventType, "{}", FIXED_TIME, FIXED_TIME, "system");
         }
 
@@ -362,6 +391,61 @@ class WorkspaceEventsGrpcServiceTest {
         }
 
         @Test
+        void filtersByProjectIds() {
+            var reader = readerWith(List.of(
+                    eventAt(1L, WorkspaceEventType.PROJECT_INSTANCE_SESSION_RECORDING_FILE_CREATED, "proj-1"),
+                    eventAt(2L, WorkspaceEventType.PROJECT_INSTANCE_SESSION_RECORDING_FILE_CREATED, "proj-2"),
+                    eventAt(3L, WorkspaceEventType.PROJECT_INSTANCE_SESSION_ARTIFACT_FILE_CREATED, "proj-1")));
+            var stub = startStreamingServer(new WorkspaceEventsGrpcService(
+                    reader, streamingManager(reader, new WorkspaceEventNotifier(), SLOW_BACKSTOP)));
+            var observer = new TestStreamObserver<WorkspaceEventBatch>();
+
+            stub.streamWorkspaceEvents(request().addProjectIds("proj-1").build(), observer);
+
+            await().atMost(5, SECONDS).untilAsserted(() ->
+                    assertEquals(List.of(1L, 3L), deliveredEvents(observer).stream()
+                            .map(WorkspaceEventInfo::getEventId).toList()));
+        }
+
+        @Test
+        void projectAndTypeFiltersCombineAsAnd() {
+            var reader = readerWith(List.of(
+                    eventAt(1L, WorkspaceEventType.PROJECT_INSTANCE_SESSION_RECORDING_FILE_CREATED, "proj-1"),
+                    eventAt(2L, WorkspaceEventType.PROJECT_INSTANCE_SESSION_ARTIFACT_FILE_CREATED, "proj-1"),
+                    eventAt(3L, WorkspaceEventType.PROJECT_INSTANCE_SESSION_RECORDING_FILE_CREATED, "proj-2")));
+            var stub = startStreamingServer(new WorkspaceEventsGrpcService(
+                    reader, streamingManager(reader, new WorkspaceEventNotifier(), SLOW_BACKSTOP)));
+            var observer = new TestStreamObserver<WorkspaceEventBatch>();
+
+            stub.streamWorkspaceEvents(request()
+                    .addProjectIds("proj-1")
+                    .addEventTypes("PROJECT_INSTANCE_SESSION_RECORDING_FILE_CREATED")
+                    .build(), observer);
+
+            await().atMost(5, SECONDS).untilAsserted(() ->
+                    assertEquals(List.of(1L), deliveredEvents(observer).stream()
+                            .map(WorkspaceEventInfo::getEventId).toList()));
+        }
+
+        @Test
+        void reportsLastOffsetPastOtherProjectsEvents() {
+            var reader = readerWith(List.of(
+                    eventAt(1L, WorkspaceEventType.PROJECT_CREATED, "other-project"),
+                    eventAt(2L, WorkspaceEventType.PROJECT_CREATED, "other-project")));
+            var stub = startStreamingServer(new WorkspaceEventsGrpcService(
+                    reader, streamingManager(reader, new WorkspaceEventNotifier(), SLOW_BACKSTOP)));
+            var observer = new TestStreamObserver<WorkspaceEventBatch>();
+
+            stub.streamWorkspaceEvents(request().addProjectIds("mine").build(), observer);
+
+            await().atMost(5, SECONDS).untilAsserted(() -> assertAll(
+                    () -> assertTrue(deliveredEvents(observer).isEmpty()),
+                    () -> assertEquals(2L, observer.messages.stream()
+                                    .mapToLong(WorkspaceEventBatch::getLastOffset).max().orElse(-1L),
+                            "A project-scoped subscriber must still be able to resume")));
+        }
+
+        @Test
         void blankWorkspaceId_returnsInvalidArgument() {
             var reader = mock(WorkspaceEventReader.class);
             var stub = startStreamingServer(new WorkspaceEventsGrpcService(reader, streamingManager()));
@@ -404,7 +488,7 @@ class WorkspaceEventsGrpcServiceTest {
             var manager = streamingManager(reader, new WorkspaceEventNotifier(), SLOW_BACKSTOP);
             for (int i = 0; i < WorkspaceEventStreamingManager.MAX_SUBSCRIPTIONS; i++) {
                 manager.subscribe(
-                        new WorkspaceEventSubscription(WORKSPACE_ID, 0, Set.of(), false, 100),
+                        new WorkspaceEventSubscription(WORKSPACE_ID, 0, Set.of(), Set.of(), false, 100),
                         new WorkspaceEventCallbacks(_ -> {
                         }, () -> {
                         }, _ -> {

@@ -110,13 +110,13 @@ class WorkspaceEventSubscriber implements Closeable {
                 return;
             }
 
-            // Advance on the raw offset, before filtering. A subscriber watching one event type
-            // must still move past events it filtered out, or every reconnect rescans them and
-            // its resume offset never progresses.
+            // Advance on the raw offset, before filtering. A subscriber narrowed to one event
+            // type or one project must still move past everything it filtered out, or every
+            // reconnect rescans them and its resume offset never progresses.
             cursor = page.getLast().eventId();
 
             List<WorkspaceEvent> accepted = page.stream()
-                    .filter(event -> subscription.accepts(event.eventType()))
+                    .filter(subscription::accepts)
                     .toList();
 
             if (!accepted.isEmpty()) {

@@ -51,8 +51,10 @@ public class StubWorkspaceEventsService extends WorkspaceEventsServiceGrpc.Works
                 .map(StubDataset.Workspace::events)
                 .orElse(List.of());
 
+        Set<String> projectIds = Set.copyOf(request.getProjectIdsList());
         List<StubDataset.Event> filtered = allEvents.stream()
                 .filter(event -> !request.hasEventType() || event.eventType().equals(request.getEventType()))
+                .filter(event -> projectIds.isEmpty() || projectIds.contains(event.projectId()))
                 .toList();
 
         int limit = request.hasLimit() && request.getLimit() > 0 ? request.getLimit() : DEFAULT_LIMIT;
@@ -83,6 +85,7 @@ public class StubWorkspaceEventsService extends WorkspaceEventsServiceGrpc.Works
 
         long fromOffset = request.hasFromOffset() ? request.getFromOffset() : 0L;
         Set<String> eventTypes = Set.copyOf(request.getEventTypesList());
+        Set<String> projectIds = Set.copyOf(request.getProjectIdsList());
 
         List<StubDataset.Event> pending = events.stream()
                 .filter(event -> event.eventId() > fromOffset)
@@ -98,6 +101,7 @@ public class StubWorkspaceEventsService extends WorkspaceEventsServiceGrpc.Works
                 .setCaughtUp(true);
         pending.stream()
                 .filter(event -> eventTypes.isEmpty() || eventTypes.contains(event.eventType()))
+                .filter(event -> projectIds.isEmpty() || projectIds.contains(event.projectId()))
                 .forEach(event -> batch.addEvents(toProto(event)));
 
         responseObserver.onNext(batch.build());

@@ -37,6 +37,14 @@
             <span>Instances</span>
           </router-link>
           <router-link
+            :to="generateProjectUrl('activity')"
+            class="nav-pill"
+            active-class="active"
+          >
+            <i class="bi bi-activity"></i>
+            <span>Activity</span>
+          </router-link>
+          <router-link
             :to="generateProjectUrl('events/live-stream')"
             class="nav-pill"
             active-class="active"

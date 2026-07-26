@@ -64,17 +64,24 @@ public class WorkspaceEventsGrpcService extends WorkspaceEventsServiceGrpc.Works
 
             long totalCount = workspaceEventReader.count(workspaceId);
 
-            // When filtering by type, fetch all events and apply the limit after filtering
-            // so callers asking for the latest N of a specific type get a useful result.
-            // Without a filter, push the limit to the queue for the cheap path.
-            int fetchLimit = request.hasEventType() ? -1 : limit;
+            Set<String> projectIds = Set.copyOf(request.getProjectIdsList());
+            boolean filtered = request.hasEventType() || !projectIds.isEmpty();
+
+            // When filtering, fetch all events and apply the limit after filtering so callers
+            // asking for the latest N matching events get a useful result. Without a filter,
+            // push the limit to the queue for the cheap path.
+            int fetchLimit = filtered ? -1 : limit;
             Stream<WorkspaceEvent> eventStream = workspaceEventReader.findAll(workspaceId, fetchLimit).stream();
 
             if (request.hasEventType()) {
                 WorkspaceEventType filterType = parseEventType(request.getEventType());
-                eventStream = eventStream
-                        .filter(event -> event.eventType() == filterType)
-                        .limit(limit);
+                eventStream = eventStream.filter(event -> event.eventType() == filterType);
+            }
+            if (!projectIds.isEmpty()) {
+                eventStream = eventStream.filter(event -> projectIds.contains(event.projectId()));
+            }
+            if (filtered) {
+                eventStream = eventStream.limit(limit);
             }
 
             List<WorkspaceEventInfo> events = eventStream
@@ -126,9 +133,9 @@ public class WorkspaceEventsGrpcService extends WorkspaceEventsServiceGrpc.Works
     }
 
     /**
-     * Maps the request onto the domain subscription, applying server defaults. An empty
-     * {@code event_types} list means all types — unlike the JFR streaming service, which
-     * rejects it.
+     * Maps the request onto the domain subscription, applying server defaults. Empty
+     * {@code event_types} means all types and empty {@code project_ids} means all projects —
+     * unlike the JFR streaming service, which rejects an empty type list.
      */
     private static WorkspaceEventSubscription toSubscription(StreamWorkspaceEventsRequest request) {
         Set<WorkspaceEventType> eventTypes = request.getEventTypesList().stream()
@@ -143,6 +150,7 @@ public class WorkspaceEventsGrpcService extends WorkspaceEventsServiceGrpc.Works
                 request.getWorkspaceId(),
                 request.hasFromOffset() ? request.getFromOffset() : 0L,
                 eventTypes,
+                Set.copyOf(request.getProjectIdsList()),
                 request.getSendEmptyBatches(),
                 batchSize);
     }

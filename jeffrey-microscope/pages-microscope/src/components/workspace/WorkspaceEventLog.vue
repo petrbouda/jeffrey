@@ -189,6 +189,8 @@ const props = withDefaults(
     workspaceId: string;
     searchQuery?: string;
     limit?: number;
+    /** Narrows the feed to a single project. Omit for the whole workspace. */
+    projectId?: string;
   }>(),
   { limit: DEFAULT_LIMIT }
 );
@@ -267,7 +269,7 @@ const refresh = async () => {
 
   try {
     const client = new WorkspaceEventsClient(props.hubId);
-    const response = await client.getEvents(props.workspaceId, props.limit);
+    const response = await client.getEvents(props.workspaceId, props.limit, projectFilter());
     const fetched = [...response.events].sort((a, b) => b.originCreatedAt - a.originCreatedAt);
     events.value = fetched;
     totalCount.value = response.totalCount;
@@ -288,6 +290,8 @@ const refresh = async () => {
  * event id already on screen, so the stream's catch-up phase fills exactly the gap between the
  * REST snapshot and now — anything overlapping is dropped by mergeEvents.
  */
+const projectFilter = (): string[] => (props.projectId ? [props.projectId] : []);
+
 const startStreaming = (fromOffset: number) => {
   stopStreaming();
 
@@ -308,7 +312,8 @@ const startStreaming = (fromOffset: number) => {
     },
     state => {
       streamState.value = state;
-    }
+    },
+    projectFilter()
   );
 };
 
@@ -322,7 +327,7 @@ const stopStreaming = () => {
 onUnmounted(stopStreaming);
 
 watch(
-  () => [props.hubId, props.workspaceId] as const,
+  () => [props.hubId, props.workspaceId, props.projectId] as const,
   () => {
     selectedEventType.value = '';
     stopStreaming();
