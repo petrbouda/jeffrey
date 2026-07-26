@@ -107,6 +107,16 @@ public class RepositoryClient {
                 sessionId, fileIds.size());
     }
 
+    public void setSessionRetained(String sessionId, boolean retained) {
+        stub.setSessionRetained(
+                SetSessionRetainedRequest.newBuilder()
+                        .setSessionId(sessionId)
+                        .setRetained(retained)
+                        .build());
+
+        LOG.debug("Updated session retention via gRPC: sessionId={} retained={}", sessionId, retained);
+    }
+
     private static RecordingSessionResponse toSessionResponse(RecordingSession proto) {
         List<RepositoryFileResponse> files = proto.getFilesList().stream()
                 .map(RepositoryClient::toFileResponse)
@@ -120,7 +130,8 @@ public class RepositoryClient {
                 proto.hasFinishedAt() ? proto.getFinishedAt() : null,
                 ClientProtoMappers.recordingStatus(proto.getStatus()),
                 proto.hasFinishedAt() ? proto.getFinishedAt() - proto.getCreatedAt() : null,
-                files);
+                files,
+                proto.getRetained());
     }
 
     private static RepositoryFileResponse toFileResponse(RepositoryFile proto) {

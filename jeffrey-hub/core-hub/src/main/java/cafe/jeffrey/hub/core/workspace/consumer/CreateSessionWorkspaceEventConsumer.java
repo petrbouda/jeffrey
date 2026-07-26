@@ -93,7 +93,7 @@ public class CreateSessionWorkspaceEventConsumer implements WorkspaceEventConsum
                     projectId, instanceId, closedCount);
         }
 
-        ProjectInstanceSessionInfo sessionInfo = new ProjectInstanceSessionInfo(
+        ProjectInstanceSessionInfo sessionInfo = ProjectInstanceSessionInfo.notRetained(
                 event.originEventId(),
                 repositoryInfo.get().id(),
                 instanceId,

@@ -106,4 +106,13 @@ public interface ProjectRepositoryRepository {
      * @return the latest session ID if any sessions exist, otherwise empty
      */
     Optional<String> findLatestSessionId();
+
+    /**
+     * Mark a session as retained or release it again. A retained session is exempt
+     * from every retention job, both age-based and quota-based.
+     *
+     * @param sessionId the session ID to update
+     * @param retained  true to exempt the session from retention, false to release it
+     */
+    void setSessionRetained(String sessionId, boolean retained);
 }

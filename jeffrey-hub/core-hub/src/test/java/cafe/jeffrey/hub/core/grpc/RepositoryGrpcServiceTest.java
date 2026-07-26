@@ -81,13 +81,14 @@ class RepositoryGrpcServiceTest {
                                     "file-1", "recording.jfr", FIXED_TIME, 1024L,
                                     SupportedRecordingFile.JFR,
                                     cafe.jeffrey.shared.common.model.repository.RecordingStatus.FINISHED,
-                                    null))),
+                                    null)),
+                            false),
                     new cafe.jeffrey.shared.common.model.repository.RecordingSession(
                             "session-2", "finished-session", null,
                             FIXED_TIME, FIXED_TIME.plusSeconds(3600),
                             cafe.jeffrey.shared.common.model.repository.RecordingStatus.FINISHED,
                             null, null,
-                            List.of())
+                            List.of(), true)
             ));
 
             var stub = startServer(serviceWithProject(repoManager));
@@ -164,7 +165,7 @@ class RepositoryGrpcServiceTest {
                             FIXED_TIME, FIXED_TIME.plusSeconds(600),
                             cafe.jeffrey.shared.common.model.repository.RecordingStatus.FINISHED,
                             null, null,
-                            List.of())
+                            List.of(), false)
             ));
 
             var stub = startServer(serviceWithSession(repoManager));

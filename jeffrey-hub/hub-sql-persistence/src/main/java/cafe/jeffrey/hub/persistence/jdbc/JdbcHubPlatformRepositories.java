@@ -73,6 +73,7 @@ public class JdbcHubPlatformRepositories implements HubPlatformRepositories {
                    rs.origin_created_at AS origin_created_at,
                    rs.created_at AS created_at,
                    rs.finished_at AS finished_at,
+                   rs.retained AS retained,
                    r.repository_type AS repository_type,
                    r.workspaces_path AS workspaces_path,
                    r.relative_workspace_path AS relative_workspace_path,

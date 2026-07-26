@@ -20,6 +20,7 @@ package cafe.jeffrey.hub.core.scheduler.job.descriptor;
 
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
+import java.util.Locale;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -28,6 +29,17 @@ public abstract class JobDescriptorUtils {
 
     private static final Map<String, ChronoUnit> CHRONO_UNITS = Arrays.stream(ChronoUnit.values())
             .collect(Collectors.toMap(ChronoUnit::toString, Function.identity()));
+
+    /**
+     * Size suffixes accepted by {@link #resolveBytes}, mapped to their multiplier.
+     * Binary units throughout — {@code 1G} is 1024³ bytes, matching how disk budgets
+     * are reasoned about operationally.
+     */
+    private static final Map<Character, Long> SIZE_MULTIPLIERS = Map.of(
+            'K', 1024L,
+            'M', 1024L * 1024L,
+            'G', 1024L * 1024L * 1024L,
+            'T', 1024L * 1024L * 1024L * 1024L);
 
     public static String resolveString(Map<String, String> params, String name) {
         String value = params.get(name);
@@ -45,6 +57,35 @@ public abstract class JobDescriptorUtils {
     public static long resolveLong(Map<String, String> params, String name) {
         String value = resolveString(params, name);
         return Long.parseLong(value);
+    }
+
+    /**
+     * Resolves a byte size written either as a plain number of bytes ({@code 1048576})
+     * or with a binary unit suffix ({@code 512K}, {@code 100M}, {@code 20G}, {@code 2T}).
+     *
+     * @throws IllegalArgumentException if the value is malformed or not positive
+     */
+    public static long resolveBytes(Map<String, String> params, String name) {
+        String value = resolveString(params, name).trim().toUpperCase(Locale.ROOT);
+
+        char suffix = value.charAt(value.length() - 1);
+        Long multiplier = SIZE_MULTIPLIERS.get(suffix);
+
+        long bytes;
+        try {
+            if (multiplier == null) {
+                bytes = Long.parseLong(value);
+            } else {
+                bytes = Long.parseLong(value.substring(0, value.length() - 1).trim()) * multiplier;
+            }
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException(name + " is not a valid size: " + value, e);
+        }
+
+        if (bytes <= 0) {
+            throw new IllegalArgumentException(name + " must be positive: " + value);
+        }
+        return bytes;
     }
 
     public static ChronoUnit resolveChronoUnit(Map<String, String> params, String name) {

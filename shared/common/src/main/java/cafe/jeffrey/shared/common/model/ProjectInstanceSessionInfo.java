@@ -29,5 +29,24 @@ public record ProjectInstanceSessionInfo(
         Path relativeSessionPath,
         Instant originCreatedAt,
         Instant createdAt,
-        Instant finishedAt) {
+        Instant finishedAt,
+        boolean retained) {
+
+    /**
+     * Creates a session that is not retained — the state every session starts in.
+     */
+    public static ProjectInstanceSessionInfo notRetained(
+            String sessionId,
+            String repositoryId,
+            String instanceId,
+            int order,
+            Path relativeSessionPath,
+            Instant originCreatedAt,
+            Instant createdAt,
+            Instant finishedAt) {
+
+        return new ProjectInstanceSessionInfo(
+                sessionId, repositoryId, instanceId, order,
+                relativeSessionPath, originCreatedAt, createdAt, finishedAt, false);
+    }
 }

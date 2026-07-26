@@ -161,12 +161,32 @@ onMounted(() => {
         </DocsCallout>
 
         <h2 id="session-cleanup">Session Cleanup</h2>
-        <p>Old sessions are automatically cleaned up by Jeffrey Hub scheduler jobs:</p>
+        <p>Old sessions are reclaimed automatically by several Jeffrey Hub scheduler jobs, each covering a different granularity:</p>
         <ul>
-          <li><strong>Repository Session Cleaner</strong> - Removes sessions older than configured retention period</li>
-          <li><strong>Repository Recording Cleaner</strong> - Limits the number of recordings in active sessions</li>
-          <li><strong>JFR Compression</strong> - Compresses finished JFR files to save storage space</li>
+          <li><strong>Instance Session Cleaner</strong> - Deletes whole finished sessions older than the retention window (7 days by default). The newest session of an instance that is still running is always kept.</li>
+          <li><strong>Instance Recording Cleaner</strong> - Trims finished chunks inside the <em>live</em> session (3 days by default), so a long-running JVM cannot grow one session without bound. The chunk currently being written is never removed.</li>
+          <li><strong>Storage Quota Cleaner</strong> - Caps total disk per project (20 GB by default). Age alone cannot bound disk usage, so when a project exceeds its budget this job reclaims oldest-first: whole finished sessions, then finished chunks in the live session.</li>
+          <li><strong>Orphaned Session Cleaner</strong> - Removes session directories left on disk with no matching database row, after a grace period long enough to rule out a synchronizer backlog.</li>
+          <li><strong>Expired Instance Cleaner</strong> - Deletes instance rows once they have been EXPIRED past their retention (14 days by default).</li>
+          <li><strong>JFR Compression</strong> - Compresses finished JFR files to save storage space.</li>
         </ul>
+
+        <h2 id="retained-sessions">Retained Sessions</h2>
+        <p>
+          A session can be marked <strong>retained</strong>, which exempts it from every retention job above —
+          age-based and quota-based alike. This exists because the sessions worth keeping are usually the ones
+          captured when something went wrong, and normal retention would eventually reclaim exactly that evidence.
+        </p>
+        <p>
+          Sessions are retained automatically when the Session Finished Detector finds a JVM crash log
+          (<code>hs_err</code>) in the session directory, and can be set or released manually through the
+          repository API. A retained session stays until it is explicitly released or deleted.
+        </p>
+
+        <DocsCallout type="warning">
+          Retained sessions still count toward a project's storage quota. If enough sessions are pinned, a project
+          can legitimately sit above its budget — the quota cleaner reports this rather than forcing a deletion.
+        </DocsCallout>
       </div>
 
       <DocsNavFooter />

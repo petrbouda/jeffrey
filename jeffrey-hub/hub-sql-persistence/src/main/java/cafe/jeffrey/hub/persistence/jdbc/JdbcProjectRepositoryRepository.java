@@ -111,6 +111,13 @@ public class JdbcProjectRepositoryRepository implements ProjectRepositoryReposit
             AND repository_id IN (SELECT repository_id FROM repositories WHERE project_id = :project_id)""";
 
     //language=SQL
+    private static final String UPDATE_SESSION_RETAINED = """
+            UPDATE project_instance_sessions
+            SET retained = :retained
+            WHERE session_id = :session_id
+            AND repository_id IN (SELECT repository_id FROM repositories WHERE project_id = :project_id)""";
+
+    //language=SQL
     private static final String SELECT_LATEST_SESSION_ID = """
             SELECT rs.session_id FROM project_instance_sessions rs
             JOIN repositories r ON rs.repository_id = r.repository_id
@@ -262,6 +269,16 @@ public class JdbcProjectRepositoryRepository implements ProjectRepositoryReposit
                 .addValue("finished_at", finishedAt.atOffset(ZoneOffset.UTC));
 
         databaseClient.update(StatementLabel.UPDATE_SESSION_FINISHED, UPDATE_SESSION_FINISHED, paramSource);
+    }
+
+    @Override
+    public void setSessionRetained(String sessionId, boolean retained) {
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("project_id", projectId)
+                .addValue("session_id", sessionId)
+                .addValue("retained", retained);
+
+        databaseClient.update(StatementLabel.UPDATE_SESSION_RETAINED, UPDATE_SESSION_RETAINED, paramSource);
     }
 
     @Override

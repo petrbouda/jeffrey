@@ -164,7 +164,20 @@ onMounted(() => {
       </table>
 
       <h2 id="job-scheduler">Job Scheduler</h2>
-      <p>Background job scheduling configuration for recording collection and management.</p>
+      <p>
+        Background job configuration. Every job is keyed by the lower-kebab-case form of its job type
+        under the <code>jeffrey.hub.scheduler.jobs</code> prefix, with three settings each:
+        <code>.enabled</code>, <code>.period</code>, and any number of <code>.params.*</code> entries.
+        Built-in defaults live in <code>scheduler-defaults.properties</code>; redeclaring a key in
+        <code>application.properties</code> overrides it.
+      </p>
+      <p>
+        Job configuration is resolved once at startup and is not stored in the database — changing a
+        period or retention window requires a server restart. The <strong>Scheduler</strong> page in the
+        UI is a read-only view of what the server resolved.
+      </p>
+
+      <h3>Global settings</h3>
 
       <table>
         <thead>
@@ -176,59 +189,108 @@ onMounted(() => {
         </thead>
         <tbody>
           <tr>
-            <td><code>jeffrey.job.scheduler.enabled</code></td>
-            <td><code>true</code></td>
-            <td>Enable background job scheduler</td>
+            <td><code>jeffrey.hub.scheduler.fan-out-pool-size</code></td>
+            <td><code>2</code></td>
+            <td>Threads for project/workspace fan-out jobs. Global jobs always get their own dedicated thread.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Jobs</h3>
+      <p>
+        Durations accept <code>s</code>, <code>m</code>, <code>h</code>, and <code>d</code> shorthand.
+        Retention windows expressed as <code>duration</code> + <code>time-unit</code> take a number and a
+        <code>ChronoUnit</code> name (for example <code>7</code> / <code>Days</code>). Sizes accept binary
+        suffixes <code>K</code>, <code>M</code>, <code>G</code>, <code>T</code>, or plain bytes.
+      </p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Job key</th>
+            <th>Period</th>
+            <th>Params (default)</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>workspace-events-replicator</code></td>
+            <td><code>5s</code></td>
+            <td>—</td>
+            <td>Replicates CLI-written event files into the persistent queue</td>
           </tr>
           <tr>
-            <td><code>jeffrey.job.default.period</code></td>
-            <td><code>1m</code></td>
-            <td>Default job execution period (ns, us, ms, s, m, h, d)</td>
-          </tr>
-          <tr>
-            <td><code>jeffrey.job.repository-session-cleaner.period</code></td>
-            <td><code>1m</code></td>
-            <td>Session cleanup job period</td>
-          </tr>
-          <tr>
-            <td><code>jeffrey.job.repository-recording-cleaner.period</code></td>
-            <td><code>1m</code></td>
-            <td>Recording cleanup job period</td>
-          </tr>
-          <tr>
-            <td><code>jeffrey.job.recording-generator.period</code></td>
-            <td><code>1m</code></td>
-            <td>Recording generator job period</td>
-          </tr>
-          <tr>
-            <td><code>jeffrey.job.project-recording-storage-synchronizer.period</code></td>
+            <td><code>workspace-events-cleaner</code></td>
             <td><code>5m</code></td>
-            <td>Storage synchronization job period</td>
+            <td><code>queue-events-retention=31d</code><br><code>processed-files-retention=10m</code></td>
+            <td>Trims the event queue and already-replicated CLI event files</td>
           </tr>
           <tr>
-            <td><code>jeffrey.job.repository-compression.period</code></td>
-            <td><code>1m</code></td>
-            <td>Repository compression job period</td>
-          </tr>
-          <tr>
-            <td><code>jeffrey.job.projects-synchronizer.period</code></td>
-            <td><code>1m</code></td>
-            <td>Projects synchronizer job period</td>
-          </tr>
-          <tr>
-            <td><code>jeffrey.job.profiler-settings-synchronizer.period</code></td>
-            <td><code>10s</code></td>
-            <td>Profiler settings synchronization period</td>
-          </tr>
-          <tr>
-            <td><code>jeffrey.job.workspace-events-replicator.period</code></td>
-            <td><code>10s</code></td>
-            <td>Workspace events replication period</td>
-          </tr>
-          <tr>
-            <td><code>jeffrey.job.orphaned-project-recording-storage-cleaner.period</code></td>
+            <td><code>temp-directory-cleaner</code></td>
             <td><code>5m</code></td>
-            <td>Orphaned storage cleanup period</td>
+            <td><code>retention=30m</code></td>
+            <td>Removes scratch entries leaked by crashed operations</td>
+          </tr>
+          <tr>
+            <td><code>deleted-projects-cleaner</code></td>
+            <td><code>1h</code></td>
+            <td><code>retention=7d</code></td>
+            <td>Purges soft-deleted projects. Doubles as the window in which a deleted project can be restored.</td>
+          </tr>
+          <tr>
+            <td><code>projects-synchronizer</code></td>
+            <td><code>30s</code></td>
+            <td>—</td>
+            <td>Applies queued workspace events per workspace</td>
+          </tr>
+          <tr>
+            <td><code>profiler-settings-synchronizer</code></td>
+            <td><code>5m</code></td>
+            <td><code>max-versions=5</code></td>
+            <td>Uploads effective profiler settings and prunes old versions</td>
+          </tr>
+          <tr>
+            <td><code>project-instance-session-cleaner</code></td>
+            <td><code>1h</code></td>
+            <td><code>duration=7</code> / <code>time-unit=Days</code></td>
+            <td>Deletes finished sessions past the retention window</td>
+          </tr>
+          <tr>
+            <td><code>project-instance-recording-cleaner</code></td>
+            <td><code>1h</code></td>
+            <td><code>duration=3</code> / <code>time-unit=Days</code></td>
+            <td>Trims finished chunks inside the live session so it stays bounded</td>
+          </tr>
+          <tr>
+            <td><code>project-storage-quota-cleaner</code></td>
+            <td><code>15m</code></td>
+            <td><code>max-size=20G</code></td>
+            <td>Caps total disk per project, reclaiming oldest-first</td>
+          </tr>
+          <tr>
+            <td><code>orphaned-session-cleaner</code></td>
+            <td><code>1h</code></td>
+            <td><code>duration=24</code> / <code>time-unit=Hours</code></td>
+            <td>Removes session directories that have no database row</td>
+          </tr>
+          <tr>
+            <td><code>expired-instance-cleaner</code></td>
+            <td><code>1h</code></td>
+            <td><code>duration=14</code> / <code>time-unit=Days</code></td>
+            <td>Deletes EXPIRED instance rows and abandoned PENDING instances</td>
+          </tr>
+          <tr>
+            <td><code>repository-jfr-compression</code></td>
+            <td><code>15m</code></td>
+            <td>—</td>
+            <td>LZ4-compresses finished JFR files and deletes the originals</td>
+          </tr>
+          <tr>
+            <td><code>session-finished-detector</code></td>
+            <td><code>30s</code></td>
+            <td>—</td>
+            <td>Marks sessions finished from heartbeat staleness</td>
           </tr>
         </tbody>
       </table>

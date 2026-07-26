@@ -22,8 +22,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.hub.core.manager.project.ProjectManager;
 import cafe.jeffrey.hub.core.manager.project.ProjectsManager;
+import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
 import cafe.jeffrey.hub.core.repository.FilesystemRemoteWorkspaceRepository;
 import cafe.jeffrey.hub.core.repository.RemoteWorkspaceRepository;
+import cafe.jeffrey.shared.common.model.ProjectInfo;
+import cafe.jeffrey.shared.common.model.repository.RecordingSession;
 import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
 import cafe.jeffrey.hub.persistence.api.WorkspaceRepository;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
@@ -45,6 +48,7 @@ public class LiveWorkspaceManager implements WorkspaceManager {
     private final WorkspaceRepository workspaceRepository;
     private final HubPlatformRepositories platformRepositories;
     private final ProjectsManager.Factory projectsManagerFactory;
+    private final RepositoryStorage.Factory repositoryStorageFactory;
 
     public LiveWorkspaceManager(
             Clock clock,
@@ -52,7 +56,8 @@ public class LiveWorkspaceManager implements WorkspaceManager {
             WorkspaceInfo workspaceInfo,
             WorkspaceRepository workspaceRepository,
             HubPlatformRepositories platformRepositories,
-            ProjectsManager.Factory projectsManagerFactory) {
+            ProjectsManager.Factory projectsManagerFactory,
+            RepositoryStorage.Factory repositoryStorageFactory) {
 
         this.clock = clock;
         this.jeffreyDirs = jeffreyDirs;
@@ -60,6 +65,7 @@ public class LiveWorkspaceManager implements WorkspaceManager {
         this.workspaceRepository = workspaceRepository;
         this.platformRepositories = platformRepositories;
         this.projectsManagerFactory = projectsManagerFactory;
+        this.repositoryStorageFactory = repositoryStorageFactory;
     }
 
     @Override
@@ -95,10 +101,36 @@ public class LiveWorkspaceManager implements WorkspaceManager {
     @Override
     public void delete() {
         for (ProjectManager project : projectsManager().findAll()) {
+            // Reclaim the project's session directories before its rows go away. Once the
+            // cascade has run there is no path left from any database row back to these
+            // directories, so skipping this step orphans them for the life of the volume.
+            deleteProjectStorage(project.info());
             platformRepositories.newProjectRepository(project.info().id()).delete();
         }
         workspaceRepository.delete();
         LOG.info("Deleted workspace: workspaceId={}", workspaceInfo.id());
+    }
+
+    /**
+     * Best-effort removal of a project's recording sessions from storage. A failure here
+     * must not abort the workspace delete — leaked files are recoverable, a workspace stuck
+     * half-deleted is not.
+     */
+    private void deleteProjectStorage(ProjectInfo projectInfo) {
+        try {
+            RepositoryStorage storage = repositoryStorageFactory.apply(projectInfo);
+            for (RecordingSession session : storage.listSessions(false)) {
+                try {
+                    storage.deleteSession(session.id());
+                } catch (Exception e) {
+                    LOG.warn("Failed to delete session during workspace delete: workspaceId={} projectId={} sessionId={}",
+                            workspaceInfo.id(), projectInfo.id(), session.id(), e);
+                }
+            }
+        } catch (Exception e) {
+            LOG.warn("Failed to clean up storage during workspace delete: workspaceId={} projectId={}",
+                    workspaceInfo.id(), projectInfo.id(), e);
+        }
     }
 
     @Override
