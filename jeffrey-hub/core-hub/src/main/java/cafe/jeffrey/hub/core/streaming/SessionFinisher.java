@@ -21,6 +21,7 @@ package cafe.jeffrey.hub.core.streaming;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.hub.core.jfr.JfrMessageEmitter;
+import cafe.jeffrey.hub.core.project.repository.InstanceLifecycleEventEmitter;
 import cafe.jeffrey.hub.core.project.repository.SessionFinishEventEmitter;
 import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
 import cafe.jeffrey.hub.persistence.api.ProjectInstanceRepository;
@@ -28,6 +29,7 @@ import cafe.jeffrey.hub.persistence.api.ProjectRepositoryRepository;
 import cafe.jeffrey.shared.common.model.ProjectInfo;
 import cafe.jeffrey.shared.common.model.ProjectInstanceInfo.ProjectInstanceStatus;
 import cafe.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
+import cafe.jeffrey.shared.common.model.workspace.WorkspaceEventCreator;
 
 import java.nio.file.Path;
 import java.time.Clock;
@@ -46,17 +48,20 @@ public class SessionFinisher {
 
     private final Clock clock;
     private final SessionFinishEventEmitter eventEmitter;
+    private final InstanceLifecycleEventEmitter instanceLifecycleEventEmitter;
     private final FileHeartbeatReader fileHeartbeatReader;
     private final HubPlatformRepositories platformRepositories;
 
     public SessionFinisher(
             Clock clock,
             SessionFinishEventEmitter eventEmitter,
+            InstanceLifecycleEventEmitter instanceLifecycleEventEmitter,
             FileHeartbeatReader fileHeartbeatReader,
             HubPlatformRepositories platformRepositories) {
 
         this.clock = clock;
         this.eventEmitter = eventEmitter;
+        this.instanceLifecycleEventEmitter = instanceLifecycleEventEmitter;
         this.fileHeartbeatReader = fileHeartbeatReader;
         this.platformRepositories = platformRepositories;
     }
@@ -86,6 +91,12 @@ public class SessionFinisher {
                     sessionInfo.instanceId(), ProjectInstanceStatus.FINISHED, finishedAt);
             LOG.info("Instance marked as FINISHED (last session done): instanceId={} projectId={}",
                     sessionInfo.instanceId(), projectInfo.id());
+
+            // markFinished is the single funnel for instance-FINISHED: both the heartbeat detector
+            // and the session auto-close path route through here.
+            instanceLifecycleEventEmitter.emitInstanceFinished(
+                    projectInfo, sessionInfo.instanceId(), finishedAt,
+                    WorkspaceEventCreator.INSTANCE_LIFECYCLE);
         }
 
         eventEmitter.emitSessionFinished(projectInfo, sessionInfo);

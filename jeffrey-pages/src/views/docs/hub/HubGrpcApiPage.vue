@@ -361,6 +361,20 @@ onMounted(() => {
                 </div>
                 <p>Get events for a workspace with optional event type filter</p>
               </div>
+              <div class="endpoint-item">
+                <div class="endpoint-line">
+                  <span class="method rpc">RPC</span>
+                  <code>StreamWorkspaceEvents</code>
+                  <span class="badge-stream">server streaming</span>
+                </div>
+                <p>
+                  Subscribe to a workspace's events. Replays everything above
+                  <code>from_offset</code> (exclusive), then tails until the client disconnects.
+                  Filter with <code>event_types</code> — empty means all types. Each batch carries
+                  <code>last_offset</code>, which advances past filtered-out events so a
+                  reconnecting client can resume without rescanning them.
+                </p>
+              </div>
             </div>
           </div>
         </div>
@@ -549,6 +563,18 @@ onMounted(() => {
 .method.put { background: #fef3c7; color: #92400e; }
 .method.delete { background: #fee2e2; color: #991b1b; }
 .method.rpc { background: #ede9fe; color: #6d28d9; }
+
+.badge-stream {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.1rem 0.45rem;
+  border-radius: 4px;
+  background: #e0f2fe;
+  color: #0369a1;
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
 
 /* Workflow Diagram */
 .workflow-diagram {

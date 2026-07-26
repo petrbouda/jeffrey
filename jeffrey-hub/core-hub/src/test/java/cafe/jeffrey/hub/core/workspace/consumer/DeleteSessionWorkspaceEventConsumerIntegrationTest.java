@@ -25,7 +25,10 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import cafe.jeffrey.hub.core.manager.project.ProjectManager;
 import cafe.jeffrey.hub.core.manager.project.ProjectsManager;
+import cafe.jeffrey.hub.core.project.repository.InstanceLifecycleEventEmitter;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
+import cafe.jeffrey.hub.core.workspace.QueueWorkspaceEventPublisher;
+import cafe.jeffrey.hub.core.workspace.WorkspaceEventSerializer;
 import cafe.jeffrey.hub.persistence.jdbc.JdbcHubPlatformRepositories;
 import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
 import cafe.jeffrey.shared.common.model.ProjectInstanceInfo.ProjectInstanceStatus;
@@ -34,6 +37,8 @@ import cafe.jeffrey.shared.common.model.ProjectInfo;
 import cafe.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceEvent;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceEventType;
+import cafe.jeffrey.shared.persistentqueue.DuckDBPersistentQueue;
+import cafe.jeffrey.shared.persistentqueue.QueueEntry;
 import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
 import cafe.jeffrey.test.DuckDBTest;
 import cafe.jeffrey.test.TestUtils;
@@ -58,12 +63,23 @@ class DeleteSessionWorkspaceEventConsumerIntegrationTest {
     private static final String ORIGIN_PROJECT_ID = "origin-proj-001";
     private static final String WORKSPACE_ID = "ws-001";
     private static final String SESSION_ID = "session-001";
+    private static final String QUEUE_NAME = "workspace_events";
     private static final Instant NOW = Instant.parse("2025-06-15T12:00:00Z");
     private static final Clock FIXED_CLOCK = Clock.fixed(NOW, ZoneOffset.UTC);
 
     private static final ProjectInfo PROJECT_INFO = new ProjectInfo(
             PROJECT_ID, ORIGIN_PROJECT_ID, "Test Project", "Label 1", null,
             WORKSPACE_ID, Instant.parse("2025-01-01T11:00:00Z"), null, Map.of(), null);
+
+    private static DuckDBPersistentQueue<WorkspaceEvent> createQueue(DataSource dataSource) {
+        return new DuckDBPersistentQueue<>(
+                new DatabaseClientProvider(dataSource), QUEUE_NAME, new WorkspaceEventSerializer(), FIXED_CLOCK);
+    }
+
+    private static InstanceLifecycleEventEmitter lifecycleEmitter(DataSource dataSource) {
+        return new InstanceLifecycleEventEmitter(
+                FIXED_CLOCK, new QueueWorkspaceEventPublisher(createQueue(dataSource)));
+    }
 
     private static WorkspaceEvent sessionDeletedEvent(String sessionId) {
         return new WorkspaceEvent(null, sessionId, ORIGIN_PROJECT_ID, WORKSPACE_ID,
@@ -102,7 +118,8 @@ class DeleteSessionWorkspaceEventConsumerIntegrationTest {
             assertTrue(sessionsBefore.stream().anyMatch(s -> s.sessionId().equals(SESSION_ID)));
 
             var consumer = new DeleteSessionWorkspaceEventConsumer(
-                    platformRepositories, repositoryStorageFactory, FIXED_CLOCK);
+                    platformRepositories, repositoryStorageFactory, FIXED_CLOCK,
+                    lifecycleEmitter(dataSource));
             consumer.on(sessionDeletedEvent(SESSION_ID), projectsManager);
 
             // Verify session deleted from DB
@@ -131,7 +148,8 @@ class DeleteSessionWorkspaceEventConsumerIntegrationTest {
             when(projectsManager.project(ORIGIN_PROJECT_ID)).thenReturn(Optional.empty());
 
             var consumer = new DeleteSessionWorkspaceEventConsumer(
-                    platformRepositories, repositoryStorageFactory, FIXED_CLOCK);
+                    platformRepositories, repositoryStorageFactory, FIXED_CLOCK,
+                    mock(InstanceLifecycleEventEmitter.class));
 
             assertDoesNotThrow(() ->
                     consumer.on(sessionDeletedEvent(SESSION_ID), projectsManager));
@@ -170,7 +188,8 @@ class DeleteSessionWorkspaceEventConsumerIntegrationTest {
             assertEquals(ProjectInstanceStatus.FINISHED, instanceRepo.find("inst-001").orElseThrow().status());
 
             var consumer = new DeleteSessionWorkspaceEventConsumer(
-                    platformRepositories, repositoryStorageFactory, FIXED_CLOCK);
+                    platformRepositories, repositoryStorageFactory, FIXED_CLOCK,
+                    lifecycleEmitter(dataSource));
             consumer.on(sessionDeletedEvent(SESSION_ID), projectsManager);
 
             // Instance should now be EXPIRED with expiringAt and expiredAt set
@@ -197,7 +216,8 @@ class DeleteSessionWorkspaceEventConsumerIntegrationTest {
             assertEquals(ProjectInstanceStatus.ACTIVE, instanceRepo.find("inst-001").orElseThrow().status());
 
             var consumer = new DeleteSessionWorkspaceEventConsumer(
-                    platformRepositories, repositoryStorageFactory, FIXED_CLOCK);
+                    platformRepositories, repositoryStorageFactory, FIXED_CLOCK,
+                    lifecycleEmitter(dataSource));
             consumer.on(sessionDeletedEvent(SESSION_ID), projectsManager);
 
             // Instance should still be ACTIVE with expiringAt set
@@ -205,6 +225,61 @@ class DeleteSessionWorkspaceEventConsumerIntegrationTest {
             assertEquals(ProjectInstanceStatus.ACTIVE, instance.status());
             assertEquals(NOW, instance.expiringAt());
             assertNull(instance.expiredAt());
+        }
+
+        @Test
+        void lastSessionDeleted_emitsInstanceExpiredEvent(DataSource dataSource) throws SQLException {
+            TestUtils.executeSql(dataSource, "sql/consumer/insert-workspace-project-finished-instance-with-session.sql");
+            var provider = new DatabaseClientProvider(dataSource);
+            var platformRepositories = new JdbcHubPlatformRepositories(provider, FIXED_CLOCK);
+
+            when(projectsManager.project(ORIGIN_PROJECT_ID)).thenReturn(Optional.of(projectManager));
+            when(projectManager.info()).thenReturn(PROJECT_INFO);
+            when(repositoryStorageFactory.apply(PROJECT_INFO)).thenReturn(repositoryStorage);
+
+            var consumer = new DeleteSessionWorkspaceEventConsumer(
+                    platformRepositories, repositoryStorageFactory, FIXED_CLOCK,
+                    lifecycleEmitter(dataSource));
+            consumer.on(sessionDeletedEvent(SESSION_ID), projectsManager);
+
+            List<WorkspaceEvent> expiredEvents = expiredEventsFor(dataSource);
+            assertEquals(1, expiredEvents.size());
+            WorkspaceEvent expired = expiredEvents.getFirst();
+            assertAll(
+                    () -> assertEquals("inst-001", expired.originEventId()),
+                    () -> assertEquals(PROJECT_ID, expired.projectId()),
+                    () -> assertEquals(WORKSPACE_ID, expired.workspaceRefId()));
+        }
+
+        @Test
+        void reprocessingTheSameDeletion_emitsInstanceExpiredOnlyOnce(DataSource dataSource) throws SQLException {
+            TestUtils.executeSql(dataSource, "sql/consumer/insert-workspace-project-finished-instance-with-session.sql");
+            var provider = new DatabaseClientProvider(dataSource);
+            var platformRepositories = new JdbcHubPlatformRepositories(provider, FIXED_CLOCK);
+
+            when(projectsManager.project(ORIGIN_PROJECT_ID)).thenReturn(Optional.of(projectManager));
+            when(projectManager.info()).thenReturn(PROJECT_INFO);
+            when(repositoryStorageFactory.apply(PROJECT_INFO)).thenReturn(repositoryStorage);
+
+            var consumer = new DeleteSessionWorkspaceEventConsumer(
+                    platformRepositories, repositoryStorageFactory, FIXED_CLOCK,
+                    lifecycleEmitter(dataSource));
+
+            // The consumer publishes into the queue it is consuming from, inside the synchronizer's
+            // transaction. A rollback-and-retry re-runs this emission, so the dedup key on the
+            // instance id is what keeps a retried event from becoming a second row.
+            consumer.on(sessionDeletedEvent(SESSION_ID), projectsManager);
+            consumer.on(sessionDeletedEvent(SESSION_ID), projectsManager);
+
+            assertEquals(1, expiredEventsFor(dataSource).size(),
+                    "A retried transaction must not duplicate the instance-expired event");
+        }
+
+        private static List<WorkspaceEvent> expiredEventsFor(DataSource dataSource) {
+            return createQueue(dataSource).findAll(WORKSPACE_ID, -1).stream()
+                    .map(QueueEntry::payload)
+                    .filter(event -> event.eventType() == WorkspaceEventType.PROJECT_INSTANCE_EXPIRED)
+                    .toList();
         }
     }
 
@@ -223,7 +298,8 @@ class DeleteSessionWorkspaceEventConsumerIntegrationTest {
         @Test
         void onlyApplicable_forSessionDeletedEvents() {
             var consumer = new DeleteSessionWorkspaceEventConsumer(
-                    platformRepositories, repositoryStorageFactory, FIXED_CLOCK);
+                    platformRepositories, repositoryStorageFactory, FIXED_CLOCK,
+                    mock(InstanceLifecycleEventEmitter.class));
 
             WorkspaceEvent sessionDeleted = new WorkspaceEvent(null, "id", "proj", WORKSPACE_ID,
                     WorkspaceEventType.PROJECT_INSTANCE_SESSION_DELETED, null, NOW, NOW, "test");

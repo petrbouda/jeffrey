@@ -18,7 +18,6 @@
 
 package cafe.jeffrey.hub.core.grpc;
 
-import io.grpc.Context;
 import io.grpc.stub.ServerCallStreamObserver;
 import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
@@ -101,7 +100,7 @@ public class EventStreamingGrpcService extends EventStreamingServiceGrpc.EventSt
 
             String subscriptionId = liveStreamingManager.subscribe(subscription, callbacks);
 
-            unsubscribeOnDisconnect("live", subscription,
+            GrpcStreams.unsubscribeOnDisconnect("live", subscription,
                     () -> liveStreamingManager.unsubscribe(subscriptionId));
         } catch (Exception e) {
             LOG.error("Failed to start live streaming: sessionId={}", sessionId, e);
@@ -142,13 +141,13 @@ public class EventStreamingGrpcService extends EventStreamingServiceGrpc.EventSt
                     window, jeffreyDirs.temp());
 
             var callbacks = new StreamingCallbacks(
-                    batch -> sendWithBackpressure(serverObserver, gate, batch),
+                    batch -> GrpcStreams.sendWithBackpressure(serverObserver, gate, batch),
                     observer::onCompleted,
                     t -> observer.onError(GrpcExceptions.internal(t)));
 
             String replayId = replayStreamingManager.subscribe(replaySubscription, callbacks);
 
-            unsubscribeOnDisconnect("replay", replaySubscription,
+            GrpcStreams.unsubscribeOnDisconnect("replay", replaySubscription,
                     () -> replayStreamingManager.unsubscribe(replayId));
         } catch (IllegalArgumentException e) {
             observer.onError(GrpcExceptions.invalidArgument(e.getMessage()));
@@ -181,34 +180,6 @@ public class EventStreamingGrpcService extends EventStreamingServiceGrpc.EventSt
         }
 
         return sessionOpt;
-    }
-
-    /**
-     * Unsubscribes the streaming subscription when the client disconnects (gRPC context
-     * cancellation), releasing the subscriber and its resources.
-     */
-    private static void unsubscribeOnDisconnect(String streamKind, Object subscription, Runnable unsubscribe) {
-        Context.current().addListener(_ -> {
-            LOG.info("Client disconnected, closing {} stream: subscription={}", streamKind, subscription);
-            unsubscribe.run();
-        }, Runnable::run);
-    }
-
-    /**
-     * Delivers a batch to the client, pausing on the streaming thread until the channel
-     * is ready to accept more data. Batches produced after cancellation are dropped.
-     */
-    private static void sendWithBackpressure(
-            ServerCallStreamObserver<EventBatch> observer, ReadyGate gate, EventBatch batch) {
-        try {
-            gate.awaitReady();
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            return;
-        }
-        if (!gate.isCancelled()) {
-            observer.onNext(batch);
-        }
     }
 
     private static StreamingWindow resolveStreamingWindow(ReplayStreamingRequest request) {

@@ -46,7 +46,7 @@ public class CachedHubClientsFactory implements HubClients.Factory, Closeable {
     public void evict(HubAddress address) {
         CachedEntry entry = cache.remove(address);
         if (entry != null) {
-            entry.clients().eventStreaming().close();
+            closeStreams(entry);
             entry.connection().close();
             LOG.info("Evicted cached gRPC connection: address={}", address);
         }
@@ -55,11 +55,21 @@ public class CachedHubClientsFactory implements HubClients.Factory, Closeable {
     @Override
     public void close() {
         for (Map.Entry<HubAddress, CachedEntry> entry : cache.entrySet()) {
-            entry.getValue().clients().eventStreaming().close();
+            closeStreams(entry.getValue());
             entry.getValue().connection().close();
         }
         cache.clear();
         LOG.info("Closed all cached gRPC connections");
+    }
+
+    /**
+     * Cancels every long-lived stream on the entry before its channel goes away. Every client
+     * that can hold an open stream must be listed here — one that is missed leaks the stream and
+     * its server-side subscriber on each eviction.
+     */
+    private static void closeStreams(CachedEntry entry) {
+        entry.clients().eventStreaming().close();
+        entry.clients().workspaceEvents().close();
     }
 
     private CachedEntry createEntry(HubAddress address) {

@@ -34,10 +34,10 @@ import cafe.jeffrey.microscope.core.manager.EventStreamingManager;
 import cafe.jeffrey.microscope.core.manager.EventStreamingManager.CompositeSubscription;
 import cafe.jeffrey.microscope.core.manager.project.ProjectManager;
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
+import cafe.jeffrey.microscope.core.web.RequestParams;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
@@ -67,7 +67,7 @@ public class ProjectLiveStreamController {
             @RequestParam(value = "sessionIds", defaultValue = "") String sessionIds,
             @RequestParam(value = "eventTypes", defaultValue = "") String eventTypes) {
 
-        List<String> sessionIdList = parseCsv(sessionIds);
+        List<String> sessionIdList = RequestParams.parseCsv(sessionIds);
         if (sessionIdList.isEmpty()) {
             throw Exceptions.invalidRequest("At least one sessionId is required");
         }
@@ -77,7 +77,7 @@ public class ProjectLiveStreamController {
 
         var request = new LiveSubscriptionRequest(
                 sessionIdList,
-                parseCsv(eventTypes).stream().collect(Collectors.toUnmodifiableSet()));
+                RequestParams.parseCsv(eventTypes).stream().collect(Collectors.toUnmodifiableSet()));
 
         SseEmitter emitter = new SseEmitter(0L);
         Object sinkLock = new Object();
@@ -126,15 +126,5 @@ public class ProjectLiveStreamController {
                 }
             }
         }
-    }
-
-    private static List<String> parseCsv(String csv) {
-        if (csv == null || csv.isBlank()) {
-            return List.of();
-        }
-        return Arrays.stream(csv.split(","))
-                .map(String::strip)
-                .filter(s -> !s.isEmpty())
-                .toList();
     }
 }

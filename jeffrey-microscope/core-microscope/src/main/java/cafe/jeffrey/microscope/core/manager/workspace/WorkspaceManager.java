@@ -19,6 +19,9 @@
 package cafe.jeffrey.microscope.core.manager.workspace;
 
 import cafe.jeffrey.hub.client.ProfilerClient;
+import cafe.jeffrey.hub.client.WorkspaceEventsClient;
+import cafe.jeffrey.hub.client.WorkspaceEventsStreamCallbacks;
+import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.microscope.core.web.dto.response.WorkspaceEventsResponse;
 import cafe.jeffrey.microscope.core.manager.project.ProjectsManager;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceInfo;
@@ -64,6 +67,20 @@ public interface WorkspaceManager {
      */
     default WorkspaceEventsResponse events(int limit) {
         return new WorkspaceEventsResponse(List.of(), 0L, limit);
+    }
+
+    /**
+     * Opens a live subscription to this workspace's event stream. Only remote workspaces have an
+     * event log at all, so the default rejects the call the same way {@link #events(int)} returns
+     * nothing for a local workspace.
+     *
+     * @return a handle whose {@code cancel()} closes the stream
+     */
+    default WorkspaceEventsClient.WorkspaceEventsSubscription streamEvents(
+            WorkspaceEventsClient.WorkspaceEventsSubscribeRequest request,
+            WorkspaceEventsStreamCallbacks callbacks) {
+
+        throw Exceptions.invalidRequest("Workspace does not support event streaming");
     }
 
     /**

@@ -10,6 +10,10 @@ option java_multiple_files = true;
 service WorkspaceEventsService {
   // Gets events for a single workspace, optionally filtered by event type.
   rpc GetWorkspaceEvents(GetWorkspaceEventsRequest) returns (GetWorkspaceEventsResponse);
+
+  // Streams events for a single workspace in offset order: first everything already
+  // retained above from_offset (catch-up), then tailing until the client disconnects.
+  rpc StreamWorkspaceEvents(StreamWorkspaceEventsRequest) returns (stream WorkspaceEventBatch);
 }
 
 message GetWorkspaceEventsRequest {
@@ -27,6 +31,36 @@ message GetWorkspaceEventsResponse {
   repeated WorkspaceEventInfo events = 1;
   // Total number of events for the workspace, ignoring filter and limit.
   int64 total_count = 2;
+}
+
+message StreamWorkspaceEventsRequest {
+  // The workspace to stream events for (required).
+  string workspace_id = 1;
+  // Exclusive lower bound: only events with event_id > from_offset are delivered.
+  // Unset or 0 starts from the oldest retained event. To resume after a reconnect,
+  // pass the highest last_offset the client has already observed.
+  optional int64 from_offset = 2;
+  // Filter by event type names (e.g., "PROJECT_CREATED"). Empty = all types.
+  // Note this is a repeated field, unlike the single event_type of the unary RPC:
+  // a long-lived subscription needs to select several types at once.
+  repeated string event_types = 3;
+  // Send empty batches as heartbeats while the stream is idle (default: false).
+  // A workspace can be quiet for hours, and an idle HTTP/2 stream can be dropped
+  // silently by an intermediary, so clients that care about liveness should set this.
+  optional bool send_empty_batches = 4;
+  // Maximum events per batch during catch-up. Unset or <= 0 = server default.
+  optional int32 batch_size = 5;
+}
+
+message WorkspaceEventBatch {
+  // Events in ascending event_id order. Empty on a heartbeat batch.
+  repeated WorkspaceEventInfo events = 1;
+  // Highest event_id the server has read on this stream, before type filtering.
+  // It advances even when the filter dropped every event in the window, so a client
+  // that has only seen heartbeats can still resume from a correct offset.
+  int64 last_offset = 2;
+  // True once the backlog is drained and the stream is tailing.
+  bool caught_up = 3;
 }
 
 // A workspace event produced by the system (e.g., project created, session finished).

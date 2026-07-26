@@ -31,7 +31,8 @@ public enum JobType {
     ORPHANED_SESSION_CLEANER(ExecutionLevel.PROJECT),
     EXPIRED_INSTANCE_CLEANER(ExecutionLevel.PROJECT),
     REPOSITORY_JFR_COMPRESSION(ExecutionLevel.PROJECT),
-    SESSION_FINISHED_DETECTOR(ExecutionLevel.PROJECT);
+    SESSION_FINISHED_DETECTOR(ExecutionLevel.PROJECT),
+    SESSION_FILE_DETECTOR(ExecutionLevel.PROJECT);
 
     /**
      * Where a job runs in the server's three-level execution model:

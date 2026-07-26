@@ -86,6 +86,24 @@ public interface PersistentQueue<T> {
     List<QueueEntry<T>> findAll(String scopeId, int limit);
 
     /**
+     * Returns events for the given scope whose offset is strictly greater than
+     * {@code fromOffset}, ordered by offset ascending.
+     *
+     * <p>Unlike {@link #poll(String, String)} this does <b>not</b> register a consumer and
+     * does not track an offset — the caller owns its cursor. That distinction is
+     * load-bearing: a registered consumer that never acknowledges pins every event above
+     * its offset against age-based retention (see {@link #deleteEventsOlderThan(Instant)}),
+     * so a long-lived reader that only tails the queue must never go through
+     * {@link #poll(String, String)}.
+     *
+     * @param scopeId    the scope identifier (e.g. workspace ID)
+     * @param fromOffset exclusive lower bound; {@code 0} reads from the oldest retained event
+     * @param limit      maximum number of entries to return; {@code <= 0} = unbounded
+     * @return queue entries ordered by offset ascending
+     */
+    List<QueueEntry<T>> findFromOffset(String scopeId, long fromOffset, int limit);
+
+    /**
      * Returns the total number of events in the queue for the given scope,
      * ignoring any consumer state.
      *

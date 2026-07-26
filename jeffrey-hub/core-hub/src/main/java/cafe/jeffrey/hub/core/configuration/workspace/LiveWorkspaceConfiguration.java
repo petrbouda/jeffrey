@@ -28,11 +28,15 @@ import cafe.jeffrey.hub.core.manager.workspace.LiveWorkspaceManager;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
 import cafe.jeffrey.shared.persistentqueue.DuckDBPersistentQueue;
 import cafe.jeffrey.shared.persistentqueue.PersistentQueue;
+import cafe.jeffrey.hub.core.workspace.NotifyingWorkspaceEventQueue;
 import cafe.jeffrey.hub.core.workspace.QueueWorkspaceEventPublisher;
 import cafe.jeffrey.hub.core.workspace.QueueWorkspaceEventReader;
+import cafe.jeffrey.hub.core.workspace.WorkspaceEventNotifier;
 import cafe.jeffrey.hub.core.workspace.WorkspaceEventPublisher;
 import cafe.jeffrey.hub.core.workspace.WorkspaceEventReader;
 import cafe.jeffrey.hub.core.workspace.WorkspaceEventSerializer;
+import cafe.jeffrey.hub.core.workspace.WorkspaceEventStreamingManager;
+import cafe.jeffrey.shared.common.Schedulers;
 import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
 import cafe.jeffrey.hub.persistence.api.WorkspaceRepository;
 import cafe.jeffrey.hub.core.HubJeffreyDirs;
@@ -40,6 +44,7 @@ import cafe.jeffrey.shared.common.model.workspace.WorkspaceEvent;
 import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
 
 import java.time.Clock;
+import java.time.Duration;
 
 @Configuration
 public class LiveWorkspaceConfiguration {
@@ -48,13 +53,45 @@ public class LiveWorkspaceConfiguration {
 
     public static final String LIVE_WORKSPACE_TYPE = "LIVE_WORKSPACE_FACTORY_TYPE";
 
+    /**
+     * How often a live subscriber re-drains the queue even without a notification. Appends
+     * made inside a transaction notify before their commit is visible, so the backstop is
+     * what turns a missed wakeup into bounded latency instead of a lost event.
+     */
+    private static final Duration STREAMING_BACKSTOP_INTERVAL = Duration.ofSeconds(30);
+
+    @Bean
+    public WorkspaceEventNotifier workspaceEventNotifier() {
+        return new WorkspaceEventNotifier();
+    }
+
+    /**
+     * The notifying decorator wraps the queue rather than the publisher because
+     * {@code WorkspaceEventsReplicatorJob} appends to the queue directly — a publisher-level
+     * hook would miss every CLI-originated event.
+     */
     @Bean
     public PersistentQueue<WorkspaceEvent> workspaceEventQueue(
             DatabaseClientProvider databaseClientProvider,
-            Clock applicationClock) {
+            Clock applicationClock,
+            WorkspaceEventNotifier workspaceEventNotifier) {
 
-        return new DuckDBPersistentQueue<>(
+        PersistentQueue<WorkspaceEvent> queue = new DuckDBPersistentQueue<>(
                 databaseClientProvider, WORKSPACE_EVENTS_QUEUE, new WorkspaceEventSerializer(), applicationClock);
+
+        return new NotifyingWorkspaceEventQueue(queue, workspaceEventNotifier);
+    }
+
+    @Bean(destroyMethod = "close")
+    public WorkspaceEventStreamingManager workspaceEventStreamingManager(
+            WorkspaceEventReader workspaceEventReader,
+            WorkspaceEventNotifier workspaceEventNotifier) {
+
+        return new WorkspaceEventStreamingManager(
+                workspaceEventReader,
+                workspaceEventNotifier,
+                Schedulers.streamingExecutor(),
+                STREAMING_BACKSTOP_INTERVAL);
     }
 
     @Bean

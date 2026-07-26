@@ -32,6 +32,12 @@
         Showing {{ filteredEvents.length }} of {{ events.length
         }}<span v-if="totalCount > events.length"> · {{ totalCount }} total</span>
       </span>
+      <Badge
+        class="event-stream-indicator"
+        :value="streamStateLabel"
+        :variant="streamStateVariant"
+        size="small"
+      />
     </div>
 
     <LoadingState v-if="loading" message="Loading workspace events…" />
@@ -159,7 +165,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed, onUnmounted, ref, watch } from 'vue';
 import WorkspaceEvent from '@/services/api/model/WorkspaceEvent';
 import WorkspaceEventType from '@/services/api/model/WorkspaceEventType';
 import WorkspaceEventsClient from '@/services/api/WorkspaceEventsClient';
@@ -167,6 +173,10 @@ import { EventContentParser } from '@/services/EventContentParser';
 import FormattingService from '@shared/services/FormattingService';
 import Badge from '@shared/components/Badge.vue';
 import GenericModal from '@shared/components/GenericModal.vue';
+import WorkspaceEventsStreamClient, {
+  type StreamState
+} from '@/services/api/WorkspaceEventsStreamClient';
+import { highestEventId, mergeEvents } from '@/services/WorkspaceEventMerge';
 import LoadingState from '@shared/components/LoadingState.vue';
 import ErrorState from '@shared/components/ErrorState.vue';
 import EmptyState from '@shared/components/EmptyState.vue';
@@ -189,11 +199,39 @@ const emit = defineEmits<{
 
 const events = ref<WorkspaceEvent[]>([]);
 const totalCount = ref(0);
+const streamState = ref<StreamState>('connecting');
+let streamClient: WorkspaceEventsStreamClient | null = null;
 const loading = ref(false);
 const errorMessage = ref('');
 const selectedEventType = ref<string>('');
 const selectedEvent = ref<WorkspaceEvent | null>(null);
 const showEventDetailsModal = ref(false);
+
+const streamStateLabel = computed(() => {
+  switch (streamState.value) {
+    case 'live':
+      return 'Live';
+    case 'reconnecting':
+      return 'Reconnecting…';
+    case 'closed':
+      return 'Paused';
+    default:
+      return 'Connecting…';
+  }
+});
+
+const streamStateVariant = computed(() => {
+  switch (streamState.value) {
+    case 'live':
+      return 'green';
+    case 'reconnecting':
+      return 'warning';
+    case 'closed':
+      return 'secondary';
+    default:
+      return 'info';
+  }
+});
 
 const filteredEvents = computed(() => {
   let list = [...events.value];
@@ -234,6 +272,7 @@ const refresh = async () => {
     events.value = fetched;
     totalCount.value = response.totalCount;
     emit('update:count', response.totalCount);
+    startStreaming(highestEventId(fetched));
   } catch (error: unknown) {
     errorMessage.value = error instanceof Error ? error.message : 'Could not load workspace events';
     events.value = [];
@@ -244,10 +283,49 @@ const refresh = async () => {
   }
 };
 
+/**
+ * Tails the workspace event log after the initial page load. The resume point is the highest
+ * event id already on screen, so the stream's catch-up phase fills exactly the gap between the
+ * REST snapshot and now — anything overlapping is dropped by mergeEvents.
+ */
+const startStreaming = (fromOffset: number) => {
+  stopStreaming();
+
+  streamClient = new WorkspaceEventsStreamClient(props.hubId, props.workspaceId);
+  streamClient.subscribe(
+    fromOffset,
+    [],
+    batch => {
+      if (batch.events.length === 0) {
+        return;
+      }
+      const before = events.value.length;
+      events.value = mergeEvents(events.value, batch.events, props.limit);
+      // totalCount mirrors the server's unfiltered count, so grow it by what actually landed
+      // rather than by the batch size, which may repeat events already displayed.
+      totalCount.value += Math.max(0, events.value.length - before);
+      emit('update:count', totalCount.value);
+    },
+    state => {
+      streamState.value = state;
+    }
+  );
+};
+
+const stopStreaming = () => {
+  if (streamClient !== null) {
+    streamClient.unsubscribe();
+    streamClient = null;
+  }
+};
+
+onUnmounted(stopStreaming);
+
 watch(
   () => [props.hubId, props.workspaceId] as const,
   () => {
     selectedEventType.value = '';
+    stopStreaming();
     refresh();
   },
   { immediate: true }
@@ -278,6 +356,16 @@ const contentPairsFor = (event: WorkspaceEvent): Record<string, string> | null =
     if (content.workspacesPath?.trim()) pairs['workspacesPath'] = content.workspacesPath;
   } else if (event.eventType === WorkspaceEventType.PROJECT_INSTANCE_SESSION_FINISHED) {
     // empty content
+  } else if (
+    event.eventType === WorkspaceEventType.PROJECT_INSTANCE_SESSION_RECORDING_FILE_CREATED ||
+    event.eventType === WorkspaceEventType.PROJECT_INSTANCE_SESSION_ARTIFACT_FILE_CREATED
+  ) {
+    if (content.fileName?.trim()) pairs['fileName'] = content.fileName;
+    if (content.fileType?.trim()) pairs['fileType'] = content.fileType;
+    if (content.sessionId?.trim()) pairs['sessionId'] = content.sessionId;
+    if (typeof content.sizeBytes === 'number') {
+      pairs['size'] = FormattingService.formatBytes(content.sizeBytes);
+    }
   } else {
     Object.entries(content).forEach(([key, value]) => {
       const stringValue =
@@ -314,6 +402,14 @@ const getEventBadgeVariant = (eventType: WorkspaceEventType) => {
       return 'warning';
     case WorkspaceEventType.PROJECT_INSTANCE_SESSION_FINISHED:
       return 'info';
+    case WorkspaceEventType.PROJECT_INSTANCE_SESSION_RECORDING_FILE_CREATED:
+      return 'primary';
+    case WorkspaceEventType.PROJECT_INSTANCE_SESSION_ARTIFACT_FILE_CREATED:
+      return 'purple';
+    case WorkspaceEventType.PROJECT_INSTANCE_FINISHED:
+      return 'info';
+    case WorkspaceEventType.PROJECT_INSTANCE_EXPIRED:
+      return 'warning';
     default:
       return 'secondary';
   }
@@ -353,6 +449,10 @@ defineExpose({ refresh });
   outline: none;
   border-color: var(--color-primary-border);
   box-shadow: 0 0 0 3px var(--color-primary-lighter);
+}
+
+.event-stream-indicator {
+  margin-left: var(--space-2);
 }
 
 .event-toolbar-meta {

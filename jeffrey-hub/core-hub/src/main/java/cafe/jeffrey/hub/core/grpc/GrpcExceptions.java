@@ -46,6 +46,10 @@ public abstract class GrpcExceptions {
         return Status.FAILED_PRECONDITION.withDescription(description).asRuntimeException();
     }
 
+    public static StatusRuntimeException resourceExhausted(String description) {
+        return Status.RESOURCE_EXHAUSTED.withDescription(description).asRuntimeException();
+    }
+
     public static StatusRuntimeException unavailable(String description) {
         return Status.UNAVAILABLE.withDescription(description).asRuntimeException();
     }

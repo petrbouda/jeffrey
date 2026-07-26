@@ -91,7 +91,7 @@ class EventStreamingGrpcServiceTest {
         void sessionNotFound_returnsNotFound(@TempDir Path tempDir) throws Exception {
             var service = serviceWithNoSession(tempDir);
             var stub = startServer(service);
-            var observer = new TestStreamObserver();
+            var observer = new TestStreamObserver<EventBatch>();
 
             stub.replayStreaming(
                     ReplayStreamingRequest.newBuilder()
@@ -108,7 +108,7 @@ class EventStreamingGrpcServiceTest {
         void emptyEventTypes_returnsInvalidArgument(@TempDir Path tempDir) throws Exception {
             var service = serviceWithSession(tempDir);
             var stub = startServer(service);
-            var observer = new TestStreamObserver();
+            var observer = new TestStreamObserver<EventBatch>();
 
             stub.replayStreaming(
                     ReplayStreamingRequest.newBuilder()
@@ -124,7 +124,7 @@ class EventStreamingGrpcServiceTest {
         void noRecordingFiles_returnsNotFound(@TempDir Path tempDir) throws Exception {
             var service = serviceWithSession(tempDir, List.of());
             var stub = startServer(service);
-            var observer = new TestStreamObserver();
+            var observer = new TestStreamObserver<EventBatch>();
 
             stub.replayStreaming(
                     ReplayStreamingRequest.newBuilder()
@@ -141,7 +141,7 @@ class EventStreamingGrpcServiceTest {
         void invalidTimeWindow_returnsInvalidArgument(@TempDir Path tempDir) throws Exception {
             var service = serviceWithSession(tempDir, List.of(resolveJfr("profile-1.jfr")));
             var stub = startServer(service);
-            var observer = new TestStreamObserver();
+            var observer = new TestStreamObserver<EventBatch>();
 
             Instant now = Instant.now();
             stub.replayStreaming(
@@ -165,7 +165,7 @@ class EventStreamingGrpcServiceTest {
         void streamsEventsFromRecordingFiles(@TempDir Path tempDir) throws Exception {
             var service = serviceWithSession(tempDir, List.of(resolveJfr("profile-1.jfr")));
             var stub = startServer(service);
-            var observer = new TestStreamObserver();
+            var observer = new TestStreamObserver<EventBatch>();
 
             stub.replayStreaming(
                     ReplayStreamingRequest.newBuilder()
@@ -175,12 +175,12 @@ class EventStreamingGrpcServiceTest {
                     observer);
 
             assertTrue(observer.completeLatch.await(30, TimeUnit.SECONDS), "Stream should complete");
-            assertFalse(observer.batches.isEmpty(), "Should receive at least one batch");
+            assertFalse(observer.messages.isEmpty(), "Should receive at least one batch");
 
-            long totalEvents = observer.batches.stream().mapToInt(EventBatch::getEventsCount).sum();
+            long totalEvents = observer.messages.stream().mapToInt(EventBatch::getEventsCount).sum();
             assertTrue(totalEvents > 0, "Should receive events");
 
-            observer.batches.stream()
+            observer.messages.stream()
                     .flatMap(batch -> batch.getEventsList().stream())
                     .forEach(event -> assertEquals("jdk.CPULoad", event.getEventType()));
         }
@@ -197,7 +197,7 @@ class EventStreamingGrpcServiceTest {
             var service = serviceWithSession(tempDir, List.of(
                     resolveJfr("profile-1.jfr"), corrupted, resolveJfr("profile-2.jfr")));
             var stub = startServer(service);
-            var observer = new TestStreamObserver();
+            var observer = new TestStreamObserver<EventBatch>();
 
             stub.replayStreaming(
                     ReplayStreamingRequest.newBuilder()
@@ -212,7 +212,7 @@ class EventStreamingGrpcServiceTest {
 
             // profile-1.jfr alone has ~899 CPULoad events — receiving more proves that the
             // stream continued into profile-2.jfr after skipping the corrupted file
-            long totalEvents = observer.batches.stream().mapToInt(EventBatch::getEventsCount).sum();
+            long totalEvents = observer.messages.stream().mapToInt(EventBatch::getEventsCount).sum();
             assertTrue(totalEvents > 899,
                     "Expected events from both valid files around the corrupted one, got " + totalEvents);
         }
@@ -225,7 +225,7 @@ class EventStreamingGrpcServiceTest {
 
             var service = serviceWithSession(tempDir, List.of(resolveJfr("profile-1.jfr")));
             var stub = startServer(service);
-            var observer = new TestStreamObserver();
+            var observer = new TestStreamObserver<EventBatch>();
 
             stub.replayStreaming(
                     ReplayStreamingRequest.newBuilder()
@@ -237,7 +237,7 @@ class EventStreamingGrpcServiceTest {
                     observer);
 
             assertTrue(observer.completeLatch.await(30, TimeUnit.SECONDS));
-            long windowedEvents = observer.batches.stream().mapToInt(EventBatch::getEventsCount).sum();
+            long windowedEvents = observer.messages.stream().mapToInt(EventBatch::getEventsCount).sum();
 
             // Windowed should have fewer events than the full 899
             assertTrue(windowedEvents > 0, "Should receive some events in the window");
@@ -254,7 +254,7 @@ class EventStreamingGrpcServiceTest {
         void sessionNotFound_returnsNotFound(@TempDir Path tempDir) throws Exception {
             var service = serviceWithNoSession(tempDir);
             var stub = startServer(service);
-            var observer = new TestStreamObserver();
+            var observer = new TestStreamObserver<EventBatch>();
 
             stub.liveStreaming(
                     LiveStreamingRequest.newBuilder()
@@ -271,7 +271,7 @@ class EventStreamingGrpcServiceTest {
         void emptyEventTypes_returnsInvalidArgument(@TempDir Path tempDir) throws Exception {
             var service = serviceWithSession(tempDir);
             var stub = startServer(service);
-            var observer = new TestStreamObserver();
+            var observer = new TestStreamObserver<EventBatch>();
 
             stub.liveStreaming(
                     LiveStreamingRequest.newBuilder()
@@ -288,7 +288,7 @@ class EventStreamingGrpcServiceTest {
             // Session exists but the streaming-repo directory does not
             var service = serviceWithSession(tempDir);
             var stub = startServer(service);
-            var observer = new TestStreamObserver();
+            var observer = new TestStreamObserver<EventBatch>();
 
             stub.liveStreaming(
                     LiveStreamingRequest.newBuilder()
@@ -333,7 +333,7 @@ class EventStreamingGrpcServiceTest {
 
             var service = serviceWithLiveSession(tempDir);
             var stub = startServer(service);
-            var observer = new TestStreamObserver();
+            var observer = new TestStreamObserver<EventBatch>();
 
             stub.liveStreaming(
                     LiveStreamingRequest.newBuilder()
@@ -344,7 +344,7 @@ class EventStreamingGrpcServiceTest {
 
             // Wait for at least one batch with events
             assertEventually(10, TimeUnit.SECONDS, () ->
-                    observer.batches.stream().anyMatch(b -> b.getEventsCount() > 0));
+                    observer.messages.stream().anyMatch(b -> b.getEventsCount() > 0));
 
             // Cancel the stream by shutting down the channel
             grpc.channel().shutdownNow();
@@ -433,27 +433,4 @@ class EventStreamingGrpcServiceTest {
         assertion.run(); // final attempt — let it throw
     }
 
-    private static class TestStreamObserver implements StreamObserver<EventBatch> {
-
-        final List<EventBatch> batches = Collections.synchronizedList(new ArrayList<>());
-        final CountDownLatch completeLatch = new CountDownLatch(1);
-        final CountDownLatch errorLatch = new CountDownLatch(1);
-        volatile Throwable error;
-
-        @Override
-        public void onNext(EventBatch value) {
-            batches.add(value);
-        }
-
-        @Override
-        public void onError(Throwable t) {
-            error = t;
-            errorLatch.countDown();
-        }
-
-        @Override
-        public void onCompleted() {
-            completeLatch.countDown();
-        }
-    }
 }

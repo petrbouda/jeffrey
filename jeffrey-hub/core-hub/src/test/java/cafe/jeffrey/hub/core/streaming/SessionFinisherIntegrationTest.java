@@ -23,6 +23,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import cafe.jeffrey.hub.core.project.repository.InstanceLifecycleEventEmitter;
 import cafe.jeffrey.hub.core.project.repository.SessionFinishEventEmitter;
 import cafe.jeffrey.hub.core.workspace.QueueWorkspaceEventPublisher;
 import cafe.jeffrey.hub.core.workspace.WorkspaceEventSerializer;
@@ -79,6 +80,17 @@ class SessionFinisherIntegrationTest {
         return new JdbcHubPlatformRepositories(provider, clock);
     }
 
+    /**
+     * Selects only the session-finished events. Finishing a session's last unfinished sibling also
+     * announces the instance transition, so the queue legitimately holds more than one event.
+     */
+    private static List<WorkspaceEvent> sessionFinishedEvents(DuckDBPersistentQueue<WorkspaceEvent> queue) {
+        return queue.poll(WORKSPACE_ID, "test-consumer").stream()
+                .map(QueueEntry::payload)
+                .filter(event -> event.eventType() == WorkspaceEventType.PROJECT_INSTANCE_SESSION_FINISHED)
+                .toList();
+    }
+
     private static DuckDBPersistentQueue<WorkspaceEvent> createQueue(MutableClock clock, DataSource dataSource) {
         var provider = new DatabaseClientProvider(dataSource);
         return new DuckDBPersistentQueue<>(provider, "workspace-events", new WorkspaceEventSerializer(), clock);
@@ -97,8 +109,9 @@ class SessionFinisherIntegrationTest {
             var repository = createRepository(clock, dataSource);
             var queue = createQueue(clock, dataSource);
             var emitter = new SessionFinishEventEmitter(clock, new QueueWorkspaceEventPublisher(queue));
+            var lifecycleEmitter = new InstanceLifecycleEventEmitter(clock, new QueueWorkspaceEventPublisher(queue));
             var platformRepositories = createHubPlatformRepositories(clock, dataSource);
-            var finisher = new SessionFinisher(clock, emitter, fileHeartbeatReader, platformRepositories);
+            var finisher = new SessionFinisher(clock, emitter, lifecycleEmitter, fileHeartbeatReader, platformRepositories);
 
             ProjectInstanceSessionInfo sessionInfo = repository.findSessionById(SESSION_ID).orElseThrow();
             Instant finishedAt = Instant.parse("2025-06-15T11:50:00Z");
@@ -116,18 +129,19 @@ class SessionFinisherIntegrationTest {
             var repository = createRepository(clock, dataSource);
             var queue = createQueue(clock, dataSource);
             var emitter = new SessionFinishEventEmitter(clock, new QueueWorkspaceEventPublisher(queue));
+            var lifecycleEmitter = new InstanceLifecycleEventEmitter(clock, new QueueWorkspaceEventPublisher(queue));
             var platformRepositories = createHubPlatformRepositories(clock, dataSource);
-            var finisher = new SessionFinisher(clock, emitter, fileHeartbeatReader, platformRepositories);
+            var finisher = new SessionFinisher(clock, emitter, lifecycleEmitter, fileHeartbeatReader, platformRepositories);
 
             ProjectInstanceSessionInfo sessionInfo = repository.findSessionById(SESSION_ID).orElseThrow();
             Instant finishedAt = Instant.parse("2025-06-15T11:50:00Z");
 
             finisher.markFinished(repository, PROJECT_INFO, sessionInfo, finishedAt);
 
-            List<QueueEntry<WorkspaceEvent>> entries = queue.poll(WORKSPACE_ID, "test-consumer");
-            assertEquals(1, entries.size());
+            List<WorkspaceEvent> sessionFinished = sessionFinishedEvents(queue);
+            assertEquals(1, sessionFinished.size());
 
-            WorkspaceEvent event = entries.getFirst().payload();
+            WorkspaceEvent event = sessionFinished.getFirst();
             assertAll(
                     () -> assertEquals(PROJECT_ID, event.projectId()),
                     () -> assertEquals(WORKSPACE_ID, event.workspaceRefId()),
@@ -150,8 +164,9 @@ class SessionFinisherIntegrationTest {
             var repository = createRepository(clock, dataSource);
             var queue = createQueue(clock, dataSource);
             var emitter = new SessionFinishEventEmitter(clock, new QueueWorkspaceEventPublisher(queue));
+            var lifecycleEmitter = new InstanceLifecycleEventEmitter(clock, new QueueWorkspaceEventPublisher(queue));
             var platformRepositories = createHubPlatformRepositories(clock, dataSource);
-            var finisher = new SessionFinisher(clock, emitter, fileHeartbeatReader, platformRepositories);
+            var finisher = new SessionFinisher(clock, emitter, lifecycleEmitter, fileHeartbeatReader, platformRepositories);
 
             Instant heartbeatTimestamp = Instant.parse("2025-06-15T11:30:00Z");
             when(fileHeartbeatReader.readLastHeartbeat(SESSION_PATH))
@@ -173,8 +188,9 @@ class SessionFinisherIntegrationTest {
             var repository = createRepository(clock, dataSource);
             var queue = createQueue(clock, dataSource);
             var emitter = new SessionFinishEventEmitter(clock, new QueueWorkspaceEventPublisher(queue));
+            var lifecycleEmitter = new InstanceLifecycleEventEmitter(clock, new QueueWorkspaceEventPublisher(queue));
             var platformRepositories = createHubPlatformRepositories(clock, dataSource);
-            var finisher = new SessionFinisher(clock, emitter, fileHeartbeatReader, platformRepositories);
+            var finisher = new SessionFinisher(clock, emitter, lifecycleEmitter, fileHeartbeatReader, platformRepositories);
 
             Instant markerTimestamp = Instant.parse("2025-06-15T11:35:00Z");
             when(fileHeartbeatReader.readFinishedMarker(SESSION_PATH))
@@ -196,8 +212,9 @@ class SessionFinisherIntegrationTest {
             var repository = createRepository(clock, dataSource);
             var queue = createQueue(clock, dataSource);
             var emitter = new SessionFinishEventEmitter(clock, new QueueWorkspaceEventPublisher(queue));
+            var lifecycleEmitter = new InstanceLifecycleEventEmitter(clock, new QueueWorkspaceEventPublisher(queue));
             var platformRepositories = createHubPlatformRepositories(clock, dataSource);
-            var finisher = new SessionFinisher(clock, emitter, fileHeartbeatReader, platformRepositories);
+            var finisher = new SessionFinisher(clock, emitter, lifecycleEmitter, fileHeartbeatReader, platformRepositories);
 
             when(fileHeartbeatReader.readLastHeartbeat(SESSION_PATH))
                     .thenReturn(Optional.empty());
@@ -228,8 +245,9 @@ class SessionFinisherIntegrationTest {
                 var repository = createRepository(clock, dataSource);
                 var queue = createQueue(clock, dataSource);
                 var emitter = new SessionFinishEventEmitter(clock, new QueueWorkspaceEventPublisher(queue));
+                var lifecycleEmitter = new InstanceLifecycleEventEmitter(clock, new QueueWorkspaceEventPublisher(queue));
                 var platformRepositories = createHubPlatformRepositories(clock, dataSource);
-                var finisher = new SessionFinisher(clock, emitter, fileHeartbeatReader, platformRepositories);
+                var finisher = new SessionFinisher(clock, emitter, lifecycleEmitter, fileHeartbeatReader, platformRepositories);
 
                 // Heartbeat file returns a stale heartbeat: 10 minutes before NOW, threshold is 5 minutes
                 Instant staleHeartbeat = NOW.minus(Duration.ofMinutes(10));
@@ -254,8 +272,9 @@ class SessionFinisherIntegrationTest {
                 var repository = createRepository(clock, dataSource);
                 var queue = createQueue(clock, dataSource);
                 var emitter = new SessionFinishEventEmitter(clock, new QueueWorkspaceEventPublisher(queue));
+                var lifecycleEmitter = new InstanceLifecycleEventEmitter(clock, new QueueWorkspaceEventPublisher(queue));
                 var platformRepositories = createHubPlatformRepositories(clock, dataSource);
-                var finisher = new SessionFinisher(clock, emitter, fileHeartbeatReader, platformRepositories);
+                var finisher = new SessionFinisher(clock, emitter, lifecycleEmitter, fileHeartbeatReader, platformRepositories);
 
                 // Heartbeat file returns a fresh heartbeat: 2 minutes before NOW, threshold is 5 minutes
                 Instant freshHeartbeat = NOW.minus(Duration.ofMinutes(2));
@@ -284,8 +303,9 @@ class SessionFinisherIntegrationTest {
                 var repository = createRepository(clock, dataSource);
                 var queue = createQueue(clock, dataSource);
                 var emitter = new SessionFinishEventEmitter(clock, new QueueWorkspaceEventPublisher(queue));
+                var lifecycleEmitter = new InstanceLifecycleEventEmitter(clock, new QueueWorkspaceEventPublisher(queue));
                 var platformRepositories = createHubPlatformRepositories(clock, dataSource);
-                var finisher = new SessionFinisher(clock, emitter, fileHeartbeatReader, platformRepositories);
+                var finisher = new SessionFinisher(clock, emitter, lifecycleEmitter, fileHeartbeatReader, platformRepositories);
 
                 // Heartbeat file does not exist
                 when(fileHeartbeatReader.readLastHeartbeat(SESSION_PATH))
@@ -317,8 +337,9 @@ class SessionFinisherIntegrationTest {
                 var repository = createRepository(clock, dataSource);
                 var queue = createQueue(clock, dataSource);
                 var emitter = new SessionFinishEventEmitter(clock, new QueueWorkspaceEventPublisher(queue));
+                var lifecycleEmitter = new InstanceLifecycleEventEmitter(clock, new QueueWorkspaceEventPublisher(queue));
                 var platformRepositories = createHubPlatformRepositories(clock, dataSource);
-                var finisher = new SessionFinisher(clock, emitter, fileHeartbeatReader, platformRepositories);
+                var finisher = new SessionFinisher(clock, emitter, lifecycleEmitter, fileHeartbeatReader, platformRepositories);
 
                 // No heartbeat file
                 when(fileHeartbeatReader.readLastHeartbeat(SESSION_PATH))
@@ -353,8 +374,9 @@ class SessionFinisherIntegrationTest {
             var repository = createRepository(clock, dataSource);
             var queue = createQueue(clock, dataSource);
             var emitter = new SessionFinishEventEmitter(clock, new QueueWorkspaceEventPublisher(queue));
+            var lifecycleEmitter = new InstanceLifecycleEventEmitter(clock, new QueueWorkspaceEventPublisher(queue));
             var platformRepositories = createHubPlatformRepositories(clock, dataSource);
-            var finisher = new SessionFinisher(clock, emitter, fileHeartbeatReader, platformRepositories);
+            var finisher = new SessionFinisher(clock, emitter, lifecycleEmitter, fileHeartbeatReader, platformRepositories);
 
             // Heartbeat file returns a stale heartbeat so tryFinishFromHeartbeat marks it finished and emits event
             Instant staleHeartbeat = NOW.minus(Duration.ofMinutes(10));
@@ -368,9 +390,9 @@ class SessionFinisherIntegrationTest {
 
             assertTrue(result);
 
-            List<QueueEntry<WorkspaceEvent>> entries = queue.poll(WORKSPACE_ID, "test-consumer");
-            assertEquals(1, entries.size());
-            assertEquals(WorkspaceEventType.PROJECT_INSTANCE_SESSION_FINISHED, entries.getFirst().payload().eventType());
+            List<WorkspaceEvent> sessionFinished = sessionFinishedEvents(queue);
+            assertEquals(1, sessionFinished.size());
+            assertEquals(WorkspaceEventType.PROJECT_INSTANCE_SESSION_FINISHED, sessionFinished.getFirst().eventType());
         }
 
         @Test
@@ -380,18 +402,19 @@ class SessionFinisherIntegrationTest {
             var repository = createRepository(clock, dataSource);
             var queue = createQueue(clock, dataSource);
             var emitter = new SessionFinishEventEmitter(clock, new QueueWorkspaceEventPublisher(queue));
+            var lifecycleEmitter = new InstanceLifecycleEventEmitter(clock, new QueueWorkspaceEventPublisher(queue));
             var platformRepositories = createHubPlatformRepositories(clock, dataSource);
-            var finisher = new SessionFinisher(clock, emitter, fileHeartbeatReader, platformRepositories);
+            var finisher = new SessionFinisher(clock, emitter, lifecycleEmitter, fileHeartbeatReader, platformRepositories);
 
             ProjectInstanceSessionInfo sessionInfo = repository.findSessionById(SESSION_ID).orElseThrow();
             Instant finishedAt = Instant.parse("2025-06-15T11:50:00Z");
 
             finisher.markFinished(repository, PROJECT_INFO, sessionInfo, finishedAt);
 
-            List<QueueEntry<WorkspaceEvent>> entries = queue.poll(WORKSPACE_ID, "test-consumer");
-            assertEquals(1, entries.size());
+            List<WorkspaceEvent> sessionFinished = sessionFinishedEvents(queue);
+            assertEquals(1, sessionFinished.size());
 
-            WorkspaceEvent event = entries.getFirst().payload();
+            WorkspaceEvent event = sessionFinished.getFirst();
             assertAll(
                     () -> assertEquals(PROJECT_ID, event.projectId()),
                     () -> assertEquals(WORKSPACE_ID, event.workspaceRefId()),

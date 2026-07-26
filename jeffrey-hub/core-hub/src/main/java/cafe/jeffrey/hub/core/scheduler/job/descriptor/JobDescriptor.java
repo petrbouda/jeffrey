@@ -32,7 +32,8 @@ public sealed interface JobDescriptor<T extends JobDescriptor<T>>
         ExpiredInstanceCleanerJobDescriptor,
         WorkspaceEventsReplicatorJobDescriptor,
         RepositoryCompressionProjectJobDescriptor,
-        SessionFinishedDetectorProjectJobDescriptor {
+        SessionFinishedDetectorProjectJobDescriptor,
+        SessionFileDetectorProjectJobDescriptor {
 
     Map<String, String> params();
 

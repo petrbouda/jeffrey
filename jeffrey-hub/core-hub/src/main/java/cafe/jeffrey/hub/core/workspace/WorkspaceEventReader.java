@@ -37,6 +37,18 @@ public interface WorkspaceEventReader {
     List<WorkspaceEvent> findAll(String workspaceId, int limit);
 
     /**
+     * Returns events whose {@code eventId} is strictly greater than {@code fromOffset},
+     * ordered ascending. Used by long-lived subscribers that own their own cursor; it
+     * deliberately does not register a queue consumer, because an unacknowledged consumer
+     * would block age-based retention for the whole workspace.
+     *
+     * @param workspaceId the target workspace
+     * @param fromOffset  exclusive lower bound; {@code 0} reads from the oldest retained event
+     * @param limit       maximum number of events to return; {@code <= 0} = unbounded
+     */
+    List<WorkspaceEvent> findFromOffset(String workspaceId, long fromOffset, int limit);
+
+    /**
      * Total event count for this workspace, ignoring any filters or limits.
      */
     long count(String workspaceId);

@@ -22,8 +22,14 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import cafe.jeffrey.shared.persistentqueue.DuckDBPersistentQueue;
 import cafe.jeffrey.shared.persistentqueue.QueueEntry;
+import cafe.jeffrey.shared.common.Json;
+import cafe.jeffrey.shared.common.model.repository.FileCategory;
+import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceEvent;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceEventType;
+import cafe.jeffrey.shared.common.model.workspace.event.InstanceExpiredEventContent;
+import cafe.jeffrey.shared.common.model.workspace.event.InstanceFinishedEventContent;
+import cafe.jeffrey.shared.common.model.workspace.event.SessionFileCreatedEventContent;
 import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
 import cafe.jeffrey.test.DuckDBTest;
 
@@ -128,7 +134,139 @@ class WorkspaceEventQueueIntegrationTest {
             );
         }
 
-}
+        @Test
+        void sessionFileCreatedEvent_roundTripsContentWithEnumsAndInstant(DataSource dataSource) {
+            var queue = createQueue(dataSource);
+            var content = new SessionFileCreatedEventContent(
+                    "instance-1",
+                    "session-1",
+                    "profile-20250615-100000.jfr",
+                    SupportedRecordingFile.JFR,
+                    FileCategory.RECORDING,
+                    4096L,
+                    Instant.parse("2025-06-15T10:00:00Z"));
+            WorkspaceEvent original = eventWithContent(
+                    "proj-001/instance-1/session-1/profile-20250615-100000",
+                    "proj-001",
+                    WorkspaceEventType.PROJECT_INSTANCE_SESSION_RECORDING_FILE_CREATED,
+                    Json.toString(content));
+
+            queue.append(SCOPE_ID, original);
+            List<QueueEntry<WorkspaceEvent>> entries = queue.poll(SCOPE_ID, CONSUMER_ID);
+
+            assertEquals(1, entries.size());
+            WorkspaceEvent polled = entries.getFirst().payload();
+            SessionFileCreatedEventContent polledContent =
+                    Json.read(polled.content(), SessionFileCreatedEventContent.class);
+
+            assertAll(
+                    () -> assertEquals(WorkspaceEventType.PROJECT_INSTANCE_SESSION_RECORDING_FILE_CREATED,
+                            polled.eventType()),
+                    () -> assertEquals(content, polledContent,
+                            "Enums and Instant must survive the JSON round-trip intact"));
+        }
+
+        @Test
+        void artifactFileCreatedEvent_roundTripsCorrectly(DataSource dataSource) {
+            var queue = createQueue(dataSource);
+            var content = new SessionFileCreatedEventContent(
+                    "instance-1",
+                    "session-1",
+                    "heap.hprof",
+                    SupportedRecordingFile.HEAP_DUMP,
+                    FileCategory.ARTIFACT,
+                    123L,
+                    Instant.parse("2025-06-15T10:05:00Z"));
+            WorkspaceEvent original = eventWithContent(
+                    "proj-001/instance-1/session-1/heap.hprof",
+                    "proj-001",
+                    WorkspaceEventType.PROJECT_INSTANCE_SESSION_ARTIFACT_FILE_CREATED,
+                    Json.toString(content));
+
+            queue.append(SCOPE_ID, original);
+            List<QueueEntry<WorkspaceEvent>> entries = queue.poll(SCOPE_ID, CONSUMER_ID);
+
+            assertEquals(content, Json.read(entries.getFirst().payload().content(),
+                    SessionFileCreatedEventContent.class));
+        }
+
+        @Test
+        void instanceLifecycleEvents_roundTripCorrectly(DataSource dataSource) {
+            var queue = createQueue(dataSource);
+            Instant transitionAt = Instant.parse("2025-06-15T11:00:00Z");
+            var finished = new InstanceFinishedEventContent("instance-1", transitionAt);
+            var expired = new InstanceExpiredEventContent("instance-1", transitionAt);
+
+            queue.append(SCOPE_ID, eventWithContent("instance-1", "proj-001",
+                    WorkspaceEventType.PROJECT_INSTANCE_FINISHED, Json.toString(finished)));
+            queue.append(SCOPE_ID, eventWithContent("instance-1", "proj-001",
+                    WorkspaceEventType.PROJECT_INSTANCE_EXPIRED, Json.toString(expired)));
+
+            List<QueueEntry<WorkspaceEvent>> entries = queue.poll(SCOPE_ID, CONSUMER_ID);
+
+            assertAll(
+                    () -> assertEquals(2, entries.size(),
+                            "FINISHED and EXPIRED share an originEventId but differ by type, so both survive dedup"),
+                    () -> assertEquals(finished, Json.read(
+                            entries.getFirst().payload().content(), InstanceFinishedEventContent.class)),
+                    () -> assertEquals(expired, Json.read(
+                            entries.getLast().payload().content(), InstanceExpiredEventContent.class)));
+        }
+    }
+
+    @Nested
+    class FileEventDeduplication {
+
+        private static WorkspaceEvent fileEvent(String fileId, String projectId, WorkspaceEventType type) {
+            return eventWithContent(fileId, projectId, type, Json.toString(new SessionFileCreatedEventContent(
+                    "instance-1", "session-1", "profile-20250615-100000.jfr",
+                    SupportedRecordingFile.JFR, FileCategory.RECORDING, 4096L,
+                    Instant.parse("2025-06-15T10:00:00Z"))));
+        }
+
+        @Test
+        void reAnnouncingTheSameFile_isSwallowed(DataSource dataSource) {
+            var queue = createQueue(dataSource);
+            String fileId = "proj-001/instance-1/session-1/profile-20250615-100000";
+
+            // The scanner is stateless and re-offers every candidate on every tick; the queue's
+            // unique dedup index is what makes that a no-op instead of a duplicate event.
+            queue.append(SCOPE_ID, fileEvent(fileId, "proj-001",
+                    WorkspaceEventType.PROJECT_INSTANCE_SESSION_RECORDING_FILE_CREATED));
+            queue.append(SCOPE_ID, fileEvent(fileId, "proj-001",
+                    WorkspaceEventType.PROJECT_INSTANCE_SESSION_RECORDING_FILE_CREATED));
+
+            assertEquals(1, queue.poll(SCOPE_ID, CONSUMER_ID).size());
+        }
+
+        @Test
+        void compressedAndRawChunk_shareOneEvent(DataSource dataSource) {
+            var queue = createQueue(dataSource);
+            // RepositoryFile.id() has recording extensions stripped, so profile-X.jfr and
+            // profile-X.jfr.lz4 produce the same id — compression must not look like a new file.
+            String sharedId = "proj-001/instance-1/session-1/profile-20250615-100000";
+
+            queue.append(SCOPE_ID, fileEvent(sharedId, "proj-001",
+                    WorkspaceEventType.PROJECT_INSTANCE_SESSION_RECORDING_FILE_CREATED));
+            queue.append(SCOPE_ID, fileEvent(sharedId, "proj-001",
+                    WorkspaceEventType.PROJECT_INSTANCE_SESSION_RECORDING_FILE_CREATED));
+
+            assertEquals(1, queue.poll(SCOPE_ID, CONSUMER_ID).size());
+        }
+
+        @Test
+        void sameFileNameInDifferentSessions_notDeduplicated(DataSource dataSource) {
+            var queue = createQueue(dataSource);
+
+            queue.append(SCOPE_ID, fileEvent("proj-001/instance-1/session-1/profile-20250615-100000",
+                    "proj-001", WorkspaceEventType.PROJECT_INSTANCE_SESSION_RECORDING_FILE_CREATED));
+            queue.append(SCOPE_ID, fileEvent("proj-001/instance-1/session-2/profile-20250615-100000",
+                    "proj-001", WorkspaceEventType.PROJECT_INSTANCE_SESSION_RECORDING_FILE_CREATED));
+
+            assertEquals(2, queue.poll(SCOPE_ID, CONSUMER_ID).size(),
+                    "The file id is workspace-relative, so identical names in two sessions stay distinct");
+        }
+    }
 
     @Nested
     class EventDeduplication {
