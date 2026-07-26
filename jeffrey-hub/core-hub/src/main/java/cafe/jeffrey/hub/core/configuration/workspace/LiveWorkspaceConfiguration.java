@@ -25,6 +25,7 @@ import cafe.jeffrey.hub.core.manager.project.ProjectsManager;
 import cafe.jeffrey.hub.core.manager.workspace.LiveWorkspacesManager;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspaceManager;
 import cafe.jeffrey.hub.core.manager.workspace.LiveWorkspaceManager;
+import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
 import cafe.jeffrey.shared.persistentqueue.DuckDBPersistentQueue;
 import cafe.jeffrey.shared.persistentqueue.PersistentQueue;
 import cafe.jeffrey.hub.core.workspace.QueueWorkspaceEventPublisher;
@@ -73,12 +74,14 @@ public class LiveWorkspaceConfiguration {
             Clock applicationClock,
             HubJeffreyDirs jeffreyDirs,
             HubPlatformRepositories platformRepositories,
+            RepositoryStorage.Factory repositoryStorageFactory,
             @Qualifier(HubWorkspaceConfiguration.COMMON_PROJECTS_TYPE) ProjectsManager.Factory projectsManagerFactory) {
 
         return workspaceInfo -> {
             WorkspaceRepository workspaceRepository = platformRepositories.newWorkspaceRepository(workspaceInfo.id());
             return new LiveWorkspaceManager(
-                    applicationClock, jeffreyDirs, workspaceInfo, workspaceRepository, platformRepositories, projectsManagerFactory);
+                    applicationClock, jeffreyDirs, workspaceInfo, workspaceRepository, platformRepositories,
+                    projectsManagerFactory, repositoryStorageFactory);
         };
     }
 

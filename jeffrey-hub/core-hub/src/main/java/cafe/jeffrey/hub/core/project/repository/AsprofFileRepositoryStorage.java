@@ -47,6 +47,7 @@ import java.util.Optional;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 public class AsprofFileRepositoryStorage implements RepositoryStorage {
 
@@ -61,6 +62,10 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
             .toList();
 
     private static final SupportedRecordingFile TARGET_COMPRESSED_TYPE = SupportedRecordingFile.JFR_LZ4;
+
+    // <project>/<instance-id>/<session-id> is two levels below the project root; one extra
+    // level of slack absorbs layouts with a deeper relative session path.
+    private static final int SESSION_SEARCH_MAX_DEPTH = 3;
 
     private final Lock compressionLock = new ReentrantLock();
     private final ProjectInfo projectInfo;
@@ -203,7 +208,8 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
                 recordingStatus,
                 sessionPath,
                 sessionPath.resolve(JeffreyLayout.STREAMING_REPO_DIR),
-                repositoryFiles);
+                repositoryFiles,
+                sessionInfo.retained());
     }
 
     private RecordingStatus determineSessionStatus(ProjectInstanceSessionInfo sessionInfo, boolean isLatestSession) {
@@ -211,6 +217,31 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
             return sessionInfo.finishedAt() != null ? RecordingStatus.FINISHED : RecordingStatus.ACTIVE;
         } else {
             return RecordingStatus.FINISHED;
+        }
+    }
+
+    @Override
+    public List<Path> listSessionDirectoriesOnDisk() {
+        RepositoryInfo repositoryInfo = repositoryInfo();
+        Path projectPath = resolveWorkspacePath(repositoryInfo)
+                .resolve(repositoryInfo.relativeProjectPath());
+
+        if (!Files.isDirectory(projectPath)) {
+            return List.of();
+        }
+
+        // Sessions sit at <project>/<instance-id>/<session-id>, but relative session paths are
+        // opaque to this class, so the depth bound is a guard rather than an exact expectation.
+        // The marker file is what actually identifies a session directory: it keeps the sweep
+        // from ever proposing an instance directory, a streaming repo, or a stray folder.
+        try (Stream<Path> stream = Files.walk(projectPath, SESSION_SEARCH_MAX_DEPTH)) {
+            return stream
+                    .filter(Files::isDirectory)
+                    .filter(path -> Files.isRegularFile(path.resolve(JeffreyLayout.SESSION_INFO_FILE)))
+                    .toList();
+        } catch (IOException e) {
+            LOG.warn("Cannot walk project directory for session directories: project_path={}", projectPath, e);
+            return List.of();
         }
     }
 

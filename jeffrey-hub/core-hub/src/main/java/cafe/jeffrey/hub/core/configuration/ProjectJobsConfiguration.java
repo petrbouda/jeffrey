@@ -28,8 +28,10 @@ import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
 import cafe.jeffrey.hub.core.project.repository.SessionFinishEventEmitter;
 import cafe.jeffrey.hub.core.scheduler.job.*;
 import cafe.jeffrey.hub.core.scheduler.job.descriptor.ExpiredInstanceCleanerJobDescriptor;
+import cafe.jeffrey.hub.core.scheduler.job.descriptor.OrphanedSessionCleanerJobDescriptor;
 import cafe.jeffrey.hub.core.scheduler.job.descriptor.ProjectInstanceRecordingCleanerJobDescriptor;
 import cafe.jeffrey.hub.core.scheduler.job.descriptor.ProjectInstanceSessionCleanerJobDescriptor;
+import cafe.jeffrey.hub.core.scheduler.job.descriptor.ProjectStorageQuotaCleanerJobDescriptor;
 import cafe.jeffrey.hub.core.streaming.FileHeartbeatReader;
 import cafe.jeffrey.hub.core.streaming.SessionFinisher;
 import cafe.jeffrey.hub.core.workspace.WorkspaceEventPublisher;
@@ -85,6 +87,29 @@ public class ProjectJobsConfiguration {
                 workspacesManager,
                 repositoryStorageFactory,
                 ProjectInstanceRecordingCleanerJobDescriptor.of(config.params()),
+                config.period(),
+                clock);
+    }
+
+    @Bean
+    public ProjectStorageQuotaCleanerJob projectStorageQuotaCleanerJob() {
+        SchedulerJobsProperties.JobConfig config =
+                schedulerJobsProperties.forType(JobType.PROJECT_STORAGE_QUOTA_CLEANER);
+        return new ProjectStorageQuotaCleanerJob(
+                workspacesManager,
+                repositoryStorageFactory,
+                ProjectStorageQuotaCleanerJobDescriptor.of(config.params()),
+                config.period());
+    }
+
+    @Bean
+    public OrphanedSessionCleanerJob orphanedSessionCleanerJob(Clock clock) {
+        SchedulerJobsProperties.JobConfig config =
+                schedulerJobsProperties.forType(JobType.ORPHANED_SESSION_CLEANER);
+        return new OrphanedSessionCleanerJob(
+                workspacesManager,
+                repositoryStorageFactory,
+                OrphanedSessionCleanerJobDescriptor.of(config.params()),
                 config.period(),
                 clock);
     }

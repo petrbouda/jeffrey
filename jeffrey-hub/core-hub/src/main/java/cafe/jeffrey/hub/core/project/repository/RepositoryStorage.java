@@ -100,6 +100,20 @@ public interface RepositoryStorage {
     void deleteSession(String sessionId);
 
     /**
+     * Lists every session directory physically present under this project's repository
+     * path, regardless of whether the database knows about it.
+     * <p>
+     * This is deliberately the only method here that reads the filesystem without
+     * consulting the database first — everything else resolves paths from session rows
+     * and therefore cannot observe a directory the database has lost track of. Callers
+     * diff this against {@link #listSessions(boolean)} to find orphans; deciding what
+     * counts as an orphan is the caller's policy, not the storage's.
+     *
+     * @return absolute paths of directories that look like session directories
+     */
+    List<Path> listSessionDirectoriesOnDisk();
+
+    /**
      * Type of the repository.
      *
      * @return type of the repository.

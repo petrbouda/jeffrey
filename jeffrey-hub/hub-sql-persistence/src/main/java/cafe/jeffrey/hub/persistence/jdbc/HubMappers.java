@@ -64,7 +64,8 @@ public abstract class HubMappers {
                     Path.of(rs.getString("relative_session_path")),
                     HubMappers.instant(rs, "origin_created_at"),
                     HubMappers.instant(rs, "created_at"),
-                    HubMappers.instant(rs, "finished_at")
+                    HubMappers.instant(rs, "finished_at"),
+                    rs.getBoolean("retained")
             );
         };
     }

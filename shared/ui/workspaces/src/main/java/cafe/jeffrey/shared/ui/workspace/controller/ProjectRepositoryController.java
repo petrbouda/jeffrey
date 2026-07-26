@@ -40,6 +40,7 @@ import cafe.jeffrey.shared.common.model.repository.StreamedRecordingFile;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceEventCreator;
 import cafe.jeffrey.shared.ui.workspace.bridge.RemoteProjectAccess;
 import cafe.jeffrey.shared.ui.workspace.request.SelectedRecordingsRequest;
+import cafe.jeffrey.shared.ui.workspace.request.SessionRetainedRequest;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -108,6 +109,18 @@ public class ProjectRepositoryController {
         LOG.debug("Deleting repository session: sessionId={}", sessionId);
         RepositoryManager mgr = projectAccess.repositoryManager(hubId, workspaceId, projectId);
         mgr.deleteRecordingSession(sessionId, WorkspaceEventCreator.MANUAL);
+    }
+
+    @PostMapping("/sessions/{sessionId}/retained")
+    public void setSessionRetained(
+            @PathVariable("hubId") String hubId,
+            @PathVariable("workspaceId") String workspaceId,
+            @PathVariable("projectId") String projectId,
+            @PathVariable("sessionId") String sessionId,
+            @RequestBody SessionRetainedRequest request) {
+        LOG.debug("Updating repository session retention: sessionId={} retained={}", sessionId, request.retained());
+        RepositoryManager mgr = projectAccess.repositoryManager(hubId, workspaceId, projectId);
+        mgr.setSessionRetained(sessionId, request.retained());
     }
 
     @PostMapping("/recordings/download")

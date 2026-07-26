@@ -404,7 +404,7 @@ class EventStreamingGrpcServiceTest {
 
     private static SessionWithRepository testSession() {
         var repoInfo = new RepositoryInfo("repo-1", RepositoryType.JDK, null, "ws", "proj");
-        var sessionInfo = new ProjectInstanceSessionInfo(
+        var sessionInfo = ProjectInstanceSessionInfo.notRetained(
                 SESSION_ID, "repo-1", "instance-1", 0,
                 Path.of("session"), null, null, null);
         return new SessionWithRepository("proj-1", repoInfo, sessionInfo);

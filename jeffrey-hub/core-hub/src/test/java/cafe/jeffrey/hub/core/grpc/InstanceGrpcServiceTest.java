@@ -173,14 +173,14 @@ class InstanceGrpcServiceTest {
             var platformRepositories = mock(HubPlatformRepositories.class);
             when(platformRepositories.newProjectInstanceRepository(PROJECT_ID)).thenReturn(instanceRepo);
             when(platformRepositories.findSessionsByProjectId(PROJECT_ID)).thenReturn(List.of(
-                    new ProjectInstanceSessionInfo(
+                    ProjectInstanceSessionInfo.notRetained(
                             "session-active", "repo-1", INSTANCE_ID, 0,
                             Path.of("session-active"), null, FIXED_TIME, null),
-                    new ProjectInstanceSessionInfo(
+                    ProjectInstanceSessionInfo.notRetained(
                             "session-old", "repo-1", INSTANCE_ID, 1,
                             Path.of("session-old"), null,
                             FIXED_TIME.minusSeconds(600), FIXED_TIME.minusSeconds(300)),
-                    new ProjectInstanceSessionInfo(
+                    ProjectInstanceSessionInfo.notRetained(
                             "session-only", "repo-1", "inst-2", 0,
                             Path.of("session-only"), null,
                             FIXED_TIME, FIXED_TIME.plusSeconds(3600))
@@ -275,11 +275,11 @@ class InstanceGrpcServiceTest {
         void returnsSessionList() throws Exception {
             var platformRepositories = mock(HubPlatformRepositories.class);
             when(platformRepositories.findSessionsByInstanceId(INSTANCE_ID)).thenReturn(List.of(
-                    new ProjectInstanceSessionInfo(
+                    ProjectInstanceSessionInfo.notRetained(
                             "session-1", "repo-1", INSTANCE_ID, 0,
                             Path.of("session-1"), null,
                             FIXED_TIME, null),
-                    new ProjectInstanceSessionInfo(
+                    ProjectInstanceSessionInfo.notRetained(
                             "session-2", "repo-1", INSTANCE_ID, 1,
                             Path.of("session-2"), null,
                             FIXED_TIME.plusSeconds(600),
@@ -341,11 +341,11 @@ class InstanceGrpcServiceTest {
                             2, null)
             ));
             when(platformRepositories.findSessionsByInstanceId(INSTANCE_ID)).thenReturn(List.of(
-                    new ProjectInstanceSessionInfo(
+                    ProjectInstanceSessionInfo.notRetained(
                             "session-1", "repo-1", INSTANCE_ID, 0,
                             Path.of("session-1"), null,
                             FIXED_TIME, FIXED_TIME.plusSeconds(1800)),
-                    new ProjectInstanceSessionInfo(
+                    ProjectInstanceSessionInfo.notRetained(
                             "session-2", "repo-1", INSTANCE_ID, 1,
                             Path.of("session-2"), null,
                             FIXED_TIME.plusSeconds(1800), FIXED_TIME.plusSeconds(3600))

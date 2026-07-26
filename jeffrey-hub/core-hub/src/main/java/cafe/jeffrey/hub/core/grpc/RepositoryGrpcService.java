@@ -128,6 +128,19 @@ public class RepositoryGrpcService extends RepositoryServiceGrpc.RepositoryServi
         });
     }
 
+    @Override
+    public void setSessionRetained(SetSessionRetainedRequest request, StreamObserver<SetSessionRetainedResponse> responseObserver) {
+        GrpcUnary.respond(responseObserver, () -> {
+            RepositoryManager repoManager = lookups.repositoryManagerForSession(request.getSessionId());
+            repoManager.setSessionRetained(request.getSessionId(), request.getRetained());
+
+            LOG.debug("Updated session retention via gRPC: sessionId={} retained={}",
+                    request.getSessionId(), request.getRetained());
+
+            return SetSessionRetainedResponse.getDefaultInstance();
+        });
+    }
+
     static RecordingSession toProto(
             cafe.jeffrey.shared.common.model.repository.RecordingSession session) {
 
@@ -135,7 +148,8 @@ public class RepositoryGrpcService extends RepositoryServiceGrpc.RepositoryServi
                 .setId(session.id())
                 .setName(ProtoMappers.orEmpty(session.name()))
                 .setCreatedAt(session.createdAt().toEpochMilli())
-                .setStatus(ProtoMappers.recordingStatus(session.status()));
+                .setStatus(ProtoMappers.recordingStatus(session.status()))
+                .setRetained(session.retained());
 
         if (session.instanceId() != null) {
             builder.setInstanceId(session.instanceId());

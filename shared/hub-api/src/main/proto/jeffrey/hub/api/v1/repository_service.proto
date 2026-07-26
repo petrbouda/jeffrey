@@ -24,6 +24,10 @@ service RepositoryService {
 
   // Deletes specific files within a recording session.
   rpc DeleteFilesInSession(DeleteFilesInSessionRequest) returns (DeleteFilesInSessionResponse);
+
+  // Marks a recording session as retained, exempting it from every retention job,
+  // or releases it again so normal retention resumes.
+  rpc SetSessionRetained(SetSessionRetainedRequest) returns (SetSessionRetainedResponse);
 }
 
 message ListSessionsRequest {
@@ -101,6 +105,14 @@ message DeleteFilesInSessionRequest {
 
 message DeleteFilesInSessionResponse {}
 
+message SetSessionRetainedRequest {
+  string session_id = 1;
+  // True to exempt the session from retention, false to release it.
+  bool retained = 2;
+}
+
+message SetSessionRetainedResponse {}
+
 // A recording session — a continuous profiling period that produces files.
 // Sessions are created when the profiler starts and finished when
 // the heartbeat goes stale or the JVM shuts down.
@@ -119,6 +131,8 @@ message RecordingSession {
   RecordingStatus status = 6;
   // Files produced during this session (JFR recordings, heap dumps, logs).
   repeated RepositoryFile files = 7;
+  // Whether this session is exempt from retention jobs.
+  bool retained = 8;
 }
 
 // A single file within a recording session.

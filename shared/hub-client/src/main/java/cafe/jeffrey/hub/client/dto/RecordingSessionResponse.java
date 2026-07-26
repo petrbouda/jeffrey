@@ -34,7 +34,8 @@ public record RecordingSessionResponse(
         Long finishedAt,
         RecordingStatus status,
         Long duration,
-        List<RepositoryFileResponse> files) {
+        List<RepositoryFileResponse> files,
+        boolean retained) {
 
     public static RecordingSessionResponse from(RecordingSession session, Clock clock) {
         Instant end = session.finishedAt() != null ? session.finishedAt() : clock.instant();
@@ -50,7 +51,8 @@ public record RecordingSessionResponse(
                 duration,
                 session.files().stream()
                         .map(RepositoryFileResponse::from)
-                        .toList());
+                        .toList(),
+                session.retained());
     }
 
     public static RecordingSession from(RecordingSessionResponse response) {
@@ -65,6 +67,7 @@ public record RecordingSessionResponse(
                 null,
                 response.files().stream()
                         .map(RepositoryFileResponse::from)
-                        .toList());
+                        .toList(),
+                response.retained());
     }
 }

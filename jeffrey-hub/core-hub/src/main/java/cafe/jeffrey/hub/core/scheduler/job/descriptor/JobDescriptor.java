@@ -27,6 +27,8 @@ public sealed interface JobDescriptor<T extends JobDescriptor<T>>
         ProjectsSynchronizerJobDescriptor,
         ProjectInstanceRecordingCleanerJobDescriptor,
         ProjectInstanceSessionCleanerJobDescriptor,
+        ProjectStorageQuotaCleanerJobDescriptor,
+        OrphanedSessionCleanerJobDescriptor,
         ExpiredInstanceCleanerJobDescriptor,
         WorkspaceEventsReplicatorJobDescriptor,
         RepositoryCompressionProjectJobDescriptor,

@@ -106,7 +106,7 @@ class JdbcProjectRepositoryRepositoryTest {
             TestUtils.executeSql(dataSource, "sql/repository/insert-project-with-repository.sql");
             JdbcProjectRepositoryRepository repository = new JdbcProjectRepositoryRepository(FIXED_CLOCK, "proj-001", provider);
 
-            ProjectInstanceSessionInfo sessionInfo = new ProjectInstanceSessionInfo(
+            ProjectInstanceSessionInfo sessionInfo = ProjectInstanceSessionInfo.notRetained(
                     "session-new-001", "repo-001", "inst-001", 1, Path.of("session-test"),
                     Instant.parse("2025-01-15T10:00:00Z"), null, null);
 
@@ -127,6 +127,44 @@ class JdbcProjectRepositoryRepositoryTest {
 
             assertTrue(result.isPresent());
             assertEquals("session-001", result.get().sessionId());
+        }
+
+        @Test
+        void newSessionsAreNotRetained(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
+            TestUtils.executeSql(dataSource, "sql/repository/insert-project-with-repository-and-sessions.sql");
+            JdbcProjectRepositoryRepository repository = new JdbcProjectRepositoryRepository(FIXED_CLOCK, "proj-001", provider);
+
+            assertFalse(repository.findSessionById("session-001").orElseThrow().retained());
+        }
+
+        @Test
+        void setSessionRetainedTogglesTheFlag(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
+            TestUtils.executeSql(dataSource, "sql/repository/insert-project-with-repository-and-sessions.sql");
+            JdbcProjectRepositoryRepository repository = new JdbcProjectRepositoryRepository(FIXED_CLOCK, "proj-001", provider);
+
+            repository.setSessionRetained("session-001", true);
+            assertTrue(repository.findSessionById("session-001").orElseThrow().retained());
+
+            repository.setSessionRetained("session-001", false);
+            assertFalse(repository.findSessionById("session-001").orElseThrow().retained());
+        }
+
+        @Test
+        void setSessionRetainedLeavesOtherSessionsUntouched(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
+            TestUtils.executeSql(dataSource, "sql/repository/insert-project-with-repository-and-sessions.sql");
+            JdbcProjectRepositoryRepository repository = new JdbcProjectRepositoryRepository(FIXED_CLOCK, "proj-001", provider);
+
+            repository.setSessionRetained("session-001", true);
+
+            List<ProjectInstanceSessionInfo> others = repository.findAllSessions().stream()
+                    .filter(session -> !"session-001".equals(session.sessionId()))
+                    .toList();
+
+            assertFalse(others.isEmpty(), "Fixture must contain more than one session for this to be meaningful");
+            assertTrue(others.stream().noneMatch(ProjectInstanceSessionInfo::retained));
         }
 
         @Test

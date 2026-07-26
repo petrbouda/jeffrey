@@ -127,6 +127,15 @@ public interface RepositoryManager {
     void deleteFilesInSession(String recordingSessionId, List<String> fileIds);
 
     /**
+     * Marks a recording session as retained, exempting it from every retention job,
+     * or releases it again so normal retention resumes.
+     *
+     * @param recordingSessionId the session to update
+     * @param retained           true to exempt the session from retention, false to release it
+     */
+    void setSessionRetained(String recordingSessionId, boolean retained);
+
+    /**
      * Downloads a recording file (JFR) from the repository with validation.
      * Only FINISHED, non-TEMPORARY recording files can be streamed.
      *

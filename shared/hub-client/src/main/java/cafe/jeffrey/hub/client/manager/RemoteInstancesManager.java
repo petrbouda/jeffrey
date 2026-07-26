@@ -91,7 +91,7 @@ public class RemoteInstancesManager {
     }
 
     private static ProjectInstanceSessionInfo toProjectInstanceSessionInfo(InstanceSessionResponse response) {
-        return new ProjectInstanceSessionInfo(
+        return ProjectInstanceSessionInfo.notRetained(
                 response.id(),
                 response.repositoryId(),
                 null,

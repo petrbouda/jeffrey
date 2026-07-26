@@ -76,9 +76,11 @@ public class ProjectInstanceSessionCleanerJob extends RepositoryProjectJob<Proje
         Instant currentTime = clock.instant();
         ProjectInstanceRepository instanceRepo = platformRepositories.newProjectInstanceRepository(projectId);
 
-        // Group finished sessions by instance
+        // Group finished sessions by instance. Retained sessions are pinned evidence
+        // (a manual pin, or an auto-pin from a detected JVM crash) and never expire.
         Map<String, List<RecordingSession>> sessionsByInstance = repositoryStorage.listSessions(false).stream()
                 .filter(session -> session.finishedAt() != null)
+                .filter(session -> !session.retained())
                 .collect(Collectors.groupingBy(RecordingSession::instanceId));
 
         List<RecordingSession> candidatesForDeletion = new ArrayList<>();

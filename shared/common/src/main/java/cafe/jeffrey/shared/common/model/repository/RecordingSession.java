@@ -21,6 +21,7 @@ package cafe.jeffrey.shared.common.model.repository;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.List;
+import java.util.Objects;
 
 public record RecordingSession(
         String id,
@@ -31,6 +32,20 @@ public record RecordingSession(
         RecordingStatus status,
         Path absolutePath,
         Path absoluteStreamingPath,
-        List<RepositoryFile> files) {
+        List<RepositoryFile> files,
+        boolean retained) {
+
+    /**
+     * Total size in bytes of every file in this session. Zero when the session was
+     * loaded without files. Files whose size could not be determined count as zero
+     * rather than failing the whole sum.
+     */
+    public long totalSizeBytes() {
+        return files.stream()
+                .map(RepositoryFile::size)
+                .filter(Objects::nonNull)
+                .mapToLong(Long::longValue)
+                .sum();
+    }
 }
 

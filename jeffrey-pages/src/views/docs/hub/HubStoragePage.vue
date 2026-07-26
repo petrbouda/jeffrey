@@ -46,7 +46,7 @@ onMounted(() => {
     />
 
     <div class="docs-content">
-      <p>Jeffrey Hub keeps its catalog (workspaces, projects, instances, recording sessions, scheduler jobs) in a single embedded DuckDB file, and stores the JFR recordings themselves on a shared filesystem laid out by workspace and project. There is no managed database, no object store, and no per-profile databases — Server collects and serves; analysis happens in Microscope.</p>
+      <p>Jeffrey Hub keeps its catalog (workspaces, projects, instances, recording sessions) in a single embedded DuckDB file, and stores the JFR recordings themselves on a shared filesystem laid out by workspace and project. There is no managed database, no object store, and no per-profile databases — Server collects and serves; analysis happens in Microscope.</p>
 
       <h2 id="design-philosophy">Design Philosophy</h2>
       <p>Server's storage choices are driven by deployment realism — fleets, retention, and shared filesystems:</p>
@@ -83,7 +83,7 @@ onMounted(() => {
       </div>
 
       <h2 id="platform-database">Platform Database</h2>
-      <p>Server's platform database holds the multi-tenant catalog and all scheduler state. It is the single source of truth for what exists in this deployment.</p>
+      <p>Server's platform database holds the multi-tenant catalog. It is the single source of truth for what exists in this deployment. Scheduler jobs are <em>not</em> stored here — they are resolved from configuration at startup, so changing a job requires editing properties and restarting.</p>
 
       <div class="db-card platform">
         <div class="card-header">
@@ -93,13 +93,13 @@ onMounted(() => {
         </div>
         <div class="card-body">
           <p class="file-path"><i class="bi bi-file-earmark"></i> <code>$JEFFREY_HOME/jeffrey-data.db</code></p>
-          <p><strong>Purpose:</strong> Multi-workspace catalog and scheduler state.</p>
+          <p><strong>Purpose:</strong> Multi-workspace catalog.</p>
           <h5>Contains:</h5>
           <ul>
             <li>Workspaces and projects</li>
             <li>Instances (Java applications) and recording sessions</li>
             <li>Profiler-settings configurations</li>
-            <li>Scheduler jobs and job history</li>
+            <li>The durable workspace-event queue and its consumer offsets</li>
             <li>Alerts, messages, and lifecycle state</li>
           </ul>
         </div>

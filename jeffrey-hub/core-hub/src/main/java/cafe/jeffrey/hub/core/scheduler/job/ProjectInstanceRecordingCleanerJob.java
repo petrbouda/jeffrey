@@ -76,6 +76,11 @@ public class ProjectInstanceRecordingCleanerJob extends RepositoryProjectJob<Pro
 
         RecordingSession session = activeSession.get();
 
+        // A retained session is pinned evidence and keeps every chunk it has produced
+        if (session.retained()) {
+            return;
+        }
+
         // Get the session with files
         Optional<RecordingSession> sessionWithFiles = repositoryStorage.singleSession(session.id(), true);
         if (sessionWithFiles.isEmpty()) {

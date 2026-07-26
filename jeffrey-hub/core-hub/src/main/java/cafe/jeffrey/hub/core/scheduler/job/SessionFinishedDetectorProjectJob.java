@@ -128,6 +128,13 @@ public class SessionFinishedDetectorProjectJob extends RepositoryProjectJob<Sess
             // Check for hs_err log (JVM crash) - emit specific alert
             if (containsHsErrLog(sessionPath)) {
                 JfrMessageEmitter.jvmCrashDetected(sessionInfo.sessionId(), sessionInfo.instanceId(), projectInfo.id());
+
+                // A crashed session is the evidence someone will come looking for. Pin it so
+                // no retention job can reclaim it before anyone has had a chance to analyse it;
+                // it can still be released manually once the investigation is done.
+                projectRepositoryRepository.setSessionRetained(sessionInfo.sessionId(), true);
+                LOG.info("Retained session after JVM crash detection: project_id={} instance_id={} session_id={}",
+                        projectInfo.id(), sessionInfo.instanceId(), sessionInfo.sessionId());
             }
         }
     }

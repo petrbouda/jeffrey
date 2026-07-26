@@ -231,6 +231,13 @@ public class RepositoryManagerImpl implements RepositoryManager {
     }
 
     @Override
+    public void setSessionRetained(String recordingSessionId, boolean retained) {
+        repository.setSessionRetained(recordingSessionId, retained);
+        LOG.info("Updated session retention: sessionId={} projectId={} retained={}",
+                recordingSessionId, projectInfo.id(), retained);
+    }
+
+    @Override
     public StreamedRecordingFile streamRecordingFile(String sessionId, String fileId) {
         RepositoryFile file = findAndValidateFile(sessionId, fileId);
 

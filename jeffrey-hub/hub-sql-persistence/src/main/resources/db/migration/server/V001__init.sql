@@ -95,6 +95,9 @@ CREATE TABLE IF NOT EXISTS project_instance_sessions
     origin_created_at     TIMESTAMPTZ NOT NULL,
     created_at            TIMESTAMPTZ NOT NULL,
     finished_at           TIMESTAMPTZ,
+    -- Retained sessions are exempt from every retention job (age-based and quota-based).
+    -- Set manually via the repository API, or automatically when a JVM crash log is detected.
+    retained              BOOLEAN NOT NULL DEFAULT FALSE,
     PRIMARY KEY (repository_id, session_id)
 );
 
