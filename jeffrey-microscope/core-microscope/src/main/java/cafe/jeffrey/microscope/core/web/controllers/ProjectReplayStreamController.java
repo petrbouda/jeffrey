@@ -34,10 +34,10 @@ import cafe.jeffrey.microscope.grpc.client.ReplaySubscriptionRequest;
 import cafe.jeffrey.microscope.core.manager.EventStreamingManager;
 import cafe.jeffrey.microscope.core.manager.project.ProjectManager;
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
+import cafe.jeffrey.microscope.core.web.RequestParams;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
@@ -80,7 +80,7 @@ public class ProjectReplayStreamController {
 
         var request = new ReplaySubscriptionRequest(
                 sessionId,
-                parseCsv(eventTypes).stream().collect(Collectors.toUnmodifiableSet()),
+                RequestParams.parseCsv(eventTypes).stream().collect(Collectors.toUnmodifiableSet()),
                 startTime,
                 endTime);
 
@@ -131,15 +131,5 @@ public class ProjectReplayStreamController {
             emitter.completeWithError(e);
         }
         return emitter;
-    }
-
-    private static List<String> parseCsv(String csv) {
-        if (csv == null || csv.isBlank()) {
-            return List.of();
-        }
-        return Arrays.stream(csv.split(","))
-                .map(String::strip)
-                .filter(s -> !s.isEmpty())
-                .toList();
     }
 }

@@ -18,6 +18,7 @@
 
 package cafe.jeffrey.hub.core.configuration.properties;
 
+import cafe.jeffrey.hub.core.scheduler.job.descriptor.JobDescriptorUtils;
 import cafe.jeffrey.shared.common.model.job.JobType;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
@@ -131,8 +132,14 @@ public class SchedulerJobsProperties {
          * of falling back to a value hidden in code. Supports the {@code 31d}/{@code 1h}/
          * {@code 5m}/{@code 10s} shorthand notation in addition to ISO-8601.
          */
+        /**
+         * Resolves a required duration param. Accepts the operator-friendly notation
+         * ({@code 31d}, {@code 5m}, {@code 1h}) as well as ISO-8601; the notation is parsed by
+         * {@link JobDescriptorUtils#parseDuration(String)} so descriptors built from stored
+         * params read these values identically.
+         */
         public Duration durationParam(String name) {
-            return Duration.parse(normalizeDuration(requiredParam(name)));
+            return JobDescriptorUtils.parseDuration(requiredParam(name));
         }
 
         /**
@@ -157,29 +164,5 @@ public class SchedulerJobsProperties {
             return value;
         }
 
-        /**
-         * Allows users to write {@code 31d} / {@code 5m} / {@code 1h} in property values
-         * (Spring's {@code @DurationUnit}-style notation) by translating them to ISO-8601
-         * before {@link Duration#parse} consumes them.
-         */
-        private static String normalizeDuration(String value) {
-            String trimmed = value.trim().toLowerCase(Locale.ROOT);
-            if (trimmed.startsWith("p") || trimmed.startsWith("-p")) {
-                return value.trim().toUpperCase(Locale.ROOT);
-            }
-            if (trimmed.endsWith("d")) {
-                return "P" + trimmed.substring(0, trimmed.length() - 1) + "D";
-            }
-            if (trimmed.endsWith("h")) {
-                return "PT" + trimmed.substring(0, trimmed.length() - 1) + "H";
-            }
-            if (trimmed.endsWith("m")) {
-                return "PT" + trimmed.substring(0, trimmed.length() - 1) + "M";
-            }
-            if (trimmed.endsWith("s")) {
-                return "PT" + trimmed.substring(0, trimmed.length() - 1) + "S";
-            }
-            return "PT" + trimmed + "S";
-        }
     }
 }

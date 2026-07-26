@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Live event stream — 0. Current (as shipped)</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+<style>
+  /* Values copied from shared/ui/common/src/assets/design-tokens.css so this baseline
+     matches the real component rather than approximating it. */
+  :root {
+    --color-light: #f9fafd;
+    --color-card: #ffffff;
+    --color-border: #eaedf1;
+    --color-text: #5e6e82;
+    --color-text-dark: #344050;
+    --color-text-muted: #748194;
+    --color-info-bg: #e3f2fd; --color-info-border: #90caf9; --color-info-text: #1565c0;
+    --color-green-bg: #e8f5e8; --color-green-text: #2e7d32; --color-green-border: #81c784;
+    --color-purple-bg: #f3e5f5; --color-purple-text: #7b1fa2; --color-purple-border: #ba68c8;
+    --color-primary-bg: #e2e7fd; --color-primary-border: #9ba8ff;
+    --color-secondary-bg: #e7eafd; --color-secondary-border: #9ba3d4;
+    --color-warning: #f5803e; --color-warning-light: rgba(245,128,62,.1);
+    --radius-base: .375rem; --radius-md: .5rem;
+    --shadow-sm: 0 .125rem .25rem rgba(0,0,0,.075);
+    --spacing-5: 1.25rem; --space-2: .5rem;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: #f1f5f9; color: var(--color-text); padding: 2.5rem 1.5rem; }
+  .wrap { max-width: 940px; margin: 0 auto; }
+  .back { display: inline-flex; align-items: center; gap: .4rem; color: #64748b; text-decoration: none; font-size: .85rem; margin-bottom: 1rem; }
+  .back:hover { color: #0f172a; }
+  .shell { background: var(--color-card); border: 1px solid var(--color-border); border-radius: var(--radius-md); }
+
+  /* ---- Faithful copy of WorkspaceEventLog.vue scoped styles ---- */
+  .workspace-event-log { display: flex; flex-direction: column; gap: 12px; padding: var(--spacing-5); }
+
+  .event-toolbar { display: flex; align-items: center; gap: 12px; background: var(--color-light);
+    border: 1px solid var(--color-border); border-radius: var(--radius-base); padding: 8px 12px; }
+  .event-type-select { background: var(--color-card); border: 1px solid var(--color-border);
+    border-radius: var(--radius-base); padding: 5px 28px 5px 10px; font-size: 12px; color: var(--color-text-dark); cursor: pointer; }
+  .event-toolbar-meta { margin-left: auto; font-size: 12px; color: var(--color-text-muted); }
+  .event-stream-indicator { margin-left: var(--space-2); }
+
+  .event-list { display: flex; flex-direction: column; gap: 8px; }
+
+  .event-cap-notice { display: flex; align-items: center; gap: 8px; padding: 8px 12px;
+    background: var(--color-info-bg); border: 1px solid var(--color-info-border); border-radius: var(--radius-base);
+    font-size: 12px; color: var(--color-info-text); }
+  .event-cap-notice .cap-detail { margin-left: auto; color: var(--color-text-muted); font-size: 11.5px; }
+
+  .event-row { background: var(--color-card); border: 1px solid var(--color-border); border-radius: var(--radius-md);
+    padding: 12px 14px; cursor: pointer; transition: border-color .12s ease, box-shadow .12s ease; }
+  .event-row:hover { border-color: var(--color-primary-border); box-shadow: var(--shadow-sm); }
+
+  .event-row-head { display: flex; align-items: center; gap: 10px; }
+  .event-ids { flex: 1; font-size: .7rem; color: var(--color-text-muted);
+    font-family: SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .event-time { display: flex; gap: 8px; flex-shrink: 0; }
+  .event-time-full { font-size: .7rem; color: var(--color-text-muted); }
+  .event-time-relative { font-size: .7rem; color: var(--color-text); font-weight: 500; }
+  .event-row-meta { font-size: .7rem; color: var(--color-text-muted); margin-top: 6px; }
+  .event-row-meta i { margin-right: 4px; }
+  .event-row-pairs { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 8px; }
+  .content-pair { font-size: .7rem; color: var(--color-text-muted); white-space: nowrap; }
+  .content-key { margin-right: 4px; font-weight: 500; }
+  .content-value { color: var(--color-text); font-weight: 500; }
+
+  /* ---- Badge.vue ---- */
+  .badge { display: inline-flex; align-items: center; justify-content: center; font-weight: 600;
+    text-transform: uppercase; border-radius: 5px; border: 1px solid transparent; flex-shrink: 0; }
+  .badge-s { padding: .3rem .5rem .2rem; font-size: .7rem; min-height: 1.25rem; line-height: 1.2; }
+  .badge-small { padding: .25rem .5rem; font-size: .7rem; line-height: 1.2; }
+  .badge.no-upper { text-transform: none; }
+  .badge-green { background: var(--color-green-bg); color: var(--color-green-text); border-color: var(--color-green-border); }
+  .badge-purple { background: var(--color-purple-bg); color: var(--color-purple-text); border-color: var(--color-purple-border); }
+  .badge-primary { background: var(--color-primary-bg); border-color: var(--color-primary-border); color: var(--color-info-text); }
+  .badge-info { background: var(--color-info-bg); border-color: var(--color-info-border); color: var(--color-info-text); }
+  .badge-secondary { background: var(--color-secondary-bg); border-color: var(--color-secondary-border); color: var(--color-text-muted); }
+  .badge-warning { background: var(--color-warning-light); border-color: var(--color-warning); color: var(--color-warning); }
+
+  .note { margin-top: 1.5rem; color: #64748b; font-size: .8rem; line-height: 1.65; }
+  .note code { background: #e2e8f0; padding: .08rem .3rem; border-radius: 4px; font-size: .92em; }
+  .delta { margin-top: 1rem; padding: .95rem 1.1rem; background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; }
+  .delta h4 { font-size: .84rem; color: #0f172a; margin-bottom: .5rem; }
+  .delta ul { margin: 0; padding-left: 1.1rem; font-size: .8rem; color: #64748b; line-height: 1.7; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="index.html"><i class="bi bi-arrow-left"></i> All mockups</a>
+
+  <div class="shell">
+    <div class="workspace-event-log">
+
+      <div class="event-toolbar">
+        <select class="event-type-select">
+          <option>All event types</option>
+          <option>Project Created</option>
+          <option>Session Finished</option>
+        </select>
+        <span class="event-toolbar-meta">Showing 8 of 8 · 1,204 total</span>
+        <span class="badge badge-small badge-green event-stream-indicator">Live</span>
+      </div>
+
+      <div class="event-list">
+        <div class="event-cap-notice">
+          <i class="bi bi-info-circle"></i>
+          Only the latest 8 events are shown.
+          <span class="cap-detail">1,204 total · use the type filter to drill down.</span>
+        </div>
+
+        <div class="event-row">
+          <div class="event-row-head">
+            <span class="badge badge-s badge-primary no-upper">Recording File Created</span>
+            <span class="event-ids">proj-001/inst-9a02/session-001/profile-20260220-115230 • checkout-service</span>
+            <span class="event-time"><span class="event-time-full">2026-02-20 11:52:30</span><span class="event-time-relative">just now</span></span>
+          </div>
+          <div class="event-row-meta"><i class="bi bi-person-fill"></i>SESSION_FILE_DETECTOR_JOB</div>
+          <div class="event-row-pairs">
+            <span class="content-pair"><span class="content-key">fileName:</span><span class="content-value">profile-20260220-115230.jfr</span></span>
+            <span class="content-pair"><span class="content-key">fileType:</span><span class="content-value">JFR</span></span>
+            <span class="content-pair"><span class="content-key">sessionId:</span><span class="content-value">session-001</span></span>
+            <span class="content-pair"><span class="content-key">size:</span><span class="content-value">4.2 MB</span></span>
+          </div>
+        </div>
+
+        <div class="event-row">
+          <div class="event-row-head">
+            <span class="badge badge-s badge-purple no-upper">Artifact File Created</span>
+            <span class="event-ids">proj-001/inst-9a02/session-001/heap-20260220-115204.hprof • checkout-service</span>
+            <span class="event-time"><span class="event-time-full">2026-02-20 11:52:24</span><span class="event-time-relative">6 seconds ago</span></span>
+          </div>
+          <div class="event-row-meta"><i class="bi bi-person-fill"></i>SESSION_FILE_DETECTOR_JOB</div>
+          <div class="event-row-pairs">
+            <span class="content-pair"><span class="content-key">fileName:</span><span class="content-value">heap-20260220-115204.hprof</span></span>
+            <span class="content-pair"><span class="content-key">fileType:</span><span class="content-value">HEAP_DUMP</span></span>
+            <span class="content-pair"><span class="content-key">sessionId:</span><span class="content-value">session-001</span></span>
+            <span class="content-pair"><span class="content-key">size:</span><span class="content-value">128 MB</span></span>
+          </div>
+        </div>
+
+        <div class="event-row">
+          <div class="event-row-head">
+            <span class="badge badge-s badge-primary no-upper">Recording File Created</span>
+            <span class="event-ids">proj-001/inst-9a02/session-001/profile-20260220-115130 • checkout-service</span>
+            <span class="event-time"><span class="event-time-full">2026-02-20 11:51:52</span><span class="event-time-relative">38 seconds ago</span></span>
+          </div>
+          <div class="event-row-meta"><i class="bi bi-person-fill"></i>SESSION_FILE_DETECTOR_JOB</div>
+          <div class="event-row-pairs">
+            <span class="content-pair"><span class="content-key">fileName:</span><span class="content-value">profile-20260220-115130.jfr</span></span>
+            <span class="content-pair"><span class="content-key">fileType:</span><span class="content-value">JFR</span></span>
+            <span class="content-pair"><span class="content-key">size:</span><span class="content-value">3.9 MB</span></span>
+          </div>
+        </div>
+
+        <div class="event-row">
+          <div class="event-row-head">
+            <span class="badge badge-s badge-info no-upper">Session Finished</span>
+            <span class="event-ids">session-000 • checkout-service</span>
+            <span class="event-time"><span class="event-time-full">2026-02-20 11:49:58</span><span class="event-time-relative">2 minutes ago</span></span>
+          </div>
+          <div class="event-row-meta"><i class="bi bi-person-fill"></i>SESSION_FINISHED_DETECTOR_JOB</div>
+        </div>
+
+        <div class="event-row">
+          <div class="event-row-head">
+            <span class="badge badge-s badge-info no-upper">Instance Finished</span>
+            <span class="event-ids">inst-7c31 • checkout-service</span>
+            <span class="event-time"><span class="event-time-full">2026-02-20 11:49:58</span><span class="event-time-relative">2 minutes ago</span></span>
+          </div>
+          <div class="event-row-meta"><i class="bi bi-person-fill"></i>INSTANCE_LIFECYCLE</div>
+          <div class="event-row-pairs">
+            <span class="content-pair"><span class="content-key">instanceId:</span><span class="content-value">inst-7c31</span></span>
+            <span class="content-pair"><span class="content-key">finishedAt:</span><span class="content-value">2026-02-20T11:49:58Z</span></span>
+          </div>
+        </div>
+
+        <div class="event-row">
+          <div class="event-row-head">
+            <span class="badge badge-s badge-primary no-upper">Session Created</span>
+            <span class="event-ids">session-001 • checkout-service</span>
+            <span class="event-time"><span class="event-time-full">2026-02-20 11:38:02</span><span class="event-time-relative">14 minutes ago</span></span>
+          </div>
+          <div class="event-row-meta"><i class="bi bi-person-fill"></i>CLI</div>
+          <div class="event-row-pairs">
+            <span class="content-pair"><span class="content-key">relativePath:</span><span class="content-value">inst-9a02/session-001</span></span>
+          </div>
+        </div>
+
+        <div class="event-row">
+          <div class="event-row-head">
+            <span class="badge badge-s badge-warning no-upper">Instance Expired</span>
+            <span class="event-ids">inst-5b18 • checkout-service</span>
+            <span class="event-time"><span class="event-time-full">2026-02-20 10:52:40</span><span class="event-time-relative">1 hour ago</span></span>
+          </div>
+          <div class="event-row-meta"><i class="bi bi-person-fill"></i>PROJECT_INSTANCE_SESSION_CLEANER_JOB</div>
+          <div class="event-row-pairs">
+            <span class="content-pair"><span class="content-key">instanceId:</span><span class="content-value">inst-5b18</span></span>
+          </div>
+        </div>
+
+        <div class="event-row">
+          <div class="event-row-head">
+            <span class="badge badge-s badge-green no-upper">Project Created</span>
+            <span class="event-ids">proj-001 • checkout-service</span>
+            <span class="event-time"><span class="event-time-full">2026-02-20 08:14:03</span><span class="event-time-relative">3 hours ago</span></span>
+          </div>
+          <div class="event-row-meta"><i class="bi bi-person-fill"></i>CLI</div>
+          <div class="event-row-pairs">
+            <span class="content-pair"><span class="content-key">projectName:</span><span class="content-value">checkout-service</span></span>
+            <span class="content-pair"><span class="content-key">repositoryType:</span><span class="content-value">ASYNC_PROFILER</span></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p class="note"><strong>Baseline — what is on <code>master</code> today.</strong> The pre-existing flat event list, extended in place
+    rather than redesigned. Styles here are copied verbatim from
+    <code>WorkspaceEventLog.vue</code> and <code>design-tokens.css</code>, so this is what the five alternatives are competing against.</p>
+
+  <div class="delta">
+    <h4>What the streaming work changed here</h4>
+    <ul>
+      <li>The <code>Live</code> badge in the toolbar — the only new visual element. It also renders <code>Connecting…</code>, <code>Reconnecting…</code> and <code>Paused</code>.</li>
+      <li>Four new event types with their own badge colour, icon and description: recording file, artifact file, instance finished, instance expired.</li>
+      <li>File events surface <code>fileName</code> / <code>fileType</code> / <code>sessionId</code> / <code>size</code> as content pairs.</li>
+      <li>Arriving events prepend into the list, de-duplicated by event id and capped so a long-lived tab cannot grow without bound.</li>
+    </ul>
+    <h4 style="margin-top:.8rem">What it still does not do</h4>
+    <ul>
+      <li>No visual cue that an event <em>just arrived</em> — new rows simply appear.</li>
+      <li>No grouping by session, and no view of the chunk currently being written.</li>
+      <li>No "N new since you looked" counter, and the resume offset is never surfaced.</li>
+    </ul>
+  </div>
+</div>
+</body>
+</html>

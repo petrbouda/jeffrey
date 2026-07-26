@@ -113,6 +113,12 @@ const router = createRouter({
                   meta: { layout: 'project' }
                 },
                 {
+                  path: 'activity',
+                  name: 'project-activity',
+                  component: () => import('@/views/workspaces/detail/ProjectActivityView.vue'),
+                  meta: { layout: 'project' }
+                },
+                {
                   path: 'events/live-stream',
                   name: 'project-live-stream',
                   component: () => import('@/views/workspaces/detail/ProjectLiveStreamView.vue'),

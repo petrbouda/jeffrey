@@ -23,6 +23,7 @@ import org.slf4j.LoggerFactory;
 import cafe.jeffrey.hub.core.jfr.JfrMessageEmitter;
 import cafe.jeffrey.hub.core.manager.project.ProjectManager;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
+import cafe.jeffrey.hub.core.project.repository.InstanceLifecycleEventEmitter;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
 import cafe.jeffrey.hub.core.scheduler.JobContext;
 import cafe.jeffrey.hub.core.scheduler.job.descriptor.ProjectInstanceSessionCleanerJobDescriptor;
@@ -47,6 +48,7 @@ public class ProjectInstanceSessionCleanerJob extends RepositoryProjectJob<Proje
     private final Duration period;
     private final Clock clock;
     private final HubPlatformRepositories platformRepositories;
+    private final InstanceLifecycleEventEmitter instanceLifecycleEventEmitter;
 
     public ProjectInstanceSessionCleanerJob(
             WorkspacesManager workspacesManager,
@@ -54,11 +56,13 @@ public class ProjectInstanceSessionCleanerJob extends RepositoryProjectJob<Proje
             ProjectInstanceSessionCleanerJobDescriptor jobDescriptor,
             Duration period,
             Clock clock,
-            HubPlatformRepositories platformRepositories) {
+            HubPlatformRepositories platformRepositories,
+            InstanceLifecycleEventEmitter instanceLifecycleEventEmitter) {
         super(workspacesManager, remoteRepositoryManagerFactory, jobDescriptor);
         this.period = period;
         this.clock = clock;
         this.platformRepositories = platformRepositories;
+        this.instanceLifecycleEventEmitter = instanceLifecycleEventEmitter;
     }
 
     @Override
@@ -138,6 +142,9 @@ public class ProjectInstanceSessionCleanerJob extends RepositoryProjectJob<Proje
                         instanceRepo.updateStatusAndExpiredAt(instanceId, ProjectInstanceStatus.EXPIRED, currentTime);
                         LOG.info("Instance marked as EXPIRED (last session deleted): instanceId={} projectId={}",
                                 instanceId, projectId);
+                        instanceLifecycleEventEmitter.emitInstanceExpired(
+                                manager.info(), instanceId, currentTime,
+                                WorkspaceEventCreator.PROJECT_INSTANCE_SESSION_CLEANER_JOB);
                     }
                 }
             }

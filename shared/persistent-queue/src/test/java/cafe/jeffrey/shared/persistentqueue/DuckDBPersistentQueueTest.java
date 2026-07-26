@@ -373,6 +373,101 @@ class DuckDBPersistentQueueTest {
     }
 
     @Nested
+    class FindFromOffset {
+
+        private static List<String> payloads(List<QueueEntry<String>> entries) {
+            return entries.stream().map(QueueEntry::payload).toList();
+        }
+
+        private static DuckDBPersistentQueue<String> queueWithThreeEvents(DataSource dataSource) {
+            var provider = new DatabaseClientProvider(dataSource);
+            var queue = new DuckDBPersistentQueue<>(provider, "test-queue", new StringSerializer(false), FIXED_CLOCK);
+            queue.append("scope-1", "event-1");
+            queue.append("scope-1", "event-2");
+            queue.append("scope-1", "event-3");
+            return queue;
+        }
+
+        @Test
+        void fromZero_returnsEverythingInAscendingOffsetOrder(DataSource dataSource) {
+            var queue = queueWithThreeEvents(dataSource);
+
+            List<QueueEntry<String>> entries = queue.findFromOffset("scope-1", 0, 0);
+
+            assertEquals(List.of("event-1", "event-2", "event-3"), payloads(entries));
+            assertTrue(
+                    entries.get(0).offset() < entries.get(1).offset()
+                            && entries.get(1).offset() < entries.get(2).offset(),
+                    "Offsets must ascend");
+        }
+
+        @Test
+        void lowerBoundIsExclusive(DataSource dataSource) {
+            var queue = queueWithThreeEvents(dataSource);
+            long firstOffset = queue.findFromOffset("scope-1", 0, 0).getFirst().offset();
+
+            List<QueueEntry<String>> entries = queue.findFromOffset("scope-1", firstOffset, 0);
+
+            assertEquals(List.of("event-2", "event-3"), payloads(entries),
+                    "The event at from_offset must not be redelivered");
+        }
+
+        @Test
+        void limitTruncatesToOldestMatchingEvents(DataSource dataSource) {
+            var queue = queueWithThreeEvents(dataSource);
+
+            List<QueueEntry<String>> entries = queue.findFromOffset("scope-1", 0, 2);
+
+            assertEquals(List.of("event-1", "event-2"), payloads(entries),
+                    "A limited read must page forward from the offset, not return the newest events");
+        }
+
+        @Test
+        void nonPositiveLimitIsUnbounded(DataSource dataSource) {
+            var queue = queueWithThreeEvents(dataSource);
+
+            assertAll(
+                    () -> assertEquals(3, queue.findFromOffset("scope-1", 0, 0).size()),
+                    () -> assertEquals(3, queue.findFromOffset("scope-1", 0, -1).size()));
+        }
+
+        @Test
+        void returnsEmpty_whenCaughtUp(DataSource dataSource) {
+            var queue = queueWithThreeEvents(dataSource);
+            long lastOffset = queue.findFromOffset("scope-1", 0, 0).getLast().offset();
+
+            assertTrue(queue.findFromOffset("scope-1", lastOffset, 0).isEmpty(),
+                    "An empty result is the caught-up signal subscribers rely on");
+        }
+
+        @Test
+        void isolatesByScope(DataSource dataSource) {
+            var provider = new DatabaseClientProvider(dataSource);
+            var queue = new DuckDBPersistentQueue<>(provider, "test-queue", new StringSerializer(false), FIXED_CLOCK);
+            queue.append("scope-1", "event-scope-1");
+            queue.append("scope-2", "event-scope-2");
+
+            assertAll(
+                    () -> assertEquals(List.of("event-scope-1"), payloads(queue.findFromOffset("scope-1", 0, 0))),
+                    () -> assertEquals(List.of("event-scope-2"), payloads(queue.findFromOffset("scope-2", 0, 0))));
+        }
+
+        @Test
+        void registersNoConsumer(DataSource dataSource) {
+            var queue = queueWithThreeEvents(dataSource);
+
+            queue.findFromOffset("scope-1", 0, 0);
+
+            // A registered consumer that never acknowledges would pin every event above its
+            // offset against age-based retention, so tailing readers must stay unregistered.
+            var jdbc = new NamedParameterJdbcTemplate(dataSource);
+            Long consumers = jdbc.queryForObject(
+                    "SELECT COUNT(*) FROM persistent_queue_consumers", Map.of(), Long.class);
+            assertEquals(0L, consumers, "findFromOffset must not register a queue consumer");
+        }
+    }
+
+    @Nested
     class DeleteEventsOlderThan {
 
         private static final Instant OLD_TIME = Instant.parse("2025-05-01T10:00:00Z");

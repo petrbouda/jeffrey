@@ -76,5 +76,16 @@
             <version>5.13.4</version>
             <scope>test</scope>
         </dependency>
+        <!-- In-process gRPC server for the streaming client tests -->
+        <dependency>
+            <groupId>io.grpc</groupId>
+            <artifactId>grpc-inprocess</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.awaitility</groupId>
+            <artifactId>awaitility</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 </project>

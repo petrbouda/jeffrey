@@ -65,6 +65,13 @@ public class DuckDBPersistentQueue<T> implements PersistentQueue<T> {
             ORDER BY offset_id""";
 
     //language=SQL
+    private static final String SELECT_EVENTS_FROM_OFFSET_LIMITED = """
+            SELECT * FROM persistent_queue_events
+            WHERE queue_name = :queue_name AND scope_id = :scope_id AND offset_id > :from_offset
+            ORDER BY offset_id
+            LIMIT :limit""";
+
+    //language=SQL
     private static final String SELECT_ALL_EVENTS = """
             SELECT * FROM persistent_queue_events
             WHERE queue_name = :queue_name AND scope_id = :scope_id
@@ -229,6 +236,29 @@ public class DuckDBPersistentQueue<T> implements PersistentQueue<T> {
         return databaseClient.query(
                 StatementLabel.QUEUE_FIND_ALL,
                 SELECT_ALL_EVENTS,
+                params,
+                queueEntryMapper());
+    }
+
+    @Override
+    public List<QueueEntry<T>> findFromOffset(String scopeId, long fromOffset, int limit) {
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("queue_name", queueName)
+                .addValue("scope_id", scopeId)
+                .addValue("from_offset", fromOffset);
+
+        if (limit > 0) {
+            params.addValue("limit", limit);
+            return databaseClient.query(
+                    StatementLabel.QUEUE_FIND_FROM_OFFSET,
+                    SELECT_EVENTS_FROM_OFFSET_LIMITED,
+                    params,
+                    queueEntryMapper());
+        }
+
+        return databaseClient.query(
+                StatementLabel.QUEUE_FIND_FROM_OFFSET,
+                SELECT_EVENTS_FROM_OFFSET,
                 params,
                 queueEntryMapper());
     }

@@ -18,6 +18,7 @@
 
 import WorkspaceEvent from '@/services/api/model/WorkspaceEvent';
 import WorkspaceEventType from '@/services/api/model/WorkspaceEventType';
+import FormattingService from '@shared/services/FormattingService';
 
 export interface ProjectCreatedContent {
   projectName: string;
@@ -47,6 +48,26 @@ export interface ProjectInstanceCreatedContent {
   relativeInstancePath: string;
 }
 
+export interface SessionFileCreatedContent {
+  instanceId: string;
+  sessionId: string;
+  fileName: string;
+  fileType: string;
+  fileCategory: string;
+  /**
+   * Size when the file was first announced. A later LZ4 compression changes the file on disk
+   * without producing a new event, so this is a first-sighting value rather than a live size.
+   */
+  sizeBytes: number;
+  fileCreatedAt: number;
+}
+
+export interface InstanceLifecycleContent {
+  instanceId: string;
+  finishedAt?: number;
+  expiredAt?: number;
+}
+
 export class EventContentParser {
   static parseContent(event: WorkspaceEvent): any {
     try {
@@ -73,6 +94,14 @@ export class EventContentParser {
         return `Session "${content.sessionId}" deleted`;
       case WorkspaceEventType.PROJECT_INSTANCE_SESSION_FINISHED:
         return 'Session finished';
+      case WorkspaceEventType.PROJECT_INSTANCE_SESSION_RECORDING_FILE_CREATED:
+        return `Recording "${content.fileName}" available (${FormattingService.formatBytes(content.sizeBytes)})`;
+      case WorkspaceEventType.PROJECT_INSTANCE_SESSION_ARTIFACT_FILE_CREATED:
+        return `Artifact "${content.fileName}" available (${FormattingService.formatBytes(content.sizeBytes)})`;
+      case WorkspaceEventType.PROJECT_INSTANCE_FINISHED:
+        return `Instance "${content.instanceId}" finished`;
+      case WorkspaceEventType.PROJECT_INSTANCE_EXPIRED:
+        return `Instance "${content.instanceId}" expired`;
       default:
         return 'Unknown event type';
     }
@@ -92,6 +121,14 @@ export class EventContentParser {
         return 'bi-stop-circle';
       case WorkspaceEventType.PROJECT_INSTANCE_SESSION_FINISHED:
         return 'bi-stop-circle-fill';
+      case WorkspaceEventType.PROJECT_INSTANCE_SESSION_RECORDING_FILE_CREATED:
+        return 'bi-file-earmark-bar-graph';
+      case WorkspaceEventType.PROJECT_INSTANCE_SESSION_ARTIFACT_FILE_CREATED:
+        return 'bi-paperclip';
+      case WorkspaceEventType.PROJECT_INSTANCE_FINISHED:
+        return 'bi-box-seam';
+      case WorkspaceEventType.PROJECT_INSTANCE_EXPIRED:
+        return 'bi-hourglass-bottom';
       default:
         return 'bi-question-circle';
     }
@@ -111,6 +148,14 @@ export class EventContentParser {
         return 'warning';
       case WorkspaceEventType.PROJECT_INSTANCE_SESSION_FINISHED:
         return 'info';
+      case WorkspaceEventType.PROJECT_INSTANCE_SESSION_RECORDING_FILE_CREATED:
+        return 'primary';
+      case WorkspaceEventType.PROJECT_INSTANCE_SESSION_ARTIFACT_FILE_CREATED:
+        return 'purple';
+      case WorkspaceEventType.PROJECT_INSTANCE_FINISHED:
+        return 'info';
+      case WorkspaceEventType.PROJECT_INSTANCE_EXPIRED:
+        return 'warning';
       default:
         return 'secondary';
     }
@@ -130,6 +175,14 @@ export class EventContentParser {
         return 'Session Deleted';
       case WorkspaceEventType.PROJECT_INSTANCE_SESSION_FINISHED:
         return 'Session Finished';
+      case WorkspaceEventType.PROJECT_INSTANCE_SESSION_RECORDING_FILE_CREATED:
+        return 'Recording File Created';
+      case WorkspaceEventType.PROJECT_INSTANCE_SESSION_ARTIFACT_FILE_CREATED:
+        return 'Artifact File Created';
+      case WorkspaceEventType.PROJECT_INSTANCE_FINISHED:
+        return 'Instance Finished';
+      case WorkspaceEventType.PROJECT_INSTANCE_EXPIRED:
+        return 'Instance Expired';
       default:
         return 'Unknown Event';
     }

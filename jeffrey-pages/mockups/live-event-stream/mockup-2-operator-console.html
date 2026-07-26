@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Live event stream — 2. Operator console</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #f1f5f9; color: #0f172a; padding: 2.5rem 1.5rem; }
+  .wrap { max-width: 1040px; margin: 0 auto; }
+  .back { display: inline-flex; align-items: center; gap: .4rem; color: #64748b; text-decoration: none; font-size: .85rem; margin-bottom: 1.2rem; }
+  .back:hover { color: #0f172a; }
+
+  .console { background: #0b1220; border: 1px solid #1e293b; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 30px rgba(15,23,42,.18); }
+  .bar { display: flex; align-items: center; gap: .7rem; padding: .8rem 1.1rem; background: #111c33; border-bottom: 1px solid #1e293b; }
+  .bar i { color: #38bdf8; }
+  .bar h2 { color: #e2e8f0; font-size: .92rem; font-weight: 700; flex: 1; }
+  .live { display: inline-flex; align-items: center; gap: .4rem; padding: .2rem .55rem; border-radius: 999px;
+    background: rgba(34,197,94,.15); color: #4ade80; font-size: .7rem; font-weight: 700; border: 1px solid rgba(34,197,94,.3); }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: #22c55e; animation: pulse 1.5s infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .25; } }
+  .offset { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .7rem; color: #64748b; }
+
+  .filters { display: flex; gap: .4rem; padding: .6rem 1.1rem; background: #0d1728; border-bottom: 1px solid #1e293b; flex-wrap: wrap; }
+  .chip { font-size: .68rem; padding: .22rem .55rem; border-radius: 5px; border: 1px solid #263449; color: #94a3b8; cursor: pointer; }
+  .chip.on { background: rgba(56,189,248,.16); border-color: rgba(56,189,248,.45); color: #7dd3fc; }
+
+  .log { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .78rem; line-height: 1.5; max-height: 460px; overflow-y: auto; }
+  .row { display: grid; grid-template-columns: 78px 92px 1fr; gap: .8rem; padding: .34rem 1.1rem; border-bottom: 1px solid rgba(30,41,59,.55); color: #cbd5e1; }
+  .row:hover { background: rgba(56,189,248,.05); }
+  .row.fresh { background: rgba(34,197,94,.07); animation: flash 1.1s ease-out; }
+  @keyframes flash { from { background: rgba(34,197,94,.22); } to { background: rgba(34,197,94,.07); } }
+  .ts { color: #475569; }
+  .lv { font-weight: 700; }
+  .lv.rec { color: #60a5fa; }
+  .lv.art { color: #c084fc; }
+  .lv.ses { color: #818cf8; }
+  .lv.inst { color: #38bdf8; }
+  .lv.exp { color: #fbbf24; }
+  .msg .k { color: #64748b; }
+  .msg .v { color: #e2e8f0; }
+  .sz { color: #4ade80; }
+
+  .status { display: flex; gap: 1.4rem; padding: .55rem 1.1rem; background: #111c33; border-top: 1px solid #1e293b; font-family: ui-monospace, monospace; font-size: .7rem; color: #64748b; }
+  .status b { color: #94a3b8; font-weight: 600; }
+
+  .foot { margin-top: 1.6rem; color: #64748b; font-size: .8rem; line-height: 1.6; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="index.html"><i class="bi bi-arrow-left"></i> All mockups</a>
+
+  <div class="console">
+    <div class="bar">
+      <i class="bi bi-terminal"></i>
+      <h2>Event Log — checkout-service</h2>
+      <span class="offset">offset 41,882</span>
+      <span class="live"><span class="dot"></span> LIVE</span>
+    </div>
+
+    <div class="filters">
+      <span class="chip on">all</span>
+      <span class="chip">recording files</span>
+      <span class="chip">artifact files</span>
+      <span class="chip">sessions</span>
+      <span class="chip">instances</span>
+      <span class="chip">projects</span>
+    </div>
+
+    <div class="log">
+      <div class="row fresh"><span class="ts">11:52:30</span><span class="lv rec">RECORDING</span>
+        <span class="msg"><span class="k">file=</span><span class="v">profile-20260220-115230.jfr</span> <span class="k">size=</span><span class="sz">4.2 MB</span> <span class="k">session=</span><span class="v">session-001</span></span></div>
+      <div class="row fresh"><span class="ts">11:52:24</span><span class="lv art">ARTIFACT</span>
+        <span class="msg"><span class="k">file=</span><span class="v">heap-20260220-115204.hprof</span> <span class="k">size=</span><span class="sz">128 MB</span> <span class="k">session=</span><span class="v">session-001</span></span></div>
+      <div class="row"><span class="ts">11:51:52</span><span class="lv rec">RECORDING</span>
+        <span class="msg"><span class="k">file=</span><span class="v">profile-20260220-115130.jfr</span> <span class="k">size=</span><span class="sz">3.9 MB</span> <span class="k">session=</span><span class="v">session-001</span></span></div>
+      <div class="row"><span class="ts">11:51:20</span><span class="lv rec">RECORDING</span>
+        <span class="msg"><span class="k">file=</span><span class="v">profile-20260220-115030.jfr</span> <span class="k">size=</span><span class="sz">4.0 MB</span> <span class="k">session=</span><span class="v">session-001</span></span></div>
+      <div class="row"><span class="ts">11:50:11</span><span class="lv art">ARTIFACT</span>
+        <span class="msg"><span class="k">file=</span><span class="v">gc.log</span> <span class="k">size=</span><span class="sz">812 KB</span> <span class="k">session=</span><span class="v">session-001</span></span></div>
+      <div class="row"><span class="ts">11:49:58</span><span class="lv ses">SESSION</span>
+        <span class="msg"><span class="k">finished </span><span class="v">session-000</span></span></div>
+      <div class="row"><span class="ts">11:49:58</span><span class="lv inst">INSTANCE</span>
+        <span class="msg"><span class="k">finished </span><span class="v">inst-7c31</span></span></div>
+      <div class="row"><span class="ts">11:38:02</span><span class="lv ses">SESSION</span>
+        <span class="msg"><span class="k">created </span><span class="v">session-001</span> <span class="k">path=</span><span class="v">inst-9a02/session-001</span></span></div>
+      <div class="row"><span class="ts">10:52:40</span><span class="lv exp">INSTANCE</span>
+        <span class="msg"><span class="k">expired </span><span class="v">inst-5b18</span></span></div>
+      <div class="row"><span class="ts">08:14:03</span><span class="lv ses">PROJECT</span>
+        <span class="msg"><span class="k">created </span><span class="v">checkout-service</span> <span class="k">repo=</span><span class="v">ASYNC_PROFILER</span></span></div>
+    </div>
+
+    <div class="status">
+      <span><b>1,204</b> events</span>
+      <span><b>18</b>/min</span>
+      <span><b>2</b> active sessions</span>
+      <span>reconnects <b>0</b></span>
+    </div>
+  </div>
+
+  <p class="foot"><strong>Direction 2 — Operator console.</strong> A dense <code>tail -f</code> view: fixed columns, monospace, one line per event,
+    colour by category. Optimised for watching a busy workspace rather than reading history — new lines flash green, and the footer carries
+    throughput plus the resume offset so a reconnect is visible.</p>
+</div>
+</body>
+</html>

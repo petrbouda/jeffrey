@@ -18,6 +18,8 @@
 
 package cafe.jeffrey.hub.core.scheduler.job.descriptor;
 
+import java.time.Duration;
+import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Locale;
@@ -86,6 +88,45 @@ public abstract class JobDescriptorUtils {
             throw new IllegalArgumentException(name + " must be positive: " + value);
         }
         return bytes;
+    }
+
+    /**
+     * Resolves a required duration param written in the operator-friendly notation used in
+     * {@code scheduler-defaults.properties} ({@code 30s}, {@code 15m}, {@code 1h}, {@code 7d})
+     * or in ISO-8601.
+     */
+    public static Duration resolveDuration(Map<String, String> params, String name) {
+        String value = resolveString(params, name);
+        try {
+            return parseDuration(value);
+        } catch (DateTimeParseException e) {
+            throw new IllegalArgumentException(name + " is not a valid duration: " + value, e);
+        }
+    }
+
+    /**
+     * Parses the shorthand duration notation accepted in scheduler configuration
+     * ({@code 30s}, {@code 15m}, {@code 1h}, {@code 7d}) by translating it to ISO-8601 first.
+     * A bare number is read as seconds.
+     */
+    public static Duration parseDuration(String value) {
+        String trimmed = value.trim().toLowerCase(Locale.ROOT);
+
+        if (trimmed.startsWith("p") || trimmed.startsWith("-p")) {
+            return Duration.parse(value.trim().toUpperCase(Locale.ROOT));
+        }
+
+        String magnitude = trimmed.substring(0, Math.max(0, trimmed.length() - 1));
+        char suffix = trimmed.isEmpty() ? ' ' : trimmed.charAt(trimmed.length() - 1);
+        String iso = switch (suffix) {
+            case 'd' -> "P" + magnitude + "D";
+            case 'h' -> "PT" + magnitude + "H";
+            case 'm' -> "PT" + magnitude + "M";
+            case 's' -> "PT" + magnitude + "S";
+            default -> "PT" + trimmed + "S";
+        };
+
+        return Duration.parse(iso);
     }
 
     public static ChronoUnit resolveChronoUnit(Map<String, String> params, String name) {

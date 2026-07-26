@@ -23,6 +23,7 @@ import org.slf4j.LoggerFactory;
 import cafe.jeffrey.hub.core.jfr.JfrMessageEmitter;
 import cafe.jeffrey.hub.core.manager.project.ProjectManager;
 import cafe.jeffrey.hub.core.manager.project.ProjectsManager;
+import cafe.jeffrey.hub.core.project.repository.InstanceLifecycleEventEmitter;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
 import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
 import cafe.jeffrey.hub.persistence.api.ProjectInstanceRepository;
@@ -31,6 +32,7 @@ import cafe.jeffrey.shared.common.model.ProjectInstanceInfo;
 import cafe.jeffrey.shared.common.model.ProjectInstanceInfo.ProjectInstanceStatus;
 import cafe.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceEvent;
+import cafe.jeffrey.shared.common.model.workspace.WorkspaceEventCreator;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceEventType;
 
 import java.time.Clock;
@@ -45,15 +47,18 @@ public class DeleteSessionWorkspaceEventConsumer implements WorkspaceEventConsum
     private final HubPlatformRepositories platformRepositories;
     private final RepositoryStorage.Factory remoteRepositoryStorageFactory;
     private final Clock clock;
+    private final InstanceLifecycleEventEmitter instanceLifecycleEventEmitter;
 
     public DeleteSessionWorkspaceEventConsumer(
             HubPlatformRepositories platformRepositories,
             RepositoryStorage.Factory remoteRepositoryStorageFactory,
-            Clock clock) {
+            Clock clock,
+            InstanceLifecycleEventEmitter instanceLifecycleEventEmitter) {
 
         this.platformRepositories = platformRepositories;
         this.remoteRepositoryStorageFactory = remoteRepositoryStorageFactory;
         this.clock = clock;
+        this.instanceLifecycleEventEmitter = instanceLifecycleEventEmitter;
     }
 
     @Override
@@ -93,6 +98,18 @@ public class DeleteSessionWorkspaceEventConsumer implements WorkspaceEventConsum
                     instanceRepo.updateStatusAndExpiredAt(instanceId, ProjectInstanceStatus.EXPIRED, now);
                     LOG.info("Instance marked as EXPIRED (last session deleted): instanceId={} projectId={}",
                             instanceId, projectId);
+
+                    // This consumer runs inside ProjectsSynchronizerJob's per-event transaction and
+                    // publishes into the very queue it is consuming from. That is safe, but only for
+                    // non-obvious reasons: the append and the offset-acknowledge commit together;
+                    // the new row's offset is strictly greater than the offset being acknowledged, so
+                    // it is picked up on a later tick and never replayed into this same pass; no
+                    // consumer handles PROJECT_INSTANCE_EXPIRED, so there is no feedback loop (this
+                    // must be rechecked if one is ever added); and on rollback-and-retry the append
+                    // is re-attempted, which the dedup key on instanceId makes idempotent.
+                    instanceLifecycleEventEmitter.emitInstanceExpired(
+                            projectManager.info(), instanceId, now,
+                            WorkspaceEventCreator.INSTANCE_LIFECYCLE);
                 }
             }
         }

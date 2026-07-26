@@ -34,6 +34,7 @@ import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
 import cafe.jeffrey.hub.core.streaming.LiveStreamingManager;
 import cafe.jeffrey.hub.core.streaming.ReplayStreamingManager;
 import cafe.jeffrey.hub.core.workspace.WorkspaceEventReader;
+import cafe.jeffrey.hub.core.workspace.WorkspaceEventStreamingManager;
 import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
 
 import java.lang.reflect.Method;
@@ -116,6 +117,11 @@ class GrpcServerConfigurationTest {
         @Bean
         public WorkspaceEventReader workspaceEventReader() {
             return mock(WorkspaceEventReader.class);
+        }
+
+        @Bean
+        public WorkspaceEventStreamingManager workspaceEventStreamingManager() {
+            return mock(WorkspaceEventStreamingManager.class);
         }
 
         @Bean

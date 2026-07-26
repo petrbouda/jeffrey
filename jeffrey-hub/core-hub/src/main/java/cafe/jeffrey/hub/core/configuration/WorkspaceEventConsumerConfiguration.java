@@ -20,6 +20,7 @@ package cafe.jeffrey.hub.core.configuration;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import cafe.jeffrey.hub.core.project.repository.InstanceLifecycleEventEmitter;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
 import cafe.jeffrey.hub.core.streaming.SessionFinisher;
 import cafe.jeffrey.hub.core.workspace.consumer.*;
@@ -54,9 +55,11 @@ public class WorkspaceEventConsumerConfiguration {
     public DeleteSessionWorkspaceEventConsumer deleteSessionWorkspaceEventConsumer(
             HubPlatformRepositories platformRepositories,
             RepositoryStorage.Factory remoteRepositoryStorageFactory,
-            Clock clock) {
+            Clock clock,
+            InstanceLifecycleEventEmitter instanceLifecycleEventEmitter) {
 
-        return new DeleteSessionWorkspaceEventConsumer(platformRepositories, remoteRepositoryStorageFactory, clock);
+        return new DeleteSessionWorkspaceEventConsumer(
+                platformRepositories, remoteRepositoryStorageFactory, clock, instanceLifecycleEventEmitter);
     }
 
     @Bean

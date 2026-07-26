@@ -31,7 +31,19 @@ export default class WorkspaceEventsClient extends BasePlatformClient {
     super(`/hubs/${hubId}/workspaces`);
   }
 
-  async getEvents(workspaceId: string, limit: number = 100): Promise<WorkspaceEventsResponse> {
-    return super.get<WorkspaceEventsResponse>(`/${workspaceId}/events?limit=${limit}`);
+  /**
+   * @param projectIds narrows the feed to these projects; empty means the whole workspace
+   */
+  async getEvents(
+    workspaceId: string,
+    limit: number = 100,
+    projectIds: string[] = []
+  ): Promise<WorkspaceEventsResponse> {
+    const params = new URLSearchParams();
+    params.set('limit', String(limit));
+    if (projectIds.length > 0) {
+      params.set('projectIds', projectIds.join(','));
+    }
+    return super.get<WorkspaceEventsResponse>(`/${workspaceId}/events?${params.toString()}`);
   }
 }

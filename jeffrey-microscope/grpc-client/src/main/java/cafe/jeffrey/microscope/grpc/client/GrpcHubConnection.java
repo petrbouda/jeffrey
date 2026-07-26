@@ -63,6 +63,16 @@ public class GrpcHubConnection implements Closeable {
     }
 
     /**
+     * Wraps an already-built channel instead of dialling an address. Exists so a test can point
+     * the clients at an in-process server; production code should use
+     * {@link #GrpcHubConnection(HubAddress)}.
+     */
+    protected GrpcHubConnection(ManagedChannel channel) {
+        this.address = null;
+        this.channel = channel;
+    }
+
+    /**
      * Returns the underlying {@link ManagedChannel} for creating gRPC stubs.
      */
     public ManagedChannel getChannel() {

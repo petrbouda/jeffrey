@@ -44,6 +44,13 @@ public class QueueWorkspaceEventReader implements WorkspaceEventReader {
     }
 
     @Override
+    public List<WorkspaceEvent> findFromOffset(String workspaceId, long fromOffset, int limit) {
+        return workspaceEventQueue.findFromOffset(workspaceId, fromOffset, limit).stream()
+                .map(QueueWorkspaceEventReader::fromQueueEntry)
+                .toList();
+    }
+
+    @Override
     public long count(String workspaceId) {
         return workspaceEventQueue.count(workspaceId);
     }

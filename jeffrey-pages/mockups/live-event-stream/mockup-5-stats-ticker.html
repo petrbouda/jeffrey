@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Live event stream — 5. Stats + ticker</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #f1f5f9; color: #0f172a; padding: 2.5rem 1.5rem; }
+  .wrap { max-width: 1000px; margin: 0 auto; }
+  .back { display: inline-flex; align-items: center; gap: .4rem; color: #64748b; text-decoration: none; font-size: .85rem; margin-bottom: 1.2rem; }
+  .back:hover { color: #0f172a; }
+
+  .head { display: flex; align-items: center; gap: .7rem; margin-bottom: 1rem; }
+  .head i { color: #6366f1; font-size: 1.15rem; }
+  .head h2 { font-size: 1.05rem; font-weight: 700; flex: 1; }
+  .state { display: inline-flex; align-items: center; gap: .4rem; padding: .22rem .6rem; border-radius: 999px; font-size: .72rem; font-weight: 700; }
+  .state.live { background: #dcfce7; color: #15803d; }
+  .state.recon { background: #fef3c7; color: #b45309; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: #22c55e; animation: pulse 1.6s infinite; }
+  .recon .dot { background: #f59e0b; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .3; } }
+
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: .8rem; margin-bottom: 1.1rem; }
+  .stat { background: #fff; border: 1px solid #e2e8f0; border-radius: 11px; padding: .85rem 1rem; box-shadow: 0 1px 3px rgba(15,23,42,.05); }
+  .stat .lbl { font-size: .7rem; color: #94a3b8; text-transform: uppercase; letter-spacing: .04em; font-weight: 600; }
+  .stat .val { font-size: 1.5rem; font-weight: 800; margin-top: .2rem; letter-spacing: -.02em; }
+  .stat .sub { font-size: .72rem; color: #64748b; margin-top: .1rem; }
+  .stat.rec .val { color: #2563eb; }
+  .stat.art .val { color: #9333ea; }
+  .stat.thr .val { color: #059669; }
+  .spark { display: flex; align-items: flex-end; gap: 2px; height: 22px; margin-top: .4rem; }
+  .spark span { flex: 1; background: #bfdbfe; border-radius: 1px; }
+  .spark span:last-child { background: #3b82f6; }
+
+  .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(15,23,42,.06); }
+  .bar { display: flex; align-items: center; gap: .6rem; padding: .7rem 1.1rem; border-bottom: 1px solid #e2e8f0; background: #f8fafc; font-size: .8rem; color: #64748b; }
+  .bar .pill { font-size: .68rem; font-weight: 700; padding: .18rem .5rem; border-radius: 5px; background: #e0e7ff; color: #4338ca; }
+
+  .row { display: flex; align-items: center; gap: .7rem; padding: .68rem 1.1rem; border-bottom: 1px solid #f8fafc; font-size: .85rem; }
+  .row.fresh { background: linear-gradient(90deg, rgba(34,197,94,.1), transparent 60%); animation: sweep 1.3s ease-out; }
+  @keyframes sweep { from { background-position: -100% 0; } to { background-position: 0 0; } }
+  .ic { width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center; flex-shrink: 0; font-size: .85rem; }
+  .ic.rec { background: #dbeafe; color: #2563eb; }
+  .ic.art { background: #f3e8ff; color: #9333ea; }
+  .ic.ses { background: #e0e7ff; color: #4338ca; }
+  .ic.inst { background: #e0f2fe; color: #0284c7; }
+  .ic.exp { background: #fef3c7; color: #d97706; }
+  .txt { flex: 1; color: #334155; }
+  .txt b { font-weight: 600; }
+  .sz { font-family: ui-monospace, monospace; font-size: .75rem; color: #059669; background: #ecfdf5; padding: .1rem .4rem; border-radius: 4px; }
+  .when { color: #94a3b8; font-size: .73rem; flex-shrink: 0; }
+
+  .banner { display: flex; align-items: center; gap: .5rem; padding: .55rem 1.1rem; background: #fffbeb; border-bottom: 1px solid #fde68a;
+    font-size: .78rem; color: #92400e; }
+
+  .foot { margin-top: 1.6rem; color: #64748b; font-size: .8rem; line-height: 1.6; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="index.html"><i class="bi bi-arrow-left"></i> All mockups</a>
+
+  <div class="head">
+    <i class="bi bi-activity"></i>
+    <h2>Event Log — checkout-service</h2>
+    <span class="state recon"><span class="dot"></span> Reconnecting…</span>
+  </div>
+
+  <div class="stats">
+    <div class="stat thr"><div class="lbl">Events / min</div><div class="val">18</div>
+      <div class="spark"><span style="height:40%"></span><span style="height:55%"></span><span style="height:35%"></span><span style="height:70%"></span><span style="height:60%"></span><span style="height:85%"></span><span style="height:100%"></span></div></div>
+    <div class="stat rec"><div class="lbl">Recordings today</div><div class="val">142</div><div class="sub">571 MB total</div></div>
+    <div class="stat art"><div class="lbl">Artifacts today</div><div class="val">9</div><div class="sub">1 crash log</div></div>
+    <div class="stat"><div class="lbl">Active instances</div><div class="val">3</div><div class="sub">2 sessions live</div></div>
+  </div>
+
+  <div class="card">
+    <div class="banner"><i class="bi bi-arrow-repeat"></i>
+      Connection lost — retrying in 4s. Will resume from offset <b>41,882</b>, so nothing is missed.</div>
+
+    <div class="bar">
+      <span class="pill">ALL TYPES</span>
+      <span>Showing 10 of 1,204</span>
+    </div>
+
+    <div class="row fresh"><div class="ic rec"><i class="bi bi-file-earmark-bar-graph"></i></div>
+      <span class="txt">Recording <b>profile-20260220-115230.jfr</b> available</span>
+      <span class="sz">4.2 MB</span><span class="when">now</span></div>
+    <div class="row fresh"><div class="ic art"><i class="bi bi-paperclip"></i></div>
+      <span class="txt">Artifact <b>heap-20260220-115204.hprof</b> available</span>
+      <span class="sz">128 MB</span><span class="when">6s</span></div>
+    <div class="row"><div class="ic rec"><i class="bi bi-file-earmark-bar-graph"></i></div>
+      <span class="txt">Recording <b>profile-20260220-115130.jfr</b> available</span>
+      <span class="sz">3.9 MB</span><span class="when">38s</span></div>
+    <div class="row"><div class="ic rec"><i class="bi bi-file-earmark-bar-graph"></i></div>
+      <span class="txt">Recording <b>profile-20260220-115030.jfr</b> available</span>
+      <span class="sz">4.0 MB</span><span class="when">1m</span></div>
+    <div class="row"><div class="ic art"><i class="bi bi-paperclip"></i></div>
+      <span class="txt">Artifact <b>gc.log</b> available</span>
+      <span class="sz">812 KB</span><span class="when">2m</span></div>
+    <div class="row"><div class="ic ses"><i class="bi bi-stop-circle-fill"></i></div>
+      <span class="txt">Session <b>session-000</b> finished</span><span class="when">2m</span></div>
+    <div class="row"><div class="ic inst"><i class="bi bi-box-seam"></i></div>
+      <span class="txt">Instance <b>inst-7c31</b> finished</span><span class="when">2m</span></div>
+    <div class="row"><div class="ic ses"><i class="bi bi-play-circle"></i></div>
+      <span class="txt">Session <b>session-001</b> created</span><span class="when">14m</span></div>
+    <div class="row"><div class="ic exp"><i class="bi bi-hourglass-bottom"></i></div>
+      <span class="txt">Instance <b>inst-5b18</b> expired</span><span class="when">1h</span></div>
+    <div class="row"><div class="ic ses"><i class="bi bi-folder-plus"></i></div>
+      <span class="txt">Project <b>checkout-service</b> created</span><span class="when">3h</span></div>
+  </div>
+
+  <p class="foot"><strong>Direction 5 — Stats + ticker.</strong> A KPI strip turns the stream into something you can glance at —
+    throughput, recordings and artifacts today, live instances — with the feed underneath as a ticker. This variant deliberately shows the
+    <em>reconnecting</em> state, including the resume offset, since that is the part of the design a user is most likely to distrust.</p>
+</div>
+</body>
+</html>

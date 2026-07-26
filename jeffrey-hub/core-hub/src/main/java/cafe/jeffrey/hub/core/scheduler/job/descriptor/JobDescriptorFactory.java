@@ -51,6 +51,8 @@ public record JobDescriptorFactory() {
                     new RepositoryCompressionProjectJobDescriptor();
             case SESSION_FINISHED_DETECTOR ->
                     new SessionFinishedDetectorProjectJobDescriptor();
+            case SESSION_FILE_DETECTOR ->
+                    SessionFileDetectorProjectJobDescriptor.of(params);
             default -> throw new IllegalArgumentException("Unsupported job type: " + jobType);
         };
     }

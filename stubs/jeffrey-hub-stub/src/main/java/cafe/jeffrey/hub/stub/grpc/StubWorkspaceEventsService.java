@@ -20,12 +20,16 @@ package cafe.jeffrey.hub.stub.grpc;
 
 import cafe.jeffrey.hub.api.v1.GetWorkspaceEventsRequest;
 import cafe.jeffrey.hub.api.v1.GetWorkspaceEventsResponse;
+import cafe.jeffrey.hub.api.v1.StreamWorkspaceEventsRequest;
+import cafe.jeffrey.hub.api.v1.WorkspaceEventBatch;
 import cafe.jeffrey.hub.api.v1.WorkspaceEventInfo;
 import cafe.jeffrey.hub.api.v1.WorkspaceEventsServiceGrpc;
 import cafe.jeffrey.hub.stub.data.StubDataset;
 import io.grpc.stub.StreamObserver;
 
+import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
 
 /** Stub {@code WorkspaceEventsService} returning the workspace's in-memory event log (latest first). */
 public class StubWorkspaceEventsService extends WorkspaceEventsServiceGrpc.WorkspaceEventsServiceImplBase {
@@ -47,8 +51,10 @@ public class StubWorkspaceEventsService extends WorkspaceEventsServiceGrpc.Works
                 .map(StubDataset.Workspace::events)
                 .orElse(List.of());
 
+        Set<String> projectIds = Set.copyOf(request.getProjectIdsList());
         List<StubDataset.Event> filtered = allEvents.stream()
                 .filter(event -> !request.hasEventType() || event.eventType().equals(request.getEventType()))
+                .filter(event -> projectIds.isEmpty() || projectIds.contains(event.projectId()))
                 .toList();
 
         int limit = request.hasLimit() && request.getLimit() > 0 ? request.getLimit() : DEFAULT_LIMIT;
@@ -60,6 +66,45 @@ public class StubWorkspaceEventsService extends WorkspaceEventsServiceGrpc.Works
                 .forEach(event -> builder.addEvents(toProto(event)));
 
         responseObserver.onNext(builder.build());
+        responseObserver.onCompleted();
+    }
+
+    /**
+     * Delivers the stub's backlog above {@code from_offset} as one batch, then completes.
+     * The stub has no live event source, so it never tails — clients are expected to treat
+     * a clean completion as "this hub does not push" and stop reconnecting.
+     */
+    @Override
+    public void streamWorkspaceEvents(
+            StreamWorkspaceEventsRequest request,
+            StreamObserver<WorkspaceEventBatch> responseObserver) {
+
+        List<StubDataset.Event> events = dataset.workspace(request.getWorkspaceId())
+                .map(StubDataset.Workspace::events)
+                .orElse(List.of());
+
+        long fromOffset = request.hasFromOffset() ? request.getFromOffset() : 0L;
+        Set<String> eventTypes = Set.copyOf(request.getEventTypesList());
+        Set<String> projectIds = Set.copyOf(request.getProjectIdsList());
+
+        List<StubDataset.Event> pending = events.stream()
+                .filter(event -> event.eventId() > fromOffset)
+                .sorted(Comparator.comparingLong(StubDataset.Event::eventId))
+                .toList();
+
+        long lastOffset = pending.isEmpty()
+                ? fromOffset
+                : pending.getLast().eventId();
+
+        WorkspaceEventBatch.Builder batch = WorkspaceEventBatch.newBuilder()
+                .setLastOffset(lastOffset)
+                .setCaughtUp(true);
+        pending.stream()
+                .filter(event -> eventTypes.isEmpty() || eventTypes.contains(event.eventType()))
+                .filter(event -> projectIds.isEmpty() || projectIds.contains(event.projectId()))
+                .forEach(event -> batch.addEvents(toProto(event)));
+
+        responseObserver.onNext(batch.build());
         responseObserver.onCompleted();
     }
 

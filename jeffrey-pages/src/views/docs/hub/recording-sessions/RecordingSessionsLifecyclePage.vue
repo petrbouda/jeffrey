@@ -33,7 +33,8 @@ const headings = [
   { id: 'finish-detection-logic', text: 'Finish Detection Logic', level: 3 },
   { id: 'jvm-crash-detection', text: 'JVM Crash Detection', level: 3 },
   { id: 'heartbeat-recovery', text: 'Heartbeat Recovery', level: 3 },
-  { id: 'session-cleanup', text: 'Session Cleanup', level: 2 }
+  { id: 'session-cleanup', text: 'Session Cleanup', level: 2 },
+  { id: 'lifecycle-events', text: 'Lifecycle Events', level: 2 }
 ];
 
 onMounted(() => {
@@ -169,7 +170,21 @@ onMounted(() => {
           <li><strong>Orphaned Session Cleaner</strong> - Removes session directories left on disk with no matching database row, after a grace period long enough to rule out a synchronizer backlog.</li>
           <li><strong>Expired Instance Cleaner</strong> - Deletes instance rows once they have been EXPIRED past their retention (14 days by default).</li>
           <li><strong>JFR Compression</strong> - Compresses finished JFR files to save storage space.</li>
+          <li><strong>Session File Detector</strong> - Announces finished recording chunks and artifact files as workspace events, so clients can react to each file as it lands rather than waiting for the session to close.</li>
         </ul>
+
+        <h2 id="lifecycle-events">Lifecycle Events</h2>
+        <p>
+          Instance transitions are published to the workspace event log: <code>PROJECT_INSTANCE_FINISHED</code>
+          when an instance's last unfinished session closes, and <code>PROJECT_INSTANCE_EXPIRED</code> when its
+          sessions are reclaimed or its last session is deleted. Both are announcements only — the database
+          transition happens first and nothing consumes these events.
+        </p>
+        <DocsCallout type="info" title="Reactivated instances">
+          An expired instance that starts streaming again returns to ACTIVE. Because each event is keyed by
+          instance id, that instance's <em>second</em> finish or expiry is deduplicated away. The events are
+          best read as "this instance reached a terminal state" rather than as a count of transitions.
+        </DocsCallout>
 
         <h2 id="retained-sessions">Retained Sessions</h2>
         <p>
