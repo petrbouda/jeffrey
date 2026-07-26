@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,19 +16,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import RecordingStatus from '@workspaces/services/api/model/RecordingStatus.ts';
-import RepositoryFile from '@workspaces/services/api/model/RepositoryFile.ts';
+package cafe.jeffrey.shared.ui.workspace.request;
 
-export default class RecordingSession {
-  constructor(
-    public id: string,
-    public name: string,
-    public instanceId: string,
-    public createdAt: number,
-    public finishedAt: number | null,
-    public status: RecordingStatus,
-    public duration: number,
-    public files: RepositoryFile[],
-    public retained: boolean = false
-  ) {}
+/**
+ * Requested retention state for a recording session.
+ *
+ * @param retained true to exempt the session from every retention job, false to release it
+ */
+public record SessionRetainedRequest(boolean retained) {
 }

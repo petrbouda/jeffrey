@@ -108,4 +108,9 @@ public class RemoteRepositoryManager implements RepositoryManager {
     public void deleteFilesInSession(String recordingSessionId, List<String> fileIds) {
         repositoryClient.deleteFilesInSession(recordingSessionId, fileIds);
     }
+
+    @Override
+    public void setSessionRetained(String recordingSessionId, boolean retained) {
+        repositoryClient.setSessionRetained(recordingSessionId, retained);
+    }
 }

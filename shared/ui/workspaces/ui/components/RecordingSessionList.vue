@@ -57,6 +57,7 @@ const expandedRotatedGroups = ref<{ [key: string]: boolean }>({});
 const deleteSessionDialog = ref(false);
 const sessionToDelete = ref<RecordingSession | null>(null);
 const deletingSession = ref(false);
+const pinningSessions = ref<{ [sessionId: string]: boolean }>({});
 const deleteSelectedFilesDialog = ref(false);
 const sessionIdWithFilesToDelete = ref('');
 const deletingSelectedFiles = ref(false);
@@ -470,6 +471,36 @@ const deleteAll = async (sessionId: string) => {
   deleteSessionDialog.value = true;
 };
 
+/**
+ * Toggles retention for a session. A retained session is exempt from every retention
+ * job on the hub, so releasing one hands it back to normal expiry.
+ */
+const togglePinned = async (session: RecordingSession) => {
+  const next = !session.retained;
+  pinningSessions.value[session.id] = true;
+
+  try {
+    await repositoryService.value.setSessionRetained(session.id, next);
+    // Reflect immediately rather than waiting for the refresh round-trip
+    session.retained = next;
+    toast.success(
+      next ? 'Session pinned' : 'Session released',
+      next
+        ? 'This session is now exempt from retention and will not be cleaned up automatically.'
+        : 'This session will expire normally again.'
+    );
+    emit('refresh');
+  } catch (error: any) {
+    console.error('Error updating session retention:', error);
+    toast.error(
+      next ? 'Session pinned' : 'Session released',
+      error.message || 'Failed to update the retention state of the session'
+    );
+  } finally {
+    pinningSessions.value[session.id] = false;
+  }
+};
+
 const confirmDeleteSession = async () => {
   if (!sessionToDelete.value) return;
 
@@ -695,9 +726,19 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
       <!-- Session header -->
       <div
         class="folder-row rounded"
-        :class="getSessionStatusClass(session)"
+        :class="[getSessionStatusClass(session), { 'session-retained': session.retained }]"
         @click="toggleSession(session.id)"
       >
+        <!-- Retention flag: a pinned session is exempt from every retention job -->
+        <span
+          v-if="session.retained"
+          class="retained-flag"
+          :title="'Pinned — exempt from automatic cleanup'"
+          aria-hidden="true"
+        ></span>
+        <i v-if="session.retained" class="bi bi-pin-angle-fill retained-flag-icon" aria-hidden="true"></i>
+        <span v-if="session.retained" class="visually-hidden">Pinned, exempt from automatic cleanup</span>
+
         <!-- Identity section -->
         <div class="session-identity">
           <div class="d-flex justify-content-between align-items-center">
@@ -736,6 +777,21 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
             </div>
             <div class="d-flex align-items-center gap-1">
               <button
+                class="pin-toggle"
+                :class="{ on: session.retained }"
+                type="button"
+                :disabled="pinningSessions[session.id]"
+                :title="
+                  session.retained
+                    ? 'Pinned — exempt from automatic cleanup. Click to release.'
+                    : 'Pin this session so retention never removes it'
+                "
+                :aria-pressed="session.retained"
+                @click.stop="togglePinned(session)"
+              >
+                <i class="bi" :class="session.retained ? 'bi-pin-angle-fill' : 'bi-pin-angle'"></i>
+              </button>
+              <button
                 v-if="!isCollectorOnly"
                 class="btn btn-sm btn-outline-primary"
                 type="button"
@@ -748,7 +804,12 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
                 v-if="session.status === RecordingStatus.FINISHED"
                 class="btn btn-sm btn-outline-danger"
                 type="button"
-                title="Delete Session"
+                :disabled="session.retained"
+                :title="
+                  session.retained
+                    ? 'Pinned sessions cannot be deleted — release it first'
+                    : 'Delete Session'
+                "
                 @click.stop="deleteAll(session.id)"
               >
                 <i class="bi bi-trash"></i>
@@ -1248,6 +1309,80 @@ code {
   transform: translateY(-1px);
   box-shadow: 0 3px 8px rgba(0, 0, 0, 0.08);
   border-color: rgba(94, 100, 255, 0.15);
+}
+
+/* Retention flag — a folded corner marking a session that retention will never reclaim.
+   It occupies the top-right of the card, which no other element uses, so it does not
+   compete with the left status rail (which encodes ACTIVE / FINISHED). */
+/* The base .folder-row establishes no positioning context, so the flag needs one here
+   or it would anchor to the nearest positioned ancestor further up the page. */
+.folder-row.session-retained {
+  position: relative;
+}
+
+.retained-flag {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 0 2.5rem 2.5rem 0;
+  border-color: transparent var(--color-amber) transparent transparent;
+  pointer-events: none;
+}
+
+.retained-flag-icon {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  font-size: 0.7rem;
+  line-height: 1;
+  color: var(--color-white);
+  pointer-events: none;
+}
+
+/* Keep the action buttons clear of the flag. The triangle is non-interactive, but
+   without this it visually overlaps the rightmost button on a pinned row. */
+.folder-row.session-retained .session-identity {
+  padding-right: 2.75rem;
+}
+
+/* Pin toggle — resting state is quiet so it does not compete with Download */
+.pin-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background-color: transparent;
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.pin-toggle:hover:not(:disabled) {
+  background-color: var(--color-primary-light);
+  color: var(--color-primary);
+}
+
+.pin-toggle.on {
+  background-color: var(--color-amber-light);
+  color: var(--color-amber-text);
+}
+
+.pin-toggle:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-outline-danger:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .folder-row.session-active {

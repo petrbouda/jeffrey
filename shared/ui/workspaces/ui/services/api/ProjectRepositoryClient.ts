@@ -47,6 +47,10 @@ export default class ProjectRepositoryClient extends BasePlatformClient {
     return super.del<void>('/sessions/' + recordingSession.id);
   }
 
+  setSessionRetained(sessionId: string, retained: boolean): Promise<void> {
+    return super.post<void>('/sessions/' + sessionId + '/retained', { retained: retained });
+  }
+
   copySelectedRepositoryFile(sessionId: string, files: RepositoryFile[]): Promise<void> {
     const ids: string[] = files.map(it => it.id);
     const content = {
