@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Live event stream — 4. Split feed + detail</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #f1f5f9; color: #0f172a; padding: 2.5rem 1.5rem; }
+  .wrap { max-width: 1080px; margin: 0 auto; }
+  .back { display: inline-flex; align-items: center; gap: .4rem; color: #64748b; text-decoration: none; font-size: .85rem; margin-bottom: 1.2rem; }
+  .back:hover { color: #0f172a; }
+
+  .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(15,23,42,.06); }
+  .card-head { display: flex; align-items: center; gap: .7rem; padding: 1rem 1.25rem; border-bottom: 1px solid #e2e8f0; }
+  .card-head i { color: #6366f1; font-size: 1.1rem; }
+  .card-head h2 { font-size: 1rem; font-weight: 700; flex: 1; }
+  .live { display: inline-flex; align-items: center; gap: .4rem; padding: .22rem .6rem; border-radius: 999px;
+    background: #dcfce7; color: #15803d; font-size: .72rem; font-weight: 700; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: #22c55e; animation: pulse 1.6s infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .3; } }
+  .newpill { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; font-size: .7rem; font-weight: 700;
+    padding: .2rem .55rem; border-radius: 999px; }
+
+  .split { display: grid; grid-template-columns: 1fr 340px; min-height: 440px; }
+  .feed { border-right: 1px solid #e2e8f0; overflow-y: auto; max-height: 470px; }
+
+  .row { display: flex; align-items: center; gap: .6rem; padding: .62rem 1.1rem; border-bottom: 1px solid #f8fafc; cursor: pointer; font-size: .84rem; }
+  .row:hover { background: #f8fafc; }
+  .row.sel { background: #eff6ff; box-shadow: inset 3px 0 0 #3b82f6; }
+  .row.fresh { animation: slide .45s ease-out; }
+  @keyframes slide { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: none; } }
+  .row i { width: 1rem; text-align: center; }
+  .i-rec { color: #3b82f6; } .i-art { color: #a855f7; } .i-ses { color: #6366f1; }
+  .i-inst { color: #0ea5e9; } .i-exp { color: #f59e0b; }
+  .row .txt { flex: 1; color: #334155; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .row .when { color: #94a3b8; font-size: .72rem; flex-shrink: 0; }
+  .badge-new { background: #dcfce7; color: #15803d; font-size: .62rem; font-weight: 700; padding: .1rem .35rem; border-radius: 4px; }
+
+  .detail { padding: 1.15rem 1.25rem; background: #fafbfc; }
+  .detail h3 { font-size: .9rem; font-weight: 700; margin-bottom: .2rem; }
+  .detail .type { display: inline-block; font-size: .68rem; font-weight: 700; padding: .16rem .5rem; border-radius: 5px;
+    background: #dbeafe; color: #1d4ed8; margin-bottom: .9rem; }
+  .kv { display: grid; grid-template-columns: 96px 1fr; gap: .4rem .7rem; font-size: .78rem; }
+  .kv dt { color: #94a3b8; }
+  .kv dd { color: #334155; font-family: ui-monospace, monospace; word-break: break-all; }
+  .note { margin-top: 1rem; padding: .65rem .75rem; background: #fffbeb; border: 1px solid #fde68a; border-radius: 7px;
+    font-size: .73rem; color: #92400e; line-height: 1.5; }
+  .actions { margin-top: 1rem; display: flex; gap: .5rem; }
+  .btn { flex: 1; text-align: center; font-size: .76rem; font-weight: 600; padding: .45rem; border-radius: 7px;
+    border: 1px solid #cbd5e1; background: #fff; color: #334155; cursor: pointer; }
+  .btn.primary { background: #3b82f6; border-color: #3b82f6; color: #fff; }
+
+  .foot { margin-top: 1.6rem; color: #64748b; font-size: .8rem; line-height: 1.6; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="index.html"><i class="bi bi-arrow-left"></i> All mockups</a>
+
+  <div class="card">
+    <div class="card-head">
+      <i class="bi bi-layout-sidebar-reverse"></i>
+      <h2>Event Log</h2>
+      <span class="newpill">3 new</span>
+      <span class="live"><span class="dot"></span> Live</span>
+    </div>
+
+    <div class="split">
+      <div class="feed">
+        <div class="row sel fresh"><i class="bi bi-file-earmark-bar-graph i-rec"></i>
+          <span class="txt">Recording "profile-20260220-115230.jfr" available (4.2 MB)</span>
+          <span class="badge-new">new</span><span class="when">now</span></div>
+        <div class="row fresh"><i class="bi bi-paperclip i-art"></i>
+          <span class="txt">Artifact "heap-20260220-115204.hprof" available (128 MB)</span>
+          <span class="badge-new">new</span><span class="when">6s</span></div>
+        <div class="row fresh"><i class="bi bi-file-earmark-bar-graph i-rec"></i>
+          <span class="txt">Recording "profile-20260220-115130.jfr" available (3.9 MB)</span>
+          <span class="badge-new">new</span><span class="when">38s</span></div>
+        <div class="row"><i class="bi bi-file-earmark-bar-graph i-rec"></i>
+          <span class="txt">Recording "profile-20260220-115030.jfr" available (4.0 MB)</span><span class="when">1m</span></div>
+        <div class="row"><i class="bi bi-paperclip i-art"></i>
+          <span class="txt">Artifact "gc.log" available (812 KB)</span><span class="when">2m</span></div>
+        <div class="row"><i class="bi bi-stop-circle-fill i-ses"></i>
+          <span class="txt">Session finished</span><span class="when">2m</span></div>
+        <div class="row"><i class="bi bi-box-seam i-inst"></i>
+          <span class="txt">Instance "inst-7c31" finished</span><span class="when">2m</span></div>
+        <div class="row"><i class="bi bi-play-circle i-ses"></i>
+          <span class="txt">Session "session-001" created</span><span class="when">14m</span></div>
+        <div class="row"><i class="bi bi-hourglass-bottom i-exp"></i>
+          <span class="txt">Instance "inst-5b18" expired</span><span class="when">1h</span></div>
+        <div class="row"><i class="bi bi-folder-plus i-ses"></i>
+          <span class="txt">Project "checkout-service" created</span><span class="when">3h</span></div>
+      </div>
+
+      <div class="detail">
+        <h3>profile-20260220-115230.jfr</h3>
+        <span class="type">Recording File Created</span>
+        <dl class="kv">
+          <dt>event id</dt><dd>41882</dd>
+          <dt>session</dt><dd>session-001</dd>
+          <dt>instance</dt><dd>inst-9a02</dd>
+          <dt>file type</dt><dd>JFR</dd>
+          <dt>category</dt><dd>RECORDING</dd>
+          <dt>size</dt><dd>4.2 MB</dd>
+          <dt>created</dt><dd>2026-02-20 11:52:30</dd>
+          <dt>created by</dt><dd>SESSION_FILE_DETECTOR_JOB</dd>
+        </dl>
+        <div class="note"><i class="bi bi-info-circle"></i> Size is what the file measured when first announced.
+          Compressing it to <code>.jfr.lz4</code> later will not produce a new event.</div>
+        <div class="actions">
+          <span class="btn primary">Download</span>
+          <span class="btn">Open session</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p class="foot"><strong>Direction 4 — Split feed + detail.</strong> Master-detail: a compact one-line feed on the left, full event payload
+    on the right, so inspecting an event no longer needs a modal. The header counts unseen events since you last looked, and file events get
+    a direct download action.</p>
+</div>
+</body>
+</html>
