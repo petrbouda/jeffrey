@@ -28,6 +28,7 @@ export default class EventTypes {
   static JAVA_MONITOR_ENTER = 'jdk.JavaMonitorEnter';
   static JAVA_MONITOR_WAIT = 'jdk.JavaMonitorWait';
   static THREAD_PARK = 'jdk.ThreadPark';
+  static THREAD_SLEEP = 'jdk.ThreadSleep';
   static VIRTUAL_THREAD_PINNED = 'jdk.VirtualThreadPinned';
   static WALL_CLOCK = 'profiler.WallClockSample';
   static NATIVE_MALLOC_ALLOCATION = 'profiler.Malloc';
@@ -77,6 +78,10 @@ export default class EventTypes {
     return code === this.THREAD_PARK;
   }
 
+  static isThreadSleep(code: string) {
+    return code === this.THREAD_SLEEP;
+  }
+
   static isVirtualThreadPinned(code: string) {
     return code === this.VIRTUAL_THREAD_PINNED;
   }
@@ -94,11 +99,18 @@ export default class EventTypes {
     );
   }
 
+  /**
+   * Keep in sync with the backend's `Type.BLOCKING_EVENTS` — it decides which cards offer the
+   * "Use Blocked Time" weight, and this decides whether that weight is then rendered as a
+   * duration. A type missing here still gets a nanosecond weight from the server, only shown
+   * as a bare number.
+   */
   static isBlockingEventType(code: string) {
     return (
       this.isJavaMonitorEnter(code) ||
       this.isJavaMonitorWait(code) ||
       this.isThreadPark(code) ||
+      this.isThreadSleep(code) ||
       this.isVirtualThreadPinned(code) ||
       this.STACK_SAMPLE_BLOCKING_TYPES.includes(code)
     );
