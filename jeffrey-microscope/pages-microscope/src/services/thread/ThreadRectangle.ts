@@ -17,7 +17,7 @@
  */
 
 import Rectangle from './Rectangle';
-import ThreadPeriod from '@/services/thread/model/ThreadPeriod';
+import ThreadPeriod from '@/services/api/model/ThreadPeriod';
 
 export default class ThreadRectangle {
   rect: Rectangle;

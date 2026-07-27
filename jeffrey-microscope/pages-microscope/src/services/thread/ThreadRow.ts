@@ -20,12 +20,36 @@ import Tooltip from '../tooltip/Tooltip';
 import ThreadGroups from '../thread/ThreadGroups';
 import Konva from 'konva';
 import ThreadTooltips from '../thread/ThreadTooltips';
-import ThreadRowData from './model/ThreadRowData';
-import ThreadPeriod from '@/services/thread/model/ThreadPeriod';
+import ThreadBandDetails from '../thread/ThreadBandDetails';
+import ThreadRectangle from '../thread/ThreadRectangle';
+import ThreadRowData from '@/services/api/model/ThreadRowData';
+import ThreadPeriod from '@/services/api/model/ThreadPeriod';
 import TooltipPosition from '@/services/tooltip/TooltipPosition';
-import ThreadCommon from '@/services/thread/model/ThreadCommon';
-import ThreadMetadata from '@/services/thread/model/ThreadMetadata';
+import ThreadCommon from '@/services/api/model/ThreadCommon';
+import ThreadMetadata from '@/services/api/model/ThreadMetadata';
+import EventMetadata from '@/services/api/model/EventMetadata';
+import type { ThreadEventState } from '@/services/api/model/ThreadEventDetail';
 import Vector2d = Konva.Vector2d;
+
+/**
+ * One hoverable band category: where its periods live on a row, which colour draws it, which
+ * metadata labels it, and which state the backend knows it by when its events are fetched.
+ */
+interface ThreadCategory {
+  state: ThreadEventState;
+  color: string;
+  periods: (row: ThreadRowData) => ThreadPeriod[];
+  metadata: (metadata: ThreadMetadata) => EventMetadata;
+}
+
+interface HoverableCategory extends ThreadCategory {
+  groups: ThreadGroups;
+}
+
+interface HoveredCategory {
+  category: HoverableCategory;
+  rectangles: ThreadRectangle[];
+}
 
 export default class ThreadRow {
   static lifespanColor = 'rgb(96,175,96)';
@@ -40,6 +64,66 @@ export default class ThreadRow {
 
   static readonly FRAME_HEIGHT: number = 20;
 
+  /**
+   * How long the pointer has to rest on a band before its events are fetched. Sweeping across a row
+   * crosses dozens of bands, and none of them are the one being looked at.
+   */
+  private static readonly HOVER_SETTLE_MILLIS = 120;
+
+  /**
+   * Every band category, in the order they are drawn and listed in a tooltip.
+   */
+  private static readonly CATEGORIES: ThreadCategory[] = [
+    {
+      state: 'PARKED',
+      color: ThreadRow.parkedColor,
+      periods: row => row.parked,
+      metadata: metadata => metadata.parked
+    },
+    {
+      state: 'BLOCKED',
+      color: ThreadRow.blockedColor,
+      periods: row => row.blocked,
+      metadata: metadata => metadata.blocked
+    },
+    {
+      state: 'WAITING',
+      color: ThreadRow.waitingColor,
+      periods: row => row.waiting,
+      metadata: metadata => metadata.waiting
+    },
+    {
+      state: 'SLEEP',
+      color: ThreadRow.sleepColor,
+      periods: row => row.sleep,
+      metadata: metadata => metadata.sleep
+    },
+    {
+      state: 'SOCKET_READ',
+      color: ThreadRow.socketReadColor,
+      periods: row => row.socketRead,
+      metadata: metadata => metadata.socketRead
+    },
+    {
+      state: 'SOCKET_WRITE',
+      color: ThreadRow.socketWriteColor,
+      periods: row => row.socketWrite,
+      metadata: metadata => metadata.socketWrite
+    },
+    {
+      state: 'FILE_READ',
+      color: ThreadRow.fileReadColor,
+      periods: row => row.fileRead,
+      metadata: metadata => metadata.fileRead
+    },
+    {
+      state: 'FILE_WRITE',
+      color: ThreadRow.fileWriteColor,
+      periods: row => row.fileWrite,
+      metadata: metadata => metadata.fileWrite
+    }
+  ];
+
   private readonly konvaContainer: HTMLElement;
   private readonly threadPointerName: string;
   private readonly threadTooltip: Tooltip;
@@ -47,14 +131,28 @@ export default class ThreadRow {
   private readonly threadCommon: ThreadCommon;
   private readonly threadMetadata: ThreadMetadata;
   private readonly threadRow: ThreadRowData;
+  private readonly bandDetails: ThreadBandDetails;
 
   private stage: Konva.Stage;
   private threadPointer: HTMLElement;
+  private fieldsTimeout: number | undefined;
 
-  constructor(threadCommon: ThreadCommon, threadRow: ThreadRowData, canvasElementId: string) {
+  /**
+   * Bumped whenever the hovered bands change. A band lookup repaints the tooltip only while its
+   * generation is still current, so a slow response cannot overwrite what the pointer moved on to.
+   */
+  private hoverGeneration = 0;
+
+  constructor(
+    profileId: string,
+    threadCommon: ThreadCommon,
+    threadRow: ThreadRowData,
+    canvasElementId: string
+  ) {
     this.threadCommon = threadCommon;
     this.threadMetadata = threadCommon.metadata;
     this.threadRow = threadRow;
+    this.bandDetails = new ThreadBandDetails(profileId, threadRow.threadInfo);
 
     this.konvaContainer = document.getElementById(canvasElementId) as HTMLElement;
     this.stage = this.createStage();
@@ -91,6 +189,8 @@ export default class ThreadRow {
   }
 
   private removeTooltip(): void {
+    // Invalidates any band lookup still in flight, so it cannot bring the tooltip back
+    this.hoverGeneration++;
     this.threadTooltip.hideTooltip();
   }
 
@@ -119,123 +219,88 @@ export default class ThreadRow {
 
     const width: number = this.stage.width();
     const lifespanGroups = new ThreadGroups(width, pxPerMillis, ThreadRow.lifespanColor);
-    const parkedGroups = new ThreadGroups(width, pxPerMillis, ThreadRow.parkedColor);
-    const blockedGroups = new ThreadGroups(width, pxPerMillis, ThreadRow.blockedColor);
-    const waitingGroups = new ThreadGroups(width, pxPerMillis, ThreadRow.waitingColor);
-    const sleepGroups = new ThreadGroups(width, pxPerMillis, ThreadRow.sleepColor);
-    const socketReadGroups = new ThreadGroups(width, pxPerMillis, ThreadRow.socketReadColor);
-    const socketWriteGroups = new ThreadGroups(width, pxPerMillis, ThreadRow.socketWriteColor);
-    const fileReadGroups = new ThreadGroups(width, pxPerMillis, ThreadRow.fileReadColor);
-    const fileWriteGroups = new ThreadGroups(width, pxPerMillis, ThreadRow.fileWriteColor);
 
     this.threadRow.lifespan.forEach((period: ThreadPeriod) => lifespanGroups.addPeriod(period));
-    this.threadRow.parked.forEach((period: ThreadPeriod) => parkedGroups.addPeriod(period));
-    this.threadRow.blocked.forEach((period: ThreadPeriod) => blockedGroups.addPeriod(period));
-    this.threadRow.waiting.forEach((period: ThreadPeriod) => waitingGroups.addPeriod(period));
-    this.threadRow.sleep.forEach((period: ThreadPeriod) => sleepGroups.addPeriod(period));
-    this.threadRow.socketRead.forEach((period: ThreadPeriod) => socketReadGroups.addPeriod(period));
-    this.threadRow.socketWrite.forEach((period: ThreadPeriod) =>
-      socketWriteGroups.addPeriod(period)
-    );
-    this.threadRow.fileRead.forEach((period: ThreadPeriod) => fileReadGroups.addPeriod(period));
-    this.threadRow.fileWrite.forEach((period: ThreadPeriod) => fileWriteGroups.addPeriod(period));
+
+    const categories: HoverableCategory[] = ThreadRow.CATEGORIES.map(category => {
+      const groups = new ThreadGroups(width, pxPerMillis, category.color);
+      category.periods(this.threadRow).forEach((period: ThreadPeriod) => groups.addPeriod(period));
+      return { ...category, groups };
+    });
 
     this.stage.add(this.borderLayer());
     this.stage.add(lifespanGroups.createLayer());
-    this.stage.add(parkedGroups.createLayer());
-    this.stage.add(blockedGroups.createLayer());
-    this.stage.add(waitingGroups.createLayer());
-    this.stage.add(sleepGroups.createLayer());
-    this.stage.add(socketReadGroups.createLayer());
-    this.stage.add(socketWriteGroups.createLayer());
-    this.stage.add(fileReadGroups.createLayer());
-    this.stage.add(fileWriteGroups.createLayer());
+    categories.forEach(category => this.stage.add(category.groups.createLayer()));
 
     this.stage.on('mousemove', () => {
       const pos = this.stage.getPointerPosition() as Vector2d;
-
       const xPos = Math.floor(pos.x);
-      const parkedRects = parkedGroups.selectRectangles(xPos);
-      const blockedRects = blockedGroups.selectRectangles(xPos);
-      const waitingRects = waitingGroups.selectRectangles(xPos);
-      const sleepRects = sleepGroups.selectRectangles(xPos);
-      const socketReadRects = socketReadGroups.selectRectangles(xPos);
-      const socketWriteRects = socketWriteGroups.selectRectangles(xPos);
-      const fileReadRects = fileReadGroups.selectRectangles(xPos);
-      const fileWriteRects = fileWriteGroups.selectRectangles(xPos);
-      const totalRects =
-        parkedRects.length +
-        blockedRects.length +
-        waitingRects.length +
-        sleepRects.length +
-        socketReadRects.length +
-        socketWriteRects.length +
-        fileReadRects.length +
-        fileWriteRects.length;
 
-      if (totalRects > 0) {
-        let tooltipContent = ThreadTooltips.header(threadInfo.name);
-        if (parkedRects.length > 0) {
-          tooltipContent =
-            tooltipContent +
-            ThreadTooltips.basic(this.threadMetadata.parked, parkedRects, ThreadRow.parkedColor);
-        }
-        if (blockedRects.length > 0) {
-          tooltipContent =
-            tooltipContent +
-            ThreadTooltips.basic(this.threadMetadata.blocked, blockedRects, ThreadRow.blockedColor);
-        }
-        if (waitingRects.length > 0) {
-          tooltipContent =
-            tooltipContent +
-            ThreadTooltips.basic(this.threadMetadata.waiting, waitingRects, ThreadRow.waitingColor);
-        }
-        if (sleepRects.length > 0) {
-          tooltipContent =
-            tooltipContent +
-            ThreadTooltips.basic(this.threadMetadata.sleep, sleepRects, ThreadRow.sleepColor);
-        }
-        if (socketReadRects.length > 0) {
-          tooltipContent =
-            tooltipContent +
-            ThreadTooltips.basic(
-              this.threadMetadata.socketRead,
-              socketReadRects,
-              ThreadRow.socketReadColor
-            );
-        }
-        if (socketWriteRects.length > 0) {
-          tooltipContent =
-            tooltipContent +
-            ThreadTooltips.basic(
-              this.threadMetadata.socketWrite,
-              socketWriteRects,
-              ThreadRow.socketWriteColor
-            );
-        }
-        if (fileReadRects.length > 0) {
-          tooltipContent =
-            tooltipContent +
-            ThreadTooltips.basic(
-              this.threadMetadata.fileRead,
-              fileReadRects,
-              ThreadRow.fileReadColor
-            );
-        }
-        if (fileWriteRects.length > 0) {
-          tooltipContent =
-            tooltipContent +
-            ThreadTooltips.basic(
-              this.threadMetadata.fileWrite,
-              fileWriteRects,
-              ThreadRow.fileWriteColor
-            );
-        }
-        this.threadTooltip.showTooltip(new TooltipPosition(pos.x, pos.y), 0, tooltipContent);
-      } else {
+      const hovered: HoveredCategory[] = categories
+        .map(category => ({ category, rectangles: category.groups.selectRectangles(xPos) }))
+        .filter(entry => entry.rectangles.length > 0);
+
+      window.clearTimeout(this.fieldsTimeout);
+
+      if (hovered.length === 0) {
         this.removeTooltip();
+        return;
       }
+
+      // Anything scheduled for an earlier position is stale the moment the pointer moves
+      const hover = ++this.hoverGeneration;
+
+      this.showTooltip(threadInfo.name, pos, hovered);
+      this.resolveFields(hovered, () => {
+        if (hover === this.hoverGeneration) {
+          this.showTooltip(threadInfo.name, pos, hovered);
+        }
+      });
     });
+  }
+
+  /**
+   * Renders the tooltip from what is known right now — every category header and event count comes
+   * from the bands themselves, and the field rows fill in once their lookup lands.
+   */
+  private showTooltip(threadName: string, pos: Vector2d, hovered: HoveredCategory[]): void {
+    const content = hovered.reduce(
+      (tooltip, entry) =>
+        tooltip +
+        ThreadTooltips.basic(
+          entry.category.metadata(this.threadMetadata),
+          entry.rectangles,
+          entry.category.color,
+          this.bandDetails.cached(entry.category.state, entry.rectangles[0].period)
+        ),
+      ThreadTooltips.header(threadName)
+    );
+
+    this.threadTooltip.showTooltip(new TooltipPosition(pos.x, pos.y), 0, content);
+  }
+
+  /**
+   * Fetches the field values for the hovered bands that are not resolved yet, and calls back once
+   * any of them arrives. The pointer moves across many bands on the way to the one the user cares
+   * about, so the lookup waits for it to settle first.
+   */
+  private resolveFields(hovered: HoveredCategory[], onResolved: () => void): void {
+    const pending = hovered.filter(
+      entry =>
+        this.bandDetails.cached(entry.category.state, entry.rectangles[0].period) === undefined
+    );
+    if (pending.length === 0) {
+      return;
+    }
+
+    window.clearTimeout(this.fieldsTimeout);
+    this.fieldsTimeout = window.setTimeout(() => {
+      pending.forEach(entry => {
+        this.bandDetails
+          .load(entry.category.state, entry.rectangles[0].period)
+          .then(() => onResolved());
+      });
+    }, ThreadRow.HOVER_SETTLE_MILLIS);
   }
 
   public resizeCanvas() {
@@ -277,6 +342,9 @@ export default class ThreadRow {
     // Clear event handlers
     this.konvaContainer.onmousemove = null;
     this.konvaContainer.onmouseout = null;
+
+    // Drop a pending band lookup so it cannot fire against a destroyed tooltip
+    window.clearTimeout(this.fieldsTimeout);
 
     // Hide and remove tooltip
     this.threadTooltip.hideTooltip();

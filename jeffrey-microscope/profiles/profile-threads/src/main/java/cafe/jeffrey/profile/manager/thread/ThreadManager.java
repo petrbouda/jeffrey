@@ -25,6 +25,8 @@ import cafe.jeffrey.profile.manager.model.thread.ThreadCpuLoads;
 import cafe.jeffrey.profile.manager.model.thread.ThreadStats;
 import cafe.jeffrey.profile.manager.model.thread.dump.ParsedDump;
 import cafe.jeffrey.profile.manager.model.thread.dump.ThreadDumpAnalysis;
+import cafe.jeffrey.profile.thread.ThreadEventDetail;
+import cafe.jeffrey.profile.thread.ThreadEventsQuery;
 import cafe.jeffrey.profile.thread.ThreadRoot;
 import cafe.jeffrey.provider.profile.api.AllocatingThread;
 import cafe.jeffrey.timeseries.SingleSerie;
@@ -49,6 +51,13 @@ public interface ThreadManager {
     ThreadCpuLoads threadCpuLoads(int limit);
 
     ThreadRoot threadRows();
+
+    /**
+     * The events behind one band of {@link #threadRows()}, for the tooltip that opens when the
+     * pointer settles on it. The timeline itself ships only rectangles and event counts, so the
+     * fields are read here — one band at a time — instead of for every event in the recording.
+     */
+    List<ThreadEventDetail> threadEvents(ThreadEventsQuery query);
 
     /**
      * Cross-dump analysis of all {@code jdk.ThreadDump} occurrences (state timeline, top frames,

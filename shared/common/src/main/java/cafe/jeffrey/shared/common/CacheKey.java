@@ -21,7 +21,9 @@ package cafe.jeffrey.shared.common;
 public abstract class CacheKey {
     public static final String PROFILE_AUTO_ANALYSIS = "profileAutoAnalysis";
     public static final String PROFILE_CONFIGURATION = "profileConfiguration";
-    public static final String PROFILE_THREAD = "profileThread";
+    // Suffixed when the cached shape changes: an entry written by an older version would no longer
+    // deserialize, and the cache has no other way to tell the two apart.
+    public static final String PROFILE_THREAD = "profileThreadBands";
     public static final String PROFILE_VIEWER = "profileViewer";
     public static final String PROFILE_EVENT_SUMMARY = "profileEventSummary";
     public static final String PROFILE_ACTIVE_SETTINGS = "profileActiveSettings";

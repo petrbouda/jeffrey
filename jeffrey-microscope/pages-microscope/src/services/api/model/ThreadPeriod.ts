@@ -16,11 +16,17 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/**
+ * One drawable band on a thread's timeline, in nanoseconds from the start of the recording.
+ *
+ * A band covers `eventCount` source events: the backend merges events that are closer together
+ * than the timeline can resolve. The events' own fields are not part of the band — they are
+ * fetched for the hovered band only, via `ProfileThreadClient.bandEvents`.
+ */
 export default class ThreadPeriod {
   constructor(
     public startOffset: number,
     public width: number,
-    public values: Array<string>,
-    public warning: string | null
+    public eventCount: number
   ) {}
 }

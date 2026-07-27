@@ -23,6 +23,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
 import cafe.jeffrey.profile.manager.thread.ThreadManager;
@@ -32,11 +33,16 @@ import cafe.jeffrey.profile.manager.model.thread.ThreadStats;
 import cafe.jeffrey.profile.manager.model.thread.ThreadWithCpuLoad;
 import cafe.jeffrey.profile.manager.model.thread.dump.ParsedDump;
 import cafe.jeffrey.profile.manager.model.thread.dump.ThreadDumpAnalysis;
+import cafe.jeffrey.profile.thread.ThreadEventDetail;
+import cafe.jeffrey.profile.thread.ThreadEventsQuery;
 import cafe.jeffrey.profile.thread.ThreadRoot;
+import cafe.jeffrey.profile.thread.ThreadState;
 import cafe.jeffrey.provider.profile.api.AllocatingThread;
+import cafe.jeffrey.shared.common.model.ThreadInfo;
 import cafe.jeffrey.shared.common.model.Type;
 import cafe.jeffrey.timeseries.SingleSerie;
 
+import java.time.Duration;
 import java.util.List;
 
 @RestController
@@ -46,6 +52,12 @@ public class ThreadController {
     private static final Logger LOG = LoggerFactory.getLogger(ThreadController.class);
     private static final int TOP_ALLOCATING_THREADS = 20;
     private static final int TOP_CPU_LOADS = 10;
+
+    /**
+     * A tooltip renders one event's fields and takes the rest from the band's own count, so there is
+     * no reason to let a caller pull a whole band's worth of events back.
+     */
+    private static final int MAX_BAND_EVENTS = 20;
 
     public record ThreadStatistics(
             ThreadStats statistics,
@@ -66,6 +78,31 @@ public class ThreadController {
         var result = mgr(profileId).threadRows();
         LOG.debug("Listed threads: profileId={}", profileId);
         return result;
+    }
+
+    /**
+     * The events behind one band of the timeline. The timeline itself ships rectangles and event
+     * counts only, so the fields a tooltip renders are read here, one hovered band at a time.
+     */
+    @GetMapping("/events")
+    public List<ThreadEventDetail> threadEvents(
+            @PathVariable("profileId") String profileId,
+            @RequestParam("osId") long osId,
+            @RequestParam("javaId") long javaId,
+            @RequestParam("state") ThreadState state,
+            @RequestParam("from") long fromNanos,
+            @RequestParam("to") long toNanos,
+            @RequestParam(value = "limit", defaultValue = "1") int limit) {
+
+        ThreadEventsQuery query = new ThreadEventsQuery(
+                new ThreadInfo(osId, javaId, null),
+                state,
+                Duration.ofNanos(fromNanos),
+                Duration.ofNanos(toNanos),
+                Math.min(limit, MAX_BAND_EVENTS));
+
+        LOG.debug("Fetching events of a timeline band: state={} from={} to={}", state, fromNanos, toNanos);
+        return mgr(profileId).threadEvents(query);
     }
 
     @GetMapping("/statistics")

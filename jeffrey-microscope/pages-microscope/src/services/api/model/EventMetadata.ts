@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import ThreadField from '@/services/thread/model/ThreadField';
+import ThreadField from '@/services/api/model/ThreadField';
 
 export default class EventMetadata {
   constructor(
