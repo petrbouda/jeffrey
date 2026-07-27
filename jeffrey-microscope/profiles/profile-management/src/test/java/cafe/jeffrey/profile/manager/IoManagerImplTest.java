@@ -26,9 +26,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import cafe.jeffrey.profile.manager.model.io.IoEndpoint;
+import cafe.jeffrey.profile.manager.model.io.IoEndpointTimeline;
 import cafe.jeffrey.profile.manager.model.io.IoKind;
 import cafe.jeffrey.profile.manager.model.io.IoOperation;
 import cafe.jeffrey.profile.manager.model.io.IoOverview;
+import cafe.jeffrey.profile.manager.model.io.IoTargetFilter;
 import cafe.jeffrey.provider.profile.api.GenericRecord;
 import cafe.jeffrey.provider.profile.api.ProfileEventRepository;
 import cafe.jeffrey.provider.profile.api.ProfileEventStreamRepository;
@@ -129,7 +131,7 @@ class IoManagerImplTest {
     }
 
     @Nested
-    @DisplayName("throughputTimeline(kind)")
+    @DisplayName("throughputTimeline(kind, targetFilter)")
     class Throughput {
 
         @Test
@@ -139,13 +141,82 @@ class IoManagerImplTest {
                     record(Type.SOCKET_READ, 2, Duration.ofMillis(1), socketFields("h", 1, 1000, true)),
                     record(Type.SOCKET_WRITE, 2, Duration.ofMillis(1), socketFields("h", 1, 300, false)));
 
-            TimeseriesData timeline = manager().throughputTimeline(IoKind.SOCKET);
+            TimeseriesData timeline = manager().throughputTimeline(IoKind.SOCKET, IoTargetFilter.all());
 
             SingleSerie read = timeline.series().get(0);
             SingleSerie write = timeline.series().get(1);
             assertEquals("Bytes Read / sec", read.name());
             assertEquals(1000, valueAt(read, 2));
             assertEquals(300, valueAt(write, 2));
+        }
+
+        @Test
+        @DisplayName("Keeps only the selected peer when a target filter is given")
+        void filtersByTarget() {
+            stubStreaming(
+                    record(Type.SOCKET_READ, 2, Duration.ofMillis(1), socketFields("a", 80, 1000, true)),
+                    record(Type.SOCKET_READ, 3, Duration.ofMillis(1), socketFields("b", 90, 4000, true)),
+                    record(Type.SOCKET_WRITE, 3, Duration.ofMillis(1), socketFields("b", 90, 700, false)));
+
+            TimeseriesData timeline =
+                    manager().throughputTimeline(IoKind.SOCKET, IoTargetFilter.ofNullable("b:90"));
+
+            SingleSerie read = timeline.series().get(0);
+            SingleSerie write = timeline.series().get(1);
+            assertEquals(0, valueAt(read, 2));
+            assertEquals(4000, valueAt(read, 3));
+            assertEquals(700, valueAt(write, 3));
+        }
+
+        @Test
+        @DisplayName("A blank target keeps every endpoint")
+        void blankTargetKeepsEverything() {
+            stubStreaming(
+                    record(Type.SOCKET_READ, 1, Duration.ofMillis(1), socketFields("a", 80, 1000, true)),
+                    record(Type.SOCKET_READ, 1, Duration.ofMillis(1), socketFields("b", 90, 500, true)));
+
+            TimeseriesData timeline =
+                    manager().throughputTimeline(IoKind.SOCKET, IoTargetFilter.ofNullable("  "));
+
+            assertEquals(1500, valueAt(timeline.series().get(0), 1));
+        }
+    }
+
+    @Nested
+    @DisplayName("endpointTimelines(kind)")
+    class EndpointTimelines {
+
+        @Test
+        @DisplayName("Pairs each peer with its own bytes-per-second series, heaviest first")
+        void buildsPerPeerSeries() {
+            when(eventRepository.containsEventType(Type.SOCKET_READ)).thenReturn(true);
+            stubStreaming(
+                    record(Type.SOCKET_READ, 1, Duration.ofMillis(1), socketFields("a", 80, 100, true)),
+                    record(Type.SOCKET_READ, 2, Duration.ofMillis(1), socketFields("a", 80, 400, true)),
+                    record(Type.SOCKET_WRITE, 2, Duration.ofMillis(1), socketFields("b", 90, 900, false)));
+
+            List<IoEndpointTimeline> timelines = manager().endpointTimelines(IoKind.SOCKET);
+
+            assertEquals(2, timelines.size());
+            IoEndpointTimeline heaviest = timelines.getFirst();
+            assertEquals("b:90", heaviest.endpoint().target());
+            assertEquals("Bytes / sec", heaviest.throughput().name());
+            assertEquals(900, valueAt(heaviest.throughput(), 2));
+            assertEquals(0, valueAt(heaviest.throughput(), 1));
+
+            SingleSerie other = timelines.get(1).throughput();
+            assertEquals(100, valueAt(other, 1));
+            assertEquals(400, valueAt(other, 2));
+        }
+
+        @Test
+        @DisplayName("Returns empty without streaming when no events of the kind exist")
+        void emptyWhenAbsent() {
+            when(eventRepository.containsEventType(Type.SOCKET_READ)).thenReturn(false);
+            when(eventRepository.containsEventType(Type.SOCKET_WRITE)).thenReturn(false);
+
+            assertTrue(manager().endpointTimelines(IoKind.SOCKET).isEmpty());
+            verify(eventStreamRepository, never()).genericStreaming(any(), any());
         }
     }
 

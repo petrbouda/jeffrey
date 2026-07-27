@@ -20,9 +20,11 @@ package cafe.jeffrey.profile.manager;
 
 import cafe.jeffrey.profile.manager.model.io.FileForceStats;
 import cafe.jeffrey.profile.manager.model.io.IoEndpoint;
+import cafe.jeffrey.profile.manager.model.io.IoEndpointTimeline;
 import cafe.jeffrey.profile.manager.model.io.IoKind;
 import cafe.jeffrey.profile.manager.model.io.IoOperation;
 import cafe.jeffrey.profile.manager.model.io.IoOverview;
+import cafe.jeffrey.profile.manager.model.io.IoTargetFilter;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
 import cafe.jeffrey.timeseries.TimeseriesData;
 
@@ -47,9 +49,18 @@ public interface IoManager {
     IoOverview overview(IoKind kind);
 
     /**
-     * Bytes-read-per-second and bytes-written-per-second across the recording, for the kind.
+     * Bytes-read-per-second and bytes-written-per-second across the recording, for the kind — either
+     * across every endpoint ({@link IoTargetFilter#all()}) or scoped to a single peer/file, so one
+     * endpoint's throughput can be read against the aggregate.
      */
-    TimeseriesData throughputTimeline(IoKind kind);
+    TimeseriesData throughputTimeline(IoKind kind, IoTargetFilter targetFilter);
+
+    /**
+     * The heaviest endpoints of the kind, each paired with its bytes-per-second shape, ranked by
+     * bytes and capped so a recording with thousands of peers stays cheap to render. Empty when no
+     * events of the kind are present.
+     */
+    List<IoEndpointTimeline> endpointTimelines(IoKind kind);
 
     /**
      * Slowest individual operations of the kind, ordered by descending duration.

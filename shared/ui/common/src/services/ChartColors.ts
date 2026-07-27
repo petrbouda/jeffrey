@@ -47,6 +47,7 @@ const FALLBACKS: Record<string, string> = {
   'color-white': '#ffffff',
   'color-border': '#eaedf1',
   'color-amber': '#f59e0b',
+  'color-violet': '#8b5cf6',
   'color-accent-blue': '#0d6efd',
   'color-purple': '#6f42c1',
   'color-text-muted': '#748194'

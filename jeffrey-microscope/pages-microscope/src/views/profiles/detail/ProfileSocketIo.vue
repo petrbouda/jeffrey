@@ -35,6 +35,75 @@
         </div>
       </div>
 
+      <!-- Peer Timeline -->
+      <div v-show="activeTab === 'peer-timeline'">
+        <ChartDescription
+          shows="Every busy peer as a sparkline; pick one for its full read/write timeline."
+          use-case="Recognise the peer behind a spike by its shape, before reading a single name."
+        />
+
+        <EmptyState
+          v-if="peerTimelines.length === 0"
+          icon="bi-hdd-network"
+          title="No peer traffic recorded"
+          description="Per-peer timelines come from jdk.SocketRead and jdk.SocketWrite, which are threshold-gated in the bundled configs. Re-record with threshold=0ms to capture every operation."
+        />
+        <template v-else>
+          <div class="gallery-toolbar">
+            <span class="toolbar-info">Top peers by bytes</span>
+            <Badge
+              key-label="Showing"
+              :value="`${peerTimelines.length} of ${peers.length}`"
+              variant="secondary"
+              size="s"
+              borderless
+            />
+            <span class="toolbar-hint">Click a tile to open its timeline</span>
+          </div>
+
+          <div class="peer-gallery">
+            <IoEndpointSparklineTile
+              v-for="timeline in peerTimelines"
+              :key="timeline.endpoint.target"
+              :target="timeline.endpoint.target"
+              :points="timeline.throughput.data"
+              :bytes="timeline.endpoint.bytes"
+              :share-of-bytes="shareOfBytes(timeline.endpoint.bytes)"
+              :selected="timeline.endpoint.target === selectedPeer"
+              @select="selectPeer"
+            />
+          </div>
+
+          <div class="selected-peer-card">
+            <div class="selected-peer-header">
+              <Badge value="Single peer" variant="violet" size="xs" borderless />
+              <span class="selected-peer-target" :title="selectedPeer ?? ''">{{ selectedPeer }}</span>
+              <span class="selected-peer-summary">{{ selectedPeerSummary }}</span>
+            </div>
+            <!--
+              v-if, not v-show: ApexCharts measures its container on mount, and this tab starts
+              hidden — mounting the chart only once the tab is open keeps it from sizing to zero.
+            -->
+            <div class="selected-peer-body">
+              <LoadingIndicator v-if="peerTimelineLoading" text="Loading peer timeline..." />
+              <TimeSeriesChart
+                v-else-if="activeTab === 'peer-timeline'"
+                :key="selectedPeer ?? 'none'"
+                :primaryData="selectedPeerReadSeries"
+                primaryTitle="Bytes Read / sec"
+                :secondaryData="selectedPeerWriteSeries"
+                secondaryTitle="Bytes Written / sec"
+                :primaryColor="peerReadColor"
+                :secondaryColor="peerWriteColor"
+                :primaryAxisType="AxisFormatType.BYTES"
+                :secondaryAxisType="AxisFormatType.BYTES"
+                :visibleMinutes="60"
+              />
+            </div>
+          </div>
+        </template>
+      </div>
+
       <!-- Top Peers -->
       <div v-show="activeTab === 'peers'">
         <DisabledEventsNotice
@@ -254,13 +323,22 @@ import FeatureGrid from '@/components/about/FeatureGrid.vue';
 import FeatureCard from '@/components/about/FeatureCard.vue';
 import Badge from '@shared/components/Badge.vue';
 import DisabledEventsNotice from '@/components/alerts/DisabledEventsNotice.vue';
+import IoEndpointSparklineTile from '@/components/io/IoEndpointSparklineTile.vue';
+import EmptyState from '@shared/components/EmptyState.vue';
+import LoadingIndicator from '@shared/components/LoadingIndicator.vue';
 import LoadingState from '@shared/components/LoadingState.vue';
 import ErrorState from '@shared/components/ErrorState.vue';
+import ChartColors from '@shared/services/ChartColors';
 import FormattingService from '@shared/services/FormattingService';
 import AxisFormatType from '@/services/timeseries/AxisFormatType';
 import { useTableView } from '@/composables/useTableView';
 import ProfileSocketIoClient from '@/services/api/ProfileSocketIoClient';
-import type { IoEndpoint, IoOperation, IoOverview } from '@/services/api/model/IoModels';
+import type {
+  IoEndpoint,
+  IoEndpointTimeline,
+  IoOperation,
+  IoOverview
+} from '@/services/api/model/IoModels';
 import type { Variant } from '@shared/types/ui';
 import type TimeseriesData from '@/services/timeseries/model/TimeseriesData';
 
@@ -290,6 +368,13 @@ const overview = ref<IoOverview>();
 const timeline = ref<TimeseriesData>();
 const slowest = ref<IoOperation[]>([]);
 const peers = ref<IoEndpoint[]>([]);
+const peerTimelines = ref<IoEndpointTimeline[]>([]);
+
+// Peer Timeline tab: the gallery tile that is open, and its own read/write timeline. The gallery
+// sparklines arrive with the tab, the full-resolution series only for the peer actually selected.
+const selectedPeer = ref<string | null>(null);
+const selectedPeerTimeline = ref<TimeseriesData>();
+const peerTimelineLoading = ref(false);
 
 const slowestView = useTableView<IoOperation>(slowest, {
   searchableText: (r) => `${r.target} ${r.thread ?? ''}`
@@ -307,8 +392,42 @@ const maxPeerBytes = computed(() => peers.value.reduce((max, p) => Math.max(max,
 const shareWidth = (bytes: number): number =>
   maxPeerBytes.value > 0 ? (bytes / maxPeerBytes.value) * 100 : 0;
 
+const totalPeerBytes = computed(() => peers.value.reduce((sum, p) => sum + p.bytes, 0));
+const shareOfBytes = (bytes: number): number =>
+  totalPeerBytes.value > 0 ? bytes / totalPeerBytes.value : 0;
+
+// Violet and amber mark peer-scoped series everywhere on this page — the same violet as the
+// "Single peer" badge — so a peer chart is never mistaken for the aggregate one.
+const peerReadColor = ChartColors.chartColor('color-violet');
+const peerWriteColor = ChartColors.chartColor('color-amber');
+
+const selectedPeerReadSeries = computed<number[][]>(
+  () => selectedPeerTimeline.value?.series?.[0]?.data ?? []
+);
+const selectedPeerWriteSeries = computed<number[][]>(
+  () => selectedPeerTimeline.value?.series?.[1]?.data ?? []
+);
+
+const selectedPeerSummary = computed<string>(() => {
+  const endpoint = peers.value.find(peer => peer.target === selectedPeer.value);
+  if (!endpoint) {
+    return '';
+  }
+  return [
+    FormattingService.formatBytes(endpoint.bytes),
+    `${FormattingService.formatNumber(endpoint.opCount)} ops`,
+    `max ${FormattingService.formatDuration2Units(endpoint.maxNanos)}`
+  ].join(' · ');
+});
+
 const tabs = computed<TabBarItem[]>(() => [
   { id: 'throughput', label: 'Throughput', icon: 'graph-up' },
+  {
+    id: 'peer-timeline',
+    label: 'Peer Timeline',
+    icon: 'grid-3x2-gap',
+    badge: peerTimelines.value.length || undefined
+  },
   {
     id: 'peers',
     label: 'Top Peers',
@@ -360,24 +479,51 @@ const metricsData = computed(() => {
   ];
 });
 
+let client: ProfileSocketIoClient;
+
+const selectPeer = async (target: string): Promise<void> => {
+  if (selectedPeer.value === target) {
+    return;
+  }
+  selectedPeer.value = target;
+  peerTimelineLoading.value = true;
+  try {
+    selectedPeerTimeline.value = await client.getTimeline(target);
+  } catch (e) {
+    console.error('Failed to load peer timeline:', e);
+    selectedPeerTimeline.value = undefined;
+  } finally {
+    peerTimelineLoading.value = false;
+  }
+};
+
 onMounted(async () => {
   try {
     const profileId = route.params.profileId as string;
-    const client = new ProfileSocketIoClient(profileId);
+    client = new ProfileSocketIoClient(profileId);
 
-    const [overviewResult, timelineResult, slowestResult, peersResult] = await Promise.all([
-      client.getOverview(),
-      client.getTimeline(),
-      client.getSlowest(),
-      client.getPeers()
-    ]);
+    const [overviewResult, timelineResult, slowestResult, peersResult, peerTimelinesResult] =
+      await Promise.all([
+        client.getOverview(),
+        client.getTimeline(),
+        client.getSlowest(),
+        client.getPeers(),
+        client.getPeerTimelines()
+      ]);
 
     overview.value = overviewResult;
     timeline.value = timelineResult;
     slowest.value = slowestResult;
     peers.value = peersResult;
+    peerTimelines.value = peerTimelinesResult;
 
     loading.value = false;
+
+    // The gallery opens on the heaviest peer so the tab is never an empty chart frame.
+    const heaviestPeer = peerTimelinesResult[0];
+    if (heaviestPeer) {
+      await selectPeer(heaviestPeer.endpoint.target);
+    }
   } catch (e) {
     console.error('Failed to load socket I/O data:', e);
     error.value = true;
@@ -400,6 +546,63 @@ onMounted(async () => {
   font-weight: 600;
   font-size: 0.9rem;
   color: var(--color-text);
+}
+
+.gallery-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.toolbar-hint {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+}
+
+.peer-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.selected-peer-card {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-base);
+  overflow: hidden;
+}
+
+.selected-peer-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-light);
+}
+
+.selected-peer-target {
+  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--color-dark);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.selected-peer-summary {
+  margin-left: auto;
+  font-size: 0.76rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.selected-peer-body {
+  padding: 12px 16px;
 }
 
 .target-cell {
