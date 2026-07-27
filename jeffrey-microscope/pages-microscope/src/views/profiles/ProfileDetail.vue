@@ -484,6 +484,11 @@ watch(
 );
 
 onMounted(async () => {
+  // Drop a baseline that belongs to a different primary before anything can read it — the child
+  // views mount only once `profile` is set below, so they never see the previous profile's
+  // selection. Opening a profile starts without a comparison unless the baseline was picked here.
+  SecondaryProfileService.retainFor(profileId);
+
   // IDE integration config + cached target status (cache-only read, no port scan).
   ideConfigStore.loadOnce();
   void ideProfileTargetStore.load(profileId);
@@ -547,7 +552,8 @@ onMounted(async () => {
       console.error('Failed to load disabled features:', error);
     }
 
-    // Check if there's a previously selected secondary profile in SecondaryProfileService
+    // Restore the baseline picked for this profile earlier in the session; retainFor above has
+    // already discarded any that belonged to another one.
     const savedProfile = SecondaryProfileService.get();
 
     if (savedProfile && savedProfile.id !== profileId) {
@@ -663,7 +669,7 @@ const handleSecondaryProfileSelected = async (profile: Profile, projectId: strin
       profilingFinishedAt: new Date().toISOString(), // Default value
       enabled: profile.enabled
     };
-    SecondaryProfileService.update(profileInfo);
+    SecondaryProfileService.update(profileInfo, profileId);
   } catch (error) {
     console.error('Failed to select secondary profile:', error);
     ToastService.error('Selection failed', 'Failed to select secondary profile');
