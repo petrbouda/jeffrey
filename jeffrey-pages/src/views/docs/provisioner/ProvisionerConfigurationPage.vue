@@ -49,7 +49,7 @@ JEFFREY_INSTANCE_NAME=instance-1      # default: HOSTNAME (= pod name), then UUI
 JEFFREY_ATTRIBUTES="cluster=blue,namespace=production"
 JEFFREY_HEAP_DUMP=crash              # exit | crash | off
 JEFFREY_PERF_COUNTERS=true
-JEFFREY_JVM_LOGGING="jfr*=trace:file=<<JEFFREY_CURRENT_SESSION>>/jfr-jvm.log"
+JEFFREY_JVM_LOGGING="jfr*=trace:file=<<JEFFREY:CURRENT_SESSION>>/jfr-jvm.log"
 JEFFREY_ADDITIONAL_JVM_OPTIONS="-Xmx2g"`;
 
 const minimalConfig = `jeffrey-home = "/opt/jeffrey"
@@ -75,10 +75,10 @@ perf-counters { enabled = true }
 heap-dump { enabled = true, type = "crash" }
 jvm-logging {
   enabled = true
-  command = "jfr*=trace:file=<<JEFFREY_CURRENT_SESSION>>/jfr-jvm.log::filecount=3,filesize=5m"
+  command = "jfr*=trace:file=<<JEFFREY:CURRENT_SESSION>>/jfr-jvm.log::filecount=3,filesize=5m"
 }
 jdk-java-options { enabled = true }
-additional-jvm-options = "-Xmx2g -Xms2g -Djeffrey.logging.trace-file.path=<<JEFFREY_CURRENT_SESSION>>/jeffrey-app.log"`;
+additional-jvm-options = "-Xmx2g -Xms2g -Djeffrey.logging.trace-file.path=<<JEFFREY:CURRENT_SESSION>>/jeffrey-app.log"`;
 </script>
 
 <template>
@@ -350,10 +350,6 @@ additional-jvm-options = "-Xmx2g -Xms2g -Djeffrey.logging.trace-file.path=<<JEFF
             <tr>
               <td><code>&lt;&lt;ENV:NAME&gt;&gt;</code></td>
               <td>The <code>NAME</code> environment variable of the provisioner process.</td>
-            </tr>
-            <tr>
-              <td><code>&lt;&lt;FILE:/path&gt;&gt;</code></td>
-              <td>The file's content, trimmed. Useful for values Kubernetes mounts rather than exports, e.g. <code>/var/run/secrets/kubernetes.io/serviceaccount/namespace</code>.</td>
             </tr>
             <tr>
               <td><code>&lt;&lt;JEFFREY:NAME&gt;&gt;</code></td>

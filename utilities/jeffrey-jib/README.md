@@ -43,7 +43,7 @@ Optional pod-level env overrides: `JEFFREY_PROJECT_NAME`, `JEFFREY_WORKSPACE_REF
 `JEFFREY_JVM_LOGGING`, `JEFFREY_ADDITIONAL_JVM_OPTIONS`. A mounted HOCON file still wins
 over environment variables wherever it sets a value.
 
-Any of these values may contain `<<ENV:NAME>>`, `<<FILE:/path>>` or `<<JEFFREY:NAME>>` placeholders,
+Any of these values may contain `<<ENV:NAME>>` or `<<JEFFREY:NAME>>` placeholders,
 with an optional `:-default` fallback. Reach for `<<ENV:…>>` where Kubernetes' own `$(VAR)` cannot
 help — it expands only variables declared earlier in the same container's `env:` list, so
 `JEFFREY_ATTRIBUTES="cluster=$(SF_CLUSTER)"` arrives as literal text when `SF_CLUSTER` comes from

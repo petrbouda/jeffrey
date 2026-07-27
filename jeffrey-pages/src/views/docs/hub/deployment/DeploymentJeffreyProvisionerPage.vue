@@ -79,7 +79,7 @@ heap-dump {
 
 jvm-logging {
     enabled = true
-    command = "jfr*=trace:file=<<JEFFREY_CURRENT_SESSION>>/jfr-jvm.log::filecount=3,filesize=5m"
+    command = "jfr*=trace:file=<<JEFFREY:CURRENT_SESSION>>/jfr-jvm.log::filecount=3,filesize=5m"
 }
 
 additional-jvm-options = "-Xmx400m -Xms400m -XX:+UseG1GC -XX:+AlwaysPreTouch"`;

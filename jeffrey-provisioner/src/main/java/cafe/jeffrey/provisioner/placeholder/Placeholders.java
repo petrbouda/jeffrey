@@ -18,7 +18,6 @@
 
 package cafe.jeffrey.provisioner.placeholder;
 
-import cafe.jeffrey.shared.common.CliConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,15 +39,15 @@ import java.util.regex.Pattern;
  * </pre>
  *
  * <h2>Two phases</h2>
- * The types differ in when they can be answered: {@code ENV} and {@code FILE} are context-free and
- * resolve while the configuration is being read, whereas {@code JEFFREY} values only exist once the
- * session directory has been created, late in {@code init}. A resolver therefore <b>leaves a
+ * The types differ in when they can be answered: {@code ENV} is context-free and resolves while the
+ * configuration is being read, whereas {@code JEFFREY} values only exist once the session directory
+ * has been created, late in {@code init}. A resolver therefore <b>leaves a
  * placeholder whose type it does not know completely untouched</b>, so an early pass can run over a
  * value that still has to survive for a later one.
  *
  * <h2>Single pass</h2>
  * A substituted value is never re-scanned. That rules out substitution loops and stops content
- * arriving from the environment or a file from injecting further placeholders.
+ * arriving from the environment from injecting further placeholders.
  *
  * <h2>Unresolvable values</h2>
  * A known type that yields nothing falls back to the placeholder's default, or — with no default —
@@ -61,21 +60,11 @@ public final class Placeholders {
 
     /**
      * The name is everything up to the optional default marker, so a bare {@code :} stays part of
-     * it and {@code <<FILE:/etc/x:y>>} keeps its path intact.
+     * it rather than being mistaken for a default.
      */
     private static final Pattern PLACEHOLDER = Pattern.compile("<<([A-Za-z][A-Za-z0-9_]*):([^>]*)>>");
 
     private static final String DEFAULT_SEPARATOR = ":-";
-
-    /**
-     * The original placeholders predate the typed grammar and are still emitted by the profiler
-     * settings UI, baked into the hub's global default and present in workspace settings already
-     * written to disk. Rewriting them to the canonical form on the way in means the resolver has a
-     * single shape to handle and the old spelling keeps working forever.
-     */
-    private static final Map<String, String> LEGACY_ALIASES = Map.of(
-            CliConstants.CURRENT_SESSION, canonical(JeffreyPlaceholderSource.CURRENT_SESSION),
-            CliConstants.PROFILER_PATH, canonical(JeffreyPlaceholderSource.PROFILER_PATH));
 
     private final Map<String, PlaceholderSource> sourcesByType;
 
@@ -97,8 +86,7 @@ public final class Placeholders {
             return value;
         }
 
-        String normalized = normalizeLegacy(value);
-        Matcher matcher = PLACEHOLDER.matcher(normalized);
+        Matcher matcher = PLACEHOLDER.matcher(value);
         StringBuilder resolved = new StringBuilder();
         while (matcher.find()) {
             String type = matcher.group(1).toUpperCase(Locale.ROOT);
@@ -128,23 +116,4 @@ public final class Placeholders {
         return "";
     }
 
-    /**
-     * Only rewrites the legacy spelling when this resolver can actually answer for it. A resolver
-     * without the {@code JEFFREY} source must leave the value byte-identical, so an earlier phase
-     * hands the later one exactly what the user wrote.
-     */
-    private String normalizeLegacy(String value) {
-        if (!sourcesByType.containsKey(JeffreyPlaceholderSource.TYPE)) {
-            return value;
-        }
-        String normalized = value;
-        for (Map.Entry<String, String> alias : LEGACY_ALIASES.entrySet()) {
-            normalized = normalized.replace(alias.getKey(), alias.getValue());
-        }
-        return normalized;
-    }
-
-    private static String canonical(String name) {
-        return "<<" + JeffreyPlaceholderSource.TYPE + ":" + name + ">>";
-    }
 }

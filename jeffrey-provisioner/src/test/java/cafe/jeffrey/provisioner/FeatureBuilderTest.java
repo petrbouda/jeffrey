@@ -141,7 +141,7 @@ class FeatureBuilderTest {
 
         @Test
         void producesCorrectOptionsWithPathReplacement() {
-            String command = "jfr*=trace:file=<<JEFFREY_CURRENT_SESSION>>/jfr-jvm.log";
+            String command = "jfr*=trace:file=<<JEFFREY:CURRENT_SESSION>>/jfr-jvm.log";
             String result = new FeatureBuilder()
                     .setJvmLogging(command)
                     .build(SESSION_PATH, PLACEHOLDERS);
@@ -149,7 +149,7 @@ class FeatureBuilderTest {
             assertTrue(result.contains("-Xlog:"));
             assertTrue(result.contains("jfr*=trace:file="));
             assertTrue(result.contains(SESSION_PATH + "/jfr-jvm.log"));
-            assertFalse(result.contains("<<JEFFREY_CURRENT_SESSION>>"));
+            assertFalse(result.contains("<<JEFFREY:CURRENT_SESSION>>"));
         }
 
         @Test
@@ -237,7 +237,7 @@ class FeatureBuilderTest {
             String result = new FeatureBuilder()
                     .setPerfCountersEnabled(true)
                     .setHeapDumpEnabled(HeapDumpType.CRASH)
-                    .setJvmLogging("jfr*=trace:file=<<JEFFREY_CURRENT_SESSION>>/jfr-jvm.log")
+                    .setJvmLogging("jfr*=trace:file=<<JEFFREY:CURRENT_SESSION>>/jfr-jvm.log")
                     .setAgentPath("/path/to/jeffrey-agent.jar")
                     .setAdditionalJvmOptions("-Xmx1200m")
                     .build(SESSION_PATH, PLACEHOLDERS);

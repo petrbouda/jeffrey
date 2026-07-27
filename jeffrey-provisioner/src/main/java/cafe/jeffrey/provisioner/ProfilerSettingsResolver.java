@@ -72,8 +72,7 @@ public class ProfilerSettingsResolver {
 
     /**
      * Hub-pushed settings never pass through the configuration phase, so this is the only place
-     * their placeholders are resolved — including the legacy {@code <<JEFFREY_PROFILER_PATH>>}
-     * spelling the profiler settings UI still writes.
+     * their placeholders are resolved.
      */
     private static String replacePlaceholders(String config, Placeholders placeholders) {
         if (config == null || config.isBlank()) {

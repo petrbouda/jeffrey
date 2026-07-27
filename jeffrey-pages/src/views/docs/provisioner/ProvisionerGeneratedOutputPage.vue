@@ -102,11 +102,11 @@ heap-dump {
     type = "crash"  # "exit" or "crash"
 }
 
-# JVM logging with <<JEFFREY_CURRENT_SESSION>> placeholder for file path
+# JVM logging with <<JEFFREY:CURRENT_SESSION>> placeholder for file path
 # Use '-jvm.log' suffix to automatically recognize the file as a JVM log file by Jeffrey
 jvm-logging {
     enabled = true
-    command = "jfr*=trace:file=<<JEFFREY_CURRENT_SESSION>>/jfr-jvm.log::filecount=3,filesize=5m"
+    command = "jfr*=trace:file=<<JEFFREY:CURRENT_SESSION>>/jfr-jvm.log::filecount=3,filesize=5m"
 }
 
 # JDK Java Options - also exports the JDK_JAVA_OPTIONS environment variable in the .env file
@@ -115,7 +115,7 @@ jdk-java-options {
 }
 
 # Extra JVM flags appended to the generated arguments
-additional-jvm-options = "-Xmx1200m -Xms1200m -XX:+UseG1GC -XX:+AlwaysPreTouch -Djeffrey.logging.trace-file.path=<<JEFFREY_CURRENT_SESSION>>/jeffrey-app.log"
+additional-jvm-options = "-Xmx1200m -Xms1200m -XX:+UseG1GC -XX:+AlwaysPreTouch -Djeffrey.logging.trace-file.path=<<JEFFREY:CURRENT_SESSION>>/jeffrey-app.log"
 
 # Attributes (key-value map)
 # Supports HOCON substitution: \${VAR} (required) or \${?VAR} (optional)

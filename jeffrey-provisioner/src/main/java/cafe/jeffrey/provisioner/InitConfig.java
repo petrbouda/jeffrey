@@ -24,7 +24,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.provisioner.model.HeapDumpType;
 import cafe.jeffrey.provisioner.placeholder.EnvPlaceholderSource;
-import cafe.jeffrey.provisioner.placeholder.FilePlaceholderSource;
 import cafe.jeffrey.provisioner.placeholder.Placeholders;
 import cafe.jeffrey.shared.common.CliConstants;
 import cafe.jeffrey.shared.common.IDGenerator;
@@ -198,8 +197,7 @@ public class InitConfig {
         // Phase one of placeholder resolution: everything that can be answered without knowing
         // where this run will put its session. Kubernetes cannot expand $(SF_CLUSTER) for values
         // it did not declare itself, so <<ENV:SF_CLUSTER>> is resolved here instead.
-        Placeholders placeholders = Placeholders.of(
-                new EnvPlaceholderSource(envLookup), new FilePlaceholderSource());
+        Placeholders placeholders = Placeholders.of(new EnvPlaceholderSource(envLookup));
 
         String jeffreyHome = resolved.getString("jeffrey-home");
         String workspacesDir = resolved.getString("workspaces-dir");

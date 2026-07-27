@@ -151,8 +151,8 @@ public class InitExecutor {
                 provisionedAt);
 
         // Phase two: the layout only exists now that the session directory has been created, so
-        // this is where <<JEFFREY:...>> (and its legacy <<JEFFREY_CURRENT_SESSION>> spelling) is
-        // finally answerable. Values carrying <<ENV:...>> were already resolved at config load.
+        // this is where <<JEFFREY:...>> becomes answerable. Values carrying <<ENV:...>> were
+        // already resolved when the configuration was read.
         Placeholders placeholders = Placeholders.of(JeffreyPlaceholderSource.of(
                 new JeffreyPlaceholderSource.Layout(
                         jeffreyHome, workspacesPath, workspacePath, projectPath, newSessionPath,

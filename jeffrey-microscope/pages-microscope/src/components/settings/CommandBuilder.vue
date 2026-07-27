@@ -174,7 +174,7 @@
                       type="text"
                       class="form-control"
                       v-model="config.file"
-                      placeholder="<<JEFFREY_CURRENT_SESSION>>/profile-%t.jfr"
+                      placeholder="<<JEFFREY:CURRENT_SESSION>>/profile-%t.jfr"
                       required
                     />
                     <div class="form-help">

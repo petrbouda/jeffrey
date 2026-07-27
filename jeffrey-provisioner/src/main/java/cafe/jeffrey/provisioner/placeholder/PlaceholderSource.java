@@ -29,7 +29,7 @@ import java.util.Optional;
  * {@code ServiceLoader}.
  */
 public sealed interface PlaceholderSource
-        permits EnvPlaceholderSource, FilePlaceholderSource, JeffreyPlaceholderSource {
+        permits EnvPlaceholderSource, JeffreyPlaceholderSource {
 
     /** The type prefix this source answers for, e.g. {@code ENV}. */
     String type();

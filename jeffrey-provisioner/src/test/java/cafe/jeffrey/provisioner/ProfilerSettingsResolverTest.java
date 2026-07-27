@@ -77,15 +77,15 @@ class ProfilerSettingsResolverTest {
         void replacesPlaceholdersInProvidedConfig() {
             Path workspacePath = tempDir.resolve("workspace");
             Path sessionPath = tempDir.resolve("session");
-            String profilerConfig = "-agentpath:<<JEFFREY_PROFILER_PATH>>=start,file=<<JEFFREY_CURRENT_SESSION>>/output.jfr";
+            String profilerConfig = "-agentpath:<<JEFFREY:PROFILER_PATH>>=start,file=<<JEFFREY:CURRENT_SESSION>>/output.jfr";
 
             String result = resolve(
                     "/custom/profiler.so", profilerConfig, workspacePath, "my-project", sessionPath, "").command();
 
             assertTrue(result.contains("/custom/profiler.so"));
             assertTrue(result.contains(sessionPath.toString()));
-            assertFalse(result.contains("<<JEFFREY_PROFILER_PATH>>"));
-            assertFalse(result.contains("<<JEFFREY_CURRENT_SESSION>>"));
+            assertFalse(result.contains("<<JEFFREY:PROFILER_PATH>>"));
+            assertFalse(result.contains("<<JEFFREY:CURRENT_SESSION>>"));
         }
 
         @Test
@@ -185,7 +185,7 @@ class ProfilerSettingsResolverTest {
             String settingsJson = """
                     {
                         "profiler": {
-                            "defaultSettings": "-agentpath:<<JEFFREY_PROFILER_PATH>>=start,event=wall,file=<<JEFFREY_CURRENT_SESSION>>/profile.jfr",
+                            "defaultSettings": "-agentpath:<<JEFFREY:PROFILER_PATH>>=start,event=wall,file=<<JEFFREY:CURRENT_SESSION>>/profile.jfr",
                             "defaultSettingsLevel": "WORKSPACE",
                             "projectSettings": {}
                         }
@@ -213,7 +213,7 @@ class ProfilerSettingsResolverTest {
             String settingsJson = """
                     {
                         "profiler": {
-                            "defaultSettings": "-agentpath:<<JEFFREY_PROFILER_PATH>>=start,event=wall",
+                            "defaultSettings": "-agentpath:<<JEFFREY:PROFILER_PATH>>=start,event=wall",
                             "defaultSettingsLevel": "GLOBAL",
                             "projectSettings": {}
                         }
@@ -236,10 +236,10 @@ class ProfilerSettingsResolverTest {
             String settingsJson = """
                     {
                         "profiler": {
-                            "defaultSettings": "-agentpath:<<JEFFREY_PROFILER_PATH>>=start,event=wall",
+                            "defaultSettings": "-agentpath:<<JEFFREY:PROFILER_PATH>>=start,event=wall",
                             "defaultSettingsLevel": "GLOBAL",
                             "projectSettings": {
-                                "my-project": "-agentpath:<<JEFFREY_PROFILER_PATH>>=start,event=cpu,alloc"
+                                "my-project": "-agentpath:<<JEFFREY:PROFILER_PATH>>=start,event=cpu,alloc"
                             }
                         }
                     }
@@ -266,13 +266,13 @@ class ProfilerSettingsResolverTest {
             String settingsJson = """
                     {
                         "profiler": {
-                            "defaultSettings": "-agentpath:<<JEFFREY_PROFILER_PATH>>=start,event=wall",
+                            "defaultSettings": "-agentpath:<<JEFFREY:PROFILER_PATH>>=start,event=wall",
                             "defaultSettingsLevel": "GLOBAL",
                             "projectSettings": {
-                                "my-project": "-agentpath:<<JEFFREY_PROFILER_PATH>>=start,event=cpu"
+                                "my-project": "-agentpath:<<JEFFREY:PROFILER_PATH>>=start,event=cpu"
                             },
                             "projectSettingsById": {
-                                "proj-id-1": "-agentpath:<<JEFFREY_PROFILER_PATH>>=start,event=itimer"
+                                "proj-id-1": "-agentpath:<<JEFFREY:PROFILER_PATH>>=start,event=itimer"
                             }
                         }
                     }
@@ -297,10 +297,10 @@ class ProfilerSettingsResolverTest {
             String settingsJson = """
                     {
                         "profiler": {
-                            "defaultSettings": "-agentpath:<<JEFFREY_PROFILER_PATH>>=start,event=wall",
+                            "defaultSettings": "-agentpath:<<JEFFREY:PROFILER_PATH>>=start,event=wall",
                             "defaultSettingsLevel": "GLOBAL",
                             "projectSettings": {
-                                "my-project": "-agentpath:<<JEFFREY_PROFILER_PATH>>=start,event=cpu"
+                                "my-project": "-agentpath:<<JEFFREY:PROFILER_PATH>>=start,event=cpu"
                             }
                         }
                     }
@@ -323,7 +323,7 @@ class ProfilerSettingsResolverTest {
             String settingsJson = """
                     {
                         "profiler": {
-                            "defaultSettings": "-agentpath:<<JEFFREY_PROFILER_PATH>>=custom-config",
+                            "defaultSettings": "-agentpath:<<JEFFREY:PROFILER_PATH>>=custom-config",
                             "defaultSettingsLevel": "WORKSPACE",
                             "projectSettings": {}
                         }
@@ -372,7 +372,7 @@ class ProfilerSettingsResolverTest {
                     "my-project", sessionPath, "").command();
 
             assertTrue(result.contains("/custom/async-profiler/libasyncProfiler.so"));
-            assertFalse(result.contains("<<JEFFREY_PROFILER_PATH>>"));
+            assertFalse(result.contains("<<JEFFREY:PROFILER_PATH>>"));
         }
 
         @Test
@@ -384,7 +384,7 @@ class ProfilerSettingsResolverTest {
                     "/profiler.so", null, workspacePath, "my-project", sessionPath, "").command();
 
             assertTrue(result.contains(sessionPath.toString()));
-            assertFalse(result.contains("<<JEFFREY_CURRENT_SESSION>>"));
+            assertFalse(result.contains("<<JEFFREY:CURRENT_SESSION>>"));
         }
     }
 

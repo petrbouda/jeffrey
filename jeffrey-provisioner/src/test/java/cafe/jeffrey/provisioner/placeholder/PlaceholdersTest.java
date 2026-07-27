@@ -22,10 +22,7 @@ import cafe.jeffrey.provisioner.EnvFileBuilder;
 import cafe.jeffrey.shared.common.CliConstants;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 
-import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
 
@@ -91,12 +88,6 @@ class PlaceholdersTest {
                     placeholders.resolve("-Dlog=<<JEFFREY:CURRENT_SESSION>>/app-<<ENV:SF_ENV>>.log"));
         }
 
-        @Test
-        void doesNotRewriteTheLegacySpellingItCannotResolve() {
-            assertEquals(
-                    "-Dlog=" + CliConstants.CURRENT_SESSION + "/app.log",
-                    env(Map.of()).resolve("-Dlog=" + CliConstants.CURRENT_SESSION + "/app.log"));
-        }
 
         @Test
         void doesNotRescanASubstitutedValue() {
@@ -138,11 +129,13 @@ class PlaceholdersTest {
             assertEquals("/libs/libasyncProfiler-amd64.so", placeholders.resolve("<<JEFFREY:PROFILER_PATH>>"));
         }
 
+        /** The tokens the rest of the codebase builds its commands from must resolve. */
         @Test
-        void acceptsTheLegacySpelling() {
+        void resolvesTheSharedConstants() {
             assertEquals(
                     SESSION + "/profile-%t.jfr",
                     full().resolve(CliConstants.CURRENT_SESSION + "/profile-%t.jfr"));
+            assertEquals("/libs/libasyncProfiler-amd64.so", full().resolve(CliConstants.PROFILER_PATH));
         }
 
         @Test
@@ -154,24 +147,4 @@ class PlaceholdersTest {
         }
     }
 
-    @Nested
-    class FileResolution {
-
-        @Test
-        void readsAndTrimsTheFileContent(@TempDir Path tmp) throws IOException {
-            Path namespace = tmp.resolve("namespace");
-            Files.writeString(namespace, "vogon-data\n");
-            Placeholders placeholders = Placeholders.of(new FilePlaceholderSource());
-
-            assertEquals("ns=vogon-data", placeholders.resolve("ns=<<FILE:" + namespace + ">>"));
-        }
-
-        @Test
-        void fallsBackWhenTheFileIsMissing(@TempDir Path tmp) {
-            Placeholders placeholders = Placeholders.of(new FilePlaceholderSource());
-
-            assertEquals("ns=default",
-                    placeholders.resolve("ns=<<FILE:" + tmp.resolve("absent") + ":-default>>"));
-        }
-    }
 }
