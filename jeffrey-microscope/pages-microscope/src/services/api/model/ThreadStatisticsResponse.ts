@@ -16,9 +16,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import ThreadStats from '@/services/thread/model/ThreadStats.ts';
-import AllocatingThread from '@/services/thread/model/AllocatingThread.ts';
-import ThreadWithCpuLoad from '@/services/thread/model/ThreadWithCpuLoad.ts';
+import ThreadStats from '@/services/api/model/ThreadStats.ts';
+import AllocatingThread from '@/services/api/model/AllocatingThread.ts';
+import ThreadWithCpuLoad from '@/services/api/model/ThreadWithCpuLoad.ts';
 
 export default class ThreadStatisticsResponse {
   constructor(

@@ -19,7 +19,6 @@
 package cafe.jeffrey.microscope.core.web;
 
 import io.grpc.StatusRuntimeException;
-import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpMethod;
@@ -29,7 +28,6 @@ import org.springframework.web.HttpMediaTypeNotAcceptableException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.context.request.async.AsyncRequestNotUsableException;
 import cafe.jeffrey.hub.client.GrpcClientErrors;
 import cafe.jeffrey.shared.common.exception.ErrorCode;
 import cafe.jeffrey.shared.common.exception.ErrorResponse;
@@ -109,20 +107,26 @@ public class JeffreyExceptionHandler {
     }
 
     /**
-     * The client went away mid-response — a browser closing an SSE stream is the everyday case.
-     * The container reports it as a broken pipe on the async request, which is routine rather than
-     * a server fault, so it is logged at debug and swallowed. Writing a body here is impossible
-     * anyway: the socket is gone, and the stream's {@code text/event-stream} content type has no
-     * converter for {@link ErrorResponse}. The unused {@link HttpServletResponse} parameter is what
-     * marks the request as handled, so Spring MVC stops instead of attempting to render a view.
+     * Catch-all for anything the more specific handlers above did not claim.
+     *
+     * <p>A client that went away mid-response is filtered out first: a browser closing an SSE stream
+     * or navigating away from a page that is still downloading a large payload is routine rather than
+     * a server fault, so it is logged at debug and swallowed. It reaches this handler in whatever
+     * wrapper the writer happened to be in — an {@code AsyncRequestNotUsableException} for a stream,
+     * an {@code HttpMessageNotWritableException} when Jackson was halfway through a response body —
+     * hence the cause-chain check rather than a per-type handler.
+     *
+     * <p>Answering such a request is impossible anyway: the socket is gone, so returning {@code null}
+     * tells Spring MVC the response is fully handled and nothing more is written. Any write attempt
+     * would only raise a second broken pipe, and for a stream it would fail content negotiation as
+     * well, because {@link ErrorResponse} has no converter for {@code text/event-stream}.
      */
-    @ExceptionHandler(AsyncRequestNotUsableException.class)
-    public void handleDisconnectedClient(AsyncRequestNotUsableException ex, HttpServletResponse response) {
-        LOG.debug("Client disconnected before the async response could be written: message={}", ex.getMessage());
-    }
-
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGeneric(Exception ex) {
+        if (ClientDisconnects.isClientDisconnect(ex)) {
+            LOG.debug("Client disconnected before the response could be written: message={}", ex.getMessage());
+            return null;
+        }
         LOG.error("Handling a GenericException: message={}", ex.getMessage(), ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(new ErrorResponse(ErrorType.INTERNAL, ErrorCode.UNKNOWN_ERROR_RESPONSE, ex.getMessage()));

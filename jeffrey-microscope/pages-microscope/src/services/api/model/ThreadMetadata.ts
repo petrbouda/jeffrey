@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import EventMetadata from '@/services/thread/model/EventMetadata';
+import EventMetadata from '@/services/api/model/EventMetadata';
 
 export default class ThreadMetadata {
   constructor(

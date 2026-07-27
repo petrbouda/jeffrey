@@ -22,6 +22,10 @@ import ThreadStatisticsResponse from '@/services/api/model/ThreadStatisticsRespo
 import Serie from '@/services/timeseries/model/Serie';
 import type { ParsedDump, ThreadDumpAnalysis } from '@/services/api/model/ThreadDumpModels';
 import type ReservedStackActivation from '@/services/api/model/ReservedStackActivation';
+import type ThreadEventDetail from '@/services/api/model/ThreadEventDetail';
+import type { ThreadEventState } from '@/services/api/model/ThreadEventDetail';
+import type ThreadInfo from '@/services/api/model/ThreadInfo';
+import type ThreadPeriod from '@/services/api/model/ThreadPeriod';
 
 export default class ProfileThreadClient extends BaseProfileClient {
   constructor(profileId: string) {
@@ -30,6 +34,26 @@ export default class ProfileThreadClient extends BaseProfileClient {
 
   public list(): Promise<ThreadResponse> {
     return this.get<ThreadResponse>('');
+  }
+
+  /**
+   * The events behind a single timeline band, for its tooltip. The timeline itself carries only
+   * rectangles and event counts, so the fields are fetched for the band under the pointer.
+   */
+  public bandEvents(
+    threadInfo: ThreadInfo,
+    state: ThreadEventState,
+    band: ThreadPeriod,
+    limit = 1
+  ): Promise<ThreadEventDetail[]> {
+    return this.get<ThreadEventDetail[]>('/events', {
+      osId: threadInfo.osId,
+      javaId: threadInfo.javaId,
+      state: state,
+      from: band.startOffset,
+      to: band.startOffset + band.width,
+      limit: limit
+    });
   }
 
   public statistics(): Promise<ThreadStatisticsResponse> {

@@ -17,7 +17,7 @@
  */
 
 import ThreadCommon from './ThreadCommon';
-import ThreadRowData from '@/services/thread/model/ThreadRowData';
+import ThreadRowData from '@/services/api/model/ThreadRowData';
 
 export default class ThreadResponse {
   constructor(

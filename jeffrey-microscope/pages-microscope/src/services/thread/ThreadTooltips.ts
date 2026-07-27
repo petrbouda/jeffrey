@@ -17,7 +17,7 @@
  */
 
 import ThreadRectangle from '@/services/thread/ThreadRectangle';
-import EventMetadata from '@/services/thread/model/EventMetadata';
+import EventMetadata from '@/services/api/model/EventMetadata';
 import FormattingService from '@shared/services/FormattingService';
 
 export default class ThreadTooltips {
@@ -28,27 +28,52 @@ export default class ThreadTooltips {
             </div>`;
   }
 
-  static basic(metadata: EventMetadata, segments: ThreadRectangle[], colorRgb: string): string {
+  /**
+   * Renders one category of the tooltip.
+   *
+   * @param values field values of the band's first event, or `undefined` while they are still being
+   *               fetched — the category header and its event count are known from the band itself
+   *               and are shown straight away
+   */
+  static basic(
+    metadata: EventMetadata,
+    segments: ThreadRectangle[],
+    colorRgb: string,
+    values: Array<string> | undefined
+  ): string {
     const typeFragment = '';
-    const firstValues = segments[0].period.values;
+    const eventCount = ThreadTooltips.countEvents(segments);
 
     let fields = '';
     metadata.fields.forEach((threadField, index) => {
+      const value =
+        values === undefined
+          ? '<span class="text-muted">…</span>'
+          : FormattingService.format(values[index], threadField.type);
+
       const field = `
                 <div class="tooltip-row d-flex px-2 py-1">
                     <span class="field-name text-secondary font-weight-medium">${threadField.name}:</span>
-                    <span class="field-value text-dark">${FormattingService.format(firstValues[index], threadField.type)}</span>
+                    <span class="field-value text-dark">${value}</span>
                 </div>`;
 
       fields += field;
     });
 
     return `
-            ${ThreadTooltips.divider(metadata.label, segments.length, colorRgb)}
+            ${ThreadTooltips.divider(metadata.label, eventCount, colorRgb)}
             <div class="tooltip-content">
                 ${typeFragment}
                 ${fields}
             </div>`;
+  }
+
+  /**
+   * How many events the hovered bands stand for. A band can cover several events that the timeline
+   * cannot draw apart, so this is not the number of rectangles.
+   */
+  private static countEvents(segments: ThreadRectangle[]): number {
+    return segments.reduce((total, segment) => total + segment.period.eventCount, 0);
   }
 
   private static divider(text: string, eventCount: number, colorRgb: string): string {

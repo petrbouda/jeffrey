@@ -22,6 +22,7 @@ import ThreadRowData from '@/services/api/model/ThreadRowData';
 import { useRoute } from 'vue-router';
 
 import ThreadCommon from '@/services/api/model/ThreadCommon';
+import ThreadPeriod from '@/services/api/model/ThreadPeriod';
 import ThreadRow from '@/services/thread/ThreadRow';
 import PrimaryFlamegraphClient from '@/services/api/PrimaryFlamegraphClient';
 import FlamegraphTooltip from '@/services/flamegraphs/tooltips/FlamegraphTooltip';
@@ -112,9 +113,22 @@ function resolveWeight(eventCode: string | undefined): boolean {
 
 const useWeightValue = computed(() => resolveWeight(selectedEventCode.value));
 
+/**
+ * How many events a category stands for. A band can cover several events that the timeline cannot
+ * draw apart, so this is not the number of bands.
+ */
+function eventCount(periods: ThreadPeriod[]): number {
+  return periods.reduce((total, period) => total + period.eventCount, 0);
+}
+
 onMounted(() => {
   // Initialize thread row
-  threadRowRenderer = new ThreadRow(props.threadCommon, props.threadRow, canvasId.value);
+  threadRowRenderer = new ThreadRow(
+    props.primaryProfileId,
+    props.threadCommon,
+    props.threadRow,
+    canvasId.value
+  );
   threadRowRenderer.draw();
 
   // Initialize the Bootstrap modal after the DOM is ready
@@ -414,8 +428,8 @@ function createContextMenuItems() {
         <div class="d-flex justify-content-between w-100">
           <span class="category-name fw-medium">Thread Park</span>
           <span class="event-count text-muted small"
-            >{{ props.threadRow.parked.length }} event{{
-              props.threadRow.parked.length !== 1 ? 's' : ''
+            >{{ eventCount(props.threadRow.parked) }} event{{
+              eventCount(props.threadRow.parked) !== 1 ? 's' : ''
             }}</span
           >
         </div>
@@ -432,8 +446,8 @@ function createContextMenuItems() {
         <div class="d-flex justify-content-between w-100">
           <span class="category-name fw-medium">Thread Sleep</span>
           <span class="event-count text-muted small"
-            >{{ props.threadRow.sleep.length }} event{{
-              props.threadRow.sleep.length !== 1 ? 's' : ''
+            >{{ eventCount(props.threadRow.sleep) }} event{{
+              eventCount(props.threadRow.sleep) !== 1 ? 's' : ''
             }}</span
           >
         </div>
@@ -450,8 +464,8 @@ function createContextMenuItems() {
         <div class="d-flex justify-content-between w-100">
           <span class="category-name fw-medium">Monitor Blocked</span>
           <span class="event-count text-muted small"
-            >{{ props.threadRow.blocked.length }} event{{
-              props.threadRow.blocked.length !== 1 ? 's' : ''
+            >{{ eventCount(props.threadRow.blocked) }} event{{
+              eventCount(props.threadRow.blocked) !== 1 ? 's' : ''
             }}</span
           >
         </div>
@@ -468,8 +482,8 @@ function createContextMenuItems() {
         <div class="d-flex justify-content-between w-100">
           <span class="category-name fw-medium">Monitor Wait</span>
           <span class="event-count text-muted small"
-            >{{ props.threadRow.waiting.length }} event{{
-              props.threadRow.waiting.length !== 1 ? 's' : ''
+            >{{ eventCount(props.threadRow.waiting) }} event{{
+              eventCount(props.threadRow.waiting) !== 1 ? 's' : ''
             }}</span
           >
         </div>
@@ -486,8 +500,8 @@ function createContextMenuItems() {
         <div class="d-flex justify-content-between w-100">
           <span class="category-name fw-medium">Socket Read</span>
           <span class="event-count text-muted small"
-            >{{ props.threadRow.socketRead.length }} event{{
-              props.threadRow.socketRead.length !== 1 ? 's' : ''
+            >{{ eventCount(props.threadRow.socketRead) }} event{{
+              eventCount(props.threadRow.socketRead) !== 1 ? 's' : ''
             }}</span
           >
         </div>
@@ -504,8 +518,8 @@ function createContextMenuItems() {
         <div class="d-flex justify-content-between w-100">
           <span class="category-name fw-medium">Socket Write</span>
           <span class="event-count text-muted small"
-            >{{ props.threadRow.socketWrite.length }} event{{
-              props.threadRow.socketWrite.length !== 1 ? 's' : ''
+            >{{ eventCount(props.threadRow.socketWrite) }} event{{
+              eventCount(props.threadRow.socketWrite) !== 1 ? 's' : ''
             }}</span
           >
         </div>
@@ -522,8 +536,8 @@ function createContextMenuItems() {
         <div class="d-flex justify-content-between w-100">
           <span class="category-name fw-medium">File Read</span>
           <span class="event-count text-muted small"
-            >{{ props.threadRow.fileRead.length }} event{{
-              props.threadRow.fileRead.length !== 1 ? 's' : ''
+            >{{ eventCount(props.threadRow.fileRead) }} event{{
+              eventCount(props.threadRow.fileRead) !== 1 ? 's' : ''
             }}</span
           >
         </div>
@@ -540,8 +554,8 @@ function createContextMenuItems() {
         <div class="d-flex justify-content-between w-100">
           <span class="category-name fw-medium">File Write</span>
           <span class="event-count text-muted small"
-            >{{ props.threadRow.fileWrite.length }} event{{
-              props.threadRow.fileWrite.length !== 1 ? 's' : ''
+            >{{ eventCount(props.threadRow.fileWrite) }} event{{
+              eventCount(props.threadRow.fileWrite) !== 1 ? 's' : ''
             }}</span
           >
         </div>

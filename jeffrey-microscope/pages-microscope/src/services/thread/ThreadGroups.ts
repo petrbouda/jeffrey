@@ -20,7 +20,7 @@ import ThreadRectangle from './ThreadRectangle';
 import Konva from 'konva';
 import ThreadRow from './ThreadRow';
 import Rectangle from './Rectangle';
-import ThreadPeriod from '@/services/thread/model/ThreadPeriod';
+import ThreadPeriod from '@/services/api/model/ThreadPeriod';
 
 export default class ThreadGroups {
   static readonly MIN_WIDTH = 1;

@@ -97,6 +97,7 @@ public class DbBasedThreadProvider implements ThreadInfoProvider {
     private final ProfileInfo profileInfo;
     private final ProfileEventRepository eventRepository;
     private final ProfileEventStreamRepository eventStreamRepository;
+    private final ThreadBands bands;
 
     private static ThreadField field(String value, String type) {
         return new ThreadField(value, type);
@@ -114,27 +115,29 @@ public class DbBasedThreadProvider implements ThreadInfoProvider {
         this.eventRepository = eventRepository;
         this.eventStreamRepository = eventStreamRepository;
         this.profileInfo = profileInfo;
+        this.bands = ThreadBands.forRecording(profileInfo.duration());
     }
 
     @Override
     public ThreadRoot get() {
+        // No JSON fields and no event labels: the timeline only draws rectangles, so the event's
+        // fields stay in the database until a tooltip asks for one band's worth of them.
         EventQueryConfigurer configurer = new EventQueryConfigurer()
                 .withEventTypes(TYPES)
-                .withEventTypeInfo()
-                .withJsonFields()
                 .withThreads();
 
-        List<ThreadRecord> records = eventStreamRepository.genericStreaming(configurer, new ThreadsRecordBuilder());
+        List<ThreadTimelineEvent> records =
+                eventStreamRepository.genericStreaming(configurer, new ThreadTimelineRecordBuilder());
 
         boolean containsWallClock = eventRepository.containsEventType(Type.WALL_CLOCK_SAMPLE);
         ThreadCommon common = new ThreadCommon(profileInfo.duration().toNanos(), containsWallClock, METADATA);
         return new ThreadRoot(common, toThreadRows(records));
     }
 
-    private List<ThreadRow> toThreadRows(List<ThreadRecord> combined) {
-        Map<Long, List<ThreadRecord>> byJavaId = new HashMap<>();
-        Map<Long, List<ThreadRecord>> byOsId = new HashMap<>();
-        for (ThreadRecord threadRecord : combined) {
+    private List<ThreadRow> toThreadRows(List<ThreadTimelineEvent> combined) {
+        Map<Long, List<ThreadTimelineEvent>> byJavaId = new HashMap<>();
+        Map<Long, List<ThreadTimelineEvent>> byOsId = new HashMap<>();
+        for (ThreadTimelineEvent threadRecord : combined) {
             ThreadInfo threadInfo = threadRecord.threadInfo();
 
             long javaId = threadInfo.javaId();
@@ -158,15 +161,18 @@ public class DbBasedThreadProvider implements ThreadInfoProvider {
     }
 
 
-    private List<ThreadRow> merge(Map<Long, List<ThreadRecord>> first, Map<Long, List<ThreadRecord>> second) {
+    private List<ThreadRow> merge(
+            Map<Long, List<ThreadTimelineEvent>> first,
+            Map<Long, List<ThreadTimelineEvent>> second) {
+
         List<ThreadRow> threadRows = new ArrayList<>();
         first.values().forEach(events -> threadRows.add(toThreadRow(events)));
         second.values().forEach(events -> threadRows.add(toThreadRow(events)));
         return threadRows;
     }
 
-    private ThreadRow toThreadRow(List<ThreadRecord> events) {
-        events.sort(Comparator.comparing(ThreadRecord::start));
+    private ThreadRow toThreadRow(List<ThreadTimelineEvent> events) {
+        events.sort(Comparator.comparing(ThreadTimelineEvent::start));
 
         List<ThreadPeriod> active = new ArrayList<>();
         List<ThreadPeriod> parked = new ArrayList<>();
@@ -182,7 +188,7 @@ public class DbBasedThreadProvider implements ThreadInfoProvider {
         // ZERO = implicitly open since the start of the recording (no explicit Thread Start seen yet)
         Duration openStartOffset = Duration.ZERO;
         Duration latestReportedOffset = Duration.ZERO;
-        for (ThreadRecord event : events) {
+        for (ThreadTimelineEvent event : events) {
             switch (event.state()) {
                 case STARTED -> {
                     if (openStartOffset != null && !openStartOffset.isZero()) {
@@ -218,9 +224,9 @@ public class DbBasedThreadProvider implements ThreadInfoProvider {
             active.add(new ThreadPeriod(openStartOffset, endOffset));
         }
 
-        ThreadRecord first = events.getFirst();
+        ThreadTimelineEvent first = events.getFirst();
 
-        // Calculate all events happened for this thread
+        // Counted before merging: the bands that follow cover several events each
         long eventsCount = parked.size()
                 + blocked.size()
                 + waiting.size()
@@ -235,25 +241,27 @@ public class DbBasedThreadProvider implements ThreadInfoProvider {
                 .mapToLong(ThreadPeriod::width)
                 .reduce(0, Long::sum);
 
+        // The lifespan is a handful of start/end spans and is left as it is — merging it would hide
+        // a thread that stopped and started again.
         return new ThreadRow(
                 totalDuration,
                 eventsCount,
                 first.threadInfo(),
                 active,
-                parked,
-                blocked,
-                waiting,
-                sleep,
-                socketRead,
-                socketWrite,
-                fileRead,
-                fileWrite);
+                bands.merge(parked),
+                bands.merge(blocked),
+                bands.merge(waiting),
+                bands.merge(sleep),
+                bands.merge(socketRead),
+                bands.merge(socketWrite),
+                bands.merge(fileRead),
+                bands.merge(fileWrite));
     }
 
-    private ThreadPeriod createEvent(ThreadRecord event) {
+    private ThreadPeriod createEvent(ThreadTimelineEvent event) {
         return new ThreadPeriod(
                 event.start().toNanos(),
                 Math.max(event.duration().toNanos(), 1),
-                event.values());
+                1);
     }
 }

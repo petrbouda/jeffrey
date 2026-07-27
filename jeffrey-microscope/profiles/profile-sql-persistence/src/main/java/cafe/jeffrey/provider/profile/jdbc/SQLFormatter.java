@@ -33,6 +33,11 @@ import static cafe.jeffrey.sql.SQLBuilder.*;
 
 public abstract class SQLFormatter {
 
+    /**
+     * The value {@link ThreadInfo} carries when a thread id is not available.
+     */
+    private static final long UNKNOWN_THREAD_ID = -1;
+
     private final BiFunction<String, String, String> jsonbColumnFormatter;
 
     public SQLFormatter(BiFunction<String, String, String> jsonbColumnFormatter) {
@@ -96,9 +101,17 @@ public abstract class SQLFormatter {
         return builder;
     }
 
+    /**
+     * Narrows the query to a single thread. Java threads are identified by their Java id; threads
+     * that never got one (a plain native thread reports {@code -1}) would all collide on that value,
+     * so they are matched on the OS id instead.
+     */
     public SQLBuilder threadInfo(ThreadInfo threadInfo) {
         if (threadInfo == null) {
             return new SQLBuilder();
+        }
+        if (threadInfo.javaId() == UNKNOWN_THREAD_ID) {
+            return new SQLBuilder().where("threads.os_id", "=", l(threadInfo.osId()));
         }
         return new SQLBuilder().where("threads.java_id", "=", l(threadInfo.javaId()));
     }

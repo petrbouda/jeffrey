@@ -35,8 +35,12 @@ import cafe.jeffrey.profile.manager.model.thread.dump.ThreadDumpAnalysis;
 import cafe.jeffrey.profile.manager.model.thread.dump.ThreadDumpAnalyzer;
 import cafe.jeffrey.profile.manager.model.thread.dump.ThreadDumpBuilder;
 import cafe.jeffrey.profile.manager.model.thread.dump.ThreadDumpParser;
+import cafe.jeffrey.profile.thread.ThreadEventDetail;
+import cafe.jeffrey.profile.thread.ThreadEventsQuery;
 import cafe.jeffrey.profile.thread.ThreadInfoProvider;
+import cafe.jeffrey.profile.thread.ThreadRecord;
 import cafe.jeffrey.profile.thread.ThreadRoot;
+import cafe.jeffrey.profile.thread.ThreadsRecordBuilder;
 import cafe.jeffrey.provider.profile.api.EventQueryConfigurer;
 import cafe.jeffrey.provider.profile.api.ProfileEventRepository;
 import cafe.jeffrey.provider.profile.api.ProfileEventStreamRepository;
@@ -44,6 +48,7 @@ import cafe.jeffrey.provider.profile.api.ProfileEventTypeRepository;
 import cafe.jeffrey.provider.profile.api.AllocatingThread;
 import cafe.jeffrey.timeseries.SingleSerie;
 
+import java.time.Duration;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
@@ -143,6 +148,38 @@ public class ThreadManagerImpl implements ThreadManager {
     @Override
     public ThreadRoot threadRows() {
         return threadInfoProvider.get();
+    }
+
+    @Override
+    public List<ThreadEventDetail> threadEvents(ThreadEventsQuery query) {
+        EventQueryConfigurer configurer = new EventQueryConfigurer()
+                .withEventType(query.state().eventType())
+                .withSpecifiedThread(query.threadInfo())
+                .withTimeRange(bandTimeRange(query))
+                .withEventTypeInfo()
+                .withJsonFields();
+
+        List<ThreadRecord> records =
+                eventStreamRepository.genericStreaming(configurer, new ThreadsRecordBuilder());
+
+        return records.stream()
+                .limit(query.limit())
+                .map(record -> new ThreadEventDetail(
+                        record.start().toNanos(),
+                        record.duration() == null ? 1 : Math.max(record.duration().toNanos(), 1),
+                        record.values()))
+                .toList();
+    }
+
+    /**
+     * Widens the band to whole milliseconds, because that is the resolution the events are stored
+     * at. A band narrower than a millisecond would otherwise select nothing — its start and end
+     * truncate to the same value, and the upper bound is exclusive.
+     */
+    private static RelativeTimeRange bandTimeRange(ThreadEventsQuery query) {
+        Duration from = Duration.ofMillis(query.from().toMillis());
+        Duration to = Duration.ofMillis(query.to().toMillis() + 1);
+        return new RelativeTimeRange(from, to);
     }
 
     @Override
