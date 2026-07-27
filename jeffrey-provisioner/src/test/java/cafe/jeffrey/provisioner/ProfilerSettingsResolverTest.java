@@ -28,6 +28,9 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+import cafe.jeffrey.provisioner.placeholder.JeffreyPlaceholderSource;
+import cafe.jeffrey.provisioner.placeholder.Placeholders;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 class ProfilerSettingsResolverTest {
@@ -42,8 +45,12 @@ class ProfilerSettingsResolverTest {
             Path sessionPath,
             String features) {
 
+        Placeholders placeholders = Placeholders.of(JeffreyPlaceholderSource.of(
+                new JeffreyPlaceholderSource.Layout(null, null, workspacePath, null, sessionPath, profilerPath),
+                EnvFileBuilder.DEFAULT_FILE_TEMPLATE));
+
         return new ProfilerSettingsResolver().resolve(
-                profilerPath, profilerConfig, workspacePath, PROJECT_ID, projectName, sessionPath, features);
+                profilerConfig, workspacePath, PROJECT_ID, projectName, placeholders, features);
     }
 
     @Nested

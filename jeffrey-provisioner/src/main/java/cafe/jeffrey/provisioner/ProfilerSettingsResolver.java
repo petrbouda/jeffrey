@@ -2,6 +2,7 @@ package cafe.jeffrey.provisioner;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import cafe.jeffrey.provisioner.placeholder.Placeholders;
 import cafe.jeffrey.shared.common.CliConstants;
 import cafe.jeffrey.shared.common.JeffreyLayout;
 import cafe.jeffrey.shared.common.Json;
@@ -48,12 +49,11 @@ public class ProfilerSettingsResolver {
     }
 
     public ResolvedProfilerSettings resolve(
-            String profilerPath,
             String profilerConfig,
             Path workspacePath,
             String projectId,
             String projectName,
-            Path currentSessionPath,
+            Placeholders placeholders,
             String features) {
 
         ResolvedProfilerSettings resolved;
@@ -66,18 +66,20 @@ public class ProfilerSettingsResolver {
 
         LOG.info("Profiler config resolved: source={} settings_file={}", resolved.source(), resolved.sourceDetail());
 
-        String command = replacePlaceholders(resolved.command(), profilerPath, currentSessionPath) + " " + features;
+        String command = replacePlaceholders(resolved.command(), placeholders) + " " + features;
         return new ResolvedProfilerSettings(command, resolved.source(), resolved.sourceDetail());
     }
 
-    private static String replacePlaceholders(String config, String profilerPath, Path sessionPath) {
+    /**
+     * Hub-pushed settings never pass through the configuration phase, so this is the only place
+     * their placeholders are resolved — including the legacy {@code <<JEFFREY_PROFILER_PATH>>}
+     * spelling the profiler settings UI still writes.
+     */
+    private static String replacePlaceholders(String config, Placeholders placeholders) {
         if (config == null || config.isBlank()) {
             return "";
         }
-
-        return config
-                .replace(CliConstants.PROFILER_PATH, profilerPath == null ? "" : profilerPath)
-                .replace(CliConstants.CURRENT_SESSION, sessionPath.toString());
+        return placeholders.resolve(config);
     }
 
     private ResolvedProfilerSettings resolveJeffreyProfilerConfig(Path workspacePath, String projectId, String projectName) {

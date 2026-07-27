@@ -43,6 +43,12 @@ Optional pod-level env overrides: `JEFFREY_PROJECT_NAME`, `JEFFREY_WORKSPACE_REF
 `JEFFREY_JVM_LOGGING`, `JEFFREY_ADDITIONAL_JVM_OPTIONS`. A mounted HOCON file still wins
 over environment variables wherever it sets a value.
 
+Any of these values may contain `<<ENV:NAME>>`, `<<FILE:/path>>` or `<<JEFFREY:NAME>>` placeholders,
+with an optional `:-default` fallback. Reach for `<<ENV:…>>` where Kubernetes' own `$(VAR)` cannot
+help — it expands only variables declared earlier in the same container's `env:` list, so
+`JEFFREY_ATTRIBUTES="cluster=$(SF_CLUSTER)"` arrives as literal text when `SF_CLUSTER` comes from
+`envFrom` or a webhook. Write `cluster=<<ENV:SF_CLUSTER>>` instead.
+
 **The project name is a stable identity** — it keys the project directory on the shared
 volume and links every session to the same project on Jeffrey Hub. Changing it creates a
 new project. If you rename the Maven artifactId / Gradle project, pin `projectName` in the

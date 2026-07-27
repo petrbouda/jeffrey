@@ -30,7 +30,8 @@ const headings = [
   { id: 'env-only', text: 'Environment-Only Configuration', level: 2 },
   { id: 'config-file', text: 'Configuration File', level: 2 },
   { id: 'configuration-options', text: 'Configuration Options', level: 2 },
-  { id: 'features', text: 'Features', level: 2 }
+  { id: 'features', text: 'Features', level: 2 },
+  { id: 'placeholders', text: 'Placeholders', level: 2 }
 ];
 
 onMounted(() => {
@@ -331,8 +332,55 @@ additional-jvm-options = "-Xmx2g -Xms2g -Djeffrey.logging.trace-file.path=<<JEFF
           </div>
         </div>
 
+        <h2 id="placeholders">Placeholders</h2>
+        <p>
+          Any configuration value — whether it comes from a HOCON file, a <code>JEFFREY_*</code> environment
+          variable or hub-pushed profiler settings — may contain <code>&lt;&lt;TYPE:NAME&gt;&gt;</code>
+          placeholders. The type decides where the value is looked up:
+        </p>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Placeholder</th>
+              <th>Resolves to</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>&lt;&lt;ENV:NAME&gt;&gt;</code></td>
+              <td>The <code>NAME</code> environment variable of the provisioner process.</td>
+            </tr>
+            <tr>
+              <td><code>&lt;&lt;FILE:/path&gt;&gt;</code></td>
+              <td>The file's content, trimmed. Useful for values Kubernetes mounts rather than exports, e.g. <code>/var/run/secrets/kubernetes.io/serviceaccount/namespace</code>.</td>
+            </tr>
+            <tr>
+              <td><code>&lt;&lt;JEFFREY:NAME&gt;&gt;</code></td>
+              <td>A path produced by this run. One name per exported variable: <code>HOME</code>, <code>WORKSPACES</code>, <code>CURRENT_WORKSPACE</code>, <code>CURRENT_PROJECT</code>, <code>CURRENT_SESSION</code>, <code>FILE_PATTERN</code>, <code>PROFILER_PATH</code>.</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <p>
+          Append <code>:-default</code> to supply a fallback for a variable that may not be set —
+          <code>&lt;&lt;ENV:SF_CLUSTER:-unknown&gt;&gt;</code>. Without one, an unresolved placeholder
+          becomes an empty string and logs a warning; it never stops the application from starting.
+        </p>
+
         <DocsCallout type="info">
-          <strong>Path placeholders:</strong> Use <code>&lt;&lt;JEFFREY_CURRENT_SESSION&gt;&gt;</code> in configuration values to reference the session directory path. This is replaced at runtime with the actual path.
+          <strong>Why not <code>$(VAR)</code>?</strong> Kubernetes expands <code>$(VAR)</code> only for
+          variables declared earlier in the <em>same</em> container's <code>env:</code> list. A value
+          injected through <code>envFrom</code>, a mutating webhook or the node environment arrives as
+          literal text, which is why <code>JEFFREY_ATTRIBUTES="cluster=$(SF_CLUSTER)"</code> does not work.
+          Use <code>&lt;&lt;ENV:SF_CLUSTER&gt;&gt;</code> instead — the provisioner resolves it itself.
+        </DocsCallout>
+
+        <DocsCallout type="info">
+          <strong>Legacy spelling:</strong> <code>&lt;&lt;JEFFREY_CURRENT_SESSION&gt;&gt;</code> and
+          <code>&lt;&lt;JEFFREY_PROFILER_PATH&gt;&gt;</code> keep working and remain what the profiler
+          settings UI writes. They are equivalent to <code>&lt;&lt;JEFFREY:CURRENT_SESSION&gt;&gt;</code>
+          and <code>&lt;&lt;JEFFREY:PROFILER_PATH&gt;&gt;</code>.
         </DocsCallout>
       </div>
 
