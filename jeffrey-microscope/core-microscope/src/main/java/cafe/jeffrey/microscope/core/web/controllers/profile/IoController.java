@@ -23,14 +23,17 @@ import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
 import cafe.jeffrey.profile.manager.IoManager;
 import cafe.jeffrey.profile.manager.model.io.FileForceStats;
 import cafe.jeffrey.profile.manager.model.io.IoEndpoint;
+import cafe.jeffrey.profile.manager.model.io.IoEndpointTimeline;
 import cafe.jeffrey.profile.manager.model.io.IoKind;
 import cafe.jeffrey.profile.manager.model.io.IoOperation;
 import cafe.jeffrey.profile.manager.model.io.IoOverview;
+import cafe.jeffrey.profile.manager.model.io.IoTargetFilter;
 import cafe.jeffrey.timeseries.TimeseriesData;
 
 import java.util.List;
@@ -54,9 +57,21 @@ public class IoController {
     }
 
     @GetMapping("/{kind}/timeline")
-    public TimeseriesData timeline(@PathVariable("profileId") String profileId, @PathVariable("kind") String kind) {
-        LOG.debug("Fetching I/O throughput timeline: kind={}", kind);
-        return mgr(profileId).throughputTimeline(IoKind.fromPath(kind));
+    public TimeseriesData timeline(
+            @PathVariable("profileId") String profileId,
+            @PathVariable("kind") String kind,
+            @RequestParam(value = "target", required = false) String target) {
+
+        LOG.debug("Fetching I/O throughput timeline: kind={} target={}", kind, target);
+        return mgr(profileId).throughputTimeline(IoKind.fromPath(kind), IoTargetFilter.ofNullable(target));
+    }
+
+    @GetMapping("/{kind}/endpoint-timelines")
+    public List<IoEndpointTimeline> endpointTimelines(
+            @PathVariable("profileId") String profileId, @PathVariable("kind") String kind) {
+
+        LOG.debug("Fetching I/O endpoint timelines: kind={}", kind);
+        return mgr(profileId).endpointTimelines(IoKind.fromPath(kind));
     }
 
     @GetMapping("/{kind}/slowest")

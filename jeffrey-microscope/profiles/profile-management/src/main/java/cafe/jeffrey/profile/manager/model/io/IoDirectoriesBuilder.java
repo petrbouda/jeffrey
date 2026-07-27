@@ -18,17 +18,10 @@
 
 package cafe.jeffrey.profile.manager.model.io;
 
-import tools.jackson.databind.node.ObjectNode;
 import cafe.jeffrey.provider.profile.api.GenericRecord;
 import cafe.jeffrey.provider.profile.api.RecordBuilder;
-import cafe.jeffrey.shared.common.model.Type;
 
-import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Groups file I/O events by their parent directory (the path up to the last {@code /}), accumulating
@@ -40,42 +33,16 @@ public class IoDirectoriesBuilder implements RecordBuilder<GenericRecord, List<I
 
     private static final String ROOT = "/";
 
-    private static final class Accumulator {
-        private long opCount;
-        private long bytes;
-        private long totalNanos;
-        private long maxNanos;
-    }
-
-    private final Map<String, Accumulator> accumulatorsByDir = new HashMap<>();
+    private final IoEndpointGrouping grouping = new IoEndpointGrouping();
 
     @Override
     public void onRecord(GenericRecord record) {
-        Type type = record.type();
-        ObjectNode fields = record.jsonFields();
-        String directory = directoryOf(IoEventFields.filePath(fields));
-
-        Duration duration = record.duration();
-        long durationNanos = duration == null ? 0 : duration.toNanos();
-
-        Accumulator accumulator = accumulatorsByDir.computeIfAbsent(directory, key -> new Accumulator());
-        accumulator.opCount++;
-        accumulator.bytes += IoEventFields.bytes(type, fields);
-        accumulator.totalNanos += durationNanos;
-        accumulator.maxNanos = Math.max(accumulator.maxNanos, durationNanos);
+        grouping.record(directoryOf(IoEventFields.filePath(record.jsonFields())), record);
     }
 
     @Override
     public List<IoEndpoint> build() {
-        List<IoEndpoint> result = new ArrayList<>(accumulatorsByDir.size());
-        accumulatorsByDir.forEach((directory, accumulator) -> result.add(new IoEndpoint(
-                directory,
-                accumulator.opCount,
-                accumulator.bytes,
-                accumulator.totalNanos,
-                accumulator.maxNanos)));
-        result.sort(Comparator.comparingLong(IoEndpoint::bytes).reversed());
-        return result;
+        return grouping.rankedByBytes();
     }
 
     private static String directoryOf(String path) {

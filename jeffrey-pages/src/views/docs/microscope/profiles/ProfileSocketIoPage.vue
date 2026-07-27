@@ -28,6 +28,7 @@ const { setHeadings } = useDocHeadings();
 const headings = [
   { id: 'overview', text: 'Overview', level: 2 },
   { id: 'throughput', text: 'Throughput', level: 2 },
+  { id: 'peer-timeline', text: 'Peer Timeline', level: 2 },
   { id: 'peers', text: 'Top Peers', level: 2 },
   { id: 'slowest', text: 'Slowest Operations', level: 2 },
   { id: 'events', text: 'Source Events', level: 2 }
@@ -54,6 +55,9 @@ onMounted(() => {
 
       <h2 id="throughput">Throughput</h2>
       <p>Bytes read and written per second over socket connections. A read plateau usually means you're waiting on a slow upstream; a write plateau means a slow or backpressured downstream.</p>
+
+      <h2 id="peer-timeline">Peer Timeline</h2>
+      <p>The busiest peers as a gallery of sparkline tiles — every peer's throughput shape is visible before you pick one, so an outlier announces itself without a click. Selecting a tile plots that peer's full read/write timeline underneath, marked with a <em>Single peer</em> badge so it is never confused with the aggregate Throughput chart.</p>
 
       <h2 id="peers">Top Peers</h2>
       <p>Socket endpoints (<code>host:port</code>) ranked by bytes — operation count, bytes (with a share bar), and total/max time per peer — from <code>jdk.SocketRead</code> / <code>jdk.SocketWrite</code>.</p>

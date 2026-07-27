@@ -18,17 +18,10 @@
 
 package cafe.jeffrey.profile.manager.model.io;
 
-import tools.jackson.databind.node.ObjectNode;
 import cafe.jeffrey.provider.profile.api.GenericRecord;
 import cafe.jeffrey.provider.profile.api.RecordBuilder;
-import cafe.jeffrey.shared.common.model.Type;
 
-import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Groups I/O events by endpoint — socket peer ({@code host:port}) or file path — accumulating
@@ -37,41 +30,15 @@ import java.util.Map;
  */
 public class IoEndpointsBuilder implements RecordBuilder<GenericRecord, List<IoEndpoint>> {
 
-    private static final class Accumulator {
-        private long opCount;
-        private long bytes;
-        private long totalNanos;
-        private long maxNanos;
-    }
-
-    private final Map<String, Accumulator> accumulatorsByTarget = new HashMap<>();
+    private final IoEndpointGrouping grouping = new IoEndpointGrouping();
 
     @Override
     public void onRecord(GenericRecord record) {
-        Type type = record.type();
-        ObjectNode fields = record.jsonFields();
-        String target = IoEventFields.target(type, fields);
-
-        Duration duration = record.duration();
-        long durationNanos = duration == null ? 0 : duration.toNanos();
-
-        Accumulator accumulator = accumulatorsByTarget.computeIfAbsent(target, key -> new Accumulator());
-        accumulator.opCount++;
-        accumulator.bytes += IoEventFields.bytes(type, fields);
-        accumulator.totalNanos += durationNanos;
-        accumulator.maxNanos = Math.max(accumulator.maxNanos, durationNanos);
+        grouping.record(IoEventFields.target(record.type(), record.jsonFields()), record);
     }
 
     @Override
     public List<IoEndpoint> build() {
-        List<IoEndpoint> result = new ArrayList<>(accumulatorsByTarget.size());
-        accumulatorsByTarget.forEach((target, accumulator) -> result.add(new IoEndpoint(
-                target,
-                accumulator.opCount,
-                accumulator.bytes,
-                accumulator.totalNanos,
-                accumulator.maxNanos)));
-        result.sort(Comparator.comparingLong(IoEndpoint::bytes).reversed());
-        return result;
+        return grouping.rankedByBytes();
     }
 }

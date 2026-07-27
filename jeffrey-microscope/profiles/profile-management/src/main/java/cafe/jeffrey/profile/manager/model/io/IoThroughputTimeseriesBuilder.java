@@ -28,17 +28,20 @@ import cafe.jeffrey.timeseries.TimeseriesData;
 import cafe.jeffrey.timeseries.TimeseriesUtils;
 
 /**
- * Builds bytes-read-per-second and bytes-written-per-second series from the socket/file I/O events.
+ * Builds bytes-read-per-second and bytes-written-per-second series from the socket/file I/O events,
+ * either across every endpoint or scoped to a single one via an {@link IoTargetFilter}.
  */
 public class IoThroughputTimeseriesBuilder implements RecordBuilder<GenericRecord, TimeseriesData> {
 
     private static final String READ_SERIES_NAME = "Bytes Read / sec";
     private static final String WRITE_SERIES_NAME = "Bytes Written / sec";
 
+    private final IoTargetFilter targetFilter;
     private final LongLongHashMap readTimeseries;
     private final LongLongHashMap writeTimeseries;
 
-    public IoThroughputTimeseriesBuilder(RelativeTimeRange timeRange) {
+    public IoThroughputTimeseriesBuilder(RelativeTimeRange timeRange, IoTargetFilter targetFilter) {
+        this.targetFilter = targetFilter;
         this.readTimeseries = TimeseriesUtils.initWithZeros(timeRange);
         this.writeTimeseries = TimeseriesUtils.initWithZeros(timeRange);
     }
@@ -46,6 +49,9 @@ public class IoThroughputTimeseriesBuilder implements RecordBuilder<GenericRecor
     @Override
     public void onRecord(GenericRecord record) {
         Type type = record.type();
+        if (!targetFilter.matches(type, record.jsonFields())) {
+            return;
+        }
         long bytes = IoEventFields.bytes(type, record.jsonFields());
         if (bytes <= 0) {
             return;

@@ -18,7 +18,12 @@
 
 import BaseProfileClient from '@/services/api/BaseProfileClient';
 import TimeseriesData from '@/services/timeseries/model/TimeseriesData';
-import type { IoEndpoint, IoOperation, IoOverview } from '@/services/api/model/IoModels';
+import type {
+  IoEndpoint,
+  IoEndpointTimeline,
+  IoOperation,
+  IoOverview
+} from '@/services/api/model/IoModels';
 
 export default class ProfileSocketIoClient extends BaseProfileClient {
   constructor(profileId: string) {
@@ -29,8 +34,18 @@ export default class ProfileSocketIoClient extends BaseProfileClient {
     return this.get<IoOverview>('');
   }
 
-  public getTimeline(): Promise<TimeseriesData> {
-    return this.get<TimeseriesData>('/timeline');
+  /**
+   * Throughput across every peer, or scoped to a single {@code host:port} peer when one is given.
+   */
+  public getTimeline(peer?: string): Promise<TimeseriesData> {
+    return this.get<TimeseriesData>('/timeline', peer ? { target: peer } : undefined);
+  }
+
+  /**
+   * The heaviest peers, each with its own bytes-per-second series for the sparkline gallery.
+   */
+  public getPeerTimelines(): Promise<IoEndpointTimeline[]> {
+    return this.get<IoEndpointTimeline[]>('/endpoint-timelines');
   }
 
   public getSlowest(): Promise<IoOperation[]> {
