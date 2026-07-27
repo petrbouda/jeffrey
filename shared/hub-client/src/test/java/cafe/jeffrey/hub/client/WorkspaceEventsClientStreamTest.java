@@ -49,6 +49,7 @@ import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class WorkspaceEventsClientStreamTest {
@@ -297,6 +298,23 @@ class WorkspaceEventsClientStreamTest {
             subscription.cancel();
 
             assertTrue(cancelled.await(5, SECONDS), "Server must observe the cancellation");
+        }
+
+        @Test
+        void cancelCompletesTheSubscriptionInsteadOfFaultingIt() {
+            var cancelled = new CountDownLatch(1);
+            startBlockingServer(cancelled);
+            var recorder = Recorder.create();
+
+            var subscription = client.streamEvents(WORKSPACE_ID, request(0, Set.of()), recorder.callbacks());
+            await().atMost(5, SECONDS).untilAsserted(() -> assertEquals(1, openStreams.get()));
+
+            subscription.cancel();
+
+            // An unsubscribe is not a fault. Reporting it through onError makes every closed
+            // browser tab look like a broken hub connection to the SSE layer above.
+            await().atMost(5, SECONDS).untilAsserted(() -> assertEquals(1, recorder.completions().get()));
+            assertNull(recorder.error().get(), "A cancellation must not reach the error callback");
         }
 
         @Test

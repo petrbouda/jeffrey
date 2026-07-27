@@ -26,9 +26,10 @@ import java.util.function.Consumer;
  * Lifecycle handlers for a workspace event subscription.
  *
  * @param onBatch    called for each delivered batch, including heartbeats
- * @param onComplete called when the server ends the stream cleanly. A hub that does not tail
- *                   (the stub, for instance) completes right after catch-up, so callers should
- *                   treat this as "no more events are coming" rather than as a reason to reconnect.
+ * @param onComplete called when the stream ends without a fault — either the server closed it
+ *                   cleanly or the subscription was cancelled. A hub that does not tail (the stub,
+ *                   for instance) completes right after catch-up, so callers should treat this as
+ *                   "no more events are coming" rather than as a reason to reconnect.
  * @param onError    called when the stream fails
  */
 public record WorkspaceEventsStreamCallbacks(
