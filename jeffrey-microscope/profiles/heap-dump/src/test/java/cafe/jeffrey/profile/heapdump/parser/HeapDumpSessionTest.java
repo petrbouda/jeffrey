@@ -30,10 +30,13 @@ import java.time.ZoneOffset;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import cafe.jeffrey.profile.heapdump.model.IndexBuildProgressListener;
+import cafe.jeffrey.profile.heapdump.model.SubPhaseTiming;
 import cafe.jeffrey.profile.heapdump.persistence.HeapDumpIndexPaths;
 import cafe.jeffrey.profile.heapdump.persistence.HeapDumpSession;
 import cafe.jeffrey.profile.heapdump.view.HprofTag;
@@ -122,6 +125,63 @@ class HeapDumpSessionTest {
     void throwsWhenHprofMissing(@TempDir Path tmp) {
         Path missing = tmp.resolve("nope.hprof");
         assertThrows(IOException.class, () -> HeapDumpSession.openOrBuild(missing, CLOCK));
+    }
+
+    /**
+     * A build that dies partway must leave nothing that later reads would mistake for a
+     * finished index. Publishing one wedges the dump permanently: every request afterwards
+     * fails on the missing {@code dump_metadata} row instead of rebuilding.
+     */
+    @Test
+    void failedBuildLeavesNoIndexBehind(@TempDir Path tmp) throws IOException {
+        Path hprof = simpleDump(tmp, "failing.hprof");
+        Path indexPath = HeapDumpIndexPaths.indexFor(hprof);
+
+        try (HprofMappedFile file = HprofMappedFile.open(hprof)) {
+            assertThrows(IllegalStateException.class, () ->
+                    HprofIndex.build(file, indexPath, CLOCK, failAt("walk_pass_b")));
+        }
+
+        assertAll(
+                () -> assertFalse(Files.exists(indexPath),
+                        "a failed build must not publish its half-written index"),
+                () -> assertFalse(Files.exists(HeapDumpIndexPaths.indexBuildFor(hprof)),
+                        "the scratch database of a failed build must be removed"),
+                () -> assertFalse(HeapDumpSession.isIndexUsable(hprof),
+                        "the dump must still look unindexed, so the next open rebuilds it"));
+    }
+
+    @Test
+    void rebuildSucceedsAfterAFailedBuild(@TempDir Path tmp) throws IOException, SQLException {
+        Path hprof = simpleDump(tmp, "retry.hprof");
+        Path indexPath = HeapDumpIndexPaths.indexFor(hprof);
+
+        try (HprofMappedFile file = HprofMappedFile.open(hprof)) {
+            assertThrows(IllegalStateException.class, () ->
+                    HprofIndex.build(file, indexPath, CLOCK, failAt("walk_pass_b")));
+        }
+
+        try (HeapDumpSession session = HeapDumpSession.openOrBuild(hprof, CLOCK)) {
+            assertFalse(session.lastBuildSubPhases().isEmpty(), "the retry must run a real build");
+            assertTrue(session.view().classCount() >= 1);
+        }
+    }
+
+    /** A listener that aborts the build when the named sub-phase starts. */
+    private static IndexBuildProgressListener failAt(String subPhaseName) {
+        return new IndexBuildProgressListener() {
+            @Override
+            public void onSubPhaseStarted(String name) {
+                if (subPhaseName.equals(name)) {
+                    throw new IllegalStateException("injected failure at " + name);
+                }
+            }
+
+            @Override
+            public void onSubPhase(SubPhaseTiming timing) {
+                // not needed for this test
+            }
+        };
     }
 
     private static Path simpleDump(Path tmp, String name) throws IOException {

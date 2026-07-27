@@ -31,6 +31,8 @@ public final class HeapDumpIndexPaths {
     static final String INDEX_SUFFIX = ".idx.duckdb";
     static final String INDEX_WAL_SUFFIX = ".idx.duckdb.wal";
     static final String INDEX_STAGING_SUFFIX = ".idx.staging";
+    static final String INDEX_BUILD_SUFFIX = ".idx.building.duckdb";
+    static final String WAL_SUFFIX = ".wal";
 
     private HeapDumpIndexPaths() {
     }
@@ -46,6 +48,22 @@ public final class HeapDumpIndexPaths {
     /** The DuckDB write-ahead log sibling, used when cleaning up. */
     public static Path indexWalFor(Path hprof) {
         return sibling(hprof, INDEX_WAL_SUFFIX);
+    }
+
+    /**
+     * Scratch path an index build writes to before publishing the result under
+     * {@link #indexFor(Path)}. Readers judge an index by little more than "the
+     * file is there and out-dates the dump", so a half-populated database must
+     * never occupy that name — building here and renaming on success keeps a
+     * failed (or killed) build from leaving one behind.
+     */
+    public static Path indexBuildFor(Path hprof) {
+        return sibling(hprof, INDEX_BUILD_SUFFIX);
+    }
+
+    /** The DuckDB write-ahead log sibling of any index database path. */
+    public static Path walFor(Path indexDb) {
+        return sibling(indexDb, WAL_SUFFIX);
     }
 
     /**
