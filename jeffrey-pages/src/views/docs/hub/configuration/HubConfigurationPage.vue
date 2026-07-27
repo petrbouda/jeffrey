@@ -389,7 +389,7 @@ onMounted(() => {
 
       <DocsCallout type="tip">
         <strong>Default Profiler Command:</strong>
-        <code>-agentpath:&lt;&lt;JEFFREY_PROFILER_PATH&gt;&gt;=start,alloc,lock,event=ctimer,loop=15m,chunksize=5m,file=&lt;&lt;JEFFREY_CURRENT_SESSION&gt;&gt;/profile-%t.jfr</code>
+        <code>-agentpath:&lt;&lt;JEFFREY:PROFILER_PATH&gt;&gt;=start,alloc,lock,event=ctimer,jfrsync=default,loop=15m,chunksize=5m,file=&lt;&lt;JEFFREY:CURRENT_SESSION&gt;&gt;/profile-%t.jfr</code>
       </DocsCallout>
 
       <h2 id="database">Database Persistence</h2>

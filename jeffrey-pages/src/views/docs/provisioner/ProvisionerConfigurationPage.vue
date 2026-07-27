@@ -227,7 +227,7 @@ additional-jvm-options = "-Xmx2g -Xms2g -Djeffrey.logging.trace-file.path=<<JEFF
               <td><code>profiler-config</code></td>
               <td>No</td>
               <td>—</td>
-              <td>Explicit async-profiler command string. Overrides both hub-pushed workspace settings and the built-in default. Supports the <code>&lt;&lt;JEFFREY_PROFILER_PATH&gt;&gt;</code> and <code>&lt;&lt;JEFFREY_CURRENT_SESSION&gt;&gt;</code> placeholders.</td>
+              <td>Explicit async-profiler command string. Overrides both hub-pushed workspace settings and the built-in default. Supports <a href="#placeholders">placeholders</a>.</td>
             </tr>
             <tr>
               <td><code>repository-type</code></td>
@@ -239,7 +239,7 @@ additional-jvm-options = "-Xmx2g -Xms2g -Djeffrey.logging.trace-file.path=<<JEFF
               <td><code>additional-jvm-options</code></td>
               <td>No</td>
               <td><code>JEFFREY_ADDITIONAL_JVM_OPTIONS</code></td>
-              <td>Extra JVM flags appended to the generated arguments. Supports the <code>&lt;&lt;JEFFREY_CURRENT_SESSION&gt;&gt;</code> placeholder.</td>
+              <td>Extra JVM flags appended to the generated arguments. Supports <a href="#placeholders">placeholders</a>.</td>
             </tr>
             <tr>
               <td><code>provisioner-verbose</code></td>
@@ -251,7 +251,7 @@ additional-jvm-options = "-Xmx2g -Xms2g -Djeffrey.logging.trace-file.path=<<JEFF
               <td><code>attributes</code></td>
               <td>No</td>
               <td><code>JEFFREY_ATTRIBUTES</code></td>
-              <td>Custom key-value metadata (e.g., cluster, namespace). Env form: <code>key=value,key=value</code></td>
+              <td>Custom key-value metadata (e.g., cluster, namespace). Env form: <code>key=value,key=value</code>. Both sides of a pair may be a <a href="#placeholders">placeholder</a>, so a value can be derived from the environment.</td>
             </tr>
             <tr>
               <td><code>perf-counters.enabled</code></td>
@@ -303,7 +303,7 @@ additional-jvm-options = "-Xmx2g -Xms2g -Djeffrey.logging.trace-file.path=<<JEFF
           <div class="feature-card logging">
             <div class="feature-icon"><i class="bi bi-file-text"></i></div>
             <h4>JVM Logging</h4>
-            <p>Structured JVM diagnostic logging including GC events, JIT compilation, and JFR activity. Files with <code>-jvm.log</code> suffix are automatically recognized as JVM log artifacts. Use <code>&lt;&lt;JEFFREY_CURRENT_SESSION&gt;&gt;</code> placeholder in the command for the session directory path.</p>
+            <p>Structured JVM diagnostic logging including GC events, JIT compilation, and JFR activity. Files with <code>-jvm.log</code> suffix are automatically recognized as JVM log artifacts. Use <a href="#placeholders">placeholders</a> such as <code>&lt;&lt;JEFFREY:CURRENT_SESSION&gt;&gt;</code> in the command to reference the session directory.</p>
             <code>jvm-logging { enabled = true }</code>
           </div>
           <div class="feature-card heartbeat">
@@ -334,9 +334,10 @@ additional-jvm-options = "-Xmx2g -Xms2g -Djeffrey.logging.trace-file.path=<<JEFF
 
         <h2 id="placeholders">Placeholders</h2>
         <p>
-          Any configuration value — whether it comes from a HOCON file, a <code>JEFFREY_*</code> environment
-          variable or hub-pushed profiler settings — may contain <code>&lt;&lt;TYPE:NAME&gt;&gt;</code>
-          placeholders. The type decides where the value is looked up:
+          Most configuration values — whatever supplied them: a HOCON file, a <code>JEFFREY_*</code>
+          environment variable, or hub-pushed profiler settings — may contain
+          <code>&lt;&lt;TYPE:NAME&gt;&gt;</code> placeholders. The type decides where the value is
+          looked up:
         </p>
 
         <table>
@@ -372,12 +373,6 @@ additional-jvm-options = "-Xmx2g -Xms2g -Djeffrey.logging.trace-file.path=<<JEFF
           Use <code>&lt;&lt;ENV:SF_CLUSTER&gt;&gt;</code> instead — the provisioner resolves it itself.
         </DocsCallout>
 
-        <DocsCallout type="info">
-          <strong>Legacy spelling:</strong> <code>&lt;&lt;JEFFREY_CURRENT_SESSION&gt;&gt;</code> and
-          <code>&lt;&lt;JEFFREY_PROFILER_PATH&gt;&gt;</code> keep working and remain what the profiler
-          settings UI writes. They are equivalent to <code>&lt;&lt;JEFFREY:CURRENT_SESSION&gt;&gt;</code>
-          and <code>&lt;&lt;JEFFREY:PROFILER_PATH&gt;&gt;</code>.
-        </DocsCallout>
       </div>
 
       <DocsNavFooter />

@@ -274,7 +274,7 @@ const folderStructure = `$JEFFREY_HOME/
 
       <h2 id="heap-dump-analysis">Heap Dump Analysis</h2>
       <p>Memory analysis from heap dump snapshots (.hprof files). Requires a heap dump to be associated with the profile.</p>
-      <p>A heap dump is analyzed through a one-time <strong>initialization pipeline</strong> shown as staged progress: <strong>Heap Indexing</strong> (Loading heap dump &rarr; Parsing heap structure &rarr; Building indexes) builds a sibling index next to the <code>.hprof</code>; <strong>Memory Analysis</strong> then precomputes strings, the dominator tree, threads, biggest objects, collections and leak suspects; and <strong>Hotspots</strong> finishes class loaders, memory consumers, duplicate data and biggest collections. Once initialized, every feature below reads from the index instantly.</p>
+      <p>A heap dump is analyzed through a one-time <strong>initialization pipeline</strong> shown as staged progress: <strong>Heap Indexing</strong> (Loading heap dump &rarr; Parsing heap structure &rarr; Building indexes) builds a sibling index next to the <code>.hprof</code>; <strong>Memory Analysis</strong> then precomputes strings, the dominator tree, threads, biggest objects, collections and leak suspects; and <strong>Hotspots</strong> finishes class loaders, memory consumers, duplicate data and biggest collections. Once initialized, every feature below reads from the index instantly. A build that fails or is interrupted publishes nothing, so reopening the dump simply starts a clean rebuild.</p>
 
       <div class="docs-grid docs-grid-2">
         <DocsFeatureCard
