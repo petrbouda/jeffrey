@@ -1,6 +1,7 @@
 package cafe.jeffrey.provisioner;
 
 import cafe.jeffrey.provisioner.model.HeapDumpType;
+import cafe.jeffrey.provisioner.placeholder.Placeholders;
 import cafe.jeffrey.shared.common.AppInfoConstants;
 import cafe.jeffrey.shared.common.CliConstants;
 import cafe.jeffrey.shared.common.HeartbeatConstants;
@@ -89,7 +90,12 @@ public class FeatureBuilder {
         return this;
     }
 
-    public String build(Path currentSessionPath) {
+    /**
+     * Renders the JVM options for the enabled features. {@code placeholders} carries this run's
+     * layout, so both the built-in option templates and the user-supplied values ({@code jvmLogging},
+     * {@code additionalJvmOptions}) end up pointing at real paths.
+     */
+    public String build(Path currentSessionPath, Placeholders placeholders) {
         StringBuilder options = new StringBuilder();
 
         if (debugNonSafepointsEnabled) {
@@ -98,7 +104,7 @@ public class FeatureBuilder {
         }
 
         if (perfCountersEnabled) {
-            options.append(PERF_DATA_OPTIONS.replace(CliConstants.CURRENT_SESSION, currentSessionPath.toString()));
+            options.append(placeholders.resolve(PERF_DATA_OPTIONS));
             options.append(" ");
         }
 
@@ -107,13 +113,13 @@ public class FeatureBuilder {
                 case CRASH -> HEAP_DUMP_CRASH_OPTIONS;
                 case EXIT -> HEAP_DUMP_EXIT_OPTIONS;
             };
-            options.append(heapDumpOptions.replace(CliConstants.CURRENT_SESSION, currentSessionPath.toString()));
+            options.append(placeholders.resolve(heapDumpOptions));
             options.append(" ");
         }
 
         if (jvmLogging != null && !jvmLogging.isBlank()) {
             options.append("-Xlog:");
-            options.append(jvmLogging.replace(CliConstants.CURRENT_SESSION, currentSessionPath.toString()));
+            options.append(placeholders.resolve(jvmLogging));
             options.append(" ");
         }
 
@@ -123,12 +129,12 @@ public class FeatureBuilder {
             appendAppIdentity(agentOption);
             options.append(agentOption);
             options.append(" ");
-            options.append(STREAMING_FLIGHT_RECORDER_OPTIONS.replace(CliConstants.CURRENT_SESSION, currentSessionPath.toString()));
+            options.append(placeholders.resolve(STREAMING_FLIGHT_RECORDER_OPTIONS));
             options.append(" ");
         }
 
         if (additionalJvmOptions != null && !additionalJvmOptions.isBlank()) {
-            options.append(additionalJvmOptions.replace(CliConstants.CURRENT_SESSION, currentSessionPath.toString()));
+            options.append(placeholders.resolve(additionalJvmOptions));
             options.append(" ");
         }
 

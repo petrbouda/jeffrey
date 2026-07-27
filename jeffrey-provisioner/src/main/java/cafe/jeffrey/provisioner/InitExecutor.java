@@ -20,6 +20,8 @@ package cafe.jeffrey.provisioner;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import cafe.jeffrey.provisioner.placeholder.JeffreyPlaceholderSource;
+import cafe.jeffrey.provisioner.placeholder.Placeholders;
 import cafe.jeffrey.shared.common.HeartbeatConstants;
 import cafe.jeffrey.shared.common.IDGenerator;
 import cafe.jeffrey.shared.common.JeffreyLayout;
@@ -148,6 +150,15 @@ public class InitExecutor {
                 config.getAttributes(),
                 provisionedAt);
 
+        // Phase two: the layout only exists now that the session directory has been created, so
+        // this is where <<JEFFREY:...>> becomes answerable. Values carrying <<ENV:...>> were
+        // already resolved when the configuration was read.
+        Placeholders placeholders = Placeholders.of(JeffreyPlaceholderSource.of(
+                new JeffreyPlaceholderSource.Layout(
+                        jeffreyHome, workspacesPath, workspacePath, projectPath, newSessionPath,
+                        config.getProfilerPath()),
+                EnvFileBuilder.DEFAULT_FILE_TEMPLATE));
+
         String features = new FeatureBuilder()
                 .setDebugNonSafepointsEnabled(config.isDebugNonSafepointsEnabled())
                 .setHeapDumpEnabled(config.resolveHeapDumpType())
@@ -156,15 +167,14 @@ public class InitExecutor {
                 .setAgentPath(config.getAgentPath())
                 .setAdditionalJvmOptions(config.getAdditionalJvmOptions())
                 .setAppIdentity(appIdentity)
-                .build(newSessionPath);
+                .build(newSessionPath, placeholders);
 
         ProfilerSettingsResolver.ResolvedProfilerSettings resolvedSettings = new ProfilerSettingsResolver().resolve(
-                config.getProfilerPath(),
                 config.getProfilerConfig(),
                 workspacePath,
                 projectId,
                 config.getProjectName(),
-                newSessionPath,
+                placeholders,
                 features);
         String profilerSettings = resolvedSettings.command();
 

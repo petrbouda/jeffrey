@@ -244,12 +244,7 @@ const filteredEvents = computed(() => {
 
   const query = (props.searchQuery ?? '').trim().toLowerCase();
   if (query) {
-    list = list.filter(
-      e =>
-        EventContentParser.getEventDescription(e).toLowerCase().includes(query) ||
-        e.originEventId.toLowerCase().includes(query) ||
-        e.projectId.toLowerCase().includes(query)
-    );
+    list = list.filter(e => searchHaystack(e).includes(query));
   }
 
   list.sort((a, b) => b.originCreatedAt - a.originCreatedAt);
@@ -391,6 +386,24 @@ const attributePairsFor = (event: WorkspaceEvent): Record<string, string> | null
     pairs[key] = String(value);
   });
   return Object.keys(pairs).length > 0 ? pairs : null;
+};
+
+/**
+ * Everything the row actually renders, flattened into one lower-cased string. Keeping the
+ * haystack aligned with the visible markup means a user can search for any token they can see —
+ * the badge label, the author, or a content pair such as a fileName or sessionId.
+ */
+const searchHaystack = (event: WorkspaceEvent): string => {
+  const parts: string[] = [
+    EventContentParser.getEventDisplayName(event.eventType),
+    EventContentParser.getEventDescription(event),
+    event.originEventId,
+    event.projectId,
+    event.createdBy,
+    ...Object.entries(contentPairsFor(event) ?? {}).flat(),
+    ...Object.entries(attributePairsFor(event) ?? {}).flat()
+  ];
+  return parts.join(' ').toLowerCase();
 };
 
 const getEventBadgeVariant = (eventType: WorkspaceEventType) => {

@@ -23,6 +23,8 @@ import com.typesafe.config.ConfigFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.provisioner.model.HeapDumpType;
+import cafe.jeffrey.provisioner.placeholder.EnvPlaceholderSource;
+import cafe.jeffrey.provisioner.placeholder.Placeholders;
 import cafe.jeffrey.shared.common.CliConstants;
 import cafe.jeffrey.shared.common.IDGenerator;
 import cafe.jeffrey.shared.common.model.RepositoryType;
@@ -192,6 +194,11 @@ public class InitConfig {
     private static InitConfig fromConfig(Config resolved, Function<String, String> envLookup) {
         InitConfig config = new InitConfig();
 
+        // Phase one of placeholder resolution: everything that can be answered without knowing
+        // where this run will put its session. Kubernetes cannot expand $(SF_CLUSTER) for values
+        // it did not declare itself, so <<ENV:SF_CLUSTER>> is resolved here instead.
+        Placeholders placeholders = Placeholders.of(new EnvPlaceholderSource(envLookup));
+
         String jeffreyHome = resolved.getString("jeffrey-home");
         String workspacesDir = resolved.getString("workspaces-dir");
         if (isNullOrBlank(jeffreyHome) && isNullOrBlank(workspacesDir)) {
@@ -202,27 +209,27 @@ public class InitConfig {
         }
         config.setJeffreyHome(jeffreyHome);
         config.setWorkspacesDir(workspacesDir);
-        config.setProfilerPath(resolveWithEnv(resolved.getString("profiler-path"), ENV_PROFILER_PATH, envLookup));
-        config.setProfilerConfig(resolved.getString("profiler-config"));
+        config.setProfilerPath(resolveWithEnv(resolved.getString("profiler-path"), ENV_PROFILER_PATH, envLookup, placeholders));
+        config.setProfilerConfig(placeholders.resolve(resolved.getString("profiler-config")));
         config.setRepositoryType(resolved.getString("repository-type"));
-        config.setAgentPath(resolveWithEnv(resolved.getString("agent-path"), ENV_AGENT_PATH, envLookup));
+        config.setAgentPath(resolveWithEnv(resolved.getString("agent-path"), ENV_AGENT_PATH, envLookup, placeholders));
         config.setEnvFilePath(resolved.getString("env-file"));
 
-        config.setArgFilePath(resolveWithEnv(resolved.getString("arg-file"), ENV_ARG_FILE, envLookup));
+        config.setArgFilePath(resolveWithEnv(resolved.getString("arg-file"), ENV_ARG_FILE, envLookup, placeholders));
         config.setPrintEnv(resolved.getBoolean("print-env"));
         config.setProvisionerVerbose(resolveBoolWithEnv(resolved.getBoolean("provisioner-verbose"), ENV_PROVISIONER_VERBOSE, envLookup));
 
         Config projectCfg = resolved.getConfig("project");
         ProjectConfig project = new ProjectConfig();
-        project.setWorkspaceRefId(resolveWithEnv(projectCfg.getString("workspace-ref-id"), ENV_WORKSPACE_REF_ID, envLookup));
-        project.setName(resolveWithEnv(projectCfg.getString("name"), ENV_PROJECT_NAME, envLookup));
-        project.setLabel(resolveWithEnv(projectCfg.getString("label"), ENV_PROJECT_LABEL, envLookup));
-        project.setInstanceName(resolveWithEnv(projectCfg.getString("instance-name"), ENV_INSTANCE_NAME, envLookup));
+        project.setWorkspaceRefId(resolveWithEnv(projectCfg.getString("workspace-ref-id"), ENV_WORKSPACE_REF_ID, envLookup, placeholders));
+        project.setName(resolveWithEnv(projectCfg.getString("name"), ENV_PROJECT_NAME, envLookup, placeholders));
+        project.setLabel(resolveWithEnv(projectCfg.getString("label"), ENV_PROJECT_LABEL, envLookup, placeholders));
+        project.setInstanceName(resolveWithEnv(projectCfg.getString("instance-name"), ENV_INSTANCE_NAME, envLookup, placeholders));
         config.setProject(project);
 
-        Map<String, Object> attributes = resolved.getObject("attributes").unwrapped();
+        Map<String, Object> attributes = resolveAttributes(resolved.getObject("attributes").unwrapped(), placeholders);
         if (attributes.isEmpty()) {
-            attributes = parseAttributesEnv(envLookup.apply(ENV_ATTRIBUTES));
+            attributes = parseAttributesEnv(envLookup.apply(ENV_ATTRIBUTES), placeholders);
         }
         config.setAttributes(attributes);
 
@@ -244,13 +251,13 @@ public class InitConfig {
         JvmLoggingConfig jvmLogging = new JvmLoggingConfig();
         jvmLogging.setEnabled(jvmLogCfg.getBoolean("enabled"));
         if (jvmLogCfg.hasPath("command")) {
-            jvmLogging.setCommand(jvmLogCfg.getString("command"));
+            jvmLogging.setCommand(placeholders.resolve(jvmLogCfg.getString("command")));
         }
         if (!jvmLogging.isEnabled()) {
             String envCommand = envLookup.apply(ENV_JVM_LOGGING);
             if (!isNullOrBlank(envCommand)) {
                 jvmLogging.setEnabled(true);
-                jvmLogging.setCommand(envCommand);
+                jvmLogging.setCommand(placeholders.resolve(envCommand));
             }
         }
         config.setJvmLogging(jvmLogging);
@@ -261,7 +268,7 @@ public class InitConfig {
         config.setJdkJavaOptions(jdkJavaOptions);
 
         config.setAdditionalJvmOptions(
-                resolveWithEnv(resolved.getString("additional-jvm-options"), ENV_ADDITIONAL_JVM_OPTIONS, envLookup));
+                resolveWithEnv(resolved.getString("additional-jvm-options"), ENV_ADDITIONAL_JVM_OPTIONS, envLookup, placeholders));
 
         Config dnsCfg = resolved.getConfig("debug-non-safepoints");
         DebugNonSafepointsConfig debugNonSafepoints = new DebugNonSafepointsConfig();
@@ -271,12 +278,24 @@ public class InitConfig {
         return config;
     }
 
+    /** Resolves placeholders in the keys and values of the HOCON {@code attributes} object. */
+    private static Map<String, Object> resolveAttributes(Map<String, Object> attributes, Placeholders placeholders) {
+        Map<String, Object> resolved = new HashMap<>();
+        for (Map.Entry<String, Object> attribute : attributes.entrySet()) {
+            Object value = attribute.getValue() instanceof String stringValue
+                    ? placeholders.resolve(stringValue)
+                    : attribute.getValue();
+            resolved.put(placeholders.resolve(attribute.getKey()), value);
+        }
+        return resolved;
+    }
+
     /**
      * Parses the {@code JEFFREY_ATTRIBUTES} value ({@code key=value,key=value}) into an
      * attributes map. Malformed pairs are skipped with a warning — attributes are metadata
      * and must never stop the application from being provisioned.
      */
-    private static Map<String, Object> parseAttributesEnv(String envValue) {
+    private static Map<String, Object> parseAttributesEnv(String envValue, Placeholders placeholders) {
         Map<String, Object> attributes = new HashMap<>();
         if (isNullOrBlank(envValue)) {
             return attributes;
@@ -287,8 +306,8 @@ public class InitConfig {
                 LOG.warn("Skipping malformed attribute pair (expected key=value): pair={}", pair.trim());
                 continue;
             }
-            String key = pair.substring(0, separatorIndex).trim();
-            String value = pair.substring(separatorIndex + 1).trim();
+            String key = placeholders.resolve(pair.substring(0, separatorIndex).trim());
+            String value = placeholders.resolve(pair.substring(separatorIndex + 1).trim());
             if (key.isEmpty()) {
                 LOG.warn("Skipping attribute pair with empty key: pair={}", pair.trim());
                 continue;
@@ -325,12 +344,20 @@ public class InitConfig {
      * Used for settings that prefer HOCON but accept env-var defaults baked into the
      * image by jeffrey-jib (or set on the pod) when the HOCON entry is absent.
      */
-    private static String resolveWithEnv(String hoconValue, String envName, Function<String, String> envLookup) {
-        if (!isNullOrBlank(hoconValue)) {
-            return hoconValue;
+    /**
+     * Picks the HOCON value or its environment fallback, then resolves any {@code <<TYPE:NAME>>}
+     * placeholder it carries. {@code <<JEFFREY:...>>} is unknown to this resolver and survives
+     * untouched for the JVM-args phase, where the session directory finally exists.
+     */
+    private static String resolveWithEnv(
+            String hoconValue, String envName, Function<String, String> envLookup, Placeholders placeholders) {
+
+        String value = hoconValue;
+        if (isNullOrBlank(value)) {
+            String envValue = envLookup.apply(envName);
+            value = isNullOrBlank(envValue) ? hoconValue : envValue;
         }
-        String envValue = envLookup.apply(envName);
-        return isNullOrBlank(envValue) ? hoconValue : envValue;
+        return placeholders.resolve(value);
     }
 
     /**

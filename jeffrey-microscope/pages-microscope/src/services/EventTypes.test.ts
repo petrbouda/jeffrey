@@ -34,6 +34,11 @@ describe('EventTypes', () => {
       expect(EventTypes.isThreadPark('other')).toBe(false);
     });
 
+    it('isThreadSleep', () => {
+      expect(EventTypes.isThreadSleep('jdk.ThreadSleep')).toBe(true);
+      expect(EventTypes.isThreadSleep('other')).toBe(false);
+    });
+
     it('isWallClock', () => {
       expect(EventTypes.isWallClock('profiler.WallClockSample')).toBe(true);
       expect(EventTypes.isWallClock('other')).toBe(false);
@@ -80,10 +85,14 @@ describe('EventTypes', () => {
       expect(EventTypes.isAllocationEventType('jdk.ExecutionSample')).toBe(false);
     });
 
+    // Must cover every type in the backend's Type.BLOCKING_EVENTS: those are the cards that
+    // offer "Use Blocked Time", and a type missing here renders that weight as a bare number
+    // of nanoseconds instead of a duration.
     it('isBlockingEventType matches all blocking sub-types', () => {
       expect(EventTypes.isBlockingEventType('jdk.JavaMonitorEnter')).toBe(true);
       expect(EventTypes.isBlockingEventType('jdk.JavaMonitorWait')).toBe(true);
       expect(EventTypes.isBlockingEventType('jdk.ThreadPark')).toBe(true);
+      expect(EventTypes.isBlockingEventType('jdk.ThreadSleep')).toBe(true);
       expect(EventTypes.isBlockingEventType('jdk.VirtualThreadPinned')).toBe(true);
       expect(EventTypes.isBlockingEventType('jdk.ExecutionSample')).toBe(false);
     });

@@ -24,10 +24,13 @@ import cafe.jeffrey.profile.heapdump.persistence.HeapDumpStatement;
 import cafe.jeffrey.shared.common.measure.Elapsed;
 import cafe.jeffrey.shared.common.measure.Measuring;
 import cafe.jeffrey.shared.common.span.Spans;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.sql.SQLException;
 import java.time.Clock;
 import java.time.Duration;
@@ -54,6 +57,8 @@ import cafe.jeffrey.profile.heapdump.persistence.HeapDumpIndexPaths;
  * both are released as soon as the build completes.
  */
 public final class HprofIndex {
+
+    private static final Logger LOG = LoggerFactory.getLogger(HprofIndex.class);
 
     /**
      * Bumped when the on-disk schema or extraction semantics change.
@@ -154,17 +159,33 @@ public final class HprofIndex {
 
         long indexSpan = Spans.start();
         try {
-            Files.deleteIfExists(indexDbPath);
+            // The build runs against a scratch sibling and is renamed into place only once it
+            // has finished. Readers accept any index file that exists and out-dates the dump,
+            // so a database left behind by a failed build would be taken for a complete one and
+            // wedge the dump on "dump_metadata table is empty" until its cache is deleted by
+            // hand — the failure has to be recoverable by simply running the build again.
+            Path buildDbPath = HeapDumpIndexPaths.indexBuildFor(file.path());
+            deleteDatabase(indexDbPath);
             Files.deleteIfExists(HeapDumpIndexPaths.indexWalFor(file.path()));
+            deleteDatabase(buildDbPath);
 
             Path stagingDir = HeapDumpIndexPaths.indexStagingFor(file.path());
-            Elapsed<IndexResult> elapsed = Measuring.s(() -> {
-                try (HeapDumpIndexDb db = HeapDumpIndexDb.openAndInitialize(indexDbPath)) {
-                    return doBuild(file, db, clock, options, stagingDir, listener);
-                } catch (IOException | SQLException e) {
-                    throw new RuntimeException(e);
-                }
-            });
+            Elapsed<IndexResult> elapsed;
+            try {
+                elapsed = Measuring.s(() -> {
+                    try (HeapDumpIndexDb db = HeapDumpIndexDb.openAndInitialize(buildDbPath)) {
+                        return doBuild(file, db, clock, options, stagingDir, listener);
+                    } catch (IOException | SQLException e) {
+                        throw new RuntimeException(e);
+                    }
+                });
+            } catch (RuntimeException | Error e) {
+                discardFailedBuild(buildDbPath);
+                throw e;
+            }
+
+            Files.move(buildDbPath, indexDbPath,
+                    StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
 
             IndexResult r = elapsed.entity();
             return new IndexResult(
@@ -182,6 +203,26 @@ public final class HprofIndex {
                     r.subPhases());
         } finally {
             Spans.end(indexSpan, "hprof.index.build");
+        }
+    }
+
+    /** Deletes a DuckDB database together with the write-ahead log that belongs to it. */
+    private static void deleteDatabase(Path dbPath) throws IOException {
+        Files.deleteIfExists(dbPath);
+        Files.deleteIfExists(HeapDumpIndexPaths.walFor(dbPath));
+    }
+
+    /**
+     * Drops the scratch database of a build that did not finish. Cleanup failures are logged
+     * rather than thrown: the build's own exception is the one worth propagating, and the next
+     * build deletes the leftover anyway.
+     */
+    private static void discardFailedBuild(Path buildDbPath) {
+        try {
+            deleteDatabase(buildDbPath);
+        } catch (IOException e) {
+            LOG.warn("Failed to remove the scratch index of an unfinished build: path={} error={}",
+                    buildDbPath, e.getMessage());
         }
     }
 

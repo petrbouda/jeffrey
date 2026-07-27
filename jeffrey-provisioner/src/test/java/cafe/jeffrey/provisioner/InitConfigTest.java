@@ -685,7 +685,7 @@ class InitConfigTest {
                     "JEFFREY_ATTRIBUTES", "cluster=blue, namespace=test-namespace",
                     "JEFFREY_HEAP_DUMP", "crash",
                     "JEFFREY_PERF_COUNTERS", "true",
-                    "JEFFREY_JVM_LOGGING", "jfr*=trace:file=<<JEFFREY_CURRENT_SESSION>>/jfr-jvm.log",
+                    "JEFFREY_JVM_LOGGING", "jfr*=trace:file=<<JEFFREY:CURRENT_SESSION>>/jfr-jvm.log",
                     "JEFFREY_ADDITIONAL_JVM_OPTIONS", "-Xmx2g")));
 
             assertEquals("My Service", config.getProjectLabel());
@@ -694,7 +694,7 @@ class InitConfigTest {
             assertEquals(Map.of("cluster", "blue", "namespace", "test-namespace"), config.getAttributes());
             assertEquals(HeapDumpType.CRASH, config.resolveHeapDumpType());
             assertTrue(config.isPerfCountersEnabled());
-            assertEquals("jfr*=trace:file=<<JEFFREY_CURRENT_SESSION>>/jfr-jvm.log", config.getJvmLoggingCommand());
+            assertEquals("jfr*=trace:file=<<JEFFREY:CURRENT_SESSION>>/jfr-jvm.log", config.getJvmLoggingCommand());
             assertEquals("-Xmx2g", config.getAdditionalJvmOptions());
         }
 
@@ -715,6 +715,64 @@ class InitConfigTest {
                     "JEFFREY_ATTRIBUTES", "cluster=blue,broken,=novalue,region=eu")));
 
             assertEquals(Map.of("cluster", "blue", "region", "eu"), config.getAttributes());
+        }
+
+        /**
+         * The reported case: Kubernetes only expands {@code $(VAR)} for variables declared earlier
+         * in the same container's {@code env:} list, so anything injected from elsewhere has to be
+         * resolved here instead.
+         */
+        @Test
+        void attributesResolveEnvironmentPlaceholders() {
+            InitConfig config = InitConfig.fromEnvironment(env(Map.of(
+                    "JEFFREY_HOME", "/mnt/jeffrey",
+                    "JEFFREY_PROJECT_NAME", "my-service",
+                    "SF_CLUSTER", "blue",
+                    "SF_ENV", "uat",
+                    "JEFFREY_ATTRIBUTES",
+                    "cluster=<<ENV:SF_CLUSTER>>,env=<<ENV:SF_ENV>>,namespace=vogon-data")));
+
+            assertEquals(
+                    Map.of("cluster", "blue", "env", "uat", "namespace", "vogon-data"),
+                    config.getAttributes());
+        }
+
+        @Test
+        void unsetAttributePlaceholderFallsBackToItsDefault() {
+            InitConfig config = InitConfig.fromEnvironment(env(Map.of(
+                    "JEFFREY_HOME", "/mnt/jeffrey",
+                    "JEFFREY_PROJECT_NAME", "my-service",
+                    "JEFFREY_ATTRIBUTES", "cluster=<<ENV:SF_CLUSTER:-unknown>>")));
+
+            assertEquals(Map.of("cluster", "unknown"), config.getAttributes());
+        }
+
+        /**
+         * Attributes are split before they are resolved. Resolving first would let a substituted
+         * value containing a comma silently break apart into extra attribute pairs.
+         */
+        @Test
+        void aResolvedValueContainingACommaStaysOneAttribute() {
+            InitConfig config = InitConfig.fromEnvironment(env(Map.of(
+                    "JEFFREY_HOME", "/mnt/jeffrey",
+                    "JEFFREY_PROJECT_NAME", "my-service",
+                    "SF_ZONES", "eu-west-1,eu-west-2",
+                    "JEFFREY_ATTRIBUTES", "zones=<<ENV:SF_ZONES>>")));
+
+            assertEquals(Map.of("zones", "eu-west-1,eu-west-2"), config.getAttributes());
+        }
+
+        @Test
+        void otherSettingsResolveEnvironmentPlaceholdersToo() {
+            InitConfig config = InitConfig.fromEnvironment(env(Map.of(
+                    "JEFFREY_HOME", "/mnt/jeffrey",
+                    "JEFFREY_PROJECT_NAME", "my-service",
+                    "SF_ENV", "uat",
+                    "JEFFREY_PROJECT_LABEL", "My Service (<<ENV:SF_ENV>>)",
+                    "JEFFREY_ADDITIONAL_JVM_OPTIONS", "-Denv=<<ENV:SF_ENV>>")));
+
+            assertEquals("My Service (uat)", config.getProjectLabel());
+            assertEquals("-Denv=uat", config.getAdditionalJvmOptions());
         }
 
         @Test

@@ -56,7 +56,7 @@ onMounted(() => {
       </DocsCallout>
 
       <h2 id="initialization">Initialization</h2>
-      <p>A heap dump does not parse into the per-profile database like a JFR recording. Instead, a one-time <strong>initialization pipeline</strong> builds a compact index in a sibling file next to the <code>.hprof</code>, and every analysis then reads from that index instantly. The Heap Dump Overview shows the pipeline as staged progress across three phases:</p>
+      <p>A heap dump does not parse into the per-profile database like a JFR recording. Instead, a one-time <strong>initialization pipeline</strong> builds a compact index next to the <code>.hprof</code> — a <code>.idx.duckdb</code> sibling, plus a scratch database and a <code>.idx.staging</code> directory that exist only while the build runs — and every analysis then reads from that index instantly. Deleting a dump should take its siblings with it. The Heap Dump Overview shows the pipeline as staged progress across three phases:</p>
 
       <div class="docs-grid docs-grid-3">
         <DocsFeatureCard
@@ -81,6 +81,14 @@ onMounted(() => {
 
       <DocsCallout type="tip">
         Initialization runs in the background — you can watch each stage complete with its elapsed time. If the page is reopened mid-run, it resumes showing live progress. Once finished, opening any feature is instant because it reads the prebuilt index.
+      </DocsCallout>
+
+      <DocsCallout type="info">
+        <strong>A failed build leaves nothing behind.</strong> The index is assembled in a scratch
+        file and only renamed into place once the build has finished, so a build that fails — or a
+        process killed midway — never publishes a half-written index. The dump simply looks
+        uninitialized again and the next attempt rebuilds it from scratch; there is no cache to
+        clear by hand.
       </DocsCallout>
 
       <h2 id="memory-analysis">Memory Analysis</h2>

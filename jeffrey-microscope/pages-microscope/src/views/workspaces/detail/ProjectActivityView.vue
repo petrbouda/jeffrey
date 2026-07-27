@@ -21,10 +21,12 @@
     <template #header>
       <MainCardHeader icon="bi bi-activity" title="Activity" :badge="activityCount">
         <template #actions>
-          <div class="search-container">
-            <i class="bi bi-search"></i>
-            <input v-model="searchQuery" type="text" placeholder="Search activity…" />
-          </div>
+          <SearchInput
+            v-model="searchQuery"
+            class="activity-search"
+            placeholder="Search activity…"
+            aria-label="Search activity"
+          />
         </template>
       </MainCardHeader>
     </template>
@@ -44,6 +46,7 @@
 import { ref } from 'vue';
 import MainCard from '@shared/components/MainCard.vue';
 import MainCardHeader from '@shared/components/MainCardHeader.vue';
+import SearchInput from '@shared/components/form/SearchInput.vue';
 import WorkspaceEventLog from '@/components/workspace/WorkspaceEventLog.vue';
 import { useNavigation } from '@/composables/useNavigation';
 
@@ -54,5 +57,7 @@ const activityCount = ref(0);
 </script>
 
 <style scoped>
-@import '@shared/styles/shared-components.css';
+.activity-search {
+  width: 260px;
+}
 </style>

@@ -19,6 +19,7 @@
 package cafe.jeffrey.microscope.core.web;
 
 import io.grpc.StatusRuntimeException;
+import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpMethod;
@@ -28,6 +29,7 @@ import org.springframework.web.HttpMediaTypeNotAcceptableException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.context.request.async.AsyncRequestNotUsableException;
 import cafe.jeffrey.hub.client.GrpcClientErrors;
 import cafe.jeffrey.shared.common.exception.ErrorCode;
 import cafe.jeffrey.shared.common.exception.ErrorResponse;
@@ -104,6 +106,19 @@ public class JeffreyExceptionHandler {
     public ResponseEntity<Void> handleMediaTypeNotAcceptable(HttpMediaTypeNotAcceptableException ex) {
         LOG.debug("No acceptable representation for request: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).build();
+    }
+
+    /**
+     * The client went away mid-response — a browser closing an SSE stream is the everyday case.
+     * The container reports it as a broken pipe on the async request, which is routine rather than
+     * a server fault, so it is logged at debug and swallowed. Writing a body here is impossible
+     * anyway: the socket is gone, and the stream's {@code text/event-stream} content type has no
+     * converter for {@link ErrorResponse}. The unused {@link HttpServletResponse} parameter is what
+     * marks the request as handled, so Spring MVC stops instead of attempting to render a view.
+     */
+    @ExceptionHandler(AsyncRequestNotUsableException.class)
+    public void handleDisconnectedClient(AsyncRequestNotUsableException ex, HttpServletResponse response) {
+        LOG.debug("Client disconnected before the async response could be written: message={}", ex.getMessage());
     }
 
     @ExceptionHandler(Exception.class)

@@ -102,11 +102,11 @@ heap-dump {
     type = "crash"  # "exit" or "crash"
 }
 
-# JVM logging with <<JEFFREY_CURRENT_SESSION>> placeholder for file path
+# JVM logging with <<JEFFREY:CURRENT_SESSION>> placeholder for file path
 # Use '-jvm.log' suffix to automatically recognize the file as a JVM log file by Jeffrey
 jvm-logging {
     enabled = true
-    command = "jfr*=trace:file=<<JEFFREY_CURRENT_SESSION>>/jfr-jvm.log::filecount=3,filesize=5m"
+    command = "jfr*=trace:file=<<JEFFREY:CURRENT_SESSION>>/jfr-jvm.log::filecount=3,filesize=5m"
 }
 
 # JDK Java Options - also exports the JDK_JAVA_OPTIONS environment variable in the .env file
@@ -115,7 +115,7 @@ jdk-java-options {
 }
 
 # Extra JVM flags appended to the generated arguments
-additional-jvm-options = "-Xmx1200m -Xms1200m -XX:+UseG1GC -XX:+AlwaysPreTouch -Djeffrey.logging.trace-file.path=<<JEFFREY_CURRENT_SESSION>>/jeffrey-app.log"
+additional-jvm-options = "-Xmx1200m -Xms1200m -XX:+UseG1GC -XX:+AlwaysPreTouch -Djeffrey.logging.trace-file.path=<<JEFFREY:CURRENT_SESSION>>/jeffrey-app.log"
 
 # Attributes (key-value map)
 # Supports HOCON substitution: \${VAR} (required) or \${?VAR} (optional)
@@ -222,6 +222,20 @@ export JDK_JAVA_OPTIONS='...same value as JEFFREY_PROFILER_CONFIG, exported only
             </tr>
           </tbody>
         </table>
+
+        <DocsCallout type="tip">
+          <strong>Each exported path has an input counterpart.</strong> Every
+          <code>JEFFREY_NAME</code> above is also writable as
+          <code>&lt;&lt;JEFFREY:NAME&gt;&gt;</code> inside the configuration that produced it — so
+          <code>&lt;&lt;JEFFREY:CURRENT_SESSION&gt;&gt;</code> in
+          <code>additional-jvm-options</code> resolves to the same path
+          <code>$JEFFREY_CURRENT_SESSION</code> exports. The two exceptions:
+          <code>JEFFREY_PROFILER_CONFIG</code> has no placeholder (it is an <em>output</em> of the
+          run, and feeding it back in would re-inject a previous run's fully resolved command), and
+          <code>&lt;&lt;JEFFREY:PROFILER_PATH&gt;&gt;</code> is a placeholder without an exported
+          variable. See the
+          <router-link to="/docs/provisioner/configuration#placeholders">placeholder reference</router-link>.
+        </DocsCallout>
 
         <h3>JVM Flags in JEFFREY_PROFILER_CONFIG</h3>
         <p>The <code>JEFFREY_PROFILER_CONFIG</code> variable contains all JVM flags based on enabled features:</p>

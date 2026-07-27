@@ -61,12 +61,16 @@ class WorkspaceEventBatchStreamObserver implements StreamObserver<WorkspaceEvent
     public void onError(Throwable t) {
         activeSubscriptions.remove(subscription);
 
-        // A cancellation is how a normal unsubscribe surfaces, so it is not a fault.
+        // A cancellation is how a normal unsubscribe surfaces — usually our own cancel() once the
+        // consumer went away — so it terminates the stream rather than faulting it. Routing it to
+        // onError would make every closed browser tab look like a broken hub connection.
         if (Status.fromThrowable(t).getCode() == Status.Code.CANCELLED) {
             LOG.info("Workspace event stream cancelled: workspaceId={}", workspaceId);
-        } else {
-            LOG.warn("Workspace event stream failed: workspaceId={}", workspaceId, t);
+            callbacks.onComplete().run();
+            return;
         }
+
+        LOG.warn("Workspace event stream failed: workspaceId={}", workspaceId, t);
         callbacks.onError().accept(t);
     }
 

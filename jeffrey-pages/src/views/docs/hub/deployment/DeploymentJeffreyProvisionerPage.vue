@@ -79,7 +79,7 @@ heap-dump {
 
 jvm-logging {
     enabled = true
-    command = "jfr*=trace:file=<<JEFFREY_CURRENT_SESSION>>/jfr-jvm.log::filecount=3,filesize=5m"
+    command = "jfr*=trace:file=<<JEFFREY:CURRENT_SESSION>>/jfr-jvm.log::filecount=3,filesize=5m"
 }
 
 additional-jvm-options = "-Xmx400m -Xms400m -XX:+UseG1GC -XX:+AlwaysPreTouch"`;
@@ -241,7 +241,7 @@ volumes:
       <h3>jvm-logging</h3>
       <p>
         Wires up <code>-Xlog:</code> with the supplied command. The
-        <code>&lt;&lt;JEFFREY_CURRENT_SESSION&gt;&gt;</code> placeholder is expanded by the
+        <code>&lt;&lt;JEFFREY:CURRENT_SESSION&gt;&gt;</code> placeholder is expanded by the
         provisioner to the per-cycle session directory, so each recording lands in its own folder
         with its own rolling log file.
       </p>
@@ -250,8 +250,9 @@ volumes:
       <p>
         <code>additional-jvm-options</code> is appended verbatim to the JVM launch line —
         it's where the testapp pins heap size, GC choice, and any other JVM flags. The
-        same placeholder system applies (<code>&lt;&lt;JEFFREY_CURRENT_SESSION&gt;&gt;</code>,
-        <code>&lt;&lt;JEFFREY_PROFILER_PATH&gt;&gt;</code>, etc.).
+        same placeholder system applies (<code>&lt;&lt;JEFFREY:CURRENT_SESSION&gt;&gt;</code>,
+        <code>&lt;&lt;ENV:NAME&gt;&gt;</code>, etc. — see the
+        <router-link to="/docs/provisioner/configuration#placeholders">placeholder reference</router-link>).
       </p>
 
       <DocsCallout type="tip">
