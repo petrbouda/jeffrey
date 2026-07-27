@@ -9,66 +9,75 @@
     <TabBar v-model="activeTab" :tabs="tabs" class="mb-3" />
 
     <div v-show="activeTab === 'timeline'">
-    <div class="d-flex align-items-center mb-3">
-      <div class="input-group search-container me-3" style="max-width: 60%">
-        <span class="input-group-text"><i class="bi bi-search search-icon"></i></span>
-        <input
-          type="text"
-          class="form-control search-input"
-          placeholder="Filter threads..."
-          v-model="fulltextFilter"
-          @input="onFilterChange(($event.target as HTMLInputElement).value)"
-        />
+      <div class="d-flex align-items-center mb-3">
+        <div class="input-group search-container me-3" style="max-width: 60%">
+          <span class="input-group-text"><i class="bi bi-search search-icon"></i></span>
+          <input
+            type="text"
+            class="form-control search-input"
+            placeholder="Filter threads..."
+            v-model="fulltextFilter"
+            @input="onFilterChange(($event.target as HTMLInputElement).value)"
+          />
+          <button
+            v-if="fulltextFilter"
+            class="btn btn-outline-secondary clear-btn"
+            type="button"
+            @click="clearFilter"
+          >
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </div>
+
+        <div class="btn-group btn-group-sm mini-sort-buttons">
+          <button
+            v-for="(option, index) in sortingTypes"
+            :key="index"
+            type="button"
+            class="btn compact-btn"
+            :class="[selectedSorting === option ? 'btn-primary active' : 'btn-outline-primary']"
+            @click="sortingChanged({ value: option })"
+            :title="`Sort by ${option}`"
+          >
+            {{ option }}
+          </button>
+        </div>
         <button
-          v-if="fulltextFilter"
-          class="btn btn-outline-secondary clear-btn"
           type="button"
-          @click="clearFilter"
+          class="btn icon-info-btn ms-2"
+          @click="infoDialogVisible = true"
+          title="Thread Information"
         >
-          <i class="bi bi-x-lg"></i>
+          <i class="bi bi-info-circle"></i>
         </button>
       </div>
 
-      <div class="btn-group btn-group-sm mini-sort-buttons">
-        <button
-          v-for="(option, index) in sortingTypes"
-          :key="index"
-          type="button"
-          class="btn compact-btn"
-          :class="[selectedSorting === option ? 'btn-primary active' : 'btn-outline-primary']"
-          @click="sortingChanged({ value: option })"
-          :title="`Sort by ${option}`"
-        >
-          {{ option }}
-        </button>
-      </div>
-      <button
-        type="button"
-        class="btn icon-info-btn ms-2"
-        @click="infoDialogVisible = true"
-        title="Thread Information"
-      >
-        <i class="bi bi-info-circle"></i>
-      </button>
-    </div>
+      <LoadingState v-if="loading" message="Reading thread activity from the recording…" />
+      <ErrorState v-else-if="error" :message="error" />
 
-    <div class="thread-components-container" :key="forceRenderThreads">
-      <div class="thread-row-wrapper" v-for="(threadRow, index) in threadRows" :key="index">
-        <ThreadComponent
-          v-if="threadRow.threadInfo.name.includes(fulltextFilterAfterTimeout)"
-          :index="index"
-          :project-id="projectId"
-          :primary-profile-id="profileId"
-          :thread-common="threadCommon as ThreadCommon"
-          :thread-row="threadRow"
+      <div v-else class="thread-components-container" :key="forceRenderThreads">
+        <div class="thread-row-wrapper" v-for="(threadRow, index) in threadRows" :key="index">
+          <ThreadComponent
+            v-if="threadRow.threadInfo.name.includes(fulltextFilterAfterTimeout)"
+            :index="index"
+            :project-id="projectId"
+            :primary-profile-id="profileId"
+            :thread-common="threadCommon as ThreadCommon"
+            :thread-row="threadRow"
+          />
+        </div>
+
+        <EmptyState
+          v-if="threadCount === 0"
+          icon="bi-clock-history"
+          title="No thread activity"
+          description="This recording contains no thread events to lay out on a timeline."
         />
+        <div v-else-if="filteredThreadCount === 0" class="no-threads-message">
+          <i class="bi bi-exclamation-circle"></i>
+          No threads match the current filter
+        </div>
       </div>
-
-      <div v-if="filteredThreadCount === 0" class="no-threads-message">
-        <i class="bi bi-exclamation-circle"></i>
-        No threads match the current filter
-      </div>
-    </div>
     </div>
 
     <!-- How It Works Tab -->
@@ -80,48 +89,56 @@
       >
         <AboutCallout variant="intro">
           <p>
-            Each row is one thread; the coloured bands along it show what that thread was doing at each
-            moment — running on CPU, blocked on a lock, parked, or doing socket/file I/O — laid out on a
-            shared wall-clock axis. It's reconstructed by bucketing JFR's per-thread events into time
-            slots, so you can see contention and idle periods across all threads at once.
+            Each row is one thread; the coloured bands along it show what that thread was doing at
+            each moment — running on CPU, blocked on a lock, parked, or doing socket/file I/O — laid
+            out on a shared wall-clock axis. It's reconstructed by bucketing JFR's per-thread events
+            into time slots, so you can see contention and idle periods across all threads at once.
           </p>
         </AboutCallout>
 
         <AboutSection icon="bi-bar-chart-steps" title="Reading the Timeline">
           <FeatureGrid>
             <FeatureCard icon="bi-list" variant="primary" title="Rows are threads">
-              One lane per thread, labelled by name. Filter and sort to bring the threads you care about
-              to the top.
+              One lane per thread, labelled by name. Filter and sort to bring the threads you care
+              about to the top.
             </FeatureCard>
             <FeatureCard icon="bi-palette" variant="info" title="Colours are activity">
-              Each colour is an event category (CPU sample, monitor block, park, socket/file I/O) — see
-              the legend in the info dialog. A solid band of one colour shows where time went.
+              Each colour is an event category (CPU sample, monitor block, park, socket/file I/O) —
+              see the legend in the info dialog. A solid band of one colour shows where time went.
             </FeatureCard>
             <FeatureCard icon="bi-dash" variant="neutral" title="Gaps are idle (or unsampled)">
-              Empty stretches mean the thread produced no events — genuinely idle, or active in a way the
-              recording didn't sample.
+              Empty stretches mean the thread produced no events — genuinely idle, or active in a
+              way the recording didn't sample.
             </FeatureCard>
             <FeatureCard icon="bi-zoom-in" variant="success" title="Patterns to spot">
-              Many threads blocked at the same instant = contention; one thread saturating CPU = a hot
-              path to profile; staircase start times = a warming thread pool.
+              Many threads blocked at the same instant = contention; one thread saturating CPU = a
+              hot path to profile; staircase start times = a warming thread pool.
             </FeatureCard>
           </FeatureGrid>
         </AboutSection>
 
         <AboutSection icon="bi-broadcast" title="How JFR Emits This">
           <p>
-            The lanes are assembled from several per-thread event streams, bucketed into time slots by
-            their <code>eventThread</code> and timestamp:
+            The lanes are assembled from several per-thread event streams, bucketed into time slots
+            by their <code>eventThread</code> and timestamp:
           </p>
           <ul>
-            <li><code>jdk.ThreadStart</code> / <code>jdk.ThreadEnd</code> — when each lane begins and ends.</li>
-            <li><code>jdk.ExecutionSample</code> — CPU activity (the thread was on-CPU when sampled).</li>
             <li>
-              <code>jdk.JavaMonitorEnter</code> / <code>jdk.ThreadPark</code> / <code>jdk.ThreadSleep</code>
+              <code>jdk.ThreadStart</code> / <code>jdk.ThreadEnd</code> — when each lane begins and
+              ends.
+            </li>
+            <li>
+              <code>jdk.ExecutionSample</code> — CPU activity (the thread was on-CPU when sampled).
+            </li>
+            <li>
+              <code>jdk.JavaMonitorEnter</code> / <code>jdk.ThreadPark</code> /
+              <code>jdk.ThreadSleep</code>
               — blocking bands.
             </li>
             <li>
-              <code>jdk.SocketRead</code>/<code>Write</code> and <code>jdk.FileRead</code>/<code>Write</code>
+              <code>jdk.SocketRead</code>/<code>Write</code> and <code>jdk.FileRead</code>/<code
+                >Write</code
+              >
               — I/O bands.
             </li>
           </ul>
@@ -270,6 +287,9 @@ import AboutSection from '@/components/about/AboutSection.vue';
 import FeatureGrid from '@/components/about/FeatureGrid.vue';
 import FeatureCard from '@/components/about/FeatureCard.vue';
 import DataTable from '@shared/components/table/DataTable.vue';
+import LoadingState from '@shared/components/LoadingState.vue';
+import ErrorState from '@shared/components/ErrorState.vue';
+import EmptyState from '@shared/components/EmptyState.vue';
 import type { PropType } from 'vue';
 import '@shared/styles/shared-components.css';
 
@@ -303,6 +323,8 @@ const profileId = route.params.profileId as string;
 
 const threadRows = ref<ThreadRowData[]>();
 const threadCommon = ref<ThreadCommon>();
+const loading = ref<boolean>(true);
+const error = ref<string | null>(null);
 
 const activeTab = ref('timeline');
 const tabs = [
@@ -318,8 +340,12 @@ const forceRenderThreads = ref<number>(0);
 
 const infoDialogVisible = ref<boolean>(false);
 
+const threadCount = computed(() => threadRows.value?.length ?? 0);
+
 const filteredThreadCount = computed(() => {
-  if (!threadRows.value) return 0;
+  if (!threadRows.value) {
+    return 0;
+  }
   return threadRows.value.filter(row =>
     row.threadInfo.name.includes(fulltextFilterAfterTimeout.value)
   ).length;
@@ -335,10 +361,20 @@ onBeforeMount(() => {
 
   threadService = new ProfileThreadClient(profileId);
 
-  threadService.list().then(response => {
-    threadRows.value = sortThreadRows(selectedSorting.value, response.rows);
-    threadCommon.value = response.common;
-  });
+  // A large recording takes a while to lay out, and until it lands there is nothing to show. Without
+  // the loading state, that wait was indistinguishable from a timeline with no threads in it.
+  threadService
+    .list()
+    .then(response => {
+      threadRows.value = sortThreadRows(selectedSorting.value, response.rows);
+      threadCommon.value = response.common;
+    })
+    .catch(e => {
+      error.value = e instanceof Error ? e.message : 'Failed to load the thread timeline';
+    })
+    .finally(() => {
+      loading.value = false;
+    });
 });
 
 function sortThreadRows(
