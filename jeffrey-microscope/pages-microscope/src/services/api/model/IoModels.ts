@@ -41,6 +41,18 @@ export interface IoEndpoint {
   maxNanos: number;
 }
 
+/**
+ * One endpoint's totals paired with its bytes-per-second shape, so a gallery of peers can be drawn
+ * as sparkline tiles from a single request.
+ */
+export interface IoEndpointTimeline {
+  endpoint: IoEndpoint;
+  throughput: {
+    name: string;
+    data: number[][];
+  };
+}
+
 export interface FileForceOp {
   timeOffsetMillis: number;
   path: string | null;

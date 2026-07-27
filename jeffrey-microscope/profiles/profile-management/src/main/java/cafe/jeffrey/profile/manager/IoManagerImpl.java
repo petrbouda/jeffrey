@@ -22,11 +22,14 @@ import cafe.jeffrey.profile.manager.model.io.FileForceBuilder;
 import cafe.jeffrey.profile.manager.model.io.FileForceStats;
 import cafe.jeffrey.profile.manager.model.io.IoDirectoriesBuilder;
 import cafe.jeffrey.profile.manager.model.io.IoEndpoint;
+import cafe.jeffrey.profile.manager.model.io.IoEndpointTimeline;
+import cafe.jeffrey.profile.manager.model.io.IoEndpointTimelinesBuilder;
 import cafe.jeffrey.profile.manager.model.io.IoEndpointsBuilder;
 import cafe.jeffrey.profile.manager.model.io.IoKind;
 import cafe.jeffrey.profile.manager.model.io.IoOperation;
 import cafe.jeffrey.profile.manager.model.io.IoOverview;
 import cafe.jeffrey.profile.manager.model.io.IoOverviewBuilder;
+import cafe.jeffrey.profile.manager.model.io.IoTargetFilter;
 import cafe.jeffrey.profile.manager.model.io.IoThroughputTimeseriesBuilder;
 import cafe.jeffrey.profile.manager.model.io.SlowestIoBuilder;
 import cafe.jeffrey.provider.profile.api.EventQueryConfigurer;
@@ -43,6 +46,8 @@ public class IoManagerImpl implements IoManager {
 
     private static final int MAX_SLOWEST_OPERATIONS = 50;
     private static final int MAX_SLOWEST_FORCES = 50;
+    /** Sparkline tiles the peer gallery renders — enough to spot an outlier, few enough to stay fast. */
+    private static final int MAX_ENDPOINT_TIMELINES = 12;
 
     private final ProfileInfo profileInfo;
     private final ProfileEventRepository eventRepository;
@@ -66,12 +71,26 @@ public class IoManagerImpl implements IoManager {
     }
 
     @Override
-    public TimeseriesData throughputTimeline(IoKind kind) {
+    public TimeseriesData throughputTimeline(IoKind kind, IoTargetFilter targetFilter) {
         RelativeTimeRange timeRange = new RelativeTimeRange(profileInfo.profilingStartEnd());
         EventQueryConfigurer configurer = new EventQueryConfigurer()
                 .withEventTypes(kind.types())
                 .withJsonFields();
-        return eventStreamRepository.genericStreaming(configurer, new IoThroughputTimeseriesBuilder(timeRange));
+        return eventStreamRepository.genericStreaming(
+                configurer, new IoThroughputTimeseriesBuilder(timeRange, targetFilter));
+    }
+
+    @Override
+    public List<IoEndpointTimeline> endpointTimelines(IoKind kind) {
+        if (!hasAny(kind.types())) {
+            return List.of();
+        }
+        RelativeTimeRange timeRange = new RelativeTimeRange(profileInfo.profilingStartEnd());
+        EventQueryConfigurer configurer = new EventQueryConfigurer()
+                .withEventTypes(kind.types())
+                .withJsonFields();
+        return eventStreamRepository.genericStreaming(
+                configurer, new IoEndpointTimelinesBuilder(timeRange, MAX_ENDPOINT_TIMELINES));
     }
 
     @Override
