@@ -35,9 +35,15 @@ import cafe.jeffrey.profile.manager.model.thread.dump.ThreadDumpAnalysis;
 import cafe.jeffrey.profile.manager.model.thread.dump.ThreadDumpAnalyzer;
 import cafe.jeffrey.profile.manager.model.thread.dump.ThreadDumpBuilder;
 import cafe.jeffrey.profile.manager.model.thread.dump.ThreadDumpParser;
+import cafe.jeffrey.profile.thread.ThreadBands;
 import cafe.jeffrey.profile.thread.ThreadEventDetail;
 import cafe.jeffrey.profile.thread.ThreadEventsQuery;
+import cafe.jeffrey.profile.thread.ThreadGroup;
+import cafe.jeffrey.profile.thread.ThreadGroupMembers;
+import cafe.jeffrey.profile.thread.ThreadGroupPage;
+import cafe.jeffrey.profile.thread.ThreadGrouping;
 import cafe.jeffrey.profile.thread.ThreadInfoProvider;
+import cafe.jeffrey.profile.thread.ThreadMembersQuery;
 import cafe.jeffrey.profile.thread.ThreadPage;
 import cafe.jeffrey.profile.thread.ThreadPageQuery;
 import cafe.jeffrey.profile.thread.ThreadRecord;
@@ -156,28 +162,61 @@ public class ThreadManagerImpl implements ThreadManager {
     }
 
     @Override
-    public ThreadPage threadPage(ThreadPageQuery query) {
+    public ThreadGroupPage threadGroups(ThreadPageQuery query) {
+        ThreadRoot root = threadInfoProvider.get();
+        List<ThreadGroupMembers> groups = grouping().group(root.rows());
+
+        List<ThreadGroupMembers> matched = query.hasNameFilter()
+                ? groups.stream().filter(matchesName(query.nameFilter())).toList()
+                : groups;
+
+        // Only the lanes actually returned are merged: building a union walks every member's bands,
+        // while ordering and filtering need no more than the totals each group already knows.
+        List<ThreadGroup> page = matched.stream()
+                .sorted(query.sort().groupComparator())
+                .skip(query.offset())
+                .limit(query.limit())
+                .map(grouping()::merge)
+                .toList();
+
+        return new ThreadGroupPage(
+                root.common(), page, query.offset(), matched.size(), groups.size(), root.rows().size());
+    }
+
+    @Override
+    public ThreadPage threadGroupMembers(ThreadMembersQuery query) {
         ThreadRoot root = threadInfoProvider.get();
 
-        List<ThreadRow> matched = query.hasNameFilter()
-                ? root.rows().stream().filter(matchesName(query.nameFilter())).toList()
-                : root.rows();
+        List<ThreadRow> members = grouping().group(root.rows()).stream()
+                .filter(group -> group.key().equals(query.groupKey()))
+                .findFirst()
+                .map(ThreadGroupMembers::members)
+                .orElse(List.of());
 
-        List<ThreadRow> page = matched.stream()
+        List<ThreadRow> page = members.stream()
                 .sorted(query.sort().comparator())
                 .skip(query.offset())
                 .limit(query.limit())
                 .toList();
 
-        return new ThreadPage(root.common(), page, query.offset(), matched.size(), root.rows().size());
+        return new ThreadPage(root.common(), page, query.offset(), members.size(), root.rows().size());
     }
 
-    private static Predicate<ThreadRow> matchesName(String nameFilter) {
+    private ThreadGrouping grouping() {
+        return new ThreadGrouping(ThreadBands.forRecording(profileInfo.duration()));
+    }
+
+    /**
+     * A group matches when its own name does, or when any thread inside it does — otherwise a search
+     * for one worker of a pool would come back empty just because the lane is named after the pool.
+     */
+    private static Predicate<ThreadGroupMembers> matchesName(String nameFilter) {
         String needle = nameFilter.toLowerCase(Locale.ROOT);
-        return row -> {
-            String name = row.threadInfo().name();
-            return name != null && name.toLowerCase(Locale.ROOT).contains(needle);
-        };
+        return group -> group.key().toLowerCase(Locale.ROOT).contains(needle)
+                || group.members().stream().anyMatch(row -> {
+                    String name = row.threadInfo().name();
+                    return name != null && name.toLowerCase(Locale.ROOT).contains(needle);
+                });
     }
 
     @Override

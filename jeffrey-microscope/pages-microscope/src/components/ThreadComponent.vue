@@ -24,6 +24,7 @@ import { useRoute } from 'vue-router';
 import ThreadCommon from '@/services/api/model/ThreadCommon';
 import ThreadPeriod from '@/services/api/model/ThreadPeriod';
 import ThreadRow from '@/services/thread/ThreadRow';
+import Badge from '@shared/components/Badge.vue';
 import PrimaryFlamegraphClient from '@/services/api/PrimaryFlamegraphClient';
 import FlamegraphTooltip from '@/services/flamegraphs/tooltips/FlamegraphTooltip';
 import FlamegraphTooltipFactory from '@/services/flamegraphs/tooltips/FlamegraphTooltipFactory';
@@ -35,13 +36,27 @@ import SearchBarComponent from '@/components/SearchBarComponent.vue';
 import * as bootstrap from 'bootstrap';
 import TimeseriesEventAxeFormatter from '@/services/timeseries/TimeseriesEventAxeFormatter.ts';
 
-const props = defineProps<{
-  index: number;
-  projectId: string;
-  primaryProfileId: string;
-  threadCommon: ThreadCommon;
-  threadRow: ThreadRowData;
-}>();
+const props = withDefaults(
+  defineProps<{
+    index: number;
+    projectId: string;
+    primaryProfileId: string;
+    threadCommon: ThreadCommon;
+    threadRow: ThreadRowData;
+    /** How many threads this lane stands for; 1 means an ordinary thread. */
+    threadCount?: number;
+    expanded?: boolean;
+  }>(),
+  { threadCount: 1, expanded: false }
+);
+
+defineEmits<{ toggle: [] }>();
+
+/**
+ * A lane standing for several threads has no thread of its own, so the actions that act on one —
+ * the flamegraph and the thread info — are not offered until it is opened.
+ */
+const collapsed = computed(() => props.threadCount > 1);
 
 const route = useRoute();
 
@@ -339,7 +354,10 @@ function createContextMenuItems() {
     <div class="thread-card">
       <div class="thread-header">
         <div class="thread-actions">
+          <!-- A collapsed lane has no thread of its own, so the actions that need one are not
+               offered on it. They come back on every member once the lane is opened. -->
           <button
+            v-if="!collapsed"
             class="action-btn flame-btn"
             type="button"
             title="Show flamegraph"
@@ -348,6 +366,7 @@ function createContextMenuItems() {
             <i class="bi bi-fire"></i>
           </button>
           <button
+            v-if="!collapsed"
             class="action-btn info-btn"
             type="button"
             title="Thread information"
@@ -356,7 +375,18 @@ function createContextMenuItems() {
             <i class="bi bi-question-circle"></i>
           </button>
         </div>
+        <button
+          v-if="collapsed"
+          class="thread-disclosure"
+          type="button"
+          :aria-expanded="expanded"
+          :title="expanded ? 'Collapse threads' : 'Show threads'"
+          @click="$emit('toggle')"
+        >
+          <i class="bi" :class="expanded ? 'bi-chevron-down' : 'bi-chevron-right'"></i>
+        </button>
         <h6 class="thread-title" :title="threadInfo.name">{{ threadInfo.name }}</h6>
+        <Badge v-if="collapsed" :value="`${threadCount} threads`" variant="primary" size="xs" />
       </div>
       <div class="thread-content">
         <div :id="canvasId" class="thread-canvas"></div>
@@ -635,9 +665,35 @@ function createContextMenuItems() {
 .thread-header {
   display: flex;
   align-items: center;
+  gap: 6px;
   padding: 6px 10px;
   background-color: var(--color-light);
   border-bottom: 1px solid var(--color-border);
+}
+
+/* Opens a collapsed lane into the threads behind it. */
+.thread-disclosure {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+}
+
+.thread-disclosure:hover {
+  background-color: var(--color-border);
+  color: var(--color-text);
+}
+
+.thread-disclosure:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
 }
 
 .thread-actions {

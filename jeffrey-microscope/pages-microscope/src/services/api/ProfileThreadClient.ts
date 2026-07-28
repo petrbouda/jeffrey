@@ -27,6 +27,7 @@ import type ThreadEventDetail from '@/services/api/model/ThreadEventDetail';
 import type { ThreadEventState } from '@/services/api/model/ThreadEventDetail';
 import type ThreadInfo from '@/services/api/model/ThreadInfo';
 import type ThreadPeriod from '@/services/api/model/ThreadPeriod';
+import type { ThreadGroupResponse } from '@/services/api/model/ThreadGroupData';
 
 export default class ProfileThreadClient extends BaseProfileClient {
   constructor(profileId: string) {
@@ -34,18 +35,37 @@ export default class ProfileThreadClient extends BaseProfileClient {
   }
 
   /**
-   * One page of threads, ordered and filtered by the server. Both have to happen there: a client
-   * that holds a single page can only sort and filter that page.
+   * One page of lanes — a lane per group of identically named threads — ordered and filtered by the
+   * server. Both have to happen there: a client that holds a single page can only sort and filter
+   * that page.
    */
   public list(page: {
     sort: ThreadSort;
     nameFilter?: string;
     offset?: number;
     limit?: number;
-  }): Promise<ThreadResponse> {
-    return this.get<ThreadResponse>('', {
+  }): Promise<ThreadGroupResponse> {
+    return this.get<ThreadGroupResponse>('', {
       sort: page.sort,
       nameFilter: page.nameFilter ?? '',
+      offset: page.offset ?? 0,
+      limit: page.limit ?? 50
+    });
+  }
+
+  /**
+   * The threads behind one collapsed lane. Paged like the lanes themselves, because opening a pool
+   * of 351 workers would otherwise put 351 lanes on the page.
+   */
+  public members(page: {
+    group: string;
+    sort: ThreadSort;
+    offset?: number;
+    limit?: number;
+  }): Promise<ThreadResponse> {
+    return this.get<ThreadResponse>('/members', {
+      group: page.group,
+      sort: page.sort,
       offset: page.offset ?? 0,
       limit: page.limit ?? 50
     });

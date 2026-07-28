@@ -27,6 +27,8 @@ import cafe.jeffrey.profile.manager.model.thread.dump.ParsedDump;
 import cafe.jeffrey.profile.manager.model.thread.dump.ThreadDumpAnalysis;
 import cafe.jeffrey.profile.thread.ThreadEventDetail;
 import cafe.jeffrey.profile.thread.ThreadEventsQuery;
+import cafe.jeffrey.profile.thread.ThreadGroupPage;
+import cafe.jeffrey.profile.thread.ThreadMembersQuery;
 import cafe.jeffrey.profile.thread.ThreadPage;
 import cafe.jeffrey.profile.thread.ThreadPageQuery;
 import cafe.jeffrey.profile.thread.ThreadRoot;
@@ -60,10 +62,17 @@ public interface ThreadManager {
     ThreadRoot threadRows();
 
     /**
-     * One ordered slice of the timeline, filtered and counted. Reads from the same cached timeline
-     * {@link #threadRows()} builds, so paging costs nothing after the first request.
+     * One ordered slice of the timeline, a lane per group of identically named threads. Reads from
+     * the same cached timeline {@link #threadRows()} builds, so paging costs nothing after the first
+     * request.
      */
-    ThreadPage threadPage(ThreadPageQuery query);
+    ThreadGroupPage threadGroups(ThreadPageQuery query);
+
+    /**
+     * The threads behind one collapsed lane, a page at a time. Opening a pool of 351 workers must not
+     * put 351 lanes on the page any more than the ungrouped timeline could.
+     */
+    ThreadPage threadGroupMembers(ThreadMembersQuery query);
 
     /**
      * The events behind one band of {@link #threadRows()}, for the tooltip that opens when the

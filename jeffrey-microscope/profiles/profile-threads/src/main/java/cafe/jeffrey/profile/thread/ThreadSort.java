@@ -27,9 +27,15 @@ import java.util.Comparator;
  */
 public enum ThreadSort {
 
-    EVENT_COUNT(Comparator.comparingLong(ThreadRow::eventsCount).reversed()),
-    LIFESPAN(Comparator.comparingLong(ThreadRow::totalDuration).reversed()),
-    NAME(Comparator.comparing(row -> row.threadInfo().name(), Comparator.nullsLast(String::compareTo)));
+    EVENT_COUNT(
+            Comparator.comparingLong(ThreadRow::eventsCount).reversed(),
+            Comparator.comparingLong(ThreadGroupMembers::eventsCount).reversed()),
+    LIFESPAN(
+            Comparator.comparingLong(ThreadRow::totalDuration).reversed(),
+            Comparator.comparingLong(ThreadGroupMembers::totalDuration).reversed()),
+    NAME(
+            Comparator.comparing(row -> row.threadInfo().name(), Comparator.nullsLast(String::compareTo)),
+            Comparator.comparing(ThreadGroupMembers::key));
 
     /**
      * Threads that tie on the chosen key are broken by name, so paging stays stable: without a total
@@ -40,13 +46,32 @@ public enum ThreadSort {
                     .thenComparingLong(row -> row.threadInfo().javaId())
                     .thenComparingLong(row -> row.threadInfo().osId());
 
-    private final Comparator<ThreadRow> comparator;
+    /**
+     * Groups tie-break on their key, which is unique among groups by construction.
+     */
+    private static final Comparator<ThreadGroupMembers> GROUP_TIE_BREAK =
+            Comparator.comparing(ThreadGroupMembers::key);
 
-    ThreadSort(Comparator<ThreadRow> comparator) {
+    private final Comparator<ThreadRow> comparator;
+    private final Comparator<ThreadGroupMembers> groupComparator;
+
+    ThreadSort(Comparator<ThreadRow> comparator, Comparator<ThreadGroupMembers> groupComparator) {
         this.comparator = comparator;
+        this.groupComparator = groupComparator;
     }
 
+    /**
+     * Orders individual threads — the members behind one collapsed lane.
+     */
     public Comparator<ThreadRow> comparator() {
         return comparator.thenComparing(TIE_BREAK);
+    }
+
+    /**
+     * Orders the lanes themselves. A group's key is the sum of its members for a count, and the
+     * longest-lived member for a lifespan, so "busiest" means the same thing at both levels.
+     */
+    public Comparator<ThreadGroupMembers> groupComparator() {
+        return groupComparator.thenComparing(GROUP_TIE_BREAK);
     }
 }
