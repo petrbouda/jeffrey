@@ -30,8 +30,12 @@ import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.profile.manager.thread.ThreadManager;
 import cafe.jeffrey.profile.manager.model.thread.dump.ParsedDump;
 import cafe.jeffrey.profile.manager.model.thread.dump.ThreadDumpAnalysis;
+import cafe.jeffrey.profile.thread.ThreadCommon;
 import cafe.jeffrey.profile.thread.ThreadEventDetail;
 import cafe.jeffrey.profile.thread.ThreadEventsQuery;
+import cafe.jeffrey.profile.thread.ThreadPage;
+import cafe.jeffrey.profile.thread.ThreadPageQuery;
+import cafe.jeffrey.profile.thread.ThreadSort;
 import cafe.jeffrey.profile.thread.ThreadState;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.timeseries.SingleSerie;
@@ -106,6 +110,100 @@ class ThreadControllerTest {
         MockMvcTester mvc = mockMvcTesterFor(new ThreadController(resolver));
 
         assertThat(mvc.get().uri("/api/internal/profiles/p-1/thread/reserved-stack")).hasStatusOk();
+    }
+
+    @Nested
+    class ThreadPaging {
+
+        private ThreadPage emptyPage() {
+            return new ThreadPage(new ThreadCommon(60_000, false, null), List.of(), 0, 1204, 1204);
+        }
+
+        private ThreadPageQuery capturedQuery() {
+            ArgumentCaptor<ThreadPageQuery> captor = ArgumentCaptor.forClass(ThreadPageQuery.class);
+            verify(threadManager).threadPage(captor.capture());
+            return captor.getValue();
+        }
+
+        /**
+         * Opening the page asks for the busiest threads and nothing else — the defaults are what
+         * keeps a recording with a thousand threads off the wire.
+         */
+        @Test
+        void defaultsToTheFirstPageOfTheBusiestThreads() {
+            when(resolver.resolve("p-1")).thenReturn(profileManager);
+            when(profileManager.threadManager()).thenReturn(threadManager);
+            when(threadManager.threadPage(any(ThreadPageQuery.class))).thenReturn(emptyPage());
+
+            MockMvcTester mvc = mockMvcTesterFor(new ThreadController(resolver));
+
+            assertThat(mvc.get().uri("/api/internal/profiles/p-1/thread")).hasStatusOk();
+
+            ThreadPageQuery query = capturedQuery();
+            assertThat(query.sort()).isEqualTo(ThreadSort.EVENT_COUNT);
+            assertThat(query.offset()).isZero();
+            assertThat(query.limit()).isEqualTo(50);
+            assertThat(query.hasNameFilter()).isFalse();
+        }
+
+        @Test
+        void passesSortFilterAndOffsetThrough() {
+            when(resolver.resolve("p-1")).thenReturn(profileManager);
+            when(profileManager.threadManager()).thenReturn(threadManager);
+            when(threadManager.threadPage(any(ThreadPageQuery.class))).thenReturn(emptyPage());
+
+            MockMvcTester mvc = mockMvcTesterFor(new ThreadController(resolver));
+
+            assertThat(mvc.get().uri("/api/internal/profiles/p-1/thread"
+                    + "?sort=LIFESPAN&nameFilter=connection-adder&offset=50&limit=50"))
+                    .hasStatusOk();
+
+            ThreadPageQuery query = capturedQuery();
+            assertThat(query.sort()).isEqualTo(ThreadSort.LIFESPAN);
+            assertThat(query.nameFilter()).isEqualTo("connection-adder");
+            assertThat(query.offset()).isEqualTo(50);
+        }
+
+        /**
+         * Each row still carries a lane's worth of bands, so an unbounded page would put us back
+         * where we started.
+         */
+        @Test
+        void capsThePageSizeWhateverIsAskedFor() {
+            when(resolver.resolve("p-1")).thenReturn(profileManager);
+            when(profileManager.threadManager()).thenReturn(threadManager);
+            when(threadManager.threadPage(any(ThreadPageQuery.class))).thenReturn(emptyPage());
+
+            MockMvcTester mvc = mockMvcTesterFor(new ThreadController(resolver));
+
+            assertThat(mvc.get().uri("/api/internal/profiles/p-1/thread?limit=100000")).hasStatusOk();
+
+            assertThat(capturedQuery().limit()).isEqualTo(250);
+        }
+
+        /**
+         * The footer counts come from the response, so they have to survive serialization.
+         */
+        @Test
+        void reportsHowManyThreadsWereHeldBack() {
+            when(resolver.resolve("p-1")).thenReturn(profileManager);
+            when(profileManager.threadManager()).thenReturn(threadManager);
+            when(threadManager.threadPage(any(ThreadPageQuery.class))).thenReturn(emptyPage());
+
+            MockMvcTester mvc = mockMvcTesterFor(new ThreadController(resolver));
+
+            assertThat(mvc.get().uri("/api/internal/profiles/p-1/thread"))
+                    .hasStatusOk()
+                    .bodyJson()
+                    .extractingPath("$.matchedCount").asNumber().isEqualTo(1204);
+        }
+
+        @Test
+        void rejectsANegativeOffset() {
+            MockMvcTester mvc = mockMvcTesterFor(new ThreadController(resolver));
+
+            assertThat(mvc.get().uri("/api/internal/profiles/p-1/thread?offset=-1")).hasStatus(400);
+        }
     }
 
     @Nested

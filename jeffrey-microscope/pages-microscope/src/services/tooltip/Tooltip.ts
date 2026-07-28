@@ -25,6 +25,12 @@ import router from '@/router';
 export default class Tooltip {
   private static readonly HIDE_DELAY_MS = 600;
 
+  /** Kept clear of the window edges so the tooltip never sits flush against them. */
+  private static readonly VIEWPORT_MARGIN = 8;
+
+  /** Distance between the pointer and the edge of the tooltip. */
+  private static readonly CURSOR_GAP = 5;
+
   private tooltipTimeoutId: number | null = null;
   private hideTimeoutId: number | null = null;
   private displayedContent: string | null = null;
@@ -86,7 +92,7 @@ export default class Tooltip {
     }
     const profileId = (router.currentRoute.value.params.profileId as string) ?? '';
     const token = ++this.ideGateToken;
-    IdeButtonGate.check(profileId, fqn).then((present) => {
+    IdeButtonGate.check(profileId, fqn).then(present => {
       if (token !== this.ideGateToken || !present) {
         return;
       }
@@ -130,7 +136,7 @@ export default class Tooltip {
       this.displayedContent = null;
     });
 
-    this.tooltip.addEventListener('click', (event) => {
+    this.tooltip.addEventListener('click', event => {
       const target = (event.target as HTMLElement | null)?.closest(
         '[data-ide-action]'
       ) as HTMLElement | null;
@@ -161,29 +167,83 @@ export default class Tooltip {
     });
   }
 
+  /**
+   * Places the tooltip beside the pointer, wholly inside the window.
+   *
+   * <p>The content has no fixed size: a pointer resting where several event categories overlap
+   * produces a box listing every one of them with its fields. Such a box does not fit above the
+   * pointer, and moving it there regardless put its top outside the card — which clips its overflow
+   * — leaving the part that mattered unreachable. So the height is capped first, and the side is
+   * chosen by what actually fits.
+   *
+   * <p>Two coordinate systems meet here. The tooltip is positioned against the canvas's offset
+   * parent, while the room available for it is measured in the window. They differ by a constant,
+   * computed once as {@code layoutOffset}: the fitting is done in window coordinates and shifted
+   * into layout coordinates at the end.
+   */
   private static placeTooltip(
     canvas: HTMLElement,
     tooltip: HTMLElement,
     position: TooltipPosition,
     currentScrollY: number
   ): void {
-    const currWindowHeight = window.innerHeight;
+    const viewportHeight = window.innerHeight;
+    const viewportWidth = window.innerWidth;
     const canvasPos = canvas.getBoundingClientRect();
 
-    if (canvasPos.y + position.offsetY > currWindowHeight / 2) {
-      tooltip.style.top =
-        canvas.offsetTop - currentScrollY + position.offsetY - tooltip.offsetHeight + 5 + 'px';
+    // Capped before measuring: a box taller than the window has no correct placement at all, and
+    // scrolling its content is the only way to keep the rest of it reachable.
+    tooltip.style.maxHeight = viewportHeight - 2 * Tooltip.VIEWPORT_MARGIN + 'px';
+    tooltip.style.overflowY = 'auto';
+
+    const layoutOffsetY = canvas.offsetTop - currentScrollY - canvasPos.y;
+    const pointerY = canvasPos.y + position.offsetY;
+    const height = tooltip.offsetHeight;
+
+    // Above is preferred — it leaves the hovered lane visible — but only when it fits there.
+    let top: number;
+    if (height + Tooltip.CURSOR_GAP <= pointerY - Tooltip.VIEWPORT_MARGIN) {
+      top = pointerY - height - Tooltip.CURSOR_GAP;
+    } else if (height + Tooltip.CURSOR_GAP <= viewportHeight - pointerY - Tooltip.VIEWPORT_MARGIN) {
+      top = pointerY + Tooltip.CURSOR_GAP;
     } else {
-      tooltip.style.top = canvas.offsetTop - currentScrollY + position.offsetY + 5 + 'px';
+      top = Tooltip.VIEWPORT_MARGIN;
     }
 
-    if (position.offsetX > canvas.offsetWidth / 2) {
-      tooltip.style.left = canvas.offsetLeft + position.offsetX - tooltip.offsetWidth - 5 + 'px';
-    } else {
-      tooltip.style.left = canvas.offsetLeft + position.offsetX + 5 + 'px';
-    }
+    // Flooring the layout value at 0 as well: the timeline nests its canvases in cards that clip
+    // their overflow, which the window clamp on its own does nothing about.
+    const clampedTop = Tooltip.clamp(
+      top,
+      Tooltip.VIEWPORT_MARGIN,
+      viewportHeight - height - Tooltip.VIEWPORT_MARGIN
+    );
+    tooltip.style.top = Math.max(clampedTop + layoutOffsetY, 0) + 'px';
+
+    const layoutOffsetX = canvas.offsetLeft - canvasPos.x;
+    const pointerX = canvasPos.x + position.offsetX;
+    const width = tooltip.offsetWidth;
+
+    const left =
+      position.offsetX > canvas.offsetWidth / 2
+        ? pointerX - width - Tooltip.CURSOR_GAP
+        : pointerX + Tooltip.CURSOR_GAP;
+
+    const clampedLeft = Tooltip.clamp(
+      left,
+      Tooltip.VIEWPORT_MARGIN,
+      viewportWidth - width - Tooltip.VIEWPORT_MARGIN
+    );
+    tooltip.style.left = clampedLeft + layoutOffsetX + 'px';
 
     tooltip.style.visibility = 'visible';
+  }
+
+  /**
+   * Clamps to {@code [min, max]}, preferring {@code min} when the two cross — which happens when the
+   * tooltip is larger than the space it has to sit in.
+   */
+  private static clamp(value: number, min: number, max: number): number {
+    return Math.max(min, Math.min(value, Math.max(max, min)));
   }
 
   private static createTooltipDiv(canvas: HTMLElement, threadTooltipName: string): HTMLElement {
