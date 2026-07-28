@@ -27,6 +27,8 @@ import cafe.jeffrey.profile.manager.model.thread.dump.ParsedDump;
 import cafe.jeffrey.profile.manager.model.thread.dump.ThreadDumpAnalysis;
 import cafe.jeffrey.profile.thread.ThreadEventDetail;
 import cafe.jeffrey.profile.thread.ThreadEventsQuery;
+import cafe.jeffrey.profile.thread.ThreadPage;
+import cafe.jeffrey.profile.thread.ThreadPageQuery;
 import cafe.jeffrey.profile.thread.ThreadRoot;
 import cafe.jeffrey.provider.profile.api.AllocatingThread;
 import cafe.jeffrey.timeseries.SingleSerie;
@@ -50,7 +52,18 @@ public interface ThreadManager {
 
     ThreadCpuLoads threadCpuLoads(int limit);
 
+    /**
+     * The whole timeline. Used to warm the profile's cache after an import — the page itself asks
+     * for {@link #threadPage(ThreadPageQuery)} instead, so that a recording with a thousand threads
+     * does not have to cross the wire in one piece.
+     */
     ThreadRoot threadRows();
+
+    /**
+     * One ordered slice of the timeline, filtered and counted. Reads from the same cached timeline
+     * {@link #threadRows()} builds, so paging costs nothing after the first request.
+     */
+    ThreadPage threadPage(ThreadPageQuery query);
 
     /**
      * The events behind one band of {@link #threadRows()}, for the tooltip that opens when the

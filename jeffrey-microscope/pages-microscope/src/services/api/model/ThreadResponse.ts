@@ -19,9 +19,21 @@
 import ThreadCommon from './ThreadCommon';
 import ThreadRowData from '@/services/api/model/ThreadRowData';
 
+/**
+ * One page of a profile's threads.
+ *
+ * A recording can hold thousands of threads, so the timeline asks for the busiest ones first and
+ * comes back for more. `matchedCount` is what "showing 50 of N" counts — it narrows with the filter,
+ * while `totalCount` stays the size of the recording.
+ */
 export default class ThreadResponse {
   constructor(
     public common: ThreadCommon,
-    public rows: ThreadRowData[]
+    public rows: ThreadRowData[],
+    public offset: number,
+    public matchedCount: number,
+    public totalCount: number
   ) {}
 }
+
+export type ThreadSort = 'EVENT_COUNT' | 'LIFESPAN' | 'NAME';

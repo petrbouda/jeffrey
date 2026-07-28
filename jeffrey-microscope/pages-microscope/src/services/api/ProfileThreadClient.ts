@@ -18,6 +18,7 @@
 
 import BaseProfileClient from '@/services/api/BaseProfileClient';
 import ThreadResponse from '@/services/api/model/ThreadResponse';
+import type { ThreadSort } from '@/services/api/model/ThreadResponse';
 import ThreadStatisticsResponse from '@/services/api/model/ThreadStatisticsResponse';
 import Serie from '@/services/timeseries/model/Serie';
 import type { ParsedDump, ThreadDumpAnalysis } from '@/services/api/model/ThreadDumpModels';
@@ -32,8 +33,22 @@ export default class ProfileThreadClient extends BaseProfileClient {
     super(profileId, 'thread');
   }
 
-  public list(): Promise<ThreadResponse> {
-    return this.get<ThreadResponse>('');
+  /**
+   * One page of threads, ordered and filtered by the server. Both have to happen there: a client
+   * that holds a single page can only sort and filter that page.
+   */
+  public list(page: {
+    sort: ThreadSort;
+    nameFilter?: string;
+    offset?: number;
+    limit?: number;
+  }): Promise<ThreadResponse> {
+    return this.get<ThreadResponse>('', {
+      sort: page.sort,
+      nameFilter: page.nameFilter ?? '',
+      offset: page.offset ?? 0,
+      limit: page.limit ?? 50
+    });
   }
 
   /**

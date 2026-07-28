@@ -38,8 +38,11 @@ import cafe.jeffrey.profile.manager.model.thread.dump.ThreadDumpParser;
 import cafe.jeffrey.profile.thread.ThreadEventDetail;
 import cafe.jeffrey.profile.thread.ThreadEventsQuery;
 import cafe.jeffrey.profile.thread.ThreadInfoProvider;
+import cafe.jeffrey.profile.thread.ThreadPage;
+import cafe.jeffrey.profile.thread.ThreadPageQuery;
 import cafe.jeffrey.profile.thread.ThreadRecord;
 import cafe.jeffrey.profile.thread.ThreadRoot;
+import cafe.jeffrey.profile.thread.ThreadRow;
 import cafe.jeffrey.profile.thread.ThreadsRecordBuilder;
 import cafe.jeffrey.provider.profile.api.EventQueryConfigurer;
 import cafe.jeffrey.provider.profile.api.ProfileEventRepository;
@@ -51,7 +54,9 @@ import cafe.jeffrey.timeseries.SingleSerie;
 import java.time.Duration;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
+import java.util.function.Predicate;
 
 public class ThreadManagerImpl implements ThreadManager {
 
@@ -148,6 +153,31 @@ public class ThreadManagerImpl implements ThreadManager {
     @Override
     public ThreadRoot threadRows() {
         return threadInfoProvider.get();
+    }
+
+    @Override
+    public ThreadPage threadPage(ThreadPageQuery query) {
+        ThreadRoot root = threadInfoProvider.get();
+
+        List<ThreadRow> matched = query.hasNameFilter()
+                ? root.rows().stream().filter(matchesName(query.nameFilter())).toList()
+                : root.rows();
+
+        List<ThreadRow> page = matched.stream()
+                .sorted(query.sort().comparator())
+                .skip(query.offset())
+                .limit(query.limit())
+                .toList();
+
+        return new ThreadPage(root.common(), page, query.offset(), matched.size(), root.rows().size());
+    }
+
+    private static Predicate<ThreadRow> matchesName(String nameFilter) {
+        String needle = nameFilter.toLowerCase(Locale.ROOT);
+        return row -> {
+            String name = row.threadInfo().name();
+            return name != null && name.toLowerCase(Locale.ROOT).contains(needle);
+        };
     }
 
     @Override

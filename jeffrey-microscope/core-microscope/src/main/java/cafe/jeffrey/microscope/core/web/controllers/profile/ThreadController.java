@@ -35,7 +35,9 @@ import cafe.jeffrey.profile.manager.model.thread.dump.ParsedDump;
 import cafe.jeffrey.profile.manager.model.thread.dump.ThreadDumpAnalysis;
 import cafe.jeffrey.profile.thread.ThreadEventDetail;
 import cafe.jeffrey.profile.thread.ThreadEventsQuery;
-import cafe.jeffrey.profile.thread.ThreadRoot;
+import cafe.jeffrey.profile.thread.ThreadPage;
+import cafe.jeffrey.profile.thread.ThreadPageQuery;
+import cafe.jeffrey.profile.thread.ThreadSort;
 import cafe.jeffrey.profile.thread.ThreadState;
 import cafe.jeffrey.provider.profile.api.AllocatingThread;
 import cafe.jeffrey.shared.common.model.ThreadInfo;
@@ -59,6 +61,12 @@ public class ThreadController {
      */
     private static final int MAX_BAND_EVENTS = 20;
 
+    /**
+     * The ceiling on one page of threads. Each row still carries a lane's worth of bands, so an
+     * unbounded page would put us back where we started.
+     */
+    private static final int MAX_THREAD_PAGE = 250;
+
     public record ThreadStatistics(
             ThreadStats statistics,
             List<AllocatingThread> allocators,
@@ -73,11 +81,25 @@ public class ThreadController {
         this.resolver = resolver;
     }
 
+    /**
+     * One page of the timeline. A recording can hold thousands of threads, so the page asks for the
+     * busiest ones first and comes back for more; sorting and filtering happen here rather than in
+     * the browser, because a client that holds one page can only sort and filter that page.
+     */
     @GetMapping
-    public ThreadRoot list(@PathVariable("profileId") String profileId) {
-        var result = mgr(profileId).threadRows();
-        LOG.debug("Listed threads: profileId={}", profileId);
-        return result;
+    public ThreadPage list(
+            @PathVariable("profileId") String profileId,
+            @RequestParam(value = "sort", defaultValue = "EVENT_COUNT") ThreadSort sort,
+            @RequestParam(value = "nameFilter", required = false) String nameFilter,
+            @RequestParam(value = "offset", defaultValue = "0") int offset,
+            @RequestParam(value = "limit", defaultValue = "50") int limit) {
+
+        ThreadPageQuery query = new ThreadPageQuery(sort, nameFilter, offset, Math.min(limit, MAX_THREAD_PAGE));
+
+        ThreadPage page = mgr(profileId).threadPage(query);
+        LOG.debug("Listed threads: profileId={} sort={} offset={} returned={} matched={}",
+                profileId, sort, offset, page.rows().size(), page.matchedCount());
+        return page;
     }
 
     /**

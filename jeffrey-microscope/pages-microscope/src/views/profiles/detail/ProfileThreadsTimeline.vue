@@ -13,11 +13,11 @@
         <div class="input-group search-container me-3" style="max-width: 60%">
           <span class="input-group-text"><i class="bi bi-search search-icon"></i></span>
           <input
+            v-model="fulltextFilter"
             type="text"
             class="form-control search-input"
             placeholder="Filter threads..."
-            v-model="fulltextFilter"
-            @input="onFilterChange(($event.target as HTMLInputElement).value)"
+            @input="onFilterChange()"
           />
           <button
             v-if="fulltextFilter"
@@ -55,10 +55,9 @@
       <LoadingState v-if="loading" message="Reading thread activity from the recording…" />
       <ErrorState v-else-if="error" :message="error" />
 
-      <div v-else class="thread-components-container" :key="forceRenderThreads">
-        <div class="thread-row-wrapper" v-for="(threadRow, index) in threadRows" :key="index">
+      <div v-else :key="forceRenderThreads" class="thread-components-container">
+        <div v-for="(threadRow, index) in threadRows" :key="index" class="thread-row-wrapper">
           <ThreadComponent
-            v-if="threadRow.threadInfo.name.includes(fulltextFilterAfterTimeout)"
             :index="index"
             :project-id="projectId"
             :primary-profile-id="profileId"
@@ -68,14 +67,34 @@
         </div>
 
         <EmptyState
-          v-if="threadCount === 0"
+          v-if="loadedCount === 0 && isFiltered"
+          icon="bi-search"
+          title="No threads match the filter"
+          :description="`Nothing in this recording's ${totalCount.toLocaleString()} threads contains &quot;${fulltextFilter}&quot;.`"
+        />
+        <EmptyState
+          v-else-if="loadedCount === 0"
           icon="bi-clock-history"
           title="No thread activity"
           description="This recording contains no thread events to lay out on a timeline."
         />
-        <div v-else-if="filteredThreadCount === 0" class="no-threads-message">
-          <i class="bi bi-exclamation-circle"></i>
-          No threads match the current filter
+
+        <div v-else class="page-summary">
+          <span class="page-summary-text">{{ pageSummary }}</span>
+          <button
+            v-if="hasMore"
+            class="btn btn-sm btn-primary"
+            :disabled="loadingMore"
+            @click="loadMore"
+          >
+            <span
+              v-if="loadingMore"
+              class="spinner-border spinner-border-sm me-2"
+              role="status"
+            ></span>
+            {{ loadingMore ? 'Loading…' : `Show ${nextPageSize} more` }}
+          </button>
+          <span v-else class="page-summary-done">All loaded</span>
         </div>
       </div>
     </div>
@@ -113,6 +132,28 @@
             <FeatureCard icon="bi-zoom-in" variant="success" title="Patterns to spot">
               Many threads blocked at the same instant = contention; one thread saturating CPU = a
               hot path to profile; staircase start times = a warming thread pool.
+            </FeatureCard>
+          </FeatureGrid>
+        </AboutSection>
+
+        <AboutSection icon="bi-layers" title="Working with Large Recordings">
+          <FeatureGrid>
+            <FeatureCard icon="bi-sort-down" variant="primary" title="Busiest threads first">
+              A recording can hold thousands of threads, so the page loads 50 at a time in the order
+              you picked and appends the next 50 on request. The footer says how many of the
+              recording's threads you are looking at.
+            </FeatureCard>
+            <FeatureCard icon="bi-funnel" variant="info" title="Sort and filter search everything">
+              Both run against the whole recording, not the threads already on screen — a thread
+              that would have sorted onto the last page is still one search away.
+            </FeatureCard>
+            <FeatureCard icon="bi-bounding-box" variant="neutral" title="Bands, not events">
+              Events closer together than the timeline can draw apart are merged into one band. The
+              band remembers how many events it covers, so the counts stay honest.
+            </FeatureCard>
+            <FeatureCard icon="bi-cursor" variant="success" title="Details on hover">
+              A band carries no field values until you point at it — then the events behind that one
+              band are fetched, which is why the first tooltip on a lane takes a moment.
             </FeatureCard>
           </FeatureGrid>
         </AboutSection>
@@ -167,8 +208,11 @@
             represented by a single pixel.
           </li>
           <li>
-            One pixel of the timeline can keep multiple events of same type (the first one shows
-            details), or different types.
+            Events too close together to be drawn apart are merged into one band, which keeps count
+            of how many it covers. A single pixel can also hold bands of different types.
+          </li>
+          <li>
+            Pointing at a band fetches the events behind it and shows their fields in the tooltip.
           </li>
         </ul>
       </div>
@@ -276,6 +320,7 @@ import ProfileThreadClient from '@/services/api/ProfileThreadClient.ts';
 import ThreadComponent from '@/components/ThreadComponent.vue';
 import ThreadCommon from '@/services/api/model/ThreadCommon';
 import ThreadRowData from '@/services/api/model/ThreadRowData';
+import type { ThreadSort } from '@/services/api/model/ThreadResponse';
 import Konva from 'konva';
 import ThreadRow from '@/services/thread/ThreadRow';
 import PageHeader from '@shared/components/layout/PageHeader.vue';
@@ -312,19 +357,34 @@ const props = defineProps({
 const route = useRoute();
 const { projectId } = useNavigation();
 
-const EVENT_COUNT_COMPARATOR = (a: ThreadRowData, b: ThreadRowData) =>
-  b.eventsCount - a.eventsCount;
-const LIFESPAN_COMPARATOR = (a: ThreadRowData, b: ThreadRowData) =>
-  b.totalDuration - a.totalDuration;
-const ALPHABETICAL_COMPARATOR = (a: ThreadRowData, b: ThreadRowData) =>
-  a.threadInfo.name.localeCompare(b.threadInfo.name);
+/**
+ * How many threads a request asks for. Each row is a lane's worth of bands, so this is the knob
+ * that keeps the first paint quick on a recording with thousands of threads.
+ */
+const PAGE_SIZE = 50;
+
+const FILTER_DEBOUNCE_MS = 300;
+
+/**
+ * The sort buttons, paired with the order the server knows them by.
+ */
+const SORTINGS: { label: string; sort: ThreadSort }[] = [
+  { label: 'Event Count', sort: 'EVENT_COUNT' },
+  { label: 'Lifespan', sort: 'LIFESPAN' },
+  { label: 'Alphabetically', sort: 'NAME' }
+];
 
 const profileId = route.params.profileId as string;
 
 const threadRows = ref<ThreadRowData[]>();
 const threadCommon = ref<ThreadCommon>();
 const loading = ref<boolean>(true);
+const loadingMore = ref<boolean>(false);
 const error = ref<string | null>(null);
+
+/** Threads matching the current filter, and threads in the recording — both counted server-side. */
+const matchedCount = ref<number>(0);
+const totalCount = ref<number>(0);
 
 const activeTab = ref('timeline');
 const tabs = [
@@ -332,42 +392,62 @@ const tabs = [
   { id: 'about', label: 'How It Works', icon: 'book' }
 ];
 const fulltextFilter = ref<string>('');
-const fulltextFilterAfterTimeout = ref<string>('');
-const selectedSorting = ref<string>('Event Count');
-const sortingTypes = ref<string[]>(['Event Count', 'Lifespan', 'Alphabetically']);
+const selectedSorting = ref<string>(SORTINGS[0].label);
+const sortingTypes = ref<string[]>(SORTINGS.map(s => s.label));
 
 const forceRenderThreads = ref<number>(0);
 
 const infoDialogVisible = ref<boolean>(false);
 
-const threadCount = computed(() => threadRows.value?.length ?? 0);
+const loadedCount = computed(() => threadRows.value?.length ?? 0);
+const hasMore = computed(() => loadedCount.value < matchedCount.value);
+const isFiltered = computed(() => fulltextFilter.value.trim().length > 0);
 
-const filteredThreadCount = computed(() => {
-  if (!threadRows.value) {
-    return 0;
+/** The button promises exactly what is left, so the last page never says "show 50 more" for 7. */
+const nextPageSize = computed(() => Math.min(PAGE_SIZE, matchedCount.value - loadedCount.value));
+
+/** Reads as "Showing 50 of 1,204 threads", and says so about the filter when one is applied. */
+const pageSummary = computed(() => {
+  const shown = loadedCount.value.toLocaleString();
+  const matched = matchedCount.value.toLocaleString();
+  if (isFiltered.value) {
+    return `Showing ${shown} of ${matched} matching threads · ${totalCount.value.toLocaleString()} in the recording`;
   }
-  return threadRows.value.filter(row =>
-    row.threadInfo.name.includes(fulltextFilterAfterTimeout.value)
-  ).length;
+  return `Showing ${shown} of ${matched} threads`;
 });
 
 let filterTimeout: ReturnType<typeof setTimeout>;
 
-let threadService;
+let threadService: ProfileThreadClient;
 
 onBeforeMount(() => {
   // Too many layers, it spams the console
   Konva.showWarnings = false;
 
   threadService = new ProfileThreadClient(profileId);
+  loadFirstPage();
+});
 
-  // A large recording takes a while to lay out, and until it lands there is nothing to show. Without
-  // the loading state, that wait was indistinguishable from a timeline with no threads in it.
+function currentSort(): ThreadSort {
+  return SORTINGS.find(s => s.label === selectedSorting.value)?.sort ?? 'EVENT_COUNT';
+}
+
+/**
+ * Replaces what is on screen — used on first paint and whenever the sort or filter changes, since
+ * both reorder the whole recording and not just the threads already loaded.
+ */
+function loadFirstPage() {
+  loading.value = true;
+  error.value = null;
+
   threadService
-    .list()
+    .list({ sort: currentSort(), nameFilter: fulltextFilter.value, offset: 0, limit: PAGE_SIZE })
     .then(response => {
-      threadRows.value = sortThreadRows(selectedSorting.value, response.rows);
+      threadRows.value = response.rows;
       threadCommon.value = response.common;
+      matchedCount.value = response.matchedCount;
+      totalCount.value = response.totalCount;
+      forceRenderThreads.value++;
     })
     .catch(e => {
       error.value = e instanceof Error ? e.message : 'Failed to load the thread timeline';
@@ -375,53 +455,51 @@ onBeforeMount(() => {
     .finally(() => {
       loading.value = false;
     });
-});
+}
 
-function sortThreadRows(
-  sortingType: string,
-  threadRows: ThreadRowData[] | undefined
-): ThreadRowData[] | undefined {
-  if (!threadRows) return undefined;
+function loadMore() {
+  if (loadingMore.value || !hasMore.value) {
+    return;
+  }
+  loadingMore.value = true;
 
-  return [...threadRows].sort((a, b) => {
-    switch (sortingType) {
-      case 'Event Count':
-        return EVENT_COUNT_COMPARATOR(a, b);
-      case 'Lifespan':
-        return LIFESPAN_COMPARATOR(a, b);
-      case 'Alphabetically':
-        return ALPHABETICAL_COMPARATOR(a, b);
-      default:
-        return 0;
-    }
-  });
+  threadService
+    .list({
+      sort: currentSort(),
+      nameFilter: fulltextFilter.value,
+      offset: loadedCount.value,
+      limit: PAGE_SIZE
+    })
+    .then(response => {
+      threadRows.value = [...(threadRows.value ?? []), ...response.rows];
+      matchedCount.value = response.matchedCount;
+      totalCount.value = response.totalCount;
+    })
+    .catch(e => {
+      error.value = e instanceof Error ? e.message : 'Failed to load more threads';
+    })
+    .finally(() => {
+      loadingMore.value = false;
+    });
 }
 
 function sortingChanged(newSorting: { value: string }) {
-  selectedSorting.value = newSorting.value;
-  if (threadRows.value) {
-    threadRows.value = sortThreadRows(newSorting.value, threadRows.value);
-    forceRenderThreads.value++;
-  }
-}
-
-function onFilterChange(newFilter: string) {
-  fulltextFilterAfterTimeout.value = '';
-  clearTimeout(filterTimeout);
-
-  if (newFilter === '') {
-    fulltextFilterAfterTimeout.value = newFilter;
+  if (selectedSorting.value === newSorting.value) {
     return;
   }
+  selectedSorting.value = newSorting.value;
+  loadFirstPage();
+}
 
-  filterTimeout = setTimeout(() => {
-    fulltextFilterAfterTimeout.value = newFilter;
-  }, 300);
+function onFilterChange() {
+  clearTimeout(filterTimeout);
+  filterTimeout = setTimeout(loadFirstPage, FILTER_DEBOUNCE_MS);
 }
 
 function clearFilter() {
+  clearTimeout(filterTimeout);
   fulltextFilter.value = '';
-  fulltextFilterAfterTimeout.value = '';
+  loadFirstPage();
 }
 </script>
 
@@ -438,20 +516,29 @@ function clearFilter() {
   margin-bottom: 0.5rem;
 }
 
-.no-threads-message {
+/* Footer under the lanes: how much of the recording is on screen, and how to get the rest. */
+.page-summary {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 1.5rem;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-top: 0.5rem;
+  padding: 1rem 1.5rem;
   background-color: var(--color-light);
   border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.page-summary-text {
   font-size: 0.85rem;
   color: var(--color-text-muted);
 }
 
-.no-threads-message i {
-  margin-right: 0.5rem;
-  font-size: 1rem;
+.page-summary-done {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  opacity: 0.75;
 }
 
 /* Modal styles */
