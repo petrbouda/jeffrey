@@ -64,6 +64,7 @@
             :thread-common="threadCommon as ThreadCommon"
             :thread-row="group.lane"
             :thread-count="group.threadCount"
+            :group-key="group.key"
             :expanded="isExpanded(group.key)"
             @toggle="toggleGroup(group.key)"
           />

@@ -55,7 +55,7 @@ public class EventQueryConfigurer {
     private boolean withEventTypeInfo;
     private Boolean useWeight;
     private boolean withThreads;
-    private ThreadInfo specifiedThread;
+    private List<ThreadInfo> specifiedThreads = List.of();
     private List<Type> eventTypes;
     private RelativeTimeRange timeRange;
     private String searchPattern;
@@ -154,15 +154,26 @@ public class EventQueryConfigurer {
     }
 
     /**
-     * Limit the event-stream to the specified threads.
+     * Limit the event-stream to a single thread.
      *
      * @param threadInfo thread information
      * @return instance of the event-stream configurer
      */
     public EventQueryConfigurer withSpecifiedThread(ThreadInfo threadInfo) {
-        if (threadInfo != null) {
+        return threadInfo == null ? this : withSpecifiedThreads(List.of(threadInfo));
+    }
+
+    /**
+     * Limit the event-stream to a set of threads — the timeline draws one lane per group of
+     * identically named threads, and everything that acts on such a lane acts on all of them.
+     *
+     * @param threads the threads to keep; null or empty applies no thread filter
+     * @return instance of the event-stream configurer
+     */
+    public EventQueryConfigurer withSpecifiedThreads(List<ThreadInfo> threads) {
+        if (threads != null && !threads.isEmpty()) {
             this.withThreads = true;
-            this.specifiedThread = threadInfo;
+            this.specifiedThreads = List.copyOf(threads);
         }
         return this;
     }
@@ -290,8 +301,11 @@ public class EventQueryConfigurer {
         return withThreads;
     }
 
-    public ThreadInfo specifiedThread() {
-        return specifiedThread;
+    /**
+     * The threads the event-stream is limited to, empty when it is not limited by thread.
+     */
+    public List<ThreadInfo> specifiedThreads() {
+        return specifiedThreads;
     }
 
     public String searchPattern() {

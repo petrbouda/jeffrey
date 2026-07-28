@@ -18,6 +18,7 @@
 
 package cafe.jeffrey.profile.manager.thread;
 
+import cafe.jeffrey.shared.common.model.ThreadInfo;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
 import cafe.jeffrey.shared.common.model.Type;
 import cafe.jeffrey.profile.manager.model.thread.ReservedStackActivation;
@@ -56,7 +57,7 @@ public interface ThreadManager {
 
     /**
      * The whole timeline. Used to warm the profile's cache after an import — the page itself asks
-     * for {@link #threadPage(ThreadPageQuery)} instead, so that a recording with a thousand threads
+     * for {@link #threadGroups(ThreadPageQuery)} instead, so that a recording with a thousand threads
      * does not have to cross the wire in one piece.
      */
     ThreadRoot threadRows();
@@ -73,6 +74,13 @@ public interface ThreadManager {
      * put 351 lanes on the page any more than the ungrouped timeline could.
      */
     ThreadPage threadGroupMembers(ThreadMembersQuery query);
+
+    /**
+     * Every thread behind one collapsed lane, unpaged — what anything acting on the lane as a whole
+     * has to be scoped to. Unlike {@link #threadGroupMembers(ThreadMembersQuery)} this merges no
+     * bands, so resolving a 351-thread pool costs a grouping pass and nothing more.
+     */
+    List<ThreadInfo> threadGroupThreads(String groupKey);
 
     /**
      * The events behind one band of {@link #threadRows()}, for the tooltip that opens when the

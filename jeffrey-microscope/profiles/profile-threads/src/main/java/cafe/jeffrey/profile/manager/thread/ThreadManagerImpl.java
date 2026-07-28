@@ -21,6 +21,7 @@ package cafe.jeffrey.profile.manager.thread;
 import tools.jackson.databind.node.ObjectNode;
 import cafe.jeffrey.shared.common.model.EventSummary;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
+import cafe.jeffrey.shared.common.model.ThreadInfo;
 import cafe.jeffrey.shared.common.model.Type;
 import cafe.jeffrey.shared.common.model.time.RelativeTimeRange;
 import cafe.jeffrey.profile.manager.thread.builder.CPULoadBuilder;
@@ -186,12 +187,7 @@ public class ThreadManagerImpl implements ThreadManager {
     @Override
     public ThreadPage threadGroupMembers(ThreadMembersQuery query) {
         ThreadRoot root = threadInfoProvider.get();
-
-        List<ThreadRow> members = grouping().group(root.rows()).stream()
-                .filter(group -> group.key().equals(query.groupKey()))
-                .findFirst()
-                .map(ThreadGroupMembers::members)
-                .orElse(List.of());
+        List<ThreadRow> members = membersOf(root.rows(), query.groupKey());
 
         List<ThreadRow> page = members.stream()
                 .sorted(query.sort().comparator())
@@ -200,6 +196,26 @@ public class ThreadManagerImpl implements ThreadManager {
                 .toList();
 
         return new ThreadPage(root.common(), page, query.offset(), members.size(), root.rows().size());
+    }
+
+    @Override
+    public List<ThreadInfo> threadGroupThreads(String groupKey) {
+        return membersOf(threadInfoProvider.get().rows(), groupKey).stream()
+                .map(ThreadRow::threadInfo)
+                .toList();
+    }
+
+    /**
+     * Every thread in a group, in the order the timeline built them. Unlike a page of members this
+     * merges no bands, so resolving a 351-thread pool for a filter costs a grouping pass and nothing
+     * more.
+     */
+    private List<ThreadRow> membersOf(List<ThreadRow> rows, String groupKey) {
+        return grouping().group(rows).stream()
+                .filter(group -> group.key().equals(groupKey))
+                .findFirst()
+                .map(ThreadGroupMembers::members)
+                .orElse(List.of());
     }
 
     private ThreadGrouping grouping() {
@@ -223,7 +239,7 @@ public class ThreadManagerImpl implements ThreadManager {
     public List<ThreadEventDetail> threadEvents(ThreadEventsQuery query) {
         EventQueryConfigurer configurer = new EventQueryConfigurer()
                 .withEventType(query.state().eventType())
-                .withSpecifiedThread(query.threadInfo())
+                .withSpecifiedThreads(query.threads())
                 .withTimeRange(bandTimeRange(query))
                 .withEventTypeInfo()
                 .withJsonFields();

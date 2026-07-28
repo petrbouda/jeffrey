@@ -34,7 +34,9 @@ import java.util.List;
 public record GraphParameters(
         Type eventType,
         RelativeTimeRange timeRange,
-        ThreadInfo threadInfo,
+        // The threads the graph is scoped to: one for a plain thread, all of them for a lane that
+        // stands for a group of identically named threads. Empty means every thread.
+        List<ThreadInfo> threads,
         String searchPattern,
         boolean threadMode,
         Boolean useWeight,
@@ -86,7 +88,7 @@ public record GraphParameters(
         return builder()
                 .withEventType(eventType)
                 .withTimeRange(timeRange)
-                .withThreadInfo(threadInfo)
+                .withThreads(threads)
                 .withSearchPattern(searchPattern)
                 .withThreadMode(threadMode)
                 .withUseWeight(useWeight)

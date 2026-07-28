@@ -30,6 +30,12 @@ export default class PrimaryFlamegraphClient extends RemoteFlamegraphClient {
   private readonly excludeIdleSamples: boolean;
   private readonly onlyUnsafeAllocationSamples: boolean;
   private readonly threadInfo: ThreadInfo | null;
+  /**
+   * Set instead of threadInfo when the graph is opened from a collapsed timeline lane. The lane has
+   * no thread of its own and the page holds at most a slice of its members, so it names the group
+   * and the server resolves every thread behind it.
+   */
+  private readonly threadGroup: string | null;
 
   constructor(
     profileId: string,
@@ -39,7 +45,8 @@ export default class PrimaryFlamegraphClient extends RemoteFlamegraphClient {
     excludeNonJavaSamples: boolean,
     excludeIdleSamples: boolean,
     onlyUnsafeAllocationSamples: boolean,
-    threadInfo: ThreadInfo | null
+    threadInfo: ThreadInfo | null,
+    threadGroup: string | null = null
   ) {
     super(GlobalVars.internalUrl + '/profiles/' + profileId + '/flamegraph');
     this.eventType = eventType;
@@ -49,6 +56,7 @@ export default class PrimaryFlamegraphClient extends RemoteFlamegraphClient {
     this.excludeIdleSamples = excludeIdleSamples;
     this.onlyUnsafeAllocationSamples = onlyUnsafeAllocationSamples;
     this.threadInfo = threadInfo;
+    this.threadGroup = threadGroup;
   }
 
   protected bothContent(
@@ -66,6 +74,7 @@ export default class PrimaryFlamegraphClient extends RemoteFlamegraphClient {
       excludeIdleSamples: this.excludeIdleSamples,
       onlyUnsafeAllocationSamples: this.onlyUnsafeAllocationSamples,
       threadInfo: this.threadInfo,
+      threadGroup: this.threadGroup,
       components: components
     };
   }

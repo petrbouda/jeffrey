@@ -255,7 +255,7 @@ public class DuckDBTimeseriesQueries implements ComplexQueries.Timeseries {
 
     private static String render(String sql, EventQueryConfigurer configurer) {
         String valueField = configurer.useWeight() ? "e.weight" : "e.samples";
-        String threadJoin = configurer.specifiedThread() != null ? THREAD_JOIN : "";
+        String threadJoin = configurer.specifiedThreads().isEmpty() ? "" : THREAD_JOIN;
 
         String result = sql
                 .replace(PLACEHOLDER_TARGET_VALUE, valueField)

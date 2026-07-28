@@ -21,6 +21,7 @@ package cafe.jeffrey.provider.profile.jdbc;
 import cafe.jeffrey.provider.profile.api.EventQueryConfigurer;
 import cafe.jeffrey.shared.common.model.StacktraceTag;
 import cafe.jeffrey.shared.common.model.StacktraceType;
+import cafe.jeffrey.shared.common.model.ThreadInfo;
 import cafe.jeffrey.shared.common.model.time.RelativeTimeRange;
 
 import java.util.List;
@@ -61,10 +62,22 @@ final class EventQueryFilters {
     private static final String INCLUDED_TAGS_CLAUSE = "AND list_has_any(s.tag_ids, [:included_tags])\n";
     //language=SQL
     private static final String EXCLUDED_TAGS_CLAUSE = "AND NOT list_has_any(s.tag_ids, [:excluded_tags])\n";
+    /**
+     * Keeps events taken on any of the requested threads. The two id columns are matched separately
+     * because a lane standing for a group can hold both threads that have a Java id and threads that
+     * only have an OS id; each side is spliced in only when it has members, so neither list is ever
+     * empty at query time.
+     */
     //language=SQL
-    private static final String THREAD_CLAUSES = """
-            AND t.java_id = :java_thread_id
-            AND t.os_id = :os_thread_id
+    private static final String THREAD_JAVA_ID_CLAUSE =
+            "AND list_contains([:java_thread_ids], t.java_id)\n";
+    //language=SQL
+    private static final String THREAD_OS_ID_CLAUSE =
+            "AND list_contains([:os_thread_ids], t.os_id)\n";
+    //language=SQL
+    private static final String THREAD_EITHER_ID_CLAUSE = """
+            AND (list_contains([:java_thread_ids], t.java_id)
+                 OR list_contains([:os_thread_ids], t.os_id))
             """;
     //language=SQL
     private static final String JSON_FIELD_CLAUSE =
@@ -129,10 +142,17 @@ final class EventQueryFilters {
     }
 
     private static String threadFilters(EventQueryConfigurer configurer) {
-        if (configurer.specifiedThread() == null) {
+        List<ThreadInfo> threads = configurer.specifiedThreads();
+        if (threads.isEmpty()) {
             return "";
         }
-        return THREAD_CLAUSES;
+        if (ThreadIdParams.osIds(threads).isEmpty()) {
+            return THREAD_JAVA_ID_CLAUSE;
+        }
+        if (ThreadIdParams.javaIds(threads).isEmpty()) {
+            return THREAD_OS_ID_CLAUSE;
+        }
+        return THREAD_EITHER_ID_CLAUSE;
     }
 
     private static String jsonFieldFilter(EventQueryConfigurer configurer) {

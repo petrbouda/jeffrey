@@ -37,6 +37,7 @@ import cafe.jeffrey.profile.panel.PanelContext;
 import cafe.jeffrey.profile.resources.request.GenerateFlamegraphRequest;
 import cafe.jeffrey.shared.common.GraphType;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
+import cafe.jeffrey.shared.common.model.ThreadInfo;
 import cafe.jeffrey.shared.common.model.ProfilingStartEnd;
 import cafe.jeffrey.shared.common.model.time.RelativeTimeRange;
 import cafe.jeffrey.shared.common.model.time.TimeRange;
@@ -67,7 +68,7 @@ public class FlamegraphController {
             @RequestBody GenerateFlamegraphRequest request) {
         LOG.debug("Generating flamegraph: eventType={} useThreadMode={}", request.eventType(), request.useThreadMode());
         ProfileManager pm = resolver.resolve(profileId);
-        GraphParameters params = mapToGenerateRequest(pm.info(), request, GraphType.PRIMARY);
+        GraphParameters params = mapToGenerateRequest(pm, request, GraphType.PRIMARY);
         return pm.flamegraphManager().generate(params);
     }
 
@@ -77,7 +78,7 @@ public class FlamegraphController {
             @RequestBody GenerateFlamegraphRequest request) {
         LOG.debug("Generating AI export: eventType={}", request.eventType());
         ProfileManager pm = resolver.resolve(profileId);
-        GraphParameters params = mapToGenerateRequest(pm.info(), request, GraphType.PRIMARY);
+        GraphParameters params = mapToGenerateRequest(pm, request, GraphType.PRIMARY);
         return pm.flamegraphManager().generateAiExport(params);
     }
 
@@ -98,7 +99,9 @@ public class FlamegraphController {
     }
 
     static GraphParameters mapToGenerateRequest(
-            ProfileInfo profileInfo, GenerateFlamegraphRequest request, GraphType graphType) {
+            ProfileManager profileManager, GenerateFlamegraphRequest request, GraphType graphType) {
+
+        ProfileInfo profileInfo = profileManager.info();
 
         ProfilingStartEnd primaryStartEnd = new ProfilingStartEnd(
                 profileInfo.profilingStartedAt(), profileInfo.profilingFinishedAt());
@@ -109,7 +112,7 @@ public class FlamegraphController {
         return GraphParameters.builder()
                 .withEventType(request.eventType())
                 .withTimeRange(relativeTimeRange)
-                .withThreadInfo(request.threadInfo())
+                .withThreads(threadsOf(profileManager, request))
                 .withThreadMode(request.useThreadMode())
                 .withUseWeight(request.useWeight())
                 .withExcludeNonJavaSamples(request.excludeNonJavaSamples())
@@ -121,6 +124,25 @@ public class FlamegraphController {
                 .withSearchPattern(request.search())
                 .withMarkers(request.markers())
                 .build();
+    }
+
+    /**
+     * The threads a graph is scoped to. A request opened from a collapsed timeline lane names the
+     * group rather than a thread — the lane has no thread of its own, and the page holds at most a
+     * slice of its members — so the group is resolved to all of them here.
+     */
+    private static List<ThreadInfo> threadsOf(ProfileManager profileManager, GenerateFlamegraphRequest request) {
+        if (!request.hasThreadGroup()) {
+            return request.threadInfo() == null ? List.of() : List.of(request.threadInfo());
+        }
+
+        List<ThreadInfo> threads = profileManager.threadManager().threadGroupThreads(request.threadGroup());
+        if (threads.isEmpty()) {
+            // A group exists only because threads fell into it, so an empty one is a key that no
+            // longer names anything. Left alone it would silently graph the whole recording.
+            throw new IllegalArgumentException("Unknown thread group: " + request.threadGroup());
+        }
+        return threads;
     }
 
     public static TimeRange toTimeRange(TimeRangeRequest timeRangeRequest) {

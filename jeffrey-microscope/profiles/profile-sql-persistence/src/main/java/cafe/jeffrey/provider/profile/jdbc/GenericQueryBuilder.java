@@ -82,8 +82,8 @@ public class GenericQueryBuilder implements QueryBuilder {
             builder.merge(sqlFormatter.threads());
         }
 
-        if (configurer.specifiedThread() != null) {
-            builder.merge(sqlFormatter.threadInfo(configurer.specifiedThread()));
+        if (!configurer.specifiedThreads().isEmpty()) {
+            builder.merge(sqlFormatter.threadInfo(configurer.specifiedThreads()));
         }
 
         if (configurer.eventTypeInfo()) {

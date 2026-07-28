@@ -21,28 +21,32 @@ package cafe.jeffrey.profile.thread;
 import cafe.jeffrey.shared.common.model.ThreadInfo;
 
 import java.time.Duration;
+import java.util.List;
 
 /**
- * Asks for the events behind one band of a thread's timeline — what a tooltip needs once the pointer
+ * Asks for the events behind one band of a timeline lane — what a tooltip needs once the pointer
  * settles on a rectangle.
  *
- * @param threadInfo the thread the band belongs to
- * @param state      which band was hovered
- * @param from       start of the band, as an offset from the beginning of the recording
- * @param to         end of the band, as an offset from the beginning of the recording
- * @param limit      how many events to return; a tooltip shows one, the band already carries the count
+ * @param threads the threads the band belongs to: one for a plain thread, all of them for a lane
+ *                standing for a group. A collapsed lane has no thread of its own, so asking by its
+ *                identity would match nothing
+ * @param state   which band was hovered
+ * @param from    start of the band, as an offset from the beginning of the recording
+ * @param to      end of the band, as an offset from the beginning of the recording
+ * @param limit   how many events to return; a tooltip shows one, the band already carries the count
  */
 public record ThreadEventsQuery(
-        ThreadInfo threadInfo,
+        List<ThreadInfo> threads,
         ThreadState state,
         Duration from,
         Duration to,
         int limit) {
 
     public ThreadEventsQuery {
-        if (threadInfo == null) {
-            throw new IllegalArgumentException("Thread must be specified");
+        if (threads == null || threads.isEmpty()) {
+            throw new IllegalArgumentException("At least one thread must be specified");
         }
+        threads = List.copyOf(threads);
         if (state == null || !state.hasEventDetail()) {
             throw new IllegalArgumentException("Thread state has no event detail: " + state);
         }

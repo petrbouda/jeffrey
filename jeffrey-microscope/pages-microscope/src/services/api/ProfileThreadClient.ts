@@ -74,16 +74,20 @@ export default class ProfileThreadClient extends BaseProfileClient {
   /**
    * The events behind a single timeline band, for its tooltip. The timeline itself carries only
    * rectangles and event counts, so the fields are fetched for the band under the pointer.
+   *
+   * A band on a collapsed lane belongs to the group rather than to a thread, so it names the group
+   * instead: the lane's own {@link ThreadInfo} carries placeholder ids that match no real thread.
    */
   public bandEvents(
     threadInfo: ThreadInfo,
     state: ThreadEventState,
     band: ThreadPeriod,
-    limit = 1
+    limit = 1,
+    group: string | null = null
   ): Promise<ThreadEventDetail[]> {
+    const target = group ? { group: group } : { osId: threadInfo.osId, javaId: threadInfo.javaId };
     return this.get<ThreadEventDetail[]>('/events', {
-      osId: threadInfo.osId,
-      javaId: threadInfo.javaId,
+      ...target,
       state: state,
       from: band.startOffset,
       to: band.startOffset + band.width,

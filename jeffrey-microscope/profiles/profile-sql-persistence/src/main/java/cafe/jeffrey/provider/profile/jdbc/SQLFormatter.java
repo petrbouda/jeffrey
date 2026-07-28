@@ -102,17 +102,39 @@ public abstract class SQLFormatter {
     }
 
     /**
-     * Narrows the query to a single thread. Java threads are identified by their Java id; threads
-     * that never got one (a plain native thread reports {@code -1}) would all collide on that value,
-     * so they are matched on the OS id instead.
+     * Narrows the query to the given threads — one for a plain thread, all of them for a lane that
+     * stands for a group.
+     *
+     * <p>The two id columns are matched separately. Java threads are identified by their Java id;
+     * threads that never got one (a plain native thread reports {@code -1}) would all collide on
+     * that value, so they are matched on the OS id instead. A group can hold both kinds, hence the
+     * disjunction — and each side is emitted only when it has members, because an empty {@code IN ()}
+     * is not valid SQL.
      */
-    public SQLBuilder threadInfo(ThreadInfo threadInfo) {
-        if (threadInfo == null) {
+    public SQLBuilder threadInfo(List<ThreadInfo> threads) {
+        if (threads == null || threads.isEmpty()) {
             return new SQLBuilder();
         }
-        if (threadInfo.javaId() == UNKNOWN_THREAD_ID) {
-            return new SQLBuilder().where("threads.os_id", "=", l(threadInfo.osId()));
+
+        List<Long> javaIds = threads.stream()
+                .map(ThreadInfo::javaId)
+                .filter(id -> id != UNKNOWN_THREAD_ID)
+                .distinct()
+                .toList();
+
+        List<Long> osIds = threads.stream()
+                .filter(thread -> thread.javaId() == UNKNOWN_THREAD_ID)
+                .map(ThreadInfo::osId)
+                .distinct()
+                .toList();
+
+        if (osIds.isEmpty()) {
+            return new SQLBuilder().where(inLongs("threads.java_id", javaIds));
         }
-        return new SQLBuilder().where("threads.java_id", "=", l(threadInfo.javaId()));
+        if (javaIds.isEmpty()) {
+            return new SQLBuilder().where(inLongs("threads.os_id", osIds));
+        }
+        return new SQLBuilder().where(
+                or(inLongs("threads.java_id", javaIds), inLongs("threads.os_id", osIds)));
     }
 }

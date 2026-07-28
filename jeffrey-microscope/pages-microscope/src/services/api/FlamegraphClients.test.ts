@@ -86,6 +86,7 @@ describe('PrimaryFlamegraphClient payloads', () => {
         excludeIdleSamples: false,
         onlyUnsafeAllocationSamples: true,
         threadInfo: null,
+        threadGroup: null,
         components: 'BOTH'
       })
     );
@@ -107,6 +108,7 @@ describe('PrimaryFlamegraphClient payloads', () => {
         excludeIdleSamples: false,
         onlyUnsafeAllocationSamples: true,
         threadInfo: null,
+        threadGroup: null,
         components: 'BOTH'
       })
     );
@@ -125,6 +127,7 @@ describe('PrimaryFlamegraphClient payloads', () => {
         excludeIdleSamples: false,
         onlyUnsafeAllocationSamples: true,
         threadInfo: null,
+        threadGroup: null,
         components: 'FLAMEGRAPH_ONLY'
       })
     );
@@ -144,6 +147,7 @@ describe('PrimaryFlamegraphClient payloads', () => {
         excludeIdleSamples: false,
         onlyUnsafeAllocationSamples: true,
         threadInfo: null,
+        threadGroup: null,
         components: 'TIMESERIES_ONLY'
       })
     );
@@ -188,6 +192,42 @@ describe('PrimaryFlamegraphClient payloads', () => {
         excludeIdleSamples: false,
         onlyUnsafeAllocationSamples: true,
         threadInfo: null,
+        threadGroup: null,
+        components: 'FLAMEGRAPH_ONLY'
+      })
+    );
+  });
+
+  /**
+   * A graph opened from a collapsed timeline lane names the group instead of a thread — the lane has
+   * no thread of its own, and the page holds at most a slice of its members.
+   */
+  it('a graph scoped to a thread group names the group', async () => {
+    const grouped = new PrimaryFlamegraphClient(
+      'p1',
+      'jdk.ExecutionSample',
+      true,
+      false,
+      true,
+      false,
+      true,
+      null,
+      'oracleApp:connection-adder*'
+    );
+
+    await grouped.provide(null);
+
+    expect(lastPost().bodyJson).toBe(
+      expectJson({
+        eventType: 'jdk.ExecutionSample',
+        useWeight: false,
+        useThreadMode: true,
+        timeRange: null,
+        excludeNonJavaSamples: true,
+        excludeIdleSamples: false,
+        onlyUnsafeAllocationSamples: true,
+        threadInfo: null,
+        threadGroup: 'oracleApp:connection-adder*',
         components: 'FLAMEGRAPH_ONLY'
       })
     );

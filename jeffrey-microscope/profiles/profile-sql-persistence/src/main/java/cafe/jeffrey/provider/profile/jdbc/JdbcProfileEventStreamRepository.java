@@ -266,18 +266,7 @@ public class JdbcProfileEventStreamRepository implements ProfileEventStreamRepos
             baseParams = baseParams.addValue("search_pattern", null);
         }
 
-        if (configurer.threads()) {
-            boolean specifiedThread = configurer.specifiedThread() != null;
-            Long javaThreadId = specifiedThread ? configurer.specifiedThread().javaId() : null;
-            Long osThreadId = specifiedThread ? configurer.specifiedThread().osId() : null;
-
-            baseParams.addValue("java_thread_id", javaThreadId);
-            baseParams.addValue("os_thread_id", osThreadId);
-        } else {
-            baseParams = baseParams
-                    .addValue("java_thread_id", null)
-                    .addValue("os_thread_id", null);
-        }
+        ThreadIdParams.apply(baseParams, configurer.specifiedThreads());
 
         List<StacktraceType> stacktraceTypes = configurer.filterStacktraceTypes();
         if (stacktraceTypes != null && !stacktraceTypes.isEmpty()) {

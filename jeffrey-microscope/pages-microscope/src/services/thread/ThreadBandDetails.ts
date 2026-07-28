@@ -32,12 +32,18 @@ import type ThreadPeriod from '@/services/api/model/ThreadPeriod';
 export default class ThreadBandDetails {
   private readonly client: ProfileThreadClient;
   private readonly threadInfo: ThreadInfo;
+  /**
+   * Set on a collapsed lane, whose bands stand for a whole group of threads. The lane's own ids are
+   * placeholders that match nothing, so the group is what the lookup goes by.
+   */
+  private readonly group: string | null;
   private readonly resolved = new Map<string, ThreadEventDetail | null>();
   private readonly inFlight = new Map<string, Promise<ThreadEventDetail | null>>();
 
-  constructor(profileId: string, threadInfo: ThreadInfo) {
+  constructor(profileId: string, threadInfo: ThreadInfo, group: string | null = null) {
     this.client = new ProfileThreadClient(profileId);
     this.threadInfo = threadInfo;
+    this.group = group;
   }
 
   /**
@@ -69,7 +75,7 @@ export default class ThreadBandDetails {
     }
 
     const request = this.client
-      .bandEvents(this.threadInfo, state, band)
+      .bandEvents(this.threadInfo, state, band, 1, this.group)
       .then(events => (events.length > 0 ? events[0] : null))
       .catch(() => null)
       .then(detail => {

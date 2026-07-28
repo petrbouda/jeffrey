@@ -40,6 +40,7 @@ import cafe.jeffrey.profile.thread.ThreadPageQuery;
 import cafe.jeffrey.profile.thread.ThreadSort;
 import cafe.jeffrey.profile.thread.ThreadState;
 import cafe.jeffrey.shared.common.exception.Exceptions;
+import cafe.jeffrey.shared.common.model.ThreadInfo;
 import cafe.jeffrey.timeseries.SingleSerie;
 import cafe.jeffrey.timeseries.TimeseriesData;
 
@@ -310,8 +311,9 @@ class ThreadControllerTest {
             ArgumentCaptor<ThreadEventsQuery> captor = ArgumentCaptor.forClass(ThreadEventsQuery.class);
             verify(threadManager).threadEvents(captor.capture());
             ThreadEventsQuery query = captor.getValue();
-            assertThat(query.threadInfo().javaId()).isEqualTo(42);
-            assertThat(query.threadInfo().osId()).isEqualTo(7);
+            assertThat(query.threads()).hasSize(1);
+            assertThat(query.threads().getFirst().javaId()).isEqualTo(42);
+            assertThat(query.threads().getFirst().osId()).isEqualTo(7);
             assertThat(query.state()).isEqualTo(ThreadState.FILE_WRITE);
             assertThat(query.from()).isEqualTo(Duration.ofNanos(1_000));
             assertThat(query.to()).isEqualTo(Duration.ofNanos(1_500));
@@ -339,6 +341,41 @@ class ThreadControllerTest {
             ArgumentCaptor<ThreadEventsQuery> captor = ArgumentCaptor.forClass(ThreadEventsQuery.class);
             verify(threadManager).threadEvents(captor.capture());
             assertThat(captor.getValue().limit()).isEqualTo(20);
+        }
+
+        /**
+         * A band on a collapsed lane belongs to the whole group. The lane carries no thread of its
+         * own, so asking by its identity matched nothing and the tooltip stayed blank; naming the
+         * group resolves it to every thread behind it.
+         */
+        @Test
+        void areLookedUpAcrossAWholeGroup() {
+            when(resolver.resolve("p-1")).thenReturn(profileManager);
+            when(profileManager.threadManager()).thenReturn(threadManager);
+            when(threadManager.threadGroupThreads("oracleApp:connection-adder")).thenReturn(List.of(
+                    new ThreadInfo(1001, 1, "oracleApp:connection-adder"),
+                    new ThreadInfo(1002, 2, "oracleApp:connection-adder")));
+            when(threadManager.threadEvents(any(ThreadEventsQuery.class))).thenReturn(List.of());
+
+            MockMvcTester mvc = mockMvcTesterFor(new ThreadController(resolver));
+
+            assertThat(mvc.get().uri("/api/internal/profiles/p-1/thread/events"
+                    + "?group=oracleApp:connection-adder&state=SOCKET_READ&from=0&to=1000"))
+                    .hasStatusOk();
+
+            ArgumentCaptor<ThreadEventsQuery> captor = ArgumentCaptor.forClass(ThreadEventsQuery.class);
+            verify(threadManager).threadEvents(captor.capture());
+            assertThat(captor.getValue().threads())
+                    .as("Every thread in the group is searched, not the lane's placeholder identity")
+                    .hasSize(2);
+        }
+
+        @Test
+        void areRejectedWithoutAThreadOrAGroup() {
+            MockMvcTester mvc = mockMvcTesterFor(new ThreadController(resolver));
+
+            assertThat(mvc.get().uri("/api/internal/profiles/p-1/thread/events"
+                    + "?state=SOCKET_READ&from=0&to=1000")).hasStatus(400);
         }
 
         /**
