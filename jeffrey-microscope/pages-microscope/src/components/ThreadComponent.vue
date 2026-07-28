@@ -326,7 +326,10 @@ const showFlamegraph = (eventCode: string) => {
   const flamegraphClient = new PrimaryFlamegraphClient(
     props.primaryProfileId,
     eventCode,
-    true,
+    // Thread mode puts a synthetic root frame under every thread. On a collapsed lane that would
+    // split the graph by the very thing the lane collapsed — one sliver per pool worker — so a
+    // group merges instead, and only a single thread keeps its own root.
+    !collapsed.value,
     null,
     false,
     false,
