@@ -17,7 +17,7 @@
   -->
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
 import ThreadRowData from '@/services/api/model/ThreadRowData';
 import { useRoute } from 'vue-router';
 
@@ -34,7 +34,7 @@ import FullGraphUpdater from '@/services/flamegraphs/updater/FullGraphUpdater';
 import FlamegraphComponent from '@/components/FlamegraphComponent.vue';
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
 import SearchBarComponent from '@/components/SearchBarComponent.vue';
-import * as bootstrap from 'bootstrap';
+import GenericModal from '@shared/components/GenericModal.vue';
 import TimeseriesEventAxeFormatter from '@/services/timeseries/TimeseriesEventAxeFormatter.ts';
 
 const props = withDefaults(
@@ -164,24 +164,6 @@ onMounted(() => {
   );
   threadRowRenderer.draw();
 
-  // Initialize the Bootstrap modal after the DOM is ready
-  nextTick(() => {
-    const modalEl = document.getElementById('flamegraphModal');
-    if (modalEl) {
-      // We'll manually create and dispose of the modal
-      // for better control over the behavior
-      modalEl.addEventListener('hidden.bs.modal', () => {
-        showFlamegraphDialog.value = false;
-      });
-
-      // Add event listener to close button that might not work with data-bs-dismiss
-      const closeButton = modalEl.querySelector('.btn-close');
-      if (closeButton) {
-        closeButton.addEventListener('click', closeModal);
-      }
-    }
-  });
-
   // Add scroll listener with stored handler reference for proper cleanup
   document.addEventListener('scroll', handleScroll);
 });
@@ -275,44 +257,8 @@ const executeMenuItem = (item: any) => {
   item.command();
 };
 
-let modalInstance: bootstrap.Modal | null = null;
-
-// Function to close the modal
-const closeModal = () => {
-  if (modalInstance) {
-    modalInstance.hide();
-  }
-  showFlamegraphDialog.value = false;
-};
-
-// Watch for changes to showFlamegraphDialog to control modal visibility
-watch(showFlamegraphDialog, isVisible => {
-  if (isVisible) {
-    if (!modalInstance) {
-      const modalEl = document.getElementById(flamegraphModalId.value);
-      if (modalEl) {
-        modalInstance = new bootstrap.Modal(modalEl);
-      }
-    }
-
-    if (modalInstance) {
-      modalInstance.show();
-    }
-  } else {
-    if (modalInstance) {
-      modalInstance.hide();
-    }
-  }
-});
-
-// Clean up event listeners and modal when component is unmounted
+// Clean up event listeners when the component is unmounted
 onUnmounted(() => {
-  // Clean up modal
-  if (modalInstance) {
-    modalInstance.dispose();
-    modalInstance = null;
-  }
-
   // Remove scroll listener with correct handler reference
   document.removeEventListener('scroll', handleScroll);
 
@@ -503,7 +449,7 @@ function createContextMenuItems() {
   </div>
 
   <!-- Thread Information Modal -->
-  <div v-if="showInfoModal" class="modal-overlay" @click="showInfoModal = false">
+  <div v-if="showInfoModal" class="thread-info-overlay" @click="showInfoModal = false">
     <div class="modal-container tooltip-style-modal" @click.stop>
       <div
         class="tooltip-header d-flex justify-content-between align-items-center"
@@ -745,48 +691,35 @@ function createContextMenuItems() {
   </div>
 
   <!-- Modal for events that contain StackTrace field -->
-  <div
-    class="modal fade"
-    :id="flamegraphModalId"
-    tabindex="-1"
-    aria-labelledby="flamegraphModalLabel"
-    aria-hidden="true"
+  <GenericModal
+    v-model:show="showFlamegraphDialog"
+    :modal-id="flamegraphModalId"
+    :title="selectedEventCode"
+    size="fullscreen"
+    :show-footer="false"
   >
-    <div class="modal-dialog modal-lg" style="width: 95vw; max-width: 95%">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="flamegraphModalLabel">{{ selectedEventCode }}</h5>
-          <button type="button" class="btn-close" @click="closeModal" aria-label="Close"></button>
-        </div>
-        <div
-          id="scrollable-wrapper"
-          class="modal-body"
-          style="padding: 0.75rem"
-          v-if="showFlamegraphDialog"
-        >
-          <SearchBarComponent :graph-updater="graphUpdater" :with-timeseries="true" />
-          <TimeSeriesChart
-            :graph-updater="graphUpdater"
-            :primary-axis-type="
-              TimeseriesEventAxeFormatter.resolveAxisFormatter(useWeightValue, selectedEventCode)
-            "
-            :visible-minutes="60"
-            :zoom-enabled="true"
-            time-unit="seconds"
-          />
-          <FlamegraphComponent
-            :with-timeseries="true"
-            :use-weight="useWeightValue"
-            :use-guardian="null"
-            scrollableWrapperClass="scrollable-wrapper"
-            :flamegraph-tooltip="flamegraphTooltip"
-            :graph-updater="graphUpdater"
-            @loaded="scrollToTop"
-          />
-        </div>
-      </div>
+    <div v-if="showFlamegraphDialog" style="padding: 0.75rem">
+      <SearchBarComponent :graph-updater="graphUpdater" :with-timeseries="true" />
+      <TimeSeriesChart
+        :graph-updater="graphUpdater"
+        :primary-axis-type="
+          TimeseriesEventAxeFormatter.resolveAxisFormatter(useWeightValue, selectedEventCode)
+        "
+        :visible-minutes="60"
+        :zoom-enabled="true"
+        time-unit="seconds"
+      />
+      <FlamegraphComponent
+        :with-timeseries="true"
+        :use-weight="useWeightValue"
+        :use-guardian="null"
+        scrollableWrapperClass="scrollable-wrapper"
+        :flamegraph-tooltip="flamegraphTooltip"
+        :graph-updater="graphUpdater"
+        @loaded="scrollToTop"
+      />
     </div>
-  </div>
+  </GenericModal>
 </template>
 
 <style scoped>
@@ -970,8 +903,9 @@ function createContextMenuItems() {
   }
 }
 
-/* Modal styles */
-.modal-overlay {
+/* The thread-details overlay. Deliberately not named `modal-overlay`: that class also sits on
+   GenericModal's root, which a scoped rule here would reach and restyle. */
+.thread-info-overlay {
   position: fixed;
   top: 0;
   left: 0;
@@ -1019,25 +953,6 @@ function createContextMenuItems() {
   top: 8px;
 }
 
-/* Info modal styles */
-.modal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--color-border);
-  background-color: var(--color-light);
-}
-
-.modal-title {
-  margin: 0;
-  font-size: 0.95rem;
-  color: var(--color-indigo-text);
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-}
-
 .modal-close {
   background: transparent;
   border: none;
@@ -1056,11 +971,6 @@ function createContextMenuItems() {
 .modal-close:hover {
   background-color: rgba(108, 117, 125, 0.12);
   color: var(--color-dark);
-}
-
-.modal-body {
-  padding: 12px;
-  overflow-y: auto;
 }
 
 .modal-footer {
@@ -1158,37 +1068,6 @@ function createContextMenuItems() {
   font-size: 0.75rem;
   color: var(--color-dark);
   text-align: right;
-}
-
-/* Flamegraph modal styles */
-.modal-fade .modal-body {
-  padding-left: 4px;
-  padding-right: 4px;
-  overflow: hidden;
-}
-
-.modal-body-content {
-  overflow: auto;
-}
-
-/* Add a subtle animation to the modal */
-.modal.fade .modal-dialog {
-  transition: transform 0.25s ease-out;
-  transform: translate(0, -40px);
-}
-
-.modal.show .modal-dialog {
-  transform: none;
-}
-
-/* Custom header styling */
-.modal-header {
-  background-color: var(--color-light);
-  border-bottom: 1px solid var(--color-border);
-}
-
-.modal-title {
-  font-weight: 600;
 }
 
 @keyframes modalFadeIn {
