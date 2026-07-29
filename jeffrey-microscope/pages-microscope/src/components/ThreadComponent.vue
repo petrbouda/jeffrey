@@ -90,8 +90,12 @@ const flamegraphModalId = ref(`flamegraphModal-${props.index}`);
 
 const showFlamegraphDialog = ref(false);
 
+/**
+ * Brings a reloaded graph back into view. The modal's overlay is what scrolls — the global
+ * `.modal-overlay` carries the `overflow-y` — so it is also what the flamegraph tracks.
+ */
 function scrollToTop() {
-  const wrapper = document.querySelector('.scrollable-wrapper');
+  const wrapper = document.getElementById(flamegraphModalId.value);
   if (wrapper) {
     wrapper.scrollTop = 0;
   }
@@ -713,7 +717,7 @@ function createContextMenuItems() {
         :with-timeseries="true"
         :use-weight="useWeightValue"
         :use-guardian="null"
-        scrollableWrapperClass="scrollable-wrapper"
+        :scrollable-wrapper-class="flamegraphModalId"
         :flamegraph-tooltip="flamegraphTooltip"
         :graph-updater="graphUpdater"
         @loaded="scrollToTop"

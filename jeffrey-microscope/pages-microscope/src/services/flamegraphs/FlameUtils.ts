@@ -26,16 +26,31 @@ export default class FlameUtils {
     }
   }
 
+  /**
+   * Follows the scroll position of the element the graph sits in, so the tooltip and the highlight
+   * stay on the frame under the pointer. The id of that element, not a class, despite the name the
+   * callers pass it under.
+   *
+   * <p>A caller without a scroll container passes null, and one whose container is not in the DOM
+   * gets the same treatment: this runs inside the graph updater's init callback, so throwing here
+   * would strand the "Generating Flamegraph..." preloader on a graph that has already drawn.
+   */
   static registerAdjustableScrollableComponent(
     flamegraph: Flamegraph,
     scrollableComponent: string | null
   ) {
-    if (scrollableComponent != null) {
-      const el = document.querySelector('#' + scrollableComponent)!;
-      el.addEventListener('scroll', () => {
-        flamegraph.updateScrollPositionY(el.scrollTop);
-        flamegraph.removeHighlight();
-      });
+    if (scrollableComponent == null) {
+      return;
     }
+
+    const el = document.getElementById(scrollableComponent);
+    if (el == null) {
+      return;
+    }
+
+    el.addEventListener('scroll', () => {
+      flamegraph.updateScrollPositionY(el.scrollTop);
+      flamegraph.removeHighlight();
+    });
   }
 }
