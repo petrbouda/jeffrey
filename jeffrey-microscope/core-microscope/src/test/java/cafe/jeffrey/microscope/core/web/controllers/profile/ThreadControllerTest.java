@@ -39,6 +39,7 @@ import cafe.jeffrey.profile.thread.ThreadPage;
 import cafe.jeffrey.profile.thread.ThreadPageQuery;
 import cafe.jeffrey.profile.thread.ThreadSort;
 import cafe.jeffrey.profile.thread.ThreadState;
+import cafe.jeffrey.profile.thread.ThreadWindowEvents;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.shared.common.model.ThreadInfo;
 import cafe.jeffrey.timeseries.SingleSerie;
@@ -287,18 +288,19 @@ class ThreadControllerTest {
     }
 
     @Nested
-    class BandEvents {
+    class WindowEvents {
 
         /**
-         * The timeline ships bands without any event fields, so the tooltip asks for the events of
-         * the one band under the pointer.
+         * The timeline ships rectangles without any event fields, so the tooltip asks what happened
+         * in the slice of time under the pointer.
          */
         @Test
-        void areLookedUpForTheHoveredBand() {
+        void areLookedUpForTheHoveredWindow() {
             when(resolver.resolve("p-1")).thenReturn(profileManager);
             when(profileManager.threadManager()).thenReturn(threadManager);
             when(threadManager.threadEvents(any(ThreadEventsQuery.class)))
-                    .thenReturn(List.of(new ThreadEventDetail(1_000, 500, List.of(500, "/tmp/data.log", 4096))));
+                    .thenReturn(new ThreadWindowEvents(1_000, 1_500, 12,
+                            List.of(new ThreadEventDetail(1_000, 500, List.of(500, "/tmp/data.log", 4096)))));
 
             MockMvcTester mvc = mockMvcTesterFor(new ThreadController(resolver));
 
@@ -306,7 +308,7 @@ class ThreadControllerTest {
                     + "?osId=7&javaId=42&state=FILE_WRITE&from=1000&to=1500"))
                     .hasStatusOk()
                     .bodyJson()
-                    .extractingPath("$[0].values[1]").asString().isEqualTo("/tmp/data.log");
+                    .extractingPath("$.events[0].values[1]").asString().isEqualTo("/tmp/data.log");
 
             ArgumentCaptor<ThreadEventsQuery> captor = ArgumentCaptor.forClass(ThreadEventsQuery.class);
             verify(threadManager).threadEvents(captor.capture());
@@ -318,19 +320,42 @@ class ThreadControllerTest {
             assertThat(query.from()).isEqualTo(Duration.ofNanos(1_000));
             assertThat(query.to()).isEqualTo(Duration.ofNanos(1_500));
             assertThat(query.limit())
-                    .as("A tooltip renders one event and takes the rest from the band's own count")
+                    .as("A tooltip renders one event and takes the count from the window itself")
                     .isEqualTo(1);
         }
 
         /**
+         * The cap is on the sample of events, not on the count. A window holding more events than a
+         * tooltip renders still has to report how many there were — reporting the sample size is the
+         * shape of the bug this endpoint exists to fix.
+         */
+        @Test
+        void reportTheWholeCountEvenWhenTheSampleIsCapped() {
+            when(resolver.resolve("p-1")).thenReturn(profileManager);
+            when(profileManager.threadManager()).thenReturn(threadManager);
+            when(threadManager.threadEvents(any(ThreadEventsQuery.class)))
+                    .thenReturn(new ThreadWindowEvents(0, 1_000_000, 142,
+                            List.of(new ThreadEventDetail(10, 5, List.of(5, "db.internal")))));
+
+            MockMvcTester mvc = mockMvcTesterFor(new ThreadController(resolver));
+
+            assertThat(mvc.get().uri("/api/internal/profiles/p-1/thread/events"
+                    + "?osId=7&javaId=42&state=SOCKET_READ&from=0&to=1000000"))
+                    .hasStatusOk()
+                    .bodyJson()
+                    .extractingPath("$.eventCount").asNumber().isEqualTo(142);
+        }
+
+        /**
          * A caller cannot pull a whole burst back through the tooltip endpoint — that is the payload
-         * the bands exist to avoid.
+         * the bands exist to avoid. Only the sample is capped; the count is not.
          */
         @Test
         void areCappedRegardlessOfTheRequestedLimit() {
             when(resolver.resolve("p-1")).thenReturn(profileManager);
             when(profileManager.threadManager()).thenReturn(threadManager);
-            when(threadManager.threadEvents(any(ThreadEventsQuery.class))).thenReturn(List.of());
+            when(threadManager.threadEvents(any(ThreadEventsQuery.class)))
+                    .thenReturn(new ThreadWindowEvents(0, 1, 0, List.of()));
 
             MockMvcTester mvc = mockMvcTesterFor(new ThreadController(resolver));
 
@@ -344,9 +369,9 @@ class ThreadControllerTest {
         }
 
         /**
-         * A band on a collapsed lane belongs to the whole group. The lane carries no thread of its
-         * own, so asking by its identity matched nothing and the tooltip stayed blank; naming the
-         * group resolves it to every thread behind it.
+         * A collapsed lane belongs to the whole group. The lane carries no thread of its own, so
+         * asking by its identity matched nothing and the tooltip stayed blank; naming the group
+         * resolves it to every thread behind it.
          */
         @Test
         void areLookedUpAcrossAWholeGroup() {
@@ -355,7 +380,8 @@ class ThreadControllerTest {
             when(threadManager.threadGroupThreads("oracleApp:connection-adder")).thenReturn(List.of(
                     new ThreadInfo(1001, 1, "oracleApp:connection-adder"),
                     new ThreadInfo(1002, 2, "oracleApp:connection-adder")));
-            when(threadManager.threadEvents(any(ThreadEventsQuery.class))).thenReturn(List.of());
+            when(threadManager.threadEvents(any(ThreadEventsQuery.class)))
+                    .thenReturn(new ThreadWindowEvents(0, 1, 0, List.of()));
 
             MockMvcTester mvc = mockMvcTesterFor(new ThreadController(resolver));
 

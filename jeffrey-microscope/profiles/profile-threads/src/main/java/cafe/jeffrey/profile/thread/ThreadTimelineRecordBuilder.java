@@ -27,9 +27,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Collects the events behind the timeline's bands. Unlike {@link ThreadsRecordBuilder} it reads no
- * JSON fields and no event labels — the timeline draws rectangles, and the fields belong to the
- * tooltip lookup, which queries a single band's worth of events at a time.
+ * Collects the events behind the timeline's bands. Unlike {@link ThreadWindowEventsBuilder} it reads
+ * no JSON fields and no event labels — the timeline draws rectangles, and the fields belong to the
+ * tooltip lookup, which queries one hovered window's worth of events at a time.
  */
 public class ThreadTimelineRecordBuilder implements RecordBuilder<GenericRecord, List<ThreadTimelineEvent>> {
 

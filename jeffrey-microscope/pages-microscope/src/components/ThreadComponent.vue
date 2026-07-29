@@ -150,8 +150,13 @@ function resolveWeight(eventCode: string | undefined): boolean {
 const useWeightValue = computed(() => resolveWeight(selectedEventCode.value));
 
 /**
- * How many events a category stands for. A band can cover several events that the timeline cannot
- * draw apart, so this is not the number of bands.
+ * How many events a category stands for across the whole lane. A band can cover several events that
+ * the timeline cannot draw apart, so this is not the number of bands.
+ *
+ * A lane total is the right answer here — this panel describes the lane. It is the wrong answer for
+ * a tooltip, which describes one position: merging chains, so on a busy lane a single band holds the
+ * whole recording and would report this same number wherever the pointer is. That is what
+ * `ThreadWindowDetails` asks the server about instead.
  */
 function eventCount(periods: ThreadPeriod[]): number {
   return periods.reduce((total, period) => total + period.eventCount, 0);

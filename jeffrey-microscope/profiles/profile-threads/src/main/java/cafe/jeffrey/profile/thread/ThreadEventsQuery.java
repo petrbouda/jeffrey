@@ -24,16 +24,23 @@ import java.time.Duration;
 import java.util.List;
 
 /**
- * Asks for the events behind one band of a timeline lane — what a tooltip needs once the pointer
- * settles on a rectangle.
+ * Asks what one category of a timeline lane was doing during a slice of time — what a tooltip needs
+ * once the pointer settles.
  *
- * @param threads the threads the band belongs to: one for a plain thread, all of them for a lane
- *                standing for a group. A collapsed lane has no thread of its own, so asking by its
+ * <p>The slice is the pointer's own position, not the band underneath it. A band merges every run of
+ * activity too dense to draw apart, so on a busy lane it spans the whole recording; asking about the
+ * band would answer the same thing wherever the pointer is.
+ *
+ * @param threads the threads the lane stands for: one for a plain thread, all of them for a
+ *                collapsed lane. A collapsed lane has no thread of its own, so asking by its
  *                identity would match nothing
- * @param state   which band was hovered
- * @param from    start of the band, as an offset from the beginning of the recording
- * @param to      end of the band, as an offset from the beginning of the recording
- * @param limit   how many events to return; a tooltip shows one, the band already carries the count
+ * @param state   which category was hovered
+ * @param from    start of the hovered window, as an offset from the beginning of the recording. The
+ *                server snaps it to the millisecond grid the events are stored at
+ * @param to      end of the hovered window, exclusive, as an offset from the beginning of the
+ *                recording
+ * @param limit   how many events to return for the field rows; a tooltip shows one. The count that
+ *                comes back covers the whole window regardless of this cap
  */
 public record ThreadEventsQuery(
         List<ThreadInfo> threads,

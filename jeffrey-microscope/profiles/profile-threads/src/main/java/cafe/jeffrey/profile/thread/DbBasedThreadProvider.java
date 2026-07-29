@@ -99,6 +99,14 @@ public class DbBasedThreadProvider implements ThreadInfoProvider {
     private final ProfileEventStreamRepository eventStreamRepository;
     private final ThreadBands bands;
 
+    /**
+     * The field each state's events are rendered with. Positional: whatever produces the values for
+     * a state has to emit them in exactly this order, so the contract is readable from one place.
+     */
+    public static ThreadMetadata metadata() {
+        return METADATA;
+    }
+
     private static ThreadField field(String value, String type) {
         return new ThreadField(value, type);
     }

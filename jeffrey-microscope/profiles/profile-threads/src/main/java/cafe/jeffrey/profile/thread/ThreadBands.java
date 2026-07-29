@@ -33,8 +33,15 @@ import java.util.List;
  * covers.
  *
  * <p>The resolution is deliberately finer than any realistic canvas: at {@link #RESOLUTION} buckets
- * a band is at most one pixel wide on a canvas that wide, so nothing that would be visible as a gap
+ * a bucket is under a pixel wide on a canvas that wide, so nothing that would be visible as a gap
  * gets merged away.
+ *
+ * <p>The merge <em>chains</em>, though: a band keeps absorbing while the next event starts within a
+ * bucket of the band's current end, so a thread that is continuously busy collapses into a single
+ * band spanning most of the recording. That is the right picture to draw — the gaps really are
+ * invisible — but it means a band's {@code eventCount} is the total for a whole run of activity and
+ * says nothing about any position inside it. Anything that has to answer "what is happening at this
+ * point" must ask by time window instead; see {@link ThreadWindowEvents}.
  */
 public final class ThreadBands {
 

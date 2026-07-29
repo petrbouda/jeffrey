@@ -128,7 +128,7 @@ const folderStructure = `$JEFFREY_HOME/
         <DocsFeatureCard
           icon="bi bi-clock-history"
           title="Thread Statistics & Timeline"
-          description="Per-thread CPU time, allocations, and state distribution. Visual timeline of thread activity to spot synchronization issues."
+          description="Per-thread CPU time, allocations, and state distribution, plus a per-thread timeline of parks, monitor contention and I/O across the whole recording — with pool workers collapsed into one lane. See the Thread Timeline reference."
         />
         <DocsFeatureCard
           icon="bi bi-file-earmark-text"
@@ -235,6 +235,8 @@ const folderStructure = `$JEFFREY_HOME/
         <router-link to="/docs/microscope/profiles/jit-compilation">Read the JIT compilation reference &rarr;</router-link>
         &nbsp;·&nbsp;
         <router-link to="/docs/microscope/profiles/exceptions">Read the exceptions reference &rarr;</router-link>
+        &nbsp;·&nbsp;
+        <router-link to="/docs/microscope/profiles/thread-timeline">Read the Thread Timeline reference &rarr;</router-link>
         &nbsp;·&nbsp;
         <router-link to="/docs/microscope/profiles/virtual-threads">Read the Virtual Threads reference &rarr;</router-link>
         &nbsp;·&nbsp;

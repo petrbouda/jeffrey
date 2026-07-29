@@ -280,6 +280,11 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/docs/microscope/profiles/ProfileThreadDumpsPage.vue')
       },
       {
+        path: 'microscope/profiles/thread-timeline',
+        name: 'DocsProfilesThreadTimeline',
+        component: () => import('@/views/docs/microscope/profiles/ProfileThreadTimelinePage.vue')
+      },
+      {
         path: 'microscope/profiles/system',
         name: 'DocsProfilesSystem',
         component: () => import('@/views/docs/microscope/profiles/ProfileSystemPage.vue')
