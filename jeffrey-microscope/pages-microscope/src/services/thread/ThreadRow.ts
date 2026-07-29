@@ -23,25 +23,25 @@ import ThreadTooltips from '../thread/ThreadTooltips';
 import type { CategoryTooltip } from '../thread/ThreadTooltips';
 import ThreadWindowDetails from '../thread/ThreadWindowDetails';
 import ThreadRowData from '@/services/api/model/ThreadRowData';
-import ThreadPeriod from '@/services/api/model/ThreadPeriod';
 import ThreadTimeWindow from '@/services/api/model/ThreadTimeWindow';
 import TooltipPosition from '@/services/tooltip/TooltipPosition';
 import ThreadCommon from '@/services/api/model/ThreadCommon';
 import ThreadMetadata from '@/services/api/model/ThreadMetadata';
-import EventMetadata from '@/services/api/model/EventMetadata';
 import type { ThreadEventState } from '@/services/api/model/ThreadEventDetail';
+import {
+  BLOCKED_COLOR,
+  FILE_READ_COLOR,
+  FILE_WRITE_COLOR,
+  LIFESPAN_COLOR,
+  PARKED_COLOR,
+  SLEEP_COLOR,
+  SOCKET_READ_COLOR,
+  SOCKET_WRITE_COLOR,
+  THREAD_CATEGORIES,
+  WAITING_COLOR
+} from '@/services/thread/ThreadCategories';
+import type { ThreadCategory } from '@/services/thread/ThreadCategories';
 import Vector2d = Konva.Vector2d;
-
-/**
- * One hoverable band category: where its periods live on a row, which colour draws it, which
- * metadata labels it, and which state the backend knows it by when its events are fetched.
- */
-interface ThreadCategory {
-  state: ThreadEventState;
-  color: string;
-  periods: (row: ThreadRowData) => ThreadPeriod[];
-  metadata: (metadata: ThreadMetadata) => EventMetadata;
-}
 
 interface HoverableCategory extends ThreadCategory {
   groups: ThreadGroups;
@@ -59,15 +59,16 @@ interface HoveredCategory {
 }
 
 export default class ThreadRow {
-  static lifespanColor = 'rgb(96,175,96)';
-  static parkedColor = 'rgb(198,193,193)';
-  static blockedColor = 'rgb(236,204,116)';
-  static waitingColor = 'rgb(134,173,225)';
-  static sleepColor = 'rgb(65,126,228)';
-  static socketReadColor = 'rgb(228,33,33)';
-  static socketWriteColor = 'rgb(241,135,168)';
-  static fileReadColor = 'rgb(215,33,228)';
-  static fileWriteColor = 'rgb(210,132,236)';
+  // Aliases of the shared palette, kept because the page legend binds these names.
+  static lifespanColor = LIFESPAN_COLOR;
+  static parkedColor = PARKED_COLOR;
+  static blockedColor = BLOCKED_COLOR;
+  static waitingColor = WAITING_COLOR;
+  static sleepColor = SLEEP_COLOR;
+  static socketReadColor = SOCKET_READ_COLOR;
+  static socketWriteColor = SOCKET_WRITE_COLOR;
+  static fileReadColor = FILE_READ_COLOR;
+  static fileWriteColor = FILE_WRITE_COLOR;
 
   static readonly FRAME_HEIGHT: number = 20;
 
@@ -76,60 +77,6 @@ export default class ThreadRow {
    * crosses dozens of bands, and none of them are the one being looked at.
    */
   private static readonly HOVER_SETTLE_MILLIS = 120;
-
-  /**
-   * Every band category, in the order they are drawn and listed in a tooltip.
-   */
-  private static readonly CATEGORIES: ThreadCategory[] = [
-    {
-      state: 'PARKED',
-      color: ThreadRow.parkedColor,
-      periods: row => row.parked,
-      metadata: metadata => metadata.parked
-    },
-    {
-      state: 'BLOCKED',
-      color: ThreadRow.blockedColor,
-      periods: row => row.blocked,
-      metadata: metadata => metadata.blocked
-    },
-    {
-      state: 'WAITING',
-      color: ThreadRow.waitingColor,
-      periods: row => row.waiting,
-      metadata: metadata => metadata.waiting
-    },
-    {
-      state: 'SLEEP',
-      color: ThreadRow.sleepColor,
-      periods: row => row.sleep,
-      metadata: metadata => metadata.sleep
-    },
-    {
-      state: 'SOCKET_READ',
-      color: ThreadRow.socketReadColor,
-      periods: row => row.socketRead,
-      metadata: metadata => metadata.socketRead
-    },
-    {
-      state: 'SOCKET_WRITE',
-      color: ThreadRow.socketWriteColor,
-      periods: row => row.socketWrite,
-      metadata: metadata => metadata.socketWrite
-    },
-    {
-      state: 'FILE_READ',
-      color: ThreadRow.fileReadColor,
-      periods: row => row.fileRead,
-      metadata: metadata => metadata.fileRead
-    },
-    {
-      state: 'FILE_WRITE',
-      color: ThreadRow.fileWriteColor,
-      periods: row => row.fileWrite,
-      metadata: metadata => metadata.fileWrite
-    }
-  ];
 
   private readonly konvaContainer: HTMLElement;
   private readonly threadPointerName: string;
@@ -158,17 +105,50 @@ export default class ThreadRow {
    */
   private hoverGeneration = 0;
 
+  /**
+   * The categories this canvas draws. A lane normally draws all of them stacked, which is why a busy
+   * category paints over the quieter ones underneath it; a sub-lane is the same renderer restricted
+   * to one, so the two agree on geometry, colour and tooltip behaviour by construction.
+   */
+  private readonly drawnStates: ReadonlySet<ThreadEventState>;
+
+  /**
+   * Whether the thread's lifespan is drawn underneath. Only the full lane shows it — repeating the
+   * green underlay on every sub-lane would say nothing new and would tint the bands above it.
+   */
+  private readonly withLifespan: boolean;
+
+  /**
+   * Whether this canvas created its own hover cache. A sub-lane borrows the lane's, and must not
+   * clear a cache the lane is still using.
+   */
+  private readonly ownsWindowDetails: boolean;
+
+  /**
+   * @param options `states` restricts the canvas to a subset of the categories, and `windowDetails`
+   *                shares one hover-lookup cache with the lane this canvas belongs to — the same
+   *                thread asking about the same windows twice is pure waste
+   */
   constructor(
     profileId: string,
     threadCommon: ThreadCommon,
     threadRow: ThreadRowData,
     canvasElementId: string,
-    threadGroup: string | null = null
+    threadGroup: string | null = null,
+    options: {
+      states?: ThreadEventState[];
+      windowDetails?: ThreadWindowDetails;
+    } = {}
   ) {
     this.threadCommon = threadCommon;
     this.threadMetadata = threadCommon.metadata;
     this.threadRow = threadRow;
-    this.windowDetails = new ThreadWindowDetails(profileId, threadRow.threadInfo, threadGroup);
+    this.ownsWindowDetails = options.windowDetails === undefined;
+    this.windowDetails =
+      options.windowDetails ??
+      new ThreadWindowDetails(profileId, threadRow.threadInfo, threadGroup);
+    this.drawnStates = new Set(options.states ?? THREAD_CATEGORIES.map(category => category.state));
+    this.withLifespan = options.states === undefined;
 
     this.konvaContainer = document.getElementById(canvasElementId) as HTMLElement;
     this.stage = this.createStage();
@@ -180,6 +160,21 @@ export default class ThreadRow {
 
     this.konvaContainer.onmousemove = this.onMouseMoveEvent();
     this.konvaContainer.onmouseout = this.onMouseOut();
+  }
+
+  /**
+   * The hover cache this lane is using, to be handed to its sub-lanes. They ask about the same
+   * thread and the same windows, so one cache serves all of them and a window fetched by the lane is
+   * already resolved when a sub-lane repeats it.
+   */
+  public sharedWindowDetails(): ThreadWindowDetails {
+    return this.windowDetails;
+  }
+
+  private clearOwnedWindowDetails(): void {
+    if (this.ownsWindowDetails) {
+      this.windowDetails.clear();
+    }
   }
 
   private onMouseMoveEvent(): (event: MouseEvent) => void {
@@ -235,20 +230,24 @@ export default class ThreadRow {
     this.nanosPerPixel = this.threadCommon.totalDuration / width;
     const threadInfo = this.threadRow.threadInfo;
 
-    const lifespanGroups = ThreadGroups.of(
-      width,
-      pxPerNano,
-      ThreadRow.lifespanColor,
-      this.threadRow.lifespan
-    );
-
-    const categories: HoverableCategory[] = ThreadRow.CATEGORIES.map(category => ({
+    const categories: HoverableCategory[] = THREAD_CATEGORIES.filter(category =>
+      this.drawnStates.has(category.state)
+    ).map(category => ({
       ...category,
       groups: ThreadGroups.of(width, pxPerNano, category.color, category.periods(this.threadRow))
     }));
 
     this.stage.add(this.borderLayer());
-    this.stage.add(lifespanGroups.createLayer());
+    if (this.withLifespan) {
+      this.stage.add(
+        ThreadGroups.of(
+          width,
+          pxPerNano,
+          ThreadRow.lifespanColor,
+          this.threadRow.lifespan
+        ).createLayer()
+      );
+    }
     categories.forEach(category => this.stage.add(category.groups.createLayer()));
 
     this.stage.on('mousemove', () => {
@@ -428,7 +427,7 @@ export default class ThreadRow {
     // The old stage keeps its canvas and its mousemove handler alive until it is told to go
     this.stage.destroy();
     // Every window is derived from the row's width, so none of them survive a resize
-    this.windowDetails.clear();
+    this.clearOwnedWindowDetails();
     this.stage = this.createStage();
     this.draw();
   }
@@ -470,7 +469,7 @@ export default class ThreadRow {
 
     // Drop a pending window lookup so it cannot fire against a destroyed tooltip
     window.clearTimeout(this.fieldsTimeout);
-    this.windowDetails.clear();
+    this.clearOwnedWindowDetails();
 
     // Hide and remove tooltip
     this.threadTooltip.hideTooltip();

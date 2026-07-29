@@ -29,6 +29,7 @@ const headings = [
   { id: 'overview', text: 'Overview', level: 2 },
   { id: 'lanes', text: 'Lanes and Grouping', level: 2 },
   { id: 'bands', text: 'Bands and Resolution', level: 2 },
+  { id: 'breakdown', text: 'Breakdown by Event Type', level: 2 },
   { id: 'tooltips', text: 'Tooltips', level: 2 },
   { id: 'ordering', text: 'Ordering and Filtering', level: 2 },
   { id: 'flamegraphs', text: 'Flamegraphs from a Lane', level: 2 },
@@ -65,6 +66,16 @@ onMounted(() => {
       </DocsCallout>
 
       <p>Merging chains, though: a block keeps growing while the next event starts within a pixel of its end. On a saturated thread that means <em>one</em> block covering the entire recording. A block's own event count is therefore the total for a whole run of activity, and says nothing about any position inside it — which is exactly why the tooltip does not use it.</p>
+
+      <h2 id="breakdown">Breakdown by Event Type</h2>
+      <p>A lane draws all of its event types stacked on one row, in a fixed order, so a busy type paints over the quieter ones beneath it — a saturated Socket Read lane hides the parks and monitor waits underneath. The split button in the lane header (the third icon) expands the row into one sub-lane per type to recover them.</p>
+      <p>Each sub-lane is two lines: the type, its event count and how much of the recording its bands cover on the first; the lane itself on the second. Sub-lanes are the same height and width as the lane above and sit at the same offset, so you can read straight down a vertical slice and compare types at the same moment. Only types the thread actually has events for get a sub-lane — a thread that did nothing but read from a socket expands to one.</p>
+
+      <DocsCallout type="info">
+        <strong>Coverage is an upper bound.</strong> The percentage next to each type is how much of the recording its drawn bands cover. Because bands merge events that are too close together to draw apart, and a merged band spans the gaps it bridged, that figure is at or above the real time spent in the state — not the figure itself.
+      </DocsCallout>
+
+      <p>Sub-lanes are fully interactive: each has the same hover tooltip as the main lane, scoped to that one type. They share the lane's lookup cache, so hovering the same moment on a sub-lane that you already hovered on the lane costs no extra request.</p>
 
       <h2 id="tooltips">Tooltips</h2>
       <p>Hovering a lane describes the <strong>slice of time under the pointer</strong>, not the block beneath it: how many events of that category start in that slice, and the fields of one of them. Move along the lane and both change.</p>

@@ -17,13 +17,21 @@
   -->
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue';
 import ThreadRowData from '@/services/api/model/ThreadRowData';
 import { useRoute } from 'vue-router';
 
 import ThreadCommon from '@/services/api/model/ThreadCommon';
 import ThreadPeriod from '@/services/api/model/ThreadPeriod';
 import ThreadRow from '@/services/thread/ThreadRow';
+import {
+  THREAD_CATEGORIES,
+  categoryCoverageNanos,
+  categoryEventCount,
+  presentCategories as categoriesPresentOn
+} from '@/services/thread/ThreadCategories';
+import type { ThreadCategory } from '@/services/thread/ThreadCategories';
+import FormattingService from '@shared/services/FormattingService';
 import Badge from '@shared/components/Badge.vue';
 import PrimaryFlamegraphClient from '@/services/api/PrimaryFlamegraphClient';
 import ProfileThreadClient from '@/services/api/ProfileThreadClient';
@@ -106,6 +114,27 @@ const threadInfo = props.threadRow.threadInfo;
 
 let threadRowRenderer: ThreadRow;
 
+/** One renderer per open sub-lane, so every canvas can be torn down again. */
+let categoryRenderers: ThreadRow[] = [];
+
+/** Whether the row is showing its per-event-type breakdown. */
+const breakdownOpen = ref(false);
+
+/**
+ * The event types this thread actually has, in the order the lane draws them. A thread that only
+ * ever read from a socket gets one sub-lane, not eight mostly-empty ones.
+ */
+const presentCategories = computed<ThreadCategory[]>(() => categoriesPresentOn(props.threadRow));
+
+/** Canvas ids need the category as well as the row: `index` alone collides across sub-lanes. */
+function categoryCanvasId(category: ThreadCategory): string {
+  return `${canvasId.value}-${category.state.toLowerCase()}`;
+}
+
+function categoryLabel(category: ThreadCategory): string {
+  return category.metadata(props.threadCommon.metadata).label;
+}
+
 let flamegraphTooltip: FlamegraphTooltip;
 
 let graphUpdater: GraphUpdater;
@@ -115,6 +144,7 @@ const handleScroll = () => {
   if (threadRowRenderer != null) {
     threadRowRenderer.onWindowScroll();
   }
+  categoryRenderers.forEach(renderer => renderer.onWindowScroll());
 
   // Close menu on scroll
   if (showFlameMenu.value) {
@@ -159,7 +189,67 @@ const useWeightValue = computed(() => resolveWeight(selectedEventCode.value));
  * `ThreadWindowDetails` asks the server about instead.
  */
 function eventCount(periods: ThreadPeriod[]): number {
-  return periods.reduce((total, period) => total + period.eventCount, 0);
+  return categoryEventCount(periods);
+}
+
+/**
+ * How much of the recording a category's bands cover, in nanoseconds.
+ *
+ * An upper bound on the time spent in that state rather than the figure itself: bands merge events
+ * that are too close together to draw apart, and a merged band spans the gaps it bridged. Everything
+ * rendering this has to say so — see {@link coverageTitle}.
+ */
+function coverageNanos(periods: ThreadPeriod[]): number {
+  return categoryCoverageNanos(periods);
+}
+
+function coverageLabel(periods: ThreadPeriod[]): string {
+  const covered = coverageNanos(periods);
+  const share =
+    props.threadCommon.totalDuration > 0
+      ? Math.round((covered / props.threadCommon.totalDuration) * 100)
+      : 0;
+  return `~${FormattingService.formatDuration2Units(covered)} (${share}%)`;
+}
+
+const coverageTitle =
+  'Time covered by this type’s drawn bands. Bands merge events too close together to tell apart, ' +
+  'and a merged band spans the gaps it bridged, so this is an upper bound on the time spent in ' +
+  'this state.';
+
+/**
+ * Opens or closes the per-event-type breakdown.
+ *
+ * The sub-lane canvases are built only once their containers are in the DOM: a Konva stage reads its
+ * width from `offsetWidth` exactly once, so one constructed while hidden would stay zero pixels wide
+ * forever. They also borrow the lane's hover cache — same thread, same windows.
+ */
+async function toggleBreakdown(): Promise<void> {
+  breakdownOpen.value = !breakdownOpen.value;
+
+  if (!breakdownOpen.value) {
+    destroyCategoryRenderers();
+    return;
+  }
+
+  await nextTick();
+  categoryRenderers = presentCategories.value.map(category => {
+    const renderer = new ThreadRow(
+      props.primaryProfileId,
+      props.threadCommon,
+      props.threadRow,
+      categoryCanvasId(category),
+      threadGroup.value,
+      { states: [category.state], windowDetails: threadRowRenderer.sharedWindowDetails() }
+    );
+    renderer.draw();
+    return renderer;
+  });
+}
+
+function destroyCategoryRenderers(): void {
+  categoryRenderers.forEach(renderer => renderer.destroy());
+  categoryRenderers = [];
 }
 
 onMounted(() => {
@@ -272,6 +362,7 @@ onUnmounted(() => {
   document.removeEventListener('scroll', handleScroll);
 
   // Clean up thread-row renderer resources (Konva stage, event handlers, etc.)
+  destroyCategoryRenderers();
   if (threadRowRenderer) {
     threadRowRenderer.destroy();
   }
@@ -418,6 +509,20 @@ function createContextMenuItems() {
           >
             <i class="bi bi-question-circle"></i>
           </button>
+          <button
+            v-if="presentCategories.length > 0"
+            class="action-btn split-btn"
+            type="button"
+            :aria-pressed="breakdownOpen"
+            :title="
+              breakdownOpen
+                ? 'Hide the breakdown by event type'
+                : 'Split into one lane per event type'
+            "
+            @click="toggleBreakdown"
+          >
+            <i class="bi bi-distribute-vertical"></i>
+          </button>
         </div>
         <button
           v-if="collapsed"
@@ -434,6 +539,40 @@ function createContextMenuItems() {
       </div>
       <div class="thread-content">
         <div :id="canvasId" class="thread-canvas"></div>
+
+        <!--
+          One sub-lane per event type the thread actually has. Each is the same renderer as the lane
+          above, restricted to a single category, so it keeps the same geometry and the same hover
+          tooltip — and being the same width, it lines up with the lane in time.
+        -->
+        <template v-if="breakdownOpen">
+          <div class="breakdown-header">
+            <span>Breakdown by event type</span>
+            <span class="breakdown-summary">
+              {{ presentCategories.length }} of {{ THREAD_CATEGORIES.length }} types present
+            </span>
+          </div>
+          <div class="breakdown-list">
+            <div v-for="category in presentCategories" :key="category.state" class="breakdown-item">
+              <div class="breakdown-info">
+                <span
+                  class="breakdown-swatch"
+                  :style="{ 'background-color': category.color }"
+                ></span>
+                <span class="breakdown-name">{{ categoryLabel(category) }}</span>
+                <span class="breakdown-stats">
+                  <span>
+                    <b>{{ eventCount(category.periods(threadRow)).toLocaleString() }}</b> events
+                  </span>
+                  <span :title="coverageTitle">{{
+                    coverageLabel(category.periods(threadRow))
+                  }}</span>
+                </span>
+              </div>
+              <div :id="categoryCanvasId(category)" class="thread-canvas"></div>
+            </div>
+          </div>
+        </template>
       </div>
     </div>
   </div>
@@ -503,145 +642,23 @@ function createContextMenuItems() {
         </template>
       </div>
 
+      <!-- Only the types this thread actually has, coloured and labelled the way the lane draws
+           them. Restating the palette here is how the modal drifted onto colours that matched
+           nothing on the canvas. -->
       <div
-        v-if="props.threadRow.parked.length > 0"
+        v-for="category in presentCategories"
+        :key="category.state"
         class="tooltip-category d-flex align-items-center px-3 py-2 bg-light"
       >
         <div
           class="color-indicator me-3"
-          style="width: 10px; height: 10px; background-color: #e57373"
+          :style="{ width: '10px', height: '10px', backgroundColor: category.color }"
         ></div>
         <div class="d-flex justify-content-between w-100">
-          <span class="category-name fw-medium">Thread Park</span>
+          <span class="category-name fw-medium">{{ categoryLabel(category) }}</span>
           <span class="event-count text-muted small"
-            >{{ eventCount(props.threadRow.parked) }} event{{
-              eventCount(props.threadRow.parked) !== 1 ? 's' : ''
-            }}</span
-          >
-        </div>
-      </div>
-
-      <div
-        v-if="props.threadRow.sleep.length > 0"
-        class="tooltip-category d-flex align-items-center px-3 py-2 bg-light"
-      >
-        <div
-          class="color-indicator me-3"
-          style="width: 10px; height: 10px; background-color: #64b5f6"
-        ></div>
-        <div class="d-flex justify-content-between w-100">
-          <span class="category-name fw-medium">Thread Sleep</span>
-          <span class="event-count text-muted small"
-            >{{ eventCount(props.threadRow.sleep) }} event{{
-              eventCount(props.threadRow.sleep) !== 1 ? 's' : ''
-            }}</span
-          >
-        </div>
-      </div>
-
-      <div
-        v-if="props.threadRow.blocked.length > 0"
-        class="tooltip-category d-flex align-items-center px-3 py-2 bg-light"
-      >
-        <div
-          class="color-indicator me-3"
-          style="width: 10px; height: 10px; background-color: #ffb74d"
-        ></div>
-        <div class="d-flex justify-content-between w-100">
-          <span class="category-name fw-medium">Monitor Blocked</span>
-          <span class="event-count text-muted small"
-            >{{ eventCount(props.threadRow.blocked) }} event{{
-              eventCount(props.threadRow.blocked) !== 1 ? 's' : ''
-            }}</span
-          >
-        </div>
-      </div>
-
-      <div
-        v-if="props.threadRow.waiting.length > 0"
-        class="tooltip-category d-flex align-items-center px-3 py-2 bg-light"
-      >
-        <div
-          class="color-indicator me-3"
-          style="width: 10px; height: 10px; background-color: #aed581"
-        ></div>
-        <div class="d-flex justify-content-between w-100">
-          <span class="category-name fw-medium">Monitor Wait</span>
-          <span class="event-count text-muted small"
-            >{{ eventCount(props.threadRow.waiting) }} event{{
-              eventCount(props.threadRow.waiting) !== 1 ? 's' : ''
-            }}</span
-          >
-        </div>
-      </div>
-
-      <div
-        v-if="props.threadRow.socketRead.length > 0"
-        class="tooltip-category d-flex align-items-center px-3 py-2 bg-light"
-      >
-        <div
-          class="color-indicator me-3"
-          style="width: 10px; height: 10px; background-color: #9575cd"
-        ></div>
-        <div class="d-flex justify-content-between w-100">
-          <span class="category-name fw-medium">Socket Read</span>
-          <span class="event-count text-muted small"
-            >{{ eventCount(props.threadRow.socketRead) }} event{{
-              eventCount(props.threadRow.socketRead) !== 1 ? 's' : ''
-            }}</span
-          >
-        </div>
-      </div>
-
-      <div
-        v-if="props.threadRow.socketWrite.length > 0"
-        class="tooltip-category d-flex align-items-center px-3 py-2 bg-light"
-      >
-        <div
-          class="color-indicator me-3"
-          style="width: 10px; height: 10px; background-color: #4db6ac"
-        ></div>
-        <div class="d-flex justify-content-between w-100">
-          <span class="category-name fw-medium">Socket Write</span>
-          <span class="event-count text-muted small"
-            >{{ eventCount(props.threadRow.socketWrite) }} event{{
-              eventCount(props.threadRow.socketWrite) !== 1 ? 's' : ''
-            }}</span
-          >
-        </div>
-      </div>
-
-      <div
-        v-if="props.threadRow.fileRead.length > 0"
-        class="tooltip-category d-flex align-items-center px-3 py-2 bg-light"
-      >
-        <div
-          class="color-indicator me-3"
-          style="width: 10px; height: 10px; background-color: #f06292"
-        ></div>
-        <div class="d-flex justify-content-between w-100">
-          <span class="category-name fw-medium">File Read</span>
-          <span class="event-count text-muted small"
-            >{{ eventCount(props.threadRow.fileRead) }} event{{
-              eventCount(props.threadRow.fileRead) !== 1 ? 's' : ''
-            }}</span
-          >
-        </div>
-      </div>
-
-      <div
-        v-if="props.threadRow.fileWrite.length > 0"
-        class="tooltip-category d-flex align-items-center px-3 py-2 bg-light"
-      >
-        <div
-          class="color-indicator me-3"
-          style="width: 10px; height: 10px; background-color: #7986cb"
-        ></div>
-        <div class="d-flex justify-content-between w-100">
-          <span class="category-name fw-medium">File Write</span>
-          <span class="event-count text-muted small"
-            >{{ eventCount(props.threadRow.fileWrite) }} event{{
-              eventCount(props.threadRow.fileWrite) !== 1 ? 's' : ''
+            >{{ eventCount(category.periods(threadRow)) }} event{{
+              eventCount(category.periods(threadRow)) !== 1 ? 's' : ''
             }}</span
           >
         </div>
@@ -837,6 +854,96 @@ function createContextMenuItems() {
 
 .thread-canvas {
   width: 100%;
+}
+
+.split-btn {
+  color: var(--color-text-muted);
+}
+
+.split-btn:hover {
+  background-color: var(--color-border);
+  color: var(--color-text);
+}
+
+.split-btn[aria-pressed='true'] {
+  background-color: var(--color-primary-bg);
+  color: var(--color-indigo-text);
+}
+
+/*
+ * The breakdown. Sub-lanes sit in the same padded content box as the main lane, at the same width,
+ * so a band on a sub-lane is directly under the same moment on the lane above it.
+ */
+.breakdown-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 6px;
+  padding: 5px 0;
+  border-top: 1px solid var(--color-border);
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text);
+}
+
+.breakdown-summary {
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--color-text-muted);
+}
+
+.breakdown-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.breakdown-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.breakdown-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.72rem;
+  line-height: 1.3;
+  min-width: 0;
+}
+
+.breakdown-swatch {
+  width: 10px;
+  height: 10px;
+  flex: none;
+}
+
+.breakdown-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--color-grey-text);
+}
+
+.breakdown-stats {
+  display: flex;
+  gap: 10px;
+  margin-left: auto;
+  flex: none;
+  font-size: 0.68rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-muted);
+}
+
+.breakdown-stats b {
+  font-weight: 600;
+  color: var(--color-grey-text);
 }
 
 /* Custom flamegraph menu */
