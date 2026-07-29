@@ -62,17 +62,12 @@
           use-case="A Soft-reference spike signals heap pressure clearing caches; sustained Final/Phantom volume signals finalizer/cleaner backlog that lengthens reference-processing phases"
         />
         <div class="chart-container">
-          <div class="chart-toolbar">
-            <button
-              type="button"
-              class="btn btn-sm btn-outline-secondary"
-              title="Reset zoom to the entire range"
-              @click="resetTimelineZoom"
-            >
-              <i class="bi bi-arrows-angle-expand me-1"></i>Reset zoom
-            </button>
-          </div>
-          <div id="gc-reference-stacked-chart"></div>
+          <TimeSeriesChart
+            :seriesData="timelineSeries"
+            :stacked="true"
+            :primaryAxisType="AxisFormatType.NUMBER"
+            :visibleMinutes="60"
+          />
         </div>
       </div>
 
@@ -225,9 +220,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
-import ApexCharts from 'apexcharts';
 
 import PageHeader from '@shared/components/layout/PageHeader.vue';
 import StatsTable from '@shared/components/table/StatsTable.vue';
@@ -245,8 +239,11 @@ import AboutSection from '@/components/about/AboutSection.vue';
 import AboutCallout from '@/components/about/AboutCallout.vue';
 import FeatureGrid from '@/components/about/FeatureGrid.vue';
 import FeatureCard from '@/components/about/FeatureCard.vue';
+import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
 import ProfileGCClient from '@/services/api/ProfileGCClient';
 import FormattingService from '@shared/services/FormattingService';
+import ChartColors from '@shared/services/ChartColors';
+import AxisFormatType from '@/services/timeseries/AxisFormatType';
 import { useTableView } from '@/composables/useTableView';
 import type { ReferenceProcessingData } from '@/services/api/model/GCReferenceModels';
 
@@ -256,8 +253,6 @@ const loading = ref(true);
 const error = ref<string | null>(null);
 const data = ref<ReferenceProcessingData>();
 
-let chart: ApexCharts | null = null;
-
 const tabs = [
   { id: 'timeline', label: 'Timeline', icon: 'activity' },
   { id: 'by-type', label: 'By Type', icon: 'list-ol' },
@@ -266,20 +261,41 @@ const tabs = [
 ];
 const activeTab = ref(tabs[0].id);
 
-// Stable colors per reference type (memory-pressure red for Soft, etc.); unknown types fall back.
-const TYPE_COLORS: Record<string, string> = {
-  'Soft reference': '#EA4335',
-  'Weak reference': '#FBBC04',
-  'Final reference': '#9334E6',
-  'Phantom reference': '#4285F4',
-  'Cleaner reference': '#34A853',
-  'Other reference': '#9AA0A6'
+// Stable design-token color per reference type (memory-pressure red for Soft, etc.); types the
+// JDK adds later fall back to the categorical series palette by position.
+const TYPE_COLOR_TOKENS: Record<string, string> = {
+  'Soft reference': 'color-danger',
+  'Weak reference': 'color-warning',
+  'Final reference': 'color-violet',
+  'Phantom reference': 'color-accent-blue',
+  'Cleaner reference': 'color-success',
+  'Other reference': 'color-text-muted'
 };
-const FALLBACK_COLOR = '#9AA0A6';
-const colorForType = (type: string): string => TYPE_COLORS[type] ?? FALLBACK_COLOR;
+
+// Resolved once per payload so the timeline series and the By Type swatches always agree.
+const colorByType = computed<Record<string, string>>(() => {
+  const colors: Record<string, string> = {};
+  (data.value?.byType ?? []).forEach((stat, index) => {
+    const token = TYPE_COLOR_TOKENS[stat.type];
+    colors[stat.type] = token ? ChartColors.chartColor(token) : ChartColors.seriesColor(index);
+  });
+  return colors;
+});
+
+const colorForType = (type: string): string =>
+  colorByType.value[type] ?? ChartColors.chartColor('color-text-muted');
 
 const hasData = computed(() => (data.value?.header.totalReferences ?? 0) > 0);
 const typeColumns = computed(() => (data.value?.byType ?? []).map(stat => stat.type));
+
+// The backend emits one series per reference type, ordered exactly like `byType`.
+const timelineSeries = computed(() =>
+  (data.value?.timeline.series ?? []).map(serie => ({
+    name: serie.name,
+    data: serie.data,
+    color: colorForType(serie.name)
+  }))
+);
 
 const byTypeView = useTableView(() => data.value?.byType ?? [], {
   searchableText: stat => stat.type
@@ -314,80 +330,12 @@ const metrics = computed(() => {
   ];
 });
 
-const renderChart = async () => {
-  if (!hasData.value) {
-    return;
-  }
-  await nextTick();
-  const element = document.getElementById('gc-reference-stacked-chart');
-  if (!element) {
-    return;
-  }
-
-  const series = (data.value?.timeline.series ?? []).map(serie => ({
-    name: serie.name,
-    data: serie.data
-  }));
-  const colors = (data.value?.byType ?? []).map(stat => colorForType(stat.type));
-
-  const options = {
-    chart: {
-      type: 'area' as const,
-      height: 380,
-      stacked: true,
-      fontFamily: 'inherit',
-      toolbar: { show: false }
-    },
-    series,
-    colors,
-    dataLabels: { enabled: false },
-    stroke: { curve: 'smooth' as const, width: 2 },
-    fill: { type: 'solid', opacity: 0.45 },
-    xaxis: {
-      type: 'numeric' as const,
-      title: { text: 'Time', style: { fontSize: '12px' } },
-      labels: {
-        style: { fontSize: '10px' },
-        formatter: (value: string | number) => FormattingService.formatDuration2Units(Number(value) * 1e9)
-      }
-    },
-    yaxis: {
-      title: { text: 'References Processed', style: { fontSize: '12px' } },
-      labels: {
-        style: { fontSize: '10px' },
-        formatter: (value: number) => FormattingService.formatNumber(value)
-      }
-    },
-    legend: { position: 'bottom' as const },
-    tooltip: {
-      y: { formatter: (value: number) => FormattingService.formatNumber(value) }
-    },
-    grid: { borderColor: '#e7e7e7', strokeDashArray: 3 }
-  } as ApexCharts.ApexOptions;
-
-  if (chart) {
-    chart.destroy();
-  }
-  chart = new ApexCharts(element, options);
-  chart.render();
-};
-
-// Clears any active x-axis zoom, returning the chart to its full starting range.
-const resetTimelineZoom = (): void => {
-  if (chart) {
-    chart.updateOptions({ xaxis: { min: undefined, max: undefined } });
-  }
-};
-
 const loadData = async () => {
   try {
     loading.value = true;
     error.value = null;
     const client = new ProfileGCClient(route.params.profileId as string);
     data.value = await client.getReferenceProcessing();
-    if (activeTab.value === 'timeline') {
-      renderChart();
-    }
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Unknown error occurred';
     console.error('Error loading reference-processing analysis:', err);
@@ -396,34 +344,16 @@ const loadData = async () => {
   }
 };
 
-// The chart lives inside a v-show tab, so (re)render when the Timeline tab becomes visible.
-watch(activeTab, tab => {
-  if (tab === 'timeline') {
-    renderChart();
-  }
-});
-
 onMounted(loadData);
-onUnmounted(() => {
-  if (chart) {
-    chart.destroy();
-    chart = null;
-  }
-});
 </script>
 
 <style scoped>
 .chart-container {
+  width: 100%;
   background: var(--color-white);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   padding: 1rem;
-}
-
-.chart-toolbar {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: 0.5rem;
 }
 
 .toolbar-info {
