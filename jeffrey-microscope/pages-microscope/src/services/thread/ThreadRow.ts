@@ -72,6 +72,9 @@ export default class ThreadRow {
 
   static readonly FRAME_HEIGHT: number = 20;
 
+  /** Width of the outline a lane is drawn with. */
+  private static readonly BORDER_WIDTH = 1;
+
   /**
    * How long the pointer has to rest on a band before its events are fetched. Sweeping across a row
    * crosses dozens of bands, and none of them are the one being looked at.
@@ -155,7 +158,9 @@ export default class ThreadRow {
 
     this.threadPointerName = canvasElementId + '-pointer';
     this.createHighlightDiv(this.konvaContainer, this.threadPointerName);
-    this.threadPointer = document.getElementsByClassName(this.threadPointerName)[0] as HTMLElement;
+    this.threadPointer = this.konvaContainer.getElementsByClassName(
+      this.threadPointerName
+    )[0] as HTMLElement;
     this.threadTooltip = new Tooltip(this.konvaContainer);
 
     this.konvaContainer.onmousemove = this.onMouseMoveEvent();
@@ -182,8 +187,7 @@ export default class ThreadRow {
       const rect = this.konvaContainer.getBoundingClientRect();
       const x = Math.floor(event.clientX - rect.left);
 
-      this.threadPointer.style.left = Math.floor(x + this.konvaContainer.offsetLeft) + 'px';
-      this.threadPointer.style.top = Math.floor(this.konvaContainer.offsetTop) + 'px';
+      this.threadPointer.style.left = x + 'px';
       this.threadPointer.style.display = 'block';
     };
   }
@@ -205,13 +209,23 @@ export default class ThreadRow {
     this.threadTooltip.hideTooltip();
   }
 
+  /**
+   * The 1px line that follows the pointer across a lane.
+   *
+   * Lives inside the lane's own container, which `.thread-canvas` makes a positioned box, so it is
+   * placed against the lane itself rather than against whichever distant ancestor happens to be
+   * `offsetParent`. Sub-lanes sit inside nested flex boxes the main lane does not, and offset
+   * arithmetic drifted by a few pixels there.
+   */
   private createHighlightDiv(canvas: HTMLElement, threadPointerName: string): void {
     canvas.insertAdjacentHTML(
-      'afterend',
+      'beforeend',
       '<div class="' +
         threadPointerName +
         '" style="' +
         ' position: absolute;' +
+        ' top: 0;' +
+        ' z-index: 1;' +
         ' display: none;' +
         ' overflow: hidden;' +
         ' white-space: nowrap;' +
@@ -440,16 +454,24 @@ export default class ThreadRow {
     });
   }
 
+  /**
+   * The outline around a lane.
+   *
+   * Inset by half a pixel because a stroke is centred on its path: drawn on the canvas edge, half of
+   * it falls outside and is clipped, and what is left antialiases to grey. A solid lane hides that,
+   * a mostly-empty one does not.
+   */
   private borderLayer(): Konva.Layer {
+    const inset = ThreadRow.BORDER_WIDTH / 2;
     const borderLayer = new Konva.Layer();
     borderLayer.add(
       new Konva.Rect({
-        x: 0,
-        y: 0,
-        width: this.stage.width(),
-        height: ThreadRow.FRAME_HEIGHT,
+        x: inset,
+        y: inset,
+        width: this.stage.width() - ThreadRow.BORDER_WIDTH,
+        height: ThreadRow.FRAME_HEIGHT - ThreadRow.BORDER_WIDTH,
         stroke: 'black',
-        strokeWidth: 1
+        strokeWidth: ThreadRow.BORDER_WIDTH
       })
     );
     return borderLayer;

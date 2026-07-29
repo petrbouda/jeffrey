@@ -852,8 +852,14 @@ function createContextMenuItems() {
   padding: 6px;
 }
 
+/*
+ * Positioned so the hover pointer inside it lands on the lane. Without this the pointer is placed
+ * against whichever distant ancestor is `offsetParent`, which drifts once a lane sits inside the
+ * breakdown's nested flex boxes.
+ */
 .thread-canvas {
   width: 100%;
+  position: relative;
 }
 
 .split-btn {
