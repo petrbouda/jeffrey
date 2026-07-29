@@ -18,6 +18,7 @@
 
 package cafe.jeffrey.profile.manager.thread;
 
+import cafe.jeffrey.shared.common.model.ThreadInfo;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
 import cafe.jeffrey.shared.common.model.Type;
 import cafe.jeffrey.profile.manager.model.thread.ReservedStackActivation;
@@ -27,6 +28,8 @@ import cafe.jeffrey.profile.manager.model.thread.dump.ParsedDump;
 import cafe.jeffrey.profile.manager.model.thread.dump.ThreadDumpAnalysis;
 import cafe.jeffrey.profile.thread.ThreadEventDetail;
 import cafe.jeffrey.profile.thread.ThreadEventsQuery;
+import cafe.jeffrey.profile.thread.ThreadGroupPage;
+import cafe.jeffrey.profile.thread.ThreadMembersQuery;
 import cafe.jeffrey.profile.thread.ThreadPage;
 import cafe.jeffrey.profile.thread.ThreadPageQuery;
 import cafe.jeffrey.profile.thread.ThreadRoot;
@@ -54,16 +57,30 @@ public interface ThreadManager {
 
     /**
      * The whole timeline. Used to warm the profile's cache after an import — the page itself asks
-     * for {@link #threadPage(ThreadPageQuery)} instead, so that a recording with a thousand threads
+     * for {@link #threadGroups(ThreadPageQuery)} instead, so that a recording with a thousand threads
      * does not have to cross the wire in one piece.
      */
     ThreadRoot threadRows();
 
     /**
-     * One ordered slice of the timeline, filtered and counted. Reads from the same cached timeline
-     * {@link #threadRows()} builds, so paging costs nothing after the first request.
+     * One ordered slice of the timeline, a lane per group of identically named threads. Reads from
+     * the same cached timeline {@link #threadRows()} builds, so paging costs nothing after the first
+     * request.
      */
-    ThreadPage threadPage(ThreadPageQuery query);
+    ThreadGroupPage threadGroups(ThreadPageQuery query);
+
+    /**
+     * The threads behind one collapsed lane, a page at a time. Opening a pool of 351 workers must not
+     * put 351 lanes on the page any more than the ungrouped timeline could.
+     */
+    ThreadPage threadGroupMembers(ThreadMembersQuery query);
+
+    /**
+     * Every thread behind one collapsed lane, unpaged — what anything acting on the lane as a whole
+     * has to be scoped to. Unlike {@link #threadGroupMembers(ThreadMembersQuery)} this merges no
+     * bands, so resolving a 351-thread pool costs a grouping pass and nothing more.
+     */
+    List<ThreadInfo> threadGroupThreads(String groupKey);
 
     /**
      * The events behind one band of {@link #threadRows()}, for the tooltip that opens when the

@@ -17,14 +17,16 @@
   -->
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
 import ThreadRowData from '@/services/api/model/ThreadRowData';
 import { useRoute } from 'vue-router';
 
 import ThreadCommon from '@/services/api/model/ThreadCommon';
 import ThreadPeriod from '@/services/api/model/ThreadPeriod';
 import ThreadRow from '@/services/thread/ThreadRow';
+import Badge from '@shared/components/Badge.vue';
 import PrimaryFlamegraphClient from '@/services/api/PrimaryFlamegraphClient';
+import ProfileThreadClient from '@/services/api/ProfileThreadClient';
 import FlamegraphTooltip from '@/services/flamegraphs/tooltips/FlamegraphTooltip';
 import FlamegraphTooltipFactory from '@/services/flamegraphs/tooltips/FlamegraphTooltipFactory';
 import GraphUpdater from '@/services/flamegraphs/updater/GraphUpdater';
@@ -32,16 +34,40 @@ import FullGraphUpdater from '@/services/flamegraphs/updater/FullGraphUpdater';
 import FlamegraphComponent from '@/components/FlamegraphComponent.vue';
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
 import SearchBarComponent from '@/components/SearchBarComponent.vue';
-import * as bootstrap from 'bootstrap';
+import GenericModal from '@shared/components/GenericModal.vue';
 import TimeseriesEventAxeFormatter from '@/services/timeseries/TimeseriesEventAxeFormatter.ts';
 
-const props = defineProps<{
-  index: number;
-  projectId: string;
-  primaryProfileId: string;
-  threadCommon: ThreadCommon;
-  threadRow: ThreadRowData;
-}>();
+const props = withDefaults(
+  defineProps<{
+    index: number;
+    projectId: string;
+    primaryProfileId: string;
+    threadCommon: ThreadCommon;
+    threadRow: ThreadRowData;
+    /** How many threads this lane stands for; 1 means an ordinary thread. */
+    threadCount?: number;
+    /** The group a collapsed lane stands for, which is what its requests are scoped by. */
+    groupKey?: string | null;
+    expanded?: boolean;
+  }>(),
+  { threadCount: 1, groupKey: null, expanded: false }
+);
+
+defineEmits<{ toggle: [] }>();
+
+/**
+ * A lane standing for several threads has no thread of its own: its {@link ThreadInfo} carries
+ * placeholder ids. Everything that would otherwise be scoped by those ids — the flamegraph, the
+ * band tooltips, the thread details — is scoped by the group instead.
+ */
+const collapsed = computed(() => props.threadCount > 1);
+
+const threadGroup = computed<string | null>(() => (collapsed.value ? props.groupKey : null));
+
+/** How many of a group's threads the details modal lists at a time. */
+const MEMBER_PAGE_SIZE = 50;
+
+const threadClient = new ProfileThreadClient(props.primaryProfileId);
 
 const route = useRoute();
 
@@ -56,10 +82,20 @@ const contextMenuItems = createContextMenuItems();
 
 const canvasId = ref(`thread-canvas-${props.index}`);
 
+/**
+ * Keyed by the lane's position rather than by a thread id: a collapsed lane has no id of its own, so
+ * every one of them would otherwise open the same modal.
+ */
+const flamegraphModalId = ref(`flamegraphModal-${props.index}`);
+
 const showFlamegraphDialog = ref(false);
 
+/**
+ * Brings a reloaded graph back into view. The modal's overlay is what scrolls — the global
+ * `.modal-overlay` carries the `overflow-y` — so it is also what the flamegraph tracks.
+ */
 function scrollToTop() {
-  const wrapper = document.querySelector('.scrollable-wrapper');
+  const wrapper = document.getElementById(flamegraphModalId.value);
   if (wrapper) {
     wrapper.scrollTop = 0;
   }
@@ -127,27 +163,10 @@ onMounted(() => {
     props.primaryProfileId,
     props.threadCommon,
     props.threadRow,
-    canvasId.value
+    canvasId.value,
+    threadGroup.value
   );
   threadRowRenderer.draw();
-
-  // Initialize the Bootstrap modal after the DOM is ready
-  nextTick(() => {
-    const modalEl = document.getElementById('flamegraphModal');
-    if (modalEl) {
-      // We'll manually create and dispose of the modal
-      // for better control over the behavior
-      modalEl.addEventListener('hidden.bs.modal', () => {
-        showFlamegraphDialog.value = false;
-      });
-
-      // Add event listener to close button that might not work with data-bs-dismiss
-      const closeButton = modalEl.querySelector('.btn-close');
-      if (closeButton) {
-        closeButton.addEventListener('click', closeModal);
-      }
-    }
-  });
 
   // Add scroll listener with stored handler reference for proper cleanup
   document.addEventListener('scroll', handleScroll);
@@ -162,8 +181,79 @@ const toggleFlamegraphMenu = (event: MouseEvent) => {
   showFlameMenu.value = !showFlameMenu.value;
 };
 
+/**
+ * The threads behind a collapsed lane, listed a page at a time — a pool can hold hundreds of them,
+ * and the lane itself only ever knew how many there were.
+ */
+const members = ref<ThreadRowData[]>([]);
+const matchedMembers = ref(0);
+const loadingMembers = ref(false);
+const membersError = ref<string | null>(null);
+
+const hasMoreMembers = computed(() => members.value.length < matchedMembers.value);
+
+function loadMembers(): void {
+  const group = threadGroup.value;
+  if (group === null || loadingMembers.value) {
+    return;
+  }
+
+  loadingMembers.value = true;
+  membersError.value = null;
+  threadClient
+    .members({
+      group: group,
+      sort: 'EVENT_COUNT',
+      offset: members.value.length,
+      limit: MEMBER_PAGE_SIZE
+    })
+    .then(page => {
+      members.value = members.value.concat(page.rows);
+      matchedMembers.value = page.matchedCount;
+    })
+    .catch(() => {
+      membersError.value = 'Threads of this group could not be loaded.';
+    })
+    .finally(() => {
+      loadingMembers.value = false;
+    });
+}
+
+/** What a thread reports for an id it never got. */
+const UNKNOWN_THREAD_ID = -1;
+
+function memberKey(member: ThreadRowData): string {
+  return `${member.threadInfo.javaId}-${member.threadInfo.osId}`;
+}
+
+/**
+ * Every thread in a group carries the same name, so a member is told apart by its ids. A thread can
+ * be missing either one — a native thread never got a Java id, a virtual thread has no OS id.
+ */
+function memberIds(member: ThreadRowData): string {
+  const ids = [];
+  if (Number(member.threadInfo.javaId) !== UNKNOWN_THREAD_ID) {
+    ids.push(`Java ID ${member.threadInfo.javaId}`);
+  }
+  if (Number(member.threadInfo.osId) !== UNKNOWN_THREAD_ID) {
+    ids.push(`OS ID ${member.threadInfo.osId}`);
+  }
+  return ids.length > 0 ? ids.join(' · ') : 'No thread id';
+}
+
+const memberSummary = computed(() => {
+  if (loadingMembers.value && members.value.length === 0) {
+    return 'Loading threads…';
+  }
+  const shown = members.value.length.toLocaleString();
+  return `Showing ${shown} of ${matchedMembers.value.toLocaleString()} threads in this lane`;
+});
+
 const openInfoModal = () => {
   showInfoModal.value = true;
+  if (collapsed.value && members.value.length === 0) {
+    loadMembers();
+  }
 };
 
 const executeMenuItem = (item: any) => {
@@ -171,44 +261,8 @@ const executeMenuItem = (item: any) => {
   item.command();
 };
 
-let modalInstance: bootstrap.Modal | null = null;
-
-// Function to close the modal
-const closeModal = () => {
-  if (modalInstance) {
-    modalInstance.hide();
-  }
-  showFlamegraphDialog.value = false;
-};
-
-// Watch for changes to showFlamegraphDialog to control modal visibility
-watch(showFlamegraphDialog, isVisible => {
-  if (isVisible) {
-    if (!modalInstance) {
-      const modalEl = document.getElementById('flamegraphModal-' + props.threadRow.threadInfo.osId);
-      if (modalEl) {
-        modalInstance = new bootstrap.Modal(modalEl);
-      }
-    }
-
-    if (modalInstance) {
-      modalInstance.show();
-    }
-  } else {
-    if (modalInstance) {
-      modalInstance.hide();
-    }
-  }
-});
-
-// Clean up event listeners and modal when component is unmounted
+// Clean up event listeners when the component is unmounted
 onUnmounted(() => {
-  // Clean up modal
-  if (modalInstance) {
-    modalInstance.dispose();
-    modalInstance = null;
-  }
-
   // Remove scroll listener with correct handler reference
   document.removeEventListener('scroll', handleScroll);
 
@@ -222,12 +276,16 @@ const showFlamegraph = (eventCode: string) => {
   const flamegraphClient = new PrimaryFlamegraphClient(
     props.primaryProfileId,
     eventCode,
-    true,
+    // Thread mode puts a synthetic root frame under every thread. On a collapsed lane that would
+    // split the graph by the very thing the lane collapsed — one sliver per pool worker — so a
+    // group merges instead, and only a single thread keeps its own root.
+    !collapsed.value,
     null,
     false,
     false,
     false,
-    props.threadRow.threadInfo
+    props.threadRow.threadInfo,
+    threadGroup.value
   );
 
   graphUpdater = new FullGraphUpdater(flamegraphClient, false);
@@ -342,7 +400,7 @@ function createContextMenuItems() {
           <button
             class="action-btn flame-btn"
             type="button"
-            title="Show flamegraph"
+            :title="collapsed ? 'Show flamegraph for all threads in the group' : 'Show flamegraph'"
             @click="toggleFlamegraphMenu"
           >
             <i class="bi bi-fire"></i>
@@ -350,13 +408,24 @@ function createContextMenuItems() {
           <button
             class="action-btn info-btn"
             type="button"
-            title="Thread information"
+            :title="collapsed ? 'Group information' : 'Thread information'"
             @click="openInfoModal"
           >
             <i class="bi bi-question-circle"></i>
           </button>
         </div>
+        <button
+          v-if="collapsed"
+          class="thread-disclosure"
+          type="button"
+          :aria-expanded="expanded"
+          :title="expanded ? 'Collapse threads' : 'Show threads'"
+          @click="$emit('toggle')"
+        >
+          <i class="bi" :class="expanded ? 'bi-chevron-down' : 'bi-chevron-right'"></i>
+        </button>
         <h6 class="thread-title" :title="threadInfo.name">{{ threadInfo.name }}</h6>
+        <Badge v-if="collapsed" :value="`${threadCount} threads`" variant="primary" size="xs" />
       </div>
       <div class="thread-content">
         <div :id="canvasId" class="thread-canvas"></div>
@@ -384,7 +453,7 @@ function createContextMenuItems() {
   </div>
 
   <!-- Thread Information Modal -->
-  <div v-if="showInfoModal" class="modal-overlay" @click="showInfoModal = false">
+  <div v-if="showInfoModal" class="thread-info-overlay" @click="showInfoModal = false">
     <div class="modal-container tooltip-style-modal" @click.stop>
       <div
         class="tooltip-header d-flex justify-content-between align-items-center"
@@ -399,22 +468,34 @@ function createContextMenuItems() {
       </div>
 
       <div class="section-header px-3 py-2 bg-white border-bottom border-light">
-        <span class="section-title fw-semibold">Thread Details</span>
+        <span class="section-title fw-semibold">{{
+          collapsed ? 'Group Details' : 'Thread Details'
+        }}</span>
       </div>
 
+      <!-- A collapsed lane has no ids of its own, so it is described by its group instead. The
+           counts below already cover every thread behind it — they are the lane's own bands. -->
       <div class="tooltip-content">
         <div class="tooltip-row d-flex px-3 py-2">
           <span class="field-name text-secondary fw-medium">Name:</span>
           <span class="field-value text-dark">{{ threadInfo.name }}</span>
         </div>
-        <div class="tooltip-row d-flex px-3 py-2">
-          <span class="field-name text-secondary fw-medium">Java ID:</span>
-          <span class="field-value text-dark">{{ threadInfo.javaId }}</span>
-        </div>
-        <div class="tooltip-row d-flex px-3 py-2">
-          <span class="field-name text-secondary fw-medium">OS ID:</span>
-          <span class="field-value text-dark">{{ threadInfo.osId }}</span>
-        </div>
+        <template v-if="collapsed">
+          <div class="tooltip-row d-flex px-3 py-2">
+            <span class="field-name text-secondary fw-medium">Threads:</span>
+            <span class="field-value text-dark">{{ threadCount }}</span>
+          </div>
+        </template>
+        <template v-else>
+          <div class="tooltip-row d-flex px-3 py-2">
+            <span class="field-name text-secondary fw-medium">Java ID:</span>
+            <span class="field-value text-dark">{{ threadInfo.javaId }}</span>
+          </div>
+          <div class="tooltip-row d-flex px-3 py-2">
+            <span class="field-name text-secondary fw-medium">OS ID:</span>
+            <span class="field-value text-dark">{{ threadInfo.osId }}</span>
+          </div>
+        </template>
       </div>
 
       <div
@@ -561,6 +642,50 @@ function createContextMenuItems() {
         </div>
       </div>
 
+      <!-- The threads behind the lane. They all share a name, so each is listed by its ids and by
+           how much of the lane it accounts for. -->
+      <template v-if="collapsed">
+        <div class="section-header px-3 py-2 bg-white border-top border-bottom border-light">
+          <span class="section-title fw-semibold">Threads</span>
+        </div>
+
+        <div v-if="membersError" class="member-message px-3 py-2 text-danger small">
+          {{ membersError }}
+        </div>
+
+        <div class="member-list">
+          <div
+            v-for="member in members"
+            :key="memberKey(member)"
+            class="member-row d-flex px-3 py-2"
+          >
+            <span class="member-ids text-dark">{{ memberIds(member) }}</span>
+            <span class="member-events text-muted small ms-auto"
+              >{{ member.eventsCount }} event{{ member.eventsCount !== 1 ? 's' : '' }}</span
+            >
+          </div>
+        </div>
+
+        <div class="member-message d-flex align-items-center px-3 py-2">
+          <span class="text-muted small">{{ memberSummary }}</span>
+          <button
+            v-if="hasMoreMembers"
+            class="btn btn-sm btn-outline-primary ms-auto"
+            type="button"
+            :disabled="loadingMembers"
+            @click="loadMembers"
+          >
+            <span
+              v-if="loadingMembers"
+              class="spinner-border spinner-border-sm me-2"
+              role="status"
+              aria-hidden="true"
+            ></span>
+            Show {{ matchedMembers - members.length }} more
+          </button>
+        </div>
+      </template>
+
       <div class="modal-footer">
         <button type="button" class="btn btn-sm btn-secondary" @click="showInfoModal = false">
           Close
@@ -570,48 +695,35 @@ function createContextMenuItems() {
   </div>
 
   <!-- Modal for events that contain StackTrace field -->
-  <div
-    class="modal fade"
-    :id="'flamegraphModal-' + props.threadRow.threadInfo.osId"
-    tabindex="-1"
-    aria-labelledby="flamegraphModalLabel"
-    aria-hidden="true"
+  <GenericModal
+    v-model:show="showFlamegraphDialog"
+    :modal-id="flamegraphModalId"
+    :title="selectedEventCode"
+    size="fullscreen"
+    :show-footer="false"
   >
-    <div class="modal-dialog modal-lg" style="width: 95vw; max-width: 95%">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="flamegraphModalLabel">{{ selectedEventCode }}</h5>
-          <button type="button" class="btn-close" @click="closeModal" aria-label="Close"></button>
-        </div>
-        <div
-          id="scrollable-wrapper"
-          class="modal-body"
-          style="padding: 0.75rem"
-          v-if="showFlamegraphDialog"
-        >
-          <SearchBarComponent :graph-updater="graphUpdater" :with-timeseries="true" />
-          <TimeSeriesChart
-            :graph-updater="graphUpdater"
-            :primary-axis-type="
-              TimeseriesEventAxeFormatter.resolveAxisFormatter(useWeightValue, selectedEventCode)
-            "
-            :visible-minutes="60"
-            :zoom-enabled="true"
-            time-unit="seconds"
-          />
-          <FlamegraphComponent
-            :with-timeseries="true"
-            :use-weight="useWeightValue"
-            :use-guardian="null"
-            scrollableWrapperClass="scrollable-wrapper"
-            :flamegraph-tooltip="flamegraphTooltip"
-            :graph-updater="graphUpdater"
-            @loaded="scrollToTop"
-          />
-        </div>
-      </div>
+    <div v-if="showFlamegraphDialog" style="padding: 0.75rem">
+      <SearchBarComponent :graph-updater="graphUpdater" :with-timeseries="true" />
+      <TimeSeriesChart
+        :graph-updater="graphUpdater"
+        :primary-axis-type="
+          TimeseriesEventAxeFormatter.resolveAxisFormatter(useWeightValue, selectedEventCode)
+        "
+        :visible-minutes="60"
+        :zoom-enabled="true"
+        time-unit="seconds"
+      />
+      <FlamegraphComponent
+        :with-timeseries="true"
+        :use-weight="useWeightValue"
+        :use-guardian="null"
+        :scrollable-wrapper-class="flamegraphModalId"
+        :flamegraph-tooltip="flamegraphTooltip"
+        :graph-updater="graphUpdater"
+        @loaded="scrollToTop"
+      />
     </div>
-  </div>
+  </GenericModal>
 </template>
 
 <style scoped>
@@ -635,9 +747,35 @@ function createContextMenuItems() {
 .thread-header {
   display: flex;
   align-items: center;
+  gap: 6px;
   padding: 6px 10px;
   background-color: var(--color-light);
   border-bottom: 1px solid var(--color-border);
+}
+
+/* Opens a collapsed lane into the threads behind it. */
+.thread-disclosure {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+}
+
+.thread-disclosure:hover {
+  background-color: var(--color-border);
+  color: var(--color-text);
+}
+
+.thread-disclosure:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
 }
 
 .thread-actions {
@@ -769,8 +907,9 @@ function createContextMenuItems() {
   }
 }
 
-/* Modal styles */
-.modal-overlay {
+/* The thread-details overlay. Deliberately not named `modal-overlay`: that class also sits on
+   GenericModal's root, which a scoped rule here would reach and restyle. */
+.thread-info-overlay {
   position: fixed;
   top: 0;
   left: 0;
@@ -818,25 +957,6 @@ function createContextMenuItems() {
   top: 8px;
 }
 
-/* Info modal styles */
-.modal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--color-border);
-  background-color: var(--color-light);
-}
-
-.modal-title {
-  margin: 0;
-  font-size: 0.95rem;
-  color: var(--color-indigo-text);
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-}
-
 .modal-close {
   background: transparent;
   border: none;
@@ -855,11 +975,6 @@ function createContextMenuItems() {
 .modal-close:hover {
   background-color: rgba(108, 117, 125, 0.12);
   color: var(--color-dark);
-}
-
-.modal-body {
-  padding: 12px;
-  overflow-y: auto;
 }
 
 .modal-footer {
@@ -881,6 +996,31 @@ function createContextMenuItems() {
   font-size: 0.8rem;
   color: var(--color-grey-text);
   letter-spacing: 0.01em;
+}
+
+/* The threads behind a collapsed lane. A pool can hold hundreds, so the list scrolls on its own
+   instead of pushing the footer off the modal. */
+.member-list {
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.member-row {
+  font-size: 0.8rem;
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.member-row:last-child {
+  border-bottom: none;
+}
+
+.member-ids {
+  font-variant-numeric: tabular-nums;
+}
+
+.member-message {
+  font-size: 0.8rem;
+  border-top: 1px solid var(--color-border-light);
 }
 
 .section-title {
@@ -932,37 +1072,6 @@ function createContextMenuItems() {
   font-size: 0.75rem;
   color: var(--color-dark);
   text-align: right;
-}
-
-/* Flamegraph modal styles */
-.modal-fade .modal-body {
-  padding-left: 4px;
-  padding-right: 4px;
-  overflow: hidden;
-}
-
-.modal-body-content {
-  overflow: auto;
-}
-
-/* Add a subtle animation to the modal */
-.modal.fade .modal-dialog {
-  transition: transform 0.25s ease-out;
-  transform: translate(0, -40px);
-}
-
-.modal.show .modal-dialog {
-  transform: none;
-}
-
-/* Custom header styling */
-.modal-header {
-  background-color: var(--color-light);
-  border-bottom: 1px solid var(--color-border);
-}
-
-.modal-title {
-  font-weight: 600;
 }
 
 @keyframes modalFadeIn {

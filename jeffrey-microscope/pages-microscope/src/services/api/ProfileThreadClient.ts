@@ -27,6 +27,7 @@ import type ThreadEventDetail from '@/services/api/model/ThreadEventDetail';
 import type { ThreadEventState } from '@/services/api/model/ThreadEventDetail';
 import type ThreadInfo from '@/services/api/model/ThreadInfo';
 import type ThreadPeriod from '@/services/api/model/ThreadPeriod';
+import type { ThreadGroupResponse } from '@/services/api/model/ThreadGroupData';
 
 export default class ProfileThreadClient extends BaseProfileClient {
   constructor(profileId: string) {
@@ -34,16 +35,17 @@ export default class ProfileThreadClient extends BaseProfileClient {
   }
 
   /**
-   * One page of threads, ordered and filtered by the server. Both have to happen there: a client
-   * that holds a single page can only sort and filter that page.
+   * One page of lanes — a lane per group of identically named threads — ordered and filtered by the
+   * server. Both have to happen there: a client that holds a single page can only sort and filter
+   * that page.
    */
   public list(page: {
     sort: ThreadSort;
     nameFilter?: string;
     offset?: number;
     limit?: number;
-  }): Promise<ThreadResponse> {
-    return this.get<ThreadResponse>('', {
+  }): Promise<ThreadGroupResponse> {
+    return this.get<ThreadGroupResponse>('', {
       sort: page.sort,
       nameFilter: page.nameFilter ?? '',
       offset: page.offset ?? 0,
@@ -52,18 +54,40 @@ export default class ProfileThreadClient extends BaseProfileClient {
   }
 
   /**
+   * The threads behind one collapsed lane. Paged like the lanes themselves, because opening a pool
+   * of 351 workers would otherwise put 351 lanes on the page.
+   */
+  public members(page: {
+    group: string;
+    sort: ThreadSort;
+    offset?: number;
+    limit?: number;
+  }): Promise<ThreadResponse> {
+    return this.get<ThreadResponse>('/members', {
+      group: page.group,
+      sort: page.sort,
+      offset: page.offset ?? 0,
+      limit: page.limit ?? 50
+    });
+  }
+
+  /**
    * The events behind a single timeline band, for its tooltip. The timeline itself carries only
    * rectangles and event counts, so the fields are fetched for the band under the pointer.
+   *
+   * A band on a collapsed lane belongs to the group rather than to a thread, so it names the group
+   * instead: the lane's own {@link ThreadInfo} carries placeholder ids that match no real thread.
    */
   public bandEvents(
     threadInfo: ThreadInfo,
     state: ThreadEventState,
     band: ThreadPeriod,
-    limit = 1
+    limit = 1,
+    group: string | null = null
   ): Promise<ThreadEventDetail[]> {
+    const target = group ? { group: group } : { osId: threadInfo.osId, javaId: threadInfo.javaId };
     return this.get<ThreadEventDetail[]>('/events', {
-      osId: threadInfo.osId,
-      javaId: threadInfo.javaId,
+      ...target,
       state: state,
       from: band.startOffset,
       to: band.startOffset + band.width,

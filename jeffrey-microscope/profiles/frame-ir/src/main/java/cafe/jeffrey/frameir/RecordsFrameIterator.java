@@ -47,7 +47,7 @@ public class RecordsFrameIterator {
                 .filterStacktraceTypes(graphParameters.stacktraceTypes())
                 .filterStacktraceTags(graphParameters.stacktraceTags())
                 .withThreads(graphParameters.threadMode())
-                .withSpecifiedThread(graphParameters.threadInfo());
+                .withSpecifiedThreads(graphParameters.threads());
 
         return eventStreamRepository.flamegraphStreamer(configurer, frameBuilder);
     }

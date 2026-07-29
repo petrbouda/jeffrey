@@ -56,21 +56,61 @@
       <ErrorState v-else-if="error" :message="error" />
 
       <div v-else :key="forceRenderThreads" class="thread-components-container">
-        <div v-for="(threadRow, index) in threadRows" :key="index" class="thread-row-wrapper">
+        <div v-for="(group, index) in groups" :key="group.key" class="thread-row-wrapper">
           <ThreadComponent
             :index="index"
             :project-id="projectId"
             :primary-profile-id="profileId"
             :thread-common="threadCommon as ThreadCommon"
-            :thread-row="threadRow"
+            :thread-row="group.lane"
+            :thread-count="group.threadCount"
+            :group-key="group.key"
+            :expanded="isExpanded(group.key)"
+            @toggle="toggleGroup(group.key)"
           />
+
+          <!-- The threads behind an opened lane, paged the same way the lanes are. -->
+          <div v-if="isExpanded(group.key)" class="group-members">
+            <div
+              v-for="(member, memberIndex) in membersOf(group.key)"
+              :key="member.threadInfo.osId + '-' + member.threadInfo.javaId"
+              class="thread-row-wrapper"
+            >
+              <ThreadComponent
+                :index="1000 * (index + 1) + memberIndex"
+                :project-id="projectId"
+                :primary-profile-id="profileId"
+                :thread-common="threadCommon as ThreadCommon"
+                :thread-row="member"
+              />
+            </div>
+
+            <div class="page-summary members-summary">
+              <span class="page-summary-text">{{ memberSummary(group) }}</span>
+              <button
+                v-if="groupHasMore(group)"
+                class="btn btn-sm btn-outline-primary"
+                :disabled="isLoadingMembers(group.key)"
+                @click="loadMoreMembers(group.key)"
+              >
+                <span
+                  v-if="isLoadingMembers(group.key)"
+                  class="spinner-border spinner-border-sm me-2"
+                  role="status"
+                ></span>
+                {{
+                  isLoadingMembers(group.key) ? 'Loading…' : `Show ${nextMemberPage(group)} more`
+                }}
+              </button>
+            </div>
+          </div>
         </div>
 
         <EmptyState
           v-if="loadedCount === 0 && isFiltered"
           icon="bi-search"
           title="No threads match the filter"
-          :description="`Nothing in this recording's ${totalCount.toLocaleString()} threads contains &quot;${fulltextFilter}&quot;.`"
+          :description="`Nothing in this recording's ${totalThreads.toLocaleString()} threads contains &quot;${fulltextFilter}&quot;.`"
         />
         <EmptyState
           v-else-if="loadedCount === 0"
@@ -118,8 +158,9 @@
         <AboutSection icon="bi-bar-chart-steps" title="Reading the Timeline">
           <FeatureGrid>
             <FeatureCard icon="bi-list" variant="primary" title="Rows are threads">
-              One lane per thread, labelled by name. Filter and sort to bring the threads you care
-              about to the top.
+              One lane per thread — or, where a pool runs many threads under one name, a single lane
+              standing for all of them. Filter and sort to bring the threads you care about to the
+              top.
             </FeatureCard>
             <FeatureCard icon="bi-palette" variant="info" title="Colours are activity">
               Each colour is an event category (CPU sample, monitor block, park, socket/file I/O) —
@@ -138,10 +179,15 @@
 
         <AboutSection icon="bi-layers" title="Working with Large Recordings">
           <FeatureGrid>
-            <FeatureCard icon="bi-sort-down" variant="primary" title="Busiest threads first">
-              A recording can hold thousands of threads, so the page loads 50 at a time in the order
-              you picked and appends the next 50 on request. The footer says how many of the
-              recording's threads you are looking at.
+            <FeatureCard icon="bi-collection" variant="primary" title="Pools share a lane">
+              Threads a pool runs under one name — <code>oracleApp:connection-adder</code>, or a
+              numbered set like <code>http-nio-8080-exec-17</code> — collapse into one lane carrying
+              all their activity. Open it to see the threads behind it, 50 at a time.
+            </FeatureCard>
+            <FeatureCard icon="bi-sort-down" variant="info" title="Busiest lanes first">
+              The page loads 50 lanes at a time in the order you picked and appends the next 50 on
+              request. The footer says how many lanes you are looking at, and how many threads they
+              stand for.
             </FeatureCard>
             <FeatureCard icon="bi-funnel" variant="info" title="Sort and filter search everything">
               Both run against the whole recording, not the threads already on screen — a thread
@@ -320,6 +366,7 @@ import ProfileThreadClient from '@/services/api/ProfileThreadClient.ts';
 import ThreadComponent from '@/components/ThreadComponent.vue';
 import ThreadCommon from '@/services/api/model/ThreadCommon';
 import ThreadRowData from '@/services/api/model/ThreadRowData';
+import type ThreadGroupData from '@/services/api/model/ThreadGroupData';
 import type { ThreadSort } from '@/services/api/model/ThreadResponse';
 import Konva from 'konva';
 import ThreadRow from '@/services/thread/ThreadRow';
@@ -376,15 +423,22 @@ const SORTINGS: { label: string; sort: ThreadSort }[] = [
 
 const profileId = route.params.profileId as string;
 
-const threadRows = ref<ThreadRowData[]>();
+const groups = ref<ThreadGroupData[]>();
 const threadCommon = ref<ThreadCommon>();
 const loading = ref<boolean>(true);
 const loadingMore = ref<boolean>(false);
 const error = ref<string | null>(null);
 
-/** Threads matching the current filter, and threads in the recording — both counted server-side. */
-const matchedCount = ref<number>(0);
-const totalCount = ref<number>(0);
+/** Lanes matching the current filter, and what the recording holds — all counted server-side. */
+const matchedGroups = ref<number>(0);
+const totalThreads = ref<number>(0);
+
+/**
+ * The threads behind each opened lane, keyed by group. A lane is only fetched when it is opened, and
+ * what has been fetched is kept so closing and reopening does not ask again.
+ */
+const expandedMembers = ref<Record<string, ThreadRowData[]>>({});
+const loadingMembers = ref<Record<string, boolean>>({});
 
 const activeTab = ref('timeline');
 const tabs = [
@@ -399,22 +453,51 @@ const forceRenderThreads = ref<number>(0);
 
 const infoDialogVisible = ref<boolean>(false);
 
-const loadedCount = computed(() => threadRows.value?.length ?? 0);
-const hasMore = computed(() => loadedCount.value < matchedCount.value);
+const loadedCount = computed(() => groups.value?.length ?? 0);
+const hasMore = computed(() => loadedCount.value < matchedGroups.value);
 const isFiltered = computed(() => fulltextFilter.value.trim().length > 0);
 
 /** The button promises exactly what is left, so the last page never says "show 50 more" for 7. */
-const nextPageSize = computed(() => Math.min(PAGE_SIZE, matchedCount.value - loadedCount.value));
+const nextPageSize = computed(() => Math.min(PAGE_SIZE, matchedGroups.value - loadedCount.value));
 
-/** Reads as "Showing 50 of 1,204 threads", and says so about the filter when one is applied. */
+/**
+ * Reads as "Showing 18 of 18 lanes · 1,204 threads" — both numbers matter, because a handful of
+ * lanes can stand for a thousand threads.
+ */
 const pageSummary = computed(() => {
   const shown = loadedCount.value.toLocaleString();
-  const matched = matchedCount.value.toLocaleString();
+  const matched = matchedGroups.value.toLocaleString();
+  const threads = totalThreads.value.toLocaleString();
   if (isFiltered.value) {
-    return `Showing ${shown} of ${matched} matching threads · ${totalCount.value.toLocaleString()} in the recording`;
+    return `Showing ${shown} of ${matched} matching lanes · ${threads} threads in the recording`;
   }
-  return `Showing ${shown} of ${matched} threads`;
+  return `Showing ${shown} of ${matched} lanes · ${threads} threads`;
 });
+
+function isExpanded(key: string): boolean {
+  return expandedMembers.value[key] !== undefined;
+}
+
+function membersOf(key: string): ThreadRowData[] {
+  return expandedMembers.value[key] ?? [];
+}
+
+function isLoadingMembers(key: string): boolean {
+  return loadingMembers.value[key] === true;
+}
+
+function groupHasMore(group: ThreadGroupData): boolean {
+  return membersOf(group.key).length < group.threadCount;
+}
+
+function nextMemberPage(group: ThreadGroupData): number {
+  return Math.min(PAGE_SIZE, group.threadCount - membersOf(group.key).length);
+}
+
+function memberSummary(group: ThreadGroupData): string {
+  const shown = membersOf(group.key).length.toLocaleString();
+  return `Showing ${shown} of ${group.threadCount.toLocaleString()} threads in this lane`;
+}
 
 let filterTimeout: ReturnType<typeof setTimeout>;
 
@@ -439,14 +522,17 @@ function currentSort(): ThreadSort {
 function loadFirstPage() {
   loading.value = true;
   error.value = null;
+  // A reorder or a new filter invalidates which lanes are on screen, so anything opened under the
+  // old set is closed rather than left attached to a lane that may no longer be there.
+  expandedMembers.value = {};
 
   threadService
     .list({ sort: currentSort(), nameFilter: fulltextFilter.value, offset: 0, limit: PAGE_SIZE })
     .then(response => {
-      threadRows.value = response.rows;
+      groups.value = response.groups;
       threadCommon.value = response.common;
-      matchedCount.value = response.matchedCount;
-      totalCount.value = response.totalCount;
+      matchedGroups.value = response.matchedGroups;
+      totalThreads.value = response.totalThreads;
       forceRenderThreads.value++;
     })
     .catch(e => {
@@ -471,15 +557,54 @@ function loadMore() {
       limit: PAGE_SIZE
     })
     .then(response => {
-      threadRows.value = [...(threadRows.value ?? []), ...response.rows];
-      matchedCount.value = response.matchedCount;
-      totalCount.value = response.totalCount;
+      groups.value = [...(groups.value ?? []), ...response.groups];
+      matchedGroups.value = response.matchedGroups;
+      totalThreads.value = response.totalThreads;
     })
     .catch(e => {
-      error.value = e instanceof Error ? e.message : 'Failed to load more threads';
+      error.value = e instanceof Error ? e.message : 'Failed to load more lanes';
     })
     .finally(() => {
       loadingMore.value = false;
+    });
+}
+
+/**
+ * Opens a lane into the threads behind it, or closes it again. Only the first page of members is
+ * fetched — a pool of 351 opens as 50 lanes, not 351.
+ */
+function toggleGroup(key: string) {
+  if (isExpanded(key)) {
+    const remaining = { ...expandedMembers.value };
+    delete remaining[key];
+    expandedMembers.value = remaining;
+    return;
+  }
+  expandedMembers.value = { ...expandedMembers.value, [key]: [] };
+  fetchMembers(key, 0);
+}
+
+function loadMoreMembers(key: string) {
+  if (isLoadingMembers(key)) {
+    return;
+  }
+  fetchMembers(key, membersOf(key).length);
+}
+
+function fetchMembers(key: string, offset: number) {
+  loadingMembers.value = { ...loadingMembers.value, [key]: true };
+
+  threadService
+    .members({ group: key, sort: currentSort(), offset: offset, limit: PAGE_SIZE })
+    .then(response => {
+      const loaded = [...membersOf(key), ...response.rows];
+      expandedMembers.value = { ...expandedMembers.value, [key]: loaded };
+    })
+    .catch(e => {
+      error.value = e instanceof Error ? e.message : 'Failed to load the threads in this lane';
+    })
+    .finally(() => {
+      loadingMembers.value = { ...loadingMembers.value, [key]: false };
     });
 }
 
@@ -539,6 +664,18 @@ function clearFilter() {
   font-size: 0.8rem;
   color: var(--color-text-muted);
   opacity: 0.75;
+}
+
+/* The threads behind an opened lane, indented so the lane still reads as their parent. */
+.group-members {
+  margin: 0 0 0.75rem 1.5rem;
+  padding-left: 0.75rem;
+  border-left: 2px solid var(--color-border);
+}
+
+.members-summary {
+  margin-top: 0.25rem;
+  padding: 0.5rem 1rem;
 }
 
 /* Modal styles */

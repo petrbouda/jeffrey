@@ -323,6 +323,10 @@ public class SQLBuilder {
         return new InCondition(column, values.stream().map(LongLiteral::new).toList());
     }
 
+    public static Condition inLongs(String column, List<Long> values) {
+        return new InCondition(column, values.stream().map(LongLiteral::new).toList());
+    }
+
     public static Condition in(String column, List<String> values) {
         return new InCondition(column, values.stream().map(StringLiteral::new).toList());
     }

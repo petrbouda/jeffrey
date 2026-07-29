@@ -67,7 +67,7 @@ public class DifferentialFlamegraphController {
         LOG.debug("Generating diff flamegraph: eventType={}", request.eventType());
         FlamegraphManager diffManager = diffManager(primaryProfileId, secondaryProfileId);
         ProfileManager primary = resolver.resolve(primaryProfileId);
-        GraphParameters params = mapToGenerateRequest(primary.info(), request, GraphType.DIFFERENTIAL);
+        GraphParameters params = mapToGenerateRequest(primary, request, GraphType.DIFFERENTIAL);
         return diffManager.generate(params);
     }
 

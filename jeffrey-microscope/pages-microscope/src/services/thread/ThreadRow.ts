@@ -147,12 +147,13 @@ export default class ThreadRow {
     profileId: string,
     threadCommon: ThreadCommon,
     threadRow: ThreadRowData,
-    canvasElementId: string
+    canvasElementId: string,
+    threadGroup: string | null = null
   ) {
     this.threadCommon = threadCommon;
     this.threadMetadata = threadCommon.metadata;
     this.threadRow = threadRow;
-    this.bandDetails = new ThreadBandDetails(profileId, threadRow.threadInfo);
+    this.bandDetails = new ThreadBandDetails(profileId, threadRow.threadInfo, threadGroup);
 
     this.konvaContainer = document.getElementById(canvasElementId) as HTMLElement;
     this.stage = this.createStage();
@@ -276,7 +277,7 @@ export default class ThreadRow {
       ThreadTooltips.header(threadName)
     );
 
-    this.threadTooltip.showTooltip(new TooltipPosition(pos.x, pos.y), 0, content);
+    this.threadTooltip.showTooltip(new TooltipPosition(pos.x, pos.y), content);
   }
 
   /**

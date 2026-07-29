@@ -50,7 +50,7 @@ public class TimeseriesDataProvider {
                     .withThreads(graphParameters.threadMode())
                     .withWeight(graphParameters.useWeight())
                     .withSearchPattern(graphParameters.searchPattern())
-                    .withSpecifiedThread(graphParameters.threadInfo())
+                    .withSpecifiedThreads(graphParameters.threads())
                     .withSpanIntervals(graphParameters.spanIntervals());
 
             if (timeseriesType == TimeseriesType.SIMPLE) {

@@ -35,6 +35,8 @@ import cafe.jeffrey.profile.manager.model.thread.dump.ParsedDump;
 import cafe.jeffrey.profile.manager.model.thread.dump.ThreadDumpAnalysis;
 import cafe.jeffrey.profile.thread.ThreadEventDetail;
 import cafe.jeffrey.profile.thread.ThreadEventsQuery;
+import cafe.jeffrey.profile.thread.ThreadGroupPage;
+import cafe.jeffrey.profile.thread.ThreadMembersQuery;
 import cafe.jeffrey.profile.thread.ThreadPage;
 import cafe.jeffrey.profile.thread.ThreadPageQuery;
 import cafe.jeffrey.profile.thread.ThreadSort;
@@ -82,12 +84,13 @@ public class ThreadController {
     }
 
     /**
-     * One page of the timeline. A recording can hold thousands of threads, so the page asks for the
-     * busiest ones first and comes back for more; sorting and filtering happen here rather than in
-     * the browser, because a client that holds one page can only sort and filter that page.
+     * One page of the timeline, a lane per group of identically named threads. A recording can hold
+     * thousands of threads and most of them are pool workers, so the lanes come busiest-first and the
+     * page comes back for more. Sorting and filtering happen here rather than in the browser, because
+     * a client that holds one page can only sort and filter that page.
      */
     @GetMapping
-    public ThreadPage list(
+    public ThreadGroupPage list(
             @PathVariable("profileId") String profileId,
             @RequestParam(value = "sort", defaultValue = "EVENT_COUNT") ThreadSort sort,
             @RequestParam(value = "nameFilter", required = false) String nameFilter,
@@ -96,9 +99,30 @@ public class ThreadController {
 
         ThreadPageQuery query = new ThreadPageQuery(sort, nameFilter, offset, Math.min(limit, MAX_THREAD_PAGE));
 
-        ThreadPage page = mgr(profileId).threadPage(query);
-        LOG.debug("Listed threads: profileId={} sort={} offset={} returned={} matched={}",
-                profileId, sort, offset, page.rows().size(), page.matchedCount());
+        ThreadGroupPage page = mgr(profileId).threadGroups(query);
+        LOG.debug("Listed thread groups: profileId={} sort={} offset={} returned={} matched={} threads={}",
+                profileId, sort, offset, page.groups().size(), page.matchedGroups(), page.totalThreads());
+        return page;
+    }
+
+    /**
+     * The threads behind one collapsed lane. Opening a pool of 351 workers pages through them the
+     * same way the timeline itself pages through lanes.
+     */
+    @GetMapping("/members")
+    public ThreadPage members(
+            @PathVariable("profileId") String profileId,
+            @RequestParam("group") String group,
+            @RequestParam(value = "sort", defaultValue = "EVENT_COUNT") ThreadSort sort,
+            @RequestParam(value = "offset", defaultValue = "0") int offset,
+            @RequestParam(value = "limit", defaultValue = "50") int limit) {
+
+        ThreadMembersQuery query =
+                new ThreadMembersQuery(group, sort, offset, Math.min(limit, MAX_THREAD_PAGE));
+
+        ThreadPage page = mgr(profileId).threadGroupMembers(query);
+        LOG.debug("Listed members of a thread group: profileId={} group={} offset={} returned={} matched={}",
+                profileId, group, offset, page.rows().size(), page.matchedCount());
         return page;
     }
 
@@ -109,22 +133,41 @@ public class ThreadController {
     @GetMapping("/events")
     public List<ThreadEventDetail> threadEvents(
             @PathVariable("profileId") String profileId,
-            @RequestParam("osId") long osId,
-            @RequestParam("javaId") long javaId,
+            @RequestParam(value = "osId", required = false) Long osId,
+            @RequestParam(value = "javaId", required = false) Long javaId,
+            @RequestParam(value = "group", required = false) String group,
             @RequestParam("state") ThreadState state,
             @RequestParam("from") long fromNanos,
             @RequestParam("to") long toNanos,
             @RequestParam(value = "limit", defaultValue = "1") int limit) {
 
+        List<ThreadInfo> threads = threadsOf(profileId, group, osId, javaId);
+
         ThreadEventsQuery query = new ThreadEventsQuery(
-                new ThreadInfo(osId, javaId, null),
+                threads,
                 state,
                 Duration.ofNanos(fromNanos),
                 Duration.ofNanos(toNanos),
                 Math.min(limit, MAX_BAND_EVENTS));
 
-        LOG.debug("Fetching events of a timeline band: state={} from={} to={}", state, fromNanos, toNanos);
+        LOG.debug("Fetching events of a timeline band: state={} from={} to={} threads={}",
+                state, fromNanos, toNanos, threads.size());
         return mgr(profileId).threadEvents(query);
+    }
+
+    /**
+     * A band on a collapsed lane belongs to the whole group, not to one thread — the lane has no
+     * thread of its own — so the group is resolved to its members. A request naming neither is
+     * rejected before anything is resolved, so a bad request answers 400 rather than failing later.
+     */
+    private List<ThreadInfo> threadsOf(String profileId, String group, Long osId, Long javaId) {
+        if (group != null && !group.isBlank()) {
+            return mgr(profileId).threadGroupThreads(group);
+        }
+        if (osId == null || javaId == null) {
+            throw new IllegalArgumentException("Either a group or a thread's ids must be specified");
+        }
+        return List.of(new ThreadInfo(osId, javaId, null));
     }
 
     @GetMapping("/statistics")

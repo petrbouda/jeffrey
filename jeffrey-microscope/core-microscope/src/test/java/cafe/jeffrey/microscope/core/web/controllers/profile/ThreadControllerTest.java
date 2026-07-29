@@ -33,11 +33,14 @@ import cafe.jeffrey.profile.manager.model.thread.dump.ThreadDumpAnalysis;
 import cafe.jeffrey.profile.thread.ThreadCommon;
 import cafe.jeffrey.profile.thread.ThreadEventDetail;
 import cafe.jeffrey.profile.thread.ThreadEventsQuery;
+import cafe.jeffrey.profile.thread.ThreadGroupPage;
+import cafe.jeffrey.profile.thread.ThreadMembersQuery;
 import cafe.jeffrey.profile.thread.ThreadPage;
 import cafe.jeffrey.profile.thread.ThreadPageQuery;
 import cafe.jeffrey.profile.thread.ThreadSort;
 import cafe.jeffrey.profile.thread.ThreadState;
 import cafe.jeffrey.shared.common.exception.Exceptions;
+import cafe.jeffrey.shared.common.model.ThreadInfo;
 import cafe.jeffrey.timeseries.SingleSerie;
 import cafe.jeffrey.timeseries.TimeseriesData;
 
@@ -115,13 +118,13 @@ class ThreadControllerTest {
     @Nested
     class ThreadPaging {
 
-        private ThreadPage emptyPage() {
-            return new ThreadPage(new ThreadCommon(60_000, false, null), List.of(), 0, 1204, 1204);
+        private ThreadGroupPage emptyPage() {
+            return new ThreadGroupPage(new ThreadCommon(60_000, false, null), List.of(), 0, 18, 18, 1204);
         }
 
         private ThreadPageQuery capturedQuery() {
             ArgumentCaptor<ThreadPageQuery> captor = ArgumentCaptor.forClass(ThreadPageQuery.class);
-            verify(threadManager).threadPage(captor.capture());
+            verify(threadManager).threadGroups(captor.capture());
             return captor.getValue();
         }
 
@@ -133,7 +136,7 @@ class ThreadControllerTest {
         void defaultsToTheFirstPageOfTheBusiestThreads() {
             when(resolver.resolve("p-1")).thenReturn(profileManager);
             when(profileManager.threadManager()).thenReturn(threadManager);
-            when(threadManager.threadPage(any(ThreadPageQuery.class))).thenReturn(emptyPage());
+            when(threadManager.threadGroups(any(ThreadPageQuery.class))).thenReturn(emptyPage());
 
             MockMvcTester mvc = mockMvcTesterFor(new ThreadController(resolver));
 
@@ -150,7 +153,7 @@ class ThreadControllerTest {
         void passesSortFilterAndOffsetThrough() {
             when(resolver.resolve("p-1")).thenReturn(profileManager);
             when(profileManager.threadManager()).thenReturn(threadManager);
-            when(threadManager.threadPage(any(ThreadPageQuery.class))).thenReturn(emptyPage());
+            when(threadManager.threadGroups(any(ThreadPageQuery.class))).thenReturn(emptyPage());
 
             MockMvcTester mvc = mockMvcTesterFor(new ThreadController(resolver));
 
@@ -172,7 +175,7 @@ class ThreadControllerTest {
         void capsThePageSizeWhateverIsAskedFor() {
             when(resolver.resolve("p-1")).thenReturn(profileManager);
             when(profileManager.threadManager()).thenReturn(threadManager);
-            when(threadManager.threadPage(any(ThreadPageQuery.class))).thenReturn(emptyPage());
+            when(threadManager.threadGroups(any(ThreadPageQuery.class))).thenReturn(emptyPage());
 
             MockMvcTester mvc = mockMvcTesterFor(new ThreadController(resolver));
 
@@ -185,17 +188,17 @@ class ThreadControllerTest {
          * The footer counts come from the response, so they have to survive serialization.
          */
         @Test
-        void reportsHowManyThreadsWereHeldBack() {
+        void reportsHowManyThreadsTheLanesStandFor() {
             when(resolver.resolve("p-1")).thenReturn(profileManager);
             when(profileManager.threadManager()).thenReturn(threadManager);
-            when(threadManager.threadPage(any(ThreadPageQuery.class))).thenReturn(emptyPage());
+            when(threadManager.threadGroups(any(ThreadPageQuery.class))).thenReturn(emptyPage());
 
             MockMvcTester mvc = mockMvcTesterFor(new ThreadController(resolver));
 
             assertThat(mvc.get().uri("/api/internal/profiles/p-1/thread"))
                     .hasStatusOk()
                     .bodyJson()
-                    .extractingPath("$.matchedCount").asNumber().isEqualTo(1204);
+                    .extractingPath("$.totalThreads").asNumber().isEqualTo(1204);
         }
 
         @Test
@@ -203,6 +206,83 @@ class ThreadControllerTest {
             MockMvcTester mvc = mockMvcTesterFor(new ThreadController(resolver));
 
             assertThat(mvc.get().uri("/api/internal/profiles/p-1/thread?offset=-1")).hasStatus(400);
+        }
+    }
+
+    @Nested
+    class GroupMembers {
+
+        private ThreadMembersQuery capturedQuery() {
+            ArgumentCaptor<ThreadMembersQuery> captor = ArgumentCaptor.forClass(ThreadMembersQuery.class);
+            verify(threadManager).threadGroupMembers(captor.capture());
+            return captor.getValue();
+        }
+
+        /**
+         * Opening a lane asks for its first 50 threads — a pool of 351 must not arrive whole any
+         * more than the ungrouped timeline could.
+         */
+        @Test
+        void defaultToTheFirstPageOfALane() {
+            when(resolver.resolve("p-1")).thenReturn(profileManager);
+            when(profileManager.threadManager()).thenReturn(threadManager);
+            when(threadManager.threadGroupMembers(any(ThreadMembersQuery.class)))
+                    .thenReturn(new ThreadPage(new ThreadCommon(60_000, false, null), List.of(), 0, 351, 1204));
+
+            MockMvcTester mvc = mockMvcTesterFor(new ThreadController(resolver));
+
+            assertThat(mvc.get().uri("/api/internal/profiles/p-1/thread/members"
+                    + "?group=oracleApp:connection-adder"))
+                    .hasStatusOk()
+                    .bodyJson()
+                    .extractingPath("$.matchedCount").asNumber().isEqualTo(351);
+
+            ThreadMembersQuery query = capturedQuery();
+            assertThat(query.groupKey()).isEqualTo("oracleApp:connection-adder");
+            assertThat(query.sort()).isEqualTo(ThreadSort.EVENT_COUNT);
+            assertThat(query.offset()).isZero();
+            assertThat(query.limit()).isEqualTo(50);
+        }
+
+        @Test
+        void pageThroughALaneOnRequest() {
+            when(resolver.resolve("p-1")).thenReturn(profileManager);
+            when(profileManager.threadManager()).thenReturn(threadManager);
+            when(threadManager.threadGroupMembers(any(ThreadMembersQuery.class)))
+                    .thenReturn(new ThreadPage(new ThreadCommon(60_000, false, null), List.of(), 50, 351, 1204));
+
+            MockMvcTester mvc = mockMvcTesterFor(new ThreadController(resolver));
+
+            assertThat(mvc.get().uri("/api/internal/profiles/p-1/thread/members"
+                    + "?group=http-nio-8080-exec-*&offset=50&sort=NAME"))
+                    .hasStatusOk();
+
+            ThreadMembersQuery query = capturedQuery();
+            assertThat(query.groupKey()).isEqualTo("http-nio-8080-exec-*");
+            assertThat(query.offset()).isEqualTo(50);
+            assertThat(query.sort()).isEqualTo(ThreadSort.NAME);
+        }
+
+        @Test
+        void areCappedLikeTheLanesThemselves() {
+            when(resolver.resolve("p-1")).thenReturn(profileManager);
+            when(profileManager.threadManager()).thenReturn(threadManager);
+            when(threadManager.threadGroupMembers(any(ThreadMembersQuery.class)))
+                    .thenReturn(new ThreadPage(new ThreadCommon(60_000, false, null), List.of(), 0, 351, 1204));
+
+            MockMvcTester mvc = mockMvcTesterFor(new ThreadController(resolver));
+
+            assertThat(mvc.get().uri("/api/internal/profiles/p-1/thread/members"
+                    + "?group=pool-*&limit=100000")).hasStatusOk();
+
+            assertThat(capturedQuery().limit()).isEqualTo(250);
+        }
+
+        @Test
+        void areRejectedWithoutALane() {
+            MockMvcTester mvc = mockMvcTesterFor(new ThreadController(resolver));
+
+            assertThat(mvc.get().uri("/api/internal/profiles/p-1/thread/members?group=")).hasStatus(400);
         }
     }
 
@@ -231,8 +311,9 @@ class ThreadControllerTest {
             ArgumentCaptor<ThreadEventsQuery> captor = ArgumentCaptor.forClass(ThreadEventsQuery.class);
             verify(threadManager).threadEvents(captor.capture());
             ThreadEventsQuery query = captor.getValue();
-            assertThat(query.threadInfo().javaId()).isEqualTo(42);
-            assertThat(query.threadInfo().osId()).isEqualTo(7);
+            assertThat(query.threads()).hasSize(1);
+            assertThat(query.threads().getFirst().javaId()).isEqualTo(42);
+            assertThat(query.threads().getFirst().osId()).isEqualTo(7);
             assertThat(query.state()).isEqualTo(ThreadState.FILE_WRITE);
             assertThat(query.from()).isEqualTo(Duration.ofNanos(1_000));
             assertThat(query.to()).isEqualTo(Duration.ofNanos(1_500));
@@ -260,6 +341,41 @@ class ThreadControllerTest {
             ArgumentCaptor<ThreadEventsQuery> captor = ArgumentCaptor.forClass(ThreadEventsQuery.class);
             verify(threadManager).threadEvents(captor.capture());
             assertThat(captor.getValue().limit()).isEqualTo(20);
+        }
+
+        /**
+         * A band on a collapsed lane belongs to the whole group. The lane carries no thread of its
+         * own, so asking by its identity matched nothing and the tooltip stayed blank; naming the
+         * group resolves it to every thread behind it.
+         */
+        @Test
+        void areLookedUpAcrossAWholeGroup() {
+            when(resolver.resolve("p-1")).thenReturn(profileManager);
+            when(profileManager.threadManager()).thenReturn(threadManager);
+            when(threadManager.threadGroupThreads("oracleApp:connection-adder")).thenReturn(List.of(
+                    new ThreadInfo(1001, 1, "oracleApp:connection-adder"),
+                    new ThreadInfo(1002, 2, "oracleApp:connection-adder")));
+            when(threadManager.threadEvents(any(ThreadEventsQuery.class))).thenReturn(List.of());
+
+            MockMvcTester mvc = mockMvcTesterFor(new ThreadController(resolver));
+
+            assertThat(mvc.get().uri("/api/internal/profiles/p-1/thread/events"
+                    + "?group=oracleApp:connection-adder&state=SOCKET_READ&from=0&to=1000"))
+                    .hasStatusOk();
+
+            ArgumentCaptor<ThreadEventsQuery> captor = ArgumentCaptor.forClass(ThreadEventsQuery.class);
+            verify(threadManager).threadEvents(captor.capture());
+            assertThat(captor.getValue().threads())
+                    .as("Every thread in the group is searched, not the lane's placeholder identity")
+                    .hasSize(2);
+        }
+
+        @Test
+        void areRejectedWithoutAThreadOrAGroup() {
+            MockMvcTester mvc = mockMvcTesterFor(new ThreadController(resolver));
+
+            assertThat(mvc.get().uri("/api/internal/profiles/p-1/thread/events"
+                    + "?state=SOCKET_READ&from=0&to=1000")).hasStatus(400);
         }
 
         /**

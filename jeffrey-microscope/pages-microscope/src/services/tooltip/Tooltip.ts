@@ -49,7 +49,7 @@ export default class Tooltip {
     this.registerInteractionHandlers();
   }
 
-  public showTooltip(event: TooltipPosition, currentScrollY: number, content: string): void {
+  public showTooltip(event: TooltipPosition, content: string): void {
     this.cancelPendingHide();
 
     if (this.displayedContent === content) {
@@ -69,7 +69,7 @@ export default class Tooltip {
       this.tooltip.innerHTML = content;
       this.displayedContent = content;
       this.pendingContent = null;
-      Tooltip.placeTooltip(this.canvas, this.tooltip, event, currentScrollY);
+      Tooltip.placeTooltip(this.canvas, this.tooltip, event);
       this.applyIdeGate();
     }, 500);
   }
@@ -176,16 +176,16 @@ export default class Tooltip {
    * — leaving the part that mattered unreachable. So the height is capped first, and the side is
    * chosen by what actually fits.
    *
-   * <p>Two coordinate systems meet here. The tooltip is positioned against the canvas's offset
-   * parent, while the room available for it is measured in the window. They differ by a constant,
-   * computed once as {@code layoutOffset}: the fitting is done in window coordinates and shifted
-   * into layout coordinates at the end.
+   * <p>Two coordinate systems meet here. The room available for the tooltip is measured in the
+   * window, while the tooltip itself is positioned against its containing block. The fitting is done
+   * in window coordinates and shifted into layout ones at the end, by measuring that containing
+   * block — which already reflects every scroll between it and the window, so the result holds
+   * whichever ancestor happens to be the one that scrolls.
    */
   private static placeTooltip(
     canvas: HTMLElement,
     tooltip: HTMLElement,
-    position: TooltipPosition,
-    currentScrollY: number
+    position: TooltipPosition
   ): void {
     const viewportHeight = window.innerHeight;
     const viewportWidth = window.innerWidth;
@@ -196,7 +196,19 @@ export default class Tooltip {
     tooltip.style.maxHeight = viewportHeight - 2 * Tooltip.VIEWPORT_MARGIN + 'px';
     tooltip.style.overflowY = 'auto';
 
-    const layoutOffsetY = canvas.offsetTop - currentScrollY - canvasPos.y;
+    // Where the containing block sits in the window. An absolutely positioned element is laid out
+    // against its offsetParent's padding box, while getBoundingClientRect reports the border box —
+    // clientTop/clientLeft is that difference. With no offsetParent the document is the containing
+    // block, and its origin sits at minus the page scroll.
+    const container = tooltip.offsetParent as HTMLElement | null;
+    let containerTop = -window.scrollY;
+    let containerLeft = -window.scrollX;
+    if (container) {
+      const containerPos = container.getBoundingClientRect();
+      containerTop = containerPos.top + container.clientTop;
+      containerLeft = containerPos.left + container.clientLeft;
+    }
+
     const pointerY = canvasPos.y + position.offsetY;
     const height = tooltip.offsetHeight;
 
@@ -217,9 +229,8 @@ export default class Tooltip {
       Tooltip.VIEWPORT_MARGIN,
       viewportHeight - height - Tooltip.VIEWPORT_MARGIN
     );
-    tooltip.style.top = Math.max(clampedTop + layoutOffsetY, 0) + 'px';
+    tooltip.style.top = Math.max(clampedTop - containerTop, 0) + 'px';
 
-    const layoutOffsetX = canvas.offsetLeft - canvasPos.x;
     const pointerX = canvasPos.x + position.offsetX;
     const width = tooltip.offsetWidth;
 
@@ -233,7 +244,7 @@ export default class Tooltip {
       Tooltip.VIEWPORT_MARGIN,
       viewportWidth - width - Tooltip.VIEWPORT_MARGIN
     );
-    tooltip.style.left = clampedLeft + layoutOffsetX + 'px';
+    tooltip.style.left = clampedLeft - containerLeft + 'px';
 
     tooltip.style.visibility = 'visible';
   }

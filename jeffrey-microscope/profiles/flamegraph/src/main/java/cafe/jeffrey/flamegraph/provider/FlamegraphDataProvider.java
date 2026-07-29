@@ -113,7 +113,7 @@ public class FlamegraphDataProvider {
                 .filterStacktraceTypes(graphParameters.stacktraceTypes())
                 .filterStacktraceTags(graphParameters.stacktraceTags())
                 .withThreads(graphParameters.threadMode())
-                .withSpecifiedThread(graphParameters.threadInfo())
+                .withSpecifiedThreads(graphParameters.threads())
                 .withWeight(graphParameters.useWeight())
                 .withSpanIntervals(graphParameters.spanIntervals());
 

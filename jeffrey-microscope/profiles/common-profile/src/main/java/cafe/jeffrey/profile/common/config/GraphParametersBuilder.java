@@ -32,7 +32,7 @@ public class GraphParametersBuilder {
 
     private Type eventType;
     private RelativeTimeRange timeRange;
-    private ThreadInfo threadInfo;
+    private List<ThreadInfo> threads = List.of();
     private String searchPattern;
     private boolean threadMode;
     private Boolean collectWeight;
@@ -58,7 +58,14 @@ public class GraphParametersBuilder {
     }
 
     public GraphParametersBuilder withThreadInfo(ThreadInfo threadInfo) {
-        this.threadInfo = threadInfo;
+        return withThreads(threadInfo == null ? List.of() : List.of(threadInfo));
+    }
+
+    /**
+     * Scopes the graph to a set of threads — everything behind one collapsed timeline lane.
+     */
+    public GraphParametersBuilder withThreads(List<ThreadInfo> threads) {
+        this.threads = threads == null ? List.of() : List.copyOf(threads);
         return this;
     }
 
@@ -131,7 +138,7 @@ public class GraphParametersBuilder {
         return new GraphParameters(
                 eventType,
                 timeRange,
-                threadInfo,
+                threads,
                 searchPattern,
                 threadMode,
                 collectWeight,

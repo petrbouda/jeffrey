@@ -37,6 +37,14 @@ public record GenerateFlamegraphRequest(
         boolean excludeIdleSamples,
         boolean onlyUnsafeAllocationSamples,
         ThreadInfo threadInfo,
+        // Set instead of threadInfo when the graph is opened from a collapsed timeline lane: the lane
+        // has no thread of its own, and the page holds at most a slice of its members, so it names the
+        // group and lets the server resolve every thread behind it.
+        String threadGroup,
         GraphComponents components,
         List<Marker> markers) {
+
+    public boolean hasThreadGroup() {
+        return threadGroup != null && !threadGroup.isBlank();
+    }
 }
