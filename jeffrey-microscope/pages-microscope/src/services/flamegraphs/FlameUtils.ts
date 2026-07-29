@@ -49,7 +49,7 @@ export default class FlameUtils {
     }
 
     el.addEventListener('scroll', () => {
-      flamegraph.updateScrollPositionY(el.scrollTop);
+      flamegraph.onScroll();
       flamegraph.removeHighlight();
     });
   }

@@ -277,7 +277,7 @@ export default class ThreadRow {
       ThreadTooltips.header(threadName)
     );
 
-    this.threadTooltip.showTooltip(new TooltipPosition(pos.x, pos.y), 0, content);
+    this.threadTooltip.showTooltip(new TooltipPosition(pos.x, pos.y), content);
   }
 
   /**

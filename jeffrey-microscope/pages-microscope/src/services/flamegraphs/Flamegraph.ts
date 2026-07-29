@@ -43,7 +43,6 @@ export default class Flamegraph {
   private canvasHeight: number | null = null;
   private canvasWidth: number | null = null;
   private pxPerSample: number | null = null;
-  private currentScrollY: number = 0;
 
   private hlFrame: Frame | null = null;
   private contextFrame: Frame | null = null;
@@ -175,7 +174,7 @@ export default class Flamegraph {
           this.levels[0][0].totalWeight
         );
 
-        this.tooltip.showTooltip(event, this.currentScrollY, tooltipContent);
+        this.tooltip.showTooltip(event, tooltipContent);
 
         this.canvas.style.cursor = 'pointer';
         this.canvas.onclick = () => {
@@ -219,12 +218,14 @@ export default class Flamegraph {
     return this.skipRootInCanvas ? 1 : 0;
   }
 
-  updateScrollPositionY(value: number) {
+  /**
+   * The graph's container scrolled. Anything anchored to a frame's old position — the tooltip, the
+   * context menu — is dismissed rather than dragged along.
+   */
+  onScroll() {
     this.tooltip.hideTooltip();
     this.closeContextMenu();
     this.contextMenu.hide();
-
-    this.currentScrollY = value;
   }
 
   removeHighlight() {
